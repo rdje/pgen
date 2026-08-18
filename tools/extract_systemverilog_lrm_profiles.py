@@ -20,7 +20,7 @@ Measured 2026-08-17 (`SV-CORPUS-GRAD.13c.2f`(d)) against the tracked artifacts:
   grammars/systemverilog_lrm_profiled_generated.ebnf   289 lines  (hand-added entry rule,
                                                        operand/base expression split, …)
   grammars/systemverilog.ebnf  (--output-active-ebnf)  7 277 lines — 1 480 rules vs 1 359 and
-                                                       **1 090 return annotations vs 0**
+                                                       **2 292 return annotations vs 0**
 
 ⇒ writing either target blind DESTROYS the deliverable: the flattened output carries NO return
 annotations at all, so the AST every downstream consumer is shaped by would simply vanish, and this
@@ -928,7 +928,7 @@ def write_output(path: Path, content: str, label: str, promote: bool) -> str:
 
     ⛔⛔ THE REFUSAL IS THE FEATURE — see the module docstring for the measurement. Both outputs of
     this tool have been hand-superseded (289 and 7 277 lines), and the flattened one carries **0**
-    return annotations against the deliverable's 1 090, so a blind write is an unrecoverable loss of
+    return annotations against the deliverable's 2 292, so a blind write is an unrecoverable loss of
     the AST contract. This tool cannot tell a hand fix from a defect it is about to restore, so it
     refuses instead of guessing, and `--promote-outputs` is the deliberate, loud consent.
     """

@@ -1,0 +1,19 @@
+EXTRACTOR-GUARD — SV-CORPUS-GRAD.13c.2f(d) / .13c.2g
+
+  ✓ A1 fresh scratch outputs are written           rc=0
+  ✓ A2 header cites sources repo-relatively       
+  ✓ A3 identical re-run reports unchanged          rc=0
+  ✓ A4 copy of the DELIVERABLE is refused          rc=1
+  ✓ A5 copy of the SIBLING is refused              rc=1
+  ✓ A6 refused copies are byte-unchanged          
+  ✓ A7 the REAL deliverable path is refused        rc=1
+  ✓ A8 the REAL sibling path is refused            rc=1
+  ✓ A9 tracked grammars are byte-unchanged        
+  ✓ A10 --promote-outputs overwrites deliberately  rc=0
+  ✓ A11 report carries the $-transliteration census (21 tokens)
+  ✓ A12 shipped grammar has 0 _dollar terminals   
+  ✓ A12b classifier agrees with the producer       2292 = 2292
+  ✓ A13 an UNGUARDED revision of the tool exists   (b8a5f954)
+  ✓ A14 the unguarded tool DESTROYS it, silently   rc=0, return annotations 2292 -> 0
+
+EXTRACTOR-GUARD: 15/15 as declared

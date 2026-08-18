@@ -16,6 +16,9 @@ answers:
   - "must I be able to disprove my own claims"
   - "I found something that is plainly wrong — do I ask the director or fix it"
   - "is a diagnostics-behaviour change a director call"
+  - "is which production this text should parse as a director call"
+  - "the standard is ambiguous here — do I ask the director to pick"
+  - "I already cited the spec in the leaf and I am still asking — what does that mean"
   - "does a change that needs care also need escalation"
 reverify: sed -n '/SEQUENCING IS EXECUTION/,/^$/p' docs/decisions/feedback_answer_your_own_technical_questions.md
 ---
@@ -192,6 +195,43 @@ options, you are not asking — you are reporting, and the heading is wrong.**
 
 ⇒ **Second test, to run before the first:** *what are the two options, and what does each cost?* If
 that sentence will not write itself, delete the heading and make the call.
+
+**⭐⭐⭐ THE SIXTH COSTUME: A CONFORMANCE QUESTION DRESSED AS A PREFERENCE (director, 2026-08-18,
+session #244).** `SV-CORPUS-GRAD.13c.2h` was surfaced as:
+
+> *"💡 Suggestion — your call … If you want the pulse reading to win the tie, it is an alternative
+> re-ordering plus an `ast_shape_contract` review."*
+
+The director's reply is the ruling:
+
+> *"I personally have no preference here, and I should have, is it not about my preferences, it is
+> about full and thorough SystemVerilog LRM IEEE 1800 2017/2023 compliance and not about my
+> preferences."*
+
+⛔ **Costume 5 was a statement wearing a question's heading; this one is a QUESTION about an external
+authority handed to someone who is not that authority.** Whether `PATHPULSE$x$y = (1)` should parse
+as `pulse_control_specparam` or as an ordinary `specparam_assignment` is decided by IEEE 1800 — a
+tracked document in this repository — and by nothing else. Offering it as a preference implies the
+project's acceptance surface is negotiable, which contradicts the north star
+([[project_north_star]]: *SV is 100 % LRM-compliant by default; over-acceptance is a defect*).
+
+⭐ **The tell, and it is sharper than costume 5's:** the escalation paragraph **already carried its
+own citations**. It named the tie, the production and the `longest_match` rule; the leaf beside it
+quoted A.7.5 and A.8.4. ⇒ **when a question arrives with its own evidence attached, it is not a
+question — it is an answer that has not been written down.** Costume 5's test was *can I name the two
+options and their prices*; this one adds: **can the question be settled by a document I can open?**
+If yes, open it.
+
+⚠️ **And the answer was already on disk, measured, three slices earlier.** §30.7.1's own example line
+`PATHPULSE$ = 3;` is derivable ONLY through the ordinary alternative (the pulse production mandates
+parentheses), so *"the pulse reading should always win"* would reject the standard's own example.
+That file had been added as `fixed_pathpulse_lrm_30_7_1.sv` and measured ACCEPT in the very slice
+that opened the question. **The escalation was not blocked on evidence; it was blocked on reading
+the evidence I had.**
+
+⇒ **Third test:** *is there a document that decides this?* A standard, an LRM clause, a tracked
+contract, a prior decision record. If there is, the director is not the arbiter — the document is,
+and quoting it IS the answer.
 
 Companions: [[feedback_why_and_where_before_solution]] (know WHY+WHERE before designing),
 [[feedback_no_codebase_change_without_tool_backed_facts]], [[feedback_instrument_needs_ground_truth]],

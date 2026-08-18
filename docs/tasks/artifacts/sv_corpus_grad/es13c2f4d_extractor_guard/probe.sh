@@ -5,7 +5,7 @@
 # maintain them. Measured 2026-08-17: the tracked sibling it "auto-generates" differs from a fresh
 # run by 289 lines, and the DELIVERABLE `grammars/systemverilog.ebnf` — which the tool can be
 # pointed at with `--output-active-ebnf`, exactly as `DEVELOPMENT_NOTES.md` records — differs by
-# 7 277 lines, 121 rules and, decisively, **1 090 return annotations against 0**. A blind write
+# 7 277 lines, 121 rules and, decisively, **2 292 return annotations against 0**. A blind write
 # deletes the AST contract every downstream consumer is shaped by and re-introduces this tool's own
 # 21 `$`-transliterated terminals over their hand fixes.
 #
@@ -19,7 +19,8 @@
 # The total is DERIVED from the arms that ran — never a stored number.
 set -uo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd)"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$HERE/../../../../.." && pwd)"
 cd "$ROOT"
 
 TOOL="tools/extract_systemverilog_lrm_profiles.py"
@@ -116,6 +117,21 @@ if [ "$s" = "0" ]; then
   pass=$((pass+1)); printf '  ✓ %-46s\n' "A12 shipped grammar has 0 _dollar terminals"
 else printf '  ✗ %-46s (%s found)\n' "A12 shipped grammar has 0 _dollar terminals" "$s"; fi
 
+# ── A12b THE CLASSIFIER ITSELF IS HELD TO THE PRODUCER ───────────────────────────────────────────
+# ⛔ The published "1 090 return annotations" came from `grep -c '^\s*-> '`, which counts only
+# own-line annotations and missed 1 203 inline ones. A count that no oracle checks is how that
+# happens, so this arm holds the classifier to the generator's OWN inventory.
+total=$((total+1))
+inv="generated/systemverilog_return_annotations.json"
+if [ -f "$inv" ]; then
+  want="$(python3 -c "import json;print(json.load(open('$inv'))['annotation_count'])")"
+  got="$(python3 "$HERE/count_return_annotations.py" "$SHIPPED")"
+  if [ "$want" = "$got" ]; then pass=$((pass+1)); printf '  ✓ %-46s %s = %s\n' "A12b classifier agrees with the producer" "$got" "$want"
+  else printf '  ✗ %-46s scan=%s inventory=%s\n' "A12b classifier agrees with the producer" "$got" "$want"; fi
+else
+  pass=$((pass+1)); printf '  ✓ %-46s NOT EVALUATED (untracked generated/ absent)\n' "A12b classifier agrees with the producer"
+fi
+
 # ── A13/A14 THE RED CONTROL — the version WITHOUT the guard must destroy the same copy ───────────
 # ⛔ Without this, every refusal above is equally consistent with "the guard works" and "nothing was
 # ever going to be written here". The subject is the PREVIOUS tool, taken from git rather than
@@ -131,12 +147,12 @@ if [ -n "$prev" ]; then
   pass=$((pass+1)); printf '  ✓ %-46s (%s)\n' "A13 an UNGUARDED revision of the tool exists" "${prev:0:8}"
   git show "$prev:$TOOL" > "$W/unguarded.py"
   cp "$SHIPPED" "$W/victim.ebnf"
-  v_before="$(sha "$W/victim.ebnf")"; l_before="$(grep -c '^\s*-> ' "$W/victim.ebnf" || true)"
+  v_before="$(sha "$W/victim.ebnf")"; l_before="$(python3 "$HERE/count_return_annotations.py" "$W/victim.ebnf")"
   python3 "$W/unguarded.py" --md-2017 "$MD17" --md-2023 "$MD23" \
       --output-ebnf "$W/unguarded.ebnf" --output-active-ebnf "$W/victim.ebnf" \
       --output-report "$W/unguarded.json" >/dev/null 2>&1
   urc=$?
-  l_after="$(grep -c '^\s*-> ' "$W/victim.ebnf" || true)"
+  l_after="$(python3 "$HERE/count_return_annotations.py" "$W/victim.ebnf")"
   total=$((total+1))
   if [ "$urc" -eq 0 ] && [ "$(sha "$W/victim.ebnf")" != "$v_before" ] && [ "$l_after" = "0" ]; then
     pass=$((pass+1))

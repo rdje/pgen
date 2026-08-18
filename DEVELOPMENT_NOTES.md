@@ -1,5 +1,44 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-18 - PGEN-SV-CORPUS-GRAD-0225 — I escalated a compliance question as a preference, and three findings I had just published each carried an error
+
+**1. ⭐⭐⭐ "YOUR CALL" WAS THE WRONG SENTENCE, AND THE DIRECTOR SAID SO EXACTLY.** I surfaced the
+single-limit `PATHPULSE$x$y = (1)` tie-break as *"if you want the pulse reading to win"*. There is no
+"want" in it: `docs/decisions/feedback_answer_your_own_technical_questions.md` says an
+OBJECTIVE/technical question is mine, and *"which production should this text parse as"* is settled
+by IEEE 1800, not by preference. ⛔ The tell I should have caught: I had already written the LRM
+citations INTO the leaf and still asked. **When a question comes with its own citations, it is not a
+question — it is an answer waiting to be stated.**
+
+**2. ⭐⭐ AND THE ANSWER WAS IN THE STANDARD'S OWN EXAMPLE, WHICH I HAD ALREADY PARSED.**
+`PATHPULSE$ = 3;` — §30.7.1's own line, in both LRMs — is derivable ONLY through the ordinary
+`specparam_identifier = constant_mintypmax_expression` alternative, because `pulse_control_specparam`
+mandates parentheses. So *"the pulse alternative should always win"* would reject the standard's own
+example. That file was already in `fixed_pathpulse_lrm_30_7_1.sv` and already measured ACCEPT, three
+slices earlier, without my drawing the inference.
+
+**3. ⛔⛔ MY ANNOTATION COUNT WAS WRONG BY MORE THAN HALF, AND THE CLASSIFIER WAS THE REASON.**
+`grep -c '^\s*-> '` counts return annotations written on their OWN line: **1 090**. The grammar
+writes **1 203** more INLINE. True: **2 292**, per the generator's own inventory. ⇒ the number I used
+to state how catastrophic a blind overwrite would be was itself unverified against the producer — in
+a session whose whole thesis was *derive the classifier from the producer*. The new classifier
+reproduces the inventory exactly and a probe arm holds it there. ⚠️ It took two corrections to get
+exact: `->` lives in operator token literals too, and blanking `"…"` strings before `/…/` regex
+terminals eats `string_literal`'s own annotation. Found by comparing **per rule**, not totals — a
+total that is off by one is invisible; a per-rule join names the row.
+
+**4. ⛔ "BOTH CALLERS" WAS THREE, AND THE ONE I MISSED WAS THE INTERESTING ONE.** There is a workflow
+NAMED `ebnf-frontend-dual-run-diff.yml`, and it runs `ebnf_frontend_dual_run_diff` — the report-only
+target — so the workflow named after the gate would not have failed on the breach. My conclusion got
+stronger while my enumeration was wrong, which is the failure mode worth naming: **a conclusion that
+survives a correction is not evidence the enumeration behind it was sound.**
+
+**5. ⚠️ I ATTRIBUTED MY OWN STALENESS TO SOMEONE ELSE.** I published *"the verilog_2005 lane was two
+parser-states stale"*. It was **one** at the session's start; my own regeneration made it two before
+I refreshed it. And the sweep artifact staled **3 commits** after publication, not "within one".
+Neither error changes a decision, and both made the report read as a sharper indictment than the
+measurement supports.
+
 ## 2026-08-18 - PGEN-SV-CORPUS-GRAD-0223 — an instrument that counts a defect and cannot name it is a blocker, not a report
 
 **1. ⭐⭐⭐ "TRUNCATION IS ALWAYS VISIBLE" IS TRUE AND IT IS NOT THE PROPERTY THAT MATTERS.** The

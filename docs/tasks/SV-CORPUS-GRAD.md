@@ -9180,20 +9180,29 @@ two fewer known defects over the same 46.3 % of the corpus, which is a strictly 
 the untouched book `SV-CORPUS-DENOMINATOR` went RED with the derivation
 (`publishes ['…/302'] but the census derives …/300`), and green after.
 
-⚠️ **THE `verilog_2005` LANE WAS TWO PARSER-STATES STALE WHEN THIS SLICE FOUND IT** —
-`characterization_v2005.md` recorded parser `463c6476…` (that is `.13h`'s state, 2026-08-14) while
-the SV lane had already been promoted to `36942bb5…` by slice 3. So slice 3 re-ran one lane and not
-the other. Re-measured here: `pass 2181 → 2182`. ⛔ This is the SECOND consecutive occurrence of the
-class `.13i` owns (*six tracked oracles carry an instrument-identity block and only one is
-gate-checked*), and the first one was found the same way — by a slice that happened to need the
-number. Recorded at `.13i` rather than opened again.
+⚠️ **THE `verilog_2005` LANE WAS STALE WHEN THIS SLICE FOUND IT, AND THE HONEST FIGURE IS ONE
+PARSER-STATE, NOT TWO.** At the session's starting commit `6d1a18b3`, `characterization_v2005.md`
+recorded parser `463c6476…` (`.13h`'s state, 2026-08-14) while `characterization.md` already recorded
+`36942bb5…` — slice 3 re-ran one lane and not the other, so the lane was **one** state behind.
+⛔ **This slice's own regeneration made it two** before both lanes were refreshed, and a first
+write-up published "two parser-states" without saying that half of the gap was mine (corrected under
+a director challenge, `-0225`). Re-measured here: `pass 2181 → 2182`. This IS the class `.13i` owns
+(*six tracked oracles carry an instrument-identity block and only one is gate-checked*) — the file
+carries such a block — and it is the second consecutive occurrence found the same way, by a slice
+that happened to need the number. Recorded at `.13i` rather than opened again.
 
-⚠️ **A TRACKED PUBLISHED MEASUREMENT WENT STALE IN ONE COMMIT, AND NOTHING SAID SO.**
+⚠️ **A TRACKED PUBLISHED MEASUREMENT WAS STALE, AND NOTHING SAID SO.**
 `nonterminal_as_literal_sweep.txt` still read *"**5 are defects**, 313 kw_* terminals"* — slice 3 had
 deleted `kw_function_declaraton_06b7ed29` and left the artifact behind (it is absent from slice 3's
-own LOCKSTEP list). Live at the start of this slice: **4 defects / 312**. Refreshed here, and the
-same class is why `.13i` exists. ⇒ **the sweep is now 2 defects / 9 sites**, `class_qualifier` (8) and
-`tx_path_delay_expression` (1) — the two slice 3 ruled NOT to fix, for a stated reason.
+own LOCKSTEP list). Live at the start of this slice: **4 defects / 312**. Refreshed here.
+⇒ **the sweep is now 2 defects / 9 sites**, `class_qualifier` (8) and `tx_path_delay_expression` (1)
+— the two slice 3 ruled NOT to fix, for a stated reason.
+⛔ **Two precisions this leaf owes, added under a director challenge** (`-0225`): (1) the artifact was
+published at `8bb61555` (`-0217`) and staled at `6d1a18b3` (`-0220`) — **3 commits later**, not
+"within one commit"; a chat summary compressed *published at X* and *found one slice after it staled*
+into a false single claim. (2) ⛔ **the sweep is NOT in `.13i`'s population**: that leaf's set is
+derived by `grep -l 'Instrument identity'` and this artifact carries **0** such markers. Its problem
+is *a published artifact with no watcher*, which is adjacent to `.13i` and not the same subject.
 
 ⭐ **AND THE INSTRUMENT ITSELF PUBLISHED A CLAIM ITS OWN TREE HAD REFUTED.** Its closing note read
 *"…which is why these are under-acceptance defects rather than harmless dead code. LRM-legal source
@@ -9210,7 +9219,7 @@ slice 2 re-scoped, still being printed beside the two survivors, for which it is
 - [x] **NO REGRESSION** — SV corpus **16 336 files, 0 rows worsened** (the only three that moved all improved), `timeout=0 crash=0`; **accepts-invalid byte-identical at 21** (main) and **14** (v2005) — the accept-widening admitted no new invalid SV; four over-acceptance controls REJECT, including the whitespace-separated spelling the composed fix would have admitted; `ADJUDICATION-REPROS: checked=39 armed=12 listed=39 failures=0`; `--lint-grammar` `non_terminating=0 / ordered_choice_shadowing=0 / unreachable_rules=0 / undefined_references=0 / profile_orphans=0`, byte-identical to the pre-edit headline; `ast_shape_contract_gate` **18/18**; `generated_reproducibility_gate` **TIER 2 OK — 11/11 byte-identical, 0 sites**; parse-cost binding counters **+0 / +0 / +0** (entries 416,841,264 · committed 7,124,616 · memo hits 186,981,263) and family share **2.741 %** re-derived exactly; `generated_clippy_correctness_gate` **0 findings across 10 required + 1 optional artifacts**; `bash scripts/check_doctrines.sh` **21/21 PASS**.
 - [x] **LOCKSTEP** — `grammars/systemverilog.ebnf`; both corpus lanes promoted (`characterization.md`, `characterization_v2005.md`, `results*.tsv`, `positions*.tsv`, `durations*.tsv`) with instrument identity re-derived; `adjudication_manifest{,_v2005}.tsv` + summaries re-adjudicated; `verdict_coverage/` census re-run; `docs/book/src/grammar-wellformedness.md` live tuple `302 → 300`; `stimuli/sv/adjudication_repros/` +10 rows; `nonterminal_as_literal_sweep.py` + `.txt` (stale artifact refreshed AND its refuted closing claim corrected); the new artifacts under `docs/tasks/artifacts/sv_corpus_grad/es13c2f4_pathpulse/`; `docs/knowledge/a-token-the-standard-writes-contiguously-must-be-one-terminal.md` + `KNOWLEDGE_MAP.md`; the `generated_reproducibility_v0.json` and `parse_cost_ratchet` baselines (both rebaselined — the SV artifact legitimately moved); this leaf, `.13c.2h` NEW, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`.
 
-#### ⚠️ `.13c.2h` NEW `todo` — a single-limit `PATHPULSE$x$y = (1)` still parses as an ORDINARY specparam, so the AST loses the pulse-control identity (opened 2026-08-17 session #244 by `.13c.2f` slice 4)
+#### ✅ `.13c.2h` — a single-limit `PATHPULSE$x$y = (1)` parses as an ORDINARY specparam (**`done` — RULED NO CHANGE 2026-08-18**, `PGEN-SV-CORPUS-GRAD-0225`; opened 2026-08-17 session #244 by `.13c.2f` slice 4)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
 
@@ -9240,12 +9249,68 @@ slice 2 re-scoped, still being printed beside the two survivors, for which it is
   the AST shape for text that already parses — a downstream-contract question (Nexsim consumes the
   AST), not an acceptance question — so it is owned rather than bundled.
 
-**Acceptance:** (a) rule whether the pulse reading SHOULD win the tie — cite the LRM clause, not a
-preference, and note that §30.7.1's own example uses only the two-value form; (b) if yes, price the
-change: it is an alternative re-ordering plus an `ast_shape_contract` review, and it must show the
-one-value forms flipping to `pulse` with every other specparam's AST byte-identical; (c) either way,
-pin both single-limit forms as `arm`-carrying repros so the chosen reading is a ratchet rather than
-an accident.
+**Acceptance:** ✅ **(a) RULED — NO CHANGE; the current behaviour is LRM-conformant on BOTH
+profiles**; ⛔ **(b) does not arise** — the premise *"if yes"* is refuted, see below; ✅ **(c)** the
+three derivability rows are pinned as `arm`-carrying repros so the ruling is a ratchet.
+
+##### ⛔⛔ THE RULING (2026-08-18) — and it was MINE to make, not the director's
+
+⭐ **This was escalated as *"your call … if you want the pulse reading to win the tie"* and that
+framing was WRONG.** It is not a preference: it is IEEE 1800 conformance, which
+[[feedback_answer_your_own_technical_questions]] says I answer myself. Director, verbatim:
+*"it is about full and thorough SystemVerilog LRM IEEE 1800 2017/2023 compliance and not about my
+preferences."* Recorded here because the mis-framing is the defect, not the answer.
+
+**THE DERIVATION, from the tracked normative text of BOTH LRMs** (2017 §30.7.1 + Annex A; 2023
+§30.7.1 + A.7.5 / A.8.3 / A.8.4 / A.9.3 — the 2017 productions live in
+`docs/systemverilog/2017/md/section-41-data-read-api.md`, which is the file the extractor consumes
+as its 2017 Annex A):
+
+1. `simple_identifier ::= [ a-zA-Z_ ] { [ a-zA-Z0-9_$ ] }` (2017 note 49 / 2023 note 54) ⇒ **`$` is
+   an identifier character**, so `PATHPULSE$` and `PATHPULSE$clk$q` are legal `specparam_identifier`s.
+2. `constant_primary ::= … | ( constant_mintypmax_expression ) | …` ⇒ `(1)` and `(3.0:3.1:3.2)` ARE
+   legal `constant_mintypmax_expression`s. `(1,2)` is **not** — no comma production exists in an
+   expression, which is why `specparam CAP = (1, 2);` correctly REJECTS.
+3. `specparam_assignment ::= specparam_identifier = constant_mintypmax_expression |
+   pulse_control_specparam`, and `pulse_control_specparam` **requires** the parentheses.
+
+⇒ derivability, per form, is a fact about the standard rather than a policy choice:
+
+| input | ordinary alternative | `pulse_control_specparam` | PGEN today |
+|---|---|---|---|
+| `PATHPULSE$clk$q = (2,9)` | ⛔ no — `(2,9)` is not an expression | ✅ yes | **pulse** ✅ |
+| `PATHPULSE$clk$q = (1)` | ✅ yes — parenthesised `constant_primary` | ✅ yes | ordinary — **ambiguous, both conformant** |
+| `PATHPULSE$ = 3` | ✅ yes | ⛔ no — the parens are mandatory | **ordinary** ✅ |
+
+⭐⭐⭐ **ROW 3 IS DECISIVE AND IT REFUTES THE PROPOSED FIX.** `PATHPULSE$ = 3;` is **§30.7.1's own
+example**, verbatim in the 2017 *and* 2023 LRMs — and it is derivable **only** through the ORDINARY
+alternative. So a parser that forced the pulse reading for every `PATHPULSE$…` name would **reject
+the standard's own example**. *"The pulse alternative must always win"* is therefore refuted by the
+LRM, not declined by preference.
+
+⭐⭐ **AND THE AST KIND CANNOT BE THE DOWNSTREAM DISCRIMINATOR, BY THE STANDARD'S OWN
+CONSTRUCTION.** Because row 3 puts a genuine pulse control on the ordinary production, any consumer
+must recognise the **name** `PATHPULSE$<in>$<out>` to know it has one at all — the name is *data*
+(§30.7.1: it identifies which module path the limits apply to), not syntax. ⇒ forcing the row-2 tie
+toward `pulse` would add **no** downstream capability while moving a shipped AST shape. That is the
+whole cost/benefit, and it is settled by the LRM rather than by taste.
+
+**ROW 2 IS A GENUINE LRM AMBIGUITY.** Both readings are conformant; the standard supplies no
+disambiguation rule for it. §30.7.1's *"If only the reject limit value is specified, it shall apply
+to both the reject limit and the error limit"* is a SEMANTIC statement conditional on the production
+already being `pulse_control_specparam` — it does not select the production. PGEN resolves it
+deterministically (`longest_match`, exact tie → earlier alternative), which is a defensible and
+stable resolution of an ambiguity the standard leaves open. ⛔ **No grammar change**, and none is
+owed: no LRM-legal input is rejected and no illegal input is accepted.
+
+⚠️ **Two bounds stated rather than discovered later.** (i) §6.20.4 says specparams *"are permitted
+both within the specify block and in the main module body"*, so the reduced repros that declare
+`PATHPULSE$…` in a module body are grammatically legal; §30.7.1's *semantics* only make sense inside
+a `specify` block, and that is an elaboration constraint on the far side of PGEN's declared
+parser/elaborator boundary. The LRM-shaped case is covered by `fixed_pathpulse_lrm_30_7_1.sv`, which
+uses the specify block. (ii) §30.7.1's *"the terminals may not be a bit-select or part-select of a
+vector"* is what makes the descriptors identifier-shaped, and the shipped regex encodes exactly that
+— a `[ … ]` range inside a PATHPULSE descriptor is correctly not accepted.
 
 ##### ✅ `.13c.2f`(d) DISCHARGED + `.13c.2g` DISCHARGED (`PGEN-SV-CORPUS-GRAD-0222`, 2026-08-17 session #244) — the extractor's question had a THIRD answer, and it is the dangerous one
 
@@ -9262,7 +9327,7 @@ regeneration of that sibling re-introduces it"*. Both outputs were measured agai
 ⇒ **the premise is refuted and the risk runs the other way.** Neither file is a generator output;
 both were seeded and then hand-maintained for months. A regeneration would not re-introduce a defect
 into a clean file — it would **destroy the deliverable**: 1 480 rules → 1 359, and, decisively,
-**1 090 return annotations → 0**. A SystemVerilog grammar with no return annotations produces a
+**2 292 return annotations → 0**. A SystemVerilog grammar with no return annotations produces a
 parser with no declared AST, which is the *Annotation-shaped* doctrine deleted in one command. It
 would also restore this tool's own **21** `$`-transliterated terminals (`/sv_dollar_root\b/` where
 the LRM writes `$root`) over the hand fixes `SV-DOLLAR-LRM-FIDELITY` and `.13c.2f` slice 4 made.
@@ -9290,7 +9355,7 @@ guarded version the moment this lands — and runs it at the same copy of the de
 
 ```text
 A13 an UNGUARDED revision of the tool exists   (b8a5f954)
-A14 the unguarded tool DESTROYS it, silently   rc=0, return annotations 1090 -> 0
+A14 the unguarded tool DESTROYS it, silently   rc=0, return annotations 2292 -> 0
 ```
 
 **rc 0.** No error, no warning, 4 315 lines and the entire AST contract gone.
@@ -9340,11 +9405,14 @@ ceiling that fails in both directions.
   the cap and therefore invisible. This is the same shape TOOLBOX 5.1 records for `--lint-grammar`'s
   per-class cap, which hid 20 of SV's 30 left-recursion findings until `PGEN_LINT_DUMP_ALL` existed.
   ⇒ the first step is a cap escape on the differ, not a bisect through the grammar's history.
-- **WHY IT WENT UNNOTICED FOR ~2.5 WEEKS**: the gate is invoked only by `sota_exit_gate` (the
-  flagship, not re-proven end-to-end since `CI-PARITY-GATE-ROT.7`) and
-  `regex_parser_family_contract_gate`. `GATE-REACHABILITY` is satisfied — something DOES invoke it —
-  which is precisely the hole that doctrine's own honest bound names: *reachable by an aggregate
-  nobody runs* is not the same as *watched*.
+- **WHY IT WENT UNNOTICED FOR NINE DAYS**: ⚠️ **three** invokers, not the two this row first
+  claimed — `sota_exit_gate.sh:1116`, `regex_parser_family_contract_gate.sh:202` (both the STRICT
+  gate) and `.github/workflows/ebnf-frontend-dual-run-diff.yml:42`, which ⛔ **runs
+  `ebnf_frontend_dual_run_diff`, the REPORT-ONLY target** — so the workflow named after the gate
+  would not have failed on the breach even if dispatched. Both workflows are `workflow_dispatch:`
+  only. `GATE-REACHABILITY` is satisfied — something DOES invoke it — which is precisely the hole
+  that doctrine's own honest bound names: *reachable by an aggregate nobody runs* is not the same as
+  *watched*. Full table in `CI-PARITY-GATE-ROT.39`.
 - **Reproduces outside SystemVerilog: NO** — the other 13 grammars pass their ceilings in the same
   run, and this is the SV grammar's own projection.
 

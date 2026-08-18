@@ -5034,13 +5034,23 @@ reproduces outside the family it is being sent to):
   lockstep reason. Nine days by commit date; the last SV grammar edit before that was 2026-08-12,
   so several grammar-changing commits landed over a RED two-sided ratchet.
 - ⛔ **`GATE-REACHABILITY` was GREEN throughout, and correctly so.** Its rule is that every tracked
-  gate target is invoked by something that RUNS. This one is:
-  `grep -rn "ebnf_frontend_dual_run_gate" --include=*.sh --include=Makefile` names
-  `rust/scripts/sota_exit_gate.sh:1116` and `rust/scripts/regex_parser_family_contract_gate.sh:202`.
-  Both are **operator-invoked aggregates**, and `sota_exit_gate` is the flagship — measured in
-  `MEMORY.md` as *"not re-proven end-to-end since `CI-PARITY-GATE-ROT.7`"*. ⇒ **reachable by an
-  aggregate nobody runs is not watched**, and the doctrine cannot see the difference because it
-  measures the call graph, not the call FREQUENCY.
+  gate target is invoked by something that RUNS. ⚠️ **The first write-up of this row said "both
+  callers" and there are THREE**, re-derived across `*.sh`, `Makefile` and `.github/workflows/`:
+
+  | invoker | what it runs | trigger |
+  |---|---|---|
+  | `rust/scripts/sota_exit_gate.sh:1116` | the STRICT gate | operator / `workflow_dispatch:` |
+  | `rust/scripts/regex_parser_family_contract_gate.sh:202` | the STRICT gate (`PGEN_EBNF_DUAL_RUN_STRICT=1`) | operator |
+  | `.github/workflows/ebnf-frontend-dual-run-diff.yml:42` | ⛔ `ebnf_frontend_dual_run_diff` — the **REPORT-ONLY** target | `workflow_dispatch:` |
+
+  ⭐⭐ **The third row is the sharpest fact and the first write-up missed it entirely: the workflow
+  NAMED AFTER THE GATE does not run the gate.** It runs the report-only sibling, so even a dispatched
+  run would not have failed on the ceiling breach — the `_gate` string in that file is only an
+  artifact-upload path. ⛔ And **both** workflows are `workflow_dispatch:` only — no `push`,
+  `pull_request` or `schedule` trigger — so all three invokers are operator-driven, and
+  `sota_exit_gate` is the flagship, measured in `MEMORY.md` as *"not re-proven end-to-end since
+  `CI-PARITY-GATE-ROT.7`"*. ⇒ **reachable by an aggregate nobody runs is not watched**, and the
+  doctrine cannot see the difference because it measures the call graph, not the call FREQUENCY.
 - **Reproduces outside this gate: NOT MEASURED, and that is the leaf's first job.** The same shape
   applies to every target whose only callers are `sota_exit_gate` / a family contract gate, and the
   reachability register already enumerates the call edges — so the census is a join, not a new
