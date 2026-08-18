@@ -154,13 +154,9 @@ IN-WINDOW		black-parrot	bp_common/src/include/bp_common_aviary_pkgdef.svh	224	22
 IN-WINDOW		black-parrot	bp_common/src/include/bp_common_bedrock_if.svh	2278	2345	523	62	12331		\ {
 IN-WINDOW		black-parrot	bp_common/src/include/bp_common_bedrock_wormhole_defines.svh	865	886	334	25	5332		\ { \ logi
 IN-WINDOW		black-parrot	bp_common/src/include/bp_common_cache_engine_if.svh	229	258	39	9	6986		\ { \
-IN-WINDOW		black-parrot	bp_common/src/include/bp_common_cache_pkgdef.svh	873	873	1	19	2601		p+dev_addr_width_gp)'('h0400_0000); // This could be more efficiently matched
 IN-WINDOW		black-parrot	bp_common/src/include/bp_common_cfg_bus_defines.svh	231	260	0	5	1536		\ { \
-IN-WINDOW		black-parrot	bp_common/src/include/bp_common_cfg_bus_pkgdef.svh	1275	1275	1	42	2617		p+dev_addr_width_gp)'('h0020_0000); localparam cfg_match_addr_gp = (d
-IN-WINDOW		black-parrot	bp_common/src/include/bp_common_clint_pkgdef.svh	150	150	1	6	1134		p+dev_addr_width_gp)'('h30_0000); localparam clint_match_addr_gp = (dev
 IN-WINDOW		black-parrot	bp_common/src/include/bp_common_core_if.svh	2441	2533	1146	41	21147		\ typedef struct packed
 IN-WINDOW		black-parrot	bp_common/src/include/bp_common_defines.svh	1419	1424	0	30	1855		did_width_mp) \ , localparam cfg_bus_width_lp = `bp_cfg_bus_width(vaddr_widt
-IN-WINDOW		black-parrot	bp_common/src/include/bp_common_host_pkgdef.svh	146	146	1	5	1586		p+dev_addr_width_gp)'('h0010_0000); localparam host_match_addr_gp = (de
 IN-WINDOW		black-parrot	bp_common/src/include/bp_common_pkg.sv	403	407	347	15	917		e bp_common_pkg; `include "bp_common_accelerator_pkgdef.svh" `include "bp_c
 IN-WINDOW		black-parrot	bp_common/src/include/bp_common_rv64_csr_defines.svh	6871	6939	0	184	71056		\ {
 IN-WINDOW		black-parrot	bp_common/src/v/bp_mmu.sv	118	119	20	9	9457		rameter bp_params_e bp_params_p = e_bp_default_cfg `declare_bp_proc_params(bp
@@ -644,7 +640,7 @@ IN-WINDOW		opentitan	hw/ip/prim/fpv/tb/prim_keccak_tb.sv	1496	1501	1501	56	2138	
 IN-WINDOW		opentitan	hw/ip/prim/fpv/vip/prim_alert_rxtx_assert_fpv.sv	753	754	259	27	7180		o, input mubi4_t init_trig_i, input ping_req_i, input ping_
 IN-WINDOW		opentitan	hw/ip/prim/fpv/vip/prim_alert_rxtx_async_assert_fpv.sv	792	793	285	27	12332		i, input mubi4_t init_trig_i, input alert_req_i, input aler
 IN-WINDOW		opentitan	hw/ip/prim/fpv/vip/prim_esc_rxtx_assert_fpv.sv	1648	1650	264	59	5098		ust be deasserted `ASSUME_FPV(PingReqDeassert_M, ping_req_i && pin
-IN-WINDOW		opentitan	hw/ip/prim/fpv/vip/prim_fifo_sync_assert_fpv.sv	1035	1035	251	33	8386		deOne = (DepthW + 3)'(1'b1); localparam int unsigned PtrW = prim_util_pkg::vbi
+IN-WINDOW		opentitan	hw/ip/prim/fpv/vip/prim_fifo_sync_assert_fpv.sv	1252	1254	251	42	8386		nt values suffice `ASSUME(WdataValues_M, wdata_i inside {Width'(1'b0), Width'(
 IN-WINDOW		opentitan	hw/ip/prim/fpv/vip/prim_secded_22_16_assert_fpv.sv	531	533	533	19	1362		s simultaneously. `ASSUME_FPV(MaxTwoErrors_M, $countones(error_inject_i) <= 2)
 IN-WINDOW		opentitan	hw/ip/prim/fpv/vip/prim_secded_28_22_assert_fpv.sv	531	533	533	19	1362		s simultaneously. `ASSUME_FPV(MaxTwoErrors_M, $countones(error_inject_i) <= 2)
 IN-WINDOW		opentitan	hw/ip/prim/fpv/vip/prim_secded_39_32_assert_fpv.sv	531	533	533	19	1362		s simultaneously. `ASSUME_FPV(MaxTwoErrors_M, $countones(error_inject_i) <= 2)
@@ -752,7 +748,7 @@ IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_sync_reqack_data.sv	3899	3900	881	100	7
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_trivium.sv	4685	4687	4039	67	15899		ameter seed_type_e SeedType = SeedTypeStateFull, // Reseeding interface selecti
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_util_memload.svh	1782	1784	835	57	2205		endfunction `endif initial begin `ifndef SYNTHESIS logic show_mem_paths; /
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_util_pkg.sv	2284	2286	2286	66	2685		or); endfunction `ifdef INC_ASSERT // Package-scoped variable to detect the
-IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_xoshiro256pp.sv	866	866	624	21	3299		DefaultSeed = 256'(1'b1), parameter int unsigned NumStages = OutputDw / 64
+IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_xoshiro256pp.sv	3237	3239	624	85	3299		d is not all-zero `ASSERT_INIT(DefaultSeedNzCheck_A, |DefaultSeed) endmodule
 IN-WINDOW		opentitan	hw/ip/prim_asap7/rtl/prim_clock_inv.sv	561	565	171	23	656		.Y(clk_no) ); `ASSERT(scanmodeKnown, ##1 !$isunknown(scanmode_i), clk_no,
 IN-WINDOW		opentitan	hw/ip/prim_asap7/rtl/prim_clock_mux2.sv	1099	1099	171	34	1262		of the simulation. `ifndef FPV_ON `ASSERT(selKnown0, ##1 !$isunknown(sel_i),
 IN-WINDOW		opentitan	hw/ip/prim_generic/rtl/prim_clock_div.sv	611	613	171	22	2867		ontrol duty cycle `ASSERT_INIT(DivEven_A, (Divisor % 2) == 0) // It is assu
@@ -828,7 +824,7 @@ IN-WINDOW		opentitan	hw/ip/spi_device/rtl/spi_p2s.sv	395	396	214	17	5589		input 
 IN-WINDOW		opentitan	hw/ip/spi_device/rtl/spi_passthrough.sv	4273	4274	3438	103	30213		input spi_mode_e spi_mode_i, // Control: Passthrough block // If passt
 IN-WINDOW		opentitan	hw/ip/spi_device/rtl/spi_readcmd.sv	3722	3724	3432	97	25606		ameter sram_addr_t ReadBaseAddr = spi_device_pkg::SramReadBufferIdx, param
 IN-WINDOW		opentitan	hw/ip/spi_device/rtl/spi_s2p.sv	456	466	210	20	2649		spi_byte_t data_o, // Configuration input
-IN-WINDOW		opentitan	hw/ip/spi_device/rtl/spi_tpm.sv	2321	2321	247	57	54709		:0] CapMaxWrSize = 3'(unsigned'($clog2(WrFifoSize))), localparam logic [2:0] C
+IN-WINDOW		opentitan	hw/ip/spi_device/rtl/spi_tpm.sv	3999	4000	247	109	54709		output sram_l2m_t sck_sram_o, input sram_m2l_t sck_sram_i, // SRAM acces
 IN-WINDOW		opentitan	hw/ip/spi_device/rtl/spid_fifo2sram_adapter.sv	1964	1968	373	68	3417		l divide SramDw `ASSERT_INIT(WidthDivideSramDw_A, SramDw == (SramDw/FifoWidt
 IN-WINDOW		opentitan	hw/ip/spi_device/rtl/spid_jedec.sv	472	473	209	20	4781		input jedec_cfg_t sys_jedec_i, // from CSR output io_mode_e io_mode_o, i
 IN-WINDOW		opentitan	hw/ip/spi_device/rtl/spid_readbuffer.sv	7148	7152	1963	232	7245		endcase end `ASSERT(StartWithAddressUpdate_A, start_i |-> address_update
@@ -1038,7 +1034,7 @@ IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/rtl/otp_ctrl_scrmbl.s
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/pinmux/fpv/vip/pinmux_assert_fpv.sv	408	409	243	15	27153		ameter target_cfg_t TargetCfg = DefaultTargetCfg, parameter logic [NumAlerts-1
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux.sv	445	446	197	17	20576		ameter target_cfg_t TargetCfg = DefaultTargetCfg, parameter logic [NumAlerts-1
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv	1327705	1327707	224	42181	1328188		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
-IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/pwrmgr/dv/env/pwrmgr_env_cov.sv	1728	1729	371	54	7264		p = interrupt_cross with (!wakeup_cp && interrupt_cp); // An interrupt can
+IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/pwrmgr/dv/env/pwrmgr_env_cov.sv	2585	2586	371	74	7264		ds cip_base_env_cov #( .CFG_T(pwrmgr_env_cfg) ); `uvm_component_utils(pwrmgr
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/pwrmgr/dv/env/pwrmgr_env_pkg.sv	693	695	695	24	2214		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/pwrmgr/dv/env/pwrmgr_if.sv	3259	3259	3259	74	8096		ternal DUT signals. `ifndef PATH_TO_DUT `define PATH_TO_DUT tb.dut `endif /
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/pwrmgr/dv/sva/pwrmgr_ast_sva_if.sv	1486	1490	1490	38	4485		|| disable_sva; `define CLK_WAIT_BOUNDS ##[MinClkWaitCycles:MaxClkWaitCycles
@@ -1193,7 +1189,7 @@ IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/rtl/otp_ctrl_scrmbl.sv	
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/pinmux/fpv/vip/pinmux_assert_fpv.sv	408	409	243	15	38334		ameter target_cfg_t TargetCfg = DefaultTargetCfg, parameter logic [NumAlerts-1
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux.sv	445	446	197	17	28318		ameter target_cfg_t TargetCfg = DefaultTargetCfg, parameter bit SecVolatileRaw
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_top.sv	1236660	1236662	224	40256	1237143		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
-IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/pwrmgr/dv/env/pwrmgr_env_cov.sv	1728	1729	371	54	7010		p = interrupt_cross with (!wakeup_cp && interrupt_cp); // An interrupt can
+IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/pwrmgr/dv/env/pwrmgr_env_cov.sv	2585	2586	371	74	7010		ds cip_base_env_cov #( .CFG_T(pwrmgr_env_cfg) ); `uvm_component_utils(pwrmgr
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/pwrmgr/dv/env/pwrmgr_env_pkg.sv	693	695	695	24	2268		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/pwrmgr/dv/env/pwrmgr_if.sv	3259	3259	3259	74	8096		ternal DUT signals. `ifndef PATH_TO_DUT `define PATH_TO_DUT tb.dut `endif /
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/pwrmgr/dv/sva/pwrmgr_ast_sva_if.sv	1531	1535	1535	39	5866		|| disable_sva; `define CLK_WAIT_BOUNDS ##[MinClkWaitCycles:MaxClkWaitCycles
@@ -1275,7 +1271,7 @@ IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/gpio/rtl/gpio_reg_top.sv
 IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/fpv/vip/pinmux_assert_fpv.sv	408	409	243	15	38334		ameter target_cfg_t TargetCfg = DefaultTargetCfg, parameter logic [NumAlerts-1
 IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux.sv	445	446	197	17	28318		ameter target_cfg_t TargetCfg = DefaultTargetCfg, parameter bit SecVolatileRaw
 IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_reg_top.sv	1160551	1160553	224	37733	1161034		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
-IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/dv/env/pwrmgr_env_cov.sv	1728	1729	371	54	7010		p = interrupt_cross with (!wakeup_cp && interrupt_cp); // An interrupt can
+IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/dv/env/pwrmgr_env_cov.sv	2585	2586	371	74	7010		ds cip_base_env_cov #( .CFG_T(pwrmgr_env_cfg) ); `uvm_component_utils(pwrmgr
 IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/dv/env/pwrmgr_env_pkg.sv	693	695	695	24	2268		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
 IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/dv/env/pwrmgr_if.sv	3259	3259	3259	74	8096		ternal DUT signals. `ifndef PATH_TO_DUT `define PATH_TO_DUT tb.dut `endif /
 IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/dv/sva/pwrmgr_ast_sva_if.sv	1531	1535	1535	39	5866		|| disable_sva; `define CLK_WAIT_BOUNDS ##[MinClkWaitCycles:MaxClkWaitCycles
@@ -1675,8 +1671,6 @@ NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/ElabSysCall/dut.sv	42	78
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/LoopBits/LoopBits.sv	0	0		1	63		-parse -d uhdm -d coveruhdm -elabuhdm -d ast dut.sv -nobuilt
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/cip_lib/cip_lc_tx_cov_if.sv	414	415		11	624		(lc_ctrl_pkg::Off)) lc_tx_cov; lc_tx_cov cov; initial begin cov = lc_tx_
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv	1430	1433		53	13926		th(EntropyWidth), ) u_kmac_reduced ( .clk_i, .rst_ni, // Inputs e
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/top_darjeeling/rtl/autogen/testing/top_darjeeling_rnd_cnst_pkg.sv	5899	5899		244	21910		448'h0 }) }; //////////////////////////////////////////// // lc_ct
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/top_earlgrey/rtl/autogen/testing/top_earlgrey_rnd_cnst_pkg.sv	5906	5906		233	22616		448'h0 }) }; //////////////////////////////////////////// // lc_ct
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/dv/verilator/simple_system_cosim/ibex_simple_system_cosim_checker_bind.sv	275	275		7	906		#( .SecureIbex, .ICache, .PMPEnable, .PMPGranularity,
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/syn/rtl/latch_map.v	200	201		6	303		pecific cell module $_DLATCH_P_ (input E, input D, output Q); DLH_X1 _TECHMAP_RE
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv	51			2	52		name enum CUSTOM_1,
@@ -3412,6 +3406,7 @@ PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_darjeeling/ip_autogen/alert_hand
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_darjeeling/ip_autogen/alert_handler/dv/tests/alert_handler_base_test.sv	222	223	299	5	678	cip_base_test @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_test.sv	tends cip_base_test #( .ENV_T(alert_handler_env), .CFG_T(alert_handler_e
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_env.sv	208	209	389	5	2115	cip_base_env @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_env.sv	xtends cip_base_env #( .CFG_T (clkmgr_env_cfg), .COV_T
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_env_cfg.sv	216	217	686	5	1283	cip_base_env_cfg @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_env_cfg.sv	ds cip_base_env_cfg #( .RAL_T(clkmgr_reg_block) ); // This scoreboard handl
+PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv	3077	3078	3111	96	5299	cip_base_env_cov @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_env_cov.sv	ds cip_base_env_cov #( .CFG_T(clkmgr_env_cfg) ); `uvm_component_utils(clkmgr
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_scoreboard.sv	349	350	437	7	9653	cip_base_scoreboard @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_scoreboard.sv	cip_base_scoreboard #( .CFG_T(clkmgr_env_cfg), .RAL_T(clkmgr_reg_block), .
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_virtual_sequencer.sv	236	237	296	5	376	cip_base_virtual_sequencer @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_virtual_sequencer.sv	e_virtual_sequencer #( .CFG_T(clkmgr_env_cfg), .COV_T(clkmgr_env_cov) ); `
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_darjeeling/ip_autogen/clkmgr/dv/env/seq_lib/clkmgr_base_vseq.sv	214	215	395	4	15391	cip_base_vseq @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_base_vseq.sv	tends cip_base_vseq #( .RAL_T (clkmgr_reg_block), .CFG_T
@@ -3643,6 +3638,7 @@ PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_earlgrey/ip_autogen/alert_handle
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_earlgrey/ip_autogen/alert_handler/dv/tests/alert_handler_base_test.sv	222	223	299	5	678	cip_base_test @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_test.sv	tends cip_base_test #( .ENV_T(alert_handler_env), .CFG_T(alert_handler_e
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_earlgrey/ip_autogen/clkmgr/dv/env/clkmgr_env.sv	208	209	389	5	3474	cip_base_env @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_env.sv	xtends cip_base_env #( .CFG_T (clkmgr_env_cfg), .COV_T
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_earlgrey/ip_autogen/clkmgr/dv/env/clkmgr_env_cfg.sv	216	217	957	5	1554	cip_base_env_cfg @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_env_cfg.sv	ds cip_base_env_cfg #( .RAL_T(clkmgr_reg_block) ); // This scoreboard handl
+PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_earlgrey/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv	3077	3078	3111	96	6299	cip_base_env_cov @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_env_cov.sv	ds cip_base_env_cov #( .CFG_T(clkmgr_env_cfg) ); `uvm_component_utils(clkmgr
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_earlgrey/ip_autogen/clkmgr/dv/env/clkmgr_scoreboard.sv	349	350	437	7	15139	cip_base_scoreboard @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_scoreboard.sv	cip_base_scoreboard #( .CFG_T(clkmgr_env_cfg), .RAL_T(clkmgr_reg_block), .
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_earlgrey/ip_autogen/clkmgr/dv/env/clkmgr_virtual_sequencer.sv	236	237	296	5	376	cip_base_virtual_sequencer @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_virtual_sequencer.sv	e_virtual_sequencer #( .CFG_T(clkmgr_env_cfg), .COV_T(clkmgr_env_cov) ); `
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_earlgrey/ip_autogen/clkmgr/dv/env/seq_lib/clkmgr_base_vseq.sv	214	215	395	4	20925	cip_base_vseq @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_base_vseq.sv	tends cip_base_vseq #( .RAL_T (clkmgr_reg_block), .CFG_T
@@ -3816,6 +3812,7 @@ PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_earlgrey/ip_autogen/rstmgr/dv/en
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_earlgrey/ip_autogen/rstmgr/dv/tests/rstmgr_base_test.sv	215	216	272	5	623	cip_base_test @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_test.sv	tends cip_base_test #( .CFG_T(rstmgr_env_cfg), .ENV_T(rstmgr_env) ); `uvm
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/dv/env/clkmgr_env.sv	208	209	389	5	3474	cip_base_env @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_env.sv	xtends cip_base_env #( .CFG_T (clkmgr_env_cfg), .COV_T
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/dv/env/clkmgr_env_cfg.sv	216	217	957	5	1554	cip_base_env_cfg @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_env_cfg.sv	ds cip_base_env_cfg #( .RAL_T(clkmgr_reg_block) ); // This scoreboard handl
+PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv	3077	3078	3111	96	6141	cip_base_env_cov @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_env_cov.sv	ds cip_base_env_cov #( .CFG_T(clkmgr_env_cfg) ); `uvm_component_utils(clkmgr
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/dv/env/clkmgr_scoreboard.sv	349	350	437	7	14695	cip_base_scoreboard @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_scoreboard.sv	cip_base_scoreboard #( .CFG_T(clkmgr_env_cfg), .RAL_T(clkmgr_reg_block), .
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/dv/env/clkmgr_virtual_sequencer.sv	236	237	296	5	376	cip_base_virtual_sequencer @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_virtual_sequencer.sv	e_virtual_sequencer #( .CFG_T(clkmgr_env_cfg), .COV_T(clkmgr_env_cov) ); `
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/dv/env/seq_lib/clkmgr_base_vseq.sv	214	215	395	4	19980	cip_base_vseq @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_base_vseq.sv	tends cip_base_vseq #( .RAL_T (clkmgr_reg_block), .CFG_T
@@ -4146,14 +4143,11 @@ PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip/xbar_dbg/dv/autogen/
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip/xbar_main/dv/autogen/tb__xbar_connect.sv	232	233	241	7	3448	xbar_main	py` tool xbar_main dut(); `DRIVE_CLK(clk_main_i) `DRIVE_CLK(clk_fixed_i) init
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip/xbar_mbx/dv/autogen/tb__xbar_connect.sv	231	232	240	7	1137	xbar_mbx	.py` tool xbar_mbx dut(); `DRIVE_CLK(clk_mbx_i) initial force dut.clk_mbx_i =
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip/xbar_peri/dv/autogen/tb__xbar_connect.sv	232	233	241	7	1639	xbar_peri	py` tool xbar_peri dut(); `DRIVE_CLK(clk_peri_i) initial force dut.clk_peri_i
-PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv	960	961	3111	24	5299	csr_enable_cp,ip_clk_en_cp,peri_cross	le_off = peri_cross with (csr_enable_cp == 1 && ip_clk_en_cp == 0); } endg
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cov.sv	2244	2245	6845	56	19061	TL_DW,otp_ctrl_core_reg_block	ctrl_core_reg_block ral) with function sample(bit[TL_DW-1:0]
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_earlgrey/ip/xbar_main/dv/autogen/tb__xbar_connect.sv	232	233	241	7	2502	xbar_main	py` tool xbar_main dut(); `DRIVE_CLK(clk_main_i) `DRIVE_CLK(clk_fixed_i) `DRIV
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_earlgrey/ip/xbar_peri/dv/autogen/tb__xbar_connect.sv	232	233	241	7	1965	xbar_peri	py` tool xbar_peri dut(); `DRIVE_CLK(clk_peri_i) initial force dut.clk_peri_i
-PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_earlgrey/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv	960	961	3111	24	6299	csr_enable_cp,ip_clk_en_cp,peri_cross	le_off = peri_cross with (csr_enable_cp == 1 && ip_clk_en_cp == 0); } endg
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cov.sv	2244	2245	5448	56	15677	TL_DW,otp_ctrl_core_reg_block	ctrl_core_reg_block ral) with function sample(bit[TL_DW-1:0]
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_englishbreakfast/ip/xbar_main/dv/autogen/tb__xbar_connect.sv	232	233	241	7	1375	xbar_main	py` tool xbar_main dut(); `DRIVE_CLK(clk_main_i) `DRIVE_CLK(clk_fixed_i) init
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_englishbreakfast/ip/xbar_peri/dv/autogen/tb__xbar_connect.sv	232	233	241	7	1409	xbar_peri	py` tool xbar_peri dut(); `DRIVE_CLK(clk_peri_i) `DRIVE_CLK(clk_spi_host0_i) `
-PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv	960	961	3111	24	6141	csr_enable_cp,ip_clk_en_cp,peri_cross	le_off = peri_cross with (csr_enable_cp == 1 && ip_clk_en_cp == 0); } endg
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/protocol/irqs.sv	362	362	623	12	1104	NoNMI	ither of these NoNMI: assume property (~irq_nm_i); NoFastIRQ: assume property (~
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/spec_instance.sv	471	472	565	14	2815	t_MainMode	ate. */ t_MainMode main_mode; always_comb begin if (wbexc_handling_irq) ma

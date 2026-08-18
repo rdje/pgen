@@ -2905,7 +2905,18 @@ assumed here.
   anchored rule terminator. ⚠️ Prove the repair against the differential, not against a parse
   verdict: the defect is `Ok` on both sides today.
 
-### `.10.16` — the PROJECTION flattens arm 1's inline/before-rule annotation distinction, and it is the single largest divergence class on SystemVerilog (`todo`, routed in 2026-08-18 by `SV-CORPUS-GRAD.13c.2i`)
+### `.10.17` — the PROJECTION flattens arm 1's inline/before-rule annotation distinction, and it is the single largest divergence class on SystemVerilog (`todo`, routed in 2026-08-18 by `SV-CORPUS-GRAD.13c.2i`)
+
+> ⚠️ **RENUMBERED `.10.16` → `.10.17` on 2026-08-18 (`PGEN-SV-CORPUS-GRAD-0227`) — the id was
+> ALREADY TAKEN.** `.10.16` was opened 2026-08-11 by `GRAMMAR-WELLFORMED.A2.5` (the print-only
+> `--ignored` probe that cannot fail, below); this leaf was inserted a week later without checking,
+> so for one commit two different findings answered to the same address — and `TOOLBOX.md` §1.7 and
+> `docs/tasks/GRAMMAR-WELLFORMED.md:2012` both point at the OTHER one. The older leaf keeps the
+> number it was cited under; this one moves. ⛔ The routing lesson is mechanical, not clerical: a
+> new leaf id must be `grep`ed for in its own tree before it is written, because a duplicate id
+> silently redirects every future reader who resolves it by search. Live references corrected in
+> `MEMORY.md` + `docs/TASK_TREE.md`; `CHANGES.md` / `DEVELOPMENT_NOTES.md` keep their historical
+> spelling, because a changelog records what was published, not what it should have said.
 
 - **Status: `todo`**, opened with its measurement rather than as a note.
 - **WHY + WHERE**: arm 1 emits **`semantic_annotation_inline`** for an annotation written INSIDE a
@@ -3052,6 +3063,51 @@ fail).
 
 **Acceptance:** every `--ignored` measurement probe fails when either side it compares fails to run;
 the 6 unaudited probes are measured and their published numbers reconciled or removed.
+
+### `.10.18` — PGEN's `*` / `+` are POSSESSIVE: a quantifier never gives back an iteration, and every grammar in this repository pays for it in hand-written lookaheads (`todo`, found 2026-08-18 by `SV-CORPUS-GRAD.13c.2c`)
+
+- **Status: `todo`**, opened with its measurement rather than as a note. ⛔ **Language-capability
+  finding, not an SV finding** — it is routed here rather than fixed in `SV-CORPUS-GRAD` because
+  the subject is the ENGINE's quantifier contract, which binds all 11 shipped families.
+- **MEASURED, on a five-line synthetic** (`docs/tasks/artifacts/lang_capability_audit/possessive_quantifier/quant_backtrack.ebnf`),
+  through the interpreter (TOOLBOX 1.5b), which is pinned byte-identical to the generated parsers
+  per combinator by `parse_harness_combinator_gate` (TOOLBOX 1.7):
+
+  ```text
+  s := ( a )* a b        a := "a"        b := "b"
+
+  input "ab"   -> accepted=false furthest_position=1     (a backtracking `*` takes 0 iterations and accepts)
+  input "aab"  -> accepted=false furthest_position=2     (a backtracking `*` takes 1 iteration  and accepts)
+  ```
+
+  ⇒ the loop consumes every `a` it can and the sequence then fails on the `a` the grammar still
+  requires. **Both inputs are in the language the grammar declares.** No error is reported about the
+  grammar; the parse simply rejects valid text.
+- **WHY IT MATTERS HERE.** A possessive quantifier makes a whole class of ordinary EBNF unusable as
+  written, and the workaround is invisible: the author must add an explicit lookahead that re-states
+  what the rest of the sequence needs. `grammars/systemverilog.ebnf` already carries at least four,
+  each written independently and each a bug-fix in its own right — `context_member_method_call`'s
+  `&dot`, `implicit_class_rooted_method_chain`'s `&dot`, `select`'s `!lparen`, and (as of
+  `SV-CORPUS-GRAD.13c.2c`) `split_hierarchical_callable_receiver`'s
+  `&( identifier constant_bit_select dot )`. The one that was written WRONG
+  (`!callable_method_call_body`) was dead for months and no instrument could see it, because a
+  guard that never passes and a loop that is never needed look identical from outside.
+- ⛔ **This is NOT a proposal to make quantifiers backtracking.** That is a semantics change for
+  every grammar and a cost change for every parse (the two non-negotiables — parser-neutrality and
+  peak speed — are not tradeable), so the fix is an open design question, not a foregone one. What
+  this leaf owns is the *decision*, taken with prices measured rather than assumed.
+- **Scope when taken up** — three candidate answers, to be priced against each other:
+  1. **Declare it.** The contract is currently unwritten: the book's grammar-authoring surface does
+     not say `*` is possessive, so every author rediscovers it as a bug. A documented contract plus
+     a `--lint-grammar` rule that NAMES the shape (`( X )* X …` — a quantified item whose element
+     can also start what follows) turns a silent rejection into a diagnosed one.
+  2. **Opt-in backtracking quantifier** (a `@backtrack` / `?`-suffixed spelling), so a grammar pays
+     for give-back only where it asks for it.
+  3. **Leave it, and give authors the guard.** A first-class "stop before the tail" combinator would
+     at least collapse the four hand-written SV lookaheads into one named construct.
+- **Acceptance:** the quantifier contract is stated in the book and pinned by a combinator-suite
+  case; either the lint names the shape or the opt-in spelling exists; and the SV lookaheads written
+  to work around it are re-derived against whichever answer lands (they must not silently outlive it).
 
 ### `.10.6a` — `ebnf_dual_run_diff` runs ARM 1 ONLY and exits 0 unless an arm-2 flag is passed, so a bare invocation reads as "both frontends agree" (`todo`, routed in by `ENGINE-UNIVERSAL-SERVICES.13` slice 1, 2026-08-12 session #221)
 

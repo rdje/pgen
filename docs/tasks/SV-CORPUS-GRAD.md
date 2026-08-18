@@ -8372,6 +8372,7 @@ is not a promotion), and the probe arm it needs.
 > masking a macro dependency behind it). ⛔ **Three of those five were fixed on 2026-08-11/12 and this
 > leaf's number stayed wrong for two days**, because nothing re-runs the instrument — routed to
 > `.13i`. ⇒ **DEFECT 7 → 2**, both remaining rows being `.13c.2c`'s `ral.arr[0].g()`, one construct.
+> ⭐ **SUPERSEDED 2026-08-18 (`PGEN-SV-CORPUS-GRAD-0227`): DEFECT 2 → 0.** `.13c.2c` shipped, and both rows re-adjudicate as `MACRO-BLOCKED` on `` `uvm_component_utils ``. The line above is left as written; this is the live figure.
 > The headline above is left as written (supersede, don't mutate); this note is the live figure.
 
 - **THE ANSWER, per row, all 57 of them** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/adjudication.{tsv,md}`):
@@ -8400,7 +8401,7 @@ is not a promotion), and the probe arm it needs.
   |---|---|---|---:|---|
   | `.13c.2a` | a `bins_selection_or_option` inside a non-empty `cross_body` — `ignore_bins ib = ca with (…)` | A.2.11 `cross_body_item` | 3 | `defect_cross_body_item.sv` / `control_cross_body_empty.sv` (the same cross with `{ }` PARSES) |
   | `.13c.2b` | a size cast in a **constant** expression — `parameter logic [7:0] K = 8'(1);` | A.8.4 `constant_cast` | 2 | `defect_constant_size_cast.sv` / `control_size_cast_in_statement.sv` (`initial k = 8'(1);` PARSES) |
-  | `.13c.2c` | `ral.arr[0].g()` where the receiver is a **subroutine formal** | A.8.2 `method_call` | 2 | `defect_tfport_index_method_call.sv` / `control_property_index_method_call.sv` (identical expression with `ral` a class PROPERTY PARSES) |
+  | `.13c.2c` ✅ **CLOSED `-0227`** | `ral.arr[0].g()` where the receiver is a **subroutine formal** — root cause was a DEAD loop guard, and the real class is *any* 3+ component receiver with an indexed component, on **all three profiles** | A.8.2 `method_call` | 2 | `defect_tfport_index_method_call.sv` / `control_property_index_method_call.sv` (identical expression with `ral` a class PROPERTY PARSES) |
 
 - ⭐ **THE INVALID-SV HALF IS A FINDING, NOT A LEFTOVER.** Eight rows are text no simulator may
   accept, and PGEN rejecting them is the strict-LRM default working
@@ -9701,21 +9702,327 @@ not on further SV investigation. When `.13` lands, re-run all three scripts in
 ACCEPT, the bisect's "before" must stop being a rejection, and the `MANIFEST.tsv` `expect` column for
 the two `defect_*` rows must be re-baselined in the same commit.
 
-#### `.13c.2c` — DEFECT: `ral.arr[0].g()` rejects when the receiver is a subroutine formal (`todo`, opened 2026-08-11 by `.13c.2`)
+#### `.13c.2c` — the loop guard `!callable_method_call_body` was DEAD, so a hierarchical method-call receiver collapsed to its FIRST component (**`done`** 2026-08-18, `PGEN-SV-CORPUS-GRAD-0227`; opened 2026-08-11 by `.13c.2`)
 
-- The identical expression parses when `ral` is a class PROPERTY and rejects when it is a
-  **subroutine formal argument** — so the discriminator is the receiver's declaration site, i.e. a
-  fact the store does not hold for `tf_port_item` names.
-- **Mechanism, already located** (see `.13c.2`'s ROOT CAUSE box): under
-  `branch_policy=longest_match`, `method_call_receiver_sv_2017` branch 2/14 reaches the
-  **un-fact-gated** `hierarchical_sequence_identifier` arm, which consumes `ral.arr[0].g` including
-  the method name. Its fact-gated sibling `known_unscoped_sequence_identifier` IS rejected
-  (`has_fact [sequence_name, ral]` → false), so the gate is present and the sibling arm bypasses it.
-  ⚠️ **This is the `.3.x` "un-gated sibling alternative" shape** — worth checking whether other
-  `ps_or_hierarchical_*` rules carry the same un-gated third arm before fixing just this one.
-- **Reproducer** `defect_tfport_index_method_call.sv`; control `control_property_index_method_call.sv`.
-- **Corpus rows unblocked:** 2 (`otp_ctrl_env_cov.sv` ×2, `ral.vendor_test_digest[0].get_offset()`
-  inside a `bins` value list).
+> ✅ **CLOSED — ONE GRAMMAR TOKEN, and it turned out to be a THREE-PROFILE fix.**
+> `split_hierarchical_callable_receiver`'s member loop now reads
+> `( identifier constant_bit_select dot &( identifier constant_bit_select dot ) )*`.
+> `ral.arr[0].g()` with `ral` a subroutine formal went **REJECT `pos=750` → ACCEPT** — and so did
+> `top.u1[0].t;`, an IEEE **1364-2005** §12.4 / A.9.3 indexed hierarchical task enable that had been
+> rejecting in PLAIN VERILOG, on all three profiles, with nothing pointing at it.
+>
+> ⭐⭐⭐ **THE GUARD COULD NEVER PASS, AND THAT IS THE WHOLE DEFECT.** The loop's negative lookahead
+> `!callable_method_call_body` was meant to stop the receiver before the method name. But IEEE 1800
+> A.8.2 writes `array_manipulation_call ::= array_method_name { attribute_instance }
+> [ ( list_of_arguments ) ] [ with ( expression ) ]` — **the parens are OPTIONAL** — so a bare member
+> name `arr` already IS a `callable_method_call_body`, and the lookahead fired on *every* identifier.
+> ⇒ the loop ran **zero iterations for its entire life**, and the rule degenerated to
+> `qual? identifier constant_bit_select` — a ONE-component receiver. Multi-component receivers
+> survived only through `method_call`'s `( dot method_call_body )*` chain, which carries no
+> bit-select. That is exactly why `a.b.g()` parsed and `a.b[0].g()` did not: the chain could carry
+> the extra `.member` but not the `[0]`.
+>
+> ⛔⛔ **A DEAD GUARD AND AN UNNEEDED LOOP ARE INDISTINGUISHABLE FROM OUTSIDE.** Nothing in the
+> repository could see this: the rule parsed, its tests passed, `--lint-grammar` had no complaint,
+> and the branch was SELECTED on every method call — it simply never took the one path it existed
+> to take. The instrument that names it did not exist and now does (below).
+>
+> ⚠️ **THE INHERITED DIAGNOSIS WAS RE-DERIVED AND IT NAMED THE WRONG RULE.** This leaf was opened
+> with the mechanism *"`method_call_receiver_sv_2017` branch 2/14 reaches the un-fact-gated
+> `hierarchical_sequence_identifier` arm, which consumes `ral.arr[0].g` including the method name"*.
+> On HEAD `hierarchical_sequence_identifier` is **not on the path at all** — it appears in the trace
+> only inside the `[0]` index expression, and the receiver that wins is
+> `split_direct_callable_method_call`'s. ⇒ **a mechanism note ages like a hypothesis**; the seven
+> days between opening and fixing included the LR-elimination rule split that renamed the path.
+> Re-derive from the trace, never from the leaf.
+
+**THE LRM ADJUDICATION — THREE AUTHORITIES, all in-repo, read rather than inferred.**
+`split_hierarchical_callable_receiver` carries **no `@profiles` gate**, and neither does anything
+above it on the path (`subroutine_call`, `method_call`, `method_call_initial`, `call_primary`), so
+this is a three-profile change by construction — the `.13c.2h`/`-0226` rule, applied before the fix
+this time rather than after.
+
+| authority | production | verdict |
+|---|---|---|
+| IEEE 1800-2017 A.8.2 / A.8.4 (`docs/systemverilog/2017/md`) | `method_call_root ::= primary \| implicit_class_handle`, `primary ::= … \| [ class_qualifier \| package_scope ] hierarchical_identifier select \| …` | the receiver is a full `primary`; `ral.arr[0]` is `hierarchical_identifier` + `select` |
+| IEEE 1800-2023 A.8.2 / A.8.4 (`docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:2942,3083`) | identical, production for production | same |
+| IEEE 1364-2005 A.9.3 / A.6.9 / A.8.2 (`docs/verilog/2005/md/section-Annex_A-…:1260,776,1036`) | `hierarchical_identifier ::= { identifier [ [ constant_expression ] ] . } identifier`; `task_enable ::= hierarchical_task_identifier [ ( … ) ] ;`; `function_call ::= hierarchical_function_identifier { attribute_instance } ( … )` | `top.u1[0].t;` is legal PLAIN VERILOG — §12.4 hierarchical names over an instance array |
+
+⇒ every authority admits an indexed component in the middle of a hierarchical name in a call
+position. The rejection was under-acceptance on all three, and the v2005 leg had **no owning leaf
+and no reproducer** until this slice — it was found by asking the third authority a question the
+SV-shaped reproducers could not ask.
+
+**THE SWEEP — the class, not the instance** (`docs/tasks/artifacts/sv_corpus_grad/dead_negative_lookahead/`).
+The `.13c.2e` lesson is explicit: `SV-0049` fixed one brace mis-transcription and did not sweep its
+class, which is the only reason `.13c.2e` existed three days later. So this leaf ships the sweep as
+an instrument rather than as a resolution. `sweep_dead_guards.py` asks, of every negative lookahead
+in the SV grammar, whether its subject accepts a **bare simple identifier** — the shape that kills a
+guard standing where an identifier is legal — and it decides by PARSING (TOOLBOX 1.5b
+`--interpret-entry-rule`), not by reading:
+
+| | before | after |
+|---|---:|---:|
+| `!R` guard subjects probed | 8 | 7 |
+| inline `!( … )` group guards, reported not probed | 5 | 5 |
+| ⛔ **DEAD-RISK** — subject accepts a bare identifier | **1** (`callable_method_call_body`, line 3312) | **0** |
+
+⇒ **`callable_method_call_body` was the only one.** The class is closed, and the sweep is
+re-runnable rather than a paragraph. ⛔ Four controls run before any verdict prints (`identifier`
+must accept `x`; `lparen` must reject it; every named subject must resolve to a rule head; the
+grammar must yield at least one `!` site), and it was **proven able to fail**: pointed at the
+pre-fix grammar with `--grammar` it exits 1 with `dead_risk=1 -> callable_method_call_body`, naming
+the exact line the trace had independently named. Honest bound, printed rather than hidden: it
+decides ONE shape, and the inline `!( … )` group forms have no rule name to enter, so they are
+listed in full instead of probed.
+
+⛔ **A SECOND LRM DIVERGENCE WAS FOUND AND DELIBERATELY NOT FIXED — because the measurement refuted
+my own first hypothesis.** `method_call_receiver_sv_2017`/`_sv_2023` is a hand-copied cut of
+`primary_sv_2017`/`_sv_2023` that dropped **two** things: `select` (present in A.8.4) and the
+`class_scope` branch of `primary_hier_scope_prefix` (added by `SV-EXH-PROOF.3.3.4.b.6.2.37.3`).
+Restoring `select` was this slice's FIRST candidate fix, and it is LRM-faithful — but measured on
+an 18-row probe suite it changed **nothing**, in either direction, because `hierarchical_identifier`'s
+own greedy `( identifier constant_bit_select dot )*` had already swallowed `ral.arr[0].g` before
+`select` was ever reached. ⇒ **an LRM-faithful change with no measured effect is still a widening
+with a risk profile** (`.13c.2f`'s "no demonstrated defect ⇒ do not write it" rule), so the
+divergence is ROUTED as `.13c.2j` with its measurement attached rather than bundled here.
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — measured OUTSIDE the family before routing):
+this leaf sends one finding out of `SV-CORPUS-GRAD` to `LANG-CAPABILITY-AUDIT.10.18` — *PGEN's `*`
+and `+` are possessive; a quantifier never gives back an iteration*. **Does it reproduce outside
+SystemVerilog? Yes, and with no SystemVerilog in it at all.** On the five-line synthetic
+`s := ( a )* a b` (`docs/tasks/artifacts/lang_capability_audit/possessive_quantifier/`), input `ab`
+→ `accepted=false furthest_position=1` and `aab` → `accepted=false furthest_position=2`; both are in
+the language the grammar declares, and a backtracking `*` accepts each. ⇒ the subject is the ENGINE's
+quantifier contract, which binds all 11 shipped families, not an SV grammar defect. What stays here
+is the SV consequence: the four hand-written lookaheads `grammars/systemverilog.ebnf` carries to work
+around it, one of which (`!callable_method_call_body`) was written wrong and is what this leaf fixes.
+The two findings routed to `.13c.2j` / `.13c.2k` stay INSIDE this tree — both are SV grammar defects
+with SV reproducers — so they are intra-tree bookkeeping, not routing.
+
+##### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — two legs, one construct. (a) `ral.arr[0].g()` with `ral` a subroutine
+  formal (`defect_tfport_index_method_call.sv`) → `Parser did not consume full input at position 750
+  [furthest_position=806]`, while the same expression with `ral` a class PROPERTY
+  (`control_property_index_method_call.sv`) parses. (b) `top.u1[0].t;`
+  (`fixed_hier_index_task_enable.sv`) and `y = top.u1[0].f(1);`
+  (`fixed_hier_index_function_call.sv`) → REJECT on **all three profiles**, with
+  `control_hier_index_free_task_enable.sv` — the same task enable minus the bit-select, instance
+  array still declared — ACCEPTing on all three. ⭐ The bisect that named the shape:
+  `ral.arr.g()` ✅ / `ral.g()` ✅ / `ral.arr[0]` ✅ / `arr[0].g()` ✅ / `ral.arr[0].g()` ❌ — so it is
+  neither the formal, nor the index, nor the call, but a 3+ component receiver whose LAST component
+  is indexed.
+- [x] **ROOT CAUSE (WHY + WHERE)** — from the parser, not from the grammar text.
+  `PGEN_TRACE_VERBOSITY=debug … --trace-rules method_call,method_call_root,method_call_body,method_call_initial,split_direct_callable_method_call,split_hierarchical_callable_receiver`
+  shows, at the receiver position: `🚪 Entering branch 2/2 for rule
+  'split_hierarchical_callable_receiver'`, then
+  `✅ Rule 'callable_method_call_body' successfully parsed from 141 to 144 (consumed 3 bytes: 'arr')`
+  — the negative lookahead's subject MATCHING the plain member name — then
+  `✅ Rule 'split_hierarchical_callable_receiver' successfully parsed from 136 to 140 (consumed 4
+  bytes: ' ral')` and `❌ Exiting rule 'dot' … backtracked` at the `[`. ⇒ **WHERE** =
+  `grammars/systemverilog.ebnf:3312`, the loop guard `!callable_method_call_body`; **WHY** = A.8.2's
+  `array_manipulation_call` has OPTIONAL parens, so a bare member name satisfies
+  `callable_method_call_body` and the guard is vacuously false ⇒ the `*` loop ran **zero
+  iterations** and the receiver collapsed to `ral`, leaving `[0].g()` for a `dot` that found `[`.
+  A second, independent authority names the same line: the dead-guard sweep run against the pre-fix
+  grammar prints `dead_risk=1 -> callable_method_call_body` at line 3312.
+- [x] **ADDRESSED (verified)** — before→after on the symptom, measured on the SHIPPED parser, per
+  profile, with the AST as the discriminator rather than the verdict alone:
+
+  | reproducer | profiles | before | after |
+  |---|---|---|---|
+  | `defect_tfport_index_method_call.sv` | sv_2017 / sv_2023 | REJECT `pos=750` | **ACCEPT** |
+  | `fixed_hier_index_task_enable.sv` | sv_2017 / sv_2023 / **verilog_2005** | REJECT | **ACCEPT** |
+  | `fixed_hier_index_function_call.sv` | sv_2017 / sv_2023 / **verilog_2005** | REJECT | **ACCEPT** |
+  | `control_hier_index_free_task_enable.sv` | all three | ACCEPT | ACCEPT (unchanged) |
+  | `invalid_hier_index_empty_member.sv` | all three | REJECT | REJECT (unchanged) |
+
+  ⭐ **The AST names the revived alternative**: all three flipped rows carry `kind:
+  "split_hierarchical"` exactly once and `context_member_method` zero times, while
+  `control_property_index_method_call.sv` — the same expression through the fact-gated path — reads
+  the mirror image (`context_member_method` 1, `split_hierarchical` 0). Both are pinned as `arm`
+  claims, and the pair was proven able to fail: inverting one arm reports *"THE VERDICT IS RIGHT AND
+  THE ARM IS WRONG"* at exit 1, restoring it returns exit 0. Named re-runnable oracle:
+  `python3 stimuli/sv/run_adjudication_repros.py` → `ADJUDICATION-REPROS: checked=84 armed=37
+  listed=48 multi_profile_rows=20 failures=0` (was `checked=65 armed=28 listed=41`).
+- [x] **NO REGRESSION** — the corpus is the global gate, and it moved in one direction only.
+  **External corpus 16 336 files: pass 9 776 → 9 786, fail 6 560 → 6 550, timeouts 0, crashes 0.**
+  Joined over the tracked MANIFEST rather than over pass/fail (the `.13h`/`-0221` rule): **11 rows
+  moved, 0 worsened** — 10 `fail → pass` (`match`), and one, `verilator/t_func_dotted.v`, still
+  FAILS but reclassified `unexplained_rejects_valid → explained_svpp_macro_use` because its parse
+  now runs past the dotted call and dies in a macro window. ⭐ A pass/fail join would have found 10
+  and the manifest finds 11 — the third slice running to reproduce that lesson. ⛔ **The
+  accepts-invalid set is BYTE-IDENTICAL — the same 21 files, set-compared and not merely counted**
+  (`added: [] removed: []`), so the widening bought nothing on the over-acceptance axis. The
+  `verilog_2005` lane is byte-identical end to end (2 459 files, pass 2 182 / fail 277), which is
+  an honest gap rather than a null result: the lane list contains no indexed hierarchical call, so
+  the v2005 leg is proven by the two pinned reproducers and not by the corpus.
+  Attribution is direct — the moved rows carry the construct verbatim
+  (`cl_inst[0].sc_inst.sc_inst1.sc_inst2[0].randomize() with { … }`,
+  `sim.queues[Active].push_back('{is_update: 1})`).
+  ⭐⭐ **AND IT IS CHEAPER, NOT DEARER** — `PARSE-COST-RATCHET` re-measured on the pinned sample:
+  every binding counter FELL — `entries` 416 841 264 → 416 424 205 (−0.10 %), `committed`
+  7 124 616 → 7 123 491 (−0.02 %), `memo_hits` 186 981 263 → 186 926 969 (−0.03 %) — with the
+  advisory wall clock −3.8 %, inside its ±50 % band. A receiver consumed in ONE rule costs less than
+  the same receiver reassembled by the outer chain. The baseline and the corpus LR-family share
+  (2.741 % → **2.743 %**) are re-derived and promoted deliberately, never edited.
+  Everything else held: `ADJUDICATION-REPROS: checked=84 armed=37 listed=48 failures=0`;
+  `generated_reproducibility_gate` **TIER 2 OK — all 11 artifacts re-derive byte-identically from
+  HEAD, `0 sites`, `systemverilog` included**, so the parser measured above IS what the tracked
+  grammar produces; and `bash scripts/check_doctrines.sh` PASS on all 21 registered doctrines.
+- [x] **THE LEAF'S OWN ORACLE — `DEFECT 2 → 0`, and it refused before it agreed.**
+  `.13c.2c` never owned a raw corpus row: its two rows (`otp_ctrl_env_cov.sv` ×2) are
+  `deferred:chained_only`, so they are adjudicated by the PRELUDE probe
+  (`stimuli/sv/adjudicate_dark_worklist.py`), not by the bare parse. Re-run on this commit, that
+  probe's two-sided ratchet **fired first**: *"adjudicated in RESIDUAL_ROWS.tsv but no longer
+  RESIDUAL — re-read it"*, at exit 1, naming both rows — a refusal, not a partial write. That IS
+  the confirmation: their residual failure is gone. With the two stale RESIDUAL adjudications
+  removed the run is green and the verdict table no longer has a `DEFECT` bucket at all —
+  `DEFECT 2 → 0`, both rows now `MACRO-BLOCKED` on `` `uvm_component_utils ``, the same disposition
+  `.13h` recorded for the `clkmgr_env_cov.sv` rows. ⇒ **`.13c.2`'s headline "7 rows are defects,
+  3 constructs", later annotated to "2 rows, 1 construct", is now ZERO.**
+  ⚠️ **Honest attribution, because the rest of the delta is NOT mine**: the worklist also shrank
+  **57 → 52** and `PARSES-BARE` went 2 → 0, but those five rows moved because the tracked artifact
+  was STALE — its recorded grammar sha was `2a1a92f5…` against a HEAD of `1b660c36…`, several
+  commits old — so the instrument was catching up, not responding to this fix. Only the `DEFECT`
+  bucket is attributable here, and it is attributable exactly. The staleness itself is the `.13i`
+  class, and this run discharges it for these artifacts.
+- [x] **FIX** — `grammars/systemverilog.ebnf`, **one token** on line 3312
+  (`!callable_method_call_body` → `&( identifier constant_bit_select dot )`) plus the comment that
+  records why, and the regenerated SV parser (143 131 118 → 143 138 481 B). ZERO Rust bytes, ZERO
+  codegen bytes, ZERO changes to any other grammar.
+- [x] **LOCKSTEP** — this leaf; `.13c.2j` / `.13c.2k` / `.13c.2l` NEW;
+  `LANG-CAPABILITY-AUDIT.10.18` NEW (+ the `.10.16` id-collision correction, renumbered `.10.17`);
+  the sweep instrument and its before/after artifacts; the possessive-quantifier demonstration
+  artifact; **eight new and two updated rows** in `stimuli/sv/adjudication_repros/MANIFEST.tsv` plus
+  two rows retired from `RESIDUAL_ROWS.tsv`; the re-measured corpus, verdict-coverage, dark-worklist
+  and parse-cost artifacts (the LR-family share adopted 2.741 → 2.743 on all four of its designated
+  surfaces); the knowledge card
+  [[a-guard-that-can-never-pass-is-invisible-from-outside]] + the regenerated `KNOWLEDGE_MAP.md`;
+  book *Grammar Well-Formedness* (the live verdict-coverage tuple, now `7556/2459/6321/4392/289`);
+  `MEMORY.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `docs/TASK_TREE.md`.
+
+#### ⚠️ `.13c.2j` NEW `todo` — `method_call_receiver_sv_*` is a hand-copied cut of `primary_sv_*` that dropped TWO LRM productions, and one of them has been diverging since 2026-08 (opened 2026-08-18 session #245 by `.13c.2c`, `PGEN-SV-CORPUS-GRAD-0227`)
+
+- **WHAT DIVERGES, read side by side.** IEEE 1800-2017/2023 A.8.2 says
+  `method_call_root ::= primary | implicit_class_handle`, so the method-call receiver IS a `primary`.
+  PGEN cannot spell it that way (the cycle `primary → call_primary → method_call → primary` is what
+  the `method_call_receiver_*` copy exists to cut), so it carries a hand-maintained copy — and the
+  copy has drifted from its original in two places:
+
+  | A.8.4 `primary` branch 2 | `primary_sv_2017:4464` | `method_call_receiver_sv_2017:3326` |
+  |---|---|---|
+  | `[ class_qualifier \| package_scope ] hierarchical_identifier **select**` | `( primary_hier_scope_prefix )? hierarchical_identifier select` | `( kw_class_qualifier_fa08937d \| non_typedef_package_scope )? hierarchical_identifier` — **no `select`** |
+  | `class_qualifier ::= [ local :: ] [ implicit_class_handle . \| class_scope ]` | `primary_hier_scope_prefix` — 3 branches incl. `class_scope` | the 2-branch INLINE spelling — **no `class_scope`** |
+
+  The `class_scope` branch was added to `primary_hier_scope_prefix` by
+  `SV-EXH-PROOF.3.3.4.b.6.2.37.3` **for a measured defect** (`super_t::m_typename = tname` in
+  `uvm_callbacks`); the receiver copy never received it, so the same construct in a method-call
+  receiver position (`pkg::Cls::member.method()`) has no path.
+
+- ⛔ **MEASURED, AND THE MEASUREMENT IS WHY THIS IS ROUTED AND NOT FIXED.** Restoring `select` was
+  `.13c.2c`'s first candidate fix. Applied to both receiver rules and run over an 18-row method-call
+  probe suite on `sv_2017` and `sv_2023`, it moved **zero rows in either direction** — because
+  `hierarchical_identifier`'s own greedy `( identifier constant_bit_select dot )*` consumes
+  `ral.arr[0].g` (method name included) before `select` is ever entered, and PGEN quantifiers do not
+  give back (`LANG-CAPABILITY-AUDIT.10.18`). ⇒ a widening with no demonstrated gain, which is the
+  shape `.13c.2f` ruled against writing.
+- ⭐⭐ **THE `class_scope` HALF IS A CONFIRMED, ISOLATED DEFECT — measured with TWO controls before
+  this leaf was written**, so it is routed with evidence rather than with a hypothesis:
+
+  | input | verdict | what it isolates |
+  |---|---|---|
+  | `initial y = p::base::m.g();` (`defect_class_scope_method_receiver.sv`) | **REJECT** `pos=125` | the class-scoped name in the RECEIVER position |
+  | `initial y = p::base::m;` (`control_class_scope_value.sv`) | ACCEPT | the name itself is a legal primary — `primary_hier_scope_prefix`'s `class_scope` branch |
+  | `initial begin h = p::base::m; y = h.g(); end` (`control_class_scope_call_via_handle.sv`) | ACCEPT | the call itself is fine on a handle |
+
+  ⇒ both halves parse alone; only their COMPOSITION rejects, which is precisely the branch the copy
+  is missing. All three are pinned in `stimuli/sv/adjudication_repros/MANIFEST.tsv`, so the day this
+  leaf lands the ratchet fails with *"flip it to ACCEPT"* rather than the fix landing silently.
+- **WHAT THIS LEAF OWES**, in order: (a) the toolbox WHY+WHERE for the `class_scope` half (the
+  measurement above is a REPRODUCTION, not yet a diagnosis); (b) the fix — make the copy REFERENCE
+  `primary_hier_scope_prefix` (and decide `select` on the same evidence) rather than re-spell them,
+  so the two renderings of one Annex A production cannot drift again; (c) the `select` half closes
+  either way: fixed with it, or recorded as INERT with the 18-row measurement that says so.
+- ⭐ **THE STRUCTURAL FINDING IS BIGGER THAN EITHER HALF**: a rule that exists to CUT A CYCLE is a
+  copy, and a copy of a normative production drifts silently — nothing in this repository compares
+  `method_call_receiver_sv_2017` to `primary_sv_2017`. That comparison is mechanizable (both are
+  renderings of one Annex A production) and is the durable half of this leaf.
+
+#### ⚠️ `.13c.2k` NEW `todo` — a RESERVED KEYWORD parses as a member identifier: `ral.module[0].g()` is accepted (opened 2026-08-18 session #245 by `.13c.2c`, `PGEN-SV-CORPUS-GRAD-0227`)
+
+- **MEASURED, on the shipped parser, BEFORE and AFTER `.13c.2c`** (so it is pre-existing and the
+  `.13c.2c` fix neither caused nor cured it):
+  `tmp` repro `class inner; function int g(); return 0; endfunction endclass / class rb; inner arr[2]; endclass /
+  class w; function int f(rb ral); return ral.module[0].g(); endfunction endclass` → **ACCEPT** on
+  `sv_2017` and `sv_2023`, both parser states.
+- **WHY IT IS A DEFECT.** IEEE 1800-2017 §B (Keywords) reserves `module`; A.9.3 gives
+  `identifier ::= simple_identifier | escaped_identifier` and §5.6.2 forbids a reserved word as a
+  simple identifier. There is no derivation of `ral.module[0]` — accepting it is **over-acceptance**,
+  the failure mode the strict-LRM default exists to prevent.
+- ⚠️ **The suspect is the `identifier` vs `non_keyword_identifier` split**: `hierarchical_identifier`
+  guards only its FINAL component (`non_keyword_identifier`), while every component inside its
+  `( identifier constant_bit_select dot )*` loop — and inside
+  `split_hierarchical_callable_receiver`'s loop — is the unguarded `identifier`. ⛔ That is a
+  HYPOTHESIS, not a diagnosis: it has not been run through the toolbox, and this leaf may not be
+  fixed until it has been (TOOLBOX-FIRST).
+- ⛔⛔ **AND THE ORACLE CANNOT HOLD THIS ROW UNTIL IT IS FIXED — a gap in the ratchet itself, found
+  by trying to pin it.** `stimuli/sv/adjudication_repros/MANIFEST.tsv` has four classes: `defect`
+  (valid SV, currently rejected), `invalid` (illegal text, correctly rejected), `control`, `fixed`.
+  There is **no class for illegal text that is currently ACCEPTED**. Filing this as `invalid`
+  expects REJECT and so goes RED on the commit that files it; filing it as anything else lies. ⇒ a
+  known over-acceptance can be written in prose here and nowhere the runner can see it, which is the
+  exact asymmetry that lets an accepts-invalid defect age quietly while every rejects-valid defect
+  is ratcheted. The missing class (`accepts_invalid`, expect ACCEPT, failing loudly the day it
+  starts REJECTing — the mirror of `defect`) is part of what this leaf owes.
+- **WHAT THIS LEAF OWES**: the toolbox WHY+WHERE; the `accepts_invalid` class above plus this row
+  pinned in it on all three profiles (the rule is ungated); a SWEEP of the same shape — every
+  `identifier` used as a hierarchy component where the LRM writes a non-keyword identifier — because
+  one instance is never the class here (`.13c.2e`); and the fix, with the corpus accepts-invalid
+  count measured before and after.
+
+#### ⚠️ `.13c.2l` NEW `todo` — THREE accept-set changes have shipped since the SV contract and the released-parser bug ledger were last written (opened 2026-08-18 session #245 by `.13c.2c`, `PGEN-SV-CORPUS-GRAD-0227`)
+
+- **MEASURED, from git, not from impression:**
+
+  ```text
+  $ git log --oneline -3 -- docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md
+  438c475c PGEN-SV-CORPUS-GRAD-0214 (leaf SV-CORPUS-GRAD.13c.2e done …)      # 2026-08-12
+  ```
+
+  Since that commit the SV grammar's ACCEPT SET has moved three times, each landing in
+  `grammars/systemverilog.ebnf` and each regenerating the shipped parser:
+
+  | slice | what widened | contract entry | ledger row |
+  |---|---|---|---|
+  | `-0220` (`.13c.2d`) | IEEE 1800-2017 §19.6.1's cross-body example, REJECT `pos=65` → ACCEPT | **none** | **none** |
+  | `-0221` (`.13c.2f` slice 4) | IEEE 1800-2023 §30.7.1's own `PATHPULSE$` example, REJECT `pos=166` → ACCEPT | **none** | **none** |
+  | `-0227` (`.13c.2c`, this slice) | 3+ component receivers with an indexed component, **on all three profiles** — 10 corpus rows | **none** | **none** |
+
+  The contract still reads `Contract version 1.0.183 / Parser release 1.0.183 / schema 21`, which is
+  the state `-0214` left. `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` last gained a row in
+  the same commit (`SV-0053`).
+- ⛔ **WHY THIS IS NOT BOOKKEEPING.** The contract is the DOWNSTREAM-FACING surface — the document a
+  Nexsim integrator reads to know what the parser accepts — and the standing lane order is to ship
+  SV to Nexsim *"with 100 % confidence"*. A consumer reading it today is told the parser is
+  `1.0.183`, and three widenings later that is a claim about a parser that no longer exists.
+  ⭐ Note the direction: every one of the three is strictly-more-permissive, so nothing a consumer
+  already relies on has broken — which is exactly why this could drift for six days without a
+  symptom, and exactly why it needs a gate rather than a habit.
+- ⛔ **THIS SLICE DELIBERATELY DID NOT BUMP THE CONTRACT, and the reason is the numbering.** Adding a
+  `1.0.184` section for `-0227` alone would permanently bake in the gap: `-0220` and `-0221` would
+  own no release number at all, and the ledger would carry a fix with no report row. The three have
+  to be numbered together, by someone reading all three diffs — that is this leaf's work, not a side
+  effect of the third one. Recording it beats performing half of it.
+- **WHAT THIS LEAF OWES**: (a) read the three diffs and assign contract sections + ledger rows,
+  deciding the schema question per change (the `.37.5` precedent is *release bump, NO schema bump* for
+  a strictly-more-permissive change that adds no AST field; `-0227` fits it, `-0220`/`-0221` need
+  reading); (b) the per-profile note each one owes — `-0221` and `-0227` are three-profile changes
+  and the contract has a `verilog_2005` section that mentions neither; (c) ⭐ **a GATE, because the
+  habit already failed**: nothing in the repository compares the SV grammar's last-modified commit
+  to the contract's, so the check that would have caught this on day one is one `git log` away and
+  does not exist. That is the durable half.
 
 #### `.13c.2e` — `select_condition`'s `intersect { … }` BRACES are not modelled, so the range list swallows the rest of the expression (**`done`** 2026-08-12, `PGEN-SV-CORPUS-GRAD-0214`; opened 2026-08-12 session #218 by `ENGINE-UNIVERSAL-SERVICES.10`)
 
@@ -10213,7 +10520,7 @@ found by running `adjudicate_dark_worklist.py`, whose two-sided ratchet fired on
 ⛔⛔ **Only TWO of those five are slice 9's.** The three `clkmgr_env_cov.sv` rows were fixed by
 `.13c.2e`/`A2.5` on **2026-08-11/12** and have been sitting in the residual DEFECT set ever since,
 because **nothing re-runs this instrument**. Its ratchet is two-sided and correct; it simply had not
-been invoked since the grammar moved. Re-run: **DEFECT 7 → 2**, all five graduating —
+been invoked since the grammar moved. Re-run: **DEFECT 7 → 2** (⭐ and **2 → 0** on 2026-08-18 when `.13c.2c` shipped — see that leaf), all five graduating —
 2 → **`PARSES-BARE`**, 3 → `MACRO-BLOCKED` on `` `uvm_component_utils `` (the `with` defect had been
 masking a macro dependency behind it). The two remaining DEFECT rows are `.13c.2c`'s
 `ral.arr[0].g()`, one construct. ⭐ **The `.13c.2` headline "7 rows are defects, 3 constructs" is

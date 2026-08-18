@@ -1,5 +1,60 @@
 # CHANGES.md
 
+## 2026-08-18 - PGEN-SV-CORPUS-GRAD-0227 (leaf SV-CORPUS-GRAD.13c.2c CLOSED; .13c.2j/.13c.2k + LANG-CAPABILITY-AUDIT.10.18 NEW; ONE grammar token)
+
+- ⭐⭐⭐ **THE GUARD COULD NEVER PASS, AND THAT WAS THE WHOLE DEFECT.**
+  `split_hierarchical_callable_receiver`'s member loop was guarded by
+  `!callable_method_call_body` — a negative lookahead that is **vacuously false on every
+  identifier**, because IEEE 1800 A.8.2 makes `array_manipulation_call`'s parens OPTIONAL, so a
+  bare member name already IS a `callable_method_call_body`. The loop ran **zero iterations for its
+  entire life** and the rule degenerated to a ONE-component receiver. That is why `a.b.g()` parsed
+  and `a.b[0].g()` did not: multi-component receivers survived only through `method_call`'s
+  `( dot method_call_body )*` chain, which carries no bit-select.
+- ✅ **ONE TOKEN**: `!callable_method_call_body` → `&( identifier constant_bit_select dot )` — the
+  same "leave a tail" idiom `context_member_method_call` (`&dot`) and `select` (`!lparen`) already
+  use. **AXIS-2 BAR 300 → 289**, `match` 5 821 → 5 831, corpus pass **9 776 → 9 786**,
+  **0 rows worsened**, `accepts-invalid` **byte-identical at 21** (the same 21 files, set-compared).
+- ⛔ **ELEVEN ROWS MOVED, ONLY TEN CROSSED `fail → pass`** — `verilator/t_func_dotted.v` still FAILS
+  and reclassified `unexplained_rejects_valid → explained_svpp_macro_use` because its parse now runs
+  past the dotted call and dies in a macro window. Third consecutive slice in which a pass/fail join
+  under-counts its own result; the join is over the MANIFEST.
+- ⭐⭐ **IT IS A THREE-PROFILE FIX, and the third profile had no owning leaf.** Nothing on the path
+  (`subroutine_call` → `method_call` → `method_call_initial` → `split_direct_callable_method_call`)
+  carries an `@profiles` gate, so the same defect had been rejecting **IEEE 1364-2005 §12.4**
+  hierarchical names in PLAIN VERILOG: `top.u1[0].t;` (A.6.9 `task_enable`) and
+  `y = top.u1[0].f(1);` (A.8.2 `function_call`) both went REJECT → ACCEPT on all three profiles and
+  are now pinned reproducers. The `verilog_2005` corpus lane is byte-identical — it contains no such
+  construct, which is an honest coverage gap, not a null result.
+- ⭐ **THE CLASS IS SWEPT, NOT JUST THE INSTANCE** (`.13c.2e`'s lesson).
+  `docs/tasks/artifacts/sv_corpus_grad/dead_negative_lookahead/sweep_dead_guards.py` asks of every
+  negative lookahead in the SV grammar whether its subject accepts a bare identifier, and decides by
+  PARSING (`--interpret-entry-rule`), not by reading: **DEAD-RISK 1 → 0**, and
+  `callable_method_call_body` was the only one. Four controls run before any verdict prints; pointed
+  at the pre-fix grammar with `--grammar` it exits 1 naming the same line the trace named.
+- ⚠️ **THE INHERITED MECHANISM NOTE NAMED THE WRONG RULE.** The leaf was opened citing
+  `hierarchical_sequence_identifier`; on HEAD that rule is not on the path at all. ⇒ **a mechanism
+  note ages like a hypothesis** — re-derive from the trace, never from the leaf.
+- ⛔ **A CANDIDATE FIX WAS REFUTED BY MEASUREMENT BEFORE IT SHIPPED.** Restoring A.8.4's `select` to
+  `method_call_receiver_sv_*` is LRM-faithful and moved **zero rows in either direction**, because
+  `hierarchical_identifier`'s own greedy loop had already swallowed the method name. Routed to
+  **`.13c.2j`** with that measurement, together with a SECOND divergence in the same copied rule —
+  the missing `class_scope` branch — which IS a confirmed defect: `p::base::m.g()` REJECTs while
+  `p::base::m` and `h.g()` each parse alone. Reproducer + two controls pinned.
+- **`.13c.2k` NEW**: `ral.module[0].g()` — a RESERVED KEYWORD as a member identifier — is ACCEPTED,
+  before and after this fix. ⛔ Found a gap in the oracle itself: `MANIFEST.tsv` has no class for
+  *illegal text currently accepted*, so a known over-acceptance can only be written in prose while
+  every rejects-valid defect is ratcheted.
+- **`LANG-CAPABILITY-AUDIT.10.18` NEW** — the finding under all of it: **PGEN's `*` and `+` are
+  POSSESSIVE**. On the five-line synthetic `s := ( a )* a b`, inputs `ab` and `aab` are both in the
+  declared language and both REJECT. The SV grammar carries at least four hand-written lookaheads
+  written to work around this, one of which was written wrong and is what this slice fixed.
+- ⚠️ **`LANG-CAPABILITY-AUDIT.10.16` was assigned TWICE** — the 2026-08-18 projection leaf collided
+  with the 2026-08-11 print-only-probe leaf, which `TOOLBOX.md` §1.7 and `GRAMMAR-WELLFORMED.md`
+  already cite. The newer one is renumbered `.10.17`; live references corrected in `MEMORY.md` and
+  `docs/TASK_TREE.md`, historical ones left as published.
+- `ADJUDICATION-REPROS: checked=84 armed=37 listed=48 multi_profile_rows=20 failures=0`
+  (was `checked=65 armed=28 listed=41`). The new `arm` claims were proven able to fail.
+
 ## 2026-08-18 - PGEN-SV-CORPUS-GRAD-0226 (leaf SV-CORPUS-GRAD.13c.2h re-verified on the THIRD authority; ratchet now binds all three profiles; ZERO grammar/generated bytes)
 
 - ⛔⛔ **THE RULING WAS PUBLISHED ON TWO OF THREE NORMATIVE AUTHORITIES.** Director: *"the goal of

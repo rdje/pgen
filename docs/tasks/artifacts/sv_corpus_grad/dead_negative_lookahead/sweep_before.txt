@@ -1,0 +1,21 @@
+controls: identifier accepts `x` ✓ · lparen rejects it ✓ · 8 guard subjects all resolve ✓ · 13 `!` sites found ✓
+
+guard subject                          sites                      verdict
+--------------------------------------------------------------------------------------------
+!binary_operator                       5260,5261,5262,5263        OK (cannot match an identifier)
+!callable_method_call_body             3312                       ⛔ DEAD-RISK (accepts a bare identifier)
+!colon                                 5511                       OK (cannot match an identifier)
+!kw_type_d0a3e7f8                      5938,5942                  OK (cannot match an identifier)
+!lparen                                5267,5267,6304             OK (cannot match an identifier)
+!reserved_non_keyword_identifier       462                        OK (cannot match an identifier)
+!scope_resolution                      481,499                    OK (cannot match an identifier)
+!tick                                  5236,5237                  OK (cannot match an identifier)
+
+inline `!( … )` group guards — reported, not probed (no rule name to enter):
+  line 3203   !( comma kw_type_d0a3e7f8 )
+  line 4279   !( comma kw_string_ecb25204 )
+  line 5635   !( identifier )
+  line 5706   !( kw_sv_dollar_root_f65f0e67 dot )
+  line 5706   !( kw_sv_dollar_unit_1d99223f scope_resolution )
+
+DEAD-GUARD-SWEEP: subjects=8 groups=5 dead_risk=1 -> callable_method_call_body

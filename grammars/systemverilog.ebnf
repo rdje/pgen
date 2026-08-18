@@ -3309,7 +3309,29 @@ callable_method_call_body := built_in_method_call
 # but neither does any consumer need it for fact lookup). Strictly
 # additive — bare-id receivers (`obj.method()`, `a.b.c.method()`) continue
 # to match via constant_bit_select matching empty.
-split_hierarchical_callable_receiver := ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? ( identifier constant_bit_select dot !callable_method_call_body )* identifier constant_bit_select
+#
+# SV-CORPUS-GRAD.13c.2c — the loop guard above was DEAD, and that is what made
+# `ral.arr[0].g()` unparseable whenever the head is not a known variable binding.
+# `!callable_method_call_body` can never pass on an identifier: A.8.2's
+# `array_manipulation_call ::= array_method_name { attribute_instance }
+# [ ( list_of_arguments ) ] [ with ( expression ) ]` makes the parens OPTIONAL, so a
+# bare `arr` already IS a `callable_method_call_body` and the negative lookahead
+# fires on every member name. Measured on the shipped parser: the loop ran ZERO
+# iterations and the receiver collapsed to its first component (`ral`), leaving
+# `[0].g()` for a `dot` that found `[`. Multi-component receivers survived only
+# through `method_call`'s `( dot method_call_body )*` chain, which carries no
+# bit-select — hence `a.b.g()` parsed and `a.b[0].g()` did not.
+#
+# The replacement guard states the real condition: take this `.` only if the NEXT
+# component is itself followed by a `.`, i.e. only if it is a member rather than the
+# method. It is the same idiom `context_member_method_call` uses (`&dot`) and that
+# `select` uses (`!lparen`) — a possessive `*` needs an explicit lookahead to leave a
+# tail, because PGEN quantifiers never give back iterations (LANG-CAPABILITY-AUDIT.10.18).
+# Three profiles, one root cause: this also restores IEEE 1364-2005 §12.4's indexed
+# hierarchical name in a call position (`top.u1[0].t;`), which A.9.3
+# (`hierarchical_identifier ::= { identifier [ [ constant_expression ] ] . } identifier`)
+# admits and which rejected on sv_2017, sv_2023 AND verilog_2005 alike.
+split_hierarchical_callable_receiver := ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? ( identifier constant_bit_select dot &( identifier constant_bit_select dot ) )* identifier constant_bit_select
                                      -> {scope: $1, path: $2, name: $3}
 
 split_direct_callable_method_call := split_hierarchical_callable_receiver dot callable_method_call_body

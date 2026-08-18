@@ -1880,7 +1880,24 @@ observation was simply unused.
 > **mislabelled deferral**, owned by `.13c`/`.13d`, not an under-reporting bar.
 
 > ⭐ **Live verdict-coverage tuple — `adjudicated/routed/no-verdict/dark/axis-2-bar` =
-> `7556/2459/6321/4392/300`.** (`SV-CORPUS-GRAD.13c.2f` slice 4 moved the bar **302 → 300** by
+> `7556/2459/6321/4392/289`.** (`SV-CORPUS-GRAD.13c.2c` moved the bar **300 → 289** — a larger move
+> than any other recorded on this line, and it was **one grammar token**. The member loop of
+> `split_hierarchical_callable_receiver` was guarded by `!callable_method_call_body`, a negative
+> lookahead that **can never pass on an identifier**: IEEE 1800 A.8.2 makes
+> `array_manipulation_call`'s parens OPTIONAL, so a bare member name already satisfies
+> `callable_method_call_body`. The loop therefore ran ZERO iterations for its whole life and the
+> receiver collapsed to its first component, which is why `a.b.g()` parsed and `a.b[0].g()` did
+> not. `match` 5 821 → 5 831, `unexplained_rejects_valid` 279 → 268, `accepts-invalid` byte-identical
+> at 21 — the same 21 files, set-compared — and the ADJUDICATED/ROUTED/NO-VERDICT/DARK split
+> **entirely unmoved**: eleven fewer known defects over the same 46.3 % of the corpus. ⛔ Eleven rows
+> moved and only TEN crossed `fail → pass`; `verilator/test_regress/t/t_func_dotted.v` still FAILS
+> and reclassified `unexplained_rejects_valid → explained_svpp_macro_use` because its parse now runs
+> past the dotted call and dies in a macro window — the third consecutive slice in which a pass/fail
+> join under-counts its own result, which is why the join is over the MANIFEST. ⭐⭐ It is also a
+> **THREE-profile** fix: nothing on the path carries an `@profiles` gate, so the same defect had been
+> rejecting IEEE 1364-2005 §12.4 hierarchical names in plain Verilog — `top.u1[0].t;` and
+> `y = top.u1[0].f(1);` are now pinned as reproducers on all three profiles. The step before it,
+> `SV-CORPUS-GRAD.13c.2f` slice 4, moved the bar **302 → 300** by
 > making IEEE 1800 A.7.5's two `PATHPULSE$` tokens matchable: `match` 5 820 → 5 821,
 > `unexplained_rejects_valid` 281 → 279, `accepts-invalid` unchanged at 21, and the
 > ADJUDICATED/ROUTED/NO-VERDICT/DARK split **entirely unmoved** — two fewer known defects over the

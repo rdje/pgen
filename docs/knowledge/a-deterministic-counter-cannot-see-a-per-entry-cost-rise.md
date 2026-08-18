@@ -61,7 +61,7 @@ counter moving ~2.4× *more* than the clock) and under the most adversarial pair
 1.82×; and no admissible wall-clock figure survives to rebuild it from at all. Replacing one
 unearned ratio with another would repeat the mistake in a smaller font.
 
-**Live LR-family share `2.741`** (corpus-entry share %). ⭐ Since `ENGINE-UNIVERSAL-SERVICES.21`
+**Live LR-family share `2.743`** (corpus-entry share %). ⭐ Since `ENGINE-UNIVERSAL-SERVICES.21`
 acceptance (f) that number is **GATED, not quoted**: it is derived by a full-corpus census into
 `docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json`, and
 `PARSE-COST-RATCHET`'s every-run tier re-hashes the four inputs it is a function of, re-checks the

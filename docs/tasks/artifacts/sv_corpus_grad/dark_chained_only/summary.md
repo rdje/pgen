@@ -6,41 +6,41 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `dae5e357d5c310b736bdeffb62ab665e537ccb0c2009ca648e11e4b140262f2c` |
-| positions | `stimuli/sv/characterization/positions.tsv` | `4c2fe8c15122288d4a608ec54dd06999bf5a6ec20e9f703c067a1c981641aa2d` |
-| grammar | `grammars/systemverilog.ebnf` | `2a1a92f597f3baaf3c93350b947832a1dfaee4692c9f166b3d323bffd2a4d5fd` |
+| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `67738217251cef7d19684684893aaccf2fd047cca3697d928607a014ad4c40a1` |
+| positions | `stimuli/sv/characterization/positions.tsv` | `f08273f14a1e39e2ab51372dcb83bcfeacc9c4a7b39615564b71dfb334b2dcef` |
+| grammar | `grammars/systemverilog.ebnf` | `19e73cab3965a0fd2964d43e1ac90eb2d10bb7cfe2cb211a003f191c99253b77` |
 
 ## The TEXT channel — can expansion move the byte the parse choked on?
 
 | verdict | rows | % | reading |
 |---|---:|---:|---|
 | `PRE-TICK` | 2,069 | 49.8 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
-| `IN-WINDOW` | 1,477 | 35.5 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
+| `IN-WINDOW` | 1,473 | 35.5 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
 | `NOT-SV-SOURCE` | 346 | 8.3 % | ⛔ **not source text** — a `$readmemh` memory image (`@address` + hex bytes) carrying a `.v` extension. It can never parse and is NOT evidence about the parser: a CORPUS COMPOSITION defect |
-| `NO-ALTERABLE-TICK` | 216 | 5.2 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
+| `NO-ALTERABLE-TICK` | 214 | 5.2 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
 | `PAST-LAST-TICK` | 50 | 1.2 % | choked past every alterable directive — suspicious but still reachable by an earlier expansion's shift. UNDECIDABLE |
-| **TOTAL** | **4,158** | **100.0 %** | |
+| **TOTAL** | **4,152** | **100.0 %** | |
 
-⇒ **2,285 of 4,158 rows (55.0 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
+⇒ **2,283 of 4,152 rows (55.0 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
 
 ## Then the FACT channel — is a cross-file *name* the live explanation?
 
 | channel | rows | reading |
 |---|---:|---|
-| `FACT-GATED-CROSS-FILE` | 2,057 |  |
+| `FACT-GATED-CROSS-FILE` | 2,060 |  |
 | `CROSS-LIBRARY` | 171 |  |
-| `UNDECLARED-ANYWHERE` | 25 |  |
-| `NO-FACT-GATE-AT-FAILURE` | 24 |  |
+| `NO-FACT-GATE-AT-FAILURE` | 22 |  |
+| `UNDECLARED-ANYWHERE` | 22 |  |
 | `FACT-GATED-LOCAL-TYPE` | 8 |  |
 
-⇒ **the worklist is 57 rows** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv`) — every one must be adjudicated with the toolbox (probe + `--trace-rules`) before it is called a defect.
+⇒ **the worklist is 52 rows** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv`) — every one must be adjudicated with the toolbox (probe + `--trace-rules`) before it is called a defect.
 
 ## Worklist by suite
 
 | suite | channel | rows |
 |---|---|---:|
-| opentitan | `UNDECLARED-ANYWHERE` | 21 |
-| opentitan | `NO-FACT-GATE-AT-FAILURE` | 13 |
+| opentitan | `UNDECLARED-ANYWHERE` | 18 |
+| opentitan | `NO-FACT-GATE-AT-FAILURE` | 11 |
 | uvm-core | `FACT-GATED-LOCAL-TYPE` | 8 |
 | slang | `NO-FACT-GATE-AT-FAILURE` | 3 |
 | Surelog | `UNDECLARED-ANYWHERE` | 3 |
@@ -63,8 +63,6 @@
 | Surelog | `tests/LoopBits/LoopBits.sv` | 1 | `NO-FACT-GATE-AT-FAILURE` | `-parse -d uhdm -d coveruhdm -elabuhdm -d ast dut.sv -nobuilt` |
 | opentitan | `hw/dv/sv/cip_lib/cip_lc_tx_cov_if.sv` | 11 | `NO-FACT-GATE-AT-FAILURE` | `(lc_ctrl_pkg::Off)) lc_tx_cov; lc_tx_cov cov; initial begin cov = lc_tx_` |
 | opentitan | `hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv` | 53 | `NO-FACT-GATE-AT-FAILURE` | `th(EntropyWidth), ) u_kmac_reduced ( .clk_i, .rst_ni, // Inputs e` |
-| opentitan | `hw/top_darjeeling/rtl/autogen/testing/top_darjeeling_rnd_cnst_pkg.sv` | 244 | `NO-FACT-GATE-AT-FAILURE` | `448'h0 }) }; //////////////////////////////////////////// // lc_ct` |
-| opentitan | `hw/top_earlgrey/rtl/autogen/testing/top_earlgrey_rnd_cnst_pkg.sv` | 233 | `NO-FACT-GATE-AT-FAILURE` | `448'h0 }) }; //////////////////////////////////////////// // lc_ct` |
 | opentitan | `hw/vendor/lowrisc_ibex/dv/verilator/simple_system_cosim/ibex_simple_system_cosim_checker_bind.sv` | 7 | `NO-FACT-GATE-AT-FAILURE` | `#( .SecureIbex, .ICache, .PMPEnable, .PMPGranularity,` |
 | opentitan | `hw/vendor/lowrisc_ibex/syn/rtl/latch_map.v` | 6 | `NO-FACT-GATE-AT-FAILURE` | `pecific cell module $_DLATCH_P_ (input E, input D, output Q); DLH_X1 _TECHMAP_RE` |
 | opentitan | `hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv` | 2 | `NO-FACT-GATE-AT-FAILURE` | `name enum CUSTOM_1,` |
@@ -95,4 +93,6 @@
 | scr1 | `src/tb/scr1_top_tb_runtests.sv` | 10 | `NO-FACT-GATE-AT-FAILURE` | `------------------ initial begin $value$plusargs("imem_pattern=%h", imem_re` |
 | uvm-core | `uvm-core-2020.3.1/src/reg/uvm_reg_sequence.svh` | 73 | `NO-FACT-GATE-AT-FAILURE` | `ence #(uvm_reg_item)) extends BASE; `uvm_object_param_utils(uvm_reg_sequence` |
 | uvm-core | `uvm-core-2020.3.1/src/seq/uvm_sequencer_base.svh` | 41 | `NO-FACT-GATE-AT-FAILURE` | `(uvm_sequence_base) uvm_config_seq; typedef class uvm_sequence_request; // Util` |
+| black-parrot | `bp_top/test/common/bp_nonsynth_core_profiler.sv` | 3 | `UNDECLARED-ANYWHERE` | `NTLY_UNSUPPORTED typedef struct packed { logic icache_miss; logic b` |
+| opentitan | `hw/ip/aes/dv/env/aes_ral_extension.svh` | 6 | `UNDECLARED-ANYWHERE` | `xtends aes_reg_block; `uvm_object_utils(aes_reg_block_extended) function ne` |
 

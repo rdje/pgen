@@ -1,0 +1,7 @@
+(* Does PGEN's `*` give back iterations when the rest of the sequence fails? *)
+@entry: true
+s := ( a )* a b
+  -> {loop: $1, last: $2, tail: $3}
+
+a := "a"
+b := "b"

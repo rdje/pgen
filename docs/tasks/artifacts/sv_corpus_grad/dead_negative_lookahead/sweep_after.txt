@@ -1,0 +1,20 @@
+controls: identifier accepts `x` ✓ · lparen rejects it ✓ · 7 guard subjects all resolve ✓ · 12 `!` sites found ✓
+
+guard subject                          sites                      verdict
+--------------------------------------------------------------------------------------------
+!binary_operator                       5282,5283,5284,5285        OK (cannot match an identifier)
+!colon                                 5533                       OK (cannot match an identifier)
+!kw_type_d0a3e7f8                      5960,5964                  OK (cannot match an identifier)
+!lparen                                5289,5289,6326             OK (cannot match an identifier)
+!reserved_non_keyword_identifier       462                        OK (cannot match an identifier)
+!scope_resolution                      481,499                    OK (cannot match an identifier)
+!tick                                  5258,5259                  OK (cannot match an identifier)
+
+inline `!( … )` group guards — reported, not probed (no rule name to enter):
+  line 3203   !( comma kw_type_d0a3e7f8 )
+  line 4301   !( comma kw_string_ecb25204 )
+  line 5657   !( identifier )
+  line 5728   !( kw_sv_dollar_root_f65f0e67 dot )
+  line 5728   !( kw_sv_dollar_unit_1d99223f scope_resolution )
+
+DEAD-GUARD-SWEEP: subjects=7 groups=5 dead_risk=0

@@ -7,8 +7,6 @@ NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/ElabSysCall/dut.sv	42	78
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/LoopBits/LoopBits.sv	0	0		1	63		-parse -d uhdm -d coveruhdm -elabuhdm -d ast dut.sv -nobuilt
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/cip_lib/cip_lc_tx_cov_if.sv	414	415		11	624		(lc_ctrl_pkg::Off)) lc_tx_cov; lc_tx_cov cov; initial begin cov = lc_tx_
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv	1430	1433		53	13926		th(EntropyWidth), ) u_kmac_reduced ( .clk_i, .rst_ni, // Inputs e
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/top_darjeeling/rtl/autogen/testing/top_darjeeling_rnd_cnst_pkg.sv	5899	5899		244	21910		448'h0 }) }; //////////////////////////////////////////// // lc_ct
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/top_earlgrey/rtl/autogen/testing/top_earlgrey_rnd_cnst_pkg.sv	5906	5906		233	22616		448'h0 }) }; //////////////////////////////////////////// // lc_ct
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/dv/verilator/simple_system_cosim/ibex_simple_system_cosim_checker_bind.sv	275	275		7	906		#( .SecureIbex, .ICache, .PMPEnable, .PMPGranularity,
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/syn/rtl/latch_map.v	200	201		6	303		pecific cell module $_DLATCH_P_ (input E, input D, output Q); DLH_X1 _TECHMAP_RE
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv	51			2	52		name enum CUSTOM_1,
@@ -45,14 +43,11 @@ PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip/xbar_dbg/dv/autogen/
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip/xbar_main/dv/autogen/tb__xbar_connect.sv	232	233	241	7	3448	xbar_main	py` tool xbar_main dut(); `DRIVE_CLK(clk_main_i) `DRIVE_CLK(clk_fixed_i) init
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip/xbar_mbx/dv/autogen/tb__xbar_connect.sv	231	232	240	7	1137	xbar_mbx	.py` tool xbar_mbx dut(); `DRIVE_CLK(clk_mbx_i) initial force dut.clk_mbx_i =
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip/xbar_peri/dv/autogen/tb__xbar_connect.sv	232	233	241	7	1639	xbar_peri	py` tool xbar_peri dut(); `DRIVE_CLK(clk_peri_i) initial force dut.clk_peri_i
-PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv	960	961	3111	24	5299	csr_enable_cp,ip_clk_en_cp,peri_cross	le_off = peri_cross with (csr_enable_cp == 1 && ip_clk_en_cp == 0); } endg
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cov.sv	2244	2245	6845	56	19061	TL_DW,otp_ctrl_core_reg_block	ctrl_core_reg_block ral) with function sample(bit[TL_DW-1:0]
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_earlgrey/ip/xbar_main/dv/autogen/tb__xbar_connect.sv	232	233	241	7	2502	xbar_main	py` tool xbar_main dut(); `DRIVE_CLK(clk_main_i) `DRIVE_CLK(clk_fixed_i) `DRIV
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_earlgrey/ip/xbar_peri/dv/autogen/tb__xbar_connect.sv	232	233	241	7	1965	xbar_peri	py` tool xbar_peri dut(); `DRIVE_CLK(clk_peri_i) initial force dut.clk_peri_i
-PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_earlgrey/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv	960	961	3111	24	6299	csr_enable_cp,ip_clk_en_cp,peri_cross	le_off = peri_cross with (csr_enable_cp == 1 && ip_clk_en_cp == 0); } endg
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cov.sv	2244	2245	5448	56	15677	TL_DW,otp_ctrl_core_reg_block	ctrl_core_reg_block ral) with function sample(bit[TL_DW-1:0]
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_englishbreakfast/ip/xbar_main/dv/autogen/tb__xbar_connect.sv	232	233	241	7	1375	xbar_main	py` tool xbar_main dut(); `DRIVE_CLK(clk_main_i) `DRIVE_CLK(clk_fixed_i) init
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_englishbreakfast/ip/xbar_peri/dv/autogen/tb__xbar_connect.sv	232	233	241	7	1409	xbar_peri	py` tool xbar_peri dut(); `DRIVE_CLK(clk_peri_i) `DRIVE_CLK(clk_spi_host0_i) `
-PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/dv/env/clkmgr_env_cov.sv	960	961	3111	24	6141	csr_enable_cp,ip_clk_en_cp,peri_cross	le_off = peri_cross with (csr_enable_cp == 1 && ip_clk_en_cp == 0); } endg
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/protocol/irqs.sv	362	362	623	12	1104	NoNMI	ither of these NoNMI: assume property (~irq_nm_i); NoFastIRQ: assume property (~
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/spec_instance.sv	471	472	565	14	2815	t_MainMode	ate. */ t_MainMode main_mode; always_comb begin if (wbexc_handling_irq) ma

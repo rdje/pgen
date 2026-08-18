@@ -1940,7 +1940,7 @@ ispras-sv-tests	ieee-1800-2012/03/03.12.01_01.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/03/03.12.01_02.sv	pass	must_accept	match	pinned .8b.2: use-before-declaration + $unit:: forward reference (3.12.1) - name resolution, semantic stage
 ispras-sv-tests	ieee-1800-2012/03/03.14.02.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/03/03.14.02.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/04/04.05_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/04/04.05_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/04/04.06_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/04/04.08_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/05/05.06.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -14192,7 +14192,7 @@ verilator	test_regress/t/t_func_const_struct_bad.v	pass	must_accept	match	verila
 verilator	test_regress/t/t_func_crc.v	pass	must_accept	match	verilator: driver t_func_crc.py expects success
 verilator	test_regress/t/t_func_default_warn.v	pass	must_accept	match	verilator: driver t_func_default_warn.py expects success
 verilator	test_regress/t/t_func_defaults.v	pass	must_accept	match	verilator: driver t_func_defaults.py expects success
-verilator	test_regress/t/t_func_dotted.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_func_dotted_inl0.py expects success - .12a: parse stops where svpp cannot alter the text, so the preprocessor dependency does not explain THIS failure
+verilator	test_regress/t/t_func_dotted.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_func_dotted_inl0.py expects success
 verilator	test_regress/t/t_func_endian.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_func_endian.py expects success
 verilator	test_regress/t/t_func_first.v	pass	must_accept	match	verilator: driver t_func_first.py expects success
 verilator	test_regress/t/t_func_flip.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_func_flip.py expects success
@@ -15469,12 +15469,12 @@ verilator	test_regress/t/t_randomize_arraysel_membersel.v	fail	must_accept	diver
 verilator	test_regress/t/t_randomize_assoc_size.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_assoc_size.py expects success
 verilator	test_regress/t/t_randomize_class_inherit_size_foreach.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_class_inherit_size_foreach.py expects success
 verilator	test_regress/t/t_randomize_complex.v	pass	must_accept	match	verilator: driver t_randomize_complex.py expects success
-verilator	test_regress/t/t_randomize_complex_arrays.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_randomize_complex_arrays.py expects success
-verilator	test_regress/t/t_randomize_complex_associative_arrays.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_randomize_complex_associative_arrays.py expects success
-verilator	test_regress/t/t_randomize_complex_dynamic_arrays.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_randomize_complex_dynamic_arrays.py expects success
-verilator	test_regress/t/t_randomize_complex_member_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_randomize_complex_member_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_randomize_complex_queue.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_randomize_complex_queue.py expects success
-verilator	test_regress/t/t_randomize_complex_typedef.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_randomize_complex_typedef.py expects success
+verilator	test_regress/t/t_randomize_complex_arrays.v	pass	must_accept	match	verilator: driver t_randomize_complex_arrays.py expects success
+verilator	test_regress/t/t_randomize_complex_associative_arrays.v	pass	must_accept	match	verilator: driver t_randomize_complex_associative_arrays.py expects success
+verilator	test_regress/t/t_randomize_complex_dynamic_arrays.v	pass	must_accept	match	verilator: driver t_randomize_complex_dynamic_arrays.py expects success
+verilator	test_regress/t/t_randomize_complex_member_bad.v	pass	must_accept	match	verilator: driver t_randomize_complex_member_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_randomize_complex_queue.v	pass	must_accept	match	verilator: driver t_randomize_complex_queue.py expects success
+verilator	test_regress/t/t_randomize_complex_typedef.v	pass	must_accept	match	verilator: driver t_randomize_complex_typedef.py expects success
 verilator	test_regress/t/t_randomize_derived_this.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_derived_this.py expects success
 verilator	test_regress/t/t_randomize_dist_conditional.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_dist_conditional.py expects success
 verilator	test_regress/t/t_randomize_dist_foreach.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_dist_foreach.py expects success
@@ -15516,11 +15516,11 @@ verilator	test_regress/t/t_randomize_queue_size.v	fail	must_accept	divergence:ex
 verilator	test_regress/t/t_randomize_queue_size_element.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_queue_size_element.py expects success
 verilator	test_regress/t/t_randomize_queue_wide.v	pass	must_accept	match	verilator: driver t_randomize_queue_wide.py expects success
 verilator	test_regress/t/t_randomize_rand_mode.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_rand_mode.py expects success
-verilator	test_regress/t/t_randomize_rand_mode_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_randomize_rand_mode_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_randomize_rand_mode_bad.v	pass	must_accept	match	verilator: driver t_randomize_rand_mode_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_randomize_rand_mode_constr.v	pass	must_accept	match	verilator: driver t_randomize_rand_mode_constr.py expects success
 verilator	test_regress/t/t_randomize_rand_mode_funcarg.v	pass	must_accept	match	verilator: driver t_randomize_rand_mode_funcarg.py expects success
 verilator	test_regress/t/t_randomize_rand_mode_static.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_rand_mode_static.py expects success
-verilator	test_regress/t/t_randomize_rand_mode_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_randomize_rand_mode_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_randomize_rand_mode_unsup.v	pass	must_accept	match	verilator: driver t_randomize_rand_mode_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_randomize_randmode_subobj.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_randmode_subobj.py expects success
 verilator	test_regress/t/t_randomize_real.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_real.py expects success
 verilator	test_regress/t/t_randomize_shift_distribution.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_shift_distribution.py expects success
@@ -15572,7 +15572,7 @@ verilator	test_regress/t/t_reloop_inlined.v	pass	must_accept	match	verilator: dr
 verilator	test_regress/t/t_reloop_local.v	pass	must_accept	match	verilator: driver t_reloop_local.py expects success
 verilator	test_regress/t/t_reloop_offset.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_reloop_offset.py expects success
 verilator	test_regress/t/t_repeat.v	pass	must_accept	match	verilator: driver t_repeat.py expects success
-verilator	test_regress/t/t_resize_lvalue.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_resize_lvalue.py expects success
+verilator	test_regress/t/t_resize_lvalue.v	pass	must_accept	match	verilator: driver t_resize_lvalue.py expects success
 verilator	test_regress/t/t_risefall_delay.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_risefall_delay.py expects success
 verilator	test_regress/t/t_rnd.v	pass	must_accept	match	verilator: driver t_rnd.py expects success
 verilator	test_regress/t/t_runflag.v	pass	must_accept	match	verilator: driver t_runflag.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid

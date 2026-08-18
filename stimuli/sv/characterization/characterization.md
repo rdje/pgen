@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `822b8b61900f2126b3dc2b12bbb68f1e88641d71636218105f4fe499daa7e204` |
-| grammar | `grammars/systemverilog.ebnf` | `1b660c369945bb1e3a67857b2b31c1ed51997934953385195db7b4bae68033a6` |
-| generated parser | `generated/systemverilog_parser.rs` | `ee393ed57cde037da8340d72f0b1faa89b0a56202ef229491a79ebd6d2c03203` |
+| parse binary | `rust/target/release/parseability_probe` | `314457f32747b06b87d412e51edffc03bf0668fe0151d5f9414763e0cca56563` |
+| grammar | `grammars/systemverilog.ebnf` | `19e73cab3965a0fd2964d43e1ac90eb2d10bb7cfe2cb211a003f191c99253b77` |
+| generated parser | `generated/systemverilog_parser.rs` | `23639eda0e907aae9f961a47816cdc427d8b87b0f44d2ede6da397e23f95302d` |
 
-Measured at `HEAD` = `6d1a18b3+dirty` (2026-08-17).
+Measured at `HEAD` = `0a105d3c+dirty` (2026-08-18).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -42,7 +42,7 @@ Measured at `HEAD` = `6d1a18b3+dirty` (2026-08-17).
 > A timeout is a statement about the machine as much as about the parser. Every
 > `timeout` row is re-run **alone** at the same deadline before it is recorded, and the
 > population sitting within 2x of the deadline is published so the flip-risk set is a
-> known number. Per-file durations: `rust/target/es13c2f4/corpus_after/durations.tsv`.
+> known number. Per-file durations: `stimuli/sv/characterization/durations.tsv`.
 
 | population | files |
 |---|---|
@@ -53,17 +53,13 @@ Measured at `HEAD` = `6d1a18b3+dirty` (2026-08-17).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `5.48` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
-
-⚠️ **NON-CANONICAL RUN** — written to `rust/target/es13c2f4/corpus_after` via `PGEN_CORPUS_OUT_DIR`,
-not to the tracked `stimuli/sv/characterization`. Diff it against the tracked artifact
-before promoting anything.
+Slowest completing file: `7.03` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 16336 | 9776 | 6560 | 0 | 0 | 59.8% |
+| 16336 | 9786 | 6550 | 0 | 0 | 59.9% |
 
 ## Per sub-corpus
 
@@ -73,7 +69,7 @@ before promoting anything.
 | Surelog | 828 | 699 | 129 | 0 | 0 | 84.4% |
 | black-parrot | 205 | 21 | 184 | 0 | 0 | 10.2% |
 | friscv | 441 | 31 | 410 | 0 | 0 | 7.0% |
-| ispras-sv-tests | 1266 | 1096 | 170 | 0 | 0 | 86.6% |
+| ispras-sv-tests | 1266 | 1097 | 169 | 0 | 0 | 86.7% |
 | iverilog | 3799 | 3231 | 568 | 0 | 0 | 85.0% |
 | opentitan | 3983 | 795 | 3188 | 0 | 0 | 20.0% |
 | scr1 | 50 | 8 | 42 | 0 | 0 | 16.0% |
@@ -82,9 +78,9 @@ before promoting anything.
 | sv2v | 953 | 727 | 226 | 0 | 0 | 76.3% |
 | uvm-core | 174 | 20 | 154 | 0 | 0 | 11.5% |
 | verible | 152 | 121 | 31 | 0 | 0 | 79.6% |
-| verilator | 3263 | 2078 | 1185 | 0 | 0 | 63.7% |
+| verilator | 3263 | 2087 | 1176 | 0 | 0 | 64.0% |
 
-_Raw per-file results: `rust/target/es13c2f4/corpus_after/results.tsv` (3 columns: sub-corpus, status,
+_Raw per-file results: `stimuli/sv/characterization/results.tsv` (3 columns: sub-corpus, status,
 repo-root-relative path — a stable contract three consumers unpack positionally)._
-_Per-file durations: `rust/target/es13c2f4/corpus_after/durations.tsv` (the same rows plus a 4th wall-seconds column)._
+_Per-file durations: `stimuli/sv/characterization/durations.tsv` (the same rows plus a 4th wall-seconds column)._
 _Both are sorted by (sub-corpus, path), so two runs are directly diffable._
