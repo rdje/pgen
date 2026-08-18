@@ -10275,14 +10275,33 @@ routed finding look smaller.
      `randomize() with { … }` needs its own probe.
   3. `.13c.2j`'s rendering-drift sweep asserts the four renderings AGREE; one member of what they
      agree on is this defect, which the sweep's README states rather than implies.
-- **WHAT THIS LEAF OWES**: (a) the toolbox WHY+WHERE inside the extractor
-  (`tools/extract_systemverilog_lrm_profiles.py`) — the measurements above are a REPRODUCTION of the
-  symptom, not yet a diagnosis of the code that produced it; (b) the `local ::` probe, so the
-  over-rejection half is decided by measurement either way; (c) a SWEEP of the class, because one
-  instance is never the class here (`.13c.2e`) — every `kw_<name>_<hash>` rule whose `<name>` is an
-  Annex A NONTERMINAL rather than an Annex B keyword, and every `kw_n_<digits>_<hash>` rule, which
-  is a footnote marker by construction; (d) the fix plus the corpus accepts-invalid count measured
-  before and after. ✅ **NO LONGER BLOCKED ON THE ORACLE** — `.13c.2k` built the `accepts_invalid` class in
+- [x] ⭐⭐⭐ **(a) DISCHARGED 2026-08-18 under DIRECTOR CHALLENGE (`PGEN-SV-CORPUS-GRAD-0231`) — the
+  extractor was RUN, and it reproduces the weld today.** A fresh run on the tracked markdown (into a
+  scratch path, never `--promote-outputs`) emits verbatim, as the last alternative of
+  `primary_sv_2017`:
+  `kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( implicit_class_handle dot | class_scope )?`
+  — plus the `kw_n_48_64e095fe` twin for 2023 and `kw_n_43_0286dd55 := trivia /43\b/`. ⇒ the causal
+  claim is no longer circumstantial, and the published wording *"the extractor welded"* is now earned.
+- [x] ⭐⭐⭐ **THE MECHANISM IS ONE LOST COLON.** The markdown the extractor reads prints `| null` and
+  then `class_qualifier := [ local ::43 ] …` — a production head with **one** colon, where the very
+  next line (`range_expression ::=`) has two. The extractor splits on `::=`, so this head is not
+  recognised and its whole line is appended to the previous production, whose last alternative was
+  `| null`. ⛔ **Measured singleton on that axis**: single-colon heads number **1 against 717**
+  correct `::=` heads in the 2017 source and **1 against 734** in 2023 — the same production, both
+  editions. Exactly one production per edition was swallowed, and this is it.
+- [x] ⚠️ **THE FOOTNOTE-TOKEN AXIS IS NOT A SINGLETON — and sweeping it is how `.13c.2o` was found.**
+  The shipped grammar defines **8** `kw_n_<digits>_<hash>` tokens; ⛔ the routing note below was
+  wrong to call them footnote markers "by construction". **Five are legitimate LRM literals**:
+  `0`/`1`/`2` (`finish_number`, `level_symbol`, `assert #0`) and `01`/`10` (`edge_descriptor`, A.7.4).
+  **Three are footnote markers**: `43` (2017) and `48` (2023), both inside `( … )?` groups so they
+  can only over-ACCEPT — and **`29`, which is MANDATORY** inside `covergroup_declaration_sv_2023`'s
+  extends branch, so it REJECTS a legal construct. That third one is strictly worse than this leaf's
+  defect and is routed to **`.13c.2o`**.
+- **WHAT THIS LEAF STILL OWES**: (b) the `local ::` probe, so the over-rejection half is decided by
+  measurement either way; (c) the OTHER half of the sweep — every `kw_<name>_<hash>` rule whose
+  `<name>` is an Annex A NONTERMINAL rather than an Annex B keyword (the `class_qualifier` shape),
+  which is not the same question as the numeric-token census above and is still unmeasured;
+  (d) the fix plus the corpus accepts-invalid count measured before and after. ✅ **NO LONGER BLOCKED ON THE ORACLE** — `.13c.2k` built the `accepts_invalid` class in
   `PGEN-SV-CORPUS-GRAD-0230` and all six rows are now PINNED in
   `stimuli/sv/adjudication_repros/MANIFEST.tsv` (four `accepts_invalid` + two one-identifier controls
   filed `invalid`), so the day this leaf's fix lands the runner FAILS with *"flip it to `invalid`"*
@@ -10320,6 +10339,49 @@ routed finding look smaller.
   which already owes the contract three accept-set releases; doing both in one release costs one
   bump instead of two. ⛔ Not before the SV release: an AST-shape change to a consumer-facing field
   on the delivery path buys maintainability, not correctness.
+
+#### ⚠️ `.13c.2o` NEW `todo` — PGEN cannot parse IEEE 1800-2023 COVERGROUP INHERITANCE unless you type the LRM's footnote number into your source (opened 2026-08-18 session #246 by `.13c.2m`'s re-derivation under DIRECTOR CHALLENGE, `PGEN-SV-CORPUS-GRAD-0231`)
+
+- **HOW IT WAS FOUND — by challenging a published claim, not by looking for it.** `.13c.2m` had
+  described the footnote-marker leak as `43`/`48`. Re-deriving that census under challenge instead of
+  re-reading it turned up a THIRD marker, `29`, in a completely different production — and unlike the
+  other two it is not inside an optional group.
+- ⛔⛔ **MEASURED ON THE SHIPPED PARSER, with a control and both directions:**
+
+  | input | `sv_2017` | `sv_2023` |
+  |---|---|---|
+  | `covergroup extends base;` inside a class — **the LRM form** | REJECT ✅ | **REJECT** ⛔ |
+  | `covergroup extends base;29` — the same text with the FOOTNOTE NUMBER typed in | REJECT ✅ | **ACCEPT** ⛔ |
+  | `covergroup base; endgroup` (control — plain covergroup, same carrier) | ACCEPT | ACCEPT |
+
+  ⇒ on `sv_2023` the ONLY spelling of covergroup inheritance PGEN accepts is the one no Annex A
+  production derives. **This is a REJECTS-VALID defect** — the axis the Nexsim release bar is
+  actually about — with a matching over-acceptance riding on the same token.
+  ⭐ `sv_2017` rejecting both is CORRECT and was checked, not assumed: `covergroup extends` appears in
+  1800-2023's Annex A and **nowhere** in the 1800-2017 source (`grep` over both, 1 hit vs 0).
+- **ROOT CAUSE (WHY + WHERE).** IEEE 1800-2023 A.2.11 prints the alternative as
+  `| covergroup extends covergroup_identifier ;29`, where `29` is a footnote marker whose text is at
+  line 3495 of the same file: *"29) The extends specification of covergroup is allowed only within a
+  class."* The extractor emitted the marker as a token — `kw_n_29_7719a1c7 := trivia /29\b/`
+  (`grammars/systemverilog.ebnf:6823`) — and placed it in the sequence with **no `?`**:
+  `grammars/systemverilog.ebnf:1771`, `kw_covergroup … kw_extends … covergroup_identifier semi
+  kw_n_29_7719a1c7 coverage_spec_or_option* kw_endgroup …`.
+  ⭐ The trace corroborates the shape rather than the guess: on the *named* form
+  (`covergroup cg extends base;`) the branch fails at `❌ Regex 'extends\b' no match at position 52
+  (next: 'cg extends')`, which is the LRM being right — the derived covergroup carries no new name —
+  and is why the first attempt to reproduce this used the wrong input and had to be bisected.
+- **WHAT THIS LEAF OWES**: (a) the fix — delete the mandatory `kw_n_29_7719a1c7` from that branch,
+  which is a NARROWING for the `;29` form and a WIDENING for the legal form, so both pinned rows flip
+  in the same commit; (b) the corpus measured before and after in BOTH directions (pass count AND the
+  accepts-invalid set — a narrowing can only be seen on the second); (c) ⭐ the durable half: an
+  instrument that asks, of every `kw_n_<digits>_<hash>` token, whether its digits appear as a
+  FOOTNOTE in the LRM source rather than as a grammar literal — the census done by hand here (5
+  legitimate, 3 markers) is exactly the shape that rots, and the LRM sources are tracked so the
+  question is mechanisable; (d) a decision on whether the extractor guardrail belongs here or in
+  `LRM-GRAMMAR-FIDELITY` — routed there with this leaf as its second test case.
+- ⚠️ **PRICE.** Deleting a mandatory token from a sequence cannot raise `entries` at that site, so
+  unlike `.13c.2k` this fix is not expected to trouble `PARSE-COST-RATCHET`. Stated as an
+  EXPECTATION, not a measurement — `-0231` corrected a reasoned cost claim of exactly this shape.
 
 #### `.13c.2e` — `select_condition`'s `intersect { … }` BRACES are not modelled, so the range list swallows the rest of the expression (**`done`** 2026-08-12, `PGEN-SV-CORPUS-GRAD-0214`; opened 2026-08-12 session #218 by `ENGINE-UNIVERSAL-SERVICES.10`)
 

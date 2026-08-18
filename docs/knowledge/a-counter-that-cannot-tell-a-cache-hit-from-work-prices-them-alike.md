@@ -11,8 +11,8 @@ answers:
 tags: [instruments, performance, ratchets, gates, evidence, memoization, waivers, measurement]
 date: 2026-08-18
 status: current
-evidence: "SV-CORPUS-GRAD.13c.2j + ENGINE-UNIVERSAL-SERVICES.36 (2026-08-18). Restoring an IEEE 1800 A.8.4 branch the SV grammar had lost raised PARSE-COST-RATCHET's binding counters: entries 416,424,205 -> 417,009,457 (+0.14 %) and memo_hits 186,926,969 -> 187,512,221 (+0.31 %). The two deltas are IDENTICAL to the unit (+585,252 each) and `committed` is FLAT at 7,123,491 -> every added rule entry was answered by the memo table, so the change asked 585,252 more CACHED questions and did zero new parsing work. The counter cannot see that: a memo hit is one rule entry, exactly like a parse. ⛔ The gate's breach text already said 'record it as irreducible with the measurement that proves it' and there was nowhere to record it -- every rise was a fail() and the rebaseline refuses while a failure stands, leaving exactly two outcomes: abandon a correctness fix, or skip a doctrine."
-reverify: "PGEN_PARSE_COST_REMEASURE=1 bash scripts/check_parse_cost_ratchet.sh   # a rise is accepted only by a docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/accepted_rises.tsv row naming the EXACT from/to plus a coded invariant, which the gate RE-EVALUATES on the run's own numbers; the five refusal arms are bash docs/tasks/artifacts/engine_universal_services/accepted_rise_gate/probe.sh"
+evidence: "SV-CORPUS-GRAD.13c.2j + ENGINE-UNIVERSAL-SERVICES.36 (2026-08-18). Restoring an IEEE 1800 A.8.4 branch the SV grammar had lost raised PARSE-COST-RATCHET's binding counters: entries 416,424,205 -> 417,009,457 (+0.14 %) and memo_hits 186,926,969 -> 187,512,221 (+0.31 %). The two deltas are IDENTICAL to the unit (+585,252 each) and `committed` is FLAT at 7,123,491. ⭐ RE-DERIVED PER FILE under director challenge (`-0231`): of the 192 pinned sample files, 149 moved and ALL 149 satisfy delta_entries == delta_memo_hits AND delta_committed == 0 individually, with zero accept-verdict flips -- so it is not an aggregate coincidence. What that measures exactly is that the number of NON-memoized entries is unchanged on every file; the entire rise is memo-neutral. The counter cannot see that: a memo hit is one rule entry, exactly like a parse. ⛔ The gate's breach text already said 'record it as irreducible with the measurement that proves it' and there was nowhere to record it -- every rise was a fail() and the rebaseline refuses while a failure stands, leaving, for a rise that elimination does not remove, abandon-the-fix or skip-a-doctrine. (The gate's FIRST branch, eliminate, was genuinely exercised: two of three widened sites were dropped and two-thirds of the rise went with them.)"
+reverify: "PGEN_PARSE_COST_REMEASURE=1 bash scripts/check_parse_cost_ratchet.sh   # a rise is accepted only by a docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/accepted_rises.tsv row naming the EXACT from/to plus a coded invariant, which the gate RE-EVALUATES on the run's own numbers; four refusal arms plus a control are bash docs/tasks/artifacts/engine_universal_services/accepted_rise_gate/probe.sh"
 ---
 
 **A memo hit and a parse are both one rule entry.** So a counter keyed on rule entries prices a
@@ -37,21 +37,31 @@ committed    7,123,491 ->   7,123,491          +0     <- nothing new survived
 ```
 
 `delta_entries == delta_memo_hits` with `delta_committed == 0` is not a comfortable reading of a
-number; it is a statement with a mechanism. Every entry the change added was served from the memo
-table, and none of them committed. ⭐ **One counter alone could not have said this.** The insight is
+number; it is a statement with a mechanism: **the count of NON-memoized entries is unchanged**, and
+nothing new committed. ⭐⭐ And it holds **per file, not merely in aggregate** — of 192 pinned sample
+files, 149 moved and all 149 satisfy both equalities individually, with zero accept-verdict flips.
+That distinction matters: an aggregate identity can be a coincidence of composition, 149 independent
+ones cannot. ⚠️ State it as measured — *the rise is memo-neutral* — rather than as *every added entry
+was a memo hit*, which is an inference about which entries, not a measurement of them.
+⭐ **One counter alone could not have said any of this.** The insight is
 not "publish more counters" but *publish counters whose RELATIONSHIPS are diagnostic* — the reason
 this ratchet binds on entries **and** committed **and** memo hits rather than picking the best one.
 
-And the elimination question was answered by the same mechanism instead of by trying things: a
-`!( identifier dot )` guard to skip the new alternative would replace one memoized lookup with an
-`identifier` match plus a `dot` match — themselves rule entries. The obvious optimisation would
-likely cost MORE of the metric it was meant to save.
+⚠️ **One thing here was reasoned rather than measured, and it is flagged because that is the
+failure mode this whole card is about.** The elimination candidate — a `!( identifier dot )` guard to
+skip the new alternative — was dismissed on the argument that a lookahead is itself made of rule
+entries, so it would likely cost MORE of the metric it was meant to save. Plausible, and untested.
+⇒ the acceptance record asserts the SHAPE of the rise (`pure_memo_lookups`) and deliberately does
+NOT assert irreducibility, because nothing measured it. **An acceptance may record what a cost IS;
+it must not quietly record that a cost HAD to be.**
 
 ## The gate-design half, which is the transferable part
 
 The gate's own breach message ended *"… or record it as irreducible with the measurement that proves
 it"*, and no such record existed. Every rise was a hard failure; the rebaseline refused while a
-failure stood. That leaves a correct fix exactly two outcomes: **abandon it, or bypass the gate.**
+failure stood. The gate offers two branches and only the first was implementable, so once
+elimination has taken what it can, a correct fix has **abandon it, or bypass the gate** — and
+"eliminate" is not always available at any price you would pay for it.
 
 ⛔ **A gate that leaves a legitimate outcome unrepresentable does not prevent that outcome — it moves
 it out of the record.** The same shape had been found one day earlier in a completely different

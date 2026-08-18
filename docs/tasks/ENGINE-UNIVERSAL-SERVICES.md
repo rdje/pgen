@@ -9222,6 +9222,17 @@ DELETE it rather than keep a decorative one — `LIVE-DOC-CURRENCY` measured 25 
   rise is a `fail()`, `PGEN_PARSE_COST_REBASELINE=1` refuses while a failure stands, and no file,
   flag or record existed for an accepted rise. So a measured, attributed, irreducible cost had
   exactly two available outcomes: abandon the correctness fix, or skip a doctrine.
+  ⚠️⚠️ **CORRECTED 2026-08-18 under DIRECTOR CHALLENGE (`-0231`): the word doing the work in that
+  sentence is *irreducible*, and it was REASONED, not MEASURED.** The gate's first branch —
+  *attribute it and ELIMINATE it* — was genuinely exercised and it worked: two of the three widened
+  sites were removed and two-thirds of the rise went with them. What was never measured is whether
+  the RESIDUAL could also have been eliminated; the one candidate (`!( identifier dot )` guarding
+  the new alternative) was dismissed on the argument that a lookahead is itself rule entries. That
+  is an honest-sounding bound of exactly the kind `-0228` caught being wrong. ⇒ the leaf's mechanism
+  stands (the acceptance record asserts the SHAPE of the rise, `pure_memo_lookups`, and never claims
+  irreducibility), but the narrative around it must say **attributed and memo-neutral**, not
+  *irreducible*, until someone measures the guard. Owed by `.13c.2k`, which faces the same question
+  for real.
 - ⛔ **THAT IS THE SAME SHAPE `SV-CORPUS-GRAD.13c.2k` FOUND ONE DAY EARLIER, in a different
   instrument**: the repro manifest can hold *valid text that is rejected* and *invalid text that is
   rejected*, and has no class for *invalid text that is ACCEPTED* — so one direction of a claim is
