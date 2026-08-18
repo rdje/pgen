@@ -1,0 +1,13 @@
+probe: backed up the baseline + acceptance record to /Volumes/SSD/claude-scratch/pgen/tmp/accepted_rise_probe.WiX7Hd
+arm 1: an unaccepted rise
+  ✓ an unaccepted rise is REFUSED — rc=1 and the message names it
+arm 2: an acceptance whose invariant is broken
+  ✓ a broken invariant is REFUSED — rc=1 and the message names it
+arm 3: an unknown invariant name
+  ✓ an unknown invariant is REFUSED — rc=1 and the message names it
+arm 4: a malformed row
+  ✓ a malformed row is REFUSED — rc=1 and the message names it
+arm 5: control — the unperturbed tree
+  ✓ the unperturbed tree HOLDS — rc=0 and the message names it
+ACCEPTED-RISE-GATE: arms_passed=5 arms_failed=0
+probe: restored docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet from /Volumes/SSD/claude-scratch/pgen/tmp/accepted_rise_probe.WiX7Hd

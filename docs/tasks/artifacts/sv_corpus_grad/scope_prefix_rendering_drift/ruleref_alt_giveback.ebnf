@@ -1,0 +1,8 @@
+# The SAME shape with the alternation lifted into a RULE REFERENCE — the form
+# `primary_sv_2017` uses (`( primary_hier_scope_prefix )? hierarchical_identifier`).
+@entry: true
+scratch := ( pfx )? tail
+pfx := short | long
+short := "p::"
+long := "p::b::"
+tail := "m"

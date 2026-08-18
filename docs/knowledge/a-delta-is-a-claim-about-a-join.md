@@ -13,7 +13,7 @@ tags: [measurement, corpus, oracles, instrument-honesty, verification, adjudicat
 date: 2026-08-14
 status: current
 evidence: docs/tasks/SV-CORPUS-GRAD.md leaf .13h (routed 309->303, re-derived 309->302); docs/tasks/artifacts/sv_corpus_grad/es17_slice9_flip/corpus_transitions.tsv (the 13th row and the join rule); stimuli/sv/characterization/adjudication_manifest.tsv (unexplained_rejects_valid 288->281, explained_svpp_include 139->140)
-reverify: "bash scripts/check_sv_corpus_denominator.sh   # re-derives 7556/2459/6321/4392/302 from the tracked manifest and fails if a published anchor disagrees"
+reverify: "bash scripts/check_sv_corpus_denominator.sh   # re-derives the adjudicated/routed/no-verdict/dark/bar tuple from the tracked manifest and fails if a published anchor disagrees — the digits are deliberately NOT quoted here, because this card had carried .../302 for several slices after the bar moved"
 ---
 
 **Pick the join column wrong and the delta is not merely imprecise — it is blind to a whole class of

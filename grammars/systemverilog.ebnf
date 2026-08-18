@@ -3331,7 +3331,28 @@ callable_method_call_body := built_in_method_call
 # hierarchical name in a call position (`top.u1[0].t;`), which A.9.3
 # (`hierarchical_identifier ::= { identifier [ [ constant_expression ] ] . } identifier`)
 # admits and which rejected on sv_2017, sv_2023 AND verilog_2005 alike.
-split_hierarchical_callable_receiver := ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? ( identifier constant_bit_select dot &( identifier constant_bit_select dot ) )* identifier constant_bit_select
+#
+# SV-CORPUS-GRAD.13c.2j — the scope prefix above gained `class_scope`, and THIS is the site
+# that carries it. IEEE 1800-2017 A.8.4 writes
+# `primary ::= [ class_qualifier | package_scope ] hierarchical_identifier select` with
+# `class_qualifier ::= [ local :: ] [ implicit_class_handle . | class_scope ]`, so a
+# CLASS-SCOPED name (`p::base::m`) is a legal method-call receiver (A.8.2:
+# `method_call_root ::= primary`). The canonical rendering `primary_hier_scope_prefix`
+# received the `class_scope` branch from SV-EXH-PROOF.3.3.4.b.6.2.37.3 for a measured defect;
+# the three hand-spelled inline copies — this rule and both `method_call_receiver_sv_*` —
+# never did, so `y = p::base::m.g()` REJECTED at the `::` after `base` while
+# `y = p::base::m;` (the same name as a VALUE) and `h = p::base::m; y = h.g();` (the same
+# call through a handle) parsed: both halves legal alone, only the composition rejecting.
+# ⭐ Per-site attribution says this ONE site is load-bearing — with `class_scope` here and
+# nowhere else both reproducers ACCEPT on sv_2017 and sv_2023, and with it at either
+# `method_call_receiver_sv_*` and nowhere else both still REJECT, because
+# `branch_policy=longest_match` routes a class-scoped receiver through this rule. The other
+# two copies therefore stay shorter (see the note on each) rather than pay the +0.47 %
+# `entries` the 3-site variant cost. All of it is re-derived by
+# `docs/tasks/artifacts/sv_corpus_grad/scope_prefix_rendering_drift/sweep_scope_prefix_renderings.py`.
+# One corpus row moved, and it carries the construct verbatim:
+# verible `nested_member_access.sv`'s `nested_class0::handle1::handle2.nested_function()`.
+split_hierarchical_callable_receiver := ( kw_class_qualifier_fa08937d | non_typedef_package_scope | class_scope )? ( identifier constant_bit_select dot &( identifier constant_bit_select dot ) )* identifier constant_bit_select
                                      -> {scope: $1, path: $2, name: $3}
 
 split_direct_callable_method_call := split_hierarchical_callable_receiver dot callable_method_call_body
@@ -3342,6 +3363,24 @@ split_direct_callable_method_call := split_hierarchical_callable_receiver dot ca
 direct_callable_method_call := method_call_root dot callable_method_call_body
                             -> {receiver: $1, body: $3}
 
+# SV-CORPUS-GRAD.13c.2j — branch 2's scope prefix is a hand-spelled copy of A.8.4's
+# `[ class_qualifier | package_scope ]` that `primary_hier_scope_prefix` renders canonically,
+# and it deliberately stays SHORTER than the canonical rendering. ⛔ Two measurements decide
+# that, both re-runnable:
+#   (a) adding `class_scope` HERE moves ZERO rows — `p::base::m.g()` and
+#       `p::base::h.arr[0].g()` still REJECT with this site alone widened, on sv_2017 AND
+#       sv_2023, because `branch_policy=longest_match` hands a class-scoped receiver to
+#       `split_hierarchical_callable_receiver` (line ~3345) every time;
+#   (b) the 3-site variant that widened this copy too was REFUSED by PARSE-COST-RATCHET:
+#       entries +0.47 %, memo_hits +1.05 %. Costs are REJECTED, not traded, and a widening
+#       with no demonstrated gain is the shape .13c.2f ruled against.
+# So this is a PINNED divergence, never silence: `sweep_scope_prefix_renderings.py`
+# re-derives (a) on every run and goes `ATTRIBUTION BROKEN` the day this site becomes
+# reachable for such a receiver. ⭐ `select` — A.8.4's other divergence from this copy — is
+# omitted on the same footing: `.13c.2c` measured it over an 18-row method-call suite on both
+# profiles and it moved ZERO rows either way, because `hierarchical_identifier`'s own
+# possessive `( identifier constant_bit_select dot )*` has already consumed the selects
+# (LANG-CAPABILITY-AUDIT.10.18).
 @profiles: ["sv_2017"]
 method_call_receiver_sv_2017 := @probe_sample: "1" primary_literal
                              -> {kind: "primary_literal", body: $1}
@@ -3361,6 +3400,8 @@ method_call_receiver_sv_2017 := @probe_sample: "1" primary_literal
                               | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( implicit_class_handle dot | class_scope )?
                                                                                                                         -> {kind: "null_class", local_n43: $5, prefix: $6}
 
+# SV-CORPUS-GRAD.13c.2j — the sv_2023 twin of the copy above: same shorter prefix, same two
+# measurements, same pin in `sweep_scope_prefix_renderings.py`.
 @profiles: ["sv_2023"]
 method_call_receiver_sv_2023 := primary_literal                                                                         -> {kind: "primary_literal", body: $1}
                               | ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier    -> {kind: "hierarchical", qualifier: $1, name: $2}

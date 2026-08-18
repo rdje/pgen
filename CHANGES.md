@@ -1,5 +1,82 @@
 # CHANGES.md
 
+## 2026-08-18 - PGEN-SV-CORPUS-GRAD-0229 (leaf SV-CORPUS-GRAD.13c.2j CLOSED + ENGINE-UNIVERSAL-SERVICES.36 CLOSED; .13c.2m/.13c.2n NEW; ONE grammar alternative, ONE gate mechanism)
+
+- ✅ **`.13c.2j` CLOSED — A.8.4's scope prefix is rendered FOUR times in the SV grammar, three copies
+  never received `class_scope`, and the fix is ONE of the three because a COST measurement said so.**
+  IEEE 1800 A.8.2 makes `method_call_root ::= primary`, so a class-scoped name is a legal method-call
+  receiver: `y = p::base::m.g()` REJECTED while `y = p::base::m;` (the same name as a VALUE) and
+  `h = p::base::m; y = h.g();` (the same call through a handle) both parsed — both halves legal
+  alone, only the composition rejecting. The canonical rendering `primary_hier_scope_prefix` gained
+  the `class_scope` branch from `SV-EXH-PROOF.3.3.4.b.6.2.37.3` for a different measured defect; the
+  three hand-spelled inline copies — which exist only to CUT the cycle
+  `primary → call_primary → method_call → primary` — never did, and nothing in this repository
+  compared the four.
+- ⭐⭐ **THE CLASS SWEEP FOUND A THIRD COPY THE LEAF DID NOT KNOW ABOUT**, at
+  `split_hierarchical_callable_receiver` — the rule `.13c.2c` had edited one commit earlier — with
+  its own reproducer (`p::base::h.arr[0].g()`) and its own control. ⛔ **And the AST refuted the
+  leaf's model of its own defect**: the `arm` claim drafted as `!split_hierarchical` was wrong,
+  because BOTH reproducers travel that third copy. It was corrected to the positive before being
+  pinned, and the negated form was run to prove the oracle can tell the difference — it reports
+  *"THE VERDICT IS RIGHT AND THE ARM IS WRONG"*.
+- ⛔⛔ **`PARSE-COST-RATCHET` REFUSED THE FIRST FIX, AND THAT IS WHY THE SHIPPED ONE IS SMALLER.**
+  Widening all three copies cost `entries` +0.47 % / `memo_hits` +1.05 %. Costs are REJECTED here,
+  not traded, so the rise was attributed one site at a time through the interpreter: with
+  `class_scope` at the split rule and nowhere else BOTH reproducers ACCEPT on `sv_2017` and
+  `sv_2023`; with it at either `method_call_receiver_*` and nowhere else both still REJECT. ⭐ The
+  corpus then said it at scale — the 1-site and 3-site variants produce **byte-identical
+  `results.tsv` across all 16 336 files**, so the two reverted widenings changed nothing anywhere.
+- ⭐⭐ **THE RESIDUAL PRICE IS PUBLISHED WITH ITS MECHANISM, NOT ABSORBED.** The surviving one-site
+  fix costs `entries` +0.14 % and `memo_hits` +0.31 % — **identical deltas of 585 252, with
+  `committed` FLAT**. Every added rule entry was answered by the memo table ⇒ the fix asked 585 252
+  more CACHED questions and did **zero new parsing work**. That is the converse of the doctrine's
+  founding blind spot: a counter cannot see cost rising per event, and it cannot see that a rise is
+  pure cache traffic either. An elimination was rejected on the same mechanism — a
+  `!( identifier dot )` guard would replace one memoized lookup with `identifier` + `dot` matches,
+  which are themselves rule entries.
+- **AXIS-2 BAR 289 → 288**, corpus pass **9 786 → 9 787**, and joined over the tracked MANIFEST
+  against git HEAD rather than over pass/fail: **exactly ONE row moved**,
+  `verible/…/kythe/testdata/nested_member_access.sv`
+  (`unexplained_rejects_valid → match`), **0 pass→fail**, accepts-invalid **21 → 21 SET-identical**,
+  verdict coverage `7556/2459/6321/4392/288`, dark worklist 52 → 52. The `verilog_2005` lane is
+  **byte-identical end to end** because `class_scope` is `@profiles`-gated to the SV dialects — inert
+  there by construction, and measured rather than assumed. ⭐ Attribution is direct: the moved file's
+  last statement is `nested_class0::handle1::handle2.nested_function()`.
+- ⭐ **THE DURABLE HALF — the four renderings are now COMPARED, and the comparison re-derives its own
+  ruling.** The new `sweep_scope_prefix_renderings.py` holds every rendering to the canonical set,
+  pins the two shorter copies as measured divergences, and on every run strips `class_scope` from all
+  three renderings and restores it one site at a time — 12 falsifiable measurements plus a control
+  that proves the alternative is what decides those rows. `drift=0 pinned=2 attribution_broken=0`;
+  against the pre-fix grammar it reports `drift=1` at exit 1. ⛔ **Both bugs the instrument had were
+  caught by its own controls**: length-changing comment blanking shifted every byte offset, and a
+  two-pass rewrite compounded its own offset error.
+- ✅ **`ENGINE-UNIVERSAL-SERVICES.36` CLOSED — the ratchet said *"record it as irreducible with the
+  measurement that proves it"* and had NOWHERE to record it.** Every rise was a hard failure and the
+  rebaseline refuses while a failure stands, so an attributed irreducible cost had exactly two
+  outcomes: abandon the correctness fix, or skip a doctrine. ⛔ **The same asymmetry `.13c.2k` found
+  one day earlier in a different instrument** — a repro manifest with no class for *invalid text
+  wrongly ACCEPTED*. A gate that leaves a legitimate outcome unrepresentable does not prevent that
+  outcome; it moves it out of the record. `accepted_rises.tsv` now names EXACT from/to integers plus
+  an `invariant` that is CODE in the gate and is RE-EVALUATED every run — first invariant
+  `pure_memo_lookups`. **Five refusal arms fired and observed**, including a control; both bugs the
+  probe shipped with were caught by its own assertions rather than by review.
+- ⚠️ **`.13c.2m` NEW is the biggest thing this slice found, and it is not the defect it was looking
+  for.** `kw_class_qualifier_fa08937d := trivia /class_qualifier\b/` — a literal KEYWORD standing in
+  for an Annex A NONTERMINAL. `y = class_qualifier m;` ACCEPTS while `y = foo_qualifier m;` REJECTS.
+  Worse: the LRM's entire `class_qualifier ::=` definition line was welded onto `primary`'s final
+  `| null` alternative, footnote superscript included, so
+  `y = null class_qualifier:=local::43;` parses under `sv_2017` — and the `48` form parses under
+  `sv_2023`, because IEEE 1800-2023 renumbers that footnote. Two editions, two footnote numbers, two
+  literal tokens: the LRM's own text for a production is accepted as a SystemVerilog expression.
+  `.13c.2n` NEW routes the rendering dedup with its AST-shape price (it changes a
+  contract-documented field), to land with `.13c.2l`'s contract refresh.
+- **Docs**: book *Grammar Well-Formedness* live tuple `→ 7556/2459/6321/4392/288`; the LR-family
+  share re-derived **2.743 → 2.739** and adopted on all five designated surfaces (⭐ the share FELL
+  while the family's own entry count ROSE by 62 — the denominator grew faster, which is why it is
+  re-derived and never adjusted); knowledge card
+  `a-counter-that-cannot-tell-a-cache-hit-from-work-prices-them-alike` + regenerated
+  `KNOWLEDGE_MAP.md` (145 facts); `MEMORY.md`; `DEVELOPMENT_NOTES.md`; `docs/TASK_TREE.md`.
+
 ## 2026-08-18 - PGEN-LANG-CAPABILITY-AUDIT-0001 (leaf LANG-CAPABILITY-AUDIT.10.18 corrected under DIRECTOR CHALLENGE; ZERO code/grammar/generated bytes)
 
 - ⛔⛔ **THE DIRECTOR CHALLENGED THE FOUR FINDINGS `-0227` PUBLISHED. TWO OF THEM CARRIED AN ERROR,

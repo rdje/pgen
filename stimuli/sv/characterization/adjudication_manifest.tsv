@@ -12979,7 +12979,7 @@ verible	verible/verilog/tools/kythe/testdata/multi_file_test/multi-file-1.sv	pas
 verible	verible/verilog/tools/kythe/testdata/multi_file_test/multi-file-2.sv	pass	chained_only	deferred:chained_only	verible: kythe multi-file/include fixture directory
 verible	verible/verilog/tools/kythe/testdata/multi_file_test/multi-file-3.sv	pass	chained_only	deferred:chained_only	verible: kythe multi-file/include fixture directory
 verible	verible/verilog/tools/kythe/testdata/multi_file_test/multi-file-4.sv	pass	chained_only	deferred:chained_only	verible: kythe multi-file/include fixture directory
-verible	verible/verilog/tools/kythe/testdata/nested_member_access.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: kythe single-file indexing fixture
+verible	verible/verilog/tools/kythe/testdata/nested_member_access.sv	pass	must_accept	match	verible: kythe single-file indexing fixture
 verible	verible/verilog/tools/kythe/testdata/package.sv	pass	must_accept	match	verible: kythe single-file indexing fixture
 verible	verible/verilog/tools/kythe/testdata/package_with_primitive.sv	pass	must_accept	match	verible: kythe single-file indexing fixture
 verible	verible/verilog/tools/kythe/testdata/primitive_type_with_dimensions.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: kythe single-file indexing fixture

@@ -507,6 +507,92 @@ elif probe_fp_code != 0:
 # ── TIER 2: the ratchet ─────────────────────────────────────────────────────────────────────────
 BINDING = ("entries", "committed", "memo_hits")
 
+# ── ENGINE-UNIVERSAL-SERVICES.36 — the TYPED ACCEPTANCE of an attributed rise ────────────────────
+#
+# ⛔ This gate's own breach message has always ended "… or record it as irreducible with the
+# measurement that proves it (`.20` acceptance)", and there was nowhere to record it: every rise
+# failed, and `PGEN_PARSE_COST_REBASELINE=1` refuses while a failure stands. So the only outcomes
+# were "eliminate the cost" and "bypass the gate" — the same asymmetry `SV-CORPUS-GRAD.13c.2k`
+# found in the repro manifest, where one direction of a claim was expressible and the other was not.
+# An instrument that leaves a legitimate outcome unrepresentable teaches people to route around it.
+#
+# ⛔⛔ AN ACCEPTANCE IS NOT A WAIVER. `accepted_rises.tsv` names the EXACT from/to integers plus an
+# INVARIANT that is CODE HERE, and the invariant is re-evaluated against this run's own numbers. A
+# row therefore cannot cover a different rise, cannot cover a rise of a different SHAPE without a
+# code change carrying its own leaf, and cannot outlive its own justification: if the invariant
+# stops holding, the gate fails and says so.
+ACCEPTED_RISES = f"{ART}/accepted_rises.tsv"
+
+
+def _pure_memo_lookups(base_tot, new_tot):
+    """The rise is entirely MEMO LOOKUPS: every added rule entry was served from the memo table
+    and none of them committed.
+
+    ⭐ Why this is a real invariant and not a comfortable reading: `entries` counts rule-method
+    ENTRIES, and an entry answered by the memo table is counted identically to one that parses.
+    So `delta_entries == delta_memo_hits` with `delta_committed == 0` says, exactly, that the
+    change asked N more questions the parser had already answered and did no new work. That is
+    the converse of this doctrine's founding lesson (a deterministic counter cannot see a
+    per-ENTRY cost rise): it also cannot see that a rise is pure cache traffic.
+    """
+    d_entries = new_tot["entries"] - base_tot["entries"]
+    d_memo = new_tot["memo_hits"] - base_tot["memo_hits"]
+    d_committed = new_tot["committed"] - base_tot["committed"]
+    if d_committed != 0:
+        return False, f"committed moved by {d_committed:+,} — real work changed, not just lookups"
+    if d_entries != d_memo:
+        return False, (f"entries moved {d_entries:+,} but memo hits moved {d_memo:+,} — "
+                       f"{d_entries - d_memo:+,} of the added entries were NOT memo hits")
+    return True, (f"entries {d_entries:+,} == memo hits {d_memo:+,}, committed flat — "
+                  f"{d_entries:,} more cached lookups, zero new parsing work")
+
+
+INVARIANTS = {"pure_memo_lookups": _pure_memo_lookups}
+
+
+def load_accepted_rises():
+    """Rows of `accepted_rises.tsv`, keyed by (metric, from, to). Refuses on an unknown invariant
+    or a malformed row rather than skipping it — a row this gate cannot evaluate must not read as
+    an acceptance."""
+    path = os.path.join(ROOT, ACCEPTED_RISES)
+    if not os.path.exists(path):
+        return {}, []
+    rows, problems = {}, []
+    with open(path, encoding="utf-8") as fh:
+        header = None
+        for lineno, raw in enumerate(fh, 1):
+            line = raw.rstrip("\n")
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            fields = line.split("\t")
+            if header is None:
+                header = fields
+                if header[:5] != ["metric", "from", "to", "invariant", "leaf"]:
+                    problems.append(f"{ACCEPTED_RISES}:{lineno} unexpected header {header[:5]}")
+                    return {}, problems
+                continue
+            if len(fields) < 6:
+                problems.append(f"{ACCEPTED_RISES}:{lineno} has {len(fields)} field(s), expected 6")
+                continue
+            metric, frm, to, invariant, leaf, why = fields[:6]
+            if metric not in BINDING:
+                problems.append(f"{ACCEPTED_RISES}:{lineno} unknown metric `{metric}`")
+                continue
+            if invariant not in INVARIANTS:
+                problems.append(f"{ACCEPTED_RISES}:{lineno} names invariant `{invariant}`, which "
+                                f"is not coded in this gate — accepting a rise of a NEW SHAPE is a "
+                                f"code change with its own task leaf")
+                continue
+            if not leaf.strip():
+                problems.append(f"{ACCEPTED_RISES}:{lineno} names no owning leaf")
+                continue
+            try:
+                rows[(metric, int(frm), int(to))] = (invariant, leaf, why)
+            except ValueError:
+                problems.append(f"{ACCEPTED_RISES}:{lineno} from/to are not integers")
+    return rows, problems
+
+
 
 def totals_of(tsv_path):
     """Sum the binding columns of an entries.tsv. Refuses on an unexpected header rather than
@@ -581,12 +667,33 @@ if REMEASURE or REBASELINE:
                          f"(e.g. {flips[0]}). That is a correctness move; the cost comparison "
                          f"below is reported but is no longer like-for-like.")
 
+        accepted, accept_problems = load_accepted_rises()
+        for problem in accept_problems:
+            fail(f"the accepted-rise record is unusable: {problem}")
+
         for k in BINDING:
             b, n = base_tot[k], new_tot[k]
             if n > b:
-                fail(f"BINDING metric `{k}` ROSE {b:,} -> {n:,} (+{100.0 * (n - b) / b:.2f} %). "
-                     f"Costs are REJECTED, not traded — attribute it and eliminate it, or record "
-                     f"it as irreducible with the measurement that proves it (`.20` acceptance).")
+                row = accepted.get((k, b, n))
+                if row is None:
+                    fail(f"BINDING metric `{k}` ROSE {b:,} -> {n:,} (+{100.0 * (n - b) / b:.2f} %). "
+                         f"Costs are REJECTED, not traded — attribute it and eliminate it, or record "
+                         f"it as irreducible with the measurement that proves it (`.20` acceptance): "
+                         f"one row in {ACCEPTED_RISES} naming this exact from/to plus a coded "
+                         f"invariant that explains it.")
+                    continue
+                invariant, leaf, why = row
+                holds, detail = INVARIANTS[invariant](base_tot, new_tot)
+                if not holds:
+                    fail(f"BINDING metric `{k}` ROSE {b:,} -> {n:,} and {ACCEPTED_RISES} accepts "
+                         f"it under `{invariant}` ({leaf}) — but that invariant NO LONGER HOLDS on "
+                         f"this measurement: {detail}. The acceptance's own justification is gone; "
+                         f"re-attribute the rise, do not re-word the row.")
+                    continue
+                notes.append(f"BINDING metric `{k}` ROSE {b:,} -> {n:,} "
+                             f"(+{100.0 * (n - b) / b:.2f} %) — ACCEPTED as attributed by "
+                             f"{ACCEPTED_RISES} under `{invariant}` ({leaf}), and the invariant was "
+                             f"RE-DERIVED on this run: {detail}. Why: {why}")
             elif n < b:
                 notes.append(f"BINDING metric `{k}` FELL {b:,} -> {n:,} "
                              f"({100.0 * (n - b) / b:+.2f} %) — an improvement. Promote it "

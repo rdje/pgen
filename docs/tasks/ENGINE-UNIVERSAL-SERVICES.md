@@ -9213,6 +9213,70 @@ DELETE it rather than keep a decorative one — `LIVE-DOC-CURRENCY` measured 25 
 `Last updated:` declarations simply wrong and deleted the field.
 
 
+#### ✅ `.36` `done` — `PARSE-COST-RATCHET` told you to "record it as irreducible with the measurement that proves it" and had NOWHERE to record it, so the only outcomes were eliminate-or-bypass (closed 2026-08-18 session #246, `PGEN-SV-CORPUS-GRAD-0229`)
+
+- **HOW IT WAS FOUND — by a correctness fix hitting the wall.** `SV-CORPUS-GRAD.13c.2j` restored an
+  IEEE 1800 A.8.4 branch the SV grammar had lost, and the binding counters rose. The gate's own
+  breach text reads *"attribute it and eliminate it, or record it as irreducible with the
+  measurement that proves it (`.20` acceptance)"* — and the second half was not implementable: every
+  rise is a `fail()`, `PGEN_PARSE_COST_REBASELINE=1` refuses while a failure stands, and no file,
+  flag or record existed for an accepted rise. So a measured, attributed, irreducible cost had
+  exactly two available outcomes: abandon the correctness fix, or skip a doctrine.
+- ⛔ **THAT IS THE SAME SHAPE `SV-CORPUS-GRAD.13c.2k` FOUND ONE DAY EARLIER, in a different
+  instrument**: the repro manifest can hold *valid text that is rejected* and *invalid text that is
+  rejected*, and has no class for *invalid text that is ACCEPTED* — so one direction of a claim is
+  expressible and the other can only live in prose. ⭐ **A gate that leaves a legitimate outcome
+  unrepresentable does not prevent that outcome; it moves it out of the record.** Two instruments,
+  two directions, same failure mode — which is why this is a leaf and not a footnote in `.13c.2j`.
+- **WHAT LANDED.** `docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/accepted_rises.tsv`
+  plus its evaluator in `scripts/check_parse_cost_ratchet.sh`. A row names
+  `metric / from / to / invariant / leaf / why`, and on a rise the gate looks for a row matching the
+  metric and BOTH exact integers.
+- ⛔⛔ **IT IS NOT A WAIVER FILE, and three properties are what make that true rather than aspirational:**
+  1. **`from`/`to` are exact integers.** A row cannot cover any rise but the one it was written for;
+     a rise to a different number finds no row and fails.
+  2. **`invariant` must name a predicate CODED IN THE GATE.** Accepting a rise of a new SHAPE is a
+     code change with its own task leaf, not a new line in a data file. The set opens with exactly
+     one member.
+  3. **The invariant is RE-EVALUATED against the run's own numbers**, never trusted. If it stops
+     holding, the gate fails with *"the acceptance's own justification is gone; re-attribute the
+     rise, do not re-word the row"*.
+- **THE FIRST INVARIANT — `pure_memo_lookups`**: `delta_entries == delta_memo_hits` and
+  `delta_committed == 0`. It says, exactly, that every added rule entry was answered from the memo
+  table and none of them committed — the change asked N more questions the parser had already
+  answered and did no new work. ⭐ `.13c.2j` satisfies it to the unit: entries **+585,252**, memo hits
+  **+585,252**, committed **+0**. ⭐⭐ **This is the CONVERSE of the doctrine's founding lesson.**
+  `[[a-deterministic-counter-cannot-see-a-per-entry-cost-rise]]` records that the counter is blind to
+  cost growing per event; it is equally blind to a rise that is *pure cache traffic*, because a memo
+  HIT is counted identically to a parse. Same blind spot, opposite sign — banked as
+  [[a-counter-that-cannot-tell-a-cache-hit-from-work-prices-them-alike]].
+- [x] **PROVEN ABLE TO REFUSE** — `docs/tasks/artifacts/engine_universal_services/accepted_rise_gate/probe.sh`,
+  five arms, each a full tier-2 re-measure:
+
+  | arm | perturbation | must |
+  |---|---|---|
+  | 1 | a rise with the acceptance rows removed | REFUSE `Costs are REJECTED, not traded` |
+  | 2 | a row covering the rise, but `committed` moved too | REFUSE `that invariant NO LONGER HOLDS` |
+  | 3 | a row naming an invariant the gate does not code | REFUSE `is not coded in this gate` |
+  | 4 | a row whose `from` is not an integer | REFUSE `from/to are not integers` |
+  | 5 | **control** — the unperturbed tree | HOLD at `parse-cost-ratchet: OK` |
+
+  ⭐ Arm 5 exists because without it a probe that simply broke the gate would score 4/4.
+  ⛔⛤ **The probe's own first two cuts were wrong, and each was caught by an assertion rather than by
+  reading it**: it resolved the repo root four levels up instead of five, so every arm returned
+  `rc=127` — refused, because an arm asserts its exit code AND its message, so "cannot find the
+  gate" could not pass for "found a hole"; then it perturbed the totals printed in `cost.md` while
+  the gate compares the totals summed from `entries.tsv`, and arm 1 scored `rc=0` — *a probe that
+  perturbs the wrong file reports the gate as HOLDING when it was never challenged.*
+- [x] **NO REGRESSION** — the added code runs only when a binding counter RISES, which no green run
+  does; the file is absent-tolerant (no file ⇒ no acceptances ⇒ prior behaviour exactly); tier 1's
+  every-commit identity arms are untouched; `bash scripts/check_doctrines.sh` PASS on all 21.
+- ⚠️ **HONEST BOUND.** This makes an attributed rise RECORDABLE and RE-CHECKED. It does not make it
+  free: a row is a permanent, reviewable statement that the parser costs more than it did, and after
+  a rebaseline the row stops being re-derived and survives only as the audit trail for why the
+  baseline moved upward — which is the one thing a promoted baseline can no longer tell you. ⇒ the
+  file's header says so, so a reader does not mistake a historical row for a live acceptance.
+
 #### ✅ `.22` — the transactional coverage stack (TOOLBOX 3.5) never terminated on a corpus file that a bare parse accepts in 0.108 s, and the census silently dropped it — **FIXED** (opened 2026-08-15 session #235 by `.20` slice 4; ✅ **(a) ROOT-CAUSED + (c)/(d) DISCHARGED by slice 1** `PGEN-ENGINE-UNIVERSAL-SERVICES-0046`; ✅ **(e) SHIPPED by slice 2** `PGEN-ENGINE-UNIVERSAL-SERVICES-0047` — the file now dumps in **0.04 s**, the corpus census is **16 336/16 336, 0 no-dump**, and `entries.tsv` is **byte-identical**; ✅ **(f) DISCHARGED by slice 3** `PGEN-ENGINE-UNIVERSAL-SERVICES-0048`; ✅ **(b) DISCHARGED by slice 4** `PGEN-ENGINE-UNIVERSAL-SERVICES-0054` — the fused graph, the PROTOCOL graph and the PROTOCOL graph WITH the coverage recorder produce a **byte-identical AST** (one sha256 across all three arms), so the verdict agreement IS a derivation agreement; ⛔ the tool that could say so did not exist, and the two obvious substitutes both produce a FALSE PASS. **The leaf is now fully CLOSED** — slice 3 closed (f) by adjudicating all 7 tracked consumers and turned up that ONE 2 787-byte file is **99.39 %** of the corpus's committed multiplicity)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):

@@ -1,0 +1,11 @@
+# SV-CORPUS-GRAD.13c.2j probe — does an INLINE alternation group inside a sequence
+# GIVE BACK when the continuation fails, or does it commit to the alternative it
+# first/longest-matched?  Shape, edge for edge, of the `.13c.2j` receiver prefix:
+#   ( kw_class_qualifier | non_typedef_package_scope )? hierarchical_identifier
+# where the SHORT alternative (`p::`) matches but strands the tail, and the LONG
+# alternative (`p::b::`) is the one that lets the whole sequence succeed.
+@entry: true
+scratch := ( short | long )? tail
+short := "p::"
+long := "p::b::"
+tail := "m"

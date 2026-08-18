@@ -1,0 +1,24 @@
+drift -> split_hierarchical_callable_receiver:3334 missing=['class_scope'] — the attribution spec does not account for this divergence
+SCOPE-PREFIX-RENDERING-DRIFT: grammar=tmp/j/systemverilog_prefix.ebnf
+  canonical rendering: primary_hier_scope_prefix = {class_scope, kw_class_qualifier_fa08937d, non_typedef_package_scope}
+  mechanism control: inline group WITH the alternative accepts `p::b::m`, WITHOUT it rejects — a missing inline alternative is accept-set-visible
+  renderings found: 4 (1 named + 3 inline)
+  DRIFT split_hierarchical_callable_receiver:3334 {kw_class_qualifier_fa08937d, non_typedef_package_scope} followed by `( identifier constant_bit_select dot &( identifi`  missing=['class_scope'] extra=[]
+  PIN   method_call_receiver_sv_2017:3348 {kw_class_qualifier_fa08937d, non_typedef_package_scope} followed by `hierarchical_identifier`  missing=['class_scope'] extra=[]
+        pin: inert: longest_match hands the class-scoped receiver to the split rule, so widening here buys nothing and the 3-site variant cost entries +0.47 % / memo_hits +1.05 % (.13c.2f: no widening without demonstrated gain)
+  PIN   method_call_receiver_sv_2023:3366 {kw_class_qualifier_fa08937d, non_typedef_package_scope} followed by `hierarchical_identifier    -> {kind: "hierarchic`  missing=['class_scope'] extra=[]
+        pin: inert: the sv_2023 twin of the row above, same measurement
+  attribution control: with `class_scope` at NO site, all 2 reproducers REJECT on every profile
+        split_hierarchical_callable_receiver alone -> defect_class_scope_method_receiver.sv [sv_2017] accept  (as specified)
+        split_hierarchical_callable_receiver alone -> defect_class_scope_method_receiver.sv [sv_2023] accept  (as specified)
+        split_hierarchical_callable_receiver alone -> defect_class_scope_indexed_member_call.sv [sv_2017] accept  (as specified)
+        split_hierarchical_callable_receiver alone -> defect_class_scope_indexed_member_call.sv [sv_2023] accept  (as specified)
+        method_call_receiver_sv_2017 alone -> defect_class_scope_method_receiver.sv [sv_2017] reject  (as specified)
+        method_call_receiver_sv_2017 alone -> defect_class_scope_method_receiver.sv [sv_2023] reject  (as specified)
+        method_call_receiver_sv_2017 alone -> defect_class_scope_indexed_member_call.sv [sv_2017] reject  (as specified)
+        method_call_receiver_sv_2017 alone -> defect_class_scope_indexed_member_call.sv [sv_2023] reject  (as specified)
+        method_call_receiver_sv_2023 alone -> defect_class_scope_method_receiver.sv [sv_2017] reject  (as specified)
+        method_call_receiver_sv_2023 alone -> defect_class_scope_method_receiver.sv [sv_2023] reject  (as specified)
+        method_call_receiver_sv_2023 alone -> defect_class_scope_indexed_member_call.sv [sv_2017] reject  (as specified)
+        method_call_receiver_sv_2023 alone -> defect_class_scope_indexed_member_call.sv [sv_2023] reject  (as specified)
+SCOPE-PREFIX-RENDERING-DRIFT: sites=4 drift=1 pinned=2 attribution_broken=0 attribution_rederived=yes

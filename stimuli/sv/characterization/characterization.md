@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `314457f32747b06b87d412e51edffc03bf0668fe0151d5f9414763e0cca56563` |
-| grammar | `grammars/systemverilog.ebnf` | `19e73cab3965a0fd2964d43e1ac90eb2d10bb7cfe2cb211a003f191c99253b77` |
-| generated parser | `generated/systemverilog_parser.rs` | `23639eda0e907aae9f961a47816cdc427d8b87b0f44d2ede6da397e23f95302d` |
+| parse binary | `rust/target/release/parseability_probe` | `a533490c0899dd11a0bd5429d61c79f4c2dc1c60d98159e2198ac1a74912a1ab` |
+| grammar | `grammars/systemverilog.ebnf` | `f637740905c9464f6f282a1810791f56f127990fef5631286b95f896c120ee8f` |
+| generated parser | `generated/systemverilog_parser.rs` | `dddea0b12222a6b29ddec60e7b735755d94148421926cdcd80ab472ef04f39e0` |
 
-Measured at `HEAD` = `0a105d3c+dirty` (2026-08-18).
+Measured at `HEAD` = `cc153af7+dirty` (2026-08-18).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -53,13 +53,13 @@ Measured at `HEAD` = `0a105d3c+dirty` (2026-08-18).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `7.03` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `5.46` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 16336 | 9786 | 6550 | 0 | 0 | 59.9% |
+| 16336 | 9787 | 6549 | 0 | 0 | 59.9% |
 
 ## Per sub-corpus
 
@@ -77,7 +77,7 @@ Slowest completing file: `7.03` s — `stimuli/sv/subs/opentitan/hw/top_darjeeli
 | sv-tests | 1028 | 859 | 169 | 0 | 0 | 83.6% |
 | sv2v | 953 | 727 | 226 | 0 | 0 | 76.3% |
 | uvm-core | 174 | 20 | 154 | 0 | 0 | 11.5% |
-| verible | 152 | 121 | 31 | 0 | 0 | 79.6% |
+| verible | 152 | 122 | 30 | 0 | 0 | 80.3% |
 | verilator | 3263 | 2087 | 1176 | 0 | 0 | 64.0% |
 
 _Raw per-file results: `stimuli/sv/characterization/results.tsv` (3 columns: sub-corpus, status,

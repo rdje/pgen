@@ -1,0 +1,15 @@
+## lane sv_2017: 16336 -> 16336 rows, same key set: True
+   rows that moved: 1
+     verible/verible/verilog/tools/kythe/testdata/nested_member_access.sv
+        before: ('fail', 'must_accept', 'divergence:unexplained_rejects_valid')
+        after : ('pass', 'must_accept', 'match')
+   divergence:unexplained_accepts_invalid: 21 -> 21  added=[] removed=[]
+   divergence:unexplained_rejects_valid: 268 -> 267  added=[] removed=['verible/verilog/tools/kythe/testdata/nested_member_access.sv']
+   pass -> fail: 0  []
+   axis-2 bar (unexplained total): 289 -> 288
+## lane verilog_2005: 2459 -> 2459 rows, same key set: True
+   rows that moved: 0
+   divergence:unexplained_accepts_invalid: 14 -> 14  added=[] removed=[]
+   divergence:unexplained_rejects_valid: 53 -> 53  added=[] removed=[]
+   pass -> fail: 0  []
+   axis-2 bar (unexplained total): 67 -> 67

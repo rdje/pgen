@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `314457f32747b06b87d412e51edffc03bf0668fe0151d5f9414763e0cca56563` |
-| grammar | `grammars/systemverilog.ebnf` | `19e73cab3965a0fd2964d43e1ac90eb2d10bb7cfe2cb211a003f191c99253b77` |
-| generated parser | `generated/systemverilog_parser.rs` | `23639eda0e907aae9f961a47816cdc427d8b87b0f44d2ede6da397e23f95302d` |
+| parse binary | `rust/target/release/parseability_probe` | `a533490c0899dd11a0bd5429d61c79f4c2dc1c60d98159e2198ac1a74912a1ab` |
+| grammar | `grammars/systemverilog.ebnf` | `f637740905c9464f6f282a1810791f56f127990fef5631286b95f896c120ee8f` |
+| generated parser | `generated/systemverilog_parser.rs` | `dddea0b12222a6b29ddec60e7b735755d94148421926cdcd80ab472ef04f39e0` |
 
-Measured at `HEAD` = `0a105d3c+dirty` (2026-08-18).
+Measured at `HEAD` = `cc153af7+dirty` (2026-08-18).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 

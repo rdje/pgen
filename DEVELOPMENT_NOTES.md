@@ -1,5 +1,67 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-18 - PGEN-SV-CORPUS-GRAD-0229 — the cost gate rejected the fix I had already verified, and it was right
+
+**1. ⛔⛔ A GATE WITH ONLY ONE ACCEPTABLE ANSWER TEACHES PEOPLE TO ROUTE AROUND IT.** The fix was
+correct, verified two ways, corpus-clean — and `PARSE-COST-RATCHET` refused it, because the binding
+counters rose. The gate's own text says *"attribute it and eliminate it, or record it as irreducible
+with the measurement that proves it"*, and there was **nowhere to record it**: every rise is a
+`fail()`, and the rebaseline refuses while a failure stands. So the available outcomes were: abandon
+a correctness fix on the SV release path, or skip a doctrine before a commit. ⭐ **The gap is not that
+the gate was strict; it is that a legitimate outcome had no representation.** That is the same shape
+`.13c.2k` found one day earlier in the repro manifest — a class for *invalid text wrongly rejected*,
+none for *invalid text wrongly ACCEPTED*. Two instruments, two directions, same failure mode. When a
+check has a direction it cannot express, look for what people are quietly doing instead.
+
+**2. ⭐⭐ THE REFUSAL MADE THE FIX SMALLER, AND SMALLER WAS RIGHT.** I had widened all three renderings
+of the production, on the reasonable ground that a copy knowingly diverging from a normative
+production is what caused this defect in the first place. The ratchet priced that reasoning at
+`entries` +0.47 % / `memo_hits` +1.05 %. Attributing it one site at a time showed **one** of the three
+carries 100 % of the accept-set gain, and the corpus then produced **byte-identical results across
+16 336 files** between the one-site and three-site variants. ⇒ two-thirds of the cost bought nothing
+measurable. The LRM-fidelity argument was not wrong, it was just not an accept-set argument — and the
+place for it is a pinned divergence a sweep re-derives, not extra grammar that a hot rule pays for on
+every receiver.
+
+**3. ⭐⭐⭐ THE COUNTER CANNOT TELL A CACHE HIT FROM WORK.** The surviving rise is `entries` +585,252 and
+`memo_hits` +585,252 — **identical to the unit** — with `committed` flat. Every added rule entry was
+answered from the memo table. So the "regression" is 585,252 more *cached questions* and zero new
+parsing work, and no single counter could have said so: it took the JOINT pattern of three. That is
+the converse of this doctrine's founding lesson, which is about cost growing inside an event. ⚠️ It
+also killed the obvious optimisation before I built it: a `!( identifier dot )` guard would replace a
+memoized lookup with an `identifier` match plus a `dot` match, both of which are rule entries — the
+guard would likely cost MORE of the metric it was meant to save. Banked as
+[[a-counter-that-cannot-tell-a-cache-hit-from-work-prices-them-alike]].
+
+**4. ⛔ THE LEAF NAMED THE WRONG SITE, AND THE AST SAID SO.** `.13c.2j` was opened against
+`method_call_receiver_sv_2017`/`_sv_2023`. The sweep for the class found a THIRD copy at
+`split_hierarchical_callable_receiver` — the rule the previous slice had edited — and per-site
+attribution proved that third copy is the only one that matters. The `arm` claim I drafted
+(`!split_hierarchical`) encoded the wrong model and would have pinned it into the oracle; dumping the
+AST refuted it first. ⇒ *a routing note ages like a hypothesis* — the same lesson `-0227` banked one
+commit earlier, now with a second instance: verify the WHERE, not just the WHAT, even when the
+previous slice wrote it down confidently.
+
+**5. ⭐ EVERY BUG IN THE TWO NEW INSTRUMENTS WAS CAUGHT BY THEIR OWN CONTROLS, NOT BY READING THEM.**
+The drift sweep blanked comment lines in a way that changed byte offsets, so its scratch grammars
+were built at shifted positions — caught because its attribution control refused with *"this
+alternative is not what decides these rows"*. Then a two-pass rewrite compounded its own offset
+error, and the load-bearing site reported inert — caught because the spec says that site must flip.
+The acceptance probe resolved the repo root one level short (every arm `rc=127`, refused because an
+arm asserts exit code AND message), then perturbed the human-readable report while the gate sums the
+machine-readable one (arm 1 scored a pass). ⇒ write the control before the verdict, and make it
+assert something specific enough that a broken probe cannot satisfy it.
+
+**6. ⚠️ THE BIGGEST FINDING OF THE SLICE WAS NOT THE DEFECT I WAS FIXING.** Reading the canonical
+rendering to learn what the copies lacked put `kw_class_qualifier_fa08937d := trivia
+/class_qualifier\b/` in front of me — a literal keyword where the LRM has a nonterminal. Following it
+found the LRM's whole `class_qualifier ::=` definition line welded onto `primary`'s `| null`
+alternative with the footnote superscript as a token, so the standard's own text for a production
+parses as a SystemVerilog expression — and the 2017/2023 footnote renumbering (43 vs 48) proves the
+mechanism twice over. Routed as `.13c.2m`. ⭐ It cost nothing to find because I was already required
+to read the rule; the discipline that produced it is *read the canonical thing you are copying from,
+not just the copy*.
+
 ## 2026-08-18 - PGEN-LANG-CAPABILITY-AUDIT-0001 — challenged on four findings, and the two that broke both broke toward modesty
 
 **1. ⛔⛔ BOTH ERRORS UNDERSTATED THE FINDING, AND THAT IS WHY RE-READING WOULD NEVER HAVE CAUGHT

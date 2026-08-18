@@ -1,0 +1,34 @@
+# docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/accepted_rises.tsv
+#
+# ⛔ PARSE-COST-RATCHET's message has always ended "… or record it as irreducible with the
+# measurement that proves it (`.20` acceptance)" — and until ENGINE-UNIVERSAL-SERVICES.36 there was
+# NOWHERE to record it. A rise always failed, with no typed outcome between "eliminate it" and
+# "bypass the gate". That asymmetry pressures a correctness fix into being abandoned or a gate into
+# being skipped, which is the same shape as SV-CORPUS-GRAD.13c.2k's missing `accepts_invalid`
+# manifest class: the instrument could hold one direction of a claim and not the other.
+#
+# ⛔⛔ THIS IS NOT A WAIVER FILE. A row does not say "ignore this rise"; it says "this EXACT rise,
+# from this EXACT number to this EXACT number, is explained by a NAMED INVARIANT which the gate
+# RE-EVALUATES on the fresh measurement". Three properties keep it from becoming a rubber stamp:
+#   * from/to are exact integers, so a row cannot cover any rise but the one it was written for;
+#   * `invariant` must name one of the predicates coded into scripts/check_parse_cost_ratchet.sh —
+#     accepting a rise of a NEW SHAPE therefore takes a code change with its own task leaf, not a
+#     new line in a data file;
+#   * the invariant is re-checked against the run's own numbers. If it stops holding, the gate
+#     fails and says the acceptance's own justification is gone.
+#
+# ⚠️ A row is LIVE only while the baseline it names is still the baseline. Once the rise has been
+# accepted and `sv_parse_cost_rebaseline` promotes the new measurement, the row matches no rise and
+# stops being re-derived — it stays as the AUDIT TRAIL for why the baseline moved upward, which is
+# the one thing a promoted baseline can no longer tell you.
+#
+# Columns:
+#   metric     entries | committed | memo_hits
+#   from/to    the exact baseline and measured values this acceptance covers
+#   invariant  the coded predicate that explains the rise (see INVARIANTS in the gate script)
+#   leaf       the task leaf that owns the measurement
+#   why        one line, for a reader
+#
+metric	from	to	invariant	leaf	why
+entries	416424205	417009457	pure_memo_lookups	SV-CORPUS-GRAD.13c.2j	restoring A.8.4's class_scope branch to split_hierarchical_callable_receiver adds one MEMOIZED class_scope lookup per receiver: entries +585,252, memo_hits +585,252 (identical), committed +0 — zero new parsing work, 585,252 more cached questions
+memo_hits	186926969	187512221	pure_memo_lookups	SV-CORPUS-GRAD.13c.2j	the other half of the same delta; the counter cannot distinguish a memo HIT from real work, which is what makes this rise invisible to it as anything but a cost

@@ -3,11 +3,14 @@
 // `primary ::= … | [ class_qualifier | package_scope ] hierarchical_identifier select | …` with
 // `class_qualifier ::= [ local :: ] [ implicit_class_handle . | class_scope ]`. So a CLASS-SCOPED
 // name is a legal method-call receiver. PGEN's `primary_hier_scope_prefix` carries the
-// `class_scope` branch (added by SV-EXH-PROOF.3.3.4.b.6.2.37.3 for a measured defect), but the
-// hand-copied `method_call_receiver_sv_2017`/`_sv_2023` spell the prefix INLINE with only two
-// branches and never received it.
-// Expected today: REJECT (`Parser did not consume full input at position 125`).
-// Expected once `.13c.2j` lands: ACCEPT.
+// `class_scope` branch (added by SV-EXH-PROOF.3.3.4.b.6.2.37.3 for a measured defect), but THREE
+// hand-spelled copies of that prefix spell it INLINE with only two branches and never received it.
+// ⭐ `.13c.2j` MEASURED which of the three decides this row, one site at a time through the
+// interpreter: `split_hierarchical_callable_receiver` alone flips it; neither `method_call_receiver_*`
+// copy moves it on either profile. The leaf opened naming the receiver copies — the right production,
+// the wrong site.
+// Before `.13c.2j`: REJECT (`position 125` on the comment-free minimal, 939 on this file).
+// After: ACCEPT, via the `split_hierarchical` arm.
 package p;
   class inner; function int g(); return 0; endfunction endclass
   class base; static inner m; endclass

@@ -1880,7 +1880,31 @@ observation was simply unused.
 > **mislabelled deferral**, owned by `.13c`/`.13d`, not an under-reporting bar.
 
 > ⭐ **Live verdict-coverage tuple — `adjudicated/routed/no-verdict/dark/axis-2-bar` =
-> `7556/2459/6321/4392/289`.** (`SV-CORPUS-GRAD.13c.2c` moved the bar **300 → 289** — a larger move
+> `7556/2459/6321/4392/288`.** (`SV-CORPUS-GRAD.13c.2j` moved the bar **289 → 288** by restoring
+> IEEE 1800 A.8.4's `class_scope` branch to the method-call receiver, so a CLASS-SCOPED name is a
+> legal receiver: `y = p::base::m.g()` had no derivation while `y = p::base::m;` — the same name as a
+> value — parsed. `match` 5 831 → 5 832, `unexplained_rejects_valid` 268 → 267, `accepts-invalid`
+> byte-identical at 21 (the same 21 files, set-compared), the ADJUDICATED/ROUTED/NO-VERDICT/DARK
+> split **entirely unmoved**, and the `verilog_2005` lane **byte-identical end to end** because
+> `class_scope` is profile-gated to the SV dialects. ⭐ Annex A writes that prefix ONCE and PGEN
+> renders it FOUR times — one named rule plus three hand-spelled inline copies, which exist because
+> the receiver rules are what cut the cycle `primary → call_primary → method_call → primary`. The
+> named rendering gained `class_scope` two months ago for a different measured defect; none of the
+> three copies did, and nothing in the repository compared them. ⛔⛔ **The fix is ONE of those three
+> sites, and the reason is a cost measurement.** Restoring the branch at all three was refused by
+> `PARSE-COST-RATCHET` — `entries` +0.47 %, `memo_hits` +1.05 % — and a per-site attribution showed
+> `split_hierarchical_callable_receiver` alone carries the whole accept-set gain, with the corpus
+> **byte-identical across 16 336 files** between the one-site and three-site variants. Costs are
+> rejected here, not traded, so the two inert copies stay shorter as *pinned* divergences that a
+> new instrument re-derives on every run. ⭐ The residual price of the one site that matters is
+> published rather than absorbed: `entries` +0.14 % and `memo_hits` +0.31 %, **identical deltas of
+> 585 252 with `committed` flat** — every added rule entry was served from the memo table, so the
+> change asked 585 252 more cached questions and did zero new parsing work. That is the converse of
+> this doctrine's founding lesson: a deterministic counter cannot see a per-entry cost rise, and it
+> cannot see that a rise is pure cache traffic either. The one corpus row that moved carries the
+> construct verbatim — verible's `nested_member_access.sv`, whose last line is
+> `nested_class0::handle1::handle2.nested_function()`. The step before it,
+> `SV-CORPUS-GRAD.13c.2c`, moved the bar **300 → 289** — a larger move
 > than any other recorded on this line, and it was **one grammar token**. The member loop of
 > `split_hierarchical_callable_receiver` was guarded by `!callable_method_call_body`, a negative
 > lookahead that **can never pass on an identifier**: IEEE 1800 A.8.2 makes
