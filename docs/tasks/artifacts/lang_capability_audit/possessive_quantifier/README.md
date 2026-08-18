@@ -22,3 +22,19 @@ by construction: `parse_harness_combinator_gate` (TOOLBOX 1.7) pins the interpre
 to the compile-and-run oracle per structural combinator, `quant_star` included, and this grammar has
 no left recursion — the one surface where that pinning is measured NOT to hold
 (`ENGINE-UNIVERSAL-SERVICES.14`).
+
+## `?` is possessive too — added 2026-08-18 under DIRECTOR CHALLENGE
+
+The first cut of this artifact measured `*` only, and the leaf it backs said "`*` / `+`". Challenged,
+the optional was measured and behaves the same way (`quant_backtrack_optional.ebnf`):
+
+```bash
+# s := ( a )? a b
+printf 'ab'  > rust/target/in.txt   # -> accepted=false   ⛔ 0 iterations + `a` + `b` IS in the language
+printf 'aab' > rust/target/in.txt   # -> accepted=true    (1 iteration + `a` + `b`)
+```
+
+⇒ `?` greedily takes the optional and never gives it back, so `ab` — which the grammar declares —
+rejects. **All three quantifier forms are possessive.** This matters for the census in the owning
+leaf: a lookahead written inside a `( … )?` is the same workaround as one inside a `( … )*`, which is
+what took the measured count from six to eight.

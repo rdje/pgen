@@ -1,0 +1,5 @@
+@entry: true
+s := ( a )? a b
+  -> {opt: $1, last: $2, tail: $3}
+a := "a"
+b := "b"

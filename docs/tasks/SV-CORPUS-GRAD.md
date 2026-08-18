@@ -9788,8 +9788,10 @@ with a risk profile** (`.13c.2f`'s "no demonstrated defect ⇒ do not write it" 
 divergence is ROUTED as `.13c.2j` with its measurement attached rather than bundled here.
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — measured OUTSIDE the family before routing):
-this leaf sends one finding out of `SV-CORPUS-GRAD` to `LANG-CAPABILITY-AUDIT.10.18` — *PGEN's `*`
-and `+` are possessive; a quantifier never gives back an iteration*. **Does it reproduce outside
+this leaf sends one finding out of `SV-CORPUS-GRAD` to `LANG-CAPABILITY-AUDIT.10.18` — *PGEN's `*`,
+`+` and `?` are possessive; a quantifier never gives back*. (⛔ This paragraph first said `*` and
+`+`; `?` was measured under director challenge on 2026-08-18 and behaves identically — see that
+leaf's correction block.) **Does it reproduce outside
 SystemVerilog? Yes, and with no SystemVerilog in it at all.** On the five-line synthetic
 `s := ( a )* a b` (`docs/tasks/artifacts/lang_capability_audit/possessive_quantifier/`), input `ab`
 → `accepted=false furthest_position=1` and `aab` → `accepted=false furthest_position=2`; both are in
@@ -9798,7 +9800,11 @@ quantifier contract, which binds all 11 shipped families, not an SV grammar defe
 is the SV consequence: the four hand-written lookaheads `grammars/systemverilog.ebnf` carries to work
 around it, one of which (`!callable_method_call_body`) was written wrong and is what this leaf fixes.
 The two findings routed to `.13c.2j` / `.13c.2k` stay INSIDE this tree — both are SV grammar defects
-with SV reproducers — so they are intra-tree bookkeeping, not routing.
+with SV reproducers — so they are intra-tree bookkeeping, not routing. ⛔ The SV-side count this
+leaf published — *"four hand-written lookaheads"* — was **counted from the sites this leaf walked
+past, not enumerated**, and is corrected to **six inside a repetition / eight including optionals**
+in `LANG-CAPABILITY-AUDIT.10.18`'s census table. The error was in the direction that made the
+routed finding look smaller.
 
 ##### Acceptance Checklist (enforced)
 

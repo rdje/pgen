@@ -1,5 +1,56 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-18 - PGEN-LANG-CAPABILITY-AUDIT-0001 — challenged on four findings, and the two that broke both broke toward modesty
+
+**1. ⛔⛔ BOTH ERRORS UNDERSTATED THE FINDING, AND THAT IS WHY RE-READING WOULD NEVER HAVE CAUGHT
+THEM.** The published claims were *"at least four hand-written lookaheads"* and *"`*` and `+` are
+possessive"*. Enumerated and measured, it is **eight** lookaheads and **all three** quantifier forms.
+An overclaim feels wrong when you re-read it; an underclaim reads as careful. ⇒ the three-way rule's
+leg 1 (RE-DERIVE by command) is not optional for a number just because the number is a floor —
+*"at least four"* is technically true of six and of eight, and it is still the wrong thing to publish
+when one `awk` gives the exact answer.
+
+**2. ⛔ THE TWO ERRORS WERE NOT INDEPENDENT — the unmeasured quantifier form is what the uncounted
+sites use.** I measured `*`, wrote "`*` and `+`" (inferring `+`), and never tried `?`. Two of the
+uncounted sites — `statement:5533`'s `!colon` and `streaming_concatenation:5594`'s `&lbrace` — sit
+inside `( … )?`. So the gap in the measurement and the gap in the census are the same gap seen
+twice, and finding either one would have found the other. ⇒ when a claim has a *scope* and a
+*count*, they are one claim, not two.
+
+**3. ⛔ HOW THE COUNT WENT WRONG, precisely: I counted the sites I had WALKED PAST.** All four I
+listed (`context_member_method_call`, `implicit_class_rooted_method_chain`, `select`, and the one I
+fixed) lie on the method-call path I had spent the session tracing. The two I missed
+(`list_of_type_assignments`, `mixed_string_parameter_port_list`) are parameter-list rules I never
+opened. ⇒ **a census whose sample is "what I happened to read" is not a census**, and it is
+indistinguishable from one until someone runs the enumeration.
+
+**4. ⭐ THE COMPLEMENT IS PART OF THE COUNT.** The corrected leaf publishes 8 members AND names the
+16 lookahead lines that are NOT members (keyword exclusion, `!scope_resolution`, `!tick`,
+`!binary_operator`, the `$root`/`$unit` firewalls). Without the complement a reader cannot check the
+classification, and the 8-vs-16 split is exactly the precision target for the lint the leaf proposes
+— a rule that flagged all 24 would teach waivers.
+
+**5. ⚠️ THE DUPLICATE-ID CLAIM WAS WRONG ABOUT ITS OWN DURATION.** I wrote *"for one commit"*
+because I fixed it one commit after noticing it. `git log -S` says the colliding heading landed in
+`-0223` and was renumbered in `-0227` ⇒ **four commits, one full day**, during which `MEMORY.md` and
+`docs/TASK_TREE.md` both resolved the id by search. ⇒ the lifetime of a defect is a fact about the
+repository, not about when I met it.
+
+**6. ✅ AND THE CHALLENGE STRENGTHENED ONE FINDING.** I had framed the stale SV contract as my
+judgement call. It is not a judgement call:
+`docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md:23` already says *"contract-changing or
+capability-widening releases should bump them intentionally"*, and all three unrecorded commits are
+capability-widening. ⇒ **before framing a gap as your opinion, grep for the document that already
+decided it** — the sixth costume of [[feedback_answer_your_own_technical_questions]], worn here in
+the opposite direction: not escalating a decided question, but under-claiming a decided one.
+
+**7. ⛔ ONE CORRECTION WAS DELIBERATELY NOT MADE.** I wrote a grammar-comment edit spelling out
+"`*`, `+` and `?`" at the fix site, then reverted it: the parse-cost and generated-reproducibility
+baselines hash `grammars/systemverilog.ebnf` itself, so a comment costs a ~2.5 min ratchet
+re-measure, a ~70 s share re-derivation and a full 11-artifact re-derive. The existing comment was
+already accurate. ⇒ **an accurate comment is not worth three re-baselines**, and saying so beats
+paying it quietly.
+
 ## 2026-08-18 - PGEN-SV-CORPUS-GRAD-0227 — a guard that could never pass, and the two ways I nearly fixed the wrong thing
 
 **1. ⭐⭐⭐ THE DEFECT WAS NOT "A RULE IS MISSING A CASE" — IT WAS "A GUARD IS VACUOUSLY FALSE".**

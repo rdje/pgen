@@ -11,7 +11,7 @@ answers:
   - "why did nothing in the test suite notice this dead code path"
 tags: [grammar-authoring, dead-code, negative-lookahead, quantifiers, instrument-honesty, sweep]
 date: 2026-08-18
-evidence: docs/tasks/SV-CORPUS-GRAD.md leaf .13c.2c (`split_hierarchical_callable_receiver`'s `!callable_method_call_body` — zero loop iterations for its whole life; axis-2 bar 300 -> 289, corpus pass 9 776 -> 9 786, 0 rows worsened); docs/tasks/artifacts/sv_corpus_grad/dead_negative_lookahead/ (the sweep, its four controls, and sweep_before.txt / sweep_after.txt = DEAD-RISK 1 -> 0); docs/tasks/LANG-CAPABILITY-AUDIT.md leaf .10.18 (why the guard existed at all — PGEN's `*` is possessive)
+evidence: docs/tasks/SV-CORPUS-GRAD.md leaf .13c.2c (`split_hierarchical_callable_receiver`'s `!callable_method_call_body` — zero loop iterations for its whole life; axis-2 bar 300 -> 289, corpus pass 9 776 -> 9 786, 0 rows worsened); docs/tasks/artifacts/sv_corpus_grad/dead_negative_lookahead/ (the sweep, its four controls, and sweep_before.txt / sweep_after.txt = DEAD-RISK 1 -> 0); docs/tasks/LANG-CAPABILITY-AUDIT.md leaf .10.18 (why the guard existed at all — PGEN's `*`, `+` and `?` are all possessive; that leaf's census enumerates 6 give-back lookaheads inside repetitions and 8 including optionals)
 reverify: "python3 docs/tasks/artifacts/sv_corpus_grad/dead_negative_lookahead/sweep_dead_guards.py   # exit 0, dead_risk=0; add --grammar <pre-fix revision> to watch it exit 1"
 status: current
 ---
@@ -83,10 +83,17 @@ blind spot is visible in its own output.
 
 ## The root cause behind the workaround
 
-Ask why the guard existed at all. In PGEN it exists because `*` and `+` are **possessive** — a
-quantifier never gives back an iteration, so an author who wants a loop to leave a tail must
-re-state, in a lookahead, what the rest of the sequence needs ([[a-hypothesis-list-is-a-snapshot-of-what-you-knew-that-day]]
-for why that re-statement rots). Four such lookaheads had been written independently into one
-grammar. When you find yourself writing the fifth, the finding is the engine contract, not the
-rule — route it there ([[a-cap-that-preserves-the-count-still-destroys-the-diagnosis]] is the same
-shape one layer up: the instrument, not the subject).
+Ask why the guard existed at all. In PGEN it exists because `*`, `+` **and `?`** are **possessive** —
+a quantifier never gives back, so an author who wants a loop (or an optional) to leave a tail must
+re-state, in a lookahead, what the rest of the sequence needs
+([[a-hypothesis-list-is-a-snapshot-of-what-you-knew-that-day]] for why that re-statement rots).
+
+⛔ **Count them by command, not from memory.** This card first said "four such lookaheads", counted
+from the sites its author had walked past while fixing one of them. Enumerated over every
+non-comment lookahead line in `grammars/systemverilog.ebnf`, the answer is **six** inside a
+repetition and **eight** once `?` is included — against 16 further lookahead lines that are ordinary
+disambiguation and are NOT members of the class. The undercount was in the direction that made the
+finding look smaller, which is the direction re-reading never catches. When you find yourself
+writing the ninth, the finding is the engine contract, not the rule — route it there
+([[a-cap-that-preserves-the-count-still-destroys-the-diagnosis]] is the same shape one layer up: the
+instrument, not the subject).

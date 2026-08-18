@@ -2910,7 +2910,8 @@ assumed here.
 > ⚠️ **RENUMBERED `.10.16` → `.10.17` on 2026-08-18 (`PGEN-SV-CORPUS-GRAD-0227`) — the id was
 > ALREADY TAKEN.** `.10.16` was opened 2026-08-11 by `GRAMMAR-WELLFORMED.A2.5` (the print-only
 > `--ignored` probe that cannot fail, below); this leaf was inserted a week later without checking,
-> so for one commit two different findings answered to the same address — and `TOOLBOX.md` §1.7 and
+> so for **four commits** (`0fd53da4` `-0223` … `0a105d3c` `-0226`, one full day) two different
+> findings answered to the same address — and `TOOLBOX.md` §1.7 and
 > `docs/tasks/GRAMMAR-WELLFORMED.md:2012` both point at the OTHER one. The older leaf keeps the
 > number it was cited under; this one moves. ⛔ The routing lesson is mechanical, not clerical: a
 > new leaf id must be `grep`ed for in its own tree before it is written, because a duplicate id
@@ -3064,7 +3065,7 @@ fail).
 **Acceptance:** every `--ignored` measurement probe fails when either side it compares fails to run;
 the 6 unaudited probes are measured and their published numbers reconciled or removed.
 
-### `.10.18` — PGEN's `*` / `+` are POSSESSIVE: a quantifier never gives back an iteration, and every grammar in this repository pays for it in hand-written lookaheads (`todo`, found 2026-08-18 by `SV-CORPUS-GRAD.13c.2c`)
+### `.10.18` — PGEN's `*`, `+` AND `?` are POSSESSIVE: a quantifier never gives back, and one grammar already pays for it in EIGHT hand-written lookaheads (`todo`, found 2026-08-18 by `SV-CORPUS-GRAD.13c.2c`)
 
 - **Status: `todo`**, opened with its measurement rather than as a note. ⛔ **Language-capability
   finding, not an SV finding** — it is routed here rather than fixed in `SV-CORPUS-GRAD` because
@@ -3083,24 +3084,57 @@ the 6 unaudited probes are measured and their published numbers reconciled or re
   ⇒ the loop consumes every `a` it can and the sequence then fails on the `a` the grammar still
   requires. **Both inputs are in the language the grammar declares.** No error is reported about the
   grammar; the parse simply rejects valid text.
-- **WHY IT MATTERS HERE.** A possessive quantifier makes a whole class of ordinary EBNF unusable as
-  written, and the workaround is invisible: the author must add an explicit lookahead that re-states
-  what the rest of the sequence needs. `grammars/systemverilog.ebnf` already carries at least four,
-  each written independently and each a bug-fix in its own right — `context_member_method_call`'s
-  `&dot`, `implicit_class_rooted_method_chain`'s `&dot`, `select`'s `!lparen`, and (as of
-  `SV-CORPUS-GRAD.13c.2c`) `split_hierarchical_callable_receiver`'s
-  `&( identifier constant_bit_select dot )`. The one that was written WRONG
-  (`!callable_method_call_body`) was dead for months and no instrument could see it, because a
-  guard that never passes and a loop that is never needed look identical from outside.
+
+  ⛔⛔ **CORRECTED UNDER DIRECTOR CHALLENGE, 2026-08-18 (`PGEN-LANG-CAPABILITY-AUDIT-0001`): this
+  leaf first said `*` / `+` and measured only `*`. `?` is possessive too**
+  (`quant_backtrack_optional.ebnf`):
+
+  ```text
+  s := ( a )? a b        a := "a"        b := "b"
+
+  input "ab"   -> accepted=false     ⛔ 0 iterations + `a` + `b` IS in the declared language
+  input "aab"  -> accepted=true      (1 iteration + `a` + `b`)
+  ```
+
+  ⇒ **all three quantifier forms** never give back. The omission was not harmless: it is what made
+  the census below undercount, because a lookahead inside `( … )?` is the same workaround as one
+  inside `( … )*`.
+- **WHY IT MATTERS HERE — THE CENSUS, ENUMERATED RATHER THAN RECALLED.** A possessive quantifier
+  makes a whole class of ordinary EBNF unusable as written, and the workaround is invisible: the
+  author must add an explicit lookahead re-stating what the rest of the sequence needs.
+  ⛔ **This leaf first published "at least four", counted from the sites its finder had personally
+  walked past. Enumerated by command over every non-comment lookahead site in
+  `grammars/systemverilog.ebnf` (24 lines carry a `!` or `&`), the answer is SIX inside a repetition
+  and EIGHT once `?` is included:**
+
+  | line | rule | the guard that stands in for give-back | quantifier |
+  |---:|---|---|---|
+  | 3203 | `list_of_type_assignments` | `!( comma kw_type )` | `*` |
+  | 3334 | `split_hierarchical_callable_receiver` | `&( identifier constant_bit_select dot )` — **the one written WRONG** | `*` |
+  | 3418 | `context_member_method_call` | `&dot` | `+` |
+  | 3435 | `implicit_class_rooted_method_chain` | `&dot` | `*` |
+  | 4301 | `mixed_string_parameter_port_list` | `!( comma kw_string )` | `*` |
+  | 5289 | `select` | `!lparen` (twice) | `*` |
+  | 5533 | `statement` | `!colon` | `?` |
+  | 5594 | `streaming_concatenation` | `&lbrace` | `?` |
+
+  The remaining 16 lookahead lines are ordinary disambiguation (keyword exclusion, `!scope_resolution`,
+  `!tick`, `!binary_operator`, the `$root`/`$unit` firewalls) and are NOT members of this class —
+  the distinction is whether the lookahead exists to stop a QUANTIFIER from eating the tail.
+  ⇒ eight independent authors' worth of the same workaround in one grammar, and the one written
+  WRONG (`!callable_method_call_body`) was dead for months with no instrument able to see it,
+  because a guard that never passes and a loop that is never needed look identical from outside.
 - ⛔ **This is NOT a proposal to make quantifiers backtracking.** That is a semantics change for
   every grammar and a cost change for every parse (the two non-negotiables — parser-neutrality and
   peak speed — are not tradeable), so the fix is an open design question, not a foregone one. What
   this leaf owns is the *decision*, taken with prices measured rather than assumed.
 - **Scope when taken up** — three candidate answers, to be priced against each other:
   1. **Declare it.** The contract is currently unwritten: the book's grammar-authoring surface does
-     not say `*` is possessive, so every author rediscovers it as a bug. A documented contract plus
-     a `--lint-grammar` rule that NAMES the shape (`( X )* X …` — a quantified item whose element
-     can also start what follows) turns a silent rejection into a diagnosed one.
+     not say `*`, `+` and `?` are possessive, so every author rediscovers it as a bug. A documented
+     contract plus a `--lint-grammar` rule that NAMES the shape (`( X )* X …` — a quantified item
+     whose element can also start what follows) turns a silent rejection into a diagnosed one.
+     ⭐ The census table above is that lint's calibration set, and its 8-vs-16 split is the
+     precision target: a rule that flags all 24 lookahead sites would teach waivers.
   2. **Opt-in backtracking quantifier** (a `@backtrack` / `?`-suffixed spelling), so a grammar pays
      for give-back only where it asks for it.
   3. **Leave it, and give authors the guard.** A first-class "stop before the tail" combinator would
