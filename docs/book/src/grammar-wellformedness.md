@@ -2029,11 +2029,37 @@ operator, and `module $_DLATCH_P_`. Accepting any of them would be an **over-acc
 which a pass-rate metric is blind to by construction.
 
 So the adjudication is kept as an oracle, not a paragraph.
-`stimuli/sv/run_adjudication_repros.py` re-runs sixteen minimal reproducers — each defect paired with
-an *accepting* control that isolates it to exactly one difference — as a two-sided ratchet: a defect
-that starts parsing fails with "flip it, the fix landed"; an invalid case that starts parsing fails as
-an over-acceptance regression; a control that stops parsing fails because its reproducer no longer
-isolates anything. It was proven able to fail before it was trusted.
+`stimuli/sv/run_adjudication_repros.py` re-runs a growing set of minimal reproducers — each defect
+paired with an *accepting* control that isolates it to exactly one difference — as a two-sided
+ratchet: a defect that starts parsing fails with "flip it, the fix landed"; an invalid case that
+starts parsing fails as an over-acceptance regression; a control that stops parsing fails because its
+reproducer no longer isolates anything. It was proven able to fail before it was trusted.
+
+⭐⭐ **It has five classes, and the fifth exists because the first four could hold only one direction
+of a claim.** `defect` says *valid SV that PGEN rejects today* and goes red the day the fix lands.
+There was no mirror for *illegal SV that PGEN accepts today*: filing such a row as `invalid` expects
+a REJECT and so fails on the very commit that files it, and filing it as anything else lies. ⛔ A
+known over-acceptance could therefore be written down in prose and **nowhere the runner could see
+it** — which is exactly the asymmetry that lets an over-acceptance age quietly while every
+rejects-valid defect is ratcheted. `accepts_invalid` closes it: the row expects ACCEPT because that
+is what the parser does, and the day the owning fix lands the runner fails with *"flip it to
+`invalid`"*, after which the row guards the fix against regression forever. Two coherence guards ride
+with it — an unknown class is refused rather than skipped, and a class that contradicts its own
+`expect` is refused — because a manifest is an oracle and an unreadable row in it must never read as
+a green one. Four adversarial arms, control included, are recorded under
+`docs/tasks/artifacts/sv_corpus_grad/accepts_invalid_class/`.
+
+The first seven rows in the new class are two measured over-acceptances that had nowhere to live. One
+is positional: every **non-final** component of a hierarchical path accepts a reserved keyword —
+`ral.module[0].g()`, `ral.module.g()` and `module.g()` all parse — because the component loops spell
+the raw `identifier` rule while only the final component is `non_keyword_identifier`. The same
+keyword in any *guarded* position (as the method name, as the final component, as a declared name)
+is correctly refused, which is what makes this a claim about position rather than about the keyword.
+The other is an extraction defect: `class_qualifier` is an Annex A **nonterminal** that PGEN carries
+as a literal keyword, and the LRM's whole `class_qualifier ::=` definition line was welded onto
+`primary`'s `| null` alternative with the footnote superscript kept as a token — so the standard's own
+text for a production parses as a SystemVerilog expression, under `sv_2017` with footnote `43` and
+under `sv_2023` with `48`, because the 2023 edition renumbers it.
 
 The instrument itself needed three corrections, and the third is the general lesson. Its residue
 bucket — the one that means *candidate parser defect* — read **47 → 22 → 20**: a class-only

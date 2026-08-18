@@ -15,6 +15,14 @@ whose verdict this runner re-executes, in both directions:
     FOREVER. ⛔ If one of these ever ACCEPTs, PGEN has acquired an OVER-ACCEPTANCE defect —
     the failure mode the strict-LRM default exists to prevent, and the one that is invisible
     without a negative oracle ([[feedback_sv_strict_lrm_compliance_default]]).
+  * `class=accepts_invalid` — ILLEGAL SV that PGEN accepts TODAY. Expected `ACCEPT`, because that
+    is what the parser does; the row exists so the over-acceptance is WATCHED rather than merely
+    written down. ⭐ When the owning fix lands this runner FAILS with "flip it to `invalid`", and
+    the row then guards the fix against regression forever — the exact mirror of `defect`.
+    ⛔ It exists because the four classes above could hold *valid text wrongly rejected* and could
+    not hold *invalid text wrongly accepted*: filing such a row as `invalid` goes RED on the commit
+    that files it, and filing it as anything else lies. A known over-acceptance could therefore live
+    in prose and nowhere the runner could see it (`SV-CORPUS-GRAD.13c.2k`).
   * `class=control` — the neighbouring construct that DOES parse, so each defect/invalid
     reproducer is pinned to exactly one difference. A control that stops parsing means the
     reproducer no longer isolates what its comment claims.
@@ -85,6 +93,35 @@ FIX_HINT = {
     ("fixed", "REJECT"): ("⛔ A FIXED REPRODUCER REGRESSED — valid SV that used to parse is "
                           "rejected again."),
     ("fixed", "ACCEPT"): "⛔ The manifest expects this fixed reproducer to REJECT.",
+    ("accepts_invalid", "REJECT"): ("⭐ AN OVER-ACCEPTANCE IS GONE. If the owning fix landed, that "
+                                    "is the good news — flip its `expect` to REJECT and its class "
+                                    "to `invalid` in stimuli/sv/adjudication_repros/MANIFEST.tsv, "
+                                    "citing the fixing work-unit. The row then guards the FIX "
+                                    "forever, which is the whole point of the round trip."),
+    ("accepts_invalid", "ACCEPT"): ("⛔ The manifest expects this KNOWN over-acceptance to still be "
+                                    "accepted; a REJECT here would mean it was fixed."),
+}
+
+# ⭐⭐ THE FIVE CLASSES AND THE VERDICT EACH ONE MEANS (SV-CORPUS-GRAD.13c.2k).
+#
+# ⛔ `accepts_invalid` is the FIFTH, and it exists because the first four could not hold one
+# direction of a claim. `defect` says *valid SV that PGEN rejects today* and goes RED the day the
+# fix lands; there was no mirror for *ILLEGAL SV that PGEN accepts today*. Filing such a row as
+# `invalid` expects REJECT and so fails on the commit that files it; filing it as anything else
+# lies. ⇒ a known over-acceptance could be written in prose and NOWHERE the runner could see it,
+# which is exactly the asymmetry that lets an accepts-invalid defect age quietly while every
+# rejects-valid defect is ratcheted. Now it goes RED when it is FIXED, and the fixer flips it to
+# `invalid` — so the round trip ends with the defect guarded against regression forever.
+#
+# ⛔ An UNKNOWN class is REFUSED rather than skipped. Before this, `FIX_HINT.get((class, got), "")`
+# meant a typo'd class produced an empty hint and — worse — a row whose expectation nothing
+# cross-checked. A manifest is an oracle; an unreadable row in it must never read as a green one.
+EXPECTED_BY_CLASS = {
+    "defect": "REJECT",           # valid SV that PGEN rejects today
+    "fixed": "ACCEPT",            # ... once the owning fix lands
+    "invalid": "REJECT",          # illegal SV that PGEN correctly rejects, forever
+    "accepts_invalid": "ACCEPT",  # illegal SV that PGEN wrongly accepts today
+    "control": "ACCEPT",          # the neighbouring construct that DOES parse
 }
 
 
@@ -211,6 +248,15 @@ def main() -> int:
                         "carry its claim")
 
     for row in rows:
+        cls = (row.get("class") or "").strip()
+        if cls not in EXPECTED_BY_CLASS:
+            failures.append(f"{row['id']}: class `{cls}` is not one of "
+                            f"{sorted(EXPECTED_BY_CLASS)} — an unreadable row in an oracle must "
+                            f"never read as a green one.")
+        elif row["expect"] != EXPECTED_BY_CLASS[cls]:
+            failures.append(f"{row['id']}: class `{cls}` means expect="
+                            f"{EXPECTED_BY_CLASS[cls]}, but the row says {row['expect']}. The "
+                            f"class IS the claim; an incoherent pair checks nothing.")
         if (row.get("arm") or "").strip() and row["expect"] != "ACCEPT":
             failures.append(f"{row['id']}: carries an `arm` claim but expects "
                             f"{row['expect']} — a rejected input produces no AST, so the claim "

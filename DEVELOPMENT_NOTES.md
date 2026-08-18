@@ -1,5 +1,51 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-18 - PGEN-SV-CORPUS-GRAD-0230 — the defect was easy to see; the place to KEEP it was the thing that was missing
+
+**1. ⛔⛔ THE LEAF REPORTED A DEFECT AND A GAP, AND THE GAP WAS THE BIGGER ITEM.** `.13c.2k` was
+opened with a one-line over-acceptance (`ral.module[0].g()`) and a note that the repro oracle had
+nowhere to file it. Diagnosing the defect took a seven-row position matrix and half an hour; closing
+the gap changed what the repository can *hold*. Before today, PGEN could ratchet every
+rejects-valid defect and could not ratchet a single accepts-invalid one — so the two axes were not
+equally defended, and only one of them had a number that could go stale silently. ⇒ when a leaf
+reports both a defect and a missing place to record defects of that kind, the second is usually the
+one with leverage.
+
+**2. ⭐ THE MATRIX IS WHAT MADE THE DIAGNOSIS A CLAIM ABOUT POSITION.** Any single reproducer
+(`ral.module[0].g()` accepts) supports several stories: a missing keyword in the reserved list, a
+bit-select special case, a member-position special case. Running the SAME keyword through six
+positions — three unguarded, three guarded — collapses all of them: `module` is refused as a method
+name, as a final component and as a declared name, so the table is live and the loops are what lack
+the guard. A control with one identifier changed (`modxx`) then pins the shape as legal. **Six cheap
+probes beat one trace when the question is "how far does this reach".**
+
+**3. ⛔ A CLASS THAT ONLY SAYS "STILL BROKEN" IS HALF AN ORACLE.** The interesting design question for
+`accepts_invalid` was which direction should fail. Expecting REJECT would be aspirational and fail on
+the commit that files the row; expecting ACCEPT and failing when the parser starts REJECTing is the
+mirror of `defect`, and it means the FIXER — not the finder — is the one told to complete the round
+trip: *flip it to `invalid`*, after which the row guards the fix forever. ⭐ The class is therefore
+not a to-do list entry; it is a defect that has been converted into a regression test in advance.
+
+**4. ⭐⭐ TWO GUARDS SHIPPED WITH IT THAT ARE NOT ABOUT THIS DEFECT AT ALL.** Adding a fifth class made
+me look at what the runner did with a class it did not know: `FIX_HINT.get((class, got), "")` — an
+empty hint, and a row whose expectation nothing cross-checked. So a typo'd class was a silently
+unchecked row in an oracle. Both are now refusals (unknown class; class contradicting its own
+`expect`). *When you extend an enumeration, check what the code does with a value outside it.*
+
+**5. ⭐ THE PROBE'S OWN GUARD CAUGHT THE PROBE, FOR THE SECOND TIME IN TWO COMMITS.** I wrote the
+adversarial probe with four `..` segments instead of five, and the repo-root assertion printed
+`probe: not at the repo root (…/docs)` instead of running four arms against nothing and reporting
+green. The previous commit's probe had the identical bug and was caught the same way. ⇒ a guard that
+costs one line (`[ -f <a file only the root has> ] || exit 2`) is worth writing into every probe
+before its first arm.
+
+**6. ⛔ THE FIX IS PRICED BEFORE IT IS WRITTEN, because the previous slice taught me to.**
+`non_keyword_identifier` puts `!reserved_non_keyword_identifier` inside two hot loops. `.13c.2j`'s
+rise qualified as `pure_memo_lookups` — every added entry was a cache hit — and this one will not:
+a guard that actually rejects does real work. So the cost conversation belongs in the plan, not in
+the post-mortem, and there is a cheaper spelling to try first (one guarded component rule referenced
+from both loops, so the lookahead is memoized per position rather than re-run per site).
+
 ## 2026-08-18 - PGEN-SV-CORPUS-GRAD-0229 — the cost gate rejected the fix I had already verified, and it was right
 
 **1. ⛔⛔ A GATE WITH ONLY ONE ACCEPTABLE ANSWER TEACHES PEOPLE TO ROUTE AROUND IT.** The fix was

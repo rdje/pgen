@@ -10092,7 +10092,7 @@ routed finding look smaller.
   `7556/2459/6321/4392/288`); `MEMORY.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`;
   `docs/TASK_TREE.md`.
 
-#### ⚠️ `.13c.2k` NEW `todo` — a RESERVED KEYWORD parses as a member identifier: `ral.module[0].g()` is accepted (opened 2026-08-18 session #245 by `.13c.2c`, `PGEN-SV-CORPUS-GRAD-0227`)
+#### ⚠️ `.13c.2k` `in progress` — a RESERVED KEYWORD parses in every NON-FINAL component of a hierarchical path; ✅ **the ORACLE GAP it found is CLOSED** and all seven over-acceptance rows are now WATCHED (opened 2026-08-18 session #245 by `.13c.2c` `-0227`; diagnosis + `accepts_invalid` class 2026-08-18 session #246, `PGEN-SV-CORPUS-GRAD-0230`)
 
 - **MEASURED, on the shipped parser, BEFORE and AFTER `.13c.2c`** (so it is pre-existing and the
   `.13c.2c` fix neither caused nor cured it):
@@ -10118,11 +10118,59 @@ routed finding look smaller.
   exact asymmetry that lets an accepts-invalid defect age quietly while every rejects-valid defect
   is ratcheted. The missing class (`accepts_invalid`, expect ACCEPT, failing loudly the day it
   starts REJECTing — the mirror of `defect`) is part of what this leaf owes.
-- **WHAT THIS LEAF OWES**: the toolbox WHY+WHERE; the `accepts_invalid` class above plus this row
-  pinned in it on all three profiles (the rule is ungated); a SWEEP of the same shape — every
-  `identifier` used as a hierarchy component where the LRM writes a non-keyword identifier — because
-  one instance is never the class here (`.13c.2e`); and the fix, with the corpus accepts-invalid
-  count measured before and after.
+- [x] ⭐⭐ **DIAGNOSIS — the leaf's hypothesis was RIGHT, and the position matrix says exactly how far
+  it reaches.** Measured on the shipped parser, `sv_2017` and `sv_2023`, every row a separate file
+  pinned in `MANIFEST.tsv`:
+
+  | where `module` sits | verdict | why |
+  |---|---|---|
+  | non-final component, indexed — `ral.module[0].g()` | **ACCEPT** ⛔ | the loop spells raw `identifier` |
+  | non-final component, plain — `ral.module.g()` | **ACCEPT** ⛔ | the bit-select is not what admits it |
+  | FIRST component — `module.g()` | **ACCEPT** ⛔ | not a member-position special case |
+  | method name — `ral.arr[0].module()` | REJECT ✅ | `callable_identifier := non_keyword_identifier` |
+  | final component — `ral.arr[0].module` | REJECT ✅ | `hierarchical_identifier`'s tail is guarded |
+  | declared name — `int module;` | REJECT ✅ | `declaration_identifier := non_keyword_identifier` |
+  | control — `ral.modxx[0].g()` | ACCEPT ✅ | legal SV; one identifier changed |
+
+  ⇒ **the leak is POSITIONAL, not a missing keyword** — the reserved-word table is live, and three
+  guarded positions refuse the very same token. WHERE = `hierarchical_identifier:2713`'s
+  `( identifier constant_bit_select dot )*` and `split_hierarchical_callable_receiver:3345`'s
+  component loop plus its trailing `identifier constant_bit_select`; WHY = A.9.3 writes
+  `hierarchical_identifier ::= { identifier [ [ constant_expression ] ] . } identifier` where every
+  `identifier` is subject to §5.6.2, and PGEN guards only the tail
+  (`non_keyword_identifier := !reserved_non_keyword_identifier identifier`).
+- [x] ⭐⭐⭐ **THE ORACLE GAP IS CLOSED — the half of this leaf that blocked two other leaves.**
+  `MANIFEST.tsv` gained a FIFTH class, `accepts_invalid`: illegal text that PGEN accepts TODAY,
+  expected `ACCEPT` because that is what the parser does, and going RED **when the defect is FIXED**
+  with *"flip its `expect` to REJECT and its class to `invalid`"* — the exact mirror of `defect`, so
+  the round trip ends with the fix guarded against regression forever. Two coherence guards ride with
+  it: an UNKNOWN class is refused rather than skipped (it used to yield an empty hint and a row
+  nothing cross-checked), and a class that contradicts its own `expect` is refused, because the class
+  IS the claim. ⛔ **Proven able to fail before it was trusted** —
+  `docs/tasks/artifacts/sv_corpus_grad/accepts_invalid_class/probe.sh`, 4 arms: a fixed
+  over-acceptance is REPORTED, an unknown class is REFUSED, an incoherent pair is REFUSED, and the
+  unperturbed manifest HOLDS (the control, without which a probe that broke the runner would score
+  3/3). ⭐ The probe's own root guard caught this probe being written one directory level short —
+  `probe: not at the repo root (…/docs)` instead of a green run.
+  **Manifest 50 → 63 rows, 88 → 112 checks, 7 `accepts_invalid`** — this leaf's six positional rows
+  plus its control, and `.13c.2m`'s six. *A defect that was written in prose is now watched by a
+  runner.*
+- **WHAT REMAINS** — the FIX and the SWEEP:
+
+  (a) a SWEEP of the class — the grammar has **43** non-comment uses of the raw `identifier` rule and
+  this leaf has adjudicated two of them, so the rest need deciding by measurement, not by reading
+  (one instance is never the class here — `.13c.2e`); (b) the fix, replacing raw `identifier` with
+  `non_keyword_identifier` at every hierarchy-component site the sweep confirms; (c) the corpus
+  accepts-invalid count measured before and after — ⚠️ this is a NARROWING, so unlike `.13c.2j` the
+  risk runs the other way and the reproducer set must be re-run for rows that stop parsing;
+  (d) ⛔ a PARSE-COST reading, priced before the fix is written: `non_keyword_identifier` adds a
+  negative lookahead inside two HOT loops, so this fix may well breach `PARSE-COST-RATCHET` the way
+  `.13c.2j` did — and it will not qualify for `pure_memo_lookups`, because a guard that rejects does
+  real work. ⇒ budget an attribution, or find a cheaper spelling (e.g. one guarded component rule
+  referenced from both loops, so the lookahead is memoized per position rather than re-run per site).
+- ⚠️ **PROFILE NOTE, measured**: the reproducers are `sv_2017,sv_2023` only. `verilog_2005` rejects
+  all of them, but for the wrong reason — the repro bodies are CLASS declarations, which v2005 has
+  no production for. A v2005 row for this defect needs a class-free carrier and is part of (a).
 
 #### ⚠️ `.13c.2l` NEW `todo` — THREE accept-set changes have shipped since the SV contract and the released-parser bug ledger were last written (opened 2026-08-18 session #245 by `.13c.2c`, `PGEN-SV-CORPUS-GRAD-0227`)
 
@@ -10177,8 +10225,9 @@ routed finding look smaller.
   production. Confirmed against the in-repo LRMs, not from memory:
   `docs/systemverilog/2017/txt/section-41-data-read-api.txt:1967` and
   `docs/systemverilog/2023/txt/section-Annex_A-normative-formal-syntax.txt:1987`.
-- ⛔⛔ **MEASURED ON THE SHIPPED PARSER, WITH ONE-IDENTIFIER CONTROLS** (three profiles; the probe set
-  is `docs/tasks/artifacts/sv_corpus_grad/class_qualifier_extraction_mangle/`):
+- ⛔⛔ **MEASURED ON THE SHIPPED PARSER, WITH ONE-IDENTIFIER CONTROLS** (three profiles; every row is now a PINNED reproducer in
+  `stimuli/sv/adjudication_repros/` — `.13c.2k` built the `accepts_invalid` class that can hold them,
+  so these verdicts are re-run by the oracle rather than quoted from this table):
 
   | input | `sv_2017` | `sv_2023` | `verilog_2005` |
   |---|---|---|---|
@@ -10233,10 +10282,13 @@ routed finding look smaller.
   instance is never the class here (`.13c.2e`) — every `kw_<name>_<hash>` rule whose `<name>` is an
   Annex A NONTERMINAL rather than an Annex B keyword, and every `kw_n_<digits>_<hash>` rule, which
   is a footnote marker by construction; (d) the fix plus the corpus accepts-invalid count measured
-  before and after. ⛔ **BLOCKED ON THE ORACLE, exactly as `.13c.2k` is**: `MANIFEST.tsv` still has
-  no class for *illegal text that is currently ACCEPTED*, so these six rows can be written in prose
-  and nowhere the runner can see them. They are pinned the day `.13c.2k` builds the
-  `accepts_invalid` class; until then the probe set carries them as files with a README-in-header.
+  before and after. ✅ **NO LONGER BLOCKED ON THE ORACLE** — `.13c.2k` built the `accepts_invalid` class in
+  `PGEN-SV-CORPUS-GRAD-0230` and all six rows are now PINNED in
+  `stimuli/sv/adjudication_repros/MANIFEST.tsv` (four `accepts_invalid` + two one-identifier controls
+  filed `invalid`), so the day this leaf's fix lands the runner FAILS with *"flip it to `invalid`"*
+  rather than the fix landing silently. ⭐ The two edition-specific rows carry a SINGLE profile each
+  (`sv_2017` for the `43` form, `sv_2023` for the `48` form) — the manifest's `profiles` column is
+  what lets the footnote-renumbering evidence be pinned as an expectation instead of a paragraph.
 - **ROUTING NOTE (`ROUTING-EVIDENCE`)** — the extractor is cross-family
   (`LRM-GRAMMAR-FIDELITY` owns making it SOTA + guardrailed), but the DEFECT measured here is in
   `grammars/systemverilog.ebnf` and is an SV accept-set defect, so it stays in this tree under the
