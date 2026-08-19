@@ -20,7 +20,7 @@
     },
     "grammar": {
       "path": "grammars/systemverilog.ebnf",
-      "sha256": "63a0dd49cdf5d5f365c998430c114fd47f3384fd10f9b774ba6d2925f5a7dde7"
+      "sha256": "ed87a16599247a7099bf022ccd2be9a640f892d406405c49d8bf944292866df8"
     }
   },
   "lr_entries": 24633438,

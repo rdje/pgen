@@ -11,8 +11,8 @@ answers:
 tags: [performance, parsers, peg, packrat, memoization, codegen, cost-models, measurement]
 date: 2026-08-19
 status: current
-evidence: "SV-CORPUS-GRAD.13c.2k (PGEN-SV-CORPUS-GRAD-0236/-0237). FOUR parser arms of ONE correctness fix, measured over a pinned 192-file sample, all verdict-identical on every one of the 192 files. Guard inside the shared rule (`designB`): 425,174,240 entries, +1.78 % over baseline — refused. Guard in the wrapper, delegating to the shared rule (`designA`): 413,858,708 entries (-0.89 %) but `committed` +0.72 % — also refused, on the other binding counter. Wrapper matching the token itself (`designC`, shipped): 413,108,276 entries (-1.07 %), committed 6,759,475 (-5.11 %), memo hits -2.41 % — all three fall. The difference, read out of the generated parser rather than inferred: the wrapper rule `non_keyword_identifier` is reached through 341 generated `inlined_frame_call` sites in designB, which bypass its own memoization (14,320,942 entries / 0 memo hits); giving it 45 more grammar references makes it memo-served (18,758,343 entries / 17,724,671 hits = 94.5 %) and the inner rule then runs 1,516,324 bodies instead of 19,353,115 entries."
-reverify: "bash docs/tasks/artifacts/sv_corpus_grad/strictness_cost_arms/inline_census.sh   # asks the GENERATED parser which rules are memoized on their executed path and which are inlined at their call sites; re-run it against two arms of the same change and compare"
+evidence: "SV-CORPUS-GRAD.13c.2k (PGEN-SV-CORPUS-GRAD-0236/-0237, corrected under director challenge in -0238). FOUR parser arms of ONE correctness fix, measured over a pinned 192-file sample, all verdict-identical on every one of the 192 files. The generator's own census gives the decision: a rule is INLINED (and takes no memo lookup at all) while refs x body_nodes stays under a named duplication budget. Baseline: `identifier` refs=47 over-budget/memoized, wrapper refs=7 INLINED. Moving 45 references flips both - `identifier` to refs=1 INLINED, wrapper to refs=52 over-budget/memo-served at 94.5 % hits. designB (guard inside `identifier`, wrapper a bare alias) changed NEITHER decision and cost +1.78 % on entries purely through redirected speculation - refused. designA (wrapper delegates) -0.89 % entries but +0.72 % committed - refused on the other counter. designC (wrapper matches the token) -1.07 % entries, -5.11 % committed, -2.41 % memo hits - shipped. The difference, read out of the generated parser rather than inferred: the wrapper rule `non_keyword_identifier` is reached through 341 generated `inlined_frame_call` sites in designB, which bypass its own memoization (14,320,942 entries / 0 memo hits); giving it 45 more grammar references makes it memo-served (18,758,343 entries / 17,724,671 hits = 94.5 %) and the inner rule then runs 1,516,324 bodies instead of 19,353,115 entries."
+reverify: "python3 docs/tasks/artifacts/sv_corpus_grad/strictness_cost_arms/inline_decision.py   # prints the GENERATOR's own inline verdict (class, refs, body_nodes, INLINED|over-budget) for each arm of the fix, beside the duplication budget it is judged against. Do NOT substitute counts of `inlined_frame_call` in the generated parser: those are emitted sites after transitive expansion, and reading them as the decision is the error this card was corrected for"
 ---
 
 **"This rule is 90 % memo hits, that one is 0 % — so put the work in the first one."** The two
@@ -30,33 +30,48 @@ hard to see: the model was built from the current hit rates, and the edit being 
 references between rules*, which is exactly the input the inlining decision keys on. The measured
 case:
 
-| spelling | where the guard lives | shared wrapper | inner rule | `entries` | `committed` |
-|---|---|---|---|---|---|
-| baseline | wrapper only, ~100 sites | 5.5 M / **0 hits** | 10.3 M / 9.3 M hits | — | — |
-| "cheap" (`designB`) | moved INTO the inner rule, wrapper a bare alias | 14.3 M / **0 hits** (inlined at 341 sites) | 19.4 M / 18.3 M hits | **+1.78 %** ⛔ | −0.00 % |
-| `designA` | wrapper keeps it and DELEGATES to the inner rule; 45 sites rewritten | 18.8 M / **17.7 M hits** | 1.5 M / 0 hits | −0.89 % | **+0.72 %** ⛔ |
-| `designC` — shipped | wrapper matches the token ITSELF; 45 sites rewritten | 18.8 M / **17.7 M hits** | 0.6 M / 0 hits | **−1.07 %** | **−5.11 %** |
+⛔ **ASK THE GENERATOR, DO NOT INFER FROM ITS OUTPUT.** PGEN's `--report-fusibility-census` prints
+its own decision per rule — `INLINE-DECISIONS … duplication_cap`, then `<class> refs=<n>
+body_nodes=<n> INLINED|over-budget`. A rule is inlined, and therefore takes **no memo lookup at
+all**, while its reference count × body size stays under that budget. Measured across four arms of
+one correctness fix:
 
-The spellings the model rejected **answer the repeated question one level higher**. Once the wrapper
-has enough call sites to be memoized rather than inlined, it absorbs the repeats and the inner rule
-runs only on the misses. The spelling the model chose left the wrapper a bare alias — trivially
-inlinable — so every one of its 14.3 M calls paid a full frame *and then* re-entered the inner rule.
+| arm | `identifier` | `non_keyword_identifier` (the wrapper) | `entries` | `committed` |
+|---|---|---|---|---|
+| baseline | refs=**47** → over-budget ⇒ *memoized* | refs=**7** → **INLINED** ⇒ 0 memo hits | — | — |
+| `designB` — guard moved INTO `identifier`, wrapper a bare alias | refs=47 → over-budget | refs=7 → INLINED | **+1.78 %** ⛔ | −0.00 % |
+| `designA` — wrapper keeps the guard and DELEGATES; 45 refs moved | refs=**2** → **INLINED** | refs=**52** → **over-budget** ⇒ memo-served, 94.5 % hits | −0.89 % | **+0.72 %** ⛔ |
+| `designC` — wrapper MATCHES THE TOKEN; 45 refs moved | refs=**1** → INLINED | refs=52 → over-budget | **−1.07 %** | **−5.11 %** |
 
-⭐⭐ **AND THE THIRD ARM IS THE SAME LESSON A SECOND TIME.** `designA` looked like the answer and was
-refused by the ratchet's OTHER binding counter: `committed` rose +0.72 %, attributed to the unit as
-one extra committed FRAME per committed identifier at the 45 rewritten sites, because the wrapper
-*delegated* to the inner rule instead of doing the work. `designC` deletes that frame — the wrapper
-matches the token itself — and all three counters fall. **Two of the three candidate spellings were
-refused on cost, each for a different reason, and neither reason was visible without building it.**
+**Moving 45 references carried both rules across the budget in opposite directions**, and the memo
+boundary followed. That is the lesson, and it is why no profile of the old parser could have
+predicted it.
+
+⛔⛔ **AND HERE IS THE PART THIS CARD ORIGINALLY GOT WRONG, corrected under challenge.** It first
+explained `designB`'s +1.78 % as an inlining effect — *"a bare alias is trivially inlinable, so the
+generator inlined it at 341 sites"* — citing counts of `inlined_frame_call` in the generated parser
+(46 at baseline, 341 for the alias). Those counts are real, but they are **emitted sites after
+transitive expansion, not the decision**, and the table above shows `designB` changed **neither
+rule's decision**. Its cost was never inlining at all: it was redirected speculation
+([[a-strictness-fix-redirects-the-search-not-just-the-predicate]]), full stop. ⇒ **when a compiler
+will state its decision, never reconstruct it from the code it emitted.**
+
+⭐⭐ **THE THIRD ARM IS THE SAME LESSON AGAIN, ON A DIFFERENT COUNTER.** `designA` looked like the
+answer and was refused on `committed`: wrapping *delegates*, so every committed identifier at the 45
+rewritten sites paid one extra committed frame. `designC` has the wrapper match the token itself,
+which deletes `identifier`'s committed frame outright (415,534 → **0**) and takes one off the 7
+rules that already used the wrapper. **Two of three candidate spellings were refused on cost, each
+on a DIFFERENT binding counter, and neither reason was visible without building the arm.**
 
 ## The rules that follow
 
 - **Never price a change to a call graph from counters measured on the old call graph.** Build the
   arms and measure. An arm cost ~6 minutes here; the reasoning it replaced had already been wrong
   twice, and the third arm — built only because the second was refused — is the one that shipped.
-- **Ask the generated code which rules are memoized on their executed path**, not the counters. A
-  0-hit rule is ambiguous — never queried twice, or never memo-served at all — and those two have
-  opposite implications for where to put work.
+- **Ask the GENERATOR for its decision, not the generated code and not the counters.** A 0-hit rule
+  is ambiguous — never queried twice, or never memo-served at all — and those two have opposite
+  implications for where to put work. The emitted code is ambiguous in a second way: inlining is
+  transitive, so the number of emitted sites moves for reasons the decision did not.
 - **Compare arms on verdicts before comparing them on cost.** Costs of two arms that accept
   different languages are not comparable. Here `committed` moved +51,611 between the arms and it
   would have been easy to read as a regression; per-file verdicts showed all 192 files unchanged and

@@ -483,18 +483,27 @@ identifier := escaped_identifier -> {body: $1}
 # fix were built and measured over the pinned 192-file parse-cost sample (four arms, `-0236`/`-0237`,
 # `docs/tasks/artifacts/sv_corpus_grad/strictness_cost_arms/`, TOOLBOX 3.7b), and both are refused by
 # `PARSE-COST-RATCHET`:
-#   * exclusion moved INTO `identifier`, this rule a bare alias — `entries` **+1.775 %**. A bare
-#     alias is trivially inlinable, so the generator inlined it at 341 sites where it takes NO memo
-#     lookup at all, and each of its 14,320,942 entries paid a full frame and then re-entered the
-#     memoized `identifier` underneath.
+#   * exclusion moved INTO `identifier`, this rule a bare alias — `entries` **+1.775 %**. ⛔ That
+#     cost is REDIRECTED SPECULATION, not an inlining effect: the generator's own census says the
+#     arm changed NEITHER rule's inline decision (see below). Rejecting a keyword does not end a
+#     parse, it sends a backtracking engine down further alternatives.
 #   * this rule delegating to `identifier` (`:= !reserved_non_keyword_identifier identifier`) —
 #     `entries` −0.892 % but `committed` **+0.72 %**, because wrapping adds one COMMITTED FRAME per
 #     committed identifier at the 45 rewritten sites.
 #   * THIS spelling — `entries` **−1.072 %**, `memo_hits` **−2.407 %**, `committed` **−5.110 %**.
-#     All three binding counters FALL: it is memo-served (94.5 % hits) so it absorbs the repeated
-#     question one level above `simple_identifier`, and it adds no frame anywhere — the chain is
-#     the same length as before at the 45 rewritten sites and one frame SHORTER at the ~100 sites
-#     that were already guarded.
+#     All three binding counters FALL, for two separate reasons. (1) THE MEMO BOUNDARY MOVED, and
+#     the generator states the mechanism itself rather than it being inferred:
+#     `ast_pipeline --report-fusibility-census` prints `INLINE-DECISIONS … duplication_cap`, and a
+#     rule is inlined (taking NO memo lookup at all) while its REFERENCE COUNT × BODY SIZE stays
+#     under that budget. Moving the 45 references carried both rules across it in opposite
+#     directions — `identifier` 47 → 1 refs (over-budget ⇒ memoized → INLINED) and this rule
+#     7 → 52 (INLINED → over-budget ⇒ memo-served, 94.5 % hits), so the repeated question is now
+#     answered here instead of one level down. (2) NO FRAME IS ADDED ANYWHERE: matching the token
+#     directly deletes `identifier`'s committed frame outright (415,534 → 0).
+#     ⛔ Re-derive with `docs/tasks/artifacts/sv_corpus_grad/strictness_cost_arms/inline_decision.py`
+#     — never from counts of `inlined_frame_call` in the generated parser, which are EMITTED sites
+#     after transitive expansion and led this comment to claim a decision change that never
+#     happened (corrected under DIRECTOR CHALLENGE, `-0238`).
 # ⭐ `escaped_identifier` is deliberately NOT guarded: §5.6.1 makes `\module ` a legal identifier
 # distinct from the keyword.
 non_keyword_identifier := escaped_identifier -> {body: $1}

@@ -171,22 +171,37 @@ Every candidate spelling *moved references between rules*, so every one changed 
 every one invalidated the profile it was priced from. Building the parsers and measuring them
 settled it:
 
-| spelling | how `non_keyword_identifier` ends up | `entries` | `committed` | verdict |
-|---|---|---|---|---|
-| baseline | inlined at 46 sites, 0 memo hits | — | — | the parser that shipped before |
-| guard moved inside `identifier`, wrapper a bare alias | inlined at **341** sites, 0 memo hits | **+1.78 %** | −0.00 % | ⛔ refused — entries rose |
-| wrapper keeps the guard and **delegates** to `identifier` | **memoized**, 94.5 % hits | −0.89 % | **+0.72 %** | ⛔ refused — committed rose |
-| wrapper **matches the token itself** | **memoized**, 94.5 % hits | **−1.07 %** | **−5.11 %** | ✅ shipped |
+PGEN's code generator will *state* its decision if you ask it — `ast_pipeline
+--report-fusibility-census` prints `INLINE-DECISIONS … duplication_cap` and then, per rule,
+`refs=<n> body_nodes=<n> INLINED|over-budget`. A rule stays inlined, and therefore takes **no memo
+lookup at all**, while its reference count × body size stays under that budget:
 
-The two spellings the model rejected are cheaper than the parser that shipped before — because they
-let the memo answer the repeated question one level higher, instead of paying a full frame and
-*then* re-entering the memoized rule underneath. But the first of them was still refused, on the
-*other* binding counter: delegating adds one committed frame per committed identifier at all 45
-rewritten sites. Making the wrapper match the token directly deletes that frame — and deletes one
-at the ~100 sites that were already guarded, which is why `committed` ends up 5 % *below* baseline.
+| spelling | `identifier` | the wrapper `non_keyword_identifier` | `entries` | `committed` | verdict |
+|---|---|---|---|---|---|
+| baseline | refs **47** → over-budget ⇒ memoized | refs **7** → INLINED ⇒ 0 memo hits | — | — | shipped before |
+| guard moved inside `identifier`, wrapper a bare alias | refs 47 → over-budget | refs 7 → INLINED | **+1.78 %** | −0.00 % | ⛔ refused — entries rose |
+| wrapper keeps the guard and **delegates** to `identifier` | refs **2** → INLINED | refs **52** → over-budget ⇒ memoized, 94.5 % hits | −0.89 % | **+0.72 %** | ⛔ refused — committed rose |
+| wrapper **matches the token itself** | refs **1** → INLINED | refs 52 → over-budget | **−1.07 %** | **−5.11 %** | ✅ shipped |
 
-⭐ **Two of three candidate spellings were refused on cost, each for a different reason, and neither
-reason was visible without building it.**
+**Moving 45 references carried both rules across the budget in opposite directions**, and the memo
+boundary followed them. That is why the two spellings that move references are cheaper than the
+parser that shipped before: the repeated question is answered one level higher instead of paying a
+full frame and *then* re-entering the memoized rule underneath.
+
+But the first of those was still refused, on the *other* binding counter: delegating adds one
+committed frame per committed identifier at all 45 rewritten sites. Making the wrapper match the
+token directly deletes `identifier`'s committed frame outright — 415,534 → **0** — which is why
+`committed` ends up 5 % *below* baseline.
+
+⛔ **The middle row is also where this chapter was wrong, and the correction is the more useful
+lesson.** It first explained that arm's +1.78 % as an inlining effect, citing the count of inlined
+call sites in the *generated parser* (46 at baseline, 341 for the bare alias). Those counts are
+real — but inlining is transitive, so they are emitted sites, not the decision, and the census above
+shows that arm changed **neither rule's decision**. Its cost was redirected speculation all along.
+⇒ **when a compiler will state its decision, never reconstruct it from the code it emitted.**
+
+⭐ **Two of three candidate spellings were refused on cost, each on a different counter, and neither
+reason was visible without building the arm.**
 
 So the fourth habit is: **when a change alters the call graph, the arms are the measurement.**
 Build both parsers and compare them per rule and per file. The tooling for that is

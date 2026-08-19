@@ -44,16 +44,31 @@ def load_apply_arm():
     return mod
 
 
-def head_grammar_text() -> str:
-    """HEAD's grammar text, read from GIT — never from the working tree.
+# ⛔⛔ THE ARM BASE IS A PINNED COMMIT, NOT `HEAD`, AND THAT IS THE WHOLE POINT.
+# These arms are transforms of the PRE-FIX grammar. Reading `HEAD` worked exactly until the fix
+# landed — the moment `PGEN-SV-CORPUS-GRAD-0237` committed, every anchor moved and the harness
+# refused ("anchor for .13c.2t occurs 0 times"), i.e. **a tracked reproduction script that could
+# no longer reproduce the thing it documents.** It failed loudly rather than silently, which is
+# the only reason it was noticed; a base that drifts with HEAD is not a base.
+# ⇒ pinned. To add an arm on a LATER base, add a new constant — never repoint this one, because
+# the measurements in `*.json` beside this file are deltas against THIS grammar.
+ARM_BASE_COMMIT = "b532b540"   # PGEN-SV-CORPUS-GRAD-0236 — the commit before the fix landed
 
-    ⛔ It read the working tree until this slice, and the arm driver calls the derivation while the
-    ARM is still applied — so the transform was attempted on top of itself and refused
-    ("anchor occurs 0 times"), taking down a measurement whose 3-minute build had already
-    succeeded. An arm's identity must not depend on what is checked out at the moment it is asked.
+
+def head_grammar_text() -> str:
+    """The ARM BASE grammar text, read from GIT at a PINNED commit — never from the working tree.
+
+    ⛔ It read the working tree until `-0236`, and the arm driver calls this derivation while the
+    ARM is still applied, so the transform was attempted on top of itself and refused, taking down
+    a measurement whose 3-minute build had already succeeded. Then it read `HEAD`, which broke the
+    day the fix landed. An arm's identity must depend on neither the working tree nor the branch.
     """
-    return subprocess.run(["git", "show", "HEAD:grammars/systemverilog.ebnf"],
-                          cwd=ROOT, capture_output=True, text=True, check=True).stdout
+    r = subprocess.run(["git", "show", f"{ARM_BASE_COMMIT}:grammars/systemverilog.ebnf"],
+                       cwd=ROOT, capture_output=True, text=True)
+    if r.returncode != 0:
+        raise SystemExit(f"arm_graph: cannot read the pinned arm base {ARM_BASE_COMMIT} "
+                         f"— is this a shallow clone? git says: {r.stderr.strip()}")
+    return r.stdout
 
 
 def arm_text(arm: str) -> str:
@@ -67,9 +82,9 @@ def arm_text(arm: str) -> str:
         text = m.replace_once(text, m.B_BEFORE, m.B_AFTER, ".13c.2k design B (identifier)")
         text = m.replace_once(text, m.B_GUARD_BEFORE, m.B_GUARD_AFTER, ".13c.2k design B (alias)")
     elif arm == "designA":
-        text, _n = m.rewrite_call_sites(text, m.load_census())
+        text, _n = m.rewrite_call_sites(text)
     elif arm == "designC":
-        text, _n = m.rewrite_call_sites(text, m.load_census())
+        text, _n = m.rewrite_call_sites(text)
         text = m.replace_once(text, m.B_GUARD_BEFORE, m.C_GUARD_AFTER, ".13c.2k design C")
     return text
 

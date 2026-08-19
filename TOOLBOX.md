@@ -772,8 +772,14 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
     entry/memo/committed breakdown, and **each file's `accepted` verdict**.
   * `arm_graph.py --arm N` — freezes that arm's grammar reference graph; `containment.py` refuses
     unless the graph's grammar sha equals the arm's.
-  * `inline_census.sh` — asks the GENERATED parser which rules are memoized on their executed path
-    and which are inlined at their call sites.
+  * `inline_decision.py` — ⭐ **the one to use**: prints the GENERATOR's own verdict per rule per arm
+    (`<class> refs=<n> body_nodes=<n> INLINED|over-budget`) beside the `duplication_cap` it is
+    judged against, from `--report-fusibility-census` (5.3).
+  * `inline_census.sh` — counts `memoized_call` / `inlined_frame_call` sites in the GENERATED
+    parser. ⛔ **These are EMITTED sites after transitive expansion, NOT the decision.** Reading
+    them as the decision is a measured error: it made `-0236` explain an arm's +1.78 % as an
+    inlining change that the census says never happened (corrected in `-0238`). Use it to see where
+    a rule ended up, never to infer why.
   * `arm_verdicts.sh [probe]` — the pinned reproducers' verdicts under whatever probe is on disk.
 - **WHEN:** whenever a fix is refused on cost, or two spellings of one change must be compared.
   ⛔ **Before writing "irreducible" anywhere.**
@@ -783,6 +789,17 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - ⛔ **CHECK VERDICTS BEFORE COMPARING COSTS.** Two arms that accept different languages have
   incomparable costs. `--compare` prints a per-file verdict diff and says so loudly; schema 1 did
   not record verdicts and a `committed` move of `+51,611` was uninterpretable until it did.
+- ⛔⛔ **NEVER PRICE A CALL-GRAPH CHANGE FROM THE OLD CALL GRAPH — and get the mechanism from the
+  generator, not from its output.** A rule is INLINED (taking **no memo lookup at all**) while its
+  reference count × body size stays under a duplication budget the census names. Measured on this
+  fix: moving 45 references carried `identifier` 47 → 1 refs (over-budget ⇒ memoized → INLINED) and
+  `non_keyword_identifier` 7 → 52 (INLINED → over-budget ⇒ memo-served at 94.5 % hits) — **both
+  rules across the budget, in opposite directions**. ⚠️ The bare-alias arm changed NEITHER decision;
+  its rise was redirected speculation. Re-derive with `inline_decision.py`.
+- ⛔ **THE ARM BASE IS A PINNED COMMIT.** These arms are transforms of a PRE-FIX grammar, so the
+  harness reads `ARM_BASE_COMMIT` (`arm_graph.py`), not `HEAD` — which broke the day the fix landed
+  and every anchor moved, i.e. a tracked reproduction script that could no longer reproduce. It
+  refused loudly, which is the only reason it was caught.
 - ⛔ **AN ARM'S IDENTITY IS ITS PROBE FINGERPRINT, NOT THE TREE.** Every arm file records
   `--parser-fingerprint` and a grammar sha DERIVED from the arm NAME. The first cut derived it from
   the working tree and stamped HEAD's grammar onto a designA measurement —

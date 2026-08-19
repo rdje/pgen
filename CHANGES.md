@@ -1,6 +1,60 @@
 # CHANGES.md
 
+## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0238 (findings RE-DERIVED under DIRECTOR CHALLENGE; ONE published MECHANISM refuted, TWO numbers corrected; the arm harness could no longer reproduce its own arms; ZERO shipped parser bytes)
+
+- ⛔⛔⛔ **ASKED WHETHER THE THREE FINDINGS STILL STOOD, AND ONE OF THEM DID NOT — the MECHANISM was
+  reconstructed from EMITTED CODE when the generator will state it.** `-0236`/`-0237` explained the
+  `designB` arm's +1.775 % as an inlining effect, citing counts of `inlined_frame_call` in the
+  generated parser (46 at HEAD, 341 for the bare alias). `ast_pipeline --report-fusibility-census`
+  prints the generator's OWN verdict — `INLINE-DECISIONS … duplication_cap`, then per rule
+  `<class> refs=<n> body_nodes=<n> INLINED|over-budget` — and it says:
+
+  | arm | `identifier` | `non_keyword_identifier` |
+  |---|---|---|
+  | HEAD / `t_only` | refs=**47** → over-budget ⇒ MEMOIZED | refs=**7** → **INLINED** |
+  | `designB` | refs=47 → over-budget | refs=7 → **INLINED** |
+  | `designA` | refs=**2** → **INLINED** | refs=**52** → over-budget |
+  | `designC` (shipped) | refs=**1** → **INLINED** | refs=52 → over-budget |
+
+  ✅ **THE CORE CLAIM SURVIVES, BETTER EVIDENCED**: a rule is inlined — taking **no memo lookup at
+  all** — while `refs × body_nodes` stays under a named duplication budget, and moving 45 references
+  carried BOTH rules across it in OPPOSITE directions. That is why the memo boundary moved.
+  ⛔ **REFUTED**: `designB` changed **neither** rule's decision, so its rise had no inlining
+  component at all — it was redirected speculation, full stop. Inlining is transitive, so emitted
+  sites move for reasons the decision did not. ⇒ **when a compiler will state its decision, never
+  reconstruct it from the code it emitted.**
+  ⛔ **WRONG NUMBER**: *"~100 references / ~100 already-guarded sites"* was never measured and is
+  **7** (7 references from 7 rules). The `committed` fall is now reconciled exactly instead:
+  `identifier` **415,534 → 0**, `non_keyword_identifier` +51,611, three rules at −31, = −364,016.
+- ⛔ **SECOND CORRECTION — "nine third-party files" is SIX.** Six distinct files move; three of them
+  move in BOTH lanes, so a lane-verdict tally of 9 double-counts them. ⭐ **THIRD** — *"the first
+  narrowing"* is now scoped to *"the first since the contract was last written (2026-08-12)"*, which
+  is the population `.13c.2l` actually enumerates; "first ever" was never checked and is not claimed.
+- ⛔⛔ **AND THE ARM HARNESS COULD NO LONGER REPRODUCE ITS OWN ARMS.** It read `HEAD` for the arm
+  base, so the moment `-0237` landed, every anchor moved and it refused — *a tracked reproduction
+  script that cannot reproduce what it documents*. Now pinned to `ARM_BASE_COMMIT`. Two further
+  defects fell out of fixing it: the call-site rewrite classified against the **on-disk grammar**
+  rather than the text it was rewriting (third instance of that class here — it had stamped
+  `designC.json` with the sha of a grammar nobody built), and it counted a rule's own DECLARATION
+  head as a reference (46 vs the census's 45). All four arm grammars now re-derive to their tracked
+  shas, and the reconstructed `designC` arm **generates the shipped parser byte-identically**
+  (`5a1dfa3620b2d387…`) — the end-to-end proof the harness previously lacked.
+  ⚠️ That check first "failed" because the temp grammar was named `designC.ebnf`: the frontend
+  derives `grammar_name` from the FILENAME, so a differently-named copy of the same grammar emits a
+  different parser. Written into the instrument.
+- **NEW**: `strictness_cost_arms/inline_decision.py` — the generator's own inline verdict per rule
+  per arm, tracked and re-runnable, and the `reverify` line of the knowledge card now points at it
+  rather than at the emitted-site counter.
+- **CORRECTED IN PLACE** (each was a published claim, so each is fixed where it was published, not
+  re-issued): the knowledge card, `docs/book/src/inside-parser-performance.md`, `TOOLBOX.md` 3.7b,
+  the `grammars/systemverilog.ebnf` landing comment, the `.13c.2k` leaf, `docs/TASK_TREE.md`,
+  `MEMORY.md`, and a superseded-in-part banner on the `-0236`/`-0237` entries above.
+- ⭐ **ZERO SHIPPED PARSER BYTES**: the grammar edit is comment-only and the parser re-derives
+  byte-identically to `5a1dfa3620b2d387…`, asserted rather than assumed.
+
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0237 (leaves SV-CORPUS-GRAD.13c.2k + .13c.2t **CLOSED** and LANDED — the reserved-keyword hole is CLOSED at every site, and the parser got FASTER on all three binding counters doing it)
+
+> ⛔ **SUPERSEDED IN PART BY `-0238` (director challenge).** The inline-decision mechanism described below is WRONG for the `designB` arm — it changed neither rule's inline decision, and its rise was redirected speculation. `~100 references` is `7`. The `46`/`341` figures are EMITTED sites, not the decision. The cost measurements themselves are unaffected and re-derived.
 
 - ⭐⭐⭐ **LANDED, AND THE COST THAT HELD IT BACK TWICE WAS ELIMINATED RATHER THAN ACCEPTED.**
   `entries` **417,585,361 → 413,108,276 (−1.072 %)**, `memo_hits` **−2.407 %**, `committed`
@@ -61,6 +115,8 @@
   so a consumer reading `1.0.183` is now told the parser accepts text it refuses.
 
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0236 (leaf .13c.2k (a)+(b) DONE — the held-back rise is ELIMINATED, not accepted: the SAME fix respelt measures 0.892 % BELOW the baseline; .13c.2t's cost SPLIT OUT; .13c.2w NEW; ZERO grammar bytes committed)
+
+> ⛔ **SUPERSEDED IN PART BY `-0238` (director challenge).** The inline-decision mechanism described below is WRONG for the `designB` arm — it changed neither rule's inline decision, and its rise was redirected speculation. `~100 references` is `7`. The `46`/`341` figures are EMITTED sites, not the decision. The cost measurements themselves are unaffected and re-derived.
 
 - ⭐⭐⭐ **THE COST THAT HELD THIS FIX BACK TWICE IS GONE, AND NOTHING ABOUT THE FIX CHANGED EXCEPT
   WHERE IT IS SPELLED.** Four parser arms, each a real regenerated parser inside a real probe,

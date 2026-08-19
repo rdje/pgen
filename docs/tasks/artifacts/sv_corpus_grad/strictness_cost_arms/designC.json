@@ -1,9 +1,9 @@
 {
  "accepted_files": 87,
  "arm": "designC",
- "arm_grammar_sha256": "603d77ba807743d93aad5af0116d9bd2340993ae51a26751b4d0e47f63123f15",
+ "arm_grammar_sha256": "399568e2dfc111d41c89ddf8d878cd0f523ea4c4598342b11e3e7c7aa186e3c7",
  "files": 192,
- "live_grammar_sha256_at_measure_time": "399568e2dfc111d41c89ddf8d878cd0f523ea4c4598342b11e3e7c7aa186e3c7",
+ "live_grammar_sha256_at_measure_time": "63a0dd49cdf5d5f365c998430c114fd47f3384fd10f9b774ba6d2925f5a7dde7",
  "per_file": {
   "stimuli/sv/subs/Cores-VeeR-EL2/design/dbg/el2_dbg.sv": {
    "accepted": false,
@@ -1158,7 +1158,7 @@
    "memo_hits": 478
   }
  },
- "probe": "rust/target/debug/parseability_probe",
+ "probe": "rust/target/release/parseability_probe",
  "probe_parser_fingerprint": "5a1dfa3620b2d387551499f642e363c6996f02f6c2d8245a472949d287f621a0",
  "profile": "sv_2017",
  "rule_committed": {

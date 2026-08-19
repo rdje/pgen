@@ -1,6 +1,54 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0238 — I reconstructed a compiler's decision from its output, and the compiler was willing to just tell me
+
+**1. THE CHALLENGE.** Asked whether the three findings still stood. Re-deriving rather than
+re-reading refuted one of them, in the part that felt most explanatory.
+
+**2. WHAT I DID WRONG.** To explain why one arm was expensive I counted `inlined_frame_call` sites
+in the *generated parser* — 46 at HEAD, 341 for the bare-alias arm — and told a story about a bare
+alias becoming "trivially inlinable". Every number was real. The story was false, and it was false
+in the most seductive way: it *fit*. `ast_pipeline --report-fusibility-census` prints the generator's
+own verdict (`INLINE-DECISIONS … duplication_cap`, then `refs=<n> body_nodes=<n>
+INLINED|over-budget`), and it says that arm changed **neither** rule's decision. Its cost was
+redirected speculation, which the previous slice had already named and which needed no new mechanism
+at all. ⇒ **when a compiler will state its decision, never reconstruct it from the code it emitted.**
+Inlining is transitive, so emitted-site counts move for reasons the decision did not — the two
+quantities are not even the same shape.
+
+**3. THE CORE CLAIM SURVIVED, AND GOT BETTER.** A rule is inlined — taking no memo lookup at all —
+while `refs × body_nodes` stays under a named budget. Moving 45 references carried `identifier`
+47 → 1 and the wrapper 7 → 52, **both across the budget, in opposite directions**. That is a sharper
+statement than the one it replaces, and it is the generator's own, not my inference from its output.
+
+**4. TWO NUMBERS.** *"~100 references"* was never measured; it is **7**, from 7 named rules. And
+*"nine third-party files"* is **six** — three of the six move in both corpus lanes, so a
+lane-verdict tally double-counts them. Neither error changed a decision; both were in published
+prose, which is exactly where an unmeasured number is most likely to survive.
+
+**5. THE HARNESS HAD ROTTED THE MOMENT THE FIX LANDED.** `apply_arm.py` read `HEAD` for its arm
+base, so committing the fix moved every anchor and the script refused — a tracked reproduction
+script that could no longer reproduce what it documents. It failed loudly, which is the only reason
+it was noticed at all. Pinning the base surfaced two more defects behind it: the call-site rewrite
+classified against the **on-disk grammar** instead of the text it was rewriting (the third instance
+of that class in this one directory — it had already stamped `designC.json` with the sha of a
+grammar nobody ever built), and it counted a rule's own declaration head as a reference. All four
+arms now re-derive to their tracked shas, and the reconstructed shipping arm regenerates the shipped
+parser byte-identically — an end-to-end check the harness never had.
+
+⚠️ That check appeared to fail first, and the cause is worth keeping: the frontend derives
+`grammar_name` from the FILENAME, so writing the same grammar to `designC.ebnf` emits a different
+parser than writing it to `systemverilog.ebnf`. A reconstruction check that renames its input is
+testing the name, not the content.
+
+**6. THE PATTERN ACROSS THE THREE SLICES.** `-0235` mis-modelled the predicate. `-0236` mis-modelled
+the memo boundary. `-0238` mis-modelled the compiler. Each time the fix was to stop reasoning about
+the machine and ask an instrument that already knew — and each time the instrument existed and was
+one command away.
+
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0237 — the landing found a fourth arm, and the same lesson twice
+
+> ⛔ **SUPERSEDED IN PART BY `-0238`**: the inline-decision mechanism below is wrong for the `designB` arm (it changed neither rule's decision; its rise was redirected speculation), `~100 references` is `7`, and the `46`/`341` counts are emitted sites rather than the decision. The measurements are unaffected.
 
 **1. WHAT LANDED.** The reserved-keyword hole is closed at every site the LRM constrains. The census
 that opened this leaf at *"43 raw `identifier` references"* — a wrong hand count, corrected to 47 in
@@ -71,6 +119,8 @@ quietly because all four prior accept-set changes were strictly-more-permissive.
 NARROWING, on all three profiles. The argument is retired and routed into that leaf.
 
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0236 — the cost was never in the fix, it was in the spelling
+
+> ⛔ **SUPERSEDED IN PART BY `-0238`**: the inline-decision mechanism below is wrong for the `designB` arm (it changed neither rule's decision; its rise was redirected speculation), `~100 references` is `7`, and the `46`/`341` counts are emitted sites rather than the decision. The measurements are unaffected.
 
 **1. ⭐⭐⭐ THE HEADLINE.** `.13c.2k` had been held back twice: once because it uncovered five latent
 defects, once because `PARSE-COST-RATCHET` refused its +1.775 % rise and no coded invariant fitted

@@ -110,6 +110,15 @@ B_GUARD_AFTER = (
 )
 
 
+def base_grammar_text() -> str:
+    """The PINNED arm-base grammar, read from git. Single source: `arm_graph.ARM_BASE_COMMIT`."""
+    spec = importlib.util.spec_from_file_location(
+        "arm_graph", Path(__file__).resolve().parent / "arm_graph.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.head_grammar_text()
+
+
 def load_census():
     spec = importlib.util.spec_from_file_location("raw_identifier_census", CENSUS)
     mod = importlib.util.module_from_spec(spec)
@@ -124,17 +133,29 @@ def replace_once(text: str, before: str, after: str, what: str) -> str:
     return text.replace(before, after)
 
 
-def rewrite_call_sites(text: str, census) -> tuple[str, int]:
+# ⛔⛔ THE REWRITE CLASSIFIES THE TEXT IT IS GIVEN, NEVER THE GRAMMAR ON DISK — third instance of
+# the same class in this directory, and this one CORRUPTED A TRACKED FIELD. It used to call the
+# census, which scans `grammars/systemverilog.ebnf`; the arm driver derives an arm's identity at
+# measure time, when the ARM is still checked out, so the census saw the ALREADY-REWRITTEN grammar,
+# classified ZERO sites in scope, and stamped `designC.json` with the sha of a grammar nobody built
+# (`603d77ba…` instead of `bb64e9c1…`). The measurement itself was unaffected — it comes from the
+# probe — which is precisely why a wrong identity field is dangerous rather than obvious.
+# ⇒ everything below is a pure function of `text`. The census remains the CROSS-CHECK (run it on
+# the base grammar and the two must agree), not the input.
+EXPECTED_CALL_SITES = 45   # measured by raw_identifier_census on the ARM BASE: 23 alias + 22 inline
+
+
+def rewrite_call_sites(text: str, census=None) -> tuple[str, int]:
     """Rewrite every non-negation, non-guard reference to `identifier` -> `non_keyword_identifier`.
 
-    Derived, not listed: the census's own per-rule classification decides which rules are in
-    scope, and the count is asserted against it.
+    Classification is derived FROM `text`: a rule is in scope unless it is the guard rule itself or
+    the sole `negation` site, where guarding would INVERT the lookahead. The count is asserted
+    against the number the census measured on the arm base, so a silent under-rewrite refuses.
     """
-    kinds, _sites = census.signal_b()
-    in_scope = {r for r, ks in kinds.items() if any(k in ("alias", "inline") for k in ks)}
-    expected = sum(1 for ks in kinds.values() for k in ks if k in ("alias", "inline"))
-
-    word = census.WORD
+    import re as _re
+    word = _re.compile(r"(?<![A-Za-z0-9_])identifier(?![A-Za-z0-9_])")
+    rule_head = _re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*:=")
+    expected = EXPECTED_CALL_SITES
     out_lines: list[str] = []
     current = None
     rewrites = 0
@@ -144,24 +165,40 @@ def rewrite_call_sites(text: str, census) -> tuple[str, int]:
         if stripped.startswith("#") or stripped.startswith("//"):
             out_lines.append(raw)
             continue
-        head = census.RULE_HEAD.match(line)
+        head = rule_head.match(line)
         if head:
             current = head.group(1)
-        if current not in in_scope:
+        # OUT of scope: the guard rule itself, and the ONE negation site.
+        if current in (GUARD, "rooted_tf_call_sv_only"):
             out_lines.append(raw)
             continue
         # Only the region BEFORE a return directive can hold a rule reference; `-> {kind:
         # "identifier"}` on the same line must not be touched.
-        cut = line.find("->")
-        head_part, tail_part = (line[:cut], line[cut:]) if cut >= 0 else (line, "")
-        if "#" in head_part or "//" in head_part:
-            raise SystemExit(f"apply_arm: unexpected comment inside a rewritten body: {line!r}")
-        new_head, n = word.subn(GUARD, head_part)
+        # ⛔ Three regions of a line are NOT rewritable and each cost a refusal to find:
+        # the rule-name DECLARATION (`identifier := …` — the rule's own head is not a reference,
+        # and counting it made this transform find 46 where the census finds 45), the return
+        # directive after `->`, and a trailing comment.
+        decl_end = head.end() if head else 0
+        cut = line.find("->", decl_end)
+        decl = line[:decl_end]
+        body_part, tail_part = ((line[decl_end:cut], line[cut:]) if cut >= 0
+                                else (line[decl_end:], ""))
+        new_body, n = word.subn(GUARD, body_part)
+        new_head = decl + new_body
+        head_part = body_part
+        # ⛔ The comment guard runs ONLY where a rewrite actually happened. Checking every line
+        # made it fire on `@sample: "//x\n"` — a `//` inside a STRING on a rule this transform
+        # never touches. A guard that refuses on lines it is not rewriting is not a guard.
+        if n and ("//" in head_part or "#" in head_part):
+            raise SystemExit(f"apply_arm: a rewritten body carries a comment, so the rewrite may "
+                             f"have landed inside it: {line!r}")
         rewrites += n
         out_lines.append(new_head + tail_part + ("\n" if raw.endswith("\n") else ""))
 
     if rewrites != expected:
-        raise SystemExit(f"apply_arm: rewrote {rewrites} references, census says {expected} — refusing")
+        raise SystemExit(f"apply_arm: rewrote {rewrites} references, the arm base has {expected} "
+                         f"— refusing. Either the base moved (it is PINNED, so it should not have) "
+                         f"or this transform is being applied to the wrong text.")
     return "".join(out_lines), rewrites
 
 
@@ -186,7 +223,7 @@ def main() -> int:
         raise SystemExit("apply_arm: the grammar is already modified — --restore first, refusing "
                          "to stack arms (a stacked arm silently measures two changes as one)")
 
-    text = GRAMMAR.read_text(encoding="utf-8")
+    text = base_grammar_text()
     text = replace_once(text, T_BEFORE, T_AFTER, ".13c.2t")
     note = ".13c.2t only"
     if a.arm == "designB":
@@ -194,10 +231,10 @@ def main() -> int:
         text = replace_once(text, B_GUARD_BEFORE, B_GUARD_AFTER, ".13c.2k design B (alias)")
         note = ".13c.2t + .13c.2k design B (guard inside `identifier`)"
     elif a.arm == "designA":
-        text, n = rewrite_call_sites(text, load_census())
+        text, n = rewrite_call_sites(text)
         note = f".13c.2t + .13c.2k design A ({n} call sites rewritten)"
     elif a.arm == "designC":
-        text, n = rewrite_call_sites(text, load_census())
+        text, n = rewrite_call_sites(text)
         text = replace_once(text, B_GUARD_BEFORE, C_GUARD_AFTER, ".13c.2k design C (self-matching)")
         note = f".13c.2t + .13c.2k design C ({n} call sites rewritten, guard self-matching)"
 
