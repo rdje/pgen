@@ -3932,6 +3932,26 @@ fn run_certificate_coverage_report(
             &report.unknown[..shown]
         );
     }
+    // SV-CORPUS-GRAD.13c.2u.2: the PROOF set, printed under the same env gate as the UNKNOWN list.
+    //
+    // ⛔ WHY IT IS HERE. The report has always published `proof=<n>` and never the NAMES, so a
+    // consumer could see HOW MANY rules were proved unreachable but never WHICH. That made one
+    // genuinely valuable cross-check impossible to write: a rule the CORPUS demonstrably fires
+    // (it COMMITS in an accepted file) while this pass PROVES it unreachable is a flat
+    // contradiction between two independent instruments, and exactly the kind of thing neither can
+    // catch alone. `.13c.2u` wanted that control, could not compute it, wrote down that it was
+    // unavailable and shipped a weaker one — and "unavailable" was true of the REPORT, not of the
+    // data, which has been sitting in `report.covered_by_proof` all along.
+    // ⭐ Read-only and env-gated: default output is byte-identical, exactly like the UNKNOWN dump
+    // above, and the list is emitted in the report's existing deterministic rule-order sequence.
+    if dump_all && !report.covered_by_proof.is_empty() {
+        println!(
+            "  PROOF-COVERED rules ({} of {} shown): {:?}",
+            report.covered_by_proof.len(),
+            report.covered_by_proof.len(),
+            &report.covered_by_proof[..]
+        );
+    }
     // VERILOG-2005-PROFILE.6.6: the READ-ONLY, env-gated residual classification (P1
     // profile-entry-universe unreachability + P2 unproducible-mandatory-store-gate fixpoint,
     // designed in `.6.5`). Prints ONLY under PGEN_CERT_RESIDUAL_CLASSIFICATION (default output is

@@ -81,6 +81,17 @@ live = sum(1 for c in rows.values() if c == "unwitnessed")
 if live:
     fail.append(f"{live} rule(s) are still classified `unwitnessed` in the tracked partition")
 
+# The REAL contradiction (available since `.13c.2u.2` published the certificate proof NAMES): a
+# verified proof of unreachability refuted by a rule that COMMITS in an accepted corpus file.
+contra = summary.get("proof_refuted_by_corpus")
+if contra is None:
+    fail.append("the partition summary carries no `proof_refuted_by_corpus` field — it was produced "
+                "before `.13c.2u.2` and cannot have checked the contradiction. Re-derive: "
+                "make -C rust SHELL=/bin/bash sv_rule_fire_partition")
+elif contra:
+    fail.append(f"{len(contra)} rule(s) carry a certificate PROOF of unreachability AND commit in an "
+                f"accepted corpus file — a proof refuted by real text: {contra[:8]}")
+
 classes = summary.get("classes", {})
 if not classes:
     fail.append("the partition summary carries no class histogram — it is malformed")

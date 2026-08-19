@@ -18,13 +18,13 @@ casting_type_lr_suffix	lr_synthetic	the LR eliminator authored this name; not an
 casting_type_lr_suffix_r0	lr_synthetic	the LR eliminator authored this name; not an LRM construct
 casting_type_lr_suffix_r2	lr_synthetic	the LR eliminator authored this name; not an LRM construct
 casting_type_lr_suffix_r4	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-class_constructor_super_args	coverage_gap	certificate coverage WITNESSED it, so it can fire
+class_constructor_super_args	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 direct_method_call	coverage_gap	certificate coverage WITNESSED it, so it can fire
 edge_descriptor	coverage_gap	certificate coverage WITNESSED it, so it can fire
 hierarchical_btf_identifier	coverage_gap	certificate coverage WITNESSED it, so it can fire
-identifier	coverage_gap	certificate coverage WITNESSED it, so it can fire
+identifier	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 in_scope_compiler_directive_sv_only	coverage_gap	certificate coverage WITNESSED it, so it can fire
-include_statement	coverage_gap	certificate coverage WITNESSED it, so it can fire
+include_statement	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 instance_or_class_scope	coverage_gap	certificate coverage WITNESSED it, so it can fire
 known_unscoped_class_scoped_call_interface_class_identifier	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_B_ae4f281d	coverage_gap	certificate coverage WITNESSED it, so it can fire
@@ -37,10 +37,10 @@ kw_Z_909f99a7	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_b_e9d71f5e	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_class_qualifier_fa08937d	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_eventually_5865020f	coverage_gap	IEEE 1800-2023 A.2.10 `property_expr ::= … | eventually [ constant_range ] property_expr`. MEASURED: `eventually [1:2] b` inside a property ACCEPTS and kw_eventually_5865020f fires 3x, so the rule is reachable; the corpus holds no SVA property operator in any accepted file
-kw_file_path_spec_c26c9dc9	coverage_gap	certificate coverage WITNESSED it, so it can fire
-kw_incdir_e08adf20	coverage_gap	certificate coverage WITNESSED it, so it can fire
-kw_include_d3ecb0d8	coverage_gap	certificate coverage WITNESSED it, so it can fire
-kw_library_00299a40	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_file_path_spec_c26c9dc9	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
+kw_incdir_e08adf20	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
+kw_include_d3ecb0d8	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
+kw_library_00299a40	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 kw_n_01_ddfe1633	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_n_10_b1d57811	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_n_1_tick_B0_720c4a9c	coverage_gap	certificate coverage WITNESSED it, so it can fire
@@ -51,7 +51,7 @@ kw_n_1_tick_bX_70a6d618	coverage_gap	certificate coverage WITNESSED it, so it ca
 kw_n_1_tick_bx_ab9cb068	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_n_2_da4b9237	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_n_43_0286dd55	coverage_gap	certificate coverage WITNESSED it, so it can fire
-kw_n_48_64e095fe	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_n_48_64e095fe	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 kw_noshowcancelled_1d50d807	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_pulsestyle_onevent_11e408b6	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_restrict_ee1e5b88	coverage_gap	certificate coverage WITNESSED it, so it can fire
@@ -66,14 +66,14 @@ kw_tx_path_delay_expression_7b2dee37	coverage_gap	certificate coverage WITNESSED
 kw_weak_1ded3053	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_wildcard_08654ea6	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_z_395df8f7	coverage_gap	certificate coverage WITNESSED it, so it can fire
-library_declaration	coverage_gap	certificate coverage WITNESSED it, so it can fire
-library_description	coverage_gap	certificate coverage WITNESSED it, so it can fire
-library_text	coverage_gap	certificate coverage WITNESSED it, so it can fire
+library_declaration	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
+library_description	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
+library_text	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 module_path_concatenation	coverage_gap	certificate coverage WITNESSED it, so it can fire
 module_path_conditional_expression	coverage_gap	certificate coverage WITNESSED it, so it can fire
 module_path_mintypmax_expression	coverage_gap	certificate coverage WITNESSED it, so it can fire
 module_path_multiple_concatenation	coverage_gap	certificate coverage WITNESSED it, so it can fire
-parseable_source_item	coverage_gap	certificate coverage WITNESSED it, so it can fire
+parseable_source_item	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 program_generate_item	coverage_gap	certificate coverage WITNESSED it, so it can fire
 program_generate_item_sv_2017	coverage_gap	certificate coverage WITNESSED it, so it can fire
 property_case_item	coverage_gap	certificate coverage WITNESSED it, so it can fire
@@ -120,19 +120,19 @@ property_expr_lr_suffix_r6	lr_synthetic	the LR eliminator authored this name; no
 property_expr_lr_suffix_r7	lr_synthetic	the LR eliminator authored this name; not an LRM construct
 property_expr_lr_suffix_r8	lr_synthetic	the LR eliminator authored this name; not an LRM construct
 property_expr_lr_suffix_r9	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_sv_2017	coverage_gap	certificate coverage WITNESSED it, so it can fire
+property_expr_sv_2017	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 property_named_arg	coverage_gap	certificate coverage WITNESSED it, so it can fire
 ref_declaration	coverage_gap	certificate coverage WITNESSED it, so it can fire
-reserved_non_keyword_identifier	coverage_gap	certificate coverage WITNESSED it, so it can fire
-reserved_non_keyword_identifier_sv	coverage_gap	certificate coverage WITNESSED it, so it can fire
+reserved_non_keyword_identifier	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
+reserved_non_keyword_identifier_sv	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 restrict_property_statement	coverage_gap	certificate coverage WITNESSED it, so it can fire
 scoped_checker_identifier	coverage_gap	certificate coverage WITNESSED it, so it can fire
 scoped_property_identifier	coverage_gap	certificate coverage WITNESSED it, so it can fire
 sequence_named_arg	coverage_gap	certificate coverage WITNESSED it, so it can fire
 sv_dollar_skew_timing_check	coverage_gap	certificate coverage WITNESSED it, so it can fire
-sv_multi_entry_root	coverage_gap	certificate coverage WITNESSED it, so it can fire
-systemverilog_parseable_file	coverage_gap	certificate coverage WITNESSED it, so it can fire
+sv_multi_entry_root	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
+systemverilog_parseable_file	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 timestamp_condition	coverage_gap	certificate coverage WITNESSED it, so it can fire
-union_modifier	coverage_gap	certificate coverage WITNESSED it, so it can fire
+union_modifier	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 z_or_x	coverage_gap	certificate coverage WITNESSED it, so it can fire
 zero_or_one	coverage_gap	certificate coverage WITNESSED it, so it can fire

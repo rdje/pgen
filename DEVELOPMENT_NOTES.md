@@ -1,6 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0240 — "the instrument cannot see it" deserved one more question
+
+**1. THREE FINDINGS, CHALLENGED A SECOND TIME.** One was wrong, one held and turned out stronger
+than I had published, and one held while pointing at something I had wrongly filed as impossible.
+
+**2. THE WRONG ONE WAS A MISATTRIBUTION, WHICH IS A PARTICULAR KIND OF ERROR.** I wrote that the
+first narrowing "retires `.13c.2l`'s own safety argument". Re-reading the leaf rather than my memory
+of it: its remark about the four prior widenings explains why the drift was *symptomless* and argues
+**for** a gate. Its deferral rationale is the next bullet — the numbering — and the narrowing does
+not touch it. So the narrowing raises that leaf's urgency and refutes nothing. ⇒ I had put words in
+another leaf's mouth to make my own finding land harder. The finding was real; the framing took
+credit it had not earned. **A finding that raises priority is a different object from one that
+refutes an argument**, and conflating them overstates the case against work that had reasoned
+correctly.
+
+**3. THE ONE THAT HELD GOT STRONGER BY BEING TESTED.** "The corpus already holds a witness" was an
+inference from a status column. Scanning all 9,781 accepted corpus files produced the file:
+`ispras-sv-tests/ieee-1800-2012/16/16.12.10_01.sv` commits `kw_nexttime_b0f658f8` four times. And
+the column is stronger than I described — it keys on `rule_committed_counts` over accepted files, so
+"covered" means the rule committed into a surviving parse tree, not merely that it was entered.
+
+**4. THE THIRD ONE IS THE LESSON.** `.13c.2u` recorded that the real cross-check was "not available
+and deliberately not faked", and I was pleased with that sentence — refusing to fake a control is
+the right instinct. But I never asked the next question. The certificate report published
+`proof=19` and never the names; the names were sitting in `report.covered_by_proof` on every run,
+and ten lines in `main.rs` print them under the env gate that already exists. **Documenting a
+limitation honestly is not the same as accepting it**, and the honesty made the acceptance feel
+finished.
+
+**5. AND THE MISSING LIST HAD ALREADY CORRUPTED THE THING IT WAS MISSING FROM.** Without the proof
+names the partition inferred `witnessed` from `not UNKNOWN` — so every proven-unreachable rule was
+promoted into `coverage_gap`, the class that asserts *it can fire*. Eighteen of them, including
+`identifier` itself, whose only remaining reference after `-0237` is a negative lookahead. ⇒ **an
+absent list is not an empty one.** Inferring a class from the complement of the one list you have
+turns a proven negative into a positive, silently, in the direction that looks healthy.
+
+**6. FREE CONFIRMATION.** `casting_type` is in the proof set. `-0239` argued from entry counts that
+the LR eliminator had replaced it; the certificate pass proves it unreachable by an entirely
+separate route. Two instruments, one verdict, neither aware of the other.
+
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0239 — the number nobody read was also the number nobody could have used
+
+> ⛔ **CORRECTED IN PART BY `-0240`**: the partition below read `coverage_gap` 78 with no `unreachable_from_entry` class; corrected by `-0240` to 60 + 18 proven unreachable. The conclusion — zero cannot-fire defects — is unchanged.
 
 **1. THE ASK.** "Fully address the issue raised by your question." The question was: 104 grammar
 rules have never fired on 16 336 real files, in a tracked artifact nothing reads. Fully addressing it
@@ -94,6 +136,8 @@ the machine and ask an instrument that already knew — and each time the instru
 one command away.
 
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0237 — the landing found a fourth arm, and the same lesson twice
+
+> ⛔ **CORRECTED IN PART BY `-0240`**: the claim that the narrowing retires `.13c.2l`'s safety argument is a MISATTRIBUTION, corrected by `-0240`: that leaf deferred on the NUMBERING, and the narrowing raises its urgency rather than refuting it.
 
 > ⛔ **SUPERSEDED IN PART BY `-0238`**: the inline-decision mechanism below is wrong for the `designB` arm (it changed neither rule's decision; its rise was redirected speculation), `~100 references` is `7`, and the `46`/`341` counts are emitted sites rather than the decision. The measurements are unaffected.
 

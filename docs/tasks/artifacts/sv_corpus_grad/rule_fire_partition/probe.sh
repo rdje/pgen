@@ -51,11 +51,34 @@ pathlib.Path(sys.argv[1]).write_text(src)
 PY
 arm "an unadjudicated unwitnessed rule refuses" 1 python3 "$T/part_noadj.py" --cert-report "$CERT" --out "$T/part"
 
-# ARM 4 — MISSING INPUT: the instrument must refuse (2), never report a partial partition.
+# ARM 4 — NO PROOF LIST: a report from an ast_pipeline older than `-0240` withholds the proof
+# names, and inferring `witnessed` from `not UNKNOWN` is what misclassified 18 proven-unreachable
+# rules as "it can fire". The instrument must REFUSE such a report, never silently degrade.
+grep -v "PROOF-COVERED rules" "$T/cert.orig" > "$T/cert.noproof"
+arm "a report with no PROOF list refuses" 2 run "$T/cert.noproof"
+
+# ARM 5 — THE REAL CONTRADICTION: a rule with a certificate PROOF of unreachability that also
+# COMMITS in an accepted corpus file. Injected by flipping a proof-covered rule to `covered`.
+python3 - "$COV" "$T/cov.contra" <<'PY'
+import sys, pathlib
+src, dst = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+out = []
+for line in src.read_text(encoding='utf-8').splitlines():
+    f = line.split(chr(9))
+    if f and f[0] == 'union_modifier' and len(f) >= 2:
+        f[1] = 'covered'; line = chr(9).join(f)
+    out.append(line)
+dst.write_text(chr(10).join(out) + chr(10), encoding='utf-8')
+PY
+cp "$T/cov.contra" "$COV"
+arm "a PROOF refuted by the corpus refuses" 1 run "$CERT"
+cp "$T/cov.orig" "$COV"
+
+# ARM 6 — MISSING INPUT: the instrument must refuse (2), never report a partial partition.
 arm "a missing certificate report refuses" 2 python3 stimuli/sv/rule_fire_partition.py \
     --cert-report "$T/nope.txt" --out "$T/part"
 
-# ARM 5 — THE CONTROL: unperturbed, it must PASS. Without this, an instrument broken into
+# ARM 7 — THE CONTROL: unperturbed, it must PASS. Without this, an instrument broken into
 # always-refusing would score 4/4 above.
 arm "CONTROL — the unperturbed tree passes" 0 run "$CERT"
 

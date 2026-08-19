@@ -9,9 +9,10 @@
  },
  "coverage_artifact_satisfiable": 1433,
  "classes": {
-  "coverage_gap": 78,
+  "coverage_gap": 60,
   "lr_eliminated_original": 2,
-  "lr_synthetic": 57
+  "lr_synthetic": 57,
+  "unreachable_from_entry": 18
  },
  "corpus_covered_but_generator_hard": [
   "known_unscoped_property_identifier",
@@ -22,5 +23,6 @@
   "kw_s_nexttime_373d0bd1",
   "kw_sync_reject_on_1f0c8923"
  ],
+ "proof_refuted_by_corpus": [],
  "unadjudicated_unwitnessed": []
 }

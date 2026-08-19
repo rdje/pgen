@@ -28,6 +28,13 @@ THE PARTITION — every class is decided by an instrument, never by reading:
   lr_eliminated_original  `--lint-grammar`'s own `[info]` line NAMES the rules the pass eliminated;
                           the name survives, the body does not. ⚠️ NOT uniform — `property_expr` is
                           eliminated AND covered, so this is checked per rule, never assumed.
+  unreachable_from_entry  certificate coverage carries a verified PROOF that the rule is
+                          unreachable from the declared entry universe ⇒ it CANNOT fire, and that
+                          is a PROOF, not an absence of evidence. ⚠️ Not automatically a defect:
+                          `library_text` / `include_statement` / `kw_incdir` and friends are
+                          reachable only from the ALTERNATE entry `library_text`, and this pass is
+                          run with `--entry-rule systemverilog_file`. Adjudicate A1
+                          (alternate-entry, expected) vs A2 (profile-orphan) per TOOLBOX 4.2.
   coverage_gap            certificate coverage WITNESSED the rule (`--report-certificate-coverage`
                           generated a sample that parses AND reaches it) ⇒ it CAN fire; the corpus
                           simply holds no instance. Honest and expected.
@@ -37,6 +44,15 @@ THE PARTITION — every class is decided by an instrument, never by reading:
                           it as a defect once produced a confident wrong root cause that reached a
                           task leaf. Each one is adjudicated by hand with a minimal LRM construct
                           and recorded in `ADJUDICATED_UNWITNESSED` below.
+
+⛔⛔ AND THE FIRST CUT OF THIS INSTRUMENT MISCLASSIFIED 18 RULES, because it inferred `witnessed`
+from `not UNKNOWN`. The report published `proof=<n>` and never the NAMES, so the proof set was
+unavailable and everything outside the UNKNOWN list was assumed witnessed — which silently promoted
+18 PROVEN-UNREACHABLE rules into `coverage_gap`, the class that says "it can fire". `.13c.2u.2`
+added the names to the report under the existing `PGEN_CERT_COVERAGE_DUMP_ALL` gate (read-only,
+default output byte-identical, headline unchanged), and this now reads them. ⇒ **an absent list is
+not an empty one, and inferring a class from the complement of the one list you have is how a
+proven negative becomes a positive.**
 
 ⭐⭐ THE JOIN CARRIES A FREE CONTROL — THE DENOMINATOR. Both instruments enumerate the same rule
 population, so the certificate pass's `total` MUST equal the count of coverage-artifact rules that
@@ -50,10 +66,11 @@ means the witness GENERATOR could not route to the rule, not that the rule canno
 The control fired on its first run against SEVEN rules — `kw_accept_on`, `kw_nexttime`,
 `kw_reject_on`, `kw_s_eventually`, `kw_s_nexttime`, `kw_sync_reject_on`,
 `known_unscoped_property_identifier` — all of which are simply corpus-covered and generator-hard.
-⭐ The real contradiction would be corpus-`covered` ∩ certificate `proof` (a *proof* of
-unreachability refuted by real text), and the report does not enumerate its proof set, so that check
-is NOT available and is deliberately not faked. Recorded because a control that refuses correct
-trees teaches people to bypass it.
+⭐⭐ THE REAL CONTRADICTION IS NOW IMPLEMENTED, not documented as unavailable: corpus-`covered` ∩
+certificate `proof` — a rule whose COMMITTED entries in an accepted real-world file refute a
+verified proof that it is unreachable. `.13c.2u` recorded that check as impossible because the
+report withheld the proof names; `.13c.2u.2` published them, so the check exists. It measures **0**
+on this tree, which is the answer a correct tree should give.
 
 USAGE   python3 stimuli/sv/rule_fire_partition.py [--cert-report FILE] [--out PREFIX]
         (with no --cert-report it RUNS the certificate pass itself, ~5 min)
@@ -139,7 +156,7 @@ def cert_report(path: Path | None) -> str:
     return r.stdout + r.stderr
 
 
-def parse_cert(blob: str) -> tuple[set[str], dict[str, int]]:
+def parse_cert(blob: str) -> tuple[set[str], set[str], dict[str, int]]:
     m = re.search(r"UNKNOWN rules \(\d+ of \d+ shown\): \[(.*?)\]", blob, re.S)
     if not m:
         refuse("rule_fire_partition: the certificate report carries no UNKNOWN rule "
@@ -150,7 +167,20 @@ def parse_cert(blob: str) -> tuple[set[str], dict[str, int]]:
         refuse("rule_fire_partition: no CERTIFICATE-COVERAGE headline. Refusing.")
     totals = dict(zip(("total", "proof", "witness", "unknown"),
                       (int(head.group(i)) for i in (1, 2, 3, 4))))
-    return set(re.findall(r'"([^"]+)"', m.group(1))), totals
+    pm = re.search(r"PROOF-COVERED rules \(\d+ of \d+ shown\): \[(.*?)\]", blob, re.S)
+    if not pm:
+        refuse("rule_fire_partition: the certificate report carries no PROOF-COVERED rule list. "
+               "That list is what separates `it cannot fire (proven)` from `it can fire, the "
+               "corpus lacks it` — without it this instrument would infer `witnessed` from `not "
+               "UNKNOWN` and silently promote proven-unreachable rules into the coverage-gap "
+               "class, which is exactly the defect `.13c.2u.2` fixed. Re-run the certificate pass "
+               "with PGEN_CERT_COVERAGE_DUMP_ALL=1 on an ast_pipeline built at or after `-0240`. "
+               "Refusing.")
+    proofs = set(re.findall(r'"([^"]+)"', pm.group(1)))
+    if len(proofs) != totals["proof"]:
+        refuse(f"rule_fire_partition: the report says proof={totals['proof']} but its PROOF-COVERED "
+               f"list holds {len(proofs)} names — the report contradicts itself. Refusing.")
+    return set(re.findall(r'"([^"]+)"', m.group(1))), proofs, totals
 
 
 def main() -> int:
@@ -179,7 +209,7 @@ def main() -> int:
         return 2
 
     eliminated = lint_eliminated()
-    unknown, totals = parse_cert(cert_report(a.cert_report))
+    unknown, proofs, totals = parse_cert(cert_report(a.cert_report))
 
     rows, buckets = [], {}
     for r in gaps:
@@ -189,6 +219,11 @@ def main() -> int:
             cls, why = ("lr_eliminated_original",
                         "named by --lint-grammar as LR-eliminated: the name survives, the body was "
                         "replaced by its _lr_* chain")
+        elif r in proofs:
+            cls, why = ("unreachable_from_entry",
+                        "certificate coverage carries a verified PROOF that it is unreachable from "
+                        "the declared entry universe (adjudicate A1 alternate-entry vs A2 "
+                        "profile-orphan — TOOLBOX 4.2)")
         elif r in unknown:
             adj = ADJUDICATED_UNWITNESSED.get(r)
             cls, why = (adj if adj else
@@ -205,6 +240,9 @@ def main() -> int:
     unknown_not_in_artifact = sorted(r for r in unknown if r not in status)
     corpus_covered_but_generator_hard = sorted(
         r for r, v in status.items() if v == "covered" and r in unknown)
+    # THE REAL CONTRADICTION, now computable: a verified PROOF of unreachability refuted by a rule
+    # that COMMITS in an accepted real-world file.
+    proof_refuted_by_corpus = sorted(r for r, v in status.items() if v == "covered" and r in proofs)
 
     a.out.parent.mkdir(parents=True, exist_ok=True)
     tsv = a.out.with_suffix(".tsv")
@@ -216,6 +254,7 @@ def main() -> int:
                "coverage_artifact_satisfiable": satisfiable,
                "classes": dict(sorted(buckets.items())),
                "corpus_covered_but_generator_hard": corpus_covered_but_generator_hard,
+               "proof_refuted_by_corpus": proof_refuted_by_corpus,
                "unadjudicated_unwitnessed": sorted(r for r, c, _ in rows if c == "unwitnessed")}
     a.out.with_suffix(".json").write_text(json.dumps(summary, indent=1) + "\n", encoding="utf-8")
 
@@ -233,6 +272,12 @@ def main() -> int:
           f"   (not a defect: the corpus is a BETTER witness than the cert pass for these)")
 
     rc = 0
+    if proof_refuted_by_corpus:
+        print(f"\n⛔ CONTRADICTION: {len(proof_refuted_by_corpus)} rule(s) carry a certificate PROOF "
+              f"of unreachability AND commit in an accepted corpus file. A proof refuted by real "
+              f"text means one of the two instruments is wrong; this will not pick. "
+              f"{proof_refuted_by_corpus[:10]}", file=sys.stderr)
+        rc = 1
     if denom_mismatch:
         print(f"\n⛔ DENOMINATOR MISMATCH: the coverage artifact holds {satisfiable} rules "
               f"satisfiable under {PROFILE}, the certificate pass reports total={totals['total']}. "

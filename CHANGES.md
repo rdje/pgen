@@ -1,6 +1,57 @@
 # CHANGES.md
 
+## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0240 (three findings RE-DERIVED under a SECOND director challenge; ONE was a MISATTRIBUTION; a limitation I had documented as impossible turned out to be TEN LINES; the partition it fixed was wrong by 18 rules; `.13c.2u.2` NEW)
+
+- **CHALLENGED ON THREE FINDINGS. ONE WAS WRONG, ONE HELD AND GOT STRONGER, ONE HELD AND EXPOSED A
+  FIXABLE GAP.**
+- ⛔⛔⛔ **WRONG — THE MISATTRIBUTION.** `-0237` published that the first NARROWING *"BREAKS
+  `.13c.2l`'s OWN SAFETY ARGUMENT"*, i.e. that the leaf *"had reasoned the contract debt could age
+  quietly because all four prior accept-set changes were strictly-more-permissive"*. Re-read rather
+  than recalled, that leaf says the four widenings are *"exactly why this could drift for six days
+  without a symptom, and exactly why it needs a gate rather than a habit"* — an explanation of
+  INVISIBILITY and an argument **FOR** the gate. Its actual deferral rationale is the very next
+  bullet and the narrowing does not touch it: **the NUMBERING** — bumping for `-0227` alone would
+  bake in a permanent gap, so the three widenings must be numbered together by someone reading all
+  three diffs. ⇒ the narrowing **raises `.13c.2l`'s URGENCY and retires nothing**. A finding that
+  raises priority is a different object from one that refutes an argument, and publishing the second
+  when only the first is true overstates the case against a leaf that had reasoned correctly.
+- ✅ **HELD, AND STRONGER THAN PUBLISHED — the corpus really does hold witnesses the certificate
+  pass lacks.** Tested rather than asserted: a scan of all 9,781 accepted corpus files finds
+  `stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/16/16.12.10_01.sv` **committing**
+  `kw_nexttime_b0f658f8` 4×. And `corpus_rule_coverage.py` keys on `rule_committed_counts` over
+  `accepted` files only — so `covered` never meant "entered and maybe backtracked", it means the
+  rule **committed into the surviving parse tree of a file that parses**. `is_fully_certified() ⟺
+  unknown.is_empty()` confirms `UNKNOWN=53` is exactly what holds SV back.
+- ⭐⭐⭐ **HELD — BUT THE LIMITATION IT RECORDED WAS TEN LINES AWAY FROM BEING FIXED.** `.13c.2u`
+  wrote that the real contradiction check was *"not available and deliberately not faked"* because
+  the certificate report does not enumerate its proof set. True of the REPORT, false of the DATA:
+  `CertificateCoverageReport::covered_by_proof` had held the names all along and `main.rs` printed
+  only the count. `.13c.2u.2` prints them under the SAME `PGEN_CERT_COVERAGE_DUMP_ALL` gate as the
+  UNKNOWN list — read-only, default output byte-identical, headline `total=1433 proof=19
+  witness=1361 UNKNOWN=53` unchanged. ⇒ ***"the instrument cannot see it" deserves one more question
+  — can the instrument be MADE to see it? — before it is written down as a limitation.***
+- ⛔⛔ **AND PUBLISHING THE PROOF NAMES IMMEDIATELY CORRECTED `-0239`'s PARTITION BY 18 RULES.**
+  Without them the instrument inferred `witnessed` from `not UNKNOWN`, promoting every
+  proven-unreachable rule into `coverage_gap` — the class that asserts *it can fire*. Corrected:
+  `coverage_gap` **78 → 60**, new class `unreachable_from_entry` **18**. Among them `identifier`
+  itself (after `-0237` its only remaining reference is a negative lookahead, so it is unreachable in
+  any derivation — independently confirming this session's measurement that its committed frames went
+  415,534 → **0**) and the `library_text` / `include_statement` / `kw_incdir` / `kw_library` family,
+  reachable only from the ALTERNATE entry. ⇒ **an absent list is not an empty one**; inferring a
+  class from the complement of the one list you have is how a proven negative becomes a positive.
+  ⭐ Free confirmation: `casting_type` is in the proof set — `.13c.2u` argued from entry counts that
+  the LR eliminator replaced it, and the certificate pass PROVES it by a separate route.
+- **THE REAL CONTRADICTION IS NOW BOUND BY THE DOCTRINE**: corpus-`covered` ∩ certificate `proof`
+  measures **0**, and the probe goes **7/7** with two arms added — a report with no PROOF list
+  (refuses rather than silently degrading to the inference that caused the 18) and a PROOF refuted
+  by the corpus.
+- **GATES**: all 22 doctrines PASS · `ADJUDICATION-REPROS checked=151 armed=62 failures=0` ·
+  `sv-corpus-denominator OK` · certificate headline byte-identical before and after. ZERO grammar
+  bytes and ZERO generated-parser bytes; the SV parser stays `5a1dfa3620b2d387…`.
+
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0239 (leaf SV-CORPUS-GRAD.13c.2u **CLOSED** — the never-fired number was UNREAD *and* MISLEADING; ZERO of the 137 are parser defects; doctrine #22 makes it CONSUMED; .13c.2u.1 NEW)
+
+> ⛔ **CORRECTED IN PART BY `-0240` (director challenge)**: the partition below read `coverage_gap` **78** with no `unreachable_from_entry` class, because the instrument inferred `witnessed` from `not UNKNOWN` while the report withheld the proof NAMES. Corrected: **60** `coverage_gap` + **18** proven `unreachable_from_entry`. The headline conclusion — zero cannot-fire DEFECTS — is unchanged.
 
 - ⛔⛔⛔ **THE HEADLINE THIS LEAF OPENED ON WAS WRONG IN BOTH DIRECTIONS.** *"104 grammar rules have
   NEVER fired on 16 336 real SystemVerilog files"* was (i) **STALE** — re-derived at HEAD it is
@@ -106,6 +157,8 @@
   byte-identically to `5a1dfa3620b2d387…`, asserted rather than assumed.
 
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0237 (leaves SV-CORPUS-GRAD.13c.2k + .13c.2t **CLOSED** and LANDED — the reserved-keyword hole is CLOSED at every site, and the parser got FASTER on all three binding counters doing it)
+
+> ⛔ **CORRECTED IN PART BY `-0240` (director challenge)**: the routed note below says the narrowing *"RETIRES that leaf's own safety argument"*. It does not — `.13c.2l`'s deferral rationale is the NUMBERING, and its remark about the four prior widenings explains why the drift was symptomless and argues FOR a gate. The narrowing raises that leaf's URGENCY and retires nothing.
 
 > ⛔ **SUPERSEDED IN PART BY `-0238` (director challenge).** The inline-decision mechanism described below is WRONG for the `designB` arm — it changed neither rule's inline decision, and its rise was redirected speculation. `~100 references` is `7`. The `46`/`341` figures are EMITTED sites, not the decision. The cost measurements themselves are unaffected and re-derived.
 
