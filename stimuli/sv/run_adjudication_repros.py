@@ -61,6 +61,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -69,7 +70,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 REPROS = ROOT / "stimuli/sv/adjudication_repros"
 MANIFEST = REPROS / "MANIFEST.tsv"
-PROBE = ROOT / "rust/target/release/parseability_probe"
+# ⛔ THE PROBE IS SELECTABLE, because an EXPERIMENTAL ARM has to be checkable by the same oracle
+# that guards the shipped parser. `SV-CORPUS-GRAD.13c.2k` built three candidate spellings of one
+# fix and could compare their VERDICTS by hand but not their AST ARMS — and the arm column is the
+# only instrument that sees a construct parsing through the WRONG production (`.13c.2q`, where the
+# verdict never moved). Without this, checking an arm meant a ~22-minute release build, so it was
+# skipped. `stimuli/sv/corpus_parse_cost.py` already carries the same override for the same reason
+# (`PGEN_PARSE_COST_PROBE`); this is that gap closed for the repro runner.
+# ⚠️ The DEFAULT is unchanged — the release probe — so every gated invocation is unaffected, and
+# the run PRINTS which binary and which generated parser it used, so a measurement taken on an
+# experimental arm can never be mistaken for one taken on the shipped one.
+# `.resolve()` so a RELATIVE override (the natural way to type it) still yields a path the
+# report can print repo-root-relative — the first cut crashed on exactly that.
+PROBE = Path(os.environ.get("PGEN_ADJUDICATION_PROBE")
+             or ROOT / "rust/target/release/parseability_probe").resolve()
 TIMEOUT_S = 60
 
 # ⛔ The hint is keyed by (class, WHICH WAY it broke). A single per-class message told an
@@ -227,6 +241,16 @@ def main() -> int:
         raise SystemExit(f"⛔ REFUSING: {PROBE} is missing. Build it first:\n"
                          "   (cd rust && cargo build --release --features generated_parsers "
                          "--bin parseability_probe)")
+
+    # Which binary, and which generated parser inside it — never assumed
+    # (`ENGINE-UNIVERSAL-SERVICES.24`: a probe built from one arm was measured as another).
+    fp = subprocess.run([str(PROBE), "--parser-fingerprint"], capture_output=True,
+                        text=True, timeout=TIMEOUT_S).stdout
+    try:
+        sv_parser = json.loads(fp)["parsers"]["systemverilog"]
+    except Exception:
+        sv_parser = "unknown (this probe predates --parser-fingerprint)"
+    print(f"ADJUDICATION-REPROS: probe={os.path.relpath(PROBE, ROOT)} sv_parser={sv_parser}")
 
     (ROOT / "tmp").mkdir(exist_ok=True)
 

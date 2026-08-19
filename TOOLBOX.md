@@ -163,6 +163,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "EXACT per-rule entry counts for a parse (machine-readable)?" | [3.4 `--dump-rule-entry-counts-json`](#34---dump-rule-entry-counts-json) |
 | "How much parse work is DISCARDED (failed speculation)? committed vs wasted per rule?" | [3.5 `--dump-rule-outcome-counts-json`](#35---dump-rule-outcome-counts-json) |
 | **"Did the whole SV parser get SLOWER — and would anything have told me?"** — ⛔ never answer with an ad-hoc timing script against a remembered number; that produced `~11 %`, then `+24.3 %`, and **BOTH were machine-variance artifacts** (`.26`) | [3.7 the SV parse-cost ratchet](#37-the-sv-parse-cost-ratchet--did-the-whole-parser-get-slower-and-would-anything-have-told-me) |
+| **"Two spellings of the same fix — which is correct, and which is cheaper?"** — ⛔ never answer by reasoning from the CURRENT per-rule counters: the fix moves references between rules, which is what the generator's INLINING keys on, so the profile you priced from describes a parser that will not exist. Build the arms | [3.7b parser arms](#37b-parser-arms--two-spellings-of-one-fix-which-is-correct-and-which-is-cheaper) |
 | **"WHERE does the parse time actually go?"** — ⛔ the counters cannot answer this: they all route to the PROTOCOL graph, and a production parse runs the FUSED one. Three traps, all silent | [3.8 sampling a parse with `/usr/bin/sample`](#38-sampling-a-parse-with-usrbinsample--the-only-view-of-the-fused-graph-and-its-two-traps) |
 | **"Is the memo actually SERVING this rule?" — ⛔ `rule_memo_hit_counts` FUSES success replays with cached failures; 208 "hits" were 208 failures and 0 replays** | [3.6 memo insert/evict/replay census](#36-per-rule-memo-insert--evict--replay-census--is-the-memo-actually-serving-this-rule) |
 | **"These two generated parsers differ by N bytes — what moved?"** — ⭐ since `ENGINE-UNIVERSAL-SERVICES.31`(e) the artifact embeds its own output path **ZERO** times (it was **36 346**), so the difference you read IS the source; the normalisation step is now a no-op kept as a tripwire | [5.6 normalise the embedded `-o` path first](#56-comparing-two-generated-parsers--normalise-the-embedded--o-path-first) |
@@ -758,6 +759,41 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `python3 stimuli/sv/corpus_parse_cost.py --verify-families` re-derives it across all ten generated
   parsers and refuses on drift. It guards STRUCTURAL work exactly; it does not price the fused
   graph. Neither metric alone is sufficient and the report says so every run.
+
+### 3.7b Parser ARMS — "two spellings of one fix: which is correct, and which is cheaper?"
+- **WHAT:** `docs/tasks/artifacts/sv_corpus_grad/strictness_cost_arms/` — build a candidate grammar
+  arm, regenerate, rebuild, and measure it, then diff two arms per rule and per file.
+  `SV-CORPUS-GRAD.13c.2k`.
+  * `apply_arm.py --arm {t_only,designB,designA}` — writes the arm's grammar, DERIVED from HEAD's
+    text read out of **git** (never the working tree) and refusing to stack arms. Design A's 45
+    call sites come from `raw_identifier_census/census.py` at apply time and the count is asserted.
+  * `measure_arm.sh <arm>` — apply → `focus_systemverilog` → `cargo build` → measure → restore.
+  * `arm_cost.py --measure --arm N --probe P` / `--compare BASE ARM` — totals, the FULL per-rule
+    entry/memo/committed breakdown, and **each file's `accepted` verdict**.
+  * `arm_graph.py --arm N` — freezes that arm's grammar reference graph; `containment.py` refuses
+    unless the graph's grammar sha equals the arm's.
+  * `inline_census.sh` — asks the GENERATED parser which rules are memoized on their executed path
+    and which are inlined at their call sites.
+  * `arm_verdicts.sh [probe]` — the pinned reproducers' verdicts under whatever probe is on disk.
+- **WHEN:** whenever a fix is refused on cost, or two spellings of one change must be compared.
+  ⛔ **Before writing "irreducible" anywhere.**
+- ⭐⭐ **A DEBUG PROBE IS ENOUGH, AND THAT IS WHAT MAKES THIS AFFORDABLE.** Measured this slice at
+  HEAD: the debug and release probes agree on all three binding counters AND on all **1,077** rules,
+  delta 0. An arm is then ~3 min of `cargo build` instead of ~22, so three arms cost ~20 minutes.
+- ⛔ **CHECK VERDICTS BEFORE COMPARING COSTS.** Two arms that accept different languages have
+  incomparable costs. `--compare` prints a per-file verdict diff and says so loudly; schema 1 did
+  not record verdicts and a `committed` move of `+51,611` was uninterpretable until it did.
+- ⛔ **AN ARM'S IDENTITY IS ITS PROBE FINGERPRINT, NOT THE TREE.** Every arm file records
+  `--parser-fingerprint` and a grammar sha DERIVED from the arm NAME. The first cut derived it from
+  the working tree and stamped HEAD's grammar onto a designA measurement —
+  `ENGINE-UNIVERSAL-SERVICES.20` slice 4 in miniature.
+- ⚠️ **TRAPS THIS DIRECTORY HAS ALREADY PAID FOR** (all three are guarded now): a `parents[]` depth
+  one level short (twice — the `accepts_invalid` probe and this driver); `${1:?usage: … {a|b}}`,
+  where the first `}` closes the expansion and the arm name arrives as `t_only}`; and a verdict
+  check that grepped the probe's message for `/accept/` while the probe echoes a path containing
+  the word *"accepts"*. **Use `parseability_probe --parse`'s EXIT CODE: 0 = ACCEPT, 1 = REJECT.**
+- **ROUTING:** the counters take the PROTOCOL graph (3.4/3.5), so the fused `cascade_*` twins are
+  invisible here exactly as they are to the ratchet (3.7).
 
 ### 3.8 Sampling a parse with `/usr/bin/sample` — the ONLY view of the fused graph, and its four traps
 - **WHAT:** `/usr/bin/sample <pid> <secs> 1 -f out.txt` on a **BARE** parse. ⭐ This is the only

@@ -147,6 +147,52 @@ These mechanisms are parser-agnostic: they live in the engine and the code gener
 so every grammar PGEN compiles — SystemVerilog, VHDL, regex, the RTL front-ends —
 inherits the same bounded-time, bounded-memory behavior for free.
 
+### A fourth habit, learned the hard way: never price a grammar change from today's profile
+
+Rule 2 above says *profile before you reshape*. There is a trap inside it, and PGEN walked
+into it in August 2026 while closing a SystemVerilog over-acceptance.
+
+The fix needed a reserved-word exclusion. There were two places to spell it: inside the shared
+`identifier` rule, or at the 45 call sites that were missing it. The profile answered
+immediately — `identifier` was ~90 % memo hits (so a guard in its body would run only on the
+misses), while the wrapper rule `non_keyword_identifier` took **zero** hits on 5.5 M calls (so a
+guard there runs every time). Put the guard in `identifier`. The reasoning was written down as a
+numeric prediction before the fix, which is the good habit; the prediction was **−8,958,174 rule
+entries** and the measured result was **+7,588,879**.
+
+Both profile numbers were correct. The conclusion was backwards, for a reason no profile of the
+*old* parser could show:
+
+> **A rule's memo-hit rate is not a property of the rule. It is a property of how many places
+> call it** — because that is what the code generator's inlining decision keys on, and an inlined
+> reference gets a full frame with **no memo lookup at all**.
+
+Both candidate spellings *moved references between rules*, so both changed the inlining, so both
+invalidated the profile they were priced from. Building all three parsers and measuring them
+settled it in about twenty minutes:
+
+| spelling | `identifier` | `non_keyword_identifier` | cost vs baseline |
+|---|---|---|---|
+| baseline | memoized | inlined at 46 sites | — |
+| guard inside `identifier` | memoized | a bare alias ⇒ inlined at **341** sites | **+1.78 %** |
+| guard at the 45 call sites | inlined at 2 sites | **memoized**, 94.5 % hits | **−0.89 %** |
+
+The spelling the model rejected turned out to be cheaper than the parser that shipped — because
+it lets the memo answer the repeated question one level higher, instead of paying a full frame
+and *then* re-entering the memoized rule underneath.
+
+So the fourth habit is: **when a change alters the call graph, the arms are the measurement.**
+Build both parsers and compare them per rule and per file. The tooling for that is
+[Diagnostic & Debug Toolbox](diagnosing-unknowns.md) §3.7b, and the two rules it enforces are
+worth stating on their own:
+
+- **Compare verdicts before comparing costs.** Two arms that accept different languages have
+  incomparable costs. In the measured case `committed` moved `+51,611` between arms and looked
+  like a regression; the per-file verdicts were identical across all 192 sampled files, and a
+  per-rule split attributed the move exactly — one extra committed frame per committed identifier
+  at the 45 rewritten sites, minus the reserved words that no longer commit anywhere.
+- **A "prohibitive" cost is a claim about one spelling**, never about the fix.
+
 ---
 
 ## The latency campaign: closing the gap to PCRE2 (small-input speed)

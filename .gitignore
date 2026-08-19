@@ -450,3 +450,10 @@ preserved_probes/
 # scripts (single-home helpers such as parser_family_status_bar.sh). The generic
 # Python-packaging `lib/` rule above must not swallow them.
 !rust/scripts/lib/
+
+# SV-CORPUS-GRAD.13c.2k parser-arm reference graphs (docs/tasks/artifacts/sv_corpus_grad/strictness_cost_arms/).
+# DERIVED and cheap: `arm_graph.py --arm <arm>` rebuilds one in a few seconds from HEAD's grammar
+# read out of git, so tracking ~640 KB of pure derivation would be tracked bytes nothing can ever
+# disagree with. The arm MEASUREMENTS beside them (`<arm>.json`) ARE tracked — each one costs a
+# ~3-minute parser build and cannot be re-derived from the tree alone.
+docs/tasks/artifacts/sv_corpus_grad/strictness_cost_arms/*.graph.json

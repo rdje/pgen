@@ -1,5 +1,76 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0236 — the cost was never in the fix, it was in the spelling
+
+**1. ⭐⭐⭐ THE HEADLINE.** `.13c.2k` had been held back twice: once because it uncovered five latent
+defects, once because `PARSE-COST-RATCHET` refused its +1.775 % rise and no coded invariant fitted
+the shape. The leaf's remaining work was written as *"(a) build the call-site arm and measure it, so
+'irreducible' is a comparison rather than an assertion"*. The arm was built. **The same fix, spelled
+at its 45 call sites instead of inside the shared rule, measures 413,858,778 rule entries against
+the baseline's 417,585,361 — 0.892 % BELOW the parser that ships today.** There is no cost to accept.
+
+**2. WHY THE PRICE WAS BACKWARDS, AND IT IS NOT A ROUNDING ERROR.** `price.py` read two measured
+facts: `identifier` takes ~90 % memo hits, `non_keyword_identifier` takes 0 % on 5.5 M calls. It
+concluded the guard belongs inside `identifier`, where it would run only on the misses. Both facts
+were true. The inference was invalid, because **a rule's memo-hit rate is a property of how many
+places call it, not of the rule** — a code generator that inlines a rule at its call sites gives
+those calls a full observable frame and *no* `memoized_call` at all (TOOLBOX 3.6: 663 of 1481 rules
+across 2871 sites on this grammar). So a rule reached only through inlined sites reports zero hits
+however hot it is. And the edit being priced *moves references between rules*, which is exactly the
+input that decision keys on. Read out of the generated parser by `inline_census.sh`:
+
+| arm | `non_keyword_identifier` | `identifier` |
+|---|---|---|
+| HEAD | inlined at **46** sites → 5,504,191 entries / **0** hits | MEMOIZED → 10,349,663 / 9,324,559 hits |
+| `designB` | a bare alias ⇒ inlined at **341** sites → 14,320,942 / **0** hits | MEMOIZED → 19,353,115 / 18,319,443 hits |
+| `designA` | **MEMOIZED** → 18,758,343 / **17,724,671 hits (94.5 %)** | inlined at 2 sites → 1,516,324 / 0 hits |
+
+`designB` made the wrapper a bare alias — trivially inlinable — so each of its 14.3 M calls paid a
+full frame **and then** re-entered the memoized rule underneath. `designA` gives the wrapper enough
+call sites to be memo-served, and it absorbs the repeats one level higher.
+
+**3. THE SPLIT (b), WHICH THE SLICE ALSO OWED.** A `t_only` arm isolates `.13c.2t`: +173,715 entries
+(+0.042 %), `committed` **+0** exactly. So the published +7,588,879 is **2.3 % `.13c.2t` / 97.7 %
+`.13c.2k`**, and the halves sum to it to the unit. Flat `committed` says the added `data_type`
+alternative is attempted (~2,805 positions) and never matches — which is what a widening for an LRM
+example absent from this corpus should look like.
+
+**4. THE NUMBER THAT LOOKED LIKE A REGRESSION, AND WHY IT WAS NOT.** `designA` moves `committed`
++51,487. Per-rule attribution resolves it across exactly five rules with no residue:
+`non_keyword_identifier` +51,611 (one added committed frame per committed identifier at the 45
+rewritten sites) and four rules at exactly −31 (the reserved words that no longer commit anywhere).
+`51,611 − 4×31 = 51,487`. `designB`'s own `committed` move is `−124 = −4×31` — the same term with
+the frame term absent, so two arms cross-validate one quantity.
+
+**5. THE PROCESS LESSON: VERDICTS BEFORE COSTS.** The first `arm_cost.py` schema recorded only
+totals, and with only totals the `+51,611` was uninterpretable — a re-routed derivation and a file
+whose verdict flipped look identical. The dump already carried a per-file `accepted` flag and a
+`rule_committed_counts` map and the instrument was discarding both. Schema 2 records them and
+`--compare` refuses to mix schemas. **Two arms that accept different languages have incomparable
+costs**, so that check has to come first, not last.
+
+**6. THREE OF THIS SLICE'S OWN INSTRUMENTS WERE WRONG, AND EACH FAILURE IS NOW IN THE TOOL.**
+(i) a `parents[]` depth one level short — the second time in this directory, and the reason
+`measure_arm.sh` now carries a root guard; (ii) a verdict check that grepped the probe's message for
+`/accept/` while the probe echoes the FILE PATH, which contains the word *"accepts"* — it reported
+the three defect rows as ACCEPT under an arm that rejects them, and it reads the **exit code** now;
+(iii) an arm-identity field derived from the working tree, which stamped HEAD's grammar sha onto a
+`designA` measurement — it is derived from the arm NAME against HEAD-read-from-git now. Separately,
+`containment.py` first read `generated/systemverilog.json`, a floating build artifact the arm driver
+rewrites for every arm, and computed the `t_only` arm against the `designB` graph; it reads a frozen
+per-arm graph and refuses on a sha mismatch. ⭐ Every one of these was caught by a check rather than
+by re-reading, and (ii) was caught only by looking at the probe's raw output after the result looked
+wrong in a coherent way.
+
+**7. WHAT MADE IT AFFORDABLE.** The debug and release probes were measured byte-identical on all
+three binding counters *and* on all 1,077 rules, so an arm costs ~3 minutes of `cargo build` instead
+of ~22. Three arms, ~20 minutes. The reasoning they replaced had already been wrong twice.
+
+**8. WHAT REMAINS.** The landing: respell as `designA`, land with `.13c.2t` and the preserved
+manifest rows, and take the full corpus A/B on both lanes. ⛔ That A/B is not inherited — the two
+spellings differ at one enumerated site, `rooted_tf_call_sv_only`'s `!( identifier )` firewall,
+which `designB` widens and `designA` leaves alone.
+
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0233 — the fix regressed the corpus, and the regression WAS the finding
 
 **1. ⭐⭐⭐ AN OVER-ACCEPTANCE CAN BE LOAD-BEARING.** The plan was ordinary: close `.13c.2k`'s

@@ -51,6 +51,15 @@ extra backtracking looks like and cannot be confused with the parser doing more 
   measure it, or the acceptance is an assertion wearing a measurement's clothes
   ([[a-deterministic-counter-cannot-see-a-per-entry-cost-rise]] retired a published bound for
   exactly this reason).
+  ⭐⭐ **UPDATE 2026-08-19 (`PGEN-SV-CORPUS-GRAD-0236`) — that arm was built, and the warning paid
+  off: the "worse" spelling measures 413,858,778 entries against this fix's 425,174,240 and the
+  baseline's 417,585,361, i.e. 0.89 % BELOW the parser that ships today, verdict-identical on all
+  192 sampled files and breaking none of 58 armed AST rows.** The rise was never a property of the
+  fix; it was a property of where the guard was spelled. ⇒ this card's model of the REDIRECTION
+  still stands and its advice is unchanged, but *"the rise is irreducible"* — which this leaf came
+  within one arm of publishing — would have been false. The reason it was false is a second effect
+  the model also could not see, and it has its own card:
+  [[a-rules-memo-hit-rate-is-a-property-of-its-call-graph-not-of-the-rule]].
 
 ⭐ The generalisation beyond parsers: **a local model of a change to a search predicate does not
 bound the change to the search.** Whenever a fix alters what a backtracking, speculative or retrying

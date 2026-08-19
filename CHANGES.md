@@ -1,5 +1,84 @@
 # CHANGES.md
 
+## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0236 (leaf .13c.2k (a)+(b) DONE — the held-back rise is ELIMINATED, not accepted: the SAME fix respelt measures 0.892 % BELOW the baseline; .13c.2t's cost SPLIT OUT; .13c.2w NEW; ZERO grammar bytes committed)
+
+- ⭐⭐⭐ **THE COST THAT HELD THIS FIX BACK TWICE IS GONE, AND NOTHING ABOUT THE FIX CHANGED EXCEPT
+  WHERE IT IS SPELLED.** Four parser arms, each a real regenerated parser inside a real probe,
+  measured over the pinned 192-file sample (`sv_2017`):
+
+  | arm | what it is | `entries` | vs HEAD |
+  |---|---|---|---|
+  | `arm0_head` | HEAD | 417,585,361 | — |
+  | `t_only` | `.13c.2t` alone | 417,759,076 | +173,715 (+0.042 %) |
+  | `designB` | `.13c.2t` + `.13c.2k` **as built** (guard inside `identifier`) | 425,174,240 | +7,588,879 (+1.775 %) |
+  | `designA` | `.13c.2t` + `.13c.2k` at the **45 call sites** | **413,858,778** | **−3,726,583 (−0.892 %)** |
+
+  `PARSE-COST-RATCHET` breaches on a RISE; a FALL is *"an improvement — promote it deliberately"*
+  ⇒ **no `accepted_rises` row and no new invariant are needed at all.**
+- ⭐⭐ **(b) THE SPLIT: the published rise is 2.3 % `.13c.2t` and 97.7 % `.13c.2k`**, and the two
+  halves sum to +7,588,879 exactly. `.13c.2t`'s `committed` is **+0** — its added `data_type`
+  alternative is attempted at ~2,805 positions and never matches anything in the sample.
+- ⭐⭐⭐ **WHY THE ORIGINAL PRICE WAS BACKWARDS — read out of the generated parser, not inferred.**
+  `price.py` chose `designB` because `identifier` measured ~90 % memo hits and
+  `non_keyword_identifier` measured 0 %. Both numbers were right. **A rule's memo-hit rate is not a
+  property of the rule — it is a property of how many places call it**, because that is what the
+  generator's INLINING decision keys on, and an inlined reference gets a full frame with *no*
+  `memoized_call` at all (TOOLBOX 3.6). Measured by `inline_census.sh`: `non_keyword_identifier` is
+  inlined at 46 sites at HEAD, at **341** in `designB` (a bare alias is trivially inlinable, so each
+  of its 14.3 M calls pays a full frame and *then* re-enters the memoized rule underneath), and is
+  **MEMOIZED on every entry** in `designA` — 18,758,343 entries / **17,724,671 hits (94.5 %)** — so
+  the inner rule runs 1,516,324 bodies instead of 19,353,115 entries. ⇒ the fix moves the very
+  number the price was read from. Banked as
+  `docs/knowledge/a-rules-memo-hit-rate-is-a-property-of-its-call-graph-not-of-the-rule.md`.
+- ⭐ **THIS DISCHARGES THE STANDING WARNING THE PREVIOUS SLICE WROTE.**
+  `a-strictness-fix-redirects-the-search-not-just-the-predicate.md` ended *"do not then reason your
+  way to irreducible … build the arm and measure it"*. The arm was built, and *"irreducible"* —
+  which `-0235` came within one arm of publishing — would have been **false**. That card is updated
+  in place rather than replaced.
+- [x] **CORRECTNESS OF THE CHEAPER SPELLING, measured on three independent surfaces**: all four arms
+  accept **87 of 192** sample files with **zero** per-file verdict movement in every pairing; the 11
+  pinned reproducers × 3 profiles = **33 checks** all reproduce the behaviour `-0235` recorded for
+  `designB` (three `accepts_invalid` rows flip to REJECT, §10.9.2's example ACCEPTs, both dialect
+  pairs distinguish `sv_2017`/`sv_2023` from `verilog_2005`); and the arm oracle reports
+  `checked=135 armed=58 listed=73 failures=6` where **all six failures are the three targeted rows
+  × 2 profiles** printing *"AN OVER-ACCEPTANCE IS GONE"* ⇒ **no existing AST arm breaks.**
+- ⭐⭐ **THE `committed` MOVE IS ATTRIBUTED TO THE UNIT, ACROSS FIVE RULES.** `designA` moves
+  `committed` +51,487 — the one number that looked like a regression. `non_keyword_identifier`
+  +51,611 (one added committed frame per committed identifier at the 45 rewritten sites); four rules
+  at exactly **−31** each (the reserved words that no longer commit anywhere). `51,611 − 4×31 =
+  51,487`. Cross-validated by `designB`, whose own `committed` move is **−124 = −4×31** — the same
+  term with the frame term absent.
+- **NEW TOOLING, all re-runnable and tracked** (`docs/tasks/artifacts/sv_corpus_grad/strictness_cost_arms/`,
+  TOOLBOX 3.7b): `apply_arm.py` (derives an arm from HEAD's grammar read out of **git**, and refuses
+  if the call-site count disagrees with the census), `measure_arm.sh`, `arm_cost.py` (schema 2 — full
+  per-rule entries/memo/committed **plus each file's `accepted` verdict**), `arm_graph.py` +
+  `containment.py`, `inline_census.sh`, `arm_verdicts.sh`.
+- **`stimuli/sv/run_adjudication_repros.py`**: new `PGEN_ADJUDICATION_PROBE` override — mirroring
+  `PGEN_PARSE_COST_PROBE` in the sibling cost instrument — so an experimental arm's AST **arms** can
+  be checked without a ~22-minute release build, which is why they never had been. The default is
+  unchanged and the run now prints the binary and the generated-parser fingerprint it used. Verified
+  green on the default path at HEAD (`checked=135 armed=60 listed=73 failures=0`).
+- ⛔ **THREE ERRORS IN THIS SLICE'S OWN INSTRUMENTS, EACH CAUGHT BY A CHECK AND EACH WRITTEN INTO
+  THE TOOL**: a `parents[]` depth one level short (the second time in this directory); a verdict
+  check that grepped the probe's message for `/accept/` while the probe echoes a path containing the
+  word *"accepts"* — it reads the **exit code** now; and an arm-identity field derived from the
+  working tree, which stamped HEAD's grammar sha onto a `designA` measurement. The containment
+  predicate also first read `generated/systemverilog.json` — a floating build artifact the arm driver
+  rewrites per arm — and computed the `t_only` arm against the `designB` graph; it reads a frozen
+  per-arm graph now and refuses on a sha mismatch.
+- **`.13c.2w` NEW**: `PARSE-COST-RATCHET`'s invariants are arithmetic identities over three totals,
+  and three totals cannot tell *"the added alternative speculates inside its own sub-graph"* from
+  *"the parser now speculates everywhere"*. `containment.py` already discriminates on real arms —
+  ✅ CONTAINED for `.13c.2t` (54 rules rose, 0 fell, 0 escaped a 474-rule sub-graph), ⛔ NOT
+  CONTAINED for `designB` (82 risers escape, 238 rules fall). Not blocking any longer, which is
+  precisely why it gets a leaf now instead of being written under deadline.
+- **WHAT REMAINS ON `.13c.2k`**: the LANDING — respell as `designA`, land with `.13c.2t` and the
+  preserved `MANIFEST.tsv` rows, and take the full corpus A/B on both lanes. ⛔ That A/B is not
+  inherited from `designB`: the two spellings differ at one enumerated site
+  (`rooted_tf_call_sv_only`'s `!( identifier )` firewall, which `designA` leaves untouched).
+- **ZERO grammar and ZERO generated bytes committed.** The arms are built, measured and reverted by
+  script; `generated/` and both probes are restored to HEAD.
+
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0235 (leaf .13c.2t IMPLEMENTED + VERIFIED; .13c.2k VERIFIED END-TO-END; its COST PREDICTION REFUTED by 16,547,053 entries; both HELD BACK; ZERO grammar bytes committed)
 
 - ⛔⛔⛔ **A PRICE PUBLISHED BEFORE THE FIX WAS REFUTED BY THE FIX — by 16,547,053 entries, in the

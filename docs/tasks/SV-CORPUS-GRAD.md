@@ -10092,7 +10092,7 @@ routed finding look smaller.
   `7556/2459/6321/4392/288`); `MEMORY.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`;
   `docs/TASK_TREE.md`.
 
-#### ⚠️ `.13c.2k` `in progress` — a RESERVED KEYWORD parses in every NON-FINAL component of a hierarchical path; ⛔ **the fix is BUILT, MEASURED and HELD BACK: it uncovered FIVE latent defects it was masking**; ✅ **the ORACLE GAP it found is CLOSED** and all seven over-acceptance rows are now WATCHED (opened 2026-08-18 session #245 by `.13c.2c` `-0227`; diagnosis + `accepts_invalid` class 2026-08-18 session #246, `PGEN-SV-CORPUS-GRAD-0230`)
+#### ⚠️ `.13c.2k` `in progress` — a RESERVED KEYWORD parses in every NON-FINAL component of a hierarchical path; ⭐⭐⭐ **THE COST IS ELIMINATED, NOT ACCEPTED: the SAME fix spelled at the 45 CALL SITES measures 0.892 % BELOW the baseline where the shipped spelling measured 1.775 % above it** — so the two hold-backs are over and only the LANDING remains; ⛔ the fix uncovered FIVE latent defects it was masking; ✅ **the ORACLE GAP it found is CLOSED** and all seven over-acceptance rows are now WATCHED (opened 2026-08-18 session #245 by `.13c.2c` `-0227`; diagnosis + `accepts_invalid` class 2026-08-18 session #246, `PGEN-SV-CORPUS-GRAD-0230`; arms measured 2026-08-19 session #248, `PGEN-SV-CORPUS-GRAD-0236`)
 
 - **MEASURED, on the shipped parser, BEFORE and AFTER `.13c.2c`** (so it is pre-existing and the
   `.13c.2c` fix neither caused nor cured it):
@@ -10263,17 +10263,127 @@ routed finding look smaller.
   it* — and **"irreducible" would be REASONED, not measured**, which is the exact error `-0231` and
   `-0234` were opened to correct. The obvious alternative (spelling the guard at the 46 call sites)
   is worse *by the same model that just failed*, so it cannot be dismissed by reasoning either.
-- **WHAT REMAINS, and it is now a MEASUREMENT, not a decision**: (a) build the call-site arm and
-  measure it, so "irreducible" is a comparison rather than an assertion; (b) split the rise between
-  `.13c.2t` and `.13c.2k` with a `.13c.2t`-only arm, since a `data_type` alternative in
-  `assignment_pattern_key` also adds speculation and the two are currently conflated; (c) then either
-  eliminate, or add the coded invariant this shape needs with its own leaf and adversarial probe.
-  ⛔ Everything else in this leaf is DONE and verified — the fix is preserved as
-  `rust/target/tk_pending/` (grammar + manifest patches and eight reproducers) so the next slice
-  re-applies rather than re-derives.
+- [x] ⭐⭐⭐ **(a)+(b) DONE — FOUR ARMS BUILT AND MEASURED, AND THE ANSWER IS THAT THE RISE IS NOT IRREDUCIBLE: IT IS ELIMINATED BY RESPELLING THE SAME FIX** (`PGEN-SV-CORPUS-GRAD-0236`). Every arm is a real regenerated parser inside a real probe, measured over the same pinned 192-file sample, `sv_2017`; each arm file records the probe's own `--parser-fingerprint` so no arm can be confused with another (`ENGINE-UNIVERSAL-SERVICES.24`):
+
+  | arm | what it is | parser sha | `entries` | `memo_hits` | `committed` | accepted |
+  |---|---|---|---|---|---|---|
+  | `arm0_head` | HEAD | `e563be8a…` | 417,585,361 | 187,800,173 | 7,123,491 | 87/192 |
+  | `t_only` | `.13c.2t` alone | `b99c760a…` | 417,759,076 | 187,875,944 | 7,123,491 | 87/192 |
+  | `designB` | `.13c.2t` + `.13c.2k` as BUILT (guard inside `identifier`) | `8c2888f2…` | 425,174,240 | 182,738,136 | 7,123,367 | 87/192 |
+  | `designA` | `.13c.2t` + `.13c.2k` at the **45 CALL SITES** | `c3d71221…` | **413,858,778** | 183,185,328 | 7,174,978 | 87/192 |
+
+  ⭐ **`designB` reproduced `-0235` to the unit and its parser sha is the fingerprint `-0235` recorded**, so the earlier measurement is independently re-derived and the arm builder provably reproduces the held-back fix byte-for-byte from a script rather than from the preserved patch.
+- [x] ⭐⭐ **(b) THE SPLIT — the published rise is 2.3 % `.13c.2t` and 97.7 % `.13c.2k`, and the two halves sum to it exactly.**
+
+  | change | `entries` | `memo_hits` | `committed` |
+  |---|---|---|---|
+  | `.13c.2t` (`arm0`→`t_only`) | **+173,715** (+0.042 %) | +75,771 | **+0** |
+  | `.13c.2k` design B (`t_only`→`designB`) | **+7,415,164** (+1.775 %) | −5,137,808 | −124 |
+  | sum | **+7,588,879** | −5,062,037 | −124 |
+
+  ⇒ identical to the published total. ⭐ `.13c.2t`'s cost is a fan-out of `data_type` being attempted at ~2,805 positions, and its `committed` is EXACTLY flat — the added alternative never matches anything in the sample.
+- [x] ⭐⭐⭐ **(a) THE CALL-SITE ARM — and it is a FALL BELOW THE BASELINE, which is the doctrine's PREFERRED outcome and was thought unavailable.** `designA` vs HEAD: `entries` **−3,726,583 (−0.892 %)**, `memo_hits` −4,614,845. `designA` vs `designB`: **−11,315,462 (−2.661 %)**. ⛔ `PARSE-COST-RATCHET` breaches on a RISE; a FALL is a note reading *"an improvement — promote it deliberately"* ⇒ **the fix needs no `accepted_rises` row and no new invariant at all.** The two sessions of "held back" bought a spelling that is cheaper than the parser we ship today.
+- [x] ⭐⭐⭐ **WHY — READ OUT OF THE GENERATED PARSER, NOT INFERRED** (`strictness_cost_arms/inline_census.sh`, which counts `memoized_call(Self::RULE_X` inside `parse_x` against the `inlined_frame_call(Self::RULE_X` sites that BYPASS it). TOOLBOX 3.6: an INLINED reference gets a full observable frame and **no `memoized_call` at all**.
+
+  | arm | `non_keyword_identifier` | `identifier` |
+  |---|---|---|
+  | HEAD / `t_only` | inlined at **46** sites → 5,504,191 entries / **0** memo hits | MEMOIZED → 10,349,663 / 9,324,559 hits |
+  | `designB` | a bare alias ⇒ inlined at **341** sites → 14,320,942 / **0** hits | MEMOIZED → 19,353,115 / 18,319,443 hits |
+  | `designA` | **MEMOIZED on every entry** → 18,758,343 / **17,724,671 hits (94.5 %)** | inlined at 2 sites → 1,516,324 / 0 hits |
+
+  ⇒ `designA` answers the repeated question ONE LEVEL HIGHER. `designB` left the wrapper a bare alias — trivially inlinable — so each of its 14.3 M calls paid a full frame **and then** re-entered the memoized inner rule; `designA` gives the wrapper enough call sites to be memo-served, and the inner rule then runs 1.5 M bodies instead of 19.4 M entries.
+- ⛔⛔⛔ **AND THIS IS WHY THE PRICE WAS BACKWARDS — the model read a number that the fix itself moves.** `price.py` chose `designB` because `identifier` measured ~90 % memo hits and `non_keyword_identifier` measured 0 %. Both numbers were right. **A hit rate is not a property of the rule — it is a property of how many places call it**, because that is what the generator's inlining decision keys on, and the edit being priced MOVES REFERENCES BETWEEN RULES. ⇒ [[a-rules-memo-hit-rate-is-a-property-of-its-call-graph-not-of-the-rule]]. ⭐ This DISCHARGES the standing warning in [[a-strictness-fix-redirects-the-search-not-just-the-predicate]] — *"do not then reason your way to irreducible … build the arm and measure it"* — which was written one slice ago by this same leaf.
+- [x] ⭐⭐ **THE `committed` MOVE IS ATTRIBUTED EXACTLY, TO FIVE RULES, WITH NO RESIDUE — and it is NOT a verdict change.** `designA` moves `committed` +51,487, which is the one number that looked like a regression:
+
+  | rule | before | after | delta |
+  |---|---|---|---|
+  | `non_keyword_identifier` | 363,892 | 415,503 | **+51,611** |
+  | `identifier` · `simple_identifier` · `trivia` · `member_identifier` | — | — | **−31 each** |
+
+  `+51,611 − 4×31 = +51,487`, to the unit. The `+51,611` is one added COMMITTED frame per committed identifier at the 45 rewritten sites; the four `−31`s are the reserved words that no longer commit anywhere. ⭐⭐ **Cross-validated by the other arm**: `designB`'s own `committed` move is **−124 = −4×31**, the same term with the frame term absent — two arms, one shared quantity, agreeing.
+- [x] ⛔ **AND THE VERDICTS WERE CHECKED BEFORE THE COSTS WERE COMPARED, because two arms that accept different languages have incomparable costs.** All four arms accept **87 of 192** sample files, and the per-file comparison (schema 2 records each file's `accepted` flag) shows **zero verdict movement** across all 192 in every pairing. ⛔ Schema 1 did not record this, and the `+51,611` was uninterpretable until it did — the instrument was extended mid-slice for exactly that reason.
+- [x] ⭐ **CORRECTNESS OF `designA` AGAINST THE RECORDED `designB` BEHAVIOUR — 11 pinned reproducers × 3 profiles = 33 checks, all matching** (`strictness_cost_arms/arm_verdicts.sh`): all three `accepts_invalid_keyword_*` rows flip to REJECT on every profile, IEEE 1800-2017 §10.9.2's example ACCEPTs on `sv_2017`/`sv_2023`, `instance` and the two-terminal pull gate REJECT on all three, and BOTH dialect pairs behave — `(* type=1 *)` and `begin:byte` REJECT on `sv_2017`/`sv_2023` and ACCEPT on `verilog_2005`. ⛔ **The first cut of that check reported the three defect rows as ACCEPT and was WRONG**: it grepped the probe's message for `/accept/`, and the probe echoes the FILE PATH, which contains the word *"accepts"*. A verdict oracle a filename can fool is not an oracle — it reads the exit code now, and the trap is written into the script.
+- [x] ⭐⭐ **NO EXISTING AST ARM BREAKS — measured by the repository's own arm oracle, not argued.**
+  `stimuli/sv/run_adjudication_repros.py` run against the `designA` probe reports
+  **`checked=135 armed=58 listed=73 multi_profile_rows=41 failures=6`**, and every one of the six is
+  one of the three targeted rows × 2 profiles, each printing *"AN OVER-ACCEPTANCE IS GONE … flip its
+  `expect` to REJECT"* — the `accepts_invalid` round trip this leaf built, firing exactly as
+  designed. ⇒ **all 58 remaining ARMED rows still hold**, which is the check `.13c.2q` proved a
+  verdict-only oracle cannot make. (`armed` reads 58 rather than 60 because a row that now REJECTs
+  has no AST to check an arm against.)
+- ⭐ **THAT RUN WAS ONLY POSSIBLE BECAUSE THE ORACLE GAINED A PROBE OVERRIDE THIS SLICE.**
+  `run_adjudication_repros.py` hard-coded the RELEASE probe, so checking an experimental arm's ARMS
+  cost a ~22-minute release build and had therefore never been done for any arm of this fix.
+  `PGEN_ADJUDICATION_PROBE` mirrors `PGEN_PARSE_COST_PROBE`, which the sibling cost instrument has
+  carried since `ENGINE-UNIVERSAL-SERVICES.24` for the same reason. ⛔ The DEFAULT is unchanged, and
+  the run now PRINTS the binary and the generated-parser fingerprint it used, so an experimental
+  measurement can never be mistaken for a shipped one. Verified green on the default path at HEAD
+  (`checked=135 armed=60 listed=73 failures=0`).
+- **WHAT REMAINS — ONE THING, AND IT IS THE LANDING**: re-spell the fix as `designA` (the 45 call
+  sites, derived by `apply_arm.py` from the census rather than listed), land it WITH `.13c.2t` and
+  the preserved `MANIFEST.tsv` rows, and take the full corpus A/B on both lanes so each of the nine
+  moving files is re-adjudicated against the tracked LRMs on the arm that actually ships. ⛔ The
+  corpus A/B is NOT inherited from `designB`: the two spellings differ at one site — `designA`
+  leaves `rooted_tf_call_sv_only`'s `!( identifier )` firewall untouched while `designB` guards
+  `identifier` itself and so WIDENS there (the census's sole `negation` member, enumerated before
+  either fix was written). ⭐ `designA` leaving it alone is the conservative side of that
+  difference, but "conservative" is a reason to expect the corpus to agree, not evidence that it
+  does.
+- ⭐ **NOTHING NEEDS TO BE RE-DERIVED TO DO IT.** `apply_arm.py --arm designA` rebuilds the exact
+  measured grammar from HEAD's text (read from git, not the working tree) and REFUSES if the number
+  of call sites it rewrites differs from the number the census reports; `measure_arm.sh` re-runs the
+  whole arm end to end. The `designB` work also stays preserved in `rust/target/tk_pending/` — its
+  `MANIFEST.tsv` rows and eight reproducers are spelling-independent and transfer unchanged.
 - ⚠️ **PROFILE NOTE, measured**: the reproducers are `sv_2017,sv_2023` only. `verilog_2005` rejects
   all of them, but for the wrong reason — the repro bodies are CLASS declarations, which v2005 has
-  no production for. A v2005 row for this defect needs a class-free carrier and is part of (a).
+  no production for. A v2005 row for this defect needs a class-free carrier and belongs to the
+  landing.
+
+##### Acceptance Checklist (enforced) — for THIS slice's code change, `PGEN-SV-CORPUS-GRAD-0236`
+
+⛔ The slice's only tracked code change is `stimuli/sv/run_adjudication_repros.py` (a probe
+override). The grammar arms are built, measured and reverted by script: **zero grammar and zero
+generated bytes are committed.**
+
+- [x] **REPRODUCE / ISSUE** — the leaf's remaining work said *"build the call-site arm and measure
+  it, so 'irreducible' is a comparison rather than an assertion"*, and it could not be done: the
+  arm oracle `stimuli/sv/run_adjudication_repros.py` hard-coded `rust/target/release/parseability_probe`,
+  so checking an experimental arm's AST **arms** cost a ~22-minute release build. It had therefore
+  never been done for any arm of this fix — and the `arm` column is the only instrument that sees a
+  construct parsing through the WRONG production (`.13c.2q`, where the verdict never moved).
+- [x] **ROOT CAUSE (WHY + WHERE)** — `stimuli/sv/run_adjudication_repros.py:72`,
+  `PROBE = ROOT / "rust/target/release/parseability_probe"`, a module-level constant with no
+  override, consumed at `:163` (`--parse`) and `:173` (`--parse-dump-ast`). Measured with the probe
+  itself: `parseability_probe --parser-fingerprint` reports which generated SystemVerilog parser an
+  executable embeds (`ENGINE-UNIVERSAL-SERVICES.24`), and the debug and release binaries on this
+  tree reported **different** parsers (`c3d71221…` vs `e563be8a…`) while the runner could only ever
+  read the second. The sibling cost instrument `stimuli/sv/corpus_parse_cost.py` has carried
+  `PGEN_PARSE_COST_PROBE` for exactly this reason since `.24`; the repro runner never got it.
+- [x] **FIX** — `PGEN_ADJUDICATION_PROBE` selects the binary, `.resolve()`d so a RELATIVE override
+  works, and the run now PRINTS `probe=<path> sv_parser=<fingerprint>` on its first line so an
+  experimental measurement can never be mistaken for a shipped one. The DEFAULT is unchanged.
+- [x] **ADDRESSED (verified)** — before→after on the symptom. BEFORE: the arms of an experimental
+  parser were unmeasurable without a release build. AFTER, against the `designA` probe
+  (`c3d71221…`): `ADJUDICATION-REPROS: checked=135 armed=58 listed=73 multi_profile_rows=41
+  failures=6`, and **all six failures are the three targeted rows × 2 profiles**, each printing
+  *"AN OVER-ACCEPTANCE IS GONE … flip its `expect` to REJECT"* — the `accepts_invalid` round trip
+  firing as designed ⇒ **all 58 remaining ARMED rows hold under the call-site spelling**, which is
+  the evidence the leaf could not previously obtain.
+- [x] **NO REGRESSION** — the default path is untouched and green at HEAD:
+  `ADJUDICATION-REPROS: checked=135 armed=60 listed=73 multi_profile_rows=41 failures=0` against
+  `sv_parser=e563be8a67dd516a4…`. The SV parser re-derives **byte-identically** to
+  `e563be8a67dd516a4c5b162550002502131530b9ad675cdb1304f8af3b2d7785` after three round trips through
+  three different grammar states, and both probes report that digest; `generated/` is proven to
+  re-derive from HEAD by `make -C rust generated_reproducibility_gate`. The external corpus is
+  untouched — no grammar byte changed.
+- [x] **LOCKSTEP** — `docs/tasks/artifacts/sv_corpus_grad/strictness_cost_arms/` (seven tracked,
+  re-runnable instruments + four arm measurements + four frozen graphs + the pre-registered
+  prediction); `TOOLBOX.md` 3.7b and its question-index row; the book
+  (`inside-parser-performance.md` gains the fourth habit, `diagnosing-unknowns.md` the arms row);
+  `docs/knowledge/a-rules-memo-hit-rate-is-a-property-of-its-call-graph-not-of-the-rule.md` plus the
+  in-place update discharging `a-strictness-fix-redirects-the-search-not-just-the-predicate.md`'s
+  standing warning; `KNOWLEDGE_MAP.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`; `MEMORY.md`;
+  `docs/TASK_TREE.md`; this leaf, `.13c.2t` and the new `.13c.2w`.
 
 #### ⚠️ `.13c.2l` NEW `todo` — THREE accept-set changes have shipped since the SV contract and the released-parser bug ledger were last written (opened 2026-08-18 session #245 by `.13c.2c`, `PGEN-SV-CORPUS-GRAD-0227`)
 
@@ -10879,8 +10989,23 @@ routed finding look smaller.
   is unobservable in isolation. ⇒ **it must land WITH `.13c.2k`**, whose corpus A/B is its only
   possible before→after, and which it exists to unblock. Landing it alone would mean ticking an
   ADDRESSED box against a measurement that cannot be made.
+- [x] ⭐⭐ **ITS COST IS NOW MEASURED ALONE, AND IT IS 2.3 % OF THE RISE THE JOINT ARM WAS BLAMED FOR**
+  (`PGEN-SV-CORPUS-GRAD-0236`). A `t_only` arm — this fix and nothing else — over the pinned 192-file
+  sample, `sv_2017`, parser `b99c760a…`: `entries 417,585,361 → 417,759,076` (**+173,715, +0.042 %**),
+  `memo_hits +75,771`, `committed` **+0 exactly**, and all 192 files keep their verdict. The rise is
+  a fan-out of `data_type` being ATTEMPTED at ~2,805 positions (`declaration_identifier +8,437`,
+  `non_typedef_package_scope +8,397`, then its type keywords at +2,805 each), and flat `committed`
+  says the added alternative never MATCHES anything in the sample — which is what a widening that
+  exists for the LRM's own example, absent from this corpus, should look like.
+- [x] ⭐⭐ **AND THE RISE IS STRUCTURALLY CONTAINED, by a predicate that can fail.**
+  `strictness_cost_arms/containment.py` over the grammar's own reference graph: **54 rules rose,
+  ZERO fell, and every riser is reachable from `data_type`** — 0 escaped out of a 474-rule
+  sub-graph. The same predicate REFUSES `.13c.2k`'s design-B arm (82 risers escape, 238 rules fall),
+  so it is discriminating rather than permissive. ⇒ routed to `.13c.2w`, which owns turning it into
+  a coded `PARSE-COST-RATCHET` invariant.
 - **WHAT REMAINS**: the grammar edit itself, a pinned reproducer pair (the §10.9.2 line plus a
-  one-token control) so the widening is ratcheted, and the joint landing with `.13c.2k`.
+  one-token control) so the widening is ratcheted, and the joint landing with `.13c.2k` — now in its
+  `designA` spelling, under which the JOINT arm is a FALL and needs no cost acceptance at all.
 
 #### ⚠️ `.13c.2u` NEW `todo` — **104 grammar rules have NEVER fired on 16,336 real SystemVerilog files, the number is in a TRACKED artifact, and nothing reads it** (opened 2026-08-19 session #247 by the `-0233` re-derivation under DIRECTOR CHALLENGE, `PGEN-SV-CORPUS-GRAD-0234`)
 
@@ -10947,6 +11072,55 @@ routed finding look smaller.
   `docs/systemverilog/{2017,2023}/{md,txt}/`, so the question is answerable from the repository);
   (b) the self-patch signal above as a second, independent detector; (c) a verdict per hit, since
   most disagreements will be editorial rather than substantive; (d) route each substantive one.
+
+#### ⚠️ `.13c.2w` NEW `todo` — `PARSE-COST-RATCHET`'s invariants are arithmetic identities over THREE TOTALS, and the shape that needs accepting next cannot be expressed that way; the discriminating evidence is PER-RULE and is already being thrown away (opened 2026-08-19 session #248 by `.13c.2k`'s arm measurements, `PGEN-SV-CORPUS-GRAD-0236`)
+
+- ⛔ **HOW IT WAS FOUND — by needing it, and then not needing it.** `.13c.2k` was held back twice for
+  a rise no coded invariant fit. This slice ELIMINATED that rise by respelling the fix, so the
+  invariant is no longer blocking — which is exactly why it gets a leaf now rather than being
+  written under deadline for the next rise that has one.
+- **THE GAP, stated precisely.** `scripts/check_parse_cost_ratchet.sh` codes two invariants and both
+  are exact identities over `entries`/`memo_hits`/`committed`: `pure_memo_lookups`
+  (`Δentries == Δmemo ∧ Δcommitted == 0`) and `unmatched_terminal_alternatives`
+  (`Δentries == 2·Δmemo ∧ Δcommitted == 0`). Measured this slice, `.13c.2t` alone gives
+  `Δentries +173,715`, `Δmemo +75,771`, `Δcommitted +0` — neither identity holds
+  (`2 × 75,771 = 151,542 ≠ 173,715`), and no third identity over the same three numbers would be
+  anything but numerology. ⛔ **Three totals cannot distinguish *"the added alternative speculates
+  inside its own sub-graph"* from *"the parser now speculates everywhere"*, and that distinction is
+  the whole question.**
+- ⭐⭐ **THE PREDICATE IS BUILT AND IT ALREADY DISCRIMINATES, on real arms** —
+  `docs/tasks/artifacts/sv_corpus_grad/strictness_cost_arms/containment.py`:
+
+  ```text
+  containment(introduced) := Δcommitted <= 0
+                           ∧ no rule's entry count FELL
+                           ∧ every rule whose entries ROSE is reachable, in the GRAMMAR's own
+                             reference graph, from one of the `introduced` rules
+  ```
+
+  | arm | introduced | risers | fell | escaped | verdict |
+  |---|---|---|---|---|---|
+  | `.13c.2t` (`arm0`→`t_only`) | `data_type` | 54 (+173,715) | **0** | **0** | ✅ CONTAINED |
+  | `.13c.2k` design B (`t_only`→`designB`) | `reserved_non_keyword_identifier` | 82 (+17,864,852) | 238 | **82** | ⛔ NOT CONTAINED |
+
+  ⇒ it passes the change whose rise is confined to the construct that caused it and REFUSES the one
+  whose rise is a grammar-wide redirection of the search, naming the escaping rules
+  (`identifier +9,003,436`, `non_keyword_identifier +8,816,751`). **The RED arm is a measured
+  control, not a constructed one** — it is a real fix that a real doctrine really refused.
+- **WHAT THIS LEAF OWES**: (a) plumb per-rule counts into the ratchet artifact — the instrument
+  already collects them per file and `corpus_parse_cost.py` discards everything but the totals, so
+  this is a retention change, not a new measurement; (b) freeze the reference graph the predicate
+  reads from the GRAMMAR the run measured, not from `generated/systemverilog.json`
+  (⛔ a floating build artifact — this slice's first containment run read the `designB` graph while
+  analysing the `t_only` arm, the `ENGINE-UNIVERSAL-SERVICES.20` slice-4 shape, caught by its own
+  timestamp); (c) code the invariant into `check_parse_cost_ratchet.sh` with its `introduced` rule
+  set declared IN the `accepted_rises.tsv` row, so a row cannot silently widen its own scope;
+  (d) the adversarial probe — the `designB` arm above is the standing RED, plus a control that must
+  stay GREEN and an arm that perturbs the `introduced` set and must go RED.
+- ⚠️ **HONEST BOUND, and it belongs in the invariant's own docstring**: containment says the rise is
+  confined to the construct that caused it. It does NOT say the rise was unavoidable —
+  `.13c.2k` is the standing proof that a CONTAINED-looking cost can still have a strictly cheaper
+  spelling, and no total-or-per-rule predicate can see that. Only another arm can.
 
 #### `.13c.2e` — `select_condition`'s `intersect { … }` BRACES are not modelled, so the range list swallows the rest of the expression (**`done`** 2026-08-12, `PGEN-SV-CORPUS-GRAD-0214`; opened 2026-08-12 session #218 by `ENGINE-UNIVERSAL-SERVICES.10`)
 
