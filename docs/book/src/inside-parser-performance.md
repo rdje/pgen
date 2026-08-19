@@ -167,19 +167,26 @@ Both profile numbers were correct. The conclusion was backwards, for a reason no
 > call it** — because that is what the code generator's inlining decision keys on, and an inlined
 > reference gets a full frame with **no memo lookup at all**.
 
-Both candidate spellings *moved references between rules*, so both changed the inlining, so both
-invalidated the profile they were priced from. Building all three parsers and measuring them
-settled it in about twenty minutes:
+Every candidate spelling *moved references between rules*, so every one changed the inlining, so
+every one invalidated the profile it was priced from. Building the parsers and measuring them
+settled it:
 
-| spelling | `identifier` | `non_keyword_identifier` | cost vs baseline |
-|---|---|---|---|
-| baseline | memoized | inlined at 46 sites | — |
-| guard inside `identifier` | memoized | a bare alias ⇒ inlined at **341** sites | **+1.78 %** |
-| guard at the 45 call sites | inlined at 2 sites | **memoized**, 94.5 % hits | **−0.89 %** |
+| spelling | how `non_keyword_identifier` ends up | `entries` | `committed` | verdict |
+|---|---|---|---|---|
+| baseline | inlined at 46 sites, 0 memo hits | — | — | the parser that shipped before |
+| guard moved inside `identifier`, wrapper a bare alias | inlined at **341** sites, 0 memo hits | **+1.78 %** | −0.00 % | ⛔ refused — entries rose |
+| wrapper keeps the guard and **delegates** to `identifier` | **memoized**, 94.5 % hits | −0.89 % | **+0.72 %** | ⛔ refused — committed rose |
+| wrapper **matches the token itself** | **memoized**, 94.5 % hits | **−1.07 %** | **−5.11 %** | ✅ shipped |
 
-The spelling the model rejected turned out to be cheaper than the parser that shipped — because
-it lets the memo answer the repeated question one level higher, instead of paying a full frame
-and *then* re-entering the memoized rule underneath.
+The two spellings the model rejected are cheaper than the parser that shipped before — because they
+let the memo answer the repeated question one level higher, instead of paying a full frame and
+*then* re-entering the memoized rule underneath. But the first of them was still refused, on the
+*other* binding counter: delegating adds one committed frame per committed identifier at all 45
+rewritten sites. Making the wrapper match the token directly deletes that frame — and deletes one
+at the ~100 sites that were already guarded, which is why `committed` ends up 5 % *below* baseline.
+
+⭐ **Two of three candidate spellings were refused on cost, each for a different reason, and neither
+reason was visible without building it.**
 
 So the fourth habit is: **when a change alters the call graph, the arms are the measurement.**
 Build both parsers and compare them per rule and per file. The tooling for that is

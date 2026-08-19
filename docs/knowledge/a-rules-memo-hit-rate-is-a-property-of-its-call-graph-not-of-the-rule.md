@@ -11,7 +11,7 @@ answers:
 tags: [performance, parsers, peg, packrat, memoization, codegen, cost-models, measurement]
 date: 2026-08-19
 status: current
-evidence: "SV-CORPUS-GRAD.13c.2k (PGEN-SV-CORPUS-GRAD-0236). Three parser arms of ONE correctness fix, measured over a pinned 192-file sample, all verdict-identical. Guard inside the shared rule (`designB`): 425,174,240 entries, +1.82 % over baseline — refused by the cost ratchet. The SAME guard spelled at its 45 call sites (`designA`): 413,858,778 entries, -0.89 % BELOW baseline. The difference, read out of the generated parser rather than inferred: the wrapper rule `non_keyword_identifier` is reached through 341 generated `inlined_frame_call` sites in designB, which bypass its own memoization (14,320,942 entries / 0 memo hits); giving it 45 more grammar references makes it memo-served (18,758,343 entries / 17,724,671 hits = 94.5 %) and the inner rule then runs 1,516,324 bodies instead of 19,353,115 entries."
+evidence: "SV-CORPUS-GRAD.13c.2k (PGEN-SV-CORPUS-GRAD-0236/-0237). FOUR parser arms of ONE correctness fix, measured over a pinned 192-file sample, all verdict-identical on every one of the 192 files. Guard inside the shared rule (`designB`): 425,174,240 entries, +1.78 % over baseline — refused. Guard in the wrapper, delegating to the shared rule (`designA`): 413,858,708 entries (-0.89 %) but `committed` +0.72 % — also refused, on the other binding counter. Wrapper matching the token itself (`designC`, shipped): 413,108,276 entries (-1.07 %), committed 6,759,475 (-5.11 %), memo hits -2.41 % — all three fall. The difference, read out of the generated parser rather than inferred: the wrapper rule `non_keyword_identifier` is reached through 341 generated `inlined_frame_call` sites in designB, which bypass its own memoization (14,320,942 entries / 0 memo hits); giving it 45 more grammar references makes it memo-served (18,758,343 entries / 17,724,671 hits = 94.5 %) and the inner rule then runs 1,516,324 bodies instead of 19,353,115 entries."
 reverify: "bash docs/tasks/artifacts/sv_corpus_grad/strictness_cost_arms/inline_census.sh   # asks the GENERATED parser which rules are memoized on their executed path and which are inlined at their call sites; re-run it against two arms of the same change and compare"
 ---
 
@@ -30,22 +30,30 @@ hard to see: the model was built from the current hit rates, and the edit being 
 references between rules*, which is exactly the input the inlining decision keys on. The measured
 case:
 
-| spelling | where the guard lives | shared wrapper | inner rule | total |
-|---|---|---|---|---|
-| baseline | wrapper only, ~100 sites | 5.5 M entries / **0 hits** | 10.3 M / 9.3 M hits | — |
-| "cheap" (`designB`) | moved INTO the inner rule | 14.3 M / **0 hits** (inlined at 341 sites) | 19.4 M / 18.3 M hits | **+1.82 %** |
-| "expensive" (`designA`) | left in the wrapper, 45 call sites rewritten to use it | 18.8 M / **17.7 M hits** | 1.5 M / 0 hits | **−0.89 %** |
+| spelling | where the guard lives | shared wrapper | inner rule | `entries` | `committed` |
+|---|---|---|---|---|---|
+| baseline | wrapper only, ~100 sites | 5.5 M / **0 hits** | 10.3 M / 9.3 M hits | — | — |
+| "cheap" (`designB`) | moved INTO the inner rule, wrapper a bare alias | 14.3 M / **0 hits** (inlined at 341 sites) | 19.4 M / 18.3 M hits | **+1.78 %** ⛔ | −0.00 % |
+| `designA` | wrapper keeps it and DELEGATES to the inner rule; 45 sites rewritten | 18.8 M / **17.7 M hits** | 1.5 M / 0 hits | −0.89 % | **+0.72 %** ⛔ |
+| `designC` — shipped | wrapper matches the token ITSELF; 45 sites rewritten | 18.8 M / **17.7 M hits** | 0.6 M / 0 hits | **−1.07 %** | **−5.11 %** |
 
-The spelling the model rejected **answers the repeated question one level higher**. Once the wrapper
-has enough call sites to be memoized rather than inlined, it absorbs the repeats, and the inner rule
+The spellings the model rejected **answer the repeated question one level higher**. Once the wrapper
+has enough call sites to be memoized rather than inlined, it absorbs the repeats and the inner rule
 runs only on the misses. The spelling the model chose left the wrapper a bare alias — trivially
 inlinable — so every one of its 14.3 M calls paid a full frame *and then* re-entered the inner rule.
 
+⭐⭐ **AND THE THIRD ARM IS THE SAME LESSON A SECOND TIME.** `designA` looked like the answer and was
+refused by the ratchet's OTHER binding counter: `committed` rose +0.72 %, attributed to the unit as
+one extra committed FRAME per committed identifier at the 45 rewritten sites, because the wrapper
+*delegated* to the inner rule instead of doing the work. `designC` deletes that frame — the wrapper
+matches the token itself — and all three counters fall. **Two of the three candidate spellings were
+refused on cost, each for a different reason, and neither reason was visible without building it.**
+
 ## The rules that follow
 
-- **Never price a change to a call graph from counters measured on the old call graph.** Build both
-  arms and measure. Two arms of one fix cost ~6 minutes each here; the reasoning they replaced had
-  already been wrong twice.
+- **Never price a change to a call graph from counters measured on the old call graph.** Build the
+  arms and measure. An arm cost ~6 minutes here; the reasoning it replaced had already been wrong
+  twice, and the third arm — built only because the second was refused — is the one that shipped.
 - **Ask the generated code which rules are memoized on their executed path**, not the counters. A
   0-hit rule is ambiguous — never queried twice, or never memo-served at all — and those two have
   opposite implications for where to put work.

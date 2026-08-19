@@ -1191,6 +1191,30 @@ V2005_LRM_PINNED = {
         "IEEE 1364-2005 A.4.2 reaches a generate_block only from "
         "loop/if/case generate constructs; generate_region and module_or_generate_item "
         "have no such alternative; spec outranks the ivtest driver key"),
+    # ---- SV-CORPUS-GRAD.13c.2k (PGEN-SV-CORPUS-GRAD-0237) ------------------------------------
+    # Three rows that PGEN accepted only through the raw-`identifier` hole. Closing it turned
+    # each into a REJECT, and each rejection is CORRECT under IEEE 1364-2005 — verified by
+    # reading the tracked LRM, not from the ivtest driver key, which is upstream TOOL testimony
+    # and is outranked by a clause cite (.3.14a/.3.14b/.3.15).
+    "ivtest/ivltests/pr1758122.v": (
+        "must_reject", "pinned .13c.2k: line 18 `adder #(W) instance(A[j], B[j], Y[j]);` names "
+        "a module instance `instance`, which IEEE 1364-2005 Annex B:59 lists as a KEYWORD - and "
+        "that annex's own preamble says keywords are predefined NONESCAPED identifiers and only "
+        "an ESCAPED identifier is not treated as one. A.4.1.1 name_of_instance therefore has no "
+        "derivation for it. Reserved in IEEE 1800-2023 Annex B:113 too, so the verdict does not "
+        "change with the edition. PGEN accepted this until the raw-`identifier` hole closed"),
+    "ivtest/ivltests/pr1787423.v": (
+        "must_reject", "pinned .13c.2k: line 15 `pulldown (pd1, pd2);` gives a pull gate TWO "
+        "output terminals. IEEE 1364-2005 A.3.1 "
+        "(docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:362) is "
+        "`pull_gate_instance ::= [ name_of_gate_instance ] ( output_terminal )` - exactly ONE. "
+        "The legal spelling of the same intent is `pulldown (pd1), (pd2);`. PGEN reached "
+        "udp_instantiation instead until the raw-`identifier` hole closed, because `pulldown` "
+        "could stand in for a UDP type name. Control: pr1787423c.v carries no pull gate at all "
+        "and did NOT move"),
+    "ivtest/ivltests/pr1787423b.v": (
+        "must_reject", "pinned .13c.2k: line 68 `pulldown (pd1, pd2);` - the same construct as "
+        "pr1787423.v, same clause (IEEE 1364-2005 A.3.1:362, ONE output_terminal), same ruling"),
 }
 
 

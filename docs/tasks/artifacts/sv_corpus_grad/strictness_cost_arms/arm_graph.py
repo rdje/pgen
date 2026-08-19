@@ -68,12 +68,15 @@ def arm_text(arm: str) -> str:
         text = m.replace_once(text, m.B_GUARD_BEFORE, m.B_GUARD_AFTER, ".13c.2k design B (alias)")
     elif arm == "designA":
         text, _n = m.rewrite_call_sites(text, m.load_census())
+    elif arm == "designC":
+        text, _n = m.rewrite_call_sites(text, m.load_census())
+        text = m.replace_once(text, m.B_GUARD_BEFORE, m.C_GUARD_AFTER, ".13c.2k design C")
     return text
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--arm", required=True, choices=("head", "t_only", "designB", "designA"))
+    ap.add_argument("--arm", required=True, choices=("head", "t_only", "designB", "designA", "designC"))
     ap.add_argument("--outdir", default=str(HERE))
     a = ap.parse_args()
 

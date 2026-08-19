@@ -79,7 +79,7 @@ TIMEOUT_S = 300
 # `apply_arm.py`'s in-memory transform (the same derivation `arm_graph.py` uses), and the live
 # grammar is recorded separately, as what it is.
 ARM_ALIASES = {"arm0_head": "head", "arm0_head_debug": "head", "arm0_head_release": "head",
-               "head": "head", "t_only": "t_only", "designB": "designB", "designA": "designA"}
+               "head": "head", "t_only": "t_only", "designB": "designB", "designA": "designA", "designC": "designC"}
 
 
 def derived_arm_grammar_sha(arm: str) -> str | None:

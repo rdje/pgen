@@ -10092,7 +10092,7 @@ routed finding look smaller.
   `7556/2459/6321/4392/288`); `MEMORY.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`;
   `docs/TASK_TREE.md`.
 
-#### ⚠️ `.13c.2k` `in progress` — a RESERVED KEYWORD parses in every NON-FINAL component of a hierarchical path; ⭐⭐⭐ **THE COST IS ELIMINATED, NOT ACCEPTED: the SAME fix spelled at the 45 CALL SITES measures 0.892 % BELOW the baseline where the shipped spelling measured 1.775 % above it** — so the two hold-backs are over and only the LANDING remains; ⛔ the fix uncovered FIVE latent defects it was masking; ✅ **the ORACLE GAP it found is CLOSED** and all seven over-acceptance rows are now WATCHED (opened 2026-08-18 session #245 by `.13c.2c` `-0227`; diagnosis + `accepts_invalid` class 2026-08-18 session #246, `PGEN-SV-CORPUS-GRAD-0230`; arms measured 2026-08-19 session #248, `PGEN-SV-CORPUS-GRAD-0236`)
+#### ✅ `.13c.2k` **`done`** 2026-08-19 (`PGEN-SV-CORPUS-GRAD-0237`) — a RESERVED KEYWORD parsed in every NON-FINAL component of a hierarchical path; ⭐⭐⭐ **LANDED, and the cost that held it back TWICE was ELIMINATED rather than accepted: the shipped spelling measures `entries` −1.07 %, `memo_hits` −2.41 %, `committed` −5.11 % — all three binding counters BELOW the parser it replaces**; ⛔ it uncovered FIVE latent defects it was masking; ✅ the ORACLE GAP it found is CLOSED (opened 2026-08-18 session #245 by `.13c.2c` `-0227`; diagnosis + `accepts_invalid` class 2026-08-18 session #246, `-0230`; four cost arms 2026-08-19 session #248, `-0236`; landed 2026-08-19 session #248, `-0237`)
 
 - **MEASURED, on the shipped parser, BEFORE and AFTER `.13c.2c`** (so it is pre-existing and the
   `.13c.2c` fix neither caused nor cured it):
@@ -10319,21 +10319,64 @@ routed finding look smaller.
   the run now PRINTS the binary and the generated-parser fingerprint it used, so an experimental
   measurement can never be mistaken for a shipped one. Verified green on the default path at HEAD
   (`checked=135 armed=60 listed=73 failures=0`).
-- **WHAT REMAINS — ONE THING, AND IT IS THE LANDING**: re-spell the fix as `designA` (the 45 call
-  sites, derived by `apply_arm.py` from the census rather than listed), land it WITH `.13c.2t` and
-  the preserved `MANIFEST.tsv` rows, and take the full corpus A/B on both lanes so each of the nine
-  moving files is re-adjudicated against the tracked LRMs on the arm that actually ships. ⛔ The
-  corpus A/B is NOT inherited from `designB`: the two spellings differ at one site — `designA`
-  leaves `rooted_tf_call_sv_only`'s `!( identifier )` firewall untouched while `designB` guards
-  `identifier` itself and so WIDENS there (the census's sole `negation` member, enumerated before
-  either fix was written). ⭐ `designA` leaving it alone is the conservative side of that
-  difference, but "conservative" is a reason to expect the corpus to agree, not evidence that it
-  does.
-- ⭐ **NOTHING NEEDS TO BE RE-DERIVED TO DO IT.** `apply_arm.py --arm designA` rebuilds the exact
-  measured grammar from HEAD's text (read from git, not the working tree) and REFUSES if the number
-  of call sites it rewrites differs from the number the census reports; `measure_arm.sh` re-runs the
-  whole arm end to end. The `designB` work also stays preserved in `rust/target/tk_pending/` — its
-  `MANIFEST.tsv` rows and eight reproducers are spelling-independent and transfer unchanged.
+- [x] ⛔⛔⛔ **THE LANDING FOUND A FOURTH ARM, BECAUSE `designA` WAS REFUSED BY THE OTHER BINDING
+  COUNTER.** `designA` was applied, regenerated (parser sha `c3d71221…`, byte-identical to the
+  measured arm), release-built and run over both corpus lanes — every correctness surface green —
+  and then `PARSE-COST-RATCHET` refused it: `entries` FELL 1.07 % but **`committed` ROSE
+  7,123,491 → 7,174,978 (+0.72 %)**. ⭐ **The attribution `-0236` had already taken said exactly
+  where to look**: the +51,611 was one extra COMMITTED FRAME per committed identifier at the 45
+  rewritten sites, because `non_keyword_identifier` *delegated* to `identifier`. ⇒ a spelling that
+  does not delegate should not pay it. **Measured, not reasoned** — the fourth arm was built:
+
+  | arm | shape | `entries` | `memo_hits` | `committed` |
+  |---|---|---|---|---|
+  | HEAD | — | 417,585,361 | 187,800,173 | 7,123,491 |
+  | `designB` | exclusion inside `identifier`, wrapper a bare alias | 425,174,240 (**+1.775 %** ⛔) | 182,738,136 | 7,123,367 |
+  | `designA` | wrapper keeps the guard, DELEGATES to `identifier` | 413,858,778 (−0.892 %) | 183,185,328 | 7,174,978 (**+0.72 %** ⛔) |
+  | **`designC` — SHIPPED** | wrapper MATCHES THE TOKEN ITSELF | **413,108,276 (−1.072 %)** | **183,279,718 (−2.407 %)** | **6,759,475 (−5.110 %)** |
+
+  ⇒ `non_keyword_identifier := escaped_identifier | !reserved_non_keyword_identifier simple_identifier`.
+  It adds no frame at the 45 rewritten sites (the chain is the same LENGTH as HEAD's) and removes
+  one at the ~100 sites that were already guarded — which is why `committed` lands 5.11 % BELOW
+  baseline instead of above it. ⭐⭐ **Two of the three candidate spellings were refused on cost, each
+  on a DIFFERENT counter, and neither reason was visible without building it** →
+  [[a-rules-memo-hit-rate-is-a-property-of-its-call-graph-not-of-the-rule]].
+- [x] ⭐⭐ **THE DEFECT CLASS IS CLOSED COMPLETELY, AND THE INSTRUMENT SAYS SO.** The census that
+  opened at *"43 raw references"* (a wrong hand count), was corrected to **47 in 40 rules**, now
+  reports **`RAW-IDENTIFIER-CENSUS: refs=1 rules=1 negation=1 (two signals agree)`** — the ONLY raw
+  `identifier` reference left in the SV grammar is `rooted_tf_call_sv_only`'s `!( identifier )`
+  firewall, the one site where guarding would INVERT the lookahead and widen the rule. Both
+  independent signals (the frontend's own `raw_ast` and a text scan) agree.
+- [x] **NO REGRESSION — the full corpus, both lanes, and the numbers are exactly the adjudicated
+  set.** `sv` 16,336 files `pass 9787 → 9781`, `verilog_2005` 2,459 files `pass 2181 → 2179`,
+  **0 timeouts, 0 crashes, 0 rows added or removed** on either lane. The movement is **6 files in
+  `sv` and 3 in `verilog_2005`** — file-for-file the set `-0235` adjudicated, with **nothing new**:
+  `pr1758122.v` (`instance` as an instance name), `pr1787423{,b,b_std}.v` (a two-terminal pull
+  gate), `br930.v` (`(* type=1 *)`) and `generate_multi_loop.v` (`begin:byte`). ⭐⭐ **And the last
+  two are a DIALECT PAIR on the real corpus, not just on a reproducer**: both FAIL under `sv_2017`
+  and **PASS under `verilog_2005`**, because `type` and `byte` are in IEEE 1800's Annex B and in
+  neither case in IEEE 1364-2005's. Both profiles wrongly accepted before ⇒ the three-profile
+  distinction is now real where it previously did not exist. ⛔ `10.09.02_03.sv` — the rejects-valid
+  regression that blocked this leaf — is **NOT** in the moved set: `.13c.2t` cures it, as designed.
+  `--lint-grammar` is **field-for-field identical to HEAD** (1610 rules, `left_recursion_unhandled=0`,
+  `ordered_choice_shadowing=0`, `unreachable_rules=0`, `undefined_references=0`, `profile_orphans=0`);
+  `ast_shape_contract_gate` 18/18; `generated_reproducibility` TIER 2 11/11 byte-identical.
+- [x] ⭐ **THREE NEW LRM PINS, READ FROM THE TRACKED STANDARD RATHER THAN FROM THE UPSTREAM DRIVER
+  KEY.** The three `verilog_2005` rows were keyed `must_accept` by the ivtest driver — upstream TOOL
+  testimony, which a clause cite outranks (`.3.14a`/`.3.14b`/`.3.15`). Re-adjudicated as
+  `must_reject` in `V2005_LRM_PINNED`: `instance` is listed in **IEEE 1364-2005 Annex B:59** (and
+  1800-2023 Annex B:113), and that annex's own preamble says keywords are predefined NONESCAPED
+  identifiers of which only an ESCAPED spelling is exempt; and
+  `pull_gate_instance ::= [ name_of_gate_instance ] ( output_terminal )` at **1364-2005 A.3.1**
+  (`docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:362`) takes exactly
+  ONE terminal. ⭐ `pr1787423c.v` carries no pull gate at all and did NOT move — a control the
+  corpus supplied for free.
+- [x] **COST — PROMOTED, NOT ACCEPTED.** `PGEN_PARSE_COST_REBASELINE=1` recorded the measurement at
+  exit 0 with all three binding counters logged as improvements; the ratchet now re-verifies green
+  against the tightened baseline. The LR-family corpus share was re-derived (**2.735 → 2.761 %**)
+  and adopted deliberately on all four designated live surfaces, and the verdict-coverage tuple
+  moved `7556/2459/6321/4392/288` → **`7556/2459/6321/4393/288`** — ⭐ **the axis-2 bar is UNCHANGED
+  at 288**: every moved file was already `deferred` or is now a matched `must_reject`.
 - ⚠️ **PROFILE NOTE, measured**: the reproducers are `sv_2017,sv_2023` only. `verilog_2005` rejects
   all of them, but for the wrong reason — the repro bodies are CLASS declarations, which v2005 has
   no production for. A v2005 row for this defect needs a class-free carrier and belongs to the
@@ -10419,6 +10462,17 @@ generated bytes are committed.**
   own no release number at all, and the ledger would carry a fix with no report row. The three have
   to be numbered together, by someone reading all three diffs — that is this leaf's work, not a side
   effect of the third one. Recording it beats performing half of it.
+- ⛔⛔ **AND THE FIFTH CHANGE IS THE FIRST *NARROWING*, WHICH BREAKS THIS LEAF'S OWN SAFETY
+  ARGUMENT** (routed 2026-08-19 by `.13c.2k`, `PGEN-SV-CORPUS-GRAD-0237`). This leaf reasoned that
+  the debt could age quietly because *"every one of the four is strictly-more-permissive, so nothing
+  a consumer already relies on has broken"*. `-0237` lands a change that is strictly-LESS-permissive
+  on all three profiles: a reserved keyword no longer parses in a non-final hierarchy component, an
+  instance name, an attribute name or a generate label. **Nine third-party corpus files that parsed
+  yesterday do not parse today**, every one of them correctly. ⇒ a Nexsim integrator reading
+  `1.0.183` is now told the parser accepts text it REFUSES, which is the direction that breaks a
+  consumer rather than the direction that does not. ⭐ This does not make the leaf urgent by itself —
+  the parser is not yet released — but it **retires the argument for deferring it**, and the
+  contract entry must say plainly that the narrowing is a conformance fix with named LRM clauses.
 - **WHAT THIS LEAF OWES**: (a) read the three diffs and assign contract sections + ledger rows,
   deciding the schema question per change (the `.37.5` precedent is *release bump, NO schema bump* for
   a strictly-more-permissive change that adds no AST field; `-0227` fits it, `-0220`/`-0221` need
@@ -10916,7 +10970,7 @@ generated bytes are committed.**
   ⇒ the construct is reachable, the named rule may still be starving, and that is an ARM question of
   exactly the kind `.13c.2q` proved is invisible to a verdict.
 
-#### ⚠️ `.13c.2t` `in progress` — DECIDED (director-delegated 2026-08-19), implementation pending — `'{int:1, default:0, string:""}` — IEEE 1800-2017 §10.9.2's OWN example — is held up only by a raw `identifier`, and it is the last thing blocking `.13c.2k` (opened 2026-08-19 session #247 by `.13c.2k`'s corpus A/B, `PGEN-SV-CORPUS-GRAD-0233`)
+#### ✅ `.13c.2t` **`done`** 2026-08-19 (`PGEN-SV-CORPUS-GRAD-0237`, landed jointly with `.13c.2k`) — `'{int:1, default:0, string:""}` — IEEE 1800-2017 §10.9.2's OWN example — is held up only by a raw `identifier`, and it is the last thing blocking `.13c.2k` (opened 2026-08-19 session #247 by `.13c.2k`'s corpus A/B, `PGEN-SV-CORPUS-GRAD-0233`)
 
 - ⛔ **THE DEFECT IS LATENT TODAY AND ONLY VISIBLE THROUGH A FIX.** The file parses at HEAD, so no
   instrument in the repository is red. It parses because `structure_pattern_key`'s FIRST alternative,
@@ -11003,9 +11057,17 @@ generated bytes are committed.**
   sub-graph. The same predicate REFUSES `.13c.2k`'s design-B arm (82 risers escape, 238 rules fall),
   so it is discriminating rather than permissive. ⇒ routed to `.13c.2w`, which owns turning it into
   a coded `PARSE-COST-RATCHET` invariant.
-- **WHAT REMAINS**: the grammar edit itself, a pinned reproducer pair (the §10.9.2 line plus a
-  one-token control) so the widening is ratcheted, and the joint landing with `.13c.2k` — now in its
-  `designA` spelling, under which the JOINT arm is a FALL and needs no cost acceptance at all.
+- [x] ✅ **LANDED** (`-0237`), jointly with `.13c.2k` as its (c) clause required.
+  `assignment_pattern_key := simple_type | data_type | default`, `simple_type` first so no existing
+  AST arm moves. Both pinned rows ride with it: `fixed_lrm_10_9_2_type_key.sv` with the arm
+  `assign_pattern>pattern>data_type` (so the row asserts the construct reaches the NEW alternative,
+  not merely that the file parses) and `control_assign_pattern_member_key.sv` with
+  `assign_pattern>member,!assign_pattern>pattern` (both its keys are genuine member names, so no key
+  may reach `assignment_pattern_key` at all — the claim that makes the type-key row attributable to
+  the `data_type` alternative alone). `ADJUDICATION-REPROS: checked=151 armed=62 listed=81
+  failures=0` on the shipped parser. ⛔ IEEE 1800-2017 §10.9.2's own worked example
+  `'{int:1, default:0, string:""}` now parses, and `10.09.02_03.sv` is NOT in the corpus's moved
+  set — which is exactly what this leaf existed to guarantee.
 
 #### ⚠️ `.13c.2u` NEW `todo` — **104 grammar rules have NEVER fired on 16,336 real SystemVerilog files, the number is in a TRACKED artifact, and nothing reads it** (opened 2026-08-19 session #247 by the `-0233` re-derivation under DIRECTOR CHALLENGE, `PGEN-SV-CORPUS-GRAD-0234`)
 

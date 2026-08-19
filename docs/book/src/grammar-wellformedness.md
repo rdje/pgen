@@ -1880,7 +1880,7 @@ observation was simply unused.
 > **mislabelled deferral**, owned by `.13c`/`.13d`, not an under-reporting bar.
 
 > ⭐ **Live verdict-coverage tuple — `adjudicated/routed/no-verdict/dark/axis-2-bar` =
-> `7556/2459/6321/4392/288`.** (`SV-CORPUS-GRAD.13c.2j` moved the bar **289 → 288** by restoring
+> `7556/2459/6321/4393/288`.** (`SV-CORPUS-GRAD.13c.2j` moved the bar **289 → 288** by restoring
 > IEEE 1800 A.8.4's `class_scope` branch to the method-call receiver, so a CLASS-SCOPED name is a
 > legal receiver: `y = p::base::m.g()` had no derivation while `y = p::base::m;` — the same name as a
 > value — parsed. `match` 5 831 → 5 832, `unexplained_rejects_valid` 268 → 267, `accepts-invalid`

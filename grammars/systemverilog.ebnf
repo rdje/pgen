@@ -459,8 +459,46 @@ identifier := escaped_identifier -> {body: $1}
 # engine-proven `{body:…}` object (same shape as
 # `identifier := simple_identifier -> {body:$1}`) so downstream
 # `$1.body` resolves a concrete object, not a bare Alternative.
-non_keyword_identifier := !reserved_non_keyword_identifier identifier
-                       -> {body: $2.body}
+# ⛔⛔ SV-CORPUS-GRAD.13c.2k — READ THIS BEFORE WRITING `identifier` IN A NEW RULE.
+#
+# IEEE 1800-2017 A.9.3 writes `identifier ::= simple_identifier | escaped_identifier`, and §5.6.2
+# forbids a reserved word (Annex B) from being a `simple_identifier`. **Almost every LRM
+# `identifier` position is therefore a NON-KEYWORD identifier position, and spells
+# `non_keyword_identifier` here.** Until `-0237` the exclusion was spelled at only some of them:
+# 45 sites referenced the raw `identifier` rule and admitted reserved keywords, so a reserved word
+# parsed in every NON-FINAL component of a hierarchical path — `ral.module[0].g()`,
+# `ral.module.g()` and `module.g()` all ACCEPTED, while the guarded positions `ral.arr[0].module`,
+# `ral.arr[0].module()` and `int module;` were correctly refused. The leak was POSITIONAL, not a
+# missing keyword, and it was LOAD-BEARING: closing it exposed five latent defects it had been
+# masking (`.13c.2q`, `.13c.2r`, `.13c.2t`).
+#
+# The population is enumerated, not remembered:
+# `docs/tasks/artifacts/sv_corpus_grad/raw_identifier_census/census.py` cross-checks the frontend's
+# own `raw_ast` against a text scan of this file and refuses if the two disagree. Exactly ONE raw
+# `identifier` reference remains, by design — `rooted_tf_call_sv_only`'s `!( identifier )`
+# firewall, where guarding would INVERT the lookahead and make that rule strictly MORE permissive.
+#
+# ⭐⭐ AND THE SHAPE BELOW IS MEASURED, NOT INCIDENTAL — do not "simplify" it. `non_keyword_identifier`
+# matches the token ITSELF rather than delegating to `identifier`. Two other spellings of the same
+# fix were built and measured over the pinned 192-file parse-cost sample (four arms, `-0236`/`-0237`,
+# `docs/tasks/artifacts/sv_corpus_grad/strictness_cost_arms/`, TOOLBOX 3.7b), and both are refused by
+# `PARSE-COST-RATCHET`:
+#   * exclusion moved INTO `identifier`, this rule a bare alias — `entries` **+1.775 %**. A bare
+#     alias is trivially inlinable, so the generator inlined it at 341 sites where it takes NO memo
+#     lookup at all, and each of its 14,320,942 entries paid a full frame and then re-entered the
+#     memoized `identifier` underneath.
+#   * this rule delegating to `identifier` (`:= !reserved_non_keyword_identifier identifier`) —
+#     `entries` −0.892 % but `committed` **+0.72 %**, because wrapping adds one COMMITTED FRAME per
+#     committed identifier at the 45 rewritten sites.
+#   * THIS spelling — `entries` **−1.072 %**, `memo_hits` **−2.407 %**, `committed` **−5.110 %**.
+#     All three binding counters FALL: it is memo-served (94.5 % hits) so it absorbs the repeated
+#     question one level above `simple_identifier`, and it adds no frame anywhere — the chain is
+#     the same length as before at the 45 rewritten sites and one frame SHORTER at the ~100 sites
+#     that were already guarded.
+# ⭐ `escaped_identifier` is deliberately NOT guarded: §5.6.1 makes `\module ` a legal identifier
+# distinct from the keyword.
+non_keyword_identifier := escaped_identifier -> {body: $1}
+                       | !reserved_non_keyword_identifier simple_identifier -> {body: $2}
 
 declaration_identifier := non_keyword_identifier
 
@@ -779,7 +817,28 @@ assignment_pattern_expression_type := ps_type_identifier        -> {kind: "ps_ty
                                     | integer_atom_type         -> {kind: "integer_atom_type", body: $1}
                                     | type_reference            -> {kind: "type_reference",    body: $1}
 
-assignment_pattern_key := simple_type        -> {kind: "type",     body: $1}
+# SV-CORPUS-GRAD.13c.2t: the UNION of the standard's TWO normative statements about this key,
+# which disagree — identically in 1800-2017 and 1800-2023, so this is a standing LRM defect and
+# not an edition difference.
+#   Annex A (2023 A.6.7.1, :1480):  assignment_pattern_key ::= simple_type | default
+#   §10.9.2 clause text:            "The '{member:value} or '{data_type: default_value} syntax can
+#                                    also be used", with the worked example
+#                                    `initial s2 = '{int:1, default:0, string:""};`
+# ⛔ The two sets are NOT nested, so neither alone is compliant: `ps_parameter_identifier` is in
+# `simple_type` ONLY, while `string` / `chandle` / `event` / `class_type` / `type_reference` are in
+# `data_type` ONLY. Keeping just `simple_type` REJECTS the standard's own §10.9.2 example (a
+# rejects-valid non-conformance); replacing it with `data_type` silently DROPS
+# `ps_parameter_identifier`. The union is the only spelling under which every derivation either
+# normative clause licenses is derivable, and it admits nothing the standard forbids — §10.9.2 says
+# the key names a TYPE, and `data_type` is the LRM's own name for the set of types.
+# ⭐ `simple_type` stays FIRST so every construct that parses today keeps its existing AST arm.
+# ⭐⭐ Corroborated by the standard's own drafting rather than by reading: Annex A's
+# `casting_type ::= simple_type | constant_primary | signing | string | const` patches the SAME
+# shortfall with an explicit `| string` at the one other site that uses a type keyword this way.
+# The sweep is bounded at 1 of 3 `simple_type` references — `casting_type` and `slice_size` were
+# both checked against their own Annex A productions and match exactly.
+assignment_pattern_key := simple_type        -> {kind: "type",      body: $1}
+                        | data_type          -> {kind: "data_type", body: $1}
                         | kw_default_7505d64a -> {kind: "default"}
 
 assignment_pattern_net_lvalue := tick lbrace net_lvalue ( comma net_lvalue )* rbrace
@@ -801,7 +860,7 @@ associative_dimension := lbrack data_type rbrack    -> {kind: "data_type", body:
 assume_property_statement := kw_assume_661e458e kw_property_269fe373 lparen property_spec rparen action_block
                           -> {spec: $4, action: $6}
 
-attr_name := identifier
+attr_name := non_keyword_identifier
           -> {body: $1}
 
 attr_spec := attr_name ( assign constant_expression )?
@@ -810,7 +869,7 @@ attr_spec := attr_name ( assign constant_expression )?
 attribute_instance := attr_open attr_spec ( comma attr_spec )* attr_close
                    -> [$2, $3::2*]
 
-bin_identifier := identifier
+bin_identifier := non_keyword_identifier
 
 binary_module_path_operator := equal                -> {kind: "equal"}
                             | not_equal           -> {kind: "not_equal"}
@@ -1038,7 +1097,7 @@ casting_type := simple_type            -> {kind: "simple_type",     body: $1}
 cell_clause := kw_cell_5f435eb3 ( library_identifier dot )? cell_identifier
             -> {library: $2, name: $3}
 
-cell_identifier := identifier
+cell_identifier := non_keyword_identifier
 
 charge_strength := lparen kw_small_89f6229a rparen   -> {kind: "small"}
                  | lparen kw_medium_20af4186 rparen  -> {kind: "medium"}
@@ -1378,7 +1437,7 @@ clocking_drive := clockvar_expression less_equal ( cycle_delay )? expression
                -> {lvalue: $1, cycle_delay: $3, value: $4}
 
 @profiles: ["sv_2017"]
-clocking_event_sv_2017 := @probe_sample: "@clk" at_sign identifier
+clocking_event_sv_2017 := @probe_sample: "@clk" at_sign non_keyword_identifier
                        -> {body: $2}
                         | @probe_sample: "@(posedge clk)" at_sign lparen event_expression rparen
 
@@ -1525,7 +1584,7 @@ consecutive_repetition := lbrack star const_or_range_expression rbrack  -> {kind
                         | lbrack star rbrack                             -> {kind: "star"}
                         | lbrack plus rbrack                             -> {kind: "plus"}
 
-const_identifier := identifier
+const_identifier := non_keyword_identifier
 
 const_or_range_expression := constant_expression                    -> {kind: "expression", body: $1}
                            | cycle_delay_const_range_expression     -> {kind: "range",      body: $1}
@@ -1689,7 +1748,7 @@ constraint_expression := @probe_sample: "a;" ( kw_soft_eb74f2cb )? expression_or
                        | kw_disable_ccf09e2d kw_soft_eb74f2cb constraint_primary semi
                               -> {kind: "disable_soft", target: $3}
 
-constraint_identifier := identifier
+constraint_identifier := non_keyword_identifier
 
 @profiles: ["sv_2017"]
 constraint_primary_sv_2017 := ( implicit_class_handle dot | class_scope )? hierarchical_identifier select
@@ -1739,7 +1798,7 @@ cover_cross := ( cross_identifier colon )? kw_cross_ac4280ba list_of_cross_items
 cover_point := ( ( data_type_or_implicit )? cover_point_identifier colon )? kw_coverpoint_fc1cae9d expression ( kw_iff_ee1c009e lparen expression rparen )? bins_or_empty
             -> {label: $1, expression: $3, condition: $4, bins: $5}
 
-cover_point_identifier := identifier
+cover_point_identifier := non_keyword_identifier
 
 @profiles: ["sv_2017", "sv_2023"]
 cover_property_statement := kw_cover_a28100fa kw_property_269fe373 lparen property_spec rparen statement_or_null
@@ -1874,7 +1933,7 @@ cross_body_item_sv_2023 := function_declaration              -> {kind: "function
 cross_body_item := cross_body_item_sv_2017 -> {kind: "sv_2017", body: $1}
                  | cross_body_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
-cross_identifier := identifier
+cross_identifier := non_keyword_identifier
 
 cross_item := cover_point_identifier -> {kind: "cover_point", name: $1}
             | variable_identifier    -> {kind: "variable",    name: $1}
@@ -1886,7 +1945,7 @@ current_state := level_symbol
               -> {body: $1}
 
 cycle_delay := kw_token_93ac8946 integral_number          -> {kind: "number",     body: $2}
-             | kw_token_93ac8946 identifier               -> {kind: "identifier", body: $2}
+             | kw_token_93ac8946 non_keyword_identifier               -> {kind: "identifier", body: $2}
              | kw_token_93ac8946 lparen expression rparen -> {kind: "expression", body: $3}
 
 cycle_delay_const_range_expression := constant_expression colon constant_expression -> {kind: "range",     lo: $1, hi: $3}
@@ -2677,7 +2736,7 @@ gate_instantiation_sv_2023 := cmos_switchtype ( delay )? cmos_switch_instance ( 
 gate_instantiation := gate_instantiation_sv_2017 -> {kind: "sv_2017", body: $1}
                     | gate_instantiation_sv_2023 -> {kind: "sv_2023", body: $1}
 
-generate_block_identifier := identifier
+generate_block_identifier := non_keyword_identifier
 
 generate_item := module_or_generate_item    -> {kind: "module_or_generate_item",    body: $1}
                | interface_or_generate_item -> {kind: "interface_or_generate_item", body: $1}
@@ -2736,7 +2795,7 @@ hierarchical_root_prefix_sv_only := kw_sv_dollar_root_f65f0e67 dot
 # so a reserved type keyword can no longer match as a bare non-constant `primary`
 # hierarchical name (`assign w = integer;`). A hierarchical name segment can never be a
 # reserved word, so this is universally correct; shape-preserving (`name` stays `{body:X}`).
-hierarchical_identifier := ( hierarchical_root_prefix_sv_only )? ( identifier constant_bit_select dot )* non_keyword_identifier
+hierarchical_identifier := ( hierarchical_root_prefix_sv_only )? ( non_keyword_identifier constant_bit_select dot )* non_keyword_identifier
                         -> {root: $1, scope: $2, name: $3}
 
 hierarchical_instance := name_of_instance lparen ( list_of_port_connections )? rparen
@@ -2752,14 +2811,14 @@ hierarchical_sequence_identifier := hierarchical_identifier
 
 hierarchical_task_identifier := hierarchical_identifier
 
-hierarchical_tf_identifier := hierarchical_root_prefix_sv_only ( identifier constant_bit_select dot )* callable_identifier
+hierarchical_tf_identifier := hierarchical_root_prefix_sv_only ( non_keyword_identifier constant_bit_select dot )* callable_identifier
                                                                                                                        -> {kind: "rooted", scope_chain: $2, name: $3}
-                           | identifier constant_bit_select dot ( identifier constant_bit_select dot )* callable_identifier
+                           | non_keyword_identifier constant_bit_select dot ( non_keyword_identifier constant_bit_select dot )* callable_identifier
                                                                                                                        -> {kind: "anchored", head: $1, head_select: $2, scope_chain: $4, name: $5}
 
 hierarchical_variable_identifier := hierarchical_identifier
 
-identifier_list := identifier ( comma identifier )*
+identifier_list := non_keyword_identifier ( comma non_keyword_identifier )*
                 -> [$1, $2::2*]
 
 if_generate_construct := kw_if_958f57f5 lparen constant_expression rparen generate_block ( if_generate_else_clause )?
@@ -2804,7 +2863,7 @@ incomplete_class_scoped_type_sv_2023 := type_identifier scope_resolution type_id
 incomplete_class_scoped_type := incomplete_class_scoped_type_sv_2023
                              -> {body: $1}
 
-index_variable_identifier := identifier
+index_variable_identifier := non_keyword_identifier
 
 indexed_range := expression plus colon constant_expression  -> {kind: "plus_indexed",  base: $1, width: $4}
                | expression minus colon constant_expression -> {kind: "minus_indexed", base: $1, width: $4}
@@ -2834,7 +2893,7 @@ initial_or_extends_specifier := initial_or_extends_specifier_sv_2023
 inout_declaration := kw_inout_c900aaa9 net_port_type list_of_port_identifiers
                   -> {port_type: $2, items: $3}
 
-inout_port_identifier := identifier
+inout_port_identifier := non_keyword_identifier
 
 inout_terminal := net_lvalue
                -> {body: $1}
@@ -2848,7 +2907,7 @@ input_identifier := input_port_identifier                            -> {kind: "
                  | inout_port_identifier                             -> {kind: "inout_port", name: $1}
                  | interface_identifier dot port_identifier          -> {kind: "interface_dot_port", interface: $1, port: $3}
 
-input_port_identifier := identifier
+input_port_identifier := non_keyword_identifier
 
 input_terminal := expression
                -> {body: $1}
@@ -2883,7 +2942,7 @@ inst_clause := kw_instance_c3bec6bc inst_name
 inst_name := topmodule_identifier ( dot instance_identifier )*
           -> {head: $1, scope_chain: $2}
 
-instance_identifier := identifier
+instance_identifier := non_keyword_identifier
 
 @profiles: ["sv_2017", "sv_2023"]
 integer_atom_type_sv_only := kw_byte_8cf1783f     -> {kind: "byte"}
@@ -2983,7 +3042,7 @@ interface_declaration := interface_declaration_sv_2017 -> {kind: "sv_2017", body
 interface_identifier := @probe_sample: "I" declaration_identifier
 
 @profiles: ["sv_2017"]
-interface_instance_identifier_sv_2017 := identifier
+interface_instance_identifier_sv_2017 := non_keyword_identifier
 
 @profiles: ["sv_2017"]
 interface_instance_identifier := interface_instance_identifier_sv_2017
@@ -3012,7 +3071,7 @@ interface_port_header := interface_identifier ( dot modport_identifier )?    -> 
                       | kw_interface_5ea2d81a ( dot modport_identifier )?    -> {kind: "interface", modport: $2}
 
 @profiles: ["sv_2023"]
-interface_port_identifier_sv_2023 := identifier
+interface_port_identifier_sv_2023 := non_keyword_identifier
 
 @profiles: ["sv_2023"]
 interface_port_identifier := interface_port_identifier_sv_2023
@@ -3057,7 +3116,7 @@ let_expression := scoped_let_identifier ( lparen ( let_list_of_arguments )? rpar
 let_formal_type := kw_untyped_d53be1e8    -> {kind: "untyped"}
                  | data_type_or_implicit  -> {kind: "data_type", body: $1}
 
-let_identifier := identifier
+let_identifier := non_keyword_identifier
 
 @emit_fact: { kind: let_name, name: $body, declaration_family: let }
 @predicate: { name: has_fact, args: [let_name, $body], phase: post }
@@ -3071,7 +3130,7 @@ scoped_let_identifier := non_typedef_package_scope let_identifier -> {scope: $1,
 
 # POST-SV-AUDIT.2.4b Cat-A: factor the named-argument unit into a
 # record rule; ordered/named tails become clean extraction-spread lists.
-let_named_arg := dot identifier lparen ( let_actual_arg )? rparen -> {name: $2, value: $4}
+let_named_arg := dot non_keyword_identifier lparen ( let_actual_arg )? rparen -> {name: $2, value: $4}
 let_list_of_arguments := let_named_arg ( comma let_named_arg )*
                                 -> {kind: "named_only", items: [$1, $2::2*]}
                        | ( let_actual_arg )? ( comma ( let_actual_arg )? )* ( comma let_named_arg )*
@@ -3105,7 +3164,7 @@ library_description := library_declaration   -> {kind: "library_declaration", bo
                      | config_declaration    -> {kind: "config",              body: $1}
                      | semi                  -> {kind: "semi"}
 
-library_identifier := identifier
+library_identifier := non_keyword_identifier
 
 library_text := library_description*
              -> {descriptions: $1}
@@ -3289,7 +3348,7 @@ loop_statement := kw_forever_e07f8c4a statement_or_null
 loop_variables := ( index_variable_identifier )? ( comma ( index_variable_identifier )? )*
                -> [$1, $2::2*]
 
-member_identifier := identifier
+member_identifier := non_keyword_identifier
 
 method_call := method_call_initial ( dot method_call_body )*
             -> {initial: $1, chain: $2}
@@ -3378,7 +3437,7 @@ callable_method_call_body := built_in_method_call
 # `docs/tasks/artifacts/sv_corpus_grad/scope_prefix_rendering_drift/sweep_scope_prefix_renderings.py`.
 # One corpus row moved, and it carries the construct verbatim:
 # verible `nested_member_access.sv`'s `nested_class0::handle1::handle2.nested_function()`.
-split_hierarchical_callable_receiver := ( kw_class_qualifier_fa08937d | non_typedef_package_scope | class_scope )? ( identifier constant_bit_select dot &( identifier constant_bit_select dot ) )* identifier constant_bit_select
+split_hierarchical_callable_receiver := ( kw_class_qualifier_fa08937d | non_typedef_package_scope | class_scope )? ( non_keyword_identifier constant_bit_select dot &( non_keyword_identifier constant_bit_select dot ) )* non_keyword_identifier constant_bit_select
                                      -> {scope: $1, path: $2, name: $3}
 
 split_direct_callable_method_call := split_hierarchical_callable_receiver dot callable_method_call_body
@@ -3482,7 +3541,7 @@ method_call_root := method_call_receiver  -> {kind: "receiver",       body: $1}
 # of `[ const_expr ]`, so matches empty when no index is present) preserves
 # backwards-compat: `a.b.c.method()` (no indices) is byte-identical to pre-fix
 # behavior since `constant_bit_select` matches empty.
-context_member_method_call := identifier ( dot identifier constant_bit_select &dot )+ dot callable_method_call_body ( dot method_call_body )*
+context_member_method_call := non_keyword_identifier ( dot non_keyword_identifier constant_bit_select &dot )+ dot callable_method_call_body ( dot method_call_body )*
                            -> {head: $1.body, members: $2, method: $4, chain: $5}
 
 # SV-EXH-PROOF.3.3.4.b.6.2.37.10 — structural complement of
@@ -3499,7 +3558,7 @@ context_member_method_call := identifier ( dot identifier constant_bit_select &d
 # member can also be indexed (`this.arr[0].method()`).
 # No predicate gate needed — `kw_this`/`kw_super` are keywords; matching
 # is unambiguous.
-implicit_class_rooted_method_chain := implicit_class_handle dot identifier constant_bit_select ( dot identifier constant_bit_select &dot )* dot callable_method_call_body ( dot method_call_body )*
+implicit_class_rooted_method_chain := implicit_class_handle dot non_keyword_identifier constant_bit_select ( dot non_keyword_identifier constant_bit_select &dot )* dot callable_method_call_body ( dot method_call_body )*
                                    -> {receiver: $1, head: $3, head_select: $4, members: $5, method: $7, chain: $8}
 
 # SV-EXH-PROOF.3.3.4.b.6.2.5 — postfix-method-chain on a call-rooted
@@ -3714,7 +3773,7 @@ module_path_multiple_concatenation := lbrace ( constant_expression module_path_c
                                     -> {body: $2}
 
 module_path_primary := number                                          -> {kind: "number",            body: $1}
-                     | identifier                                      -> {kind: "identifier",        body: $1}
+                     | non_keyword_identifier                                      -> {kind: "identifier",        body: $1}
                      | module_path_concatenation                       -> {kind: "concatenation",    body: $1}
                      | module_path_multiple_concatenation              -> {kind: "multiple_concat",  body: $1}
                      | function_subroutine_call                        -> {kind: "function_call",    body: $1}
@@ -3789,7 +3848,7 @@ named_checker_port_connection := named_checker_port_connection_sv_2017 -> {kind:
 named_parameter_assignment := dot parameter_identifier lparen ( param_expression )? rparen
                            -> {name: $2, value: $4}
 
-named_argument := dot identifier lparen ( expression )? rparen
+named_argument := dot non_keyword_identifier lparen ( expression )? rparen
                -> {name: $2, value: $4}
 
 @profiles: ["sv_2017", "verilog_2005"]
@@ -4120,7 +4179,7 @@ output_identifier := output_port_identifier                           -> {kind: 
                   | inout_port_identifier                             -> {kind: "inout_port", name: $1}
                   | interface_identifier dot port_identifier          -> {kind: "interface_dot_port", interface: $1, port: $3}
 
-output_port_identifier := identifier
+output_port_identifier := non_keyword_identifier
 
 output_symbol := kw_n_0_b6589fc6 -> {kind: "0"}
                | kw_n_1_356a192b -> {kind: "1"}
@@ -4195,7 +4254,7 @@ package_import_declaration := kw_import_62fdfbd5 package_import_item ( comma pac
 # reason as on `package_declaration` (see above).
 @import_from_library: { kind: package, name_from: $package.body }
 @profiles: ["sv_2017", "sv_2023"]
-package_import_item := package_identifier scope_resolution identifier
+package_import_item := package_identifier scope_resolution non_keyword_identifier
                           -> {kind: "explicit", package: $1, name: $3}
                      | @emit_fact: { kind: wildcard_import_open, name: $package.body }
                        package_identifier scope_resolution star
@@ -4708,7 +4767,7 @@ production := production_sv_2017
            -> {body: $1}
 
 @profiles: ["sv_2017"]
-production_identifier_sv_2017 := identifier
+production_identifier_sv_2017 := non_keyword_identifier
 
 @profiles: ["sv_2017"]
 production_identifier := production_identifier_sv_2017
@@ -4994,7 +5053,7 @@ declared_property_identifier := property_identifier -> { body: $1.body }
 property_instance := ps_or_hierarchical_property_identifier ( lparen ( property_list_of_arguments )? rparen )?
                   -> {name: $1, args: $2}
 
-property_named_arg := dot identifier lparen ( property_actual_arg )? rparen -> {name: $2, value: $4}
+property_named_arg := dot non_keyword_identifier lparen ( property_actual_arg )? rparen -> {name: $2, value: $4}
 property_list_of_arguments := property_named_arg ( comma property_named_arg )*
                                     -> {kind: "named_only", items: [$1, $2::2*]}
                             | ( property_actual_arg )? ( comma ( property_actual_arg )? )* ( comma property_named_arg )*
@@ -5031,7 +5090,7 @@ ps_covergroup_identifier := scoped_covergroup_type_identifier            -> {bod
                          | known_unscoped_covergroup_type_identifier    -> {body: $1}
 
 ps_identifier := scope_free_identifier                       -> {kind: "unscoped", name: $1}
-              | non_typedef_package_scope identifier        -> {kind: "scoped", scope: $1, name: $2}
+              | non_typedef_package_scope non_keyword_identifier        -> {kind: "scoped", scope: $1, name: $2}
 
 ps_or_hierarchical_array_identifier := ( implicit_class_handle dot | class_scope | non_typedef_package_scope )? hierarchical_array_identifier
                                     -> {scope: $1, name: $2}
@@ -5271,7 +5330,7 @@ rs_production := rs_production_sv_2023
               -> {body: $1}
 
 @profiles: ["sv_2023"]
-rs_production_identifier_sv_2023 := identifier
+rs_production_identifier_sv_2023 := non_keyword_identifier
 
 @profiles: ["sv_2023"]
 rs_production_identifier := rs_production_identifier_sv_2023
@@ -5488,7 +5547,7 @@ declared_sequence_identifier := sequence_identifier -> { body: $1.body }
 sequence_instance := ps_or_hierarchical_sequence_identifier ( lparen ( sequence_list_of_arguments )? rparen )?
                   -> {name: $1, args: $2}
 
-sequence_named_arg := dot identifier lparen ( sequence_actual_arg )? rparen -> {name: $2, value: $4}
+sequence_named_arg := dot non_keyword_identifier lparen ( sequence_actual_arg )? rparen -> {name: $2, value: $4}
 sequence_list_of_arguments := sequence_named_arg ( comma sequence_named_arg )*
                                     -> {kind: "named_only", items: [$1, $2::2*]}
                             | ( sequence_actual_arg )? ( comma ( sequence_actual_arg )? )* ( comma sequence_named_arg )*
@@ -5539,7 +5598,7 @@ showcancelled_declaration := kw_showcancelled_ac9a7408 list_of_path_outputs semi
                            | kw_noshowcancelled_1d50d807 list_of_path_outputs semi
                                    -> {kind: "noshowcancelled", outputs: $2}
 
-signal_identifier := identifier
+signal_identifier := non_keyword_identifier
 
 signing := kw_signed_07235a80   -> {kind: "signed"}
          | kw_unsigned_9861ca25 -> {kind: "unsigned"}
@@ -5900,7 +5959,7 @@ task_prototype_sv_2023 := kw_task_7fbb727d ( dynamic_override_specifiers )? task
 task_prototype := task_prototype_sv_2017 -> {kind: "sv_2017", body: $1}
                 | task_prototype_sv_2023 -> {kind: "sv_2023", body: $1}
 
-terminal_identifier := identifier
+terminal_identifier := non_keyword_identifier
 
 plain_tf_call_with_args := tf_identifier attribute_instance* lparen list_of_arguments rparen
                         -> {name: $1, attributes: $2, args: $4}
@@ -6239,7 +6298,7 @@ udp_declaration := udp_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
 udp_declaration_port_list := udp_output_declaration comma udp_input_declaration ( comma udp_input_declaration )*
                           -> {output: $1, inputs: [$3, $4::2*]}
 
-udp_identifier := identifier
+udp_identifier := non_keyword_identifier
 
 udp_initial_statement := kw_initial_8ad7d21c output_port_identifier assign init_val semi
                       -> {name: $2, init_val: $4}

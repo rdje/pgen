@@ -1,6 +1,6 @@
 {
   "classifier_pattern": "_lr_(?P<shape>base|suffix|seed|guard|alt)(?![a-z])",
-  "corpus_family_share_pct": "2.735",
+  "corpus_family_share_pct": "2.761",
   "derivation": "python3 stimuli/sv/corpus_parse_cost.py --rederive-family-share --out docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json",
   "files_in_manifest": 16336,
   "files_measured": 16336,
@@ -16,16 +16,16 @@
     },
     "generated parser": {
       "path": "generated/systemverilog_parser.rs",
-      "sha256": "e563be8a67dd516a4c5b162550002502131530b9ad675cdb1304f8af3b2d7785"
+      "sha256": "5a1dfa3620b2d387551499f642e363c6996f02f6c2d8245a472949d287f621a0"
     },
     "grammar": {
       "path": "grammars/systemverilog.ebnf",
-      "sha256": "7881f578a49f52049df3d1779c9ed13c978c3dc112ad704cf4d7d8742c66bf7f"
+      "sha256": "63a0dd49cdf5d5f365c998430c114fd47f3384fd10f9b774ba6d2925f5a7dde7"
     }
   },
-  "lr_entries": 24658431,
+  "lr_entries": 24633438,
   "nodump": [],
   "note": "The share of all PROTOCOL-graph rule entries taken by the left-recursion elimination family over the whole SV corpus \u2014 `PARSE-COST-RATCHET`'s one co-published live number, quoted verbatim on every designated live surface. \u26d4 v1 of this schema also carried `blind_spot_factor` and `wall_clock_regression_pct`; ENGINE-UNIVERSAL-SERVICES.26 RETIRED both. The factor was wall_clock / this share, and both terms were wrong: the +24.3 % numerator is refuted (.20 slice 5, not reproducible from its own raw data), and the share was the wrong denominator independently of that \u2014 sensitivity is how much the counter MOVED (+10.59 %, guard_ab_entries.txt), not how large the family is. No ratio replaces it: no admissible wall-clock figure for the change exists. \u26d4 Derived, never hand-edited; `--verify-family-share` re-hashes every identity row above and re-checks lr_entries/total_entries against the declared share on every run.",
   "schema": "pgen.parse_cost.family_share/v2",
-  "total_entries": 901555266
+  "total_entries": 892171789
 }

@@ -1,6 +1,6 @@
 class	rows	one_sided_unit	one_sided_fragment	dark	dark_no_backtick
 deferred:chained_only	5276	1021	103	4152	528
-deferred:no_sv_key	743	665	0	78	26
+deferred:no_sv_key	743	664	0	79	27
 deferred:svpp_owned	186	123	0	63	8
 deferred:impl_varying	90	5	0	85	0
 deferred:verilog_ams_lane	20	6	0	14	11

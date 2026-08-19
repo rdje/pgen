@@ -1,5 +1,75 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0237 — the landing found a fourth arm, and the same lesson twice
+
+**1. WHAT LANDED.** The reserved-keyword hole is closed at every site the LRM constrains. The census
+that opened this leaf at *"43 raw `identifier` references"* — a wrong hand count, corrected to 47 in
+40 rules — now reports **`refs=1`**: the only raw reference left in the SV grammar is
+`rooted_tf_call_sv_only`'s `!( identifier )` firewall, the one site where guarding would INVERT the
+lookahead. And the parser got **cheaper on all three binding counters** doing it: `entries` −1.072 %,
+`memo_hits` −2.407 %, `committed` −5.110 %.
+
+**2. THE LANDING WAS NOT THE ARM I HAD MEASURED, AND THAT IS THE STORY.** `-0236` measured three arms
+and concluded the call-site spelling (`designA`) eliminated the rise. I applied it, regenerated it
+byte-identically to its measured arm, spent a 20-minute release build on it, ran both corpus lanes,
+watched every correctness surface come back green — and then `PARSE-COST-RATCHET` refused it on the
+*other* binding counter: `entries` fell 1.07 %, but **`committed` rose +0.72 %**.
+
+⭐ **The attribution `-0236` had already taken said exactly where to look.** That slice had resolved
+the `committed` move across five rules with no residue: `non_keyword_identifier` +51,611 — one extra
+COMMITTED FRAME per committed identifier at the 45 rewritten sites — minus four rules at exactly −31.
+The frame existed because the wrapper *delegated*: `non_keyword_identifier := !reserved… identifier`
+wraps a rule that then does the matching. ⇒ a wrapper that matches the token ITSELF should not pay
+it. That is a hypothesis, and the whole point of the previous slice was that hypotheses about this
+engine get measured:
+
+| arm | shape | `entries` | `committed` | verdict |
+|---|---|---|---|---|
+| `designB` | exclusion inside `identifier`, wrapper a bare alias | +1.775 % | −0.00 % | ⛔ entries rose |
+| `designA` | wrapper keeps the guard, DELEGATES | −0.892 % | +0.72 % | ⛔ committed rose |
+| `designC` | wrapper MATCHES THE TOKEN | **−1.072 %** | **−5.110 %** | ✅ shipped |
+
+`designC` adds no frame at the 45 rewritten sites and removes one at the ~100 already-guarded ones,
+which is why `committed` ends 5 % *below* baseline rather than above it.
+
+**3. THE GENERALISATION IS THE SAME ONE, EARNED A SECOND TIME.** `-0236` banked *"a rule's memo-hit
+rate is a property of its call graph, not of the rule."* This slice adds the sibling: **the cost of a
+guard is a property of the SHAPE of the rule that carries it, not of the guard.** Two of three
+candidate spellings of one correctness fix were refused on cost, each on a different counter, and
+neither reason could be seen without building the arm. The knowledge card and the book chapter were
+both corrected in place rather than re-published, because both had named `designA` as the answer four
+hours earlier.
+
+**4. THE CORPUS IS THE SET THAT WAS ALREADY ADJUDICATED, WITH NOTHING NEW.** `sv` 16,336 files
+`pass 9787 → 9781`; `verilog_2005` 2,459 files `pass 2181 → 2179`; 0 timeouts, 0 crashes, 0 rows
+added or removed on either lane. Six `sv` + three `verilog_2005` files move, file-for-file the set
+`-0235` adjudicated. ⛔ `10.09.02_03.sv` is NOT among them — `.13c.2t` cures the one rejects-valid
+regression the fix would otherwise have caused, which is why the two leaves had to land together.
+
+**5. THE DIALECT PAIR IS REAL ON THIRD-PARTY SOURCE NOW, not only on a crafted reproducer.**
+`br930.v` and `generate_multi_loop.v` FAIL under `sv_2017` and PASS under `verilog_2005`. `type` and
+`byte` are in IEEE 1800's Annex B and in neither case in IEEE 1364-2005's; both profiles wrongly
+accepted before. A three-profile parser that gave the same answer on both profiles was not really a
+three-profile parser here.
+
+**6. THREE PINS RE-DECIDED AGAINST THE STANDARD, NOT THE TOOL.** The three `verilog_2005` rows were
+keyed `must_accept` by the ivtest driver — upstream tool testimony, which a clause cite outranks.
+Re-pinned `must_reject` with the clauses read out of the tracked LRM: `instance` is in IEEE 1364-2005
+Annex B:59 and that annex's preamble exempts only ESCAPED identifiers; `pull_gate_instance ::=
+[ name_of_gate_instance ] ( output_terminal )` at A.3.1:362 takes exactly ONE terminal. ⭐ The corpus
+supplied its own control: `pr1787423c.v` has no pull gate and did not move.
+
+**7. DERIVED NUMBERS MOVE TOGETHER OR NOT AT ALL.** The corpus verdicts moving pulled three derived
+publications with them, each of which refused until it was re-derived rather than edited: the
+parse-cost baseline (promoted deliberately, exit 0, all three counters logged as improvements), the
+LR-family corpus share (2.735 → 2.761 %, adopted on all four designated live surfaces) and the
+verdict-coverage tuple (`…/4392/288` → `…/4393/288`). ⭐ **The axis-2 bar is unchanged at 288** —
+every moved file was already `deferred` or is now a matched `must_reject`.
+
+**8. WHAT THIS RETIRES ELSEWHERE.** `.13c.2l` (the contract/ledger debt) had argued it could age
+quietly because all four prior accept-set changes were strictly-more-permissive. This is the first
+NARROWING, on all three profiles. The argument is retired and routed into that leaf.
+
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0236 — the cost was never in the fix, it was in the spelling
 
 **1. ⭐⭐⭐ THE HEADLINE.** `.13c.2k` had been held back twice: once because it uncovered five latent

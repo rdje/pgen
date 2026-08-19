@@ -15,6 +15,14 @@ THE ARMS
   designB    `t_only` + `.13c.2k` as BUILT and held back: the reserved-word exclusion moves INTO
              `identifier`'s simple branch and `non_keyword_identifier` becomes a bare alias.
              One edit, guards all 47 references including the negation site.
+  designC    `t_only` + `.13c.2k` with `non_keyword_identifier` doing the work ITSELF instead of
+             delegating to `identifier`, and the 45 call sites pointed at it. ⛔ Built because
+             `designA` LANDED and `PARSE-COST-RATCHET` refused it on the OTHER binding counter:
+             `entries` fell 0.89 % but `committed` ROSE +51,487, attributed to the unit as one
+             extra COMMITTED FRAME per committed identifier at the 45 rewritten sites
+             (`non_keyword_identifier` wrapping `identifier`). This arm removes that frame — the
+             guarded rule matches the token directly, so the chain is the same LENGTH as HEAD's
+             at the rewritten sites and one frame SHORTER at the ~100 already-guarded ones.
   designA    `t_only` + `.13c.2k` spelled at the CALL SITES: `identifier` and
              `non_keyword_identifier` keep their HEAD definitions and the 45 unguarded
              non-negation references are rewritten to `non_keyword_identifier`.
@@ -28,7 +36,7 @@ guarding `identifier` (design B) makes that lookahead succeed on keyword-headed 
 there, while design A leaves it untouched. That is a measurable difference, not a footnote, and it
 is what the correctness arm of this comparison has to settle.
 
-USAGE   python3 …/apply_arm.py --arm {t_only,designB,designA} [--check]
+USAGE   python3 …/apply_arm.py --arm {t_only,designB,designA,designC} [--check]
         python3 …/apply_arm.py --restore          # git-checkout the grammar back to HEAD
 EXIT    0 = applied (or --check passed) · 2 = refused (anchor text not found, count mismatch)
 """
@@ -66,6 +74,14 @@ T_AFTER = (
     'assignment_pattern_key := simple_type        -> {kind: "type",      body: $1}\n'
     '                        | data_type          -> {kind: "data_type", body: $1}\n'
     '                        | kw_default_7505d64a -> {kind: "default"}\n'
+)
+
+# ── `.13c.2k` design C — `non_keyword_identifier` matches the token itself. ─────────────────────
+C_GUARD_AFTER = (
+    '# SV-CORPUS-GRAD.13c.2k design C (EXPERIMENTAL ARM): the guarded rule does the work ITSELF\n'
+    '# rather than delegating to `identifier`, so guarding a position costs no extra parse frame.\n'
+    'non_keyword_identifier := escaped_identifier -> {body: $1}\n'
+    '                       | !reserved_non_keyword_identifier simple_identifier -> {body: $2}\n'
 )
 
 # ── `.13c.2k` design B — the exclusion moves into `identifier`. ─────────────────────────────────
@@ -151,7 +167,7 @@ def rewrite_call_sites(text: str, census) -> tuple[str, int]:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--arm", choices=("t_only", "designB", "designA"))
+    ap.add_argument("--arm", choices=("t_only", "designB", "designA", "designC"))
     ap.add_argument("--restore", action="store_true")
     ap.add_argument("--check", action="store_true", help="apply in memory and report, write nothing")
     a = ap.parse_args()
@@ -180,6 +196,10 @@ def main() -> int:
     elif a.arm == "designA":
         text, n = rewrite_call_sites(text, load_census())
         note = f".13c.2t + .13c.2k design A ({n} call sites rewritten)"
+    elif a.arm == "designC":
+        text, n = rewrite_call_sites(text, load_census())
+        text = replace_once(text, B_GUARD_BEFORE, C_GUARD_AFTER, ".13c.2k design C (self-matching)")
+        note = f".13c.2t + .13c.2k design C ({n} call sites rewritten, guard self-matching)"
 
     if a.check:
         print(f"apply_arm: {a.arm} would apply cleanly — {note} (nothing written)")

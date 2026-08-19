@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `95cbcfa6e217817e3f8e1cb15a434012a4e9a1fd6b68e6e585fd8c800840463c` |
-| grammar | `grammars/systemverilog.ebnf` | `c4d0fe43fe62ac1b031d84276acbf26e3d72adc72e28d387f278be053e4a73e4` |
-| generated parser | `generated/systemverilog_parser.rs` | `e563be8a67dd516a4c5b162550002502131530b9ad675cdb1304f8af3b2d7785` |
+| parse binary | `rust/target/release/parseability_probe` | `2349d8902d04642db1f77c15c41997cccd9242428db681433729ffc864ef11ef` |
+| grammar | `grammars/systemverilog.ebnf` | `63a0dd49cdf5d5f365c998430c114fd47f3384fd10f9b774ba6d2925f5a7dde7` |
+| generated parser | `generated/systemverilog_parser.rs` | `5a1dfa3620b2d387551499f642e363c6996f02f6c2d8245a472949d287f621a0` |
 
-Measured at `HEAD` = `4a2703cf+dirty` (2026-08-18).
+Measured at `HEAD` = `b532b540+dirty` (2026-08-19).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -53,13 +53,13 @@ Measured at `HEAD` = `4a2703cf+dirty` (2026-08-18).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `5.88` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `5.69` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 16336 | 9787 | 6549 | 0 | 0 | 59.9% |
+| 16336 | 9781 | 6555 | 0 | 0 | 59.9% |
 
 ## Per sub-corpus
 
@@ -70,7 +70,7 @@ Slowest completing file: `5.88` s — `stimuli/sv/subs/opentitan/hw/top_darjeeli
 | black-parrot | 205 | 21 | 184 | 0 | 0 | 10.2% |
 | friscv | 441 | 31 | 410 | 0 | 0 | 7.0% |
 | ispras-sv-tests | 1266 | 1097 | 169 | 0 | 0 | 86.7% |
-| iverilog | 3799 | 3231 | 568 | 0 | 0 | 85.0% |
+| iverilog | 3799 | 3225 | 574 | 0 | 0 | 84.9% |
 | opentitan | 3983 | 795 | 3188 | 0 | 0 | 20.0% |
 | scr1 | 50 | 8 | 42 | 0 | 0 | 16.0% |
 | slang | 92 | 72 | 20 | 0 | 0 | 78.3% |
