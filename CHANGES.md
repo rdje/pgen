@@ -1,5 +1,54 @@
 # CHANGES.md
 
+## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0234 (findings RE-DERIVED under DIRECTOR CHALLENGE; THREE published claims CORRECTED; leaf .13c.2t DECIDED; .13c.2u/.13c.2v NEW; ZERO shipped parser bytes)
+
+- ⛔⛔ **THREE OF THE `-0233` FINDINGS WERE WRONG, AND THE WORST WAS WRONG IN THE FLATTERING
+  DIRECTION.** Re-derived by command rather than re-read, at the director's challenge.
+  (1) *"`n_output_gate_instance` matched no input at all"* — **FALSE**. Measured on the PRE-FIX
+  grammar: the greedy star eats the mandatory tail only when `net_lvalue` can match a PREFIX of the
+  final terminal. A plain net, a concatenation, a bit-select and `a & b` all starve it; `1'b0`, `(a)`
+  and `$signed(a)` do not, and all three reached `gate_instantiation` before the fix.
+  (2) *"`.13c.2k` produced three new leaves"* — **FIVE** (`.13c.2q`, `.13c.2r`, `.13c.2s`, `.13c.2t`,
+  `ENGINE-UNIVERSAL-SERVICES.37`); three came directly from the corpus A/B.
+  (3) *"`.36` needed a second predicate one commit after shipping"* — `.36` shipped in `-0229`,
+  **four commits back**. What holds is that this was the FIRST attributed rise since; the three
+  intervening commits moved the binding counters by `+0` or not at all.
+- ⭐⭐⭐ **AND THE FALSIFICATION LEG FOUND SOMETHING BIGGER THAN THE ERROR IT WAS CHECKING.**
+  `-0233` published *"every verdict-only instrument we own is blind to it"*. Testing that against an
+  oracle I did not build turned up `stimuli/sv/characterization/rule_coverage_sv_2017.tsv`, a TRACKED
+  artifact: `enable_gatetype GAP 0`, `pass_en_switchtype GAP 0`, `n_output_gate_instance covered 4`.
+  ⇒ **`.13c.2q`'s defect was published as a zero before anyone went looking, and `.13c.2r`'s exact
+  bound — the number that refutes the overstatement above — was sitting beside it.** The claim was
+  literally true and its implication was false: we HAD an instrument that saw this. What we do not
+  have is anything that reads it. **104 rules have never fired on 16 336 real files** ⇒ `.13c.2u`.
+- ⚠️ **THE METHODOLOGICAL FAULT IS NAMED, because it will recur.** The scratch grammar that isolated
+  `.13c.2r` gives `out` and `inp` the SAME regex, so in it the star starves for every input. The
+  isolation reproduced the MECHANISM and could not possibly have shown its BOUNDARY — and the
+  boundary was published as though it had. *An isolation proves a mechanism exists; it does not bound
+  where the mechanism applies.*
+- ⭐⭐ **`.13c.2t` DECIDED — `assignment_pattern_key := simple_type | data_type | default`**, the
+  union, director-delegated (*"it is yours to make ... ensure full compliance"*). Annex A says
+  `simple_type | default` in BOTH editions; §10.9.2's normative body text says *"the
+  `'{data_type: default_value}` syntax can also be used"* and its worked example is
+  `'{int:1, default:0, string:""}`. The two are NOT nested — `ps_parameter_identifier` is in
+  `simple_type` only, `string`/`chandle`/`event` in `data_type` only — so keeping one rejects the
+  standard's own example and replacing it silently narrows. The union is the only reading that
+  satisfies both normative clauses. Corroborated by the standard's own drafting:
+  `casting_type ::= simple_type | ... | string | const` patches the same shortfall at the one other
+  site. The sweep is BOUNDED at one of three `simple_type` references, by checking the other two.
+- ⛔ **`.13c.2v` NEW — Annex A is narrower than the clause text, in both editions, and PGEN was
+  extracted from Annex A.** So every disagreement is a latent rejects-valid defect, and *"100 %
+  LRM-compliant"* is a claim about the UNION of the two, not about Annex A alone.
+- Standing directive recorded (`feedback_consult_the_lrms_rather_than_asking`): a question the
+  standards ANSWER is not a director call. All three LRMs are tracked in
+  `docs/{systemverilog/{2017,2023},verilog/2005}/{md,txt}/` plus PDF — `md/` for clause text and
+  worked examples, `txt/` for greppable Annex A productions. `-0234`'s decision turned on those two
+  surfaces disagreeing, and either alone would have given a confident wrong answer.
+- Verification: ZERO shipped parser bytes — the SV parser regenerates **byte-identically**
+  (`e563be8a67dd516a4...`) across the comment-only grammar edit, asserted rather than assumed; family
+  share re-derives `2.735 %` and reproduces exactly; parse cost rebaselined on the new grammar sha;
+  `ADJUDICATION-REPROS checked=135 armed=60 listed=73 failures=0`; all 21 doctrines PASS.
+
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0233 (leaves SV-CORPUS-GRAD.13c.2q + .13c.2r CLOSED, ENGINE-UNIVERSAL-SERVICES.37 CLOSED; .13c.2s/.13c.2t NEW; .13c.2k's fix BUILT, MEASURED and HELD BACK)
 
 - ✅ **PGEN CAN NOW PARSE TEN GATE AND SWITCH PRIMITIVES IT COULD NOT PARSE AT ALL.** `bufif0`,
@@ -22,6 +71,10 @@
   `( comma output_terminal )* comma input_terminal`, and a greedy repetition the engine will not
   backtrack into ate the mandatory trailing input terminal, so the rule matched **no input at all**.
   Isolated on an 8-line scratch grammar before either fix was applied.
+  ⚠️ **CORRECTED BY `-0234`: "no input at all" is FALSE.** The star eats the tail only when
+  `net_lvalue` can match a prefix of the final terminal — every ordinary gate instantiation, but not
+  `buf g(o, 1'b0)`, `buf g(o, (a))` or `buf g(o, $signed(a))`, all three of which reached
+  `gate_instantiation` BEFORE the fix. See the `-0234` entry.
 - ⭐ **THE STARVING-STAR CLASS IS NOW SWEPT BY AN INSTRUMENT, and it found a defect on its own.**
   `starving_star_census.py` reports 4 remaining candidates; three are measured false positives (the
   construct is reachable through `list_of_arguments`' own mixed alternative), and one is real:

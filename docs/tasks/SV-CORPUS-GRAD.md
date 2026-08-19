@@ -10658,12 +10658,35 @@ routed finding look smaller.
   `--interpret-parse-ast-json`, `sv_2017`.
 - [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/systemverilog.ebnf:3762`,
   `n_output_gate_instance := ( name_of_instance )? lparen output_terminal ( comma output_terminal )* comma input_terminal rparen`.
-  `output_terminal := net_lvalue` and `input_terminal := expression` match the same texts, and the
-  engine does not backtrack into a committed repetition, so the greedy star eats the MANDATORY
-  trailing `comma input_terminal` and the sequence then fails with nothing left to satisfy it.
-  ⛔ Isolated on an 8-line scratch grammar driven by TOOLBOX 1.5b `--interpret-parse`, so the claim
-  rests on a measurement and not on PEG folklore
-  (`docs/tasks/artifacts/sv_corpus_grad/gate_route_unmasking/`):
+  `output_terminal := net_lvalue` and `input_terminal := expression` overlap, and the engine does not
+  backtrack into a committed repetition, so the greedy star eats the MANDATORY trailing
+  `comma input_terminal` and the sequence then fails with nothing left to satisfy it.
+  ⛔⛔ **CORRECTED under DIRECTOR CHALLENGE (`-0234`): this leaf published "for EVERY input" and that
+  is FALSE.** The star eats the tail exactly when `net_lvalue` can match a PREFIX of the final
+  terminal. Measured on the PRE-FIX grammar, `sv_2017`, one probe per row:
+
+  | final terminal | can `net_lvalue` start it? | pre-fix ARM |
+  |---|---|---|
+  | `i` — a plain net | yes | `udp_instantiation` ⛔ |
+  | `{a, b}` — a concatenation (a net_lvalue) | yes | `udp_instantiation` ⛔ |
+  | `a[0]` — a bit-select | yes | `udp_instantiation` ⛔ |
+  | `a & b` — net_lvalue matches the PREFIX `a` | yes | `udp_instantiation` ⛔ |
+  | `1'b0` — a literal | **no** | **`gate_instantiation`** ✅ |
+  | `(a)` — parenthesised | **no** | **`gate_instantiation`** ✅ |
+  | `$signed(a)` — a system function call | **no** | **`gate_instantiation`** ✅ |
+
+  ⇒ the rule was unmatchable for the COMMON form and matchable for the rest, which is why
+  `buf`/`not` fell through to `udp_instantiation` in ordinary source. ⭐⭐ **And the repository
+  already knew**: `stimuli/sv/characterization/rule_coverage_sv_2017.tsv` records
+  `n_output_gate_instance covered 4` — four corpus files whose input terminal cannot start a
+  net_lvalue. The number that refuted the claim was in a tracked artifact the whole time.
+  ⛔ **THE METHODOLOGICAL FAULT IS NAMED, because it will recur**: the scratch grammar below gives
+  `out` and `inp` the SAME regex, so in it the star starves for every input — the isolation
+  reproduced the MECHANISM and could not possibly have shown its BOUNDARY, and the boundary was
+  published as though it had. *An isolation proves a mechanism exists; it does not bound where the
+  mechanism applies.*
+  ⛔ The mechanism itself stands, isolated on an 8-line scratch grammar driven by TOOLBOX 1.5b
+  `--interpret-parse` (`docs/tasks/artifacts/sv_corpus_grad/gate_route_unmasking/`):
 
   | grammar shape | `(o, i)` | `(o, p, i)` |
   |---|---|---|
@@ -10731,7 +10754,7 @@ routed finding look smaller.
   ⇒ the construct is reachable, the named rule may still be starving, and that is an ARM question of
   exactly the kind `.13c.2q` proved is invisible to a verdict.
 
-#### ⚠️ `.13c.2t` NEW `todo` — `'{int:1, default:0, string:""}` — IEEE 1800-2017 §10.9.2's OWN example — is held up only by a raw `identifier`, and it is the last thing blocking `.13c.2k` (opened 2026-08-19 session #247 by `.13c.2k`'s corpus A/B, `PGEN-SV-CORPUS-GRAD-0233`)
+#### ⚠️ `.13c.2t` `in progress` — DECIDED (director-delegated 2026-08-19), implementation pending — `'{int:1, default:0, string:""}` — IEEE 1800-2017 §10.9.2's OWN example — is held up only by a raw `identifier`, and it is the last thing blocking `.13c.2k` (opened 2026-08-19 session #247 by `.13c.2k`'s corpus A/B, `PGEN-SV-CORPUS-GRAD-0233`)
 
 - ⛔ **THE DEFECT IS LATENT TODAY AND ONLY VISIBLE THROUGH A FIX.** The file parses at HEAD, so no
   instrument in the repository is red. It parses because `structure_pattern_key`'s FIRST alternative,
@@ -10755,13 +10778,123 @@ routed finding look smaller.
   in none of them (`non_integer_type ::= shortreal | real | realtime`). PGEN's grammar mirrors
   Annex A faithfully; the gap is in Annex A, and `.13c.2f` slice 4 is the standing precedent for
   which side wins (`-0221` made IEEE 1800-2023 §30.7.1's own `PATHPULSE$` example parse).
-- **WHAT THIS LEAF OWES**: (a) decide the minimal faithful widening — the candidate is to admit the
-  keyword type names the §10.9.2 example uses as `assignment_pattern_key`s, which is a question about
-  `data_type`-vs-`simple_type` and must be answered by reading both, not by adding `string` alone;
-  (b) ⛔ a SWEEP, because one instance is never the class here (`.13c.2e`): every other place PGEN
-  spells `simple_type` where the LRM's examples use a fuller `data_type` is the same defect in
-  waiting; (c) a pinned reproducer pair (the LRM line, plus a one-token control) so the fix is
-  ratcheted; (d) then unblock `.13c.2k`, whose fix is already built and measured.
+- [x] ⭐⭐⭐ **(a) DECIDED — `assignment_pattern_key := simple_type | data_type | default`, the UNION, and the decision is mine** (director, 2026-08-19: *"it is yours to make, it is a technical question … ensure full compliance"*). ⛔ Not `data_type` replacing `simple_type`, and not `simple_type` plus a hand-added `string`. The reasoning is from the tracked LRMs, read rather than recalled:
+
+  | source | what it says | status |
+  |---|---|---|
+  | `docs/systemverilog/2017/txt/section-Annex_A…:—` / `2023/…:1480` | `assignment_pattern_key ::= simple_type \| default` | normative, BOTH editions identical |
+  | `docs/systemverilog/2017/md/section-10-assignment-statements.md` §10.9.2 | *"The `'{member:value}` or **`'{data_type: default_value}`** syntax can also be used"* | normative body text |
+  | same, §10.9.2 worked example | `initial s2 = '{int:1, default:0, string:""};` | normative example |
+  | same, §10.9.2 | *"The type:value specifies an explicit value for each field whose type matches the type (see 6.22.1)"* | 6.22.1 ranges over `data_type` |
+
+  ⇒ **two normative clauses of the same standard disagree**, and they disagree the same way in 2017
+  and 2023, so this is a standing LRM defect and not an edition difference.
+- ⛔ **WHY THE UNION IS THE ONLY COMPLIANT READING.** `simple_type` and `data_type` are NOT nested:
+  `simple_type ::= integer_type | non_integer_type | ps_type_identifier | ps_parameter_identifier`
+  (`2023/…:598`), and `ps_parameter_identifier` (`:2187`) appears NOWHERE in `data_type` (`:545`),
+  while `data_type` alone carries `string`, `chandle`, `event`, `class_type`,
+  `ps_covergroup_identifier`, `type_reference` and the `virtual interface` form. So:
+  * keeping only `simple_type` **rejects the standard's own §10.9.2 example** — a rejects-valid
+    non-conformance, the axis the release bar is about;
+  * replacing it with `data_type` **drops `ps_parameter_identifier`** — a silent narrowing, and
+    exactly the "fix one instance, break the class" move `.13c.2e` warns against.
+
+  The union is the only spelling under which every derivation either normative clause licenses is
+  derivable, and it admits nothing the standard forbids: §10.9.2 says the key names a *type*, and
+  `data_type` is the LRM's own name for the set of types. ⭐ `simple_type` stays FIRST so the AST
+  arm for every construct that parses today is unchanged.
+- ⭐⭐ **CORROBORATION FROM THE STANDARD'S OWN DRAFTING, not from my reading of it.** Annex A's
+  `casting_type ::= simple_type | constant_primary | signing | **string** | const` (`2023/…:539`)
+  patches `simple_type` with an explicit `| string` at the one other place a type keyword is used as
+  a key-like operand. The drafters knew `simple_type` was short of `string`; they fixed it at
+  `casting_type` and not here. That is independent evidence for the gap being a defect in Annex A
+  rather than a deliberate restriction.
+- [x] **(b) THE SWEEP IS DONE AND IT IS BOUNDED AT ONE OF THREE — by measurement, not by reading.**
+  `simple_type` has exactly three non-definition references in the grammar, and each was checked
+  against its own Annex A production:
+
+  | site | Annex A | PGEN | verdict |
+  |---|---|---|---|
+  | `assignment_pattern_key:782` | `simple_type \| default` | `simple_type \| default` | ⛔ **the gap** — body text says `data_type` |
+  | `casting_type:1032` | `simple_type \| constant_primary \| signing \| string \| const` | all five present (`kw_string_ecb25204`) | ✅ no gap |
+  | `slice_size:5571` | `simple_type \| constant_expression` | both present | ✅ no gap |
+
+  ⇒ one instance, and this time the class really is one — established by checking the other two, not
+  by assuming.
+- ⛔ **(c) IT CANNOT BE VERIFIED ALONE, AND THAT DECIDES THE SEQUENCING.** `structure_pattern_key`
+  tries `member_identifier` FIRST, and `member_identifier := identifier` still accepts the keyword
+  `string` until `.13c.2k` lands. So this fix changes NO verdict and NO arm on today's parser — it
+  is unobservable in isolation. ⇒ **it must land WITH `.13c.2k`**, whose corpus A/B is its only
+  possible before→after, and which it exists to unblock. Landing it alone would mean ticking an
+  ADDRESSED box against a measurement that cannot be made.
+- **WHAT REMAINS**: the grammar edit itself, a pinned reproducer pair (the §10.9.2 line plus a
+  one-token control) so the widening is ratcheted, and the joint landing with `.13c.2k`.
+
+#### ⚠️ `.13c.2u` NEW `todo` — **104 grammar rules have NEVER fired on 16,336 real SystemVerilog files, the number is in a TRACKED artifact, and nothing reads it** (opened 2026-08-19 session #247 by the `-0233` re-derivation under DIRECTOR CHALLENGE, `PGEN-SV-CORPUS-GRAD-0234`)
+
+- ⛔⛔ **HOW IT WAS FOUND — by trying to FALSIFY a published claim, which is the leg that gets skipped.**
+  `-0233` published *"every verdict-only instrument we own is blind to it"*. Testing that against an
+  oracle I did not build turned up `stimuli/sv/characterization/rule_coverage_sv_2017.tsv`, which
+  records, per grammar rule, how many corpus files ever caused it to fire:
+
+  ```text
+  $ grep -E "^(enable_gatetype|pass_en_switchtype|n_output_gate_instance)\b" \
+        stimuli/sv/characterization/rule_coverage_sv_2017.tsv
+  enable_gatetype          GAP       0   sv_2017,sv_2023,verilog_2005
+  pass_en_switchtype       GAP       0   sv_2017,sv_2023,verilog_2005
+  n_output_gate_instance   covered   4   sv_2017,sv_2023,verilog_2005
+  ```
+
+  ⇒ **`.13c.2q`'s defect was PUBLISHED AS A ZERO, in a tracked file, before anyone went looking**,
+  and `.13c.2r`'s exact BOUND (`covered 4`) was sitting beside it and refuted the overstatement
+  `-0233` made about it. The claim was literally true and its implication was false: the repository
+  did have an instrument that saw this. What it did not have is anything that READS the instrument.
+- **THE POPULATION, derived:** `awk -F'\t' 'NR>1{print $2}' … | sort | uniq -c` →
+  **1 248 `covered` · 104 `GAP` · 123 `na_profile`**. The 104 GAP rows are the target.
+- ⛔ **THE DISCRIMINATOR IS THE WHOLE LEAF, because a GAP is not automatically a defect.** A rule can
+  read 0 for two very different reasons: (i) the corpus happens not to contain the construct — a
+  COVERAGE gap, honest and expected for e.g. `include_statement`; or (ii) the rule **cannot fire for
+  any input** — a REACHABILITY defect, which is what `enable_gatetype` and `pass_en_switchtype`
+  turned out to be. `.13c.2q` gives the method for telling them apart: hand the rule a minimal
+  correct-arity construct from the LRM and ask whether the ARM is reached. ⭐ Note the arity trap it
+  also gives: the first cut of that matrix used wrong arities and reported ten defects where there
+  were eight.
+- ⭐ **EARLY SIGNAL, not a verdict**: the GAP list already contains `kw_B_ae4f281d` and
+  `kw_F_e69f20e9` — single-LETTER keyword tokens, which is the shape of the `kw_n_<digits>`
+  extraction family `.13c.2p` owns — plus `edge_descriptor`, `bins_selection`, `cross_body_item`
+  and `dist_weight`. Several of these are constructs a Nexsim consumer will exercise.
+- **WHAT THIS LEAF OWES**: (a) an instrument that partitions the 104 into *corpus-coverage gap* and
+  *cannot-fire defect*, by construction rather than by reading, with controls that make it able to go
+  RED; (b) a verdict for every row; (c) ⛔ **the durable half — a GATE**, because the defect here is
+  not that the number was wrong, it is that a tracked number nobody consumes is indistinguishable
+  from a number nobody computed (`CI-PARITY-GATE-ROT.2`'s thesis, one artifact over); (d) route each
+  confirmed cannot-fire defect to its own leaf.
+- ⚠️ **BOUND**: the artifact is dated 2026-08-08 and the grammar has moved since, so the 104 is a
+  SIZE, not a roster. Re-derive before acting on any individual row.
+
+#### ⚠️ `.13c.2v` NEW `todo` — Annex A is NARROWER than the normative body text, in both editions, and `.13c.2t` is the first confirmed instance of that class (opened 2026-08-19 session #247 by `.13c.2t`, `PGEN-SV-CORPUS-GRAD-0234`)
+
+- **THE CLASS.** IEEE 1800's Annex A is normative *and so is the clause text*, and where they
+  disagree PGEN currently mirrors Annex A — because that is what the grammar was extracted from. So
+  every disagreement is a latent **rejects-valid** defect, and the LRM's own worked examples are the
+  place they surface. `.13c.2t` is the confirmed instance: `assignment_pattern_key ::= simple_type |
+  default` against §10.9.2's *"the `'{data_type: default_value}` syntax can also be used"* and its
+  example `'{int:1, default:0, string:""}`.
+- ⭐ **AND THE STANDARD PATCHES ITSELF IN PLACES, which is what makes this mechanisable.** Annex A's
+  `casting_type ::= simple_type | constant_primary | signing | string | const` carries an explicit
+  `| string` beside `simple_type` — the drafters fixed the same shortfall at one site and not at the
+  other. A production that names a nonterminal AND separately names one of the things that
+  nonterminal should already cover is a signal that the nonterminal is short.
+- **WHY IT IS A LEAF AND NOT A NOTE.** Two prior slices found LRM-text defects one at a time
+  (`.13c.2m`'s lost colon, `.13c.2o`'s mandatory footnote marker) and `.13c.2p` is already
+  mechanising one family of them. This is a different family with a different signal, and the
+  release bar is *"100 % LRM-compliant"* — which is a claim about the union of Annex A and the
+  clause text, not about Annex A alone.
+- **WHAT THIS LEAF OWES**: (a) the signal — for each Annex A production, whether the clause text that
+  defines the same construct names a BROADER nonterminal (both LRM editions are tracked in
+  `docs/systemverilog/{2017,2023}/{md,txt}/`, so the question is answerable from the repository);
+  (b) the self-patch signal above as a second, independent detector; (c) a verdict per hit, since
+  most disagreements will be editorial rather than substantive; (d) route each substantive one.
 
 #### `.13c.2e` — `select_condition`'s `intersect { … }` BRACES are not modelled, so the range list swallows the rest of the expression (**`done`** 2026-08-12, `PGEN-SV-CORPUS-GRAD-0214`; opened 2026-08-12 session #218 by `ENGINE-UNIVERSAL-SERVICES.10`)
 

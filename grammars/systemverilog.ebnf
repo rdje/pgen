@@ -3746,12 +3746,20 @@ n_input_gatetype := kw_and_cffa50a3  -> {kind: "and"}
 # input_terminal )` — one or more outputs, then exactly one input. Spelled with a bare
 # `( comma output_terminal )*` the star is GREEDY and `output_terminal := net_lvalue` matches the
 # same text as `input_terminal := expression`, so the star ate the MANDATORY trailing
-# `comma input_terminal` and the sequence then failed with nothing left to satisfy it — for every
-# input, which is why `buf` and `not` gate instantiations were reaching `udp_instantiation` instead
-# (via the reserved-word hole `.13c.2k` closes). The lookahead lets the star take a terminal only
-# when ANOTHER comma follows, i.e. only when it is not the last one; same device as
-# `split_hierarchical_callable_receiver`. Isolated on an 8-line scratch grammar before it was
-# applied here — `docs/tasks/artifacts/sv_corpus_grad/gate_route_unmasking/`.
+# `comma input_terminal` and the sequence then failed with nothing left to satisfy it.
+# ⛔ CORRECTED (`.13c.2r` re-derivation, `-0234`): NOT "for every input". The star eats the tail
+# exactly when `net_lvalue` can match a PREFIX of the final terminal — a plain net (`buf g(o,i)`), a
+# concatenation, a bit-select, or any expression starting with a net reference. Measured on the
+# pre-fix grammar, a final terminal that cannot START a net_lvalue leaves the star nothing to take
+# and the rule DID match: `buf g(o,o2,1'b0)`, `buf g(o,(a))` and `buf g(o,$signed(a))` all reached
+# `gate_instantiation`. The corpus rule-coverage artifact said so all along — `n_output_gate_instance
+# covered 4`. So the defect is the COMMON form, not every form, and `buf`/`not` reached
+# `udp_instantiation` (via the reserved-word hole `.13c.2k` closes) only in that common form.
+# The lookahead lets the star take a terminal only when ANOTHER comma follows, i.e. only when it is
+# not the last one; same device as `split_hierarchical_callable_receiver`. The mechanism was
+# isolated on an 8-line scratch grammar — `docs/tasks/artifacts/sv_corpus_grad/gate_route_unmasking/`
+# — ⚠️ which could never have shown the boundary, because there `out` and `inp` share one regex.
+# An isolation proves a mechanism EXISTS; it does not bound where the mechanism APPLIES.
 # ⭐ Its sibling `n_input_gate_instance` below needs no such guard: its star is at the END.
 n_output_gate_instance := ( name_of_instance )? lparen output_terminal ( comma output_terminal &comma )* comma input_terminal rparen
                        -> {name: $1, outputs: [$3, $4::2*], input: $6}

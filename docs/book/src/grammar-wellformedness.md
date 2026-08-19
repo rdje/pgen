@@ -2061,8 +2061,12 @@ fix: IEEE 1364-2005's `enable_gatetype ::= bufif0 | bufif1 | notif0 | notif1` an
 because `\b` demands a word boundary and `0` is a word character. Eight gate keywords were
 unparseable. A ninth and tenth, `buf` and `not`, were unreachable for a different reason: their
 instance rule spelled `( comma output_terminal )* comma input_terminal`, and a greedy repetition the
-engine will not backtrack into ate the mandatory trailing input terminal, so the rule matched no
-input at all.
+engine will not backtrack into ate the mandatory trailing input terminal — for every ordinary gate
+instantiation, though **not** literally for every input, which is a distinction the first write-up of
+this got wrong. The star can only eat a terminal it can parse, so a final terminal that cannot start
+a net lvalue (`buf g(o, 1'b0)`, `buf g(o, (a))`, `buf g(o, $signed(a))`) left the star nothing to
+take and the rule did match. The corpus rule-coverage artifact had been recording exactly that —
+four files — for as long as it has existed.
 
 ⛔ **None of that was visible, because all ten forms still parsed** — as *UDP instantiations whose
 type name is a reserved keyword*, which is precisely what the unguarded `identifier` rule permitted.
@@ -2072,6 +2076,16 @@ ratchet, the syntax-closure gates — read green across all of it. Only the arm 
 `udp_instantiation` to `gate_instantiation>enable>bufif0`, and only a check that looks at the arm can
 see that. The general lesson is worth more than the fix: **a defect can hide behind a different
 defect of the opposite sign**, and a suite that only asks *did it parse* will confirm both.
+
+⭐⭐ **And the sharper half of that lesson is not "we had no instrument" — it is "we had one and
+nothing read it."** `stimuli/sv/characterization/rule_coverage_sv_2017.tsv` is a tracked artifact
+listing, per grammar rule, how many of 16 336 real files ever caused it to fire. `enable_gatetype`
+and `pass_en_switchtype` sit in it as `GAP 0`, and `n_output_gate_instance` as `covered 4` — the
+first two saying *this production has never once fired on real SystemVerilog*, the third quietly
+bounding how far the third defect reached. Both facts were published, in the repository, before
+anyone went looking. **A zero in a coverage table is a claim that a construct is unsupported, and it
+is worth exactly as much as whatever reads it.** There are 104 such rows, and nothing consumes them,
+which is now tracked work rather than an observation.
 
 The first seven rows in the new class are two measured over-acceptances that had nowhere to live. One
 is positional: every **non-final** component of a hierarchical path accepts a reserved keyword —
