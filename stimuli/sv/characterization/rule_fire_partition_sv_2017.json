@@ -1,0 +1,26 @@
+{
+ "profile": "sv_2017",
+ "gap_rules": 137,
+ "certificate": {
+  "total": 1433,
+  "proof": 19,
+  "witness": 1361,
+  "unknown": 53
+ },
+ "coverage_artifact_satisfiable": 1433,
+ "classes": {
+  "coverage_gap": 78,
+  "lr_eliminated_original": 2,
+  "lr_synthetic": 57
+ },
+ "corpus_covered_but_generator_hard": [
+  "known_unscoped_property_identifier",
+  "kw_accept_on_2aee6cd4",
+  "kw_nexttime_b0f658f8",
+  "kw_reject_on_a3b3068d",
+  "kw_s_eventually_86207140",
+  "kw_s_nexttime_373d0bd1",
+  "kw_sync_reject_on_1f0c8923"
+ ],
+ "unadjudicated_unwitnessed": []
+}

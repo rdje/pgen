@@ -1,0 +1,138 @@
+rule	class	basis
+assignment_pattern_entry	coverage_gap	certificate coverage WITNESSED it, so it can fire
+assignment_pattern_net_lvalue	coverage_gap	certificate coverage WITNESSED it, so it can fire
+binary_operator_above_equality	coverage_gap	certificate coverage WITNESSED it, so it can fire
+block_event_expression	lr_eliminated_original	named by --lint-grammar as LR-eliminated: the name survives, the body was replaced by its _lr_* chain
+block_event_expression_lr_base	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+block_event_expression_lr_suffix	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+casting_type	lr_eliminated_original	named by --lint-grammar as LR-eliminated: the name survives, the body was replaced by its _lr_* chain
+casting_type_lr_guard0_suffix	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+casting_type_lr_guard1_suffix	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+casting_type_lr_seed_call_with_postfix_chain	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+casting_type_lr_seed_chainable_call_initial	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+casting_type_lr_seed_direct_callable_method_call	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+casting_type_lr_seed_method_call_receiver	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+casting_type_lr_seed_method_call_receiver_sv_2017	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+casting_type_lr_seed_method_call_root	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+casting_type_lr_suffix	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+casting_type_lr_suffix_r0	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+casting_type_lr_suffix_r2	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+casting_type_lr_suffix_r4	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+class_constructor_super_args	coverage_gap	certificate coverage WITNESSED it, so it can fire
+direct_method_call	coverage_gap	certificate coverage WITNESSED it, so it can fire
+edge_descriptor	coverage_gap	certificate coverage WITNESSED it, so it can fire
+hierarchical_btf_identifier	coverage_gap	certificate coverage WITNESSED it, so it can fire
+identifier	coverage_gap	certificate coverage WITNESSED it, so it can fire
+in_scope_compiler_directive_sv_only	coverage_gap	certificate coverage WITNESSED it, so it can fire
+include_statement	coverage_gap	certificate coverage WITNESSED it, so it can fire
+instance_or_class_scope	coverage_gap	certificate coverage WITNESSED it, so it can fire
+known_unscoped_class_scoped_call_interface_class_identifier	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_B_ae4f281d	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_F_e69f20e9	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_N_b51a6073	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_PATHPULSE_dollar_e0f78dc5	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_P_511993d3	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_R_06576556	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_Z_909f99a7	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_b_e9d71f5e	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_class_qualifier_fa08937d	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_eventually_5865020f	coverage_gap	IEEE 1800-2023 A.2.10 `property_expr ::= … | eventually [ constant_range ] property_expr`. MEASURED: `eventually [1:2] b` inside a property ACCEPTS and kw_eventually_5865020f fires 3x, so the rule is reachable; the corpus holds no SVA property operator in any accepted file
+kw_file_path_spec_c26c9dc9	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_incdir_e08adf20	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_include_d3ecb0d8	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_library_00299a40	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_n_01_ddfe1633	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_n_10_b1d57811	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_n_1_tick_B0_720c4a9c	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_n_1_tick_B1_afad66cc	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_n_1_tick_BX_874bf116	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_n_1_tick_Bx_0a99de19	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_n_1_tick_bX_70a6d618	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_n_1_tick_bx_ab9cb068	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_n_2_da4b9237	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_n_43_0286dd55	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_n_48_64e095fe	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_noshowcancelled_1d50d807	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_pulsestyle_onevent_11e408b6	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_restrict_ee1e5b88	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_s_always_0f9aa900	coverage_gap	IEEE 1800-2023 A.2.10 `| s_always [ constant_range ] property_expr`. MEASURED: `s_always [1:2] b` ACCEPTS and kw_s_always_0f9aa900 fires 3x
+kw_sv_dollar_skew_1ae5c1e4	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_sync_accept_on_b65eda53	coverage_gap	IEEE 1800-2023 A.2.10 `| sync_accept_on ( expression_or_dist ) property_expr`. MEASURED: `sync_accept_on (a) b` ACCEPTS and the keyword rule fires 4x (its sibling sync_reject_on measured identically)
+kw_tick_B0_f33e35dd	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_tick_B1_230dd583	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_tick_b0_624cb09b	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_tick_b1_1c5be368	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_tx_path_delay_expression_7b2dee37	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_weak_1ded3053	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_wildcard_08654ea6	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_z_395df8f7	coverage_gap	certificate coverage WITNESSED it, so it can fire
+library_declaration	coverage_gap	certificate coverage WITNESSED it, so it can fire
+library_description	coverage_gap	certificate coverage WITNESSED it, so it can fire
+library_text	coverage_gap	certificate coverage WITNESSED it, so it can fire
+module_path_concatenation	coverage_gap	certificate coverage WITNESSED it, so it can fire
+module_path_conditional_expression	coverage_gap	certificate coverage WITNESSED it, so it can fire
+module_path_mintypmax_expression	coverage_gap	certificate coverage WITNESSED it, so it can fire
+module_path_multiple_concatenation	coverage_gap	certificate coverage WITNESSED it, so it can fire
+parseable_source_item	coverage_gap	certificate coverage WITNESSED it, so it can fire
+program_generate_item	coverage_gap	certificate coverage WITNESSED it, so it can fire
+program_generate_item_sv_2017	coverage_gap	certificate coverage WITNESSED it, so it can fire
+property_case_item	coverage_gap	certificate coverage WITNESSED it, so it can fire
+property_expr_lr_guard0	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_guard0_suffix	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r0	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r1	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r10	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r11	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r12	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r13	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r14	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r15	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r16	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r17	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r18	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r19	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r2	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r20	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r21	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r22	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r23	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r24	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r25	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r26	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r27	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r28	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r29	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r3	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r30	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r31	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r32	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r33	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r34	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r35	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r36	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r37	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r38	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r39	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r4	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r5	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r6	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r7	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r8	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_lr_suffix_r9	lr_synthetic	the LR eliminator authored this name; not an LRM construct
+property_expr_sv_2017	coverage_gap	certificate coverage WITNESSED it, so it can fire
+property_named_arg	coverage_gap	certificate coverage WITNESSED it, so it can fire
+ref_declaration	coverage_gap	certificate coverage WITNESSED it, so it can fire
+reserved_non_keyword_identifier	coverage_gap	certificate coverage WITNESSED it, so it can fire
+reserved_non_keyword_identifier_sv	coverage_gap	certificate coverage WITNESSED it, so it can fire
+restrict_property_statement	coverage_gap	certificate coverage WITNESSED it, so it can fire
+scoped_checker_identifier	coverage_gap	certificate coverage WITNESSED it, so it can fire
+scoped_property_identifier	coverage_gap	certificate coverage WITNESSED it, so it can fire
+sequence_named_arg	coverage_gap	certificate coverage WITNESSED it, so it can fire
+sv_dollar_skew_timing_check	coverage_gap	certificate coverage WITNESSED it, so it can fire
+sv_multi_entry_root	coverage_gap	certificate coverage WITNESSED it, so it can fire
+systemverilog_parseable_file	coverage_gap	certificate coverage WITNESSED it, so it can fire
+timestamp_condition	coverage_gap	certificate coverage WITNESSED it, so it can fire
+union_modifier	coverage_gap	certificate coverage WITNESSED it, so it can fire
+z_or_x	coverage_gap	certificate coverage WITNESSED it, so it can fire
+zero_or_one	coverage_gap	certificate coverage WITNESSED it, so it can fire

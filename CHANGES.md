@@ -1,5 +1,58 @@
 # CHANGES.md
 
+## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0239 (leaf SV-CORPUS-GRAD.13c.2u **CLOSED** — the never-fired number was UNREAD *and* MISLEADING; ZERO of the 137 are parser defects; doctrine #22 makes it CONSUMED; .13c.2u.1 NEW)
+
+- ⛔⛔⛔ **THE HEADLINE THIS LEAF OPENED ON WAS WRONG IN BOTH DIRECTIONS.** *"104 grammar rules have
+  NEVER fired on 16 336 real SystemVerilog files"* was (i) **STALE** — re-derived at HEAD it is
+  **137**, the grammar having gone 1475 → 1610 rules — and (ii) **MISLEADING BY CONSTRUCTION**,
+  because PGEN's own left-recursion eliminator AUTHORS rules (`X_lr_base`, `X_lr_suffix`,
+  `X_lr_seed_*`, `X_lr_guard*`) and REPLACES the body of the rule it eliminates, and those names stay
+  in the table the coverage instrument enumerates.
+  ⭐ **Demonstrated on the shipped parser, not argued**: `casting_type` is listed as never-fired, yet
+  on a file that ACCEPTS through `8'(1)` its **nineteen** `casting_type_lr_*` replacements fire and
+  `casting_type` itself never appears in `rule_entry_counts` at all.
+  ⇒ **an unclassified tracked number is worse than an unread one — it reads as a defect surface and
+  sends the next reader hunting phantoms.**
+- ⭐⭐⭐ **A VERDICT FOR EVERY ONE OF THE 137, AND THERE ARE NO DEFECTS IN IT:** `lr_synthetic` **57**
+  · `lr_eliminated_original` **2** · `coverage_gap` (witnessed ⇒ CAN fire) **78** · `unwitnessed`
+  **0**. ⇒ **59 LR-elimination artifacts + 78 honest corpus-coverage gaps, zero cannot-fire defects.**
+- **THE PARTITION IS BY CONSTRUCTION** (`stimuli/sv/rule_fire_partition.py`), joining two instruments
+  the repo already had: the corpus census (*did it fire on real text?*) and CERTIFICATE COVERAGE
+  (*can a generated witness reach it?*). ⚠️ The eliminated-original class is NOT uniform —
+  `property_expr` is eliminated AND covered — so it is checked per rule, never assumed.
+- ⛔⛔ **AND NOT CONCLUDING A DEFECT FROM `witnessed_target=false` IS THE POINT.** All nine SVA
+  property operators in the cert's UNKNOWN list report `parsed=true witnessed_target=false`, which
+  TOOLBOX 4.4 states is a claim about the witness GENERATOR, not the parser — reading it as a defect
+  once produced a confident wrong root cause that reached a task leaf AND a gate contract
+  (`ENGINE-UNIVERSAL-SERVICES.10`). Measured directly against the tracked LRM's A.2.10 productions,
+  **all ten** SVA operators ACCEPT, and for the three adjudicated ones the keyword rule's **own ARM**
+  fires (3, 3 and 4 entries) — a verdict alone would not have been enough (`.13c.2q`).
+- ⭐⭐⭐ **THE DURABLE HALF — DOCTRINE #22 `SV-RULE-FIRE-PARTITION`.** *A tracked number nobody consumes
+  is indistinguishable from a number nobody computed* (`CI-PARITY-GATE-ROT.2`). The commit tier holds
+  the tracked partition consistent with the coverage artifact it derives from, requires a hand
+  adjudication for every `unwitnessed` rule, and keeps that class at zero; tier 2 (`make -C rust
+  sv_rule_fire_partition`) re-derives both sides. ⛔ The commit tier re-derives NOTHING and says so —
+  a cheap check claiming an expensive property is the same defect this doctrine exists for.
+  Refusal arms OBSERVED firing: `rule_fire_partition/probe.sh` **5/5**, control included.
+- ⛔ **THE FIRST CONTROL I WROTE WAS WRONG, IN THE REFUSING DIRECTION**, and it is recorded rather
+  than quietly replaced. It called corpus-`covered` ∩ cert-`UNKNOWN` a contradiction and went RED on
+  a correct tree against seven rules — but `UNKNOWN` means the generator could not route there, not
+  that the rule cannot fire. ⭐ The real contradiction would be corpus-`covered` ∩ certificate
+  `proof`; the report does not enumerate its proof set, so that check is **not available and is
+  deliberately not faked**. Replaced by a well-founded one: both instruments must agree on the
+  DENOMINATOR (cert `total=1433` == coverage-artifact satisfiable rules `=1433`), and every rule the
+  cert names must exist in the artifact. **A guard that refuses correct trees teaches people to
+  bypass it.**
+- **`.13c.2u.1` NEW** — the join found, for free, that **the CORPUS is a better witness generator
+  than the certificate pass for 7 rules**: they are corpus-`covered` yet cert-`UNKNOWN`. SV's
+  `fully_certified=false` is held up by `UNKNOWN=53`, and for at least seven of them the repository
+  already holds a witness. Routed, not scheduled — not on the SV release path.
+- **GATES**: all **22** doctrines PASS (both meta-gates fired on the new registration and were
+  satisfied: the §10 mirror and the book's published count 21 → 22) · `ADJUDICATION-REPROS
+  checked=151 armed=62 listed=81 failures=0` · `sv-corpus-denominator OK` ·
+  `generated_reproducibility` TIER 2 11/11 byte-identical. ZERO grammar bytes; the SV parser is
+  untouched at `5a1dfa3620b2d387…`.
+
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0238 (findings RE-DERIVED under DIRECTOR CHALLENGE; ONE published MECHANISM refuted, TWO numbers corrected; the arm harness could no longer reproduce its own arms; ZERO shipped parser bytes)
 
 - ⛔⛔⛔ **ASKED WHETHER THE THREE FINDINGS STILL STOOD, AND ONE OF THEM DID NOT — the MECHANISM was

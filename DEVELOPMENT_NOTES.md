@@ -1,5 +1,52 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0239 — the number nobody read was also the number nobody could have used
+
+**1. THE ASK.** "Fully address the issue raised by your question." The question was: 104 grammar
+rules have never fired on 16 336 real files, in a tracked artifact nothing reads. Fully addressing it
+turned out to mean discovering that the number could not have been used even if someone had read it.
+
+**2. IT WAS WRONG TWICE.** Stale: 137 today, not 104 — the grammar gained 135 rules in eleven days.
+And structurally misleading: PGEN's own left-recursion eliminator authors rules and replaces the body
+of the rule it eliminates, and those names stay in the table the coverage instrument enumerates. 59
+of the 137 are eliminator artifacts. `casting_type` is the clean demonstration — listed as never
+fired, while on a file accepting `8'(1)` its nineteen `casting_type_lr_*` replacements fire and the
+original never appears at all.
+
+**3. SO THE DELIVERABLE WAS NOT A DEFECT HUNT, IT WAS A CLASSIFICATION.** 57 `lr_synthetic` + 2
+`lr_eliminated_original` + 78 `coverage_gap` + 0 `unwitnessed` = 137. **Zero parser defects.** The
+partition is a join of two instruments the repository already owned and had never put side by side:
+the corpus census answers *did this fire on real text*, the certificate-coverage witness pass answers
+*can a generated witness reach it at all*. Neither alone can classify; together they do it by
+construction.
+
+**4. THE DISCIPLINE THAT MATTERED MOST WAS NOT CONCLUDING A DEFECT.** Nine SVA property operators sit
+in the cert's UNKNOWN list reporting `parsed=true witnessed_target=false`. That reads exactly like
+`.13c.2q`'s unmatchable-keyword defect — and it is not one. TOOLBOX 4.4 says plainly that the verdict
+describes the witness generator, and that reading it otherwise once produced a confident wrong root
+cause that reached both a task leaf and a gate contract. Measured against A.2.10 in the tracked LRM,
+all ten operators parse; for the three I adjudicated, the keyword rule's own ARM fires. Nine phantom
+defect leaves did not get opened.
+
+**5. MY FIRST CONTROL WAS WRONG IN THE REFUSING DIRECTION, WHICH IS THE WORSE DIRECTION.** I made the
+join refuse when a corpus-covered rule was UNKNOWN to the cert, calling it a contradiction. It fired
+immediately, on seven rules, on a correct tree. It was my control that was wrong: those two states
+are entirely compatible. The genuinely contradictory pair would be corpus-covered ∩ certificate
+*proof* — and the report does not enumerate its proof set, so that check is unavailable, and I wrote
+that down rather than faking a weaker check in its place. A guard that refuses correct trees teaches
+people to bypass it, which is a slower and more expensive failure than having no guard.
+
+**6. THE PROBE EARNED ITS KEEP IMMEDIATELY.** 5 arms; two failed on the first run and both were real
+defects in the instrument, not in the arms: a missing input crashed with a traceback instead of
+refusing cleanly, and the CONTROL arm crashed on `Path.relative_to` with a relative `--out` — the
+second time that same bug bit in one session. Then a third: `raise SystemExit("text")` exits 1, while
+the file's own contract reserves 1 for "ran and found a problem" and 2 for "could not run", so a
+caller branching on the exit code could not tell them apart.
+
+**7. WHAT MAKES IT DURABLE.** Doctrine #22. The number is now classified, tracked, and read by
+`scripts/check_doctrines.sh` on every commit — with the expensive re-derivation split into a tier 2
+that the cheap tier explicitly declines to imitate.
+
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0238 — I reconstructed a compiler's decision from its output, and the compiler was willing to just tell me
 
 **1. THE CHALLENGE.** Asked whether the three findings still stood. Re-deriving rather than
