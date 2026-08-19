@@ -1,0 +1,10 @@
+@entry: true
+root := trivia lparen out comma inp ( comma inp )* rparen trivia
+     -> {out: $3, ins: $5}
+
+out := trivia /[a-z][a-z0-9]*/ -> $2
+inp := trivia /[a-z][a-z0-9]*/ -> $2
+lparen := trivia /\(/ -> $2
+rparen := trivia /\)/ -> $2
+comma  := trivia /,/  -> $2
+trivia := /[ \t\r\n]*/

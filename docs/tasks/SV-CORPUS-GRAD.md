@@ -10092,7 +10092,7 @@ routed finding look smaller.
   `7556/2459/6321/4392/288`); `MEMORY.md`; `CHANGES.md`; `DEVELOPMENT_NOTES.md`;
   `docs/TASK_TREE.md`.
 
-#### ⚠️ `.13c.2k` `in progress` — a RESERVED KEYWORD parses in every NON-FINAL component of a hierarchical path; ✅ **the ORACLE GAP it found is CLOSED** and all seven over-acceptance rows are now WATCHED (opened 2026-08-18 session #245 by `.13c.2c` `-0227`; diagnosis + `accepts_invalid` class 2026-08-18 session #246, `PGEN-SV-CORPUS-GRAD-0230`)
+#### ⚠️ `.13c.2k` `in progress` — a RESERVED KEYWORD parses in every NON-FINAL component of a hierarchical path; ⛔ **the fix is BUILT, MEASURED and HELD BACK: it uncovered FIVE latent defects it was masking**; ✅ **the ORACLE GAP it found is CLOSED** and all seven over-acceptance rows are now WATCHED (opened 2026-08-18 session #245 by `.13c.2c` `-0227`; diagnosis + `accepts_invalid` class 2026-08-18 session #246, `PGEN-SV-CORPUS-GRAD-0230`)
 
 - **MEASURED, on the shipped parser, BEFORE and AFTER `.13c.2c`** (so it is pre-existing and the
   `.13c.2c` fix neither caused nor cured it):
@@ -10155,19 +10155,70 @@ routed finding look smaller.
   **Manifest 50 → 63 rows, 88 → 112 checks, 7 `accepts_invalid`** — this leaf's six positional rows
   plus its control, and `.13c.2m`'s six. *A defect that was written in prose is now watched by a
   runner.*
-- **WHAT REMAINS** — the FIX and the SWEEP:
+- [x] ⭐⭐ **(a) THE SWEEP IS DONE, AND ITS OWN HEADLINE NUMBER WAS WRONG** (`PGEN-SV-CORPUS-GRAD-0233`).
+  This leaf opened claiming **43** non-comment uses of the raw `identifier` rule. That came from a
+  grep nobody re-ran, and `grep -c` counts LINES — five lines in this grammar carry two or three
+  references each. The census is now an INSTRUMENT
+  (`docs/tasks/artifacts/sv_corpus_grad/raw_identifier_census/census.py`) with **two independent
+  signals** that must agree: the frontend's own `generated/systemverilog.json` `raw_ast`, and a text
+  scan of the `.ebnf` that strips comments, regex bodies, strings and return directives:
 
-  (a) a SWEEP of the class — the grammar has **43** non-comment uses of the raw `identifier` rule and
-  this leaf has adjudicated two of them, so the rest need deciding by measurement, not by reading
-  (one instance is never the class here — `.13c.2e`); (b) the fix, replacing raw `identifier` with
-  `non_keyword_identifier` at every hierarchy-component site the sweep confirms; (c) the corpus
-  accepts-invalid count measured before and after — ⚠️ this is a NARROWING, so unlike `.13c.2j` the
-  risk runs the other way and the reproducer set must be re-run for rows that stop parsing;
-  (d) ⛔ a PARSE-COST reading, priced before the fix is written: `non_keyword_identifier` adds a
-  negative lookahead inside two HOT loops, so this fix may well breach `PARSE-COST-RATCHET` the way
-  `.13c.2j` did — and it will not qualify for `pure_memo_lookups`, because a guard that rejects does
-  real work. ⇒ budget an attribution, or find a cheaper spelling (e.g. one guarded component rule
-  referenced from both loops, so the lookahead is memoized per position rather than re-run per site).
+  ```text
+  RAW-IDENTIFIER-CENSUS: refs=47 rules=40 alias=23 guard=1 inline=22 negation=1  (two signals agree)
+  ```
+
+  ⇒ **47 references in 40 rules, not 43** — 46 unguarded call sites plus the guard itself.
+  ⭐ The classification is what decides the fix, and one class has exactly one member:
+  **`negation`** — `rooted_tf_call_sv_only:5714`'s `!( identifier )`, the ONE site where guarding
+  `identifier` makes the grammar strictly MORE permissive rather than less. That had to be
+  enumerated before the fix was written, and only a census could enumerate it.
+- [x] ⭐⭐⭐ **(d) THE PRICE, TAKEN BEFORE THE FIX WAS WRITTEN, AND IT INVERTED THE DESIGN.**
+  `docs/tasks/artifacts/sv_corpus_grad/raw_identifier_census/price.py`, over the pinned parse-cost
+  sample. Every rule is memoized (`SV-EXH-PROOF.3.3.4.b.6.2.15`, "memoize ALL rules
+  unconditionally"), and the two candidate homes for the exclusion have **opposite hit rates**:
+
+  | rule | calls | memo hits | bodies run |
+  |---|---|---|---|
+  | `identifier` | 10,349,663 | 9,324,559 (**90 %**) | 1,025,104 |
+  | `non_keyword_identifier` | 5,504,191 | **0** | 5,504,191 |
+
+  ⇒ the exclusion is spelled today in the one rule that *never* takes a memo hit, so it runs on
+  every single call. Moving it INTO `identifier` and reducing `non_keyword_identifier` to an alias
+  makes the guard run only on the ~1 M misses: **11,008,382 guard evaluations → 2,050,208**, a
+  predicted **−8,958,174 entries (−2.15 %)**. The leaf's own (d) expected this fix to *breach* the
+  ratchet; measured, it is a **FALL** — the fix is predicted to make the parser stricter AND cheaper.
+  ⚠️ That is a PREDICTION, printed by the instrument so the post-fix re-measure can refute it, and it
+  has not yet been confirmed against a landed parser.
+- ⛔⛔ **(b) THE FIX IS BUILT AND MEASURED, AND IT IS DELIBERATELY NOT LANDED — because it exposes
+  FIVE latent defects it was masking.** The fix is two lines
+  (`identifier := escaped_identifier -> {body: $1} | !reserved_non_keyword_identifier simple_identifier -> {body: $2}`
+  plus `non_keyword_identifier := identifier`); it was applied, regenerated, built and run against
+  the full corpus. All three measured over-acceptances flip to REJECT, all three guarded controls
+  stay correct, and **816 sampled passing corpus files show zero verdict movement**. But the full
+  corpus moves **7 files in the `sv` lane and 3 in `verilog_2005`**, and every one was adjudicated
+  against the tracked LRMs rather than counted:
+
+  | corpus file | construct | is the new REJECT right? |
+  |---|---|---|
+  | `ispras-sv-tests/ieee-1800-2012/10/10.09.02_03.sv` | `s2 = '{int:1, default:0, string:""};` | ⛔ **NO — REJECTS-VALID.** It is IEEE 1800-2017 §10.9.2's OWN example (`docs/systemverilog/2017/txt/section-10-assignment-statements.txt:939`). ⇒ `.13c.2t` |
+  | `iverilog/…/pr1758122.v` | `adder #(W) instance(A[j], …);` | ✅ yes — `instance` is reserved in 1800-2023 Annex B:113 **and** 1364-2005 Annex B:59 |
+  | `iverilog/…/pr1787423.v`, `…b.v`, `…b_std.v` | `pulldown (pd1, pd2);` | ✅ yes — 1364-2005 A.3.1 gives `pull_gate_instance ::= [ name ] ( output_terminal )`, ONE terminal; the legal spelling is `pulldown (pd1), (pd2);` |
+  | `iverilog/…/br930.v` | `` `begin_keywords "1364-2005" `` + `(* type=1 *)` | ✅ under the profile applied — `type` is 1800-reserved and **not** in 1364-2005 Annex B (grep: 0 hits). PGEN does not honour `` `begin_keywords ``, and the SV lane parses `.v` under `sv_2017` |
+  | `iverilog/…/generate_multi_loop.v` | `begin:byte` | ✅ same class — `byte` is 1800-reserved, **not** in 1364-2005 Annex B |
+
+  ⇒ **one genuine gap, six correct rejections**, three of which are profile-selection artifacts
+  rather than parser defects. ⛔ Landing the fix beside a known rejects-valid regression would trade
+  one defect class for another, which is exactly what the strict-LRM default exists to prevent.
+- ⭐⭐⭐ **AND THE PATTERN IS THE REAL FINDING, not the count: an over-acceptance can be LOAD-BEARING.**
+  `.13c.2q` and `.13c.2r` were both discovered by this fix regressing the corpus — ten gate/switch
+  forms that PGEN could not parse through `gate_instantiation` at all, and that only "worked" because
+  a reserved keyword could stand in for a UDP type name. `.13c.2t` is a third instance of the same
+  shape. ⇒ **closing an over-acceptance is not a safe local edit**; it is an excavation, and the
+  sweep must budget for what it uncovers.
+- **WHAT REMAINS**: (c) the corpus accepts-invalid count before/after, which is now blocked only on
+  `.13c.2t`; then land the fix, confirm the −8,958,174 prediction against the real parser, and flip
+  the three `accepts_invalid` rows to `invalid` — the round trip this leaf built, which has already
+  been exercised twice (`.13c.2o`, and once here, before the fix was rolled back).
 - ⚠️ **PROFILE NOTE, measured**: the reproducers are `sv_2017,sv_2023` only. `verilog_2005` rejects
   all of them, but for the wrong reason — the repro bodies are CLASS declarations, which v2005 has
   no production for. A v2005 row for this defect needs a class-free carrier and is part of (a).
@@ -10437,6 +10488,280 @@ routed finding look smaller.
   is HARMFUL: `43`/`48` sit in optional groups and only over-accept, while `29` was mandatory and
   rejected a legal construct. The instrument should report the position class alongside the verdict,
   because that is what ranks the fixes.
+
+#### ✅ `.13c.2q` `done` — EIGHT gate/switch keywords lost their trailing DIGIT in extraction, so `bufif0`, `bufif1`, `notif0`, `notif1`, `tranif0`, `tranif1`, `rtranif0`, `rtranif1` cannot be parsed as gates at all (opened 2026-08-18 session #247 by `.13c.2k`'s sweep, `PGEN-SV-CORPUS-GRAD-0233`)
+
+- ⛔⛔ **HOW IT WAS FOUND — by a fix REGRESSING the corpus, not by looking for it.** `.13c.2k`'s
+  candidate grammar (the reserved-word exclusion moved into `identifier`) was A/B'd against the
+  baseline over 245 currently-PASSING corpus files on the interpreter. Two moved to REJECT. One,
+  `ispras-sv-tests/ieee-1364-2005/test_07_01_06_2.v`, stops at `bufif0 ar[3:0](out, in, en);` —
+  IEEE 1364-2005 §7.1.6's own worked example. ⇒ that file was only ever parsing because a RESERVED
+  KEYWORD could stand in for a UDP type name, and closing that hole exposed a **rejects-valid**
+  defect underneath it. *An over-acceptance was load-bearing for a construct the parser could not
+  otherwise reach.*
+- **ROOT CAUSE (WHY + WHERE) — read off the grammar and confirmed against all THREE tracked LRMs.**
+
+  ```text
+  $ grep -n "enable_gatetype\|pass_en_switchtype" grammars/systemverilog.ebnf
+  2410:enable_gatetype := kw_bufif_8c9c7ee6 -> {kind: "bufif"}
+  2411:                | kw_notif_8743f903 -> {kind: "notif"}
+  4470:pass_en_switchtype := kw_tranif_02d116e0 -> {kind: "tranif"}
+  4471:                   | kw_rtranif_75c812fc -> {kind: "rtranif"}
+  6585:kw_bufif_8c9c7ee6 := trivia /bufif\b/
+  6898:kw_notif_8743f903 := trivia /notif\b/
+  7143:kw_tranif_02d116e0 := trivia /tranif\b/
+  ```
+
+  The standards write **four** alternatives each, and every one carries a trailing digit:
+
+  | LRM source (tracked, in repo) | production |
+  |---|---|
+  | `docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:382` | `enable_gatetype ::= bufif0 \| bufif1 \| notif0 \| notif1` |
+  | `docs/systemverilog/2017/txt/section-28-gate-level-and-switch-level-modeling.txt:86` | same |
+  | `docs/systemverilog/2023/txt/section-Annex_A-normative-formal-syntax.txt:1150` | same |
+  | `docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:386` | `pass_en_switchtype ::= tranif0 \| tranif1 \| rtranif1 \| rtranif0` |
+
+  The extraction collapsed each pair/quad to its common ALPHABETIC STEM and dropped the digits, so
+  the grammar holds `bufif` / `notif` / `tranif` / `rtranif` — **four tokens where the LRM has
+  eight, and not one of the four can ever match**: `/bufif\b/` requires a word boundary after
+  `bufif`, and in `bufif0` the next character is `0`, which is a word character. ⇒ the token is
+  unmatchable by construction, and so are `enable_gatetype`, `pass_en_switchtype` and both
+  `gate_instantiation_sv_*` alternatives that reference them.
+  ⭐ Note the contrast that makes this a *targeted* extraction failure rather than a general one:
+  `n_input_gatetype` (`and|nand|or|nor|xor|xnor`), `mos_switchtype` (`nmos|pmos|rnmos|rpmos`),
+  `cmos_switchtype` and `pass_switchtype` are all COMPLETE and all work. The collapse happened
+  exactly where the alternatives differ ONLY by a trailing digit.
+- ⛔ **MEASURED, on the interpreter, both arms, correct ARITY per A.3.1** — the first cut of this
+  matrix used the wrong arity for six gates and reported ten defects where there are eight, which is
+  the `.13c.2d` false-positive shape and is why the arities are spelled out here:
+
+  | gate | probe | baseline verdict | baseline ARM |
+  |---|---|---|---|
+  | `and` (n_input, 3 terminals) | `and g1(o, i, e);` | ACCEPT | `gate_instantiation` ✅ |
+  | `bufif0` (enable, 3) | `bufif0 g1(o, i, e);` | ACCEPT | **`udp_instantiation`** ⛔ |
+  | `nmos` (mos, 3) | `nmos g1(o, i, e);` | ACCEPT | `gate_instantiation` ✅ |
+  | `cmos` (cmos, 4) | `cmos g1(o, i, e, c);` | ACCEPT | `gate_instantiation` ✅ |
+  | `tran` (pass, 2) | `tran g1(o, i);` | ACCEPT | `gate_instantiation` ✅ |
+  | `tranif0` (pass_en, 3) | `tranif0 g1(o, i, e);` | ACCEPT | **`udp_instantiation`** ⛔ |
+  | `pullup` (pull, 1) | `pullup g1(o);` | ACCEPT | `gate_instantiation` ✅ |
+
+  ⇒ every affected form parses today as a **UDP instantiation whose type name is a reserved
+  keyword**. The verdict is ACCEPT either way, so no verdict-only oracle in this repository could
+  see it — the `arm` column (`.13c.2a.2`) is the only instrument that can, and this is its second
+  independent justification.
+- **THE FIX** — restore the LRM's own alternatives: `bufif0`/`bufif1`, `notif0`/`notif1`,
+  `tranif0`/`tranif1`, `rtranif0`/`rtranif1`, each as its own token, in all three profiles
+  (the productions are identical in 1364-2005 and both 1800 editions, so no `@profiles` gate).
+- ⛔ **SEQUENCING — THIS BLOCKS `.13c.2k`.** `.13c.2k` cannot land until the gate route can reach
+  these forms, because otherwise its (correct) narrowing converts eight masked defects into corpus
+  regressions. `.13c.2r` blocks it for the same reason.
+
+##### Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — `bufif0 g1(o, i, e);` parses, but as the WRONG production. Measured with
+  `--interpret-parse` + `--interpret-parse-ast-json` on the shipped grammar, `sv_2017`:
+  the AST contains `"udp_instantiation"` and no `"gate_instantiation"`. The corpus symptom is
+  `ispras-sv-tests/ieee-1364-2005/test_07_01_06_2.v`, IEEE 1364-2005 §7.1.6's own array-of-buffers
+  example, which stops at `furthest_position=483` — exactly at `bufif0 ar[3:0](out, in, en);` —
+  the moment the reserved-word hole that was carrying it is closed.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/systemverilog.ebnf:2410` `enable_gatetype := kw_bufif_8c9c7ee6 | kw_notif_8743f903`
+  and `:4470` `pass_en_switchtype := kw_tranif_02d116e0 | kw_rtranif_75c812fc`, whose tokens are
+  `trivia /bufif\b/`, `/notif\b/`, `/tranif\b/`, `/rtranif\b/`. All three tracked LRMs write FOUR
+  alternatives each, every one carrying a trailing digit
+  (`docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:382,386`;
+  `docs/systemverilog/2017/txt/section-28-gate-level-and-switch-level-modeling.txt:86,90`;
+  `docs/systemverilog/2023/txt/section-Annex_A-normative-formal-syntax.txt:1150,1154`). The
+  extraction collapsed each pair to its alphabetic STEM, and `/bufif\b/` cannot match `bufif0`
+  because `\b` demands a word boundary and `0` is a word character ⇒ the token is unmatchable by
+  construction, and so are both rules and the `gate_instantiation` alternatives that reference them.
+- [x] **FIX** — declarative tier, grammar only: eight tokens restoring the LRM's own spellings, named
+  by the file's own convention `kw_<keyword>_<sha1(keyword)[:8]>` (derived, not invented — verified
+  against the four tokens being replaced), wired into the two productions. No `@profiles` gate: the
+  productions are identical in 1364-2005 and both 1800 editions.
+- [x] **ADDRESSED (verified)** — the ARM moved on the shipped parser and on the corpus file itself:
+
+  | probe | before | after |
+  |---|---|---|
+  | `bufif0 g1(o, i, e);` | `udp_instantiation` ⛔ | `gate_instantiation>enable>bufif0` ✅ |
+  | `tranif0 g1(o, i, e);` | `udp_instantiation` ⛔ | `gate_instantiation>pass_en>tranif0` ✅ |
+  | `test_07_01_06_2.v` (corpus, LRM §7.1.6) | `udp_instantiation` ⛔ | `gate_instantiation` ✅, `udp_instantiation` ABSENT |
+  | `and g1(o, i, e);` (control) | `gate_instantiation` | `gate_instantiation` |
+
+  Re-run by the named oracle rather than quoted: `python3 stimuli/sv/run_adjudication_repros.py`
+  → `ADJUDICATION-REPROS: checked=135 armed=60 listed=73 multi_profile_rows=41 failures=0`, with
+  four new `fixed` rows carrying `!udp_instantiation` and the exact gate chain, plus a control.
+  ⛔ **The VERDICT never moved** — every one of these already parsed. Only a check that reads the
+  ARM can earn this box, which is this leaf's second independent justification for that column.
+- [x] **NO REGRESSION** — both corpus lanes **BYTE-IDENTICAL** (`results.tsv` 16,336 files pass=9787,
+  `results_v2005.tsv` 2,459 files pass=2182, both diffed against the pre-slice copies);
+  `--lint-grammar` identical on both arms (`left_recursion_unhandled=0`, `ordered_choice_shadowing=0`,
+  `unreachable_rules=0`, `undefined_references=0`, `profile_orphans=0`); the SV parser re-derives
+  **byte-identically** (`e563be8a67dd516a4…`) after a round trip through a different grammar state,
+  and the release probe's `--parser-fingerprint` reports that exact digest.
+- [x] **COST — measured, attributed per site, and the elimination was PRICED AND REFUSED.**
+  `entries 417,009,457 → 417,585,361 (+0.138 %)`, `memo_hits 187,512,221 → 187,800,173 (+0.154 %)`,
+  `committed 7,123,491 → 7,123,491 (+0)`. Attributed exactly, not bounded: each of the 8 new tokens
+  is entered **71,988** times (measured per rule), so 4 NET-new terminal alternatives × 71,988
+  attempted positions × (1 body + 1 memoized `trivia`) = **+575,904 entries / +287,952 memo hits**,
+  which reproduces both deltas to the unit. ⛔ **The elimination exists and was rejected on the
+  merits**: fusing `bufif0|bufif1` into one `/bufif[01]\b/` token costs exactly nothing, but it
+  invents a keyword no LRM has, breaks the bare-`kw_*` convention all ~750 tokens follow, and would
+  make this rule the only gatetype of six not mirroring its LRM alternatives one-for-one — while the
+  0/1 polarity it flattens is exactly what a downstream elaborator needs. Recorded as a typed
+  acceptance instead (`ENGINE-UNIVERSAL-SERVICES.37`, invariant `unmatched_terminal_alternatives`),
+  so the trade is re-derivable and reversible rather than silent.
+- [x] **LOCKSTEP** — five `MANIFEST.tsv` rows (4 `fixed` + 1 `control`); the book's
+  `grammar-wellformedness.md` gains the arm-vs-verdict lesson; `accepted_rises.tsv` + the new
+  invariant + its probe; `CHANGES.md`; this leaf.
+
+#### ✅ `.13c.2r` `done` — a GREEDY `( X )*` immediately before a MANDATORY `X`-shaped tail is unmatchable, and it makes `buf` and `not` gate instantiations unreachable (opened 2026-08-18 session #247 by `.13c.2k`'s sweep, `PGEN-SV-CORPUS-GRAD-0233`)
+
+- **HOW IT WAS FOUND.** The same A/B as `.13c.2q`. Once the eight digit-suffixed keywords were
+  explained, `buf` and `not` still moved — and their tokens (`/buf\b/`, `/not\b/`) are correct and
+  their `n_output_gatetype` rule is complete. So the defect is not in the keyword.
+- **ROOT CAUSE (WHY + WHERE)** — `grammars/systemverilog.ebnf:3762`:
+
+  ```text
+  n_output_gate_instance := ( name_of_instance )? lparen output_terminal ( comma output_terminal )* comma input_terminal rparen
+  ```
+
+  The `( comma output_terminal )*` is greedy and `output_terminal` and `input_terminal` match the
+  same texts, so the star consumes the **mandatory** trailing `comma input_terminal` and the
+  sequence then fails with no input left to satisfy it. The engine does not backtrack into a
+  committed `*`, so the rule cannot match ANY input.
+  ⭐ Its sibling `n_input_gate_instance:3752` has the star **at the end**
+  (`… output_terminal comma input_terminal ( comma input_terminal )* rparen`) and works — which is
+  exactly why `and`/`nand`/`or`/`nor`/`xor`/`xnor` were unaffected.
+- ⛔ **THE MECHANISM IS ISOLATED ON AN 8-LINE SCRATCH GRAMMAR, not argued from PEG folklore**
+  (`docs/tasks/artifacts/sv_corpus_grad/gate_route_unmasking/star_starve.ebnf` and its `_tail`
+  twin, driven by TOOLBOX 1.5b `--interpret-parse`):
+
+  | grammar shape | `(o, i)` | `(o, p, i)` |
+  |---|---|---|
+  | `out ( comma out )* comma inp` — the `n_output` shape | **REJECT** | **REJECT** |
+  | `out comma inp ( comma inp )*` — the `n_input` shape | ACCEPT | ACCEPT |
+
+  Two inputs, two grammars, one difference: where the star sits. Nothing about SystemVerilog is
+  involved, which is what makes it a CLASS rather than an instance.
+- **THE FIX** — respell the sequence so the star cannot starve the tail. IEEE 1364-2005 A.3.1 writes
+  `n_output_gate_instance ::= [ name_of_instance ] ( output_terminal { , output_terminal } ,
+  input_terminal )`, i.e. "one or more outputs then exactly one input"; the derivation-equivalent
+  PEG spelling puts the repetition where it cannot swallow the tail.
+- ⭐ **AND THE CLASS IS SWEPT, because one instance is never the class here (`.13c.2e`).** This leaf
+  owes a re-runnable census of every `( … )*` in the grammar whose repeated body can also match the
+  MANDATORY element that follows it — the shape that is unmatchable by construction — and a verdict
+  for each hit. `--lint-grammar` reports `nullable_repetition` but has no check for this, so the
+  census is the durable half and the `buf`/`not` fix is the acute one.
+
+##### Acceptance Checklist (enforced)
+- [x] **REPRODUCE / ISSUE** — `buf g1(o, o2, i);` and `not g1(o, i);` parse as `udp_instantiation`,
+  never as `gate_instantiation`, for every input. Measured on the shipped grammar via
+  `--interpret-parse-ast-json`, `sv_2017`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/systemverilog.ebnf:3762`,
+  `n_output_gate_instance := ( name_of_instance )? lparen output_terminal ( comma output_terminal )* comma input_terminal rparen`.
+  `output_terminal := net_lvalue` and `input_terminal := expression` match the same texts, and the
+  engine does not backtrack into a committed repetition, so the greedy star eats the MANDATORY
+  trailing `comma input_terminal` and the sequence then fails with nothing left to satisfy it.
+  ⛔ Isolated on an 8-line scratch grammar driven by TOOLBOX 1.5b `--interpret-parse`, so the claim
+  rests on a measurement and not on PEG folklore
+  (`docs/tasks/artifacts/sv_corpus_grad/gate_route_unmasking/`):
+
+  | grammar shape | `(o, i)` | `(o, p, i)` |
+  |---|---|---|
+  | `out ( comma out )* comma inp` — the `n_output` shape | REJECT | REJECT |
+  | `out comma inp ( comma inp )*` — the `n_input` shape | ACCEPT | ACCEPT |
+  | `out ( comma out &comma )* comma inp` — the fix | ACCEPT | ACCEPT |
+
+  Which is also why `and`/`nand`/`or`/`nor`/`xor`/`xnor` were never affected: their star is at the end.
+- [x] **FIX** — declarative tier, one lookahead: `( comma output_terminal &comma )*`, so the star may
+  take a terminal only when ANOTHER comma follows, i.e. only when it is not the last. Same device as
+  `split_hierarchical_callable_receiver`. Positional slots are unchanged — the lookahead sits at the
+  END of the group body, so `$4::2*` still selects `output_terminal` (element 2), and the LRM's
+  "one or more outputs then exactly one input" is derived exactly.
+- [x] **ADDRESSED (verified)** — `buf g1(o, o2, i);` `udp_instantiation` → `gate_instantiation>n_output>buf`;
+  `not g1(o, i);` likewise; `and g1(o, i, e);` unchanged as the control. On the isolated grammar the
+  fix also correctly REFUSES `(o)` — one terminal is not "outputs then an input" — so it did not
+  simply make the rule permissive. Re-run by `stimuli/sv/run_adjudication_repros.py`
+  (`fixed_gate_n_output_buf.sv`, arm `gate_instantiation>n_output>buf,!udp_instantiation`), 0 failures.
+- [x] **NO REGRESSION** — shares this slice's oracle run: both corpus lanes BYTE-IDENTICAL, lint
+  identical, `ADJUDICATION-REPROS … failures=0`. The starving-star census re-run on the FRESH grammar
+  drops this site (5 candidates → 4), so the instrument sees its own fix.
+- [x] **LOCKSTEP** — `starving_star_census.py` + the three scratch grammars; `MANIFEST.tsv`;
+  the book; `CHANGES.md`; `.13c.2s` NEW for the one confirmed live site the census found on its own.
+
+#### ⚠️ `.13c.2s` NEW `todo` — a system task/function call with a CLOCKING EVENT argument is REJECTED: the same starving star as `.13c.2r`, in a second production (opened 2026-08-18 session #247 by `.13c.2r`'s census, `PGEN-SV-CORPUS-GRAD-0233`)
+
+- ⭐ **HOW IT WAS FOUND — by the instrument, not by a corpus file.** `.13c.2r`'s starving-star census
+  flagged five candidate sites. `n_output_gate_instance` was the one already known; this is the one
+  the census found on its own, and it is a **rejects-valid** defect — the axis the Nexsim release bar
+  is about.
+- ⛔ **MEASURED, with a one-difference control** (interpreter, `sv_2017`; both rows are pinned in
+  `stimuli/sv/adjudication_repros/MANIFEST.tsv`):
+
+  | input | verdict |
+  |---|---|
+  | `x <= $rose(a, @(posedge clk));` | **REJECT** ⛔ `furthest_position=66`, exactly at the `@` |
+  | `x <= $rose(a);` (control — the clocking event removed) | ACCEPT |
+
+- **ROOT CAUSE (WHY + WHERE)** — `grammars/systemverilog.ebnf:5811`, third alternative:
+
+  ```text
+  system_tf_call := …
+                  | system_tf_identifier lparen expression ( comma ( expression )? )* ( comma ( clocking_event )? )? rparen
+  ```
+
+  IEEE 1800-2017 A.8.2 writes
+  `system_tf_identifier ( expression { , [ expression ] } [ , [ clocking_event ] ] )`. The greedy
+  `( comma ( expression )? )*` consumes the comma before `@(posedge clk)`; its inner `( expression )?`
+  then matches EMPTY (a clocking event is not an expression), so the star succeeds having eaten the
+  separator, and `( comma ( clocking_event )? )?` — which now needs a comma and sees `@` — takes zero
+  iterations. `rparen` is then required against `@` and the alternative fails.
+  ⭐ Same mechanism as `.13c.2r`, **different severity**: there the starved element was MANDATORY, so
+  the rule was unmatchable for every input; here it is OPTIONAL, so the rule still matches — it just
+  can never reach the clocking-event form. A verdict-only oracle sees a REJECT here and saw nothing
+  at all there.
+- **WHAT THIS LEAF OWES**: (a) the fix — the `&`-lookahead device `.13c.2r` used does not transfer
+  unchanged, because the starved follower is optional and the star's own body is nullable; decide
+  the spelling against the LRM's derivation and prove it on the pinned pair; (b) a check that the
+  other two `system_tf_call` alternatives still route the inputs they route today (the `arm` column);
+  (c) ⛔ **the census's three UNCONFIRMED candidates**, which this leaf inherits rather than leaves
+  unowned: `let_list_of_arguments`, `property_list_of_arguments` and `sequence_list_of_arguments` all
+  carry the same shape, and all three were measured to **ACCEPT** mixed positional+named argument
+  lists — but the AST shows the accepting arm is `list_of_arguments`'s own `mixed` alternative (its
+  `named` array is populated with `.b(2)`), **not** the `*_list_of_arguments` rule the census flagged.
+  ⇒ the construct is reachable, the named rule may still be starving, and that is an ARM question of
+  exactly the kind `.13c.2q` proved is invisible to a verdict.
+
+#### ⚠️ `.13c.2t` NEW `todo` — `'{int:1, default:0, string:""}` — IEEE 1800-2017 §10.9.2's OWN example — is held up only by a raw `identifier`, and it is the last thing blocking `.13c.2k` (opened 2026-08-19 session #247 by `.13c.2k`'s corpus A/B, `PGEN-SV-CORPUS-GRAD-0233`)
+
+- ⛔ **THE DEFECT IS LATENT TODAY AND ONLY VISIBLE THROUGH A FIX.** The file parses at HEAD, so no
+  instrument in the repository is red. It parses because `structure_pattern_key`'s FIRST alternative,
+  `member_identifier := identifier`, accepts the reserved word `string` — an over-acceptance. Close
+  that (`.13c.2k`) and the construct falls through to the alternative that is *supposed* to carry it,
+  `assignment_pattern_key := simple_type | default`, which **cannot derive `string`**, and the file
+  REJECTS. So today PGEN gets the right verdict through the wrong production, and tomorrow it gets
+  the wrong verdict — the third instance in this slice of an over-acceptance being LOAD-BEARING
+  (`.13c.2q`, `.13c.2r`).
+- **MEASURED** — `stimuli/sv/subs/ispras-sv-tests/ieee-1800-2012/10/10.09.02_03.sv`, `sv_2017`:
+  ACCEPT at HEAD; with `.13c.2k` applied, REJECT at `furthest_position=315`, which is line 20 col 33
+  — exactly at the `string` key, with `int:1` and `default:0` already consumed.
+- **AUTHORITY — the LRM's body text against its own Annex A, and they disagree.**
+  `docs/systemverilog/2017/txt/section-10-assignment-statements.txt:939` prints
+  `initial s2 = '{int:1, default:0, string:""};` as a worked example of §10.9.2 structure assignment
+  patterns, so the construct is normative and must parse. But
+  `docs/systemverilog/2023/txt/section-Annex_A-normative-formal-syntax.txt:1478-1480` gives
+  `structure_pattern_key ::= member_identifier | assignment_pattern_key` and
+  `assignment_pattern_key ::= simple_type | default`, while `simple_type` (`:598`) is
+  `integer_type | non_integer_type | ps_type_identifier | ps_parameter_identifier` — and `string` is
+  in none of them (`non_integer_type ::= shortreal | real | realtime`). PGEN's grammar mirrors
+  Annex A faithfully; the gap is in Annex A, and `.13c.2f` slice 4 is the standing precedent for
+  which side wins (`-0221` made IEEE 1800-2023 §30.7.1's own `PATHPULSE$` example parse).
+- **WHAT THIS LEAF OWES**: (a) decide the minimal faithful widening — the candidate is to admit the
+  keyword type names the §10.9.2 example uses as `assignment_pattern_key`s, which is a question about
+  `data_type`-vs-`simple_type` and must be answered by reading both, not by adding `string` alone;
+  (b) ⛔ a SWEEP, because one instance is never the class here (`.13c.2e`): every other place PGEN
+  spells `simple_type` where the LRM's examples use a fuller `data_type` is the same defect in
+  waiting; (c) a pinned reproducer pair (the LRM line, plus a one-token control) so the fix is
+  ratcheted; (d) then unblock `.13c.2k`, whose fix is already built and measured.
 
 #### `.13c.2e` — `select_condition`'s `intersect { … }` BRACES are not modelled, so the range list swallows the rest of the expression (**`done`** 2026-08-12, `PGEN-SV-CORPUS-GRAD-0214`; opened 2026-08-12 session #218 by `ENGINE-UNIVERSAL-SERVICES.10`)
 

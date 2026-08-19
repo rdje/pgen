@@ -1,5 +1,49 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0233 — the fix regressed the corpus, and the regression WAS the finding
+
+**1. ⭐⭐⭐ AN OVER-ACCEPTANCE CAN BE LOAD-BEARING.** The plan was ordinary: close `.13c.2k`'s
+reserved-keyword hole, measure, land. The A/B moved two long-passing corpus files to REJECT, and one
+of them was IEEE 1364-2005 §7.1.6's own worked example. Chasing that produced two root causes with
+nothing to do with keywords — eight gate keywords extracted with their trailing digits dropped
+(`/bufif\b/` can never match `bufif0`), and a greedy repetition that ate its own mandatory tail so
+`n_output_gate_instance` matched no input at all. Ten gate primitives were unparseable, and had been
+riding `udp_instantiation` with a reserved keyword as the type name the whole time. ⇒ **the two
+defects cancelled at the level of the VERDICT and nowhere else.** Promoted to
+[[an-over-acceptance-can-be-load-bearing]].
+
+**2. ⛔ A VERDICT ORACLE CANNOT SEE THIS, BY CONSTRUCTION.** The corpus pass count, the two-sided
+reproducer ratchet and the syntax-closure gates were all green across all ten defects, for as long as
+they have existed. Nothing was broken about those instruments; they answer *did it parse*, and the
+answer was genuinely yes. Only the ARM moved — `udp_instantiation` →
+`gate_instantiation>enable>bufif0`. This is the second independent justification for the `arm`
+column (`.13c.2a.2` was the first), and the load-bearing half is the NEGATIVE claim:
+`!udp_instantiation` is what turns "it parsed" into "it parsed the way the standard says".
+
+**3. ⭐ PRICING FIRST INVERTED THE DESIGN, WHICH IS WHY IT IS WORTH DOING FIRST.** `.13c.2k` expected
+its own fix to breach `PARSE-COST-RATCHET` — a negative lookahead in two hot loops. Measured, the
+opposite: `identifier` takes 90 % memo hits and `non_keyword_identifier` takes **zero**, so the
+exclusion is currently spelled in the one rule that never benefits from the memo table. Moving it
+down is `−8,958,174` entries. The instrument prints that as a PREDICTION precisely so the post-fix
+measurement can refute it.
+
+**4. ⛔ AND THEN THE FIX WAS HELD BACK ANYWAY.** Seven `sv` files and three `verilog_2005` files move.
+Adjudicated one at a time against the tracked LRMs: six correct rejections (three of them merely
+reflecting that `.v` files are parsed under `sv_2017`), one genuine rejects-valid gap — IEEE
+1800-2017 §10.9.2's own `'{int:1, default:0, string:""}`. Landing a narrowing beside a known
+rejects-valid regression trades one defect class for another, which is exactly what the strict-LRM
+default exists to prevent. The fix is built, measured, and waiting on `.13c.2t`.
+
+**5. ⚠️ THE COST ELIMINATION WAS PRICED AND REFUSED, AND THAT NEEDED WRITING DOWN.** The standing
+directive is "costs are REJECTED, not traded", and a zero-cost spelling exists: fuse `bufif0|bufif1`
+into one regex. It was refused on the merits — it invents a keyword no LRM has, breaks a convention
+all ~750 `kw_*` tokens follow, and flattens the 0/1 polarity a downstream elaborator needs. ⇒ the
+right outcome was neither "eliminate" nor "bypass" but the typed acceptance `.36` built, extended
+with the predicate this rise's shape needed (`ENGINE-UNIVERSAL-SERVICES.37`). ⭐ Note what that
+means: `.36` shipped one predicate one commit ago, and the very next real rise had a different
+shape. A typed-acceptance mechanism is only as general as its predicate library, and its design
+said so.
+
 ## 2026-08-18 - PGEN-SV-CORPUS-GRAD-0231/0232 — challenged on two findings; the measurements held, two statements did not, and the re-derivation found a worse defect than the one under review
 
 **1. ⛔⛔ THIS TIME BOTH ERRORS OVERSTATED. `-0228`'s BOTH UNDERSTATED.** That symmetry is the useful

@@ -2049,6 +2049,30 @@ with it — an unknown class is refused rather than skipped, and a class that co
 a green one. Four adversarial arms, control included, are recorded under
 `docs/tasks/artifacts/sv_corpus_grad/accepts_invalid_class/`.
 
+⭐⭐ **A verdict is not an arm, and the difference is where a whole construct went missing.** A row
+may also pin *which alternative* parsed it — a nested chain of AST `kind` values, optionally negated
+with `!`. That column earned its keep twice. The first time, a control claimed two operands carried
+the keyword `intersect` and therefore could not be one plain expression; it was parsing as one plain
+expression, and a verdict-only oracle called it green. The second time was worse. Closing the
+reserved-word hole above made two long-passing corpus files start failing, and the reason was not the
+fix: IEEE 1364-2005's `enable_gatetype ::= bufif0 | bufif1 | notif0 | notif1` and
+`pass_en_switchtype ::= tranif0 | tranif1 | rtranif1 | rtranif0` had been extracted with their
+**trailing digits dropped**, leaving `/bufif\b/` and `/tranif\b/` — tokens that can never match,
+because `\b` demands a word boundary and `0` is a word character. Eight gate keywords were
+unparseable. A ninth and tenth, `buf` and `not`, were unreachable for a different reason: their
+instance rule spelled `( comma output_terminal )* comma input_terminal`, and a greedy repetition the
+engine will not backtrack into ate the mandatory trailing input terminal, so the rule matched no
+input at all.
+
+⛔ **None of that was visible, because all ten forms still parsed** — as *UDP instantiations whose
+type name is a reserved keyword*, which is precisely what the unguarded `identifier` rule permitted.
+The over-acceptance was **load-bearing for constructs the parser could not otherwise reach**, and
+every verdict-based instrument in the repository — the corpus pass count, the two-sided repro
+ratchet, the syntax-closure gates — read green across all of it. Only the arm moved, from
+`udp_instantiation` to `gate_instantiation>enable>bufif0`, and only a check that looks at the arm can
+see that. The general lesson is worth more than the fix: **a defect can hide behind a different
+defect of the opposite sign**, and a suite that only asks *did it parse* will confirm both.
+
 The first seven rows in the new class are two measured over-acceptances that had nowhere to live. One
 is positional: every **non-final** component of a hierarchical path accepts a reserved keyword —
 `ral.module[0].g()`, `ral.module.g()` and `module.g()` all parse — because the component loops spell

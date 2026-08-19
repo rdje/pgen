@@ -9213,6 +9213,57 @@ DELETE it rather than keep a decorative one — `LIVE-DOC-CURRENCY` measured 25 
 `Last updated:` declarations simply wrong and deleted the field.
 
 
+#### ✅ `.37` `done` — `accepted_rises.tsv` could hold ONE shape of explained rise, and the second real one had a different shape (opened AND closed 2026-08-19 session #247 by `SV-CORPUS-GRAD.13c.2q`, `PGEN-SV-CORPUS-GRAD-0233`)
+
+- ⛔ **WHY, and it is `.36`'s own lesson arriving one commit later.** `.36` built the typed acceptance
+  because the gate's message named an outcome — *"record it as irreducible with the measurement that
+  proves it"* — that had nowhere to be recorded. It shipped with exactly ONE coded predicate,
+  `pure_memo_lookups` (`Δentries == Δmemo_hits ∧ Δcommitted == 0`), written for the rise in front of it.
+  The very next attributed rise did not have that shape: `SV-CORPUS-GRAD.13c.2q` measures
+  `Δentries == 2 × Δmemo_hits ∧ Δcommitted == 0`, and `.36`'s design says so out loud — *"accepting a
+  rise of a NEW SHAPE therefore takes a code change with its own task leaf, not a new line in a data
+  file."* This is that leaf. ⭐ The mechanism worked exactly as designed: the gate REFUSED the row
+  naming an unknown invariant rather than skipping it.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `scripts/check_parse_cost_ratchet.sh`, `INVARIANTS` held one
+  entry. The gate's own refusal is the diagnosis, quoted from the run:
+
+  ```text
+  ✗ BINDING metric `entries` ROSE 417,009,457 -> 417,585,361 (+0.14 %). Costs are REJECTED, not
+    traded — attribute it and eliminate it, or record it as irreducible with the measurement that
+    proves it (`.20` acceptance): one row in …/accepted_rises.tsv naming this exact from/to plus a
+    coded invariant that explains it.
+  ✗ BINDING metric `memo_hits` ROSE 187,512,221 -> 187,800,173 (+0.15 %).
+  ```
+- [x] **FIX** — a second coded predicate, `unmatched_terminal_alternatives`, at the DECLARATIVE tier
+  (a predicate in the gate, no engine change). Its arithmetic is structural rather than fitted:
+  every keyword terminal in this repository is spelled `kw_X := trivia /re/`, so admitting one more
+  alternative into an ordered choice costs, per attempted position, exactly **two** entries — the
+  terminal's own body (always run; a terminal takes no memo hit at a position it is tried once) plus
+  one entry for the shared `trivia` prefix, which the first alternative already resolved and which is
+  therefore a memo HIT. N alternatives over P positions is `2NP` entries and `NP` memo hits.
+  ⛔ `Δcommitted == 0` is the load-bearing half: it says the added alternatives never MATCHED. The day
+  one does, committed moves, the invariant fails, and the acceptance stops covering the rise.
+- [x] **ADDRESSED (verified)** — `docs/tasks/artifacts/engine_universal_services/unmatched_terminal_alternatives/probe.sh`,
+  **6/6 as declared**: one GREEN control (the real measured rise holds), **four refusal arms**
+  (`committed` moved → refused; zero memo movement → refused; the 1:1 `pure_memo_lookups` shape →
+  refused, so the two acceptances keep meaning different things; falling memo hits → refused), and one
+  REGISTRATION arm, without which every row naming the invariant is refused as unknown.
+  ⚠️ Counted precisely: **4 refusal arms, 1 control, 1 registration arm** — a control is not a refusal
+  arm (`-0231`). ⭐ The probe lifts the predicate **out of the shipped gate's own source text** with a
+  regex and `exec`s it, rather than re-typing it, so it cannot pass against a copy that has drifted.
+  ⭐ Its root guard caught it being written one directory level short — `probe: not at the repo root
+  (…/docs)` — the second time that exact guard has earned its place (`SV-CORPUS-GRAD.13c.2k`).
+- [x] **NO REGRESSION** — `bash -n scripts/check_parse_cost_ratchet.sh` clean; the pre-existing
+  `pure_memo_lookups` rows for `.13c.2j` still load and are unaffected (arm A4 proves the new
+  predicate does not swallow their shape); all other doctrines unchanged.
+- **LOCKSTEP** — `accepted_rises.tsv` gains the two `.13c.2q` rows; `DOCTRINE_ENFORCEMENT.md` needs no
+  change (the doctrine roster and its count are unmoved — this is a new predicate inside an existing
+  doctrine, not a new doctrine).
+- ⚠️ **HONEST BOUND, stated because the invariant's name invites over-reading**: it explains the
+  SHAPE of a rise, never that the rise was unavoidable. It is the right acceptance only when the
+  alternatives are required for the grammar to derive its standard's language at all. `.13c.2q`
+  records the elimination it considered and REFUSED, with the reason, so a reader can re-open it.
+
 #### ✅ `.36` `done` — `PARSE-COST-RATCHET` told you to "record it as irreducible with the measurement that proves it" and had NOWHERE to record it, so the only outcomes were eliminate-or-bypass (closed 2026-08-18 session #246, `PGEN-SV-CORPUS-GRAD-0229`)
 
 - **HOW IT WAS FOUND — by a correctness fix hitting the wall.** `SV-CORPUS-GRAD.13c.2j` restored an

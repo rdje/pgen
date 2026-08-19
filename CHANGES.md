@@ -1,5 +1,67 @@
 # CHANGES.md
 
+## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0233 (leaves SV-CORPUS-GRAD.13c.2q + .13c.2r CLOSED, ENGINE-UNIVERSAL-SERVICES.37 CLOSED; .13c.2s/.13c.2t NEW; .13c.2k's fix BUILT, MEASURED and HELD BACK)
+
+- ✅ **PGEN CAN NOW PARSE TEN GATE AND SWITCH PRIMITIVES IT COULD NOT PARSE AT ALL.** `bufif0`,
+  `bufif1`, `notif0`, `notif1`, `tranif0`, `tranif1`, `rtranif0`, `rtranif1`, `buf` and `not`
+  instantiations reached `gate_instantiation` for the first time. IEEE 1364-2005 §7.1.6's own
+  array-of-buffers example (`bufif0 ar[3:0](out, in, en);`) is in the corpus and now takes the gate
+  route, with `udp_instantiation` absent from its AST.
+- ⛔⛔ **AND NONE OF IT WAS VISIBLE, BECAUSE ALL TEN STILL PARSED — AS SOMETHING ELSE.** They were
+  reaching `udp_instantiation` with a *reserved keyword as the UDP type name*, which the unguarded
+  `identifier` rule permits. Every verdict-based instrument here read green across it: the corpus
+  pass count, the two-sided repro ratchet, the syntax-closure gates. Only the ARM moved. ⭐ The
+  general lesson outranks the fix: **a defect can hide behind a different defect of the opposite
+  sign, and an over-acceptance can be load-bearing for a construct the parser cannot otherwise
+  reach.** Three separate instances of that shape turned up in this one slice.
+- **TWO ROOT CAUSES, both read off the grammar and checked against all three tracked LRMs.**
+  (1) `.13c.2q` — the extraction collapsed `bufif0 | bufif1` and `tranif0 | tranif1 | rtranif0 |
+  rtranif1` to their alphabetic STEMS, leaving `/bufif\b/` and `/tranif\b/`: tokens that can never
+  match, because `\b` demands a word boundary and `0` is a word character. Eight keywords,
+  unmatchable by construction. (2) `.13c.2r` — `n_output_gate_instance` spelled
+  `( comma output_terminal )* comma input_terminal`, and a greedy repetition the engine will not
+  backtrack into ate the mandatory trailing input terminal, so the rule matched **no input at all**.
+  Isolated on an 8-line scratch grammar before either fix was applied.
+- ⭐ **THE STARVING-STAR CLASS IS NOW SWEPT BY AN INSTRUMENT, and it found a defect on its own.**
+  `starving_star_census.py` reports 4 remaining candidates; three are measured false positives (the
+  construct is reachable through `list_of_arguments`' own mixed alternative), and one is real:
+  `$rose(a, @(posedge clk))` REJECTS because `system_tf_call`'s greedy `( comma ( expression )? )*`
+  eats the comma before the clocking event. ⇒ `.13c.2s`, a rejects-valid defect nobody was looking
+  for. The census also refuses to run against a stale `generated/systemverilog.json` — it reported
+  the already-fixed site as live once, which is exactly how a build-artifact census lies.
+- ⛔ **COST: MEASURED, ATTRIBUTED TO THE UNIT, AND THE ELIMINATION WAS PRICED AND REFUSED.**
+  `entries +575,904 (+0.138 %)`, `memo_hits +287,952 (+0.154 %)`, `committed +0`. Attributed exactly:
+  each new token is entered **71,988** times, so 4 net-new terminal alternatives × 71,988 positions ×
+  (1 body + 1 memoized `trivia`) reproduces both deltas. Fusing `bufif0|bufif1` into one regex costs
+  nothing — and invents a keyword no LRM has, breaks the bare-`kw_*` convention all ~750 tokens
+  follow, and flattens the 0/1 polarity a downstream elaborator needs. Recorded as a typed acceptance
+  instead, so the trade is re-derivable and reversible rather than silent.
+- ⭐⭐ **`ENGINE-UNIVERSAL-SERVICES.37` — `accepted_rises.tsv` could hold ONE shape of explained rise,
+  and the second real one had a different shape.** `.36` shipped `pure_memo_lookups`
+  (`Δentries == Δmemo_hits`) one commit ago; this rise is `Δentries == 2 × Δmemo_hits ∧ Δcommitted == 0`,
+  and the gate correctly REFUSED the row naming an unknown invariant rather than skipping it. The new
+  predicate `unmatched_terminal_alternatives` is structural, not fitted: every keyword terminal is
+  `kw_X := trivia /re/`, so one more alternative costs exactly one body plus one memoized `trivia`
+  lookup per attempted position. `Δcommitted == 0` is the load-bearing half — the day one of the
+  added alternatives actually MATCHES, the invariant fails and the acceptance stops covering the rise.
+  Proven able to fail: **4 refusal arms, 1 green control, 1 registration arm**, with the predicate
+  lifted out of the shipped gate's own source text rather than re-typed.
+- ⛔⛔ **`.13c.2k`'s FIX IS BUILT AND MEASURED AND IS DELIBERATELY NOT LANDED.** Its sweep is now an
+  instrument with two agreeing signals — **47 raw `identifier` references in 40 rules, not the 43 the
+  leaf claimed** (a `grep -c` counts lines; five lines carry two or three) — and its price inverted
+  the leaf's own expectation: because `identifier` is 90 % memo hits while `non_keyword_identifier`
+  is 0 %, moving the exclusion down is predicted at **−8,958,174 entries (−2.15 %)**, a FALL. But the
+  full corpus moves 7 files in the `sv` lane and 3 in `verilog_2005`, and adjudicating every one
+  against the LRMs gives **six correct rejections and one genuine gap**: IEEE 1800-2017 §10.9.2's own
+  `'{int:1, default:0, string:""}` (⇒ `.13c.2t`). Landing a narrowing beside a known rejects-valid
+  regression trades one defect class for another, so it waits.
+- Verification: both corpus lanes **BYTE-IDENTICAL** (`results.tsv` pass=9787/16336,
+  `results_v2005.tsv` pass=2182/2459); `ADJUDICATION-REPROS: checked=135 armed=60 listed=73
+  multi_profile_rows=41 failures=0` (7 new rows: 4 `fixed` with `!udp_instantiation` arms, 2
+  controls, 1 `defect`); `--lint-grammar` identical on both arms; the SV parser re-derives
+  **byte-identically** (`e563be8a67dd516a4…`) after a round trip through a different grammar state,
+  and the probe's `--parser-fingerprint` reports that exact digest.
+
 ## 2026-08-18 - PGEN-SV-CORPUS-GRAD-0232 (leaf SV-CORPUS-GRAD.13c.2o CLOSED; .13c.2p NEW; ONE grammar token DELETED)
 
 - ✅ **PGEN NOW PARSES IEEE 1800-2023 COVERGROUP INHERITANCE.** `covergroup extends base;` inside a

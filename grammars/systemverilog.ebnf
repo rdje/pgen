@@ -2379,8 +2379,18 @@ empty_unpacked_array_concatenation := lbrace rbrace
 enable_gate_instance := ( name_of_instance )? lparen output_terminal comma input_terminal comma enable_terminal rparen
                      -> {name: $1, output: $3, input: $5, enable: $7}
 
-enable_gatetype := kw_bufif_8c9c7ee6 -> {kind: "bufif"}
-                | kw_notif_8743f903 -> {kind: "notif"}
+# SV-CORPUS-GRAD.13c.2q: the LRM writes FOUR alternatives and every one carries a trailing digit —
+# `enable_gatetype ::= bufif0 | bufif1 | notif0 | notif1` (IEEE 1364-2005 Annex A A.3.4,
+# IEEE 1800-2017 §28 / A.3.4, IEEE 1800-2023 Annex A — identical in all three, so no `@profiles`).
+# The extraction collapsed each pair to its alphabetic STEM and dropped the digit, leaving
+# `/bufif\b/` and `/notif\b/`, which can never match `bufif0`: `\b` demands a word boundary and `0`
+# is a word character. ⇒ this whole alternative of `gate_instantiation` was unmatchable, and every
+# `bufif0 g(o,i,e);` in the corpus was parsing as a UDP INSTANTIATION whose type name is a reserved
+# keyword — an over-acceptance (`.13c.2k`) that was load-bearing for a construct nothing else reached.
+enable_gatetype := kw_bufif0_e58d9bd3 -> {kind: "bufif0"}
+                | kw_bufif1_a2b83a3e -> {kind: "bufif1"}
+                | kw_notif0_2c8df148 -> {kind: "notif0"}
+                | kw_notif1_245fe7ea -> {kind: "notif1"}
 
 enable_terminal := expression
                 -> {body: $1}
@@ -3731,7 +3741,19 @@ n_input_gatetype := kw_and_cffa50a3  -> {kind: "and"}
                   | kw_xor_f1922a23  -> {kind: "xor"}
                   | kw_xnor_ab48bc67 -> {kind: "xnor"}
 
-n_output_gate_instance := ( name_of_instance )? lparen output_terminal ( comma output_terminal )* comma input_terminal rparen
+# SV-CORPUS-GRAD.13c.2r: the `&comma` lookahead is what makes this rule matchable AT ALL.
+# IEEE 1364-2005 A.3.1 writes `[ name_of_instance ] ( output_terminal { , output_terminal } ,
+# input_terminal )` — one or more outputs, then exactly one input. Spelled with a bare
+# `( comma output_terminal )*` the star is GREEDY and `output_terminal := net_lvalue` matches the
+# same text as `input_terminal := expression`, so the star ate the MANDATORY trailing
+# `comma input_terminal` and the sequence then failed with nothing left to satisfy it — for every
+# input, which is why `buf` and `not` gate instantiations were reaching `udp_instantiation` instead
+# (via the reserved-word hole `.13c.2k` closes). The lookahead lets the star take a terminal only
+# when ANOTHER comma follows, i.e. only when it is not the last one; same device as
+# `split_hierarchical_callable_receiver`. Isolated on an 8-line scratch grammar before it was
+# applied here — `docs/tasks/artifacts/sv_corpus_grad/gate_route_unmasking/`.
+# ⭐ Its sibling `n_input_gate_instance` below needs no such guard: its star is at the END.
+n_output_gate_instance := ( name_of_instance )? lparen output_terminal ( comma output_terminal &comma )* comma input_terminal rparen
                        -> {name: $1, outputs: [$3, $4::2*], input: $6}
 
 n_output_gatetype := kw_buf_cb252062 -> {kind: "buf"}
@@ -4439,8 +4461,12 @@ queue_slice_dollar_bound := kw_dollar ( queue_slice_dollar_offset )?
 queue_slice_dollar_offset := plus constant_expression  -> {kind: "plus",  body: $2}
                            | minus constant_expression -> {kind: "minus", body: $2}
 
-pass_en_switchtype := kw_tranif_02d116e0 -> {kind: "tranif"}
-                   | kw_rtranif_75c812fc -> {kind: "rtranif"}
+# SV-CORPUS-GRAD.13c.2q: `pass_en_switchtype ::= tranif0 | tranif1 | rtranif1 | rtranif0` — the
+# same lost-digit collapse as `enable_gatetype` above, from the same Annex A block.
+pass_en_switchtype := kw_tranif0_96ae6b37 -> {kind: "tranif0"}
+                   | kw_tranif1_41e0f26e -> {kind: "tranif1"}
+                   | kw_rtranif0_caee0cc0 -> {kind: "rtranif0"}
+                   | kw_rtranif1_91fafa05 -> {kind: "rtranif1"}
 
 pass_enable_switch_instance := ( name_of_instance )? lparen inout_terminal comma inout_terminal comma enable_terminal rparen
                             -> {name: $1, in1: $3, in2: $5, enable: $7}
@@ -6554,7 +6580,9 @@ kw_break_4f9cac8d := trivia /break\b/
 
 kw_buf_cb252062 := trivia /buf\b/
 
-kw_bufif_8c9c7ee6 := trivia /bufif\b/
+kw_bufif0_e58d9bd3 := trivia /bufif0\b/
+
+kw_bufif1_a2b83a3e := trivia /bufif1\b/
 
 kw_byte_8cf1783f := trivia /byte\b/
 
@@ -6867,7 +6895,9 @@ kw_noshowcancelled_1d50d807 := trivia /noshowcancelled\b/
 
 kw_not_557f2555 := trivia /not\b/
 
-kw_notif_8743f903 := trivia /notif\b/
+kw_notif0_2c8df148 := trivia /notif0\b/
+
+kw_notif1_245fe7ea := trivia /notif1\b/
 
 kw_ns_7320d5b7 := trivia /ns\b/
 
@@ -6958,7 +6988,9 @@ kw_rpmos_7cd80934 := trivia /rpmos\b/
 
 kw_rtran_edbf7838 := trivia /rtran\b/
 
-kw_rtranif_75c812fc := trivia /rtranif\b/
+kw_rtranif0_caee0cc0 := trivia /rtranif0\b/
+
+kw_rtranif1_91fafa05 := trivia /rtranif1\b/
 
 kw_s_a0f1490a := trivia /s\b/
 
@@ -7112,7 +7144,9 @@ kw_token_93ac8946 := trivia "##"
 
 kw_tran_8cc27d13 := trivia /tran\b/
 
-kw_tranif_02d116e0 := trivia /tranif\b/
+kw_tranif0_96ae6b37 := trivia /tranif0\b/
+
+kw_tranif1_41e0f26e := trivia /tranif1\b/
 
 kw_tri_54bf01f1 := trivia /tri\b/
 

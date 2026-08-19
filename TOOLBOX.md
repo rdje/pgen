@@ -726,7 +726,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `cascade_match_casting_type_lr_suffix` and friends — tick nothing. And a counter counts **events**:
   a rise in the cost PER event is invisible to it on any graph. That limit is a property of the
   metric, so unlike a measured bound it cannot go stale.
-  **Live LR-family share `2.739`** (corpus-entry share %) — the LR-elimination family's share of all
+  **Live LR-family share `2.735`** (corpus-entry share %) — the LR-elimination family's share of all
   corpus rule entries. ⭐ **GATED, not quoted** since `.21` acceptance (f): `PARSE-COST-RATCHET`'s
   every-run tier re-hashes the four inputs it is a function of (grammar, generated parser,
   classifier, corpus) against

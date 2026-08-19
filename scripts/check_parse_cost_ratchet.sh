@@ -547,7 +547,46 @@ def _pure_memo_lookups(base_tot, new_tot):
                   f"{d_entries:,} more cached lookups, zero new parsing work")
 
 
-INVARIANTS = {"pure_memo_lookups": _pure_memo_lookups}
+def _unmatched_terminal_alternatives(base_tot, new_tot):
+    """The rise is entirely NEW TERMINAL ALTERNATIVES that never matched: each costs its own rule
+    body plus one MEMOIZED `trivia` lookup at the same position, and none of them committed.
+
+    ⭐ Why the arithmetic is structural and not numerology. Every keyword terminal in this
+    repository's grammars is spelled `kw_X := trivia /re/`, so ADMITTING one more alternative into
+    an ordered choice costs, at each position the choice is attempted, exactly two entries: the
+    terminal's own body (which always runs — a terminal is tried at most once per position, so it
+    takes no memo hit) and one entry for the shared `trivia` prefix, which the FIRST alternative
+    already resolved and which is therefore a memo HIT. N alternatives over P positions is
+    `2*N*P` entries and `N*P` memo hits. Hence `delta_entries == 2 * delta_memo_hits`.
+
+    ⛔ AND `committed` MUST NOT MOVE, which is what stops this being a licence for speculation:
+    it says the added alternatives never actually matched anything in the sample. The day one of
+    them does, `committed` moves, this invariant FAILS, and the acceptance correctly stops
+    covering the rise — the row cannot outlive its own justification.
+
+    ⚠️ HONEST BOUND: this explains the SHAPE of a rise, not that the rise was unavoidable. It is
+    the right acceptance only when the alternatives are required for the grammar to derive its
+    standard's language at all, and when eliminating them would change what the parser accepts.
+    """
+    d_entries = new_tot["entries"] - base_tot["entries"]
+    d_memo = new_tot["memo_hits"] - base_tot["memo_hits"]
+    d_committed = new_tot["committed"] - base_tot["committed"]
+    if d_committed != 0:
+        return False, (f"committed moved by {d_committed:+,} — one of the added alternatives now "
+                       f"MATCHES, so this is no longer unmatched speculation")
+    if d_memo <= 0:
+        return False, f"memo hits moved {d_memo:+,} — a terminal alternative always adds a memoized `trivia` lookup"
+    if d_entries != 2 * d_memo:
+        return False, (f"entries moved {d_entries:+,} but 2 x memo hits is {2 * d_memo:+,} — the rise "
+                       f"is not one body plus one memoized trivia lookup per added alternative")
+    return True, (f"entries {d_entries:+,} == 2 x memo hits {d_memo:+,}, committed flat — "
+                  f"{d_memo:,} added terminal-alternative attempts, none of which matched")
+
+
+INVARIANTS = {
+    "pure_memo_lookups": _pure_memo_lookups,
+    "unmatched_terminal_alternatives": _unmatched_terminal_alternatives,
+}
 
 
 def load_accepted_rises():
