@@ -15,6 +15,11 @@
 #   python3 -c "import json,hashlib;print(hashlib.sha256(json.dumps(json.load(open('raw.json'))['raw_ast'],sort_keys=True,separators=(',',':')).encode()).hexdigest())"
 # ⛔ To a FILE, never /dev/stdout — the tool writes progress there too and the JSON parse fails.
 #
+# ⛔ THE KEY IS THE DIGEST, NOT THE COMMIT. The first design keyed rows on the commit sha and had a
+# chicken-and-egg the very next grammar change exposed: the row for the commit being made cannot
+# carry that commit's own sha. The digest is known BEFORE the commit is, and it is the identity the
+# contract actually describes, so `commit` is documentation and may be back-filled.
+#
 # disposition: RELEASE = the contract carries a section and the bug ledger carries a row.
 #              NEUTRAL = comment-only; the digest EQUALS its predecessor's, which is what the
 #              doctrine checks, so the claim refutes itself when false.
@@ -31,3 +36,4 @@ f9cff55e	2026-08-19	PGEN-SV-CORPUS-GRAD-0233	3cb4e1ac4a01a4b2e07b05e0d794b472d43
 6ad18e48	2026-08-19	PGEN-SV-CORPUS-GRAD-0234	3cb4e1ac4a01a4b2e07b05e0d794b472d436c557ac82e200422da8d3f786e7bb	NEUTRAL		a re-derivation under director challenge rewrote one comment block; digest byte-identical to its predecessor, and no pinned witness moved on either axis
 fc6aa8f9	2026-08-19	PGEN-SV-CORPUS-GRAD-0237	e8323d6738f3603c81db3c153fae0a6c182d0a2c8ba2beaedb1fee0f39965300	RELEASE	1.0.190	.13c.2k + .13c.2t — a reserved keyword parsed in every NON-FINAL hierarchy component, and assignment_pattern_key was narrower than §10.9.2's own example; NARROW all three + AST-SHAPE => ledger SV-0061 + SV-0062, schema 24 -> 25
 e28cc856	2026-08-19	PGEN-SV-CORPUS-GRAD-0238	e8323d6738f3603c81db3c153fae0a6c182d0a2c8ba2beaedb1fee0f39965300	NEUTRAL		a second re-derivation under director challenge rewrote two comment blocks; digest byte-identical to its predecessor, and no pinned witness moved on either axis
+(pending)	2026-08-19	PGEN-SV-CORPUS-GRAD-0242	bd9367dc1d79b6f2531a3975cb5c2449c451817f97c1a92fbcb18200fd14c9b4	RELEASE	1.0.191	.13c.2s — a greedy `( X )*` in front of an OPTIONAL X-shaped tail, at FOUR sites: a system task/function call could never reach its clocking-event argument, and the let/property/sequence argument lists could never reach a NAMED argument after a positional one; WIDEN sv_2017+sv_2023 => ledger SV-0063 + SV-0064, schema 25 unchanged

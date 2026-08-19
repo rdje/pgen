@@ -583,9 +583,53 @@ def _unmatched_terminal_alternatives(base_tot, new_tot):
                   f"{d_memo:,} added terminal-alternative attempts, none of which matched")
 
 
+def _unmatched_lookahead_terminals(base_tot, new_tot):
+    """The rise is entirely NEGATIVE-LOOKAHEAD TERMINALS: a `!kw` guard added to a sequence, which
+    at each position it is reached costs the terminal's own body plus one MEMOIZED `trivia` lookup
+    and commits nothing.
+
+    ⭐ The arithmetic is the same as `_unmatched_terminal_alternatives` and for the same structural
+    reason — every terminal here is `kw_X := trivia /re/`, so one attempt is two entries (the body,
+    which always runs, and the shared `trivia` prefix an earlier element already resolved, hence a
+    memo HIT). N guards over P reached positions is `2*N*P` entries and `N*P` memo hits.
+
+    ⛔ IT IS A SEPARATE INVARIANT BECAUSE `committed == 0` MEANS SOMETHING WEAKER HERE, and importing
+    the other one's name would have imported a guarantee that does not hold. For an added ALTERNATIVE,
+    `Δcommitted == 0` says the alternative never matched — the day it does, the acceptance correctly
+    expires. A negative lookahead NEVER commits its subject, matched or not: the subject is parsed
+    speculatively and rolled back either way. So here `Δcommitted == 0` says something different and
+    still worth having: **no rule anywhere committed more or fewer frames**, i.e. the guard changed
+    what the parser REFUSES without redirecting the search — which is the failure mode
+    [[a-strictness-fix-redirects-the-search-not-just-the-predicate]] names, where a rejection buys
+    more speculation elsewhere. That is the property being asserted, and it is asserted about the
+    whole run rather than about the guard.
+
+    ⚠️ HONEST BOUND, stated rather than implied: like its sibling this explains the SHAPE of a rise,
+    not that the rise was unavoidable. It is the right acceptance only when the guard is what makes
+    the grammar derive its standard's language — removing it must be shown to reintroduce a measured
+    defect — and when no cheaper spelling exists. ⛔ It cannot see a rise CONFINED to the guard's own
+    sub-graph versus one spread across the grammar; three totals cannot express that distinction, and
+    the per-rule containment predicate that can is `SV-CORPUS-GRAD.13c.2w`.
+    """
+    d_entries = new_tot["entries"] - base_tot["entries"]
+    d_memo = new_tot["memo_hits"] - base_tot["memo_hits"]
+    d_committed = new_tot["committed"] - base_tot["committed"]
+    if d_committed != 0:
+        return False, (f"committed moved by {d_committed:+,} — the guard REDIRECTED THE SEARCH, "
+                       f"which is the one thing this acceptance asserts it did not")
+    if d_memo <= 0:
+        return False, f"memo hits moved {d_memo:+,} — a lookahead terminal always adds a memoized `trivia` lookup"
+    if d_entries != 2 * d_memo:
+        return False, (f"entries moved {d_entries:+,} but 2 x memo hits is {2 * d_memo:+,} — the rise "
+                       f"is not one body plus one memoized trivia lookup per guard attempt")
+    return True, (f"entries {d_entries:+,} == 2 x memo hits {d_memo:+,}, committed flat — "
+                  f"{d_memo:,} guard attempts, and no rule committed a different number of frames")
+
+
 INVARIANTS = {
     "pure_memo_lookups": _pure_memo_lookups,
     "unmatched_terminal_alternatives": _unmatched_terminal_alternatives,
+    "unmatched_lookahead_terminals": _unmatched_lookahead_terminals,
 }
 
 

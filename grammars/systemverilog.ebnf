@@ -3140,9 +3140,23 @@ scoped_let_identifier := non_typedef_package_scope let_identifier -> {scope: $1,
 # POST-SV-AUDIT.2.4b Cat-A: factor the named-argument unit into a
 # record rule; ordered/named tails become clean extraction-spread lists.
 let_named_arg := dot non_keyword_identifier lparen ( let_actual_arg )? rparen -> {name: $2, value: $4}
+# SV-CORPUS-GRAD.13c.2s: the `!dot` guard is the SAME starving-star repair as `system_tf_call`,
+# in the let family. IEEE 1800-2017 A.2.10 writes `let_list_of_arguments ::=
+# [ let_actual_arg ] { , [ let_actual_arg ] } { , . identifier ( [ let_actual_arg ] ) }` —
+# ordered arguments, THEN named ones. Spelled with a bare `( comma ( let_actual_arg )? )*` the
+# greedy star ate the comma introducing the first NAMED argument, its inner optional matched EMPTY
+# (a named argument starts with `.`, and no `let_actual_arg` can — measured: `.b(2)` and `.b` both
+# REJECT as `let_actual_arg`, with `a+1` accepting as the control), and the named-argument star
+# then needed a comma and saw `.`.
+# ⚠️ HONEST BOUND, measured rather than assumed: `let_actual_arg := expression`, so at a real call
+# site the GENERAL `list_of_arguments` route always rescues a let argument list and this site has NO
+# demonstrated source-level flip. It is repaired anyway because the defect is identical and leaving
+# one member of a swept class unfixed is what `.13c.2e` was opened to stop; measured, it moves no
+# verdict and no tree on any pinned reproducer.
+# ⛔ ABOVE the rule, never between its alternatives — see the note on `system_tf_call`.
 let_list_of_arguments := let_named_arg ( comma let_named_arg )*
                                 -> {kind: "named_only", items: [$1, $2::2*]}
-                       | ( let_actual_arg )? ( comma ( let_actual_arg )? )* ( comma let_named_arg )*
+                       | ( let_actual_arg )? ( comma !dot ( let_actual_arg )? )* ( comma let_named_arg )*
                                 -> {kind: "mixed",      head: $1, ordered_tail: [$2::2*], named_tail: [$3::2*]}
 
 let_port_item := attribute_instance* let_formal_type formal_port_identifier variable_dimension* ( assign expression )?
@@ -5063,9 +5077,23 @@ property_instance := ps_or_hierarchical_property_identifier ( lparen ( property_
                   -> {name: $1, args: $2}
 
 property_named_arg := dot non_keyword_identifier lparen ( property_actual_arg )? rparen -> {name: $2, value: $4}
+# SV-CORPUS-GRAD.13c.2s: the `!dot` guard is the SAME starving-star repair as `system_tf_call`,
+# in the property family. IEEE 1800-2017 A.2.10 writes `property_list_of_arguments ::=
+# [ property_actual_arg ] { , [ property_actual_arg ] } { , . identifier ( [ property_actual_arg ] ) }` —
+# ordered arguments, THEN named ones. Spelled with a bare `( comma ( property_actual_arg )? )*` the
+# greedy star ate the comma introducing the first NAMED argument, its inner optional matched EMPTY
+# (a named argument starts with `.`, and no `property_actual_arg` can — measured: `.b(2)` and `.b` both
+# REJECT as `property_actual_arg`, with `a+1` accepting as the control), and the named-argument star
+# then needed a comma and saw `.`.
+# ⛔ DEMONSTRATED AT SOURCE LEVEL, unlike the `let` sibling: `pr(a ##1 b, .q(d))` — a property
+# instance whose positional argument only `property_actual_arg` can parse, followed by a named one —
+# goes REJECT -> ACCEPT. The general `list_of_arguments` route rescues a mixed list only while every
+# positional argument is ALSO a plain expression; when one is not, both routes fail and the
+# construct is unparseable.
+# ⛔ ABOVE the rule, never between its alternatives — see the note on `system_tf_call`.
 property_list_of_arguments := property_named_arg ( comma property_named_arg )*
                                     -> {kind: "named_only", items: [$1, $2::2*]}
-                            | ( property_actual_arg )? ( comma ( property_actual_arg )? )* ( comma property_named_arg )*
+                            | ( property_actual_arg )? ( comma !dot ( property_actual_arg )? )* ( comma property_named_arg )*
                                     -> {kind: "mixed",      head: $1, ordered_tail: [$2::2*], named_tail: [$3::2*]}
 
 property_lvar_port_direction := kw_input_140f86aa
@@ -5557,9 +5585,23 @@ sequence_instance := ps_or_hierarchical_sequence_identifier ( lparen ( sequence_
                   -> {name: $1, args: $2}
 
 sequence_named_arg := dot non_keyword_identifier lparen ( sequence_actual_arg )? rparen -> {name: $2, value: $4}
+# SV-CORPUS-GRAD.13c.2s: the `!dot` guard is the SAME starving-star repair as `system_tf_call`,
+# in the sequence family. IEEE 1800-2017 A.2.10 writes `sequence_list_of_arguments ::=
+# [ sequence_actual_arg ] { , [ sequence_actual_arg ] } { , . identifier ( [ sequence_actual_arg ] ) }` —
+# ordered arguments, THEN named ones. Spelled with a bare `( comma ( sequence_actual_arg )? )*` the
+# greedy star ate the comma introducing the first NAMED argument, its inner optional matched EMPTY
+# (a named argument starts with `.`, and no `sequence_actual_arg` can — measured: `.b(2)` and `.b` both
+# REJECT as `sequence_actual_arg`, with `a+1` accepting as the control), and the named-argument star
+# then needed a comma and saw `.`.
+# ⛔ DEMONSTRATED AT SOURCE LEVEL: `sq(a ##1 b, .q(d))` goes REJECT -> ACCEPT, with the
+# positional-only control `sq(a ##1 b, d)` parsing on both sides, so the flip is attributable to the
+# MIX alone. ⭐ And the rule is genuinely reachable, which had to be checked before fixing it: on
+# `sq(a ##1 b)` the tree carries this rule's own `ordered_tail`/`named_tail` fields, while on
+# `sq(a, .q(b))` it carries the general `list_of_arguments` shape instead.
+# ⛔ ABOVE the rule, never between its alternatives — see the note on `system_tf_call`.
 sequence_list_of_arguments := sequence_named_arg ( comma sequence_named_arg )*
                                     -> {kind: "named_only", items: [$1, $2::2*]}
-                            | ( sequence_actual_arg )? ( comma ( sequence_actual_arg )? )* ( comma sequence_named_arg )*
+                            | ( sequence_actual_arg )? ( comma !dot ( sequence_actual_arg )? )* ( comma sequence_named_arg )*
                                     -> {kind: "mixed",      head: $1, ordered_tail: [$2::2*], named_tail: [$3::2*]}
 
 sequence_lvar_port_direction := kw_input_140f86aa  -> {kind: "input"}
@@ -5884,11 +5926,33 @@ sv_dollar_width_timing_check := kw_sv_dollar_width_72b04d27 lparen controlled_re
 # `.`/`::` tails without committing. NOTE the $N renumber: a lookahead OCCUPIES
 # a positional slot (codegen-proven — it pushes an empty element), so the two
 # guards are $1/$2 and the payload starts at $3.
+# SV-CORPUS-GRAD.13c.2s (third alternative): the `!at_sign` guard is what lets the clocking-event
+# group fire AT ALL. IEEE 1800-2017 A.8.2 writes `system_tf_identifier ( expression
+# { , [ expression ] } [ , [ clocking_event ] ] )`. Spelled with a bare `( comma ( expression )? )*`
+# the star is GREEDY and its body is NULLABLE after the comma: on `$rose(a, @(posedge clk))` it ate
+# the comma, its inner `( expression )?` matched EMPTY (a clocking event is not an expression —
+# measured, not assumed: `$rose(@x)` REJECTS, so `expression` cannot start with `@` at a position
+# that demands one), and the trailing `( comma ( clocking_event )? )?` then needed a comma and saw
+# `@`. `rparen` was required against `@` and the alternative failed.
+# ⭐ Same starving-star mechanism as `n_output_gate_instance` (`.13c.2r`) with a DIFFERENT severity:
+# there the starved element was MANDATORY so the rule matched nothing; here it is OPTIONAL so the
+# rule matched everything EXCEPT the clocking-event form.
+# ⭐ Three spellings were built and measured behaviourally IDENTICAL over all 155 pinned reproducer
+# checks and 12 targeted probes (`docs/tasks/artifacts/sv_corpus_grad/systf_clocking_event/`):
+# `!( clocking_event )` before the optional expression, this one-token `!at_sign`, and `!at_sign` at
+# the END of the group body (the `.13c.2r` placement). This one is chosen because `at_sign` is the
+# unique first token of BOTH `clocking_event` alternatives, so it is a sound necessary condition,
+# and it refuses BEFORE attempting the expression rather than after.
+# ⛔ THE COMMENT LIVES HERE, ABOVE THE RULE, DELIBERATELY. Placed between two alternatives at column
+# 0 it ENDS the rule and silently discards every alternative after it — which is exactly what
+# happened while writing this fix: `--lint-grammar` reported 1610 rules and every counter zero,
+# unchanged, while `$rose(a, @(posedge clk))` went back to REJECT.
+# [[a-column-0-comment-inside-a-rule-body-deletes-the-following-alternatives]]
 system_tf_call := !( kw_sv_dollar_root_f65f0e67 dot ) !( kw_sv_dollar_unit_1d99223f scope_resolution ) system_tf_identifier ( lparen list_of_arguments rparen )?
                        -> {kind: "args",        name: $3, args: $4}
                 | system_tf_identifier lparen data_type ( comma expression )? rparen
                        -> {kind: "data_type",   name: $1, data_type: $3, expr: $4}
-                | system_tf_identifier lparen expression ( comma ( expression )? )* ( comma ( clocking_event )? )? rparen
+                | system_tf_identifier lparen expression ( comma !at_sign ( expression )? )* ( comma ( clocking_event )? )? rparen
                        -> {kind: "expr_clocking", name: $1, first_expr: $3, rest_exprs: $4, clocking: $5}
 
 system_timing_check := sv_dollar_setup_timing_check        -> {kind: "setup",      body: $1}

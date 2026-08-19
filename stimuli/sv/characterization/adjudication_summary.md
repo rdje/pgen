@@ -5,10 +5,10 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | suite | rows | match | UNEXPLAINED div | explained div | deferred |
 |---|---|---|---|---|---|
 | Cores-VeeR-EL2 | 102 | 0 | 0 | 0 | 102 |
-| Surelog | 828 | 564 | 42 | 22 | 200 |
+| Surelog | 828 | 568 | 38 | 22 | 200 |
 | black-parrot | 205 | 0 | 0 | 0 | 205 |
 | friscv | 441 | 0 | 0 | 0 | 441 |
-| ispras-sv-tests | 1266 | 777 | 27 | 16 | 446 |
+| ispras-sv-tests | 1266 | 778 | 26 | 16 | 446 |
 | iverilog | 3799 | 1018 | 30 | 220 | 2531 |
 | opentitan | 3983 | 0 | 0 | 0 | 3983 |
 | scr1 | 50 | 0 | 0 | 0 | 50 |
@@ -17,8 +17,8 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | sv2v | 953 | 464 | 37 | 78 | 374 |
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
 | verible | 152 | 113 | 11 | 6 | 22 |
-| verilator | 3263 | 2047 | 129 | 958 | 129 |
-| **total** | **16336** | **5832** | **288** | **1436** | **8780** |
+| verilator | 3263 | 2048 | 128 | 958 | 129 |
+| **total** | **16336** | **5838** | **282** | **1436** | **8780** |
 
 ## Verdict-class detail
 
@@ -36,8 +36,8 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | divergence:explained_svpp_macro_use | 1092 |
 | divergence:explained_svpp_protected_envelope | 4 |
 | divergence:unexplained_accepts_invalid | 21 |
-| divergence:unexplained_rejects_valid | 267 |
-| match | 5832 |
+| divergence:unexplained_rejects_valid | 261 |
+| match | 5838 |
 
-**The graduation burn-down baseline = the UNEXPLAINED divergence count** (**288**: rejects-valid 267, accepts-invalid 21). Explained divergences are svpp/chaining/timeout-owned with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
+**The graduation burn-down baseline = the UNEXPLAINED divergence count** (**282**: rejects-valid 261, accepts-invalid 21). Explained divergences are svpp/chaining/timeout-owned with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
 

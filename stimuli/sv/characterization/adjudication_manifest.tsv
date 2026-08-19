@@ -122,7 +122,7 @@ Surelog	tests/AssertDelayError/left_rotate_assertions.sv	pass	chained_only	defer
 Surelog	tests/AssertDelayError/tb_left_rotate.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/AssertTempError/design.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (2 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/AssertTempError/testbench.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (2 sources) - dir-level chained adjudication (leaf .4)
-Surelog	tests/Assertions/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log Assertions.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/Assertions/dut.sv	pass	must_accept	match	Surelog: golden log Assertions.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/AssignPattern/dut.sv	pass	must_accept	match	Surelog: golden log AssignPattern.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/AssignPatternArray/dut.sv	pass	must_accept	match	Surelog: golden log AssignPatternArray.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/AssignPlus/dut.sv	pass	must_accept	match	Surelog: golden log AssignPlus.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -500,8 +500,8 @@ Surelog	tests/LargeValue2Struct/dut.sv	pass	must_accept	match	Surelog: golden lo
 Surelog	tests/LateBindingFuncArg/dut.sv	pass	must_accept	match	Surelog: golden log LateBindingFuncArg.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/LeftPadding/dut.sv	pass	must_accept	match	Surelog: golden log LeftPadding.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/LegalPastFunc/dut.sv	pass	must_accept	match	Surelog: golden log LegalPastFunc.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/LetExpr/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log LetExpr.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/LetInlined/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log LetInlined.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/LetExpr/dut.sv	pass	must_accept	match	Surelog: golden log LetExpr.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/LetInlined/dut.sv	pass	must_accept	match	Surelog: golden log LetInlined.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/LhsHierPath/dut.sv	pass	must_accept	match	Surelog: golden log LhsHierPath.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/LhsOp/dut.sv	pass	must_accept	match	Surelog: golden log LhsOp.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/LibraryIntercon/cmp.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (3 sources) - dir-level chained adjudication (leaf .4)
@@ -797,7 +797,7 @@ Surelog	tests/StructVarImp/dut.sv	pass	must_accept	match	Surelog: golden log Str
 Surelog	tests/SurelogMacro/dut.sv	pass	must_accept	match	Surelog: golden log SurelogMacro.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/SynthFilterDollarError/dut.sv	pass	must_accept	match	Surelog: golden log SynthFilterDollarError.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/SynthForeach/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log SynthForeach.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/SystemCall/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log SystemCall.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
+Surelog	tests/SystemCall/dut.sv	pass	must_accept	match	Surelog: golden log SystemCall.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/SystemCallSize/dut.sv	pass	must_accept	match	Surelog: golden log SystemCallSize.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/TNocBadType/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log TNocBadType.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/TaggedParam/dut.sv	pass	must_accept	match	Surelog: golden log TaggedParam.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -2251,7 +2251,7 @@ ispras-sv-tests	ieee-1800-2012/11/11.13_04.sv	pass	must_accept	match	ispras: '//
 ispras-sv-tests	ieee-1800-2012/11/11.13_05.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/11/11.13_06.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/11/11.13_07.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/11/11.13_08.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/11/11.13_08.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/12/12.04.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/12/12.04.02.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/12/12.04.02.01_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -15289,7 +15289,7 @@ verilator	test_regress/t/t_past.v	pass	must_accept	match	verilator: driver t_pas
 verilator	test_regress/t/t_past_bad.v	pass	must_accept	match	verilator: driver t_past_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_past_funcs.v	pass	must_accept	match	verilator: driver t_past_funcs.py expects success
 verilator	test_regress/t/t_past_strobe.v	pass	must_accept	match	verilator: driver t_past_strobe.py expects success
-verilator	test_regress/t/t_past_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_past_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_past_unsup.v	pass	must_accept	match	verilator: driver t_past_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_pattern_unsup_xor.v	pass	must_accept	match	verilator: driver t_pattern_unsup_xor.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_pgo_profoutofdate_bad.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_pgo_profoutofdate_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_pipe_filter.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_pipe_filter.py expects success - .12a: parse stops where svpp cannot alter the text, so the preprocessor dependency does not explain THIS failure

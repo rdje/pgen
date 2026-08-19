@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0242 — the defect a general fallback hides, and the gate that caught its own author
+
+**1. THE CENSUS SAID "UNCONFIRMED" AND I NEARLY LEFT IT THERE.** `.13c.2r`'s starving-star census
+flagged three `*_list_of_arguments` rules and could not confirm them, because every source-level
+probe parsed. Entering each rule directly settles it in one command per rule — all three starve.
+Then the harder question: does it MATTER, if the general `list_of_arguments` route rescues the call
+site? The answer is not "no", it is "find the input the rescue cannot cover". `a ##1 b` is a
+`sequence_actual_arg` and not an expression, so `sq(a ##1 b, .q(d))` had no route at all. ⇒ **a
+masked defect is not a harmless one; it is a defect whose reproducer is one step further out.**
+
+**2. AND I ALMOST SHIPPED THE OPPOSITE CONCLUSION.** After measuring that the fix moved neither
+verdict nor tree on `sq(a, .q(b))`, I wrote — and nearly published — that the three-site fix had no
+demonstrated effect and should be routed away under the "no demonstrated defect ⇒ do not write it"
+rule. That was right about the input I had tried and wrong about the language. One more probe, aimed
+deliberately at what only the specialised rule can parse, inverted it.
+
+**3. THE COLUMN-0 COMMENT TRAP CAUGHT ME WITH A DOCUMENTED CARD OPEN IN THE REPOSITORY.** I put the
+explanatory comments between the alternatives they explain. The frontend ends the rule there. The
+lint reported 1610 rules and every counter zero — indistinguishable from health — and a 20-minute
+regeneration was already running before I re-probed. ⇒ **after any grammar edit, re-run the
+behavioural probe before spending anything on it.** The lint cannot see this class, by construction,
+and I knew that and still spent the build.
+
+**4. THE GATE I SHIPPED THIS MORNING FAILED ME THREE TIMES, CORRECTLY, AND THEN SHOWED ME ITS OWN
+BUG.** `SV-CONTRACT-CURRENCY` refused: no register row for the new digest; then contract-vs-register
+mismatch; then green. That is the workflow working. But writing the register row exposed a
+chicken-and-egg I had not seen while designing it: **the row for the commit being made cannot carry
+that commit's own sha**, so tier D would force the row and tier A would reject it on the next
+commit. Re-keying tier A on the digest removes it entirely — and the digest was always the better
+key, because it is what the contract actually describes. ⇒ **a gate is not finished when it passes;
+it is finished when it has been driven through a real change.**
+
+**5. THE COST ACCOUNTING IS WHERE I REFUSED A COMFORTABLE SHORTCUT.** The rise fits
+`unmatched_terminal_alternatives`' arithmetic exactly — `Δentries == 2·Δmemo ∧ Δcommitted == 0` — and
+I could have written that name in the acceptance row and moved on. But that invariant's teeth are
+the sentence *"the day one of them matches, committed moves and the acceptance expires"*, and a
+negative lookahead never commits its subject whether it matches or not. The arithmetic transferred;
+the guarantee did not. Writing a new invariant cost twenty minutes and keeps the file honest about
+what it is asserting. ⇒ **when a predicate fits but its rationale does not, the predicate is not the
+thing you are borrowing.**
+
+promotion: promoted — `docs/knowledge/a-specialised-rule-masked-by-a-general-fallback-is-untestable-from-source.md`
+
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0241 — the change that breaks a consumer hardest moves no verdict
 
 **1. I WENT LOOKING FOR AN ACCEPT-SET DEBT AND FOUND A SHAPE DEBT UNDERNEATH IT.** The leaf said

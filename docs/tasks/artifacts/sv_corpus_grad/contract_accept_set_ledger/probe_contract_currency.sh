@@ -59,10 +59,21 @@ arm() {
 }
 restore() { cp -f "$BACKUP/register.tsv" "$REGISTER"; cp -f "$BACKUP/grammar.ebnf" "$GRAMMAR"; }
 
-# ── tier A — a grammar commit with no register row ───────────────────────────────────────────────
-echo "tier A: a grammar revision nobody registered"
-grep -v '^e28cc856' "$BACKUP/register.tsv" > "$REGISTER"
-arm "an unregistered grammar commit is REPORTED" 1 "with NO row in"
+# ── tier A — a grammar revision whose semantic state no row records ──────────────────────────────
+# ⛔ THE ROW REMOVED HERE MUST CARRY A **UNIQUE** DIGEST. Tier A is keyed on the digest, not the sha,
+# so deleting a `NEUTRAL` row (whose digest equals its predecessor's, by definition) leaves a row
+# that still records that semantic state and the tier correctly stays green. This arm caught exactly
+# that when tier A was re-keyed: it had been deleting `e28cc856`, a comment-only revision, and went
+# from RED to green without the doctrine weakening at all.
+echo "tier A: a grammar revision whose semantic state no row records"
+grep -v '^4a2703cf' "$BACKUP/register.tsv" > "$REGISTER"
+arm "an unrecorded grammar revision is REPORTED" 1 "to a semantic state NO row in"
+restore
+
+# ── tier A — a `(pending)` row whose commit now EXISTS must be back-filled ───────────────────────
+echo "tier A: a stale (pending) placeholder"
+awk -F'\t' 'BEGIN{OFS="\t"} $1=="4a2703cf" {$1="(pending)"} {print}' "$BACKUP/register.tsv" > "$REGISTER"
+arm "a (pending) row whose commit exists is REPORTED" 1 "still reads"
 restore
 
 # ── tier C — a NEUTRAL claim that the register's own digests refute ──────────────────────────────

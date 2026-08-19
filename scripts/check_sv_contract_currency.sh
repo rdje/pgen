@@ -24,7 +24,13 @@
 # is `docs/CLAIM_VERIFICATION.md` leg 2.
 #
 # FOUR TIERS, each catching what the others structurally cannot:
-#   A — HISTORY   every grammar commit since the register's genesis has a register row.
+#   A — HISTORY   every grammar commit since the register's genesis has a register row, matched by
+#                 the row's DIGEST rather than by its commit sha. ⛔ Sha-keying was the first design
+#                 and it had a chicken-and-egg the very next grammar change exposed: the row for the
+#                 commit being made cannot carry that commit's own sha, so tier D forced the row to
+#                 exist while tier A then rejected it on the NEXT commit and demanded a fixup. The
+#                 digest is known before the commit is, and it is also the identity the contract
+#                 actually describes; the `commit` column stays as documentation.
 #   B — STAGED    a staged grammar edit must stage the register too (tier A cannot see an
 #                 uncommitted commit, which is exactly when the habit fails).
 #   C — NEUTRALITY a `NEUTRAL` row's digest must equal its predecessor's. The claim refutes itself
@@ -59,15 +65,56 @@ mapfile -t ROWS < <(grep -v '^#' "$REGISTER" | grep -v '^[[:space:]]*$' | tail -
 
 row_field() { printf '%s' "$1" | cut -f"$2"; }
 
-# ── tier A — HISTORY: every grammar commit since genesis is accounted for ────────────────────────
-missing=""
-while read -r sha; do
-  [ -n "$sha" ] || continue
-  short="${sha:0:8}"
-  printf '%s\n' "${ROWS[@]}" | cut -f1 | grep -qx "$short" || missing="$missing $short"
-done < <(git rev-list --reverse "$GENESIS..HEAD" -- "$GRAMMAR")
+# The semantic digest of one revision of the grammar, from the PRODUCER. Empty when unavailable.
+sv_semantic_digest() {  # $1 = a file holding the grammar text
+  [ -x "$PIPELINE" ] || return 0
+  local out; out="$(mktemp "${TMPDIR:-/tmp}/sv_contract_currency.XXXXXX.json")"
+  "$PIPELINE" "$1" --emit-raw-ast-json "$out" >/dev/null 2>&1
+  python3 -c '
+import hashlib, json, sys
+try:
+    raw = json.load(open(sys.argv[1]))["raw_ast"]
+except Exception:
+    sys.exit(0)
+print(hashlib.sha256(json.dumps(raw, sort_keys=True, separators=(",", ":")).encode()).hexdigest())
+' "$out"
+  rm -f "$out"
+}
+
+# ── tier A — HISTORY: every grammar commit since genesis is accounted for, BY DIGEST ─────────────
+if [ -x "$PIPELINE" ]; then
+  scratch="$(mktemp -d "${TMPDIR:-/tmp}/sv_contract_currency_hist.XXXXXX")"
+  missing=""
+  while read -r sha; do
+    [ -n "$sha" ] || continue
+    git show "$sha:$GRAMMAR" > "$scratch/g.ebnf" 2>/dev/null || { note "cannot read $GRAMMAR at $sha"; continue; }
+    d="$(sv_semantic_digest "$scratch/g.ebnf")"
+    if [ -z "$d" ]; then
+      note "tier A could not derive the semantic digest of $GRAMMAR at ${sha:0:8} — a tier that cannot
+  inspect its subject must say so, not pass"
+    elif ! printf '%s\n' "${ROWS[@]}" | cut -f4 | grep -qx "$d"; then
+      missing="$missing ${sha:0:8}"
+    else
+      # ⛔ A `(pending)` row is the price of digest-keying: the row for the commit being made cannot
+      # name that commit. The moment the commit EXISTS, the placeholder is rot, so back-filling it is
+      # gated rather than reminded — a reminder has already lost 1 592 times in this repository
+      # (LESSON-RETRIEVAL.1). The digest is what identifies the row, so the fix is one edit.
+      pending_row="$(printf '%s\n' "${ROWS[@]}" | awk -F'\t' -v d="$d" '$4 == d && $1 == "(pending)"')"
+      [ -z "$pending_row" ] || note "the register row for semantic digest ${d:0:16}… still reads
+  \`(pending)\` in its \`commit\` column, but that state IS committed — as ${sha:0:8}. Back-fill it:
+  the digest is what identifies the row, so this is a one-word edit in $REGISTER."
+    fi
+  done < <(git rev-list --reverse "$GENESIS..HEAD" -- "$GRAMMAR")
+  rm -rf "$scratch"
+else
+  printf 'sv-contract-currency: tier A NOT EVALUATED — %s is not built, so per-revision digests were
+  not derived. Tier B (the staged diff) still binds, and it is the tier that catches the change
+  being made. Build it to close the loop:
+    cargo build --features "generated_parsers ebnf_dual_run" --manifest-path rust/Cargo.toml\n' "$PIPELINE"
+  missing=""
+fi
 if [ -n "$missing" ]; then
-  note "the SV grammar moved in commit(s)$missing with NO row in $REGISTER."
+  note "the SV grammar moved in commit(s)$missing to a semantic state NO row in $REGISTER records."
   note "  Each grammar revision owes a row: a RELEASE (contract section + bug-ledger row) or a"
   note "  NEUTRAL claim whose digest equals its predecessor's. Re-derive the digest with:"
   note "    $PIPELINE $GRAMMAR --emit-raw-ast-json raw.json && python3 -c \"import json,sys,hashlib; print(hashlib.sha256(json.dumps(json.load(open('raw.json'))['raw_ast'],sort_keys=True,separators=(',',':')).encode()).hexdigest())\""
@@ -123,17 +170,7 @@ if [ -x "$PIPELINE" ]; then
   # ⛔ To a FILE, never `/dev/stdout`: the tool also writes progress to stdout, so the stream
   # carries valid JSON followed by more text and `json.load` fails with "Extra data" — measured
   # while writing this check, which is why the recipe printed on breach names a file too.
-  raw_json="$(mktemp "${TMPDIR:-/tmp}/sv_contract_currency.XXXXXX.json")"
-  "$PIPELINE" "$GRAMMAR" --emit-raw-ast-json "$raw_json" >/dev/null 2>&1
-  live="$(python3 -c '
-import hashlib, json, sys
-try:
-    raw = json.load(open(sys.argv[1]))["raw_ast"]
-except Exception:
-    sys.exit(0)
-print(hashlib.sha256(json.dumps(raw, sort_keys=True, separators=(",", ":")).encode()).hexdigest())
-' "$raw_json")"
-  rm -f "$raw_json"
+  live="$(sv_semantic_digest "$GRAMMAR")"
   if [ -z "$live" ]; then
     note "tier D could not re-derive the grammar's semantic digest — $PIPELINE ran but produced no
   raw_ast envelope. A tier that cannot inspect its subject must say so, not pass."

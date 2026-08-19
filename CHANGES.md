@@ -1,5 +1,58 @@
 # CHANGES.md
 
+## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0242 (leaf SV-CORPUS-GRAD.13c.2s CLOSED; release 1.0.191, ledger SV-0063 + SV-0064, schema 25 unchanged; axis-2 bar 288 -> 282; ZERO Rust bytes): a greedy star in front of an OPTIONAL tail, at FOUR sites — and the gate shipped one commit ago caught its own first customer
+
+- ⛔ **THE DEFECT.** A greedy `( X )*` whose body is NULLABLE after its separator, standing in front
+  of an OPTIONAL `X`-shaped tail, eats the separator the tail needs. Measured at **four** sites:
+  `system_tf_call` could never reach the CLOCKING-EVENT argument of IEEE 1800-2017 A.8.2
+  (`$rose(a, @(posedge clk))` REJECTED), and `let`/`property`/`sequence_list_of_arguments` could never
+  reach a NAMED argument after a positional one (A.2.10).
+- ⭐⭐ **SAME MECHANISM AS `SV-0060`, OPPOSITE OBSERVABILITY.** There the starved element was
+  MANDATORY, so the rule matched nothing and **no verdict moved** — only an AST-arm check could see
+  it. Here it is OPTIONAL, so each rule matched everything *except* the form its tail exists for, and
+  the verdict did move. One defect class, two observability regimes.
+- ⭐⭐⭐ **(c) DISCHARGED, AND THE ANSWER WAS NOT THE EXPECTED ONE.** The three `*_list_of_arguments`
+  candidates the census left UNCONFIRMED are all genuinely starving — proven by entering each rule
+  DIRECTLY (`--interpret-entry-rule`): all three REJECT `a, .b(2)` while accepting `.b(2)` and
+  `a, c`. At a call site the general `list_of_arguments` production rescues them, which is why no
+  source probe could see it. ⛔ **The rescue has a boundary and that is where the defect is real**:
+  `sq(a ##1 b, .q(d))` has a positional argument only the family rule can parse, so BOTH routes fail
+  — REJECT → ACCEPT, with the positional-only control `sq(a ##1 b, d)` parsing on both sides →
+  [[a-specialised-rule-masked-by-a-general-fallback-is-untestable-from-source]].
+- **MEASURED YIELD** — **6 third-party corpus files flip fail→pass and ZERO move the other way**
+  (`Surelog` Assertions/LetExpr/LetInlined/SystemCall, `ispras-sv-tests` 11.13_08, `verilator`
+  t_past_unsup). ⭐ **Attributed, not just counted**: two isolating arms put all six on the
+  system-task site, so `SV-0064`'s corpus yield is honestly **zero** and its evidence is its two
+  pinned reproducers. `verilog_2005` is byte-inert — 0 of 2 459 rows moved.
+- **axis-2 bar 288 → 282**, the largest single-slice drop in this campaign;
+  `unexplained_rejects_valid` 267 → 261; the ADJUDICATED/ROUTED/NO-VERDICT/DARK split unmoved.
+- ⛔⛔ **THE FIX WAS WRITTEN WRONG ONCE AND ONLY THE BEHAVIOURAL PROBE SAW IT.** Its explanatory
+  comment first went BETWEEN two alternatives at column 0, which ends the rule and silently discards
+  every alternative after it. `--lint-grammar` reported `1610 rules` with every counter zero —
+  byte-identical to the healthy grammar — and a regeneration was already running before a re-probe
+  showed the reproducer back at REJECT. A live re-demonstration of
+  [[a-column-0-comment-inside-a-rule-body-deletes-the-following-alternatives]], costing one wasted
+  regeneration.
+- ⭐⭐⭐ **`SV-CONTRACT-CURRENCY`, SHIPPED ONE COMMIT AGO, CAUGHT ITS OWN FIRST REAL CUSTOMER — AND
+  THEN EXPOSED A DESIGN GAP IN ITSELF.** It refused three times, each time naming the next thing
+  owed. ⛔ The gap: tier A was keyed on the COMMIT SHA, and the register row for the commit being
+  made cannot carry that commit's own sha — tier D forced the row to exist and tier A would have
+  rejected it on the NEXT commit. **Tier A is now keyed on the DIGEST**, which is known before the
+  commit is and is the identity the contract actually describes. *A gate is not finished until it
+  has been driven through a real change.*
+- ⛔ **`PARSE-COST-RATCHET` REFUSED THE FIRST SUBMISSION**: `entries` +5,380, `memo_hits` +2,690,
+  `committed` **+0** — exactly one terminal body plus one memoized `trivia` lookup per guard attempt,
+  2,690 attempts. Recorded under a **NEW coded invariant `unmatched_lookahead_terminals`** rather
+  than borrowed from `unmatched_terminal_alternatives`, because for an added ALTERNATIVE
+  `Δcommitted == 0` says *it never matched* and a negative lookahead **never commits its subject
+  either way** — borrowing the name would have imported a guarantee that does not hold. The new
+  invariant asserts what is true: no rule anywhere committed a different number of frames.
+- **VERIFIED** — `check_doctrines.sh` ALL 23 PASS; `run_adjudication_repros.py`
+  `checked=167 armed=65 listed=88 multi_profile_rows=53 failures=0` (was 155/83) on parser
+  `936294a4ddae2925…`; `probe_matrix.sh` 12/12 and **8/12 (RED) on the pre-fix grammar**;
+  `sweep_arms.py` `widen=2 narrow=0 shape=0` for all three candidate spellings; lint identical on
+  every counter. ZERO Rust bytes.
+
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0241 (leaf SV-CORPUS-GRAD.13c.2l CLOSED; releases 1.0.184-1.0.190, ledger SV-0054-SV-0062, schema 21 -> 25; doctrine #23 SV-CONTRACT-CURRENCY; ZERO grammar bytes): the contract was SEVEN grammar revisions stale, and the change that hurt a consumer most moved ZERO verdicts
 
 - ⛔⛔ **THE DEBT WAS BIGGER THAN THE LEAF THAT TRACKED IT, IN BOTH DIRECTIONS.** `.13c.2l` opened

@@ -5,6 +5,46 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-08-19, `SV-CORPUS-GRAD.13c.2s` — GRAMMAR-level, release `1.0.191`,
+> ledger `SV-0063` + `SV-0064`, SCHEMA UNCHANGED at `25`):** a **greedy `( X )*` standing in front of
+> an OPTIONAL `X`-shaped tail** made four constructs unparseable (`PGEN-SV-CORPUS-GRAD-0242`). It is
+> the same starving-star mechanism as `SV-0060`, at a different severity: there the starved element
+> was MANDATORY so the rule matched nothing, here it is OPTIONAL so each rule matched everything
+> *except* the form the tail exists for.
+>
+> **`SV-0063` — a system task/function call could never reach its CLOCKING EVENT argument.**
+> IEEE 1800-2017 A.8.2 writes `system_tf_identifier ( expression { , [ expression ] }
+> [ , [ clocking_event ] ] )`. PGEN spelled the middle group as a bare `( comma ( expression )? )*`,
+> whose body is nullable after the comma — so on `$rose(a, @(posedge clk))` the star ate the comma,
+> its inner optional matched EMPTY, and the clocking-event group then needed a comma and saw `@`.
+> ⇒ every `$rose`/`$past`/`$fell`/`$stable` call carrying the sampled-value clocking argument of
+> §16.9.3 REJECTED.
+>
+> **`SV-0064` — a `let`, `property` or `sequence` instance could never take a NAMED argument after a
+> positional one.** A.2.10 gives all three `[ X_actual_arg ] { , [ X_actual_arg ] }
+> { , . identifier ( [ X_actual_arg ] ) }` — ordered arguments, then named ones — and all three
+> carried the same starving star, so the comma introducing the first named argument was eaten.
+> ⛔ **This one was MASKED, which is why it needed measuring rather than reading.** The general
+> `list_of_arguments` route rescues a mixed list *while every positional argument is also a plain
+> expression*, so `sq(a, .q(b))` parsed all along — through the general production rather than the
+> sequence-specific one. The moment a positional argument is something only the family rule can
+> parse, both routes fail: `sq(a ##1 b, .q(d))` and `pr(a ##1 b, .q(d))` REJECTED, while the
+> positional-only control `sq(a ##1 b, d)` parsed on both sides.
+>
+> ⚠️ **CONSUMER ACTION — additive, `sv_2017` + `sv_2023`.** Three constructs flip REJECT→ACCEPT and
+> nothing flips the other way. **Schema stays `25`, measured rather than argued:** every one of the
+> **155** pinned reproducer checks was replayed against the pre-fix and post-fix grammars on both
+> axes, and the result is `widen=2 narrow=0 shape=0` — no previously-emitted tree moves, so this is
+> the additive `SV-0052`/`SV-0057` class rather than the replacing `SV-0053` one.
+> ⭐ **Deliberately still REJECTED, and pinned so it stays that way:** `$rose(a, @(posedge clk), b)`
+> — A.8.2 puts the clocking event LAST — and `$rose(a, @)`, a bare `@` that is neither an expression
+> nor a `clocking_event`. A guard that merely let the star *skip* `@` would have admitted both.
+> ⛔ **The `let` site is repaired with NO demonstrated source-level flip, stated so it is not
+> inferred**: `let_actual_arg := expression`, so the general route always rescues a let argument
+> list. It is fixed anyway because the defect is identical and leaving one member of a swept class
+> unfixed is what `SV-0053`'s entry was written to stop — and measured, it moves no verdict and no
+> tree on any pinned reproducer.
+
 > **Current-state note (2026-08-19, `SV-CORPUS-GRAD.13c.2l` — CONTRACT-level, releases `1.0.184`
 > through `1.0.190`, ledger `SV-0054`–`SV-0062`, schema `21` → `25`):** ⛔ **THIS CONTRACT WAS SEVEN
 > GRAMMAR REVISIONS STALE, AND FOUR OF THEM REPLACED AN AST SHAPE A CONSUMER WAS ALREADY READING.**
@@ -395,15 +435,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.190`
+  - `1.0.191`
 - Parser release version:
-  - `1.0.190`
+  - `1.0.191`
   - history: `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `e8323d6738f3603c81db3c153fae0a6c182d0a2c8ba2beaedb1fee0f39965300` (SV grammar semantic digest — sha256 of the
+  - `bd9367dc1d79b6f2531a3975cb5c2449c451817f97c1a92fbcb18200fd14c9b4` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`

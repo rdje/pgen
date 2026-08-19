@@ -1880,7 +1880,19 @@ observation was simply unused.
 > **mislabelled deferral**, owned by `.13c`/`.13d`, not an under-reporting bar.
 
 > ⭐ **Live verdict-coverage tuple — `adjudicated/routed/no-verdict/dark/axis-2-bar` =
-> `7556/2459/6321/4393/288`.** (`SV-CORPUS-GRAD.13c.2j` moved the bar **289 → 288** by restoring
+> `7556/2459/6321/4393/282`.** (`SV-CORPUS-GRAD.13c.2s` moved the bar **288 → 282** — the largest
+> single-slice drop in this campaign — by repairing a **greedy `( X )*` standing in front of an
+> OPTIONAL `X`-shaped tail** at four sites. The star's body is nullable after its separator, so it
+> ate the separator the tail needed: a system task/function call could never reach the clocking-event
+> argument of IEEE 1800-2017 A.8.2, and the `let`/`property`/`sequence` argument lists of A.2.10 could
+> never reach a NAMED argument after a positional one. **Six third-party corpus files flip
+> fail → pass and zero move the other way**, every one attributable by an isolating arm to the
+> system-task site alone; `unexplained_rejects_valid` 267 → 261; the ADJUDICATED/ROUTED/NO-VERDICT/DARK
+> split entirely unmoved; and the `verilog_2005` lane **byte-identical end to end**, 0 of 2 459 rows
+> moved. ⭐ Its sibling `SV-0060` fixed the same mechanism where the starved element was MANDATORY —
+> there the rule matched nothing and **no verdict moved at all**, so only an AST-arm check could see
+> it. Same defect, opposite observability. The previous entry:
+> `SV-CORPUS-GRAD.13c.2j` moved the bar **289 → 288** by restoring
 > IEEE 1800 A.8.4's `class_scope` branch to the method-call receiver, so a CLASS-SCOPED name is a
 > legal receiver: `y = p::base::m.g()` had no derivation while `y = p::base::m;` — the same name as a
 > value — parsed. `match` 5 831 → 5 832, `unexplained_rejects_valid` 268 → 267, `accepts-invalid`

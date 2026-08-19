@@ -246,14 +246,23 @@ Four tiers, each catching what the others structurally cannot:
 
 | tier | asks | catches what the others miss |
 |---|---|---|
-| **history** | does every grammar commit since the register's genesis have a row? | drift that already landed |
+| **history** | is every grammar revision since the register's genesis recorded, **by digest**? | drift that already landed — and a `(pending)` placeholder whose commit now exists |
 | **staged** | does a staged grammar edit also stage the register? | the commit being made — which `git log` cannot see yet |
 | **neutrality** | does a `NEUTRAL` row's digest equal its predecessor's? | a false neutrality claim, from the register alone, with no binary |
 | **identity** | does the working tree's re-derived digest match the newest row and the contract? | an edit that is in neither git nor the index |
 
-All seven arms of its adversarial probe fire, including the one that matters most for trusting the
+All eight arms of its adversarial probe fire, including the one that matters most for trusting the
 identity: **a comment-only edit must stay green.** Without that arm, "comment-insensitive" would be
 a claim rather than a result.
+
+⛔ The key is the **digest**, not the commit sha, and that is not a cosmetic choice. The first design
+keyed rows on the sha and had a chicken-and-egg the very next grammar change exposed: the row for the
+commit being made cannot carry that commit's own sha, so the working-tree tier forced the row to exist
+and the history tier would have rejected it on the *next* commit. The digest is known before the
+commit is — and it is the identity the contract actually describes. ⭐ The probe caught the re-keying
+too: its history arm had been deleting a comment-only row whose digest a sibling row still records, so
+it went silently green while the doctrine itself was unchanged. **A control can stop controlling
+without ever going red.**
 
 ### Is what's on disk what the source produces? — `GENERATED-REPRODUCIBILITY`
 
