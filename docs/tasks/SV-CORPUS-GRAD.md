@@ -10215,10 +10215,62 @@ routed finding look smaller.
   a reserved keyword could stand in for a UDP type name. `.13c.2t` is a third instance of the same
   shape. ⇒ **closing an over-acceptance is not a safe local edit**; it is an excavation, and the
   sweep must budget for what it uncovers.
-- **WHAT REMAINS**: (c) the corpus accepts-invalid count before/after, which is now blocked only on
-  `.13c.2t`; then land the fix, confirm the −8,958,174 prediction against the real parser, and flip
-  the three `accepts_invalid` rows to `invalid` — the round trip this leaf built, which has already
-  been exercised twice (`.13c.2o`, and once here, before the fix was rolled back).
+- [x] ⭐⭐⭐ **(b)+(c) THE FIX IS BUILT, REGENERATED, BUILT INTO A PROBE AND MEASURED END TO END —
+  and it WORKS.** With `.13c.2t` beside it: the §10.9.2 example holds, all three `accepts_invalid`
+  rows flip to REJECT, `ADJUDICATION-REPROS: checked=151 armed=62 listed=81 failures=0`, and the
+  corpus moves **6 files in `sv` and 3 in `verilog_2005`**, every one adjudicated against the tracked
+  LRMs and PINNED. ⭐⭐ Two of the six are now **DIALECT PAIRS**, which is stronger than "a correct
+  rejection": `(* type=1 *)` and `begin:byte` REJECT on `sv_2017` and **ACCEPT on `verilog_2005`**,
+  because `type` and `byte` are in IEEE 1800's Annex B and in neither case in IEEE 1364-2005's. Both
+  profiles wrongly accepted before ⇒ **the fix makes the three-profile distinction real** where it
+  previously did not exist.
+- ⛔⛔⛔ **(d) THE PRICE WAS PUBLISHED BEFORE THE FIX AND IS NOW REFUTED BY THE FIX — by 16,547,053 entries, in the direction that flattered it** (`-0235`, measured on the pinned 192-file sample, `sv_2017`, probe fingerprint `8c2888f20f28e63c…` matching the parser it measured):
+
+  | counter | baseline (gate-fix arm) | measured with `.13c.2t`+`.13c.2k` | delta |
+  |---|---|---|---|
+  | `entries` | 417,585,361 | **425,174,240** | **+7,588,879 (+1.817 %)** |
+  | `memo_hits` | 187,800,173 | 182,738,136 | −5,062,037 (−2.695 %) |
+  | `committed` | 7,123,491 | 7,123,367 | −124 (−0.002 %) |
+
+  **PREDICTED `−8,958,174`. MEASURED `+7,588,879`.**
+- ⭐⭐ **AND THE ATTRIBUTION SAYS THE MODEL WAS RIGHT ABOUT THE PREDICATE AND BLIND TO WHAT THE
+  PREDICATE DOES TO THE SEARCH** — which is a better outcome than "the model was noise", because it
+  names the missing term exactly:
+
+  | rule | before | after | delta |
+  |---|---|---|---|
+  | `reserved_non_keyword_identifier` | 5,504,191 | 1,033,672 | −4,470,519 |
+  | `reserved_non_keyword_identifier_sv` | 5,504,191 | 1,033,672 | −4,470,519 |
+  | `non_keyword_identifier` | 5,504,191 | **14,320,942** | **+8,816,751** |
+  | `identifier` | 10,349,663 | **19,353,115** | **+9,003,452** |
+
+  The guard relocation delivered **−8,941,038** against a prediction of −8,958,174 — accurate to
+  **0.19 %**. The unmodelled term is **+17,820,203** re-entries of the two identifier rules, twice
+  the size of the effect that was modelled. ⛔ `committed` is FLAT (−124), and
+  `entries − committed` moves **+7,589,003** ⇒ **100 % of the net rise is FAILED SPECULATION**.
+- ⭐⭐⭐ **THE MECHANISM, AND IT GENERALISES TO EVERY STRICTNESS FIX.** Rejecting a keyword where the
+  parser previously accepted one does not end a parse — it sends the PEG engine back to try further
+  alternatives, each of which re-enters `identifier`/`non_keyword_identifier` at new positions.
+  **Rejection is not free: it buys more speculation.** The price instrument asked *"where does the
+  lookahead execute"* and answered it correctly; it could not ask *"what does the parser do
+  differently when that lookahead says no"* — and that second question is where the cost lives.
+  ⇒ [[a-strictness-fix-redirects-the-search-not-just-the-predicate]].
+- ⛔ **CONSEQUENCE — THE FIX IS VERIFIED AND STILL NOT LANDED, FOR THE SECOND TIME AND A DIFFERENT
+  REASON.** `PARSE-COST-RATCHET` refuses a rise in a binding counter, and **no coded invariant fits
+  this shape**: `unmatched_terminal_alternatives` requires `Δentries == 2 × Δmemo_hits ∧
+  Δcommitted == 0`, and here `Δmemo_hits` is NEGATIVE and `Δcommitted` is −124. The doctrine's two
+  legal outcomes are *eliminate it* or *record it as irreducible with the measurement that proves
+  it* — and **"irreducible" would be REASONED, not measured**, which is the exact error `-0231` and
+  `-0234` were opened to correct. The obvious alternative (spelling the guard at the 46 call sites)
+  is worse *by the same model that just failed*, so it cannot be dismissed by reasoning either.
+- **WHAT REMAINS, and it is now a MEASUREMENT, not a decision**: (a) build the call-site arm and
+  measure it, so "irreducible" is a comparison rather than an assertion; (b) split the rise between
+  `.13c.2t` and `.13c.2k` with a `.13c.2t`-only arm, since a `data_type` alternative in
+  `assignment_pattern_key` also adds speculation and the two are currently conflated; (c) then either
+  eliminate, or add the coded invariant this shape needs with its own leaf and adversarial probe.
+  ⛔ Everything else in this leaf is DONE and verified — the fix is preserved as
+  `rust/target/tk_pending/` (grammar + manifest patches and eight reproducers) so the next slice
+  re-applies rather than re-derives.
 - ⚠️ **PROFILE NOTE, measured**: the reproducers are `sv_2017,sv_2023` only. `verilog_2005` rejects
   all of them, but for the wrong reason — the repro bodies are CLASS declarations, which v2005 has
   no production for. A v2005 row for this defect needs a class-free carrier and is part of (a).
