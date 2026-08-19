@@ -89,7 +89,7 @@ same leaf keeps its checklist, and a deletion-only edit still counts as touching
 | 2 | **performance / SPEED** | it is correct but slow | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph` |
 | 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
 | 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
-| 5 | **ops / build-flow** | the defect is in the repo's OWN scripts, Makefiles, hooks or tracking state — shell/make, so no rustc error either | `git ls-files`/`log -S`/`rev-list`/`fsck`/`reflog`/`diff-tree`/`merge-base`, `shellcheck`, `bash -n`, `make -n`/`make --dry-run`, `E2BIG`/`ENOSPC`/`EACCES`/`ARG_MAX`, `guard.<pid>.marker`, `reason=rss-budget\|free-floor\|disk-floor\|timeout`, `GATE-REACHABILITY-PROBE:` |
+| 5 | **ops / build-flow** | the defect is in the repo's OWN scripts, Makefiles, hooks or tracking state — shell/make, so no rustc error either | `git ls-files`/`log -S`/`rev-list`/`fsck`/`reflog`/`diff-tree`/`merge-base`, `shellcheck`, `bash -n`, `make -n`/`make --dry-run`, `E2BIG`/`ENOSPC`/`EACCES`/`ARG_MAX`, `guard.<pid>.marker`, `reason=rss-budget\|free-floor\|disk-floor\|timeout`, `GATE-REACHABILITY-PROBE:`, `SV-CONTRACT-CURRENCY:` (`scripts/check_sv_contract_currency.sh` — the SV grammar's semantic digest versus the contract's), `ACCEPT-SET-LEDGER:` (`docs/tasks/artifacts/sv_corpus_grad/contract_accept_set_ledger/measure_accept_set_transitions.py` — which grammar commit moved which verdict or which typed AST) |
 
 ⛔ **A bare `file.rs:NNN` citation is NOT a signature, and neither is *"verified by grep"*.** Both
 were measured and deliberately refused (`GENERATED-LINT-CORRECTNESS.4`): a line number is a
@@ -168,6 +168,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | **"Is the memo actually SERVING this rule?" — ⛔ `rule_memo_hit_counts` FUSES success replays with cached failures; 208 "hits" were 208 failures and 0 replays** | [3.6 memo insert/evict/replay census](#36-per-rule-memo-insert--evict--replay-census--is-the-memo-actually-serving-this-rule) |
 | **"These two generated parsers differ by N bytes — what moved?"** — ⭐ since `ENGINE-UNIVERSAL-SERVICES.31`(e) the artifact embeds its own output path **ZERO** times (it was **36 346**), so the difference you read IS the source; the normalisation step is now a no-op kept as a tripwire | [5.6 normalise the embedded `-o` path first](#56-comparing-two-generated-parsers--normalise-the-embedded--o-path-first) |
 | "Which rules could a derived DFA scanner fuse? the measured ceiling? the choice-site / merged-choice surface?" | [5.3 `--report-fusibility-census`](#53---report-fusibility-census) |
+| **"WHICH grammar commit changed what a CONSUMER sees — and is it a WIDEN, a NARROW or a replaced AST SHAPE?"** — ⛔ a verdict-only answer is blind to the largest class: 12 pinned witnesses once moved with ZERO verdict movement | [5.7 the accept-set / AST-shape transition ledger](#57-which-grammar-commit-changed-what-a-consumer-sees--the-accept-set--ast-shape-transition-ledger) |
 | "Which rules exist under which `@profiles`? Which rules can a corpus run under profile P ever exercise?" | [5.4 `--dump-rule-profiles`](#54---dump-rule-profiles) |
 | "Which LRM chapters/clauses does the keyed corpus target? Where is the negative-axis gap?" | [5.4 companion — `corpus_clause_coverage.py`](#54---dump-rule-profiles) |
 
@@ -1192,6 +1193,31 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - ⚠️ **The input path is NOT embedded, and that was tested rather than assumed** — generating with the input JSON named absolutely and relatively yields a byte-identical parser, and `grep -c 'systemverilog\.json'` over the emitted parser is **0**, as is any `generated_at`/date string. The `-o` path is the only provenance a generated parser carries, which is exactly why it is the only thing to normalise.
 
 ---
+
+### 5.7 "WHICH grammar commit changed what a CONSUMER sees?" — the accept-set / AST-shape transition ledger
+- **WHAT:** `docs/tasks/artifacts/sv_corpus_grad/contract_accept_set_ledger/measure_accept_set_transitions.py` — replays every pinned reproducer in `stimuli/sv/adjudication_repros/MANIFEST.tsv`, on every profile it declares, against **every** revision of `grammars/systemverilog.ebnf` since the downstream contract was last written (the base is DERIVED with `git log -1 -- <contract>`, never typed), and attributes each transition to the commit that caused it. Reports **two axes**: `ACCEPT-SET` (the verdict moved — `WIDEN`/`NARROW`) and `AST-SHAPE` (the verdict did NOT move and the typed AST did).
+- **WHEN:** before writing a contract release section or a bug-ledger row; when asking *"is this grammar commit consumer-visible, and in which direction?"*; when deciding the **schema** question, since the contract's trigger is a REPLACED shape rather than an added one.
+- ⛔ **WHY THE SECOND AXIS EXISTS, measured:** the first cut reported `PGEN-SV-CORPUS-GRAD-0233` as *"no verdict moved (comment-only)"*. `bufif0 g(o,i,e);` parsed before that fix and parses after; what changed is that it became a `gate_instantiation` instead of a `udp_instantiation`. **Twelve pinned witnesses moved and zero verdicts did.** A verdict-only ledger is blind to the largest class of consumer break there is — the same lesson the manifest's `arm` column exists for (§1.2, `.13c.2a.2`).
+- **HOW:**
+  ```bash
+  python3 docs/tasks/artifacts/sv_corpus_grad/contract_accept_set_ledger/measure_accept_set_transitions.py
+  # ~7 min at PGEN_ACCEPT_SET_JOBS=8; writes accept_set_transitions.tsv beside itself
+  ```
+- **OUTPUT:**
+  ```text
+  ACCEPT-SET-LEDGER: base=438c475c candidates=9 repro_checks=151 jobs=8
+  ACCEPT-SET-LEDGER: interpreter agrees with the shipped parser on 151/151 verdicts at HEAD — historical arms are quotable
+    f9cff55e  PGEN-SV-CORPUS-GRAD-0233      widen=0   narrow=0   shape=12  CONSUMER-VISIBLE CHANGE
+  ACCEPT-SET-LEDGER: consumer_visible_commits=7/9 (of which move an AST SHAPE: 4) transitions=71
+  ```
+- ⭐ **It falsifies its own oracle before quoting it.** Historical grammars are measured on the INTERPRETER (§1.5b), because the shipped parser would need a ~22-minute regeneration per commit. So at HEAD every row is *also* run through the shipped release probe and any disagreement is a hard error — the interpreter is trusted for the arms we cannot see only because it is observed to match on the one we can.
+- ⚠️ **HONEST BOUND, printed rather than implied:** the input population is the PINNED MANIFEST, not the language. Measured: `-0220` widened the accept set and moved nothing here, because no row pinned its witness (now pinned). Read `shape=0 widen=0 narrow=0` as *"no PINNED witness moved"*, never as *"nothing changed"*.
+- ⭐ **The companion instrument has no such bound and is one command:** the grammar's **semantic digest** — sha256 of the EBNF frontend's own `raw_ast` envelope, i.e. what the code generator consumes, so comments cannot move it. `scripts/check_sv_contract_currency.sh` re-derives it and refuses a tree where the grammar moved and the contract did not. The two classifiers share no parent and agreed 9/9 on the population; that agreement is the evidence, not either one alone.
+  ```bash
+  ./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --emit-raw-ast-json raw.json   # ⛔ a FILE, never /dev/stdout
+  python3 -c "import json,hashlib;print(hashlib.sha256(json.dumps(json.load(open('raw.json'))['raw_ast'],sort_keys=True,separators=(',',':')).encode()).hexdigest())"
+  bash scripts/check_sv_contract_currency.sh   # SV-CONTRACT-CURRENCY: rows=10 genesis=438c475c newest=… digest=…
+  ```
 
 ## 6. Coverage / gap reports (`ast_pipeline`)
 

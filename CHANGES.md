@@ -1,5 +1,59 @@
 # CHANGES.md
 
+## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0241 (leaf SV-CORPUS-GRAD.13c.2l CLOSED; releases 1.0.184-1.0.190, ledger SV-0054-SV-0062, schema 21 -> 25; doctrine #23 SV-CONTRACT-CURRENCY; ZERO grammar bytes): the contract was SEVEN grammar revisions stale, and the change that hurt a consumer most moved ZERO verdicts
+
+- ⛔⛔ **THE DEBT WAS BIGGER THAN THE LEAF THAT TRACKED IT, IN BOTH DIRECTIONS.** `.13c.2l` opened
+  naming THREE accept-set changes, gained a fourth, and routed `-0237` in as *"the FIFTH"*. Derived
+  rather than recalled: **NINE** commits touched `grammars/systemverilog.ebnf` since the contract was
+  last written (`438c475c`, 2026-08-12) and **SEVEN** changed what the code generator consumes. ⇒ the
+  leaf's own hand-kept table went stale TWICE inside the week it existed to repair staleness.
+  *A hand-kept list of accept-set changes is the same object as the debt it tracks.*
+- ⭐⭐⭐ **AND THE AXIS THE LEAF WAS WATCHING WAS THE WRONG ONE.** Four of the seven releases
+  **REPLACE an AST shape a consumer was already reading**, and `-0233` does so while moving **ZERO
+  verdicts**: `bufif0 g(o,i,e);` parsed before and parses after, but stopped arriving as a
+  `udp_instantiation` (terminals in an undifferentiated `inputs[]`) and started arriving as a
+  `gate_instantiation` with named `output`/`input`/`enable`. **Twelve pinned witnesses moved; no
+  pass/fail oracle in this repository could see any of them.** ⇒ a contract watched only for
+  accept-set drift would have missed the largest consumer break in the batch → [[an-accept-set-watch-cannot-see-a-replaced-ast-shape]].
+- ⭐ **THE POPULATION IS DERIVED BY TWO INSTRUMENTS THAT SHARE NO PARENT, AGREEING 9/9.** (1) a
+  SEMANTIC DIGEST — sha256 of the EBNF frontend's own `raw_ast` envelope, i.e. what the generator
+  consumes, from which comments are absent by construction, so `-0234`/`-0238` are provably neutral
+  rather than assumed to be; (2) a BEHAVIOURAL SWEEP over every pinned reproducer × every profile it
+  declares × all ten grammar revisions, on TWO axes (verdict and typed AST). The first is blind to
+  behaviour, the second to grammar text — the agreement is evidence, not a restatement.
+- ⭐⭐ **THEIR NEAR-DISAGREEMENT WAS THE MOST USEFUL OUTPUT.** `-0220` moved the digest and moved no
+  witness — because **no reproducer pinned it**. Both previously-unwitnessed directions are now
+  manifest rows (`fixed_cross_body_function_lrm_19_6_1.sv`, arm `function_decl`, proven able to go
+  RED; `invalid_specparam_pathpulse_word.sv`, the `-0221` narrowing on all three profiles), and the
+  instrument PRINTS its bound: `widen=0` means *no PINNED witness moved*, never *nothing changed*.
+- ⛔ **`-0237` IS NOT THE FIRST NARROWING.** `-0221` — already in the leaf's own table, so the
+  refutation lands inside its declared population — narrows on all three profiles:
+  `specparam PATHPULSE_dollar = (1, 2);` ACCEPT → REJECT, confirmed on the shipped release probe.
+  `-0232` narrows too. `-0237` is the **third**.
+- **WHAT LANDED.** Contract `1.0.183` → **`1.0.190`**, schema `21` → **`25`** with each of the four
+  bumps attributed to its release; seven release sections + a batch note; **nine** ledger rows
+  `SV-0054`-`SV-0062`, split by ROOT CAUSE per the ledger's own rule so `-0233` and `-0237`
+  contribute two rows each.
+- ⭐⭐⭐ **THE DURABLE HALF — doctrine #23, `SV-CONTRACT-CURRENCY`.** Every grammar revision now owes a
+  row in `docs/contracts/PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`: a `RELEASE` (contract section +
+  ledger row) or a `NEUTRAL` whose digest **must equal its predecessor's**, so a neutrality claim
+  refutes itself when false, from the register alone, with no binary. Four tiers — history, the
+  STAGED diff (the commit being made, which `git log` cannot see yet), neutrality, and a
+  re-derivation of the working tree's digest from the producer. **Proven able to fail before it was
+  trusted: 7/7 probe arms**, including the complement arm where a comment-only edit must stay GREEN
+  — without it *"comment-insensitive"* is a claim, not a result.
+- ⛔ **A PRE-EXISTING OPS DEFECT IN THE ENFORCER ITSELF, found and fixed.** Three `DOCTRINES` registry
+  descriptions carried UNESCAPED backticks inside a double-quoted bash string, so the driver ran a
+  command substitution: `scripts/check_doctrines.sh: line 73: casting_type: command not found` on
+  stderr, and `SV-RULE-FIRE-PARTITION`'s description printed with the rule name **silently
+  swallowed** — the report misdescribing what it proves. `bash -n` is clean; this is runtime-only.
+  After: zero `command not found`, all four spans present.
+- **VERIFIED** — `scripts/check_doctrines.sh` **ALL 23 PASS** (22 before); `run_adjudication_repros.py`
+  `checked=155 armed=63 listed=83 multi_profile_rows=48 failures=0` (was 151/81) on the unchanged
+  shipped parser `5a1dfa36…`; the interpreter agreed with the shipped release probe on **151/151**
+  verdicts at HEAD, which is what licenses quoting it for the eight revisions the shipped parser
+  cannot be asked about; `mdbook build docs/book` clean. **ZERO grammar bytes, ZERO Rust bytes.**
+
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0240 (three findings RE-DERIVED under a SECOND director challenge; ONE was a MISATTRIBUTION; a limitation I had documented as impossible turned out to be TEN LINES; the partition it fixed was wrong by 18 rules; `.13c.2u.2` NEW)
 
 - **CHALLENGED ON THREE FINDINGS. ONE WAS WRONG, ONE HELD AND GOT STRONGER, ONE HELD AND EXPOSED A

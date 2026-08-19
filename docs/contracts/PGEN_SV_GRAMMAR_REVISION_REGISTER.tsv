@@ -1,0 +1,33 @@
+# docs/contracts/PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv — every revision of grammars/systemverilog.ebnf,
+# and what the downstream contract owes for it. Enforced by the SV-CONTRACT-CURRENCY doctrine
+# (scripts/check_sv_contract_currency.sh); owned by SV-CORPUS-GRAD.13c.2l.
+#
+# ⛔ WHY IT EXISTS, measured not imagined: between 2026-08-12 and 2026-08-19 the SV grammar shipped
+# SEVEN semantically-distinct revisions while the contract kept saying `1.0.183`. The leaf that
+# opened to fix that debt tracked the population BY HAND and its table went stale twice more inside
+# the same week — `-0232` and `-0233` landed and were never added, so `-0237` was routed as "the
+# FIFTH change" when it was the SEVENTH commit and the FIFTH to move a verdict. A hand-kept list of
+# accept-set changes is the same object as the debt it tracks.
+#
+# semantic_digest = sha256 of the EBNF FRONTEND'S OWN `raw_ast` envelope — what the code generator
+# consumes, from which comments are absent by construction. Re-derive:
+#   rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --emit-raw-ast-json raw.json
+#   python3 -c "import json,hashlib;print(hashlib.sha256(json.dumps(json.load(open('raw.json'))['raw_ast'],sort_keys=True,separators=(',',':')).encode()).hexdigest())"
+# ⛔ To a FILE, never /dev/stdout — the tool writes progress there too and the JSON parse fails.
+#
+# disposition: RELEASE = the contract carries a section and the bug ledger carries a row.
+#              NEUTRAL = comment-only; the digest EQUALS its predecessor's, which is what the
+#              doctrine checks, so the claim refutes itself when false.
+#
+# genesis: 438c475c
+commit	date	slice	semantic_digest	disposition	release	notes
+438c475c	2026-08-12	PGEN-SV-CORPUS-GRAD-0214	50b91edcb0e159e3f73a1801b537040c9e0ce7d9f5e174a87f800406bcd7bbcb	RELEASE	1.0.183	GENESIS — the last revision the contract described before this register existed (ledger SV-0053, schema 20 -> 21)
+6d1a18b3	2026-08-17	PGEN-SV-CORPUS-GRAD-0220	2cf652f96ee88bdb588f514ba807ce6fb42e3b85157add9e5a3e9adc92be993e	RELEASE	1.0.184	.13c.2d — cross_body_item_sv_2017 matched the LRM's MISSPELLED nonterminal as a literal keyword; WIDEN sv_2017 + AST-SHAPE (cross_body items lose their per-item [item, semi] pair) => ledger SV-0054, schema 21 -> 22
+cb78d01f	2026-08-17	PGEN-SV-CORPUS-GRAD-0221	850b3f8b0a184cab6f4b9ca2c8988604deefa9c5dc1b2122566c9e6f60a92dd6	RELEASE	1.0.185	.13c.2f slice 4 — the two PATHPULSE$ tokens were transliterated to the word `_dollar`; WIDEN + NARROW on all three profiles => ledger SV-0055, schema 22 unchanged
+39d281ff	2026-08-18	PGEN-SV-CORPUS-GRAD-0227	1937b87de6ff333a308a857bde18ba3d3a2e7f5cbdad97fc4712e0bbc4f96487	RELEASE	1.0.186	.13c.2c — a negative lookahead that could never pass made the hierarchical receiver loop run ZERO iterations; WIDEN all three + AST-SHAPE (a hierarchical call's path moves out of method_call.chain) => ledger SV-0056, schema 22 -> 23
+2b949800	2026-08-18	PGEN-SV-CORPUS-GRAD-0229	7453c77787b85bdabc827b47c82016e0ce0f683b55c1382519ed9766742312e4	RELEASE	1.0.187	.13c.2j — three inline copies of A.8.4's scope prefix never received the class_scope branch; WIDEN sv_2017+sv_2023 => ledger SV-0057, schema 23 unchanged
+4a2703cf	2026-08-18	PGEN-SV-CORPUS-GRAD-0232	1bd1dd9abafab532ba9f36e79ef6cc104fd1bd44e2d812df09ca7f8a7c72e09c	RELEASE	1.0.188	.13c.2o — IEEE 1800-2023 covergroup inheritance needed the LRM's FOOTNOTE NUMBER typed into the source; WIDEN + NARROW sv_2023 => ledger SV-0058, schema 23 unchanged
+f9cff55e	2026-08-19	PGEN-SV-CORPUS-GRAD-0233	3cb4e1ac4a01a4b2e07b05e0d794b472d436c557ac82e200422da8d3f786e7bb	RELEASE	1.0.189	.13c.2q + .13c.2r — eight gate/switch keywords lost their trailing DIGIT and a greedy star starved a mandatory tail; AST-SHAPE only, all three profiles (udp_instantiation -> gate_instantiation) => ledger SV-0059 + SV-0060, schema 23 -> 24
+6ad18e48	2026-08-19	PGEN-SV-CORPUS-GRAD-0234	3cb4e1ac4a01a4b2e07b05e0d794b472d436c557ac82e200422da8d3f786e7bb	NEUTRAL		a re-derivation under director challenge rewrote one comment block; digest byte-identical to its predecessor, and no pinned witness moved on either axis
+fc6aa8f9	2026-08-19	PGEN-SV-CORPUS-GRAD-0237	e8323d6738f3603c81db3c153fae0a6c182d0a2c8ba2beaedb1fee0f39965300	RELEASE	1.0.190	.13c.2k + .13c.2t — a reserved keyword parsed in every NON-FINAL hierarchy component, and assignment_pattern_key was narrower than §10.9.2's own example; NARROW all three + AST-SHAPE => ledger SV-0061 + SV-0062, schema 24 -> 25
+e28cc856	2026-08-19	PGEN-SV-CORPUS-GRAD-0238	e8323d6738f3603c81db3c153fae0a6c182d0a2c8ba2beaedb1fee0f39965300	NEUTRAL		a second re-derivation under director challenge rewrote two comment blocks; digest byte-identical to its predecessor, and no pinned witness moved on either axis

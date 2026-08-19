@@ -1,5 +1,60 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0241 — the change that breaks a consumer hardest moves no verdict
+
+**1. I WENT LOOKING FOR AN ACCEPT-SET DEBT AND FOUND A SHAPE DEBT UNDERNEATH IT.** The leaf said
+three accept-set changes had shipped past the contract. Deriving the population instead of reading
+it: seven, not three-then-five. But the number was the smaller correction. **Four of the seven
+replace an AST shape a consumer was already reading**, and one of those four — the gate-instantiation
+fix — moved *zero verdicts*. Twelve pinned reproducers changed node type and every pass/fail oracle
+in the repository stayed green. I had been about to publish a release list derived from an
+instrument that could not see the largest item on it.
+
+**2. THE FIRST CUT OF MY OWN INSTRUMENT HAD EXACTLY THAT BUG, AND IT TOLD ME SO.** I wrote the sweep
+to compare verdicts, ran it, and it reported `-0233` as *"no verdict moved (comment-only)"* — a
+sentence I knew to be false, because I had just read that leaf. The repository had already learned
+this one rule down: the reproducer manifest grew an `arm` column because *"an ACCEPT says the text
+parsed; it does not say WHICH alternative parsed it."* I rebuilt the sweep to hash the typed AST as
+well as record the verdict. ⇒ **when a new instrument disagrees with something you have read, the
+first hypothesis to test is that the instrument is measuring the wrong quantity.**
+
+**3. TWO INSTRUMENTS, AND THE ONE THAT MATTERED WAS THE ONE I ALMOST DIDN'T BUILD.** The behavioural
+sweep is bounded by what is pinned. The semantic digest — sha256 of the EBNF frontend's own
+`raw_ast`, i.e. what the code generator consumes — is not bounded by anything, and it takes 0.08 s.
+They agreed on 9 of 9 commits. Their *near*-disagreement is what earned the second one its place:
+`-0220` moved the digest and moved no witness, which is not a contradiction but a **missing
+reproducer**, and I would never have found it from the sweep alone. `docs/CLAIM_VERIFICATION.md`
+says two checks that share a parent carry no information; these two fail differently on purpose, and
+the payoff was a gap neither could have reported alone.
+
+**4. DERIVE THE IDENTITY FROM THE PRODUCER, NOT FROM THE FILE.** My first instinct for "has the
+grammar moved" was to hash `grammars/systemverilog.ebnf`. That would have called both comment-only
+re-derivations consumer-visible and forced a contract edit for each — and worse, it would have made
+"is this comment-only?" a judgement rather than a measurement. Hashing what the frontend *emits*
+makes the answer fall out: `-0234` and `-0238` are byte-identical to their predecessors, so
+`NEUTRAL` stops being a claim I make and becomes one the register refutes if false.
+
+**5. THE HABIT HAD ALREADY LOST TWICE INSIDE ONE WEEK.** This leaf existed to repair a stale
+contract, and its own hand-kept table of the stale population went stale twice while it was open —
+`-0232` and `-0233` landed and were never added, so `-0237` was routed in as "the fifth change" when
+it was the seventh. That is not carelessness; it is what a hand-kept list of changes *is*. The fix
+that matters is not the seven release sections, it is the register plus the four-tier gate that
+makes the eighth impossible to forget.
+
+**6. AND I FIRED THE COMPLEMENT ARM.** The probe proves the gate can fail — an unregistered commit,
+a false neutrality claim, an unknown disposition, an unregistered working-tree edit, a staged edit
+with no register row. Five RED arms and a control would still have left the central claim
+unverified: that a **comment-only** edit stays GREEN. That arm is why "comment-insensitive" is a
+result here rather than a sentence.
+
+**7. A SMALL ONE, IN THE ENFORCER ITSELF.** Three doctrine descriptions carried unescaped backticks
+inside a double-quoted bash string, so the driver executed a command substitution and printed
+`casting_type: command not found` while silently swallowing the rule name from the report. `bash -n`
+is clean — it is a runtime defect in a file whose whole job is to catch defects. Three of the four
+spans already had their *closing* backtick escaped, so someone had hit this before and half-fixed it.
+
+promotion: promoted — `docs/knowledge/an-accept-set-watch-cannot-see-a-replaced-ast-shape.md`
+
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0240 — "the instrument cannot see it" deserved one more question
 
 **1. THREE FINDINGS, CHALLENGED A SECOND TIME.** One was wrong, one held and turned out stronger

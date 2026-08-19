@@ -153,7 +153,7 @@ Two gates check the *proof surface itself* rather than the product:
   `actions/checkout` produces), runs **33 surface audits** over the real
   repository, then **replays the command each tracked workflow runs** inside the
   export. See §3 for why the export is the interesting part.
-- **`scripts/check_doctrines.sh`** — the doctrine enforcer, <!-- DOCTRINE-COUNT -->**22**<!-- /DOCTRINE-COUNT --> registered
+- **`scripts/check_doctrines.sh`** — the doctrine enforcer, <!-- DOCTRINE-COUNT -->**23**<!-- /DOCTRINE-COUNT --> registered
   checks, run by `.githooks/pre-commit` on **every commit**. This is the only layer
   that runs without a human deciding to (§6). The registry inside it is the single
   source of the roster; `DOCTRINE_ENFORCEMENT.md` §10 is its reviewed mirror and a
@@ -225,6 +225,35 @@ target: hosted workflows through the composite action
 `.github/actions/regenerate-parsers`, and the local parity gate through its
 preparation step (`PGEN_CI_WORKFLOW_LOCAL_PREPARE`, default `true`). Copies of a
 recipe drift; one definition cannot.
+
+### Does the contract describe the grammar we ship? — `SV-CONTRACT-CURRENCY`
+
+`GENERATED-REPRODUCIBILITY` asks whether the artifact matches its source. One level up sits the
+question nothing was asking: **does the document downstream consumers read match the grammar those
+artifacts are generated from?**
+
+Measured 2026-08-19: it did not, and had not for seven days. The SystemVerilog contract published
+release `1.0.183` while **seven** semantically-distinct grammar revisions had shipped past it. Four
+of the seven replaced an AST shape a consumer was already reading, and one of those four moved
+**zero** verdicts — so an accept-set-only watch would not have caught it either.
+
+The identity that makes this checkable is deliberately not the grammar's bytes. It is the sha-256 of
+the EBNF frontend's own `raw_ast` envelope — *what the code generator consumes* — derived from the
+producer rather than from a description of it. Comments never reach it, so the two comment-only
+revisions in that week are provably neutral instead of merely asserted to be.
+
+Four tiers, each catching what the others structurally cannot:
+
+| tier | asks | catches what the others miss |
+|---|---|---|
+| **history** | does every grammar commit since the register's genesis have a row? | drift that already landed |
+| **staged** | does a staged grammar edit also stage the register? | the commit being made — which `git log` cannot see yet |
+| **neutrality** | does a `NEUTRAL` row's digest equal its predecessor's? | a false neutrality claim, from the register alone, with no binary |
+| **identity** | does the working tree's re-derived digest match the newest row and the contract? | an edit that is in neither git nor the index |
+
+All seven arms of its adversarial probe fire, including the one that matters most for trusting the
+identity: **a comment-only edit must stay green.** Without that arm, "comment-insensitive" would be
+a claim rather than a result.
 
 ### Is what's on disk what the source produces? — `GENERATED-REPRODUCIBILITY`
 
@@ -578,7 +607,7 @@ workflows, the git hooks and `COMMIT.md` — and sorts targets into three tiers.
 > The other 11 tracked workflows stay `workflow_dispatch`-only to conserve account
 > minutes, and `memory-architecture-gate.yml` — the only one also on
 > `pull_request` — runs the doctrine driver and no `make` target at all. **The
-> automatic layer covers the <!-- DOCTRINE-COUNT -->22<!-- /DOCTRINE-COUNT --> enforced doctrines and 14 of the 118 gate
+> automatic layer covers the <!-- DOCTRINE-COUNT -->23<!-- /DOCTRINE-COUNT --> enforced doctrines and 14 of the 118 gate
 > targets.** Every other proof lane in this chapter runs only when a human asks —
 > the 79 operator-reachable ones exactly as much as the 31 orphans.
 >
