@@ -1,0 +1,18 @@
+# SV-CORPUS-GRAD.13c.2y — the REAL-WORLD arm, BEFORE (parser bfaca030…, release 1.0.192)
+# binary identity asserted on both sides of the run: bfaca030…172cd7dd == bfaca030…172cd7dd
+# profile sv_2017
+
+REJECT   stimuli/sv/subs/verilator/test_regress/t/t_property_pexpr.v
+REJECT   stimuli/sv/subs/verilator/test_regress/t/t_property_pexpr_unsup.v
+REJECT   stimuli/sv/subs/verilator/test_regress/t/t_property_unsup.v
+REJECT   stimuli/sv/subs/slang/tests/regression/all.sv
+
+# These four tracked external files carry genuine IEEE 1800 A.2.10 `implies` assertions —
+#   assert property (counter == 1 implies eventually[1: 2] counter == 3);
+#   assert property ((a s_until b) implies (a s_until b));
+#   assert property ( @(negedge clk) a implies b )
+# written by Verilator (x3) and slang (x1), i.e. oracles this repository did not build.
+# ⚠️ Two are named *_unsup — regression tests for constructs OTHER tools do not support — so a
+# file that stays REJECT after the fix needs its own diagnosis rather than an assumption.
+# ⭐ ZERO uses of `implies` as an IDENTIFIER anywhere in the corpus (it is reserved:
+# IEEE 1800-2023 Annex B, docs/systemverilog/2023/txt/section-Annex_B-normative-keywords.txt:105).

@@ -160,7 +160,7 @@ INSTRUMENT_FILE = "stimuli/sv/corpus_parse_cost.py"
 # same run that measures it makes the comparison pass by construction — the failure mode
 # `COMMIT.md` names for the DONE-BAR register's `claimed_status`. The instrument reports the
 # disagreement; a human adopts it.
-CORPUS_FAMILY_SHARE_PCT = "2.751"
+CORPUS_FAMILY_SHARE_PCT = "2.743"
 FAMILY_SHARE_ARTIFACT = (
     "docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json"
 )
@@ -259,10 +259,14 @@ def format_family_provenance(art: dict) -> str:
 # ⛔ It is a GATED constant, not a carried one (`docs/CLAIM_VERIFICATION.md` §5B): `--verify-families`
 # re-derives it from `generated/` and REFUSES on drift. A number nothing re-derives goes stale
 # silently, which is the defect this whole leaf is a record of.
-SV_DECLARED_LR_RULES = 127
+SV_DECLARED_LR_RULES = 31
 SV_DECLARED_LR_PROVENANCE = (
-    "`generated/systemverilog_parser.rs` RULE_NAMES registry (1 608 entries), "
-    "`ENGINE-UNIVERSAL-SERVICES.21` acceptance (g); slice 1 published 128"
+    "`generated/systemverilog_parser.rs` RULE_NAMES registry, re-derived by "
+    "`--verify-families` at release 1.0.193 (`SV-CORPUS-GRAD.13c.2y`, ledger `SV-0066`); "
+    "`ENGINE-UNIVERSAL-SERVICES.21` acceptance (g) owns this pin. History: 128 (slice 1), "
+    "127 (releases 1.0.184-1.0.192), 31 today — the drop is 96 `property_expr_lr_*` rules the "
+    "indirect pass no longer synthesises, because `SV-0066` moved the ONLY left-recursive "
+    "alternative of `prop_primary_*` up to its Table 16-3 precedence level and the knot dissolved"
 )
 
 # ── the pinned sample's tier sizes, in ONE home ───────────────────────────────────────────────
@@ -1334,7 +1338,11 @@ def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
     A("")
     A("⛔ **This section counted a QUARTER of its own subject until `ENGINE-UNIVERSAL-SERVICES.21`.**")
     A("The classifier was written from the shape the prose described (`X_lr_base ( X_lr_suffix )*`)")
-    A(f"and matched 97 of the {SV_DECLARED_LR_RULES} LR rule names the parser declares — no "
+    # ⛔ 127 IS A LITERAL ON PURPOSE (SV-CORPUS-GRAD.13c.2y). This sentence records what the
+    # classifier measured in `ENGINE-UNIVERSAL-SERVICES.21`, against the parser AS IT WAS THEN.
+    # It interpolated SV_DECLARED_LR_RULES until the pin moved 127 -> 31, at which point it would
+    # have read "matched 97 of the 31" — a live constant silently falsifying a dated measurement.
+    A("and matched 97 of the 127 LR rule names the parser declared at the time — no "
       "`_lr_seed`, and in a")
     A("heading that said GUARDED, not one `_lr_guard` rule. It is now derived from the two")
     A("eliminators' emission sites; see the classifier's own comment for the eight shapes.")
@@ -1383,7 +1391,14 @@ def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
     A(f"({FLIP_ENTRY_DELTA_PROVENANCE}.)")
     A("")
     A("⛔⛔ **This section published a sensitivity bound of `~8.9×`, and BOTH terms were wrong.**")
-    A(f"Retired by `ENGINE-UNIVERSAL-SERVICES.26`. It was `24.3 / {CORPUS_FAMILY_SHARE_PCT}`. The")
+    # ⛔ 2.741 IS A LITERAL ON PURPOSE (SV-CORPUS-GRAD.13c.2y), and this line was already WRONG
+    # before it became one. The retired bound was computed ONCE, from the share as it stood then —
+    # this module's own header records it as `24.3 / 2.741`, and 24.3/2.741 = 8.87 ≈ the `~8.9×`
+    # published. Interpolating the LIVE share silently re-stated a dated arithmetic fact with
+    # today's denominator: it rendered `24.3 / 2.751` while the pin sat there, and would have
+    # rendered `24.3 / 2.743` after this slice re-derived it. Same class as the `97 of the 127`
+    # line above. A dated measurement must never interpolate a live constant.
+    A("Retired by `ENGINE-UNIVERSAL-SERVICES.26`. It was `24.3 / 2.741`. The")
     A("numerator, a `+24.3 %` wall-clock regression, is REFUTED — not reproducible from the raw")
     A("data of the runs that produced it (`.20` slice 5). The denominator was the wrong quantity")
     A("independently of that: sensitivity is how much the counter MOVED, not how large the family")

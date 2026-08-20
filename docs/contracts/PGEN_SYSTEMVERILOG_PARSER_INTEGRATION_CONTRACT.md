@@ -5,6 +5,50 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-08-20, `SV-CORPUS-GRAD.13c.2y` — GRAMMAR-level, release `1.0.193`,
+> ledger `SV-0066`, SCHEMA `25` → `26`):** an **IEEE 1800 KEYWORD WAS BOUND TO AN OPERATOR TOKEN OF
+> THE SAME NAME** (`PGEN-SV-CORPUS-GRAD-0261`). `grammars/systemverilog.ebnf` defines
+> `implies := trivia "->"` — a token rule named after a reserved keyword — and LRM extraction bound
+> A.2.10's property operator `implies` to it instead of minting a `kw_<name>_<hash>` terminal as it
+> did for every other property operator. Measured on both SV profiles: `a implies b` was
+> **REJECTED** in every shape, while `a -> b`, a bare `-> b`, and `a |= b` in property position were
+> **ACCEPTED** — and Annex A's `property_expr` production defines none of those three.
+>
+> ⭐ **The fix is a precedence-table question, not a token swap.** IEEE 1800-2017 **Table 16-3**
+> (§16.12) puts `implies` in ONE right-associative group with `until` / `s_until` / `until_with` /
+> `s_until_with` — a group this grammar already has, because `SV-0011` built the Table 16-3 cascade
+> `prop_until > prop_iff > prop_or > prop_and > prop_primary`. So `kw_implies_470cec58` is minted
+> (profile-gated SV-only) and joins `prop_until_*` as a fifth operator, and all three defect branches
+> are deleted from `prop_primary_*`.
+>
+> ⛔ **The over-acceptance half had been named in prose and left standing for four weeks.**
+> `SV-0039`'s own recorded root cause (2026-07-23) reads *"the LRM-markdown→EBNF extractor split the
+> `|`-prefixed operators on `|` … leaving the mangled `implies` (`->`) / `or_assign` (`|=`) remnants
+> in `prop_primary`"*. It added the correct `|->` / `|=>` branches and removed neither remnant, and
+> it did not notice that the third site — A.2.10's genuine `property_expr implies property_expr` —
+> was compiled against the same arrow. A defect written into a fix's prose is not tracked work.
+>
+> ⭐⭐ **AND THE FIX PAYS FOR ITSELF IN ENGINE COST, WHICH WAS NOT THE POINT AND IS WORTH SAYING.**
+> `| property_expr implies property_expr` was the **only** left-recursive alternative in
+> `prop_primary_*`, so removing it dissolved the `property_expr` indirect-left-recursion knot
+> entirely: `--report-indirect-lr-plan` goes `indirect_eliminated_base_rules 3 → 2`,
+> `indirect_clone_rules 24 → 12`, `indirect_guard_chains 3 → 2` at `surviving_cycle_rules=0`; the
+> grammar census falls **1611 → 1516** (−96 synthesised rules, +1 token); the parser's declared
+> LR-family names fall **127 → 31**; and the generated artifact sheds **8.41 MB (−6.0 %)**.
+>
+> **What consumers gain and lose.** GAIN: `property_expr implies property_expr` parses on `sv_2017`
+> and `sv_2023`, at Table 16-3 precedence and associativity. LOSE: `prop_primary_sv_2017`/`_sv_2023`
+> no longer emit `{kind:"implies_unary", body}`, `{kind:"sequence_or_assign", lhs, rhs}` or
+> `{kind:"implies_binary", lhs, rhs}` — all three carried syntax that is not SystemVerilog and can no
+> longer be produced by any conforming input. A consumer walking property operators reads
+> `{kind:"implies", lhs, rhs}` from `prop_until_<profile>`, beside its four Table 16-3 siblings.
+>
+> ⛔ **`implies` IS RESERVED, AND THAT WAS CHECKED RATHER THAN ASSUMED** — IEEE 1800-2023 **Annex B**
+> (`docs/systemverilog/2023/txt/section-Annex_B-normative-keywords.txt:105`) lists it between
+> `implements` and `import`, which is also exactly where the new token sits in the grammar. `SV-0065`
+> was bitten by the opposite case one release earlier (`randomize` is **not** reserved, so a rule
+> matching it bare captured a legal identifier), which is why this was verified first.
+
 > **Current-state note (2026-08-20, `SV-CORPUS-GRAD.13c.2v` — GRAMMAR-level, release `1.0.192`,
 > ledger `SV-0065`, SCHEMA UNCHANGED at `25`):** a **SCOPE RANDOMIZE carrying a constraint block was
 > unreachable from every EXPRESSION** (`PGEN-SV-CORPUS-GRAD-0256`). IEEE 1800-2017/2023 A.8.4 spells
@@ -501,13 +545,13 @@ This is the document downstream projects such as Nexsim should read first when d
 - Contract version:
   - `1.0.192`
 - Parser release version:
-  - `1.0.192`
-  - history: `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.193`
+  - history: `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `875ecab5de723631a9ad7707138628b42d551027223d0ae02cf8dbf7f2eb86e4` (SV grammar semantic digest — sha256 of the
+  - `4ebcc61b86aab15f1e6056bafe94423fe60cc0f65de416c04c09016005a4af82` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`
@@ -516,6 +560,16 @@ This is the document downstream projects such as Nexsim should read first when d
   - `1.3.1` (backward-compatible stack-robustness fix, `SV-CORPUS-GRAD.8c.3` 2026-07-22: every SV/VHDL embedding parse runs on a dedicated 256 MiB-stack thread, so over-deep recursion returns a clean `E_PARSE_FAILURE` diagnostic — the engine's 4096-frame recursion ceiling — instead of aborting the HOST process with a stack-overflow SIGABRT; measured pre-fix, a ~400-deep parenthesized expression (≈4 KB of text) killed a release embedder at the default 8 MB main stack. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. No parser release/schema bump — the generated parser artifact is unchanged.)
   - history: `1.3.0` (backward-compatible addition of the `verilog_2005` profile; see `rust/docs/EMBEDDING_API_CONTRACT.md` — the previously stated `1.2.0` here was a stale lockstep gap closed by `VERILOG-2005-PROFILE.4.3`)
 - SystemVerilog AST-dump schema version:
+  - `26` (**`1.0.193`** (`SV-CORPUS-GRAD.13c.2y`, `PGEN-SV-CORPUS-GRAD-0261`, 2026-08-20), ledger
+    `SV-0066`: `prop_primary_sv_2017`/`_sv_2023` REMOVE three branches — `{kind:"implies_unary", body}`,
+    `{kind:"sequence_or_assign", lhs, rhs}` and `{kind:"implies_binary", lhs, rhs}` — because all three
+    were compiled against the ARROW token `implies := trivia "->"` rather than the IEEE 1800 keyword,
+    and carried syntax no Annex A production reaches. A.2.10's own `property_expr implies property_expr`
+    now arrives one level up as `{kind:"implies", lhs, rhs}` from `prop_until_<profile>`, in its
+    **Table 16-3** right-associative group beside `until`/`s_until`/`until_with`/`s_until_with`.
+    **Migration:** a consumer exhaustively matching `prop_primary` kinds drops the three; a consumer
+    walking property operators reads `implies` where it reads the `until` family. A REMOVAL is a
+    replacement in the `SV-0053` sense, so it takes a bump.)
   - `25` (**`1.0.184`-`1.0.190` (`SV-CORPUS-GRAD.13c.2l`, `PGEN-SV-CORPUS-GRAD-0241`, 2026-08-19) carry schema `21` to
     `25`: FOUR of the seven releases in that batch REPLACE a previously-emitted AST shape, and each takes its own bump,
     because the trigger this contract has always used is replacement rather than addition (the `SV-0053` rule, as against

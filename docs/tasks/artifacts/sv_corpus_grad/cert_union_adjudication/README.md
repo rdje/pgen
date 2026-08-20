@@ -37,10 +37,23 @@ for f in docs/tasks/artifacts/sv_corpus_grad/cert_union_adjudication/sva_probes/
 done
 ```
 
-⛔ The **three over-acceptance rows are as load-bearing as the three over-rejections**: `arrow_prop`
-(`a -> b`), `arrow_unary_prop` (`-> b`) and `or_assign_prop` (`a |= b`) are constructs IEEE
-1800-2017 A.2.10 does not define, and the parser takes all three. The 15 passing rows are the
-control — same file shape, same profiles, same binary, one token different.
+⛔⛔ **CORRECTION, 2026-08-20 (`PGEN-SV-CORPUS-GRAD-0261`) — this file first published THREE
+over-acceptances and there are TWO.** `arrow_prop` (`a -> b` in property position) was classified as
+over-acceptance because IEEE 1800-2017 A.2.10's `property_expr` production has no `->` alternative.
+That reasoning was incomplete: **§11.3.2 lists implication `->` as a binary EXPRESSION operator**
+(*"All operators shall associate left to right with the exception of the conditional (?:),
+implication (->), and equivalence (<->)"*), and `property_expr ::= sequence_expr ::= … ::=
+expression`, so `a -> b` is legal SystemVerilog in that position. Proven from the tree rather than
+re-argued: `--parse-dump-ast-pretty` puts the `implies` node inside an `operand_chain` under
+`primary` — the expression operator, not a property operator. **The parser was right and the probe's
+expected value was wrong.** The row is retained as a **control**: it proves `SV-0066` did not
+over-narrow while removing the two genuine over-acceptances.
+
+⛔ The two genuine over-acceptance rows are as load-bearing as the three over-rejections:
+`arrow_unary_prop` (`-> b` — `->` is binary only) and `or_assign_prop` (`a |= b` — `|=` is an
+assignment operator) are constructs no IEEE 1800 production reaches, and the parser took both. The
+15 unchanged rows are the control — same file shape, same profiles, same binary, one token
+different.
 
 ## The ruling in one line
 

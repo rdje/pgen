@@ -13,7 +13,7 @@ Surelog	hot	stimuli/sv/subs/Surelog/tests/BlackBePipeInt/dut.sv	yes	10861523	112
 Surelog	lr	stimuli/sv/subs/Surelog/tests/BlackParrotConf/dut.sv	no	886736	40212	368333	28485	0
 Surelog	breadth	stimuli/sv/subs/Surelog/tests/ClassScope/dut.sv	no	36082	2350	14889	759	0
 Surelog	lr	stimuli/sv/subs/Surelog/tests/DecimalSize/dut.sv	yes	1236452	175869	575019	41096	0
-Surelog	breadth	stimuli/sv/subs/Surelog/tests/ExpectStmt/dut.sv	yes	10028	535	4232	240	14
+Surelog	breadth	stimuli/sv/subs/Surelog/tests/ExpectStmt/dut.sv	yes	9940	533	4189	170	0
 Surelog	breadth	stimuli/sv/subs/Surelog/tests/HierPathCont/dut.sv	yes	13862	594	5569	274	0
 Surelog	breadth	stimuli/sv/subs/Surelog/tests/LongHex/dut.sv	yes	14424	1015	6077	294	0
 Surelog	breadth	stimuli/sv/subs/Surelog/tests/PackageValue/top.sv	yes	59336	3302	26261	1779	0
@@ -146,7 +146,7 @@ slang	breadth	stimuli/sv/subs/slang/tests/unittests/data/libsplit_lib.sv	yes	142
 slang	breadth	stimuli/sv/subs/slang/tests/unittests/data/redef_primitive.sv	yes	1473	164	493	0	0
 sv-tests	breadth	stimuli/sv/subs/sv-tests/tests/chapter-10/10.3--proc-assignment--bad.sv	yes	5461	141	2143	67	0
 sv-tests	breadth	stimuli/sv/subs/sv-tests/tests/chapter-13/13.3.1--task-static.sv	yes	19139	1337	8526	470	0
-sv-tests	breadth	stimuli/sv/subs/sv-tests/tests/chapter-18/18.5.1--explicit-external-constraint_2.sv	no	4799	170	1838	49	0
+sv-tests	breadth	stimuli/sv/subs/sv-tests/tests/chapter-18/18.5.1--explicit-external-constraint_2.sv	no	4800	170	1838	49	0
 sv-tests	breadth	stimuli/sv/subs/sv-tests/tests/chapter-21/21.2--display.sv	yes	6015	326	2482	94	0
 sv-tests	breadth	stimuli/sv/subs/sv-tests/tests/chapter-5/5.6.3--system-functions.sv	yes	3472	208	1333	36	0
 sv-tests	breadth	stimuli/sv/subs/sv-tests/tests/chapter-7/arrays/associative/locator-methods/max.sv	yes	15375	1300	6658	374	0

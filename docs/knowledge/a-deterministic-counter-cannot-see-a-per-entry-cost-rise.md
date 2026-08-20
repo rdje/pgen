@@ -13,7 +13,7 @@ tags: [instruments, performance, ratchets, gates, evidence, proxies, measurement
 date: 2026-08-15
 status: current
 evidence: ENGINE-UNIVERSAL-SERVICES.20 slice 1, corrected by .21, thesis RE-DERIVED by .26 (2026-08-16). PGEN specified a parse-cost ratchet on exact rule-ENTRY counters and published a numeric bound on their insensitivity — *"at least ~8.9x less sensitive than wall clock"* — derived as **+24.3 % wall clock / 2.741 % family share**. ⛔ BOTH terms were wrong. The numerator is REFUTED (.20 slice 5): not reproducible from the raw data of the runs that produced it, 7 estimator x era combinations giving ARM2/ARM1 in [0.9909, 1.0433], mechanism a fixed-arm-order artifact. The denominator was the wrong QUANTITY independently of that: sensitivity is how much the counter MOVED, not how large the rule family is — and the tracked A/B in the same leaf measures the move at **812 963 769 -> 899 064 022 entries = +10.59 %**, 3.49x LARGER than the family's own 24 644 435 entries. The counters SAW that change plainly. ⇒ the bound is retired, not re-computed (0.41x on the point estimate, 1.82x on the most adversarial pairing, and no admissible wall-clock figure survives). What stands is the STRUCTURAL limit, which needs no number.
-reverify: "bash scripts/check_parse_cost_ratchet.sh   # OK — its every-run tier re-hashes the four inputs the 2.751 % share is a function of against docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json, re-checks that artifact's raw counts against the share it declares, AND holds this card's `Live LR-family share` anchor equal to it (ENGINE-UNIVERSAL-SERVICES.21 (f), .26); re-derive with `make -C rust SHELL=/bin/bash sv_parse_cost_family_share` (~70 s)"
+reverify: "bash scripts/check_parse_cost_ratchet.sh   # OK — its every-run tier re-hashes the four inputs the 2.743 % share is a function of against docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json, re-checks that artifact's raw counts against the share it declares, AND holds this card's `Live LR-family share` anchor equal to it (ENGINE-UNIVERSAL-SERVICES.21 (f), .26); re-derive with `make -C rust SHELL=/bin/bash sv_parse_cost_family_share` (~70 s)"
 ---
 
 ⭐ The CONVERSE blind spot of the same metric is banked separately: it also cannot tell a cache HIT from work, so a rise can be pure cache traffic ([[a-counter-that-cannot-tell-a-cache-hit-from-work-prices-them-alike]]).
@@ -63,7 +63,7 @@ counter moving ~2.4× *more* than the clock) and under the most adversarial pair
 1.82×; and no admissible wall-clock figure survives to rebuild it from at all. Replacing one
 unearned ratio with another would repeat the mistake in a smaller font.
 
-**Live LR-family share `2.751`** (corpus-entry share %). ⭐ Since `ENGINE-UNIVERSAL-SERVICES.21`
+**Live LR-family share `2.743`** (corpus-entry share %). ⭐ Since `ENGINE-UNIVERSAL-SERVICES.21`
 acceptance (f) that number is **GATED, not quoted**: it is derived by a full-corpus census into
 `docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json`, and
 `PARSE-COST-RATCHET`'s every-run tier re-hashes the four inputs it is a function of, re-checks the

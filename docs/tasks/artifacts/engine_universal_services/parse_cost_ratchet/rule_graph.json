@@ -1,0 +1,7984 @@
+{
+ "_derivation": "the EBNF frontend's raw_ast rule-reference graph \u2014 python3 scripts/parse_cost_containment.py --graph grammars/systemverilog.ebnf",
+ "edges": {
+  "action_block": [
+   "kw_else_ae050f5b",
+   "statement",
+   "statement_or_null"
+  ],
+  "always_construct": [
+   "always_keyword",
+   "statement"
+  ],
+  "always_keyword": [
+   "always_keyword_sv_only",
+   "kw_always_6656018a"
+  ],
+  "always_keyword_sv_only": [
+   "kw_always_comb_a1f2a86b",
+   "kw_always_ff_3c7a051e",
+   "kw_always_latch_23c99af9"
+  ],
+  "and_assign": [
+   "trivia"
+  ],
+  "anonymous_program": [
+   "anonymous_program_item",
+   "kw_endprogram_6b609b1f",
+   "kw_program_81d9aeea",
+   "semi"
+  ],
+  "anonymous_program_item": [
+   "anonymous_program_item_sv_2017",
+   "anonymous_program_item_sv_2023"
+  ],
+  "anonymous_program_item_sv_2017": [
+   "class_constructor_declaration",
+   "class_declaration",
+   "covergroup_declaration",
+   "function_declaration",
+   "interface_class_declaration",
+   "semi",
+   "task_declaration"
+  ],
+  "anonymous_program_item_sv_2023": [
+   "class_constructor_declaration",
+   "class_declaration",
+   "covergroup_declaration",
+   "function_declaration",
+   "interface_class_declaration",
+   "semi",
+   "task_declaration"
+  ],
+  "ansi_port_declaration": [
+   "ansi_port_header",
+   "assign",
+   "constant_expression",
+   "dot",
+   "expression",
+   "lparen",
+   "port_direction",
+   "port_identifier",
+   "rparen",
+   "unpacked_dimension",
+   "variable_dimension",
+   "variable_port_header"
+  ],
+  "ansi_port_header": [
+   "interface_port_header",
+   "net_port_header"
+  ],
+  "arithmetic_shift_left": [
+   "trivia"
+  ],
+  "arithmetic_shift_left_assign": [
+   "trivia"
+  ],
+  "arithmetic_shift_right": [
+   "trivia"
+  ],
+  "arithmetic_shift_right_assign": [
+   "trivia"
+  ],
+  "array_manipulation_call": [
+   "array_method_name",
+   "attribute_instance",
+   "expression",
+   "kw_with_8fcd25a3",
+   "list_of_arguments",
+   "lparen",
+   "rparen"
+  ],
+  "array_method_name": [
+   "kw_and_cffa50a3",
+   "kw_or_1758356d",
+   "kw_unique_58037c00",
+   "kw_xor_f1922a23",
+   "method_identifier"
+  ],
+  "array_pattern_key": [
+   "assignment_pattern_key",
+   "constant_expression"
+  ],
+  "array_range_expression": [
+   "colon",
+   "expression",
+   "minus",
+   "plus"
+  ],
+  "assert_property_statement": [
+   "action_block",
+   "kw_assert_64b5daad",
+   "kw_property_269fe373",
+   "lparen",
+   "property_spec",
+   "rparen"
+  ],
+  "assertion_item": [
+   "concurrent_assertion_item",
+   "deferred_immediate_assertion_item"
+  ],
+  "assertion_item_declaration": [
+   "let_declaration",
+   "property_declaration",
+   "sequence_declaration"
+  ],
+  "assertion_variable_declaration": [
+   "list_of_variable_decl_assignments",
+   "semi",
+   "var_data_type"
+  ],
+  "assign": [
+   "trivia"
+  ],
+  "assignment_operator": [
+   "and_assign",
+   "arithmetic_shift_left_assign",
+   "arithmetic_shift_right_assign",
+   "assign",
+   "minus_assign",
+   "or_assign",
+   "percent_assign",
+   "plus_assign",
+   "shift_left_assign",
+   "shift_right_assign",
+   "slash_assign",
+   "star_assign",
+   "xor_assign"
+  ],
+  "assignment_pattern": [
+   "array_pattern_key",
+   "colon",
+   "comma",
+   "constant_expression",
+   "expression",
+   "lbrace",
+   "rbrace",
+   "structure_pattern_key",
+   "tick"
+  ],
+  "assignment_pattern_entry": [
+   "colon",
+   "member_identifier",
+   "pattern"
+  ],
+  "assignment_pattern_expression": [
+   "assignment_pattern",
+   "assignment_pattern_expression_type"
+  ],
+  "assignment_pattern_expression_type": [
+   "integer_atom_type",
+   "ps_parameter_identifier",
+   "ps_type_identifier",
+   "type_reference"
+  ],
+  "assignment_pattern_key": [
+   "data_type",
+   "kw_default_7505d64a",
+   "simple_type"
+  ],
+  "assignment_pattern_net_lvalue": [
+   "comma",
+   "lbrace",
+   "net_lvalue",
+   "rbrace",
+   "tick"
+  ],
+  "assignment_pattern_variable_lvalue": [
+   "comma",
+   "lbrace",
+   "rbrace",
+   "tick",
+   "variable_lvalue"
+  ],
+  "associative_dimension": [
+   "data_type",
+   "lbrack",
+   "rbrack",
+   "star"
+  ],
+  "assume_property_statement": [
+   "action_block",
+   "kw_assume_661e458e",
+   "kw_property_269fe373",
+   "lparen",
+   "property_spec",
+   "rparen"
+  ],
+  "at_sign": [
+   "trivia"
+  ],
+  "attr_close": [
+   "trivia"
+  ],
+  "attr_name": [
+   "non_keyword_identifier"
+  ],
+  "attr_open": [
+   "trivia"
+  ],
+  "attr_spec": [
+   "assign",
+   "attr_name",
+   "constant_expression"
+  ],
+  "attribute_instance": [
+   "attr_close",
+   "attr_open",
+   "attr_spec",
+   "comma"
+  ],
+  "bang": [
+   "trivia"
+  ],
+  "base_class_type": [
+   "base_class_type_head",
+   "class_identifier",
+   "parameter_value_assignment",
+   "scope_resolution"
+  ],
+  "base_class_type_head": [
+   "known_unscoped_base_class_type_identifier",
+   "known_unscoped_base_class_type_parameter_identifier",
+   "scoped_base_class_type_identifier"
+  ],
+  "bin_identifier": [
+   "non_keyword_identifier"
+  ],
+  "binary_module_path_operator": [
+   "bitwise_and",
+   "bitwise_or",
+   "bitwise_xor",
+   "equal",
+   "logical_and",
+   "logical_or",
+   "not_equal",
+   "reduction_xnor",
+   "reduction_xnor_alt"
+  ],
+  "binary_operator": [
+   "arithmetic_shift_left",
+   "arithmetic_shift_right",
+   "bitwise_and",
+   "bitwise_or",
+   "bitwise_xor",
+   "case_equal",
+   "case_not_equal",
+   "equal",
+   "greater_equal",
+   "greater_than",
+   "iff_arrow",
+   "implies",
+   "less_equal",
+   "less_than",
+   "logical_and",
+   "logical_or",
+   "minus",
+   "not_equal",
+   "percent",
+   "plus",
+   "power",
+   "reduction_xnor",
+   "reduction_xnor_alt",
+   "shift_left",
+   "shift_right",
+   "slash",
+   "star",
+   "wildcard_equal",
+   "wildcard_not_equal"
+  ],
+  "binary_operator_above_equality": [
+   "arithmetic_shift_left",
+   "arithmetic_shift_right",
+   "greater_equal",
+   "greater_than",
+   "less_equal",
+   "less_than",
+   "minus",
+   "percent",
+   "plus",
+   "power",
+   "shift_left",
+   "shift_right",
+   "slash",
+   "star"
+  ],
+  "bind_directive": [
+   "bind_instantiation",
+   "bind_target_instance",
+   "bind_target_instance_list",
+   "bind_target_scope",
+   "colon",
+   "kw_bind_6bdd4db9"
+  ],
+  "bind_instantiation": [
+   "checker_instantiation",
+   "interface_instantiation",
+   "module_instantiation",
+   "program_instantiation"
+  ],
+  "bind_target_instance": [
+   "constant_bit_select",
+   "hierarchical_identifier"
+  ],
+  "bind_target_instance_list": [
+   "bind_target_instance",
+   "comma"
+  ],
+  "bind_target_scope": [
+   "interface_identifier",
+   "module_identifier"
+  ],
+  "bins_expression": [
+   "bin_identifier",
+   "cover_point_identifier",
+   "dot",
+   "variable_identifier"
+  ],
+  "bins_keyword": [
+   "kw_bins_7de92be6",
+   "kw_ignore_bins_c8b3e6e5",
+   "kw_illegal_bins_909dfbf3"
+  ],
+  "bins_or_empty": [
+   "attribute_instance",
+   "bins_or_options",
+   "lbrace",
+   "rbrace",
+   "semi"
+  ],
+  "bins_or_options": [
+   "assign",
+   "bin_identifier",
+   "bins_keyword",
+   "cover_point_identifier",
+   "coverage_option",
+   "covergroup_expression",
+   "covergroup_range_list",
+   "expression",
+   "kw_default_7505d64a",
+   "kw_iff_ee1c009e",
+   "kw_sequence_92504616",
+   "kw_wildcard_08654ea6",
+   "kw_with_8fcd25a3",
+   "lbrace",
+   "lbrack",
+   "lparen",
+   "rbrace",
+   "rbrack",
+   "rparen",
+   "set_covergroup_expression",
+   "trans_list",
+   "with_covergroup_expression"
+  ],
+  "bins_selection": [
+   "assign",
+   "bin_identifier",
+   "bins_keyword",
+   "expression",
+   "kw_iff_ee1c009e",
+   "lparen",
+   "rparen",
+   "select_expression"
+  ],
+  "bins_selection_or_option": [
+   "attribute_instance",
+   "bins_selection",
+   "coverage_option"
+  ],
+  "bit_select": [
+   "bit_select_expression",
+   "lbrack",
+   "rbrack"
+  ],
+  "bit_select_expression": [
+   "expression",
+   "kw_dollar",
+   "method_call"
+  ],
+  "bitwise_and": [
+   "trivia"
+  ],
+  "bitwise_or": [
+   "trivia"
+  ],
+  "bitwise_xor": [
+   "trivia"
+  ],
+  "block_comment": [],
+  "block_data_declaration": [
+   "block_data_declaration_sv_2017",
+   "block_data_declaration_sv_2023"
+  ],
+  "block_data_declaration_sv_2017": [
+   "block_data_type_or_implicit",
+   "kw_const_b42f3f6f",
+   "kw_var_e5b4e786",
+   "lifetime",
+   "list_of_variable_decl_assignments",
+   "net_type_declaration",
+   "package_import_declaration",
+   "semi",
+   "type_declaration"
+  ],
+  "block_data_declaration_sv_2023": [
+   "block_data_type_or_implicit",
+   "kw_const_b42f3f6f",
+   "kw_var_e5b4e786",
+   "lifetime",
+   "list_of_variable_decl_assignments",
+   "nettype_declaration",
+   "package_import_declaration",
+   "semi",
+   "type_declaration"
+  ],
+  "block_data_type": [
+   "comma",
+   "dot",
+   "enum_base_type",
+   "enum_name_declaration",
+   "integer_atom_type",
+   "integer_vector_type",
+   "interface_identifier",
+   "known_unscoped_block_class_type",
+   "known_unscoped_block_covergroup_identifier",
+   "known_unscoped_block_type_identifier",
+   "kw_chandle_34401c13",
+   "kw_enum_e338e8e3",
+   "kw_event_5006ed02",
+   "kw_interface_5ea2d81a",
+   "kw_packed_7aca22de",
+   "kw_string_ecb25204",
+   "kw_virtual_af84d91f",
+   "lbrace",
+   "modport_identifier",
+   "non_integer_type",
+   "packed_dimension",
+   "parameter_value_assignment",
+   "provisional_unscoped_block_class_type",
+   "rbrace",
+   "scoped_block_class_type",
+   "scoped_block_covergroup_identifier",
+   "scoped_block_type_identifier",
+   "signing",
+   "struct_union",
+   "struct_union_member",
+   "type_reference"
+  ],
+  "block_data_type_or_implicit": [
+   "block_data_type",
+   "implicit_data_type"
+  ],
+  "block_event_expression": [
+   "block_event_expression",
+   "hierarchical_btf_identifier",
+   "kw_begin_8cbd0a74",
+   "kw_end_7a92f3d2",
+   "kw_or_1758356d"
+  ],
+  "block_identifier": [
+   "declaration_identifier"
+  ],
+  "block_item_declaration": [
+   "attribute_instance",
+   "block_data_declaration",
+   "let_declaration",
+   "local_parameter_declaration",
+   "parameter_declaration",
+   "semi"
+  ],
+  "blocking_assignment": [
+   "blocking_assignment_sv_2017",
+   "blocking_assignment_sv_2023"
+  ],
+  "blocking_assignment_sv_2017": [
+   "assign",
+   "class_new",
+   "class_or_package_scope",
+   "delay_or_event_control",
+   "dynamic_array_new",
+   "expression",
+   "hierarchical_variable_identifier",
+   "nonrange_variable_lvalue",
+   "operator_assignment",
+   "select",
+   "variable_lvalue"
+  ],
+  "blocking_assignment_sv_2023": [
+   "assign",
+   "class_new",
+   "class_or_package_scope",
+   "delay_or_event_control",
+   "dynamic_array_new",
+   "expression",
+   "hierarchical_variable_identifier",
+   "inc_or_dec_expression",
+   "nonrange_variable_lvalue",
+   "operator_assignment",
+   "select",
+   "variable_lvalue"
+  ],
+  "boolean_abbrev": [
+   "boolean_abbrev_sv_2017",
+   "boolean_abbrev_sv_2023"
+  ],
+  "boolean_abbrev_sv_2017": [
+   "consecutive_repetition",
+   "goto_repetition",
+   "non_consecutive_repetition"
+  ],
+  "boolean_abbrev_sv_2023": [
+   "consecutive_repetition",
+   "goto_repetition",
+   "nonconsecutive_repetition"
+  ],
+  "built_in_method_call": [
+   "array_manipulation_call",
+   "randomize_call"
+  ],
+  "c_identifier": [
+   "non_keyword_identifier"
+  ],
+  "call_primary": [
+   "call_with_postfix_chain",
+   "class_scoped_tf_call_with_args",
+   "context_member_method_call",
+   "direct_callable_method_call",
+   "identifier_rooted_method_chain",
+   "implicit_class_rooted_method_chain",
+   "plain_tf_call_with_args",
+   "rooted_tf_call_sv_only",
+   "split_direct_callable_method_call",
+   "system_tf_call",
+   "tf_call_with_args"
+  ],
+  "call_with_postfix_chain": [
+   "chainable_call_initial",
+   "dot",
+   "method_call_body"
+  ],
+  "callable_identifier": [
+   "non_keyword_identifier"
+  ],
+  "callable_method_call_body": [
+   "attribute_instance",
+   "built_in_method_call",
+   "list_of_arguments",
+   "lparen",
+   "method_identifier",
+   "rparen"
+  ],
+  "case_equal": [
+   "trivia"
+  ],
+  "case_expression": [
+   "expression"
+  ],
+  "case_generate_construct": [
+   "case_generate_item",
+   "constant_expression",
+   "kw_case_6406510c",
+   "kw_endcase_a27a6786",
+   "lparen",
+   "rparen"
+  ],
+  "case_generate_item": [
+   "colon",
+   "comma",
+   "constant_expression",
+   "generate_block",
+   "kw_default_7505d64a"
+  ],
+  "case_inside_item": [
+   "case_inside_item_sv_2017",
+   "case_inside_item_sv_2023"
+  ],
+  "case_inside_item_sv_2017": [
+   "colon",
+   "kw_default_7505d64a",
+   "open_range_list",
+   "statement_or_null"
+  ],
+  "case_inside_item_sv_2023": [
+   "colon",
+   "kw_default_7505d64a",
+   "range_list",
+   "statement_or_null"
+  ],
+  "case_item": [
+   "case_item_expression",
+   "colon",
+   "comma",
+   "kw_default_7505d64a",
+   "statement_or_null"
+  ],
+  "case_item_expression": [
+   "expression"
+  ],
+  "case_keyword": [
+   "kw_case_6406510c",
+   "kw_casex_b31a7350",
+   "kw_casez_b8fbe0e1"
+  ],
+  "case_not_equal": [
+   "trivia"
+  ],
+  "case_pattern_item": [
+   "colon",
+   "expression",
+   "kw_default_7505d64a",
+   "logical_and3",
+   "pattern",
+   "statement_or_null"
+  ],
+  "case_statement": [
+   "case_expression",
+   "case_inside_item",
+   "case_item",
+   "case_keyword",
+   "case_pattern_item",
+   "kw_case_6406510c",
+   "kw_endcase_a27a6786",
+   "kw_inside_fcc53788",
+   "kw_matches_9f3e9242",
+   "lparen",
+   "rparen",
+   "unique_priority"
+  ],
+  "cast": [
+   "casting_type",
+   "expression",
+   "lparen",
+   "rparen",
+   "tick"
+  ],
+  "casting_type": [
+   "constant_primary",
+   "kw_const_b42f3f6f",
+   "kw_string_ecb25204",
+   "signing",
+   "simple_type"
+  ],
+  "cell_clause": [
+   "cell_identifier",
+   "dot",
+   "kw_cell_5f435eb3",
+   "library_identifier"
+  ],
+  "cell_identifier": [
+   "non_keyword_identifier"
+  ],
+  "chainable_call_initial": [
+   "class_scoped_tf_call_with_args",
+   "direct_callable_method_call",
+   "plain_tf_call_with_args",
+   "system_tf_call",
+   "tf_call_with_args"
+  ],
+  "charge_strength": [
+   "kw_large_5296d5cc",
+   "kw_medium_20af4186",
+   "kw_small_89f6229a",
+   "lparen",
+   "rparen"
+  ],
+  "checked_nettype_identifier": [
+   "declaration_identifier"
+  ],
+  "checked_type_identifier": [
+   "type_identifier"
+  ],
+  "checker_declaration": [
+   "attribute_instance",
+   "checker_identifier",
+   "checker_or_generate_item",
+   "checker_port_list",
+   "colon",
+   "declared_checker_identifier",
+   "kw_checker_29e5b9a8",
+   "kw_endchecker_cd5c3b65",
+   "lparen",
+   "rparen",
+   "semi"
+  ],
+  "checker_generate_item": [
+   "checker_generate_item_sv_2017",
+   "checker_generate_item_sv_2023"
+  ],
+  "checker_generate_item_sv_2017": [
+   "conditional_generate_construct",
+   "elaboration_system_task",
+   "generate_region",
+   "loop_generate_construct"
+  ],
+  "checker_generate_item_sv_2023": [
+   "conditional_generate_construct",
+   "elaboration_severity_system_task",
+   "generate_region",
+   "loop_generate_construct"
+  ],
+  "checker_identifier": [
+   "declaration_identifier"
+  ],
+  "checker_instantiation": [
+   "list_of_checker_port_connections",
+   "lparen",
+   "name_of_instance",
+   "ps_checker_identifier",
+   "rparen",
+   "semi"
+  ],
+  "checker_or_generate_item": [
+   "always_construct",
+   "assertion_item",
+   "checker_generate_item",
+   "checker_or_generate_item_declaration",
+   "continuous_assign",
+   "final_construct",
+   "initial_construct"
+  ],
+  "checker_or_generate_item_declaration": [
+   "assertion_item_declaration",
+   "checker_declaration",
+   "clocking_declaration",
+   "clocking_identifier",
+   "covergroup_declaration",
+   "data_declaration",
+   "expression_or_dist",
+   "function_declaration",
+   "genvar_declaration",
+   "kw_clocking_4d22041d",
+   "kw_default_7505d64a",
+   "kw_disable_ccf09e2d",
+   "kw_iff_ee1c009e",
+   "kw_rand_52400560",
+   "semi"
+  ],
+  "checker_port_direction": [
+   "kw_input_140f86aa",
+   "kw_output_1029d676"
+  ],
+  "checker_port_item": [
+   "assign",
+   "attribute_instance",
+   "checker_port_direction",
+   "formal_port_identifier",
+   "property_actual_arg",
+   "property_formal_type",
+   "variable_dimension"
+  ],
+  "checker_port_list": [
+   "checker_port_item",
+   "comma"
+  ],
+  "class_constraint": [
+   "constraint_declaration",
+   "constraint_prototype"
+  ],
+  "class_constructor_arg": [
+   "class_constructor_arg_sv_2023"
+  ],
+  "class_constructor_arg_list": [
+   "class_constructor_arg_list_sv_2023"
+  ],
+  "class_constructor_arg_list_sv_2023": [
+   "class_constructor_arg",
+   "comma"
+  ],
+  "class_constructor_arg_sv_2023": [
+   "kw_default_7505d64a",
+   "tf_port_item"
+  ],
+  "class_constructor_declaration": [
+   "class_constructor_declaration_sv_2017",
+   "class_constructor_declaration_sv_2023"
+  ],
+  "class_constructor_declaration_sv_2017": [
+   "block_item_declaration",
+   "class_scope",
+   "colon",
+   "dot",
+   "function_statement_or_null",
+   "kw_endfunction_84b8f967",
+   "kw_function_c218e39e",
+   "kw_new_c2a6b03f",
+   "kw_super_8451ba8a",
+   "list_of_arguments",
+   "lparen",
+   "rparen",
+   "semi",
+   "tf_port_list"
+  ],
+  "class_constructor_declaration_sv_2023": [
+   "block_item_declaration",
+   "class_constructor_arg_list",
+   "class_constructor_super_args",
+   "class_scope",
+   "colon",
+   "dot",
+   "function_statement_or_null",
+   "kw_endfunction_84b8f967",
+   "kw_function_c218e39e",
+   "kw_new_c2a6b03f",
+   "kw_super_8451ba8a",
+   "lparen",
+   "rparen",
+   "semi"
+  ],
+  "class_constructor_prototype": [
+   "class_constructor_prototype_sv_2017",
+   "class_constructor_prototype_sv_2023"
+  ],
+  "class_constructor_prototype_sv_2017": [
+   "kw_function_c218e39e",
+   "kw_new_c2a6b03f",
+   "lparen",
+   "rparen",
+   "semi",
+   "tf_port_list"
+  ],
+  "class_constructor_prototype_sv_2023": [
+   "class_constructor_arg_list",
+   "kw_function_c218e39e",
+   "kw_new_c2a6b03f",
+   "lparen",
+   "rparen",
+   "semi"
+  ],
+  "class_constructor_super_args": [
+   "kw_default_7505d64a",
+   "list_of_arguments"
+  ],
+  "class_declaration": [
+   "class_declaration_sv_2017",
+   "class_declaration_sv_2023"
+  ],
+  "class_declaration_sv_2017": [
+   "base_class_type",
+   "class_identifier",
+   "class_item",
+   "colon",
+   "comma",
+   "declared_class_identifier",
+   "interface_class_type",
+   "kw_class_8d767bf5",
+   "kw_endclass_b43ac277",
+   "kw_extends_2b781ff8",
+   "kw_implements_e133e2cb",
+   "kw_virtual_af84d91f",
+   "lifetime",
+   "list_of_arguments",
+   "lparen",
+   "parameter_port_list",
+   "rparen",
+   "semi"
+  ],
+  "class_declaration_sv_2023": [
+   "base_class_type",
+   "class_identifier",
+   "class_item",
+   "colon",
+   "comma",
+   "declared_class_identifier",
+   "final_specifier",
+   "interface_class_type",
+   "kw_class_8d767bf5",
+   "kw_default_7505d64a",
+   "kw_endclass_b43ac277",
+   "kw_extends_2b781ff8",
+   "kw_implements_e133e2cb",
+   "kw_virtual_af84d91f",
+   "list_of_arguments",
+   "lparen",
+   "parameter_port_list",
+   "rparen",
+   "semi"
+  ],
+  "class_identifier": [
+   "declaration_identifier"
+  ],
+  "class_item": [
+   "class_item_sv_2017",
+   "class_item_sv_2023",
+   "in_scope_compiler_directive"
+  ],
+  "class_item_qualifier": [
+   "kw_local_939bb46a",
+   "kw_protected_964cab4b",
+   "kw_static_a381562a"
+  ],
+  "class_item_sv_2017": [
+   "attribute_instance",
+   "class_constraint",
+   "class_declaration",
+   "class_method",
+   "class_property",
+   "covergroup_declaration",
+   "interface_class_declaration",
+   "local_parameter_declaration",
+   "parameter_declaration",
+   "semi"
+  ],
+  "class_item_sv_2023": [
+   "attribute_instance",
+   "class_constraint",
+   "class_declaration",
+   "class_method",
+   "class_property",
+   "covergroup_declaration",
+   "interface_class_declaration",
+   "local_parameter_declaration",
+   "parameter_declaration",
+   "semi"
+  ],
+  "class_method": [
+   "class_constructor_declaration",
+   "class_constructor_prototype",
+   "class_item_qualifier",
+   "function_declaration",
+   "kw_extern_bf1ee311",
+   "kw_pure_afe003f1",
+   "kw_virtual_af84d91f",
+   "method_prototype",
+   "method_qualifier",
+   "semi",
+   "task_declaration"
+  ],
+  "class_new": [
+   "class_scope",
+   "expression",
+   "kw_new_c2a6b03f",
+   "list_of_arguments",
+   "lparen",
+   "rparen"
+  ],
+  "class_or_package_scope": [
+   "class_scope",
+   "dot",
+   "implicit_class_handle",
+   "package_scope"
+  ],
+  "class_property": [
+   "assign",
+   "class_item_qualifier",
+   "const_identifier",
+   "constant_expression",
+   "data_declaration",
+   "data_type",
+   "kw_const_b42f3f6f",
+   "property_qualifier",
+   "semi"
+  ],
+  "class_scope": [
+   "class_scope_type",
+   "scope_resolution"
+  ],
+  "class_scope_type": [
+   "class_identifier",
+   "class_scope_type_head",
+   "parameter_value_assignment",
+   "scope_resolution"
+  ],
+  "class_scope_type_head": [
+   "known_unscoped_class_scope_class_identifier",
+   "known_unscoped_class_scope_interface_class_identifier",
+   "known_unscoped_class_scope_type_parameter_identifier",
+   "scoped_class_scope_identifier"
+  ],
+  "class_scoped_call_prefix": [
+   "class_identifier",
+   "class_scoped_call_prefix_head",
+   "parameter_value_assignment",
+   "scope_resolution"
+  ],
+  "class_scoped_call_prefix_head": [
+   "known_unscoped_class_scoped_call_class_identifier",
+   "known_unscoped_class_scoped_call_interface_class_identifier",
+   "known_unscoped_class_scoped_call_type_parameter_identifier",
+   "scoped_class_scoped_call_prefix_identifier"
+  ],
+  "class_scoped_tf_call": [
+   "attribute_instance",
+   "class_scoped_call_prefix",
+   "class_scoped_tf_call_with_args",
+   "tf_identifier"
+  ],
+  "class_scoped_tf_call_with_args": [
+   "attribute_instance",
+   "class_scoped_call_prefix",
+   "list_of_arguments",
+   "lparen",
+   "rparen",
+   "tf_identifier"
+  ],
+  "class_type": [
+   "class_identifier",
+   "class_type_head",
+   "parameter_value_assignment",
+   "scope_resolution"
+  ],
+  "class_type_head": [
+   "known_unscoped_class_scope_class_identifier",
+   "known_unscoped_class_scope_interface_class_identifier",
+   "scoped_class_type_identifier"
+  ],
+  "class_variable_identifier": [
+   "variable_identifier"
+  ],
+  "clocking_decl_assign": [
+   "assign",
+   "expression",
+   "signal_identifier"
+  ],
+  "clocking_declaration": [
+   "clocking_event",
+   "clocking_identifier",
+   "clocking_item",
+   "colon",
+   "kw_clocking_4d22041d",
+   "kw_default_7505d64a",
+   "kw_endclocking_c1e6d71f",
+   "kw_global_9027cc5a",
+   "semi"
+  ],
+  "clocking_direction": [
+   "clocking_skew",
+   "kw_inout_c900aaa9",
+   "kw_input_140f86aa",
+   "kw_output_1029d676"
+  ],
+  "clocking_drive": [
+   "clockvar_expression",
+   "cycle_delay",
+   "expression",
+   "less_equal"
+  ],
+  "clocking_event": [
+   "clocking_event_sv_2017",
+   "clocking_event_sv_2023"
+  ],
+  "clocking_event_sv_2017": [
+   "at_sign",
+   "event_expression",
+   "lparen",
+   "non_keyword_identifier",
+   "rparen"
+  ],
+  "clocking_event_sv_2023": [
+   "at_sign",
+   "event_expression",
+   "hierarchical_identifier",
+   "lparen",
+   "ps_identifier",
+   "rparen"
+  ],
+  "clocking_identifier": [
+   "declaration_identifier"
+  ],
+  "clocking_item": [
+   "assertion_item_declaration",
+   "attribute_instance",
+   "clocking_direction",
+   "default_skew",
+   "kw_default_7505d64a",
+   "list_of_clocking_decl_assign",
+   "semi"
+  ],
+  "clocking_skew": [
+   "delay_control",
+   "edge_identifier"
+  ],
+  "clockvar": [
+   "hierarchical_identifier"
+  ],
+  "clockvar_expression": [
+   "clockvar",
+   "select"
+  ],
+  "cmos_switch_instance": [
+   "comma",
+   "input_terminal",
+   "lparen",
+   "name_of_instance",
+   "ncontrol_terminal",
+   "output_terminal",
+   "pcontrol_terminal",
+   "rparen"
+  ],
+  "cmos_switchtype": [
+   "kw_cmos_aabe63a7",
+   "kw_rcmos_ae4a7a0a"
+  ],
+  "colon": [
+   "trivia"
+  ],
+  "combinational_body": [
+   "combinational_entry",
+   "kw_endtable_0b3f3e00",
+   "kw_table_c3ee137d"
+  ],
+  "combinational_entry": [
+   "colon",
+   "level_input_list",
+   "output_symbol",
+   "semi"
+  ],
+  "comma": [
+   "trivia"
+  ],
+  "compiler_directive": [
+   "trivia"
+  ],
+  "concatenation": [
+   "comma",
+   "expression",
+   "lbrace",
+   "rbrace"
+  ],
+  "concurrent_assertion_item": [
+   "block_identifier",
+   "checker_instantiation",
+   "colon",
+   "concurrent_assertion_statement"
+  ],
+  "concurrent_assertion_statement": [
+   "assert_property_statement",
+   "assume_property_statement",
+   "cover_property_statement",
+   "cover_sequence_statement",
+   "restrict_property_statement"
+  ],
+  "cond_pattern": [
+   "expression_base",
+   "kw_matches_9f3e9242",
+   "pattern"
+  ],
+  "cond_predicate": [
+   "expression_or_cond_pattern",
+   "logical_and3"
+  ],
+  "conditional_else_branch": [
+   "conditional_statement",
+   "statement_or_null"
+  ],
+  "conditional_else_clause": [
+   "conditional_else_branch",
+   "kw_else_ae050f5b"
+  ],
+  "conditional_expression": [
+   "attribute_instance",
+   "colon",
+   "cond_predicate",
+   "expression",
+   "question"
+  ],
+  "conditional_generate_construct": [
+   "case_generate_construct",
+   "if_generate_construct"
+  ],
+  "conditional_statement": [
+   "cond_predicate",
+   "conditional_else_clause",
+   "kw_if_958f57f5",
+   "lparen",
+   "rparen",
+   "statement_or_null",
+   "unique_priority"
+  ],
+  "config_declaration": [
+   "colon",
+   "config_identifier",
+   "config_rule_statement",
+   "design_statement",
+   "kw_config_dfba7aad",
+   "kw_endconfig_3fd27f95",
+   "local_parameter_declaration",
+   "semi"
+  ],
+  "config_identifier": [
+   "declaration_identifier"
+  ],
+  "config_rule_statement": [
+   "cell_clause",
+   "default_clause",
+   "inst_clause",
+   "liblist_clause",
+   "semi",
+   "use_clause"
+  ],
+  "consecutive_repetition": [
+   "const_or_range_expression",
+   "lbrack",
+   "plus",
+   "rbrack",
+   "star"
+  ],
+  "const_identifier": [
+   "non_keyword_identifier"
+  ],
+  "const_or_range_expression": [
+   "constant_expression",
+   "cycle_delay_const_range_expression"
+  ],
+  "constant_assignment_pattern_expression": [
+   "assignment_pattern_expression"
+  ],
+  "constant_bit_select": [
+   "constant_expression",
+   "lbrack",
+   "rbrack"
+  ],
+  "constant_cast": [
+   "casting_type",
+   "constant_expression",
+   "lparen",
+   "rparen",
+   "tick"
+  ],
+  "constant_concatenation": [
+   "comma",
+   "constant_expression",
+   "lbrace",
+   "rbrace"
+  ],
+  "constant_expression": [
+   "attribute_instance",
+   "binary_operator",
+   "colon",
+   "constant_expression",
+   "constant_expression_operand",
+   "question"
+  ],
+  "constant_expression_operand": [
+   "attribute_instance",
+   "constant_primary",
+   "unary_operator"
+  ],
+  "constant_function_call": [
+   "call_primary",
+   "kw_std_55ec981f",
+   "randomize_call",
+   "scope_resolution"
+  ],
+  "constant_indexed_range": [
+   "colon",
+   "constant_expression",
+   "minus",
+   "plus"
+  ],
+  "constant_let_expression": [
+   "let_expression"
+  ],
+  "constant_mintypmax_expression": [
+   "colon",
+   "constant_expression"
+  ],
+  "constant_multiple_concatenation": [
+   "constant_concatenation",
+   "constant_expression",
+   "lbrace",
+   "rbrace"
+  ],
+  "constant_param_expression": [
+   "constant_mintypmax_expression",
+   "data_type",
+   "kw_dollar"
+  ],
+  "constant_part_select_range": [
+   "constant_indexed_range",
+   "constant_range"
+  ],
+  "constant_primary": [
+   "constant_primary_sv_2017",
+   "constant_primary_sv_2023"
+  ],
+  "constant_primary_sv_2017": [
+   "constant_assignment_pattern_expression",
+   "constant_cast",
+   "constant_concatenation",
+   "constant_function_call",
+   "constant_let_expression",
+   "constant_mintypmax_expression",
+   "constant_multiple_concatenation",
+   "constant_range_expression",
+   "constant_select",
+   "enum_id_scope_prefix",
+   "enum_identifier",
+   "formal_port_identifier",
+   "genvar_identifier",
+   "kw_null_2be88ca4",
+   "lbrack",
+   "lparen",
+   "primary_literal",
+   "ps_parameter_identifier",
+   "rbrack",
+   "rparen",
+   "specparam_identifier",
+   "type_reference"
+  ],
+  "constant_primary_sv_2023": [
+   "constant_assignment_pattern_expression",
+   "constant_cast",
+   "constant_concatenation",
+   "constant_function_call",
+   "constant_let_expression",
+   "constant_mintypmax_expression",
+   "constant_multiple_concatenation",
+   "constant_range_expression",
+   "constant_select",
+   "empty_unpacked_array_concatenation",
+   "enum_id_scope_prefix",
+   "enum_identifier",
+   "formal_port_identifier",
+   "genvar_identifier",
+   "kw_null_2be88ca4",
+   "lbrack",
+   "lparen",
+   "primary_literal",
+   "ps_parameter_identifier",
+   "rbrack",
+   "rparen",
+   "specparam_identifier",
+   "type_reference"
+  ],
+  "constant_range": [
+   "colon",
+   "constant_expression"
+  ],
+  "constant_range_expression": [
+   "constant_expression",
+   "constant_part_select_range"
+  ],
+  "constant_select": [
+   "constant_bit_select",
+   "constant_select_tail",
+   "dot",
+   "member_identifier"
+  ],
+  "constant_select_tail": [
+   "constant_bit_select",
+   "constant_part_select_range",
+   "lbrack",
+   "rbrack"
+  ],
+  "constraint_block": [
+   "constraint_block_item",
+   "lbrace",
+   "rbrace"
+  ],
+  "constraint_block_item": [
+   "constraint_expression",
+   "kw_before_51de2b83",
+   "kw_solve_f544e4c9",
+   "semi",
+   "solve_before_list"
+  ],
+  "constraint_declaration": [
+   "constraint_declaration_sv_2017",
+   "constraint_declaration_sv_2023"
+  ],
+  "constraint_declaration_sv_2017": [
+   "constraint_block",
+   "constraint_identifier",
+   "kw_constraint_9f454fd4",
+   "kw_static_a381562a"
+  ],
+  "constraint_declaration_sv_2023": [
+   "constraint_block",
+   "constraint_identifier",
+   "dynamic_override_specifiers",
+   "kw_constraint_9f454fd4",
+   "kw_static_a381562a"
+  ],
+  "constraint_expression": [
+   "constraint_primary",
+   "constraint_set",
+   "expression",
+   "expression_or_dist",
+   "implies",
+   "kw_disable_ccf09e2d",
+   "kw_else_ae050f5b",
+   "kw_foreach_4d3e8614",
+   "kw_if_958f57f5",
+   "kw_soft_eb74f2cb",
+   "lbrack",
+   "loop_variables",
+   "lparen",
+   "ps_or_hierarchical_array_identifier",
+   "rbrack",
+   "rparen",
+   "semi",
+   "uniqueness_constraint"
+  ],
+  "constraint_identifier": [
+   "non_keyword_identifier"
+  ],
+  "constraint_primary": [
+   "constraint_primary_sv_2017",
+   "constraint_primary_sv_2023"
+  ],
+  "constraint_primary_sv_2017": [
+   "class_scope",
+   "dot",
+   "hierarchical_identifier",
+   "implicit_class_handle",
+   "select"
+  ],
+  "constraint_primary_sv_2023": [
+   "class_scope",
+   "dot",
+   "hierarchical_identifier",
+   "implicit_class_handle",
+   "lparen",
+   "rparen",
+   "select"
+  ],
+  "constraint_prototype": [
+   "constraint_prototype_sv_2017",
+   "constraint_prototype_sv_2023"
+  ],
+  "constraint_prototype_qualifier": [
+   "kw_extern_bf1ee311",
+   "kw_pure_afe003f1"
+  ],
+  "constraint_prototype_sv_2017": [
+   "constraint_identifier",
+   "constraint_prototype_qualifier",
+   "kw_constraint_9f454fd4",
+   "kw_static_a381562a",
+   "semi"
+  ],
+  "constraint_prototype_sv_2023": [
+   "constraint_identifier",
+   "constraint_prototype_qualifier",
+   "dynamic_override_specifiers",
+   "kw_constraint_9f454fd4",
+   "kw_static_a381562a",
+   "semi"
+  ],
+  "constraint_set": [
+   "constraint_expression",
+   "lbrace",
+   "rbrace"
+  ],
+  "context_member_method_call": [
+   "callable_method_call_body",
+   "constant_bit_select",
+   "dot",
+   "method_call_body",
+   "non_keyword_identifier"
+  ],
+  "continuous_assign": [
+   "delay",
+   "delay_control",
+   "drive_strength",
+   "kw_assign_9009b730",
+   "list_of_net_assignments",
+   "list_of_variable_assignments",
+   "semi"
+  ],
+  "controlled_reference_event": [
+   "controlled_timing_check_event"
+  ],
+  "controlled_timing_check_event": [
+   "logical_and3",
+   "specify_terminal_descriptor",
+   "timing_check_condition",
+   "timing_check_event_control"
+  ],
+  "cover_cross": [
+   "colon",
+   "cross_body",
+   "cross_identifier",
+   "expression",
+   "kw_cross_ac4280ba",
+   "kw_iff_ee1c009e",
+   "list_of_cross_items",
+   "lparen",
+   "rparen"
+  ],
+  "cover_point": [
+   "bins_or_empty",
+   "colon",
+   "cover_point_identifier",
+   "data_type_or_implicit",
+   "expression",
+   "kw_coverpoint_fc1cae9d",
+   "kw_iff_ee1c009e",
+   "lparen",
+   "rparen"
+  ],
+  "cover_point_identifier": [
+   "non_keyword_identifier"
+  ],
+  "cover_property_statement": [
+   "kw_cover_a28100fa",
+   "kw_property_269fe373",
+   "lparen",
+   "property_spec",
+   "rparen",
+   "statement_or_null"
+  ],
+  "cover_sequence_statement": [
+   "clocking_event",
+   "expression_or_dist",
+   "kw_cover_a28100fa",
+   "kw_disable_ccf09e2d",
+   "kw_iff_ee1c009e",
+   "kw_sequence_92504616",
+   "lparen",
+   "rparen",
+   "sequence_expr",
+   "statement_or_null"
+  ],
+  "coverage_event": [
+   "at_sign",
+   "block_event_expression",
+   "clocking_event",
+   "kw_function_c218e39e",
+   "kw_sample_8151325d",
+   "kw_with_8fcd25a3",
+   "lparen",
+   "rparen",
+   "tf_port_list"
+  ],
+  "coverage_option": [
+   "assign",
+   "constant_expression",
+   "dot",
+   "expression",
+   "kw_option_14eb14ec",
+   "kw_type_option_730ad061",
+   "member_identifier"
+  ],
+  "coverage_spec": [
+   "cover_cross",
+   "cover_point"
+  ],
+  "coverage_spec_or_option": [
+   "attribute_instance",
+   "coverage_option",
+   "coverage_spec",
+   "semi"
+  ],
+  "covergroup_declaration": [
+   "covergroup_declaration_sv_2017",
+   "covergroup_declaration_sv_2023"
+  ],
+  "covergroup_declaration_sv_2017": [
+   "colon",
+   "coverage_event",
+   "coverage_spec_or_option",
+   "covergroup_identifier",
+   "declared_covergroup_identifier",
+   "kw_covergroup_80dfc68d",
+   "kw_endgroup_33b6723a",
+   "lparen",
+   "rparen",
+   "semi",
+   "tf_port_list"
+  ],
+  "covergroup_declaration_sv_2023": [
+   "colon",
+   "coverage_event",
+   "coverage_spec_or_option",
+   "covergroup_identifier",
+   "declared_covergroup_identifier",
+   "kw_covergroup_80dfc68d",
+   "kw_endgroup_33b6723a",
+   "kw_extends_2b781ff8",
+   "lparen",
+   "rparen",
+   "semi",
+   "tf_port_list"
+  ],
+  "covergroup_expression": [
+   "expression"
+  ],
+  "covergroup_identifier": [
+   "declaration_identifier"
+  ],
+  "covergroup_range_list": [
+   "comma",
+   "covergroup_value_range"
+  ],
+  "covergroup_value_range": [
+   "covergroup_value_range_sv_2017",
+   "covergroup_value_range_sv_2023"
+  ],
+  "covergroup_value_range_sv_2017": [
+   "colon",
+   "covergroup_expression",
+   "lbrack",
+   "rbrack"
+  ],
+  "covergroup_value_range_sv_2023": [
+   "colon",
+   "covergroup_expression",
+   "kw_dollar",
+   "lbrack",
+   "minus",
+   "plus",
+   "rbrack",
+   "slash"
+  ],
+  "cross_body": [
+   "cross_body_sv_2017",
+   "cross_body_sv_2023"
+  ],
+  "cross_body_item": [
+   "cross_body_item_sv_2017",
+   "cross_body_item_sv_2023"
+  ],
+  "cross_body_item_sv_2017": [
+   "bins_selection_or_option",
+   "function_declaration",
+   "semi"
+  ],
+  "cross_body_item_sv_2023": [
+   "bins_selection_or_option",
+   "function_declaration",
+   "semi"
+  ],
+  "cross_body_sv_2017": [
+   "cross_body_item",
+   "lbrace",
+   "rbrace",
+   "semi"
+  ],
+  "cross_body_sv_2023": [
+   "cross_body_item",
+   "lbrace",
+   "rbrace",
+   "semi"
+  ],
+  "cross_identifier": [
+   "non_keyword_identifier"
+  ],
+  "cross_item": [
+   "cover_point_identifier",
+   "variable_identifier"
+  ],
+  "cross_set_expression": [
+   "covergroup_expression"
+  ],
+  "current_state": [
+   "level_symbol"
+  ],
+  "cycle_delay": [
+   "expression",
+   "integral_number",
+   "kw_token_93ac8946",
+   "lparen",
+   "non_keyword_identifier",
+   "rparen"
+  ],
+  "cycle_delay_const_range_expression": [
+   "colon",
+   "constant_expression",
+   "kw_dollar"
+  ],
+  "cycle_delay_range": [
+   "constant_primary",
+   "cycle_delay_const_range_expression",
+   "kw_token_93ac8946",
+   "lbrack",
+   "plus",
+   "rbrack",
+   "star"
+  ],
+  "data_declaration": [
+   "data_declaration_sv_2017",
+   "data_declaration_sv_2023"
+  ],
+  "data_declaration_sv_2017": [
+   "data_type_or_implicit",
+   "kw_const_b42f3f6f",
+   "kw_var_e5b4e786",
+   "lifetime",
+   "list_of_variable_decl_assignments",
+   "net_type_declaration",
+   "package_import_declaration",
+   "semi",
+   "type_declaration"
+  ],
+  "data_declaration_sv_2023": [
+   "data_type_or_implicit",
+   "kw_const_b42f3f6f",
+   "kw_var_e5b4e786",
+   "lifetime",
+   "list_of_variable_decl_assignments",
+   "nettype_declaration",
+   "package_import_declaration",
+   "semi",
+   "type_declaration"
+  ],
+  "data_event": [
+   "timing_check_event"
+  ],
+  "data_source_expression": [
+   "expression"
+  ],
+  "data_type": [
+   "class_type",
+   "comma",
+   "dot",
+   "enum_base_type",
+   "enum_name_declaration",
+   "integer_atom_type",
+   "integer_vector_type",
+   "interface_identifier",
+   "known_unscoped_block_class_type",
+   "known_unscoped_data_type_identifier",
+   "kw_chandle_34401c13",
+   "kw_enum_e338e8e3",
+   "kw_event_5006ed02",
+   "kw_interface_5ea2d81a",
+   "kw_packed_7aca22de",
+   "kw_string_ecb25204",
+   "kw_virtual_af84d91f",
+   "lbrace",
+   "modport_identifier",
+   "non_integer_type",
+   "packed_dimension",
+   "parameter_value_assignment",
+   "ps_covergroup_identifier",
+   "rbrace",
+   "scoped_data_type_identifier",
+   "signing",
+   "struct_union",
+   "struct_union_member",
+   "type_reference"
+  ],
+  "data_type_or_implicit": [
+   "data_type",
+   "implicit_data_type"
+  ],
+  "data_type_or_incomplete_class_scoped_type": [
+   "data_type_or_incomplete_class_scoped_type_sv_2023"
+  ],
+  "data_type_or_incomplete_class_scoped_type_sv_2023": [
+   "data_type",
+   "incomplete_class_scoped_type"
+  ],
+  "data_type_or_void": [
+   "data_type",
+   "data_type_or_void_sv_only"
+  ],
+  "data_type_or_void_sv_only": [
+   "kw_void_e9cede9b"
+  ],
+  "declaration_identifier": [
+   "non_keyword_identifier"
+  ],
+  "declared_checker_identifier": [
+   "checker_identifier"
+  ],
+  "declared_class_alias_identifier": [
+   "type_identifier"
+  ],
+  "declared_class_identifier": [
+   "class_identifier"
+  ],
+  "declared_covergroup_identifier": [
+   "covergroup_identifier"
+  ],
+  "declared_forward_class_identifier": [
+   "type_identifier"
+  ],
+  "declared_forward_interface_class_identifier": [
+   "type_identifier"
+  ],
+  "declared_interface_class_identifier": [
+   "class_identifier"
+  ],
+  "declared_let_identifier": [
+   "let_identifier"
+  ],
+  "declared_nettype_identifier": [
+   "declaration_identifier"
+  ],
+  "declared_package_identifier": [
+   "package_identifier"
+  ],
+  "declared_parameter_identifier": [
+   "parameter_identifier"
+  ],
+  "declared_property_identifier": [
+   "property_identifier"
+  ],
+  "declared_sequence_identifier": [
+   "sequence_identifier"
+  ],
+  "declared_type_identifier": [
+   "type_identifier"
+  ],
+  "declared_type_parameter_identifier": [
+   "type_identifier"
+  ],
+  "default_clause": [
+   "kw_default_7505d64a"
+  ],
+  "default_skew": [
+   "clocking_skew",
+   "kw_input_140f86aa",
+   "kw_output_1029d676"
+  ],
+  "deferred_immediate_assert_statement": [
+   "action_block",
+   "expression",
+   "hash",
+   "kw_assert_64b5daad",
+   "kw_final_d594c2cc",
+   "kw_n_0_b6589fc6",
+   "lparen",
+   "rparen"
+  ],
+  "deferred_immediate_assertion_item": [
+   "block_identifier",
+   "colon",
+   "deferred_immediate_assertion_statement"
+  ],
+  "deferred_immediate_assertion_statement": [
+   "deferred_immediate_assert_statement",
+   "deferred_immediate_assume_statement",
+   "deferred_immediate_cover_statement"
+  ],
+  "deferred_immediate_assume_statement": [
+   "action_block",
+   "expression",
+   "hash",
+   "kw_assume_661e458e",
+   "kw_final_d594c2cc",
+   "kw_n_0_b6589fc6",
+   "lparen",
+   "rparen"
+  ],
+  "deferred_immediate_cover_statement": [
+   "expression",
+   "hash",
+   "kw_cover_a28100fa",
+   "kw_final_d594c2cc",
+   "kw_n_0_b6589fc6",
+   "lparen",
+   "rparen",
+   "statement_or_null"
+  ],
+  "defparam_assignment": [
+   "assign",
+   "constant_mintypmax_expression",
+   "hierarchical_parameter_identifier"
+  ],
+  "delay": [
+   "delay_sv_2017",
+   "delay_sv_2023"
+  ],
+  "delay_control": [
+   "delay_value",
+   "hash",
+   "lparen",
+   "mintypmax_expression",
+   "rparen"
+  ],
+  "delay_or_event_control": [
+   "delay_control",
+   "event_control",
+   "expression",
+   "kw_repeat_c0ac4842",
+   "lparen",
+   "rparen"
+  ],
+  "delay_sv_2017": [
+   "comma",
+   "delay_value",
+   "hash",
+   "lparen",
+   "mintypmax_expression",
+   "rparen"
+  ],
+  "delay_sv_2023": [
+   "comma",
+   "delay_value",
+   "hash",
+   "lparen",
+   "mintypmax_expression",
+   "rparen"
+  ],
+  "delay_value": [
+   "delay_value_sv_only",
+   "ps_identifier",
+   "real_number",
+   "unsigned_number"
+  ],
+  "delay_value_sv_only": [
+   "kw_n_1step_e6d37e7c",
+   "time_literal"
+  ],
+  "delayed_data": [
+   "constant_mintypmax_expression",
+   "terminal_identifier"
+  ],
+  "delayed_reference": [
+   "constant_mintypmax_expression",
+   "terminal_identifier"
+  ],
+  "description": [
+   "attribute_instance",
+   "bind_directive",
+   "config_declaration",
+   "description_unit_item_sv_only",
+   "interface_declaration",
+   "module_declaration",
+   "package_declaration",
+   "program_declaration",
+   "udp_declaration"
+  ],
+  "description_unit_item_sv_only": [
+   "attribute_instance",
+   "package_item"
+  ],
+  "design_statement": [
+   "cell_identifier",
+   "dot",
+   "kw_design_056f1182",
+   "library_identifier",
+   "semi"
+  ],
+  "direct_callable_method_call": [
+   "callable_method_call_body",
+   "dot",
+   "method_call_root"
+  ],
+  "direct_method_call": [
+   "dot",
+   "method_call_body",
+   "method_call_root"
+  ],
+  "disable_statement": [
+   "hierarchical_block_identifier",
+   "hierarchical_task_identifier",
+   "kw_disable_ccf09e2d",
+   "kw_fork_3f673f2a",
+   "semi"
+  ],
+  "dist_item": [
+   "dist_item_sv_2017",
+   "dist_item_sv_2023"
+  ],
+  "dist_item_sv_2017": [
+   "dist_weight",
+   "value_range"
+  ],
+  "dist_item_sv_2023": [
+   "colon",
+   "dist_weight",
+   "expression",
+   "kw_default_7505d64a",
+   "slash",
+   "value_range"
+  ],
+  "dist_list": [
+   "comma",
+   "dist_item"
+  ],
+  "dist_weight": [
+   "assign",
+   "colon",
+   "expression",
+   "slash"
+  ],
+  "dot": [
+   "trivia"
+  ],
+  "dot_star": [
+   "trivia"
+  ],
+  "dpi_function_import_property": [
+   "kw_context_ec2727b3",
+   "kw_pure_afe003f1"
+  ],
+  "dpi_function_proto": [
+   "function_prototype"
+  ],
+  "dpi_import_export": [
+   "assign",
+   "c_identifier",
+   "dpi_function_import_property",
+   "dpi_function_proto",
+   "dpi_spec_string",
+   "dpi_task_import_property",
+   "dpi_task_proto",
+   "function_identifier",
+   "kw_export_51713409",
+   "kw_function_c218e39e",
+   "kw_import_62fdfbd5",
+   "kw_task_7fbb727d",
+   "semi",
+   "task_identifier"
+  ],
+  "dpi_spec_string": [
+   "trivia"
+  ],
+  "dpi_task_import_property": [
+   "kw_context_ec2727b3"
+  ],
+  "dpi_task_proto": [
+   "task_prototype"
+  ],
+  "drive_strength": [
+   "comma",
+   "kw_highz0",
+   "kw_highz1",
+   "lparen",
+   "rparen",
+   "strength0",
+   "strength1"
+  ],
+  "dynamic_array_new": [
+   "expression",
+   "kw_new_c2a6b03f",
+   "lbrack",
+   "lparen",
+   "rbrack",
+   "rparen"
+  ],
+  "dynamic_array_variable_identifier": [
+   "variable_identifier"
+  ],
+  "dynamic_override_specifiers": [
+   "dynamic_override_specifiers_sv_2023"
+  ],
+  "dynamic_override_specifiers_sv_2023": [
+   "final_specifier",
+   "initial_or_extends_specifier"
+  ],
+  "edge_control_specifier": [
+   "comma",
+   "edge_descriptor",
+   "kw_edge_a0f2c69a"
+  ],
+  "edge_descriptor": [
+   "kw_n_01_ddfe1633",
+   "kw_n_10_b1d57811",
+   "z_or_x",
+   "zero_or_one"
+  ],
+  "edge_identifier": [
+   "kw_edge_a0f2c69a",
+   "kw_negedge_c77fbc5c",
+   "kw_posedge_7529558b"
+  ],
+  "edge_indicator": [
+   "edge_symbol",
+   "level_symbol",
+   "lparen",
+   "rparen"
+  ],
+  "edge_input_list": [
+   "edge_indicator",
+   "level_symbol"
+  ],
+  "edge_sensitive_path_declaration": [
+   "assign",
+   "full_edge_sensitive_path_description",
+   "parallel_edge_sensitive_path_description",
+   "path_delay_value"
+  ],
+  "edge_symbol": [
+   "kw_F_e69f20e9",
+   "kw_N_b51a6073",
+   "kw_P_511993d3",
+   "kw_R_06576556",
+   "kw_f_4a0a1921",
+   "kw_n_d1854cae",
+   "kw_p_516b9783",
+   "kw_r_4dc7c9ec",
+   "star"
+  ],
+  "elaboration_severity_system_task": [
+   "elaboration_severity_system_task_sv_2023"
+  ],
+  "elaboration_severity_system_task_sv_2023": [
+   "severity_system_task"
+  ],
+  "elaboration_system_task": [
+   "elaboration_system_task_sv_2017"
+  ],
+  "elaboration_system_task_sv_2017": [
+   "comma",
+   "finish_number",
+   "kw_sv_dollar_error_d304cf0a",
+   "kw_sv_dollar_fatal_ecc3c9fd",
+   "kw_sv_dollar_info_d116cb1c",
+   "kw_sv_dollar_warning_22a41474",
+   "list_of_arguments",
+   "lparen",
+   "rparen",
+   "semi"
+  ],
+  "empty_unpacked_array_concatenation": [
+   "lbrace",
+   "rbrace"
+  ],
+  "enable_gate_instance": [
+   "comma",
+   "enable_terminal",
+   "input_terminal",
+   "lparen",
+   "name_of_instance",
+   "output_terminal",
+   "rparen"
+  ],
+  "enable_gatetype": [
+   "kw_bufif0_e58d9bd3",
+   "kw_bufif1_a2b83a3e",
+   "kw_notif0_2c8df148",
+   "kw_notif1_245fe7ea"
+  ],
+  "enable_terminal": [
+   "expression"
+  ],
+  "end_edge_offset": [
+   "mintypmax_expression"
+  ],
+  "enum_base_type": [
+   "integer_atom_type",
+   "integer_vector_type",
+   "packed_dimension",
+   "signing",
+   "type_identifier"
+  ],
+  "enum_id_scope_prefix": [
+   "class_scope",
+   "non_typedef_package_scope"
+  ],
+  "enum_identifier": [
+   "declaration_identifier"
+  ],
+  "enum_name_declaration": [
+   "assign",
+   "colon",
+   "constant_expression",
+   "enum_identifier",
+   "integral_number",
+   "lbrack",
+   "rbrack"
+  ],
+  "equal": [
+   "trivia"
+  ],
+  "error_limit_value": [
+   "limit_value"
+  ],
+  "escaped_identifier": [
+   "trivia"
+  ],
+  "event_based_flag": [
+   "constant_expression"
+  ],
+  "event_control": [
+   "event_control_sv_2017",
+   "event_control_sv_2023"
+  ],
+  "event_control_sv_2017": [
+   "at_sign",
+   "attr_open",
+   "event_expression",
+   "hierarchical_event_identifier",
+   "lparen",
+   "ps_or_hierarchical_sequence_identifier",
+   "rparen",
+   "star"
+  ],
+  "event_control_sv_2023": [
+   "at_sign",
+   "clocking_event",
+   "lparen",
+   "rparen",
+   "star"
+  ],
+  "event_expression": [
+   "comma",
+   "event_expression_primary",
+   "kw_or_1758356d"
+  ],
+  "event_expression_primary": [
+   "edge_identifier",
+   "event_expression",
+   "expression",
+   "kw_iff_ee1c009e",
+   "lparen",
+   "rparen",
+   "sequence_instance"
+  ],
+  "event_trigger": [
+   "event_trigger_sv_2017",
+   "event_trigger_sv_2023",
+   "event_trigger_verilog_2005"
+  ],
+  "event_trigger_sv_2017": [
+   "delay_or_event_control",
+   "hierarchical_event_identifier",
+   "implies",
+   "nonblocking_implies",
+   "semi"
+  ],
+  "event_trigger_sv_2023": [
+   "delay_or_event_control",
+   "hierarchical_event_identifier",
+   "implies",
+   "nonblocking_implies",
+   "nonrange_select",
+   "semi"
+  ],
+  "event_trigger_verilog_2005": [
+   "bit_select",
+   "hierarchical_event_identifier",
+   "implies",
+   "semi"
+  ],
+  "expect_property_statement": [
+   "action_block",
+   "kw_expect_ff93c451",
+   "lparen",
+   "property_spec",
+   "rparen"
+  ],
+  "expression": [
+   "conditional_expression",
+   "expression_base",
+   "inside_expression"
+  ],
+  "expression_base": [
+   "attribute_instance",
+   "binary_operator",
+   "expression_operand",
+   "lparen",
+   "operator_assignment",
+   "rparen",
+   "tagged_union_expression"
+  ],
+  "expression_operand": [
+   "attribute_instance",
+   "inc_or_dec_expression",
+   "primary",
+   "unary_operator"
+  ],
+  "expression_or_cond_pattern": [
+   "cond_pattern",
+   "expression_base",
+   "inside_expression"
+  ],
+  "expression_or_dist": [
+   "dist_list",
+   "expression",
+   "kw_dist_02450072",
+   "lbrace",
+   "rbrace"
+  ],
+  "extern_constraint_declaration": [
+   "extern_constraint_declaration_sv_2017",
+   "extern_constraint_declaration_sv_2023"
+  ],
+  "extern_constraint_declaration_sv_2017": [
+   "class_scope",
+   "constraint_block",
+   "constraint_identifier",
+   "kw_constraint_9f454fd4",
+   "kw_static_a381562a"
+  ],
+  "extern_constraint_declaration_sv_2023": [
+   "class_scope",
+   "constraint_block",
+   "constraint_identifier",
+   "dynamic_override_specifiers",
+   "kw_constraint_9f454fd4",
+   "kw_static_a381562a"
+  ],
+  "extern_tf_declaration": [
+   "kw_extern_bf1ee311",
+   "kw_forkjoin_91d67e81",
+   "method_prototype",
+   "semi",
+   "task_prototype"
+  ],
+  "final_construct": [
+   "function_statement",
+   "kw_final_d594c2cc"
+  ],
+  "final_specifier": [
+   "final_specifier_sv_2023"
+  ],
+  "final_specifier_sv_2023": [
+   "colon",
+   "kw_final_d594c2cc"
+  ],
+  "finish_number": [
+   "kw_n_0_b6589fc6",
+   "kw_n_1_356a192b",
+   "kw_n_2_da4b9237"
+  ],
+  "for_initialization": [
+   "comma",
+   "for_variable_declaration",
+   "list_of_variable_assignments"
+  ],
+  "for_step": [
+   "comma",
+   "for_step_assignment"
+  ],
+  "for_step_assignment": [
+   "function_subroutine_call",
+   "inc_or_dec_expression",
+   "operator_assignment"
+  ],
+  "for_variable_declaration": [
+   "assign",
+   "comma",
+   "data_type",
+   "expression",
+   "kw_var_e5b4e786",
+   "variable_identifier"
+  ],
+  "formal_port_identifier": [
+   "declaration_identifier"
+  ],
+  "forward_type": [
+   "forward_type_sv_2023"
+  ],
+  "forward_type_keyword": [
+   "kw_enum_e338e8e3",
+   "kw_struct_d118e5a3",
+   "kw_union_67ad5a07"
+  ],
+  "forward_type_sv_2023": [
+   "kw_class_8d767bf5",
+   "kw_enum_e338e8e3",
+   "kw_interface_5ea2d81a",
+   "kw_struct_d118e5a3",
+   "kw_union_67ad5a07"
+  ],
+  "full_edge_sensitive_path_description": [
+   "full_edge_sensitive_path_description_sv_2017",
+   "full_edge_sensitive_path_description_sv_2023"
+  ],
+  "full_edge_sensitive_path_description_sv_2017": [
+   "colon",
+   "data_source_expression",
+   "edge_identifier",
+   "full_path_arrow",
+   "list_of_path_inputs",
+   "list_of_path_outputs",
+   "lparen",
+   "polarity_operator",
+   "rparen"
+  ],
+  "full_edge_sensitive_path_description_sv_2023": [
+   "colon",
+   "data_source_expression",
+   "edge_identifier",
+   "full_path_arrow",
+   "list_of_path_inputs",
+   "list_of_path_outputs",
+   "lparen",
+   "polarity_operator",
+   "rparen"
+  ],
+  "full_path_arrow": [
+   "trivia"
+  ],
+  "full_path_description": [
+   "full_path_arrow",
+   "list_of_path_inputs",
+   "list_of_path_outputs",
+   "lparen",
+   "polarity_operator",
+   "rparen"
+  ],
+  "function_body_declaration": [
+   "block_item_declaration",
+   "class_scope",
+   "colon",
+   "dot",
+   "function_data_type_or_implicit",
+   "function_identifier",
+   "function_statement_or_null",
+   "interface_identifier",
+   "kw_endfunction_84b8f967",
+   "lparen",
+   "rparen",
+   "semi",
+   "tf_item_declaration",
+   "tf_port_list"
+  ],
+  "function_data_type_or_implicit": [
+   "data_type_or_void",
+   "implicit_data_type"
+  ],
+  "function_declaration": [
+   "function_declaration_sv_2017",
+   "function_declaration_sv_2023"
+  ],
+  "function_declaration_sv_2017": [
+   "function_body_declaration",
+   "kw_function_c218e39e",
+   "lifetime"
+  ],
+  "function_declaration_sv_2023": [
+   "dynamic_override_specifiers",
+   "function_body_declaration",
+   "kw_function_c218e39e",
+   "lifetime"
+  ],
+  "function_identifier": [
+   "declaration_identifier"
+  ],
+  "function_prototype": [
+   "function_prototype_sv_2017",
+   "function_prototype_sv_2023"
+  ],
+  "function_prototype_sv_2017": [
+   "data_type_or_void",
+   "function_identifier",
+   "kw_function_c218e39e",
+   "lparen",
+   "rparen",
+   "tf_port_list"
+  ],
+  "function_prototype_sv_2023": [
+   "data_type_or_void",
+   "dynamic_override_specifiers",
+   "function_identifier",
+   "kw_function_c218e39e",
+   "lparen",
+   "rparen",
+   "tf_port_list"
+  ],
+  "function_statement": [
+   "statement"
+  ],
+  "function_statement_or_null": [
+   "attribute_instance",
+   "function_statement",
+   "semi"
+  ],
+  "function_subroutine_call": [
+   "call_primary",
+   "kw_std_55ec981f",
+   "randomize_call",
+   "scope_resolution"
+  ],
+  "gate_instantiation": [
+   "gate_instantiation_sv_2017",
+   "gate_instantiation_sv_2023"
+  ],
+  "gate_instantiation_sv_2017": [
+   "cmos_switch_instance",
+   "cmos_switchtype",
+   "comma",
+   "delay",
+   "drive_strength",
+   "enable_gate_instance",
+   "enable_gatetype",
+   "kw_pulldown_20560243",
+   "kw_pullup_f7402b53",
+   "mos_switch_instance",
+   "mos_switchtype",
+   "n_input_gate_instance",
+   "n_input_gatetype",
+   "n_output_gate_instance",
+   "n_output_gatetype",
+   "pass_en_switchtype",
+   "pass_enable_switch_instance",
+   "pass_switch_instance",
+   "pass_switchtype",
+   "pull_gate_instance",
+   "pulldown_strength",
+   "pullup_strength",
+   "semi"
+  ],
+  "gate_instantiation_sv_2023": [
+   "cmos_switch_instance",
+   "cmos_switchtype",
+   "comma",
+   "delay",
+   "drive_strength",
+   "enable_gate_instance",
+   "enable_gatetype",
+   "kw_pulldown_20560243",
+   "kw_pullup_f7402b53",
+   "mos_switch_instance",
+   "mos_switchtype",
+   "n_input_gate_instance",
+   "n_input_gatetype",
+   "n_output_gate_instance",
+   "n_output_gatetype",
+   "pass_en_switchtype",
+   "pass_enable_switch_instance",
+   "pass_switch_instance",
+   "pass_switchtype",
+   "pull_gate_instance",
+   "pulldown_strength",
+   "pullup_strength",
+   "semi"
+  ],
+  "generate_block": [
+   "colon",
+   "generate_block_identifier",
+   "generate_item",
+   "kw_begin_8cbd0a74",
+   "kw_end_7a92f3d2"
+  ],
+  "generate_block_identifier": [
+   "non_keyword_identifier"
+  ],
+  "generate_item": [
+   "checker_or_generate_item",
+   "interface_or_generate_item",
+   "module_or_generate_item"
+  ],
+  "generate_region": [
+   "generate_item",
+   "kw_endgenerate_efb1f00a",
+   "kw_generate_9e59d425"
+  ],
+  "genvar_declaration": [
+   "kw_genvar_9cb2eb8a",
+   "list_of_genvar_identifiers",
+   "semi"
+  ],
+  "genvar_expression": [
+   "constant_expression"
+  ],
+  "genvar_identifier": [
+   "non_keyword_identifier"
+  ],
+  "genvar_initialization": [
+   "assign",
+   "constant_expression",
+   "genvar_identifier",
+   "kw_genvar_9cb2eb8a"
+  ],
+  "genvar_iteration": [
+   "assignment_operator",
+   "genvar_expression",
+   "genvar_identifier",
+   "inc_or_dec_operator"
+  ],
+  "goto_repetition": [
+   "const_or_range_expression",
+   "implies",
+   "lbrack",
+   "rbrack"
+  ],
+  "greater_equal": [
+   "trivia"
+  ],
+  "greater_than": [
+   "trivia"
+  ],
+  "hash": [
+   "trivia"
+  ],
+  "hierarchical_array_identifier": [
+   "hierarchical_identifier"
+  ],
+  "hierarchical_block_identifier": [
+   "hierarchical_identifier"
+  ],
+  "hierarchical_btf_identifier": [
+   "class_scope",
+   "dot",
+   "hierarchical_block_identifier",
+   "hierarchical_identifier",
+   "hierarchical_tf_identifier",
+   "method_identifier"
+  ],
+  "hierarchical_event_identifier": [
+   "hierarchical_identifier"
+  ],
+  "hierarchical_identifier": [
+   "constant_bit_select",
+   "dot",
+   "hierarchical_root_prefix_sv_only",
+   "non_keyword_identifier"
+  ],
+  "hierarchical_instance": [
+   "list_of_port_connections",
+   "lparen",
+   "name_of_instance",
+   "rparen"
+  ],
+  "hierarchical_net_identifier": [
+   "hierarchical_identifier"
+  ],
+  "hierarchical_parameter_identifier": [
+   "hierarchical_identifier"
+  ],
+  "hierarchical_property_identifier": [
+   "hierarchical_identifier"
+  ],
+  "hierarchical_root_prefix_sv_only": [
+   "dot",
+   "kw_sv_dollar_root_f65f0e67"
+  ],
+  "hierarchical_sequence_identifier": [
+   "hierarchical_identifier"
+  ],
+  "hierarchical_task_identifier": [
+   "hierarchical_identifier"
+  ],
+  "hierarchical_tf_identifier": [
+   "callable_identifier",
+   "constant_bit_select",
+   "dot",
+   "hierarchical_root_prefix_sv_only",
+   "non_keyword_identifier"
+  ],
+  "hierarchical_variable_identifier": [
+   "hierarchical_identifier"
+  ],
+  "identifier": [
+   "escaped_identifier",
+   "simple_identifier"
+  ],
+  "identifier_list": [
+   "comma",
+   "non_keyword_identifier"
+  ],
+  "identifier_rooted_method_chain": [
+   "dot",
+   "method_call_body",
+   "split_direct_callable_method_call"
+  ],
+  "if_generate_construct": [
+   "constant_expression",
+   "generate_block",
+   "if_generate_else_clause",
+   "kw_if_958f57f5",
+   "lparen",
+   "rparen"
+  ],
+  "if_generate_else_clause": [
+   "generate_block",
+   "if_generate_construct",
+   "kw_else_ae050f5b"
+  ],
+  "iff_arrow": [
+   "trivia"
+  ],
+  "immediate_assertion_statement": [
+   "deferred_immediate_assertion_statement",
+   "simple_immediate_assertion_statement"
+  ],
+  "implicit_class_handle": [
+   "dot",
+   "kw_super_8451ba8a",
+   "kw_this_c2543fff"
+  ],
+  "implicit_class_rooted_method_chain": [
+   "callable_method_call_body",
+   "constant_bit_select",
+   "dot",
+   "implicit_class_handle",
+   "method_call_body",
+   "non_keyword_identifier"
+  ],
+  "implicit_data_type": [
+   "packed_dimension",
+   "signing"
+  ],
+  "implies": [
+   "trivia"
+  ],
+  "import_export": [
+   "kw_export_51713409",
+   "kw_import_62fdfbd5"
+  ],
+  "in_scope_compiler_directive": [
+   "in_scope_compiler_directive_sv_only",
+   "trivia"
+  ],
+  "in_scope_compiler_directive_sv_only": [
+   "trivia"
+  ],
+  "inc_or_dec_expression": [
+   "attribute_instance",
+   "inc_or_dec_operator",
+   "variable_lvalue"
+  ],
+  "inc_or_dec_operator": [
+   "minus_minus",
+   "plus_plus"
+  ],
+  "include_statement": [
+   "kw_file_path_spec_c26c9dc9",
+   "kw_include_d3ecb0d8",
+   "semi"
+  ],
+  "incomplete_class_scoped_type": [
+   "incomplete_class_scoped_type_sv_2023"
+  ],
+  "incomplete_class_scoped_type_sv_2023": [
+   "incomplete_class_scoped_type",
+   "scope_resolution",
+   "type_identifier",
+   "type_identifier_or_class_type"
+  ],
+  "index_variable_identifier": [
+   "non_keyword_identifier"
+  ],
+  "indexed_range": [
+   "colon",
+   "constant_expression",
+   "expression",
+   "minus",
+   "plus"
+  ],
+  "init_val": [
+   "kw_n_0_b6589fc6",
+   "kw_n_1_356a192b",
+   "kw_n_1_tick_B0_720c4a9c",
+   "kw_n_1_tick_B1_afad66cc",
+   "kw_n_1_tick_BX_874bf116",
+   "kw_n_1_tick_Bx_0a99de19",
+   "kw_n_1_tick_b0_cc597d72",
+   "kw_n_1_tick_b1_a5c2b78e",
+   "kw_n_1_tick_bX_70a6d618",
+   "kw_n_1_tick_bx_ab9cb068"
+  ],
+  "initial_construct": [
+   "kw_initial_8ad7d21c",
+   "statement_or_null"
+  ],
+  "initial_or_extends_specifier": [
+   "initial_or_extends_specifier_sv_2023"
+  ],
+  "initial_or_extends_specifier_sv_2023": [
+   "colon",
+   "kw_extends_2b781ff8",
+   "kw_initial_8ad7d21c"
+  ],
+  "inout_declaration": [
+   "kw_inout_c900aaa9",
+   "list_of_port_identifiers",
+   "net_port_type"
+  ],
+  "inout_port_identifier": [
+   "non_keyword_identifier"
+  ],
+  "inout_terminal": [
+   "net_lvalue"
+  ],
+  "input_declaration": [
+   "kw_input_140f86aa",
+   "list_of_port_identifiers",
+   "list_of_variable_identifiers",
+   "net_port_type",
+   "variable_port_type"
+  ],
+  "input_identifier": [
+   "dot",
+   "inout_port_identifier",
+   "input_port_identifier",
+   "interface_identifier",
+   "port_identifier"
+  ],
+  "input_port_identifier": [
+   "non_keyword_identifier"
+  ],
+  "input_terminal": [
+   "expression"
+  ],
+  "inside_expression": [
+   "inside_expression_sv_2017",
+   "inside_expression_sv_2023"
+  ],
+  "inside_expression_sv_2017": [
+   "expression_base",
+   "kw_inside_fcc53788",
+   "lbrace",
+   "open_range_list",
+   "rbrace"
+  ],
+  "inside_expression_sv_2023": [
+   "expression_base",
+   "kw_inside_fcc53788",
+   "lbrace",
+   "range_list",
+   "rbrace"
+  ],
+  "inst_clause": [
+   "inst_name",
+   "kw_instance_c3bec6bc"
+  ],
+  "inst_name": [
+   "dot",
+   "instance_identifier",
+   "topmodule_identifier"
+  ],
+  "instance_identifier": [
+   "non_keyword_identifier"
+  ],
+  "instance_or_class_scope": [
+   "class_scope",
+   "dot",
+   "implicit_class_handle"
+  ],
+  "integer_atom_type": [
+   "integer_atom_type_sv_only",
+   "kw_integer_1178cafb",
+   "kw_time_714eea0f"
+  ],
+  "integer_atom_type_sv_only": [
+   "kw_byte_8cf1783f",
+   "kw_int_46f8ab7c",
+   "kw_longint_30bcfc87",
+   "kw_shortint_131a0f0d"
+  ],
+  "integer_covergroup_expression": [
+   "integer_covergroup_expression_sv_2017",
+   "integer_covergroup_expression_sv_2023"
+  ],
+  "integer_covergroup_expression_sv_2017": [
+   "covergroup_expression"
+  ],
+  "integer_covergroup_expression_sv_2023": [
+   "covergroup_expression",
+   "kw_dollar"
+  ],
+  "integer_type": [
+   "integer_atom_type",
+   "integer_vector_type"
+  ],
+  "integer_vector_type": [
+   "integer_vector_type_sv_only",
+   "kw_reg_e06b9586"
+  ],
+  "integer_vector_type_sv_only": [
+   "kw_bit_026e996a",
+   "kw_logic_2c684987"
+  ],
+  "integral_number": [],
+  "interconnect_net_declaration_sv_only": [
+   "comma",
+   "delay_value",
+   "hash",
+   "implicit_data_type",
+   "kw_interconnect_c8ec83f5",
+   "net_identifier",
+   "semi",
+   "unpacked_dimension"
+  ],
+  "interface_ansi_header": [
+   "attribute_instance",
+   "interface_identifier",
+   "kw_interface_5ea2d81a",
+   "lifetime",
+   "list_of_port_declarations",
+   "package_import_declaration",
+   "parameter_port_list",
+   "semi"
+  ],
+  "interface_class_declaration": [
+   "class_identifier",
+   "colon",
+   "comma",
+   "declared_interface_class_identifier",
+   "interface_class_item",
+   "interface_class_type",
+   "kw_class_8d767bf5",
+   "kw_endclass_b43ac277",
+   "kw_extends_2b781ff8",
+   "kw_interface_5ea2d81a",
+   "parameter_port_list",
+   "semi"
+  ],
+  "interface_class_item": [
+   "attribute_instance",
+   "interface_class_method",
+   "local_parameter_declaration",
+   "parameter_declaration",
+   "semi",
+   "type_declaration"
+  ],
+  "interface_class_method": [
+   "kw_pure_afe003f1",
+   "kw_virtual_af84d91f",
+   "method_prototype",
+   "semi"
+  ],
+  "interface_class_type": [
+   "interface_class_type_head",
+   "parameter_value_assignment"
+  ],
+  "interface_class_type_head": [
+   "known_unscoped_interface_class_type_identifier",
+   "scoped_interface_class_type_identifier"
+  ],
+  "interface_declaration": [
+   "interface_declaration_sv_2017",
+   "interface_declaration_sv_2023"
+  ],
+  "interface_declaration_sv_2017": [
+   "attribute_instance",
+   "colon",
+   "dot_star",
+   "interface_ansi_header",
+   "interface_identifier",
+   "interface_item",
+   "interface_nonansi_header",
+   "kw_endinterface_ebd6ca35",
+   "kw_extern_bf1ee311",
+   "kw_interface_5ea2d81a",
+   "lparen",
+   "non_port_interface_item",
+   "rparen",
+   "semi",
+   "timeunits_declaration"
+  ],
+  "interface_declaration_sv_2023": [
+   "attribute_instance",
+   "colon",
+   "dot",
+   "interface_ansi_header",
+   "interface_identifier",
+   "interface_item",
+   "interface_nonansi_header",
+   "kw_endinterface_ebd6ca35",
+   "kw_extern_bf1ee311",
+   "kw_interface_5ea2d81a",
+   "lparen",
+   "non_port_interface_item",
+   "rparen",
+   "semi",
+   "star",
+   "timeunits_declaration"
+  ],
+  "interface_identifier": [
+   "declaration_identifier"
+  ],
+  "interface_identifier_decl": [
+   "interface_identifier",
+   "unpacked_dimension"
+  ],
+  "interface_instance_identifier": [
+   "interface_instance_identifier_sv_2017"
+  ],
+  "interface_instance_identifier_sv_2017": [
+   "non_keyword_identifier"
+  ],
+  "interface_instantiation": [
+   "comma",
+   "hierarchical_instance",
+   "interface_identifier",
+   "parameter_value_assignment",
+   "semi"
+  ],
+  "interface_item": [
+   "non_port_interface_item",
+   "port_declaration",
+   "semi"
+  ],
+  "interface_nonansi_header": [
+   "attribute_instance",
+   "interface_identifier",
+   "kw_interface_5ea2d81a",
+   "lifetime",
+   "list_of_ports",
+   "package_import_declaration",
+   "parameter_port_list",
+   "semi"
+  ],
+  "interface_or_generate_item": [
+   "attribute_instance",
+   "extern_tf_declaration",
+   "module_common_item"
+  ],
+  "interface_port_declaration": [
+   "dot",
+   "interface_identifier",
+   "list_of_interface_identifiers",
+   "modport_identifier"
+  ],
+  "interface_port_header": [
+   "dot",
+   "interface_identifier",
+   "kw_interface_5ea2d81a",
+   "modport_identifier"
+  ],
+  "interface_port_identifier": [
+   "interface_port_identifier_sv_2023"
+  ],
+  "interface_port_identifier_sv_2023": [
+   "non_keyword_identifier"
+  ],
+  "join_keyword": [
+   "kw_join_any_24358a7a",
+   "kw_join_c455b38e",
+   "kw_join_none_4454a7a6"
+  ],
+  "jump_statement": [
+   "expression",
+   "kw_break_4f9cac8d",
+   "kw_continue_eee0bbba",
+   "kw_return_63143b6f",
+   "semi"
+  ],
+  "known_unscoped_base_class_type_identifier": [
+   "class_identifier"
+  ],
+  "known_unscoped_base_class_type_parameter_identifier": [
+   "class_identifier"
+  ],
+  "known_unscoped_block_class_type": [
+   "class_identifier",
+   "parameter_value_assignment",
+   "scope_resolution"
+  ],
+  "known_unscoped_block_covergroup_identifier": [
+   "known_unscoped_covergroup_type_identifier"
+  ],
+  "known_unscoped_block_type_identifier": [
+   "checked_type_identifier",
+   "packed_dimension"
+  ],
+  "known_unscoped_checker_identifier": [
+   "checker_identifier"
+  ],
+  "known_unscoped_class_scope_class_identifier": [
+   "class_identifier"
+  ],
+  "known_unscoped_class_scope_interface_class_identifier": [
+   "class_identifier"
+  ],
+  "known_unscoped_class_scope_type_parameter_identifier": [
+   "type_identifier"
+  ],
+  "known_unscoped_class_scoped_call_class_identifier": [
+   "class_identifier"
+  ],
+  "known_unscoped_class_scoped_call_interface_class_identifier": [
+   "class_identifier"
+  ],
+  "known_unscoped_class_scoped_call_type_parameter_identifier": [
+   "type_identifier"
+  ],
+  "known_unscoped_covergroup_type_identifier": [
+   "covergroup_identifier"
+  ],
+  "known_unscoped_data_type_identifier": [
+   "checked_type_identifier",
+   "packed_dimension"
+  ],
+  "known_unscoped_interface_class_type_identifier": [
+   "class_identifier"
+  ],
+  "known_unscoped_let_identifier": [
+   "let_identifier"
+  ],
+  "known_unscoped_parameter_identifier": [
+   "parameter_identifier"
+  ],
+  "known_unscoped_property_identifier": [
+   "property_identifier"
+  ],
+  "known_unscoped_sequence_identifier": [
+   "sequence_identifier"
+  ],
+  "kw_B_ae4f281d": [
+   "trivia"
+  ],
+  "kw_F_e69f20e9": [
+   "trivia"
+  ],
+  "kw_N_b51a6073": [
+   "trivia"
+  ],
+  "kw_PATHPULSE_dollar_e0f78dc5": [
+   "trivia"
+  ],
+  "kw_PATHPULSE_dollar_specify_input_terminal_descriptor_dollar_specify_output_terminal_descriptor_b3eb892a": [
+   "trivia"
+  ],
+  "kw_P_511993d3": [
+   "trivia"
+  ],
+  "kw_R_06576556": [
+   "trivia"
+  ],
+  "kw_X_c032adc1": [
+   "trivia"
+  ],
+  "kw_Z_909f99a7": [
+   "trivia"
+  ],
+  "kw_accept_on_2aee6cd4": [
+   "trivia"
+  ],
+  "kw_alias_cdb6fdbe": [
+   "trivia"
+  ],
+  "kw_always_6656018a": [
+   "trivia"
+  ],
+  "kw_always_comb_a1f2a86b": [
+   "trivia"
+  ],
+  "kw_always_ff_3c7a051e": [
+   "trivia"
+  ],
+  "kw_always_latch_23c99af9": [
+   "trivia"
+  ],
+  "kw_and_cffa50a3": [
+   "trivia"
+  ],
+  "kw_assert_64b5daad": [
+   "trivia"
+  ],
+  "kw_assign_9009b730": [
+   "trivia"
+  ],
+  "kw_assume_661e458e": [
+   "trivia"
+  ],
+  "kw_automatic_ebe88724": [
+   "trivia"
+  ],
+  "kw_b_e9d71f5e": [
+   "trivia"
+  ],
+  "kw_before_51de2b83": [
+   "trivia"
+  ],
+  "kw_begin_8cbd0a74": [
+   "trivia"
+  ],
+  "kw_bind_6bdd4db9": [
+   "trivia"
+  ],
+  "kw_bins_7de92be6": [
+   "trivia"
+  ],
+  "kw_binsof_efb35b22": [
+   "trivia"
+  ],
+  "kw_bit_026e996a": [
+   "trivia"
+  ],
+  "kw_break_4f9cac8d": [
+   "trivia"
+  ],
+  "kw_buf_cb252062": [
+   "trivia"
+  ],
+  "kw_bufif0_e58d9bd3": [
+   "trivia"
+  ],
+  "kw_bufif1_a2b83a3e": [
+   "trivia"
+  ],
+  "kw_byte_8cf1783f": [
+   "trivia"
+  ],
+  "kw_case_6406510c": [
+   "trivia"
+  ],
+  "kw_casex_b31a7350": [
+   "trivia"
+  ],
+  "kw_casez_b8fbe0e1": [
+   "trivia"
+  ],
+  "kw_cell_5f435eb3": [
+   "trivia"
+  ],
+  "kw_chandle_34401c13": [
+   "trivia"
+  ],
+  "kw_checker_29e5b9a8": [
+   "trivia"
+  ],
+  "kw_class_8d767bf5": [
+   "trivia"
+  ],
+  "kw_class_qualifier_fa08937d": [
+   "trivia"
+  ],
+  "kw_clocking_4d22041d": [
+   "trivia"
+  ],
+  "kw_cmos_aabe63a7": [
+   "trivia"
+  ],
+  "kw_config_dfba7aad": [
+   "trivia"
+  ],
+  "kw_const_b42f3f6f": [
+   "trivia"
+  ],
+  "kw_constraint_9f454fd4": [
+   "trivia"
+  ],
+  "kw_context_ec2727b3": [
+   "trivia"
+  ],
+  "kw_continue_eee0bbba": [
+   "trivia"
+  ],
+  "kw_cover_a28100fa": [
+   "trivia"
+  ],
+  "kw_covergroup_80dfc68d": [
+   "trivia"
+  ],
+  "kw_coverpoint_fc1cae9d": [
+   "trivia"
+  ],
+  "kw_cross_ac4280ba": [
+   "trivia"
+  ],
+  "kw_deassign_1af170b4": [
+   "trivia"
+  ],
+  "kw_default_7505d64a": [
+   "trivia"
+  ],
+  "kw_defparam_83d3c70e": [
+   "trivia"
+  ],
+  "kw_design_056f1182": [
+   "trivia"
+  ],
+  "kw_disable_ccf09e2d": [
+   "trivia"
+  ],
+  "kw_dist_02450072": [
+   "trivia"
+  ],
+  "kw_do_eadcd9bd": [
+   "trivia"
+  ],
+  "kw_dollar": [
+   "trivia"
+  ],
+  "kw_edge_a0f2c69a": [
+   "trivia"
+  ],
+  "kw_else_ae050f5b": [
+   "trivia"
+  ],
+  "kw_end_7a92f3d2": [
+   "trivia"
+  ],
+  "kw_endcase_a27a6786": [
+   "trivia"
+  ],
+  "kw_endchecker_cd5c3b65": [
+   "trivia"
+  ],
+  "kw_endclass_b43ac277": [
+   "trivia"
+  ],
+  "kw_endclocking_c1e6d71f": [
+   "trivia"
+  ],
+  "kw_endconfig_3fd27f95": [
+   "trivia"
+  ],
+  "kw_endfunction_84b8f967": [
+   "trivia"
+  ],
+  "kw_endgenerate_efb1f00a": [
+   "trivia"
+  ],
+  "kw_endgroup_33b6723a": [
+   "trivia"
+  ],
+  "kw_endinterface_ebd6ca35": [
+   "trivia"
+  ],
+  "kw_endmodule_2eb38ec9": [
+   "trivia"
+  ],
+  "kw_endpackage_4f31e93e": [
+   "trivia"
+  ],
+  "kw_endprimitive_f53f53d4": [
+   "trivia"
+  ],
+  "kw_endprogram_6b609b1f": [
+   "trivia"
+  ],
+  "kw_endproperty_6594321c": [
+   "trivia"
+  ],
+  "kw_endsequence_241830d7": [
+   "trivia"
+  ],
+  "kw_endspecify_4e5c5021": [
+   "trivia"
+  ],
+  "kw_endtable_0b3f3e00": [
+   "trivia"
+  ],
+  "kw_endtask_eb64ab0d": [
+   "trivia"
+  ],
+  "kw_enum_e338e8e3": [
+   "trivia"
+  ],
+  "kw_event_5006ed02": [
+   "trivia"
+  ],
+  "kw_eventually_5865020f": [
+   "trivia"
+  ],
+  "kw_expect_ff93c451": [
+   "trivia"
+  ],
+  "kw_export_51713409": [
+   "trivia"
+  ],
+  "kw_extends_2b781ff8": [
+   "trivia"
+  ],
+  "kw_extern_bf1ee311": [
+   "trivia"
+  ],
+  "kw_f_4a0a1921": [
+   "trivia"
+  ],
+  "kw_file_path_spec_c26c9dc9": [
+   "trivia"
+  ],
+  "kw_final_d594c2cc": [
+   "trivia"
+  ],
+  "kw_first_match_2ddb8d09": [
+   "trivia"
+  ],
+  "kw_for_43eef9a6": [
+   "trivia"
+  ],
+  "kw_force_fafec1e5": [
+   "trivia"
+  ],
+  "kw_foreach_4d3e8614": [
+   "trivia"
+  ],
+  "kw_forever_e07f8c4a": [
+   "trivia"
+  ],
+  "kw_fork_3f673f2a": [
+   "trivia"
+  ],
+  "kw_forkjoin_91d67e81": [
+   "trivia"
+  ],
+  "kw_fs_3f4bb586": [
+   "trivia"
+  ],
+  "kw_function_c218e39e": [
+   "trivia"
+  ],
+  "kw_generate_9e59d425": [
+   "trivia"
+  ],
+  "kw_genvar_9cb2eb8a": [
+   "trivia"
+  ],
+  "kw_global_9027cc5a": [
+   "trivia"
+  ],
+  "kw_highz0": [
+   "trivia"
+  ],
+  "kw_highz1": [
+   "trivia"
+  ],
+  "kw_if_958f57f5": [
+   "trivia"
+  ],
+  "kw_iff_ee1c009e": [
+   "trivia"
+  ],
+  "kw_ifnone_32ae8180": [
+   "trivia"
+  ],
+  "kw_ignore_bins_c8b3e6e5": [
+   "trivia"
+  ],
+  "kw_illegal_bins_909dfbf3": [
+   "trivia"
+  ],
+  "kw_implements_e133e2cb": [
+   "trivia"
+  ],
+  "kw_implies_470cec58": [
+   "trivia"
+  ],
+  "kw_import_62fdfbd5": [
+   "trivia"
+  ],
+  "kw_incdir_e08adf20": [
+   "trivia"
+  ],
+  "kw_include_d3ecb0d8": [
+   "trivia"
+  ],
+  "kw_initial_8ad7d21c": [
+   "trivia"
+  ],
+  "kw_inout_c900aaa9": [
+   "trivia"
+  ],
+  "kw_input_140f86aa": [
+   "trivia"
+  ],
+  "kw_inside_fcc53788": [
+   "trivia"
+  ],
+  "kw_instance_c3bec6bc": [
+   "trivia"
+  ],
+  "kw_int_46f8ab7c": [
+   "trivia"
+  ],
+  "kw_integer_1178cafb": [
+   "trivia"
+  ],
+  "kw_interconnect_c8ec83f5": [
+   "trivia"
+  ],
+  "kw_interface_5ea2d81a": [
+   "trivia"
+  ],
+  "kw_intersect_6c96caaf": [
+   "trivia"
+  ],
+  "kw_join_any_24358a7a": [
+   "trivia"
+  ],
+  "kw_join_c455b38e": [
+   "trivia"
+  ],
+  "kw_join_none_4454a7a6": [
+   "trivia"
+  ],
+  "kw_large_5296d5cc": [
+   "trivia"
+  ],
+  "kw_let_0262f9bb": [
+   "trivia"
+  ],
+  "kw_liblist_4851fe70": [
+   "trivia"
+  ],
+  "kw_library_00299a40": [
+   "trivia"
+  ],
+  "kw_local_939bb46a": [
+   "trivia"
+  ],
+  "kw_localparam_7829ee69": [
+   "trivia"
+  ],
+  "kw_logic_2c684987": [
+   "trivia"
+  ],
+  "kw_longint_30bcfc87": [
+   "trivia"
+  ],
+  "kw_macromodule_df04b866": [
+   "trivia"
+  ],
+  "kw_matches_9f3e9242": [
+   "trivia"
+  ],
+  "kw_medium_20af4186": [
+   "trivia"
+  ],
+  "kw_modport_1cf85849": [
+   "trivia"
+  ],
+  "kw_module_fbd34a2b": [
+   "trivia"
+  ],
+  "kw_ms_26cc3217": [
+   "trivia"
+  ],
+  "kw_n_01_ddfe1633": [
+   "trivia"
+  ],
+  "kw_n_0_b6589fc6": [
+   "trivia"
+  ],
+  "kw_n_10_b1d57811": [
+   "trivia"
+  ],
+  "kw_n_1_356a192b": [
+   "trivia"
+  ],
+  "kw_n_1_tick_B0_720c4a9c": [
+   "trivia"
+  ],
+  "kw_n_1_tick_B1_afad66cc": [
+   "trivia"
+  ],
+  "kw_n_1_tick_BX_874bf116": [
+   "trivia"
+  ],
+  "kw_n_1_tick_Bx_0a99de19": [
+   "trivia"
+  ],
+  "kw_n_1_tick_b0_cc597d72": [
+   "trivia"
+  ],
+  "kw_n_1_tick_b1_a5c2b78e": [
+   "trivia"
+  ],
+  "kw_n_1_tick_bX_70a6d618": [
+   "trivia"
+  ],
+  "kw_n_1_tick_bx_ab9cb068": [
+   "trivia"
+  ],
+  "kw_n_1step_e6d37e7c": [
+   "trivia"
+  ],
+  "kw_n_2_da4b9237": [
+   "trivia"
+  ],
+  "kw_n_43_0286dd55": [
+   "trivia"
+  ],
+  "kw_n_48_64e095fe": [
+   "trivia"
+  ],
+  "kw_n_d1854cae": [
+   "trivia"
+  ],
+  "kw_nand_c8a98832": [
+   "trivia"
+  ],
+  "kw_negedge_c77fbc5c": [
+   "trivia"
+  ],
+  "kw_nettype_27d30cf3": [
+   "trivia"
+  ],
+  "kw_new_c2a6b03f": [
+   "trivia"
+  ],
+  "kw_nexttime_b0f658f8": [
+   "trivia"
+  ],
+  "kw_nmos_0c967e00": [
+   "trivia"
+  ],
+  "kw_nor_19d0495c": [
+   "trivia"
+  ],
+  "kw_noshowcancelled_1d50d807": [
+   "trivia"
+  ],
+  "kw_not_557f2555": [
+   "trivia"
+  ],
+  "kw_notif0_2c8df148": [
+   "trivia"
+  ],
+  "kw_notif1_245fe7ea": [
+   "trivia"
+  ],
+  "kw_ns_7320d5b7": [
+   "trivia"
+  ],
+  "kw_null_2be88ca4": [
+   "trivia"
+  ],
+  "kw_option_14eb14ec": [
+   "trivia"
+  ],
+  "kw_or_1758356d": [
+   "trivia"
+  ],
+  "kw_output_1029d676": [
+   "trivia"
+  ],
+  "kw_p_516b9783": [
+   "trivia"
+  ],
+  "kw_package_582681c2": [
+   "trivia"
+  ],
+  "kw_packed_7aca22de": [
+   "trivia"
+  ],
+  "kw_parameter_b75381f0": [
+   "trivia"
+  ],
+  "kw_pmos_f3d8bd5d": [
+   "trivia"
+  ],
+  "kw_posedge_7529558b": [
+   "trivia"
+  ],
+  "kw_primitive_9756bf34": [
+   "trivia"
+  ],
+  "kw_priority_3345867e": [
+   "trivia"
+  ],
+  "kw_program_81d9aeea": [
+   "trivia"
+  ],
+  "kw_property_269fe373": [
+   "trivia"
+  ],
+  "kw_protected_964cab4b": [
+   "trivia"
+  ],
+  "kw_ps_c67f1ee1": [
+   "trivia"
+  ],
+  "kw_pull0": [
+   "trivia"
+  ],
+  "kw_pull1": [
+   "trivia"
+  ],
+  "kw_pulldown_20560243": [
+   "trivia"
+  ],
+  "kw_pullup_f7402b53": [
+   "trivia"
+  ],
+  "kw_pulsestyle_ondetect_90d0b4fa": [
+   "trivia"
+  ],
+  "kw_pulsestyle_onevent_11e408b6": [
+   "trivia"
+  ],
+  "kw_pure_afe003f1": [
+   "trivia"
+  ],
+  "kw_r_4dc7c9ec": [
+   "trivia"
+  ],
+  "kw_rand_52400560": [
+   "trivia"
+  ],
+  "kw_randc_c870e2bc": [
+   "trivia"
+  ],
+  "kw_randcase_89bbd045": [
+   "trivia"
+  ],
+  "kw_randomize_e3b19624": [
+   "trivia"
+  ],
+  "kw_randsequence_8b92cf8f": [
+   "trivia"
+  ],
+  "kw_rcmos_ae4a7a0a": [
+   "trivia"
+  ],
+  "kw_real_c9c64e07": [
+   "trivia"
+  ],
+  "kw_realtime_91c462ed": [
+   "trivia"
+  ],
+  "kw_ref_69449f99": [
+   "trivia"
+  ],
+  "kw_reg_e06b9586": [
+   "trivia"
+  ],
+  "kw_reject_on_a3b3068d": [
+   "trivia"
+  ],
+  "kw_release_01f561ac": [
+   "trivia"
+  ],
+  "kw_repeat_c0ac4842": [
+   "trivia"
+  ],
+  "kw_restrict_ee1e5b88": [
+   "trivia"
+  ],
+  "kw_return_63143b6f": [
+   "trivia"
+  ],
+  "kw_rnmos_de1c9510": [
+   "trivia"
+  ],
+  "kw_rpmos_7cd80934": [
+   "trivia"
+  ],
+  "kw_rtran_edbf7838": [
+   "trivia"
+  ],
+  "kw_rtranif0_caee0cc0": [
+   "trivia"
+  ],
+  "kw_rtranif1_91fafa05": [
+   "trivia"
+  ],
+  "kw_s_a0f1490a": [
+   "trivia"
+  ],
+  "kw_s_always_0f9aa900": [
+   "trivia"
+  ],
+  "kw_s_eventually_86207140": [
+   "trivia"
+  ],
+  "kw_s_nexttime_373d0bd1": [
+   "trivia"
+  ],
+  "kw_s_until_073539cf": [
+   "trivia"
+  ],
+  "kw_s_until_with_3a7bcf5b": [
+   "trivia"
+  ],
+  "kw_sample_8151325d": [
+   "trivia"
+  ],
+  "kw_scalared_92ab459c": [
+   "trivia"
+  ],
+  "kw_sequence_92504616": [
+   "trivia"
+  ],
+  "kw_shortint_131a0f0d": [
+   "trivia"
+  ],
+  "kw_shortreal_99d69111": [
+   "trivia"
+  ],
+  "kw_showcancelled_ac9a7408": [
+   "trivia"
+  ],
+  "kw_signed_07235a80": [
+   "trivia"
+  ],
+  "kw_small_89f6229a": [
+   "trivia"
+  ],
+  "kw_soft_eb74f2cb": [
+   "trivia"
+  ],
+  "kw_solve_f544e4c9": [
+   "trivia"
+  ],
+  "kw_specify_ade6a05c": [
+   "trivia"
+  ],
+  "kw_specparam_54af7813": [
+   "trivia"
+  ],
+  "kw_static_a381562a": [
+   "trivia"
+  ],
+  "kw_std_55ec981f": [
+   "trivia"
+  ],
+  "kw_string_ecb25204": [
+   "trivia"
+  ],
+  "kw_strong0": [
+   "trivia"
+  ],
+  "kw_strong1": [
+   "trivia"
+  ],
+  "kw_strong_0117691d": [
+   "trivia"
+  ],
+  "kw_struct_d118e5a3": [
+   "trivia"
+  ],
+  "kw_super_8451ba8a": [
+   "trivia"
+  ],
+  "kw_supply0": [
+   "trivia"
+  ],
+  "kw_supply1": [
+   "trivia"
+  ],
+  "kw_sv_dollar_04da59ec": [
+   "trivia"
+  ],
+  "kw_sv_dollar_error_d304cf0a": [
+   "trivia"
+  ],
+  "kw_sv_dollar_fatal_ecc3c9fd": [
+   "trivia"
+  ],
+  "kw_sv_dollar_fullskew_1e1514b3": [
+   "trivia"
+  ],
+  "kw_sv_dollar_hold_0cf8df90": [
+   "trivia"
+  ],
+  "kw_sv_dollar_info_d116cb1c": [
+   "trivia"
+  ],
+  "kw_sv_dollar_nochange_872771bf": [
+   "trivia"
+  ],
+  "kw_sv_dollar_period_87a9c33e": [
+   "trivia"
+  ],
+  "kw_sv_dollar_recovery_585fc30a": [
+   "trivia"
+  ],
+  "kw_sv_dollar_recrem_fc40cd26": [
+   "trivia"
+  ],
+  "kw_sv_dollar_removal_7a979d46": [
+   "trivia"
+  ],
+  "kw_sv_dollar_root_f65f0e67": [
+   "trivia"
+  ],
+  "kw_sv_dollar_setup_b58bdaae": [
+   "trivia"
+  ],
+  "kw_sv_dollar_setuphold_25a075ac": [
+   "trivia"
+  ],
+  "kw_sv_dollar_skew_1ae5c1e4": [
+   "trivia"
+  ],
+  "kw_sv_dollar_timeskew_6d763f0a": [
+   "trivia"
+  ],
+  "kw_sv_dollar_unit_1d99223f": [
+   "trivia"
+  ],
+  "kw_sv_dollar_warning_22a41474": [
+   "trivia"
+  ],
+  "kw_sv_dollar_width_72b04d27": [
+   "trivia"
+  ],
+  "kw_sync_accept_on_b65eda53": [
+   "trivia"
+  ],
+  "kw_sync_reject_on_1f0c8923": [
+   "trivia"
+  ],
+  "kw_table_c3ee137d": [
+   "trivia"
+  ],
+  "kw_tagged_8e1ec218": [
+   "trivia"
+  ],
+  "kw_task_7fbb727d": [
+   "trivia"
+  ],
+  "kw_this_c2543fff": [
+   "trivia"
+  ],
+  "kw_throughout_330dbf47": [
+   "trivia"
+  ],
+  "kw_tick_B0_f33e35dd": [
+   "trivia"
+  ],
+  "kw_tick_B1_230dd583": [
+   "trivia"
+  ],
+  "kw_tick_b0_624cb09b": [
+   "trivia"
+  ],
+  "kw_tick_b1_1c5be368": [
+   "trivia"
+  ],
+  "kw_time_714eea0f": [
+   "trivia"
+  ],
+  "kw_timeprecision_628f1cfc": [
+   "trivia"
+  ],
+  "kw_timeunit_57f78b2f": [
+   "trivia"
+  ],
+  "kw_token_93ac8946": [
+   "trivia"
+  ],
+  "kw_tran_8cc27d13": [
+   "trivia"
+  ],
+  "kw_tranif0_96ae6b37": [
+   "trivia"
+  ],
+  "kw_tranif1_41e0f26e": [
+   "trivia"
+  ],
+  "kw_tri_54bf01f1": [
+   "trivia"
+  ],
+  "kw_triand_51bca013": [
+   "trivia"
+  ],
+  "kw_trior_56b8b9f0": [
+   "trivia"
+  ],
+  "kw_trireg_f7901823": [
+   "trivia"
+  ],
+  "kw_tx_path_delay_expression_7b2dee37": [
+   "trivia"
+  ],
+  "kw_type_d0a3e7f8": [
+   "trivia"
+  ],
+  "kw_type_option_730ad061": [
+   "trivia"
+  ],
+  "kw_typedef_6dc2082b": [
+   "trivia"
+  ],
+  "kw_union_67ad5a07": [
+   "trivia"
+  ],
+  "kw_unique0": [
+   "trivia"
+  ],
+  "kw_unique_58037c00": [
+   "trivia"
+  ],
+  "kw_unsigned_9861ca25": [
+   "trivia"
+  ],
+  "kw_until_b310f4d4": [
+   "trivia"
+  ],
+  "kw_until_with_f31dfb3c": [
+   "trivia"
+  ],
+  "kw_untyped_d53be1e8": [
+   "trivia"
+  ],
+  "kw_us_da2b1288": [
+   "trivia"
+  ],
+  "kw_use_04489a12": [
+   "trivia"
+  ],
+  "kw_uwire_9143a634": [
+   "trivia"
+  ],
+  "kw_var_e5b4e786": [
+   "trivia"
+  ],
+  "kw_vectored_53eb166d": [
+   "trivia"
+  ],
+  "kw_virtual_af84d91f": [
+   "trivia"
+  ],
+  "kw_void_e9cede9b": [
+   "trivia"
+  ],
+  "kw_wait_daaad336": [
+   "trivia"
+  ],
+  "kw_wait_order_e1b7850a": [
+   "trivia"
+  ],
+  "kw_wand_4be59aff": [
+   "trivia"
+  ],
+  "kw_weak0": [
+   "trivia"
+  ],
+  "kw_weak1": [
+   "trivia"
+  ],
+  "kw_weak_1ded3053": [
+   "trivia"
+  ],
+  "kw_while_6517f89c": [
+   "trivia"
+  ],
+  "kw_wildcard_08654ea6": [
+   "trivia"
+  ],
+  "kw_wire_6e1c6849": [
+   "trivia"
+  ],
+  "kw_with_8fcd25a3": [
+   "trivia"
+  ],
+  "kw_within_f42ef621": [
+   "trivia"
+  ],
+  "kw_wor_ff9e40da": [
+   "trivia"
+  ],
+  "kw_x_11f6ad8e": [
+   "trivia"
+  ],
+  "kw_xnor_ab48bc67": [
+   "trivia"
+  ],
+  "kw_xor_f1922a23": [
+   "trivia"
+  ],
+  "kw_z_395df8f7": [
+   "trivia"
+  ],
+  "lbrace": [
+   "trivia"
+  ],
+  "lbrack": [
+   "trivia"
+  ],
+  "less_equal": [
+   "trivia"
+  ],
+  "less_than": [
+   "trivia"
+  ],
+  "let_actual_arg": [
+   "expression"
+  ],
+  "let_declaration": [
+   "assign",
+   "declared_let_identifier",
+   "expression",
+   "kw_let_0262f9bb",
+   "let_port_list",
+   "lparen",
+   "rparen",
+   "semi"
+  ],
+  "let_expression": [
+   "known_unscoped_let_identifier",
+   "let_list_of_arguments",
+   "lparen",
+   "rparen",
+   "scoped_let_identifier"
+  ],
+  "let_formal_type": [
+   "data_type_or_implicit",
+   "kw_untyped_d53be1e8"
+  ],
+  "let_identifier": [
+   "non_keyword_identifier"
+  ],
+  "let_list_of_arguments": [
+   "comma",
+   "dot",
+   "let_actual_arg",
+   "let_named_arg"
+  ],
+  "let_named_arg": [
+   "dot",
+   "let_actual_arg",
+   "lparen",
+   "non_keyword_identifier",
+   "rparen"
+  ],
+  "let_port_item": [
+   "assign",
+   "attribute_instance",
+   "expression",
+   "formal_port_identifier",
+   "let_formal_type",
+   "variable_dimension"
+  ],
+  "let_port_list": [
+   "comma",
+   "let_port_item"
+  ],
+  "level_input_list": [
+   "level_symbol"
+  ],
+  "level_symbol": [
+   "kw_B_ae4f281d",
+   "kw_X_c032adc1",
+   "kw_b_e9d71f5e",
+   "kw_n_0_b6589fc6",
+   "kw_n_1_356a192b",
+   "kw_x_11f6ad8e",
+   "question"
+  ],
+  "liblist_clause": [
+   "kw_liblist_4851fe70",
+   "library_identifier"
+  ],
+  "library_declaration": [
+   "comma",
+   "kw_file_path_spec_c26c9dc9",
+   "kw_incdir_e08adf20",
+   "kw_library_00299a40",
+   "library_identifier",
+   "minus",
+   "semi"
+  ],
+  "library_description": [
+   "config_declaration",
+   "include_statement",
+   "library_declaration",
+   "semi"
+  ],
+  "library_identifier": [
+   "non_keyword_identifier"
+  ],
+  "library_text": [
+   "library_description"
+  ],
+  "lifetime": [
+   "kw_automatic_ebe88724",
+   "kw_static_a381562a"
+  ],
+  "limit_value": [
+   "constant_mintypmax_expression"
+  ],
+  "line_comment": [],
+  "list_of_arguments": [
+   "list_of_arguments_mixed",
+   "list_of_arguments_named",
+   "list_of_arguments_ordered"
+  ],
+  "list_of_arguments_mixed": [
+   "comma",
+   "list_of_arguments_mixed_head",
+   "named_argument"
+  ],
+  "list_of_arguments_mixed_head": [
+   "comma",
+   "expression",
+   "list_of_arguments_mixed_head"
+  ],
+  "list_of_arguments_named": [
+   "comma",
+   "named_argument"
+  ],
+  "list_of_arguments_ordered": [
+   "comma",
+   "expression"
+  ],
+  "list_of_checker_port_connections": [
+   "comma",
+   "named_checker_port_connection",
+   "ordered_checker_port_connection"
+  ],
+  "list_of_clocking_decl_assign": [
+   "clocking_decl_assign",
+   "comma"
+  ],
+  "list_of_cross_items": [
+   "comma",
+   "cross_item"
+  ],
+  "list_of_defparam_assignments": [
+   "comma",
+   "defparam_assignment"
+  ],
+  "list_of_genvar_identifiers": [
+   "comma",
+   "genvar_identifier"
+  ],
+  "list_of_interface_identifiers": [
+   "comma",
+   "interface_identifier_decl"
+  ],
+  "list_of_net_assignments": [
+   "comma",
+   "net_assignment"
+  ],
+  "list_of_net_decl_assignments": [
+   "comma",
+   "net_decl_assignment"
+  ],
+  "list_of_param_assignments": [
+   "comma",
+   "param_assignment"
+  ],
+  "list_of_parameter_assignments": [
+   "list_of_parameter_assignments_sv_2017"
+  ],
+  "list_of_parameter_assignments_sv_2017": [
+   "comma",
+   "named_parameter_assignment",
+   "ordered_parameter_assignment"
+  ],
+  "list_of_parameter_value_assignments": [
+   "list_of_parameter_value_assignments_sv_2023"
+  ],
+  "list_of_parameter_value_assignments_sv_2023": [
+   "comma",
+   "named_parameter_assignment",
+   "ordered_parameter_assignment"
+  ],
+  "list_of_path_delay_expressions": [
+   "comma",
+   "kw_tx_path_delay_expression_7b2dee37",
+   "t01_path_delay_expression",
+   "t0x_path_delay_expression",
+   "t0z_path_delay_expression",
+   "t10_path_delay_expression",
+   "t1x_path_delay_expression",
+   "t1z_path_delay_expression",
+   "t_path_delay_expression",
+   "tfall_path_delay_expression",
+   "trise_path_delay_expression",
+   "tx0_path_delay_expression",
+   "tx1_path_delay_expression",
+   "txz_path_delay_expression",
+   "tz0_path_delay_expression",
+   "tz1_path_delay_expression",
+   "tz_path_delay_expression",
+   "tzx_path_delay_expression"
+  ],
+  "list_of_path_inputs": [
+   "comma",
+   "specify_input_terminal_descriptor"
+  ],
+  "list_of_path_outputs": [
+   "comma",
+   "specify_output_terminal_descriptor"
+  ],
+  "list_of_port_connections": [
+   "comma",
+   "named_port_connection",
+   "ordered_port_connection"
+  ],
+  "list_of_port_declarations": [
+   "ansi_port_declaration",
+   "attribute_instance",
+   "comma",
+   "lparen",
+   "rparen"
+  ],
+  "list_of_port_identifiers": [
+   "comma",
+   "port_identifier_decl"
+  ],
+  "list_of_ports": [
+   "comma",
+   "lparen",
+   "port",
+   "rparen"
+  ],
+  "list_of_specparam_assignments": [
+   "comma",
+   "specparam_assignment"
+  ],
+  "list_of_tf_variable_identifiers": [
+   "comma",
+   "tf_variable_identifier_decl"
+  ],
+  "list_of_type_assignments": [
+   "comma",
+   "kw_type_d0a3e7f8",
+   "type_assignment"
+  ],
+  "list_of_udp_port_identifiers": [
+   "comma",
+   "port_identifier"
+  ],
+  "list_of_variable_assignments": [
+   "comma",
+   "variable_assignment"
+  ],
+  "list_of_variable_decl_assignments": [
+   "comma",
+   "variable_decl_assignment"
+  ],
+  "list_of_variable_identifiers": [
+   "comma",
+   "variable_identifier_decl"
+  ],
+  "list_of_variable_port_identifiers": [
+   "comma",
+   "variable_port_identifier_decl"
+  ],
+  "local_parameter_declaration": [
+   "local_parameter_declaration_sv_2017",
+   "local_parameter_declaration_sv_2023"
+  ],
+  "local_parameter_declaration_sv_2017": [
+   "data_type_or_implicit",
+   "kw_localparam_7829ee69",
+   "kw_type_d0a3e7f8",
+   "list_of_param_assignments",
+   "list_of_type_assignments"
+  ],
+  "local_parameter_declaration_sv_2023": [
+   "data_type_or_implicit",
+   "kw_localparam_7829ee69",
+   "list_of_param_assignments",
+   "type_parameter_declaration"
+  ],
+  "logical_and": [
+   "trivia"
+  ],
+  "logical_and3": [
+   "trivia"
+  ],
+  "logical_or": [
+   "trivia"
+  ],
+  "loop_generate_construct": [
+   "generate_block",
+   "genvar_expression",
+   "genvar_initialization",
+   "genvar_iteration",
+   "kw_for_43eef9a6",
+   "lparen",
+   "rparen",
+   "semi"
+  ],
+  "loop_statement": [
+   "expression",
+   "for_initialization",
+   "for_step",
+   "kw_for_43eef9a6",
+   "kw_forever_e07f8c4a",
+   "kw_repeat_c0ac4842",
+   "kw_while_6517f89c",
+   "loop_statement_sv_only",
+   "lparen",
+   "rparen",
+   "semi",
+   "statement_or_null"
+  ],
+  "loop_statement_sv_only": [
+   "expression",
+   "kw_do_eadcd9bd",
+   "kw_foreach_4d3e8614",
+   "kw_while_6517f89c",
+   "lbrack",
+   "loop_variables",
+   "lparen",
+   "ps_or_hierarchical_array_identifier",
+   "rbrack",
+   "rparen",
+   "semi",
+   "statement",
+   "statement_or_null"
+  ],
+  "loop_variables": [
+   "comma",
+   "index_variable_identifier"
+  ],
+  "lparen": [
+   "trivia"
+  ],
+  "member_identifier": [
+   "non_keyword_identifier"
+  ],
+  "method_call": [
+   "dot",
+   "method_call_body",
+   "method_call_initial"
+  ],
+  "method_call_body": [
+   "attribute_instance",
+   "built_in_method_call",
+   "list_of_arguments",
+   "lparen",
+   "method_identifier",
+   "rparen"
+  ],
+  "method_call_initial": [
+   "class_scoped_tf_call",
+   "direct_method_call",
+   "implicit_class_rooted_method_chain",
+   "split_direct_callable_method_call",
+   "system_tf_call",
+   "tf_call"
+  ],
+  "method_call_receiver": [
+   "method_call_receiver_sv_2017",
+   "method_call_receiver_sv_2023"
+  ],
+  "method_call_receiver_sv_2017": [
+   "assign",
+   "assignment_pattern_expression",
+   "cast",
+   "class_scope",
+   "colon",
+   "concatenation",
+   "dot",
+   "empty_unpacked_array_concatenation",
+   "hierarchical_identifier",
+   "implicit_class_handle",
+   "kw_class_qualifier_fa08937d",
+   "kw_local_939bb46a",
+   "kw_n_43_0286dd55",
+   "kw_null_2be88ca4",
+   "kw_sv_dollar_04da59ec",
+   "kw_this_c2543fff",
+   "lbrack",
+   "let_expression",
+   "lparen",
+   "mintypmax_expression",
+   "multiple_concatenation",
+   "non_typedef_package_scope",
+   "primary_literal",
+   "range_expression",
+   "rbrack",
+   "rparen",
+   "scope_resolution",
+   "sequence_method_call",
+   "streaming_concatenation"
+  ],
+  "method_call_receiver_sv_2023": [
+   "assign",
+   "assignment_pattern_expression",
+   "cast",
+   "class_scope",
+   "colon",
+   "concatenation",
+   "dot",
+   "empty_unpacked_array_concatenation",
+   "hierarchical_identifier",
+   "implicit_class_handle",
+   "kw_class_qualifier_fa08937d",
+   "kw_local_939bb46a",
+   "kw_n_48_64e095fe",
+   "kw_null_2be88ca4",
+   "kw_sv_dollar_04da59ec",
+   "kw_this_c2543fff",
+   "lbrack",
+   "let_expression",
+   "lparen",
+   "mintypmax_expression",
+   "multiple_concatenation",
+   "non_typedef_package_scope",
+   "primary_literal",
+   "range_expression",
+   "rbrack",
+   "rparen",
+   "scope_resolution",
+   "sequence_method_call",
+   "streaming_concatenation"
+  ],
+  "method_call_root": [
+   "implicit_class_handle",
+   "method_call_receiver"
+  ],
+  "method_identifier": [
+   "declaration_identifier"
+  ],
+  "method_prototype": [
+   "function_prototype",
+   "task_prototype"
+  ],
+  "method_qualifier": [
+   "class_item_qualifier",
+   "kw_pure_afe003f1",
+   "kw_virtual_af84d91f"
+  ],
+  "mintypmax_expression": [
+   "colon",
+   "expression"
+  ],
+  "minus": [
+   "trivia"
+  ],
+  "minus_assign": [
+   "trivia"
+  ],
+  "minus_minus": [
+   "trivia"
+  ],
+  "mixed_parameter_port_list": [
+   "comma",
+   "kw_type_d0a3e7f8",
+   "list_of_type_assignments",
+   "parameter_port_declaration"
+  ],
+  "mixed_string_parameter_port_list": [
+   "comma",
+   "kw_string_ecb25204",
+   "kw_type_d0a3e7f8",
+   "list_of_param_assignments",
+   "parameter_port_declaration",
+   "type_assignment"
+  ],
+  "modport_clocking_declaration": [
+   "clocking_identifier",
+   "kw_clocking_4d22041d"
+  ],
+  "modport_declaration": [
+   "comma",
+   "kw_modport_1cf85849",
+   "modport_item",
+   "semi"
+  ],
+  "modport_identifier": [
+   "declaration_identifier"
+  ],
+  "modport_item": [
+   "comma",
+   "lparen",
+   "modport_identifier",
+   "modport_ports_declaration",
+   "rparen"
+  ],
+  "modport_ports_declaration": [
+   "attribute_instance",
+   "modport_clocking_declaration",
+   "modport_simple_ports_declaration",
+   "modport_tf_ports_declaration"
+  ],
+  "modport_simple_port": [
+   "dot",
+   "expression",
+   "lparen",
+   "port_identifier",
+   "rparen"
+  ],
+  "modport_simple_ports_declaration": [
+   "comma",
+   "modport_simple_port",
+   "port_direction"
+  ],
+  "modport_tf_port": [
+   "method_prototype",
+   "tf_identifier"
+  ],
+  "modport_tf_ports_declaration": [
+   "comma",
+   "import_export",
+   "modport_tf_port"
+  ],
+  "module_ansi_header": [
+   "attribute_instance",
+   "lifetime",
+   "list_of_port_declarations",
+   "module_identifier",
+   "module_keyword",
+   "package_import_declaration",
+   "parameter_port_list",
+   "semi"
+  ],
+  "module_common_item": [
+   "module_common_item_sv_2017",
+   "module_common_item_sv_2023"
+  ],
+  "module_common_item_sv_2017": [
+   "always_construct",
+   "assertion_item",
+   "bind_directive",
+   "conditional_generate_construct",
+   "continuous_assign",
+   "elaboration_system_task",
+   "final_construct",
+   "initial_construct",
+   "interface_instantiation",
+   "loop_generate_construct",
+   "module_or_generate_item_declaration",
+   "net_alias",
+   "program_instantiation"
+  ],
+  "module_common_item_sv_2023": [
+   "always_construct",
+   "assertion_item",
+   "bind_directive",
+   "conditional_generate_construct",
+   "continuous_assign",
+   "elaboration_severity_system_task",
+   "final_construct",
+   "initial_construct",
+   "interface_instantiation",
+   "loop_generate_construct",
+   "module_or_generate_item_declaration",
+   "net_alias",
+   "program_instantiation"
+  ],
+  "module_declaration": [
+   "module_declaration_sv_2017",
+   "module_declaration_sv_2023"
+  ],
+  "module_declaration_sv_2017": [
+   "attribute_instance",
+   "colon",
+   "dot_star",
+   "kw_endmodule_2eb38ec9",
+   "kw_extern_bf1ee311",
+   "lifetime",
+   "lparen",
+   "module_ansi_header",
+   "module_identifier",
+   "module_item",
+   "module_keyword",
+   "module_nonansi_header",
+   "non_port_module_item",
+   "rparen",
+   "semi",
+   "timeunits_declaration"
+  ],
+  "module_declaration_sv_2023": [
+   "attribute_instance",
+   "colon",
+   "dot",
+   "kw_endmodule_2eb38ec9",
+   "kw_extern_bf1ee311",
+   "lifetime",
+   "lparen",
+   "module_ansi_header",
+   "module_identifier",
+   "module_item",
+   "module_keyword",
+   "module_nonansi_header",
+   "non_port_module_item",
+   "rparen",
+   "semi",
+   "star",
+   "timeunits_declaration"
+  ],
+  "module_identifier": [
+   "declaration_identifier"
+  ],
+  "module_instantiation": [
+   "comma",
+   "hierarchical_instance",
+   "module_identifier",
+   "parameter_value_assignment",
+   "semi"
+  ],
+  "module_item": [
+   "non_port_module_item",
+   "port_declaration",
+   "semi"
+  ],
+  "module_keyword": [
+   "kw_macromodule_df04b866",
+   "kw_module_fbd34a2b"
+  ],
+  "module_nonansi_header": [
+   "attribute_instance",
+   "lifetime",
+   "list_of_ports",
+   "module_identifier",
+   "module_keyword",
+   "package_import_declaration",
+   "parameter_port_list",
+   "semi"
+  ],
+  "module_or_generate_item": [
+   "attribute_instance",
+   "gate_instantiation",
+   "module_common_item",
+   "module_instantiation",
+   "parameter_override",
+   "udp_instantiation"
+  ],
+  "module_or_generate_item_declaration": [
+   "clocking_declaration",
+   "clocking_identifier",
+   "expression_or_dist",
+   "genvar_declaration",
+   "kw_clocking_4d22041d",
+   "kw_default_7505d64a",
+   "kw_disable_ccf09e2d",
+   "kw_iff_ee1c009e",
+   "package_or_generate_item_declaration",
+   "semi"
+  ],
+  "module_path_concatenation": [
+   "comma",
+   "lbrace",
+   "module_path_expression",
+   "rbrace"
+  ],
+  "module_path_conditional_expression": [
+   "attribute_instance",
+   "binary_module_path_operator",
+   "colon",
+   "module_path_expression",
+   "module_path_expression_operand",
+   "question"
+  ],
+  "module_path_expression": [
+   "attribute_instance",
+   "binary_module_path_operator",
+   "module_path_conditional_expression",
+   "module_path_expression_operand"
+  ],
+  "module_path_expression_operand": [
+   "attribute_instance",
+   "module_path_primary",
+   "unary_module_path_operator"
+  ],
+  "module_path_mintypmax_expression": [
+   "colon",
+   "module_path_expression"
+  ],
+  "module_path_multiple_concatenation": [
+   "constant_expression",
+   "lbrace",
+   "module_path_concatenation",
+   "rbrace"
+  ],
+  "module_path_primary": [
+   "function_subroutine_call",
+   "lparen",
+   "module_path_concatenation",
+   "module_path_mintypmax_expression",
+   "module_path_multiple_concatenation",
+   "non_keyword_identifier",
+   "number",
+   "rparen"
+  ],
+  "mos_switch_instance": [
+   "comma",
+   "enable_terminal",
+   "input_terminal",
+   "lparen",
+   "name_of_instance",
+   "output_terminal",
+   "rparen"
+  ],
+  "mos_switchtype": [
+   "kw_nmos_0c967e00",
+   "kw_pmos_f3d8bd5d",
+   "kw_rnmos_de1c9510",
+   "kw_rpmos_7cd80934"
+  ],
+  "multiple_concatenation": [
+   "concatenation",
+   "expression",
+   "lbrace",
+   "rbrace"
+  ],
+  "n_input_gate_instance": [
+   "comma",
+   "input_terminal",
+   "lparen",
+   "name_of_instance",
+   "output_terminal",
+   "rparen"
+  ],
+  "n_input_gatetype": [
+   "kw_and_cffa50a3",
+   "kw_nand_c8a98832",
+   "kw_nor_19d0495c",
+   "kw_or_1758356d",
+   "kw_xnor_ab48bc67",
+   "kw_xor_f1922a23"
+  ],
+  "n_output_gate_instance": [
+   "comma",
+   "input_terminal",
+   "lparen",
+   "name_of_instance",
+   "output_terminal",
+   "rparen"
+  ],
+  "n_output_gatetype": [
+   "kw_buf_cb252062",
+   "kw_not_557f2555"
+  ],
+  "name_of_instance": [
+   "instance_identifier",
+   "unpacked_dimension"
+  ],
+  "named_argument": [
+   "dot",
+   "expression",
+   "lparen",
+   "non_keyword_identifier",
+   "rparen"
+  ],
+  "named_checker_port_connection": [
+   "named_checker_port_connection_sv_2017",
+   "named_checker_port_connection_sv_2023"
+  ],
+  "named_checker_port_connection_sv_2017": [
+   "attribute_instance",
+   "dot",
+   "dot_star",
+   "formal_port_identifier",
+   "lparen",
+   "property_actual_arg",
+   "rparen"
+  ],
+  "named_checker_port_connection_sv_2023": [
+   "attribute_instance",
+   "dot",
+   "formal_port_identifier",
+   "lparen",
+   "property_actual_arg",
+   "rparen",
+   "star"
+  ],
+  "named_parameter_assignment": [
+   "dot",
+   "lparen",
+   "param_expression",
+   "parameter_identifier",
+   "rparen"
+  ],
+  "named_port_connection": [
+   "named_port_connection_sv_2017",
+   "named_port_connection_sv_2023"
+  ],
+  "named_port_connection_sv_2017": [
+   "attribute_instance",
+   "dot",
+   "dot_star",
+   "expression",
+   "lparen",
+   "port_identifier",
+   "rparen"
+  ],
+  "named_port_connection_sv_2023": [
+   "attribute_instance",
+   "dot",
+   "expression",
+   "lparen",
+   "port_identifier",
+   "rparen",
+   "star"
+  ],
+  "ncontrol_terminal": [
+   "expression"
+  ],
+  "net_alias": [
+   "assign",
+   "kw_alias_cdb6fdbe",
+   "net_lvalue",
+   "semi"
+  ],
+  "net_assignment": [
+   "assign",
+   "expression",
+   "net_lvalue"
+  ],
+  "net_decl_assignment": [
+   "assign",
+   "expression",
+   "net_identifier",
+   "unpacked_dimension"
+  ],
+  "net_declaration": [
+   "net_declaration_sv_2017",
+   "net_declaration_sv_2023"
+  ],
+  "net_declaration_sv_2017": [
+   "checked_nettype_identifier",
+   "data_type_or_implicit",
+   "delay",
+   "delay_control",
+   "interconnect_net_declaration_sv_only",
+   "list_of_net_decl_assignments",
+   "net_strength",
+   "net_type",
+   "net_vector_scalar",
+   "semi",
+   "wildcard_escape_nettype_identifier"
+  ],
+  "net_declaration_sv_2023": [
+   "checked_nettype_identifier",
+   "data_type_or_implicit",
+   "delay",
+   "delay_control",
+   "interconnect_net_declaration_sv_only",
+   "list_of_net_decl_assignments",
+   "net_strength",
+   "net_type",
+   "net_vector_scalar",
+   "semi",
+   "wildcard_escape_nettype_identifier"
+  ],
+  "net_identifier": [
+   "declaration_identifier"
+  ],
+  "net_lvalue": [
+   "assignment_pattern_expression_type",
+   "assignment_pattern_net_lvalue",
+   "comma",
+   "constant_select",
+   "lbrace",
+   "net_lvalue",
+   "ps_or_hierarchical_net_identifier",
+   "rbrace"
+  ],
+  "net_port_header": [
+   "net_port_type",
+   "port_direction"
+  ],
+  "net_port_type": [
+   "net_port_type_sv_2017",
+   "net_port_type_sv_2023"
+  ],
+  "net_port_type_interconnect_sv_only": [
+   "implicit_data_type",
+   "kw_interconnect_c8ec83f5"
+  ],
+  "net_port_type_sv_2017": [
+   "checked_nettype_identifier",
+   "data_type_or_implicit",
+   "net_port_type_interconnect_sv_only",
+   "net_type"
+  ],
+  "net_port_type_sv_2023": [
+   "checked_nettype_identifier",
+   "data_type_or_implicit",
+   "net_port_type_interconnect_sv_only",
+   "net_type"
+  ],
+  "net_strength": [
+   "charge_strength",
+   "drive_strength"
+  ],
+  "net_type": [
+   "kw_supply0",
+   "kw_supply1",
+   "kw_tri_54bf01f1",
+   "kw_triand_51bca013",
+   "kw_trior_56b8b9f0",
+   "kw_trireg_f7901823",
+   "kw_uwire_9143a634",
+   "kw_wand_4be59aff",
+   "kw_wire_6e1c6849",
+   "kw_wor_ff9e40da"
+  ],
+  "net_type_declaration": [
+   "net_type_declaration_sv_2017"
+  ],
+  "net_type_declaration_sv_2017": [
+   "data_type",
+   "declared_nettype_identifier",
+   "kw_nettype_27d30cf3",
+   "kw_with_8fcd25a3",
+   "net_type_identifier",
+   "nettype_scope_prefix",
+   "semi",
+   "tf_identifier"
+  ],
+  "net_type_identifier": [
+   "net_type_identifier_sv_2017"
+  ],
+  "net_type_identifier_sv_2017": [
+   "declaration_identifier"
+  ],
+  "net_vector_scalar": [
+   "kw_scalared_92ab459c",
+   "kw_vectored_53eb166d"
+  ],
+  "nettype_declaration": [
+   "nettype_declaration_sv_2023"
+  ],
+  "nettype_declaration_sv_2023": [
+   "data_type",
+   "declared_nettype_identifier",
+   "kw_nettype_27d30cf3",
+   "kw_with_8fcd25a3",
+   "nettype_identifier",
+   "nettype_scope_prefix",
+   "semi",
+   "tf_identifier"
+  ],
+  "nettype_identifier": [
+   "nettype_identifier_sv_2023"
+  ],
+  "nettype_identifier_sv_2023": [
+   "declaration_identifier"
+  ],
+  "nettype_scope_prefix": [
+   "class_scope",
+   "non_typedef_package_scope"
+  ],
+  "next_state": [
+   "minus",
+   "output_symbol"
+  ],
+  "non_consecutive_repetition": [
+   "non_consecutive_repetition_sv_2017"
+  ],
+  "non_consecutive_repetition_sv_2017": [
+   "assign",
+   "const_or_range_expression",
+   "lbrack",
+   "rbrack"
+  ],
+  "non_integer_type": [
+   "kw_real_c9c64e07",
+   "kw_realtime_91c462ed",
+   "non_integer_type_sv_only"
+  ],
+  "non_integer_type_sv_only": [
+   "kw_shortreal_99d69111"
+  ],
+  "non_keyword_identifier": [
+   "escaped_identifier",
+   "reserved_non_keyword_identifier",
+   "simple_identifier"
+  ],
+  "non_overlapped_implication": [
+   "trivia"
+  ],
+  "non_port_interface_item": [
+   "generate_region",
+   "interface_declaration",
+   "interface_or_generate_item",
+   "modport_declaration",
+   "program_declaration",
+   "timeunits_declaration"
+  ],
+  "non_port_module_item": [
+   "attribute_instance",
+   "generate_region",
+   "in_scope_compiler_directive",
+   "interface_declaration",
+   "module_declaration",
+   "module_or_generate_item",
+   "program_declaration",
+   "specify_block",
+   "specparam_declaration",
+   "timeunits_declaration"
+  ],
+  "non_port_program_item": [
+   "attribute_instance",
+   "concurrent_assertion_item",
+   "continuous_assign",
+   "final_construct",
+   "initial_construct",
+   "module_or_generate_item_declaration",
+   "program_generate_item",
+   "timeunits_declaration"
+  ],
+  "non_typedef_package_scope": [
+   "package_scope"
+  ],
+  "nonblocking_assignment": [
+   "delay_or_event_control",
+   "expression",
+   "less_equal",
+   "variable_lvalue"
+  ],
+  "nonblocking_implies": [
+   "trivia"
+  ],
+  "nonconsecutive_repetition": [
+   "nonconsecutive_repetition_sv_2023"
+  ],
+  "nonconsecutive_repetition_sv_2023": [
+   "assign",
+   "const_or_range_expression",
+   "lbrack",
+   "rbrack"
+  ],
+  "nonrange_select": [
+   "bit_select",
+   "dot",
+   "member_identifier"
+  ],
+  "nonrange_variable_lvalue": [
+   "class_scope",
+   "dot",
+   "hierarchical_variable_identifier",
+   "implicit_class_handle",
+   "nonrange_select",
+   "package_scope"
+  ],
+  "not_equal": [
+   "trivia"
+  ],
+  "notifier": [
+   "variable_identifier"
+  ],
+  "number": [
+   "integral_number",
+   "real_number"
+  ],
+  "open_range_list": [
+   "open_range_list_sv_2017"
+  ],
+  "open_range_list_sv_2017": [
+   "comma",
+   "open_value_range"
+  ],
+  "open_value_range": [
+   "open_value_range_sv_2017"
+  ],
+  "open_value_range_sv_2017": [
+   "value_range"
+  ],
+  "operator_assignment": [
+   "assignment_operator",
+   "expression",
+   "variable_lvalue"
+  ],
+  "or_assign": [
+   "trivia"
+  ],
+  "ordered_checker_port_connection": [
+   "attribute_instance",
+   "property_actual_arg"
+  ],
+  "ordered_parameter_assignment": [
+   "param_expression"
+  ],
+  "ordered_port_connection": [
+   "attribute_instance",
+   "expression"
+  ],
+  "output_declaration": [
+   "kw_output_1029d676",
+   "list_of_port_identifiers",
+   "list_of_variable_port_identifiers",
+   "net_port_type",
+   "variable_port_type"
+  ],
+  "output_identifier": [
+   "dot",
+   "inout_port_identifier",
+   "interface_identifier",
+   "output_port_identifier",
+   "port_identifier"
+  ],
+  "output_port_identifier": [
+   "non_keyword_identifier"
+  ],
+  "output_symbol": [
+   "kw_X_c032adc1",
+   "kw_n_0_b6589fc6",
+   "kw_n_1_356a192b",
+   "kw_x_11f6ad8e"
+  ],
+  "output_terminal": [
+   "net_lvalue"
+  ],
+  "overlapped_implication": [
+   "trivia"
+  ],
+  "package_declaration": [
+   "attribute_instance",
+   "colon",
+   "declared_package_identifier",
+   "kw_endpackage_4f31e93e",
+   "kw_package_582681c2",
+   "lifetime",
+   "package_identifier",
+   "package_item",
+   "semi",
+   "timeunits_declaration"
+  ],
+  "package_export_declaration": [
+   "comma",
+   "kw_export_51713409",
+   "package_import_item",
+   "scope_resolution",
+   "semi",
+   "star"
+  ],
+  "package_identifier": [
+   "declaration_identifier"
+  ],
+  "package_import_declaration": [
+   "comma",
+   "kw_import_62fdfbd5",
+   "package_import_item",
+   "semi"
+  ],
+  "package_import_item": [
+   "non_keyword_identifier",
+   "package_identifier",
+   "scope_resolution",
+   "star"
+  ],
+  "package_item": [
+   "anonymous_program",
+   "package_export_declaration",
+   "package_or_generate_item_declaration",
+   "timeunits_declaration"
+  ],
+  "package_or_generate_item_declaration": [
+   "package_or_generate_item_declaration_sv_2017",
+   "package_or_generate_item_declaration_sv_2023"
+  ],
+  "package_or_generate_item_declaration_sv_2017": [
+   "assertion_item_declaration",
+   "checker_declaration",
+   "class_constructor_declaration",
+   "class_declaration",
+   "covergroup_declaration",
+   "data_declaration",
+   "dpi_import_export",
+   "extern_constraint_declaration",
+   "function_declaration",
+   "interface_class_declaration",
+   "local_parameter_declaration",
+   "net_declaration",
+   "parameter_declaration",
+   "semi",
+   "task_declaration"
+  ],
+  "package_or_generate_item_declaration_sv_2023": [
+   "assertion_item_declaration",
+   "checker_declaration",
+   "class_constructor_declaration",
+   "class_declaration",
+   "covergroup_declaration",
+   "data_declaration",
+   "dpi_import_export",
+   "extern_constraint_declaration",
+   "function_declaration",
+   "interface_class_declaration",
+   "local_parameter_declaration",
+   "net_declaration",
+   "parameter_declaration",
+   "semi",
+   "task_declaration"
+  ],
+  "package_scope": [
+   "package_identifier",
+   "package_scope_dollar_unit_sv_only",
+   "scope_resolution"
+  ],
+  "package_scope_dollar_unit_sv_only": [
+   "kw_sv_dollar_unit_1d99223f",
+   "scope_resolution"
+  ],
+  "packed_dimension": [
+   "constant_range",
+   "lbrack",
+   "rbrack",
+   "unsized_dimension"
+  ],
+  "par_block": [
+   "block_identifier",
+   "block_item_declaration",
+   "colon",
+   "join_keyword",
+   "kw_fork_3f673f2a",
+   "statement_or_null"
+  ],
+  "parallel_edge_sensitive_path_description": [
+   "parallel_edge_sensitive_path_description_sv_2017",
+   "parallel_edge_sensitive_path_description_sv_2023"
+  ],
+  "parallel_edge_sensitive_path_description_sv_2017": [
+   "colon",
+   "data_source_expression",
+   "edge_identifier",
+   "lparen",
+   "polarity_operator",
+   "rparen",
+   "sequence_implies",
+   "specify_input_terminal_descriptor",
+   "specify_output_terminal_descriptor"
+  ],
+  "parallel_edge_sensitive_path_description_sv_2023": [
+   "colon",
+   "data_source_expression",
+   "edge_identifier",
+   "lparen",
+   "polarity_operator",
+   "rparen",
+   "sequence_implies",
+   "specify_input_terminal_descriptor",
+   "specify_output_terminal_descriptor"
+  ],
+  "parallel_path_description": [
+   "lparen",
+   "polarity_operator",
+   "rparen",
+   "sequence_implies",
+   "specify_input_terminal_descriptor",
+   "specify_output_terminal_descriptor"
+  ],
+  "param_assignment": [
+   "param_assignment_sv_2017",
+   "param_assignment_sv_2023"
+  ],
+  "param_assignment_sv_2017": [
+   "assign",
+   "constant_param_expression",
+   "declared_parameter_identifier",
+   "unpacked_dimension"
+  ],
+  "param_assignment_sv_2023": [
+   "assign",
+   "constant_param_expression",
+   "declared_parameter_identifier",
+   "variable_dimension"
+  ],
+  "param_expression": [
+   "data_type",
+   "kw_dollar",
+   "mintypmax_expression"
+  ],
+  "parameter_declaration": [
+   "parameter_declaration_sv_2017",
+   "parameter_declaration_sv_2023"
+  ],
+  "parameter_declaration_sv_2017": [
+   "data_type_or_implicit",
+   "kw_parameter_b75381f0",
+   "kw_type_d0a3e7f8",
+   "list_of_param_assignments",
+   "list_of_type_assignments"
+  ],
+  "parameter_declaration_sv_2023": [
+   "data_type_or_implicit",
+   "kw_parameter_b75381f0",
+   "list_of_param_assignments",
+   "type_parameter_declaration"
+  ],
+  "parameter_identifier": [
+   "non_keyword_identifier"
+  ],
+  "parameter_override": [
+   "kw_defparam_83d3c70e",
+   "list_of_defparam_assignments",
+   "semi"
+  ],
+  "parameter_port_declaration": [
+   "parameter_port_declaration_sv_2017",
+   "parameter_port_declaration_sv_2023"
+  ],
+  "parameter_port_declaration_sv_2017": [
+   "data_type",
+   "kw_localparam_7829ee69",
+   "kw_parameter_b75381f0",
+   "kw_type_d0a3e7f8",
+   "list_of_param_assignments",
+   "list_of_type_assignments",
+   "local_parameter_declaration",
+   "parameter_declaration"
+  ],
+  "parameter_port_declaration_sv_2023": [
+   "data_type",
+   "kw_localparam_7829ee69",
+   "kw_parameter_b75381f0",
+   "list_of_param_assignments",
+   "local_parameter_declaration",
+   "parameter_declaration",
+   "type_parameter_declaration"
+  ],
+  "parameter_port_list": [
+   "comma",
+   "hash",
+   "kw_type_d0a3e7f8",
+   "list_of_param_assignments",
+   "lparen",
+   "mixed_parameter_port_list",
+   "mixed_string_parameter_port_list",
+   "parameter_port_declaration",
+   "rparen",
+   "type_assignment"
+  ],
+  "parameter_value_assignment": [
+   "parameter_value_assignment_sv_2017",
+   "parameter_value_assignment_sv_2023"
+  ],
+  "parameter_value_assignment_sv_2017": [
+   "hash",
+   "list_of_parameter_assignments",
+   "lparen",
+   "rparen"
+  ],
+  "parameter_value_assignment_sv_2023": [
+   "hash",
+   "list_of_parameter_value_assignments",
+   "lparen",
+   "rparen"
+  ],
+  "parseable_source_item": [
+   "compiler_directive",
+   "package_import_declaration",
+   "semi",
+   "timeunits_declaration"
+  ],
+  "part_select_range": [
+   "constant_range",
+   "indexed_range",
+   "queue_slice_range_sv_only"
+  ],
+  "pass_en_switchtype": [
+   "kw_rtranif0_caee0cc0",
+   "kw_rtranif1_91fafa05",
+   "kw_tranif0_96ae6b37",
+   "kw_tranif1_41e0f26e"
+  ],
+  "pass_enable_switch_instance": [
+   "comma",
+   "enable_terminal",
+   "inout_terminal",
+   "lparen",
+   "name_of_instance",
+   "rparen"
+  ],
+  "pass_switch_instance": [
+   "comma",
+   "inout_terminal",
+   "lparen",
+   "name_of_instance",
+   "rparen"
+  ],
+  "pass_switchtype": [
+   "kw_rtran_edbf7838",
+   "kw_tran_8cc27d13"
+  ],
+  "path_declaration": [
+   "edge_sensitive_path_declaration",
+   "semi",
+   "simple_path_declaration",
+   "state_dependent_path_declaration"
+  ],
+  "path_delay_expression": [
+   "constant_mintypmax_expression"
+  ],
+  "path_delay_value": [
+   "list_of_path_delay_expressions",
+   "lparen",
+   "rparen"
+  ],
+  "pattern": [
+   "pattern_sv_2017",
+   "pattern_sv_2023"
+  ],
+  "pattern_sv_2017": [
+   "assignment_pattern_entry",
+   "comma",
+   "constant_expression",
+   "dot",
+   "dot_star",
+   "kw_tagged_8e1ec218",
+   "lbrace",
+   "member_identifier",
+   "pattern",
+   "rbrace",
+   "tick",
+   "variable_identifier"
+  ],
+  "pattern_sv_2023": [
+   "assignment_pattern_entry",
+   "comma",
+   "constant_expression",
+   "dot",
+   "kw_tagged_8e1ec218",
+   "lbrace",
+   "lparen",
+   "member_identifier",
+   "pattern",
+   "rbrace",
+   "rparen",
+   "star",
+   "tick",
+   "variable_identifier"
+  ],
+  "pcontrol_terminal": [
+   "expression"
+  ],
+  "percent": [
+   "trivia"
+  ],
+  "percent_assign": [
+   "trivia"
+  ],
+  "plain_tf_call_with_args": [
+   "attribute_instance",
+   "list_of_arguments",
+   "lparen",
+   "rparen",
+   "tf_identifier"
+  ],
+  "plus": [
+   "trivia"
+  ],
+  "plus_assign": [
+   "trivia"
+  ],
+  "plus_plus": [
+   "trivia"
+  ],
+  "polarity_operator": [
+   "minus",
+   "plus"
+  ],
+  "port": [
+   "dot",
+   "lparen",
+   "port_expression",
+   "port_identifier",
+   "rparen"
+  ],
+  "port_declaration": [
+   "attribute_instance",
+   "inout_declaration",
+   "input_declaration",
+   "interface_port_declaration",
+   "output_declaration",
+   "ref_declaration"
+  ],
+  "port_direction": [
+   "kw_inout_c900aaa9",
+   "kw_input_140f86aa",
+   "kw_output_1029d676",
+   "port_direction_sv_only"
+  ],
+  "port_direction_sv_only": [
+   "kw_ref_69449f99"
+  ],
+  "port_expression": [
+   "comma",
+   "lbrace",
+   "port_reference",
+   "rbrace"
+  ],
+  "port_identifier": [
+   "declaration_identifier"
+  ],
+  "port_identifier_decl": [
+   "port_identifier",
+   "unpacked_dimension"
+  ],
+  "port_reference": [
+   "constant_select",
+   "port_identifier"
+  ],
+  "power": [
+   "trivia"
+  ],
+  "primary": [
+   "primary_sv_2017",
+   "primary_sv_2023"
+  ],
+  "primary_dollar_sv_only": [
+   "kw_sv_dollar_04da59ec"
+  ],
+  "primary_hier_scope_prefix": [
+   "class_scope",
+   "kw_class_qualifier_fa08937d",
+   "non_typedef_package_scope"
+  ],
+  "primary_literal": [
+   "number",
+   "primary_literal_sv_only",
+   "string_literal"
+  ],
+  "primary_literal_sv_only": [
+   "time_literal",
+   "unbased_unsized_literal"
+  ],
+  "primary_sv_2017": [
+   "assign",
+   "assignment_pattern_expression",
+   "call_primary",
+   "cast",
+   "colon",
+   "concatenation",
+   "empty_unpacked_array_concatenation",
+   "hierarchical_identifier",
+   "instance_or_class_scope",
+   "kw_class_qualifier_fa08937d",
+   "kw_local_939bb46a",
+   "kw_n_43_0286dd55",
+   "kw_null_2be88ca4",
+   "kw_this_c2543fff",
+   "lbrack",
+   "let_expression",
+   "lparen",
+   "mintypmax_expression",
+   "multiple_concatenation",
+   "primary_dollar_sv_only",
+   "primary_hier_scope_prefix",
+   "primary_literal",
+   "range_expression",
+   "rbrack",
+   "rparen",
+   "scope_randomize_sv_only",
+   "scope_resolution",
+   "select",
+   "sequence_method_call",
+   "streaming_concatenation"
+  ],
+  "primary_sv_2023": [
+   "assign",
+   "assignment_pattern_expression",
+   "call_primary",
+   "cast",
+   "colon",
+   "concatenation",
+   "empty_unpacked_array_concatenation",
+   "hierarchical_identifier",
+   "instance_or_class_scope",
+   "kw_class_qualifier_fa08937d",
+   "kw_local_939bb46a",
+   "kw_n_48_64e095fe",
+   "kw_null_2be88ca4",
+   "kw_sv_dollar_04da59ec",
+   "kw_this_c2543fff",
+   "lbrack",
+   "let_expression",
+   "lparen",
+   "mintypmax_expression",
+   "multiple_concatenation",
+   "primary_hier_scope_prefix",
+   "primary_literal",
+   "range_expression",
+   "rbrack",
+   "rparen",
+   "scope_randomize_sv_only",
+   "scope_resolution",
+   "select",
+   "sequence_method_call",
+   "streaming_concatenation"
+  ],
+  "procedural_assertion_statement": [
+   "checker_instantiation",
+   "concurrent_assertion_statement",
+   "immediate_assertion_statement"
+  ],
+  "procedural_continuous_assignment": [
+   "kw_assign_9009b730",
+   "kw_deassign_1af170b4",
+   "kw_force_fafec1e5",
+   "kw_release_01f561ac",
+   "net_assignment",
+   "net_lvalue",
+   "variable_assignment",
+   "variable_lvalue"
+  ],
+  "procedural_timing_control": [
+   "cycle_delay",
+   "delay_control",
+   "event_control"
+  ],
+  "procedural_timing_control_statement": [
+   "procedural_timing_control",
+   "statement_or_null"
+  ],
+  "production": [
+   "production_sv_2017"
+  ],
+  "production_identifier": [
+   "production_identifier_sv_2017"
+  ],
+  "production_identifier_sv_2017": [
+   "non_keyword_identifier"
+  ],
+  "production_item": [
+   "production_item_sv_2017"
+  ],
+  "production_item_sv_2017": [
+   "list_of_arguments",
+   "lparen",
+   "production_identifier",
+   "rparen"
+  ],
+  "production_sv_2017": [
+   "bitwise_or",
+   "colon",
+   "data_type_or_void",
+   "lparen",
+   "production_identifier",
+   "rparen",
+   "rs_rule",
+   "semi",
+   "tf_port_list"
+  ],
+  "program_ansi_header": [
+   "attribute_instance",
+   "kw_program_81d9aeea",
+   "lifetime",
+   "list_of_port_declarations",
+   "package_import_declaration",
+   "parameter_port_list",
+   "program_identifier",
+   "semi"
+  ],
+  "program_declaration": [
+   "program_declaration_sv_2017",
+   "program_declaration_sv_2023"
+  ],
+  "program_declaration_sv_2017": [
+   "attribute_instance",
+   "colon",
+   "dot_star",
+   "kw_endprogram_6b609b1f",
+   "kw_extern_bf1ee311",
+   "kw_program_81d9aeea",
+   "lparen",
+   "non_port_program_item",
+   "program_ansi_header",
+   "program_identifier",
+   "program_item",
+   "program_nonansi_header",
+   "rparen",
+   "semi",
+   "timeunits_declaration"
+  ],
+  "program_declaration_sv_2023": [
+   "attribute_instance",
+   "colon",
+   "dot",
+   "kw_endprogram_6b609b1f",
+   "kw_extern_bf1ee311",
+   "kw_program_81d9aeea",
+   "lparen",
+   "non_port_program_item",
+   "program_ansi_header",
+   "program_identifier",
+   "program_item",
+   "program_nonansi_header",
+   "rparen",
+   "semi",
+   "star",
+   "timeunits_declaration"
+  ],
+  "program_generate_item": [
+   "program_generate_item_sv_2017",
+   "program_generate_item_sv_2023"
+  ],
+  "program_generate_item_sv_2017": [
+   "conditional_generate_construct",
+   "elaboration_system_task",
+   "generate_region",
+   "loop_generate_construct"
+  ],
+  "program_generate_item_sv_2023": [
+   "conditional_generate_construct",
+   "elaboration_severity_system_task",
+   "generate_region",
+   "loop_generate_construct"
+  ],
+  "program_identifier": [
+   "declaration_identifier"
+  ],
+  "program_instantiation": [
+   "comma",
+   "hierarchical_instance",
+   "parameter_value_assignment",
+   "program_identifier",
+   "semi"
+  ],
+  "program_item": [
+   "non_port_program_item",
+   "port_declaration",
+   "semi"
+  ],
+  "program_nonansi_header": [
+   "attribute_instance",
+   "kw_program_81d9aeea",
+   "lifetime",
+   "list_of_ports",
+   "package_import_declaration",
+   "parameter_port_list",
+   "program_identifier",
+   "semi"
+  ],
+  "prop_and_sv_2017": [
+   "kw_and_cffa50a3",
+   "prop_and_sv_2017",
+   "prop_primary_sv_2017"
+  ],
+  "prop_and_sv_2023": [
+   "kw_and_cffa50a3",
+   "prop_and_sv_2023",
+   "prop_primary_sv_2023"
+  ],
+  "prop_iff_sv_2017": [
+   "kw_iff_ee1c009e",
+   "prop_iff_sv_2017",
+   "prop_or_sv_2017"
+  ],
+  "prop_iff_sv_2023": [
+   "kw_iff_ee1c009e",
+   "prop_iff_sv_2023",
+   "prop_or_sv_2023"
+  ],
+  "prop_or_sv_2017": [
+   "kw_or_1758356d",
+   "prop_and_sv_2017",
+   "prop_or_sv_2017"
+  ],
+  "prop_or_sv_2023": [
+   "kw_or_1758356d",
+   "prop_and_sv_2023",
+   "prop_or_sv_2023"
+  ],
+  "prop_primary_sv_2017": [
+   "assign",
+   "clocking_event",
+   "constant_expression",
+   "constant_range",
+   "cycle_delay_const_range_expression",
+   "expression_or_dist",
+   "hash",
+   "kw_accept_on_2aee6cd4",
+   "kw_always_6656018a",
+   "kw_case_6406510c",
+   "kw_else_ae050f5b",
+   "kw_endcase_a27a6786",
+   "kw_eventually_5865020f",
+   "kw_if_958f57f5",
+   "kw_nexttime_b0f658f8",
+   "kw_not_557f2555",
+   "kw_reject_on_a3b3068d",
+   "kw_s_always_0f9aa900",
+   "kw_s_eventually_86207140",
+   "kw_s_nexttime_373d0bd1",
+   "kw_strong_0117691d",
+   "kw_sync_accept_on_b65eda53",
+   "kw_sync_reject_on_1f0c8923",
+   "kw_weak_1ded3053",
+   "lbrack",
+   "lparen",
+   "minus",
+   "non_overlapped_implication",
+   "overlapped_implication",
+   "property_case_item",
+   "property_expr",
+   "property_instance",
+   "rbrack",
+   "rparen",
+   "sequence_expr"
+  ],
+  "prop_primary_sv_2023": [
+   "assign",
+   "clocking_event",
+   "constant_expression",
+   "constant_range",
+   "cycle_delay_const_range_expression",
+   "expression_or_dist",
+   "hash",
+   "kw_accept_on_2aee6cd4",
+   "kw_always_6656018a",
+   "kw_case_6406510c",
+   "kw_else_ae050f5b",
+   "kw_endcase_a27a6786",
+   "kw_eventually_5865020f",
+   "kw_if_958f57f5",
+   "kw_nexttime_b0f658f8",
+   "kw_not_557f2555",
+   "kw_reject_on_a3b3068d",
+   "kw_s_always_0f9aa900",
+   "kw_s_eventually_86207140",
+   "kw_s_nexttime_373d0bd1",
+   "kw_strong_0117691d",
+   "kw_sync_accept_on_b65eda53",
+   "kw_sync_reject_on_1f0c8923",
+   "kw_weak_1ded3053",
+   "lbrack",
+   "lparen",
+   "minus",
+   "non_overlapped_implication",
+   "overlapped_implication",
+   "property_case_item",
+   "property_expr",
+   "property_instance",
+   "rbrack",
+   "rparen",
+   "sequence_expr"
+  ],
+  "prop_until_sv_2017": [
+   "kw_implies_470cec58",
+   "kw_s_until_073539cf",
+   "kw_s_until_with_3a7bcf5b",
+   "kw_until_b310f4d4",
+   "kw_until_with_f31dfb3c",
+   "prop_iff_sv_2017",
+   "prop_until_sv_2017"
+  ],
+  "prop_until_sv_2023": [
+   "kw_implies_470cec58",
+   "kw_s_until_073539cf",
+   "kw_s_until_with_3a7bcf5b",
+   "kw_until_b310f4d4",
+   "kw_until_with_f31dfb3c",
+   "prop_iff_sv_2023",
+   "prop_until_sv_2023"
+  ],
+  "property_actual_arg": [
+   "property_expr",
+   "sequence_actual_arg"
+  ],
+  "property_case_item": [
+   "colon",
+   "comma",
+   "expression_or_dist",
+   "kw_default_7505d64a",
+   "property_expr",
+   "semi"
+  ],
+  "property_declaration": [
+   "assertion_variable_declaration",
+   "colon",
+   "declared_property_identifier",
+   "kw_endproperty_6594321c",
+   "kw_property_269fe373",
+   "lparen",
+   "property_identifier",
+   "property_port_list",
+   "property_spec",
+   "rparen",
+   "semi"
+  ],
+  "property_expr": [
+   "property_expr_sv_2017",
+   "property_expr_sv_2023"
+  ],
+  "property_expr_sv_2017": [
+   "prop_until_sv_2017"
+  ],
+  "property_expr_sv_2023": [
+   "prop_until_sv_2023"
+  ],
+  "property_formal_type": [
+   "kw_property_269fe373",
+   "sequence_formal_type"
+  ],
+  "property_identifier": [
+   "declaration_identifier"
+  ],
+  "property_instance": [
+   "lparen",
+   "property_list_of_arguments",
+   "ps_or_hierarchical_property_identifier",
+   "rparen"
+  ],
+  "property_list_of_arguments": [
+   "comma",
+   "dot",
+   "property_actual_arg",
+   "property_named_arg"
+  ],
+  "property_lvar_port_direction": [
+   "kw_input_140f86aa"
+  ],
+  "property_named_arg": [
+   "dot",
+   "lparen",
+   "non_keyword_identifier",
+   "property_actual_arg",
+   "rparen"
+  ],
+  "property_port_item": [
+   "assign",
+   "attribute_instance",
+   "formal_port_identifier",
+   "kw_local_939bb46a",
+   "property_actual_arg",
+   "property_formal_type",
+   "property_lvar_port_direction",
+   "variable_dimension"
+  ],
+  "property_port_list": [
+   "comma",
+   "property_port_item"
+  ],
+  "property_qualifier": [
+   "class_item_qualifier",
+   "random_qualifier"
+  ],
+  "property_spec": [
+   "clocking_event",
+   "expression_or_dist",
+   "kw_disable_ccf09e2d",
+   "kw_iff_ee1c009e",
+   "lparen",
+   "property_expr",
+   "rparen"
+  ],
+  "provisional_unscoped_block_class_type": [
+   "class_identifier",
+   "parameter_value_assignment",
+   "scope_resolution"
+  ],
+  "ps_checker_identifier": [
+   "known_unscoped_checker_identifier",
+   "scoped_checker_identifier"
+  ],
+  "ps_covergroup_identifier": [
+   "known_unscoped_covergroup_type_identifier",
+   "scoped_covergroup_type_identifier"
+  ],
+  "ps_identifier": [
+   "non_keyword_identifier",
+   "non_typedef_package_scope",
+   "scope_free_identifier"
+  ],
+  "ps_or_hierarchical_array_identifier": [
+   "class_scope",
+   "dot",
+   "hierarchical_array_identifier",
+   "implicit_class_handle",
+   "non_typedef_package_scope"
+  ],
+  "ps_or_hierarchical_net_identifier": [
+   "hierarchical_net_identifier",
+   "net_identifier",
+   "non_typedef_package_scope"
+  ],
+  "ps_or_hierarchical_property_identifier": [
+   "hierarchical_property_identifier",
+   "known_unscoped_property_identifier",
+   "scoped_property_identifier"
+  ],
+  "ps_or_hierarchical_sequence_identifier": [
+   "hierarchical_sequence_identifier",
+   "known_unscoped_sequence_identifier",
+   "scoped_sequence_identifier"
+  ],
+  "ps_parameter_identifier": [
+   "class_scope",
+   "constant_expression",
+   "dot",
+   "generate_block_identifier",
+   "known_unscoped_parameter_identifier",
+   "lbrack",
+   "parameter_identifier",
+   "rbrack",
+   "scoped_package_parameter_identifier"
+  ],
+  "ps_type_identifier": [
+   "ps_type_identifier_sv_2017",
+   "ps_type_identifier_sv_2023"
+  ],
+  "ps_type_identifier_sv_2017": [
+   "class_scope",
+   "kw_local_939bb46a",
+   "kw_n_43_0286dd55",
+   "non_typedef_package_scope",
+   "scope_resolution",
+   "type_identifier"
+  ],
+  "ps_type_identifier_sv_2023": [
+   "class_scope",
+   "kw_local_939bb46a",
+   "kw_n_48_64e095fe",
+   "non_typedef_package_scope",
+   "scope_resolution",
+   "type_identifier"
+  ],
+  "pull_gate_instance": [
+   "lparen",
+   "name_of_instance",
+   "output_terminal",
+   "rparen"
+  ],
+  "pulldown_strength": [
+   "comma",
+   "lparen",
+   "rparen",
+   "strength0",
+   "strength1"
+  ],
+  "pullup_strength": [
+   "comma",
+   "lparen",
+   "rparen",
+   "strength0",
+   "strength1"
+  ],
+  "pulse_control_specparam": [
+   "assign",
+   "comma",
+   "error_limit_value",
+   "kw_PATHPULSE_dollar_e0f78dc5",
+   "kw_PATHPULSE_dollar_specify_input_terminal_descriptor_dollar_specify_output_terminal_descriptor_b3eb892a",
+   "lparen",
+   "reject_limit_value",
+   "rparen"
+  ],
+  "pulsestyle_declaration": [
+   "kw_pulsestyle_ondetect_90d0b4fa",
+   "kw_pulsestyle_onevent_11e408b6",
+   "list_of_path_outputs",
+   "semi"
+  ],
+  "question": [
+   "trivia"
+  ],
+  "queue_dimension": [
+   "colon",
+   "constant_expression",
+   "kw_dollar",
+   "lbrack",
+   "rbrack"
+  ],
+  "queue_slice_dollar_bound": [
+   "kw_dollar",
+   "queue_slice_dollar_offset"
+  ],
+  "queue_slice_dollar_offset": [
+   "constant_expression",
+   "minus",
+   "plus"
+  ],
+  "queue_slice_range_sv_only": [
+   "colon",
+   "constant_expression",
+   "queue_slice_dollar_bound"
+  ],
+  "randcase_item": [
+   "colon",
+   "expression",
+   "statement_or_null"
+  ],
+  "randcase_statement": [
+   "kw_endcase_a27a6786",
+   "kw_randcase_89bbd045",
+   "randcase_item"
+  ],
+  "random_qualifier": [
+   "kw_rand_52400560",
+   "kw_randc_c870e2bc"
+  ],
+  "randomize_call": [
+   "attribute_instance",
+   "constraint_block",
+   "identifier_list",
+   "kw_null_2be88ca4",
+   "kw_randomize_e3b19624",
+   "kw_with_8fcd25a3",
+   "lparen",
+   "rparen",
+   "variable_identifier_list"
+  ],
+  "randsequence_statement": [
+   "randsequence_statement_sv_2017",
+   "randsequence_statement_sv_2023"
+  ],
+  "randsequence_statement_sv_2017": [
+   "kw_endsequence_241830d7",
+   "kw_randsequence_8b92cf8f",
+   "lparen",
+   "production",
+   "production_identifier",
+   "rparen"
+  ],
+  "randsequence_statement_sv_2023": [
+   "kw_endsequence_241830d7",
+   "kw_randsequence_8b92cf8f",
+   "lparen",
+   "rparen",
+   "rs_production",
+   "rs_production_identifier"
+  ],
+  "range_expression": [
+   "expression",
+   "part_select_range"
+  ],
+  "range_list": [
+   "range_list_sv_2023"
+  ],
+  "range_list_sv_2023": [
+   "comma",
+   "value_range"
+  ],
+  "rbrace": [
+   "trivia"
+  ],
+  "rbrack": [
+   "trivia"
+  ],
+  "real_number": [],
+  "reduction_nand": [
+   "trivia"
+  ],
+  "reduction_nor": [
+   "trivia"
+  ],
+  "reduction_xnor": [
+   "trivia"
+  ],
+  "reduction_xnor_alt": [
+   "trivia"
+  ],
+  "ref_declaration": [
+   "kw_ref_69449f99",
+   "list_of_variable_identifiers",
+   "variable_port_type"
+  ],
+  "reference_event": [
+   "timing_check_event"
+  ],
+  "reject_limit_value": [
+   "limit_value"
+  ],
+  "remain_active_flag": [
+   "constant_mintypmax_expression"
+  ],
+  "repeat_range": [
+   "colon",
+   "covergroup_expression"
+  ],
+  "reserved_non_keyword_identifier": [
+   "reserved_non_keyword_identifier_sv",
+   "reserved_non_keyword_identifier_v2005"
+  ],
+  "reserved_non_keyword_identifier_sv": [
+   "trivia"
+  ],
+  "reserved_non_keyword_identifier_v2005": [
+   "trivia"
+  ],
+  "restrict_property_statement": [
+   "kw_property_269fe373",
+   "kw_restrict_ee1e5b88",
+   "lparen",
+   "property_spec",
+   "rparen",
+   "semi"
+  ],
+  "rooted_tf_call_sv_only": [
+   "attribute_instance",
+   "hierarchical_tf_identifier",
+   "identifier",
+   "list_of_arguments",
+   "lparen",
+   "rparen"
+  ],
+  "rparen": [
+   "trivia"
+  ],
+  "rs_case": [
+   "case_expression",
+   "kw_case_6406510c",
+   "kw_endcase_a27a6786",
+   "lparen",
+   "rparen",
+   "rs_case_item"
+  ],
+  "rs_case_item": [
+   "rs_case_item_sv_2017",
+   "rs_case_item_sv_2023"
+  ],
+  "rs_case_item_sv_2017": [
+   "case_item_expression",
+   "colon",
+   "comma",
+   "kw_default_7505d64a",
+   "production_item",
+   "semi"
+  ],
+  "rs_case_item_sv_2023": [
+   "case_item_expression",
+   "colon",
+   "comma",
+   "kw_default_7505d64a",
+   "rs_production_item",
+   "semi"
+  ],
+  "rs_code_block": [
+   "data_declaration",
+   "lbrace",
+   "rbrace",
+   "statement_or_null"
+  ],
+  "rs_if_else": [
+   "rs_if_else_sv_2017",
+   "rs_if_else_sv_2023"
+  ],
+  "rs_if_else_sv_2017": [
+   "expression",
+   "kw_else_ae050f5b",
+   "kw_if_958f57f5",
+   "lparen",
+   "production_item",
+   "rparen"
+  ],
+  "rs_if_else_sv_2023": [
+   "expression",
+   "kw_else_ae050f5b",
+   "kw_if_958f57f5",
+   "lparen",
+   "rparen",
+   "rs_production_item"
+  ],
+  "rs_prod": [
+   "rs_prod_sv_2017",
+   "rs_prod_sv_2023"
+  ],
+  "rs_prod_sv_2017": [
+   "production_item",
+   "rs_case",
+   "rs_code_block",
+   "rs_if_else",
+   "rs_repeat"
+  ],
+  "rs_prod_sv_2023": [
+   "rs_case",
+   "rs_code_block",
+   "rs_if_else",
+   "rs_production_item",
+   "rs_repeat"
+  ],
+  "rs_production": [
+   "rs_production_sv_2023"
+  ],
+  "rs_production_identifier": [
+   "rs_production_identifier_sv_2023"
+  ],
+  "rs_production_identifier_sv_2023": [
+   "non_keyword_identifier"
+  ],
+  "rs_production_item": [
+   "rs_production_item_sv_2023"
+  ],
+  "rs_production_item_sv_2023": [
+   "list_of_arguments",
+   "lparen",
+   "rparen",
+   "rs_production_identifier"
+  ],
+  "rs_production_list": [
+   "rs_production_list_sv_2017",
+   "rs_production_list_sv_2023"
+  ],
+  "rs_production_list_sv_2017": [
+   "expression",
+   "kw_join_c455b38e",
+   "kw_rand_52400560",
+   "lparen",
+   "production_item",
+   "rparen",
+   "rs_prod"
+  ],
+  "rs_production_list_sv_2023": [
+   "expression",
+   "kw_join_c455b38e",
+   "kw_rand_52400560",
+   "lparen",
+   "rparen",
+   "rs_prod",
+   "rs_production_item"
+  ],
+  "rs_production_sv_2023": [
+   "bitwise_or",
+   "colon",
+   "data_type_or_void",
+   "lparen",
+   "rparen",
+   "rs_production_identifier",
+   "rs_rule",
+   "semi",
+   "tf_port_list"
+  ],
+  "rs_repeat": [
+   "rs_repeat_sv_2017",
+   "rs_repeat_sv_2023"
+  ],
+  "rs_repeat_sv_2017": [
+   "expression",
+   "kw_repeat_c0ac4842",
+   "lparen",
+   "production_item",
+   "rparen"
+  ],
+  "rs_repeat_sv_2023": [
+   "expression",
+   "kw_repeat_c0ac4842",
+   "lparen",
+   "rparen",
+   "rs_production_item"
+  ],
+  "rs_rule": [
+   "rs_rule_sv_2017",
+   "rs_rule_sv_2023"
+  ],
+  "rs_rule_sv_2017": [
+   "assign",
+   "colon",
+   "rs_code_block",
+   "rs_production_list",
+   "weight_specification"
+  ],
+  "rs_rule_sv_2023": [
+   "assign",
+   "colon",
+   "rs_code_block",
+   "rs_production_list",
+   "rs_weight_specification"
+  ],
+  "rs_weight_specification": [
+   "rs_weight_specification_sv_2023"
+  ],
+  "rs_weight_specification_sv_2023": [
+   "expression",
+   "integral_number",
+   "lparen",
+   "ps_identifier",
+   "rparen"
+  ],
+  "scalar_constant": [
+   "kw_n_0_b6589fc6",
+   "kw_n_1_356a192b",
+   "kw_n_1_tick_B0_720c4a9c",
+   "kw_n_1_tick_B1_afad66cc",
+   "kw_n_1_tick_b0_cc597d72",
+   "kw_n_1_tick_b1_a5c2b78e",
+   "kw_tick_B0_f33e35dd",
+   "kw_tick_B1_230dd583",
+   "kw_tick_b0_624cb09b",
+   "kw_tick_b1_1c5be368",
+   "tick"
+  ],
+  "scalar_timing_check_compare_chain": [
+   "attribute_instance",
+   "binary_operator_above_equality",
+   "expression_operand"
+  ],
+  "scalar_timing_check_compare_lhs": [
+   "scalar_timing_check_compare_chain"
+  ],
+  "scalar_timing_check_condition": [
+   "binary_operator",
+   "case_equal",
+   "case_not_equal",
+   "equal",
+   "expression",
+   "not_equal",
+   "scalar_constant",
+   "scalar_timing_check_compare_lhs",
+   "tilde"
+  ],
+  "scope_free_identifier": [
+   "escaped_identifier",
+   "scope_resolution",
+   "simple_identifier_no_scope"
+  ],
+  "scope_randomize_sv_only": [
+   "kw_std_55ec981f",
+   "randomize_call",
+   "scope_resolution"
+  ],
+  "scope_resolution": [
+   "trivia"
+  ],
+  "scoped_base_class_type_identifier": [
+   "class_identifier",
+   "non_typedef_package_scope"
+  ],
+  "scoped_block_class_type": [
+   "class_identifier",
+   "non_typedef_package_scope",
+   "parameter_value_assignment",
+   "scope_resolution"
+  ],
+  "scoped_block_covergroup_identifier": [
+   "scoped_covergroup_type_identifier"
+  ],
+  "scoped_block_type_identifier": [
+   "packed_dimension",
+   "scoped_type_scope_prefix",
+   "type_identifier"
+  ],
+  "scoped_checker_identifier": [
+   "checker_identifier",
+   "non_typedef_package_scope"
+  ],
+  "scoped_class_scope_identifier": [
+   "class_identifier",
+   "non_typedef_package_scope"
+  ],
+  "scoped_class_scoped_call_prefix_identifier": [
+   "class_identifier",
+   "non_typedef_package_scope"
+  ],
+  "scoped_class_type_identifier": [
+   "class_identifier",
+   "non_typedef_package_scope"
+  ],
+  "scoped_covergroup_type_identifier": [
+   "covergroup_identifier",
+   "non_typedef_package_scope"
+  ],
+  "scoped_data_type_identifier": [
+   "packed_dimension",
+   "scoped_type_scope_prefix",
+   "type_identifier"
+  ],
+  "scoped_interface_class_type_identifier": [
+   "class_identifier",
+   "non_typedef_package_scope"
+  ],
+  "scoped_let_identifier": [
+   "let_identifier",
+   "non_typedef_package_scope"
+  ],
+  "scoped_or_hierarchical_tf_identifier": [
+   "class_scope",
+   "package_scope",
+   "tf_identifier"
+  ],
+  "scoped_package_parameter_identifier": [
+   "non_typedef_package_scope",
+   "parameter_identifier"
+  ],
+  "scoped_property_identifier": [
+   "non_typedef_package_scope",
+   "property_identifier"
+  ],
+  "scoped_sequence_identifier": [
+   "non_typedef_package_scope",
+   "sequence_identifier"
+  ],
+  "scoped_type_scope_prefix": [
+   "class_scope",
+   "non_typedef_package_scope"
+  ],
+  "select": [
+   "bit_select",
+   "dot",
+   "lparen",
+   "member_identifier",
+   "select_tail"
+  ],
+  "select_condition": [
+   "bins_expression",
+   "covergroup_range_list",
+   "kw_binsof_efb35b22",
+   "kw_intersect_6c96caaf",
+   "lbrace",
+   "lparen",
+   "rbrace",
+   "rparen"
+  ],
+  "select_expression": [
+   "bang",
+   "cross_identifier",
+   "cross_set_expression",
+   "integer_covergroup_expression",
+   "kw_matches_9f3e9242",
+   "kw_with_8fcd25a3",
+   "logical_and",
+   "logical_or",
+   "lparen",
+   "rparen",
+   "select_condition",
+   "select_expression",
+   "with_covergroup_expression"
+  ],
+  "select_tail": [
+   "bit_select",
+   "lbrack",
+   "part_select_range",
+   "rbrack"
+  ],
+  "semi": [
+   "trivia"
+  ],
+  "seq_and_expr": [
+   "seq_and_tail",
+   "seq_intersect_expr"
+  ],
+  "seq_and_tail": [
+   "kw_and_cffa50a3",
+   "seq_intersect_expr"
+  ],
+  "seq_block": [
+   "block_identifier",
+   "block_item_declaration",
+   "colon",
+   "kw_begin_8cbd0a74",
+   "kw_end_7a92f3d2",
+   "statement_or_null"
+  ],
+  "seq_delay_expr": [
+   "cycle_delay_range",
+   "seq_unary"
+  ],
+  "seq_input_list": [
+   "edge_input_list",
+   "level_input_list"
+  ],
+  "seq_intersect_expr": [
+   "seq_intersect_tail",
+   "seq_within_expr"
+  ],
+  "seq_intersect_tail": [
+   "kw_intersect_6c96caaf",
+   "seq_within_expr"
+  ],
+  "seq_or_expr": [
+   "seq_and_expr",
+   "seq_or_tail"
+  ],
+  "seq_or_tail": [
+   "kw_or_1758356d",
+   "seq_and_expr"
+  ],
+  "seq_throughout_expr": [
+   "expression_or_dist",
+   "kw_throughout_330dbf47",
+   "seq_delay_expr",
+   "seq_throughout_expr"
+  ],
+  "seq_unary": [
+   "boolean_abbrev",
+   "clocking_event",
+   "comma",
+   "expression_or_dist",
+   "kw_first_match_2ddb8d09",
+   "lparen",
+   "rparen",
+   "sequence_abbrev",
+   "sequence_expr",
+   "sequence_instance",
+   "sequence_match_item"
+  ],
+  "seq_within_expr": [
+   "seq_throughout_expr",
+   "seq_within_tail"
+  ],
+  "seq_within_tail": [
+   "kw_within_f42ef621",
+   "seq_throughout_expr"
+  ],
+  "sequence_abbrev": [
+   "consecutive_repetition"
+  ],
+  "sequence_actual_arg": [
+   "sequence_actual_arg_sv_2017",
+   "sequence_actual_arg_sv_2023"
+  ],
+  "sequence_actual_arg_sv_2017": [
+   "event_expression",
+   "sequence_expr"
+  ],
+  "sequence_actual_arg_sv_2023": [
+   "event_expression",
+   "kw_dollar",
+   "sequence_expr"
+  ],
+  "sequence_declaration": [
+   "assertion_variable_declaration",
+   "colon",
+   "declared_sequence_identifier",
+   "kw_endsequence_241830d7",
+   "kw_sequence_92504616",
+   "lparen",
+   "rparen",
+   "semi",
+   "sequence_expr",
+   "sequence_identifier",
+   "sequence_port_list"
+  ],
+  "sequence_expr": [
+   "seq_or_expr"
+  ],
+  "sequence_formal_type": [
+   "data_type_or_implicit",
+   "kw_sequence_92504616",
+   "kw_untyped_d53be1e8"
+  ],
+  "sequence_identifier": [
+   "declaration_identifier"
+  ],
+  "sequence_implies": [
+   "trivia"
+  ],
+  "sequence_instance": [
+   "lparen",
+   "ps_or_hierarchical_sequence_identifier",
+   "rparen",
+   "sequence_list_of_arguments"
+  ],
+  "sequence_list_of_arguments": [
+   "comma",
+   "dot",
+   "sequence_actual_arg",
+   "sequence_named_arg"
+  ],
+  "sequence_lvar_port_direction": [
+   "kw_inout_c900aaa9",
+   "kw_input_140f86aa",
+   "kw_output_1029d676"
+  ],
+  "sequence_match_item": [
+   "inc_or_dec_expression",
+   "operator_assignment",
+   "subroutine_call"
+  ],
+  "sequence_method_call": [
+   "dot",
+   "method_identifier",
+   "sequence_instance"
+  ],
+  "sequence_named_arg": [
+   "dot",
+   "lparen",
+   "non_keyword_identifier",
+   "rparen",
+   "sequence_actual_arg"
+  ],
+  "sequence_port_item": [
+   "assign",
+   "attribute_instance",
+   "formal_port_identifier",
+   "kw_local_939bb46a",
+   "sequence_actual_arg",
+   "sequence_formal_type",
+   "sequence_lvar_port_direction",
+   "variable_dimension"
+  ],
+  "sequence_port_list": [
+   "comma",
+   "sequence_port_item"
+  ],
+  "sequential_body": [
+   "kw_endtable_0b3f3e00",
+   "kw_table_c3ee137d",
+   "sequential_entry",
+   "udp_initial_statement"
+  ],
+  "sequential_entry": [
+   "colon",
+   "current_state",
+   "next_state",
+   "semi",
+   "seq_input_list"
+  ],
+  "set_covergroup_expression": [
+   "covergroup_expression"
+  ],
+  "severity_system_task": [
+   "severity_system_task_sv_2023"
+  ],
+  "severity_system_task_sv_2023": [
+   "comma",
+   "finish_number",
+   "kw_sv_dollar_error_d304cf0a",
+   "kw_sv_dollar_fatal_ecc3c9fd",
+   "kw_sv_dollar_info_d116cb1c",
+   "kw_sv_dollar_warning_22a41474",
+   "list_of_arguments",
+   "lparen",
+   "rparen",
+   "semi"
+  ],
+  "shift_left": [
+   "trivia"
+  ],
+  "shift_left_assign": [
+   "trivia"
+  ],
+  "shift_right": [
+   "trivia"
+  ],
+  "shift_right_assign": [
+   "trivia"
+  ],
+  "showcancelled_declaration": [
+   "kw_noshowcancelled_1d50d807",
+   "kw_showcancelled_ac9a7408",
+   "list_of_path_outputs",
+   "semi"
+  ],
+  "signal_identifier": [
+   "non_keyword_identifier"
+  ],
+  "signing": [
+   "kw_signed_07235a80",
+   "kw_unsigned_9861ca25"
+  ],
+  "simple_identifier": [
+   "trivia"
+  ],
+  "simple_identifier_no_scope": [
+   "scope_resolution",
+   "trivia"
+  ],
+  "simple_immediate_assert_statement": [
+   "action_block",
+   "expression",
+   "kw_assert_64b5daad",
+   "lparen",
+   "rparen"
+  ],
+  "simple_immediate_assertion_statement": [
+   "simple_immediate_assert_statement",
+   "simple_immediate_assume_statement",
+   "simple_immediate_cover_statement"
+  ],
+  "simple_immediate_assume_statement": [
+   "action_block",
+   "expression",
+   "kw_assume_661e458e",
+   "lparen",
+   "rparen"
+  ],
+  "simple_immediate_cover_statement": [
+   "expression",
+   "kw_cover_a28100fa",
+   "lparen",
+   "rparen",
+   "statement_or_null"
+  ],
+  "simple_path_declaration": [
+   "assign",
+   "full_path_description",
+   "parallel_path_description",
+   "path_delay_value"
+  ],
+  "simple_type": [
+   "integer_type",
+   "non_integer_type",
+   "ps_parameter_identifier",
+   "ps_type_identifier"
+  ],
+  "slash": [
+   "trivia"
+  ],
+  "slash_assign": [
+   "trivia"
+  ],
+  "slice_size": [
+   "constant_expression",
+   "simple_type"
+  ],
+  "solve_before_list": [
+   "comma",
+   "constraint_primary"
+  ],
+  "source_text": [
+   "source_text_item"
+  ],
+  "source_text_item": [
+   "compiler_directive",
+   "description",
+   "package_import_declaration",
+   "source_text_item_unit_sv_only",
+   "timeunits_declaration"
+  ],
+  "source_text_item_unit_sv_only": [
+   "local_parameter_declaration",
+   "parameter_declaration",
+   "semi"
+  ],
+  "specify_block": [
+   "kw_endspecify_4e5c5021",
+   "kw_specify_ade6a05c",
+   "specify_item"
+  ],
+  "specify_input_terminal_descriptor": [
+   "constant_range_expression",
+   "input_identifier",
+   "lbrack",
+   "rbrack"
+  ],
+  "specify_item": [
+   "path_declaration",
+   "pulsestyle_declaration",
+   "showcancelled_declaration",
+   "specparam_declaration",
+   "system_timing_check"
+  ],
+  "specify_output_terminal_descriptor": [
+   "constant_range_expression",
+   "lbrack",
+   "output_identifier",
+   "rbrack"
+  ],
+  "specify_terminal_descriptor": [
+   "specify_input_terminal_descriptor",
+   "specify_output_terminal_descriptor"
+  ],
+  "specparam_assignment": [
+   "assign",
+   "constant_mintypmax_expression",
+   "pulse_control_specparam",
+   "specparam_identifier"
+  ],
+  "specparam_declaration": [
+   "kw_specparam_54af7813",
+   "list_of_specparam_assignments",
+   "packed_dimension",
+   "semi"
+  ],
+  "specparam_identifier": [
+   "non_keyword_identifier"
+  ],
+  "split_direct_callable_method_call": [
+   "callable_method_call_body",
+   "dot",
+   "implicit_class_handle",
+   "split_hierarchical_callable_receiver"
+  ],
+  "split_hierarchical_callable_receiver": [
+   "class_scope",
+   "constant_bit_select",
+   "dot",
+   "kw_class_qualifier_fa08937d",
+   "non_keyword_identifier",
+   "non_typedef_package_scope"
+  ],
+  "star": [
+   "trivia"
+  ],
+  "star_assign": [
+   "trivia"
+  ],
+  "start_edge_offset": [
+   "mintypmax_expression"
+  ],
+  "state_dependent_path_declaration": [
+   "edge_sensitive_path_declaration",
+   "kw_if_958f57f5",
+   "kw_ifnone_32ae8180",
+   "lparen",
+   "module_path_expression",
+   "rparen",
+   "simple_path_declaration"
+  ],
+  "statement": [
+   "attribute_instance",
+   "block_identifier",
+   "colon",
+   "statement_item"
+  ],
+  "statement_item": [
+   "statement_item_sv_2017",
+   "statement_item_sv_2023"
+  ],
+  "statement_item_sv_2017": [
+   "blocking_assignment",
+   "case_statement",
+   "clocking_drive",
+   "conditional_statement",
+   "disable_statement",
+   "event_trigger",
+   "expect_property_statement",
+   "inc_or_dec_expression",
+   "jump_statement",
+   "loop_statement",
+   "nonblocking_assignment",
+   "par_block",
+   "procedural_assertion_statement",
+   "procedural_continuous_assignment",
+   "procedural_timing_control_statement",
+   "randcase_statement",
+   "randsequence_statement",
+   "semi",
+   "seq_block",
+   "subroutine_call_statement",
+   "wait_statement"
+  ],
+  "statement_item_sv_2023": [
+   "blocking_assignment",
+   "case_statement",
+   "clocking_drive",
+   "conditional_statement",
+   "disable_statement",
+   "event_trigger",
+   "expect_property_statement",
+   "jump_statement",
+   "loop_statement",
+   "nonblocking_assignment",
+   "par_block",
+   "procedural_assertion_statement",
+   "procedural_continuous_assignment",
+   "procedural_timing_control_statement",
+   "randcase_statement",
+   "randsequence_statement",
+   "semi",
+   "seq_block",
+   "subroutine_call_statement",
+   "wait_statement"
+  ],
+  "statement_or_null": [
+   "attribute_instance",
+   "semi",
+   "statement"
+  ],
+  "stream_concatenation": [
+   "comma",
+   "lbrace",
+   "rbrace",
+   "stream_expression"
+  ],
+  "stream_expression": [
+   "array_range_expression",
+   "expression",
+   "kw_with_8fcd25a3",
+   "lbrack",
+   "rbrack"
+  ],
+  "stream_operator": [
+   "shift_left",
+   "shift_right"
+  ],
+  "streaming_concatenation": [
+   "lbrace",
+   "rbrace",
+   "slice_size",
+   "stream_concatenation",
+   "stream_operator"
+  ],
+  "strength0": [
+   "kw_pull0",
+   "kw_strong0",
+   "kw_supply0",
+   "kw_weak0"
+  ],
+  "strength1": [
+   "kw_pull1",
+   "kw_strong1",
+   "kw_supply1",
+   "kw_weak1"
+  ],
+  "string_literal": [
+   "trivia"
+  ],
+  "struct_union": [
+   "struct_union_sv_2017",
+   "struct_union_sv_2023"
+  ],
+  "struct_union_member": [
+   "attribute_instance",
+   "data_type_or_void",
+   "list_of_variable_decl_assignments",
+   "random_qualifier",
+   "semi"
+  ],
+  "struct_union_sv_2017": [
+   "kw_struct_d118e5a3",
+   "kw_tagged_8e1ec218",
+   "kw_union_67ad5a07"
+  ],
+  "struct_union_sv_2023": [
+   "kw_struct_d118e5a3",
+   "kw_union_67ad5a07",
+   "union_modifier"
+  ],
+  "structure_pattern_key": [
+   "assignment_pattern_key",
+   "member_identifier"
+  ],
+  "subroutine_call": [
+   "class_scoped_tf_call",
+   "kw_std_55ec981f",
+   "method_call",
+   "randomize_call",
+   "rooted_tf_call_sv_only",
+   "scope_resolution",
+   "system_tf_call",
+   "tf_call"
+  ],
+  "subroutine_call_statement": [
+   "semi",
+   "subroutine_call",
+   "void_cast_statement_sv_only"
+  ],
+  "sv_dollar_fullskew_timing_check": [
+   "comma",
+   "data_event",
+   "event_based_flag",
+   "kw_sv_dollar_fullskew_1e1514b3",
+   "lparen",
+   "notifier",
+   "reference_event",
+   "remain_active_flag",
+   "rparen",
+   "semi",
+   "timing_check_limit"
+  ],
+  "sv_dollar_hold_timing_check": [
+   "comma",
+   "data_event",
+   "kw_sv_dollar_hold_0cf8df90",
+   "lparen",
+   "notifier",
+   "reference_event",
+   "rparen",
+   "semi",
+   "timing_check_limit"
+  ],
+  "sv_dollar_nochange_timing_check": [
+   "comma",
+   "data_event",
+   "end_edge_offset",
+   "kw_sv_dollar_nochange_872771bf",
+   "lparen",
+   "notifier",
+   "reference_event",
+   "rparen",
+   "semi",
+   "start_edge_offset"
+  ],
+  "sv_dollar_period_timing_check": [
+   "comma",
+   "controlled_reference_event",
+   "kw_sv_dollar_period_87a9c33e",
+   "lparen",
+   "notifier",
+   "rparen",
+   "semi",
+   "timing_check_limit"
+  ],
+  "sv_dollar_recovery_timing_check": [
+   "comma",
+   "data_event",
+   "kw_sv_dollar_recovery_585fc30a",
+   "lparen",
+   "notifier",
+   "reference_event",
+   "rparen",
+   "semi",
+   "timing_check_limit"
+  ],
+  "sv_dollar_recrem_timing_check": [
+   "comma",
+   "data_event",
+   "delayed_data",
+   "delayed_reference",
+   "kw_sv_dollar_recrem_fc40cd26",
+   "lparen",
+   "notifier",
+   "reference_event",
+   "rparen",
+   "semi",
+   "timecheck_condition",
+   "timestamp_condition",
+   "timing_check_limit"
+  ],
+  "sv_dollar_removal_timing_check": [
+   "comma",
+   "data_event",
+   "kw_sv_dollar_removal_7a979d46",
+   "lparen",
+   "notifier",
+   "reference_event",
+   "rparen",
+   "semi",
+   "timing_check_limit"
+  ],
+  "sv_dollar_setup_timing_check": [
+   "comma",
+   "data_event",
+   "kw_sv_dollar_setup_b58bdaae",
+   "lparen",
+   "notifier",
+   "reference_event",
+   "rparen",
+   "semi",
+   "timing_check_limit"
+  ],
+  "sv_dollar_setuphold_timing_check": [
+   "comma",
+   "data_event",
+   "delayed_data",
+   "delayed_reference",
+   "kw_sv_dollar_setuphold_25a075ac",
+   "lparen",
+   "notifier",
+   "reference_event",
+   "rparen",
+   "semi",
+   "timecheck_condition",
+   "timestamp_condition",
+   "timing_check_limit"
+  ],
+  "sv_dollar_skew_timing_check": [
+   "comma",
+   "data_event",
+   "kw_sv_dollar_skew_1ae5c1e4",
+   "lparen",
+   "notifier",
+   "reference_event",
+   "rparen",
+   "semi",
+   "timing_check_limit"
+  ],
+  "sv_dollar_timeskew_timing_check": [
+   "comma",
+   "data_event",
+   "event_based_flag",
+   "kw_sv_dollar_timeskew_6d763f0a",
+   "lparen",
+   "notifier",
+   "reference_event",
+   "remain_active_flag",
+   "rparen",
+   "semi",
+   "timing_check_limit"
+  ],
+  "sv_dollar_width_timing_check": [
+   "comma",
+   "controlled_reference_event",
+   "kw_sv_dollar_width_72b04d27",
+   "lparen",
+   "notifier",
+   "rparen",
+   "semi",
+   "threshold",
+   "timing_check_limit"
+  ],
+  "sv_multi_entry_root": [
+   "library_text",
+   "systemverilog_file",
+   "systemverilog_parseable_file"
+  ],
+  "system_tf_call": [
+   "at_sign",
+   "clocking_event",
+   "comma",
+   "data_type",
+   "dot",
+   "expression",
+   "kw_sv_dollar_root_f65f0e67",
+   "kw_sv_dollar_unit_1d99223f",
+   "list_of_arguments",
+   "lparen",
+   "rparen",
+   "scope_resolution",
+   "system_tf_identifier"
+  ],
+  "system_tf_identifier": [
+   "trivia"
+  ],
+  "system_timing_check": [
+   "sv_dollar_fullskew_timing_check",
+   "sv_dollar_hold_timing_check",
+   "sv_dollar_nochange_timing_check",
+   "sv_dollar_period_timing_check",
+   "sv_dollar_recovery_timing_check",
+   "sv_dollar_recrem_timing_check",
+   "sv_dollar_removal_timing_check",
+   "sv_dollar_setup_timing_check",
+   "sv_dollar_setuphold_timing_check",
+   "sv_dollar_skew_timing_check",
+   "sv_dollar_timeskew_timing_check",
+   "sv_dollar_width_timing_check"
+  ],
+  "systemverilog_file": [
+   "source_text",
+   "trivia"
+  ],
+  "systemverilog_parseable_file": [
+   "parseable_source_item",
+   "trivia"
+  ],
+  "t01_path_delay_expression": [
+   "path_delay_expression"
+  ],
+  "t0x_path_delay_expression": [
+   "path_delay_expression"
+  ],
+  "t0z_path_delay_expression": [
+   "path_delay_expression"
+  ],
+  "t10_path_delay_expression": [
+   "path_delay_expression"
+  ],
+  "t1x_path_delay_expression": [
+   "path_delay_expression"
+  ],
+  "t1z_path_delay_expression": [
+   "path_delay_expression"
+  ],
+  "t_path_delay_expression": [
+   "path_delay_expression"
+  ],
+  "tagged_union_expression": [
+   "tagged_union_expression_sv_2017",
+   "tagged_union_expression_sv_2023"
+  ],
+  "tagged_union_expression_sv_2017": [
+   "expression",
+   "kw_tagged_8e1ec218",
+   "member_identifier"
+  ],
+  "tagged_union_expression_sv_2023": [
+   "kw_tagged_8e1ec218",
+   "member_identifier",
+   "primary"
+  ],
+  "task_body_declaration": [
+   "block_item_declaration",
+   "class_scope",
+   "colon",
+   "dot",
+   "interface_identifier",
+   "kw_endtask_eb64ab0d",
+   "lparen",
+   "rparen",
+   "semi",
+   "statement_or_null",
+   "task_identifier",
+   "tf_item_declaration",
+   "tf_port_list"
+  ],
+  "task_declaration": [
+   "task_declaration_sv_2017",
+   "task_declaration_sv_2023"
+  ],
+  "task_declaration_sv_2017": [
+   "kw_task_7fbb727d",
+   "lifetime",
+   "task_body_declaration"
+  ],
+  "task_declaration_sv_2023": [
+   "dynamic_override_specifiers",
+   "kw_task_7fbb727d",
+   "lifetime",
+   "task_body_declaration"
+  ],
+  "task_identifier": [
+   "declaration_identifier"
+  ],
+  "task_prototype": [
+   "task_prototype_sv_2017",
+   "task_prototype_sv_2023"
+  ],
+  "task_prototype_sv_2017": [
+   "kw_task_7fbb727d",
+   "lparen",
+   "rparen",
+   "task_identifier",
+   "tf_port_list"
+  ],
+  "task_prototype_sv_2023": [
+   "dynamic_override_specifiers",
+   "kw_task_7fbb727d",
+   "lparen",
+   "rparen",
+   "task_identifier",
+   "tf_port_list"
+  ],
+  "terminal_identifier": [
+   "non_keyword_identifier"
+  ],
+  "tf_call": [
+   "attribute_instance",
+   "plain_tf_call_with_args",
+   "scoped_or_hierarchical_tf_identifier",
+   "tf_call_with_args",
+   "tf_identifier"
+  ],
+  "tf_call_with_args": [
+   "attribute_instance",
+   "list_of_arguments",
+   "lparen",
+   "rparen",
+   "scoped_or_hierarchical_tf_identifier"
+  ],
+  "tf_identifier": [
+   "callable_identifier"
+  ],
+  "tf_item_declaration": [
+   "block_item_declaration",
+   "tf_port_declaration"
+  ],
+  "tf_port_declaration": [
+   "attribute_instance",
+   "data_type_or_implicit",
+   "kw_var_e5b4e786",
+   "list_of_tf_variable_identifiers",
+   "semi",
+   "tf_port_direction"
+  ],
+  "tf_port_direction": [
+   "tf_port_direction_sv_2017",
+   "tf_port_direction_sv_2023"
+  ],
+  "tf_port_direction_const_ref_sv_only": [
+   "kw_const_b42f3f6f",
+   "kw_ref_69449f99"
+  ],
+  "tf_port_direction_sv_2017": [
+   "port_direction",
+   "tf_port_direction_const_ref_sv_only"
+  ],
+  "tf_port_direction_sv_2023": [
+   "kw_const_b42f3f6f",
+   "kw_ref_69449f99",
+   "kw_static_a381562a",
+   "port_direction"
+  ],
+  "tf_port_item": [
+   "assign",
+   "attribute_instance",
+   "data_type_or_implicit",
+   "expression",
+   "kw_var_e5b4e786",
+   "port_identifier",
+   "tf_port_direction",
+   "variable_dimension"
+  ],
+  "tf_port_list": [
+   "comma",
+   "tf_port_item"
+  ],
+  "tf_variable_identifier_decl": [
+   "assign",
+   "expression",
+   "port_identifier",
+   "variable_dimension"
+  ],
+  "tfall_path_delay_expression": [
+   "path_delay_expression"
+  ],
+  "threshold": [
+   "constant_expression"
+  ],
+  "tick": [
+   "trivia"
+  ],
+  "tilde": [
+   "trivia"
+  ],
+  "time_literal": [
+   "number",
+   "time_unit"
+  ],
+  "time_unit": [
+   "kw_fs_3f4bb586",
+   "kw_ms_26cc3217",
+   "kw_ns_7320d5b7",
+   "kw_ps_c67f1ee1",
+   "kw_s_a0f1490a",
+   "kw_us_da2b1288"
+  ],
+  "timecheck_condition": [
+   "mintypmax_expression"
+  ],
+  "timestamp_condition": [
+   "mintypmax_expression"
+  ],
+  "timeunit_separator_slash": [
+   "timeunit_separator_trivia"
+  ],
+  "timeunit_separator_trivia": [],
+  "timeunits_declaration": [
+   "kw_timeprecision_628f1cfc",
+   "kw_timeunit_57f78b2f",
+   "semi",
+   "time_literal",
+   "timeunit_separator_slash"
+  ],
+  "timing_check_condition": [
+   "lparen",
+   "rparen",
+   "scalar_timing_check_condition"
+  ],
+  "timing_check_event": [
+   "logical_and3",
+   "specify_terminal_descriptor",
+   "timing_check_condition",
+   "timing_check_event_control"
+  ],
+  "timing_check_event_control": [
+   "edge_control_specifier",
+   "kw_edge_a0f2c69a",
+   "kw_negedge_c77fbc5c",
+   "kw_posedge_7529558b"
+  ],
+  "timing_check_limit": [
+   "expression"
+  ],
+  "topmodule_identifier": [
+   "declaration_identifier"
+  ],
+  "trans_item": [
+   "covergroup_range_list"
+  ],
+  "trans_list": [
+   "comma",
+   "lparen",
+   "rparen",
+   "trans_set"
+  ],
+  "trans_range_list": [
+   "assign",
+   "implies",
+   "lbrack",
+   "rbrack",
+   "repeat_range",
+   "star",
+   "trans_item"
+  ],
+  "trans_set": [
+   "sequence_implies",
+   "trans_range_list"
+  ],
+  "trise_path_delay_expression": [
+   "path_delay_expression"
+  ],
+  "trivia": [
+   "block_comment",
+   "line_comment"
+  ],
+  "tx0_path_delay_expression": [
+   "path_delay_expression"
+  ],
+  "tx1_path_delay_expression": [
+   "path_delay_expression"
+  ],
+  "txz_path_delay_expression": [
+   "path_delay_expression"
+  ],
+  "type_assignment": [
+   "type_assignment_sv_2017",
+   "type_assignment_sv_2023"
+  ],
+  "type_assignment_sv_2017": [
+   "assign",
+   "data_type",
+   "declared_type_parameter_identifier",
+   "kw_type_d0a3e7f8"
+  ],
+  "type_assignment_sv_2023": [
+   "assign",
+   "data_type_or_incomplete_class_scoped_type",
+   "declared_type_parameter_identifier",
+   "kw_type_d0a3e7f8"
+  ],
+  "type_declaration": [
+   "type_declaration_sv_2017",
+   "type_declaration_sv_2023"
+  ],
+  "type_declaration_sv_2017": [
+   "class_type",
+   "constant_bit_select",
+   "data_type",
+   "declared_class_alias_identifier",
+   "declared_forward_class_identifier",
+   "declared_forward_interface_class_identifier",
+   "declared_type_identifier",
+   "dot",
+   "forward_type_keyword",
+   "interface_instance_identifier",
+   "kw_class_8d767bf5",
+   "kw_interface_5ea2d81a",
+   "kw_typedef_6dc2082b",
+   "semi",
+   "type_identifier",
+   "variable_dimension"
+  ],
+  "type_declaration_sv_2023": [
+   "class_type",
+   "constant_bit_select",
+   "data_type_or_incomplete_class_scoped_type",
+   "declared_class_alias_identifier",
+   "declared_forward_class_identifier",
+   "declared_forward_interface_class_identifier",
+   "declared_type_identifier",
+   "dot",
+   "forward_type_keyword",
+   "interface_port_identifier",
+   "kw_class_8d767bf5",
+   "kw_interface_5ea2d81a",
+   "kw_typedef_6dc2082b",
+   "semi",
+   "type_identifier",
+   "variable_dimension"
+  ],
+  "type_identifier": [
+   "declaration_identifier"
+  ],
+  "type_identifier_or_class_type": [
+   "type_identifier_or_class_type_sv_2023"
+  ],
+  "type_identifier_or_class_type_sv_2023": [
+   "class_type",
+   "type_identifier"
+  ],
+  "type_parameter_declaration": [
+   "type_parameter_declaration_sv_2023"
+  ],
+  "type_parameter_declaration_sv_2023": [
+   "forward_type",
+   "kw_type_d0a3e7f8",
+   "list_of_type_assignments"
+  ],
+  "type_reference": [
+   "type_reference_sv_2017",
+   "type_reference_sv_2023"
+  ],
+  "type_reference_sv_2017": [
+   "data_type",
+   "expression",
+   "kw_type_d0a3e7f8",
+   "lparen",
+   "rparen"
+  ],
+  "type_reference_sv_2023": [
+   "data_type_or_incomplete_class_scoped_type",
+   "expression",
+   "kw_type_d0a3e7f8",
+   "lparen",
+   "rparen"
+  ],
+  "tz0_path_delay_expression": [
+   "path_delay_expression"
+  ],
+  "tz1_path_delay_expression": [
+   "path_delay_expression"
+  ],
+  "tz_path_delay_expression": [
+   "path_delay_expression"
+  ],
+  "tzx_path_delay_expression": [
+   "path_delay_expression"
+  ],
+  "udp_ansi_declaration": [
+   "attribute_instance",
+   "kw_primitive_9756bf34",
+   "lparen",
+   "rparen",
+   "semi",
+   "udp_declaration_port_list",
+   "udp_identifier"
+  ],
+  "udp_body": [
+   "combinational_body",
+   "sequential_body"
+  ],
+  "udp_declaration": [
+   "udp_declaration_sv_2017",
+   "udp_declaration_sv_2023"
+  ],
+  "udp_declaration_port_list": [
+   "comma",
+   "udp_input_declaration",
+   "udp_output_declaration"
+  ],
+  "udp_declaration_sv_2017": [
+   "attribute_instance",
+   "colon",
+   "dot_star",
+   "kw_endprimitive_f53f53d4",
+   "kw_extern_bf1ee311",
+   "kw_primitive_9756bf34",
+   "lparen",
+   "rparen",
+   "semi",
+   "udp_ansi_declaration",
+   "udp_body",
+   "udp_identifier",
+   "udp_nonansi_declaration",
+   "udp_port_declaration"
+  ],
+  "udp_declaration_sv_2023": [
+   "attribute_instance",
+   "colon",
+   "dot",
+   "kw_endprimitive_f53f53d4",
+   "kw_extern_bf1ee311",
+   "kw_primitive_9756bf34",
+   "lparen",
+   "rparen",
+   "semi",
+   "star",
+   "udp_ansi_declaration",
+   "udp_body",
+   "udp_identifier",
+   "udp_nonansi_declaration",
+   "udp_port_declaration"
+  ],
+  "udp_identifier": [
+   "non_keyword_identifier"
+  ],
+  "udp_initial_statement": [
+   "assign",
+   "init_val",
+   "kw_initial_8ad7d21c",
+   "output_port_identifier",
+   "semi"
+  ],
+  "udp_input_declaration": [
+   "attribute_instance",
+   "kw_input_140f86aa",
+   "list_of_udp_port_identifiers"
+  ],
+  "udp_instance": [
+   "comma",
+   "input_terminal",
+   "lparen",
+   "name_of_instance",
+   "output_terminal",
+   "rparen"
+  ],
+  "udp_instantiation": [
+   "comma",
+   "delay",
+   "drive_strength",
+   "semi",
+   "udp_identifier",
+   "udp_instance"
+  ],
+  "udp_nonansi_declaration": [
+   "attribute_instance",
+   "kw_primitive_9756bf34",
+   "lparen",
+   "rparen",
+   "semi",
+   "udp_identifier",
+   "udp_port_list"
+  ],
+  "udp_output_declaration": [
+   "assign",
+   "attribute_instance",
+   "constant_expression",
+   "kw_output_1029d676",
+   "kw_reg_e06b9586",
+   "port_identifier"
+  ],
+  "udp_port_declaration": [
+   "semi",
+   "udp_input_declaration",
+   "udp_output_declaration",
+   "udp_reg_declaration"
+  ],
+  "udp_port_list": [
+   "comma",
+   "input_port_identifier",
+   "output_port_identifier"
+  ],
+  "udp_reg_declaration": [
+   "attribute_instance",
+   "kw_reg_e06b9586",
+   "variable_identifier"
+  ],
+  "unary_module_path_operator": [
+   "bang",
+   "bitwise_and",
+   "bitwise_or",
+   "bitwise_xor",
+   "reduction_nand",
+   "reduction_nor",
+   "reduction_xnor",
+   "reduction_xnor_alt",
+   "tilde"
+  ],
+  "unary_operator": [
+   "bang",
+   "bitwise_and",
+   "bitwise_or",
+   "bitwise_xor",
+   "minus",
+   "plus",
+   "reduction_nand",
+   "reduction_nor",
+   "reduction_xnor",
+   "reduction_xnor_alt",
+   "tilde"
+  ],
+  "unbased_unsized_literal": [
+   "trivia"
+  ],
+  "union_modifier": [
+   "kw_soft_eb74f2cb",
+   "kw_tagged_8e1ec218"
+  ],
+  "unique_priority": [
+   "kw_priority_3345867e",
+   "kw_unique0",
+   "kw_unique_58037c00"
+  ],
+  "uniqueness_constraint": [
+   "uniqueness_constraint_sv_2017",
+   "uniqueness_constraint_sv_2023"
+  ],
+  "uniqueness_constraint_sv_2017": [
+   "kw_unique_58037c00",
+   "open_range_list"
+  ],
+  "uniqueness_constraint_sv_2023": [
+   "kw_unique_58037c00",
+   "range_list"
+  ],
+  "unpacked_dimension": [
+   "constant_expression",
+   "constant_range",
+   "lbrack",
+   "rbrack"
+  ],
+  "unsigned_number": [],
+  "unsized_dimension": [
+   "lbrack",
+   "rbrack"
+  ],
+  "use_clause": [
+   "cell_identifier",
+   "colon",
+   "dot",
+   "kw_config_dfba7aad",
+   "kw_use_04489a12",
+   "library_identifier",
+   "use_clause_param_override_sv_only"
+  ],
+  "use_clause_param_override_sv_only": [
+   "cell_identifier",
+   "colon",
+   "comma",
+   "dot",
+   "hash",
+   "kw_config_dfba7aad",
+   "kw_use_04489a12",
+   "library_identifier",
+   "lparen",
+   "named_parameter_assignment",
+   "rparen"
+  ],
+  "value_range": [
+   "value_range_sv_2017",
+   "value_range_sv_2023"
+  ],
+  "value_range_sv_2017": [
+   "colon",
+   "expression",
+   "lbrack",
+   "rbrack"
+  ],
+  "value_range_sv_2023": [
+   "colon",
+   "expression",
+   "kw_dollar",
+   "lbrack",
+   "minus",
+   "plus",
+   "rbrack",
+   "slash"
+  ],
+  "var_data_type": [
+   "data_type",
+   "data_type_or_implicit",
+   "kw_var_e5b4e786"
+  ],
+  "variable_assignment": [
+   "assign",
+   "expression",
+   "variable_lvalue"
+  ],
+  "variable_decl_assignment": [
+   "assign",
+   "class_new",
+   "class_variable_identifier",
+   "dynamic_array_new",
+   "dynamic_array_variable_identifier",
+   "expression",
+   "lparen",
+   "unsized_dimension",
+   "variable_dimension",
+   "variable_identifier"
+  ],
+  "variable_dimension": [
+   "associative_dimension",
+   "queue_dimension",
+   "unpacked_dimension",
+   "unsized_dimension"
+  ],
+  "variable_identifier": [
+   "declaration_identifier"
+  ],
+  "variable_identifier_decl": [
+   "variable_dimension",
+   "variable_identifier"
+  ],
+  "variable_identifier_list": [
+   "comma",
+   "variable_identifier"
+  ],
+  "variable_lvalue": [
+   "assignment_pattern_expression_type",
+   "assignment_pattern_variable_lvalue",
+   "comma",
+   "hierarchical_variable_identifier",
+   "lbrace",
+   "rbrace",
+   "select",
+   "streaming_concatenation",
+   "variable_lvalue",
+   "variable_lvalue_scope"
+  ],
+  "variable_lvalue_scope": [
+   "class_scope",
+   "dot",
+   "implicit_class_handle",
+   "non_typedef_package_scope"
+  ],
+  "variable_port_header": [
+   "port_direction",
+   "variable_port_type"
+  ],
+  "variable_port_identifier_decl": [
+   "assign",
+   "constant_expression",
+   "port_identifier",
+   "variable_dimension"
+  ],
+  "variable_port_type": [
+   "var_data_type"
+  ],
+  "void_cast_statement_sv_only": [
+   "function_subroutine_call",
+   "kw_void_e9cede9b",
+   "lparen",
+   "rparen",
+   "semi",
+   "tick"
+  ],
+  "wait_statement": [
+   "expression",
+   "kw_wait_daaad336",
+   "lparen",
+   "rparen",
+   "statement_or_null",
+   "wait_statement_sv_only"
+  ],
+  "wait_statement_sv_only": [
+   "action_block",
+   "comma",
+   "hierarchical_identifier",
+   "kw_fork_3f673f2a",
+   "kw_wait_daaad336",
+   "kw_wait_order_e1b7850a",
+   "lparen",
+   "rparen",
+   "semi"
+  ],
+  "weight_specification": [
+   "weight_specification_sv_2017"
+  ],
+  "weight_specification_sv_2017": [
+   "expression",
+   "integral_number",
+   "lparen",
+   "ps_identifier",
+   "rparen"
+  ],
+  "wildcard_equal": [
+   "trivia"
+  ],
+  "wildcard_escape_nettype_identifier": [
+   "declaration_identifier"
+  ],
+  "wildcard_not_equal": [
+   "trivia"
+  ],
+  "with_covergroup_expression": [
+   "covergroup_expression"
+  ],
+  "xor_assign": [
+   "trivia"
+  ],
+  "z_or_x": [
+   "kw_X_c032adc1",
+   "kw_Z_909f99a7",
+   "kw_x_11f6ad8e",
+   "kw_z_395df8f7"
+  ],
+  "zero_or_one": [
+   "kw_n_0_b6589fc6",
+   "kw_n_1_356a192b"
+  ]
+ },
+ "grammar": "grammars/systemverilog.ebnf",
+ "grammar_raw_ast_sha256": "4ebcc61b86aab15f1e6056bafe94423fe60cc0f65de416c04c09016005a4af82",
+ "rules": 1485
+}

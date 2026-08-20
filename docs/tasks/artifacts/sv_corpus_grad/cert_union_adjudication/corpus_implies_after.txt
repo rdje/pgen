@@ -1,0 +1,38 @@
+# SV-CORPUS-GRAD.13c.2y — the REAL-WORLD arm, AFTER (parser e25365a1…, release 1.0.193)
+#
+# Four tracked external files carry genuine IEEE 1800 A.2.10 `implies` assertions.
+# BEFORE: all four REJECT (corpus_implies_before.txt, binary identity asserted both sides).
+
+  ACCEPT   sv_2017 sv_2023   verilator/test_regress/t/t_property_unsup.v      <- FLIPPED
+  REJECT   sv_2017 sv_2023   verilator/test_regress/t/t_property_pexpr.v
+  REJECT   sv_2017 sv_2023   verilator/test_regress/t/t_property_pexpr_unsup.v
+  REJECT   sv_2017 sv_2023   slang/tests/regression/all.sv
+
+## THE CONTROL I DID NOT BUILD, AND IT CONFIRMS BOTH HALVES
+#
+# stimuli/sv/characterization/positions.tsv records each file's PRE-FIX stuck offset,
+# from a run that predates this session:
+#
+#   t_property_unsup.v        2452     -> now ACCEPT (parses in full)
+#   t_property_pexpr.v         632     -> still 632, measured today (UNCHANGED)
+#   t_property_pexpr_unsup.v   333     -> still 333, measured today (UNCHANGED)
+#   all.sv                    3478     -> still 3478, measured today (UNCHANGED)
+#
+# ⭐ Byte 2452 of t_property_unsup.v is:
+#     // expected to pass
+#     p0 :
+#     assert property (counter == 1 implies eventually[1: 2] counter == 3);
+#
+# The tracked stuck offset lands ON the construct this fix repairs, in a file whose own
+# author annotated it 'expected to pass'. The three UNCHANGED offsets are the control:
+# the fix moved exactly the file it should and nothing else.
+
+## WHY THE OTHER THREE STILL REJECT — named, not assumed
+#
+#   t_property_pexpr.v       @632   a multi-line `define macro    -> PREPROCESSOR, not a property
+#   t_property_pexpr_unsup.v @333   `ifdef PARSING_TIME           -> PREPROCESSOR, not a property
+#   all.sv                  @3478   'instr matches (tagged Jmp .j) &&& …'  -> IEEE 1800 §12.6
+#                                    pattern matching; the grammar HAS kw_matches/kw_tagged/&&&,
+#                                    so this is a distinct construct-level gap already inside
+#                                    SV-CORPUS-GRAD.13's tracked corpus population (its offset is
+#                                    in positions.tsv), NOT a new finding and NOT this leaf's.

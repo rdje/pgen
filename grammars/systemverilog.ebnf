@@ -4907,6 +4907,8 @@ prop_until_sv_2017 := prop_iff_sv_2017 kw_until_b310f4d4 prop_until_sv_2017
                               -> {kind: "until_with",    lhs: $1, rhs: $3}
                   | prop_iff_sv_2017 kw_s_until_073539cf prop_until_sv_2017
                               -> {kind: "s_until",       lhs: $1, rhs: $3}
+                  | prop_iff_sv_2017 kw_implies_470cec58 prop_until_sv_2017
+                              -> {kind: "implies",       lhs: $1, rhs: $3}
                   | prop_iff_sv_2017 -> $1
 
 @profiles: ["sv_2017"]
@@ -4935,10 +4937,6 @@ prop_primary_sv_2017 := sequence_expr
                               -> {kind: "paren",               body: $2}
                        | kw_not_557f2555 property_expr
                               -> {kind: "not",                 body: $2}
-                       | implies property_expr
-                              -> {kind: "implies_unary",       body: $2}
-                       | sequence_expr or_assign property_expr
-                              -> {kind: "sequence_or_assign",  lhs: $1, rhs: $3}
                        | sequence_expr overlapped_implication property_expr
                               -> {kind: "overlapped_implication",     lhs: $1, rhs: $3}
                        | sequence_expr non_overlapped_implication property_expr
@@ -4951,8 +4949,6 @@ prop_primary_sv_2017 := sequence_expr
                               -> {kind: "imp_minus",           lhs: $1, rhs: $5}
                        | sequence_expr hash assign hash property_expr
                               -> {kind: "imp_assign",          lhs: $1, rhs: $5}
-                       | property_expr implies property_expr
-                              -> {kind: "implies_binary",      lhs: $1, rhs: $3}
                        | kw_nexttime_b0f658f8 property_expr
                               -> {kind: "nexttime",            body: $2}
                        | kw_nexttime_b0f658f8 lbrack constant_expression rbrack property_expr
@@ -4998,6 +4994,8 @@ prop_until_sv_2023 := prop_iff_sv_2023 kw_until_b310f4d4 prop_until_sv_2023
                               -> {kind: "until_with",    lhs: $1, rhs: $3}
                   | prop_iff_sv_2023 kw_s_until_073539cf prop_until_sv_2023
                               -> {kind: "s_until",       lhs: $1, rhs: $3}
+                  | prop_iff_sv_2023 kw_implies_470cec58 prop_until_sv_2023
+                              -> {kind: "implies",       lhs: $1, rhs: $3}
                   | prop_iff_sv_2023 -> $1
 
 @profiles: ["sv_2023"]
@@ -5026,10 +5024,6 @@ prop_primary_sv_2023 := sequence_expr
                               -> {kind: "paren",               body: $2}
                        | kw_not_557f2555 property_expr
                               -> {kind: "not",                 body: $2}
-                       | implies property_expr
-                              -> {kind: "implies_unary",       body: $2}
-                       | sequence_expr or_assign property_expr
-                              -> {kind: "sequence_or_assign",  lhs: $1, rhs: $3}
                        | sequence_expr overlapped_implication property_expr
                               -> {kind: "overlapped_implication",     lhs: $1, rhs: $3}
                        | sequence_expr non_overlapped_implication property_expr
@@ -5042,8 +5036,6 @@ prop_primary_sv_2023 := sequence_expr
                               -> {kind: "imp_minus",           lhs: $1, rhs: $5}
                        | sequence_expr hash assign hash property_expr
                               -> {kind: "imp_assign",          lhs: $1, rhs: $5}
-                       | property_expr implies property_expr
-                              -> {kind: "implies_binary",      lhs: $1, rhs: $3}
                        | kw_nexttime_b0f658f8 property_expr
                               -> {kind: "nexttime",            body: $2}
                        | kw_nexttime_b0f658f8 lbrack constant_expression rbrack property_expr
@@ -6902,6 +6894,15 @@ kw_ignore_bins_c8b3e6e5 := trivia /ignore_bins\b/
 kw_illegal_bins_909dfbf3 := trivia /illegal_bins\b/
 
 kw_implements_e133e2cb := trivia /implements\b/
+
+# SV-0066 (SV-CORPUS-GRAD.13c.2y): IEEE 1800-2017/2023 A.2.10 spells one property
+# operator with the KEYWORD `implies`, and this grammar already had a rule of that
+# name -- `implies := trivia "->"`, the ARROW. Extraction bound the keyword to it, so
+# `a implies b` was unparseable while `a -> b` parsed as a property. SVA is
+# SystemVerilog-only, so the token is profile-gated exactly like the `|->` / `|=>`
+# pair SV-0039 added; IEEE 1364-2005 has no property_expr at all.
+@profiles: ["sv_2017", "sv_2023"]
+kw_implies_470cec58 := trivia /implies\b/
 
 kw_import_62fdfbd5 := trivia /import\b/
 

@@ -15,9 +15,39 @@ When investigating "what changed and why," start with the contract document, dro
 
 ## Releases relevant to this book
 
+> ⛔⛔ **GAP NOTICE, 2026-08-20 — READ BEFORE TRUSTING THE SEQUENCE BELOW.** This index is
+> **not complete**. Releases **`1.0.184` through `1.0.192`** (ledger `SV-0054`…`SV-0065`, nine
+> releases, four of which REPLACE an AST shape a consumer was already reading) have **no section
+> here**, and `schema-versioning.md` is missing rows **21**–**25**. The entries jump from `1.0.183`
+> to `1.0.193`; that jump is a defect in this file, not a gap in the release history.
+>
+> Until the back-fill lands, the authoritative record for that window is
+> `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` (per-release shape detail) and
+> `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (per-bug repro, root cause and proof) — both
+> current. **Owned by `SV-CORPUS-GRAD.13c.2z`**, which also owes the check that would have caught
+> this: nothing in the repository compares a family book's newest published release against the
+> family's actual release, which is why the same table silently skipped schemas `17`–`19` once
+> before and was hand-reconstructed rather than gated.
+
 This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
+
+### 1.0.193 / Contract 1.0.193 — SV-CORPUS-GRAD.13c.2y (`PGEN-SV-CORPUS-GRAD-0261`, 2026-08-20), ledger `SV-0066` (`Released`): **AN IEEE 1800 KEYWORD WAS BOUND TO THE ARROW TOKEN OF THE SAME NAME (GRAMMAR; `sv_2017`+`sv_2023`; SCHEMA 25 → 26)**
+
+`grammars/systemverilog.ebnf` has defined `implies := trivia "->"` — a token rule named after a **reserved** keyword — since long before IEEE 1800 Annex A.2.10 was extracted into it. Extraction resolved A.2.10's property operator `implies` to that existing rule instead of minting a `kw_<name>_<hash>` terminal as it did for every other property operator, so three branches of `prop_primary_sv_2017` and `prop_primary_sv_2023` were compiled against the **arrow**. Measured on both SV profiles: `a implies b` was **REJECTED** in every shape, while `-> b` and `a |= b` in property position were **ACCEPTED**, and no Annex A production reaches either. Tool-pinned rather than read off the grammar — `--trace-rules implies` prints `Terminal '->' failed at position 60 - found 'im'`, position 60 being the first byte of the keyword.
+
+**The fix is a precedence-table question, not a token swap.** IEEE 1800-2017 **Table 16-3** (§16.12) puts `implies` in ONE right-associative group with `until` / `s_until` / `until_with` / `s_until_with` — a group this grammar already has, because `SV-0011` built the Table 16-3 cascade `prop_until > prop_iff > prop_or > prop_and > prop_primary`. So `kw_implies_470cec58` is minted (profile-gated SV-only; the suffix is derived by the extractor's own `sha1(name)[:8]` rule, verified by reproducing four shipped tokens exactly), joins `prop_until_*` as a fifth operator, and all three defect branches are deleted. ⛔ `implies` **is** reserved — IEEE 1800-2023 Annex B lists it between `implements` and `import`, which is also exactly where the token sits in the grammar — so minting it cannot capture a legal identifier. That was checked first, because `SV-0065` one release earlier was bitten by the opposite case (`randomize` is *not* reserved).
+
+**MEASURED.** `a implies b` REJECT→ACCEPT in three shapes on both profiles; the precedence probes `a implies b until c` / `a until b implies c` / `a iff b implies c` parse with Table 16-3 associativity; `-> b` and `a |= b` ACCEPT→REJECT; the 15 other A.2.10 rows and the `a -> b` **expression** control unchanged; all 23 probes still REJECT under `verilog_2005`. Certificate coverage, byte-identical across seeds 0/7/42: canonical `1434/8/1362/64` → `1385/7/1366/12`, union `1434/8/1373/53` → **`1385/7/1377/1`**, residual `["known_unscoped_property_identifier"]`, `sample_parse_failures=0`. `sv_external_corpus_triage_gate` **14/14, `parse_fail_total=0`**; `ast_shape_contract_gate` **18/18, drift 0**; `--lint-grammar` clean with `left_recursion_unhandled=0` held.
+
+⭐⭐ **The headline is not the operator, it is the 52.** `| property_expr implies property_expr` was the **only** left-recursive alternative in `prop_primary_*`, so moving `implies` to its correct precedence level dissolved the `property_expr` indirect-left-recursion knot entirely: `indirect_eliminated_base_rules 3 → 2`, `indirect_clone_rules 24 → 12`, `indirect_guard_chains 3 → 2` at `surviving_cycle_rules=0`. The 43 synthesised `property_expr_lr_*` rules that dominated the certificate residual no longer exist and the 9 SVA operator tokens now witness — grammar census **1611 → 1516**, declared LR-family rule names **127 → 31**, generated parser **−8.41 MB (−6.0 %)**. An LRM-fidelity fix that also removed engine cost.
+
+⭐ **Real-world confirmation from a control this repository did not write.** `stimuli/sv/characterization/positions.tsv` recorded Verilator's `t_property_unsup.v` stuck at byte **2452** before this work — which is `assert property (counter == 1 implies eventually[1: 2] counter == 3);`, annotated `// expected to pass` by Verilator itself. The file now parses in full, while the three other `implies`-bearing corpus files remain stuck at their exact recorded offsets, each on a named unrelated construct.
+
+⛔ **The over-acceptance half had been named in prose four weeks earlier and left standing.** `SV-0039`'s own root cause (2026-07-23) reads *"the extractor split the `|`-prefixed operators on `|` … leaving the mangled `implies` (`->`) / `or_assign` (`|=`) remnants in `prop_primary`"*. It added the correct `|->` / `|=>` branches and removed neither remnant. A defect written into a fix's prose is not tracked work.
+
+**Migration.** `prop_primary_sv_2017`/`_sv_2023` no longer emit `{kind:"implies_unary", body}`, `{kind:"sequence_or_assign", lhs, rhs}` or `{kind:"implies_binary", lhs, rhs}`; a consumer exhaustively matching those kinds drops all three, and one walking property operators reads `{kind:"implies", lhs, rhs}` from `prop_until_<profile>` beside its four Table 16-3 siblings. Full matrix in ledger row `SV-0066`.
 
 ### 1.0.183 / Contract 1.0.183 — SV-CORPUS-GRAD.13c.2e (`PGEN-SV-CORPUS-GRAD-0214`, 2026-08-12), ledger `SV-0053` (`Released`): **THE COVERGROUP SELECT CONDITION'S LITERAL LRM BRACES — THE SAME DEFECT AS `SV-0049`, ONE CLAUSE AWAY, THREE DAYS LATER (GRAMMAR; `sv_2017`+`sv_2023`; SCHEMA 20 → 21)**
 

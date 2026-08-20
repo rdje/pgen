@@ -1,5 +1,74 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0261 (leaf SV-CORPUS-GRAD.13c.2y CLOSED — SV parser release 1.0.193, ledger SV-0066, schema 25 → 26; leaf .13c.2z NEW; ONE new grammar token, three deleted branches):
+
+- ⭐⭐⭐ **AN IEEE 1800 KEYWORD WAS BOUND TO THE ARROW TOKEN OF THE SAME NAME, AND FIXING IT TOOK SV's
+  UNION `UNKNOWN` FROM 53 TO ONE.** `grammars/systemverilog.ebnf:6666` defines
+  `implies := trivia "->"` — a token rule named after a **reserved** keyword — from long before
+  A.2.10 was extracted into it, so three `prop_primary_*` branches compiled against the arrow:
+  `a implies b` was **REJECTED** at every release, while `-> b` and `a |= b` in property position
+  were **ACCEPTED** though no Annex A production reaches either.
+- ⭐ **THE FIX IS A PRECEDENCE-TABLE QUESTION, NOT A TOKEN SWAP.** IEEE 1800-2017 **Table 16-3** puts
+  `implies` in ONE right-associative group with `until`/`s_until`/`until_with`/`s_until_with` — a
+  group `SV-0011` already built. Mint `kw_implies_470cec58` (SV-only; suffix DERIVED by the
+  extractor's own `sha1(name)[:8]`, verified against four shipped tokens), add it to `prop_until_*`,
+  delete all three defect branches. ⛔ `implies` **is** reserved (IEEE 1800-2023 Annex B, between
+  `implements` and `import` — where the token now sits), checked FIRST because `SV-0065` one release
+  earlier was bitten by the opposite case.
+- **MEASURED**, one binary per arm with both parser digests asserted: `a implies b` REJECT→ACCEPT ×3
+  shapes × 2 profiles; the Table 16-3 precedence probes parse; `-> b` and `a |= b` ACCEPT→REJECT; 15
+  A.2.10 controls and the `a -> b` **expression** control unchanged; all 23 probes still REJECT under
+  `verilog_2005`. Certificate, byte-identical at seeds 0/7/42: canonical `1434/8/1362/64` →
+  `1385/7/1366/12`, union `1434/8/1373/53` → **`1385/7/1377/1`**, residual
+  `["known_unscoped_property_identifier"]`, `spf=0`. `sv_external_corpus_triage_gate` **14/14,
+  `parse_fail_total=0`**; `ast_shape_contract_gate` **18/18, drift 0**; lint clean,
+  `left_recursion_unhandled=0` held.
+- ⭐⭐ **THE HEADLINE IS THE 52.** `| property_expr implies property_expr` was the ONLY left-recursive
+  alternative in `prop_primary_*`, so moving `implies` to its correct level dissolved the
+  `property_expr` indirect-LR knot: `indirect_eliminated_base_rules 3 → 2`, `clone_rules 24 → 12`,
+  `guard_chains 3 → 2` at `surviving_cycle_rules=0`. Census **1611 → 1516**, declared LR-family names
+  **127 → 31**, generated parser **−8.41 MB (−6.0 %)**. An LRM-fidelity fix that also removed engine
+  cost — the two are not always a trade.
+- ⭐⭐ **REAL-WORLD, AGAINST A CONTROL THIS SESSION DID NOT WRITE.**
+  `stimuli/sv/characterization/positions.tsv` recorded Verilator's `t_property_unsup.v` stuck at byte
+  **2452** pre-fix — which is `assert property (counter == 1 implies eventually[1: 2] counter == 3);`,
+  annotated `// expected to pass` by Verilator itself. It now parses in full, while the three other
+  `implies`-bearing corpus files remain stuck at their EXACT recorded offsets (632 / 333 / 3478),
+  each on a NAMED unrelated construct (two preprocessor directives, one `matches`/`tagged` pattern).
+  The fix moved exactly the file it should and nothing else.
+- ⛔⛔ **THE OVER-ACCEPTANCE HALF WAS NAMED IN PROSE FOUR WEEKS EARLIER AND LEFT STANDING.**
+  `SV-0039`'s own root cause (2026-07-23) names both mangled remnants in `prop_primary` and removed
+  neither, and did not notice that A.2.10's genuine `implies` production was compiled against the
+  same arrow. **A defect written into a fix's prose is not tracked work.**
+- ⛔ **A CORRECTION TO `-0259`, WHICH THIS SLICE'S OWN VERIFICATION FORCED.** That commit published
+  THREE over-acceptances; there are **two**. `a -> b` in property position is **legal** — IEEE
+  1800-2017 §11.3.2 makes implication `->` a binary EXPRESSION operator, reached through
+  `property_expr ::= sequence_expr ::= … ::= expression` — and the AST confirms it (the node sits in
+  an `operand_chain` under `primary`). **The parser was right and my probe's expected value was
+  wrong**; I read A.2.10's production, found no `->` alternative, and never asked whether the text was
+  reachable as an expression. The row is retained as the control proving this fix did not
+  over-narrow. Corrected in the leaf, the artifact README, the probe matrix and the knowledge card.
+- ⛔⛔ **RE-PINNING THE LR CONSTANT EXPOSED A SECOND DEFECT IN THE SAME FILE.** `--verify-families`
+  REFUSED after regeneration (*"declares 31 … pins 127 … re-derive deliberately"*) — the pin working
+  as designed. But `stimuli/sv/corpus_parse_cost.py` interpolated that LIVE pin into a **dated**
+  measurement (`f"matched 97 of the {SV_DECLARED_LR_RULES} …"`), so updating it would silently have
+  published *"matched 97 of the 31"*. The historical figure is now a literal with a comment saying
+  why. **A dated measurement must never interpolate a live constant.**
+- ⛔⛔⛔ **`.13c.2z` NEW — THE SV PARSER BOOK IS NINE RELEASES AND FIVE SCHEMA VERSIONS STALE.**
+  `changelog-index.md` stopped at `1.0.183` against a shipped `1.0.192`; `schema-versioning.md` is
+  missing rows **21**–**25**; twelve ledger rows (`SV-0054`…`SV-0065`) landed unpublished. ⭐ **And it
+  is a REPEAT the file itself warns about**: that same table skipped schemas `17`–`19` once before,
+  was hand-reconstructed by `SV-CORPUS-GRAD.3.18`, and carries a note saying *"if this and the
+  contract ever disagree again, the contract wins and this file is the defect."* It recurred and
+  **grew from three schemas to five**. A hand-fix plus a prose warning bought exactly one cycle,
+  which is why `.13c.2z`(c) owes a check that FAILS on drift. Dated GAP NOTICES are published at the
+  top of both files so no reader mistakes the sequence for complete, and `1.0.193` + schema `26` are
+  published here so the gap does not grow.
+- ⛔ **WHAT THIS CHANGES FOR `.13c.2x`(c)**: the rebaseline target is now union `UNKNOWN = 1`, not 53.
+  `.13c.2x.5` drops from ACUTE to **LATENT** (a 1-element residual cannot reach the 25-name cap) —
+  still a real defect, still open, no longer a blocker. The remaining blocker is `.13c.2x.6`.
+- **DONE-BAR**: unchanged — `systemverilog` stays `Mostly Done`.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0260 (leaf SV-CORPUS-GRAD.13c.2x (a) follow-up + leaf .13c.2y design; ZERO grammar bytes, ZERO Rust bytes):
 
 - ⭐⭐⭐ **THE ENGINE-vs-GRAMMAR SPLIT IS NOW MEASURED, NOT DIRECTIONAL.** `-0259` established that
@@ -79,8 +148,12 @@
   Reading `prop_primary_sv_2017` to explain why its keywords cannot be witnessed exposed
   `grammars/systemverilog.ebnf:6666` — `implies := trivia "->"`, **a token rule named after an IEEE
   1800 keyword**. Measured on 21 probes, both profiles: `a implies b` is **REJECTED** in three
-  shapes, while `a -> b`, `-> b` and `a |= b` in property position are **ACCEPTED** although A.2.10
-  defines none of them; the other 15 rows pass and are the control. `--trace-rules implies` prints
+  shapes, while `-> b` and `a |= b` in property position are **ACCEPTED** although no IEEE 1800
+  production reaches either; the other rows pass and are the control. ⛔ **CORRECTED in `-0261`:
+  this entry first named a THIRD over-acceptance, `a -> b`. It is legal — §11.3.2 makes implication
+  `->` a binary EXPRESSION operator and `property_expr ::= sequence_expr ::= … ::= expression`, which
+  the AST confirms (the node sits in an `operand_chain` under `primary`). The parser was right and
+  the probe's expected value was wrong; the row is now a control.** `--trace-rules implies` prints
   `Terminal '->' failed at position 60 - found 'im'`. ⇒ new leaf **`.13c.2y`**, with ledger `SV-0066`
   and the fix.
 - ⭐⭐⭐ **THE LESSON IS ABOUT THE INSTRUMENT: `union UNKNOWN` MEASURES REACH OVER THE *DECLARED* RULE

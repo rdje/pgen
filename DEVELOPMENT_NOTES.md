@@ -1,5 +1,55 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0261 — the row I got wrong is the row that proves the fix, and I only found out by running it
+
+**1. I PUBLISHED A DEFECT THAT WAS NOT ONE, AND THE VERIFICATION CAUGHT ME.** `-0259` reported three
+over-acceptances in `prop_primary`. One of them, `a -> b` in property position, was not a defect at
+all: I read IEEE 1800 Annex A.2.10's `property_expr` production, found no `->` alternative, and
+concluded the parser was accepting something the standard does not define. The step I skipped is the
+one that mattered — *is this text reachable by some other route?* It is: §11.3.2 lists implication
+`->` among the operators that associate right to left, i.e. a first-class **expression** operator,
+and `property_expr ::= sequence_expr ::= … ::= expression`. ⭐ **A production-level reading of a
+grammar answers "does this rule spell it", never "can this input parse".** Only running it answers
+the second, and the AST said so immediately: the node sits in an `operand_chain` under `primary`.
+
+**2. AND THE MISTAKE MADE THE VERIFICATION BETTER THAN MY PLAN.** I had written that row expecting it
+to flip ACCEPT→REJECT. It did not, and *that is the strongest single row in the matrix*: deleting
+two branches over a shared token could easily have taken expression-level `->` down with them, and
+this row proves it did not. ⛔ **An expected-value I got wrong became the control I had not thought
+to design.** Keep probes whose predictions fail; re-label them, do not delete them.
+
+**3. THE PIN WORKED, AND THEN THE PIN'S OWN FILE BETRAYED IT.** After regeneration,
+`corpus_parse_cost.py --verify-families` refused: *"declares 31 LR rule names, but
+SV_DECLARED_LR_RULES pins 127 … re-derive the published figure and update the constant
+deliberately."* Exactly right. But three hundred lines below, a **dated** sentence about a 2026-08-16
+measurement interpolated that same live constant — `f"matched 97 of the {SV_DECLARED_LR_RULES}"` —
+so obeying the refusal would have published *"matched 97 of the 31"*, a sentence about a parser that
+never existed. ⇒ **a live constant and a dated measurement must never share a symbol.** The constant
+is doing its job *by changing*; the measurement is doing its job *by not changing*. The fix is a
+literal and a comment explaining why it is a literal.
+
+**4. THE FIX WAS A PRECEDENCE QUESTION AND THE CHEAP READING WOULD HAVE SHIPPED A WORSE PARSER.** The
+obvious repair is "the branch binds the wrong token — re-point it at a new `kw_implies`". That
+compiles, parses `a implies b`, and is wrong: it puts `implies` at `prop_primary`'s level, while
+Table 16-3 puts it in one right-associative group with the `until` family. ⭐ **When a grammar has a
+precedence cascade, "which rule does this operator belong to" is the whole design decision, and the
+standard answers it in a table** — not in the production you happened to be looking at.
+
+**5. THE FIDELITY FIX PAID FOR ITSELF IN ENGINE COST, WHICH I DID NOT EXPECT AND ALMOST DID NOT
+MEASURE.** `| property_expr implies property_expr` was the only left-recursive alternative in its
+rule, so the bogus branch had been driving an entire left-recursion-elimination knot: 96 synthesised
+rules and 8.41 MB of generated parser existed to support syntax that is not SystemVerilog. The
+certificate residual this whole campaign was adjudicating — 53 union `UNKNOWN`s — fell to **one**.
+⇒ **before pricing a fidelity fix as a cost, check what the wrong encoding was making the engine
+do.** I priced this slice as "one operator" and it removed 6 % of the parser.
+
+**6. AND THE LOCKSTEP FOUND THE NEXT DEFECT, WHICH IS WHY LOCKSTEP IS NOT PAPERWORK.** Publishing a
+schema row meant opening `schema-versioning.md`, which is how I learned it stops at schema 20 against
+a contract at 25, and `changelog-index.md` at `1.0.183` against a shipped `1.0.192`. ⛔ The file
+carries a note about this exact defect happening once before, naming the contract as the winner. It
+recurred and grew. **A warning sentence is not a check**, and the distance between them is nine
+releases.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0259 — a count cannot report a rule the grammar never declares, so the roster is a POINTER and the fix is upstream of it
 
 **1. THE ADJUDICATION SUCCEEDED AND ITS RESULT WAS BORING, WHICH IS WHY THE NEXT STEP MATTERED.**
