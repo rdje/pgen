@@ -1,5 +1,40 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0252 — I probed the number under suspicion, and the defect was in the column next to it
+
+**1. THE PROBE WAS BUILT TO CLEAR MY OWN WORK, WHICH IS WHY IT GOT BUILT AT ALL.** `-0251` stamped a
+baseline `confirmed` on rule counts. `.13c.2x.1` was sitting open saying a rule count had been seen
+varying. Those two facts are incompatible until somebody measures, and the person who should measure
+is the one who just pinned the number. ⇒ **after confirming a baseline, probe the stability of what
+you confirmed** — the alternative is a green tick over an open question.
+
+**2. THE OBSERVATION IT WAS TESTING WAS CONFOUNDED, AND THAT WAS THE WHOLE DESIGN PROBLEM.** The
+original data — 1434 at seed 0, 1433 at seeds 7 and 42 — cannot separate seed from process, because
+each seed ran in its own process. Five processes at ONE seed, then four seeds one process each, is a
+two-line change to a loop and it de-confounds them completely. **When an observation varies two
+things at once, the cheap fix is usually a loop, not an argument.**
+
+**3. THE ANSWER WAS CLEAN AND THE COLUMN BESIDE IT WAS NOT.** Rule counts: identical across all nine
+runs, including the three rule names. `unreachable_branches`: 2 / 18 / 20 / 27. And a tracked
+contract pins it at 2 — the contract *I had confirmed two commits earlier*. The metric is behaving
+correctly (branch debt is what a seed's stimuli did not exercise; seed-dependence is expected); what
+was wrong is that the field reads like a structural closure claim →
+[[measure-every-pinned-number-not-the-one-the-story-is-about]].
+
+**4. MY PROBE MIS-ATTRIBUTED ITS OWN FINDING ON THE FIRST RUN.** It printed structural and sampled
+fields on one line and compared the whole line, so it reported *"seeds DISAGREE — H2 holds for this
+counter"* about a counter that had not moved by one unit. I nearly wrote that into a leaf. The fix
+is not more care, it is structure: group the fields by what they are a function of, compare the
+groups separately, and let the output say which group moved. **A probe that cannot attribute its
+finding will hand you a true sentence about the wrong thing.**
+
+**5. AND IT EXPOSED AN HONEST BOUND ON THE DOCTRINE I SPENT THE DAY BUILDING.** The identity block
+hashes a baseline's INPUTS, not the baseline's own bytes — so hand-editing `expected_total` passes
+the identity check. The gate re-deriving is what catches that, not the block.
+`PARSE-COST-RATCHET` byte-compares its baseline precisely because it can; a GENERIC block cannot,
+because the point of it is that the dependency set is data. That trade is real and is now written
+down instead of assumed away.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0251 — the fix that finds defects is the one that costs something afterwards
 
 **1. THE REPAIR I ALMOST MADE WAS `max_unreachable_rules: 3`, AND IT WOULD HAVE BEEN WRONG TWICE.**

@@ -1,0 +1,27 @@
+axis A — five separate PROCESSES, one fixed seed (24001): the H1 axis
+  process 1: STRUCT total=1610 reachable=1607 unreachable=3 total_branches=2143 [casting_type,property_expr_sv_2017,property_expr_sv_2023]
+  process 2: STRUCT total=1610 reachable=1607 unreachable=3 total_branches=2143 [casting_type,property_expr_sv_2017,property_expr_sv_2023]
+  process 3: STRUCT total=1610 reachable=1607 unreachable=3 total_branches=2143 [casting_type,property_expr_sv_2017,property_expr_sv_2023]
+  process 4: STRUCT total=1610 reachable=1607 unreachable=3 total_branches=2143 [casting_type,property_expr_sv_2017,property_expr_sv_2023]
+  process 5: STRUCT total=1610 reachable=1607 unreachable=3 total_branches=2143 [casting_type,property_expr_sv_2017,property_expr_sv_2023]
+  ✓ STRUCTURAL: all five processes agree — H1 (per-process nondeterminism of rule
+    synthesis) is REFUTED for this counter
+axis B — one process per seed, four seeds: the H2 axis
+  seed 0: STRUCT total=1610 reachable=1607 unreachable=3 total_branches=2143 [casting_type,property_expr_sv_2017,property_expr_sv_2023]  SAMPLE unreachable_branches=18
+  seed 7: STRUCT total=1610 reachable=1607 unreachable=3 total_branches=2143 [casting_type,property_expr_sv_2017,property_expr_sv_2023]  SAMPLE unreachable_branches=27
+  seed 42: STRUCT total=1610 reachable=1607 unreachable=3 total_branches=2143 [casting_type,property_expr_sv_2017,property_expr_sv_2023]  SAMPLE unreachable_branches=20
+  seed 24001: STRUCT total=1610 reachable=1607 unreachable=3 total_branches=2143 [casting_type,property_expr_sv_2017,property_expr_sv_2023]  SAMPLE unreachable_branches=2
+  ✓ STRUCTURAL: all four seeds agree — H2 (seed-dependence of the rule count) is REFUTED
+
+⚠️ SAMPLED branch debt across those four seeds: 4 distinct value(s).
+     SAMPLE unreachable_branches=18
+     SAMPLE unreachable_branches=27
+     SAMPLE unreachable_branches=20
+     SAMPLE unreachable_branches=2
+   ⇒ EXPECTED for a sampling metric, and a FINDING about any contract that pins it:
+     systemverilog_syntax_closure_contract.json declares stimuli_seed 24001 and
+     max_unreachable_branches, so its ceiling holds ONLY at that seed.
+
+probe: the post-elimination RULE count is process-deterministic AND seed-independent here.
+       ⚠️ That does NOT close SV-CORPUS-GRAD.13c.2x.1 — different instrument, different
+       tree state. It removes the repo-wide hypothesis, not the observation.

@@ -1,5 +1,44 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0252 (leaves SV-CORPUS-GRAD.13c.2x.1 evidence + .13c.2x.3 follow-up; ZERO grammar bytes, ZERO Rust bytes): the rule count is deterministic on both axes — and the probe that proved it found the real defect in the column nobody was looking at
+
+- ⭐⭐ **H1 REFUTED FOR THE SHARED POPULATION.** `.13c.2x.1` observed a cert rule `total` reading
+  1434 / 1433 / 1433 across three seeds, with seed and PROCESS confounded (each seed is a separate
+  process), and recorded two hypotheses without adopting either. H1 — per-process nondeterminism of
+  rule synthesis — would have meant **every** rule-count baseline in
+  `rust/test_data/grammar_quality/` was pinning noise. New tracked instrument
+  `docs/tasks/artifacts/sv_corpus_grad/rule_count_determinism/probe.sh` de-confounds the axes on a
+  sibling counter over the same synthesized population:
+  ```text
+  axis A  5 separate PROCESSES, seed fixed 24001  ->  total=1610 reachable=1607 unreachable=3
+  axis B  4 seeds (0, 7, 42, 24001), 1 process    ->  total=1610 reachable=1607 unreachable=3
+  ```
+  Identical, including the three rule names. **If rule synthesis were nondeterministic, `total_rules`
+  would move.** ⚠️ It does **not** close `.13c.2x.1`: different instrument (gap report, not
+  `certificate_coverage()`), different tree state (HEAD, not the `SV-0065` arm). It removes the
+  repo-wide hypothesis, not the observation.
+- ⛔⛔ **AND THE SAME NINE RUNS FOUND A DEFECT IN THE BASELINE `-0251` HAD JUST CONFIRMED.**
+  `unreachable_branches` — pinned at **2** by `systemverilog_syntax_closure_contract.json` — is
+  **SAMPLING DEBT**, not a structural property, and it moved **2 / 18 / 20 / 27** at seeds
+  **24001 / 0 / 7 / 42**. The ceiling holds only at the seed the contract declares. ⇒ the
+  `confirmed` stamp remains TRUE and the gate does not flap, but the field **read like a closure
+  claim about the grammar while being an artifact of one sample**. Now declared in
+  `constraints._unreachable_branches_scope` — the same repair as `_unreachable_predicate` one field
+  over: **one name, two readings, so say which**.
+- ⭐ **THE PROBE'S OWN FIRST CUT MIS-ATTRIBUTED ITS FINDING** — it printed the structural and
+  sampled fields on one line and compared the line, so it announced *"seed-dependence holds for this
+  counter"* about a counter that had not moved. Corrected to compare the two groups separately, and
+  re-run. A probe that conflates a graph property with a sampling one cannot attribute what it
+  finds.
+- ⚠️ **AN HONEST BOUND ON THE IDENTITY BLOCK, recorded where it became visible**: the block hashes a
+  baseline's INPUTS, not the baseline's own bytes, so it does not detect a hand-edited `expected_*`.
+  That protection comes from the gate re-deriving and comparing. `PARSE-COST-RATCHET` byte-compares
+  its baseline for exactly this reason; this doctrine deliberately does not, because the declared
+  inputs map is what makes a GENERIC block possible.
+- **Validation**: probe exit 0 on both axes; `bash scripts/check_doctrines.sh` → ALL 24 PASS;
+  knowledge-map OK. New card `measure-every-pinned-number-not-the-one-the-story-is-about`.
+  Live-status tracker UNCHANGED.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0251 (leaf SV-CORPUS-GRAD.13c.2x.3 (b)+(c) DISCHARGED; ZERO grammar bytes, ZERO Rust bytes): `sv_syntax_closure_gate` is GREEN, and the repository has its first CONFIRMED baseline identity
 
 - ✅✅ **`adopted` 0 → 1.** `systemverilog_syntax_closure_contract.json` now carries an
