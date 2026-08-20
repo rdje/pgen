@@ -72,8 +72,13 @@ VERIFIER_HINT = "scripts/check_baseline_identity.sh"
 # strings is held equal to this dict, so the two cannot drift.
 DISPOSITIONS = {
     "adopted":
-        "carries an `identity` block, and this enforcer re-hashes every input it declares on "
-        "every run",
+        "carries an `identity` block whose expectations are CONFIRMED against the digests it "
+        "records, and this enforcer re-hashes every input it declares on every run",
+    "adopted-unconfirmed":
+        "carries an `identity` block that says, in the artifact itself, that its expectations do "
+        "NOT describe the recorded tree. The digests still track movement so drift is still "
+        "caught, `owner_leaf` owns the re-derivation, and every gate calling `--verify` REFUSES — "
+        "so this is declared, owned debt, never a green light",
     "deferred":
         "holds expectations that ARE a function of the tree, adoption is owed, and `owner_leaf` "
         "names the task leaf that owes it. An ACCEPTED RISK, not a clean bill of health — what "
@@ -133,6 +138,36 @@ def read_identity(obj):
     commit = ident.get("verified_at_commit")
     if not isinstance(commit, str) or not COMMIT_RE.match(commit):
         return ("malformed", "`identity.verified_at_commit` must be a 40-hex git commit sha")
+    # ⛔⛔ THE FIELD THAT SLICE 1 SHIPPED WITHOUT, AND THE OMISSION INVERTED THE DOCTRINE.
+    # `verified_at_commit` + `inputs` answer *"have the inputs moved since this checkpoint?"*.
+    # They do NOT answer *"were these expectations ever right about that tree?"* — and stamping a
+    # baseline that is measurably RED made the block assert a derivation that never happened, so
+    # the gate reported `identity fresh` and then an UNATTRIBUTABLE drift. That is worse than no
+    # block: it is a confident wrong answer. `expectations` is the missing half, and it is
+    # REQUIRED, because a default would silently re-create exactly this.
+    state = ident.get("expectations")
+    if state not in ("confirmed", "unconfirmed"):
+        return ("malformed",
+                "`identity.expectations` must be \"confirmed\" or \"unconfirmed\". A stamp is an "
+                "ASSERTION about whether this file's numbers describe the recorded tree; there is "
+                "no honest default")
+    if state == "confirmed":
+        by = ident.get("confirmed_by")
+        if not isinstance(by, str) or len(by) < 24:
+            return ("malformed",
+                    "`identity.expectations` is \"confirmed\" but `confirmed_by` does not name the "
+                    "run that confirmed it. A confirmation nobody can re-check is a claim")
+    else:
+        why = ident.get("unconfirmed_reason")
+        owner = ident.get("owner_leaf")
+        if not isinstance(why, str) or len(why) < 24:
+            return ("malformed",
+                    "`identity.expectations` is \"unconfirmed\" but `unconfirmed_reason` does not "
+                    "say why")
+        if not isinstance(owner, str) or not owner:
+            return ("malformed",
+                    "`identity.expectations` is \"unconfirmed\" but no `owner_leaf` owns the "
+                    "re-derivation. Unowned debt is buried debt")
     inputs = ident.get("inputs")
     if not isinstance(inputs, dict) or not inputs:
         return ("malformed", "`identity.inputs` must be a non-empty object of path -> sha256")
@@ -142,7 +177,7 @@ def read_identity(obj):
                     "input path %r is not repo-root-relative (CLAUDE.md §12)" % (path,))
         if not isinstance(digest, str) or not SHA256_RE.match(digest):
             return ("malformed", "input `%s` does not carry a 64-hex sha256" % (path,))
-    return ("ok", (commit, dict(inputs)))
+    return ("ok", (commit, dict(inputs), state, ident))
 
 
 # ── a string-aware JSON value scanner, so --stamp can SPLICE rather than reformat ───────────────
@@ -193,31 +228,46 @@ def self_check():
     h = "0" * 64
     c = "a" * 40
     hint = "bash " + VERIFIER_HINT + " --verify x"
-    good = {"identity": {"_verifier": hint, "verified_at_commit": c,
-                         "inputs": {"grammars/systemverilog.ebnf": h}}}
+    CB = "re-derived by `make -C rust <gate>` at seeds 0/7/42, 2026-08-20"
+    UR = "measured RED at HEAD by 71 rules; re-derivation is blocked on SV-CORPUS-GRAD.13c.2x.1"
+
+    def blk(**kw):
+        b = {"_verifier": hint, "verified_at_commit": c, "expectations": "confirmed",
+             "confirmed_by": CB, "inputs": {"grammars/systemverilog.ebnf": h}}
+        b.update(kw)
+        return {"identity": b}
+
     cases = [
-        # the shape that must be READ
-        (good, "ok"),
+        # the two shapes that must be READ
+        (blk(), "ok"),
+        (blk(expectations="unconfirmed", confirmed_by=None, unconfirmed_reason=UR,
+             owner_leaf="SV-CORPUS-GRAD.13c.2x.2"), "ok"),
         # not adopted — a different fact from a broken block
         ({"expected_total": 1362}, "absent"),
+        # ⭐⭐ THE STATE CONTROLS. `expectations` is the field whose ABSENCE inverted this doctrine
+        # in slice 1: a block with no state asserted a derivation that had not happened, so the
+        # consuming gate reported `identity fresh` and then an UNATTRIBUTABLE drift — a confident
+        # wrong answer, which is worse than no block at all. There is no default, by construction.
+        (blk(expectations=None), "malformed"),
+        (blk(expectations="maybe"), "malformed"),
+        (blk(confirmed_by=None), "malformed"),
+        (blk(confirmed_by="ok"), "malformed"),                       # too short to be re-checkable
+        (blk(expectations="unconfirmed", confirmed_by=None), "malformed"),        # no reason
+        (blk(expectations="unconfirmed", confirmed_by=None, unconfirmed_reason=UR),
+         "malformed"),                                                            # no owner
         # ⛔ every one of these once passed a reader that only asked `if obj.get("identity")`
         ({"identity": "yes"}, "malformed"),
         ({"identity": {}}, "malformed"),
-        ({"identity": {"_verifier": hint, "verified_at_commit": c, "inputs": {}}}, "malformed"),
-        ({"identity": {"_verifier": hint, "verified_at_commit": c,
-                       "inputs": {"g.ebnf": "deadbeef"}}}, "malformed"),
-        ({"identity": {"_verifier": hint, "verified_at_commit": "abc", "inputs": {"g": h}}},
-         "malformed"),
+        (blk(inputs={}), "malformed"),
+        (blk(inputs={"g.ebnf": "deadbeef"}), "malformed"),
+        (blk(verified_at_commit="abc"), "malformed"),
         # an ABSOLUTE path would hash something outside the repo (CLAUDE.md §12)
-        ({"identity": {"_verifier": hint, "verified_at_commit": c, "inputs": {"/etc/hosts": h}}},
-         "malformed"),
-        ({"identity": {"_verifier": hint, "verified_at_commit": c, "inputs": {"../x": h}}},
-         "malformed"),
+        (blk(inputs={"/etc/hosts": h}), "malformed"),
+        (blk(inputs={"../x": h}), "malformed"),
         # ⭐ the pointer at the reader is load-bearing: without it the artifact cannot tell a human
         # what re-derives it, which is half of what this doctrine buys
-        ({"identity": {"verified_at_commit": c, "inputs": {"g": h}}}, "malformed"),
-        ({"identity": {"_verifier": "see the docs", "verified_at_commit": c, "inputs": {"g": h}}},
-         "malformed"),
+        (blk(_verifier=None), "malformed"),
+        (blk(_verifier="see the docs"), "malformed"),
         ("not an object", "malformed"),
     ]
     misses = 0
@@ -285,9 +335,13 @@ def commit_leg(commit, label):
 
 
 # ── the single verifier every gate calls ────────────────────────────────────────────────────────
-def verify(rel, quiet=False):
-    """Returns 0 fresh / 1 stale / 2 refuse. The refusal wording is produced HERE and nowhere
-    else, so every gate in the repository refuses in provably identical words."""
+def verify(rel, quiet=False, want_state="confirmed"):
+    """Returns 0 fresh / 1 stale-or-unconfirmed / 2 refuse. The refusal wording is produced HERE
+    and nowhere else, so every gate in the repository refuses in provably identical words.
+
+    `want_state` is what the CALLER requires. A gate about to spend minutes measuring requires
+    `confirmed`; the register's `adopted-unconfirmed` rows require `unconfirmed`, so a baseline
+    that has since been confirmed cannot sit in the debt class unnoticed."""
     path = os.path.join(ROOT, rel)
     if not os.path.isfile(path):
         refuse("%s: no such baseline: %s" % (TAG, rel))
@@ -314,7 +368,24 @@ def verify(rel, quiet=False):
         refuse("%s: REFUSING — %s carries a MALFORMED identity block: %s" % (TAG, rel, payload))
         return 2
 
-    commit, declared = payload
+    commit, declared, state, ident = payload
+    if state != want_state:
+        if want_state == "confirmed":
+            fail("%s: THE EXPECTATIONS IN %s ARE UNCONFIRMED — the artifact says so itself.\n"
+                 "        reason: %s\n"
+                 "        owner : %s\n"
+                 "      The recorded digests still track whether the inputs MOVED, but nobody has\n"
+                 "      re-derived these numbers against them. Any drift a consumer measures here\n"
+                 "      is UNATTRIBUTABLE: it could be a real regression, or it could be this\n"
+                 "      baseline. Re-derive, then:\n"
+                 "        bash scripts/check_baseline_identity.sh --stamp %s --confirmed-by \"…\""
+                 % (TAG, rel, ident.get("unconfirmed_reason", "?"),
+                    ident.get("owner_leaf", "?"), rel))
+        else:
+            fail("%s: %s is registered as UNCONFIRMED debt but its block now says `confirmed`. "
+                 "Promote the register row to `adopted`, or the debt class hides a finished "
+                 "baseline." % (TAG, rel))
+        return 1
     commit_leg(commit, rel)
 
     stale, checked = [], []
@@ -348,13 +419,21 @@ def verify(rel, quiet=False):
                "this check evaluated nothing. A check that cannot see must say so, not pass."
                % (TAG, rel, len(declared)))
         return 2
+    if state == "unconfirmed":
+        # Reached only when the CALLER asked for the debt class (the register). The inputs are
+        # fresh, which is all this row promises; the expectations are still owed.
+        if not quiet:
+            print("%s: %s — inputs unmoved, expectations UNCONFIRMED (owed by %s)"
+                  % (TAG, rel, ident.get("owner_leaf", "?")))
+        return 0
     if not quiet:
-        print("%s: OK — %s identity fresh for: %s" % (TAG, rel, ", ".join(checked)))
+        print("%s: OK — %s identity fresh and expectations CONFIRMED for: %s"
+              % (TAG, rel, ", ".join(checked)))
     return 0
 
 
 # ── --stamp: the only supported way to (re)derive a block ───────────────────────────────────────
-def stamp(rel, extra_inputs):
+def stamp(rel, extra_inputs, confirmed_by=None, unconfirmed=None, owner_leaf=None):
     path = os.path.join(ROOT, rel)
     if not os.path.isfile(path) or not rel.endswith(".json"):
         print("%s: --stamp needs an existing tracked .json baseline: %s" % (TAG, rel),
@@ -365,6 +444,26 @@ def stamp(rel, extra_inputs):
     obj = json.loads(text)
     status, payload = read_identity(obj)
     declared = list(payload[1].keys()) if status == "ok" else []
+    prior = payload[3] if status == "ok" else {}
+    # ⛔ A STAMP IS AN ASSERTION, NOT A REFRESH. Carrying the prior state forward silently is how
+    # a re-stamp after a grammar change would launder `unconfirmed` into `confirmed` — or the
+    # reverse — without anybody deciding. State is inherited ONLY when the caller names none.
+    if confirmed_by is None and unconfirmed is None:
+        confirmed_by = prior.get("confirmed_by") if prior.get("expectations") == "confirmed" else None
+        if prior.get("expectations") == "unconfirmed":
+            unconfirmed = prior.get("unconfirmed_reason")
+            owner_leaf = owner_leaf or prior.get("owner_leaf")
+    if confirmed_by is None and unconfirmed is None:
+        print("%s: --stamp REFUSING — a stamp asserts whether this file's numbers describe the\n"
+              "  recorded tree, and there is no honest default. Say which:\n"
+              "    --confirmed-by \"<the run that re-derived them>\"\n"
+              "    --unconfirmed \"<why they do not>\" --owner-leaf <TREE.leaf>" % TAG,
+              file=sys.stderr)
+        return 2
+    if confirmed_by is not None and unconfirmed is not None:
+        print("%s: --stamp REFUSING — --confirmed-by and --unconfirmed are contradictory" % TAG,
+              file=sys.stderr)
+        return 2
     inputs = list(dict.fromkeys(declared + list(extra_inputs)))
     if not inputs:
         print("%s: --stamp on an unadopted baseline must name its dependency set: "
@@ -388,16 +487,34 @@ def stamp(rel, extra_inputs):
               "guess." % TAG, file=sys.stderr)
         return 2
 
+    if confirmed_by is not None:
+        state_rows = ('    "expectations": "confirmed",\n'
+                      '    "confirmed_by": %s,\n' % json.dumps(confirmed_by))
+        proves = ("the expectations in this file were RE-DERIVED against the inputs below, at the "
+                  "commit below, by the run named in `confirmed_by`. The enforcer re-hashes those "
+                  "inputs on every run: if one differs, this baseline no longer describes your "
+                  "tree and the honest act is to re-derive, not to quote.")
+    else:
+        if not owner_leaf:
+            print("%s: --stamp REFUSING — --unconfirmed needs --owner-leaf; unowned debt is "
+                  "buried debt" % TAG, file=sys.stderr)
+            return 2
+        state_rows = ('    "expectations": "unconfirmed",\n'
+                      '    "unconfirmed_reason": %s,\n'
+                      '    "owner_leaf": %s,\n'
+                      % (json.dumps(unconfirmed), json.dumps(owner_leaf)))
+        proves = ("the expectations in this file are KNOWN NOT to describe the tree recorded "
+                  "below — see `unconfirmed_reason`. The digests are still re-hashed every run, "
+                  "so input drift is still caught, but every gate calling --verify REFUSES to "
+                  "measure: a drift measured against an unconfirmed baseline is unattributable.")
     block = ('  "identity": {\n'
              '    "_verifier": "bash %s --verify %s (doctrine BASELINE-IDENTITY, '
              'SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",\n'
-             '    "_what_this_proves": "every expectation in this file was derived from the '
-             'inputs below, at the commit below. The enforcer re-hashes them on every run: if one '
-             'differs, this baseline no longer describes your tree and the honest act is to '
-             're-derive, not to quote.",\n'
+             '    "_what_this_proves": "%s",\n'
+             '%s'
              '    "verified_at_commit": "%s",\n'
              '    "inputs": {\n%s\n    }\n'
-             '  }' % (VERIFIER_HINT, rel, head,
+             '  }' % (VERIFIER_HINT, rel, proves, state_rows, head,
                       ",\n".join('      %s: "%s"' % (json.dumps(d), digests[d])
                                  for d in sorted(digests))))
 
@@ -418,8 +535,9 @@ def stamp(rel, extra_inputs):
     json.loads(new)          # never write a file this repository cannot parse
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(new)
-    print("%s: stamped %s at %s over %d input(s): %s"
-          % (TAG, rel, head[:12], len(digests), ", ".join(sorted(digests))))
+    print("%s: stamped %s at %s as %s over %d input(s): %s"
+          % (TAG, rel, head[:12], "CONFIRMED" if confirmed_by is not None else "UNCONFIRMED",
+             len(digests), ", ".join(sorted(digests))))
     return 0
 
 
@@ -522,8 +640,17 @@ def register_mode(report=False):
             fail("%s: `%s` is a directory but is registered `%s`" % (TAG, name, disp))
             continue
 
-        if disp == "adopted":
-            verify(rel, quiet=not report)
+        if disp in ("adopted", "adopted-unconfirmed"):
+            verify(rel, quiet=not report,
+                   want_state="confirmed" if disp == "adopted" else "unconfirmed")
+            if disp == "adopted-unconfirmed":
+                owner = row.get("owner_leaf")
+                if not isinstance(owner, str) or not owner:
+                    fail("%s: `%s` is `adopted-unconfirmed` with no `owner_leaf` on its register "
+                         "row. Unowned debt is buried debt." % (TAG, name))
+                elif not leaf_exists(owner):
+                    fail("%s: `%s` names owner_leaf `%s`, which no docs/tasks/ tree mentions"
+                         % (TAG, name, owner))
         else:
             # ⛔⛔ THE ANTI-`.13i` RULE, AND IT IS THE POINT OF THIS WHOLE ENFORCER. `.13i` measured
             # six oracles carrying an identity block that NOTHING read, four of them stale. A block
@@ -584,13 +711,20 @@ elif argv and argv[0] == "--stamp":
         print("usage: --stamp <file> [--input <path>]...", file=sys.stderr)
         sys.exit(2)
     target, i = rest[0], 1
+    confirmed_by = unconfirmed = owner_leaf = None
     while i < len(rest):
         if rest[i] == "--input" and i + 1 < len(rest):
             extra.append(rest[i + 1]); i += 2
+        elif rest[i] == "--confirmed-by" and i + 1 < len(rest):
+            confirmed_by = rest[i + 1]; i += 2
+        elif rest[i] == "--unconfirmed" and i + 1 < len(rest):
+            unconfirmed = rest[i + 1]; i += 2
+        elif rest[i] == "--owner-leaf" and i + 1 < len(rest):
+            owner_leaf = rest[i + 1]; i += 2
         else:
             print("%s: unexpected --stamp argument: %s" % (TAG, rest[i]), file=sys.stderr)
             sys.exit(2)
-    sys.exit(stamp(target, extra))
+    sys.exit(stamp(target, extra, confirmed_by, unconfirmed, owner_leaf))
 elif argv and argv[0] == "--report":
     register_mode(report=True)
 elif not argv:

@@ -1,5 +1,60 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0249 (leaf SV-CORPUS-GRAD.13c.2x.2 SLICE 2 + .13c.2x.3 NEW; ZERO grammar bytes, ZERO Rust bytes): a retraction — the identity block recorded WHICH tree but never WHETHER the numbers were ever right about it, and that inverted the doctrine on its own first customer
+
+- ⛔⛔ **WHAT WAS WRONG.** `verified_at_commit` + `inputs` answer *"have the inputs moved since this
+  checkpoint?"*. They say nothing about whether the numbers stored beside them were ever CORRECT
+  about that checkpoint — and `-0248`'s block asserted the second: *"every expectation in this file
+  was derived from the inputs below."* For `systemverilog_recognized_cert_union_contract.json` that
+  was already MEASURED false by `.13c.2x` (1362 vs **1433** at HEAD).
+- ⛔ **AND THE CONSEQUENCE WAS WORSE THAN THE GAP IT CLOSED.** Observed on the real gate: before the
+  block it said *"expected 1362, measured 1433"* — vague, unattributable, honest. After `-0248` it
+  printed **`identity fresh`** and then the same drift, which reads as *"your baseline IS current,
+  therefore the TREE regressed"*. **An honest vague RED became a confident WRONG answer** that would
+  send a reader hunting a parser regression that does not exist.
+- ✅ **THE FIX: a REQUIRED `expectations` state with NO default.** `confirmed` + `confirmed_by`
+  (naming the run that re-derived the numbers), or `unconfirmed` + `unconfirmed_reason` +
+  `owner_leaf`. A missing or unknown value is MALFORMED, and `--stamp` REFUSES unless the operator
+  says which assertion they are making. ⭐ `unconfirmed` is **RED for every consumer, never a
+  waiver** — so provenance can be adopted on an artifact nobody can re-derive yet (often the most
+  valuable case, because that artifact is the one that has been rotting) without implying a
+  confirmation nobody performed.
+- ⭐ **MEASURED BEFORE → AFTER on the consumer**: `sv_cert_recognized_union_gate` now REFUSES in
+  **0 s** with *"THE EXPECTATIONS … ARE UNCONFIRMED — the artifact says so itself"*, naming the
+  reason and `owner: SV-CORPUS-GRAD.13c.2x`, instead of proceeding to a ~2-minutes-per-seed
+  measurement it cannot attribute. That is verbatim what `.13c.2x` asked for.
+- ⛔ **THE HONEST HEADLINE IS `adopted: 0` AND IT IS PUBLISHED** in the register, the book and
+  `DOCTRINE_ENFORCEMENT.md`. No baseline carries a CONFIRMED identity yet: 1 `adopted-unconfirmed`,
+  13 `deferred`, and neither is a clean bill of health.
+- ⛔⛔ **`.13c.2x.3` NEW — TRYING TO CONFIRM A SECOND BASELINE FOUND A SECOND RED GATE, AND AN
+  INSTRUMENT DISAGREEMENT UNDER IT.** `make -C rust sv_syntax_closure_gate` (86 s, peak 2 021 MB
+  under the memory guard) → **RED: `unreachable_rules=3 > max_unreachable_rules=0`**. And
+  `ast_pipeline --lint-grammar` reports **`unreachable_rules=0`** over the same 1610-rule universe.
+  ⭐ The three are PGEN's OWN LR-eliminator residue, named from the gate's gap artifact:
+  `casting_type` (**24** `parse_casting_type_lr_*` in the shipped parser) and
+  `property_expr_sv_2017` / `_sv_2023`, whose only consumer `property_expr` was rewired into **96**
+  `property_expr_lr_*` functions — the `SV-RULE-FIRE-PARTITION` class one surface over, **not a
+  parser defect** (`left_recursion_unhandled=0`, `undefined_references=0`, `profile_orphans=0`).
+  ⚠️ The entry-scope hypothesis for the disagreement is recorded and **NOT adopted**; it must be
+  measured.
+- ⭐ **PROBE 15 → 23 ARMS** (2 controls GREEN, 20 refusals, 1 timing assertion), 0 not-as-specified.
+  Six new arms exist solely because of this defect: no state, an unknown state, `confirmed` with no
+  confirmer, `--stamp` with no assertion, with two contradictory ones, and `--unconfirmed` with no
+  owner — plus `12b` (an unconfirmed baseline registered plain `adopted`) and `13b` (the consuming
+  gate refusing on the REAL contract).
+- ⚠️ **THREE SELF-INFLICTED BUGS, ALL CAUGHT BY ASSERTIONS RATHER THAN BY READING.** Backticks in a
+  double-quoted probe arm NAME are a command substitution (the shell ran `expectations` and
+  `adopted` as commands — `scripts/check_doctrines.sh`'s own `-0241` defect, one surface over); an
+  arm whose setup stamp started failing scored rc=0 until it was made to increment `FAIL`; and a
+  `<<'PY'` heredoc nested inside a generator using `<<'PY'` terminated the OUTER heredoc, after
+  which the shell executed the remainder as commands. ⭐ **A `|` inside a doctrine DESCRIPTION also
+  splits the registry row in the wrong place** — it fails loudly but names the wrong cause
+  ("enforcer missing: <a paragraph of English>"), so `check_doctrines.sh` now carries a
+  `<meta:registry>` separator guard, proven RED on a perturbed arm (exit 1).
+- **Validation**: `bash scripts/check_doctrines.sh` → **ALL 24 enforced doctrines PASS**;
+  `knowledge-map` OK; probe 23/23. New knowledge card
+  `a-provenance-block-must-say-whether-the-numbers-were-ever-right`.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0248 (leaf SV-CORPUS-GRAD.13c.2x.2 SLICE 1; ZERO grammar bytes, ZERO Rust bytes): the director-ordered baseline identity support is BUILT, ADOPTED ONCE, READ BY ITS CONSUMER, and observed refusing TWELVE ways
 
 - ✅ **NEW DOCTRINE `BASELINE-IDENTITY` — 23 → 24 enforced.** A tracked baseline that holds a value

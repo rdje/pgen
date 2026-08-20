@@ -410,6 +410,8 @@ on, as data:
 ```json
 "identity": {
   "_verifier": "bash scripts/check_baseline_identity.sh --verify <this file> …",
+  "expectations": "confirmed",
+  "confirmed_by": "re-derived by `make -C rust <gate>` at seeds 0/7/42",
   "verified_at_commit": "6d6edf94c9e7947fe175d0936c83deaca982df47",
   "inputs": {
     "grammars/systemverilog.ebnf": "b0395cc8…",
@@ -418,6 +420,29 @@ on, as data:
   }
 }
 ```
+
+**⛔ The block answers two questions, and the first version of it answered only one.** Input digests
+tell you whether the inputs *moved* since the checkpoint. They say nothing about whether the numbers
+stored beside them were ever *correct* about that checkpoint — and a block carrying only the first
+silently implies the second. Stamping the certificate-union contract that way asserted a derivation
+that had never happened: the gate then printed `identity fresh` and proceeded to a drift report,
+which reads as *"your baseline is current, therefore the tree regressed"*. **That is a worse outcome
+than the vague RED it replaced** — an honest "something is wrong" became a confident wrong answer
+that would send a reader hunting a parser regression that does not exist. It was retracted the same
+day.
+
+So `expectations` is required, with **no default**:
+
+| value | means | what a consuming gate does |
+|---|---|---|
+| `confirmed` + `confirmed_by` | the numbers were re-derived against these digests, by the named run | measures |
+| `unconfirmed` + `unconfirmed_reason` + `owner_leaf` | the numbers are known **not** to describe these digests | **refuses** |
+
+⭐ **You may therefore adopt provenance on an artifact you cannot re-derive today — and that is
+usually the most valuable case, because an artifact nobody can re-derive is the one that has been
+rotting.** `unconfirmed` is not a waiver: input drift is still detected, the owing leaf is named in
+the artifact, and the only route to green is an actual re-derivation. What adoption may never do is
+imply a confirmation nobody performed.
 
 The population does **not** share a dependency set — one baseline derives from a grammar,
 another from generated Rust, another from tracked prose, another from a vendored corpus —
@@ -457,8 +482,9 @@ current adjudication of its 53 rows:
 
 | disposition | rows | meaning |
 |---|---:|---|
-| `adopted` | 1 | carries a block; every declared input re-hashed each run |
-| `deferred` | 13 | holds tree-derived expectations, adoption owed, `owner_leaf` named |
+| `adopted` | 0 | carries a **confirmed** block; every declared input re-hashed each run |
+| `adopted-unconfirmed` | 1 | carries a block that declares its own numbers unconfirmed; consumers refuse |
+| `deferred` | 13 | holds tree-derived expectations, no block yet, `owner_leaf` named |
 | `identity-native` | 1 | *is* an identity record, already re-derived by its own doctrine |
 | `corpus-directory` | 4 | a corpus tree, not a baseline |
 | `not-a-derived-baseline` | 34 | holds no value that is a function of the tree |
@@ -470,10 +496,12 @@ random seed, a sample count or an IEEE-derived legality verdict is not: it is wh
 worse, it would invite re-deriving an expectation whose job is to hold the tree to account
 rather than follow it.
 
-⚠️ **`deferred` is an accepted risk, not a clean bill of health.** Thirteen baselines still
-hold derived expectations with nothing watching their inputs, exactly as the adopted one did
-for eleven grammar revisions. What the register buys is that the debt is visible, owned and
-bounded.
+⚠️ **Neither `deferred` nor `adopted-unconfirmed` is a clean bill of health, and the count of
+truly-confirmed baselines is currently zero.** Thirteen still hold derived expectations with
+nothing watching their inputs; the fourteenth watches its inputs and says outright that its
+numbers are wrong. What the register buys is that the debt is visible, owned and bounded — and
+publishing `adopted: 0` is part of that, because a doctrine that reported its own adoption as
+finished would be the first thing in this chapter to rot.
 
 ⚠️ **And the honest bound on the census itself.** The population was first sized by a
 key-name classifier, which the adjudication corrected **in both directions**: five contracts

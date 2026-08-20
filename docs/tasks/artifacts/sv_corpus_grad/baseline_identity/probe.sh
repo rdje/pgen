@@ -60,6 +60,12 @@ cp -f "$REGISTER" "$WORK/backup_register.json" || exit 2
 cp -f "$DEFERRED" "$WORK/backup_deferred.json" || exit 2
 
 #   $1 arm name   $2 expected rc   $3 a string the output must contain   $4.. the command
+#
+# ⛔ ARM NAMES CARRY NO BACKTICKS, DELIBERATELY. They are double-quoted shell words, so a backtick
+# opens a COMMAND SUBSTITUTION: the shell ran `expectations` and `adopted` as commands and the
+# printed arm name silently lost the word. Measured here while writing this probe, and it is the
+# same defect scripts/check_doctrines.sh shipped in its own registry descriptions (`-0241`) —
+# `bash -n` is clean throughout, so only running it shows the loss.
 arm() {
   local name="$1" want_rc="$2" want_msg="$3"; shift 3
   local rc
@@ -83,8 +89,11 @@ arm() {
 # ⛔ A control is the arm that must stay GREEN; it is NOT a refusal and is never counted as one
 # (the `-0231` correction: publishing "5 refusal arms … incl. a control" overstated the evidence).
 echo "controls — these must stay GREEN"
-arm "CONTROL: the adopted baseline verifies at HEAD" 0 "identity fresh for" \
-    bash "$VERIFY" --verify "$ADOPTED"
+# ⛔ THE ADOPTED CONTRACT IS `adopted-unconfirmed`: its numbers are known NOT to describe HEAD, so
+# `--verify` — the call a GATE makes — must go RED. This was a GREEN control in slice 1 and the
+# GREEN was the defect (`-0249`): the block asserted a derivation that had not happened.
+arm "arm 0: the union contract's expectations are UNCONFIRMED -> RED for any consumer" 1 \
+    "ARE UNCONFIRMED — the artifact says so itself" bash "$VERIFY" --verify "$ADOPTED"
 arm "CONTROL: the closed register is consistent at HEAD" 0 "" \
     bash "$VERIFY"
 
@@ -93,12 +102,14 @@ SCRATCH_IN="$WORK/declared_input.txt"
 SCRATCH_BL="$WORK/scratch_baseline.json"
 printf 'the original bytes\n' > "$SCRATCH_IN"
 printf '{\n  "contract": "baseline_identity_probe",\n  "expected_total": 7\n}\n' > "$SCRATCH_BL"
-bash "$VERIFY" --stamp "$SCRATCH_BL" --input "$SCRATCH_IN" > "$LOG" 2>&1 || {
+bash "$VERIFY" --stamp "$SCRATCH_BL" --input "$SCRATCH_IN" \
+     --confirmed-by "the probe derived expected_total=7 from declared_input.txt in this run" \
+     > "$LOG" 2>&1 || {
   echo "probe: could not stamp the scratch baseline" >&2; sed 's/^/  /' "$LOG" >&2; exit 2; }
 
 echo "refusal arms — each must go RED"
-arm "CONTROL: the scratch baseline verifies before it is disturbed" 0 "identity fresh for" \
-    bash "$VERIFY" --verify "$SCRATCH_BL"
+arm "CONTROL: a CONFIRMED scratch baseline verifies before it is disturbed" 0 \
+    "identity fresh and expectations CONFIRMED" bash "$VERIFY" --verify "$SCRATCH_BL"
 
 # ── arm 3: THE DECLARED INPUT MOVES ─────────────────────────────────────────────────────────────
 printf 'the original bytes, plus one\n' > "$SCRATCH_IN"
@@ -127,6 +138,9 @@ def truncate(i):
     k = next(iter(i["inputs"])); i["inputs"][k] = i["inputs"][k][:16]
 emit("bad_sha.json", truncate)
 emit("no_pointer.json", lambda i: i.pop("_verifier"))
+emit("no_state.json", lambda i: i.pop("expectations"))
+emit("bad_state.json", lambda i: i.__setitem__("expectations", "probably"))
+emit("no_confirmer.json", lambda i: i.pop("confirmed_by"))
 emit("alien_commit.json", lambda i: i.__setitem__("verified_at_commit", "0" * 39 + "1"))
 emit("absent_input.json",
      lambda i: i.__setitem__("inputs", {"rust/target/baseline_identity_probe/gone.txt":
@@ -136,6 +150,16 @@ arm "arm 5: a TRUNCATED digest is not a sha256 -> REFUSE" 2 "MALFORMED identity 
     bash "$VERIFY" --verify "$WORK/bad_sha.json"
 arm "arm 6: the block loses its pointer at the reader -> REFUSE" 2 "MALFORMED identity block" \
     bash "$VERIFY" --verify "$WORK/no_pointer.json"
+# ⭐⭐ THE ARMS THAT EXIST BECAUSE SLICE 1 SHIPPED WITHOUT THIS FIELD (`-0249`). A block with no
+# `expectations` state asserted that its numbers were derived from the recorded tree; for a
+# baseline measured RED by 71 rules that was a confident WRONG answer, and the consuming gate
+# printed `identity fresh` before reporting an unattributable drift. There is no honest default.
+arm "arm 6b: no expectations state at all -> REFUSE" 2 "MALFORMED identity block" \
+    bash "$VERIFY" --verify "$WORK/no_state.json"
+arm "arm 6c: an expectations value outside the vocabulary -> REFUSE" 2 "MALFORMED identity block" \
+    bash "$VERIFY" --verify "$WORK/bad_state.json"
+arm "arm 6d: confirmed with nothing naming the run that confirmed it -> REFUSE" 2 \
+    "MALFORMED identity block" bash "$VERIFY" --verify "$WORK/no_confirmer.json"
 arm "arm 7: verified_at_commit names a commit not in this history -> RED" 1 \
     "is not a commit this repository contains" \
     bash "$VERIFY" --verify "$WORK/alien_commit.json"
@@ -144,6 +168,18 @@ arm "arm 7: verified_at_commit names a commit not in this history -> RED" 1 \
 arm "arm 8: every declared input absent -> REFUSE, never a vacuous pass" 2 \
     "NONE of them could be hashed here" \
     bash "$VERIFY" --verify "$WORK/absent_input.json"
+
+# ── arms 8b-8d: A STAMP IS AN ASSERTION, so it cannot be made by accident ──────────────────────
+arm "arm 8b: --stamp on an unadopted baseline naming NO state -> REFUSE" 2 \
+    "there is no honest default" \
+    bash "$VERIFY" --stamp "$WORK/no_block.json" --input "$SCRATCH_IN"
+arm "arm 8c: --stamp asserting BOTH states -> REFUSE" 2 "contradictory" \
+    bash "$VERIFY" --stamp "$WORK/no_block.json" --input "$SCRATCH_IN" \
+        --confirmed-by "a run that re-derived the numbers, described at length" \
+        --unconfirmed "and simultaneously a reason they are not confirmed at all"
+arm "arm 8d: --unconfirmed with no --owner-leaf -> REFUSE" 2 "unowned debt is buried debt" \
+    bash "$VERIFY" --stamp "$WORK/no_block.json" --input "$SCRATCH_IN" \
+        --unconfirmed "a reason long enough to satisfy the schema check on its own"
 
 # ── arms 9-12: the CLOSED POPULATION, both sides ────────────────────────────────────────────────
 printf '{ "contract": "probe" }\n' > "$QUAL/zz_probe_unregistered_v0.json"
@@ -162,8 +198,12 @@ cp -f "$WORK/backup_register.json" "$REGISTER"
 
 # ⛔⛔ THE ANTI-`.13i` ARM. A `deferred` row that CARRIES a block is a block nothing re-hashes —
 # `.13i` verbatim — and must be a hard failure rather than a nudge.
-bash "$VERIFY" --stamp "$DEFERRED" --input grammars/regex.ebnf > "$LOG" 2>&1 || {
-  echo "probe: could not stamp the deferred baseline for arm 11" >&2; sed 's/^/  /' "$LOG" >&2; }
+bash "$VERIFY" --stamp "$DEFERRED" --input grammars/regex.ebnf \
+     --confirmed-by "a synthetic confirmation written by this probe arm, then reverted" \
+     > "$LOG" 2>&1 || {
+  echo "probe: could not stamp the deferred baseline for arm 11 — the arm below cannot be" >&2
+  echo "       trusted, so it is scored as a FAILURE rather than allowed to pass vacuously" >&2
+  sed 's/^/  /' "$LOG" >&2; FAIL=$((FAIL + 1)); }
 arm "arm 11: a DEFERRED row carrying a block (the .13i shape) -> RED" 1 \
     "yet CARRIES an identity block" bash "$VERIFY"
 cp -f "$WORK/backup_deferred.json" "$DEFERRED"
@@ -180,6 +220,13 @@ arm "arm 12: a deferral owned by a leaf nothing mentions -> RED" 1 \
     "which no docs/tasks/ tree mentions" bash "$VERIFY"
 cp -f "$WORK/backup_register.json" "$REGISTER"
 
+# ⛔⛔ THE DEBT CLASS MUST NOT BE A HIDING PLACE. Calling an unconfirmed baseline plain `adopted`
+# would restore slice 1's false claim, so the register and the artifact are held to agree.
+python3 "$(dirname "${BASH_SOURCE[0]}")/promote_row.py" "$REGISTER"
+arm "arm 12b: an UNCONFIRMED baseline registered plain adopted -> RED" 1 \
+    "ARE UNCONFIRMED" bash "$VERIFY"
+cp -f "$WORK/backup_register.json" "$REGISTER"
+
 # ── arm 13: THE READER. Does the CONSUMING GATE actually refuse? ────────────────────────────────
 #
 # ⛔ THIS IS THE ARM `.13i` MAKES MANDATORY. Arms 3-8 prove the verifier discriminates; only this
@@ -188,17 +235,28 @@ cp -f "$WORK/backup_register.json" "$REGISTER"
 python3 - "$ADOPTED" "$WORK/stale_contract.json" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
-k = "grammars/systemverilog.ebnf"
-d["identity"]["inputs"][k] = "0" * 64      # schema still valid; only the identity is wrong
+i = d["identity"]
+# CONFIRMED on purpose, so the refusal this arm observes is about the INPUT HAVING MOVED and not
+# about the real contract's (separately proven, arm 13b) unconfirmed state.
+i["expectations"] = "confirmed"
+i["confirmed_by"] = "a synthetic confirmation, so this arm isolates the stale-input path"
+i.pop("unconfirmed_reason", None)
+i.pop("owner_leaf", None)
+i["inputs"]["grammars/systemverilog.ebnf"] = "0" * 64
 json.dump(d, open(sys.argv[2], "w"), indent=2, ensure_ascii=False)
 PY
 start=$(date +%s)
 # ⛔ EXPORTED, not prefixed: `VAR=x some_shell_function` leaves VAR set in the calling shell in
 # bash's default mode, which would silently redirect every later arm at the perturbed contract.
 export PGEN_SV_CERT_RECOGNIZED_UNION_CONTRACT_FILE="$ROOT/$WORK/stale_contract.json"
-arm "arm 13: the CONSUMING GATE refuses to measure on a stale baseline" 2 \
+arm "arm 13: the CONSUMING GATE refuses to measure on a STALE-INPUT baseline" 2 \
     "REFUSING TO MEASURE" bash rust/scripts/sv_cert_recognized_union_gate.sh
 unset PGEN_SV_CERT_RECOGNIZED_UNION_CONTRACT_FILE
+# ⭐ …and on the REAL contract, whose expectations are unconfirmed. THIS is the arm that makes the
+# gate's RED diagnosable: it names the reason and the owning leaf in under a second, instead of
+# measuring for minutes and reporting a drift nobody can attribute.
+arm "arm 13b: the CONSUMING GATE refuses on the REAL unconfirmed contract" 2 \
+    "REFUSING TO MEASURE" bash rust/scripts/sv_cert_recognized_union_gate.sh
 elapsed=$(( $(date +%s) - start ))
 if [ "$elapsed" -le 60 ]; then
   echo "  ✓ arm 13 cost ${elapsed}s — the refusal is ahead of the measurement, as designed"

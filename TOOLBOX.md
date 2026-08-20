@@ -1277,13 +1277,34 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   bash scripts/check_baseline_identity.sh                        # doctrine mode: register + all adopted
   bash scripts/check_baseline_identity.sh --report               # the 53-row inventory by disposition
   bash scripts/check_baseline_identity.sh --verify <baseline>    # one baseline — what a GATE calls
-  bash scripts/check_baseline_identity.sh --stamp <baseline> [--input <path>]…   # (re)derive the block
+  # a stamp is an ASSERTION, so it must say WHICH assertion — there is no default
+  bash scripts/check_baseline_identity.sh --stamp <baseline> [--input <path>]… \
+       --confirmed-by "<the run that re-derived the numbers>"
+  bash scripts/check_baseline_identity.sh --stamp <baseline> [--input <path>]… \
+       --unconfirmed "<why they do not describe this tree>" --owner-leaf <TREE.leaf>
   ```
+- ⛔⛔ **THE BLOCK ANSWERS TWO QUESTIONS AND BOTH ARE REQUIRED.** `verified_at_commit` + `inputs`
+  answer *"have the inputs moved since this checkpoint?"*. `expectations` answers *"were these
+  numbers ever right about that checkpoint?"* — and it has **no default**, because a block that
+  carries only the first silently implies the second. That omission is not a smaller version of the
+  defect, it is a worse one: it turns an honest vague RED into a confident WRONG answer
+  → [[a-provenance-block-must-say-whether-the-numbers-were-ever-right]].
+  ```json
+  "expectations": "confirmed",   "confirmed_by": "<the run that re-derived them>"
+  "expectations": "unconfirmed", "unconfirmed_reason": "<what measured them wrong>",
+                                 "owner_leaf": "<who owes the re-derivation>"
+  ```
+  ⭐ **You MAY adopt on an artifact you cannot re-derive today — that is often the most valuable
+  case**, because an artifact nobody can re-derive is the one that has been rotting. `unconfirmed`
+  is **RED for every consumer**, never a waiver: input drift is still detected, the owing leaf is
+  named, and the only route to green is a real re-derivation.
 - **OUTPUT / EXIT CODES** — a gate calling `--verify` should distinguish all three:
   ```text
-  0  baseline-identity: OK — <file> identity fresh for: <inputs>
+  0  baseline-identity: OK — <file> identity fresh and expectations CONFIRMED for: <inputs>
   1  baseline-identity: THE BASELINE IS STALE — <file> no longer describes this tree.
          grammars/systemverilog.ebnf: baseline `b0395cc85948…` vs live `4f1a…`
+  1  baseline-identity: THE EXPECTATIONS IN <file> ARE UNCONFIRMED — the artifact says so itself.
+         reason: … / owner: <leaf>
   2  baseline-identity: REFUSING — <file> carries NO identity block / a MALFORMED one
   ```
 - ⭐⭐ **THE DEPENDENCY SET IS DATA, AND THAT IS THE WHOLE POINT.** `PARSE-COST-RATCHET` hard-codes
@@ -1301,9 +1322,13 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - ⚠️ **An input that is absent is reported NOT EVALUATED, never counted as fresh** — `generated/` is
   untracked, and a shallow clone cannot resolve `verified_at_commit`. If **nothing** could be
   hashed the verifier REFUSES rather than reporting a clean tree.
-- **PROBE:** `bash docs/tasks/artifacts/sv_corpus_grad/baseline_identity/probe.sh` — 15 arms
-  (3 controls GREEN, 12 refusals), run recorded beside it in `probe_run.txt`. It restores every
-  file it mutates and byte-compares against its own backup.
+- **PROBE:** `bash docs/tasks/artifacts/sv_corpus_grad/baseline_identity/probe.sh` — **23 arms**
+  (2 controls GREEN, 20 refusals, 1 timing assertion), run recorded beside it in `probe_run.txt`.
+  It restores every file it mutates and byte-compares against its own backup.
+  ⚠️ **Its arm NAMES carry no backticks, deliberately**: they are double-quoted shell words, so a
+  backtick opens a command substitution and the printed name silently loses the word. Measured
+  here, and the same defect `scripts/check_doctrines.sh` shipped in its own registry descriptions —
+  `bash -n` is clean throughout, so only RUNNING it shows the loss.
 
 ## 6. Coverage / gap reports (`ast_pipeline`)
 

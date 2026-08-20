@@ -1,21 +1,29 @@
 controls — these must stay GREEN
-  ✓ CONTROL: the adopted baseline verifies at HEAD — rc=0 and the message names it
+  ✓ arm 0: the union contract's expectations are UNCONFIRMED -> RED for any consumer — rc=1 and the message names it
   ✓ CONTROL: the closed register is consistent at HEAD — rc=0 and the message names it
 refusal arms — each must go RED
-  ✓ CONTROL: the scratch baseline verifies before it is disturbed — rc=0 and the message names it
+  ✓ CONTROL: a CONFIRMED scratch baseline verifies before it is disturbed — rc=0 and the message names it
   ✓ arm 3: a declared input CHANGED -> STALE — rc=1 and the message names it
   ✓ arm 4: the block is REMOVED -> REFUSE — rc=2 and the message names it
   ✓ arm 5: a TRUNCATED digest is not a sha256 -> REFUSE — rc=2 and the message names it
   ✓ arm 6: the block loses its pointer at the reader -> REFUSE — rc=2 and the message names it
+  ✓ arm 6b: no expectations state at all -> REFUSE — rc=2 and the message names it
+  ✓ arm 6c: an expectations value outside the vocabulary -> REFUSE — rc=2 and the message names it
+  ✓ arm 6d: confirmed with nothing naming the run that confirmed it -> REFUSE — rc=2 and the message names it
   ✓ arm 7: verified_at_commit names a commit not in this history -> RED — rc=1 and the message names it
   ✓ arm 8: every declared input absent -> REFUSE, never a vacuous pass — rc=2 and the message names it
+  ✓ arm 8b: --stamp on an unadopted baseline naming NO state -> REFUSE — rc=2 and the message names it
+  ✓ arm 8c: --stamp asserting BOTH states -> REFUSE — rc=2 and the message names it
+  ✓ arm 8d: --unconfirmed with no --owner-leaf -> REFUSE — rc=2 and the message names it
   ✓ arm 9: a NEW baseline with no verdict -> RED — rc=1 and the message names it
   ✓ arm 10: a row naming NOTHING is a dead exemption -> RED — rc=1 and the message names it
   ✓ arm 11: a DEFERRED row carrying a block (the .13i shape) -> RED — rc=1 and the message names it
   ✓ arm 12: a deferral owned by a leaf nothing mentions -> RED — rc=1 and the message names it
-  ✓ arm 13: the CONSUMING GATE refuses to measure on a stale baseline — rc=2 and the message names it
+  ✓ arm 12b: an UNCONFIRMED baseline registered plain adopted -> RED — rc=1 and the message names it
+  ✓ arm 13: the CONSUMING GATE refuses to measure on a STALE-INPUT baseline — rc=2 and the message names it
+  ✓ arm 13b: the CONSUMING GATE refuses on the REAL unconfirmed contract — rc=2 and the message names it
   ✓ arm 13 cost 0s — the refusal is ahead of the measurement, as designed
 
-probe: 15 arm(s) behaved as specified, 0 did not
+probe: 23 arm(s) behaved as specified, 0 did not
 probe: restored the tracked register + deferred baseline
 probe: no residue — every file this probe mutated is byte-identical to its backup

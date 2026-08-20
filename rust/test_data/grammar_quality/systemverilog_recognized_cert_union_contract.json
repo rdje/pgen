@@ -1,8 +1,11 @@
 {
   "identity": {
     "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
-    "_what_this_proves": "every expectation in this file was derived from the inputs below, at the commit below. The enforcer re-hashes them on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
-    "verified_at_commit": "6d6edf94c9e7947fe175d0936c83deaca982df47",
+    "_what_this_proves": "the expectations in this file are KNOWN NOT to describe the tree recorded below — see `unconfirmed_reason`. The digests are still re-hashed every run, so input drift is still caught, but every gate calling --verify REFUSES to measure: a drift measured against an unconfirmed baseline is unattributable.",
+    "expectations": "unconfirmed",
+    "unconfirmed_reason": "the expected_* fields were derived on 2026-08-12 (commit 3056381a) and SV-CORPUS-GRAD.13c.2x MEASURED them wrong at HEAD by 71 rules and 53 UNKNOWNs (canonical total 1362 vs 1433, union UNKNOWN 0 vs 53, 27 unmet criteria at seeds 0/7/42), after ELEVEN revisions of grammars/systemverilog.ebnf. Re-derivation is .13c.2x(c) and is HARD-BLOCKED by .13c.2x.1, because rebaselining a count that may be nondeterministic converts an intermittent defect into a permanent silent one.",
+    "owner_leaf": "SV-CORPUS-GRAD.13c.2x",
+    "verified_at_commit": "b9182437a837d71ab6891950aef557b8dff95df4",
     "inputs": {
       "generated/systemverilog_parser.rs": "936294a4ddae29255684f635427995b3b7bf9096b3e55eddf02d890572ca2bda",
       "grammars/systemverilog.ebnf": "b0395cc859489782e145b7ffc7f431cec33c2063e829c56978cb4e70fffbb351",

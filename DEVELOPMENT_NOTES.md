@@ -1,5 +1,58 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0249 — I shipped a provenance block that made the diagnosis worse, and it took running the consumer to see it
+
+**1. THE DEFECT WAS NOT AN OMISSION, IT WAS AN IMPLICATION.** Slice 1's block recorded
+`verified_at_commit` and input digests. Both were correct. What was wrong is what they IMPLY when
+they stand alone: that the numbers beside them describe the recorded tree. For the certificate-union
+contract that implication had already been measured false — 1362 against a measured 1433 — so the
+artifact now asserted a derivation that never happened. ⇒ **the second question is not optional and
+has no default** → [[a-provenance-block-must-say-whether-the-numbers-were-ever-right]].
+
+**2. THE THING I SHOULD HAVE FELT AT THE TIME: I STAMPED A BASELINE I KNEW WAS RED.** I even wrote
+the sentence *"it does not turn the gate green"* into the leaf, the changelog and the commit
+message — three times — without noticing that if it is not green then the block I was writing was
+false. Knowing a fact and letting it reach the design are different acts. The tell was available
+and cheap: the block's own `_what_this_proves` string is a claim, and I never read it back against
+`.13c.2x`'s measured 1433.
+
+**3. WHAT ACTUALLY EXPOSED IT WAS RUNNING THE CONSUMER, NOT RE-READING THE DESIGN.** The bounded
+gate run printed `identity fresh` immediately above `==> ensure_generated_systemverilog_parser`, and
+seeing those two lines adjacent is what made the inversion obvious: fresh-then-measure means the
+next thing the gate says is *"the tree regressed"*. No amount of re-reading the JSON would have
+produced that adjacency. ⇒ **run the consumer, do not review the artifact.**
+
+**4. THE FIX HAD TO NOT BECOME A WAIVER, AND THE SHAPE THAT ACHIEVES THAT IS "RED BUT OWNED".**
+`unconfirmed` could easily have been a way to adopt a block and feel finished. It is instead RED for
+every consumer: the gate refuses, the register counts it in a separate class, and the only route to
+green is a real re-derivation. What it buys is narrower and worth stating exactly — input drift is
+still detected, and the artifact itself now names the leaf that owes the work. ⭐ That makes
+provenance adoptable on artifacts nobody can re-derive today, which are precisely the ones that have
+been rotting.
+
+**5. REQUIRING CONFIRMATION IMMEDIATELY EARNED ITS KEEP.** The next baseline I tried to adopt could
+not be confirmed either: `sv_syntax_closure_gate` is RED at HEAD with `unreachable_rules=3 > 0`. Had
+the schema still permitted a silent stamp, I would have stamped it, published "two adopted", and
+buried a second RED gate under a fresh green tick. **A checklist item that forces a measurement
+finds things; one that forces a signature does not.**
+
+**6. AND UNDER THAT RED SITS SOMETHING WORSE THAN A RED.** `--lint-grammar` reports
+`unreachable_rules=0` on the same grammar where the gate reports 3, over the same 1610-rule
+universe (1607 + 3 = 1610 = the lint's own count). Two tracked instruments, one metric name, two
+answers. I have a hypothesis — the gate is entry-scoped to `sv_multi_entry_root` and the lint is
+not — and I deliberately did NOT adopt it, because `.13c.2v` slice 1's first root cause was
+plausible and wrong for exactly this kind of reason. `.13c.2x.3` owns measuring it.
+
+**7. THREE SELF-INFLICTED SHELL BUGS IN ONE SLICE, AND EVERY ONE WAS CAUGHT BY AN ASSERTION.**
+Backticks in a double-quoted probe arm NAME are a command substitution — the shell executed
+`expectations` and `adopted` and the printed name silently lost the word, which is
+`check_doctrines.sh`'s own registry defect one surface over. A nested `<<'PY'` heredoc terminated
+the outer one and the shell ran the remaining python as commands, including a `cp -f "" ""` at the
+tracked register. A `|` inside a doctrine description split the registry row in the wrong place and
+produced *"registered enforcer missing: <a paragraph of English>"*. ⛔ **`bash -n` is clean through
+all three.** Only running them shows the loss, which is the whole argument for writing the probe
+before quoting the result → [[a-check-whose-inputs-all-pass-has-not-been-tested]].
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0248 — I built a population out of a classifier, and the classifier was wrong in both directions at once
 
 **1. THE CENSUS I INHERITED WAS HONEST ABOUT BEING A FLOOR, AND I ALMOST BUILT ON IT ANYWAY.**
