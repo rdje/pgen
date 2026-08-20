@@ -90,11 +90,9 @@ arm() {
 # ⛔ A control is the arm that must stay GREEN; it is NOT a refusal and is never counted as one
 # (the `-0231` correction: publishing "5 refusal arms … incl. a control" overstated the evidence).
 echo "controls — these must stay GREEN"
-# ⛔ THE ADOPTED CONTRACT IS `adopted-unconfirmed`: its numbers are known NOT to describe HEAD, so
-# `--verify` — the call a GATE makes — must go RED. This was a GREEN control in slice 1 and the
-# GREEN was the defect (`-0249`): the block asserted a derivation that had not happened.
-arm "arm 0: the union contract's expectations are UNCONFIRMED -> RED for any consumer" 1 \
-    "ARE UNCONFIRMED — the artifact says so itself" bash "$VERIFY" --verify "$ADOPTED"
+# ⛔ The union contract is `adopted-unconfirmed`, so `--verify` — the call a GATE makes — must go
+# RED. That assertion now lives in arm 14 with its exact exit code; duplicating it here as a
+# code-1 arm is what made this probe fail against its own corrected contract.
 arm "CONTROL: the closed register is consistent at HEAD" 0 "" \
     bash "$VERIFY"
 
@@ -233,24 +231,23 @@ cp -f "$WORK/backup_register.json" "$REGISTER"
 # ⛔ THIS IS THE ARM `.13i` MAKES MANDATORY. Arms 3-8 prove the verifier discriminates; only this
 # one proves a gate READS it. It also asserts the refusal is CHEAP: the identity stage sits ahead
 # of the ~2-minutes-per-seed measurement precisely so an undiagnosable verdict is never paid for.
+# ⛔⛔ THE CELL A GATE REFUSES ON IS `unconfirmed`, NOT `stale` — SV-CORPUS-GRAD.13c.2x.4.
+# An earlier version of this arm forced `confirmed` + a wrong digest to make the gate refuse. Under
+# the corrected matrix that combination makes the gate MEASURE — correctly, because running is what
+# resolves staleness — so the arm would silently have become a two-minute run inside a probe that
+# is meant to take seconds. It did exactly that once while this file was being edited.
 python3 - "$ADOPTED" "$WORK/stale_contract.json" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
-i = d["identity"]
-# CONFIRMED on purpose, so the refusal this arm observes is about the INPUT HAVING MOVED and not
-# about the real contract's (separately proven, arm 13b) unconfirmed state.
-i["expectations"] = "confirmed"
-i["confirmed_by"] = "a synthetic confirmation, so this arm isolates the stale-input path"
-i.pop("unconfirmed_reason", None)
-i.pop("owner_leaf", None)
-i["inputs"]["grammars/systemverilog.ebnf"] = "0" * 64
+d["identity"]["inputs"]["grammars/systemverilog.ebnf"] = {
+    "kind": "ebnf_raw_ast", "digest": "0" * 64}
 json.dump(d, open(sys.argv[2], "w"), indent=2, ensure_ascii=False)
 PY
 start=$(date +%s)
 # ⛔ EXPORTED, not prefixed: `VAR=x some_shell_function` leaves VAR set in the calling shell in
 # bash's default mode, which would silently redirect every later arm at the perturbed contract.
 export PGEN_SV_CERT_RECOGNIZED_UNION_CONTRACT_FILE="$ROOT/$WORK/stale_contract.json"
-arm "arm 13: the CONSUMING GATE refuses to measure on a STALE-INPUT baseline" 2 \
+arm "arm 13: the CONSUMING GATE refuses on an UNCONFIRMED baseline, before measuring" 2 \
     "REFUSING TO MEASURE" bash rust/scripts/sv_cert_recognized_union_gate.sh
 unset PGEN_SV_CERT_RECOGNIZED_UNION_CONTRACT_FILE
 # ⭐ …and on the REAL contract, whose expectations are unconfirmed. THIS is the arm that makes the
@@ -267,44 +264,94 @@ else
   FAIL=$((FAIL + 1))
 fi
 
-# ── arms 14-15: THE SECOND CONSUMING GATE, and the escape that is not a bypass ──────────────────
+# ── arms 14-16: THE FOUR-WAY CONTRACT THE WHOLE MATRIX BRANCHES ON ─────────────────────────────
 #
-# ⛔ EVERY ADOPTION SHIPS BLOCK **AND** READER **AND** AN OBSERVED REFUSAL — that is this leaf's own
-# acceptance rule, and `SV-CORPUS-GRAD.13i` is why. `sv_syntax_closure_gate` is the second reader,
-# so it gets the same two arms the first one has.
+# ⛔ `--verify`'s EXIT CODE **IS** THE CONTRACT — a gate cannot implement the matrix without it, and
+# getting it wrong was not theoretical: the first cut let `fail()` collapse UNCONFIRMED (3) into
+# STALE (1), so a gate that should have refused in 0 s began a two-minute measurement instead.
 python3 - "$CLOSURE" "$WORK/stale_closure.json" <<'PYARM'
 import json, sys
 d = json.load(open(sys.argv[1]))
-i = d["identity"]
-i["expectations"] = "confirmed"
-i["confirmed_by"] = "a synthetic confirmation, so this arm isolates the stale-input path"
-i.pop("unconfirmed_reason", None)
-i.pop("owner_leaf", None)
-i["inputs"]["grammars/systemverilog.ebnf"] = "0" * 64
+# CONFIRMED and stale: the cell where a gate must MEASURE rather than refuse.
+d["identity"]["inputs"]["rust/src/ast_pipeline/stimuli_generator.rs"] = "0" * 64
 json.dump(d, open(sys.argv[2], "w"), indent=2, ensure_ascii=False)
 PYARM
-export PGEN_SV_SYNTAX_CLOSURE_CONTRACT="$ROOT/$WORK/stale_closure.json"
-arm "arm 14: the SECOND consuming gate refuses on a STALE-INPUT baseline" 2 \
-    "REFUSING TO MEASURE" bash rust/scripts/sv_syntax_closure_gate.sh
+arm "arm 14: an UNCONFIRMED baseline reports 3, not 1 - running would resolve nothing" 3 \
+    "ARE UNCONFIRMED" bash "$VERIFY" --verify "$ADOPTED"
+arm "arm 15: a STALE baseline reports 1, not 3 - running IS what resolves it" 1 \
+    "STALE IS NOT A VERDICT ON THE TREE" bash "$VERIFY" --verify "$WORK/stale_closure.json"
 
-# ⛔⛔ AND THE CONFIRMING-RUN ESCAPE MUST NOT BE A BLANKET BYPASS. With the escape set, the identity
-# refusal is downgraded to a NOTE — but a REAL contract defect must still stop the run, and it must
-# still stop it BEFORE the ~90 s of regeneration. Here the two unreachable fields are made to
-# disagree, which is a contract-load check sitting after the identity stage and before the work.
-python3 - "$WORK/stale_closure.json" "$WORK/inconsistent_closure.json" <<'PYARM'
-import json, sys
-d = json.load(open(sys.argv[1]))
-d["constraints"]["max_unreachable_rules"] = 99      # disagrees with the 3-entry allow-list
-json.dump(d, open(sys.argv[2], "w"), indent=2, ensure_ascii=False)
+# ⭐⭐ ARM 16 — THE SEMANTIC DIGEST, which is what removes the false staleness at its source.
+# A comment-only grammar edit leaves the EBNF frontend's raw_ast envelope — what the code generator
+# consumes — byte-identical, so a baseline keyed on it must NOT move. Measured before this landed:
+# one comment line made check_doctrines.sh exit 1 and BLOCKED EVERY COMMIT, for a change that
+# leaves the generated parser byte-identical.
+cp -f grammars/systemverilog.ebnf "$WORK/g.ebnf"
+printf '\n(* a comment the frontend strips *)\n' >> "$WORK/g.ebnf"
+if python3 - "$WORK/g.ebnf" "$WORK" <<'PYARM'
+import hashlib, json, os, subprocess, sys
+edited, work = sys.argv[1], sys.argv[2]
+def digest(path):
+    tmp = os.path.join(work, "ra.json")
+    if subprocess.run(["rust/target/debug/ast_pipeline", path, "--emit-raw-ast-json", tmp],
+                      capture_output=True).returncode != 0 or not os.path.isfile(tmp):
+        sys.exit(2)
+    raw = json.load(open(tmp))["raw_ast"]
+    os.remove(tmp)
+    return hashlib.sha256(
+        json.dumps(raw, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+sys.exit(0 if digest(edited) == digest("grammars/systemverilog.ebnf") else 1)
 PYARM
-export PGEN_SV_SYNTAX_CLOSURE_CONTRACT="$ROOT/$WORK/inconsistent_closure.json"
-export PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN=1
-# ⛔ The expected substring must not straddle a NEWLINE — `grep -qF` is line-scoped, and the gate
-# wraps this message over two lines. Matching the second line alone is what actually binds.
-arm "arm 15: the confirming-run escape downgrades ONLY the identity, not the contract checks" 2 \
-    "3-entry constraints.allowed_unreachable_rules list" \
-    bash rust/scripts/sv_syntax_closure_gate.sh
-unset PGEN_SV_SYNTAX_CLOSURE_CONTRACT PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN
+then
+  echo "  ✓ arm 16: a comment-only grammar edit leaves the raw_ast digest IDENTICAL - the false"
+  echo "    staleness that blocked every commit cannot recur"
+  PASS=$((PASS + 1))
+else
+  echo "  ✗ arm 16: the raw_ast digest MOVED on a comment-only edit, or could not be computed -" >&2
+  echo "    the semantic kind is not semantic and adoption re-acquires its original cost" >&2
+  FAIL=$((FAIL + 1))
+fi
+
+
+# ── arm 17: THE TWO IMPLEMENTATIONS OF THE SEMANTIC DIGEST MUST AGREE ──────────────────────────
+#
+# ⛔⛔ THIS DOCTRINE DELIBERATELY ADOPTED AN EXISTING DEFINITION RATHER THAN INVENTING A SECOND ONE
+# — `scripts/check_sv_contract_currency.sh::sv_semantic_digest` has keyed SV-CONTRACT-CURRENCY on
+# the frontend's raw_ast envelope for months. But adopting a definition in a different language
+# creates exactly what this repository refuses elsewhere: a SECOND COPY that can drift. Two copies
+# are only safe while something compares them, so this arm does.
+sv_currency_digest="$(
+  # shellcheck disable=SC1090
+  ROOT="$ROOT"; PIPELINE="$ROOT/rust/target/debug/ast_pipeline"
+  sed -n '/^sv_semantic_digest() {/,/^}/p' scripts/check_sv_contract_currency.sh > "$WORK/dig.sh"
+  # shellcheck source=/dev/null
+  . "$WORK/dig.sh"
+  sv_semantic_digest grammars/systemverilog.ebnf
+)"
+baseline_identity_digest="$(python3 - <<'PYARM'
+import hashlib, json, os, subprocess
+tmp = "rust/target/baseline_identity_probe/ra_cmp.json"
+if subprocess.run(["rust/target/debug/ast_pipeline", "grammars/systemverilog.ebnf",
+                   "--emit-raw-ast-json", tmp], capture_output=True).returncode == 0    and os.path.isfile(tmp):
+    raw = json.load(open(tmp))["raw_ast"]
+    os.remove(tmp)
+    print(hashlib.sha256(
+        json.dumps(raw, sort_keys=True, separators=(",", ":")).encode()).hexdigest())
+PYARM
+)"
+if [ -n "$sv_currency_digest" ] && [ "$sv_currency_digest" = "$baseline_identity_digest" ]; then
+  echo "  ✓ arm 17: both implementations of the semantic digest agree (${sv_currency_digest:0:16}…)"
+  PASS=$((PASS + 1))
+elif [ -z "$sv_currency_digest" ] || [ -z "$baseline_identity_digest" ]; then
+  echo "  ✗ arm 17: a digest could not be computed, so the two definitions were NOT compared." >&2
+  echo "    A check that cannot see must say so, not pass." >&2
+  FAIL=$((FAIL + 1))
+else
+  echo "  ✗ arm 17: THE TWO SEMANTIC-DIGEST IMPLEMENTATIONS HAVE DRIFTED" >&2
+  echo "      check_sv_contract_currency.sh : $sv_currency_digest" >&2
+  echo "      check_baseline_identity.sh    : $baseline_identity_digest" >&2
+  FAIL=$((FAIL + 1))
+fi
 
 echo ""
 echo "probe: $PASS arm(s) behaved as specified, $FAIL did not"

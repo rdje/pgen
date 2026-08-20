@@ -75,44 +75,50 @@ require_file "$CONTRACT_FILE"
 
 # --- BASELINE IDENTITY: is this contract still describing THIS tree? -------------------
 #
-# Doctrine `BASELINE-IDENTITY` (SV-CORPUS-GRAD.13c.2x.2). Every constraint below is a function of
-# the SV grammar and of the two engine passes that produce the reachability numbers. ⛔ It runs
-# BEFORE the ~90 s of regeneration and probing, because a measurement against a baseline that does
-# not describe the tree is a verdict nobody can attribute — this contract sat 69 grammar revisions
-# stale with nothing able to say so.
+# Doctrine `BASELINE-IDENTITY` (SV-CORPUS-GRAD.13c.2x.2, redesigned by `.13c.2x.4`).
 #
-# ⛔⛔ AND THE CONFIRMING RUN CANNOT BE BLOCKED BY THE IDENTITY IT EXISTS TO ESTABLISH. A baseline
-# is stamped `confirmed` by NAMING the run that re-derived it — so that run must be able to happen
-# while the block still says `unconfirmed`. `PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN=1` downgrades
-# the refusal to a NOTE and nothing else: every constraint below still binds, and a breach still
-# fails. Precedent and rationale are `PARSE-COST-RATCHET`'s `PGEN_PARSE_COST_REBASELINE=1`, which
-# was added after deriving identity as a hard failure on every path DEADLOCKED the only supported
-# way to adopt a new input. It is an explicit, env-gated, single-purpose operator act, and it is
-# loud rather than silent.
+# ⛔⛔ THE IDENTITY DISAMBIGUATES THIS GATE'S VERDICT; IT DOES NOT GATE THE MEASUREMENT.
+# The first cut refused whenever an input had moved, and that was a design error: it refused
+# precisely in the case where RUNNING would have resolved everything for free, and — because the
+# same enforcer runs from .githooks/pre-commit — it blocked every commit in the repository. The
+# full matrix, and only one cell needs a person:
+#
+#   identity   constraints   verdict
+#   fresh      green         PASS
+#   fresh      RED           REAL REGRESSION — the sharp verdict this doctrine exists to produce
+#   STALE      green         the baseline was stale and still CORRECT -> this run RE-STAMPS it
+#   STALE      RED           AMBIGUOUS -> refuse, naming both halves
+#   UNCONFIRMED  —           refuse BEFORE measuring: a person already ruled the numbers wrong,
+#                            so ~90 s of work would teach nothing
+#
+# ⭐ Because a green run re-stamps itself, this gate IS the confirming run, and the env-gated
+# escape the first design needed (`PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN`) is DELETED — the
+# redesign removes a bypass surface rather than adding one.
 identity_rc=0
+identity_stale=0
 "$ROOT_DIR/scripts/check_baseline_identity.sh" --verify "${CONTRACT_FILE#"$ROOT_DIR/"}" \
     || identity_rc=$?
-if [[ "$identity_rc" -ne 0 ]] && [[ "${PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN:-0}" == "1" ]]; then
-    {
-        echo ""
-        echo "sv_syntax_closure_gate: NOTE — the contract's identity did not verify (rc=$identity_rc),"
-        echo "  reported as a NOTE because PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN=1 is set. THIS RUN'S"
-        echo "  RESULT IS ONLY MEANINGFUL IF IT IS STAMPED:"
-        echo "    bash scripts/check_baseline_identity.sh --stamp ${CONTRACT_FILE#"$ROOT_DIR/"} \\"
-        echo "         --confirmed-by \"<name this run>\""
-        echo "  Every constraint below still binds; only the identity refusal is downgraded."
-    } >&2
-    identity_rc=0
-fi
-if [[ "$identity_rc" -ne 0 ]]; then
-    {
-        echo ""
-        echo "sv_syntax_closure_gate: REFUSING TO MEASURE (identity rc=$identity_rc)."
-        echo "  Any drift this run reported would be UNDIAGNOSED — it could be a real regression"
-        echo "  or it could be this baseline. Resolve the identity above first."
-    } >&2
-    exit 2
-fi
+case "$identity_rc" in
+    0) ;;
+    1) identity_stale=1 ;;
+    3)
+        {
+            echo ""
+            echo "sv_syntax_closure_gate: REFUSING TO MEASURE — the contract's expectations are"
+            echo "  UNCONFIRMED (see above). A person has already recorded that these numbers do"
+            echo "  not describe the recorded tree, so measuring cannot resolve anything."
+        } >&2
+        exit 2
+        ;;
+    *)
+        {
+            echo ""
+            echo "sv_syntax_closure_gate: REFUSING TO MEASURE — the contract's identity could not"
+            echo "  be read (rc=$identity_rc). Resolve the refusal above first."
+        } >&2
+        exit 2
+        ;;
+esac
 
 contract_version="$(jq -er '.version | numbers' "$CONTRACT_FILE")"
 grammar_name="$(jq -er '.grammar_name | strings' "$CONTRACT_FILE")"
@@ -405,7 +411,42 @@ if (( failures > 0 )); then
     for note in "${failure_notes[@]}"; do
         echo "  - $note" >&2
     done
+    # ⛔⛔ STALE **AND** RED IS THE ONE CELL THAT GENUINELY NEEDS A PERSON, and saying so is the
+    # entire value of carrying an identity. Without it this exit reads "the tree regressed", which
+    # is exactly the wrong diagnosis when the baseline is the stale half — the shape that left
+    # this contract wrong for 69 grammar revisions.
+    if (( identity_stale == 1 )); then
+        {
+            echo ""
+            echo "  ⛔ AND THIS BASELINE IS STALE: a declared input moved since it was confirmed."
+            echo "     So the failure above is AMBIGUOUS — it may be a real regression, or the"
+            echo "     contract may simply no longer describe this tree. Adjudicate it; do NOT"
+            echo "     re-stamp to make it green, because a stamp asserts the numbers were"
+            echo "     RE-DERIVED and matched, which is precisely what just did not happen."
+        } >&2
+    fi
     exit 1
+fi
+
+# ⭐⭐ STALE + GREEN => THIS RUN IS THE CONFIRMING RUN. Every constraint was evaluated against the
+# current tree and every one held, so the baseline was stale and still correct — a DERIVED fact
+# needing no human judgement. Re-stamping here is what removes the adoption friction: no escape
+# variable, no second run, no remembered command.
+# ⛔ The guard that keeps it honest: this is reached ONLY after `failures == 0`, and every stage
+# above exits non-zero rather than skipping, so a vacuous green cannot arrive here.
+if (( identity_stale == 1 )); then
+    echo "==> baseline_identity_restamp"
+    if "$ROOT_DIR/scripts/check_baseline_identity.sh" --stamp "${CONTRACT_FILE#"$ROOT_DIR/"}" \
+        --confirmed-by "auto re-stamped by a GREEN ${grammar_name} syntax closure gate run: \
+defined_rule_count=${defined_rule_count} reachable_rules=${reachable_rules} \
+unreachable_rules=${unreachable_rules} unreachable_branches=${unreachable_branches} \
+unresolved_rule_reference_count=${unresolved_rule_reference_count} \
+entry_rule=${entry_rule} stimuli_seed=${stimuli_seed}"; then
+        echo "    the baseline was STALE and every constraint still held, so this run re-stamped it"
+    else
+        echo "    ⛔ the re-stamp FAILED — the gate's verdict stands, but the baseline is still stale" >&2
+        exit 1
+    fi
 fi
 
 echo "✅ ${grammar_name} syntax closure gate passed."

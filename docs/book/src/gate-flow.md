@@ -511,11 +511,53 @@ debt is visible, owned and bounded — and publishing the count honestly is part
 doctrine that reported its own adoption as finished would be the first thing in this chapter to
 rot.
 
-⚠️ **And adoption has a recurring cost, which is the same fact seen from the other side.** Once a
-gate reads an identity, the next change to a declared input makes that gate **refuse** until
-somebody re-derives the baseline. That is the mechanism working as intended — the alternative is
-sixty-nine revisions of silence — but it is real work on every touched lane, and it is paid
-deliberately (a confirming run plus a re-stamp), never worked around.
+### The adoption cost, and why it is not a cost any more
+
+The first version of this doctrine charged for itself in a way that turned out to be indefensible.
+Because the enforcer runs from `.githooks/pre-commit`, treating a moved input as a *failure* meant
+that **one comment line added to `grammars/systemverilog.ebnf` blocked every commit in the
+repository** — for an edit the EBNF frontend strips, leaving the generated parser byte-identical.
+
+That is worth stating as a design error rather than a tuning problem: **provenance had been made a
+gate on all work, when its job is to disambiguate one gate's verdict.** Four corrections, each
+adopting a mechanism this repository had already built:
+
+**1. Inputs may be digested semantically.** An entry declares a kind — `bytes`, or `ebnf_raw_ast`,
+which digests the frontend's own `raw_ast` envelope: *what the code generator consumes*, comment-
+and layout-insensitive by construction. `SV-CONTRACT-CURRENCY` has been keyed on exactly that
+digest for months, so this adopts an answer rather than inventing a second one. A comment-only edit
+now stales nothing at all.
+
+**2. Staleness is a budgeted state, not a failure.** A stale baseline is a printed note while it
+stays within a budget derived on every run —
+`git rev-list --count <verified_at_commit>..HEAD -- <declared inputs>` — and a hard failure past
+it. The budget is what stops this being a relaxation: the founding defect was **sixty-nine**
+input-touching revisions of silence, and sixty-nine is now unreachable.
+
+**3. A gate resolves staleness instead of refusing on it.** Only one cell of the matrix needs a
+person:
+
+| identity | constraints | verdict |
+|---|---|---|
+| fresh | green | pass |
+| fresh | **red** | **a real regression** — the sharp verdict the doctrine exists to produce |
+| **stale** | green | the baseline was stale and still correct — **the gate re-stamps itself** |
+| **stale** | **red** | ambiguous — refuse, naming both halves |
+| unconfirmed | — | refuse before spending the measurement |
+
+Because a green run re-stamps itself from its own summary, **the gate *is* the confirming run**.
+The env-gated escape the first design needed was deleted: the redesign removes a bypass surface
+rather than adding one.
+
+**4. The register says who re-derives what.** Every adopted row names the `make` target that
+resolves it, and `--stale` / `--resolve-stale` list and run exactly the stale ones, cheapest first.
+
+⚠️ **What remains, honestly.** The same byte-keying defect lives in `PARSE-COST-RATCHET`, whose
+identity table still hashes the grammar's bytes — so a comment-only edit still forces a re-measure
+*there*, and that one is expensive. It is measured, named and routed rather than quietly fixed
+under another doctrine's name. And `GENERATED-REPRODUCIBILITY` still needs a human to run
+`--rebaseline` after a green tier 2, which is the same *stale + green ⇒ re-stamp* cell automated
+above.
 
 ⚠️ **And the honest bound on the census itself.** The population was first sized by a
 key-name classifier, which the adjudication corrected **in both directions**: five contracts

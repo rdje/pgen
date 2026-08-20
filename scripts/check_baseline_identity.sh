@@ -65,6 +65,21 @@ REGISTER = os.path.join(BASE_DIR, "baseline_identity_register_v0.json")
 TAG = "baseline-identity"
 
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+AST_PIPELINE = "rust/target/debug/ast_pipeline"
+
+# ⭐ DIGEST KINDS. `bytes` is the literal file. A SEMANTIC kind digests what the artifact's
+# CONSUMER actually sees, so an edit the consumer provably cannot observe does not stale anything.
+#
+# ⛔ THIS IS NOT A NEW IDEA IN THIS REPOSITORY AND MUST NOT BECOME A SECOND ONE.
+# `scripts/check_sv_contract_currency.sh::sv_semantic_digest` already keys that whole doctrine on
+# the EBNF frontend's `raw_ast` envelope — "what the code generator consumes; comments never reach
+# it" — and `ebnf_raw_ast` below is byte-for-byte the same definition, deliberately.
+#
+# ⛔⛔ WHY IT IS LOAD-BEARING RATHER THAN A NICETY (measured 2026-08-20, SV-CORPUS-GRAD.13c.2x.4):
+# ONE COMMENT LINE appended to grammars/systemverilog.ebnf made this enforcer exit 1, which made
+# check_doctrines.sh exit 1, which BLOCKS EVERY COMMIT — for a change that leaves the generated
+# parser byte-identical. False staleness is not a small tax; it is the whole adoption cost.
+DIGEST_KINDS = ("bytes", "ebnf_raw_ast")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 VERIFIER_HINT = "scripts/check_baseline_identity.sh"
 
@@ -171,13 +186,27 @@ def read_identity(obj):
     inputs = ident.get("inputs")
     if not isinstance(inputs, dict) or not inputs:
         return ("malformed", "`identity.inputs` must be a non-empty object of path -> sha256")
-    for path, digest in inputs.items():
+    normalised = {}
+    for path, spec in inputs.items():
         if not isinstance(path, str) or not path or path.startswith("/") or ".." in path.split("/"):
             return ("malformed",
                     "input path %r is not repo-root-relative (CLAUDE.md §12)" % (path,))
+        # A bare string is the `bytes` kind — the original shape, still valid, still the default.
+        if isinstance(spec, str):
+            kind, digest = "bytes", spec
+        elif isinstance(spec, dict):
+            kind, digest = spec.get("kind"), spec.get("digest")
+            if kind not in DIGEST_KINDS:
+                return ("malformed",
+                        "input `%s` declares digest kind %r; known kinds are %s"
+                        % (path, kind, ", ".join(DIGEST_KINDS)))
+        else:
+            return ("malformed",
+                    "input `%s` must be a sha256 string or a {kind, digest} object" % (path,))
         if not isinstance(digest, str) or not SHA256_RE.match(digest):
             return ("malformed", "input `%s` does not carry a 64-hex sha256" % (path,))
-    return ("ok", (commit, dict(inputs), state, ident))
+        normalised[path] = (kind, digest)
+    return ("ok", (commit, normalised, state, ident))
 
 
 # ── a string-aware JSON value scanner, so --stamp can SPLICE rather than reformat ───────────────
@@ -255,6 +284,18 @@ def self_check():
         (blk(expectations="unconfirmed", confirmed_by=None), "malformed"),        # no reason
         (blk(expectations="unconfirmed", confirmed_by=None, unconfirmed_reason=UR),
          "malformed"),                                                            # no owner
+        # ⭐ THE DIGEST-KIND CONTROLS. A bare string stays the `bytes` kind — the original shape
+        # must keep working — and a {kind, digest} object is the semantic form. Everything else is
+        # malformed, because a mis-typed kind that fell back to `bytes` would silently restore the
+        # false staleness this shape exists to remove.
+        (blk(inputs={"grammars/x.ebnf": {"kind": "ebnf_raw_ast", "digest": h}}), "ok"),
+        (blk(inputs={"grammars/x.ebnf": {"kind": "bytes", "digest": h}}), "ok"),
+        (blk(inputs={"grammars/x.ebnf": {"kind": "raw_ast", "digest": h}}), "malformed"),
+        (blk(inputs={"grammars/x.ebnf": {"kind": "ebnf_raw_ast"}}), "malformed"),
+        (blk(inputs={"grammars/x.ebnf": {"digest": h}}), "malformed"),
+        (blk(inputs={"grammars/x.ebnf": 42}), "malformed"),
+        (blk(inputs={"grammars/x.ebnf": {"kind": "ebnf_raw_ast", "digest": "deadbeef"}}),
+         "malformed"),
         # ⛔ every one of these once passed a reader that only asked `if obj.get("identity")`
         ({"identity": "yes"}, "malformed"),
         ({"identity": {}}, "malformed"),
@@ -299,6 +340,48 @@ def self_check():
         sys.exit(2)
 
 
+def live_digest(path, kind):
+    """The digest of `path` under `kind` today, or None when it cannot be computed here.
+
+    ⛔ None is NOT a mismatch. An unbuildable semantic digest is NOT EVALUATED and says so; scoring
+    it as a difference would fail every clean checkout, which is the failure mode this whole
+    doctrine exists to remove one level up."""
+    full = os.path.join(ROOT, path)
+    if not os.path.isfile(full):
+        return None
+    if kind == "bytes":
+        return sha256_of(full)
+    if kind == "ebnf_raw_ast":
+        binary = os.path.join(ROOT, AST_PIPELINE)
+        if not os.path.isfile(binary) or not os.access(binary, os.X_OK):
+            return None
+        # ⛔ ON-VOLUME BY POLICY (CLAUDE.md §13): scratch is derived from the repo root, never
+        # $TMPDIR, which can sit on a different filesystem.
+        scratch = os.path.join(ROOT, "rust", "target", "baseline_identity_digest")
+        try:
+            os.makedirs(scratch, exist_ok=True)
+        except OSError:
+            return None
+        out = os.path.join(scratch, "raw_ast.json")
+        try:
+            rc = subprocess.run([binary, full, "--emit-raw-ast-json", out],
+                                capture_output=True).returncode
+            if rc != 0 or not os.path.isfile(out):
+                return None
+            with open(out, encoding="utf-8") as fh:
+                raw = json.load(fh)["raw_ast"]
+        except (OSError, ValueError, KeyError):
+            return None
+        finally:
+            try:
+                os.remove(out)
+            except OSError:
+                pass
+        return hashlib.sha256(
+            json.dumps(raw, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return None
+
+
 # ── git legs ────────────────────────────────────────────────────────────────────────────────────
 def git(*args):
     try:
@@ -335,9 +418,17 @@ def commit_leg(commit, label):
 
 
 # ── the single verifier every gate calls ────────────────────────────────────────────────────────
-def verify(rel, quiet=False, want_state="confirmed"):
-    """Returns 0 fresh / 1 stale-or-unconfirmed / 2 refuse. The refusal wording is produced HERE
-    and nowhere else, so every gate in the repository refuses in provably identical words.
+def verify(rel, quiet=False, want_state="confirmed", stale_sink=None):
+    """0 fresh+confirmed · 1 STALE · 2 REFUSE · 3 UNCONFIRMED.
+
+    ⛔⛔ 1 AND 3 ARE SPLIT BECAUSE THEY CALL FOR OPPOSITE ACTIONS, and collapsing them is what made
+    the first cut of this doctrine block commits (SV-CORPUS-GRAD.13c.2x.4):
+      1 STALE       — an input moved and NOBODY has adjudicated the result. RUNNING RESOLVES IT:
+                      the constraints either hold (the baseline was stale and still correct) or
+                      they do not (stale AND diverging). A gate should measure, then decide.
+      3 UNCONFIRMED — a human has already recorded that these numbers are wrong. Running teaches
+                      nothing, so a gate should refuse BEFORE spending the measurement.
+    The wording for both is produced HERE and nowhere else, so every gate refuses identically.
 
     `want_state` is what the CALLER requires. A gate about to spend minutes measuring requires
     `confirmed`; the register's `adopted-unconfirmed` rows require `unconfirmed`, so a baseline
@@ -371,6 +462,7 @@ def verify(rel, quiet=False, want_state="confirmed"):
     commit, declared, state, ident = payload
     if state != want_state:
         if want_state == "confirmed":
+            rc_for_state = 3
             fail("%s: THE EXPECTATIONS IN %s ARE UNCONFIRMED — the artifact says so itself.\n"
                  "        reason: %s\n"
                  "        owner : %s\n"
@@ -382,36 +474,41 @@ def verify(rel, quiet=False, want_state="confirmed"):
                  % (TAG, rel, ident.get("unconfirmed_reason", "?"),
                     ident.get("owner_leaf", "?"), rel))
         else:
+            rc_for_state = 1
             fail("%s: %s is registered as UNCONFIRMED debt but its block now says `confirmed`. "
                  "Promote the register row to `adopted`, or the debt class hides a finished "
                  "baseline." % (TAG, rel))
-        return 1
+        return rc_for_state
     commit_leg(commit, rel)
 
     stale, checked = [], []
-    for dep, want in sorted(declared.items()):
-        dpath = os.path.join(ROOT, dep)
-        if not os.path.isfile(dpath):
+    for dep, (kind, want) in sorted(declared.items()):
+        got = live_digest(dep, kind)
+        if got is None:
             unevaluated.append(
-                "%s: declared input `%s` is absent, so it was NOT re-hashed%s"
-                % (rel, dep,
-                   " — generated/ is not tracked; regenerate with `make -C rust "
-                   "SHELL=/bin/bash regenerate_generated_parsers`" if dep.startswith("generated/")
-                   else ""))
+                "%s: declared input `%s` (kind %s) could not be digested here, so it was NOT "
+                "checked%s" % (rel, dep, kind,
+                               " — generated/ is not tracked; regenerate with `make -C rust "
+                               "SHELL=/bin/bash regenerate_generated_parsers`"
+                               if dep.startswith("generated/") else
+                               " — build it with `make -C rust ast_pipeline`"
+                               if kind != "bytes" else ""))
             continue
-        got = sha256_of(dpath)
-        checked.append(dep)
+        checked.append("%s[%s]" % (dep, kind))
         if got != want:
-            stale.append((dep, want, got))
+            stale.append((dep, kind, want, got))
 
     if stale:
-        fail("%s: THE BASELINE IS STALE — %s no longer describes this tree.\n" % (TAG, rel)
-             + "".join("        %s: baseline `%s…` vs live `%s…`\n" % (d, w[:16], g[:16])
-                       for d, w, g in stale)
-             + "      Every expectation in this baseline is a function of the inputs above, so a\n"
-               "      mismatch downstream is UNDIAGNOSED until this is resolved: it may be a real\n"
-               "      regression, or it may be this baseline. Re-derive the expectations, then:\n"
-               "        bash scripts/check_baseline_identity.sh --stamp %s" % rel)
+        (stale_sink.append if stale_sink is not None else fail)(
+             "%s: THE BASELINE IS STALE — %s no longer describes this tree.\n" % (TAG, rel)
+             + "".join("        %s [%s]: baseline `%s…` vs live `%s…`\n"
+                       % (d, k, w[:16], g[:16]) for d, k, w, g in stale)
+             + "      ⭐ STALE IS NOT A VERDICT ON THE TREE. Running the owning gate resolves it:\n"
+               "        constraints GREEN -> the baseline was stale and still correct, and the\n"
+               "                             gate RE-STAMPS itself from that run;\n"
+               "        constraints RED   -> stale AND diverging, which is the one case that\n"
+               "                             genuinely needs a person.\n"
+               "      Run the gate. Do not hand-edit the numbers.")
         return 1
 
     if not checked:
@@ -434,6 +531,7 @@ def verify(rel, quiet=False, want_state="confirmed"):
 
 # ── --stamp: the only supported way to (re)derive a block ───────────────────────────────────────
 def stamp(rel, extra_inputs, confirmed_by=None, unconfirmed=None, owner_leaf=None):
+    """`extra_inputs` is a list of (path, kind)."""
     path = os.path.join(ROOT, rel)
     if not os.path.isfile(path) or not rel.endswith(".json"):
         print("%s: --stamp needs an existing tracked .json baseline: %s" % (TAG, rel),
@@ -443,7 +541,7 @@ def stamp(rel, extra_inputs, confirmed_by=None, unconfirmed=None, owner_leaf=Non
         text = fh.read()
     obj = json.loads(text)
     status, payload = read_identity(obj)
-    declared = list(payload[1].keys()) if status == "ok" else []
+    declared = ([(k, v[0]) for k, v in payload[1].items()] if status == "ok" else [])
     prior = payload[3] if status == "ok" else {}
     # ⛔ A STAMP IS AN ASSERTION, NOT A REFRESH. Carrying the prior state forward silently is how
     # a re-stamp after a grammar change would launder `unconfirmed` into `confirmed` — or the
@@ -464,23 +562,30 @@ def stamp(rel, extra_inputs, confirmed_by=None, unconfirmed=None, owner_leaf=Non
         print("%s: --stamp REFUSING — --confirmed-by and --unconfirmed are contradictory" % TAG,
               file=sys.stderr)
         return 2
-    inputs = list(dict.fromkeys(declared + list(extra_inputs)))
-    if not inputs:
-        print("%s: --stamp on an unadopted baseline must name its dependency set: "
-              "--input <repo-root-relative path> (repeatable)" % TAG, file=sys.stderr)
+    # A path named again on the command line overrides its previously declared KIND, which is the
+    # only supported way to migrate an input from `bytes` to a semantic digest.
+    merged = dict(declared)
+    merged.update(dict(extra_inputs))
+    if not merged:
+        print("%s: --stamp on an unadopted baseline must name its dependency set:\n"
+              "    --input <path>            (digest the file's BYTES)\n"
+              "    --input-raw-ast <path>    (digest the EBNF frontend's raw_ast envelope —\n"
+              "                               comment- and layout-insensitive by construction)"
+              % TAG, file=sys.stderr)
         return 2
     digests = {}
-    for dep in sorted(inputs):
-        dpath = os.path.join(ROOT, dep)
-        if not os.path.isfile(dpath):
+    for dep in sorted(merged):
+        kind = merged[dep]
+        got = live_digest(dep, kind)
+        if got is None:
             # ⛔ A STAMP IS THE ACT THAT ASSERTS "this baseline describes THIS tree". It cannot
-            # assert that about a file it never read, so an absent input refuses here even though
-            # --verify reports it NOT EVALUATED: verifying with a partial view is honest, stamping
-            # with one is a lie written into a tracked artifact.
-            print("%s: --stamp REFUSING — declared input `%s` does not exist, so it cannot be "
-                  "hashed." % (TAG, dep), file=sys.stderr)
+            # assert that about an input it never digested, so this refuses here even though
+            # --verify reports the same input NOT EVALUATED: verifying with a partial view is
+            # honest, stamping with one writes a lie into a tracked artifact.
+            print("%s: --stamp REFUSING — declared input `%s` (kind %s) could not be digested."
+                  % (TAG, dep, kind), file=sys.stderr)
             return 2
-        digests[dep] = sha256_of(dpath)
+        digests[dep] = (kind, got)
     head = git("rev-parse", "HEAD")
     if head is None or not COMMIT_RE.match(head or ""):
         print("%s: --stamp REFUSING — cannot resolve HEAD, so `verified_at_commit` would be a "
@@ -515,8 +620,12 @@ def stamp(rel, extra_inputs, confirmed_by=None, unconfirmed=None, owner_leaf=Non
              '    "verified_at_commit": "%s",\n'
              '    "inputs": {\n%s\n    }\n'
              '  }' % (VERIFIER_HINT, rel, proves, state_rows, head,
-                      ",\n".join('      %s: "%s"' % (json.dumps(d), digests[d])
-                                 for d in sorted(digests))))
+                      ",\n".join(
+                          ('      %s: "%s"' % (json.dumps(d), digests[d][1]))
+                          if digests[d][0] == "bytes" else
+                          ('      %s: { "kind": "%s", "digest": "%s" }'
+                           % (json.dumps(d), digests[d][0], digests[d][1]))
+                          for d in sorted(digests))))
 
     key = '"identity"'
     at = text.find("\n  " + key)
@@ -537,7 +646,8 @@ def stamp(rel, extra_inputs, confirmed_by=None, unconfirmed=None, owner_leaf=Non
         fh.write(new)
     print("%s: stamped %s at %s as %s over %d input(s): %s"
           % (TAG, rel, head[:12], "CONFIRMED" if confirmed_by is not None else "UNCONFIRMED",
-             len(digests), ", ".join(sorted(digests))))
+             len(digests),
+             ", ".join("%s[%s]" % (d, digests[d][0]) for d in sorted(digests))))
     return 0
 
 
@@ -579,6 +689,54 @@ def leaf_exists(leaf):
     with open(tpath, encoding="utf-8", errors="replace") as fh:
         body = fh.read()
     return ("`.%s`" % leaf.split(".", 1)[1]) in body or ("`%s`" % leaf) in body
+
+
+# ⭐⭐ THE BUDGET IS DERIVED, NEVER STORED (`docs/DERIVED_STATE_CONTAINMENT.md` R1/R3). A written
+# "commits since" counter would need a commit to update, which increments it — the exact
+# by-construction wrongness the push counter had.
+DEFAULT_STALE_BUDGET = 20
+
+
+def input_commits_since(commit, paths):
+    """How many commits since `commit` touched any declared input. None when underivable."""
+    if git("rev-parse", "--git-dir") is None:
+        return None
+    if git("rev-parse", "--is-shallow-repository") == "true":
+        return None
+    out = git("rev-list", "--count", "%s..HEAD" % commit, "--", *paths)
+    if out is None or not out.isdigit():
+        return None
+    return int(out)
+
+
+MAKEFILE_TEXT = ""
+try:
+    with open(os.path.join(ROOT, "rust", "Makefile"), encoding="utf-8", errors="replace") as _fh:
+        MAKEFILE_TEXT = _fh.read()
+except OSError:
+    pass
+
+
+def stale_rows():
+    """[(entry, resolved_by, cost_seconds)] for every ADOPTED baseline that is stale right now."""
+    reg = load_register()
+    out = []
+    if reg is None:
+        return out
+    for row in reg["entries"]:
+        if row.get("disposition") != "adopted":
+            continue
+        rel = os.path.join(BASE_DIR, row["entry"])
+        before = len(failures)
+        sink = []
+        rc_row = verify(rel, quiet=True, stale_sink=sink)
+        del failures[before:]          # this is a REPORT, not a verdict
+        if rc_row == 1 and sink:
+            out.append((row["entry"], row.get("resolved_by"), row.get("cost_seconds") or 0))
+    # ⭐ ASCENDING COST: the cheapest gate that can clear a row runs first, so an operator who
+    # interrupts the sweep has still cleared the cheap ones.
+    out.sort(key=lambda r: (r[2], r[0]))
+    return out
 
 
 def population():
@@ -641,8 +799,58 @@ def register_mode(report=False):
             continue
 
         if disp in ("adopted", "adopted-unconfirmed"):
-            verify(rel, quiet=not report,
-                   want_state="confirmed" if disp == "adopted" else "unconfirmed")
+            # ⛔⛔ STALENESS IS A STATE, NOT A FAILURE — SV-CORPUS-GRAD.13c.2x.4. This enforcer runs
+            # from .githooks/pre-commit, so treating a moved input as a hard failure BLOCKED EVERY
+            # COMMIT: measured 2026-08-20, one comment line in grammars/systemverilog.ebnf did it,
+            # for a change that leaves the generated parser byte-identical. An identity block
+            # exists to DISAMBIGUATE a gate's verdict, not to stop the work that would produce it.
+            # ⭐ What must stay impossible is ROT — the founding defect was 69 input-touching
+            # revisions of silence — so staleness is a NOTE only while it is within a DERIVED
+            # budget, and a hard failure the moment it exceeds it.
+            stale_msgs = []
+            rc_row = verify(rel, quiet=not report, stale_sink=stale_msgs,
+                            want_state="confirmed" if disp == "adopted" else "unconfirmed")
+            if stale_msgs:
+                budget = row.get("stale_budget_commits", DEFAULT_STALE_BUDGET)
+                if not isinstance(budget, int) or budget < 1:
+                    fail("%s: `%s` declares stale_budget_commits=%r; it must be an integer >= 1"
+                         % (TAG, name, budget))
+                    budget = DEFAULT_STALE_BUDGET
+                paths = []
+                try:
+                    with open(os.path.join(ROOT, rel), encoding="utf-8") as fh:
+                        paths = sorted(read_identity(json.load(fh))[1][1].keys())
+                except Exception:
+                    pass
+                since = input_commits_since(
+                    read_identity(json.load(open(os.path.join(ROOT, rel), encoding="utf-8")))[1][0],
+                    paths) if paths else None
+                if since is None:
+                    notes.append("%s: STALE, and the drift budget could not be derived here "
+                                 "(no git history). Run its gate to resolve." % name)
+                elif since > budget:
+                    for m in stale_msgs:
+                        failures.append(m)
+                    fail("%s: `%s` has been STALE across %d commits touching its declared inputs, "
+                         "over its budget of %d. That is ROT, and it is the defect this doctrine "
+                         "was founded on (the same artifact class rotted 69 revisions). Run its "
+                         "gate — a green run re-stamps it automatically."
+                         % (TAG, name, since, budget))
+                else:
+                    notes.append("%s: STALE but within budget (%d of %d commits touching its "
+                                 "inputs). Its gate will re-stamp it on the next green run; no "
+                                 "action is required to commit." % (name, since, budget))
+            # ⭐⭐ "WHO RE-DERIVES THIS?" IS THE QUESTION A STALE BASELINE RAISES, so the register
+            # answers it as DATA. Without it, `--stale` can report the problem and not the remedy,
+            # and an operator is back to remembering which of ~120 make targets owns which file.
+            # The target must EXIST in rust/Makefile — an unrunnable remedy is not a remedy.
+            resolver = row.get("resolved_by")
+            if not isinstance(resolver, str) or not resolver:
+                fail("%s: `%s` is `%s` with no `resolved_by`. Name the make target that re-derives "
+                     "it, or a stale baseline has no route back to green." % (TAG, name, disp))
+            elif not re.search(r"(?m)^%s:" % re.escape(resolver), MAKEFILE_TEXT):
+                fail("%s: `%s` names resolved_by `%s`, which is not a target in rust/Makefile"
+                     % (TAG, name, resolver))
             if disp == "adopted-unconfirmed":
                 owner = row.get("owner_leaf")
                 if not isinstance(owner, str) or not owner:
@@ -714,7 +922,9 @@ elif argv and argv[0] == "--stamp":
     confirmed_by = unconfirmed = owner_leaf = None
     while i < len(rest):
         if rest[i] == "--input" and i + 1 < len(rest):
-            extra.append(rest[i + 1]); i += 2
+            extra.append((rest[i + 1], "bytes")); i += 2
+        elif rest[i] == "--input-raw-ast" and i + 1 < len(rest):
+            extra.append((rest[i + 1], "ebnf_raw_ast")); i += 2
         elif rest[i] == "--confirmed-by" and i + 1 < len(rest):
             confirmed_by = rest[i + 1]; i += 2
         elif rest[i] == "--unconfirmed" and i + 1 < len(rest):
@@ -725,6 +935,38 @@ elif argv and argv[0] == "--stamp":
             print("%s: unexpected --stamp argument: %s" % (TAG, rest[i]), file=sys.stderr)
             sys.exit(2)
     sys.exit(stamp(target, extra, confirmed_by, unconfirmed, owner_leaf))
+elif argv and argv[0] == "--stale":
+    rows = stale_rows()
+    del failures[:]
+    if not rows:
+        print("%s: no adopted baseline is stale." % TAG)
+    else:
+        print("%s: %d adopted baseline(s) STALE. Each is resolved by ONE green gate run, which "
+              "re-stamps it automatically:" % (TAG, len(rows)))
+        for entry, resolver, cost in rows:
+            print("    %-58s make -C rust SHELL=/bin/bash %s%s"
+                  % (entry, resolver or "<no resolved_by>",
+                     "   (~%ds)" % cost if cost else ""))
+elif argv and argv[0] == "--resolve-stale":
+    rows = stale_rows()
+    del failures[:]
+    if not rows:
+        print("%s: no adopted baseline is stale; nothing to run." % TAG)
+    else:
+        print("%s: resolving %d stale baseline(s), cheapest first." % (TAG, len(rows)))
+        for entry, resolver, cost in rows:
+            if not resolver:
+                print("    SKIP %s — no resolved_by" % entry, file=sys.stderr)
+                rc = 1
+                continue
+            print("    ==> %s   (%s)" % (resolver, entry))
+            # ⛔ The gate is what re-stamps, not this driver. A sweep that stamped on its own
+            # behalf would be asserting a confirmation it never measured.
+            if subprocess.run(["make", "-C", os.path.join(ROOT, "rust"), "SHELL=/bin/bash",
+                               resolver]).returncode != 0:
+                print("    ⛔ %s did NOT go green — %s stays stale, and that is the one cell that "
+                      "needs a person." % (resolver, entry), file=sys.stderr)
+                rc = 1
 elif argv and argv[0] == "--report":
     register_mode(report=True)
 elif not argv:
@@ -733,6 +975,13 @@ else:
     print("%s: unknown argument: %s" % (TAG, argv[0]), file=sys.stderr)
     sys.exit(2)
 
+if notes:
+    # ⛔ A NOTE THAT IS NOT PRINTED IS A SILENT PASS, which is exactly the shape this doctrine
+    # exists to remove. Downgrading a failure to a note only stays honest while the note is loud.
+    print("%s: %d baseline(s) STALE but within budget — reported, not failed:" % (TAG, len(notes)),
+          file=sys.stderr)
+    for m in notes:
+        print("    %s" % m, file=sys.stderr)
 for m in refusals:
     print(m, file=sys.stderr)
 for m in failures:
@@ -744,7 +993,13 @@ if unevaluated:
         print("    %s" % m, file=sys.stderr)
 if refusals:
     sys.exit(2)
+# ⛔ `--verify`'s STATUS WINS OVER THE FAILURE LIST, and getting this wrong silently broke the whole
+# matrix: `verify()` records its reason via fail(), so an UNCONFIRMED baseline (rc 3) was reported
+# as 1 = STALE, and a gate reading that started a two-minute measurement it was meant to skip.
+# A four-way contract is only a contract if the exit code carries it.
+if rc:
+    sys.exit(rc)
 if failures:
     sys.exit(1)
-sys.exit(rc)
+sys.exit(0)
 PYEOF

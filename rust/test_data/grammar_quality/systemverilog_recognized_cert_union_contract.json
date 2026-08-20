@@ -5,10 +5,10 @@
     "expectations": "unconfirmed",
     "unconfirmed_reason": "the expected_* fields were derived on 2026-08-12 (commit 3056381a) and SV-CORPUS-GRAD.13c.2x MEASURED them wrong at HEAD by 71 rules and 53 UNKNOWNs (canonical total 1362 vs 1433, union UNKNOWN 0 vs 53, 27 unmet criteria at seeds 0/7/42), after ELEVEN revisions of grammars/systemverilog.ebnf. Re-derivation is .13c.2x(c) and is HARD-BLOCKED by .13c.2x.1, because rebaselining a count that may be nondeterministic converts an intermittent defect into a permanent silent one.",
     "owner_leaf": "SV-CORPUS-GRAD.13c.2x",
-    "verified_at_commit": "b9182437a837d71ab6891950aef557b8dff95df4",
+    "verified_at_commit": "3fb75ea53170bbac716b986f0bbc9ba6579529a3",
     "inputs": {
       "generated/systemverilog_parser.rs": "936294a4ddae29255684f635427995b3b7bf9096b3e55eddf02d890572ca2bda",
-      "grammars/systemverilog.ebnf": "b0395cc859489782e145b7ffc7f431cec33c2063e829c56978cb4e70fffbb351",
+      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "bd9367dc1d79b6f2531a3975cb5c2449c451817f97c1a92fbcb18200fd14c9b4" },
       "rust/src/ast_pipeline/grammar_wellformedness.rs": "b6ed770f96fe47d30826050ed9a8741d770ed45343639d03d38dea8f3de248c7",
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "b36125f8f2ff02c87026399160616f8691a29b8fa72bb97813b42ff21d50acb3",
       "rust/src/ast_pipeline/stimuli_generator.rs": "ba4130091ad715924b0c2c55535318679add5d28707597f388dda44f42d49c8b"

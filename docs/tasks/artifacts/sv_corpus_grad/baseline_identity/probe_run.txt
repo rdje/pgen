@@ -1,5 +1,4 @@
 controls — these must stay GREEN
-  ✓ arm 0: the union contract's expectations are UNCONFIRMED -> RED for any consumer — rc=1 and the message names it
   ✓ CONTROL: the closed register is consistent at HEAD — rc=0 and the message names it
 refusal arms — each must go RED
   ✓ CONTROL: a CONFIRMED scratch baseline verifies before it is disturbed — rc=0 and the message names it
@@ -20,12 +19,15 @@ refusal arms — each must go RED
   ✓ arm 11: a DEFERRED row carrying a block (the .13i shape) -> RED — rc=1 and the message names it
   ✓ arm 12: a deferral owned by a leaf nothing mentions -> RED — rc=1 and the message names it
   ✓ arm 12b: an UNCONFIRMED baseline registered plain adopted -> RED — rc=1 and the message names it
-  ✓ arm 13: the CONSUMING GATE refuses to measure on a STALE-INPUT baseline — rc=2 and the message names it
+  ✓ arm 13: the CONSUMING GATE refuses on an UNCONFIRMED baseline, before measuring — rc=2 and the message names it
   ✓ arm 13b: the CONSUMING GATE refuses on the REAL unconfirmed contract — rc=2 and the message names it
   ✓ arm 13 cost 0s — the refusal is ahead of the measurement, as designed
-  ✓ arm 14: the SECOND consuming gate refuses on a STALE-INPUT baseline — rc=2 and the message names it
-  ✓ arm 15: the confirming-run escape downgrades ONLY the identity, not the contract checks — rc=2 and the message names it
+  ✓ arm 14: an UNCONFIRMED baseline reports 3, not 1 - running would resolve nothing — rc=3 and the message names it
+  ✓ arm 15: a STALE baseline reports 1, not 3 - running IS what resolves it — rc=1 and the message names it
+  ✓ arm 16: a comment-only grammar edit leaves the raw_ast digest IDENTICAL - the false
+    staleness that blocked every commit cannot recur
+  ✓ arm 17: both implementations of the semantic digest agree (bd9367dc1d79b6f2…)
 
-probe: 25 arm(s) behaved as specified, 0 did not
+probe: 26 arm(s) behaved as specified, 0 did not
 probe: restored the tracked register + deferred baseline
 probe: no residue — every file this probe mutated is byte-identical to its backup

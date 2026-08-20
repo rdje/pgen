@@ -1,5 +1,54 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0253 — I published a cost instead of refusing it, and the cost turned out to be bigger than I said
+
+**1. "STATED RATHER THAN DISCOVERED" IS NOT THE SAME AS "ACCEPTED", AND I TREATED IT AS IF IT WERE.**
+`-0251` measured a recurring adoption cost, wrote it into the leaf, the book and TOOLBOX, and moved
+on — and being transparent about a cost felt like having dealt with it. The director's reply
+(*"there must be a solution, we just need to find it"*) is the correct posture, and the first thing
+that happened when I sat down to re-measure was that **the cost I had documented was smaller than
+the real one**. Declaring a defect honestly and *fixing* it are different acts; the first can
+disguise the absence of the second.
+
+**2. THE NUMBER I PUBLISHED WAS WRONG IN THE FLATTERING DIRECTION.** I wrote *"the gate will
+refuse"*. The enforcer runs from `.githooks/pre-commit`, so the truth was *"every commit is
+blocked"* — and by a COMMENT, which the frontend strips. I never ran the experiment; I reasoned
+about the blast radius from the code I had just written. That is the same shape as
+`CI-PARITY-GATE-ROT.32`'s honest bound being *"reasoned not measured, and false in the direction
+flattering to my caution"*. ⇒ **when you publish a cost, measure it like a claim.**
+
+**3. THE FIX WAS A RELOCATION, NOT A RELAXATION, AND THAT DISTINCTION IS THE WHOLE DESIGN.** I had
+put the identity check in front of the measurement, which felt careful — don't spend 90 s on an
+undiagnosable verdict. But it refuses in exactly the case where running resolves everything, and
+the resolution is free because the gate was going to run anyway. Move the check to the verdict and
+the same information produces four sharp outcomes instead of one blunt refusal →
+[[provenance-disambiguates-a-verdict-it-does-not-gate-the-work]].
+
+**4. THE PART I NEARLY GOT WRONG: NOT-A-FAILURE MUST NOT MEAN NOT-A-PROBLEM.** Downgrading
+staleness to a note is one edit away from re-creating the 69-revision rot this whole tree exists to
+end. What makes it safe is that the note is loud, and that it expires: a DERIVED budget of commits
+touching the declared inputs, hard-failing past it. I wrote the budget before I wrote the
+downgrade, deliberately, because the other order is how relaxations get shipped.
+
+**5. THREE OF MY OWN BUGS, AND ONE OF THEM COST A 70-SECOND CLEANUP.** `fail()` was overriding
+`--verify`'s return code, so UNCONFIRMED (3) reported as STALE (1) and the union gate started a
+two-minute measurement it was built to skip — I killed it mid-regeneration, which left
+`generated/systemverilog.json` carrying a fresh `generated_at` whose sha can never be reproduced,
+which turned `GENERATED-REPRODUCIBILITY` red until tier 2 + `--rebaseline`. A four-way contract is
+only a contract if the exit code carries it. The probe's own arms encoded the OLD semantics and
+would have silently become 90-second runs; two of them had to be rebuilt.
+
+**6. ADOPTING A DEFINITION IN A SECOND LANGUAGE CREATES A SECOND COPY.** Reusing
+`sv_semantic_digest`'s definition was the right call — it is the repo's own solved answer — but
+re-implementing it in Python is exactly the duplication this project refuses elsewhere. Arm 17
+executes both and fails on divergence. **Copying a definition is fine; copying it without a
+comparator is not.**
+
+**7. AND THE FRICTION WAS NEVER MINE ALONE.** With `BASELINE-IDENTITY` fixed, the comment edit
+still blocked the commit — `PARSE-COST-RATCHET` keys the grammar by bytes and always has. So the
+defect I introduced was a fresh instance of one the repository already had, in its most expensive
+place. Routed with the measurement rather than fixed under this doctrine's name.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0252 — I probed the number under suspicion, and the defect was in the column next to it
 
 **1. THE PROBE WAS BUILT TO CLEAR MY OWN WORK, WHICH IS WHY IT GOT BUILT AT ALL.** `-0251` stamped a

@@ -1298,15 +1298,29 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   case**, because an artifact nobody can re-derive is the one that has been rotting. `unconfirmed`
   is **RED for every consumer**, never a waiver: input drift is still detected, the owing leaf is
   named, and the only route to green is a real re-derivation.
-- **OUTPUT / EXIT CODES** — a gate calling `--verify` should distinguish all three:
+- ⛔⛔ **THE FOUR-WAY EXIT CONTRACT, AND A GATE MUST BRANCH ON ALL OF IT.** `1` and `3` demand
+  OPPOSITE actions, and collapsing them made a gate start a two-minute measurement it was built to
+  skip:
   ```text
-  0  baseline-identity: OK — <file> identity fresh and expectations CONFIRMED for: <inputs>
-  1  baseline-identity: THE BASELINE IS STALE — <file> no longer describes this tree.
-         grammars/systemverilog.ebnf: baseline `b0395cc85948…` vs live `4f1a…`
-  1  baseline-identity: THE EXPECTATIONS IN <file> ARE UNCONFIRMED — the artifact says so itself.
-         reason: … / owner: <leaf>
-  2  baseline-identity: REFUSING — <file> carries NO identity block / a MALFORMED one
+  0  OK — identity fresh and expectations CONFIRMED          -> measure
+  1  THE BASELINE IS STALE (an input moved, nobody adjudicated) -> MEASURE ANYWAY; running is what
+                                                                   resolves it
+  2  REFUSING — no identity block, or a malformed one        -> refuse
+  3  THE EXPECTATIONS … ARE UNCONFIRMED (a person ruled them wrong) -> refuse BEFORE measuring
   ```
+- ⭐⭐ **THE MATRIX A CONSUMING GATE IMPLEMENTS — provenance DISAMBIGUATES the verdict, it does not
+  gate the measurement.** Only one cell needs a person:
+
+  | identity | constraints | what the gate does |
+  |---|---|---|
+  | fresh | green | pass |
+  | fresh | **red** | **REAL REGRESSION** — the sharp verdict this doctrine exists to produce |
+  | **stale** | green | the baseline was stale and still correct ⇒ **the gate RE-STAMPS itself** |
+  | **stale** | **red** | AMBIGUOUS ⇒ refuse, naming both halves |
+  | `unconfirmed` | — | refuse before spending the measurement |
+
+  ⛔ Getting this wrong is not academic: refusing on merely-stale made `check_doctrines.sh` exit 1,
+  which **blocked every commit in the repository** (`SV-CORPUS-GRAD.13c.2x.4`).
 - ⭐⭐ **THE DEPENDENCY SET IS DATA, AND THAT IS THE WHOLE POINT.** `PARSE-COST-RATCHET` hard-codes
   its four inputs in its gate, and `ENGINE-UNIVERSAL-SERVICES.21` is the record of an input being
   forgotten there. Here each baseline declares its own `inputs` map, so a forgotten input is a
@@ -1322,14 +1336,26 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - ⚠️ **An input that is absent is reported NOT EVALUATED, never counted as fresh** — `generated/` is
   untracked, and a shallow clone cannot resolve `verified_at_commit`. If **nothing** could be
   hashed the verifier REFUSES rather than reporting a clean tree.
-- ⛔⛔ **ADOPTING ON A GATE'S CONTRACT MEANS THAT GATE WILL REFUSE THE NEXT TIME A DECLARED INPUT
-  MOVES.** That is the mechanism working, not a malfunction — but it is recurring work, and the
-  bootstrap it creates is real: a baseline is stamped `confirmed` by NAMING the run that re-derived
-  it, and that run has to happen while the block still says `unconfirmed`. Each adopting gate
-  therefore carries a single-purpose, env-gated escape that downgrades **only** the identity
-  refusal to a NOTE (`PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN=1`; the precedent and rationale are
-  `PARSE-COST-RATCHET`'s `PGEN_PARSE_COST_REBASELINE=1`). Every other constraint still binds, and
-  the probe has an arm proving it.
+- ⭐ **STALENESS IS BUDGETED, NOT FATAL.** At the commit tier a stale `adopted` baseline is a
+  printed NOTE while `git rev-list --count <verified_at_commit>..HEAD -- <inputs>` stays within
+  `stale_budget_commits` (default **20**), and a HARD FAILURE past it. The budget bounds ROT, which
+  is the founding defect — one artifact sat **69** input-touching revisions stale with nothing able
+  to say so — while normal work is never blocked.
+- ⭐⭐ **FALSE STALENESS IS DESIGNED OUT, NOT TOLERATED.** An input may declare a digest KIND:
+  `bytes` (default) or `ebnf_raw_ast`, the frontend's own `raw_ast` envelope — *what the code
+  generator consumes*, comment- and layout-insensitive **by construction**. A comment-only grammar
+  edit therefore stales nothing. ⛔ Same definition as
+  `scripts/check_sv_contract_currency.sh::sv_semantic_digest`, deliberately; probe **arm 17**
+  executes both implementations on the same grammar and fails on any divergence, because two
+  copies are only safe while something compares them.
+- **CLEARING STALENESS — one command, or none at all:**
+  ```bash
+  bash scripts/check_baseline_identity.sh --stale           # who is stale, and the gate that fixes it
+  bash scripts/check_baseline_identity.sh --resolve-stale   # run those gates, cheapest first
+  ```
+  Usually none: the owning gate re-stamps itself on its next green run. Every `adopted` row names
+  its `resolved_by` make target (checked to exist), so *"your baseline is stale"* is an instruction
+  rather than a puzzle.
 - **PROBE:** `bash docs/tasks/artifacts/sv_corpus_grad/baseline_identity/probe.sh` — **25 arms**
   (2 controls GREEN, 22 refusals, 1 timing assertion), run recorded beside it in `probe_run.txt`.
   It restores every file it mutates and byte-compares against its own backup.

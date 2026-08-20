@@ -3,10 +3,10 @@
     "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
     "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
     "expectations": "confirmed",
-    "confirmed_by": "re-derived by `PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN=1 scripts/run_with_memory_guard.sh --budget-mb 16384 -- make -C rust SHELL=/bin/bash sv_syntax_closure_gate` on 2026-08-20 (SV-CORPUS-GRAD.13c.2x.3 slice 2, PGEN-SV-CORPUS-GRAD-0251): PASSED in 86 s, peak 2018 MB, with defined_rule_count=1483, reachable_rules=1607, unreachable_rules=3 (exactly the named allowed_unreachable_rules set, each reason=unreachable_from_entry), unreachable_branches=2, unresolved_rule_reference_count=0.",
-    "verified_at_commit": "1dd3b71018454a2df749ca6dba3bb835d5421114",
+    "confirmed_by": "re-derived by `PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN=1 scripts/run_with_memory_guard.sh --budget-mb 16384 -- make -C rust SHELL=/bin/bash sv_syntax_closure_gate` on 2026-08-20 (SV-CORPUS-GRAD.13c.2x.3 slice 2, PGEN-SV-CORPUS-GRAD-0251): PASSED in 86 s, peak 2018 MB, with defined_rule_count=1483, reachable_rules=1607, unreachable_rules=3 (exactly the named allowed_unreachable_rules set, each reason=unreachable_from_entry), unreachable_branches=2, unresolved_rule_reference_count=0. Re-stamped by SV-CORPUS-GRAD.13c.2x.4 to key the grammar on its raw_ast digest; the measured numbers are unchanged.",
+    "verified_at_commit": "3fb75ea53170bbac716b986f0bbc9ba6579529a3",
     "inputs": {
-      "grammars/systemverilog.ebnf": "b0395cc859489782e145b7ffc7f431cec33c2063e829c56978cb4e70fffbb351",
+      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "bd9367dc1d79b6f2531a3975cb5c2449c451817f97c1a92fbcb18200fd14c9b4" },
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "b36125f8f2ff02c87026399160616f8691a29b8fa72bb97813b42ff21d50acb3",
       "rust/src/ast_pipeline/stimuli_generator.rs": "ba4130091ad715924b0c2c55535318679add5d28707597f388dda44f42d49c8b"
     }

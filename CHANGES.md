@@ -1,5 +1,63 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0253 (leaf SV-CORPUS-GRAD.13c.2x.4 NEW + all four moves LANDED; ZERO grammar bytes, ZERO Rust bytes): the doctrine's adoption cost was itself a defect — one comment line was blocking every commit
+
+- ⛔⛔ **THE DIRECTOR REFUSED THE COST, AND RE-MEASURING UNDER CHALLENGE SHOWED I HAD PUBLISHED IT
+  TOO SMALL.** `-0251` declared a *"recurring cost, stated rather than discovered"* and moved on.
+  Measured by appending one comment line to `grammars/systemverilog.ebnf` and restoring it
+  byte-identically:
+  ```text
+  scripts/check_baseline_identity.sh -> rc=1  THE BASELINE IS STALE
+  scripts/check_doctrines.sh         -> rc=1  "commit/merge blocked. Fix above, do not bypass."
+  ```
+  It was never *"the gate refuses"* — the enforcer runs from `.githooks/pre-commit`, so **every
+  commit was blocked**, and by an edit the EBNF frontend strips, leaving the generated parser
+  byte-identical.
+- ⭐⭐ **ROOT CAUSE, and it is design rather than tuning: provenance had been made a GATE ON ALL
+  WORK instead of a DISAMBIGUATOR of one gate's verdict.** A freshness check refuses precisely in
+  the case where running the gate would have resolved everything for free.
+- ✅ **FOUR MOVES, each adopting a mechanism this repository had already built:**
+  1. **Semantic inputs.** An `inputs` value may be a bare sha256 (kind `bytes`, unchanged default)
+     or `{kind, digest}`. `ebnf_raw_ast` digests the frontend's own `raw_ast` envelope — *what the
+     code generator consumes*, comment- and layout-insensitive by construction. Same definition as
+     `check_sv_contract_currency.sh::sv_semantic_digest`; **probe arm 17 executes both
+     implementations and fails on divergence**, because two copies are only safe while something
+     compares them. They agree at `bd9367dc1d79b6f2…`.
+  2. **Budgeted staleness.** A stale `adopted` baseline is a printed NOTE while
+     `git rev-list --count <verified_at_commit>..HEAD -- <inputs>` is within
+     `stale_budget_commits` (default 20), and a HARD FAILURE past it — derived every run, never
+     stored. ⛔ The budget is what keeps this from being a relaxation: the founding defect was 69
+     input-touching revisions of silence, now unreachable.
+  3. **The gate MEASURES a stale baseline instead of refusing.** Green ⇒ the baseline was stale and
+     still correct ⇒ **it re-stamps itself** from that run's own numbers; red ⇒ refuses as
+     AMBIGUOUS, naming both halves; `unconfirmed` ⇒ still refuses before measuring. Proven
+     end-to-end: a contract with a zeroed input digest ran GREEN and came back with the true digest
+     and a `confirmed_by` naming the run. ⇒ **`PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN` is DELETED** —
+     the redesign removes a bypass surface rather than adding one.
+  4. **`--stale` / `--resolve-stale`**, plus a REQUIRED `resolved_by` naming the make target that
+     re-derives each adopted baseline (checked to exist in `rust/Makefile`) and a measured
+     `cost_seconds`; the sweep runs cheapest-first and never stamps on its own behalf.
+- ⛔ **A FOUR-WAY EXIT CONTRACT** — `0` fresh+confirmed · `1` STALE · `2` REFUSE · `3` UNCONFIRMED.
+  1 and 3 demand opposite actions, and collapsing them was not hypothetical: `fail()` was
+  overriding the return code, so an UNCONFIRMED contract reported STALE and the union gate began a
+  two-minute measurement it was built to skip. Arms 14 and 15 pin both codes.
+- **MEASURED AFTER**: the comment-only edit now **passes silently**; a real semantic edit is
+  `rc=0` with *"2 baseline(s) STALE but within budget — reported, not failed"*.
+- ⛔⛔ **ROUTED WITH THE MEASUREMENT — the friction was never local to this doctrine.**
+  `PARSE-COST-RATCHET` keys `grammars/systemverilog.ebnf` **by bytes**, so with
+  `BASELINE-IDENTITY` fixed the same comment edit STILL blocked the commit and the run named the
+  new culprit. That one costs a full re-measure, far more than this gate's 86 s. Routed to
+  `ENGINE-UNIVERSAL-SERVICES` rather than fixed under this doctrine's name.
+  ⚠️ Also routed: `GENERATED-REPRODUCIBILITY` proves the tree correct in tier 2 and then still
+  needs a human `--rebaseline` — the same *stale + green ⇒ re-stamp* cell automated here. Observed
+  live (tier 2 green, 11/11 byte-identical, 0 sites; tier 1 stayed RED until the flag was run).
+- ⚠️ **Fixed in passing** (`CLAUDE.md` §13): `check_sv_contract_currency.sh` wrote scratch to
+  `${TMPDIR:-/tmp}`, off-volume; now repo-derived. Re-run green.
+- **Validation**: `bash scripts/check_doctrines.sh` → **ALL 24 PASS**; probe **26 arms**, 0
+  not-as-specified, no residue; `make -C rust SHELL=/bin/bash mdbook_docs_gate` → passed;
+  `sv_syntax_closure_gate` GREEN; `sv_cert_recognized_union_gate` refuses in 0 s. New card
+  `provenance-disambiguates-a-verdict-it-does-not-gate-the-work`. Live-status tracker UNCHANGED.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0252 (leaves SV-CORPUS-GRAD.13c.2x.1 evidence + .13c.2x.3 follow-up; ZERO grammar bytes, ZERO Rust bytes): the rule count is deterministic on both axes — and the probe that proved it found the real defect in the column nobody was looking at
 
 - ⭐⭐ **H1 REFUTED FOR THE SHARED POPULATION.** `.13c.2x.1` observed a cert rule `total` reading

@@ -68,7 +68,11 @@ row_field() { printf '%s' "$1" | cut -f"$2"; }
 # The semantic digest of one revision of the grammar, from the PRODUCER. Empty when unavailable.
 sv_semantic_digest() {  # $1 = a file holding the grammar text
   [ -x "$PIPELINE" ] || return 0
-  local out; out="$(mktemp "${TMPDIR:-/tmp}/sv_contract_currency.XXXXXX.json")"
+  # ⛔ ON-VOLUME BY POLICY (CLAUDE.md §13): project-owned scratch is derived from the repository
+  # root, never from $TMPDIR, which can sit on a different filesystem. Fixed 2026-08-20 by
+  # SV-CORPUS-GRAD.13c.2x.4, which adopts this function's own digest definition and read it closely.
+  local scratch="$ROOT/rust/target/sv_contract_currency"; mkdir -p "$scratch" 2>/dev/null
+  local out; out="$(mktemp "$scratch/digest.XXXXXX.json")"
   "$PIPELINE" "$1" --emit-raw-ast-json "$out" >/dev/null 2>&1
   python3 -c '
 import hashlib, json, sys

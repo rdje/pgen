@@ -165,19 +165,43 @@ jq -e '
 # consumer passes every check that only asks whether it exists — so this gate is the consumer,
 # and it REFUSES (exit 2, the published code for "cannot see what it is meant to check") rather
 # than reporting a drift it could not attribute.
+# ⛔⛔ THE FULL MATRIX (`SV-CORPUS-GRAD.13c.2x.4`). An identity DISAMBIGUATES this gate's verdict;
+# it does not gate the measurement. Refusing on any divergence was a design error — it refused in
+# the very case where running resolves everything, and blocked commits repo-wide.
+#   0 fresh+confirmed -> measure
+#   1 STALE           -> measure anyway; GREEN means the baseline was stale and still correct
+#   3 UNCONFIRMED     -> refuse BEFORE the ~2 min/seed work: a person already ruled the numbers
+#                        wrong, so measuring teaches nothing
 identity_rc=0
+identity_stale=0
 "$ROOT_DIR/scripts/check_baseline_identity.sh" --verify "${CONTRACT_FILE#"$ROOT_DIR/"}" \
     || identity_rc=$?
-if [[ "$identity_rc" -ne 0 ]]; then
-    {
-        echo ""
-        echo "sv_cert_recognized_union_gate: REFUSING TO MEASURE (identity rc=$identity_rc)."
-        echo "  Any drift this run reported would be UNDIAGNOSED — it could be a real regression"
-        echo "  or it could be this baseline. Resolve the identity above first; the measurement"
-        echo "  is only meaningful once the contract is known to describe the tree being measured."
-    } >&2
-    exit 2
-fi
+case "$identity_rc" in
+    0) ;;
+    1) identity_stale=1 ;;
+    3)
+        {
+            echo ""
+            echo "sv_cert_recognized_union_gate: REFUSING TO MEASURE — the contract's expectations"
+            echo "  are UNCONFIRMED (see above). A person has already recorded that these numbers"
+            echo "  do not describe the recorded tree, so ~2 minutes per seed would resolve"
+            echo "  nothing. Adjudicating them is SV-CORPUS-GRAD.13c.2x(a)."
+        } >&2
+        exit 2
+        ;;
+    *)
+        {
+            echo ""
+            echo "sv_cert_recognized_union_gate: REFUSING TO MEASURE — the contract's identity"
+            echo "  could not be read (rc=$identity_rc). Resolve the refusal above first."
+        } >&2
+        exit 2
+        ;;
+esac
+# ⚠️ OWED, and named so it is not forgotten: this gate does not yet AUTO RE-STAMP on stale+green
+# the way `sv_syntax_closure_gate` does, because its contract is `unconfirmed` today and cannot
+# reach that cell. It becomes reachable the moment `SV-CORPUS-GRAD.13c.2x`(c) confirms it, and the
+# re-stamp belongs in that slice.
 
 base_entry="$(jq -r '.base_entry' "$CONTRACT_FILE")"
 base_profile="$(jq -r '.base_profile' "$CONTRACT_FILE")"
