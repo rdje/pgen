@@ -157,11 +157,24 @@ causes. Whether this instance was caused that way is unfalsifiable; that it *can
 
 `gate_input_pin_census.sh` (output in `gate_input_pin_census.txt`) counts gates that assert
 determinism across re-reads of a mutable input, and whether any records that input's identity
-inside the comparison loop:
+inside the comparison loop. At the opening measurement:
 
 ```text
 GATE-INPUT-PIN-CENSUS: asserts_determinism=5 blind_to_input_change=5
 ```
+
+✅ **After `(d)` — the SV cert gate now pins its input** (`PGEN-SV-CORPUS-GRAD-0258`):
+
+```text
+sv_cert_recognized_union_gate.sh    6 ref(s)   1 ref(s)   pins
+GATE-INPUT-PIN-CENSUS: asserts_determinism=5 blind_to_input_change=4
+```
+
+⭐ **The census was NOT modified to produce that.** Its predicate scans from the loop opener down,
+so the first cut — which hid the digest behind a `sha_of()` helper defined *above* the loop — still
+read **BLIND**. The two options were to move the code or to teach the census about the helper, and
+teaching the measure to recognise the change it is measuring is the defect rather than the fix. The
+digest is therefore taken **inline at the point of use**, and the unmodified instrument sees it.
 
 Three of the five share the *identical* `first_seed_signature` idiom —
 `sv_cert_recognized_union_gate`, `rtl_const_expr_cert_gate`, `verilog_2005_conformance_gate` — and

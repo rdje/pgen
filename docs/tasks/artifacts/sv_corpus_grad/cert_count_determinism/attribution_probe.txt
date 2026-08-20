@@ -1,0 +1,33 @@
+── the two verdicts this helper exists to tell apart ──
+  ✅ 1  input MOVED  -> names the input, not the tool         rc=0
+  ✅ 2  input HELD   -> a real tool-nondeterminism finding    rc=0
+
+── arm 3 is what makes the digest LOAD-BEARING rather than decoration ──
+  ✅ 3  arm 1 with ONLY the sha equalised -> verdict FLIPS    rc=0
+
+── refusals: it must not invent an attribution it cannot support ──
+  ✅ 4  a digest was never recorded -> UNATTRIBUTABLE         rc=0
+  ✅ 5  the OTHER digest missing    -> UNATTRIBUTABLE         rc=0
+  ✅ 6  wrong argument count        -> refuses, rc 2          rc=2
+
+── the message must carry the evidence a reader needs to act ──
+  ✅ moved-message carries 875ecab5de723631                  
+  ✅ moved-message carries bd9367dc1d79b6f2                  
+  ✅ moved-message carries grammars/systemverilog.ebnf       
+  ✅ moved-message carries quiescent tree                    
+  ✅ held-message points at DE-CONFOUND                      
+  ✅ held-message points at cert_count_determinism/probe.sh  
+
+── the consuming gate is actually wired to it (one implementation, not two) ──
+  ✅ gate SOURCEs the shared helper                          
+  ✅ gate CALLS it on drift                                  
+  ✅ gate digests the grammar PER SEED                       
+  ✅ gate RECORDS the digest per seed                        
+  ✅ the message text LIVES in the shared helper             
+  ✅ gate carries no second copy of the message              
+
+── the INDEPENDENT census must see it, through its own unmodified predicate ──
+  ✅ census reports the SV cert gate as pinning              
+  ✅ census headline moved 5 -> 4 blind                      
+
+ATTRIBUTION-PROBE: passed=20 failed=0

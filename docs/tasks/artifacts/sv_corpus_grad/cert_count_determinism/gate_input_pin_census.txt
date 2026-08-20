@@ -3,7 +3,7 @@ GATE                                       ASSERTS-DETERMINISM PINS-INPUT     VE
 ast_dump_contract_gate.sh                  3 ref(s)       0 ref(s)       ⛔ BLIND
 duality_hunt_gate.sh                       2 ref(s)       0 ref(s)       ⛔ BLIND
 rtl_const_expr_cert_gate.sh                5 ref(s)       0 ref(s)       ⛔ BLIND
-sv_cert_recognized_union_gate.sh           5 ref(s)       0 ref(s)       ⛔ BLIND
+sv_cert_recognized_union_gate.sh           6 ref(s)       1 ref(s)       pins
 verilog_2005_conformance_gate.sh           5 ref(s)       0 ref(s)       ⛔ BLIND
 
-GATE-INPUT-PIN-CENSUS: asserts_determinism=5 blind_to_input_change=5
+GATE-INPUT-PIN-CENSUS: asserts_determinism=5 blind_to_input_change=4

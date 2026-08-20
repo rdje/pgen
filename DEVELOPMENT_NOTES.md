@@ -1,5 +1,46 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0258 — the moment I wanted to edit the measuring instrument was the moment to edit the code instead
+
+**1. THE TEMPTATION WAS REAL AND IT ARRIVED DISGUISED AS TIDINESS.** The first spelling of the
+input pin took the grammar digest through a small `sha_of()` helper defined just above the seed
+loop. That is better shell. It is also invisible to `gate_input_pin_census.sh`, which scans from the
+loop opener downward — so the census, re-run, still reported the gate **BLIND**. The obvious next
+move was a two-word edit to the census's regex to recognise `sha_of`. ⛔ **That edit would have made
+the census agree with me by construction**, which is `docs/CLAIM_VERIFICATION.md` §6's *"replacing a
+wrong unwatched number with a right unwatched number"* one level up. The code moved instead; the
+measure did not. ⭐ **The general rule: when your change and your instrument disagree, the instrument
+is the one that was written without knowing the answer.**
+
+**2. A GUARD THAT CANNOT INVENT A FAILURE IS A DIFFERENT KIND OF GUARD, AND THAT WAS THE DESIGN.**
+The easy version of "pin the input" makes a moved digest a failure. Measured history says no:
+`.13c.2x.4` is the commit where a byte-keyed grammar identity meant **one comment line blocked every
+commit**, for an edit the frontend provably strips. So the digest here is consulted only once the
+output signature has ALREADY drifted. It can only improve a message that was going to be printed
+anyway. ⇒ it needed no rebaseline, no waiver, and no negotiation about false positives, and it can
+be adopted by four more gates without any of those conversations either.
+
+**3. THE ARM THAT MAKES THE DIGEST REAL IS THE ONE THAT IS EASY TO OMIT.** Two arms — "input moved"
+and "input held" — both pass against a helper that ignores its digests entirely and branches on
+something else. The third arm is byte-for-byte the first with ONLY the second digest equalised, and
+the verdict must FLIP. Without it the column is decoration. ⭐ This is the same shape as `.13c.2w`'s
+arm 5 for the `introduced` column, one slice earlier, and I built it here because that leaf had
+already paid for the lesson.
+
+**4. I SHIPPED A GUARD I CANNOT DEMONSTRATE END TO END, AND SAID SO IN FOUR PLACES.** The consuming
+gate refuses in 0 s while its contract is `unconfirmed`, so the loop the guard lives in is
+unreachable at HEAD. Proven: the helper on 20 arms, and the wiring statically. Unproven: a real
+firing. ⚠️ The honest move is not to claim the weaker thing quietly — it is to name the missing leg
+and attach the obligation to the leaf that will make it reachable (`.13c.2x`(a)), so the debt has a
+trigger rather than a memory.
+
+**5. THE STALE REFUSAL TEXT WAS THE MOST EXPENSIVE THING IN THIS SLICE AND THE CHEAPEST TO FIX.**
+The gate PRINTS its contract's `unconfirmed_reason` on every invocation, and that text still told
+operators the rebaseline was hard-blocked by a leaf that had been settled the commit before. A
+message that names a blocker which no longer exists is worse than no message: it stops someone from
+doing work that is now unblocked. ⭐ It is DERIVED, so it was re-stamped through the doctrine's own
+`--stamp` path rather than hand-edited — the block's whole value is that nobody types it.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0256 — the instrument built one slice early had its customer waiting, and the scope it accepted was narrower than anyone had written down
 
 **1. THE FOURTH INVARIANT WAS BUILT ON SPECULATION AND PAID OFF IMMEDIATELY.** `.13c.2w` closed

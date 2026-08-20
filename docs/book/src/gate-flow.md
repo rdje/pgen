@@ -1116,6 +1116,17 @@ assert determinism across re-reads of a mutable input, and five of five record n
 identity inside the comparison loop** — three of them sharing the identical
 `first_seed_signature` idiom.
 
+✅ **Fixed for the gate that surfaced it.** It now digests the grammar per seed, records it in the
+per-seed JSON, and on drift prints one of two mutually exclusive verdicts — *the input CHANGED under
+this run*, naming both digests and the file, or *the input was HELD BYTE-IDENTICAL, so this IS a
+tool-side finding*, pointing at the probe that separates iteration from process. ⛔ The digest is
+**evidence, never a standalone failure condition**: one that failed on its own would fire on a
+comment-only edit the frontend strips — a defect this repository has already had, where a single
+comment line blocked every commit. Twenty adversarial arms hold both verdicts, including the one
+that makes the digest load-bearing rather than decorative: the same inputs with only the digest
+equalised must flip the verdict. ⚠️ Four gates remain blind, and the census that measures them is
+re-runnable rather than a claim.
+
 ⭐ **The rule:** an equality assertion across iterations must pin every mutable input *per
 iteration*, and name the input when they diverge. The difference is not rigour, it is
 attribution: `the GRAMMAR CHANGED between iteration 1 and 2` sends a reader somewhere

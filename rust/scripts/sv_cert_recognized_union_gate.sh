@@ -247,14 +247,41 @@ declare -a unmet=()
 declare -a per_seed_json=()
 
 first_seed_signature=""
+first_seed_input_sha=""
+first_seed_id=""
 overall_canonical_unknown=""
 overall_union_unknown=""
 overall_union_witness=""
 overall_residual_sorted=""
 
+# ⛔⛔ THE INPUT IS PINNED PER ITERATION (SV-CORPUS-GRAD.13c.2x.1 (d)). This loop re-reads
+# `$GRAMMAR_FILE` FROM DISK once per seed and then asserts that every seed agreed. That is a claim
+# about the TOOL, and it only means that if the INPUT was the same each time — which nothing here
+# recorded. Measured consequence, 2026-08-20: this gate reported `canonical total` 1434 at seed 0
+# and 1433 at seeds 7/42 and fired `seed=7 signature drift vs seed 0`; TWO hypotheses were written
+# down, both about the tool (per-process nondeterminism, a seeded append site), and BOTH were false.
+# `certificate_coverage()` is pure and its `total` is `grammar.rule_order.len()`; re-measured on the
+# exhibiting arm it read 1434 six times out of six across three processes AND three seeds. What had
+# actually differed was the FILE: a multi-seed run takes minutes, and an ordinary apply/revert of an
+# experimental grammar arm lands inside that window.
+#
+# ⭐ THE DIGEST IS EVIDENCE, NOT A NEW FAILURE CONDITION, and that distinction is deliberate. A
+# byte digest that FAILED on its own would fire on a comment-only edit the frontend strips — the
+# `SV-CORPUS-GRAD.13c.2x.4` defect, where one comment line blocked every commit. So the digest is
+# recorded every iteration and consulted only when the signature has ALREADY drifted, where it
+# turns an unattributable RED into a named cause. Neither branch can newly fail a run that would
+# otherwise have passed.
+# ⭐ ONE implementation of the attribution, shared rather than re-spelled per gate.
+source "$ROOT_DIR/rust/scripts/lib/drift_attribution.sh"
+
 for seed in "${seeds[@]}"; do
     cert_log="$LOG_DIR/cert_seed_${seed}.log"
-    echo "==> cert_union seed=${seed}"
+    # ⛔ The digest is taken INLINE, at the point of use, deliberately. Hiding it behind a helper
+    # defined above the loop makes `gate_input_pin_census.sh` — which scans from the loop opener
+    # down — report this gate as BLIND, and tuning the CENSUS to recognise the helper would be
+    # tuning the instrument to flatter the change it is measuring. The code moves; the measure does not.
+    seed_input_sha="$(shasum -a 256 "$GRAMMAR_FILE" 2>/dev/null | awk '{print $1}')"
+    echo "==> cert_union seed=${seed} (grammar ${seed_input_sha:0:16}…)"
     if ! "$AST_PIPELINE_BIN" "$GRAMMAR_FILE" --report-certificate-coverage \
         --grammar-profile "$base_profile" --entry-rule "$base_entry" \
         --count "$samples" --seed "$seed" \
@@ -308,12 +335,17 @@ for seed in "${seeds[@]}"; do
     signature="${canon_total}|${canon_proof}|${canon_witness}|${canon_unknown}|${canon_spf}|${union_total}|${union_proof}|${union_witness}|${union_unknown}|${residual_sorted}"
     if [[ -z "$first_seed_signature" ]]; then
         first_seed_signature="$signature"
+        first_seed_input_sha="$seed_input_sha"
+        first_seed_id="$seed"
         overall_canonical_unknown="$canon_unknown"
         overall_union_unknown="$union_unknown"
         overall_union_witness="$union_witness"
         overall_residual_sorted="$residual_sorted"
     elif [[ "$signature" != "$first_seed_signature" ]]; then
-        unmet+=("seed=${seed} signature drift vs seed ${seeds[0]}: '${signature}' != '${first_seed_signature}'")
+        # ⛔ ATTRIBUTE THE DRIFT, in the ONE place that knows how. The two causes send a reader to
+        # opposite places, and the old message named only the axis this loop happened to vary.
+        unmet+=("$(attribute_signature_drift "$seed" "$first_seed_id" "$seed_input_sha" \
+            "$first_seed_input_sha" "${GRAMMAR_FILE#"$ROOT_DIR/"}" "$signature" "$first_seed_signature")")
     fi
 
     per_seed_json+=("$(jq -nc \
@@ -328,7 +360,8 @@ for seed in "${seeds[@]}"; do
         --argjson union_witness "$union_witness" \
         --argjson union_unknown "$union_unknown" \
         --argjson union_residual_rules "$residual_sorted" \
-        '{seed: $seed, canonical: {total: $canonical_total, proof: $canonical_proof, witness: $canonical_witness, unknown: $canonical_unknown, sample_parse_failures: $canonical_sample_parse_failures}, union: {total: $union_total, proof: $union_proof, witness: $union_witness, unknown: $union_unknown, residual_rules: $union_residual_rules}}')")
+        --arg grammar_sha256 "$seed_input_sha" \
+        '{seed: $seed, grammar_sha256: $grammar_sha256, canonical: {total: $canonical_total, proof: $canonical_proof, witness: $canonical_witness, unknown: $canonical_unknown, sample_parse_failures: $canonical_sample_parse_failures}, union: {total: $union_total, proof: $union_proof, witness: $union_witness, unknown: $union_unknown, residual_rules: $union_residual_rules}}')")
 done
 
 recognized_basis_green=false

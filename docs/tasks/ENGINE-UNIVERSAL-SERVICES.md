@@ -200,6 +200,63 @@ question is *"is that enough?"*, and that cannot be answered without naming the 
   compare published shares and a build fingerprint (no grammar digest). **All five are now
   accounted for** — the flag `-0078` raised is discharged rather than carried.
 
+### ⚠️ `.41` NEW `todo` — FOUR more gates assert determinism across re-reads of a MUTABLE input while recording no input identity, and the helper they each need now exists and is probed (opened 2026-08-20 session #251 by `SV-CORPUS-GRAD.13c.2x.1`, `PGEN-SV-CORPUS-GRAD-0258`)
+
+- ⛔ **THE SHAPE, and it cost two sessions once already.** A gate that re-reads a file once per
+  iteration and then asserts *"every iteration agreed"* is making a claim about the TOOL. It only
+  means that if the INPUT was the same each time — and none of these gates records what it read. So
+  a disagreement is reported as `signature drift vs seed 0`, which names the axis the loop VARIED
+  rather than the axis that MOVED. `SV-CORPUS-GRAD.13c.2x.1` is the worked instance:
+  `sv_cert_recognized_union_gate` fired that message, two hypotheses were written down, **both were
+  about the tool and both were false**, and the count was later measured invariant across three
+  processes AND three seeds. What had differed was the grammar file.
+- **MEASURED, not asserted** — `docs/tasks/artifacts/sv_corpus_grad/cert_count_determinism/gate_input_pin_census.sh`,
+  a re-runnable census whose predicate scans from each gate's own loop opener downward:
+
+  ```text
+  GATE-INPUT-PIN-CENSUS: asserts_determinism=5 blind_to_input_change=4
+  ```
+
+  | gate | asserts determinism | pins input | owner |
+  |---|---|---|---|
+  | `sv_cert_recognized_union_gate.sh` | 6 refs | **1 ref — pins** | ✅ `SV-CORPUS-GRAD.13c.2x.1` (d), `-0258` |
+  | `rtl_const_expr_cert_gate.sh` | 5 refs | 0 — ⛔ BLIND | **this leaf** |
+  | `verilog_2005_conformance_gate.sh` | 5 refs | 0 — ⛔ BLIND | **this leaf** |
+  | `ast_dump_contract_gate.sh` | 3 refs | 0 — ⛔ BLIND | **this leaf** |
+  | `duality_hunt_gate.sh` | 2 refs | 0 — ⛔ BLIND | **this leaf** |
+
+  ⭐ Three of the five share the *identical* `first_seed_signature` idiom; the other two implement
+  the same shape as a re-run tripwire.
+- ⭐ **ROUTING EVIDENCE — does the finding reproduce outside the family it came from?** Yes, and it
+  was measured rather than inferred: the census reads all five gates by the same predicate, and the
+  four rows above are in `rtl_const_expr`, `verilog_2005` and two engine-universal gates — none of
+  them SystemVerilog. ⇒ this is engine-universal work, which is why it is routed here rather than
+  left in an SV leaf. It is routed **not worked** solely because of the SV lane lock.
+- ⭐⭐ **THE COST OF ADOPTING IT IS NOW SMALL, AND THAT IS THE POINT OF ROUTING IT NOW.**
+  `rust/scripts/lib/drift_attribution.sh` already exists, is shared, and is proven by 20 arms
+  (`attribution_probe.sh`) including the flip-arm that makes its digest load-bearing. Each remaining
+  gate needs: a digest taken INLINE inside its loop, that digest carried into its per-iteration
+  record, and the drift branch replaced by a call to the helper. **No new design.**
+- ⛔ **TWO CONSTRAINTS THAT ARE NOT NEGOTIABLE, both learned the expensive way:**
+  1. **The digest must be EVIDENCE, never a standalone failure condition.** A byte digest that
+     failed on its own fires on a comment-only edit the frontend strips — `SV-CORPUS-GRAD.13c.2x.4`,
+     where exactly that BLOCKED EVERY COMMIT. Consult it only once a signature has already drifted.
+  2. **Take the digest INLINE at the point of use, not through a helper defined above the loop.**
+     The census scans from the loop opener down, so a hoisted helper still reads BLIND — and the
+     temptation is then to teach the census about the helper, which is tuning the measure to flatter
+     the change it is measuring. `-0258` hit this and moved the code instead.
+- ⚠️ **SCOPE OF THE LIVE DAMAGE, so this is priced honestly**: `grep -rn "signature drift"` over the
+  whole tracked record returns **one** hit — the `.13c.2x.1` observation. The blind spot is LATENT
+  in these four and has fired exactly once anywhere. ⇒ **a guard to fit, not a backlog to
+  re-adjudicate**, and it should not preempt release-critical work.
+- **WHAT THIS LEAF OWES**: (a) wire the helper into each of the four, inline-digest first; (b) extend
+  `attribution_probe.sh`'s static arms to cover each newly-wired gate, so the wiring is watched and
+  not remembered; (c) drive `blind_to_input_change` to **0** and record the census before → after;
+  (d) decide whether the census itself should become a registered doctrine — ⛔ **only if it can be
+  made two-sided**, since a census that can only ever count references is a floor, and its own
+  header says so.
+
+
 ### ⛔ `.40` `todo` — **`.39`'s SELF-RECORDING IS GATED BY A FRESHNESS TEST NARROWER THAN THE FAILURE IT IS MEANT TO CLEAR**: a complete GREEN tier 2 still leaves the doctrine RED when the input that moved is the EMISSION digest (found 2026-08-20 by `SV-CORPUS-GRAD.13c.2w`, `PGEN-SV-CORPUS-GRAD-0254`, on the first unrelated change to `rust/Makefile` after `.39` landed)
 
 - ⛔ **OBSERVED LIVE, NOT REASONED.** `SV-CORPUS-GRAD.13c.2w` added one `.PHONY` probe target to

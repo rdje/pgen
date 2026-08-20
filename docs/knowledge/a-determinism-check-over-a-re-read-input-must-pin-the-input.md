@@ -12,7 +12,7 @@ tags: [gates, determinism, evidence, confounding, provenance, instruments, metho
 date: 2026-08-20
 status: current
 evidence: "SV-CORPUS-GRAD.13c.2x.1 (PGEN-SV-CORPUS-GRAD-0255). sv_cert_recognized_union_gate read canonical total=1434 at seed 0 and 1433 at seeds 7/42 on the SV-0065 arm, and its determinism check fired. certificate_coverage() is PURE and its total is grammar.rule_order.len(), so no witness-search seed can move it — which made the observation look like nondeterministic rule SYNTHESIS and put every rule-count baseline in the repository in doubt. The discriminating probe (3 processes at one fixed seed, then one process per seed) measured 1434 six times out of six on the arm and 1433 three times out of three at HEAD, refuting BOTH recorded hypotheses. The gate re-reads $GRAMMAR_FILE once per seed (:255) and its signature (:307) is ten OUTPUT fields with no input identity; its only identity call (:177) is hoisted out of the loop and checks the contract, not the grammar. The gate's own arithmetic agrees: unmet=29 on the arm vs 27 at HEAD, where 27 is nine criteria on each of three seeds, so the +2 is exactly the two drift entries the loop appends. Census over the repo: 5 gates assert determinism across re-reads and 5 of 5 record no input identity inside the comparison loop."
-reverify: "bash docs/tasks/artifacts/sv_corpus_grad/cert_count_determinism/gate_input_pin_census.sh   # GATE-INPUT-PIN-CENSUS: asserts_determinism=5 blind_to_input_change=5"
+reverify: "bash docs/tasks/artifacts/sv_corpus_grad/cert_count_determinism/gate_input_pin_census.sh   # GATE-INPUT-PIN-CENSUS: asserts_determinism=5 blind_to_input_change=4 (was 5 of 5; the SV cert gate was fixed by PGEN-SV-CORPUS-GRAD-0258, the remaining four are ENGINE-UNIVERSAL-SERVICES.41). The attribution helper is proven by docs/tasks/artifacts/sv_corpus_grad/cert_count_determinism/attribution_probe.sh -> ATTRIBUTION-PROBE: passed=20 failed=0"
 ---
 
 **"Every iteration agreed" is a claim about the TOOL. It only means that if the INPUT was the same
@@ -59,6 +59,15 @@ changed"**. A pure function with a moving output is a statement about its argume
   it in the comparison. On drift the gate can then say *"the GRAMMAR CHANGED between iteration 1 and
   iteration 2"* — which is a different sentence, sending the reader to a different place, in one
   line instead of two sessions.
+- ⛔ **Make the digest EVIDENCE, not a standalone failure condition.** A digest that fails on its own
+  fires on edits the consumer provably cannot see — a comment the frontend strips, a reordered
+  key — and a guard that blocks work for a non-difference gets bypassed. Consult it only once the
+  comparison has already failed; then it can only ever *improve* a message, never invent a failure.
+- ⭐ **Take the digest at the point of use.** Hoisting it into a helper defined above the loop is
+  functionally identical and measurably worse: any instrument that scans the loop body for evidence
+  of pinning will report the gate as still blind. When that happened here, the tempting fix was to
+  teach the instrument about the helper — **which is tuning the measure to flatter the change it is
+  measuring.** Move the code instead.
 - **De-confound before you hypothesise.** If each iteration is also a separate process, then
   "iteration" and "process" are one axis, not two. Vary them independently — N processes at one
   fixed value, then one process per value — and the two hypotheses separate mechanically instead of

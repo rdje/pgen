@@ -1,5 +1,53 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0258 (leaf SV-CORPUS-GRAD.13c.2x.1 CLOSED (d) + leaf ENGINE-UNIVERSAL-SERVICES.41 NEW; ZERO grammar bytes, ZERO Rust bytes): the gate can now say WHICH thing moved — and the fix had to move the CODE, because tuning the instrument to see it would have been the defect
+
+- ⭐⭐⭐ **`(d)` — THE INPUT PIN — CLOSES THE LEAF.** `sv_cert_recognized_union_gate` re-reads
+  `$GRAMMAR_FILE` inside its seed loop while its determinism signature carried ten OUTPUT fields and
+  **no input identity**, so `signature drift vs seed 0` named the axis the loop VARIED rather than
+  the axis that MOVED. `-0255` measured what that costs: two hypotheses written down, both about the
+  tool, both false. The gate now digests the grammar **per seed**, records it as `grammar_sha256` in
+  the per-seed JSON, and on drift calls the new shared
+  `rust/scripts/lib/drift_attribution.sh`, which prints one of two mutually exclusive verdicts —
+  *the input CHANGED under this run* (naming both digests and the file) or *the input was HELD
+  BYTE-IDENTICAL, so this IS a tool-side finding* (pointing at the de-confounding probe).
+- ⛔ **THE DIGEST IS EVIDENCE, NEVER A STANDALONE FAILURE CONDITION**, and the reason is measured
+  rather than cautious: one that failed on its own would fire on a comment-only edit the frontend
+  strips — exactly `.13c.2x.4`, where a single comment line BLOCKED EVERY COMMIT. It is consulted
+  only once a signature has already drifted, so **neither branch can fail a run that would otherwise
+  have passed**.
+- ⭐⭐⭐ **THE FIX WAS GRADED BY AN INSTRUMENT WRITTEN BEFORE IT AND DELIBERATELY NOT ADJUSTED — AND
+  THE FIRST CUT FAILED.** `gate_input_pin_census.sh` scans from each gate's loop opener down. The
+  first spelling hid the digest behind a `sha_of()` helper defined ABOVE the loop, so the census
+  still read **BLIND**. Two options: move the code, or teach the census about the helper. ⛔ **Teaching
+  the measure to recognise the change it is measuring is the defect, not the fix.** The digest is now
+  taken **inline at the point of use** and the unmodified census reports `pins`:
+  `asserts_determinism=5 blind_to_input_change=` **5 → 4**. That arm is IN the probe, so the property
+  is watched rather than remembered.
+- ⛔ **A STALE REFUSAL MESSAGE WAS ACTIVELY MISDIRECTING AND IS FIXED.** The contract's
+  `unconfirmed_reason` — printed to an operator on every invocation — still said re-derivation was
+  *"HARD-BLOCKED by .13c.2x.1"*. `-0255` refuted that. Re-stamped through
+  `check_baseline_identity.sh --stamp … --unconfirmed` (never hand-edited, per the doctrine); it now
+  says the block is LIFTED and names what is actually still owed, `.13c.2x`(a).
+- ⚠️⚠️ **HONEST BOUND, STATED RATHER THAN DISCOVERED: THIS GUARD HAS NEVER RUN INSIDE A REAL GATE
+  EXECUTION.** That gate REFUSES in 0 s while its contract is `unconfirmed`, so the seed loop is
+  unreachable at HEAD. Proven: the helper's behaviour on **20 arms** (including the flip-arm that
+  makes the digest load-bearing — the same inputs with only the digest equalised must flip the
+  verdict) and the wiring, statically, by four assertions the probe re-checks. NOT proven: an
+  end-to-end firing. It becomes reachable when `.13c.2x`(a) lands, and that leaf now carries the
+  obligation to re-run this probe then.
+- ⛔ **ROUTED, NOT WORKED — `ENGINE-UNIVERSAL-SERVICES.41` NEW.** Four gates remain blind
+  (`rtl_const_expr_cert_gate`, `verilog_2005_conformance_gate`, `ast_dump_contract_gate`,
+  `duality_hunt_gate`); two are other families and two are engine-universal, so the finding
+  demonstrably reproduces outside SV. The helper they each need now exists and is probed, so
+  adopting it is wiring rather than design. ⭐ Live damage is measured and small:
+  `grep -rn "signature drift"` over the whole tracked record returns **one** hit.
+- ⚠️ **THE PROBE CAUGHT ITSELF FIRST, AGAIN** — opening run **17/18**, and the one failure was its
+  own assertion grepping for a phrase the helper SPLITS across a shell line continuation.
+- **VALIDATION** — `bash scripts/check_doctrines.sh` → **ALL 24 enforced doctrines PASS**;
+  `attribution_probe.sh` → **passed=20 failed=0**; `bash -n` clean on both changed scripts; the
+  gate's observable behaviour at HEAD is unchanged (same refusal, same exit code, truthful reason).
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0256 (leaf SV-CORPUS-GRAD.13c.2v CLOSED; release 1.0.192, ledger SV-0065; ZERO Rust bytes): a scope randomize carrying a constraint block was unreachable from EVERY expression — and its cost is the first rise this repository has accepted for a reason that is not an arithmetic identity
 
 - ⭐⭐⭐ **`SV-0065` IS IN THE TREE.** IEEE 1800-2017/2023 A.8.4 spells `primary`'s call alternative
