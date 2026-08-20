@@ -1,5 +1,30 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0247 (leaf SV-CORPUS-GRAD.13c.2x.2 NEW; docs only, ZERO code bytes): the director ORDERED baseline identity support — recorded with its design before session exit so the order cannot be lost
+
+- ⛔⛔ **A DIRECTOR ORDER, NOT A PROPOSAL.** Verbatim: *"So did you or are going to add support sha
+  for both the grammar and the parser plus a verified_at_commit ? … please add full support for that
+  if not done already."* It **outranks** the sequencing this session published (`.13c.2w` first):
+  `.13c.2x.2`, then `.13c.2w`. Recorded here and led in `MEMORY.md` because the session was ending
+  and an order that lives only in a transcript is an order that did not happen.
+- ⛔⛔⛔ **THE DESIGN CONSTRAINT THAT DECIDES WHETHER THIS IS WORTH DOING AT ALL: a block nobody
+  READS is the defect, not the fix.** `SV-CORPUS-GRAD.13i` already measured this repository shipping
+  **six** oracles carrying a self-describing identity block, only **one** gate-checked, **four
+  measurably stale**. ⇒ every adoption must land block **AND** re-hashing reader **AND** an observed
+  refusal arm in the same commit, or it recreates `.13i` at fifteen times the scale.
+- **DESIGN RECORDED SO IT IS NOT RE-DERIVED**: a GENERIC `identity` block — `verified_at_commit` plus
+  an `inputs` map of path→sha256 — because the 15 baselines do **not** share inputs (SV grammar,
+  generated Rust, tracked docs, regex corpus). Making the dependency set DATA rather than hard-coded
+  in a script is strictly stronger than `PARSE-COST-RATCHET`'s block, whose four inputs live in the
+  gate. Plus: ONE shared verifier, a CLOSED population register on the
+  `gate_reachability_register_v0.json` model, a doctrine binding all of it, and a three-arm
+  adversarial probe (control GREEN; perturbed input RED; removed block RED).
+- ⚠️ **WHAT IT WILL AND WILL NOT DO.** Adopting on `systemverilog_recognized_cert_union_contract.json`
+  makes that gate report *"your baseline is stale"* instead of *"the tree regressed"* — the whole
+  point, and an improvement on a gate that is already RED. It does **not** turn it green;
+  adjudicating its 27 unmet criteria remains `.13c.2x`(a), and `.13c.2x.1` still hard-blocks the
+  rebaseline.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0246 (leaf SV-CORPUS-GRAD.13c.2x.1 NEW + .13c.2x (d) DISCHARGED; docs only, ZERO code bytes): a logged finding with no owner is a buried finding — and the missing-identity shape is FIFTEEN files, not one
 
 - ⛔ **DIRECTOR CORRECTION, ACCEPTED.** `-0245` recorded a seed-dependent rule count as a bullet
