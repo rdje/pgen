@@ -4681,6 +4681,7 @@ primary_sv_2017 := @probe_sample: "1" primary_literal
                  | primary_dollar_sv_only
                  | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( instance_or_class_scope )?
                         -> {kind: "null_class_assign",  local_n: $5, scope: $6}
+                 | scope_randomize_sv_only
 
 # SV-0029 wave-3 (SV-DOLLAR-LRM-FIDELITY.4): the bare-`$` primary is IEEE 1800-only
 # (A.8.4 `primary ::= … $ …`; 1364-2005 has no `$` primary) — profile-gated out of
@@ -4690,6 +4691,21 @@ primary_sv_2017 := @probe_sample: "1" primary_literal
 @profiles: ["sv_2017", "sv_2023"]
 primary_dollar_sv_only := kw_sv_dollar_04da59ec
                        -> {kind: "system_dollar"}
+
+# SV-CORPUS-GRAD.13c.2v slice 1 (SV-0065): IEEE 1800-2017/2023 A.8.4 spells the call
+# alternative of `primary` as `function_subroutine_call`, and A.8.2 expands that to
+# `subroutine_call ::= tf_call | system_tf_call | method_call | [ std :: ] randomize_call`.
+# PGEN renders it as `call_primary` — the postfix-chain rule the LR lift authored — whose
+# eleven alternatives do NOT include `randomize_call`. That alternative exists only on the
+# sibling wrapper `function_subroutine_call`, which no expression path reaches, so the
+# `with constraint_block` tail of a SCOPE randomize was unreachable from every expression
+# while the statement path (`subroutine_call`) and the constant path (`constant_function_call`)
+# both had it. Lifted as a `_sv_only` rule — the same idiom as `primary_dollar_sv_only`
+# directly above — because `primary_sv_2017` is verilog_2005-admitted and IEEE 1364-2005 has
+# no `randomize`; the gate keeps `verilog_2005` at REJECT.
+@profiles: ["sv_2017", "sv_2023"]
+scope_randomize_sv_only := ( kw_std_55ec981f scope_resolution )? randomize_call
+                        -> {kind: "scope_randomize", std_scope: $1, body: $2}
 
 primary_hier_scope_prefix := kw_class_qualifier_fa08937d -> {kind: "class_qualifier", body: $1}
                            | non_typedef_package_scope    -> {kind: "package_scope",   body: $1}
@@ -4744,6 +4760,7 @@ primary_sv_2023 := primary_literal
                         -> {kind: "system_dollar"}
                  | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? ( instance_or_class_scope )?
                         -> {kind: "null_class_assign",  local_n: $5, scope: $6}
+                 | scope_randomize_sv_only
 
 primary := primary_sv_2017 -> {kind: "sv_2017", body: $1}
          | primary_sv_2023 -> {kind: "sv_2023", body: $1}

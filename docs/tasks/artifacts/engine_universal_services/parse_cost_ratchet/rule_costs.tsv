@@ -563,7 +563,7 @@ kw_solve_f544e4c9	8	0	0
 kw_specify_ade6a05c	71755	0	0
 kw_specparam_54af7813	71755	0	0
 kw_static_a381562a	193873	5	0
-kw_std_55ec981f	972707	0	0
+kw_std_55ec981f	1424828	0	0
 kw_string_ecb25204	909277	53	0
 kw_strong0	1	0	0
 kw_strong1	2	0	0
@@ -894,7 +894,7 @@ queue_slice_range_sv_only	53642	0	363
 randcase_item	5	0	0
 randcase_statement	32377	0	5855
 random_qualifier	3000	7	0
-randomize_call	994640	0	395665
+randomize_call	1446761	0	847786
 randsequence_statement	32377	0	5855
 randsequence_statement_sv_2017	26522	0	0
 rbrace	31328	8684	0
@@ -911,6 +911,7 @@ restrict_property_statement	98514	0	0
 rooted_tf_call_sv_only	1382674	0	805632
 rparen	504509	96626	275622
 scope_free_identifier	12257	2	0
+scope_randomize_sv_only	560658	0	108537
 scope_resolution	445120	8060	137275
 scoped_base_class_type_identifier	14	0	1
 scoped_block_class_type	32993	0	958
@@ -1025,7 +1026,7 @@ time_unit	201312	7	3
 timeunit_separator_slash	2	2	0
 timeunit_separator_trivia	2	2	0
 timeunits_declaration	80452	5	1309
-trivia	93419946	1192158	91129048
+trivia	93872067	1192158	91581169
 type_assignment	40	20	0
 type_assignment_sv_2017	40	20	0
 type_declaration	113075	570	1184

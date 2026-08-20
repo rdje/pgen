@@ -5,6 +5,70 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-08-20, `SV-CORPUS-GRAD.13c.2v` — GRAMMAR-level, release `1.0.192`,
+> ledger `SV-0065`, SCHEMA UNCHANGED at `25`):** a **SCOPE RANDOMIZE carrying a constraint block was
+> unreachable from every EXPRESSION** (`PGEN-SV-CORPUS-GRAD-0256`). IEEE 1800-2017/2023 A.8.4 spells
+> `primary`'s call alternative `function_subroutine_call`, and A.8.2 expands that to
+> `subroutine_call ::= tf_call | system_tf_call | method_call | [ std :: ] randomize_call`. PGEN
+> renders it as `call_primary` — the postfix-chain rule the left-recursion lift authored — and none
+> of its eleven alternatives is `randomize_call`. That alternative lived only on the sibling wrapper
+> `function_subroutine_call`, which no expression path reaches.
+>
+> ⭐ **The asymmetry is what made the diagnosis certain rather than plausible.** The STATEMENT path
+> (`subroutine_call`) and the CONSTANT path (`constant_function_call`) both list the qualified
+> `randomize_call` explicitly, so `initial randomize(a, b) with { a < b; };` parsed as a statement
+> while the identical text failed as an expression. ⛔ And `std::randomize(a, b)` *without* the
+> `with` clause parsed all along — through `tf_call`, whose identifier matches `randomize` because
+> IEEE 1800 Annex B does **not** reserve it (it reserves `rand`, `randc`, `randcase`,
+> `randsequence`). `tf_call` has no `with` tail, so the construct became unparseable at exactly the
+> moment a constraint block appeared.
+>
+> **What consumers gain.** `if (std::randomize(a, b) with { a < b; })`, `v = randomize(a, b) with
+> { … };`, the parenthesised identifier list `randomize(a) with (a) { … }`, and the three host
+> contexts real constrained-random code uses — negated inside an `if`, discarded through
+> `void'(…)`, and as an immediate assertion's expression — all go REJECT → ACCEPT on `sv_2017` and
+> `sv_2023`.
+>
+> ⛔ **`verilog_2005` is UNMOVED and that is enforced, not hoped.** `primary_sv_2017` is
+> verilog_2005-admitted, so the fix is lifted into a profile-gated `scope_randomize_sv_only` rather
+> than added inline — IEEE 1364-2005 has no `randomize` and no `std` package. Measured: the
+> `verilog_2005` adjudication manifest is **byte-identical end to end**, 0 of 2 459 rows moved.
+>
+> ⛔⛔ **POSITION IS PART OF THE FIX, and the first spelling was wrong in a way no verdict could
+> see.** Every part of `randomize_call` is optional, so the rule matches a **bare `randomize`**.
+> Placed mid-list it captured `randomize` used as an ordinary user identifier — legal under Annex B.
+> The verdict never moved; only the AST did. The alternative is therefore `primary`'s **LAST**,
+> which is also the cheaper spelling: a last alternative is reached only when every other has
+> failed. The guard is a pinned control (`control_randomize_as_user_identifier.sv`), and it reads
+> `scope_randomize=0 / hierarchical=4` on the shipped grammar — the broken spelling read `1 / 3`.
+>
+> **Schema stays `25`, measured over the whole pinned manifest rather than argued:**
+> `widen=6 narrow=0 shape=0` across `repro_checks=180`. The six widenings are the three defect rows
+> on two profiles each; **no previously-emitted AST shape is replaced**, which is the additive
+> `SV-0052` class. The new `{kind: "scope_randomize"}` is a NEW node a consumer may now encounter in
+> expression position — additive vocabulary, not a migration. ⚠️ A consumer exhaustively matching
+> `primary` kinds must add an arm for it.
+>
+> **Corpus proof:** SV lane pass **9 787 → 9 793**, and the delta is computed over the MANIFEST
+> rather than the pass/fail counts because those disagree: **seven rows left the bar and only six
+> crossed `fail → pass`**. The seventh, `verilator/test_regress/t/t_randomize_within_func.v`, still
+> fails and reclassified `unexplained_rejects_valid → explained_svpp_macro_use` — its parse now runs
+> *past* the scope randomize and dies in a macro window. All seven are `randomize`-themed, two of
+> them IEEE 1800's own §18.12 clause-keyed examples, and **no unrelated row moved**. Axis-2 bar
+> **282 → 275**; `unexplained_rejects_valid` 261 → 254; accepts-invalid unchanged at 21; the
+> ADJUDICATED/ROUTED/NO-VERDICT/DARK split entirely unmoved.
+>
+> ⭐⭐ **Its cost is the first rise this repository has accepted for a reason that is NOT an
+> arithmetic identity.** `entries +1,917,021` (+0.46 %), `memo_hits +1,012,779` (+0.55 %),
+> `committed +0` — a ratio of 1.893 that fits none of `PARSE-COST-RATCHET`'s three total-based
+> invariants. It landed under the fourth, `contained_in_introduced_subgraph`, re-derived on the
+> landing run: **4 rules rose, 0 fell, 0 escaped the 475-rule sub-graph reachable from
+> `scope_randomize_sv_only`**, so the whole rise is failed speculation confined to the construct
+> that caused it and not one accepted derivation got dearer. ⛔ The LRM-faithful spelling —
+> `function_subroutine_call` in `primary`, which is what A.8.4 literally says — was built and
+> measured, and REFUSED on cost: it wraps every existing call primary in an extra AST level, a
+> schema bump across the whole consumer surface to buy one construct.
+
 > **Current-state note (2026-08-19, `SV-CORPUS-GRAD.13c.2s` — GRAMMAR-level, release `1.0.191`,
 > ledger `SV-0063` + `SV-0064`, SCHEMA UNCHANGED at `25`):** a **greedy `( X )*` standing in front of
 > an OPTIONAL `X`-shaped tail** made four constructs unparseable (`PGEN-SV-CORPUS-GRAD-0242`). It is
@@ -435,15 +499,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.191`
+  - `1.0.192`
 - Parser release version:
-  - `1.0.191`
+  - `1.0.192`
   - history: `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `bd9367dc1d79b6f2531a3975cb5c2449c451817f97c1a92fbcb18200fd14c9b4` (SV grammar semantic digest — sha256 of the
+  - `875ecab5de723631a9ad7707138628b42d551027223d0ae02cf8dbf7f2eb86e4` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`

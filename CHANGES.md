@@ -1,5 +1,57 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0256 (leaf SV-CORPUS-GRAD.13c.2v CLOSED; release 1.0.192, ledger SV-0065; ZERO Rust bytes): a scope randomize carrying a constraint block was unreachable from EVERY expression — and its cost is the first rise this repository has accepted for a reason that is not an arithmetic identity
+
+- ⭐⭐⭐ **`SV-0065` IS IN THE TREE.** IEEE 1800-2017/2023 A.8.4 spells `primary`'s call alternative
+  `function_subroutine_call`, which A.8.2 expands to
+  `subroutine_call ::= tf_call | system_tf_call | method_call | [ std :: ] randomize_call`. PGEN
+  renders it as `call_primary` — the postfix-chain rule the LR lift authored — and **none of its
+  eleven alternatives is `randomize_call`**, so the `with constraint_block` tail of a scope
+  randomize was unreachable from every expression while the STATEMENT path (`subroutine_call`) and
+  the CONSTANT path (`constant_function_call`) both carried it. Fixed as a profile-gated
+  `scope_randomize_sv_only`, referenced as the **LAST** alternative of `primary_sv_2017` and
+  `primary_sv_2023`.
+- ⭐⭐ **THE YIELD IS EXACTLY THE CONSTRUCT THE FIX TARGETS, and the delta is computed over the
+  MANIFEST because pass/fail cannot see all of it.** Seven rows left the bar, **six** crossed
+  `fail → pass`, and **none** moved the other way; every one is `randomize`-themed, two of them IEEE
+  1800's own §18.12 clause-keyed examples, and no unrelated row moved. ⛔ The seventh —
+  `verilator/test_regress/t/t_randomize_within_func.v` — still FAILS and reclassified
+  `unexplained_rejects_valid → explained_svpp_macro_use`: its parse now runs *past* the scope
+  randomize and dies in a macro window. That is why `9 787 → 9 793` (+6) and the axis-2 bar
+  `282 → 275` (−7) are both correct and not in conflict.
+- ⭐⭐⭐ **THE COST LANDED THROUGH THE RATCHET, AND IT IS THE FOURTH INVARIANT'S FIRST REAL
+  CUSTOMER.** `entries +1,917,021` (+0.46 %), `memo_hits +1,012,779` (+0.55 %), `committed +0` —
+  a ratio of **1.893** fitting none of `PARSE-COST-RATCHET`'s three total-based identities.
+  `.13c.2w` closed ONE SLICE AGO saying it was built *"now rather than under deadline for the next
+  rise that has one"*; this is that rise. The gate re-derived the acceptance on the landing run:
+  **4 rules rose, 0 fell, 0 escaped the 475-rule sub-graph reachable from
+  `scope_randomize_sv_only`** ⇒ the whole rise is failed speculation confined to the construct that
+  caused it. ⛔ The LRM-faithful spelling (`function_subroutine_call` in `primary`) was built,
+  measured and REFUSED on cost — it wraps every existing call primary in an extra AST level.
+- ⛔⛔ **THE DECLARED SCOPE IS NARROWER THAN THE RESUME POINTER SAID, AND THE NARROWING IS DERIVED.**
+  `MEMORY.md` carried `introduced = {scope_randomize_sv_only, randomize_call}`. Measured in the arm's
+  own reference graph the two sets have the **identical 475-rule closure**, so `randomize_call` adds
+  nothing; the row declares the new rule ALONE. A scope is an assertion about what a change can
+  reach, and the smallest generating set that still holds is the most falsifiable one.
+- ⭐ **POSITION IS PART OF THE FIX, and slice 1's first spelling was wrong in a way NO VERDICT COULD
+  SEE.** Every part of `randomize_call` is optional, so the rule matches a bare `randomize`; placed
+  mid-list it captured `randomize` used as a user identifier, which Annex B permits. Only the AST
+  moved. On the shipped grammar the pinned guard `control_randomize_as_user_identifier.sv` reads
+  `scope_randomize=0 / hierarchical=4`; the broken spelling read `1 / 3`.
+- ⚠️ **ONE NUMBER MOVED THAT NOBODY PREDICTED, ADOPTED DELIBERATELY.** The corpus LR-family share
+  re-derives **2.761 % → 2.751 %** (24,638,673 of 895,726,296 entries over 16 336 files) — the
+  parser grew, so the family's SHARE of a larger denominator fell while its absolute entries rose.
+  The instrument refuses to edit its own constant, so it was adopted by hand on the constant and all
+  three hand-written designated live surfaces. ⭐ That edit moves the ratchet's own INSTRUMENT
+  digest, so it was BATCHED before the single rebaseline (`-0079`'s lesson applied, not re-learned).
+- **VALIDATION** — `bash scripts/check_doctrines.sh` → **ALL 24 enforced doctrines PASS**;
+  `generated_reproducibility_gate` tier 2 **11/11 byte-identical (0 sites)** and self-recorded;
+  whole pinned manifest swept on verdict AND typed AST → **`widen=6 narrow=0 shape=0`** over 180
+  checks ⇒ **SCHEMA STAYS `25`**; `run_adjudication_repros.py`
+  `checked=180 armed=77 listed=95 multi_profile_rows=59 failures=0` (`armed` 71 → 77: the three
+  flipped rows now carry an `arm` claim on two profiles each); `verilog_2005` adjudication manifest
+  **byte-identical**, 0 of 2 459 rows moved; corpus timeouts 0, crashes 0. **ZERO Rust bytes.**
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0255 (leaf SV-CORPUS-GRAD.13c.2x.1 (a)+(b)+(c) DISCHARGED, (d) OWED; ZERO grammar bytes, ZERO Rust bytes): a rule count that "varied with the seed" is deterministic on both axes — the gate re-reads a mutable input once per seed and pins nothing, so its own drift message cannot say which
 
 - ⭐⭐⭐ **BOTH RECORDED HYPOTHESES ARE REFUTED, ON THE EXHIBITING STATE.** `.13c.2x.1` observed

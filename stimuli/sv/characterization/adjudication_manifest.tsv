@@ -2527,7 +2527,7 @@ ispras-sv-tests	ieee-1800-2012/18/18.08_01.sv	pass	must_accept	match	ispras: '//
 ispras-sv-tests	ieee-1800-2012/18/18.09_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/18/18.11.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/18/18.11_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/18/18.12.01_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/18/18.12.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/18/18.12_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/18/18.12_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/18/18.13.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -10974,7 +10974,7 @@ sv-tests	tests/chapter-18/18.11.1--in-line-constraint-checker_0.sv	fail	must_acc
 sv-tests	tests/chapter-18/18.11.1--in-line-constraint-checker_1.sv	fail	must_accept	divergence:explained_svpp_include	sv-tests: positive test
 sv-tests	tests/chapter-18/18.12--randomization-of-scope-variables_0.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-18/18.12--randomization-of-scope-variables_1.sv	fail	must_accept	divergence:explained_svpp_include	sv-tests: positive test
-sv-tests	tests/chapter-18/18.12.1--adding-constraints-to-scope-variables_0.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test
+sv-tests	tests/chapter-18/18.12.1--adding-constraints-to-scope-variables_0.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-18/18.12.1--adding-constraints-to-scope-variables_1.sv	fail	must_accept	divergence:explained_svpp_include	sv-tests: positive test
 sv-tests	tests/chapter-18/18.13.1--urandom_0.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-18/18.13.1--urandom_1.sv	fail	must_accept	divergence:explained_svpp_include	sv-tests: positive test
@@ -13665,7 +13665,7 @@ verilator	test_regress/t/t_constraint_sysfunc.v	pass	must_accept	match	verilator
 verilator	test_regress/t/t_constraint_unpacked_array.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_constraint_unpacked_array.py expects success
 verilator	test_regress/t/t_constraint_unq_arr_derived.v	pass	must_accept	match	verilator: driver t_constraint_unq_arr_derived.py expects success
 verilator	test_regress/t/t_constraint_unq_arr_derived_inline_unsup.v	pass	must_accept	match	verilator: driver t_constraint_unq_arr_derived_inline_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_constraint_unsat.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_constraint_unsat.py expects success
+verilator	test_regress/t/t_constraint_unsat.v	pass	must_accept	match	verilator: driver t_constraint_unsat.py expects success
 verilator	test_regress/t/t_constraint_unsup.v	pass	must_accept	match	verilator: driver t_constraint_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_constraint_unsup_unq_arr.v	pass	must_accept	match	verilator: driver t_constraint_unsup_unq_arr.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_coroutine_lambda.v	pass	must_accept	match	verilator: driver t_coroutine_lambda.py expects success
@@ -15485,7 +15485,7 @@ verilator	test_regress/t/t_randomize_inline_var_ctl.v	pass	must_accept	match	ver
 verilator	test_regress/t/t_randomize_inline_var_ctl_bad.v	pass	must_accept	match	verilator: driver t_randomize_inline_var_ctl_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_randomize_inline_var_ctl_unsup_1.v	pass	must_accept	match	verilator: driver t_randomize_inline_var_ctl_unsup_1.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_randomize_inline_var_ctl_unsup_2.v	pass	must_accept	match	verilator: driver t_randomize_inline_var_ctl_unsup_2.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_randomize_inside_cond.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_randomize_inside_cond.py expects success
+verilator	test_regress/t/t_randomize_inside_cond.v	pass	must_accept	match	verilator: driver t_randomize_inside_cond.py expects success
 verilator	test_regress/t/t_randomize_local_param.v	pass	must_accept	match	verilator: driver t_randomize_local_param.py expects success
 verilator	test_regress/t/t_randomize_local_paramed.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_local_paramed.py expects success
 verilator	test_regress/t/t_randomize_member_select.v	pass	must_accept	match	verilator: driver t_randomize_member_select.py expects success
@@ -15545,7 +15545,7 @@ verilator	test_regress/t/t_randomize_unpacked_wide.v	pass	must_accept	match	veri
 verilator	test_regress/t/t_randomize_with_constraint.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_with_constraint.py expects success
 verilator	test_regress/t/t_randomize_with_idlist_bad.v	pass	must_accept	match	verilator: driver t_randomize_with_idlist_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_randomize_with_idlist_method_bad.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_randomize_with_idlist_method_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_randomize_within_func.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_randomize_within_func.py expects success - .12a: parse stops where svpp cannot alter the text, so the preprocessor dependency does not explain THIS failure
+verilator	test_regress/t/t_randomize_within_func.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_within_func.py expects success
 verilator	test_regress/t/t_randsequence.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randsequence.py expects success
 verilator	test_regress/t/t_randsequence_bad.v	pass	must_accept	match	verilator: driver t_randsequence_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_randsequence_func.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randsequence_func.py expects success
@@ -15720,8 +15720,8 @@ verilator	test_regress/t/t_std_randomize_bad1.v	pass	must_accept	match	verilator
 verilator	test_regress/t/t_std_randomize_mod.v	pass	must_accept	match	verilator: driver t_std_randomize_mod.py expects success
 verilator	test_regress/t/t_std_randomize_no_args.v	pass	must_accept	match	verilator: driver t_std_randomize_no_args.py expects success
 verilator	test_regress/t/t_std_randomize_queue.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_std_randomize_queue.py expects success
-verilator	test_regress/t/t_std_randomize_static_member.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_std_randomize_static_member.py expects success
-verilator	test_regress/t/t_std_randomize_unsup_unq_arr.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_std_randomize_unsup_unq_arr.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_std_randomize_static_member.v	pass	must_accept	match	verilator: driver t_std_randomize_static_member.py expects success
+verilator	test_regress/t/t_std_randomize_unsup_unq_arr.v	pass	must_accept	match	verilator: driver t_std_randomize_unsup_unq_arr.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_std_randomize_with.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_std_randomize_with.py expects success
 verilator	test_regress/t/t_std_waiver.v	pass	must_accept	match	verilator: driver t_std_waiver.py expects success
 verilator	test_regress/t/t_std_waiver_no.v	pass	must_accept	match	verilator: driver t_std_waiver_no.py expects success

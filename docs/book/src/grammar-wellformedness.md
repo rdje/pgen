@@ -1880,7 +1880,28 @@ observation was simply unused.
 > **mislabelled deferral**, owned by `.13c`/`.13d`, not an under-reporting bar.
 
 > ⭐ **Live verdict-coverage tuple — `adjudicated/routed/no-verdict/dark/axis-2-bar` =
-> `7556/2459/6321/4393/282`.** (`SV-CORPUS-GRAD.13c.2s` moved the bar **288 → 282** — the largest
+> `7556/2459/6321/4393/275`.** (`SV-CORPUS-GRAD.13c.2v` moved the bar **282 → 275** by restoring the
+> `[ std :: ] randomize_call` alternative IEEE 1800 A.8.2 gives `primary`. PGEN renders `primary`'s
+> call alternative as `call_primary` — the postfix-chain rule the left-recursion lift authored —
+> and none of its eleven alternatives is `randomize_call`, so the `with constraint_block` tail of a
+> **scope randomize** was unreachable from *every expression*, while the statement path
+> (`subroutine_call`) and the constant path (`constant_function_call`) both carried it. ⭐ **The
+> yield is exactly the construct the fix targets**: all seven rows that left the bar are
+> `randomize`-themed, two of them IEEE 1800's own §18.12 clause-keyed examples, and **no unrelated
+> row moved**. ⛔ **Seven rows left the bar but only SIX crossed `fail → pass`** — the seventh,
+> `verilator/test_regress/t/t_randomize_within_func.v`, still fails and reclassified
+> `unexplained_rejects_valid → explained_svpp_macro_use`: its parse now runs *past* the scope
+> randomize and dies in a macro window. A delta joined on pass/fail cannot see that row, which is
+> why this delta is computed over the **manifest** and never over the pass/fail counts.
+> `unexplained_rejects_valid` 261 → 254, `accepts-invalid` unchanged at 21, the
+> ADJUDICATED/ROUTED/NO-VERDICT/DARK split **entirely unmoved**, and the `verilog_2005` lane
+> **byte-identical end to end**, 0 of 2 459 rows moved — the fix is lifted into a profile-gated
+> `scope_randomize_sv_only` precisely because IEEE 1364-2005 has no `randomize`. ⭐⭐ Its cost is
+> the first rise this repository ever accepted for a reason that is **not an arithmetic identity**:
+> `entries +1,917,021` / `memo_hits +1,012,779` / `committed +0` fits none of `PARSE-COST-RATCHET`'s
+> three total-based invariants, and the fourth — `contained_in_introduced_subgraph` — re-derived on
+> the landing run that **4 rules rose, 0 fell, and 0 escaped the 475-rule sub-graph reachable from
+> `scope_randomize_sv_only`**. The previous entry: `SV-CORPUS-GRAD.13c.2s` moved the bar **288 → 282** — the largest
 > single-slice drop in this campaign — by repairing a **greedy `( X )*` standing in front of an
 > OPTIONAL `X`-shaped tail** at four sites. The star's body is nullable after its separator, so it
 > ate the separator the tail needed: a system task/function call could never reach the clocking-event

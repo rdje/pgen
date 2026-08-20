@@ -160,7 +160,7 @@ INSTRUMENT_FILE = "stimuli/sv/corpus_parse_cost.py"
 # same run that measures it makes the comparison pass by construction — the failure mode
 # `COMMIT.md` names for the DONE-BAR register's `claimed_status`. The instrument reports the
 # disagreement; a human adopts it.
-CORPUS_FAMILY_SHARE_PCT = "2.761"
+CORPUS_FAMILY_SHARE_PCT = "2.751"
 FAMILY_SHARE_ARTIFACT = (
     "docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json"
 )

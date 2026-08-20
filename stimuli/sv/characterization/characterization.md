@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `8103d80ae4ce7d9f59ed8f4923c26c5cbeda75e9e922a95a1c1064f2b8d64149` |
-| grammar | `grammars/systemverilog.ebnf` | `b0395cc859489782e145b7ffc7f431cec33c2063e829c56978cb4e70fffbb351` |
-| generated parser | `generated/systemverilog_parser.rs` | `936294a4ddae29255684f635427995b3b7bf9096b3e55eddf02d890572ca2bda` |
+| parse binary | `rust/target/release/parseability_probe` | `196ce48973a64f8bc09bd76a8aaa23e2fd822b902970f66b943973889f6ceb4b` |
+| grammar | `grammars/systemverilog.ebnf` | `5502bf280accf1f67aaa292fd8e800de88d56e5ec14c64282181a39a99f92f04` |
+| generated parser | `generated/systemverilog_parser.rs` | `bfaca030172cd7dd1c66f4aeb586e026d3df7affdf107d80c9e4604148bcb8c5` |
 
-Measured at `HEAD` = `b3f4f8e6+dirty` (2026-08-19).
+Measured at `HEAD` = `126034ab+dirty` (2026-08-20).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -53,13 +53,13 @@ Measured at `HEAD` = `b3f4f8e6+dirty` (2026-08-19).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `5.71` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `5.28` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 16336 | 9787 | 6549 | 0 | 0 | 59.9% |
+| 16336 | 9793 | 6543 | 0 | 0 | 59.9% |
 
 ## Per sub-corpus
 
@@ -69,16 +69,16 @@ Slowest completing file: `5.71` s — `stimuli/sv/subs/opentitan/hw/top_darjeeli
 | Surelog | 828 | 703 | 125 | 0 | 0 | 84.9% |
 | black-parrot | 205 | 21 | 184 | 0 | 0 | 10.2% |
 | friscv | 441 | 31 | 410 | 0 | 0 | 7.0% |
-| ispras-sv-tests | 1266 | 1098 | 168 | 0 | 0 | 86.7% |
+| ispras-sv-tests | 1266 | 1099 | 167 | 0 | 0 | 86.8% |
 | iverilog | 3799 | 3225 | 574 | 0 | 0 | 84.9% |
 | opentitan | 3983 | 795 | 3188 | 0 | 0 | 20.0% |
 | scr1 | 50 | 8 | 42 | 0 | 0 | 16.0% |
 | slang | 92 | 72 | 20 | 0 | 0 | 78.3% |
-| sv-tests | 1028 | 859 | 169 | 0 | 0 | 83.6% |
+| sv-tests | 1028 | 860 | 168 | 0 | 0 | 83.7% |
 | sv2v | 953 | 727 | 226 | 0 | 0 | 76.3% |
 | uvm-core | 174 | 20 | 154 | 0 | 0 | 11.5% |
 | verible | 152 | 122 | 30 | 0 | 0 | 80.3% |
-| verilator | 3263 | 2088 | 1175 | 0 | 0 | 64.0% |
+| verilator | 3263 | 2092 | 1171 | 0 | 0 | 64.1% |
 
 _Raw per-file results: `stimuli/sv/characterization/results.tsv` (3 columns: sub-corpus, status,
 repo-root-relative path — a stable contract three consumers unpack positionally)._
