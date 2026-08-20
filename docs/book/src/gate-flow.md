@@ -856,7 +856,7 @@ breaks; each was watched failing against a mutated reader before being trusted.
 
 ## 7. How this flow has actually failed
 
-Eleven distinct shapes, all measured, all from real incidents. A new gate should be
+Twelve distinct shapes, all measured, all from real incidents. A new gate should be
 read against this list.
 
 ### 1. A check that *cannot run* and returns green
@@ -1081,14 +1081,57 @@ states the conditions it was measured under, the run that would replace it must 
 them — adopt when the caller is silent, refuse when the caller disagrees. A provenance
 block nobody reads back is a comment.
 
-> The unifying principle behind all eleven: **a gate must report on its subject, and
+### 12. A check that compares across iterations without pinning what it re-read
+
+`sv_cert_recognized_union_gate` runs the certificate pass once per seed and asserts that
+every seed agrees with the first. That is a claim about the *tool* — and it only means
+that if the *input* was the same each time. The gate re-reads `grammars/systemverilog.ebnf`
+inside the loop and its determinism signature is ten **output** fields with no input
+identity at all; its one identity call is hoisted out of the loop and checks the
+*contract*, not the grammar.
+
+So when it fired — `canonical total` 1434 at seed 0, 1433 at seeds 7 and 42 — the message
+it could print was `seed=7 signature drift vs seed 0`, and every reader, including the task
+leaf, reasoned about seeds. Two hypotheses were written down and both were about the tool:
+per-process nondeterminism, and a seeded append site. **Measured, both are false.** The
+count is `grammar.rule_order.len()`, a pure function of the loaded grammar, and a probe
+that de-confounded the axes — three processes at one fixed seed, then one process per seed
+— read **1434 six times out of six** on the very arm that had exhibited the variance, and
+1433 three times out of three on the unmodified grammar.
+
+What actually differed was the file. A multi-seed run takes minutes; an ordinary
+apply-and-revert of an experimental grammar arm lands inside that window. The gate's own
+arithmetic said so from the start and nobody performed the subtraction: it recorded
+`unmet=29` on the arm against `27` unmodified, where 27 is *nine criteria on each of three
+seeds* — so the extra **+2** is exactly the two drift entries the loop appends, one for
+seed 7 and one for seed 42.
+
+⚠️ The honest bound is part of the shape: **nothing can prove after the fact which bytes
+were on disk during a run that recorded no input identity.** That is the defect, not a gap
+in the investigation. What is provable is that the tool is deterministic on both axes and
+that the gate cannot distinguish the two causes.
+
+A census over the repository found the shape is not unique to that gate: **five gates
+assert determinism across re-reads of a mutable input, and five of five record no input
+identity inside the comparison loop** — three of them sharing the identical
+`first_seed_signature` idiom.
+
+⭐ **The rule:** an equality assertion across iterations must pin every mutable input *per
+iteration*, and name the input when they diverge. The difference is not rigour, it is
+attribution: `the GRAMMAR CHANGED between iteration 1 and 2` sends a reader somewhere
+useful in one line, where `signature drift` sends them to hypotheses about a tool that was
+never at fault. An unattributable RED costs exactly as much investigation as a real one and
+spends it on a hypothesis space that does not contain the answer.
+
+> The unifying principle behind all twelve: **a gate must report on its subject, and
 > only its subject** — and it must report on *the claim being made*, not a cheaper claim
 > nearby. It must not report on its own documentation, its own absence, somebody else's
 > stale output, a quantity that has quietly stopped being the one its name promises, a
 > number scraped out of prose while the producer's own artifact sits unread, or a value its
 > producer stopped measuring — and when it cannot report at all, it must say so rather than
 > return green. Nor may it report a number while withholding what produced it: an
-> unattributable measurement can only be trusted by re-running it.
+> unattributable measurement can only be trusted by re-running it — and a gate that
+> compares its own runs must hold the *input* still, or its disagreement names no cause.
 
 ---
 

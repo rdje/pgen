@@ -1,0 +1,17 @@
+memory-guard: started pid=39532 pgid=39532 budget=16384MB floor=10% disk_floor=8GB interval=5s timeout=3600s free=77% disk=3273GB cmd: bash docs/tasks/artifacts/sv_corpus_grad/cert_count_determinism/probe.sh
+probe: grammar_sha=5502bf280accf1f6…
+probe: entry=systemverilog_file profile=sv_2017 samples=40 seeds=0 7 42 repeats=3
+
+── axis A — 3 PROCESSES, seed FIXED at 0 (varies ⇒ H1) ──
+axisA_seed0_run1           canonical[total=1434 proof=8 witness=1361 UNKNOWN=65]  union[total=1434 UNKNOWN=54]
+axisA_seed0_run2           canonical[total=1434 proof=8 witness=1361 UNKNOWN=65]  union[total=1434 UNKNOWN=54]
+axisA_seed0_run3           canonical[total=1434 proof=8 witness=1361 UNKNOWN=65]  union[total=1434 UNKNOWN=54]
+
+── axis B — one process per seed (moves while A is stable ⇒ H2) ──
+axisB_seed0                canonical[total=1434 proof=8 witness=1361 UNKNOWN=65]  union[total=1434 UNKNOWN=54]
+axisB_seed7                canonical[total=1434 proof=8 witness=1361 UNKNOWN=65]  union[total=1434 UNKNOWN=54]
+axisB_seed42               canonical[total=1434 proof=8 witness=1361 UNKNOWN=65]  union[total=1434 UNKNOWN=54]
+
+X1-CERT-DETERMINISM: axisA_distinct_totals=1 [total=1434 ] axisB_distinct_totals=1 [total=1434 ]
+VERDICT: NEITHER — the canonical total is invariant across processes AND across seeds
+memory-guard: completed exit=0 peak_tree_rss=841MB elapsed=938s; marker: /Volumes/SSD/Documents/github/pgen/rust/target/generated_logs/memory_guard/guard.39532.marker

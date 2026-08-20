@@ -148,6 +148,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "The parse is slow / stuck — which rules dominate?" | [3.1 `--dump-rule-call-counts`](#31---dump-rule-call-counts) |
 | "I need to watch the parser step by step" | [2.1 trace verbosity](#21-trace-verbosity) + [2.2 `--trace-rules`](#22---trace-rules) |
 | "How trustworthy is this grammar? proof/witness/UNKNOWN?" | [4.1 `--report-certificate-coverage`](#41---report-certificate-coverage) |
+| **"A gate printed `signature drift vs seed 0` / a rule COUNT moved with the seed"** | ⛔ **[4.7 the cert-count determinism probe](#47-certificate_coverage-s-total-moved--determinism-and-how-to-tell-which-thing-moved) BEFORE hypothesising about the tool** — `total` is a pure function of the loaded grammar, and the gate re-reads that grammar once per seed while pinning NOTHING, so its drift message cannot tell "nondeterministic tool" from "the file changed under me". Measured `.13c.2x.1`: invariant across 3 processes AND 3 seeds |
 | "Give me ALL the UNKNOWN rules" | [4.2 `PGEN_CERT_COVERAGE_DUMP_ALL`](#42-pgen_cert_coverage_dump_all) |
 | **"WHY is this rule UNKNOWN / not witnessed?"** | [4.3 `PGEN_CERT_COVERAGE_DEBUG_PROBES`](#43-pgen_cert_coverage_debug_probes) → [the 3-step protocol](#protocol-a-diagnose-an-unknown-3-steps) |
 | "Which path did the witness planner take?" | [4.4 `PGEN_REACH_PATH_DUMP`](#44-pgen_reach_path_dump) |
@@ -979,6 +980,19 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
     --count 40 --seed 0 --cert-union-config sv_multi_entry_root:verilog_2005 --cert-union-config library_text:verilog_2005
   ```
 - **OUTPUT:** a `RESIDUAL-CLASSIFICATION` block after the `UNKNOWN` list — the three named lists, with per-rule reasons on the store class (`gate kind 'type_name' unproducible` / `mandatory descent forces '<rule>'` / `stranded by the store fixpoint`). Promotion to per-profile `proof` certificates = `VERILOG-2005-PROFILE.6.7`.
+
+### 4.7 `certificate_coverage()`'s `total` moved — determinism, and how to tell WHICH thing moved
+- **WHAT:** `docs/tasks/artifacts/sv_corpus_grad/cert_count_determinism/probe.sh` — de-confounds the two axes a multi-seed gate run leaves tangled. It runs the cert pass **N times at ONE fixed seed** (axis A) and **once per declared seed** (axis B), reading every parameter from the contract the gate reads. Varies on A ⇒ per-process nondeterminism. Stable on A while B moves ⇒ real seed-dependence. Stable on both ⇒ neither, and the variance is not the tool's.
+- **WHEN:** ⛔ **the moment a gate prints `signature drift vs seed 0`, and BEFORE forming a hypothesis about the tool.** Also whenever a rule count appears to depend on something that provably cannot move it.
+- ⛔⛔ **READ THIS BEFORE BELIEVING THE DRIFT MESSAGE.** `total` is `grammar.rule_order.len()` — a pure function of the loaded grammar. The gate re-reads `$GRAMMAR_FILE` **once per seed** and its determinism signature is ten OUTPUT fields with **no input identity** (`sv_cert_recognized_union_gate.sh:307`; its one identity call at `:177` is hoisted out of the loop and checks the CONTRACT, not the grammar). ⇒ `signature drift` is exactly as consistent with *"the grammar file changed under me between iterations"* as with *"the tool is nondeterministic"*, and a multi-seed run takes minutes — long enough for an ordinary apply/revert of an experimental arm to land inside it. **Measured `.13c.2x.1`: the count is invariant across 3 processes AND 3 seeds on the very arm that exhibited 1434/1433/1433.**
+- **HOW:**
+  ```bash
+  bash docs/tasks/artifacts/sv_corpus_grad/cert_count_determinism/probe.sh      # ~16 min, peak ~841 MB
+  bash docs/tasks/artifacts/sv_corpus_grad/cert_count_determinism/gate_input_pin_census.sh
+  ```
+- **OUTPUT:** `X1-CERT-DETERMINISM: axisA_distinct_totals=<n> axisB_distinct_totals=<n>` plus a named VERDICT (`H1` / `H2` / `NEITHER`); rc `0`/`1`/`2` (`2` = harness pre-flight refused, so nothing was scored). The census prints `GATE-INPUT-PIN-CENSUS: asserts_determinism=5 blind_to_input_change=5`.
+- ⭐ **ALWAYS PAIR IT WITH A CONTROL THAT MUST GO RED.** Run the identical command against a grammar you know differs by one rule; if the probe cannot tell 1433 from 1434, its "stable" says nothing. And cross-check the delta on instruments that share no code — `--lint-grammar`'s rule count and `parse_cost_containment.py --graph`'s graph size both moved by exactly +1 for the same one-rule patch, which is what turns *repeatable* into *correct*.
+- ⚠️ **It needs NO regeneration.** The cert pass reads the `.ebnf` directly; only WITNESS verification touches the generated parser, and `total` does not depend on it — so this runs against any grammar copy, in ~16 min, at any commit. The leaf that opened the question assumed the opposite and blocked itself for two sessions on a 25-minute regeneration it never needed.
 
 ---
 

@@ -1,0 +1,9 @@
+# CONTROL — identical flags, HEAD's grammar (b0395cc8…), one process per seed.
+# Command: ./rust/target/debug/ast_pipeline <HEAD grammar> --report-certificate-coverage \
+#            --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed $s \
+#            --cert-union-config systemverilog_file:sv_2023 --cert-union-config sv_multi_entry_root:sv_2017 \
+#            --cert-union-config library_text:sv_2017 --cert-union-config systemverilog_parseable_file:sv_2017
+
+control_head_seed0           CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40 total=1433 proof=8 witness=1361 UNKNOWN=64 fully_certified=false (sample_parse_failures=0, proof_reverify_failures=0)
+control_head_seed42          CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40 total=1433 proof=8 witness=1361 UNKNOWN=64 fully_certified=false (sample_parse_failures=0, proof_reverify_failures=0)
+control_head_seed7           CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40 total=1433 proof=8 witness=1361 UNKNOWN=64 fully_certified=false (sample_parse_failures=0, proof_reverify_failures=0)

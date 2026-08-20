@@ -1,5 +1,69 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0255 (leaf SV-CORPUS-GRAD.13c.2x.1 (a)+(b)+(c) DISCHARGED, (d) OWED; ZERO grammar bytes, ZERO Rust bytes): a rule count that "varied with the seed" is deterministic on both axes — the gate re-reads a mutable input once per seed and pins nothing, so its own drift message cannot say which
+
+- ⭐⭐⭐ **BOTH RECORDED HYPOTHESES ARE REFUTED, ON THE EXHIBITING STATE.** `.13c.2x.1` observed
+  `sv_cert_recognized_union_gate` reading `canonical total` = 1434 at seed 0 and 1433 at seeds 7/42
+  on the `SV-0065` arm, and recorded two hypotheses without adopting either: **H1** per-process
+  nondeterminism (each seed is a separate PROCESS, so seed and process were perfectly confounded)
+  and **H2** genuine seed-dependence. The discriminating probe ran against the re-applied arm
+  (grammar `5502bf28…`, 938 s, peak 841 MB) and **both axes are flat**: 3 processes at one seed →
+  `1434 · 1434 · 1434`; 3 seeds → `1434 · 1434 · 1434`, agreeing also on
+  `proof=8 witness=1361 UNKNOWN=65` and `union total=1434 UNKNOWN=54`. **The 1434/1433/1433 pattern
+  does not reproduce.**
+- ⭐⭐ **THE CONTROL DOES TWO JOBS.** Identical flags on HEAD's grammar (`b0395cc8…`): **1433 / 8 /
+  1361 / 64** on all three seeds. (i) It proves the probe can go **RED** — an instrument unable to
+  tell 1433 from 1434 would have scored "stable" for the wrong reason. (ii) It lands on exactly the
+  tuple `.13c.2x` recorded for HEAD *before this leaf existed* — an oracle this session did not
+  build, agreeing field for field.
+- ⭐ **THREE UNRELATED INSTRUMENTS EACH MOVE BY EXACTLY +1**, every cell re-derived here rather than
+  carried: certificate `total` **1433 → 1434**, `--lint-grammar` rule count **1610 → 1611**,
+  frontend `raw_ast` reference graph **1483 → 1484**. The populations differ in size because they
+  count different things; all three moving by +1 for a one-rule patch is what makes the count not
+  merely repeatable but **right**.
+- ⛔⛔ **SO THE CAUSE IS A THIRD THING, AND IT IS NOT ABOUT THE TOOL.** The gate re-reads
+  `$GRAMMAR_FILE` **once per seed** (`sv_cert_recognized_union_gate.sh:255`) and its determinism
+  signature (`:307`) is ten OUTPUT fields with **no input identity at all**; its only identity call
+  (`:177`) is hoisted out of the loop and verifies the **contract**, not the grammar. ⇒
+  `signature drift vs seed 0` is exactly as consistent with *"the file changed under me between
+  iterations"* as with *"the tool is nondeterministic"*. ⭐⭐ **The gate's own arithmetic
+  corroborates it**: `.13c.2x` recorded `unmet=29` on the arm and **27** at HEAD, describing 27 as
+  *"nine criteria failing on each of three seeds"* — had all three seeds seen the arm the same nine
+  would fail on each, still 27; the observed **+2** is exactly the two drift entries the loop
+  appends for seeds 7 and 42. ⇒ **seed 0 saw a different grammar from seeds 7 and 42.**
+  ⚠️ **HONEST BOUND**: nothing can prove after the fact which bytes were on disk during a run that
+  recorded no input identity — that IS the defect. Proven: the tool is deterministic on both axes,
+  and the gate cannot distinguish the two causes. That this instance was caused that way is
+  unfalsifiable; that it **can** be is measured.
+- ⛔⛔ **THE CLASS, MEASURED — 5 GATES ASSERT DETERMINISM ACROSS RE-READS AND 5 OF 5 ARE BLIND.**
+  `gate_input_pin_census.sh` → `GATE-INPUT-PIN-CENSUS: asserts_determinism=5 blind_to_input_change=5`.
+  Three share the identical `first_seed_signature` idiom (`sv_cert_recognized_union_gate`,
+  `rtl_const_expr_cert_gate`, `verilog_2005_conformance_gate`); two more implement the same shape as
+  a re-run tripwire (`ast_dump_contract_gate`, `duality_hunt_gate`). ⭐ Live damage, measured:
+  `grep -rn "signature drift"` over the whole tracked record returns **one** hit — this observation.
+  ⇒ a guard to build, not a backlog to re-adjudicate.
+- ⭐⭐ **AND THE LEAF'S OWN SCHEDULING CONSTRAINT WAS OVER-TIGHT.** The probe was scheduled inside
+  the `SV-0065` re-land because *"anywhere else it is a 25-minute regeneration nobody will spend."*
+  Measured: it needed **zero** regenerations — `certificate_coverage()` reads the `.ebnf` directly
+  and its `total` is `grammar.rule_order.len()`; only witness verification touches the generated
+  parser. The coupling was assumed, not derived, and it delayed the adjudication by two sessions.
+- ⚠️ **A PROBE CAUGHT ITS OWN HARNESS FIRST, FOR THE THIRD TIME IN THIS REPOSITORY.** The first
+  execution refused with `probe: not at the repo root (…/docs)` — a wrong `..` depth, the same
+  defect `accepted_rise_gate`'s probe and `.13c.2w`'s containment probe each shipped with. Caught by
+  its own pre-flight, so nothing phantom was scored. Fixed **structurally** rather than by counting
+  again: the root is now found by walking up to a sentinel, which is depth-independent by
+  construction.
+- ✅ **UNBLOCKS `.13c.2x`(c)** — the union-contract rebaseline was hard-blocked on this leaf. The
+  count is now measured deterministic on both axes, on the arm and at HEAD, by three independent
+  instruments. ⛔ The block lifts on the arithmetic, and (d) — the INPUT PIN — is what keeps it
+  lifted, so (c) should follow (d) rather than precede it.
+- **VALIDATION** — `bash scripts/check_doctrines.sh` → **ALL 24 enforced doctrines PASS**. This
+  commit changes **zero grammar bytes and zero Rust bytes**: the `SV-0065` arm was applied for the
+  measurement and reverted (`grammars/systemverilog.ebnf` byte-identical to HEAD, `b0395cc8…`),
+  because the arm cannot be committed without the full re-land — `PARSE-COST-RATCHET`,
+  `GENERATED-REPRODUCIBILITY` and `SV-CONTRACT-CURRENCY` all key on the grammar digest and go RED
+  the moment it moves alone.
+
 ## 2026-08-20 - PGEN-LIVE-DOC-CONTAINMENT-0008 (leaf LIVE-DOC-CONTAINMENT.7 NEW, PARKED; doc-only): re-verifying a published findings callout under director challenge turned one instance into a class — the layer-A derived-state guard declares ONE quantity family and misses every other
 
 - ⛔ **THE CHALLENGE WAS THE RIGHT ONE.** All three findings in `-0254`'s callout were re-derived by

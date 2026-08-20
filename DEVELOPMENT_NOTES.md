@@ -1,5 +1,65 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0255 — the value was pure, so the thing that moved was its argument
+
+**1. THE STRONGEST CLUE WAS ALREADY IN THE LEAF, READ AS AN IMPOSSIBILITY INSTEAD OF A DIRECTION.**
+`.13c.2x.1` established, correctly and early, that `certificate_coverage()` is PURE and its `total`
+is `grammar.rule_order.len()` — no seed in scope. It then wrote two hypotheses, both about the
+tool: per-process nondeterminism, and a seeded append site. Measured, both are false. ⭐ The right
+inference from *"this value provably cannot depend on the axis I varied"* is not *"the impossible
+happened, so the synthesis must be unstable"* — it is **"something I am not recording changed"**. A
+pure function with a moving output is a statement about its ARGUMENT. The investigation should have
+turned outward at the purity proof; instead the purity proof made the tool look more suspicious,
+because the only variable named anywhere in the evidence was the seed.
+
+**2. THE MESSAGE ANCHORED THE HYPOTHESIS SPACE ON THE WRONG VARIABLE.** The gate says
+`seed=7 signature drift vs seed 0`, so every reader — including the leaf — reasons about seeds. It
+says that because the seed is the only thing it knows it varied. It re-reads `$GRAMMAR_FILE` once
+per iteration and records nothing about it, so an input change is invisible to it *and to everyone
+reading its output*. ⇒ **a failure message can only name the axes the instrument recorded, which
+means an unrecorded axis is not merely unmeasured — it is un-hypothesisable.**
+
+**3. DE-CONFOUNDING IS CHEAP AND SHOULD HAVE COME FIRST.** The original evidence had seed and
+process perfectly confounded (each seed is its own process), which the leaf noticed and could not
+resolve. Resolving it took one script: N processes at a fixed seed, then one process per seed. 938 s
+and the question was answered mechanically instead of argued. The leaf had already paid more than
+938 s of reasoning about it across two sessions.
+
+**4. THE CONTROL IS WHAT MAKES "STABLE" MEAN ANYTHING.** Six runs agreeing proves nothing until the
+probe is shown to distinguish the two values in dispute. Running the identical command on HEAD's
+grammar returned **1433** against the arm's **1434** — so the instrument can see a one-rule
+difference, and its stability finding is about the grammar rather than about its own blindness.
+⭐ It also landed on `1433 / 8 / 1361 / 64`, field for field what `.13c.2x` had recorded for HEAD
+before this leaf existed: an oracle I did not build, reached by a path I did not take.
+
+**5. THREE INSTRUMENTS SHARING NOTHING TURNED "REPEATABLE" INTO "CORRECT".** Certificate `total`
+1433→1434, `--lint-grammar` 1610→1611, frontend `raw_ast` graph 1483→1484. The three populations are
+different sizes because they count different things; all three moving by exactly +1 for a one-rule
+patch is a much stronger statement than any one of them repeating.
+
+**6. THE ARITHMETIC IN THE ORIGINAL RECORD ALREADY CONTAINED THE ANSWER.** `.13c.2x` wrote
+`unmet=29` on the arm, `27` at HEAD, and glossed 27 as *"nine criteria failing on each of three
+seeds"*. Had all three seeds seen the arm, the same nine would fail on each — still 27. The +2 is
+exactly the two drift entries the loop appends. ⇒ the record said *seed 0 saw a different grammar
+from seeds 7 and 42* the day it was written; nobody did the subtraction. **A number recorded beside
+another number is not a comparison until someone performs it.**
+
+**7. A SCHEDULING CONSTRAINT NOBODY PRICED COST TWO SESSIONS.** The probe was pinned to the
+`SV-0065` re-land because *"anywhere else it is a 25-minute regeneration nobody will spend."*
+Measured: **zero** regenerations. The cert pass reads the `.ebnf` directly; only witness verification
+touches the generated parser, and `total` does not depend on it. ⛔ The coupling was asserted from
+the shape of the work rather than derived from what the code reads, and it turned a 15-minute
+question into a blocked one.
+
+**8. THE PROBE CAUGHT ITS OWN HARNESS, FOR THE THIRD TIME IN THIS REPOSITORY.** First execution:
+`probe: not at the repo root (…/docs)` — a wrong `..` depth, exactly what `accepted_rise_gate`'s
+probe and `.13c.2w`'s containment probe each shipped with. Three instances is a class, and the class
+is *a literal that encodes a fact about where the file sits*. Fixed structurally: walk up to a
+sentinel. Depth-independent by construction, and it survives the file being moved.
+
+⭐ **PROMOTED** to the retrievable layer as
+`docs/knowledge/a-determinism-check-over-a-re-read-input-must-pin-the-input.md`.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0254 — the instrument was already collecting the answer, and the hole I found was in the predicate I was porting
 
 **1. THE CHEAPEST PART OF THIS SLICE WAS THE MEASUREMENT, BECAUSE IT WAS ALREADY BEING TAKEN.**
