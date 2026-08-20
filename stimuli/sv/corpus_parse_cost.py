@@ -858,15 +858,24 @@ def measure_one_entries(args: tuple[str, str]) -> tuple | NoDump:
             pass
     entries = d.get("rule_entry_counts", {})
     committed = d.get("rule_committed_counts", {})
+    memo = d.get("rule_memo_hit_counts", {})
     lr_e = sum(v for k, v in entries.items() if is_lr_family(k))
     lr_c = sum(v for k, v in committed.items() if is_lr_family(k))
+    # ⛔ THE PER-RULE BREAKDOWN IS NO LONGER THROWN AWAY (`SV-CORPUS-GRAD.13c.2w` (a)). It was
+    # already being read out of every dump and summed into two LR-family scalars, and everything
+    # else was discarded — so the repository collected the discriminating evidence 192 times per
+    # run and kept none of it. Three TOTALS cannot distinguish "the added alternative speculates
+    # inside its own sub-graph" from "the parser now speculates everywhere", which is the question
+    # `PARSE-COST-RATCHET`'s containment invariant exists to answer. This is a RETENTION change,
+    # not a new measurement: the same dump, the same 0.04 s.
     return (rel, "yes" if d.get("accepted") else "no",
             int(d.get("total_entries", 0)), int(d.get("total_committed", 0)),
-            int(d.get("total_memo_hits", 0)), lr_e, lr_c)
+            int(d.get("total_memo_hits", 0)), lr_e, lr_c,
+            {"entries": entries, "committed": committed, "memo_hits": memo})
 
 
 def measure_entries(probe: str, files: list[str],
-                    jobs: int) -> tuple[list[tuple], list[NoDump]]:
+                    jobs: int) -> tuple[list[tuple], list[NoDump], dict[str, dict[str, int]]]:
     """Entries for every file, in parallel.
 
     ⭐ Parallelism is SOUND here and is not for the advisory metric: an entry count is an exact
@@ -875,14 +884,24 @@ def measure_entries(probe: str, files: list[str],
     """
     rows: list[tuple] = []
     nodump: list[NoDump] = []
+    # ⭐ The per-rule sums are folded here rather than carried on every row: they are a property of
+    # the SAMPLE, not of a file, and 192 x ~1 000 rule maps held to the end is memory spent to
+    # re-derive a total this loop already has.
+    rule_totals: dict[str, dict[str, int]] = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as ex:
         for res in ex.map(measure_one_entries, [(probe, f) for f in files]):
             if isinstance(res, NoDump):
                 nodump.append(res)
-            else:
-                rows.append(res)
+                continue
+            row, per_rule = res[:7], res[7]
+            for column, counts in per_rule.items():
+                for rule, value in counts.items():
+                    slot = rule_totals.setdefault(
+                        rule, {"entries": 0, "committed": 0, "memo_hits": 0})
+                    slot[column] += int(value)
+            rows.append(row)
     rows.sort(key=lambda r: (sub_corpus_of(r[0]), r[0]))
-    return rows, sorted(nodump, key=lambda n: n.path)
+    return rows, sorted(nodump, key=lambda n: n.path), rule_totals
 
 
 # ── measurement: the ADVISORY metric ────────────────────────────────────────────────────────
@@ -1112,6 +1131,59 @@ def write_entries_tsv(path: str, rows: list[tuple], tiers: dict[str, str]) -> No
         for rel, accepted, ent, com, memo, lr_e, lr_c in rows:
             fh.write(f"{sub_corpus_of(rel)}\t{tiers.get(rel, '?')}\t{rel}\t{accepted}"
                      f"\t{ent}\t{com}\t{memo}\t{lr_e}\t{lr_c}\n")
+
+
+def write_rule_costs_tsv(path: str, rule_totals: dict[str, dict[str, int]]) -> None:
+    """The PER-RULE half of the same measurement (`SV-CORPUS-GRAD.13c.2w` (a)).
+
+    ⛔ WHY A SEPARATE FILE AND NOT MORE COLUMNS ON `entries.tsv`. That file's rows are FILES; these
+    rows are RULES. Widening it would have forced a cross-product nobody reads and would have moved
+    a header three tracked consumers pin exactly.
+
+    ⭐ ALL THREE BINDING COLUMNS, not just the one today's predicate reads. `containment` binds on
+    `entries`; `committed` and `memo_hits` are what an ATTRIBUTION needs afterwards, and this
+    file's whole reason for existing is `.13c.2k`'s lesson — a fixed ten-rule WATCH list could not
+    explain a 16,547,053-entry miss, and two of the three rules that carried it were in that list
+    by luck. Store everything the dump has, once; make the question a query.
+
+    ⚠️ A rule with no entries in any sampled file is ABSENT rather than zero. That is what the
+    parser reported, and inventing rows for the rest of the grammar would state coverage the
+    measurement does not have.
+    """
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write("rule\tentries\tcommitted\tmemo_hits\n")
+        for rule in sorted(rule_totals):
+            v = rule_totals[rule]
+            fh.write(f"{rule}\t{v['entries']}\t{v['committed']}\t{v['memo_hits']}\n")
+
+
+def write_rule_graph(path: str) -> None:
+    """The measured grammar's rule-REFERENCE GRAPH, frozen beside the numbers it explains
+    (`SV-CORPUS-GRAD.13c.2w` (b)).
+
+    ⛔⛔ IT IS NOT READ FROM `generated/systemverilog.json`. That is a FLOATING BUILD ARTIFACT — the
+    arm driver rewrites it for every arm — and `.13c.2k`'s first containment run read the `designB`
+    graph while analysing the `t_only` arm, the `ENGINE-UNIVERSAL-SERVICES.20` slice-4 shape,
+    caught only by its own timestamp. The graph is derived HERE, in the run that took the
+    measurement, from the same `raw_ast` envelope the `grammar` identity row is digested over, and
+    it CARRIES that digest so a consumer can refuse a graph describing a different grammar.
+
+    ⭐ ONE DERIVATION, SHELLED OUT — `scripts/parse_cost_containment.py`, which is also what the
+    gate's invariant and the arm toolkit call. A local copy would be the fourth spelling of a
+    definition three doctrines already share (`ENGINE-UNIVERSAL-SERVICES.38`).
+
+    ⚠️ NOT PROMOTED INTO THE TRACKED BASELINE, deliberately: it is an exact function of a tracked
+    grammar, and a field a command answers exactly is looked up, never stored
+    (`docs/DERIVED_STATE_CONTAINMENT.md` R1/R3). It lives beside the run that needs it.
+    """
+    proc = subprocess.run(
+        [sys.executable, os.path.join(ROOT, "scripts", "parse_cost_containment.py"),
+         "--graph", GRAMMAR_FILE, "--out", path],
+        capture_output=True, text=True)
+    if proc.returncode != 0 or not os.path.isfile(path):
+        die("the measured grammar's reference graph could not be derived, so this measurement "
+            "could not support a containment verdict:\n  "
+            + (proc.stderr or proc.stdout).strip()[:500])
 
 
 def pct(numerator: float, denominator: float, digits: int = 1) -> str:
@@ -1365,6 +1437,14 @@ def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
     A("committed, memo_hits, lr_entries, lr_committed), sorted by (sub-corpus, path) so two runs")
     A("diff directly. Failed speculation is deliberately NOT a column: it is exactly")
     A("`entries − committed` and is derived, never stored._")
+    A("")
+    A("_Per-rule rows: `rule_costs.tsv` — 4 columns (rule, entries, committed, memo_hits), summed")
+    A("over the same sample. `SV-CORPUS-GRAD.13c.2w` (a): the dumps always carried this and the")
+    A("instrument discarded it, so three totals were all a rise could ever be judged on — and")
+    A("three totals cannot distinguish an alternative that speculates inside its own sub-graph")
+    A("from a parser that now speculates everywhere. The measured grammar's reference graph is")
+    A("frozen beside it as `rule_graph.json` (NOT promoted into the tracked baseline — it is an")
+    A("exact function of a tracked grammar, so it is looked up, never stored)._")
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("\n".join(L) + "\n")
 
@@ -1774,7 +1854,7 @@ def run_rederive_family_share(probe: str, jobs: int, out_path: str) -> int:
     print(f"parse-cost: deriving the LR-family share over {len(files)} corpus files at -j{jobs} "
           f"(~70 s) ...", file=sys.stderr)
     t0 = time.perf_counter()
-    rows, nodump = measure_entries(probe, files, jobs)
+    rows, nodump, _rule_totals = measure_entries(probe, files, jobs)
     adjudicate_nodump(nodump, "full-corpus family-share census", full_corpus=True)
     if not rows:
         die("every corpus file failed to produce a dump — refusing to publish an empty share")
@@ -1842,7 +1922,7 @@ def run_census(probe: str, outdir: str, jobs: int) -> int:
     if not files:
         die("no corpus files found — the vendored corpora are git submodules; check them out")
     print(f"parse-cost: census over {len(files)} files at -j{jobs} ...", file=sys.stderr)
-    rows, nodump = measure_entries(probe, files, jobs)
+    rows, nodump, _rule_totals = measure_entries(probe, files, jobs)
     adjudicate_nodump(nodump, "full-corpus census", full_corpus=True)
     os.makedirs(outdir, exist_ok=True)
     out = os.path.join(outdir, "census.tsv")
@@ -1868,13 +1948,15 @@ def run_measure(probe: str, outdir: str, manifest_path: str, jobs: int, repeats:
             f"    git submodule update --init --recursive")
 
     ident = identity(files)
-    rows, nodump = measure_entries(probe, files, jobs)
+    rows, nodump, rule_totals = measure_entries(probe, files, jobs)
     adjudicate_nodump(nodump, "pinned 192-file sample")
     if not rows:
         die("every sampled file failed to produce a dump — refusing to publish an empty baseline")
 
     os.makedirs(outdir, exist_ok=True)
     write_entries_tsv(os.path.join(outdir, "entries.tsv"), rows, tiers)
+    write_rule_costs_tsv(os.path.join(outdir, "rule_costs.tsv"), rule_totals)
+    write_rule_graph(os.path.join(outdir, "rule_graph.json"))
     write_report(os.path.join(outdir, "cost.md"), rows, ident, nodump, tiers)
 
     advisory_files = [rel for tier, rel in pinned if tier == "hot"]
@@ -1896,6 +1978,9 @@ def run_measure(probe: str, outdir: str, manifest_path: str, jobs: int, repeats:
 
     total = sum(r[2] for r in rows)
     com = sum(r[3] for r in rows)
+    print(f"parse-cost: per-rule breakdown retained for {len(rule_totals):,} rules "
+          f"(rule_costs.tsv) beside the measured grammar's reference graph (rule_graph.json)",
+          file=sys.stderr)
     print(f"parse-cost: {len(rows)} files — BINDING entries={total:,} committed={com:,} "
           f"failed_speculation={total - com:,} memo_hits={sum(r[4] for r in rows):,} "
           f"(lr-family {sum(r[5] for r in rows):,}); ADVISORY parse={adv['total_parse_ms']:.0f} ms "

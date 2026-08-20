@@ -678,8 +678,30 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   python3 stimuli/sv/corpus_parse_cost.py --verify-probe-fingerprint   # which parser is IN the probe?
   ```
 - **OUTPUT:** `docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/` — `cost.md` (the
-  byte-compared report), `entries.tsv` (per-file), `advisory.json` (wall clock), `family_share.json`
-  (the corpus-wide LR-family share + the four identity rows it is a function of).
+  byte-compared report), `entries.tsv` (per-file), `rule_costs.tsv` (**per-rule**, 4 columns,
+  `SV-CORPUS-GRAD.13c.2w`), `advisory.json` (wall clock), `family_share.json`
+  (the corpus-wide LR-family share + the four identity rows it is a function of). A tier-2 run also
+  writes `rule_graph.json` — the measured grammar's rule-reference graph — into its SCRATCH dir; it
+  is deliberately NOT promoted, being an exact function of a tracked grammar.
+- ⭐⭐ **A RISE CAN BE ACCEPTED, BUT ONLY BY A CODED PREDICATE THAT IS RE-DERIVED**
+  (`ENGINE-UNIVERSAL-SERVICES.36` + `SV-CORPUS-GRAD.13c.2w`). `accepted_rises.tsv` names one exact
+  from/to plus an `invariant` that is CODE in the gate, plus — for a scoped invariant — the
+  `introduced` rule set, in a 7th column so a row cannot silently widen its own scope. Four are
+  coded: `pure_memo_lookups` (Δentries == Δmemo ∧ Δcommitted == 0),
+  `unmatched_terminal_alternatives` and `unmatched_lookahead_terminals` (Δentries == 2·Δmemo ∧
+  Δcommitted == 0), and **`contained_in_introduced_subgraph`** — the first that is not an identity
+  over three totals. It reads `rule_costs.tsv` and asks: Δcommitted ≤ 0, no rule's entries FELL, and
+  every rule whose entries ROSE is reachable, in the measured grammar's own reference graph, from
+  one of the `introduced` rules. ⛔ Three totals cannot distinguish *"the added alternative
+  speculates inside its own sub-graph"* from *"the parser now speculates everywhere"* — which is
+  why `SV-0065`'s `Δentries/Δmemo = 1.893` fits no identity and a fourth would be numerology.
+  ⭐ ONE implementation, `scripts/parse_cost_containment.py`, imported by the gate and adapted by
+  the arm toolkit's `containment.py`; ⚠️ measured rules the eliminator SYNTHESISED (`_lr_*`) are
+  folded onto their source rule by asking the GRAPH, and an unplaceable rule REFUSES the whole
+  verdict rather than being dropped — **67 of 1 077** on the tracked arm.
+  ⚠️ **HONEST BOUND**: containment says the rise is CONFINED to the construct that caused it, never
+  that it was UNAVOIDABLE. Only another ARM (3.7b) can say that.
+  **Refusals proven:** `docs/tasks/artifacts/sv_corpus_grad/containment_invariant/probe.sh`.
 - ⭐⭐ **TIER 1 IS FIVE ARMS, NOT ONE.** (1) baseline identity; (2) `--verify-families` — every
   generated parser's declared `_lr` names are classified (0.1 s); (3) `--verify-family-share` — the
   published corpus share is re-hashed against its tracked derivation (~1 s); (4) co-publication —

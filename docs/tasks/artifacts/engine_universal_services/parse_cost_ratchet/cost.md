@@ -43,7 +43,7 @@ tier still reported `fresh`.
 |---|---|---|
 | grammar raw ast | `grammars/systemverilog.ebnf` | `bd9367dc1d79b6f2531a3975cb5c2449c451817f97c1a92fbcb18200fd14c9b4` |
 | generated parser | `generated/systemverilog_parser.rs` | `936294a4ddae29255684f635427995b3b7bf9096b3e55eddf02d890572ca2bda` |
-| instrument | `stimuli/sv/corpus_parse_cost.py` | `ffd2e3c4af9175cd4c1b8cd0a676dcddda7ed549e3055d04d9795c867ad9094e` |
+| instrument | `stimuli/sv/corpus_parse_cost.py` | `1a6671bead221905260ef51f9d3a164f10d3af871954d02ee4da595d62dd508e` |
 | sample inputs | `stimuli/sv/parse_cost_sample.tsv` | `c3e01f2d29714af9bb15e977e3ca52c48045616d1cf157a8c13e5bd645016205` |
 
 `sample inputs` digests the manifest ORDER plus every sampled file's bytes: the corpora
@@ -145,3 +145,11 @@ _Per-file rows: `entries.tsv` — 9 columns (sub-corpus, tier, path, accepted, e
 committed, memo_hits, lr_entries, lr_committed), sorted by (sub-corpus, path) so two runs
 diff directly. Failed speculation is deliberately NOT a column: it is exactly
 `entries − committed` and is derived, never stored._
+
+_Per-rule rows: `rule_costs.tsv` — 4 columns (rule, entries, committed, memo_hits), summed
+over the same sample. `SV-CORPUS-GRAD.13c.2w` (a): the dumps always carried this and the
+instrument discarded it, so three totals were all a rise could ever be judged on — and
+three totals cannot distinguish an alternative that speculates inside its own sub-graph
+from a parser that now speculates everywhere. The measured grammar's reference graph is
+frozen beside it as `rule_graph.json` (NOT promoted into the tracked baseline — it is an
+exact function of a tracked grammar, so it is looked up, never stored)._

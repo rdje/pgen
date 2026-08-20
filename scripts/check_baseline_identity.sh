@@ -52,6 +52,9 @@
 #   bash scripts/check_baseline_identity.sh                     # doctrine mode (register + all adopted)
 #   bash scripts/check_baseline_identity.sh --verify FILE       # one baseline, for a gate to call
 #   bash scripts/check_baseline_identity.sh --stamp FILE [--input PATH]...   # (re)derive the block
+#   bash scripts/check_baseline_identity.sh --digest <kind> FILE            # one digest, for a caller
+#   bash scripts/check_baseline_identity.sh --raw-ast FILE.ebnf # the frontend envelope the semantic
+#                                                               # digest is taken over, for a caller
 #   bash scripts/check_baseline_identity.sh --report            # the full inventory
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT"
@@ -352,34 +355,55 @@ def live_digest(path, kind):
     if kind == "bytes":
         return sha256_of(full)
     if kind == "ebnf_raw_ast":
-        binary = os.path.join(ROOT, AST_PIPELINE)
-        if not os.path.isfile(binary) or not os.access(binary, os.X_OK):
+        raw = raw_ast_envelope(path)
+        if raw is None:
             return None
-        # ⛔ ON-VOLUME BY POLICY (CLAUDE.md §13): scratch is derived from the repo root, never
-        # $TMPDIR, which can sit on a different filesystem.
-        scratch = os.path.join(ROOT, "rust", "target", "baseline_identity_digest")
-        try:
-            os.makedirs(scratch, exist_ok=True)
-        except OSError:
-            return None
-        out = os.path.join(scratch, "raw_ast.json")
-        try:
-            rc = subprocess.run([binary, full, "--emit-raw-ast-json", out],
-                                capture_output=True).returncode
-            if rc != 0 or not os.path.isfile(out):
-                return None
-            with open(out, encoding="utf-8") as fh:
-                raw = json.load(fh)["raw_ast"]
-        except (OSError, ValueError, KeyError):
-            return None
-        finally:
-            try:
-                os.remove(out)
-            except OSError:
-                pass
-        return hashlib.sha256(
-            json.dumps(raw, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        return hashlib.sha256(canonical_raw_ast(raw).encode()).hexdigest()
     return None
+
+
+# ⭐ THE ENVELOPE ITSELF, EXPOSED (SV-CORPUS-GRAD.13c.2w). The `ebnf_raw_ast` digest and the
+# grammar's rule-REFERENCE GRAPH are two products of ONE derivation, and the graph is what
+# `PARSE-COST-RATCHET`'s containment invariant reads. Splitting the frontend invocation across two
+# scripts would put the envelope's definition in two places — which is the shape
+# `ENGINE-UNIVERSAL-SERVICES.38` measured, where one grammar was keyed by BYTES in two files
+# because the same line had been copied. ⇒ one derivation here, two consumers (`--digest` and
+# `--raw-ast`).
+def raw_ast_envelope(rel):
+    """The EBNF frontend's `raw_ast` for one grammar, or None when it cannot be derived here."""
+    full = os.path.join(ROOT, rel)
+    if not os.path.isfile(full):
+        return None
+    binary = os.path.join(ROOT, AST_PIPELINE)
+    if not os.path.isfile(binary) or not os.access(binary, os.X_OK):
+        return None
+    # ⛔ ON-VOLUME BY POLICY (CLAUDE.md §13): scratch is derived from the repo root, never
+    # $TMPDIR, which can sit on a different filesystem.
+    scratch = os.path.join(ROOT, "rust", "target", "baseline_identity_digest")
+    try:
+        os.makedirs(scratch, exist_ok=True)
+    except OSError:
+        return None
+    out = os.path.join(scratch, "raw_ast.%d.json" % os.getpid())
+    try:
+        rc = subprocess.run([binary, full, "--emit-raw-ast-json", out],
+                            capture_output=True).returncode
+        if rc != 0 or not os.path.isfile(out):
+            return None
+        with open(out, encoding="utf-8") as fh:
+            return json.load(fh)["raw_ast"]
+    except (OSError, ValueError, KeyError):
+        return None
+    finally:
+        try:
+            os.remove(out)
+        except OSError:
+            pass
+
+
+def canonical_raw_ast(raw):
+    """The ONE serialisation the `ebnf_raw_ast` digest is taken over."""
+    return json.dumps(raw, sort_keys=True, separators=(",", ":"))
 
 
 # ── git legs ────────────────────────────────────────────────────────────────────────────────────
@@ -1039,6 +1063,21 @@ elif argv and argv[0] == "--digest":
               file=sys.stderr)
         sys.exit(2)
     print(d)
+elif argv and argv[0] == "--raw-ast":
+    # ⭐ THE SAME ENVELOPE THE DIGEST IS TAKEN OVER, EMITTED RATHER THAN HASHED. Its consumer is
+    # `scripts/parse_cost_containment.py`, which derives the grammar's rule-reference graph — the
+    # population `PARSE-COST-RATCHET`'s containment invariant measures reachability in. A grammar
+    # is digested SEMANTICALLY here, and the graph must be derived from the same bytes the digest
+    # describes, or a "fresh" stamp would sit beside a graph of a different grammar.
+    if len(argv) != 2:
+        print("usage: --raw-ast <repo-root-relative .ebnf path>", file=sys.stderr)
+        sys.exit(2)
+    raw = raw_ast_envelope(argv[1])
+    if raw is None:
+        print("%s: could not derive the raw_ast of %s (is %s built? "
+              "make -C rust ast_pipeline)" % (TAG, argv[1], AST_PIPELINE), file=sys.stderr)
+        sys.exit(2)
+    print(json.dumps({"grammar": argv[1], "raw_ast": raw}, separators=(",", ":")))
 elif argv and argv[0] == "--stale":
     rows = stale_rows()
     del failures[:]

@@ -2144,6 +2144,15 @@ sv_rule_fire_partition:
 sv_rule_fire_partition_probe:
 	cd $(RUST_DIR)/.. && bash docs/tasks/artifacts/sv_corpus_grad/rule_fire_partition/probe.sh
 
+# ── SV-CORPUS-GRAD.13c.2w (d) — the adversarial probe for PARSE-COST-RATCHET's CONTAINMENT
+# invariant. NINE arms, each a full tier-2 re-measure (~21 min total), so it is deliberately
+# operator-invoked like `sv_rule_fire_partition_probe` above. Its recorded result lives beside it in
+# `probe.txt`.
+.PHONY: sv_parse_cost_containment_probe
+sv_parse_cost_containment_probe:
+	cd $(RUST_DIR)/.. && scripts/run_with_memory_guard.sh --budget-mb 16384 --timeout-s 3600 -- \
+	  bash docs/tasks/artifacts/sv_corpus_grad/containment_invariant/probe.sh
+
 .PHONY: sv_parse_cost_family_share
 sv_parse_cost_family_share:
 	@echo "⏱  Deriving the corpus LR-family share (full-corpus census, ~70 s)..."

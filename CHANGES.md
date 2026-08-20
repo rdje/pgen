@@ -1,5 +1,95 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0254 (leaf SV-CORPUS-GRAD.13c.2w CLOSED, (a)+(b)+(c)+(d); ZERO grammar bytes, ZERO Rust bytes): three totals cannot say whether a cost stayed inside the construct that caused it — and the evidence that can was being collected 192 times a run and kept zero times
+
+- ⛔ **THE BLOCKER, STATED AS ARITHMETIC.** `PARSE-COST-RATCHET` accepts a measured RISE only under
+  an invariant that is CODE in the gate and is re-evaluated on the fresh numbers. All three coded
+  invariants were exact identities over the three binding TOTALS. `SV-0065` — restoring the
+  `randomize_call` alternative IEEE 1800 A.8.2 gives `primary`, without which
+  `std::randomize(a,b) with { … }` is unreachable from every expression — measures
+  `Δentries +1,917,021`, `Δmemo +1,012,779`, `Δcommitted 0`, i.e. **1.893**. `pure_memo_lookups`
+  needs 1.000; both `unmatched_*` need 2.000. ⇒ a measured, correct, LRM-mandated fix had **no
+  expressible acceptance**, and a fourth identity over the same three numbers would be numerology.
+- ⛔⛔ **THE REAL STATEMENT**: three totals cannot distinguish *"the added alternative speculates
+  inside its own sub-graph"* from *"the parser now speculates everywhere"*, and that distinction is
+  the whole question. The discriminating evidence is PER-RULE.
+- ✅ **(a) IT WAS ALREADY BEING MEASURED AND THROWN AWAY.** `measure_one_entries` read
+  `rule_entry_counts` / `rule_committed_counts` from every `--dump-rule-outcome-counts-json` dump,
+  summed two LR-family scalars, and discarded the maps. It now retains all three into
+  `rule_costs.tsv` — **1 077 rules, 35 120 B**. ⭐ Proven to be a RETENTION change: the rebaselined
+  `entries.tsv` is **byte-identical**, and an independent oracle holds — the three per-rule sums
+  equal the three per-file totals exactly (`413 113 656` / `6 759 475` / `183 282 408`), and those
+  come from different fields of the same dump.
+- ✅ **(b) THE GRAPH IS DERIVED IN THE RUN THAT MEASURED.** `rule_graph.json` (**1 483 rules,
+  0.34 s**) is built from the EBNF frontend's `raw_ast` envelope and stamped with that envelope's
+  digest — the same `ebnf_raw_ast` value tier 1 re-hashes — and the invariant REFUSES on a
+  mismatch. ⛔ Never from `generated/systemverilog.json`, a floating build artifact whose staleness
+  once produced a containment verdict computed against the wrong arm. ⚠️ NOT promoted into the
+  tracked baseline: it is an exact function of a tracked grammar (`DERIVED_STATE_CONTAINMENT` R1/R3).
+- ⛔⛔ **AND BUILDING (b) FOUND A HOLE IN THE PREDICATE `.13c.2k` HAD ALREADY PUBLISHED.**
+  **67 of the 1 077 rules the parser reports are absent from the 1 483-rule source graph** — all
+  `_lr_base` / `_lr_seed_*` / `_lr_guard*` / `_lr_suffix*` names the LR eliminator SYNTHESISES —
+  and each would have been classified ESCAPED on sight. ⭐ Re-measured on both recorded arms, it
+  **never fired**: `arm0_head -> t_only` has 54 risers and `t_only -> designB` has 82, **zero**
+  synthesised in either, so no published verdict moved. The gap fails in the REFUSING direction.
+  ⭐⭐ The fold is GRAPH-directed, not name-shape-directed — it asks the graph for the longest `X`
+  such that the name is `X_lr_…` and `X` is a real rule — and it is TOTAL or it REFUSES the whole
+  measurement. All 67 fold, onto `casting_type` (19) and `property_expr` (48).
+- ✅ **(c) THE INVARIANT IS CODED AND ITS SCOPE LIVES IN THE ROW.**
+  `contained_in_introduced_subgraph` joins `INVARIANTS`; `accepted_rises.tsv` gains a **7th
+  `introduced` column**, checked TWO-SIDED (a scoped invariant with no scope refuses; an unscoped
+  invariant carrying one refuses) so a row cannot silently widen its own scope. ⛔ An acceptance
+  the gate cannot EVALUATE is a **breach**, never a pass.
+- ⭐⭐ **ONE PREDICATE, TWO CALLERS.** `scripts/parse_cost_containment.py` owns the derivation, the
+  fold and the predicate; the gate imports it and the arm toolkit's `containment.py` became a thin
+  ADAPTER. The `raw_ast` envelope likewise got one home (`check_baseline_identity.sh --raw-ast`).
+  Two spellings of one predicate is the defect measured three days earlier on `unreachable_rules`.
+- ⭐ **BOTH RECORDED ARMS REPLAY THEIR PUBLISHED VERDICTS** through the shared predicate —
+  `data_type` 54 risers / 0 fell / **0 escaped** ✅ CONTAINED, and `reserved_non_keyword_identifier`
+  82 risers / 238 fell / **82 escaped** ⛔ NOT CONTAINED, naming `identifier +9,003,436` and
+  `non_keyword_identifier +8,816,751` exactly as published. `head`/`t_only`/`designB` reference
+  graphs re-derive **byte-identically** through the shared path.
+- ⚠️ **A pre-existing defect the verification exposed, fixed in passing**: `arm_graph.py` printed
+  its output path with `Path.relative_to(ROOT)`, which RAISES on a relative `--outdir` — a
+  SUCCESSFUL derivation exited non-zero on its last line.
+- ✅ **(d) NINE ADVERSARIAL ARMS, NINE PASSED** (`make -C rust sv_parse_cost_containment_probe`,
+  recorded in `probe.txt`; 1 243 s, peak 9 774 MB, `reason=none`): a GREEN control, **a CONTAINED
+  rise ACCEPTED**, an escaping rise refused, a falling rule refused, **arm 2's numbers with only the
+  declared scope perturbed refused**, a containment row with no scope refused, an unscoped invariant
+  carrying a scope refused, an unknown `introduced` rule refused, and a MISSING per-rule baseline
+  refused rather than passing. ⭐ Every perturbation target is DERIVED from the run's own graph and
+  `rule_costs.tsv`, never typed — a probe that hard-coded *"this rule is inside the sub-graph"*
+  would assert the fact under test. Seven more controls fire at module level, including the
+  fold-is-TOTAL-or-REFUSE guard.
+- ⚠️ **The probe caught ITSELF on its first execution**: a wrong repo-root depth resolved `ROOT` to
+  `docs/`, and the pre-flight REFUSED (exit 2) rather than scoring nine phantom refusals.
+- ⚠️ **AND IT WAS RUN TWICE, DELIBERATELY.** After the first 9/9 a review found `origin_rule`
+  scanning `_lr_` SHORTEST-first, which would mis-attribute a synthesised child if a source rule
+  were itself named `X_lr_…`. Measured, the ambiguity is LATENT — **0** source rule names contain
+  `_lr_`, and the fold output is identical on all 1 077 measured rules either way — but a recorded
+  probe must describe the SHIPPED bytes, so the order was corrected to longest-first and the whole
+  probe re-run.
+- ⛔⛔ **`SV-0065` IS STILL NOT IN THE TREE.** This slice built the mechanism that makes its rise
+  expressible. The re-land is the next slice and inherits `.13c.2w`'s scheduled obligation —
+  `.13c.2x.1`'s discriminating probe runs as its FIRST act.
+- ⚠️ **HONEST BOUND, in the invariant's own docstring**: containment says the rise is CONFINED to
+  the construct that caused it. It does NOT say the rise was UNAVOIDABLE. Only another ARM can.
+- ⛔ **A SECOND DEFECT FOUND WHILE LANDING THIS, OPENED AS `ENGINE-UNIVERSAL-SERVICES.40`:**
+  adding one `.PHONY` probe target to `rust/Makefile` turned `GENERATED-REPRODUCIBILITY` RED, tier 2
+  then went **completely green** (11/11 `byte-identically (0 sites)`, `TIER 2 OK`, 70 s) — and
+  `.39`'s self-recording did **not** fire. `baseline_current()` decides *"is there anything to
+  record"* from `parser_sha` + `input_sha` per family; tier 1 fails on the top-level `emission_sha`,
+  which that guard never reads. ⭐ `.39`'s own positive and negative controls both moved a
+  `parser_sha` — the one field that works. Unblocked here by the documented remedy
+  (`generated_reproducibility_rebaseline`, tier 2 green first): exactly `verified_at_commit` and
+  `emission_sha` moved, **zero** artifact shas, which is itself the proof that the Makefile edit is
+  emission-inert.
+- **Validation**: `bash scripts/check_doctrines.sh` → ALL 24 enforced doctrines PASS;
+  `make -C rust mdbook_docs_gate` → all 10 per-parser book gates + the docs gate pass;
+  `check_parse_cost_ratchet.sh` → OK, identity fresh for all four inputs;
+  `check_gate_reachability.sh` → OK (125 targets, unchanged classification);
+  `check_memory_architecture.sh` → OK (layer A 16 771/32 768 B). Live-status tracker UNCHANGED.
+
 ## 2026-08-20 - PGEN-ENGINE-UNIVERSAL-SERVICES-0080 (leaf ENGINE-UNIVERSAL-SERVICES.39; ZERO grammar bytes, ZERO Rust bytes): a gate that proved the tree correct and then left the doctrine RED — "still needs a human" was my unfinished work, not a requirement
 
 - ⛔ **THE PHRASE WAS WRONG.** `-0079` reported that `GENERATED-REPRODUCIBILITY` *"still needs a

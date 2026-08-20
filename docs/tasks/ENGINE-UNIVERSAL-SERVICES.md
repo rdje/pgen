@@ -200,6 +200,42 @@ question is *"is that enough?"*, and that cannot be answered without naming the 
   compare published shares and a build fingerprint (no grammar digest). **All five are now
   accounted for** — the flag `-0078` raised is discharged rather than carried.
 
+### ⛔ `.40` `todo` — **`.39`'s SELF-RECORDING IS GATED BY A FRESHNESS TEST NARROWER THAN THE FAILURE IT IS MEANT TO CLEAR**: a complete GREEN tier 2 still leaves the doctrine RED when the input that moved is the EMISSION digest (found 2026-08-20 by `SV-CORPUS-GRAD.13c.2w`, `PGEN-SV-CORPUS-GRAD-0254`, on the first unrelated change to `rust/Makefile` after `.39` landed)
+
+- ⛔ **OBSERVED LIVE, NOT REASONED.** `SV-CORPUS-GRAD.13c.2w` added one `.PHONY` probe target to
+  `rust/Makefile`. `bash scripts/check_doctrines.sh` then reported
+  `GENERATED-REPRODUCIBILITY` ✗ with tier 1's own message:
+  *"the EMISSION SOURCES moved (recorded `c987a8832f4c…`, live `54cd2c38deca…`)"*.
+  Tier 2 was run and was **completely green** — all **11** artifacts `re-derives byte-identically
+  (0 sites)`, `TIER 2 OK`, 70 s under the memory guard, `reason=none`. `.39`'s self-recording path
+  did **not** fire, and tier 1 stayed RED until `--rebaseline` was typed by hand — the exact
+  sentence `.39` was written to delete.
+- ⭐ **ROOT CAUSE (WHY + WHERE), and it is one metric name with two predicates again.**
+  `scripts/check_generated_reproducibility.sh::baseline_current()` (≈ line 580) decides whether a
+  green tier 2 *"has anything to record"* by comparing, per family, **only** `parser_sha` and
+  `input_sha`. Neither moved — the change was emission-inert. But tier 1 fails on the top-level
+  **`emission_sha`**, which `baseline_current()` never reads. ⇒ *"is the baseline current?"* is
+  computed one way by the tier that FAILS and another way by the guard that decides whether to
+  WRITE, so the two can disagree, and when they do the doctrine sits RED after proving itself
+  green. Confirmed by the remedy's own diff: `--rebaseline` moved exactly **two** fields,
+  `verified_at_commit` and `emission_sha`, and **zero** artifact shas.
+- ⭐ **WHY IT DID NOT SHOW UP IN `.39`'s OWN MEASUREMENT.** `.39` demonstrated the fix by zeroing a
+  recorded **`parser_sha`** — a field `baseline_current()` does read. Every other input the baseline
+  declares (`emission_sha`, and `verified_at_commit`) was outside the arm. ⇒ the negative and
+  positive controls were both built on the one field that works →
+  [[porting-a-predicate-to-a-new-population-is-a-re-derivation]] restated for a control: **a control
+  that exercises one member of a set proves nothing about the others.**
+- **WHAT THIS LEAF OWES**: (a) make `baseline_current()` read the SAME inputs tier 1 compares —
+  ideally by calling one shared predicate rather than a second loop, so the two cannot diverge
+  again; (b) an arm in the `--self-test` suite that moves **`emission_sha`** specifically (touch a
+  tracked emission source or `rust/Makefile`) and asserts a complete green tier 2 RECORDS and
+  clears tier 1; (c) audit the baseline's remaining declared fields the same way — one arm per
+  field, because (a) fixes today and only the per-field arms stop the third one.
+- ⚠️ **Routing note**: found while landing `SV-CORPUS-GRAD.13c.2w`, unblocked there by the
+  documented remedy (`make -C rust generated_reproducibility_rebaseline`, tier 2 green first), so
+  the SV lane was not stalled and no cost was hidden. The defect is real, the remedy is honest, and
+  it is OWNED here rather than reported and left.
+
 ### `.39` — `GENERATED-REPRODUCIBILITY` proved the tree correct and then left the doctrine RED until somebody typed a second command (`done` — `PGEN-ENGINE-UNIVERSAL-SERVICES-0080`, 2026-08-20 session #250; opened by a director challenge to the phrase *"still needs a human"*)
 
 - ⛔ **THE CHALLENGE WAS CORRECT AND THE PHRASE WAS WRONG.** `-0079` described this as something

@@ -11,10 +11,17 @@ computed against the `designB` grammar's graph — the same class of error as
 when the two disagree.
 
 ⭐ IT NEVER TOUCHES THE TRACKED GRAMMAR. The arm transform is applied in memory and written to a
-temporary file which the EBNF frontend is pointed at directly, so this can run at any time, on a
-clean tree, without a regeneration.
+temporary file under `rust/target/` which the shared derivation is pointed at, so this can run at
+any time, on a clean tree, without a regeneration.
+
+⭐ THE DERIVATION ITSELF MOVED OUT (`SV-CORPUS-GRAD.13c.2w`), because `PARSE-COST-RATCHET`'s coded
+containment invariant reads the same graph and a second spelling of it would be
+[[one-metric-name-two-predicates-is-a-contract-defect]]. ⚠️ MEASURED rather than assumed: `head`,
+`t_only` and `designB` all re-derive BYTE-IDENTICALLY to their tracked `*.graph.json` through the
+shared path.
 
 USAGE  python3 …/arm_graph.py --arm {head,t_only,designB,designA} [--outdir DIR]
+       (the graph derivation itself lives in `scripts/parse_cost_containment.py`)
 EXIT   0 = graph written · 2 = refused
 """
 
@@ -22,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 import importlib.util
 import json
 import subprocess
@@ -34,7 +42,16 @@ if not (ROOT / "grammars").is_dir():
     raise SystemExit(f"arm_graph: not at the repo root (derived {ROOT}) — fix the parents[] depth")
 HERE = ROOT / "docs/tasks/artifacts/sv_corpus_grad/strictness_cost_arms"
 GRAMMAR = ROOT / "grammars/systemverilog.ebnf"
-FRONTEND = ROOT / "rust/target/ebnf_frontend_build/debug/ast_pipeline"
+
+# ⭐ ONE DERIVATION, SHARED (`SV-CORPUS-GRAD.13c.2w`). The rule-reference graph and the containment
+# predicate over it now live in `scripts/parse_cost_containment.py`, because `PARSE-COST-RATCHET`'s
+# coded invariant reads exactly the same two things. This file used to invoke the EBNF frontend and
+# walk `raw_ast` itself; a second spelling of a predicate is
+# [[one-metric-name-two-predicates-is-a-contract-defect]], measured in this repository on
+# `unreachable_rules`. ⚠️ VERIFIED, not assumed: the tracked `*.graph.json` files re-derive
+# byte-identically through the shared path.
+sys.path.insert(0, str(ROOT / "scripts"))
+import parse_cost_containment as PCC  # noqa: E402
 
 
 def load_apply_arm():
@@ -95,33 +112,28 @@ def main() -> int:
     ap.add_argument("--outdir", default=str(HERE))
     a = ap.parse_args()
 
-    if not FRONTEND.exists():
-        print(f"arm_graph: no EBNF frontend at {FRONTEND} — build it first", file=sys.stderr)
-        return 2
-
     text = arm_text(a.arm)
     sha = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    # ⛔ ON-VOLUME BY POLICY (CLAUDE.md §13) AND REPO-ROOT-RELATIVE, because the shared derivation
+    # takes a path relative to the root — which is also what makes it path-agnostic.
     with tempfile.TemporaryDirectory(dir=str(ROOT / "rust" / "target")) as td:
         g = Path(td) / "arm.ebnf"
-        j = Path(td) / "arm.json"
         g.write_text(text, encoding="utf-8")
-        r = subprocess.run([str(FRONTEND), str(g), "--emit-raw-ast-json", str(j)],
-                           capture_output=True, text=True, timeout=600)
-        if r.returncode != 0 or not j.exists():
-            print(f"arm_graph: the frontend refused arm {a.arm}:\n{r.stderr[-2000:]}", file=sys.stderr)
+        try:
+            raw = PCC.raw_ast_of(str(g.relative_to(ROOT)))
+        except PCC.Refused as exc:
+            print(f"arm_graph: {exc}", file=sys.stderr)
             return 2
-        raw = json.loads(j.read_text(encoding="utf-8"))["raw_ast"]
-
-    edges: dict[str, list[str]] = {}
-    for rule in raw:
-        name = rule[0][1]
-        refs = sorted({t[1] for t in rule[1:] if t[0] == "rule_reference"})
-        edges[name] = refs
+    edges = PCC.edges_from_raw_ast(raw)
     out = Path(a.outdir) / f"{a.arm}.graph.json"
     out.write_text(json.dumps({"arm": a.arm, "grammar_sha256": sha, "rules": len(edges),
                                "edges": edges}, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     print(f"ARM-GRAPH: arm={a.arm} rules={len(edges)} grammar_sha256={sha}")
-    print(f"  -> {out.relative_to(ROOT)}")
+    # ⚠️ PRE-EXISTING, found by this slice's own verification run (`SV-CORPUS-GRAD.13c.2w`): a
+    # RELATIVE `--outdir` made `Path.relative_to(ROOT)` raise AFTER the graph had been written
+    # correctly, so a SUCCESSFUL derivation exited non-zero on its last line. `os.path.relpath`
+    # resolves both forms.
+    print(f"  -> {os.path.relpath(out, ROOT)}")
     return 0
 
 

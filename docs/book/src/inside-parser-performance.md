@@ -215,6 +215,78 @@ worth stating on their own:
   at the 45 rewritten sites, minus the reserved words that no longer commit anywhere.
 - **A "prohibitive" cost is a claim about one spelling**, never about the fix.
 
+### A fifth habit: when the cost is real, the acceptance must be a predicate the gate re-derives
+
+The habits above assume a cheaper spelling exists. Sometimes one does not — the construct is
+required for the grammar to derive its standard's language, every candidate has been built and
+measured, and the cheapest is still dearer than the parser that shipped before.
+
+PGEN's parse-cost ratchet refuses a rise by default, so for a while the only outcomes were
+*eliminate the cost* or *skip the gate*. An instrument that leaves a legitimate outcome
+unrepresentable teaches people to route around it. The fix was a typed acceptance: one row naming
+the **exact** from/to integers, plus an `invariant` that is **code in the gate** and is
+re-evaluated against the fresh measurement. A row therefore cannot cover a different rise, cannot
+cover a rise of a different shape without a code change, and cannot outlive its own justification.
+
+Three of the four coded invariants are exact arithmetic identities over the three binding totals —
+rule entries, memo hits, committed entries. For example, admitting one more keyword alternative into
+an ordered choice costs, at every position the choice is attempted, exactly two entries (the
+terminal's own body, plus one *memoized* lookup of the shared whitespace prefix an earlier
+alternative already resolved). Hence `Δentries == 2 · Δmemo_hits`, with `Δcommitted == 0` saying the
+added alternatives never actually matched. The day one of them matches, `committed` moves, the
+identity fails, and the acceptance correctly stops covering the rise.
+
+**The fourth invariant is not an identity, and the reason is the interesting part.**
+
+Restoring a `randomize_call` alternative that IEEE 1800 gives `primary` — without which
+`std::randomize(a, b) with { … }` is unreachable from every expression — measures
+`Δentries +1,917,021`, `Δmemo +1,012,779`, `Δcommitted 0`. The ratio is **1.893**. No identity
+fits, and inventing a fourth one over the same three numbers would be numerology.
+
+> **Three totals cannot distinguish *"the added alternative speculates inside its own sub-graph"*
+> from *"the parser now speculates everywhere"* — and that distinction is the whole question.**
+
+So the fourth invariant asks a structural question instead, over evidence the instrument had been
+collecting and discarding on every run: the **per-rule** entry counts.
+
+```text
+containment(introduced) :=
+    Δcommitted <= 0                    no accepted derivation got dearer
+  ∧ no rule's entry count FELL         the change is purely additive
+  ∧ every rule whose entries ROSE is reachable, in the GRAMMAR's own reference graph,
+    from one of the `introduced` rules the rise cannot escape its subtree
+```
+
+It discriminates on real, measured arms rather than constructed ones — and the RED one is a fix a
+real doctrine really refused:
+
+| arm | introduced | risers | fell | escaped | verdict |
+|---|---|---:|---:|---:|---|
+| a `data_type` alternative in an assignment-pattern key | `data_type` | 54 (+173,715) | 0 | **0** | ✅ contained |
+| a reserved-word guard moved into the shared `identifier` rule | `reserved_non_keyword_identifier` | 82 (+17,864,852) | 238 | **82** | ⛔ not contained |
+
+The second names its own escapees — `identifier +9,003,436`, `non_keyword_identifier +8,816,751` —
+which is the grammar-wide redirection of the search that the row above it does not have.
+
+Three design points are worth stealing:
+
+- **The scope lives in the row, not in the gate.** `introduced` is a column of the acceptance
+  record, checked two-sided: a scoped invariant with no scope refuses, and an unscoped invariant
+  carrying one refuses too. Putting the scope in the gate would let one code change quietly
+  re-scope every past acceptance.
+- **The reference graph is derived in the run that took the measurement**, from the same parsed
+  envelope the grammar's identity digest is taken over, and it carries that digest so a consumer can
+  refuse a graph describing a different grammar. Reading it from a build artifact once produced a
+  containment verdict computed against the wrong arm entirely.
+- **An acceptance the gate cannot evaluate is a breach, never a pass.** If the per-rule evidence is
+  missing, the gate fails and says so. The alternative is a measured rise that nobody checked,
+  reading green.
+
+⚠️ **And the honest bound is stated in the invariant's own docstring, where it will be read.**
+Containment says the rise is *confined* to the construct that caused it. It does **not** say the
+rise was *unavoidable* — the table above is itself the proof that a contained-looking cost can still
+have a strictly cheaper spelling. Only another arm can settle that.
+
 ---
 
 ## The latency campaign: closing the gap to PCRE2 (small-input speed)

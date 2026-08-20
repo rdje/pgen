@@ -1,5 +1,62 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0254 — the instrument was already collecting the answer, and the hole I found was in the predicate I was porting
+
+**1. THE CHEAPEST PART OF THIS SLICE WAS THE MEASUREMENT, BECAUSE IT WAS ALREADY BEING TAKEN.**
+`.13c.2w` opened saying the discriminating evidence is per-rule and *"is already being thrown
+away"*. That was exact: `measure_one_entries` parsed `rule_entry_counts` and
+`rule_committed_counts` out of all 192 dumps, summed two LR-family scalars, and returned a tuple
+carrying neither map. ⇒ **before building a new measurement, check whether the existing one already
+computes it and discards it.** The retention cost nothing, moved no number (`entries.tsv`
+byte-identical), and was verified by an oracle that was free: per-rule sums vs per-file totals, from
+different fields of the same dump, agreeing exactly on all three columns.
+
+**2. THE HOLE WAS IN THE PREDICATE I WAS PORTING, NOT IN THE ONE I WAS WRITING.** Deriving the
+reference graph from the source grammar gave **1 483** rules; the parser reports **1 077**, and
+**67 of them are in neither** — the LR eliminator synthesises rules that exist in no `.ebnf` file.
+The already-published `containment.py` would have called every one of them ESCAPED. It had never
+fired, because neither recorded arm moved a synthesised rule (0 of 54, 0 of 82) — which is exactly
+why nothing caught it. ⇒ **porting a predicate to a new population is a re-derivation, not a copy:
+ask what the new population contains that the old one never exercised.**
+
+**3. THE FOLD ASKS THE GRAPH, NOT THE NAME.** The obvious repair is the shipped
+`_lr_(base|suffix|seed|guard|alt)` classifier. Using it would have put a second copy of that
+predicate in a second file, and tied the fold to this month's emitter naming. Asking the GRAPH — the
+longest `X` such that the measured name is `X_lr_…` and `X` is a rule the grammar has — makes the
+population its own oracle. ⭐ And the fold is TOTAL or it REFUSES: dropping the names it cannot place
+would make the predicate quietly weaker exactly where the parser is least like its grammar.
+
+**4. TWO SPELLINGS OF ONE PREDICATE WAS THE THING TO AVOID, AND THE REPO HAD JUST PAID FOR IT.**
+`.13c.2x.3` spent a slice adjudicating `unreachable_rules` — one metric name, two implementations,
+both right about different populations. So the containment predicate went into ONE module that the
+gate imports and the arm toolkit adapts, and the `raw_ast` envelope's frontend invocation collapsed
+into `check_baseline_identity.sh --raw-ast` beside the digest it already owned. ⚠️ The migration was
+MEASURED, not asserted: three tracked `*.graph.json` files re-derive byte-identically, and both
+recorded arms replay their published verdicts including the two named escapees.
+
+**5. THE SCOPE HAD TO LIVE IN THE ROW.** Putting the `introduced` set in the gate would let one code
+change re-scope every past acceptance silently. In the row it is data, checked two-sided — and the
+probe's arm 5 is what makes that real: byte-for-byte arm 2's perturbation with only the declared
+scope changed, and the verdict must flip. Without that arm the column would be decoration.
+
+**6. THE PROBE CAUGHT ITSELF FIRST.** Its first execution refused with `probe: not at the repo root
+(…/docs)` — a wrong `..` depth, the same defect the `accepted_rise_gate` probe shipped with. It
+exited 2 rather than scoring nine phantom refusals, because the pre-flight asserts the gate script
+is where it expects. ⇒ **a probe needs a control for its own harness before it needs more arms.**
+
+**7. A RECORDED PROBE MUST DESCRIBE THE SHIPPED BYTES, SO I RE-RAN IT.** The first run scored 9/9.
+Reviewing afterwards, `origin_rule` scanned `_lr_` occurrences shortest-first — harmless today
+(**0** source rule names contain `_lr_`, and the fold output is identical on all 1 077 measured
+rules either way) and wrong in general, because a source rule named `X_lr_…` would have its
+synthesised children attributed to `X`. Correcting it made `probe.txt` a record of code that no
+longer existed. ⇒ **the cheap-looking option — keep the record and argue the change was
+equivalent — is exactly the staleness this leaf is about.** Twenty minutes bought a record that
+needs no argument.
+
+**8. BATCHING THE SETTLEMENT, AS `-0079` TAUGHT.** The instrument is an input to its own baseline's
+identity, so every edit to it stales the ratchet. All instrument edits were made first and the
+rebaseline paid ONCE — 136 s, peak 6 887 MB, `reason=none`.
+
 ## 2026-08-20 - PGEN-ENGINE-UNIVERSAL-SERVICES-0079 — the flag I raised instead of chasing was where the second bug was
 
 **1. I ALMOST SHIPPED "REDUCED, NOT ELIMINATED" AS AN ANSWER.** `-0078` fixed one row, measured that

@@ -1,0 +1,34 @@
+cd ./.. && scripts/run_with_memory_guard.sh --budget-mb 16384 --timeout-s 3600 -- \
+	  bash docs/tasks/artifacts/sv_corpus_grad/containment_invariant/probe.sh
+memory-guard: started pid=86043 pgid=86043 budget=16384MB floor=10% disk_floor=8GB interval=5s timeout=3600s free=69% disk=3273GB cmd: bash docs/tasks/artifacts/sv_corpus_grad/containment_invariant/probe.sh
+probe: backed up the baseline + acceptance record to /Volumes/SSD/Documents/github/pgen/rust/target/containment_probe
+RULE-GRAPH: grammar=grammars/systemverilog.ebnf rules=1483 raw_ast=bd9367dc1d79b6f2… -> /Volumes/SSD/Documents/github/pgen/rust/target/containment_probe/rule_graph.json
+probe: derived targets — inside=trivia outside=kw_typedef_6dc2082b alt_introduced=block_comment
+arm 1: control — the unperturbed tree
+  ✓ the unperturbed tree HOLDS — rc=0 and the message names it
+arm 2: a contained rise is ACCEPTED
+perturb_rule: lowered `trivia` by 100000 in docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/rule_costs.tsv
+  ✓ a CONTAINED rise is accepted — rc=0 and the message names it
+arm 3: a rise outside the sub-graph
+perturb_rule: lowered `kw_typedef_6dc2082b` by 100000 in docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/rule_costs.tsv
+  ✓ an ESCAPING rise is REFUSED — rc=1 and the message names it
+arm 4: a rule whose entries fell
+perturb_rule: lowered `trivia` by 100000 in docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/rule_costs.tsv
+perturb_rule: raised `kw_typedef_6dc2082b` by 100000 in docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/rule_costs.tsv
+  ✓ a FALLING rule is REFUSED — rc=1 and the message names it
+arm 5: arm 2's numbers with a perturbed introduced set
+perturb_rule: lowered `trivia` by 100000 in docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/rule_costs.tsv
+  ✓ a PERTURBED introduced set REFUSES — rc=1 and the message names it
+arm 6: a containment row declaring no introduced set
+perturb_rule: lowered `trivia` by 100000 in docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/rule_costs.tsv
+  ✓ an UNSCOPED containment row is REFUSED — rc=1 and the message names it
+arm 7: an unscoped invariant carrying an introduced set
+  ✓ a SCOPE on an unscoped invariant is REFUSED — rc=1 and the message names it
+arm 8: an introduced rule that is not in the grammar
+perturb_rule: lowered `trivia` by 100000 in docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/rule_costs.tsv
+  ✓ an UNKNOWN introduced rule is REFUSED — rc=1 and the message names it
+arm 9: the per-rule baseline is missing
+  ✓ a MISSING per-rule baseline REFUSES — rc=1 and the message names it
+CONTAINMENT-INVARIANT-PROBE: arms_passed=9 arms_failed=0
+probe: restored docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet from /Volumes/SSD/Documents/github/pgen/rust/target/containment_probe
+memory-guard: completed exit=0 peak_tree_rss=9774MB elapsed=1243s; marker: /Volumes/SSD/Documents/github/pgen/rust/target/generated_logs/memory_guard/guard.86043.marker

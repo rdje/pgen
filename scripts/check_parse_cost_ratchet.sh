@@ -156,6 +156,19 @@ SHARE_ANCHOR_MARK = "Live LR-family share"
 # the call site reports it as MISSING. Failing loudly on the superseded form is the point.
 SHARE_TUPLE_RE = re.compile(r"`(\d+\.\d+)`")
 
+# ⛔ ONE PREDICATE, IMPORTED — NOT A SECOND SPELLING (`SV-CORPUS-GRAD.13c.2w`). The containment
+# invariant below and the arm toolkit's `containment.py` both call
+# `scripts/parse_cost_containment.py`. Coding it twice is exactly
+# [[one-metric-name-two-predicates-is-a-contract-defect]], measured in this repository on
+# `unreachable_rules` three days ago: one metric name, two implementations, both right about
+# different populations, and a contract nobody could adjudicate.
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
+try:
+    import parse_cost_containment as CONTAINMENT
+    CONTAINMENT_IMPORT_ERROR = None
+except Exception as exc:  # pragma: no cover - a missing module is reported, never silently skipped
+    CONTAINMENT, CONTAINMENT_IMPORT_ERROR = None, exc
+
 REMEASURE = os.environ.get("PGEN_PARSE_COST_REMEASURE", "0") == "1"
 REBASELINE = os.environ.get("PGEN_PARSE_COST_REBASELINE", "0") == "1"
 
@@ -541,7 +554,7 @@ BINDING = ("entries", "committed", "memo_hits")
 ACCEPTED_RISES = f"{ART}/accepted_rises.tsv"
 
 
-def _pure_memo_lookups(base_tot, new_tot):
+def _pure_memo_lookups(base_tot, new_tot, ctx):
     """The rise is entirely MEMO LOOKUPS: every added rule entry was served from the memo table
     and none of them committed.
 
@@ -564,7 +577,7 @@ def _pure_memo_lookups(base_tot, new_tot):
                   f"{d_entries:,} more cached lookups, zero new parsing work")
 
 
-def _unmatched_terminal_alternatives(base_tot, new_tot):
+def _unmatched_terminal_alternatives(base_tot, new_tot, ctx):
     """The rise is entirely NEW TERMINAL ALTERNATIVES that never matched: each costs its own rule
     body plus one MEMOIZED `trivia` lookup at the same position, and none of them committed.
 
@@ -600,7 +613,7 @@ def _unmatched_terminal_alternatives(base_tot, new_tot):
                   f"{d_memo:,} added terminal-alternative attempts, none of which matched")
 
 
-def _unmatched_lookahead_terminals(base_tot, new_tot):
+def _unmatched_lookahead_terminals(base_tot, new_tot, ctx):
     """The rise is entirely NEGATIVE-LOOKAHEAD TERMINALS: a `!kw` guard added to a sequence, which
     at each position it is reached costs the terminal's own body plus one MEMOIZED `trivia` lookup
     and commits nothing.
@@ -625,8 +638,10 @@ def _unmatched_lookahead_terminals(base_tot, new_tot):
     not that the rise was unavoidable. It is the right acceptance only when the guard is what makes
     the grammar derive its standard's language — removing it must be shown to reintroduce a measured
     defect — and when no cheaper spelling exists. ⛔ It cannot see a rise CONFINED to the guard's own
-    sub-graph versus one spread across the grammar; three totals cannot express that distinction, and
-    the per-rule containment predicate that can is `SV-CORPUS-GRAD.13c.2w`.
+    sub-graph versus one spread across the grammar; three totals cannot express that distinction.
+    The per-rule predicate that CAN is `contained_in_introduced_subgraph` below
+    (`SV-CORPUS-GRAD.13c.2w`), which reads `rule_costs.tsv` and the measured grammar's own
+    reference graph rather than three sums.
     """
     d_entries = new_tot["entries"] - base_tot["entries"]
     d_memo = new_tot["memo_hits"] - base_tot["memo_hits"]
@@ -643,11 +658,77 @@ def _unmatched_lookahead_terminals(base_tot, new_tot):
                   f"{d_memo:,} guard attempts, and no rule committed a different number of frames")
 
 
+def _contained_in_introduced_subgraph(base_tot, new_tot, ctx):
+    """The rise is CONFINED to the sub-graph the change introduced: no accepted derivation got
+    dearer, no rule lost entries, and every rule whose entries rose is reachable — in the measured
+    GRAMMAR's own reference graph — from one of the rules the acceptance row declares.
+
+    ⛔⛔ WHY IT IS NOT A FOURTH ARITHMETIC IDENTITY. The three invariants above are exact identities
+    over `entries`/`memo_hits`/`committed`. The rise this one exists for — `SV-0065`, restoring the
+    `randomize_call` alternative IEEE 1800 A.8.2 gives `primary`, without which
+    `std::randomize(a,b) with { … }` is unreachable from every expression — measures
+    `Δentries +1,917,021`, `Δmemo +1,012,779`, `Δcommitted 0`, i.e. `Δentries/Δmemo = 1.893`. No
+    coded identity holds and a fourth identity over the same three numbers would be numerology:
+    **three totals cannot distinguish "the added alternative speculates inside its own sub-graph"
+    from "the parser now speculates everywhere", and that distinction is the whole question.**
+
+    ⭐ THE EVIDENCE IS PER-RULE AND WAS ALREADY BEING THROWN AWAY. `.13c.2w` (a) made the
+    instrument keep it (`rule_costs.tsv`); (b) freezes the reference graph beside the numbers, from
+    the grammar the run measured — never from `generated/systemverilog.json`, a floating build
+    artifact whose staleness produced a containment verdict computed against the WRONG arm in
+    `.13c.2k`.
+
+    ⭐ THE SCOPE LIVES IN THE ROW, so a row cannot silently widen it: `introduced` is a 7th column
+    of `accepted_rises.tsv`, the acceptance covers one exact from/to, and this predicate is
+    re-derived on every re-measure. Perturbing the declared set changes the verdict, which is what
+    the probe's arms fire.
+
+    ⚠️⚠️ HONEST BOUND, IN THE INVARIANT'S OWN DOCSTRING BECAUSE THAT IS WHERE IT WILL BE READ:
+    containment says the rise is CONFINED to the construct that caused it. It does NOT say the rise
+    was UNAVOIDABLE. `SV-CORPUS-GRAD.13c.2k` is the standing proof that a contained-looking cost can
+    still have a strictly cheaper spelling, and no predicate over totals or per-rule counts can see
+    that — only another ARM can. So this is the right acceptance exactly when the added construct is
+    required for the grammar to derive its standard's language AND the cheaper spellings have been
+    built and measured.
+    """
+    if CONTAINMENT is None:
+        raise RuntimeError(f"scripts/parse_cost_containment.py could not be imported "
+                           f"({CONTAINMENT_IMPORT_ERROR}), so this acceptance cannot be evaluated")
+    graph_path = ctx["graph"]
+    if not os.path.isfile(graph_path):
+        raise RuntimeError(f"the measured grammar's reference graph is missing "
+                           f"({os.path.relpath(graph_path, ROOT)}) — re-measure with an instrument "
+                           f"that emits it")
+    with open(graph_path, encoding="utf-8") as fh:
+        graph = json.load(fh)
+    # ⛔ THE GRAPH MUST DESCRIBE THE GRAMMAR THAT WAS MEASURED. It carries the `ebnf_raw_ast`
+    # digest tier 1 re-hashes, so this is a re-derivation and not a trusted label.
+    if ctx["grammar_digest"] and graph.get("grammar_raw_ast_sha256") != ctx["grammar_digest"]:
+        raise RuntimeError(
+            f"the reference graph was derived from grammar raw_ast "
+            f"`{str(graph.get('grammar_raw_ast_sha256'))[:16]}…` but this tree's is "
+            f"`{ctx['grammar_digest'][:16]}…` — a containment verdict computed against the wrong "
+            f"grammar is the `.13c.2k` defect this leaf exists to close")
+    base_rules = CONTAINMENT.read_rule_costs(ctx["base_rule_costs"])
+    new_rules = CONTAINMENT.read_rule_costs(ctx["new_rule_costs"])
+    d_committed = new_tot["committed"] - base_tot["committed"]
+    holds, detail, _facts = CONTAINMENT.containment(
+        base_rules, new_rules, graph["edges"], ctx["introduced"], d_committed)
+    return holds, detail
+
+
 INVARIANTS = {
     "pure_memo_lookups": _pure_memo_lookups,
     "unmatched_terminal_alternatives": _unmatched_terminal_alternatives,
     "unmatched_lookahead_terminals": _unmatched_lookahead_terminals,
+    "contained_in_introduced_subgraph": _contained_in_introduced_subgraph,
 }
+
+# ⛔ WHICH INVARIANTS TAKE A SCOPE, AND THE CHECK IS TWO-SIDED. A containment row with no
+# `introduced` set cannot be evaluated; a row naming a set for an invariant that ignores it reads as
+# a scoped acceptance and is not one. Both REFUSE, so the column can never become decoration.
+INVARIANTS_TAKING_INTRODUCED = {"contained_in_introduced_subgraph"}
+NO_INTRODUCED = "-"
 
 
 def load_accepted_rises():
@@ -667,14 +748,16 @@ def load_accepted_rises():
             fields = line.split("\t")
             if header is None:
                 header = fields
-                if header[:5] != ["metric", "from", "to", "invariant", "leaf"]:
-                    problems.append(f"{ACCEPTED_RISES}:{lineno} unexpected header {header[:5]}")
+                want = ["metric", "from", "to", "invariant", "leaf", "why", "introduced"]
+                if header[:7] != want:
+                    problems.append(f"{ACCEPTED_RISES}:{lineno} unexpected header {header[:7]}, "
+                                    f"expected {want}")
                     return {}, problems
                 continue
-            if len(fields) < 6:
-                problems.append(f"{ACCEPTED_RISES}:{lineno} has {len(fields)} field(s), expected 6")
+            if len(fields) < 7:
+                problems.append(f"{ACCEPTED_RISES}:{lineno} has {len(fields)} field(s), expected 7")
                 continue
-            metric, frm, to, invariant, leaf, why = fields[:6]
+            metric, frm, to, invariant, leaf, why, introduced = fields[:7]
             if metric not in BINDING:
                 problems.append(f"{ACCEPTED_RISES}:{lineno} unknown metric `{metric}`")
                 continue
@@ -686,8 +769,22 @@ def load_accepted_rises():
             if not leaf.strip():
                 problems.append(f"{ACCEPTED_RISES}:{lineno} names no owning leaf")
                 continue
+            # ⛔ THE SCOPE COLUMN IS TWO-SIDED (`SV-CORPUS-GRAD.13c.2w` (c)). A scoped invariant
+            # with no scope cannot be evaluated, and an unscoped invariant carrying one reads as a
+            # narrower acceptance than the gate will actually apply. Both refuse.
+            scope = [] if introduced.strip() in ("", NO_INTRODUCED) else introduced.split()
+            if invariant in INVARIANTS_TAKING_INTRODUCED and not scope:
+                problems.append(f"{ACCEPTED_RISES}:{lineno} accepts under `{invariant}`, which is "
+                                f"scoped, but declares no `introduced` rule set — the scope of the "
+                                f"rise would be whatever this gate guessed")
+                continue
+            if invariant not in INVARIANTS_TAKING_INTRODUCED and scope:
+                problems.append(f"{ACCEPTED_RISES}:{lineno} declares introduced={scope} for "
+                                f"`{invariant}`, which ignores it — a row must not carry a scope "
+                                f"its invariant never applies (write `{NO_INTRODUCED}`)")
+                continue
             try:
-                rows[(metric, int(frm), int(to))] = (invariant, leaf, why)
+                rows[(metric, int(frm), int(to))] = (invariant, leaf, why, scope)
             except ValueError:
                 problems.append(f"{ACCEPTED_RISES}:{lineno} from/to are not integers")
     return rows, problems
@@ -782,8 +879,22 @@ if REMEASURE or REBASELINE:
                          f"one row in {ACCEPTED_RISES} naming this exact from/to plus a coded "
                          f"invariant that explains it.")
                     continue
-                invariant, leaf, why = row
-                holds, detail = INVARIANTS[invariant](base_tot, new_tot)
+                invariant, leaf, why, scope = row
+                ctx = {"introduced": scope,
+                       "base_rule_costs": os.path.join(ROOT, ART, "rule_costs.tsv"),
+                       "new_rule_costs": os.path.join(scratch, "rule_costs.tsv"),
+                       "graph": os.path.join(scratch, "rule_graph.json"),
+                       "grammar_digest": live.get("grammar raw ast")}
+                try:
+                    holds, detail = INVARIANTS[invariant](base_tot, new_tot, ctx)
+                except Exception as exc:
+                    # ⛔ AN UN-EVALUABLE ACCEPTANCE IS A BREACH, NEVER A PASS. The alternative is a
+                    # measured rise that nobody checked reading GREEN, which is the exact shape
+                    # this whole doctrine was founded to remove.
+                    fail(f"BINDING metric `{k}` ROSE {b:,} -> {n:,} and {ACCEPTED_RISES} accepts "
+                         f"it under `{invariant}` ({leaf}) — but that invariant could NOT BE "
+                         f"EVALUATED on this measurement: {exc}")
+                    continue
                 if not holds:
                     fail(f"BINDING metric `{k}` ROSE {b:,} -> {n:,} and {ACCEPTED_RISES} accepts "
                          f"it under `{invariant}` ({leaf}) — but that invariant NO LONGER HOLDS on "
@@ -792,8 +903,10 @@ if REMEASURE or REBASELINE:
                     continue
                 notes.append(f"BINDING metric `{k}` ROSE {b:,} -> {n:,} "
                              f"(+{100.0 * (n - b) / b:.2f} %) — ACCEPTED as attributed by "
-                             f"{ACCEPTED_RISES} under `{invariant}` ({leaf}), and the invariant was "
-                             f"RE-DERIVED on this run: {detail}. Why: {why}")
+                             f"{ACCEPTED_RISES} under `{invariant}` ({leaf})"
+                             + (f", scoped to `{' '.join(scope)}`" if scope else "")
+                             + f", and the invariant was RE-DERIVED on this run: {detail}. "
+                               f"Why: {why}")
             elif n < b:
                 notes.append(f"BINDING metric `{k}` FELL {b:,} -> {n:,} "
                              f"({100.0 * (n - b) / b:+.2f} %) — an improvement. Promote it "
@@ -815,7 +928,11 @@ if REMEASURE or REBASELINE:
                   f"cascade_* graph, which the binding counters cannot see.", file=sys.stderr)
 
         if REBASELINE and not failures:
-            for name in ("entries.tsv", "cost.md", "advisory.json"):
+            # ⛔ `rule_graph.json` is DELIBERATELY NOT PROMOTED. It is an exact function of a
+            # tracked grammar, and a field a command answers exactly is looked up, never stored
+            # (`docs/DERIVED_STATE_CONTAINMENT.md` R1/R3). `rule_costs.tsv` IS promoted: it is a
+            # measurement, and nothing but a re-run can produce it.
+            for name in ("entries.tsv", "rule_costs.tsv", "cost.md", "advisory.json"):
                 shutil.copyfile(os.path.join(scratch, name), os.path.join(ROOT, ART, name))
             print(f"parse-cost-ratchet: REBASELINED — {ART} now records this measurement.",
                   file=sys.stderr)
