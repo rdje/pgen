@@ -1,5 +1,41 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0250 (leaf SV-CORPUS-GRAD.13c.2x.3 (a) DISCHARGED; docs + register only, ZERO code bytes): two tracked instruments disagreed about one metric name — both were right, and the stale thing underneath is SIXTY-NINE grammar revisions old
+
+- ✅ **(a) SETTLED BY MEASUREMENT, not by the hypothesis.** `-0249` recorded an entry-scope
+  hypothesis and deliberately did not adopt it. Measured now, one grammar and one binary, varying
+  only `--entry-rule`: `sv_multi_entry_root` → **3** unreachable, `systemverilog_file` → **14**,
+  `library_text` → **1058**. ⇒ the gap report's `unreachable_rules` is **entry-scoped** and moves
+  by 350×; the three rules in question are unreachable from *every* entry, so they are
+  entry-independent ORPHANS.
+- ⭐ **The lint's side needed no experiment at all — it is documented verbatim in its own source.**
+  `rust/src/ast_pipeline/grammar_wellformedness.rs:341` (`GRAMMAR-WELLFORMED.A1b`): *"Roots = the
+  canonical entry PLUS every rule that NOTHING references … an unreferenced dead orphan is treated
+  as a root → not flagged; only referenced-but-unreachable dead ISLANDS are caught."*
+- ⛔⛔ **SO NEITHER INSTRUMENT IS WRONG.** `unreachable_rules` is one name for two predicates —
+  *"is there a referenced-but-unreachable dead island?"* versus *"what is reachable from THIS
+  declared entry?"*. The defect is that `systemverilog_syntax_closure_contract.json` names the
+  constraint without naming the predicate, so a reader whose gate fails reaches for the obvious
+  diagnostic, gets **0**, and concludes the gate is broken.
+- ⭐⭐ **AND THE VERDICT ON THE THREE ORPHANS IS SETTLED BY DATE.** The contract was last written
+  **2026-06-17** (`f4a60a0d`) with **69** revisions of `grammars/systemverilog.ebnf` since, and
+  `rust/src/ast_pipeline/indirect_lr_elimination.rs` — the pass that PRODUCES the residue — **did
+  not exist until 2026-08-13**. `max_unreachable_rules=0` was authored two months before the thing
+  that breaks it. **The contract is stale; the tree is not regressed.** That is the
+  `BASELINE-IDENTITY` diagnosis reached by exactly the procedure the doctrine prescribes, on a
+  second independent artifact — 69 revisions of unnoticed drift, found by refusing to stamp without
+  confirming.
+- **(b) DESIGNED, DELIBERATELY NOT LANDED HERE.** ⛔ Do not just raise the ceiling to 3: a bare
+  count says nothing about WHY and re-breaks silently when the eliminator's coverage moves. The
+  repo already ships the better shape in
+  `systemverilog_preprocessor_zero_plausible_gap_proof_contract.json` — a NAMED
+  `allowed_unreachable_rules` list with a required reason — so the repair is that list plus the
+  predicate it means, plus declaring the eliminator as a `BASELINE-IDENTITY` input. It is a CODE
+  change to `rust/scripts/sv_syntax_closure_gate.sh`, so it gets its own slice and its own
+  acceptance evidence.
+- **Validation**: `bash scripts/check_doctrines.sh` → ALL 24 PASS; knowledge-map OK. New card
+  `one-metric-name-two-predicates-is-a-contract-defect`. Live-status tracker UNCHANGED.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0249 (leaf SV-CORPUS-GRAD.13c.2x.2 SLICE 2 + .13c.2x.3 NEW; ZERO grammar bytes, ZERO Rust bytes): a retraction — the identity block recorded WHICH tree but never WHETHER the numbers were ever right about it, and that inverted the doctrine on its own first customer
 
 - ⛔⛔ **WHAT WAS WRONG.** `verified_at_commit` + `inputs` answer *"have the inputs moved since this

@@ -1,5 +1,44 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0250 — I was about to run an experiment to learn something the source had spelled out in prose for months
+
+**1. THE ANSWER WAS A COMMENT, NOT A MEASUREMENT.** Two tracked instruments disagreed about
+`unreachable_rules` on the same grammar, and I had a hypothesis (entry scoping) and a plan to test
+it on both sides. Half of that was right and worth doing — the gap report really is entry-scoped and
+the sweep proved it moves 3 → 14 → 1058. The other half cost one `sed`: the lint's root definition
+is written out in full at `grammar_wellformedness.rs:341`, including the sentence that settles the
+whole question — *"an unreferenced dead orphan is treated as a root → not flagged."* ⇒ **read the
+instrument's own source before theorising about its behaviour** →
+[[check-whether-the-artifact-already-states-the-property-before-building-a-detector]].
+
+**2. "WHICH TOOL IS BROKEN" WAS THE WRONG QUESTION AND IT NEARLY ATE THE SLICE.** Both instruments
+are correct and both choices are deliberate: the lint is false-negative-safe because flagging an
+unreferenced orphan would reject a grammar that legitimately exposes several start symbols; the gap
+report is entry-scoped because coverage is meaningless without an entry. The defect is one level up,
+in the contract that names a constraint `max_unreachable_rules` without saying which predicate it
+means → [[one-metric-name-two-predicates-is-a-contract-defect]].
+
+**3. THE DECISIVE EVIDENCE WAS TWO `git log` INVOCATIONS, AND I REACHED FOR THEM LAST.** The
+contract was last written 2026-06-17; the pass that produces the residue that breaks it first
+appeared 2026-08-13. A threshold cannot be a judgement about a mechanism that did not exist when it
+was written. That is a three-second measurement and it is worth more than the reachability sweep
+that preceded it — ⭐ **when a baseline and a behaviour disagree, date them both before analysing
+either.**
+
+**4. THE DOCTRINE PAID FOR ITSELF ON ITS SECOND CUSTOMER, AND NOT IN THE WAY I EXPECTED.** I did not
+find this by running a checker. I found it because `-0249` made `--stamp` refuse without a
+confirmation, so "adopt another baseline" turned into "run the gate", and the gate was RED with
+**69** revisions of drift under it. **A checklist item that forces a measurement finds things; one
+that forces a signature does not.**
+
+**5. WHAT I DELIBERATELY DID NOT DO.** The obvious repair — set `max_unreachable_rules: 3` — is
+wrong twice over: a bare count records no reason, and it re-breaks silently the next time the
+eliminator's coverage shifts. The repo already ships the right shape one family over (a named
+`allowed_unreachable_rules` list with a required reason), and pairing it with a `BASELINE-IDENTITY`
+input on the eliminator makes the next change *stale* the contract rather than *falsify* it. That is
+a code change to a gate script, so it gets its own slice with its own acceptance evidence instead of
+riding along in a docs commit.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0249 — I shipped a provenance block that made the diagnosis worse, and it took running the consumer to see it
 
 **1. THE DEFECT WAS NOT AN OMISSION, IT WAS AN IMPLICATION.** Slice 1's block recorded
