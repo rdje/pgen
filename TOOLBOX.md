@@ -1261,6 +1261,50 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `scope_randomize` (Syntax 18-11) was **unreachable** — `std::randomize(a, b) with { a < b; }`
   REJECTED in every expression.
 
+### 5.9 "Is this BASELINE still describing THIS tree?" — the baseline-identity verifier
+
+- **WHAT:** `bash scripts/check_baseline_identity.sh` — the `BASELINE-IDENTITY` doctrine
+  (`SV-CORPUS-GRAD.13c.2x.2`). A tracked baseline that holds a number **derived from the tree**
+  carries an `identity` block naming the inputs it was derived from; this verifier **re-hashes
+  every one of them on every run**, and holds a CLOSED two-sided register over
+  `rust/test_data/grammar_quality/` so a new baseline cannot appear without a verdict.
+- **WHEN:** a gate is RED and you cannot tell a real regression from a stale expectation; you are
+  about to rebaseline; you are adding a contract that pins a derived number; or you are wondering
+  *"how old is this expectation?"*. ⛔ **Run it BEFORE spending two minutes a seed on a
+  measurement you will not be able to attribute.**
+- **HOW:**
+  ```bash
+  bash scripts/check_baseline_identity.sh                        # doctrine mode: register + all adopted
+  bash scripts/check_baseline_identity.sh --report               # the 53-row inventory by disposition
+  bash scripts/check_baseline_identity.sh --verify <baseline>    # one baseline — what a GATE calls
+  bash scripts/check_baseline_identity.sh --stamp <baseline> [--input <path>]…   # (re)derive the block
+  ```
+- **OUTPUT / EXIT CODES** — a gate calling `--verify` should distinguish all three:
+  ```text
+  0  baseline-identity: OK — <file> identity fresh for: <inputs>
+  1  baseline-identity: THE BASELINE IS STALE — <file> no longer describes this tree.
+         grammars/systemverilog.ebnf: baseline `b0395cc85948…` vs live `4f1a…`
+  2  baseline-identity: REFUSING — <file> carries NO identity block / a MALFORMED one
+  ```
+- ⭐⭐ **THE DEPENDENCY SET IS DATA, AND THAT IS THE WHOLE POINT.** `PARSE-COST-RATCHET` hard-codes
+  its four inputs in its gate, and `ENGINE-UNIVERSAL-SERVICES.21` is the record of an input being
+  forgotten there. Here each baseline declares its own `inputs` map, so a forgotten input is a
+  missing key in the artifact rather than a missing line in a script.
+- ⛔⛔ **DECLARE THE PRODUCERS, NOT THE CONSUMERS.** The first adoption declared the gate that
+  ASSERTS its numbers; that was corrected before commit. `ast_pipeline` produces the certificate
+  lines, the gate only checks them — and declaring the checker would stale the baseline on every
+  cosmetic edit to a 400-line shell script. A gate that cries wolf is a gate people learn to bypass.
+- ⛔ **A BLOCK NOBODY READS IS THE DEFECT, NOT THE FIX** (`SV-CORPUS-GRAD.13i`: six oracles carried
+  one, ONE was gate-checked, FOUR were measurably stale). So an adoption ships block **and** reader
+  **and** an observed refusal in the same commit, and a row registered anything but `adopted` that
+  *carries* a block is a hard failure.
+- ⚠️ **An input that is absent is reported NOT EVALUATED, never counted as fresh** — `generated/` is
+  untracked, and a shallow clone cannot resolve `verified_at_commit`. If **nothing** could be
+  hashed the verifier REFUSES rather than reporting a clean tree.
+- **PROBE:** `bash docs/tasks/artifacts/sv_corpus_grad/baseline_identity/probe.sh` — 15 arms
+  (3 controls GREEN, 12 refusals), run recorded beside it in `probe_run.txt`. It restores every
+  file it mutates and byte-compares against its own backup.
+
 ## 6. Coverage / gap reports (`ast_pipeline`)
 
 - `--report-k-path-coverage K` — k-path (Havrikov-Zeller) coverage report at depth K (use 2–3); read-only.

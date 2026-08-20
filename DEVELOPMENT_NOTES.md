@@ -1,5 +1,66 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0248 — I built a population out of a classifier, and the classifier was wrong in both directions at once
+
+**1. THE CENSUS I INHERITED WAS HONEST ABOUT BEING A FLOOR, AND I ALMOST BUILT ON IT ANYWAY.**
+`.13c.2x`(d) sized the derived-expectation baselines at **15 of 15 carrying no identity field** using
+key-name shapes, and said so in its own text: *"this classification is mechanical … it sizes the
+population and does not adjudicate any individual file."* My first move was to reproduce it so the
+register would agree with the tracked number. It did not agree — I got 19 — and the temptation to
+tune the regex until it printed 15 was real and immediate. Root-causing the disagreement instead is
+what produced the whole design: my `IDENT` pattern was matching `sha` inside `shadow` and `shapes`,
+and *both* classifiers were missing files whose expectation fields simply are not named
+`expected_*`. ⇒ **the disagreement was the finding**, and a number that has to be reproduced by
+tuning is a number nobody should have quoted.
+
+**2. THE CLASSIFIER WAS WRONG IN BOTH DIRECTIONS, AND ONLY ONE DIRECTION IS SURVIVABLE.**
+Overcounting is cheap: five `*_v0_contract` files scored 46 "derived" fields between them, and every
+one is run configuration or a performance budget — `sample_count`, `seed_base`, `max_depth`,
+`target_max_attempts`, ms and byte ceilings. A reviewer catches that. Undercounting is the expensive
+one: the sweep globbed `*.json`, so `regex_pcre2_compile_oracle_lightweight_v0.env` — seven derived
+expectations over the regex grammar, its parser and the pcre2 corpus, with a `+1` of pre-existing
+drift recorded **by hand** in its own header — was not in the population at all, and nothing in the
+output said *"I did not look at .env files"*. ⇒ close the ratchet over the **container**, where
+membership is a filesystem fact →
+[[close-a-ratchet-over-the-container-not-over-a-classifier]].
+
+**3. THE DISTINCTION THAT DECIDED 53 ROWS IS NOT "IS IT A NUMBER".** A certificate total is a
+function of the grammar and goes stale when the grammar moves. A random seed, a sample count, a
+50 MB byte ceiling or an IEEE-derived legality verdict is not: the first two are what the run is
+*told*, the last is what the *standard* says. Freshness-checking the second kind is noise — and
+worse, it invites re-deriving an expectation whose entire job is to hold the tree to account rather
+than follow it. The LRM-derived `*_contract_cases.json` files are the sharp case: if a grammar
+change moves one of those verdicts, the correct response is a defect hunt, never a rebaseline.
+
+**4. I OVER-DECLARED THE FIRST DEPENDENCY SET AND THE WIRING COMMIT CAUGHT ME WITHIN MINUTES.** The
+first stamp named six inputs including `sv_cert_recognized_union_gate.sh` — the gate that *asserts*
+the numbers. Then I wired the identity reader into that same gate, which changed its bytes, which
+staled the contract I had just stamped, for a change that cannot move a certificate count.
+`ast_pipeline` produces the `CERTIFICATE-COVERAGE:` lines; the gate only parses them. ⇒ **declare
+the producers, not the consumers** → [[declare-the-producers-not-the-consumers-in-a-dependency-set]].
+⚠️ And the opposite error is equally recorded (`ENGINE-UNIVERSAL-SERVICES.21`), so the rule is not
+"declare less" — it is *"if I change this file and nothing else, can the recorded value legitimately
+differ?"*
+
+**5. I INVENTED AN EXIT CODE THE PROJECT HAD ALREADY DEFINED.** The consuming gate first refused
+with `exit 3`, reasoning that *"stale baseline"* deserves to be machine-distinct from *"tree
+regressed"*. `docs/book/src/gate-flow.md` §1 already publishes a 0/1/2 contract in which **2 means
+"the gate refuses: it cannot run, or cannot see what it is meant to check"** — precisely this case —
+and `make` collapses any recipe failure to its own 2 regardless, so the new code bought nothing and
+cost the book its truth. **Read the published contract before extending it.**
+
+**6. TWO PROBE BUGS THE PROBE'S OWN ASSERTIONS CAUGHT, both in the passing-direction shape.** First,
+`grep -qF ""` matches every *line* and therefore returns 1 on empty output — so the register control,
+whose success is silent, would have scored a failure for succeeding quietly. Second, `VAR=x
+some_shell_function` leaves `VAR` set in the calling shell in bash's default mode, so the perturbed
+contract path would have leaked into every later arm. Neither is exotic; both are the reason a probe
+gets written before the result is quoted → [[a-check-whose-inputs-all-pass-has-not-been-tested]].
+
+**7. WHAT THE SLICE DOES NOT CLAIM.** The union gate is still RED at HEAD by 71 rules and 53
+UNKNOWNs. Thirteen baselines are registered `deferred` and every one is real debt. The value
+delivered is narrower and stateable exactly: an undiagnosable RED became a diagnosable refusal, in
+under a second, ahead of a twenty-minute measurement.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0244 — the standard labels its own gaps, and I nearly went looking for them with prose analysis
 
 **1. THE SIGNAL I WAS ABOUT TO BUILD ALREADY EXISTED, PRINTED, IN THE SUBJECT.** `.13c.2v` asked for

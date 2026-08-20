@@ -1,0 +1,295 @@
+{
+  "register": "baseline_identity_register_v0",
+  "owner": "SV-CORPUS-GRAD.13c.2x.2",
+  "what_this_is": "One verdict per entry of rust/test_data/grammar_quality/, on the question: does this artifact hold a value DERIVED FROM THIS TREE, and if so does it carry an identity block that says which tree? The entry set is RE-DERIVED on every run by scripts/check_baseline_identity.sh; only these dispositions are written down, because a disposition is a human decision nothing can re-derive. An entry with no row FAILS, and a row naming no entry FAILS, so this list can neither be bypassed nor accumulate dead exemptions.",
+  "the_distinction_that_decides_every_row": "⭐ DERIVED FROM THE TREE is not the same as NUMERIC. A certificate total is a function of the grammar and goes stale when the grammar moves. A performance budget, a seed, a sample count or an LRM-derived legality verdict is not: it is what the run is TOLD, or what the STANDARD says. Freshness-checking the second kind would be noise, and worse, it would invite re-deriving an expectation that is supposed to hold the tree to account rather than follow it.",
+  "honest_limit": "⛔ 'deferred' is AN ACCEPTED RISK, NOT A CLEAN BILL OF HEALTH: those rows hold tree-derived expectations with nothing watching their inputs, exactly as the adopted row did before SV-CORPUS-GRAD.13c.2x found it RED for eleven grammar revisions. What this register buys is that the debt is VISIBLE, OWNED and cannot grow silently. ⚠️ And a disposition is a reading of each artifact, not a proof about it: SV-CORPUS-GRAD.13c.2x's key-name sweep sized this population at 15 and declared itself a mechanical FLOOR owing per-row adjudication. This is that adjudication, and it disagrees in both directions -- five *_v0_contract files whose 'derived' fields are all run configuration, and one .env baseline the *.json-only sweep could not see at all.",
+  "dispositions": {
+    "adopted": "carries an `identity` block, and this enforcer re-hashes every input it declares on every run",
+    "deferred": "holds expectations that ARE a function of the tree, adoption is owed, and `owner_leaf` names the task leaf that owes it. An ACCEPTED RISK, not a clean bill of health — what it buys is that the debt is VISIBLE, OWNED and cannot grow silently",
+    "not-a-derived-baseline": "holds no value that is a function of the tree — schema versions, run configuration, policy budgets, case lists, human dispositions — so an identity block would guard nothing and would only add a surface to rot",
+    "identity-native": "the artifact IS an identity record — it stores digests rather than expectations — and a named doctrine already re-derives it every run. `verified_by` names that enforcer and this register checks the enforcer exists; it does NOT re-run it",
+    "corpus-directory": "a corpus tree rather than a baseline file; its contents are inputs that a baseline DECLARES, not expectations of their own"
+  },
+  "entries": [
+    {
+      "entry": "systemverilog_recognized_cert_union_contract.json",
+      "disposition": "adopted",
+      "reason": "THE EVIDENCE CHAIN OF THIS WHOLE DOCTRINE. SV-CORPUS-GRAD.13c.2x measured it RED at HEAD by 71 rules and 53 UNKNOWNs after ELEVEN revisions of grammars/systemverilog.ebnf, with nothing in the file able to say the baseline was the stale half. FIVE inputs declared: the grammar and the generated parser it certifies through, plus the three engine surfaces the counts are a function of -- grammar_wellformedness.rs (the census itself), indirect_lr_elimination.rs (which SYNTHESIZES 25 of the rules the total counts -- SV-CORPUS-GRAD.13c.2x.1), and stimuli_generator.rs (whose witness pass decides the witness/UNKNOWN split -- ENGINE-UNIVERSAL-SERVICES.11 moved these very numbers by changing one depth budget there). ⚠️ rust/scripts/sv_cert_recognized_union_gate.sh is deliberately NOT an input: it ASSERTS the numbers, it does not PRODUCE them -- ast_pipeline emits both the CERTIFICATE-COVERAGE and CERTIFICATE-COVERAGE-UNION lines. Declaring the consumer would stale this baseline on every cosmetic edit to a 400-line shell script, and a gate that cries wolf is a gate people learn to bypass."
+    },
+    {
+      "entry": "generated_reproducibility_v0.json",
+      "disposition": "identity-native",
+      "verified_by": "scripts/check_generated_reproducibility.sh",
+      "reason": "It stores digests, not expectations: verified_at_commit + emission_sha + a parser_sha and input_sha per family. GENERATED-REPRODUCIBILITY tier 1 re-hashes all three fields on every commit, so it is already the thing this doctrine asks the other rows to become."
+    },
+    {
+      "entry": "systemverilog_syntax_closure_contract.json",
+      "disposition": "deferred",
+      "owner_leaf": "SV-CORPUS-GRAD.13c.2x.2",
+      "reason": "⭐ THE SHARPEST SIBLING, named as such by SV-CORPUS-GRAD.13c.2x: min_total_rules=1403, min_reachable_rules=1404, max_unreachable_rules/branches are literally rule counts over grammars/systemverilog.ebnf, carrying the same eleven revisions of drift beneath them. They are FLOORS rather than equalities, so HEAD's 1433 clears them and the gate is green -- which is exactly why the staleness is invisible here and adoption is owed rather than urgent."
+    },
+    {
+      "entry": "systemverilog_preprocessor_syntax_closure_contract.json",
+      "disposition": "deferred",
+      "owner_leaf": "SV-CORPUS-GRAD.13c.2x.2",
+      "reason": "Same shape one family over: min_total_rules=71 / min_reachable_rules=69 / max_unreachable_rules=2 / max_unreachable_branches=24 over grammars/systemverilog_preprocessor .ebnf. Floors, so stale and green are indistinguishable without an identity block."
+    },
+    {
+      "entry": "systemverilog_preprocessor_zero_plausible_gap_proof_contract.json",
+      "disposition": "deferred",
+      "owner_leaf": "SV-CORPUS-GRAD.13c.2x.2",
+      "reason": "allowed_unreachable_rules=[] and allowed_unreachable_branches=[] are EMPTY-SET assertions over the SVPP grammar -- the strictest possible form of a derived expectation, since any grammar change that strands one rule breaks them."
+    },
+    {
+      "entry": "rtl_const_expr_cert_contract.json",
+      "disposition": "deferred",
+      "owner_leaf": "SV-CORPUS-GRAD.13c.2x.2",
+      "reason": "expected_total=48 / expected_proof=0 / expected_witness=48 / expected_unknown=0 are exact certificate-coverage equalities over grammars/rtl_const_expr.ebnf and its generated parser -- the same object as the adopted row, on a smaller grammar."
+    },
+    {
+      "entry": "verilog_2005_conformance_contract_v0.json",
+      "disposition": "deferred",
+      "owner_leaf": "SV-CORPUS-GRAD.13c.2x.2",
+      "reason": "cert.expected_total=1122 / expected_proof=329 / expected_witness=779 / expected_unknown=14 are certificate-coverage equalities over the verilog_2005 PROFILE of the SV grammar, so every SV grammar revision is a candidate to move them."
+    },
+    {
+      "entry": "systemverilog_external_corpus_backed_proof_surface_v0.json",
+      "disposition": "deferred",
+      "owner_leaf": "SV-CORPUS-GRAD.13c.2x.2",
+      "reason": "expected_totals.* (cases_executed=14, parse_pass_total=14, parse_fail_total=0, …) are exact counts produced by running the SV parser over a declared external corpus: functions of the parser AND of the corpus submodule pin."
+    },
+    {
+      "entry": "regex_broader_corpus_v0.json",
+      "disposition": "deferred",
+      "owner_leaf": "SV-CORPUS-GRAD.13c.2x.2",
+      "reason": "expected_case_count=44 is the case count of rust/test_data/regex/stress_tests.json -- a derived equality over a second tracked file, which is precisely the dependency an identity `inputs` map exists to name."
+    },
+    {
+      "entry": "regex_pcre2_compile_oracle_lightweight_v0.env",
+      "disposition": "deferred",
+      "owner_leaf": "SV-CORPUS-GRAD.13c.2x.2",
+      "reason": "⛔ THE ROW THAT PROVES THE .13c.2x CENSUS UNDERCOUNTED: it sized the population over *.json only, and this .env holds SEVEN derived expectations (EXPECTED_CASES=2189, PARSE_OK=1609, PARSE_FAIL=580, MIN_MATCH=1845, MAX_MISMATCH=344, MAX_FALSE_ACCEPT=299, MAX_FALSE_REJECT=48) over the regex grammar, its generated parser and the pcre2-10.47 case corpus. Its own header records a prior +1 of PRE-EXISTING drift found by hand. ⚠️ BLOCKED ON A CARRIER: the identity block has a JSON carrier only, so this row cannot be adopted until SV-CORPUS-GRAD.13c.2x.2 designs the .env form. Registered deferred rather than quietly excluded."
+    },
+    {
+      "entry": "generated_clippy_correctness_contract_v0.json",
+      "disposition": "deferred",
+      "owner_leaf": "SV-CORPUS-GRAD.13c.2x.2",
+      "reason": "lint_policy.correctness_roster_size=68 is a function of the INSTALLED clippy (the file records clippy 0.1.95), and expected.correctness_findings_in_generated=0 is a function of every generated/*.rs. Its own `measured_at_commit: 730419a2` is a hand-written note that nothing re-hashes -- the .13i shape in prose form."
+    },
+    {
+      "entry": "live_document_currency_register_v0.json",
+      "disposition": "deferred",
+      "owner_leaf": "SV-CORPUS-GRAD.13c.2x.2",
+      "reason": "instrument_a.out_of_charter records measured_distinct_dates=24 and measured_bytes=562723 for a tracked document; both are exact functions of that document's current bytes."
+    },
+    {
+      "entry": "silent_success_sentinel_contract_v0.json",
+      "disposition": "deferred",
+      "owner_leaf": "SV-CORPUS-GRAD.13c.2x.2",
+      "reason": "calibration.facts[].expected_sentinels is GROUND TRUTH the instrument must reproduce, derived from named grammars plus the sentinel detector itself -- so a detector change can invalidate the calibration that is supposed to police it."
+    },
+    {
+      "entry": "rtl_frontend_generated_parity_contract_v0.json",
+      "disposition": "deferred",
+      "owner_leaf": "SV-CORPUS-GRAD.13c.2x.2",
+      "reason": "104 numeric leaves under samples[].expected_elaboration -- top_parameters, child_parameters, child_instance_count -- each an exact elaboration result over a tracked sample and the rtl_frontend elaborator."
+    },
+    {
+      "entry": "duality_hunt_gate_contract_v0.json",
+      "disposition": "deferred",
+      "owner_leaf": "SV-CORPUS-GRAD.13c.2x.2",
+      "reason": "lanes[].expected_signatures pins the exact break signatures the directed hunter must find for each grammar. The file's own owner_note records a signature VANISHING when the regex grammar was restructured, which is a derived expectation moving under a tree change, observed."
+    },
+    {
+      "entry": "systemverilog_nexsim_realistic_corpus",
+      "disposition": "corpus-directory",
+      "reason": "488 SystemVerilog sources adjudicated by systemverilog_nexsim_realistic_corpus_v0.json; the files are inputs, and a baseline that depends on them should DECLARE them."
+    },
+    {
+      "entry": "systemverilog_preprocessor_curated",
+      "disposition": "corpus-directory",
+      "reason": "30 curated preprocessor inputs behind systemverilog_preprocessor_curated_differential_corpus.json."
+    },
+    {
+      "entry": "verilog_2005_conformance",
+      "disposition": "corpus-directory",
+      "reason": "80 Verilog-2005 conformance sources behind verilog_2005_conformance_contract_v0.json."
+    },
+    {
+      "entry": "vhdl_realistic_corpus",
+      "disposition": "corpus-directory",
+      "reason": "14 VHDL sources behind vhdl_realistic_corpus_v0.json."
+    },
+    {
+      "entry": "baseline_identity_register_v0.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "This register. It holds DISPOSITIONS -- human decisions nothing can re-derive -- so there is no tree-derived value in it to go stale. Its population, by contrast, IS re-derived on every run."
+    },
+    {
+      "entry": "done_bar_family_register_v0.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "claimed_status is HAND-AUTHORED on purpose and must stay so: it is one arm of a two-arm check against the family-status gates, and deriving it would make the comparison pass by construction (docs/book/src/roadmap-and-live-status.md). A value that must NOT track the tree cannot be guarded by a freshness check."
+    },
+    {
+      "entry": "gate_reachability_register_v0.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "Dispositions only. Its orphan-set population is re-derived by check_gate_reachability.sh on every run -- the model this register is built on."
+    },
+    {
+      "entry": "flow_integrity_register_v0.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "A shrink-only exemption list plus one policy floor (workflow_regeneration_timeout_floor_minutes=30). Both are decisions, not measurements."
+    },
+    {
+      "entry": "systemverilog_core_v0_contract.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "⚠️ AN ADJUDICATION THAT CORRECTS THE MECHANICAL CENSUS. SV-CORPUS-GRAD.13c.2x's key-name sweep counted 14 'derived' fields here; read, all 22 numeric leaves are RUN CONFIGURATION or POLICY BUDGETS -- sample_count, seed_base, max_depth, max_repeat, target_max_attempts, ms and byte ceilings, min_pass_ratio. None is a function of the tree: they are what the run is TOLD to do. That census declared itself a mechanical FLOOR needing per-row adjudication; this is that adjudication."
+    },
+    {
+      "entry": "systemverilog_failure_context_v0_contract.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "Same adjudication as systemverilog_core_v0_contract.json: 20 numeric leaves, all run configuration and performance budgets."
+    },
+    {
+      "entry": "systemverilog_stimuli_cross_family_platform_contract_v0.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "Same adjudication: 20 numeric leaves, all run configuration and performance budgets."
+    },
+    {
+      "entry": "vhdl_core_v0_contract.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "Same adjudication: 9 numeric leaves, all run configuration and performance budgets."
+    },
+    {
+      "entry": "vhdl_stimuli_cross_family_platform_contract_v0.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "Same adjudication: 9 numeric leaves, all run configuration and performance budgets."
+    },
+    {
+      "entry": "systemverilog_context_legality_contract_cases.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "⭐ AN EXPECTATION DERIVED FROM THE STANDARD IS NOT DERIVED FROM THE TREE. Each case pins what IEEE 1800 says is legal; a grammar change that moves the verdict is a DEFECT to be found, not a baseline to be re-derived. Freshness-checking it would invite exactly the wrong repair."
+    },
+    {
+      "entry": "systemverilog_declared_identifier_contract_cases.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "LRM-derived legality cases; see systemverilog_context_legality_contract_cases.json."
+    },
+    {
+      "entry": "systemverilog_package_qualification_contract_cases.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "LRM-derived legality cases; see systemverilog_context_legality_contract_cases.json."
+    },
+    {
+      "entry": "systemverilog_port_binding_legality_contract_cases.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "LRM-derived legality cases; see systemverilog_context_legality_contract_cases.json."
+    },
+    {
+      "entry": "systemverilog_semantic_scope_contract_cases.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "LRM-derived legality cases; see systemverilog_context_legality_contract_cases.json."
+    },
+    {
+      "entry": "systemverilog_width_compatibility_contract_cases.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "LRM-derived legality cases; see systemverilog_context_legality_contract_cases.json."
+    },
+    {
+      "entry": "systemverilog_nexsim_realistic_corpus_v0.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "A corpus manifest: each case declares a path, profiles and expect_parse_full_pass -- an adjudication of what the source IS, not a count the tree produces."
+    },
+    {
+      "entry": "vhdl_realistic_corpus_v0.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "A corpus manifest of path + expected verdict; see systemverilog_nexsim_realistic_corpus_v0.json."
+    },
+    {
+      "entry": "systemverilog_preprocessor_curated_differential_corpus.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "A curated differential manifest of inputs and expected behaviour, not a derived count."
+    },
+    {
+      "entry": "systemverilog_external_corpus_triage_v0.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "A case ROSTER -- name, corpus, path, mode, profiles, include_dirs. It declares no expectation at all, so there is nothing that can go stale."
+    },
+    {
+      "entry": "vhdl_external_corpus_triage_v0.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "A case roster with no expectations; see systemverilog_external_corpus_triage_v0.json."
+    },
+    {
+      "entry": "systemverilog_formal_exhaustive_closure_contract.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "Structural: required_surface_key, done_rule, expected_proof_surface_sidecar. It names WHICH proof surface must exist, and holds no number derived from the tree."
+    },
+    {
+      "entry": "systemverilog_preprocessor_formal_exhaustive_closure_contract.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "Structural closure contract naming a required surface; no tree-derived number."
+    },
+    {
+      "entry": "vhdl_formal_exhaustive_closure_contract.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "Structural closure contract naming a required surface; no tree-derived number."
+    },
+    {
+      "entry": "regex_formal_exhaustive_closure_contract.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "Structural closure contract naming a required surface; no tree-derived number."
+    },
+    {
+      "entry": "regex_parser_integration_contract_v1.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "Its version pair (integration_contract_version / parser_release_version) is a PUBLISHED release identity, human-assigned and already gate-held against the user guide by PUBLISHED-VERSION-CURRENCY; its success_samples / failure_samples are PCRE2-derived cases, which are standard-derived and not tree-derived."
+    },
+    {
+      "entry": "regex_embedded_code_block_contract_v0.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "A declared parser type/profile plus hand-authored shielding cases; no tree-derived number."
+    },
+    {
+      "entry": "ebnf_stimuli_contract.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "A grammar roster with a seed_base per grammar -- run configuration."
+    },
+    {
+      "entry": "regex_family_stimuli_contract.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "A grammar roster with a seed_base -- run configuration."
+    },
+    {
+      "entry": "stimuli_module_parity_contract.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "A grammar roster with a seed per grammar -- run configuration."
+    },
+    {
+      "entry": "return_annotation_stimuli_module_parity_contract.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "A grammar roster with a seed -- run configuration."
+    },
+    {
+      "entry": "regex_combined_telemetry_lightweight_v0.env",
+      "disposition": "not-a-derived-baseline",
+      "reason": "sota_exit_gate policy knobs (which checks run, which are strict). Decisions, not measurements."
+    },
+    {
+      "entry": "systemverilog_combined_telemetry_lightweight_v0.env",
+      "disposition": "not-a-derived-baseline",
+      "reason": "sota_exit_gate policy knobs for the SV lane. Decisions, not measurements."
+    },
+    {
+      "entry": "vhdl_combined_telemetry_lightweight_v0.env",
+      "disposition": "not-a-derived-baseline",
+      "reason": "sota_exit_gate policy knobs for the VHDL lane. Decisions, not measurements."
+    },
+    {
+      "entry": "systemverilog_preprocessor_lightweight_v0.env",
+      "disposition": "not-a-derived-baseline",
+      "reason": "Focused preprocessor run policy -- count, threshold, attempt and fuzz budgets. Configuration."
+    }
+  ]
+}

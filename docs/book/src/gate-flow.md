@@ -153,7 +153,7 @@ Two gates check the *proof surface itself* rather than the product:
   `actions/checkout` produces), runs **33 surface audits** over the real
   repository, then **replays the command each tracked workflow runs** inside the
   export. See §3 for why the export is the interesting part.
-- **`scripts/check_doctrines.sh`** — the doctrine enforcer, <!-- DOCTRINE-COUNT -->**23**<!-- /DOCTRINE-COUNT --> registered
+- **`scripts/check_doctrines.sh`** — the doctrine enforcer, <!-- DOCTRINE-COUNT -->**24**<!-- /DOCTRINE-COUNT --> registered
   checks, run by `.githooks/pre-commit` on **every commit**. This is the only layer
   that runs without a human deciding to (§6). The registry inside it is the single
   source of the roster; `DOCTRINE_ENFORCEMENT.md` §10 is its reviewed mirror and a
@@ -388,6 +388,103 @@ recipe variable of exactly the shape `<binary> $(<flag-variable>)`; anything els
 a wrapper, an `env` prefix, a computed value — is a **refusal**, not a silent
 mis-read, because resolving it would mean reimplementing make's own expansion.
 
+### Is this *baseline* still describing this tree? — `BASELINE-IDENTITY`
+
+The two doctrines above ask whether the **grammar contract** and the **generated
+artifacts** are current. A third population sits between them and had no such check at
+all: the **tracked baselines** under `rust/test_data/grammar_quality/` that pin numbers
+*derived from the tree* — certificate totals, rule counts, corpus pass tallies.
+
+The founding measurement is blunt. `rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json`
+was last touched **2026-08-12**; `grammars/systemverilog.ebnf` moved **eleven times**
+after that. Every `expected_*` field in the contract is an exact function of that grammar,
+and the file contained **no grammar sha, no parser sha and no `verified_at_commit`** — so
+when the gate finally ran and reported `total 1362` against a measured `1433`, it could say
+*"something is wrong"* and never *"your baseline is eleven revisions old"*. Those are
+different findings with different repairs, and nothing in the repository could tell them
+apart.
+
+**The block, and why it is generic.** Each adopted baseline declares the inputs it depends
+on, as data:
+
+```json
+"identity": {
+  "_verifier": "bash scripts/check_baseline_identity.sh --verify <this file> …",
+  "verified_at_commit": "6d6edf94c9e7947fe175d0936c83deaca982df47",
+  "inputs": {
+    "grammars/systemverilog.ebnf": "b0395cc8…",
+    "generated/systemverilog_parser.rs": "936294a4…",
+    "rust/src/ast_pipeline/grammar_wellformedness.rs": "b6ed770f…"
+  }
+}
+```
+
+The population does **not** share a dependency set — one baseline derives from a grammar,
+another from generated Rust, another from tracked prose, another from a vendored corpus —
+so a fixed `(grammar, parser)` pair would not have fit. Declaring the set *in the artifact*
+is also strictly stronger than `PARSE-COST-RATCHET`, whose four inputs are hard-coded in its
+gate: there, adding an input means remembering to edit a script, and
+`ENGINE-UNIVERSAL-SERVICES.21` is the record of exactly that being forgotten. Here a
+forgotten input is a missing key in the file itself.
+
+**Declare the producers, not the consumers.** The first adoption declared the gate that
+*asserts* its numbers alongside the engine that *produces* them, and that was corrected
+before it landed. `ast_pipeline` emits the certificate lines; the gate only checks them —
+and declaring the checker would have staled the baseline on every cosmetic edit to a
+400-line shell script. A gate that cries wolf is a gate people learn to bypass.
+
+**⛔ A block nobody reads is the defect, not the fix.** This is the constraint the whole
+design turns on, because the repository has already run the experiment: `SV-CORPUS-GRAD.13i`
+found **six** oracles carrying a self-describing identity block, exactly **one** of them
+gate-checked, and **four measurably stale**. A block that exists and is unread passes every
+check that only asks whether it exists. So:
+
+- one **shared verifier** — `scripts/check_baseline_identity.sh` (TOOLBOX 5.9) — re-hashes
+  every declared input on every run, and produces the refusal wording in exactly one place
+  so every gate in the repository refuses in identical words;
+- every adoption ships **block *and* reader *and* an observed refusal** in the same commit —
+  `sv_cert_recognized_union_gate` now refuses to measure at all (exit `2`, the published
+  "cannot see what it is meant to check" code) until the identity verifies, and it does so
+  *before* the two-minutes-per-seed measurement rather than after it;
+- a baseline registered as anything but `adopted` that **carries** a block is a hard
+  failure, which is the `.13i` shape made unreachable rather than merely discouraged.
+
+**The population is closed and two-sided.** A register on the same model as
+`gate_reachability_register_v0.json` holds one verdict per entry of the baseline directory.
+The entry set is re-derived on every run, so an entry with no verdict fails **and** a verdict
+naming no entry fails — the list can neither be bypassed nor accumulate dead exemptions. The
+current adjudication of its 53 rows:
+
+| disposition | rows | meaning |
+|---|---:|---|
+| `adopted` | 1 | carries a block; every declared input re-hashed each run |
+| `deferred` | 13 | holds tree-derived expectations, adoption owed, `owner_leaf` named |
+| `identity-native` | 1 | *is* an identity record, already re-derived by its own doctrine |
+| `corpus-directory` | 4 | a corpus tree, not a baseline |
+| `not-a-derived-baseline` | 34 | holds no value that is a function of the tree |
+
+⭐ **The distinction that decides every row is not "is it a number".** A certificate total is
+a function of the grammar and goes stale when the grammar moves. A performance budget, a
+random seed, a sample count or an IEEE-derived legality verdict is not: it is what the run is
+*told*, or what the *standard* says. Freshness-checking the second kind would be noise —
+worse, it would invite re-deriving an expectation whose job is to hold the tree to account
+rather than follow it.
+
+⚠️ **`deferred` is an accepted risk, not a clean bill of health.** Thirteen baselines still
+hold derived expectations with nothing watching their inputs, exactly as the adopted one did
+for eleven grammar revisions. What the register buys is that the debt is visible, owned and
+bounded.
+
+⚠️ **And the honest bound on the census itself.** The population was first sized by a
+key-name classifier, which the adjudication corrected **in both directions**: five contracts
+whose "derived" fields turned out to be run configuration and performance budgets, and one
+`.env` baseline holding seven derived expectations that a `*.json`-only sweep could not see
+at all. A key-name classifier is the wrong basis for the closed side of a ratchet, because
+its blind spot is silent and in the passing direction — so the register closes over the
+**directory**, where membership is a filesystem fact.
+
+---
+
 ---
 
 ## 4. Outputs
@@ -616,7 +713,7 @@ workflows, the git hooks and `COMMIT.md` — and sorts targets into three tiers.
 > The other 11 tracked workflows stay `workflow_dispatch`-only to conserve account
 > minutes, and `memory-architecture-gate.yml` — the only one also on
 > `pull_request` — runs the doctrine driver and no `make` target at all. **The
-> automatic layer covers the <!-- DOCTRINE-COUNT -->23<!-- /DOCTRINE-COUNT --> enforced doctrines and 14 of the 118 gate
+> automatic layer covers the <!-- DOCTRINE-COUNT -->24<!-- /DOCTRINE-COUNT --> enforced doctrines and 14 of the 118 gate
 > targets.** Every other proof lane in this chapter runs only when a human asks —
 > the 79 operator-reachable ones exactly as much as the 31 orphans.
 >

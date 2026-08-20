@@ -1,0 +1,213 @@
+#!/usr/bin/env bash
+# SV-CORPUS-GRAD.13c.2x.2 — the adversarial probe for the `BASELINE-IDENTITY` doctrine.
+#
+# ⛔ WHY IT EXISTS, AND WHY ARM 3 IS THE ONE THAT MATTERS. `SV-CORPUS-GRAD.13i` measured this
+# repository shipping SIX oracles that already carried a self-describing identity block: exactly
+# ONE was gate-checked and FOUR were measurably stale. A block that is present and unread passes
+# every check that only asks whether it EXISTS — so a doctrine about identity blocks that has not
+# been observed REFUSING is indistinguishable from the defect it claims to fix
+# ([[a-check-whose-inputs-all-pass-has-not-been-tested]]).
+#
+# Every arm fires one way the doctrine must refuse, and the two CONTROL arms must stay GREEN so a
+# blanket-red enforcer cannot score a pass. ⭐ Arm 3 changes the INPUT FILE rather than the
+# recorded digest, because that is the property under test: the verifier re-hashes the live tree on
+# every run, it does not compare a number against itself.
+#
+#   bash docs/tasks/artifacts/sv_corpus_grad/baseline_identity/probe.sh
+#
+# Exit 0 = every arm behaved as specified. Exit 1 = an arm did NOT (a hole). Exit 2 = the probe
+# could not run.
+#
+# ⛔ FIVE levels up: baseline_identity -> sv_corpus_grad -> artifacts -> tasks -> docs -> root.
+set -uo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd)"
+cd "$ROOT" || exit 2
+[ -f scripts/check_baseline_identity.sh ] || { echo "probe: not at the repo root ($ROOT)" >&2; exit 2; }
+
+VERIFY="scripts/check_baseline_identity.sh"
+QUAL="rust/test_data/grammar_quality"
+REGISTER="$QUAL/baseline_identity_register_v0.json"
+ADOPTED="$QUAL/systemverilog_recognized_cert_union_contract.json"
+DEFERRED="$QUAL/regex_broader_corpus_v0.json"
+
+# ⛔ ON-VOLUME BY POLICY (CLAUDE.md §13): the scratch tree is derived from the repo root, never
+# from $TMPDIR, which can live on a different filesystem.
+WORK="rust/target/baseline_identity_probe"
+rm -rf "$WORK"; mkdir -p "$WORK" || exit 2
+LOG="$WORK/arm.log"
+PASS=0; FAIL=0
+
+cleanup() {
+  cp -f "$WORK/backup_register.json" "$REGISTER" 2>/dev/null
+  cp -f "$WORK/backup_deferred.json" "$DEFERRED" 2>/dev/null
+  rm -f "$QUAL/zz_probe_unregistered_v0.json"
+  echo "probe: restored the tracked register + deferred baseline"
+  # ⛔ SCOPED TO WHAT THIS PROBE ACTUALLY TOUCHES, not to the whole directory. A residue check
+  # that also reports the slice's own legitimate in-flight edits fires on every run, and a warning
+  # that always fires is a warning nobody reads.
+  local residue=""
+  cmp -s "$WORK/backup_register.json" "$REGISTER" || residue="$residue $REGISTER"
+  cmp -s "$WORK/backup_deferred.json" "$DEFERRED" || residue="$residue $DEFERRED"
+  [ -e "$QUAL/zz_probe_unregistered_v0.json" ] && residue="$residue (the unregistered probe file)"
+  if [ -n "$residue" ]; then
+    echo "probe: ⛔ RESIDUE LEFT BEHIND —$residue" >&2
+  else
+    echo "probe: no residue — every file this probe mutated is byte-identical to its backup"
+  fi
+}
+trap cleanup EXIT
+cp -f "$REGISTER" "$WORK/backup_register.json" || exit 2
+cp -f "$DEFERRED" "$WORK/backup_deferred.json" || exit 2
+
+#   $1 arm name   $2 expected rc   $3 a string the output must contain   $4.. the command
+arm() {
+  local name="$1" want_rc="$2" want_msg="$3"; shift 3
+  local rc
+  "$@" > "$LOG" 2>&1; rc=$?
+  # ⛔ An EMPTY expectation means "rc only". Passing "" to `grep -qF` matches every LINE, which
+  # returns 1 on the empty output a silent success produces — the control would have scored a
+  # failure for succeeding quietly.
+  if [ "$rc" = "$want_rc" ] && { [ -z "$want_msg" ] || grep -qF "$want_msg" "$LOG"; }; then
+    echo "  ✓ $name — rc=$rc and the message names it"
+    PASS=$((PASS + 1))
+  else
+    echo "  ✗ $name — expected rc=$want_rc containing:"
+    echo "      $want_msg"
+    echo "    got rc=$rc:"
+    sed 's/^/      /' "$LOG" | tail -14
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+# ── CONTROLS ────────────────────────────────────────────────────────────────────────────────────
+# ⛔ A control is the arm that must stay GREEN; it is NOT a refusal and is never counted as one
+# (the `-0231` correction: publishing "5 refusal arms … incl. a control" overstated the evidence).
+echo "controls — these must stay GREEN"
+arm "CONTROL: the adopted baseline verifies at HEAD" 0 "identity fresh for" \
+    bash "$VERIFY" --verify "$ADOPTED"
+arm "CONTROL: the closed register is consistent at HEAD" 0 "" \
+    bash "$VERIFY"
+
+# ── a scratch baseline over a scratch input, so arm 3 can move a real file safely ───────────────
+SCRATCH_IN="$WORK/declared_input.txt"
+SCRATCH_BL="$WORK/scratch_baseline.json"
+printf 'the original bytes\n' > "$SCRATCH_IN"
+printf '{\n  "contract": "baseline_identity_probe",\n  "expected_total": 7\n}\n' > "$SCRATCH_BL"
+bash "$VERIFY" --stamp "$SCRATCH_BL" --input "$SCRATCH_IN" > "$LOG" 2>&1 || {
+  echo "probe: could not stamp the scratch baseline" >&2; sed 's/^/  /' "$LOG" >&2; exit 2; }
+
+echo "refusal arms — each must go RED"
+arm "CONTROL: the scratch baseline verifies before it is disturbed" 0 "identity fresh for" \
+    bash "$VERIFY" --verify "$SCRATCH_BL"
+
+# ── arm 3: THE DECLARED INPUT MOVES ─────────────────────────────────────────────────────────────
+printf 'the original bytes, plus one\n' > "$SCRATCH_IN"
+arm "arm 3: a declared input CHANGED -> STALE" 1 "THE BASELINE IS STALE" \
+    bash "$VERIFY" --verify "$SCRATCH_BL"
+printf 'the original bytes\n' > "$SCRATCH_IN"
+
+# ── arm 4: THE BLOCK IS REMOVED ─────────────────────────────────────────────────────────────────
+python3 - "$SCRATCH_BL" "$WORK/no_block.json" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1])); d.pop("identity")
+json.dump(d, open(sys.argv[2], "w"), indent=2)
+PY
+arm "arm 4: the block is REMOVED -> REFUSE" 2 "carries NO identity block" \
+    bash "$VERIFY" --verify "$WORK/no_block.json"
+
+# ── arms 5-7: the block is PRESENT but does not mean anything ───────────────────────────────────
+python3 - "$SCRATCH_BL" "$WORK" <<'PY'
+import json, os, sys
+src, out = sys.argv[1], sys.argv[2]
+base = json.load(open(src))
+def emit(name, mutate):
+    d = json.loads(json.dumps(base)); mutate(d["identity"])
+    json.dump(d, open(os.path.join(out, name), "w"), indent=2)
+def truncate(i):
+    k = next(iter(i["inputs"])); i["inputs"][k] = i["inputs"][k][:16]
+emit("bad_sha.json", truncate)
+emit("no_pointer.json", lambda i: i.pop("_verifier"))
+emit("alien_commit.json", lambda i: i.__setitem__("verified_at_commit", "0" * 39 + "1"))
+emit("absent_input.json",
+     lambda i: i.__setitem__("inputs", {"rust/target/baseline_identity_probe/gone.txt":
+                                        list(i["inputs"].values())[0]}))
+PY
+arm "arm 5: a TRUNCATED digest is not a sha256 -> REFUSE" 2 "MALFORMED identity block" \
+    bash "$VERIFY" --verify "$WORK/bad_sha.json"
+arm "arm 6: the block loses its pointer at the reader -> REFUSE" 2 "MALFORMED identity block" \
+    bash "$VERIFY" --verify "$WORK/no_pointer.json"
+arm "arm 7: verified_at_commit names a commit not in this history -> RED" 1 \
+    "is not a commit this repository contains" \
+    bash "$VERIFY" --verify "$WORK/alien_commit.json"
+
+# ── arm 8: NOTHING COULD BE HASHED — a check that cannot see must SAY SO ────────────────────────
+arm "arm 8: every declared input absent -> REFUSE, never a vacuous pass" 2 \
+    "NONE of them could be hashed here" \
+    bash "$VERIFY" --verify "$WORK/absent_input.json"
+
+# ── arms 9-12: the CLOSED POPULATION, both sides ────────────────────────────────────────────────
+printf '{ "contract": "probe" }\n' > "$QUAL/zz_probe_unregistered_v0.json"
+arm "arm 9: a NEW baseline with no verdict -> RED" 1 "with NO register row" bash "$VERIFY"
+rm -f "$QUAL/zz_probe_unregistered_v0.json"
+
+python3 - "$REGISTER" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+d["entries"].append({"entry": "zz_no_such_file_v0.json", "disposition": "not-a-derived-baseline",
+                     "reason": "a probe row that describes nothing at all, to fire the ratchet"})
+json.dump(d, open(sys.argv[1], "w"), indent=2, ensure_ascii=False)
+PY
+arm "arm 10: a row naming NOTHING is a dead exemption -> RED" 1 "names nothing in" bash "$VERIFY"
+cp -f "$WORK/backup_register.json" "$REGISTER"
+
+# ⛔⛔ THE ANTI-`.13i` ARM. A `deferred` row that CARRIES a block is a block nothing re-hashes —
+# `.13i` verbatim — and must be a hard failure rather than a nudge.
+bash "$VERIFY" --stamp "$DEFERRED" --input grammars/regex.ebnf > "$LOG" 2>&1 || {
+  echo "probe: could not stamp the deferred baseline for arm 11" >&2; sed 's/^/  /' "$LOG" >&2; }
+arm "arm 11: a DEFERRED row carrying a block (the .13i shape) -> RED" 1 \
+    "yet CARRIES an identity block" bash "$VERIFY"
+cp -f "$WORK/backup_deferred.json" "$DEFERRED"
+
+python3 - "$REGISTER" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+for r in d["entries"]:
+    if r["entry"] == "regex_broader_corpus_v0.json":
+        r["owner_leaf"] = "NO-SUCH-TREE.1.2.3"
+json.dump(d, open(sys.argv[1], "w"), indent=2, ensure_ascii=False)
+PY
+arm "arm 12: a deferral owned by a leaf nothing mentions -> RED" 1 \
+    "which no docs/tasks/ tree mentions" bash "$VERIFY"
+cp -f "$WORK/backup_register.json" "$REGISTER"
+
+# ── arm 13: THE READER. Does the CONSUMING GATE actually refuse? ────────────────────────────────
+#
+# ⛔ THIS IS THE ARM `.13i` MAKES MANDATORY. Arms 3-8 prove the verifier discriminates; only this
+# one proves a gate READS it. It also asserts the refusal is CHEAP: the identity stage sits ahead
+# of the ~2-minutes-per-seed measurement precisely so an undiagnosable verdict is never paid for.
+python3 - "$ADOPTED" "$WORK/stale_contract.json" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+k = "grammars/systemverilog.ebnf"
+d["identity"]["inputs"][k] = "0" * 64      # schema still valid; only the identity is wrong
+json.dump(d, open(sys.argv[2], "w"), indent=2, ensure_ascii=False)
+PY
+start=$(date +%s)
+# ⛔ EXPORTED, not prefixed: `VAR=x some_shell_function` leaves VAR set in the calling shell in
+# bash's default mode, which would silently redirect every later arm at the perturbed contract.
+export PGEN_SV_CERT_RECOGNIZED_UNION_CONTRACT_FILE="$ROOT/$WORK/stale_contract.json"
+arm "arm 13: the CONSUMING GATE refuses to measure on a stale baseline" 2 \
+    "REFUSING TO MEASURE" bash rust/scripts/sv_cert_recognized_union_gate.sh
+unset PGEN_SV_CERT_RECOGNIZED_UNION_CONTRACT_FILE
+elapsed=$(( $(date +%s) - start ))
+if [ "$elapsed" -le 60 ]; then
+  echo "  ✓ arm 13 cost ${elapsed}s — the refusal is ahead of the measurement, as designed"
+  PASS=$((PASS + 1))
+else
+  echo "  ✗ arm 13 cost ${elapsed}s — the identity stage is NOT ahead of the heavy work"
+  FAIL=$((FAIL + 1))
+fi
+
+echo ""
+echo "probe: $PASS arm(s) behaved as specified, $FAIL did not"
+[ "$FAIL" -eq 0 ] || exit 1

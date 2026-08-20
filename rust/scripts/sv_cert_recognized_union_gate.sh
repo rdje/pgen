@@ -17,6 +17,10 @@ set -euo pipefail
 # Parser-agnostic by construction: the union is driven entirely by the CLI config list in
 # the contract — no grammar names are baked into engine code. Heavy (~2 min/seed), so this
 # is a CI/`make` oracle, not a `cargo test --lib` unit.
+#
+# Exit codes: 0 green · 1 drift or a broken precondition · 2 REFUSES because the contract's
+# BASELINE-IDENTITY block did not verify, so this gate cannot tell a regression from a stale
+# baseline (the published refusal code — docs/book/src/gate-flow.md §1).
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUST_DIR="$ROOT_DIR/rust"
@@ -143,6 +147,37 @@ jq -e '
     echo "error: contract schema invalid: $CONTRACT_FILE" >&2
     exit 1
 }
+
+# --- BASELINE IDENTITY: is this contract still describing THIS tree? -------------------
+#
+# Doctrine `BASELINE-IDENTITY` (SV-CORPUS-GRAD.13c.2x.2, director-ordered 2026-08-20). Every
+# expected_* field below is an exact function of the SV grammar, the generated parser it
+# certifies through, and the three engine surfaces the contract's own identity block declares.
+#
+# ⛔ THIS RUNS BEFORE ANY MEASUREMENT, DELIBERATELY. SV-CORPUS-GRAD.13c.2x measured this gate
+# RED at HEAD by 71 rules and 53 UNKNOWNs after ELEVEN revisions of grammars/systemverilog.ebnf
+# — and with no identity block, that RED could say "something is wrong" but never "your
+# baseline is eleven revisions old". Spending ~2 minutes per seed to arrive at an
+# undiagnosable verdict is the waste. Saying it in under a second is the fix.
+#
+# ⛔ AND THE REFUSAL IS THE POINT, NOT A COURTESY. SV-CORPUS-GRAD.13i found six oracles
+# carrying an identity block that NOTHING read, four of them measurably stale. A block with no
+# consumer passes every check that only asks whether it exists — so this gate is the consumer,
+# and it REFUSES (exit 2, the published code for "cannot see what it is meant to check") rather
+# than reporting a drift it could not attribute.
+identity_rc=0
+"$ROOT_DIR/scripts/check_baseline_identity.sh" --verify "${CONTRACT_FILE#"$ROOT_DIR/"}" \
+    || identity_rc=$?
+if [[ "$identity_rc" -ne 0 ]]; then
+    {
+        echo ""
+        echo "sv_cert_recognized_union_gate: REFUSING TO MEASURE (identity rc=$identity_rc)."
+        echo "  Any drift this run reported would be UNDIAGNOSED — it could be a real regression"
+        echo "  or it could be this baseline. Resolve the identity above first; the measurement"
+        echo "  is only meaningful once the contract is known to describe the tree being measured."
+    } >&2
+    exit 2
+fi
 
 base_entry="$(jq -r '.base_entry' "$CONTRACT_FILE")"
 base_profile="$(jq -r '.base_profile' "$CONTRACT_FILE")"

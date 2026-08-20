@@ -1,5 +1,60 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0248 (leaf SV-CORPUS-GRAD.13c.2x.2 SLICE 1; ZERO grammar bytes, ZERO Rust bytes): the director-ordered baseline identity support is BUILT, ADOPTED ONCE, READ BY ITS CONSUMER, and observed refusing TWELVE ways
+
+- ✅ **NEW DOCTRINE `BASELINE-IDENTITY` — 23 → 24 enforced.** A tracked baseline that holds a value
+  DERIVED from the tree now says WHICH tree, and the enforcer RE-HASHES every input it declares on
+  every run. Three parts, all three shipped together: a generic `identity` block, ONE shared
+  verifier, and a CLOSED two-sided population register.
+- ⭐ **THE DEPENDENCY SET IS DATA.** `identity.{_verifier, _what_this_proves, verified_at_commit,
+  inputs{path→sha256}}` — each baseline declares its own inputs, because the population does not
+  share them (a grammar, generated Rust, tracked prose, a vendored corpus). Strictly stronger than
+  `PARSE-COST-RATCHET`, whose four inputs are hard-coded in its gate and where
+  `ENGINE-UNIVERSAL-SERVICES.21` records an input being forgotten. ⛔ `--stamp` SPLICES the block
+  into the raw text rather than re-serialising: a `json.dump` round-trip would re-flow every
+  hand-formatted baseline, and a stamp producing a 400-line diff is a stamp nobody runs. Measured —
+  the first adoption is `13 insertions(+)`, everything else byte-identical.
+- ⛔⛔ **A BLOCK NOBODY READS IS THE DEFECT, NOT THE FIX**, so `sv_cert_recognized_union_gate` is
+  the first adoption's READER: it now REFUSES TO MEASURE (exit **2**, the published "cannot see
+  what it is meant to check" code) in **0 s**, ahead of its ~2-minutes-per-seed run, rather than
+  reporting a drift it cannot attribute. And a register row that is anything but `adopted` while
+  CARRYING a block is a hard failure — the `SV-CORPUS-GRAD.13i` shape (six oracles with a block,
+  ONE gate-checked, FOUR stale) made unreachable rather than merely discouraged.
+- ⭐⭐ **ADVERSARIAL PROBE: 15 ARMS — 3 CONTROLS GREEN, 12 REFUSALS OBSERVED FIRING**
+  (`docs/tasks/artifacts/sv_corpus_grad/baseline_identity/probe.sh`, run in `probe_run.txt`).
+  Arm 3 changes the INPUT FILE, not the recorded digest, because "the verifier re-hashes the live
+  tree" is the property under test. Arm 8 proves anti-vacuity (every input absent ⇒ REFUSE, never a
+  clean tree). Arm 11 is the anti-`.13i` arm. Arm 13 proves the CONSUMER reads it. The probe
+  restores every file it mutates and byte-compares against its own backup.
+- ⭐ **THE CLOSED POPULATION IS 53 ROWS, AND ADJUDICATING IT CORRECTED THIS LEAF'S OWN FOUNDING
+  CENSUS IN BOTH DIRECTIONS.** `.13c.2x`(d) sized it at 15 by key-name shapes and declared itself a
+  mechanical FLOOR owing per-row adjudication. It **overcounted** — five `*_v0_contract` files whose
+  "derived" fields are all run configuration and performance budgets (`sample_count`, `seed_base`,
+  `max_depth`, ms/byte ceilings) — and it **undercounted**, because the sweep read `*.json` ONLY:
+  `regex_pcre2_compile_oracle_lightweight_v0.env` holds SEVEN derived expectations
+  (2189/1609/580/1845/344/299/48) over the regex grammar, its parser and the pcre2-10.47 corpus.
+  ⇒ the register closes over the **DIRECTORY**, where membership is a filesystem fact, never over a
+  key-name classifier whose blind spot is silent and in the passing direction.
+  Final: `adopted` 1 · `deferred` 13 · `identity-native` 1 · `corpus-directory` 4 ·
+  `not-a-derived-baseline` 34.
+- ⚠️ **DECLARE THE PRODUCERS, NOT THE CONSUMERS.** The first stamp named six inputs including the
+  gate that ASSERTS the numbers; corrected to five before commit — `ast_pipeline` PRODUCES the
+  certificate lines and the gate only checks them, so declaring the checker would stale the baseline
+  on every cosmetic edit to a 400-line shell script. A gate that cries wolf is a gate people learn
+  to bypass.
+- ⚠️ **AN EXIT CODE WAS INVENTED AND RETRACTED.** The refusal first used `exit 3` to make "stale
+  baseline" machine-distinct from "tree regressed"; `docs/book/src/gate-flow.md` §1 already
+  publishes 0/1/2 where **2** is exactly this case, and `make` maps any recipe failure to its own 2
+  regardless. Use the vocabulary the project already published.
+- ⛔ **WHAT THIS DOES NOT DO:** it does not turn `sv_cert_recognized_union_gate` green. That gate is
+  RED at HEAD by 71 rules and 53 UNKNOWNs and stays RED; `.13c.2x`(a) still owes the adjudication
+  and `.13c.2x.1` still HARD-BLOCKS the rebaseline. `deferred` is an ACCEPTED RISK, not a clean
+  bill of health — 13 baselines still hold derived expectations with nothing watching their inputs.
+- **Validation**: `bash scripts/check_doctrines.sh` → **ALL 24 enforced doctrines PASS**, both
+  meta-checks green (`DOCTRINE_ENFORCEMENT.md` §10 lists exactly 24; `gate-flow.md` publishes 24 at
+  2 marked sites). `make -C rust SHELL=/bin/bash mdbook_docs_gate` → **passed** (10 per-parser book
+  gates + the docs gate). Book: new `gate-flow.md` §3 section. TOOLBOX: new **5.9**.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0247 (leaf SV-CORPUS-GRAD.13c.2x.2 NEW; docs only, ZERO code bytes): the director ORDERED baseline identity support — recorded with its design before session exit so the order cannot be lost
 
 - ⛔⛔ **A DIRECTOR ORDER, NOT A PROPOSAL.** Verbatim: *"So did you or are going to add support sha

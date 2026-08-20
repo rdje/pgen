@@ -1,4 +1,16 @@
 {
+  "identity": {
+    "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
+    "_what_this_proves": "every expectation in this file was derived from the inputs below, at the commit below. The enforcer re-hashes them on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
+    "verified_at_commit": "6d6edf94c9e7947fe175d0936c83deaca982df47",
+    "inputs": {
+      "generated/systemverilog_parser.rs": "936294a4ddae29255684f635427995b3b7bf9096b3e55eddf02d890572ca2bda",
+      "grammars/systemverilog.ebnf": "b0395cc859489782e145b7ffc7f431cec33c2063e829c56978cb4e70fffbb351",
+      "rust/src/ast_pipeline/grammar_wellformedness.rs": "b6ed770f96fe47d30826050ed9a8741d770ed45343639d03d38dea8f3de248c7",
+      "rust/src/ast_pipeline/indirect_lr_elimination.rs": "b36125f8f2ff02c87026399160616f8691a29b8fa72bb97813b42ff21d50acb3",
+      "rust/src/ast_pipeline/stimuli_generator.rs": "ba4130091ad715924b0c2c55535318679add5d28707597f388dda44f42d49c8b"
+    }
+  },
   "family": "systemverilog",
   "version": 1,
   "gate": "sv_cert_recognized_union_gate",
