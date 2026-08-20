@@ -28,6 +28,7 @@ VERIFY="scripts/check_baseline_identity.sh"
 QUAL="rust/test_data/grammar_quality"
 REGISTER="$QUAL/baseline_identity_register_v0.json"
 ADOPTED="$QUAL/systemverilog_recognized_cert_union_contract.json"
+CLOSURE="$QUAL/systemverilog_syntax_closure_contract.json"
 DEFERRED="$QUAL/regex_broader_corpus_v0.json"
 
 # ⛔ ON-VOLUME BY POLICY (CLAUDE.md §13): the scratch tree is derived from the repo root, never
@@ -265,6 +266,45 @@ else
   echo "  ✗ arm 13 cost ${elapsed}s — the identity stage is NOT ahead of the heavy work"
   FAIL=$((FAIL + 1))
 fi
+
+# ── arms 14-15: THE SECOND CONSUMING GATE, and the escape that is not a bypass ──────────────────
+#
+# ⛔ EVERY ADOPTION SHIPS BLOCK **AND** READER **AND** AN OBSERVED REFUSAL — that is this leaf's own
+# acceptance rule, and `SV-CORPUS-GRAD.13i` is why. `sv_syntax_closure_gate` is the second reader,
+# so it gets the same two arms the first one has.
+python3 - "$CLOSURE" "$WORK/stale_closure.json" <<'PYARM'
+import json, sys
+d = json.load(open(sys.argv[1]))
+i = d["identity"]
+i["expectations"] = "confirmed"
+i["confirmed_by"] = "a synthetic confirmation, so this arm isolates the stale-input path"
+i.pop("unconfirmed_reason", None)
+i.pop("owner_leaf", None)
+i["inputs"]["grammars/systemverilog.ebnf"] = "0" * 64
+json.dump(d, open(sys.argv[2], "w"), indent=2, ensure_ascii=False)
+PYARM
+export PGEN_SV_SYNTAX_CLOSURE_CONTRACT="$ROOT/$WORK/stale_closure.json"
+arm "arm 14: the SECOND consuming gate refuses on a STALE-INPUT baseline" 2 \
+    "REFUSING TO MEASURE" bash rust/scripts/sv_syntax_closure_gate.sh
+
+# ⛔⛔ AND THE CONFIRMING-RUN ESCAPE MUST NOT BE A BLANKET BYPASS. With the escape set, the identity
+# refusal is downgraded to a NOTE — but a REAL contract defect must still stop the run, and it must
+# still stop it BEFORE the ~90 s of regeneration. Here the two unreachable fields are made to
+# disagree, which is a contract-load check sitting after the identity stage and before the work.
+python3 - "$WORK/stale_closure.json" "$WORK/inconsistent_closure.json" <<'PYARM'
+import json, sys
+d = json.load(open(sys.argv[1]))
+d["constraints"]["max_unreachable_rules"] = 99      # disagrees with the 3-entry allow-list
+json.dump(d, open(sys.argv[2], "w"), indent=2, ensure_ascii=False)
+PYARM
+export PGEN_SV_SYNTAX_CLOSURE_CONTRACT="$ROOT/$WORK/inconsistent_closure.json"
+export PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN=1
+# ⛔ The expected substring must not straddle a NEWLINE — `grep -qF` is line-scoped, and the gate
+# wraps this message over two lines. Matching the second line alone is what actually binds.
+arm "arm 15: the confirming-run escape downgrades ONLY the identity, not the contract checks" 2 \
+    "3-entry constraints.allowed_unreachable_rules list" \
+    bash rust/scripts/sv_syntax_closure_gate.sh
+unset PGEN_SV_SYNTAX_CLOSURE_CONTRACT PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN
 
 echo ""
 echo "probe: $PASS arm(s) behaved as specified, $FAIL did not"

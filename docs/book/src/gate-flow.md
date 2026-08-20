@@ -482,9 +482,9 @@ current adjudication of its 53 rows:
 
 | disposition | rows | meaning |
 |---|---:|---|
-| `adopted` | 0 | carries a **confirmed** block; every declared input re-hashed each run |
+| `adopted` | 1 | carries a **confirmed** block; every declared input re-hashed each run |
 | `adopted-unconfirmed` | 1 | carries a block that declares its own numbers unconfirmed; consumers refuse |
-| `deferred` | 13 | holds tree-derived expectations, no block yet, `owner_leaf` named |
+| `deferred` | 12 | holds tree-derived expectations, no block yet, `owner_leaf` named |
 | `identity-native` | 1 | *is* an identity record, already re-derived by its own doctrine |
 | `corpus-directory` | 4 | a corpus tree, not a baseline |
 | `not-a-derived-baseline` | 34 | holds no value that is a function of the tree |
@@ -496,12 +496,26 @@ random seed, a sample count or an IEEE-derived legality verdict is not: it is wh
 worse, it would invite re-deriving an expectation whose job is to hold the tree to account
 rather than follow it.
 
-⚠️ **Neither `deferred` nor `adopted-unconfirmed` is a clean bill of health, and the count of
-truly-confirmed baselines is currently zero.** Thirteen still hold derived expectations with
-nothing watching their inputs; the fourteenth watches its inputs and says outright that its
-numbers are wrong. What the register buys is that the debt is visible, owned and bounded — and
-publishing `adopted: 0` is part of that, because a doctrine that reported its own adoption as
-finished would be the first thing in this chapter to rot.
+**The first confirmed adoption is worth reading as a case, because confirming it is what found the
+defect.** `systemverilog_syntax_closure_contract.json` could not be stamped without running its
+gate, and the gate was **RED** — `unreachable_rules=3` against a ceiling of `0` that had been
+authored **2026-06-17**, sixty-nine grammar revisions earlier and *two months before the
+left-recursion-elimination pass whose residue breaks it first existed*. The repair was to NAME the
+three rules rather than raise the ceiling, and then to declare that pass as one of the baseline's
+inputs — so the next time it changes, the contract goes **stale** instead of quietly **wrong**.
+
+⚠️ **Neither `deferred` nor `adopted-unconfirmed` is a clean bill of health.** Twelve baselines
+still hold derived expectations with nothing watching their inputs; the thirteenth watches its
+inputs and says outright that its numbers are not confirmed. What the register buys is that the
+debt is visible, owned and bounded — and publishing the count honestly is part of that, because a
+doctrine that reported its own adoption as finished would be the first thing in this chapter to
+rot.
+
+⚠️ **And adoption has a recurring cost, which is the same fact seen from the other side.** Once a
+gate reads an identity, the next change to a declared input makes that gate **refuse** until
+somebody re-derives the baseline. That is the mechanism working as intended — the alternative is
+sixty-nine revisions of silence — but it is real work on every touched lane, and it is paid
+deliberately (a confirming run plus a re-stamp), never worked around.
 
 ⚠️ **And the honest bound on the census itself.** The population was first sized by a
 key-name classifier, which the adjudication corrected **in both directions**: five contracts

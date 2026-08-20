@@ -73,6 +73,47 @@ mkdir -p "$LOG_DIR" "$WORK_DIR"
 require_tool jq
 require_file "$CONTRACT_FILE"
 
+# --- BASELINE IDENTITY: is this contract still describing THIS tree? -------------------
+#
+# Doctrine `BASELINE-IDENTITY` (SV-CORPUS-GRAD.13c.2x.2). Every constraint below is a function of
+# the SV grammar and of the two engine passes that produce the reachability numbers. ⛔ It runs
+# BEFORE the ~90 s of regeneration and probing, because a measurement against a baseline that does
+# not describe the tree is a verdict nobody can attribute — this contract sat 69 grammar revisions
+# stale with nothing able to say so.
+#
+# ⛔⛔ AND THE CONFIRMING RUN CANNOT BE BLOCKED BY THE IDENTITY IT EXISTS TO ESTABLISH. A baseline
+# is stamped `confirmed` by NAMING the run that re-derived it — so that run must be able to happen
+# while the block still says `unconfirmed`. `PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN=1` downgrades
+# the refusal to a NOTE and nothing else: every constraint below still binds, and a breach still
+# fails. Precedent and rationale are `PARSE-COST-RATCHET`'s `PGEN_PARSE_COST_REBASELINE=1`, which
+# was added after deriving identity as a hard failure on every path DEADLOCKED the only supported
+# way to adopt a new input. It is an explicit, env-gated, single-purpose operator act, and it is
+# loud rather than silent.
+identity_rc=0
+"$ROOT_DIR/scripts/check_baseline_identity.sh" --verify "${CONTRACT_FILE#"$ROOT_DIR/"}" \
+    || identity_rc=$?
+if [[ "$identity_rc" -ne 0 ]] && [[ "${PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN:-0}" == "1" ]]; then
+    {
+        echo ""
+        echo "sv_syntax_closure_gate: NOTE — the contract's identity did not verify (rc=$identity_rc),"
+        echo "  reported as a NOTE because PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN=1 is set. THIS RUN'S"
+        echo "  RESULT IS ONLY MEANINGFUL IF IT IS STAMPED:"
+        echo "    bash scripts/check_baseline_identity.sh --stamp ${CONTRACT_FILE#"$ROOT_DIR/"} \\"
+        echo "         --confirmed-by \"<name this run>\""
+        echo "  Every constraint below still binds; only the identity refusal is downgraded."
+    } >&2
+    identity_rc=0
+fi
+if [[ "$identity_rc" -ne 0 ]]; then
+    {
+        echo ""
+        echo "sv_syntax_closure_gate: REFUSING TO MEASURE (identity rc=$identity_rc)."
+        echo "  Any drift this run reported would be UNDIAGNOSED — it could be a real regression"
+        echo "  or it could be this baseline. Resolve the identity above first."
+    } >&2
+    exit 2
+fi
+
 contract_version="$(jq -er '.version | numbers' "$CONTRACT_FILE")"
 grammar_name="$(jq -er '.grammar_name | strings' "$CONTRACT_FILE")"
 entry_rule="$(jq -er '.entry_rule | strings' "$CONTRACT_FILE")"
@@ -87,6 +128,39 @@ require_entry_rule_defined="$(jq -er 'if (.constraints.require_entry_rule_define
 max_unreachable_rules="$(jq -er '(.constraints.max_unreachable_rules // 999999) | numbers' "$CONTRACT_FILE")"
 max_unreachable_branches="$(jq -er '(.constraints.max_unreachable_branches // 999999) | numbers' "$CONTRACT_FILE")"
 min_reachable_rules="$(jq -er '(.constraints.min_reachable_rules // 1) | numbers' "$CONTRACT_FILE")"
+
+# --- the NAMED unreachable allow-list (SV-CORPUS-GRAD.13c.2x.3) ------------------------
+#
+# ⛔ A BARE CEILING RECORDS NO REASON, AND THAT IS WHY THIS ONE ROTTED. `max_unreachable_rules=0`
+# was authored 2026-06-17; `rust/src/ast_pipeline/indirect_lr_elimination.rs` — the pass whose
+# residue breaks it — did not exist until 2026-08-13, two months later, and 69 grammar revisions
+# passed with nobody able to tell a stale threshold from a real regression. A NAMED list says which
+# rules and why, so the next divergence names itself. Shape copied from the in-repo precedent,
+# `systemverilog_preprocessor_zero_plausible_gap_proof_contract.json`, rather than invented.
+#
+# ⚠️ AND THE METRIC'S PREDICATE IS NOW DECLARED, because `unreachable_rules` is ONE NAME FOR TWO.
+# This gate's number comes from the syntax-probe gap report and is ENTRY-SCOPED — measured 3 / 14 /
+# 1058 for `sv_multi_entry_root` / `systemverilog_file` / `library_text` on one grammar. The lint's
+# same-named counter treats an unreferenced orphan as a ROOT by design
+# (`grammar_wellformedness.rs:341`) and reports 0. Neither is wrong; a contract that does not say
+# which it means sends a reader to the wrong instrument.
+allowed_unreachable_rules_json="$(jq -cer '(.constraints.allowed_unreachable_rules // null)
+                                           | if . == null then null else sort end' "$CONTRACT_FILE")"
+required_unreachable_rule_reason="$(jq -r '.constraints.required_unreachable_rule_reason // ""' "$CONTRACT_FILE")"
+if [[ "$allowed_unreachable_rules_json" != "null" ]]; then
+    if [[ -z "$required_unreachable_rule_reason" ]]; then
+        echo "error: constraints.allowed_unreachable_rules is present but constraints.required_unreachable_rule_reason is not" >&2
+        exit 2
+    fi
+    allowed_unreachable_count="$(jq -er 'length | numbers' <<<"$allowed_unreachable_rules_json")"
+    # ⛔ THE TWO FIELDS CANNOT DISAGREE. A named list beside a ceiling that permits a different
+    # number is two contracts in one file, and the reader has no way to know which binds.
+    if (( allowed_unreachable_count != max_unreachable_rules )); then
+        echo "error: constraints.max_unreachable_rules=${max_unreachable_rules} disagrees with" >&2
+        echo "       the ${allowed_unreachable_count}-entry constraints.allowed_unreachable_rules list" >&2
+        exit 2
+    fi
+fi
 
 if ! [[ "$stimuli_seed" =~ ^[0-9]+$ ]]; then
     echo "error: pipeline.stimuli_seed must be integer >= 0" >&2
@@ -219,7 +293,21 @@ if [[ "$require_entry_rule_defined" -eq 1 ]] && [[ "$entry_rule_defined" -ne 1 ]
     failures=$((failures + 1))
     failure_notes+=("entry_rule '${entry_rule}' is not defined")
 fi
-if (( unreachable_rules > max_unreachable_rules )); then
+if [[ "$allowed_unreachable_rules_json" != "null" ]]; then
+    # ⭐ SET EQUALITY, BOTH WAYS — the register's own two-sided rule, one surface over. An observed
+    # rule missing from the list is an unexplained unreachability; a listed rule that is no longer
+    # observed is a DEAD EXEMPTION, and the SVPP precedent refuses those for the same reason.
+    observed_unreachable_rules_json="$(jq -cer '[.unreachable_rule_debt[]?.rule_name] | sort' "$gap_json")"
+    if [[ "$observed_unreachable_rules_json" != "$allowed_unreachable_rules_json" ]]; then
+        failures=$((failures + 1))
+        failure_notes+=("unreachable rule SET differs from constraints.allowed_unreachable_rules: observed=${observed_unreachable_rules_json} allowed=${allowed_unreachable_rules_json} (a listed rule that is no longer observed is GOOD NEWS and an invitation to re-derive the contract, not a defect to suppress)")
+    elif ! jq -e --arg reason "$required_unreachable_rule_reason" \
+              'all(.unreachable_rule_debt[]?; .reachable == false and .reason == $reason)' \
+              "$gap_json" >/dev/null; then
+        failures=$((failures + 1))
+        failure_notes+=("an allowed unreachable rule carries a reason other than '${required_unreachable_rule_reason}'")
+    fi
+elif (( unreachable_rules > max_unreachable_rules )); then
     failures=$((failures + 1))
     failure_notes+=("unreachable_rules=${unreachable_rules} > max_unreachable_rules=${max_unreachable_rules}")
 fi

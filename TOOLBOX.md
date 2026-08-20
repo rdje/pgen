@@ -1322,8 +1322,16 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - ⚠️ **An input that is absent is reported NOT EVALUATED, never counted as fresh** — `generated/` is
   untracked, and a shallow clone cannot resolve `verified_at_commit`. If **nothing** could be
   hashed the verifier REFUSES rather than reporting a clean tree.
-- **PROBE:** `bash docs/tasks/artifacts/sv_corpus_grad/baseline_identity/probe.sh` — **23 arms**
-  (2 controls GREEN, 20 refusals, 1 timing assertion), run recorded beside it in `probe_run.txt`.
+- ⛔⛔ **ADOPTING ON A GATE'S CONTRACT MEANS THAT GATE WILL REFUSE THE NEXT TIME A DECLARED INPUT
+  MOVES.** That is the mechanism working, not a malfunction — but it is recurring work, and the
+  bootstrap it creates is real: a baseline is stamped `confirmed` by NAMING the run that re-derived
+  it, and that run has to happen while the block still says `unconfirmed`. Each adopting gate
+  therefore carries a single-purpose, env-gated escape that downgrades **only** the identity
+  refusal to a NOTE (`PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN=1`; the precedent and rationale are
+  `PARSE-COST-RATCHET`'s `PGEN_PARSE_COST_REBASELINE=1`). Every other constraint still binds, and
+  the probe has an arm proving it.
+- **PROBE:** `bash docs/tasks/artifacts/sv_corpus_grad/baseline_identity/probe.sh` — **25 arms**
+  (2 controls GREEN, 22 refusals, 1 timing assertion), run recorded beside it in `probe_run.txt`.
   It restores every file it mutates and byte-compares against its own backup.
   ⚠️ **Its arm NAMES carry no backticks, deliberately**: they are double-quoted shell words, so a
   backtick opens a command substitution and the printed name silently loses the word. Measured

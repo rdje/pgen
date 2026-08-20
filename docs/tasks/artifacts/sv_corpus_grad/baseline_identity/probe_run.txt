@@ -23,7 +23,9 @@ refusal arms — each must go RED
   ✓ arm 13: the CONSUMING GATE refuses to measure on a STALE-INPUT baseline — rc=2 and the message names it
   ✓ arm 13b: the CONSUMING GATE refuses on the REAL unconfirmed contract — rc=2 and the message names it
   ✓ arm 13 cost 0s — the refusal is ahead of the measurement, as designed
+  ✓ arm 14: the SECOND consuming gate refuses on a STALE-INPUT baseline — rc=2 and the message names it
+  ✓ arm 15: the confirming-run escape downgrades ONLY the identity, not the contract checks — rc=2 and the message names it
 
-probe: 23 arm(s) behaved as specified, 0 did not
+probe: 25 arm(s) behaved as specified, 0 did not
 probe: restored the tracked register + deferred baseline
 probe: no residue — every file this probe mutated is byte-identical to its backup

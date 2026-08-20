@@ -1,5 +1,47 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0251 — the fix that finds defects is the one that costs something afterwards
+
+**1. THE REPAIR I ALMOST MADE WAS `max_unreachable_rules: 3`, AND IT WOULD HAVE BEEN WRONG TWICE.**
+It records no reason, so the next reader inherits the same puzzle I had; and it re-breaks silently
+the moment the eliminator's coverage shifts by one rule. The named list costs three extra lines and
+converts a mystery number into three sentences a reviewer can disagree with. ⭐ **A threshold is a
+compressed argument; when the argument is short, write the argument.**
+
+**2. I DID NOT INVENT THE SHAPE, AND THAT WAS THE CHEAPEST DECISION IN THE SLICE.**
+`systemverilog_preprocessor_zero_plausible_gap_proof_contract.json` has shipped
+`allowed_unreachable_rules` + `required_unreachable_rule_reason` for months, with a gate that
+enforces set equality. Copying it took one `sed` and gave me the two-sided semantics for free —
+including the part I would not have thought of, that a listed rule which is no longer observed must
+FAIL as a dead exemption rather than pass quietly.
+
+**3. THE BOOTSTRAP BIT, EXACTLY WHERE THE PRECEDENT SAID IT WOULD.** Adding an identity reader to
+the gate meant the gate refused the very run needed to confirm the baseline. `PARSE-COST-RATCHET`
+had already hit this and written it down: *"deriving these as hard failures on every path deadlocked
+the only supported way to adopt a NEW identity input."* I read that sentence before writing the
+escape rather than after debugging it, which is the entire value of `ENGINE-UNIVERSAL-SERVICES.21`
+having recorded it. ⛔ And the escape needed its own control — arm 15 proves it downgrades ONLY the
+identity refusal, because an env var that turns a gate green is otherwise indistinguishable from a
+bypass.
+
+**4. THE HONEST COST, AND I WANT IT ON THE RECORD BEFORE SOMEBODY MEETS IT UNANNOUNCED.** This gate
+will now REFUSE after the next SV grammar edit, every time, until someone re-derives and re-stamps.
+That is the mechanism working — sixty-nine revisions of silence is the alternative — but it is
+recurring work on the busiest lane in the repository, and a doctrine whose cost is discovered rather
+than declared is a doctrine people start bypassing. Declared here, in the leaf, in the book and in
+TOOLBOX 5.9.
+
+**5. `pgrep -f` MATCHED ITS OWN COMMAND LINE, AGAIN.** I ran `pgrep -f sv_syntax_closure_gate` to
+check whether a background run had finished; the pattern appeared in the checking command's own
+argv, so it reported the gate as running after it had exited. That is written down in layer A —
+*"use `pgrep -x`"* — and I read it at the start of this session and still did it. Reading a warning
+and having it fire at the moment of use are different things; what actually worked was `ps -eo
+pid,etime,comm` filtered on the comm field, which cannot match a shell wrapper.
+
+**6. THE SLICE'S REAL RESULT IS NOT THE GREEN GATE.** It is that `indirect_lr_elimination.rs` is now
+a declared input of a contract it silently invalidated two months ago. The green tick is today; the
+declaration is what makes the next invalidation loud.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0250 — I was about to run an experiment to learn something the source had spelled out in prose for months
 
 **1. THE ANSWER WAS A COMMENT, NOT A MEASUREMENT.** Two tracked instruments disagreed about

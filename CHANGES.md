@@ -1,5 +1,50 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0251 (leaf SV-CORPUS-GRAD.13c.2x.3 (b)+(c) DISCHARGED; ZERO grammar bytes, ZERO Rust bytes): `sv_syntax_closure_gate` is GREEN, and the repository has its first CONFIRMED baseline identity
+
+- ✅✅ **`adopted` 0 → 1.** `systemverilog_syntax_closure_contract.json` now carries an
+  `expectations: confirmed` identity block whose `confirmed_by` names, verbatim and with its
+  numbers, the green run that re-derived it.
+- **MEASURED BEFORE → AFTER, same command** (`scripts/run_with_memory_guard.sh --budget-mb 16384 --
+  make -C rust SHELL=/bin/bash sv_syntax_closure_gate`):
+  ```text
+  BEFORE: ❌ failed with 1 violation(s): unreachable_rules=3 > max_unreachable_rules=0   rc=2, 86 s
+  AFTER : ✅ passed.  defined=1483 reachable=1607 unreachable=3 branches=2 unresolved=0  rc=0, 86 s
+  ```
+- ⛔ **REPAIRED BY NAMING, NOT BY RAISING.** A bare ceiling of 3 would record no reason and re-break
+  silently. Instead: `allowed_unreachable_rules` = the three rules by name, plus
+  `required_unreachable_rule_reason`, on the in-repo precedent
+  `systemverilog_preprocessor_zero_plausible_gap_proof_contract.json`. **Enforced as set equality
+  BOTH ways** — an observed rule missing from the list is an unexplained unreachability, and a
+  listed rule no longer observed is a DEAD EXEMPTION whose message says it is *"good news, and an
+  invitation to re-derive this contract rather than a defect to suppress"*. The gate also refuses at
+  contract-load if `max_unreachable_rules` disagrees with the list length, because a named list
+  beside a differing ceiling is two contracts in one file.
+- ⭐ **The contract now DECLARES ITS PREDICATE.** `_unreachable_predicate` records that this number
+  is the entry-scoped gap-report one (3 / 14 / 1058 across three entries) and that
+  `--lint-grammar`'s same-named counter reports 0 **by design**, so a reader who fails here and
+  reaches for the obvious diagnostic is told why before drawing the wrong conclusion.
+- ⭐⭐ **THREE PRODUCER INPUTS, AND THE ELIMINATOR IS THE POINT.** `grammars/systemverilog.ebnf`,
+  `rust/src/ast_pipeline/indirect_lr_elimination.rs` (which CREATES the residue) and
+  `rust/src/ast_pipeline/stimuli_generator.rs` (which computes the gap report). The next time that
+  pass changes, this baseline goes STALE and demands re-derivation — instead of rotting for another
+  sixty-nine revisions.
+- ⛔⛔ **THE BOOTSTRAP, AND THE PRECEDENT THAT SOLVED IT.** A baseline is confirmed by NAMING the run
+  that re-derived it, so that run must happen while the block still says `unconfirmed` — and the
+  reader this slice added refuses exactly then. `PGEN_SV_SYNTAX_CLOSURE_CONFIRMING_RUN=1` downgrades
+  **only** the identity refusal to a NOTE naming the stamp command; every other constraint binds.
+  That is `PARSE-COST-RATCHET`'s `PGEN_PARSE_COST_REBASELINE=1` verbatim — the same trap one
+  doctrine over, avoided by reading the precedent rather than rediscovering it. **Probe arm 15
+  proves it is not a blanket bypass**: escape set + two disagreeing unreachable fields → still
+  exit 2 on the disagreement.
+- ⚠️⚠️ **AN OPERATIONAL COST, STATED RATHER THAN DISCOVERED**: the next SV grammar edit stales this
+  contract and this gate will REFUSE until it is re-derived. That is the doctrine working — the
+  alternative is what just happened for 69 revisions — but it is recurring work on the SV lane and
+  it is paid deliberately, never worked around.
+- **Validation**: `bash scripts/check_doctrines.sh` → ALL 24 PASS; probe **23 → 25 arms**,
+  0 not-as-specified, no residue; `make -C rust SHELL=/bin/bash mdbook_docs_gate` → passed.
+  Live-status tracker UNCHANGED.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0250 (leaf SV-CORPUS-GRAD.13c.2x.3 (a) DISCHARGED; docs + register only, ZERO code bytes): two tracked instruments disagreed about one metric name — both were right, and the stale thing underneath is SIXTY-NINE grammar revisions old
 
 - ✅ **(a) SETTLED BY MEASUREMENT, not by the hypothesis.** `-0249` recorded an entry-scope
