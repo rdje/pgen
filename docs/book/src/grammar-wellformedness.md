@@ -1652,7 +1652,7 @@ the last reach-gap — canonical witness `1321→1322` / `UNKNOWN 12→11`, unio
 `UNKNOWN 1→0`, residual `[]`.) So the recognized figure cannot silently drift, and the final union
 `1 → 0` flip was itself gated exactly as promised: the contract is re-baselined to
 `expected_union_unknown=0` in the same wave as the capability landing, and the gate re-derives it
-across seeds 0/7/42. **The `done_rule` has fired: SystemVerilog is recognized `fully_certified` on
+across seeds 0/7/42. **The `done_rule` had fired: SystemVerilog was recognized `fully_certified` on
 the sound multi-config union basis** — every one of the 1,343 accounted rules is either PROVED
 (profile-entry-unreachable under the canonical profile, independently re-derived) or WITNESSED
 through the real parser in at least one declared configuration. The canonical single-config
@@ -1660,6 +1660,29 @@ accounting (`UNKNOWN=11`: the 11 entry-relative library/include/parseable-fragme
 union-covered under its own entry) is recorded alongside, as always. (The gate adds a proof
 surface only — it changes no grammar, parser, generator, or generated artifact; the cert numbers
 are read-only measurements.)
+
+⛔ **SUPERSEDED, and read this before quoting any number in the paragraph above.** Every figure in
+it is the contract as of **2026-07-22**; the contract's expectations have been re-baselined
+**eleven times** since, and four of the six numbers above already disagree with the tracked
+contract — before HEAD's own measurement is considered. Re-measured at HEAD on **2026-08-20**
+(`SV-CORPUS-GRAD.13c.2x`(a)), deterministically across seeds 0/7/42:
+
+| | published above | tracked contract | measured at HEAD |
+|---|---:|---:|---:|
+| canonical `total` / `proof` / `witness` / `UNKNOWN` | 1343 / 10 / 1322 / 11 | 1362 / 6 / 1345 / 11 | **1434 / 8 / 1362 / 64** |
+| union `witness` / `UNKNOWN` | 1333 / **0** | 1356 / **0** | **1373 / 53** |
+| `fully_certified` via the union | **true** | true | ⛔ **false** |
+
+**SystemVerilog is not recognized `fully_certified` on the union basis today.** What retired it was
+the indirect left-recursion admission flip of 2026-08-14, which absorbed the `casting_type` and
+`property_expr` knots and synthesised rules the witness planner does not reach: of the 53 residual
+`UNKNOWN`s, **43** are eliminator-authored `property_expr_lr_*` rules — independently corroborated
+as never-firing by the corpus rule-coverage instrument described in the next section — and the
+remaining **10** are witness-planner reach gaps whose constructs were each parsed successfully
+through the real parser. **Zero of the 53 is a parser defect**, and the loss is one of proof
+surface rather than of correctness. The full re-publication of this section is owed by
+`SV-CORPUS-GRAD.13c.2x.6` and lands with the contract's re-baseline, so that the book and the
+contract move in one step instead of drifting apart again.
 
 ### The corpus rule-coverage instrument (the external mirror of the certificate axis)
 

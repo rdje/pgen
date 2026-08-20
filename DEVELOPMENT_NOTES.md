@@ -1,5 +1,78 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0259 — a count cannot report a rule the grammar never declares, so the roster is a POINTER and the fix is upstream of it
+
+**1. THE ADJUDICATION SUCCEEDED AND ITS RESULT WAS BORING, WHICH IS WHY THE NEXT STEP MATTERED.**
+`SV-CORPUS-GRAD.13c.2x`(a) asked, per criterion, whether HEAD's number is correct-and-stale or a
+real regression. All 27 came back correct-and-stale. The nine numbers are not nine independent
+facts — `total = proof + witness + UNKNOWN` on both accountings — so seven fall out arithmetically
+once the rule POPULATION and the UNKNOWN ROSTER are settled, and both were settled by construction:
+the population by asking the repository's own pinned classifier how many left-recursion-family names
+the shipped parser declares (`stimuli/sv/corpus_parse_cost.py --verify-families` → **127**, of which
+**123** sit under a base absorbed by a pass that did not exist when the baseline was taken — ⚠️ a
+hand-written `grep` first answered 103/99, because its pattern silently missed the whole `_lr_seed_*`
+family; the classifier is pinned to a constant and the grep was pinned to nothing), the roster by enumerating
+all 53 residual rules with the print cap lifted. ⭐ **The honest verdict was available at that
+point, and stopping there would have been the mistake.**
+
+**2. THE ROSTER IS A POINTER, NOT A CONCLUSION.** Nine of the 53 are `kw_*` tokens for IEEE 1800
+A.2.10 property operators — `accept_on`, `nexttime`, `s_eventually`, `s_always`, … — all of them
+living in one rule, `prop_primary_sv_2017`. "Unwitnessable" is a statement about the *generator*; it
+says nothing about the parser until someone hands the parser the construct. Ten minimal probes were
+written to close that gap, and ten of ten parsed. The reach gap was benign. ⛔ **But writing those
+probes required reading `prop_primary` line by line, and that is where the defect was** —
+`grammars/systemverilog.ebnf:6666` defines `implies := trivia "->"`, a token rule *named after a
+keyword*, and three branches of `prop_primary` bind it where the LRM spells something else.
+`a implies b` is rejected; `a -> b`, `-> b` and `a |= b` are accepted although Annex A.2.10 defines
+none of them.
+
+**3. THE GENERAL FORM, AND IT IS A PROPERTY OF EVERY COVERAGE INSTRUMENT WE OWN:
+`--report-certificate-coverage` MEASURES REACH OVER THE *DECLARED* RULE SET.** A production the
+grammar never spells cannot be `UNKNOWN` — it can only be absent, and absence has no row. The corpus
+rule-coverage TSV has the identical blind spot for the identical reason. ⇒ **a clean coverage report
+bounds how well the declared grammar is exercised, and says nothing whatever about whether the
+declared grammar is the language.** Only an oracle *outside* the grammar — the LRM text, a corpus, a
+hand-written probe — can speak to that. Two instruments agreeing does not widen the window when both
+look through the same frame.
+
+**4. WHY (a)-BEFORE-(c) IS NOT PROCESS CEREMONY.** The tempting order was the cheap one: the numbers
+are deterministic and the gate is red, so re-derive and move on. Had that happened, the contract
+would today record `union UNKNOWN = 53` with every field correct, the gate would be green, and an
+LRM-legal SVA operator would still be rejected — with the *green gate* standing as evidence that the
+property layer had been examined. ⛔ **A rebaseline does not merely record a number; it closes the
+file on the question that produced it.** That is the whole reason the leaf wrote (c) as *"only after
+(a), never as the first act"*, and this is its first real customer.
+
+**5. THE ATTRIBUTION WAS WRONG IN THE FLATTERING DIRECTION, AND THE MACHINERY HAD IT RIGHT.** The
+leaf and the book both said the baseline had been overtaken by *"eleven revisions of
+`grammars/systemverilog.ebnf`"*. `git cat-file -e 3056381a:rust/src/ast_pipeline/indirect_lr_elimination.rs`
+answers *"exists on disk, but not in '3056381a'"* — the engine surface under which 123 of the
+parser's 127 left-recursion-family rule names sit post-dates the baseline entirely. ⭐ The contract's identity block
+had listed that file among its five inputs since `-0249`. **The data model was more truthful than
+the sentence a human wrote beside it**, which is the reverse of the usual failure and worth
+remembering: when a machine-checkable declaration and its prose gloss disagree, re-derive the prose.
+
+**6. A DISPLAY CAP BECOMES A `LIMIT 25` THE MOMENT A GATE PARSES IT.** `main.rs` prints at most 25
+residual rule names unless `PGEN_CERT_COVERAGE_DUMP_ALL` is set; `sv_cert_recognized_union_gate.sh`
+greps that line and does not set it. While the expected residual was `[]` this was invisible. At 53
+it is the difference between recording a set and recording a window onto it — and the gate would
+have compared 25 against 25, agreed across all three seeds, and gone green. ⇒ `.13c.2x.5`, and the
+fix it should prefer is the *emission* (an uncapped machine-readable line) rather than an env var
+every future caller must remember, because "remember to set this" is the same defect one level out.
+
+**7. AND THE CENSUS I ALMOST PUBLISHED WAS WRONG, CAUGHT BY REACHING FOR THE PINNED INSTRUMENT
+INSTEAD OF MY OWN.** The engine-attribution claim needed a count of the SV parser's
+left-recursion-family rule names. A hand-written `grep -oE` over the generated parser answered
+**103**, and the number went into four drafted surfaces before a cross-check ran
+`stimuli/sv/corpus_parse_cost.py --verify-families` — the repository's shipped classifier, whose
+result is compared against a **pinned constant** on every run. It answers **127**
+(`base=5 guard=6 seed=24 suffix=92`). The grep's character class had silently excluded the entire
+`_lr_seed_*` family, and nothing about its output looked wrong: it was plausible, stable across
+re-runs, and internally consistent. ⛔ **A regex you wrote five minutes ago is pinned to nothing.**
+When the repository already ships a classifier over the population you are counting, the ad-hoc
+version is not a shortcut — it is an unvalidated second implementation whose only reviewer is the
+person who wants the number.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0258 — the moment I wanted to edit the measuring instrument was the moment to edit the code instead
 
 **1. THE TEMPTATION WAS REAL AND IT ARRIVED DISGUISED AS TIDINESS.** The first spelling of the

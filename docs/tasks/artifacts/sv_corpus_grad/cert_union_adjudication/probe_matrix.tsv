@@ -1,0 +1,22 @@
+probe	construct	lrm_1800_2017	sv_2017	sv_2023	verdict
+accept_on	accept_on (b) a	A.2.10 legal	ACCEPT	ACCEPT	ok
+and_or	a and b / a or b	A.2.10 legal	ACCEPT	ACCEPT	ok
+arrow_prop	a -> b	NOT in A.2.10	ACCEPT	ACCEPT	OVER-ACCEPTANCE
+arrow_unary_prop	-> b	NOT in A.2.10	ACCEPT	ACCEPT	OVER-ACCEPTANCE
+baseline_seq	a |-> b	A.2.10 legal	ACCEPT	ACCEPT	ok
+eventually	eventually [1:2] a	A.2.10 legal	ACCEPT	ACCEPT	ok
+iff	a iff b	A.2.10 legal	ACCEPT	ACCEPT	ok
+implies	a implies b	A.2.10 legal	REJECT	REJECT	OVER-REJECTION
+implies_inline	assert property (@clk a implies b)	A.2.10 legal	REJECT	REJECT	OVER-REJECTION
+implies_noclk	a implies b, no clocking event	A.2.10 legal	REJECT	REJECT	OVER-REJECTION
+named_property_instance	q and b, q a named property	A.2.10 legal	ACCEPT	ACCEPT	ok
+nexttime	nexttime a	A.2.10 legal	ACCEPT	ACCEPT	ok
+or_assign_prop	a |= b	NOT in A.2.10	ACCEPT	ACCEPT	OVER-ACCEPTANCE
+reject_on	reject_on (b) a	A.2.10 legal	ACCEPT	ACCEPT	ok
+s_always	s_always [1:2] a	A.2.10 legal	ACCEPT	ACCEPT	ok
+s_eventually	s_eventually a	A.2.10 legal	ACCEPT	ACCEPT	ok
+s_nexttime	s_nexttime a	A.2.10 legal	ACCEPT	ACCEPT	ok
+s_until_with	a s_until_with b	A.2.10 legal	ACCEPT	ACCEPT	ok
+sync_accept_on	sync_accept_on (b) a	A.2.10 legal	ACCEPT	ACCEPT	ok
+sync_reject_on	sync_reject_on (b) a	A.2.10 legal	ACCEPT	ACCEPT	ok
+until	a until b	A.2.10 legal	ACCEPT	ACCEPT	ok

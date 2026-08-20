@@ -397,12 +397,23 @@ all: the **tracked baselines** under `rust/test_data/grammar_quality/` that pin 
 
 The founding measurement is blunt. `rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json`
 was last touched **2026-08-12**; `grammars/systemverilog.ebnf` moved **eleven times**
-after that. Every `expected_*` field in the contract is an exact function of that grammar,
-and the file contained **no grammar sha, no parser sha and no `verified_at_commit`** — so
-when the gate finally ran and reported `total 1362` against a measured `1433`, it could say
-*"something is wrong"* and never *"your baseline is eleven revisions old"*. Those are
-different findings with different repairs, and nothing in the repository could tell them
-apart.
+after that. Every `expected_*` field in the contract is a function of that grammar *and of
+the engine that compiles it*, and the file contained **no grammar sha, no parser sha and no
+`verified_at_commit`** — so when the gate finally ran and reported `total 1362` against a
+measured `1433`, it could say *"something is wrong"* and never *"your baseline is eleven
+revisions old"*. Those are different findings with different repairs, and nothing in the
+repository could tell them apart.
+
+⛔ **And "the grammar moved" turned out to be the *smaller* half, which is exactly why an
+identity block declares more than one input.** When the drift was finally adjudicated
+(`SV-CORPUS-GRAD.13c.2x`(a)), the dominant mover was an **engine** change:
+`rust/src/ast_pipeline/indirect_lr_elimination.rs` **did not exist** at the commit the
+baseline was derived on, and the admission flip that first absorbed SystemVerilog's
+`casting_type` and `property_expr` left-recursion knots landed two days later. The shipped
+SystemVerilog parser now declares 127 left-recursion-family rule names, 123 of them under a base
+that pass absorbed. The contract's identity block had listed the eliminator as one of its five inputs
+all along — the *machinery* named the right cause while the *prose* named only the grammar.
+Declare every input the numbers depend on, then let the re-hash decide which one moved.
 
 **The block, and why it is generic.** Each adopted baseline declares the inputs it depends
 on, as data:

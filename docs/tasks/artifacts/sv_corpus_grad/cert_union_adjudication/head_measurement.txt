@@ -1,0 +1,41 @@
+# SV-CORPUS-GRAD.13c.2x(a) — the HEAD measurement (PGEN-SV-CORPUS-GRAD-0259)
+#
+# commit    0267dc33
+# grammar   raw_ast 875ecab5de723631a9ad7707138628b42d551027223d0ae02cf8dbf7f2eb86e4
+# parser    bfaca030172cd7dd1c66f4aeb586e026d3df7affdf107d80c9e4604148bcb8c5
+# run       3 seeds under scripts/run_with_memory_guard.sh — 2647 s, peak tree RSS 144 MB
+#
+# The shipped gate's own invocation with PGEN_CERT_COVERAGE_DUMP_ALL=1 added, which lifts
+# main.rs's 25-name residual print cap (that cap is the defect SV-CORPUS-GRAD.13c.2x.5 owns).
+
+seed 0
+  CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40 total=1434 proof=8 witness=1362 UNKNOWN=64 fully_certified=false (sample_parse_failures=0, proof_reverify_failures=0)
+  CERTIFICATE-COVERAGE-UNION: grammar='systemverilog' base_entry='systemverilog_file' base_profile='sv_2017' union_configs=[systemverilog_file:sv_2023, sv_multi_entry_root:sv_2017, library_text:sv_2017, systemverilog_parseable_file:sv_2017] total=1434 proof=8 witness=1373 UNKNOWN=53 fully_certified=false
+  residual: 53 names, sorted sha256 389d4a6196756379bbbe3f4afe5daadf47239e3cce69144818d896862db49322
+
+seed 7
+  CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40 total=1434 proof=8 witness=1362 UNKNOWN=64 fully_certified=false (sample_parse_failures=0, proof_reverify_failures=0)
+  CERTIFICATE-COVERAGE-UNION: grammar='systemverilog' base_entry='systemverilog_file' base_profile='sv_2017' union_configs=[systemverilog_file:sv_2023, sv_multi_entry_root:sv_2017, library_text:sv_2017, systemverilog_parseable_file:sv_2017] total=1434 proof=8 witness=1373 UNKNOWN=53 fully_certified=false
+  residual: 53 names, sorted sha256 389d4a6196756379bbbe3f4afe5daadf47239e3cce69144818d896862db49322
+
+seed 42
+  CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40 total=1434 proof=8 witness=1362 UNKNOWN=64 fully_certified=false (sample_parse_failures=0, proof_reverify_failures=0)
+  CERTIFICATE-COVERAGE-UNION: grammar='systemverilog' base_entry='systemverilog_file' base_profile='sv_2017' union_configs=[systemverilog_file:sv_2023, sv_multi_entry_root:sv_2017, library_text:sv_2017, systemverilog_parseable_file:sv_2017] total=1434 proof=8 witness=1373 UNKNOWN=53 fully_certified=false
+  residual: 53 names, sorted sha256 389d4a6196756379bbbe3f4afe5daadf47239e3cce69144818d896862db49322
+
+ALL THREE SEEDS AGREE on every field and on the full residual set.
+
+the 53 residual union UNKNOWN rules, classified:
+   43  property_expr_lr_*   (LR-eliminator-synthesised)
+    9  kw_*                 (SVA property-operator tokens — each construct PARSES)
+         kw_accept_on_2aee6cd4
+         kw_eventually_5865020f
+         kw_nexttime_b0f658f8
+         kw_reject_on_a3b3068d
+         kw_s_always_0f9aa900
+         kw_s_eventually_86207140
+         kw_s_nexttime_373d0bd1
+         kw_sync_accept_on_b65eda53
+         kw_sync_reject_on_1f0c8923
+    1  other
+         known_unscoped_property_identifier

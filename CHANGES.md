@@ -1,5 +1,69 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0259 (leaf SV-CORPUS-GRAD.13c.2x (a) DISCHARGED + leaves SV-CORPUS-GRAD.13c.2x.5, .13c.2x.6 and .13c.2y NEW; ZERO grammar bytes, ZERO Rust bytes):
+
+- ⭐⭐⭐ **`(a)` — THE PER-CRITERION ADJUDICATION — IS DISCHARGED, AND EVERY ONE OF THE 27 UNMET
+  CRITERIA IS CORRECT-AND-STALE.** Re-measured at HEAD (`0267dc33`) against the exact grammar and
+  parser digests the contract's `BASELINE-IDENTITY` block records: canonical
+  `total=1434 proof=8 witness=1362 UNKNOWN=64 sample_parse_failures=0`, union
+  `total=1434 proof=8 witness=1373 UNKNOWN=53`, deterministic across seeds 0/7/42. ⛔ The `1433` the
+  leaf opened on was measured six releases earlier, before `-0256` landed `SV-0065`; the
+  adjudication is against HEAD, not against a stale run.
+- ⛔⛔ **AND `(a)` CORRECTED THE LEAF'S OWN — AND THE BOOK'S — RECORDED ROOT CAUSE.** Both attributed
+  the drift to *"eleven revisions of `grammars/systemverilog.ebnf`"*, the book adding *"every
+  `expected_*` field is an exact function of that grammar"*. Measured with `git cat-file`:
+  `rust/src/ast_pipeline/indirect_lr_elimination.rs` **did not exist** at the baseline commit
+  `3056381a` — the whole indirect-LR machinery post-dates it, and the admission flip that absorbed
+  the `casting_type` and `property_expr` knots landed two days later (`0994c3c0`). The shipped SV
+  parser declares **127** LR-family rule names — counted by the repository's own pinned classifier,
+  `stimuli/sv/corpus_parse_cost.py --verify-families` — **123** of them under a base that pass
+  absorbed. ⇒ the dominant
+  mover is an **ENGINE** change. ⭐ The contract's identity block already declared the eliminator as
+  one of its five inputs: the machinery named the right cause while the prose named only the grammar.
+- ⭐⭐ **CRITERION 8 (`union UNKNOWN 0 → 53`) WAS ENUMERATED, NOT ASSUMED — ALL 53.**
+  `PGEN_CERT_COVERAGE_DUMP_ALL=1` lifts the 25-name print cap and the roster partitions exactly:
+  **43** eliminator-synthesised `property_expr_lr_*` rules, **9** SVA property-operator `kw_*` tokens,
+  **1** `known_unscoped_property_identifier`. The 43 are corroborated by an oracle this session did
+  not build — `stimuli/sv/characterization/rule_coverage_sv_2017.tsv` puts the *same 43* in `GAP`
+  (0 files) across a corpus where `property_expr` itself fires in **184**. The 10 were not argued but
+  **parsed**: ten minimal IEEE 1800-2017 A.2.10 probes, **10 of 10 ACCEPT** under both profiles,
+  through a binary whose embedded SV parser digest was verified equal to the tree first. ⇒ **zero of
+  the 53 is a parser defect.**
+- ⛔⛔⛔ **AND THE ADJUDICATION FOUND A DEFECT THE GATE IS STRUCTURALLY BLIND TO — the real result.**
+  Reading `prop_primary_sv_2017` to explain why its keywords cannot be witnessed exposed
+  `grammars/systemverilog.ebnf:6666` — `implies := trivia "->"`, **a token rule named after an IEEE
+  1800 keyword**. Measured on 21 probes, both profiles: `a implies b` is **REJECTED** in three
+  shapes, while `a -> b`, `-> b` and `a |= b` in property position are **ACCEPTED** although A.2.10
+  defines none of them; the other 15 rows pass and are the control. `--trace-rules implies` prints
+  `Terminal '->' failed at position 60 - found 'im'`. ⇒ new leaf **`.13c.2y`**, with ledger `SV-0066`
+  and the fix.
+- ⭐⭐⭐ **THE LESSON IS ABOUT THE INSTRUMENT: `union UNKNOWN` MEASURES REACH OVER THE *DECLARED* RULE
+  SET, SO A PRODUCTION THE GRAMMAR NEVER SPELLS IS INVISIBLE TO IT BY CONSTRUCTION.** A missing rule
+  cannot be `UNKNOWN`; it can only be absent. Had the rebaseline run first, the file would have closed
+  on `union UNKNOWN = 53` with every number correct and the defect still shipping. That is the
+  argument for `(a)`-before-`(c)`, vindicated on its first use.
+- ⛔ **`(c)` IS NOW BLOCKED ON THREE MEASURED PRECONDITIONS instead of the hypothesis `-0255`
+  refuted**: **`.13c.2x.5`** — `main.rs` caps the residual print at 25 names and the gate parses that
+  line without setting `PGEN_CERT_COVERAGE_DUMP_ALL`, so a rebaseline through the gate would pin
+  **25 of 53** and call it the residual set; **`.13c.2x.6`** — the published view in
+  `docs/book/src/grammar-wellformedness.md` is **eleven rebaselines** stale (four of its six numbers
+  already disagree with the tracked contract) and asserted in bold that SystemVerilog is
+  recognized `fully_certified`, which HEAD measures **false** — the acute correction (past tense +
+  a SUPERSEDED block carrying the published/contract/HEAD comparison) lands here, the full
+  re-publication is owed with `(c)`; **`.13c.2y`** — do not rebaseline
+  `prop_primary`'s neighbourhood while a defect in it is open.
+- ⚠️ **THE BOUND ON CRITERION 8, because its correctness is not the whole truth**: `union UNKNOWN
+  0 → 53` contains no parser defect *and* means SystemVerilog is no longer recognized
+  `fully_certified` on the union basis — a real loss of proof surface bought by the LR flip, which
+  `(c)` must decide deliberately whether to pin rather than absorb. It does **not** move the DONE-BAR
+  register: `systemverilog` is `Mostly Done` and the recognized-union basis is not one of its `Done`
+  legs.
+- **LOCKSTEP** — `docs/tasks/artifacts/sv_corpus_grad/cert_union_adjudication/` (21 tracked probes,
+  the verdict matrix, the scoped trace, a README); the re-stamped contract `unconfirmed_reason`;
+  `docs/book/src/gate-flow.md` (the corrected attribution) and
+  `docs/book/src/grammar-wellformedness.md` (the superseded-claim block);
+  `docs/tasks/SV-CORPUS-GRAD.md`; `docs/TASK_TREE.md`; `DEVELOPMENT_NOTES.md`; `MEMORY.md`.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0258 (leaf SV-CORPUS-GRAD.13c.2x.1 CLOSED (d) + leaf ENGINE-UNIVERSAL-SERVICES.41 NEW; ZERO grammar bytes, ZERO Rust bytes): the gate can now say WHICH thing moved — and the fix had to move the CODE, because tuning the instrument to see it would have been the defect
 
 - ⭐⭐⭐ **`(d)` — THE INPUT PIN — CLOSES THE LEAF.** `sv_cert_recognized_union_gate` re-reads

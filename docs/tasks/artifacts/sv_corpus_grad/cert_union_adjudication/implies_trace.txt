@@ -1,0 +1,18 @@
+# scoped trace: why 'a implies b' is rejected (SV-CORPUS-GRAD.13c.2x(a))
+#
+# PGEN_TRACE_VERBOSITY=debug ./rust/target/release/parseability_probe --parse systemverilog \
+#     docs/tasks/artifacts/sv_corpus_grad/cert_union_adjudication/sva_probes/implies.sv \
+#     --profile sv_2017 --trace-rules implies
+#
+# Input byte 60 is the first byte of the keyword 'implies'. The rule the grammar calls
+# 'implies' is grammars/systemverilog.ebnf:6666  ->  implies := trivia "->".
+
+input byte:56  Attempting to match terminal '->' at position 56 (end: 58)
+input byte:56  Terminal '->' failed at position 56 - found ') '
+input byte:58  Attempting to match terminal '->' at position 58 (end: 60)
+input byte:58  Terminal '->' failed at position 58 - found 'a '
+input byte:60  Attempting to match terminal '->' at position 60 (end: 62)
+input byte:60  Terminal '->' failed at position 60 - found 'im'
+
+# and the top-level verdict:
+Error: parse_full rejected sample for grammar 'systemverilog' on 'docs/tasks/artifacts/sv_corpus_grad/cert_union_adjudication/sva_probes/implies.sv': Parser did not consume full input at position 0 [furthest_position=59, +59 bytes deeper than surface position]
