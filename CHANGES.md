@@ -1,5 +1,40 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0246 (leaf SV-CORPUS-GRAD.13c.2x.1 NEW + .13c.2x (d) DISCHARGED; docs only, ZERO code bytes): a logged finding with no owner is a buried finding — and the missing-identity shape is FIFTEEN files, not one
+
+- ⛔ **DIRECTOR CORRECTION, ACCEPTED.** `-0245` recorded a seed-dependent rule count as a bullet
+  inside `.13c.2x`'s prose with the action *"re-probe when SV-0065 re-lands"*. That is a log, not a
+  plan: no owning leaf, no trigger, no blocker. It is now `.13c.2x.1` with all three.
+- ⭐⭐ **AND SPLITTING IT OUT FORCED A REAL DIAGNOSIS.** `certificate_coverage()`
+  (`grammar_wellformedness.rs:2240`) is **PURE** — `total: all_fragments.len()`, no seed in scope —
+  and every caller passes `&grammar.rule_order`. So `total` is a function of the loaded grammar and
+  **cannot** legitimately vary with a witness seed. ⭐⭐⭐ Then the sharper fact:
+  `grep -c property_expr_lr_suffix grammars/systemverilog.ebnf` → **0**. The 25 rules the gate lists
+  as residual are **SYNTHESIZED** at `indirect_lr_elimination.rs:862`. ⇒ the count that varied is a
+  count of rules the tool INVENTS.
+- ⛔⛔ **TWO HYPOTHESES, NEITHER ADOPTED — and the second is far more serious than the symptom.**
+  **H1**: the gate runs each seed in a SEPARATE PROCESS, so "seed" and "process" are perfectly
+  confounded; if synthetic-name allocation resolves collisions against an unstably-ordered container,
+  the count varies per RUN and every rule-count baseline is exposed. **H2**: genuine seed-dependence
+  in the seeded path. ⭐ `generated_reproducibility_gate` re-derived 11/11 byte-identically this
+  session, which is evidence the GENERATOR path is deterministic — and says nothing about the
+  `--report-certificate-coverage` path, a different route through the same eliminator.
+- ⭐ **DISCRIMINATING PROBE**: run the cert pass three times at the SAME seed and compare `total`.
+  Varies ⇒ H1. Stable ⇒ H2. **SCHEDULED** as the first act of `.13c.2w`'s `SV-0065` re-land — the
+  one commit where the exhibiting arm exists and is already built — and it **HARD-BLOCKS**
+  `.13c.2x`(c): rebaselining a possibly-nondeterministic count would pin whichever number that
+  process emitted and convert an intermittent defect into a permanent silent one.
+- ⭐⭐⭐ **`.13c.2x`(d) DISCHARGED IN THE SAME COMMIT THAT PROPOSED IT, because a sweep proposed is a
+  sweep not done.** Every tracked baseline under `rust/test_data/grammar_quality/` classified on two
+  axes — holds derived numeric expectations, and carries any identity field:
+  **15 hold derived expectations; 15 of those 15 carry NO identity field.** Exactly one file in the
+  directory has one (`generated_reproducibility_v0.json`), and it stores shas rather than
+  expectations. ⛔ `systemverilog_syntax_closure_contract.json` is the sharpest sibling: its derived
+  fields ARE rule counts over the same grammar, with the same eleven revisions of drift beneath them.
+  ⚠️ HONEST BOUND: the classification is mechanical (key-name shapes), so it SIZES the population and
+  adjudicates no individual file — a FLOOR a run cannot approach is far less exposed than an EQUALITY
+  that must be hit exactly.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0245 (leaf SV-CORPUS-GRAD.13c.2x NEW; docs only, ZERO code bytes): a tracked gate has been RED at HEAD for ELEVEN grammar revisions, and its baseline has no way to say it is stale
 
 - ⛔ **MEASURED AT HEAD** (`make -C rust sv_cert_recognized_union_gate`, rc=2, seeds 0/7/42):
