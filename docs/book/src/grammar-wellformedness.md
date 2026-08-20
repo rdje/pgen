@@ -1675,7 +1675,11 @@ contract — before HEAD's own measurement is considered. Re-measured at HEAD on
 
 **SystemVerilog is not recognized `fully_certified` on the union basis today.** What retired it was
 the indirect left-recursion admission flip of 2026-08-14, which absorbed the `casting_type` and
-`property_expr` knots and synthesised rules the witness planner does not reach: of the 53 residual
+`property_expr` knots and synthesised rules the witness planner does not reach — and that
+attribution is measured, not inferred: re-running the same binary on the same grammar with the pass
+held off gives `total 1365`, union `UNKNOWN 2`, so **69 of the 72 added rules and 51 of the 53
+residual `UNKNOWN`s are the engine**, and the eleven grammar revisions in the same window account
+for the other three and two. Of the 53: of the 53 residual
 `UNKNOWN`s, **43** are eliminator-authored `property_expr_lr_*` rules — independently corroborated
 as never-firing by the corpus rule-coverage instrument described in the next section — and the
 remaining **10** are witness-planner reach gaps whose constructs were each parsed successfully

@@ -1,0 +1,50 @@
+# SV-CORPUS-GRAD.13c.2x(a) — THE ATTRIBUTION ARM (PGEN-SV-CORPUS-GRAD-0260)
+#
+# One binary, one grammar, one seed. The only variable is whether the INDIRECT
+# left-recursion pass runs. --no-eliminate-indirect-left-recursion is the A/B
+# measurement lever built by ENGINE-UNIVERSAL-SERVICES.13 — not by this slice.
+#
+# WHY THIS ARM IS THE FAITHFUL 'BEFORE': the contract's expectations were derived at
+# 3056381a (2026-08-12), a commit at which rust/src/ast_pipeline/indirect_lr_elimination.rs
+# DID NOT EXIST — git cat-file -e says "exists on disk, but not in '3056381a'".
+#
+# run: 131 s, peak tree RSS 136 MB, seed 0, grammar bytes 5502bf28...
+
+## pre-flip arm (indirect pass HELD OFF)
+  CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40 total=1365 proof=6 witness=1346 UNKNOWN=13 fully_certified=false (sample_parse_failures=0, proof_reverify_failures=0)
+  CERTIFICATE-COVERAGE-UNION: grammar='systemverilog' base_entry='systemverilog_file' base_profile='sv_2017' union_configs=[systemverilog_file:sv_2023, sv_multi_entry_root:sv_2017, library_text:sv_2017, systemverilog_parseable_file:sv_2017] total=1365 proof=6 witness=1357 UNKNOWN=2 fully_certified=false
+  union residual: ["casting_type", "property_expr_sv_2017"]
+
+## shipped arm (the same binary, the pass ON — the default, and what ships)
+  CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40 total=1434 proof=8 witness=1362 UNKNOWN=64 fully_certified=false (sample_parse_failures=0, proof_reverify_failures=0)
+  CERTIFICATE-COVERAGE-UNION: grammar='systemverilog' base_entry='systemverilog_file' base_profile='sv_2017' union_configs=[systemverilog_file:sv_2023, sv_multi_entry_root:sv_2017, library_text:sv_2017, systemverilog_parseable_file:sv_2017] total=1434 proof=8 witness=1373 UNKNOWN=53 fully_certified=false
+
+## THE SPLIT
+
+  criterion             contract   grammar-only   shipped   grammar-D   engine-D
+  --------------------  --------   ------------   -------   ---------   --------
+  canonical total           1362           1365      1434          +3        +69
+  canonical proof              6              6         8           0         +2
+  canonical witness         1345           1346      1362          +1        +16
+  canonical UNKNOWN           11             13        64          +2        +51
+  union witness             1356           1357      1373          +1        +16
+  union UNKNOWN                0              2        53          +2        +51
+
+  => 69 of the 72 added rules and 51 of the 53 added union UNKNOWNs are the ENGINE.
+     The eleven grammar revisions moved total by 3 and union UNKNOWN by 2.
+
+## BOUND, stated because the arm has one confound and 'total' does not
+
+  'total' is grammar.rule_order.len() — a pure function of the LOADED grammar and
+  independent of the parser on disk. The +3 / +69 split is therefore clean.
+
+  The WITNESS-bearing rows are NOT: this arm loads a grammar the on-disk parser was
+  not generated from (the shipped parser embeds the pass), and the arm's own two
+  residual rules are casting_type and property_expr_sv_2017 — precisely the LR bases
+  that mismatch touches. The DIRECTION is unmistakable at 51-vs-2; the exact figure
+  on those rows would need a parser regenerated under the flag.
+
+## AND IT SETTLES 'proof 6 -> 8' AS A MEASUREMENT RATHER THAN AN INFERENCE
+
+  casting_type and property_expr_sv_2017 are UNKNOWN under the pre-flip arm and are
+  members of the shipped arm's 8-rule proof set. The flip is what promoted them.

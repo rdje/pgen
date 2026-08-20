@@ -24,6 +24,7 @@ shasum -a 256 generated/systemverilog_parser.rs
 | `probe_matrix.tsv` | every probe's verdict under `sv_2017` and `sv_2023` — **15 ok, 3 over-rejection, 3 over-acceptance** |
 | `implies_trace.txt` | the scoped `--trace-rules implies` excerpt that names the cause |
 | `head_measurement.txt` | the three-seed cert-union tuple at HEAD, with the 53-name residual's sorted sha256 per seed and the roster classified |
+| `ab_preflip.sh` + `attribution_arm.txt` | the A/B arm that splits the drift between the grammar and the engine — same binary, same grammar, indirect-LR pass held off. **Re-runnable from its tracked location**: `bash docs/tasks/artifacts/sv_corpus_grad/cert_union_adjudication/ab_preflip.sh` (130 s) |
 
 Re-run the matrix (paths are repo-root-relative; each probe takes a few seconds):
 

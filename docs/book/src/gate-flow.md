@@ -411,9 +411,22 @@ identity block declares more than one input.** When the drift was finally adjudi
 baseline was derived on, and the admission flip that first absorbed SystemVerilog's
 `casting_type` and `property_expr` left-recursion knots landed two days later. The shipped
 SystemVerilog parser now declares 127 left-recursion-family rule names, 123 of them under a base
-that pass absorbed. The contract's identity block had listed the eliminator as one of its five inputs
-all along — the *machinery* named the right cause while the *prose* named only the grammar.
-Declare every input the numbers depend on, then let the re-hash decide which one moved.
+that pass absorbed.
+
+The split was then **measured** rather than argued, by re-running the same binary on the same
+grammar with the indirect pass held off (`--no-eliminate-indirect-left-recursion`, an A/B lever that
+exists precisely so a before/after is not taken from two different binaries):
+
+| | baseline, 2026-08-12 | grammar changes only | as shipped | grammar Δ | **engine Δ** |
+|---|---:|---:|---:|---:|---:|
+| accounted rules | 1362 | 1365 | 1434 | **+3** | **+69** |
+| residual `UNKNOWN` on the union | 0 | 2 | 53 | **+2** | **+51** |
+
+Eleven revisions of the grammar — the cause everyone had written down — account for three of the
+seventy-two added rules. The contract's identity block had listed the eliminator as one of its five
+inputs all along: the *machinery* named the right cause while the *prose* named only the grammar.
+**Declare every input the numbers depend on, then let the re-hash decide which one moved** — and when
+you can, hold one input still and re-measure rather than reasoning about which mattered most.
 
 **The block, and why it is generic.** Each adopted baseline declares the inputs it depends
 on, as data:

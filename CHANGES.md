@@ -1,5 +1,51 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0260 (leaf SV-CORPUS-GRAD.13c.2x (a) follow-up + leaf .13c.2y design; ZERO grammar bytes, ZERO Rust bytes):
+
+- ⭐⭐⭐ **THE ENGINE-vs-GRAMMAR SPLIT IS NOW MEASURED, NOT DIRECTIONAL.** `-0259` established that
+  the drift's dominant mover is an ENGINE change and said the exact numeric split was not measured.
+  It is now, by the A/B lever `ENGINE-UNIVERSAL-SERVICES.13` built for the purpose —
+  `--no-eliminate-indirect-left-recursion`, one binary, one grammar, one seed, one variable:
+
+  | criterion | contract (2026-08-12) | grammar-only arm | shipped | grammar Δ | **engine Δ** |
+  |---|---:|---:|---:|---:|---:|
+  | canonical `total` | 1362 | 1365 | 1434 | **+3** | **+69** |
+  | canonical `proof` | 6 | 6 | 8 | **0** | **+2** |
+  | canonical `UNKNOWN` | 11 | 13 | 64 | **+2** | **+51** |
+  | union `UNKNOWN` | 0 | 2 | 53 | **+2** | **+51** |
+
+  ⇒ **69 of the 72 added rules and 51 of the 53 added union `UNKNOWN`s are the engine.** The eleven
+  grammar revisions everyone had written down account for three rules and two `UNKNOWN`s.
+- ⭐ **AND IT SETTLES `proof 6 → 8` AS A MEASUREMENT.** `-0259` could only say HEAD's proof set
+  contains `casting_type` and hedge on which two joined. The arm's residual is exactly
+  `["casting_type", "property_expr_sv_2017"]` — both `UNKNOWN` without the pass, both PROVED with it.
+- ⚠️ **THE BOUND DOES NOT FALL WHERE IT LOOKS.** `total` is `grammar.rule_order.len()`, independent
+  of the parser on disk ⇒ the +3/+69 row is clean. The witness-bearing rows are not: the arm loads a
+  grammar the on-disk parser was not generated from, and its two residual rules are precisely the LR
+  bases that mismatch touches. At 51-versus-2 the direction is unmistakable; an exact figure there
+  needs a parser regenerated under the flag, which no verdict depends on.
+- ⭐ **THE ARM IS TRACKED AND WAS RE-RUN FROM ITS TRACKED LOCATION**, deriving its repo root from
+  `BASH_SOURCE` rather than a hard-coded path, and reproduced `1365/6/1346/13` in a second process
+  (130 s, peak 137 MB). ⛔ Its first tracked spelling had the root depth off by one and resolved to
+  `<repo>/docs`; that was caught by running the resolution, not by reading it.
+- ⭐⭐⭐ **`.13c.2y`'s FIX IS DESIGNED AND LRM-GROUNDED, and it is NOT "re-point the mis-bound
+  alternative".** IEEE 1800-2017 **Table 16-3** puts `implies` in ONE right-associative precedence
+  group with `until`/`s_until`/`until_with`/`s_until_with` — a group PGEN already has, because
+  `SV-0011` built the Table 16-3 cascade `prop_until > prop_iff > prop_or > prop_and > prop_primary`.
+  So: mint `kw_implies_470cec58` (suffix DERIVED — `sha1("implies")[:8]`, the rule verified by
+  reproducing four shipped tokens exactly), add it to `prop_until_*` as a fifth operator, and delete
+  all three defect branches from `prop_primary_*`.
+- ⭐⭐ **A PREDICTION THE FIX SLICE MUST MEASURE, because if it holds the fix is far larger than one
+  operator**: `| property_expr implies property_expr` is the **ONLY** left-recursive alternative in
+  `prop_primary_sv_2017` (measured over the rule's 90 lines). Moving `implies` up to `prop_until`
+  removes it, so the `property_expr` indirect-LR knot may dissolve — taking with it the 43
+  synthesised rules that are 43 of the 53 residual `UNKNOWN`s. ⛔ *May*: the pass absorbed 40 sv_2017
+  ROUTES, and killing the one direct alternative need not kill all of them.
+  `--report-indirect-lr-plan` settles it in seconds and is the first thing to run after the edit.
+- **LOCKSTEP** — `…/cert_union_adjudication/ab_preflip.sh` + `attribution_arm.txt` (new, tracked);
+  `docs/book/src/gate-flow.md` and `grammar-wellformedness.md` (the split published);
+  `docs/tasks/SV-CORPUS-GRAD.md`; `docs/TASK_TREE.md`; `MEMORY.md`.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0259 (leaf SV-CORPUS-GRAD.13c.2x (a) DISCHARGED + leaves SV-CORPUS-GRAD.13c.2x.5, .13c.2x.6 and .13c.2y NEW; ZERO grammar bytes, ZERO Rust bytes):
 
 - ⭐⭐⭐ **`(a)` — THE PER-CRITERION ADJUDICATION — IS DISCHARGED, AND EVERY ONE OF THE 27 UNMET
