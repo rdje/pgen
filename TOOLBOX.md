@@ -89,7 +89,7 @@ same leaf keeps its checklist, and a deletion-only edit still counts as touching
 | 2 | **performance / SPEED** | it is correct but slow | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph` |
 | 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
 | 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
-| 5 | **ops / build-flow** | the defect is in the repo's OWN scripts, Makefiles, hooks or tracking state — shell/make, so no rustc error either | `git ls-files`/`log -S`/`rev-list`/`fsck`/`reflog`/`diff-tree`/`merge-base`, `shellcheck`, `bash -n`, `make -n`/`make --dry-run`, `E2BIG`/`ENOSPC`/`EACCES`/`ARG_MAX`, `guard.<pid>.marker`, `reason=rss-budget\|free-floor\|disk-floor\|timeout`, `GATE-REACHABILITY-PROBE:`, `SV-CONTRACT-CURRENCY:` (`scripts/check_sv_contract_currency.sh` — the SV grammar's semantic digest versus the contract's), `ACCEPT-SET-LEDGER:` (`docs/tasks/artifacts/sv_corpus_grad/contract_accept_set_ledger/measure_accept_set_transitions.py` — which grammar commit moved which verdict or which typed AST) |
+| 5 | **ops / build-flow** | the defect is in the repo's OWN scripts, Makefiles, hooks or tracking state — shell/make, so no rustc error either | `git ls-files`/`log -S`/`rev-list`/`fsck`/`reflog`/`diff-tree`/`merge-base`, `shellcheck`, `bash -n`, `make -n`/`make --dry-run`, `E2BIG`/`ENOSPC`/`EACCES`/`ARG_MAX`, `guard.<pid>.marker`, `reason=rss-budget\|free-floor\|disk-floor\|timeout`, `GATE-REACHABILITY-PROBE:`, `SV-CONTRACT-CURRENCY:` (`scripts/check_sv_contract_currency.sh` — the SV grammar's semantic digest versus the contract's), `ACCEPT-SET-LEDGER:` (`docs/tasks/artifacts/sv_corpus_grad/contract_accept_set_ledger/measure_accept_set_transitions.py` — which grammar commit moved which verdict or which typed AST), `LRM-ANNEX-A-GAP:` (`stimuli/sv/lrm_annex_a_gap_census.py` — the IEEE 1800 productions the CLAUSE bodies define and Annex A, the only surface the extractor reads, does not) |
 
 ⛔ **A bare `file.rs:NNN` citation is NOT a signature, and neither is *"verified by grep"*.** Both
 were measured and deliberately refused (`GENERATED-LINT-CORRECTNESS.4`): a line number is a
@@ -170,6 +170,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "Which rules could a derived DFA scanner fuse? the measured ceiling? the choice-site / merged-choice surface?" | [5.3 `--report-fusibility-census`](#53---report-fusibility-census) |
 | **"WHICH grammar commit changed what a CONSUMER sees — and is it a WIDEN, a NARROW or a replaced AST SHAPE?"** — ⛔ a verdict-only answer is blind to the largest class: 12 pinned witnesses once moved with ZERO verdict movement | [5.7 the accept-set / AST-shape transition ledger](#57-which-grammar-commit-changed-what-a-consumer-sees--the-accept-set--ast-shape-transition-ledger) |
 | "Which rules exist under which `@profiles`? Which rules can a corpus run under profile P ever exercise?" | [5.4 `--dump-rule-profiles`](#54---dump-rule-profiles) |
+| **"Does the LRM define a production the SHIPPED grammar has never seen?"** — ⛔ Annex A is the only surface the SV extractor reads, and IEEE captions 60 of its own 2017 syntax boxes `(not in Annex A)` | [5.8 the Annex A gap census](#58-does-the-lrm-define-a-production-the-shipped-grammar-has-never-seen--the-annex-a-gap-census) |
 | "Which LRM chapters/clauses does the keyed corpus target? Where is the negative-axis gap?" | [5.4 companion — `corpus_clause_coverage.py`](#54---dump-rule-profiles) |
 
 ---
@@ -1218,6 +1219,47 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   python3 -c "import json,hashlib;print(hashlib.sha256(json.dumps(json.load(open('raw.json'))['raw_ast'],sort_keys=True,separators=(',',':')).encode()).hexdigest())"
   bash scripts/check_sv_contract_currency.sh   # SV-CONTRACT-CURRENCY: rows=10 genesis=438c475c newest=… digest=…
   ```
+
+### 5.8 "Does the LRM define a production the SHIPPED grammar has never seen?" — the Annex A gap census
+
+- **WHAT:** `python3 stimuli/sv/lrm_annex_a_gap_census.py` — enumerates every IEEE 1800 production
+  that the standard defines in a **clause body** and that **Annex A does not carry**, for both
+  tracked editions, and classifies each one. `grammars/systemverilog.ebnf` descends from Annex A
+  alone (`tools/extract_systemverilog_lrm_profiles.py`), so that population is a normative surface
+  the extraction pipeline is blind to by construction.
+- **WHEN:** *"is this construct even modelled?"*, *"where else could a rejects-valid defect be
+  hiding that no corpus row has hit yet?"*, or before claiming a family is LRM-complete. ⛔ It is a
+  **worklist generator, not a defect list** — most rows are outside the source language.
+- **HOW:**
+  ```bash
+  python3 stimuli/sv/lrm_annex_a_gap_census.py            # gate mode: recompute + fail on drift
+  python3 stimuli/sv/lrm_annex_a_gap_census.py --write     # refresh the tracked artifact
+  bash docs/tasks/artifacts/sv_corpus_grad/lrm_annex_a_gap/worklist_probes/probe_worklist.sh
+  ```
+- **OUTPUT:**
+  ```text
+  LRM-ANNEX-A-GAP: clause_only=294 ieee_labelled_not_in_annex_a=293 sv_source_worklist=14 editions=2017,2023
+  ```
+  plus `docs/tasks/artifacts/sv_corpus_grad/lrm_annex_a_gap/{census.tsv,census.md}`.
+- ⭐⭐ **THE SIGNAL IS IEEE'S OWN, NOT AN INFERENCE.** Every clause syntax box carries a caption that
+  states its provenance — `Syntax 10-5—Assignment patterns syntax (excerpt from Annex A)` versus
+  `Syntax 18-11—Scope randomize function syntax (not in Annex A)`. The census reads that caption.
+  Measured in the 2017 edition: **304** boxes say *excerpt*, **60** say *not in*. Where IEEE writes
+  the marker as a `// not in Annex A` comment INSIDE the box instead, the in-box marker wins.
+- ⭐ **BOTH SIDES ARE SCRAPED WITH THE EXTRACTOR'S OWN `extract_rules`**, deliberately — a
+  divergence this reports cannot be an artifact of a second, differently-buggy scraper.
+- ⛔ **IT REFUSES RATHER THAN GUESSING.** A clause-only production with no caption, or a caption
+  whose clause number has no declared bucket, exits **1**. On its first run that caught Annex F's
+  formal-semantics metavariables (`P ::= strong ( R )`); they are now a declared bucket guarded by a
+  proof that Annex A names no single-uppercase-letter production.
+- ⛔⛔ **DO NOT KEY ANYTHING HERE ON FILE NAMES.** The PDF→markdown splitter titled sections from
+  nearby lines: the 2017 Annex A holds **0** productions in the file named for it and **736** in
+  `section-41-data-read-api.md`, and the Annex F metavariables are filed under
+  `section-100-time-units.md`. The census keys on the clause number IEEE prints in the caption.
+- **FIRST CUSTOMER** (`SV-CORPUS-GRAD.13c.2v` slice 1, ledger `SV-0065`): of the seven
+  `sv_source_syntax` rows per edition, six were already covered by a general Annex A rule and
+  `scope_randomize` (Syntax 18-11) was **unreachable** — `std::randomize(a, b) with { a < b; }`
+  REJECTED in every expression.
 
 ## 6. Coverage / gap reports (`ast_pipeline`)
 

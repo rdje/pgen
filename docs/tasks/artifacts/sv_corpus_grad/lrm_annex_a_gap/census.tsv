@@ -1,0 +1,295 @@
+edition	rule	bucket	ieee_says	ieee_caption	clause	modelled_in_shipped_grammar	source_md	body
+2017	A	formal_semantics_metavariable	not in Annex A	(none — running text)	0	no	section-100-time-units.md	always assert property ( U )
+2017	P	formal_semantics_metavariable	not in Annex A	(none — running text)	0	no	section-100-time-units.md	strong ( R )
+2017	Q	formal_semantics_metavariable	not in Annex A	(none — running text)	0	no	section-100-time-units.md	@( b ) P
+2017	R	formal_semantics_metavariable	not in Annex A	(none — running text)	0	no	section-100-time-units.md	b
+2017	S	formal_semantics_metavariable	not in Annex A	(none — running text)	0	no	section-100-time-units.md	@(b) R
+2017	T	formal_semantics_metavariable	not in Annex A	(none — running text)	0	no	section-100-time-units.md	P // plain form | disable iff ( b ) P
+2017	U	formal_semantics_metavariable	not in Annex A	(none — running text)	0	no	section-100-time-units.md	Q // plain form | disable iff ( b ) Q
+2017	actual_argument	compiler_directive	not in Annex A	Syntax 22-3	22	no	section-22-compiler-directives.md	expression
+2017	array_dimension_function	system_task_function	not in Annex A	Syntax 20-8	20	no	section-20-utility-system-tasks-and-system-functions.md	$left | $right | $low | $high | $increment | $size
+2017	array_dimensions_function	system_task_function	not in Annex A	Syntax 20-8	20	no	section-20-utility-system-tasks-and-system-functions.md	$dimensions | $unpacked_dimensions
+2017	array_expression	system_task_function	not in Annex A	Syntax 20-8	20	no	section-20-utility-system-tasks-and-system-functions.md	expression
+2017	array_method_call	sv_source_syntax	not in Annex A	Syntax 7-5	7	no	section-16-777-216-224-elements.md	expression . array_method_name { attribute_instance } [ ( iterator_argument ) ] [ with ( expression ) ]
+2017	array_query_function	system_task_function	not in Annex A	Syntax 20-8	20	no	section-20-utility-system-tasks-and-system-functions.md	array_dimension_function ( array_expression [ , dimension_expression ] ) | array_dimension_function ( data_type [ , dimension_expression ] ) | array_dimensions_function ( array_expression ) | array_dimensions_function ( data_type )
+2017	array_type	system_task_function	not in Annex A	Syntax 20-16	20	no	section-20-utility-system-tasks-and-system-functions.md	sync | async
+2017	assert_action_task	system_task_function	not in Annex A	Syntax 20-12	20	no	section-20-utility-system-tasks-and-system-functions.md	$assertpasson | $assertpassoff | $assertfailon | $assertfailoff | $assertnonvacuouson | $assertvacuousoff
+2017	assert_control_task	system_task_function	not in Annex A	Syntax 20-12	20	no	section-20-utility-system-tasks-and-system-functions.md	assert_task [ ( levels [ , list_of_scopes_or_assertions ] ) ] ; | assert_action_task [ ( levels [ , list_of_scopes_or_assertions ] ) ] ; | $assertcontrol ( control_type [ , [ assertion_type ] [ , [ directive_type ] [ , [ levels ] [ , list_o
+2017	assert_task	system_task_function	not in Annex A	Syntax 20-12	20	no	section-20-utility-system-tasks-and-system-functions.md	$asserton | $assertoff | $assertkill
+2017	bit_vector_function	system_task_function	not in Annex A	Syntax 20-9	20	no	section-20-utility-system-tasks-and-system-functions.md	$countbits ( expression , list_of_control_bits ) | $countones ( expression ) | $onehot ( expression ) | $onehot0 ( expression ) | $isunknown ( expression )
+2017	built_in_data_type	sv_source_syntax	not in Annex A	Syntax 26-5	26	no	section-26-packages.md	[ std :: ] data_type_identifier
+2017	built_in_function_call	sv_source_syntax	not in Annex A	Syntax 26-5	26	no	section-26-packages.md	[ std :: ] function_subroutine_call
+2017	close_text	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	final_simulation_time
+2017	command_text	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	comment_text | close_text | date_section | scope_section | timescale_section | var_section | version_section
+2017	conditional_compilation_directive	compiler_directive	not in Annex A	Syntax 22-5	22	no	section-22-compiler-directives.md	ifdef_directive | ifndef_directive
+2017	date_section	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	date_text
+2017	date_text	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	{ ASCII character }
+2017	declaration_command	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$comment [ comment_text ] $end | $date [ date_text ] $end | $enddefinitions $end | $scope [ scope_type scope_identifier ] $end | $timescale [ time_number time_unit ] $end | $upscope $end | $var [ var_type size identifier_code reference ] $e
+2017	declaration_keyword	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$comment | $date | $enddefinitions | $scope | $timescale | $upscope | $var | $vcdclose | $version
+2017	default_nettype_compiler_directive	compiler_directive	not in Annex A	Syntax 22-7	22	no	section-22-compiler-directives.md	`default_nettype default_nettype_value
+2017	default_nettype_value	compiler_directive	not in Annex A	Syntax 22-7	22	no	section-22-compiler-directives.md	wire | tri | tri0 | tri1 | wand | triand | wor | trior | trireg | uwire | none
+2017	dimension_expression	system_task_function	not in Annex A	Syntax 20-8	20	no	section-20-utility-system-tasks-and-system-functions.md	expression
+2017	display_task_name	system_task_function	not in Annex A	Syntax 21-1	21	no	section-21-input-output-system-tasks-and-system-functions.md	$display | $displayb | $displayo | $displayh | $write | $writeb | $writeo | $writeh
+2017	display_tasks	system_task_function	not in Annex A	Syntax 21-1	21	no	section-21-input-output-system-tasks-and-system-functions.md	display_task_name [ ( list_of_arguments ) ] ;
+2017	dist_functions	system_task_function	not in Annex A	Syntax 20-15	20	no	section-20-utility-system-tasks-and-system-functions.md	$dist_uniform ( seed , start , end ) | $dist_normal ( seed , mean , standard_deviation ) | $dist_exponential ( seed , mean ) | $dist_poisson ( seed , mean ) | $dist_chi_square ( seed , degree_of_freedom ) | $dist_t ( seed , degree_of_freedo
+2017	dumpall_task	system_task_function	not in Annex A	Syntax 21-17	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$dumpall ;
+2017	dumpfile_task	system_task_function	not in Annex A	Syntax 21-14	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpfile ( filename ) ;
+2017	dumpflush_task	system_task_function	not in Annex A	Syntax 21-19	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$dumpflush ;
+2017	dumplimit_task	system_task_function	not in Annex A	Syntax 21-18	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$dumplimit ( filesize ) ;
+2017	dumpoff_task	system_task_function	not in Annex A	Syntax 21-16	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$dumpoff ;
+2017	dumpon_task	system_task_function	not in Annex A	Syntax 21-16	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$dumpon ;
+2017	dumpports_command	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$dumpports (scope_identifier , string_literal | variable | expression )
+2017	dumpports_task	system_task_function	not in Annex A	Syntax 21-21	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$dumpports ( scope_list , filename ) ;
+2017	dumpportsall_task	system_task_function	not in Annex A	Syntax 21-23	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$dumpportsall ( filename ) ;
+2017	dumpportsflush_task	system_task_function	not in Annex A	Syntax 21-25	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$dumpportsflush ( filename ) ;
+2017	dumpportslimit_task	system_task_function	not in Annex A	Syntax 21-24	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$dumpportslimit ( filesize , filename ) ;
+2017	dumpportsoff_task	system_task_function	not in Annex A	Syntax 21-22	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$dumpportsoff ( filename ) ;
+2017	dumpportson_task	system_task_function	not in Annex A	Syntax 21-22	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$dumpportson ( filename ) ;
+2017	dumpvars_task	system_task_function	not in Annex A	Syntax 21-15	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpvars ; | $dumpvars ( levels [ , list_of_modules_or_variables ] ) ;
+2017	endkeywords_directive	compiler_directive	not in Annex A	Syntax 22-10	22	no	section-22-compiler-directives.md	`end_keywords
+2017	fatal_message_task	system_task_function	not in Annex A	Syntax 20-10	20	no	section-20-utility-system-tasks-and-system-functions.md	$fatal [ ( finish_number [ , list_of_arguments ] ) ] ;
+2017	file_close_task	system_task_function	not in Annex A	Syntax 21-4	21	no	section-21-input-output-system-tasks-and-system-functions.md	$fclose ( multi_channel_descriptor ) ; | $fclose ( fd ) ;
+2017	file_eof_detect_function	system_task_function	not in Annex A	Syntax 21-11	21	no	section-21-input-output-system-tasks-and-system-functions.md	$feof ( fd )
+2017	file_error_detect_function	system_task_function	not in Annex A	Syntax 21-10	21	no	section-21-input-output-system-tasks-and-system-functions.md	$ferror ( fd , str )
+2017	file_flush_task	system_task_function	not in Annex A	Syntax 21-9	21	no	section-21-input-output-system-tasks-and-system-functions.md	$fflush ( [ mcd | fd ] ) ;
+2017	file_open_function	system_task_function	not in Annex A	Syntax 21-4	21	no	section-21-input-output-system-tasks-and-system-functions.md	multi_channel_descriptor = $fopen ( filename ) ; | fd = $fopen ( filename , type ) ;
+2017	file_output_task_name	system_task_function	not in Annex A	Syntax 21-5	21	no	section-21-input-output-system-tasks-and-system-functions.md	$fdisplay | $fdisplayb | $fdisplayh | $fdisplayo | $fwrite | $fwriteb | $fwriteh | $fwriteo | $fstrobe | $fstrobeb | $fstrobeh | $fstrobeo | $fmonitor | $fmonitorb | $fmonitorh | $fmonitoro
+2017	file_output_tasks	system_task_function	not in Annex A	Syntax 21-5	21	no	section-21-input-output-system-tasks-and-system-functions.md	file_output_task_name ( multi_channel_descriptor [ , list_of_arguments ] ) ; | file_output_task_name ( fd [ , list_of_arguments ] ) ;
+2017	file_positioning_functions	system_task_function	not in Annex A	Syntax 21-8	21	no	section-21-input-output-system-tasks-and-system-functions.md	$ftell ( fd ) | $fseek ( fd , offset , operation ) | $rewind ( fd )
+2017	file_read_functions	system_task_function	not in Annex A	Syntax 21-7	21	no	section-21-input-output-system-tasks-and-system-functions.md	$fgetc ( fd ) | $ungetc ( c , fd ) | $fgets ( str , fd ) | $fscanf ( fd , format , args ) | $sscanf ( str , format , args ) | $fread ( integral_var , fd ) | $fread ( mem , fd [ , [ start ] [ , count ] ] )
+2017	final_simulation_time	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	simulation_time
+2017	formal_argument	compiler_directive	not in Annex A	Syntax 22-2	22	no	section-22-compiler-directives.md	simple_identifier [ = default_text ]
+2017	format	system_task_function	not in Annex A	Syntax 20-16	20	no	section-20-utility-system-tasks-and-system-functions.md	array | plane
+2017	global_clocking_future_function	system_task_function	not in Annex A	Syntax 20-13	20	no	section-20-utility-system-tasks-and-system-functions.md	$future_gclk ( expression ) | $rising_gclk ( expression ) | $falling_gclk ( expression ) | $steady_gclk ( expression ) | $changing_gclk ( expression )
+2017	global_clocking_past_function	system_task_function	not in Annex A	Syntax 20-13	20	no	section-20-utility-system-tasks-and-system-functions.md	$past_gclk ( expression ) | $rose_gclk ( expression ) | $fell_gclk ( expression ) $assertvacuousoff cbAssertionSysDisableVacuousAction cbAssertionDisableVacuousAction $assertcontrol with control_type 1 (lock) cbAssertionSysLock cbAssertionL
+2017	identifier_code	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	{ ASCII character }
+2017	ifdef_directive	compiler_directive	not in Annex A	Syntax 22-5	22	no	section-22-compiler-directives.md	`ifdef text_macro_identifier ifdef_group_of_lines { `elsif text_macro_identifier elsif_group_of_lines } [ `else else_group_of_lines ] `endif
+2017	ifndef_directive	compiler_directive	not in Annex A	Syntax 22-5	22	no	section-22-compiler-directives.md	`ifndef text_macro_identifier ifndef_group_of_lines { `elsif text_macro_identifier elsif_group_of_lines } [ `else else_group_of_lines ] `endif
+2017	index	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	decimal_number
+2017	input_terms	system_task_function	not in Annex A	Syntax 20-16	20	no	section-20-utility-system-tasks-and-system-functions.md	expression
+2017	input_value	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	D | U | N | Z | d | u
+2017	item_name	sv_source_syntax	not in Annex A	Syntax 23-8	23	no	section-23-modules-and-hierarchy.md	function_identifier | block_identifier | net_identifier | parameter_identifier | port_identifier | task_identifier | variable_identifier
+2017	keywords_directive	compiler_directive	not in Annex A	Syntax 22-10	22	no	section-22-compiler-directives.md	`begin_keywords "version_specifier"
+2017	list_of_actual_arguments	compiler_directive	not in Annex A	Syntax 22-3	22	no	section-22-compiler-directives.md	actual_argument { , actual_argument }
+2017	list_of_control_bits	system_task_function	not in Annex A	Syntax 20-9	20	no	section-20-utility-system-tasks-and-system-functions.md	control_bit { , control_bit }
+2017	list_of_formal_arguments	compiler_directive	not in Annex A	Syntax 22-2	22	no	section-22-compiler-directives.md	formal_argument { , formal_argument }
+2017	list_of_modules_or_variables	system_task_function	not in Annex A	Syntax 21-15	21	no	section-21-input-output-system-tasks-and-system-functions.md	module_or_variable { , module_or_variable }
+2017	list_of_scopes_or_assertions	system_task_function	not in Annex A	Syntax 20-12	20	no	section-20-utility-system-tasks-and-system-functions.md	scope_or_assertion { , scope_or_assertion }
+2017	load_memory_tasks	system_task_function	not in Annex A	Syntax 21-12	21	no	section-21-input-output-system-tasks-and-system-functions.md	$readmemb ( filename , memory_name [ , start_addr [ , finish_addr ] ] ) ; | $readmemh ( filename , memory_name [ , start_addr [ , finish_addr ] ] ) ;
+2017	logic	system_task_function	not in Annex A	Syntax 20-16	20	no	section-20-utility-system-tasks-and-system-functions.md	and | or | nand | nor
+2017	lsb_index	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	index
+2017	memory_identifier	system_task_function	not in Annex A	Syntax 20-16	20	no	section-20-utility-system-tasks-and-system-functions.md	identifier
+2017	module_or_variable	system_task_function	not in Annex A	Syntax 21-15	21	no	section-21-input-output-system-tasks-and-system-functions.md	module_identifier | variable_identifier
+2017	monitor_task_name	system_task_function	not in Annex A	Syntax 21-3	21	no	section-21-input-output-system-tasks-and-system-functions.md	$monitor | $monitorb | $monitoro | $monitorh
+2017	monitor_tasks	system_task_function	not in Annex A	Syntax 21-3	21	no	section-21-input-output-system-tasks-and-system-functions.md	monitor_task_name [ ( list_of_arguments ) ] ; | $monitoron ; | $monitoroff ;
+2017	msb_index	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	index
+2017	nonfatal_message_task	system_task_function	not in Annex A	Syntax 20-10	20	no	section-20-utility-system-tasks-and-system-functions.md	severity_task [ ( [ list_of_arguments ] ) ] ;
+2017	output_terms	system_task_function	not in Annex A	Syntax 20-16	20	no	section-20-utility-system-tasks-and-system-functions.md	variable_lvalue
+2017	output_value	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	L | H | X | T | l | h
+2017	pla_system_task	system_task_function	not in Annex A	Syntax 20-16	20	no	section-20-utility-system-tasks-and-system-functions.md	$array_type$logic$format ( memory_identifier , input_terms , output_terms ) ;
+2017	port_value	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	input_value | output_value | unknown_direction_value
+2017	pragma	compiler_directive	not in Annex A	Syntax 22-8	22	no	section-22-compiler-directives.md	`pragma pragma_name [ pragma_expression { , pragma_expression } ]
+2017	pragma_expression	compiler_directive	not in Annex A	Syntax 22-8	22	no	section-22-compiler-directives.md	pragma_keyword | pragma_keyword = pragma_value | pragma_value
+2017	pragma_keyword	compiler_directive	not in Annex A	Syntax 22-8	22	no	section-22-compiler-directives.md	simple_identifier
+2017	pragma_name	compiler_directive	not in Annex A	Syntax 22-8	22	no	section-22-compiler-directives.md	simple_identifier
+2017	pragma_value	compiler_directive	not in Annex A	Syntax 22-8	22	no	section-22-compiler-directives.md	( pragma_expression { , pragma_expression } ) | number | string | identifier
+2017	printtimescale_task	system_task_function	not in Annex A	Syntax 20-3	20	no	section-20-utility-system-tasks-and-system-functions.md	$printtimescale [ ( hierarchical_identifier ) ] ;
+2017	random_function	system_task_function	not in Annex A	Syntax 20-14	20	no	section-20-utility-system-tasks-and-system-functions.md	$random [ ( seed ) ]
+2017	range_function	system_task_function	not in Annex A	Syntax 20-7	20	no	section-20-utility-system-tasks-and-system-functions.md	$isunbounded ( constant_expression )
+2017	reference	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	identifier | identifier [ bit_select_index ] | identifier [ msb_index : lsb_index ]
+2017	sampled_value_function	system_task_function	not in Annex A	Syntax 20-13	20	no	section-20-utility-system-tasks-and-system-functions.md	$sampled ( expression ) | $rose ( expression [ , [ clocking_event ] ] ) | $fell ( expression [ , [ clocking_event ] ] ) | $stable ( expression [ , [ clocking_event ] ] ) | $changed ( expression [ , [ clocking_event ] ] ) | $past ( expressio
+2017	scalar_value_change	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	value identifier_code
+2017	scope_identifier	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	{ ASCII character }
+2017	scope_list	system_task_function	not in Annex A	Syntax 21-21	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	module_identifier { , module_identfier }
+2017	scope_or_assertion	system_task_function	not in Annex A	Syntax 20-12	20	no	section-20-utility-system-tasks-and-system-functions.md	hierarchical_identifier
+2017	scope_randomize	sv_source_syntax	not in Annex A	Syntax 18-11	18	no	section-18-constrained-random-value-generation.md	[ std :: ] randomize ( [ variable_identifier_list ] ) [ with constraint_block ]
+2017	scope_section	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	scope_type scope_identifier
+2017	scope_type	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	begin | fork | function | module | task
+2017	severity_message_task	system_task_function	not in Annex A	Syntax 20-10	20	no	section-20-utility-system-tasks-and-system-functions.md	fatal_message_task | nonfatal_message_task
+2017	severity_task	system_task_function	not in Annex A	Syntax 20-10	20	no	section-20-utility-system-tasks-and-system-functions.md	$error | $warning | $info
+2017	simulation_command	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$dumpall { value_change } $end | $dumpoff { value_change } $end | $dumpon { value_change } $end | $dumpvars { value_change } $end | $comment [ comment_text ] $end | simulation_time | value_change
+2017	simulation_control_task	system_task_function	not in Annex A	Syntax 20-1	20	no	section-20-utility-system-tasks-and-system-functions.md	$stop [ ( n ) ] ; $finish [ ( n ) ] ; $exit [ ( ) ] ;
+2017	simulation_keyword	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$dumpports | $dumpportsoff | $dumpportson | $dumpportsall
+2017	simulation_time	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	# decimal_number
+2017	size_function	system_task_function	not in Annex A	Syntax 20-6	20	no	section-20-utility-system-tasks-and-system-functions.md	$bits ( expression ) | $bits ( data_type )
+2017	solve_before_primary	sv_source_syntax	excerpt from Annex A	Syntax 18-8	18	no	section-18-constrained-random-value-generation.md	[ implicit_class_handle . | class_scope ] hierarchical_identifier select
+2017	strength_component	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
+2017	string_output_task_name	system_task_function	not in Annex A	Syntax 21-6	21	no	section-21-input-output-system-tasks-and-system-functions.md	$swrite | $swriteb | $swriteh | $swriteo
+2017	string_output_tasks	system_task_function	not in Annex A	Syntax 21-6	21	no	section-21-input-output-system-tasks-and-system-functions.md	string_output_task_name ( output_var [ , list_of_arguments ] ) ;
+2017	strobe_task_name	system_task_function	not in Annex A	Syntax 21-2	21	no	section-21-input-output-system-tasks-and-system-functions.md	$strobe | $strobeb | $strobeo | $strobeh
+2017	strobe_tasks	system_task_function	not in Annex A	Syntax 21-2	21	no	section-21-input-output-system-tasks-and-system-functions.md	strobe_task_name [ ( list_of_arguments ) ] ;
+2017	system_task	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	${ASCII character}
+2017	text_macro_definition	compiler_directive	not in Annex A	Syntax 22-2	22	no	section-22-compiler-directives.md	`define text_macro_name macro_text
+2017	text_macro_identifier	compiler_directive	not in Annex A	Syntax 22-2	22	no	section-22-compiler-directives.md	identifier
+2017	text_macro_name	compiler_directive	not in Annex A	Syntax 22-2	22	no	section-22-compiler-directives.md	text_macro_identifier [ ( list_of_formal_arguments ) ]
+2017	text_macro_usage	compiler_directive	not in Annex A	Syntax 22-3	22	no	section-22-compiler-directives.md	`text_macro_identifier [ ( list_of_actual_arguments ) ]
+2017	time_function	system_task_function	not in Annex A	Syntax 20-2	20	no	section-20-utility-system-tasks-and-system-functions.md	$time | $stime | $realtime
+2017	time_number	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	1 | 10 | 100
+2017	timeformat_task	system_task_function	not in Annex A	Syntax 20-4	20	no	section-20-utility-system-tasks-and-system-functions.md	$timeformat [ ( units_number , precision_number , suffix_string , minimum_field_width ) ] ;
+2017	timescale_compiler_directive	compiler_directive	not in Annex A	Syntax 22-6	22	no	section-22-compiler-directives.md	`timescale time_unit / time_precision
+2017	timescale_section	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	number time_unit
+2017	typename_function	system_task_function	not in Annex A	Syntax 20-5	20	no	section-20-utility-system-tasks-and-system-functions.md	$typename ( expression ) | $typename ( data_type )
+2017	undefine_compiler_directive	compiler_directive	not in Annex A	Syntax 22-4	22	no	section-22-compiler-directives.md	`undef text_macro_identifier
+2017	unknown_direction_value	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	0 | 1 | ? | F | A | a | B | b | C | c | f
+2017	upward_name_reference	sv_source_syntax	not in Annex A	Syntax 23-8	23	no	section-23-modules-and-hierarchy.md	module_identifier.item_name
+2017	value	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	0 | 1 | x | X | z | Z
+2017	value_change	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	scalar_value_change | vector_value_change
+2017	value_change_dump_definitions	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	{ declaration_command }{ simulation_command }
+2017	var_section	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	var_type size identifier_code reference
+2017	var_type	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	event | integer | parameter | real | realtime | reg | supply0 | supply1 | time | tri | triand | trior | trireg | tri0 | tri1 | wand | wire | wor
+2017	variable_format_string_output_function	system_task_function	not in Annex A	Syntax 21-6	21	no	section-21-input-output-system-tasks-and-system-functions.md	$sformatf ( format_string [ , list_of_arguments ] )
+2017	variable_format_string_output_task	system_task_function	not in Annex A	Syntax 21-6	21	no	section-21-input-output-system-tasks-and-system-functions.md	$sformat ( output_var , format_string [ , list_of_arguments ] ) ;
+2017	vcdclose_task	system_task_function	not in Annex A	Syntax 21-26	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	$vcdclose final_simulation_time $end
+2017	vector_index	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	[ msb_index : lsb_index ]
+2017	vector_value_change	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	b binary_number identifier_code | B binary_number identifier_code | r real_number identifier_code | R real_number identifier_code
+2017	version_section	system_task_function	not in Annex A	Syntax 21-27	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	version_text
+2017	version_specifier	compiler_directive	not in Annex A	Syntax 22-10	22	no	section-22-compiler-directives.md	| 1800-2012 | 1800-2009 | 1800-2005 | 1364-2005 | 1364-2001 | 1364-2001-noconfig | 1364-1995
+2017	version_text	system_task_function	not in Annex A	Syntax 21-20	21	no	section-800-time-units-later-at-time-1010-and-stops-it-900-time-units-later-at-time-1910.md	{ ASCII character }
+2017	writemem_tasks	system_task_function	not in Annex A	Syntax 21-13	21	no	section-21-input-output-system-tasks-and-system-functions.md	$writememb ( filename , memory_name [ , start_addr [ , finish_addr ] ] ) ; | $writememh ( filename , memory_name [ , start_addr [ , finish_addr ] ] ) ;
+2023	A	formal_semantics_metavariable	not in Annex A	(none — running text)	0	no	section-Annex_F-normative-formal-semantics-of-concurrent-assertions.md	always assert property ( U )
+2023	P	formal_semantics_metavariable	not in Annex A	(none — running text)	0	no	section-Annex_F-normative-formal-semantics-of-concurrent-assertions.md	strong ( R )
+2023	Q	formal_semantics_metavariable	not in Annex A	(none — running text)	0	no	section-Annex_F-normative-formal-semantics-of-concurrent-assertions.md	@( b ) P
+2023	R	formal_semantics_metavariable	not in Annex A	(none — running text)	0	no	section-Annex_F-normative-formal-semantics-of-concurrent-assertions.md	b
+2023	S	formal_semantics_metavariable	not in Annex A	(none — running text)	0	no	section-Annex_F-normative-formal-semantics-of-concurrent-assertions.md	@(b) R
+2023	T	formal_semantics_metavariable	not in Annex A	(none — running text)	0	no	section-Annex_F-normative-formal-semantics-of-concurrent-assertions.md	P // plain form | disable iff ( b ) P
+2023	U	formal_semantics_metavariable	not in Annex A	(none — running text)	0	no	section-Annex_F-normative-formal-semantics-of-concurrent-assertions.md	Q // plain form | disable iff ( b ) Q
+2023	actual_argument	compiler_directive	not in Annex A	Syntax 22-3	22	no	section-22-compiler-directives.md	expression
+2023	array_dimension_function	system_task_function	not in Annex A	Syntax 20-9	20	no	section-20-utility-system-tasks-and-system-functions.md	$left | $right | $low | $high | $increment | $size
+2023	array_dimensions_function	system_task_function	not in Annex A	Syntax 20-9	20	no	section-20-utility-system-tasks-and-system-functions.md	$dimensions | $unpacked_dimensions
+2023	array_expression	system_task_function	not in Annex A	Syntax 20-9	20	no	section-20-utility-system-tasks-and-system-functions.md	expression
+2023	array_method_call	sv_source_syntax	not in Annex A	Syntax 7-5	7	no	section-7-aggregate-data-types.md	expression . array_method_name { attribute_instance } [ ( [ iterator_argument ] [ , index_argument ] ) ] [ with ( expression ) ]
+2023	array_query_function	system_task_function	not in Annex A	Syntax 20-9	20	no	section-20-utility-system-tasks-and-system-functions.md	array_dimension_function ( array_expression [ , dimension_expression ] ) | array_dimension_function ( data_type [ , dimension_expression ] ) | array_dimensions_function ( array_expression ) | array_dimensions_function ( data_type )
+2023	array_type	system_task_function	not in Annex A	Syntax 20-16	20	no	section-20-utility-system-tasks-and-system-functions.md	sync | async
+2023	assert_action_task	system_task_function	not in Annex A	Syntax 20-12	20	no	section-20-utility-system-tasks-and-system-functions.md	$assertpasson | $assertpassoff | $assertfailon | $assertfailoff | $assertnonvacuouson | $assertvacuousoff
+2023	assert_control_task	system_task_function	not in Annex A	Syntax 20-12	20	no	section-20-utility-system-tasks-and-system-functions.md	assert_task [ ( levels [ , list_of_scopes_or_assertions ] ) ] ; | assert_action_task [ ( levels [ , list_of_scopes_or_assertions ] ) ] ; | $assertcontrol ( control_type [ , [ assertion_type ] [ , [ directive_type ] [ , [ levels ] [ , list_o
+2023	assert_task	system_task_function	not in Annex A	Syntax 20-12	20	no	section-20-utility-system-tasks-and-system-functions.md	$asserton | $assertoff | $assertkill
+2023	binary_logical_operator	compiler_directive	not in Annex A	Syntax 22-5	22	no	section-22-compiler-directives.md	&& | || | -> | <->
+2023	bit_vector_function	system_task_function	not in Annex A	Syntax 20-10	20	no	section-20-utility-system-tasks-and-system-functions.md	$countbits ( expression , list_of_control_bits ) | $countones ( expression ) | $onehot ( expression ) | $onehot0 ( expression ) | $isunknown ( expression )
+2023	built_in_data_type	sv_source_syntax	not in Annex A	Syntax 26-5	26	no	section-26-packages.md	[ std :: ] data_type_identifier
+2023	built_in_function_call	sv_source_syntax	not in Annex A	Syntax 26-5	26	no	section-26-packages.md	[ std :: ] function_subroutine_call
+2023	close_text	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	final_simulation_time
+2023	command_text	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	comment_text | close_text | date_section | scope_section | timescale_section | var_section | version_section
+2023	conditional_compilation_directive	compiler_directive	not in Annex A	Syntax 22-5	22	no	section-22-compiler-directives.md	ifdef_or_ifndef ifdef_condition block_of_text { `elsif ifdef_condition block_of_text } [ `else block_of_text ] `endif
+2023	date_section	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	date_text
+2023	date_text	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	{ ASCII character }
+2023	declaration_command	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	$comment [ comment_text ] $end | $date [ date_text ] $end | $enddefinitions $end | $scope [ scope_type scope_identifier ] $end | $timescale [ time_number time_unit ] $end | $upscope $end | $var [ var_type size identifier_code reference ] $e
+2023	declaration_keyword	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	$comment | $date | $enddefinitions | $scope | $timescale | $upscope | $var | $vcdclose | $version
+2023	default_nettype_compiler_directive	compiler_directive	not in Annex A	Syntax 22-7	22	no	section-22-compiler-directives.md	`default_nettype default_nettype_value
+2023	default_nettype_value	compiler_directive	not in Annex A	Syntax 22-7	22	no	section-22-compiler-directives.md	wire | tri | tri0 | tri1 | wand | triand | wor | trior | trireg | uwire | none
+2023	dimension_expression	system_task_function	not in Annex A	Syntax 20-9	20	no	section-20-utility-system-tasks-and-system-functions.md	expression
+2023	display_task_name	system_task_function	not in Annex A	Syntax 21-1	21	no	section-21-input-output-system-tasks-and-system-functions.md	$display | $displayb | $displayo | $displayh | $write | $writeb | $writeo | $writeh
+2023	display_tasks	system_task_function	not in Annex A	Syntax 21-1	21	no	section-21-input-output-system-tasks-and-system-functions.md	display_task_name [ ( list_of_arguments ) ] ;
+2023	dist_functions	system_task_function	not in Annex A	Syntax 20-15	20	no	section-20-utility-system-tasks-and-system-functions.md	$dist_uniform ( seed , start , end ) | $dist_normal ( seed , mean , standard_deviation ) | $dist_exponential ( seed , mean ) | $dist_poisson ( seed , mean ) | $dist_chi_square ( seed , degree_of_freedom ) | $dist_t ( seed , degree_of_freedo
+2023	dumpall_task	system_task_function	not in Annex A	Syntax 21-17	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpall ;
+2023	dumpfile_task	system_task_function	not in Annex A	Syntax 21-14	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpfile ( filename ) ;
+2023	dumpflush_task	system_task_function	not in Annex A	Syntax 21-19	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpflush ;
+2023	dumplimit_task	system_task_function	not in Annex A	Syntax 21-18	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumplimit ( filesize ) ;
+2023	dumpoff_task	system_task_function	not in Annex A	Syntax 21-16	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpoff ;
+2023	dumpon_task	system_task_function	not in Annex A	Syntax 21-16	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpon ;
+2023	dumpports_command	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpports (scope_identifier , string_literal | variable | expression )
+2023	dumpports_task	system_task_function	not in Annex A	Syntax 21-21	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpports ( scope_list , filename ) ;
+2023	dumpportsall_task	system_task_function	not in Annex A	Syntax 21-23	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpportsall ( filename ) ;
+2023	dumpportsflush_task	system_task_function	not in Annex A	Syntax 21-25	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpportsflush ( filename ) ;
+2023	dumpportslimit_task	system_task_function	not in Annex A	Syntax 21-24	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpportslimit ( filesize , filename ) ;
+2023	dumpportsoff_task	system_task_function	not in Annex A	Syntax 21-22	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpportsoff ( filename ) ;
+2023	dumpportson_task	system_task_function	not in Annex A	Syntax 21-22	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpportson ( filename ) ;
+2023	dumpvars_task	system_task_function	not in Annex A	Syntax 21-15	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpvars ; | $dumpvars ( levels [ , list_of_modules_or_variables ] ) ;
+2023	endkeywords_directive	compiler_directive	not in Annex A	Syntax 22-10	22	no	section-22-compiler-directives.md	`end_keywords
+2023	file_close_task	system_task_function	not in Annex A	Syntax 21-4	21	no	section-21-input-output-system-tasks-and-system-functions.md	$fclose ( multi_channel_descriptor ) ; | $fclose ( fd ) ;
+2023	file_eof_detect_function	system_task_function	not in Annex A	Syntax 21-11	21	no	section-21-input-output-system-tasks-and-system-functions.md	$feof ( fd )
+2023	file_error_detect_function	system_task_function	not in Annex A	Syntax 21-10	21	no	section-21-input-output-system-tasks-and-system-functions.md	$ferror ( fd , str )
+2023	file_flush_task	system_task_function	not in Annex A	Syntax 21-9	21	no	section-21-input-output-system-tasks-and-system-functions.md	$fflush ( [ mcd | fd ] ) ;
+2023	file_open_function	system_task_function	not in Annex A	Syntax 21-4	21	no	section-21-input-output-system-tasks-and-system-functions.md	multi_channel_descriptor = $fopen ( filename ) ; | fd = $fopen ( filename , type ) ;
+2023	file_output_task_name	system_task_function	not in Annex A	Syntax 21-5	21	no	section-21-input-output-system-tasks-and-system-functions.md	$fdisplay | $fdisplayb | $fdisplayh | $fdisplayo | $fwrite | $fwriteb | $fwriteh | $fwriteo | $fstrobe | $fstrobeb | $fstrobeh | $fstrobeo | $fmonitor | $fmonitorb | $fmonitorh | $fmonitoro
+2023	file_output_tasks	system_task_function	not in Annex A	Syntax 21-5	21	no	section-21-input-output-system-tasks-and-system-functions.md	file_output_task_name ( multi_channel_descriptor [ , list_of_arguments ] ) ; | file_output_task_name ( fd [ , list_of_arguments ] ) ;
+2023	file_positioning_functions	system_task_function	not in Annex A	Syntax 21-8	21	no	section-21-input-output-system-tasks-and-system-functions.md	$ftell ( fd ) | $fseek ( fd , offset , operation ) | $rewind ( fd )
+2023	file_read_functions	system_task_function	not in Annex A	Syntax 21-7	21	no	section-21-input-output-system-tasks-and-system-functions.md	$fgetc ( fd ) | $ungetc ( c , fd ) | $fgets ( str , fd ) | $fscanf ( fd , format , args ) | $sscanf ( str , format , args ) | $fread ( integral_var , fd ) | $fread ( mem , fd [ , [ start ] [ , count ] ] )
+2023	final_simulation_time	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	simulation_time
+2023	formal_argument	compiler_directive	not in Annex A	Syntax 22-2	22	no	section-22-compiler-directives.md	simple_identifier [ = default_text ]
+2023	format	system_task_function	not in Annex A	Syntax 20-16	20	no	section-20-utility-system-tasks-and-system-functions.md	Table 20-10-Argument values for $q_exam system task Value requested in q_stat_code Information received back from q_stat_value Current queue length Mean interarrival time Maximum queue length Shortest wait time ever Longest wait time for jo
+2023	global_clocking_future_function	system_task_function	not in Annex A	Syntax 20-13	20	no	section-20-utility-system-tasks-and-system-functions.md	$future_gclk ( expression ) | $rising_gclk ( expression ) | $falling_gclk ( expression ) | $steady_gclk ( expression ) | $changing_gclk ( expression )
+2023	global_clocking_past_function	system_task_function	not in Annex A	Syntax 20-13	20	no	section-20-utility-system-tasks-and-system-functions.md	$past_gclk ( expression ) | $rose_gclk ( expression ) | $fell_gclk ( expression ) | $stable_gclk ( expression ) | $changed_gclk ( expression )
+2023	identifier_code	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	{ ASCII character }
+2023	ifdef_macro_expression	compiler_directive	not in Annex A	Syntax 22-5	22	no	section-22-compiler-directives.md	text_macro_identifier | ifdef_macro_expression binary_logical_operator ifdef_macro_expression | ! ifdef_macro_expression | ( ifdef_macro_expression )
+2023	ifdef_or_ifndef	compiler_directive	not in Annex A	Syntax 22-5	22	no	section-22-compiler-directives.md	`ifdef | `ifndef ifdef_condition := text_macro_identifier | ( ifdef_macro_expression )
+2023	index	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	decimal_number
+2023	inline_constraint_declaration	sv_source_syntax	not in Annex A	Syntax 18-10	18	no	section-18-constrained-random-value-generation.md	// not in Annex A class_variable_identifier . randomize [ ( [ variable_identifier_list | null ] ) ] with [ ( [ identifier_list ] ) ] constraint_block
+2023	input_terms	system_task_function	not in Annex A	Syntax 20-16	20	no	section-20-utility-system-tasks-and-system-functions.md	expression
+2023	input_value	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	D | U | N | Z | d | u
+2023	item_name	sv_source_syntax	not in Annex A	Syntax 23-8	23	no	section-23-modules-and-hierarchy.md	function_identifier | block_identifier | net_identifier | parameter_identifier | port_identifier | task_identifier | variable_identifier
+2023	keywords_directive	compiler_directive	not in Annex A	Syntax 22-10	22	no	section-22-compiler-directives.md	`begin_keywords "version_specifier"
+2023	list_of_actual_arguments	compiler_directive	not in Annex A	Syntax 22-3	22	no	section-22-compiler-directives.md	actual_argument { , actual_argument }
+2023	list_of_control_bits	system_task_function	not in Annex A	Syntax 20-10	20	no	section-20-utility-system-tasks-and-system-functions.md	control_bit { , control_bit } Table 20-4-SystemVerilog to C real math function cross-listing SystemVerilog function Equivalent C function Description $ln(x) log(x) Natural logarithm $log10(x) log10(x) Decimal logarithm $exp(x) exp(x) Expone
+2023	list_of_formal_arguments	compiler_directive	not in Annex A	Syntax 22-2	22	no	section-22-compiler-directives.md	formal_argument { , formal_argument }
+2023	list_of_modules_or_variables	system_task_function	not in Annex A	Syntax 21-15	21	no	section-21-input-output-system-tasks-and-system-functions.md	module_or_variable { , module_or_variable }
+2023	list_of_scopes_or_assertions	system_task_function	not in Annex A	Syntax 20-12	20	no	section-20-utility-system-tasks-and-system-functions.md	scope_or_assertion { , scope_or_assertion }
+2023	load_memory_tasks	system_task_function	not in Annex A	Syntax 21-12	21	no	section-21-input-output-system-tasks-and-system-functions.md	$readmemb ( filename , memory_name [ , start_addr [ , finish_addr ] ] ) ; | $readmemh ( filename , memory_name [ , start_addr [ , finish_addr ] ] ) ;
+2023	logic	system_task_function	not in Annex A	Syntax 20-16	20	no	section-20-utility-system-tasks-and-system-functions.md	and | or | nand | nor
+2023	lsb_index	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	index
+2023	memory_identifier	system_task_function	not in Annex A	Syntax 20-16	20	no	section-20-utility-system-tasks-and-system-functions.md	identifier
+2023	module_or_variable	system_task_function	not in Annex A	Syntax 21-15	21	no	section-21-input-output-system-tasks-and-system-functions.md	module_identifier | variable_identifier
+2023	monitor_task_name	system_task_function	not in Annex A	Syntax 21-3	21	no	section-21-input-output-system-tasks-and-system-functions.md	$monitor | $monitorb | $monitoro | $monitorh
+2023	monitor_tasks	system_task_function	not in Annex A	Syntax 21-3	21	no	section-21-input-output-system-tasks-and-system-functions.md	monitor_task_name [ ( list_of_arguments ) ] ; | $monitoron ; | $monitoroff ;
+2023	msb_index	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	index
+2023	output_terms	system_task_function	not in Annex A	Syntax 20-16	20	no	section-20-utility-system-tasks-and-system-functions.md	variable_lvalue
+2023	output_value	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	L | H | X | T | l | h
+2023	pla_system_task	system_task_function	not in Annex A	Syntax 20-16	20	no	section-20-utility-system-tasks-and-system-functions.md	$array_type$logic$format ( memory_identifier , input_terms , output_terms ) ;
+2023	port_value	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	input_value | output_value | unknown_direction_value
+2023	pragma	compiler_directive	not in Annex A	Syntax 22-8	22	no	section-22-compiler-directives.md	`pragma pragma_name [ pragma_expression { , pragma_expression } ]
+2023	pragma_expression	compiler_directive	not in Annex A	Syntax 22-8	22	no	section-22-compiler-directives.md	pragma_keyword | pragma_keyword = pragma_value | pragma_value
+2023	pragma_keyword	compiler_directive	not in Annex A	Syntax 22-8	22	no	section-22-compiler-directives.md	simple_identifier
+2023	pragma_name	compiler_directive	not in Annex A	Syntax 22-8	22	no	section-22-compiler-directives.md	simple_identifier
+2023	pragma_value	compiler_directive	not in Annex A	Syntax 22-8	22	no	section-22-compiler-directives.md	( pragma_expression { , pragma_expression } ) | number | string | identifier
+2023	printtimescale_task	system_task_function	not in Annex A	Syntax 20-4	20	no	section-20-utility-system-tasks-and-system-functions.md	$printtimescale [ ( hierarchical_identifier ) ] ;
+2023	random_function	system_task_function	not in Annex A	Syntax 20-14	20	no	section-20-utility-system-tasks-and-system-functions.md	$random [ ( seed ) ]
+2023	range_function	system_task_function	not in Annex A	Syntax 20-8	20	no	section-20-utility-system-tasks-and-system-functions.md	$isunbounded ( ps_parameter_identifier | hierarchical_parameter_identifier )
+2023	reference	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	identifier | identifier [ bit_select_index ] | identifier [ msb_index : lsb_index ]
+2023	sampled_value_function	system_task_function	not in Annex A	Syntax 20-13	20	no	section-20-utility-system-tasks-and-system-functions.md	$sampled ( expression ) | $rose ( expression [ , [ clocking_event ] ] ) | $fell ( expression [ , [ clocking_event ] ] ) | $stable ( expression [ , [ clocking_event ] ] ) | $changed ( expression [ , [ clocking_event ] ] ) | $past ( expressio
+2023	scalar_value_change	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	value identifier_code
+2023	scope_identifier	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	{ ASCII character }
+2023	scope_list	system_task_function	not in Annex A	Syntax 21-21	21	no	section-21-input-output-system-tasks-and-system-functions.md	module_identifier { , module_identfier }
+2023	scope_or_assertion	system_task_function	not in Annex A	Syntax 20-12	20	no	section-20-utility-system-tasks-and-system-functions.md	hierarchical_identifier
+2023	scope_randomize	sv_source_syntax	not in Annex A	Syntax 18-11	18	no	section-18-constrained-random-value-generation.md	[ std :: ] randomize ( [ variable_identifier_list ] ) [ with constraint_block ]
+2023	scope_section	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	scope_type scope_identifier
+2023	scope_type	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	begin | fork | function | module | task
+2023	simulation_command	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpall { value_change } $end | $dumpoff { value_change } $end | $dumpon { value_change } $end | $dumpvars { value_change } $end | $comment [ comment_text ] $end | simulation_time | value_change
+2023	simulation_control_task	system_task_function	not in Annex A	Syntax 20-1	20	no	section-20-utility-system-tasks-and-system-functions.md	$stop [ ( n ) ] ; $finish [ ( n ) ] ; $exit [ ( ) ] ;
+2023	simulation_keyword	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	$dumpports | $dumpportsoff | $dumpportson | $dumpportsall
+2023	simulation_time	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	# decimal_number
+2023	size_function	system_task_function	not in Annex A	Syntax 20-7	20	no	section-20-utility-system-tasks-and-system-functions.md	$bits ( expression ) | $bits ( data_type )
+2023	stacktrace_call	system_task_function	not in Annex A	Syntax 20-18	20	no	section-20-utility-system-tasks-and-system-functions.md	$stacktrace
+2023	strength_component	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
+2023	string_output_task_name	system_task_function	not in Annex A	Syntax 21-6	21	no	section-21-input-output-system-tasks-and-system-functions.md	$swrite | $swriteb | $swriteh | $swriteo
+2023	string_output_tasks	system_task_function	not in Annex A	Syntax 21-6	21	no	section-21-input-output-system-tasks-and-system-functions.md	string_output_task_name ( output_var [ , list_of_arguments ] ) ;
+2023	strobe_task_name	system_task_function	not in Annex A	Syntax 21-2	21	no	section-21-input-output-system-tasks-and-system-functions.md	$strobe | $strobeb | $strobeo | $strobeh
+2023	strobe_tasks	system_task_function	not in Annex A	Syntax 21-2	21	no	section-21-input-output-system-tasks-and-system-functions.md	strobe_task_name [ ( list_of_arguments ) ] ;
+2023	system_task	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	${ASCII character}
+2023	text_macro_definition	compiler_directive	not in Annex A	Syntax 22-2	22	no	section-22-compiler-directives.md	`define text_macro_name macro_text
+2023	text_macro_identifier	compiler_directive	not in Annex A	Syntax 22-2	22	no	section-22-compiler-directives.md	identifier
+2023	text_macro_name	compiler_directive	not in Annex A	Syntax 22-2	22	no	section-22-compiler-directives.md	text_macro_identifier [ ( list_of_formal_arguments ) ]
+2023	text_macro_usage	compiler_directive	not in Annex A	Syntax 22-3	22	no	section-22-compiler-directives.md	`text_macro_identifier [ ( list_of_actual_arguments ) ]
+2023	time_function	system_task_function	not in Annex A	Syntax 20-2	20	no	section-20-utility-system-tasks-and-system-functions.md	$time | $stime | $realtime
+2023	time_number	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	1 | 10 | 100
+2023	timeformat_task	system_task_function	not in Annex A	Syntax 20-5	20	no	section-20-utility-system-tasks-and-system-functions.md	$timeformat [ ( units_number , precision_number , suffix_string , minimum_field_width ) ] ;
+2023	timeprecision_function	system_task_function	not in Annex A	Syntax 20-3	20	no	section-20-utility-system-tasks-and-system-functions.md	$timeprecision [ ( hierarchical_identifier ) ] ;
+2023	timescale_compiler_directive	compiler_directive	not in Annex A	Syntax 22-6	22	no	section-22-compiler-directives.md	`timescale time_unit / time_precision
+2023	timescale_section	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	number time_unit
+2023	timeunit_function	system_task_function	not in Annex A	Syntax 20-3	20	no	section-20-utility-system-tasks-and-system-functions.md	$timeunit [ ( hierarchical_identifier ) ] ;
+2023	typename_function	system_task_function	not in Annex A	Syntax 20-6	20	no	section-20-utility-system-tasks-and-system-functions.md	$typename ( expression ) | $typename ( data_type )
+2023	undefine_compiler_directive	compiler_directive	not in Annex A	Syntax 22-4	22	no	section-22-compiler-directives.md	`undef text_macro_identifier
+2023	unknown_direction_value	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	0 | 1 | ? | F | A | a | B | b | C | c | f
+2023	upward_name_reference	sv_source_syntax	not in Annex A	Syntax 23-8	23	no	section-23-modules-and-hierarchy.md	module_identifier.item_name
+2023	value	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	0 | 1 | x | X | z | Z
+2023	value_change	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	scalar_value_change | vector_value_change
+2023	value_change_dump_definitions	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	{ declaration_command }{ simulation_command }
+2023	var_section	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	var_type size identifier_code reference
+2023	var_type	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	event | integer | parameter | real | realtime | reg | supply0 | supply1 | time | tri | triand | trior | trireg | tri0 | tri1 | wand | wire | wor
+2023	variable_format_string_output_function	system_task_function	not in Annex A	Syntax 21-6	21	no	section-21-input-output-system-tasks-and-system-functions.md	$sformatf ( format_string [ , list_of_arguments ] )
+2023	variable_format_string_output_task	system_task_function	not in Annex A	Syntax 21-6	21	no	section-21-input-output-system-tasks-and-system-functions.md	$sformat ( output_var , format_string [ , list_of_arguments ] ) ;
+2023	vcdclose_task	system_task_function	not in Annex A	Syntax 21-26	21	no	section-21-input-output-system-tasks-and-system-functions.md	$vcdclose final_simulation_time $end
+2023	vector_index	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	[ msb_index : lsb_index ]
+2023	vector_value_change	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	b binary_number identifier_code | B binary_number identifier_code | r real_number identifier_code | R real_number identifier_code
+2023	version_section	system_task_function	not in Annex A	Syntax 21-27	21	no	section-21-input-output-system-tasks-and-system-functions.md	version_text
+2023	version_specifier	compiler_directive	not in Annex A	Syntax 22-10	22	no	section-22-compiler-directives.md	| 1800-2017 | 1800-2012 | 1800-2009 | 1800-2005 | 1364-2005 | 1364-2001 | 1364-2001-noconfig | 1364-1995
+2023	version_text	system_task_function	not in Annex A	Syntax 21-20	21	no	section-21-input-output-system-tasks-and-system-functions.md	{ ASCII character }
+2023	writemem_tasks	system_task_function	not in Annex A	Syntax 21-13	21	no	section-21-input-output-system-tasks-and-system-functions.md	$writememb ( filename , memory_name [ , start_addr [ , finish_addr ] ] ) ; | $writememh ( filename , memory_name [ , start_addr [ , finish_addr ] ] ) ;

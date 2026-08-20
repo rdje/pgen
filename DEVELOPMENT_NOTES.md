@@ -1,5 +1,78 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0244 — the standard labels its own gaps, and I nearly went looking for them with prose analysis
+
+**1. THE SIGNAL I WAS ABOUT TO BUILD ALREADY EXISTED, PRINTED, IN THE SUBJECT.** `.13c.2v` asked for
+a detector answering *"does the clause text name a broader nonterminal than Annex A?"* — which reads
+like a natural-language question over 3.4 MB of LRM prose, and I spent two arms treating it as one.
+The first attempt diffed Annex A against the clause syntax boxes and produced 172 "divergences" that
+were almost entirely PDF-conversion noise. The thing that actually works is one line of the
+standard's own typography: every syntax box is captioned `(excerpt from Annex A)` or
+**`(not in Annex A)`**. IEEE already did the classification. ⇒ **before building a detector for a
+property, check whether the artifact states the property** →
+[[check-whether-the-artifact-already-states-the-property-before-building-a-detector]].
+
+**2. AND THE FIRST TWO ARMS WERE NOT WASTED — THEY ARE WHY THE THIRD IS TRUSTWORTHY.** The noisy
+differential is what proved the file names are unusable: the 2017 Annex A is not in the file named
+for it (`section-Annex_A-…-using-bnf.md` holds **zero** productions; the real Annex A is in
+`section-41-data-read-api.md`, 736 of them), and the Annex F metavariables are filed under
+`section-100-time-units.md`. A census keyed on file names would have been confidently wrong in both
+editions. The caption is the key precisely because the splitter cannot mangle it.
+
+**3. THE REFUSAL POSTURE PAID FOR ITSELF ON THE FIRST RUN.** The census exits 1 on any clause-only
+production it cannot attach a caption to, and that immediately surfaced `A`, `P`, `Q`, `R`, `S`, `T`,
+`U` — Annex F's formal-semantics rewriting rules, not SystemVerilog. A permissive instrument would
+have shipped them in the worklist as seven mystery "productions". They are now a declared bucket with
+a guard that proves Annex A names no single-letter production, so the exception cannot widen.
+
+**4. THE FIRST ROOT-CAUSE HYPOTHESIS WAS WRONG AND THE TRACE IS WHAT SAID SO.** `subroutine_call`
+carries `@branch_policy: priority_first` with `tf_call` listed before `randomize_call`, and
+`randomize(a, b)` matches `tf_call`. That reads like a textbook masking bug, and I wrote it down as
+one. `--trace-rules subroutine_call` refutes it: `randomize_call > constraint_block >
+constraint_block_item` is entered, and the constraint block parses. The real cause is one level up
+and structural — `primary` reaches `call_primary`, whose eleven alternatives simply do not include
+`randomize_call`. ⛔ **A plausible mechanism that explains the symptom is not the mechanism.** The
+toolbox cost one command; publishing the plausible version would have cost a wrong fix.
+
+**5. THE PROFILE TRAP WAS ONE CHARACTER FROM SHIPPING.** The obvious fix is an inline alternative in
+`primary_sv_2017`. That rule is annotated `@profiles: ["sv_2017", "verilog_2005"]`, so the inline
+version silently widens the IEEE 1364-2005 accept set with a construct 1364-2005 does not have. The
+grammar already carries the idiom for this — `primary_dollar_sv_only`, four lines above, exists for
+exactly the same reason — and reading the neighbourhood before editing it is what caught it.
+
+**6. AN `arm` CLAIM IS ONLY AS GOOD AS THE UNIQUENESS OF ITS `kind`.** My first spelling emitted
+`kind: "randomize"`, matching the four wrappers that already do. The reproducer's arm claim would
+have been green for the wrong reason — the failure `.13c.2a.2` built the column to stop. Renaming it
+to `scope_randomize` (`grep -c` → 1) cost a second 25-minute regeneration and is worth it: the
+control row's `plain_tf,!scope_randomize` claim now proves the new alternative captured nothing that
+already parsed, which no verdict could have shown.
+
+**7. AND THE CONTROL I ADDED "FOR COMPLETENESS" IS THE ONLY THING THAT CAUGHT THE REAL BUG.** I wrote
+`control_randomize_as_user_identifier.sv` because adding an alternative to `primary` *could*
+capture a legitimate identifier, not because I thought it had. It had. Every other oracle was green:
+both fixed reproducers parsed, `--lint-grammar` was identical on all nine counters, the verdict on
+the control itself never moved. The signal was `shape=2` on the AST axis, and the typed-AST diff
+named the node — `hierarchical` 4 → 3, `scope_randomize` 0 → 1. ⇒ **the guard you write for the
+direction you do not expect to break is the one that earns its keep**, and a verdict-only oracle
+would have shipped a silent AST regression into a downstream consumer's tree.
+
+**8. AND THEN THE GATE REFUSED THE FIX, AND I ALMOST ARGUED WITH IT.** `PARSE-COST-RATCHET` priced
+the repair at +1,917,021 rule entries (+0.46 %) with `committed` unchanged, and no coded invariant
+fits the shape. The tempting move — the one I spent a real amount of thought on — was to find *some*
+arithmetic over the three totals that the numbers happen to satisfy and call it an invariant. That is
+exactly the numerology `.13c.2w` was opened to name, and the gate's own design refuses it: an
+invariant must be CODE that is RE-EVALUATED, and accepting a new shape takes a code change with its
+own leaf. ⇒ **the honest outcome is that a correct, measured, seven-row fix does not ship today.**
+Peak speed is a non-negotiable; costs are rejected, not traded. What ships instead is the diagnosis,
+pinned so hard it cannot be lost: the patch banked verbatim, three `class=defect` reproducers that
+go RED the moment the fix lands, and three `control` rows whose `arm` claims pin the mechanism.
+
+**9. THE COST OF GETTING THIS RIGHT WAS FOUR REGENERATION CYCLES, AND THREE OF THEM WERE MINE.**
+One for the first spelling; one for renaming the AST `kind` so an `arm` claim could discriminate;
+one for the placement fix; one to revert. Only the last was forced by the gate. ⇒ **decide the AST
+`kind` and the alternative's POSITION before the first regeneration**, because both are 25-minute
+questions if you defer them and free if you ask them up front.
+
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0242 — the defect a general fallback hides, and the gate that caught its own author
 
 **1. THE CENSUS SAID "UNCONFIRMED" AND I NEARLY LEFT IT THERE.** `.13c.2r`'s starving-star census

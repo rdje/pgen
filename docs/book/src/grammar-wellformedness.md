@@ -2976,6 +2976,77 @@ flipped to PASS; the other two kept rejecting with their `furthest_position` mov
 cleared the `$` bound and stopped at the next construct. That is progress and a new finding, not
 a seven-row win — the leaf claims five and routes the rest.
 
+#### When Annex A is not the whole standard — and the standard says so, in its own captions
+
+The section above is about Annex A contradicting itself. There is a second, larger case: Annex A
+being **silent** where the clause bodies are not. IEEE 1800's normative text is Annex A *plus* the
+clauses, and PGEN's SystemVerilog grammar is extracted from **Annex A alone**
+(`tools/extract_systemverilog_lrm_profiles.py`). Everything the clauses define and Annex A omits is
+therefore invisible to the extraction pipeline by construction — not by oversight, but as a property
+of where the input comes from.
+
+⭐ **This is measurable without reading a word of prose, because IEEE labels it.** Each clause
+reprints the syntax it discusses in a numbered box, and each box is captioned with its provenance:
+
+```text
+Syntax 10-5—Assignment patterns syntax (excerpt from Annex A)
+Syntax 18-11—Scope randomize function syntax (not in Annex A)
+```
+
+In the 2017 edition, **304** boxes say *excerpt from Annex A* and **60** say *not in Annex A*.
+`stimuli/sv/lrm_annex_a_gap_census.py` turns the second population into a worklist
+(`docs/tasks/artifacts/sv_corpus_grad/lrm_annex_a_gap/`), and its shape is the useful part:
+
+| bucket | 2017 | 2023 | what adjudicating it means |
+|---|---:|---:|---|
+| `system_task_function` | 110 | 109 | clause 20/21 — Annex A models these generically through `system_tf_call`, so the clause box is documentation rather than a gap |
+| `compiler_directive` | 23 | 24 | clause 22 — the **preprocessor's** language, owned by the `systemverilog_preprocessor` family |
+| `formal_semantics_metavariable` | 7 | 7 | Annex F rewriting rules (`P ::= strong ( R )`), not syntax at all |
+| **`sv_source_syntax`** | **7** | **7** | ⭐ SystemVerilog *source* constructs — the only bucket a source parser owes anything to |
+
+⇒ **294 clause-only productions collapse to a 7-row-per-edition question.** Six of those seven were
+already reachable through a general Annex A rule. The seventh, `scope_randomize` (Syntax 18-11), was
+not: `std::randomize(a, b) with { a < b; }` was rejected in **every expression**, because PGEN
+renders `primary`'s call alternative as the postfix-chain rule its left-recursion lift authored, and
+that rule's alternatives do not include `randomize_call`. The statement path and the constant path
+both had it; only expressions did not.
+
+⛔ **It is DIAGNOSED, not fixed, and the reason is worth reading.** The repair is written, measured
+and *held* — `widen=6 narrow=0 shape=0` over 180 pinned checks, six third-party corpus files
+`fail → pass`, zero the other way — because it costs **+1 917 021 rule entries** and
+**+1 012 779 memo hits** with `committed` unchanged, and PGEN's parse-cost ratchet accepts a rise
+only under a **coded invariant that arithmetically explains it**. Its three existing invariants are
+identities over three totals, and none of them fits this shape. ⇒ the defect is pinned as a
+`class=defect` reproducer (so the fix cannot land silently), the patch is tracked beside its leaf,
+and the blocker is the named leaf that owns teaching the ratchet to express *"the rise is confined
+to the sub-graph the change introduced"*. **A correctness fix does not get to trade away a
+non-negotiable; it waits for the instrument that can price it honestly.**
+
+⛔⛔ **And the first spelling of that fix broke something else silently, which is the more useful
+half of the story.** Every part of `randomize_call` is optional, so the rule matches a *bare*
+`randomize` — a legal user identifier, because Annex B reserves `rand`, `randc`, `randcase` and
+`randsequence` and not `randomize`. Placed in the middle of `primary`'s alternatives it captured
+exactly that. **No verdict moved.** The control file parsed before and after, the linter was
+identical on all nine counters, and both fixed reproducers were green. The only instrument that saw
+it was the **AST axis**: `shape=2`, with the typed-AST diff naming the node (`hierarchical` 4 → 3,
+`scope_randomize` 0 → 1). Making it `primary`'s **last** alternative returns the control's tree to
+byte-identical and is cheaper besides. ⇒ *the guard you write for the direction you do not expect to
+break is the one that earns its keep*, and it is why the reproducer manifest pins **arms**, not just
+verdicts.
+
+Three habits generalise from this one too:
+
+- **Check whether the artifact already states the property before building a detector for it.** The
+  first two attempts here diffed Annex A against the clause boxes textually and produced 172
+  "divergences" that were overwhelmingly PDF-conversion noise. The caption was one `grep` away.
+- **Never key a census on a converted document's file names.** The PDF→markdown splitter titles
+  sections from nearby lines: the 2017 Annex A holds **zero** productions in the file named for it
+  and **736** in `section-41-data-read-api.md`. The clause number IEEE prints inside the caption is
+  the only stable key.
+- **A worklist generator must refuse rather than guess.** The census exits non-zero on any
+  clause-only production it cannot attach a caption to. That is what surfaced the Annex F
+  metavariables on its first run instead of shipping them as seven mystery productions.
+
 ## The decidability boundary (an honest limit)
 
 Full reachability and language-inclusion are undecidable, so the linter only ever proves the

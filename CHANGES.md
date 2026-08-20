@@ -1,5 +1,97 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0244 (leaf SV-CORPUS-GRAD.13c.2v SLICE 1; ZERO grammar bytes, ZERO Rust bytes; no release, no ledger row): the standard labels its own gaps — and the first one it named is a defect whose fix is MEASURED, CORRECT and REFUSED BY THE COST RATCHET
+
+- ⭐⭐⭐ **THE SIGNAL WAS PRINTED IN THE SUBJECT ALL ALONG.** `.13c.2v` owed a detector for *"where
+  is the clause text broader than Annex A?"* — which reads like a natural-language question over
+  3.4 MB of LRM prose. It is not one. IEEE 1800 captions every clause syntax box with its own
+  provenance: `Syntax 10-5—Assignment patterns syntax (excerpt from Annex A)` versus
+  **`Syntax 18-11—Scope randomize function syntax (not in Annex A)`**. In the 2017 edition **304**
+  boxes say *excerpt* and **60** say *not in*. `grammars/systemverilog.ebnf` descends from Annex A
+  **alone**, so the second population is a normative surface the extraction pipeline is blind to
+  **by construction**.
+- **NEW INSTRUMENT** — `stimuli/sv/lrm_annex_a_gap_census.py` → `docs/tasks/artifacts/sv_corpus_grad/lrm_annex_a_gap/`.
+  **294 clause-only productions across both editions, 293 of them IEEE-labelled**, bucketed into
+  `system_task_function` 110/109 (Annex A models these via `system_tf_call`), `compiler_directive`
+  23/24 (the preprocessor's language), `formal_semantics_metavariable` 7/7 (Annex F, not syntax)
+  and ⭐ **`sv_source_syntax` 7/7 — the only bucket a source parser owes anything to.** Both sides
+  are scraped with the EXTRACTOR'S OWN `extract_rules`, so a divergence cannot be an artifact of a
+  second, differently-buggy scraper.
+- ⛔ **IT REFUSES RATHER THAN GUESSING, AND THAT FIRED ON RUN ONE.** A clause-only production with
+  no IEEE caption exits 1 — which surfaced Annex F's formal-semantics metavariables (`P ::= strong
+  ( R )`). They are now a declared bucket with a guard proving Annex A names no single-letter
+  production, so the exception cannot widen.
+- ⛔⛔ **AND IT PROVED FILE NAMES ARE UNUSABLE AS A KEY.** The PDF→markdown splitter titles sections
+  from nearby lines: the 2017 Annex A holds **ZERO** productions in the file named for it and **736**
+  in `section-41-data-read-api.md`; the Annex F metavariables are filed under
+  `section-100-time-units.md`. The census keys on the clause number IEEE prints inside the caption.
+- ⭐⭐ **THE DEFECT (ledger `SV-0065`) — SIX OF THE SEVEN SOURCE ROWS WERE ALREADY COVERED; THE
+  SEVENTH WAS UNREACHABLE.** IEEE 1800-2017 A.8.4 lists `function_subroutine_call` among `primary`'s
+  alternatives and A.8.2 expands it to `subroutine_call`, one of whose four alternatives is an
+  optionally `std ::`-qualified `randomize_call`. PGEN spells `primary`'s call alternative as
+  `call_primary` — the postfix-chain rule its left-recursion lift authored — and **none of
+  `call_primary`'s eleven alternatives is `randomize_call`**. ⇒ `std::randomize(a, b) with { a < b; }`
+  and its unqualified spelling REJECTED in **every expression**, `furthest_position=67`, while the
+  STATEMENT path (`subroutine_call`) and the CONSTANT path (`constant_function_call`) both carried it.
+- ⛔ **THE FIRST ROOT CAUSE WAS WRONG AND THE TRACE IS WHAT SAID SO.** *"`tf_call` matches
+  `randomize(a,b)` first and masks `randomize_call` under `priority_first`"* is plausible, explains
+  the symptom, and is refuted by `--trace-rules subroutine_call`: `randomize_call > constraint_block
+  > constraint_block_item` IS entered and the constraint block parses. The cause is one level up and
+  structural. `--parse-dump-ast` then named the control's actual route — `randomize(a, b)` yields
+  `kind: "plain_tf"`, because IEEE 1800 Annex B does not reserve `randomize`.
+- ⛔ **WHY IT SURVIVED, and it is not luck**: the spelling every testbench writes,
+  `obj.randomize() with { … }`, reaches `randomize_call` through `method_call`, a different route
+  entirely. Only the SCOPE form in an EXPRESSION was affected. Both facts are now pinned as controls.
+- **THE FIX** — declarative tier, grammar only, ZERO Rust bytes: one profile-gated rule
+  `scope_randomize_sv_only` under `["sv_2017","sv_2023"]`, referenced from `primary_sv_2017` and
+  `primary_sv_2023`. ⛔ **The `_sv_only` lift is load-bearing**: `primary_sv_2017` is
+  `verilog_2005`-ADMITTED, so an inline alternative would have widened the IEEE 1364-2005 accept set
+  with a construct 1364-2005 does not have. ⭐ Its `kind` is `scope_randomize`, not the `randomize`
+  four existing wrappers emit — because an `arm` claim on a non-unique kind cannot discriminate,
+  which is the exact failure `.13c.2a.2` built that column to stop.
+- ⛔⛔ **THE FIRST SPELLING SILENTLY BROKE A LEGITIMATE IDENTIFIER, AND ONLY THE AST AXIS SAW IT.**
+  Every part of `randomize_call` is optional, so the rule matches a **bare `randomize`** — which
+  Annex B permits as a user identifier. Placed third (after `call_primary`, before
+  `hierarchical_identifier select`) it captured exactly that. **The verdict never moved**: the
+  control file parsed before and after, `--lint-grammar` was identical on every counter, and both
+  fixed reproducers were green. `sweep_arms.py` reported `shape=2` and the typed-AST diff named it —
+  `hierarchical` **4 → 3**, `scope_randomize` **0 → 1**. Moving the alternative to **LAST** returns
+  it to 0 and is also the cheaper spelling. ⭐⭐ **The control that caught it was written in the same
+  slice, deliberately, to guard the one direction the fix could break** — the `.13c.2q` lesson
+  (a verdict cannot see a construct parsing through the wrong production) paying for itself again.
+- **MEASURED on the corrected spelling** — `widen=6 narrow=0 shape=0` over **180** pinned reproducer
+  checks ⇒ **schema stays `25`**, the additive `SV-0052`/`SV-0057` class rather than the replacing
+  `SV-0053` one. `--lint-grammar` `1610 → 1611 rules` with every counter identical.
+  ⭐ **Real-world reach, pinned**: `if (!std::randomize(a, b) with { … })`,
+  `void'(std::randomize(c) with { … })` and `assert (randomize(a) with { … })` — the three host
+  contexts constrained-random code actually uses — all flip REJECT→ACCEPT.
+- ⛔⛔⛔ **AND THE FIX IS NOT IN THE TREE, BECAUSE `PARSE-COST-RATCHET` REFUSED IT AND THE REFUSAL IS
+  CORRECT.** One added alternative at the end of `primary` costs `entries` 413,113,656 →
+  415,030,677 (**+1,917,021**, +0.46 %) and `memo_hits` 183,282,408 → 184,295,187 (**+1,012,779**),
+  with `committed` **UNCHANGED** — the alternative never commits a frame in the pinned sample, so
+  the entire rise is failed speculation. ⛔ `Δentries / Δmemo = 1.893`, so neither
+  `Δentries == Δmemo` (`pure_memo_lookups`) nor `Δentries == 2·Δmemo`
+  (`unmatched_terminal_alternatives` / `unmatched_lookahead_terminals`) holds, and a fourth identity
+  over the same three totals would be numerology. ⇒ **`.13c.2w` is now BLOCKING**, one slice after
+  it was opened saying it was written *"now rather than under deadline for the next rise that has
+  one"*. **Peak speed is one of the two non-negotiables and costs are REJECTED, not traded**: a
+  correctness fix does not get to buy 0.46 % of the parser's structural work, it waits for the
+  instrument that can price it honestly.
+- **WHAT THAT MEANS CONCRETELY, so nothing is lost**: the patch is banked verbatim at
+  `docs/tasks/artifacts/sv_corpus_grad/lrm_annex_a_gap/sv0065_fix/`; the defect is pinned as **three
+  `class=defect` reproducers** whose contract is *"expected REJECT today, and when the fix lands the
+  runner FAILS with 'flip it to ACCEPT'"* — so the fix cannot land silently and the defect cannot be
+  forgotten; three `control` rows with `arm` claims pin the diagnosis itself (an unqualified scope
+  randomize takes the plain `tf_call` route and never reaches `randomize_call`; the class-method
+  form DOES, through `method_call`, which is why the defect survived); and one `invalid` row is the
+  standing `verilog_2005` profile guard for when it lands. `SV-0065` has **no release number and no
+  ledger row**, because nothing shipped.
+- ⛔ **ROUTED, not worked (`.13c.2v.1`)**: the `compiler_directive` bucket is owned by the
+  `systemverilog_preprocessor` family, and probing that grammar shows **seven IEEE 1800 clause-22
+  directives REJECT** — `` `resetall ``, `` `begin_keywords ``, `` `pragma ``, `` `unconnected_drive ``,
+  `` `line ``, `` `undefineall ``, `` `__FILE__ `` — while `` `define ``/`` `ifdef ``/`` `endif `` accept.
+  A real gap in a different family row, routed under the SV lane lock rather than worked.
+
 ## 2026-08-19 - PGEN-SV-CORPUS-GRAD-0242 (leaf SV-CORPUS-GRAD.13c.2s CLOSED; release 1.0.191, ledger SV-0063 + SV-0064, schema 25 unchanged; axis-2 bar 288 -> 282; ZERO Rust bytes): a greedy star in front of an OPTIONAL tail, at FOUR sites — and the gate shipped one commit ago caught its own first customer
 
 - ⛔ **THE DEFECT.** A greedy `( X )*` whose body is NULLABLE after its separator, standing in front
