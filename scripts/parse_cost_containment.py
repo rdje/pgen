@@ -160,8 +160,12 @@ def origin_rule(rule: str, known: set[str]) -> str | None:
     indirect-left-recursion eliminator SYNTHESISES rules that exist in no `.ebnf` file
     (`indirect_lr_elimination.rs`). Measured on the tracked `t_only` arm: **67 of the 1,077 rules
     the parser reports are absent from the 1,483-rule source graph** — every one of them an
-    `_lr_base` / `_lr_seed_*` / `_lr_guard*` / `_lr_suffix*` name. Without this fold each of them
-    is classified ESCAPED on sight, whatever it actually is.
+    `_lr_base` / `_lr_seed_*` / `_lr_guard*` / `_lr_suffix*` name. A synthesised rule can never be in
+    scope, so without this fold **any one of them that ROSE is escaped unconditionally**, wherever it
+    actually sits (one that does not rise is not classified at all). Demonstrated, not argued: on the
+    same data `casting_type_lr_base` reads `NOT CONTAINED escaped=['casting_type_lr_base']` without
+    the fold and `CONTAINED escaped=0` with it, while `casting_type` provably IS inside the
+    `data_type` sub-graph — so the pre-fix verdict is wrong, not merely unproven.
 
     ⚠️ IT NEVER FIRED, AND THAT IS WHY NOTHING CAUGHT IT. Re-measured here on the two recorded arms:
     `arm0_head -> t_only` has 54 risers and `t_only -> designB` has 82, and **zero** of either set

@@ -1,5 +1,49 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-LIVE-DOC-CONTAINMENT-0008 (leaf LIVE-DOC-CONTAINMENT.7 NEW, PARKED; doc-only): re-verifying a published findings callout under director challenge turned one instance into a class — the layer-A derived-state guard declares ONE quantity family and misses every other
+
+- ⛔ **THE CHALLENGE WAS THE RIGHT ONE.** All three findings in `-0254`'s callout were re-derived by
+  command and all three HOLD. Two got SHARPER under re-derivation and one grew a class.
+- ⭐ **FINDING 1 UNDERSTATED THE EXPOSURE.** Published: *"67 of the parser's 1,077 rules exist in no
+  `.ebnf` file"*. Re-derived: 67 is the subset that FIRED on the pinned 192-file sample. Against the
+  generated parser's own registry the count is **127 of 1,610 declared rules absent from the
+  1,483-rule source graph** — and an independent oracle agrees exactly: the shipped
+  `--verify-families` classifier declares **127** SV LR-family names, so the two populations match
+  with **0** non-LR strays and **0** unplaceable by the fold. The mechanism was demonstrated rather
+  than argued: the same data gives `NOT CONTAINED escaped=['casting_type_lr_base']` without the fold
+  and `CONTAINED escaped=0` with it, while `casting_type` provably IS inside the sub-graph — so the
+  pre-fix verdict is wrong, not merely unproven. ⚠️ The published wording *"each would have been
+  called escaped on sight"* is loose and is corrected here: a synthesised rule can never be in
+  scope, so **any one of them that ROSE is escaped unconditionally**; ones that do not rise are not
+  classified at all.
+- ⭐ **FINDING 2 CONFIRMED BY DIRECT EXPERIMENT, WITH A MATCHED POSITIVE CONTROL.** `emission_sha`
+  zeroed → complete green tier 2 (`TIER 2 OK`) → baseline **byte-identical to the perturbed
+  snapshot**, i.e. recorded NOTHING, tier 1 still RED. The SAME run with `parser_sha` zeroed instead
+  → *"the baseline was STALE and tier 2 proved the tree correct, so this run RECORDED it"*. One
+  tree, one command, two fields, two behaviours. ⚠️ **My first attempt at this control was WRONG and
+  is recorded rather than quietly redone**: it compared the post-run file against the PRE-zeroing
+  backup, so `cmp` reported *"rewritten"* when all it had seen was my own edit. The sound form
+  snapshots the PERTURBED state and compares to that.
+- ⛔⛔ **FINDING 3 WAS AN INSTANCE; RE-VERIFYING IT FOUND THE CLASS, NOW OWNED AS
+  `LIVE-DOC-CONTAINMENT.7`.** At `-0254`'s `HEAD~1`, `MEMORY.md` carried `axis-2 bar 288` in one
+  bullet AND `axis-2 bar 282` in another — the file disagreed with ITSELF — while
+  `check_sv_corpus_denominator.sh` derived `7556/2459/6321/4393/282` on every commit, with every
+  doctrine GREEN across it. ⭐ ROOT CAUSE is not that the guard is wrong:
+  `check_memory_architecture.sh`'s E2.6 is *declared, never inferred* by design (a heuristic would
+  fail OPEN), but its declaration covers only `push` / `unpushed` / `commits ahead|behind` — the one
+  quantity `LIVE-DOC-CONTAINMENT.2` was repairing — and was never extended. ⭐ The population is
+  enumerable from the doctrines that publish a live anchor, and the rule is *not* "ban derived
+  numbers from layer A" but **"a derived number in layer A is legal only when a verifier fails on
+  its drift"**, which keeps the sanctioned class-(b) regex tuple legal.
+- ⚠️ **DURABILITY (leg 3), named rather than implied**: finding 1's guard fires only when a
+  containment verdict is computed (tier 2, on demand); finding 2 is owned by
+  `ENGINE-UNIVERSAL-SERVICES.40`, which still OWES its arm; finding 3's instance is fixed by
+  DELETION (nothing left to rot) but the class is `LIVE-DOC-CONTAINMENT.7`, PARKED behind the SV
+  lane lock.
+- **Validation**: `bash scripts/check_doctrines.sh` → ALL 24 enforced doctrines PASS; the
+  reproducibility baseline was restored byte-identically after both perturbation arms
+  (`git status --short` clean). No code changed in this slice.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0254 (leaf SV-CORPUS-GRAD.13c.2w CLOSED, (a)+(b)+(c)+(d); ZERO grammar bytes, ZERO Rust bytes): three totals cannot say whether a cost stayed inside the construct that caused it — and the evidence that can was being collected 192 times a run and kept zero times
 
 - ⛔ **THE BLOCKER, STATED AS ARITHMETIC.** `PARSE-COST-RATCHET` accepts a measured RISE only under

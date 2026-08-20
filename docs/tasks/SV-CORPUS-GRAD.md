@@ -12819,8 +12819,18 @@ re-run can produce it.
 is the SOURCE grammar's; the counters come from the GENERATED parser, and `indirect_lr_elimination.rs`
 SYNTHESISES rules that exist in no `.ebnf` file. Measured on the tracked `t_only` arm: **67 of the
 1 077 rules the parser reports are absent from the 1 483-rule graph** — every one an
-`_lr_base` / `_lr_seed_*` / `_lr_guard*` / `_lr_suffix*` name. Each would have been classified
-ESCAPED on sight, whatever it actually was.
+`_lr_base` / `_lr_seed_*` / `_lr_guard*` / `_lr_suffix*` name. A synthesised rule can never be in scope, so
+**any one of them that ROSE was escaped unconditionally**, wherever it actually sat (one that did
+not rise was not classified at all).
+⭐⭐ **RE-DERIVED UNDER DIRECTOR CHALLENGE 2026-08-20 (`PGEN-LIVE-DOC-CONTAINMENT-0008`) AND THE
+EXPOSURE IS LARGER THAN THIS SAMPLE SHOWS.** 67 is what the pinned 192-file sample EXERCISED.
+Against the generated parser's own registry: **127 of 1 610 declared rules** are absent from the
+1 483-rule source graph — and an oracle this leaf did not build agrees exactly, the shipped
+`--verify-families` classifier declaring **127** SV LR-family names, with **0** non-LR strays and
+**0** unplaceable by the fold. ⭐ The mechanism was DEMONSTRATED rather than argued: on the same
+data `casting_type_lr_base` reads `NOT CONTAINED escaped=['casting_type_lr_base']` without the fold
+and `CONTAINED escaped=0` with it, while `casting_type` provably IS inside the `data_type`
+sub-graph — so the pre-fix verdict is wrong, not merely unproven.
 ⭐ **IT NEVER FIRED, WHICH IS WHY NOTHING CAUGHT IT — measured, not assumed**: re-checked on both
 recorded arms, `arm0_head -> t_only` has **54 risers, 0 synthesized** and `t_only -> designB` has
 **82 risers, 0 synthesized**, so the published `0 escaped` / `82 escaped` verdicts are **unaffected**.

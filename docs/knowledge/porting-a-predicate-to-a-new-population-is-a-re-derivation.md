@@ -31,7 +31,11 @@ measurement exposed a gap that had been in it from the start:
 | in the counters, absent from the graph | rules the left-recursion eliminator **synthesised** | **67** |
 
 A synthesised rule exists in no source file, so it is in no source graph, so it is reachable from
-nothing — and a reachability predicate calls it *escaped* whatever it actually is.
+nothing — and a reachability predicate calls any one of them that **rises** *escaped*, wherever it
+actually sits. ⚠️ The 1,077 above is what the pinned sample EXERCISED; against the parser's own
+registry the absent population is **127 of 1,610 declared rules**, and an oracle this record did not
+build agrees exactly — the shipped `--verify-families` classifier declares 127 SV LR-family names,
+with 0 non-LR strays and 0 unplaceable by the fold.
 
 ⚠️ **It had never fired, and that is the part worth internalising.** Neither recorded arm moved a
 synthesised rule (0 of 54 risers, 0 of 82), so every published verdict was correct and no test

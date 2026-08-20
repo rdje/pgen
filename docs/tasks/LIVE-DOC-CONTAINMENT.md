@@ -141,6 +141,51 @@ behind it"; it now has its evidence, and `.5` is the concrete instance that woul
 publishes. ⛔ Both stay PARKED behind the SV lane lock — recorded so the trigger is not re-derived
 from scratch next time, per this tree's own §Phase-2.5 discipline.
 
+- ID: `LIVE-DOC-CONTAINMENT.7`
+  Status: `todo` — ⛔ **PARKED behind the SV lane lock** (opened 2026-08-20 session #250 by the
+  director's re-verification challenge on `PGEN-SV-CORPUS-GRAD-0254`'s findings callout;
+  `PGEN-LIVE-DOC-CONTAINMENT-0008`)
+  Goal: `E2.6 declares ONE quantity family — git commit distances — and every OTHER number this
+  repository re-derives on every commit can be stored in layer A with nothing objecting.`
+
+  ⛔⛔ **MEASURED, ON A LIVE INSTANCE, NOT HYPOTHESISED.** At `HEAD~1` of
+  `PGEN-SV-CORPUS-GRAD-0254`, `MEMORY.md` carried **`axis-2 bar 288`** in its `active_work_unit`
+  bullet *and* **`axis-2 bar **282**`** in its standing-facts bullet — the file disagreed with
+  itself — while `bash scripts/check_sv_corpus_denominator.sh` derived
+  `7556/2459/6321/4393/282` on every commit. Two stored copies of one derived quantity, one of them
+  stale by 6, and **every doctrine was GREEN across it**.
+
+  ⭐ **ROOT CAUSE, and it is not that E2.6 is wrong.** `scripts/check_memory_architecture.sh`'s
+  `derived_state_patterns` is DECLARED, never inferred, and that is a documented, correct choice —
+  a heuristic guessing which prose is a derived number would fail OPEN, silently, in the passing
+  direction. The gap is that the declaration covers exactly the quantity `LIVE-DOC-CONTAINMENT.2`
+  was repairing (`push` / `unpushed` / `commits ahead|behind`) and **was never extended as new
+  derive-every-commit quantities appeared**. ⇒ enumeration without a re-derivation of the
+  population is the same failure `LIVE-DOC-CURRENCY`'s instrument B was rebuilt to escape, where
+  one population measured 10, then 16, then 18, every miss silent.
+
+  ⭐ **AND THE POPULATION IS ENUMERABLE FROM THE DOCTRINES THEMSELVES**, which is what makes this
+  bounded rather than open-ended: the doctrines that publish a derived LIVE ANCHOR already name it
+  and already hold designated surfaces equal to it — `SV-CORPUS-DENOMINATOR`'s
+  `adjudicated/routed/no-verdict/dark/bar` tuple, `PARSE-COST-RATCHET`'s LR-family share, the
+  `REGEX-ORACLE-ANCHOR-SYNC` tuple. ⚠️ The last of those is the sanctioned **class-(b)** case and
+  must stay legal: layer A carries `2189/1879/262/48` deliberately, because a gate fails on drift.
+  So the rule is not *"ban derived numbers from layer A"* — it is *"a derived number in layer A is
+  legal only when a verifier fails on its drift"*.
+
+  Acceptance: `(a) E2.6's declared list is DERIVED from the doctrines that publish a live anchor
+  rather than hand-typed, or — if derivation is refused — the hand list carries the anchor marks of
+  every such doctrine and a two-sided check fails when a doctrine publishes an anchor the list does
+  not name; (b) the class-(b) exemption is expressed as "a verifier exists that fails on drift",
+  not as a literal allow-list of digits; (c) probes: the real pre-fix layer A (git show
+  HEAD~1:MEMORY.md at PGEN-SV-CORPUS-GRAD-0254) must go ACCEPTED -> REJECTED, the regex tuple must
+  stay ACCEPTED, and a compliant pointer that cites the derivation must stay ACCEPTED.`
+
+  ⚠️ **HONEST BOUND on what was already done**: `-0254` removed the stale copy and replaced it with
+  its derivation, so there is no number left in layer A to rot — that is the R3/R5 fix and it is
+  strictly stronger than correcting the digits. What it does NOT do is stop the next stored copy of
+  the next derived quantity, which is why this leaf exists rather than the instance being closed.
+
 ## Deferred / transition debt (honest, per the doctrine's own §Phase-2.5)
 
 ⛔ NOT adopted in this pass, recorded rather than silently skipped: the full Phase-2 registry data
