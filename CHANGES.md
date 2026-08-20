@@ -1,5 +1,36 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0245 (leaf SV-CORPUS-GRAD.13c.2x NEW; docs only, ZERO code bytes): a tracked gate has been RED at HEAD for ELEVEN grammar revisions, and its baseline has no way to say it is stale
+
+- ⛔ **MEASURED AT HEAD** (`make -C rust sv_cert_recognized_union_gate`, rc=2, seeds 0/7/42):
+  `canonical total=1433` vs the contract's **1362** (+71), `canonical UNKNOWN=64` vs **11** (+53),
+  `union UNKNOWN=53` vs **0**, `union_residual_rules` = 25 `property_expr_lr_suffix_r0…r24` vs `[]`,
+  `recognized_basis_green=false`, `unmet_criteria_count=27`.
+- ⭐ **ATTRIBUTED BY A CONTROL RUN, NOT ASSUMED.** It first appeared while running the gate against
+  `.13c.2v`'s experimental `SV-0065` arm (total 1434, unmet 29). Re-run at HEAD with the arm
+  reverted: **1433 / 27**. ⇒ the arm accounted for exactly +1 rule and +2 criteria; the other +71
+  and 27 are HEAD's own. **A finding surfaced by an experiment is not caused by it.**
+- ⭐⭐ **ROOT CAUSE.** `git log -1` on the contract → `3056381a`, **2026-08-12**.
+  `git log --since=2026-08-12 -- grammars/systemverilog.ebnf` → **11 revisions** (releases
+  `1.0.184`–`1.0.191`). Every `expected_*` field in that contract is an exact function of the
+  grammar, and the file carries **no grammar sha, no parser sha and no `verified_at_commit`** — the
+  identity block `parse_cost_ratchet/cost.md` and `generated_reproducibility_v0.json` both have and
+  re-hash on every run. ⇒ the gate can say *"something is wrong"* and can never say *"your baseline
+  is eleven revisions old"*. The `SV-CORPUS-GRAD.13i` class, one step worse: `.13i` found six
+  oracles whose identity block nothing READ; this one has no block to read.
+- ⚠️ **WHAT IT IS NOT.** The hosted workflow is `workflow_dispatch`-only, and that is **deliberate,
+  documented policy** to conserve Actions minutes (`docs/book/src/cli-and-workflows.md`, 2026-04-14;
+  `gate-flow.md` publishes the 11-of-15 count, independently re-measured here). The manual posture is
+  the context, not the defect — the policy names local Make gates as its compensating control, and
+  the defect is that this local gate's baseline cannot report its own staleness.
+- ⚠️ **A SECOND ODDITY, RECORDED NOT DIAGNOSED**: on the `SV-0065` arm the total rule count was
+  **seed-DEPENDENT** (1434 at seed 0, 1433 at seeds 7 and 42 — the gate's own determinism check
+  caught it). At HEAD all three seeds agree. A rule count must not depend on the witness-search seed;
+  re-probe when `SV-0065` re-lands, and do NOT rebaseline this gate blind.
+- ⛔ **OWED**: adjudicate each criterion stale-vs-regression (`union UNKNOWN 0 → 53` cannot be assumed
+  benign — `fully_certified` turns on it); give the contract an identity block on the
+  `PARSE-COST-RATCHET` model; rebaseline only after that; sweep the other expectation baselines.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0244 (leaf SV-CORPUS-GRAD.13c.2v SLICE 1; ZERO grammar bytes, ZERO Rust bytes; no release, no ledger row): the standard labels its own gaps — and the first one it named is a defect whose fix is MEASURED, CORRECT and REFUSED BY THE COST RATCHET
 
 - ⭐⭐⭐ **THE SIGNAL WAS PRINTED IN THE SUBJECT ALL ALONG.** `.13c.2v` owed a detector for *"where
