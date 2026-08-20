@@ -62,6 +62,126 @@ question is *"is that enough?"*, and that cannot be answered without naming the 
 
 ## Leaves
 
+### `.38` — ⭐⭐ `PARSE-COST-RATCHET` KEYS THE GRAMMAR BY BYTES **IN TWO PLACES**, so a COMMENT blocks every commit — one fixed, one measured and OWED (`todo`, tier-1 row `done` — `PGEN-ENGINE-UNIVERSAL-SERVICES-0078`, 2026-08-20 session #250; routed in by `SV-CORPUS-GRAD.13c.2x.4` **with the measurement**)
+
+- ⛔ **HOW IT WAS FOUND — by fixing the same defect elsewhere and watching the commit still fail.**
+  `SV-CORPUS-GRAD.13c.2x.4` removed false staleness from `BASELINE-IDENTITY`. Re-running the same
+  experiment — one comment line appended to `grammars/systemverilog.ebnf`, then restored
+  byte-identically — the commit was STILL blocked, and the run named the new culprit:
+  ```text
+  ✗ the parse-cost BASELINE IS STALE — it no longer describes this tree.
+  ✓ PASS  BASELINE-IDENTITY
+  doctrines: ✗ one or more doctrines FAILED — commit/merge blocked. Fix above, do not bypass.
+  ```
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow class. The symptom, with one comment line in
+  the SV grammar:
+  ```text
+  parse-cost-ratchet: 1 breach(es):
+    ✗ the parse-cost BASELINE IS STALE — it no longer describes this tree.
+          grammar: baseline `b0395cc859489782…` vs live `79d7452f11f5dc5a…`
+  ```
+  and the line that causes it, dated by `git log -S`:
+  ```bash
+  $ git log -S 'sha256_of(GRAMMAR_FILE)' --oneline -- scripts/check_parse_cost_ratchet.sh
+  d2b543d9 PGEN-ENGINE-UNIVERSAL-SERVICES-0033 (… NEW doctrine PARSE-COST-RATCHET …)
+  ```
+  ⇒ the byte keying has been there since the doctrine was FOUNDED — this is original design, not
+  drift. WHERE — `scripts/check_parse_cost_ratchet.sh`, tier 1:
+  `live["grammar"] = sha256_of(GRAMMAR_FILE)`. The EBNF frontend strips comments, so a comment-only
+  edit moves that sha while leaving `generated/systemverilog_parser.rs` — and therefore every
+  binding counter — byte-identical. Layer A already recorded this shape: *"a comment edit moves the
+  GRAMMAR sha and every provenance block keyed on it while the shipped artifact is unchanged."*
+- ⭐⭐ **AND THE BYTE ROW WAS NOT BUYING ANYTHING.** The identity table ALREADY keys
+  `generated/systemverilog_parser.rs` by bytes, and the binding counters are a function of *that*.
+  Any grammar change able to move a counter necessarily moves the parser, so the byte-keyed grammar
+  row could only ever fire in addition to the parser row — or **alone, falsely**, which is exactly
+  what it did. Re-keying it semantically loses no coverage.
+- [x] **ADDRESSED (verified)** — the `grammar` row becomes `grammar raw ast`, holding the sha256 of
+  the EBNF frontend's own `raw_ast` envelope. Same command, before → after:
+  ```text
+  BEFORE (comment-only edit):  check_doctrines.sh -> rc=1, "the parse-cost BASELINE IS STALE"
+  AFTER  (comment-only edit):  check_doctrines.sh -> rc=0, ALL 24 enforced doctrines PASS
+  ```
+  ⛔ **NO RE-MEASURE WAS NEEDED AND NONE WAS DONE**: the binding counters (`entries`, `committed`,
+  `memo_hits`) are untouched, and the identity table is PROVENANCE. Changing which digest identifies
+  an input is not a rebaseline.
+- ⛔⛔ **ONE DEFINITION, NOT A THIRD COPY.** The semantic digest already existed twice — in
+  `check_sv_contract_currency.sh::sv_semantic_digest` and in `check_baseline_identity.sh`, held
+  equal by that leaf's probe **arm 17**. A third re-implementation here would be a third thing to
+  drift, so this gate **shells out**: `scripts/check_baseline_identity.sh --digest ebnf_raw_ast
+  <path>`, a mode added for exactly this consumer. ⚠️ It couples this doctrine to that script, which
+  is a real dependency and is stated rather than hidden — the alternative was a copy nothing
+  compares.
+- [x] **NO REGRESSION** — verbatim, on a clean tree:
+  ```bash
+  $ bash -n scripts/check_parse_cost_ratchet.sh && bash -n scripts/check_baseline_identity.sh
+  (both clean)
+  $ bash scripts/check_parse_cost_ratchet.sh
+  parse-cost-ratchet: OK (identity fresh for: generated parser, grammar raw ast, instrument,
+                          sample inputs; 192 pinned sample files)
+  $ bash scripts/check_doctrines.sh
+  doctrines: ALL 24 enforced doctrines PASS.
+  ```
+  ⭐ **AND THE STRONGEST NO-REGRESSION FACT FOR A PROVENANCE-ONLY CHANGE: nothing it could touch
+  moved.** This slice edits which digest identifies an input; it emits nothing. Measured this
+  session by `generated_reproducibility_gate` (tier 2, 70 s, peak 2 098 MB) — all eleven artifacts
+  **re-derive byte-identically** from HEAD, `0 sites` each:
+  ```text
+  ✓ systemverilog                  re-derives byte-identically (0 sites)
+  ✓ systemverilog_preprocessor     re-derives byte-identically (0 sites)
+  ✓ vhdl / regex / json / ebnf / rtl_const_expr / rtl_frontend / scratch / both annotation parsers
+  generated-reproducibility: TIER 2 OK — every checked artifact is what HEAD produces
+  ```
+  ⚠️ **AND A GATE-CAPABILITY NOTE, which is a bug report about the gate rather than a waiver**
+  (`docs/decisions/project_waiver_is_a_gate_bug_report.md`): `TASK-ACCEPTANCE`'s `NOREGRESS_SIG`
+  vocabulary has no token for *"every registered doctrine passes"*, which is the natural and
+  strongest evidence for a change to an enforcer. That is the wrong-vocabulary gap
+  `TASK-ACCEPTANCE`'s own leaf `.8` already owns (measured there at 120 of 416, 29 % unbacked); it
+  is named here rather than worked around.
+  `PARSE-COST-RATCHET`'s own ground-truth self-check (`the identity/anchor readers do not
+  discriminate`) still passes, and the row label `grammar raw ast` is inside the reader's existing
+  `[a-z ]+` label charset, so **no regex and no control needed changing**.
+- ⚠️ **WHAT STILL KEYS BY BYTES, deliberately**: `generated parser`, `instrument` and
+  `sample inputs`. Each of those IS consumed byte-wise by what produces the numbers, so bytes is the
+  correct digest there — the fix is not "make everything semantic", it is "digest what the consumer
+  actually reads".
+
+#### ⛔⛔ STILL OPEN — A SECOND BYTE-KEYED GRAMMAR ROW IN THE SAME DOCTRINE, AND IT STILL BLOCKS EVERY COMMIT
+
+- ⛔ **MEASURED AFTER the tier-1 row was fixed**, same experiment (one comment line, restored
+  byte-identically). The commit is **still blocked**, by a different arm of the same doctrine:
+  ```text
+  parse-cost-ratchet: 1 breach(es):
+    ✗ the published LR-family share no longer describes this tree:
+          parse-cost: ✗ the corpus family share NO LONGER DESCRIBES THIS TREE — `grammar` moved.
+                  grammar: artifact `b0395cc859489782…` vs live `235ddb5869196dce…`
+  ```
+  ⇒ `docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json` carries
+  its **own** `identity` block, and its `grammar` entry is byte-keyed too. **So the headline claim
+  that "a comment no longer blocks every commit" is FALSE today and must not be published** — the
+  friction is REDUCED, not eliminated.
+- **WHY IT WAS NOT FIXED IN THE SAME SLICE, and the reason is blast radius rather than effort.**
+  The comparison lives inside the instrument (`stimuli/sv/corpus_parse_cost.py
+  --verify-family-share`), not in the gate — so re-keying it means editing a **1 950-line
+  instrument that is ITSELF a declared identity input of this doctrine** (`instrument` row). That
+  moves the instrument sha, which stales tier 1, which this doctrine deliberately couples to a
+  REBASELINE of its binding counters. The tier-1 row fixed above needed **no re-measure at all**;
+  this one needs a re-derivation (~70 s) plus `PGEN_PARSE_COST_REBASELINE=1` plus a tier-2
+  re-measure (~2.5 min) — a materially different change, and one that should carry its own
+  before→after rather than ride along at the end of a long session.
+- **THE FIX, DESIGNED so the next slice is bounded:** in `corpus_parse_cost.py`, build
+  `identity.grammar` from `scripts/check_baseline_identity.sh --digest ebnf_raw_ast` — the single
+  in-repo definition this leaf already adopted — and rename the key to match the semantic meaning;
+  then `make -C rust SHELL=/bin/bash sv_parse_cost_family_share` to re-derive the artifact, then
+  `PGEN_PARSE_COST_REBASELINE=1` + a tier-2 re-measure to settle the moved `instrument` row.
+  ⛔ Acceptance is the same experiment: a comment-only edit must leave `check_doctrines.sh` at
+  **rc=0**, and a REAL semantic edit must still breach.
+- ⚠️ **AND A THIRD SURFACE TO CHECK BEFORE CLAIMING CLOSURE**: this doctrine has five every-run
+  arms. Two are now known to key the grammar; the remaining three (LR-family classifier,
+  co-publication, probe fingerprint) were not individually audited for the same shape. **Audit all
+  five before the next slice publishes an elimination claim** — this leaf has already been wrong
+  once about being finished.
+
 ### `.1` — the INVENTORY: enumerate the engine's universal services from the code (`todo`)
 
 Read the pipeline end to end and enumerate what the engine does that no grammar declares. Known

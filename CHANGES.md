@@ -1,5 +1,39 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-ENGINE-UNIVERSAL-SERVICES-0078 (leaf ENGINE-UNIVERSAL-SERVICES.38 NEW, tier-1 row `done`; ZERO grammar bytes, ZERO Rust bytes): the parse-cost ratchet keys the grammar by bytes in TWO places — one fixed, one measured and OWED
+
+- ⛔ **HOW IT WAS FOUND — by fixing the same defect elsewhere and watching the commit still fail.**
+  After `SV-CORPUS-GRAD.13c.2x.4` removed false staleness from `BASELINE-IDENTITY`, the same
+  experiment (one comment line appended to `grammars/systemverilog.ebnf`, restored byte-identically)
+  STILL blocked the commit, and the run named the new culprit: *"the parse-cost BASELINE IS STALE"*.
+- [x] **FIXED — the tier-1 identity row.** `live["grammar"] = sha256_of(GRAMMAR_FILE)` became
+  `grammar raw ast`, the sha256 of the EBNF frontend's own `raw_ast` envelope. Before → after on
+  `bash scripts/check_parse_cost_ratchet.sh` with a comment-only edit: *"the parse-cost BASELINE IS
+  STALE"* → that arm passes. ⛔ **NO RE-MEASURE NEEDED OR DONE**: the binding counters are untouched
+  and the identity table is PROVENANCE — changing which digest identifies an input is not a
+  rebaseline.
+- ⭐ **The byte row was buying nothing.** The table already keys `generated/systemverilog_parser.rs`
+  by bytes, and the counters are a function of *that*. Any grammar change able to move a counter
+  necessarily moves the parser — so the grammar row could only ever fire alongside it, or **alone
+  and falsely**, which is what it did.
+- ⛔⛔ **ONE DEFINITION, NOT A THIRD COPY.** The semantic digest already existed twice, held equal by
+  an adversarial probe arm. This gate **shells out** to
+  `scripts/check_baseline_identity.sh --digest ebnf_raw_ast <path>` — a mode added for exactly this
+  consumer — rather than re-implementing it. The coupling is real and is stated, not hidden.
+- ⛔⛔ **STILL OPEN, AND THE HEADLINE CLAIM WOULD HAVE BEEN FALSE.** `family_share.json` carries its
+  OWN `identity` block with its own byte-keyed `grammar` entry, so **a comment-only edit still
+  blocks every commit today**. The friction is REDUCED, not eliminated. It was not fixed in the same
+  slice because the comparison lives inside `stimuli/sv/corpus_parse_cost.py` — a 1 950-line
+  instrument that is ITSELF a declared identity input of this doctrine — so re-keying it forces a
+  ~70 s re-derivation plus `PGEN_PARSE_COST_REBASELINE=1` plus a tier-2 re-measure. Different blast
+  radius, so it gets its own slice with its own before→after. The fix is designed in the leaf.
+- ⚠️ **AND A THIRD THING TO CHECK BEFORE ANYONE CLAIMS CLOSURE**: the doctrine has five every-run
+  arms; two are now known to key the grammar and the other three were not individually audited.
+  Audit all five first — this leaf has already been wrong once about being finished.
+- **Validation**: `bash scripts/check_doctrines.sh` → ALL 24 enforced doctrines PASS on a clean
+  tree; `check_parse_cost_ratchet.sh` → `OK (identity fresh for: generated parser, grammar raw ast,
+  instrument, sample inputs; 192 pinned sample files)`. Live-status tracker UNCHANGED.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0253 (leaf SV-CORPUS-GRAD.13c.2x.4 NEW + all four moves LANDED; ZERO grammar bytes, ZERO Rust bytes): the doctrine's adoption cost was itself a defect — one comment line was blocking every commit
 
 - ⛔⛔ **THE DIRECTOR REFUSED THE COST, AND RE-MEASURING UNDER CHALLENGE SHOWED I HAD PUBLISHED IT

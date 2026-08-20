@@ -317,8 +317,25 @@ def sample_input_digest(files):
 
 
 live = {}
+# ⛔⛔ THE GRAMMAR IS KEYED SEMANTICALLY, NOT BY BYTES (`ENGINE-UNIVERSAL-SERVICES.38`).
+# The EBNF frontend strips comments, so a comment-only edit moved the file's sha while leaving
+# `generated/systemverilog_parser.rs` — and therefore every binding counter — byte-identical.
+# Measured 2026-08-20: that made THIS tier fail and BLOCKED EVERY COMMIT, for a change that
+# provably cannot move a number. ⭐ And the byte row bought nothing: the parser is keyed by bytes
+# just below, and any grammar change able to move a counter necessarily moves the parser — so the
+# grammar row could only fire alongside it, or ALONE AND FALSELY.
+# ⛔ ONE DEFINITION: this shells out to `check_baseline_identity.sh --digest`, which is also what
+# BASELINE-IDENTITY uses, rather than becoming a third in-repo copy of the same hash.
 if os.path.isfile(GRAMMAR_FILE):
-    live["grammar"] = sha256_of(GRAMMAR_FILE)
+    _d = subprocess.run([os.path.join(ROOT, "scripts", "check_baseline_identity.sh"),
+                         "--digest", "ebnf_raw_ast",
+                         os.path.relpath(GRAMMAR_FILE, ROOT)],
+                        capture_output=True, text=True)
+    if _d.returncode == 0 and re.fullmatch(r"[0-9a-f]{64}", _d.stdout.strip() or ""):
+        live["grammar raw ast"] = _d.stdout.strip()
+    else:
+        unevaluated.append(f"the semantic (raw_ast) digest of {GRAMMAR_FILE} could not be derived "
+                           f"— build it with `make -C rust ast_pipeline`")
 else:
     unevaluated.append(f"{GRAMMAR_FILE} is absent")
 if os.path.isfile(GENERATED_PARSER):

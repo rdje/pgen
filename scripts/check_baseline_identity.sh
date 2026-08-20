@@ -935,6 +935,19 @@ elif argv and argv[0] == "--stamp":
             print("%s: unexpected --stamp argument: %s" % (TAG, rest[i]), file=sys.stderr)
             sys.exit(2)
     sys.exit(stamp(target, extra, confirmed_by, unconfirmed, owner_leaf))
+elif argv and argv[0] == "--digest":
+    # ⭐ ONE DEFINITION, CALLABLE. `PARSE-COST-RATCHET` needs the same semantic digest, and a third
+    # in-repo copy of it would be a third thing to drift. Consumers shell out to this instead.
+    if len(argv) != 3 or argv[1] not in DIGEST_KINDS:
+        print("usage: --digest <%s> <repo-root-relative path>" % "|".join(DIGEST_KINDS),
+              file=sys.stderr)
+        sys.exit(2)
+    d = live_digest(argv[2], argv[1])
+    if d is None:
+        print("%s: could not compute the %s digest of %s" % (TAG, argv[1], argv[2]),
+              file=sys.stderr)
+        sys.exit(2)
+    print(d)
 elif argv and argv[0] == "--stale":
     rows = stale_rows()
     del failures[:]
