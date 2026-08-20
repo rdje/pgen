@@ -739,6 +739,86 @@ def stale_rows():
     return out
 
 
+# ── THE STRUCTURAL INVARIANT: NO TRACKED PROVENANCE MAY KEY A GRAMMAR BY BYTES ─────────────────
+#
+# ⛔⛔ THIS IS THE "ONCE AND FOR GOOD" HALF. Re-keying the two rows that were wrong fixes today;
+# it does nothing about the next provenance artifact somebody writes. The defect class is exact
+# and mechanically checkable: **a `.ebnf` path paired with a digest, where the digest is of the
+# FILE'S BYTES.** The EBNF frontend strips comments, so such a row moves on edits that provably
+# cannot change anything derived from the grammar — and this doctrine's own history is what a
+# missing guard costs: two such rows in one doctrine, one of them present since its founding
+# commit, together blocking EVERY COMMIT on a comment.
+#
+# ⭐ THE POPULATION IS DERIVED FROM `git ls-files`, never hand-listed — a new artifact is covered
+# by construction. Two carriers, both STRUCTURAL so prose cannot false-positive:
+#   JSON  — an object carrying a `path` ending `.ebnf` beside a digest, or an `identity.inputs`
+#           key ending `.ebnf`;
+#   MD    — an identity-table row `| label | \`path.ebnf\` | \`<64 hex>\` |` under a tracked
+#           artifacts directory. Truncated digests (`b0395cc85948…`) are not 64 hex and are
+#           therefore invisible, which is what keeps changelog prose out of this.
+SEMANTIC_KINDS_FOR_EBNF = ("ebnf_raw_ast",)
+MD_IDENT_ROW = re.compile(
+    r"^\|\s*([^|]+?)\s*\|\s*`([^`]+\.ebnf)`\s*\|\s*`[0-9a-f]{64}`\s*\|")
+
+
+def grammar_byte_keying_offences():
+    """Every tracked provenance row that keys a `.ebnf` input by BYTES. Derived, not listed."""
+    out = []
+    # ⛔ MARKDOWN IS SCOPED TO `cost.md`, AND THAT IS A CORRECTNESS BOUND RATHER THAN A SHORTCUT.
+    # The first cut scanned every artifact `.md` and flagged dated CHARACTERIZATION RECORDS — e.g.
+    # `…/ch22_directive_fix/after/characterization.md`. Those are EVIDENCE: they record the byte sha
+    # that was true on the day they were written, and rewriting them would be falsifying history.
+    # A guard must fire on LIVE provenance — a row some enforcer re-hashes — not on an archive.
+    # ⚠️ Honest bound, stated: `cost.md` is the only markdown identity-table carrier in the tree
+    # today, so a future one is invisible until it is named here. JSON needs no such bound — it is
+    # scanned tree-wide, and every structured provenance artifact this project writes is JSON.
+    listed = git("ls-files", "--", "*.json", "*/cost.md", "cost.md") or ""
+    for rel in listed.splitlines():
+        full = os.path.join(ROOT, rel)
+        if not os.path.isfile(full):
+            continue
+        if rel.endswith(".md"):
+            with open(full, encoding="utf-8", errors="replace") as fh:
+                for n, line in enumerate(fh, 1):
+                    m = MD_IDENT_ROW.match(line)
+                    if m and "raw ast" not in m.group(1).lower():
+                        out.append("%s:%d — identity row `%s` keys `%s` by BYTES"
+                                   % (rel, n, m.group(1).strip(), m.group(2)))
+            continue
+        try:
+            with open(full, encoding="utf-8") as fh:
+                doc = json.load(fh)
+        except (ValueError, OSError):
+            continue
+
+        def walk(node, where):
+            if isinstance(node, dict):
+                # shape A — {"path": "...ebnf", "sha256": ..., "kind": ...}
+                pth = node.get("path")
+                if (isinstance(pth, str) and pth.endswith(".ebnf")
+                        and any(k in node for k in ("sha256", "digest"))
+                        and node.get("kind") not in SEMANTIC_KINDS_FOR_EBNF):
+                    out.append("%s — %s keys `%s` by BYTES (kind=%r)"
+                               % (rel, where or "identity", pth, node.get("kind")))
+                # shape B — an `inputs` map whose KEY is the path
+                if where.endswith("identity") and isinstance(node.get("inputs"), dict):
+                    for k, v in node["inputs"].items():
+                        if not (isinstance(k, str) and k.endswith(".ebnf")):
+                            continue
+                        kind = v.get("kind") if isinstance(v, dict) else "bytes"
+                        if kind not in SEMANTIC_KINDS_FOR_EBNF:
+                            out.append("%s — identity.inputs keys `%s` by BYTES (kind=%r)"
+                                       % (rel, k, kind))
+                for k, v in node.items():
+                    walk(v, where + "." + k if where else k)
+            elif isinstance(node, list):
+                for v in node:
+                    walk(v, where)
+
+        walk(doc, "")
+    return sorted(set(out))
+
+
 def population():
     """RE-DERIVED every run. Never hand-listed — a hand-listed population is a census, and a
     census is what this doctrine exists to replace."""
@@ -892,6 +972,17 @@ def register_mode(report=False):
                 elif not leaf_exists(owner):
                     fail("%s: `%s` names owner_leaf `%s`, which no docs/tasks/ tree mentions"
                          % (TAG, name, owner))
+
+    # ⛔ Run on EVERY invocation of the doctrine, not on demand: the whole point is that the next
+    # byte-keyed grammar row cannot land, and a guard nobody runs is the defect one level up.
+    for offence in grammar_byte_keying_offences():
+        fail("%s: a `.ebnf` input is keyed by BYTES — %s\n"
+             "      The EBNF frontend strips comments, so this row moves on edits that provably\n"
+             "      cannot change anything derived from the grammar. Key it semantically:\n"
+             "        \"kind\": \"ebnf_raw_ast\"   (JSON)  ·  label it `… raw ast`  (identity table)\n"
+             "      The digest comes from ONE definition:\n"
+             "        bash scripts/check_baseline_identity.sh --digest ebnf_raw_ast <path>"
+             % (TAG, offence))
 
     if report:
         print("%s: %d entries in %s/" % (TAG, len(live), BASE_DIR))

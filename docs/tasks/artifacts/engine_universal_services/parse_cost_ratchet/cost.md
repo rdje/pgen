@@ -32,18 +32,6 @@ which is why it advises and does not bind. **Neither metric alone is sufficient.
 > every run — unlike the six oracles `SV-CORPUS-GRAD.13i` found carrying an identity
 > block that nothing read, four of which were measurably stale.
 
-⭐⭐ **THE GRAMMAR ROW IS KEYED SEMANTICALLY, NOT BY BYTES** (`ENGINE-UNIVERSAL-SERVICES.38`,
-2026-08-20). `grammar raw ast` holds the sha256 of the EBNF frontend's own `raw_ast` envelope —
-*what the code generator consumes* — derived by `scripts/check_baseline_identity.sh --digest
-ebnf_raw_ast`, the single in-repo definition. **Measured cause**: the frontend strips comments, so
-a comment-only edit moved the file's sha while leaving `generated/systemverilog_parser.rs` and
-every binding counter byte-identical — and this tier failing **blocked every commit**. ⭐ The byte
-row was buying nothing: the parser is keyed by bytes below, and any grammar change able to move a
-counter necessarily moves the parser, so the grammar row could only fire alongside it — or alone
-and falsely. ⛔ The other three rows stay byte-keyed **on purpose**: each is consumed byte-wise by
-what produces the numbers. The rule is *digest what the consumer actually reads*, not *make
-everything semantic*.
-
 ⛔ **`instrument` is the fourth input, and it was added because its absence was a real
 hole** (`ENGINE-UNIVERSAL-SERVICES.21`). The first block named three, on the sound
 argument that the BINDING counters are an exact function of exactly those. Sound, and
@@ -55,7 +43,7 @@ tier still reported `fresh`.
 |---|---|---|
 | grammar raw ast | `grammars/systemverilog.ebnf` | `bd9367dc1d79b6f2531a3975cb5c2449c451817f97c1a92fbcb18200fd14c9b4` |
 | generated parser | `generated/systemverilog_parser.rs` | `936294a4ddae29255684f635427995b3b7bf9096b3e55eddf02d890572ca2bda` |
-| instrument | `stimuli/sv/corpus_parse_cost.py` | `f106e3613df034e7552b0694a32e67738826d09a01b3fcb9e1643cee36e75051` |
+| instrument | `stimuli/sv/corpus_parse_cost.py` | `ffd2e3c4af9175cd4c1b8cd0a676dcddda7ed549e3055d04d9795c867ad9094e` |
 | sample inputs | `stimuli/sv/parse_cost_sample.tsv` | `c3e01f2d29714af9bb15e977e3ca52c48045616d1cf157a8c13e5bd645016205` |
 
 `sample inputs` digests the manifest ORDER plus every sampled file's bytes: the corpora

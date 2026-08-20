@@ -353,6 +353,51 @@ else
   FAIL=$((FAIL + 1))
 fi
 
+# ── arms 18-19: THE END-TO-END INVARIANT, IN BOTH DIRECTIONS ────────────────────────────────────
+#
+# ⛔⛔ THIS IS THE ARM THAT MAKES THE FIX PERMANENT. Everything above tests a mechanism; this tests
+# the PROPERTY the whole exercise was for: *editing a comment in a grammar must not stop anyone
+# committing.* It ran RED before the fix — one comment line made `check_doctrines.sh` exit 1 across
+# TWO doctrines and four separate byte-keyed rows — and it is the only arm that would notice the
+# defect coming back through a surface nobody thought to guard.
+# ⚠️ It mutates the tracked grammar and restores it byte-identically; the restore is verified.
+cp -f grammars/systemverilog.ebnf "$WORK/grammar_backup.ebnf"
+printf '\n(* transient probe comment - restored immediately *)\n' >> grammars/systemverilog.ebnf
+comment_rc=0
+bash scripts/check_doctrines.sh >"$WORK/comment_edit.log" 2>&1 || comment_rc=$?
+cp -f "$WORK/grammar_backup.ebnf" grammars/systemverilog.ebnf
+if ! git diff --quiet -- grammars/systemverilog.ebnf; then
+  echo "  ⛔ THE GRAMMAR WAS NOT RESTORED — fix before committing" >&2
+  FAIL=$((FAIL + 1))
+elif [ "$comment_rc" = "0" ]; then
+  echo "  ✓ arm 18: a COMMENT-ONLY grammar edit leaves every registered doctrine GREEN - nobody is"
+  echo "    blocked from committing by an edit the frontend strips"
+  PASS=$((PASS + 1))
+else
+  echo "  ✗ arm 18: a comment-only grammar edit still FAILS a doctrine (rc=$comment_rc):" >&2
+  grep -E "✗ FAIL|BASELINE IS STALE|no longer describes" "$WORK/comment_edit.log" | head -4 >&2
+  FAIL=$((FAIL + 1))
+fi
+
+# ⛔ AND THE CONTROL THAT STOPS ARM 18 BEING SATISFIED BY SIMPLY SWITCHING THE CHECK OFF. A REAL
+# semantic edit MUST still be seen. Without this, deleting the guard entirely would score a pass.
+printf '\nzz_probe_rule_transient := "zzprobe"\n' >> grammars/systemverilog.ebnf
+semantic_seen=0
+bash "$VERIFY" >"$WORK/semantic_edit.log" 2>&1 || true
+grep -q "STALE" "$WORK/semantic_edit.log" && semantic_seen=1
+cp -f "$WORK/grammar_backup.ebnf" grammars/systemverilog.ebnf
+if ! git diff --quiet -- grammars/systemverilog.ebnf; then
+  echo "  ⛔ THE GRAMMAR WAS NOT RESTORED — fix before committing" >&2
+  FAIL=$((FAIL + 1))
+elif [ "$semantic_seen" = "1" ]; then
+  echo "  ✓ arm 19: a REAL semantic grammar edit is still SEEN as stale - arm 18 was earned, not"
+  echo "    bought by weakening the check"
+  PASS=$((PASS + 1))
+else
+  echo "  ✗ arm 19: a real semantic edit went UNNOTICED - the freshness guarantee is gone" >&2
+  FAIL=$((FAIL + 1))
+fi
+
 echo ""
 echo "probe: $PASS arm(s) behaved as specified, $FAIL did not"
 [ "$FAIL" -eq 0 ] || exit 1

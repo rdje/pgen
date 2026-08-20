@@ -1,5 +1,46 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-20 - PGEN-ENGINE-UNIVERSAL-SERVICES-0079 — the flag I raised instead of chasing was where the second bug was
+
+**1. I ALMOST SHIPPED "REDUCED, NOT ELIMINATED" AS AN ANSWER.** `-0078` fixed one row, measured that
+a comment still blocked commits, and routed the rest with a careful note. That is honest reporting
+and it is not a fix. The director's *"fix this once and for good"* is the right standard: a defect
+that is measured, named and left in place is still a defect, and the note describing it becomes the
+thing people read instead of the thing being gone.
+
+**2. THE AUDIT FLAG WAS WORTH MORE THAN THE FIX IT ACCOMPANIED.** `-0078` closed one row and said
+*"three of five arms were not audited — audit all five before any elimination claim."* The second
+offender was in one of those three, and it was a **copy of the same line in a different function**
+(`family_share_identity()` vs `identity()`). ⇒ **when you fix an instance, ask how many copies of
+the line exist before declaring the class closed** — grep, do not reason.
+
+**3. THE CLEAN FIX WAS A FUNCTION, NOT TWO EDITS.** Patching both sites would have left a third to
+find. One `input_identity(rel)` decides how any input is digested, both sites call it, the row
+carries an explicit `kind`, and the markdown label is DERIVED from that kind — so the gate, the
+table and the structural guard agree because they read one field, not because three people
+remembered the same convention.
+
+**4. RE-KEYING TODAY DOES NOT STOP TOMORROW, AND THAT IS THE HALF THAT ACTUALLY CLOSES THIS.** The
+durable piece is the every-commit guard: scan every tracked JSON and `cost.md`, derived from
+`git ls-files`, and refuse a `.ebnf` path paired with a byte digest. Two rows had this defect; one
+had it since its doctrine's founding commit. Nothing was going to notice the third.
+
+**5. THE GUARD'S FIRST RUN TAUGHT ME WHERE ITS BOUNDARY IS.** It flagged dated CHARACTERIZATION
+RECORDS — `…/ch22_directive_fix/after/characterization.md` — which record the byte sha that was
+true on the day they were written. That is EVIDENCE, and rewriting it would be falsifying history.
+**A guard fires on live provenance, not on an archive**, and the honest scoping (markdown limited to
+`cost.md`) is stated as a bound rather than hidden.
+
+**6. ARM 19 IS THE ONE I WOULD HAVE SKIPPED IF I WERE IN A HURRY.** Arm 18 asserts a comment-only
+edit leaves every doctrine green — and deleting the freshness check entirely would also make it
+pass. Arm 19 asserts a REAL semantic edit is still seen. **Any arm whose success condition is
+"nothing complained" needs a twin whose success condition is "something complained."**
+
+**7. AND THE COST WAS SELF-INFLICTED IN AN INSTRUCTIVE WAY.** The instrument is a declared identity
+input of its own doctrine, so every edit to it staled its own row — two full rebaselines, the second
+only because the first revealed the label had to move too. ⇒ **when a tool is an input to the check
+it feeds, batch every edit to it before paying the settlement once.**
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0253 — I published a cost instead of refusing it, and the cost turned out to be bigger than I said
 
 **1. "STATED RATHER THAN DISCOVERED" IS NOT THE SAME AS "ACCEPTED", AND I TREATED IT AS IF IT WERE.**

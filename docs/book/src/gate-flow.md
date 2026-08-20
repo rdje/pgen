@@ -552,12 +552,22 @@ rather than adding one.
 **4. The register says who re-derives what.** Every adopted row names the `make` target that
 resolves it, and `--stale` / `--resolve-stale` list and run exactly the stale ones, cheapest first.
 
-⚠️ **What remains, honestly.** The same byte-keying defect lives in `PARSE-COST-RATCHET`, whose
-identity table still hashes the grammar's bytes — so a comment-only edit still forces a re-measure
-*there*, and that one is expensive. It is measured, named and routed rather than quietly fixed
-under another doctrine's name. And `GENERATED-REPRODUCIBILITY` still needs a human to run
-`--rebaseline` after a green tier 2, which is the same *stale + green ⇒ re-stamp* cell automated
-above.
+**5. And the class was closed, not just the instance.** The same byte-keying defect turned out to
+live in `PARSE-COST-RATCHET` too — in *two* places, one of them since that doctrine's founding
+commit, built by two different functions from the same copied line. Both were re-keyed through a
+single helper. More importantly, a guard now runs on every commit that scans every tracked JSON and
+every `cost.md` — its population derived from `git ls-files` rather than listed — and refuses any
+provenance row pairing a `.ebnf` path with a byte digest. Re-keying rows fixes a day; the guard is
+what stops the next one.
+
+The property is asserted end-to-end, in both directions: a comment-only grammar edit must leave
+every registered doctrine green, **and** a real semantic edit must still be seen. The second
+assertion is the load-bearing one — without it, deleting the freshness check entirely would satisfy
+the first.
+
+⚠️ **What remains, honestly.** `GENERATED-REPRODUCIBILITY` still needs a human to run
+`--rebaseline` after a green tier 2 — the same *stale + green ⇒ re-stamp* cell automated above, in
+a doctrine that has not adopted it yet.
 
 ⚠️ **And the honest bound on the census itself.** The population was first sized by a
 key-name classifier, which the adjudication corrected **in both directions**: five contracts

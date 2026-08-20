@@ -62,7 +62,7 @@ question is *"is that enough?"*, and that cannot be answered without naming the 
 
 ## Leaves
 
-### `.38` — ⭐⭐ `PARSE-COST-RATCHET` KEYS THE GRAMMAR BY BYTES **IN TWO PLACES**, so a COMMENT blocks every commit — one fixed, one measured and OWED (`todo`, tier-1 row `done` — `PGEN-ENGINE-UNIVERSAL-SERVICES-0078`, 2026-08-20 session #250; routed in by `SV-CORPUS-GRAD.13c.2x.4` **with the measurement**)
+### `.38` — ⭐⭐ `PARSE-COST-RATCHET` KEYED THE GRAMMAR BY BYTES IN TWO PLACES, so a COMMENT BLOCKED EVERY COMMIT — **CLOSED, both rows re-keyed and the class now structurally impossible** (`done` — `PGEN-ENGINE-UNIVERSAL-SERVICES-0078`, `-0079`, 2026-08-20 session #250; routed in by `SV-CORPUS-GRAD.13c.2x.4` **with the measurement**)
 
 - ⛔ **HOW IT WAS FOUND — by fixing the same defect elsewhere and watching the commit still fail.**
   `SV-CORPUS-GRAD.13c.2x.4` removed false staleness from `BASELINE-IDENTITY`. Re-running the same
@@ -146,41 +146,59 @@ question is *"is that enough?"*, and that cannot be answered without naming the 
   correct digest there — the fix is not "make everything semantic", it is "digest what the consumer
   actually reads".
 
-#### ⛔⛔ STILL OPEN — A SECOND BYTE-KEYED GRAMMAR ROW IN THE SAME DOCTRINE, AND IT STILL BLOCKS EVERY COMMIT
+#### ✅✅ CLOSED 2026-08-20 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0079`) — BOTH ROWS RE-KEYED, AND THE CLASS IS NOW STRUCTURALLY IMPOSSIBLE
 
-- ⛔ **MEASURED AFTER the tier-1 row was fixed**, same experiment (one comment line, restored
-  byte-identically). The commit is **still blocked**, by a different arm of the same doctrine:
+- ⛔ **THE SECOND ROW, and why the audit mattered.** `-0078` closed the tier-1 row and I flagged
+  three of the doctrine's five every-run arms as unaudited. Auditing them found the second offender
+  exactly where the flag predicted: `family_share.json` carries its own `identity` block, built by
+  `family_share_identity()` — a **different function** from `identity()`, with the same
+  `("grammar", GRAMMAR_FILE) → sha256_of(path)` line copied into it.
+- ⭐⭐ **THE FIX IS ONE FUNCTION, NOT TWO PATCHES.** `stimuli/sv/corpus_parse_cost.py` now has a
+  single `input_identity(rel)` that decides how an input is digested — `.ebnf` ⇒ `ebnf_raw_ast`,
+  everything else ⇒ `bytes` — and **both** sites call it. The row carries an explicit
+  `"kind"` field, so nothing is inferred from a label. ⛔ The digest itself comes from
+  `scripts/check_baseline_identity.sh --digest`, the single in-repo definition, so this did not
+  become a third copy.
+- ⭐ **THE LABEL NOW CARRIES THE KIND, BY CONSTRUCTION.** `cost.md`'s emitter derives the row label
+  from `kind`, so the table cannot say `grammar` while holding a semantic digest. The gate matches
+  that label and `BASELINE-IDENTITY`'s structural guard requires it — three surfaces agreeing
+  because they are generated from one field, not because someone remembered.
+- [x] **ADDRESSED (verified) — THE END-TO-END INVARIANT, BOTH DIRECTIONS.** The probe now asserts
+  the property the whole exercise was for, and it ran RED before this work:
   ```text
-  parse-cost-ratchet: 1 breach(es):
-    ✗ the published LR-family share no longer describes this tree:
-          parse-cost: ✗ the corpus family share NO LONGER DESCRIBES THIS TREE — `grammar` moved.
-                  grammar: artifact `b0395cc859489782…` vs live `235ddb5869196dce…`
+  ✓ arm 18: a COMMENT-ONLY grammar edit leaves every registered doctrine GREEN - nobody is
+    blocked from committing by an edit the frontend strips
+  ✓ arm 19: a REAL semantic grammar edit is still SEEN as stale - arm 18 was earned, not
+    bought by weakening the check
+  probe: 28 arm(s) behaved as specified, 0 did not
   ```
-  ⇒ `docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json` carries
-  its **own** `identity` block, and its `grammar` entry is byte-keyed too. **So the headline claim
-  that "a comment no longer blocks every commit" is FALSE today and must not be published** — the
-  friction is REDUCED, not eliminated.
-- **WHY IT WAS NOT FIXED IN THE SAME SLICE, and the reason is blast radius rather than effort.**
-  The comparison lives inside the instrument (`stimuli/sv/corpus_parse_cost.py
-  --verify-family-share`), not in the gate — so re-keying it means editing a **1 950-line
-  instrument that is ITSELF a declared identity input of this doctrine** (`instrument` row). That
-  moves the instrument sha, which stales tier 1, which this doctrine deliberately couples to a
-  REBASELINE of its binding counters. The tier-1 row fixed above needed **no re-measure at all**;
-  this one needs a re-derivation (~70 s) plus `PGEN_PARSE_COST_REBASELINE=1` plus a tier-2
-  re-measure (~2.5 min) — a materially different change, and one that should carry its own
-  before→after rather than ride along at the end of a long session.
-- **THE FIX, DESIGNED so the next slice is bounded:** in `corpus_parse_cost.py`, build
-  `identity.grammar` from `scripts/check_baseline_identity.sh --digest ebnf_raw_ast` — the single
-  in-repo definition this leaf already adopted — and rename the key to match the semantic meaning;
-  then `make -C rust SHELL=/bin/bash sv_parse_cost_family_share` to re-derive the artifact, then
-  `PGEN_PARSE_COST_REBASELINE=1` + a tier-2 re-measure to settle the moved `instrument` row.
-  ⛔ Acceptance is the same experiment: a comment-only edit must leave `check_doctrines.sh` at
-  **rc=0**, and a REAL semantic edit must still breach.
-- ⚠️ **AND A THIRD SURFACE TO CHECK BEFORE CLAIMING CLOSURE**: this doctrine has five every-run
-  arms. Two are now known to key the grammar; the remaining three (LR-family classifier,
-  co-publication, probe fingerprint) were not individually audited for the same shape. **Audit all
-  five before the next slice publishes an elimination claim** — this leaf has already been wrong
-  once about being finished.
+  ⛔ **Arm 19 is the load-bearing one.** Without it, deleting the freshness check entirely would
+  score a pass on arm 18 — the shape `GENERATED-LINT-CORRECTNESS.4` calls *a check whose inputs all
+  pass has not been tested*.
+- ⭐⭐ **AND THE CLASS IS NOW STRUCTURALLY IMPOSSIBLE, which is the "once and for good" half.**
+  `BASELINE-IDENTITY` gained a guard, run on every commit, that scans **every tracked JSON and every
+  `cost.md`** — population derived from `git ls-files`, never hand-listed — and REFUSES any
+  provenance row pairing a `.ebnf` path with a byte digest. Re-keying two rows fixes today; this is
+  what stops the third. ⚠️ Honest bound, stated: markdown carriers are scoped to `cost.md` because
+  the first cut flagged dated CHARACTERIZATION RECORDS (`…/ch22_directive_fix/after/
+  characterization.md`), which correctly record the byte sha that was true when they were written —
+  **a guard must fire on live provenance, not on history**.
+- **THE COST OF SETTLING IT, recorded because it is the reason this needed its own slice**: the
+  instrument is a declared identity input of its own doctrine, so each edit to it staled the
+  `instrument` row — two `PGEN_PARSE_COST_REBASELINE=1` re-measures (~136 s each) were needed, and
+  the second only because the first revealed the label had to move too. ⭐ **The family-share census
+  re-derived the carried constant `2.761 %` EXACTLY** (`parse-cost: the carried constant 2.761 %
+  reproduces exactly`), which is independent evidence that re-keying moved provenance and nothing
+  else.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → ALL 24 enforced doctrines PASS on a
+  clean tree **and with a comment-only grammar edit applied**; `parse-cost-ratchet: OK (identity
+  fresh for: generated parser, grammar raw ast, instrument, sample inputs; 192 pinned sample
+  files)`; the advisory band moved `-4.8 %`, well inside ±50 %, and the binding counters were
+  re-measured by the rebaseline rather than asserted. Probe **26 → 28 arms**, 0 not-as-specified.
+- ⚠️ **THE REMAINING TWO ARMS OF THE FIVE, audited and clean**: the LR-family classifier runs
+  `--verify-families` over generated parsers (no grammar digest), and co-publication/probe-fingerprint
+  compare published shares and a build fingerprint (no grammar digest). **All five are now
+  accounted for** — the flag `-0078` raised is discharged rather than carried.
 
 ### `.1` — the INVENTORY: enumerate the engine's universal services from the code (`todo`)
 

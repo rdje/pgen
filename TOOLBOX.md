@@ -1341,6 +1341,14 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `stale_budget_commits` (default **20**), and a HARD FAILURE past it. The budget bounds ROT, which
   is the founding defect — one artifact sat **69** input-touching revisions stale with nothing able
   to say so — while normal work is never blocked.
+- ⭐⭐⭐ **AND IT CANNOT COME BACK: an every-commit STRUCTURAL GUARD** scans every tracked JSON and
+  every `cost.md` — population derived from `git ls-files`, never hand-listed — and REFUSES any
+  provenance row pairing a `.ebnf` path with a **byte** digest. Two such rows existed, in one
+  doctrine, one of them since its founding commit, and together they blocked every commit on a
+  comment. Re-keying them fixed that day; this is what stops the third. ⚠️ Markdown carriers are
+  scoped to `cost.md`: the guard's first run flagged dated CHARACTERIZATION RECORDS, which
+  correctly capture the byte sha that was true when written — **a guard fires on live provenance,
+  not on history**.
 - ⭐⭐ **FALSE STALENESS IS DESIGNED OUT, NOT TOLERATED.** An input may declare a digest KIND:
   `bytes` (default) or `ebnf_raw_ast`, the frontend's own `raw_ast` envelope — *what the code
   generator consumes*, comment- and layout-insensitive **by construction**. A comment-only grammar
@@ -1356,8 +1364,10 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   Usually none: the owning gate re-stamps itself on its next green run. Every `adopted` row names
   its `resolved_by` make target (checked to exist), so *"your baseline is stale"* is an instruction
   rather than a puzzle.
-- **PROBE:** `bash docs/tasks/artifacts/sv_corpus_grad/baseline_identity/probe.sh` — **25 arms**
-  (2 controls GREEN, 22 refusals, 1 timing assertion), run recorded beside it in `probe_run.txt`.
+- **PROBE:** `bash docs/tasks/artifacts/sv_corpus_grad/baseline_identity/probe.sh` — **28 arms**,
+  including the two that matter most: **arm 18** asserts a comment-only grammar edit leaves every
+  registered doctrine GREEN, and **arm 19** asserts a REAL semantic edit is still seen — without
+  19, deleting the freshness check would score a pass on 18, run recorded beside it in `probe_run.txt`.
   It restores every file it mutates and byte-compares against its own backup.
   ⚠️ **Its arm NAMES carry no backticks, deliberately**: they are double-quoted shell words, so a
   backtick opens a command substitution and the printed name silently loses the word. Measured

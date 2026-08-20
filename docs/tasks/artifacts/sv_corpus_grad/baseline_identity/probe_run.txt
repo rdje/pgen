@@ -27,7 +27,11 @@ refusal arms — each must go RED
   ✓ arm 16: a comment-only grammar edit leaves the raw_ast digest IDENTICAL - the false
     staleness that blocked every commit cannot recur
   ✓ arm 17: both implementations of the semantic digest agree (bd9367dc1d79b6f2…)
+  ✓ arm 18: a COMMENT-ONLY grammar edit leaves every registered doctrine GREEN - nobody is
+    blocked from committing by an edit the frontend strips
+  ✓ arm 19: a REAL semantic grammar edit is still SEEN as stale - arm 18 was earned, not
+    bought by weakening the check
 
-probe: 26 arm(s) behaved as specified, 0 did not
+probe: 28 arm(s) behaved as specified, 0 did not
 probe: restored the tracked register + deferred baseline
 probe: no residue — every file this probe mutated is byte-identical to its backup

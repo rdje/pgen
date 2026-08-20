@@ -1,5 +1,44 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-ENGINE-UNIVERSAL-SERVICES-0079 (leaf ENGINE-UNIVERSAL-SERVICES.38 CLOSED; ZERO grammar bytes, ZERO Rust bytes): a comment in the SV grammar no longer blocks any commit — and the defect class is now structurally impossible
+
+- ⛔ **THE SECOND ROW WAS EXACTLY WHERE THE AUDIT FLAG SAID IT WOULD BE.** `-0078` closed the tier-1
+  row and flagged three of five every-run arms as unaudited. `family_share.json`'s identity is built
+  by `family_share_identity()` — a **different function** from `identity()`, with the same
+  `("grammar", GRAMMAR_FILE) → sha256_of(path)` line copied into it.
+- ⭐⭐ **ONE FUNCTION, NOT TWO PATCHES.** `stimuli/sv/corpus_parse_cost.py` now has a single
+  `input_identity(rel)` deciding how an input is digested — `.ebnf` ⇒ `ebnf_raw_ast`, everything
+  else ⇒ `bytes` — used by **both** sites, with an explicit `"kind"` field so nothing is inferred
+  from a label. The digest comes from `scripts/check_baseline_identity.sh --digest`, the single
+  in-repo definition, so this did not become a third copy. `cost.md`'s emitter DERIVES the row label
+  from the kind, so gate, table and guard agree by construction rather than by memory.
+- ⭐⭐⭐ **THE DURABLE HALF — the class is now structurally impossible.** `BASELINE-IDENTITY` gained
+  a guard that runs on **every commit** and scans **every tracked JSON and every `cost.md`**
+  (population derived from `git ls-files`, never hand-listed), refusing any provenance row that
+  pairs a `.ebnf` path with a **byte** digest. Re-keying two rows fixes today; this is what stops
+  the third. ⚠️ Honest bound: markdown carriers are scoped to `cost.md`, because the first cut
+  flagged dated CHARACTERIZATION RECORDS which correctly capture the byte sha that was true when
+  they were written — **a guard fires on live provenance, not on history**.
+- ✅ **THE END-TO-END INVARIANT, BOTH DIRECTIONS** (probe **26 → 28 arms**, 0 not-as-specified):
+  ```text
+  ✓ arm 18: a COMMENT-ONLY grammar edit leaves every registered doctrine GREEN
+  ✓ arm 19: a REAL semantic grammar edit is still SEEN as stale
+  ```
+  ⛔ **Arm 19 is load-bearing**: without it, deleting the freshness check entirely would score a
+  pass on arm 18 — *a check whose inputs all pass has not been tested*.
+- ⭐ **INDEPENDENT EVIDENCE THAT ONLY PROVENANCE MOVED**: the family-share census re-derived the
+  carried constant — `parse-cost: the carried constant 2.761 % reproduces exactly`.
+- **THE COST, recorded because it is why this needed its own slice**: the instrument is a declared
+  identity input of its own doctrine, so each edit to it staled the `instrument` row — two
+  `PGEN_PARSE_COST_REBASELINE=1` re-measures (~136 s each), the second only because the first
+  revealed the label had to move too. The advisory band moved **-4.8 %**, well inside ±50 %.
+- ⚠️ **ALL FIVE EVERY-RUN ARMS NOW AUDITED** — the LR-family classifier, co-publication and probe
+  fingerprint carry no grammar digest. The flag `-0078` raised is discharged, not carried.
+- **Validation**: `bash scripts/check_doctrines.sh` → ALL 24 enforced doctrines PASS on a clean tree
+  **and with a comment-only grammar edit applied**; `parse-cost-ratchet: OK (identity fresh for:
+  generated parser, grammar raw ast, instrument, sample inputs; 192 pinned sample files)`.
+  Live-status tracker UNCHANGED.
+
 ## 2026-08-20 - PGEN-ENGINE-UNIVERSAL-SERVICES-0078 (leaf ENGINE-UNIVERSAL-SERVICES.38 NEW, tier-1 row `done`; ZERO grammar bytes, ZERO Rust bytes): the parse-cost ratchet keys the grammar by bytes in TWO places — one fixed, one measured and OWED
 
 - ⛔ **HOW IT WAS FOUND — by fixing the same defect elsewhere and watching the commit still fail.**

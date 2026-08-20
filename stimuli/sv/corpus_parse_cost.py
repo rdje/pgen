@@ -962,16 +962,57 @@ def sample_input_digest(files: list[str]) -> str:
     return h.hexdigest()
 
 
+# ── ONE PLACE THAT DECIDES HOW AN INPUT IS DIGESTED ────────────────────────────────────────────
+#
+# ⛔⛔ A GRAMMAR IS DIGESTED SEMANTICALLY, NOT BY BYTES (`ENGINE-UNIVERSAL-SERVICES.38`).
+# The EBNF frontend strips comments, so a comment-only edit moves a grammar file's sha while
+# leaving `generated/systemverilog_parser.rs` — and therefore every number this instrument
+# produces — byte-identical. Measured 2026-08-20: that made this doctrine fail and BLOCKED EVERY
+# COMMIT, for a change that provably cannot move a number.
+#
+# ⭐ THE RULE IS "DIGEST WHAT THE CONSUMER ACTUALLY READS", not "make everything semantic": the
+# generated parser, this instrument and the corpus files ARE consumed byte-wise, so they stay
+# byte-keyed. Only the grammar has a canonical parsed form that the consumer sees instead.
+#
+# ⛔ ONE DEFINITION, NOT A COPY: the raw_ast digest is computed by
+# `scripts/check_baseline_identity.sh --digest`, which is also what `BASELINE-IDENTITY` and
+# `check_parse_cost_ratchet.sh` use. A local re-implementation would be a third thing to drift.
+SEMANTIC_INPUT_KIND_BY_SUFFIX = {".ebnf": "ebnf_raw_ast"}
+
+
+def input_kind(rel: str) -> str:
+    return SEMANTIC_INPUT_KIND_BY_SUFFIX.get(os.path.splitext(rel)[1], "bytes")
+
+
+def input_identity(rel: str) -> dict | None:
+    """`{"path", "kind", "sha256"}` for one declared input, or None when it cannot be digested."""
+    path = os.path.join(ROOT, rel)
+    if not os.path.isfile(path):
+        return None
+    kind = input_kind(rel)
+    if kind == "bytes":
+        return {"path": rel, "kind": "bytes", "sha256": sha256_of(path)}
+    proc = subprocess.run(
+        [os.path.join(ROOT, "scripts", "check_baseline_identity.sh"), "--digest", kind, rel],
+        capture_output=True, text=True)
+    digest = (proc.stdout or "").strip()
+    if proc.returncode != 0 or not re.fullmatch(r"[0-9a-f]{64}", digest):
+        return None
+    return {"path": rel, "kind": kind, "sha256": digest}
+
+
 def identity(files: list[str]) -> dict:
     ident = {}
     for label, rel in (("grammar", GRAMMAR_FILE), ("generated_parser", GENERATED_PARSER),
                        ("instrument", INSTRUMENT_FILE)):
-        path = os.path.join(ROOT, rel)
-        if not os.path.isfile(path):
-            die(f"required input missing: {rel}\n"
+        row = input_identity(rel)
+        if row is None:
+            die(f"required input missing or not digestible: {rel}\n"
                 f"  generated/ is not tracked — regenerate it:\n"
-                f"    make -C rust SHELL=/bin/bash regenerate_generated_parsers")
-        ident[label] = {"path": rel, "sha256": sha256_of(path)}
+                f"    make -C rust SHELL=/bin/bash regenerate_generated_parsers\n"
+                f"  a `.ebnf` input also needs `rust/target/debug/ast_pipeline` for its raw_ast "
+                f"digest: make -C rust ast_pipeline")
+        ident[label] = row
     ident["sample_inputs"] = {"path": DEFAULT_MANIFEST, "sha256": sample_input_digest(files)}
     return ident
 
@@ -1170,9 +1211,16 @@ def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
     A("")
     A("| input | repo-root-relative path | sha256 |")
     A("|---|---|---|")
+    # ⭐ THE ROW LABEL CARRIES THE DIGEST KIND, so the table cannot say `grammar` while holding a
+    # semantic digest — one name, one reading. `check_parse_cost_ratchet.sh` matches on this label
+    # and `BASELINE-IDENTITY`'s structural guard requires a `.ebnf` row to be labelled `… raw ast`,
+    # so all three agree by construction instead of by remembering.
     for label in ("grammar", "generated_parser", "instrument", "sample_inputs"):
         e = ident[label]
-        A(f"| {label.replace('_', ' ')} | `{e['path']}` | `{e['sha256']}` |")
+        shown = label.replace("_", " ")
+        if e.get("kind", "bytes") != "bytes":
+            shown = f"{shown} {e['kind'].removeprefix('ebnf_').replace('_', ' ')}"
+        A(f"| {shown} | `{e['path']}` | `{e['sha256']}` |")
     A("")
     A("`sample inputs` digests the manifest ORDER plus every sampled file's bytes: the corpora")
     A("are git submodules, so a bump can move this measurement without touching one byte of")
@@ -1549,13 +1597,15 @@ def family_share_identity() -> tuple[dict, list[str]]:
     EVALUATED rather than pass on a check it did not perform."""
     ident, missing = {}, []
     for label, rel in (("grammar", GRAMMAR_FILE), ("generated parser", GENERATED_PARSER)):
-        path = os.path.join(ROOT, rel)
-        if os.path.isfile(path):
-            ident[label] = {"path": rel, "sha256": sha256_of(path)}
+        row = input_identity(rel)
+        if row is not None:
+            ident[label] = row
         else:
             missing.append(f"{rel} is absent — generated/ is not tracked; regenerate it with "
                            f"`make -C rust SHELL=/bin/bash regenerate_generated_parsers`"
-                           if rel == GENERATED_PARSER else f"{rel} is absent")
+                           if rel == GENERATED_PARSER else
+                           f"{rel} could not be digested (a `.ebnf` input needs "
+                           f"rust/target/debug/ast_pipeline for its raw_ast digest)")
     ident["classifier"] = {"path": f"{INSTRUMENT_FILE}:LR_FAMILY_RE",
                            "sha256": classifier_digest()}
     present, listed = corpus_files()
