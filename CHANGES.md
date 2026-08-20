@@ -1,5 +1,36 @@
 # CHANGES.md
 
+## 2026-08-20 - PGEN-ENGINE-UNIVERSAL-SERVICES-0080 (leaf ENGINE-UNIVERSAL-SERVICES.39; ZERO grammar bytes, ZERO Rust bytes): a gate that proved the tree correct and then left the doctrine RED — "still needs a human" was my unfinished work, not a requirement
+
+- ⛔ **THE PHRASE WAS WRONG.** `-0079` reported that `GENERATED-REPRODUCIBILITY` *"still needs a
+  human to run `--rebaseline`"*. Nothing in it requires judgement. It required the work being done,
+  and describing it that way turned an unfinished item into an apparent property of the problem.
+- **THE DEFECT, observed live earlier the same session**: tier 2 re-derived all eleven artifacts
+  byte-identically (`0 sites` each), printed `TIER 2 OK` — and stopped. The baseline it had just
+  proven correct stayed unwritten, so tier 1, which runs on every commit, kept failing until
+  `--rebaseline` was typed by hand.
+- ✅ **A complete, green tier 2 now records its own result.** The guards are not new and are not
+  re-implemented: the path is reached only under the three conditions `--rebaseline` already
+  enforced — no breach, nothing unevaluated, `generated/` present — and it writes only when the
+  baseline is actually stale, so a run against a current tree leaves the worktree clean.
+- **MEASURED BOTH DIRECTIONS**, with one recorded `parser_sha` deliberately zeroed first:
+  ```text
+  NEGATIVE (partial tier 2)  -> TIER 2 PARTIAL … NOT EVALUATED for: the 8 family artifacts
+                                ✓ baseline UNCHANGED
+  POSITIVE (complete green)  -> TIER 2 OK … "the baseline was STALE and tier 2 proved the tree
+                                correct, so this run RECORDED it"; tier 1 back to OK
+  ```
+  ⛔ **The negative control is the load-bearing one** — recording on a partial run is exactly the
+  *"proven by a hash somebody wrote down"* failure this doctrine exists to prevent.
+- ⭐ **The genuine human cell already refuses and still does**: tier 2 finding a real breach —
+  *stale AND diverging* — is the one outcome a person must adjudicate.
+- ⚠️ **Third instance of one pattern today** (`sv_syntax_closure_gate`, `PARSE-COST-RATCHET`, this):
+  a gate that proves something and then declines to record it. *"A person must run the second
+  command"* is almost never a requirement; it is an unfinished sentence.
+- **Validation**: `bash scripts/check_doctrines.sh` → ALL 24 enforced doctrines PASS; the self-heal
+  run re-derived all eleven artifacts byte-identically before writing; the only field that moved in
+  the tracked baseline is `verified_at_commit`. Live-status tracker UNCHANGED.
+
 ## 2026-08-20 - PGEN-ENGINE-UNIVERSAL-SERVICES-0079 (leaf ENGINE-UNIVERSAL-SERVICES.38 CLOSED; ZERO grammar bytes, ZERO Rust bytes): a comment in the SV grammar no longer blocks any commit — and the defect class is now structurally impossible
 
 - ⛔ **THE SECOND ROW WAS EXACTLY WHERE THE AUDIT FLAG SAID IT WOULD BE.** `-0078` closed the tier-1

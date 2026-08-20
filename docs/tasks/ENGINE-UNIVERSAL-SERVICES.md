@@ -200,6 +200,57 @@ question is *"is that enough?"*, and that cannot be answered without naming the 
   compare published shares and a build fingerprint (no grammar digest). **All five are now
   accounted for** — the flag `-0078` raised is discharged rather than carried.
 
+### `.39` — `GENERATED-REPRODUCIBILITY` proved the tree correct and then left the doctrine RED until somebody typed a second command (`done` — `PGEN-ENGINE-UNIVERSAL-SERVICES-0080`, 2026-08-20 session #250; opened by a director challenge to the phrase *"still needs a human"*)
+
+- ⛔ **THE CHALLENGE WAS CORRECT AND THE PHRASE WAS WRONG.** `-0079` described this as something
+  that *"still needs a human"*. It does not. Nothing in it requires judgement — it required the work
+  being done, and calling that a human dependency turned my own unfinished item into an apparent
+  property of the problem.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `scripts/check_generated_reproducibility.sh`, the `--verify`
+  dispatch. Tier 2 re-derives every artifact and, on success, printed `TIER 2 OK` and stopped. The
+  baseline it had just proven correct stayed unwritten, so tier 1 — which runs on every commit —
+  kept failing. Observed live earlier this session:
+  ```text
+  generated-reproducibility: TIER 2 OK — every checked artifact is what HEAD produces
+    ✓ systemverilog  re-derives byte-identically (0 sites)      … 11 of 11
+  $ bash scripts/check_generated_reproducibility.sh
+  generated-reproducibility: systemverilog moved since it was last PROVEN to re-derive from HEAD
+  ```
+  ⇒ the doctrine sat RED **after** it had proved the tree correct, until `--rebaseline` was typed.
+  Both runs completed cleanly under the memory guard — `guard.70682.marker`, `reason=none` — so the
+  RED was the dispatch declining to record, not a killed or resource-starved run.
+- [x] **ADDRESSED (verified)** — a complete, green tier 2 now records its own result. ⛔ **The
+  guards are not new and are not re-implemented**: this path is reached only under the three
+  conditions `--rebaseline` already enforces — `fail = 0` (never launder a divergence),
+  `skipped` empty (never record rows nothing checked), and `generated_present`. It writes only when
+  the baseline is actually stale, so a run against a current tree leaves the worktree clean.
+  Measured both directions, with one recorded `parser_sha` deliberately zeroed first:
+  ```text
+  NEGATIVE  PGEN_GENREPRO_SELFTEST=1 PGEN_GENREPRO_SELFTEST_FAIL_CURRENCY=1 … --verify
+            TIER 2 PARTIAL — … NOT EVALUATED for: the 8 family artifacts
+            ✓ baseline UNCHANGED after a partial run
+  POSITIVE  … --verify
+            TIER 2 OK — every checked artifact is what HEAD produces
+            the baseline was STALE and tier 2 proved the tree correct, so this run RECORDED it
+            $ bash scripts/check_generated_reproducibility.sh   ->  OK (11 artifacts unmoved)
+  ```
+  ⛔ **The negative control is the load-bearing one.** Recording on a PARTIAL run is precisely the
+  *"proven by a hash somebody wrote down"* failure this doctrine exists to prevent, and it is the
+  cell an unguarded self-heal would have opened.
+- [x] **NO REGRESSION** — `bash -n scripts/check_generated_reproducibility.sh` clean;
+  `bash scripts/check_doctrines.sh` → ALL 24 enforced doctrines PASS; the
+  self-heal run re-derived all eleven artifacts **byte-identically** (`0 sites` each) before writing,
+  and the only field that moved in the tracked baseline is `verified_at_commit` — the deliberately
+  zeroed `parser_sha` was restored to its true value by the re-derivation, not by an edit.
+- ⭐ **THE GENUINE HUMAN CELL, which already refuses**: tier 2 finding a real breach. That is
+  *"stale AND diverging"* — the one outcome a person must adjudicate — and `--rebaseline` has
+  refused it since before this slice. Everything else was derivable, and is now derived.
+- ⚠️ **THE PATTERN, THIRD INSTANCE TODAY**: `sv_syntax_closure_gate`, `PARSE-COST-RATCHET` and now
+  this one all had *a gate that proves something and then declines to record it*. The generalisation
+  is written down as [[provenance-disambiguates-a-verdict-it-does-not-gate-the-work]]; what this
+  leaf adds is that **"a person must run the second command" is almost never a requirement — it is
+  an unfinished sentence.**
+
 ### `.1` — the INVENTORY: enumerate the engine's universal services from the code (`todo`)
 
 Read the pipeline end to end and enumerate what the engine does that no grammar declares. Known

@@ -572,6 +572,24 @@ write_baseline() {
   printf 'generated-reproducibility: baseline rewritten (%s)\n' "$BASELINE"
 }
 
+# ── does the recorded baseline still describe the tree? (tier 1's comparison, without verdicts) ───
+#
+# Used to decide whether a GREEN tier 2 has anything to record. On a tree whose baseline is already
+# current there is nothing to write, and rewriting it anyway would dirty the worktree on a
+# read-only-looking invocation.
+baseline_current() {
+  [ -f "$BASELINE" ] || return 1
+  local fam rec_p rec_i p j
+  for fam in "${PAIR[@]}" "${FAMILIES[@]}" "${SEED[@]}"; do
+    p=$(artifact_rel "$fam"); j="$GENERATED/${fam}.json"
+    [ -f "$p" ] && [ -f "$j" ] || continue
+    rec_p=$(sed -n "s/.*\"$fam\": { \"parser_sha\": \"\([0-9a-f]*\)\".*/\1/p" "$BASELINE")
+    rec_i=$(sed -n "s/.*\"$fam\":.*\"input_sha\": \"\([0-9a-f]*\)\".*/\1/p" "$BASELINE")
+    [ "$(sha_file "$p")" = "$rec_p" ] && [ "$(sha_file "$j")" = "$rec_i" ] || return 1
+  done
+  return 0
+}
+
 # ── argument dispatch ─────────────────────────────────────────────────────────────────────────────
 case "${1:-}" in
   --verify)
@@ -581,6 +599,24 @@ case "${1:-}" in
         printf 'generated-reproducibility: TIER 2 PARTIAL — what ran is what HEAD produces, but NOT EVALUATED for:%s. This is NOT a clean verification.\n' "$skipped"
       else
         printf 'generated-reproducibility: TIER 2 OK — every checked artifact is what HEAD produces\n'
+        # ⭐⭐ A COMPLETE, GREEN TIER 2 **IS** THE VERIFICATION THE BASELINE RECORDS, so it records
+        # it. Until 2026-08-20 this step stopped here and told a person to run `--rebaseline`,
+        # which meant the doctrine could sit RED after it had already PROVEN the tree correct —
+        # measured live that day: tier 2 reported 11/11 byte-identical, `0 sites`, and tier 1
+        # stayed RED until the flag was typed by hand. Nothing about that gap needed a judgement;
+        # it needed the work doing (`ENGINE-UNIVERSAL-SERVICES.39`).
+        #
+        # ⛔ THE GUARDS ARE NOT NEW AND ARE NOT RE-IMPLEMENTED — they are the three `--rebaseline`
+        # already enforces, and this path is reached only when all three hold:
+        #   fail = 0        no breach          (a divergence must never be laundered into the baseline)
+        #   skipped empty   nothing unevaluated (a partial run must never record rows nothing checked)
+        #   generated_present
+        # ⭐ And it writes only when there is something to write, so a run against an already-current
+        # baseline leaves the worktree clean.
+        if generated_present && ! baseline_current; then
+          write_baseline
+          printf 'generated-reproducibility: the baseline was STALE and tier 2 proved the tree correct, so this run RECORDED it — no second command needed.\n'
+        fi
       fi
     fi
     exit "$fail" ;;
