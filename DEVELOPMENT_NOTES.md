@@ -1,5 +1,43 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-21 - PGEN-SV-CORPUS-GRAD-0270 — an allow-list is a claim with an expiry date, and only a two-sided check notices when it expires
+
+**1. THE GATE WENT RED BECAUSE THE TREE GOT BETTER.** `sv_syntax_closure_gate` failed with
+`observed=["casting_type"]` against a three-name allow-list. Two exempted rules were no longer
+unreachable. Read that against the shape the contract had before `-0251`: a bare
+`max_unreachable_rules` ceiling, which 1 ≤ 3 satisfies. The improvement would have been invisible,
+the contract would have kept exempting two rules that no longer needed exempting, and the next
+person to read `allowed_unreachable_rules` would have been told something false about the grammar.
+
+**2. THE HYPOTHETICAL BECAME THE ACTUAL FAILURE IN ONE DAY.** `-0251` argued for set equality over a
+ceiling on the grounds that *"a listed rule that is no longer observed is a DEAD EXEMPTION — good
+news, and an invitation to re-derive this contract rather than a defect to suppress"*. That sentence
+was written 2026-08-20 about a case nobody had seen. It fired 2026-08-21, on the same contract,
+caused by a leaf (`.13c.2y`) that landed in between. I do not think the speed is the interesting
+part; the direction is. Every exemption list checked only in the *"is anything unexplained?"*
+direction rots exactly this way — silently, and in the flattering direction.
+
+**3. THE ELIMINATOR REPORTED ITS OWN CAUSE, WHICH IS WHY THIS DIAGNOSIS COST ONE COMMAND.**
+`--report-indirect-lr-plan` prints `eliminated_base_rules=2` and names them. `property_expr` was
+present at `-0251` and is absent now. The shipped parser corroborates independently: 0
+`parse_property_expr_lr_*` functions against 24 `parse_casting_type_lr_*`. Two instruments, one
+answer, no inference — and the second one matters, because the plan report describes what the pass
+INTENDS and the function count describes what was actually emitted.
+
+**4. THE NUMBER I DID NOT RECONCILE, AND WHY THAT WAS ALLOWED.** `reachable_rules` moved 1607 → 1515
+in the same window. I did not account for those 92 rules name-by-name, and I have said so in the
+contract, the leaf and the changelog rather than letting the direction-and-magnitude argument stand
+in for an accounting. What makes it acceptable is that the constraint is a FLOOR
+(`min_reachable_rules=1404`) — the correct instrument for a quantity that legitimately moves with
+the eliminator's coverage. Had it been an equality, re-deriving it without the reconciliation would
+have pinned a number I could not explain, which is the `.13c.2x.1` failure one field over.
+
+**5. THE AUTO RE-STAMP RAN FOR THE FIRST TIME.** `-0251` built the stale+GREEN cell and had never
+observed it, because reaching it needs a baseline that is stale AND a tree that still satisfies every
+constraint. This run produced exactly that: *"the baseline was STALE and every constraint still held,
+so this run re-stamped it"*. The same cell was implemented for the sibling union gate earlier today
+(`-0269`) on this gate's model; both are now real rather than designed.
+
 ## 2026-08-21 - PGEN-SV-CORPUS-GRAD-0269 — the repository fixed the machine-readable half of a two-copy invariant and left the human-readable half unwatched, and that asymmetry is the whole defect
 
 **1. THE RE-BASELINE WAS THE CHEAP HALF.** Re-deriving seven numbers is one command run three
