@@ -1,0 +1,15 @@
+# PRE-FIX (HEAD c5320b72) release probe — SV parser e25365a1…, VHDL ac2b0ac2…
+family          depth      wall  verdict
+systemverilog     300     0.17s  accepted
+systemverilog     315     0.15s  accepted
+systemverilog     316     0.23s  accepted
+systemverilog     317     4.90s  accepted
+systemverilog     318    30.05s  NO-RESULT(>30s)
+vhdl              400     0.10s  accepted
+vhdl              450     0.11s  accepted
+vhdl              500     0.14s  accepted
+vhdl              550     0.16s  accepted
+vhdl              575     0.18s  accepted
+vhdl              590    30.07s  NO-RESULT(>30s)
+vhdl              595    30.05s  NO-RESULT(>30s)
+vhdl              600    30.05s  NO-RESULT(>30s)

@@ -1,0 +1,8 @@
+Sort by top of stack, same collapsed (when >= 5):
+        __ulock_wait  (in libsystem_kernel.dylib)        3310
+        pgen::generated_parsers::vhdl::VhdlParser::create_contextual_error::h21f472466809297a  (in parseability_probe)        1849
+        _platform_memmove  (in libsystem_platform.dylib)        635
+        mach_absolute_time  (in libsystem_kernel.dylib)        164
+        _xzm_free  (in libsystem_malloc.dylib)        63
+        pgen::generated_parsers::vhdl::VhdlParser::cascade_match_primary::h0d285b6811ae91cc  (in parseability_probe)        46
+        pgen::generated_parsers::vhdl::VhdlParser::cascade_match_factor::h40c6b0874973fb42  (in parseability_probe)        43

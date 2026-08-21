@@ -143,6 +143,114 @@ commands.
 
 **It cannot complete, and has not been able to for 1,371 commits.**
 
+### ⚠️ `.41` NEW `todo` — **`GENERATED-REPRODUCIBILITY` checks an 11th artifact that the canonical regeneration recipe does not produce, so every codegen change fails its own rebaseline once** (routed in 2026-08-21 session #253 by `ENGINE-UNIVERSAL-SERVICES.43`)
+
+> ⛔ **ROUTED, NOT WORKED** — found while executing the SV-release frontier. Small, but it costs a
+> confusing failed rebaseline to every engine change, and it is a one-line decision either way.
+
+- ⛔ **MEASURED.** After `.43` regenerated everything via
+  `make -C rust regenerate_generated_parsers`, `generated_reproducibility_rebaseline` REFUSED:
+  ```
+  generated-reproducibility: scratch  DOES NOT re-derive from HEAD:
+      live 3246bfaf04f1… (261391 B) vs fresh 38ae770d6c3e… (263942 B)
+  generated-reproducibility: refusing to rebaseline: tier 2 found a breach.
+      Regenerate the artifacts, do not record the divergence.
+  ```
+  ⭐ **The other TEN are perfect** — `return_annotation`, `semantic_annotation`, `json`, `regex`,
+  `systemverilog`, `systemverilog_preprocessor`, `vhdl`, `rtl_const_expr`, `rtl_frontend`, `ebnf`
+  each *"re-derives byte-identically (0 sites)"*. The sole breach is `scratch`.
+- ✅ **ROOT CAUSE, and the gate behaved CORRECTLY.** `scratch` is not in
+  `GENERATED_PARSER_FAMILIES`, so `regenerate_generated_parsers` does not regenerate it — but
+  `GENERATED-REPRODUCIBILITY` tier 2 *does* check it. ⇒ after ANY codegen change the canonical
+  recipe leaves exactly one artifact stale, and the doctrine correctly refuses to record a
+  divergence it cannot explain. Nothing here is broken except the population mismatch: **the
+  doctrine's set and the recipe's set differ by one member.**
+- **WHAT THIS LEAF OWES**: (a) pick a side and make the two sets agree — either add
+  `focus_scratch` to `regenerate_generated_parsers` (⚠️ interacts with the scratch slot's
+  deliberate `rm`-and-rebuild dance and the `SCRATCH-SLOT-HEADER` probe-time tier, so it is not a
+  blind one-liner), or declare `scratch` out of the reproducibility population as a *throwaway probe
+  slot* with the reason recorded; (b) whichever side wins, the OTHER set must be the one that names
+  the decision, so this cannot drift back. ⚠️ Do NOT "fix" it by rebaselining over the divergence —
+  that is the exact act the doctrine exists to refuse.
+- ⚠️ **HONEST BOUND**: one occurrence, on one codegen change. It is a population mismatch by
+  construction rather than a flake, so it should reproduce on every codegen change — but that has
+  not been shown twice.
+
+### ⛔⛔ `.40` NEW `todo` — **THE COLD-CLONE BOOTSTRAP IS BROKEN, AND `.24` SLICE 2 BROKE IT — a one-line fix whose own evidence ("ZERO shipped bytes, generated parsers byte-identical") was TRUE and could not see this** (routed in 2026-08-21 session #253 by `ENGINE-UNIVERSAL-SERVICES.43`, which needed a full regeneration and hit it twice)
+
+> ⛔ **ROUTED, NOT WORKED.** Found while executing the director-ruled SV-release frontier
+> (`ENGINE-UNIVERSAL-SERVICES.43`). The lane lock binds work, not discovery, so this leaf carries
+> the measurement and the fix direction and is **not** implemented here. ⭐ **Recommendation: it
+> should jump the rest of this tree's queue** — see BLAST RADIUS.
+
+- ⛔ **THE SYMPTOM — one error, reproduced twice, full evidence in
+  [`artifacts/ci_parity_gate_rot/cold_clone_bootstrap_break.txt`](artifacts/ci_parity_gate_rot/cold_clone_bootstrap_break.txt).**
+  From a tracked-files-only tree, `make -C rust regenerate_generated_parsers` seeds
+  `generated/ebnf.rs`, generates the annotation pair, and then dies with **exactly one** error and
+  zero of any other class:
+  ```
+  error[E0425]: cannot find function `active_grammar_profile` in module `crate::parser_registry`
+     --> src/parse_harness_equivalence.rs:332:50
+  note: found an item that was configured out
+     --> src/parser_registry.rs:443:8
+  435 | #[cfg(any(has_generated_systemverilog_parser, has_generated_regex_parser))]
+  error: could not compile `pgen` (lib) due to 1 previous error
+  ```
+  Reproduction 2 is a CONTROLLED probe that removes only the two gating artifacts and builds into a
+  SEPARATE `CARGO_TARGET_DIR`, so the working build cache is untouched and the variable is isolated
+  to artifact presence: `cargo check --features "generated_parsers ebnf_dual_run" --lib` → the same
+  single `E0425`.
+- ⛔ **THE MECHANISM IS A CIRCULAR DEPENDENCY ACROSS THREE FILES, none of them recently touched.**
+  `lib.rs:36` gates `parse_harness_equivalence` on **FEATURES**; `parser_registry.rs:435` gates
+  `active_grammar_profile` on **ARTIFACT PRESENCE**; `parse_harness_equivalence.rs:332` calls it
+  unconditionally. Meanwhile `rust/Makefile` has `regex_parser: $(REGEX_JSON) $(RUST_AST_PIPELINE)`
+  and `$(RUST_AST_PIPELINE)` builds `--features "generated_parsers ebnf_dual_run"` ⇒ **the target
+  that CREATES the first gating artifact requires a build that needs one to already exist.**
+- ⭐⭐ **THE FIRST VERSION OF THIS FINDING WAS WRONG, AND THE CORRECTION IS THE VALUABLE PART.** It
+  was written up as *"a longstanding hole that only works because `generated/` is never empty"*.
+  **The repository's own record refutes that**: `.github/actions/regenerate-parsers/action.yml`
+  states *"Measured cost from a bare tracked tree: ~258 s"* (`11fcb45c`, 2026-07-28, `.4`), and the
+  failing call site is OLDER — `f2ae3d8f`, 2026-07-05, `PARSE-HARNESS.5.1`. So `.4` measured a
+  **successful** cold regeneration on a tree that already contained the call. Resolving that
+  contradiction instead of dismissing it is what produced the real finding.
+- ✅⛔ **WHAT ACTUALLY HAPPENED — `0099d0d3`, 2026-08-11, `CI-PARITY-GATE-ROT.24` slice 2**, fourteen
+  days after `.4` measured the path green:
+  ```
+  before:  cargo build --features generated_parsers --bin ast_pipeline
+  at:      cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
+  ```
+  `parse_harness_equivalence` is gated on **both** features. With `generated_parsers` alone it was
+  never compiled, so `active_grammar_profile` was never referenced. Adding `ebnf_dual_run` pulled
+  the module into the **bootstrap** build. ⇒ **a fix that closed a real trap opened a different one
+  in a direction its own evidence could not see** — that commit's subject reads *"ops/build-flow,
+  ONE recipe line; ZERO shipped bytes, generated parsers byte-identical"*, and **both halves are
+  true**. Neither is a statement about the cold path.
+- ⛔⛔ **WHY NOTHING CAUGHT IT — this tree's own founding story, recurring.** All **11** hosted
+  workflows using the composite action are `workflow_dispatch` only (measured: every one of the 11
+  `on:` blocks), which is deliberate documented policy (Actions minutes). The one local instrument
+  that would catch it — `prepare_generated_artifacts` in `rust/scripts/ci_workflow_local_gate.sh`,
+  which replays the bootstrap into a tracked-files-only EXPORT DIR, explicitly *"NOT a copy from
+  the developer's tree"* — is **operator-invoked, not in the automatic tier**. Every developer and
+  agent run has a populated `generated/`, where the path is green. Compare `.4`'s own words about
+  its defect: *"hosted auto-triggers were paused … so the breaking change landed when there was no
+  automatic run left to fail."*
+- ⛔⛔⛔ **BLAST RADIUS — this is not an internal-ops-only defect.** `README.md`'s Quick Start names
+  `make -C rust SHELL=/bin/bash regenerate_generated_parsers` as **the first command a fresh clone
+  runs**, and that command fails on a fresh clone. All 11 hosted workflows would fail at their
+  first step if dispatched. A downstream consumer building PGEN from a clean checkout hits it
+  immediately — which is exactly the position Nexsim is in for the SV delivery.
+- **WHAT THIS LEAF OWES**: (a) the fix — the minimal candidate is a `#[cfg(not(any(...)))]`
+  companion for `active_grammar_profile` returning `None`, keeping `parse_harness_equivalence`
+  compiling in a parser-less tree (⚠️ a DIRECTION, priced but not implemented — (a) must confirm it
+  is the only such reference rather than the first one found); (b) **an automatic instrument**, or
+  this recurs a third time — the cold path is currently proven only by a gate nobody is obliged to
+  run; (c) a note in `.24`'s leaf, because that leaf's evidence is not wrong and should not be read
+  as if it were.
+- ⚠️ **HONEST BOUNDS**: I did not verify whether `ci_workflow_local_gate` has been run since
+  2026-08-11 — it cannot have been run AND passed, so either it was not run or its failure was not
+  acted on; and neither reproduction was a pristine `git clone` (one wiped `generated/`, one removed
+  two files), though both isolate the same variable.
+
 ### The first blocker (repaired by `GENERATED-LINT-CORRECTNESS.3`, not by this tree)
 
 `audit_static_include_paths` — the **first** audit `main()` calls — asserted

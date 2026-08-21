@@ -1,0 +1,35 @@
+# ENGINE-UNIVERSAL-SERVICES.43 — the RECURSION-CEILING TAINT probe (preserved probe).
+#
+# WHAT IT ISOLATES
+#   The engine's whole-stack recursion ceiling taints the memo floor to 0
+#   (`note_recursion_block(0)`), which disables FAILURE memoisation for every
+#   enclosing body. This grammar reproduces that defect on ~15 lines:
+#
+#     * a 5-frame-per-level cascade (expr -> level_a -> level_b -> level_c ->
+#       primary -> expr) so N nested parens cost ~5N frames and cross a
+#       ceiling of 2000 at N ~ 400;
+#     * a 3-way fan-out in `primary` whose alternatives all re-enter `expr` at
+#       the SAME position, so losing failure memoisation turns one linear parse
+#       into a 3^N search.
+#
+#   Sub-ceiling input parses in milliseconds; one paren past the ceiling the
+#   parse never returns. Same event as the SystemVerilog cliff at 315 -> 320
+#   parens, with none of SystemVerilog's size.
+#
+# HOW TO DRIVE IT
+#   python3 -c 'n=380;print("("*n+"1"+")"*n,end="")' > in.txt
+#   ./rust/target/debug/ast_pipeline --interpret-parse in.txt \
+#       docs/tasks/artifacts/engine_universal_services/deep_nesting_cliff/ceiling_taint_probe.ebnf
+
+@entry: true
+probe := expr
+
+expr := level_a
+level_a := level_b
+level_b := level_c
+level_c := primary
+
+primary := "(" expr ")" "!"
+primary := "(" expr ")" "?"
+primary := "(" expr ")"
+primary := "1"

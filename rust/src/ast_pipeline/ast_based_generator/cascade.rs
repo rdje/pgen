@@ -646,9 +646,12 @@ impl AstBasedGenerator {
                             });
                         }
                         CycleType::MutualRecursive { depth, .. } if depth >= #recursion_guard_max_depth => {
-                            // SV-CORPUS-GRAD.3.12 — the depth ceiling is a fact
-                            // about the WHOLE stack: floor 0.
-                            parser.note_recursion_block(0);
+                            // ENGINE-UNIVERSAL-SERVICES.43 — the depth ceiling
+                            // names no blocking frame, so it is counted on its
+                            // own channel rather than tainting the frame floor
+                            // to `0`. Mirrored one-for-one from the protocol
+                            // guard; see `ast_based_generator.rs`.
+                            parser.recursion_depth_block_events += 1;
                             return Err(CascadeControlError::RecursionDepthExceeded {
                                 position,
                                 depth,
@@ -699,6 +702,26 @@ impl AstBasedGenerator {
                         // store-epoch churn that bounded the map's remove).
                         parser.thin_scratch.clear(__pgen_thin_slot);
                     }
+                    // ⭐ ENGINE-UNIVERSAL-SERVICES.43 — DEPTH-GATED failure replay,
+                    // the fused graph's mirror of the protocol memo's probe. Runs
+                    // only once the whole-stack depth ceiling has fired at least
+                    // once in this parse, so every ordinary parse pays a single
+                    // predictable integer compare and never touches the map. The
+                    // bare frame is pushed BELOW this point, so the depth this
+                    // attempt would run at is `len() + 1` — the stamp was taken
+                    // with the frame already pushed.
+                    if parser.recursion_depth_block_events != 0 {
+                        if let Some(&__pgen_thin_min_depth) = parser
+                            .thin_fail_depth_gated
+                            .get(&(Self::#rule_const, position))
+                        {
+                            if parser.recursion_guard.rule_id_stack.len() + 1
+                                >= __pgen_thin_min_depth as usize
+                            {
+                                return Err(CascadeControlError::Backtrack { position });
+                            }
+                        }
+                    }
                     let __pgen_thin_preds = parser.semantic_runtime_state.predicate_evaluations();
                     let __pgen_thin_mark = parser.deriv_tape.len();
                     // RGX-0078.5.j.4 (`-0200`) — BARE id-only frame: the ID
@@ -715,6 +738,10 @@ impl AstBasedGenerator {
                     let __pgen_thin_saved_floor = parser.recursion_block_floor;
                     parser.recursion_block_floor = usize::MAX;
                     let __pgen_thin_entry_depth = parser.recursion_guard.rule_id_stack.len();
+                    // ENGINE-UNIVERSAL-SERVICES.43 — the DEPTH channel is a
+                    // monotone counter, so it needs no save/restore scope: "did
+                    // the body trip the ceiling" is a compare against entry.
+                    let __pgen_thin_depth_events = parser.recursion_depth_block_events;
                     let __pgen_thin_result: CascadeResult<()> =
                         (|parser: &mut Self| -> CascadeResult<()> {
                             #parse_logic
@@ -755,7 +782,37 @@ impl AstBasedGenerator {
                     let __pgen_thin_recursion_tainted = __pgen_thin_result.is_err()
                         && __pgen_thin_recursion_floor
                             < __pgen_thin_entry_depth.saturating_sub(1);
-                    if !__pgen_thin_mutated && !__pgen_thin_recursion_tainted {
+                    // ⭐ ENGINE-UNIVERSAL-SERVICES.43 — the DEPTH-scoped half of the
+                    // recursion taint, mirroring the protocol memo. It keeps the
+                    // failure OUT of the plain thin memo (which carries no depth
+                    // condition, so replaying it from a shallower stack could
+                    // refuse a parse the ceiling would have allowed) and files it
+                    // in the depth-stamped side map instead. Discarding it is what
+                    // turned the ceiling from a BOUND into an exponential search.
+                    let __pgen_thin_depth_tainted = __pgen_thin_result.is_err()
+                        && parser.recursion_depth_block_events != __pgen_thin_depth_events;
+                    // ⛔ PURE bodies only, mirroring the protocol memo's
+                    // `!memo_store_tainted`. A store-MUTATING body is never cached
+                    // at all; a store-READ one is cached in the thin memo under a
+                    // validatable epoch STAMP, and this side map carries a depth
+                    // condition and no stamp — so composing the two here would
+                    // drop the store condition on the floor and could replay a
+                    // stale store-dependent refusal. The store axis keeps its own
+                    // validation; this one keeps its own.
+                    if __pgen_thin_depth_tainted
+                        && !__pgen_thin_mutated
+                        && parser.semantic_runtime_state.predicate_evaluations()
+                            == __pgen_thin_preds
+                    {
+                        parser.thin_fail_depth_gated.insert(
+                            (Self::#rule_const, position),
+                            __pgen_thin_entry_depth as u32,
+                        );
+                    }
+                    if !__pgen_thin_mutated
+                        && !__pgen_thin_recursion_tainted
+                        && !__pgen_thin_depth_tainted
+                    {
                         let __pgen_thin_stamp =
                             if parser.semantic_runtime_state.predicate_evaluations()
                                 == __pgen_thin_preds

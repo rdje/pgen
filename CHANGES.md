@@ -1,5 +1,75 @@
 # CHANGES.md
 
+## 2026-08-21 - PGEN-ENGINE-UNIVERSAL-SERVICES-0081 (leaf ENGINE-UNIVERSAL-SERVICES.43 CLOSED — the DIRECTOR-RULED SV-release blocker: crossing the recursion ceiling HUNG instead of failing; ENGINE fix, ZERO grammar bytes, all 11 parsers regenerated)
+
+- ✅✅✅ **THE CEILING IS A BOUND AGAIN, AND THE ACCEPT SET DID NOT NARROW — IT WIDENED.** Measured on
+  the shipped release probe, parser identity asserted on both arms (`--parser-fingerprint`, SV
+  `e25365a1…` → `cc874b60…`, VHDL `ac2b0ac2…` → `bd78efe6…`):
+
+  | family | depth | BEFORE | AFTER |
+  |---|---:|---|---|
+  | systemverilog | 317 | **4.90 s accepted** | **0.14 s accepted** (35×, verdict unchanged) |
+  | systemverilog | 318 | ⛔ **no result in 30 s** | **0.14 s ACCEPTED** |
+  | systemverilog | 350 / 400 | (would not return) | 0.29 / 0.76 s rejected |
+  | vhdl | 575 | 0.18 s accepted | 0.16 s accepted |
+  | vhdl | 590 | ⛔ **no result in 30 s** | **0.28 s ACCEPTED** |
+
+  ⭐ I expected to have to defend an accept-set NARROWING. The opposite happened: SV 318-320 and
+  VHDL 590-660 were never rejections, they were NON-ANSWERS — the runaway search never reached a
+  verdict. Restoring failure memoisation did not change what the grammar accepts; it let the parser
+  finish computing it.
+- ✅⛔ **ROOT CAUSE — ONE FIELD WAS CARRYING TWO KINDS OF FACT.** `SV-CORPUS-GRAD.3.12` routes every
+  guard verdict through `recursion_block_floor`, a parse-stack FRAME INDEX. That is right for
+  `Infinite` / `LeftRecursive`, which name the frame that blocked. The whole-stack depth ceiling
+  names none, so it passed `0` — the index outside every rule — which makes `.3.12`'s gate true for
+  every rule at `entry_depth >= 2`. ⇒ **ONE ceiling trip disabled FAILURE memoisation for the entire
+  remaining parse**, and the packrat parse degenerated into exponential backtracking.
+- ⭐⭐ **THE FIX SPLITS THE CHANNEL, AND `.3.12` IS UNTOUCHED.** Content-scoped verdicts keep the frame
+  floor and their refuse-don't-cache rule exactly as before. The depth ceiling gets its own monotone
+  counter and its failures ARE cached — under a **DEPTH STAMP**. Sound because the ceiling is
+  monotone in depth: re-entering the same rule at the same position from a deeper stack prunes
+  everything the first attempt pruned and possibly more, so a failure at depth `D` holds at every
+  depth `>= D`. ⛔ The `.3.12` gate runs FIRST and returns early on any content-scoped block, so an
+  entry reaches the depth channel only once content-dependence is excluded. The two gates compose.
+  Landed in all THREE runtimes (protocol memo, fused thin memo, parse-harness interpreter).
+- ⭐ **THE ISOLATING SYNTHETIC AND ITS CONTROL — 15 lines of EBNF, a 1-minute loop instead of ~25.**
+  `ceiling_taint_probe.ebnf` reproduces the cliff through the interpreter (398 parens 0.03 s / 400
+  no result in 20 s → after: 400 and 5000 both reject in 0.03 s). ⛔ The CONTROL is the same grammar
+  with the 3-way fan-out removed: on HEAD, unfixed, it rejects 1000 parens instantly ⇒ **the ceiling
+  terminates fine on its own; what did not terminate was the sibling re-exploration.** After the fix
+  the fan-out grammar's accept boundary is byte-identical to the control's.
+- ✅ **(d) THE GUARD IS RE-ARMED, AND THE MISSING HALF WAS A CLOCK, NOT A DEPTH.** The two
+  `SV-CORPUS-GRAD.8c.3` depth-2000 locks were the only instruments aimed at this defect and the
+  defect DISABLED them — they could not terminate, and the suite was twice recorded "abandoned after
+  ~50 min" with exactly these running. **Both now pass** (`58 passed; 0 failed` in 575.92 s), and
+  both now carry a wall-clock budget so a recurrence FAILS rather than hangs. Plus a cheap precise
+  pair that can go RED in BOTH directions: 400 parens must reject in bounded time, 250 must still be
+  ACCEPTED — so a "fix" that bought bounded time by lowering the ceiling fails the control.
+- ⛔⛔ **TWO OF MY OWN ERRORS, RECORDED BECAUSE THE INSTRUMENTS CAUGHT THEM.** (1) The first cascade
+  patch filed a depth-gated failure for any non-store-MUTATING body, silently dropping the store-READ
+  condition; corrected to PURE bodies only, mirroring the protocol memo. (2) The first regression-lock
+  budget was 90 s and the VHDL arm FAILED — *"Took 222.057901958s, budget 90s"*. The assertion did its
+  job; my number was bad. Budgets are now derived from measured debug timings (SV over-ceiling 13.6 s,
+  VHDL 222.1 s) and the redundant VHDL arm is DELETED rather than re-budgeted.
+- ⛔ **A DESIGN REVERSAL WORTH KEEPING.** The depth stamp was first put on `ThinTapeMemoEntry` — SHARED
+  runtime — which is the STALE-ARTIFACT trap the cold-clone bootstrap documents (`PGEN-RGX-0090`):
+  widening a shared type stops every already-emitted artifact compiling. A parser-local side map has
+  none of that coupling. ⭐ Chasing that wall is what surfaced `CI-PARITY-GATE-ROT.40`.
+- ⛔⛔ **TWO LEAVES ROUTED OUT, NEITHER WORKED.** **`ENGINE-UNIVERSAL-SERVICES.44`**: the over-ceiling
+  reject is bounded and input-length-independent (800 and 2000 cost the same) but ~60 % of it is
+  `create_contextual_error` — TOOLBOX 3.8, `/usr/bin/sample`, 1849 of ~3050 non-idle self samples,
+  with every parse function in the low tens. **`CI-PARITY-GATE-ROT.40`**: the cold-clone bootstrap is
+  broken, and `CI-PARITY-GATE-ROT.24` slice 2 (`0099d0d3`, 2026-08-11) broke it — 14 days AFTER `.4`
+  measured that path green — by adding `ebnf_dual_run` to the canonical `ast_pipeline` rule, which
+  pulled `parse_harness_equivalence` into the bootstrap build and with it a reference to a function
+  gated on a parser that does not exist yet. ⭐ **The first version of that finding was WRONG** ("a
+  longstanding hole"); the repository's own record refuted it, and resolving the contradiction rather
+  than dismissing it is what produced the dated one.
+- **Lockstep**: embedding API `1.3.1` → **`1.3.2`**; SV parser release `1.0.193` → **`1.0.194`**
+  (schema unchanged at `26`); VHDL `1.0.4` → **`1.0.5`** (schema unchanged at `3`); book chapters
+  *Embedding and Downstream Integration* + *Inside Parser Performance*; `TOOLBOX.md` 3.3 (memo stats
+  now report `depth-gated` and `depth-ceiling rejections`); `RUST_CODEBASE_ANALYSIS.md`.
+
 ## 2026-08-21 - PGEN-SV-CORPUS-GRAD-0267 (leaf ENGINE-UNIVERSAL-SERVICES.43 — ROOT CAUSE FOUND with file:line, and a guess RETRACTED under director challenge; doc-only, ZERO grammar bytes, ZERO Rust bytes):
 
 - ⛔⛔ **A GUESS DRESSED AS ANALYSIS, CALLED OUT AND RETRACTED.** `-0266` recorded a mechanism as a

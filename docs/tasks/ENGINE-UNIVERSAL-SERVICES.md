@@ -200,7 +200,66 @@ question is *"is that enough?"*, and that cannot be answered without naming the 
   compare published shares and a build fingerprint (no grammar digest). **All five are now
   accounted for** — the flag `-0078` raised is discharged rather than carried.
 
-### ⛔⛔⛔ `.43` NEW `todo` — **CROSSING THE RECURSION CEILING HANGS INSTEAD OF FAILING: ~4 KB of legal-looking text makes the SHIPPED parser run unbounded on the EMBEDDING path, and the regression lock that exists to catch exactly this cannot complete** (opened 2026-08-21 session #252 by `ENGINE-UNIVERSAL-SERVICES.42`'s bound, `PGEN-SV-CORPUS-GRAD-0265`)
+### ⚠️ `.44` NEW `todo` — **the over-ceiling reject is BOUNDED but EXPENSIVE, and 60 % of it is ERROR CONSTRUCTION, not parsing** (opened 2026-08-21 session #253 by `.43`, which made this measurable for the first time)
+
+> ⭐ **THIS LEAF EXISTS BECAUSE `.43` SUCCEEDED.** Before `.43` an over-ceiling parse never
+> returned, so there was no cost to attribute. Now that it terminates, the residual cost is
+> measurable — and it is not where anyone would have guessed.
+
+- ⛔ **MEASURED, in RELEASE, on the shipped probe after `.43`** — over-ceiling rejects terminate,
+  and they SATURATE (input-length-independent, which is itself the proof the search is bounded):
+
+  | family | depth | wall clock | verdict |
+  |---|---:|---:|---|
+  | systemverilog | 350 / 400 | 0.29 / 0.76 s | rejected |
+  | systemverilog | 800 / 2000 | **11.66 / 12.11 s** | rejected |
+  | vhdl | 700 | 18.56 s | rejected |
+  | vhdl | 800 / 1000 / 2000 | **18.06 / 18.18 / 17.84 s** | rejected |
+
+  ⭐ 800 and 2000 costing the SAME is the load-bearing observation: past the ceiling the parse only
+  ever descends 4096 frames however long the input is, so the work saturates. That is a BOUND, and
+  it is why `.43`'s acceptance is met. This leaf is about the height of the plateau, not its
+  existence.
+- ✅ **ROOT CAUSE — TOOLBOX 3.8 (`/usr/bin/sample`, the only view of the FUSED graph), on the
+  depth-800 VHDL reject, 6 s of samples** (`artifacts/engine_universal_services/deep_nesting_cliff/logs/sample_reject_800_selftime.txt`):
+
+  ```
+  Sort by top of stack, same collapsed (when >= 5):
+          __ulock_wait  (in libsystem_kernel.dylib)        3310     <- the MAIN thread parked on the
+                                                                      256 MiB dedicated parse thread
+          pgen::…::VhdlParser::create_contextual_error             1849
+          _platform_memmove                                         635
+          mach_absolute_time                                        164
+          …::cascade_match_primary                                   46
+          …::cascade_match_factor                                    43
+  ```
+
+  ⇒ of the ~3 050 non-idle self samples, **`create_contextual_error` is ~1 849 (≈60 %)** and
+  `_platform_memmove` a further 635 (≈21 %). Every actual parse function is in the low tens.
+  **The over-ceiling reject is not parsing; it is manufacturing rich error values.**
+- ⭐ **WHY THAT IS PLAUSIBLE AND ALREADY HALF-DOCUMENTED.** `docs/book/src/inside-parser-performance.md`
+  records that the public parse error *"deliberately stays rich — a message, the rule stack, an input
+  excerpt — which makes it an 80-byte owning value"*, and that the fused region therefore uses a
+  32-byte control error because *"errors are ordinary control flow (every abandoned speculation is
+  one)"*. An over-ceiling parse is the extreme of that: a mass-failure path where a rich error is
+  apparently still being built. The `memmove` bulk is consistent with the input EXCERPT being copied
+  per error. ⚠️ **NOT YET ESTABLISHED**: which call sites construct it, and whether the excerpt is
+  the memmove. (a) must locate them before any fix is designed — this is a measured hot spot, not a
+  root cause with a file:line.
+- **WHAT THIS LEAF OWES**: (a) locate the construction sites on the over-ceiling path and confirm
+  the excerpt hypothesis (or refute it) with a second instrument; (b) price the fix — the obvious
+  candidate is to build the rich value only at the boundary where it is actually consumed, which is
+  the same discipline the fused control error already follows; (c) re-measure the plateau; (d) decide
+  whether a ~12-18 s CPU burn on a few KB of over-ceiling input is acceptable for an embedding
+  consumer parsing untrusted SystemVerilog, or whether it is a residual denial-of-service surface
+  worth closing — ⚠️ **it is enormously better than the unbounded hang `.43` fixed, and it is still
+  not nothing.**
+- ⚠️ **HONEST BOUND**: one 6-second sample of one input in one family. It has not been shown that
+  SystemVerilog's plateau has the same composition, and it has not been shown that the same cost is
+  absent from ordinary sub-ceiling parses (it very likely is — the shipped corpus parses in
+  milliseconds — but that is an inference, not a measurement).
+
+### ✅ `.43` — **CROSSING THE RECURSION CEILING HUNG INSTEAD OF FAILING: ~4 KB of legal-looking text made the SHIPPED parser run unbounded on the EMBEDDING path, and the regression lock that exists to catch exactly this could not complete** (`done` — `PGEN-ENGINE-UNIVERSAL-SERVICES-0081`, 2026-08-21 session #253; opened 2026-08-21 session #252 by `ENGINE-UNIVERSAL-SERVICES.42`'s bound, `PGEN-SV-CORPUS-GRAD-0265`; DIRECTOR-RULED an SV-release blocker and the lane's frontier)
 
 > ✅⛔ **RULED AN SV-RELEASE BLOCKER — DIRECTOR, 2026-08-21.** Asked whether this jumps the queue
 > ahead of `SV-CORPUS-GRAD.13c.2z` (the SV parser-book back-fill), the director ruled **YES**:
@@ -323,6 +382,207 @@ question is *"is that enough?"*, and that cannot be answered without naming the 
 - ⚠️ **WHAT IS NOT CLAIMED**: these runs were killed at 90–120 s, so "unbounded" is *"no result within
   ~1 000× the sub-cliff time"*, not a proof of non-termination. (a) must distinguish a true hang from
   super-exponential backtracking; the consumer-visible consequence is the same either way.
+
+
+### `.43` — THE FIX, AND WHAT IT MEASURED
+
+- ✅✅✅ **TWO CHANNELS, BECAUSE ONE FIELD WAS CARRYING TWO DIFFERENT KINDS OF FACT.**
+  `SV-CORPUS-GRAD.3.12` routed every guard verdict through one field, `recursion_block_floor`, a
+  parse-stack **frame index**. That is exactly right for `Infinite` / `LeftRecursive`, which name
+  the frame that blocked. It is **not expressible** for the whole-stack depth ceiling, which names
+  none — so the ceiling passed `0`, the one index outside every rule:
+
+  | | `Infinite` / `LeftRecursive` | the DEPTH CEILING |
+  |---|---|---|
+  | the verdict depends on | which rules are on the stack (**content**) | how deep the stack is (**depth**) |
+  | monotone? | no — a different stack blocks differently, in either direction | **yes** — a deeper stack prunes a superset |
+  | channel | `recursion_block_floor` — **unchanged** | `recursion_depth_block_events` — **new** |
+  | failure cached? | **no**, exactly as `.3.12` decided | **yes**, under a DEPTH STAMP |
+
+  ⭐ **THE SOUNDNESS ARGUMENT IN ONE LINE:** re-entering rule `R` at position `P` from a deeper
+  stack explores the same search tree with the ceiling pruning at least as much, and extra pruning
+  cannot turn a failure into a success — so a failure at entry depth `D` is a failure at every
+  depth `>= D`, and `>= D` is a condition the memo entry CAN carry. ⛔ The argument needs the body
+  free of CONTENT dependence, and it is: **the `.3.12` gate runs FIRST and returns early on any
+  block from a frame outside `R`**, so an entry reaches the depth channel only once
+  content-dependence is already excluded. The two gates compose; neither weakens the other.
+- **Landed in all THREE runtimes**, because all three carried the defect: the protocol memo
+  (`memo_fail_depth_gated`), the fused cascade's thin memo (`thin_fail_depth_gated`), and the
+  parse-harness interpreter (`memo_fail_depth_gated`). Both maps are probed only when
+  `recursion_depth_block_events != 0`, so a parse that never reaches the ceiling — every parse of
+  every shipped corpus file — pays one predictable integer compare and never touches them.
+- ⛔ **A SOUNDNESS GAP I INTRODUCED AND CAUGHT IN MY OWN REVIEW, recorded because it was mine.**
+  The first cascade patch filed a depth-gated failure for any non-store-*mutating* body, which
+  silently dropped the store-READ condition (that axis validates on an epoch stamp this side map
+  does not carry). Corrected to PURE bodies only — `predicate_evaluations() == __pgen_thin_preds` —
+  mirroring the protocol memo's `!memo_store_tainted` exactly. It cost one extra regeneration cycle.
+- ⛔ **AND A DESIGN REVERSAL FOR A REASON WORTH KEEPING.** The stamp was first put on
+  `ThinTapeMemoEntry`, a type in `ast_pipeline/mod.rs` — i.e. SHARED runtime. That is the
+  **STALE-ARTIFACT trap the cold-clone bootstrap documents** (`PGEN-RGX-0090`): widening a shared
+  runtime type makes every already-emitted artifact stop compiling, and `regenerate_generated_parsers`
+  must build `ast_pipeline` **with** `generated_parsers` before it can regenerate the families. A
+  parser-local side map has none of that coupling. ⭐ Chasing that wall is what surfaced
+  `CI-PARITY-GATE-ROT.40` (below).
+
+### `.43` — the measurement: BEFORE → AFTER, on the shipped release probe
+
+⛔ Parser identity asserted on both arms (`--parser-fingerprint`, artifacts `fingerprint_before.json`
+/ `fingerprint_after.json`): SV `e25365a1…` → `cc874b60…`, VHDL `ac2b0ac2…` → `bd78efe6…`.
+
+| family | depth | BEFORE | AFTER | |
+|---|---:|---|---|---|
+| systemverilog | 300 | 0.17 s accepted | 0.13 s accepted | |
+| systemverilog | 315 | 0.15 s accepted | 0.14 s accepted | |
+| systemverilog | 316 | 0.23 s accepted | 0.14 s accepted | |
+| systemverilog | **317** | **4.90 s accepted** | **0.14 s accepted** | ⭐ **35×, verdict unchanged** |
+| systemverilog | **318** | ⛔ **no result in 30 s** | **0.14 s accepted** | ⭐⭐ **an answer that did not exist** |
+| systemverilog | 319 / 320 | (never measured — would not return) | 0.15 s accepted | |
+| systemverilog | 350 / 400 | — | 0.29 / 0.76 s **rejected** | the ceiling, as a bound |
+| systemverilog | 800 / 2000 | — | 11.66 / 12.11 s rejected | saturates → `.44` |
+| vhdl | 575 | 0.18 s accepted | 0.16 s accepted | |
+| vhdl | **590** | ⛔ **no result in 30 s** | **0.28 s accepted** | ⭐⭐ same |
+| vhdl | 600 / 620 | (would not return) | 0.92 / 3.54 s accepted | |
+| vhdl | 700+ | — | 18.6 s rejected, saturating | → `.44` |
+
+- ⭐⭐⭐ **THE HEADLINE IS NOT THE SPEED-UP, IT IS THE DIRECTION.** I expected to have to defend an
+  accept-set NARROWING (a depth-gated replay could in principle refuse something). The measurement
+  says the opposite: **nothing that parsed stopped parsing, and inputs that previously returned
+  nothing at all now parse.** SV 318-320 and VHDL 590-660 were not rejections before — they were
+  non-answers, because the runaway search never reached the verdict. Restoring failure memoisation
+  did not change what the grammar accepts; it let the parser finish computing it.
+- ⭐⭐ **THE CONTROL THAT MATTERS MOST IS SV 317**, and it exists only because the pre-fix binary was
+  measured at 1-paren resolution **before it was overwritten**. 317 both TRIPS the ceiling (4.90 s
+  against a 0.15 s sub-cliff baseline IS the re-exploration) and still ACCEPTS — so it is the one
+  input that exercises the changed code path on an **accepting** parse. If the depth-gated replay
+  were unsound in the refusing direction, 317 would have flipped accepted → rejected. It did not.
+- ⭐ **THE ISOLATING SYNTHETIC + ITS CONTROL** (15 lines of EBNF, ~1-minute loop instead of ~25):
+  `artifacts/…/deep_nesting_cliff/ceiling_taint_probe.ebnf`, driven with `--interpret-parse`
+  (TOOLBOX 1.5b). BEFORE `n=398` accepted 0.03 s / `n=400` **no result in 20 s**; AFTER `n=400` and
+  `n=5000` both `accepted=false furthest_position=399` in 0.03 s. ⛔ The **control** is the same
+  grammar with the 3-way fan-out removed (`ceiling_taint_control_nofanout.ebnf`): on HEAD, unfixed,
+  it rejects `n=1000` instantly ⇒ **the ceiling terminates fine on its own; what did not terminate
+  was the sibling re-exploration failure memoisation used to absorb.** After the fix the fan-out
+  grammar's accept boundary is byte-identical to the control's at 397/398/399/400 — the fix does not
+  move the ceiling, it makes a grammar that CAN re-explore behave like one that cannot.
+
+### `.43` — acceptance, item by item
+
+- **(a) TOOLBOX-first diagnosis — ✅ CLOSED** (`-0266`/`-0267` + this slice's synthetic and control).
+- **(b) re-measure SV's cliff depth against the PRE-`SV-0066` parser — ⛔ NOT DONE, and said plainly
+  rather than quietly dropped.** It is now archaeological: the defect is fixed in an engine-universal
+  way, VHDL's byte-identical parser already proved the CLASS pre-existing, and the pre-fix boundary
+  is now measured at 1-paren resolution on the shipped parser. Answering it needs a ~40-minute
+  regenerate-and-rebuild of a superseded grammar to settle a question that changes nothing. **Closed
+  as WON'T-DO with the reason recorded**, not as done.
+- **(c) over-ceiling input returns `E_PARSE_FAILURE` in bounded time — ✅ CLOSED.** Bounded AND
+  input-length-independent (800 and 2000 cost the same). The plateau's height is `.44`.
+- **(d) re-arm the guard — ✅ CLOSED.** See the next section.
+- **(e) does it block the SV release — ✅ ANSWERED: the director ruled YES on 2026-08-21**, and it
+  is now fixed.
+
+### `.43` (d) — RE-ARMING THE GUARD: the clock was the missing half, not the depth
+
+- ⛔ **THE INSTRUMENT AIMED AT THIS DEFECT WAS DISABLED BY THE DEFECT.**
+  `parser_embedding_systemverilog_deep_nesting_yields_clean_diagnostic_not_process_abort` and its
+  VHDL twin (`SV-CORPUS-GRAD.8c.3`) run at depth **2000** — chosen to cross the ceiling *"with
+  certainty in both build modes"*. With failure memoisation switched off by one ceiling trip those
+  parses never returned, so **the two tests could not terminate**, and the suite they sit in was
+  twice recorded as *"abandoned after ~50 min"* with exactly these tests still running. A lock that
+  hangs reports nothing.
+- ✅ **BOTH NOW PASS** (`cargo test --features generated_parsers --lib embedding_api`,
+  `--test-threads 1`, debug): `…systemverilog_deep_nesting…` **ok** (~210 s, two profiles),
+  `…vhdl_deep_nesting…` **ok** (~250 s). That is the single most direct before→after this leaf has:
+  the same tests, unchanged in depth, going from *cannot finish* to *pass*.
+- ⭐ **THE RE-ARM IS A CLOCK, NOT A NEW DEPTH.** Both locks now carry
+  `DEEP_NESTING_WALL_CLOCK_BUDGET` (1800 s, ~7× their measured cost), so a recurrence FAILS instead
+  of hanging. ⛔ Their depth is deliberately left at 2000: `8c.3` chose that margin on purpose, and
+  re-tuning another leaf's deliberate margin to save gate seconds is not this leaf's call.
+- ⭐ **PLUS A CHEAP, PRECISE PAIR that can go RED in BOTH directions** —
+  `parser_embedding_systemverilog_over_ceiling_nesting_fails_in_bounded_time` (400 parens: clean
+  `E_PARSE_FAILURE` within budget) and `…_under_ceiling_nesting_still_parses` (250 parens: still
+  ACCEPTED). The control half is the point: a "fix" that bought bounded time by lowering the
+  ceiling, or by making one ceiling trip abandon the whole parse, passes the first and fails the
+  second.
+- ⛔⛔ **THE BUDGETS ARE MEASURED, AND THE FIRST SIZING WAS WRONG — recorded because the instrument
+  is what caught it.** The first cut used 90 s for the fast pair and added a VHDL arm at depth 800.
+  That arm FAILED: *"Took 222.057901958s, budget 90s"*. The assertion did its job; my number was
+  bad. Re-derived on this machine, debug (the mode these run in):
+
+  | arm | release | debug | ratio |
+  |---|---:|---:|---:|
+  | SV over-ceiling, 400 parens | 0.76 s | **13.6 s** | 17.9× |
+  | SV under-ceiling, 250 parens | ~0.1 s | **1.1 s** | |
+  | VHDL over-ceiling, 800 parens | 18.06 s | **222.1 s** | 12.3× |
+
+  ⇒ fast pair budget **300 s** (≈22× measured). ⛔ **A budget is a HANG DETECTOR here, not a
+  performance ratchet** — the gap it must span is unbounded, so loose is correct and
+  `PARSE-COST-RATCHET` owns cost.
+- ⛔ **AND THE VHDL ARM WAS DELETED RATHER THAN RE-BUDGETED**, on measurement: VHDL has no CHEAP
+  over-ceiling depth (700 → 18.56 s, 800/1000/2000 all ~18 s — already saturated at its own cliff,
+  because the residual there is error construction, `.44`). A second VHDL arm would cost ~4 minutes
+  per run to re-derive what the re-armed depth-2000 lock now proves. **One arm per family; the
+  family with a cheap over-ceiling depth gets the precise one.**
+
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `./rust/target/release/parseability_probe --parse systemverilog
+  <318 nested parens> --profile sv_2017` returned **no result in 30 s** (exit 124) while 315 parens
+  returned in 0.15 s, on the shipped parser `e25365a1…`. The embedding path is the vehicle SV ships
+  to Nexsim on, so this is an unbounded hang holding a consumer's thread on ~4 KB of legal-looking
+  text — worse than the SIGABRT `SV-CORPUS-GRAD.8c.3` replaced.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `--dump-rule-call-counts 25` on a depth-350 input read
+  `lparen` **2 104 128** calls for 350 parens (~6 000 per paren), every other top rule an
+  ALTERNATIVE of the expression cascade at 500k–900k, counters climbing monotonically across 250 ms
+  ticks ⇒ a runaway SEARCH, not a deadlock. Located to four links in
+  `rust/src/ast_pipeline/ast_based_generator.rs`: `memoized_call` records `entry_depth`
+  (`:9307`); `note_recursion_block(frame)` lowers the floor (`:9138`); the memo REFUSES to cache a
+  FAILURE when `floor < entry_depth-1` (`:9365`, `SV-CORPUS-GRAD.3.12`, correct); and the whole-stack
+  depth ceiling calls **`note_recursion_block(0)`** (`:4100`) because it names no frame. ⇒ floor `0`
+  is outside every rule, so ONE ceiling trip disables FAILURE memoisation for the rest of the parse.
+  ⭐ Confirmed by CONTROL on a 15-line synthetic: `--interpret-parse` on `ceiling_taint_probe.ebnf`
+  gives `INTERPRET-PARSE: … accepted=true furthest_position=398` at 398 and no result at 400, while
+  the same grammar with the 3-way fan-out removed rejects 1000 parens instantly on unfixed HEAD ⇒
+  the ceiling terminates; the sibling re-exploration does not.
+- [x] **FIX** — ENGINE tier (no lower tier exists: the defect is in emitted memo machinery, and it
+  reproduces on VHDL's byte-identical parser, so it is not a grammar question). Split the taint into
+  two channels: content-scoped verdicts keep `recursion_block_floor` and `.3.12`'s rule unchanged;
+  the depth ceiling gets `recursion_depth_block_events` and its failures are cached under a DEPTH
+  STAMP (`memo_fail_depth_gated` / `thin_fail_depth_gated`), sound by monotonicity in depth. All
+  three runtimes. **ZERO grammar bytes.**
+- [x] **ADDRESSED (verified)** — parser identity asserted on both arms (`--parser-fingerprint`, SV
+  `e25365a1…`→`cc874b60…`, VHDL `ac2b0ac2…`→`bd78efe6…`). SV **317: 4.90 s → 0.14 s, still
+  ACCEPTED**; SV **318: no result in 30 s → 0.14 s ACCEPTED**; SV 350/400 **rejected in 0.29/0.76 s**;
+  VHDL **590: no result → 0.28 s ACCEPTED**. Over-ceiling rejects are input-length-INDEPENDENT (800
+  and 2000 cost the same) ⇒ bounded. The two `SV-CORPUS-GRAD.8c.3` depth-2000 locks, which previously
+  could not terminate, now **pass**. Re-runnable: `bash
+  docs/tasks/artifacts/engine_universal_services/deep_nesting_cliff/measure_cliff.sh 60`.
+- [x] **NO REGRESSION** — ⭐⭐ **the structural arm first, because it is stronger than any timing
+  table**: both new channels are probed only when `recursion_depth_block_events != 0`, and a
+  `PGEN_REPORT_MEMO_STATS` census over **60 external-corpus files reads `0 depth-ceiling rejections`
+  on every one** ⇒ ordinary input does not reach the changed path at all, so those verdicts cannot
+  have moved (`artifacts/engine_universal_services/deep_nesting_cliff/ceiling_contact_census.txt`;
+  honest bound: a 60-file SAMPLE, SV only — the corpus-wide arm is the triage gate).
+  `parse_harness_combinator_gate` **2/2** (every structural combinator byte-identical).
+  `parse_harness_equivalence_gate` **4/4**: the interpreter is
+  **byte-identical** to the generated parser over the deterministic stimuli corpus at **seeds
+  0/7/42** (the decisive one — this change touched BOTH sides, so agreement is not free);
+  `ast_shape_contract_gate` **18/18, drift 0**; `embedding_api` **58 passed,
+  0 failed** (575.92 s, `--test-threads 1`) including all five deep-nesting/ceiling locks and the
+  regex one; the interpreter's own suite **11/11** with
+  `interpreter_is_byte_identical_to_the_json_registry_parser` and
+  `interpreter_agrees_with_compile_and_run_on_synthetic_combinators` green; the fixed synthetic's
+  accept boundary is **byte-identical** to its no-fan-out control at 397/398/399/400;
+  `sv_external_corpus_triage_gate` **14/14 executed, `parse_fail_total=0`,
+  `preprocess_fail_total=0`, `cases_blocked_total=0`**; `generated_clippy_correctness_gate` PASS
+  (the generated-parser `clippy::correctness` floor held at 0 across all 11 regenerated artifacts). ⭐ The accept set did not narrow in any measured row — the only
+  movements are non-answers becoming answers.
+- [x] **LOCKSTEP** — embedding API `1.3.1`→`1.3.2` (constant + `rust/docs/EMBEDDING_API_CONTRACT.md`
+  Versioning + Stack-Robustness Contract); SV parser release `1.0.193`→`1.0.194` (schema unchanged
+  `26`); VHDL `1.0.4`→`1.0.5` (schema unchanged `3`); ledger rows `SV-0067` + `VHDL-0004`; book
+  *Embedding and Downstream Integration* and *Inside Parser Performance*; `TOOLBOX.md` 3.3 (memo
+  stats now publish `depth-gated` + `depth-ceiling rejections`); `RUST_CODEBASE_ANALYSIS.md`;
+  knowledge card `a-conservative-encoding-in-a-channel-that-cannot-express-the-fact-is-not-free`.
 
 ### ⛔⛔ `.42` NEW `todo` — **a LIBRARY UNIT TEST HAS BEEN RED AT HEAD, and the tier that would catch it is not in the automatic lane** (routed in 2026-08-21 by `SV-CORPUS-GRAD.13c.2y`'s no-regression sweep, `PGEN-SV-CORPUS-GRAD-0263`)
 

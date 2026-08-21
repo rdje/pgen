@@ -9,10 +9,15 @@ This is the document downstream projects embedding the PGEN VHDL parser should r
 - Contract version:
   - `1.0.4`
 - Parser release version:
-  - `1.0.4`
+  - `1.0.5` (`ENGINE-UNIVERSAL-SERVICES.43`, 2026-08-21: engine-level, grammar-agnostic — the
+    recursion ceiling now bounds TIME as well as stack. The VHDL grammar is unchanged; the
+    generated parser is regenerated because codegen moved. No accept-set and no AST-shape change,
+    so the AST-dump schema stays `3`.)
+  - history: `1.0.4`
 - Embedding API contract baseline:
   - tracked under `rust/docs/EMBEDDING_API_CONTRACT.md`
-  - `1.3.1` (`SV-CORPUS-GRAD.8c.3`, 2026-07-22, backward-compatible stack-robustness fix): every VHDL embedding parse runs on a dedicated 256 MiB-stack thread, so over-deep recursion returns a clean `E_PARSE_FAILURE` diagnostic (the engine's 4096-frame recursion ceiling) instead of aborting the host process with a stack-overflow SIGABRT. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. No parser release/schema bump — the generated parser artifact is unchanged.
+  - `1.3.2` (`ENGINE-UNIVERSAL-SERVICES.43`, 2026-08-21, backward-compatible fix completing `1.3.1`): crossing the 4096-frame recursion ceiling now returns its clean `E_PARSE_FAILURE` in **bounded time**. `1.3.1` guaranteed the host's STACK and left the parse unbounded — measured on this family's shipped parser, 400 nested parens were accepted in 0.09 s and 600 returned no result in 90 s. ⭐ VHDL is where the finding was proven ENGINE-level rather than SystemVerilog-specific: its generated parser was byte-identical across the concurrent SV grammar campaign (`generated_reproducibility_gate` tier 2, 11/11) and showed the identical threshold, so a defect present in an unchanged parser was not introduced by a change to a different one. The ceiling now files its failures under a depth stamp; see the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. The generated VHDL parser IS regenerated (engine-level codegen change); no accept-set and no AST-shape change.
+  - history: `1.3.1` (`SV-CORPUS-GRAD.8c.3`, 2026-07-22, backward-compatible stack-robustness fix): every VHDL embedding parse runs on a dedicated 256 MiB-stack thread, so over-deep recursion returns a clean `E_PARSE_FAILURE` diagnostic (the engine's 4096-frame recursion ceiling) instead of aborting the host process with a stack-overflow SIGABRT. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. No parser release/schema bump — the generated parser artifact is unchanged.
 - VHDL AST-dump schema version:
   - `3` (unchanged by release `1.0.4` — acceptance widening only; the last shape change is the `1.0.3` AST-Shape Corrections batch)
 - Current grammar family label:
@@ -26,7 +31,7 @@ This is the document downstream projects embedding the PGEN VHDL parser should r
 
 The VHDL parser carries two version axes:
 
-1. **Parser release version** (`1.0.4`). Tracks the parser library's release identity. Bumped on every functional change, including bug fixes, perf work, and grammar changes.
+1. **Parser release version** (`1.0.5`). Tracks the parser library's release identity. Bumped on every functional change, including bug fixes, perf work, and grammar changes.
 2. **AST-dump schema version** (`3`). Tracks the AST output shape. Bumped only when the output shape changes in a way consumers may need to adapt to.
 
 A single parser release can carry the same schema version as the previous release (no shape change) or a bumped schema version (shape changed). The two version numbers move independently.

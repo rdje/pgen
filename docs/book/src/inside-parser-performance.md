@@ -1472,6 +1472,38 @@ change a correct parse"* argument used for the memo-eliding increment earlier in
 is sound for acyclic rules, which is exactly the population that increment covers, and must
 not be reused outside it.
 
+⛔⛔ **And then that fourth class cost something nobody had measured, because ONE of its
+verdicts is not a frame at all** (`ENGINE-UNIVERSAL-SERVICES.43`). The scoping rule above is
+built on a blocking FRAME — *"only a block owned by a strict ancestor is taint"* — and the
+whole-stack depth ceiling owns no frame. It was routed through the same channel anyway with
+the only index that could stand for *"the whole stack"*: `0`. Frame `0` is a strict ancestor
+of every rule, so the taint never stopped propagating, and a single ceiling trip disabled
+failure memoisation for the entire remaining parse. The packrat protection this whole section
+is about simply switched off, mid-parse, and the parse fell back to exponential backtracking
+over the expression cascade's alternatives. On the shipped SystemVerilog parser that showed up
+as a cliff you could walk one character at a time: **315 nested parens 0.15 s, 316 0.23 s, 317
+4.90 s, 318 no result in 30 s.** A ceiling is supposed to be a bound; this one converted into a
+search.
+
+⭐ **The repair is to notice that the sentence "there is no monotone recursion epoch to stamp"
+is true of the CYCLE guard and false of the DEPTH ceiling.** A cycle verdict depends on *which*
+rules are on the stack, which is not ordered by anything. The depth ceiling depends only on *how
+many*, and that is monotone: re-entering the same rule at the same position from a deeper stack
+explores the same tree with the ceiling pruning at least as much, and extra pruning cannot turn
+a failure into a success. So a ceiling-blocked failure at entry depth `D` holds at every depth
+`>= D` — a condition the entry CAN carry. The two verdicts now travel on separate channels: the
+cycle guard keeps the frame floor and its refuse-don't-validate rule exactly as described above,
+and the depth ceiling gets a depth STAMP and is validated on replay, like the store class and
+for the same reason. The `.3.12` gate still runs first and still returns early on any
+content-scoped block, so an entry reaches the depth channel only after content-dependence has
+been excluded — the two compose, and neither weakens the other.
+
+⭐ **The generalisable lesson is about the CHANNEL, not the ceiling.** One field was carrying two
+facts of different kinds, and the fact that did not fit was encoded with the most conservative
+value available. Conservative encodings feel safe and are not free: `0` was perfectly sound and
+cost the entire cache. When a value has to be widened to fit a channel, the cost of the widening
+is part of the design, and here it went unpriced for the seven weeks between the two leaves.
+
 Which graph runs is decided once, at parse start. A parse with no diagnostic consumer
 takes the fused graph. The moment anything asks to observe — certificate coverage, a
 trace flag, the memo-statistics switch, or any reader of the per-rule counters (taking

@@ -26,7 +26,7 @@ This matters especially for:
 
 ### Current API surface
 
-The embedding API version is **`1.3.1`**. The supported grammar families and their selectable
+The embedding API version is **`1.3.2`**. The supported grammar families and their selectable
 profile strings are:
 
 - **SystemVerilog** — `sv_2017`, `sv_2023`, and the strict **`verilog_2005`** (IEEE 1364-2005 Verilog
@@ -78,7 +78,7 @@ if !decoded.encoding.preserves_disk_byte_offsets() {
 - ⛔ **Only for user source.** Do not route JSON manifests, generated Rust or reports through it —
   those are UTF-8 by construction, and a decode failure there is corruption that must stay loud.
 
-### Stack robustness at the embedding boundary (`1.3.1`)
+### Stack robustness at the embedding boundary (`1.3.1`, `1.3.2`)
 
 A host process embedding a recursive-descent parser must never be aborted by that parser's
 recursion. The generated parsers carry a 4096-frame recursion ceiling, but a ceiling only
@@ -93,6 +93,49 @@ can kill the process — in both build modes. The regex family keeps its own ear
 (the RGX-0085 dedicated worker plus a PCRE2-parity nesting pre-check), unchanged. The same
 256 MiB guarantee wraps the `parseability_probe` and `ast_pipeline` instrument drivers, so a
 pathologically deep input is a reproducible clean rejection everywhere rather than a crash.
+
+#### A ceiling is only a bound if it also bounds TIME
+
+`1.3.1` made crossing the ceiling safe for the host's *stack*. It did not make it bounded in
+*time*, and for a while it was not: crossing the ceiling made the parse run without returning at
+all. Measured on the shipped SystemVerilog parser, a `module m; assign x = (…)1(…); endmodule`
+input crossed the cliff between **315 nested parens (0.16 s, accepted)** and **320 (no result in
+30 s)** — a factor of more than a thousand across five characters. VHDL showed the identical
+threshold further out, in a parser whose bytes had not changed, so the defect was engine-level and
+not a property of either grammar.
+
+The mechanism was one line of scope. Every cycle-guard verdict names the *frame* that blocked, and
+a rejection is kept out of the packrat cache only up to the ancestor that owns that frame — the
+outcome depends on stack CONTENT, which the memo key `(rule, position)` does not carry. The
+whole-stack depth ceiling names no frame, so it was recorded as frame `0`: a scope that is honest
+and unbounded. Frame `0` is outside *every* rule, so a single ceiling trip suppressed failure
+memoisation for the entire rest of the parse, and the packrat parse collapsed into plain
+exponential backtracking over the expression cascade's alternatives.
+
+The fix keeps both halves true at once, because both are real:
+
+- **Content-scoped blocks** (`Infinite`, `LeftRecursive`) are unchanged. Their failures are still
+  never cached, for the reason they never were — replaying one from a different stack refuses a
+  parse the guard would have allowed, which was a measured wrong-rejection on real corpus files.
+- **The depth ceiling** is routed to its own channel and its failures ARE cached — under a **depth
+  stamp**. Re-entering the same rule at the same position from a *deeper* stack prunes everything
+  the first attempt pruned and possibly more, so a failure at depth `D` is a failure at every depth
+  `≥ D`. That condition the entry can carry, so it is carried and validated on every replay.
+
+The result is the contract `1.3.1` intended: over-ceiling input comes back as a clean
+`E_PARSE_FAILURE` in milliseconds instead of never. The ceiling's location did not move — a
+sub-ceiling control is accepted at exactly the same depth as before — and this is locked from both
+sides by `parser_embedding_*_over_ceiling_nesting_fails_in_bounded_time` (over the cliff: clean
+diagnostic **within a wall-clock budget**) and
+`parser_embedding_systemverilog_under_ceiling_nesting_still_parses` (under it: still accepted, so
+bounded time cannot be bought by lowering the ceiling). ⛔ The reason that pair had to be written
+is instructive: the pre-existing regression locks aim at depth **2000**, far past the cliff, so
+while the defect was live *the only instrument aimed at it could not terminate*. A regression lock
+that cannot finish is not a lock.
+
+`PGEN_REPORT_MEMO_STATS` now reports `depth-ceiling rejections` and the `depth-gated` failure
+count on its headline, so "this input is at the ceiling" is one command away rather than inferred
+from a hang.
 
 ## Linter-Oriented Downstream Surfaces
 

@@ -1,0 +1,46 @@
+# ENGINE-UNIVERSAL-SERVICES.43 — the verification suite, 2026-08-21.
+# Re-runnable: bash docs/tasks/artifacts/engine_universal_services/deep_nesting_cliff/logs/verify.sh
+# (the multi-hundred-MB build logs each stage produced are NOT tracked; these are their verdicts.)
+
+  stage                     result
+  ------------------------  ----------------------------------------------------------------
+  embedding_tests           ok. 58 passed; 0 failed; 19 ignored — 575.92 s, --test-threads 1.
+                            Includes ALL FIVE deep-nesting/ceiling locks:
+                              parser_embedding_systemverilog_deep_nesting_…_not_process_abort  ok
+                              parser_embedding_systemverilog_over_ceiling_…_bounded_time       ok
+                              parser_embedding_systemverilog_under_ceiling_…_still_parses      ok
+                              parser_embedding_vhdl_deep_nesting_…_not_process_abort           ok
+                              regex_parser_pgen_rgx_0085_deep_nesting_clean_error_not_abort    ok
+                            ⭐ The first two SV/VHDL locks are the SV-CORPUS-GRAD.8c.3 depth-2000
+                              instruments that COULD NOT TERMINATE before this fix.
+  ast_shape_contract_gate   ok. 18 passed; 0 failed — drift 0.
+  parse_harness_equivalence ok. 4 passed; 0 failed — interpreter == generated parser,
+                            BYTE-IDENTICAL over the deterministic stimuli corpus at SEEDS 0/7/42.
+                            ⭐ The decisive arm: this change touched BOTH sides.
+  parse_harness_combinator  ok. 2 passed; 0 failed — every structural combinator byte-identical
+                            (382.34 s).
+  sv_external_corpus_triage cases_executed 14/14, parse_fail_total 0, preprocess_fail_total 0,
+                            cases_blocked_total 0.
+  generated_clippy          ✅ PASS — 0 clippy::correctness findings across 10 required + 1
+                            optional generated artifacts; roster integrity 68/68 pinned lints
+                            still in clippy::correctness.
+
+  VERIFY-DONE rc=0
+
+## The DOCTRINE re-derivations a codegen change owes (numbers RE-MEASURED, never edited)
+
+  sv_parse_cost_ratchet     ADVISORY (does not bind) — floor-adjusted parse wall clock
+                            43 122 ms -> 40 790 ms (**-5.4 %**), inside the ±50 % band.
+                            ⛔ The first run REFUSED (rc=2) on identity alone — the generated
+                            parser moved e25365a1… -> cc874b60…, which is true and expected of any
+                            codegen change — and it refuses BEFORE publishing the binding counters,
+                            so the family share must be re-derived first and the ratchet re-run.
+  sv_parse_cost_family_share  re-derived, PASS.
+  generated_reproducibility_rebaseline  re-derived (the emission-source digest moved because the
+                            code generator itself changed: 54cd2c38deca… -> 162b42e8d0b6…).
+
+## The interpreter's own suite (run separately, debug)
+
+  ok. 11 passed; 0 failed — including
+      interpreter_is_byte_identical_to_the_json_registry_parser
+      interpreter_agrees_with_compile_and_run_on_synthetic_combinators

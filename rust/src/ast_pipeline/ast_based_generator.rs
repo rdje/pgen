@@ -914,6 +914,18 @@ impl AstBasedGenerator {
                 thin_scratch: crate::ast_pipeline::ThinMemoScratchLease,
                 thin_entries: Vec<crate::ast_pipeline::ThinTapeMemoEntry<'input>>,
                 thin_stride: usize,
+                // ENGINE-UNIVERSAL-SERVICES.43 — the fused graph's mirror of the
+                // protocol memo's `memo_fail_depth_gated`: failures produced with
+                // the whole-stack DEPTH CEILING firing inside the body, stamped
+                // with the entry depth they were produced at and replayable only
+                // from a stack at least that deep. Deliberately NOT a field on
+                // `ThinTapeMemoEntry`: that type is SHARED runtime, and widening
+                // it makes every already-emitted artifact stop compiling — the
+                // STALE-ARTIFACT trap the cold-clone bootstrap documents
+                // (PGEN-RGX-0090). A parser-local side map costs nothing on the
+                // ordinary path (it is only probed once the ceiling has fired at
+                // least once) and keeps the runtime type stable.
+                thin_fail_depth_gated: rustc_hash::FxHashMap<(RuleId, usize), u32>,
             }
         } else {
             quote! {}
@@ -1005,6 +1017,24 @@ impl AstBasedGenerator {
                 // evicted (then re-parsed) once the store has moved. The lean
                 // pure-structural set above stays payload-free.
                 memo_fail_tainted: rustc_hash::FxHashMap<(RuleId, usize), u64>,
+                // ENGINE-UNIVERSAL-SERVICES.43 — DEPTH-GATED failures: the half
+                // of the recursion taint that is a fact about the stack's DEPTH
+                // rather than its CONTENT. Value = the entry depth at which the
+                // body failed; a hit replays only while the live depth is at
+                // least that deep, which is a condition the `(rule, position)`
+                // key CAN carry once the depth travels with the entry.
+                //
+                // Sound because the depth ceiling is MONOTONE in depth: entering
+                // the same rule at the same position from a DEEPER stack prunes
+                // every node this attempt pruned and possibly more, so a FAILURE
+                // at depth `D` is a failure at every depth `>= D`. The
+                // content-scoped half (`Infinite` / `LeftRecursive`, whose
+                // verdict depends on WHICH rules are on the stack and is not
+                // monotone in anything) stays in `recursion_block_floor` and is
+                // still never cached — `memoized_call` returns on that gate
+                // BEFORE reaching this one, so an entry lands here only when the
+                // sole remaining stack dependence is depth.
+                memo_fail_depth_gated: rustc_hash::FxHashMap<(RuleId, usize), u32>,
                 recursion_guard: RecursionGuard,
                 // SV-CORPUS-GRAD.3.12 — RECURSION-TAINT FLOOR. The shallowest
                 // parse-stack frame index that caused a cycle-guard REJECTION
@@ -1034,6 +1064,27 @@ impl AstBasedGenerator {
                 // (taint-EXCLUSION measured 117× on SV); there the cure was
                 // epoch validation, here it is frame scoping.
                 recursion_block_floor: usize,
+                // ENGINE-UNIVERSAL-SERVICES.43 — monotone count of WHOLE-STACK
+                // DEPTH-CEILING rejections taken during this parse. Separate
+                // from `recursion_block_floor` because the two verdicts have
+                // different scopes and only one of them is cacheable:
+                //
+                //   * `Infinite` / `LeftRecursive` name a BLOCKING FRAME, so the
+                //     floor records that frame and taint stops at the ancestor
+                //     owning it (SV-CORPUS-GRAD.3.12);
+                //   * the depth ceiling names no frame — it is a fact about the
+                //     whole stack — so it used to taint to floor `0`, which made
+                //     the `.3.12` gate TRUE for every rule at `entry_depth >= 2`
+                //     and disabled FAILURE MEMOISATION for the whole remaining
+                //     parse. One trip turned a BOUND into an exponential
+                //     re-search: MEASURED on the shipped SV parser, 315 nested
+                //     parens 0.16 s accepted, 320 no result in 30 s.
+                //
+                // Routing the ceiling here instead keeps `.3.12` exactly as it
+                // was for the verdicts it was written for, and lets the ceiling's
+                // failures be cached under the depth stamp they actually depend
+                // on (`memo_fail_depth_gated`).
+                recursion_depth_block_events: u64,
                 grammar_profile: Option<String>,
                 recovery_events: Vec<RecoveryEvent>,
                 recovery_counts: HashMap<String, usize>,
@@ -1561,6 +1612,10 @@ impl AstBasedGenerator {
                     },
                     thin_entries: Vec::with_capacity(((input.len() + 1) * 6).min(32768)),
                     thin_stride: input.len() + 1,
+                    // ENGINE-UNIVERSAL-SERVICES.43 — see the field's comment.
+                    // Deliberately NOT pre-sized: it stays EMPTY for every parse
+                    // that never trips the recursion ceiling.
+                    thin_fail_depth_gated: rustc_hash::FxHashMap::default(),
                 }
             } else {
                 quote! {}
@@ -1684,9 +1739,16 @@ impl AstBasedGenerator {
                         (input.len() + 1).min(256),
                         Default::default(),
                     ),
+                    // ENGINE-UNIVERSAL-SERVICES.43 — see the field's comment.
+                    // Deliberately NOT pre-sized: it stays EMPTY for every parse
+                    // that never trips the depth ceiling, which is every parse of
+                    // every shipped corpus file.
+                    memo_fail_depth_gated: rustc_hash::FxHashMap::default(),
                     recursion_guard: RecursionGuard::new(#recursion_guard_max_depth),
                     // SV-CORPUS-GRAD.3.12 — see the field's doc comment.
                     recursion_block_floor: usize::MAX,
+                    // ENGINE-UNIVERSAL-SERVICES.43 — see the field's comment.
+                    recursion_depth_block_events: 0,
                     #grammar_profile_init
                     recovery_events: Vec::new(),
                     recovery_counts: HashMap::new(),
@@ -4098,10 +4160,20 @@ impl AstBasedGenerator {
                         });
                     }
                     CycleType::MutualRecursive { depth, ref rules } if depth >= #recursion_guard_max_depth => {
-                        // SV-CORPUS-GRAD.3.12 — the depth ceiling is a fact
-                        // about the WHOLE stack, not about one frame, so it
-                        // taints every enclosing body: floor 0.
-                        self.note_recursion_block(0);
+                        // ENGINE-UNIVERSAL-SERVICES.43 — the depth ceiling is a
+                        // fact about the WHOLE stack, not about one frame, so it
+                        // has no blocking frame to record and must NOT be routed
+                        // through `note_recursion_block`. It used to be routed
+                        // there as floor `0`, which is honest about the scope and
+                        // catastrophic about the consequence: `0` satisfies the
+                        // `.3.12` gate for every rule at `entry_depth >= 2`, so a
+                        // SINGLE trip disabled failure memoisation for the rest of
+                        // the parse and the packrat parse degenerated into
+                        // exponential backtracking over the alternative fan-out.
+                        // Count it on its own channel instead — depth is monotone,
+                        // so `memoized_call` can cache these failures under a depth
+                        // STAMP rather than throw them away.
+                        self.recursion_depth_block_events += 1;
                         if self.trace_enabled() {
                             self.logger.log_error(#file_label, self.position as u32, &format!("🔃 Recursion depth exceeded in rule '{}' at position {} (depth: {})", #rule_name, position, depth));
                         }
@@ -9097,6 +9169,14 @@ impl AstBasedGenerator {
                     let e = per_rule.entry(*rule_id).or_insert((0, 0, 0));
                     e.2 += 1;
                 }
+                // ENGINE-UNIVERSAL-SERVICES.43 — depth-gated failures are failures
+                // too; fold them in and report the count in the header so
+                // `PGEN_REPORT_MEMO_STATS` shows whether the recursion ceiling
+                // fired at all during this parse.
+                for ((rule_id, _pos), _min_depth) in self.memo_fail_depth_gated.iter() {
+                    let e = per_rule.entry(*rule_id).or_insert((0, 0, 0));
+                    e.2 += 1;
+                }
                 let tainted_successes = self
                     .memo
                     .values()
@@ -9104,14 +9184,16 @@ impl AstBasedGenerator {
                     .count();
                 let mut rows: Vec<(RuleId, (usize, usize, usize))> = per_rule.into_iter().collect();
                 eprintln!(
-                    "=== MEMO STATS: {} success entries ({} tainted) + {} cached failures ({} tainted) = {} total, {} subtree-nodes, {} distinct rules ===",
+                    "=== MEMO STATS: {} success entries ({} tainted) + {} cached failures ({} store-tainted, {} depth-gated) = {} total, {} subtree-nodes, {} distinct rules, {} depth-ceiling rejections ===",
                     self.memo.len(),
                     tainted_successes,
-                    self.memo_fail.len() + self.memo_fail_tainted.len(),
+                    self.memo_fail.len() + self.memo_fail_tainted.len() + self.memo_fail_depth_gated.len(),
                     self.memo_fail_tainted.len(),
-                    self.memo.len() + self.memo_fail.len() + self.memo_fail_tainted.len(),
+                    self.memo_fail_depth_gated.len(),
+                    self.memo.len() + self.memo_fail.len() + self.memo_fail_tainted.len() + self.memo_fail_depth_gated.len(),
                     total_nodes,
-                    rows.len()
+                    rows.len(),
+                    self.recursion_depth_block_events
                 );
                 rows.sort_by(|a, b| b.1 .1.cmp(&a.1 .1));
                 eprintln!("--- top 30 rules by subtree-node-sum (memory proxy) ---");
@@ -9130,10 +9212,17 @@ impl AstBasedGenerator {
             #inlined_frame_call_helper
 
             /// SV-CORPUS-GRAD.3.12 — lower the RECURSION-TAINT FLOOR to
-            /// `frame_index` (the parse-stack index of the frame that just
-            /// caused a cycle-guard rejection; `0` for the whole-stack depth
-            /// ceiling). Called only from a guard arm that is already
+            /// `frame_index`: the parse-stack index of the frame that just caused
+            /// a CONTENT-scoped cycle-guard rejection (`Infinite` /
+            /// `LeftRecursive`). Called only from a guard arm that is already
             /// returning an error, so the accepting path never executes it.
+            ///
+            /// ⛔ ENGINE-UNIVERSAL-SERVICES.43 — the whole-stack DEPTH CEILING no
+            /// longer calls this. It names no frame, so it could only pass `0`,
+            /// and `0` makes the caller's gate true for every rule at
+            /// `entry_depth >= 2` — one trip disabling failure memoisation for the
+            /// whole remaining parse. It is counted on
+            /// `recursion_depth_block_events` and cached depth-gated instead.
             #[inline]
             fn note_recursion_block(&mut self, frame_index: usize) {
                 if frame_index < self.recursion_block_floor {
@@ -9268,6 +9357,30 @@ impl AstBasedGenerator {
                     }
                 }
 
+                // ENGINE-UNIVERSAL-SERVICES.43 — DEPTH-GATED failure replay.
+                // Deliberately checked AFTER the success memo, so a derivation
+                // that really WAS found still wins: a recursion guard limits the
+                // SEARCH, not the LANGUAGE, and replaying a found derivation from
+                // a deeper stack is the documented, measured policy on the success
+                // side. Guarded on the event counter so a parse that never trips
+                // the ceiling — every parse of every shipped corpus file — pays
+                // one predictable integer compare and never probes the map.
+                if self.recursion_depth_block_events != 0 {
+                    if let Some(&memo_min_depth) = self.memo_fail_depth_gated.get(&key) {
+                        if self.recursion_guard.rule_id_stack.len() >= memo_min_depth as usize {
+                            if self.trace_enabled() {
+                                self.logger.log_warning(#file_label, self.position as u32, &format!("💾 Memo hit for rule {} at position {} - cached depth-gated failure (depth >= {})", rule_id, self.position, memo_min_depth));
+                            }
+                            if self.coverage_enabled {
+                                self.semantic_runtime_state.record_memo_hit(rule_id as usize);
+                            }
+                            return Err(ParseError::Backtrack {
+                                position: key.1,
+                            });
+                        }
+                    }
+                }
+
                 if self.trace_enabled() {
                     self.logger.log_debug(#file_label, self.position as u32, &format!("💾 Memo miss for rule {} at position {} - computing fresh result", rule_id, self.position));
                 }
@@ -9307,6 +9420,10 @@ impl AstBasedGenerator {
                 let memo_recursion_saved_floor = self.recursion_block_floor;
                 self.recursion_block_floor = usize::MAX;
                 let memo_recursion_entry_depth = self.recursion_guard.rule_id_stack.len();
+                // ENGINE-UNIVERSAL-SERVICES.43 — the DEPTH channel needs no
+                // save/restore scope: it is a monotone counter, so "did the body
+                // trip the ceiling" is a comparison against the value at entry.
+                let memo_recursion_depth_events = self.recursion_depth_block_events;
                 let result = f(self);
                 let memo_store_tainted =
                     self.semantic_runtime_state.predicate_evaluations() != memo_taint_snapshot;
@@ -9365,6 +9482,29 @@ impl AstBasedGenerator {
                 if result.is_err()
                     && memo_recursion_floor < memo_recursion_entry_depth.saturating_sub(1)
                 {
+                    return result;
+                }
+                // ⭐ ENGINE-UNIVERSAL-SERVICES.43 — the DEPTH-scoped half, reached
+                // only once the gate above has cleared the body of any
+                // CONTENT-scoped dependence on frames outside itself. What is left
+                // is a dependence on how DEEP the stack was, and that one IS
+                // expressible in the entry: re-attempting the same rule at the
+                // same position from a deeper stack prunes everything this attempt
+                // pruned and possibly more, so a failure at `entry_depth` is a
+                // failure at every depth `>= entry_depth`. File it under that
+                // stamp rather than discarding it — discarding is what turned the
+                // ceiling from a bound into an exponential search.
+                //
+                // A store-tainted body is excluded here as everywhere else: that
+                // axis carries its own epoch validation and the two conditions are
+                // not composed in one entry.
+                if result.is_err()
+                    && self.recursion_depth_block_events != memo_recursion_depth_events
+                {
+                    if !memo_store_tainted {
+                        self.memo_fail_depth_gated
+                            .insert(key, memo_recursion_entry_depth as u32);
+                    }
                     return result;
                 }
 

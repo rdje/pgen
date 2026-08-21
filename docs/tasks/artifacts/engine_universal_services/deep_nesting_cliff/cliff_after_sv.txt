@@ -1,0 +1,13 @@
+# AFTER-FIX (release probe, SV cc874b60…, VHDL bd78efe6…)
+family          depth      wall  verdict
+systemverilog     300     0.13s  accepted
+systemverilog     315     0.14s  accepted
+systemverilog     316     0.14s  accepted
+systemverilog     317     0.14s  accepted
+systemverilog     318     0.14s  accepted
+systemverilog     319     0.15s  accepted
+systemverilog     320     0.15s  accepted
+systemverilog     350     0.29s  rejected
+systemverilog     400     0.76s  rejected
+systemverilog     800    11.66s  rejected
+systemverilog    2000    12.11s  rejected

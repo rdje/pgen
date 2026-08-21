@@ -101,3 +101,65 @@
   ASYMMETRY: every other guard arm taints only up to the ancestor owning the frame and
   "stops the propagation exactly at the ancestor that owns the frame". The depth ceiling
   is the ONLY arm that taints to 0, so its propagation never stops.
+
+## THE EXACT PRE-FIX ACCEPT BOUNDARY (2026-08-21, before the fix binary was replaced)
+
+  Taken with the HEAD-c5320b72 release probe still on disk (SV parser e25365a1..., VHDL
+  ac2b0ac2... -- see cliff_before.txt and fingerprint_before.json), because once the fixed
+  binary overwrote it this row could never be measured again.
+
+    family          depth      wall  verdict
+    systemverilog     300     0.17s  accepted
+    systemverilog     315     0.15s  accepted
+    systemverilog     316     0.23s  accepted
+    systemverilog     317     4.90s  accepted        <-- 33x, the exponential already visible
+    systemverilog     318    30.05s  NO-RESULT(>30s)
+    vhdl              400     0.10s  accepted
+    vhdl              500     0.14s  accepted
+    vhdl              550     0.16s  accepted
+    vhdl              575     0.18s  accepted
+    vhdl              590    30.07s  NO-RESULT(>30s)
+
+  ⭐⭐ THE ROW THAT MATTERS MOST IS SV 317, AND IT WAS NOT IN THE FIRST SCAN.
+  317 both TRIPS the recursion ceiling (4.90 s against a 0.15 s sub-cliff baseline is the
+  re-exploration, not the parse) and still ACCEPTS. So it is the one input that exercises the
+  changed code path on an ACCEPTING parse, and it is the sharpest available test of the
+  accept-set claim: if the depth-gated failure replay were unsound in the refusing direction,
+  317 would flip accepted -> rejected. It is the control the after-measurement must clear, and
+  it exists only because the pre-fix binary was measured at 1-paren resolution before being
+  overwritten.
+
+## THE ISOLATING SYNTHETIC — 15 lines of EBNF that reproduce the SV cliff (2026-08-21)
+
+  ceiling_taint_probe.ebnf: a 5-frame-per-level cascade (expr -> level_a -> level_b -> level_c
+  -> primary -> expr) plus a 3-WAY FAN-OUT in `primary` whose alternatives all re-enter `expr`
+  at the SAME position. Driven through the interpreter (TOOLBOX 1.5b, `--interpret-parse`),
+  whose ceiling is 2000, so the cliff lands at ~400 parens instead of SystemVerilog's ~318.
+  Build loop: ~1 minute, against ~25 for the SV release probe.
+
+  BEFORE (HEAD):        n=398  accepted  0.03 s     n=400  NO RESULT in 20 s
+  AFTER  (fixed):       n=398  accepted  0.03 s     n=400  rejected 0.03 s (furthest_position=399)
+                                                    n=5000 rejected 0.03 s
+
+  ⭐ THE CONTROL THAT NAMES THE MECHANISM — ceiling_taint_control_nofanout.ebnf is the SAME
+  grammar with two of the three `primary` alternatives commented out. On HEAD, unfixed:
+
+      n=400   accepted=false furthest_position=399   (instant)
+      n=1000  accepted=false furthest_position=399   (instant)
+
+  => the ceiling TERMINATES fine on its own. What does not terminate is the sibling
+  re-exploration that failure memoisation used to absorb. The fix is therefore "stop
+  re-exploring", not "break a deadlock" -- and that distinction was measured, not assumed.
+
+  ⭐⭐ THE EQUIVALENCE CHECK — after the fix the fan-out grammar's accept boundary is
+  BYTE-IDENTICAL to the no-fan-out control's, which is the ground truth for where the ceiling
+  actually sits:
+
+      n     control(no fan-out)  fixed(fan-out)
+      397   accepted             accepted        MATCH
+      398   accepted             accepted        MATCH
+      399   rejected             rejected        MATCH
+      400   rejected             rejected        MATCH
+
+  i.e. the fix does not move the ceiling; it makes the grammar that has a fan-out behave like
+  the one that cannot re-explore.

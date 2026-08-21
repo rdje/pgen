@@ -547,8 +547,8 @@ This is the document downstream projects such as Nexsim should read first when d
 - Contract version:
   - `1.0.192`
 - Parser release version:
-  - `1.0.193`
-  - history: `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.194`
+  - history: `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
@@ -559,7 +559,8 @@ This is the document downstream projects such as Nexsim should read first when d
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`
     re-derives this digest from the producer and refuses a tree where the grammar has moved and this document has not.)
 - Embedding API contract baseline:
-  - `1.3.1` (backward-compatible stack-robustness fix, `SV-CORPUS-GRAD.8c.3` 2026-07-22: every SV/VHDL embedding parse runs on a dedicated 256 MiB-stack thread, so over-deep recursion returns a clean `E_PARSE_FAILURE` diagnostic — the engine's 4096-frame recursion ceiling — instead of aborting the HOST process with a stack-overflow SIGABRT; measured pre-fix, a ~400-deep parenthesized expression (≈4 KB of text) killed a release embedder at the default 8 MB main stack. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. No parser release/schema bump — the generated parser artifact is unchanged.)
+  - `1.3.2` (backward-compatible fix completing `1.3.1`, `ENGINE-UNIVERSAL-SERVICES.43` 2026-08-21: crossing the 4096-frame recursion ceiling now returns its clean `E_PARSE_FAILURE` in **bounded time**. `1.3.1` guaranteed the host's STACK and left the parse unbounded; measured on the shipped SV parser, 315 nested parens were accepted in 0.16 s and 320 returned no result in 30 s, because the ceiling — the one guard verdict that names no blocking frame — tainted the packrat failure cache globally and one trip disabled failure memoisation for the rest of the parse. The ceiling now files its failures under a DEPTH STAMP (monotone: a failure at depth `D` holds at every depth `>= D`), which restores memoisation without touching the frame-scoped taint `SV-CORPUS-GRAD.3.12` added. Engine-level and grammar-agnostic — VHDL showed the identical cliff in a byte-identical parser. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. Parser release `1.0.193` → `1.0.194` because the generated artifact IS regenerated; AST-dump schema unchanged at `26` and no accept-set change.)
+  - history: `1.3.1` (backward-compatible stack-robustness fix, `SV-CORPUS-GRAD.8c.3` 2026-07-22: every SV/VHDL embedding parse runs on a dedicated 256 MiB-stack thread, so over-deep recursion returns a clean `E_PARSE_FAILURE` diagnostic — the engine's 4096-frame recursion ceiling — instead of aborting the HOST process with a stack-overflow SIGABRT; measured pre-fix, a ~400-deep parenthesized expression (≈4 KB of text) killed a release embedder at the default 8 MB main stack. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. No parser release/schema bump — the generated parser artifact is unchanged.)
   - history: `1.3.0` (backward-compatible addition of the `verilog_2005` profile; see `rust/docs/EMBEDDING_API_CONTRACT.md` — the previously stated `1.2.0` here was a stale lockstep gap closed by `VERILOG-2005-PROFILE.4.3`)
 - SystemVerilog AST-dump schema version:
   - `26` (**`1.0.193`** (`SV-CORPUS-GRAD.13c.2y`, `PGEN-SV-CORPUS-GRAD-0261`, 2026-08-20), ledger

@@ -397,6 +397,8 @@ fn interpret_parse_gen_ast_core(
         compiled_sem,
         memo: rustc_hash::FxHashMap::default(),
         memo_fail: rustc_hash::FxHashSet::default(),
+        // ENGINE-UNIVERSAL-SERVICES.43 — see the field's doc comment.
+        memo_fail_depth_gated: rustc_hash::FxHashMap::default(),
         memo_fail_tainted: rustc_hash::FxHashMap::default(),
         value_constraints,
         selection_recorder,
@@ -770,6 +772,27 @@ struct Interp<'g, 'i> {
     memo: rustc_hash::FxHashMap<(&'static str, usize), InterpMemoEntry<'i>>,
     /// The failure half of the split memo (see `memo`).
     memo_fail: rustc_hash::FxHashSet<(&'static str, usize)>,
+    /// ENGINE-UNIVERSAL-SERVICES.43 — DEPTH-GATED failures: the half of the recursion taint that
+    /// is a fact about the stack's DEPTH rather than its CONTENT, and is therefore replayable under
+    /// a condition the memo key CAN carry. Maps `(rule, position)` to the entry depth at which the
+    /// body failed; a hit replays only while the live depth is at least that deep.
+    ///
+    /// Sound because the depth ceiling is MONOTONE in depth: re-entering the same rule at the same
+    /// position from a deeper stack prunes every node this attempt pruned and possibly more, so a
+    /// FAILURE at depth `D` is a failure at every depth `>= D`. The interpreter has no cycle guard —
+    /// the ceiling is its whole runtime recursion-blocking path — so depth is its ONLY stack
+    /// dependence, and `recursion_block_events` moving is exactly "a depth block happened here".
+    /// (The generated parsers DO have a cycle guard, so they keep the content-scoped taint in
+    /// `recursion_block_floor` and only the ceiling in this channel — see `ast_based_generator.rs`.)
+    ///
+    /// ⛔ Before this, a ceiling-blocked failure was not cached at all, so ONE trip disabled failure
+    /// memoisation for every enclosing body and the bound degenerated into an exponential re-search.
+    /// MEASURED on the isolating synthetic
+    /// `docs/tasks/artifacts/engine_universal_services/deep_nesting_cliff/ceiling_taint_probe.ebnf`:
+    /// 398 parens 0.03 s accepted, 400 parens NO RESULT in 20 s — and the same grammar with the
+    /// 3-way fan-out removed rejects 1000 parens instantly, which is the control proving the cost is
+    /// the RE-EXPLORATION and not the ceiling.
+    memo_fail_depth_gated: rustc_hash::FxHashMap<(&'static str, usize), usize>,
     /// STIMULI-SIGNOFF.13.2 — the SC-08 value-constraint guard mirror's per-rule constraint sets
     /// (`@enum` / `@regex` / `@range` / `@len`), computed once at construction via the SAME shared
     /// resolution codegen compiles the emitted guards from
@@ -1147,10 +1170,27 @@ impl<'g, 'i> Interp<'g, 'i> {
             }
             return Ok((node, raw));
         }
+        // ENGINE-UNIVERSAL-SERVICES.43 — DEPTH-GATED failure replay. Deliberately checked AFTER the
+        // success memo, so a derivation that really WAS found still wins: a recursion guard limits
+        // the SEARCH, not the LANGUAGE, and replaying a found derivation from a deeper stack is the
+        // documented, measured policy on the success side. Guarded on `recursion_block_events` so a
+        // parse that never trips the ceiling — every ordinary parse — pays one predictable integer
+        // compare and never touches the map.
+        if self.recursion_block_events != 0 {
+            if let Some(&memo_min_depth) = self.memo_fail_depth_gated.get(&key) {
+                if self.depth >= memo_min_depth {
+                    return Err(ParseError::Backtrack { position: key.1 });
+                }
+            }
+        }
         let memo_entry_checkpoint = self.semantic_state.checkpoint();
         let memo_taint_snapshot = self.semantic_state.predicate_evaluations();
         // SV-CORPUS-GRAD.3.12 — RECURSION-TAINT snapshot (mirror of the generated template).
         let memo_recursion_snapshot = self.recursion_block_events;
+        // ENGINE-UNIVERSAL-SERVICES.43 — the depth this body is being attempted at. `parse_rule`
+        // has already counted this rule's own frame, so it is the depth a replay must match or
+        // exceed for a ceiling-blocked failure to still hold.
+        let memo_recursion_entry_depth = self.depth;
         let memo_selection_start = self.selection_log_len();
         let result = f(self);
         let memo_store_tainted =
@@ -1162,6 +1202,16 @@ impl<'g, 'i> Interp<'g, 'i> {
         // construct parses at all (measured on the generated side: refusing it regressed 4 corpus
         // files pass→fail).
         if result.is_err() && self.recursion_block_events != memo_recursion_snapshot {
+            // ENGINE-UNIVERSAL-SERVICES.43 — the outcome is stack-DEPTH-dependent, which the plain
+            // `(rule, position)` key cannot carry — but a depth STAMP can, and the ceiling is
+            // monotone in depth, so file it depth-gated rather than throwing it away. Refusing it
+            // outright is what made one ceiling trip disable failure memoisation for the whole
+            // remaining parse. A store-tainted body is still not cached here: that axis needs its
+            // own epoch validation, and the two conditions are not composed in one entry.
+            if !memo_store_tainted {
+                self.memo_fail_depth_gated
+                    .insert(key, memo_recursion_entry_depth);
+            }
             return result;
         }
         match &result {

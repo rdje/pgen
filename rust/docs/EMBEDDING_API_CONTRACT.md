@@ -53,7 +53,16 @@ Root-level parser-family handoff docs (`PGEN_*_PARSER_INTEGRATION_CONTRACT.md`) 
   - default via `AstDumpOptions::default()`
 
 ## Versioning
-- Contract version constant: `EMBEDDING_API_VERSION = "1.3.1"`
+- Contract version constant: `EMBEDDING_API_VERSION = "1.3.2"`
+  - `1.3.2` (2026-08-21, `ENGINE-UNIVERSAL-SERVICES.43`): backward-compatible fix completing
+    `1.3.1` — crossing the 4096-frame recursion ceiling now returns its clean `E_PARSE_FAILURE`
+    diagnostic in **bounded time**. `1.3.1` guaranteed the host's stack; it did not bound the
+    parse, and crossing the ceiling had come to mean an unbounded search rather than a
+    rejection (measured on the shipped SV parser: 315 nested parens accepted in 0.16 s, 320
+    returned no result in 30 s). Root cause and fix are engine-level and grammar-agnostic —
+    see the Stack-Robustness Contract section below. No API surface, struct-shape or schema
+    change (schema stays `2`); no accept-set change — a sub-ceiling control is accepted at
+    exactly the same depth as before.
   - `1.3.1` (2026-07-22, `SV-CORPUS-GRAD.8c.3`): backward-compatible stack-robustness fix —
     SystemVerilog and VHDL grammar-family parses now run on a dedicated 256 MiB-stack thread,
     so over-deep recursion surfaces as a clean `E_PARSE_FAILURE` diagnostic (the engine's
@@ -167,6 +176,22 @@ Grammar parser API:
   `E_PARSE_FAILURE` diagnostic — the host process is **never** aborted by a parser stack
   overflow, in either build mode. A worker panic likewise maps to `E_PARSE_FAILURE`
   (`generated <family> parser worker panicked while processing input`).
+- ⭐ **And that diagnostic arrives in BOUNDED TIME** (`ENGINE-UNIVERSAL-SERVICES.43`, `1.3.2`).
+  A bound that converts into a search is not a bound: for a host parsing machine-generated or
+  untrusted input, a few KB of legal-looking text that never returns is a denial of service, and
+  it is *harder* to diagnose than the abort `1.3.1` replaced — a crash fails fast and loud, a hang
+  holds the caller's thread. The engine's ceiling now behaves as the resource bound it is:
+  - a cycle-guard verdict (`Infinite` / `LeftRecursive`) names a blocking FRAME and its failures
+    stay out of the packrat cache, because replaying one from a different stack would refuse a
+    parse the guard would have allowed;
+  - the whole-stack DEPTH ceiling names no frame, and its failures ARE cached, under a **depth
+    stamp**: re-entering the same rule at the same position from a deeper stack prunes everything
+    the first attempt pruned and possibly more, so a failure at depth `D` holds at every depth
+    `>= D`, and that is a condition the cache entry can carry.
+  Locked by `parser_embedding_systemverilog_over_ceiling_nesting_fails_in_bounded_time` and its
+  VHDL twin (over the ceiling: clean diagnostic within a wall-clock budget) plus
+  `parser_embedding_systemverilog_under_ceiling_nesting_still_parses` (under it: still accepted,
+  so bounded time cannot be bought by lowering the ceiling).
 - The regex family keeps its own, earlier-established defense (the RGX-0085 dedicated
   64 MiB worker + `REGEX_MAX_NESTING_DEPTH` pre-parse ceiling) — unchanged by this contract
   addition, preserving the regex performance floor.

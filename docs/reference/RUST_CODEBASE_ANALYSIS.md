@@ -1,5 +1,51 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
+## Recent Architecture Change Note (2026-08-21) — the recursion taint SPLITS INTO TWO CHANNELS, because one field was carrying a frame index and a whole-stack fact (`ENGINE-UNIVERSAL-SERVICES.43`)
+
+**What moved.** Every generated parser (both execution graphs) and the parse-harness interpreter
+gain a second recursion-taint channel. Before, all three guard verdicts — `Infinite`,
+`LeftRecursive`, and the whole-stack `MutualRecursive` depth ceiling — wrote the same field,
+`recursion_block_floor`, a **parse-stack frame index**, and `SV-CORPUS-GRAD.3.12`'s memo gate
+refused to cache any failure whose floor came from outside the memoized rule. Two of those
+verdicts genuinely name a frame. The ceiling does not, so it passed `0` — the index outside every
+rule — and the gate became true for every rule at `entry_depth >= 2`. **One ceiling trip therefore
+disabled FAILURE memoisation for the whole remaining parse**, and the packrat parse degenerated
+into exponential backtracking. Measured on the shipped SystemVerilog parser: 315 nested parens
+0.15 s accepted, 316 0.23 s, 317 **4.90 s**, 318 no result in 30 s.
+
+**The new shape.**
+
+| verdict | depends on | channel | failure cached? |
+|---|---|---|---|
+| `Infinite` / `LeftRecursive` | which rules are on the stack (**content**) | `recursion_block_floor` (unchanged) | no — `.3.12`'s rule, untouched |
+| depth ceiling | how deep the stack is (**depth**) | `recursion_depth_block_events` (new, monotone counter) | **yes**, under a depth STAMP |
+
+Storage is deliberately per-graph and additive, and **no shared runtime type changed**: the
+protocol memo gains `memo_fail_depth_gated: FxHashMap<(RuleId, usize), u32>`, the fused thin memo
+gains `thin_fail_depth_gated` with the same shape, and the interpreter gains its own. ⛔ The first
+cut put the stamp on `ThinTapeMemoEntry` — a type in `ast_pipeline/mod.rs` — and that is the
+**STALE-ARTIFACT trap the cold-clone bootstrap documents** (`PGEN-RGX-0090`): widening a shared
+runtime type makes every already-emitted artifact stop compiling, and since `regenerate_generated_
+parsers` must build `ast_pipeline` *with* `generated_parsers` before it can regenerate the
+families, the tree cannot bootstrap out of it. A parser-local side map has none of that coupling.
+
+**Why the stamp is sound where the frame index was not.** The depth ceiling is **monotone in
+depth**: re-entering the same rule at the same position from a deeper stack explores the same tree
+with the ceiling pruning at least as much, and extra pruning cannot turn a failure into a success,
+so a failure at entry depth `D` holds at every depth `>= D`. The `.3.12` gate still runs first and
+returns early on any content-scoped block, so an entry only reaches the depth channel once
+content-dependence is excluded — the gates compose. Both maps are probed only when
+`recursion_depth_block_events != 0`, so a parse that never reaches the ceiling — every parse of
+every shipped corpus file — pays one predictable integer compare and never touches them.
+
+**Assessment.** The engine's resource bound is now a bound on TIME as well as on stack depth,
+which is what `SV-CORPUS-GRAD.8c.3`'s embedding contract had claimed since `1.3.1` and could not
+deliver. The generalisable risk this exposes is not about recursion: **one field was carrying two
+facts of different kinds, and the fact that did not fit was encoded with the most conservative
+available value.** `0` was perfectly sound and cost the entire cache. When a value is widened to
+fit a channel, the cost of the widening is part of the design — and here it went unpriced for the
+seven weeks between the two leaves.
+
 ## Recent Architecture Change Note (2026-08-17) — `build.rs` gains a second job, the crate gains its FIRST build-dependency, and both profiles gain a `build-override` (`ENGINE-UNIVERSAL-SERVICES.24` slice 2)
 
 **What moved.** `rust/build.rs` had one job: resolve each generated parser's include path and emit

@@ -33,7 +33,7 @@ const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
 /// instead of a host-process stack-overflow SIGABRT. Backward compatible; the
 /// regex path is unchanged (it keeps its own RGX-0085 worker + nesting
 /// pre-check).
-pub const EMBEDDING_API_VERSION: &str = "1.3.1";
+pub const EMBEDDING_API_VERSION: &str = "1.3.2";
 
 /// Stable schema version for serialized embedding API metadata.
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
@@ -3318,6 +3318,13 @@ mod tests {
             "(".repeat(2000),
             ")".repeat(2000)
         );
+        // ⭐⭐ ENGINE-UNIVERSAL-SERVICES.43 — THE CLOCK IS THE RE-ARM. This lock was the ONLY
+        // instrument aimed at the ceiling-taint defect, and the defect DISABLED it: with failure
+        // memoisation switched off by one ceiling trip, this parse never returned, so the test
+        // could not terminate and the suite it sits in was twice recorded as "abandoned after
+        // ~50 min" with exactly this test still running. A lock that hangs reports nothing. Now it
+        // FAILS instead, which is a report.
+        let started = std::time::Instant::now();
         for profile in [GrammarProfile::Sv2017, GrammarProfile::Verilog2005] {
             let outcome =
                 parse_grammar_profile(GrammarFamily::SystemVerilog, profile, &deep_expr);
@@ -3336,6 +3343,14 @@ mod tests {
                 profile, diagnostic.message
             );
         }
+        let elapsed = started.elapsed();
+        assert!(
+            elapsed < DEEP_NESTING_WALL_CLOCK_BUDGET,
+            "over-deep nesting must reach its diagnostic in bounded time, not search. Took {:?}, \
+             budget {:?} — see ENGINE-UNIVERSAL-SERVICES.43",
+            elapsed,
+            DEEP_NESTING_WALL_CLOCK_BUDGET
+        );
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
@@ -3346,8 +3361,11 @@ mod tests {
             "(".repeat(2000),
             ")".repeat(2000)
         );
+        // ENGINE-UNIVERSAL-SERVICES.43 — see the SystemVerilog twin: the clock is the re-arm.
+        let started = std::time::Instant::now();
         let outcome =
             parse_grammar_profile(GrammarFamily::Vhdl, GrammarProfile::Vhdl1076_2019, &deep_expr);
+        let elapsed = started.elapsed();
         if let Some(diagnostic) = outcome.diagnostic.as_ref() {
             assert_eq!(
                 diagnostic.code, "E_PARSE_FAILURE",
@@ -3355,10 +3373,139 @@ mod tests {
                 diagnostic.message
             );
         }
+        assert!(
+            elapsed < DEEP_NESTING_WALL_CLOCK_BUDGET,
+            "over-deep nesting must reach its verdict in bounded time, not search. Took {:?}, \
+             budget {:?} — see ENGINE-UNIVERSAL-SERVICES.43",
+            elapsed,
+            DEEP_NESTING_WALL_CLOCK_BUDGET
+        );
         // Reaching here at all is the real lock: the parse ran to a
         // structured verdict on a 2 MiB test thread instead of aborting the
         // process with a stack-overflow SIGABRT.
     }
+
+    // ⭐⭐ `ENGINE-UNIVERSAL-SERVICES.43` — the RE-ARMED ceiling lock, and the
+    // reason it exists is that the two `.8c.3` locks above were the ONLY
+    // instruments aimed at this defect and the defect DISABLED them. They pick
+    // depth 2000 to cross the 4096-frame ceiling "with certainty in both build
+    // modes"; that is far past the cliff, and while the ceiling was tainting the
+    // memo floor to 0 the parse never returned, so those tests could not
+    // terminate. A regression lock that cannot terminate is not a lock — it is a
+    // hang wearing a lock's name, and the suite it sits in was twice recorded as
+    // "abandoned after ~50 min" with exactly these two tests still running.
+    //
+    // The missing half is TIME. These locks assert the ceiling fires as a clean
+    // diagnostic *within a wall-clock budget*, and they are deliberately a PAIR
+    // so the bar can go RED in both directions:
+    //
+    //   * OVER the cliff must be a clean `E_PARSE_FAILURE` inside the budget —
+    //     RED if failure memoisation is ever disabled by a ceiling trip again;
+    //   * UNDER the cliff must still be ACCEPTED — RED if a future "fix" buys
+    //     bounded time by lowering the ceiling, or by making one ceiling trip
+    //     terminate the whole parse instead of just its own branch.
+    //
+    // ⛔ The budget is a HANG DETECTOR, not a performance ratchet. The measured
+    // gap it separates is ~3 orders of magnitude (sub-cliff parses land in
+    // milliseconds; the defect ran >150 s with no result at all), so a budget
+    // this loose still fires on the defect while never flaking on a loaded or
+    // debug-built machine. Parse-cost ratcheting is `PARSE-COST-RATCHET`'s job.
+    // Sizing, MEASURED rather than guessed (2026-08-21, this machine, debug build — the mode these
+    // tests actually run in). The first cut used 90 s and the VHDL arm FAILED at 222.06 s, which is
+    // the instrument working correctly and the sizing being wrong:
+    //
+    //   | arm                          | release | debug   | ratio |
+    //   |------------------------------|--------:|--------:|------:|
+    //   | SV   over-ceiling, 400 parens |  0.76 s | 13.6 s  | 17.9x |
+    //   | SV   under-ceiling, 250       |  ~0.1 s |  1.1 s  |       |
+    //   | VHDL over-ceiling, 800        | 18.06 s | 222.1 s | 12.3x |
+    //
+    // 300 s is ~22x the measured SV over-ceiling cost. It is deliberately loose: this separates
+    // "finite" from "never", and the gap it must span is unbounded.
+    const CEILING_WALL_CLOCK_BUDGET: std::time::Duration = std::time::Duration::from_secs(300);
+
+    // The DEEP locks below run at depth 2000 and cost ~210 s (SV, two profiles) / ~250 s (VHDL) in
+    // debug, so they get their own, looser budget — ~7x measured. ⛔ Their DEPTH is deliberately
+    // left at 2000: `SV-CORPUS-GRAD.8c.3` chose it to cross the ceiling "with certainty in both
+    // build modes", and re-tuning another leaf's deliberate margin to save gate seconds is not this
+    // leaf's call. What they were missing was never the depth — it was the clock.
+    const DEEP_NESTING_WALL_CLOCK_BUDGET: std::time::Duration = std::time::Duration::from_secs(1800);
+
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn parser_embedding_systemverilog_over_ceiling_nesting_fails_in_bounded_time() {
+        // 400 > the ~320-paren cliff measured on the shipped SV parser
+        // (4096 frames / ~12.8 logical frames per parenthesis level), so this
+        // input crosses the ceiling; 250 stays under it with margin.
+        let over = format!(
+            "module m; assign x = {}1{}; endmodule",
+            "(".repeat(400),
+            ")".repeat(400)
+        );
+        let started = std::time::Instant::now();
+        let outcome =
+            parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2017, &over);
+        let elapsed = started.elapsed();
+        assert_eq!(
+            outcome.status,
+            ParseStatus::Failure,
+            "over-ceiling nesting must be rejected, not accepted"
+        );
+        assert_eq!(
+            outcome
+                .diagnostic
+                .expect("over-ceiling nesting must carry a diagnostic")
+                .code,
+            "E_PARSE_FAILURE",
+            "over-ceiling nesting must surface as a clean parse failure"
+        );
+        assert!(
+            elapsed < CEILING_WALL_CLOCK_BUDGET,
+            "the recursion ceiling is a BOUND: crossing it must fail fast, not \
+             search. Took {:?}, budget {:?} — see ENGINE-UNIVERSAL-SERVICES.43",
+            elapsed,
+            CEILING_WALL_CLOCK_BUDGET
+        );
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn parser_embedding_systemverilog_under_ceiling_nesting_still_parses() {
+        // The CONTROL half: proves the bounded-time lock above is not being met
+        // by simply refusing deep input. 250 parens is ~3 200 frames, under the
+        // 4096-frame ceiling.
+        let under = format!(
+            "module m; assign x = {}1{}; endmodule",
+            "(".repeat(250),
+            ")".repeat(250)
+        );
+        let started = std::time::Instant::now();
+        let outcome =
+            parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2017, &under);
+        let elapsed = started.elapsed();
+        assert_eq!(
+            outcome.status,
+            ParseStatus::Success,
+            "sub-ceiling nesting must still be accepted — a bounded-time ceiling \
+             must not be bought by lowering it ({:?})",
+            outcome.diagnostic
+        );
+        assert!(
+            elapsed < CEILING_WALL_CLOCK_BUDGET,
+            "sub-ceiling nesting took {:?}, budget {:?}",
+            elapsed,
+            CEILING_WALL_CLOCK_BUDGET
+        );
+    }
+
+    // ⛔ THERE IS DELIBERATELY NO VHDL TWIN OF THE FAST PAIR ABOVE, and the reason is measured.
+    // VHDL has no CHEAP over-ceiling depth: its plateau is already saturated at its own cliff
+    // (700 parens 18.56 s, 800/1000/2000 all ~18 s in release — 222 s in debug), because the
+    // residual cost there is error construction, not search (`ENGINE-UNIVERSAL-SERVICES.44`). A
+    // second VHDL arm would therefore cost ~4 minutes per run to re-derive exactly what
+    // `parser_embedding_vhdl_deep_nesting_yields_clean_diagnostic_not_process_abort` already
+    // proves now that it carries a clock. One arm per family, and the family with a cheap
+    // over-ceiling depth gets the precise one.
 
     #[cfg(all(feature = "generated_parsers", has_generated_regex_parser))]
     #[test]

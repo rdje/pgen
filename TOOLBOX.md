@@ -532,6 +532,20 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 ### 3.3 `PGEN_REPORT_MEMO_STATS`
 - **WHAT:** print packrat memo hit/miss statistics. **WHEN:** perf triage of a slow parse. **HOW:** `PGEN_REPORT_MEMO_STATS=1 ./rust/target/release/parseability_probe --parse <g> f.sv`.
 - **ROUTING (RGX-0078.5.i.7 D2-A):** setting the env routes the parse to the PROTOCOL graph (fused `cascade_*` fns carry no memo lane, so memo stats are truthful only there) — automatic, like every diagnostic consumer under the observability twin.
+- **OUTPUT (headline):**
+  ```
+  === MEMO STATS: 8431 success entries (12 tainted) + 20117 cached failures (54 store-tainted, 0 depth-gated)
+      = 28548 total, 411903 subtree-nodes, 612 distinct rules, 0 depth-ceiling rejections ===
+  ```
+- ⭐⭐ **READ THE LAST FIELD FIRST ON ANY "THIS PARSE NEVER RETURNS" QUESTION** (`ENGINE-UNIVERSAL-SERVICES.43`).
+  `depth-ceiling rejections` is the count of times this parse crossed the engine's **4096-frame**
+  whole-stack ceiling, and `depth-gated` is how many failures were cached under the depth stamp that
+  crossing produces. **A healthy parse of any shipped corpus file reads `0` for both.** A non-zero
+  count means the input is at or past the ceiling — the parse is bounded and will reject, but the
+  numbers tell you *that* is why, before you go looking for a grammar defect. ⛔ A ceiling rejection
+  used to be un-cacheable outright, and one trip disabled failure memoisation for the whole remaining
+  parse: 315 nested parens parsed in 0.16 s and 320 returned nothing in 30 s. Those two fields exist
+  so that state is legible from one command instead of inferred from a hang.
 
 ### 3.4 `--dump-rule-entry-counts-json`
 - **WHAT:** after a `--parse`, write the parser's monotone per-rule ENTRY counters (every rule-method entry, successful AND backtracked — the always-on `fetch_add` on rule entry) as JSON `{grammar, accepted, total_entries, rule_entry_counts}`. The machine-readable dual of the live dashboard (3.1), which is stderr-only/refresh-based and useless for a sub-millisecond parse. Counts are a DELTA past a pre-parse baseline (SV's stdlib preload never pollutes them) and deterministic for a deterministic parser ⇒ a re-runnable oracle. Wired for every registered grammar's canonical-entry `--parse` path (not `--entry-rule`). RGX-0078.5.h.1.

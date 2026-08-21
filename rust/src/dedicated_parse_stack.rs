@@ -39,6 +39,18 @@
 //! Re-entrancy: a caller already on a dedicated parse stack (e.g. an
 //! embedding-API call made from inside the wrapped `ast_pipeline` main) runs
 //! inline — same stack guarantee, no nested spawn.
+//!
+//! ⭐ `ENGINE-UNIVERSAL-SERVICES.43` — THE OTHER HALF OF THE SAME LAW. This
+//! module guarantees the ceiling can FIRE; it says nothing about what happens
+//! next, and for a while what happened next was that the parse kept searching.
+//! A guard verdict propagates as an ordinary retryable failure, so once the
+//! ceiling had tainted the packrat failure cache the enclosing alternatives
+//! re-explored indefinitely: measured on the shipped SV parser, 315 nested
+//! parens accepted in 0.16 s and 320 returned no result in 30 s — a hang where
+//! `.8c.3` had replaced an abort. ⇒ "the ceiling always fires" is necessary and
+//! not sufficient; the ceiling must also BOUND the work that follows it, which
+//! is a memoisation property and lives in the generated parsers
+//! (`memo_fail_depth_gated` / `thin_fail_depth_gated`), not here.
 
 /// Stack size for dedicated parse threads: 256 MiB.
 ///

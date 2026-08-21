@@ -1,5 +1,72 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-21 - PGEN-ENGINE-UNIVERSAL-SERVICES-0081 — the field had a vocabulary for two of the three facts it was carrying, and the third was written as `0`
+
+**1. THE DEFECT WAS NOT IN THE CHANGE THAT CAUSED IT.** `SV-CORPUS-GRAD.3.12` is correct: caching a
+guard-blocked failure under the stack-blind key `(rule, position)` caused real wrong rejections on
+real corpus files, and refusing to cache such failures fixed them. It reads one field,
+`recursion_block_floor`, a **parse-stack frame index** — the index of the frame whose guard
+rejected. Two of the three verdicts that write it (`Infinite`, `LeftRecursive`) genuinely name a
+frame. The third, the whole-stack depth ceiling, does not. There is no honest index for *"the entire
+stack"*, so it wrote `0` — with a comment saying exactly why, and the comment is right. Frame `0` is
+outside every rule, so `.3.12`'s gate became true for every rule at `entry_depth >= 2`, and **one
+ceiling trip disabled failure memoisation for the whole remaining parse.**
+
+Looking for the bug inside `.3.12` finds nothing. Its evidence is real and its regression coverage
+is real. The cost lives in the one arm whose fact its channel could not express — an arm its own
+evidence had no reason to exercise. That is the reusable half, and it is promoted:
+`docs/knowledge/a-conservative-encoding-in-a-channel-that-cannot-express-the-fact-is-not-free.md`.
+
+**2. THE 15-LINE SYNTHETIC WAS WORTH MORE THAN THE 130 MB PARSER.** SystemVerilog's loop is ~25
+minutes (regenerate + release rebuild). Before writing any fix I built
+`ceiling_taint_probe.ebnf` — a 5-frame-per-level cascade plus a 3-way fan-out whose alternatives all
+re-enter the same position — and drove it through the interpreter (`--interpret-parse`), where the
+loop is ~1 minute and the ceiling is 2000 instead of 4096. It reproduced the cliff exactly: 398
+parens 0.03 s, 400 parens no result in 20 s. **Every design iteration after that was a minute, not
+half an hour.**
+
+The control mattered more than the probe. The same grammar with two of the three `primary`
+alternatives commented out rejects 1000 parens instantly *on unfixed HEAD*. That single run
+converted "the ceiling hangs" into "the ceiling terminates; the sibling re-exploration does not" —
+which is the difference between a fix aimed at termination and a fix aimed at memoisation. Guessing
+that wrong would have cost days.
+
+**3. THE SOUNDNESS ARGUMENT IS AN ORDERING ARGUMENT, AND THAT IS WHY ONLY ONE OF THE TWO VERDICTS
+GETS IT.** A depth ceiling prunes strictly more from a deeper stack, and extra pruning cannot turn a
+failure into a success ⇒ a failure at entry depth `D` holds at every depth `>= D`. That is a
+condition a cache entry can stamp and validate. The content-scoped verdicts have no such ordering —
+a different stack blocks differently in either direction — so they stay refused, unchanged. The
+gates compose because the content-scoped one runs FIRST and returns early, so an entry only reaches
+the depth-scoped gate once content-dependence has been excluded.
+
+**4. I EXPECTED TO DEFEND A NARROWING AND THE MEASUREMENT SAID THE OPPOSITE.** The risk I spent the
+most design effort on was a depth-gated replay wrongly refusing something. The before/after says
+nothing that parsed stopped parsing — and SV 318-320 and VHDL 590-660, which previously returned
+*nothing at all*, now parse. They were never rejections; they were non-answers. **Restoring
+memoisation did not change what the grammar accepts, it let the parser finish computing it.** The
+sharpest control is SV 317, which both trips the ceiling and still accepts (4.90 s → 0.14 s, verdict
+unchanged) — and it exists only because I measured the pre-fix binary at 1-paren resolution *before
+overwriting it*. Fifteen minutes spent on a measurement that could never be repeated.
+
+**5. TWO ERRORS OF MINE, BOTH CAUGHT BY INSTRUMENTS RATHER THAN BY READING.** (a) The first cascade
+patch filed a depth-gated failure for any non-store-*mutating* body, silently dropping the
+store-READ condition — that axis validates on an epoch stamp the side map does not carry. Caught in
+my own review before it shipped, corrected to pure bodies only; cost one regeneration cycle. (b) The
+first regression-lock budget was 90 s, and the VHDL arm failed: *"Took 222.057901958s, budget 90s"*.
+The assertion did its job and my number was bad. Budgets are now derived from measured debug timings
+(17.9× and 12.3× the release cost), and the redundant VHDL arm was deleted rather than re-budgeted.
+
+**6. A DESIGN REVERSAL THAT PAID FOR ITSELF.** The depth stamp was first added to
+`ThinTapeMemoEntry` — a SHARED runtime type — which stops every already-emitted artifact compiling,
+and the cold-clone bootstrap cannot recover because it must build `ast_pipeline` *with*
+`generated_parsers` before it can regenerate anything. Rerouting to a parser-local side map removed
+the coupling entirely. Chasing that wall is what surfaced `CI-PARITY-GATE-ROT.40`, a real break in
+the repository's documented cold-start command — **and the first version of that finding was wrong.**
+I called it longstanding; the repo's own action file records a successful bare-tree regeneration
+*after* the failing call site existed. Resolving that contradiction instead of dismissing it dated
+the break to one commit, `0099d0d3`, and named the mechanism. **A contradiction between my
+measurement and the repository's record is evidence, not noise.**
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0261 — the row I got wrong is the row that proves the fix, and I only found out by running it
 
 **1. I PUBLISHED A DEFECT THAT WAS NOT ONE, AND THE VERIFICATION CAUGHT ME.** `-0259` reported three

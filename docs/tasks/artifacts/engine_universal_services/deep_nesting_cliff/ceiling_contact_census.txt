@@ -1,0 +1,25 @@
+# THE STRUCTURAL NO-REGRESSION PROOF — does any ORDINARY parse reach the changed code path at all?
+# ENGINE-UNIVERSAL-SERVICES.43, measured 2026-08-21 on the post-fix release probe (SV cc874b60…).
+#
+# Both new memo channels are probed ONLY when `recursion_depth_block_events != 0`, i.e. only after
+# the whole-stack recursion ceiling has fired at least once in that parse. `PGEN_REPORT_MEMO_STATS`
+# now publishes that counter, so the question "could this change have altered this file's verdict?"
+# is answerable directly instead of by comparing timings.
+#
+#   for f in <corpus files>; do
+#     PGEN_REPORT_MEMO_STATS=1 ./rust/target/release/parseability_probe \
+#         --parse systemverilog "$f" --profile sv_2017
+#   done   # read `N depth-ceiling rejections` off the MEMO STATS headline
+#
+# RESULT:
+#
+#   CEILING-CONTACT CENSUS: 60 corpus files measured, 0 with a non-zero depth-ceiling rejection count
+#
+# ⇒ not one of them so much as PROBES the depth-gated map. The changed path is unreachable on
+#   ordinary input, so their verdicts cannot have moved — which is a structural argument, not a
+#   statistical one, and it is stronger than any before/after timing table could be.
+#
+# ⚠️ HONEST BOUND: 60 files is a SAMPLE of the external corpus, not the whole of it, and the census
+#   is SystemVerilog only. It shows the changed path is not on the ordinary parse path; it does not
+#   by itself prove the whole corpus is verdict-identical — `sv_external_corpus_triage_gate`
+#   (14/14, parse_fail_total=0) is the arm that measures that.
