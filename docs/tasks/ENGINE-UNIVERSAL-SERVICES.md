@@ -234,16 +234,45 @@ question is *"is that enough?"*, and that cannot be answered without naming the 
   the state this was found in. ⛔ This is the `CI-PARITY-GATE-ROT.2` thesis one surface over: *a check
   nothing invokes is indistinguishable from one that does not exist*. It was found only because an
   SV slice went looking for evidence ABOVE its own bar after a director challenge.
-- **WHAT THIS LEAF OWES**: (a) adjudicate (i) vs (ii) from the emitter's history, not from the test's
-  wording; (b) fix the side that is actually wrong — ⛔ **never by deleting the assertion**, which is
-  the tempting repair and the one that converts a possible codegen regression into silence; (c) the
-  durable half — decide whether `cargo test --lib` (or a bounded subset) belongs in the automatic
-  tier, priced against the CI policy, and record the ruling either way so the next red unit test is
-  not found by accident.
-- ⚠️ **BOUND**: this routing measured ONE red test in the `--lib` suite. The suite had not completed
-  when this was written (two `embedding_api` deep-nesting tests were still running past 35 minutes),
-  so **1 056 pass / 1 fail is a partial count, not the final tally** — (a) must re-run it to
-  completion before concluding this is the only one.
+- **WHAT THIS LEAF OWES**: (a) ⛔ **FIRST bound the two `embedding_api` deep-nesting tests** — hung or
+  merely superlinear? — because nothing else here can be counted until the suite can finish; (b) then
+  a FULL tally of red tests at HEAD, replacing the killed run's partial `1 056 / 1`; (c) adjudicate
+  the `semantic_annotation` failure's (i)-vs-(ii) from the emitter's history, not from the test's
+  wording, and fix the side that is actually wrong — ⛔ **never by deleting the assertion**, which is
+  the tempting repair and the one that converts a possible codegen regression into silence; (d) the
+  durable half — decide whether `cargo test --lib` (or a bounded subset that EXCLUDES the two
+  embedders) belongs in the automatic tier, priced against the CI policy, and record the ruling either
+  way so the next red unit test is not found by accident. ⚠️ Note the ordering trap: adding the suite
+  to the automatic tier BEFORE (a) would add a 90-minute non-terminating step to every commit.
+- ⛔⛔⛔ **AND THE BOUND RESOLVED INTO A SECOND, LARGER FINDING: THE FULL FEATURED `--lib` SUITE DOES
+  NOT COMPLETE AT ALL.** The run was **KILLED by the memory guard at its 5 400 s timeout** —
+  `memory-guard: BREACH (timeout): elapsed 5401s >= timeout 5400s` — with two `embedding_api`
+  deep-nesting tests still executing after ~85 minutes. ⇒ **`1 056 pass / 1 fail` is the tally of a
+  KILLED run, not a result**, and the count of red tests at HEAD is UNKNOWN rather than one.
+  ⚠️ The task notification reported `exit code 0`; that is the guard WRAPPER's exit, not cargo's, and
+  reading it as a pass would have been the error this bullet exists to prevent.
+- ⭐⭐ **IT IS NOT CAUSED BY `SV-0066` EITHER, AND THE CONTROL IS THE VHDL TWIN.** The two stuck tests
+  are the SystemVerilog and **VHDL** deep-nesting embedders. `generated_reproducibility_gate` tier 2
+  proved all ELEVEN artifacts re-derive byte-identically at HEAD, and only SystemVerilog's grammar
+  moved — so **VHDL's generated parser is byte-identical to before the campaign**. Run ALONE, with
+  `--test-threads 1` and no build to pay for (`Finished … in 1.12s`), the VHDL test executed for
+  **10m 48s without completing** and was stopped. A test whose parser did not change cannot have been
+  broken by a change to a different parser.
+- ⛔⛔ **AND IT IS PRE-EXISTING AND WAS KNOWN — IN PROSE, WITH NO OWNER.** `CHANGES.md`, 2026-08-14
+  (`PGEN-ENGINE-UNIVERSAL-SERVICES-0029`), records verbatim: *"⛔ The full featured lib suite was
+  started and **abandoned after ~50 min** — stated, not silent … the **9 failures** in the bare
+  `cargo test --lib` run are one build-configuration refusal in annotation-transform tests this diff
+  does not touch."* ⇒ a full-suite run that does not finish, and a bare-run failure count of **nine**,
+  were both observed a week before this session — recorded honestly in a changelog entry and **never
+  task-tree owned**. That is the `DOCTRINE-GAP-OWNERSHIP` thesis exactly: *a known defect written into
+  a note is not tracked work*. ⭐ Corroborating the same shape: every `cargo test --lib` invocation in
+  `CHANGES.md` since is **SCOPED** (`--lib indirect_lr`, `--lib grammar_wellformedness::tests`), and
+  the last recorded FULL-suite counts are 764–771 passes against a suite that now holds ~1 057 tests.
+- ⚠️ **BOUND, restated honestly**: this leaf has established that (i) at least one unit test is red at
+  HEAD and is not caused by the SV campaign, (ii) the full featured suite does not complete within 90
+  minutes, and (iii) both conditions predate this session. It has **not** established the total number
+  of red tests, nor whether the deep-nesting tests are hung or merely superlinear — (a) must bound the
+  two embedders first (they are the thing preventing any full tally), then count.
 
 ### ⚠️ `.41` NEW `todo` — FOUR more gates assert determinism across re-reads of a MUTABLE input while recording no input identity, and the helper they each need now exists and is probed (opened 2026-08-20 session #251 by `SV-CORPUS-GRAD.13c.2x.1`, `PGEN-SV-CORPUS-GRAD-0258`)
 

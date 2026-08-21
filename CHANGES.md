@@ -49,7 +49,11 @@
   nothing ran it for twelve days. ⛔ `MEMORY.md` recorded *"TWO tracked SV gates are RED"*; it is
   **three** — corrected.
 - ⛔⛔ **A LIBRARY UNIT TEST HAS BEEN RED AT HEAD — `ENGINE-UNIVERSAL-SERVICES.42` NEW.**
-  `cargo test --lib`: 1 056 pass, **1 FAILED** —
+  `cargo test --lib`: **the full featured suite DOES NOT COMPLETE** — the memory guard killed it at
+  its 5 400 s timeout with two `embedding_api` deep-nesting tests still executing after ~85 minutes,
+  so the observed 1 056 pass / **1 FAILED** is the tally of a KILLED run, not a result. ⚠️ The task
+  notification said `exit code 0`; that is the guard WRAPPER's exit, not cargo's. The one observed
+  failure is —
   `unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names`. Attributed before
   reporting: it fails **identically in a fresh target dir with NO generated parsers compiled in**
   (0.02 s), the campaign touched **zero** Rust source, and the test builds a synthetic in-memory
@@ -57,6 +61,14 @@
   `NATIVE_UNRESOLVED_REFERENCE_BUILTINS`, so it gets the generic `Err(Backtrack)` stub while the test
   asserts a special `@`-detecting fallback — `grep -n "b'@'"` returns ONE hit, line 15153, inside the
   test's own assertion. ⚠️ Which side is wrong is deliberately NOT settled in the routing.
+  ⭐⭐ **AND IT IS PRE-EXISTING AND WAS KNOWN, IN PROSE, WITH NO OWNER.** `CHANGES.md` 2026-08-14
+  records verbatim *"the full featured lib suite was started and abandoned after ~50 min — stated,
+  not silent … the 9 failures in the bare `cargo test --lib` run are one build-configuration
+  refusal"*. A non-terminating suite and a nine-failure bare run were both observed a week ago and
+  never task-tree owned — the `DOCTRINE-GAP-OWNERSHIP` thesis. ⭐ Control for the hang: the two stuck
+  tests are the SV and **VHDL** embedders, and VHDL's generated parser is byte-identical at HEAD
+  (tier 2, 11/11); run ALONE with `--test-threads 1` the VHDL test executed **10m 48s** without
+  completing. Not caused by `SV-0066`.
   ⭐⭐⭐ **The meta-finding is the lane, not the test**: `cargo test --lib` is not in the automatic
   tier, so a red unit test can sit at HEAD with every doctrine, gate and book check GREEN — the
   `CI-PARITY-GATE-ROT.2` thesis one surface over. It was found only because an SV slice went looking
