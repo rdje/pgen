@@ -1,5 +1,68 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-21 - PGEN-SV-CORPUS-GRAD-0269 — the repository fixed the machine-readable half of a two-copy invariant and left the human-readable half unwatched, and that asymmetry is the whole defect
+
+**1. THE RE-BASELINE WAS THE CHEAP HALF.** Re-deriving seven numbers is one command run three
+times. What made `.13c.2x` worth its length is the shape underneath it: `.13c.2x.2` had already
+given the *baseline* an identity block that is re-hashed on every run, so the JSON could say "I no
+longer describe this tree" — and nothing whatsoever did that for the **published copy of the same
+numbers**. So the contract got a self-check and the book got none, and the book is the surface the
+director actually reads. Eleven re-baselines later the section was still asserting, in bold, that
+SystemVerilog is recognized `fully_certified` while the measured union `UNKNOWN` was 53. A stale
+number misinforms; a stale verdict misdirects.
+
+**2. THE VERDICT HAD TO BE DERIVED, NOT COMPARED.** The obvious tier-4 design is "hold the six
+published numbers equal to the six contract fields". That design passes the exact defect this leaf
+exists for. Flip only the verdict sentence to `true` and every number in the block is still correct
+— a six-number checker sees nothing. So the checker computes `expected_union_unknown == 0` from the
+contract and holds the published verdict row to *that*. `RED-11` in the probe driver is precisely
+this mutant, and it is deliberately the first new arm: the arm that proves the check is not a more
+expensive way of comparing numbers that were never the problem.
+
+**3. WATCHING A MARKER BLOCK RATHER THAN THE PROSE IS A DESIGN DECISION WITH A MEASURED PRICE.**
+The book quotes historical tuples on purpose — `total 1304→1324`, *"the then-current headline
+was …"* — and a checker that failed on every certificate tuple in prose would be `.13c.2x.4` all
+over again, the leaf where one comment line in the grammar blocked every commit. So tier 4 watches
+what is inside `SV-CERT-UNION-TUPLE:BEGIN/END` and nothing else. The price is honest and it is
+measured, not estimated: a tracked census reports `tuple_lines_watched=2 tuple_lines_loose=59`
+across six book pages. The residual defect is *not* "59 unwatched numbers" — most of them must stay
+unwatched. It is that nothing in the book distinguishes a LIVE claim from a historical one, so
+neither a reader nor an instrument can tell them apart. That is `.13c.2x.8`, opened and parked.
+
+**4. THE CENSUS CAUGHT MY OWN DRAFT, WHICH IS THE ONLY REASON I TRUST IT.** I wrote the leaf's
+bound bullet before re-running the census, predicting `watched=8 loose=63` from the block's eight
+published rows. The real numbers are `2` and `59`: the census counts tuple-shaped LINES, and the
+block's numeric rows name contract keys (`expected_total`) rather than report syntax
+(`total=1385`), so only two of its lines match at all. Two instruments, two units. The fix was not
+just to correct the number — it was to relabel the census `tuple_lines_*` so the unit is stated at
+the point of use, and to record in the leaf that the row count belongs to the enforcer and the line
+count to the census, and neither may borrow the other's. This is the same failure mode as every
+carried number this tree has had to retract; the difference is that this one was caught by re-running
+rather than by re-reading.
+
+**5. THREE BLOCKERS, AND THE INTERESTING ONE IS THE ONE THAT STAYED OPEN.** `.13c.2y` was closed.
+`.13c.2x.6` landed here. `.13c.2x.5` — the gate parses a residual display line capped at 25 names —
+was *measured* unreachable rather than assumed: every seed prints `UNION UNKNOWN rules (1 of 1
+shown)`, so `shown == total`. That is a reprieve, not a fix, and its leaf stays open, because the
+gate still consumes a print budget as data and still does not assert `shown == total`. The next
+residual above 25 fires it silently, and a green gate would then be evidence for a residual it never
+saw. Closing a blocker because today's input cannot reach it is how a latent defect gets forgotten.
+
+**6. THE GATE IS GREEN AND SV IS NOT `fully_certified`, AND BOTH SENTENCES ARE TRUE.** The gate
+passes because the contract now describes the tree. `fully_certified_via_union` is `false` because
+the union `UNKNOWN` is `1`. Keeping those two facts visibly separate is most of what this leaf was
+for — the previous state of the world had them fused, and the fused version is the one that told a
+reader SV was ready.
+
+**7. AN OPS FINDING THE RUN ITSELF PRODUCED.** Running the union gate turned
+`GENERATED-REPRODUCIBILITY` tier 1 RED with **zero** tracked source changed and the SV parser
+**byte-identical** (`cc874b60…` before and after). Cause: the gate's `focus_systemverilog` stage
+rewrites `generated/systemverilog.json`, whose envelope embeds a wall-clock `generated_at`, and
+tier 1 hashes that file as `input_sha`. So a read-only proof gate moves a doctrine's input by
+running, and the movement carries no information about the artifact that matters. Recorded in the
+leaf and routed; it is distinct from `CI-PARITY-GATE-ROT.41`, which is a population mismatch on
+`scratch`.
+
 ## 2026-08-21 - PGEN-SV-CORPUS-GRAD-0268 — the acceptance criterion that said "do not design this from a sample of one" was the whole value of the leaf
 
 **1. THE BACK-FILL WAS THE CHEAP HALF.** Nine missing releases and five missing schema rows are two

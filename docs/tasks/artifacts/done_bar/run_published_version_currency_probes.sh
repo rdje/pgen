@@ -150,6 +150,125 @@ printf 'not json at all\n' >"$WORK/register_broken.json"
 arm "RED-10 unreadable register refuses" 1 "is unreadable" \
     -- "PGEN_PVC_TRACKER=$WORK/register_broken.json"
 
+
+# ------------------------------------------------------------------------------------------------
+# SV-CORPUS-GRAD.13c.2x.6 — the SV recognized cert-coverage UNION tuple arms (tier 4).
+#
+# THE FOUNDING DEFECT, RESTATED SO THE ARMS ARE READ AGAINST IT: this book section published the
+# tuple as of 2026-07-22, the contract was re-baselined ELEVEN times underneath it, and the section
+# still asserted in bold that SystemVerilog is recognized `fully_certified` while the measured union
+# UNKNOWN was 53. A stale NUMBER misinforms; a stale VERDICT misdirects. RED-11 is that defect
+# replayed verbatim, and it is deliberately the FIRST arm.
+SVPAGE="docs/book/src/grammar-wellformedness.md"
+SVCONTRACT="rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json"
+
+mutate_sv_page() {
+    # mutate_sv_page OUT_NAME MODE [ARG] — build a mutant of the book page under $WORK.
+    python3 - "$ROOT/$SVPAGE" "$WORK/$1" "$2" "${3:-}" <<'PY'
+import re, sys
+src, dst, mode, arg = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+text = open(src, encoding="utf-8").read()
+BEGIN, END = "SV-CERT-UNION-TUPLE:BEGIN", "SV-CERT-UNION-TUPLE:END"
+
+if mode == "drop-markers":
+    text = text.replace(BEGIN, "tuple-marker-removed").replace(END, "tuple-marker-removed")
+else:
+    head, rest = text.split(BEGIN, 1)
+    block, tail = rest.split(END, 1)
+    lines = block.splitlines(keepends=True)
+
+    def key_of(line):
+        cells = [c.strip() for c in line.split("|")]
+        if len(cells) < 5:
+            return None
+        m = re.search(r"`([a-z_]+)`", cells[2])
+        return m.group(1) if m else None
+
+    def set_value(line, value):
+        cells = line.split("|")
+        cells[3] = " %s " % value
+        return "|".join(cells)
+
+    if mode == "set":                            # publish a value the contract does not declare
+        key, value = arg.split("=", 1)
+        lines = [set_value(l, value) if key_of(l) == key else l for l in lines]
+    elif mode == "drop-row":                     # a contract key stops being published
+        lines = [l for l in lines if key_of(l) != arg]
+    elif mode == "add-row":                      # publish a key the contract does not hold
+        lines.append("| phantom | `%s` | 1 |\n" % arg)
+    elif mode == "empty-table":                  # markers present, zero rows
+        lines = [l for l in lines if key_of(l) is None]
+    else:
+        raise SystemExit("unknown mutate mode %r" % mode)
+
+    text = head + BEGIN + "".join(lines) + END + tail
+
+open(dst, "w", encoding="utf-8").write(text)
+PY
+}
+
+# RED-11 — ⛔ THE HISTORICAL DEFECT, VERBATIM: the published verdict says SV IS recognized
+# `fully_certified` while the contract's union UNKNOWN is 1. Every NUMBER in the block is still
+# correct in this mutant — which is the point. A checker that held only the six numbers would pass
+# this, and the one cell that actually misdirects a reader would stay unwatched.
+mutate_sv_page sv_false_verdict.md set "fully_certified_via_union=true"
+arm "RED-11 false fully_certified verdict fails" 1 "publishes fully_certified_via_union = 'true' but the contract declares False" \
+    -- "PGEN_PVC_SV_CERT_UNION_PAGE=$WORK/sv_false_verdict.md"
+
+# RED-12 — a published NUMBER drifts from the contract. `1362` is not an arbitrary mutant: it is the
+# exact stale `expected_total` this section carried through eleven rebaselines.
+mutate_sv_page sv_stale_total.md set "expected_total=1362"
+arm "RED-12 stale published total fails, named" 1 "publishes expected_total = '1362'" \
+    -- "PGEN_PVC_SV_CERT_UNION_PAGE=$WORK/sv_stale_total.md"
+
+# RED-13 — the PRODUCER side moving without the book. This is the drift direction that actually
+# happened eleven times, and it is the one a book-only check would never see.
+python3 -c "
+import json,sys
+d=json.load(open('$ROOT/$SVCONTRACT'))
+d['expected_union_unknown']=0
+json.dump(d,open('$WORK/sv_contract_advanced.json','w'),indent=2)
+"
+arm "RED-13 contract advance without the book fails" 1 "publishes expected_union_unknown = '1' but the contract declares 0" \
+    -- "PGEN_PVC_SV_CERT_UNION_CONTRACT=$WORK/sv_contract_advanced.json"
+
+# RED-14 — contract→book direction: a number that quietly stops being published. Without this arm the
+# block could shrink to one row and still read green.
+mutate_sv_page sv_missing_row.md drop-row expected_union_residual_rules
+arm "RED-14 dropped published row fails" 1 "carries NO row for it" \
+    -- "PGEN_PVC_SV_CERT_UNION_PAGE=$WORK/sv_missing_row.md"
+
+# RED-15 — book→contract direction: a published row for a key the contract does not hold.
+mutate_sv_page sv_extra_row.md add-row expected_phantom_field
+arm "RED-15 phantom published key fails" 1 "carries a row for 'expected_phantom_field'" \
+    -- "PGEN_PVC_SV_CERT_UNION_PAGE=$WORK/sv_extra_row.md"
+
+# RED-16 — the block cannot be LOCATED. Passing by absence is the vacuous-green class.
+mutate_sv_page sv_no_markers.md drop-markers
+arm "RED-16 missing marker pair refuses" 1 "carries no SV-CERT-UNION-TUPLE:BEGIN" \
+    -- "PGEN_PVC_SV_CERT_UNION_PAGE=$WORK/sv_no_markers.md"
+
+# RED-17 — markers present, ZERO rows. An empty table agrees with every contract.
+mutate_sv_page sv_empty_table.md empty-table
+arm "RED-17 empty tuple table refuses" 1 "yielded ZERO published rows" \
+    -- "PGEN_PVC_SV_CERT_UNION_PAGE=$WORK/sv_empty_table.md"
+
+# RED-18 — the residual SET is compared as a set, not as a string: a DIFFERENT single name must fail
+# even though the row still parses as a one-element array of the right shape.
+mutate_sv_page sv_wrong_residual.md set 'expected_union_residual_rules=`["select_expression_lr_suffix"]`'
+arm "RED-18 wrong residual rule name fails" 1 "publishes expected_union_residual_rules" \
+    -- "PGEN_PVC_SV_CERT_UNION_PAGE=$WORK/sv_wrong_residual.md"
+
+# RED-19 — a published cell that is not the type the contract holds must be named, not coerced.
+mutate_sv_page sv_bad_type.md set "expected_union_unknown=none"
+arm "RED-19 non-integer published cell fails" 1 "must publish an integer" \
+    -- "PGEN_PVC_SV_CERT_UNION_PAGE=$WORK/sv_bad_type.md"
+
+# RED-20 — an unreadable contract refuses rather than treating "no expectations" as agreement.
+printf 'not json at all\n' >"$WORK/sv_contract_broken.json"
+arm "RED-20 unreadable contract refuses" 1 "is unreadable" \
+    -- "PGEN_PVC_SV_CERT_UNION_CONTRACT=$WORK/sv_contract_broken.json"
+
 echo "------------------------------------------------------------------------------"
 printf 'published-version-currency probes: %d/%d passed\n' "$pass" "$((pass + fail))"
 [[ "$fail" -eq 0 ]] || exit 1

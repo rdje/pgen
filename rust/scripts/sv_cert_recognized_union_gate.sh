@@ -198,10 +198,16 @@ case "$identity_rc" in
         exit 2
         ;;
 esac
-# ⚠️ OWED, and named so it is not forgotten: this gate does not yet AUTO RE-STAMP on stale+green
-# the way `sv_syntax_closure_gate` does, because its contract is `unconfirmed` today and cannot
-# reach that cell. It becomes reachable the moment `SV-CORPUS-GRAD.13c.2x`(c) confirms it, and the
-# re-stamp belongs in that slice.
+# ⭐⭐ DELIVERED BY `SV-CORPUS-GRAD.13c.2x`(c), which is the slice that made the cell reachable: on
+# STALE + GREEN this run RE-STAMPS the baseline itself, on `sv_syntax_closure_gate`'s model. Every
+# expectation was re-derived against the current tree and every one held, so "stale and still
+# correct" is a DERIVED fact needing no human judgement — and re-stamping it here is what removes
+# the adoption friction that leaves a block unread. The guard that keeps it honest: the re-stamp is
+# reached ONLY after `recognized_basis_green == true`, and every stage above exits non-zero rather
+# than skipping, so a vacuous green cannot arrive there.
+# ⛔ STALE + RED is the one cell that genuinely needs a person, and this gate now says so rather
+# than letting the RED read as "the tree regressed" — the exact wrong diagnosis when the baseline
+# is the stale half, which is the shape that left this contract wrong for eleven revisions.
 
 base_entry="$(jq -r '.base_entry' "$CONTRACT_FILE")"
 base_profile="$(jq -r '.base_profile' "$CONTRACT_FILE")"
@@ -482,7 +488,32 @@ require_nonempty_file "$SUMMARY_JSON"
 if [[ "$recognized_basis_green" != "true" ]]; then
     echo "❌ SV recognized cert-coverage union basis NOT green: primary_unmet=${primary_unmet}" >&2
     echo "   (see $SUMMARY_TXT / $SUMMARY_JSON and per-seed logs under $LOG_DIR)" >&2
+    if (( identity_stale == 1 )); then
+        {
+            echo ""
+            echo "  ⛔ AND THIS BASELINE IS STALE: a declared input moved since it was confirmed."
+            echo "     So the failure above is AMBIGUOUS — it may be a real regression, or the"
+            echo "     contract may simply no longer describe this tree. Adjudicate it; do NOT"
+            echo "     re-stamp to make it green, because a stamp asserts the numbers were"
+            echo "     RE-DERIVED and matched, which is precisely what just did not happen."
+        } >&2
+    fi
     exit 1
+fi
+
+# ⭐⭐ STALE + GREEN => THIS RUN IS THE CONFIRMING RUN (see the matrix at the identity check above).
+if (( identity_stale == 1 )); then
+    echo "==> baseline_identity_restamp"
+    if "$ROOT_DIR/scripts/check_baseline_identity.sh" --stamp "${CONTRACT_FILE#"$ROOT_DIR/"}" \
+        --confirmed-by "auto re-stamped by a GREEN sv_cert_recognized_union_gate run: \
+canonical=${expected_total}/${expected_proof}/${expected_canonical_witness}/${overall_canonical_unknown} \
+union_witness=${overall_union_witness} union_unknown=${overall_union_unknown} \
+residual=${overall_residual_sorted} seeds=${seeds_json} sample_parse_failures=0"; then
+        echo "    the baseline was STALE and every expectation still held, so this run re-stamped it"
+    else
+        echo "    ⛔ the re-stamp FAILED — the gate's verdict stands, but the baseline is still stale" >&2
+        exit 1
+    fi
 fi
 
 echo "✅ SV recognized cert-coverage union gate passed (canonical UNKNOWN=${overall_canonical_unknown}, union UNKNOWN=${overall_union_unknown}, residual=${overall_residual_sorted}, deterministic across seeds ${seeds_json})."

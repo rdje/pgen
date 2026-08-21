@@ -1630,63 +1630,98 @@ certified." A number is only as trustworthy as the oracle that re-derives it, so
 is not left as prose: it is locked by a re-runnable, deterministic gate,
 `make -C rust SHELL=/bin/bash sv_cert_recognized_union_gate`. The gate runs the
 `--report-certificate-coverage` + 4-config `--cert-union-config` invocation *for each* of seeds
-0/7/42 and asserts, against a tracked contract
-(`rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json`), the canonical
-accounting (`total=1343 proof=10 witness=1322 UNKNOWN=11`), the union accounting
-(`witness=1333 UNKNOWN=0`), the exact union residual rule set (`[]` — empty,
-compared order-insensitively), `sample_parse_failures=0`, and that all three seeds agree
-byte-for-byte. (The count pins have been re-baselined as accounted rules were added, each time
-preserving the load-bearing UNION invariant — union `UNKNOWN=1`, the same single residual rule:
-2026-07-02, `VERILOG-2005-PROFILE.5` — the `SV-AST-SHAPE-FIDELITY` named-lift
-campaign plus the `verilog_2005`-profile named-lifts, `total 1304→1324`; then through the
-`verilog_2005` boundary-leak lifts and the `SV-DOLLAR-LRM-FIDELITY` LRM-fidelity campaign
-(2026-07-02→03) — 17 more accounted rules, `total 1324→1341`, canonical witness `1302→1319`, union
-witness `1321→1338`; then the `SV-0032`/`SV-0034` void/dimension gates re-pinned `total 1341→1343`;
-then `VERILOG-2005-PROFILE.6.7` (2026-07-05, the per-profile `proof` promotion) moved canonical
-`proof 2→10` and canonical `UNKNOWN 20→12` — the 8 `sv_2017`-profile-entry-unreachable
-SystemVerilog-only rules are now PROVED, not UNKNOWN — while the union stays invariant (proof gathering
-is canonical-only, so `union_proof == canonical_proof == 10`; the 8 rules are proof-under-`sv_2017` +
-witness-under-`sv_2023`, so union witness `1338→1332` and union `UNKNOWN` stays `1`); and finally
-`STRUCTURED-WITNESS-SYNTH.3/.4` (2026-07-22, the structured-witness composition pass above) closed
-the last reach-gap — canonical witness `1321→1322` / `UNKNOWN 12→11`, union witness `1332→1333` /
-`UNKNOWN 1→0`, residual `[]`.) So the recognized figure cannot silently drift, and the final union
-`1 → 0` flip was itself gated exactly as promised: the contract is re-baselined to
-`expected_union_unknown=0` in the same wave as the capability landing, and the gate re-derives it
-across seeds 0/7/42. **The `done_rule` had fired: SystemVerilog was recognized `fully_certified` on
-the sound multi-config union basis** — every one of the 1,343 accounted rules is either PROVED
-(profile-entry-unreachable under the canonical profile, independently re-derived) or WITNESSED
-through the real parser in at least one declared configuration. The canonical single-config
-accounting (`UNKNOWN=11`: the 11 entry-relative library/include/parseable-fragment rules, each
-union-covered under its own entry) is recorded alongside, as always. (The gate adds a proof
-surface only — it changes no grammar, parser, generator, or generated artifact; the cert numbers
-are read-only measurements.)
+0/7/42 and asserts every field below against the tracked contract
+(`rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json`), together with
+`sample_parse_failures=0`, the union residual rule set compared order-insensitively, and
+byte-for-byte agreement between all three seeds. (The gate adds a proof surface only — it changes no
+grammar, parser, generator or generated artifact; the cert numbers are read-only measurements.)
 
-⛔ **SUPERSEDED, and read this before quoting any number in the paragraph above.** Every figure in
-it is the contract as of **2026-07-22**; the contract's expectations have been re-baselined
-**eleven times** since, and four of the six numbers above already disagree with the tracked
-contract — before HEAD's own measurement is considered. Re-measured at HEAD on **2026-08-20**
-(`SV-CORPUS-GRAD.13c.2x`(a)), deterministically across seeds 0/7/42:
+#### The live tuple
 
-| | published above | tracked contract | measured at HEAD |
-|---|---:|---:|---:|
-| canonical `total` / `proof` / `witness` / `UNKNOWN` | 1343 / 10 / 1322 / 11 | 1362 / 6 / 1345 / 11 | **1434 / 8 / 1362 / 64** |
-| union `witness` / `UNKNOWN` | 1333 / **0** | 1356 / **0** | **1373 / 53** |
-| `fully_certified` via the union | **true** | true | ⛔ **false** |
+<!-- SV-CERT-UNION-TUPLE:BEGIN — held equal to
+     rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json by
+     scripts/check_published_version_currency.sh (PUBLISHED-VERSION-CURRENCY, tier 4).
+     Re-baseline the contract first; this table is the published view of it, never the source.
+     The verdict row is DERIVED from expected_union_unknown by the checker, so it cannot drift
+     away from the numbers above it — which is exactly how this section once came to assert
+     `fully_certified` while the numbers beneath it said otherwise. -->
 
-**SystemVerilog is not recognized `fully_certified` on the union basis today.** What retired it was
-the indirect left-recursion admission flip of 2026-08-14, which absorbed the `casting_type` and
-`property_expr` knots and synthesised rules the witness planner does not reach — and that
-attribution is measured, not inferred: re-running the same binary on the same grammar with the pass
-held off gives `total 1365`, union `UNKNOWN 2`, so **69 of the 72 added rules and 51 of the 53
-residual `UNKNOWN`s are the engine**, and the eleven grammar revisions in the same window account
-for the other three and two. Of the 53: of the 53 residual
-`UNKNOWN`s, **43** are eliminator-authored `property_expr_lr_*` rules — independently corroborated
-as never-firing by the corpus rule-coverage instrument described in the next section — and the
-remaining **10** are witness-planner reach gaps whose constructs were each parsed successfully
-through the real parser. **Zero of the 53 is a parser defect**, and the loss is one of proof
-surface rather than of correctness. The full re-publication of this section is owed by
-`SV-CORPUS-GRAD.13c.2x.6` and lands with the contract's re-baseline, so that the book and the
-contract move in one step instead of drifting apart again.
+| Field | Contract key | Value |
+|---|---|---:|
+| canonical `total` | `expected_total` | 1385 |
+| canonical `proof` | `expected_proof` | 7 |
+| canonical `witness` | `expected_canonical_witness` | 1366 |
+| canonical `UNKNOWN` | `expected_canonical_unknown` | 12 |
+| union `witness` | `expected_union_witness` | 1377 |
+| union `UNKNOWN` | `expected_union_unknown` | 1 |
+| union residual rule set | `expected_union_residual_rules` | `["known_unscoped_property_identifier"]` |
+| recognized `fully_certified` via the union | `fully_certified_via_union` — derived as `expected_union_unknown == 0` | false |
+
+<!-- SV-CERT-UNION-TUPLE:END -->
+
+⛔ **SystemVerilog is not recognized `fully_certified` on the union basis today.** The `done_rule`
+requires `union UNKNOWN = 0`, and it is `1`.
+
+#### Reading the tuple
+
+Both accountings close arithmetically — canonical `7 + 1366 + 12 = 1385`, union `7 + 1377 + 1 = 1385`
+— and the two are related by exactly one number: the union credits **11** rules the canonical
+single-config accounting cannot, and the canonical `UNKNOWN` falls by the same **11**. Those eleven
+are the entry-relative library / include / parseable-fragment rules — `sv_multi_entry_root`,
+`systemverilog_parseable_file`, `parseable_source_item`, `include_statement`, `library_declaration`,
+`library_description`, `library_text`, `kw_file_path_spec_*`, `kw_incdir_*`, `kw_include_*`,
+`kw_library_*` — each of which *is* covered once its own entry rule is declared, which is precisely
+what the four union configs declare. The twelfth canonical `UNKNOWN`,
+`known_unscoped_property_identifier`, is covered by no declared configuration, and it is the whole
+residual.
+
+The residual is a **proof-surface gap, not a parser defect**: the construct that rule names parses
+successfully through this very parser (`SV-CORPUS-GRAD.13c.2x`(a) put it through). What is missing is
+a *witness the planner can reach*, not correctness.
+
+#### When `fully_certified` was true, and what retired it
+
+This section asserted the claim in bold, and the claim was true, from **2026-07-22** — when
+`STRUCTURED-WITNESS-SYNTH.3/.4` closed the last reach gap and the contract was re-baselined to
+`expected_union_unknown=0` (`2e1aaa53`) — until **2026-08-14**, when
+`PGEN-ENGINE-UNIVERSAL-SERVICES-0032` (`0994c3c0`) landed the **indirect left-recursion admission
+flip**. That flip absorbed the `casting_type` and `property_expr` knots and synthesised rules the
+witness planner does not reach.
+
+⭐ **The attribution is measured, not inferred.** Re-running the same binary on the same grammar with
+the elimination pass held off gave `total 1365` and union `UNKNOWN 2` — so **69 of the 72 added rules
+and 51 of the then-53 residual `UNKNOWN`s were the engine**, and the eleven grammar revisions in the
+same window accounted for the other three and two.
+
+The residual then fell from **53 rules to one**, and not by chasing the 53. `SV-CORPUS-GRAD.13c.2y`
+(2026-08-20, release `1.0.193`) repaired an unrelated *over-rejection*: the IEEE 1800 keyword
+`implies` had been bound to the arrow token of the same name, and `| property_expr implies
+property_expr` was the **only** left-recursive alternative in `prop_primary_*`. Moving it to its
+correct precedence level dissolved the `property_expr` indirect-LR knot outright — the 43
+eliminator-authored `property_expr_lr_*` temporaries are no longer emitted at all, and nine SVA
+`kw_*` operator tokens that could not be witnessed now are. `proof` moved `8 → 7` in the same step,
+and that is an improvement rather than a loss: `property_expr_sv_2017` was PROVED only while the
+eliminator had rewritten it, and it is now WITNESSED instead.
+
+⚠️ **For six days this section published the retired claim as current, and that is the defect worth
+naming.** The contract was re-baselined eleven times underneath it; four of its six published numbers
+already disagreed with the tracked contract before HEAD's own measurement was considered; and nothing
+in the repository read the published copy. `SV-CORPUS-GRAD.13c.2x.2` had already given the
+*baseline* an identity block that is re-hashed on every run, so the JSON could say it was stale —
+the repository had fixed the machine-readable half of a two-copy invariant and left the
+human-readable half unwatched. The marker block above is the other half: since
+`SV-CORPUS-GRAD.13c.2x`(c) the tuple **and its verdict** are held equal to the contract by
+`scripts/check_published_version_currency.sh`, in both directions, so a re-baseline that forgets this
+page now fails rather than drifting. The rebaseline history itself is deliberately *not* restated
+here — it lives in the contract's own `rebaseline_note`, so there is no second copy to rot.
+
+⚠️ **Bound, stated so the fix is not over-claimed.** One published tuple is watched: this one. A
+re-runnable census
+(`docs/tasks/artifacts/sv_corpus_grad/cert_union_rebaseline/published_cert_tuple_census.sh`) sizes
+the rest — **63 further certificate-tuple lines across six book pages**, held by nothing. Most are
+deliberate narrative (`total 1304→1324`, "the then-current headline was …") and must stay
+unwatched; a checker that failed on every tuple in prose would be an adoption cost, not a fix.
+Sorting the live claims from the historical ones is tracked, not waived.
 
 ### The corpus rule-coverage instrument (the external mirror of the certificate axis)
 

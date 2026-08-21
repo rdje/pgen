@@ -15,7 +15,10 @@
 #      PGEN-RGX-0091 embedding-constants gate is specified against);
 #   2. the user guide's published `family status:` equals the register's `regex` claim;
 #   3. LIVE-MEANS-LIVE.1c1 — the BOOK's published per-family snapshot table equals the register's
-#      `claimed_status` for EVERY family, in both directions.
+#      `claimed_status` for EVERY family, in both directions;
+#   4. SV-CORPUS-GRAD.13c.2x.6 — the BOOK's published SV recognized cert-coverage UNION tuple equals
+#      the gate's tracked contract, in both directions, INCLUDING the `fully_certified` verdict,
+#      which is DERIVED here from `expected_union_unknown` rather than copied.
 #
 # WHY THE BOOK IS HELD TO THE SAME BAR (LIVE-MEANS-LIVE.1c1). The director reviews the book, not
 # the code — so the book IS the published state for the reader who matters most, and this doctrine
@@ -38,9 +41,11 @@
 # register but ABSENT from the table each FAIL. A snapshot that silently stops listing a family
 # would otherwise publish "no such family" as agreement.
 #
-# TESTABILITY SEAMS (probe driver: docs/tasks/artifacts/done_bar/run_published_version_currency_probes.sh):
+# TESTABILITY SEAMS (probe driver: docs/tasks/artifacts/done_bar/run_published_version_currency_probes.sh
+# — 21 arms, every one asserting BOTH the exit code and a substring of the message):
 #   PGEN_PVC_GUIDE / PGEN_PVC_CONTRACT / PGEN_PVC_TRACKER — override the three inputs one at a time;
-#   PGEN_PVC_BOOK_PAGE — override the book snapshot page.
+#   PGEN_PVC_BOOK_PAGE — override the book snapshot page;
+#   PGEN_PVC_SV_CERT_UNION_PAGE / PGEN_PVC_SV_CERT_UNION_CONTRACT — override tier 4's two inputs.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -170,7 +175,145 @@ case "$book_report" in
     *)         note "the book snapshot comparison produced no verdict — a check that cannot see must refuse, not pass" ;;
 esac
 
+# ---------------------------------------------------------------------------------------------
+# (4) The BOOK's published SV recognized cert-coverage UNION tuple == the gate's tracked contract,
+#     in BOTH directions, INCLUDING the derived `fully_certified` verdict.
+#
+# WHY (SV-CORPUS-GRAD.13c.2x.6, measured). `docs/book/src/grammar-wellformedness.md` published this
+# tuple as of 2026-07-22 and the contract was re-baselined **eleven times** underneath it — four of
+# the six numbers already disagreed with the tracked contract — while the section still asserted, in
+# bold, that SystemVerilog is recognized `fully_certified`. `.13c.2x.2` gave the BASELINE an identity
+# block that is re-hashed every run, so the JSON can now say it is stale; nothing did that for the
+# PUBLISHED copy of the same numbers. That asymmetry is what let it rot for eleven rebaselines.
+#
+# ⛔ THE VERDICT IS HELD TOO, AND IT IS DERIVED HERE RATHER THAN COPIED. The published verdict row
+# must equal `expected_union_unknown == 0` computed from the contract. Holding only the six numbers
+# would have left the one cell that actually misdirected a reader — *"SV is recognized
+# fully_certified"* — unwatched: every number could be re-published correctly and the sentence
+# beneath them still say the opposite of what they mean.
+#
+# ⛔ IT WATCHES A MARKER BLOCK, NOT THE PROSE, AND THAT IS DELIBERATE. The book quotes historical
+# tuples on purpose (`total 1304→1324`, "the then-current headline was …"); a checker that failed on
+# every cert tuple in prose would be `SV-CORPUS-GRAD.13c.2x.4` again — a doctrine whose adoption cost
+# blocks every commit. The census that sizes the loose population is an instrument, not a gate:
+# docs/tasks/artifacts/sv_corpus_grad/cert_union_rebaseline/published_cert_tuple_census.sh
+# (measured at adoption: watched=8 loose=63 across 6 book pages).
+SV_CERT_UNION_CONTRACT="${PGEN_PVC_SV_CERT_UNION_CONTRACT:-$ROOT/rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json}"
+SV_CERT_UNION_PAGE="${PGEN_PVC_SV_CERT_UNION_PAGE:-$ROOT/docs/book/src/grammar-wellformedness.md}"
+
+for f in "$SV_CERT_UNION_CONTRACT" "$SV_CERT_UNION_PAGE"; do
+    [[ -s "$f" ]] || note "required input '$f' is missing or empty"
+done
+
+sv_union_report="$(
+    python3 - "$SV_CERT_UNION_PAGE" "$SV_CERT_UNION_CONTRACT" <<'SVPY'
+import json, re, sys
+
+page_path, contract_path = sys.argv[1], sys.argv[2]
+page = open(page_path, encoding="utf-8").read()
+
+BEGIN, END = "SV-CERT-UNION-TUPLE:BEGIN", "SV-CERT-UNION-TUPLE:END"
+if BEGIN not in page or END not in page:
+    print("REFUSE|%s carries no %s/%s marker pair, so the published SV union tuple cannot be "
+          "located. An unlocatable published claim must fail, never pass by absence."
+          % (page_path, BEGIN, END))
+    raise SystemExit(0)
+
+block = page.split(BEGIN, 1)[1].split(END, 1)[0]
+
+try:
+    contract = json.load(open(contract_path, encoding="utf-8"))
+except Exception as exc:
+    print("REFUSE|the SV recognized-union contract '%s' is unreadable: %s" % (contract_path, exc))
+    raise SystemExit(0)
+
+# The producer side: every derived expectation the contract holds, plus the verdict DERIVED from it.
+VERDICT = "fully_certified_via_union"
+expected = {k: v for k, v in contract.items() if k.startswith("expected_")}
+if not expected:
+    print("REFUSE|the contract '%s' holds no expected_* fields — comparing against an empty "
+          "producer is never evidence of agreement" % contract_path)
+    raise SystemExit(0)
+expected[VERDICT] = (contract.get("expected_union_unknown") == 0)
+
+# The published side: rows are  | label | `contract_key` … | value |
+# The FIRST backticked token in the key cell is the key, so a row may name the derivation it comes
+# from without that mention being read as a second key.
+published, dupes = {}, []
+for line in block.splitlines():
+    cells = [c.strip() for c in line.split("|")]
+    if len(cells) < 5:
+        continue
+    m = re.search(r"`([a-z_]+)`", cells[2])
+    if not m:
+        continue
+    key = m.group(1)
+    if key in published:
+        dupes.append(key)
+    published[key] = cells[3]
+
+if not published:
+    print("REFUSE|the SV-CERT-UNION-TUPLE block in %s yielded ZERO published rows — an empty table "
+          "agrees with everything and proves nothing" % page_path)
+    raise SystemExit(0)
+
+problems = ["the published block names '%s' twice — one published cell per contract key, or the "
+            "comparison silently reads whichever came last" % k for k in sorted(set(dupes))]
+
+def parse(key, raw):
+    """The published cell, read back as the type the contract holds. Returns (value, error)."""
+    text = raw.replace("*", "").replace("`", "").strip()
+    want = expected[key]
+    if isinstance(want, bool):
+        low = text.lower()
+        if low not in ("true", "false"):
+            return None, "must publish `true` or `false`, not '%s'" % text
+        return low == "true", None
+    if isinstance(want, list):
+        try:
+            got = json.loads(text)
+        except Exception as exc:
+            return None, "must publish a JSON array, not '%s' (%s)" % (text, exc)
+        if not isinstance(got, list):
+            return None, "must publish a JSON array, not '%s'" % text
+        return sorted(got), None
+    try:
+        return int(text), None
+    except ValueError:
+        return None, "must publish an integer, not '%s'" % text
+
+for key in sorted(set(expected) - set(published)):
+    problems.append("the contract holds '%s' but the published block in %s carries NO row for it — "
+                    "a number that stops being published is a silent disclosure loss"
+                    % (key, page_path))
+for key in sorted(set(published) - set(expected)):
+    problems.append("the published block in %s carries a row for '%s', which the contract '%s' does "
+                    "not hold" % (page_path, key, contract_path))
+
+for key in sorted(set(expected) & set(published)):
+    got, err = parse(key, published[key])
+    if err:
+        problems.append("published row '%s' %s" % (key, err))
+        continue
+    want = sorted(expected[key]) if isinstance(expected[key], list) else expected[key]
+    if got != want:
+        problems.append("the book publishes %s = %r but the contract declares %r — re-baseline the "
+                        "contract first, then re-publish this row (the book is the published view "
+                        "of the contract, never the source)"
+                        % (key, published[key].replace("*", "").strip(), want))
+
+print("OK|%d" % len(published) if not problems else "FAIL|" + "\n".join(problems))
+SVPY
+)" || note "the SV recognized-union published-tuple comparison failed to run"
+
+case "$sv_union_report" in
+    REFUSE\|*) note "${sv_union_report#REFUSE|}" ;;
+    FAIL\|*)   while IFS= read -r line; do note "$line"; done <<<"${sv_union_report#FAIL|}" ;;
+    OK\|*)     sv_union_rows="${sv_union_report#OK|}" ;;
+    *)         note "the SV recognized-union published-tuple comparison produced no verdict — a check that cannot see must refuse, not pass" ;;
+esac
+
 if [[ "$fail" -eq 0 ]]; then
-    echo "published-version-currency: OK (guide ${guide_release}/${guide_contract} == contract identity; published status '${guide_status}' == tracker; book snapshot ${book_rows}/${book_rows} families == register)"
+    echo "published-version-currency: OK (guide ${guide_release}/${guide_contract} == contract identity; published status '${guide_status}' == tracker; book snapshot ${book_rows}/${book_rows} families == register; SV cert-union ${sv_union_rows}/${sv_union_rows} published rows == contract)"
 fi
 exit "$fail"

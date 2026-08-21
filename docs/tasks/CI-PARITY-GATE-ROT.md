@@ -175,6 +175,65 @@ commands.
 - ⚠️ **HONEST BOUND**: one occurrence, on one codegen change. It is a population mismatch by
   construction rather than a flake, so it should reproduce on every codegen change — but that has
   not been shown twice.
+- ⭐ **A SECOND DATA POINT, AND IT NARROWS THE REPRO** (2026-08-21, `PGEN-SV-CORPUS-GRAD-0269`, not
+  this leaf's work — recorded because it bears directly on the bound above). A full tier-2 run at
+  HEAD reports **`✓ scratch re-derives byte-identically (0 sites)`**, all 11 artifacts green, and it
+  auto-recorded the baseline. ⇒ the breach is **not** a permanent property of `scratch` at HEAD; it
+  is specific to the tree state that `regenerate_generated_parsers` leaves behind, which is exactly
+  what the population mismatch predicts. The fix direction in (a) is unchanged; what this removes is
+  the possibility that `scratch` is simply unreproducible.
+
+### ⚠️ `.42` NEW `todo` — **`GENERATED-REPRODUCIBILITY` tier 1 hashes a file that embeds a WALL-CLOCK TIMESTAMP, so any read-only proof gate that regenerates turns the doctrine RED — with zero tracked source changed and the parser byte-identical** (routed in 2026-08-21 session #253 by `SV-CORPUS-GRAD.13c.2x`(c))
+
+> ⛔ **ROUTED, NOT WORKED** — found while executing the SV-release frontier. The lane lock binds
+> work, not discovery, so this leaf carries the measurement and the fix direction and is **not**
+> implemented here.
+
+- ⛔⛔ **MEASURED, and the shape is the interesting part: the artifact that MATTERS did not move.**
+  Running `make -C rust sv_cert_recognized_union_gate` — a gate whose own book text says it *"adds a
+  proof surface only … the cert numbers are read-only measurements"* — flipped
+  `scripts/check_generated_reproducibility.sh` tier 1 to RED:
+  ```
+  generated-reproducibility: systemverilog moved since it was last PROVEN to re-derive from HEAD
+      (parser cc874b60d59a… vs cc874b60d59a…, input a95af233f9db… vs 26fadd9115f8…).
+  ```
+  ⭐ **Read the two halves.** `parser_sha` is **byte-identical** — an independent regeneration
+  produced the same 130 MB parser, which is the strongest reproducibility evidence a run can give.
+  `input_sha` moved anyway.
+- ✅ **ROOT CAUSE (WHY + WHERE), pinned in one line of log.** The gate's
+  `ensure_generated_systemverilog_parser` stage runs `make focus_systemverilog`, which re-emits the
+  frontend envelope:
+  `ast_pipeline ../grammars/systemverilog.ebnf --emit-raw-ast-json ../generated/systemverilog.json`.
+  That envelope's `metadata` block carries **`"generated_at": "2026-08-21T20:45:59.815699+00:00"`** —
+  wall clock, to the microsecond. `check_generated_reproducibility.sh:568` records `input_sha` as the
+  sha256 of exactly that file. ⇒ **the input digest changes on every regeneration by construction**,
+  and it changes for a reason that carries no information about whether anything re-derived.
+- ⭐ **ROUTING EVIDENCE — it is NOT a SystemVerilog defect, and that was checked rather than assumed.**
+  Every family's envelope carries the same field: `json` `17:16:11`, `regex` `17:12:15`, `vhdl`
+  `17:17:48`, `ebnf` `17:11:44`. ⇒ any gate that runs `focus_<family>` moves that family's
+  `input_sha`, so the exposure is the whole generated population and the owner is this tree, not the
+  SV lane.
+- ⛔ **WHY IT IS NOT COSMETIC.** The remedy tier 1 prescribes is a **full tier-2 re-derivation**
+  (~57 s advertised, minutes in practice) followed by a rebaseline. Paying that for a clock tick
+  teaches exactly one habit — rebaseline reflexively on RED — and that habit is what
+  `GENERATED-REPRODUCIBILITY` exists to prevent. ⚠️ It also interacts with `.41`: a rebaseline
+  prompted by a timestamp can be refused by an unrelated `scratch` breach, so the operator is left
+  resolving a real-looking failure that never had a cause.
+- **WHAT THIS LEAF OWES**: (a) key `input_sha` on the **grammar** rather than the timestamped
+  envelope, or hash the envelope with the volatile `metadata` fields excluded — ⛔ prefer excluding
+  the field over hashing a different file, so the digest still covers the frontend's actual output;
+  (b) whichever wins, prove it by regenerating twice **without** a source change and asserting the
+  digest is stable — the control this defect would have failed; (c) re-check the gate's published
+  claim that it *"changes no … generated artifact"*, which is currently false in this one respect,
+  and either make it true or restate it.
+- ⭐ **PRIOR ART, already recorded and unread by this instrument**: `CI-PARITY-GATE-ROT.32` measured
+  the same envelope field and drew the same conclusion for a different consumer — *"`generated/*.json`
+  embeds `generated_at` ⇒ never byte-comparable across runs; content-addressed freshness must key on
+  the GRAMMAR"*. That lesson was applied to the freshness guard and **not** to this baseline. Two
+  consumers, one root property, one of them fixed.
+- ⚠️ **HONEST BOUND**: measured on one family through one gate. The claim that every `focus_<family>`
+  moves its own `input_sha` follows from the field being present in all five envelopes checked, but
+  has been **observed** only for `systemverilog`.
 
 ### ⛔⛔ `.40` NEW `todo` — **THE COLD-CLONE BOOTSTRAP IS BROKEN, AND `.24` SLICE 2 BROKE IT — a one-line fix whose own evidence ("ZERO shipped bytes, generated parsers byte-identical") was TRUE and could not see this** (routed in 2026-08-21 session #253 by `ENGINE-UNIVERSAL-SERVICES.43`, which needed a full regeneration and hit it twice)
 
