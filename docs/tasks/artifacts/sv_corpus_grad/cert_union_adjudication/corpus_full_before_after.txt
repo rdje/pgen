@@ -1,0 +1,51 @@
+# SV-CORPUS-GRAD.13c.2y — THE FULL EXTERNAL CORPUS, BEFORE -> AFTER (PGEN-SV-CORPUS-GRAD-0263)
+#
+# ⛔ WHY THIS FILE EXISTS: -0261 shipped the fix with a 14-case triage gate as its
+# no-regression evidence. This repository's bar for a GRAMMAR change is the full
+# 16,335-file corpus with a TWO-SIDED set difference -- SV-0065 (one week earlier)
+# carried 'Corpus: SV pass 9 787 -> 9 793', SV-0049 carried '0 pass->fail /
+# 0 pass->timeout / 0 pass->crash' plus a byte-identical accepts-invalid set.
+# That bar was not met at -0261, and it is met here. The fix NARROWS (two accepting
+# branches deleted), which is exactly the direction that breaks a corpus.
+#
+# runner:  stimuli/run_external_corpus.sh sv 60 8 0   (the tracked BINDING parameters)
+# before:  stimuli/sv/characterization/results.tsv, measured against parser bfaca030…
+# after:   measured to a scratch dir against parser e25365a1…, 75 s, peak 4.2 GB
+#          ⭐ nothing tracked was overwritten, so the before-state stayed diffable.
+
+## VERDICTS
+
+  files          16 335    16 335     (0 only-in-before, 0 only-in-after)
+  pass            9 793 ->  9 794     (+1)
+  fail            6 542 ->  6 541     (-1)
+  timeout             0 ->      0
+  crash               0 ->      0
+
+## THE TWO-SIDED SET DIFFERENCE — the check a net delta can hide
+
+  pass -> non-pass  (REGRESSIONS) :  0
+  non-pass -> pass  (GAINS)       :  1
+      stimuli/sv/subs/verilator/test_regress/t/t_property_unsup.v   fail -> pass
+  per-suite regression census      :  none
+
+## AND ONE LEVEL BELOW THE BAR: DID ANY STILL-FAILING FILE FAIL *EARLIER*?
+
+# A subtle narrowing can leave every verdict intact and still move where a file dies.
+# positions.tsv records each failing file's furthest_position, so it is checkable:
+
+  still-failing files compared     : 6 541
+  failure offset moved EARLIER     :     0
+  failure offset moved LATER       :     0
+  failure offset UNCHANGED         : 6 541
+  left the failing set             :     1   (t_property_unsup.v)
+
+⇒ Across 16 335 real-world files, EXACTLY ONE byte of behaviour changed, and it is the
+  file the diagnosis named in advance from a tracked artifact recorded before this
+  session existed. The narrowing broke nothing.
+
+## THE OTHER CONTROL FOR A TIGHTENING FIX
+
+  stimuli/sv/run_adjudication_repros.py
+    ADJUDICATION-REPROS: checked=180 armed=77 listed=95 multi_profile_rows=59 failures=0
+  — byte-identical to what SV-0065 recorded, so no accepts-invalid or rejects-valid
+    reproducer moved in either direction.

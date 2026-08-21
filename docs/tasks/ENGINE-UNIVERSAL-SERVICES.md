@@ -200,6 +200,51 @@ question is *"is that enough?"*, and that cannot be answered without naming the 
   compare published shares and a build fingerprint (no grammar digest). **All five are now
   accounted for** — the flag `-0078` raised is discharged rather than carried.
 
+### ⛔⛔ `.42` NEW `todo` — **a LIBRARY UNIT TEST HAS BEEN RED AT HEAD, and the tier that would catch it is not in the automatic lane** (routed in 2026-08-21 by `SV-CORPUS-GRAD.13c.2y`'s no-regression sweep, `PGEN-SV-CORPUS-GRAD-0263`)
+
+- ⛔ **MEASURED.** `cargo test --lib --features generated_parsers` at HEAD: **1 056 pass, 1 FAILED** —
+  `ast_pipeline::ast_based_generator::semantic_usage_tests::unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names`,
+  panicking on its own message *"expected semantic_annotation fallback to detect '@' directives"*.
+- ⭐⭐ **ATTRIBUTED BEFORE IT WAS REPORTED, AND IT IS NOT THE SV SLICE THAT FOUND IT.** Re-run in a
+  FRESH target dir with **no generated parsers compiled in at all**
+  (`CARGO_TARGET_DIR=… cargo test --lib <name>` without `--features generated_parsers`): **fails
+  identically, in 0.02 s.** ⇒ the regenerated SystemVerilog parser cannot be the cause. Corroborated
+  two more ways: the four commits of that campaign touch **zero** Rust source
+  (`git diff --stat b5b87069~1..HEAD -- 'rust/src/**/*.rs'` is empty), and the test builds a
+  **synthetic in-memory `grammar_tree`** — it never reads any `.ebnf`.
+- **ROOT CAUSE (WHY + WHERE), as far as this routing goes.** `ast_based_generator.rs:1354` declares
+  `NATIVE_UNRESOLVED_REFERENCE_BUILTINS = ["builtin_any_char", "builtin_ascii_char"]`, and
+  `generate_unresolved_reference_methods` (`:1357`) emits the generic never-matching
+  `Err(Backtrack)` stub for every unresolved reference outside that list. `semantic_annotation` is
+  not in it, so it gets the ordinary stub — while the test asserts a **special** `@`-detecting
+  fallback. `grep -n "b'@'" ast_based_generator.rs` returns **one** hit: line **15153**, inside the
+  test's own assertion. The emitter has no such path anywhere.
+- ⚠️ **WHICH SIDE IS WRONG IS NOT SETTLED HERE, DELIBERATELY.** Two readings, and they have opposite
+  repairs: (i) the `semantic_annotation` special-case was REMOVED and its absence silently kills `@`
+  directive parsing for any grammar carrying an unresolved `semantic_annotation` reference — a real
+  codegen regression; or (ii) it was removed on purpose (the same test's second half was rewritten by
+  `LANG-CAPABILITY-AUDIT.10.4`, `779dca06`, which deliberately made `true`/`false` ordinary stubs)
+  and this assertion was left behind — a stale test. ⛔ **Do not guess: `git log -L` the emitter and
+  read `.10.4`'s record first.** Routing a defect with the wrong half named is how a fix lands on the
+  innocent side.
+- ⭐⭐⭐ **THE META-FINDING IS THE ONE THAT MATTERS, AND IT IS ABOUT THE LANE, NOT THIS TEST.** The
+  repository's CI policy (director, standing) is that the full CI runs before a push and ordinary
+  commits run a selected tier. `cargo test --lib` is **not** in that selected tier, so a red library
+  test can sit at HEAD indefinitely with every doctrine, gate and book check GREEN — which is exactly
+  the state this was found in. ⛔ This is the `CI-PARITY-GATE-ROT.2` thesis one surface over: *a check
+  nothing invokes is indistinguishable from one that does not exist*. It was found only because an
+  SV slice went looking for evidence ABOVE its own bar after a director challenge.
+- **WHAT THIS LEAF OWES**: (a) adjudicate (i) vs (ii) from the emitter's history, not from the test's
+  wording; (b) fix the side that is actually wrong — ⛔ **never by deleting the assertion**, which is
+  the tempting repair and the one that converts a possible codegen regression into silence; (c) the
+  durable half — decide whether `cargo test --lib` (or a bounded subset) belongs in the automatic
+  tier, priced against the CI policy, and record the ruling either way so the next red unit test is
+  not found by accident.
+- ⚠️ **BOUND**: this routing measured ONE red test in the `--lib` suite. The suite had not completed
+  when this was written (two `embedding_api` deep-nesting tests were still running past 35 minutes),
+  so **1 056 pass / 1 fail is a partial count, not the final tally** — (a) must re-run it to
+  completion before concluding this is the only one.
+
 ### ⚠️ `.41` NEW `todo` — FOUR more gates assert determinism across re-reads of a MUTABLE input while recording no input identity, and the helper they each need now exists and is probed (opened 2026-08-20 session #251 by `SV-CORPUS-GRAD.13c.2x.1`, `PGEN-SV-CORPUS-GRAD-0258`)
 
 - ⛔ **THE SHAPE, and it cost two sessions once already.** A gate that re-reads a file once per

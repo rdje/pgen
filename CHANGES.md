@@ -1,5 +1,73 @@
 # CHANGES.md
 
+## 2026-08-21 - PGEN-SV-CORPUS-GRAD-0263 (leaf SV-CORPUS-GRAD.13c.2y — the DELETION AUDIT under director challenge + the no-regression evidence `-0261` owed; leaves .13c.2x.7 and ENGINE-UNIVERSAL-SERVICES.42 NEW; doc-only, ZERO grammar bytes, ZERO Rust bytes):
+
+- ⛔⛔ **THE DIRECTOR ASKED WHY 43 RULES WERE DELETED. NONE WERE — AND THE PREMISE IS MINE.**
+  `-0261`'s write-up said *"43 dead rules stopped existing"* and *"96 synthesised rules gone"*, which
+  reads exactly as a deletion. Measured two ways:
+  `git show 958fcc24 -- grammars/systemverilog.ebnf | grep -E '^-[a-z_]+ *:='` → **0 rule
+  definitions removed**; and the SOURCE rule count the frontend parses goes **1484 → 1485** (+1,
+  `kw_implies_470cec58`; **zero** present-before-and-absent-after). The whole diff removes **six
+  lines**: three alternatives plus their annotations, in each of two profile rules.
+- ⛔ **AND THE 43 WERE NEVER IN A GRAMMAR FILE, AT ANY COMMIT.**
+  `git log --all -S "property_expr_lr_" -- grammars/` → **0 commits, ever**; `grep -c` → 0 before AND
+  after. They are minted at BUILD TIME by `indirect_lr_elimination.rs:862`
+  (`format!("{base_rule}_lr_suffix_r{index}")`) — parser-generator temporaries, in the same sense as
+  a compiler's spill slots. They stopped being emitted because the left-recursion they existed to
+  eliminate no longer exists.
+- ⭐⭐ **THE AUDIT THAT WAS ACTUALLY OWED — the three ALTERNATIVES, each cross-checked against IEEE
+  1800-2017 A.2.10** (`[[feedback_no_rule_deletion_without_lrm_proof]]` binds on grammar CONTENT, not
+  on rule definitions alone): (i) `| implies property_expr` = `-> property_expr` — **no such
+  production**; the mangled remnant of `sequence_expr |-> property_expr`, **named as a remnant in
+  `SV-0039`'s own root cause**, whose correct replacement has shipped at `:4940` since `1.0.169`;
+  (ii) `| sequence_expr or_assign property_expr` = `seq |= prop` — same, remnant of `|=>`,
+  replacement at `:4942`; (iii) `| property_expr implies property_expr` — ✅ **this IS A.2.10, and it
+  was NOT deleted**: it lives at `:4910`/`:4997` consuming the KEYWORD at Table 16-3's precedence.
+  ⇒ **ZERO IEEE 1800 productions left the accepted language.**
+- ⭐⭐⭐ **AND THE NO-REGRESSION EVIDENCE `-0261` OWED IS NOW IN, AT THE REPOSITORY'S OWN BAR.** `-0261`
+  shipped a GRAMMAR change on a 14-case triage gate; `SV-0065` (one week earlier) carried
+  `Corpus: SV pass 9 787 → 9 793` and `SV-0049` carried a two-sided set difference over 16 336 files.
+  Run now, to a scratch dir so nothing tracked was overwritten:
+  **pass 9 793 → 9 794, fail 6 542 → 6 541, timeout 0, crash 0**; the two-sided difference is
+  **0 pass→fail** and **exactly 1** fail→pass (`t_property_unsup.v`). ⭐ And one level BELOW the bar,
+  because a narrowing can leave verdicts intact and still move where a file dies: of **6 541**
+  still-failing files, **6 541 keep a BYTE-IDENTICAL failure offset** — 0 earlier, 0 later. Across
+  16 335 real-world files exactly one byte of behaviour changed, and it is the file the diagnosis
+  named in advance.
+- ✅ **THE OTHER FOUR CHECKS `-0261` SKIPPED**: `clippy_on_rust_change` (**mandated by `COMMIT.md`
+  step 2 whenever generated Rust changes — I regenerated the parser and did not run it**) ✅ rc=0;
+  `run_adjudication_repros.py` ✅ `checked=180 armed=77 listed=95 failures=0`, byte-identical to
+  `SV-0065`'s figures — the control that matters for a TIGHTENING fix; `verilog_2005` byte-inertness
+  ✅ (below); `cargo test --lib` ⚠️ (below).
+- ⛔⛔ **A THIRD TRACKED GATE IS RED AT HEAD, AND IT IS NOT MINE — `.13c.2x.7` NEW.**
+  `verilog_2005_conformance_gate` → `cert total=1143 (expected 1122)`. Attributed by a TWO-ARM
+  control on one binary: the pre-`SV-0066` and post-`SV-0066` grammars give **byte-identical**
+  `total=1143 proof=344 witness=795 UNKNOWN=4`, and the gate's behavioural arms are GREEN
+  (`240 file×profile checks, 0 mismatches`; `profile_orphans=0`). Its contract was last touched
+  **2026-08-09** and the grammar has moved **22 times** since — and `CI-PARITY-GATE-ROT` records this
+  same file being hand-rebaselined for this same reason then. It went stale again within days and
+  nothing ran it for twelve days. ⛔ `MEMORY.md` recorded *"TWO tracked SV gates are RED"*; it is
+  **three** — corrected.
+- ⛔⛔ **A LIBRARY UNIT TEST HAS BEEN RED AT HEAD — `ENGINE-UNIVERSAL-SERVICES.42` NEW.**
+  `cargo test --lib`: 1 056 pass, **1 FAILED** —
+  `unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names`. Attributed before
+  reporting: it fails **identically in a fresh target dir with NO generated parsers compiled in**
+  (0.02 s), the campaign touched **zero** Rust source, and the test builds a synthetic in-memory
+  grammar that reads no `.ebnf`. ROOT CAUSE as far as routing goes: `semantic_annotation` is not in
+  `NATIVE_UNRESOLVED_REFERENCE_BUILTINS`, so it gets the generic `Err(Backtrack)` stub while the test
+  asserts a special `@`-detecting fallback — `grep -n "b'@'"` returns ONE hit, line 15153, inside the
+  test's own assertion. ⚠️ Which side is wrong is deliberately NOT settled in the routing.
+  ⭐⭐⭐ **The meta-finding is the lane, not the test**: `cargo test --lib` is not in the automatic
+  tier, so a red unit test can sit at HEAD with every doctrine, gate and book check GREEN — the
+  `CI-PARITY-GATE-ROT.2` thesis one surface over. It was found only because an SV slice went looking
+  for evidence ABOVE its own bar after a director challenge.
+- ⚠️ **THE WRITING RULE I OWE FROM THIS**: an engine-synthesised rule and an authored rule must never
+  be counted in the same sentence without saying which is which. *"96 synthesised rules gone"* is
+  true and unreadable; *"the eliminator stops emitting 96 temporaries because the left-recursion it
+  was eliminating no longer exists"* is the same fact and cannot be misread as a deletion. The
+  director read my sentence exactly as written, and the alarm was the correct response to it.
+  Corrected in all seven surfaces that carried it.
+
 ## 2026-08-20 - PGEN-SV-CORPUS-GRAD-0261 (leaf SV-CORPUS-GRAD.13c.2y CLOSED — SV parser release 1.0.193, ledger SV-0066, schema 25 → 26; leaf .13c.2z NEW; ONE new grammar token, three deleted branches):
 
 - ⭐⭐⭐ **AN IEEE 1800 KEYWORD WAS BOUND TO THE ARROW TOKEN OF THE SAME NAME, AND FIXING IT TOOK SV's
@@ -26,8 +94,11 @@
 - ⭐⭐ **THE HEADLINE IS THE 52.** `| property_expr implies property_expr` was the ONLY left-recursive
   alternative in `prop_primary_*`, so moving `implies` to its correct level dissolved the
   `property_expr` indirect-LR knot: `indirect_eliminated_base_rules 3 → 2`, `clone_rules 24 → 12`,
-  `guard_chains 3 → 2` at `surviving_cycle_rules=0`. Census **1611 → 1516**, declared LR-family names
-  **127 → 31**, generated parser **−8.41 MB (−6.0 %)**. An LRM-fidelity fix that also removed engine
+  `guard_chains 3 → 2` at `surviving_cycle_rules=0`. ⛔ **NOTHING WAS DELETED**: those rules are
+  build-time temporaries the eliminator mints (`indirect_lr_elimination.rs:862`), present in no
+  `.ebnf` file at ANY commit — the SOURCE grammar goes **1484 → 1485** (+1 token, ZERO removed),
+  while the post-elimination census falls 1611 → 1516, declared LR-family names **127 → 31**, and
+  the generated parser sheds **8.41 MB (−6.0 %)**. An LRM-fidelity fix that also removed engine
   cost — the two are not always a trade.
 - ⭐⭐ **REAL-WORLD, AGAINST A CONTROL THIS SESSION DID NOT WRITE.**
   `stimuli/sv/characterization/positions.tsv` recorded Verilator's `t_property_unsup.v` stuck at byte

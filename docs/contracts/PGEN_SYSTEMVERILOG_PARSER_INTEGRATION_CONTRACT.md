@@ -33,7 +33,9 @@ This is the document downstream projects such as Nexsim should read first when d
 > `prop_primary_*`, so removing it dissolved the `property_expr` indirect-left-recursion knot
 > entirely: `--report-indirect-lr-plan` goes `indirect_eliminated_base_rules 3 → 2`,
 > `indirect_clone_rules 24 → 12`, `indirect_guard_chains 3 → 2` at `surviving_cycle_rules=0`; the
-> grammar census falls **1611 → 1516** (−96 synthesised rules, +1 token); the parser's declared
+> post-elimination census falls **1611 → 1516** — ⛔ **not a deletion**: 96 of those are build-time
+> temporaries the eliminator mints and no longer needs, and the SOURCE grammar goes **1484 → 1485**
+> (+1 token, zero rules removed). The parser's declared
 > LR-family names fall **127 → 31**; and the generated artifact sheds **8.41 MB (−6.0 %)**.
 >
 > **What consumers gain and lose.** GAIN: `property_expr implies property_expr` parses on `sv_2017`
