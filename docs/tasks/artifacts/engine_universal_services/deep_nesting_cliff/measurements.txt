@@ -1,0 +1,25 @@
+# ENGINE-UNIVERSAL-SERVICES.43 — the recursion-ceiling cliff, measured in RELEASE
+#
+# binary: rust/target/release/parseability_probe (SV parser e25365a1…, VHDL byte-identical to pre-campaign)
+# input:  module m; assign x = ( x N )1( x N ); endmodule      [vhdl: s <= (xN)1(xN);]
+
+  family          depth   wall clock   result
+  --------------  -----   ----------   ------
+  systemverilog     250       0.10 s    accepted
+  systemverilog     275       0.11 s    accepted
+  systemverilog     300       0.13 s    accepted
+  systemverilog     350     > 90.0 s    NO RESULT (killed)
+  systemverilog     400    > 120.0 s    NO RESULT (killed)
+  vhdl              300       0.07 s    accepted
+  vhdl              400       0.09 s    accepted
+  vhdl              600     > 90.0 s    NO RESULT (killed)
+  vhdl              800     > 90.0 s    NO RESULT (killed)
+  vhdl             1000     > 90.0 s    NO RESULT (killed)
+
+⇒ A THRESHOLD, not a slope: 0.13 s at 300 and no result at 350 is a factor of >690 across
+  one 50-paren step. SV ~10-11 logical frames/level x 350 = ~3 850, against the engine's
+  4096-frame recursion ceiling. VHDL's cascade is shallower, so its cliff sits later —
+  the SAME event at a different density, in a parser byte-identical to pre-campaign.
+
+⛔ SV-CORPUS-GRAD.8c.3 fixed a SIGABRT here by routing embedding parses to a 256 MiB stack
+  so the ceiling would return a clean E_PARSE_FAILURE. Today it returns nothing at all.

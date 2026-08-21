@@ -200,6 +200,63 @@ question is *"is that enough?"*, and that cannot be answered without naming the 
   compare published shares and a build fingerprint (no grammar digest). **All five are now
   accounted for** — the flag `-0078` raised is discharged rather than carried.
 
+### ⛔⛔⛔ `.43` NEW `todo` — **CROSSING THE RECURSION CEILING HANGS INSTEAD OF FAILING: ~4 KB of legal-looking text makes the SHIPPED parser run unbounded on the EMBEDDING path, and the regression lock that exists to catch exactly this cannot complete** (opened 2026-08-21 session #252 by `ENGINE-UNIVERSAL-SERVICES.42`'s bound, `PGEN-SV-CORPUS-GRAD-0265`)
+
+> ⛔⛔ **CANDIDATE SV-RELEASE BLOCKER — DIRECTOR CALL REQUESTED.** `embedding_api` is the vehicle by
+> which the SystemVerilog parser is delivered to Nexsim. This leaf reports a hang on that vehicle.
+
+- ⛔ **MEASURED IN RELEASE, on the shipped `parseability_probe` (SV parser `e25365a1…`). It is a
+  THRESHOLD, not a slope:**
+
+  | family | depth | wall clock | result |
+  |---|---:|---:|---|
+  | systemverilog | 250 / 275 / 300 | 0.10 / 0.11 / **0.13 s** | accepted |
+  | systemverilog | **350** | **> 90 s** | ⛔ **no result — killed at the timeout** |
+  | systemverilog | 400 | **> 120 s** | ⛔ no result |
+  | vhdl | 300 / 400 | 0.07 / **0.09 s** | accepted |
+  | vhdl | **600 / 800 / 1000** | **> 90 s** each | ⛔ no result |
+
+  Input is `module m; assign x = (((…)))1(((…))); endmodule` — N nested parens, a few KB of text.
+  ⭐ The SV cliff at ~300→350 and the VHDL cliff at ~400→600 are the SAME event at different
+  densities: the test's own comment prices SV at *"~10–11 logical frames per level"*, so 350 × 11 ≈
+  **3 850** and 400 × 11 ≈ 4 400 — the engine's **4096-frame recursion ceiling**. VHDL's expression
+  cascade is shallower, so it needs more parens to reach the same ceiling.
+- ⛔⛔ **THE FAILURE MODE IS WORSE THAN THE ONE `SV-CORPUS-GRAD.8c.3` FIXED, AND THAT IS THE POINT.**
+  `.8c.3` found that *"a ~400-deep parenthesized expression (≈4 KB of text) killed a release embedder
+  at the default 8 MB main stack"* — a stack-overflow **SIGABRT of the host process** — and fixed it
+  by routing every SV/VHDL embedding parse onto a dedicated 256 MiB-stack thread so the ceiling would
+  return a clean `E_PARSE_FAILURE`. What ships today is neither: it is an **unbounded hang**. ⇒ a
+  fast, loud crash was replaced by a silent one that holds the consumer's thread indefinitely. **For
+  a consumer parsing machine-generated or untrusted SystemVerilog, a few KB of text is a denial of
+  service**, and a hang is harder to diagnose than the abort it replaced.
+- ⛔⛔ **AND THE GUARD CANNOT SEE IT, BY CONSTRUCTION.** The regression lock
+  `parser_embedding_systemverilog_deep_nesting_yields_clean_diagnostic_not_process_abort` (and its
+  VHDL twin) uses **depth 2000** — chosen because it *"crosses the 4096-frame ceiling with certainty
+  in both build modes"*. That is far past the cliff, so the test can never terminate. ⇒ **the only
+  instrument aimed at this defect is disabled by the defect itself.** That is why it went unseen: the
+  suite was recorded as *"abandoned after ~50 min"* on 2026-08-14 and killed at 90 minutes here, and
+  in both cases these two tests were what was still running.
+- ⭐⭐ **IT IS NOT CAUSED BY THE `SV-0066` CAMPAIGN, AND THE CONTROL IS DECISIVE.** VHDL exhibits the
+  identical threshold, and `generated_reproducibility_gate` tier 2 proved all **11** artifacts
+  re-derive byte-identically at HEAD with only SystemVerilog's grammar having moved ⇒ **VHDL's
+  generated parser is byte-identical to before the campaign**. A defect present in an unchanged
+  parser was not introduced by a change to a different one. ⚠️ **HONEST BOUND**: this argues the CLASS
+  is pre-existing and engine-level. It does **not** measure whether SV's own cliff DEPTH moved —
+  that needs the pre-fix SV parser, a ~40-minute regenerate-and-rebuild, and (a) below should pay it
+  rather than leave the question open.
+- **WHAT THIS LEAF OWES**: (a) TOOLBOX-first diagnosis of *why crossing the ceiling goes unbounded
+  instead of failing fast* — ⛔ the ceiling is supposed to be a BOUND; a bound that converts into a
+  search is the actual defect, and `--dump-rule-call-counts` on a depth-350 input will name what is
+  spinning; (b) re-measure SV's cliff depth against the PRE-`SV-0066` parser, closing the bound above;
+  (c) fix so that over-ceiling input returns `E_PARSE_FAILURE` in bounded time; (d) ⭐ **re-arm the
+  guard** — the depth-2000 lock must be replaced or supplemented by one that runs in bounded time
+  (e.g. assert a WALL-CLOCK bound at a depth just past the cliff), because a regression lock that
+  cannot terminate is not a lock; (e) price whether this blocks the SV release to Nexsim — **director
+  call**, and the recommendation from this leaf is YES.
+- ⚠️ **WHAT IS NOT CLAIMED**: these runs were killed at 90–120 s, so "unbounded" is *"no result within
+  ~1 000× the sub-cliff time"*, not a proof of non-termination. (a) must distinguish a true hang from
+  super-exponential backtracking; the consumer-visible consequence is the same either way.
+
 ### ⛔⛔ `.42` NEW `todo` — **a LIBRARY UNIT TEST HAS BEEN RED AT HEAD, and the tier that would catch it is not in the automatic lane** (routed in 2026-08-21 by `SV-CORPUS-GRAD.13c.2y`'s no-regression sweep, `PGEN-SV-CORPUS-GRAD-0263`)
 
 - ⛔ **MEASURED.** `cargo test --lib --features generated_parsers` at HEAD: **1 056 pass, 1 FAILED** —
