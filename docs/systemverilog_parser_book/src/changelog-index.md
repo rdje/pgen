@@ -15,23 +15,36 @@ When investigating "what changed and why," start with the contract document, dro
 
 ## Releases relevant to this book
 
-> ⛔⛔ **GAP NOTICE, 2026-08-20 — READ BEFORE TRUSTING THE SEQUENCE BELOW.** This index is
-> **not complete**. Releases **`1.0.184` through `1.0.192`** (ledger `SV-0054`…`SV-0065`, nine
-> releases, four of which REPLACE an AST shape a consumer was already reading) have **no section
-> here**, and `schema-versioning.md` is missing rows **21**–**25**. The entries jump from `1.0.183`
-> to `1.0.193`; that jump is a defect in this file, not a gap in the release history.
+> ✅ **THE GAP IS CLOSED — 2026-08-21, `SV-CORPUS-GRAD.13c.2z`.** This index jumped from `1.0.183`
+> to `1.0.193`, omitting **`1.0.184`–`1.0.192`** (ledger `SV-0054`…`SV-0065`, nine releases, four of
+> which REPLACE an AST shape a consumer was already reading). All nine are now published below,
+> authored from `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` and
+> `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` — the authoritative per-release and per-bug
+> records — rather than paraphrased. `schema-versioning.md`'s missing rows **21**–**25** are
+> back-filled in the same change.
 >
-> Until the back-fill lands, the authoritative record for that window is
-> `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` (per-release shape detail) and
-> `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (per-bug repro, root cause and proof) — both
-> current. **Owned by `SV-CORPUS-GRAD.13c.2z`**, which also owes the check that would have caught
-> this: nothing in the repository compares a family book's newest published release against the
-> family's actual release, which is why the same table silently skipped schemas `17`–`19` once
-> before and was hand-reconstructed rather than gated.
+> ⛔ **The back-fill is the smaller half.** The same table silently skipped schemas `17`–`19` once
+> before and was hand-reconstructed then too; a hand-fix plus a prose warning bought exactly one
+> cycle. Nothing in the repository compared a family book's newest published release against the
+> family's actual release, which is why the gap could grow from three releases to nine unseen. That
+> check now exists — `scripts/check_parser_book_currency.sh`, doctrine `PARSER-BOOK-CURRENCY` — and
+> it fails in both directions for every family that has a book.
 
 This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
+
+### 1.0.194 / Contract 1.0.194 — ENGINE-UNIVERSAL-SERVICES.43 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0081`, 2026-08-21), ledger `SV-0067` (`Released`): **CROSSING THE RECURSION CEILING HUNG INSTEAD OF FAILING (ENGINE; all profiles; ZERO GRAMMAR BYTES; SCHEMA UNCHANGED at 26)**
+
+⛔ **This release changes no language and no AST shape. It changes whether the parser RETURNS.** ~4 KB of legal-looking SystemVerilog — a deeply parenthesised expression — made the shipped parser run without producing a verdict at all. Measured on the release probe: **315** nested parens accepted in 0.15 s, **316** in 0.23 s, **317** in **4.90 s**, and **318 returned nothing in 30 s**. On the embedding path — the vehicle this parser ships to downstream consumers on — that is an unbounded hang holding the caller's thread, and it is *worse* than the process abort `1.3.1` (`SV-CORPUS-GRAD.8c.3`) replaced: a crash fails fast and loud, a hang does not.
+
+**ROOT CAUSE — one field was carrying two kinds of fact.** `SV-CORPUS-GRAD.3.12` routes every recursion-guard verdict through one field, a parse-stack **frame index**, and refuses to cache a FAILURE whose block came from a frame outside the memoized rule (correct: that outcome depends on the caller's stack, which the memo key `(rule, position)` does not carry). `Infinite` and `LeftRecursive` genuinely name a frame. The whole-stack DEPTH CEILING names none, so it passed `0` — the index outside **every** rule — which makes that gate true for every rule at `entry_depth >= 2`. ⇒ **one trip of the ceiling disabled FAILURE memoisation for the entire remaining parse**, and the packrat parse degenerated into exponential backtracking over the expression cascade's alternative fan-out.
+
+**THE FIX — split the channel.** Content-scoped verdicts keep the frame floor and `.3.12`'s rule exactly as they were. The depth ceiling gets its own monotone counter, and its failures ARE cached, under a **depth stamp**: re-entering the same rule at the same position from a deeper stack prunes everything the first attempt pruned and possibly more, so a failure at entry depth `D` holds at every depth `>= D`. The `.3.12` gate still runs first and returns early on any content-scoped block, so an entry reaches the depth channel only once content-dependence is excluded. Engine-level and grammar-agnostic — VHDL showed the identical cliff in a byte-identical parser, which is what proved the class was not SystemVerilog's.
+
+⭐⭐ **THE ACCEPT SET DID NOT NARROW — IT WIDENED, and that was the surprise.** SV **317** goes 4.90 s → **0.14 s with its verdict unchanged**; SV **318**, **319** and **320** go from *no result in 30 s* to **ACCEPTED in 0.14 s**. They were never rejections — the runaway search never reached a verdict. Over-ceiling input (350 parens and beyond) now returns a clean `E_PARSE_FAILURE` in bounded, **input-length-independent** time: 800 and 2000 parens cost the same, which is the proof the search is bounded rather than merely slower.
+
+**NO consumer migration.** No production changed, no AST shape changed, and a 60-file corpus census reads `0 depth-ceiling rejections` on every file — ordinary input does not reach the changed code path at all. Verified byte-identical interpreter/parser equivalence at seeds 0/7/42, `ast_shape_contract_gate` 18/18 drift 0, `sv_external_corpus_triage_gate` 14/14 `parse_fail_total=0`. Full detail in ledger row `SV-0067`; the VHDL twin is `VHDL-0004`.
 
 ### 1.0.193 / Contract 1.0.193 — SV-CORPUS-GRAD.13c.2y (`PGEN-SV-CORPUS-GRAD-0261`, 2026-08-20), ledger `SV-0066` (`Released`): **AN IEEE 1800 KEYWORD WAS BOUND TO THE ARROW TOKEN OF THE SAME NAME (GRAMMAR; `sv_2017`+`sv_2023`; SCHEMA 25 → 26)**
 
@@ -48,6 +61,90 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 ⛔ **The over-acceptance half had been named in prose four weeks earlier and left standing.** `SV-0039`'s own root cause (2026-07-23) reads *"the extractor split the `|`-prefixed operators on `|` … leaving the mangled `implies` (`->`) / `or_assign` (`|=`) remnants in `prop_primary`"*. It added the correct `|->` / `|=>` branches and removed neither remnant. A defect written into a fix's prose is not tracked work.
 
 **Migration.** `prop_primary_sv_2017`/`_sv_2023` no longer emit `{kind:"implies_unary", body}`, `{kind:"sequence_or_assign", lhs, rhs}` or `{kind:"implies_binary", lhs, rhs}`; a consumer exhaustively matching those kinds drops all three, and one walking property operators reads `{kind:"implies", lhs, rhs}` from `prop_until_<profile>` beside its four Table 16-3 siblings. Full matrix in ledger row `SV-0066`.
+
+### 1.0.192 / Contract 1.0.192 — SV-CORPUS-GRAD.13c.2v (`PGEN-SV-CORPUS-GRAD-0256`, 2026-08-20), ledger `SV-0065` (`Released`): **A SCOPE RANDOMIZE CARRYING A CONSTRAINT BLOCK WAS UNREACHABLE FROM EVERY EXPRESSION (GRAMMAR; `sv_2017`+`sv_2023`; SCHEMA UNCHANGED at 25)**
+
+IEEE 1800-2017/2023 A.8.4 spells `primary`'s call alternative `function_subroutine_call`, and A.8.2 expands that to `subroutine_call ::= tf_call | system_tf_call | method_call | [ std :: ] randomize_call`. PGEN renders it as `call_primary` — the postfix-chain rule the left-recursion lift authored — and none of its eleven alternatives is `randomize_call`. That alternative lived only on the sibling wrapper `function_subroutine_call`, which no expression path reaches.
+
+**The asymmetry made the diagnosis certain rather than plausible.** The STATEMENT path (`subroutine_call`) and the CONSTANT path (`constant_function_call`) both list the qualified `randomize_call` explicitly, so `initial randomize(a, b) with { a < b; };` parsed as a statement while the identical text failed as an expression. ⛔ And `std::randomize(a, b)` *without* the `with` clause parsed all along — through `tf_call`, whose identifier matches `randomize` because IEEE 1800 Annex B does **not** reserve it (it reserves `rand`, `randc`, `randcase`, `randsequence`). `tf_call` has no `with` tail, so the construct became unparseable at exactly the moment a constraint block appeared.
+
+**What consumers gain.** `if (std::randomize(a, b) with { a < b; })`, `v = randomize(a, b) with { … };`, the parenthesised identifier list `randomize(a) with (a) { … }`, and the three host contexts real constrained-random code uses — negated inside an `if`, discarded through `void'(…)`, and as an immediate assertion's expression — all go REJECT → ACCEPT on `sv_2017` and `sv_2023`. `verilog_2005` is UNMOVED and that is enforced rather than hoped: the fix is lifted into a profile-gated `scope_randomize_sv_only` rather than added inline, and the `verilog_2005` adjudication manifest is byte-identical end to end, 0 of 2 459 rows moved.
+
+⛔⛔ **POSITION IS PART OF THE FIX, and the first spelling was wrong in a way no verdict could see.** Every part of `randomize_call` is optional, so the rule matches a bare `randomize`. Placed mid-list it captured `randomize` used as an ordinary user identifier — legal under Annex B. The verdict never moved; only the AST did. The alternative is therefore `primary`'s **LAST**, which is also the cheaper spelling. The guard is a pinned control (`control_randomize_as_user_identifier.sv`) reading `scope_randomize=0 / hierarchical=4` on the shipped grammar against the broken spelling's `1 / 3`.
+
+**Schema stays `25`, measured over the whole pinned manifest rather than argued:** `widen=6 narrow=0 shape=0` across `repro_checks=180`. ⚠️ The new `{kind: "scope_randomize"}` is a NEW node a consumer may now encounter in expression position — additive vocabulary, not a migration, but a consumer exhaustively matching `primary` kinds must add an arm for it. Corpus: SV lane pass **9 787 → 9 793**, axis-2 bar **282 → 275**. Full detail in ledger row `SV-0065`.
+
+### 1.0.191 / Contract 1.0.191 — SV-CORPUS-GRAD.13c.2s (`PGEN-SV-CORPUS-GRAD-0242`, 2026-08-19), ledger `SV-0063` + `SV-0064` (`Released`): **A GREEDY `( X )*` IN FRONT OF AN OPTIONAL `X`-SHAPED TAIL, IN FOUR CONSTRUCTS (GRAMMAR; `sv_2017`+`sv_2023`; SCHEMA UNCHANGED at 25)**
+
+The same starving-star mechanism as `SV-0060` one release earlier, at a different severity: there the starved element was MANDATORY so the rule matched nothing; here it is OPTIONAL, so each rule matched everything *except* the form the tail exists for.
+
+**`SV-0063` — a system task/function call could never reach its CLOCKING EVENT argument.** IEEE 1800-2017 A.8.2 writes `system_tf_identifier ( expression { , [ expression ] } [ , [ clocking_event ] ] )`. PGEN spelled the middle group as a bare `( comma ( expression )? )*`, whose body is nullable after the comma — so on `$rose(a, @(posedge clk))` the star ate the comma, its inner optional matched EMPTY, and the clocking-event group then needed a comma and saw `@`. Every `$rose`/`$past`/`$fell`/`$stable` call carrying the sampled-value clocking argument of §16.9.3 REJECTED.
+
+**`SV-0064` — a `let`, `property` or `sequence` instance could never take a NAMED argument after a positional one.** A.2.10 gives all three `[ X_actual_arg ] { , [ X_actual_arg ] } { , . identifier ( [ X_actual_arg ] ) }`, and all three carried the same starving star. ⛔ **This one was MASKED, which is why it needed measuring rather than reading.** The general `list_of_arguments` route rescues a mixed list *while every positional argument is also a plain expression*, so `sq(a, .q(b))` parsed all along — through the general production rather than the sequence-specific one. The moment a positional argument is something only the family rule can parse, both routes fail: `sq(a ##1 b, .q(d))` and `pr(a ##1 b, .q(d))` REJECTED, while the positional-only control `sq(a ##1 b, d)` parsed on both sides.
+
+**Schema stays `25`, measured rather than argued:** every one of the **155** pinned reproducer checks was replayed against the pre-fix and post-fix grammars on both axes — `widen=2 narrow=0 shape=0`. ⭐ Deliberately still REJECTED and pinned so it stays that way: `$rose(a, @(posedge clk), b)` (A.8.2 puts the clocking event LAST) and `$rose(a, @)`, a bare `@` that is neither an expression nor a `clocking_event`.
+
+### 1.0.190 / Contract 1.0.190 — SV-CORPUS-GRAD.13c.2k + .13c.2t (`PGEN-SV-CORPUS-GRAD-0237`, 2026-08-19), ledger `SV-0061` + `SV-0062` (`Released`): **A RESERVED KEYWORD PARSED IN EVERY NON-FINAL COMPONENT OF A HIERARCHICAL PATH — AND THE ASSIGNMENT-PATTERN KEY WAS NARROWER THAN THE STANDARD'S OWN EXAMPLE (GRAMMAR; all profiles; SCHEMA 24 → 25)**
+
+Two defects landed together, one strictly-LESS-permissive and one strictly-MORE.
+
+**`SV-0061` — the leak was POSITIONAL, not a missing keyword table.** IEEE 1800-2017 A.9.3 writes `hierarchical_identifier ::= { identifier [ [ constant_expression ] ] . } identifier` where every `identifier` is subject to §5.6.2, and PGEN guarded only the tail. So `ral.module[0].g()`, `ral.module.g()` and `module.g()` all parsed, while the method name, the final component and a declared name correctly refused the same token. The same hole admitted a reserved word as an instance name, an attribute name and a generate label. The exclusion now lives inside `identifier` itself.
+
+⚠️ **CONSUMER ACTION — this is the direction that BREAKS a consumer, and it is the first such direction this contract has published for SystemVerilog.** Text that parsed under `1.0.183` now REJECTS: any hierarchical path with a reserved word in a non-final component, any instance named with a reserved word, any attribute or generate label so named. Sixteen pinned witnesses move ACCEPT→REJECT across the three profiles, and **six third-party corpus files that parsed on 2026-08-18 do not parse today** — every one of them correctly, adjudicated against the tracked LRMs file by file. ⭐ Two of the six are DIALECT PAIRS rather than plain rejections: `(* type=1 *)` and `begin:byte` REJECT under `sv_2017`/`sv_2023` and **ACCEPT under `verilog_2005`**, because `type` and `byte` are in IEEE 1800's Annex B and in neither case in IEEE 1364-2005's.
+
+**`SV-0062` — `assignment_pattern_key` was narrower than the standard's own worked example.** Annex A gives `assignment_pattern_key ::= simple_type | default`, and `simple_type` cannot derive `string`; §10.9.2 prints `s2 = '{int:1, default:0, string:""};` as a worked example. The rule now derives the UNION of the two normative surfaces, so the example parses through the TYPE-key route instead of riding `member_identifier`'s acceptance of a reserved word — which is what `SV-0061` was about to take away.
+
+⚠️ **WHY THE SCHEMA MOVES — a REPLACED shape.** An assignment-pattern key that names a type no longer arrives as `{kind:"member", body:"int"}`; it arrives as `{kind:"pattern", body:{kind:"type", body:{kind:"integer", body:{kind:"atom", body:{kind:"int"}}}}}`, and the `default` key moves from `{kind:"member", body:"default"}` to `{kind:"pattern", body:{kind:"default"}}`. **Migration:** a consumer reading the key as a bare string must read the typed node. ⭐ Cost, since a strictness fix is normally assumed to cost: the shipped spelling measures `entries` **−1.07 %**, `memo_hits` **−2.41 %** and `committed` **−5.11 %**. All three binding counters FALL.
+
+### 1.0.189 / Contract 1.0.189 — SV-CORPUS-GRAD.13c.2q + .13c.2r (`PGEN-SV-CORPUS-GRAD-0233`, 2026-08-19), ledger `SV-0059` + `SV-0060` (`Released`): **EVERY ENABLE-GATE, PASS-ENABLE-SWITCH AND MULTI-OUTPUT GATE INSTANTIATION PARSED AS A UDP INSTANTIATION — AND THE VERDICT NEVER MOVED (GRAMMAR; all profiles; SCHEMA 23 → 24)**
+
+⛔⛔ **THE VERDICT NEVER MOVED, AND THAT IS THE ENTRY'S POINT.** The text was accepted before and is accepted now; what changed is the production it travels, and no pass/fail oracle in this repository could see that. This is the entry to read if you want to know why an accept-set-only watch is not sufficient for a parser contract.
+
+**`SV-0059` — eight gate/switch keywords lost their trailing DIGIT in extraction.** All three tracked LRMs write `enable_gatetype ::= bufif0 | bufif1 | notif0 | notif1` and `pass_en_switchtype ::= tranif0 | tranif1 | rtranif1 | rtranif0`; the extraction collapsed each quad to its alphabetic STEM, leaving `/bufif\b/`, `/notif\b/`, `/tranif\b/`, `/rtranif\b/` — **unmatchable by construction**, because `\b` demands a word boundary and `0` is a word character. The contrast is what makes it a targeted failure rather than a general one: `n_input_gatetype`, `mos_switchtype`, `cmos_switchtype` and `pass_switchtype` are all complete and all worked. The collapse happened exactly where the alternatives differ only by a trailing digit.
+
+**`SV-0060` — a greedy `( X )*` immediately before a MANDATORY `X`-shaped tail.** `n_output_gate_instance` was spelled `… output_terminal ( comma output_terminal )* comma input_terminal rparen`; `output_terminal := net_lvalue` and `input_terminal := expression` overlap, and the engine does not backtrack into a committed repetition, so the star ate the mandatory tail whenever `net_lvalue` could match a prefix of the final terminal — i.e. for the COMMON form. Its sibling `n_input_gate_instance` was unaffected because its star sits at the END. Fixed with one lookahead, `( comma output_terminal &comma )*`.
+
+⚠️ **CONSUMER ACTION — a REPLACED node type, on all three profiles. This is the largest consumer-visible change in the batch and it carries no accept-set signal at all.** `bufif0 g(o,i,e);`, `tranif0 g(o,i,e);`, `buf g(o,o2,i);` and `not g(o,i);` used to arrive as `udp_instantiation` with the terminals in an undifferentiated `instances[].inputs[]` list. They now arrive as `gate_instantiation`, whose `body` carries `gatetype: {kind:"bufif0"}` and whose instances carry **named, role-separated** `output`, `input` and `enable` fields. **Migration:** a consumer that matched `udp_instantiation` to find gates must match `gate_instantiation`; one that read positional terminals must read the named ones. Twelve pinned witnesses move on this axis and **zero** move a verdict.
+
+### 1.0.188 / Contract 1.0.188 — SV-CORPUS-GRAD.13c.2o (`PGEN-SV-CORPUS-GRAD-0232`, 2026-08-18), ledger `SV-0058` (`Released`): **A FOOTNOTE MARKER EMITTED AS A MANDATORY TOKEN (GRAMMAR; `sv_2023` ONLY; SCHEMA UNCHANGED at 23)**
+
+PGEN could not parse IEEE 1800-2023 covergroup inheritance unless you typed the LRM's FOOTNOTE NUMBER into your source. A.2.11 of the 2023 edition prints the alternative as `| covergroup extends covergroup_identifier ;29`, where `29` is a footnote marker whose text reads *"The extends specification of covergroup is allowed only within a class."* The extraction emitted the marker as a token — `kw_n_29_7719a1c7 := trivia /29\b/` — and placed it in the sequence with **no `?`**. Under `sv_2023` the only spelling of covergroup inheritance PGEN accepted was the one no Annex A production derives.
+
+⚠️ **CONSUMER ACTION — `sv_2023` only, both directions.** `covergroup extends base;` inside a class flips REJECT→ACCEPT; `covergroup extends base;29` flips ACCEPT→REJECT. ⭐ `sv_2017` REJECTS both, before and after, and that was CHECKED rather than assumed: `covergroup extends` appears in 1800-2023's Annex A and **nowhere** in the 1800-2017 source. `verilog_2005` has no covergroups.
+
+**Schema stays `23`:** the accepted form was 100 % unparseable before, so no witnessed shape moves; the footnote form is REMOVED rather than replaced, since that text no longer parses at all. The positional references renumbered `6→5` / `8→7` with every AST field name and source unchanged, and zero pinned witnesses moved on the shape axis.
+
+### 1.0.187 / Contract 1.0.187 — SV-CORPUS-GRAD.13c.2j (`PGEN-SV-CORPUS-GRAD-0229`, 2026-08-18), ledger `SV-0057` (`Released`): **ONE ANNEX A PRODUCTION RENDERED FOUR TIMES, AND ONLY THE CANONICAL COPY WAS MAINTAINED (GRAMMAR; `sv_2017`+`sv_2023`; SCHEMA UNCHANGED at 23)**
+
+A CLASS-SCOPED name could not be the receiver of a method call. IEEE 1800 A.8.4 writes the scope prefix once — `[ class_qualifier | package_scope ]` — and `grammars/systemverilog.ebnf` renders it **four times**. The canonical rendering `primary_hier_scope_prefix` gained a `class_scope` branch for a measured defect; the three inline copies never did, so `p::base::m.g()` REJECTED while both halves (`p::base::m` as a value, and `h.g()` through a handle) parsed alone.
+
+⚠️ **CONSUMER ACTION — additive, `sv_2017` + `sv_2023`.** `p::base::m.g()` and `p::base::h.arr[0].g()` flip REJECT→ACCEPT; four pinned witnesses move, all in that direction, and **zero** move a shape. **Schema stays `23`:** the alternative added is one the parser could not previously reach, so no previously-emitted shape is replaced.
+
+⛔ **What this release does NOT do, stated so it is not inferred:** the four renderings are still four. Detection of their drift is now automated (`docs/tasks/artifacts/sv_corpus_grad/scope_prefix_rendering_drift/`), and unifying them is an AST-shape change tracked as `SV-CORPUS-GRAD.13c.2n`, deliberately NOT taken before the SV release.
+
+### 1.0.186 / Contract 1.0.186 — SV-CORPUS-GRAD.13c.2c (`PGEN-SV-CORPUS-GRAD-0227`, 2026-08-18), ledger `SV-0056` (`Released`): **A NEGATIVE LOOKAHEAD THAT COULD NEVER PASS, SO A LOOP RAN ZERO ITERATIONS FOR THE LIFE OF THE PARSER (GRAMMAR; all profiles; SCHEMA 22 → 23)**
+
+`split_hierarchical_callable_receiver`'s member loop was guarded by `!callable_method_call_body`, meant to stop the receiver before the method name — but IEEE 1800 A.8.2 writes `array_manipulation_call ::= array_method_name { attribute_instance } [ ( list_of_arguments ) ] [ with ( expression ) ]` with the parens **optional**, so a bare member name already IS a `callable_method_call_body` and the guard fired on every identifier. ⇒ the loop ran **zero iterations for the life of the parser**, and multi-component receivers survived only through `method_call`'s `( dot method_call_body )*` chain, which carries no bit-select. That is exactly why `a.b.g()` parsed and `a.b[0].g()` did not.
+
+⚠️ **CONSUMER ACTION — all three profiles, and the shape change reaches inputs that already parsed.** `ral.arr[0].g()` flips REJECT→ACCEPT, and so does `top.u1[0].t;` — an IEEE 1364-2005 §12.4 indexed hierarchical task enable that had been rejecting in **plain Verilog**, with nothing pointing at it. Ten pinned witnesses move a verdict.
+
+⚠️ **WHY THE SCHEMA MOVES.** For a hierarchical call that parsed before, the components no longer travel `method_call`'s chain. Measured on `top.u1.t;`, all three profiles: the receiver's `path` was `[]` with `u1` and `t` appearing inside `chain: [[{kind:"dot"}, {kind:"built_in", body:{kind:"array_manipulation", …}}], …]`; it is now `chain: []` with `path: [[{body:"top"}, {bits:[]}, {kind:"dot"}, []]]` and the callable name `t`. **Migration:** a consumer walking `chain` to recover a hierarchical name must walk `path`.
+
+### 1.0.185 / Contract 1.0.185 — SV-CORPUS-GRAD.13c.2f slice 4 (`PGEN-SV-CORPUS-GRAD-0221`, 2026-08-17), ledger `SV-0055` (`Released`): **A LITERAL `$` TRANSLITERATED TO THE WORD `_dollar`, AND TWO NONTERMINALS FLATTENED INTO A TOKEN (GRAMMAR; all profiles; SCHEMA UNCHANGED at 22)**
+
+The two `PATHPULSE$` tokens of IEEE 1800 A.7.5 were **transliterated rather than transcribed**. The extraction turned the literal `$` into the word `_dollar` and, for the path-specific form, flattened two NONTERMINAL references into the token text as well, leaving `/PATHPULSE_dollar_specify_input_terminal_descriptor_dollar_specify_output_terminal_descriptor\b/`. Both alternatives of `pulse_control_specparam` could therefore fire only on source containing those literal characters, which no SystemVerilog source does. The rule NAMES are faithful transliterations of the LRM spelling and are kept; it is the matched TEXT that was wrong.
+
+⚠️ **CONSUMER ACTION — both directions, all three profiles.** IEEE 1800-2023 §30.7.1's own example and four neighbouring spellings flip REJECT→ACCEPT (fifteen pinned witnesses, five reproducers × three profiles). ⛔ **And a spelling NARROWS**: `specparam PATHPULSE_dollar = (1, 2);` was accepted on all three profiles and now REJECTS on all three — correctly, since `PATHPULSE_dollar` is an ordinary identifier and `(1, 2)` is not a `constant_mintypmax_expression`. It parsed only because the transliterated word was a magic token.
+
+**Schema stays `22`:** the accepted forms were 100 % unparseable before, and the narrowed form is REMOVED rather than replaced; zero pinned witnesses move on the shape axis. ⛔ One regex per token, deliberately, rather than composing `PATHPULSE$` + descriptor + `$` + descriptor from grammar elements: `trivia` skips layout before every element, so the composed form would also accept `PATHPULSE$ clk $ q`, and §A.9.3 makes `PATHPULSE$clk$q` ONE simple identifier. A contiguous regex cannot match the illegal spacing by construction.
+
+### 1.0.184 / Contract 1.0.184 — SV-CORPUS-GRAD.13c.2d (`PGEN-SV-CORPUS-GRAD-0220`, 2026-08-17), ledger `SV-0054` (`Released`): **AN LRM TYPO TRANSCRIBED AS A LITERAL KEYWORD (GRAMMAR; `sv_2017` ONLY; SCHEMA 21 → 22)**
+
+IEEE 1800-2017 A.2.11 writes `function_declaraton` — corrected to `function_declaration` in 1800-2023 — and the extraction emitted `kw_function_declaraton_06b7ed29 := trivia /function_declaraton\b/`. An alternative that can only fire on source literally containing those characters is unreachable, so §19.6.1's own example — a `cross` body declaring a function and using it in a `bins` — was REJECTED under `sv_2017` while `sv_2023` accepted it.
+
+⭐ **The `;` had to move with it, which is why this is not a one-word edit.** `cross_body_sv_2017` read `lbrace ( cross_body_item semi )* rbrace`, demanding a `;` after EVERY item, so merely re-pointing the reference would then have required `endfunction ;`, which §19.6.1 does not write. The repair mirrors the `sv_2023` pair, which already carried the `;` on the `bins_selection_or_option` alternative rather than on the loop.
+
+⚠️ **CONSUMER ACTION — `sv_2017` ONLY, and it is a REPLACED shape, which is WHY THE SCHEMA MOVES.** Each element of `cross_body_sv_2017`'s `items` array was a two-element pair `[ <cross_body_item envelope>, {kind:"semi"} ]`; it is now the `cross_body_item` envelope itself and the `;` token is gone. **Migration:** a consumer reading `items[i][0]` must read `items[i]`. Seven pinned witnesses move on this axis. **Measured per profile rather than reasoned:** under `sv_2023` an already-parsing cross body's AST is byte-identical across the fix and §19.6.1's example already parsed; under `verilog_2005` covergroups do not exist and both spellings reject on both sides. ⚠️ The accepts-invalid half of `.13c.2a` is PRESERVED by this shape rather than re-opened: `cross_body_item` is non-nullable and a bare `;` matches neither alternative, so `option.weight = 2;;` still fails.
 
 ### 1.0.183 / Contract 1.0.183 — SV-CORPUS-GRAD.13c.2e (`PGEN-SV-CORPUS-GRAD-0214`, 2026-08-12), ledger `SV-0053` (`Released`): **THE COVERGROUP SELECT CONDITION'S LITERAL LRM BRACES — THE SAME DEFECT AS `SV-0049`, ONE CLAUSE AWAY, THREE DAYS LATER (GRAMMAR; `sv_2017`+`sv_2023`; SCHEMA 20 → 21)**
 

@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-21 - PGEN-SV-CORPUS-GRAD-0268 — the acceptance criterion that said "do not design this from a sample of one" was the whole value of the leaf
+
+**1. THE BACK-FILL WAS THE CHEAP HALF.** Nine missing releases and five missing schema rows are two
+hours of careful transcription from the contract and the ledger. What made the leaf worth opening is
+that the *same* table had already been hand-reconstructed once, with a warning sentence written into
+the file naming the contract as the winner — and by the time I got there the gap had grown from three
+releases to nine **and the warning sentence itself had drifted a third time**, reading "is now 21"
+against a contract carrying 26. Two data points, same file, same failure: a prose warning is not an
+instrument. That is not an opinion about documentation hygiene, it is a measurement.
+
+**2. THE LEAF TOLD ME NOT TO DESIGN FROM SYSTEMVERILOG, AND IT WAS RIGHT THREE TIMES OVER.** The
+census over all ten per-parser books took ten minutes and changed the design completely.
+`systemverilog_preprocessor` publishes `### Release 1.0.7 —`, not `### 1.0.7 /` — a checker written
+from the SystemVerilog shape reads it as an empty book and reports a false failure on a family that
+is perfectly current. The two annotation books are date-keyed and their contracts carry no release
+field at all, so "compare newest release to contract release" is not merely unsatisfiable there, it
+is the wrong question. And `vhdl` was genuinely a release stale. **A checker built from the one
+family I had measured would have been wrong about four of the other nine.**
+
+**3. THE STALE VHDL BOOK WAS MINE, AND SO WAS THE MISSING `1.0.194`.** Both come from `-0081` earlier
+the same day: I bumped SV to `1.0.194` and VHDL to `1.0.5`, wrote a LOCKSTEP box naming the contracts,
+the main book, `TOOLBOX.md` and `RUST_CODEBASE_ANALYSIS.md` — and did not name the per-parser books.
+So the leaf whose job was to close this drift found that its immediate predecessor had grown it by
+two. ⇒ **a lockstep checklist is only as good as its enumeration of surfaces**, which is exactly the
+argument for the doctrine rather than for trying harder next time.
+
+**4. A DECLARED CLASS MUST BE TWO-SIDED OR IT IS A WAIVER.** Three of the ten books cannot be compared
+by release number. The tempting design is to skip them. The shipped one asserts both halves: a
+`date_keyed` family fails if its book starts publishing release sections *or* if its contract gains a
+release field; a `no_contract` family fails if a contract appears. A class that can only ever say
+"nothing to do here" is indistinguishable from a book nobody watches — which is the defect, not the
+fix.
+
+**5. THE CONTROL THAT MATTERS IS THE ONE FOR THE PRIMARY ASSERTION.** The self-test's first four
+probes prove the population is closed. It would have been easy to stop there. The last two shift a
+contract version in memory and assert the checker reports BEHIND and AHEAD — the actual defect, in
+both directions. A gate whose primary assertion has never been observed to fail has not been tested,
+and this doctrine exists precisely because a book sat nine releases stale while twenty-four other
+doctrines reported green.
+
 ## 2026-08-21 - PGEN-ENGINE-UNIVERSAL-SERVICES-0081 — the field had a vocabulary for two of the three facts it was carrying, and the third was written as `0`
 
 **1. THE DEFECT WAS NOT IN THE CHANGE THAT CAUSED IT.** `SV-CORPUS-GRAD.3.12` is correct: caching a

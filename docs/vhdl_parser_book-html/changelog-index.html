@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9be387ea.js";
+            window.path_to_searchindex_js = "searchindex-2695eac6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-77be4d5d.js"></script>
@@ -201,6 +201,32 @@
 <p>The SystemVerilog parser’s changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. <strong>The VHDL grammar is different: it was typed in a single comprehensive batch — VHDL-Slice-1 — so the VHDL schema timeline is short.</strong> A follow-up correctness fix (<code>1.0.2</code>, schema <code>2</code>, <code>VHDL-0001</code>) added the third entry, the <code>1.0.3</code> POST-SV-AUDIT Category-A list-shape batch (schema <code>3</code>) added the fourth, and the <code>1.0.4</code> <code>VHDL-0002</code> based-literal acceptance fix (schema stays <code>3</code>) added the fifth. This is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a <a href="schema-versioning.html">Schema Versioning</a> row, and an entry below.</p>
 <h2 id="releases-relevant-to-this-book"><a class="header" href="#releases-relevant-to-this-book">Releases relevant to this book</a></h2>
 <p>This book is <strong>live</strong> and tracks current main HEAD. The entries below mirror the “Schema Versioning” table and the Resolved-Defects sections in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>; the contract is authoritative for the live state.</p>
+<h3 id="105--contract-105--engine-universal-services43-pgen-engine-universal-services-0081-2026-08-21-ledger-vhdl-0004--the-recursion-ceiling-now-bounds-time-as-well-as-stack-engine-zero-grammar-bytes-schema-stays-3"><a class="header" href="#105--contract-105--engine-universal-services43-pgen-engine-universal-services-0081-2026-08-21-ledger-vhdl-0004--the-recursion-ceiling-now-bounds-time-as-well-as-stack-engine-zero-grammar-bytes-schema-stays-3">1.0.5 / Contract 1.0.5 — ENGINE-UNIVERSAL-SERVICES.43 (<code>PGEN-ENGINE-UNIVERSAL-SERVICES-0081</code>, 2026-08-21), ledger <code>VHDL-0004</code> — the recursion ceiling now bounds TIME as well as stack (ENGINE; ZERO grammar bytes; schema stays 3)</a></h3>
+<p>⛔ <strong>This release changes no language and no AST shape. It changes whether the parser RETURNS.</strong>
+Measured on the shipped release probe: <strong>575</strong> nested parens in <code>s &lt;= (((…)))1(((…)));</code> were
+accepted in 0.18 s, and <strong>590 returned nothing in 30 s</strong>. On the embedding path that is an
+unbounded hang holding the caller’s thread — worse than the process abort that embedding contract
+<code>1.3.1</code> replaced, because a crash fails fast and loud and a hang does not.</p>
+<p>⭐ <strong>VHDL is where the defect was proven ENGINE-level rather than SystemVerilog-specific</strong>, and that
+is the reason this family carries a release for a fix it did not cause. The generated VHDL parser
+was byte-identical across the concurrent SystemVerilog grammar campaign
+(<code>generated_reproducibility_gate</code> tier 2, 11/11), and it showed the identical cliff — so a defect
+present in an unchanged parser cannot have been introduced by a change to a different one. VHDL’s
+cliff sits later than SystemVerilog’s (~575→590 rather than ~317→318) only because its expression
+cascade is shallower per parenthesis: the same event at a different density.</p>
+<p><strong>ROOT CAUSE (shared with <code>SV-0067</code>).</strong> Every recursion-guard verdict travelled one field, a
+parse-stack <strong>frame index</strong>, and a failure whose block came from a frame outside the memoized rule
+is deliberately not cached. <code>Infinite</code> and <code>LeftRecursive</code> name a frame; the whole-stack <strong>depth
+ceiling</strong> names none, so it passed <code>0</code> — outside every rule — which disabled FAILURE memoisation
+for the entire remaining parse after a single trip. The fix routes the ceiling onto its own channel
+and caches its failures under a <strong>depth stamp</strong>, sound because the ceiling is monotone in depth.</p>
+<p><strong>MEASURED, after.</strong> 575 parens unchanged at 0.16 s accepted; <strong>590 → 0.28 s ACCEPTED</strong>; 600 and
+620 accepted; 700 and beyond rejected in bounded, input-length-independent time. ⭐ The accept set
+did not narrow — 590–660 were never rejections, the runaway search simply never reached a verdict.
+<code>parser_embedding_vhdl_deep_nesting_yields_clean_diagnostic_not_process_abort</code>, which previously
+could not terminate, now passes and carries a wall-clock budget so a recurrence fails rather than
+hangs. <strong>No consumer migration</strong>; AST-dump schema stays <code>3</code>. Full detail in ledger row <code>VHDL-0004</code>,
+with the SystemVerilog twin at <code>SV-0067</code>.</p>
 <h3 id="104--contract-104--vhdl-0002-based-literal-acceptance-fix-schema-stays-3"><a class="header" href="#104--contract-104--vhdl-0002-based-literal-acceptance-fix-schema-stays-3">1.0.4 / Contract 1.0.4 — VHDL-0002 based-literal acceptance fix (schema stays 3)</a></h3>
 <p>A targeted, bug-ledger-driven correctness fix landed 2026-06-10. The vhdl certificate-coverage
 drive (<code>GRAMMAR-WELLFORMED.H.11</code>) surfaced that the parser <strong>rejected every VHDL based literal</strong>

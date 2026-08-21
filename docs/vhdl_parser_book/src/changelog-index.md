@@ -21,6 +21,37 @@ The SystemVerilog parser's changelog index is long because its return-annotation
 
 This book is **live** and tracks current main HEAD. The entries below mirror the "Schema Versioning" table and the Resolved-Defects sections in `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`; the contract is authoritative for the live state.
 
+### 1.0.5 / Contract 1.0.5 — ENGINE-UNIVERSAL-SERVICES.43 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0081`, 2026-08-21), ledger `VHDL-0004` — the recursion ceiling now bounds TIME as well as stack (ENGINE; ZERO grammar bytes; schema stays 3)
+
+⛔ **This release changes no language and no AST shape. It changes whether the parser RETURNS.**
+Measured on the shipped release probe: **575** nested parens in `s <= (((…)))1(((…)));` were
+accepted in 0.18 s, and **590 returned nothing in 30 s**. On the embedding path that is an
+unbounded hang holding the caller's thread — worse than the process abort that embedding contract
+`1.3.1` replaced, because a crash fails fast and loud and a hang does not.
+
+⭐ **VHDL is where the defect was proven ENGINE-level rather than SystemVerilog-specific**, and that
+is the reason this family carries a release for a fix it did not cause. The generated VHDL parser
+was byte-identical across the concurrent SystemVerilog grammar campaign
+(`generated_reproducibility_gate` tier 2, 11/11), and it showed the identical cliff — so a defect
+present in an unchanged parser cannot have been introduced by a change to a different one. VHDL's
+cliff sits later than SystemVerilog's (~575→590 rather than ~317→318) only because its expression
+cascade is shallower per parenthesis: the same event at a different density.
+
+**ROOT CAUSE (shared with `SV-0067`).** Every recursion-guard verdict travelled one field, a
+parse-stack **frame index**, and a failure whose block came from a frame outside the memoized rule
+is deliberately not cached. `Infinite` and `LeftRecursive` name a frame; the whole-stack **depth
+ceiling** names none, so it passed `0` — outside every rule — which disabled FAILURE memoisation
+for the entire remaining parse after a single trip. The fix routes the ceiling onto its own channel
+and caches its failures under a **depth stamp**, sound because the ceiling is monotone in depth.
+
+**MEASURED, after.** 575 parens unchanged at 0.16 s accepted; **590 → 0.28 s ACCEPTED**; 600 and
+620 accepted; 700 and beyond rejected in bounded, input-length-independent time. ⭐ The accept set
+did not narrow — 590–660 were never rejections, the runaway search simply never reached a verdict.
+`parser_embedding_vhdl_deep_nesting_yields_clean_diagnostic_not_process_abort`, which previously
+could not terminate, now passes and carries a wall-clock budget so a recurrence fails rather than
+hangs. **No consumer migration**; AST-dump schema stays `3`. Full detail in ledger row `VHDL-0004`,
+with the SystemVerilog twin at `SV-0067`.
+
 ### 1.0.4 / Contract 1.0.4 — VHDL-0002 based-literal acceptance fix (schema stays 3)
 
 A targeted, bug-ledger-driven correctness fix landed 2026-06-10. The vhdl certificate-coverage

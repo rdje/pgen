@@ -1,5 +1,41 @@
 # CHANGES.md
 
+## 2026-08-21 - PGEN-SV-CORPUS-GRAD-0268 (leaf SV-CORPUS-GRAD.13c.2z CLOSED — the SV parser BOOK back-fill + the missing doctrine; doc-only, ZERO grammar bytes, ZERO Rust bytes)
+
+- ✅ **(a) TEN releases back-filled into `changelog-index.md`, not nine.** `1.0.184`…`1.0.192` were
+  missing as opened; `1.0.194` was missing because **`-0081` earlier the same day added it and its
+  LOCKSTEP box named the contracts and the main book but NOT the per-parser book.** Recorded rather
+  than folded in quietly: the leaf open to fix this drift is the one whose own predecessor grew it.
+  Every section is authored from the contract's per-release Current-state notes and the matching
+  ledger rows, as the leaf required — not paraphrased.
+- ✅ **(b) `schema-versioning.md` rows `21`–`25` back-filled**, each naming the shape it REPLACED and
+  the migration. ⭐ Row `21`'s release `1.0.183` had a published changelog section the whole time, so
+  the two halves of the same book had drifted apart from *each other*. ⛔⛔ The file's convenience
+  sentence had drifted a **THIRD** time — *"is now `21`"* against `26` — the same sentence and the
+  same failure one campaign after it was hand-fixed and given a prose warning. **A prose warning is
+  not an instrument**, now measured twice.
+- ✅ **(c) NEW DOCTRINE `PARSER-BOOK-CURRENCY`** (`scripts/check_parser_book_currency.sh`): a
+  per-parser book's newest published release must EQUAL its family's contract release, **in both
+  directions**. The registry goes **24 → 25**.
+- ⭐⭐ **SIZING THE POPULATION FIRST IS WHAT MADE (c) CORRECT.** The leaf forbade designing from a
+  sample of one, and the census over all TEN books found three things a SystemVerilog-shaped checker
+  would have got wrong: `vhdl` was **genuinely stale** at `1.0.4` vs `1.0.5` (⛔ also `-0081`'s
+  lockstep miss — now published); `systemverilog_preprocessor` is **current** but uses
+  `### Release 1.0.7 —` headings a SV-shaped regex reads as an EMPTY book; and the two annotation
+  families are **date-keyed** with contracts carrying no release field at all. `ebnf`/`json` have no
+  contract. ⇒ the population is CLOSED and every book CLASSIFIED, an unclassified book being a hard
+  failure, and the two non-comparing classes are **two-sided** — `date_keyed` fails if the book
+  starts publishing releases *or* if its contract gains a release field. A class that only declares
+  is a waiver with better manners.
+- ✅ **`--self-test` proves SIX refusals fire**, including the founding defect in BOTH directions
+  (book BEHIND its contract, book AHEAD of it). The four structural controls prove the population is
+  closed; the two directional ones matter more, because a gate whose primary assertion has never
+  been seen to fail is a gate nobody tested — and this doctrine exists because a book sat nine
+  releases stale with every other check green.
+- **Verified**: `bash scripts/check_parser_book_currency.sh` → OK over 10 books (six compared and
+  equal, four declared with both halves checked); `--self-test` **6/6**;
+  `bash scripts/check_doctrines.sh` → **ALL 25 enforced doctrines PASS** with both meta-mirrors green.
+
 ## 2026-08-21 - PGEN-ENGINE-UNIVERSAL-SERVICES-0081 (leaf ENGINE-UNIVERSAL-SERVICES.43 CLOSED — the DIRECTOR-RULED SV-release blocker: crossing the recursion ceiling HUNG instead of failing; ENGINE fix, ZERO grammar bytes, all 11 parsers regenerated)
 
 - ✅✅✅ **THE CEILING IS A BOUND AGAIN, AND THE ACCEPT SET DID NOT NARROW — IT WIDENED.** Measured on
