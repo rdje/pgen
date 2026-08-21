@@ -1235,8 +1235,18 @@ report `UNKNOWN=0`, `fully_certified=true`, `sample_parse_failures=0` (json, reg
 systemverilog_preprocessor, rtl_frontend, rtl_const_expr), and SystemVerilog — the predicate-heaviest
 grammar — reports `sample_parse_failures=0` with a canonical (`sv_2017`) residual of `UNKNOWN=12` (down
 from 20 since `VERILOG-2005-PROFILE.6.7` promoted the 8 `sv_2017`-profile-unreachable SystemVerilog-only
-rules to per-profile `proof`) that the sound multi-config recognized union collapses to `UNKNOWN=1` (the
-single `context_member_method_call` reach-gap, deferred to a future structured-witness synthesizer). No grammar emits a sample its own
+rules to per-profile `proof`) that the sound multi-config recognized union collapses to `UNKNOWN=1`.
+
+⚠️ **The residual's NAME was stale here and is corrected as of 2026-08-22** (`SV-CORPUS-GRAD.13c.2x.9`):
+the count `1` was right, but this sentence named `context_member_method_call`, which
+`SV-CORPUS-GRAD.13c.2y` retired. The live residual is **`known_unscoped_property_identifier`**, and it
+is **not** a structured-witness reach gap either — measured 2026-08-22, the reach plan for it is
+complete and correct, and the rule is **shadowed**: `prop_primary_sv_2017`'s first alternative
+`sequence_expr` matches any bare identifier, so `property_instance` — the only route to it — is never
+reached, and the `has_fact(property_name, …)` predicate that exists to disambiguate exactly this case
+never gets the chance to fire. Seven carriers were tested; all parse, none commits the rule. Whether
+that makes it *provably* shadowed (and therefore closable as a `proof` rather than a witness, taking
+the union to `UNKNOWN=0`) is `SV-CORPUS-GRAD.13c.2x.9`. No grammar emits a sample its own
 parser semantically rejects.
 
 ## Directed (Learned) Generation — the FdLoop Loop
