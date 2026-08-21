@@ -1,5 +1,38 @@
 # CHANGES.md
 
+## 2026-08-21 - PGEN-SV-CORPUS-GRAD-0266 (leaf ENGINE-UNIVERSAL-SERVICES.43 — DIRECTOR-RULED an SV-RELEASE BLOCKER and now THE FRONTIER; first TOOLBOX diagnosis banked; doc-only, ZERO grammar bytes, ZERO Rust bytes):
+
+- ✅⛔ **THE DIRECTOR RULED, and the ruling re-orders the lane.** Asked whether `.43` jumps ahead of
+  `SV-CORPUS-GRAD.13c.2z` (the SV parser-book back-fill): *"Yes … It is critical. the SV-book
+  backfill, although important, is not as critical. There is no point in having a book if there is no
+  working product, right?"* ⇒ `.43` is the SV lane's frontier until it closes; `.13c.2z` waits.
+- ⭐⭐ **FIRST TOOL RUN IS IN, AND IT NARROWS THE FIX BEFORE ANY ENGINE SOURCE IS READ.** TOOLBOX 3.1
+  `--dump-rule-call-counts` on the depth-350 input: **`lparen` 2 104 128 calls for an input with 350
+  parens** (~6 000 per paren); `expression_base` 1 203 895; `unary_operator` 1 061 607; and every
+  other top rule is an ALTERNATIVE of the expression/primary cascade at ~500k–900k
+  (`tagged_union_expression`, `operator_assignment`, `streaming_concatenation`, `inside_expression`,
+  `empty_unpacked_array_concatenation`, the `tf_call` family).
+- ⭐ **RUNAWAY SEARCH, NOT A DEADLOCK — measured, not assumed.** Across successive 250 ms dashboard
+  ticks the counters climb monotonically (`lparen` 2 089 390 → 2 096 751 → 2 104 128; `system_tf_call`
+  508 487 → 510 272 → 512 109 → 513 898). The process is doing WORK. ⇒ **the fix is "stop
+  re-exploring", not "break a lock"** — and aiming at the wrong one of those is the expensive mistake
+  this run rules out for the cost of 75 seconds.
+- ⭐⭐⭐ **THE LEADING HYPOTHESIS NAMES A DESIGN TENSION, NOT A TYPO — and it is explicitly UNCONFIRMED.**
+  A depth-ceiling failure is **not a function of `(rule, position)`; it is a function of the REMAINING
+  DEPTH BUDGET.** So the engine faces a real fork: memoise it on `(rule, position)` and a later,
+  shallower attempt wrongly reuses a failure that was only true deep (**unsound** — precisely the
+  failure-side shape `MEMO-STORE-SOUNDNESS` owns, where `memo_fail` is keyed `(rule, position)`
+  only); or decline to memoise and every enclosing level re-tries every alternative, each
+  re-descending and re-tripping the ceiling (**exponential** — what is measured). ⇒ the ceiling
+  probably needs to become a bound the attempt CANNOT re-enter rather than a failure it keeps
+  re-deriving. ⛔ **First check for the next session: is `memo_fail` consulted or written on the
+  depth-exhausted path at all? Either answer is a finding** — if written, the soundness half is
+  already live as a separate latent defect; if not, the exponential half is fully explained.
+- **HANDOFF**: `.43`'s owes-list, the tracked repro inputs (`d300.sv` accepted in 0.13 s, `d350.sv`
+  no result in 90 s) and the full counter table are in
+  `docs/tasks/artifacts/engine_universal_services/deep_nesting_cliff/`. Layer A's `blockers` line
+  points at `.43` as the frontier.
+
 ## 2026-08-21 - PGEN-SV-CORPUS-GRAD-0263 (leaf SV-CORPUS-GRAD.13c.2y — the DELETION AUDIT under director challenge + the no-regression evidence `-0261` owed; leaves .13c.2x.7 and ENGINE-UNIVERSAL-SERVICES.42 NEW; doc-only, ZERO grammar bytes, ZERO Rust bytes):
 
 - ⛔⛔ **THE DIRECTOR ASKED WHY 43 RULES WERE DELETED. NONE WERE — AND THE PREMISE IS MINE.**

@@ -23,3 +23,43 @@
 
 ⛔ SV-CORPUS-GRAD.8c.3 fixed a SIGABRT here by routing embedding parses to a 256 MiB stack
   so the ceiling would return a clean E_PARSE_FAILURE. Today it returns nothing at all.
+
+## TOOLBOX 3.1 — --dump-rule-call-counts on the depth-350 input (2026-08-21)
+
+  ./rust/target/release/parseability_probe --parse systemverilog d350.sv --profile sv_2017 \
+      --dump-rule-call-counts 25 --dump-rule-call-counts-exclude trivia,identifier,simple_identifier
+
+  top rules after ~75 s -- the input has THREE HUNDRED FIFTY parens:
+
+    lparen                                 2,104,128     <- ~6 000 calls PER PAREN
+    expression_base                        1,203,895
+    unary_operator                         1,061,607
+    non_keyword_identifier                   975,937
+    primary_literal                          900,854
+    kw_null_2be88ca4                         900,225
+    expression_operand                       874,191
+    tagged_union_expression                  874,191
+    operator_assignment                      873,875
+    inside_expression                        696,199
+    lbrace                                   661,634
+    empty_unpacked_array_concatenation       657,996
+    primary / inc_or_dec_expression          635,041
+    tf_call_with_args family                 514,210
+    streaming_concatenation                  478,984
+
+## IT IS A RUNAWAY SEARCH, NOT A DEADLOCK -- measured across dashboard snapshots
+
+    lparen          2,089,390 -> 2,096,751 -> 2,104,128   (~7 400 per 250 ms tick)
+    system_tf_call    508,487 ->   510,272 ->   512,109 -> 513,898
+
+  Monotonically climbing => the process is doing WORK, not blocked on a lock or a cycle
+  guard. That distinction matters: the fix is not "break a deadlock", it is "stop
+  re-exploring".
+
+## THE SHAPE OF THE WORK
+
+  Every high-count rule is an ALTERNATIVE of the expression/primary cascade --
+  tagged_union_expression, operator_assignment, streaming_concatenation,
+  inside_expression, conditional_expression, empty_unpacked_array_concatenation, the
+  tf_call family -- each retried ~500k-900k times. That is the signature of the whole
+  alternative set being re-explored at every nesting level.

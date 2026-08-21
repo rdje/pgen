@@ -202,8 +202,12 @@ question is *"is that enough?"*, and that cannot be answered without naming the 
 
 ### ⛔⛔⛔ `.43` NEW `todo` — **CROSSING THE RECURSION CEILING HANGS INSTEAD OF FAILING: ~4 KB of legal-looking text makes the SHIPPED parser run unbounded on the EMBEDDING path, and the regression lock that exists to catch exactly this cannot complete** (opened 2026-08-21 session #252 by `ENGINE-UNIVERSAL-SERVICES.42`'s bound, `PGEN-SV-CORPUS-GRAD-0265`)
 
-> ⛔⛔ **CANDIDATE SV-RELEASE BLOCKER — DIRECTOR CALL REQUESTED.** `embedding_api` is the vehicle by
-> which the SystemVerilog parser is delivered to Nexsim. This leaf reports a hang on that vehicle.
+> ✅⛔ **RULED AN SV-RELEASE BLOCKER — DIRECTOR, 2026-08-21.** Asked whether this jumps the queue
+> ahead of `SV-CORPUS-GRAD.13c.2z` (the SV parser-book back-fill), the director ruled **YES**:
+> *"It is critical. the SV-book backfill, although important, is not as critical. There is no point
+> in having a book if there is no working product, right?"* ⇒ this leaf is the SV lane's frontier
+> until it closes. `embedding_api` is the vehicle by which the SystemVerilog parser is delivered to
+> Nexsim, and this leaf reports a hang on that vehicle.
 
 - ⛔ **MEASURED IN RELEASE, on the shipped `parseability_probe` (SV parser `e25365a1…`). It is a
   THRESHOLD, not a slope:**
@@ -244,6 +248,41 @@ question is *"is that enough?"*, and that cannot be answered without naming the 
   is pre-existing and engine-level. It does **not** measure whether SV's own cliff DEPTH moved —
   that needs the pre-fix SV parser, a ~40-minute regenerate-and-rebuild, and (a) below should pay it
   rather than leave the question open.
+- ⭐⭐ **(a) IS UNDER WAY — FIRST TOOL RUN IS IN, AND IT NARROWS THE FIX BEFORE ANY CODE IS READ.**
+  `--dump-rule-call-counts` (TOOLBOX 3.1) on the depth-350 input, full numbers in
+  `docs/tasks/artifacts/engine_universal_services/deep_nesting_cliff/measurements.txt`:
+
+  | | |
+  |---|---:|
+  | `lparen` calls, for an input with **350** parens | **2 104 128** (~6 000 per paren) |
+  | `expression_base` / `unary_operator` | 1 203 895 / 1 061 607 |
+  | `tagged_union_expression` / `operator_assignment` / `streaming_concatenation` | 874 191 / 873 875 / 478 984 |
+
+- ⭐ **IT IS A RUNAWAY SEARCH, NOT A DEADLOCK — and that was measured rather than assumed.** Across
+  successive 250 ms dashboard ticks the counters climb monotonically (`lparen` 2 089 390 → 2 096 751
+  → 2 104 128; `system_tf_call` 508 487 → 510 272 → 512 109 → 513 898). ⇒ the process is doing WORK,
+  not blocked on a lock or a cycle guard. **The fix is not "break a deadlock", it is "stop
+  re-exploring"**, and a fix aimed at the wrong one of those would have been the expensive mistake.
+- ⭐⭐⭐ **THE LEADING HYPOTHESIS, and it names a DESIGN TENSION rather than a bug — test it FIRST.**
+  Every high-count rule is an ALTERNATIVE of the expression/primary cascade, each retried ~500k–900k
+  times: the whole alternative set is being re-explored at every nesting level. Memoization is what
+  normally makes that polynomial, so the question is why it does not here. ⛔ **A depth-ceiling
+  failure is not a function of `(rule, position)` — it is a function of the REMAINING DEPTH BUDGET.**
+  So the engine faces a genuine fork: memoise it on `(rule, position)` and a later, shallower attempt
+  wrongly reuses a failure that was only true deep (UNSOUND — the exact shape
+  `MEMO-STORE-SOUNDNESS` owns on the failure side, where `memo_fail` is keyed `(rule, position)`
+  only); or decline to memoise it and every enclosing level re-tries every alternative, each
+  re-descending and re-tripping the ceiling (EXPONENTIAL — what is measured here). ⇒ **the fix is
+  almost certainly to make the ceiling a bound the parse CANNOT re-enter, rather than a failure it
+  keeps re-deriving** — e.g. a depth-exhausted verdict that propagates as a hard, non-retryable stop
+  for the whole attempt instead of a per-branch failure. ⚠️ **HYPOTHESIS, not a finding**: it is
+  consistent with every counter above and with the cliff's threshold shape, and it has NOT been
+  confirmed against the engine source. Confirm or refute it before writing a line of fix.
+- ⛔ **AND THE FIRST THING TO CHECK WHEN CONFIRMING IT**: whether `memo_fail` is consulted or written
+  on the depth-exhausted path at all. If it is written, the soundness half of the fork is already
+  live and is a SEPARATE latent defect (a shallow parse reusing a deep failure); if it is not, the
+  exponential half is fully explained. Either answer is a finding.
+
 - **WHAT THIS LEAF OWES**: (a) TOOLBOX-first diagnosis of *why crossing the ceiling goes unbounded
   instead of failing fast* — ⛔ the ceiling is supposed to be a BOUND; a bound that converts into a
   search is the actual defect, and `--dump-rule-call-counts` on a depth-350 input will name what is
