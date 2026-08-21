@@ -130,6 +130,56 @@ jq -e '
     exit 1
 }
 
+# --- BASELINE IDENTITY: is this contract still describing THIS tree? -------------------
+#
+# Doctrine `BASELINE-IDENTITY` (SV-CORPUS-GRAD.13c.2x.2). Every `cert.expected_*` below is an exact
+# function of the SV grammar, of the generated parser the witnesses are verified through, and of the
+# engine surfaces the census is computed by — and until `SV-CORPUS-GRAD.13c.2x.7` this file carried
+# no grammar sha, no parser sha and no `verified_at_commit`.
+#
+# ⛔ WHY THIS GATE NEEDED IT MORE THAN MOST: IT HAD ALREADY ROTTED TWICE, THE SAME WAY. The contract
+# was hand-rebaselined 2026-08-09 (`ba1a96c8`, `SV-CORPUS-GRAD.3.18`) because it was RED, went RED
+# again within days, and **nothing ran it for twelve days** — 22 SV grammar revisions. A third hand
+# correction would have bought the same few days. What the identity buys instead is that the RED
+# says *"your baseline is 22 revisions old"* rather than *"something is wrong"*.
+#
+# ⛔ IT RUNS BEFORE ANY BUILD, DELIBERATELY. This gate's `build_release_parseability_probe` stage
+# alone costs ~20 minutes on a cold target. Spending that to arrive at an unattributable verdict is
+# the waste; saying it in under a second is the fix.
+#
+# THE FULL MATRIX (`SV-CORPUS-GRAD.13c.2x.4`) — an identity DISAMBIGUATES a verdict, it does not gate
+# the measurement:
+#   0 fresh+confirmed -> measure
+#   1 STALE           -> measure anyway; GREEN means the baseline was stale and still correct, and
+#                        this run RE-STAMPS it from its own numbers
+#   3 UNCONFIRMED     -> refuse BEFORE the work: a person already ruled the numbers wrong
+identity_rc=0
+identity_stale=0
+"$ROOT_DIR/scripts/check_baseline_identity.sh" --verify "${CONTRACT_FILE#"$ROOT_DIR/"}" \
+    || identity_rc=$?
+case "$identity_rc" in
+    0) ;;
+    1) identity_stale=1 ;;
+    3)
+        {
+            echo ""
+            echo "verilog_2005_conformance_gate: REFUSING TO MEASURE — the contract's expectations"
+            echo "  are UNCONFIRMED (see above). A person has already recorded that these numbers do"
+            echo "  not describe the recorded tree, so the ~20 min build plus three cert runs would"
+            echo "  resolve nothing. Re-deriving them is the owner leaf's work."
+        } >&2
+        exit 2
+        ;;
+    *)
+        {
+            echo ""
+            echo "verilog_2005_conformance_gate: REFUSING TO MEASURE — the contract's identity could"
+            echo "  not be read (rc=$identity_rc). Resolve the refusal above first."
+        } >&2
+        exit 2
+        ;;
+esac
+
 GRAMMAR_FILE="$ROOT_DIR/$(jq -r '.grammar_file' "$CONTRACT_FILE")"
 CORPUS_DIR="$RUST_DIR/$(jq -r '.corpus_dir' "$CONTRACT_FILE")"
 require_file "$GRAMMAR_FILE"
@@ -419,7 +469,41 @@ jq -n \
 if [[ "$gate_green" != "true" ]]; then
     echo "❌ verilog_2005 conformance gate NOT green: primary_unmet=${primary_unmet}" >&2
     echo "   (see $SUMMARY_TXT / $SUMMARY_JSON and logs under $LOG_DIR)" >&2
+    # ⛔⛔ STALE **AND** RED IS THE ONE CELL THAT GENUINELY NEEDS A PERSON. Without this line the
+    # exit reads "the tree regressed", which is the wrong diagnosis exactly when the baseline is the
+    # stale half — the shape that left this contract wrong for 22 grammar revisions, twice.
+    if (( identity_stale == 1 )); then
+        {
+            echo ""
+            echo "  ⛔ AND THIS BASELINE IS STALE: a declared input moved since it was confirmed."
+            echo "     So the failure above is AMBIGUOUS — it may be a real regression, or the"
+            echo "     contract may simply no longer describe this tree. Adjudicate it; do NOT"
+            echo "     re-stamp to make it green, because a stamp asserts the numbers were"
+            echo "     RE-DERIVED and matched, which is precisely what just did not happen."
+        } >&2
+    fi
     exit 1
+fi
+
+# ⭐⭐ STALE + GREEN => THIS RUN IS THE CONFIRMING RUN. Every criterion was evaluated against the
+# current tree and every one held, so "stale and still correct" is a DERIVED fact needing no human
+# judgement. Re-stamping here is what removes the adoption friction that leaves a block unread —
+# and this contract's whole history is of a number nobody re-derived until it was 22 revisions old.
+# ⛔ The guard that keeps it honest: reached ONLY after `gate_green == true`, and every stage above
+# exits non-zero rather than skipping, so a vacuous green cannot arrive here.
+if (( identity_stale == 1 )); then
+    echo "==> baseline_identity_restamp"
+    if "$ROOT_DIR/scripts/check_baseline_identity.sh" --stamp "${CONTRACT_FILE#"$ROOT_DIR/"}" \
+        --confirmed-by "auto re-stamped by a GREEN verilog_2005_conformance_gate run: \
+cert=${cert_expected_total}/${cert_expected_proof}/${cert_expected_witness}/${cert_expected_unknown} \
+spf=${cert_expected_spf} prf=${cert_expected_prf} seeds=${seeds_json} \
+lint_profile_orphans=${lint_orphans_headline} corpus_checks=${matrix_checked}/0_mismatches \
+aliases=${alias_checked}"; then
+        echo "    the baseline was STALE and every criterion still held, so this run re-stamped it"
+    else
+        echo "    ⛔ the re-stamp FAILED — the gate's verdict stands, but the baseline is still stale" >&2
+        exit 1
+    fi
 fi
 
 echo "✅ verilog_2005 conformance gate passed (lint orphans=${lint_orphans_headline}, corpus ${matrix_checked} checks/0 mismatches, aliases ${alias_checked}, cert deterministic across seeds ${seeds_json})."

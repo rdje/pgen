@@ -1,5 +1,62 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-21 - PGEN-SV-CORPUS-GRAD-0271 — two artifacts, two days apart, one dated root cause: a count cannot be a judgement about a mechanism that did not exist when it was written
+
+**1. THE ORDER WAS THE WHOLE METHOD.** The leaf said: adjudicate the 21-rule delta *before* touching
+the numbers, on the evidence of `.13c.2y`, where adjudicating a residual instead of re-deriving it
+found a live over-rejection defect. Rebaselining first would have taken about four minutes and
+produced a green gate with a 21-rule mystery pinned inside it. Adjudicating first produced a
+name-level decomposition that closes exactly — `1122 + 4 + 15 + 2 = 1143` — and the conclusion that
+matters is not the arithmetic but what it licenses: **no part of the drift is a defect, so recording
+it is safe.** Without that, "the gate is green" would have been a statement about the contract, not
+about the parser.
+
+**2. THE INSTRUMENT HAD TO EARN THE RIGHT TO BE CHEAP.** `--dump-rule-profiles` takes 2 seconds and
+needs no generated parser; the cert run takes minutes and needs a parser registered under the
+grammar's own name. Using the cheap one as a proxy is only legitimate if it measures the same
+quantity, so I checked it on **both** arms before relying on it: the dump reads 1141 on the baseline
+grammar and 1143 at HEAD, and cert runs under the gate's own invocation read `total=1141` and
+`total=1143` on the same two. Two paths, same numbers. Had I skipped that, the entire decomposition
+would have rested on an assumption about what a flag counts.
+
+**3. THE ARM I COULD NOT CLEAN, AND SAYING SO.** The base-arm cert reports `sample_parse_failures=3`,
+because an old grammar necessarily certifies through today's parser. That contaminates its
+`witness`/`UNKNOWN` by construction — not by accident — so those two fields cannot be attributed from
+it and I did not try. `total` is `grammar.rule_order.len()`, parser-independent, which is why the
+attribution rests on it and why the honest bound is written into the contract, the instrument's own
+header and the leaf rather than left for a reader to notice.
+
+**4. THE SAME ROOT CAUSE, TWICE IN TWO DAYS, ON TWO DIFFERENT FIELDS.** `.13c.2x.3`:
+`max_unreachable_rules=0`, authored 2026-06-17, two months before `indirect_lr_elimination.rs`
+existed. `.13c.2x.7`: `cert.expected_total=1122`, pinned 2026-08-09, two days before left recursion
+became an engine service. Neither number was wrong when written. Both became wrong because a
+mechanism appeared underneath them, and **neither file could say which half was stale**. That is not
+a coincidence to note — it is the argument for `BASELINE-IDENTITY` restated by measurement, and it is
+why declaring `indirect_lr_elimination.rs` as an input here is not boilerplate: it contributed 15 of
+the 21 rules, measured by holding the pass off.
+
+**5. THE CORPUS IS DELIBERATELY NOT AN IDENTITY INPUT, AND THAT DISTINCTION IS THE DOCTRINE'S EDGE.**
+An identity block is for numbers **nothing re-derives**. The 80 conformance sources are asserted
+case-by-case on every single run — each carries its own per-profile accept/reject expectation — so a
+corpus edit is caught by the gate itself, immediately and by name. Declaring them would have added 80
+digests that duplicate a check already running, and every one of them a surface to rot. The same
+reasoning the sibling union contract used to exclude its own gate script: it *asserts* the numbers,
+it does not *produce* them.
+
+**6. THE READER'S POSITION IS A COST DECISION, NOT A STYLE ONE.** This gate's release-probe stage
+costs ~20 minutes cold. Putting the identity check after it would mean paying twenty minutes to
+arrive at an unattributable verdict; putting it first means the refusal returns in about a second —
+which is also why the three refusal arms are cheap enough that they will actually be re-run. A
+control nobody re-runs is the `SV-CORPUS-GRAD.13i` failure one level up: a block that exists, and
+nothing reads.
+
+**7. A PROCESS ERROR WORTH RECORDING BECAUSE IT NEARLY POISONED A MEASUREMENT.** I edited
+`verilog_2005_conformance_gate.sh` while a run of it was executing. Bash reads a script incrementally
+from a byte offset, so inserting ~50 lines ahead of the interpreter's position can make it resume
+mid-statement. I killed that run rather than trusting its output — about twenty minutes of build
+time, which is the correct price. The rule is simple and I did not have it: never edit a script that
+is currently running.
+
 ## 2026-08-21 - PGEN-SV-CORPUS-GRAD-0270 — an allow-list is a claim with an expiry date, and only a two-sided check notices when it expires
 
 **1. THE GATE WENT RED BECAUSE THE TREE GOT BETTER.** `sv_syntax_closure_gate` failed with

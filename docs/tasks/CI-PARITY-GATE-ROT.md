@@ -234,6 +234,17 @@ commands.
 - ⚠️ **HONEST BOUND**: measured on one family through one gate. The claim that every `focus_<family>`
   moves its own `input_sha` follows from the field being present in all five envelopes checked, but
   has been **observed** only for `systemverilog`.
+- ⭐⭐ **A SECOND RUN NARROWED THE TRIGGER, AND IT IS NOT "every gate run"** (2026-08-21,
+  `PGEN-SV-CORPUS-GRAD-0271`). `verilog_2005_conformance_gate` runs the SAME
+  `make focus_systemverilog` stage, and after it `check_generated_reproducibility.sh` read
+  **`OK (11 artifacts unmoved…)`** — no RED at all. ⇒ the envelope is rewritten only when the recipe
+  actually **RE-EMITS** it; when `make` finds the target up to date it skips, and nothing moves. So
+  the defect is real but **intermittent by construction**, firing exactly when a gate is the first
+  thing to regenerate after a grammar or codegen change. ⛔ That makes it WORSE to diagnose, not
+  better: the same command produces a RED or a clean run depending on tree state a reader cannot see,
+  which is precisely the shape that gets written off as a flake. The fix in (a) is unchanged; what
+  this adds is that a reproduction attempt must first ensure the recipe is out of date, or it will
+  conclude the bug does not exist.
 
 ### ⛔⛔ `.40` NEW `todo` — **THE COLD-CLONE BOOTSTRAP IS BROKEN, AND `.24` SLICE 2 BROKE IT — a one-line fix whose own evidence ("ZERO shipped bytes, generated parsers byte-identical") was TRUE and could not see this** (routed in 2026-08-21 session #253 by `ENGINE-UNIVERSAL-SERVICES.43`, which needed a full regeneration and hit it twice)
 

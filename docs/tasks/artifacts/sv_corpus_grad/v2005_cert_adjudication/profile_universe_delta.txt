@@ -1,0 +1,26 @@
+PROFILE-UNIVERSE-DELTA: profile=verilog_2005 base=ba1a96c8 pinned=1122
+  measured: baseline-grammar=1141  baseline-grammar/no-indirect=1126  HEAD=1143
+
+  DECOMPOSITION of 1122 -> 1143  (+21)
+    + 4   direct-LR clones      block_event_expression_lr_base, block_event_expression_lr_suffix, select_expression_lr_base, select_expression_lr_suffix
+    + 15  indirect-LR clones    casting_type_lr_base, casting_type_lr_guard0, casting_type_lr_guard0_suffix, …
+    +2   grammar (net)          8 added / 6 removed
+        + kw_bufif0_e58d9bd3
+        + kw_bufif1_a2b83a3e
+        + kw_notif0_2c8df148
+        + kw_notif1_245fe7ea
+        + kw_rtranif0_caee0cc0
+        + kw_rtranif1_91fafa05
+        + kw_tranif0_96ae6b37
+        + kw_tranif1_41e0f26e
+        - kw_bufif_8c9c7ee6
+        - kw_function_declaraton_06b7ed29
+        - kw_n_29_7719a1c7
+        - kw_notif_8743f903
+        - kw_rtranif_75c812fc
+        - kw_tranif_02d116e0
+
+  ARITHMETIC: 1122 + 4 + 15 + (+2) = 1143   vs measured 1143  -> EXACT
+
+  VERDICT: 19 of the 21 are PGEN's OWN left-recursion residue (no grammar author wrote them);
+           the remaining +2 is the grammar, and every name in it belongs to a LEDGERED FIX.

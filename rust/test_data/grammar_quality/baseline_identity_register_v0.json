@@ -54,9 +54,10 @@
     },
     {
       "entry": "verilog_2005_conformance_contract_v0.json",
-      "disposition": "deferred",
-      "owner_leaf": "SV-CORPUS-GRAD.13c.2x.2",
-      "reason": "cert.expected_total=1122 / expected_proof=329 / expected_witness=779 / expected_unknown=14 are certificate-coverage equalities over the verilog_2005 PROFILE of the SV grammar, so every SV grammar revision is a candidate to move them."
+      "disposition": "adopted",
+      "owner_leaf": "SV-CORPUS-GRAD.13c.2x.7",
+      "resolved_by": "verilog_2005_conformance_gate",
+      "reason": "ADOPTED 2026-08-21 (SV-CORPUS-GRAD.13c.2x.7, PGEN-SV-CORPUS-GRAD-0271). cert.expected_* are certificate-coverage equalities over the verilog_2005 PROFILE of the SV grammar, so every SV grammar revision is a candidate to move them -- and this file is the doctrine's sharpest case, because it had ALREADY ROTTED TWICE THE SAME WAY: hand-rebaselined 2026-08-09 (ba1a96c8) because it was RED, RED again within days, and nothing ran it for twelve days (22 grammar revisions). FIVE inputs declared, and the adjudication proves each one load-bearing rather than boilerplate: the grammar (semantic ebnf_raw_ast digest, so a comment-only edit the frontend strips cannot fire it -- SV-CORPUS-GRAD.13c.2x.4) contributed +2 of the drift; indirect_lr_elimination.rs contributed +15 MEASURED by holding the pass off; grammar_wellformedness.rs computes the per-profile satisfiability the census counts; stimuli_generator.rs decides the witness/UNKNOWN split; and the generated parser is what every witness is verified through. NOT declared, deliberately, and for the same reason the sibling union contract excludes its gate script: the 80-file corpus under verilog_2005_conformance/ is ASSERTED case-by-case by this gate on every run (each file carries its own per-profile accept/reject expectation), so it is re-derived rather than pinned -- an identity block is for numbers nothing re-derives."
     },
     {
       "entry": "systemverilog_external_corpus_backed_proof_surface_v0.json",
