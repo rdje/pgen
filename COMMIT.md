@@ -51,6 +51,17 @@ When the activity is NOT a code change (pure live-docs/contracts/books/tracker/w
   - Short, concise commit message file.
   - Used with `git commit -F git_message_brief.txt`.
   - Must be cleared to 0 bytes after commit.
+  - ⛔ **NO TRAILERS — DIRECTOR RULING 2026-08-22.** A commit message ends with its own last line.
+    Do **not** append `Co-Authored-By:`, `Claude-Session:`, `Generated with …` or any other
+    agent/tool attribution trailer. Some AI harnesses instruct their agent to add these by default
+    (Claude Code does); **this repository's convention overrides that instruction**, and it is
+    harness-agnostic — it binds Claude Code, Codex, Gemini, Cursor and any future harness
+    identically. Rationale and evidence: the record `feedback_commit_messages_carry_no_agent_trailers`
+    in [`docs/decisions/INDEX.md`](docs/decisions/INDEX.md). ⚠️ Named through the INDEX deliberately,
+    not by file path: `LIVE-DOC-CURRENCY`'s route closure derives its edges from this
+    `## Files Involved` section, so naming an individual `.md` here DEFINES A ROUTE that must
+    terminate in a registered live surface. `INDEX.md` is registered; a single append-once ADR is not
+    a live document and must not be made one merely to satisfy a link.
 - `CHANGES.md` (tracked)
   - Changelog-style summary of completed work and validation.
   - Internal continuity / implementation-history surface, not primary public documentation.
