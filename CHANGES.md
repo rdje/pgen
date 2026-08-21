@@ -1,5 +1,58 @@
 # CHANGES.md
 
+## 2026-08-21 - PGEN-SV-CORPUS-GRAD-0267 (leaf ENGINE-UNIVERSAL-SERVICES.43 — ROOT CAUSE FOUND with file:line, and a guess RETRACTED under director challenge; doc-only, ZERO grammar bytes, ZERO Rust bytes):
+
+- ⛔⛔ **A GUESS DRESSED AS ANALYSIS, CALLED OUT AND RETRACTED.** `-0266` recorded a mechanism as a
+  hypothesis and then proposed a fix direction from it. The director: *"You talk about 'so the likely
+  fix is…' without a clear idea of what and where the actual issue is. That's concerning."* Correct —
+  TOOLBOX-FIRST exists precisely to stop that, and I did it anyway. The hypothesis bullet is replaced
+  by the located chain below.
+- ⛔ **AND A SECOND CHALLENGE FOUND A SECOND FLAW — *"Are you sure it's a ceiling issue?"*** `-0265`
+  called the cliff *"a THRESHOLD, not a slope"* on a coarse sample (250/275/300 fast, 350/400
+  timeout). **That did not establish it**: 690× over 50 parens is 1.14⁵⁰, which a smooth exponential
+  produces. Re-measured at 5-paren resolution: **315 → 0.14 s, 320 → >150 s** — >1000× across FIVE
+  parens, while 305 and 315 are identical. An exponential steep enough (~4×/paren) would separate
+  those two by ~10⁶. ⇒ the threshold claim SURVIVES, and is now measured instead of inferred. ⭐ The
+  original arithmetic also leaned on *"~10–11 frames per level"* taken from the test's own comment —
+  a carried number, the same class of error corrected earlier in this campaign.
+- ✅⛔ **ROOT CAUSE, FOUR LINKS, EACH AT A LINE IN `rust/src/ast_pipeline/ast_based_generator.rs`:**
+  1. `:9307-9309` — `memoized_call` records `memo_recursion_entry_depth = rule_id_stack.len()`; this
+     rule's own frame index is `entry_depth - 1`.
+  2. `:9138-9142` — `note_recursion_block(frame_index)` lowers `recursion_block_floor`.
+  3. `:9365-9369` — the memo **REFUSES to cache a FAILURE** when `floor < entry_depth - 1`, i.e. when
+     the block came from a frame OUTSIDE this rule. ⭐ Correct and principled: the outcome then
+     *"depended on which rules its CALLER had on the stack — state the memo key `(rule_id, position)`
+     does not carry"*. `SV-CORPUS-GRAD.3.12` added it to fix real wrong-rejections.
+  4. `:4100-4106` — the whole-stack depth ceiling calls **`note_recursion_block(0)`**, commented *"the
+     depth ceiling is a fact about the WHOLE stack, not about one frame, so it taints every enclosing
+     body: floor 0."*
+
+  ⇒ **`floor = 0` makes link 3's predicate true for EVERY rule at `entry_depth >= 2`. One trip of the
+  ceiling disables FAILURE MEMOISATION for the entire remaining parse**, and the packrat parse
+  degenerates into exponential backtracking over the SV expression cascade's alternative fan-out —
+  which is precisely the 2 104 128 `lparen` calls measured for 350 parens, and precisely why every
+  top rule is an *alternative* of that cascade.
+- ⭐⭐ **THE ASYMMETRY THAT MAKES IT FIXABLE IS ALREADY IN THE CODE.** Every other guard arm taints
+  only up to the ancestor owning the frame and *"stops the propagation exactly at the ancestor that
+  owns the frame"*. The depth ceiling is the ONLY arm that taints to `0`, so its propagation never
+  stops — un-memoisable globally and for the rest of the parse, where every sibling verdict is scoped.
+- ⭐⭐⭐ **FIX DIRECTION, NOW MECHANISM-BACKED RATHER THAN GUESSED.** Every other guard verdict means
+  *"this derivation is not viable — try the next alternative"*, so propagating an ordinary `Err` is
+  right. `RecursionDepthExceeded` means *"the whole attempt has exhausted its budget"*, and retrying
+  siblings cannot help — each re-descends and re-trips the same ceiling. ⇒ it should **terminate the
+  attempt**, not propagate as a retryable failure. ⚠️ Still a direction, not a patch.
+- ⛔ **IT MUST NOT UNDO `SV-CORPUS-GRAD.3.12`, WHICH IS CORRECT.** `.3.12` fixed real wrong rejections
+  (`dm_sba.sv`, verilator `t_reloop_local.v` — casts inside indices in cyclic expression contexts).
+  `.43` is **not** a regression of it; it is `.3.12`'s **unmeasured cost** on its one globally-tainting
+  arm. Both hold at once, and restoring memoisation naively re-opens `.3.12`.
+- ⚠️ **TOOLING, asked and answered.** What worked: TOOLBOX 3.1 `--dump-rule-call-counts` (a LIVE
+  dashboard — the only whole-run instrument usable ON a hang) and a timing scan. What does not: 3.4
+  `--dump-rule-entry-counts-json` and 3.5 `--dump-rule-outcome-counts-json` write **at parse end**, so
+  on a non-terminating parse the machine-readable committed-vs-wasted data is structurally
+  unavailable; and `GENERATED_RECURSION_GUARD_MAX_DEPTH = 4096` is a **compile-time const baked into
+  codegen** (`:31`), not a runtime knob, so shrinking the ceiling for a fast repro costs a full
+  regenerate + release rebuild (~40 min/iteration). Both are routed in `.43`'s owes-list.
+
 ## 2026-08-21 - PGEN-SV-CORPUS-GRAD-0266 (leaf ENGINE-UNIVERSAL-SERVICES.43 — DIRECTOR-RULED an SV-RELEASE BLOCKER and now THE FRONTIER; first TOOLBOX diagnosis banked; doc-only, ZERO grammar bytes, ZERO Rust bytes):
 
 - ✅⛔ **THE DIRECTOR RULED, and the ruling re-orders the lane.** Asked whether `.43` jumps ahead of

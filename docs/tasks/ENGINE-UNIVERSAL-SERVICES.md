@@ -263,25 +263,53 @@ question is *"is that enough?"*, and that cannot be answered without naming the 
   → 2 104 128; `system_tf_call` 508 487 → 510 272 → 512 109 → 513 898). ⇒ the process is doing WORK,
   not blocked on a lock or a cycle guard. **The fix is not "break a deadlock", it is "stop
   re-exploring"**, and a fix aimed at the wrong one of those would have been the expensive mistake.
-- ⭐⭐⭐ **THE LEADING HYPOTHESIS, and it names a DESIGN TENSION rather than a bug — test it FIRST.**
-  Every high-count rule is an ALTERNATIVE of the expression/primary cascade, each retried ~500k–900k
-  times: the whole alternative set is being re-explored at every nesting level. Memoization is what
-  normally makes that polynomial, so the question is why it does not here. ⛔ **A depth-ceiling
-  failure is not a function of `(rule, position)` — it is a function of the REMAINING DEPTH BUDGET.**
-  So the engine faces a genuine fork: memoise it on `(rule, position)` and a later, shallower attempt
-  wrongly reuses a failure that was only true deep (UNSOUND — the exact shape
-  `MEMO-STORE-SOUNDNESS` owns on the failure side, where `memo_fail` is keyed `(rule, position)`
-  only); or decline to memoise it and every enclosing level re-tries every alternative, each
-  re-descending and re-tripping the ceiling (EXPONENTIAL — what is measured here). ⇒ **the fix is
-  almost certainly to make the ceiling a bound the parse CANNOT re-enter, rather than a failure it
-  keeps re-deriving** — e.g. a depth-exhausted verdict that propagates as a hard, non-retryable stop
-  for the whole attempt instead of a per-branch failure. ⚠️ **HYPOTHESIS, not a finding**: it is
-  consistent with every counter above and with the cliff's threshold shape, and it has NOT been
-  confirmed against the engine source. Confirm or refute it before writing a line of fix.
-- ⛔ **AND THE FIRST THING TO CHECK WHEN CONFIRMING IT**: whether `memo_fail` is consulted or written
-  on the depth-exhausted path at all. If it is written, the soundness half of the fork is already
-  live and is a SEPARATE latent defect (a shallow parse reusing a deep failure); if it is not, the
-  exponential half is fully explained. Either answer is a finding.
+- ✅⛔ **ROOT CAUSE — FOUND, WITH FILE:LINE, AND IT IS A DESIGN TENSION RATHER THAN A CODING ERROR.**
+  ⚠️ **An earlier revision of this leaf proposed a fix direction while still calling the mechanism a
+  hypothesis. That was a guess dressed as analysis, and the director called it: *"You talk about 'so
+  the likely fix is…' without a clear idea of what and where the actual issue is. That's
+  concerning."* It is replaced by the chain below, which is read out of the emitted code.**
+
+  **The chain — four links, each at a line:**
+
+  1. `ast_based_generator.rs:9307-9309` — `memoized_call` records
+     `memo_recursion_entry_depth = self.recursion_guard.rule_id_stack.len()`; the rule's own frame
+     index is `entry_depth - 1`.
+  2. `ast_based_generator.rs:9138-9142` — `note_recursion_block(frame_index)` lowers
+     `recursion_block_floor` to the index of the frame whose guard rejected.
+  3. `ast_based_generator.rs:9365-9369` — the memo **refuses to cache a FAILURE** when
+     `memo_recursion_floor < memo_recursion_entry_depth - 1`, i.e. when the block came from a frame
+     OUTSIDE this rule. ⭐ **This is correct and principled** — its own comment says the outcome then
+     *"depended on which rules its CALLER had on the stack — state the memo key `(rule_id, position)`
+     does not carry"*, and `SV-CORPUS-GRAD.3.12` introduced it to fix real wrong-rejections where a
+     guard verdict was cached as *"no derivation exists"*.
+  4. `ast_based_generator.rs:4100-4106` — **the whole-stack depth ceiling calls
+     `note_recursion_block(0)`**, commented *"the depth ceiling is a fact about the WHOLE stack, not
+     about one frame, so it taints every enclosing body: floor 0."*
+
+  ⇒ **`floor = 0` makes link 3's predicate TRUE for every rule at `entry_depth >= 2`, so ONE trip of
+  the depth ceiling disables FAILURE MEMOISATION for the entire remaining parse.** A packrat parse
+  degenerates into plain exponential backtracking over the SystemVerilog expression cascade's
+  alternative fan-out — which is exactly the measured 2 104 128 `lparen` calls for 350 parens, and
+  exactly why every top rule is an *alternative* of that cascade.
+- ⭐⭐ **THE ASYMMETRY THAT MAKES IT FIXABLE IS ALREADY IN THE CODE.** A LOCAL cycle block
+  (`LeftRecursive`, or `MutualRecursive` below the ceiling) taints only up to the ancestor owning the
+  frame — its comment: *"the same test at each level stops the propagation exactly at the ancestor
+  that owns the frame."* The DEPTH CEILING is the one arm that taints to `0`, so its propagation
+  **never stops**. The ceiling is not merely un-memoisable; it is un-memoisable *globally and for the
+  rest of the parse*, while every other guard verdict is scoped.
+- ⭐⭐⭐ **AND THAT POINTS THE FIX WITHOUT GUESSING: A CEILING REJECTION IS NOT "THIS BRANCH FAILED".**
+  Every other guard verdict means *"this derivation is not viable — try the next alternative"*, which
+  is why propagating it as an ordinary `Err` is right. `RecursionDepthExceeded` means *"the whole
+  attempt has exhausted its budget"*, and retrying siblings cannot help: each re-descends and
+  re-trips the same ceiling. ⇒ it should **terminate the attempt**, not propagate as a retryable
+  failure. ⚠️ A DIRECTION with a mechanism behind it, not a patch — (c) must price it against
+  `.3.12`'s wrong-rejection fix and prove no accept-set change.
+- ⛔ **WHAT THIS MEANS FOR `SV-CORPUS-GRAD.3.12`, said because the fix must not undo it.** `.3.12` is
+  CORRECT: caching a guard-blocked failure caused real wrong rejections (its note lists `dm_sba.sv`,
+  verilator `t_reloop_local.v` — casts inside indices in cyclic expression contexts). This leaf is
+  **not** a regression of `.3.12`; it is the **unmeasured cost** of `.3.12`'s soundness fix on the one
+  arm that taints globally. Both hold at once, and a fix that restores memoisation naively re-opens
+  `.3.12`.
 
 - **WHAT THIS LEAF OWES**: (a) TOOLBOX-first diagnosis of *why crossing the ceiling goes unbounded
   instead of failing fast* — ⛔ the ceiling is supposed to be a BOUND; a bound that converts into a

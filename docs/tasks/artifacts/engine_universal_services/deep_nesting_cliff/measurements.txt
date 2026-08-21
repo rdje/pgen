@@ -63,3 +63,41 @@
   inside_expression, conditional_expression, empty_unpacked_array_concatenation, the
   tf_call family -- each retried ~500k-900k times. That is the signature of the whole
   alternative set being re-explored at every nesting level.
+
+## THRESHOLD OR EXPONENTIAL? -- the fine-grained scan (director challenge, 2026-08-21)
+
+  The first scan sampled 250/275/300 (fast) and 350/400 (timeout) and was called
+  "a threshold, not a slope". That was NOT established: 690x across 50 parens is
+  1.14^50, which a smooth exponential produces. Re-measured at 5-paren resolution:
+
+    depth 305   0.13 s   accepted
+    depth 310   0.13 s   accepted
+    depth 315   0.14 s   accepted
+    depth 320   > 150 s  NO RESULT
+    depth 325   > 150 s  NO RESULT
+    depth 330   > 150 s  NO RESULT
+
+  >1000x across FIVE parens. An exponential steep enough for that (~4x per paren)
+  would make 305 and 315 differ by ~10^6; they are identical at 0.13 / 0.14 s.
+  => a genuine THRESHOLD between 315 and 320, now measured rather than inferred.
+
+## THE ROOT CAUSE (ast_based_generator.rs), four links
+
+  9307-9309   memoized_call records memo_recursion_entry_depth = rule_id_stack.len();
+              this rule's own frame index is entry_depth - 1.
+  9138-9142   note_recursion_block(frame_index) lowers recursion_block_floor.
+  9365-9369   the memo REFUSES to cache a FAILURE when
+                  memo_recursion_floor < memo_recursion_entry_depth - 1
+              i.e. when the block came from a frame OUTSIDE this rule. Correct, and
+              introduced by SV-CORPUS-GRAD.3.12 to fix real wrong-rejections.
+  4100-4106   the whole-stack depth ceiling calls note_recursion_block(0) --
+              "the depth ceiling is a fact about the WHOLE stack ... floor 0".
+
+  => floor 0 makes the 9365 predicate true for EVERY rule at entry_depth >= 2, so one
+     trip of the ceiling disables failure memoisation for the rest of the parse, and the
+     packrat parse degenerates into exponential backtracking over the SV expression
+     cascade's alternative fan-out. That is the 2 104 128 lparen calls.
+
+  ASYMMETRY: every other guard arm taints only up to the ancestor owning the frame and
+  "stops the propagation exactly at the ancestor that owns the frame". The depth ceiling
+  is the ONLY arm that taints to 0, so its propagation never stops.
