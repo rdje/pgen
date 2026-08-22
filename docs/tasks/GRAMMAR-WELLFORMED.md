@@ -3785,6 +3785,13 @@ unowned**: routed to `H.16.4a`'s sibling queue as `H.21` below.
   `@ idempotent : { +3.67=> psnG,+.6 => 0xFFa0 }`, the numeric-keyed map `H.16.6` named by name when it
   opened this family. ⇒ **the REJECT→PASS is confirmed on the artifact consumers actually get**, not
   only on the interpreter. Full tuple `115/0/84/31` → **`119/0/90/29`** at seeds 0/7/42.
+  *Third oracle, direct* (`-0174`, post-commit): `parseability_probe --parse semantic_annotation` on a
+  release binary rebuilt AFTER the parser (probe 00:44 vs parser 00:23 — the very check this slice's
+  own stale-binary episode exists to enforce) accepts **6 of 6**, including the two that carry the most
+  risk: `{[a] => b}` (the lambda-only counterexample that refuted `H.16.6`'s biconditional) and
+  `{a => (x) => y}` (**a lambda still legal as a VALUE** — the thing a narrowed KEY could plausibly
+  have broken, and the reason the narrowing is safe rather than merely measured safe). The
+  already-accepted `{"a" => "b"}` still accepts.
 - [x] **NO REGRESSION** — `narrow=0` over 1 211 inputs; `AST-IDENTITY-SWEEP:` **1156/1156
   byte-identical, `ast_moved=0`** at BOTH the entry rule and `annotation_value`, on an instrument
   proven able to fire (a deliberately AST-shape-only red arm moves **32** at the entry rule — where
