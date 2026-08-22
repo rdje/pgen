@@ -29,6 +29,32 @@ Object properties may be a plain `key: value`, a computed key `[expr]: value`, a
 spread `...value`. An array/argument element may also be a spread `...value`. (Object and map share the
 `{ … }` delimiters; a `=>` between key and value makes it a map entry.)
 
+### What a map KEY may be
+
+A map **key** is any value **except one that could itself consume a `=>`**. The value language spells
+`=>` in three other roles — the implication operator (`a => b`), the lambda arrow (`x => body`) and the
+function-type arrow (`(Foo) => Bar`) — and under PEG's ordered choice a key allowed to be any of those
+swallows the map's own arrow and the entry stops parsing. So the key grammar excludes exactly those
+three reaches and nothing else:
+
+| may be a key | may **not** be a key |
+| --- | --- |
+| any primitive — `"s"`, `1`, `true`, `null`, `name` | an implication — `a => b` |
+| any structured value — array, object, tuple, set, nested map | a lambda — `x => body`, `(x, y) => body`, `[x] => body` |
+| arithmetic / logical-or / comparison / conditional / call | a function type — `(Foo) => Bar` |
+| a rule / symbol / path / URL reference, or a non-function type | |
+
+Values are unrestricted, so a lambda or implication is perfectly legal on the right of the arrow —
+`{a => (x) => y}` parses, with key `a` and a lambda value.
+
+> ⚠️ **Before 2026-08-23 this was broken and the failure was silent.** The key was declared as a full
+> value, so a map entry parsed *if and only if* its `key => value` was **not** itself a valid value.
+> Measured over nine key shapes, only the string-keyed one worked: `{"a" => "b"}` parsed while
+> `{1 => 2}`, `{a => b}`, `{[a] => b}`, `{(a) => b}`, `{(a, b) => c}`, `{true => false}`,
+> `{(Foo) => Bar}` and `{Foo => Bar}` were all rejected. `GRAMMAR-WELLFORMED.H.16.6`/`.6a`/`.6b`.
+> The repair only **widens** — measured over 1 211 inputs, 25 newly accepted, 0 newly rejected, and 0
+> typed ASTs moved — because a key that had swallowed the arrow could never finish its entry anyway.
+
 ## Expression values
 
 The value language includes a full expression sublanguage — useful for `@predicate`, `@constraint`,

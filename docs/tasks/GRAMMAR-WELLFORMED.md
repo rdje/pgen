@@ -3657,7 +3657,7 @@ volume); the shipped grammar is untouched and `git diff grammars/` is empty. Lan
   the accepted language has not moved by one byte, so publishing the new map syntax now would put the
   book ahead of the parser. It becomes book material in `H.16.6b`, where the language actually moves.
 
-### `H.16.6b` — **LAND ARM (a+): GIVE `map_entry` A `map_key` THAT CANNOT SWALLOW THE ARROW** (`todo`, opened 2026-08-22 session #258 by `H.16.6a`)
+### `H.16.6b` — **LAND ARM (a+): GIVE `map_entry` A `map_key` THAT CANNOT SWALLOW THE ARROW** (**`done`**, `PGEN-GRAMMAR-WELLFORMED-0173`, CODE / grammar — opened 2026-08-22 session #258 by `H.16.6a`, CLOSED 2026-08-23 same session)
 
 - **WHY**: `H.16.6a` RULED. The edit is known, built and scored: replace `map_entry`'s first
   `annotation_value` with a `map_key` that routes around `implication_expr`, `lambda_expression` and
@@ -3678,6 +3678,151 @@ volume); the shipped grammar is untouched and `git diff grammars/` is empty. Lan
   including the broken control. `arrow_census.sh` is the first instrument that can. Either promote it
   to a registered lint class (engine-universal, and it would need a `DIAGNOSIS_SIG` token registered
   in the same commit per TOOLBOX) or record why not. ⛔ Do not leave it unowned a third time.
+
+#### ✅ CLOSED — the ruled arm is shipped, and it is a WIDEN on both axes
+
+- **THE EDIT**: `map_entry := map_key /\s*/ "=>" /\s*/ annotation_value`, plus four new rules —
+  `map_key` (`annotation_value` minus the three arrow-consuming reaches), `map_key_expression`
+  (`expression_value` minus `lambda_expression`, with `logical_expression` → `logical_or_expr`),
+  `map_key_reference` and `map_key_type_reference` (`type_reference` minus `function_type`).
+  Hand-authored for the shipped file with its own commenting style rather than pasted from the probe
+  arm — and then **proven behaviourally identical to the measured arm**: re-scored against HEAD it
+  reads `ACCEPT-SET-LEDGER: widen=25 narrow=0 probes(+15/-0) real(+0/-0) stimuli(+10/-0)`, the same
+  tuple `H.16.6a` ruled on.
+- **RE-DERIVED ON THE SHIPPED GRAMMAR, not a copy** — which is what this leaf owed over `H.16.6a`:
+
+  | axis | before | after |
+  |---|---|---|
+  | accept set (1 211 inputs) | — | **+25 / −0** |
+  | typed AST, entry rule | — | **1156/1156 identical, 0 moved** |
+  | typed AST, `annotation_value` | — | **1156/1156 identical, 0 moved** |
+  | cert, seeds 0/7/42 | `115/0/84/31` | **`119/0/90/29`** |
+  | `sample_parse_failures`, seed 7 | **1** | **0** |
+  | declared-annotation inventory | 152 | 170 (**no existing entry changed**) |
+
+- ⭐⭐ **THE `UNKNOWN` DELTA IS ATTRIBUTED BY NAME AND IT IMPROVES**: `31 → 29`. All **four** new rules
+  are witnessed, and `array_type` + `optional_type` — previously UNKNOWN — became reachable because
+  `map_key_type_reference` references them directly rather than through the LR-eliminated
+  `type_reference` chain. **Nothing is newly UNKNOWN** (set difference computed, empty).
+- ⚠️ **A PREDICTION THIS LEAF MADE BEFORE MEASURING WAS WRONG, IN THE GOOD DIRECTION, AND IS KEPT.**
+  Written down in advance: *"map_key witnesses; the other three may NOT, because a string key never
+  reaches branches 3/4 — if so that is UNKNOWN 31 → 34, a real regression, and the fallback is to
+  flatten `map_key` to one rule."* All four witnessed. The witness planner's target-own-structure pass
+  forces a rule's own root-`Or` branches, which the prediction did not account for. ⭐ Recording it is
+  the point: pre-committing to what the number should be is what makes the measured number evidence
+  rather than a rationalisation — and here it stopped a needless flattening of the grammar.
+
+#### ⛔⛔ THE FIRST CERT READING WAS AN ARTIFACT OF A STALE BINARY, AND IT READ AS A REGRESSION
+
+The first measurement said `total=119 witness=84 UNKNOWN=35 spf=0/1/0` — i.e. *four rules added, all
+four unwitnessed, UNKNOWN up by 4*. That is a **stale-binary artifact**, not a property of the grammar:
+`ast_pipeline` was `00:13` and the regenerated parser `00:23`.
+
+- ⭐⭐ **The trap's signature here is `parsed=true witnessed_target=false`, which reads as healthy.**
+  `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` showed every `map_key` probe as
+  `[plannable-probe] rule='map_key' parsed=true witnessed_target=false sample="@ type : { \"8\" => \":^F@\" }"`.
+  The sample really does parse — the OLD parser accepts string-keyed maps fine — it simply contains no
+  `map_key` rule to record. That is the opposite of TOOLBOX §1.3's session-#218 signature
+  (`parsed=false`, which reads as a broken grammar).
+- ⭐ **`--report-certificate-coverage` mixes two vintages in one report**: `total` and the rule
+  inventory come from the `.ebnf` you pass, witnesses come from the parser the BINARY is linked
+  against. So `total=119` looked like the tool had seen the change. It had — half of it.
+- **Confirmed structurally before rebuilding** (`grep -A18 'fn parse_map_entry'` shows
+  `parser.parse_map_key()?` at the call site, and all four `fn parse_map_key*` exist in the emitted
+  parser), then **confirmed by re-measurement**: `119/0/90/29`, `spf 0/0/0`.
+- ⛔ **A "control" run in the same breath was ALSO mixed-vintage and must not be quoted**: feeding
+  HEAD's `.ebnf` to the fresh binary verifies it through the LANDED parser, which is why that run
+  reported `spf=0` at seed 7 for a grammar whose parser rejects the sample. The legitimate BEFORE is
+  the reading taken at `-0172` commit time, with grammar, parser and binary all aligned.
+- ⭐ **WHAT THE STALE BINARY COULD NOT TOUCH**: `--interpret-parse` dispatches over the gen-AST read
+  from the `.ebnf` and never links the generated parser (TOOLBOX §1.5), so the accept-set ledger and
+  both AST-identity sweeps were unaffected and stand as measured. Only the cert tuple needed
+  re-deriving. TOOLBOX §1.3 now carries this whole variant.
+
+#### The lint-class question this leaf owed — RULED: not promoted, and why
+
+`--lint-grammar` cannot see a terminal shared by two rules at different depths; it read
+`ordered_choice_shadowing=0` on all seven arms **including the broken control**.
+`arrow_census.sh` (`H.16.6a`) is the first instrument that can. It is **not** promoted to a registered
+lint class in this slice, for a measured reason rather than a preference: the census is a
+**probe-basis** instrument — it answers "does rule R accept `K <tok> V`?" for a basis of concrete
+probes — and its own first run, with a 7-probe all-lowercase basis, **missed `function_type`
+entirely**. A lint class whose completeness depends on a hand-authored probe basis would fail open
+exactly the way `ordered_choice_shadowing=0` did, while carrying more authority. Promoting it needs a
+STATIC formulation (reachability of a shared terminal from two rules with an unbounded-consumption
+path between them), which is engine-universal design work, not a rename of this script. ⛔ **Not left
+unowned**: routed to `H.16.4a`'s sibling queue as `H.21` below.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `./rust/target/debug/ast_pipeline grammars/semantic_annotation.ebnf
+  --interpret-parse` on `@type: {1 => 2}` ⇒ `INTERPRET-PARSE: … accepted=false furthest_position=14`,
+  and 8 of 9 probed key shapes rejected on the pre-arm grammar (only `{"a" => "b"}` parsed).
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `grammars/semantic_annotation.ebnf:290` — `map_entry`'s key
+  was a full `annotation_value`, which reaches the `"=>"` terminal at `:332` (`implication_expr`),
+  `:387`+`:388` (`lambda_expression`) and `:426` (`function_type`). WHY, per-rule, via
+  `ast_pipeline <g>.ebnf --interpret-parse <probe> --interpret-entry-rule <rule>` (TOOLBOX 1.5b — the
+  tool every ARROW-CENSUS row is a verdict from; `ARROW-CENSUS:` is a slice-local driver over it and
+  is deliberately NOT registered in `DIAGNOSIS_SIG`, see `H.21` for why it is not promoted):
+  ```text
+  INTERPRET-PARSE: grammar='semantic_annotation' entry='annotation_value'  input_bytes=8 accepted=true
+  INTERPRET-PARSE: grammar='semantic_annotation' entry='implication_expr'  input_bytes=8 accepted=false
+  INTERPRET-PARSE: grammar='semantic_annotation' entry='lambda_expression' input_bytes=8 accepted=true
+  ```
+  (input `[a] => b` — the counterexample that refuted `H.16.6`'s single-reach biconditional.) Aggregated
+  over all 113 rules × 9 probes the partition is exact:
+  `annotation_value consumes_arrow_on=[0][1][2][3][5][6][7][8]` versus `map_entry … =[4]` — **exact
+  complements** — with the reach attributed to those three rules, whose union IS `annotation_value`.
+  Full diagnosis `H.16.6`; ruling `H.16.6a`.
+- [x] **ADDRESSED (verified) — on TWO oracles, and the claims are attributed to the right one.**
+  *Interpreter oracle* (`--interpret-parse`, TOOLBOX 1.5b, trustworthy here because
+  `left_recursion_unhandled=0`): `ACCEPT-SET-LEDGER: arm=arm_landed.ebnf widen=25 narrow=0
+  probes(+15/-0) real(+0/-0) stimuli(+10/-0)`, re-derived on the SHIPPED grammar rather than a copy —
+  `{1 => 2}`, `{a => b}`, `{[a] => b}`, `{(a) => b}`, `{(a, b) => c}`, `{true => false}`,
+  `{(Foo) => Bar}`, `{Foo => Bar}` all REJECT→PASS.
+  *Real generated parser*: `--report-certificate-coverage` verifies every witness THROUGH the shipped
+  generated parser, and `sample_parse_failures` at seed 7 goes **1 → 0** — that sample is
+  `@ idempotent : { +3.67=> psnG,+.6 => 0xFFa0 }`, the numeric-keyed map `H.16.6` named by name when it
+  opened this family. ⇒ **the REJECT→PASS is confirmed on the artifact consumers actually get**, not
+  only on the interpreter. Full tuple `115/0/84/31` → **`119/0/90/29`** at seeds 0/7/42.
+- [x] **NO REGRESSION** — `narrow=0` over 1 211 inputs; `AST-IDENTITY-SWEEP:` **1156/1156
+  byte-identical, `ast_moved=0`** at BOTH the entry rule and `annotation_value`, on an instrument
+  proven able to fire (a deliberately AST-shape-only red arm moves **32** at the entry rule — where
+  the same red arm moved **0** before `H.16.7` restored the payload, which is why `H.16.7` was
+  sequenced first). `UNKNOWN` delta attributed by name: `array_type`/`optional_type` gained,
+  **nothing** newly UNKNOWN. Declared-annotation inventory 152 → 170 with **no existing entry's rule,
+  branch, type or text changed** (checked entry-by-entry). `ast_shape_contract_gate` **18/18** after
+  the inventory re-extraction — ⛔ and it FAILED first (`manifest tracks 152, grammar declares 170`),
+  which is the gate doing its job, not a formality. `generated_reproducibility_rebaseline`: **exactly
+  one row moved**, `semantic_annotation`; the other **10 of 11** artifacts re-derive byte-identically.
+  `--lint-grammar` clean at 119 rules (`left_recursion_unhandled=0`, `non_terminating=0`,
+  `unreachable_rules=0`, `undefined_references=0`, `ordered_choice_shadowing=0`). Clippy run FORCED
+  (`GENERATED-LINT-CORRECTNESS.11` — its trigger cannot see a grammar-only commit): source + generated
+  stages clean.
+- [x] **LOCKSTEP** — this leaf + `H.21` + the Current Frontier + `docs/TASK_TREE.md`; the shape-contract
+  manifest (inventory re-extracted 152 → 170); `generated_reproducibility_v0.json`; **the parser BOOK**
+  — `values-and-references.md` gains a *What a map KEY may be* section with the may/may-not table and
+  the measured widen note, since this slice DOES move the accepted language (which is why `H.16.6`/`.6a`
+  correctly deferred book work to here); **the integration CONTRACT** — a dated release entry under
+  *Recent Additions* carrying both ledger axes, because an accept-set move on a shipped family is a
+  release; `TOOLBOX.md` §1.3 (the stale-binary variant above); `CHANGES.md`, `DEVELOPMENT_NOTES.md`,
+  `MEMORY.md`.
+
+### `H.21` — **A LINT CLASS FOR A TERMINAL SHARED BY TWO RULES AT DIFFERENT DEPTHS** (`todo`, opened 2026-08-23 session #258 by `H.16.6b`)
+
+- **WHY**: three leaves in this family (`H.16.6`, `.6a`, `.6b`) turned on an ambiguity `--lint-grammar`
+  cannot express. It reported `ordered_choice_shadowing=0, exit 0` on the BROKEN grammar and on all six
+  repair arms alike, because the two readings never compete at a single choice point — they share a
+  TOKEN across rules at different depths, with an unbounded-consumption path between them.
+- **WHY `arrow_census.sh` IS NOT THE ANSWER AS-IS**: it is a PROBE-BASIS instrument, and its own first
+  run (7 probes, all lowercase) missed `function_type` — one of the three reaches — entirely. A lint
+  class whose completeness depends on a hand-authored basis fails open exactly the way the existing
+  class did, while carrying more authority.
+- **WHAT IT NEEDS**: a STATIC formulation over the gen-AST — for each terminal `T` appearing in two or
+  more rules, is there a rule `A` reachable from rule `B`'s element position such that `A` can consume
+  `T` and `B` requires it? Engine-universal, and it should be measured against a CLOSED population of
+  all shipped grammars before being made an error class (`H.17.2` is the precedent: it became a hard
+  error only after being reproduced from a disjoint code path over all 12 grammars).
 
 ### `H.16.6c` — **THE 8 RESIDUAL SELF-REJECTED STIMULI ARE THE ARROW COLLISION IN THE *VALUE* POSITION** (`todo`, opened 2026-08-22 session #258 by `H.16.6a`)
 
@@ -4218,17 +4363,19 @@ setting satisfies both arms.** Two of the four witness the rule; **all four brea
 
 > ⛔ **SEQUENCED, NOT PARKED (director, 2026-08-22: *"do not simply park them"*).** Every `todo` below
 > carries an ORDER, and ordering already-approved work is execution, not a director call
-> ([[feedback_answer_your_own_technical_questions]]). The order is: ✅ `H.16.6a` **RULED** (`-0171`,
-> session #258) · ✅ `H.16.7` **CLOSED** (`-0172`, session #258) → **1** `H.16.6b` (LAND the ruled arm
-> — the queue's only *live accept-set* item, and the ruling is measured, so this is execution not
-> design) → **2** `H.16.4a` (the last unfixed arm
-> of the layout-guard family, and it decides `whitespace`'s classification) → **3** `H.16.2b` (the same
-> family, prophylactic, repo-wide radius so it must not ride along inside another slice) → **4**
-> `H.16.6c` (the 8 residual self-rejected stimuli — ⛔ AFTER `H.16.6b`, or it prices the wrong
-> baseline) → **5** `H.16.5` (the 9 LR residue + the `profile.is_some()` proof-promotion gate) → **6**
-> `H.20` (a RED gate at HEAD) → **7** `H.19` (leg 3 for `H.15`) → **8** `H.16.7b` (the shape contract
-> cannot pin a payload key — engine tier, schema-wide) → **9** `H.16.7a` (the collection trailing
-> `""` — it REPLACES the published AST shape of nine rules, so it owes its own shape ledger + release).
+> ([[feedback_answer_your_own_technical_questions]]). The order is: ✅ `H.16.6a` **RULED** (`-0171`) ·
+> ✅ `H.16.7` **CLOSED** (`-0172`) · ✅ `H.16.6b` **CLOSED** (`-0173`) — all session #258 — → **1**
+> `H.16.4a` (the last unfixed arm
+> of the layout-guard family, and it decides `whitespace`'s classification) → **2** `H.16.2b` (the same
+> family, prophylactic, repo-wide radius so it must not ride along inside another slice) → **3**
+> `H.16.6c` (the 8 residual self-rejected stimuli — its blocking dependency `H.16.6b` is now CLOSED,
+> so its baseline is current) → **4** `H.16.5` (the 9 LR residue + the `profile.is_some()` proof-promotion gate) → **5**
+> `H.20` (a RED gate at HEAD) → **6** `H.19` (leg 3 for `H.15`) → **7** `H.16.7b` (the shape contract
+> cannot pin a payload key — engine tier, schema-wide) → **8** `H.16.7a` (the collection trailing `""` —
+> it REPLACES the published AST shape of nine rules, so it owes its own shape ledger + release) → **9**
+> `H.16.7c` (the `<invalid_sequence_access>` instances `H.16.7` unmasked — ⛔ after `H.16.7a`, same
+> rules) → **10** `H.21` (a STATIC lint class for a terminal shared by two rules at different depths —
+> the gap `H.16.6`/`.6a`/`.6b` all turned on, and the reason `arrow_census.sh` was NOT promoted).
 >
 > ⭐ **`H.16.7` WAS RESEQUENCED AHEAD OF `H.16.6b` AND DELIVERED FIRST, ON PURPOSE.** `H.16.6b`'s
 > verification is an AST-identity sweep, and until `H.16.7` landed that sweep was **vacuous at the
@@ -4244,24 +4391,26 @@ setting satisfies both arms.** Two of the four witness the rule; **all four brea
 | — | `GRAMMAR-WELLFORMED.H.16.2` (a terminal whose PREFIX is a comment introducer is eaten as a comment) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0165`, CODE / engine-universal codegen) | ✅ `set_value` / `set_element` REJECT→PASS on THREE oracles; cert `115/0/82/33 spf=2` → **`115/0/84/31 spf=0`**, `UNKNOWN=31` at seeds 0/7/42, delta ATTRIBUTED BY NAME (exactly those two left; nothing newly UNKNOWN). Root cause: `node_is_unbounded_content` scored the `/\s*/` SEPARATOR as a comment content TAIL, dropping the `#` claim — the same spelling-vs-property error `H.17.2` outlawed one layer up. Blast radius MEASURED by the pinned suppression matrix: **exactly one row moved**, nine unchanged; `json_parser.rs` regenerates BYTE-IDENTICAL through the changed annotation backend |
 | — | `GRAMMAR-WELLFORMED.H.16.6` (`=>` is both the map arrow and the implication operator) | **`diagnosed`** (`PGEN-GRAMMAR-WELLFORMED-0168`, doc+artifact tier) | ✅ ROOT-CAUSED to an EXACT BICONDITIONAL: **a map entry parses iff its `key => value` is NOT a valid `implication_expr`** — two complementary 4-row tables prove it. `map_entry`'s KEY consumes the arrow (`annotation_value … consumed 6 bytes: '1 => 2'` → `Terminal '=>' failed at position 14`). ⛔ `--lint-grammar` `ordered_choice_shadowing=0`, and `map_entry` is WITNESSED ⇒ **a witnessed rule can still reject inputs its grammar licenses**. Fix is a language-design call → `H.16.6a` |
 | — | `GRAMMAR-WELLFORMED.H.16.6a` (pick and measure the disambiguation of `=>`) | **`done`** — RULED (`PGEN-GRAMMAR-WELLFORMED-0171`, doc+artifact tier) | ✅ **SIX arms built, linted and scored over 1 211 inputs; the winner is arm (a+)** — a `map_key` routing around ALL THREE arrow-consuming reaches: `ACCEPT-SET-LEDGER: widen=25 narrow=0`, `map_entry` 1 of 9 key shapes → **9 of 9**, and the grammar's self-rejection of its own stimuli **18/1000 → 8**. ⛔ **The leaf's own pricing is REFUTED in three places**: *"none is WIDEN-only"* (both (a) and (a+) are `narrow=0`), *"routing around the implication level"* (that closes 1 of 3 reaches), and *"one of the **two** spellings"* (there are **three roles across four sites** — `map_entry:290`, `implication_expr:332`, `lambda_expression:387`+`:388`, `function_type:426`). ⭐⭐ ARROW-CENSUS proves the partition exactly: `implication ∪ lambda ∪ function_type` = `annotation_value` = `{0,1,2,3,5,6,7,8}`, the **exact complement** of `map_entry`'s `{4}` ⇒ `H.16.6`'s biconditional is superseded — a map entry parses iff `key => value` is not a valid **`annotation_value`**. `ast_moved=0/1156` on an instrument proven able to fire 7/7. ⛔ ZERO grammar/Rust/codegen/generated bytes. Routed out `H.16.6b`/`H.16.6c`/`H.16.7` |
-| 1 | `GRAMMAR-WELLFORMED.H.16.6b` (LAND arm (a+): give `map_entry` a `map_key` that cannot swallow the arrow) | **`todo`** (opened 2026-08-22 by `H.16.6a`) | The ruling is measured and the arm is built (`build_arms.py`); what remains is the CODE tier `H.16.6a` deliberately did not ride along — regeneration, cert at seeds 0/7/42, `ast_shape_contract`, `generated_reproducibility_rebaseline`, book + contract lockstep, and an `ACCEPT-SET-LEDGER:` re-derived on the SHIPPED parser rather than a copy. Also owns the lint-class decision: `--lint-grammar` reported `ordered_choice_shadowing=0` on all seven arms **including the broken control** |
+| — | `GRAMMAR-WELLFORMED.H.16.6b` (LAND arm (a+): give `map_entry` a `map_key` that cannot swallow the arrow) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0173`, CODE / grammar) | ✅ **The ruled arm is SHIPPED and it is a WIDEN on both axes.** `map_entry` now takes a dedicated `map_key` — `annotation_value` minus exactly the three arrow-consuming reaches. Re-derived on the SHIPPED grammar: `ACCEPT-SET-LEDGER: widen=25 narrow=0` over 1 211 inputs, `AST-IDENTITY-SWEEP: 1156/1156 byte-identical, ast_moved=0` at BOTH entries, cert `115/0/84/31` → **`119/0/90/29`** with `spf` **1 → 0** at seed 7 — the metric the whole family came from. ⭐⭐ `UNKNOWN` **31 → 29** attributed BY NAME: all four new rules witnessed, `array_type`+`optional_type` newly reachable, **nothing** newly UNKNOWN. ⛔⛔ **The FIRST cert reading said `UNKNOWN=35` and was a STALE-BINARY artifact** — `ast_pipeline` 00:13 vs parser 00:23; `--report-certificate-coverage` takes `total` from the `.ebnf` and witnesses from the LINKED parser, so it mixes two vintages in one report, and the per-rule tell `parsed=true witnessed_target=false` reads as HEALTHY (unlike §1.3's session-#218 `parsed=false`). TOOLBOX §1.3 extended. ⛔ A same-breath 'control' was also mixed-vintage and is not quoted. ⭐ `--interpret-parse` never links the generated parser, so the ledger and both sweeps were unaffected. Book + contract released; lint-class question RULED (not promoted — a probe-basis census fails open) → `H.21` |
+| 9 | `GRAMMAR-WELLFORMED.H.16.7c` (`semantic_annotation` publishes `<invalid_sequence_access>` from three out-of-range `$N`) | **`todo`** (opened 2026-08-23 by `H.16.7`) | `H.16.7` restored the payload and with it the visibility of what was wrong inside it: **2 of 12** probed shapes now surface the sentinel at the entry rule, where the count was 0 of 12 while `value` was `""`. `power_expr` `exponent: $3` on a 2-element body, `comparison_expression` `right: $3` on 2, `function_type` `return_type: $10` on 9 — the author indexed INTO the optional group. ⭐ The CLASS is already owned in four trees; this leaf owns only this family's instances. ⛔ After `H.16.7a` — same rules |
+| 10 | `GRAMMAR-WELLFORMED.H.21` (a STATIC lint class for a terminal shared by two rules at different depths) | **`todo`** (opened 2026-08-23 by `H.16.6b`) | The gap `H.16.6`/`.6a`/`.6b` all turned on: `--lint-grammar` read `ordered_choice_shadowing=0, exit 0` on the BROKEN grammar and on all six repair arms alike, because the two readings never compete at one choice point. ⛔ `arrow_census.sh` is deliberately NOT promoted as-is — it is PROBE-BASIS, and its own first run missed `function_type` entirely, so a lint class built on it would fail open exactly like the existing one while carrying more authority. Needs a static gen-AST formulation, measured over a CLOSED population first (`H.17.2` is the precedent) |
 | — | `GRAMMAR-WELLFORMED.H.16.7` (a shipped family's entry rule publishes `value: ""` for every annotation) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0172`, CODE / grammar, **2 characters**) | ✅ `$6` → `$7` at `:33` and `:37`. `$N` counts EVERY top-level element, layout regexes included, so `$6` named the third `/\s*/` separator — always empty — and `annotation_value` is `$7`; `$3` was already right, which is why `name` worked and only `value` was empty. **12 of 12** value shapes go `""` → the declared node; `POSITIONAL-REF-SCAN: flagged=17 → 15`, delta attributed BY NAME to exactly the two rules fixed. Cert two-arm control pre-vs-post at seeds 0/7/42 is **byte-identical** (`115/0/84/31`, spf 0/1/0) — a return annotation moves AST shaping, not acceptance — with a RED ARM (`116/0/84/32`) proving the control can move. ⛔ The first control arm printed NOTHING and was not read as agreement: cert-coverage resolves the grammar NAME from the FILENAME and refuses an unregistered one. ⛔⛔ **The shape contract is GREEN in BOTH arms** — it can only assert key-presence or an exact STRING, and `value` is an object ⇒ its verdict is invariant across a whole-payload restoration → `H.16.7b`. Book corrected: it had documented the populated shape all along, and its worked example was idealised in three further ways | 
-| 8 | `GRAMMAR-WELLFORMED.H.16.7b` (the shape contract cannot say "this key must not be empty") | **`todo`** (opened 2026-08-23 by `H.16.7`) | `rust/src/ast_shape_contract.rs:673`/`:679` implement exactly two assertion kinds — key-PRESENT and exact-STRING — so `value: ""` passed and `value` could not be pinned once it became an object. ⭐⭐ Measured, not argued: **the gate's verdict is identical before and after `H.16.7`**, across a change that restored the entire payload for 12 of 12 value shapes. Engine tier + schema-wide (eight tracked manifests), so it needs its own regression proof; ⛔ do NOT close it by hand-pinning more strings in one manifest |
-| 9 | `GRAMMAR-WELLFORMED.H.16.7a` (every collection publishes a spurious trailing `""`) | **`todo`** (opened 2026-08-23 by `H.16.7`) | Same off-by-one class one layer out: nine rules close `[$3, $4*]` where `$4` is the trailing `/\s*/`. Cosmetic to a reader, **not** to a consumer — it REPLACES the published AST shape of every collection, the class TOOLBOX 5.7 names as the largest and the one a verdict-only ledger cannot see ⇒ owes a shape-keyed `ACCEPT-SET-LEDGER:`, a book + contract release, and a manifest update. ⚠️ Decide the shape deliberately: deleting `$4*` still leaves a `[first,[reps]]` pair, and whether to flatten is a consumer-facing design call. ⭐ `H.16.6a`'s `ast_identity_sweep.py` is the right instrument and is NON-vacuous now that `H.16.7` restored the payload it compares |
-| 4 | `GRAMMAR-WELLFORMED.H.16.6c` (the 8 residual self-rejected stimuli are the arrow collision in the VALUE position) | **`todo`** (opened 2026-08-22 by `H.16.6a`) | `narrow=0` proves the 8 are a PRE-EXISTING subset of the control's 18, not introduced. `map_key` constrains the KEY; `map_entry`'s VALUE is still a full `annotation_value`, so a chained `k => v1 => v2` reads as one entry. ⚠️ The arrow-vs-other split of the 8 is currently by READING, not by tool — the leaf's first job is to attribute all 8 with `--trace-rules`. Sequence AFTER `H.16.6b` |
-| 3 | `GRAMMAR-WELLFORMED.H.16.2b` (the DYNAMIC comment-skip guard is still an exact-equality allowlist) | **`todo`** (opened 2026-08-22 by `H.16.2`) | Prophylactic hardening of a proven class, deliberately NOT ridden along inside `H.16.2`: the prefix test edits the emitted layout skipper of EVERY arm-emitting parser (repo-wide rebaseline) versus `H.16.2`'s measured one-artifact radius. No live victim known. Also owes the 10 unprobed sites of the 11-site class census |
+| 7 | `GRAMMAR-WELLFORMED.H.16.7b` (the shape contract cannot say "this key must not be empty") | **`todo`** (opened 2026-08-23 by `H.16.7`) | `rust/src/ast_shape_contract.rs:673`/`:679` implement exactly two assertion kinds — key-PRESENT and exact-STRING — so `value: ""` passed and `value` could not be pinned once it became an object. ⭐⭐ Measured, not argued: **the gate's verdict is identical before and after `H.16.7`**, across a change that restored the entire payload for 12 of 12 value shapes. Engine tier + schema-wide (eight tracked manifests), so it needs its own regression proof; ⛔ do NOT close it by hand-pinning more strings in one manifest |
+| 8 | `GRAMMAR-WELLFORMED.H.16.7a` (every collection publishes a spurious trailing `""`) | **`todo`** (opened 2026-08-23 by `H.16.7`) | Same off-by-one class one layer out: nine rules close `[$3, $4*]` where `$4` is the trailing `/\s*/`. Cosmetic to a reader, **not** to a consumer — it REPLACES the published AST shape of every collection, the class TOOLBOX 5.7 names as the largest and the one a verdict-only ledger cannot see ⇒ owes a shape-keyed `ACCEPT-SET-LEDGER:`, a book + contract release, and a manifest update. ⚠️ Decide the shape deliberately: deleting `$4*` still leaves a `[first,[reps]]` pair, and whether to flatten is a consumer-facing design call. ⭐ `H.16.6a`'s `ast_identity_sweep.py` is the right instrument and is NON-vacuous now that `H.16.7` restored the payload it compares |
+| 3 | `GRAMMAR-WELLFORMED.H.16.6c` (the 8 residual self-rejected stimuli are the arrow collision in the VALUE position) | **`todo`** (opened 2026-08-22 by `H.16.6a`) | `narrow=0` proves the 8 are a PRE-EXISTING subset of the control's 18, not introduced. `map_key` constrains the KEY; `map_entry`'s VALUE is still a full `annotation_value`, so a chained `k => v1 => v2` reads as one entry. ⚠️ The arrow-vs-other split of the 8 is currently by READING, not by tool — the leaf's first job is to attribute all 8 with `--trace-rules`. Sequence AFTER `H.16.6b` |
+| 2 | `GRAMMAR-WELLFORMED.H.16.2b` (the DYNAMIC comment-skip guard is still an exact-equality allowlist) | **`todo`** (opened 2026-08-22 by `H.16.2`) | Prophylactic hardening of a proven class, deliberately NOT ridden along inside `H.16.2`: the prefix test edits the emitted layout skipper of EVERY arm-emitting parser (repo-wide rebaseline) versus `H.16.2`'s measured one-artifact radius. No live victim known. Also owes the 10 unprobed sites of the 11-site class census |
 | — | `GRAMMAR-WELLFORMED.H.16.3` (the generator shadows any rule named `epsilon` with `""`) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0166`, CODE / engine-universal stimuli generator) | ✅ A DEFINED rule now wins; the builtin is gated on `!grammar_tree.contains_key("epsilon")`, preserving both existing callers exactly (their grammars leave `epsilon` UNDEFINED). `ebnf` cert `144/0/111/33` → **`144/0/112/32`** with `spf` falling at EVERY seed (**8→4 · 11→5 · 7→3**), both arms measured on the same binary path; delta ATTRIBUTED BY NAME (exactly `epsilon` left, nothing newly UNKNOWN). ⭐ ZERO generated-parser bytes move — the rebaselined reproducibility file shows every `parser_sha` unchanged across all 11 artifacts |
 | — | `GRAMMAR-WELLFORMED.H.16.4` (`ebnf`'s `whitespace` is layout-skipped before `grammar_file` sees it) | **`done`** — ADJUDICATED (`PGEN-GRAMMAR-WELLFORMED-0167`, doc+artifact tier) | ✅ Root cause is an ASYMMETRY in the emitted layout skipper: every COMMENT arm is gated on `regex_token_matches_at_cursor(pattern)`, the whitespace skip is not — which is why `comment` is witnessed and `whitespace`, in the SAME alternation, is not. ⛔⛔ The declarative tier EXISTS (`@whitespace_sensitive`, and `systemverilog_preprocessor.ebnf:23` ships the exact shape) and is **REFUTED by a closed facet matrix**: all four settings break `grammars/json.ebnf`, and only two of them even witness the rule. Named a **layout-shadowed** residual; the capability is `H.16.4a` |
-| 2 | `GRAMMAR-WELLFORMED.H.16.4a` (`@whitespace_sensitive` is grammar-wide; the property needed is per-terminal) | **`todo`** (opened 2026-08-22 by `H.16.4`) | The guard shape is already in the engine one arm over, and `H.16.2`'s `hir_matches_only_whitespace` is exactly the predicate that makes it safe. Decides a CLASSIFICATION, not just a rule: guard lands ⇒ `ebnf` `UNKNOWN=31`; guard refused ⇒ `whitespace` joins `H.16.5`'s `proof`-promotion population |
-| 5 | `GRAMMAR-WELLFORMED.H.16.5` (the 9 LR residue + the proof-promotion gate) | **`todo`** — RE-SCOPED by `-0170` | ⛔ **RETRACTED its own escalation**: the 55 source orphans were ALREADY owned by `LANG-CAPABILITY-AUDIT.1`/`.4`/`.6` (27 productions, 7 horizon-mapped clusters, per-cluster dispositions) and the capability is ALREADY greenlit by [[feedback_capability_work_is_greenlit_by_standing_authorization]] — only the parametric NOTATION is open, and `[ … ]` is taken by the optional-element form. What remains genuinely unowned: the **9 LR residue** (PGEN's own, never a capability gap) and the `profile.is_some()` gate on proof promotion |
+| 1 | `GRAMMAR-WELLFORMED.H.16.4a` (`@whitespace_sensitive` is grammar-wide; the property needed is per-terminal) | **`todo`** (opened 2026-08-22 by `H.16.4`) | The guard shape is already in the engine one arm over, and `H.16.2`'s `hir_matches_only_whitespace` is exactly the predicate that makes it safe. Decides a CLASSIFICATION, not just a rule: guard lands ⇒ `ebnf` `UNKNOWN=31`; guard refused ⇒ `whitespace` joins `H.16.5`'s `proof`-promotion population |
+| 4 | `GRAMMAR-WELLFORMED.H.16.5` (the 9 LR residue + the proof-promotion gate) | **`todo`** — RE-SCOPED by `-0170` | ⛔ **RETRACTED its own escalation**: the 55 source orphans were ALREADY owned by `LANG-CAPABILITY-AUDIT.1`/`.4`/`.6` (27 productions, 7 horizon-mapped clusters, per-cluster dispositions) and the capability is ALREADY greenlit by [[feedback_capability_work_is_greenlit_by_standing_authorization]] — only the parametric NOTATION is open, and `[ … ]` is taken by the optional-element form. What remains genuinely unowned: the **9 LR residue** (PGEN's own, never a capability gap) and the `profile.is_some()` gate on proof promotion |
 | — | `GRAMMAR-WELLFORMED.H.16.1` (adjudicate the 68) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0164`, doc+artifact tier) | ✅ **68 = 9 LR-residue + 55 source-orphans + 4 root-caused inert rules**, in **31 islands**, partition CLOSED (zero rules unattributed). ⛔ `--lint-grammar` could never have adjudicated this — it reads `unreachable_rules=0` on all three BY CONSTRUCTION. New reader: `docs/tasks/artifacts/grammar_wellformed/residual_island_census/probe.py`, proven to go RED three ways. Residual-rules-with-no-owning-leaf **68 → 0** |
 | — | `GRAMMAR-WELLFORMED.H.16` (roll `ebnf` / `return_annotation` / `semantic_annotation` to `UNKNOWN=0`) | **`in_progress`** (adjudicated by `H.16.1`; work routed to `H.16.2`–`H.16.5`) | The **clean** conjunct, and now the only engineering half of the `SVPP-EXPANSION` gate left. `H.15` made the three measurable and they read `UNKNOWN` **35 / 2 / 34** = **71**, of which **64 are dead-rule candidates** (no reach path from the entry) ⇒ a `--lint-grammar` adjudication lane, not a witness-generation lane. Lanes cost 0.06–0.38 s and are seed-invariant. |
 | — | `GRAMMAR-WELLFORMED.H.17.1` (repair the 5 live regex-look-around rules) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0161`, CODE / grammar + codegen) | ✅ All five repaired; `uncompilable_regex_terminals` `ebnf` 3→**0**, `semantic_annotation` 2→**0**, both exit 1→**0**. `/* x */` now parses. Cert: `ebnf` `144/0/109/35 → 144/0/111/33` (`spf` 13→8), `semantic_annotation` `114/0/80/34 → 115/0/82/33`. ⭐ `UNKNOWN` delta attributed **by rule name** — exactly `block_comment`+`block_comment_content` and `multiline_string`; **nothing** newly UNKNOWN. ⛔ 3 of the 5 stay UNKNOWN **correctly** — their parents are unreferenced, and a terminal repair cannot confer reachability. Generated parsers verified byte-identical to the interpreter (79/79, 134/134). Opened `H.20`. |
-| 6 | `GRAMMAR-WELLFORMED.H.20` (the envelope gate is RED at HEAD on `systemverilog`, `155 > 151`) | **`todo`** (opened 2026-08-22 by `H.17.1`) | Found while measuring `H.17.1`'s blast radius; **pre-existing**, proven by a regenerate-the-parser two-arm control after the naive `git stash` control turned out to be a no-op for that instrument. Name the 4 new rows before touching the ceiling. |
+| 5 | `GRAMMAR-WELLFORMED.H.20` (the envelope gate is RED at HEAD on `systemverilog`, `155 > 151`) | **`todo`** (opened 2026-08-22 by `H.17.1`) | Found while measuring `H.17.1`'s blast radius; **pre-existing**, proven by a regenerate-the-parser two-arm control after the naive `git stash` control turned out to be a no-op for that instrument. Name the 4 new rows before touching the ceiling. |
 | — | `GRAMMAR-WELLFORMED.H.17.2` (a `--lint-grammar` error class: every regex terminal must compile) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0159`, CODE / engine-universal) | ✅ `uncompilable_regex_terminals` is a hard error class. Checks **does it COMPILE**, not *does it contain `(?`* — a spelling heuristic is unsound (`(?i)`, `(?s:.)`) AND incomplete (backreferences). `ebnf` `0/exit 0 → 3/exit 1`. ⭐ Independently reproduced `H.17`'s grep census from a disjoint code path over all 12 grammars — leg 2, earned. |
 | — | `GRAMMAR-WELLFORMED.H.17` (`spf>0` root cause) | **`diagnosed`** (`PGEN-GRAMMAR-WELLFORMED-0158`, doc+artifact tier) | ⛔ **NOT a generator defect — the leaf's own title was wrong.** Rust's `regex` crate does not support look-around, so the terminal never compiles and the rule matches nothing, ever. The `ebnf` meta-grammar **cannot parse ANY block comment**, `/* x */` included. Both engines agree to the `furthest_position`. Fix owned by `H.17.1`/`H.17.2`. |
 | — | `GRAMMAR-WELLFORMED.H.18` (the cert-failure LABEL is blind for 9 of 13 registry rows) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0157`, CODE / registry-only) | ✅ The duplicate table was **DELETED, not filled in** — `parse_detail` had exactly ONE reader, so `parse_error()` now delegates to the single dispatch and the divergence cannot recur. `ebnf` labels `5 → 0` false / `0 → 5` real `furthest_position=`; all ten cert tuples byte-identical ⇒ the label moved no classification. |
-| 7 | `GRAMMAR-WELLFORMED.H.19` (a doctrine that WATCHES "every register family is cert-WIRED") | **`todo`** (opened 2026-08-22 by `H.15`) | Leg 3 of the claim-verification bar for `H.15`'s `10/10 wired`, NAMED rather than skipped. Both inputs are tracked text ⇒ no cargo, no parser run, cheap always-on tier. |
+| 6 | `GRAMMAR-WELLFORMED.H.19` (a doctrine that WATCHES "every register family is cert-WIRED") | **`todo`** (opened 2026-08-22 by `H.15`) | Leg 3 of the claim-verification bar for `H.15`'s `10/10 wired`, NAMED rather than skipped. Both inputs are tracked text ⇒ no cargo, no parser run, cheap always-on tier. |
 | — | `GRAMMAR-WELLFORMED.H.15` (wire cert-coverage for `ebnf` / `return_annotation` / `semantic_annotation`) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0156`, CODE / registry-only) | ✅ **WIRED conjunct MET — 10/10 register families measurable**, ZERO grammar/codegen/generated bytes. ⛔ **And measuring it REFUTED the gate**: the three hid **71 `UNKNOWN`**, so `SVPP-EXPANSION`'s *WIRED + clean + `UNKNOWN`=0* is **NOT met** and never was. Seven wired families byte-identical, seeds 0/7/42 deterministic. Routed out `H.16`/`H.17`/`H.18`/`H.19`. |
 | 1 | `GRAMMAR-WELLFORMED.H.12.8.3` (close the 3 canonical reach-gaps → SV `fully_certified` via the union) | `active` (`.8.3.1` ✅ `-0146` CODE; `.8.3.2` remaining) | The **director-reaffirmed literal-`UNKNOWN=0` goal** (chosen over the parked `.8.5` accounting lane). After `.8.3.1`: canonical `UNKNOWN 22 → 20`, sound 4-config union `3 → 1`; ONE reach-gap (`context_member_method_call`) remains between SV and `fully_certified`. |
 | 1 | `GRAMMAR-WELLFORMED.H.12.8.3.1` (close the 2 `…scoped_call…` cousins — branch-1 longest-match grammar-gate) | `done` (`PGEN-GRAMMAR-WELLFORMED-0146`, CODE / released-SV; release `1.0.151`, ledger `SV-0013`, schema `6`) | Tool-proven via `--trace-rules class_scoped_call_prefix`: branch 1 `scoped_class_scoped_call_prefix_identifier` (gated only `lacks_class`) longest-matched `IF::m`/`T::m` as `<pkg>::<class>` (14 bytes) and shadowed cousins #3/#4 (5 bytes); added AND-stacked `lacks(interface_class)`+`lacks(type_parameter)` ⇒ both witness via `class_scoped_tf_call`. Canonical `22 → 20`, union `3 → 1` (residual = `context_member_method_call`), deterministic seeds 0/7/42, `spf=0`; 6 fully-certified grammars byte-identical; SV corpus 14/14; `cargo test --lib` 739/0; clippy source-clean. Detail: [GRAMMAR-WELLFORMED-H12831-scoped-call-cousins-grammar-gate.md](GRAMMAR-WELLFORMED-H12831-scoped-call-cousins-grammar-gate.md). |

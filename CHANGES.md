@@ -1,5 +1,68 @@
 # CHANGES.md
 
+## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0173 (leaf `GRAMMAR-WELLFORMED.H.16.6b` CLOSED — the ruled `=>` arm is shipped and it is a WIDEN on both axes; CODE / grammar)
+
+- ✅ **LANDED arm (a+)**: `map_entry := map_key /\s*/ "=>" /\s*/ annotation_value`, where `map_key` is
+  `annotation_value` minus exactly the three arrow-consuming reaches — `implication_expr`,
+  `lambda_expression` and `function_type` — and nothing else. Values are unrestricted, so a lambda or
+  implication is still legal on the right of the arrow (`{a => (x) => y}` parses).
+- **Re-derived on the SHIPPED grammar rather than a copy**, which is what this leaf owed over the
+  `H.16.6a` ruling:
+  - `ACCEPT-SET-LEDGER: widen=25 narrow=0 probes(+15/-0) real(+0/-0) stimuli(+10/-0)` over 1 211 inputs.
+  - `AST-IDENTITY-SWEEP: 1156/1156 byte-identical, ast_moved=0` at BOTH the entry rule and
+    `annotation_value`, on an instrument proven able to fire (a deliberately AST-shape-only red arm
+    moves **32** at the entry rule — where the same red arm moved **0** before `-0172` restored the
+    payload, which is exactly why `H.16.7` was sequenced ahead of this leaf).
+  - Certificate coverage `115/0/84/31` → **`119/0/90/29`** at seeds 0/7/42, with `sample_parse_failures`
+    **1 → 0** at seed 7 — the metric the whole `H.16.6` family originated from.
+  - Eight of nine probed key shapes go REJECT→PASS: `{1 => 2}`, `{a => b}`, `{[a] => b}`, `{(a) => b}`,
+    `{(a, b) => c}`, `{true => false}`, `{(Foo) => Bar}`, `{Foo => Bar}`.
+- ⭐⭐ **`UNKNOWN` 31 → 29, attributed BY NAME**: all four new rules are witnessed, and `array_type` +
+  `optional_type` became reachable because `map_key_type_reference` references them directly rather
+  than through the LR-eliminated `type_reference` chain. **Nothing is newly UNKNOWN** (set difference
+  computed, empty).
+- ⛔⛔ **THE FIRST CERT READING SAID `UNKNOWN=35` AND WAS A STALE-BINARY ARTIFACT — and the transferable
+  part is that the report MIXES TWO VINTAGES.** `ast_pipeline` was 00:13 and the regenerated parser
+  00:23. `--report-certificate-coverage` takes `total` and the rule inventory from the `.ebnf` you pass
+  and verifies witnesses through the parser the BINARY was linked against, so a four-rule addition
+  reported the NEW `total=119` — which looks like the tool saw the change — with all four new rules
+  UNKNOWN. ⭐ Its per-rule tell is `[plannable-probe] … parsed=true witnessed_target=false`, and
+  **`parsed=true` is what makes it deceptive**: the sample really does parse, because the old parser
+  accepts it; the old parser simply has no such rule to record. That is the opposite of TOOLBOX §1.3's
+  session-#218 signature (`parsed=false`, which reads as a broken grammar). Confirmed structurally
+  first (`parse_map_entry` calls `parser.parse_map_key()?`; all four `fn parse_map_key*` are emitted),
+  then by re-measurement. **TOOLBOX §1.3 extended** with the variant, including that it is not
+  `scratch`-only — `make <family>_parser` prints no reminder.
+- ⛔ **A same-breath "control" was ALSO mixed-vintage and is not quoted**: feeding HEAD's `.ebnf` to the
+  fresh binary verifies it through the LANDED parser, which is why that run reported `spf=0` at seed 7
+  for a grammar whose own parser rejects the sample. The legitimate BEFORE is the reading taken at
+  `-0172` commit time, with grammar, parser and binary all aligned.
+- ⭐ **WHAT THE STALE BINARY COULD NOT TOUCH**: `--interpret-parse` dispatches over the gen-AST read from
+  the `.ebnf` and never links the generated parser, so the accept-set ledger and both AST sweeps were
+  unaffected and stand as measured. Only the cert tuple needed re-deriving.
+- ⭐ **A WRITTEN-DOWN PREDICTION WAS WRONG IN THE GOOD DIRECTION AND IS KEPT.** Before measuring, this
+  slice recorded *"map_key witnesses; the other three may NOT … if so that is UNKNOWN 31 → 34, a real
+  regression, and the fallback is to flatten map_key to one rule."* All four witnessed — the witness
+  planner's target-own-structure pass forces a rule's own root-`Or` branches. Pre-committing to what
+  the number should be is what makes the measured number evidence rather than a rationalisation, and
+  here it stopped a needless flattening of the grammar.
+- ⛔ **`ast_shape_contract_gate` FAILED first** — `declared annotation count mismatch: manifest tracks
+  152, grammar declares 170` — which is the gate doing its job. The inventory was re-extracted from the
+  pipeline artifact: the four new rules' 18 branches added, **no existing entry's rule, branch, type or
+  text changed** (checked entry-by-entry). 18/18 after.
+- `generated_reproducibility_rebaseline`: **exactly one row moved**, `semantic_annotation`; the other
+  10 of 11 artifacts re-derive byte-identically. Clippy run FORCED (`GENERATED-LINT-CORRECTNESS.11` —
+  its trigger cannot see a grammar-only commit), source + generated stages clean.
+- **LOCKSTEP, and this slice is the one that owed it**: the parser BOOK gains a *What a map KEY may be*
+  section in `values-and-references.md` with the may/may-not table and the measured widen note, and the
+  integration CONTRACT gains a dated release entry — because unlike `H.16.6`/`.6a` this slice DOES move
+  the accepted language, which is why those two correctly deferred book work to here.
+- **Routed out**: `H.21` — the lint-class question this leaf owed is RULED as *not promoted*, with a
+  measured reason: `arrow_census.sh` is a PROBE-BASIS instrument and its own first run (7 probes, all
+  lowercase) missed `function_type` entirely, so a lint class built on it would fail open exactly the
+  way `ordered_choice_shadowing=0` did while carrying more authority. Promoting it needs a STATIC
+  gen-AST formulation, measured over a CLOSED population first (`H.17.2` is the precedent).
+
 ## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0172 (leaf `GRAMMAR-WELLFORMED.H.16.7` — a shipped family's entry rule discarded EVERY annotation payload, and its book documented the opposite; CODE / grammar, TWO characters)
 
 - ⛔⛔ **THE DEFECT**: `grammars/semantic_annotation.ebnf:33` (and `:37`) declared

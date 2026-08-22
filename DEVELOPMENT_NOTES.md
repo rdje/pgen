@@ -1,5 +1,61 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0173 — one report, two vintages, and a prediction worth writing down
+
+**1. THE MEASUREMENT SAID THE FIX MADE THINGS WORSE, AND IT WAS THE BINARY.** Landing the `=>` arm and
+re-running certificate coverage returned `total=119 witness=84 UNKNOWN=35` — four rules added, none
+witnessed, `UNKNOWN` up by four. That reads as a clean verdict on a bad edit. `ast_pipeline` was 00:13
+and the regenerated parser 00:23. ⭐⭐ **The sharp part is not "stale binary" — it is that
+`--report-certificate-coverage` builds ONE report out of TWO sources.** `total` and the rule inventory
+come from the `.ebnf` you hand it; witnesses come from the parser the binary was linked against. So the
+report shows the NEW total, which is precisely the signal that would convince you the tool saw your
+change. Half of it did.
+
+**2. AND THIS TRAP'S SIGNATURE READS AS HEALTHY.** `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` gave
+`rule='map_key' parsed=true witnessed_target=false`. TOOLBOX §1.3 documents the session-#218 form of
+this trap, whose signature is `parsed=false` — a broken-looking grammar, which sends you looking. Mine
+was `parsed=true`: the probe sample genuinely parses, because the *old* parser accepts string-keyed
+maps perfectly well; it just contains no `map_key` to record. ⇒ **the same root cause has a benign-
+looking and a malign-looking face, and the benign-looking one is more dangerous.**
+
+**3. THE BLAST RADIUS OF A STALE BINARY IS NARROWER THAN IT FEELS, AND KNOWING THE BOUNDARY SAVED THE
+SLICE.** Only tools that verify through the generated parser are exposed. `--interpret-parse`
+dispatches over the gen-AST read from the `.ebnf` and never links the generated parser at all — so the
+accept-set ledger (`widen=25 narrow=0`) and both AST-identity sweeps stood untouched, and only one
+number had to be re-derived. ⭐ Worth knowing which of your instruments read *source* and which read
+*artifact*, before you throw away a session's measurements.
+
+**4. A CONTROL RUN IN THE SAME BREATH WAS ALSO MIXED-VINTAGE.** Feeding HEAD's `.ebnf` to the freshly
+rebuilt binary looks like the obvious before-arm. It verifies HEAD's grammar through the LANDED parser,
+and duly reported `spf=0` at seed 7 for a grammar whose own parser rejects that sample. ⛔ **When a tool
+has two inputs, a control has to pin BOTH** — the legitimate before-reading was the one taken at the
+previous commit, with grammar, parser and binary aligned. This is the third distinct way a control
+failed in this session, after the vacuous AST sweep and the empty cert arm.
+
+**5. THE PREDICTION I WROTE DOWN BEFORE MEASURING WAS WRONG, AND WRITING IT DOWN IS WHAT MADE IT
+USEFUL.** I predicted three of the four new rules would stay UNKNOWN — a string key never reaches
+`map_key`'s branches 3 and 4 — and pre-committed to the fallback: flatten `map_key` from four rules to
+one. All four witnessed; the witness planner's target-own-structure pass forces a rule's own root-`Or`
+branches, which the prediction did not account for. ⭐ Had I not written it down, `UNKNOWN 31 → 29`
+would have been read as "fine" without anyone noticing it beat expectation — and had I *acted* on the
+prediction first, I would have flattened a grammar for no reason. **Predict, then measure, then keep
+the wrong prediction.**
+
+**6. THE GATE THAT FAILED IS THE ONE THAT WORKED.** `ast_shape_contract_gate` refused with `manifest
+tracks 152, grammar declares 170`. That is the third instrument in three slices to have something to
+say, and the only one that said it *unprompted* — the shape contract could not see `H.16.7`'s
+whole-payload loss at all, and the lint could not see the `=>` ambiguity at all. ⭐ A gate that fails on
+your change is worth more than two that pass, and the inventory diff then proved the useful thing: the
+four new rules added, **no existing entry's declared shape touched**.
+
+**7. AND THE LINT CLASS I COULD HAVE SHIPPED, I DIDN'T.** Three leaves in this family turned on an
+ambiguity `--lint-grammar` cannot express, and `arrow_census.sh` detects it — so promoting it to a lint
+class is the obvious close. It is a PROBE-BASIS instrument, and its own first run missed one of the
+three reaches because the basis was all lowercase. ⛔ **A checker whose completeness depends on a
+hand-authored input list fails open exactly the way the class it replaces does, while carrying more
+authority.** Routed to `H.21` with what it actually needs: a static gen-AST formulation, measured over
+a closed population before it becomes an error class.
+
 ## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0172 — two characters, a whole family's payload, and three green instruments
 
 **1. THE DEFECT IS TWO CHARACTERS AND IT EMPTIED AN ENTIRE FAMILY'S TYPED AST.** `value: $6` where

@@ -287,8 +287,60 @@ set_element := annotation_value
 map_value := "{" /\s*/ (map_entry (/\s*/ "," /\s*/ map_entry)*)? /\s*/ "}"
     -> {type: "map", entries: [$3, $4*]}
 
-map_entry := annotation_value /\s*/ "=>" /\s*/ annotation_value
+map_entry := map_key /\s*/ "=>" /\s*/ annotation_value
     -> {type: "map_entry", key: $1, value: $5}
+
+# The KEY may not be anything that can itself consume a `=>`.
+#
+# GRAMMAR-WELLFORMED.H.16.6 / .6a. `=>` is spelled FOUR times in this grammar, in THREE roles:
+# the map arrow (above), the implication operator (`implication_expr`), the lambda arrow
+# (`lambda_expression`, both alternatives) and the function-type arrow (`function_type`). Under
+# PEG's ordered choice a key spelled `annotation_value` commits to whichever of those readings
+# matches first and swallows the arrow, after which `map_entry` has none left to match. Measured
+# before this rule existed: of nine key shapes only the string-keyed one parsed — `{"a" => "b"}`
+# worked while `{1 => 2}`, `{a => b}`, `{[a] => b}`, `{(a) => b}`, `{(a, b) => c}`,
+# `{true => false}`, `{(Foo) => Bar}` and `{Foo => Bar}` were all REJECTED.
+#
+# `map_key` is `annotation_value` minus exactly the three arrow-consuming reaches, and nothing
+# else: the expression branch drops `lambda_expression` and stops at `logical_or_expr` (the
+# implication level minus its optional `=> …` tail), and the reference branch routes around
+# `function_type`. ⛔ It is NOT a narrowing of the accepted language — a key that consumed the
+# arrow could never COMPLETE a `map_entry`, so every reading removed here was already unreachable.
+# Measured over 1 211 inputs: 25 newly accepted, 0 newly rejected, 0 typed ASTs moved.
+map_key := (
+    primitive_value |
+    structured_value |
+    map_key_expression |
+    map_key_reference
+) -> $1
+
+# `expression_value` minus `lambda_expression`, with `logical_expression` replaced by
+# `logical_or_expr` — the same precedence level, without `implication_expr`'s `=> …` tail.
+map_key_expression := (
+    arithmetic_expression |
+    logical_or_expr |
+    comparison_expression |
+    conditional_expression |
+    function_call
+) -> $1
+
+# `reference_value` with the type branch routed around `function_type`.
+map_key_reference := (
+    map_key_type_reference |
+    rule_reference |
+    symbol_reference |
+    path_reference |
+    url_reference
+) -> $1
+
+# `type_reference` minus `function_type`. `union_type` / `intersection_type` are reachable through
+# the remaining members, which take `type_reference` in non-left-corner positions.
+map_key_type_reference := (
+    generic_type |
+    array_type |
+    optional_type |
+    primitive_type
+) -> $1
 
 # =============================================================================
 # EXPRESSION VALUES

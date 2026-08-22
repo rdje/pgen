@@ -55,6 +55,37 @@ Define the current downstream integration contract for PGEN's `semantic_annotati
 
 ## Recent Additions
 
+### 2026-08-23 — map KEYS: eight of nine key shapes were REJECTED; the accept set WIDENS (`GRAMMAR-WELLFORMED.H.16.6b`, `PGEN-GRAMMAR-WELLFORMED-0173`)
+
+`map_entry`'s key was declared as a full `annotation_value`. This grammar spells `=>` in **four**
+places across **three** roles — the map arrow (`map_entry`), the implication operator
+(`implication_expr`), the lambda arrow (`lambda_expression`, both alternatives) and the function-type
+arrow (`function_type`) — so under PEG's ordered choice a key allowed to be any of those consumed the
+map's own arrow and the entry then had none left to match. The exact characterisation, measured: **a
+map entry parsed if and only if its `key => value` was not itself a valid `annotation_value`.** Of nine
+key shapes only the string-keyed one worked (`{"a" => "b"}`); `{1 => 2}`, `{a => b}`, `{[a] => b}`,
+`{(a) => b}`, `{(a, b) => c}`, `{true => false}`, `{(Foo) => Bar}` and `{Foo => Bar}` were rejected.
+
+The key is now a dedicated `map_key` — `annotation_value` minus exactly the three arrow-consuming
+reaches, and nothing else. **Values are unchanged**, so a lambda or implication remains legal on the
+right of the arrow (`{a => (x) => y}` parses).
+
+⭐ **Strictly a WIDEN for consumers, measured on both axes** — this is not a "should be safe" claim:
+- `ACCEPT-SET-LEDGER:` over 1 211 inputs (62 discriminating probes, 149 real annotation lines
+  extracted from the tracked grammars, 1 000 generated stimuli at seeds 0/7/42/123/999):
+  **25 newly accepted, 0 newly rejected.**
+- `AST-IDENTITY-SWEEP:` over every input both grammars accept: **1 156 / 1 156 byte-identical,
+  0 typed ASTs moved** — at both the entry rule and `annotation_value`, on an instrument proven able
+  to fire (7/7 and 32 moves on deliberately AST-shape-only red arms).
+- The declared-annotation inventory grows 152 → 170 (the four new key rules' branches). **No existing
+  rule's declared annotation changed**, checked entry-by-entry.
+- Certificate coverage `115/0/84/31` → **`119/0/90/29`** at seeds 0/7/42: four rules added and all four
+  witnessed, `array_type` and `optional_type` newly reachable, **nothing newly UNKNOWN**, and
+  `sample_parse_failures` 1 → **0** at seed 7.
+
+A consumer that only READ map entries sees strictly more of them. A consumer that relied on
+`{1 => 2}` being a parse ERROR is the only one affected, and that behaviour was a defect.
+
 ### 2026-06-10 — whole-body-group branch shapes RESTORED (regression window 2026-05-14 → 2026-06-10; ledger `SEMANN-0001`)
 
 A 2026-05-14 engine refinement (the inner→outer branch-index remap) collapsed whole-body parens-group branch annotations onto branch 0, so **43** of this grammar's declared branch annotations (inventory 108→151 once corrected) silently stopped applying to branches 1+ — e.g. `annotation_name` branch 1, `annotation_value` branches 1–3, and `boolean_literal`'s second alternative produced raw passthrough instead of their declared typed shapes in parsers regenerated inside the window.
