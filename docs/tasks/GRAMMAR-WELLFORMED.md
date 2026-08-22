@@ -2900,6 +2900,14 @@ construct from using one. It would also be wrong if the interpreter were the onl
 `--lint-grammar` was run first (`left_recursion_unhandled=0`, so the hole does not apply) **and** the
 generated-parser arm was built and run anyway.
 
+**`promotion: declined`** for the `-0159` `DEVELOPMENT_NOTES.md` entry's per-slice history (§§3–6 —
+the free second instrument, the red-at-HEAD exposure check, the mis-measured control, the still-open
+`DIAG-SEVERITY` half: all recorded in `H.17.2`). ⭐ §§1–2 are **PROMOTED** —
+[`check-the-property-not-the-spelling-of-the-property.md`](../knowledge/check-the-property-not-the-spelling-of-the-property.md)
+— because *"a defect found through one instance tempts you to check the instance's spelling; check the
+property, and check it the way the runtime does"* is durable, general to any validation, re-verifiable
+by the probe's arm 4, and it is what kept this lint from shipping both unsound and incomplete.
+
 **`promotion: declined`** for the `-0158` `DEVELOPMENT_NOTES.md` entry's per-slice history (the census
 mechanics and the probe's control paths — specific to this slice, already in the leaf). ⭐ Its core is
 **PROMOTED** —
@@ -3279,7 +3287,7 @@ one command, and it is the reason this gap read as a missing subsystem for two m
   registered parser. It carries the pre-fix form its own source was repaired of; adjudicate whether
   the generator that emits it needs the same fix, or whether the artifact is simply stale.
 
-### `H.17.2` — **MAKE REGEX LOOK-AROUND IMPOSSIBLE TO LAND: a `--lint-grammar` error class** (`todo`, opened 2026-08-22 session #255 by `H.17`)
+### `H.17.2` — **MAKE AN UNCOMPILABLE REGEX TERMINAL IMPOSSIBLE TO LAND: a `--lint-grammar` error class** (**`done`**, `PGEN-GRAMMAR-WELLFORMED-0159`, CODE / engine-universal — opened AND closed 2026-08-22 session #255 by `H.17`)
 
 - **WHY**: the defect recurred because **nothing checks it**. `--lint-grammar` reports **0** mentions
   of look-around or invalid-regex (measured), and the runtime signal is emitted at `[PGEN][LOW]`
@@ -3299,6 +3307,97 @@ one command, and it is the reason this gap read as a missing subsystem for two m
   to compile at *parse* time reports at `[PGEN][LOW]` through a channel designed to be swallowed.
   That is a `DIAG-SEVERITY` question ("severity never masked by verbosity") the registered doctrine
   does not currently cover, and it is what made this invisible for as long as it was.
+
+#### ✅ CLOSED — `uncompilable_regex_terminals` is a hard lint error class
+
+- ⭐⭐ **THE CLASS CHECKS "DOES IT COMPILE", NOT "DOES IT CONTAIN `(?`" — and that distinction is the
+  design.** A spelling heuristic would have been both **unsound** (it condemns `(?i)`, `(?s:.)`,
+  `(?:…)` — all valid and used across the shipped grammars) and **incomplete** (it misses
+  backreferences, which Rust's `regex` also rejects). Compiling the terminal is the only formulation
+  that is exactly as strict as the runtime. Pinned in both directions by
+  `uncompilable_regex_class_is_not_a_lookaround_heuristic`, which asserts the flagged set is
+  **exactly** `["backreference", "lookbehind"]` out of six candidates.
+- ⛔ **FAITHFULNESS: IT COMPILES THE PATTERN THE WAY THE RUNTIME DOES.** `ast_based_generator` builds
+  `\A(?:{pattern})`, so the detector does too. A bare `Regex::new(pattern)` would be a
+  *re-implementation of the thing being checked* and could disagree with the parser in either
+  direction — the same class of error as a build-freshness check that re-implements `make`'s
+  timestamp comparison. Pinned by `uncompilable_regex_detector_uses_the_runtimes_own_wrapping`.
+- ⭐ **IT RUNS ON THE UNFILTERED GRAMMAR**, like the other static error classes: a terminal that
+  cannot compile is broken under every profile, so profile filtering must not be able to hide one.
+- ⭐⭐ **IT INDEPENDENTLY REPRODUCED `H.17`'s CENSUS FROM A DISJOINT CODE PATH — leg 2, earned rather
+  than asserted.** `H.17` counted live uses by *grepping the grammar text*; this counts them by
+  *actually compiling every terminal*. Over the closed population of 12 authored grammars the two
+  instruments agree exactly: `ebnf=3`, `semantic_annotation=2`, **all ten others `=0`**. ⭐ That also
+  independently confirms the two adjudications `H.17` made by hand — `regex.ebnf` reads **0** (its 25
+  look-around tokens really are string literals, not uses) and `systemverilog` reads **0** (its
+  repair really did take).
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — before this leaf, `./rust/target/debug/ast_pipeline grammars/ebnf.ebnf
+  --lint-grammar` printed **0** mentions of look-around or invalid-regex and exited **0**, on a
+  grammar with three rules that can never match — while the same defect class had already been found
+  and fixed once in `systemverilog.ebnf`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the two instruments that localised it are `--lint-grammar`
+  (which printed a full headline with **no class for this defect** and exited `0` on a grammar with
+  three never-matching rules) and the debug trace. WHY: the failure was only ever reported at *parse*
+  time, and `PGEN_TRACE_VERBOSITY=debug ./rust/target/debug/parseability_probe --parse ebnf <file>
+  --trace-rules block_comment_content` shows the form it takes — `❌ Exiting rule 'block_comment_content' with error: … "Invalid regex pattern
+  '((?:[^*]|\*(?!\/))*)': … look-around … not supported"` — emitted at `[PGEN][LOW]` on the
+  speculative-parse failure path, which a backtracking engine exists to swallow (**0** occurrences at
+  default verbosity). A *static, unconditional* fact was travelling the *transient, input-dependent*
+  channel, so no reader could separate them. WHERE: no detector existed —
+  `rust/src/ast_pipeline/grammar_wellformedness.rs` had `detect_undefined_references` (the structural
+  DUAL: also "this rule can never match") but nothing for terminals, and `rust/src/main.rs`'s
+  `run_grammar_lint` therefore had no class to report or gate on.
+- [x] **FIX** — fix-hierarchy tier **declarative/static** (the highest available: a lint class
+  decidable from the grammar text alone — no input, no parse, no generated parser).
+  `detect_uncompilable_regex_terminals` + `WellformednessIssue::UncompilableRegexTerminal`, wired
+  into `run_grammar_lint`'s headline, findings print and **hard-error exit set**, on the same footing
+  as `undefined_references`. Why no lower tier: a grammar edit fixes six instances and stops nothing;
+  this is the layer that makes a seventh un-landable.
+- [x] **ADDRESSED (verified)** — before→after on the symptom: `--lint-grammar` on `grammars/ebnf.ebnf`
+  goes **`0` mentions / exit `0` → `uncompilable_regex_terminals=3` / exit `1`**, naming each rule,
+  its `node_path`, its pattern and the crate's own reason (e.g. *"rule 'block_comment_content' has a
+  regex terminal at root that does NOT COMPILE … Pattern: /((?:[^*]|\*(?!\/))*)/ — look-around,
+  including look-ahead and look-behind, is not supported"*), and exiting `Error: grammar 'ebnf' has 3
+  uncompilable regex terminal(s)`. `semantic_annotation` `0 → 2`. ⛔ **Two-sided control, measured**:
+  `(?i)[a-z]+`, `(?s:.)*`, `[[:alpha:]]+` stay **GREEN rc 0**; `(a)\1` and `a(?<=b)` go **RED rc 1**.
+  ⚠️ My first control loop reported those two as `rc=0` and that reading was **wrong** — `$?` was
+  clobbered by a `$(sed …)` substitution evaluated inside the same `printf`; re-measured with the rc
+  captured before any other command runs. A control that measures the wrong thing is worse than none.
+- [x] **NO REGRESSION** — a lint class runs no parse, and that was measured rather than argued: cert
+  tuples at seed 0 are **identical to `-0156`/`-0157`** for all ten families (`json` `9/0/9/0`,
+  `regex` `269/9/260/0`, `vhdl` `225/0/225/0`, `systemverilog_preprocessor` `74/0/74/0`,
+  `rtl_frontend` `169/1/168/0`, `return_annotation` `35/0/33/2`, `semantic_annotation`
+  `114/0/80/34`, `ebnf` `144/0/109/35`), the first five `fully_certified=true` with `spf=0`. ⭐ **The
+  one gate that reads a `--lint-grammar` exit code is `verilog_2005_conformance_gate`, and it was
+  checked by name**: its contract declares `grammar_file = grammars/systemverilog.ebnf` and
+  `lint.expected_exit_code = 0`, and SV reads `uncompilable_regex_terminals=0` ⇒ **its rc is
+  unchanged**. `cargo test --lib --features "generated_parsers ebnf_dual_run"`: **1118 passed / 1 failed /
+  28 ignored — exactly `-0157`'s 1114 plus this leaf's 4 new tests**, and the one failure is the same
+  pre-existing `unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names` owned by
+  `CI-PARITY-GATE-ROT.21` class (2), proven pre-existing this session by a `git stash` two-arm control
+  ⇒ **this change moved no test**. `mdbook_docs_gate` green (10/10 per-parser book gates); clippy flow
+  green (`clippy_source_all_targets` ok,
+  `GENERATED-CLIPPY-CORRECTNESS: ✅ POLICY-ONLY PASS`, generated stage pass). ZERO grammar bytes,
+  ZERO codegen bytes, ZERO generated bytes.
+  ⭐⭐ **AND "ZERO CODEGEN BYTES" IS MEASURED, NOT REASONED.** `GENERATED-REPRODUCIBILITY` tier 1 went
+  RED **by construction** — `rust/src/main.rs` sits inside the 28-file emission-source digest, and
+  that tier deliberately cannot tell WHICH file moved. Tier 2 re-derived **all 11 artifacts from
+  HEAD** and every one **re-derives byte-identically (0 sites)**: `return_annotation`,
+  `semantic_annotation`, `json`, `regex`, `systemverilog`, `systemverilog_preprocessor`, `vhdl`,
+  `rtl_const_expr`, `rtl_frontend`, `scratch`, `ebnf`. The rebaselined
+  `generated_reproducibility_v0.json` moved **exactly two fields** — `verified_at_commit` and
+  `emission_sha` — with **no artifact hash changed**, which is the signature of a source-digest move
+  with identical output. ⛔ Re-derived by the tracked target, never hand-edited.
+- [x] **LOCKSTEP** — `H.17`'s probe **arm 4 INVERTED in the same commit**: it recorded *"the static
+  gate is BLIND (0)"*, which this leaf falsified, so it now watches the counts from the other side
+  (`ebnf=3`, `semantic_annotation=2`, `systemverilog=0` as an accepting control) and will fire if the
+  count falls to 0 without `H.17.1` landing — i.e. if the **check** is weakened rather than the
+  grammar fixed. Plus `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`, the
+  frontier, and the book's grammar-wellformedness chapter. `done_bar_family_register_v0.json`
+  unchanged — no closure leg moved.
 
 ### `H.19` — **NOTHING WATCHES "EVERY FAMILY IS CERT-COVERAGE WIRED", SO `H.15`'S CLAIM ROTS** (`todo`, opened 2026-08-22 session #255 by `H.15`)
 
@@ -3329,7 +3428,7 @@ one command, and it is the reason this gap read as a missing subsystem for two m
 | --- | --- | --- | --- |
 | 1 | `GRAMMAR-WELLFORMED.H.16` (roll `ebnf` / `return_annotation` / `semantic_annotation` to `UNKNOWN=0`) | **`todo`** (opened 2026-08-22 by `H.15`) | The **clean** conjunct, and now the only engineering half of the `SVPP-EXPANSION` gate left. `H.15` made the three measurable and they read `UNKNOWN` **35 / 2 / 34** = **71**, of which **64 are dead-rule candidates** (no reach path from the entry) ⇒ a `--lint-grammar` adjudication lane, not a witness-generation lane. Lanes cost 0.06–0.38 s and are seed-invariant. |
 | 1 | `GRAMMAR-WELLFORMED.H.17.1` (repair the 5 live regex-look-around rules) | **`todo`** (opened 2026-08-22 by `H.17`) | The actual parse defect: `/* x */` does not parse in the `ebnf` meta-grammar. Fix shape is prior art (`SV-EXH-PROOF.3.3.4.b.6.2.15`: grammar-level `!rule`). ⛔ `ebnf.ebnf` is the meta-grammar PGEN reads every grammar with — needs accept-set adjudication + regeneration, not a quick edit. **Sequence BEFORE `H.16`**, whose residual it re-prices. |
-| 2 | `GRAMMAR-WELLFORMED.H.17.2` (a `--lint-grammar` error class: every regex terminal must compile) | **`todo`** (opened 2026-08-22 by `H.17`) | Why it recurred: nothing checks it, and the runtime signal is `[PGEN][LOW]` on the speculative-failure channel. Static, unconditional, provable from the grammar alone ⇒ belongs beside `undefined_references`. Sequence after `H.17.1` or declare the measured population. |
+| — | `GRAMMAR-WELLFORMED.H.17.2` (a `--lint-grammar` error class: every regex terminal must compile) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0159`, CODE / engine-universal) | ✅ `uncompilable_regex_terminals` is a hard error class. Checks **does it COMPILE**, not *does it contain `(?`* — a spelling heuristic is unsound (`(?i)`, `(?s:.)`) AND incomplete (backreferences). `ebnf` `0/exit 0 → 3/exit 1`. ⭐ Independently reproduced `H.17`'s grep census from a disjoint code path over all 12 grammars — leg 2, earned. |
 | — | `GRAMMAR-WELLFORMED.H.17` (`spf>0` root cause) | **`diagnosed`** (`PGEN-GRAMMAR-WELLFORMED-0158`, doc+artifact tier) | ⛔ **NOT a generator defect — the leaf's own title was wrong.** Rust's `regex` crate does not support look-around, so the terminal never compiles and the rule matches nothing, ever. The `ebnf` meta-grammar **cannot parse ANY block comment**, `/* x */` included. Both engines agree to the `furthest_position`. Fix owned by `H.17.1`/`H.17.2`. |
 | — | `GRAMMAR-WELLFORMED.H.18` (the cert-failure LABEL is blind for 9 of 13 registry rows) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0157`, CODE / registry-only) | ✅ The duplicate table was **DELETED, not filled in** — `parse_detail` had exactly ONE reader, so `parse_error()` now delegates to the single dispatch and the divergence cannot recur. `ebnf` labels `5 → 0` false / `0 → 5` real `furthest_position=`; all ten cert tuples byte-identical ⇒ the label moved no classification. |
 | 4 | `GRAMMAR-WELLFORMED.H.19` (a doctrine that WATCHES "every register family is cert-WIRED") | **`todo`** (opened 2026-08-22 by `H.15`) | Leg 3 of the claim-verification bar for `H.15`'s `10/10 wired`, NAMED rather than skipped. Both inputs are tracked text ⇒ no cargo, no parser run, cheap always-on tier. |

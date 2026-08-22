@@ -90,11 +90,27 @@ if [ "$n" -ne 6 ]; then
     fails=$((fails + 1))
 fi
 
-# ---------------------------------------------------------------- arm 4: nothing catches it
-say "== arm 4: no static check reports it =="
-lint="$("$AST" grammars/ebnf.ebnf --lint-grammar 2>&1 | grep -ciE 'look-?around|look-?ahead|invalid regex' || true)"
-say "   --lint-grammar mentions of look-around / invalid regex: $lint  (recorded: 0 — the static gate is BLIND)"
-[ "$lint" -eq 0 ] || { say "   DIVERGED — a static check now reports it"; fails=$((fails + 1)); }
+# ---------------------------------------------------------------- arm 4: the static check
+# ⭐ THIS ARM WAS INVERTED BY `H.17.2` (-0159), AND THAT IS THE POINT. It was written to record that
+# `--lint-grammar` reported the defect ZERO times — the reason it survived a documented prior fix in
+# a sibling family. `H.17.2` added the `uncompilable_regex_terminals` error class, so the recorded
+# value is now the COUNT the linter finds, and the arm keeps watching it from the other side: if it
+# falls to 0 without `H.17.1` landing, the check has been weakened rather than the grammar fixed.
+say "== arm 4: the static check reports it (inverted by H.17.2) =="
+for pair in "ebnf:3" "semantic_annotation:2" "systemverilog:0"; do
+    g="${pair%%:*}"; want="${pair##*:}"
+    got="$("$AST" "grammars/$g.ebnf" --lint-grammar 2>&1 \
+           | grep -oE 'uncompilable_regex_terminals=[0-9]+' | head -n1 | cut -d= -f2)"
+    got="${got:-<none>}"
+    if [ "$got" = "$want" ]; then
+        printf '   ok   %-22s uncompilable_regex_terminals=%s\n' "$g" "$got"
+    else
+        printf '   DIVERGED %-22s uncompilable_regex_terminals=%s (recorded: %s)\n' "$g" "$got" "$want"
+        fails=$((fails + 1))
+    fi
+done
+say "   (systemverilog is the ACCEPTING control: it carries the same construct in COMMENTS only,"
+say "    having been repaired in SV-EXH-PROOF.3.3.4.b.6.2.15, and must stay at 0)"
 
 say ""
 if [ "$fails" -eq 0 ]; then

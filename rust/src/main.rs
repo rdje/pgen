@@ -4371,7 +4371,8 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     use pgen::ast_pipeline::grammar_wellformedness::{
         classify_left_recursion, detect_always_succeeds_alternatives, detect_nonterminating_rules,
         detect_nullable_repetition, detect_ordered_choice_shadowing, detect_profile_orphans,
-        detect_unbound_fact_kinds, detect_undefined_references, detect_unreachable_rules,
+        detect_unbound_fact_kinds, detect_uncompilable_regex_terminals,
+        detect_undefined_references, detect_unreachable_rules,
     };
     use pgen::ast_pipeline::semantic_directive_registry::parse_semantic_string_list;
     let g = &grammar.grammar_tree;
@@ -4458,6 +4459,16 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
             }
         }
     }
+    // GRAMMAR-WELLFORMED.H.17.2 — a regex terminal that does not COMPILE makes its rule match
+    // nothing on any input, forever. Decidable from the grammar text alone, so it is caught here
+    // rather than at parse time, where the engine reports it at [PGEN][LOW] on the speculative-parse
+    // failure path and a backtracking engine swallows it (measured: 0 occurrences at default
+    // verbosity). Runs on the UNFILTERED grammar, like the other static error classes: a terminal
+    // that cannot compile is broken under every profile.
+    let bad_regex = detect_uncompilable_regex_terminals(
+        &unfiltered_grammar.grammar_tree,
+        &unfiltered_grammar.rule_order,
+    );
     let all_profiles: Vec<String> = profile_universe.into_iter().collect();
     // A profile-specific orphan needs ≥2 profiles to exist (the "satisfiable elsewhere" test).
     let orphans = if all_profiles.len() >= 2 {
@@ -4498,7 +4509,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         )
     };
     println!(
-        "grammar lint: '{}' ({} rules) — {}, non_terminating={} (error), ordered_choice_shadowing={} (error), always_succeeds_alternatives={} (note), unreachable_rules={} (error), undefined_references={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?})",
+        "grammar lint: '{}' ({} rules) — {}, non_terminating={} (error), ordered_choice_shadowing={} (error), always_succeeds_alternatives={} (note), unreachable_rules={} (error), undefined_references={} (error), uncompilable_regex_terminals={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?})",
         grammar.grammar_name,
         g.len(),
         left_recursion_headline,
@@ -4507,6 +4518,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         always_notes.len(),
         unreachable.len(),
         undefined_refs.len(),
+        bad_regex.len(),
         unbound_facts.len(),
         nullrep.len(),
         orphans.len(),
@@ -4527,6 +4539,12 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     }
     print_lint_findings(&unreachable, "[error]", 40, "unreachable rules");
     print_lint_findings(&undefined_refs, "[error]", 40, "undefined-reference findings");
+    print_lint_findings(
+        &bad_regex,
+        "[error]",
+        40,
+        "uncompilable regex-terminal findings",
+    );
     print_lint_findings(&unbound_facts, "[error]", 40, "unbound fact-kinds");
     // GRAMMAR-WELLFORMED.A2.6 — the DERIVED left-recursion verdict. The `eliminated` half is the
     // pass's own record of what it rewrote (informational, and now EARNED — it names rules); the
@@ -4590,6 +4608,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         && shadow.is_empty()
         && unreachable.is_empty()
         && undefined_refs.is_empty()
+        && bad_regex.is_empty()
         && unbound_facts.is_empty()
     {
         Ok(())
@@ -4616,6 +4635,15 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         }
         // UNDEFINED-REF-DIAGNOSTICS.2 (F6): a referenced-but-undefined rule compiles into a
         // never-matching stub — every referencing production is dead. Hard failure.
+        // GRAMMAR-WELLFORMED.H.17.2: a regex terminal that cannot compile makes its rule match
+        // nothing on any input — the same "this rule can never match" verdict as an undefined
+        // reference, and gated on the same footing.
+        if !bad_regex.is_empty() {
+            problems.push(format!(
+                "{} uncompilable regex terminal(s)",
+                bad_regex.len()
+            ));
+        }
         if !undefined_refs.is_empty() {
             problems.push(format!("{} undefined reference(s)", undefined_refs.len()));
         }

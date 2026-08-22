@@ -878,6 +878,47 @@ compile?"* is decidable from the grammar text alone, with no input, no parse and
 is split in two: repairing the six instances, and adding the static check that makes a seventh
 un-landable.
 
+### The check: `uncompilable_regex_terminals`
+
+The static half landed first. `--lint-grammar` now carries an error class beside
+`undefined_references` — its structural dual, since both describe a rule that can never match:
+
+```text
+grammar lint: 'ebnf' (144 rules) — … undefined_references=0 (error),
+  uncompilable_regex_terminals=3 (error), …
+  [error] grammar well-formedness ERROR: rule 'block_comment_content' has a regex terminal at root
+  that does NOT COMPILE — the rule can never match anything, on any input.
+  Pattern: /((?:[^*]|\*(?!\/))*)/ — look-around, including look-ahead and look-behind, is not supported.
+Error: grammar 'ebnf' has 3 uncompilable regex terminal(s)
+```
+
+Two decisions in it are worth stating, because the obvious implementation gets both wrong.
+
+**It checks whether the terminal compiles — not whether it contains `(?`.** The defect was found as
+"look-around", so the tempting check is to reject that spelling. It is wrong in both directions at
+once: *unsound*, because `(?i)`, `(?s:.)` and `(?:…)` share the prefix, are perfectly valid, and are
+used across the shipped grammars; and *incomplete*, because `(a)\1` fails to compile too and a
+look-around-shaped check never sees it. Compiling the pattern is the only formulation exactly as
+strict as the runtime — no more, no less. When a defect is discovered through one instance of a
+property, check the property, not the instance's spelling.
+
+**It compiles the pattern the way the runtime does** — `\A(?:{pattern})`, the exact wrapping the
+generator uses. A bare `Regex::new(pattern)` would be a re-implementation of the thing under test,
+free to disagree with the parser in either direction, and would agree with a *model* of the runtime
+rather than the runtime.
+
+There is a bonus in this that is worth more than the check itself. The census in the previous section
+was produced by reading grammar text; this class produces the same census by *compiling every
+terminal*. The two share no code, and across all twelve authored grammars they agree exactly —
+`ebnf` 3, `semantic_annotation` 2, every other grammar 0. That independently confirms two judgements
+that had until then been made by hand: that `regex.ebnf`'s look-around tokens really are string
+literals rather than uses, and that SystemVerilog's earlier repair really did take.
+
+An error class that fires on real defects the day it lands is not a broken gate — it is the tool
+working. The exposure was measured before landing rather than assumed: exactly one tracked gate reads
+a `--lint-grammar` exit code, its contract names `grammars/systemverilog.ebnf`, and that grammar reads
+zero.
+
 ### Reaching deep recursive branches: the constructive-reach witness pass
 
 `rtl_const_expr` was the first grammar to expose a structural gap in the witness side, and the way it was

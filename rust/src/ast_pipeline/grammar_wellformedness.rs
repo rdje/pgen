@@ -125,6 +125,33 @@ pub enum WellformednessIssue {
     /// never runs). The structural DUAL of `UnreachableRule`: defined-but-unreferenced vs
     /// referenced-but-undefined (Hopcroft–Ullman "no useless symbols" — the defined half).
     UndefinedReference { rule: String, referenced: String },
+    /// ERROR (GRAMMAR-WELLFORMED.H.17.2): the regex terminal at `node_path` in `rule` does NOT
+    /// COMPILE, so the rule can never match anything on any input. `pattern` is the terminal as
+    /// written; `error` is the regex crate's own message.
+    ///
+    /// ⛔ This is a STATIC, UNCONDITIONAL defect and it belongs here rather than at parse time,
+    /// which is where it used to be discovered — or rather, where it used to be UNdiscoverable. The
+    /// engine already reports the failure, at `[PGEN][LOW]`, through the ordinary SPECULATIVE-PARSE
+    /// failure path that a backtracking parser exists to swallow: an input-dependent, expected,
+    /// transient "this alternative did not match" and a permanent "this pattern can never compile"
+    /// travel the same wire, and nothing downstream can separate them (measured: 0 occurrences at
+    /// default verbosity). The structural DUAL of [`WellformednessIssue::UndefinedReference`] —
+    /// both describe a rule that can never match — and decidable from the grammar text alone, with
+    /// no input, no parse and no generated parser.
+    ///
+    /// The founding population (`H.17`, 2026-08-22) was 6 uses across 3 grammars, all of them
+    /// look-around (`(?!…)` / `(?=…)`), which Rust's `regex` crate does not support. SystemVerilog
+    /// had already been repaired for the identical construct in `SV-EXH-PROOF.3.3.4.b.6.2.15` —
+    /// where it was the dominant source of catastrophic backtracking behind a >180 s hang — but the
+    /// fix landed as an EDIT rather than as a CHECK, so five live rules in two other shipped
+    /// grammars survived it, including the one that made the `ebnf` META-grammar unable to parse
+    /// any block comment at all.
+    UncompilableRegexTerminal {
+        rule: String,
+        node_path: String,
+        pattern: String,
+        error: String,
+    },
     /// ERROR (GRAMMAR-WELLFORMED.F1, data-dependent binding-before-use — Jim/Mandelbaum/Walker,
     /// POPL 2010): `rule`'s `@predicate` consults a fact `kind` (via `primitive`, one of
     /// `has_fact`/`lacks_fact`/`fact_attribute_equals`/`fact_count_at_least`) that NO `@emit_fact`
@@ -190,6 +217,15 @@ impl WellformednessIssue {
             WellformednessIssue::UndefinedReference { rule, referenced } => format!(
                 "grammar well-formedness ERROR: rule '{}' references UNDEFINED rule '{}' — codegen emits a never-matching stub for it, so every path through the reference ALWAYS fails (the referencing production is dead). Define '{}', or fix the reference (likely a typo), or — if a native primitive was intended — use one of codegen's builtins.",
                 rule, referenced, referenced
+            ),
+            WellformednessIssue::UncompilableRegexTerminal {
+                rule,
+                node_path,
+                pattern,
+                error,
+            } => format!(
+                "grammar well-formedness ERROR: rule '{}' has a regex terminal at {} that does NOT COMPILE — the rule can never match anything, on any input. Pattern: /{}/ — {}. At parse time this surfaces only as an ordinary speculative-parse failure, indistinguishable from a branch that simply did not match, so it is caught here instead. (Look-around — `(?!…)`, `(?=…)`, `(?<=…)`, `(?<!…)` — is unsupported by design; move the assertion to a grammar-level `!rule`/`&rule` lookahead, which IS supported as a zero-width assertion.)",
+                rule, node_path, pattern, error
             ),
             WellformednessIssue::UnboundFactKind { rule, kind, primitive } => format!(
                 "grammar well-formedness ERROR: rule '{}' consults fact-kind '{}' via {}(...), but NO @emit_fact in the grammar emits kind '{}' — the fact can never be established (binding-before-use, Jim et al. POPL 2010). The predicate is degenerate (has_fact always-false / lacks_fact always-true). Fix: emit '{}' somewhere with @emit_fact, or correct the consulted kind (likely a typo).",
@@ -393,6 +429,109 @@ pub fn detect_undefined_references(
         }
     }
     issues
+}
+
+/// GRAMMAR-WELLFORMED.H.17.2: every regex terminal that does NOT COMPILE. Such a terminal makes its
+/// rule match nothing on any input, forever — the structural DUAL of an undefined reference, and
+/// equally static: no input, no parse and no generated parser are needed to decide it.
+///
+/// ⛔ FAITHFULNESS IS THE WHOLE POINT, so this compiles the terminal in the EXACT form the runtime
+/// does — `\A(?:{pattern})` (see `ast_based_generator`'s two compile sites). A bare
+/// `Regex::new(pattern)` would be a re-implementation of the thing being checked, and could pass a
+/// pattern the parser then rejects (or vice versa) — the same class of error as a freshness check
+/// that re-implements `make`'s timestamp comparison.
+///
+/// Deterministic: iterates `rule_order`, and within a rule walks the body in structural order,
+/// reporting one issue per failing terminal with a `node_path` locating it.
+pub fn detect_uncompilable_regex_terminals(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+) -> Vec<WellformednessIssue> {
+    let mut issues = Vec::new();
+    for rule in rule_order {
+        let Some(body) = grammar.get(rule) else {
+            continue;
+        };
+        collect_uncompilable_regex_terminals(body, rule, "root", &mut issues);
+    }
+    issues
+}
+
+/// Walker for [`detect_uncompilable_regex_terminals`]. `path` mirrors the `node_path` spelling the
+/// other detectors use (`root`, `root/s0`, `root/o1`, `root/q`, `root/la`) so a reader can locate the
+/// terminal the same way in every lint class.
+fn collect_uncompilable_regex_terminals(
+    node: &ASTNode,
+    rule: &str,
+    path: &str,
+    out: &mut Vec<WellformednessIssue>,
+) {
+    match node {
+        ASTNode::Or { alternatives } => {
+            for (i, alt) in alternatives.iter().enumerate() {
+                collect_uncompilable_regex_terminals(alt, rule, &format!("{path}/o{i}"), out);
+            }
+        }
+        ASTNode::Sequence { elements } => {
+            for (i, e) in elements.iter().enumerate() {
+                collect_uncompilable_regex_terminals(e, rule, &format!("{path}/s{i}"), out);
+            }
+        }
+        ASTNode::Quantified { element, .. } => {
+            collect_uncompilable_regex_terminals(element, rule, &format!("{path}/q"), out)
+        }
+        ASTNode::Lookahead { element, .. } => {
+            collect_uncompilable_regex_terminals(element, rule, &format!("{path}/la"), out)
+        }
+        ASTNode::Atom { value } => match value {
+            ASTValue::Node(inner) => collect_uncompilable_regex_terminals(inner, rule, path, out),
+            ASTValue::Token(parts) => {
+                let Some(pattern) = regex_terminal_pattern(parts) else {
+                    return;
+                };
+                // The runtime's own wrapping — anchored, non-capturing. Keep these in lockstep.
+                if let Err(err) = regex::Regex::new(&format!(r"\A(?:{pattern})")) {
+                    out.push(WellformednessIssue::UncompilableRegexTerminal {
+                        rule: rule.to_string(),
+                        node_path: path.to_string(),
+                        pattern: pattern.to_string(),
+                        error: first_line(&err.to_string()),
+                    });
+                }
+            }
+        },
+    }
+}
+
+/// The pattern of a `["regex", <pattern>]` token, or `None` for any other token kind.
+fn regex_terminal_pattern(parts: &[TokenValue]) -> Option<&str> {
+    if parts.len() < 2 {
+        return None;
+    }
+    let TokenValue::String(token_type) = &parts[0] else {
+        return None;
+    };
+    let TokenValue::String(token_value) = &parts[1] else {
+        return None;
+    };
+    if token_type == "regex" {
+        Some(token_value.as_str())
+    } else {
+        None
+    }
+}
+
+/// The regex crate's error is a multi-line rendering (pattern, caret, explanation). The lint prints
+/// one finding per line, so collapse it to the explanatory clause — the pattern is already reported
+/// beside it, and repeating it doubles the line for no information.
+fn first_line(msg: &str) -> String {
+    msg.lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with('^') && !l.starts_with("regex parse error"))
+        .last()
+        .unwrap_or(msg)
+        .trim_start_matches("error: ")
+        .to_string()
 }
 
 /// The set of rules REACHABLE from the roots (the canonical entry `rule_order[0]` PLUS every rule
@@ -3193,6 +3332,119 @@ mod tests {
         assert_eq!(
             derived.get("universal"),
             Some(&vec!["sv_2017".to_string(), "sv_2023".to_string()])
+        );
+    }
+
+    // GRAMMAR-WELLFORMED.H.17.2 — the uncompilable-regex-terminal class. Two-sided by design: the
+    // founding defect is that a broken terminal was INVISIBLE, and the opposite failure (a valid but
+    // unusual regex being condemned) would make the class unusable, so both directions are pinned.
+
+    #[test]
+    fn detects_uncompilable_regex_terminal_and_names_the_rule() {
+        // The exact shape that made `ebnf`'s block_comment_content inert: look-around, which Rust's
+        // `regex` crate does not support, so the terminal never compiles and the rule matches
+        // nothing on any input.
+        let mut g = HashMap::new();
+        g.insert(
+            "block_comment_content".into(),
+            token("regex", r"((?:[^*]|\*(?!\/))*)"),
+        );
+        let order: Vec<String> = vec!["block_comment_content".into()];
+        let issues = detect_uncompilable_regex_terminals(&g, &order);
+        assert_eq!(issues.len(), 1, "exactly one finding expected: {issues:?}");
+        assert!(
+            matches!(
+                &issues[0],
+                WellformednessIssue::UncompilableRegexTerminal { rule, error, .. }
+                    if rule == "block_comment_content" && error.contains("look-around")
+            ),
+            "must name the rule and carry the regex crate's own reason: {issues:?}"
+        );
+    }
+
+    #[test]
+    fn uncompilable_regex_class_is_not_a_lookaround_heuristic() {
+        // ⛔ The check is "does this terminal COMPILE", not "does it contain `(?`". A heuristic on
+        // the spelling would both miss backreferences and condemn inline flags / non-capturing
+        // groups, which are valid and used widely across the shipped grammars.
+        let mut g = HashMap::new();
+        g.insert("inline_flags".into(), token("regex", "(?i)[a-z]+"));
+        g.insert("group_flags".into(), token("regex", "(?s:.)*"));
+        g.insert("noncapturing".into(), token("regex", "(?:ab)+"));
+        g.insert("posix_class".into(), token("regex", "[[:alpha:]]+"));
+        g.insert("backreference".into(), token("regex", r"(a)\1"));
+        g.insert("lookbehind".into(), token("regex", "a(?<=b)"));
+        let order: Vec<String> = [
+            "inline_flags",
+            "group_flags",
+            "noncapturing",
+            "posix_class",
+            "backreference",
+            "lookbehind",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+        let issues = detect_uncompilable_regex_terminals(&g, &order);
+        let flagged: Vec<&str> = issues
+            .iter()
+            .filter_map(|i| match i {
+                WellformednessIssue::UncompilableRegexTerminal { rule, .. } => Some(rule.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            flagged,
+            vec!["backreference", "lookbehind"],
+            "only the terminals that genuinely fail to compile may be flagged, in rule_order: {issues:?}"
+        );
+    }
+
+    #[test]
+    fn uncompilable_regex_detector_locates_nested_terminals_and_skips_other_tokens() {
+        // The terminal is rarely at the root, and only `["regex", …]` tokens are candidates — a
+        // string terminal that happens to look like a pattern must not be compiled.
+        let mut g = HashMap::new();
+        g.insert(
+            "nested".into(),
+            seq(vec![
+                token("string", "/*"),
+                token("regex", "a(?=b)"),
+                token("string", "(?!literal)"),
+            ]),
+        );
+        let order: Vec<String> = vec!["nested".into()];
+        let issues = detect_uncompilable_regex_terminals(&g, &order);
+        assert_eq!(
+            issues.len(),
+            1,
+            "the quoted-string element must NOT be compiled: {issues:?}"
+        );
+        assert!(
+            matches!(
+                &issues[0],
+                WellformednessIssue::UncompilableRegexTerminal { node_path, .. } if node_path == "root/s1"
+            ),
+            "the finding must locate the terminal it flagged: {issues:?}"
+        );
+    }
+
+    #[test]
+    fn uncompilable_regex_detector_uses_the_runtimes_own_wrapping() {
+        // ⛔ FAITHFULNESS: the runtime compiles `\A(?:{pattern})`, so a pattern that is only valid
+        // BARE would be a false GREEN here if the detector re-implemented the compile step. A
+        // trailing unescaped `|` is legal bare (an empty alternative) and stays legal wrapped — what
+        // this pins is that the detector agrees with the wrapped form, not with a bare one.
+        let mut g = HashMap::new();
+        g.insert("wrapped_ok".into(), token("regex", "a|"));
+        let order: Vec<String> = vec!["wrapped_ok".into()];
+        assert!(
+            detect_uncompilable_regex_terminals(&g, &order).is_empty(),
+            "the detector must compile the pattern the way the runtime does"
+        );
+        assert!(
+            regex::Regex::new(r"\A(?:a|)").is_ok(),
+            "control: the runtime's wrapping is what was checked"
         );
     }
 

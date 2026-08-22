@@ -1,5 +1,53 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0159 — check the property, not the spelling of the property
+
+**1. THE OBVIOUS CHECK WAS THE WRONG CHECK.** The defect was found as *"look-around in a regex
+terminal"*, so the obvious lint is "reject a terminal containing `(?!` or `(?=`". That check is wrong
+in both directions at once. It is **unsound**: `(?i)`, `(?s:.)` and `(?:…)` all share the `(?` prefix,
+are perfectly valid, and are used across the shipped grammars — the check would condemn working
+rules. And it is **incomplete**: `(a)\1` compiles nowhere in Rust's `regex` either, and a
+look-around-shaped check never sees it. Compiling the terminal is the only formulation that is exactly
+as strict as the runtime, no more and no less. ⭐ The general form: when a defect is discovered
+through one *instance* of a property, check the **property**, not the instance's spelling.
+
+**2. FAITHFULNESS BEATS SIMPLICITY WHEN THE CHECK'S JOB IS TO AGREE WITH SOMETHING ELSE.** The runtime
+compiles `\A(?:{pattern})`, not `{pattern}`. A detector calling `Regex::new(pattern)` would be a
+*re-implementation of the thing it is checking*, free to disagree with the parser in either
+direction — a false GREEN on a pattern only valid bare, a false RED on one only valid wrapped. This is
+the same failure shape as a build-freshness check that re-implements `make`'s timestamp comparison:
+it agrees with your model of the tool rather than with the tool. The wrapping is pinned by a test so
+the two cannot drift apart silently.
+
+**3. THE NEW CHECK IS ALSO A SECOND INSTRUMENT, AND THAT IS WORTH MORE THAN THE CHECK.** `-0158`
+sized the population by grepping grammar text; this one sizes it by compiling every terminal. They
+share no code and answer the same question, and over twelve authored grammars they agree exactly —
+`ebnf=3`, `semantic_annotation=2`, ten others 0. That is leg 2 of the claim-verification bar arriving
+as a *by-product of the fix*, and it independently confirmed two adjudications the previous slice had
+made by hand: that `regex.ebnf`'s 25 look-around tokens are string literals rather than uses, and that
+SystemVerilog's 2026 repair really did take. Neither had been machine-checked before.
+
+**4. AN ERROR CLASS THAT FIRES ON REAL DEFECTS AT HEAD IS NOT A BROKEN GATE.** `--lint-grammar` now
+exits 1 on two shipped grammars. That is the tool doing its job, and the exposure was measured before
+landing rather than assumed: exactly one tracked gate reads a `--lint-grammar` exit code, its contract
+names `grammars/systemverilog.ebnf`, and SV reads 0. Checking the one consumer by name is a minute's
+work and it is the difference between "should be fine" and "is fine".
+
+**5. THE SECOND MIS-DESIGNED CONTROL OF THE SESSION, RECORDED FOR THE SAME REASON AS THE FIRST.** The
+two-sided control initially reported the RED arms as `rc=0`. The code was right; the measurement was
+wrong — `$?` was read inside a `printf` whose *other* argument was a `$(sed …)` substitution, and bash
+had already overwritten the exit status with `sed`'s. A control that measures the wrong thing is worse
+than no control, because it is believed. Both this and the earlier `*_lrm_extracted` control are kept
+in the leaves rather than quietly replaced: the useful artefact is knowing what the green actually
+meant.
+
+**6. WHAT IS STILL OPEN, AND IT IS THE HALF THAT MADE THIS INVISIBLE.** The lint stops a seventh
+instance from landing. It does not change the fact that a regex which fails to compile at *parse* time
+still reports at `[PGEN][LOW]` on the speculative-parse failure channel, where a backtracking engine
+is supposed to discard it. That is a `DIAG-SEVERITY` question — "severity never masked by verbosity" —
+that the registered doctrine does not currently cover, and it is recorded in `H.17.2` rather than
+closed by it.
+
 ## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0158 — a permanent defect on a channel built to swallow transient ones
 
 **1. THE LEAF'S TITLE WAS A HYPOTHESIS AND IT WAS WRONG.** `H.17` was opened as *"the stimuli
