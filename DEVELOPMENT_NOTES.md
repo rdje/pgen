@@ -1,5 +1,55 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0172 — two characters, a whole family's payload, and three green instruments
+
+**1. THE DEFECT IS TWO CHARACTERS AND IT EMPTIED AN ENTIRE FAMILY'S TYPED AST.** `value: $6` where
+the value is `$7`, because `$N` counts the `/\s*/` layout regexes as elements and `$6` lands on the
+third separator. Every annotation the `semantic_annotation` parser has ever produced published
+`value: ""`. ⭐ The tell that it was an INDEX error and not a shaping bug was sitting in the same
+annotation: `name: $3` worked. One field right, its neighbour empty, same rule — that pattern is an
+off-by-one and almost nothing else.
+
+**2. THREE INSTRUMENTS WERE GREEN THROUGHOUT, AND ONE OF THEM IS THE ONE WHOSE JOB THIS IS.** The
+grammar lints clean. Certificate coverage reads `115/0/84/31` and does not move — correctly, since a
+return annotation changes AST shaping and not acceptance. And the AST-shape contract, which exists to
+assert *"the runtime AST matches the declared shape"*, passes **identically before and after**. Its
+two assertion kinds are key-PRESENT and exact-STRING; `value: ""` satisfies presence, and `value`
+cannot be pinned as a string because after the fix it is an object. ⛔ **A contract whose verdict is
+invariant under the defect it describes is not describing it** — that is `H.16.7b`, and it is worth
+more than this fix.
+
+**3. THE BOOK WAS RIGHT ABOUT THE FIELD AND WRONG ABOUT THE SHAPE, WHICH IS THE WORSE FAILURE.**
+`ast-envelope.md` documented `value` as carrying the payload — true after this fix, false for however
+long the parser shipped. But its worked example was also *idealised*: it showed `key: "level"` where
+the parser emits `{"type":"identifier","name":"level"}`, and a flat `properties` list where the parser
+emits a `[first,[repetitions]]` pair with separator slots. A consumer written from that example fails
+on the first field it touches. ⭐ **A hand-written example in a reference chapter is a claim like any
+other**; the replacement is a verbatim dump, and it is labelled as one.
+
+**4. A CONTROL PRINTED NOTHING AND I NEARLY BANKED IT AS AGREEMENT.** The pre-vs-post cert control's
+first arm produced zero output lines while the second produced three. Read casually — or grepped for
+a difference — that is "no divergence". It was `Error: certificate-coverage: no generated parser is
+registered for grammar 'pre_fix'`: the tool resolves the grammar NAME from the FILENAME, so a copy at
+a scratch path is a different, unregistered grammar. ⭐⭐ **Empty output and matching output are the
+same shape at a glance and opposite in meaning.** The fix was to keep the filename and vary only the
+directory — and then to add a RED ARM (one extra rule ⇒ `116/0/84/32`) so the control is *shown* able
+to move rather than assumed to be.
+
+**5. SEQUENCING WAS A TECHNICAL DECISION, NOT A PREFERENCE.** This leaf was queued second behind
+`H.16.6b`. It went first because `H.16.6b`'s verification is an AST-identity sweep, and until this
+landed that sweep was **vacuous at the entry rule** — the only payload field was always `""`, so
+nothing below the entry could reach the dump. Fixing the payload first is what makes the NEXT slice's
+proof capable of failing. ⭐ When two queued leaves touch the same artifact, ask which one makes the
+other's evidence real.
+
+**6. AND THE SPLIT I DIDN'T MAKE WOULD HAVE COST THE ATTRIBUTION.** The same off-by-one class appears
+one layer out — nine collection rules close `[$3, $4*]` where `$4` is the trailing separator, adding a
+junk `""` to every array, object, map, set and tuple. It is tempting to fix "the whole class" in one
+commit. It is a REPLACED AST shape for nine rules versus a two-character restoration for one, and
+landing both together makes the delta unattributable by name — which is the property that let this
+slice say `POSITIONAL-REF-SCAN: 17 → 15, and the two removed rows are exactly the two I edited`.
+`H.16.7a` owns it separately.
+
 ## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0171 — the arm the leaf said could not exist, and the control that could not fail
 
 **1. THE LEAF PRICED THREE OPTIONS AND WARNED THAT NONE WAS WIDEN-ONLY. MEASUREMENT SAYS TWO ARE.**

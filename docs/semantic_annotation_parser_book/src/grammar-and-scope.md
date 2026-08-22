@@ -9,7 +9,7 @@ Every semantic annotation is a `@`, a name, a colon, and a value:
 
 ```ebnf
 semantic_annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value
-    -> {type: "semantic_annotation", name: $3, value: $6}
+    -> {type: "semantic_annotation", name: $3, value: $7}
 ```
 
 (`annotation` is an accepted compact alias for the same shape.) A directive is written on its own line

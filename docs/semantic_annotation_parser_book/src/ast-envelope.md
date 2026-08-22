@@ -9,7 +9,7 @@ Every annotation parses to a `semantic_annotation` node carrying the directive n
 
 ```ebnf
 semantic_annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value
-    -> {type: "semantic_annotation", name: $3, value: $6}
+    -> {type: "semantic_annotation", name: $3, value: $7}
 ```
 
 - `name` is the bare name for a **predefined** name, or `{type: "custom_annotation", name: …}` for a
@@ -19,29 +19,61 @@ semantic_annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_valu
   `{type: "integer", …}`, `{type: "array", …}`, `{type: "object", …}`, `{type: "function_call", …}`,
   `{type: "rule_reference", …}`, and so on).
 
+> ⛔ **`$7`, not `$6` — and until 2026-08-23 this grammar said `$6`.** A positional `$N` counts
+> **every** top-level element of the rule body, the `/\s*/` layout regexes included, so `$6` is the
+> third separator and `annotation_value` is `$7`. The separator always matches the empty string, so
+> the shipped parser published `value: ""` for **every** annotation — measured, 12 of 12 value shapes
+> — while this chapter documented the populated shape below. Fixed in
+> `GRAMMAR-WELLFORMED.H.16.7`; the example that follows is now a verbatim parser dump rather than a
+> hand-written one, for exactly that reason.
+
 ## Worked example
 
 ```text
 @precedence: {level: 5, associativity: "left"}
 ```
 
-parses to (abridged):
+parses to **exactly** this (`parseability_probe --parse-dump-ast-pretty semantic_annotation`, the
+`content.Json` payload — nothing abridged):
 
 ```json
 {
-  "type": "semantic_annotation",
   "name": "precedence",
+  "type": "semantic_annotation",
   "value": {
     "type": "object",
     "properties": [
-      { "type": "property", "key": "level",
-        "value": { "type": "integer", "value": "5", "base": 10 } },
-      { "type": "property", "key": "associativity",
-        "value": { "type": "string", "value": "\"left\"", "quote_style": "double" } }
+      [
+        { "type": "property",
+          "key": { "type": "identifier", "name": "level" },
+          "value": { "type": "integer", "value": "5", "base": 10 } },
+        [
+          [ "", ",", "",
+            { "type": "property",
+              "key": { "type": "identifier", "name": "associativity" },
+              "value": { "type": "string", "value": "\"left\"", "quote_style": "double" } } ]
+        ]
+      ],
+      ""
     ]
   }
 }
 ```
+
+Three things about that shape are worth stating plainly, because an idealised version of this example
+stood here previously and a consumer written against it would not have worked:
+
+- **A property `key` is a node, not a bare string** — `{"type": "identifier", "name": "level"}`.
+- **A collection is a `[first, [repetitions…]]` PAIR, not a flat list.** Every collection rule is
+  spelled `head (sep item)*`, and the typed AST mirrors that spelling: element 0 is the first item,
+  element 1 is the list of repetitions, and each repetition carries its own separator slots
+  (`"", ",", ""` — the two `/\s*/` and the comma). Walk it as a pair; do not index it as a list.
+- ⚠️ **The trailing `""` is a known defect, not part of the contract.** Every collection rule closes
+  its annotation with `[$3, $4*]`, where `$4` is the trailing `/\s*/` — the same off-by-one class as
+  the `$6` above, but cosmetic rather than lossy. It affects `array_value`, `object_value`,
+  `map_value`, `set_value`, `tuple_value`, `generic_type`, `function_call`, `exception_spec` and
+  `platform_spec`. Tracked as `GRAMMAR-WELLFORMED.H.16.7a`; **do not depend on that element**, and
+  expect it to disappear.
 
 ## Bootstrap classification: TransformExpr / Structured / Raw
 

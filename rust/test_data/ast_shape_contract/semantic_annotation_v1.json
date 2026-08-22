@@ -1,14 +1,14 @@
 {
   "version": 1,
   "grammar": "semantic_annotation",
-  "purpose": "Per-parser-family AST-shape contract for the semantic-annotation grammar. Asserts the runtime AST that the generated semantic_annotation parser produces against tracked samples. The grammar's entry rule `semantic_annotation` has Sequence root and an object-literal `-> {type: \"semantic_annotation\", name: $3, value: $6}` annotation that the codegen-fix-landed-in-6ad4ffd would now apply once `generated/semantic_annotation_parser.rs` is regenerated through it. Until the regen happens, the entry rule's annotation drops at codegen.",
-  "doctrine": "When the per-family regeneration of generated/semantic_annotation_parser.rs lands, the entry sample must flip current_content_kind from `sequence` to `json_object`, and drift_status to `aligned`. Structural assertions (object keys present, string values match) will then verify the typed-Json carrier carries the declared shape.",
+  "purpose": "Per-parser-family AST-shape contract for the semantic-annotation grammar. Asserts the runtime AST that the generated semantic_annotation parser produces against tracked samples. The grammar's entry rule `semantic_annotation` has Sequence root and an object-literal `-> {type: \"semantic_annotation\", name: $3, value: $7}` annotation, which the tracked parser applies. NOTE the $7: a positional $N counts EVERY top-level element of the rule body, the /\\s*/ layout regexes included, so annotation_value is element 7 and element 6 is the third separator. Until GRAMMAR-WELLFORMED.H.16.7 (2026-08-23) this grammar said $6, and the shipped parser therefore published value:\"\" for every annotation -- measured, 12 of 12 value shapes -- with this contract GREEN throughout.",
+  "doctrine": "Every sample asserts the typed-Json carrier carries the declared shape. **KNOWN BLIND SPOT, tracked as GRAMMAR-WELLFORMED.H.16.7b:** the two assertion kinds this manifest can express are `expected_json_object_keys_present` (the key EXISTS) and `expected_json_object_string_values` (the key equals an exact STRING). Neither can say \"this key must not be empty\" or \"this key must be an object\". That is precisely why the $6 defect above survived: `value` was present, so keys_present passed; `value` was never pinned, because after the fix it is an OBJECT and string_values cannot express an object. This contract passes IDENTICALLY before and after a change that restored the entire annotation payload -- do not read its green as evidence that `value` carries anything.",
   "samples": [
     {
       "name": "type_integer",
       "input": "@type: integer",
       "rule_under_test": "semantic_annotation",
-      "declared_annotation": "{type: \"semantic_annotation\", name: $3, value: $6}",
+      "declared_annotation": "{type: \"semantic_annotation\", name: $3, value: $7}",
       "expected_content_kind": "json_object",
       "expected_json_object_keys_present": [
         "type",
@@ -26,7 +26,7 @@
       "name": "category_constraint",
       "input": "@category: constraint",
       "rule_under_test": "semantic_annotation",
-      "declared_annotation": "{type: \"semantic_annotation\", name: $3, value: $6}",
+      "declared_annotation": "{type: \"semantic_annotation\", name: $3, value: $7}",
       "expected_content_kind": "json_object",
       "expected_json_object_keys_present": [
         "type",
@@ -68,7 +68,7 @@
         "rule": "annotation",
         "branch_index": 0,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"semantic_annotation\", name: $3, value: $6}"
+        "normalized_text": "{type: \"semantic_annotation\", name: $3, value: $7}"
       },
       {
         "rule": "annotation_name",
@@ -764,7 +764,7 @@
         "rule": "semantic_annotation",
         "branch_index": 0,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"semantic_annotation\", name: $3, value: $6}"
+        "normalized_text": "{type: \"semantic_annotation\", name: $3, value: $7}"
       },
       {
         "rule": "semantic_version",
