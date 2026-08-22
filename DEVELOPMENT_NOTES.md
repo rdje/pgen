@@ -1,5 +1,47 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0168 — a witnessed rule can still reject inputs its grammar licenses
+
+**1. THE SURFACE THIS WHOLE TREE OPTIMISES IS BLIND TO THIS ENTIRE DEFECT CLASS.** `GRAMMAR-WELLFORMED`
+Phase H exists to drive `UNKNOWN` to zero, and the director's activation gate is stated in exactly
+those terms. `map_entry` is **witnessed** — a string-keyed sample reaches it and commits — so it has
+never been `UNKNOWN` and never will be. And `{1 => 2}` does not parse. ⭐⭐ **Certificate coverage
+answers *"can this rule fire at all?"*, not *"does the parser accept everything the grammar
+licenses?"*** Those are different questions, and a family at `UNKNOWN=0` can still be wrong about its
+own language. Worth remembering the next time `UNKNOWN=0` is treated as a completeness claim.
+
+**2. `--lint-grammar` IS ALSO BLIND, AND FOR AN INTERESTING REASON.** `ordered_choice_shadowing=0`,
+exit 0. The two readings of `=>` do not shadow each other at a single choice point — one is
+`map_entry`'s second element, the other is buried nine levels down `annotation_value → expression_value
+→ logical_expression → implication_expr`. **The ambiguity is over a token shared by two rules at
+different depths**, and no existing lint class describes that shape. This is the second time in three
+slices that a green instrument was correct on its own terms and silent about the thing that mattered
+(`-0164`: `unreachable_rules=0` over 64 entry-unreachable rules).
+
+**3. ATTRIBUTE THE LEFTOVER — TWICE IN ONE SESSION IT PAID.** `spf` read 0, 1, 0 across seeds 0/7/42
+after the previous fix. "Essentially zero" was available and would have been comfortable. Attributing
+the single seed-7 sample produced this entire leaf. ⭐ The seed that disagrees with the others is the
+one carrying information.
+
+**4. DIFF THE TRACES, DO NOT READ THEM.** Both arms produced ~4000 trace lines. Reading either one is
+hopeless; diffing them after stripping the echoed input context located the divergence exactly — one
+`integer_literal` that FAILS in the accepted arm and SUCCEEDS in the rejected one. ⭐ The counter-
+intuitive shape is the tell: **the failing input is the one where a sub-rule succeeded.** Build the
+paired reproducer/control first, then diff — a single trace cannot show you which line is the anomaly.
+
+**5. A CONTROL TURNED A WOULD-BE THIRD FINDING INTO A NON-FINDING, IN ONE COMMAND.** `@type: 1 => 2`
+yields a typed AST whose `value` is the empty string — which reads exactly like `implication_expr`'s
+`-> $1` silently dropping the right operand, and would have been a striking thing to publish. Plain
+`@type: 1` yields `value: ""` too. ⛔ Cost of the check: one command. Cost of publishing it: a
+retraction, in a repo that has already had to record two. The negative result is written into the leaf
+so the next session does not re-find it.
+
+**6. STOP AT THE DIAGNOSIS WHEN THE FIX IS A LANGUAGE-DESIGN CALL.** Three options exist, they move the
+accept set in three different directions, and **none is WIDEN-only** — so the "widen from the empty
+set, nothing can regress" argument that made the previous two fixes safe does not transfer here. The
+leaf ships `diagnosed` with the options priced and an `ACCEPT-SET-LEDGER:` obligation attached, rather
+than picking one under the momentum of a good debugging session.
+
 ## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0167 — the precedent said one line; the measurement said no
 
 **1. A SIBLING GRAMMAR SHIPPING THE EXACT SHAPE IS A LEAD, NOT A VERDICT.** Two slices earlier the

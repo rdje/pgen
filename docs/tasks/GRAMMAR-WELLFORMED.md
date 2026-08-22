@@ -3309,33 +3309,130 @@ each proven with an ACCEPTING control:
 - **OWED BY `H.16.1`**: the other 10 sites of the 11-site class census were cleared by arm-suppression
   and witness status, **not** by an individual accept/reject probe. Probe them here.
 
-### `H.16.6` — **`{1 => 2}` IS REJECTED WHILE `{1 => "b"}` AND `{"a" => 1}` BOTH PARSE** (`todo`, opened 2026-08-22 session #257 by `H.16.2`)
+### `H.16.6` — **`=>` IS BOTH THE MAP ARROW AND THE IMPLICATION OPERATOR, SO A MAP ENTRY PARSES *IFF* ITS `key => value` IS NOT A VALID EXPRESSION** (**`diagnosed`**, `PGEN-GRAMMAR-WELLFORMED-0168`, doc+artifact tier — opened 2026-08-22 session #257 by `H.16.2`, DIAGNOSED same session; the FIX is a language-design call routed to `H.16.6a`)
 
-- **WHY — found by ATTRIBUTING an `spf` sample rather than waving it through.** After `H.16.2`,
-  `semantic_annotation` reads `spf=0` at seeds 0 and 42 but **`spf=1` at seed 7**, on the generated
-  sample `@ idempotent :  {    +3.67=> psnG,+.6    =>   0xFFa0  }` (`Backtrack at position 16
-  [furthest_position=33]`).
-- ⛔ **PROVEN PRE-EXISTING, NOT INTRODUCED BY `H.16.2`** — the same input rejects **byte-identically**
-  (`Backtrack at position 16 [furthest_position=33]`) on the PRE-fix release binary built before the
-  regeneration. It was simply not sampled at seed 0.
-- ⭐ **MINIMAL REPRODUCER, AND IT IS SHARPER THAN THE SAMPLE** (`--interpret-parse`, all with the same
-  annotation name so the name is not a variable):
+- **WHY THE LEAF EXISTS**: found by **attributing** a leftover `sample_parse_failures` rather than
+  rounding it down. After `H.16.2`, `semantic_annotation` read `spf=0` at seeds 0 and 42 and **1** at
+  seed 7, on `@ idempotent :  {    +3.67=> psnG,+.6    =>   0xFFa0  }`. ⛔ **Proven pre-existing, not
+  introduced**: the same input rejects **byte-identically** (`Backtrack at position 16
+  [furthest_position=33]`) on the pre-fix release binary.
+
+#### ⛔⛔ DIAGNOSIS — the map KEY swallows the whole entry, arrow included
+
+- **THE MINIMAL REPRODUCER IS SHARPER THAN THE SAMPLE**, and its control is the same input with one
+  token changed (`--interpret-parse`, all with the same annotation name so the name is not a variable):
+
+  | input | verdict |
+  |---|---|
+  | `@type: {"a" => "b"}` | **accepted** |
+  | `@type: {1 => "b"}` | **accepted** |
+  | `@type: {"a" => 1}` | **accepted** |
+  | `@type: {1 => 2}` | **REJECTED** `furthest_position=14` |
+
+  ⇒ neither a numeric KEY alone nor a numeric VALUE alone breaks it. **Only both together.**
+- **THE TRACE NAMES THE MECHANISM IN FOUR LINES** (`PGEN_TRACE_VERBOSITY=debug`, the BAD arm):
   ```text
-  @type: {"a" => "b"}   accepted=true      @type: {1 => "b"}   accepted=true
-  @type: {"a" => 1}     accepted=true      @type: {1 => 2}     accepted=FALSE  furthest_position=14
+  ✅ Rule 'annotation_value' successfully parsed from 8 to 14 (consumed 6 bytes: '1 => 2')
+  ✅ Regex '\s*' matched at position 14 (len 0)
+  🔤 Attempting to match terminal '=>' at position 14 (end: 16)
+  ❌ Terminal '=>' failed at position 14
+  ❌ Exiting rule 'map_entry' with error: Backtrack { position: 14 } - backtracked to 14
   ```
-  ⇒ neither a numeric KEY alone nor a numeric VALUE alone breaks it; **only both together**. That
-  rules out "numeric literals don't parse in map position" and points at the ordered choice
-  `structured_value := array | object | tuple | set | map` and/or `annotation_value`'s
-  `expression_value` arm claiming `1 => 2`.
-- **FIRST STEP**: `--trace-rules map_entry,map_value,object_value` on `@type: {1 => 2}` with
-  `@type: {1 => "b"}` as the paired ACCEPTING control — the branch that differs is the diagnosis.
-  ⛔ Do NOT start from the grammar text; the two inputs differ by one token and the trace will name it.
-- ⚠️ **`map_entry` IS ALREADY WITNESSED** (`[plannable-probe] rule='map_entry' parsed=true
-  witnessed_target=true sample="@   type   : {    \"3\"=> \"\\i\"  }"`), so this is NOT a cert
-  residual and `UNKNOWN` will not move — it is an accept-set defect that the certificate surface is
-  blind to by construction. That is the transferable part: **a witnessed rule can still reject inputs
-  its grammar licenses.**
+  `map_entry := annotation_value /\s*/ "=>" /\s*/ annotation_value`, and its **FIRST** `annotation_value`
+  — the KEY — consumed **`1 => 2`** entire. `map_entry` then looks for its own `"=>"` at 14 and finds
+  `}`. The GOOD arm at the same point reads `✅ Exiting rule 'map_entry' successfully - advanced from
+  8 to 16`.
+- ⭐⭐ **ROOT CAUSE (WHY + WHERE): `=>` IS OVERLOADED.** `grammars/semantic_annotation.ebnf:332`
+  ```ebnf
+  implication_expr := logical_or_expr (/\s*/ "=>" /\s*/ logical_or_expr)?
+  ```
+  `annotation_value := primitive_value | structured_value | expression_value | reference_value`, and
+  branch 3 `expression_value → logical_expression → implication_expr` reaches that arrow. The
+  `rule_stack` the error carries is the whole route, in one string:
+  `["semantic_annotation", "annotation_value", "structured_value", "map_value", "map_entry",
+  "annotation_value", "expression_value", "logical_expression", "implication_expr", …]`.
+- ⭐ **THE CHARACTERIZATION IS EXACT, AND THE TWO TABLES ARE COMPLEMENTS** — which is what makes this a
+  diagnosis rather than a hypothesis. Tested standalone, outside any map:
+
+  | input | verdict |
+  |---|---|
+  | `@type: 1 => 2` | **accepted** — a valid `implication_expr` |
+  | `@type: "a" => 1` | rejected |
+  | `@type: 1 => "b"` | rejected |
+
+  Exactly the inputs that are valid implications are the ones that FAIL inside a map, and exactly the
+  ones that are not are the ones that succeed. ⇒ **a map entry parses iff its `key => value` is NOT a
+  valid `implication_expr`.** PEG ordered choice commits `annotation_value` to the expression reading,
+  and `map_entry` has no way to ask for a shorter key.
+- ⛔ **`--lint-grammar` IS BLIND TO IT**: `ordered_choice_shadowing=0`, `exit 0`. The two readings do
+  not shadow each other at a single choice point — the ambiguity is over a **token shared by two rules
+  at different depths**, which no current lint class describes.
+- ⚠️ **AND IT IS INVISIBLE TO CERTIFICATE COVERAGE BY CONSTRUCTION.** `map_entry` is **witnessed**
+  (`[plannable-probe] rule='map_entry' parsed=true witnessed_target=true sample="@   type   : {
+  \"3\"=> \"\\i\"  }"` — a string-keyed entry, which is in the accepted half). ⭐⭐ **THE TRANSFERABLE
+  PART: a WITNESSED rule can still reject inputs its grammar licenses.** `UNKNOWN=0` on this family
+  would not have caught this, and no amount of witness work will.
+- ⛔ **A THIRD "FINDING" WAS KILLED BY ITS OWN CONTROL, AND IS RECORDED SO IT IS NOT RE-FOUND.**
+  `@type: 1 => 2` yields a typed AST whose `value` is the EMPTY STRING, which looks like a silent AST
+  loss from `implication_expr`'s `-> $1` discarding the right operand. It is **not**: plain `@type: 1`
+  and `@type: 1 + 2` yield `value: ""` too, so the empty value is this annotation shape's normal
+  reporting and has nothing to do with `=>`.
+
+#### Routed — the FIX is a language-design call, not a repair
+
+- **`H.16.6a`** owns it. The options are not equivalent and each moves the accept set:
+  (a) give the map key its own rule that routes around the implication level — a map key can then no
+  longer BE an implication, which is arguably correct since `{a => b => c}` is ambiguous anyway;
+  (b) guard `implication_expr`'s optional tail with a negative lookahead so it declines when the
+  right operand is followed by `}` or `,` — narrower, but encodes map context into an expression rule;
+  (c) change one of the two spellings of `=>` — the largest accept-set move and the only one that
+  removes the ambiguity outright.
+  ⛔ Each needs an `ACCEPT-SET-LEDGER:` entry; **do not pick one without measuring all three**, which is
+  the discipline `H.16.4`'s closed facet matrix just demonstrated.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `./rust/target/debug/ast_pipeline grammars/semantic_annotation.ebnf
+  --interpret-parse` on `@type: {1 => 2}` ⇒ `accepted=false furthest_position=14`, against three
+  ACCEPTING controls differing by one token (`{1 => "b"}`, `{"a" => 1}`, `{"a" => "b"}`). Reproduced on
+  the real generated parser too (`Backtrack at position 16` on the seed-7 stimuli sample) and shown
+  **pre-existing** on the pre-`H.16.2` release binary, byte-identically.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `grammars/semantic_annotation.ebnf:332`
+  `implication_expr := logical_or_expr (/\s*/ "=>" /\s*/ logical_or_expr)?` versus `:290`
+  `map_entry := annotation_value /\s*/ "=>" /\s*/ annotation_value`. WHY: `PGEN_TRACE_VERBOSITY=debug`
+  shows `Rule 'annotation_value' successfully parsed from 8 to 14 (consumed 6 bytes: '1 => 2')`
+  followed by `Terminal '=>' failed at position 14` and `Exiting rule 'map_entry' with error:
+  Backtrack { position: 14 }` — the key consumed the arrow. The carried `rule_stack` names the full
+  route through `expression_value → logical_expression → implication_expr`.
+- [x] **ADDRESSED (verified)** — this leaf's deliverable is the DIAGNOSIS and it is complete: the
+  defect is characterized by an **exact biconditional** (*a map entry parses iff its `key => value` is
+  not a valid `implication_expr`*), demonstrated by two complementary four-row tables, with the
+  mechanism named at file and line and the fix routed to `H.16.6a` with three priced options.
+  Before → after on this leaf's own metric: an unattributed seed-dependent `spf` reading → a named,
+  minimally-reproduced, mechanism-level defect with an owning leaf. ⛔ **ZERO grammar bytes, ZERO Rust
+  bytes, ZERO codegen bytes, ZERO generated bytes** — no verdict moved and none is claimed to have.
+- [x] **NO REGRESSION** — doc+artifact tier, parser surface inert BY CONSTRUCTION. Re-verified at HEAD
+  after the slice: `ebnf` `144/0/112/32 spf=4`, `return_annotation` `35/0/33/2 spf=0`,
+  `semantic_annotation` `115/0/84/31 spf=0`, byte-identical to the previous slice's readings;
+  `scripts/check_doctrines.sh` 25/25. No grammar file was modified (`git diff grammars/` empty).
+- [x] **LOCKSTEP** — this leaf + `H.16.6a` + the Current Frontier + `docs/TASK_TREE.md`; `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`. Book: N/A while the leaf is `diagnosed` — the accepted language
+  has not moved; it becomes book material when `H.16.6a` rules, since that WILL move it.
+
+### `H.16.6a` — **PICK AND MEASURE THE DISAMBIGUATION OF `=>`** (`todo`, opened 2026-08-22 session #257 by `H.16.6`)
+
+- **WHY**: `H.16.6` proved the defect and priced three fixes; each moves the accept set differently and
+  none is obviously right. Options (a) a dedicated map-key rule routing around the implication level,
+  (b) a negative-lookahead guard on `implication_expr`'s optional tail, (c) re-spell one of the two
+  `=>` uses.
+- ⛔ **MEASURE ALL THREE BEFORE PICKING** — the shape `H.16.4` demonstrated: build each arm on a
+  SCRATCH copy of the grammar and score it with `--interpret-parse` against a two-arm control (does
+  `{1 => 2}` parse / does every currently-accepted input still parse). No regeneration is needed for
+  any of it.
+- **AND EACH ARM OWES AN `ACCEPT-SET-LEDGER:` ENTRY** — (a) narrows what a map KEY may be, (b) narrows
+  where an implication may END, (c) narrows or moves the surface outright. ⚠️ None of the three is
+  WIDEN-only, so the `-0161`/`H.16.2` "widen-from-∅, nothing can regress" argument does **not** apply
+  here and must not be reused.
 
 ### `H.16.3` — **THE STIMULI GENERATOR SHADOWS ANY RULE NAMED `epsilon` WITH THE EMPTY STRING** (**`done`**, `PGEN-GRAMMAR-WELLFORMED-0166`, CODE / engine-universal stimuli generator — opened 2026-08-22 session #257 by `H.16.1`, CLOSED same session)
 
@@ -4308,7 +4405,8 @@ setting satisfies both arms.** Two of the four witness the rule; **all four brea
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | — | `GRAMMAR-WELLFORMED.H.16.2` (a terminal whose PREFIX is a comment introducer is eaten as a comment) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0165`, CODE / engine-universal codegen) | ✅ `set_value` / `set_element` REJECT→PASS on THREE oracles; cert `115/0/82/33 spf=2` → **`115/0/84/31 spf=0`**, `UNKNOWN=31` at seeds 0/7/42, delta ATTRIBUTED BY NAME (exactly those two left; nothing newly UNKNOWN). Root cause: `node_is_unbounded_content` scored the `/\s*/` SEPARATOR as a comment content TAIL, dropping the `#` claim — the same spelling-vs-property error `H.17.2` outlawed one layer up. Blast radius MEASURED by the pinned suppression matrix: **exactly one row moved**, nine unchanged; `json_parser.rs` regenerates BYTE-IDENTICAL through the changed annotation backend |
-| 1 | `GRAMMAR-WELLFORMED.H.16.6` (`{1 => 2}` rejected while `{1 => "b"}` and `{"a" => 1}` both parse) | **`todo`** (opened 2026-08-22 by `H.16.2`) | Found by ATTRIBUTING the seed-7 `spf` sample instead of waving it through, and **proven pre-existing** on the pre-fix binary. ⭐ The minimal reproducer is sharper than the sample: only a numeric key AND a numeric value together fail. ⚠️ `map_entry` is already WITNESSED, so `UNKNOWN` will not move — **a witnessed rule can still reject inputs its grammar licenses** |
+| — | `GRAMMAR-WELLFORMED.H.16.6` (`=>` is both the map arrow and the implication operator) | **`diagnosed`** (`PGEN-GRAMMAR-WELLFORMED-0168`, doc+artifact tier) | ✅ ROOT-CAUSED to an EXACT BICONDITIONAL: **a map entry parses iff its `key => value` is NOT a valid `implication_expr`** — two complementary 4-row tables prove it. `map_entry`'s KEY consumes the arrow (`annotation_value … consumed 6 bytes: '1 => 2'` → `Terminal '=>' failed at position 14`). ⛔ `--lint-grammar` `ordered_choice_shadowing=0`, and `map_entry` is WITNESSED ⇒ **a witnessed rule can still reject inputs its grammar licenses**. Fix is a language-design call → `H.16.6a` |
+| 2 | `GRAMMAR-WELLFORMED.H.16.6a` (pick and measure the disambiguation of `=>`) | **`todo`** (opened 2026-08-22 by `H.16.6`) | Three priced options, none WIDEN-only, so the `-0161`/`H.16.2` "widen-from-∅" argument does NOT transfer. Measure all three on a SCRATCH grammar copy via `--interpret-parse` (no regeneration), each with an `ACCEPT-SET-LEDGER:` entry |
 | 3 | `GRAMMAR-WELLFORMED.H.16.2b` (the DYNAMIC comment-skip guard is still an exact-equality allowlist) | **`todo`** (opened 2026-08-22 by `H.16.2`) | Prophylactic hardening of a proven class, deliberately NOT ridden along inside `H.16.2`: the prefix test edits the emitted layout skipper of EVERY arm-emitting parser (repo-wide rebaseline) versus `H.16.2`'s measured one-artifact radius. No live victim known. Also owes the 10 unprobed sites of the 11-site class census |
 | — | `GRAMMAR-WELLFORMED.H.16.3` (the generator shadows any rule named `epsilon` with `""`) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0166`, CODE / engine-universal stimuli generator) | ✅ A DEFINED rule now wins; the builtin is gated on `!grammar_tree.contains_key("epsilon")`, preserving both existing callers exactly (their grammars leave `epsilon` UNDEFINED). `ebnf` cert `144/0/111/33` → **`144/0/112/32`** with `spf` falling at EVERY seed (**8→4 · 11→5 · 7→3**), both arms measured on the same binary path; delta ATTRIBUTED BY NAME (exactly `epsilon` left, nothing newly UNKNOWN). ⭐ ZERO generated-parser bytes move — the rebaselined reproducibility file shows every `parser_sha` unchanged across all 11 artifacts |
 | — | `GRAMMAR-WELLFORMED.H.16.4` (`ebnf`'s `whitespace` is layout-skipped before `grammar_file` sees it) | **`done`** — ADJUDICATED (`PGEN-GRAMMAR-WELLFORMED-0167`, doc+artifact tier) | ✅ Root cause is an ASYMMETRY in the emitted layout skipper: every COMMENT arm is gated on `regex_token_matches_at_cursor(pattern)`, the whitespace skip is not — which is why `comment` is witnessed and `whitespace`, in the SAME alternation, is not. ⛔⛔ The declarative tier EXISTS (`@whitespace_sensitive`, and `systemverilog_preprocessor.ebnf:23` ships the exact shape) and is **REFUTED by a closed facet matrix**: all four settings break `grammars/json.ebnf`, and only two of them even witness the rule. Named a **layout-shadowed** residual; the capability is `H.16.4a` |
