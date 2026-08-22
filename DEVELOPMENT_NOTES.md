@@ -1,5 +1,59 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0164 — a green light from an instrument that is not looking
+
+**1. `unreachable_rules=0` DID NOT MEAN THERE WERE NO UNREACHABLE RULES.** `H.16` sent this session to
+`--lint-grammar` to adjudicate 64 rules the certificate-coverage pass had flagged as having *no reach
+path from the entry*. The lint answered `unreachable_rules=0, exit 0` on all three grammars. Both
+readings are correct, and the reason is in the detector's own doc-comment
+(`grammar_wellformedness.rs:386`): its roots are *the canonical entry PLUS every rule NOTHING
+references*, so an unreferenced orphan is a ROOT — never "unreachable" — and every rule reachable only
+from one inherits that pass. It is a deliberate multi-entry-safety property, documented, with a stated
+false-negative posture. ⛔ **The trap is that a deliberately conservative instrument reports its
+conservatism as a PASS.** Nothing in `unreachable_rules=0` says "…and 31 rules are unreachable from
+your entry"; you have to already know to ask the other tool. The lesson is not "the lint is wrong" —
+it is that **a metric's ROOT SET is part of its meaning, and a leaf that names a tool for a job must
+name the tool's quantifier too.**
+
+**2. THE FIX WAS NOT A BETTER LINT — IT WAS THE MISSING SECOND ARM.** The census that answers the
+question compares the grammar in **two forms of itself**: `--emit-raw-ast-json` (as written) against
+`--dump-gen-ast` (as codegen and the cert pass consume it, after LR-elimination rewrites referrers).
+9 of the 64 are outside the entry closure only in the POST arm — they are **PGEN's own LR residue**,
+wired by their grammar and orphaned by the engine. ⭐ **Had this been measured on POST alone, nine
+engine artifacts would have been recorded as grammar facts** — and the count would have looked like a
+grammar-debt number instead of a 55/9 split with two different owners. The same class was already
+adjudicated once, for `verilog_2005` (`-0271`, *"19 are PGEN's own LR residue"*); finding it in three
+more grammars is what makes it an engine-wide accounting property rather than an SV curiosity.
+
+**3. A CONTROL THAT CANNOT FAIL, AGAIN — AND THIS TIME IT WAS CAUGHT BEFORE IT PUBLISHED.** The first
+run of the new census against `json` used a guessed entry rule (`json_document`, which does not
+exist). It did not refuse: it reported `pre_outside=9` of 9 — *"every rule in JSON is orphaned"* — a
+plausible-looking number that was pure harness error. An entry-existence **REFUSAL** (rc 2) was added
+in the same slice, and the instrument now demonstrably returns three distinct readings: refusal on a
+misnamed entry, all-zero on a clean grammar, and a `NOT closed` verdict on a synthetic dead cycle.
+⛔ **The verification legs are not paperwork.** Leg 2 asks for a control *proven able to go RED*, and
+running that check is what exposed the hole — one slice after `-0163` retracted a published finding
+produced by a grep that could not disagree with itself.
+
+**4. THE LINTER AND THE CENSUS ARE COMPLEMENTS, AND THE SEAM IS WHERE THE BUGS LIVED.** On the
+synthetic control `dead1 := ("b" dead2 | "z")` / `dead2 := "c" dead1` the linter reads
+`unreachable_rules=2` and the census reads `NOT closed`. On the three real grammars it is the reverse:
+the linter reads 0 and the census reads 64. **The linter owns dead islands with NO orphan root; the
+census owns everything reachable ONLY from one.** Neither is a superset. A future grammar-health
+question should ask which side of that seam it is on before choosing a tool.
+
+**5. FOUR MECHANISMS, ONE SYMPTOM — AND THE SYMPTOM IS ALWAYS "`UNKNOWN`, NO OBVIOUS REASON".** `H.17`
+found rule-can-never-fire mechanism #1 (an uncompilable regex terminal). Probing four residual rules
+found three more: a terminal whose PREFIX is a comment introducer and is eaten as trivia
+(`semantic_annotation`'s `"#{"`); a stimuli-generator builtin keyed on the rule's **NAME** that
+shadows a real definition (`epsilon`); and a rule the layout skipper consumes before the alternation
+is offered the bytes (`ebnf`'s `whitespace`). ⭐ Two of the three are **generator↔parser disagreements
+about the grammar's own language**, and the third is a **codegen↔codegen** one — both guards against
+comment-swallowing test the SPELLING of the terminal (`expected != "#"`) instead of the PROPERTY
+(*does it start with an introducer?*), which is character-for-character the error `H.17.2` was built
+to outlaw one layer up. **When a class of defect is fixed at one layer, grep the other layers for the
+same shape before assuming it was local.**
+
 ## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0161 — a control that cannot fail is not a control
 
 **1. SEARCH YOUR OWN REPOSITORY BEFORE DESIGNING.** The task was "replace a look-around regex with

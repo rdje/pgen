@@ -2930,7 +2930,7 @@ and all specific to this slice, already recorded in the leaf). ⭐ §2 is **PROM
 — because it is durable, general (any guard whose message narrates a guessed cause), re-verifiable by
 one command, and it is the reason this gap read as a missing subsystem for two months.
 
-### `H.16` — **THE THREE NEWLY-MEASURABLE FAMILIES CARRY 71 `UNKNOWN` BETWEEN THEM** (`todo`, opened 2026-08-22 session #255 by `H.15`)
+### `H.16` — **THE THREE NEWLY-MEASURABLE FAMILIES CARRY 71 `UNKNOWN` BETWEEN THEM** (**`in_progress`** — re-priced to **68**; the whole residual is ADJUDICATED by `H.16.1` (`PGEN-GRAMMAR-WELLFORMED-0164`, 2026-08-22 session #257) and the work is routed to `H.16.2`–`H.16.5`; opened 2026-08-22 session #255 by `H.15`)
 
 - **WHY**: `H.15` wired cert-coverage for `ebnf` / `return_annotation` / `semantic_annotation` and the
   first measurement is `UNKNOWN` **35 / 2 / 34**. The director's `SVPP-EXPANSION` activation gate
@@ -2978,8 +2978,272 @@ one command, and it is the reason this gap read as a missing subsystem for two m
   adjudicated and, where the rule is legitimately entry-relative, certified by an entry-union the way
   `GRAMMAR-WELLFORMED.H.12.8.5` did for SV — not a licence to shrink the grammar until the number
   looks right.
+- ⛔⛔ **AND THE ADJUDICATION TOOL THIS LEAF NAMES CANNOT DO IT — SETTLED BY `H.16.1`.**
+  `--lint-grammar` reads `unreachable_rules=0` on all three families BY CONSTRUCTION
+  (`detect_unreachable_rules` roots at the entry PLUS every unreferenced rule), so it is
+  structurally blind to exactly the 64. The missing reading is
+  `docs/tasks/artifacts/grammar_wellformed/residual_island_census/probe.py`, and it splits the 64
+  into **9 of PGEN's own LR-elimination residue + 55 source orphans** across **31 islands**.
 - **DETERMINISM IS ALREADY ESTABLISHED**: tuple and `UNKNOWN` set byte-identical at seeds 0/7/42
   (`H.15`), and each lane runs in 0.06–0.38 s — so this is a cheap, fast-iterating lane.
+
+### `H.16.1` — **THE 68 ARE ADJUDICATED: 31 ISLANDS, 9 OF PGEN'S OWN LR RESIDUE, 55 SOURCE ORPHANS, AND 4 RULES THAT CAN NEVER FIRE — BY FOUR DIFFERENT MECHANISMS** (**`done`**, `PGEN-GRAMMAR-WELLFORMED-0164`, doc+artifact tier — opened AND closed 2026-08-22 session #257 by `H.16`)
+
+- **WHY THIS LEAF EXISTS**: `H.16` is priced as *"mostly a `--lint-grammar` adjudication job"*. ⛔ **The
+  linter cannot do that job, and reads a reassuring `unreachable_rules=0` over the whole population
+  BY CONSTRUCTION.** `detect_unreachable_rules`
+  (`rust/src/ast_pipeline/grammar_wellformedness.rs:386`) roots reachability at the canonical entry
+  **PLUS every rule NOTHING references** — its own doc-comment says so (*"an unreferenced dead orphan
+  is treated as a root → not flagged"*) — so every one of the 64 no-reach-path rules is a ROOT to the
+  linter. Measured, all three at HEAD: `ebnf` / `return_annotation` / `semantic_annotation` each
+  `unreachable_rules=0, exit 0`, while the cert pass names 31 / 2 / 31 rules with **no reach path from
+  the entry**. The lint is *correct on its own terms* and *structurally blind to exactly this
+  population*. ⇒ this leaf builds the missing reading before anything is adjudicated.
+
+#### ✅ CLOSED — the residual is partitioned, closed, and every class has a named owner
+
+- ⭐ **RE-DERIVED HEADLINE (leg 1), and it confirms `H.16`'s re-price: 68, not 71.**
+  `PGEN_CERT_COVERAGE_DUMP_ALL=1 ./rust/target/debug/ast_pipeline grammars/<g>.ebnf
+  --report-certificate-coverage --entry-rule <entry> --count 40 --seed 0`:
+
+  | grammar | entry | total | proof | witness | **UNKNOWN** | `spf` |
+  |---|---|---|---|---|---|---|
+  | `ebnf` | `grammar_file` | 144 | 0 | 111 | **33** | 8 |
+  | `return_annotation` | `return_annotation` | 35 | 0 | 33 | **2** | 0 |
+  | `semantic_annotation` | `semantic_annotation` | 115 | 0 | 82 | **33** | 2 |
+
+- **THE MACHINE ADJUDICATION (`PGEN_CERT_RESIDUAL_CLASSIFICATION=1`, TOOLBOX 4.6) — and it CLOSES
+  EXACTLY**, `profile='<none>' store_analysis=active` on all three:
+
+  | grammar | `profile_entry_unreachable` | `store_unproducible` | `genuine` |
+  |---|---|---|---|
+  | `ebnf` | 31 | 0 | 2 — `epsilon`, `whitespace` |
+  | `return_annotation` | 2 | 0 | 0 |
+  | `semantic_annotation` | 31 | 0 | 2 — `set_value`, `set_element` |
+
+  **64 + 4 = 68.** ⭐ `store_unproducible = 0` everywhere: none of this residual is store-gated, which
+  is the opposite of the SV lane's shape and is why the SV playbook does not transfer.
+
+- ⭐⭐ **THE READING THAT WAS MISSING, AND IT SPLITS THE 64 IN TWO — `docs/tasks/artifacts/grammar_wellformed/residual_island_census/probe.py`.**
+  Two authoritative dumps of the same grammar: **PRE** = `--emit-raw-ast-json` (the grammar AS
+  WRITTEN) and **POST** = `--dump-gen-ast` (what codegen and the cert pass consume, i.e. AFTER
+  LR-elimination rewrites referrers). A rule outside the entry closure in POST but INSIDE it in PRE is
+  **PGEN's own LR residue**; outside in BOTH is a **source orphan**.
+
+  | grammar | pre_outside | post_outside | **lr_residue** | **source_orphans** | islands |
+  |---|---|---|---|---|---|
+  | `ebnf` | 27 | 31 | **4** — `expression_return`, `arithmetic_return`, `conditional_return`, `member_access_return` | 27 | 14 |
+  | `return_annotation` | 1 | 2 | **1** — `accessor_base` | 1 — `parenthesized` | 2 |
+  | `semantic_annotation` | 27 | 31 | **4** — `union_type`, `intersection_type`, `array_type`, `optional_type` | 27 | 15 |
+  | **total** | **55** | **64** | **9** | **55** | **31** |
+
+  ⛔ **READING POST ALONE RECORDS AN ENGINE ARTIFACT AS A GRAMMAR FACT.** All 9 ARE wired by their
+  grammar; each is orphaned because the LR pass replaced its referrer with `<base>_lr_base` /
+  `_lr_suffix` / `_lr_seed_*` helpers and left the original behind — the lint confirms the base rule
+  by name (`left_recursion_eliminated=1`: `ebnf` `return_expression` (indirect),
+  `return_annotation` `accessor_base`, `semantic_annotation` `type_reference`). This is the SAME class
+  `-0271` adjudicated for `verilog_2005` (*"19 are PGEN's own LR residue"*), reproduced in three more
+  grammars — ⇒ it is an ENGINE-WIDE accounting property, not an SV curiosity.
+- **THE PARTITION IS CLOSED**: every one of the 64 is reached from exactly one unreferenced ROOT — the
+  census's `⛔ … the partition is NOT closed` arm printed nothing on any of the three. 31 islands, and
+  the largest is 9 rules (`semantic_annotation`'s `performance_value`).
+- ⭐ **AND THE 55 SOURCE ORPHANS HAVE A SHAPE, NOT JUST A COUNT.** `grammars/ebnf.ebnf` labels 13 of
+  its 14 island roots **`(extension)`** in its own comments — `exception_rule` (`rule except …`),
+  `case_control` (`~i"…"`), `named_capture`, `rule_modifier`, `semantic_predicate` (`{? … ?}`),
+  `action_block`, `parametric_rule` (`rule[p]`), `template_instantiation` (`rule<T>`), `lexer_mode`,
+  `grammar_inheritance` (`grammar X extends Y`), `import_statement`, `optimization_hint`,
+  `error_production` — i.e. **the meta-grammar DOCUMENTS a syntax whose own top-level `grammar_file`
+  never admits it**. `semantic_annotation`'s 27 are the same shape (6 typed value-spec islands plus 4
+  layout rules plus `annotation`). ⇒ this is **declared-but-unwired language surface**, and the
+  question *"wire it, or record it declared-dead?"* is a scope call, not a cert-coverage chore →
+  `H.16.5`.
+
+#### ⛔⛔ THE 4 `genuine` RESIDUALS ARE FOUR DIFFERENT WAYS A RULE CAN NEVER FIRE — and three are NEW defect classes
+
+`H.17` found one mechanism (an uncompilable regex terminal). Probing these four found **three more**,
+each proven with an ACCEPTING control:
+
+| grammar | rule | mechanism | tool evidence |
+|---|---|---|---|
+| `ebnf` | `epsilon` | **generator name-shadowed builtin** | `[plannable-probe] rule='epsilon' parsed=false sample="ZC:="` ×8. `rust/src/ast_pipeline/stimuli_generator.rs:11186` — `generate_rule` returns `Ok(String::new())` for **any rule literally named `epsilon`**, *before* looking it up, shadowing `grammars/ebnf.ebnf:324`'s real body `("ε"\|"epsilon"\|"empty"\|"λ")`. ⇒ every witness renders as the empty string. **The LANGUAGE is fine**: `--interpret-parse` `X := ε` → `accepted=true`; the generator's own sample `X :=` → `accepted=false`. → `H.16.3` |
+| `ebnf` | `whitespace` | **layout skipper eats the bytes before the rule is offered them** | `[plannable-probe] parsed=true witnessed_target=false sample="    "`. MEASURED, not inferred: `--interpret-parse` on 4 spaces → `accepted=true furthest_position=0`, typed AST `{"elements": [], "type": "grammar_file"}` **span 0..0** — `grammar_file`'s `*` matched **ZERO** iterations. Control `"  \nX := \"a\"\n"` → `elements` holds only the `grammar_rule`, no `whitespace` node. ⇒ structurally referenced, operationally unreachable. → `H.16.4` |
+| `semantic_annotation` | `set_value` | **a terminal whose PREFIX is a comment introducer, defeating BOTH guards** | see below → `H.16.2` |
+| `semantic_annotation` | `set_element` | same — only reachable through `set_value` | same |
+
+- ⭐⭐ **`set_value` IS THE SHARPEST OF THE FOUR AND IT IS ENGINE-UNIVERSAL.** `set_value := "#{" …
+  "}"`. Reproducer + ACCEPTING control, on **two code-disjoint oracles**:
+
+  ```text
+  parseability_probe --parse semantic_annotation  '@type: #{"a", "b"}'  -> REJECT Backtrack at position 7
+  parseability_probe --parse semantic_annotation  '@type: {"a": 1}'     -> PASS      (the object control)
+  ast_pipeline --interpret-parse (reads the .ebnf) '@type: #{"a", "b"}' -> accepted=false furthest_position=7
+  ast_pipeline --interpret-parse (reads the .ebnf) '@type: {"a": 1}'    -> accepted=true
+  ```
+
+  `PGEN_TRACE_VERBOSITY=debug --trace-rules` names the mechanism as a **position jump**:
+
+  ```text
+  🚪 Entering branch 4/5 for rule 'structured_value' at position 7   <- set_value, at the '#'
+  💾 Memo miss for rule 39 at position 7 - computing fresh result
+  🔤 Attempting to match terminal '#{' at position 18 (end: 20)      <- but its FIRST terminal at EOF
+  ❌ Terminal '#{' failed at position 18 - found '<EOF>'
+  ```
+
+- **ROOT CAUSE (WHY + WHERE) — the same spelling-vs-property error, in BOTH guards, twice:**
+  1. **DYNAMIC** — `rust/src/ast_pipeline/ast_based_generator.rs:7199` emits
+     `let allow_comment_skip = expected != "#" && expected != "//" && …` — an **exact-equality
+     allowlist**. Its own comment states the right intent (*"avoid swallowing comment-introducer
+     tokens themselves"*); `"#{"` is not equal to `"#"`, so skipping stays enabled and the `#` arm
+     eats `#`→EOL.
+  2. **STATIC** — `grammar_claims_introducer_as_non_comment` (`:6556`) SHOULD suppress the `#` arm
+     entirely for this grammar, and does not. In `node_has_non_comment_claim` (`:6586`) a literal
+     claims the introducer only when no **unbounded content** follows it; `node_is_unbounded_content`
+     scores a `"regex"` follower purely by `hir_has_unbounded_repetition`. `set_value`'s follower is
+     the **whitespace separator `/\s*/`**, which has unbounded repetition — so `"#{" /\s*/ …` is
+     misread as *"an introducer literal followed by a comment tail"* and the claim is dropped.
+     ⛔ `\s*` is **layout, not content**: it cannot swallow a `}` and cannot run to end-of-line.
+  ⭐ This is precisely the defect shape `H.17.2` was built to outlaw — *"checks does it COMPILE, not
+  does it contain `(?` — a spelling heuristic is unsound AND incomplete"* — reappearing one layer down.
+  Both copies must move together: `rust/src/parse_harness_interpreter.rs:3045` carries the same
+  allowlist (it mirrors codegen byte-for-byte per `PARSE-HARNESS.5.2`), which is why both oracles agree.
+- **TWO-ARM CONTROL, and it proves the designed mechanism WORKS — this grammar is the miss, not the
+  design.** Emitted `#`-comment arm, per shipped parser: `systemverilog` **0** (claims `#` via `##` /
+  delays ⇒ suppressed), `vhdl` **0**, `rtl_frontend` **0**, `regex` **0** — versus
+  `semantic_annotation` **2**, `ebnf` **2**, `json` **2**, `return_annotation` **2**.
+- **CLASS SIZE (census over every buildable grammar's raw AST — terminals that START with a comment
+  introducer but are not equal to it): 11 sites in 6 grammars.**
+  `ebnf` `documentation_comment` `/**`,`///` · `regex` `callout_hash_payload` `##` ·
+  `semantic_annotation` `set_value` `#{` + `doc_comment` `///` · `systemverilog` `kw_token_93ac8946`
+  `##` · the two `systemverilog_lrm_profiled_*` `##`,`##[*]`,`##[+]`.
+  ⭐ **Exactly ONE is inert today**: `semantic_annotation`'s `#{`. `systemverilog` and `regex` emit no
+  `#` arm; `ebnf`'s `documentation_comment` is **witnessed** (absent from its 33-name `UNKNOWN` set),
+  so it fires. ⚠️ **BOUND, stated rather than glossed**: the other 10 were cleared by arm-suppression
+  and by witness status, **not** by an individual accept/reject probe — `H.16.2` owes that.
+- ⭐ **`semantic_annotation`'s `spf` IS 100 % ATTRIBUTED to this defect**: both failing samples at seed
+  0 carry `#{` (`@ CBJxM :    #{        }` and `@  proved: { … #{   }}`). ⚠️ `ebnf`'s `spf=8` is **NOT
+  yet attributed** and is not claimed to be — `H.16.3`/`H.16.4` own that.
+
+#### Claim verification (`docs/CLAIM_VERIFICATION.md`) — all three legs, leg 3 NAMED
+
+1. **RE-DERIVE** — every number above is a pasted tool headline, re-run at HEAD this session.
+2. **FALSIFY against a code-disjoint oracle, with the control proven able to go RED.** The census is
+   Python over two JSON dumps; the oracle is the engine's own Rust `classify_profile_residual`. They
+   agree on **31 / 2 / 31 = 64** by different algorithms. The instrument is proven to give **more than
+   one reading**: `json` at its real entry → `pre_outside=0 post_outside=0 lr_residue=0 islands=0`; a
+   **misnamed** entry → `REFUSED … entry rule 'json_document' is not defined in the raw arm` (rc 2,
+   added this slice — without it a typo answers *"every rule is orphaned"*); and a synthetic
+   terminating dead CYCLE (`dead1 := ("b" dead2 | "z")`, `dead2 := "c" dead1`) fires the
+   `⛔ … the partition is NOT closed` arm — on which the **linter reads `unreachable_rules=2`**.
+   ⭐⭐ **THAT LAST PAIR IS THE TRANSFERABLE PART: the linter and this census are COMPLEMENTS.** The
+   linter catches dead islands with **no** orphan root; the census catches everything reachable **only
+   from** an orphan root. Neither is wrong; the 64 live in the seam, and that is why `H.16`'s
+   *"adjudicate via the linter"* could never have worked.
+3. **DURABILITY — NOT DISCHARGED, and named.** Nothing re-runs this census, so the split rots the
+   moment a grammar gains a rule. It is deliberately NOT folded into `H.19` (which owns *WIRED*): →
+   `H.16.5` carries the watch alongside the wiring ruling.
+
+#### Routed out — every finding OWNED, none merely reported (repo policy §15)
+
+- **`H.16.2`** — the `#`-introducer defect (engine-universal, codegen + interpreter). 2 rules inert.
+- **`H.16.3`** — the `epsilon` name-shadowed generator builtin (engine-universal). 1 rule inert.
+- **`H.16.4`** — `ebnf`'s `whitespace`: layout-skipped before `grammar_file` sees it.
+- **`H.16.5`** — the 55 source orphans + the 9 LR residue: PROOF-promotion versus wiring, and the watch.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `PGEN_CERT_COVERAGE_DUMP_ALL=1 ./rust/target/debug/ast_pipeline
+  grammars/ebnf.ebnf --report-certificate-coverage --entry-rule grammar_file --count 40 --seed 0`
+  ⇒ `CERTIFICATE-COVERAGE: … total=144 proof=0 witness=111 UNKNOWN=33 fully_certified=false
+  (sample_parse_failures=8, …)`, and identically `2` on `return_annotation` and `33` on
+  `semantic_annotation` — **68** unadjudicated residual rules with no owner.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY the 64 were unadjudicable: `--lint-grammar` reads
+  `unreachable_rules=0` on all three because `detect_unreachable_rules`
+  (`grammar_wellformedness.rs:386`) treats every unreferenced rule as a ROOT. WHY the 4 `genuine` can
+  never fire, each named and located: `stimuli_generator.rs:11186` (`epsilon` name-shadowed to `""`);
+  the layout skipper consuming `grammar_file`'s whitespace (typed AST `elements=[] span 0..0`);
+  `ast_based_generator.rs:7199` `allow_comment_skip` exact-equality allowlist **and** `:6586`
+  `node_has_non_comment_claim` scoring the `/\s*/` separator as an unbounded comment tail — the
+  `--trace-rules` position jump `Entering branch 4/5 … at position 7` →
+  `Attempting to match terminal '#{' at position 18` → `found '<EOF>'` names both.
+- [x] **ADDRESSED (verified)** — the deliverable of this leaf is the ADJUDICATION, and it is complete
+  and closed: **68 = 9 LR-residue + 55 source-orphans + 4 root-caused inert rules**, 31 islands, zero
+  rules left unattributed (the census's `NOT closed` arm printed nothing on any of the three), and
+  each class routed to a named owning leaf (`H.16.2`–`H.16.5`). Before → after on the OWNERSHIP
+  metric: **68 residual rules with no owning leaf → 0**. ⛔ No `UNKNOWN` moved and none is claimed to
+  have: this slice changes ZERO grammar bytes, ZERO Rust bytes, ZERO codegen bytes, ZERO generated
+  bytes.
+- [x] **NO REGRESSION** — doc+artifact tier, so the parser surface is inert BY CONSTRUCTION. Verified
+  anyway: `--report-certificate-coverage` re-read on all three at HEAD after the slice is
+  byte-identical to the tuples above; `--lint-grammar` `exit 0` on all three with
+  `uncompilable_regex_terminals=0`; `bash scripts/check_doctrines.sh` green. The new artifact is a
+  read-only reader invoked by nobody — it is not in `DIAGNOSIS_SIG` and is not wired into any gate.
+- [x] **LOCKSTEP** — this leaf + the `H.16` leaf's status + the Current Frontier rows in
+  `docs/tasks/GRAMMAR-WELLFORMED.md`; `docs/TASK_TREE.md` frontier; `CHANGES.md`;
+  `DEVELOPMENT_NOTES.md`; `MEMORY.md`. Book: N/A — no user-facing surface changed; the mechanisms
+  become book material when `H.16.2`/`H.16.3` land the fixes.
+
+### `H.16.2` — **A TERMINAL WHOSE PREFIX IS A COMMENT INTRODUCER IS EATEN AS A COMMENT: `set_value` / `set_element` ARE INERT** (`todo`, opened 2026-08-22 session #257 by `H.16.1`)
+
+- **WHY**: fully root-caused in `H.16.1` above — both guards fail on `"#{"`, the dynamic one by
+  exact-equality (`ast_based_generator.rs:7199`) and the static one by scoring the `/\s*/` separator
+  as an unbounded comment tail (`:6586` / `node_is_unbounded_content`). Two rules can never match.
+- **SHAPE OF THE FIX (engine-universal, codegen tier)**: make both guards ask the PROPERTY, not the
+  spelling — (a) `allow_comment_skip` becomes a **prefix** test over the introducer set, and (b)
+  `node_is_unbounded_content` must distinguish a **content** tail (an unbounded run over an open
+  class, which can swallow a delimiter) from a **layout** separator (`\s*`, which cannot). ⛔ Both
+  copies move together: `parse_harness_interpreter.rs:3045` mirrors codegen byte-for-byte
+  (`PARSE-HARNESS.5.2`), and TOOLBOX 1.6's differential-equivalence gate is the check that they did.
+- **ACCEPT-SET direction is WIDEN-from-∅ by construction** on the affected rules (they match nothing
+  today), but the guard change is NOT confined to them — re-run the 1.6/1.7/1.8 equivalence suites and
+  the byte-identical check across the fully-certified grammars before claiming that.
+- **OWED BY `H.16.1`**: probe the other 10 sites of the class individually (they were cleared by
+  arm-suppression + witness status, not by an accept/reject probe).
+
+### `H.16.3` — **THE STIMULI GENERATOR SHADOWS ANY RULE NAMED `epsilon` WITH THE EMPTY STRING** (`todo`, opened 2026-08-22 session #257 by `H.16.1`)
+
+- **WHY**: `rust/src/ast_pipeline/stimuli_generator.rs:11186` — `generate_rule` returns
+  `Ok(String::new())` for `rule_name == "epsilon"` *before* consulting the grammar, so
+  `grammars/ebnf.ebnf:324`'s real definition is unreachable to the generator while codegen honours it.
+  Measured: `X := ε` **accepts**, the generator's own `X :=` **rejects**.
+- ⭐ **THE BUILTIN ITSELF IS LEGITIMATE** — `built_in_epsilon_rule_reference_generates_empty_string`
+  (`:19324`) pins the intended contract, a reference to an **undefined** `epsilon`. ⛔ And `epsilon` is
+  **NOT** in `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` (`ast_based_generator.rs:1405`, only
+  `builtin_any_char` / `builtin_ascii_char`), so codegen and the generator already disagree about what
+  the name means. The fix is to take the builtin path only when the grammar does **not** define it.
+- **BLAST RADIUS TODAY IS ONE GRAMMAR** — `grammars/ebnf.ebnf` is the only grammar that DEFINES
+  `epsilon`; SV's remaining mentions are comments recording its removal. The **trap** is universal.
+
+### `H.16.4` — **`ebnf`'s `whitespace` RULE IS LAYOUT-SKIPPED BEFORE `grammar_file` IS OFFERED THE BYTES** (`todo`, opened 2026-08-22 session #257 by `H.16.1`)
+
+- **WHY**: measured, not hypothesised (the hypothesis `H.16` warned against inheriting is now
+  discharged). `--interpret-parse` on an input of 4 spaces ⇒ `accepted=true furthest_position=0`,
+  typed AST `{"elements": [], "type": "grammar_file"}` **span 0..0** — the `*` matched ZERO iterations.
+- ⭐ **`comment` IS in the same alternation and IS witnessed**, so this is not "the alternation never
+  fires" — it is specific to whitespace, and the two must be explained together before either is
+  called a defect or a design fact.
+- **THE ADJUDICATION IS THE WORK**: either the rule is redundant with engine layout (⇒ a `proof`, and
+  the grammar should say so) or the engine is stealing a span the grammar structurally owns (⇒ the
+  `H.11.5` family of defect). ⛔ Do not delete it to reach `UNKNOWN=0`.
+
+### `H.16.5` — **55 SOURCE ORPHANS AND 9 LR RESIDUE: PROOF-PROMOTION IS GATED OFF FOR EVERY PROFILE-LESS GRAMMAR** (`todo`, opened 2026-08-22 session #257 by `H.16.1`)
+
+- **WHY**: the mechanism that would certify these already exists and cannot reach them.
+  `VERILOG-2005-PROFILE.6.7` built P1/P2 **proof promotion**, and `main.rs:3380` gates it
+  `if let (true, Some(active_profile)) = (gather_profile_proofs, profile)`. All three families are
+  `profiles=[]`, so promotion never runs and they read `proof=0` — while
+  `PGEN_CERT_RESIDUAL_CLASSIFICATION` computes the very P1 set profile-lessly and prints it.
+- ⭐ **THE GATE'S STATED REASON IS ABOUT THE ENTRY UNIVERSE, NOT THE PROFILE** — *"with no profile the
+  single-entry P1 would mis-brand alternate-entry rules"*. But the entry universe is built at
+  `main.rs:3821` from the entry **plus every `--cert-union-config`** entry, independently of any
+  profile. ⇒ the condition conflates *"is a profile active?"* with *"has the operator declared the
+  full entry universe?"*, and decoupling them is the **engine-universal, agnostic** change.
+- ⛔ **PROMOTION MUST FOLLOW ADJUDICATION, NEVER REPLACE IT.** A rule that SHOULD be wired must not be
+  quietly proved dead — which is exactly the risk for the 13 `(extension)` islands `ebnf.ebnf` labels
+  in its own comments. **DIRECTOR-FACING**: does PGEN's EBNF *intend* to accept `except`, `~i"…"`,
+  `{? … ?}`, `rule[p]`, `rule<T>`, `mode`, `extends`, `import`, optimization hints and error
+  productions? Wiring them is a LANGUAGE EXPANSION with downstream reach; recording them
+  declared-dead is a documentation act. `H.16.1` does not presume the answer.
+- **CARRIES LEG 3 FOR `H.16.1`**: whatever is ruled, a watch must assert the split so it cannot rot.
 
 ### `H.17` — **`spf > 0` ROOT-CAUSED: REGEX LOOK-AROUND NEVER COMPILES, SO THE RULE SILENTLY NEVER MATCHES** (**`diagnosed`**, `PGEN-GRAMMAR-WELLFORMED-0158`, doc+artifact tier — opened 2026-08-22 session #255 by `H.15`, DIAGNOSED same session; FIX owned by `H.17.1` / `H.17.2`)
 
@@ -3712,7 +3976,12 @@ one command, and it is the reason this gap read as a missing subsystem for two m
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `GRAMMAR-WELLFORMED.H.16` (roll `ebnf` / `return_annotation` / `semantic_annotation` to `UNKNOWN=0`) | **`todo`** (opened 2026-08-22 by `H.15`) | The **clean** conjunct, and now the only engineering half of the `SVPP-EXPANSION` gate left. `H.15` made the three measurable and they read `UNKNOWN` **35 / 2 / 34** = **71**, of which **64 are dead-rule candidates** (no reach path from the entry) ⇒ a `--lint-grammar` adjudication lane, not a witness-generation lane. Lanes cost 0.06–0.38 s and are seed-invariant. |
+| 1 | `GRAMMAR-WELLFORMED.H.16.2` (a terminal whose PREFIX is a comment introducer is eaten as a comment) | **`todo`** (opened 2026-08-22 by `H.16.1`) | ⭐⭐ **The sharpest of the four, and ENGINE-UNIVERSAL.** `semantic_annotation`'s `set_value := "#{" …` can never match on any input: the `#`-comment arm eats `#`→EOL first. Both guards fail on the same spelling-vs-property error — `allow_comment_skip` is an exact-equality allowlist (`ast_based_generator.rs:7199`) and the static claim-suppression scores the `/\s*/` SEPARATOR as an unbounded comment TAIL (`:6586`). Reproduced on two code-disjoint oracles with an ACCEPTING object control; the position jump is in the trace. 2 rules inert |
+| 1 | `GRAMMAR-WELLFORMED.H.16.3` (the generator shadows any rule named `epsilon` with `""`) | **`todo`** (opened 2026-08-22 by `H.16.1`) | `stimuli_generator.rs:11186` returns the empty string for ANY rule literally named `epsilon`, before consulting the grammar — so `ebnf.ebnf`'s real 4-literal body can never be witnessed and every probe sample (`X:=`) is rejected. The LANGUAGE is fine (`X := ε` accepts). Codegen already disagrees: `epsilon` is NOT in `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` |
+| 2 | `GRAMMAR-WELLFORMED.H.16.4` (`ebnf`'s `whitespace` is layout-skipped before `grammar_file` sees it) | **`todo`** (opened 2026-08-22 by `H.16.1`) | MEASURED, not hypothesised: 4 spaces ⇒ `accepted=true furthest_position=0`, typed AST `elements=[]` span 0..0 — the `*` matched ZERO iterations. ⭐ `comment` sits in the SAME alternation and IS witnessed, so the two must be explained together |
+| 3 | `GRAMMAR-WELLFORMED.H.16.5` (55 source orphans + 9 LR residue; proof-promotion is gated off for profile-less grammars) | **`todo`** (opened 2026-08-22 by `H.16.1`) | The certifying mechanism EXISTS (`VERILOG-2005-PROFILE.6.7`) and cannot reach them: `main.rs:3380` gates P1/P2 promotion on `profile.is_some()`, and all three families are `profiles=[]`. ⛔ Carries a DIRECTOR-FACING call — `ebnf.ebnf` labels 13 island roots `(extension)` in its own comments, so wiring them is a LANGUAGE EXPANSION. Also carries leg 3 for `H.16.1` |
+| — | `GRAMMAR-WELLFORMED.H.16.1` (adjudicate the 68) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0164`, doc+artifact tier) | ✅ **68 = 9 LR-residue + 55 source-orphans + 4 root-caused inert rules**, in **31 islands**, partition CLOSED (zero rules unattributed). ⛔ `--lint-grammar` could never have adjudicated this — it reads `unreachable_rules=0` on all three BY CONSTRUCTION. New reader: `docs/tasks/artifacts/grammar_wellformed/residual_island_census/probe.py`, proven to go RED three ways. Residual-rules-with-no-owning-leaf **68 → 0** |
+| — | `GRAMMAR-WELLFORMED.H.16` (roll `ebnf` / `return_annotation` / `semantic_annotation` to `UNKNOWN=0`) | **`in_progress`** (adjudicated by `H.16.1`; work routed to `H.16.2`–`H.16.5`) | The **clean** conjunct, and now the only engineering half of the `SVPP-EXPANSION` gate left. `H.15` made the three measurable and they read `UNKNOWN` **35 / 2 / 34** = **71**, of which **64 are dead-rule candidates** (no reach path from the entry) ⇒ a `--lint-grammar` adjudication lane, not a witness-generation lane. Lanes cost 0.06–0.38 s and are seed-invariant. |
 | — | `GRAMMAR-WELLFORMED.H.17.1` (repair the 5 live regex-look-around rules) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0161`, CODE / grammar + codegen) | ✅ All five repaired; `uncompilable_regex_terminals` `ebnf` 3→**0**, `semantic_annotation` 2→**0**, both exit 1→**0**. `/* x */` now parses. Cert: `ebnf` `144/0/109/35 → 144/0/111/33` (`spf` 13→8), `semantic_annotation` `114/0/80/34 → 115/0/82/33`. ⭐ `UNKNOWN` delta attributed **by rule name** — exactly `block_comment`+`block_comment_content` and `multiline_string`; **nothing** newly UNKNOWN. ⛔ 3 of the 5 stay UNKNOWN **correctly** — their parents are unreferenced, and a terminal repair cannot confer reachability. Generated parsers verified byte-identical to the interpreter (79/79, 134/134). Opened `H.20`. |
 | 1 | `GRAMMAR-WELLFORMED.H.20` (the envelope gate is RED at HEAD on `systemverilog`, `155 > 151`) | **`todo`** (opened 2026-08-22 by `H.17.1`) | Found while measuring `H.17.1`'s blast radius; **pre-existing**, proven by a regenerate-the-parser two-arm control after the naive `git stash` control turned out to be a no-op for that instrument. Name the 4 new rows before touching the ceiling. |
 | — | `GRAMMAR-WELLFORMED.H.17.2` (a `--lint-grammar` error class: every regex terminal must compile) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0159`, CODE / engine-universal) | ✅ `uncompilable_regex_terminals` is a hard error class. Checks **does it COMPILE**, not *does it contain `(?`* — a spelling heuristic is unsound (`(?i)`, `(?s:.)`) AND incomplete (backreferences). `ebnf` `0/exit 0 → 3/exit 1`. ⭐ Independently reproduced `H.17`'s grep census from a disjoint code path over all 12 grammars — leg 2, earned. |
