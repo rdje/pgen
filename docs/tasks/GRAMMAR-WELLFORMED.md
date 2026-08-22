@@ -3012,6 +3012,25 @@ one command, and it is the reason this gap read as a missing subsystem for two m
 
 #### ✅ CLOSED — the residual is partitioned, closed, and every class has a named owner
 
+- ⛔⛔ **CORRECTION (`-0170`, same session) — THE ROOT-CAUSE HALF OF THIS LEAF IS A RE-DERIVATION, NOT
+  A DISCOVERY, AND THIS LEAF ORIGINALLY DID NOT SAY SO.** `LANG-CAPABILITY-AUDIT.2` is **`done`**
+  (`PGEN-LANG-CAPABILITY-AUDIT-0002`, session #208) and had already resolved exactly this, quoting the
+  SAME source: *"RESOLVED — the linter is NOT wrong, and neither is the closure"*, citing
+  `grammar_wellformedness.rs`'s root-set doc-comment verbatim. ⇒ *"a metric's root set is part of its
+  meaning"* was established here months before this session re-found it from scratch. **The leaf below
+  is left standing as written, with this correction above it** (supersede, don't mutate —
+  `MEMORY_ARCHITECTURE.md` §10), because the reasoning is sound; only the novelty was overstated.
+- ⭐ **WHAT IS GENUINELY NEW, stated narrowly**: (a) the **LR-residue vs source-orphan split** (9 vs
+  55) — no prior leaf computes it, and reading POST alone records 9 engine artifacts as grammar facts;
+  (b) the **island partition** (31 islands under named orphan roots) and the re-runnable instrument;
+  (c) an **exact cross-method corroboration** — `LANG-CAPABILITY-AUDIT.1` derived **27** unreachable
+  `ebnf` productions by a hand closure over `--dump-gen-ast` in session #208, and this census derives
+  `source_orphans=` **27** by a PRE/POST two-arm diff in session #257, from different code and a
+  different dump. Two independent methods, same number.
+- ⛔ **AND THE POPULATION WAS ALREADY OWNED**: the 55 source orphans belong to
+  `LANG-CAPABILITY-AUDIT.1`/`.4`/`.6`, which cluster them into 7 horizon-mapped families and already
+  carry per-cluster dispositions. `H.16.5` is re-scoped accordingly — see its RETRACTION.
+
 - ⭐ **RE-DERIVED HEADLINE (leg 1), and it confirms `H.16`'s re-price: 68, not 71.**
   `PGEN_CERT_COVERAGE_DUMP_ALL=1 ./rust/target/debug/ast_pipeline grammars/<g>.ebnf
   --report-certificate-coverage --entry-rule <entry> --count 40 --seed 0`:
@@ -3663,769 +3682,90 @@ setting satisfies both arms.** Two of the four witness the rule; **all four brea
   promote it before this leaf rules — recording a fixable defect as a design fact is precisely what
   `H.16`'s re-pricing note exists to prevent.
 
-### `H.16.5` — **55 SOURCE ORPHANS AND 9 LR RESIDUE: PROOF-PROMOTION IS GATED OFF FOR EVERY PROFILE-LESS GRAMMAR** (`todo`, opened 2026-08-22 session #257 by `H.16.1`)
+### `H.16.5` — **THE 55 SOURCE ORPHANS ARE ALREADY OWNED BY `LANG-CAPABILITY-AUDIT`; WHAT THIS LEAF OWES IS THE 9 LR RESIDUE AND THE PROOF-PROMOTION GATE** (`todo`, opened 2026-08-22 session #257 by `H.16.1`, **RE-SCOPED same session by `-0170` after a director correction**)
 
-- **WHY**: the mechanism that would certify these already exists and cannot reach them.
-  `VERILOG-2005-PROFILE.6.7` built P1/P2 **proof promotion**, and `main.rs:3380` gates it
-  `if let (true, Some(active_profile)) = (gather_profile_proofs, profile)`. All three families are
-  `profiles=[]`, so promotion never runs and they read `proof=0` — while
-  `PGEN_CERT_RESIDUAL_CLASSIFICATION` computes the very P1 set profile-lessly and prints it.
-- ⭐ **THE GATE'S STATED REASON IS ABOUT THE ENTRY UNIVERSE, NOT THE PROFILE** — *"with no profile the
-  single-entry P1 would mis-brand alternate-entry rules"*. But the entry universe is built at
-  `main.rs:3821` from the entry **plus every `--cert-union-config`** entry, independently of any
-  profile. ⇒ the condition conflates *"is a profile active?"* with *"has the operator declared the
-  full entry universe?"*, and decoupling them is the **engine-universal, agnostic** change.
-- ⛔ **PROMOTION MUST FOLLOW ADJUDICATION, NEVER REPLACE IT.** A rule that SHOULD be wired must not be
-  quietly proved dead — which is exactly the risk for the 13 `(extension)` islands `ebnf.ebnf` labels
-  in its own comments. **DIRECTOR-FACING**: does PGEN's EBNF *intend* to accept `except`, `~i"…"`,
-  `{? … ?}`, `rule[p]`, `rule<T>`, `mode`, `extends`, `import`, optimization hints and error
-  productions? Wiring them is a LANGUAGE EXPANSION with downstream reach; recording them
-  declared-dead is a documentation act. `H.16.1` does not presume the answer.
-- **CARRIES LEG 3 FOR `H.16.1`**: whatever is ruled, a watch must assert the split so it cannot rot.
+- ⛔⛔ **RETRACTION — THIS LEAF ORIGINALLY ESCALATED A QUESTION THE REPOSITORY HAD ALREADY ANSWERED.**
+  It read: *"DIRECTOR-FACING: does PGEN's EBNF intend to accept `except`, `~i"…"`, `{? … ?}`,
+  `rule[p]`, `rule<T>`, `mode`, `extends`, `import`, optimization hints and error productions?"*
+  **That was wrong, and the director corrected it (2026-08-22):** *"there are features not yet
+  supported that have been documented, not fully though, that EBNF shall support in the future…
+  search the task-trees and KM cards and ADRs, you should find mentions about those things"* —
+  together with the binding instruction **do not simply park findings; task-tree OWN them**.
+- ⭐⭐ **AND EVERY ONE OF THE 13 ISLANDS WAS ALREADY TRACKED.** A census over `docs/tasks/`,
+  `docs/decisions/` and `docs/knowledge/` finds **all 13 names present**, most in several layers.
+  The authoritative homes, which this leaf must CITE rather than re-invent:
+  - **`LANG-CAPABILITY-AUDIT.1`** — the same population, found first and organized better: **27
+    unreachable productions** in `grammars/ebnf.ebnf`, clustered into **7 families** each mapped to a
+    horizon axis (Error recovery · Parameterized productions · Lexer modes · Generics/templates ·
+    Semantic predicates (inline form) · Grammar composition · Misc). Its headline is the one to quote:
+    ***"PGEN's meta-grammar has been quietly documenting its own capability gaps — 20.6 % of our own
+    EBNF language is decorative."***
+  - **`LANG-CAPABILITY-AUDIT.4`/`.6`** — the DISPOSITIONS already exist, per-cluster: `~i"…"`
+    (`case_control`), `[a-z]` (`character_class`) and `import`/`extends` are **superseded by a
+    canonical existing form** (`(?i:…)`, `/.../`, `include()` per P0-1) and `.6` may retire them;
+    ⛔ with one carve-out — **`parametric_rule` is a capability the roadmap WANTS (P2-5) and must be
+    re-surfaced, NEVER deleted.**
+  - **[[feedback_capability_work_is_greenlit_by_standing_authorization]]** — the capability is
+    **already greenlit by standing authorization**. What is genuinely open is only the parametric
+    **NOTATION**, and even that is bounded: the declared placeholder
+    `parametric_rule := rule_name "[" parameter_list "]"` **silently miscompiles**, because `[ … ]` is
+    already the optional-element form, so `expr[In, Yield]` parses as `expr ( In Yield )?` with the
+    comma swallowed. That record's own *"How to apply"* says it outright: ***"Do not open a leaf asking
+    'may we build capability X?' for a priced row — build it, or schedule it, and say so."***
+  ⇒ ⛔ **The escalation violated a standing instruction that was already written down.** The
+  transferable rule is [[feedback_answer_your_own_technical_questions]]: SEARCH the trees, ADRs and KM
+  cards BEFORE declaring a finding novel or routing a question upward.
+- ⭐ **THE ONE THING `H.16.1` ADDED HERE IS A CROSS-METHOD CORROBORATION, AND IT IS EXACT.**
+  `LANG-CAPABILITY-AUDIT.1` derived **27** by a hand closure over `--dump-gen-ast` in session #208;
+  `H.16.1`'s census derives `ebnf source_orphans=` **27** from a PRE/POST two-arm diff in session
+  #257, by different code, from a different dump, with a different definition. **The two agree
+  exactly**, which is worth more than either number alone.
 
-### `H.17` — **`spf > 0` ROOT-CAUSED: REGEX LOOK-AROUND NEVER COMPILES, SO THE RULE SILENTLY NEVER MATCHES** (**`diagnosed`**, `PGEN-GRAMMAR-WELLFORMED-0158`, doc+artifact tier — opened 2026-08-22 session #255 by `H.15`, DIAGNOSED same session; FIX owned by `H.17.1` / `H.17.2`)
+#### What this leaf actually owes (re-scoped)
 
-- **WHY**: `H.15`'s first cert run on the annotation/meta families reads `sample_parse_failures` of
-  **11–13 of 40** on `ebnf` and **2–4 of 40** on `semantic_annotation` (seed-dependent: 13/13/11 and
-  2/4/3 at 0/7/42), while **all seven previously-wired families read `spf=0`**. A generated sample the
-  real parser rejects is a **generator↔parser disagreement about the grammar's own language** — one
-  of the two is wrong about `grammars/<g>.ebnf`, and PGEN ships both.
-- **IT IS NOT COSMETIC**: `spf` caps the witness count (each rejected sample is a sample that could
-  have witnessed and did not), so it is an upper bound on how much of `H.16`'s residual is really a
-  reach gap versus a generator defect. `H.16` cannot be honestly priced until this is known.
-- ✅ **UNBLOCKED 2026-08-22 by `H.18` (`-0157`) — the reproducers now carry a real error.** They were
-  all reported as `error: (no detail-capable parser registered)` until the label path was fixed;
-  captured at seed 0:
-
-  | grammar | sample | label |
-  |---|---|---|
-  | `ebnf` | `/**/` (4 B) | `Parser did not consume full input at position 0 [furthest_position=3, +3 bytes deeper]` |
-  | `ebnf` | `/***/` (5 B) | `Parser did not consume full input at position 0 [furthest_position=3, +3 bytes deeper]` |
-  | `semantic_annotation` | `@ CBJxM :    #{        }` (24 B) | `Backtrack at position 13 [furthest_position=13]` |
-  | `semantic_annotation` | `@  eager   :` (14 B) | `Backtrack at position 14 [furthest_position=14]` |
-
-- ⭐⭐ **THE FIRST TWO ROWS ARE THE SHARPEST LEAD IN THIS LEAF AND MUST BE ADJUDICATED FIRST**: `/**/`
-  and `/***/` are **block comments in the grammar `ebnf.ebnf` describes**, the generator emits them,
-  and the `ebnf` parser rejects them at `furthest_position=3` — and `block_comment` /
-  `block_comment_content` are **both in `H.16`'s `UNKNOWN` list**. That is either a real parse defect
-  in the shipped meta-parser or a generator that emits a form the grammar does not license, and the
-  two verdicts have opposite fixes. ⛔ **It is a LEAD, not a diagnosis** — Protocol B first (`--parse`
-  the reproducer, pair it with an ACCEPTING control such as a non-empty `/* x */`, minimal-reproduce),
-  and pin both arms in an adjudication-repro manifest so a later relaxation cannot silently flip them.
-- ⚠️ **AND `spf` IS SEED-DEPENDENT, SO THE "SEVEN FAMILIES READ `spf=0`" CONTRAST IS A SINGLE-SEED
-  MEASUREMENT.** Run the wired seven at 0/7/42 before concluding these two families are special
-  rather than merely unlucky at seed 0 (see this tree's `ROUTING EVIDENCE` §3).
-
-#### ⛔⛔ DIAGNOSIS — it is NOT a generator defect. Rust's `regex` crate does not support look-around.
-
-- ⭐ **THE ANSWER, AND IT INVERTS THE LEAF'S OWN TITLE.** `spf > 0` was opened as *"the generator
-  emits samples the family's own parser rejects"*, which framed the generator as the suspect. It is
-  not: the **grammar** contains regex terminals that **cannot compile**, so those rules match nothing
-  on any input, ever. The generator renders them from the grammar text — correctly — and the parser
-  then rejects what it can never accept. Both halves are behaving as written; the written thing is
-  broken.
-- ⛔ **MEASURED MECHANISM, at `PGEN_TRACE_VERBOSITY=debug` on the shipped parser:**
-
-  ```text
-  ❌ Exiting rule 'block_comment_content' with error: ContextualError { message:
-     "Invalid regex pattern '((?:[^*]|\\*(?!\\/))*)': regex parse error: … look-around … not supported"
-  ```
-
-- ⛔⛔ **AND THE SEVERITY IS MASKED BY THE CHANNEL, WHICH IS WHY NOBODY SAW IT.** That message is
-  emitted at **`[PGEN][LOW]`**, through the ordinary **speculative-parse failure** path — the exact
-  channel a perfectly normal *"this alternative did not match"* uses, and which the PEG engine's job
-  is to swallow. Measured: at **default verbosity the run reports it ZERO times**. So a *permanent,
-  unconditional, static authoring error* is, at runtime, **indistinguishable from routine
-  backtracking**. ⚠️ This is a `DIAG-SEVERITY` ("severity never masked by verbosity") instance the
-  registered doctrine does not currently cover — a regex that can NEVER compile is not a LOW-severity
-  fact about one parse attempt.
-- ⭐ **FEATURE BISECTION — the lookahead is the cause, MEASURED, not inferred** (synthetic one-rule
-  grammars via `--interpret-parse`; controls first, so the defect arms mean something):
-
-  | regex terminal | input | accepted | verdict |
-  |---|---|---|---|
-  | `([^*]*)` | `abc` | `true` | control — plain negated class works |
-  | `((?:[^*])*)` | `abc` | `true` | control — non-capturing group works |
-  | `((?:[^*]\|x)*)` | `abc` | `true` | control — alternation works |
-  | `(a(?:b)?)` | `ab` | `true` | control — optional works |
-  | `(a(?!b))` | `a` | **`false`** | ⛔ nothing follows `a`, so `(?!b)` trivially holds |
-  | `((?:\*(?!\/))*)` | `*` | **`false`** | ⛔ at EOF `(?!\/)` trivially holds |
-  | `((?:[^*]\|\*(?!\/))*)` | `abc` | **`false`** | ⛔ one look-around poisons the whole terminal |
-
-  ⇒ every non-look-around construct works; **only look-around fails, and it fails by making the
-  entire terminal never match.**
-- ⭐ **THE SHIPPED CONSEQUENCE: the `ebnf` meta-grammar cannot parse ANY block comment.** Not an edge
-  case — `/* x */` itself:
-
-  | input | verdict |
-  |---|---|
-  | `/**/` · `/***/` · `/* x */` · `/** d */` | **REJECT** |
-  | `# line` | ACCEPT (the accepting control — line comments use no look-around) |
-
-  ⛔ **BOTH ENGINES AGREE, WHICH IS WHAT MAKES THIS A GRAMMAR VERDICT AND NOT A TOOL ARTEFACT.** The
-  interpreter (`--interpret-parse`) and the **generated parser** (`parseability_probe --parse ebnf`,
-  built with `--features "generated_parsers ebnf_dual_run"`) return **identical verdicts AND identical
-  `furthest_position` values** on all five inputs (`furthest_position=3, 3, 2, 3` and accept). The
-  interpreter is authoritative-by-verification and `--lint-grammar` reports
-  `left_recursion_unhandled=0` for `ebnf`, so TOOLBOX 1.5b's known interpreter hole does not apply —
-  and the generated-parser arm was run anyway.
-- ⭐⭐ **PRIOR ART IS IN THIS REPO, AND SYSTEMVERILOG WAS ALREADY FIXED FOR IT** —
-  `SV-EXH-PROOF.3.3.4.b.6.2.15`, recorded in `grammars/systemverilog.ebnf:519` and `:601`. There it
-  was not merely a dead rule: *"Every attempt to compile this regex at parse time threw `error:
-  look-around … is not supported`, causing the parser to backtrack and try the next branch … this
-  became the **DOMINANT source of catastrophic backtracking** — 96 invocations at the SAME byte
-  position (117064) in a 5-second window, ultimately causing the **>180 s hang** on `uvm_pkg`."* ⇒
-  this class is **also a latent SPEED defect**, not only a correctness one. The fix used there is the
-  one to copy: move the assertion to a **grammar-level `!rule`** negative lookahead, which the PEG
-  engine *does* support as a zero-width assertion (`simple_identifier_no_scope := trivia /…/
-  !scope_resolution`).
-- ⛔ **THE SWEEP WAS NEVER DONE. Live census — 6 uses, in 3 grammars:**
-
-  | grammar | line | rule | disposition |
-  |---|---|---|---|
-  | `ebnf.ebnf` | 595 | `block_comment_content` | **shipped family — inert** |
-  | `ebnf.ebnf` | 616 | `predicate_content` | **shipped family — inert** |
-  | `ebnf.ebnf` | 623 | `action_content` | **shipped family — inert** |
-  | `semantic_annotation.ebnf` | 171 | `multiline_string` | **shipped family — inert** |
-  | `semantic_annotation.ebnf` | 571 | `block_comment` | **shipped family — inert** |
-  | `systemverilog_lrm_profiled_generated.ebnf` | 38 | `simple_identifier_no_scope` | `derived_artifact` — carries the **pre-fix** form SV itself was repaired of |
-
-  ⚠️ **`regex.ebnf`'s 25 look-around tokens are NOT uses and are correctly excluded**: they are
-  double-quoted string LITERALS (`"(?="`, `"(?!"`, `"(?<="`, `"(?<!"`) by which the regex grammar
-  *matches PCRE lookaround syntax*. Conflating "describes a construct" with "uses a construct" would
-  have inflated this census five-fold; the `:=`-with-`/…/` shape is what separates them.
-- ⭐⭐ **THIS RE-PRICES `H.16`, WHICH IS THE REASON TO DIAGNOSE BEFORE COUNTING.** Every affected rule
-  and its parents are already in `H.16`'s `UNKNOWN` lists — `ebnf`: `block_comment`,
-  `block_comment_content`, `whitespace`, `semantic_predicate`, `predicate_content`, `action_block`,
-  `action_content`; `semantic_annotation`: `multiline_string`, `block_comment`. So a measurable,
-  nameable slice of the 71 `UNKNOWN` is **not a reach gap and not a dead rule** — it is this defect.
-  ⛔ `H.16` must not adjudicate those as dead-rule candidates: they are live rules whose terminal
-  cannot compile, and deleting them would be the exact "shrink the grammar until the number looks
-  right" move that leaf forbids.
-- ⛔ **NOTHING CATCHES IT.** `--lint-grammar` reports **0** mentions of look-around or invalid-regex
-  (measured) — and it is the natural home, because "this regex terminal does not compile" is
-  *static, unconditional and provable*, exactly like its existing `undefined_references` and
-  `non_terminating` error classes.
-- **RE-RUNNABLE DIAGNOSIS**:
-  [`docs/tasks/artifacts/grammar_wellformed/regex_lookaround/probe.sh`](artifacts/grammar_wellformed/regex_lookaround/probe.sh)
-  — four arms (feature bisection with controls · the shipped block-comment consequence with an
-  accepting control · the live census · the "no static check reports it" arm). `REGEX-LOOKAROUND:
-  REPRODUCED`. ⛔ **A check whose arms all pass has not been tested**, so three control paths were
-  driven and restored: flipping one bisection expectation → `DIVERGED in 1 arm(s)` rc 1; flipping the
-  census count 6→5 → `DIVERGED` rc 1; removing the binary → `REFUSED … (nothing scored)` **rc 2**,
-  never a silent pass.
-
-- ⛔ **FIX SPLIT OUT, because the blast radius differs by an order of magnitude between the halves:**
-  - **`H.17.1`** — repair the 5 live rules in the two shipped grammars. ⚠️ `ebnf.ebnf` is **the
-    meta-grammar PGEN reads every other grammar with**, so this changes what PGEN can read: it needs
-    accept-set adjudication (`ACCEPT-SET-LEDGER:`), a regeneration, and two-sided repro pinning, not a
-    quick edit.
-  - **`H.17.2`** — make it impossible to land again: a `--lint-grammar` **error-class** check that
-    every regex terminal actually compiles. Engine-universal, static, no runtime cost, and it would
-    have caught all six the day each was written.
-
-#### Acceptance Checklist (enforced)
-
-- [x] **REPRODUCE / ISSUE** — `ast_pipeline grammars/ebnf.ebnf --report-certificate-coverage --count
-  40 --seed 0` reports `sample_parse_failures=13`, and (since `-0157` restored the label) prints
-  `[1] error: Parser did not consume full input at position 0 [furthest_position=3, +3 bytes deeper
-  than surface position]` for the 5-byte sample `/***/`.
-- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: a regex terminal carrying look-around **cannot compile** —
-  `PGEN_TRACE_VERBOSITY=debug ./rust/target/debug/parseability_probe --parse ebnf <file>` prints
-  `❌ Exiting rule 'block_comment_content' with error: … "Invalid regex pattern
-  '((?:[^*]|\*(?!\/))*)': regex parse error: … look-around … not supported"`, and the rule then
-  reports through the ordinary speculative-failure channel so the engine backtracks past it (default
-  verbosity: **0** occurrences). WHERE: `grammars/ebnf.ebnf:595`, `:616`, `:623`;
-  `grammars/semantic_annotation.ebnf:171`, `:571`;
-  `grammars/systemverilog_lrm_profiled_generated.ebnf:38`. Isolated to the look-around construct by a
-  7-arm feature bisection with 4 passing controls, and confirmed on BOTH engines with identical
-  `furthest_position=` values.
-- [x] **ADDRESSED (verified)** — this leaf's deliverable is the DIAGNOSIS and it is verified
-  re-runnable: `bash docs/tasks/artifacts/grammar_wellformed/regex_lookaround/probe.sh` →
-  `REGEX-LOOKAROUND: REPRODUCED (all arms as recorded)` rc 0, with all three control paths proven to
-  fire (two `DIVERGED` rc 1, one `REFUSED` rc 2). ⛔ **The parse defect itself is NOT addressed here
-  and is not claimed to be** — `H.17.1` owns the grammar repair and `H.17.2` the lint gate; before
-  either lands, `/* x */` still REJECTs.
-- [x] **NO REGRESSION** — doc + artifact tier: **ZERO grammar bytes, ZERO Rust bytes, ZERO codegen
-  bytes, ZERO generated bytes** (`git diff --stat` touches only `docs/` + the continuity surfaces),
-  so no parser artifact can have moved and the cert tuples are unchanged by construction. The
-  generated-parser arm used for the diagnosis is a **debug** `parseability_probe` built from HEAD's
-  source into `rust/target/`, which is untracked build output. `bash scripts/check_doctrines.sh`
-  green (25/25).
-- [x] **LOCKSTEP** — `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`, this
-  tree's frontier + `ROUTING EVIDENCE`, and the book's grammar-wellformedness chapter. `H.16`'s leaf
-  updated with the re-pricing, since its residual is no longer all reach-gaps-or-dead-rules.
-  `done_bar_family_register_v0.json` deliberately unchanged — no closure leg moved, and this leaf
-  fixes nothing yet.
-
-### `H.18` — **THE CERT-FAILURE LABEL IS BLIND, AND ITS MESSAGE IS FALSE, FOR 9 OF 13 REGISTRY ROWS** (**`done`**, `PGEN-GRAMMAR-WELLFORMED-0157`, CODE / registry-only — opened AND closed 2026-08-22 session #255 by `H.15`)
-
-- **MEASURED, over the closed registry population** —
-  `LABEL-BLIND-CENSUS: registry_rows=13 parse_detail_none_with_working_arm=9`:
-  `return_annotation`, `semantic_annotation`, `builtin_return_annotation`,
-  `builtin_semantic_annotation`, `ebnf`, `json`, `rtl_const_expr`, `rtl_frontend`, `vhdl`. Only
-  `regex`, `systemverilog`, `systemverilog_preprocessor` and `scratch` are labelled.
-- ⛔ **ROOT CAUSE — TWO DISPATCHES FOR ONE QUESTION, AND THEY DISAGREE** (`rust/src/parser_registry.rs`).
-  `parse_error()` (the cert-coverage LABEL path, G.4.7) reads the **registry table's `parse_detail`
-  field**; `parse_sample_detail_with_profile()` (the `parseability_probe` path) is a **`match` on the
-  grammar name** — and the `match` has a working arm for all nine, wired to real
-  `parse_with_<g>_detail` fns that already augment `furthest_position`. So the detail parser IS
-  registered, the table just does not know it, and `main.rs:3353` prints
-  `"(no detail-capable parser registered)"` — **a statement that is false**.
-- ⭐ **THIS IS A DIAGNOSABILITY DEFECT, NOT A COSMETIC ONE.** It is what makes `H.17` un-root-causable
-  today, and it is exactly the class TOOLBOX.md warns about: the instrument returns a confident,
-  uninformative answer, and from outside "no detail parser exists" is indistinguishable from "the
-  detail parser ran and said nothing useful".
-- **FIX SHAPE (engine-universal, registry-only)**: the two dispatches must not be independently
-  authored. Either point `parse_detail` at the existing fns (a thin profile-ignoring wrapper — the
-  table's `ParseDetailFn` takes `(sample, Option<&str>)` while the annotation/`ebnf`/`vhdl` detail fns
-  take `(sample)`), or better, make `parse_error()` fall back to `parse_sample_detail_with_profile()`
-  so **one** table is the source of truth and the divergence cannot recur. ⚠️ Price both: the second
-  removes the duplicated knowledge but changes the meaning of a `None` field that other callers may
-  read.
-- **CONTROL FOR THE FIX**: `ebnf` at seed 0 must turn its 13 `(no detail-capable parser registered)`
-  lines into 13 real parse errors carrying `furthest_position=`, with the cert tuple
-  `144/0/109/35` **unchanged** — the label must not move the classification.
-
-#### ✅ CLOSED — the duplicate table was DELETED, not filled in
-
-- ⭐ **THE DECIDING MEASUREMENT WAS "HOW MANY READERS DOES THE FIELD HAVE?"** The leaf priced two
-  fixes and said the second was better *if* nothing else read a `None`. It does not: `parse_detail`
-  had **exactly one reader** — `parse_error()` (`rust/src/parser_registry.rs`) — which itself has
-  **exactly one caller**, the cert LABEL site at `rust/src/main.rs:3346`. So the field was not a
-  second source of truth that other code depended on; it was **dead weight that only ever answered
-  wrongly**. ⇒ deleted outright: the field, its `ParseDetailFn` type alias, all 13 initializers, and
-  the one adapter (`parse_with_systemverilog_preprocessor_detail_profile`) that existed solely to
-  reshape a fn for it. `parse_error()` now delegates to `parse_sample_detail_with_profile()`.
-  **The divergence cannot recur, because there is no longer a second place to diverge from.**
-- ⭐ **BEHAVIOURAL EQUIVALENCE FOR THE FOUR ROWS THAT WERE ALREADY LABELLED — checked by name, not
-  assumed.** The deleted table entries were `Some(parse_with_regex_detail)`,
-  `Some(parse_with_systemverilog_detail_profile)`,
-  `Some(parse_with_systemverilog_preprocessor_detail_profile)` and `Some(parse_with_scratch_detail)`.
-  Three are the **identical function with identical arguments** in the surviving `match`; the fourth
-  (`svpp`) was a pure passthrough whose entire body was `parse_with_systemverilog_preprocessor_detail(sample)`,
-  which is exactly what the `match` arm calls. ⇒ no labelled row changes behaviour.
-- ⭐⭐ **THE CENSUS IS NOW A TRACKED INSTRUMENT, AND IT PROVES IT CAN GO RED.** Both `H.15`'s and
-  `H.18`'s population counts were originally computed by hand, which is precisely how three families
-  and nine rows went unnoticed — so they were made one re-runnable reader,
-  [`docs/tasks/artifacts/grammar_wellformed/cert_wiring_census/probe.py`](artifacts/grammar_wellformed/cert_wiring_census/probe.py).
-  It reads only TRACKED TEXT (the register JSON + the registry source) ⇒ no cargo, no generated
-  parser, no parse run. Live: `CERT-WIRED-CENSUS: register_families=10 wired=10 unwired=0 missing=[]`
-  and `LABEL-BLIND-CENSUS: registry_rows=13 parse_detail_fields=0 detail_dispatch_arms=13` ⇒
-  `CERT-WIRING-CENSUS: CLEAN` (rc 0). ⛔ **A check whose inputs all pass has not been tested**, so both
-  arms were driven RED and restored: reverting `vhdl` to `parse_and_cover: None` gives
-  `wired=9 unwired=1 missing=['vhdl']` / `BREACH` (rc 1); re-introducing a single `parse_detail: None`
-  field gives `parse_detail_fields=1` plus *"the deleted `parse_detail` table has re-appeared —
-  H.18's divergence is back"* / `BREACH`. Restored, the file is byte-identical by `shasum` and the
-  census is `CLEAN` again. Its refusal path was also exercised for real (a wrong `ROOT` depth on the
-  first run) and correctly exited **2 — "nothing was scored"** rather than passing vacuously.
-  ⛔ **DELIBERATELY NOT REGISTERED IN `DIAGNOSIS_SIG`**: a token is added only for an instrument that
-  PRODUCES a root-cause diagnosis, and this one SIZES A POPULATION. The diagnosing tool for both
-  leaves is `--report-certificate-coverage`, which is already registered. Registering a token for a
-  reader would be the widening the doctrine's own pricing rule exists to refuse.
-- ⚠️ **THE CLEANUP ORPHANED ONE FUNCTION AND THE BUILD SAID SO — and one warning it printed was NOT
-  mine.** After the delete, `cargo build` reported two `never used` fns in `parser_registry.rs`.
-  `parse_with_systemverilog_preprocessor_detail_profile` was newly orphaned by this change and was
-  removed. `parse_with_systemverilog_ast_json` was **already dead at HEAD** —
-  `git show HEAD:rust/src/parser_registry.rs` shows only its `_profile` / `_from_entry` siblings
-  referenced (lines 2088 / 2148) — so it is left alone rather than swept up in an unrelated commit.
-  ⛔ Two warnings appearing together after a delete is exactly the shape that invites deleting both;
-  the arm that separates them is one `git show`.
-
-#### Acceptance Checklist (enforced)
-
-- [x] **REPRODUCE / ISSUE** — `PGEN_CERT_COVERAGE_DUMP_ALL=1 ast_pipeline grammars/ebnf.ebnf
-  --report-certificate-coverage --count 40 --seed 0` reported `sample_parse_failures=13` and printed
-  every shown failure as `[N] error: (no detail-capable parser registered)` — while
-  `parse_with_ebnf_detail` existed and worked. The message is **false**, and it is why `H.17`'s
-  failures could not be root-caused at all.
-- [x] **ROOT CAUSE (WHY + WHERE)** — the diagnosing tool is
-  `ast_pipeline grammars/ebnf.ebnf --report-certificate-coverage --count 40 --seed 0`, whose
-  `SAMPLE-PARSE FAILURES` block printed the label under test; the same command after the fix prints
-  `[1] error: Parser did not consume full input at position 0 [furthest_position=3, +3 bytes deeper
-  than surface position]` for the identical sample — **so the parser it said was unregistered was
-  running all along, and the report simply asked the wrong table.** WHY: **two independently-authored
-  dispatches answer one question and disagree** — `parse_error()` read the registry table's
-  `parse_detail` field, while `parse_sample_detail_with_profile()` is a `match` on the grammar name
-  carrying a working arm for the same grammar. WHERE: both in `rust/src/parser_registry.rs`; the false
-  string is emitted at `rust/src/main.rs:3353`. ⭐ Population sized by a TRACKED, re-runnable reader
-  rather than by eye —
-  [`docs/tasks/artifacts/grammar_wellformed/cert_wiring_census/probe.py`](artifacts/grammar_wellformed/cert_wiring_census/probe.py)
-  reported 9 of 13 rows blind (`return_annotation`, `semantic_annotation`, `builtin_return_annotation`,
-  `builtin_semantic_annotation`, `ebnf`, `json`, `rtl_const_expr`, `rtl_frontend`, `vhdl`). ⛔ NOT the
-  three-families finding it was discovered beside: **six of the nine are families `H.15` never
-  touched**, four of them shipped and fully-certified.
-- [x] **FIX** — fix-hierarchy tier **declarative** (registry data, no engine behaviour, no grammar,
-  no codegen). Deleted the `parse_detail` field + `ParseDetailFn` + 13 initializers + 1 orphaned
-  adapter; `parse_error()` delegates to the single surviving dispatch. Why no lower tier: every
-  detail parser already existed and already worked — nothing below the registry was missing. Why not
-  the cheaper spelling (fill in nine `Some(...)` fields): it re-creates the divergence for grammar
-  #14, and the pricing question it hinged on — *does anything else read a `None`?* — measured **one
-  reader**, so the expensive-looking option is the smaller one.
-- [x] **ADDRESSED (verified)** — before→after on the symptom, `ebnf` seed 0: `(no detail-capable
-  parser registered)` **5 → 0** across the shown failures, and **0 → 5** labels carrying
-  `furthest_position=`. Real diagnostics now, e.g. `[1] error: Parser did not consume full input at
-  position 0 [furthest_position=3, +3 bytes deeper than surface position]` on the 5-byte sample
-  `/***/`. `semantic_annotation` likewise: `[1] error: Backtrack at position 14
-  [furthest_position=14, …]` on `@  eager   :`. ⭐ These ARE `H.17`'s reproducers, which is what the
-  sequencing was for.
-- [x] **NO REGRESSION** — **the LABEL must not move the CLASSIFICATION, and it did not.** `ebnf` seed
-  0 is `total=144 proof=0 witness=109 UNKNOWN=35 fully_certified=false (sample_parse_failures=13)`
-  before AND after — byte-identical. All ten families re-run at seed 0 reproduce the tuples recorded
-  in `-0156` exactly: `json` `9/0/9/0`, `regex` `269/9/260/0`, `vhdl` `225/0/225/0`,
-  `systemverilog_preprocessor` `74/0/74/0`, `rtl_frontend` `169/1/168/0`, `rtl_const_expr`
-  `48/0/48/0`, `systemverilog` `1385/18/1367/0` — all `spf=0` and `fully_certified=true` — plus
-  `return_annotation` `35/0/33/2` and `semantic_annotation` `114/0/80/34`. Clippy flow green
-  (`clippy_source_all_targets` ok, `GENERATED-CLIPPY-CORRECTNESS: ✅ POLICY-ONLY PASS`, generated
-  stage pass), and `parser_registry.rs` introduces **no new build warning** — the one that remains is
-  proven pre-existing at HEAD. `mdbook_docs_gate` green (10/10 per-parser book gates).
-  `cargo test --lib --features "generated_parsers ebnf_dual_run"`: **1114 passed / 1 failed / 28
-  ignored — the SAME counts as `-0156`'s run**, and the one failure is the same pre-existing
-  `unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names` owned by
-  `CI-PARITY-GATE-ROT.21` class (2), proven pre-existing this session by a `git stash` two-arm
-  control. ⇒ **this change moved no test.** ZERO grammar / codegen / generated bytes.
-- [x] **LOCKSTEP** — `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`, the
-  frontier table, and `H.17`'s blocker note (now unblocked, with its reproducers captured). The book's
-  `grammar-wellformedness.md` paragraph describing the blind label is updated in the same commit.
-  `done_bar_family_register_v0.json` unchanged — no family's closure legs moved.
-
-### `H.17.1` — **REPAIR THE 5 LIVE REGEX-LOOK-AROUND RULES IN THE TWO SHIPPED GRAMMARS** (**`done`**, `PGEN-GRAMMAR-WELLFORMED-0161`, CODE / grammar + codegen — opened 2026-08-22 session #255 by `H.17`, CLOSED 2026-08-22 session #256)
-
-- **OWES**: `ebnf.ebnf` `block_comment_content` (595), `predicate_content` (616), `action_content`
-  (623); `semantic_annotation.ebnf` `multiline_string` (171), `block_comment` (571). Each currently
-  compiles to nothing, so each rule is inert on every input.
-- ⭐ **THE FIX SHAPE IS PRIOR ART, NOT DESIGN** — `SV-EXH-PROOF.3.3.4.b.6.2.15` moved the assertion
-  out of the regex and into a **grammar-level `!rule` negative lookahead**, which the PEG engine
-  supports as a zero-width assertion (`simple_identifier_no_scope := trivia /…/ !scope_resolution`).
-- ⛔⛔ **MEASURED 2026-08-22, AND IT RULES OUT THE CHEAPER HALF OF THAT PLAN: A REGEX TERMINAL IS
-  ATOMIC.** The open question was whether a cleverer *pure-regex* formulation could express "match up
-  to but not including `*/`" — the classic C-comment pattern `(?:[^*]|\*+[^*/])*\**` and every lazy
-  variant rely on the engine GIVING BACK characters when the following element fails. It does not:
-
-  ```text
-  probe := /a*/ "ab"        on 'aaab'
-  #   atomic-greedy => /a*/ eats 'aaa', then "ab" sees 'b'      => REJECT
-  #   backtracking  => /a*/ gives back to 'aa', then "ab" matches => ACCEPT
-  INTERPRET-PARSE: … accepted=false furthest_position=0          ⇒ ATOMIC
-  ```
-
-  ⇒ the terminal matches maximally, once, and the sequence then fails outright. **This is precisely
-  why look-around was reached for in the first place** — with no give-back, the terminator test has
-  to happen *inside* the regex, and Rust's `regex` cannot do that. ⇒ **the fix MUST be grammar-level
-  for all five rules; there is no pure-regex spelling to price against it.** ⛔ Do not re-open that
-  question without re-running the probe above — it is one command.
-- ⚠️ **CONSEQUENCES OF GOING GRAMMAR-LEVEL, both of which need adjudicating rather than assuming:**
-  (a) **AST SHAPE** — each rule currently carries a capture-group return annotation (`-> $1`); a
-  char-wise `(!terminator ANY)*` formulation changes what the annotation sees, which is an
-  `ACCEPT-SET-LEDGER:` AST-shape transition, not a neutral edit. (b) **COST** — a per-character
-  negative lookahead is far more work than one regex match, and `ebnf.ebnf` is the meta-grammar.
-  ⭐ **Blast radius is smaller than it first looks and should be confirmed first**: the PRODUCTION
-  reader is the hand-written `rust/src/ebnf_frontend.rs`; `grammars/ebnf.ebnf`'s generated parser is
-  `#[cfg(feature = "ebnf_dual_run")]` and serves the envelope differential (TOOLBOX 1.9) plus
-  cert-coverage. **Verify that by name before relying on it.**
-- ⛔⛔ **BLAST RADIUS: `ebnf.ebnf` IS THE META-GRAMMAR PGEN READS EVERY OTHER GRAMMAR WITH.** Changing
-  it changes what PGEN can read. Required before landing: an `ACCEPT-SET-LEDGER:` adjudication of the
-  transition, a regeneration with an sha asserted against an independently-built arm
-  ([[feedback_verify_sv_parser_regen_mtime]]), the cert tuple re-measured at seeds 0/7/42 for BOTH
-  grammars, and two-sided repro pinning (a `class=defect` row that must start passing, and a
-  `class=invalid` row guarding against over-acceptance).
-- ⚠️ **EXPECT THE `UNKNOWN` COUNTS TO MOVE, AND EXPECT `spf` TO FALL** — this is the measurable
-  before→after, and it is also how much of `H.16`'s 71 this class really owned. Record both.
-- **NOT IN SCOPE**: `systemverilog_lrm_profiled_generated.ebnf:38` — a `derived_artifact` with no
-  registered parser. It carries the pre-fix form its own source was repaired of; adjudicate whether
-  the generator that emits it needs the same fix, or whether the artifact is simply stale.
-
-#### Closure record (`PGEN-GRAMMAR-WELLFORMED-0161`)
-
-- ⭐⭐ **THE FIX SHAPE WAS ALREADY SHIPPING IN THIS REPOSITORY, AND FINDING IT REPLACED THE DESIGN
-  QUESTION WITH A LOOKUP.** `grammars/regex.ebnf` solves this exact problem eleven times — a run
-  scanned to a terminator that a regex cannot express without give-back:
-  `comment_text = ( !")" builtin_any_char )* -> $text`, plus the seven `callout_*_payload` rules and
-  the `class_member_literal` pair. Its own comment states the consumer contract the annotation has to
-  preserve — *"Consumers always read a string `text`"*. ⇒ the idiom is `( !TERMINATOR
-  builtin_any_char )*` and the annotation is **`-> $text`**, not `-> $1`.
-- ⭐ **`$text` IS EXACTLY WHAT `$1` DENOTED, FOR THREE OF THE FIVE.** `block_comment_content`,
-  `predicate_content` and `action_content` each carried a capture group spanning the **whole**
-  pattern, so `$1` == whole match == `$text` (`ast_return_transform.rs:83` — *"the rule's full matched
-  source text as one flat string"*). No shape adjudication was needed for those three; the ledger
-  entry below is about the two where the delimiters sat INSIDE the pattern.
-- ⛔⛔ **AN INLINE `( … )*` DOES NOT BIND `$n` TO A STRING — MEASURED, AND IT IS WHY
-  `multiline_string_content` EXISTS AS A NAMED RULE.** The cheap-looking spelling
-  `multiline_string := '"""' ( !'"""' builtin_any_char )* '"""' -> {…, value: $2}` was tried FIRST and
-  binds `value` to a nested per-iteration ARRAY:
-  ```text
-  "value": [ [[], "a"], [[], "b"], [[], "\""], [[], "c"] ]     # inline group  — SHAPE REGRESSION
-  "value": "ab\"c"                                             # named helper + -> $text — correct
-  ```
-  ⇒ a helper rule carrying `-> $text` is **mandatory**, not stylistic, whenever the old capture group
-  was a proper sub-span of the pattern. This is the consequence `H.17.1` flagged as (a) and it is now
-  a measured constraint rather than a warning.
-- **THE FIVE REPAIRS, and why each spelling was chosen:**
-
-  | grammar | rule | old (never compiled) | new | basis |
-  |---|---|---|---|---|
-  | `ebnf.ebnf` | `block_comment_content` | `/((?:[^*]\|\*(?!\/))*)/` | `( !"*/" builtin_any_char )* -> $text` | **provably identical** to the old pattern, position by position |
-  | `ebnf.ebnf` | `predicate_content` | `/([^?}]*(?:\?(?!})[^?}]*)*)/` | `( /[^?}]/ \| "?" !"}" )* -> $text` | **faithful transcription** — the two arms ARE the pattern's two arms |
-  | `ebnf.ebnf` | `action_content` | `/([^}]*(?:}(?![^{]*$)[^}]*)*)/` | `( /[^{}]/ \| "{" action_content "}" )* -> $text` | the construct the `(?![^{]*$)` heuristic was approximating |
-  | `semantic_annotation.ebnf` | `multiline_string` (+ new `multiline_string_content`) | `/"""([^"]*(?:"(?!"")[^"]*)*?)"""/` | `'"""' multiline_string_content '"""'` + helper `-> $text` | delimiters become terminals; helper preserves the flat body string |
-  | `semantic_annotation.ebnf` | `block_comment` | `"/*" /(?:[^*]\|\*(?!\/))*/ "*/"` | `"/*" ( !"*/" builtin_any_char )* "*/"` | no return annotation — accept set only |
-
-  ⚠️ **`action_content` is the ONE row that is not a transcription, and it is called out rather than
-  buried.** `(?![^{]*$)` needs an end-of-input assertion to transcribe. Both candidates were MEASURED
-  before choosing: a flat `( !"}" builtin_any_char )*` REJECTS `{ a { b } c }`; the balanced form
-  accepts it. The balanced form was taken because the old arm existed *only* to tolerate a nested
-  `}`, so a flat run would have baked in a latent defect. ⭐ The rule is unreachable today (below), so
-  the ledger transition is provably empty either way — the choice costs nothing and pre-empts a bug.
-- **`ACCEPT-SET-LEDGER:` adjudication (the transition this leaf owes).** Every one of the five rules
-  was **inert on every input** before this commit — a terminal that does not compile matches nothing —
-  so the per-rule accept set moves **from ∅**, and no input that parsed before can stop parsing. The
-  transition is `WIDEN` on every axis and `NARROW` on none, **by construction, not by sampling**.
-  - **AST-SHAPE: UNCHANGED for every consumer.** `multiline_string` still emits
-    `{type: "multiline_string", value: <flat string>}`; only the internal element index moved
-    (`$1` → `$2`) because the delimiters became real terminals. Proven at the manifest level: the
-    declared-annotation inventory moved by **exactly two rows out of 152** — `multiline_string`'s
-    `value: $1` → `value: $2`, and the new `multiline_string_content` `-> $text` — with the other
-    **150 byte-identical on all four fields** (`rule`/`branch_index`/`annotation_type`/
-    `normalized_text`). The three `ebnf` rules kept `return_scalar`, `$1` → `$text` being the same
-    span.
-  - **The population bound is stated, not implied**: `stimuli/sv/adjudication_repros/MANIFEST.tsv`
-    pins SystemVerilog reproducers and **no** `ebnf` / `semantic_annotation` witnesses, so TOOLBOX 5.7's
-    replayer has nothing to say here. The evidence above is the annotation inventory (a CLOSED
-    population of all 152 declared annotations) plus the two equivalence runs, not a repro sweep.
-- **MEASURED BEFORE → AFTER** (same binary, seeds 0/7/42, `--count 40`):
-
-  | | `--lint-grammar` `uncompilable_regex_terminals` | rc | `CERTIFICATE-COVERAGE` (seed 0) | `spf` @ 0/7/42 |
-  |---|---|---|---|---|
-  | `ebnf` before | **3** (error) | 1 | `total=144 proof=0 witness=109 UNKNOWN=35` | 13 |
-  | `ebnf` after | **0** | 0 | `total=144 proof=0 witness=111 UNKNOWN=33` | **8 / 11 / 7** |
-  | `semantic_annotation` before | **2** (error) | 1 | `total=114 proof=0 witness=80 UNKNOWN=34` | — |
-  | `semantic_annotation` after | **0** | 0 | `total=115 proof=0 witness=82 UNKNOWN=33` | **2 / 5 / 2** |
-
-- ⭐⭐ **THE `UNKNOWN` MOVEMENT IS ATTRIBUTED BY NAME, NOT BY COUNT — and the attribution is what makes
-  the result honest rather than flattering.** Set-differencing the dumped `UNKNOWN` lists:
-  `ebnf` lost **exactly** `block_comment` + `block_comment_content` and gained **nothing**;
-  `semantic_annotation` lost **exactly** `multiline_string`, and its new helper
-  `multiline_string_content` is CERTIFIED on arrival (which is the `total` +1 and the `witness` +2).
-- ⛔⛔ **THREE OF THE FIVE REPAIRED RULES ARE STILL `UNKNOWN`, AND THAT IS THE CORRECT RESULT, NOT A
-  SHORTFALL.** `ebnf`'s `predicate_content` / `action_content` and `semantic_annotation`'s
-  `block_comment` sit under parents (`semantic_predicate`, `action_block`, and the lexical
-  `block_comment` itself) that **no rule references** — they are inside the cert pass's
-  *"31 UNKNOWN rules have NO reach path from the entry"* set. Repairing a terminal cannot make its
-  rule reachable. ⇒ this leaf could only ever move the **reachable** half, and it moved all of it.
-  The unreachable half is `H.16`'s adjudication and this leaf changes its input, not its verdict.
-  ⛔ `H.16` must still not delete them: they are now live rules with compiling terminals.
-- ⚠️ **A PREDICTION OF MINE WAS REFUTED MID-LEAF, AND THE REFUTATION IS THE FINDING.** Two tracked
-  grammars carry a REAL block comment in grammar text —
-  `systemverilog_2017_lrm_extracted.ebnf:86` and `verilog_2005_lrm_extracted.ebnf:54`, both
-  `block_comment ::= /* comment_text */ ;` — so they looked like live consumers whose envelope
-  numbers should move. **They are not consumers.** In a rule-RHS position `/*…*/` is claimed by the
-  **regex-literal** arm (`/` … `/`), not the comment arm, and a two-arm control reads
-  `accepted=false furthest_position=41` identically before and after — the rejection is the trailing
-  `;`, a dialect terminator `ebnf.ebnf` has never modelled. ⇒ **`block_comment` fires at
-  `grammar_file` top level, between rules, and nowhere else.**
-- ⛔⛔ **AND THE CONTROL THAT PROVED IT FIRST WAS INVALID — CORRECTED IN-LEAF RATHER THAN RELIED ON.**
-  The `systemverilog` envelope row came back RED (`155 > ceiling 151`) and the obvious control —
-  `git stash` the grammar, re-run `ebnf_dual_run_diff` — returned byte-identical divergence sets,
-  which reads as *"not my change"*. **It proves nothing**: `rust/src/bin/ebnf_dual_run_diff.rs:13`
-  `include!`s `env!("PGEN_EBNF_PARSER_PATH_RESOLVED_BIN")`, which `rust/build.rs:101` resolves to
-  **`generated/ebnf.rs`**, so arm 2 never reads `grammars/ebnf.ebnf` at all and stashing the grammar
-  text is a **no-op for that instrument**. ⛔ **CORRECTED 2026-08-22 (`-0162`): the first version of
-  this note quoted the source as `include!("../../../generated/ebnf.rs")` at line 12. It says no such
-  thing — the path is spelled in the BUILD SCRIPT, not at the include site. The correction makes the
-  trap SHARPER, not milder: grepping the binary's own source for the artifact it reads returns
-  nothing to grep.** Proven by an oracle I did not build — remove the file and rustc names the
-  dependency: `error: environment variable PGEN_EBNF_PARSER_PATH_RESOLVED_BIN not defined at compile
-  time --> src/bin/ebnf_dual_run_diff.rs:13:14` + `error[E0432]: unresolved import
-  generated_ebnf::EbnfParser`. ⭐ A control that cannot fail is not a control.
-  The real one regenerates `generated/ebnf.rs` from the pre-fix grammar and rebuilds the differ:
-  ```text
-  pre-fix  generated/ebnf.rs 3028814854e0…  ->  systemverilog divergence_total = 155
-  post-fix generated/ebnf.rs 5cb5fc473cfd…  ->  systemverilog divergence_total = 155   (SAME 155 ROWS)
-  ```
-  ⇒ `155 > 151` is **PRE-EXISTING at HEAD and unrecorded**. Routed to a new leaf (below); this leaf
-  moves **zero** SV divergences. ⭐ The pre-fix regeneration also reproduced the original tracked sha
-  `3028814854e0…` **byte-for-byte**, which is an unplanned determinism check on the generator.
-- ⭐ **`ebnf` ITSELF STAYS ENVELOPE-EQUIVALENT — the meta-grammar blast radius is measured, not
-  assumed.** `ebnf_frontend_dual_run_gate`: `932 tokens / 100.00% agree / 0 divergences`, at its
-  declared ceiling of `0`. (The token count rises `913 → 932` because the three repaired bodies are
-  now several tokens each instead of one regex literal; agreement stays total.) All 14 grammars still
-  `rust_parse pass` + `raw_ast exported`; every other row sits at its declared ceiling unchanged.
-
-- ⛔⛔ **ROUTED OUT → `CI-PARITY-GATE-ROT.43` — THE CLIPPY-ON-RUST-CHANGE DETECTOR CANNOT SEE A
-  GENERATED-PARSER CHANGE, BY CONSTRUCTION.** `COMMIT.md` step 2 says *"run the clippy flow when
-  Rust/**generated Rust** files are amended"*. On this commit — which regenerates two parsers — the
-  flow printed **`No Rust/generated Rust changes detected; skipping clippy flow.`**
-  `rust/scripts/clippy_on_rust_change.sh:46-63` builds its change list from
-  `git diff --name-only` + `--cached` + `git ls-files --others --exclude-standard`, then tests each
-  path against a pattern list that **includes `generated/*.rs`**. ⭐ **That pattern can never match**:
-  `generated/` is gitignored (`.gitignore:24`), and `ls-files --others --exclude-standard` excludes
-  ignored paths — measured, `git ls-files --others --exclude-standard | grep -c '^generated/'` = **0**.
-  ⇒ a dead branch that reads as coverage. ⚠️ **HONEST BOUND, tightened `-0162` after the first version
-  of this note overstated it as "by construction":** the pattern is dead in every workflow this
-  repository SANCTIONS — `COMMIT.md` says *"never `git add generated/…`"* — but `git add -f` would
-  stage the path and the pattern would then match. It is unreachable-by-policy, not
-  unreachable-by-impossibility. ⚠️ There is also a `FORCE_RUN=1` override
-  (`clippy_on_rust_change.sh:43`) that bypasses detection entirely; nothing in the commit workflow
-  sets it. ⚠️ **And the second half is worse**: `grammars/*.ebnf` is
-  not in the pattern list at all, so a **pure grammar change — the very thing that regenerates a
-  parser — skips the clippy flow entirely**, which is exactly this commit's shape.
-  ⭐ **ROUTING EVIDENCE (does it reproduce outside this family?): YES, it is family-independent.**
-  The detector is keyed on paths, not on grammars; the same skip happens for any of the ten families,
-  and `generated/` is gitignored repo-wide rather than per-family. ⇒ it belongs in the CI/flow tree,
-  not here. ⭐ **Not a blocker for this leaf, and not waved through either**: the correctness floor was
-  held by running the explicit gate by hand —
-  `make -C rust generated_clippy_correctness_gate` → `findings: total=0 (expected 0)`,
-  `in generated/=0`, over **10 required + 1 optional** artifacts including both parsers regenerated
-  here. ⛔ The point is that nothing would have made me run it.
-
-#### Acceptance Checklist (enforced)
-
-- [x] **REPRODUCE / ISSUE** — `ast_pipeline grammars/ebnf.ebnf --lint-grammar` →
-  `uncompilable_regex_terminals=3 (error)`, exit 1; `grammars/semantic_annotation.ebnf` → `2`, exit 1.
-  `--interpret-parse` on `/* x */` against `ebnf`: `accepted=false furthest_position=2`. Both
-  `semantic_annotation` rules reject at their own entry rule with the interpreter naming the cause
-  verbatim — `"look-around, including look-ahead and look-behind, is not supported"`.
-- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: a regex terminal carrying look-around cannot compile under
-  Rust's `regex`, so the rule is **inert on every input**; and a regex terminal is **ATOMIC** (no
-  give-back), so the terminator test cannot be moved inside the pattern either. **Tool signature —
-  re-derived in THIS slice, not inherited:** `ast_pipeline grammars/ebnf.ebnf --interpret-parse` on
-  `/* x */` prints `accepted=false furthest_position=2`, and the same driver at
-  `--interpret-entry-rule multiline_string` prints
-  `accepted=false furthest_position=0 error="… invalid regex pattern … look-around, including
-  look-ahead and look-behind, is not supported"` — the engine naming its own cause. The atomicity
-  half is its own measurement: `probe := /a*/ "ab"` on `aaab` gives
-  `accepted=false furthest_position=0`, where a backtracking terminal would have ACCEPTED.
-  Confirmed statically from a disjoint path by `--lint-grammar`
-  (`uncompilable_regex_terminals=3 (error)` / `=2 (error)`, exit 1 both).
-  WHERE: `grammars/ebnf.ebnf:595`, `:616`, `:623`; `grammars/semantic_annotation.ebnf:171`, `:571` —
-  the five live rows of `-0158`'s six-row census, re-confirmed by `-0159`'s independent lint census.
-- **promotion: PROMOTED** — [`docs/knowledge/a-control-that-cannot-fail-is-not-a-control.md`](../knowledge/a-control-that-cannot-fail-is-not-a-control.md)
-  (the `git stash` two-arm control that was a no-op because the instrument reads a *generated*
-  artifact, not the source it was stashing). The other four `DEVELOPMENT_NOTES.md` entries for this
-  slice are slice-specific or already-recorded elsewhere.
-- [x] **ADDRESSED (verified)** — the lint error class this leaf's sibling built reads **0 / exit 0**
-  for both grammars, and all five rules now parse: `ebnf` `/* x */` and `/** doc */` accept;
-  `semantic_annotation` `"""hi"""` and `/* x */` accept at their entry rules. The cert tuple moves as
-  tabled above with the `UNKNOWN` delta attributed **by rule name**. ⭐ **Verified on the GENERATED
-  parser, not only the interpreter** — `parse_harness_equivalence` measurement: `ebnf CLEAN
-  samples=79 agree=79 diverge=0`, `semantic_annotation CLEAN samples=134 agree=134 diverge=0`, so the
-  new `!`-assertion and `builtin_any_char` constructs codegen byte-identically to the interpreter that
-  measured them.
-- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh`: **ALL 25 PASS**.
-  `generated_reproducibility_gate` tier 2: **all 11 artifacts re-derive byte-identically from HEAD**
-  (`scratch` included), baseline re-recorded. `cargo test --features "generated_parsers ebnf_dual_run"
-  --lib`: **1118 passed / 1 failed**, the single failure being
-  `…semantic_usage_tests::unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names`,
-  **pre-existing** and recorded as such in `ENGINE-UNIVERSAL-SERVICES.md` and
-  `CI-PARITY-GATE-ROT.md`. ⛔ The run that first came back **2 failed** was NOT waved through: the
-  second failure was `ast_shape_contract::…semantic_annotation…`, it was **mine**, and it was fixed
-  rather than rebaselined blind — the manifest's declared-annotation inventory was re-verified
-  row-by-row against `generated/semantic_annotation_return_annotations.json` and found to differ in
-  **exactly the two intended rows**, which is the evidence that licensed the edit.
-  ⚠️ `ebnf_frontend_dual_run_gate` is RED on `systemverilog` (`155 > 151`) — **pre-existing**, proven
-  by the two-arm control above, routed to `H.20`, and NOT introduced here.
-  ⛔ Regeneration integrity per [[feedback_verify_sv_parser_regen_mtime]]: `generated/ebnf.rs` was
-  built **two independent ways** (the `make regex_parser_bootstrap` path and the raw Step-B/Step-C
-  commands into a scratch path) and the two are **byte-identical** —
-  `5cb5fc473cfd35ded5e4939a01f9617d7bdbf0f0ed2d96fda3553ba4f39342fc` both times; the `-o` path is not
-  embedded, so no normalisation was needed. `make`'s exit 0 was never the evidence.
-- [x] **LOCKSTEP** — `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`, this
-  tree's frontier, `H.16`'s leaf (its input moved), and the book's grammar-wellformedness chapter.
-  `rust/test_data/ast_shape_contract/semantic_annotation_v1.json` updated **in this same commit** as
-  the regeneration, which is the acknowledgement that module's header requires.
-  `done_bar_family_register_v0.json` deliberately unchanged — no closure leg moved.
-
-### `H.17.2` — **MAKE AN UNCOMPILABLE REGEX TERMINAL IMPOSSIBLE TO LAND: a `--lint-grammar` error class** (**`done`**, `PGEN-GRAMMAR-WELLFORMED-0159`, CODE / engine-universal — opened AND closed 2026-08-22 session #255 by `H.17`)
-
-- **WHY**: the defect recurred because **nothing checks it**. `--lint-grammar` reports **0** mentions
-  of look-around or invalid-regex (measured), and the runtime signal is emitted at `[PGEN][LOW]`
-  through the speculative-failure channel — indistinguishable from routine backtracking, and
-  invisible at default verbosity. SystemVerilog was fixed in 2026; five rules in two other grammars
-  were never swept, and a sixth sits in a derived artifact.
-- ⭐ **IT BELONGS IN THE LINTER BY ITS OWN CRITERION**: "this regex terminal does not compile" is
-  **static, unconditional and provable from the grammar alone** — precisely the shape of
-  `--lint-grammar`'s existing `undefined_references` / `non_terminating` **error** classes (both of
-  which describe a rule that can never match). It needs no parse, no input and no generated parser:
-  compile every regex terminal at lint time and report the ones that fail, with the crate's own
-  message.
-- ⛔ **IT WILL BE RED AT HEAD ON 6 KNOWN ROWS**, so sequence it AFTER `H.17.1` or land it with the
-  measured population declared — never weaken the verdict to make it green (`FLOW-INTEGRITY`: no
-  assertion may require a defect to pass).
-- ⚠️ **AND CONSIDER THE SEVERITY HALF SEPARATELY**: even with the lint in place, a regex that fails
-  to compile at *parse* time reports at `[PGEN][LOW]` through a channel designed to be swallowed.
-  That is a `DIAG-SEVERITY` question ("severity never masked by verbosity") the registered doctrine
-  does not currently cover, and it is what made this invisible for as long as it was.
-
-#### ✅ CLOSED — `uncompilable_regex_terminals` is a hard lint error class
-
-- ⭐⭐ **THE CLASS CHECKS "DOES IT COMPILE", NOT "DOES IT CONTAIN `(?`" — and that distinction is the
-  design.** A spelling heuristic would have been both **unsound** (it condemns `(?i)`, `(?s:.)`,
-  `(?:…)` — all valid and used across the shipped grammars) and **incomplete** (it misses
-  backreferences, which Rust's `regex` also rejects). Compiling the terminal is the only formulation
-  that is exactly as strict as the runtime. Pinned in both directions by
-  `uncompilable_regex_class_is_not_a_lookaround_heuristic`, which asserts the flagged set is
-  **exactly** `["backreference", "lookbehind"]` out of six candidates.
-- ⛔ **FAITHFULNESS: IT COMPILES THE PATTERN THE WAY THE RUNTIME DOES.** `ast_based_generator` builds
-  `\A(?:{pattern})`, so the detector does too. A bare `Regex::new(pattern)` would be a
-  *re-implementation of the thing being checked* and could disagree with the parser in either
-  direction — the same class of error as a build-freshness check that re-implements `make`'s
-  timestamp comparison. Pinned by `uncompilable_regex_detector_uses_the_runtimes_own_wrapping`.
-- ⭐ **IT RUNS ON THE UNFILTERED GRAMMAR**, like the other static error classes: a terminal that
-  cannot compile is broken under every profile, so profile filtering must not be able to hide one.
-- ⭐⭐ **IT INDEPENDENTLY REPRODUCED `H.17`'s CENSUS FROM A DISJOINT CODE PATH — leg 2, earned rather
-  than asserted.** `H.17` counted live uses by *grepping the grammar text*; this counts them by
-  *actually compiling every terminal*. Over the closed population of 12 authored grammars the two
-  instruments agree exactly: `ebnf=3`, `semantic_annotation=2`, **all ten others `=0`**. ⭐ That also
-  independently confirms the two adjudications `H.17` made by hand — `regex.ebnf` reads **0** (its 25
-  look-around tokens really are string literals, not uses) and `systemverilog` reads **0** (its
-  repair really did take).
-
-#### Acceptance Checklist (enforced)
-
-- [x] **REPRODUCE / ISSUE** — before this leaf, `./rust/target/debug/ast_pipeline grammars/ebnf.ebnf
-  --lint-grammar` printed **0** mentions of look-around or invalid-regex and exited **0**, on a
-  grammar with three rules that can never match — while the same defect class had already been found
-  and fixed once in `systemverilog.ebnf`.
-- [x] **ROOT CAUSE (WHY + WHERE)** — the two instruments that localised it are `--lint-grammar`
-  (which printed a full headline with **no class for this defect** and exited `0` on a grammar with
-  three never-matching rules) and the debug trace. WHY: the failure was only ever reported at *parse*
-  time, and `PGEN_TRACE_VERBOSITY=debug ./rust/target/debug/parseability_probe --parse ebnf <file>
-  --trace-rules block_comment_content` shows the form it takes — `❌ Exiting rule 'block_comment_content' with error: … "Invalid regex pattern
-  '((?:[^*]|\*(?!\/))*)': … look-around … not supported"` — emitted at `[PGEN][LOW]` on the
-  speculative-parse failure path, which a backtracking engine exists to swallow (**0** occurrences at
-  default verbosity). A *static, unconditional* fact was travelling the *transient, input-dependent*
-  channel, so no reader could separate them. WHERE: no detector existed —
-  `rust/src/ast_pipeline/grammar_wellformedness.rs` had `detect_undefined_references` (the structural
-  DUAL: also "this rule can never match") but nothing for terminals, and `rust/src/main.rs`'s
-  `run_grammar_lint` therefore had no class to report or gate on.
-- [x] **FIX** — fix-hierarchy tier **declarative/static** (the highest available: a lint class
-  decidable from the grammar text alone — no input, no parse, no generated parser).
-  `detect_uncompilable_regex_terminals` + `WellformednessIssue::UncompilableRegexTerminal`, wired
-  into `run_grammar_lint`'s headline, findings print and **hard-error exit set**, on the same footing
-  as `undefined_references`. Why no lower tier: a grammar edit fixes six instances and stops nothing;
-  this is the layer that makes a seventh un-landable.
-- [x] **ADDRESSED (verified)** — before→after on the symptom: `--lint-grammar` on `grammars/ebnf.ebnf`
-  goes **`0` mentions / exit `0` → `uncompilable_regex_terminals=3` / exit `1`**, naming each rule,
-  its `node_path`, its pattern and the crate's own reason (e.g. *"rule 'block_comment_content' has a
-  regex terminal at root that does NOT COMPILE … Pattern: /((?:[^*]|\*(?!\/))*)/ — look-around,
-  including look-ahead and look-behind, is not supported"*), and exiting `Error: grammar 'ebnf' has 3
-  uncompilable regex terminal(s)`. `semantic_annotation` `0 → 2`. ⛔ **Two-sided control, measured**:
-  `(?i)[a-z]+`, `(?s:.)*`, `[[:alpha:]]+` stay **GREEN rc 0**; `(a)\1` and `a(?<=b)` go **RED rc 1**.
-  ⚠️ My first control loop reported those two as `rc=0` and that reading was **wrong** — `$?` was
-  clobbered by a `$(sed …)` substitution evaluated inside the same `printf`; re-measured with the rc
-  captured before any other command runs. A control that measures the wrong thing is worse than none.
-- [x] **NO REGRESSION** — a lint class runs no parse, and that was measured rather than argued: cert
-  tuples at seed 0 are **identical to `-0156`/`-0157`** for all ten families (`json` `9/0/9/0`,
-  `regex` `269/9/260/0`, `vhdl` `225/0/225/0`, `systemverilog_preprocessor` `74/0/74/0`,
-  `rtl_frontend` `169/1/168/0`, `return_annotation` `35/0/33/2`, `semantic_annotation`
-  `114/0/80/34`, `ebnf` `144/0/109/35`), the first five `fully_certified=true` with `spf=0`. ⭐ **The
-  one gate that reads a `--lint-grammar` exit code is `verilog_2005_conformance_gate`, and it was
-  checked by name**: its contract declares `grammar_file = grammars/systemverilog.ebnf` and
-  `lint.expected_exit_code = 0`, and SV reads `uncompilable_regex_terminals=0` ⇒ **its rc is
-  unchanged**. `cargo test --lib --features "generated_parsers ebnf_dual_run"`: **1118 passed / 1 failed /
-  28 ignored — exactly `-0157`'s 1114 plus this leaf's 4 new tests**, and the one failure is the same
-  pre-existing `unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names` owned by
-  `CI-PARITY-GATE-ROT.21` class (2), proven pre-existing this session by a `git stash` two-arm control
-  ⇒ **this change moved no test**. `mdbook_docs_gate` green (10/10 per-parser book gates); clippy flow
-  green (`clippy_source_all_targets` ok,
-  `GENERATED-CLIPPY-CORRECTNESS: ✅ POLICY-ONLY PASS`, generated stage pass). ZERO grammar bytes,
-  ZERO codegen bytes, ZERO generated bytes.
-  ⭐⭐ **AND "ZERO CODEGEN BYTES" IS MEASURED, NOT REASONED.** `GENERATED-REPRODUCIBILITY` tier 1 went
-  RED **by construction** — `rust/src/main.rs` sits inside the 28-file emission-source digest, and
-  that tier deliberately cannot tell WHICH file moved. Tier 2 re-derived **all 11 artifacts from
-  HEAD** and every one **re-derives byte-identically (0 sites)**: `return_annotation`,
-  `semantic_annotation`, `json`, `regex`, `systemverilog`, `systemverilog_preprocessor`, `vhdl`,
-  `rtl_const_expr`, `rtl_frontend`, `scratch`, `ebnf`. The rebaselined
-  `generated_reproducibility_v0.json` moved **exactly two fields** — `verified_at_commit` and
-  `emission_sha` — with **no artifact hash changed**, which is the signature of a source-digest move
-  with identical output. ⛔ Re-derived by the tracked target, never hand-edited.
-- [x] **LOCKSTEP** — `H.17`'s probe **arm 4 INVERTED in the same commit**: it recorded *"the static
-  gate is BLIND (0)"*, which this leaf falsified, so it now watches the counts from the other side
-  (`ebnf=3`, `semantic_annotation=2`, `systemverilog=0` as an accepting control) and will fire if the
-  count falls to 0 without `H.17.1` landing — i.e. if the **check** is weakened rather than the
-  grammar fixed. Plus `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`, the
-  frontier, and the book's grammar-wellformedness chapter. `done_bar_family_register_v0.json`
-  unchanged — no closure leg moved.
-
-### `H.19` — **NOTHING WATCHES "EVERY FAMILY IS CERT-COVERAGE WIRED", SO `H.15`'S CLAIM ROTS** (`todo`, opened 2026-08-22 session #255 by `H.15`)
-
-- **WHY — this is leg 3 of the claim-verification bar, named rather than skipped**
-  (`docs/CLAIM_VERIFICATION.md`; director standing directive 2026-08-15, *"DURABILITY — producer
-  TRACKED, claim WATCHED. Leg 3 is the one that gets skipped."*). `H.15` established
-  `CERT-WIRED-CENSUS: register_families=10 wired=10 unwired=0` two code-disjoint ways. **No gate
-  asserts it.** The next family added to `done_bar_family_register_v0.json` will silently be unwired,
-  and the failure mode is the *exact* one `H.15` was opened to fix — a family outside the instrument,
-  reported by nothing.
-- ⭐ **THE FOUNDING DEFECT IS ALREADY PROVEN**, which is what a new doctrine needs: for three families
-  the condition was FALSE for the whole life of Phase H, the frontier row said *"all SHIPPED grammars
-  wired"*, and the discrepancy was found by hand, once, by accident.
-- **SHAPE**: a `scripts/check_*.sh` in the `DOCTRINE_ENFORCEMENT.md` registry (E2→E3→E4) that joins
-  `done_bar_family_register_v0.json`'s `families` against `GENERATED_PARSER_REGISTRY`'s
-  `parse_and_cover` field and fails naming any unwired family. It needs **no cargo invocation and no
-  parser run** (both inputs are tracked text), so it belongs in the cheap always-on tier, not the
-  heavy gate tier. Ship `--self-test` proving the refusal fires in both directions per the
-  `PARSER-BOOK-CURRENCY` precedent (`-0268`).
-- ⚠️ **BOUND**: assert **WIRED**, not `UNKNOWN=0`. The clean/`UNKNOWN=0` conjunct is `H.16`'s and a
-  gate that fused them would be red for reasons this doctrine does not own.
-
-
-
-### `H.20` — **THE ENVELOPE GATE IS RED AT HEAD ON `systemverilog` (`155 > ceiling 151`), AND NOTHING NOTICED** (`todo`, opened 2026-08-22 session #256 by `H.17.1`)
-
-- **WHY**: `make -C rust ebnf_frontend_dual_run_gate` fails at HEAD — `envelope ratchet: envelope
-  divergences REGRESSED: 155 > ceiling 151`. The ceiling was last moved by `SV-CORPUS-GRAD.13c.2i`
-  (150 → 151, with the extra row NAMED rather than bumped). Four more have appeared since and the
-  gate has been RED through them; `MEMORY.md`'s *"ZERO TRACKED SV GATES ARE RED AT HEAD"* line does
-  not cover this gate, so the red was invisible to the resume pointer as well.
-- ⛔⛔ **ROUTING EVIDENCE — it is NOT `H.17.1`, and the FIRST control that said so was invalid.**
-  The obvious control (`git stash` `grammars/ebnf.ebnf`, re-run `ebnf_dual_run_diff`) returns
-  byte-identical divergence sets, but proves nothing: `rust/src/bin/ebnf_dual_run_diff.rs:13`
-  `include!`s `env!("PGEN_EBNF_PARSER_PATH_RESOLVED_BIN")`, which `rust/build.rs:101` resolves to
-  **`generated/ebnf.rs`**, so arm 2 never reads the grammar text and stashing it is a **no-op for
-  that instrument**. ⛔ The include site does NOT name the file (corrected `-0162`); rustc does, if
-  you remove it: env var `not defined at compile time` at `:13` + `error[E0432]`. The VALID control regenerates `generated/ebnf.rs` from the pre-fix
-  grammar and rebuilds the differ:
-  ```text
-  pre-fix  generated/ebnf.rs 3028814854e0…  ->  systemverilog divergence_total = 155
-  post-fix generated/ebnf.rs 5cb5fc473cfd…  ->  systemverilog divergence_total = 155
-  set-diff of the two 155-row dumps (PGEN_ENVELOPE_DUMP_ALL=1): EMPTY both directions
-  ```
-  ⇒ **pre-existing**, and `H.17.1` moves zero SV divergences. ⭐ Does it reproduce outside SV? **No** —
-  every other row of the 14 sits at its declared ceiling, and `ebnf` itself is ENVELOPE-EQUIVALENT
-  (932/932, ceiling 0). It is one grammar's row, not a differ-wide drift.
-- **FIRST STEP (do not skip to the ceiling)**: the 155 rows are dumped at
-  `rust/target/h1711/sv_div_A.txt` (regenerate with `PGEN_ENVELOPE_DUMP_ALL=1`, TOOLBOX 1.9). Name the
-  4 new rows and classify each as (a) another instance of the accepted `semantic_annotation_inline` vs
-  `semantic_annotation` arm-2 blind spot — the class `.13c.2i` already adjudicated, whose svpp
-  population is 37 — or (b) a genuine new fidelity loss. ⛔ **The ceiling is only raised for (a), and
-  only with the row NAMED**, which is the discipline `.13c.2i` set and the reason its comment exists.
-- ⚠️ **WHY THIS TREE**: the finding is about what the `ebnf` meta-parser makes of another grammar's
-  text, which is this tree's subject. The alternative homes were considered and are recorded so the
-  choice is reviewable: `LANG-CAPABILITY-AUDIT.10.6` owns the differ itself (but the differ is
-  behaving correctly — it is reporting), and `SV-CORPUS-GRAD.13c.2i` owns the ceiling's last
-  adjudication (the natural home if step 1 classifies the rows as (a)). ⇒ **re-home to
-  `SV-CORPUS-GRAD` if and when step 1 says (a).**
-- ⭐ **DURABILITY (leg 3) IS PART OF THE FIX, NOT AN EXTRA**: the row drifted for an unknown number of
-  commits with a gate that DOES check it, because nothing RUNS that gate — `ebnf_frontend_dual_run_gate`
-  is operator-invoked, like ~120 other `make` targets. Whatever step 1 concludes, this leaf must also
-  say what would have caught it on commit N+1 instead of on a manual run.
+1. **THE 9 LR RESIDUE — genuinely new, owned by nobody else.** `expression_return` +3,
+   `accessor_base`, `union_type`/`intersection_type`/`array_type`/`optional_type`. These are wired by
+   their grammar and orphaned by PGEN's OWN elimination pass, so they are **not** capability gaps and
+   must never be routed to `LANG-CAPABILITY-AUDIT` — same class `-0271` adjudicated for
+   `verilog_2005`. They are `proof`-promotion candidates, not grammar debt.
+2. **THE PROOF-PROMOTION GATE.** `VERILOG-2005-PROFILE.6.7` built P1/P2 promotion and `main.rs:3380`
+   gates it on `profile.is_some()`; all three families are `profiles=[]`, so it never runs and they
+   read `proof=0`. The gate's stated reason is about the ENTRY UNIVERSE, which `main.rs:3821` builds
+   from the entry plus every `--cert-union-config` independently of any profile ⇒ decoupling them is
+   the **engine-universal, agnostic** change. ⛔ Promotion must FOLLOW adjudication: a rule that
+   SHOULD be wired must not be quietly proved dead.
+3. **LEG 3 FOR `H.16.1`** — nothing re-runs the island census, so the 9/55 split rots the moment a
+   grammar gains a rule. ⚠️ Bound it to what is genuinely unwatched: `LANG-CAPABILITY-AUDIT.1`'s 27
+   are already a tracked population, so the watch this owes is over the **LR-residue delta**, which is
+   the half no existing instrument computes.
 
 ## Current Frontier
+
+> ⛔ **SEQUENCED, NOT PARKED (director, 2026-08-22: *"do not simply park them"*).** Every `todo` below
+> carries an ORDER, and ordering already-approved work is execution, not a director call
+> ([[feedback_answer_your_own_technical_questions]]). The order is: **1** `H.16.6a` (a live accept-set
+> defect — a real input the grammar licenses is rejected) → **2** `H.16.4a` (the last unfixed arm of
+> the layout-guard family, and it decides `whitespace`'s classification) → **3** `H.16.2b` (the same
+> family, prophylactic, repo-wide radius so it must not ride along inside another slice) → **4**
+> `H.16.5` (the 9 LR residue + the `profile.is_some()` proof-promotion gate) → **5** `H.20` (a RED
+> gate at HEAD) → **6** `H.19` (leg 3 for `H.15`). ⭐ The 55 source orphans are NOT in this queue:
+> they are already owned by `LANG-CAPABILITY-AUDIT.1`/`.4`/`.6` with per-cluster dispositions, and
+> `H.16.5`'s retraction records why re-opening them here would be duplication.
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | — | `GRAMMAR-WELLFORMED.H.16.2` (a terminal whose PREFIX is a comment introducer is eaten as a comment) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0165`, CODE / engine-universal codegen) | ✅ `set_value` / `set_element` REJECT→PASS on THREE oracles; cert `115/0/82/33 spf=2` → **`115/0/84/31 spf=0`**, `UNKNOWN=31` at seeds 0/7/42, delta ATTRIBUTED BY NAME (exactly those two left; nothing newly UNKNOWN). Root cause: `node_is_unbounded_content` scored the `/\s*/` SEPARATOR as a comment content TAIL, dropping the `#` claim — the same spelling-vs-property error `H.17.2` outlawed one layer up. Blast radius MEASURED by the pinned suppression matrix: **exactly one row moved**, nine unchanged; `json_parser.rs` regenerates BYTE-IDENTICAL through the changed annotation backend |
 | — | `GRAMMAR-WELLFORMED.H.16.6` (`=>` is both the map arrow and the implication operator) | **`diagnosed`** (`PGEN-GRAMMAR-WELLFORMED-0168`, doc+artifact tier) | ✅ ROOT-CAUSED to an EXACT BICONDITIONAL: **a map entry parses iff its `key => value` is NOT a valid `implication_expr`** — two complementary 4-row tables prove it. `map_entry`'s KEY consumes the arrow (`annotation_value … consumed 6 bytes: '1 => 2'` → `Terminal '=>' failed at position 14`). ⛔ `--lint-grammar` `ordered_choice_shadowing=0`, and `map_entry` is WITNESSED ⇒ **a witnessed rule can still reject inputs its grammar licenses**. Fix is a language-design call → `H.16.6a` |
-| 2 | `GRAMMAR-WELLFORMED.H.16.6a` (pick and measure the disambiguation of `=>`) | **`todo`** (opened 2026-08-22 by `H.16.6`) | Three priced options, none WIDEN-only, so the `-0161`/`H.16.2` "widen-from-∅" argument does NOT transfer. Measure all three on a SCRATCH grammar copy via `--interpret-parse` (no regeneration), each with an `ACCEPT-SET-LEDGER:` entry |
+| 1 | `GRAMMAR-WELLFORMED.H.16.6a` (pick and measure the disambiguation of `=>`) | **`todo`** (opened 2026-08-22 by `H.16.6`) | Three priced options, none WIDEN-only, so the `-0161`/`H.16.2` "widen-from-∅" argument does NOT transfer. Measure all three on a SCRATCH grammar copy via `--interpret-parse` (no regeneration), each with an `ACCEPT-SET-LEDGER:` entry |
 | 3 | `GRAMMAR-WELLFORMED.H.16.2b` (the DYNAMIC comment-skip guard is still an exact-equality allowlist) | **`todo`** (opened 2026-08-22 by `H.16.2`) | Prophylactic hardening of a proven class, deliberately NOT ridden along inside `H.16.2`: the prefix test edits the emitted layout skipper of EVERY arm-emitting parser (repo-wide rebaseline) versus `H.16.2`'s measured one-artifact radius. No live victim known. Also owes the 10 unprobed sites of the 11-site class census |
 | — | `GRAMMAR-WELLFORMED.H.16.3` (the generator shadows any rule named `epsilon` with `""`) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0166`, CODE / engine-universal stimuli generator) | ✅ A DEFINED rule now wins; the builtin is gated on `!grammar_tree.contains_key("epsilon")`, preserving both existing callers exactly (their grammars leave `epsilon` UNDEFINED). `ebnf` cert `144/0/111/33` → **`144/0/112/32`** with `spf` falling at EVERY seed (**8→4 · 11→5 · 7→3**), both arms measured on the same binary path; delta ATTRIBUTED BY NAME (exactly `epsilon` left, nothing newly UNKNOWN). ⭐ ZERO generated-parser bytes move — the rebaselined reproducibility file shows every `parser_sha` unchanged across all 11 artifacts |
 | — | `GRAMMAR-WELLFORMED.H.16.4` (`ebnf`'s `whitespace` is layout-skipped before `grammar_file` sees it) | **`done`** — ADJUDICATED (`PGEN-GRAMMAR-WELLFORMED-0167`, doc+artifact tier) | ✅ Root cause is an ASYMMETRY in the emitted layout skipper: every COMMENT arm is gated on `regex_token_matches_at_cursor(pattern)`, the whitespace skip is not — which is why `comment` is witnessed and `whitespace`, in the SAME alternation, is not. ⛔⛔ The declarative tier EXISTS (`@whitespace_sensitive`, and `systemverilog_preprocessor.ebnf:23` ships the exact shape) and is **REFUTED by a closed facet matrix**: all four settings break `grammars/json.ebnf`, and only two of them even witness the rule. Named a **layout-shadowed** residual; the capability is `H.16.4a` |
 | 2 | `GRAMMAR-WELLFORMED.H.16.4a` (`@whitespace_sensitive` is grammar-wide; the property needed is per-terminal) | **`todo`** (opened 2026-08-22 by `H.16.4`) | The guard shape is already in the engine one arm over, and `H.16.2`'s `hir_matches_only_whitespace` is exactly the predicate that makes it safe. Decides a CLASSIFICATION, not just a rule: guard lands ⇒ `ebnf` `UNKNOWN=31`; guard refused ⇒ `whitespace` joins `H.16.5`'s `proof`-promotion population |
-| 3 | `GRAMMAR-WELLFORMED.H.16.5` (55 source orphans + 9 LR residue; proof-promotion is gated off for profile-less grammars) | **`todo`** (opened 2026-08-22 by `H.16.1`) | The certifying mechanism EXISTS (`VERILOG-2005-PROFILE.6.7`) and cannot reach them: `main.rs:3380` gates P1/P2 promotion on `profile.is_some()`, and all three families are `profiles=[]`. ⛔ Carries a DIRECTOR-FACING call — `ebnf.ebnf` labels 13 island roots `(extension)` in its own comments, so wiring them is a LANGUAGE EXPANSION. Also carries leg 3 for `H.16.1` |
+| 4 | `GRAMMAR-WELLFORMED.H.16.5` (the 9 LR residue + the proof-promotion gate) | **`todo`** — RE-SCOPED by `-0170` | ⛔ **RETRACTED its own escalation**: the 55 source orphans were ALREADY owned by `LANG-CAPABILITY-AUDIT.1`/`.4`/`.6` (27 productions, 7 horizon-mapped clusters, per-cluster dispositions) and the capability is ALREADY greenlit by [[feedback_capability_work_is_greenlit_by_standing_authorization]] — only the parametric NOTATION is open, and `[ … ]` is taken by the optional-element form. What remains genuinely unowned: the **9 LR residue** (PGEN's own, never a capability gap) and the `profile.is_some()` gate on proof promotion |
 | — | `GRAMMAR-WELLFORMED.H.16.1` (adjudicate the 68) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0164`, doc+artifact tier) | ✅ **68 = 9 LR-residue + 55 source-orphans + 4 root-caused inert rules**, in **31 islands**, partition CLOSED (zero rules unattributed). ⛔ `--lint-grammar` could never have adjudicated this — it reads `unreachable_rules=0` on all three BY CONSTRUCTION. New reader: `docs/tasks/artifacts/grammar_wellformed/residual_island_census/probe.py`, proven to go RED three ways. Residual-rules-with-no-owning-leaf **68 → 0** |
 | — | `GRAMMAR-WELLFORMED.H.16` (roll `ebnf` / `return_annotation` / `semantic_annotation` to `UNKNOWN=0`) | **`in_progress`** (adjudicated by `H.16.1`; work routed to `H.16.2`–`H.16.5`) | The **clean** conjunct, and now the only engineering half of the `SVPP-EXPANSION` gate left. `H.15` made the three measurable and they read `UNKNOWN` **35 / 2 / 34** = **71**, of which **64 are dead-rule candidates** (no reach path from the entry) ⇒ a `--lint-grammar` adjudication lane, not a witness-generation lane. Lanes cost 0.06–0.38 s and are seed-invariant. |
 | — | `GRAMMAR-WELLFORMED.H.17.1` (repair the 5 live regex-look-around rules) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0161`, CODE / grammar + codegen) | ✅ All five repaired; `uncompilable_regex_terminals` `ebnf` 3→**0**, `semantic_annotation` 2→**0**, both exit 1→**0**. `/* x */` now parses. Cert: `ebnf` `144/0/109/35 → 144/0/111/33` (`spf` 13→8), `semantic_annotation` `114/0/80/34 → 115/0/82/33`. ⭐ `UNKNOWN` delta attributed **by rule name** — exactly `block_comment`+`block_comment_content` and `multiline_string`; **nothing** newly UNKNOWN. ⛔ 3 of the 5 stay UNKNOWN **correctly** — their parents are unreferenced, and a terminal repair cannot confer reachability. Generated parsers verified byte-identical to the interpreter (79/79, 134/134). Opened `H.20`. |
-| 1 | `GRAMMAR-WELLFORMED.H.20` (the envelope gate is RED at HEAD on `systemverilog`, `155 > 151`) | **`todo`** (opened 2026-08-22 by `H.17.1`) | Found while measuring `H.17.1`'s blast radius; **pre-existing**, proven by a regenerate-the-parser two-arm control after the naive `git stash` control turned out to be a no-op for that instrument. Name the 4 new rows before touching the ceiling. |
+| 5 | `GRAMMAR-WELLFORMED.H.20` (the envelope gate is RED at HEAD on `systemverilog`, `155 > 151`) | **`todo`** (opened 2026-08-22 by `H.17.1`) | Found while measuring `H.17.1`'s blast radius; **pre-existing**, proven by a regenerate-the-parser two-arm control after the naive `git stash` control turned out to be a no-op for that instrument. Name the 4 new rows before touching the ceiling. |
 | — | `GRAMMAR-WELLFORMED.H.17.2` (a `--lint-grammar` error class: every regex terminal must compile) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0159`, CODE / engine-universal) | ✅ `uncompilable_regex_terminals` is a hard error class. Checks **does it COMPILE**, not *does it contain `(?`* — a spelling heuristic is unsound (`(?i)`, `(?s:.)`) AND incomplete (backreferences). `ebnf` `0/exit 0 → 3/exit 1`. ⭐ Independently reproduced `H.17`'s grep census from a disjoint code path over all 12 grammars — leg 2, earned. |
 | — | `GRAMMAR-WELLFORMED.H.17` (`spf>0` root cause) | **`diagnosed`** (`PGEN-GRAMMAR-WELLFORMED-0158`, doc+artifact tier) | ⛔ **NOT a generator defect — the leaf's own title was wrong.** Rust's `regex` crate does not support look-around, so the terminal never compiles and the rule matches nothing, ever. The `ebnf` meta-grammar **cannot parse ANY block comment**, `/* x */` included. Both engines agree to the `furthest_position`. Fix owned by `H.17.1`/`H.17.2`. |
 | — | `GRAMMAR-WELLFORMED.H.18` (the cert-failure LABEL is blind for 9 of 13 registry rows) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0157`, CODE / registry-only) | ✅ The duplicate table was **DELETED, not filled in** — `parse_detail` had exactly ONE reader, so `parse_error()` now delegates to the single dispatch and the divergence cannot recur. `ebnf` labels `5 → 0` false / `0 → 5` real `furthest_position=`; all ten cert tuples byte-identical ⇒ the label moved no classification. |

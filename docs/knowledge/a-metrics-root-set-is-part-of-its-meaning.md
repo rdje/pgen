@@ -18,6 +18,14 @@ evidence: GRAMMAR-WELLFORMED.H.16.1 (`PGEN-GRAMMAR-WELLFORMED-0164`). `ebnf` / `
 reverify: "./rust/target/debug/ast_pipeline grammars/ebnf.ebnf --lint-grammar | grep -o 'unreachable_rules=[0-9]*'   # 0 — then: python3 docs/tasks/artifacts/grammar_wellformed/residual_island_census/probe.py --grammar ebnf --entry grammar_file   # post_outside=31 lr_residue=4 source_orphans=27 islands=14"
 ---
 
+⛔ **PRIOR ART, and this card was written without finding it** (corrected `PGEN-GRAMMAR-WELLFORMED-0170`):
+`LANG-CAPABILITY-AUDIT.2` (`done`, session #208) had already resolved exactly this — *"the linter is
+NOT wrong, and neither is the closure"* — quoting the same `grammar_wellformedness.rs` doc-comment.
+`LANG-CAPABILITY-AUDIT.1` had already measured the same 27 `ebnf` productions. What the 2026-08-22
+re-derivation adds is the **LR-residue vs source-orphan split** and an exact cross-method
+corroboration (27 = 27). ⭐ The card stands, and so does the lesson about searching the trees, ADRs and
+KM cards *before* declaring a reading missing.
+
 **A green `unreachable_rules=0` is not the statement "every rule is reachable from the entry".** It
 is the statement *"every rule is reachable from **some root**"* — and PGEN's root set is the
 canonical entry **plus every rule that nothing references**. An unreferenced orphan is therefore a

@@ -20,6 +20,9 @@ answers:
   - "the standard is ambiguous here — do I ask the director to pick"
   - "I already cited the spec in the leaf and I am still asking — what does that mean"
   - "does a change that needs care also need escalation"
+  - "the repo may already answer this — do I search before escalating"
+  - "I found a capability gap — is wiring it a director call"
+  - "is my finding actually novel or did a previous session already record it"
 reverify: sed -n '/SEQUENCING IS EXECUTION/,/^$/p' docs/decisions/feedback_answer_your_own_technical_questions.md
 ---
 
@@ -237,3 +240,42 @@ Companions: [[feedback_why_and_where_before_solution]] (know WHY+WHERE before de
 [[feedback_no_codebase_change_without_tool_backed_facts]], [[feedback_instrument_needs_ground_truth]],
 [[feedback_read_prior_art_before_designing]] (the sibling surface that already does it),
 [[feedback_prefer_feature_work_over_governance_lanes]] (the director DOES own lane choice).
+
+## RECURRENCE 2026-08-22 (session #257) — SEARCH THE REPO BEFORE ESCALATING, AND BEFORE CALLING A FINDING NEW
+
+**What happened.** `GRAMMAR-WELLFORMED.H.16.1` census'd the residual of `grammars/ebnf.ebnf` and
+surfaced, as a *"💡 Your call"* item to the director: *"the meta-grammar documents 13 `(extension)`
+syntaxes its own top level never admits — wire them, or record them declared-dead?"*
+
+**Why it was wrong — three ways, all discoverable by grep:**
+
+1. **The population was already measured.** `LANG-CAPABILITY-AUDIT.1` found the same **27**
+   unreachable `ebnf` productions, clustered into 7 horizon-mapped families, with the headline
+   *"20.6 % of our own EBNF language is decorative."*
+2. **The dispositions already existed.** `LANG-CAPABILITY-AUDIT.4`/`.6`: `~i"…"`, `[a-z]` and
+   `import`/`extends` are superseded by canonical existing forms and may be retired; ⛔ `parametric_rule`
+   is a capability the roadmap WANTS (P2-5) and must be **re-surfaced, never deleted**.
+3. **The escalation itself was pre-answered.** [[feedback_capability_work_is_greenlit_by_standing_authorization]]
+   greenlights the capability, leaves only the parametric NOTATION open, and closes with:
+   ***"Do not open a leaf asking 'may we build capability X?' for a priced row — build it, or schedule
+   it, and say so."***
+
+The same session also re-derived `LANG-CAPABILITY-AUDIT.2`'s (`done`, session #208) root-cause for
+`unreachable_rules=0` from scratch and published it as *"the missing reading"*.
+
+**Director, verbatim (2026-08-22):** *"did you task owned them, do not simply park them… And yes there
+are features not yet supported that have been documented, not fully though that EBNF shall support in
+the future. Search the task-trees and KM cards and ADRs eventually, you should find mentions about
+those things."*
+
+### The sub-rule this adds
+
+- ⛔ **Before escalating a scope question OR calling a finding novel, search `docs/tasks/`,
+  `docs/decisions/` and `docs/knowledge/` for its nouns.** A one-line `grep -rl <name> docs/` over the
+  thirteen names would have returned a hit for **every one of them**. Cheap, and it is the difference
+  between citing prior work and re-doing it.
+- ⛔ **"Parked" is not a disposition.** A finding is either owned by a leaf with a place in an order,
+  or routed to the leaf that already owns it — never merely described and set aside.
+- ⭐ **A re-derivation is still worth something — say which part is new.** The 2026-08-22 census added
+  a genuine LR-residue/source-orphan split and an exact cross-method corroboration (27 = 27 by two
+  independent methods). Publishing that narrowly is honest; publishing it as a discovery is not.

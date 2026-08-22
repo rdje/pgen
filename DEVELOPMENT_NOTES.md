@@ -1,5 +1,46 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0170 — the repository had already answered it, and one grep would have said so
+
+**1. THE ESCALATION WAS THE DEFECT, NOT THE FINDING.** Surfacing *"the meta-grammar documents 13
+syntaxes it does not accept — your call"* felt like the careful move: a scope question, flagged rather
+than presumed. It was the opposite of careful. `grep -rl <name> docs/` over those thirteen names
+returns a hit for **every one of them**. `LANG-CAPABILITY-AUDIT.1` had the same 27 productions in 7
+horizon-mapped clusters; `.4`/`.6` had per-cluster dispositions including *"`parametric_rule` must be
+re-surfaced, never deleted"*; and the ADR that greenlights the capability closes with the literal
+sentence ***"Do not open a leaf asking 'may we build capability X?' for a priced row."*** ⛔ **Asking
+is not automatically the safe option — it costs the director a decision they already made, and it
+buries the part that was actually new.**
+
+**2. AND THE HEADLINE FINDING WAS A RE-DERIVATION.** `H.16.1` published *"the linter reads
+`unreachable_rules=0` by construction — a metric's root set is part of its meaning"* as the slice's
+lead insight. `LANG-CAPABILITY-AUDIT.2` closed exactly that in session #208, citing the same
+doc-comment. Two sessions independently walked the same source to the same conclusion, and the second
+one did not know the first existed. ⭐ The corrective is not "write less" — it is **search first, then
+say which part is new.**
+
+**3. WHAT SURVIVED IS SMALLER AND MORE USEFUL THAN WHAT WAS CLAIMED.** Three things: the LR-residue
+vs source-orphan split (9 vs 55 — nobody else computes it, and reading the POST arm alone records nine
+of PGEN's own engine artifacts as grammar facts); the island partition and its instrument; and an
+**exact cross-method corroboration, 27 = 27**, by a hand `--dump-gen-ast` closure in session #208 and
+a PRE/POST two-arm diff in session #257 — different code, different dumps, different definitions of
+the question. ⭐ That third one is worth more than the original overclaim was: **two independent
+methods agreeing exactly is evidence; one method announcing a discovery is not.** It also let
+`LANG-CAPABILITY-AUDIT.1`'s open SECOND FINDING be closed in place rather than left dangling.
+
+**4. "PARKED" IS NOT A DISPOSITION.** Six leaves were opened and left as `todo` with no ordering, on
+the reasoning that the director sequences priorities. They do not — that is execution, and
+[[feedback_answer_your_own_technical_questions]] has said so since 2026-08-01. The frontier now
+carries an explicit order with a one-line reason per position. ⛔ A finding is owned by a leaf **with a
+place in a queue**, or routed to the leaf that already owns it. Anything else is a report.
+
+**5. THE DEDUPE RULE APPLIED TO THIS VERY CORRECTION.** The instinct was to write a new ADR —
+*"search the repo before escalating"*. `MEMORY_ARCHITECTURE.md` §10 says check the index first, and
+`feedback_answer_your_own_technical_questions` was already the record for exactly this, with the
+sequencing half already in it. It got a RECURRENCE section and three new retrieval keys instead of a
+near-duplicate sibling. ⭐ The failure mode being corrected is the same one that would have produced a
+tenth overlapping ADR.
+
 ## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0168 — a witnessed rule can still reject inputs its grammar licenses
 
 **1. THE SURFACE THIS WHOLE TREE OPTIMISES IS BLIND TO THIS ENTIRE DEFECT CLASS.** `GRAMMAR-WELLFORMED`

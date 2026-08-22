@@ -111,6 +111,29 @@ makes the linter the fulcrum of sign-off, so a soundness claim against it requir
 3-step toolbox protocol and an entry-semantics check first — **that is leaf `.2`.**
 Recorded as *unexplained*, not as a defect, per [[feedback_be_alert_root_cause_fishy_immediately]].
 
+✅ **RESOLVED by `.2` (`done`, session #208) — and the FIRST candidate above is the right one.**
+The lint roots reachability at the canonical entry **PLUS every rule that NOTHING references**, so an
+unreferenced orphan is a ROOT and everything hanging off it inherits the pass. Neither instrument is
+wrong; they quantify over **different root sets**. Kept here rather than deleted because this is where
+a reader meets the discrepancy.
+
+⭐⭐ **INDEPENDENTLY CORROBORATED 2026-08-22 (`GRAMMAR-WELLFORMED.H.16.1`, `PGEN-GRAMMAR-WELLFORMED-0164`),
+and the agreement is EXACT.** A different session, different code, and a different definition —
+a PRE/POST two-arm diff of `--emit-raw-ast-json` against `--dump-gen-ast` — reports
+`ebnf source_orphans=` **27**, matching this leaf's hand closure exactly, while `--lint-grammar` again
+reads `unreachable_rules=0, exit 0`. It also re-derived the root-set explanation from
+`grammar_wellformedness.rs` *without knowing `.2` existed*, which is its own small lesson about
+searching the trees first.
+
+⭐ **AND IT ADDS A SPLIT THIS LEAF DOES NOT HAVE.** Of the rules outside the entry closure in the
+POST arm, **some are not grammar debt at all**: PGEN's own LR-elimination pass rewrites a rule's
+referrer into `_lr_base`/`_lr_suffix`/`_lr_seed_*` helpers and leaves the original behind. For `ebnf`
+that is **4** rules (`expression_return`, `arithmetic_return`, `conditional_return`,
+`member_access_return`, from `return_expression`), and they must **never** be routed here as capability
+gaps — same class `-0271` adjudicated for `verilog_2005`. ⇒ **this leaf's 27 are the SOURCE orphans**
+(outside the closure in BOTH arms) and are unaffected by that split; the instrument that separates the
+two is `docs/tasks/artifacts/grammar_wellformed/residual_island_census/probe.py`.
+
 - **Acceptance Checklist (enforced)**
   - [x] **REPRODUCE / ISSUE** — the audit had never been run despite being prescribed
     since 2026-07-11; both #208 axes were found reactively.
