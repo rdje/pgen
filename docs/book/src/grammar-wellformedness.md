@@ -1675,9 +1675,22 @@ what the four union configs declare. The twelfth canonical `UNKNOWN`,
 `known_unscoped_property_identifier`, is covered by no declared configuration, and it is the whole
 residual.
 
-The residual is a **proof-surface gap, not a parser defect**: the construct that rule names parses
-successfully through this very parser (`SV-CORPUS-GRAD.13c.2x`(a) put it through). What is missing is
-a *witness the planner can reach*, not correctness.
+The residual is a **proof-surface gap, not a parser defect**, and as of 2026-08-22 that is measured
+rather than argued. The construct the rule names parses successfully through this very parser
+(`SV-CORPUS-GRAD.13c.2x`(a) put it through), and `SV-CORPUS-GRAD.13c.2x.9` then showed the rule is
+not merely parseable but **committed** on an ordinary two-line carrier —
+`property myprop; 1; endproperty  property q; myprop; endproperty` reports
+`rule_committed_counts["known_unscoped_property_identifier"] = 1` under
+`--dump-rule-outcome-counts-json`, the same transactional coverage stack this certificate measures
+under.
+
+What is missing is a *witness the planner can reach*, not correctness. Every forced probe the reach
+planner emits for this target is one `bind`/checker-port shape that never places the name in a
+property-expression position, so the branch that leads to the rule is never attempted at all. ⛔ That
+also rules out the tempting alternative close: a rule reached and committed by nine of thirteen
+hand-written carriers cannot be promoted to `proof` the way `VERILOG-2005-PROFILE.6.7` promoted eight
+genuinely profile-unreachable rules. The union goes to `UNKNOWN=0` when the planner emits the
+carrier, and by no shorter route.
 
 #### When `fully_certified` was true, and what retired it
 

@@ -1,8 +1,15 @@
-carrier      parses  commits_known_unscoped_property_identifier
-c1           1       0
-c2           1       0
-c3           1       0
-c4           1       0
-c5           1       0
-generated    1       0
-wellformed   1       0
+# parser sha256 (binary == disk): cc874b60d59a1d16cec4f0a615388c0432b65e8c19b585ee8899cabddd5cb31c
+carrier     parses  entry/comm  ast_route       pred   tournament                      verdict
+c1          1       2/1         none            1      sel=1@2,1@7 b1=60 b26=60        COMMITS:tie-lost
+c2          1       2/1         none            1      sel=1@2,1@6 b1=65 b26=65        COMMITS:tie-lost
+c3          1       2/1         none            1      sel=1@13,1@2 b1=66 b26=60       COMMITS:tie-lost
+c4          1       3/1         none            1      sel=1@1,1@10,1@2 b1=70 b26=70   COMMITS:tie-lost
+c5          1       3/1         none            1      sel=1@2,1@7,5@11 b1=64 b26=64   COMMITS:tie-lost
+c6          1       4/1         none            1      sel=1@1,1@19,1@2,1@7 b1=76 b26=76 COMMITS:tie-lost
+c7          1       3/1         none            1      sel=1@12,1@2,1@7 b1=66 b26=66   COMMITS:tie-lost
+c8          1       4/1         none            1      sel=1@1,1@10,1@2 b1=64 b26=64   COMMITS:tie-lost
+c9          1       4/1         known_unscoped  1      sel=1@2,26@10,5@5 b1=63 b26=64  COMMITS:in-tree
+generated   1       1/0         none            0      sel=1@10 b1=37 b26=-            branch-not-reached
+r1          1       4/0         hierarchical    0      sel=1@2,26@10,5@5 b1=63 b26=64  predicate-false
+r2          1       4/0         hierarchical    0      sel=1@2,26@14,5@5 b1=67 b26=68  predicate-false
+wellformed  1       1/0         none            0      sel=1@2 b1=29 b26=-             branch-not-reached

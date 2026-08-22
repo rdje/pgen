@@ -1237,17 +1237,43 @@ grammar — reports `sample_parse_failures=0` with a canonical (`sv_2017`) resid
 from 20 since `VERILOG-2005-PROFILE.6.7` promoted the 8 `sv_2017`-profile-unreachable SystemVerilog-only
 rules to per-profile `proof`) that the sound multi-config recognized union collapses to `UNKNOWN=1`.
 
-⚠️ **The residual's NAME was stale here and is corrected as of 2026-08-22** (`SV-CORPUS-GRAD.13c.2x.9`):
-the count `1` was right, but this sentence named `context_member_method_call`, which
-`SV-CORPUS-GRAD.13c.2y` retired. The live residual is **`known_unscoped_property_identifier`**, and it
-is **not** a structured-witness reach gap either — measured 2026-08-22, the reach plan for it is
-complete and correct, and the rule is **shadowed**: `prop_primary_sv_2017`'s first alternative
-`sequence_expr` matches any bare identifier, so `property_instance` — the only route to it — is never
-reached, and the `has_fact(property_name, …)` predicate that exists to disambiguate exactly this case
-never gets the chance to fire. Seven carriers were tested; all parse, none commits the rule. Whether
-that makes it *provably* shadowed (and therefore closable as a `proof` rather than a witness, taking
-the union to `UNKNOWN=0`) is `SV-CORPUS-GRAD.13c.2x.9`. No grammar emits a sample its own
-parser semantically rejects.
+⚠️ **The residual's NAME was stale here and was corrected on 2026-08-22**
+(`SV-CORPUS-GRAD.13c.2x.9`): the count `1` was right, but this sentence named
+`context_member_method_call`, which `SV-CORPUS-GRAD.13c.2y` retired. The live residual is
+**`known_unscoped_property_identifier`**.
+
+⛔ **The same correction also published a mechanism for it, and that mechanism was wrong. It is
+retracted here, deliberately in place, because a book that quietly reworded itself would leave a
+reader who read it yesterday believing something the repository has since measured to be false.**
+This paragraph said the rule was *shadowed* — that `prop_primary_sv_2017`'s first alternative
+`sequence_expr` claims every bare identifier, so `property_instance` is never reached and the
+`has_fact(property_name, …)` predicate never fires — and that seven carriers had been tested with
+none committing the rule.
+
+**Both halves were artefacts of a broken instrument.** The seven-carrier table scored each carrier by
+grepping the AST dump for the rule's *name*; PGEN's AST is annotation-shaped and carries only the
+`kind:`/field names a `->` return annotation writes, and this rule has no return annotation, so that
+column could never have reported a commit for any input whatsoever. Re-measured with the rule-outcome
+counter that reports entered-versus-committed by rule name
+([The Gate Flow](gate-flow.md) · `--dump-rule-outcome-counts-json`), the plainest two-line carrier —
+`property myprop; 1; endproperty  property q; myprop; endproperty` — records
+`rule_committed_counts["known_unscoped_property_identifier"] = 1`.
+
+**What actually happens is a tie, and it is a tie the certificate already tolerates.** PGEN compiles
+alternatives to a longest-match *tournament*, not to a PEG first-match commit, so both
+`sequence_expr` and `property_instance` succeed at a bare property name and end on the same byte;
+the strict `>` in the winner test keeps the earlier branch, so the *tree* carries the sequence shape
+while the *coverage counter* — whose committed semantics keep successful-but-losing branches — still
+counts the rule. Give the instance an argument only the property family can parse, such as
+`pr(not x)`, and the property branch reaches one byte further, wins outright, and the rule lands in
+the winning tree as well.
+
+⇒ **the residual is a planner-carrier gap and nothing else.** Every forced probe the reach planner
+emits for this target is a single `bind`/checker-port shape that never places the name in a property
+expression at all, so the branch is never even attempted. The close is a **witness**, not a proof,
+and it needs no change to the grammar, the parser or the engine — only a declare-then-use carrier the
+planner does not currently generate. That is `SV-CORPUS-GRAD.13c.2x.9`(c). No grammar emits a sample
+its own parser semantically rejects.
 
 ## Directed (Learned) Generation — the FdLoop Loop
 

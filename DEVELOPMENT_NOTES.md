@@ -1,5 +1,53 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-22 - PGEN-SV-CORPUS-GRAD-0274 — the instrument was the defect: a stuck needle produced two root causes, and the counter that answers the question was already documented
+
+**1. THE FAILURE WAS NOT A WRONG ANSWER, IT WAS A QUESTION ASKED OF SOMETHING THAT COULD NOT ANSWER.**
+`-0272` scored thirteen carriers with `grep -c <rule-name> <ast.json>`. PGEN's AST is
+annotation-shaped: it carries the `kind:`/field names a `->` return annotation writes and nothing
+else. `known_unscoped_property_identifier` has no return annotation, so that column is `0` for every
+input in SystemVerilog. Seven rows of `0` read as seven independent negatives; they were one stuck
+instrument sampled seven times. What makes this worth writing down is that **every surrounding
+discipline held** — the carriers were tracked in the repo, the script re-runnable, the output pinned
+beside it, the header explicitly said seven negatives do not prove unreachability. None of those
+asks whether the instrument can produce the other reading, and that is the only question that would
+have failed. The fix is a RED control: an input the instrument MUST score differently, in the same
+table, run by the same command. Two files.
+
+**2. BOTH ROOT-CAUSE LABELS CAME FROM A MOVE `TOOLBOX.md` NAMES AS UNSOUND, IN BOLD.** Protocol D:
+*"NEVER answer it from the grammar text (PGEN's `|` is a branch TOURNAMENT, default `longest_match`,
+NOT PEG first-match commit; two linter verdicts were unsound for exactly this reason)."* `-0272`
+read `prop_primary_sv_2017`'s first alternative off the EBNF and called it shadowing; `-0273`
+refuted the *name* with the lint but kept the *reasoning*, re-deriving "an earlier alternative
+claims the bytes, so `property_instance` is unreachable" from the same source order. The toolbox
+already carried the counterexample count — *two* prior unsound linter verdicts — and the protocol
+that avoids it. ⇒ a standing directive is only as good as the moment you remember it applies; the
+durable fix is to make the WRONG move harder to take than the right one, which is why Protocol A's
+cause map now names the counter instead of leaving "confirm with the AST" as the terminal advice.
+
+**3. THE MECHANISM IS A TIE, AND THE TIE IS INVISIBLE TO EVERY COUNTER THAT ASKS ABOUT LANGUAGES.**
+`prop_primary_sv_2017` is a 27-branch longest-match tournament. On a bare property name branch 1
+(`sequence_expr`) and branch 26 (`property_instance`) both succeed and both end on byte 60; the
+winner test is a strict `>`, so the earlier branch keeps it. `--lint-grammar` is right to report
+`ordered_choice_shadowing=0` and `unreachable_rules=0` — it asks whether one alternative's language
+CONTAINS another's, and these two merely overlap. The behaviour is not containment, it is an
+equal-extent tie decided by declaration order, and the only instrument that sees it is one that
+counts what actually committed. Add an argument only `property_actual_arg -> property_expr` can
+parse (`not x`) and branch 26 reaches 64 against branch 1's 63 — one byte — and wins outright.
+
+**4. C3-B IS THE PART THAT CHANGES THE CONCLUSION, NOT JUST THE EVIDENCE.**
+`--dump-rule-outcome-counts-json`'s committed counts keep **tournament winners AND
+successful-but-losing branches**. That is why a carrier whose *tree* has no trace of the rule still
+reports `committed=1`, and why the AST is the wrong oracle for a certificate question while being
+exactly the right one for "which branch won". Two oracles, two questions; using the narrower one for
+the broader question is what turned a planner gap into a fictional grammar defect.
+
+**5. WHAT IT BUYS.** The residual that gates `SVPP-EXPANSION` — a director precondition measured at
+33.9 % of the SV corpus denominator — needs no grammar change, no engine change and no proof waiver.
+It needs a two-line declare-then-use carrier the reach planner does not currently emit. ⛔ And the
+step from `committed=1` to *"the certificate would witness it"* is an inference, named as one: `(c)`
+opens by re-deriving it through `PGEN_CERT_COVERAGE_DEBUG_PROBES` on a planted carrier.
+
 ## 2026-08-21 - PGEN-SV-CORPUS-GRAD-0271 — two artifacts, two days apart, one dated root cause: a count cannot be a judgement about a mechanism that did not exist when it was written
 
 **1. THE ORDER WAS THE WHOLE METHOD.** The leaf said: adjudicate the 21-rule delta *before* touching
