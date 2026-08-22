@@ -592,8 +592,15 @@ comment_content := /([^\r\n]*)/
 block_comment := "/*" block_comment_content "*/"
     -> {type: "block_comment", content: $2}
 
-block_comment_content := /((?:[^*]|\*(?!\/))*)/
-    -> $1
+# GRAMMAR-WELLFORMED.H.17.1: the body is a run scanned to the first `*/`. Formerly
+# `/((?:[^*]|\*(?!\/))*)/`, which NEVER COMPILED — Rust's `regex` has no look-around, so the
+# rule was inert on every input and `/* x */` was unparseable. A regex terminal is ATOMIC (no
+# give-back), so the terminator test cannot live inside the regex; it moves to a grammar-level
+# `!` assertion, which IS supported as a zero-width lookahead. `-> $text` is the body string —
+# identical to what the old whole-pattern capture group `$1` denoted. Prior art: `comment_text`
+# in `grammars/regex.ebnf`.
+block_comment_content := ( !"*/" builtin_any_char )*
+    -> $text
 
 # Documentation comments: /** comment */, /// comment
 documentation_comment := (
@@ -613,15 +620,26 @@ whitespace := /(\s+)/
 semantic_predicate := "{?" predicate_content "?}"
     -> {type: "semantic_predicate", condition: $2}
 
-predicate_content := /([^?}]*(?:\?(?!})[^?}]*)*)/
-    -> $1
+# GRAMMAR-WELLFORMED.H.17.1: formerly `/([^?}]*(?:\?(?!})[^?}]*)*)/`, which never compiled
+# (look-around). Transcribed FAITHFULLY rather than relaxed to a plain run-to-`?}`: the two
+# alternatives are exactly the old pattern's two arms — any char that is neither `?` nor `}`,
+# or a `?` that is not followed by `}`. A bare `}` therefore still terminates the run, as it
+# did in the pattern, so the accept set is the one that was written, not a wider one.
+predicate_content := ( /[^?}]/ | "?" !"}" )*
+    -> $text
 
 # Action blocks (extension): { action_code }
 action_block := "{" action_content "}"
     -> {type: "action_block", code: $2}
 
-action_content := /([^}]*(?:}(?![^{]*$)[^}]*)*)/
-    -> $1
+# GRAMMAR-WELLFORMED.H.17.1: formerly `/([^}]*(?:}(?![^{]*$)[^}]*)*)/`, which never compiled
+# (look-around). Its `(?![^{]*$)` arm was a crude attempt to keep consuming a `}` while another
+# `{` remained ahead — i.e. to tolerate NESTED action blocks. That heuristic is not expressible
+# without an end-of-input assertion, so the construct it was approximating is spelled directly:
+# a balanced-brace run. `{ a { b } c }` parses here and would NOT under a flat run-to-first-`}`
+# (measured both ways before choosing). See the H.17.1 accept-set ledger entry.
+action_content := ( /[^{}]/ | "{" action_content "}" )*
+    -> $text
 
 # Parametric rules (extension): rule[param1, param2]
 parametric_rule := rule_name "[" parameter_list "]"

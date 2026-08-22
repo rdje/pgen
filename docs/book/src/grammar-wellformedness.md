@@ -919,6 +919,80 @@ working. The exposure was measured before landing rather than assumed: exactly o
 a `--lint-grammar` exit code, its contract names `grammars/systemverilog.ebnf`, and that grammar reads
 zero.
 
+### The repair: what replaces a look-around, and what it costs
+
+A regex terminal in PGEN is **atomic**. It matches maximally, once, and never gives characters back
+when the element after it fails. One command shows this, and it is worth running before believing it:
+
+```text
+probe := /a*/ "ab"        on input 'aaab'
+#   backtracking  => /a*/ gives back to 'aa', then "ab" matches => ACCEPT
+#   atomic-greedy => /a*/ eats 'aaa', then "ab" sees 'b'        => REJECT
+INTERPRET-PARSE: … accepted=false furthest_position=0           ⇒ ATOMIC
+```
+
+That single measurement closes what looks like an open design question. The classic C-comment
+pattern — `(?:[^*]|\*+[^*/])*\**` — and every lazy variant depend on give-back, so **no pure-regex
+spelling of "run up to but not including `*/`" exists here**. Which is precisely why the original
+author reached for look-around: with nothing to give back, the terminator test has to happen *inside*
+the pattern, and Rust's `regex` will not do that. The assertion has to leave the regex entirely.
+
+Where it goes is a grammar-level negative lookahead, which the PEG engine supports as a zero-width
+assertion:
+
+```ebnf
+block_comment_content := ( !"*/" builtin_any_char )*
+    -> $text
+```
+
+**This was a lookup, not a design.** `grammars/regex.ebnf` already solves the same problem eleven
+times — `comment_text = ( !")" builtin_any_char )* -> $text`, plus seven `callout_*_payload` rules —
+and its own comment records the contract that matters to a consumer: *"Consumers always read a string
+`text`."* Reading the shipped prior art first replaced an argument about spellings with a citation.
+
+**`$text` is what `$1` already meant, when the capture spanned the whole pattern.** Three of the five
+repaired rules carried a group wrapping the entire regex, so `$1` was the whole match, and `$text` is
+the whole match — the annotation changes spelling, not meaning.
+
+**But when the capture was a *sub*-span, a named helper rule is mandatory.** This is the part that is
+easy to get wrong, and the cheaper-looking spelling is the wrong one. `multiline_string` kept its
+`"""` delimiters inside the old pattern, so `$1` was the body alone. Inlining the run keeps the
+delimiters as terminals but binds the annotation to a **repetition**, not a string:
+
+```text
+'"""' ( !'"""' builtin_any_char )* '"""'  -> {…, value: $2}
+  value = [ [[], "a"], [[], "b"], [[], "\""], [[], "c"] ]     ← nested per-iteration array
+'"""' multiline_string_content '"""'      -> {…, value: $2}
+  value = "ab\"c"                                             ← the flat body string, as before
+```
+
+The second form — a named helper carrying `-> $text` — is the one that preserves the consumer's type.
+An inline group silently changes an AST field from a string to a nested array, and nothing about the
+grammar text warns you.
+
+**What the repair moved, measured.** Every one of these rules was inert beforehand, so each accept set
+moves *from the empty set*: the transition is a widening on every axis and a narrowing on none, by
+construction rather than by sampling. On the certificate axis:
+
+| grammar | before | after |
+|---|---|---|
+| `ebnf` | `total=144 witness=109 UNKNOWN=35`, `spf=13` | `total=144 witness=111 UNKNOWN=33`, `spf=8` |
+| `semantic_annotation` | `total=114 witness=80 UNKNOWN=34` | `total=115 witness=82 UNKNOWN=33` |
+
+The counts are the uninteresting half. Set-differencing the dumped `UNKNOWN` lists shows `ebnf` lost
+**exactly** `block_comment` and `block_comment_content` and gained nothing, and `semantic_annotation`
+lost **exactly** `multiline_string` — the `total` rising by one because the new helper rule is
+certified on arrival. A count can move for reasons a fix did not cause; naming the rules is what makes
+the before/after a claim rather than a coincidence.
+
+**Three of the five repaired rules are still `UNKNOWN`, and that is the correct outcome.** Their
+parents — `semantic_predicate`, `action_block`, and `semantic_annotation`'s lexical `block_comment` —
+are referenced by no rule at all, so they sit in the certificate pass's *"no reach path from the
+entry"* set. Repairing a terminal cannot make its rule reachable. The repair could only move the
+reachable half, and it moved all of it; the rest is a dead-rule adjudication, and one that can only
+now be made honestly, because before the repair these rules were inert for a reason that had nothing
+to do with whether anyone referenced them.
+
 ### Reaching deep recursive branches: the constructive-reach witness pass
 
 `rtl_const_expr` was the first grammar to expose a structural gap in the witness side, and the way it was

@@ -43,7 +43,7 @@
   ],
   "declared_annotation_inventory": {
     "pipeline_inventory_artifact": "generated/semantic_annotation_return_annotations.json",
-    "extracted_at": "2026-06-10",
+    "extracted_at": "2026-08-22",
     "optional_grammar_json_crosscheck": "generated/semantic_annotation.json",
     "annotations": [
       {
@@ -464,7 +464,13 @@
         "rule": "multiline_string",
         "branch_index": 0,
         "annotation_type": "return_object",
-        "normalized_text": "{type: \"multiline_string\", value: $1}"
+        "normalized_text": "{type: \"multiline_string\", value: $2}"
+      },
+      {
+        "rule": "multiline_string_content",
+        "branch_index": 0,
+        "annotation_type": "return_scalar",
+        "normalized_text": "$text"
       },
       {
         "rule": "multiplicative_expr",

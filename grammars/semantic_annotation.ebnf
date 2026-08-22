@@ -168,8 +168,17 @@ single_quoted_string := /'([^'\\]|\\.)*'/
 raw_string := /r"([^"]*)"/  
     -> {type: "raw_string", value: $1}
 
-multiline_string := /"""([^"]*(?:"(?!"")[^"]*)*?)"""/
-    -> {type: "multiline_string", value: $1}
+# GRAMMAR-WELLFORMED.H.17.1: formerly `/"""([^"]*(?:"(?!"")[^"]*)*?)"""/`, which never
+# compiled (look-around), leaving the rule inert. The delimiters become real terminals and the
+# body a run scanned to the closing `"""`. ⛔ The body MUST be a named helper carrying `-> $text`:
+# an INLINE `( ... )*` binds `$2` to a nested per-iteration ARRAY, not a string, which would
+# change `value`'s type (measured — see the H.17.1 accept-set ledger entry). `$text` on the
+# helper reproduces the old capture group's flat body string exactly.
+multiline_string := '"""' multiline_string_content '"""'
+    -> {type: "multiline_string", value: $2}
+
+multiline_string_content := ( !'"""' builtin_any_char )*
+    -> $text
 
 template_string := /`([^`\\]|\\.)*`/
     -> {type: "template_string", value: $1}
@@ -568,7 +577,10 @@ whitespace := /\s+/
 line_comment := "//" /[^\r\n]*/
 
 # Block comments  
-block_comment := "/*" /(?:[^*]|\*(?!\/))*/ "*/"
+# GRAMMAR-WELLFORMED.H.17.1: the inline body was `/(?:[^*]|\*(?!\/))*/`, which never compiled
+# (look-around), so this rule matched nothing on any input. It carries no return annotation, so
+# only the accept set moves. Same shape as `block_comment_content` in `grammars/ebnf.ebnf`.
+block_comment := "/*" ( !"*/" builtin_any_char )* "*/"
 
 # Documentation comments
 doc_comment := "///" /[^\r\n]*/

@@ -1,5 +1,64 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0161 — a control that cannot fail is not a control
+
+**1. SEARCH YOUR OWN REPOSITORY BEFORE DESIGNING.** The task was "replace a look-around regex with
+something the engine can run", and it reads like a design problem: pick an idiom, argue about the
+annotation, weigh the cost. `grammars/regex.ebnf` had already solved it **eleven times** —
+`comment_text = ( !")" builtin_any_char )* -> $text`, seven `callout_*_payload` rules, and the
+`class_member_literal` pair — and its comment even records the consumer contract the annotation has to
+preserve. Finding that replaced the entire design step with a citation, and it also supplied the
+answer to a question I would otherwise have got wrong (below). ⭐ The general form: when a fix looks
+like it needs a design, first check whether a sibling family already ships one. A shipped idiom
+carries its own evidence; an invented one starts at zero.
+
+**2. THE CHEAPER-LOOKING SPELLING SILENTLY CHANGED AN AST FIELD'S TYPE.** Moving delimiters out of a
+regex into the grammar invites the inline form:
+`'"""' ( !'"""' builtin_any_char )* '"""' -> {…, value: $2}`. It parses, it accepts the right inputs,
+and `value` becomes `[[[], "a"], [[], "b"], …]` — a nested per-iteration array where the old capture
+group gave the flat string `"ab\"c"`. Nothing in the grammar text warns you; the verdict is identical;
+only the typed AST differs. ⭐ Two transferable pieces. First: **`$n` over a repetition is not a
+string** — when the old capture was a proper SUB-span of the pattern, the run must become a NAMED
+helper rule carrying `-> $text`. Second, and more general: **an accept-set check is blind to an
+AST-shape change**, which is the same lesson TOOLBOX 5.7's second axis exists for. I found this by
+running the inline form through `--interpret-parse-ast-json` *before* committing to it, not by
+reasoning about it — the cost was one command.
+
+**3. ⛔⛔ A CONTROL THAT CANNOT FAIL IS NOT A CONTROL — AND IT FAILED IN THE FLATTERING DIRECTION.**
+The envelope gate came back RED on `systemverilog` (`155 > ceiling 151`) right after my change. The
+obvious control: `git stash` the grammar, re-run `ebnf_dual_run_diff`, compare. It returned
+**byte-identical divergence sets**, which reads as a clean exoneration. It was worthless.
+`rust/src/bin/ebnf_dual_run_diff.rs:12` `include!`s **`generated/ebnf.rs`** — arm 2 never reads
+`grammars/ebnf.ebnf` at all, so stashing the grammar text is a **no-op for that instrument** and the
+two arms were the same run twice. The valid control had to regenerate `generated/ebnf.rs` from the
+pre-fix grammar and rebuild the differ; it then gave the same 155, so the finding survived — but I
+would have published a true conclusion on a void argument. ⭐ **The test for a control is not "did the
+two arms differ" but "could they have".** Before quoting a two-arm result, name the artifact the
+instrument actually reads and prove the arm changed it — here, a sha of `generated/ebnf.rs` would have
+exposed the no-op instantly. This is the same shape as TOOLBOX 1.9's own warning that a bare
+`--input/--output` run exits 0 while running only ONE arm: an incomplete invocation yielding a
+clean-looking result, in the passing direction, with nothing on stdout to notice.
+
+**4. NAME THE RULES, NOT THE COUNT.** `UNKNOWN 35 → 33` is not a finding; it is an arithmetic
+coincidence waiting to be believed. Set-differencing the dumped lists showed the delta was *exactly*
+`block_comment` + `block_comment_content` with nothing newly UNKNOWN — and, just as usefully, that
+three of the five repaired rules did **not** move, because their parents are referenced by nothing and
+a terminal repair cannot confer reachability. The count alone would have hidden both halves. ⚠️ My
+first extraction of those lists silently dropped the first entry (the header strip ate it) and made
+`epsilon` look newly-certified; the arithmetic not closing is what caught it. **When a set-diff
+disagrees with the headline count, suspect the extraction before the result.**
+
+**5. A REGENERATION PATH THAT SKIPS ON EXISTENCE IS A SILENT NO-OP.**
+`make regex_parser_bootstrap` regenerates `generated/ebnf.rs` **only if the file is absent**
+(`rust/Makefile:998` — *"✓ generated/ebnf.rs already present — skipping seed step"*). It is correct for
+its own purpose (cold-clone bootstrap) and a trap for any other: an edit to the meta-grammar is
+ignored, at exit 0, with an encouraging ✓. This is the same family as the GNU Make 3.81 whole-second
+mtime problem `CI-PARITY-GATE-ROT.32` closed — the build system reporting success for work it did not
+do — and the same defence applies: assert a **sha against an independently-built arm**, never the
+exit code. Doing that here also produced a free result: rebuilding the *pre-fix* artifact reproduced
+its original tracked sha byte-for-byte.
+
+
 ## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0159 — check the property, not the spelling of the property
 
 **1. THE OBVIOUS CHECK WAS THE WRONG CHECK.** The defect was found as *"look-around in a regex

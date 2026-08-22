@@ -1,5 +1,95 @@
 # CHANGES.md
 
+## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0161 (leaf GRAMMAR-WELLFORMED.H.17.1 CLOSED — the five inert regex-look-around rules are repaired and `/* x */` parses; CODE / grammar + codegen, 2 grammars, 2 regenerated parsers)
+
+- ✅ **THE RESULT.** All five live look-around terminals are gone. `--lint-grammar`
+  `uncompilable_regex_terminals`: `ebnf` **3 → 0**, `semantic_annotation` **2 → 0**, both **exit 1 →
+  exit 0**. The `ebnf` meta-grammar can now parse a block comment — `/* x */` goes from
+  `accepted=false furthest_position=2` to `accepted=true`, and `/** doc */` with it.
+- ⭐⭐ **THE FIX SHAPE WAS ALREADY SHIPPING HERE, WHICH TURNED A DESIGN QUESTION INTO A LOOKUP.**
+  `grammars/regex.ebnf` solves this exact problem eleven times — `comment_text = ( !")"
+  builtin_any_char )* -> $text` plus seven `callout_*_payload` rules — and its own comment states the
+  consumer contract to preserve: *"Consumers always read a string `text`."* ⇒ the idiom is
+  `( !TERMINATOR builtin_any_char )*` with `-> $text`, not a cleverer regex.
+- ⛔⛔ **A REGEX TERMINAL IS ATOMIC, SO THERE WAS NEVER A PURE-REGEX OPTION TO PRICE.** Measured:
+  `probe := /a*/ "ab"` on `aaab` ⇒ `accepted=false furthest_position=0`. Backtracking would have
+  ACCEPTED. The classic C-comment pattern and every lazy variant need give-back, so the terminator
+  test cannot live inside the regex — which is exactly why look-around was reached for originally.
+- ⛔⛔ **AN INLINE `( … )*` BINDS `$n` TO A NESTED ARRAY, NOT A STRING — measured, and it is why
+  `multiline_string_content` exists as a NAMED rule.** The cheaper spelling was tried first and gives
+  `value: [[[], "a"], [[], "b"], …]` where the old capture group gave `value: "ab\"c"`. ⇒ whenever the
+  old capture was a proper SUB-span of the pattern, a helper rule carrying `-> $text` is mandatory,
+  not stylistic. Where the capture spanned the WHOLE pattern (the three `ebnf` rules) `$1` and `$text`
+  denote the same span and the change is spelling only.
+- **`ACCEPT-SET-LEDGER:` — WIDEN on every axis, NARROW on none, BY CONSTRUCTION.** Every one of the
+  five rules was inert on every input beforehand, so each accept set moves *from ∅* and no input that
+  parsed can stop parsing. **AST shape is UNCHANGED for every consumer**: the declared-annotation
+  inventory moved by **exactly two rows out of 152** (`multiline_string` `value: $1 → $2`, plus the new
+  `multiline_string_content` `-> $text`), the other **150 byte-identical on all four fields**.
+  ⚠️ Bound stated rather than implied: `MANIFEST.tsv` pins no `ebnf`/`semantic_annotation` reproducers,
+  so TOOLBOX 5.7's replayer has nothing to say here — the evidence is the closed 152-annotation
+  population plus the two equivalence runs, not a repro sweep.
+- **MEASURED BEFORE → AFTER** (same binary, seeds 0/7/42): `ebnf` `144/0/109/35 spf=13` →
+  `144/0/111/33 spf=8/11/7`; `semantic_annotation` `114/0/80/34` → `115/0/82/33 spf=2/5/2`.
+- ⭐⭐ **THE `UNKNOWN` DELTA IS ATTRIBUTED BY RULE NAME, NOT BY COUNT.** Set-differencing the dumped
+  lists: `ebnf` lost **exactly** `block_comment` + `block_comment_content` and gained **nothing**;
+  `semantic_annotation` lost **exactly** `multiline_string`, its new helper being certified on arrival
+  (the `total` +1). A count can move for reasons a fix did not cause.
+- ⛔⛔ **THREE OF THE FIVE REPAIRED RULES REMAIN `UNKNOWN`, AND THAT IS CORRECT.** `predicate_content`,
+  `action_content` and `semantic_annotation`'s `block_comment` sit under parents no rule references —
+  inside the pass's *"31 UNKNOWN rules have NO reach path"* set. A terminal repair cannot confer
+  reachability. This leaf could only move the reachable half and it moved all of it; `H.16` may now
+  adjudicate the rest as dead-rule candidates *honestly*, which it could not do before.
+- ⚠️ **A PREDICTION OF MINE WAS REFUTED MID-LEAF.** `systemverilog_2017_lrm_extracted.ebnf:86` and
+  `verilog_2005_lrm_extracted.ebnf:54` carry a real `block_comment ::= /* comment_text */ ;` and
+  looked like live consumers. **They are not**: in a rule-RHS position `/*…*/` is claimed by the
+  **regex-literal** arm, and a two-arm control reads `furthest_position=41` identically before and
+  after — the rejection is the trailing `;`, a dialect terminator `ebnf.ebnf` has never modelled.
+- ⛔⛔ **AND THE CONTROL THAT FIRST CLEARED MY CHANGE OF AN SV REGRESSION WAS INVALID.** The envelope
+  gate came back RED on `systemverilog` (`155 > ceiling 151`); `git stash`-ing the grammar and
+  re-running returned identical sets, which reads as *"not mine"* and **proves nothing** —
+  `ebnf_dual_run_diff.rs:12` `include!`s `generated/ebnf.rs`, so arm 2 never reads the grammar text
+  and the stash is a no-op for that instrument. **A control that cannot fail is not a control.** The
+  real one regenerates `generated/ebnf.rs` from the pre-fix grammar: `3028814854e0…` → 155,
+  `5cb5fc473cfd…` → 155, same rows. ⇒ pre-existing, routed to the new leaf `H.20`.
+- ⭐ **`ebnf` ITSELF STAYS ENVELOPE-EQUIVALENT** — `932 tokens / 100.00 % / 0 divergences` at its
+  declared ceiling of 0 (token count rises 913 → 932 because three bodies are now several tokens
+  instead of one regex literal; agreement stays total). All 14 grammars still parse + export.
+- ⭐ **VERIFIED ON THE GENERATED PARSER, NOT ONLY THE INTERPRETER** — `parse_harness_equivalence`:
+  `ebnf CLEAN 79/79 diverge=0`, `semantic_annotation CLEAN 134/134 diverge=0`, so the new
+  `!`-assertion and `builtin_any_char` constructs codegen byte-identically to the rung that measured
+  them.
+- ⛔ **REGENERATION INTEGRITY**: `generated/ebnf.rs` built **two independent ways** — the `make
+  regex_parser_bootstrap` path and the raw Step-B/Step-C commands into a scratch path — byte-identical
+  at `5cb5fc473cfd…` (the `-o` path is not embedded, so no normalisation was needed). `make`'s exit 0
+  was never the evidence. ⭐ Rebuilding the PRE-fix artifact also reproduced its original tracked sha
+  `3028814854e0…` byte-for-byte — an unplanned determinism check on the generator.
+- ⛔ **OPERATIONAL TRAP, RECORDED**: `regex_parser_bootstrap` **skips the `generated/ebnf.rs` seed when
+  the file already exists** (`rust/Makefile:998`), so an edit to `grammars/ebnf.ebnf` is silently
+  ignored by the standard regeneration path. The file must be removed first — which is what the
+  recipe's own stale-artifact branch tells you, for a different reason.
+- ✅ **NO REGRESSION**: `bash scripts/check_doctrines.sh` **ALL 25 PASS**;
+  `generated_reproducibility_gate` tier 2 re-derives **all 11 artifacts byte-identically from HEAD**
+  (`scratch` included) and re-records the baseline; `cargo test --lib` **1118 passed / 1 failed**, the
+  single failure the pre-existing
+  `…unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names`. ⛔ The run that
+  first read **2 failed** was not waved through — the second was
+  `ast_shape_contract::…semantic_annotation…`, it was **mine**, and it was fixed rather than
+  rebaselined blind: the manifest inventory was re-verified row-by-row against the regenerated
+  artifact and found to differ in **exactly the two intended rows**, which is what licensed the edit.
+- **NEW LEAF `H.20`** — the envelope gate is RED at HEAD on `systemverilog` (`155 > 151`),
+  pre-existing and unrecorded, with the 4 new rows to be NAMED before the ceiling is touched.
+- **NEW LEAF `CI-PARITY-GATE-ROT.43`** — the clippy-on-rust-change detector **cannot see a
+  generated-parser change, by construction**. On this very commit it printed *"No Rust/generated Rust
+  changes detected; skipping clippy flow"* while two parsers were regenerated:
+  `clippy_on_rust_change.sh:46-63` matches against `generated/*.rs`, but `generated/` is gitignored
+  (`.gitignore:24`) and the detector's `git ls-files --others --exclude-standard` drops ignored
+  paths — measured **0**. And `grammars/*.ebnf` is not in the pattern list at all, so a pure grammar
+  change skips clippy entirely. ⭐ The floor was held by running
+  `make -C rust generated_clippy_correctness_gate` by hand (`total=0`, `in generated/=0`, 10+1
+  artifacts); the defect is that nothing would have prompted it.
+
+
 ## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0159 (leaf GRAMMAR-WELLFORMED.H.17.2 CLOSED — an uncompilable regex terminal is now a HARD `--lint-grammar` error class; CODE / engine-universal, ZERO grammar bytes, ZERO codegen bytes, ZERO generated bytes)
 
 - ✅ **THE RESULT.** `--lint-grammar` gains `uncompilable_regex_terminals` as an **error** class, on
