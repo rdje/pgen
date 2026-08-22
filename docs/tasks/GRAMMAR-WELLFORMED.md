@@ -2658,10 +2658,53 @@ certification = static checks (mostly already green off-SV) + the per-grammar G.
 - `H.3` — a new grammar is "done" only when it is fully certified (add to the per-grammar gate). The
   universal closure bar already in `LIVE_ACHIEVEMENT_STATUS.md` is extended with "fully certified".
 
+### `H.15` — **THREE GRAMMARS HAVE NO CERTIFICATE COVERAGE AT ALL, AND THEY ARE THE UNMET HALF OF A DIRECTOR ACTIVATION GATE** (`todo`, opened 2026-08-22 session #254 by `SV-CORPUS-GRAD.13c.2x.9`(c1))
+
+- ⛔⛔ **WHY THIS IS NOW URGENT RATHER THAN TIDY.** `SVPP-EXPANSION` is `proposed` behind an explicit,
+  MEASURABLE director activation gate (2026-06-08): *"sequenced strictly AFTER the locked program
+  (every existing parser cert-coverage **WIRED** + **clean** + `UNKNOWN`=0)."* On 2026-08-22
+  `SV-CORPUS-GRAD.13c.2x.9`(c1) took SystemVerilog — the last family carrying `UNKNOWN > 0` — to
+  `UNKNOWN=0`, so the **clean** conjunct is met across every family that can be measured. **WIRED is
+  a separate conjunct and it is NOT met.** `SV-CORPUS-GRAD.13` prices the expansion at **5 539 corpus
+  rows = 33.9 %** of the SV denominator, so this leaf is what stands between that measurement and the
+  gate.
+- ⛔ **MEASURED, by name, not inferred** — `ast_pipeline grammars/<g>.ebnf
+  --report-certificate-coverage --count 40 --seed 0` refuses on each of the three:
+
+  ```text
+  Error: certificate-coverage: no generated parser is registered for grammar 'ebnf' —
+    cannot verify reachability witnesses through a real parser (Phase …)
+  ```
+
+  | grammar | `parse_and_cover` registered? | cert measurable? |
+  |---|---|---|
+  | `ebnf` | **no** | **no** |
+  | `return_annotation` | **no** | **no** |
+  | `semantic_annotation` | **no** | **no** |
+  | `json`, `regex`, `vhdl`, `systemverilog_preprocessor`, `rtl_frontend`, `rtl_const_expr`, `systemverilog` | yes | yes, and every one reads `UNKNOWN=0` |
+
+- ⭐ **PHASE H'S OWN SCOPE NOTE NEVER NAMED THEM.** `H.1`/`H.2` enumerate *"vhdl / svpp / rtl_* /
+  json"* and the frontier row reads *"all SHIPPED grammars wired"* — which is true, and is exactly
+  how three families ended up outside the sentence. They are not shipped parser families in the
+  delivery sense, but they ARE in the `done_bar_family_register` roster with live `claimed_status`
+  rows, and the director's gate says *every existing parser*, not *every shipped parser*.
+- **WHAT THIS LEAF OWES**: (a) establish, per grammar, whether a generated parser exists under that
+  grammar's own name at all — `return_annotation`/`semantic_annotation` are generated as a PAIR and
+  `ebnf` is the bootstrap seed, so the answer may be *"registered under a different key"* rather than
+  *"absent"*, and those are different fixes; (b) wire `parse_and_cover_<grammar>` for each the way
+  `H.1`/`H.2` did for regex and vhdl (registry fn + entry field; the G.4.6 coverage instrumentation
+  is emitted UNCONDITIONALLY by codegen, so no codegen change should be needed); (c) run the coverage
+  and record the tuple per grammar; (d) ⛔ **only then** may anyone state that the `SVPP-EXPANSION`
+  activation gate is met — and (d) is the point of the leaf, not (b).
+- ⚠️ **BOUND**: this leaf does NOT pivot to `SVPP-EXPANSION`. The gate is the director's and stays
+  the director's; this closes the half of it that is engineering.
+
+
 ## Current Frontier
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
+| 1 | `GRAMMAR-WELLFORMED.H.15` (wire cert-coverage for `ebnf` / `return_annotation` / `semantic_annotation`) | **`todo`** (opened 2026-08-22 by `SV-CORPUS-GRAD.13c.2x.9`(c1)) | The **WIRED** conjunct of the `SVPP-EXPANSION` activation gate. SV reached `UNKNOWN=0` on 2026-08-22 so **clean** is met everywhere measurable; these three cannot be measured at all, and `SV-CORPUS-GRAD.13` prices the expansion at 33.9 % of the SV corpus denominator. |
 | 1 | `GRAMMAR-WELLFORMED.H.12.8.3` (close the 3 canonical reach-gaps → SV `fully_certified` via the union) | `active` (`.8.3.1` ✅ `-0146` CODE; `.8.3.2` remaining) | The **director-reaffirmed literal-`UNKNOWN=0` goal** (chosen over the parked `.8.5` accounting lane). After `.8.3.1`: canonical `UNKNOWN 22 → 20`, sound 4-config union `3 → 1`; ONE reach-gap (`context_member_method_call`) remains between SV and `fully_certified`. |
 | 1 | `GRAMMAR-WELLFORMED.H.12.8.3.1` (close the 2 `…scoped_call…` cousins — branch-1 longest-match grammar-gate) | `done` (`PGEN-GRAMMAR-WELLFORMED-0146`, CODE / released-SV; release `1.0.151`, ledger `SV-0013`, schema `6`) | Tool-proven via `--trace-rules class_scoped_call_prefix`: branch 1 `scoped_class_scoped_call_prefix_identifier` (gated only `lacks_class`) longest-matched `IF::m`/`T::m` as `<pkg>::<class>` (14 bytes) and shadowed cousins #3/#4 (5 bytes); added AND-stacked `lacks(interface_class)`+`lacks(type_parameter)` ⇒ both witness via `class_scoped_tf_call`. Canonical `22 → 20`, union `3 → 1` (residual = `context_member_method_call`), deterministic seeds 0/7/42, `spf=0`; 6 fully-certified grammars byte-identical; SV corpus 14/14; `cargo test --lib` 739/0; clippy source-clean. Detail: [GRAMMAR-WELLFORMED-H12831-scoped-call-cousins-grammar-gate.md](GRAMMAR-WELLFORMED-H12831-scoped-call-cousins-grammar-gate.md). |
 | 2 | `GRAMMAR-WELLFORMED.H.12.8.3.2` (close `context_member_method_call` — store-gated declaration-hosting carrier) | **`done`** (delivered by tree `STRUCTURED-WITNESS-SYNTH` leaves `.3`/`.4`, `PGEN-STRUCTURED-WITNESS-SYNTH-0004`/`-0005`, 2026-07-22) | ⭐ CLOSED: the dedicated structured-witness COMPOSITION pass `generate_structured_witnesses` (PASS 3f — the `.4b.18`/`.4b.19` proven parts composed into ONE plan: pass-scoped dotted-emit producer admission with lexical-terminator-preserving name resolution + typed-branch forcing on the prelude sub-path + the consumer head-leaf pin + target-own directives; parser sole judge) witnessed the rule — canonical `UNKNOWN 12→11`, union `1→0`, residual `[]`, seeds 0/7/42, `spf=0` ⇒ **SV recognized `fully_certified`** (`sv_cert_recognized_union_gate` green at the re-baselined contract). |
