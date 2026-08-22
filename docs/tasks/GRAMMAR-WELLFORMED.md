@@ -2935,6 +2935,16 @@ one command, and it is the reason this gap read as a missing subsystem for two m
 - **WHY**: `H.15` wired cert-coverage for `ebnf` / `return_annotation` / `semantic_annotation` and the
   first measurement is `UNKNOWN` **35 / 2 / 34**. The director's `SVPP-EXPANSION` activation gate
   needs `UNKNOWN=0` on *every existing parser*; these three are what now stands in the way.
+- ⛔⛔ **AND `UNKNOWN=0` IS NOT A COMPLETENESS CLAIM ABOUT THE LANGUAGE — MEASURED BY `H.16.6`
+  (`-0168`), and it QUALIFIES THE GATE THIS LEAF SERVES.** Certificate coverage answers *"can this
+  rule fire at all?"*, not *"does the parser accept everything the grammar licenses?"*.
+  `semantic_annotation`'s `map_entry` is **WITNESSED** — a string-keyed sample reaches it and commits,
+  so it has never been `UNKNOWN` and never will be — and `@type: {1 => 2}` is **REJECTED**, because
+  `=>` is both the map arrow and `implication_expr`'s operator. ⇒ a family can reach `UNKNOWN=0` and
+  still be wrong about its own language, and **no amount of witness work moves a defect of that
+  class**. ⚠️ This is a fact about the gate's METRIC, not an argument against the gate: the
+  `UNKNOWN=0` conjunct stays exactly as binding as the director set it. It is recorded here, at the
+  gate's home, so nobody reads a future `UNKNOWN=0` as *"this family is done"*. → `H.16.6` / `H.16.6a`.
 - **THE SHAPE OF THE RESIDUAL — 64 of 71 are dead-rule candidates, not reach gaps.** The pass reports
   `WARNING plannable-rule reach pass: N UNKNOWN rules have NO reach path from the entry (dead-rule
   candidates — adjudicate via the linter)` for 31 of `ebnf`'s 35, 31 of `semantic_annotation`'s 34,
