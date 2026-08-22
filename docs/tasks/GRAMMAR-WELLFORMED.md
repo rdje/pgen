@@ -3423,17 +3423,138 @@ each proven with an ACCEPTING control:
   surface changed (the accepted LANGUAGE is untouched; only which samples the generator emits), and
   the `ebnf` grammar itself is unmodified.
 
-### `H.16.4` — **`ebnf`'s `whitespace` RULE IS LAYOUT-SKIPPED BEFORE `grammar_file` IS OFFERED THE BYTES** (`todo`, opened 2026-08-22 session #257 by `H.16.1`)
+### `H.16.4` — **`ebnf`'s `whitespace` RULE IS LAYOUT-SKIPPED BEFORE `grammar_file` IS OFFERED THE BYTES** (**`done`** — ADJUDICATED, `PGEN-GRAMMAR-WELLFORMED-0167`, doc+artifact tier — opened 2026-08-22 session #257 by `H.16.1`, CLOSED same session; the CAPABILITY it needs is routed to `H.16.4a`)
 
-- **WHY**: measured, not hypothesised (the hypothesis `H.16` warned against inheriting is now
-  discharged). `--interpret-parse` on an input of 4 spaces ⇒ `accepted=true furthest_position=0`,
-  typed AST `{"elements": [], "type": "grammar_file"}` **span 0..0** — the `*` matched ZERO iterations.
-- ⭐ **`comment` IS in the same alternation and IS witnessed**, so this is not "the alternation never
-  fires" — it is specific to whitespace, and the two must be explained together before either is
-  called a defect or a design fact.
-- **THE ADJUDICATION IS THE WORK**: either the rule is redundant with engine layout (⇒ a `proof`, and
-  the grammar should say so) or the engine is stealing a span the grammar structurally owns (⇒ the
-  `H.11.5` family of defect). ⛔ Do not delete it to reach `UNKNOWN=0`.
+- **WHY**: `grammar_file := (include_directive | semantic_annotation | grammar_rule | comment |
+  whitespace)*` and `whitespace := /(\s+)/`, yet the rule can never be witnessed.
+
+#### ✅ ADJUDICATED — the engine guards every COMMENT arm against the active token and does not guard the WHITESPACE skip
+
+- ⭐⭐ **THE ASYMMETRY IS IN THE EMITTED SOURCE, AND IT EXPLAINS WHY `comment` IS WITNESSED AND
+  `whitespace` IS NOT — the two sit in the SAME alternation.** `generated/ebnf.rs`
+  `consume_layout_for_regex`:
+  ```rust
+  loop {
+      let before = self.position;
+      self.consume_optional_whitespace();                        // <- UNCONDITIONAL. No guard.
+      …
+      if bytes[self.position] == b'#' {
+          if self.regex_token_matches_at_cursor(pattern) { break; }   // <- GUARDED (H.11.3)
+          … skip to EOL …
+      }
+      if bytes[self.position] == b'/' && bytes[self.position+1] == b'/' {
+          if self.regex_token_matches_at_cursor(pattern) { break; }   // <- GUARDED
+  ```
+  Every comment arm asks *"would the token I am about to match consume these bytes itself?"* before
+  eating them. **The whitespace skip never asks.** ⇒ `comment`'s branch survives because its own first
+  terminal is a comment introducer and the dynamic guard protects it; `whitespace`'s cannot, because
+  the bytes are gone before any guard is consulted. ⭐ **Third instance of this family in one session**
+  (`H.17` an uncompilable terminal, `H.16.2` an unguarded comment introducer, this) — each time the
+  layout machinery protects exactly the arm someone remembered to protect.
+- **MEASURED, not inferred** — `--interpret-parse` on an input of 4 spaces:
+  `accepted=true furthest_position=0`, typed AST `{"elements": [], "type": "grammar_file"}` **span
+  0..0**. The `*` matched **ZERO** iterations; the trailing-layout skip consumed everything.
+
+#### ⛔⛔ THE DECLARATIVE FIX EXISTS, WAS TRIED, AND IS **REFUTED** BY A CONTROL — over a CLOSED facet matrix
+
+`@whitespace_sensitive:` (`semantic_runtime::compile_layout_sensitivity`) is the declarative tier, and
+a sibling grammar already ships the exact shape: **`grammars/systemverilog_preprocessor.ebnf:23`
+declares `@whitespace_sensitive: { regex_tokens: true }`, its `space_or_tab := /[ \t]+/` IS witnessed,
+and that family reads `74/0/74/0 fully_certified=true`.** So the precedent said this was a one-line
+lookup, exactly like `-0161`'s.
+
+**It is not.** Every facet was measured on `grammars/ebnf.ebnf` through `--interpret-parse` (which
+mirrors codegen's layout skipping byte-for-byte, `PARSE-HARNESS.5.2`, so **no regeneration was
+needed**), against two arms — does the target rule commit, and does the meta-parser still read a REAL
+shipped grammar file:
+
+| `@whitespace_sensitive:` | `whitespace` commits? | `grammars/json.ebnf` still parses? |
+|---|---|---|
+| *(none — the shipped baseline)* | no | **yes** |
+| `{ regex_tokens: true }` | **YES** (AST `elements:[{"content":"    ","type":"whitespace"}]`, span 0..4) | **no** |
+| `{ terminals: true }` | no | **no** |
+| `{ trailing: true }` | no — and it makes it WORSE (`accepted=false`, the ws-only input no longer parses at all) | **no** |
+| `true` (all three facets) | **YES** | **no** |
+
+⭐ **The population is CLOSED — three boolean facets, all four meaningful settings tried — and NO
+setting satisfies both arms.** Two of the four witness the rule; **all four break `json.ebnf`.**
+
+- **WHY the precedent does not transfer, stated as a property rather than a shrug**: the directive is
+  **GRAMMAR-WIDE**, and it disables layout skipping before *every* regex terminal in the grammar.
+  `systemverilog_preprocessor` can afford that because a preprocessor grammar structurally owns ALL of
+  its whitespace. `ebnf.ebnf` cannot: `rule_name := /([a-zA-Z_][a-zA-Z0-9_]*)/` and its other regex
+  terminals RELY on preceding layout being skipped, which is why a real grammar file stops parsing.
+- ⛔ **AND THE GRAMMAR TIER HAS NO MOVE EITHER.** The skip runs before any terminal match, so no
+  spelling of `whitespace` avoids it; the only grammar-tier "fixes" are deleting the rule from the
+  alternation (forbidden by this tree) or anchoring it on a non-whitespace byte (a different language).
+  ⇒ declarative REFUTED by measurement · grammar tier empty · **the remaining tier needs a capability
+  that does not exist** → `H.16.4a`.
+- **DISPOSITION UNTIL THEN — a NAMED residual class, not an unexplained `UNKNOWN`.** `whitespace` is
+  **not** a dead rule (it is referenced, and it has a reach path from the entry) and **not** a reach
+  gap (the planner routes to it and the sample parses). It is **layout-shadowed**: provably never
+  witnessable while the engine owns layout, which makes it a candidate for a `proof` certificate
+  rather than a witness → the same machinery `H.16.5` owns. ⚠️ It is deliberately left `UNKNOWN` here
+  rather than promoted, because promoting it before `H.16.4a` rules would record a fixable defect as a
+  design fact — the exact error `H.16`'s own re-pricing note warns against.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `PGEN_CERT_COVERAGE_DEBUG_PROBES=1 … --report-certificate-coverage` on
+  `grammars/ebnf.ebnf` prints `[plannable-probe] rule='whitespace' parsed=true
+  witnessed_target=false sample="    "` ×4. `parsed=true` with `witnessed_target=false` is the
+  reach/routing signature, not a malformed sample: the probe IS four spaces and the parser accepts it.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `consume_layout_for_regex` in the emitted parser
+  (`generated/ebnf.rs`), whose `self.consume_optional_whitespace()` runs UNCONDITIONALLY at the head
+  of the loop while every comment arm below it is gated on `regex_token_matches_at_cursor(pattern)`.
+  WHY it is not the planner (TOOLBOX 4.4's standing warning): `--interpret-parse` on 4 spaces returns
+  `accepted=true furthest_position=0` with typed AST `elements: []` and span **0..0** — the
+  alternation ran ZERO iterations, so nothing was routed anywhere; the bytes were gone first. Control:
+  `"  \nX := \"a\"\n"` likewise yields only a `grammar_rule` element and no `whitespace` node.
+- [x] **ADDRESSED (verified)** — this leaf's deliverable is the ADJUDICATION, and it is complete and
+  CLOSED: the declarative tier is identified, the sibling precedent is named
+  (`systemverilog_preprocessor.ebnf:23`), and **all four settings of the three-facet directive are
+  measured against a two-arm control**, with the result that none satisfies both arms — `{
+  regex_tokens: true }` and `true` witness the rule and break `grammars/json.ebnf`; `{ terminals: true
+  }` and `{ trailing: true }` break it without even witnessing. Before → after on this leaf's own
+  metric: `whitespace` goes from *an unexplained `UNKNOWN` carrying an unmeasured hypothesis* to *a
+  named residual class (**layout-shadowed**) with a measured refutation of the obvious fix and an
+  owning leaf for the capability it needs*. ⛔ **ZERO grammar bytes, ZERO Rust bytes, ZERO codegen
+  bytes, ZERO generated bytes** — no `UNKNOWN` moved and none is claimed to have.
+- [x] **NO REGRESSION** — doc+artifact tier, so the parser surface is inert BY CONSTRUCTION; the
+  facet matrix was measured on a **scratch copy** (`rust/target/h16/ebnf_ws.ebnf`, untracked) and
+  `grammars/ebnf.ebnf` is byte-unmodified. Re-verified at HEAD after the slice: `ebnf`
+  `144/0/112/32 spf=4`, `return_annotation` `35/0/33/2`, `semantic_annotation` `115/0/84/31`, all
+  byte-identical to the previous slice's readings; `scripts/check_doctrines.sh` 25/25.
+- [x] **LOCKSTEP** — this leaf + `H.16.4a` + the Current Frontier + `docs/TASK_TREE.md`; `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`. Book: N/A — nothing user-facing changed and no book claim is
+  falsified; the layout-guard asymmetry becomes book material when `H.16.4a` lands a fix.
+
+### `H.16.4a` — **`@whitespace_sensitive` IS GRAMMAR-WIDE; THE PROPERTY A LAYOUT-OWNING RULE NEEDS IS PER-TERMINAL** (`todo`, opened 2026-08-22 session #257 by `H.16.4`)
+
+- **WHY**: proven by the closed facet matrix in `H.16.4` — a grammar cannot say *"this ONE rule owns
+  its whitespace"*, only *"no regex terminal in this grammar gets layout skipped"*. For `ebnf.ebnf`
+  the first is exactly right and the second demonstrably breaks reading `grammars/json.ebnf`.
+- **THE SHAPE IS ALREADY IN THE ENGINE, ONE ARM OVER.** `consume_layout_for_regex`'s comment arms are
+  each gated on `regex_token_matches_at_cursor(pattern)` — *"would the token I am about to match
+  consume these bytes itself?"*. The whitespace skip needs the same question, and the predicate for
+  asking it SAFELY already exists: `AstBasedGenerator::hir_matches_only_whitespace`, landed by
+  `H.16.2`. ⇒ guard `consume_optional_whitespace()` when the active token's pattern is provably
+  whitespace-only, so a rule like `whitespace := /(\s+)/` keeps its bytes and every other terminal is
+  untouched.
+- ⚠️ **PRICE THE BLAST RADIUS BEFORE BUILDING, and the census is already taken** (`H.16.4`): **112**
+  whitespace-only regex terminal sites across the grammars, but the overwhelming majority are `/\s*/`
+  SEPARATORS which take `consume_layout_for_regex`'s `can_match_empty` early return and are NOT
+  affected. The exposed class is the non-empty-matching ones: `ebnf` `whitespace`,
+  `semantic_annotation` `whitespace` / `precedence_value` / `constraint_value`,
+  `systemverilog_preprocessor` `space_or_tab` (already covered by its own declaration), and the two
+  `systemverilog_lrm_profiled_*` `white_space` (not shipped families). ⛔ Re-derive this rather than
+  inheriting it — the census was produced by a REGEX over grammar text, whereas the engine's own
+  authority is the HIR walk.
+- **AND IT DECIDES A CLASSIFICATION, NOT JUST A RULE.** If the guard lands, `whitespace` is witnessed
+  and `ebnf` drops to `UNKNOWN=31`. If it is refused, `whitespace` is provably never witnessable and
+  belongs in `H.16.5`'s `proof`-promotion population as a **layout-shadowed** residual. ⛔ Do not
+  promote it before this leaf rules — recording a fixable defect as a design fact is precisely what
+  `H.16`'s re-pricing note exists to prevent.
 
 ### `H.16.5` — **55 SOURCE ORPHANS AND 9 LR RESIDUE: PROOF-PROMOTION IS GATED OFF FOR EVERY PROFILE-LESS GRAMMAR** (`todo`, opened 2026-08-22 session #257 by `H.16.1`)
 
@@ -4190,7 +4311,8 @@ each proven with an ACCEPTING control:
 | 1 | `GRAMMAR-WELLFORMED.H.16.6` (`{1 => 2}` rejected while `{1 => "b"}` and `{"a" => 1}` both parse) | **`todo`** (opened 2026-08-22 by `H.16.2`) | Found by ATTRIBUTING the seed-7 `spf` sample instead of waving it through, and **proven pre-existing** on the pre-fix binary. ⭐ The minimal reproducer is sharper than the sample: only a numeric key AND a numeric value together fail. ⚠️ `map_entry` is already WITNESSED, so `UNKNOWN` will not move — **a witnessed rule can still reject inputs its grammar licenses** |
 | 3 | `GRAMMAR-WELLFORMED.H.16.2b` (the DYNAMIC comment-skip guard is still an exact-equality allowlist) | **`todo`** (opened 2026-08-22 by `H.16.2`) | Prophylactic hardening of a proven class, deliberately NOT ridden along inside `H.16.2`: the prefix test edits the emitted layout skipper of EVERY arm-emitting parser (repo-wide rebaseline) versus `H.16.2`'s measured one-artifact radius. No live victim known. Also owes the 10 unprobed sites of the 11-site class census |
 | — | `GRAMMAR-WELLFORMED.H.16.3` (the generator shadows any rule named `epsilon` with `""`) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0166`, CODE / engine-universal stimuli generator) | ✅ A DEFINED rule now wins; the builtin is gated on `!grammar_tree.contains_key("epsilon")`, preserving both existing callers exactly (their grammars leave `epsilon` UNDEFINED). `ebnf` cert `144/0/111/33` → **`144/0/112/32`** with `spf` falling at EVERY seed (**8→4 · 11→5 · 7→3**), both arms measured on the same binary path; delta ATTRIBUTED BY NAME (exactly `epsilon` left, nothing newly UNKNOWN). ⭐ ZERO generated-parser bytes move — the rebaselined reproducibility file shows every `parser_sha` unchanged across all 11 artifacts |
-| 2 | `GRAMMAR-WELLFORMED.H.16.4` (`ebnf`'s `whitespace` is layout-skipped before `grammar_file` sees it) | **`todo`** (opened 2026-08-22 by `H.16.1`) | MEASURED, not hypothesised: 4 spaces ⇒ `accepted=true furthest_position=0`, typed AST `elements=[]` span 0..0 — the `*` matched ZERO iterations. ⭐ `comment` sits in the SAME alternation and IS witnessed, so the two must be explained together |
+| — | `GRAMMAR-WELLFORMED.H.16.4` (`ebnf`'s `whitespace` is layout-skipped before `grammar_file` sees it) | **`done`** — ADJUDICATED (`PGEN-GRAMMAR-WELLFORMED-0167`, doc+artifact tier) | ✅ Root cause is an ASYMMETRY in the emitted layout skipper: every COMMENT arm is gated on `regex_token_matches_at_cursor(pattern)`, the whitespace skip is not — which is why `comment` is witnessed and `whitespace`, in the SAME alternation, is not. ⛔⛔ The declarative tier EXISTS (`@whitespace_sensitive`, and `systemverilog_preprocessor.ebnf:23` ships the exact shape) and is **REFUTED by a closed facet matrix**: all four settings break `grammars/json.ebnf`, and only two of them even witness the rule. Named a **layout-shadowed** residual; the capability is `H.16.4a` |
+| 2 | `GRAMMAR-WELLFORMED.H.16.4a` (`@whitespace_sensitive` is grammar-wide; the property needed is per-terminal) | **`todo`** (opened 2026-08-22 by `H.16.4`) | The guard shape is already in the engine one arm over, and `H.16.2`'s `hir_matches_only_whitespace` is exactly the predicate that makes it safe. Decides a CLASSIFICATION, not just a rule: guard lands ⇒ `ebnf` `UNKNOWN=31`; guard refused ⇒ `whitespace` joins `H.16.5`'s `proof`-promotion population |
 | 3 | `GRAMMAR-WELLFORMED.H.16.5` (55 source orphans + 9 LR residue; proof-promotion is gated off for profile-less grammars) | **`todo`** (opened 2026-08-22 by `H.16.1`) | The certifying mechanism EXISTS (`VERILOG-2005-PROFILE.6.7`) and cannot reach them: `main.rs:3380` gates P1/P2 promotion on `profile.is_some()`, and all three families are `profiles=[]`. ⛔ Carries a DIRECTOR-FACING call — `ebnf.ebnf` labels 13 island roots `(extension)` in its own comments, so wiring them is a LANGUAGE EXPANSION. Also carries leg 3 for `H.16.1` |
 | — | `GRAMMAR-WELLFORMED.H.16.1` (adjudicate the 68) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0164`, doc+artifact tier) | ✅ **68 = 9 LR-residue + 55 source-orphans + 4 root-caused inert rules**, in **31 islands**, partition CLOSED (zero rules unattributed). ⛔ `--lint-grammar` could never have adjudicated this — it reads `unreachable_rules=0` on all three BY CONSTRUCTION. New reader: `docs/tasks/artifacts/grammar_wellformed/residual_island_census/probe.py`, proven to go RED three ways. Residual-rules-with-no-owning-leaf **68 → 0** |
 | — | `GRAMMAR-WELLFORMED.H.16` (roll `ebnf` / `return_annotation` / `semantic_annotation` to `UNKNOWN=0`) | **`in_progress`** (adjudicated by `H.16.1`; work routed to `H.16.2`–`H.16.5`) | The **clean** conjunct, and now the only engineering half of the `SVPP-EXPANSION` gate left. `H.15` made the three measurable and they read `UNKNOWN` **35 / 2 / 34** = **71**, of which **64 are dead-rule candidates** (no reach path from the entry) ⇒ a `--lint-grammar` adjudication lane, not a witness-generation lane. Lanes cost 0.06–0.38 s and are seed-invariant. |

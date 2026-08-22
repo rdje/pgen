@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0167 — the precedent said one line; the measurement said no
+
+**1. A SIBLING GRAMMAR SHIPPING THE EXACT SHAPE IS A LEAD, NOT A VERDICT.** Two slices earlier the
+lesson was *"search your own repository before designing — `regex.ebnf` had already solved it eleven
+times"*. That lesson fired correctly here: `systemverilog_preprocessor.ebnf:23` declares
+`@whitespace_sensitive: { regex_tokens: true }`, its whitespace terminal IS witnessed, and its family
+is `fully_certified=true`. Same shape, same problem, one declarative line. ⛔ **And it does not
+transfer.** Applying it to `ebnf.ebnf` witnesses the target rule *and* stops the meta-parser reading
+`grammars/json.ebnf`. A precedent tells you what to TRY; only a control tells you whether it works.
+
+**2. WHEN A DIRECTIVE HAS FACETS, MEASURE THE FACETS — the population is small and closing it is
+cheap.** Three booleans, four meaningful settings. Running all four against a two-arm control (does
+the target commit / does a real input still parse) took minutes and turned *"this probably regresses"*
+into **no setting satisfies both arms, and two of the four do not even witness the rule**. ⭐ A closed
+matrix is a refutation; a spot check is an opinion. It also produced the *reason*: the directive is
+grammar-wide, and the property needed is per-terminal — which is the actual finding and the thing the
+follow-up leaf can act on.
+
+**3. THE INTERPRETER MADE THE WHOLE EXPERIMENT FREE.** `--interpret-parse` reads a `.ebnf` directly
+and mirrors codegen's layout skipping byte-for-byte (`PARSE-HARNESS.5.2`), so four grammar variants
+were evaluated on a scratch copy with **no regeneration, no rustc, no registry edit** — and
+`grammars/ebnf.ebnf` was never modified. ⭐ When an experiment needs N variants of a grammar, the cost
+of the answer is a property of the tool you reach for, and reaching for codegen first would have
+turned a minutes-long question into an hours-long one.
+
+**4. "IT CANNOT BE WITNESSED" IS A CLASSIFICATION, AND THE HONEST ONE HERE IS A NEW NAME.**
+`whitespace` is not a dead rule (it is referenced and has a reach path) and not a reach gap (the
+planner routes to it and its sample parses). Neither existing bucket fits, so it gets a name —
+**layout-shadowed** — and a disposition: a `proof`-certificate candidate rather than a witness. ⛔ It
+is deliberately NOT promoted yet, because promoting it while a plausible fix is un-adjudicated would
+record a fixable defect as a design fact. That is the same error this tree's own re-pricing note
+warned about three slices ago, in the opposite direction.
+
+**5. THE ASYMMETRY WAS VISIBLE IN THE EMITTED SOURCE ALL ALONG, AND THE QUESTION IS WHAT MADE IT
+FINDABLE.** `consume_layout_for_regex` guards every comment arm on `regex_token_matches_at_cursor` and
+leaves `consume_optional_whitespace()` unguarded, twelve lines apart in the same function. What made
+it findable was not reading the function — it was having a paired case: `comment` and `whitespace` in
+the SAME alternation, one witnessed and one not. ⭐ **A defect with a sibling that behaves correctly is
+far cheaper to diagnose than one without.** Look for the working neighbour before reading the code.
+
 ## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0166 — a builtin keyed on a NAME will shadow a real definition
 
 **1. A BUILTIN THAT DISPATCHES ON A RULE'S NAME IS A RESERVED WORD NOBODY DECLARED.** `generate_rule`
