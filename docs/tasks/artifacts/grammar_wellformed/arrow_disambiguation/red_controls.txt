@@ -1,0 +1,13 @@
+### RED CONTROL — an AST-shape-only edit (map_entry retyped) at --entry=annotation_value
+AST-IDENTITY-SWEEP: arm=arm_red_astshape.ebnf control=arm0_pristine.ebnf entry=annotation_value inputs=1211 accepted_by_both=1156 ast_byte_identical=1149 ast_moved=7
+  AST MOVED [probes] {"a" => "b"}
+  AST MOVED [probes] {1 => "b"}
+  AST MOVED [probes] {"a" => 1}
+  AST MOVED [probes] {"a" => "b", "c" => "d"}
+  AST MOVED [stimuli] {   PJv    ?[  ]=>    M    }
+  AST MOVED [stimuli] { BJI .    Vab  .O_l5    (    )=>    #{      },    -757.56e+883    =>    (    )  =>../]&}  }
+  AST MOVED [stimuli] { Cv1  (   )    =>    { tMe:   [      ]   , i    ,m28r,  l7Po    , j1Ku_   }, ok(    )=>#{    }}
+(exit code of that run: 1 — nonzero = the instrument FIRED, which is what a control must be able to do)
+
+### RED CONTROL — the SAME edit at the DEFAULT entry: the sweep is VACUOUS there
+AST-IDENTITY-SWEEP: arm=arm_red_astshape.ebnf control=arm0_pristine.ebnf entry=<default> inputs=1211 accepted_by_both=1156 ast_byte_identical=1156 ast_moved=0

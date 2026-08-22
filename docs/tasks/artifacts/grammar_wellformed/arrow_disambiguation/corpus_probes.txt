@@ -1,0 +1,62 @@
+@type: {"a" => "b"}
+@type: {1 => 2}
+@type: {1 => "b"}
+@type: {"a" => 1}
+@type: {a => b}
+@type: {[a] => b}
+@type: {(a) => b}
+@type: {(a, b) => c}
+@type: {true => false}
+@type: {(Foo) => Bar}
+@type: {Foo => Bar}
+@type: {null => null}
+@type: {1 => 2, 3 => 4}
+@type: {"a" => "b", "c" => "d"}
+@type: {1 => 2, "c" => "d"}
+@type: {}
+@type: { }
+@type: 1 => 2
+@type: a => b
+@type: [a] => b
+@type: (a) => b
+@type: (a, b) => c
+@type: true => false
+@type: (Foo) => Bar
+@type: Foo => Bar
+@type: "a" => "b"
+@type: 1 => "b"
+@type: "a" => 1
+@type: [1 => 2]
+@type: [1 => 2, 3]
+@type: [a => b]
+@type: [(a) => b]
+@type: {x: 1 => 2}
+@type: {x: a => b}
+@type: f(1 => 2)
+@type: f(a => b)
+@type: f(1 => 2, 3)
+@type: #{1 => 2}
+@type: #{a => b}
+@type: (1 => 2)
+@type: {{1 => 2} => 3}
+@type: {1 => {2 => 3}}
+@type: {"a" => {1 => 2}}
+@type: {"a" =>> "b"}
+@type: {1 =>> 2}
+@type: {a =>> b}
+@type: {1 =>> 2, 3 =>> 4}
+@type: 1 ==> 2
+@type: a ==> b
+@type: {1 ==> 2}
+@type: [1 ==> 2]
+@type: 1
+@type: "a"
+@type: [1, 2]
+@type: {x: 1}
+@type: a
+@type: Foo
+@type: (a) => (b) => c
+@type: 1 => 2 => 3
+@type: {1 => 2 ? 3 : 4}
+@type: 1 => 2 ? 3 : 4
+@type: {a => b => c}

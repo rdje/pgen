@@ -17,6 +17,30 @@ evidence: GRAMMAR-WELLFORMED.H.16.6 (`PGEN-GRAMMAR-WELLFORMED-0168`). `grammars/
 reverify: "printf '@type: {1 => 2}' > /tmp/a && printf '@type: {1 => \"b\"}' > /tmp/b && ./rust/target/debug/ast_pipeline grammars/semantic_annotation.ebnf --interpret-parse /tmp/a; ./rust/target/debug/ast_pipeline grammars/semantic_annotation.ebnf --interpret-parse /tmp/b   # rejected / accepted"
 ---
 
+> ⛔⛔ **CORRECTION — `GRAMMAR-WELLFORMED.H.16.6a` (`PGEN-GRAMMAR-WELLFORMED-0171`, 2026-08-22).**
+> The card's **headline claim stands** and is the reason it exists: a witnessed rule can still reject
+> inputs its grammar licenses. **Three supporting details below are superseded**, and the body is left
+> standing rather than rewritten so the correction is visible:
+>
+> 1. **`=>` is spelled FOUR times in THREE roles, not twice.** `map_entry:290`,
+>    `implication_expr:332`, `lambda_expression:387`+`:388`, `function_type:426`.
+> 2. **The biconditional is too narrow.** Not *"iff not a valid `implication_expr`"* but **iff not a
+>    valid `annotation_value`**. Counterexample the tables below never tested: `{[a] => b}` is
+>    rejected, and `[a] => b` is a valid `lambda_expression`, **not** an `implication_expr`. An
+>    ARROW-CENSUS over all 113 rules × 9 probes proves the partition exactly —
+>    `implication ∪ lambda ∪ function_type` = `annotation_value` = `{0,1,2,3,5,6,7,8}`, the exact
+>    complement of `map_entry`'s `{4}`.
+> 3. **"None is WIDEN-only" is REFUTED by measurement.** Six arms scored over 1 211 inputs: the
+>    map-key arms read `widen=9 narrow=0` and `widen=25 narrow=0`. The reason is structural — PEG's
+>    greedy key could never COMPLETE a `map_entry` whose key ate the arrow, so the key readings those
+>    arms remove were already unreachable. ⭐ **"This edit narrows the grammar" and "this edit narrows
+>    the accepted language" are different claims, and only the second is about behaviour.**
+>
+> ⛔ And the closing method note below — *"Kill your own findings with a control"*, illustrated with
+> the `value: ""` example — is **half wrong in its example**: that control was sound (it is not a `=>`
+> defect) but the symptom IS a defect, root-caused in `H.16.7` to `value: $6` pointing at a `/\s*/`
+> separator. See [[a-control-that-clears-your-hypothesis-has-not-cleared-the-symptom]].
+
 **Certificate coverage answers *"can this rule fire at all?"*. It does not answer *"does the parser
 accept everything the grammar licenses?"*** Those are different questions, and a family sitting at
 `UNKNOWN=0` can still be wrong about its own language.

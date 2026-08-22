@@ -1,5 +1,58 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0171 — the arm the leaf said could not exist, and the control that could not fail
+
+**1. THE LEAF PRICED THREE OPTIONS AND WARNED THAT NONE WAS WIDEN-ONLY. MEASUREMENT SAYS TWO ARE.**
+`H.16.6a` closed with an explicit instruction that the `-0161`/`H.16.2` "widen-from-∅, nothing can
+regress" argument *"does not apply here and must not be reused"*. Over 1 211 inputs, arm (a) reads
+`widen=9 narrow=0` and arm (a+) reads `widen=25 narrow=0`. The prediction was reasonable and wrong for
+a reason worth keeping: constraining a map KEY *looks* like a narrow, and structurally it is — but
+under PEG a greedy key that consumed the arrow could never COMPLETE its `map_entry`, so every reading
+the constraint removes was already unreachable. ⭐ **"This edit narrows the grammar" and "this edit
+narrows the accepted language" are different claims, and only the second one is about behaviour.**
+
+**2. THE OVERLOAD WAS THREE-WAY, NOT TWO-WAY, AND A SEVEN-PROBE BASIS HID THE THIRD.** `H.16.6` named
+`=>` as *"both the map arrow and the implication operator"*. It is four sites in four rules, and the
+third reach — `function_type := "(" … ")" "=>" type_reference` — is reachable from a map key through
+`reference_value → type_reference`. The first ARROW-CENSUS run used an all-lowercase probe basis and
+reported nothing for `function_type`; `(Foo) => Bar` (a capitalised `primitive_type`) is what surfaced
+it. ⛔ **A census over a probe basis is a FLOOR, and silence in it is not evidence.** That bound is now
+written into the script's own header, because the next reader will otherwise trust the empty row.
+
+**3. THE CONTROL THAT COULD NOT FAIL — and it took a deliberate red arm to notice.** The accept-set
+ledger is verdict-only, and TOOLBOX 5.7 is explicit that the largest transition class is a replaced
+AST SHAPE with zero verdict movement. So the slice added an AST-identity sweep, and it came back
+`1156/1156 byte-identical, ast_moved=0` — a clean, quotable, *meaningless* number. It reported the
+same `ast_moved=0` for an arm whose `map_entry` had been retyped to `map_entry_RED_CONTROL`, i.e. for
+a grammar built to move every map AST. ⭐⭐ **The number was true and the claim it supported was
+unearned**, exactly as the `ebnf_dual_run` `git stash` control was. Two rules generalise: run the red
+arm BEFORE quoting the green one, and when an instrument reports perfection on the first try, that is
+the moment to try to break it.
+
+**4. THE REASON IT COULD NOT FAIL WAS ITSELF THE BIGGEST FINDING OF THE SLICE.** The sweep was blind
+because `semantic_annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value` publishes
+`value: $6`, and `$6` is the third `/\s*/`. `$N` counts every top-level element, layout regexes
+included; the value is `$7`. So the entry AST is `{name, type, value: ""}` for **12 of 12** value
+shapes, on the SHIPPED generated parser — and the family's own book documents a populated `value` with
+a worked example. A whole family's payload has been discarded at its declared entry rule, with every
+gate green, because nothing compares a book's worked example to a parse.
+
+**5. AND `H.16.6` HAD ALREADY LOOKED STRAIGHT AT IT.** It recorded: *"a typed AST whose `value` is the
+EMPTY STRING … plain `@type: 1` yields `value: ""` too, so the empty value is this annotation shape's
+normal reporting"* — filed under a heading that says it is recorded *so it is not re-found*. The
+control was sound and its verdict stands: not a `=>` defect. The conclusion moved one step past it,
+from *"not caused by what I was testing"* to *"not a defect"*. ⭐⭐ **A control that clears your
+hypothesis has not cleared the symptom** — and a note written to prevent re-discovery is the most
+expensive place to put that mistake.
+
+**6. THE `-0170` SUB-RULE PAID FOR ITSELF WITHIN ONE SESSION.** The positional-ref scan also surfaced
+`<invalid_sequence_access>` sentinels being published into typed ASTs, which reads as a serious
+engine-universal find. `grep -rl invalid_sequence_access docs/` returns `SV-AST-SHAPE-FIDELITY.md`
+(70 mentions), `POST-SV-AUDIT.md` (14), `INLINE-ALT-FIX.md` (12) and a decision record. It is a
+well-owned class, and it went into the leaf as *already-owned, do not re-open* rather than as a
+headline. Only the always-empty-SEPARATOR variant — in range, resolvable, silently empty — is new,
+and that is a different mechanism from an out-of-range index.
+
 ## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0170 — the repository had already answered it, and one grep would have said so
 
 **1. THE ESCALATION WAS THE DEFECT, NOT THE FINDING.** Surfacing *"the meta-grammar documents 13

@@ -1,0 +1,16 @@
+scored arm0_pristine.ebnf                     accepted=1156  rejected=55    no_verdict=0
+scored arm_a_mapkey_impl.ebnf                 accepted=1165  rejected=46    no_verdict=0
+scored arm_aplus_mapkey_all.ebnf              accepted=1181  rejected=30    no_verdict=0
+scored arm_b_lookahead_impl.ebnf              accepted=1161  rejected=50    no_verdict=0
+scored arm_bplus_lookahead_all.ebnf           accepted=1144  rejected=67    no_verdict=0
+scored arm_c2_respell_impl.ebnf               accepted=1160  rejected=51    no_verdict=0
+scored arm_c_respell_map.ebnf                 accepted=1153  rejected=58    no_verdict=0
+
+ACCEPT-SET-LEDGER: arm=arm_a_mapkey_impl.ebnf widen=9 narrow=0 probes(+6/-0) real(+0/-0) stimuli(+3/-0)
+ACCEPT-SET-LEDGER: arm=arm_aplus_mapkey_all.ebnf widen=25 narrow=0 probes(+15/-0) real(+0/-0) stimuli(+10/-0)
+ACCEPT-SET-LEDGER: arm=arm_b_lookahead_impl.ebnf widen=9 narrow=4 probes(+6/-4) real(+0/-0) stimuli(+3/-0)
+ACCEPT-SET-LEDGER: arm=arm_bplus_lookahead_all.ebnf widen=24 narrow=36 probes(+15/-6) real(+0/-0) stimuli(+9/-30)
+ACCEPT-SET-LEDGER: arm=arm_c2_respell_impl.ebnf widen=13 narrow=9 probes(+10/-9) real(+0/-0) stimuli(+3/-0)
+ACCEPT-SET-LEDGER: arm=arm_c_respell_map.ebnf widen=4 narrow=7 probes(+4/-4) real(+0/-0) stimuli(+0/-3)
+
+full per-input ledger -> rust/target/h1666a/corpora/ledger.json

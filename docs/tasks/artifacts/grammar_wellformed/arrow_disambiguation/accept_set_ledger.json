@@ -1,0 +1,603 @@
+{
+  "corpora": {
+    "probes": 62,
+    "real": 149,
+    "stimuli": 1000
+  },
+  "ledger": {
+    "arm_a_mapkey_impl.ebnf": {
+      "widen": [
+        [
+          "probes",
+          "@type: {1 => 2}"
+        ],
+        [
+          "probes",
+          "@type: {1 => 2, 3 => 4}"
+        ],
+        [
+          "probes",
+          "@type: {1 => 2, \"c\" => \"d\"}"
+        ],
+        [
+          "probes",
+          "@type: {{1 => 2} => 3}"
+        ],
+        [
+          "probes",
+          "@type: {1 => {2 => 3}}"
+        ],
+        [
+          "probes",
+          "@type: {\"a\" => {1 => 2}}"
+        ],
+        [
+          "stimuli",
+          "@    access    :  { $ 8.Fmnw[973].kY8.dW    =>    $ hK[635]  }"
+        ],
+        [
+          "stimuli",
+          "@    ggI    :  {   \"\"  =>  \"ZES\\x\",  \"K\" =>   u_8 (   )   ,   lF.Cogz .    igREf   (    ) =>   nil   }"
+        ],
+        [
+          "stimuli",
+          "@ idempotent :  {    +3.67=> psnG,+.6    =>   0xFFa0  }"
+        ]
+      ],
+      "narrow": []
+    },
+    "arm_aplus_mapkey_all.ebnf": {
+      "widen": [
+        [
+          "probes",
+          "@type: {1 => 2}"
+        ],
+        [
+          "probes",
+          "@type: {a => b}"
+        ],
+        [
+          "probes",
+          "@type: {[a] => b}"
+        ],
+        [
+          "probes",
+          "@type: {(a) => b}"
+        ],
+        [
+          "probes",
+          "@type: {(a, b) => c}"
+        ],
+        [
+          "probes",
+          "@type: {true => false}"
+        ],
+        [
+          "probes",
+          "@type: {(Foo) => Bar}"
+        ],
+        [
+          "probes",
+          "@type: {Foo => Bar}"
+        ],
+        [
+          "probes",
+          "@type: {null => null}"
+        ],
+        [
+          "probes",
+          "@type: {1 => 2, 3 => 4}"
+        ],
+        [
+          "probes",
+          "@type: {1 => 2, \"c\" => \"d\"}"
+        ],
+        [
+          "probes",
+          "@type: {{1 => 2} => 3}"
+        ],
+        [
+          "probes",
+          "@type: {1 => {2 => 3}}"
+        ],
+        [
+          "probes",
+          "@type: {\"a\" => {1 => 2}}"
+        ],
+        [
+          "probes",
+          "@type: {a => b => c}"
+        ],
+        [
+          "stimuli",
+          "@    access    :  { $ 8.Fmnw[973].kY8.dW    =>    $ hK[635]  }"
+        ],
+        [
+          "stimuli",
+          "@    ggI    :  {   \"\"  =>  \"ZES\\x\",  \"K\" =>   u_8 (   )   ,   lF.Cogz .    igREf   (    ) =>   nil   }"
+        ],
+        [
+          "stimuli",
+          "@    kS   : {  $ drhy =>    [   { }   ]  ,  (     )=>   (     )  ,  {   FlK    ,K7Kct  , yUyA}   =>   (   FP  )=>    `m\\u` }"
+        ],
+        [
+          "stimuli",
+          "@   o2w5    :{   tGbDn    (    )    =>    OL  ,(      )   =>    [    ]  , $ 107[38].hhw[28].DOgi  =>true  }"
+        ],
+        [
+          "stimuli",
+          "@  abstraction   :   { 189.2  =>   { }   , \"\\y\\?\"    =>    \"F\"   , 20.370=>  r\"<f)\"  , [  ] => {wuCc    ,  D1T , EHO }  ,    {EDAK,   x    ,  Knpn   ,qcff   , Nc  }=>  [  ] }"
+        ],
+        [
+          "stimuli",
+          "@  b  :    {ly9QG => r\"J\"   , false    => /A  , (     )  =>  nil=>   null,   {   }  =>    (       )  ,IRhoE  < >   => GE   <      >?  }"
+        ],
+        [
+          "stimuli",
+          "@  thread_safe :{ r\"^GF\"=> 0o604 ,+135=>   [       ]   ,  (      )=>{  }    ,  true    =>    {R0 ,B   ,  HSV   ,  rM7j ,  yCO26}  }"
+        ],
+        [
+          "stimuli",
+          "@ idempotent :  {    +3.67=> psnG,+.6    =>   0xFFa0  }"
+        ],
+        [
+          "stimuli",
+          "@ role    :   {    (      )  =>HZ2<    >   ?    ?    []  ?    ,https://8!     =>F0   }"
+        ],
+        [
+          "stimuli",
+          "@profile  :    {    0B0111=>    (   )  =>  [       ] ,    `\\hs\\-`   =>  [        ]  ,off =>   %CW8   }"
+        ]
+      ],
+      "narrow": []
+    },
+    "arm_b_lookahead_impl.ebnf": {
+      "widen": [
+        [
+          "probes",
+          "@type: {1 => 2}"
+        ],
+        [
+          "probes",
+          "@type: {1 => 2, 3 => 4}"
+        ],
+        [
+          "probes",
+          "@type: {1 => 2, \"c\" => \"d\"}"
+        ],
+        [
+          "probes",
+          "@type: {{1 => 2} => 3}"
+        ],
+        [
+          "probes",
+          "@type: {1 => {2 => 3}}"
+        ],
+        [
+          "probes",
+          "@type: {\"a\" => {1 => 2}}"
+        ],
+        [
+          "stimuli",
+          "@    access    :  { $ 8.Fmnw[973].kY8.dW    =>    $ hK[635]  }"
+        ],
+        [
+          "stimuli",
+          "@    ggI    :  {   \"\"  =>  \"ZES\\x\",  \"K\" =>   u_8 (   )   ,   lF.Cogz .    igREf   (    ) =>   nil   }"
+        ],
+        [
+          "stimuli",
+          "@ idempotent :  {    +3.67=> psnG,+.6    =>   0xFFa0  }"
+        ]
+      ],
+      "narrow": [
+        [
+          "probes",
+          "@type: [1 => 2, 3]"
+        ],
+        [
+          "probes",
+          "@type: {x: 1 => 2}"
+        ],
+        [
+          "probes",
+          "@type: f(1 => 2, 3)"
+        ],
+        [
+          "probes",
+          "@type: #{1 => 2}"
+        ]
+      ]
+    },
+    "arm_bplus_lookahead_all.ebnf": {
+      "widen": [
+        [
+          "probes",
+          "@type: {1 => 2}"
+        ],
+        [
+          "probes",
+          "@type: {a => b}"
+        ],
+        [
+          "probes",
+          "@type: {[a] => b}"
+        ],
+        [
+          "probes",
+          "@type: {(a) => b}"
+        ],
+        [
+          "probes",
+          "@type: {(a, b) => c}"
+        ],
+        [
+          "probes",
+          "@type: {true => false}"
+        ],
+        [
+          "probes",
+          "@type: {(Foo) => Bar}"
+        ],
+        [
+          "probes",
+          "@type: {Foo => Bar}"
+        ],
+        [
+          "probes",
+          "@type: {null => null}"
+        ],
+        [
+          "probes",
+          "@type: {1 => 2, 3 => 4}"
+        ],
+        [
+          "probes",
+          "@type: {1 => 2, \"c\" => \"d\"}"
+        ],
+        [
+          "probes",
+          "@type: {{1 => 2} => 3}"
+        ],
+        [
+          "probes",
+          "@type: {1 => {2 => 3}}"
+        ],
+        [
+          "probes",
+          "@type: {\"a\" => {1 => 2}}"
+        ],
+        [
+          "probes",
+          "@type: {a => b => c}"
+        ],
+        [
+          "stimuli",
+          "@    access    :  { $ 8.Fmnw[973].kY8.dW    =>    $ hK[635]  }"
+        ],
+        [
+          "stimuli",
+          "@    ggI    :  {   \"\"  =>  \"ZES\\x\",  \"K\" =>   u_8 (   )   ,   lF.Cogz .    igREf   (    ) =>   nil   }"
+        ],
+        [
+          "stimuli",
+          "@    kS   : {  $ drhy =>    [   { }   ]  ,  (     )=>   (     )  ,  {   FlK    ,K7Kct  , yUyA}   =>   (   FP  )=>    `m\\u` }"
+        ],
+        [
+          "stimuli",
+          "@   o2w5    :{   tGbDn    (    )    =>    OL  ,(      )   =>    [    ]  , $ 107[38].hhw[28].DOgi  =>true  }"
+        ],
+        [
+          "stimuli",
+          "@  pQ    : {   [    ]  =>    \"\", (        )    => {      } =>{   ZIF0G    ,    sR, X   }, no  =>  $ WTm6t.AMOOG   , (  ILXkB  ,[   ], b1eDw   ,{      }  ,  [ ])   =>    'F+|='=>  $ 2.H  }"
+        ],
+        [
+          "stimuli",
+          "@  thread_safe :{ r\"^GF\"=> 0o604 ,+135=>   [       ]   ,  (      )=>{  }    ,  true    =>    {R0 ,B   ,  HSV   ,  rM7j ,  yCO26}  }"
+        ],
+        [
+          "stimuli",
+          "@ idempotent :  {    +3.67=> psnG,+.6    =>   0xFFa0  }"
+        ],
+        [
+          "stimuli",
+          "@ role    :   {    (      )  =>HZ2<    >   ?    ?    []  ?    ,https://8!     =>F0   }"
+        ],
+        [
+          "stimuli",
+          "@ type:  {   yes =>undefined    , [   J5zl  ,    e4d    ,    JH    ]    =>  0x4F=>   \"\"  ,%feSk=>   (  )   ,   $ 009[30][86].bOEaj   =>+681    ,   '7~\\y'   =>none}"
+        ]
+      ],
+      "narrow": [
+        [
+          "probes",
+          "@type: [1 => 2, 3]"
+        ],
+        [
+          "probes",
+          "@type: {x: 1 => 2}"
+        ],
+        [
+          "probes",
+          "@type: {x: a => b}"
+        ],
+        [
+          "probes",
+          "@type: f(1 => 2, 3)"
+        ],
+        [
+          "probes",
+          "@type: #{1 => 2}"
+        ],
+        [
+          "probes",
+          "@type: #{a => b}"
+        ],
+        [
+          "stimuli",
+          "@    associativity: NCmw6   < (     )    =>Gkg   [    ]    ?   ? [ ][    ] ? [    ]  , U    [   ]  |Cod   []   |   TV  ?    ?   [] ? |    SvXch   |  P   ,(     ) =>CdOn    ?[   ]    ? ? &YaA_V  &    F8Gl7    [    ]    [    ]   |G7Ch    ? [ ]  [    ]   &MF3    [] [ ][  ]   & Dbaq?    [   ]    [   ] ?&BiVS  &Us[    ]  ,(     )  => Dv1j [   ]?   ?    |   G9fcQ  > [  ]"
+        ],
+        [
+          "stimuli",
+          "@    dialect   : #{ lX5mK    ,    s88zK =>   `\\p\\d\"`    ,#{   }}"
+        ],
+        [
+          "stimuli",
+          "@    public   :  {    [ 0Xf0FB    ]  :[      ]  =>  [      ] ,   [   JpG(     )    ]  :[    ]=>#{  } ,  [  ( )   =>active]:    [ ] , \"\"\"\"\"\"   : zgT(   )}"
+        ],
+        [
+          "stimuli",
+          "@    side_effect:    (    x  : %g   ,    r\"U`\"  ,   {  ljEU6   }    =>    $ RrrO8.j[8264].j6D    , NbCmN   :  http://HPv    ,  Vt0G:   none    )"
+        ],
+        [
+          "stimuli",
+          "@    thread_safe    :[    ...   (     )=>  ftp://f#  ,    ()   ,...   rJyR (   )  ,   0x0129,    ...    cbR(        )]"
+        ],
+        [
+          "stimuli",
+          "@    transform:{    [(   )  ]   :    [] ,   ...    [       ]  ,  [ (      )    ]   :  (    Psr)   =>5E+613  }"
+        ],
+        [
+          "stimuli",
+          "@    usage    :  #{$ Eko.jLo[455].GV1E[510]  ,    { }    ,ds_V=>  false ,  QjK4d.lj33E (    )}"
+        ],
+        [
+          "stimuli",
+          "@    vq_ :(   EQ  :( z   , fxJ   , [      ]   ,   {    }  ,    PAcH    )  =>    active   ,    P0r    :    {      }  )"
+        ],
+        [
+          "stimuli",
+          "@   BM   :    {   \"\"\"\"\"\":(  KRj0J,   V26 , {   R   }   ,    {    a    } ) =>  'q\\S'    }"
+        ],
+        [
+          "stimuli",
+          "@   contract : (  (    )=>   [  ]    ,   false    ,    K2sJO    :    #{     }, aP  :P_Kr ,    Prq  .HS8UL   ( )    )"
+        ],
+        [
+          "stimuli",
+          "@   export   :{  kmPt  , r\"n\":( [ R    ]  )   => #{        }  ,    [X  (     )    ] :    AO0TD  ?   [    ][]    ?}"
+        ],
+        [
+          "stimuli",
+          "@   export :  [    ... (   Lix  )    => pjT, none    ,    ... (   )]"
+        ],
+        [
+          "stimuli",
+          "@   htA :   V_L.Xsmk   .    Ro_Yn    .   ZfWyU  (    none ,LL9  :[  ]  =>   [     ]    ,   axoL    :    QszB1  ( ) )"
+        ],
+        [
+          "stimuli",
+          "@   non_assoc   : [  97.450 ,...  ( )  =>    nil,   V    =>  {  }   , enabled, ...   N   (     )]"
+        ],
+        [
+          "stimuli",
+          "@   performance    : [    ftp://^    ,  ... disabled ,    ...   (     )   =>  enabled  ,    ...hwi  =>  false   ]"
+        ],
+        [
+          "stimuli",
+          "@  coverage   :    O5_    <  IecX  [   ]    ? [  ]  ,   (   ) => Fv  [ ]  ?  ? ? |   NKKR  [][    ] ,   (        )=>   VMW    [] &  VEJf7 ?  [   ][]    &    W3   ?  &    KSdI5   ?   ,    NVXm  <   >    >&   (    )   =>   ONB   <      >    [] [  ]?  ? & S3f    &(      )  =>   A0go <   >   ?   ?[    ] &   Wh <    PhU?    []    [    ]> & Yyrj  &  (OW  ?  ,    PmN  [   ]  [  ]    ??)=>  BV[]"
+        ],
+        [
+          "stimuli",
+          "@  lifetime  :  [  ( _5    ) =>  \"\\[\\e\\0\"   , (  gOIY   ) =>    0o15 ,  [    ]   , 'J'  ,...    { }  ]"
+        ],
+        [
+          "stimuli",
+          "@  proved:   {    [    Y3l    <    >?    ?   [] [  ]    ]   :nil,  F    , ... r =>   no   ,  p   :   'h'  ,   [ lctDy   (        ) ] :#{   }}"
+        ],
+        [
+          "stimuli",
+          "@  time_complexity    :h7J .   NGUb   . v.    C  .f (  enabled    ,    ...   {     },   I6Wq3    :    (  )  =>ftp://@; ,void   ,  [ ]    )"
+        ],
+        [
+          "stimuli",
+          "@  zKbG7    :  { [   {   f4 }  ]   :() =>   true }"
+        ],
+        [
+          "stimuli",
+          "@ effect :{    [   `\\Z`]  :   (      )   ,  [jS0Q(    ) ]    :  xBfaS  (   )   ,  [\"\"\"\"\"\"   ]:(    )    =>[    ]    ,    r\"E\" :    0X40e  }"
+        ],
+        [
+          "stimuli",
+          "@ generate:Ar8 < (     )   =>  BehmN    [   ]  [   ] [   ] ,   CU2Kr   <       >    |   JVk4I  ?   [   ]   ? , Wawt  |   OIn?   ?   ?[ ]|    U4    []    [   ]  [ ]    [][ ] [  ]   >|   ( )   =>GDL   ?  ?[   ] |   USGF    <   >  |    Ck2<    >   [ ]?  |K3   ? ?   |  UKH__    [ ]    [ ]  |  MW9  <     >    |    J| MdeBd  < AQwN3    [   ]  ?[ ]   ,    G3    [    ]  ,  Sb8zt   [][ ]   [    ]  > [    ]  |    N   ?|   RFEp   <    >?  ?   |    O    ??  [  ]   |  F   < >    [    ]  [  ]   |  TQw    [    ][  ]|   PN5Od[  ]    ? ?    |   U9    [ ]|    F7fJ    []    [  ]    &WTAYU    <    >    [   ] ??    ?   &  Dd11S  | BpNh   []    [ ] ? |   J[  ]  ? ?? & (   M2zRe    ?   ,    H2fNj    [   ][    ]   [   ]    ,    Un9    [  ]   [])=>   XMB [    ]   [    ]  [   ][  ]    |Zk    ?|  Bj  |    C9Y19[  ]    ?    |  BPHL  &   DM3    <     > [   ]   | Dg   ??|    Pe95    ?   []  [   ]   |YhiEl    <  >   ?    &    ZWjD ?   [    ]    ?  ?&    Tjq[ ]  ? &(OWgZ,   WP [  ]  ,  EF4  ?   ?  ,IOYZ)    =>    W6g   [  ]  ?    |EGwN2    |   S0  <    >  [ ]|EjGT    ?|  N12  <    >  ?   &    Aqx[  ]   ?   ?   [    ]&   T  []    ?[    ] [    ]  &B7 []   ?   ??"
+        ],
+        [
+          "stimuli",
+          "@ pattern :#{yR  =>\"a\"  ,HgPrV   ,    %YvPC ,    SQP5    . vRay .  xpQ .   pcMYF (   )  , \"c\\fl\"   }"
+        ],
+        [
+          "stimuli",
+          "@ priority    : {  [  null] :  (      )  => file://' ,   _wj}"
+        ],
+        [
+          "stimuli",
+          "@ right_assoc : #{v   =>   '\\>9\\@D', mIcvY (   ) }"
+        ],
+        [
+          "stimuli",
+          "@agUK:#{ +7842E+9257  ,   ( {}  , wgFpd    )    => (      )}"
+        ],
+        [
+          "stimuli",
+          "@example :    { BJI .    Vab  .O_l5    (    )=>    #{      },    -757.56e+883    =>    (    )  =>../]&}  }"
+        ],
+        [
+          "stimuli",
+          "@invariant:    #{    \"H\\Rm\\W\"  ,    [  QC   , G_   ,   Z    ]   =>{ }, false    ,c5cb (    ),  no   }"
+        ],
+        [
+          "stimuli",
+          "@JP   :#{   ( {   } ) ,([   ] ,E    , [       ]  ,  R91  ,uwOR    )  =>   [     ]   ,  Lh3R1    (   )   }"
+        ],
+        [
+          "stimuli",
+          "@lazy    :xqx . RE. tnGbu .   Vh(   ...  C31jl    =>  [      ] ,   {   }    , Pf :  (    [    ],  {        }    )   =>  ftp://-7B\" ,wy  :    {    })"
+        ]
+      ]
+    },
+    "arm_c2_respell_impl.ebnf": {
+      "widen": [
+        [
+          "probes",
+          "@type: {1 => 2}"
+        ],
+        [
+          "probes",
+          "@type: {1 => 2, 3 => 4}"
+        ],
+        [
+          "probes",
+          "@type: {1 => 2, \"c\" => \"d\"}"
+        ],
+        [
+          "probes",
+          "@type: {{1 => 2} => 3}"
+        ],
+        [
+          "probes",
+          "@type: {1 => {2 => 3}}"
+        ],
+        [
+          "probes",
+          "@type: {\"a\" => {1 => 2}}"
+        ],
+        [
+          "probes",
+          "@type: 1 ==> 2"
+        ],
+        [
+          "probes",
+          "@type: a ==> b"
+        ],
+        [
+          "probes",
+          "@type: [1 ==> 2]"
+        ],
+        [
+          "probes",
+          "@type: {1 => 2 ? 3 : 4}"
+        ],
+        [
+          "stimuli",
+          "@    access    :  { $ 8.Fmnw[973].kY8.dW    =>    $ hK[635]  }"
+        ],
+        [
+          "stimuli",
+          "@    ggI    :  {   \"\"  =>  \"ZES\\x\",  \"K\" =>   u_8 (   )   ,   lF.Cogz .    igREf   (    ) =>   nil   }"
+        ],
+        [
+          "stimuli",
+          "@ idempotent :  {    +3.67=> psnG,+.6    =>   0xFFa0  }"
+        ]
+      ],
+      "narrow": [
+        [
+          "probes",
+          "@type: 1 => 2"
+        ],
+        [
+          "probes",
+          "@type: [1 => 2]"
+        ],
+        [
+          "probes",
+          "@type: [1 => 2, 3]"
+        ],
+        [
+          "probes",
+          "@type: {x: 1 => 2}"
+        ],
+        [
+          "probes",
+          "@type: f(1 => 2)"
+        ],
+        [
+          "probes",
+          "@type: f(1 => 2, 3)"
+        ],
+        [
+          "probes",
+          "@type: #{1 => 2}"
+        ],
+        [
+          "probes",
+          "@type: (1 => 2)"
+        ],
+        [
+          "probes",
+          "@type: 1 => 2 ? 3 : 4"
+        ]
+      ]
+    },
+    "arm_c_respell_map.ebnf": {
+      "widen": [
+        [
+          "probes",
+          "@type: {\"a\" =>> \"b\"}"
+        ],
+        [
+          "probes",
+          "@type: {1 =>> 2}"
+        ],
+        [
+          "probes",
+          "@type: {a =>> b}"
+        ],
+        [
+          "probes",
+          "@type: {1 =>> 2, 3 =>> 4}"
+        ]
+      ],
+      "narrow": [
+        [
+          "probes",
+          "@type: {\"a\" => \"b\"}"
+        ],
+        [
+          "probes",
+          "@type: {1 => \"b\"}"
+        ],
+        [
+          "probes",
+          "@type: {\"a\" => 1}"
+        ],
+        [
+          "probes",
+          "@type: {\"a\" => \"b\", \"c\" => \"d\"}"
+        ],
+        [
+          "stimuli",
+          "@  ylQ : {   PJv    ?[  ]=>    M    }"
+        ],
+        [
+          "stimuli",
+          "@example :    { BJI .    Vab  .O_l5    (    )=>    #{      },    -757.56e+883    =>    (    )  =>../]&}  }"
+        ],
+        [
+          "stimuli",
+          "@memoized  :  { Cv1  (   )    =>    { tMe:   [      ]   , i    ,m28r,  l7Po    , j1Ku_   }, ok(    )=>#{    }}"
+        ]
+      ]
+    }
+  }
+}

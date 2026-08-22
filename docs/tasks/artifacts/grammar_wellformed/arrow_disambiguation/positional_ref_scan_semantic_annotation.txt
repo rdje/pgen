@@ -1,0 +1,18 @@
+POSITIONAL-REF-SCAN: rule=annotation                   $6 points at SEPARATOR /\s*/ — always resolves to ""   |   {type: "semantic_annotation", name: $3, value: $6}
+POSITIONAL-REF-SCAN: rule=array_type                   $2 points at SEPARATOR /\s*/ — always resolves to ""   |   {type: "array_type", element_type: $1}
+POSITIONAL-REF-SCAN: rule=array_value                  $4 points at SEPARATOR /\s*/ — always resolves to ""   |   {type: "array", elements: [$3, $4*]}
+POSITIONAL-REF-SCAN: rule=comparison_expression        $3 OUT OF RANGE (rule has 2 elements)
+POSITIONAL-REF-SCAN: rule=exception_spec               $4 points at SEPARATOR /\s*/ — always resolves to ""   |   {type: "exception_spec", exceptions: [$3, $4*]}
+POSITIONAL-REF-SCAN: rule=function_call                $6 points at SEPARATOR /\s*/ — always resolves to ""   |   {type: "function_call", name: $1, arguments: [$5, $6*]}
+POSITIONAL-REF-SCAN: rule=function_type                $4 points at SEPARATOR /\s*/ — always resolves to ""   |   {type: "function_type", parameters: [$3, $4*], return_type: $10}
+POSITIONAL-REF-SCAN: rule=function_type                $10 OUT OF RANGE (rule has 9 elements)
+POSITIONAL-REF-SCAN: rule=generic_type                 $6 points at SEPARATOR /\s*/ — always resolves to ""   |   {type: "generic_type", base: $1, parameters: [$5, $6*]}
+POSITIONAL-REF-SCAN: rule=map_value                    $4 points at SEPARATOR /\s*/ — always resolves to ""   |   {type: "map", entries: [$3, $4*]}
+POSITIONAL-REF-SCAN: rule=object_value                 $4 points at SEPARATOR /\s*/ — always resolves to ""   |   {type: "object", properties: [$3, $4*]}
+POSITIONAL-REF-SCAN: rule=optional_type                $2 points at SEPARATOR /\s*/ — always resolves to ""   |   {type: "optional_type", base_type: $1}
+POSITIONAL-REF-SCAN: rule=platform_spec                $4 points at SEPARATOR /\s*/ — always resolves to ""   |   {type: "platform_spec", platforms: [$3, $4*]}
+POSITIONAL-REF-SCAN: rule=power_expr                   $3 OUT OF RANGE (rule has 2 elements)
+POSITIONAL-REF-SCAN: rule=semantic_annotation          $6 points at SEPARATOR /\s*/ — always resolves to ""   |   {type: "semantic_annotation", name: $3, value: $6}
+POSITIONAL-REF-SCAN: rule=set_value                    $4 points at SEPARATOR /\s*/ — always resolves to ""   |   {type: "set", elements: [$3, $4*]}
+POSITIONAL-REF-SCAN: rule=tuple_value                  $4 points at SEPARATOR /\s*/ — always resolves to ""   |   {type: "tuple", elements: [$3, $4*]}
+POSITIONAL-REF-SCAN: rules_with_return_annotations=110 flat_sequence_scanned=45 unscanned_non_sequence=65 flagged=17

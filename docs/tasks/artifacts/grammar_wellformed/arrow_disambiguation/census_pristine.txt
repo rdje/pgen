@@ -1,0 +1,29 @@
+ARROW-CENSUS: grammar='grammars/semantic_annotation.ebnf' rules=113 probes=9
+ARROW-CENSUS: probe[0]=1 => 2
+ARROW-CENSUS: probe[1]=a => b
+ARROW-CENSUS: probe[2]=[a] => b
+ARROW-CENSUS: probe[3]=(a) => b
+ARROW-CENSUS: probe[4]="a" => "b"
+ARROW-CENSUS: probe[5]=(a, b) => c
+ARROW-CENSUS: probe[6]=true => false
+ARROW-CENSUS: probe[7]=(Foo) => Bar
+ARROW-CENSUS: probe[8]=Foo => Bar
+ARROW-CENSUS: rule=annotation_value             consumes_arrow_on=[0][1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=array_element                consumes_arrow_on=[0][1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=complexity_expr              consumes_arrow_on=[0][1][2][4][6][8]
+ARROW-CENSUS: rule=constraint_expression        consumes_arrow_on=[0][1][3][6][7][8]
+ARROW-CENSUS: rule=exception_type               consumes_arrow_on=[7]
+ARROW-CENSUS: rule=expression_value             consumes_arrow_on=[0][1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=function_argument            consumes_arrow_on=[0][1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=function_type                consumes_arrow_on=[7]
+ARROW-CENSUS: rule=implication_expr             consumes_arrow_on=[0][1][3][6][7][8]
+ARROW-CENSUS: rule=lambda_expression            consumes_arrow_on=[1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=logical_expression           consumes_arrow_on=[0][1][3][6][7][8]
+ARROW-CENSUS: rule=map_entry                    consumes_arrow_on=[4]
+ARROW-CENSUS: rule=multiline_string_content     consumes_arrow_on=[0][1][2][3][4][5][6][7][8]
+ARROW-CENSUS: rule=positional_argument          consumes_arrow_on=[0][1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=reference_value              consumes_arrow_on=[7]
+ARROW-CENSUS: rule=set_element                  consumes_arrow_on=[0][1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=tuple_element                consumes_arrow_on=[0][1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=type_reference               consumes_arrow_on=[7]
+ARROW-CENSUS: consuming_rules=18

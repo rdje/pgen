@@ -1,0 +1,70 @@
+### arm_a_mapkey_impl
+ARROW-CENSUS: rule=annotation_value             consumes_arrow_on=[0][1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=map_entry                    consumes_arrow_on=[0][4]
+ARROW-CENSUS: rule=map_key                      consumes_arrow_on=[1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=map_key_expression           consumes_arrow_on=[1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=implication_expr             consumes_arrow_on=[0][1][3][6][7][8]
+ARROW-CENSUS: rule=lambda_expression            consumes_arrow_on=[1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=function_type                consumes_arrow_on=[7]
+ARROW-CENSUS: rule=type_reference               consumes_arrow_on=[7]
+ARROW-CENSUS: rule=reference_value              consumes_arrow_on=[7]
+ARROW-CENSUS: consuming_rules=9
+
+### arm_aplus_mapkey_all
+ARROW-CENSUS: rule=annotation_value             consumes_arrow_on=[0][1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=map_entry                    consumes_arrow_on=[0][1][2][3][4][5][6][7][8]
+ARROW-CENSUS: rule=implication_expr             consumes_arrow_on=[0][1][3][6][7][8]
+ARROW-CENSUS: rule=lambda_expression            consumes_arrow_on=[1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=function_type                consumes_arrow_on=[7]
+ARROW-CENSUS: rule=type_reference               consumes_arrow_on=[7]
+ARROW-CENSUS: rule=reference_value              consumes_arrow_on=[7]
+ARROW-CENSUS: consuming_rules=7
+
+### arm_b_lookahead_impl
+ARROW-CENSUS: rule=annotation_value             consumes_arrow_on=[0][1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=map_entry                    consumes_arrow_on=[4]
+ARROW-CENSUS: rule=implication_expr             consumes_arrow_on=[0][1][3][6][7][8]
+ARROW-CENSUS: rule=lambda_expression            consumes_arrow_on=[1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=function_type                consumes_arrow_on=[7]
+ARROW-CENSUS: rule=type_reference               consumes_arrow_on=[7]
+ARROW-CENSUS: rule=reference_value              consumes_arrow_on=[7]
+ARROW-CENSUS: consuming_rules=7
+
+### arm_bplus_lookahead_all
+ARROW-CENSUS: rule=annotation_value             consumes_arrow_on=[0][1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=map_entry                    consumes_arrow_on=[4]
+ARROW-CENSUS: rule=implication_expr             consumes_arrow_on=[0][1][3][6][7][8]
+ARROW-CENSUS: rule=lambda_expression            consumes_arrow_on=[1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=function_type                consumes_arrow_on=[7]
+ARROW-CENSUS: rule=type_reference               consumes_arrow_on=[7]
+ARROW-CENSUS: rule=reference_value              consumes_arrow_on=[7]
+ARROW-CENSUS: consuming_rules=7
+
+### arm_c_respell_map
+ARROW-CENSUS: rule=annotation_value             consumes_arrow_on=[0][1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=implication_expr             consumes_arrow_on=[0][1][3][6][7][8]
+ARROW-CENSUS: rule=lambda_expression            consumes_arrow_on=[1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=function_type                consumes_arrow_on=[7]
+ARROW-CENSUS: rule=type_reference               consumes_arrow_on=[7]
+ARROW-CENSUS: rule=reference_value              consumes_arrow_on=[7]
+ARROW-CENSUS: consuming_rules=6
+
+### arm_c2_respell_impl
+ARROW-CENSUS: rule=annotation_value             consumes_arrow_on=[1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=map_entry                    consumes_arrow_on=[0][4]
+ARROW-CENSUS: rule=lambda_expression            consumes_arrow_on=[1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=function_type                consumes_arrow_on=[7]
+ARROW-CENSUS: rule=type_reference               consumes_arrow_on=[7]
+ARROW-CENSUS: rule=reference_value              consumes_arrow_on=[7]
+ARROW-CENSUS: consuming_rules=6
+
+### arm0_pristine
+ARROW-CENSUS: rule=annotation_value             consumes_arrow_on=[0][1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=map_entry                    consumes_arrow_on=[4]
+ARROW-CENSUS: rule=implication_expr             consumes_arrow_on=[0][1][3][6][7][8]
+ARROW-CENSUS: rule=lambda_expression            consumes_arrow_on=[1][2][3][5][6][7][8]
+ARROW-CENSUS: rule=function_type                consumes_arrow_on=[7]
+ARROW-CENSUS: rule=type_reference               consumes_arrow_on=[7]
+ARROW-CENSUS: rule=reference_value              consumes_arrow_on=[7]
+ARROW-CENSUS: consuming_rules=7
+
