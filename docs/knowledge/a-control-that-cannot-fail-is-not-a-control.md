@@ -13,8 +13,8 @@ answers:
 tags: [evidence, controls, two-arm, instruments, generated-artifacts, regression-attribution, claim-verification]
 date: 2026-08-22
 status: current
-evidence: "GRAMMAR-WELLFORMED.H.17.1 (PGEN-GRAMMAR-WELLFORMED-0161). `ebnf_frontend_dual_run_gate` went RED on `systemverilog` (envelope `155 > ceiling 151`) in the same session as a `grammars/ebnf.ebnf` repair. `git stash`-ing the grammar and re-running `ebnf_dual_run_diff` returned byte-identical 155-row divergence sets — an apparent exoneration. It was a no-op: `rust/src/bin/ebnf_dual_run_diff.rs:12` `include!`s `generated/ebnf.rs`, so arm 2 never reads `grammars/ebnf.ebnf`. The valid control rebuilt `generated/ebnf.rs` from the pre-fix grammar (sha `3028814854e0…`) and the differ with it; it also returned 155, so the conclusion survived — but the first argument for it was void."
-reverify: "grep -n 'include!' rust/src/bin/ebnf_dual_run_diff.rs   # arm 2 reads generated/ebnf.rs, NOT grammars/ebnf.ebnf; then: git stash push grammars/ebnf.ebnf && shasum -a 256 generated/ebnf.rs && git stash pop   # the sha is UNCHANGED by the stash, which is the proof the arm never moved"
+evidence: "GRAMMAR-WELLFORMED.H.17.1 (PGEN-GRAMMAR-WELLFORMED-0161). `ebnf_frontend_dual_run_gate` went RED on `systemverilog` (envelope `155 > ceiling 151`) in the same session as a `grammars/ebnf.ebnf` repair. `git stash`-ing the grammar and re-running `ebnf_dual_run_diff` returned byte-identical 155-row divergence sets — an apparent exoneration. It was a no-op: `rust/src/bin/ebnf_dual_run_diff.rs:13` `include!`s `env!(\"PGEN_EBNF_PARSER_PATH_RESOLVED_BIN\")`, which `rust/build.rs:101` resolves to `generated/ebnf.rs`, so arm 2 never reads `grammars/ebnf.ebnf`. Proven by removing the file: rustc reports the env var undefined at `:13` plus `error[E0432]`. The valid control rebuilt `generated/ebnf.rs` from the pre-fix grammar (sha `3028814854e0…`) and the differ with it; it also returned 155, so the conclusion survived — but the first argument for it was void."
+reverify: "mv generated/ebnf.rs /tmp/ && (cd rust && cargo build --features ebnf_dual_run --bin ebnf_dual_run_diff); mv /tmp/ebnf.rs generated/   # rustc names the dependency: `environment variable PGEN_EBNF_PARSER_PATH_RESOLVED_BIN not defined` at ebnf_dual_run_diff.rs:13 + error[E0432]. Then, for the no-op itself: git stash push grammars/ebnf.ebnf && shasum -a 256 generated/ebnf.rs && git stash pop   # sha UNCHANGED by the stash => the arm never moved. NB grepping the .rs for `include!` shows only env!(...) — the path lives in rust/build.rs:101, which is exactly why the trap is hard to see."
 ---
 
 **The test of a control is not "did the two arms differ" — it is "could they have".**
@@ -46,12 +46,30 @@ Both arms: `divergence_total 155`, and a set-diff of the two dumps was empty in 
 closed — except the instrument never read the stashed file:
 
 ```rust
-// rust/src/bin/ebnf_dual_run_diff.rs:12
-mod generated_ebnf { include!("../../../generated/ebnf.rs"); }
+// rust/src/bin/ebnf_dual_run_diff.rs:13
+mod generated_ebnf { include!(env!("PGEN_EBNF_PARSER_PATH_RESOLVED_BIN")); }
 ```
 
-Arm 2 is the **generated meta-parser**, not the grammar. `generated/ebnf.rs` is untracked, so `git
-stash` does not touch it; the grammar text has no path into the run at all. The two arms were one arm.
+⛔ **Read that line again: it does not name the file it pulls in.** The path arrives from the build
+script — `rust/build.rs:101` sets `PGEN_EBNF_PARSER_PATH_RESOLVED_BIN` to the resolved location of
+`generated/ebnf.rs`, alongside a `has_generated_ebnf_parser` cfg it only emits when that file exists.
+**This is what makes the trap sharp rather than merely possible**: grepping the binary's own source
+for the artifact it reads returns nothing to grep. The dependency is real, compiled-in and total — it
+is simply spelled somewhere else.
+
+Arm 2 is therefore the **generated meta-parser**, not the grammar. `generated/ebnf.rs` is untracked,
+so `git stash` does not touch it; the grammar text has no path into the run at all. The two arms were
+one arm.
+
+The dependency is not an inference from reading the build script — remove the file and the compiler
+says so, which is the whole proof in one command:
+
+```text
+$ mv generated/ebnf.rs /tmp/ && cargo build --features ebnf_dual_run --bin ebnf_dual_run_diff
+error: environment variable `PGEN_EBNF_PARSER_PATH_RESOLVED_BIN` not defined at compile time
+  --> src/bin/ebnf_dual_run_diff.rs:13:14
+error[E0432]: unresolved import `generated_ebnf::EbnfParser`
+```
 
 The valid control had to move the artifact the instrument reads — regenerate `generated/ebnf.rs` from
 the pre-fix grammar, rebuild the differ, and only then measure:

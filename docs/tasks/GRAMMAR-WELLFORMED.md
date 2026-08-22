@@ -3424,9 +3424,17 @@ one command, and it is the reason this gap read as a missing subsystem for two m
 - ⛔⛔ **AND THE CONTROL THAT PROVED IT FIRST WAS INVALID — CORRECTED IN-LEAF RATHER THAN RELIED ON.**
   The `systemverilog` envelope row came back RED (`155 > ceiling 151`) and the obvious control —
   `git stash` the grammar, re-run `ebnf_dual_run_diff` — returned byte-identical divergence sets,
-  which reads as *"not my change"*. **It proves nothing**: `rust/src/bin/ebnf_dual_run_diff.rs:12`
-  `include!`s **`generated/ebnf.rs`**, so arm 2 never reads `grammars/ebnf.ebnf` at all and stashing
-  the grammar text is a **no-op for that instrument**. ⭐ A control that cannot fail is not a control.
+  which reads as *"not my change"*. **It proves nothing**: `rust/src/bin/ebnf_dual_run_diff.rs:13`
+  `include!`s `env!("PGEN_EBNF_PARSER_PATH_RESOLVED_BIN")`, which `rust/build.rs:101` resolves to
+  **`generated/ebnf.rs`**, so arm 2 never reads `grammars/ebnf.ebnf` at all and stashing the grammar
+  text is a **no-op for that instrument**. ⛔ **CORRECTED 2026-08-22 (`-0162`): the first version of
+  this note quoted the source as `include!("../../../generated/ebnf.rs")` at line 12. It says no such
+  thing — the path is spelled in the BUILD SCRIPT, not at the include site. The correction makes the
+  trap SHARPER, not milder: grepping the binary's own source for the artifact it reads returns
+  nothing to grep.** Proven by an oracle I did not build — remove the file and rustc names the
+  dependency: `error: environment variable PGEN_EBNF_PARSER_PATH_RESOLVED_BIN not defined at compile
+  time --> src/bin/ebnf_dual_run_diff.rs:13:14` + `error[E0432]: unresolved import
+  generated_ebnf::EbnfParser`. ⭐ A control that cannot fail is not a control.
   The real one regenerates `generated/ebnf.rs` from the pre-fix grammar and rebuilds the differ:
   ```text
   pre-fix  generated/ebnf.rs 3028814854e0…  ->  systemverilog divergence_total = 155
@@ -3450,7 +3458,13 @@ one command, and it is the reason this gap read as a missing subsystem for two m
   path against a pattern list that **includes `generated/*.rs`**. ⭐ **That pattern can never match**:
   `generated/` is gitignored (`.gitignore:24`), and `ls-files --others --exclude-standard` excludes
   ignored paths — measured, `git ls-files --others --exclude-standard | grep -c '^generated/'` = **0**.
-  ⇒ a dead branch that reads as coverage. ⚠️ **And the second half is worse**: `grammars/*.ebnf` is
+  ⇒ a dead branch that reads as coverage. ⚠️ **HONEST BOUND, tightened `-0162` after the first version
+  of this note overstated it as "by construction":** the pattern is dead in every workflow this
+  repository SANCTIONS — `COMMIT.md` says *"never `git add generated/…`"* — but `git add -f` would
+  stage the path and the pattern would then match. It is unreachable-by-policy, not
+  unreachable-by-impossibility. ⚠️ There is also a `FORCE_RUN=1` override
+  (`clippy_on_rust_change.sh:43`) that bypasses detection entirely; nothing in the commit workflow
+  sets it. ⚠️ **And the second half is worse**: `grammars/*.ebnf` is
   not in the pattern list at all, so a **pure grammar change — the very thing that regenerates a
   parser — skips the clippy flow entirely**, which is exactly this commit's shape.
   ⭐ **ROUTING EVIDENCE (does it reproduce outside this family?): YES, it is family-independent.**
@@ -3663,9 +3677,11 @@ one command, and it is the reason this gap read as a missing subsystem for two m
   not cover this gate, so the red was invisible to the resume pointer as well.
 - ⛔⛔ **ROUTING EVIDENCE — it is NOT `H.17.1`, and the FIRST control that said so was invalid.**
   The obvious control (`git stash` `grammars/ebnf.ebnf`, re-run `ebnf_dual_run_diff`) returns
-  byte-identical divergence sets, but proves nothing: `rust/src/bin/ebnf_dual_run_diff.rs:12`
-  `include!`s **`generated/ebnf.rs`**, so arm 2 never reads the grammar text and stashing it is a
-  **no-op for that instrument**. The VALID control regenerates `generated/ebnf.rs` from the pre-fix
+  byte-identical divergence sets, but proves nothing: `rust/src/bin/ebnf_dual_run_diff.rs:13`
+  `include!`s `env!("PGEN_EBNF_PARSER_PATH_RESOLVED_BIN")`, which `rust/build.rs:101` resolves to
+  **`generated/ebnf.rs`**, so arm 2 never reads the grammar text and stashing it is a **no-op for
+  that instrument**. ⛔ The include site does NOT name the file (corrected `-0162`); rustc does, if
+  you remove it: env var `not defined at compile time` at `:13` + `error[E0432]`. The VALID control regenerates `generated/ebnf.rs` from the pre-fix
   grammar and rebuilds the differ:
   ```text
   pre-fix  generated/ebnf.rs 3028814854e0…  ->  systemverilog divergence_total = 155

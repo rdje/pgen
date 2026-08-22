@@ -28,7 +28,9 @@ reasoning about it — the cost was one command.
 The envelope gate came back RED on `systemverilog` (`155 > ceiling 151`) right after my change. The
 obvious control: `git stash` the grammar, re-run `ebnf_dual_run_diff`, compare. It returned
 **byte-identical divergence sets**, which reads as a clean exoneration. It was worthless.
-`rust/src/bin/ebnf_dual_run_diff.rs:12` `include!`s **`generated/ebnf.rs`** — arm 2 never reads
+`rust/src/bin/ebnf_dual_run_diff.rs:13` `include!`s `env!("PGEN_EBNF_PARSER_PATH_RESOLVED_BIN")`,
+which `rust/build.rs:101` resolves to **`generated/ebnf.rs`** — so the include site never NAMES the
+file, and arm 2 never reads
 `grammars/ebnf.ebnf` at all, so stashing the grammar text is a **no-op for that instrument** and the
 two arms were the same run twice. The valid control had to regenerate `generated/ebnf.rs` from the
 pre-fix grammar and rebuild the differ; it then gave the same 155, so the finding survived — but I
