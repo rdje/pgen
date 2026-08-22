@@ -427,8 +427,11 @@ engine-shadowed-dead `white_space` was removed at the source, exactly as `vhdl`'
 `vhdl` (the last shipped grammar to be wired — it runs at the default depth on its flat `design_unit*`
 entry and reports `total=217 witness=148 UNKNOWN=69 (sample_parse_failures=0)` at seed 0, every witness
 re-parsing cleanly). With `vhdl` wired, **every shipped parser grammar now runs under the
-certificate-coverage gate**; only the internal meta/annotation grammars (`ebnf`,
-`return_annotation`, `semantic_annotation`) remain unwired. The other grammars carry an *honest, openly
+certificate-coverage gate** — and since 2026-08-22 so do the three internal meta/annotation grammars
+(`ebnf`, `return_annotation`, `semantic_annotation`), so **every one of the ten grammar families in the
+DONE-BAR register is now measurable**. See *[Every family is now measurable — and what that
+revealed](#every-family-is-now-measurable--and-what-that-revealed)* below for the tuples, because the
+first measurement is not the comfortable one. The other grammars carry an *honest, openly
 reported* `UNKNOWN` backlog still being driven toward zero — a *loud, specific* list of fragments still
 awaiting a witness, never hidden, because the gate never pretends a grammar is fully certified until every
 fragment carries a checked certificate. The per-grammar drives keep shrinking it: `regex` has now been
@@ -738,6 +741,58 @@ external corpus still parsing `14/14` and the shape-contract green. This is the 
 bug-finding-oracle role compounding yet again: an unwitnessable fragment was neither accepted as a residual
 nor chased in the generator — it was adjudicated grammar-first, the fix restored LRM fidelity, and the
 restoration closed a real, shipped parse bug (ledger row `SV-0004`, SV release `1.0.142`).
+
+### Every family is now measurable — and what that revealed
+
+For most of Phase H the roll-out sentence was *"every **shipped** parser grammar now runs under the
+certificate-coverage gate."* That sentence was true, and it is exactly how three families spent two
+months outside the instrument. `ebnf` (the meta-grammar PGEN reads grammars with), `return_annotation`
+and `semantic_annotation` (the annotation pair) are not shipped parser families in the delivery sense,
+so they were never in the enumeration — but they **are** three of the ten families in the DONE-BAR
+register, each with a live status row.
+
+They were not unmeasured because something was missing. All three were registered under their own
+names with a working parser, and their generated artifacts already exported the whole coverage API
+(`enable_coverage`, `exercised_rule_names`, `parse_full_from`) — codegen emits that instrumentation
+unconditionally. The only thing absent was the registry table's `parse_and_cover` field, which the
+report checks before it will run. Wiring it is three small adapter functions, identical in shape to
+`parse_and_cover_json`; no grammar, codegen or generated artifact changed.
+
+The first measurement (2026-08-22, `--count 40`, canonical entry, byte-identical at seeds 0/7/42 —
+tuple *and* `UNKNOWN` set):
+
+| grammar | entry | total | proof | witness | `UNKNOWN` | `fully_certified` |
+|---|---|---|---|---|---|---|
+| `ebnf` | `grammar_file` | 144 | 0 | 109 | **35** | `false` |
+| `return_annotation` | `return_annotation` | 35 | 0 | 33 | **2** | `false` |
+| `semantic_annotation` | `semantic_annotation` | 114 | 0 | 80 | **34** | `false` |
+
+**71 uncertified rules that no report could previously have shown, because every report refused before
+it started.** These three lanes are also the cheapest in the repository — 0.06 s to 0.38 s each — so
+the cost of not measuring them was never runtime; it was that nobody had asked.
+
+Two things follow, and both are worth stating plainly because the comfortable reading of them is wrong:
+
+- **`UNKNOWN=0` across the project is not met, and was not met before.** SystemVerilog reached
+  `UNKNOWN=0` the same day, and it is tempting to read that as the last blocker falling. It removed the
+  last *known* blocker. A family outside the instrument reports nothing, and nothing is not zero.
+- **64 of the 71 are dead-rule *candidates*, not reach gaps.** The pass reports no reach path from the
+  entry for 31 of `ebnf`'s 35, 31 of `semantic_annotation`'s 34, and both of `return_annotation`'s. That
+  makes the follow-on work a linter adjudication — *is this rule genuinely dead, entry-relative, or a
+  real gap?* — rather than the witness-generation drives the shipped families needed. It is also why
+  the residual must not be closed by deleting rules: a dead-rule candidate is a verdict to adjudicate,
+  and where a rule is legitimately entry-relative the answer is an entry-union certificate, exactly as
+  SystemVerilog's was.
+
+A third observation came free with the wiring, and it is the one with the widest blast radius.
+`ebnf` reports 11–13 of its 40 generated samples as `sample_parse_failures`, and `semantic_annotation`
+2–4 — while all seven previously-wired families report zero. A generated sample its own family's parser
+rejects is a disagreement between the generator and the parser about what `grammars/<g>.ebnf` means,
+and PGEN ships both halves. Diagnosing it is currently blocked by a defect of the report itself: each
+such failure is labelled `(no detail-capable parser registered)`, which is **false** — a working detail
+parser exists for nine of the thirteen registry rows, reachable through a *different* dispatch that the
+label path does not consult. Two dispatches answer one question and disagree, and the one that prints
+is the one that knows less.
 
 ### Reaching deep recursive branches: the constructive-reach witness pass
 

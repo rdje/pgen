@@ -1,5 +1,71 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0156 — "all SHIPPED grammars wired" was true, and three families lived outside the sentence
+
+**1. THE INSTRUMENT'S BLIND SPOT WAS THE FINDING; THE WIRING WAS AN AFTERNOON.** Phase H's scope note
+enumerated *"vhdl / svpp / rtl_* / json"* and its frontier row said *"all SHIPPED grammars wired"*.
+That sentence was **true**. `ebnf`, `return_annotation` and `semantic_annotation` are not shipped
+parser families in the delivery sense — they are the meta-grammar and the annotation pair — so they
+were never counted, never measured, and never suspected. The director's activation gate says *every
+existing parser*, and for two months the difference between those two quantifiers was 71 uncertified
+rules that no report could have shown, because every report refused before it started.
+
+**2. THE MECHANISM: A REFUSAL THAT READS AS ABSENCE.** `run_certificate_coverage_report`
+(`rust/src/main.rs:3801`) bails unless `supports_parse_and_cover(grammar_name)`, whose message is
+*"no generated parser is registered for grammar 'ebnf'"*. That message is what made the gap look
+structural — as if the parsers did not exist. They did. All three sit in `GENERATED_PARSER_REGISTRY`
+under their own names with a working `parse_sample`, and `generated/ebnf.rs`,
+`generated/return_annotation_parser.rs` and `generated/semantic_annotation_parser.rs` each already
+export `enable_coverage`, `exercised_rule_names` and `parse_full_from` — the codegen emits the G.4.6
+instrumentation unconditionally. The whole defect was `parse_and_cover: None`. ⭐ **A refusal message
+that describes the CAUSE it guesses rather than the CONDITION it tested is how a one-field gap gets
+read as a missing subsystem.** The condition is "this table field is unset"; the message says "no
+parser exists". They were never the same claim.
+
+**3. WHY THE POPULATION HAD TO BE ADJUDICATED BEFORE THE COUNT MEANT ANYTHING.** "Three" is only a
+finding if it is the *complete* unwired set. `done_bar_family_register_v0.json` holds exactly ten
+`families`; the `builtin_*` pair is `grammar_dispositions: bootstrap_contract`, and
+`builtin_semantic_annotation` has no generated parser at all (its path is the hand-written
+`UnifiedSemanticAST::parse_bootstrap`), so there is nothing to verify a witness *through*. Ten is a
+closed population derived from `grammars/*.ebnf` — the product itself, which cannot lie about what
+exists — and that is what makes `10/10 wired` a measurement rather than a tally of what I happened
+to check.
+
+**4. THE `spf` COUNTER MOVES WITH THE SEED AND THE CLASSIFICATION DOES NOT, AND CONFLATING THEM WOULD
+HAVE READ AS DRIFT.** At seeds 0/7/42 `ebnf` reports `sample_parse_failures` 13/13/11 and
+`semantic_annotation` 2/4/3, while `total/proof/witness/UNKNOWN/fully_certified` are byte-identical
+and the `UNKNOWN` *sets* hash identically (`30ef303b4da80127`, `272f9ce1e29dbfff`,
+`83801f2730094f11`). `spf` counts randomly-generated samples the real parser rejects, so it is
+seed-derived by construction. ⛔ Reporting "the tuple is deterministic" without separating the two
+would have been either a false determinism claim or a false drift report, depending on which line got
+quoted — so both are recorded, with the reason they differ.
+
+**5. A CONTROL THAT FAILS FOR THE WRONG REASON PROVES NOTHING, AND MINE DID.** To show the wiring was
+not a blanket enable, the refusal has to still fire for something. My first control was
+`*_lrm_extracted` — expected to refuse, and it did not, because it never reaches the predicate: it
+dies earlier in the frontend on `unterminated quoted literal in expression ''0 | '1 | 'z_or_x 48 ;'`.
+The valid control is the `builtin_*` pair, which loads cleanly, sits in the registry table with
+`parse_and_cover: None`, and is still refused **by name** after the fix. Recording the mis-designed
+control matters more than quietly replacing it: a green control is worthless unless you know what it
+was actually testing.
+
+**6. THE LABEL BLINDNESS IS THE REASON THE NEXT LEAF IS BLOCKED, AND IT IS NINE ROWS, NOT THREE.**
+Every `spf` failure prints `error: (no detail-capable parser registered)`. It is false.
+`parse_error()` — the cert LABEL path — reads the registry table's `parse_detail` field, while
+`parse_sample_detail_with_profile()` is an independent `match` on the grammar name that **has** a
+working arm for each of them, wired to `parse_with_<g>_detail` fns that already augment
+`furthest_position`. Two dispatches answer one question and disagree; measured over the closed
+registry population, `LABEL-BLIND-CENSUS: registry_rows=13 parse_detail_none_with_working_arm=9`. The
+duplication is the defect, not the nine `None`s — which is why `H.18`'s preferred fix is to make
+`parse_error()` fall back to the single dispatch rather than to fill in nine fields that can diverge
+again.
+
+**7. LEG 3 IS NAMED, NOT SKIPPED.** `10/10 wired` is re-derived (leg 1) and falsified against a
+code-disjoint oracle with a control proven able to go RED (leg 2). Nothing in the repo **watches** it,
+so the next family added to the register is silently unwired — the exact failure this leaf was opened
+to fix, recurring. `H.19` owns the doctrine; until it lands the claim is published qualified, per the
+standing directive that a missing leg is named rather than glossed.
+
 ## 2026-08-22 - PGEN-SV-CORPUS-GRAD-0276 — the analysis knew which branch was the escape, and returned a bool
 
 **1. THE BUG WAS A LOST RETURN VALUE, NOT A MISSING ANALYSIS.** `mandatory_node_gated` decides

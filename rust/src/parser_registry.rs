@@ -552,6 +552,33 @@ fn parse_with_return_annotation_ast_json(sample: &str) -> Result<JsonValue, Stri
     parse_node_to_json(&parsed)
 }
 
+/// GRAMMAR-WELLFORMED.H.15 — parse `sample` through the REAL return_annotation parser and return
+/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
+/// `parse_and_cover_json`: enable the transactional `coverage_stack`, parse, and return the PARSER's
+/// own record of the committed rules on a SUCCESSFUL parse. return_annotation declares no grammar
+/// profile and its entry (`return_annotation := arrow expression`) is shallow, so neither a profile
+/// (`_grammar_profile` is unused) nor a dedicated worker stack (unlike regex's RGX-0085 stack) is
+/// needed.
+pub fn parse_and_cover_return_annotation(
+    sample: &str,
+    _grammar_profile: Option<&str>,
+    entry: Option<&str>,
+) -> (bool, std::collections::HashSet<String>) {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser =
+        Return_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.return_annotation"));
+    parser.enable_coverage();
+    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
+    let outcome = match entry {
+        Some(e) => parser.parse_full_from(e),
+        None => parser.parse_full_return_annotation(),
+    };
+    match outcome {
+        Ok(_) => (true, parser.exercised_rule_names()),
+        Err(_) => (false, std::collections::HashSet::new()),
+    }
+}
+
 fn parse_with_semantic_annotation(sample: &str) -> bool {
     let node_arena = crate::ast_pipeline::NodeArena::new();
     let mut parser =
@@ -583,6 +610,33 @@ fn parse_with_semantic_annotation_ast_json(sample: &str) -> Result<JsonValue, St
         .parse_full_semantic_annotation()
         .map_err(|err| err.to_string())?;
     parse_node_to_json(&parsed)
+}
+
+/// GRAMMAR-WELLFORMED.H.15 — parse `sample` through the REAL semantic_annotation parser and return
+/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
+/// `parse_and_cover_return_annotation`: enable the transactional `coverage_stack`, parse, and return
+/// the PARSER's own record of the committed rules on a SUCCESSFUL parse. semantic_annotation declares
+/// no grammar profile, and its entry is a single `@name: value` annotation rather than a recursive
+/// item list, so neither a profile (`_grammar_profile` is unused) nor a dedicated worker stack is
+/// needed.
+pub fn parse_and_cover_semantic_annotation(
+    sample: &str,
+    _grammar_profile: Option<&str>,
+    entry: Option<&str>,
+) -> (bool, std::collections::HashSet<String>) {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser =
+        Semantic_annotationParser::new(sample, &node_arena, runtime_logger_box("generated.semantic_annotation"));
+    parser.enable_coverage();
+    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
+    let outcome = match entry {
+        Some(e) => parser.parse_full_from(e),
+        None => parser.parse_full_semantic_annotation(),
+    };
+    match outcome {
+        Ok(_) => (true, parser.exercised_rule_names()),
+        Err(_) => (false, std::collections::HashSet::new()),
+    }
 }
 
 fn parse_with_builtin_return_annotation(sample: &str) -> bool {
@@ -653,6 +707,34 @@ fn parse_with_ebnf_ast_json(sample: &str) -> Result<JsonValue, String> {
         .parse_full_grammar_file()
         .map_err(|err| err.to_string())?;
     parse_node_to_json(&parsed)
+}
+
+/// GRAMMAR-WELLFORMED.H.15 — parse `sample` through the REAL ebnf meta-parser and return
+/// `(parsed_ok, rules_exercised)` for `certificate_coverage` (the witness side). Mirrors
+/// `parse_and_cover_return_annotation`: enable the transactional `coverage_stack`, parse, and return
+/// the PARSER's own record of the committed rules on a SUCCESSFUL parse. ebnf declares no grammar
+/// profile (`_grammar_profile` is unused). It carries the SAME `cfg` as the rest of the ebnf
+/// dispatch — the generated meta-parser exists only under `--features ebnf_dual_run`, which is also
+/// the build `ast_pipeline` needs to read a `.ebnf` directly, so cert-coverage on `grammars/ebnf.ebnf`
+/// and this hook are available together or not at all.
+#[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
+pub fn parse_and_cover_ebnf(
+    sample: &str,
+    _grammar_profile: Option<&str>,
+    entry: Option<&str>,
+) -> (bool, std::collections::HashSet<String>) {
+    let node_arena = crate::ast_pipeline::NodeArena::new();
+    let mut parser = EbnfParser::new(sample, &node_arena, runtime_logger_box("generated.ebnf"));
+    parser.enable_coverage();
+    // GRAMMAR-WELLFORMED.H.12.8.4.3: verify from the requested entry; `None` ⇒ canonical (unchanged).
+    let outcome = match entry {
+        Some(e) => parser.parse_full_from(e),
+        None => parser.parse_full_grammar_file(),
+    };
+    match outcome {
+        Ok(_) => (true, parser.exercised_rule_names()),
+        Err(_) => (false, std::collections::HashSet::new()),
+    }
 }
 
 #[cfg(has_generated_json_parser)]
@@ -1644,13 +1726,15 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
     GeneratedParserRegistryEntry {
         grammar_name: "return_annotation",
         parse_sample: parse_with_return_annotation,
-        parse_and_cover: None,
+        // GRAMMAR-WELLFORMED.H.15 — wired: the WIRED conjunct of the SVPP-EXPANSION activation gate.
+        parse_and_cover: Some(parse_and_cover_return_annotation),
         parse_detail: None,
     },
     GeneratedParserRegistryEntry {
         grammar_name: "semantic_annotation",
         parse_sample: parse_with_semantic_annotation,
-        parse_and_cover: None,
+        // GRAMMAR-WELLFORMED.H.15 — wired (see return_annotation above).
+        parse_and_cover: Some(parse_and_cover_semantic_annotation),
         parse_detail: None,
     },
     GeneratedParserRegistryEntry {
@@ -1669,7 +1753,8 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
     GeneratedParserRegistryEntry {
         grammar_name: "ebnf",
         parse_sample: parse_with_ebnf,
-        parse_and_cover: None,
+        // GRAMMAR-WELLFORMED.H.15 — wired (see return_annotation above).
+        parse_and_cover: Some(parse_and_cover_ebnf),
         parse_detail: None,
     },
     #[cfg(has_generated_json_parser)]
