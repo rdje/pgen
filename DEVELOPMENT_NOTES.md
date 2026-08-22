@@ -1,5 +1,52 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0165 — the same wrong question, one layer down
+
+**1. A DEFECT CLASS FIXED AT ONE LAYER IS WORTH GREPPING FOR AT THE OTHERS.** `H.17.2` shipped a lint
+error class whose whole design argument was *check the property, not the spelling of the property* —
+it asks **does this regex COMPILE**, not *does it contain `(?`*, because the spelling test is unsound
+(`(?i)` compiles) and incomplete (`(a)\1` does not). Two slices later the same repository had a live
+rule that could never match, and the cause was the identical error one layer down: the comment-arm
+claim analysis asked **is there an unbounded repetition** when the property that matters is **can it
+carry non-whitespace text**. `/[^\r\n]*/` and `/\s*/` both have unbounded repetitions; only one of
+them can be a comment tail. ⛔ Writing the lesson down is not the same as applying it — the lesson was
+in the repo, in a book chapter, three days old, and it did not find this instance. Grep for the shape.
+
+**2. THE MECHANISM WAS NOT MISSING. IT WAS ASKING THE WRONG QUESTION, AND THAT IS HARDER TO SEE.**
+It is tempting to read "a rule can never match because the layout skipper eats it" as *"PGEN has no
+way to know a grammar owns `#`"*. It has one, it is deliberate, it is documented, and it works:
+`systemverilog`, `vhdl`, `rtl_frontend` and `regex` all emit no `#` arm. A working mechanism with one
+mis-scored input produces a *silent single-grammar* failure, which is far quieter than a missing
+mechanism — nothing is absent to notice, and nine grammars vote that the design is fine.
+
+**3. THE BLAST RADIUS WAS A MEASUREMENT BECAUSE SOMEBODY HAD ALREADY BUILT THE ORACLE.**
+`comment_arm_suppression_matrix_is_pinned` pins the `(#, //, /*)` decision for all ten registered
+grammars against ground truth read out of the shipped `generated/*.rs`. Changing one predicate and
+running one test answered *"what else does this move?"* exactly — **one row, the predicted one, nine
+unchanged** — with no regeneration and no argument. ⭐ That is the return on pinning a derived matrix:
+the day someone touches the derivation, the pin converts a scary open-ended question into a diff.
+
+**4. THE CONTROL THAT MATTERED WAS NOT THE ONE UNDER TEST.** The changed artifact was
+`semantic_annotation_parser.rs` — and the annotation parsers are what codegen LINKS to generate every
+other parser. So the load-bearing check was not "does the set literal parse now" but *"does an
+UNRELATED grammar still regenerate byte-identically through the changed backend?"* `json_parser.rs`
+came back `6088e53d…` on both sides. ⛔ A verification that only exercises the thing you fixed cannot
+see the blast radius of fixing it.
+
+**5. ATTRIBUTE THE LEFTOVER, DO NOT ROUND IT DOWN.** After the fix `sample_parse_failures` read 0 at
+seeds 0 and 42 and **1** at seed 7. The comfortable move is "spf is essentially 0 now". Attributing
+that one sample found a second, unrelated live defect — `{1 => 2}` is rejected while `{1 => "b"}` and
+`{"a" => 1}` both parse — and a two-arm control on the pre-fix binary proved it pre-existing rather
+than introduced. ⭐ And it is invisible to the surface that was being improved: `map_entry` is already
+**witnessed**, so no `UNKNOWN` will ever move for it. **A witnessed rule can still reject inputs its
+grammar licenses**, which means certificate coverage reaching zero would not have caught this at all.
+
+**6. REPORT AN ACCEPT-SET THAT MOVES BOTH WAYS AS MOVING BOTH WAYS.** This fix WIDENS from the empty
+set on `#{…}` and NARROWS on `#`-suffixed input (`@type: 1 # trailing` stops parsing). The narrow is
+correct — the grammar defines `line_comment := "//"` and no `#` comment — but "correct" is a
+judgement and the reach is a measurement: **zero** annotation lines across all seventeen tracked
+grammars contain a `#`. Publish the direction and the reach, not just the direction that flatters.
+
 ## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0164 — a green light from an instrument that is not looking
 
 **1. `unreachable_rules=0` DID NOT MEAN THERE WERE NO UNREACHABLE RULES.** `H.16` sent this session to

@@ -6784,11 +6784,61 @@ impl AstBasedGenerator {
         }
     }
 
+    /// Does EVERY match of `hir` consist solely of WHITESPACE?
+    ///
+    /// GRAMMAR-WELLFORMED.H.16.2. This is the discriminator between a comment
+    /// **content tail** and a mere **layout separator**, and the two are not
+    /// distinguishable by "has an unbounded repetition" alone — `/[^\r\n]*/`
+    /// and `/\s*/` both do. A comment tail must be able to consume ARBITRARY
+    /// text (that is what makes the introducer + tail *mean* "comment"); a
+    /// separator that can only ever consume whitespace cannot, so an
+    /// introducer-prefixed literal followed by one is a REAL non-comment claim.
+    ///
+    /// Conservative in the safe direction: anything this walk cannot prove is
+    /// whitespace-only (a literal byte outside the set, a class with any
+    /// non-whitespace range, an unrecognized node) answers `false`, which
+    /// leaves the caller's verdict exactly where it was before this existed.
+    fn hir_matches_only_whitespace(hir: &regex_syntax::hir::Hir) -> bool {
+        use regex_syntax::hir::{Class, HirKind};
+        fn byte_is_ws(b: u8) -> bool {
+            matches!(b, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
+        }
+        match hir.kind() {
+            HirKind::Empty | HirKind::Look(_) => true,
+            HirKind::Literal(lit) => lit.0.iter().copied().all(byte_is_ws),
+            HirKind::Class(Class::Bytes(cls)) => cls
+                .ranges()
+                .iter()
+                .all(|r| (r.start()..=r.end()).all(byte_is_ws)),
+            HirKind::Class(Class::Unicode(cls)) => cls.ranges().iter().all(|r| {
+                // `\s` is the only whitespace class a grammar terminal realistically
+                // spells; require every scalar in every range to be whitespace so a
+                // wider class (`.`, `[^x]`) can never be mistaken for one.
+                (r.start()..=r.end()).all(char::is_whitespace)
+            }),
+            HirKind::Repetition(rep) => Self::hir_matches_only_whitespace(&rep.sub),
+            HirKind::Capture(cap) => Self::hir_matches_only_whitespace(&cap.sub),
+            HirKind::Concat(parts) | HirKind::Alternation(parts) => {
+                parts.iter().all(Self::hir_matches_only_whitespace)
+            }
+        }
+    }
+
     /// Is `node` an unbounded content terminal — a regex with an unbounded
-    /// repetition — possibly behind a quantifier, group, sequence head, or a
-    /// rule reference (`depth` bounds the deref hops)? This recognizes the
-    /// content tail of the two-token comment shape, e.g. the ebnf
-    /// meta-grammar's `comment_content := /([^\r\n]*)/`.
+    /// repetition over a class that can carry NON-whitespace text — possibly
+    /// behind a quantifier, group, sequence head, or a rule reference (`depth`
+    /// bounds the deref hops)? This recognizes the content tail of the
+    /// two-token comment shape, e.g. the ebnf meta-grammar's
+    /// `comment_content := /([^\r\n]*)/`.
+    ///
+    /// ⛔ GRAMMAR-WELLFORMED.H.16.2 — "unbounded repetition" ALONE is not the
+    /// property, and reading it as such made a live rule inert. A whitespace
+    /// SEPARATOR (`/\s*/`) has an unbounded repetition too, so
+    /// `semantic_annotation`'s `set_value := "#{" /\s*/ …` was read as *"an
+    /// introducer literal followed by a comment tail"*, its `#` claim was
+    /// dropped, the engine's `#`-to-EOL layout arm stayed, and `#{` was eaten
+    /// as trivia on EVERY input — `set_value` and `set_element` could never
+    /// match. See [`Self::hir_matches_only_whitespace`].
     fn node_is_unbounded_content(
         node: &ASTNode,
         grammar_tree: &HashMap<String, ASTNode>,
@@ -6817,7 +6867,10 @@ impl AstBasedGenerator {
                     let TokenValue::String(token_value) = &parts[1];
                     match token_type.as_str() {
                         "regex" => regex_syntax::parse(token_value.trim())
-                            .map(|hir| Self::hir_has_unbounded_repetition(&hir))
+                            .map(|hir| {
+                                Self::hir_has_unbounded_repetition(&hir)
+                                    && !Self::hir_matches_only_whitespace(&hir)
+                            })
                             .unwrap_or(false),
                         "rule_reference" => grammar_tree.get(token_value).is_some_and(|body| {
                             Self::node_is_unbounded_content(body, grammar_tree, depth - 1)

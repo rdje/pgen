@@ -993,6 +993,103 @@ reachable half, and it moved all of it; the rest is a dead-rule adjudication, an
 now be made honestly, because before the repair these rules were inert for a reason that had nothing
 to do with whether anyone referenced them.
 
+### A second way a terminal never matches: the layout skipper reaches it first
+
+The look-around class above is one mechanism. Here is another, found the moment the certificate
+residual of the same three grammars was adjudicated rule by rule — and it is worth its own section
+because the symptom is *identical* and the cause is in a different subsystem entirely.
+
+`grammars/semantic_annotation.ebnf` declares a set literal:
+
+```ebnf
+set_value   := "#{" /\s*/ (set_element (/\s*/ "," /\s*/ set_element)*)? /\s*/ "}"
+set_element := annotation_value
+```
+
+Neither rule could match on any input. The reproducer needs its control to be readable at all:
+
+```text
+@type: #{"a", "b"}    ->  REJECT   Backtrack at position 7
+@type: {"a": 1}       ->  PASS     (the object control — same shape, no '#')
+```
+
+Position 7 is the `#`. The trace names the mechanism as a **position jump**, and it is the whole
+diagnosis in three lines:
+
+```text
+🚪 Entering branch 4/5 for rule 'structured_value' at position 7   <- set_value, standing on the '#'
+💾 Memo miss for rule 39 at position 7 - computing fresh result
+🔤 Attempting to match terminal '#{' at position 18 (end: 20)      <- its FIRST terminal, at EOF
+❌ Terminal '#{' failed at position 18 - found '<EOF>'
+```
+
+The rule is entered at 7 and its own first terminal is attempted at 18. Something consumed the rest
+of the input between rule entry and the first match attempt: the **layout skipper**, treating `#` as
+a line-comment introducer and running to end of line.
+
+#### PGEN already had the right mechanism — it just asked the wrong question
+
+The engine's comment convention (`#`-to-EOL, `//`-to-EOL, `/* */`) is an EBNF meta-grammar
+convenience, and codegen already knows a grammar may claim those bytes for itself. When a grammar
+assigns an introducer a **non-comment meaning** — SystemVerilog's `#` delays, VHDL's `#` based-literal
+delimiters — the corresponding arm is not emitted at all. That suppression is real and it works:
+
+| generated parser | emits the `#`-comment arm? |
+|---|---|
+| `systemverilog`, `vhdl`, `rtl_frontend`, `regex` | no — each claims `#` |
+| `json`, `return_annotation`, `ebnf` | yes — none of them claims `#` |
+
+`semantic_annotation` was in the second row, and should not have been: `"#{"` *is* a non-comment
+claim on `#`, and the grammar defines no `#` comment rule anywhere.
+
+The claim was dropped by one predicate. An introducer-prefixed literal is treated as *comment-defining*
+— i.e. not a claim — when an **unbounded content terminal** follows it, which is what makes
+`("#" | "//") comment_content` in the meta-grammar read as a comment rather than as two tokens. The
+test for "unbounded content terminal" was *does its regex contain an unbounded repetition?*
+
+`set_value`'s follower is `/\s*/`. That has an unbounded repetition. So `"#{" /\s*/ …` was read as
+*"an introducer followed by a comment tail"*, the claim was dropped, the arm was emitted, and `#{`
+became trivia on every input.
+
+#### A separator is not a tail
+
+`\s*` is **layout**, not content. It cannot swallow a `}`, cannot run to end of line, and cannot
+carry the arbitrary text that makes an introducer-plus-tail *mean* "comment". The fix is to say so:
+an unbounded repetition whose language is whitespace-only is a separator, and an introducer-prefixed
+literal in front of one is a real claim.
+
+⛔ **This is the same error as the look-around check, one layer down.** That check earned its design
+by asking *does the pattern COMPILE* rather than *does it contain `(?`* — the property, not the
+spelling. Here the analysis asked *is there an unbounded repetition* when the property that matters
+is *can it carry non-whitespace text*. A defect class fixed at one layer is worth grepping for at the
+others before it is assumed to have been local.
+
+#### What moved, and the arm that narrowed
+
+The suppression decision is pinned for all ten registered grammars, so the blast radius is a
+measurement rather than an argument: **exactly one row moved** — `semantic_annotation`'s `#` claim,
+`false → true` — and nine were unchanged. One generated parser changed; `json_parser.rs` regenerates
+**byte-identically** through the same changed generator, which matters because the annotation parsers
+are what codegen links to generate every other parser.
+
+```text
+semantic_annotation cert:  115/0/82/33  spf=2   ->   115/0/84/31  spf=0
+UNKNOWN delta, by name:    set_value and set_element left; nothing newly UNKNOWN
+```
+
+The accept set moves in **both** directions, and the honest report says so:
+
+```text
+@type: #{"a", "b"}    REJECT -> PASS      (widen — from the empty set; the rule matched nothing before)
+@type: 1 # trailing   PASS   -> REJECT    (narrow — '#' is no longer a comment in this language)
+@type: 1 // trailing  PASS   -> PASS      (unchanged — a different arm, untouched)
+```
+
+The narrow is the correct reading of the grammar, which defines `line_comment := "//"` and no `#`
+comment at all. Its live reach was measured rather than assumed: across all seventeen tracked
+grammars, **zero** annotation lines contain a `#`, so nothing in the repository was relying on the
+behaviour that changed.
+
 ### Reaching deep recursive branches: the constructive-reach witness pass
 
 `rtl_const_expr` was the first grammar to expose a structural gap in the witness side, and the way it was

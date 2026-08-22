@@ -1,5 +1,70 @@
 # CHANGES.md
 
+## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0165 (leaf GRAMMAR-WELLFORMED.H.16.2 CLOSED — a terminal whose PREFIX is a comment introducer was eaten as trivia; CODE / engine-universal codegen, 1 Rust file + 1 pinned matrix, ZERO grammar bytes, 1 regenerated parser)
+
+- ⛔⛔ **`semantic_annotation`'s `set_value` / `set_element` COULD NEVER MATCH ON ANY INPUT.**
+  `set_value := "#{" /\s*/ … "}"`. Reproducer with an ACCEPTING control, on two code-disjoint oracles:
+  `@type: #{"a", "b"}` REJECTS at position 7 (the `#`) while `@type: {"a": 1}` PASSES — identically on
+  the generated parser and on `--interpret-parse`.
+- **ROOT CAUSE, named by the trace as a POSITION JUMP** — the rule is ENTERED at 7 and its own first
+  terminal is attempted at 18 (EOF), because the engine's `#`-to-EOL layout arm consumed 7→18 first:
+  ```text
+  🚪 Entering branch 4/5 for rule 'structured_value' at position 7
+  🔤 Attempting to match terminal '#{' at position 18 (end: 20)
+  ❌ Terminal '#{' failed at position 18 - found '<EOF>'
+  ```
+  ⭐ **The mechanism that should have prevented this ALREADY EXISTS AND WORKS.** `H.11.5` emits no
+  `#` arm for a grammar that claims `#` a non-comment meaning — `systemverilog`, `vhdl`,
+  `rtl_frontend`, `regex` all read 0. `semantic_annotation` belonged in that row: `"#{"` IS such a
+  claim and the grammar defines no `#` comment rule. The claim was dropped by ONE predicate —
+  `node_is_unbounded_content` (`rust/src/ast_pipeline/ast_based_generator.rs`) scored `set_value`'s
+  **whitespace separator `/\s*/`** as an unbounded comment content **tail**, so `"#{" /\s*/ …` read
+  as *"an introducer followed by a comment tail"*.
+- ⛔⛔ **IT IS THE SAME ERROR `H.17.2` OUTLAWED, ONE LAYER DOWN.** That check earned its design by
+  asking *does the pattern COMPILE* rather than *does it contain `(?`*. Here the analysis asked *is
+  there an unbounded repetition* when the property that matters is *can it carry NON-WHITESPACE text*.
+  A `\s*` cannot swallow a `}` and cannot run to end of line, so it is layout, not content.
+- **FIX (engine tier — no lower tier exists; the grammar is correct as written).** New
+  `hir_matches_only_whitespace` walks the HIR; the regex arm of `node_is_unbounded_content` becomes
+  `hir_has_unbounded_repetition && !hir_matches_only_whitespace`. Conservative BY CONSTRUCTION —
+  anything the walk cannot PROVE whitespace-only answers `false`, leaving every prior verdict where it
+  was. **ZERO grammar bytes.**
+- ⭐⭐ **THE BLAST RADIUS IS A MEASUREMENT, NOT AN ARGUMENT, AND THE ORACLE ALREADY EXISTED.**
+  `comment_arm_suppression_matrix_is_pinned` pins the `(#, //, /*)` decision for all TEN registered
+  grammars against ground truth read from the shipped `generated/*.rs`. It failed with **exactly one
+  row moved** — the row predicted before the run:
+  ```text
+  semantic_annotation: expected (#,//,/*)=(false,true,true) but got (true,true,true)
+  ```
+- ⭐ **AND THE CONTROL THAT MATTERED IS THE ANNOTATION BACKEND.** The annotation parsers are what
+  codegen LINKS to generate every OTHER parser, so this change could in principle have moved every
+  artifact in the tree. Measured: `generated/json_parser.rs` regenerated through the changed generator
+  AND the changed backend is **BYTE-IDENTICAL** (`6088e53d444ed5ca…` both sides) while
+  `semantic_annotation_parser.rs` moved (`4def8be380961f0d…` → `e2a3d4cdc663cf1f…`). ⚠️
+  `generated/semantic_annotation.json` also re-hashed and it is the embedded `generated_at` ALONE —
+  two consecutive dumps have byte-identical `raw_ast`.
+- **ADDRESSED** — REJECT→PASS on THREE oracles; cert `semantic_annotation` **`115/0/82/33 spf=2` →
+  `115/0/84/31 spf=0`**, `UNKNOWN=31` byte-identical at seeds 0/7/42, delta **ATTRIBUTED BY RULE
+  NAME**: exactly `set_value` + `set_element` left, nothing newly UNKNOWN. Emitted `#` arm 2 → 0.
+- **NO REGRESSION** — 1.6 differential (`certified_grammars_are_byte_identical`) PASS; `ebnf` and
+  `return_annotation` cert byte-identical; `cargo test --lib` **1118 passed / 1 failed**, that one
+  failure proven pre-existing by a **two-arm control** (revert both files to HEAD, identical panic)
+  rather than by citing a record; `clippy_on_rust_change` PASS; doctrines 25/25.
+- ⭐ **`ACCEPT-SET-LEDGER:` MOVES IN BOTH DIRECTIONS AND THE REPORT SAYS SO.** WIDEN-from-∅ on
+  `#{…}` (the rule matched nothing before, so nothing can regress) and **NARROW** on `#`-suffixed
+  input — `@type: 1 # trailing` PASS → REJECT, while `// trailing` is unchanged. The narrow is the
+  correct reading of the grammar, and its live reach was MEASURED, not assumed: across all **17**
+  tracked grammars, **zero** annotation lines contain a `#`.
+- **THREE leaves routed out, none merely reported**: `H.16.2b` (the DYNAMIC guard is still an
+  exact-equality allowlist — a repo-wide regeneration radius, deliberately NOT ridden along inside
+  another slice's verification; no live victim known), and **`H.16.6`** — `{1 => 2}` is REJECTED while
+  `{1 => "b"}` and `{"a" => 1}` both PARSE. That one was found by **attributing** the seed-7 `spf`
+  sample instead of waving it through, and proven pre-existing on the pre-fix binary. ⚠️ `map_entry`
+  is already WITNESSED, so `UNKNOWN` will not move: **a witnessed rule can still reject inputs its
+  grammar licenses**, and the certificate surface is blind to that by construction.
+- **Book**: `docs/book/src/grammar-wellformedness.md` gains *"A second way a terminal never matches:
+  the layout skipper reaches it first"*, sibling to the look-around section.
+
 ## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0164 (leaf GRAMMAR-WELLFORMED.H.16.1 CLOSED — the 68-rule residual of the three annotation/meta families is fully adjudicated; doc+artifact tier, ZERO grammar bytes, ZERO Rust bytes, ZERO codegen bytes, ZERO generated bytes)
 
 - ⛔⛔ **THE TOOL `H.16` NAMED FOR THIS JOB CANNOT DO IT, AND SAYS SO WITH A GREEN LIGHT.** `H.16`

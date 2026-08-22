@@ -1083,7 +1083,11 @@ mod gate {
                 (false, false, false),
             ),
             ("rtl_const_expr", "rtl_const_expr.ebnf", (false, false, false)),
-            ("semantic_annotation", "semantic_annotation.ebnf", (false, true, true)),
+            // GRAMMAR-WELLFORMED.H.16.2: `#` flipped false -> true. `set_value := "#{" /\s*/ …`
+            // always WAS a non-comment claim on `#`; the claim was dropped because the analysis
+            // scored its `/\s*/` SEPARATOR as a comment content TAIL, so the engine's `#`-to-EOL
+            // arm stayed and ate `#{` on every input. This grammar defines no `#` comment rule.
+            ("semantic_annotation", "semantic_annotation.ebnf", (true, true, true)),
             ("return_annotation", "return_annotation.ebnf", (false, false, false)),
             ("ebnf", "ebnf.ebnf", (false, false, true)),
         ];

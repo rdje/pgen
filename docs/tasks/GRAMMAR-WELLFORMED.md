@@ -3182,22 +3182,160 @@ each proven with an ACCEPTING control:
   `DEVELOPMENT_NOTES.md`; `MEMORY.md`. Book: N/A — no user-facing surface changed; the mechanisms
   become book material when `H.16.2`/`H.16.3` land the fixes.
 
-### `H.16.2` — **A TERMINAL WHOSE PREFIX IS A COMMENT INTRODUCER IS EATEN AS A COMMENT: `set_value` / `set_element` ARE INERT** (`todo`, opened 2026-08-22 session #257 by `H.16.1`)
+### `H.16.2` — **A TERMINAL WHOSE PREFIX IS A COMMENT INTRODUCER IS EATEN AS A COMMENT: `set_value` / `set_element` ARE INERT** (**`done`**, `PGEN-GRAMMAR-WELLFORMED-0165`, CODE / engine-universal codegen — opened 2026-08-22 session #257 by `H.16.1`, CLOSED same session)
 
-- **WHY**: fully root-caused in `H.16.1` above — both guards fail on `"#{"`, the dynamic one by
-  exact-equality (`ast_based_generator.rs:7199`) and the static one by scoring the `/\s*/` separator
-  as an unbounded comment tail (`:6586` / `node_is_unbounded_content`). Two rules can never match.
-- **SHAPE OF THE FIX (engine-universal, codegen tier)**: make both guards ask the PROPERTY, not the
-  spelling — (a) `allow_comment_skip` becomes a **prefix** test over the introducer set, and (b)
-  `node_is_unbounded_content` must distinguish a **content** tail (an unbounded run over an open
-  class, which can swallow a delimiter) from a **layout** separator (`\s*`, which cannot). ⛔ Both
-  copies move together: `parse_harness_interpreter.rs:3045` mirrors codegen byte-for-byte
-  (`PARSE-HARNESS.5.2`), and TOOLBOX 1.6's differential-equivalence gate is the check that they did.
-- **ACCEPT-SET direction is WIDEN-from-∅ by construction** on the affected rules (they match nothing
-  today), but the guard change is NOT confined to them — re-run the 1.6/1.7/1.8 equivalence suites and
-  the byte-identical check across the fully-certified grammars before claiming that.
-- **OWED BY `H.16.1`**: probe the other 10 sites of the class individually (they were cleared by
-  arm-suppression + witness status, not by an accept/reject probe).
+- **WHY**: fully root-caused in `H.16.1` — `semantic_annotation`'s `set_value := "#{" /\s*/ … "}"` can
+  never match on any input, because the engine's `#`-comment layout arm consumes `#`→EOL before the
+  rule's own first terminal is attempted. Two rules inert.
+
+#### ✅ CLOSED — the analysis asked *is there an unbounded repetition* when the property is *can it carry text*
+
+- ⭐⭐ **THE STATIC MECHANISM THAT SHOULD HAVE CAUGHT THIS ALREADY EXISTED AND WORKS — this grammar was
+  the miss, not the design.** `H.11.5` built per-introducer arm SUPPRESSION: a grammar that assigns
+  `#` / `//` / `/*` a NON-COMMENT meaning gets that arm elided entirely. Emitted `#`-arm, per shipped
+  parser: `systemverilog` **0**, `vhdl` **0**, `rtl_frontend` **0**, `regex` **0** (each claims `#`)
+  versus `semantic_annotation` **2**, `ebnf` **2**, `json` **2**, `return_annotation` **2**.
+  `semantic_annotation` belonged in the first row: `"#{"` IS a non-comment claim on `#`, and the
+  grammar defines no `#` comment rule anywhere.
+- **ROOT CAUSE (WHY + WHERE)** — ONE predicate drops the claim.
+  `node_has_non_comment_claim` (`rust/src/ast_pipeline/ast_based_generator.rs:6586`) treats an
+  introducer-prefixed literal as *comment-defining* — i.e. not a claim — when an **unbounded content
+  terminal** follows it (the shape that makes `("#" | "//") comment_content` a comment rather than two
+  tokens). `node_is_unbounded_content` scored a `"regex"` follower purely by
+  `hir_has_unbounded_repetition`. `set_value`'s follower is the **whitespace separator `/\s*/`**,
+  which has unbounded repetition ⇒ `"#{" /\s*/ …` was read as *"an introducer followed by a comment
+  tail"* ⇒ claim dropped ⇒ arm emitted ⇒ `#{` became trivia on every input.
+- ⛔⛔ **IT IS THE SAME ERROR `H.17.2` OUTLAWED, ONE LAYER DOWN.** That check earned its design by
+  asking *does the pattern COMPILE* rather than *does it contain `(?`* — the property, not the
+  spelling. Here the analysis asked *is there an unbounded repetition* when the property that matters
+  is *can it carry NON-WHITESPACE text*. ⭐ **A defect class fixed at one layer is worth grepping for
+  at the others before it is assumed local.**
+- **FIX (tier: engine — no lower tier exists).** The grammar is correct as written; it is the ANALYSIS
+  that misreads it, so neither a declarative nor a grammar tier applies. New
+  `AstBasedGenerator::hir_matches_only_whitespace` walks the HIR and answers *does every match consist
+  solely of whitespace?*; `node_is_unbounded_content`'s regex arm becomes
+  `hir_has_unbounded_repetition(&hir) && !hir_matches_only_whitespace(&hir)`. ⭐ Conservative in the
+  safe direction BY CONSTRUCTION: anything the walk cannot PROVE whitespace-only answers `false`,
+  which leaves every prior verdict exactly where it was. **ZERO grammar bytes.**
+- ⭐⭐ **BLAST RADIUS IS A MEASUREMENT, NOT AN ARGUMENT — and the oracle already existed.**
+  `parse_harness_equivalence::gate::comment_arm_suppression_matrix_is_pinned` pins the
+  `(#, //, /*)` decision for all TEN registered grammars against ground truth read from the shipped
+  `generated/*.rs`. It failed with **exactly one row moved**, which is what was predicted before it
+  was run:
+  ```text
+  semantic_annotation: expected (#,//,/*)=(false,true,true) but got (true,true,true)
+  ```
+  Nine grammars unchanged. The pin is updated to the new truth in the same commit.
+- ⭐ **AND THE ANNOTATION-BACKEND CONTROL IS THE ONE THAT MATTERED.** The annotation parsers are what
+  codegen LINKS to generate every OTHER parser, so a change to
+  `generated/semantic_annotation_parser.rs` could in principle move every artifact in the tree.
+  Measured: `generated/json_parser.rs` regenerated through the changed generator AND the changed
+  annotation backend is **BYTE-IDENTICAL** (`6088e53d444ed5ca…` both sides), while
+  `semantic_annotation_parser.rs` moved (`4def8be380961f0d…` → `e2a3d4cdc663cf1f…`). The control can
+  go RED, and did, on exactly the artifact it should. ⚠️ `generated/semantic_annotation.json` also
+  re-hashed; proven to be the embedded `generated_at` alone — two consecutive dumps have
+  **byte-identical `raw_ast`** and differ only in that field.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `./rust/target/release/parseability_probe --parse semantic_annotation`
+  on `@type: #{"a", "b"}` ⇒ `Error: parse_full rejected … Backtrack at position 7
+  [furthest_position=7]`, with the ACCEPTING object control `@type: {"a": 1}` ⇒ `parse_full passed`.
+  Reproduced identically on the code-disjoint `--interpret-parse` oracle (`accepted=false
+  furthest_position=7` vs `accepted=true`), so it is not a stale-binary artifact.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `PGEN_TRACE_VERBOSITY=debug --trace-rules` names it as a POSITION
+  JUMP: `🚪 Entering branch 4/5 for rule 'structured_value' at position 7` → `💾 Memo miss for rule 39
+  at position 7` → `🔤 Attempting to match terminal '#{' at position 18 (end: 20)` → `❌ Terminal '#{'
+  failed at position 18 - found '<EOF>'`. The rule is ENTERED at 7 and its own first terminal is
+  attempted at 18 (EOF) — the layout skipper consumed 7→18. WHERE: the emitted `#` arm in
+  `consume_layout_for_terminal` (`generated/semantic_annotation_parser.rs:130824` pre-fix), emitted
+  because `grammar_claims_introducer_as_non_comment(grammar_tree, "#")`
+  (`rust/src/ast_pipeline/ast_based_generator.rs:6556`) returned `false`, because
+  `node_is_unbounded_content` (`:6650`) scored the `/\s*/` separator as a comment content tail.
+- [x] **ADDRESSED (verified)** — **REJECT → PASS on THREE oracles** (fresh release
+  `parseability_probe` on the regenerated parser · `--interpret-parse` · the cert pass), for
+  `@type: #{"a", "b"}` and `@type: #{}`, with the object control still PASS. Certificate coverage
+  `semantic_annotation` **`115/0/82/33 spf=2` → `115/0/84/31 spf=0`** (seed 0), `UNKNOWN=31`
+  byte-identical at seeds **0/7/42**. ⭐ **THE `UNKNOWN` DELTA IS ATTRIBUTED BY RULE NAME, NOT BY
+  COUNT**: exactly `set_value` and `set_element` left the set, and **nothing** became newly UNKNOWN.
+  The emitted `#` arm count in that parser goes **2 → 0** (and `allow_comment_skip` 2 → 0, since with
+  all three introducers claimed the skipper reduces to whitespace).
+- [x] **NO REGRESSION** — `comment_arm_suppression_matrix_is_pinned` PASS with exactly one row
+  re-pinned, nine unchanged; `certified_grammars_are_byte_identical` (TOOLBOX 1.6, the
+  interpreter↔generated-parser differential) **PASS**; `every_registered_grammar_is_classified_exactly_once`
+  and `deferred_grammars_are_still_divergent_or_promote_them` PASS. `generated/json_parser.rs`
+  regenerates BYTE-IDENTICAL. `ebnf` (`144/0/111/33 spf=8`) and `return_annotation` (`35/0/33/2
+  spf=0`) cert byte-identical. `cargo test --lib --features "generated_parsers ebnf_dual_run"`
+  **1118 passed / 1 failed** — and that one failure is proven pre-existing by a **two-arm control**,
+  not by citing a record: reverting both source files to HEAD and re-running it alone reproduces the
+  identical panic (`expected semantic_annotation fallback to detect '@' directives`); it is already
+  tracked by `ENGINE-UNIVERSAL-SERVICES`. `make clippy_on_rust_change` PASS (source strict + generated
+  strict + the correctness-roster policy, 68 pinned lints intact). `scripts/check_doctrines.sh` 25/25.
+  ⭐ **`ACCEPT-SET-LEDGER:` MOVES IN BOTH DIRECTIONS AND THE REPORT SAYS SO** — WIDEN-from-∅ on
+  `#{…}` (the rule matched nothing before, so nothing can regress) and **NARROW** on `#`-suffixed
+  input (`@type: 1 # trailing` PASS → REJECT; `// trailing` unchanged, a different arm). The narrow is
+  the correct reading of a grammar that defines `line_comment := "//"` and no `#` comment at all, and
+  its live reach was MEASURED rather than assumed: across all **17** tracked grammars, **zero**
+  annotation lines contain a `#`.
+- [x] **LOCKSTEP** — book `docs/book/src/grammar-wellformedness.md` gains *"A second way a terminal
+  never matches: the layout skipper reaches it first"* (sibling to the look-around section, with the
+  suppression table, the position-jump trace and the two-direction accept-set report); the pinned
+  matrix in `rust/src/parse_harness_equivalence.rs` re-pinned with the reason inline; this leaf + the
+  Current Frontier + `docs/TASK_TREE.md`; `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`.
+
+### `H.16.2b` — **THE DYNAMIC COMMENT-SKIP GUARD IS STILL AN EXACT-EQUALITY ALLOWLIST** (`todo`, opened 2026-08-22 session #257 by `H.16.2`)
+
+- **WHY**: `H.16.2` fixed the STATIC half. The DYNAMIC backstop is still spelling-based —
+  `rust/src/ast_pipeline/ast_based_generator.rs:7199` emits
+  `let allow_comment_skip = expected != "#" && expected != "//" && expected != "/*" && expected != "/**"
+  && expected != "///" && expected != "/";`. Its own comment states the correct intent (*"avoid
+  swallowing comment-introducer tokens themselves"*), but a terminal that merely **starts with** an
+  introducer — `"#{"`, a hypothetical `"//="` — is not equal to one, so skipping stays enabled.
+- **SHAPE OF THE FIX**: `expected != "/" && !expected.starts_with('#') && !expected.starts_with("//")
+  && !expected.starts_with("/*")`. ⭐ A strict SUPERSET of the current exemptions (`"/**"` starts with
+  `/*`, `"///"` starts with `//`), so it can only ever DISABLE comment skipping in more cases, never
+  enable it in fewer — the accept set can only NARROW, never silently widen.
+- ⛔ **BOTH COPIES MOVE TOGETHER**: `rust/src/parse_harness_interpreter.rs:3045` carries the same
+  allowlist and mirrors codegen byte-for-byte (`PARSE-HARNESS.5.2`); TOOLBOX 1.6's
+  differential-equivalence gate is the check that they did.
+- ⚠️ **WHY IT IS A SEPARATE SLICE, AND THE HONEST BOUND**: this edits the emitted layout skipper of
+  **every** arm-emitting parser, so every such artifact changes bytes — a repo-wide regeneration and
+  rebaseline, versus `H.16.2`'s measured one-artifact radius. **NO LIVE VICTIM IS KNOWN**: in the
+  grammars that DO emit an arm, the introducer-prefixed terminals are `ebnf`'s `/**` and `///` (both
+  already exempt by exact match, and `documentation_comment` is WITNESSED, so it fires) and
+  `semantic_annotation`'s `#{` (fixed by `H.16.2`) and `///`. This is prophylactic hardening of a
+  proven class, not a live defect — which is exactly why it must not ride along inside another slice's
+  verification.
+- **OWED BY `H.16.1`**: the other 10 sites of the 11-site class census were cleared by arm-suppression
+  and witness status, **not** by an individual accept/reject probe. Probe them here.
+
+### `H.16.6` — **`{1 => 2}` IS REJECTED WHILE `{1 => "b"}` AND `{"a" => 1}` BOTH PARSE** (`todo`, opened 2026-08-22 session #257 by `H.16.2`)
+
+- **WHY — found by ATTRIBUTING an `spf` sample rather than waving it through.** After `H.16.2`,
+  `semantic_annotation` reads `spf=0` at seeds 0 and 42 but **`spf=1` at seed 7**, on the generated
+  sample `@ idempotent :  {    +3.67=> psnG,+.6    =>   0xFFa0  }` (`Backtrack at position 16
+  [furthest_position=33]`).
+- ⛔ **PROVEN PRE-EXISTING, NOT INTRODUCED BY `H.16.2`** — the same input rejects **byte-identically**
+  (`Backtrack at position 16 [furthest_position=33]`) on the PRE-fix release binary built before the
+  regeneration. It was simply not sampled at seed 0.
+- ⭐ **MINIMAL REPRODUCER, AND IT IS SHARPER THAN THE SAMPLE** (`--interpret-parse`, all with the same
+  annotation name so the name is not a variable):
+  ```text
+  @type: {"a" => "b"}   accepted=true      @type: {1 => "b"}   accepted=true
+  @type: {"a" => 1}     accepted=true      @type: {1 => 2}     accepted=FALSE  furthest_position=14
+  ```
+  ⇒ neither a numeric KEY alone nor a numeric VALUE alone breaks it; **only both together**. That
+  rules out "numeric literals don't parse in map position" and points at the ordered choice
+  `structured_value := array | object | tuple | set | map` and/or `annotation_value`'s
+  `expression_value` arm claiming `1 => 2`.
+- **FIRST STEP**: `--trace-rules map_entry,map_value,object_value` on `@type: {1 => 2}` with
+  `@type: {1 => "b"}` as the paired ACCEPTING control — the branch that differs is the diagnosis.
+  ⛔ Do NOT start from the grammar text; the two inputs differ by one token and the trace will name it.
+- ⚠️ **`map_entry` IS ALREADY WITNESSED** (`[plannable-probe] rule='map_entry' parsed=true
+  witnessed_target=true sample="@   type   : {    \"3\"=> \"\\i\"  }"`), so this is NOT a cert
+  residual and `UNKNOWN` will not move — it is an accept-set defect that the certificate surface is
+  blind to by construction. That is the transferable part: **a witnessed rule can still reject inputs
+  its grammar licenses.**
 
 ### `H.16.3` — **THE STIMULI GENERATOR SHADOWS ANY RULE NAMED `epsilon` WITH THE EMPTY STRING** (`todo`, opened 2026-08-22 session #257 by `H.16.1`)
 
@@ -3976,7 +4114,9 @@ each proven with an ACCEPTING control:
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `GRAMMAR-WELLFORMED.H.16.2` (a terminal whose PREFIX is a comment introducer is eaten as a comment) | **`todo`** (opened 2026-08-22 by `H.16.1`) | ⭐⭐ **The sharpest of the four, and ENGINE-UNIVERSAL.** `semantic_annotation`'s `set_value := "#{" …` can never match on any input: the `#`-comment arm eats `#`→EOL first. Both guards fail on the same spelling-vs-property error — `allow_comment_skip` is an exact-equality allowlist (`ast_based_generator.rs:7199`) and the static claim-suppression scores the `/\s*/` SEPARATOR as an unbounded comment TAIL (`:6586`). Reproduced on two code-disjoint oracles with an ACCEPTING object control; the position jump is in the trace. 2 rules inert |
+| — | `GRAMMAR-WELLFORMED.H.16.2` (a terminal whose PREFIX is a comment introducer is eaten as a comment) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0165`, CODE / engine-universal codegen) | ✅ `set_value` / `set_element` REJECT→PASS on THREE oracles; cert `115/0/82/33 spf=2` → **`115/0/84/31 spf=0`**, `UNKNOWN=31` at seeds 0/7/42, delta ATTRIBUTED BY NAME (exactly those two left; nothing newly UNKNOWN). Root cause: `node_is_unbounded_content` scored the `/\s*/` SEPARATOR as a comment content TAIL, dropping the `#` claim — the same spelling-vs-property error `H.17.2` outlawed one layer up. Blast radius MEASURED by the pinned suppression matrix: **exactly one row moved**, nine unchanged; `json_parser.rs` regenerates BYTE-IDENTICAL through the changed annotation backend |
+| 1 | `GRAMMAR-WELLFORMED.H.16.6` (`{1 => 2}` rejected while `{1 => "b"}` and `{"a" => 1}` both parse) | **`todo`** (opened 2026-08-22 by `H.16.2`) | Found by ATTRIBUTING the seed-7 `spf` sample instead of waving it through, and **proven pre-existing** on the pre-fix binary. ⭐ The minimal reproducer is sharper than the sample: only a numeric key AND a numeric value together fail. ⚠️ `map_entry` is already WITNESSED, so `UNKNOWN` will not move — **a witnessed rule can still reject inputs its grammar licenses** |
+| 3 | `GRAMMAR-WELLFORMED.H.16.2b` (the DYNAMIC comment-skip guard is still an exact-equality allowlist) | **`todo`** (opened 2026-08-22 by `H.16.2`) | Prophylactic hardening of a proven class, deliberately NOT ridden along inside `H.16.2`: the prefix test edits the emitted layout skipper of EVERY arm-emitting parser (repo-wide rebaseline) versus `H.16.2`'s measured one-artifact radius. No live victim known. Also owes the 10 unprobed sites of the 11-site class census |
 | 1 | `GRAMMAR-WELLFORMED.H.16.3` (the generator shadows any rule named `epsilon` with `""`) | **`todo`** (opened 2026-08-22 by `H.16.1`) | `stimuli_generator.rs:11186` returns the empty string for ANY rule literally named `epsilon`, before consulting the grammar — so `ebnf.ebnf`'s real 4-literal body can never be witnessed and every probe sample (`X:=`) is rejected. The LANGUAGE is fine (`X := ε` accepts). Codegen already disagrees: `epsilon` is NOT in `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` |
 | 2 | `GRAMMAR-WELLFORMED.H.16.4` (`ebnf`'s `whitespace` is layout-skipped before `grammar_file` sees it) | **`todo`** (opened 2026-08-22 by `H.16.1`) | MEASURED, not hypothesised: 4 spaces ⇒ `accepted=true furthest_position=0`, typed AST `elements=[]` span 0..0 — the `*` matched ZERO iterations. ⭐ `comment` sits in the SAME alternation and IS witnessed, so the two must be explained together |
 | 3 | `GRAMMAR-WELLFORMED.H.16.5` (55 source orphans + 9 LR residue; proof-promotion is gated off for profile-less grammars) | **`todo`** (opened 2026-08-22 by `H.16.1`) | The certifying mechanism EXISTS (`VERILOG-2005-PROFILE.6.7`) and cannot reach them: `main.rs:3380` gates P1/P2 promotion on `profile.is_some()`, and all three families are `profiles=[]`. ⛔ Carries a DIRECTOR-FACING call — `ebnf.ebnf` labels 13 island roots `(extension)` in its own comments, so wiring them is a LANGUAGE EXPANSION. Also carries leg 3 for `H.16.1` |
