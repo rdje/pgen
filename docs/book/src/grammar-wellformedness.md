@@ -788,11 +788,31 @@ A third observation came free with the wiring, and it is the one with the widest
 `ebnf` reports 11–13 of its 40 generated samples as `sample_parse_failures`, and `semantic_annotation`
 2–4 — while all seven previously-wired families report zero. A generated sample its own family's parser
 rejects is a disagreement between the generator and the parser about what `grammars/<g>.ebnf` means,
-and PGEN ships both halves. Diagnosing it is currently blocked by a defect of the report itself: each
-such failure is labelled `(no detail-capable parser registered)`, which is **false** — a working detail
-parser exists for nine of the thirteen registry rows, reachable through a *different* dispatch that the
-label path does not consult. Two dispatches answer one question and disagree, and the one that prints
-is the one that knows less.
+and PGEN ships both halves.
+
+Diagnosing it was, briefly, impossible — and for a reason worth recording, because the defect was in
+the *report*, not the parser. Every such failure was labelled `(no detail-capable parser registered)`,
+which was **false**: a working detail parser existed for nine of the thirteen registry rows, reachable
+through a *different* dispatch that the label path did not consult. Two independently-authored tables
+answered one question — *is there a detail-capable parser for this grammar?* — and disagreed, and the
+one that printed was the one that knew less. The fix was not to fill in the nine missing entries but to
+**delete the duplicate table**: it had exactly one reader, so `parse_error` now delegates to the single
+surviving dispatch and the two answers can no longer drift apart. The cert tuples are byte-identical
+across that change — a label must never move a classification — and the failures now read like
+failures:
+
+```text
+[1] error: Parser did not consume full input at position 0 [furthest_position=3, +3 bytes deeper …]
+[1] sample (5 bytes): /***/
+```
+
+That first line is worth pausing on. `/***/` is a **block comment in the very language `ebnf.ebnf`
+describes**; the generator emits it, and the meta-parser rejects it three bytes in — while
+`block_comment` and `block_comment_content` sit in that grammar's `UNKNOWN` list. Either the shipped
+meta-parser has a real parse defect or the generator emits a form the grammar does not license, and
+those two verdicts have opposite fixes. It is a lead, not a diagnosis; it is also the kind of lead that
+was structurally invisible for as long as the report answered "no parser" to a question about a struct
+field.
 
 ### Reaching deep recursive branches: the constructive-reach witness pass
 

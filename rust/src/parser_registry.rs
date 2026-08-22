@@ -430,7 +430,6 @@ type ParseAndCoverFn =
 /// reached). Lets the certificate-coverage gate LABEL its sample-parse failures instead of silently
 /// counting them. Same data-driven boundary as `parse_and_cover`: the per-grammar knowledge lives in
 /// the registry table, never in the pipeline.
-type ParseDetailFn = fn(&str, Option<&str>) -> Result<(), String>;
 
 #[cfg(any(has_generated_systemverilog_parser, has_generated_regex_parser))]
 /// The **active** dialect profile a grammar parses under, given a requested profile — the single source
@@ -508,9 +507,6 @@ pub struct GeneratedParserRegistryEntry {
     /// (`None` until wired — Phase H wires the rest). Kept here so the per-grammar knowledge lives in
     /// the registry table (data-driven), never in the pipeline.
     parse_and_cover: Option<ParseAndCoverFn>,
-    /// GRAMMAR-WELLFORMED.G.4.7: the "why did it fail to parse" hook (rich error string). `None` until
-    /// wired per grammar. Used to LABEL certificate-coverage sample-parse failures.
-    parse_detail: Option<ParseDetailFn>,
 }
 
 impl GeneratedParserRegistryEntry {
@@ -1138,13 +1134,24 @@ pub fn supports_parse_and_cover(grammar_name: &str) -> bool {
 /// `furthest_position`), or `Ok(())` if it parsed. `None` if no detail-capable parser is registered
 /// for `grammar_name`. Lets the certificate-coverage gate LABEL its sample-parse failures. The
 /// grammar-name → parser mapping lives HERE so the pipeline stays parser-agnostic.
+///
+/// ⛔ GRAMMAR-WELLFORMED.H.18 — this DELEGATES to `parse_sample_detail_with_profile`, and that is the
+/// whole point. It used to read a separate `parse_detail` field on the registry table, so the same
+/// question ("is there a detail-capable parser for this grammar?") had TWO independently-authored
+/// answers — and they disagreed for **9 of 13** rows: `return_annotation`, `semantic_annotation`,
+/// `builtin_return_annotation`, `builtin_semantic_annotation`, `ebnf`, `json`, `rtl_const_expr`,
+/// `rtl_frontend` and `vhdl` each had a working `parse_with_<g>_detail` reachable through the
+/// dispatch below while the table said `None`, so the certificate-coverage report labelled every one
+/// of their sample-parse failures `"(no detail-capable parser registered)"` — **a false statement**,
+/// and the reason those failures could not be root-caused at all. The field had exactly ONE reader
+/// (this function), so it was deleted rather than filled in: a second table would only diverge again
+/// the next time a grammar was added.
 pub fn parse_error(
     grammar_name: &str,
     sample: &str,
     grammar_profile: Option<&str>,
 ) -> Option<Result<(), String>> {
-    let detail = find_entry(grammar_name)?.parse_detail?;
-    Some(detail(sample, grammar_profile))
+    parse_sample_detail_with_profile(grammar_name, sample, grammar_profile)
 }
 
 /// GRAMMAR-WELLFORMED.G.3.3 + G.4.6: parse `sample` through the REAL SystemVerilog parser and
@@ -1504,18 +1511,6 @@ fn parse_with_systemverilog_preprocessor_detail(sample: &str) -> Result<(), Stri
     result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
-/// GRAMMAR-WELLFORMED.H.5.1 — `ParseDetailFn`-shaped adapter (`fn(&str, Option<&str>) -> Result<(),
-/// String>`) so the certificate-coverage report can LABEL svpp's witness-parse failures with the real
-/// parse error instead of `"(no detail-capable parser registered)"`. svpp has no grammar profile, so the
-/// profile arg is ignored; the body delegates to `parse_with_systemverilog_preprocessor_detail`.
-#[cfg(has_generated_systemverilog_preprocessor_parser)]
-fn parse_with_systemverilog_preprocessor_detail_profile(
-    sample: &str,
-    _grammar_profile: Option<&str>,
-) -> Result<(), String> {
-    parse_with_systemverilog_preprocessor_detail(sample)
-}
-
 #[cfg(has_generated_systemverilog_preprocessor_parser)]
 fn parse_with_systemverilog_preprocessor_ast_json(sample: &str) -> Result<JsonValue, String> {
     let node_arena = crate::ast_pipeline::NodeArena::new();
@@ -1728,26 +1723,22 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
         parse_sample: parse_with_return_annotation,
         // GRAMMAR-WELLFORMED.H.15 — wired: the WIRED conjunct of the SVPP-EXPANSION activation gate.
         parse_and_cover: Some(parse_and_cover_return_annotation),
-        parse_detail: None,
     },
     GeneratedParserRegistryEntry {
         grammar_name: "semantic_annotation",
         parse_sample: parse_with_semantic_annotation,
         // GRAMMAR-WELLFORMED.H.15 — wired (see return_annotation above).
         parse_and_cover: Some(parse_and_cover_semantic_annotation),
-        parse_detail: None,
     },
     GeneratedParserRegistryEntry {
         grammar_name: "builtin_return_annotation",
         parse_sample: parse_with_builtin_return_annotation,
         parse_and_cover: None,
-        parse_detail: None,
     },
     GeneratedParserRegistryEntry {
         grammar_name: "builtin_semantic_annotation",
         parse_sample: parse_with_builtin_semantic_annotation,
         parse_and_cover: None,
-        parse_detail: None,
     },
     #[cfg(all(feature = "ebnf_dual_run", has_generated_ebnf_parser))]
     GeneratedParserRegistryEntry {
@@ -1755,63 +1746,48 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
         parse_sample: parse_with_ebnf,
         // GRAMMAR-WELLFORMED.H.15 — wired (see return_annotation above).
         parse_and_cover: Some(parse_and_cover_ebnf),
-        parse_detail: None,
     },
     #[cfg(has_generated_json_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "json",
         parse_sample: parse_with_json,
         parse_and_cover: Some(parse_and_cover_json),
-        parse_detail: None,
     },
     #[cfg(has_generated_regex_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "regex",
         parse_sample: parse_with_regex,
         parse_and_cover: Some(parse_and_cover_regex),
-        // RGX-0078.5.h.1.t1 — wire the existing detail parser so a cert-coverage
-        // sample-parse failure carries the REAL parse error instead of
-        // "(no detail-capable parser registered)". The detail fn also applies the
-        // PCRE2 compile contract, but the label pathway is only consulted for
-        // samples whose GRAMMAR parse failed (parse_and_cover=false), where the
-        // deterministic re-parse fails before the contract runs — so the label is
-        // always the grammar-parse error, matching parse_and_cover semantics.
-        parse_detail: Some(parse_with_regex_detail),
     },
     #[cfg(has_generated_rtl_const_expr_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "rtl_const_expr",
         parse_sample: parse_with_rtl_const_expr,
         parse_and_cover: Some(parse_and_cover_rtl_const_expr),
-        parse_detail: None,
     },
     #[cfg(has_generated_rtl_frontend_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "rtl_frontend",
         parse_sample: parse_with_rtl_frontend,
         parse_and_cover: Some(parse_and_cover_rtl_frontend),
-        parse_detail: None,
     },
     #[cfg(has_generated_systemverilog_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "systemverilog",
         parse_sample: parse_with_systemverilog,
         parse_and_cover: Some(parse_and_cover_systemverilog),
-        parse_detail: Some(parse_with_systemverilog_detail_profile),
     },
     #[cfg(has_generated_systemverilog_preprocessor_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "systemverilog_preprocessor",
         parse_sample: parse_with_systemverilog_preprocessor,
         parse_and_cover: Some(parse_and_cover_systemverilog_preprocessor),
-        parse_detail: Some(parse_with_systemverilog_preprocessor_detail_profile),
     },
     #[cfg(has_generated_vhdl_parser)]
     GeneratedParserRegistryEntry {
         grammar_name: "vhdl",
         parse_sample: parse_with_vhdl,
         parse_and_cover: Some(parse_and_cover_vhdl),
-        parse_detail: None,
     },
     // PARSE-HARNESS.2 — the blessed scratch-register slot. Present only when
     // `make focus_scratch` has built the artifact (additive, cfg-gated, never
@@ -1822,7 +1798,6 @@ static GENERATED_PARSER_REGISTRY: &[GeneratedParserRegistryEntry] = &[
         grammar_name: "scratch",
         parse_sample: parse_with_scratch,
         parse_and_cover: Some(parse_and_cover_scratch),
-        parse_detail: Some(parse_with_scratch_detail),
     },
     // Add future grammars here once their generated parser artifacts compile cleanly.
     // Examples: json, regex, systemverilog, vhdl.

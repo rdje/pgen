@@ -1,5 +1,44 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0157 — two tables answered one question, and the one that printed knew less
+
+**1. THE DEFECT WAS A DUPLICATED ANSWER, NOT A MISSING ONE.** *Is there a detail-capable parser for
+this grammar?* had two implementations in the same file: a `parse_detail` field on the registry table,
+and a `match` on the grammar name in `parse_sample_detail_with_profile()`. Nothing held them equal, so
+they drifted — the `match` grew arms while the table kept `None`s — and they disagreed for **nine of
+thirteen** rows. The half that printed was the table, so the report said *"no detail-capable parser
+registered"* about grammars whose detail parser was one function call away.
+
+**2. THE PRICING QUESTION WAS "HOW MANY READERS", AND IT INVERTED THE OBVIOUS FIX.** The cheap
+spelling is to fill in the nine `None`s. The expensive-looking one is to delete the field. Which is
+actually smaller depends on a fact neither option states: how much code depends on the field's
+meaning. It has **one** reader — `parse_error()` — with **one** caller. So the field was never a
+source of truth; it was a private cache of a wrong answer. Deleting it is a smaller change *and* the
+only one that makes the divergence structurally impossible. ⭐ Filling in nine fields would have been
+correct today and wrong again at grammar #14, which is the same shape as the defect it repaired.
+
+**3. THE NO-REGRESSION ARM FOR A LABEL CHANGE IS THAT THE CLASSIFICATION DOES NOT MOVE.** A label is
+printed on the failure path of the very pass that computes the tuple, so "I only changed a string" is
+an assumption, not a fact — the label path constructs and runs a parser. The arm that earns it is the
+tuple: `ebnf` reads `144/0/109/35 (spf=13)` before and after, and all ten families reproduce their
+`-0156` values. That is what makes the diff a label change rather than a claim that it is one.
+
+**4. A CLEANUP THAT ORPHANS CODE MUST SEPARATE ITS OWN ORPHANS FROM PRE-EXISTING ONES.** Deleting the
+field orphaned `parse_with_systemverilog_preprocessor_detail_profile`, and the build dutifully printed
+`never used` — for **two** functions. The second, `parse_with_systemverilog_ast_json`, was already dead
+at HEAD (`git show HEAD:rust/src/parser_registry.rs` shows only its `_profile` / `_from_entry`
+siblings referenced). Two warnings surfacing together after a delete is exactly the shape that invites
+sweeping both into the commit; one `git show` is what keeps an unrelated deletion out of a leaf that
+does not own it.
+
+**5. THE PAYOFF ARRIVED IMMEDIATELY, AND IT IS AN ARGUMENT FOR FIXING INSTRUMENTS FIRST.** The first
+labelled run showed the `ebnf` meta-parser rejecting `/**/` and `/***/` at `furthest_position=3` —
+block comments in the language `ebnf.ebnf` itself describes — while `block_comment` and
+`block_comment_content` sit in that grammar's `UNKNOWN` list. That correlation was sitting in the
+output all along, addressed to nobody, because the field the report consulted said the parser did not
+exist. ⛔ It is recorded as a **lead**, not a diagnosis: Protocol B and an accepting control decide
+whether the parser or the generator is wrong, and those two verdicts have opposite fixes.
+
 ## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0156 — "all SHIPPED grammars wired" was true, and three families lived outside the sentence
 
 **1. THE INSTRUMENT'S BLIND SPOT WAS THE FINDING; THE WIRING WAS AN AFTERNOON.** Phase H's scope note

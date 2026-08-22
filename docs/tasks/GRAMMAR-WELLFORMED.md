@@ -2787,7 +2787,10 @@ certification = static checks (mostly already green off-SV) + the per-grammar G.
   `total=114 proof=0 witness=80 UNKNOWN=34 fully_certified=false`. WIRED census `10/10`, re-derived
   two code-disjoint ways (running `--report-certificate-coverage` on all ten vs a static parse of the
   registry table cross-joined with the register's `families` map) — both read
-  `CERT-WIRED-CENSUS: register_families=10 wired=10 unwired=0 missing=[]`.
+  `CERT-WIRED-CENSUS: register_families=10 wired=10 unwired=0 missing=[]`. ⭐ The second arm was made
+  a TRACKED, re-runnable reader by `H.18` (`-0157`):
+  [`docs/tasks/artifacts/grammar_wellformed/cert_wiring_census/probe.py`](artifacts/grammar_wellformed/cert_wiring_census/probe.py),
+  with both of its arms proven able to go RED.
 - [x] **NO REGRESSION** — the change is additive-by-name, and that was **measured, not asserted**. All
   seven previously-wired families reproduce their pinned tuples at seed 0 with `spf=0`: `json`
   `9/0/9/0`, `regex` `269/9/260/0`, `vhdl` `225/0/225/0`, `systemverilog_preprocessor` `74/0/74/0`,
@@ -2877,6 +2880,13 @@ routing.
      (`PARSER-BOOK-CURRENCY`, `PUBLISHED-VERSION-CURRENCY`, `BASELINE-IDENTITY`) all read published
      text or tracked baselines, never the registry table's `parse_and_cover` field.
 
+**`promotion: declined`** for the `-0157` `DEVELOPMENT_NOTES.md` entry's per-slice history (§§3–5 —
+the label-change no-regression arm, the orphan separation, the immediate `/**/` payoff: all true, all
+specific to this slice, already in the `H.18` leaf). ⭐ §§1–2 are **PROMOTED** —
+[`two-tables-answering-one-question-drift-and-the-one-that-prints-knows-less.md`](../knowledge/two-tables-answering-one-question-drift-and-the-one-that-prints-knows-less.md)
+— because *"count the duplicate's readers before choosing between filling it in and deleting it"* is
+durable, general, re-verifiable by the tracked census, and it is what inverted the obvious fix here.
+
 **`promotion: declined`** for the `-0156` `DEVELOPMENT_NOTES.md` entry's per-slice history (§§3–5, 7 —
 the population adjudication, the seed/`spf` split, the mis-designed control, the leg-3 note: all true
 and all specific to this slice, already recorded in the leaf). ⭐ §2 is **PROMOTED** —
@@ -2915,16 +2925,30 @@ one command, and it is the reason this gap read as a missing subsystem for two m
 - **IT IS NOT COSMETIC**: `spf` caps the witness count (each rejected sample is a sample that could
   have witnessed and did not), so it is an upper bound on how much of `H.16`'s residual is really a
   reach gap versus a generator defect. `H.16` cannot be honestly priced until this is known.
-- ⛔ **BLOCKED ON `H.18` FOR ITS DIAGNOSIS, WHICH IS THE POINT OF SEQUENCING THEM.** Every one of
-  these failures is currently reported as `error: (no detail-capable parser registered)` — the cert
-  pass prints the offending sample but not why it was rejected, so there is nothing to root-cause from.
-  Two captured `semantic_annotation` samples: `@ CBJxM :    #{        }` and `@  eager   :` (the second
-  is an annotation with an empty value — a plausible real generator bug, but that is a *hypothesis*
-  and TOOLBOX-FIRST forbids acting on it before the label exists).
-- **FIRST STEP once `H.18` lands**: re-run with the label, then Protocol B (`--parse` the captured
-  sample, read `furthest_position`, minimal-reproduce).
+- ✅ **UNBLOCKED 2026-08-22 by `H.18` (`-0157`) — the reproducers now carry a real error.** They were
+  all reported as `error: (no detail-capable parser registered)` until the label path was fixed;
+  captured at seed 0:
 
-### `H.18` — **THE CERT-FAILURE LABEL IS BLIND, AND ITS MESSAGE IS FALSE, FOR 9 OF 13 REGISTRY ROWS** (`todo`, opened 2026-08-22 session #255 by `H.15`)
+  | grammar | sample | label |
+  |---|---|---|
+  | `ebnf` | `/**/` (4 B) | `Parser did not consume full input at position 0 [furthest_position=3, +3 bytes deeper]` |
+  | `ebnf` | `/***/` (5 B) | `Parser did not consume full input at position 0 [furthest_position=3, +3 bytes deeper]` |
+  | `semantic_annotation` | `@ CBJxM :    #{        }` (24 B) | `Backtrack at position 13 [furthest_position=13]` |
+  | `semantic_annotation` | `@  eager   :` (14 B) | `Backtrack at position 14 [furthest_position=14]` |
+
+- ⭐⭐ **THE FIRST TWO ROWS ARE THE SHARPEST LEAD IN THIS LEAF AND MUST BE ADJUDICATED FIRST**: `/**/`
+  and `/***/` are **block comments in the grammar `ebnf.ebnf` describes**, the generator emits them,
+  and the `ebnf` parser rejects them at `furthest_position=3` — and `block_comment` /
+  `block_comment_content` are **both in `H.16`'s `UNKNOWN` list**. That is either a real parse defect
+  in the shipped meta-parser or a generator that emits a form the grammar does not license, and the
+  two verdicts have opposite fixes. ⛔ **It is a LEAD, not a diagnosis** — Protocol B first (`--parse`
+  the reproducer, pair it with an ACCEPTING control such as a non-empty `/* x */`, minimal-reproduce),
+  and pin both arms in an adjudication-repro manifest so a later relaxation cannot silently flip them.
+- ⚠️ **AND `spf` IS SEED-DEPENDENT, SO THE "SEVEN FAMILIES READ `spf=0`" CONTRAST IS A SINGLE-SEED
+  MEASUREMENT.** Run the wired seven at 0/7/42 before concluding these two families are special
+  rather than merely unlucky at seed 0 (see this tree's `ROUTING EVIDENCE` §3).
+
+### `H.18` — **THE CERT-FAILURE LABEL IS BLIND, AND ITS MESSAGE IS FALSE, FOR 9 OF 13 REGISTRY ROWS** (**`done`**, `PGEN-GRAMMAR-WELLFORMED-0157`, CODE / registry-only — opened AND closed 2026-08-22 session #255 by `H.15`)
 
 - **MEASURED, over the closed registry population** —
   `LABEL-BLIND-CENSUS: registry_rows=13 parse_detail_none_with_working_arm=9`:
@@ -2952,6 +2976,108 @@ one command, and it is the reason this gap read as a missing subsystem for two m
 - **CONTROL FOR THE FIX**: `ebnf` at seed 0 must turn its 13 `(no detail-capable parser registered)`
   lines into 13 real parse errors carrying `furthest_position=`, with the cert tuple
   `144/0/109/35` **unchanged** — the label must not move the classification.
+
+#### ✅ CLOSED — the duplicate table was DELETED, not filled in
+
+- ⭐ **THE DECIDING MEASUREMENT WAS "HOW MANY READERS DOES THE FIELD HAVE?"** The leaf priced two
+  fixes and said the second was better *if* nothing else read a `None`. It does not: `parse_detail`
+  had **exactly one reader** — `parse_error()` (`rust/src/parser_registry.rs`) — which itself has
+  **exactly one caller**, the cert LABEL site at `rust/src/main.rs:3346`. So the field was not a
+  second source of truth that other code depended on; it was **dead weight that only ever answered
+  wrongly**. ⇒ deleted outright: the field, its `ParseDetailFn` type alias, all 13 initializers, and
+  the one adapter (`parse_with_systemverilog_preprocessor_detail_profile`) that existed solely to
+  reshape a fn for it. `parse_error()` now delegates to `parse_sample_detail_with_profile()`.
+  **The divergence cannot recur, because there is no longer a second place to diverge from.**
+- ⭐ **BEHAVIOURAL EQUIVALENCE FOR THE FOUR ROWS THAT WERE ALREADY LABELLED — checked by name, not
+  assumed.** The deleted table entries were `Some(parse_with_regex_detail)`,
+  `Some(parse_with_systemverilog_detail_profile)`,
+  `Some(parse_with_systemverilog_preprocessor_detail_profile)` and `Some(parse_with_scratch_detail)`.
+  Three are the **identical function with identical arguments** in the surviving `match`; the fourth
+  (`svpp`) was a pure passthrough whose entire body was `parse_with_systemverilog_preprocessor_detail(sample)`,
+  which is exactly what the `match` arm calls. ⇒ no labelled row changes behaviour.
+- ⭐⭐ **THE CENSUS IS NOW A TRACKED INSTRUMENT, AND IT PROVES IT CAN GO RED.** Both `H.15`'s and
+  `H.18`'s population counts were originally computed by hand, which is precisely how three families
+  and nine rows went unnoticed — so they were made one re-runnable reader,
+  [`docs/tasks/artifacts/grammar_wellformed/cert_wiring_census/probe.py`](artifacts/grammar_wellformed/cert_wiring_census/probe.py).
+  It reads only TRACKED TEXT (the register JSON + the registry source) ⇒ no cargo, no generated
+  parser, no parse run. Live: `CERT-WIRED-CENSUS: register_families=10 wired=10 unwired=0 missing=[]`
+  and `LABEL-BLIND-CENSUS: registry_rows=13 parse_detail_fields=0 detail_dispatch_arms=13` ⇒
+  `CERT-WIRING-CENSUS: CLEAN` (rc 0). ⛔ **A check whose inputs all pass has not been tested**, so both
+  arms were driven RED and restored: reverting `vhdl` to `parse_and_cover: None` gives
+  `wired=9 unwired=1 missing=['vhdl']` / `BREACH` (rc 1); re-introducing a single `parse_detail: None`
+  field gives `parse_detail_fields=1` plus *"the deleted `parse_detail` table has re-appeared —
+  H.18's divergence is back"* / `BREACH`. Restored, the file is byte-identical by `shasum` and the
+  census is `CLEAN` again. Its refusal path was also exercised for real (a wrong `ROOT` depth on the
+  first run) and correctly exited **2 — "nothing was scored"** rather than passing vacuously.
+  ⛔ **DELIBERATELY NOT REGISTERED IN `DIAGNOSIS_SIG`**: a token is added only for an instrument that
+  PRODUCES a root-cause diagnosis, and this one SIZES A POPULATION. The diagnosing tool for both
+  leaves is `--report-certificate-coverage`, which is already registered. Registering a token for a
+  reader would be the widening the doctrine's own pricing rule exists to refuse.
+- ⚠️ **THE CLEANUP ORPHANED ONE FUNCTION AND THE BUILD SAID SO — and one warning it printed was NOT
+  mine.** After the delete, `cargo build` reported two `never used` fns in `parser_registry.rs`.
+  `parse_with_systemverilog_preprocessor_detail_profile` was newly orphaned by this change and was
+  removed. `parse_with_systemverilog_ast_json` was **already dead at HEAD** —
+  `git show HEAD:rust/src/parser_registry.rs` shows only its `_profile` / `_from_entry` siblings
+  referenced (lines 2088 / 2148) — so it is left alone rather than swept up in an unrelated commit.
+  ⛔ Two warnings appearing together after a delete is exactly the shape that invites deleting both;
+  the arm that separates them is one `git show`.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `PGEN_CERT_COVERAGE_DUMP_ALL=1 ast_pipeline grammars/ebnf.ebnf
+  --report-certificate-coverage --count 40 --seed 0` reported `sample_parse_failures=13` and printed
+  every shown failure as `[N] error: (no detail-capable parser registered)` — while
+  `parse_with_ebnf_detail` existed and worked. The message is **false**, and it is why `H.17`'s
+  failures could not be root-caused at all.
+- [x] **ROOT CAUSE (WHY + WHERE)** — the diagnosing tool is
+  `ast_pipeline grammars/ebnf.ebnf --report-certificate-coverage --count 40 --seed 0`, whose
+  `SAMPLE-PARSE FAILURES` block printed the label under test; the same command after the fix prints
+  `[1] error: Parser did not consume full input at position 0 [furthest_position=3, +3 bytes deeper
+  than surface position]` for the identical sample — **so the parser it said was unregistered was
+  running all along, and the report simply asked the wrong table.** WHY: **two independently-authored
+  dispatches answer one question and disagree** — `parse_error()` read the registry table's
+  `parse_detail` field, while `parse_sample_detail_with_profile()` is a `match` on the grammar name
+  carrying a working arm for the same grammar. WHERE: both in `rust/src/parser_registry.rs`; the false
+  string is emitted at `rust/src/main.rs:3353`. ⭐ Population sized by a TRACKED, re-runnable reader
+  rather than by eye —
+  [`docs/tasks/artifacts/grammar_wellformed/cert_wiring_census/probe.py`](artifacts/grammar_wellformed/cert_wiring_census/probe.py)
+  reported 9 of 13 rows blind (`return_annotation`, `semantic_annotation`, `builtin_return_annotation`,
+  `builtin_semantic_annotation`, `ebnf`, `json`, `rtl_const_expr`, `rtl_frontend`, `vhdl`). ⛔ NOT the
+  three-families finding it was discovered beside: **six of the nine are families `H.15` never
+  touched**, four of them shipped and fully-certified.
+- [x] **FIX** — fix-hierarchy tier **declarative** (registry data, no engine behaviour, no grammar,
+  no codegen). Deleted the `parse_detail` field + `ParseDetailFn` + 13 initializers + 1 orphaned
+  adapter; `parse_error()` delegates to the single surviving dispatch. Why no lower tier: every
+  detail parser already existed and already worked — nothing below the registry was missing. Why not
+  the cheaper spelling (fill in nine `Some(...)` fields): it re-creates the divergence for grammar
+  #14, and the pricing question it hinged on — *does anything else read a `None`?* — measured **one
+  reader**, so the expensive-looking option is the smaller one.
+- [x] **ADDRESSED (verified)** — before→after on the symptom, `ebnf` seed 0: `(no detail-capable
+  parser registered)` **5 → 0** across the shown failures, and **0 → 5** labels carrying
+  `furthest_position=`. Real diagnostics now, e.g. `[1] error: Parser did not consume full input at
+  position 0 [furthest_position=3, +3 bytes deeper than surface position]` on the 5-byte sample
+  `/***/`. `semantic_annotation` likewise: `[1] error: Backtrack at position 14
+  [furthest_position=14, …]` on `@  eager   :`. ⭐ These ARE `H.17`'s reproducers, which is what the
+  sequencing was for.
+- [x] **NO REGRESSION** — **the LABEL must not move the CLASSIFICATION, and it did not.** `ebnf` seed
+  0 is `total=144 proof=0 witness=109 UNKNOWN=35 fully_certified=false (sample_parse_failures=13)`
+  before AND after — byte-identical. All ten families re-run at seed 0 reproduce the tuples recorded
+  in `-0156` exactly: `json` `9/0/9/0`, `regex` `269/9/260/0`, `vhdl` `225/0/225/0`,
+  `systemverilog_preprocessor` `74/0/74/0`, `rtl_frontend` `169/1/168/0`, `rtl_const_expr`
+  `48/0/48/0`, `systemverilog` `1385/18/1367/0` — all `spf=0` and `fully_certified=true` — plus
+  `return_annotation` `35/0/33/2` and `semantic_annotation` `114/0/80/34`. Clippy flow green
+  (`clippy_source_all_targets` ok, `GENERATED-CLIPPY-CORRECTNESS: ✅ POLICY-ONLY PASS`, generated
+  stage pass), and `parser_registry.rs` introduces **no new build warning** — the one that remains is
+  proven pre-existing at HEAD. `mdbook_docs_gate` green (10/10 per-parser book gates).
+  `cargo test --lib --features "generated_parsers ebnf_dual_run"`: **1114 passed / 1 failed / 28
+  ignored — the SAME counts as `-0156`'s run**, and the one failure is the same pre-existing
+  `unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names` owned by
+  `CI-PARITY-GATE-ROT.21` class (2), proven pre-existing this session by a `git stash` two-arm
+  control. ⇒ **this change moved no test.** ZERO grammar / codegen / generated bytes.
+- [x] **LOCKSTEP** — `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`, the
+  frontier table, and `H.17`'s blocker note (now unblocked, with its reproducers captured). The book's
+  `grammar-wellformedness.md` paragraph describing the blind label is updated in the same commit.
+  `done_bar_family_register_v0.json` unchanged — no family's closure legs moved.
 
 ### `H.19` — **NOTHING WATCHES "EVERY FAMILY IS CERT-COVERAGE WIRED", SO `H.15`'S CLAIM ROTS** (`todo`, opened 2026-08-22 session #255 by `H.15`)
 
@@ -2981,8 +3107,8 @@ one command, and it is the reason this gap read as a missing subsystem for two m
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | 1 | `GRAMMAR-WELLFORMED.H.16` (roll `ebnf` / `return_annotation` / `semantic_annotation` to `UNKNOWN=0`) | **`todo`** (opened 2026-08-22 by `H.15`) | The **clean** conjunct, and now the only engineering half of the `SVPP-EXPANSION` gate left. `H.15` made the three measurable and they read `UNKNOWN` **35 / 2 / 34** = **71**, of which **64 are dead-rule candidates** (no reach path from the entry) ⇒ a `--lint-grammar` adjudication lane, not a witness-generation lane. Lanes cost 0.06–0.38 s and are seed-invariant. |
-| 2 | `GRAMMAR-WELLFORMED.H.18` (the cert-failure LABEL is blind for 9 of 13 registry rows) | **`todo`** (opened 2026-08-22 by `H.15`) | Sequenced BEFORE `H.17` because it is what makes `H.17` diagnosable: every `spf` failure today prints `(no detail-capable parser registered)`, which is FALSE — a working detail arm exists in the other dispatch. Registry-only, engine-universal. |
-| 3 | `GRAMMAR-WELLFORMED.H.17` (`spf>0` — the generator emits samples the family's own parser rejects) | **`todo`** (opened 2026-08-22 by `H.15`) | `ebnf` 11–13/40, `semantic_annotation` 2–4/40, versus `spf=0` on all seven previously-wired families. Caps the witness count ⇒ bounds how much of `H.16`'s residual is a real reach gap. Blocked on `H.18` for its diagnosis. |
+| 2 | `GRAMMAR-WELLFORMED.H.17` (`spf>0` — the generator emits samples the family's own parser rejects) | **`todo`** (opened 2026-08-22 by `H.15`, **UNBLOCKED** by `H.18`) | `ebnf` 11–13/40, `semantic_annotation` 2–4/40, versus `spf=0` on all seven previously-wired families *at seed 0*. Caps the witness count ⇒ bounds how much of `H.16`'s residual is a real reach gap. ⭐ Sharpest lead: the ebnf parser **rejects `/**/`**, its own block-comment form, and `block_comment` is in `H.16`'s `UNKNOWN` list. |
+| — | `GRAMMAR-WELLFORMED.H.18` (the cert-failure LABEL is blind for 9 of 13 registry rows) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0157`, CODE / registry-only) | ✅ The duplicate table was **DELETED, not filled in** — `parse_detail` had exactly ONE reader, so `parse_error()` now delegates to the single dispatch and the divergence cannot recur. `ebnf` labels `5 → 0` false / `0 → 5` real `furthest_position=`; all ten cert tuples byte-identical ⇒ the label moved no classification. |
 | 4 | `GRAMMAR-WELLFORMED.H.19` (a doctrine that WATCHES "every register family is cert-WIRED") | **`todo`** (opened 2026-08-22 by `H.15`) | Leg 3 of the claim-verification bar for `H.15`'s `10/10 wired`, NAMED rather than skipped. Both inputs are tracked text ⇒ no cargo, no parser run, cheap always-on tier. |
 | — | `GRAMMAR-WELLFORMED.H.15` (wire cert-coverage for `ebnf` / `return_annotation` / `semantic_annotation`) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0156`, CODE / registry-only) | ✅ **WIRED conjunct MET — 10/10 register families measurable**, ZERO grammar/codegen/generated bytes. ⛔ **And measuring it REFUTED the gate**: the three hid **71 `UNKNOWN`**, so `SVPP-EXPANSION`'s *WIRED + clean + `UNKNOWN`=0* is **NOT met** and never was. Seven wired families byte-identical, seeds 0/7/42 deterministic. Routed out `H.16`/`H.17`/`H.18`/`H.19`. |
 | 1 | `GRAMMAR-WELLFORMED.H.12.8.3` (close the 3 canonical reach-gaps → SV `fully_certified` via the union) | `active` (`.8.3.1` ✅ `-0146` CODE; `.8.3.2` remaining) | The **director-reaffirmed literal-`UNKNOWN=0` goal** (chosen over the parked `.8.5` accounting lane). After `.8.3.1`: canonical `UNKNOWN 22 → 20`, sound 4-config union `3 → 1`; ONE reach-gap (`context_member_method_call`) remains between SV and `fully_certified`. |
