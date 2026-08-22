@@ -2880,6 +2880,34 @@ routing.
      (`PARSER-BOOK-CURRENCY`, `PUBLISHED-VERSION-CURRENCY`, `BASELINE-IDENTITY`) all read published
      text or tracked baselines, never the registry table's `parse_and_cover` field.
 
+**`H.17` → `H.17.1` / `H.17.2` (2026-08-22, `-0158`).** Both stay in this tree because
+certificate-coverage residuals are its charter, but the split itself was the routing decision and it
+was measured. **(1) Does it reproduce outside the family it was found in? YES, and that is why the
+lint half is separate.** The defect was found on `ebnf`, but the live census reads **6 uses in 3
+grammars** — `ebnf.ebnf` ×3, `semantic_annotation.ebnf` ×2, `systemverilog_lrm_profiled_generated.ebnf`
+×1 — and `grammars/systemverilog.ebnf:519`/`:601` record SystemVerilog having been fixed for the SAME
+construct in 2026 (`SV-EXH-PROOF.3.3.4.b.6.2.15`). A defect with four families in its history and a
+documented prior fix is a **class**, not an `ebnf` bug. **(2) What was measured, not what is
+plausible:** a 7-arm feature bisection with 4 passing controls isolating look-around as the sole
+failing construct; identical verdicts AND identical `furthest_position` values from two independent
+engines; the `--lint-grammar` blindness count (**0**); the default-verbosity report count (**0**).
+**(3) What would make the routing wrong, and was it checked?** ⭐ It would be wrong if `regex.ebnf`'s
+25 look-around tokens were uses — that would make this a regex-family problem and a five-fold larger
+population. **Checked: they are double-quoted string LITERALS** (`"(?="`, `"(?!"`, …) by which the
+regex grammar *matches PCRE lookaround syntax*; the `:=`-with-`/…/` shape separates describing a
+construct from using one. It would also be wrong if the interpreter were the only witness — TOOLBOX
+1.5b records a measured interpreter/generated-parser divergence on un-eliminated left recursion — so
+`--lint-grammar` was run first (`left_recursion_unhandled=0`, so the hole does not apply) **and** the
+generated-parser arm was built and run anyway.
+
+**`promotion: declined`** for the `-0158` `DEVELOPMENT_NOTES.md` entry's per-slice history (the census
+mechanics and the probe's control paths — specific to this slice, already in the leaf). ⭐ Its core is
+**PROMOTED** —
+[`a-permanent-defect-reported-on-the-speculative-failure-channel-is-invisible.md`](../knowledge/a-permanent-defect-reported-on-the-speculative-failure-channel-is-invisible.md)
+— because *"an unconditional authoring error routed through a channel designed to be swallowed is
+indistinguishable from routine backtracking"* is durable, general, re-verifiable, and is the reason
+this survived a documented prior fix in a sibling family.
+
 **`promotion: declined`** for the `-0157` `DEVELOPMENT_NOTES.md` entry's per-slice history (§§3–5 —
 the label-change no-regression arm, the orphan separation, the immediate `/**/` payoff: all true, all
 specific to this slice, already in the `H.18` leaf). ⭐ §§1–2 are **PROMOTED** —
@@ -2908,6 +2936,14 @@ one command, and it is the reason this gap read as a missing subsystem for two m
   priced that way. The remaining 7 (e.g. `ebnf`'s `epsilon`, `whitespace`, `block_comment`;
   `semantic_annotation`'s `multiline_string`, `set_value`, `set_element`) DO have a reach path and are
   the genuine witness work.
+- ⛔⛔ **RE-PRICED 2026-08-22 BY `H.17`'s DIAGNOSIS — PART OF THE RESIDUAL IS NEITHER A REACH GAP NOR
+  A DEAD RULE.** Regex look-around never compiles, so five live rules match nothing on any input, and
+  every one of them (and their parents) is already in these `UNKNOWN` lists: `ebnf` —
+  `block_comment`, `block_comment_content`, `whitespace`, `semantic_predicate`, `predicate_content`,
+  `action_block`, `action_content`; `semantic_annotation` — `multiline_string`, `block_comment`.
+  ⇒ **adjudicate `H.17.1` FIRST and re-measure**, because these rules will change classification
+  when their terminals compile. Counting them as dead-rule candidates today would record a defect as
+  a design fact.
 - ⛔ **DO NOT DELETE A RULE TO REACH `UNKNOWN=0`.** A dead-rule candidate is a verdict to be
   adjudicated and, where the rule is legitimately entry-relative, certified by an entry-union the way
   `GRAMMAR-WELLFORMED.H.12.8.5` did for SV — not a licence to shrink the grammar until the number
@@ -2915,7 +2951,7 @@ one command, and it is the reason this gap read as a missing subsystem for two m
 - **DETERMINISM IS ALREADY ESTABLISHED**: tuple and `UNKNOWN` set byte-identical at seeds 0/7/42
   (`H.15`), and each lane runs in 0.06–0.38 s — so this is a cheap, fast-iterating lane.
 
-### `H.17` — **THE STIMULI GENERATOR EMITS SAMPLES THE FAMILY'S OWN PARSER REJECTS (`spf > 0`)** (`todo`, opened 2026-08-22 session #255 by `H.15`)
+### `H.17` — **`spf > 0` ROOT-CAUSED: REGEX LOOK-AROUND NEVER COMPILES, SO THE RULE SILENTLY NEVER MATCHES** (**`diagnosed`**, `PGEN-GRAMMAR-WELLFORMED-0158`, doc+artifact tier — opened 2026-08-22 session #255 by `H.15`, DIAGNOSED same session; FIX owned by `H.17.1` / `H.17.2`)
 
 - **WHY**: `H.15`'s first cert run on the annotation/meta families reads `sample_parse_failures` of
   **11–13 of 40** on `ebnf` and **2–4 of 40** on `semantic_annotation` (seed-dependent: 13/13/11 and
@@ -2947,6 +2983,148 @@ one command, and it is the reason this gap read as a missing subsystem for two m
 - ⚠️ **AND `spf` IS SEED-DEPENDENT, SO THE "SEVEN FAMILIES READ `spf=0`" CONTRAST IS A SINGLE-SEED
   MEASUREMENT.** Run the wired seven at 0/7/42 before concluding these two families are special
   rather than merely unlucky at seed 0 (see this tree's `ROUTING EVIDENCE` §3).
+
+#### ⛔⛔ DIAGNOSIS — it is NOT a generator defect. Rust's `regex` crate does not support look-around.
+
+- ⭐ **THE ANSWER, AND IT INVERTS THE LEAF'S OWN TITLE.** `spf > 0` was opened as *"the generator
+  emits samples the family's own parser rejects"*, which framed the generator as the suspect. It is
+  not: the **grammar** contains regex terminals that **cannot compile**, so those rules match nothing
+  on any input, ever. The generator renders them from the grammar text — correctly — and the parser
+  then rejects what it can never accept. Both halves are behaving as written; the written thing is
+  broken.
+- ⛔ **MEASURED MECHANISM, at `PGEN_TRACE_VERBOSITY=debug` on the shipped parser:**
+
+  ```text
+  ❌ Exiting rule 'block_comment_content' with error: ContextualError { message:
+     "Invalid regex pattern '((?:[^*]|\\*(?!\\/))*)': regex parse error: … look-around … not supported"
+  ```
+
+- ⛔⛔ **AND THE SEVERITY IS MASKED BY THE CHANNEL, WHICH IS WHY NOBODY SAW IT.** That message is
+  emitted at **`[PGEN][LOW]`**, through the ordinary **speculative-parse failure** path — the exact
+  channel a perfectly normal *"this alternative did not match"* uses, and which the PEG engine's job
+  is to swallow. Measured: at **default verbosity the run reports it ZERO times**. So a *permanent,
+  unconditional, static authoring error* is, at runtime, **indistinguishable from routine
+  backtracking**. ⚠️ This is a `DIAG-SEVERITY` ("severity never masked by verbosity") instance the
+  registered doctrine does not currently cover — a regex that can NEVER compile is not a LOW-severity
+  fact about one parse attempt.
+- ⭐ **FEATURE BISECTION — the lookahead is the cause, MEASURED, not inferred** (synthetic one-rule
+  grammars via `--interpret-parse`; controls first, so the defect arms mean something):
+
+  | regex terminal | input | accepted | verdict |
+  |---|---|---|---|
+  | `([^*]*)` | `abc` | `true` | control — plain negated class works |
+  | `((?:[^*])*)` | `abc` | `true` | control — non-capturing group works |
+  | `((?:[^*]\|x)*)` | `abc` | `true` | control — alternation works |
+  | `(a(?:b)?)` | `ab` | `true` | control — optional works |
+  | `(a(?!b))` | `a` | **`false`** | ⛔ nothing follows `a`, so `(?!b)` trivially holds |
+  | `((?:\*(?!\/))*)` | `*` | **`false`** | ⛔ at EOF `(?!\/)` trivially holds |
+  | `((?:[^*]\|\*(?!\/))*)` | `abc` | **`false`** | ⛔ one look-around poisons the whole terminal |
+
+  ⇒ every non-look-around construct works; **only look-around fails, and it fails by making the
+  entire terminal never match.**
+- ⭐ **THE SHIPPED CONSEQUENCE: the `ebnf` meta-grammar cannot parse ANY block comment.** Not an edge
+  case — `/* x */` itself:
+
+  | input | verdict |
+  |---|---|
+  | `/**/` · `/***/` · `/* x */` · `/** d */` | **REJECT** |
+  | `# line` | ACCEPT (the accepting control — line comments use no look-around) |
+
+  ⛔ **BOTH ENGINES AGREE, WHICH IS WHAT MAKES THIS A GRAMMAR VERDICT AND NOT A TOOL ARTEFACT.** The
+  interpreter (`--interpret-parse`) and the **generated parser** (`parseability_probe --parse ebnf`,
+  built with `--features "generated_parsers ebnf_dual_run"`) return **identical verdicts AND identical
+  `furthest_position` values** on all five inputs (`furthest_position=3, 3, 2, 3` and accept). The
+  interpreter is authoritative-by-verification and `--lint-grammar` reports
+  `left_recursion_unhandled=0` for `ebnf`, so TOOLBOX 1.5b's known interpreter hole does not apply —
+  and the generated-parser arm was run anyway.
+- ⭐⭐ **PRIOR ART IS IN THIS REPO, AND SYSTEMVERILOG WAS ALREADY FIXED FOR IT** —
+  `SV-EXH-PROOF.3.3.4.b.6.2.15`, recorded in `grammars/systemverilog.ebnf:519` and `:601`. There it
+  was not merely a dead rule: *"Every attempt to compile this regex at parse time threw `error:
+  look-around … is not supported`, causing the parser to backtrack and try the next branch … this
+  became the **DOMINANT source of catastrophic backtracking** — 96 invocations at the SAME byte
+  position (117064) in a 5-second window, ultimately causing the **>180 s hang** on `uvm_pkg`."* ⇒
+  this class is **also a latent SPEED defect**, not only a correctness one. The fix used there is the
+  one to copy: move the assertion to a **grammar-level `!rule`** negative lookahead, which the PEG
+  engine *does* support as a zero-width assertion (`simple_identifier_no_scope := trivia /…/
+  !scope_resolution`).
+- ⛔ **THE SWEEP WAS NEVER DONE. Live census — 6 uses, in 3 grammars:**
+
+  | grammar | line | rule | disposition |
+  |---|---|---|---|
+  | `ebnf.ebnf` | 595 | `block_comment_content` | **shipped family — inert** |
+  | `ebnf.ebnf` | 616 | `predicate_content` | **shipped family — inert** |
+  | `ebnf.ebnf` | 623 | `action_content` | **shipped family — inert** |
+  | `semantic_annotation.ebnf` | 171 | `multiline_string` | **shipped family — inert** |
+  | `semantic_annotation.ebnf` | 571 | `block_comment` | **shipped family — inert** |
+  | `systemverilog_lrm_profiled_generated.ebnf` | 38 | `simple_identifier_no_scope` | `derived_artifact` — carries the **pre-fix** form SV itself was repaired of |
+
+  ⚠️ **`regex.ebnf`'s 25 look-around tokens are NOT uses and are correctly excluded**: they are
+  double-quoted string LITERALS (`"(?="`, `"(?!"`, `"(?<="`, `"(?<!"`) by which the regex grammar
+  *matches PCRE lookaround syntax*. Conflating "describes a construct" with "uses a construct" would
+  have inflated this census five-fold; the `:=`-with-`/…/` shape is what separates them.
+- ⭐⭐ **THIS RE-PRICES `H.16`, WHICH IS THE REASON TO DIAGNOSE BEFORE COUNTING.** Every affected rule
+  and its parents are already in `H.16`'s `UNKNOWN` lists — `ebnf`: `block_comment`,
+  `block_comment_content`, `whitespace`, `semantic_predicate`, `predicate_content`, `action_block`,
+  `action_content`; `semantic_annotation`: `multiline_string`, `block_comment`. So a measurable,
+  nameable slice of the 71 `UNKNOWN` is **not a reach gap and not a dead rule** — it is this defect.
+  ⛔ `H.16` must not adjudicate those as dead-rule candidates: they are live rules whose terminal
+  cannot compile, and deleting them would be the exact "shrink the grammar until the number looks
+  right" move that leaf forbids.
+- ⛔ **NOTHING CATCHES IT.** `--lint-grammar` reports **0** mentions of look-around or invalid-regex
+  (measured) — and it is the natural home, because "this regex terminal does not compile" is
+  *static, unconditional and provable*, exactly like its existing `undefined_references` and
+  `non_terminating` error classes.
+- **RE-RUNNABLE DIAGNOSIS**:
+  [`docs/tasks/artifacts/grammar_wellformed/regex_lookaround/probe.sh`](artifacts/grammar_wellformed/regex_lookaround/probe.sh)
+  — four arms (feature bisection with controls · the shipped block-comment consequence with an
+  accepting control · the live census · the "no static check reports it" arm). `REGEX-LOOKAROUND:
+  REPRODUCED`. ⛔ **A check whose arms all pass has not been tested**, so three control paths were
+  driven and restored: flipping one bisection expectation → `DIVERGED in 1 arm(s)` rc 1; flipping the
+  census count 6→5 → `DIVERGED` rc 1; removing the binary → `REFUSED … (nothing scored)` **rc 2**,
+  never a silent pass.
+
+- ⛔ **FIX SPLIT OUT, because the blast radius differs by an order of magnitude between the halves:**
+  - **`H.17.1`** — repair the 5 live rules in the two shipped grammars. ⚠️ `ebnf.ebnf` is **the
+    meta-grammar PGEN reads every other grammar with**, so this changes what PGEN can read: it needs
+    accept-set adjudication (`ACCEPT-SET-LEDGER:`), a regeneration, and two-sided repro pinning, not a
+    quick edit.
+  - **`H.17.2`** — make it impossible to land again: a `--lint-grammar` **error-class** check that
+    every regex terminal actually compiles. Engine-universal, static, no runtime cost, and it would
+    have caught all six the day each was written.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `ast_pipeline grammars/ebnf.ebnf --report-certificate-coverage --count
+  40 --seed 0` reports `sample_parse_failures=13`, and (since `-0157` restored the label) prints
+  `[1] error: Parser did not consume full input at position 0 [furthest_position=3, +3 bytes deeper
+  than surface position]` for the 5-byte sample `/***/`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: a regex terminal carrying look-around **cannot compile** —
+  `PGEN_TRACE_VERBOSITY=debug ./rust/target/debug/parseability_probe --parse ebnf <file>` prints
+  `❌ Exiting rule 'block_comment_content' with error: … "Invalid regex pattern
+  '((?:[^*]|\*(?!\/))*)': regex parse error: … look-around … not supported"`, and the rule then
+  reports through the ordinary speculative-failure channel so the engine backtracks past it (default
+  verbosity: **0** occurrences). WHERE: `grammars/ebnf.ebnf:595`, `:616`, `:623`;
+  `grammars/semantic_annotation.ebnf:171`, `:571`;
+  `grammars/systemverilog_lrm_profiled_generated.ebnf:38`. Isolated to the look-around construct by a
+  7-arm feature bisection with 4 passing controls, and confirmed on BOTH engines with identical
+  `furthest_position=` values.
+- [x] **ADDRESSED (verified)** — this leaf's deliverable is the DIAGNOSIS and it is verified
+  re-runnable: `bash docs/tasks/artifacts/grammar_wellformed/regex_lookaround/probe.sh` →
+  `REGEX-LOOKAROUND: REPRODUCED (all arms as recorded)` rc 0, with all three control paths proven to
+  fire (two `DIVERGED` rc 1, one `REFUSED` rc 2). ⛔ **The parse defect itself is NOT addressed here
+  and is not claimed to be** — `H.17.1` owns the grammar repair and `H.17.2` the lint gate; before
+  either lands, `/* x */` still REJECTs.
+- [x] **NO REGRESSION** — doc + artifact tier: **ZERO grammar bytes, ZERO Rust bytes, ZERO codegen
+  bytes, ZERO generated bytes** (`git diff --stat` touches only `docs/` + the continuity surfaces),
+  so no parser artifact can have moved and the cert tuples are unchanged by construction. The
+  generated-parser arm used for the diagnosis is a **debug** `parseability_probe` built from HEAD's
+  source into `rust/target/`, which is untracked build output. `bash scripts/check_doctrines.sh`
+  green (25/25).
+- [x] **LOCKSTEP** — `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `docs/TASK_TREE.md`, this
+  tree's frontier + `ROUTING EVIDENCE`, and the book's grammar-wellformedness chapter. `H.16`'s leaf
+  updated with the re-pricing, since its residual is no longer all reach-gaps-or-dead-rules.
+  `done_bar_family_register_v0.json` deliberately unchanged — no closure leg moved, and this leaf
+  fixes nothing yet.
 
 ### `H.18` — **THE CERT-FAILURE LABEL IS BLIND, AND ITS MESSAGE IS FALSE, FOR 9 OF 13 REGISTRY ROWS** (**`done`**, `PGEN-GRAMMAR-WELLFORMED-0157`, CODE / registry-only — opened AND closed 2026-08-22 session #255 by `H.15`)
 
@@ -3079,6 +3257,49 @@ one command, and it is the reason this gap read as a missing subsystem for two m
   `grammar-wellformedness.md` paragraph describing the blind label is updated in the same commit.
   `done_bar_family_register_v0.json` unchanged — no family's closure legs moved.
 
+### `H.17.1` — **REPAIR THE 5 LIVE REGEX-LOOK-AROUND RULES IN THE TWO SHIPPED GRAMMARS** (`todo`, opened 2026-08-22 session #255 by `H.17`)
+
+- **OWES**: `ebnf.ebnf` `block_comment_content` (595), `predicate_content` (616), `action_content`
+  (623); `semantic_annotation.ebnf` `multiline_string` (171), `block_comment` (571). Each currently
+  compiles to nothing, so each rule is inert on every input.
+- ⭐ **THE FIX SHAPE IS PRIOR ART, NOT DESIGN** — `SV-EXH-PROOF.3.3.4.b.6.2.15` moved the assertion
+  out of the regex and into a **grammar-level `!rule` negative lookahead**, which the PEG engine
+  supports as a zero-width assertion (`simple_identifier_no_scope := trivia /…/ !scope_resolution`).
+  For the block-comment family a non-look-around formulation may also exist (a lazy quantifier, or
+  an explicit two-alternative content rule); **price both against the accept set, do not assume.**
+- ⛔⛔ **BLAST RADIUS: `ebnf.ebnf` IS THE META-GRAMMAR PGEN READS EVERY OTHER GRAMMAR WITH.** Changing
+  it changes what PGEN can read. Required before landing: an `ACCEPT-SET-LEDGER:` adjudication of the
+  transition, a regeneration with an sha asserted against an independently-built arm
+  ([[feedback_verify_sv_parser_regen_mtime]]), the cert tuple re-measured at seeds 0/7/42 for BOTH
+  grammars, and two-sided repro pinning (a `class=defect` row that must start passing, and a
+  `class=invalid` row guarding against over-acceptance).
+- ⚠️ **EXPECT THE `UNKNOWN` COUNTS TO MOVE, AND EXPECT `spf` TO FALL** — this is the measurable
+  before→after, and it is also how much of `H.16`'s 71 this class really owned. Record both.
+- **NOT IN SCOPE**: `systemverilog_lrm_profiled_generated.ebnf:38` — a `derived_artifact` with no
+  registered parser. It carries the pre-fix form its own source was repaired of; adjudicate whether
+  the generator that emits it needs the same fix, or whether the artifact is simply stale.
+
+### `H.17.2` — **MAKE REGEX LOOK-AROUND IMPOSSIBLE TO LAND: a `--lint-grammar` error class** (`todo`, opened 2026-08-22 session #255 by `H.17`)
+
+- **WHY**: the defect recurred because **nothing checks it**. `--lint-grammar` reports **0** mentions
+  of look-around or invalid-regex (measured), and the runtime signal is emitted at `[PGEN][LOW]`
+  through the speculative-failure channel — indistinguishable from routine backtracking, and
+  invisible at default verbosity. SystemVerilog was fixed in 2026; five rules in two other grammars
+  were never swept, and a sixth sits in a derived artifact.
+- ⭐ **IT BELONGS IN THE LINTER BY ITS OWN CRITERION**: "this regex terminal does not compile" is
+  **static, unconditional and provable from the grammar alone** — precisely the shape of
+  `--lint-grammar`'s existing `undefined_references` / `non_terminating` **error** classes (both of
+  which describe a rule that can never match). It needs no parse, no input and no generated parser:
+  compile every regex terminal at lint time and report the ones that fail, with the crate's own
+  message.
+- ⛔ **IT WILL BE RED AT HEAD ON 6 KNOWN ROWS**, so sequence it AFTER `H.17.1` or land it with the
+  measured population declared — never weaken the verdict to make it green (`FLOW-INTEGRITY`: no
+  assertion may require a defect to pass).
+- ⚠️ **AND CONSIDER THE SEVERITY HALF SEPARATELY**: even with the lint in place, a regex that fails
+  to compile at *parse* time reports at `[PGEN][LOW]` through a channel designed to be swallowed.
+  That is a `DIAG-SEVERITY` question ("severity never masked by verbosity") the registered doctrine
+  does not currently cover, and it is what made this invisible for as long as it was.
+
 ### `H.19` — **NOTHING WATCHES "EVERY FAMILY IS CERT-COVERAGE WIRED", SO `H.15`'S CLAIM ROTS** (`todo`, opened 2026-08-22 session #255 by `H.15`)
 
 - **WHY — this is leg 3 of the claim-verification bar, named rather than skipped**
@@ -3107,7 +3328,9 @@ one command, and it is the reason this gap read as a missing subsystem for two m
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | 1 | `GRAMMAR-WELLFORMED.H.16` (roll `ebnf` / `return_annotation` / `semantic_annotation` to `UNKNOWN=0`) | **`todo`** (opened 2026-08-22 by `H.15`) | The **clean** conjunct, and now the only engineering half of the `SVPP-EXPANSION` gate left. `H.15` made the three measurable and they read `UNKNOWN` **35 / 2 / 34** = **71**, of which **64 are dead-rule candidates** (no reach path from the entry) ⇒ a `--lint-grammar` adjudication lane, not a witness-generation lane. Lanes cost 0.06–0.38 s and are seed-invariant. |
-| 2 | `GRAMMAR-WELLFORMED.H.17` (`spf>0` — the generator emits samples the family's own parser rejects) | **`todo`** (opened 2026-08-22 by `H.15`, **UNBLOCKED** by `H.18`) | `ebnf` 11–13/40, `semantic_annotation` 2–4/40, versus `spf=0` on all seven previously-wired families *at seed 0*. Caps the witness count ⇒ bounds how much of `H.16`'s residual is a real reach gap. ⭐ Sharpest lead: the ebnf parser **rejects `/**/`**, its own block-comment form, and `block_comment` is in `H.16`'s `UNKNOWN` list. |
+| 1 | `GRAMMAR-WELLFORMED.H.17.1` (repair the 5 live regex-look-around rules) | **`todo`** (opened 2026-08-22 by `H.17`) | The actual parse defect: `/* x */` does not parse in the `ebnf` meta-grammar. Fix shape is prior art (`SV-EXH-PROOF.3.3.4.b.6.2.15`: grammar-level `!rule`). ⛔ `ebnf.ebnf` is the meta-grammar PGEN reads every grammar with — needs accept-set adjudication + regeneration, not a quick edit. **Sequence BEFORE `H.16`**, whose residual it re-prices. |
+| 2 | `GRAMMAR-WELLFORMED.H.17.2` (a `--lint-grammar` error class: every regex terminal must compile) | **`todo`** (opened 2026-08-22 by `H.17`) | Why it recurred: nothing checks it, and the runtime signal is `[PGEN][LOW]` on the speculative-failure channel. Static, unconditional, provable from the grammar alone ⇒ belongs beside `undefined_references`. Sequence after `H.17.1` or declare the measured population. |
+| — | `GRAMMAR-WELLFORMED.H.17` (`spf>0` root cause) | **`diagnosed`** (`PGEN-GRAMMAR-WELLFORMED-0158`, doc+artifact tier) | ⛔ **NOT a generator defect — the leaf's own title was wrong.** Rust's `regex` crate does not support look-around, so the terminal never compiles and the rule matches nothing, ever. The `ebnf` meta-grammar **cannot parse ANY block comment**, `/* x */` included. Both engines agree to the `furthest_position`. Fix owned by `H.17.1`/`H.17.2`. |
 | — | `GRAMMAR-WELLFORMED.H.18` (the cert-failure LABEL is blind for 9 of 13 registry rows) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0157`, CODE / registry-only) | ✅ The duplicate table was **DELETED, not filled in** — `parse_detail` had exactly ONE reader, so `parse_error()` now delegates to the single dispatch and the divergence cannot recur. `ebnf` labels `5 → 0` false / `0 → 5` real `furthest_position=`; all ten cert tuples byte-identical ⇒ the label moved no classification. |
 | 4 | `GRAMMAR-WELLFORMED.H.19` (a doctrine that WATCHES "every register family is cert-WIRED") | **`todo`** (opened 2026-08-22 by `H.15`) | Leg 3 of the claim-verification bar for `H.15`'s `10/10 wired`, NAMED rather than skipped. Both inputs are tracked text ⇒ no cargo, no parser run, cheap always-on tier. |
 | — | `GRAMMAR-WELLFORMED.H.15` (wire cert-coverage for `ebnf` / `return_annotation` / `semantic_annotation`) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0156`, CODE / registry-only) | ✅ **WIRED conjunct MET — 10/10 register families measurable**, ZERO grammar/codegen/generated bytes. ⛔ **And measuring it REFUTED the gate**: the three hid **71 `UNKNOWN`**, so `SVPP-EXPANSION`'s *WIRED + clean + `UNKNOWN`=0* is **NOT met** and never was. Seven wired families byte-identical, seeds 0/7/42 deterministic. Routed out `H.16`/`H.17`/`H.18`/`H.19`. |

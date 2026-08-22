@@ -806,13 +806,77 @@ failures:
 [1] sample (5 bytes): /***/
 ```
 
-That first line is worth pausing on. `/***/` is a **block comment in the very language `ebnf.ebnf`
-describes**; the generator emits it, and the meta-parser rejects it three bytes in — while
-`block_comment` and `block_comment_content` sit in that grammar's `UNKNOWN` list. Either the shipped
-meta-parser has a real parse defect or the generator emits a form the grammar does not license, and
-those two verdicts have opposite fixes. It is a lead, not a diagnosis; it is also the kind of lead that
-was structurally invisible for as long as the report answered "no parser" to a question about a struct
-field.
+That first line was worth pausing on, and following it produced the sharpest finding of the whole
+sequence.
+
+### The `ebnf` meta-grammar cannot parse a block comment
+
+`/***/` is a block comment in the very language `ebnf.ebnf` describes. So is `/* x */` — and that one
+is rejected too. Every block-comment and documentation-comment form the grammar defines fails, while
+line comments parse normally:
+
+| input | verdict |
+|---|---|
+| `/**/` · `/***/` · `/* x */` · `/** d */` | **reject** |
+| `# line` | accept |
+
+Two independent engines — the grammar interpreter and the generated parser — return identical
+verdicts down to the same `furthest_position`, so this is a property of the grammar, not an artefact
+of one tool.
+
+The cause is not the generator, which was the natural suspect: the grammar contains regex terminals
+that **cannot compile**.
+
+```ebnf
+block_comment_content := /((?:[^*]|\*(?!\/))*)/
+```
+
+Rust's `regex` crate does not support look-around — deliberately, because it is what buys linear-time
+matching. So this pattern fails to compile *on every invocation*, and the rule matches nothing on any
+input, forever. Bisecting the construct with controls confirms it precisely: `([^*]*)`, `((?:[^*])*)`,
+`((?:[^*]|x)*)` and `(a(?:b)?)` all work; every arm carrying `(?!…)` or `(?=…)` fails, including
+`(a(?!b))` against the single byte `a`, where the assertion is trivially satisfied.
+
+### Why it stayed hidden, and why that is the transferable part
+
+The engine does report it. It reports it at `[PGEN][LOW]`, through the ordinary **speculative-parse
+failure** channel — the same channel a healthy *"this alternative didn't match, try the next one"*
+uses, and which a PEG engine exists to swallow. At default verbosity the message appears **zero**
+times.
+
+That puts two facts with completely different lifetimes on one wire:
+
+| | a branch that didn't match | a terminal that cannot compile |
+|---|---|---|
+| depends on the input | yes | **no** |
+| will differ next run | yes | **no** |
+| means the grammar is wrong | no | **yes** |
+| how it is reported | rule-exit error, swallowed | *identical* |
+
+The diagnostic tell is a rule returning `furthest_position=0` on an input that exercises none of the
+suspicious syntax. A branch that merely failed to match matches *something*, somewhere;
+`block_comment_content` reached byte 0 on `abc`, which is a rule that never ran.
+
+### It had already been fixed — in the wrong layer
+
+SystemVerilog hit this same construct twice and was repaired for it, with the reasoning committed into
+`grammars/systemverilog.ebnf` as a comment. There it was not merely a dead rule: every failed compile
+forced a backtrack, and the retries concentrated into 96 invocations at a single byte offset in a
+five-second window, making it the dominant source of catastrophic backtracking behind a **>180 s
+hang**. So the class costs speed as well as correctness. The repair was to move the assertion out of
+the regex and into a grammar-level `!rule` negative lookahead, which the PEG engine supports natively
+as a zero-width assertion.
+
+None of that reached the other grammars, because the fix landed as an *edit* rather than as a *check*.
+A live census finds six uses across three grammars still carrying it. And `--lint-grammar` — which
+already refuses grammars for undefined references and non-terminating rules, both of them "this rule
+can never match" verdicts — reports this one zero times, even though *"does this regex terminal
+compile?"* is decidable from the grammar text alone, with no input, no parse and no generated parser.
+
+⭐ A defect class that has already been fixed once and is still live elsewhere is evidence about the
+*layer* the fix landed in, not about the diligence of whoever fixed it. That is why the follow-up work
+is split in two: repairing the six instances, and adding the static check that makes a seventh
+un-landable.
 
 ### Reaching deep recursive branches: the constructive-reach witness pass
 

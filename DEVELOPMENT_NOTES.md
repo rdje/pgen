@@ -1,5 +1,55 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0158 — a permanent defect on a channel built to swallow transient ones
+
+**1. THE LEAF'S TITLE WAS A HYPOTHESIS AND IT WAS WRONG.** `H.17` was opened as *"the stimuli
+generator emits samples the family's own parser rejects"* — a reasonable reading of `spf>0`, and it
+named the generator as the suspect. The generator is fine. So is the parser. The **grammar** contains
+regex terminals that cannot compile, so those rules match nothing on any input; the generator renders
+them faithfully and the parser rejects what it can never accept. ⭐ Had the leaf been worked from its
+title, the search would have started in the one place with no defect in it.
+
+**2. THE HIDING PLACE IS THE CHANNEL, NOT THE MESSAGE.** The engine reports the failure precisely —
+`"Invalid regex pattern '((?:[^*]|\*(?!\/))*)': … look-around … not supported"`. It reports it at
+`[PGEN][LOW]`, on the speculative-parse failure path, which is what a PEG engine spends its life
+discarding. An input-dependent, expected, transient event and a static, unconditional, permanent one
+share one wire, and nothing downstream can separate them. Measured at default verbosity: **zero**
+occurrences. This is the general lesson and it is why it was promoted.
+
+**3. THE TELL IS `furthest_position=0` ON AN INNOCENT INPUT.** A branch that "did not match" matches
+*something* somewhere. `block_comment_content` returned `accepted=false furthest_position=0` on `abc`
+— an input containing no `*` at all, exercising none of the suspicious syntax. A rule that cannot
+reach byte 1 of a string it should consume whole is not failing to match; it never ran. That one
+observation converts a vague "the comment rules are unwitnessed" into a specific mechanism.
+
+**4. BISECT WITH CONTROLS FIRST, OR THE CONCLUSION IS ONLY A CORRELATION.** Four passing arms
+(`([^*]*)`, `((?:[^*])*)`, `((?:[^*]|x)*)`, `(a(?:b)?)`) establish that negated classes, non-capturing
+groups, alternation and optionals all work in a regex terminal. Only then do the three failing
+look-around arms mean "look-around is the cause" rather than "something in this regex is the cause".
+The sharpest arm is `(a(?!b))` on the single byte `a`: nothing follows, so the assertion is trivially
+satisfied, and it still rejects.
+
+**5. A CENSUS MUST SEPARATE DESCRIBING A CONSTRUCT FROM USING IT.** A naive grep put `regex.ebnf` at
+the top with 25 hits. Every one is a double-quoted string LITERAL — `"(?="`, `"(?!"`, `"(?<="`,
+`"(?<!"` — by which the regex grammar *matches PCRE lookaround syntax*. Counting them would have
+inflated the population five-fold and routed the finding to the wrong family. The `:=`-with-`/…/`
+shape is what separates them, and the census keys on that.
+
+**6. THE FIX HAD ALREADY BEEN WRITTEN, IN THE WRONG LAYER.** SystemVerilog hit this exact construct
+twice and was repaired for it, with the rationale committed into the grammar as a comment — including
+that it had been the dominant source of catastrophic backtracking behind a >180 s hang, 96 retries at
+one byte offset in five seconds. None of that reached the other grammars, because the fix landed as an
+*edit* rather than as a *check*. Six uses across three grammars survived it. ⭐ **A class already
+fixed once and still live elsewhere is telling you the fix was in the wrong layer** — and here the
+right layer is cheap, because "this regex terminal compiles" is decidable from the grammar text with
+no input, no parse and no generated parser.
+
+**7. DIAGNOSE BEFORE COUNTING.** `H.16` was about to adjudicate 64 dead-rule candidates. Nine of the
+names in its lists are these rules and their parents — live rules whose terminal cannot compile. Had
+the census run first, a defect would have been recorded as a design fact, and the leaf's own rule
+("never delete a rule to reach `UNKNOWN=0`") would have been obeyed in letter while being defeated in
+substance.
+
 ## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0157 — two tables answered one question, and the one that printed knew less
 
 **1. THE DEFECT WAS A DUPLICATED ANSWER, NOT A MISSING ONE.** *Is there a detail-capable parser for
