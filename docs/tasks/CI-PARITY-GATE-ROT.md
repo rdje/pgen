@@ -2670,6 +2670,52 @@ was ever justified before paying to make the environment match it.
   orphan gate, because it manufactures evidence. Worth asking whether any other
   `*_on_*_change.sh`-style conditional flow keys on git for an artifact git cannot see.
 
+### ⚠️ `.43` NEW `todo` — **the clippy-on-rust-change detector CANNOT SEE a generated-parser change, and a PURE GRAMMAR CHANGE — the very thing that regenerates a parser — skips the clippy flow entirely** (opened 2026-08-22 session #256 by `GRAMMAR-WELLFORMED.H.17.1`, which hit it while regenerating two parsers)
+
+- **THE DEFECT.** `COMMIT.md` step 2 requires the clippy flow *"when Rust/**generated Rust** files are
+  amended"*. On `-0161` — a commit that regenerated `generated/ebnf.rs` **and**
+  `generated/semantic_annotation_parser.rs` — the flow printed:
+
+  ```text
+  $ make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change
+  No Rust/generated Rust changes detected; skipping clippy flow.
+  ✅ clippy_on_rust_change completed.
+  ```
+
+  A green tick for work it did not do.
+- **WHY (WHERE).** `rust/scripts/clippy_on_rust_change.sh:46-63` builds `changed_paths` from
+  `git diff --name-only` + `--cached --name-only` + `git ls-files --others --exclude-standard`, then
+  matches each against a fixed pattern list. Two independent holes:
+  1. The list **includes `generated/*.rs`** — but `generated/` is gitignored (`.gitignore:24`) and
+     `ls-files --others --exclude-standard` drops ignored paths. Measured:
+     `git ls-files --others --exclude-standard | grep -c '^generated/'` = **0**. The branch reads as
+     coverage and cannot fire.
+  2. **`grammars/*.ebnf` is not in the list at all.** A grammar edit is *precisely* what changes
+     generated Rust, and it is invisible to the detector. This is the sharper half and it needs no
+     bound.
+- ⚠️ **HONEST BOUNDS, because the first statement of this finding overstated them (`-0162`).** Hole 1
+  is dead in every workflow this repository **SANCTIONS** — `COMMIT.md`: *"never `git add
+  generated/…`"* — not dead by impossibility: `git add -f` would stage the path and the pattern would
+  match. And a `FORCE_RUN=1` override exists (`:43`) that bypasses detection entirely; nothing in the
+  commit workflow sets it.
+- ⭐ **THE FLOOR WAS HELD BY HAND, WHICH IS THE POINT.** `-0161` ran the explicit gate manually:
+  `make -C rust generated_clippy_correctness_gate` → `findings: total=0 (expected 0)`,
+  `in generated/=0`, over **10 required + 1 optional** artifacts including both parsers regenerated
+  in that commit. So no defect shipped — **the defect is that nothing would have prompted the run.**
+- ⭐ **ROUTING EVIDENCE (does it reproduce outside the family it came from?): YES, family-independent.**
+  The detector keys on PATHS, not grammars; `generated/` is gitignored repo-wide, and every one of the
+  ten families regenerates into it. It is not a `GRAMMAR-WELLFORMED` concern, which is why it sits
+  here.
+- **OWED**: add `grammars/*.ebnf` (and the other codegen inputs the recipe consumes) to the pattern
+  list, and either delete the unreachable `generated/*.rs` branch or replace it with a check that can
+  actually observe the untracked tree — a content hash of `generated/` against the last linted state,
+  which is the same shape `GENERATED-REPRODUCIBILITY` already uses. ⛔ Do not simply add the glob and
+  call it fixed: the lesson is that a pattern list nobody can see fire is indistinguishable from one
+  that works, so whatever lands must be proven to go RED on a grammar-only change.
+- ⛔ **SCHEDULE**: governance/flow ⇒ **parked by the SV lane lock**; blocks no SV release claim.
+  Trigger: the next flow slice worked after the lock lifts, or sooner if a codegen change lands
+  without a hand-run of the correctness gate.
+
 ## Evidence
 
 - Measured at commit `730419a2`, session #215. The census was produced by sourcing

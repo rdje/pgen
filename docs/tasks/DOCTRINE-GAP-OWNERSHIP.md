@@ -603,6 +603,77 @@ the copy has no way to know.*
   that is the per-target judgement item (1) owes, and it is deliberately left to a human rather than
   guessed by the instrument.
 
+### `.8` — a `<TREE>.<leaf>` id is UNCHECKED exactly like a `[[wikilink]]`, and there is no single leaf-definition convention to check it against (`todo`, opened 2026-08-22 session #256 by `GRAMMAR-WELLFORMED.H.17.1`, whose session produced a FALSE finding by getting this wrong)
+
+- **THE GAP — this is `.7` in the other namespace.** `.7` measured that nothing verifies a
+  `[[name]]` citation reaches a record. **Nothing verifies a `<TREE>.<leaf>` citation either.**
+  `docs/TASK_TREE.md` names leaf ids as the index of all tracked work; a session resumes through
+  them. An id naming no leaf fails silently, in the passing direction, and still reads like an index
+  row — the archetype this tree exists for. ⭐ `.7`'s own census already carries a `TASK-TREE` bucket
+  (7 targets / 7 occurrences, *"a real `docs/tasks/<X>.md`, wrong namespace"*), so the two questions
+  were already touching; this leaf names the second one properly.
+- ⛔⛔ **THE HEADLINE IS NOT A COUNT — IT IS THAT THE QUESTION IS NOT MECHANICALLY ANSWERABLE TODAY.**
+  Measured 2026-08-22: **three** leaf-definition conventions are in live use, and a checker that
+  knows one reports the other two as missing.
+
+  | | convention | example |
+  |---|---|---|
+  | A | backticked id in a heading, optional free-text/emoji prefix | ``### ⛔⛔ `.40` NEW `todo` — …`` |
+  | B | numbered prose heading naming the FULLY-QUALIFIED id, not backticked | `## 23. PARSE-HARNESS.11 — the blessed scratch slot's …` |
+  | C | a body FIELD rather than a heading | ``- ID: `SV-EXH-PROOF.3.3.4.b.6.2.15` `` |
+
+  ⇒ **owed item (1) is a convention decision, not a script.** Until "what defines a leaf" has one
+  answer, any ratchet built on it encodes whichever spellings its author happened to have seen.
+- **MEASURED** — [`dangling_leaf_id_census.py`](artifacts/doctrine_gap_ownership/dangling_leaf_id_census.py),
+  read-only, exit code = the MISSING count (same contract as `.7`'s census):
+
+  ```text
+  LEAF-ID-CENSUS: scanned 222 `<TREE>.<leaf>` references in docs/TASK_TREE.md against 111 tree files
+    bucket           count   meaning
+    MISSING            17   ⛔ the defect bucket — an id the index names with no leaf heading
+    DETAIL-DOC          2   written up in a sibling detail document, not in the tree file
+    RESOLVED          132   resolves to a leaf-defining heading in its tree
+    NOT-A-LEAF-ID      71   false positive by construction (`<TREE>.md` links, prose)
+  ```
+
+- ⛔ **THE CENSUS IS ALSO BLIND TO THE INDEX'S SECOND REFERENCE FORM, WHICH IS HOW IT MISSED THE ONE
+  ROW THIS SESSION KNEW ABOUT.** `docs/TASK_TREE.md` names leaves BOTH fully-qualified
+  (`CI-PARITY-GATE-ROT.40`) and **bare inside the owning tree's own row** (`` `.43` NEW `todo` ``).
+  The census matches only the qualified form, so `CI-PARITY-GATE-ROT.43` — added by `-0161` with no
+  leaf section, the very instance that prompted this leaf — reads as RESOLVED-by-absence: it is never
+  scanned at all. ⇒ 17 undercounts on this axis while over-counting on the convention axis, and the
+  two errors do not cancel. Fixing the reference form is part of owed item (1).
+- ⚠️ **17 IS AN UPPER BOUND ON ITS OWN AXIS, AND IT IS PUBLISHED AS ONE.** It fell **38 → 42 → 17** across three
+  iterations of the same session, each drop caused by learning another convention rather than by
+  anything changing in the tree. A fourth convention would lower it again. ⛔ Do not quote 17 as
+  "17 leaves are missing"; quote it as *"at most 17, under the three conventions the census knows"*.
+- ⛔⛔ **FOUNDING DEFECT — THIS LEAF EXISTS BECAUSE THE NAIVE VERSION PRODUCED A FALSE FINDING AND I
+  PUBLISHED IT.** Session #256 reported to the director that `CI-PARITY-GATE-ROT.40`/`.41`/`.42`
+  had no leaf sections and that "four are owed". **All three are present** —
+  `docs/tasks/CI-PARITY-GATE-ROT.md` lines **249 / 146 / 186**. The grep was
+  `^### \x60\.40\x60`, which anchors the backtick immediately after the hashes; those headings carry a
+  status emoji first (`### ⛔⛔ \x60.40\x60 NEW \x60todo\x60 — …`). ⭐⭐ **AND THE HAND-CHECK RUN TO CONFIRM
+  IT USED THE SAME PATTERN**, so it could not have disagreed — a control that cannot fail, in the
+  same session that promoted [[a-control-that-cannot-fail-is-not-a-control]] for the same mistake at
+  the instrument level. The retraction is recorded here rather than only in conversation precisely
+  because a future session re-running that grep would re-derive the same false gap.
+  → [[a-heading-census-is-only-as-good-as-the-heading-grammar]].
+- **OWED, in the order that de-risks it:** (1) **decide the convention** — one spelling that defines a
+  leaf, with the other two either migrated or explicitly registered as legal; (2) per MISSING id,
+  decide *renamed* (repoint the index) / *never written* (write it, or drop the row) / *deliberate
+  forward marker* (say so in the leaf's place, not by silence) — the same triage `.7` owes; (3) wire
+  the census as a ratchet on the MISSING count. ⭐ **Do (3) TOGETHER WITH `.7` and `.2`**, which owe
+  the same kind of enforcer over the same corpus — building it three times is how three different
+  answers to "is this owned?" appear.
+- ⛔ **SCHEDULE (a NAMED TRIGGER, not a bare `todo`).** Governance ⇒ **parked by the SV lane lock**,
+  blocks no SV release claim. Trigger: **the same governance slice that opens `.7`** — they are one
+  enforcer over two namespaces. ⚠️ Until then the census is the standing measurement: read-only,
+  sub-second, non-zero exit, so it can be gated the moment the leaf opens.
+- ⭐ **ONE ROW IS ALREADY OWED BY A NAMED LEAF AND IS NOT WAITING FOR THIS ONE**:
+  `CI-PARITY-GATE-ROT.43` was written into the index by `-0161` without a leaf section, and `-0163`
+  supplied it — so the class's newest instance was closed the moment it was measured, rather than
+  joining the backlog it belongs to.
+
 ## Evidence
 
 - `git log -1 -S "whole-file grep, not box-scoped" -- docs/decisions/project_build_integrity_compiler_root_cause_signature.md`
