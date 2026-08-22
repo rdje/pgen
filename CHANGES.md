@@ -1,5 +1,62 @@
 # CHANGES.md
 
+## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0166 (leaf GRAMMAR-WELLFORMED.H.16.3 CLOSED — the stimuli generator shadowed any rule named `epsilon` with the empty string; CODE / engine-universal stimuli generator, 1 Rust file, ZERO grammar bytes, ZERO generated-parser bytes)
+
+- ⛔⛔ **ONE NAME, TWO MEANINGS, IN THE TWO HALVES OF THE SAME PIPELINE.**
+  `rust/src/ast_pipeline/stimuli_generator.rs:11186` returned `Ok(String::new())` for
+  `rule_name == "epsilon"` **before consulting the grammar**, so `grammars/ebnf.ebnf:324`'s real
+  definition `epsilon := ("ε" | "epsilon" | "empty" | "λ")` was unreachable to the generator — while
+  codegen honours it, because `epsilon` is **not** in `NATIVE_UNRESOLVED_REFERENCE_BUILTINS`
+  (`ast_based_generator.rs:1405`, only `builtin_any_char` / `builtin_ascii_char`).
+- **THE LANGUAGE WAS ALWAYS FINE — the generator was wrong about it.** `--interpret-parse` against
+  `grammars/ebnf.ebnf`: `X := ε`, `X := epsilon`, `X := empty`, `X := λ`, `X := &epsilon` and
+  `X := "a" | λ` **all six ACCEPT**; the generator's own witness sample `X :=` (empty right-hand side)
+  **REJECTS** at `furthest_position=4`. Every forced probe read
+  `[plannable-probe] rule='epsilon' parsed=false … sample="ZC:="`, so the rule could never be
+  witnessed and each probe also inflated `sample_parse_failures`.
+- **FIX (engine tier, one condition).** Gate the builtin on
+  `!self.grammar_tree.contains_key("epsilon")` — a DEFINED rule wins; the builtin stays the fallback
+  it was written to be. ⭐ Both existing callers are preserved **exactly**, because both use grammars
+  in which `epsilon` is UNDEFINED: the pinned
+  `built_in_epsilon_rule_reference_generates_empty_string` and `SV-EXH-PROOF.7.4.6.15`'s control —
+  whose own comment had already foreseen this edit (*"if this assert ever fails the verdict was
+  tightened (e.g. `epsilon` taught to resolve)"*). It did not fire.
+- **ADDRESSED — three seeds, BOTH arms measured on the same binary path** (the BEFORE arm was
+  re-measured by reverting the file and rebuilding, not quoted from an earlier note):
+
+  | | seed 0 | seed 7 | seed 42 |
+  |---|---|---|---|
+  | BEFORE | `144/0/111/33` `spf=8` | `144/0/111/33` `spf=11` | `144/0/111/33` `spf=7` |
+  | AFTER | `144/0/112/32` `spf=4` | `144/0/112/32` `spf=5` | `144/0/112/32` `spf=3` |
+
+  `spf` falls at EVERY seed — a monotone three-seed improvement, not a single-seed reading. The
+  `UNKNOWN` delta is **ATTRIBUTED BY RULE NAME**: exactly `epsilon` left, nothing newly UNKNOWN, and
+  the `[plannable-probe] rule='epsilon'` lines are gone entirely because the ordinary diverse pass now
+  witnesses it. ⚠️ **HONEST BOUND**: the remaining 4/5/3 `spf` are the `ebnf` residue `H.16.1`
+  recorded as NOT YET ATTRIBUTED and are not claimed to be epsilon-related — all four spellings were
+  probed individually in `primary_element` position and all accept.
+- **NO REGRESSION — the stimuli generator is not parser codegen, and the tracked baseline PROVES it
+  rather than assuming it.** `generated_reproducibility_rebaseline` re-derives all **11** artifacts
+  byte-identically and every `parser_sha` in the rebaselined file is **UNCHANGED**; only
+  `verified_at_commit`, `emission_sha` and three `.json` `input_sha` (the embedded `generated_at`)
+  moved. Cert unchanged elsewhere: `return_annotation` `35/0/33/2`, `semantic_annotation`
+  `115/0/84/31`, and the fully-certified set holds — `json` `9/0/9/0`, `regex` `269/9/260/0`,
+  `rtl_frontend` `169/1/168/0`, `vhdl` `225/0/225/0`, `systemverilog_preprocessor` `74/0/74/0`, all
+  `fully_certified=true spf=0`; `rtl_const_expr_cert_gate` PASS `48/0/48/0` at seeds 0/7/42.
+  `cargo test --lib` 1118/1 (same pre-existing failure); clippy PASS; doctrines 25/25.
+- **BLAST RADIUS IS ONE GRAMMAR AND THE POPULATION IS CLOSED** — `grep -l '^epsilon' grammars/*.ebnf`
+  returns `grammars/ebnf.ebnf` only; SystemVerilog's remaining mentions are comments recording its
+  removal. The **trap** is universal: any grammar defining a rule named `epsilon` silently lost it.
+- ⛔ **ADJUDICATED NON-ISSUE, RECORDED RATHER THAN IGNORED**: in the other direction, for an UNDEFINED
+  `epsilon` the generator renders `""` while codegen emits a never-matching stub. No leaf is opened,
+  because `undefined_references` is a HARD `--lint-grammar` error class — no shipped grammar can carry
+  such a reference; only the two synthetic test grammars do.
+- ⭐ **A SCARE THAT RESOLVED INTO A LESSON**: an ad-hoc `--report-certificate-coverage` on
+  `rtl_const_expr` returned `Error: Stimuli generation depth exceeded max_depth=24`. That was the
+  WRONG INVOCATION, not a regression — the canonical gate runs at depth 32 and passes. **For a grammar
+  with a canonical cert gate, the GATE is the oracle; an ad-hoc command with default flags is a
+  different measurement wearing the same name.**
+
 ## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0165 (leaf GRAMMAR-WELLFORMED.H.16.2 CLOSED — a terminal whose PREFIX is a comment introducer was eaten as trivia; CODE / engine-universal codegen, 1 Rust file + 1 pinned matrix, ZERO grammar bytes, 1 regenerated parser)
 
 - ⛔⛔ **`semantic_annotation`'s `set_value` / `set_element` COULD NEVER MATCH ON ANY INPUT.**

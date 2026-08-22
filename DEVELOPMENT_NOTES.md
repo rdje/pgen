@@ -1,5 +1,51 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0166 — a builtin keyed on a NAME will shadow a real definition
+
+**1. A BUILTIN THAT DISPATCHES ON A RULE'S NAME IS A RESERVED WORD NOBODY DECLARED.** `generate_rule`
+matched `rule_name == "epsilon"` and returned the empty string *before* looking the rule up. Any
+grammar in the world that names a rule `epsilon` silently loses its definition — no error, no
+warning, no lint. Compare the other half of the same pipeline: codegen keeps its builtins in an
+explicit const (`NATIVE_UNRESOLVED_REFERENCE_BUILTINS`), and `epsilon` is not in it. ⭐ **The defect
+is not the empty-string expansion; it is that one name meant two things in two halves of one
+pipeline.** When adding a builtin, key it on *absence* (the grammar did not define this) rather than
+on the name, and put it where the other half can see it.
+
+**2. THE FIX WAS ONE CONDITION BECAUSE THE EXISTING CALLERS WERE ALREADY ON THE RIGHT SIDE OF IT.**
+Before changing a shared behaviour, read who depends on it. Both callers — a pinned unit test and an
+`SV-EXH-PROOF` control — use grammars in which `epsilon` is **undefined**, so gating on
+`!grammar_tree.contains_key("epsilon")` preserved both exactly. One of them had even written down
+that this change was coming (*"if this assert ever fails the verdict was tightened (e.g. `epsilon`
+taught to resolve); re-base the control rather than deleting it"*). It did not fire. ⭐ A comment that
+tells the future what to do when an assumption changes is worth writing even if it never fires.
+
+**3. RE-MEASURE THE BEFORE ARM; DO NOT QUOTE IT.** The seed-0 before-value was already written down
+from earlier in the same session, and it would have been easy to publish `spf 8 → 4` on that basis.
+Reverting the file, rebuilding, and re-running all three seeds cost about ninety seconds and turned a
+one-seed number into **8→4, 11→5, 7→3** — a monotone improvement at every seed, which is a materially
+stronger claim than the one that was nearly published.
+
+**4. ATTRIBUTE THE RESIDUE, AND SAY WHICH PART YOU HAVE NOT.** `spf` did not reach zero. Two of the
+four remaining seed-0 samples now contain `epsilon`/`λ` purely because the sample stream shifted, and
+the honest way to check that was to probe all four spellings in `primary_element` position — `epsilon`,
+`ε`, `empty`, `λ`, plus `&epsilon` and `"a" | λ`. All six accept, so the residue is not the repaired
+branch failing to parse. ⛔ The remaining failures stay explicitly NOT ATTRIBUTED rather than being
+described in a way that implies they were understood.
+
+**5. FOR A GRAMMAR WITH A CANONICAL GATE, THE GATE IS THE ORACLE.** An ad-hoc
+`--report-certificate-coverage` on `rtl_const_expr` returned `Error: Stimuli generation depth exceeded
+max_depth=24` and looked, for about a minute, like a regression caused by the change. It was the
+DEFAULT depth: `rtl_const_expr_cert_gate` runs at depth 32 and passes `48/0/48/0` at seeds 0/7/42.
+⭐ An ad-hoc command with default flags is a different measurement wearing the same name — and the
+cheapest way to tell a real regression from a mis-invocation is to run the thing the repo already
+built for that grammar.
+
+**6. THE STRONGEST NO-REGRESSION EVIDENCE CAME FROM A FILE THAT EXISTS FOR ANOTHER PURPOSE.** The
+claim "a stimuli-generator change cannot move parser bytes" is easy to assert from the architecture
+and easy to be wrong about. The reproducibility baseline re-derives all eleven artifacts and records
+a `parser_sha` for each; after the rebaseline **every one was unchanged**. That is a falsifiable,
+already-tracked check answering a question it was not built to answer.
+
 ## 2026-08-22 - PGEN-GRAMMAR-WELLFORMED-0165 — the same wrong question, one layer down
 
 **1. A DEFECT CLASS FIXED AT ONE LAYER IS WORTH GREPPING FOR AT THE OTHERS.** `H.17.2` shipped a lint

@@ -11183,7 +11183,17 @@ impl<'a> StimuliGenerator<'a> {
         depth: usize,
         call_stack: &mut Vec<String>,
     ) -> Result<String> {
-        if rule_name == "epsilon" {
+        // The `epsilon` BUILTIN — an expansion to the empty string for a reference to a rule the
+        // grammar does not define (`soft_target := "t" epsilon`). ⛔ GRAMMAR-WELLFORMED.H.16.3: it
+        // used to fire on the NAME alone, before consulting the grammar, so a grammar that DEFINES
+        // `epsilon` had its own definition silently replaced by "". `grammars/ebnf.ebnf:324` is
+        // exactly that grammar — `epsilon := ("ε" | "epsilon" | "empty" | "λ")` — and codegen
+        // honours the definition (`epsilon` is NOT in `NATIVE_UNRESOLVED_REFERENCE_BUILTINS`), so
+        // the two disagreed about the grammar's own language: every witness sample rendered as
+        // `X:=` with an EMPTY right-hand side, which the real parser REJECTS, and the rule could
+        // never be witnessed. Measured: `X := ε` parses, the generator's own `X :=` does not.
+        // A DEFINED rule always wins; the builtin is the fallback it was written to be.
+        if rule_name == "epsilon" && !self.grammar_tree.contains_key("epsilon") {
             self.trace(
                 TraceLevel::Debug,
                 format_args!("Builtin epsilon expansion: depth={}", depth),

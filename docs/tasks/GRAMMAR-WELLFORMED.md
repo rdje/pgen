@@ -3337,19 +3337,91 @@ each proven with an ACCEPTING control:
   blind to by construction. That is the transferable part: **a witnessed rule can still reject inputs
   its grammar licenses.**
 
-### `H.16.3` — **THE STIMULI GENERATOR SHADOWS ANY RULE NAMED `epsilon` WITH THE EMPTY STRING** (`todo`, opened 2026-08-22 session #257 by `H.16.1`)
+### `H.16.3` — **THE STIMULI GENERATOR SHADOWS ANY RULE NAMED `epsilon` WITH THE EMPTY STRING** (**`done`**, `PGEN-GRAMMAR-WELLFORMED-0166`, CODE / engine-universal stimuli generator — opened 2026-08-22 session #257 by `H.16.1`, CLOSED same session)
 
-- **WHY**: `rust/src/ast_pipeline/stimuli_generator.rs:11186` — `generate_rule` returns
-  `Ok(String::new())` for `rule_name == "epsilon"` *before* consulting the grammar, so
-  `grammars/ebnf.ebnf:324`'s real definition is unreachable to the generator while codegen honours it.
-  Measured: `X := ε` **accepts**, the generator's own `X :=` **rejects**.
-- ⭐ **THE BUILTIN ITSELF IS LEGITIMATE** — `built_in_epsilon_rule_reference_generates_empty_string`
-  (`:19324`) pins the intended contract, a reference to an **undefined** `epsilon`. ⛔ And `epsilon` is
-  **NOT** in `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` (`ast_based_generator.rs:1405`, only
-  `builtin_any_char` / `builtin_ascii_char`), so codegen and the generator already disagree about what
-  the name means. The fix is to take the builtin path only when the grammar does **not** define it.
-- **BLAST RADIUS TODAY IS ONE GRAMMAR** — `grammars/ebnf.ebnf` is the only grammar that DEFINES
-  `epsilon`; SV's remaining mentions are comments recording its removal. The **trap** is universal.
+- **WHY**: `rust/src/ast_pipeline/stimuli_generator.rs:11186` — `generate_rule` returned
+  `Ok(String::new())` for `rule_name == "epsilon"` **before consulting the grammar**, so
+  `grammars/ebnf.ebnf:324`'s real definition `epsilon := ("ε" | "epsilon" | "empty" | "λ")` was
+  unreachable to the generator while codegen honoured it.
+
+#### ✅ CLOSED — a DEFINED rule always wins; the builtin is the fallback it was written to be
+
+- ⭐ **THE BUILTIN ITSELF IS LEGITIMATE AND IS KEPT.** Its contract is pinned by
+  `built_in_epsilon_rule_reference_generates_empty_string` (`:19324`) and relied on by
+  `SV-EXH-PROOF.7.4.6.15`'s control (`:28762`), and **both use a grammar in which `epsilon` is
+  UNDEFINED** — a bare `rule_reference` with no rule behind it. Gating the builtin on
+  `!self.grammar_tree.contains_key("epsilon")` therefore preserves both **exactly**, which is why the
+  fix is one condition rather than a redesign. ⚠️ `:28866` had already foreseen this edit in writing
+  (*"if this assert ever fails the verdict was tightened (e.g. `epsilon` taught to resolve)"*); it did
+  not fire, because that control's grammar does not define the rule.
+- ⛔ **CODEGEN AND THE GENERATOR ALREADY DISAGREED ABOUT WHAT THE NAME MEANS.** `epsilon` is **not**
+  in `AstBasedGenerator::NATIVE_UNRESOLVED_REFERENCE_BUILTINS`
+  (`ast_based_generator.rs:1405` — only `builtin_any_char` and `builtin_ascii_char`), so codegen
+  treats a defined `epsilon` as an ordinary rule. One name, two meanings, in the two halves of the
+  same pipeline: **that is the defect, not the empty-string expansion.**
+- ⚠️ **AND THE OTHER DIRECTION IS ADJUDICATED, NOT IGNORED**: for an UNDEFINED `epsilon` the generator
+  renders `""` while codegen emits a never-matching `Err(Backtrack)` stub — the generator would emit
+  samples for a production the parser can never accept. It is **not** a live defect and needs no leaf:
+  `undefined_references` is a HARD `--lint-grammar` error class, so no shipped grammar can carry an
+  undefined `epsilon` reference; the only inputs that do are the two synthetic test grammars above.
+- **BLAST RADIUS IS ONE GRAMMAR, AND THE POPULATION IS CLOSED.** `grep -l '^epsilon' grammars/*.ebnf`
+  → `grammars/ebnf.ebnf` **only**. `grammars/systemverilog.ebnf`'s remaining mentions are COMMENTS
+  recording its removal (`lines 77-80`, `2400`). ⭐ The **trap** is universal: any grammar in the world
+  that defines a rule named `epsilon` silently lost it.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `PGEN_CERT_COVERAGE_DEBUG_PROBES=1 … --report-certificate-coverage` on
+  `grammars/ebnf.ebnf` prints `[plannable-probe] rule='epsilon' parsed=false witnessed_target=false
+  sample="ZC:="` ×8 (plus `[target-own-probe]` and `[carrier-div-probe]` variants) — every forced
+  witness renders an EMPTY right-hand side, which the real parser REJECTS, so `epsilon` could never be
+  witnessed and each probe also inflated `sample_parse_failures`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `rust/src/ast_pipeline/stimuli_generator.rs:11186`,
+  `if rule_name == "epsilon" { … return Ok(String::new()); }`, evaluated before any grammar lookup.
+  WHY it is the GENERATOR and not the language: `--interpret-parse` against `grammars/ebnf.ebnf` gives
+  `X := ε` → `accepted=true`, `X := epsilon` → `accepted=true`, `X := empty` → `accepted=true`,
+  `X := λ` → `accepted=true`, and the generator's own sample `X :=` → **`accepted=false`
+  furthest_position=4**. The parser was right about the grammar and the generator was not.
+- [x] **ADDRESSED (verified)** — `grammars/ebnf.ebnf` certificate coverage, **three seeds, both arms
+  measured on the same binary path** (the BEFORE arm was re-measured this session by reverting the
+  file and rebuilding, not quoted from an earlier note):
+
+  | | seed 0 | seed 7 | seed 42 |
+  |---|---|---|---|
+  | BEFORE | `144/0/111/33` `spf=8` | `144/0/111/33` `spf=11` | `144/0/111/33` `spf=7` |
+  | AFTER | `144/0/112/32` `spf=4` | `144/0/112/32` `spf=5` | `144/0/112/32` `spf=3` |
+
+  ⭐ **`spf` falls at EVERY seed** (8→4, 11→5, 7→3) — a monotone three-seed improvement, not a
+  single-seed reading. ⭐ **THE `UNKNOWN` DELTA IS ATTRIBUTED BY RULE NAME**: exactly `epsilon` left
+  the set; **nothing** became newly UNKNOWN. The `[plannable-probe] rule='epsilon'` lines are gone
+  entirely — the rule is now witnessed by the ordinary diverse pass, so no forced probe is generated.
+  ⚠️ **HONEST BOUND**: the remaining 4/5/3 `spf` are the `ebnf` residue `H.16.1` recorded as NOT YET
+  ATTRIBUTED, and they are **not** claimed to be epsilon-related. Two of the four at seed 0 now
+  contain `epsilon`/`λ` because the sample stream shifted; all four spellings were probed individually
+  in `primary_element` position (`X := epsilon`, `ε`, `empty`, `λ`, `&epsilon`, `"a" | λ`) and **all
+  six ACCEPT**, so the residue is not the epsilon branch failing to parse.
+- [x] **NO REGRESSION** — **The stimuli generator is not parser codegen, and the tracked baseline
+  PROVES it rather than assuming it**: `generated_reproducibility_rebaseline` re-derives all **11**
+  artifacts byte-identically and every `parser_sha` in the rebaselined file is **unchanged**
+  (`return_annotation` `0d610b7a…`, `semantic_annotation` `e2a3d4cd…`, `rtl_const_expr` `8f14a980…`);
+  only `verified_at_commit`, `emission_sha` and three `.json` `input_sha` (the embedded `generated_at`)
+  moved. Cert unchanged for every other wired family: `return_annotation` `35/0/33/2 spf=0`,
+  `semantic_annotation` `115/0/84/31 spf=0`, and the **fully-certified** set holds — `json` `9/0/9/0`,
+  `regex` `269/9/260/0`, `rtl_frontend` `169/1/168/0`, `vhdl` `225/0/225/0`,
+  `systemverilog_preprocessor` `74/0/74/0`, all `fully_certified=true spf=0`; the canonical
+  `rtl_const_expr_cert_gate` PASSES `48/0/48/0` deterministic at seeds 0/7/42. `cargo test --lib`
+  **1118 passed / 1 failed** — the same pre-existing failure, counts identical to the previous slice.
+  `clippy_on_rust_change` PASS. `scripts/check_doctrines.sh` 25/25.
+  ⭐ **A SCARE THAT RESOLVED INTO A LESSON**: an ad-hoc `--report-certificate-coverage` on
+  `rtl_const_expr` returned `Error: Stimuli generation depth exceeded max_depth=24`. That was **the
+  wrong invocation, not a regression** — the canonical gate runs at depth 32 and passes. ⛔ *For a
+  grammar with a canonical cert gate, the GATE is the oracle; an ad-hoc command with default flags is
+  a different measurement wearing the same name.*
+- [x] **LOCKSTEP** — this leaf + the Current Frontier + `docs/TASK_TREE.md`; `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`; the rebaselined
+  `rust/test_data/grammar_quality/generated_reproducibility_v0.json`. Book: N/A — no user-facing
+  surface changed (the accepted LANGUAGE is untouched; only which samples the generator emits), and
+  the `ebnf` grammar itself is unmodified.
 
 ### `H.16.4` — **`ebnf`'s `whitespace` RULE IS LAYOUT-SKIPPED BEFORE `grammar_file` IS OFFERED THE BYTES** (`todo`, opened 2026-08-22 session #257 by `H.16.1`)
 
@@ -4117,7 +4189,7 @@ each proven with an ACCEPTING control:
 | — | `GRAMMAR-WELLFORMED.H.16.2` (a terminal whose PREFIX is a comment introducer is eaten as a comment) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0165`, CODE / engine-universal codegen) | ✅ `set_value` / `set_element` REJECT→PASS on THREE oracles; cert `115/0/82/33 spf=2` → **`115/0/84/31 spf=0`**, `UNKNOWN=31` at seeds 0/7/42, delta ATTRIBUTED BY NAME (exactly those two left; nothing newly UNKNOWN). Root cause: `node_is_unbounded_content` scored the `/\s*/` SEPARATOR as a comment content TAIL, dropping the `#` claim — the same spelling-vs-property error `H.17.2` outlawed one layer up. Blast radius MEASURED by the pinned suppression matrix: **exactly one row moved**, nine unchanged; `json_parser.rs` regenerates BYTE-IDENTICAL through the changed annotation backend |
 | 1 | `GRAMMAR-WELLFORMED.H.16.6` (`{1 => 2}` rejected while `{1 => "b"}` and `{"a" => 1}` both parse) | **`todo`** (opened 2026-08-22 by `H.16.2`) | Found by ATTRIBUTING the seed-7 `spf` sample instead of waving it through, and **proven pre-existing** on the pre-fix binary. ⭐ The minimal reproducer is sharper than the sample: only a numeric key AND a numeric value together fail. ⚠️ `map_entry` is already WITNESSED, so `UNKNOWN` will not move — **a witnessed rule can still reject inputs its grammar licenses** |
 | 3 | `GRAMMAR-WELLFORMED.H.16.2b` (the DYNAMIC comment-skip guard is still an exact-equality allowlist) | **`todo`** (opened 2026-08-22 by `H.16.2`) | Prophylactic hardening of a proven class, deliberately NOT ridden along inside `H.16.2`: the prefix test edits the emitted layout skipper of EVERY arm-emitting parser (repo-wide rebaseline) versus `H.16.2`'s measured one-artifact radius. No live victim known. Also owes the 10 unprobed sites of the 11-site class census |
-| 1 | `GRAMMAR-WELLFORMED.H.16.3` (the generator shadows any rule named `epsilon` with `""`) | **`todo`** (opened 2026-08-22 by `H.16.1`) | `stimuli_generator.rs:11186` returns the empty string for ANY rule literally named `epsilon`, before consulting the grammar — so `ebnf.ebnf`'s real 4-literal body can never be witnessed and every probe sample (`X:=`) is rejected. The LANGUAGE is fine (`X := ε` accepts). Codegen already disagrees: `epsilon` is NOT in `NATIVE_UNRESOLVED_REFERENCE_BUILTINS` |
+| — | `GRAMMAR-WELLFORMED.H.16.3` (the generator shadows any rule named `epsilon` with `""`) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0166`, CODE / engine-universal stimuli generator) | ✅ A DEFINED rule now wins; the builtin is gated on `!grammar_tree.contains_key("epsilon")`, preserving both existing callers exactly (their grammars leave `epsilon` UNDEFINED). `ebnf` cert `144/0/111/33` → **`144/0/112/32`** with `spf` falling at EVERY seed (**8→4 · 11→5 · 7→3**), both arms measured on the same binary path; delta ATTRIBUTED BY NAME (exactly `epsilon` left, nothing newly UNKNOWN). ⭐ ZERO generated-parser bytes move — the rebaselined reproducibility file shows every `parser_sha` unchanged across all 11 artifacts |
 | 2 | `GRAMMAR-WELLFORMED.H.16.4` (`ebnf`'s `whitespace` is layout-skipped before `grammar_file` sees it) | **`todo`** (opened 2026-08-22 by `H.16.1`) | MEASURED, not hypothesised: 4 spaces ⇒ `accepted=true furthest_position=0`, typed AST `elements=[]` span 0..0 — the `*` matched ZERO iterations. ⭐ `comment` sits in the SAME alternation and IS witnessed, so the two must be explained together |
 | 3 | `GRAMMAR-WELLFORMED.H.16.5` (55 source orphans + 9 LR residue; proof-promotion is gated off for profile-less grammars) | **`todo`** (opened 2026-08-22 by `H.16.1`) | The certifying mechanism EXISTS (`VERILOG-2005-PROFILE.6.7`) and cannot reach them: `main.rs:3380` gates P1/P2 promotion on `profile.is_some()`, and all three families are `profiles=[]`. ⛔ Carries a DIRECTOR-FACING call — `ebnf.ebnf` labels 13 island roots `(extension)` in its own comments, so wiring them is a LANGUAGE EXPANSION. Also carries leg 3 for `H.16.1` |
 | — | `GRAMMAR-WELLFORMED.H.16.1` (adjudicate the 68) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0164`, doc+artifact tier) | ✅ **68 = 9 LR-residue + 55 source-orphans + 4 root-caused inert rules**, in **31 islands**, partition CLOSED (zero rules unattributed). ⛔ `--lint-grammar` could never have adjudicated this — it reads `unreachable_rules=0` on all three BY CONSTRUCTION. New reader: `docs/tasks/artifacts/grammar_wellformed/residual_island_census/probe.py`, proven to go RED three ways. Residual-rules-with-no-owning-leaf **68 → 0** |

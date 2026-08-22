@@ -1,17 +1,17 @@
 {
   "_comment": "GENERATED-REPRODUCIBILITY baseline. DERIVED — never hand-edit. Rewrite with: bash scripts/check_generated_reproducibility.sh --rebaseline",
   "_what_this_proves": "every artifact below re-derived BYTE-IDENTICALLY from HEAD at the recorded commit. Tier 1 re-hashes these three fields and demands a re-verify the moment any of them moves.",
-  "verified_at_commit": "b276b368df5a169608a23abe87f7f7ee78edb1eb",
-  "emission_sha": "f67fbad0fc22a95584397f7f464dd5a051ce21189916ce947c9ac1fb53a1e79c",
+  "verified_at_commit": "b2f6e45ec2df57f04a47e52ecb338d06b9134485",
+  "emission_sha": "668e85644c5206d24889ba1bbc4ccb72dba422f5daaef96547dc8c62c259916e",
   "artifacts": {
-    "return_annotation": { "parser_sha": "0d610b7a914be40be695ec07d4660452505487125a7f7d75bf351b5aad4ba788", "input_sha": "df7656bc46e9edab08f2a83ebb95f439d0bb4659788ecc24bd87d4c3d4ae85d1" },
-    "semantic_annotation": { "parser_sha": "e2a3d4cdc663cf1f15ed4ec005e5f794a1fd2e6fa8070a535228daa7c914b69e", "input_sha": "3a2994914a20b0e8a54db927ff3b66f72489b3a2f3bb0005e0e13d6dcfc66cdc" },
+    "return_annotation": { "parser_sha": "0d610b7a914be40be695ec07d4660452505487125a7f7d75bf351b5aad4ba788", "input_sha": "7e880db700b296d3c1a0251733bb9b1206e1188abe0f5bc3096ace03bc27a71a" },
+    "semantic_annotation": { "parser_sha": "e2a3d4cdc663cf1f15ed4ec005e5f794a1fd2e6fa8070a535228daa7c914b69e", "input_sha": "bdd24c82d322acbe1e3da744039a121ed78acfa466407c96fcfe4fdd3eae561c" },
     "json": { "parser_sha": "6088e53d444ed5ca8e78dc376407133991718856301eb9d1d54e5d09d6512f47", "input_sha": "f2db33eaaacf7864d71eb08aede68788c50c2c87fe622550f1f783bb40f9e31f" },
     "regex": { "parser_sha": "32ac2c36585a7e69f803af9894685d724606e58159300cb5a059e67087c94e4b", "input_sha": "fa573469670734c1578f4729fb052933efa583764a0283574ea41f320d61bd2f" },
     "systemverilog": { "parser_sha": "cc874b60d59a1d16cec4f0a615388c0432b65e8c19b585ee8899cabddd5cb31c", "input_sha": "a416b743810efda7cbb6c825c5f846e3d2e9e8dcc6a6ffd6265b07a8917ac1ff" },
     "systemverilog_preprocessor": { "parser_sha": "47698be21c62d76492aec3e630f76bcbe86c1d14f9ff6150d08c9cf691829f67", "input_sha": "5d0ea770bd3ea60f5825e39ad8691f1eb627cc4db5d2112359b0249b09193327" },
     "vhdl": { "parser_sha": "bd78efe6297bb52b7f7cbd15164422278dad275b9cc9cdde2e3d30c16e984c0f", "input_sha": "1144758ad13627b73e3a6d4e2678e58b04ad0d5577561bcbac47896e2c917286" },
-    "rtl_const_expr": { "parser_sha": "8f14a980a85ba1ef347601bb12ab031216ee2f5af853d570f2bb2cc6a17e3d64", "input_sha": "5bad24fd97c3298670816461cf15ccba46f86b6a86b85c78e51f8616785a7881" },
+    "rtl_const_expr": { "parser_sha": "8f14a980a85ba1ef347601bb12ab031216ee2f5af853d570f2bb2cc6a17e3d64", "input_sha": "8c96ff9814c8af1c9397606256323fe5ebbdc5a8bce327a33477fdd724b46e17" },
     "rtl_frontend": { "parser_sha": "7214191149643b546d4fd1554154702ccebd94d8fe822e37ce976a89621ed963", "input_sha": "8621ade8cdc9cdf496762884cd8b682e5c7956334ff966e44f1b3a63a5920ec3" },
     "scratch": { "parser_sha": "38ae770d6c3ee3de32d466eaaf772d9446104b27cde491b77015a278ce56aa89", "input_sha": "c32de7c0eb76e048584e7e7fea8a9651f701d46be44001ef546263f0a1047119" },
     "ebnf": { "parser_sha": "5cb5fc473cfd35ded5e4939a01f9617d7bdbf0f0ed2d96fda3553ba4f39342fc", "input_sha": "76237961bfa954e8926e253ca946ec12a75d6174f3c6f5a97f0606196b4b404a" }
