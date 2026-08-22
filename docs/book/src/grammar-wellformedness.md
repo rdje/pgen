@@ -1684,9 +1684,16 @@ not merely parseable but **committed** on an ordinary two-line carrier —
 `--dump-rule-outcome-counts-json`, the same transactional coverage stack this certificate measures
 under.
 
-What is missing is a *witness the planner can reach*, not correctness. Every forced probe the reach
-planner emits for this target is one `bind`/checker-port shape that never places the name in a
-property-expression position, so the branch that leads to the rule is never attempted at all. ⛔ That
+What is missing is a *witness the planner can reach*, not correctness — and as of 2026-08-22 the
+reason is pinned. The reach plan is correct hop for hop, down to the branch index; the generator
+renders it correctly; and the parse is then re-routed by a store gate on a rule the plan never
+steered. The chosen carrier goes through `checker_instantiation`, whose first element
+`ps_checker_identifier` is a *mandatory sibling* rather than a hop on the path to the target. The
+generator draws its unscoped alternative, whose `has_fact(checker_name, …)` predicate rejects — the
+declare-then-use prelude plants a package and a property, never a checker — so the enclosing choice
+commits the textually identical `program_instantiation` instead and the whole property-expression
+subtree is never entered. Rendering that sibling as `pkg::name`, which needs only the package fact
+the prelude already plants, makes the same plan witness the rule. ⛔ That
 also rules out the tempting alternative close: a rule reached and committed by nine of thirteen
 hand-written carriers cannot be promoted to `proof` the way `VERILOG-2005-PROFILE.6.7` promoted eight
 genuinely profile-unreachable rules. The union goes to `UNKNOWN=0` when the planner emits the

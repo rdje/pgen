@@ -1,0 +1,6 @@
+# parser sha256 (binary == disk): cc874b60d59a1d16cec4f0a615388c0432b65e8c19b585ee8899cabddd5cb31c
+# committed counts (--dump-rule-outcome-counts-json, C3-B) for the reach chain
+carrier             checker_insta program_insta ordered_check property_actu property_inst known_unscope VERDICT
+declared_checker    2             2             2             2             2             2             WITNESSES
+planner_carrier     0             2             0             0             0             0             does-not-witness
+scoped_checker      2             0             2             2             2             2             WITNESSES

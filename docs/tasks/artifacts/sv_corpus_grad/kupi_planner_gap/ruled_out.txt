@@ -1,0 +1,39 @@
+# SV-CORPUS-GRAD.13c.2x.9 (c) — what was RULED OUT, by measurement rather than argument.
+
+## 1. The parse-time predicate that kills the plan (parseability_probe --trace-rules known_unscoped_checker_identifier, on planner_carrier.sv)
+      1 🚫 Rule 'known_unscoped_checker_identifier' rejected by post predicate 'has_fact [Identifier("checker_name"), String("\\foo_0")]'
+
+## 2. DEPTH is not the cause — TOOLBOX 4.5's NOT-depth check (ast_pipeline --report-certificate-coverage --grammar-profile sv_2017 --entry-rule systemverilog_file --count 40 --seed 0 --max-depth D)
+max-depth=24
+CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40 total=1385 proof=18 witness=1366 UNKNOWN=1 fully_certified=false (sample_parse_failures=0, proof_reverify_failures=0)
+  UNKNOWN rules (1 of 1 shown): ["known_unscoped_property_identifier"]
+
+max-depth=32
+CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40 total=1385 proof=18 witness=1366 UNKNOWN=1 fully_certified=false (sample_parse_failures=2, proof_reverify_failures=0)
+  UNKNOWN rules (1 of 1 shown): ["known_unscoped_property_identifier"]
+
+max-depth=40
+CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40 total=1385 proof=18 witness=1366 UNKNOWN=1 fully_certified=false (sample_parse_failures=16, proof_reverify_failures=0)
+  UNKNOWN rules (1 of 1 shown): ["known_unscoped_property_identifier"]
+
+## 3. TIME is not the cause — PGEN_WITNESS_TIMEOUT_FLOOR_MS at 2000 and 20000 (10x and 100x the 200 ms default)
+both: CERTIFICATE-COVERAGE: … total=1385 proof=18 witness=1366 UNKNOWN=1 — UNKNOWN rules (1 of 1 shown): ["known_unscoped_property_identifier"]
+
+## 4. The forced-override dump, isolated to THIS target's own 50 probe attempts
+   (PGEN_REACH_FORCED_OVERRIDE_DUMP=1 + PGEN_CERT_COVERAGE_DEBUG_PROBES=1; blocks attributed to the
+    probe line that follows them). 50 of 50 attempts carry the same two lines, and NOT ONE names
+    bind_instantiation or checker_instantiation — the depth reasons are a symptom of forcing a
+    19-hop chain, which is why arms 2 and 3 above were run before believing them:
+     50  [forced-override] rule='assertion_item_declaration' path='root' forced_branch=0/3 outcome=overridden rendered_branch=1
+     42  [forced-override] rule='assertion_item_declaration' path='root' forced_branch=0/3 outcome=failed reason="Stimuli generation depth exceeded max_depth=61 while expanding rule 'primary'"
+      8  [forced-override] rule='assertion_item_declaration' path='root' forced_branch=0/3 outcome=failed reason="Stimuli generation depth exceeded max_depth=65 while expanding rule 'primary_literal'"
+
+## 5. Which witness passes ran for this target, and what each produced
+     32 [carrier-div-probe] rule='known_unscoped_property_identifier'
+      8 [plannable-probe] rule='known_unscoped_property_identifier'
+      8 [store-free-probe] rule='known_unscoped_property_identifier'
+      2 [structured-witness-probe] rule='known_unscoped_property_identifier'
+   every one of them: parsed=true witnessed_target=false, and every sample is the same bind carrier.
+  (store-free reach pass: 4 residual UNKNOWN rules targeted; 0 witnessed by re-routing through a non-gated carrier)
+  (carrier-diversification reach pass: 4 residual UNKNOWN rules targeted; 2 witnessed by re-routing through an alternative parent carrier)
+  (structured-witness reach pass: 2 residual UNKNOWN rules targeted; 1 witnessed by composing declare-then-use prelude + head-leaf pin + target-own structure)

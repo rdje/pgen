@@ -1,5 +1,44 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-22 - PGEN-SV-CORPUS-GRAD-0275 — the reach plan steers a path; nobody steers the path's mandatory siblings
+
+**1. THE INSTRUMENT ORDER WAS THE METHOD, AND IT WAS NEARLY WRONG.** The first instrument I reached
+for after the plan checked out was `PGEN_REACH_FORCED_OVERRIDE_DUMP=1`, and isolated to this target's
+own 50 probe attempts it says, 50 times out of 50: `assertion_item_declaration forced_branch=0/3
+outcome=failed reason="Stimuli generation depth exceeded max_depth=61 while expanding rule 'primary'"`
+followed by `outcome=overridden rendered_branch=1`. That is a complete, specific, quantified story
+about a depth budget, and it is not the cause. Two A/Bs killed it — the NOT-depth check at
+`--max-depth` 24/32/40 leaves the residual set identical, and a 100x witness-time floor is
+byte-identical — and only then did the committed-count walk of the chain find the real break. ⇒ a
+dump that names a mechanism is not evidence FOR that mechanism; it is a hypothesis with good
+production values. TOOLBOX 4.5 already carries the NOT-depth check for exactly this reason.
+
+**2. THE DEFECT CLASS IS "MANDATORY SIBLING", AND IT IS GENERAL.** The reach planner constrains the
+hops on the path from entry to target. It does not constrain rules that are mandatory CHILDREN of
+those hops but not themselves on the path. `checker_instantiation := ps_checker_identifier
+name_of_instance lparen ... rparen semi` — the plan steers the argument list; `ps_checker_identifier`
+is drawn by the ordinary generator, which picks the unscoped alternative, whose parse-time
+`has_fact(checker_name, ...)` gate fails. Nothing in the pipeline connects "this sibling must PARSE
+the way the plan assumes" to "therefore its store gate must be satisfiable". Every family with
+name-matching store gates has this shape available to it; SV is where it happened to bite.
+
+**3. WHY THE SIGNATURE LIED.** TOOLBOX's cause map assigns a store-gate failure the signature
+`parsed=false`. That is sound for a gate on the TARGET rule — the forced sample simply fails to
+re-parse. A gate on an INTERMEDIATE hop behaves completely differently: the enclosing choice commits
+a sibling alternative, the file parses perfectly as something else, and the probe reports
+`parsed=true witnessed_target=false`, which is the reach-gap signature. Two sessions read that
+signature as a reach/grammar problem. The map now has a fourth class and the confirming move
+attached to it: walk the committed counts of the plan's own hop chain and the first `0` names the
+sibling.
+
+**4. THE CHEAPEST FIX IS PROBABLY NOT A NEW MECHANISM.** `scoped_checker.sv` witnesses the rule with
+NO checker declaration at all — `p::chk` satisfies `ps_checker_identifier` through
+`non_typedef_package_scope`, and the prelude already plants `package_name`. So the generator has the
+facts; it draws the wrong alternative. And `store_free`'s two-pass BFS already computes
+`reach_gate_kinds` per rule to deprioritize store-gated edges. Before adding anything, (c1) should
+price teaching that existing pass about mandatory siblings, because a second mechanism that overlaps
+a first is how a codebase acquires two things to keep in sync.
+
 ## 2026-08-22 - PGEN-SV-CORPUS-GRAD-0274 — the instrument was the defect: a stuck needle produced two root causes, and the counter that answers the question was already documented
 
 **1. THE FAILURE WAS NOT A WRONG ANSWER, IT WAS A QUESTION ASKED OF SOMETHING THAT COULD NOT ANSWER.**
