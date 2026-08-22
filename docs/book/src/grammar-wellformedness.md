@@ -1650,33 +1650,43 @@ grammar, parser, generator or generated artifact; the cert numbers are read-only
 |---|---|---:|
 | canonical `total` | `expected_total` | 1385 |
 | canonical `proof` | `expected_proof` | 7 |
-| canonical `witness` | `expected_canonical_witness` | 1366 |
-| canonical `UNKNOWN` | `expected_canonical_unknown` | 12 |
-| union `witness` | `expected_union_witness` | 1377 |
-| union `UNKNOWN` | `expected_union_unknown` | 1 |
-| union residual rule set | `expected_union_residual_rules` | `["known_unscoped_property_identifier"]` |
-| recognized `fully_certified` via the union | `fully_certified_via_union` — derived as `expected_union_unknown == 0` | false |
+| canonical `witness` | `expected_canonical_witness` | 1367 |
+| canonical `UNKNOWN` | `expected_canonical_unknown` | 11 |
+| union `witness` | `expected_union_witness` | 1378 |
+| union `UNKNOWN` | `expected_union_unknown` | 0 |
+| union residual rule set | `expected_union_residual_rules` | `[]` |
+| recognized `fully_certified` via the union | `fully_certified_via_union` — derived as `expected_union_unknown == 0` | true |
 
 <!-- SV-CERT-UNION-TUPLE:END -->
 
-⛔ **SystemVerilog is not recognized `fully_certified` on the union basis today.** The `done_rule`
-requires `union UNKNOWN = 0`, and it is `1`.
+✅ **SystemVerilog IS recognized `fully_certified` on the union basis, as of 2026-08-22**
+(`SV-CORPUS-GRAD.13c.2x.9`(c1)). The `done_rule` requires `union UNKNOWN = 0`, and it is `0`.
+
+⛔ **Read that for exactly what it says.** It is a statement about the *proof surface* — every rule
+in the grammar is now covered by a verified unreachability proof or a verified reachability witness —
+and it is **not** the three-leg `Done` bar. SystemVerilog's live status is unchanged at `Mostly
+Done`, because leg 3 (an officially-recognized external corpus, asserted as a pass) has no declared
+surface for any family yet. See [Quality and Closure Model](quality-and-closure-model.md#what-done-means--the-three-leg-bar).
 
 #### Reading the tuple
 
-Both accountings close arithmetically — canonical `7 + 1366 + 12 = 1385`, union `7 + 1377 + 1 = 1385`
-— and the two are related by exactly one number: the union credits **11** rules the canonical
-single-config accounting cannot, and the canonical `UNKNOWN` falls by the same **11**. Those eleven
-are the entry-relative library / include / parseable-fragment rules — `sv_multi_entry_root`,
-`systemverilog_parseable_file`, `parseable_source_item`, `include_statement`, `library_declaration`,
-`library_description`, `library_text`, `kw_file_path_spec_*`, `kw_incdir_*`, `kw_include_*`,
-`kw_library_*` — each of which *is* covered once its own entry rule is declared, which is precisely
-what the four union configs declare. The twelfth canonical `UNKNOWN`,
-`known_unscoped_property_identifier`, is covered by no declared configuration, and it is the whole
-residual.
+Both accountings close arithmetically — canonical `7 + 1367 + 11 = 1385`, union
+`7 + 1378 + 0 = 1385` — and the two are related by exactly one number: the union credits **11** rules
+the canonical single-config accounting cannot, and the canonical `UNKNOWN` falls by the same **11**.
+Those eleven are the entry-relative library / include / parseable-fragment rules —
+`sv_multi_entry_root`, `systemverilog_parseable_file`, `parseable_source_item`, `include_statement`,
+`library_declaration`, `library_description`, `library_text`, `kw_file_path_spec_*`, `kw_incdir_*`,
+`kw_include_*`, `kw_library_*` — each of which *is* covered once its own entry rule is declared,
+which is precisely what the four union configs declare. **The canonical `UNKNOWN` set is now exactly
+those eleven and nothing else**, byte-identical at seeds 0/7/42, so the union residual is empty.
 
-The residual is a **proof-surface gap, not a parser defect**, and as of 2026-08-22 that is measured
-rather than argued. The construct the rule names parses successfully through this very parser
+#### The twelfth rule, and how it was closed
+
+Until 2026-08-22 there was a twelfth canonical `UNKNOWN`, `known_unscoped_property_identifier`,
+covered by no declared configuration and forming the whole union residual. It is kept here because
+the way it closed is the useful part.
+
+It was a **proof-surface gap, not a parser defect**, and that was measured rather than argued. The construct the rule names parses successfully through this very parser
 (`SV-CORPUS-GRAD.13c.2x`(a) put it through), and `SV-CORPUS-GRAD.13c.2x.9` then showed the rule is
 not merely parseable but **committed** on an ordinary two-line carrier —
 `property myprop; 1; endproperty  property q; myprop; endproperty` reports
@@ -1694,10 +1704,19 @@ declare-then-use prelude plants a package and a property, never a checker — so
 commits the textually identical `program_instantiation` instead and the whole property-expression
 subtree is never entered. Rendering that sibling as `pkg::name`, which needs only the package fact
 the prelude already plants, makes the same plan witness the rule. ⛔ That
-also rules out the tempting alternative close: a rule reached and committed by nine of thirteen
+also ruled out the tempting alternative close: a rule reached and committed by nine of thirteen
 hand-written carriers cannot be promoted to `proof` the way `VERILOG-2005-PROFILE.6.7` promoted eight
-genuinely profile-unreachable rules. The union goes to `UNKNOWN=0` when the planner emits the
-carrier, and by no shorter route.
+genuinely profile-unreachable rules.
+
+✅ **The fix was engine-universal and cost the grammar nothing.** The reach planner now steers the
+*mandatory siblings* of a plan's path, not only the path itself: where a sibling's choice splits into
+store-gated and ungated alternatives, the plan forces the ungated one — which is the branch the
+existing escape analysis had already identified and then discarded as a bare boolean. `UNKNOWN` went
+`1 → 0` with **zero grammar bytes, zero codegen bytes and zero generated-parser bytes**; the
+SystemVerilog parser is byte-for-byte the one that was shipping before. Certificate tuples for
+`json`, `regex`, `vhdl`, `systemverilog_preprocessor`, `rtl_frontend` and `rtl_const_expr` are
+identical to the digit across the change. The mechanism is
+[The Gate Flow](gate-flow.md) · `PGEN_REACH_ESCAPE_DUMP`.
 
 #### When `fully_certified` was true, and what retired it
 

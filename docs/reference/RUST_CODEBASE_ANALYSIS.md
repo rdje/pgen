@@ -1,5 +1,50 @@
 # docs/reference/RUST_CODEBASE_ANALYSIS.md
 
+## Recent Architecture Change Note (2026-08-22) — the reach planner steers a PATH, and until now nobody steered that path's mandatory SIBLINGS
+
+**What moved.** `rust/src/ast_pipeline/stimuli_generator.rs` gains a third store-gate scope and a
+sibling-escape analysis, both parser-agnostic. A reach plan is a list of `(rule, node_path)` hops
+turned into `ReachDirective`s; it constrains only the rules ON the path from the entry to the target.
+A rule that is a MANDATORY CHILD of one of those hops but not itself on the path — the classic shape
+being the head identifier of `R := head_id name lparen <the plan descends here> rparen semi` — was
+left entirely to the ordinary generator.
+
+**Why that is a correctness problem and not a quality one.** Those siblings can carry parse-time
+store gates. When the generator draws a gated alternative the PARSER rejects it, the enclosing choice
+commits a different alternative, and the reach plan is silently lost — while the sample still parses,
+because some sibling alternative accepted the same bytes. Measured on the shipped SystemVerilog
+grammar: `checker_instantiation`'s `ps_checker_identifier` rendered
+`known_unscoped_checker_identifier`, whose `has_fact(checker_name, …)` rejected (the declare-then-use
+prelude plants `package_name` and `property_name`, never `checker_name`), so `bind_instantiation`
+committed the textually identical `program_instantiation` and the target's committed count was `0`.
+
+**The new shape.**
+
+| piece | what it does |
+|---|---|
+| `StoreGateScope::ParseRejects` | positive gates ONLY — `gen_name_gate` ∪ `gen_count_kinds`. The scope a *parse* prediction needs. |
+| `hop_escape_sites` / `escape_walk` | per hop, walk the hop rule's mandatory subtree; FOLLOW the on-path descent, and for every off-path `Or` with a mixed gated/ungated split record the first ungated alternative's path. |
+| `install_reach_plan_from_hops` | prepends those sites' directives, so an on-path directive always wins the map and `chain.last()` still defines the plan's target. |
+
+⛔ **The scope choice is the whole design, and the first cut got it wrong in a way that produced
+zero output rather than wrong output.** `StoreGateScope::AnyQuery` — correct for the reach-BFS edge
+*deprioritization*, where over-counting only costs a preference — counts `lacks_fact*` as
+unsatisfiable. An empty store SATISFIES a `lacks_fact*`. So `scoped_checker_identifier`, whose only
+predicate is a `lacks_fact_attribute_equals`, read as gated, the two-alternative `Or` read as "every
+alternative gated", and the analysis found no escape for the very target it was built for.
+`GenerationPruned` fails the other way: it deliberately excludes name gates because GENERATION never
+prunes on them — but the PARSER does reject on them, and the parse is what has to be predicted.
+
+**Blast radius, measured rather than argued.** This is the stimuli side: no grammar byte, no codegen
+byte, no `generated/*.rs` byte moves. Certificate tuples before → after, one binary each:
+`json 9/0/9/0`, `regex 269/9/260/0`, `vhdl 225/0/225/0`, `systemverilog_preprocessor 74/0/74/0`,
+`rtl_frontend 169/1/168/0`, `rtl_const_expr 48/0/48/0` — **all identical**; SystemVerilog canonical
+`1385/18/1366/1 fully_certified=false` → **`1385/18/1367/0 fully_certified=true`**, deterministic at
+seeds 0/7/42. Exactly one number moved, in one family, in the intended direction.
+
+**Observability.** `PGEN_REACH_ESCAPE_DUMP=1` prints the installed escape sites (TOOLBOX 4.4a), the
+sibling of `PGEN_REACH_PATH_DUMP`'s hop chain. Presence-gated print only.
+
 ## Recent Architecture Change Note (2026-08-21) — the recursion taint SPLITS INTO TWO CHANNELS, because one field was carrying a frame index and a whole-stack fact (`ENGINE-UNIVERSAL-SERVICES.43`)
 
 **What moved.** Every generated parser (both execution graphs) and the parse-harness interpreter
@@ -636,21 +681,6 @@ Implications for the Rust codebase shape:
 - **Single `'input` lifetime, not two.** Reborrowing collapses the arena's lifetime onto the input's, so `ParseNode`/`ParseContent` keep the one `'input` parameter they already had — no viral `<'input, 'arena>` split. The change is mechanical, compiler-checked ref-threading across ~23 tracked source files (`parser_registry`, `embedding_api`, `ebnf_frontend`, `ast_shape_contract`'s `run_manifest` 3rd arg, the interpreter, fixtures, and the perf/differential bins), plus the codegen quote! templates in `ast_based_generator.rs` / `ast_return_transform.rs` (including the emitted `#[cfg(test)]` harness).
 - **Public API unchanged; wire format unchanged.** Every public entry point still returns *owned* output (a `serde_json::Value` or its string), and — the decisive design property — a borrowed child serialises **identically** to an owned one under `#[derive(Serialize)]`, so the authoritative typed-AST bytes the oracles compare are byte-identical for free. This is why the *reference*-arena shape (candidate B, `typed-arena`) was chosen over an *index*-arena shape (candidate C, `NodeId(u32)`), which would have forced a hand-rewritten serialiser — the very oracle. See [[project_rgx_0078_regex_slowness_followup]].
 - **New dependency:** `typed-arena = "2.0.2"` (a Drop-running arena; a naïve non-Drop bump allocator would leak the leaves' heap-owned strings/JSON every parse).
-
-## Recent Architecture Change Note (2026-04-26)
-
-**Typed structured carrier in `ParseContent`.** [rust/src/ast_pipeline/mod.rs](../../rust/src/ast_pipeline/mod.rs) gains a `Json(serde_json::Value)` variant on the `ParseContent<'input>` enum plus a `ParseContent::to_json_value()` helper. Return-annotation transforms in [rust/src/ast_pipeline/ast_return_transform.rs](../../rust/src/ast_pipeline/ast_return_transform.rs) now build typed `serde_json::Value::Object` / `Value::Array` and wrap as `ParseContent::Json(value)`; property and array access operate on the typed value in place via `to_json_value()` and `value.get(...)`. The earlier carrier was `ParseContent::TransformedTerminal(stringified-json)`, which forced object literals to `serde_json::to_string` and forced property access to `from_str` then re-stringify. That stringify/parse/serialise roundtrip is now removed.
-
-Implications for the Rust codebase shape:
-
-- `ParseContent` is now 6 variants instead of 5. All exhaustive matches across the codebase have been extended with `Json(_)` arms; the codegen template that emits `semantic_content_scalar` in [rust/src/ast_pipeline/ast_based_generator.rs](../../rust/src/ast_pipeline/ast_based_generator.rs) handles the new variant.
-- Semantic annotations are unchanged — they always used the typed `UnifiedSemanticValue` / `SemanticRuntimeValue` enums.
-- The opt-in `--inline-annotations` skeleton (M1, commit `4450b93`) and its `parse_full_<entry>_typed` method are unchanged at the seam; only the internal runtime carrier shape changed.
-- Wire format under `serde_json::to_value(&node)` for a `ParseContent::Json(value)` leaf is `{"Json": value}` under the default derive (vs. `{"TransformedTerminal": "<json-string>"}` previously). The M1 typed entry is opt-in and not currently used by any tracked parser, so no current downstream consumer is affected; future M3 (regex typed API) will surface the structured value through `to_json_value()` rather than the raw tagged enum.
-- Open follow-ups exposed during this work, tracked but not closed by the commit:
-  1. The regex grammar declares two object-literal return annotations that the codegen currently drops silently for `generated/regex_parser.rs`.
-  2. EBNF grammars rarely exercise return-annotation constructs today; richer grammar use of return annotations is anticipated and should now compose without re-introducing a stringify roundtrip.
-  3. Downstream contract stabilization (umbrella) — each generated parser needs versioned, documented, regression-locked compatibility contracts for library APIs, CLI behavior, JSON/schema outputs, file formats, error codes, manifests/capability discovery, and any other machine-consumed surface. Separate maintained lane.
 
 ## Purpose
 Live architecture and state assessment for the Rust codebase.

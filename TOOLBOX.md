@@ -977,6 +977,19 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   those lines is how a runaway forcing loop is caught: 119 at one site in a single probe was the
   `.10` signature, versus 5 after the fix.
 
+### 4.4a `PGEN_REACH_ESCAPE_DUMP`
+- **WHAT:** prints the **sibling-escape directives** a reach plan installs — `  [reach-escape] target='X' sites=[("rule", "root/oN"), …]` — one line per installed plan. `PGEN_REACH_PATH_DUMP` (4.4) shows the hops ON the path to the target; this shows the branches forced on rules that are MANDATORY SIBLINGS of those hops, which the plan would otherwise leave to the ordinary generator.
+- **WHEN:** any `parsed=true witnessed_target=false` whose hop chain checks out — the **sibling-store-gate** class in Protocol A's cause map. Also the A/B for this mechanism: `sites=[]` for a target means no escape was installed, which is a different failure from an escape that was installed and then overridden.
+- **HOW:**
+  ```bash
+  PGEN_REACH_ESCAPE_DUMP=1 ./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf \
+    --report-certificate-coverage --grammar-profile sv_2017 --entry-rule systemverilog_file \
+    --count 40 --seed 0 2>&1 | grep "reach-escape.*target='<your rule>'" | sort -u
+  ```
+- **OUTPUT:** e.g. `[reach-escape] target='known_unscoped_property_identifier' sites=[("ps_checker_identifier", "root/o0")]` — the plan forces `ps_checker_identifier` to render its scoped alternative, because its unscoped one is gated on a `checker_name` fact nothing on the path emits.
+- ⛔ **WHY A DUMP AND NOT A COUNTER** (`SV-CORPUS-GRAD.13c.2x.9`(c1)): the first cut of this analysis produced **zero** sites for the very target it was built for, and from outside that is indistinguishable from an escape that fired and was overridden. The cause was a scope error — `StoreGateScope::AnyQuery` counts a `lacks_fact*` gate as unsatisfiable, but an EMPTY STORE SATISFIES IT, so `scoped_checker_identifier` read as gated and the `Or` looked like "every alternative gated, no escape". `StoreGateScope::ParseRejects` (positive gates only) is the scope a *parse* prediction needs. **Off by default ⇒ generation is byte-identical whether it is set or not.**
+- **CROSS-CHECK:** pair with `--dump-rule-outcome-counts-json` (3.5) on the probe's own sample and walk the committed counts of the hop chain — the first `0` names the sibling the escape has to steer.
+
 ### 4.5 Witness-pass knobs (A/B isolation; default-off / default-floor)
 - `PGEN_WITNESS_NO_PURDOM=1` — disable Purdom shortest-derivation ordering (A/B: is the ordering the cause?).
 - `PGEN_WITNESS_TIMEOUT_FLOOR_MS` — per-target witness budget floor (default 200 ms); raise to give a deep target more budget.

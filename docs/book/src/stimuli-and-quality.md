@@ -1233,9 +1233,10 @@ The result is verified per grammar with certificate-coverage, where `sample_pars
 predicates. At the current baseline (deterministic at seeds 0/7/42) the six fully-certified grammars
 report `UNKNOWN=0`, `fully_certified=true`, `sample_parse_failures=0` (json, regex, vhdl,
 systemverilog_preprocessor, rtl_frontend, rtl_const_expr), and SystemVerilog — the predicate-heaviest
-grammar — reports `sample_parse_failures=0` with a canonical (`sv_2017`) residual of `UNKNOWN=12` (down
+grammar — reports `sample_parse_failures=0` with a canonical (`sv_2017`) residual of `UNKNOWN=11` (down
 from 20 since `VERILOG-2005-PROFILE.6.7` promoted the 8 `sv_2017`-profile-unreachable SystemVerilog-only
-rules to per-profile `proof`) that the sound multi-config recognized union collapses to `UNKNOWN=1`.
+rules to per-profile `proof`) that the sound multi-config recognized union collapses to **`UNKNOWN=0`**
+— so SystemVerilog too is recognized `fully_certified` on the union basis as of 2026-08-22.
 
 ⚠️ **The residual's NAME was stale here and was corrected on 2026-08-22**
 (`SV-CORPUS-GRAD.13c.2x.9`): the count `1` was right, but this sentence named
@@ -1268,12 +1269,19 @@ counts the rule. Give the instance an argument only the property family can pars
 `pr(not x)`, and the property branch reaches one byte further, wins outright, and the rule lands in
 the winning tree as well.
 
-⇒ **the residual is a planner-carrier gap and nothing else.** Every forced probe the reach planner
-emits for this target is a single `bind`/checker-port shape that never places the name in a property
-expression at all, so the branch is never even attempted. The close is a **witness**, not a proof,
-and it needs no change to the grammar, the parser or the engine — only a declare-then-use carrier the
-planner does not currently generate. That is `SV-CORPUS-GRAD.13c.2x.9`(c). No grammar emits a sample
-its own parser semantically rejects.
+⇒ **the residual was a planner-carrier gap and nothing else**, and on 2026-08-22 it was closed as
+one. Every forced probe the reach planner emitted for this target routed through a `bind`/checker
+port connection whose *first element* — `ps_checker_identifier`, a mandatory sibling of the plan's
+path rather than a hop on it — was rendered in its `has_fact(checker_name, …)`-gated form. The parser
+rejected that, the enclosing choice committed a textually identical `program_instantiation`, and the
+property-expression subtree the plan was aiming at was never entered.
+
+✅ The fix is engine-universal: **the reach planner now steers the mandatory siblings of a plan's
+path, not only the path**, forcing a sibling's ungated alternative where its choice splits into gated
+and ungated. SystemVerilog's canonical `UNKNOWN` went `12 → 11` and its union residual `1 → 0`, with
+**zero grammar bytes, zero codegen bytes and zero generated-parser bytes** — the shipped parser is
+unchanged — and the certificate tuples of every other family are identical to the digit. No grammar
+emits a sample its own parser semantically rejects.
 
 ## Directed (Learned) Generation — the FdLoop Loop
 

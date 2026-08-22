@@ -1,5 +1,50 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-22 - PGEN-SV-CORPUS-GRAD-0276 — the analysis knew which branch was the escape, and returned a bool
+
+**1. THE BUG WAS A LOST RETURN VALUE, NOT A MISSING ANALYSIS.** `mandatory_node_gated` decides
+whether a reach edge is store-gated, and it is already Or-aware: *gated iff EVERY alternative is
+gated — any non-gated alternative is a clean escape.* To answer `false` it must have found a specific
+ungated alternative. That alternative is precisely the branch the generator has to render for the
+sample to parse the way the plan assumes, and the function threw it away to return a boolean. Nothing
+downstream could recover it, so the plan steered the path and left every mandatory sibling of that
+path to the ordinary generator's draw. The whole fix is to keep the thing that was already computed.
+
+**2. THE SCOPE ERROR IS THE PART WORTH REMEMBERING, BECAUSE IT FAILED SILENTLY.** The first
+implementation used `StoreGateScope::AnyQuery` — the scope the reach BFS itself uses — and produced
+`sites=[]` for the exact target it was written for. `AnyQuery` includes `lacks_fact*`, and an empty
+store SATISFIES a `lacks_fact*`; `scoped_checker_identifier`'s only predicate is a
+`lacks_fact_attribute_equals`, so it read as gated, the two-alternative choice read as "every
+alternative gated", and the analysis correctly concluded there was no escape — to a question it was
+asking wrong. `GenerationPruned` is wrong the other way: it excludes name gates deliberately, because
+GENERATION never prunes on them, while the PARSER rejects on them and the parse is exactly what this
+prediction is about. Hence a third scope. ⇒ **an empty result set is the most dangerous output a new
+analysis can have**, because it is indistinguishable from "nothing to do". That is why the
+observability dump shipped in the same slice as the mechanism rather than after it.
+
+**3. THE GATE WENT RED BECAUSE THE TREE GOT BETTER, FOR THE SECOND TIME IN THIS CAMPAIGN.**
+`sv_cert_recognized_union_gate` reported 15 unmet criteria and refused to auto-re-stamp, in exactly
+the words the doctrine promises: the auto-re-stamp fires on stale+GREEN, and stale+RED is reserved
+for a person. That refusal is the design working. The adjudication that licensed the rebaseline was a
+two-sided SET check, not a count comparison: the canonical UNKNOWN set is now exactly the eleven
+entry-relative rules, byte-identical at three seeds, and the union residual is empty — so BEFORE
+minus AFTER is exactly the one rule and AFTER minus BEFORE is empty. A count falling by one is also
+consistent with one rule leaving and another arriving, and only the set check excludes that.
+
+**4. THE INERTNESS ARGUMENT WAS WRITTEN BEFORE THE CODE AND THEN MEASURED.** The leaf recorded, as an
+acceptance criterion, that a grammar with no positive fact gates must be byte-identical. It is:
+`json`, `vhdl`, `systemverilog_preprocessor`, `rtl_frontend` and `rtl_const_expr` produce ZERO escape
+sites and identical certificate tuples. `regex` is the interesting row — it produces sites on 2 of
+166 plans and its tuple is still identical to the digit, which is the honest form of "inert here":
+the mechanism fires and changes nothing, rather than never firing.
+
+**5. WHAT IT UNBLOCKS, AND WHAT IT DOES NOT.** SV was the last family carrying `UNKNOWN > 0`, so it
+is no longer the blocker on the director's `SVPP-EXPANSION` activation gate. But that gate reads
+"every existing parser cert-coverage WIRED + clean + UNKNOWN=0", and WIRED is a separate conjunct:
+`ebnf`, `return_annotation` and `semantic_annotation` have no `parse_and_cover` registered under
+their grammar names, so their coverage cannot be measured at all. Reporting the residual as closed
+without that sentence would be the flattering half of a two-part fact.
+
 ## 2026-08-22 - PGEN-SV-CORPUS-GRAD-0275 — the reach plan steers a path; nobody steers the path's mandatory siblings
 
 **1. THE INSTRUMENT ORDER WAS THE METHOD, AND IT WAS NEARLY WRONG.** The first instrument I reached

@@ -1,5 +1,77 @@
 # CHANGES.md
 
+## 2026-08-22 - PGEN-SV-CORPUS-GRAD-0276 (leaf SV-CORPUS-GRAD.13c.2x.9(c1) CLOSED — SystemVerilog's LAST certificate-union `UNKNOWN` is CLOSED, by a WITNESS, with ZERO grammar bytes and ZERO generated-parser bytes; ENGINE-UNIVERSAL stimuli-generator change)
+
+- ✅✅✅ **THE RESULT.** SV canonical certificate coverage
+  **`1385/18/1366/1 fully_certified=false` → `1385/18/1367/0 fully_certified=true`**, and the tracked
+  recognized-union lane **`1385/7/1377/1` → `1385/7/1378/0 fully_certified=true`**, deterministic at
+  **seeds 0/7/42**. ⛔ `generated/systemverilog_parser.rs` is still `cc874b60…` — **the SV accept set
+  did not move**, which is exactly what `(d)` forbade buying this number with.
+- ⛔⛔ **THE FIX IS ONE LINE OF INSIGHT: the escape analysis already knew the answer and returned a
+  `bool`.** `mandatory_node_gated` is Or-aware — *"gated iff EVERY alternative is gated — any
+  non-gated alternative is a clean escape"* — so at the moment it admits a reach edge it knows WHICH
+  alternative made it admissible, and discards that. The plan then steers only rules ON the path, the
+  ordinary generator draws the gated alternative of a MANDATORY SIBLING, the parser rejects it, and
+  the enclosing choice commits something else. Three additions, no new annotation surface, no new
+  plan representation: `StoreGateScope::ParseRejects`, `hop_escape_sites`/`escape_walk`, and a
+  prepend in `install_reach_plan_from_hops` (prepending IS the precedence rule — an on-path directive
+  always overrides an escape at the same key, and `chain.last()` still defines the target).
+- ⛔⛔⛔ **THE SCOPE CHOICE IS THE WHOLE DESIGN, AND THE FIRST CUT GOT IT WRONG IN THE ONE WAY THAT
+  PRODUCES NO OUTPUT RATHER THAN WRONG OUTPUT.** Built on `StoreGateScope::AnyQuery` it emitted
+  `sites=[]` for the very target it was written for: `AnyQuery` counts `lacks_fact*`, and **an empty
+  store SATISFIES a `lacks_fact*`**, so `scoped_checker_identifier` read as gated and the
+  two-alternative `Or` read as *"every alternative gated"*. `GenerationPruned` fails the other way —
+  it excludes name gates because GENERATION never prunes on them, while the PARSER rejects on them.
+  ⭐ A wrong scope here is SILENT, which is why `PGEN_REACH_ESCAPE_DUMP` (TOOLBOX 4.4a) shipped in
+  the same slice rather than after it.
+- ⛔⛔ **THE GATE WENT RED AND IT WAS RIGHT TO — the second occurrence of `.13c.2x.3`'s lesson: the
+  gate is red because the tree got BETTER.** `unmet_criteria_count: 15` (five quantities × three
+  seeds), and the gate **REFUSED to auto-re-stamp** because the baseline was stale AND red: *"do NOT
+  re-stamp to make it green, because a stamp asserts the numbers were RE-DERIVED and matched, which
+  is precisely what just did not happen."* ✅ **ADJUDICATED with a two-sided set check**, because a
+  count cannot tell an improvement from a swap: the canonical `UNKNOWN` set is now **exactly the
+  eleven entry-relative rules**, byte-identical at seeds 0/7/42, and the union residual is `[]` ⇒
+  BEFORE − AFTER = `{known_unscoped_property_identifier}` exactly and AFTER − BEFORE = ∅. Both
+  accountings still close on unchanged `total`/`proof`: `7+1367+11 = 1385`, `7+1378+0 = 1385`.
+- ⭐ **NO-REGRESSION, TWO-SIDED, ONE BINARY PER ARM** (`git stash` the single source file, rebuild,
+  re-run, restore — the restored copy verified byte-identical): `json 9/0/9/0`, `regex 269/9/260/0`,
+  `vhdl 225/0/225/0`, `systemverilog_preprocessor 74/0/74/0`, `rtl_frontend 169/1/168/0`,
+  `rtl_const_expr 48/0/48/0` **all identical**; only SystemVerilog moved. Cost: the canonical cert
+  run is **22.3 s** against a 25 s baseline.
+- ⛔⛔ **WHAT THIS DOES NOT MEAN.** The director's `SVPP-EXPANSION` activation gate is *"every
+  existing parser cert-coverage WIRED + clean + `UNKNOWN`=0"*. SV was the last family with
+  `UNKNOWN > 0` ⇒ **SV is no longer the blocker**. But **WIRED** is a separate conjunct and is NOT
+  satisfied: `ebnf`, `return_annotation` and `semantic_annotation` have no `parse_and_cover`
+  registered under their grammar names, so their coverage cannot be measured at all. The gate is
+  **not open**; closing that half is its own leaf.
+- ⚠️ **LIVE-DOC ROUTING, forced by this slice's own note.** Adding the architecture note above took
+  `docs/reference/RUST_CODEBASE_ANALYSIS.md` to **21 distinct dates**, one over the `status` ceiling of
+  20, and `LIVE-DOC-CURRENCY` blocked the commit: *"it has stopped being a status view … route the dated
+  history to its canonical home … ⛔ Do NOT raise the ceiling."* That file's OWN maintenance rule says
+  the same thing — *"Keep historical detail in `CHANGES.md` / `DEVELOPMENT_NOTES.md`"*. ⛔ The oldest
+  note was **not deleted**: its content is not in `CHANGES.md` and is superseded, not duplicated, by the
+  2026-07-16 `ParseContent::Shaped(PgenValue)` note, so it is RELOCATED here verbatim rather than lost.
+
+  ### Relocated from RUST_CODEBASE_ANALYSIS.md — Recent Architecture Change Note (2026-04-26)
+
+
+  **Typed structured carrier in `ParseContent`.** [rust/src/ast_pipeline/mod.rs](../../rust/src/ast_pipeline/mod.rs) gains a `Json(serde_json::Value)` variant on the `ParseContent<'input>` enum plus a `ParseContent::to_json_value()` helper. Return-annotation transforms in [rust/src/ast_pipeline/ast_return_transform.rs](../../rust/src/ast_pipeline/ast_return_transform.rs) now build typed `serde_json::Value::Object` / `Value::Array` and wrap as `ParseContent::Json(value)`; property and array access operate on the typed value in place via `to_json_value()` and `value.get(...)`. The earlier carrier was `ParseContent::TransformedTerminal(stringified-json)`, which forced object literals to `serde_json::to_string` and forced property access to `from_str` then re-stringify. That stringify/parse/serialise roundtrip is now removed.
+
+  Implications for the Rust codebase shape:
+
+  - `ParseContent` is now 6 variants instead of 5. All exhaustive matches across the codebase have been extended with `Json(_)` arms; the codegen template that emits `semantic_content_scalar` in [rust/src/ast_pipeline/ast_based_generator.rs](../../rust/src/ast_pipeline/ast_based_generator.rs) handles the new variant.
+  - Semantic annotations are unchanged — they always used the typed `UnifiedSemanticValue` / `SemanticRuntimeValue` enums.
+  - The opt-in `--inline-annotations` skeleton (M1, commit `4450b93`) and its `parse_full_<entry>_typed` method are unchanged at the seam; only the internal runtime carrier shape changed.
+  - Wire format under `serde_json::to_value(&node)` for a `ParseContent::Json(value)` leaf is `{"Json": value}` under the default derive (vs. `{"TransformedTerminal": "<json-string>"}` previously). The M1 typed entry is opt-in and not currently used by any tracked parser, so no current downstream consumer is affected; future M3 (regex typed API) will surface the structured value through `to_json_value()` rather than the raw tagged enum.
+  - Open follow-ups exposed during this work, tracked but not closed by the commit:
+    1. The regex grammar declares two object-literal return annotations that the codegen currently drops silently for `generated/regex_parser.rs`.
+    2. EBNF grammars rarely exercise return-annotation constructs today; richer grammar use of return annotations is anticipated and should now compose without re-introducing a stringify roundtrip.
+    3. Downstream contract stabilization (umbrella) — each generated parser needs versioned, documented, regression-locked compatibility contracts for library APIs, CLI behavior, JSON/schema outputs, file formats, error codes, manifests/capability discovery, and any other machine-consumed surface. Separate maintained lane.
+
+- **Verified**: `clippy_on_rust_change` PASS; `sv_cert_recognized_union_gate` GREEN on the re-run
+  against the adjudicated baseline (identity re-stamped by the gate itself);
+  `bash scripts/check_doctrines.sh` → **ALL 25 enforced doctrines PASS**; `mdbook_docs_gate` PASS.
+
 ## 2026-08-22 - PGEN-SV-CORPUS-GRAD-0275 (leaf SV-CORPUS-GRAD.13c.2x.9 (c) DIAGNOSED — the reach plan is CORRECT and a store gate on a rule it never steered throws it away; doc+artifact tier, ZERO grammar bytes, ZERO Rust bytes, ZERO generated bytes)
 
 - ✅ **`-0274`'s ONE UNVERIFIED INFERENCE IS NOW VERIFIED, FROM SOURCE.** `main.rs:3520` computes

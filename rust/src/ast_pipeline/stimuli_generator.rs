@@ -831,6 +831,24 @@ enum StoreGateScope {
     /// `.7.4.6.12` reason as well: it is SATISFIED by an empty store, so counting it would declare
     /// a perfectly witnessable target unwitnessable.
     GenerationPruned,
+
+    /// `SV-CORPUS-GRAD.13c.2x.9`(c1): the gates THE PARSER REJECTS ON — every POSITIVE fact
+    /// requirement, and only those: `gen_name_gate` (`has_fact` / `fact_attribute_equals`) plus
+    /// `gen_count_kinds` (`fact_count_at_least`). This is the scope for choosing WHICH alternative
+    /// of a sibling `Or` the generator must render so the sample PARSES the way the reach plan
+    /// assumes, and it is neither of the other two:
+    ///
+    /// * `AnyQuery` over-counts, and that over-count is fatal here rather than free. It includes
+    ///   `lacks_fact*`, which an empty store SATISFIES — so it declared `scoped_checker_identifier`
+    ///   gated (its only predicate is a `lacks_fact_attribute_equals` on `type_name`), read
+    ///   `ps_checker_identifier` as "every alternative gated", and found no escape to steer toward.
+    ///   MEASURED: that is why the first cut of this analysis produced ZERO sites for the very
+    ///   target it was built for, while `bind top zz::chk c1 (myprop);` — the scoped form, with no
+    ///   package and no checker declared — parses and commits the target twice.
+    /// * `GenerationPruned` under-counts: it deliberately excludes name gates because GENERATION
+    ///   never prunes on them (`.7.4.6.17`). But the PARSER does reject on them, and the parse is
+    ///   exactly what this scope has to predict.
+    ParseRejects,
 }
 
 /// SV-EXH-PROOF.7.2.1: where a rule reference occurs inside another rule's body,
@@ -3653,6 +3671,51 @@ impl<'a> StimuliGenerator<'a> {
     ) {
         let mut chain: Vec<ReachDirective> = Vec::new();
         let mut quantifier_sites: Vec<(String, String)> = Vec::new();
+        // `SV-CORPUS-GRAD.13c.2x.9`(c1): steer the MANDATORY SIBLINGS of the path, not only the path.
+        // A hop rule's body renders sibling subtrees the plan says nothing about; when one of those
+        // contains an `Or` split into gated and ungated alternatives, the ordinary generator can draw
+        // the gated one, its parse-time `has_fact` gate rejects, and the enclosing choice commits some
+        // other branch — taking the whole plan with it while the sample still parses. The escape
+        // analysis that admitted the edge already knows which alternative is clean; emit it.
+        //
+        // PREPENDED, and that is the precedence rule: `from_directives` builds a map in which a later
+        // insert wins, so an ON-PATH directive always overrides an escape at the same key, and
+        // `chain.last()` — which defines the plan's target group — stays the final hop.
+        //
+        // `available` mirrors the BFS's `emitted_available`: the fact-kinds emitted by STRICT
+        // ancestors of this hop, accumulated in path order. With no POSITIVE fact gates in the
+        // grammar (`gen_name_gate` and `gen_count_kinds` both empty) `hop_escape_sites` returns
+        // immediately, no site is ever produced, and generation is byte-identical — MEASURED across
+        // json / vhdl / systemverilog_preprocessor / rtl_frontend / rtl_const_expr / regex, whose
+        // certificate tuples are unchanged to the digit.
+        let mut available: HashSet<String> = HashSet::new();
+        let mut escape_sites: Vec<(String, String)> = Vec::new();
+        for (hop_rule, hop_site_path) in hops {
+            let mut sites: Vec<(String, String)> = Vec::new();
+            self.hop_escape_sites(hop_rule, hop_site_path, &available, &mut sites);
+            escape_sites.extend(sites);
+            if let Some(specs) = self.gen_emit_facts.get(hop_rule.as_str()) {
+                for spec in specs {
+                    available.insert(spec.kind.clone());
+                }
+            }
+        }
+        // `SV-CORPUS-GRAD.13c.2x.9`(c1) (OBSERVABILITY-ONLY): `PGEN_REACH_ESCAPE_DUMP=1` prints the
+        // sibling-escape directives this plan installs, the sibling of `PGEN_REACH_PATH_DUMP`'s hop
+        // chain. Without it an escape that is never produced and an escape that is produced and then
+        // overridden look identical from outside — the exact ambiguity `ENGINE-UNIVERSAL-SERVICES.11`
+        // built the forced-override dump to remove for the on-path case. Presence-gated PRINT only;
+        // the crate shadows `eprintln!` -> trace, so force real stderr with `::std::eprintln!`.
+        if std::env::var_os("PGEN_REACH_ESCAPE_DUMP").is_some() {
+            ::std::eprintln!(
+                "  [reach-escape] target='{}' sites={:?}",
+                target_rule,
+                escape_sites
+            );
+        }
+        for (site_rule, site_path) in &escape_sites {
+            chain.extend(Self::directives_along_path(site_rule, site_path));
+        }
         for (hop_rule, hop_site_path) in hops {
             chain.extend(Self::directives_along_path(hop_rule, hop_site_path));
             quantifier_sites.extend(Self::quantifier_sites_along_path(hop_rule, hop_site_path));
@@ -9813,6 +9876,222 @@ impl<'a> StimuliGenerator<'a> {
         )
     }
 
+    /// `SV-CORPUS-GRAD.13c.2x.9`(c1): the ESCAPE SITES a single reach hop needs — every `Or` in the
+    /// hop rule's mandatory subtree that is NOT on the hop's own descent path and whose alternatives
+    /// split into gated and ungated, paired with the path of the ungated one.
+    ///
+    /// ⛔⛔ WHY THIS EXISTS: `mandatory_node_gated` is Or-aware — *"gated iff EVERY alternative is
+    /// gated — any non-gated alternative is a clean escape"* — and it returns a **bool**. At the
+    /// moment it admits an edge it knows exactly WHICH alternative made the edge admissible, and
+    /// that knowledge is discarded. A reach plan steers only the rules ON the path to its target, so
+    /// a MANDATORY SIBLING of one of those hops is drawn by the ordinary generator, which may pick
+    /// the gated alternative — the one the escape analysis just proved unusable. The sample still
+    /// PARSES (some other alternative of the enclosing choice commits), so the probe reports
+    /// `parsed=true witnessed_target=false` and it reads like a reach gap rather than a store gate.
+    ///
+    /// MEASURED (`SV-CORPUS-GRAD.13c.2x.9`(c), `docs/tasks/artifacts/sv_corpus_grad/kupi_planner_gap/`):
+    /// SV's last certificate-union residual routed through `checker_instantiation`, whose first
+    /// element `ps_checker_identifier` is not on the path to the target. The generator drew
+    /// `known_unscoped_checker_identifier`, its `has_fact(checker_name, …)` rejected — the
+    /// declare-then-use prelude plants `package_name` and `property_name`, never `checker_name` — and
+    /// `bind_instantiation` committed the textually identical `program_instantiation` instead. The
+    /// ungated sibling `scoped_checker_identifier` needs no fact at all, and rendering it takes the
+    /// target's committed count from `0` to `2`.
+    ///
+    /// ⭐ PATH-AWARE BY CONSTRUCTION: the on-path descent is FOLLOWED, never re-decided — the plan
+    /// already forces those branches, and an escape directive there would fight it. Only siblings of
+    /// that descent are steered. Deterministic: the FIRST (lowest-index) ungated alternative wins and
+    /// the walk descends into it alone, since the branches not taken render nothing.
+    /// GENERAL/parser-agnostic; short-circuits when both `gen_name_gate` and `gen_count_kinds` are
+    /// empty, so every grammar without POSITIVE fact gates produces no site and generates
+    /// byte-identically.
+    fn hop_escape_sites(
+        &self,
+        hop_rule: &str,
+        hop_site_path: &str,
+        available: &HashSet<String>,
+        out: &mut Vec<(String, String)>,
+    ) {
+        if self.gen_name_gate.is_empty() && self.gen_count_kinds.is_empty() {
+            return;
+        }
+        let Some(node) = self.grammar_tree.get(hop_rule) else {
+            return;
+        };
+        let mut visited: HashSet<String> = HashSet::new();
+        visited.insert(hop_rule.to_string());
+        self.escape_walk(
+            node,
+            hop_rule,
+            "root",
+            Some(hop_site_path),
+            available,
+            &mut visited,
+            out,
+        );
+    }
+
+    /// `SV-CORPUS-GRAD.13c.2x.9`(c1): is `child_path` on the hop's descent path? True when the hop
+    /// site path IS that node or lies beneath it. `None` ⇒ the whole subtree is off-path.
+    fn path_covers(hop_site_path: Option<&str>, child_path: &str) -> bool {
+        match hop_site_path {
+            Some(sp) => sp == child_path || sp.starts_with(&format!("{}/", child_path)),
+            None => false,
+        }
+    }
+
+    /// `SV-CORPUS-GRAD.13c.2x.9`(c1): structural half of `hop_escape_sites`. `node_path` uses the
+    /// same `root`/`o{i}`/`s{i}`/`q`/`a` spelling `collect_rule_reference_sites` produces, so a
+    /// recorded site feeds `directives_along_path` unchanged. Mirrors `mandatory_node_gated` in what
+    /// counts as mandatory (Sequence: every element; `?`/`*`: skipped; lookahead: renders nothing).
+    fn escape_walk(
+        &self,
+        node: &ASTNode,
+        owner_rule: &str,
+        node_path: &str,
+        hop_site_path: Option<&str>,
+        available: &HashSet<String>,
+        visited: &mut HashSet<String>,
+        out: &mut Vec<(String, String)>,
+    ) {
+        match node {
+            ASTNode::Or { alternatives } => {
+                if alternatives.is_empty() {
+                    return;
+                }
+                // On-path: FOLLOW the branch the plan already forces; never re-decide it.
+                for (idx, alternative) in alternatives.iter().enumerate() {
+                    let alt_path = format!("{}/o{}", node_path, idx);
+                    if Self::path_covers(hop_site_path, &alt_path) {
+                        self.escape_walk(
+                            alternative,
+                            owner_rule,
+                            &alt_path,
+                            hop_site_path,
+                            available,
+                            visited,
+                            out,
+                        );
+                        return;
+                    }
+                }
+                // Off-path: steer toward the first ungated alternative, but only when the split is
+                // MIXED. With nothing gated the ordinary generator cannot pick a losing branch, and
+                // forcing one would narrow generation for no reason.
+                let gated: Vec<bool> = alternatives
+                    .iter()
+                    .map(|alt| {
+                        self.mandatory_node_gated(
+                            alt,
+                            available,
+                            &mut visited.clone(),
+                            StoreGateScope::ParseRejects,
+                        )
+                    })
+                    .collect();
+                let Some(escape) = gated.iter().position(|g| !g) else {
+                    return; // every alternative gated: no escape to steer toward
+                };
+                if !gated.iter().any(|g| *g) {
+                    return;
+                }
+                let escape_path = format!("{}/o{}", node_path, escape);
+                out.push((owner_rule.to_string(), escape_path.clone()));
+                self.escape_walk(
+                    &alternatives[escape],
+                    owner_rule,
+                    &escape_path,
+                    None,
+                    available,
+                    visited,
+                    out,
+                );
+            }
+            ASTNode::Sequence { elements } => {
+                for (idx, element) in elements.iter().enumerate() {
+                    let element_path = format!("{}/s{}", node_path, idx);
+                    let child_hop = if Self::path_covers(hop_site_path, &element_path) {
+                        hop_site_path
+                    } else {
+                        None
+                    };
+                    self.escape_walk(
+                        element,
+                        owner_rule,
+                        &element_path,
+                        child_hop,
+                        available,
+                        visited,
+                        out,
+                    );
+                }
+            }
+            ASTNode::Quantified {
+                element,
+                quantifier,
+            } => {
+                let quantified_path = format!("{}/q", node_path);
+                let on_path = Self::path_covers(hop_site_path, &quantified_path);
+                // An optional/star site is skippable, so it is not mandatory — EXCEPT when the plan
+                // itself forces it open, in which case its contents are rendered and its siblings'
+                // gates matter exactly as much as any other mandatory element's.
+                let mandatory =
+                    super::parse_quantifier_bounds(quantifier).is_some_and(|(min, _)| min >= 1);
+                if mandatory || on_path {
+                    self.escape_walk(
+                        element,
+                        owner_rule,
+                        &quantified_path,
+                        if on_path { hop_site_path } else { None },
+                        available,
+                        visited,
+                        out,
+                    );
+                }
+            }
+            ASTNode::Lookahead { .. } => {}
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => {
+                    let atom_path = format!("{}/a", node_path);
+                    let child_hop = if Self::path_covers(hop_site_path, &atom_path) {
+                        hop_site_path
+                    } else {
+                        None
+                    };
+                    self.escape_walk(
+                        inner,
+                        owner_rule,
+                        &atom_path,
+                        child_hop,
+                        available,
+                        visited,
+                        out,
+                    );
+                }
+                ASTValue::Token(parts) => {
+                    if let Some(("rule_reference", name)) = Self::extract_token_pair(parts) {
+                        // The ON-PATH reference is the next hop's rule: that hop owns it, so stop.
+                        if Self::path_covers(hop_site_path, node_path) {
+                            return;
+                        }
+                        if !self.grammar_tree.contains_key(name) {
+                            return;
+                        }
+                        if !visited.insert(name.to_string()) {
+                            return; // cycle: this rule already contributed its sites
+                        }
+                        if let Some(inner) = self.grammar_tree.get(name) {
+                            self.escape_walk(
+                                inner, name, "root", None, available, visited, out,
+                            );
+                        }
+                        visited.remove(name);
+                    }
+                }
+            },
+        }
+    }
+
     /// SV-EXH-PROOF.7.4.6.12: does `rule` carry a store gate, in `scope`, that consults a fact-kind
     /// NOT in `available`? The two scopes read DIFFERENT maps on purpose — see `StoreGateScope`.
     fn rule_gate_is_unsatisfiable(
@@ -9833,6 +10112,18 @@ impl<'a> StimuliGenerator<'a> {
                 .gen_count_kinds
                 .get(rule)
                 .is_some_and(|kinds| kinds.iter().any(|kind| !available.contains(kind))),
+            // `SV-CORPUS-GRAD.13c.2x.9`(c1): positive gates only — the union of the name gates the
+            // parser enforces and the count gates generation prunes on. `lacks_fact*` never appears
+            // in either map, which is precisely what makes this scope right for a parse prediction.
+            StoreGateScope::ParseRejects => {
+                self.gen_name_gate
+                    .get(rule)
+                    .is_some_and(|gate| !available.contains(&gate.kind))
+                    || self
+                        .gen_count_kinds
+                        .get(rule)
+                        .is_some_and(|kinds| kinds.iter().any(|kind| !available.contains(kind)))
+            }
         }
     }
 
