@@ -3273,8 +3273,32 @@ one command, and it is the reason this gap read as a missing subsystem for two m
 - ⭐ **THE FIX SHAPE IS PRIOR ART, NOT DESIGN** — `SV-EXH-PROOF.3.3.4.b.6.2.15` moved the assertion
   out of the regex and into a **grammar-level `!rule` negative lookahead**, which the PEG engine
   supports as a zero-width assertion (`simple_identifier_no_scope := trivia /…/ !scope_resolution`).
-  For the block-comment family a non-look-around formulation may also exist (a lazy quantifier, or
-  an explicit two-alternative content rule); **price both against the accept set, do not assume.**
+- ⛔⛔ **MEASURED 2026-08-22, AND IT RULES OUT THE CHEAPER HALF OF THAT PLAN: A REGEX TERMINAL IS
+  ATOMIC.** The open question was whether a cleverer *pure-regex* formulation could express "match up
+  to but not including `*/`" — the classic C-comment pattern `(?:[^*]|\*+[^*/])*\**` and every lazy
+  variant rely on the engine GIVING BACK characters when the following element fails. It does not:
+
+  ```text
+  probe := /a*/ "ab"        on 'aaab'
+  #   atomic-greedy => /a*/ eats 'aaa', then "ab" sees 'b'      => REJECT
+  #   backtracking  => /a*/ gives back to 'aa', then "ab" matches => ACCEPT
+  INTERPRET-PARSE: … accepted=false furthest_position=0          ⇒ ATOMIC
+  ```
+
+  ⇒ the terminal matches maximally, once, and the sequence then fails outright. **This is precisely
+  why look-around was reached for in the first place** — with no give-back, the terminator test has
+  to happen *inside* the regex, and Rust's `regex` cannot do that. ⇒ **the fix MUST be grammar-level
+  for all five rules; there is no pure-regex spelling to price against it.** ⛔ Do not re-open that
+  question without re-running the probe above — it is one command.
+- ⚠️ **CONSEQUENCES OF GOING GRAMMAR-LEVEL, both of which need adjudicating rather than assuming:**
+  (a) **AST SHAPE** — each rule currently carries a capture-group return annotation (`-> $1`); a
+  char-wise `(!terminator ANY)*` formulation changes what the annotation sees, which is an
+  `ACCEPT-SET-LEDGER:` AST-shape transition, not a neutral edit. (b) **COST** — a per-character
+  negative lookahead is far more work than one regex match, and `ebnf.ebnf` is the meta-grammar.
+  ⭐ **Blast radius is smaller than it first looks and should be confirmed first**: the PRODUCTION
+  reader is the hand-written `rust/src/ebnf_frontend.rs`; `grammars/ebnf.ebnf`'s generated parser is
+  `#[cfg(feature = "ebnf_dual_run")]` and serves the envelope differential (TOOLBOX 1.9) plus
+  cert-coverage. **Verify that by name before relying on it.**
 - ⛔⛔ **BLAST RADIUS: `ebnf.ebnf` IS THE META-GRAMMAR PGEN READS EVERY OTHER GRAMMAR WITH.** Changing
   it changes what PGEN can read. Required before landing: an `ACCEPT-SET-LEDGER:` adjudication of the
   transition, a regeneration with an sha asserted against an independently-built arm
