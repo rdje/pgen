@@ -63,7 +63,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
 use crate::ast_pipeline::ast_based_generator::{
-    AstBasedGenerator, CommentArmSuppression, comment_arm_suppression_for_grammar,
+    AstBasedGenerator, CommentArmSuppression, RegexAtomEmitter, comment_arm_suppression_for_grammar,
 };
 use crate::ast_pipeline::semantic_directive_registry::{
     SemanticAssociativity, SemanticBranchPolicy, SemanticValueConstraints,
@@ -385,6 +385,8 @@ fn interpret_parse_gen_ast_core(
         annotations,
         layout: grammar_layout_policy(&compiled_sem),
         comment_arms: comment_arm_suppression_for_grammar(grammar_name, grammar_tree, annotations),
+        regex_emitter: RegexAtomEmitter::for_grammar(grammar_name, annotations),
+        regex_atom_cache: std::cell::RefCell::new(HashMap::new()),
         active_profile,
         input,
         position: 0,
@@ -725,6 +727,12 @@ struct Interp<'g, 'i> {
     /// to the generated parser: a grammar that CLAIMS an introducer as a real token (e.g. ebnf's
     /// `block_comment := "/*" …`) has that arm SUPPRESSED, so those bytes must be matched structurally.
     comment_arms: CommentArmSuppression,
+    /// GRAMMAR-WELLFORMED.H.22 — codegen's own per-atom regex emission decision (the effective
+    /// pattern after `@token_class`/`@charset`/`@pattern` steering, and whether leading layout is
+    /// skipped). Built ONCE per parse from codegen's kernel, the same shared-kernel posture as
+    /// `comment_arms`, and memoized per `(rule, raw pattern)` because `parse_atom` is hot.
+    regex_emitter: RegexAtomEmitter,
+    regex_atom_cache: std::cell::RefCell<HashMap<(String, String), (String, bool)>>,
     /// The active (already-normalized) dialect profile (`Some("pcre2")` for default regex,
     /// `Some("sv_2017")` for SV, `None` = unprofiled). A rule annotated `@profiles` is excluded when the
     /// active profile is not among its allowed profiles (PARSE-HARNESS.5.1) — mirrors codegen's
@@ -2761,10 +2769,27 @@ impl<'g, 'i> Interp<'g, 'i> {
                 Ok(ParseContent::Alternative(self.arena.alloc(node)))
             }
             "regex" => {
-                // GRAMMAR-WELLFORMED.H.16.4a — mirror codegen's per-terminal layout
-                // decision: a terminal whose every match is whitespace owns its leading
-                // layout, so skipping first would eat exactly the bytes it needs.
-                let matched = self.match_regex(val, !regex_terminal_owns_its_layout(val))?;
+                // GRAMMAR-WELLFORMED.H.22 — mirror BOTH of codegen's per-atom decisions: the
+                // EFFECTIVE pattern (post `@token_class`/`@charset`/`@pattern` steering) and
+                // `skip_leading_whitespace` (which folds the `string_content_*` allowlist and
+                // H.16.4a's layout-owning terminals). Queried through codegen's own kernel so the
+                // two cannot drift; memoized per `(rule, raw pattern)` because this is the hot path.
+                let key = (rule_name.to_string(), val.clone());
+                let (pattern, skip) = {
+                    let hit = self.regex_atom_cache.borrow().get(&key).cloned();
+                    match hit {
+                        Some(v) => v,
+                        None => {
+                            let v = (
+                                self.regex_emitter.effective_pattern(rule_name, val),
+                                self.regex_emitter.skips_leading_layout(rule_name, val),
+                            );
+                            self.regex_atom_cache.borrow_mut().insert(key, v.clone());
+                            v
+                        }
+                    }
+                };
+                let matched = self.match_regex(&pattern, skip)?;
                 self.enforce_value_constraints(rule_name, matched)?;
                 Ok(ParseContent::Terminal(matched))
             }

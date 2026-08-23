@@ -4686,7 +4686,7 @@ never unsound. No change made; recorded so the next reader does not have to re-d
    are already a tracked population, so the watch this owes is over the **LR-residue delta**, which is
    the half no existing instrument computes.
 
-### `H.22` — **THE INTERPRETER MIRRORS ONE OF THREE CODEGEN DECISIONS ON THE SAME `match_regex` CALL** (`todo`, opened 2026-08-23 session #260 by `H.16.4a`)
+### `H.22` — **THE INTERPRETER MIRRORS ONE OF THREE CODEGEN DECISIONS ON THE SAME `match_regex` CALL** (**`done`** — `PGEN-GRAMMAR-WELLFORMED-0179`, CODE / engine-universal interpreter + a shared codegen kernel — opened 2026-08-23 session #260 by `H.16.4a`, CLOSED same session)
 
 - **WHY**: `parse_harness_interpreter.rs`'s `parse_atom` reaches `self.match_regex(val, …)` with the
   RAW grammar pattern. Codegen's emission of that same call makes **three** decisions the
@@ -4727,6 +4727,91 @@ never unsound. No change made; recorded so the next reader does not have to re-d
   by making codegen REFUSE when steering would move a terminal across the layout-owning boundary;
   that refusal covers one property, not the general mirror.
 - **Sequence**: after `H.16.2b` (same family — the emitted layout skipper), before `H.16.6c`.
+
+#### ✅ CLOSED — all three decisions now come from codegen's own kernel
+
+`RegexAtomEmitter` (`ast_based_generator.rs`) reconstructs codegen's minimal relevant config exactly
+as `comment_arm_suppression_for_grammar` does, and answers both questions for one atom: the
+**effective pattern** (`effective_regex_pattern` — `@token_class` / `@charset` / `@pattern` steering
+plus the `semantic_annotation` `identifier_literal` special case) and **`skip_leading_whitespace`**
+(`regex_atom_skips_leading_layout`, which already folds the `string_content_*` allowlist and
+`H.16.4a`'s layout-owning terminals). The interpreter builds one per parse — the same cost
+`comment_arms` already pays — and memoizes per `(rule, raw pattern)` because `parse_atom` is hot.
+
+⇒ decisions 2 and 3 are no longer *mirrored*; they are **the same code**, so they cannot drift.
+
+#### ⭐⭐ THE ROW CAME FIRST, AND THE GATE WENT RED — which is the whole point of the leaf
+
+This leaf's own opening said: *"the first job of this leaf is to build that row, because a fix whose
+gate cannot fail is not verified."* Done in that order, and the order is the evidence:
+
+```text
+1. add the discriminating rows to CURATED_CORPUS   →  return_annotation DIVERGE samples=89
+                                                       agree=80 diverge=8 (+1 suppressed)
+                                                       first=Ast: AST differs at byte 285
+2. land the fix                                    →  4/4 ok, ✅ gate passed
+```
+
+Step 1 turned a **standing, certified, green** claim RED **with no code change** — the defect was
+always there and the gate simply could not see it. `RETURN_ANNOTATION_CURATED` pairs every
+leading-layout row with its no-layout CONTROL (`'abc'` beside `' abc'`, `"abc"` beside `" abc"`),
+so the corpus is proven able to return both readings rather than being uniformly sensitive.
+
+Direct reproducer, before → after:
+
+| input | generated parser | interpreter BEFORE | interpreter AFTER |
+|---|---|---|---|
+| `-> {k: 'abc'}` (control) | `'abc'` | `'abc'` — identical | `'abc'` — identical |
+| `-> {k: ' abc'}` | `' abc'` | `'abc'` — **DIFFERS** | `' abc'` — **identical** |
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `generated/return_annotation_parser.rs` emits
+  `match_regex("[^']*", false)` **×5** while the interpreter passed `true` for the same atom, inside
+  a grammar `parse_harness_equivalence_gate` certifies BYTE-IDENTICAL. Adding the discriminating rows
+  to the curated corpus turned that certified claim RED with no code change:
+  `return_annotation DIVERGE samples=89 agree=80 diverge=8 (+1 suppressed)`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: the interpreter's `parse_atom` regex arm called
+  `self.match_regex(val, true)` with the RAW grammar pattern — reproducing NEITHER
+  `effective_regex_pattern` nor the `skip_leading_whitespace` the emitter computes. WHY it stayed
+  invisible: `[^']*` can match empty, so the skip takes `consume_layout_for_regex`'s
+  `can_match_empty` early return and consumes only horizontal whitespace — a difference that shows up
+  ONLY when a quoted string's content begins with a space or tab, which the bounded stimuli generator
+  never emitted. Tool-backed: `INTERPRET-PARSE:` on `-> {k: ' abc'}` returned
+  `accepted=true` with `value: "abc"` against the generated parser's `value: " abc"`, **AST differs
+  at byte 317**, while the control `-> {k: 'abc'}` was AST-IDENTICAL — so the probe was proven able
+  to return both readings before either was cited.
+- [x] **ADDRESSED (verified)** — REJECT→PASS on the gate itself: `return_annotation` goes
+  `DIVERGE … diverge=8` → **`4/4 ok`**, and the direct reproducer goes `'abc'` vs `' abc'` →
+  **identical**, with its control identical throughout. The fix is not a mirror but a SHARED KERNEL:
+  both values now come from `RegexAtomEmitter`, i.e. from codegen's own `effective_regex_pattern` and
+  `regex_atom_skips_leading_layout`.
+- [x] **NO REGRESSION** — `parse_harness_equivalence_gate` GREEN 4/4, **11/11 certified grammars
+  byte-identical** and now over a corpus that is measurably able to fail. `ast_shape_contract_gate`
+  18/18. `ebnf_frontend_dual_run_gate` GREEN 14/14 AT ceiling. `clippy_on_rust_change` pass.
+  `generated_reproducibility_gate` **11/11 re-derive byte-identically** — codegen's EMISSION is
+  untouched, so no parser changed and no rebaseline was needed; the new kernel is a read-only query
+  surface. `scripts/check_doctrines.sh` 25/25.
+- [x] **LOCKSTEP** — this leaf + the Current Frontier + `docs/TASK_TREE.md`; the corpus rows carry
+  their own rationale in `parse_harness_equivalence.rs`; `CHANGES.md`, `DEVELOPMENT_NOTES.md`,
+  `MEMORY.md`; the lesson PROMOTED to
+  `docs/knowledge/a-green-gate-over-a-generated-corpus-is-a-claim-about-the-corpus.md` with
+  `answers:` + a runnable `reverify:` (`KNOWLEDGE_MAP.md` regenerated, 183 facts);
+  `generated_reproducibility_rebaseline` re-run — adding to the generator source set moves the
+  EMISSION-SOURCES digest even though the output is byte-identical, and tier 2 re-derived **11/11
+  byte-identically** so the promotion is a pure source-digest re-stamp. Book: N/A — no user-facing
+  surface changed and no book AST claim is falsified (the divergence was interpreter-side; the
+  SHIPPED parser was correct throughout). TOOLBOX: N/A — no new instrument. DONE-BAR register:
+  unchanged.
+
+#### ⚠️ Honest bound
+
+The two decisions are now shared code, but the **third** — `H.16.4a`'s layout-owning property — is
+still reached through `regex_atom_skips_leading_layout`'s refusal path rather than being impossible
+to get wrong: if codegen ever refuses an atom (steering straddling the layout-owning boundary), the
+interpreter falls back to `true`. That state cannot ship, because codegen REFUSES to emit such a
+parser at all — so the fallback is unreachable in any tree that builds. Stated rather than left for a
+reader to work out.
 
 ### `H.20` — **THE ENVELOPE RATCHET IS RED ON `systemverilog` (`155 > 151`), AND THE +4 ARE THREE DEFECT INSTANCES IN THREE PRE-EXISTING CLASSES — ONE OF THEM A LIVE FRONTEND DEFECT THAT REACHES A SHIPPED ARTIFACT** (**`done`**, `PGEN-GRAMMAR-WELLFORMED-0176`, CODE / gate ceiling — opened 2026-08-22 session #257 by `H.17.1`, CLOSED 2026-08-23 session #259; the fix it uncovered is routed to `H.20.1`, the flow gap to `H.20.2`)
 
@@ -5049,9 +5134,9 @@ owning leaf, and `H.20.1` lowers the ceiling when it lands.
 > `proof`-promotion candidate, which settles the classification `H.16.5` was waiting on; opened
 > `H.22`) · ✅ **`H.16.2b` CLOSED** (`-0178`, session #260 — the dynamic comment-skip guard is a
 > PREFIX test in both copies; the class re-censused over the SHIPPED artifacts is **6 sites, not 11**,
-> and exactly ONE is behavioural) — → **1**
-> `H.22` (the interpreter mirrors 1 of 3 codegen decisions on the same `match_regex` call — same
-> emitted surface as `H.16.2b`, and it sits INSIDE a certified byte-identity claim) → **3**
+> and exactly ONE is behavioural) · ✅ **`H.22` CLOSED** (`-0179`, session #260 — all three per-atom
+> decisions now come from codegen's OWN kernel, and the discriminating corpus row that turned a
+> certified green claim RED was landed BEFORE the fix) — → **1**
 > `H.16.6c` (the 8 residual self-rejected stimuli — its blocking dependency `H.16.6b` is now CLOSED,
 > so its baseline is current) → **4** `H.16.5` (the 9 LR residue + the `profile.is_some()` proof-promotion gate) → **5**
 > `H.19` (leg 3 for `H.15`) → **6** `H.16.7b` (the shape contract
@@ -5093,7 +5178,7 @@ owning leaf, and `H.20.1` lowers the ceiling when it lands.
 | — | `GRAMMAR-WELLFORMED.H.16.3` (the generator shadows any rule named `epsilon` with `""`) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0166`, CODE / engine-universal stimuli generator) | ✅ A DEFINED rule now wins; the builtin is gated on `!grammar_tree.contains_key("epsilon")`, preserving both existing callers exactly (their grammars leave `epsilon` UNDEFINED). `ebnf` cert `144/0/111/33` → **`144/0/112/32`** with `spf` falling at EVERY seed (**8→4 · 11→5 · 7→3**), both arms measured on the same binary path; delta ATTRIBUTED BY NAME (exactly `epsilon` left, nothing newly UNKNOWN). ⭐ ZERO generated-parser bytes move — the rebaselined reproducibility file shows every `parser_sha` unchanged across all 11 artifacts |
 | — | `GRAMMAR-WELLFORMED.H.16.4` (`ebnf`'s `whitespace` is layout-skipped before `grammar_file` sees it) | **`done`** — ADJUDICATED (`PGEN-GRAMMAR-WELLFORMED-0167`, doc+artifact tier) | ✅ Root cause is an ASYMMETRY in the emitted layout skipper: every COMMENT arm is gated on `regex_token_matches_at_cursor(pattern)`, the whitespace skip is not — which is why `comment` is witnessed and `whitespace`, in the SAME alternation, is not. ⛔⛔ The declarative tier EXISTS (`@whitespace_sensitive`, and `systemverilog_preprocessor.ebnf:23` ships the exact shape) and is **REFUTED by a closed facet matrix**: all four settings break `grammars/json.ebnf`, and only two of them even witness the rule. Named a **layout-shadowed** residual; the capability is `H.16.4a` |
 | — | `GRAMMAR-WELLFORMED.H.16.4a` (`@whitespace_sensitive` is grammar-wide; the property needed is per-terminal) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0177`, CODE / engine-universal codegen + interpreter) | ✅ **The guard is PER-TERMINAL and costs nothing** — a codegen-time constant, so a grammar with no layout-owning terminal regenerates BYTE-IDENTICALLY (`systemverilog`, `vhdl`, `json`, `regex`, `return_annotation`, both `rtl_*`, `scratch` all unmoved; exactly 3 of 11 artifacts moved). `ebnf` `144/0/112/32` → **`144/0/113/31`** at seeds 0/7/42, `spf` unchanged, delta attributed BY NAME (exactly `whitespace`, nothing newly UNKNOWN); four spaces go `elements:[]` span 0..0 → the declared node, span 0..4. The `json.ebnf` control that REFUTED all four `@whitespace_sensitive` settings still parses. ⛔⛔ **The first cut changed 1 of SIX spellings of the decision and the CERTIFICATE STILL MOVED** — `certificate_coverage` enables coverage, which sets `bare_parse=false`, so it observes the PROTOCOL graph while a real parse runs the FUSED one; `parse_harness_equivalence_gate` is what caught it, and mis-fixing the `cascade_match_*`/`cascade_build_*` PAIR panicked codegen on its own derivation tape. Now ONE predicate with six callers, pinned by a test whose control fires `5 vs 6`. ⛔ The inherited census was wrong BOTH ways (invented one `_lrm_profiled_*` row, missed svpp's `newline := /\r?\n/`); re-derived by the new HIR instrument → **7 layout-owning of 121 whitespace-only over 14 loadable grammars**. Routed out `H.22` |
-| 1b | `GRAMMAR-WELLFORMED.H.22` (the interpreter mirrors 1 of 3 codegen decisions on the same `match_regex` call) | **`todo`** (opened 2026-08-23 by `H.16.4a`) | MEASURED inside a CERTIFIED claim: `return_annotation` is one of the 11 grammars the equivalence gate certifies byte-identical, and its `generated/return_annotation_parser.rs` emits `match_regex("[^']*", false)` ×5 while the interpreter passes `true`. The discriminating input is a quoted string whose content starts with whitespace, which the stimuli corpus does not produce ⇒ **green because the corpus does not reach the hole**. First job is the corpus row that can DISCRIMINATE — a fix whose gate cannot fail is not verified |
+| — | `GRAMMAR-WELLFORMED.H.22` (the interpreter mirrors 1 of 3 codegen decisions on the same `match_regex` call) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0179`, CODE / engine-universal interpreter + shared codegen kernel) | ✅ **All three decisions now come from codegen's OWN kernel** (`RegexAtomEmitter` — `effective_regex_pattern` + `regex_atom_skips_leading_layout`), so they are no longer *mirrored*, they are the SAME CODE and cannot drift. ⭐⭐ **The row came FIRST and the gate went RED with no code change** — `return_annotation DIVERGE samples=89 agree=80 diverge=8`, turning a standing CERTIFIED green claim red — then the fix made it `4/4 ok`. Every leading-layout row is paired with its no-layout CONTROL, so the corpus is proven able to return both readings. Reproducer `-> {k: ' abc'}`: gen `' abc'` vs interp `'abc'` → **identical**; control `-> {k: 'abc'}` identical throughout. ⭐ Codegen EMISSION untouched — `generated_reproducibility_gate` 11/11 byte-identical, no parser moved, no rebaseline |
 | 4 | `GRAMMAR-WELLFORMED.H.16.5` (the 9 LR residue + the proof-promotion gate) | **`todo`** — RE-SCOPED by `-0170`; ⭐ its `whitespace` question is SETTLED by `H.16.4a` (`-0177`) — the rule is witnessed, so it is NOT a `proof`-promotion candidate and this leaf's population does not grow by it | ⛔ **RETRACTED its own escalation**: the 55 source orphans were ALREADY owned by `LANG-CAPABILITY-AUDIT.1`/`.4`/`.6` (27 productions, 7 horizon-mapped clusters, per-cluster dispositions) and the capability is ALREADY greenlit by [[feedback_capability_work_is_greenlit_by_standing_authorization]] — only the parametric NOTATION is open, and `[ … ]` is taken by the optional-element form. What remains genuinely unowned: the **9 LR residue** (PGEN's own, never a capability gap) and the `profile.is_some()` gate on proof promotion |
 | — | `GRAMMAR-WELLFORMED.H.16.1` (adjudicate the 68) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0164`, doc+artifact tier) | ✅ **68 = 9 LR-residue + 55 source-orphans + 4 root-caused inert rules**, in **31 islands**, partition CLOSED (zero rules unattributed). ⛔ `--lint-grammar` could never have adjudicated this — it reads `unreachable_rules=0` on all three BY CONSTRUCTION. New reader: `docs/tasks/artifacts/grammar_wellformed/residual_island_census/probe.py`, proven to go RED three ways. Residual-rules-with-no-owning-leaf **68 → 0** |
 | — | `GRAMMAR-WELLFORMED.H.16` (roll `ebnf` / `return_annotation` / `semantic_annotation` to `UNKNOWN=0`) | **`in_progress`** (adjudicated by `H.16.1`; work routed to `H.16.2`–`H.16.5`) | The **clean** conjunct, and now the only engineering half of the `SVPP-EXPANSION` gate left. `H.15` made the three measurable and they read `UNKNOWN` **35 / 2 / 34** = **71**, of which **64 are dead-rule candidates** (no reach path from the entry) ⇒ a `--lint-grammar` adjudication lane, not a witness-generation lane. Lanes cost 0.06–0.38 s and are seed-invariant. |

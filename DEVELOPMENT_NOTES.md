@@ -1,5 +1,61 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0179 — a certified claim can be green because the corpus never asks the question
+
+**1. WHAT WAS WRONG.** `parse_harness_equivalence_gate` certifies eleven grammars byte-identical
+between the interpreter and the generated parser. `return_annotation` was one of them, and it carried
+a real divergence: the interpreter's `parse_atom` called `self.match_regex(val, true)` with the RAW
+grammar pattern, reproducing neither `effective_regex_pattern` (per-rule `@token_class` / `@charset` /
+`@pattern` steering) nor `skip_leading_whitespace` (the `string_content_double` /
+`string_content_single` allowlist). The generated parser emits `match_regex("[^']*", false)` ×5.
+
+**2. WHY THE GATE COULD NOT SEE IT.** `[^']*` can match empty, so the skip takes
+`consume_layout_for_regex`'s `can_match_empty` early return and eats only horizontal whitespace. The
+two implementations therefore differ on exactly one shape — a quoted string whose CONTENT begins with
+a space or tab — and the bounded stimuli generator never produced one in 89 samples. The green
+reading was true and uninformative at the same time.
+
+**3. ⭐⭐ THE ORDER IS THE ENTIRE POINT.** The leaf was opened with the instruction *"the first job of
+this leaf is to build the row that can DISCRIMINATE — a fix whose gate cannot fail is not verified"*,
+and doing it in that order is what makes the closure evidence rather than assertion:
+
+```text
+step 1 — add rows to CURATED_CORPUS, NO code change
+         return_annotation DIVERGE samples=89 agree=80 diverge=8 (+1 suppressed)
+         first=Ast: AST differs at byte 285
+step 2 — land the fix
+         test result: ok. 4 passed  ✅
+```
+
+Step 1 turned a standing, certified, GREEN claim RED without touching a line of parser or interpreter
+logic. That is the cleanest possible demonstration that the previous green was a corpus gap.
+
+**4. THE CORPUS ROWS CARRY THEIR OWN CONTROL.** Every leading-layout row is paired with its no-layout
+twin (`'abc'` beside `' abc'`, `"abc"` beside `" abc"`), so the addition cannot be a corpus that
+merely fails everywhere. The direct reproducer shows the same discipline: control AST-IDENTICAL in
+both arms, discriminator DIFFERS before and IDENTICAL after.
+
+**5. THE FIX IS A SHARED KERNEL, NOT A BETTER MIRROR — and that distinction is the durable part.**
+Adding a second copy of the allowlist and a second copy of `effective_regex_pattern` to the
+interpreter would have closed this instance and left the next one open, because two copies of a rule
+drift. `RegexAtomEmitter` instead reconstructs codegen's minimal relevant config — the same posture
+`comment_arm_suppression_for_grammar` established — and answers both questions from codegen's own
+functions. The interpreter builds one per parse (the cost `comment_arms` already pays) and memoizes
+per `(rule, raw pattern)` because `parse_atom` is hot. ⇒ decisions 2 and 3 are no longer mirrored;
+they are the same code.
+
+**6. WHAT DID NOT MOVE, AND WHY THAT MATTERS.** Codegen's EMISSION is untouched:
+`generated_reproducibility_gate` re-derives 11/11 byte-identically, no parser changed, no
+reproducibility or parse-cost rebaseline was needed. The shipped parsers were correct the whole time
+— the divergence was entirely interpreter-side — so no published book AST claim is falsified. This is
+the opposite shape from `-0177`, where the parser moved and the interpreter was right.
+
+**7. HONEST BOUND.** The third decision (`H.16.4a`'s layout-owning property) reaches the interpreter
+through `regex_atom_skips_leading_layout`'s refusal path: if codegen ever refuses an atom (steering
+straddling the layout-owning boundary) the interpreter falls back to `true`. That state cannot ship,
+because codegen refuses to emit such a parser at all — so the fallback is unreachable in any tree
+that builds. Stated rather than left for a reader to discover.
+
 ## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0178 — break the mirror on purpose and the differential tells you which inputs your change moves
 
 **1. THE DEFECT.** The emitted `consume_layout_for_terminal` carries a dynamic backstop so that a

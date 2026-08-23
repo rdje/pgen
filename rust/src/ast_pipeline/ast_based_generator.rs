@@ -121,6 +121,51 @@ pub(crate) fn comment_arm_suppression_for_grammar(
     generator.comment_arm_suppression(grammar_tree)
 }
 
+/// GRAMMAR-WELLFORMED.H.22 — the complete emission decision for ONE regex atom: the pattern the
+/// generated parser will actually match, and whether it skips leading layout first.
+///
+/// ⛔ Both halves are codegen's, and the interpreter used to mirror NEITHER: it matched the RAW
+/// grammar pattern (missing `effective_regex_pattern`'s per-rule `@token_class` / `@charset` /
+/// `@pattern` steering and the `semantic_annotation` `identifier_literal` special case) and always
+/// passed `skip_leading_layout = true` (missing the `string_content_double` /
+/// `string_content_single` allowlist). Measured: `return_annotation` — one of the grammars
+/// `parse_harness_equivalence_gate` certifies BYTE-IDENTICAL — emits
+/// `match_regex("[^']*", false)` ×5 while the interpreter passed `true`, and on
+/// `-> {k: ' abc'}` the generated parser captured `" abc"` where the interpreter captured `"abc"`.
+/// The gate was green only because the generated corpus never produced that input.
+///
+/// Reconstructs codegen's *minimal relevant* config exactly as
+/// [`comment_arm_suppression_for_grammar`] does, so the answer is codegen's own rather than a second
+/// implementation of it. Build it ONCE per parse — it clones `annotations` — and query per atom.
+pub(crate) struct RegexAtomEmitter {
+    generator: AstBasedGenerator,
+}
+
+impl RegexAtomEmitter {
+    pub(crate) fn for_grammar(grammar_name: &str, annotations: Option<&Annotations>) -> Self {
+        let mut generator =
+            AstBasedGenerator::new(crate::ast_pipeline::ast_generator_direct::snake_to_pascal(
+                grammar_name,
+            ));
+        generator.annotations = annotations.cloned();
+        Self { generator }
+    }
+
+    /// The pattern the emitted `match_regex` receives, post-steering.
+    pub(crate) fn effective_pattern(&self, rule_name: &str, grammar_pattern: &str) -> String {
+        self.generator.effective_regex_pattern(rule_name, grammar_pattern)
+    }
+
+    /// Codegen's `skip_leading_whitespace` for this atom. Falls back to codegen's own conservative
+    /// answer if the layout-owning check refuses (a steering directive straddling the H.16.4a
+    /// boundary), which codegen itself rejects outright — so the parser cannot exist in that state.
+    pub(crate) fn skips_leading_layout(&self, rule_name: &str, grammar_pattern: &str) -> bool {
+        self.generator
+            .regex_atom_skips_leading_layout(rule_name, grammar_pattern)
+            .unwrap_or(true)
+    }
+}
+
 /// GRAMMAR-WELLFORMED.H.16.4a — what codegen measures about one regex terminal
 /// before deciding whether to skip leading layout in front of it. See
 /// [`AstBasedGenerator::regex_pattern_layout_facts`].

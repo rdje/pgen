@@ -612,7 +612,47 @@ pub const EXCLUDED: &[(&str, &str)] = &[
 /// truth. These are INPUTS only — the differential still compares the interpreter against the
 /// authoritative generated parser (which supplies the verdict + typed AST), so a curated input carries no
 /// "expected-output mirror" risk; it merely gives the differential something to compare (PARSE-HARNESS.5.5).
-pub const CURATED_CORPUS: &[(&str, &[&str])] = &[("rtl_const_expr", RTL_CONST_EXPR_CURATED)];
+pub const CURATED_CORPUS: &[(&str, &[&str])] = &[
+    ("rtl_const_expr", RTL_CONST_EXPR_CURATED),
+    ("return_annotation", RETURN_ANNOTATION_CURATED),
+];
+
+/// GRAMMAR-WELLFORMED.H.22 — the DISCRIMINATING rows for the two codegen decisions the interpreter
+/// does not mirror on `match_regex`.
+///
+/// ⛔ These exist because `return_annotation` was CERTIFIED byte-identical while a real divergence
+/// sat inside it: codegen emits `match_regex("[^']*", false)` for `string_content_single` (the
+/// `string_content_double`/`string_content_single` layout allowlist), the interpreter passes `true`,
+/// and the generated stimuli corpus never produces the input that separates them. The gate was green
+/// because the corpus did not reach the hole, not because the hole was closed — so the row comes
+/// FIRST and the fix second. A fix whose gate cannot fail is not verified.
+///
+/// The discriminator is a quoted string whose CONTENT begins with layout: codegen hands the content
+/// regex the bytes as written, the unmirrored interpreter skipped the leading horizontal whitespace
+/// first (`[^']*` can match empty, so it takes `consume_layout_for_regex`'s early return) and
+/// captured `abc` where the parser captured ` abc`. Measured before the fix, first diff at byte 317.
+///
+/// Each leading-layout row is paired with its no-layout CONTROL, so the pair proves the corpus can
+/// return BOTH readings rather than being uniformly insensitive.
+const RETURN_ANNOTATION_CURATED: &[&str] = &[
+    // ── single-quoted content: the measured divergence, each with its control ──
+    "-> {k: 'abc'}",
+    "-> {k: ' abc'}",
+    "-> {k: '\tabc'}",
+    "-> {k: 'abc '}",
+    "-> {k: '  '}",
+    "-> {k: ''}",
+    // ── double-quoted content: the sibling allowlist entry, same shape ──
+    "-> {k: \"abc\"}",
+    "-> {k: \" abc\"}",
+    "-> {k: \"\tabc\"}",
+    "-> {k: \"abc \"}",
+    // ── the same content in the other positions a string_literal reaches ──
+    "-> ' abc'",
+    "-> \" abc\"",
+    "-> [' abc', 'abc']",
+    "-> {' k': 'v'}",
+];
 
 /// Construct-complete curated inputs for `rtl_const_expr` (PARSE-HARNESS.5.5). The ~16-level precedence
 /// chain (`rtl_const_expr → conditional_expr → logical_or_expr → … → multiplicative_expr → unary_expr →
