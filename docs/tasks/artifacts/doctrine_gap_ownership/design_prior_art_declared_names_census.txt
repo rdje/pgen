@@ -1,0 +1,43 @@
+DOCTRINE-GAP-OWNERSHIP.11 — WHAT THE THIRD known_names SOURCE HARVESTS, AND WHAT IT DOES NOT
+===========================================================================================
+
+Widening `known_names` widens the doctrine's blind spot, so the harvest is CENSUSED rather
+than trusted. Loose form = the rule-name filter alone; tight form = the shipped one, which
+also drops the `->` payload, a trailing `#` comment, and grammar-level `@directive:` lines.
+
+  loose harvest : 139 names
+  tight harvest : 127 names   <- SHIPPED
+
+  DROPPED by the tightening (12), each traced to what it really is:
+    annotation_key
+    compiler_directive
+    custom_annotation
+    file1
+    file2
+    file3
+    return_annotation
+    scoped
+    semantic_annotation
+    single
+    sv_2017
+    sv_2023
+
+  KEPT beyond semantic_annotation's own quoted words — the 5 lowercase names of
+  `optimization_directive` (grammars/ebnf.ebnf:684), which are real directive names:
+    channel
+    fragment
+    memoize
+    more
+    skip
+
+  ⚠️ HONEST FLOOR: the literal pattern is lowercase-only, so `pushMode` / `popMode` in that
+     same rule are NOT harvested. The check therefore stays STRICT where it was strict —
+     the safe direction for an evidence gate — and this bound is stated, not hidden.
+
+  ⭐ THE FALSE POSITIVE THIS CLOSES, verbatim from the BEFORE arm:
+     DESIGN-PRIOR-ART: docs/tasks/GRAMMAR-WELLFORMED.md proposes a NEW annotation surface…
+       novel directive name(s): handles
+     `handles` is declared at grammars/semantic_annotation.ebnf:52 —
+       "throws" | "catches" | "handles" | "propagates" |
+     — one of 122 predefined annotation names, none of which is ever SPELLED @name in a
+     grammar. The trigger was a task leaf quoting a REAL generated stimulus.

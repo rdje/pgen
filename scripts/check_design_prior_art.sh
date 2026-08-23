@@ -41,12 +41,52 @@ staged="$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null \
           | grep -vE '^docs/tasks/artifacts/' || true)"
 [ -n "$staged" ] || exit 0
 
-# A directive name already known to the project: present in the registry or in any
-# tracked grammar. Built once; empty (missing registry) degrades to "grammars only".
+# A directive name already known to the project: present in the registry, USED as `@name`
+# in a tracked grammar, or DECLARED as an annotation/directive name by a tracked grammar.
+# Built once; empty (missing registry) degrades to the grammar sources only.
+#
+# ⛔ THE THIRD SOURCE IS DESIGN-PRIOR-ART.3, AND IT CLOSES A MEASURED FALSE POSITIVE.
+# A grammar declares its annotation names as QUOTED ALTERNATIVES, never as `@name`:
+# `grammars/semantic_annotation.ebnf:52` carries `"throws" | "catches" | "handles" | …`
+# among 122 such names, and `grammars/ebnf.ebnf:684` declares `optimization_directive` the
+# same way. None of them is ever SPELLED `@name` in a grammar, so the `@`-usage sweep is
+# blind to every one — and a task leaf quoting `@handles` (a real generated stimulus, in
+# `GRAMMAR-WELLFORMED.H.16.6e`) was reported as proposing a NEW annotation surface.
+# The only remedy the check offers is a PRIOR ART section, which would have been a
+# recorded search for a name the project has always had: a FALSE finding written down.
+#
+# ⚠️ SCOPED TIGHTLY, and the scoping is what makes it safe to widen `known_names` at all —
+# widening this set widens the doctrine's blind spot, so each restriction is deliberate:
+#   · only inside a rule whose NAME mentions `annotation` or `directive`;
+#   · the text after `->` is dropped — a return annotation is a PAYLOAD (`{type: "…"}`),
+#     not a name declaration (this is what excludes `annotation_key`, `return_annotation`,
+#     `compiler_directive`, `scoped`);
+#   · a trailing `#` comment is dropped — prose is not a declaration (excludes `file1`…);
+#   · a grammar-level directive line (`@profiles: ["sv_2017"]`) belongs to the NEXT rule
+#     and is skipped entirely (excludes `sv_2017`, `sv_2023`).
+# Measured on the tracked grammars: the loose form harvests 139 names including 12 that are
+# not names at all; this form harvests 127 — the 122 predefined annotation names plus the 5
+# lowercase `optimization_directive` names — and nothing else.
+# ⚠️ HONEST FLOOR: the literal pattern is lowercase-only, so camelCase declarations
+# (`"pushMode"`, `"popMode"`) are NOT harvested. That leaves the check strict where it was
+# strict, which is the safe direction for an evidence gate.
 known_names="$(
   { [ -r "$REGISTRY" ] && grep -oE 'name:[[:space:]]*"[a-z_][a-z0-9_]*"' "$REGISTRY" \
       | sed -E 's/.*"([a-z_][a-z0-9_]*)".*/\1/'
     grep -rhoE '@[a-z_][a-z0-9_]*' grammars/ 2>/dev/null | sed 's/^@//'
+    awk '
+      /^[a-z_][a-z0-9_]*[ \t]*:=/ { cur=$1; sub(/[ \t]*:=.*/, "", cur) }
+      /^[ \t]*@/                  { next }
+      cur ~ /annotation|directive/ {
+        line=$0
+        sub(/->.*/, "", line)
+        sub(/#.*/,  "", line)
+        while (match(line, /"[a-z_][a-z0-9_]*"/)) {
+          print substr(line, RSTART+1, RLENGTH-2)
+          line=substr(line, RSTART+RLENGTH)
+        }
+      }
+    ' grammars/*.ebnf 2>/dev/null
   } | sort -u
 )"
 

@@ -766,3 +766,76 @@ the copy has no way to know.*
   pre-commit. A note dated on an existing date adds no distinct date and passes, so the block is not
   literally *"the next note"*. The cheap resolution (undated prose naming the owning leaf) is now
   demonstrated by `-0177`.
+
+### `.11` — `DESIGN-PRIOR-ART` cannot see a directive name a grammar DECLARES, only one it USES, so it reported a 122-name-old annotation as NEW (**`done`**, `PGEN-DOCTRINE-GAP-OWNERSHIP-0001`, CODE / doctrine enforcer — opened and CLOSED 2026-08-23 session #261 by `GRAMMAR-WELLFORMED.H.16.6e`, which it blocked)
+
+- **HOW IT SURFACED — on a real commit, not by inspection.** `H.16.6e` quoted a REAL generated
+  stimulus in its leaf, `@handles : { W => %RXCy => 72e10 }`, as the evidence for its central
+  finding. The pre-commit enforcer refused: *"proposes a NEW annotation surface with no recorded
+  prior-art search — novel directive name(s): handles"*.
+- **ROOT CAUSE (WHY + WHERE), measured.** `scripts/check_design_prior_art.sh` builds `known_names`
+  from two sources: the semantic-directive registry, and `grep -rhoE '@[a-z_][a-z0-9_]*' grammars/`
+  — i.e. names a grammar **USES** in `@name` form. But a grammar **DECLARES** its annotation names
+  as QUOTED ALTERNATIVES: `grammars/semantic_annotation.ebnf:52` reads
+  `"throws" | "catches" | "handles" | "propagates" |` among **122** such names, and
+  `grammars/ebnf.ebnf:684` `optimization_directive` does the same. **None of the 122 is ever spelled
+  `@name` anywhere in `grammars/`**, so the usage sweep is blind to every one of them.
+- ⛔ **AND THE ONLY REMEDY THE CHECK OFFERS WOULD HAVE BEEN A FALSE RECORD.** Its instruction is
+  *"add a PRIOR ART section"* — which here means writing down a search for a name the project has
+  had since the grammar was authored. The doctrine's own founding lesson is that finding prior art
+  is a SUCCESS; recording a search whose answer was already "yes, for years" is the opposite. This
+  is the same shape as `DESIGN-PRIOR-ART.2` (the `docs/tasks/artifacts/**` exclusion), where the
+  remedy was also unavailable — and it is why the fix is in the enforcer, not in the leaf.
+- **THE FIX — a THIRD `known_names` source: names a grammar DECLARES.** An `awk` pass over
+  `grammars/*.ebnf` harvests quoted lowercase literals from rules whose NAME mentions `annotation`
+  or `directive`. ⚠️ **Widening `known_names` widens the doctrine's blind spot**, so the harvest is
+  censused rather than trusted and three restrictions are deliberate: the text after `->` is dropped
+  (a return annotation is a PAYLOAD, not a declaration), a trailing `#` comment is dropped (prose is
+  not a declaration), and a grammar-level directive line such as `@profiles:` is skipped (it
+  belongs to the NEXT rule). Loose form: **139** names, 12 of them not names at all. Shipped form: **127** — the 122
+  predefined annotation names plus the 5 lowercase `optimization_directive` names — and nothing
+  else. ⚠️ **HONEST FLOOR, stated not hidden**: the literal pattern is lowercase-only, so
+  `pushMode` / `popMode` in that same rule are still unharvested. That leaves the check STRICT where
+  it was strict, which is the safe direction for an evidence gate.
+
+#### Acceptance checklist (`TOOLBOX.md`)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family. WHY: `known_names` is built from `@name`
+  USAGE, and a grammar DECLARES annotation names as quoted alternatives that are never spelled
+  `@name`. WHERE: `scripts/check_design_prior_art.sh`, the `known_names="$( … )"` block. Tool-backed
+  and not read off the source: the BEFORE arm reproduces the enforcer's own refusal verbatim
+  (`novel directive name(s): handles`, rc 1), `bash -n scripts/check_design_prior_art.sh` clears the
+  patched script, and the population is enumerated with `git ls-files 'grammars/*.ebnf'` — **18**
+  tracked grammars, over which the `@`-usage sweep sees only **26 of the 127** declared names, leaving
+  **101 invisible**. ⛔ **The first version of this box said the sweep sees ZERO of them, and that was
+  wrong in my own favour** — a handful (`@throws`, `@deprecated`, `@type`, …) do appear as usages in
+  grammar comments and examples, so the defect is a 101-name hole, not a total blindness. Re-derived
+  by `comm` over the two sets rather than asserted.
+- [x] **ADDRESSED (verified)** — two-arm control on the SAME staged set, exit codes captured from the
+  command's own status rather than through a pipe
+  (`docs/tasks/artifacts/doctrine_gap_ownership/design_prior_art_declared_names_arms.sh`):
+
+  | arm | rc | output |
+  |---|---|---|
+  | BEFORE — HEAD's enforcer | **1** | `novel directive name(s): handles` |
+  | AFTER — patched enforcer | **0** | *(clean)* |
+  | RED — a name that exists nowhere, staged | **1** | `novel directive name(s): zzz_not_a_real_directive` |
+
+  ⛔ **The first version of this control read rc=0 on ALL THREE arms and would have reported the
+  defect as absent.** Two independent causes, both recorded in the script's header: `rc=$?` after a
+  `| head` reads the PIPE's status, and the BEFORE arm run from a scratch directory derives its repo
+  root as `dirname "$0"/..`, finds no staged files there and exits 0 — *a green arm that proves
+  nothing*. The arm is now copied into `scripts/` before it runs, and removed by a `trap`.
+- [x] **NO REGRESSION** — replayed over the WHOLE tracked population, not a sample: for each of the
+  **161** tracked task-leaf files (`git ls-files 'docs/tasks/*.md'`, artifacts excluded) the novel-name
+  verdict was recomputed under the BEFORE and AFTER `known_names`. **157 of 161 are byte-identical**,
+  and the 4 that move lose exactly **two** names between them — `handles` and `export`, both declared
+  predefined annotation names in `grammars/semantic_annotation.ebnf`. Nothing that was genuinely novel
+  became known. ⚠️ Deliberately a STRICTER test than the enforcer runs: it scores every backticked
+  `@name` in the whole file, where the enforcer scores only ADDED lines, so the population here is a
+  superset. The check still fires on a name that exists nowhere (RED arm above, rc 1), and the
+  widening itself is censused name-by-name (`design_prior_art_declared_names_census.txt`: 139 → 127,
+  all 12 dropped traced to a return annotation, a comment or a `@profiles:` line; all 5 additions
+  traced to `optimization_directive`). All 25 doctrines PASS with this change staged, `clippy` not
+  applicable — no Rust or generated byte is touched.
+- **`promotion: declined (per-slice enforcer mechanics — the transferable half, that an arm run from the wrong root exits 0 and proves nothing, is already carried by [[a-control-that-cannot-fail-is-not-a-control]])`**

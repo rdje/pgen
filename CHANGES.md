@@ -1,5 +1,38 @@
 # CHANGES.md
 
+## 2026-08-23 - PGEN-DOCTRINE-GAP-OWNERSHIP-0001 (leaf DOCTRINE-GAP-OWNERSHIP.11 CLOSED — a doctrine enforcer could see a directive name a grammar USES but not one it DECLARES; CODE / doctrine enforcer): the only remedy it offered would have been a false record
+
+- **HOW IT SURFACED — on a real commit, not by inspection.** `GRAMMAR-WELLFORMED.H.16.6e` quoted a
+  REAL generated stimulus, `@handles : { W => %RXCy => 72e10 }`, as the evidence for its central
+  finding. `DESIGN-PRIOR-ART` refused the commit: *"proposes a NEW annotation surface with no
+  recorded prior-art search — novel directive name(s): handles"*.
+- **ROOT CAUSE.** `scripts/check_design_prior_art.sh` built `known_names` from the semantic-directive
+  registry plus `grep -rhoE '@[a-z_][a-z0-9_]*' grammars/` — names a grammar **USES**. A grammar
+  **DECLARES** its annotation names as QUOTED ALTERNATIVES: `grammars/semantic_annotation.ebnf:52`
+  reads `"throws" | "catches" | "handles" | "propagates" |` among 122 such names, and
+  `grammars/ebnf.ebnf:684` `optimization_directive` does the same. Measured over the 18 tracked
+  grammars: the usage sweep sees **26 of the 127** declared names, leaving **101 invisible**.
+- ⛔ **AND THE ONLY REMEDY THE CHECK OFFERS WOULD HAVE BEEN A FALSE RECORD** — *"add a PRIOR ART
+  section"*, i.e. write down a search for a name the project has had since the grammar was authored.
+  Same unavailable-remedy shape as `DESIGN-PRIOR-ART.2` (the artifacts-subtree exclusion), and the
+  reason the fix belongs in the enforcer rather than in the leaf.
+- **THE FIX — a THIRD `known_names` source: names a grammar DECLARES.** ⚠️ Widening `known_names`
+  widens the doctrine's blind spot, so the harvest is CENSUSED rather than trusted: the `->` payload,
+  a trailing `#` comment and a grammar-level directive line are all excluded. Loose form **139**
+  names (12 of them not names at all); shipped form **127** — the 122 predefined annotation names
+  plus the 5 lowercase `optimization_directive` names. ⚠️ Honest floor, stated: the pattern is
+  lowercase-only, so `pushMode`/`popMode` stay unharvested; the check remains strict where it was.
+- **ARMS, on the same staged set** — BEFORE rc **1** naming `handles`, AFTER rc **0**, RED rc **1** on
+  a name that exists nowhere. ⛔ **The first version of that control read rc=0 on ALL THREE arms and
+  would have reported the defect as absent**: `rc=$?` after a `| head` reads the PIPE's status, and
+  the BEFORE arm run from a scratch directory derives its repo root as `dirname "$0"/..`, finds no
+  staged files there and exits 0 — a green arm that proves nothing.
+- **NO REGRESSION over the WHOLE population**, not a sample: across all **161** tracked task-leaf
+  files, **157 are byte-identical** and the 4 that move lose exactly two names between them,
+  `handles` and `export` — both declared annotation names. Nothing genuinely novel became known.
+- ⛔ **AND THE FIRST WRITE-UP OF THE ROOT CAUSE OVERSTATED IT IN MY OWN FAVOUR** — it said the usage
+  sweep sees ZERO declared names. It sees 26. Corrected in place from a `comm` over the two sets.
+
 ## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0181 (leaf GRAMMAR-WELLFORMED.H.16.6d CLOSED — the delimiter containment SHIPS, on the DIRECTOR'S backslash-escape formulation; CODE / grammar, four terminals): a design question that looked like a trade-off was a consistency question already answered five lines up
 
 - **THE DEFECT, from `H.16.6c`.** `absolute_path`, `relative_path`, `home_path` and `url_reference`

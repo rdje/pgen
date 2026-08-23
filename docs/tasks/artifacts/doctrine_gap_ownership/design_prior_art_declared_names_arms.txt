@@ -1,0 +1,7 @@
+### ARM BEFORE — HEAD's enforcer, current staged set
+  rc=1  DESIGN-PRIOR-ART: docs/tasks/GRAMMAR-WELLFORMED.md proposes a NEW annotation surface with no recorded prior-art search.   novel directive name(s): handles 
+### ARM AFTER  — the patched enforcer, current staged set
+  rc=0  
+### RED CONTROL — a genuinely novel directive name must STILL be blocked
+  rc=1  DESIGN-PRIOR-ART: docs/tasks/DOCTRINE-GAP-OWNERSHIP.md proposes a NEW annotation surface with no recorded prior-art search.   novel directive name(s): zzz_not_a_real_directive 
+  probe reverted: 0 occurrences remain
