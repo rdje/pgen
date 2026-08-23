@@ -1288,6 +1288,21 @@ V2005_LRM_PINNED = {
         "0:0:0 , ...)` - the same min:typ:max timing_check_limit as timing_check_syntax.v, same "
         "clauses (IEEE 1364-2005 A.7.5.2 " + V2005_ANNEX_A + ":800 and clause 15.5.2 "
         "docs/verilog/2005/txt/section-15-timing-checks.txt:92), same ruling"),
+    # ---- SV-CORPUS-GRAD.13e.3 (PGEN-SV-CORPUS-GRAD-0285) ------------------------------------
+    # The row that PROVES the extension hole invents defects, found by scanning the 53
+    # remaining v2005 rejects-valid rows for the two DEFAULT-ON extensions' constructs.
+    "ivtest/ivltests/real_invalid_ops.v": (
+        "must_reject", "pinned .13e.3: line 17 `wire r_b_na = var1 ~& var2;` (and :18 "
+        "`~|`) use the reduction operators as BINARY ones - IEEE 1364-2005 A.8.6 "
+        "binary_operator (" + V2005_ANNEX_A + ":954) lists neither. ⛔ THE SAME "
+        "CONSTRUCT AS br_gh552.v, KEYED THE OPPOSITE WAY, and the difference is a flag "
+        "the answer key did not read: br_gh552 passes `-gno-icarus-misc` and gets the "
+        "golden `The binary NAND operator is an Icarus Verilog extension`, while this "
+        "row inherits `gn_icarus_misc_flag = true` (main.cc:109) and so PARSES for "
+        "iverilog - its golden is elaboration-only (`~& operator may not have a REAL "
+        "operand`), which is exactly why `_gold_has_syntax_error()` read it as "
+        "`must_accept`. The elaboration errors are real and orthogonal: the operands "
+        "are `real`. Control: control_v2005_binary_and.sv parses"),
     "ivtest/ivltests/udp_empty_table_fail.v": (
         "must_reject", "pinned .13e.2: lines 7-8 are an EMPTY `table ... endtable`. IEEE "
         "1364-2005 A.5.3 (" + V2005_ANNEX_A + ":483/:485) is "
@@ -2048,9 +2063,129 @@ class IvtestIndex:
         self.gold_dir = ivtest_dir / "gold"
         self.vvp_desc = defaultdict(list)  # source stem -> [descriptor dict]
         self.default_gen = self._resolve_default_generation(ivtest_dir)
+        # .13e.3: the DEFAULT ON/OFF state of every language-affecting extension.
+        self.ext_defaults = self._resolve_extension_defaults(ivtest_dir)
         self._load(ivtest_dir / "regress-sv.list", sv=True)
         self._load(ivtest_dir / "regress-vlg.list", sv=False)
         self._load_vvp(ivtest_dir / "vvp_tests")
+
+    # ---- SV-CORPUS-GRAD.13e.3 --------------------------------------------
+    # ⛔ `-g` IS TWO FLAG FAMILIES WEARING ONE PREFIX, AND ONLY ONE OF THEM DECIDES
+    # WHAT THE LANGUAGE IS. `.13e.1` taught this index to read the GENERATION out of
+    # `iverilog-args`; it read nothing else, so a descriptor that switches a
+    # NON-STANDARD EXTENSION on or off was still keyed *"compiles as -g2005 (the
+    # compiler's own default)"* — a sentence that is false in its own terms about a
+    # row whose descriptor names an explicit `-g` flag. Measured over all 560 vvp
+    # descriptors: 43 carry a non-generation `-g` flag, spanning 11 distinct flags
+    # over 40 source files.
+    #
+    # ⛔⛔ AND THE OBVIOUS CLASSIFIER IS WRONG IN BOTH DIRECTIONS. "Does the flag
+    # reach parse.y?" admits `-gspecify` (21 sites) and `-gsupported-assertions`
+    # (3 sites) — both of which sit inside the ACTION BODY of a rule that has
+    # already reduced, so the grammar accepts the text either way — and it REJECTS
+    # `-gxtypes`, which never appears in parse.y at all and is the actual gate
+    # (`pform.cc:3580`, *"Net data type requires SystemVerilog or -gxtypes."*).
+    # ⇒ the classification below is derived from WHAT EACH FLAG'S VARIABLE GUARDS,
+    # and each entry names the site, so a reader can re-check it in one grep.
+    #
+    #   flag family              variable                       decides the language?
+    #   -gxtypes/-gno-xtypes     gn_cadence_types_flag          YES  pform.cc:3580 gates a NET DATA TYPE
+    #   -gicarus-misc/-gno-      gn_icarus_misc_flag            YES  parse.y:4162/4174 gate binary ~& / ~|
+    #   -gverilog-ams/-gno-      gn_verilog_ams_flag            YES  lexor.lex (a different LANGUAGE; own lane)
+    #   -gspecify/-gno-specify   gn_specify_blocks_flag         no   parse.y action bodies only (warnings)
+    #   -gsupported-assertions   gn_supported_assertions_flag   no   parse.y action bodies only
+    #   -ginterconnect/-gno-     gn_interconnect_flag           no   elaborate.cc only
+    #   -gno-strict-*declaration gn_strict_*_declaration        no   symbol_search.cc (name resolution)
+    #
+    # ⭐⭐ THE TWO THAT MATTER MOST ARE DEFAULT-**ON** (`main.cc:109-110`), so they
+    # are invisible in every descriptor that does not mention them: EVERY unflagged
+    # ivtest row compiles with Cadence extended types AND the Icarus misc extensions
+    # enabled. That is why `br_gh552.v` (extension explicitly OFF, keyed CE) and
+    # `real_invalid_ops.v` (extension implicitly ON, keyed must_accept) carry
+    # OPPOSITE expectations for the SAME construct — the answer key's verdict on
+    # binary `~&` depended on a flag it did not read.
+    EXT_LANGUAGE_AFFECTING = {
+        "xtypes": ("gn_cadence_types_flag", True, "pform.cc"),
+        "no-xtypes": ("gn_cadence_types_flag", False, "pform.cc"),
+        "icarus-misc": ("gn_icarus_misc_flag", True, "parse.y"),
+        "no-icarus-misc": ("gn_icarus_misc_flag", False, "parse.y"),
+        "verilog-ams": ("gn_verilog_ams_flag", True, "lexor.lex"),
+        "no-verilog-ams": ("gn_verilog_ams_flag", False, "lexor.lex"),
+    }
+
+    @classmethod
+    def _resolve_extension_defaults(cls, ivtest_dir: Path) -> dict:
+        """The default ON/OFF state of every language-affecting extension, READ from
+        the vendored compiler rather than assumed — and re-checked against the two
+        facts the classification rests on, so a re-vendoring that moves either one
+        REFUSES instead of keying rows off a stale reading."""
+        ivl = ivtest_dir.parent
+        main_cc = ivl / "main.cc"
+        if not main_cc.is_file():
+            raise SystemExit(f"REFUSE: {main_cc} is missing - the extension posture "
+                             "cannot be resolved, and guessing it is the defect .13e.3 fixed")
+        mtext = main_cc.read_text(errors="replace")
+        defaults, seen_site = {}, {}
+        for flag, (var, _on, site) in sorted(cls.EXT_LANGUAGE_AFFECTING.items()):
+            # (1) the flag still sets the variable it is classified by
+            if not re.search(r'strcmp\(gen,\s*"' + re.escape(flag) + r'"\)\s*==\s*0', mtext):
+                raise SystemExit(
+                    f"REFUSE: main.cc no longer recognises -g{flag} - the .13e.3 extension "
+                    "classification is keyed to a flag this compiler does not have")
+            # (2) the variable still has a compile-time default here
+            m = re.search(r"^bool\s+" + re.escape(var) + r"\s*=\s*(true|false)\s*;", mtext, re.M)
+            if not m:
+                raise SystemExit(
+                    f"REFUSE: main.cc no longer initialises `{var}` - the DEFAULT posture of "
+                    f"-g{flag} is what makes an unflagged row keyable at all")
+            defaults[var] = (m.group(1) == "true")
+            # (3) the variable is still consumed at a PARSE-STAGE site, which is the
+            #     whole reason it is classified language-affecting
+            src = ivl / site
+            if var not in seen_site:
+                if not src.is_file() or var not in src.read_text(errors="replace"):
+                    raise SystemExit(
+                        f"REFUSE: `{var}` no longer appears in {site} - it was classified "
+                        "language-affecting BECAUSE it is consumed there; re-derive .13e.3's "
+                        "table rather than trusting it")
+                seen_site[var] = True
+        return defaults
+
+    def extension_posture(self, desc: dict):
+        """(explicitly-set language-affecting flags, the default-ON ones that apply anyway).
+
+        The first element is what makes a descriptor's own compile testimony testimony
+        about a SUPERSET language; the second is the standing posture every ivtest row
+        inherits whether or not it says so."""
+        explicit = []
+        for a in desc.get("iverilog-args", []):
+            if a.startswith("-g") and a[2:] in self.EXT_LANGUAGE_AFFECTING:
+                explicit.append(a)
+        default_on = sorted({
+            var for _f, (var, _on, _s) in self.EXT_LANGUAGE_AFFECTING.items()
+            if self.ext_defaults.get(var)})
+        return explicit, default_on
+
+    def extension_note(self, desc: dict) -> str:
+        """The clause a basis string owes the reader about WHICH language compiled."""
+        explicit, default_on = self.extension_posture(desc)
+        parts = []
+        if explicit:
+            parts.append("descriptor sets " + " ".join(explicit))
+        if default_on:
+            parts.append("compiler defaults ON: " + ", ".join(default_on))
+        return "; ".join(parts)
+
+    def enables_nonstandard(self, desc: dict) -> list:
+        """The language-affecting extensions this descriptor turns ON by hand. A row
+        whose compile testimony rests on one of these is testimony about a SUPERSET of
+        IEEE 1364-2005 and cannot be keyed `must_accept` from it."""
+        out = []
+        for a in desc.get("iverilog-args", []):
+            spec = self.EXT_LANGUAGE_AFFECTING.get(a[2:] if a.startswith("-g") else "")
+            if spec and spec[1]:
+                out.append(a)
+        return out
 
     # ---- SV-CORPUS-GRAD.13e.1 --------------------------------------------
     # A vvp_tests descriptor that carries no -g flag is NOT dialect-unresolved.
@@ -2121,14 +2256,21 @@ class IvtestIndex:
         return self.default_gen
 
     def gen_source(self, desc: dict) -> str:
-        """WHERE that generation came from. Carried into the basis string because the
-        sentence this leaf replaced was precise about the descriptor and wrong about
-        the question - a basis that cannot say which artifact decided is how that
-        happens (leaf .13e)."""
+        """WHERE that generation came from, AND under which extension posture. Carried
+        into the basis string because the sentence this leaf replaced was precise about
+        the descriptor and wrong about the question - a basis that cannot say which
+        artifact decided is how that happens (leaf .13e). ⛔ .13e.3 extends it in exactly
+        the same way for the SECOND thing the descriptor decides: naming the generation
+        while staying silent about `-gxtypes` / the default-ON extensions is the same
+        defect one field over."""
         for a in desc.get("iverilog-args", []):
             if a in self.SV_GENS or a in self.V2005_GENS:
-                return "explicit descriptor flag"
-        return "the compiler's own default, compiler.h GN_DEFAULT"
+                base = "explicit descriptor flag"
+                break
+        else:
+            base = "the compiler's own default, compiler.h GN_DEFAULT"
+        note = self.extension_note(desc)
+        return f"{base}; {note}" if note else base
 
     def _load_vvp(self, vvp_dir: Path):
         if not vvp_dir.is_dir():
@@ -2273,6 +2415,17 @@ class IvtestIndex:
             implied = {self._vvp_implied(d) for d in sv_descs}
             names = ", ".join(d["_key"] + ".json" for d in sv_descs)
             if implied == {"accept"}:
+                ext_on = sorted({e for d in sv_descs for e in self.enables_nonstandard(d)})
+                if ext_on:
+                    # .13e.3: the compile testimony is about a SUPERSET language. A row
+                    # whose own descriptor switches a non-standard extension ON cannot be
+                    # keyed `must_accept` from "it compiled" - that is testimony about
+                    # iverilog-plus-extension, not about the standard.
+                    return ("out_of_scope_with_cause:vendor_extension_enabled",
+                            f"ivtest: vvp_tests descriptor(s) {names} compile only with "
+                            f"{' '.join(ext_on)} - a NON-STANDARD extension the descriptor "
+                            "enables itself, so the compile testimony is about a superset "
+                            "language and cannot key a conformance verdict (.13e.3)")
                 return ("must_accept",
                         f"ivtest: vvp_tests descriptor(s) {names} - runs "
                         "under an explicit SV generation with no "
@@ -2368,6 +2521,17 @@ class IvtestIndex:
                 implied = {self._vvp_implied(d) for d in v_descs}
                 names = ", ".join(d["_key"] + ".json" for d in v_descs)
                 if implied == {"accept"}:
+                    ext_on = sorted({e for d in v_descs
+                                     for e in self.enables_nonstandard(d)})
+                    if ext_on:
+                        # .13e.3: see _expect_vvp - the compile testimony is about a
+                        # SUPERSET language, so it cannot key a conformance verdict.
+                        return ("out_of_scope_with_cause:vendor_extension_enabled",
+                                f"ivtest: vvp_tests descriptor(s) {names} compile only "
+                                f"with {' '.join(ext_on)} - a NON-STANDARD extension the "
+                                "descriptor enables itself, so the compile testimony is "
+                                "about a superset language and cannot key a conformance "
+                                "verdict (.13e.3)")
                     return ("must_accept",
                             f"ivtest: vvp_tests descriptor(s) {names} - "
                             f"compiles as {gens} with no syntax-error golden")
@@ -2808,12 +2972,110 @@ def adjudicate(expected, observed, dep_flag):
     raise ValueError(f"unknown expected verdict {expected!r}")
 
 
+def _self_test_extension_guard(ivtest_dir: Path) -> int:
+    """SV-CORPUS-GRAD.13e.3 RED CONTROL. The vendor-extension guard fires on ZERO rows
+    at HEAD, and a guard never observed firing is not known to work
+    ([[feedback_an_instrument_that_can_only_return_one_reading_is_not_a_measurement]]).
+    These arms drive it with SYNTHETIC descriptors and assert both directions, plus the
+    three refusals that keep the classification tied to the vendored compiler."""
+    ok, bad = 0, []
+
+    def check(name, cond):
+        nonlocal ok
+        if cond:
+            ok += 1
+            print(f"  ok   {name}")
+        else:
+            bad.append(name)
+            print(f"  FAIL {name}")
+
+    idx = IvtestIndex(ivtest_dir)
+
+    # --- the classifier, both directions -------------------------------------------------
+    check("an ENABLER is language-affecting",
+          idx.enables_nonstandard({"iverilog-args": ["-gxtypes"]}) == ["-gxtypes"])
+    check("a DISABLER enables nothing",
+          idx.enables_nonstandard({"iverilog-args": ["-gno-xtypes"]}) == [])
+    check("-gspecify is NOT language-affecting (parse.y action bodies only)",
+          idx.enables_nonstandard({"iverilog-args": ["-gspecify"]}) == [])
+    check("-gsupported-assertions is NOT language-affecting",
+          idx.enables_nonstandard({"iverilog-args": ["-gsupported-assertions"]}) == [])
+    check("-ginterconnect is NOT language-affecting (elaborate.cc only)",
+          idx.enables_nonstandard({"iverilog-args": ["-ginterconnect"]}) == [])
+    check("a bare generation flag enables nothing",
+          idx.enables_nonstandard({"iverilog-args": ["-g2005"]}) == [])
+
+    # --- the DEFAULT posture is READ, not assumed ----------------------------------------
+    check("gn_icarus_misc_flag is default ON in the vendored compiler",
+          idx.ext_defaults.get("gn_icarus_misc_flag") is True)
+    check("gn_cadence_types_flag is default ON in the vendored compiler",
+          idx.ext_defaults.get("gn_cadence_types_flag") is True)
+    check("gn_verilog_ams_flag is default OFF in the vendored compiler",
+          idx.ext_defaults.get("gn_verilog_ams_flag") is False)
+
+    # --- the basis string SAYS so ---------------------------------------------------------
+    note = idx.gen_source({"iverilog-args": ["-gxtypes"]})
+    check("gen_source names the explicit extension", "-gxtypes" in note)
+    check("gen_source names the default-ON posture",
+          "gn_icarus_misc_flag" in idx.gen_source({}))
+
+    # --- THE GUARD ITSELF, driven RED on a synthetic row ---------------------------------
+    # A descriptor that would otherwise key `must_accept` by compile testimony, with an
+    # extension it enables ITSELF. Injected into a copy of the index so no tracked input moves.
+    probe = dict(_key="synthetic_ext_probe", source="synthetic_ext_probe.v",
+                 type="normal", **{"iverilog-args": ["-g2005", "-gxtypes"]})
+    idx.vvp_desc["synthetic_ext_probe"] = [probe]
+    verdict, basis = idx.expect_v2005("ivtest/ivltests/synthetic_ext_probe.v")
+    check("GUARD FIRES: an extension-enabling accept row is refused a conformance verdict",
+          verdict == "out_of_scope_with_cause:vendor_extension_enabled")
+    check("GUARD basis names the flag", "-gxtypes" in basis)
+
+    # The SAME row without the extension must still key must_accept - otherwise the guard
+    # is not discriminating, it is just refusing everything.
+    probe2 = dict(_key="synthetic_plain_probe", source="synthetic_plain_probe.v",
+                  type="normal", **{"iverilog-args": ["-g2005"]})
+    idx.vvp_desc["synthetic_plain_probe"] = [probe2]
+    verdict2, _ = idx.expect_v2005("ivtest/ivltests/synthetic_plain_probe.v")
+    check("GUARD DISCRIMINATES: the same row without the extension still keys must_accept",
+          verdict2 == "must_accept")
+
+    # --- the three REFUSALS that keep the table tied to the compiler ----------------------
+    import tempfile, shutil
+    for label, mutate in (
+        ("REFUSAL: main.cc stops recognising -gxtypes",
+         lambda t: t.replace('strcmp(gen,"xtypes")', 'strcmp(gen,"xtypes_RENAMED")')),
+        ("REFUSAL: main.cc stops initialising gn_icarus_misc_flag",
+         lambda t: t.replace("bool gn_icarus_misc_flag = true;", "// removed")),
+    ):
+        with tempfile.TemporaryDirectory() as td:
+            fake_ivl = Path(td) / "iverilog"
+            shutil.copytree(ivtest_dir.parent, fake_ivl, symlinks=True,
+                            ignore=shutil.ignore_patterns("ivtest"))
+            shutil.copytree(ivtest_dir, fake_ivl / "ivtest", symlinks=True)
+            mc = fake_ivl / "main.cc"
+            mc.write_text(mutate(mc.read_text(errors="replace")), errors="replace")
+            try:
+                IvtestIndex._resolve_extension_defaults(fake_ivl / "ivtest")
+                check(label, False)
+            except SystemExit:
+                check(label, True)
+
+    print(f"\nEXTENSION-GUARD SELF-TEST: {ok} passed, {len(bad)} failed")
+    if bad:
+        print("  failed arms: " + ", ".join(bad))
+    return 1 if bad else 0
+
+
 def main():
     # SV-CORPUS-GRAD.12c.3 F3 - the two-caller split is asserted BEFORE any row is adjudicated,
     # so a broken split refuses to produce a manifest rather than producing a wrong one.
     _self_check_arm_split()
     ap = argparse.ArgumentParser(description=__doc__)
     root = Path(__file__).resolve().parent.parent.parent  # repo root
+    ap.add_argument("--self-test", action="store_true",
+                    help="SV-CORPUS-GRAD.13e.3: drive the vendor-extension guard RED on "
+                         "synthetic descriptors and exit (a guard fires on 0 tracked rows "
+                         "at HEAD, so this is the only evidence it works)")
     ap.add_argument("--results", default=root / "stimuli/sv/characterization/results.tsv",
                     type=Path)
     ap.add_argument("--subs-root", default=root / "stimuli/sv/subs", type=Path)
@@ -2849,6 +3111,9 @@ def main():
                     default=root / "stimuli/sv/characterization/adjudication_summary_v2005.md",
                     type=Path)
     args = ap.parse_args()
+
+    if args.self_test:
+        return _self_test_extension_guard(args.subs_root / "iverilog" / "ivtest")
 
     raw_positions = load_positions(args.positions, "positions.tsv")
     positions = {}

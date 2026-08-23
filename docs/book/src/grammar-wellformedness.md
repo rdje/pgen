@@ -2674,7 +2674,34 @@ observation was simply unused.
 > statements, by the tool whose testimony was being overruled, that the constructs are
 > non-standard. Each verdict is pinned as a two-sided reproducer with an accepting control, so the
 > day some unrelated relaxation lands, that text starts passing and the suite goes **red** rather
-> than the pass rate quietly improving. Earlier, `SV-CORPUS-GRAD.13c.2v` moved the
+> than the pass rate quietly improving.
+>
+> ⛔⛔ **And the answer key that produced those seven was then measured, and it was inventing a
+> defect** (`SV-CORPUS-GRAD.13e.3`). The proof is two rows of this same corpus that contradict
+> each other: `br_gh552.v` passes `-gno-icarus-misc` and is keyed *must-reject* — its golden log
+> says *"The binary NAND operator is an Icarus Verilog extension"* — while `real_invalid_ops.v`
+> uses **the same operator**, carries no such flag, inherits the compiler's default-ON setting for
+> that extension, parses, and was therefore keyed *must-accept*, appearing in the burn-down as a
+> defect **against PGEN**. ⇒ **the key's verdict on one construct depended on a flag it did not
+> read**, and the direction of the error is to manufacture work. The v2005 arm moved
+> `unexplained_rejects_valid` **53 → 52**, exactly one verdict, with the SystemVerilog lane
+> byte-identical and `accepts_invalid` unmoved at 14.
+>
+> ⭐⭐ **The two extensions that matter most are on by default, so they appear in no test
+> descriptor at all.** iverilog's `-g2005` means *Verilog-2005 plus Cadence extended types plus the
+> Icarus miscellaneous extensions*; the earlier leaf derived the default **generation** correctly
+> from the vendored compiler and stopped one question short of what that generation actually
+> admits. A derived value can be right and still not answer the question it was derived for — and
+> no freshness check catches that, because nothing about it is stale.
+>
+> ⛔ **The obvious way to classify those flags is wrong in both directions.** Asking *"does the
+> flag reach the parser's grammar file?"* admits `-gspecify` — 21 occurrences, every one inside the
+> action body of a rule that has already reduced, so the grammar accepts the text either way — and
+> rejects `-gxtypes`, which appears there zero times and is the only one that actually gates a
+> production. The classification therefore reads what each flag's **variable guards**, and names
+> the site per entry so a reader can re-check it in one search. Its guard against the next such
+> row fires on **zero** rows today, so it ships with a self-test that drives it red on synthetic
+> input — a guard never observed firing is not known to work. Earlier, `SV-CORPUS-GRAD.13c.2v` moved the
 > bar **282 → 275** by restoring the
 > `[ std :: ] randomize_call` alternative IEEE 1800 A.8.2 gives `primary`. PGEN renders `primary`'s
 > call alternative as `call_primary` — the postfix-chain rule the left-recursion lift authored —

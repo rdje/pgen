@@ -15734,39 +15734,121 @@ refutation control above. `checked=180 listed=95` → **`checked=191 armed=77 li
   published only in the DERIVED `adjudication_summary_v2005.md` (verified by grep over
   `docs/book/src/` and `docs/contracts/`), and the SV tuple the book carries did not move.
 
-##### ⛔ `.13e.3` — the ivtest answer-key reads ONE field of `iverilog-args` and ONE wording of a golden, and both holes fail toward `must_accept` (`todo`, opened 2026-08-23 by `.13e.2`)
+##### ⚠️ `.13e.3` — **(a) DONE: the extension hole is CLOSED and it was INVENTING a defect — one phantom row removed, 53 → 52. (b) the golden-wording hole remains** (`in progress` 2026-08-23, `PGEN-SV-CORPUS-GRAD-0285`; opened by `.13e.2`)
 
-**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED, and whether it reproduces
-outside the rows that found it):
+- ⭐⭐⭐ **THE HOLE WAS NOT COSMETIC — IT INVENTED A DEFECT, AND THE PROOF IS TWO ROWS THAT
+  CONTRADICT EACH OTHER.** `br_gh552.v` passes `-gno-icarus-misc` and is keyed `must_reject`
+  (its golden: *"The binary NAND operator is an Icarus Verilog extension"*).
+  `real_invalid_ops.v` uses **the same operator** on line 17, carries no such flag, inherits
+  `gn_icarus_misc_flag = true` (`main.cc:109`), parses for iverilog, and was keyed
+  **`must_accept`** — appearing in the burn-down as a rejects-valid **defect against PGEN**.
+  ⇒ **the answer key's verdict on one construct depended on a flag it did not read**, and the
+  direction of the error is to manufacture work.
+- **MEASURED, before → after**: v2005 arm `match 2278 → 2279`, `unexplained 67 → 66`,
+  `rejects_valid 53 → 52`, `accepts_invalid` **unmoved at 14**, SV lane manifest **and** summary
+  **byte-identical**, tuple `7556/2606/6174/4366/275` unchanged. **Exactly one verdict moved.**
 
-- **Hole 1 — the extension flags in `iverilog-args` are not read.** `effective_gen()` and
-  `gen_source()` (`stimuli/sv/adjudicate_external_corpus.py`) scan the array only for members of
-  `SV_GENS` / `V2005_GENS`. `-gxtypes` and `-gno-icarus-misc` are in neither set, so both rows that
-  carry them are keyed *"compiles as -g2005 (**the compiler's own default**, compiler.h
-  `GN_DEFAULT`)"* — a basis line that is **false in its own terms** about a descriptor which names
-  an explicit `-g…` flag. ⛔ This is the same defect class `.13e.1` shipped and then caught in
-  itself: *a basis string must name WHICH ARTIFACT decided.* Measured population: `-gxtypes` on
-  `br_gh1087b.v`, `-gno-icarus-misc` on `br_gh552.v`; the whole `vvp_tests` descriptor set has not
-  yet been swept for other extension flags, and **that sweep is this leaf's first job** — the two
-  found here are a lower bound, not the count.
-- **Hole 2 — `_gold_has_syntax_error()` asks the wrong question.** It searches the golden for the
-  literal words *"syntax error"* to decide whether a `type: "CE"` row failed at the parse stage. It
-  therefore reads *"The binary NAND operator is an Icarus Verilog extension"*, *"Empty UDP table."*
-  and an elaboration error as **not-a-parse-refusal**, and routes all three to `must_accept`. The
-  vocabulary problem is already NAMED for the verilator lane
-  (`VERILATOR_PARSE_STAGE_RE`, `.3.24`) and for the sv2v lane; ivtest never got the same treatment.
-  ⛔ **Reproduces beyond these rows by construction** — it is a whole-corpus heuristic, not a
-  property of the seven.
-- ⚠️ **WHY IT IS STILL ROUTED AND NOT FIXED HERE.** `.13e.2` corrected the seven rows *by clause
-  cite*, which is the answer the SPEC doctrine wants and is correct whatever the heuristic does. A
-  heuristic fix changes the DEFAULT for a population nobody has sized, and sizing it is the work.
-  ⛔ The direction of the hole matters: both fail toward `must_accept`, i.e. toward **inventing
-  rejects-valid defects**, which is the flattering-to-the-corpus direction and the one a burn-down
-  campaign is least likely to notice.
-- **Owed:** (a) sweep every `vvp_tests`/`vlg_tests` descriptor for `-g` flags outside the generation
-  sets and report the population; (b) give ivtest the parse-stage message vocabulary the verilator
-  lane has, derived from the GOLDENS rather than from a description of them; (c) re-derive and
-  report the movement, with `accepts_invalid` watched as the control direction.
+**THE POPULATION, SWEPT AND TRACKED** (`docs/tasks/artifacts/sv_corpus_grad/ivtest_extension_flags/`,
+re-runnable — `.13e.2` reported *"two, a lower bound"*, and the bound was right to state):
+
+```text
+IVTEST-EXTENSION-CENSUS: descriptors=560 carriers=43 files=40 flags=11 language_affecting=26
+```
+
+⛔⛔ **AND THE OBVIOUS CLASSIFIER IS WRONG IN BOTH DIRECTIONS.** *"Does the flag reach
+`parse.y`?"* is the natural test and it fails twice over:
+
+| flag | variable | consumed at | decides the language? |
+|---|---|---|---|
+| `-gxtypes` / `-gno-xtypes` | `gn_cadence_types_flag` | **`pform.cc:3580`** — never `parse.y` | **YES** — *"Net data type requires SystemVerilog or -gxtypes."* |
+| `-gicarus-misc` / `-gno-` | `gn_icarus_misc_flag` | `parse.y:4162/4174` | **YES** — the `K_NAND`/`K_NOR` alternatives |
+| `-gverilog-ams` / `-gno-` | `gn_verilog_ams_flag` | `lexor.lex` | **YES** — a different language; already has its own lane |
+| `-gspecify` / `-gno-specify` | `gn_specify_blocks_flag` | `parse.y` ×**21** | **no** — every site is an ACTION BODY of a rule that already reduced |
+| `-gsupported-assertions` | `gn_supported_assertions_flag` | `parse.y` ×3 | **no** — same shape |
+| `-ginterconnect` / `-gno-` | `gn_interconnect_flag` | `elaborate.cc` only | **no** |
+| `-gno-strict-*declaration` | `gn_strict_*_declaration` | `symbol_search.cc` | **no** — name resolution |
+
+⇒ a `parse.y` membership test would **admit** `-gspecify` and `-gsupported-assertions` and
+**reject** `-gxtypes`, which is the only one of the three that actually gates a production.
+**The classifier had to be derived from what each variable GUARDS, not from where its name
+appears** ([[feedback_derive_classifiers_from_the_producer]]).
+
+⭐⭐ **THE TWO THAT MATTER MOST ARE DEFAULT-ON, SO THEY APPEAR IN NO DESCRIPTOR AT ALL.**
+`main.cc:109-110` sets `gn_icarus_misc_flag = true` and `gn_cadence_types_flag = true`. ⇒
+`.13e.1` derived `GN_DEFAULT = GN_VER2005` correctly and stopped one question short: iverilog's
+`-g2005` is *Verilog-2005 **plus** Cadence extended types **plus** the Icarus misc extensions*,
+not plain 1364-2005. **Every** unflagged ivtest row inherits that posture, and the basis strings
+of **100 v2005-lane rows and 147 SV-lane rows** said only *"the compiler's own default"*. They
+now name the posture — the same correction `.13e.1` made one field over.
+
+**HOW THE BLAST RADIUS WAS BOUNDED RATHER THAN ASSUMED.** The 53 remaining v2005 rejects-valid
+rows were scanned for the two default-on extensions' constructs and every candidate was put
+through the parser: 11 candidates, and `furthest_position=` put **exactly one** of them on the
+extension (`real_invalid_ops.v` L17:20, at `var1` `~&`). The other ten stop on unrelated
+constructs — `tri1 scalared [63:0]`, `pulldown (a,b,c)`, a UDP edge entry, `j++`, a specify path
+— i.e. the coarse text filter was 10/11 false positives and **only the parser could tell**.
+
+**THE GUARD, AND ITS RED CONTROL.** A descriptor that switches a language-affecting extension ON
+by hand can no longer key `must_accept` from compile testimony; it routes to
+`out_of_scope_with_cause:vendor_extension_enabled`. ⛔ **It fires on ZERO tracked rows today**
+(the one row that would trip it, `br_gh1087b.v`, is already pinned by clause cite, and pins run
+first) — and a guard never observed firing is not known to work, so it ships with
+`--self-test`: **16/16 arms**, including the guard FIRING on a synthetic extension-enabling
+descriptor, DISCRIMINATING (the same row without the flag still keys `must_accept`), and two
+REFUSALS proven to fire when the vendored `main.cc` stops recognising `-gxtypes` or stops
+initialising `gn_icarus_misc_flag`.
+
+- ⚠️ **(b) STILL OPEN — the golden-wording hole.** `_gold_has_syntax_error()` searches a golden
+  for the literal words *"syntax error"* to decide whether a `type: "CE"` row failed at the parse
+  stage, so it reads *"is an Icarus Verilog extension"*, *"Empty UDP table."* and an elaboration
+  error as *not-a-parse-refusal*. The verilator lane already has a parse-stage message vocabulary
+  (`VERILATOR_PARSE_STAGE_RE`, `.3.24`); ivtest never got one. ⛔ **Derive it from the GOLDENS,
+  not from a description of them** — that is exactly the mistake `.3.24`'s own census was written
+  to avoid, and `accepts_invalid` (unmoved at 14 through both of these leaves) is the control
+  direction to watch when it lands.
+- ⚠️ **BOUND on (a)**: the sweep covers `vvp_tests`, which is the only descriptor directory that
+  exists (`{'vvp_tests': 560}`, derived). `regress-vlg.list` entries carry **no** `iverilog-args`
+  at all, so their extension posture is purely the default one — stated in their basis now, and
+  not separable per row by any artifact in the tree.
+
+###### Acceptance Checklist (enforced) — `.13e.3` (a)
+
+- [x] **REPRODUCE / ISSUE** — `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` keyed
+  `ivtest/ivltests/real_invalid_ops.v` `must_accept / divergence:unexplained_rejects_valid` with
+  the basis *"vlg CE but golden real_invalid_ops.gold shows only post-parse errors - syntax itself
+  valid"*, while `br_gh552.v` — the same operator — was keyed `must_reject`.
+  `./rust/target/release/parseability_probe --parse systemverilog … --profile verilog_2005` →
+  `furthest_position=` L17:20, immediately before ` ~& var2`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `stimuli/sv/adjudicate_external_corpus.py`:
+  `effective_gen()`/`gen_source()` scan `iverilog-args` only for members of
+  `SV_GENS`/`V2005_GENS`, so the 11 non-generation `-g` flags across 43 descriptors are invisible;
+  and the two extensions that decide the most are **default-ON** in the vendored compiler
+  (`main.cc:109-110`), so they appear in no descriptor at all. The construct itself has no
+  derivation: IEEE 1364-2005 A.8.6 `binary_operator` (`…Annex_A…txt:954`) lists neither `~&` nor
+  `~|`. ⛔ The classifier had to be derived from what each flag's variable GUARDS —
+  `--self-test` arms 3-5 pin that a `parse.y` membership test would be wrong in both directions.
+- [x] **FIX** — declarative + instrument tier, ZERO grammar / Rust / codegen / generated bytes:
+  `EXT_LANGUAGE_AFFECTING` (producer-derived, with the guarding site named per entry),
+  `_resolve_extension_defaults()` (READS the posture from `main.cc`, 3 refusal paths),
+  `extension_posture()`/`extension_note()`/`enables_nonstandard()`, `gen_source()` extended to
+  name the posture, the `vendor_extension_enabled` guard at both compile-testimony sites, its
+  census bucket + `TICK_MEANING` in `corpus_verdict_coverage.py`, one `V2005_LRM_PINNED` entry
+  for `real_invalid_ops.v`, and the tracked census instrument.
+- [x] **ADDRESSED (verified)** — v2005 arm `match 2278 → 2279`, `unexplained 67 → 66`,
+  `rejects_valid 53 → 52`. `python3 stimuli/sv/adjudicate_external_corpus.py --self-test` →
+  **`EXTENSION-GUARD SELF-TEST: 16 passed, 0 failed`**, with the guard observed FIRING and
+  DISCRIMINATING and both compiler-drift refusals observed firing.
+  `python3 docs/tasks/artifacts/sv_corpus_grad/ivtest_extension_flags/census.py` →
+  `IVTEST-EXTENSION-CENSUS: descriptors=560 carriers=43 files=40 flags=11 language_affecting=26`.
+- [x] **NO REGRESSION** — **exactly ONE verdict moved** across both manifests
+  (`diff` on columns 1-5 vs `HEAD`): the SV lane's manifest **and** summary are
+  **byte-identical**, `accepts_invalid` is **unmoved at 14**, the lane total is unmoved at
+  **2 606**, and `SV-CORPUS-DENOMINATOR` is green with the tuple `7556/2606/6174/4366/275`
+  unchanged. `python3 stimuli/sv/run_adjudication_repros.py` →
+  `checked=191 armed=77 listed=106 failures=0`. All **26 doctrines PASS**.
+- [x] **LOCKSTEP** — this leaf + `docs/TASK_TREE.md` frontier + the regenerated v2005 manifest and
+  summary + `verdict_coverage/coverage.md` + the new tracked census artifact + the book's SV
+  corpus section + `MEMORY.md` / `CHANGES.md` / `DEVELOPMENT_NOTES.md`, this commit.
 
 ##### ⛔ `.13e.4` — `integer signed` / `integer unsigned` PARSE under `verilog_2005`, and IEEE 1364-2005 has no signing on an integer declaration (`todo`, opened 2026-08-23 by `.13e.2`)
 

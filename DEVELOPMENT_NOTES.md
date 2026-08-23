@@ -1,5 +1,50 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0285 — the classifier I would have written from the names was wrong in both directions
+
+**1. I ALMOST CLASSIFIED THE FLAGS BY WHERE THEIR NAMES APPEAR.** The question *"does this `-g`
+flag change what the language is?"* has an obvious mechanical answer — grep the flag's variable in
+`parse.y` — and it is wrong twice. `-gspecify` appears there **21 times** and `-gsupported-assertions`
+three, and every one of those sites is inside the **action body** of a rule that has already
+reduced: the flag decides what gets built, never what parses. Meanwhile `-gxtypes` appears in
+`parse.y` **zero** times and is the only one of the three that actually gates a production — it
+lives in `pform.cc:3580`, the parse-time form builder, saying *"Net data type requires SystemVerilog
+or -gxtypes."* ⇒ **a membership test over a file is a proxy for the question, and this proxy failed
+in both directions at once.** What worked was reading what each variable GUARDS. That is the
+CLAIM_VERIFICATION §3 instruction — *derive classifiers from the producer* — and it is easy to
+believe you are following it while actually grepping for a name.
+
+**2. THE DEFECT AND ITS OWN REFUTATION WERE BOTH ALREADY IN THE CORPUS.** `br_gh552.v` and
+`real_invalid_ops.v` use the same operator and carried opposite expectations, for years, in one
+tracked file. Nothing could see it because the two rows were keyed by different code paths reading
+different evidence, and neither path knew the other existed. ⭐ **A corpus large enough to contain a
+contradiction is an oracle you already own** — the useful question is not *"is this expectation
+right?"* one row at a time, but *"do any two rows disagree about the same construct?"* That is a
+mechanical query, and this repository has never run it. Worth a leaf.
+
+**3. THE DEFAULT-ON DISCOVERY IS THE ONE THAT SHOULD CHANGE HOW I READ `GN_DEFAULT`.** `.13e.1`
+resolved the default GENERATION from `compiler.h` with six refusal paths — careful, derived, right.
+And then treated *"the default generation is `-g2005`"* as *"the row compiles as plain IEEE
+1364-2005"*, which does not follow: `main.cc:109-110` switches two non-standard extensions on before
+any file is read. ⇒ **a derived value can be correct and still not answer the question it was
+derived for.** The refusal paths guarded the derivation; nothing guarded the inference. That is a
+different kind of gap from staleness and no identity block catches it.
+
+**4. A GUARD THAT FIRES ON NOTHING IS A CLAIM UNTIL IT HAS BEEN SEEN FIRING.** The
+vendor-extension guard protects against a class this session found twice, and it matches **zero**
+tracked rows — because the one row that would trip it is already pinned by clause cite, and pins
+run first. Shipping it green would have been indistinguishable from shipping it broken. The
+`--self-test` drives it with synthetic descriptors and asserts BOTH directions (it fires; the same
+row without the flag still keys `must_accept`), plus two refusals proven to fire when the vendored
+compiler moves. ⭐ The discriminating arm is the one that matters: a guard that refuses everything
+would have passed the firing arm alone.
+
+**5. THE COARSE FILTER WAS 10/11 WRONG AND THAT IS THE NORMAL CASE.** A text scan of the 53
+remaining rejects-valid rows for the two extensions' constructs produced 11 candidates; the parser
+put exactly one of them on the extension. Had I published the 11 as *"candidates"* the number would
+have been read as a finding. ⇒ **a filter's output is an input to measurement, never a result** —
+the same lesson `.13e.2` learned from filenames, one layer down.
+
 ## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0284 — the filename is a hypothesis, and I nearly shipped it as a finding
 
 **1. THE CLUSTERS I WAS HANDED WERE WRONG, AND THEY WERE WRONG IN THE CONFIDENT DIRECTION.** The

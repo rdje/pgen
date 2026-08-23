@@ -119,6 +119,9 @@ CLASSES = {
         "NO VERDICT", "Verilog-AMS, a different language family"),
     "deferred:ni_unimplemented": (
         "NO VERDICT", "upstream marks the construct not-implemented"),
+    "deferred:vendor_extension_enabled": (
+        "NO VERDICT", "the descriptor switches a NON-STANDARD vendor extension ON, so "
+        "'it compiled' is testimony about a superset language (SV-CORPUS-GRAD.13e.3)"),
 }
 BUCKETS = ["ADJUDICATED", "ROUTED", "NO VERDICT"]
 
@@ -146,6 +149,13 @@ TICK_MEANING = {
         "information only — the label is about the DIALECT (Verilog-AMS), not directives",
     "deferred:ni_unimplemented":
         "information only — upstream marks the construct not-implemented",
+    "deferred:vendor_extension_enabled":
+        "⛔ **IRRELEVANT to this deferral, and saying so is the point** — the row is "
+        "parked because of what the ANSWER KEY tested, never because of what the TEXT "
+        "needs. A backtick census measures the text; it cannot make a compile under "
+        "`-gxtypes` into testimony about IEEE 1364-2005. The disposition these rows "
+        "need is a per-file LRM adjudication with a clause cite, exactly like the "
+        "`V2005_LRM_PINNED` rows that already carry one",
 }
 
 # Total classification, asserted at import: a NO-VERDICT class added to CLASSES without
