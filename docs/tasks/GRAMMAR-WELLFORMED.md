@@ -4614,10 +4614,27 @@ byte-identical to the corpus this leaf scored — recorded as RED 7 in `red_cont
 leaf's shape. `--directed-generation-goal duality_break` (`STIMULI-SIGNOFF.4.4`, goal G2) already
 *"hunts generator-emitted-but-parser-REJECTED samples against the real generated parser"*, steers
 generation ADVERSARIALLY toward new rejection signatures, and shrinks each break to a minimal
-signature-preserving reproducer. It is strictly stronger than the blind own-corpus sampling
-`H.16.6c`–`H.16.6e` used — it scores against the **shipped parser**, not the interpreter, and it
-searches rather than samples — and it costs **~4 s per family for 1 000 samples, ~16 s for 4 000**.
-⇒ this leaf is wiring an existing instrument into a tier, not building a new one.
+signature-preserving reproducer. ⇒ this leaf is wiring an existing instrument into a tier, not
+building a new one.
+
+⛔ **AND THE FIRST VERSION OF THIS PARAGRAPH OVERSOLD IT ON BOTH AXES — CORRECTED IN PLACE, under a
+director challenge, from measurement rather than re-reading.**
+
+- *"strictly stronger"* → **stronger in ONE respect, not uniformly.** What is verified: the rejection
+  oracle is the SHIPPED generated parser, not the interpreter — `rust/src/main.rs:3094` refuses the
+  goal without `--features generated_parsers` because *"the real generated parser is the rejection
+  oracle"*. What is REFUTED by this leaf's own census: the adversarial steering does not always beat
+  undirected sampling. On `regex` the DIRECTED arm found **9/1000** where the DIVERSE baseline found
+  **11/1000** — the baseline out-found the search. (On `ebnf` it goes the other way, 176 vs 141.)
+  ⇒ a wired gate must read BOTH arms, never the directed one alone.
+- *"~100× cheaper"* (published in layer A) → **REFUTED: it is ~3.4×.** Measured on an equal sample
+  count, `semantic_annotation`, 1 000 samples: `duality_break` **4.41 s** covering generation AND
+  scoring, versus **14.83 s** for `score_corpus.py` scoring alone with generation extra. The
+  multiplier was reasoned, not measured, and it was wrong in the direction that flattered the
+  finding — the same failure this tree already recorded once (`.32`'s honest bound). The absolute
+  figures below ARE measured.
+- Measured cost, which is what the wiring should be priced on: **~4.4 s per family for 1 000 samples,
+  ~16 s for 4 000.**
 
 ⭐ It also gives `H.16.6e` a THIRD independent confirmation from a code path that leaf did not touch:
 `semantic_annotation` reads **`directed rejected 0/4000 unique_breaks=0`** against the shipped parser.
@@ -4629,7 +4646,7 @@ tracked beside this leaf in `artifacts/grammar_wellformed/self_rejection_watch/`
 |---|---|---|---|---|
 | `json` | 0/1000 | 0/1000 | 0 | clean |
 | `regex` | **9/1000** | 11/1000 | 1 | ⚠️ self-rejects |
-| `ebnf` | **176/1000** | 141/1000 | 1 | ⚠️ self-rejects — **17.6 %** |
+| `ebnf` | **176/1000** | 141/1000 | 1 | ⚠️ self-rejects — see the seed bound below |
 | `return_annotation` | 0/1000 | 0/1000 | 0 | clean |
 | `semantic_annotation` | 0/1000 | 0/1000 | 0 | clean |
 | `vhdl` | 0/1000 | 0/1000 | 0 | clean |
@@ -4647,6 +4664,12 @@ shape, in the one instrument this leaf was about to promote to a gate. ⇒ the w
 sample COUNT beside every verdict and refuse a zero-sample row; the sweep script already does, and
 that requirement is now part of this leaf's acceptance. The generation failure itself is routed to
 **`H.23`**, not fixed here.
+
+⭐ **THE `ebnf` ROW IS BOUNDED, NOT QUOTED (re-derived under a director challenge).** `176/1000` is
+deterministic at seed 0 — two identical runs — and the phenomenon reproduces across GENERATION seeds:
+`seed 7 → 148/1000`, `seed 42 → 157/1000`. ⇒ the honest statement is **a ~15 % rate, 148–176 per
+1 000 depending on seed**, and the single figure "17.6 %" is a seed-0 sample, not the rate. Recorded
+because the first publication quoted the sample as though it were the rate.
 
 ⚠️ **ADJUDICATION THIS LEAF OWES BEFORE THE `ebnf` AND `regex` ROWS ARE CALLED FINDINGS.** They are
 MEASURED at HEAD; whether they are already owned under a different instrument's name — the regex
@@ -5789,9 +5812,11 @@ owning leaf, and `H.20.1` lowers the ceiling when it lands.
   'primary_expr'` and writes **no output file at all**. `rtl_const_expr` is a registered family with
   a shipped `generated/rtl_const_expr_parser.rs`, and the DONE-BAR register carries it as
   `Mostly Done`.
-- ⛔⛔ **AND THE FAILURE IS REPORTED IN THE PASSING DIRECTION.** The duality-break hunter on the same
-  grammar prints `directed rejected 0/0 unique_breaks=0 vs diverse baseline rejected 0/0`, which in
-  a table of families reads exactly like the clean rows beside it. A reader — or a gate — cannot
+- ⛔⛔ **AND THE FAILURE IS REPORTED IN THE PASSING DIRECTION — AT THE EXIT CODE, not merely in the
+  text.** Plain generation exits **rc 1**; the duality-break hunter on the same grammar exits **rc 0**
+  and prints `directed rejected 0/0 unique_breaks=0 vs diverse baseline rejected 0/0`, which in
+  a table of families reads exactly like the clean rows beside it. A wrapper that trusts the exit
+  code — which is what a gate does — sees a pass. A reader — or a gate — cannot
   tell "nothing was rejected" from "nothing was generated". This is the
   [[a-control-that-cannot-fail-is-not-a-control]] shape inside a shipped instrument.
 - **TWO SEPARABLE DEFECTS, and they should not be fixed together**: (a) the grammar or the depth

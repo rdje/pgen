@@ -5,10 +5,20 @@
 # ⭐ PRIOR ART, found before anything was designed (`feedback_read_prior_art_before_designing`):
 # `--directed-generation-goal duality_break` (STIMULI-SIGNOFF.4.4, goal G2) already hunts
 # "generator-emitted-but-parser-REJECTED samples against the real generated parser", steers
-# generation ADVERSARIALLY toward new rejection signatures, and shrinks each break. It is
-# strictly stronger than the blind own-corpus sampling H.16.6c–H.16.6e used, it scores against
-# the SHIPPED parser rather than the interpreter, and it is fast: 1 000 samples per family in
-# ~4 s, 4 000 in ~16 s. ⇒ this leaf is WIRING, and the wiring is even cheaper than it looked.
+# generation ADVERSARIALLY toward new rejection signatures, and shrinks each break.
+# ⇒ this leaf is WIRING, not design.
+#
+# ⛔ CORRECTED under a director challenge, from measurement rather than re-reading. The first
+# version of this header called the instrument "strictly stronger" and "~100x cheaper".
+#   VERIFIED : the rejection oracle IS the SHIPPED generated parser, not the interpreter
+#              (rust/src/main.rs:3094 refuses the goal without --features generated_parsers,
+#              "the real generated parser is the rejection oracle").
+#   REFUTED  : the adversarial steering does NOT always beat undirected sampling — on `regex`
+#              the DIRECTED arm finds 9/1000 where the DIVERSE baseline finds 11/1000 (on
+#              `ebnf` it goes the other way, 176 vs 141) ⇒ a gate must read BOTH arms.
+#   MEASURED : equal sample count, semantic_annotation, 1 000 samples — duality_break 4.41 s
+#              covering generation AND scoring, vs 14.83 s for score_corpus.py scoring alone
+#              with generation extra ⇒ ~3.4x, NOT ~100x. Absolute cost: ~4.4 s / 1 000 samples.
 #
 # ⛔ A `0/0` ROW IS NOT A PASS. `rtl_const_expr` reports `rejected 0/0 unique_breaks=0`, which
 # reads as clean; plain generation on that grammar exits with

@@ -1,5 +1,41 @@
 # CHANGES.md
 
+## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0184 (leaf GRAMMAR-WELLFORMED.H.16.6f — the findings callout re-checked under a director challenge; doc+artifact tier, ZERO code bytes): two of the five findings survive unchanged, one survived and got sharper, and the fourth was oversold on both axes
+
+- **THE CHALLENGE**: the director asked whether I still stand by the five findings published with
+  `-0182`/`-0183`. Re-derived BY COMMAND, not by re-reading — a re-read repeats its own blind spot.
+- ✅ **F1 `ebnf` self-rejection STANDS, and is now bounded rather than quoted.** `176/1000` is
+  deterministic at seed 0 (two identical runs) and the phenomenon reproduces across generation seeds
+  — `seed 7 → 148/1000`, `seed 42 → 157/1000`. ⇒ the honest statement is **a ~15 % rate, 148–176 per
+  1 000 depending on seed**, not the single figure 17.6 %. ⚠️ Still NOT adjudicated against existing
+  ownership; that remains owed.
+- ✅ **F2 `rtl_const_expr` STANDS, and is sharper than published.** Plain generation exits **rc 1**
+  with **no output file**; the hunter on the same grammar exits **rc 0** printing
+  `rejected 0/0 unique_breaks=0`. The failure is in the passing direction at the EXIT CODE, not only
+  in the text a reader might skim.
+- ✅ **F3 `13e866c8` fails its own doctrine — STANDS, with the control that was missing.** In a
+  detached worktree that commit fails `KNOWLEDGE-MAP` (rc 1) and HEAD passes (rc 0) in the SAME
+  environment. ⛔ The full driver ALSO reports `PARSE-COST-RATCHET` failing there — and that one is
+  **my measurement environment, not the commit**: a fresh worktree of HEAD fails it identically,
+  because `generated/` is untracked. Reporting it would have been a fabricated second finding.
+- ⛔⛔ **F4 WAS OVERSOLD ON BOTH AXES — CORRECTED IN PLACE.**
+  - *"~100× cheaper"* (layer A) is **REFUTED: it is ~3.4×.** Equal 1 000-sample count on
+    `semantic_annotation`: `duality_break` **4.41 s** covering generation AND scoring, versus
+    **14.83 s** for `score_corpus.py` scoring alone with generation extra. The multiplier was
+    REASONED, NOT MEASURED, and wrong in the direction that flattered the finding. ⭐ This repo has
+    recorded that exact failure before — `CI-PARITY-GATE-ROT.32`'s honest bound — which is why
+    re-reading can never catch it and a command must.
+  - *"strictly stronger"* holds for the ORACLE and **not for the SEARCH**. Verified from the binary's
+    own refusal (`rust/src/main.rs:3094`, *"the real generated parser is the rejection oracle"*).
+    Refuted by this leaf's own census, whose evidence was already on the page when I wrote the claim:
+    on `regex` the DIRECTED arm finds **9/1000** where the DIVERSE baseline finds **11/1000** ⇒ a
+    wired gate must read BOTH arms.
+- ✅ **F5 STANDS** — the tracked `reverify:` reproduces the two-arm control exactly (direct redirect
+  4/4/4 with `cat`'s guard firing; piped 4/8/4-or-8, silent and racy).
+- **What survives is the part the leaf turns on**: the instrument exists and is engine-universal, its
+  oracle is the shipped parser, its measured cost is ~4.4 s per family per 1 000 samples, and the
+  census reproduces byte-for-byte. `H.16.6f` is still WIRING.
+
 ## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0183 (leaf GRAMMAR-WELLFORMED.H.16.6f PRIOR ART + census; H.23 opened; doc+artifact tier, ZERO code bytes): the watch this leaf was about to build already exists, and one of its rows is a hard failure wearing a clean verdict
 
 - ⭐⭐⭐ **PRIOR ART, searched before designing.** `--directed-generation-goal duality_break`

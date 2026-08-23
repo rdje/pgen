@@ -1,0 +1,46 @@
+GRAMMAR-WELLFORMED.H.16.6f — THE TWO CLAIMS I PUBLISHED ABOUT THE INSTRUMENT, RE-CHECKED
+=========================================================================================
+
+`-0183` published that `--directed-generation-goal duality_break` is *"strictly stronger"* than the
+own-corpus sampling `H.16.6c`–`H.16.6e` used, and (in layer A) *"~100× cheaper"*. The director
+challenged the findings callout. Both halves were re-derived BY MEASUREMENT rather than by
+re-reading, because a re-read repeats its own blind spot.
+
+CLAIM 1 — "it scores against the SHIPPED parser, not the interpreter"          ✅ VERIFIED
+  Not from the CLI docstring (which is the author's own description) but from the refusal the
+  binary itself carries:
+    rust/src/main.rs:3094
+      "goal duality_break needs --features generated_parsers
+       (the real generated parser is the rejection oracle)"
+    rust/src/main.rs:3120
+      "goal duality_break: grammar '{}' has no registered generated parser to hunt against"
+  ⇒ the oracle is the shipped artifact. This half stands.
+
+CLAIM 2 — "strictly stronger"                                                  ⛔ REFUTED as stated
+  The adversarial steering does NOT always beat undirected sampling. From this leaf's OWN census —
+  the evidence was already on the page when the claim was written:
+      regex   directed  9/1000   diverse baseline 11/1000   <- the BASELINE out-found the search
+      ebnf    directed 176/1000  diverse baseline 141/1000   <- here the search wins
+  ⇒ "stronger" is true of the ORACLE, not of the SEARCH. A wired gate must read BOTH arms; reading
+  the directed arm alone would have under-reported regex by 2 rows.
+
+CLAIM 3 — "~100× cheaper"                                                      ⛔ REFUTED: ~3.4×
+  Equal sample count, same grammar (`semantic_annotation`), 1 000 samples:
+      duality_break                              4.41 s   (generation AND scoring)
+      score_corpus.py over a 999-row own corpus 14.83 s   (scoring ALONE; generation extra)
+  ⇒ ~3.4×, and the honest reading is generous to the instrument because its 4.41 s includes the
+  generation the other number excludes. The multiplier was REASONED, NOT MEASURED, and it was wrong
+  in the direction that flattered the finding.
+  ⭐ This repo has recorded this exact failure before: `CI-PARITY-GATE-ROT.32`'s "honest bound" was
+  also reasoned rather than measured and also false in the flattering-to-my-caution direction —
+  which is why re-reading can never catch it and a command must.
+
+WHAT SURVIVES, and it is the part the leaf actually turns on
+  · The instrument EXISTS and is engine-universal — the leaf is WIRING, not design.        ✅
+  · Its oracle is the shipped parser.                                                      ✅
+  · Absolute measured cost: ~4.4 s per family per 1 000 samples, ~16 s per 4 000.          ✅
+  · The census reproduces byte-for-byte across runs and the phenomenon across seeds:
+      ebnf seed 0 -> 176/1000 (twice, identical) · seed 7 -> 148/1000 · seed 42 -> 157/1000 ✅
+  · `rtl_const_expr` generation exits rc 1 with NO output file, while the hunter exits rc 0
+    printing `0/0 unique_breaks=0` — the failure is in the passing direction at the EXIT CODE,
+    not merely in the text.                                                                ✅
