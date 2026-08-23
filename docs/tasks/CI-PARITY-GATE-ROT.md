@@ -2670,7 +2670,7 @@ was ever justified before paying to make the environment match it.
   orphan gate, because it manufactures evidence. Worth asking whether any other
   `*_on_*_change.sh`-style conditional flow keys on git for an artifact git cannot see.
 
-### ⚠️ `.43` NEW `todo` — **the clippy-on-rust-change detector CANNOT SEE a generated-parser change, and a PURE GRAMMAR CHANGE — the very thing that regenerates a parser — skips the clippy flow entirely** (opened 2026-08-22 session #256 by `GRAMMAR-WELLFORMED.H.17.1`, which hit it while regenerating two parsers)
+### ✅ `.43` **SLICE 1 `done`** — **the clippy-on-rust-change detector CANNOT SEE a generated-parser change, and a PURE GRAMMAR CHANGE — the very thing that regenerates a parser — skips the clippy flow entirely** (opened 2026-08-22 session #256 by `GRAMMAR-WELLFORMED.H.17.1`, which hit it while regenerating two parsers; **UNPARKED AND WORKED 2026-08-23 session #259 BY DIRECT DIRECTOR ORDER** — *"do not just log or note issue, task-tree own them and later act on it … any issue you see must be task-tree owned and act upon"*; `PGEN-CI-PARITY-GATE-ROT-0033`)
 
 - **THE DEFECT.** `COMMIT.md` step 2 requires the clippy flow *"when Rust/**generated Rust** files are
   amended"*. On `-0161` — a commit that regenerated `generated/ebnf.rs` **and**
@@ -2712,9 +2712,120 @@ was ever justified before paying to make the environment match it.
   which is the same shape `GENERATED-REPRODUCIBILITY` already uses. ⛔ Do not simply add the glob and
   call it fixed: the lesson is that a pattern list nobody can see fire is indistinguishable from one
   that works, so whatever lands must be proven to go RED on a grammar-only change.
-- ⛔ **SCHEDULE**: governance/flow ⇒ **parked by the SV lane lock**; blocks no SV release claim.
-  Trigger: the next flow slice worked after the lock lifts, or sooner if a codegen change lands
-  without a hand-run of the correctness gate.
+- ⛔ **SCHEDULE (SUPERSEDED 2026-08-23).** Was: *governance/flow ⇒ parked by the SV lane lock; trigger:
+  the next flow slice after the lock lifts.* The director's 2026-08-23 order overrides the park —
+  a noted-but-unowned finding is the thing being corrected, and this leaf is the owner.
+
+#### ⛔⛔ THE FINDING THAT MADE THIS URGENT: **ONE MISSING TRIGGER, LOGGED THREE TIMES BY THREE LANES, FIXED ZERO TIMES**
+
+Before writing a line of code, the population was counted. **Three separate `todo` leaves, opened by
+three different lanes over fourteen days, all owe the same trigger** — and each was measured
+independently, so none is a copy of another:
+
+| leaf | opened | lane | what it needs the trigger for |
+| --- | --- | --- | --- |
+| `GENERATED-LINT-CORRECTNESS.11` | 2026-08-09 | `SV-CORPUS-GRAD.3.14b` | run the generated-lint flow on a grammar-only commit |
+| **`.43`** (this leaf) | 2026-08-22 | `GRAMMAR-WELLFORMED.H.17.1` | the same, re-found **13 days later** with no memory of the first |
+| `GRAMMAR-WELLFORMED.H.20.2` | 2026-08-23 | `GRAMMAR-WELLFORMED.H.20` | run the ENVELOPE RATCHET on a grammar-only commit |
+
+⭐⭐ **The re-finding is the evidence, not the anecdote.** `GENERATED-LINT-CORRECTNESS.11` records the
+defect reproduced **four** times (`3.14b` 2026-08-09, `11a` 2026-08-10, `13c.2d`/`.2f` 2026-08-17,
+`H.17.1` 2026-08-22) and this slice's own BEFORE arm makes **five**. A finding that is logged, owned
+and re-measured five times without being fixed is not tracked work — it is a well-documented leak.
+⇒ [[feedback_every_finding_is_owned_and_scheduled_never_just_logged]] is satisfied by all three leaves
+and was still not enough, because **all three scheduled themselves behind the same lock**. The
+structural repair is not a fourth leaf: it is ONE predicate with ONE definition and named consumers,
+so the next lane that needs it *wires a consumer* instead of *opening a leaf*.
+
+⛔ **A fourth leaf was deliberately NOT opened** for the director's "one shared trigger" observation.
+This leaf is the pre-existing owner with the sharpest measurement, so the work lands here and `.11` /
+`H.20.2` record it as discharged rather than each growing their own copy.
+
+#### BEFORE ARM — the defect reproduces at HEAD (fifth measurement)
+
+`grammars/json.ebnf` modified in the working tree, nothing else:
+
+```text
+$ git status --short -- grammars/
+ M grammars/json.ebnf
+$ (cd rust && ./scripts/clippy_on_rust_change.sh)
+No Rust/generated Rust changes detected; skipping clippy flow.
+```
+
+⛔ Exit 0. A grammar edit — the one class of change that regenerates parsers — is invisible.
+
+#### COST, MEASURED, WITH AN HONEST BOUND ON THE MEASUREMENT
+
+⚠️ `cargo clippy --all-targets` fully warm reads **0.44 s** (`real 0m0.435s`). **That number is a FLOOR
+and must not be quoted as the cost of this change**: it is a fully-cached run, and the commit class
+this trigger newly catches is precisely the one that has just regenerated a 130 MB parser, so the real
+run pays a compile the cached run does not. ⭐ The tier decision does not depend on closing that gap:
+`clippy_on_rust_change.sh` is invoked **only** by `make -C rust clippy_on_rust_change` from `COMMIT.md`
+step 2 — `grep -c clippy_on_rust_change .githooks/pre-commit scripts/check_doctrines.sh` = **0 / 0** —
+so it adds **zero** pre-commit-hook latency, and the compile it triggers is work a regenerating commit
+already owes. That satisfies the director's CI policy (ordinary commits get a selected set of checks;
+full CI before push) without needing the unmeasured number.
+
+#### THE FIX — ONE PREDICATE, ONE DEFINITION, NAMED CONSUMERS
+
+`rust/scripts/lib/codegen_input_change.sh` (new) is the single definition of *"this change set touches
+a codegen INPUT"*. It keys on the **tracked input** `grammars/*.ebnf` that PRODUCES generated Rust,
+never on the gitignored output that cannot be observed. `clippy_on_rust_change.sh` sources it and is
+consumer 1. ⛔ Its header states the rule that keeps this from recurring: **a new consumer wires itself
+to the library; it does not re-derive the globs.**
+
+⚠️ `generated/*.rs` is **RETAINED, not relied on**, with a comment saying so. Deleting it would drop the
+`git add -f` edge case; keeping it silently would leave a branch that reads as coverage and cannot
+fire. It is now explicitly labelled as neither.
+
+#### ARM MATRIX — the acceptance `.43` demanded ("do not simply add the glob and call it fixed")
+
+| arm | state | required | measured |
+| --- | --- | --- | --- |
+| **BEFORE** | grammar-only edit, pre-fix | must NOT fire (the defect) | `No Rust/generated Rust changes detected; skipping clippy flow.` exit 0 ✅ |
+| **AFTER** | grammar-only edit, post-fix | MUST fire | `Running clippy flow (Rust files amended/generated detected).` → `clippy_source_all_targets ok` → `generated_clippy_correctness_policy` ✅ |
+| **CONTROL** | grammar-only edit, predicate deliberately broken (glob → `grammars/NEVER-MATCHES.xyz`) | must go INERT again | `No Rust/generated Rust changes detected` ✅ |
+| **GREEN** | clean tree, no grammar change | must NOT fire | `No Rust/generated Rust changes detected` ✅ |
+
+⭐ **The CONTROL arm is the one that matters** and is why this is not "added a glob": a check that fires
+on everything passes every RED arm. Breaking the predicate on purpose is the only way to show the AFTER
+arm was caused by the fix rather than by something else in the tree
+([[feedback_an_ops_change_is_proven_by_an_arm_matrix_not_by_its_diff]]).
+
+#### SCOPE OF SLICE 1, AND WHAT IS STILL OWED
+
+- ✅ **Consumer 1 wired** — `clippy_on_rust_change.sh`. This discharges the trigger half of
+  **`GENERATED-LINT-CORRECTNESS.11`** and this leaf's own primary OWED item.
+- ⛔ **Consumer 2 NOT wired — owned by `GRAMMAR-WELLFORMED.H.20.2`**, which now has a predicate to wire
+  instead of a design to invent. Deliberately held back rather than ridden along: it needs a new make
+  target, and `GATE-REACHABILITY` requires every tracked target be invoked by something that RUNS, so
+  it is its own slice with its own reachability proof.
+- ⛔ **Hole 1 (the unreachable `generated/*.rs` branch) NOT closed — slice 2.** The stronger fix
+  `.43` names is a content hash of `generated/` against the last-linted state, the shape
+  `GENERATED-REPRODUCIBILITY` already uses. Retained-and-labelled is an honest interim, not a fix.
+- ⚠️ **The cost number is a FLOOR, not the cost** (see above). Re-measure a post-regeneration clippy
+  before anyone quotes a budget for this trigger.
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: a pure grammar edit regenerates parsers and was invisible to
+  the flow's trigger; measured five times across three lanes. WHERE:
+  `rust/scripts/clippy_on_rust_change.sh:46-63` matched a fixed pattern list in which
+  `grammars/*.ebnf` was absent and `generated/*.rs` was unreachable, because `generated/` is gitignored
+  (`.gitignore:24`) so `git ls-files --others --exclude-standard` drops it. Signatures, ops/build-flow
+  family: `git ls-files --others --exclude-standard | grep -c '^generated/'` = **0**;
+  `git diff --name-only` / `git diff --cached --name-only` are the flow's other two sources;
+  `grep -c clippy_on_rust_change .githooks/pre-commit scripts/check_doctrines.sh` = **0 / 0** proves the
+  flow is operator-invoked, which is what makes the tier decision safe; `bash -n` clean on both edited
+  scripts.
+- [x] **ADDRESSED (verified)** — before → after on the symptom, same input (a grammar-only edit):
+  `No Rust/generated Rust changes detected; skipping clippy flow.` → `Running clippy flow …` with
+  `clippy_source_all_targets` **ok**. Proven live by a CONTROL arm that breaks the predicate and
+  restores the old behaviour, and bounded by a GREEN arm that stays quiet on a clean tree.
+- [x] **NO REGRESSION** — the GREEN arm shows an unrelated change set still does not trigger the flow,
+  so the widening is exactly one class. ⛔ ZERO grammar bytes, ZERO generated bytes, ZERO codegen
+  bytes: `git diff HEAD --stat -- grammars/` is empty and `grammars/json.ebnf` is byte-identical after
+  both scratch arms (`git status --short -- grammars/` clean). No `.rs` file is touched, so no
+  generated artifact and no parser can move; `cargo clippy --all-targets` itself was run by the AFTER
+  arm and reported **ok**. `scripts/check_doctrines.sh` re-run on the staged diff.
 
 ## Evidence
 

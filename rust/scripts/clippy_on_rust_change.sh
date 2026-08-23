@@ -39,6 +39,9 @@ run_stage() {
     return 1
 }
 
+# CI-PARITY-GATE-ROT.43 — the SHARED codegen-input predicate (one definition, named consumers).
+. "$ROOT_DIR/rust/scripts/lib/codegen_input_change.sh"
+
 should_run=0
 if [[ "$FORCE_RUN" -eq 1 ]]; then
     should_run=1
@@ -51,10 +54,25 @@ else
         } | awk 'NF' | sort -u
     )
 
+    # CI-PARITY-GATE-ROT.43 slice 1 — the CODEGEN-INPUT trigger, from the ONE shared definition.
+    # A pure grammar edit is exactly what regenerates a parser, and it was invisible here: the
+    # `generated/*.rs` pattern below CANNOT fire (generated/ is gitignored, so an untracked scan
+    # drops it), so the branch that looked like coverage was unreachable and a grammar-only commit
+    # skipped the flow at exit 0. Measured five times across three lanes before it was fixed.
+    # ⛔ Add new codegen inputs to rust/scripts/lib/codegen_input_change.sh, NOT to the list below.
+    if [[ "$should_run" -ne 1 ]] && pgen_codegen_input_changed "$ROOT_DIR"; then
+        should_run=1
+    fi
+
     for path in "${changed_paths[@]}"; do
         # Rust/generated Rust, the manifests, and — since GENERATED-LINT-CORRECTNESS.3 — the two
         # files that GOVERN the generated-parser correctness policy. A change to the pinned lint
         # roster or to the gate that enforces it must re-verify, exactly as a code change does.
+        # ⚠️ `generated/*.rs` is RETAINED, not relied on: it can only fire via a deliberate
+        # `git add -f`, which COMMIT.md forbids ("never `git add generated/…`"). It is kept because
+        # removing it would drop that edge case, NOT because it provides coverage — the coverage is
+        # the codegen-input check above. Replacing it with a content hash of generated/ against the
+        # last-linted state is still OWED (CI-PARITY-GATE-ROT.43 hole 1, slice 2).
         if [[ "$path" == rust/*.rs \
            || "$path" == generated/*.rs \
            || "$path" == rust/Cargo.toml \

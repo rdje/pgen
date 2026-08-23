@@ -4662,10 +4662,18 @@ owning leaf, and `H.20.1` lowers the ceiling when it lands.
 - ⭐ **AND IT IS CHEAP**: measured at **35 s** wall-clock warm / peak tree RSS **2 070 MB** — well
   inside the ordinary-commit tier that `CI policy` (director, 2026-08-15) reserves for "a selected set
   of checks that makes sure the main functionalities still well-behave". The obstacle is not cost.
-- **SCOPE**: decide the trigger, not just the tier — the natural one is *any commit touching
-  `grammars/*.ebnf`*, which is exactly the trigger class `GENERATED-LINT-CORRECTNESS.11` already found
-  missing for clippy (`generated/` is gitignored and `grammars/*.ebnf` is in no trigger set). ⇒ check
-  whether the two want ONE shared grammar-touch trigger rather than two.
+- ✅ **THE SHARED TRIGGER NOW EXISTS — WIRE A CONSUMER, DO NOT DESIGN ONE** (`CI-PARITY-GATE-ROT.43`
+  slice 1, `PGEN-CI-PARITY-GATE-ROT-0033`, 2026-08-23). `rust/scripts/lib/codegen_input_change.sh` is
+  the single definition of *"this change set touches a codegen input"*, proven by a four-arm matrix
+  (BEFORE / AFTER / CONTROL / GREEN). `clippy_on_rust_change.sh` is consumer 1. **This leaf owns
+  consumer 2** — running the envelope ratchet on a codegen-input change.
+- ⛔ **IT WAS HELD BACK ON PURPOSE, not forgotten**: consumer 2 needs a new make target, and
+  `GATE-REACHABILITY` requires every tracked target be invoked by something that RUNS, so it owes its
+  own reachability proof and must not ride along inside another slice.
+- ⛔⛔ **THE CONVERGENCE IS THE REAL FINDING**: this leaf, `GENERATED-LINT-CORRECTNESS.11` and
+  `CI-PARITY-GATE-ROT.43` all needed the SAME trigger, opened by three lanes over fourteen days, while
+  the underlying defect reproduced FIVE times. Logged + owned + scheduled was not enough, because all
+  three scheduled behind one lock. ⇒ the structural repair was one predicate with named consumers.
 - ⚠️ **NOT a duplicate of `CI-PARITY-GATE-ROT`'s hosted-workflow rows**: those concern the eleven
   `workflow_dispatch`-only hosted workflows (a deliberate Actions-minutes policy). This is about the
   LOCAL auto tier, where the policy does not apply and the cost is 35 s.

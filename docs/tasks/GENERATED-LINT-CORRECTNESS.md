@@ -1435,7 +1435,11 @@ the RED-W2 arm is what turned a latent hazard into a measured one.
 - **Verification:** `pending`.
 - **Commit:** `pending`.
 
-### `.11` — ⛔ `clippy_on_rust_change` CANNOT FIRE on a grammar-only commit, which is exactly when new generated code appears (`todo`, routed by `SV-CORPUS-GRAD.3.14b` 2026-08-09)
+### `.11` — ⛔ `clippy_on_rust_change` CANNOT FIRE on a grammar-only commit, which is exactly when new generated code appears (**TRIGGER HALF ✅ DISCHARGED 2026-08-23 by `CI-PARITY-GATE-ROT.43` slice 1, `PGEN-CI-PARITY-GATE-ROT-0033`**; routed by `SV-CORPUS-GRAD.3.14b` 2026-08-09)
+
+- ✅ **THE TRIGGER THIS LEAF ASKED FOR EXISTS.** `.11`'s OWED read *"add `grammars/*.ebnf` (and the codegen inputs) to the trigger set … proven by a control that a grammar-only edit now runs the flow"*. That landed as a SHARED predicate — `rust/scripts/lib/codegen_input_change.sh` — with a four-arm matrix including a CONTROL that breaks the predicate and restores the old behaviour. Measured before → after on a grammar-only edit: `No Rust/generated Rust changes detected` → `Running clippy flow … clippy_source_all_targets ok`.
+- ⛔⛔ **WHY IT WAS FIXED THERE AND NOT HERE, and the lesson this leaf should carry**: the SAME missing trigger was logged by THREE leaves over fourteen days — this one (2026-08-09), `CI-PARITY-GATE-ROT.43` (2026-08-22) and `GRAMMAR-WELLFORMED.H.20.2` (2026-08-23) — and the defect reproduced FIVE times, because each lane logged it against its own gate and all three scheduled themselves behind the same lane lock. ⭐ Being logged, owned AND scheduled was not sufficient; what was missing was a single owner for the shared predicate. A fourth leaf was deliberately not opened.
+- ⛔ **STILL OPEN HERE**: the `--force` posture this leaf recorded as the interim is now unnecessary for the grammar-only class, but hole 1 (the unreachable `generated/*.rs` branch, retained-and-labelled rather than replaced by a content hash) is `CI-PARITY-GATE-ROT.43` slice 2. This leaf's *cross-check owed at fix time* — whether other gates that enumerate changed paths share the ignored-path blindness — is **not** discharged and remains this leaf's.
 
 - **Status: `todo`** — parked, not worked: this is a governance/gate finding and it does **not**
   block the SV release lane ([[feedback_flow_findings_are_routed_not_worked]],
