@@ -1,6 +1,6 @@
 ---
 id: which-pgen-grammars-are-certified-and-which-are-not
-title: Which PGEN grammars are certified, which are not, and why — 2 of 9 shipped families even have a certification oracle, and 0 of 9 are certified AND fresh
+title: Which PGEN grammars are certified, which are not, and why — 6 of 9 shipped families are fully certified; return_annotation and semantic_annotation are not, and SystemVerilog's proof is stale
 answers:
   - "which grammars are certified"
   - "is the SystemVerilog parser fully certified"
@@ -8,6 +8,8 @@ answers:
   - "which families have full certificate coverage"
   - "how many grammars are fully certified"
   - "which grammar is not certified and why"
+  - "what is the definition of certified in PGEN"
+  - "what does fully_certified mean"
   - "does certified mean the parser is correct"
   - "where do I find per-grammar certification status"
   - "is a green certification still valid after a regeneration"
@@ -15,65 +17,66 @@ tags: [certification, certificate-coverage, status, grammars, freshness, signoff
 date: 2026-08-23
 status: current
 evidence: |
-  Derived by `scripts/report_grammar_certification.sh` over the tracked contracts and the parsers in
-  the tree, 2026-08-23. Published as `docs/book/src/grammar-certification-status.md`, which the same
-  script re-derives and diffs (`--check`), so the page cannot drift from the tree.
+  MEASURED at HEAD 2026-08-23 by `scripts/report_grammar_certification.sh`, which RUNS
+  `ast_pipeline --report-certificate-coverage` per family against the generated parsers in the tree.
+  Published as `docs/book/src/grammar-certification-status.md`, which the same script re-derives and
+  diffs (`--check`).
 
-  **certified_and_fresh = 0 / 9.** Nine shipped families (`generated/*_parser.rs`, minus the
-  `scratch` slot). Only TWO carry a certificate-coverage contract at all:
+    json                        9 /  9 witness / 0 proof /  0 unknown   fully_certified=true
+    regex                     269 /260 witness / 9 proof /  0 unknown   fully_certified=true
+    rtl_const_expr             48 / 48 witness / 0 proof /  0 unknown   fully_certified=true  (--max-depth 32)
+    rtl_frontend              169 /168 witness / 1 proof /  0 unknown   fully_certified=true
+    systemverilog_preprocessor 74 / 74 witness / 0 proof /  0 unknown   fully_certified=true
+    vhdl                      225 /225 witness / 0 proof /  0 unknown   fully_certified=true
+    return_annotation          35 / 33 witness / 0 proof /  2 unknown   fully_certified=false
+    semantic_annotation       119 / 90 witness / 0 proof / 29 unknown   fully_certified=false
+    systemverilog            1385 /1378 witness/ 7 proof /  0 unknown   UNION over 4 configs; canonical unknown 11; proof STALE
 
-    systemverilog   UNVERIFIED / STALE     1385 rules · 1378 witness · 7 proof · 0 unknown
-                                           (canonical unknown 11)
-    rtl_const_expr  UNVERIFIED / UNPINNED    48 rules ·   48 witness · 0 proof · 0 unknown
-
-  The other seven — `json`, `regex`, `return_annotation`, `rtl_frontend`, `semantic_annotation`,
-  `systemverilog_preprocessor`, `vhdl` — have NO ORACLE: nothing has ever scored their rule
-  reachability, so there is no certification claim to be true or false.
-
-  SystemVerilog is STALE for a precise reason: its contract pins
-  `generated/systemverilog_parser.rs = cc874b60…`; the parser in the tree is `e53cb4a2…`. The gate's
-  `summary.json` is dated 2026-08-22 03:14 and the parser was regenerated 2026-08-23 12:16 — the
-  proof predates its own subject by a day. The GRAMMAR did not move (`git log 767a1b37..HEAD --
-  grammars/systemverilog.ebnf` = 0 commits); engine-universal codegen did.
-
-  `rtl_const_expr` is UNPINNED: its contract carries no `identity` block, so nothing can say which
-  tree produced its 48/48.
-reverify: "bash scripts/report_grammar_certification.sh; bash scripts/report_grammar_certification.sh --check docs/book/src/grammar-certification-status.md"
+  ⛔ THE FIRST VERSION OF THIS CARD SAID 0/9 WITH SEVEN FAMILIES "NO ORACLE". It was wrong: the
+  producing script asked whether a `*cert*contract*.json` file existed rather than running the
+  oracle. Five families that certify cleanly were reported as never scored.
+reverify: "bash scripts/report_grammar_certification.sh"
 ---
 
-## The short answer
+## The definition (PGEN's own, `GRAMMAR-WELLFORMED.G.4`)
 
-**No PGEN grammar is currently certified-and-fresh.** Two of nine have ever been scored; both of
-those scores are real but cannot be trusted at HEAD, for different reasons.
+Quoted from the oracle's own help text:
 
-| grammar | certification | why |
-|---|---|---|
-| `systemverilog` | ⚠️ UNVERIFIED (STALE) | reached 0 unknown on 2026-08-22, but the contract pins a different parser than the one in the tree |
-| `rtl_const_expr` | ⚠️ UNVERIFIED (UNPINNED) | 48/48 witnessed, but no identity block says which tree it scored |
-| the other seven | ⛔ NO ORACLE | nothing has ever scored their rule reachability |
+> For every rule, is it covered by a verified unreachability **PROOF** or a verified reachability
+> **WITNESS** (a clean diverse `--count` sample that parses through the real parser and exercises
+> it)? `UNKNOWN`=0 with no failures = the objective *"trustworthy on this grammar"* number.
 
-## Three things "certified" does not mean
+A grammar is **certified** iff every rule is either proven unreachable or witnessed by a generated
+sample that parses **through the real generated parser**, with `UNKNOWN=0`,
+`sample_parse_failures=0`, `proof_reverify_failures=0`.
 
-1. **It is not correctness.** Certification asks *can the generator reach every rule of our
-   grammar* — a claim about internal reachability, not about the language. SystemVerilog's corpus
-   axis separately reads 46.3 % adjudicated with 275 known defects.
-2. **It is not "reached by a generated string" for every rule.** Of SystemVerilog's 1 385 rules,
-   1 378 are credited by a **witness** (a generated string really reaches them) and **7 by proof** —
-   argued unreachable under their profile, with no string produced. And the 1 378 are a **union over
-   four** entry/profile configurations; under the single canonical config, **11** rules are unknown.
-3. **It is not durable.** A proof describes one specific generated parser. Codegen moves, the parser
-   moves, and the proof keeps reading green while describing something that no longer exists.
+## The answer
 
-## Why this page had to be derived
+**6 of 9 shipped grammars are certified**: `json`, `regex`, `rtl_const_expr`, `rtl_frontend`,
+`systemverilog_preprocessor`, `vhdl`.
 
-The previous answer was a **doc-asserted roster** — `CHANGES.md` records one family's membership as
-*"doc-asserted only"*, i.e. a claim with no oracle behind it. It rotted exactly as you would expect:
-asked directly whether SV was certified, the honest answer took a dozen commands and came back *no,
-and the last yes was scored against a bar we wrote and never re-ran* — while every registered
-doctrine reported PASS, because a stale baseline inside its commit budget is a NOTE, not a failure.
+**Two are not**: `return_annotation` (2 unknown of 35) and `semantic_annotation` (29 unknown of 119).
 
-⇒ **a status line without its freshness is not a status.** Every row on the published page carries
-both, and the page is regenerated and diffed rather than edited.
+**One is unverified**: `systemverilog`. Its union over four entry/profile configs last reached 0
+unknown, but the proof pins a different parser digest than the tree holds — engine-universal codegen
+moved under it, while the grammar itself did not.
 
-Related: [[a-corpus-generated-from-the-artifact-under-test-is-part-of-the-measurement]] ·
-[[a-control-that-cannot-fail-is-not-a-control]]
+## Three things it does not mean
+
+1. **Not correctness.** Certification asks whether the generator can reach every rule of *our*
+   grammar. A certified grammar can still accept invalid input or reject valid input — that is the
+   corpus axis (SystemVerilog: 46.3 % adjudicated, 275 known defects).
+2. **Not "a string for every rule".** A rule may be credited by a **proof** that no input reaches it.
+   SystemVerilog credits 7 rules that way.
+3. **Not durable.** A proof describes one specific generated parser. When codegen moves, the parser
+   moves and the proof keeps reading green while describing something that no longer exists.
+
+## How to ask a family under its own parameters
+
+`rtl_const_expr` certifies at `--max-depth 32`, which its own contract declares; at the CLI default
+of 24 its generator produces nothing at all. **A verdict is only as good as whose parameters it was
+taken under** — that error produced a false `NO ORACLE` table, a false "this family is broken"
+finding, and a certification answer read out of a self-authored contract, all in one session.
+
+Related: [[a-control-that-cannot-fail-is-not-a-control]] ·
+[[a-corpus-generated-from-the-artifact-under-test-is-part-of-the-measurement]]

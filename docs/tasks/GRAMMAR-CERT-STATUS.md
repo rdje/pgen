@@ -37,18 +37,55 @@ a roster.
 - **KEPT IN SYNC, mechanically**: `--check <page>` regenerates and DIFFS against the published block
   and exits nonzero on drift — the derive-and-diff pattern `KNOWLEDGE-MAP` already uses. Proven both
   ways in `.2`'s red control.
-- **THE HEADLINE, and it is worse than the question that prompted it**: **certified_and_fresh = 0/9.**
-  Only **2 of 9** shipped families carry a certificate-coverage contract at all; the other seven have
-  **NO ORACLE** — nothing has ever scored their rule reachability, so there is no certification claim
-  to be true or false. ⛔ `NO ORACLE` is not "broken": those families may be fine. The finding is
-  that **nobody knows, and until now nothing said so**.
-- **The two that were scored are both UNVERIFIED, for different reasons**: `systemverilog` is STALE
-  (pins a parser that is not the one in the tree); `rtl_const_expr` is UNPINNED (its contract carries
-  no `identity` block at all).
+- ⛔⛔ **THE HEADLINE `.1` PUBLISHED — `certified_and_fresh = 0/9`, seven families `NO ORACLE` — WAS
+  FALSE AND IS RETRACTED. See `.1a`.** The measured truth is **6 of 9 certified**. Kept here rather
+  than deleted because the failure, not the number, is what this tree exists to prevent.
+- **What survives from `.1`**: `systemverilog` really is UNVERIFIED — its contract pins a parser that
+  is not the one in the tree. That row was right for the right reason.
 - **Scope stated on the page itself**: certification here is CERTIFICATE COVERAGE — can the generator
   reach every rule of the grammar. It is NOT a correctness claim about the language; that is the
   corpus axis. And for SV it is a UNION over four entry/profile configs, with 7 rules credited by
   PROOF rather than by a generated string and 11 unknown under the canonical config.
+
+### `.1a` — ⛔⛔ **`.1` PUBLISHED A FALSE TABLE TO THE MAIN BOOK AND WAS CORRECTED THE SAME HOUR, UNDER A DIRECTOR CHALLENGE** (**`done`**, `PGEN-GRAMMAR-CERT-STATUS-0002`)
+
+- **THE FALSE CLAIM**: `.1` published `certified_and_fresh = 0/9` with SEVEN families as `NO ORACLE`
+  — *"nothing has ever scored their rule reachability"*. **Every part of that is wrong.**
+- **THE CHALLENGE**: *"are you serious, some weeks back you claim that all of them except the
+  systemverilog were certified and now you are saying none are … is the project even real, are we
+  even progressing? please look in git log for when you made those claims."* The director's memory
+  was correct and my table was not.
+- **ROOT CAUSE, one line**: the script asked *"does a `rust/test_data/grammar_quality/*cert*contract*.json`
+  file exist for this family?"* — **a filesystem question**. But the CERTIFICATE-COVERAGE REPORT is
+  the oracle; a tracked contract is only a PIN on top of it, and only two families have ever needed
+  one. ⇒ **ask the instrument, never the filesystem.**
+- **MEASURED TRUTH, by running the oracle at HEAD** — and it reproduces the "fully-certified-6" the
+  director remembered, recorded in `CHANGES.md` as *"the fully-certified set holds"*:
+
+  | grammar | measured | verdict |
+  |---|---|---|
+  | `json` | `9/0/9/0` | ✅ certified |
+  | `regex` | `269/9/260/0` | ✅ certified |
+  | `rtl_const_expr` | `48/0/48/0` (at `--max-depth 32`) | ✅ certified |
+  | `rtl_frontend` | `169/1/168/0` | ✅ certified |
+  | `systemverilog_preprocessor` | `74/0/74/0` | ✅ certified |
+  | `vhdl` | `225/0/225/0` | ✅ certified |
+  | `return_annotation` | `35/0/33/`**`2`** | ⛔ 2 unknown |
+  | `semantic_annotation` | `119/0/90/`**`29`** | ⛔ 29 unknown |
+  | `systemverilog` | union 0 / canonical 11, proof STALE | ⚠️ unverified |
+
+  **6 of 9 certified.** ⭐ And the project is measurably MOVING: `semantic_annotation` went
+  `115/0/84/31` → `119/0/90/29` across this session's own `H.16.6b` work — total up because
+  `map_key` added rules, unknown down because more are witnessed.
+- ⛔⛔ **THIS IS THE THIRD TIME IN ONE SESSION THAT A VERDICT WAS TAKEN UNDER MY CHOSEN PARAMETERS
+  INSTEAD OF THE SUBJECT'S OWN**, and it is the same defect each time: (1) answering *"is SV
+  certified?"* out of a self-authored contract; (2) declaring `rtl_const_expr` broken at MY default
+  `--max-depth 24` when its contract declares 32; (3) this table, asking the filesystem instead of
+  the oracle. ⇒ the new script now reads each family's declared parameters, and the KM card carries
+  the lesson as its closing section.
+- ⚠️ **The damage was to the director's own review surface** — the main mdBook — which is exactly the
+  surface `PARSER-BOOK-CURRENCY` exists to protect. Corrected in place with the retraction kept
+  visible on the page rather than quietly overwritten.
 
 ### `.2` — register the sync check as an enforced doctrine (`todo`, opened 2026-08-23)
 
@@ -64,8 +101,11 @@ a roster.
 
 ### `.3` — give the seven `NO ORACLE` families a certification decision (`todo`, opened 2026-08-23)
 
-- Seven of nine shipped families have never been scored: `json`, `regex`, `return_annotation`,
-  `rtl_frontend`, `semantic_annotation`, `systemverilog_preprocessor`, `vhdl`.
+- ⛔ **RE-SCOPED after `.1a`**: the premise *"seven families have never been scored"* was FALSE — six
+  of them certify cleanly today. What actually remains is narrower and real: `return_annotation`
+  (2 unknown) and `semantic_annotation` (29 unknown) are NOT certified and neither has an owning
+  leaf, and six certified families have no tracked PIN, so their green is re-measured on demand
+  rather than watched.
 - ⛔ **The work is a DECISION per family, not a sweep**: either stand up a certificate-coverage
   contract + gate (the `rtl_const_expr_cert_gate` shape), or record an explicit, reasoned
   `not-applicable` with its owner. **A family may not stay silent** — silence is what this tree
