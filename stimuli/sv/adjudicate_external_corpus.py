@@ -1936,20 +1936,117 @@ class IvtestIndex:
     vvp_tests descriptors (consumed by upstream vvp_reg.py) carry
     `type` / `source` (always under ivltests/) / `iverilog-args` (the dialect
     generation) / `gold` (a stem resolved as gold/<gold>-iverilog-<chan>.gold);
-    only descriptors with an EXPLICIT SystemVerilog generation flag key the
-    sv_2017 bulk lane."""
+    a descriptor keys the sv_2017 bulk lane when the generation it actually
+    compiles under is a SystemVerilog one - its own flag when it carries one,
+    otherwise the vendored compiler's GN_DEFAULT (leaf .13e.1). Before that
+    leaf this read "an EXPLICIT SystemVerilog generation flag", and 147 rows
+    sat in NO VERDICT because the descriptor was asked a question only the
+    compiler could answer."""
 
     SV_GENS = ("-g2005-sv", "-g2009", "-g2012", "-g2017", "-g2023")
     V2005_GENS = ("-g1995", "-g2001", "-g2001-noconfig", "-g2005")
+
+    # `enum generation_t` member -> the -g flag that selects it. Only the members
+    # GN_DEFAULT can alias need an entry; a value outside this map REFUSES.
+    GEN_ENUM_TO_FLAG = {
+        "GN_VER1995": "-g1995",
+        "GN_VER2001_NOCONFIG": "-g2001-noconfig",
+        "GN_VER2001": "-g2001",
+        "GN_VER2005": "-g2005",
+        "GN_VER2005_SV": "-g2005-sv",
+        "GN_VER2009": "-g2009",
+        "GN_VER2012": "-g2012",
+        "GN_VER2017": "-g2017",
+        "GN_VER2023": "-g2023",
+    }
 
     def __init__(self, ivtest_dir: Path):
         self.sv_entries = {}   # (dir, name) -> (type, gold-or-None)
         self.vlg_entries = {}  # (dir, name) -> (type, gold-or-None)
         self.gold_dir = ivtest_dir / "gold"
         self.vvp_desc = defaultdict(list)  # source stem -> [descriptor dict]
+        self.default_gen = self._resolve_default_generation(ivtest_dir)
         self._load(ivtest_dir / "regress-sv.list", sv=True)
         self._load(ivtest_dir / "regress-vlg.list", sv=False)
         self._load_vvp(ivtest_dir / "vvp_tests")
+
+    # ---- SV-CORPUS-GRAD.13e.1 --------------------------------------------
+    # A vvp_tests descriptor that carries no -g flag is NOT dialect-unresolved.
+    # The default generation is a property of the COMPILER, and that compiler is
+    # vendored beside this test tree. Reading it here is what stopped 147 rows
+    # from sitting in NO VERDICT on a premise the corpus itself refutes
+    # (leaf .13e). Derived at run time and never hard-coded: if upstream moves
+    # GN_DEFAULT to a SystemVerilog generation, those rows must move with it.
+    @classmethod
+    def _resolve_default_generation(cls, ivtest_dir: Path) -> str:
+        ivl = ivtest_dir.parent
+        header, main_cc = ivl / "compiler.h", ivl / "main.cc"
+        runner, makefile = ivtest_dir / "vvp_reg.py", ivtest_dir / "Makefile.in"
+        for path in (header, main_cc, runner, makefile):
+            if not path.is_file():
+                raise SystemExit(
+                    f"REFUSE: {path} is missing - the ivtest default generation cannot be "
+                    "resolved, and guessing it is the defect leaf .13e fixed")
+
+        block = re.search(r"enum\s+generation_t\s*\{(.*?)\}", header.read_text(errors="replace"), re.S)
+        if not block:
+            raise SystemExit(f"REFUSE: no `enum generation_t` in {header}")
+        members = {m.group(1): int(m.group(2))
+                   for m in re.finditer(r"(GN_[A-Z0-9_]+)\s*=\s*(\d+)", block.group(1))}
+        if "GN_DEFAULT" not in members:
+            raise SystemExit(f"REFUSE: `GN_DEFAULT` is not a member of `enum generation_t` in {header}")
+        named = sorted(k for k, v in members.items()
+                       if v == members["GN_DEFAULT"] and k != "GN_DEFAULT")
+        if len(named) != 1 or named[0] not in cls.GEN_ENUM_TO_FLAG:
+            raise SystemExit(
+                f"REFUSE: GN_DEFAULT = {members['GN_DEFAULT']} resolves to {named or 'nothing'} - "
+                "not exactly one generation this adjudicator knows a -g flag for")
+        # A default nothing reads decides nothing.
+        if not re.search(r"generation_flag\s*=\s*GN_DEFAULT\s*;", main_cc.read_text(errors="replace")):
+            raise SystemExit(
+                f"REFUSE: {main_cc} no longer initialises `generation_flag = GN_DEFAULT` - "
+                "the enum value may be inert")
+
+        # The ONE mechanism that would override it. vvp_reg.py's force_gen() strips any
+        # generation and inserts -g2023; if it ran by default, an unflagged descriptor
+        # would be SystemVerilog and every verdict below would be inverted.
+        rtext = runner.read_text(errors="replace")
+        if not re.search(r"--force-sv['\"],\s*action=['\"]store_true", rtext):
+            raise SystemExit(
+                f"REFUSE: {runner}: `--force-sv` is no longer an off-by-default store_true flag - "
+                "an unflagged descriptor may now be forced to SystemVerilog")
+        if not re.search(r"if\s+cfg\[['\"]force-sv['\"]\]:\s*\n\s*force_gen\(", rtext):
+            raise SystemExit(
+                f"REFUSE: {runner}: force_gen() is no longer guarded by cfg['force-sv'] - "
+                "it may now run unconditionally")
+        mtext = makefile.read_text(errors="replace")
+        invocations = [l for l in mtext.splitlines() if "vvp_reg.py" in l and "echo" not in l]
+        if not invocations:
+            raise SystemExit(f"REFUSE: {makefile} no longer invokes vvp_reg.py - the harness moved")
+        if any("--force-sv" in l for l in invocations):
+            raise SystemExit(
+                f"REFUSE: {makefile} now passes --force-sv - the upstream default run IS "
+                "SystemVerilog and the unflagged-descriptor verdicts are inverted")
+
+        return cls.GEN_ENUM_TO_FLAG[named[0]]
+
+    def effective_gen(self, desc: dict) -> str:
+        """The generation a descriptor actually compiles under: its own -g flag when it
+        carries one, otherwise the compiler's own default (leaf .13e.1)."""
+        for a in desc.get("iverilog-args", []):
+            if a in self.SV_GENS or a in self.V2005_GENS:
+                return a
+        return self.default_gen
+
+    def gen_source(self, desc: dict) -> str:
+        """WHERE that generation came from. Carried into the basis string because the
+        sentence this leaf replaced was precise about the descriptor and wrong about
+        the question - a basis that cannot say which artifact decided is how that
+        happens (leaf .13e)."""
+        for a in desc.get("iverilog-args", []):
+            if a in self.SV_GENS or a in self.V2005_GENS:
+                return "explicit descriptor flag"
+        return "the compiler's own default, compiler.h GN_DEFAULT"
 
     def _load_vvp(self, vvp_dir: Path):
         if not vvp_dir.is_dir():
@@ -2077,15 +2174,19 @@ class IvtestIndex:
         descs = self.vvp_desc.get(p.stem)
         if not descs:
             return None
-        sv_descs, v2005 = [], False
+        sv_descs, v2005_gens = [], set()
         for d in descs:
             args = d.get("iverilog-args", [])
             if any("verilog-ams" in a for a in args):
                 continue  # AMS-flavored run - never an SV/plain-Verilog key
-            if any(a in self.SV_GENS for a in args):
+            # .13e.1: a descriptor with no -g flag is not dialect-unresolved; it
+            # compiles under the vendored compiler's own default generation.
+            gen = self.effective_gen(d)
+            if gen in self.SV_GENS:
                 sv_descs.append(d)
-            elif any(a in self.V2005_GENS for a in args):
-                v2005 = True
+            elif gen in self.V2005_GENS:
+                v2005_gens.add((gen, self.gen_source(d)))
+        v2005 = bool(v2005_gens)
         if sv_descs:
             implied = {self._vvp_implied(d) for d in sv_descs}
             names = ", ".join(d["_key"] + ".json" for d in sv_descs)
@@ -2124,10 +2225,11 @@ class IvtestIndex:
                     "Verilog-AMS surface, outside the IEEE 1800 scope "
                     "(VERILOG-AMS tree parked)")
         if v2005:
+            how = ", ".join(
+                f"{gen} ({src})" for gen, src in sorted(v2005_gens))
             return ("out_of_scope_with_cause:v2005_profile_lane",
-                    "ivtest: vvp_tests descriptor runs under an explicit "
-                    "plain-Verilog generation - keyed for the verilog_2005 "
-                    "profile lane")
+                    f"ivtest: vvp_tests descriptor compiles as {how} - keyed "
+                    "for the verilog_2005 profile lane")
         return ("out_of_scope_with_cause:no_sv_key",
                 "ivtest: vvp_tests descriptor(s) without an explicit "
                 "generation flag - dialect unresolved (the upstream default "
@@ -2137,7 +2239,10 @@ class IvtestIndex:
         """v2005-lane key for one ivtest row (leaf .8c.1): regress-vlg.list
         entries first (the .8a CE stage split mirrored: golden `syntax
         error` = parse-level invalid under the iverilog plain-Verilog
-        dialect), then explicit plain-Verilog vvp_tests generations."""
+        dialect), then plain-Verilog vvp_tests generations - explicit, or the
+        vendored compiler's own GN_DEFAULT when the descriptor names none
+        (leaf .13e.1; the two lanes share `effective_gen`, or a row routed
+        here would land in a lane that cannot answer it)."""
         p = Path(relpath.replace("\\", "/"))
         key = (p.parts[1], p.stem) if len(p.parts) >= 3 else None
         if key in self.vlg_entries:
@@ -2166,19 +2271,24 @@ class IvtestIndex:
                     "vendored pin?)")
         if len(p.parts) >= 3 and p.parts[1] == "ivltests":
             descs = self.vvp_desc.get(p.stem, [])
+            # .13e.1: same rule as _expect_vvp, from the SAME definition - a
+            # descriptor with no -g flag compiles under the compiler's default.
+            # The two sides MUST agree, or a row routed here would land in a
+            # lane that cannot answer it.
             v_descs = [d for d in descs
                        if not any("verilog-ams" in a
                                   for a in d.get("iverilog-args", []))
-                       and any(a in self.V2005_GENS
-                               for a in d.get("iverilog-args", []))]
+                       and self.effective_gen(d) in self.V2005_GENS]
+            gens = ", ".join(sorted({
+                f"{self.effective_gen(d)} ({self.gen_source(d)})"
+                for d in v_descs}))
             if v_descs:
                 implied = {self._vvp_implied(d) for d in v_descs}
                 names = ", ".join(d["_key"] + ".json" for d in v_descs)
                 if implied == {"accept"}:
                     return ("must_accept",
                             f"ivtest: vvp_tests descriptor(s) {names} - "
-                            "runs under an explicit plain-Verilog "
-                            "generation with no syntax-error golden")
+                            f"compiles as {gens} with no syntax-error golden")
                 if implied == {"reject"}:
                     return ("must_reject",
                             f"ivtest: vvp_tests descriptor(s) {names} - CE "

@@ -27,9 +27,9 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | deferred:chained_only | 5276 |
 | deferred:impl_varying | 90 |
 | deferred:ni_unimplemented | 6 |
-| deferred:no_sv_key | 743 |
+| deferred:no_sv_key | 596 |
 | deferred:svpp_owned | 186 |
-| deferred:v2005_profile_lane | 2459 |
+| deferred:v2005_profile_lane | 2606 |
 | deferred:verilog_ams_lane | 20 |
 | divergence:explained_svpp_conditional | 200 |
 | divergence:explained_svpp_include | 140 |

@@ -2632,7 +2632,21 @@ observation was simply unused.
 > **mislabelled deferral**, owned by `.13c`/`.13d`, not an under-reporting bar.
 
 > ⭐ **Live verdict-coverage tuple — `adjudicated/routed/no-verdict/dark/axis-2-bar` =
-> `7556/2459/6321/4393/275`.** (`SV-CORPUS-GRAD.13c.2v` moved the bar **282 → 275** by restoring the
+> `7556/2606/6174/4366/275`.** ⭐⭐ **`SV-CORPUS-GRAD.13e.1` moved `routed` +147 and `no-verdict`
+> −147** — and the two numbers that did **not** move are the ones that make it honest:
+> `adjudicated` is **unchanged at 7 556**, so nothing was promoted to a verdict it did not earn,
+> and the **bar is unchanged at 275**, so no defect appeared or vanished. Those 147 rows had been
+> parked in *no verdict* because the adjudicator judged their dialect unresolvable — the
+> `vvp_tests` descriptor carries no `-g` flag, which is true, and is a fact about the descriptor
+> rather than about the question. The default generation belongs to the **compiler**, and that
+> compiler is vendored in the same corpus: `compiler.h` declares `GN_DEFAULT = 4` in an enum whose
+> `GN_VER2005 = 4`. ⇒ they compile as plain IEEE 1364-2005 and belong in the `verilog_2005` lane.
+> ⛔ **Routing them was only legitimate because that lane then answers them, and it does:
+> 107 of the 147 receive a verdict there** (84 `match`, 16 explained, **7 new
+> `unexplained_rejects_valid`** — genuine defect signal that was invisible while the rows were
+> silent), with the other 40 landing on the receiving lane's own *named* deferrals. `dark` fell
+> 4 393 → 4 366, the 27 dark members of the moved set. Earlier, `SV-CORPUS-GRAD.13c.2v` moved the
+> bar **282 → 275** by restoring the
 > `[ std :: ] randomize_call` alternative IEEE 1800 A.8.2 gives `primary`. PGEN renders `primary`'s
 > call alternative as `call_primary` — the postfix-chain rule the left-recursion lift authored —
 > and none of its eleven alternatives is `randomize_call`, so the `with constraint_block` tail of a

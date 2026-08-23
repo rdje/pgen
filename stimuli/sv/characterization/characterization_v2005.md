@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `196ce48973a64f8bc09bd76a8aaa23e2fd822b902970f66b943973889f6ceb4b` |
-| grammar | `grammars/systemverilog.ebnf` | `5502bf280accf1f67aaa292fd8e800de88d56e5ec14c64282181a39a99f92f04` |
-| generated parser | `generated/systemverilog_parser.rs` | `bfaca030172cd7dd1c66f4aeb586e026d3df7affdf107d80c9e4604148bcb8c5` |
+| parse binary | `rust/target/release/parseability_probe` | `a45f5b149c2796d96f6aef2a46bb0bf85c08376e10289e5df957bda646366afa` |
+| grammar | `grammars/systemverilog.ebnf` | `5d3829eae092e02994b91cd8e3ff8bded35bad1e402825001f4f6152db2f5062` |
+| generated parser | `generated/systemverilog_parser.rs` | `e53cb4a229e5576191908a1a5324f69af5fb53d1972ef7c8ff21accf8623bc68` |
 
-Measured at `HEAD` = `126034ab+dirty` (2026-08-20).
+Measured at `HEAD` = `a1d5d395+dirty` (2026-08-23).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -32,9 +32,9 @@ Measured at `HEAD` = `126034ab+dirty` (2026-08-20).
 
 | parameter | value | source for this run |
 |---|---|---|
-| per-file timeout | 60 s | provenance |
-| parallel jobs | 8 | provenance |
-| max files | 0 (no cap) | provenance |
+| per-file timeout | 60 s | caller |
+| parallel jobs | 8 | caller |
+| max files | 0 (no cap) | caller |
 | parse binary | `rust/target/release/parseability_probe` | provenance |
 
 ## Deadline proximity and serial re-confirmation
@@ -53,20 +53,20 @@ Measured at `HEAD` = `126034ab+dirty` (2026-08-20).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `0.52` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
+Slowest completing file: `0.59` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 2459 | 2179 | 280 | 0 | 0 | 88.6% |
+| 2606 | 2298 | 308 | 0 | 0 | 88.2% |
 
 ## Per sub-corpus
 
 | sub-corpus | files | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|---|
 | ispras-sv-tests | 356 | 317 | 39 | 0 | 0 | 89.0% |
-| iverilog | 1762 | 1581 | 181 | 0 | 0 | 89.7% |
+| iverilog | 1909 | 1700 | 209 | 0 | 0 | 89.1% |
 | sv2v | 341 | 281 | 60 | 0 | 0 | 82.4% |
 
 _Raw per-file results: `stimuli/sv/characterization/results_v2005.tsv` (3 columns: sub-corpus, status,

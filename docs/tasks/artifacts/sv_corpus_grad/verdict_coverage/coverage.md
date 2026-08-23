@@ -6,14 +6,14 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `5080bad718e5e9e862cf6b8184da0a515aa1b195af3bfd7b946e7db28ecefb2e` |
-| v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `057c1b80c5f1428041ea7cc707f0c4100789e10500cb0fe97860ee3fd646617d` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `cb279a4c224a298023a182edea4f30cb3d20bba48e02efb374ba8dce716f503c` |
+| v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `043d4e97d61c516240142e247693b135b9a79b3315b963ae8f7429e98b470d3a` |
 
 ## The headline
 
 - **ADJUDICATED: 7,556 rows (46.3 %)**
-- **ROUTED: 2,459 rows (15.1 %)**
-- **NO VERDICT: 6,321 rows (38.7 %)**
+- **ROUTED: 2,606 rows (16.0 %)**
+- **NO VERDICT: 6,174 rows (37.8 %)**
 
 ## Every class, bucketed
 
@@ -26,9 +26,9 @@
 | ADJUDICATED | `divergence:explained_svpp_include` | 140 | 0.9 % | parse stops on an `include - positionally gated since .12a |
 | ADJUDICATED | `divergence:unexplained_accepts_invalid` | 21 | 0.1 % | a known defect: invalid SV the parser accepts (the axis-2 bar) |
 | ADJUDICATED | `divergence:explained_svpp_protected_envelope` | 4 | 0.0 % | IEEE 1800-2017 §34 encrypted envelope - not source text yet |
-| ROUTED | `deferred:v2005_profile_lane` | 2,459 | 15.1 % | adjudicated in adjudication_manifest_v2005.tsv, not lost |
+| ROUTED | `deferred:v2005_profile_lane` | 2,606 | 16.0 % | adjudicated in adjudication_manifest_v2005.tsv, not lost |
 | NO VERDICT | `deferred:chained_only` | 5,276 | 32.3 % | multi-file design: needs `include/`define chaining to parse honestly - the MOST realistic RTL in the corpus, contributing nothing to the claim |
-| NO VERDICT | `deferred:no_sv_key` | 743 | 4.5 % | no upstream answer key exists - expectation underivable |
+| NO VERDICT | `deferred:no_sv_key` | 596 | 3.6 % | no upstream answer key exists - expectation underivable |
 | NO VERDICT | `deferred:svpp_owned` | 186 | 1.1 % | conformance owned by the preprocessor lane, by design |
 | NO VERDICT | `deferred:impl_varying` | 90 | 0.6 % | LRM leaves the behaviour implementation-defined |
 | NO VERDICT | `deferred:verilog_ams_lane` | 20 | 0.1 % | Verilog-AMS, a different language family |
@@ -40,14 +40,14 @@
 - **1,170 corroborated** — the parse stops *on* the preprocessor construct. The label is positively verified.
 - **263 undecidable by position** — the label is neither corroborated nor refuted; only running an expander settles them (`.12b`).
 
-⇒ Rows contributing nothing to the confidence claim, counting these: **6,584 (40.3 %)**.
+⇒ Rows contributing nothing to the confidence claim, counting these: **6,437 (39.4 %)**.
 
 ## `NO VERDICT`, by suite — where the silence actually is
 
 | suite | class | rows |
 |---|---|---:|
 | opentitan | `deferred:chained_only` | 3,983 |
-| iverilog | `deferred:no_sv_key` | 743 |
+| iverilog | `deferred:no_sv_key` | 596 |
 | friscv | `deferred:chained_only` | 441 |
 | black-parrot | `deferred:chained_only` | 205 |
 | Surelog | `deferred:chained_only` | 199 |
@@ -70,28 +70,28 @@
 
 ## Inside `NO VERDICT` — what the parser ALREADY did on the row's own bytes (SV-CORPUS-GRAD.13a)
 
-- **ONE-SIDED POSITIVE — 1,928 rows (11.8 % of the corpus)**: the parse consumed the WHOLE file standalone. ⇒ no *rejects-valid* defect hides behind these rows. ⛔ It says **nothing** about accepts-invalid, and it is **not** a verdict — there is still no expectation to compare against.
-  - 1,825 are compilation-unit-shaped; ⚠️ **103 are FRAGMENT-shaped** (`.svh` include payload / excerpt-mode fixture), where accepting is not testimony FOR the parser at all — a fragment is not a legal standalone unit, so the accept may itself BE the over-acceptance.
-- ⛔ **DARK — 4,393 rows (26.9 % of the corpus)**: the parse failed and the deferral is why nobody looked. **This — not the headline 38.7 % — is the population a disposition has to burn down.**
+- **ONE-SIDED POSITIVE — 1,808 rows (11.1 % of the corpus)**: the parse consumed the WHOLE file standalone. ⇒ no *rejects-valid* defect hides behind these rows. ⛔ It says **nothing** about accepts-invalid, and it is **not** a verdict — there is still no expectation to compare against.
+  - 1,705 are compilation-unit-shaped; ⚠️ **103 are FRAGMENT-shaped** (`.svh` include payload / excerpt-mode fixture), where accepting is not testimony FOR the parser at all — a fragment is not a legal standalone unit, so the accept may itself BE the over-acceptance.
+- ⛔ **DARK — 4,366 rows (26.7 % of the corpus)**: the parse failed and the deferral is why nobody looked. **This — not the headline 38.7 % — is the population a disposition has to burn down.**
 
 | class | rows | one-sided (unit) | ⚠️ one-sided (fragment) | DARK |
 |---|---:|---:|---:|---:|
 | `deferred:chained_only` | 5,276 | 1,021 | 103 | 4,152 |
-| `deferred:no_sv_key` | 743 | 664 | 0 | 79 |
+| `deferred:no_sv_key` | 596 | 544 | 0 | 52 |
 | `deferred:svpp_owned` | 186 | 123 | 0 | 63 |
 | `deferred:impl_varying` | 90 | 5 | 0 | 85 |
 | `deferred:verilog_ams_lane` | 20 | 6 | 0 | 14 |
 | `deferred:ni_unimplemented` | 6 | 6 | 0 | 0 |
-| **TOTAL** | **6,321** | **1,825** | **103** | **4,393** |
+| **TOTAL** | **6,174** | **1,705** | **103** | **4,366** |
 
 ## The DARK half — can the row's own deferral reason even REACH the failure?
 
-A file containing no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or `` `include `` inlining: the preprocessed text is byte-identical to the raw text, so the parse fails identically after chaining. Measured over all 4,393 DARK rows (path oracle: the tracked corpus results file; every manifest row resolved to exactly one results row, 16,336/16,336, with agreeing outcomes — the census aborts otherwise).
+A file containing no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or `` `include `` inlining: the preprocessed text is byte-identical to the raw text, so the parse fails identically after chaining. Measured over all 4,366 DARK rows (path oracle: the tracked corpus results file; every manifest row resolved to exactly one results row, 16,336/16,336, with agreeing outcomes — the census aborts otherwise).
 
 | class | DARK rows | of which NO `` ` `` anywhere | what that means |
 |---|---:|---:|---|
 | `deferred:chained_only` | 4,152 | 528 | ⭐ **REFUTES the TEXTUAL half of the deferral** — no chaining can alter one byte of these files, so the parse fails identically expanded. What remains is the cross-file FACT channel (a `type_name` a sibling file declares), which is narrower, is not expansion, and is separately testable → `.13c` |
-| `deferred:no_sv_key` | 79 | 27 | information only — the label is the absence of an upstream ANSWER KEY, which no directive could supply |
+| `deferred:no_sv_key` | 52 | 20 | information only — the label is the absence of an upstream ANSWER KEY, which no directive could supply |
 | `deferred:svpp_owned` | 63 | 8 | ⛔ refutes NOTHING — read them: verible excerpt-mode fragments and verilator `t_preproc_*_bad` EOF/string cases. Preprocessor relevance is the test's PURPOSE, not a directive in its text |
 | `deferred:impl_varying` | 85 | 0 | information only — the LRM leaves the verdict implementation-defined regardless of directives |
 | `deferred:verilog_ams_lane` | 14 | 11 | information only — the label is about the DIALECT (Verilog-AMS), not directives |
@@ -131,7 +131,6 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:chained_only` | 1 | sv-tests: .svh include payload, not a standalone unit |
 | `deferred:chained_only` | 1 | verilator: driver t_lint_in_inc_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax erro… |
 | `deferred:no_sv_key` | 596 | ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted) |
-| `deferred:no_sv_key` | 147 | ivtest: vvp_tests descriptor(s) without an explicit generation flag - dialect unresolved (the upstream default generation is no… |
 | `deferred:svpp_owned` | 100 | sv-tests: :type: includes preprocessing - svpp-owned conformance (SVPP-EXPANSION lane) |
 | `deferred:svpp_owned` | 50 | verilator: preprocessor-target test (t_pp_*/t_preproc_*) - svpp-owned conformance |
 | `deferred:svpp_owned` | 25 | sv2v error-suite key: the intended failure is at the preprocessing stage (`include/`ifdef/macro machinery, stray backtick, dire… |

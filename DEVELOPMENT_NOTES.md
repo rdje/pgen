@@ -1,5 +1,51 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0282 — the caution that cost more than the measurement it avoided
+
+**1. I NEARLY DEFERRED THIS ON A HAZARD THAT DOES NOT EXIST.** The reclassification needed the v2005
+lane re-parsed, and that lane's tracked oracle carries an instrument-identity block pinning a parser
+from three days earlier. Its own rule is unambiguous — *"if any hash differs, this report no longer
+describes your tree"* — so the reasoning wrote itself: re-running would move v2005 numbers for two
+reasons at once (my +147 rows, and three days of parser drift), attribution would be lost, and the
+unit becomes a `.13h`-shaped atomic cascade that deserves its own leaf. Every step of that is sound.
+⛔ It is also wrong, and one command says so: the lane re-runs in **10 seconds** and
+`results_v2005.tsv` comes back **byte-identical**. **The identity was stale; the outcomes were not.**
+
+**2. THE DISTINCTION IS WORTH KEEPING.** An identity block answers *"did my inputs move?"*, never
+*"did my answer move?"*. Those come apart constantly — most parser changes do not alter most
+verdicts. So a stale identity is a **prompt to re-measure**, not evidence of drift, and treating it
+as evidence is how a cheap check gets replaced by an expensive assumption. The tell is the cost
+ratio: I was about to defer a unit of work to avoid a 10-second command.
+
+**3. THE CONTROL THAT MATTERED MOST WAS RUN BEFORE THE EDIT.** The adjudicator is a pure transform of
+`results.tsv` → manifest. So the first thing done was to re-derive the tracked manifest from the
+**unchanged** adjudicator and `cmp` it: byte-identical. That single step converts every later
+difference from *"a delta I will argue is mine"* into *"a delta that is mine by construction"*. ⭐ It
+costs four seconds and it is the difference between attribution and rhetoric. Do it before touching
+the file, because afterwards it is unavailable.
+
+**4. ACCEPTANCE (c) PAID FOR ITSELF BEFORE ANY CODE WAS WRITTEN.** The leaf's acceptance said a row
+claiming the v2005 lane must actually be answered there. Checking that first revealed that
+`expect_v2005` filtered descriptors by the **same** "explicit flag" rule the SV side used — so a
+one-sided fix would have routed 147 rows into a lane structurally incapable of answering them, and
+the NO-VERDICT figure would have fallen while nothing real changed. That is precisely the relabelling
+the parent leaf forbids, and it would have looked like success. ⇒ **when a fix moves an item between
+two owners, verify the RECEIVING side accepts it before changing the sending side.**
+
+**5. THE HONEST OUTCOME OF AN HONEST RECLASSIFICATION IS MORE WORK, NOT LESS.** 107 of the 147 rows
+are answered in the v2005 lane, and among the answers are **7 new `unexplained_rejects_valid`** rows —
+defect signal that was invisible while those rows sat silent. A reclassification that produced only
+tidier totals and no new findings would have been the suspicious result.
+
+**6. AND I SHIPPED THE SAME DEFECT CLASS I WAS FIXING, FOR ONE ITERATION.** The first working version
+routed the rows correctly and labelled them *"runs under an **explicit** plain-Verilog generation"* —
+false about exactly the rows it was describing, since they carry no flag at all. The original defect
+was a basis string that was precise, confident, and about the wrong artifact; my replacement was a
+basis string that was precise, confident, and about the wrong artifact. ⭐ It was caught by reading
+the produced row, not by reading the diff — the diff looked correct because the *routing* was correct.
+⇒ **a basis string must name which artifact decided**, because that is the field the next reader will
+check instead of re-deriving; and **verify a classifier by reading its output rows, not its code.**
+
 ## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0281 — "unknowable" is a claim about where you looked
 
 **1. THE SHAPE OF THE DEFECT.** An adjudicator classified 147 corpus rows as having no usable key,
