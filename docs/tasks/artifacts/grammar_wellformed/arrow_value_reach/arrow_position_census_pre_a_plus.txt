@@ -1,0 +1,30 @@
+ARROW-POSITION-CENSUS  grammar=pre_a_plus.ebnf
+  Y = parses, . = rejected
+
+  shape            key   plain vlhs  tlhs  rhs  
+  ---------------- ---   ----- ----  ----  ---  
+  string           Y     .     Y     .     .       "s"
+  single_quoted    Y     .     Y     .     .       's'
+  integer          .     .     .     Y     .       1
+  hexadecimal      .     .     .     Y     .       0x4F
+  scientific       .     .     .     Y     .       72e10
+  boolean          .     .     .     Y     .       true
+  null             .     .     .     Y     .       null
+  identifier       .     .     .     Y     .       nm
+  array            Y     .     Y     .     .       [1]
+  ident_array      .     .     .     Y     .       [a]
+  object           Y     .     Y     .     .       {a: 1}
+  ident_object     .     .     .     Y     .       {a}
+  tuple            .     .     .     Y     .       (1)
+  ident_tuple      .     .     .     Y     .       (a, b)
+  set              Y     .     Y     .     .       #{1}
+  map              .     .     .     .     .       {a => 1}
+  symbol_ref       Y     .     Y     .     .       %S
+  rule_ref         .     .     .     Y     .       $h
+  path_rel         Y     .     Y     .     .       ./p
+  url              Y     .     Y     .     .       https://h/p
+  generic_type     Y     .     Y     .     .       Foo<Bar>
+  function_call    .     .     .     Y     .       f(1)
+  qualified_name   .     .     .     Y     .       a.b
+
+ARROW-POSITION-CENSUS: shapes=23 key_ok_but_value_arrow_lhs_rejected=0

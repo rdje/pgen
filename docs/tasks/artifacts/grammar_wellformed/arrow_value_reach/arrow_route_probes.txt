@@ -1,0 +1,25 @@
+ARROW-ROUTE-PROBES  grammar=semantic_annotation.ebnf
+### route 1 — lambda_expression (LHS is a lambda_parameter: identifier or destructuring)
+  accept  @x: a => b                                     identifier parameter
+  accept  @x: [a] => b                                   destructuring parameter, bracket form
+  accept  @x: {a} => b                                   destructuring parameter, brace form
+  accept  @x: (a, b) => c                                parenthesised parameter list
+  accept  @x: a => "s"                                   RHS unrestricted once route 1 is taken
+### route 2 — implication_expr (BOTH sides logical_or_expr)
+  accept  @x: 0x4F => b                                  numeric LHS, identifier RHS
+  accept  @x: (1) => 2                                   parenthesised arithmetic LHS
+  reject  @x: 0x4F => "s"                                string RHS is not a logical_or_expr
+### route 3 — function_type (the RHS must itself be a type_reference)
+  accept  @x: (Foo<Bar>) => Baz                          ONLY function_type derives this
+  reject  @x: (Foo<Bar>) => 1                            the discriminator: a non-type RHS kills route 3
+  accept  @x: (Foo[]) => Baz                             array type in the parameter list
+  accept  @x: { k => (Foo<Bar>) => Baz }                 route 3 is reachable in a VALUE, not only at top level
+### outside every route — correctly rejected, because no arrow CONSTRUCT accepts that operand
+  reject  @x: %S => 1                                    a symbol is not a parameter, an operand or a type list
+  reject  @x: 's' => 1                                   a char/quoted literal is none of the three either
+  reject  @x: ./p => 1                                   nor is a path
+### …and each is still a perfectly legal map KEY, which is the asymmetry this leaf ruled on
+  accept  @x: { %S => 1 }                                
+  accept  @x: { 's' => 1 }                               
+  accept  @x: { ./p => 1 }                               
+ARROW-ROUTE-PROBES: all expectations held

@@ -1,0 +1,30 @@
+ARROW-POSITION-CENSUS  grammar=semantic_annotation.ebnf
+  Y = parses, . = rejected
+
+  shape            key   plain vlhs  tlhs  rhs  
+  ---------------- ---   ----- ----  ----  ---  
+  string           Y     Y     .     .     Y       "s"
+  single_quoted    Y     Y     .     .     Y       's'
+  integer          Y     Y     Y     Y     Y       1
+  hexadecimal      Y     Y     Y     Y     Y       0x4F
+  scientific       Y     Y     Y     Y     Y       72e10
+  boolean          Y     Y     Y     Y     Y       true
+  null             Y     Y     Y     Y     Y       null
+  identifier       Y     Y     Y     Y     Y       nm
+  array            Y     Y     .     .     Y       [1]
+  ident_array      Y     Y     Y     Y     Y       [a]
+  object           Y     Y     .     .     Y       {a: 1}
+  ident_object     Y     Y     Y     Y     Y       {a}
+  tuple            Y     Y     Y     Y     Y       (1)
+  ident_tuple      Y     Y     Y     Y     Y       (a, b)
+  set              Y     Y     .     .     Y       #{1}
+  map              Y     Y     .     .     Y       {a => 1}
+  symbol_ref       Y     Y     .     .     Y       %S
+  rule_ref         Y     Y     Y     Y     Y       $h
+  path_rel         Y     Y     .     .     Y       ./p
+  url              Y     Y     .     .     Y       https://h/p
+  generic_type     Y     Y     .     .     Y       Foo<Bar>
+  function_call    Y     Y     Y     Y     Y       f(1)
+  qualified_name   Y     Y     Y     Y     Y       a.b
+
+ARROW-POSITION-CENSUS: shapes=23 key_ok_but_value_arrow_lhs_rejected=10

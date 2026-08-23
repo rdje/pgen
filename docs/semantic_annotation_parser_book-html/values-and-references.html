@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-903323ec.js";
+            window.path_to_searchindex_js = "searchindex-d0392f64.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e79d1bb7.js"></script>
@@ -239,6 +239,36 @@ three reaches and nothing else:</p>
 </div>
 <p>Values are unrestricted, so a lambda or implication is perfectly legal on the right of the arrow —
 <code>{a =&gt; (x) =&gt; y}</code> parses, with key <code>a</code> and a lambda value.</p>
+<h3 id="what-may-sit-left-of-a--inside-a-value"><a class="header" href="#what-may-sit-left-of-a--inside-a-value">What may sit LEFT of a <code>=&gt;</code> inside a value</a></h3>
+<p>“Unrestricted” is a statement about the value <strong>rule</strong>, not about the arrow. A <code>=&gt;</code> <em>inside</em> a value
+is never the map arrow — the entry already consumed that one — so it has to be one of the value
+language’s three other arrow constructs, and each declares its own left-hand operand language:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>construct</th><th>what may sit left of its <code>=&gt;</code></th><th>what may sit right</th></tr>
+</thead>
+<tbody>
+<tr><td>lambda</td><td>an identifier, a <code>[a, …]</code> / <code>{a, …}</code> destructuring pattern, or a parenthesised parameter list <code>(a, b)</code></td><td>any value</td></tr>
+<tr><td>implication</td><td>a logical-or operand — number, identifier, rule reference, call, qualified name, parenthesised arithmetic</td><td>the same</td></tr>
+<tr><td>function type</td><td>a parenthesised type list, <code>(Foo&lt;Bar&gt;)</code></td><td>a type reference</td></tr>
+</tbody>
+</table>
+</div>
+<p>So the key position and the arrow-left position inside a value do <strong>not</strong> admit the same things, and
+that is deliberate: a key is followed by the map’s own arrow, so it is an operand of nothing, while
+an arrow’s left operand has to mean something to one of the three constructs above. Measured over 23
+operand shapes, all 23 are legal keys, legal plain values and legal arrow <em>right</em> operands; 13 of the
+23 may also sit left of an arrow inside a value. The other ten — <code>"s"</code>, <code>'s'</code>, <code>[1]</code>, <code>{a: 1}</code>,
+<code>#{1}</code>, a nested map, <code>%S</code>, <code>./p</code>, <code>https://h/p</code>, <code>Foo&lt;Bar&gt;</code> — may not, because none of them is a
+lambda parameter, a logical operand or a parenthesised type list:</p>
+<pre><code class="language-text">@ x : { %S =&gt; 1 }                   # fine — a symbol reference is a perfectly good KEY
+@ x : { k =&gt; %S =&gt; 1 }              # rejected — `%S =&gt; 1` is no lambda, implication or function type
+@ x : { k =&gt; (Foo&lt;Bar&gt;) =&gt; Baz }    # fine — that one IS a function type
+@ x : { k =&gt; a =&gt; b =&gt; c }          # fine — identifier arrows chain as nested lambdas
+</code></pre>
+<p>Write the nested value with its own braces when you want a map inside a map — <code>{k =&gt; {%S =&gt; 1}}</code> —
+which is what the ten shapes above are asking for whenever they turn up in that position.</p>
 <blockquote>
 <p>⚠️ <strong>Before 2026-08-23 this was broken and the failure was silent.</strong> The key was declared as a full
 value, so a map entry parsed <em>if and only if</em> its <code>key =&gt; value</code> was <strong>not</strong> itself a valid value.

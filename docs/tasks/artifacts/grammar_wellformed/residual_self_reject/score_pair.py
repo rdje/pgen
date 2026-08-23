@@ -7,8 +7,21 @@ usage: score_pair.py <grammar.ebnf> <corpus.txt> <label>
 """
 import concurrent.futures, pathlib, subprocess, sys
 
-ROOT = pathlib.Path(__file__).resolve().parents[3]
+
+def repo_root(start: pathlib.Path) -> pathlib.Path:
+    """H.16.6e: `parents[3]` resolved to `docs/tasks` for a file five levels down, so this
+    script died on `FileNotFoundError` BEFORE reaching its own accepts-nothing refusal —
+    the shape H.16.6c's red-control note warns about. Walk to `.git` instead."""
+    for q in [start, *start.parents]:
+        if (q / ".git").exists():
+            return q
+    sys.exit("score_pair: REFUSED — no .git ancestor; cannot locate the repo root")
+
+
+ROOT = repo_root(pathlib.Path(__file__).resolve())
 AST = ROOT / "rust/target/debug/ast_pipeline"
+if not AST.exists():
+    sys.exit(f"score_pair: REFUSED — no ast_pipeline at {AST}")
 G, C, LABEL = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), sys.argv[3]
 INDIR = ROOT / "rust/target/h1666c" / f"in_{C.stem}"
 INDIR.mkdir(parents=True, exist_ok=True)

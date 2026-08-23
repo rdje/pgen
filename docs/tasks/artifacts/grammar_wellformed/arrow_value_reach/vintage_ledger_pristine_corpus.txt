@@ -1,0 +1,55 @@
+GRAMMAR-WELLFORMED.H.16.6e — THE THREE ARROW ROWS ARE PRE-(a+)-VINTAGE CORPUS RESIDUE
+=====================================================================================
+
+corpus: the PRISTINE corpus — `--generate-stimuli --count 200 --seed {0,7,42,123,999}` on the
+        pre-(a+) grammar (`dcc2e2d8`), deduped, 1 000 unique rows. Rebuilt here from that
+        vintage, not carried: the three rows H.16.6c named reproduce in it verbatim.
+vintages: pre_a_plus = dcc2e2d8 (before `map_key`) · post_b = 2b5b26ea (H.16.6b) · head = 69f12317
+
+⭐ This REPRODUCES all three published counts blind — 18 / 8 / 10 — and it reproduces
+   `H.16.6b`'s "0 newly rejected" claim, which a chained-arrow minimal core had put in doubt:
+   `{ W => %RXCy => 72e10 }` ALONE is accepted by pre_a_plus and rejected at HEAD, but the ROW
+   it was shrunk from (`#00824`) is rejected by BOTH. ⛔ A minimal core is a witness for the
+   vintage it was shrunk under, and for no other.
+
+scored pre_a_plus.ebnf          accepted=982    rejected=18     no_verdict=0
+scored post_b.ebnf              accepted=992    rejected=8      no_verdict=0
+scored head.ebnf                accepted=990    rejected=10     no_verdict=0
+
+ACCEPT-SET-LEDGER: control=pre_a_plus.ebnf arm=post_b.ebnf widen=10 narrow=0
+    WIDEN  #00087 @  b  :    {ly9QG => r"J"   , false    => /A  , (     )  =>  nil=>   null,   {   }  =>    (       )  ,IRhoE  < >   => GE   <      >?  }
+    WIDEN  #00097 @    ggI    :  {   ""  =>  "ZES\x",  "K" =>   u_8 (   )   ,   lF.Cogz .    igREf   (    ) =>   nil   }
+    WIDEN  #00243 @ role    :   {    (      )  =>HZ2<    >   ?    ?    []  ?    ,https://8!     =>F0   }
+    WIDEN  #00322 @    access    :  { $ 8.Fmnw[973].kY8.dW    =>    $ hK[635]  }
+    WIDEN  #00443 @profile  :    {    0B0111=>    (   )  =>  [       ] ,    `\hs\-`   =>  [        ]  ,off =>   %CW8   }
+    WIDEN  #00629 @ idempotent :  {    +3.67=> psnG,+.6    =>   0xFFa0  }
+    WIDEN  #00654 @    kS   : {  $ drhy =>    [   { }   ]  ,  (     )=>   (     )  ,  {   FlK    ,K7Kct  , yUyA}   =>   (   FP  )=>    `m\u` }
+    WIDEN  #00688 @   o2w5    :{   tGbDn    (    )    =>    OL  ,(      )   =>    [    ]  , $ 107[38].hhw[28].DOgi  =>true  }
+    WIDEN  #00743 @  thread_safe :{ r"^GF"=> 0o604 ,+135=>   [       ]   ,  (      )=>{  }    ,  true    =>    {R0 ,B   ,  HSV   ,  rM7j ,  yCO26}  }
+    WIDEN  #00965 @  abstraction   :   { 189.2  =>   { }   , "\y\?"    =>    "F"   , 20.370=>  r"<f)"  , [  ] => {wuCc    ,  D1T , EHO }  ,    {EDAK,   x    ,  Knpn   ,qcff   , Nc  }=>  [  ] }
+
+ACCEPT-SET-LEDGER: control=pre_a_plus.ebnf arm=head.ebnf widen=15 narrow=7
+    NARROW #00054 @example :    { BJI .    Vab  .O_l5    (    )=>    #{      },    -757.56e+883    =>    (    )  =>../]&}  }
+    NARROW #00102 @lkVt:    ('\*',  r"" , ~/bRk]     )
+    NARROW #00228 @    throws :   /SH}2
+    NARROW #00365 @ side_effect    : (   [        ]   )=>    iTAHX. wq   .   T  .L72J .    Q(   L17d   :    file://,T  )
+    NARROW #00808 @    R_VcA    :    ~/}vP
+    NARROW #00904 @copyright :   /!, 
+    NARROW #00934 @    beta :  ./}. 
+    WIDEN  #00087 @  b  :    {ly9QG => r"J"   , false    => /A  , (     )  =>  nil=>   null,   {   }  =>    (       )  ,IRhoE  < >   => GE   <      >?  }
+    WIDEN  #00097 @    ggI    :  {   ""  =>  "ZES\x",  "K" =>   u_8 (   )   ,   lF.Cogz .    igREf   (    ) =>   nil   }
+    WIDEN  #00177 @public    :J7Pc_ =>  {  -0=>  {  }    ,   nil =>no , 0o1430   => 5.4189e4   ,";" =>../3|z}
+    WIDEN  #00243 @ role    :   {    (      )  =>HZ2<    >   ?    ?    []  ?    ,https://8!     =>F0   }
+    WIDEN  #00270 @  aFH    :    [ ../x3N]
+    WIDEN  #00322 @    access    :  { $ 8.Fmnw[973].kY8.dW    =>    $ hK[635]  }
+    WIDEN  #00443 @profile  :    {    0B0111=>    (   )  =>  [       ] ,    `\hs\-`   =>  [        ]  ,off =>   %CW8   }
+    WIDEN  #00581 @   K7Mdj    : #{   [ftp://98eS]   ,    (      )   ,    {JZe   , T4v    ,    JP7u3   ,   wAB   , oCom} ,  null ,%o}
+    WIDEN  #00629 @ idempotent :  {    +3.67=> psnG,+.6    =>   0xFFa0  }
+    WIDEN  #00654 @    kS   : {  $ drhy =>    [   { }   ]  ,  (     )=>   (     )  ,  {   FlK    ,K7Kct  , yUyA}   =>   (   FP  )=>    `m\u` }
+    WIDEN  #00683 @   verified:   { """"""   : (  )    , ...  LMD    , ...(  {      }   , m3  ,  IW )   =>  file://p!-6,    [ 411e+579    ]:   "\E@", ...[    ]    }
+    WIDEN  #00688 @   o2w5    :{   tGbDn    (    )    =>    OL  ,(      )   =>    [    ]  , $ 107[38].hhw[28].DOgi  =>true  }
+    WIDEN  #00743 @  thread_safe :{ r"^GF"=> 0o604 ,+135=>   [       ]   ,  (      )=>{  }    ,  true    =>    {R0 ,B   ,  HSV   ,  rM7j ,  yCO26}  }
+    WIDEN  #00917 @A:    {   ...(     )    ,    [MF    (   )    ]    :{    Z3k   ,   S66 }    ,  [    (   )    ]:  [     ]=>nil    ,   [ G    =>ftp://f]    :    $ pIjsE.s.vTMA.eE  }
+    WIDEN  #00965 @  abstraction   :   { 189.2  =>   { }   , "\y\?"    =>    "F"   , 20.370=>  r"<f)"  , [  ] => {wuCc    ,  D1T , EHO }  ,    {EDAK,   x    ,  Knpn   ,qcff   , Nc  }=>  [  ] }
+
+full ledger -> rust/target/h1666e/vintage_ledger.json

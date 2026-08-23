@@ -1,0 +1,20 @@
+GRAMMAR-WELLFORMED.H.16.6e — TWO-ORACLE CENSUS: interpreter vs SHIPPED parser, four corpora
+===========================================================================================
+
+This leaf's ruling is read off `--interpret-parse`, which reads the .ebnf directly and so
+cannot be stale. That is the right oracle for a GRAMMAR question, but it is not the artifact
+consumers have. Every corpus is therefore re-scored through the shipped generated parser.
+⛔ Debug probe deliberately (the release probe on disk predates the H.16.6d regeneration),
+   with its vintage asserted in BOTH directions before any row is scored.
+
+probe vintage: escaped-comma URL accepted=True bare-comma URL accepted=False  ⇒ post-H.16.6d
+TWO-ORACLE-CENSUS: corpus=own_corpus_40seed.txt n=7994 interp_accept=7994 shipped_accept=7994 disagreements=0
+TWO-ORACLE-CENSUS: corpus=arrow_probe_corpus.txt n=127 interp_accept=105 shipped_accept=105 disagreements=0
+TWO-ORACLE-CENSUS: corpus=real_corpus_dedup.txt n=149 interp_accept=140 shipped_accept=140 disagreements=0
+TWO-ORACLE-CENSUS: corpus=corpus_pristine.txt n=1000 interp_accept=990 shipped_accept=990 disagreements=0
+
+corpora:
+  arrow_probe_corpus.txt  127 rows — every input arrow_position_census.sh and arrow_route_probes.sh assert on (TRACKED, derived FROM the assertion sources)
+  real_corpus_dedup.txt   149 rows — the @name: lines the tracked grammars ship (grep -rhoE '^\s*@\w+\s*:.*' grammars/*.ebnf, deduped)
+  corpus_pristine.txt    1000 rows — the pre-(a+) stimuli corpus, rebuilt from grammar vintage dcc2e2d8, seeds {0,7,42,123,999}
+  own_corpus_40seed.txt  7994 rows — HEAD's OWN stimuli, 40 seeds x 200, deduped; 1035 contain '=>' and 128 a chained arrow

@@ -1,0 +1,27 @@
+GRAMMAR-WELLFORMED.H.16.6e — THE BOOK'S NEW EXAMPLES, VERIFIED ON BOTH ORACLES
+=============================================================================
+
+Every code-block line added to docs/semantic_annotation_parser_book/src/values-and-references.md
+§'What may sit LEFT of a => inside a value', scored by the code-disjoint interpreter AND by the
+shipped generated parser. A book example that was never run is a claim, not documentation.
+
+  interp=accept  shipped=accept  @ x : { %S => 1 }
+  interp=reject  shipped=reject  @ x : { k => %S => 1 }
+  interp=accept  shipped=accept  @ x : { k => (Foo<Bar>) => Baz }
+  interp=accept  shipped=accept  @ x : { k => a => b => c }
+  interp=accept  shipped=accept  @ x : {k => {%S => 1}}
+
+and the counts the prose publishes, RE-DERIVED from the census table rather than carried:
+  shapes total                     : 23
+  may sit left of a value arrow    : 13
+  may NOT, and all are legal keys  : 10
+  legal keys                       : 23
+  legal plain values               : 23
+  legal arrow RIGHT operands       : 23
+
+⛔ THE FIRST VERSION OF THIS RE-DERIVATION DISAGREED WITH THE INSTRUMENT, AND THE INSTRUMENT
+   WAS RIGHT. It read 22/13/9 against the census's own 23/13/10, because its row filter began
+   at NR>6 and the table's first data row IS line 6 — so the `string` row, a key=Y vlhs=. row,
+   was silently dropped. ⭐ The off-by-one moved the number in the FLATTERING direction (one
+   fewer exception to explain), which is the direction a re-read never catches. Recorded rather
+   than quietly corrected: a count over a rendered view measures the renderer AND the reader.

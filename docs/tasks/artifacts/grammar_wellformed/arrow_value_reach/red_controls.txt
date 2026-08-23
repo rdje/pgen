@@ -1,0 +1,61 @@
+GRAMMAR-WELLFORMED.H.16.6e — RED CONTROLS: every instrument PROVEN able to fail
+==============================================================================
+
+⛔ A NONZERO EXIT IS NOT PROOF A GUARD FIRED (layer A, from H.16.6c's first red control,
+   which died on FileNotFoundError before reaching the check it was meant to prove). Each
+   control below is therefore recorded with BOTH its exit code and the refusal TEXT.
+
+### RED 1 — score_corpus.py REFUSES when the grammar accepts nothing
+    score_corpus: REFUSED — accepts_nothing.ebnf accepts NOTHING; the harness, not the grammar, is broken
+    rc=1
+
+### RED 2 — ledger_vintages.py REFUSES when the CONTROL accepts nothing
+    scored accepts_nothing.ebnf     accepted=0      rejected=149    no_verdict=0
+    scored semantic_annotation.ebnf accepted=140    rejected=9      no_verdict=0
+    ledger_vintages: REFUSED — the CONTROL accepts nothing; the harness is broken
+    rc=1
+
+### RED 3 — arrow_position_census.sh REFUSES when the binary is absent
+    arrow_position_census: REFUSED — no grammar at rust/target/h1666e/red/nonexistent_grammar.ebnf
+    rc=2
+
+### RED 4 — arrow_route_probes.sh must go RED on the pre-(a+) grammar
+    (the vintage whose map-key defect H.16.6b fixed: it rejects nearly every probe here)
+    violated_expectations=1
+    rc=1
+
+### RED 5 — the census DISAGREES across vintages, so its verdict is not a constant
+    HEAD       : ARROW-POSITION-CENSUS: shapes=23 key_ok_but_value_arrow_lhs_rejected=10
+    pre-(a+)   : ARROW-POSITION-CENSUS: shapes=23 key_ok_but_value_arrow_lhs_rejected=0
+
+### RED 6 — arrow_route_probes.sh on an arm that REMOVES the mechanism
+    ⛔ A containment test over the input text is a test about the text; only an arm that REMOVES
+       the mechanism is a test about the mechanism (layer A). RED 4 disagrees on only 1 of 19
+       probes across vintages, which is a real disagreement but a weak one — so route 1 is also
+       tested by DELETING `lambda_expression` from `expression_value` on a scratch copy.
+    violated_expectations=4  rc=1
+      reject  @x: [a] => b                                   destructuring parameter, bracket form   ⛔ EXPECTED accept
+      reject  @x: {a} => b                                   destructuring parameter, brace form   ⛔ EXPECTED accept
+      reject  @x: (a, b) => c                                parenthesised parameter list   ⛔ EXPECTED accept
+      reject  @x: a => "s"                                   RHS unrestricted once route 1 is taken   ⛔ EXPECTED accept
+    ⭐ FOUR of route 1's five probes go red, not five: `a => b` survives because an identifier
+       arrow is ALSO an implication (route 2), which is the overlap this leaf's ruling rests on.
+
+### RED 7 — the CORPUS BUILDER is immune to the self-referential-glob trap, and byte-stable
+    ⛔ FOUND THE HARD WAY IN THIS SLICE. A throwaway `reverify:` one-liner aggregated with
+       `cat rust/target/kmr_*.txt | … > rust/target/kmr_own.txt`, whose OUTPUT matches its own input
+       glob. Run 1 was correct (3 198 rows, 0 self-rejects); from run 2 it read 3 199 rows and
+       **1 self-reject**, on a 352-character stimulus cut mid-token that appears in the aggregate and
+       in NO per-seed file. ⭐ BSD `cat` HAS a guard for this (`input file is output file`) and it
+       fires on a direct redirect — but the pipeline makes its stdout a PIPE, so the guard cannot see
+       the collision and the corpus quietly eats itself. Two-arm control, 2+2 lines:
+           cat x_*.txt        > x_all.txt   ->  4 / 4 / 4      (guard FIRES on run 2)
+           cat x_*.txt | cat  > x_all.txt   ->  4 / 8 / 4 or 8 (silent; and RACY)
+       ⇒ a fabricated defect that argued a correct 7 994-row zero was wrong.
+       Promoted: [[a-cat-glob-whose-output-matches-its-own-glob-fabricates-a-record]]
+    THE TRACKED BUILDER IS NOT EXPOSED — it generates into a dedicated directory it `rm -rf`s first
+    and writes the aggregate outside that directory. Proven, not asserted:
+      OWN-CORPUS: grammar=semantic_annotation.ebnf seeds=40 count=200 unique=7994 -> rust/target/h1666e/stab_1.txt
+      OWN-CORPUS: grammar=semantic_annotation.ebnf seeds=40 count=200 unique=7994 -> rust/target/h1666e/stab_2.txt
+      OWN-CORPUS: grammar=semantic_annotation.ebnf seeds=40 count=200 unique=7994 -> rust/target/h1666e/stab_3.txt
+      ⇒ three fresh runs BYTE-IDENTICAL to each other and to the corpus this leaf scored.

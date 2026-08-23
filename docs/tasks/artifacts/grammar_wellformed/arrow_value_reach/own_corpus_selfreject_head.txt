@@ -1,0 +1,4 @@
+OWN-CORPUS: grammar=semantic_annotation.ebnf seeds=40 count=200 unique=7994 -> rust/target/h1666e/own40.txt
+  density: rows_with_arrow=1035 rows_with_two_arrows=299 rows_with_chained_arrow=128
+
+SELF-REJECT: label=HEAD_own40 grammar=semantic_annotation.ebnf corpus=own_corpus_40seed.txt n=7994 accepted=7994 rejected=0 no_verdict=0

@@ -47,6 +47,36 @@ three reaches and nothing else:
 Values are unrestricted, so a lambda or implication is perfectly legal on the right of the arrow —
 `{a => (x) => y}` parses, with key `a` and a lambda value.
 
+### What may sit LEFT of a `=>` inside a value
+
+"Unrestricted" is a statement about the value **rule**, not about the arrow. A `=>` *inside* a value
+is never the map arrow — the entry already consumed that one — so it has to be one of the value
+language's three other arrow constructs, and each declares its own left-hand operand language:
+
+| construct | what may sit left of its `=>` | what may sit right |
+| --- | --- | --- |
+| lambda | an identifier, a `[a, …]` / `{a, …}` destructuring pattern, or a parenthesised parameter list `(a, b)` | any value |
+| implication | a logical-or operand — number, identifier, rule reference, call, qualified name, parenthesised arithmetic | the same |
+| function type | a parenthesised type list, `(Foo<Bar>)` | a type reference |
+
+So the key position and the arrow-left position inside a value do **not** admit the same things, and
+that is deliberate: a key is followed by the map's own arrow, so it is an operand of nothing, while
+an arrow's left operand has to mean something to one of the three constructs above. Measured over 23
+operand shapes, all 23 are legal keys, legal plain values and legal arrow *right* operands; 13 of the
+23 may also sit left of an arrow inside a value. The other ten — `"s"`, `'s'`, `[1]`, `{a: 1}`,
+`#{1}`, a nested map, `%S`, `./p`, `https://h/p`, `Foo<Bar>` — may not, because none of them is a
+lambda parameter, a logical operand or a parenthesised type list:
+
+```text
+@ x : { %S => 1 }                   # fine — a symbol reference is a perfectly good KEY
+@ x : { k => %S => 1 }              # rejected — `%S => 1` is no lambda, implication or function type
+@ x : { k => (Foo<Bar>) => Baz }    # fine — that one IS a function type
+@ x : { k => a => b => c }          # fine — identifier arrows chain as nested lambdas
+```
+
+Write the nested value with its own braces when you want a map inside a map — `{k => {%S => 1}}` —
+which is what the ten shapes above are asking for whenever they turn up in that position.
+
 > ⚠️ **Before 2026-08-23 this was broken and the failure was silent.** The key was declared as a full
 > value, so a map entry parsed *if and only if* its `key => value` was **not** itself a valid value.
 > Measured over nine key shapes, only the string-keyed one worked: `{"a" => "b"}` parsed while
