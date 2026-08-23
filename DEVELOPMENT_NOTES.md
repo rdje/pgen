@@ -1,5 +1,75 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0279 — re-baselining an instrument is not bookkeeping, and one of them could not have been re-baselined at all
+
+**1. THE SHAPE OF THE FINDING.** A leaf recorded, in its own closing instruction, exactly what to do
+when the fix it was blocked on landed. The fix landed nine days ago in another tree. Nobody came
+back. The mechanism is worth naming because it is structural rather than anybody's discipline: a
+routed-out defect leaves a pointer from the *victim* leaf to the *owner* leaf, and none in the other
+direction — so the owner closes, and the victim keeps saying `blocked`. Every instrument the victim
+left behind keeps asserting the pre-fix world.
+
+**2. RE-BASELINING IS NOT THE SAME OPERATION ON BOTH INSTRUMENTS, AND THE DIFFERENCE MATTERS.**
+`casting_type_edge_matrix.sh` asks *"which edge is the discriminator?"* — a question whose answer
+survives the fix. Flipping two expectations turns it from a defect reproducer into a regression
+detector with no loss. `corpus_row_cast_bisect.py` asked *"is this cast the SOLE blocker of its two
+corpus rows?"* — a **pricing** question, asked before a fix existed, whose whole method was
+`before must REJECT`. The fix makes that assertion permanently unsatisfiable. ⇒ **the first needed a
+new baseline; the second needed a new question.** Re-baselining it would have produced a script that
+can only fail, and a script that can only fail gets deleted rather than repaired.
+
+**3. THE NEW QUESTION WAS AVAILABLE IN THE ARMS IT ALREADY MEASURED.** It probes the row twice —
+as shipped, and with the `N'` prefixes stripped. Post-fix, that pair is a 2-bit signal and only one
+of its states is the baseline: `ACCEPT/ACCEPT` is healthy, `REJECT/ACCEPT` says the size cast is what
+stopped parsing, and `REJECT/REJECT` says the blocker is some other construct and this leaf does not
+own it. The old boolean collapsed all three into *"a row moved"*. ⭐ Nothing new had to be measured
+to gain that — the instrument was already computing the differential and throwing it away.
+
+**4. AND ITS `removed == 0` REFUSAL EARNED ITS KEEP FOR A REASON IT DID NOT ORIGINALLY HAVE.** Both
+rows are VENDORED OpenTitan sources. A re-vendor that dropped the size casts would leave two arms
+reporting ACCEPT for a reason unrelated to this defect — a test that cannot fail, reported as a test
+that passed. That refusal is what keeps the ACCEPT meaningful, and it is now documented as such
+rather than as a sanity check.
+
+**5. THE WALKER BUG, AND WHY THE RED CONTROL IS WHAT FOUND IT.** Proving a re-baselined instrument
+can still go red means running it against inputs that violate the new expectation. The cheapest way
+to stage that was a copy of the script outside the checkout — and the copy never produced a line of
+output. The cause is one line older than this leaf:
+
+```bash
+while [ ! -f CLAUDE.md ] || [ ! -d grammars ]; do cd .. || exit 1; done
+```
+
+`/..` is `/`, so `cd ..` at the root **succeeds**. The `|| exit 1` reads like a terminator and is
+unreachable: the loop condition is false forever and the escape never fires. Isolated, it spins —
+`SPIN: 201 iterations, still at pwd=/` — and the shipped line under a 20 s budget exits 124 with
+nothing printed. ⛔ The failure mode is the worst one a diagnostic can have. TOOLBOX doctrine is that
+an instrument REFUSES with a reason; this one hangs, and a hang gets attributed to the parser under
+test rather than to the harness. (It briefly was: the first run of the RED control looked like a
+pathological SV backtrack until the process list showed no `parseability_probe` running at all.)
+
+**6. THE CORRECT MODEL WAS SITTING IN THE SAME DIRECTORY.** `_repo_root.py` walks `Path.parents`,
+which is finite by construction, and raises `REFUSE: no repository root above …`. Two
+implementations of one contract — resolve the root at run time, never hard-code a depth (Directive
+12) — and only the shell one could fail to honour it. The fix gives all three shell copies the
+terminator the Python one gets for free, with the same refusal text. **Directive 12 was never the
+problem; what was missing is that a walk needs its own terminator, not merely a step that can fail.**
+
+**7. THE CENSUS IS CLOSED, AND ITS BOUND IS STATED.** `grep -rln 'while \[ ! -f CLAUDE.md \]'
+--include='*.sh'` returns exactly 3 tracked files, all under `docs/tasks/artifacts/sv_corpus_grad/`;
+two of them carry a bare `cd ..` with no escape at all, i.e. strictly worse. The bound is *this exact
+idiom in shell* — a walker written another way, or in another language, is not in it. That is the
+right bound for a copy-paste class, and it is stated rather than implied.
+
+**8. THE NO-REGRESSION ARM CHOSE ITSELF, AND THEN BECAME A FINDING.**
+`stimuli/sv/run_adjudication_repros.py` checks all 180 rows of the adjudicated SV construct
+population — including the 8 `accepts_invalid_*` rows, which is the arm that would catch the guarded
+LR admission **over**-accepting rather than merely under-accepting — in 2.25 s, `failures=0`. ⛔ And
+`grep` over `*.sh` / `Makefile` / `*.mk` / `*.yml` finds it invoked by two ad-hoc artifact probes and
+nothing else. A suite good enough to certify a slice, that nothing runs. Routed to
+`CI-PARITY-GATE-ROT.44` with its cost measured, because at 2.25 s the usual expense objection
+(director CI policy #16) does not reach it.
+
 ## 2026-08-23 - PGEN-GRAMMAR-CERT-STATUS-0005 — adjudicating 31 unknowns, and the census that counted comments
 
 **1. WHAT AN "UNKNOWN" COUNT IS AND IS NOT.** `semantic_annotation: 29 unknown` is not a defect

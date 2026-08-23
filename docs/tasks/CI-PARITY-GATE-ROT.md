@@ -143,6 +143,52 @@ commands.
 
 **It cannot complete, and has not been able to for 1,371 commits.**
 
+### ⭐⭐ `.44` NEW `todo` — **the SV parser's construct-level regression suite — 180 rows, 2.25 s, `failures=0` — is invoked by NO gate, NO make target and NO workflow** (routed in 2026-08-23 session by `SV-CORPUS-GRAD.13c.2b` / `PGEN-SV-CORPUS-GRAD-0279`)
+
+> ⛔ **ROUTED, NOT WORKED** — found while closing an SV-release leaf. It is on the SV release path
+> by subject, but wiring it is a change to what the COMMIT TIER checks, which is a policy decision
+> (director CI policy #16) and not something to fold into a leaf closure.
+
+- ⛔ **MEASURED.** `stimuli/sv/run_adjudication_repros.py` runs every row of
+  `stimuli/sv/adjudication_repros/MANIFEST.tsv` against the shipped parser and prints the parser's
+  own digest:
+
+  ```text
+  ADJUDICATION-REPROS: probe=rust/target/release/parseability_probe sv_parser=e53cb4a229e5…
+  ADJUDICATION-REPROS: checked=180 armed=77 listed=95 multi_profile_rows=59 failures=0
+  ```
+
+  **2.25 s wall** (`/usr/bin/time -p`: real 2.25, user 1.43, sys 0.67).
+- ⛔ **AND NOTHING RUNS IT.** `grep -rln "run_adjudication_repros" --include='*.sh' --include=Makefile
+  --include='*.mk' --include='*.yml' --include='*.yaml'` over the tracked tree returns **two files,
+  both ad-hoc artifact probes** (`docs/tasks/artifacts/sv_corpus_grad/es13c2h_three_profiles/probe.sh`
+  and `.../accepts_invalid_class/probe.sh`). `rust/Makefile` and `scripts/*.sh` do not mention it at
+  all. ⇒ it runs only when an operator remembers it exists.
+- ⭐⭐ **WHY THIS ONE MATTERS MORE THAN ITS SIZE SUGGESTS.** The 180 rows are the accumulated
+  *adjudicated* SV construct population — every `defect_*` a leaf fixed, every `control_*` that
+  isolates a mechanism, and the **8 `accepts_invalid_*` rows**, which are the only tracked instrument
+  that tests the SV parser for **over**-acceptance by construct. The repo's own north star says
+  over-acceptance is a defect and SV is 100 % LRM-compliant by default; the check that would notice a
+  regression in that property is the one nothing invokes. ⛔ It is also the arm that
+  `PGEN-SV-CORPUS-GRAD-0279` used as its NO-REGRESSION evidence — which is the point: a suite good
+  enough to certify a slice is good enough to run automatically.
+- ⭐ **AND IT IS CHEAP ENOUGH THAT THE USUAL OBJECTION DOES NOT APPLY.** Director CI policy #16 (full
+  CI only before push; ordinary commits get a selected set) exists because gates are expensive. At
+  **2.25 s** this is in the same class as the doctrines already in the per-commit tier, not in the
+  class of the 448 s certificate gate.
+- **WHAT THIS LEAF OWES**: (a) decide the tier — per-commit alongside the doctrines, or the
+  cheap-gate set — and record WHY, against policy #16 rather than around it; (b) wire it where the
+  decision says, so the digest line it already prints is compared rather than merely printed; (c) a
+  RED arm proving it fails when a row's expectation is violated, since a suite reporting
+  `failures=0` is worth exactly what its ability to report a failure is worth; (d) decide what it
+  does when `rust/target/release/parseability_probe` is absent — refuse loudly or skip — because a
+  suite that silently skips is worse than one nobody runs.
+- ⚠️ **HONEST BOUNDS**: the 2.25 s figure is one measurement on a warm tree with the probe already
+  built; it excludes building `parseability_probe`. And `checked=180` is the MANIFEST's own count —
+  this leaf has not audited whether every adjudicated SV construct in the trees is actually *in* the
+  MANIFEST, which is a different (and larger) question about the suite's coverage than about its
+  wiring.
+
 ### ⚠️ `.41` NEW `todo` — **`GENERATED-REPRODUCIBILITY` checks an 11th artifact that the canonical regeneration recipe does not produce, so every codegen change fails its own rebaseline once** (routed in 2026-08-21 session #253 by `ENGINE-UNIVERSAL-SERVICES.43`)
 
 > ⛔ **ROUTED, NOT WORKED** — found while executing the SV-release frontier. Small, but it costs a

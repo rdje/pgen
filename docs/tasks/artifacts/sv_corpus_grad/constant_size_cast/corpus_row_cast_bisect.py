@@ -1,20 +1,36 @@
 #!/usr/bin/env python3
-"""`SV-CORPUS-GRAD.13c.2b` — is this defect the SOLE blocker of its two corpus rows?
+"""`SV-CORPUS-GRAD.13c.2b` — do the two attributed corpus rows still parse, and if not, WHY?
 
-`.13c.2` attributed 2 DARK corpus rows to the constant size cast. An attribution is not a
-measurement: a file can be blocked by several constructs at once, and "rows unblocked: 2" is then
-an over-claim that only shows up when the fix lands and the number does not move.
+⭐ RE-PURPOSED 2026-08-23 (`PGEN-SV-CORPUS-GRAD-0279`), because its original question is answered
+and can never be asked again. It opened as a PRICING bisect: `.13c.2` had *attributed* 2 DARK
+corpus rows to the constant size cast, and an attribution is not a measurement — a file can be
+blocked by several constructs at once, so "rows unblocked: 2" would only be caught being wrong when
+the fix landed and the number did not move. It removed only the numeric size-cast prefix (`N'`
+before a `(`), changing nothing else, and measured `before REJECT -> after ACCEPT` on both rows:
+the cast was the SOLE remaining blocker, so the fix would flip exactly 2 rows and no fewer.
 
-This bisect answers it now, without a fix. It removes ONLY the numeric size-cast prefix (`N'`
-before a `(`) from each row, changing nothing else, and re-probes:
+⛔ THE FIX LANDED (`ENGINE-UNIVERSAL-SERVICES.17` slice 9,
+`PGEN-ENGINE-UNIVERSAL-SERVICES-0032`) AND THE PREMISE IS VOID: both rows now parse WITH their
+casts intact, so "before" can never be a rejection again and the script asserting it was RED on a
+correct tree. A pricing instrument outlives its question; a REGRESSION instrument does not.
 
-  * before — REJECT (both rows)
-  * after  — parse_full passed (both rows)
+So it now measures the same two arms and reads them as a DIFFERENTIAL, which is strictly more than
+the boolean it replaced:
 
-⇒ the numeric size cast is the sole remaining blocker of both files, so the fix flips exactly 2
-rows and no fewer. The transformation is deliberately the SMALLEST one that removes the construct:
-`512'({ … })` becomes `({ … })`, a legal SystemVerilog parenthesised concatenation, so the rest of
-each file is still exercised at full strength.
+  | as shipped (casts intact) | casts stripped | verdict                                          |
+  |---------------------------|----------------|--------------------------------------------------|
+  | ACCEPT                    | ACCEPT         | ✅ the construct parses — the post-fix baseline   |
+  | REJECT                    | ACCEPT         | ⛔ the SIZE CAST regressed — removing it recovers |
+  | REJECT                    | REJECT         | ⛔ something ELSE in the row broke — not the cast |
+
+⇒ a future red run does not merely say "a row moved", it says whether the numeric size cast is the
+thing that moved. The stripped arm is the control that separates those two failures, which is why
+it is kept now that it is no longer the measurement.
+
+⛔ AND IT STILL REFUSES IF A ROW LOSES ITS CASTS. Both rows are VENDORED OpenTitan sources; a
+re-vendor that dropped the construct would leave two arms passing for a reason that has nothing to
+do with this defect — a test that cannot fail, reported as a test that passed. The `removed == 0`
+refusal is what keeps the ACCEPT meaningful.
 
   python3 docs/tasks/artifacts/sv_corpus_grad/constant_size_cast/corpus_row_cast_bisect.py
 """
@@ -62,26 +78,42 @@ def main() -> int:
             if not source.is_file():
                 raise SystemExit(f"REFUSE: corpus row {relative} is not present")
             text = source.read_text()
-            stripped, removed = SIZE_CAST_PREFIX.subn("", text)
+            stripped_text, removed = SIZE_CAST_PREFIX.subn("", text)
             if removed == 0:
                 raise SystemExit(f"REFUSE: {relative} carries no numeric size cast — the row moved")
             after_path = Path(work) / source.name
-            after_path.write_text(stripped)
+            after_path.write_text(stripped_text)
 
-            before = probe(root, source)
-            after = probe(root, after_path)
+            shipped = probe(root, source)
+            stripped = probe(root, after_path)
             print(f"{source.name}")
-            print(f"    size casts removed : {removed}")
-            print(f"    before             : {before}")
-            print(f"    after              : {after}")
-            if not before.startswith("REJECT") or after != "ACCEPT":
-                status = 1
-                print("    ⛔ the bisect no longer holds — re-adjudicate this row")
+            print(f"    numeric size casts : {removed}")
+            print(f"    as shipped         : {shipped}")
+            print(f"    casts stripped     : {stripped}")
+            if shipped == "ACCEPT" and stripped == "ACCEPT":
+                continue
+            status = 1
+            if stripped == "ACCEPT":
+                print(
+                    "    ⛔ REGRESSION IN THE SIZE CAST: the row parses once the N' prefixes are"
+                    " removed, so the construct ENGINE-UNIVERSAL-SERVICES.17 slice 9 admitted is"
+                    " what stopped parsing. Check left_recursion_unhandled=0 on"
+                    " grammars/systemverilog.ebnf and that no build passes"
+                    " --indirect-lr-admit-starvation-safe-only."
+                )
+            else:
+                print(
+                    "    ⛔ NOT THE CAST: the row fails with the casts removed too, so the blocker"
+                    " is some OTHER construct in this file. Re-probe it with"
+                    " parseability_probe --parse systemverilog <row> --profile sv_2017 and read"
+                    " furthest_position — this leaf is not the owner."
+                )
     print()
     print(
-        "VERDICT: the numeric size cast is the SOLE blocker of both rows"
+        "VERDICT: both rows parse as shipped, casts intact — the post-fix baseline"
+        " (PGEN-ENGINE-UNIVERSAL-SERVICES-0032)"
         if status == 0
-        else "VERDICT: a row moved — the 'unblocks exactly 2 rows' claim must be re-measured"
+        else "VERDICT: a row moved — read the per-row line above; it says WHETHER the cast is the cause"
     )
     return status
 

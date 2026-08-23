@@ -3539,25 +3539,34 @@ message states, is that the cycle's *left-recursive derivations* are unreachable
 
 ⭐ **How much a surviving cycle costs you, measured — it is nothing until the cycle is the only
 road.** `SV-CORPUS-GRAD.13c.2b` pinned this on the same `casting_type` cycle, all three inputs in the
-same constant-expression position:
+same constant-expression position. ⛔ **Read the table as the PRE-FLIP measurement it is**: the
+`casting_type` cycle no longer survives on SystemVerilog — it is absorbed with a call-site guard, so
+the third row parses today. The table is kept because it is what *makes the general point*, and the
+`at HEAD` column is what keeps it honest:
 
-| input | what `casting_type` can match at the seed | verdict |
-|---|---|---|
-| `parameter int K = int'(1);` | `simple_type` — branch 1/5 | ACCEPT |
-| `parameter logic [7:0] K = W'(1);` | `simple_type → ps_type_identifier` — branch 1/5 | ACCEPT |
-| `parameter logic [7:0] K = 8'(1);` | only `constant_primary` — branch 2/5 | **REJECT** |
+| input | what `casting_type` can match at the seed | before the flip | at HEAD |
+|---|---|---|---|
+| `parameter int K = int'(1);` | `simple_type` — branch 1/5 | ACCEPT | ACCEPT |
+| `parameter logic [7:0] K = W'(1);` | `simple_type → ps_type_identifier` — branch 1/5 | ACCEPT | ACCEPT |
+| `parameter logic [7:0] K = 8'(1);` | only `constant_primary` — branch 2/5 | **REJECT** | **ACCEPT** |
 
-The guard fires in **all three**: the `W'(1)` trace prints `💥 Infinite recursion detected in rule
-'constant_primary'` and then `🏁 Rule 'casting_type' selected branch 1/5` and parses. ⇒ the cost of a
-surviving cycle is not that it exists, it is that *no other alternative of the re-entered rule can
-match this text* — which is why the class size (30 on SV) is a count of cycles and never a count of
-defects, and why sizing one means hunting the inputs where every sibling alternative is dead. That
-one cycle blocks 2 vendored OpenTitan corpus files whose only unparseable construct is a numeric size
-cast in a package parameter (proven by removing just the `N'` prefix: both flip to `parse_full
-passed`). ⛔ And the grammar-tier escape is closed by measurement, not by taste — that leaf's audit
-shows `constant_primary_sv_2017`/`_sv_2023`/`casting_type` are **order-identical** to the Annex A
-extraction, so hand-splitting the cycle would trade a byte-for-byte standard transcription for a
-workaround.
+The guard fired in **all three** even before the flip: the `W'(1)` trace prints
+`💥 Infinite recursion detected in rule 'constant_primary'` and then
+`🏁 Rule 'casting_type' selected branch 1/5` and parses. ⇒ the cost of a surviving cycle is not that
+it exists, it is that *no other alternative of the re-entered rule can match this text* — which is
+why the class size (30 on SV) is a count of cycles and never a count of defects, and why sizing one
+means hunting the inputs where every sibling alternative is dead. ⭐ **Only the third row ever moved,
+and that is the confirmation**: the two control rows had another viable alternative all along, so a
+fix aimed at this cycle must leave them exactly where they were — and it did.
+
+That cycle used to block 2 vendored OpenTitan corpus files whose only unparseable construct was a
+numeric size cast in a package parameter, priced before any fix existed by removing just the `N'`
+prefix and watching both flip to `parse_full passed`. **Both now parse unmodified**, casts intact —
+the prediction was *"exactly 2 rows and no fewer"*, and it flipped exactly 2. ⛔ And the grammar-tier
+escape was closed by measurement, not by taste — that leaf's audit shows
+`constant_primary_sv_2017`/`_sv_2023`/`casting_type` are **order-identical** to the Annex A
+extraction, so hand-splitting the cycle would have traded a byte-for-byte standard transcription for
+a workaround. The fix went into the engine instead, and the transcription is still byte-for-byte.
 
 ⭐ **And the diagnostic no longer hides its own findings.** This class printed `take(10)` with no
 override, so 20 of SV's 30 were unreachable from the CLI at any verbosity — the sweep that found all

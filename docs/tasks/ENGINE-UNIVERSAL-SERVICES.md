@@ -2268,6 +2268,23 @@ constant_expression → constant_expression_operand → constant_primary → con
 and `defect_constant_size_cast_corpus_shape.sv` must flip to ACCEPT (their `MANIFEST.tsv` `expect`
 column re-baselined in the same commit), and the two OpenTitan rows must parse unmodified.
 
+##### ✅✅ THOSE TWO ROWS ARE DISCHARGED — verified at HEAD by the owning leaf (`SV-CORPUS-GRAD.13c.2b` CLOSED, `PGEN-SV-CORPUS-GRAD-0279`, 2026-08-23)
+
+- **All four conditions met**, measured on parser `e53cb4a2…`: both `defect_*` repros ACCEPT
+  (`casting_type_edge_matrix.sh` now reads **5 ACCEPT**, re-baselined from 3 ACCEPT / 2 REJECT); the
+  `MANIFEST.tsv` `expect` column reads `ACCEPT / fixed` for both, attributed to
+  `PGEN-ENGINE-UNIVERSAL-SERVICES-0032`; and
+  `top_{darjeeling,earlgrey}_rnd_cnst_pkg.sv` both return `parse_full passed` **unmodified**, with
+  their 22 and 11 numeric size casts intact.
+- ⭐ **THE PRICE THIS ROW CARRIED WAS CORRECT.** `corpus_row_cast_bisect.py` predicted, before any
+  fix existed, that the change would flip *exactly* 2 corpus rows and no fewer. It flipped exactly 2.
+  That is the payoff for having MEASURED an attribution instead of inheriting it — an over-claimed
+  "unblocks N rows" would only have surfaced here, nine days after the fix shipped.
+- ⛔ **NOTE THE ATTRIBUTION, BECAUSE IT MOVED**: the fix is `.17` slice 9's **guarded admission**, not
+  a `.13` slice. This leaf's own criterion — absorb only when starvation-safe — admitted `0/28` on
+  SystemVerilog and would never have taken this knot; the call-site follow-restriction guard is what
+  made it admissible. ⇒ the corpus row was priced against `.13` and paid off by `.17`.
+
 #### ✅ SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0011`, 2026-08-12 session #221) — acceptance (a) is CLOSED: the per-cycle adjudication, and the leaf's own caution is refuted
 
 > **Two numbers changed, in opposite directions. The worklist is 3.5× SMALLER than the headline

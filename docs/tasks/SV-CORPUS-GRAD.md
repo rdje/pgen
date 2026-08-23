@@ -9574,7 +9574,7 @@ wrong RECORD or a wrong EXTRACTION — they have very different consequences; (c
 repository-relative paths; (d) decide whether `DIAG-SEVERITY+DOCPATH` should cover generated
 non-`.md` artifacts, so this cannot come back.
 
-#### `.13c.2b` — DEFECT: a size cast is rejected in a CONSTANT expression (**DIAGNOSED** 2026-08-12, `PGEN-SV-CORPUS-GRAD-0216`; opened 2026-08-11 by `.13c.2`; the FIX is `ENGINE-UNIVERSAL-SERVICES.13`)
+#### `.13c.2b` — ✅ **CLOSED: the size cast parses, and the instruments that proved it broken now guard it** (was: a size cast is rejected in a CONSTANT expression) (**`done`** 2026-08-23, `PGEN-SV-CORPUS-GRAD-0279`; DIAGNOSED 2026-08-12 `PGEN-SV-CORPUS-GRAD-0216`; opened 2026-08-11 by `.13c.2`; FIXED by `ENGINE-UNIVERSAL-SERVICES.17` slice 9)
 
 - `parameter logic [7:0] K = 8'(1);` REJECTS while `initial k = 8'(1);` PARSES ⇒ the gap is the
   **constant-expression** path, not the cast. IEEE 1800-2017 A.8.4:
@@ -9696,11 +9696,171 @@ property for a workaround. ⇒ routed to `ENGINE-UNIVERSAL-SERVICES.13`, which n
 independent LRM-grounded inputs on the same cycle (`int'(2)'(3)` and this one) plus the first
 corpus pricing it has.
 
-**STATUS:** the DIAGNOSIS half is closed and this leaf is **blocked on `ENGINE-UNIVERSAL-SERVICES.13`**,
-not on further SV investigation. When `.13` lands, re-run all three scripts in
+**STATUS (2026-08-12 → 2026-08-23):** the DIAGNOSIS half closed on 2026-08-12 and the leaf was
+**blocked on `ENGINE-UNIVERSAL-SERVICES.13`**, not on further SV investigation. Its own closing
+instruction was: *when `.13` lands, re-run all three scripts in
 `docs/tasks/artifacts/sv_corpus_grad/constant_size_cast/`: the matrix's two REJECT arms must become
 ACCEPT, the bisect's "before" must stop being a rejection, and the `MANIFEST.tsv` `expect` column for
-the two `defect_*` rows must be re-baselined in the same commit.
+the two `defect_*` rows must be re-baselined in the same commit.* That instruction is discharged
+below.
+
+##### ✅✅ CLOSED 2026-08-23 (`PGEN-SV-CORPUS-GRAD-0279`) — the defect is FIXED at HEAD, and the two instruments that could only prove it BROKEN now hold it FIXED
+
+- ⭐⭐ **THE FIX LANDED ELSEWHERE AND NOBODY CAME BACK FOR THIS LEAF.** `ENGINE-UNIVERSAL-SERVICES.17`
+  slice 9 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0032`, 2026-08-14) flipped the indirect-LR eliminator's
+  criterion from *"absorb a knot only if no rule outliving the rewrite can starve it"* to *"absorb it
+  if it is safe **or** if a call-site follow-restriction guard makes it safe"*, and the
+  `casting_type` knot is absorbed behind `casting_type_lr_guard1[loop]` at `cast alt#0`. That is the
+  engine-tier fix this leaf routed for and refused to hand-write into the grammar. ⛔ It shipped
+  **nine days** before this leaf noticed, because nothing links a routed-out fix back to the leaf
+  that priced it.
+- **RE-DERIVED AT HEAD, by command** (parser `e53cb4a2…`, probe `rust/target/release/parseability_probe`):
+
+  ```text
+  bash docs/tasks/artifacts/sv_corpus_grad/constant_size_cast/casting_type_edge_matrix.sh
+    control_size_cast_in_statement.sv          ACCEPT   (unchanged)
+    control_simple_type_cast_in_constant.sv    ACCEPT   (unchanged)
+    control_param_name_cast_in_constant.sv     ACCEPT   (unchanged)
+    defect_constant_size_cast.sv               ACCEPT   ⭐ was REJECT
+    defect_constant_size_cast_corpus_shape.sv  ACCEPT   ⭐ was REJECT
+
+  parseability_probe --parse systemverilog <row> --profile sv_2017
+    …/opentitan/hw/top_darjeeling/rtl/autogen/testing/top_darjeeling_rnd_cnst_pkg.sv   parse_full passed
+    …/opentitan/hw/top_earlgrey/rtl/autogen/testing/top_earlgrey_rnd_cnst_pkg.sv       parse_full passed
+  ```
+
+  ⇒ **the 2 vendored OpenTitan rows this leaf priced are parsed, with their 22 and 11 numeric size
+  casts intact.** The pricing bisect's prediction — *"the fix flips exactly 2 rows and no fewer"* —
+  held; that is the value of having measured it instead of attributing it.
+- ⭐ **THE THREE CONTROL ARMS DID NOT MOVE, AND THAT IS WHAT MAKES THE FLIP READABLE.** A matrix
+  where every arm flipped would say the parser changed; a matrix where exactly the two arms whose
+  `casting_type` had no alternative besides `constant_primary` flipped says **this edge** changed. The
+  diagnosis and the fix are attributed to the same edge by the same instrument.
+- ⚠️ **THE `MANIFEST.tsv` HALF WAS ALREADY DONE, BY THE FIX'S OWN COMMIT — CHECKED, NOT ASSUMED.**
+  `stimuli/sv/adjudication_repros/MANIFEST.tsv:38-39` already read `ACCEPT / fixed`, attributed to
+  `PGEN-ENGINE-UNIVERSAL-SERVICES-0032`, before this slice touched anything. Recorded because the
+  leaf's closing instruction named it as owed work and it would have been easy to re-claim.
+
+##### ⛔⛔ WHAT THIS SLICE ACTUALLY HAD TO FIX: two tracked instruments were RED on a CORRECT tree
+
+- **THE SYMPTOM.** Both re-runnable instruments still asserted the PRE-FIX verdicts, so at HEAD they
+  exited non-zero and printed alarms — `⛔ MISMATCH` twice from the matrix, and
+  `⛔ the bisect no longer holds — re-adjudicate this row` twice from the bisect. Every one of those
+  four alarms was **false**: the tree was right and the instrument was stale.
+- ⛔ **THAT IS NOT A COSMETIC STATE.** An instrument that is already red cannot detect anything, and
+  a red nobody can act on is how a real regression gets waved through. The bisect was worse than
+  merely stale: its assertion was `before must be a REJECTION`, which the fix makes **permanently
+  unsatisfiable** — a check that can never pass again is a check that will be deleted or ignored,
+  not one that will be fixed.
+- **WHAT LANDED.**
+  - `casting_type_edge_matrix.sh` — arms 4/5 re-baselined `REJECT → ACCEPT`, header rewritten to
+    carry both the before and the at-HEAD column, and the failure text rewritten from *"the fix
+    landed, re-baseline"* to *"this is a REGRESSION — check `left_recursion_unhandled=0` and that no
+    build passes `--indirect-lr-admit-starvation-safe-only`"*. ⭐ The three control arms are kept
+    deliberately: they never depended on the knot, so a red confined to arms 4/5 is this construct
+    and a red reaching a control is wider.
+  - `corpus_row_cast_bisect.py` — **re-purposed, not re-baselined**, because its question (*"is the
+    cast the SOLE blocker?"*) is permanently answered. It measures the same two arms and reads them
+    as a DIFFERENTIAL: `shipped ACCEPT + stripped ACCEPT` = the baseline; `shipped REJECT + stripped
+    ACCEPT` = **the size cast regressed**; `shipped REJECT + stripped REJECT` = **not the cast, this
+    leaf is not the owner**. ⇒ a future red says *which* thing moved, which the old boolean could not.
+    The `removed == 0` refusal is kept and now carries its reason: both rows are VENDORED, and a
+    re-vendor that dropped the construct would leave two arms passing for a reason unrelated to this
+    defect — a test that cannot fail, reported as a test that passed.
+
+##### ⭐⭐ EVERY REFUSAL ARM WAS FIRED, NOT ASSUMED — a re-baselined instrument seen only green is an assertion, not a check
+
+Driven red on the shipped baseline with scratch inputs under `rust/target/` (removed afterwards, residue verified GONE):
+
+| instrument | arm driven | observed |
+|---|---|---|
+| `casting_type_edge_matrix.sh` | arms 4/5 given a genuinely invalid input | exit **1**, both named `⛔ MISMATCH`, controls 1–3 stayed green |
+| `corpus_row_cast_bisect.py` | a row carrying no numeric size cast | `REFUSE: … carries no numeric size cast — the row moved` |
+| `corpus_row_cast_bisect.py` | shipped REJECT / stripped ACCEPT | `⛔ REGRESSION IN THE SIZE CAST` |
+| `corpus_row_cast_bisect.py` | shipped REJECT / stripped REJECT | `⛔ NOT THE CAST … this leaf is not the owner` |
+
+⭐ The `REGRESSION` and `NOT THE CAST` arms were built from IEEE 1800 `if ( expression )`, where a
+numeric size cast is **not** legal in the head position: `initial if 8'(1) ;` REJECTs and
+`initial if (1) ;` ACCEPTs, so stripping the `N'` prefix genuinely recovers the file. That is a real
+differential, not a mocked verdict.
+
+##### ⛔ A DEFECT FOUND *IN* THE INSTRUMENTS WHILE PROVING THEM — the repo-root walk could not terminate (3 sites, all fixed here)
+
+- **ROOT CAUSE (WHY + WHERE), measured.** `casting_type_edge_matrix.sh:34` resolved the repository
+  root with `while [ ! -f CLAUDE.md ] || [ ! -d grammars ]; do cd .. || exit 1; done`. **`cd ..` at
+  `/` SUCCEEDS and is a no-op**, so the `|| exit 1` escape can never fire and the loop condition can
+  never become false outside a checkout. Isolated and measured directly:
+
+  ```text
+  SPIN: 201 iterations, still at pwd=/ — cd .. at / is a NO-OP that never fails
+  ```
+
+  and the shipped line, copied off-root and run under a 20 s budget: **exit 124, no output at all.**
+- ⭐ **THE SIBLING IN THE SAME DIRECTORY NEVER HAD IT.** `_repo_root.py` iterates `Path.parents`,
+  which is finite, and raises `REFUSE: no repository root above …`. Two implementations of one
+  contract, one of which cannot honour it — the Python one is the correct model and the fix matches it.
+- **CENSUS — the class is closed, not sampled.** `grep -rln 'while \[ ! -f CLAUDE.md \]' --include='*.sh'`
+  over the tracked tree returns **exactly 3 files**, all under `docs/tasks/artifacts/sv_corpus_grad/`:
+  this one, plus `config_use_param_override/census_use_clause_spellings.sh` and
+  `config_use_param_override/frontend_truncation_probe.sh` — whose copies were strictly worse, a bare
+  `cd ..` with **no** `|| exit` at all. All three fixed in this slice.
+- **ADDRESSED — before → after, all three, off-root:**
+
+  ```text
+  before   exit 124   (timed out — unbounded spin, no output, no error)
+  after    exit 2     REFUSE: no repository root (CLAUDE.md + grammars/) above <path>     ×3
+  ```
+
+  and in-repo the matrix still resolves the root and runs **GREEN, exit 0**, so the terminator did
+  not cost the capability Directive 12 requires (no hard-coded depth — the walk is still resolved at
+  run time from the script's own location).
+- ⭐⭐ **HOW IT WAS FOUND IS THE TRANSFERABLE PART: the check that was only meant to prove the
+  MATRIX could fail is what proved the WALKER could not stop.** Running an instrument outside its
+  own repository is not a scenario anybody had exercised, and the failure mode it exposes is the
+  worst one a diagnostic can have — it **hangs** where TOOLBOX doctrine requires it to **refuse**.
+  ⇒ [[a-walk-needs-its-own-terminator-not-just-a-failing-step]].
+
+##### ⚠️ HONEST BOUNDS
+
+- **The fix is not attributed by re-running the pre-flip engine.** `-0032`'s own slice record carries
+  the A/B (`left_recursion_unhandled` 28 → 0 on `systemverilog`, every other grammar byte-identical),
+  and the shipped parser carries `casting_type_lr_guard1`; this slice did **not** rebuild an SV parser
+  under `--indirect-lr-admit-starvation-safe-only` to re-observe the REJECT. The attribution is
+  therefore corroborated, not independently re-measured, and that is the one leg of three that rests
+  on a prior record.
+- **`.13c.2d` is untouched and remains `todo`** — the `cross_body_item` misspelled-literal finding was
+  opened by `.13c.2a`, not by this leaf, and nothing here bears on it.
+- **The 3-site census bounds only `*.sh`.** A walker written in another language, or spelled without
+  the literal `while [ ! -f CLAUDE.md ]`, would not be in it. The bound is *this exact idiom in shell*,
+  which is what the copy-paste actually propagated.
+
+- **Acceptance Checklist (enforced)**
+  - [x] **REPRODUCE / ISSUE** — at HEAD the two tracked instruments printed four `⛔` alarms on a
+    correct tree: `casting_type_edge_matrix.sh` `⛔ MISMATCH` ×2 (exit 1) and
+    `corpus_row_cast_bisect.py` `⛔ the bisect no longer holds` ×2 (exit 1).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — two causes, both tool-backed. (1) The defect was FIXED by
+    `PGEN-ENGINE-UNIVERSAL-SERVICES-0032` and the instruments still asserted the pre-fix verdicts:
+    `parseability_probe --parse systemverilog … --profile sv_2017` returns `parse_full passed` for
+    `defect_constant_size_cast.sv`, `defect_constant_size_cast_corpus_shape.sv` and both OpenTitan
+    rows. (2) `casting_type_edge_matrix.sh:34` + 2 siblings: `cd ..` at `/` succeeds, so the walk's
+    only escape is unreachable — isolated at `SPIN: 201 iterations, still at pwd=/`, and the shipped
+    line off-root exits **124** (timeout) with no output.
+  - [x] **FIX** — matrix arms 4/5 re-baselined to `ACCEPT` with regression-directed failure text;
+    bisect re-purposed into a 3-state differential attributor; all 3 shell walkers given an explicit
+    `[ "$d" = "/" ]` terminator that refuses by name, matching `_repo_root.py`'s contract.
+  - [x] **ADDRESSED (verified)** — matrix **5 ACCEPT, exit 0**; bisect **both rows ACCEPT as shipped**
+    (22 and 11 casts intact), **exit 0**; LRM alternative audit unchanged, `VERDICT: AGREE`; all three
+    walkers off-root **exit 2 with a named REFUSE** where the pre-fix line exited **124**; in-repo the
+    matrix still finds the root and runs green. Every red arm fired: 1 matrix + 3 bisect, tabulated above.
+  - [x] **NO REGRESSION** — `python3 stimuli/sv/run_adjudication_repros.py` over the full tracked
+    repro population: `checked=180 armed=77 listed=95 multi_profile_rows=59 **failures=0**`, against
+    `sv_parser=e53cb4a229e5576191908a1a5324f69af5fb53d1972ef7c8ff21accf8623bc68`. ⭐ That population
+    includes the 8 `accepts_invalid_*` rows, so it is the arm that would have caught the guarded
+    admission **over**-accepting, not merely under-accepting. ZERO grammar / Rust / codegen /
+    generated bytes touched by this slice — `git status` shows only `docs/` and live-doc paths.
+  - [x] **LOCKSTEP** — leaf + `ENGINE-UNIVERSAL-SERVICES.13` routed-in record + `docs/TASK_TREE.md`
+    frontier + the artifact `README.md` + `docs/book/src/grammar-wellformedness.md` (the stale
+    published REJECT) + `MEMORY.md` / `CHANGES.md` / `DEVELOPMENT_NOTES.md`, this commit.
 
 #### `.13c.2c` — the loop guard `!callable_method_call_body` was DEAD, so a hierarchical method-call receiver collapsed to its FIRST component (**`done`** 2026-08-18, `PGEN-SV-CORPUS-GRAD-0227`; opened 2026-08-11 by `.13c.2`)
 

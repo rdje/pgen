@@ -19,7 +19,21 @@
 # are internal to the standard and stand alone.
 set -euo pipefail
 
-root=$(cd "$(dirname "${BASH_SOURCE[0]}")" && while [ ! -f CLAUDE.md ] || [ ! -d grammars ]; do cd ..; done && pwd)
+# ⛔ TERMINATION GUARD (`SV-CORPUS-GRAD.13c.2b`, 2026-08-23). Directive 12 forbids a hard-coded
+# depth, so the root is walked up from this script at run time. The walk MUST have its own
+# terminator: `cd ..` at `/` SUCCEEDS and is a no-op, so a `cd .. || exit` escape can NEVER fire and
+# the loop spins forever outside a checkout (measured: 201+ iterations, `pwd=/`, no error). The
+# Python sibling `_repo_root.py` never had this — `Path.parents` is finite and it REFUSES by name.
+find_repo_root() {
+  local d
+  d="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || return 1
+  while [ ! -f "$d/CLAUDE.md" ] || [ ! -d "$d/grammars" ]; do
+    [ "$d" = "/" ] && return 1
+    d="$(dirname "$d")"
+  done
+  printf '%s\n' "$d"
+}
+root="$(find_repo_root)" || { echo "REFUSE: no repository root (CLAUDE.md + grammars/) above ${BASH_SOURCE[0]}" >&2; exit 2; }
 subs="$root/stimuli/sv/subs"
 [ -d "$subs" ] || { echo "REFUSE: corpus not vendored at stimuli/sv/subs" >&2; exit 2; }
 
