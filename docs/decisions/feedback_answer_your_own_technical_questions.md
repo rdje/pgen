@@ -279,3 +279,37 @@ those things."*
 - ⭐ **A re-derivation is still worth something — say which part is new.** The 2026-08-22 census added
   a genuine LR-residue/source-orphan split and an exact cross-method corroboration (27 = 27 by two
   independent methods). Publishing that narrowly is honest; publishing it as a discovery is not.
+
+---
+
+## 2026-08-23 — the same rule broken again, one session later, on a SEQUENCING question
+
+**Director, verbatim:** *"Regarding the call, well, it is too low level, meaning it is yours to make,
+but it got to be SOTA, signoff."*
+
+Session #258 closed four slices and then ended its report with a *"💡 Suggestion — your call"* asking
+whether `H.20` (the only RED gate at HEAD) should be pulled ahead of four `H.16.x` leaves. That is a
+**sequencing question over already-approved work**, which this record already rules is execution — and
+the `-0170` retraction directly above was written about that exact failure one session earlier.
+
+⛔ **What made it feel legitimate is the tell to watch for.** The escalation was dressed as deference
+about *lane boundaries* — "reordering across lanes felt like your call rather than mine". Lane
+membership is a real constraint, but it does not convert an ordering decision into a scope decision.
+The question "which approved item goes first" has an answer derivable from the repository's own
+doctrine, and deriving it is the job.
+
+### The sub-rule this adds
+
+- ⛔ **A question whose answer you can derive from repo doctrine is not a director question, however
+  politely it is framed.** Before writing "your call", finish the derivation and see whether a call is
+  still needed. Here it was not: a gate IS the proof surface, so a RED one devalues every measurement
+  taken beside it — which decides the order on its own, without any lane argument.
+- ⛔ **"It touches two lanes" is not an escalation trigger.** Route the WORK by lane; order it by
+  evidence.
+- ⭐ **The cost is asymmetric and that is why the default is decide.** A wrong call is visible, cheap
+  to reverse, and leaves a record. An escalation spends the director's attention, stalls the queue,
+  and — as here — buries the part that actually needed saying (in the same report, an unmeasured claim
+  had been published as a measurement; *that* deserved the callout the sequencing question took).
+- ⭐ **Decide, then record the reasoning where the work lives.** `H.20`'s promotion is written into the
+  frontier header with the argument for it AND the argument against it, so a future session can
+  overturn it on evidence rather than re-litigate it from scratch.

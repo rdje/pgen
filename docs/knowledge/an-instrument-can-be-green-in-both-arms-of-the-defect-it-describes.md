@@ -27,9 +27,16 @@ evidence: |
   AST matches the declared shape. It asserts `expected_json_object_keys_present: [type, name, value]`
   and pins only `type`. `value: ""` satisfies key-presence; `value` cannot be pinned, because
   `rust/src/ast_shape_contract.rs:673`/`:679` implement exactly two assertion kinds — key-PRESENT and
-  exact-STRING — and after the fix `value` is an OBJECT. The gate therefore reads 18/18 PASS
-  identically before and after a two-character change that restored the whole payload. Routed as
-  GRAMMAR-WELLFORMED.H.16.7b. The lint was also clean and certificate coverage also did not move
+  exact-STRING — and after the fix `value` is an OBJECT. The gate reads 18/18 PASS after the
+  two-character change that restored the whole payload, and by that vocabulary must read the same
+  before it. Routed as GRAMMAR-WELLFORMED.H.16.7b.
+  ⚠️⚠️ HONEST BOUND ON THIS CARD'S OWN EVIDENCE (`-0175` self-audit, one commit later): the AFTER arm
+  was MEASURED (18/18); the BEFORE arm was NOT. Invariance is DERIVED from the assertion vocabulary —
+  a sound argument, and not a measurement. Publishing it as one, on a card about instruments that
+  cannot fail, is the very error the card warns about. The `reverify:` recipe below IS the owed
+  measurement and belongs to H.16.7b. ⭐ The card's THESIS does not rest on it: the vocabulary gap is
+  readable directly at `ast_shape_contract.rs:673`/`:679`, and the whole-payload loss is independently
+  measured at 12 of 12 value shapes on the shipped parser. The lint was also clean and certificate coverage also did not move
   (correctly — a return annotation moves AST SHAPING, not acceptance).
 reverify: "make -C rust SHELL=/bin/bash ast_shape_contract_gate   # 18/18 PASS. Now break it on purpose: set `value: $6` back in grammars/semantic_annotation.ebnf:33 and :37, `make -C rust SHELL=/bin/bash semantic_annotation_parser`, re-run the gate — still 18/18 PASS with every annotation's payload gone. `git checkout grammars/semantic_annotation.ebnf && make -C rust SHELL=/bin/bash semantic_annotation_parser` to restore."
 ---
@@ -51,9 +58,12 @@ Do not ask *did the gate pass?* Ask **did the gate MOVE?**
 > Land the fix. Re-run the gate. If its verdict is **identical** before and after a change that
 > demonstrably fixed the thing the gate is named for, the gate is not measuring it.
 
-That is a one-command check and it is the only one that separates "property holds" from "property
-inexpressible." Here it reads 18/18 in both arms — so the green was never evidence, and saying so in
-the manifest's own `doctrine` field is worth more than the fix.
+That is a two-run check and it is the only one that separates "property holds" from "property
+inexpressible." ⛔ **And you have to actually run BOTH arms.** The founding slice ran the AFTER arm
+(18/18), read the assertion vocabulary, correctly concluded invariance — and then wrote it up as
+though both arms had been measured. ⭐⭐ **The moment you can predict a gate's verdict from its source
+you stop wanting to run it — and that is exactly when you must, because your ability to predict it and
+the gate's uselessness have the same cause.**
 
 It generalises past contracts: any assertion whose vocabulary is weaker than the property is a gate
 that fails open, permanently and quietly. Presence checks are the classic case — `has_key`,
