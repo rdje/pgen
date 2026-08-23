@@ -1,5 +1,54 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0280 — the second stale `todo` in one session, and why the first one's diagnosis was too comfortable
+
+**1. THE FIRST CASE HAD A SATISFYING CAUSE, AND SATISFYING IS THE WARNING SIGN.** `-0279` closed a
+leaf that had been fixed nine days earlier in a different tree, and the mechanism wrote itself:
+routing a defect leaves a pointer from the VICTIM leaf to the OWNER leaf and none in the other
+direction, so the owner closes and the victim keeps saying `blocked`. It explains the case
+completely, it suggests an obvious fix (a back-pointer), and it was worth stopping there only if no
+second case existed.
+
+**2. THE SECOND CASE HAS NO ROUTING IN IT AT ALL.** `.13c.2d` was fixed by `.13c.2f` slice 3 — the
+same tree, the same working session — in commit `6d1a18b3`, whose subject line reads *"leaf
+SV-CORPUS-GRAD.13c.2d fix SHIPPED"*. The fix named the leaf. The heading still said `todo` six days
+later. ⇒ a back-pointer between owners would not have helped, because the pointer already existed
+and pointed the right way. **The status is a separate artifact from the work, written once, never
+re-derived — and separate artifacts drift.** That is a different defect from the one `-0279`
+diagnosed, and it subsumes it.
+
+**3. THE ERROR HAS A DIRECTION, AND THE DIRECTION IS WHY IT SURVIVES.** A stale `todo` makes
+remaining work look **bigger** than it is. Under-reporting gets caught the first time somebody ships
+against it; over-reporting triggers no alarm ever, and it lands on the exact question the director
+keeps asking — *what is left before SV ships*. Both instances were found by *doing* the leaf rather
+than by reading it, which is the expensive way to find them.
+
+**4. TWO ORACLES ALREADY KNEW, AND NOTHING ASKED EITHER.** `stimuli/sv/adjudication_repros/MANIFEST.tsv`
+carries a `class` column that reads `fixed` for both leaves' reproducers, and
+`run_adjudication_repros.py` re-derives that from the shipped parser in 2.25 s. The status prose was
+never compared with either. ⭐ That is the more promising fix shape than deriving status from the
+leaf's own slices: an oracle with an independent producer cannot agree with the status by
+construction, whereas a leaf's own record can.
+
+**5. THE CENSUS I DID NOT PUBLISH, AND WHY THAT IS THE RESULT.** The obvious next move is to sweep
+for the rest. I wrote the sweep: match each `class=fixed` MANIFEST row to the leaf its note names,
+then read that leaf's heading for a status token. It returned 6 suspects out of 11 leaves — and
+inspection showed most "suspects" carried `done` **and** `todo`, because the matcher was hitting
+several headings per leaf: the leaf's own, its sub-leaves', and slice headings that merely mention
+it. That is precisely the trap `docs/knowledge/a-heading-census-is-only-as-good-as-the-heading-grammar.md`
+records and precisely what `DOCTRINE-GAP-OWNERSHIP.8` already owns — three leaf-definition
+conventions are in live use, so *"the heading that DEFINES leaf X"* is not yet mechanically
+answerable. ⛔ Publishing the 6 would have swapped an honest *"two confirmed, rate unknown"* for a
+confident wrong number. The number is withheld, the finding stands on two hand-verified instances,
+and `.14`'s census arm is recorded as BLOCKED ON `.8` rather than as an open question.
+
+**6. AND THE VERIFICATION OF THE CLOSURE ITSELF PICKED THE RIGHT REGRESSION ARM.** This repair did
+two things — re-point the reference AND move the `;` off the `( cross_body_item semi )*` loop — so
+the arm at risk was not the one it fixed but `.13c.2a`'s **accepts-invalid** half, where
+`option.weight = 2;;` used to parse and must not. It still rejects on both profiles, because
+`cross_body_item` is non-nullable. ⇒ when a repair changes more than the thing it was aimed at, the
+regression arm to name is the *other* thing it changed.
+
 ## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0279 — re-baselining an instrument is not bookkeeping, and one of them could not have been re-baselined at all
 
 **1. THE SHAPE OF THE FINDING.** A leaf recorded, in its own closing instruction, exactly what to do

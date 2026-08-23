@@ -8622,7 +8622,7 @@ is not a promotion), and the probe arm it needs.
   linter is the surface that should have caught both, and it reports them as *"handled by PGEN"*.
   That is `GRAMMAR-WELLFORMED.A2.5` (opened by `.13c.2a.2`, parked by the lane lock).
 
-#### `.13c.2d` — the sv_2017 `cross_body_item` matches a MISSPELLED LITERAL where the LRM means a nonterminal (`todo`, opened 2026-08-11 by `.13c.2a`)
+#### `.13c.2d` — ✅ **CLOSED: `cross_body_item_sv_2017` references the real nonterminal and §19.6.1's own example parses on BOTH profiles** (was: the sv_2017 `cross_body_item` matches a MISSPELLED LITERAL where the LRM means a nonterminal) (**`done`** 2026-08-23, `PGEN-SV-CORPUS-GRAD-0280`; fix SHIPPED 2026-08-17 by `.13c.2f` slice 3 / `PGEN-SV-CORPUS-GRAD-0220`; opened 2026-08-11 by `.13c.2a`)
 
 - `cross_body_item_sv_2017`'s first alternative is `kw_function_declaraton_06b7ed29`, and that rule
   is `trivia /function_declaraton\b/` — a **terminal matching the literal text
@@ -8633,10 +8633,77 @@ is not a promotion), and the probe arm it needs.
 - Already visible but unadjudicated: `GRAMMAR-WELLFORMED-H127` lists `kw_function_declaraton` among
   the sv_2023 `no_path` residual and classified it as blessed-synthetic, which this finding
   supersedes for the sv_2017 arm.
-- **Owed:** ✅ a probe pinning the current REJECT (2026-08-12), ✅ the LRM-typo citation, ⏳ the
-  reference fix (not one line — see below), and ✅ **the SWEEP — DISCHARGED 2026-08-17 session #244**
+- **Owed:** ✅ a probe pinning the current REJECT (2026-08-12), ✅ the LRM-typo citation,
+  ✅ **the reference fix — SHIPPED 2026-08-17** (`.13c.2f` slice 3, `PGEN-SV-CORPUS-GRAD-0220`;
+  verified at HEAD below), and ✅ **the SWEEP — DISCHARGED 2026-08-17 session #244**
   (`PGEN-SV-CORPUS-GRAD-0217`): a `kw_*` terminal whose spelling is an Annex A NONTERMINAL name
   (`kw_tx_path_delay_expression_7b2dee37` was named as the other candidate the grep found).
+
+##### ✅✅ CLOSED 2026-08-23 (`PGEN-SV-CORPUS-GRAD-0280`) — verified at HEAD, three ways, and the heading was the only thing still broken
+
+- ⛔⛔ **THE FIX SHIPPED SIX DAYS AGO IN THIS LEAF'S OWN SLICE, AND THE HEADING STILL SAID `todo`.**
+  `.13c.2f` slice 3 landed the repair on 2026-08-17 and its commit subject reads, verbatim,
+  *"leaf SV-CORPUS-GRAD.13c.2d fix SHIPPED"*. ⭐ That is sharper than the sibling case
+  (`.13c.2b`, `-0279`), where the fix landed in **another tree**: here the commit that fixed it
+  **named this leaf**, and the status still did not move. ⇒ the gap is not cross-tree routing; it is
+  that **a leaf's status is prose in its heading and nothing derives it from the leaf's own slices.**
+  Routed as `DOCTRINE-GAP-OWNERSHIP.14`.
+- **(1) RE-DERIVED — the behaviour, on IEEE 1800-2017 §19.6.1's own example** (tracked repro
+  `stimuli/sv/adjudication_repros/fixed_cross_body_function_lrm_19_6_1.sv`):
+
+  ```text
+  sv_2017   parse_full passed        ⭐ was REJECT, furthest_position=107 (this leaf, 2026-08-12)
+  sv_2023   parse_full passed        unchanged — it always accepted, which is what named the typo
+  ```
+
+- **(2) FALSIFIED against two instruments neither of which I built.**
+  `nonterminal_as_literal_sweep.py`, re-run at HEAD, now reports **2 defects** where it reported
+  **4** — `function_declaraton` is gone from the shipped grammar's list, and the two survivors
+  (`class_qualifier` 8 sites, `tx_path_delay_expression` 1 site) are exactly the pair `.13c.2f`(e)
+  RULED not to fix. Its cross-check still holds: *"Annex-B membership and corpus reachability
+  partition all 8 rows IDENTICALLY."* And the grammar itself agrees —
+  `cross_body_item_sv_2017 := function_declaration` at `grammars/systemverilog.ebnf:1934`, no
+  `kw_function_declaraton_*` reference anywhere outside the explanatory comment block.
+- **(3) ATTRIBUTED BY ASKING THE ARTIFACT, NOT THE RECORD** (the `-0278` discipline):
+  `git log -S "cross_body_item_sv_2017 := function_declaration" -- grammars/systemverilog.ebnf`
+  returns exactly one commit, `6d1a18b3` / `PGEN-SV-CORPUS-GRAD-0220`. The commit subject is then
+  corroboration, never the finding.
+- ⭐ **NO REGRESSION, and the arm that matters is the ACCEPTS-INVALID half of `.13c.2a`**, because
+  this repair moved the `;` as well as the reference and could have re-opened it.
+  `invalid_cross_body_double_semi.sv` (`option.weight = 2;;`) still **REJECTS on both profiles** —
+  `cross_body_item` is non-nullable, so `( cross_body_item semi )*` cannot absorb a stray `;`. The
+  full tracked repro population is green: `run_adjudication_repros.py` `checked=180 … failures=0`.
+- ⚠️ **HONEST BOUND — what this leaf does NOT close.** The two remaining sweep defects are still
+  present in the shipped grammar and are still unreachable alternatives; they are ruled not-to-fix
+  by `.13c.2f`(e) on the grounds that neither has a demonstrated reject and writing an absent LRM
+  production risks over-acceptance for no measured gain. That ruling stands and is **not** re-opened
+  here. ⛔ This leaf closes only its own site.
+
+###### Acceptance Checklist (enforced) — `.13c.2d` closure
+
+- [x] **REPRODUCE / ISSUE** — the leaf's own 2026-08-12 probe: `--profile sv_2017 → REJECT,
+  furthest_position=107` against `--profile sv_2023 → parse_full passed` on the same file, with
+  `grep -n kw_function_declaraton_06b7ed29 grammars/systemverilog.ebnf` showing the terminal
+  referenced as `cross_body_item_sv_2017`'s only alternative.
+- [x] **ROOT CAUSE (WHY + WHERE)** — IEEE 1800-2017 A.2.11 misspells the nonterminal
+  (`function_declaraton`, corrected in 1800-2023) and the LRM→EBNF extraction transcribed the typo
+  as `trivia /function_declaraton\b/`, so the alternative could only fire on source literally
+  containing those characters. Measured unreachable: `nonterminal_as_literal_sweep.py` reports
+  `0 SV-source file(s) contain this literal` over 16 427 corpus files.
+- [x] **FIX** — `cross_body_item_sv_2017` references the real `function_declaration` nonterminal and
+  the `;` moved from the loop onto the `bins_selection_or_option` alternative, mirroring the sv_2023
+  pair (`grammars/systemverilog.ebnf:1934-1935`). Shipped by `PGEN-SV-CORPUS-GRAD-0220`, attributed
+  here by `git log -S` on the rule text. ⛔ This closing slice ships **ZERO grammar bytes**.
+- [x] **ADDRESSED (verified)** — §19.6.1's example `parse_full passed` on **both** profiles (was
+  sv_2017 REJECT); the sweep's shipped-grammar defect count **4 → 2** with `function_declaraton`
+  absent; the grammar site re-read directly.
+- [x] **NO REGRESSION** — `invalid_cross_body_double_semi.sv` still REJECTS on both profiles (the
+  accepts-invalid half of `.13c.2a`, the arm this repair could plausibly have broken);
+  `python3 stimuli/sv/run_adjudication_repros.py` → `checked=180 armed=77 listed=95
+  multi_profile_rows=59 failures=0` against `sv_parser=e53cb4a229e5…`. ZERO grammar / Rust /
+  codegen / generated bytes in this slice.
+- [x] **LOCKSTEP** — leaf + `docs/TASK_TREE.md` frontier + `DOCTRINE-GAP-OWNERSHIP.14` (opened) +
+  `MEMORY.md` / `CHANGES.md` / `DEVELOPMENT_NOTES.md`, this commit.
 
 ##### ✅ THE SWEEP, DISCHARGED — **4 defects across 11 grammar sites**, where the hand search had found 1 and named 1 (2026-08-17 session #244, `PGEN-SV-CORPUS-GRAD-0217`)
 

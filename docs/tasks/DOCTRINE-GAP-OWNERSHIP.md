@@ -870,6 +870,58 @@ the copy has no way to know.*
 - ⚠️ **Sibling, not duplicate**: `.9` is about a TRACKED render being stale against its TRACKED
   source. This is about a tracked render being CURRENT with sources that are not tracked at all.
 
+### `.14` — a leaf's STATUS is prose in its heading, and NOTHING derives it from the leaf's own recorded slices, so a leaf can be FIXED and still read `todo` (`todo`, routed in 2026-08-23 by `SV-CORPUS-GRAD.13c.2d` / `PGEN-SV-CORPUS-GRAD-0280`)
+
+> ⛔ **ROUTED, NOT WORKED** — found twice in one session while executing the SV-release frontier.
+> It is a tracking-integrity gap, and the standing director preference is product/parser lanes over
+> governance lanes, so it is OWNED and SCHEDULED here rather than fixed in-line.
+
+- ⛔⛔ **TWO CONFIRMED INSTANCES, ONE SESSION, AND THE SECOND IS THE SHARPER ONE.**
+
+  | leaf | heading said | truth at HEAD | who fixed it |
+  |---|---|---|---|
+  | `SV-CORPUS-GRAD.13c.2b` | `DIAGNOSED` … *"blocked on `ENGINE-UNIVERSAL-SERVICES.13`"* | fixed for **9 days** | `ENGINE-UNIVERSAL-SERVICES.17` slice 9 — **another tree** |
+  | `SV-CORPUS-GRAD.13c.2d` | `` `todo` `` | fixed for **6 days** | `.13c.2f` slice 3 — **this leaf's own slice**, in a commit whose subject reads *"leaf SV-CORPUS-GRAD.13c.2d fix SHIPPED"* |
+
+- ⭐⭐ **THE SECOND ROW IS WHY THIS IS NOT A ROUTING PROBLEM.** The obvious diagnosis for row 1 is
+  that a routed-out defect leaves a pointer from VICTIM to OWNER and none the other way, so the
+  owner closes and the victim never hears. That is true, and it is **not** what row 2 is: there the
+  commit that shipped the fix **named the leaf in its own subject line**, and the heading still did
+  not move. ⇒ the mechanism is that **a leaf's status is free prose inside its heading**, written
+  once when the leaf is opened, and no instrument compares it against anything the leaf later
+  records about itself.
+- ⛔ **WHY IT MATTERS MORE THAN A TIDINESS ISSUE, and it is the SV release that pays.** The
+  frontier is read off these headings — by `docs/TASK_TREE.md`, by `MEMORY.md`, and by every session
+  that resumes. A stale `todo` **inflates the remaining-work picture for the exact question the
+  director keeps asking** (*"what is left before the SV parser ships?"*), and it does so in the
+  direction that is hardest to notice: the work looks bigger than it is, so nobody investigates.
+  ⭐ Both instances were found by *doing* the leaf, not by reading it — which is the expensive way.
+- ⛔ **THE CENSUS IS NOT AVAILABLE YET, AND THAT IS THIS LEAF'S FIRST OBLIGATION, NOT A CAVEAT.** A
+  first-cut audit written while closing `.13c.2d` — match each `class=fixed` row of
+  `stimuli/sv/adjudication_repros/MANIFEST.tsv` to the leaf its note names, then read that leaf's
+  heading — returned **6 suspects out of 11 leaves**, and inspection showed the instrument was
+  matching **several headings per leaf** (a leaf's own heading, its sub-leaves', and slice headings
+  that merely mention it), so most "suspects" carried `done` *and* `todo` from different lines. ⇒ the
+  number is unusable and is deliberately **not published**. This is the same trap
+  [[a-heading-census-is-only-as-good-as-the-heading-grammar]] records, and it is exactly what
+  `.8` already owns: **three leaf-definition conventions are in live use**, so "the heading that
+  DEFINES leaf X" is not yet mechanically answerable. ⇒ **`.14` is BLOCKED ON `.8`** for its census
+  arm; the finding above is independent of it and stands on two hand-verified instances.
+- **WHAT THIS LEAF OWES**: (a) the census, once `.8` supplies a single leaf-definition convention —
+  how many `todo`/`blocked` leaves have a subject that is already fixed at HEAD; (b) a decision on
+  the mechanism, and there are two shapes worth pricing against each other — **derive** the status
+  from the leaf's own recorded slices (cheap to check, but a leaf can record a slice without being
+  closed, so it would need a `CLOSES` marker), or **cross-check** it against an external oracle that
+  already knows the truth (`MANIFEST.tsv`'s `class` column literally reads `fixed`, and
+  `run_adjudication_repros.py` re-derives it in 2.25 s — see `CI-PARITY-GATE-ROT.44`); (c) whichever
+  wins, a RED arm proving it fires on a leaf whose heading is stale, reconstructed from the two
+  instances above, which is the only reason they were written down here with their dates.
+- ⚠️ **HONEST BOUNDS.** Two instances, both in `SV-CORPUS-GRAD`, both found incidentally rather than
+  by search — so the rate is unknown and could be two. Neither instance caused a wrong technical
+  decision; both were caught before any work was done on the basis of the stale status. And the
+  direction of the error is the safe one for correctness (work looks bigger than it is, never
+  smaller) — which is precisely why it can persist unnoticed.
+
 ### `.13` — a published QUANTITATIVE claim can reach a live surface with NO PRODUCER, and the three-way check does not ask (`todo`, opened 2026-08-23 session #261; **the director DELEGATED this decision to me and the decision recorded here is: open the leaf, do NOT ship the gate I first proposed**)
 
 - **THE TRIGGER, twice in four slices.** `-0183` published *"~100× cheaper"*; re-derived under
