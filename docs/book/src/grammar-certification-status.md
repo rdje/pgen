@@ -72,26 +72,38 @@ seeds 0, 7 and 42, so this describes the grammars rather than one sample.
 | **Left-recursion elimination artifacts** | 2 | `union_type` and `intersection_type` are alternatives of `type_reference`, which PGEN's own elimination pass replaced with `parse_type_reference_lr_base` / `_lr_suffix`. The same situation as `accessor_base` above — the language is covered, the names are not. |
 | **Specialized value shapes that are written but not wired in** | 22 | Six complete feature islands — precedence, constraint, performance/complexity/memory/timing, version, exception, platform — none of which `annotation_value` routes to. It offers exactly `primitive_value`, `structured_value`, `expression_value` and `reference_value`. |
 
-### The 22 unwired value shapes: decided — they will be removed
+### The 22 unwired value shapes: **flagged and preserved, for review after the SV release**
 
-Those rules define an **alternative syntax** for annotations that already have a working one. The
-grammar's own documentation specifies `@precedence: {level: 5, associativity: "left"}`,
-`@version: "2.1.0"`, `@platform: ["web", "mobile", "desktop"]` and their siblings — and **every one
-of those spellings parses today**, through the generic structured and primitive routes. The bespoke
-spellings the unwired rules would enable (`@precedence: 5 left`, `@version: 1.2.3`) are **rejected**
-today, nothing in the contracts or the source references them, and enabling them would give each
-annotation kind a *second* accepted syntax and a *second* AST shape for a consumer to handle.
+These rules define an **alternative syntax** for annotation kinds that already have a working one.
+The grammar's own documentation specifies `@precedence: {level: 5, associativity: "left"}`,
+`@version: "2.1.0"`, `@platform: ["web", "mobile", "desktop"]` — and **every one of those spellings
+parses today**. The bespoke spellings these rules would enable (`@precedence: 5 left`,
+`@version: 1.2.3`) are **rejected** today.
 
-⇒ Wiring them in would not complete the grammar; it would fork it. They are removed instead, which
-takes `semantic_annotation` from **29 unknown to 6** — the 2 elimination artifacts and the 4 trivia
-rules, both already adjudicated. The rules stay in git history, so reviving them later is a revert
-plus a deliberate contract bump.
+⛔ **They are not being deleted.** An earlier version of this page said they would be, on the
+strength of "nothing routes to them, nothing consumes them, the documented spelling already works".
+Every one of those facts is true and **none of them establishes that the rules are debris**. The
+question that settles it is *when and why were they written* — and
+`git log --diff-filter=A` shows this grammar was **created** with all 22 already in it (2025-09-05),
+in a commit whose own subject says *"placeholder targets"*. Their content is deliberate design work:
+a semver pattern carrying prerelease and build metadata, a time unit ladder down to microseconds, a
+full memory unit set.
 
-⛔ **`annotation` and `parenthesized` are genuine dead weight too** — a duplicate start symbol and an
-unreferenced rule — and removing them changes nothing about the accepted language. Together with the
-22 above, this work is owned by `GRAMMAR-CERT-STATUS.4`; the edit regenerates the annotation parser
-pair that every other family's generation depends on, so it is sequenced as its own slice rather
-than folded into a status update.
+⇒ **"Unreachable" is a fact about the grammar; "dead" is a claim about intent**, and only provenance
+answers the second. Each rule now carries an `UNWIRED-PENDING-REVIEW` marker in the grammar itself,
+with **⛔ DO NOT DELETE** and the open question written beside it. They will be reviewed individually
+**after the SystemVerilog parser ships to Nexsim** (`GRAMMAR-CERT-STATUS.4`).
+
+Keeping them costs nothing: an unreachable rule is emitted with its definition and a by-name entry
+dispatcher and **no production call site**, so it can never be invoked by a parse. The consequence
+is only to this page's own scoreboard — `semantic_annotation` stays at 29 unknown and
+`return_annotation` at 2, which is a family uncertified because a decision is deliberately
+**deferred**, not because nobody knows why.
+
+⛔ **`annotation` and `parenthesized` are flagged on the same terms** — a duplicate start symbol and
+an unreferenced rule. `parenthesized` has *different* provenance from the 22: it was added a month
+after its file, in a test-infrastructure commit, so it may be scaffolding rather than a feature
+placeholder. That distinction is for the review to settle, not for a status page to assume.
 
 ⭐ **These numbers track live development, which is the point of deriving them.**
 `semantic_annotation` moved `115 / 84 witnessed / 31 unknown` → `119 / 90 / 29` when

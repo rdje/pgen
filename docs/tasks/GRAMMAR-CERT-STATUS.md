@@ -474,7 +474,7 @@ about one sample. A small-sample result is a claim about the sample until that i
   [[a-heading-census-is-only-as-good-as-the-heading-grammar]] in a different namespace; the
   family-specific adjudication belongs in this leaf and on the book page, not in a retrieval card)`**
 
-### `.4` — the two dead rules, and the director call `.3` surfaced (`todo`, opened 2026-08-23 by `.3`)
+### `.4` — ⛔ **PRESERVE AND FLAG the 24 unwired rules; REVIEW them AFTER the SV parser ships to Nexsim** (`todo`, opened 2026-08-23 by `.3`, **RE-SCOPED BY DIRECT DIRECTOR ORDER 2026-08-23** — my `remove them` decision is RETRACTED)
 
 - ⛔ **(a) TWO GRAMMARS CARRY A DEAD RULE EACH, AND BOTH ARE WHY THEIR FAMILY CANNOT CERTIFY.**
   `grammars/semantic_annotation.ebnf:36` defines `annotation` with a right-hand side **byte-identical**
@@ -500,51 +500,88 @@ about one sample. A small-sample result is a claim about the sample until that i
      a downstream consumer reads for those annotation kinds — a contract change, with
      `SV-CONTRACT-CURRENCY`-shaped obligations.
   2. **Declare them future work** and record it, leaving 24 rules honestly uncertifiable until then.
-- ✅ **DIRECTOR DELEGATED THE CALL TO ME** (2026-08-23: *"it is yours to make but it got to be sota,
-  signoff"*). **DECISION: DO NOT WIRE THEM IN. REMOVE THEM.** They are superseded design, not
-  missing wiring. The evidence, measured before deciding:
+#### ⛔⛔ DIRECTOR OVERRIDE 2026-08-23 — **MY `REMOVE THEM` DECISION IS RETRACTED**
 
-  1. ⭐⭐ **THE GRAMMAR ALREADY DOCUMENTS THE INTENDED SPELLING FOR EVERY ONE OF THESE ANNOTATION
-     KINDS, AND IT IS NOT THE UNWIRED ONE.** Its own examples block (lines 670+) specifies
-     `@precedence: {level: 5, associativity: "left"}` · `@constraint: {type: "requires", expression:
-     "x > 0"}` · `@performance: {complexity: "O(n)", memory: "O(1)"}` · `@platform: ["web", "mobile",
-     "desktop"]` · `@version: "2.1.0"`. Every one is a **structured or primitive** value — precisely
-     what `annotation_value` already routes to.
-  2. ⭐⭐ **AND ALL OF THEM PARSE TODAY.** Driven through `--interpret-parse` against the real
-     grammar, all five documented spellings return `accepted=true`. There is no gap to close.
-  3. ⛔⛔ **THE BESPOKE SPELLINGS THE UNWIRED RULES DEFINE ARE REJECTED TODAY** — `@precedence: 5
-     left` → `accepted=false … did not consume full input at position 15`; `@version: 1.2.3` →
-     `accepted=false … position 13`. (`@performance: O(n)` happens to be accepted, but through the
-     generic route, not through `complexity_spec`, which is unreachable.)
-  4. ⭐ **NOTHING CONSUMES THEM.** A search of `docs/contracts/` and `rust/src/` for all 22 returns
-     **zero** references. (It returned two — `union_type`, `intersection_type` — and those turned
-     out not to be class D at all; see the correction above.)
-- ⛔⛔ **THEREFORE WIRING THEM IN WOULD NOT COMPLETE THE GRAMMAR — IT WOULD FORK IT.** It would add a
-  SECOND accepted syntax for annotation kinds that already have a working, documented one, and with
-  it a **second AST shape per kind** (`@precedence: 5 left` → a `precedence` node;
-  `@precedence: {level: 5, …}` → a structured node). A consumer would then have to handle both for
-  the same annotation. That is a widening of the accept set, bought with a downstream ambiguity,
-  requested by nobody, and contradicted by the grammar's own documentation.
-- ⛔ **THE CORRECTION THIS DECISION RESTS ON, STATED PLAINLY**: when I surfaced this question I wrote
-  that `@precedence: 5 left` *"falls through to a generic `primitive_value`"*. **That was wrong and I
-  had not measured it** — it is REJECTED. The mistake mattered: it framed the choice as
-  *"structural parse vs. sloppy generic parse"*, which flatters wiring them in, when the real choice
-  is *"one documented syntax vs. two competing ones"*, which does not.
-- **DECIDED**: remove the 22 class-D rules and the class-C duplicate `annotation`. ⭐ **EFFECT ON
-  CERTIFICATION**: `semantic_annotation` goes **29 → 6** UNKNOWN, and both survivors are already
-  adjudicated — 2 LR-elimination artifacts and 4 trivia rules, the latter being the class whose
-  principled home is a verified unreachability PROOF. The grammar becomes exactly what it documents.
-- ⭐ **REVERSIBILITY, because a removal should say how to undo it**: the rules remain in git history
-  in full. If a consumer ever wants `@precedence: 5 left`, reviving them is a revert plus the wiring
-  — and at that point it would be a deliberate, requested surface addition with a contract bump,
-  which is the process this repository already has for such a change.
-- ⚠️ **PRIOR ART, per `DESIGN-PRIOR-ART`**: the search was the grammar's own documentation block and
-  the published integration contract. Both were read before deciding; the documentation block is
-  what settled it.
-- ⏭️ **IMPLEMENTATION IS A SEPARATE SLICE AND IS NOT DONE HERE**: it is a grammar edit that
-  regenerates the annotation parser PAIR the annotation backend links to generate **every other
-  family**, so it needs a regeneration, an `emission_sha` rebaseline and
-  `parse_harness_equivalence_gate` as the oracle that the shipped parse did not move.
+- **THE ORDER (verbatim)**: *"You need to make sure these are not future features placeholders, so I
+  want flag, document those so called dead rules but I would refrain from deleting them. We should
+  carefully review each of them when the time comes. Those so called dead rules are not blocking the
+  progress of the SV parser nore are they causing issues to the return and semantic annotation
+  parsers. So for now, leave them where they are right, we will review, audit them later, but please
+  task-tree own them to review them following the release of the SV parser to Nexsim."*
+- ⛔⛔ **THE DIRECTOR WAS RIGHT AND I WAS WRONG, AND THE EVIDENCE IS PROVENANCE I NEVER LOOKED AT.**
+  I decided to remove the 22 on the strength of *"nothing routes to them, nothing consumes them, the
+  documented spelling already parses"*. All of that is still true and **none of it establishes that
+  they are debris**. The question I never asked was *when and why were they written*:
+
+  | rule set | provenance, measured |
+  |---|---|
+  | the 22 value shapes + `annotation` | ⭐ `git log --diff-filter=A -- grammars/semantic_annotation.ebnf` → the file was **CREATED** in `a68cc773` (**2025-09-05**) as 578 lines **with all 22 already present**. They are **ORIGINAL DESIGN, AUTHORED WITH THE GRAMMAR**, never wired — and the commit that introduced them is itself titled *"…file-based **placeholder** targets"*. |
+  | `parenthesized` | added **2025-10-02** (`d98e74a2`, *"Create universal test infrastructure and technical documentation"*) — **LATER** than the file, and in a test-infrastructure commit. Different provenance ⇒ plausibly scaffolding rather than a feature placeholder. |
+
+- ⭐ **AND THE CONTENT ARGUES THE SAME WAY.** These are not stubs: a semver regex carrying
+  prerelease **and** build metadata, a `time_unit` ladder down to `μs`, a full `memory_unit` set,
+  comma-separated `exception_spec` / `platform_spec` lists. That is deliberate design work.
+- ⛔ **THE GENERAL LESSON, and it is mine to carry**: **"unreachable" and "dead" are different
+  claims.** I measured reachability rigorously and then let the word *dead* do unearned work.
+  Reachability is a fact about the grammar as it is; *dead* is a claim about INTENT, and intent is
+  answered by provenance and by the author — never by a reach analysis.
+
+#### What `.4` now owes — PRESERVE, FLAG, DOCUMENT; review post-release
+
+- ✅ **FLAGGED IN-GRAMMAR, WHERE A FUTURE EDITOR WILL ACTUALLY SEE IT** (this slice,
+  `PGEN-GRAMMAR-CERT-STATUS-0007`). Marker token `UNWIRED-PENDING-REVIEW` plus **⛔ DO NOT DELETE**:
+  a block above `semantic_annotation.ebnf`'s *"SEMANTIC PATTERNS AND SPECIALIZED VALUES"* section
+  naming all 22 and recording the provenance, the tension and the cost; an individual note on the
+  `annotation` duplicate; and one on `return_annotation.ebnf`'s `parenthesized`.
+- ⭐⭐ **THE FLAGS ARE PROVABLY ZERO-IMPACT, MEASURED BEFORE THEY WERE TRUSTED.** The frontend strips
+  comments, so `--emit-raw-ast-json` over the flagged grammars is **byte-identical** to the same
+  command over `HEAD`'s versions (`semantic_annotation` 37 041 B, `return_annotation` 6 610 B, both
+  `identical: True`) ⇒ the emitted parsers **cannot** move. Confirmed behaviourally as well: the
+  certificate tuples are unchanged at `35/0/33/2` and `119/0/90/29`.
+  ⛔ **My first version of that proof was CONFOUNDED and said `False`** — I compared `before.ebnf`
+  against `after.ebnf`, and the raw_ast embeds `grammar_name` and `source_file`, so the two
+  FILENAMES differed by one character across two fields: exactly the −2 bytes I saw. Re-run against
+  one filename, it is identical. ⇒ **a control that varies the file's NAME is not a control on the
+  file's CONTENT.**
+- ⭐ **THE COST OF KEEPING THEM, measured so the review starts from facts**: each candidate is
+  emitted with exactly **two** mentions in the generated parser — its own definition and the by-name
+  entry dispatcher — and **no production call site**, so it can never be invoked by a parse. Their
+  share of the emitted parser is broadly proportional to their ~19 % share of the rules.
+  ⚠️ **No byte figure is published here on purpose**: two extraction passes over the generated file
+  disagreed by ~2× (a non-greedy function-body regex that `finditer` let swallow neighbours, finding
+  only 63 of 119 functions), so the proportional statement is what survives. A number I cannot
+  reproduce twice is not a number.
+- ⛔ **SEQUENCING IS THE DIRECTOR'S**: the review happens **after the SV parser ships to Nexsim**.
+  Not before, and not folded into a certification slice.
+- **WHAT THE REVIEW MUST DECIDE, per rule** — recorded now so the future session does not re-derive
+  it: (a) is this a feature we intend to ship? If yes, wire it into `annotation_value` and accept the
+  contract consequence; (b) if it duplicates an existing documented spelling, is the bespoke syntax
+  wanted **as well**, or should the rule go? (c) `annotation` specifically: deliberate alias for a
+  multi-entry setup, or duplication to retire? (d) `parenthesized`: test scaffolding or feature?
+- ⚠️ **UNTIL THEN THE CERTIFICATION CONSEQUENCE IS ACCEPTED AND STATED, NOT HIDDEN**:
+  `semantic_annotation` stays at **29** UNKNOWN and `return_annotation` at **2**, so neither is
+  certified, and the published table says so with the reason per class. That is the honest posture —
+  a family uncertified because a decision is deliberately DEFERRED is a different thing from a
+  family uncertified because nobody knows why.
+
+#### Acceptance Checklist — `.4` (flag-and-document slice)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family. **WHY**: 24 rules were unreachable with
+  no durable marker in the one place an editor looks — the grammar itself — so the next reader would
+  re-derive the same analysis, or worse, delete them as I proposed to. **WHERE**: `git ls-files
+  grammars/semantic_annotation.ebnf grammars/return_annotation.ebnf`, both flag-free at HEAD, and
+  `git log --diff-filter=A` on each is what supplied the provenance that overturned my decision.
+- [x] **ADDRESSED (verified)** — before: no marker, and the owning leaf said *remove them*. After:
+  a greppable `UNWIRED-PENDING-REVIEW` marker with **⛔ DO NOT DELETE** at all three sites, carrying
+  provenance, the documented-vs-bespoke tension, the measured cost and the review questions; the leaf
+  is re-scoped to preserve-and-review-post-release; the book page says the same.
+- [x] **NO REGRESSION** — comments only, no rule text touched. Proven two ways: `--emit-raw-ast-json`
+  is **byte-identical** to HEAD's for both grammars (37 041 B / 6 610 B), so the emitted parsers
+  cannot move; and the certificate tuples re-measure unchanged at `35/0/33/2` and `119/0/90/29` with
+  `sample_parse_failures=0`. `generated/` is untouched, so `clippy` does not apply.
+- **`promotion: pending`** — the durable lesson (**"unreachable" is not "dead": reachability is a
+  fact about the grammar, deadness is a claim about INTENT and is answered by provenance**) is
+  promoted as a retrievable card in this same commit.
 
 ## Acceptance Checklist (enforced)
 

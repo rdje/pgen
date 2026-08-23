@@ -33,6 +33,12 @@ semantic_annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_valu
     -> {type: "semantic_annotation", name: $3, value: $7}
 
 # Compact form (same as above, for backward compatibility)
+# ⚠️ UNWIRED-PENDING-REVIEW (GRAMMAR-CERT-STATUS.4 — DIRECTOR ORDER 2026-08-23). ⛔ DO NOT DELETE.
+# This rule's right-hand side is BYTE-IDENTICAL to the entry rule `semantic_annotation` (above),
+# so it is unreachable because it is a second copy of the start symbol. Present since this file was
+# created (a68cc773, 2025-09-05). Whether it is a deliberate alias for a future multi-entry setup or
+# a duplication to retire is exactly what the post-SV-release review must decide. It is emitted with
+# no production call site and can never be invoked by a parse.
 annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value  
     -> {type: "semantic_annotation", name: $3, value: $7}
 
@@ -565,6 +571,52 @@ url_reference := /(https?|ftp|file):\/\/([^\s,\]\}\)>\\]|\\.)*([^\s,\]\}\)>=\\]|
 # =============================================================================
 # SEMANTIC PATTERNS AND SPECIALIZED VALUES
 # =============================================================================
+#
+# ⚠️ UNWIRED-PENDING-REVIEW (GRAMMAR-CERT-STATUS.4 — DIRECTOR ORDER 2026-08-23)
+#
+# ⛔ DO NOT DELETE THESE RULES. They are FLAGGED FOR REVIEW, not condemned.
+#
+# STATUS, measured 2026-08-23 (seeds 0/7/42, counts AND rule sets identical):
+#   The 22 rules in this section are NOT REACHABLE from the entry rule
+#   `semantic_annotation`. `annotation_value` (line ~101) routes to exactly four
+#   families -- primitive_value | structured_value | expression_value |
+#   reference_value -- and to none of these. They are therefore reported as
+#   UNKNOWN by `--report-certificate-coverage`, and they are the reason this
+#   grammar is not certified.
+#
+# ⭐ WHY THEY ARE PRESERVED, and this is the point:
+#   PROVENANCE says they are very plausibly FUTURE-FEATURE PLACEHOLDERS, not
+#   debris. `git log --diff-filter=A` shows this file was CREATED in a68cc773
+#   (2025-09-05) with all 22 already present -- they are ORIGINAL DESIGN
+#   AUTHORED WITH THE GRAMMAR, never wired, and the commit that introduced them
+#   is itself titled "...file-based placeholder targets". Their content is
+#   deliberate design work, not scaffolding: a semver regex carrying prerelease
+#   AND build metadata, a time_unit set down to microseconds, a full memory_unit
+#   ladder, comma-separated exception and platform lists.
+#
+# ⚠️ THE TENSION A REVIEWER MUST RESOLVE (recorded now so it is not re-derived):
+#   this grammar's own documentation block (bottom of file) specifies the
+#   STRUCTURED spelling for these same annotation kinds -- e.g.
+#   `@precedence: {level: 5, associativity: "left"}` -- and that spelling PARSES
+#   TODAY via structured_value. The rules below instead define a BESPOKE spelling
+#   (`@precedence: 5 left`), which is REJECTED today. Wiring them in would give
+#   each annotation kind TWO accepted syntaxes and TWO AST shapes. That is a
+#   product decision with a downstream contract consequence, deliberately NOT
+#   taken here.
+#
+# ⭐ THEY COST NOTHING TO KEEP: each is emitted into the generated parser with
+#   exactly TWO mentions -- its definition and the by-name entry dispatcher --
+#   and NO production call site, so it can never be invoked by a parse. Leaving
+#   them in place cannot affect what this parser accepts or the AST it returns.
+#
+# ⛔ REVIEW IS SEQUENCED AFTER THE SystemVerilog PARSER SHIPS TO NEXSIM
+#   (director order). Owning leaf: GRAMMAR-CERT-STATUS.4.
+#
+# The 22: precedence_value, precedence_level, precedence_associativity,
+#   constraint_value, constraint_type, constraint_expression, performance_value,
+#   complexity_spec, complexity_expr, memory_spec, memory_amount, memory_unit,
+#   timing_spec, time_amount, time_unit, version_value, semantic_version,
+#   version_range, exception_spec, exception_type, platform_spec, platform_name.
 
 # Precedence specifications (common pattern)
 precedence_value := precedence_level /\s+/ precedence_associativity?

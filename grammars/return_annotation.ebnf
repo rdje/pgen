@@ -193,6 +193,13 @@ array_element := expression
 # =====================================
 
 # Parentheses for grouping: ($1 + $2)
+# ⚠️ UNWIRED-PENDING-REVIEW (GRAMMAR-CERT-STATUS.4 — DIRECTOR ORDER 2026-08-23). ⛔ DO NOT DELETE.
+# Referenced by NOTHING in this grammar (`grep -nw parenthesized` returns only this definition), so
+# it is unreachable from the entry rule and is one of the two rules keeping `return_annotation`
+# uncertified. Added 2025-10-02 (d98e74a2, "Create universal test infrastructure"), i.e. LATER than
+# the file itself — so unlike the semantic_annotation set it may be test scaffolding rather than a
+# feature placeholder. That distinction is for the post-SV-release review to settle.
+# It is emitted with no production call site and can never be invoked by a parse.
 parenthesized := '(' expression ')'
 -> $2
 
