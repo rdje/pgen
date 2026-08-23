@@ -33,6 +33,11 @@ while [ $# -gt 0 ]; do
     *) echo "report_grammar_certification: unknown arg '$1'" >&2; exit 2 ;;
   esac; shift
 done
+# ⛔ VALIDATE `--check`'s SUBJECT BEFORE SPENDING THE DERIVATION. The first cut tested the
+# path only AFTER rendering, so a typo'd page path cost 65 s to be told the file is absent.
+if [ -n "$CHECK" ] && [ ! -f "$CHECK" ]; then
+  echo "grammar-certification: REFUSED (2) - no published page at $CHECK" >&2; exit 2
+fi
 BIN="rust/target/debug/ast_pipeline"
 [ -x "$BIN" ] || { echo "grammar-certification: REFUSED — no ast_pipeline at $BIN" >&2; exit 2; }
 
@@ -54,7 +59,7 @@ emit() {
 }
 RAW="$(emit)"
 
-RGC_RAW="$RAW" python3 - "$MODE" "$SEED" "$COUNT" <<'PY'
+RENDERED="$(RGC_RAW="$RAW" python3 - "$MODE" "$SEED" "$COUNT" <<'PY'
 import json, os, pathlib, re, sys, hashlib
 MODE, SEED, COUNT = sys.argv[1], sys.argv[2], sys.argv[3]
 raw = os.environ["RGC_RAW"]
@@ -116,3 +121,51 @@ else:
     out.append(f"GRAMMAR-CERTIFICATION: certified={n_cert}/{sum(1 for _, r in rows if r) + 1}")
 print("\n".join(out))
 PY
+)" || exit 2
+
+# ---------------------------------------------------------------- --check: derive, then DIFF
+# ⛔⛔ THIS BLOCK EXISTED IN `-0001` AND WAS DELETED BY `-0002` -- the very commit that corrected
+# the FALSE table above. The rendering path was rewritten and the diff went with it, but the
+# ARGUMENT PARSER kept `--check`, so the flag went on being ACCEPTED and the script went on exiting
+# 0 without ever opening the page. Measured at c06292f4 (GRAMMAR-CERT-STATUS.1b): FOUR arms -- the
+# real page, a page with a corrupted DERIVED block, a page with no DERIVED block, and a path that
+# does not exist -- all exited 0 and were mutually indistinguishable. A check that CANNOT GO RED.
+# ⭐ ROOT CAUSE: deleting an implementation while leaving its FLAG is worse than deleting the flag
+# too. An unknown-argument error would have been loud on the very next run; the surviving flag made
+# the loss silent, and THREE surfaces went on publishing the capability -- this script's own book
+# page ("refuses when the two disagree"), the owning task leaf, and layer-A MEMORY.md.
+# ⛔ Rebuilt on -0002's architecture, NOT reverted: the deleted block called `RGC_MODE=markdown emit`,
+# a rendering path that no longer exists, so a straight revert would not have run.
+# Exit codes follow the repository convention: 2 = COULD NOT EVALUATE, 1 = evaluated and BREACHED.
+if [ -n "$CHECK" ]; then
+  RGC_FRESH="$RENDERED" python3 - "$CHECK" <<'PYCHECK'
+import difflib, os, pathlib, re, sys
+page = sys.argv[1]
+fresh = os.environ["RGC_FRESH"].strip()
+# ⛔ An EMPTY derivation must REFUSE, never compare: an empty string equals an empty block, so a
+# broken oracle would otherwise report the page in sync BY CONSTRUCTION -- the exact failure shape
+# GENERATED-REPRODUCIBILITY calls "passing by construction".
+if not fresh:
+    print("grammar-certification: REFUSED (2) - the fresh derivation is EMPTY, so there is nothing "
+          "to compare against; comparing would pass by construction.", file=sys.stderr)
+    sys.exit(2)
+m = re.search(r"<!-- BEGIN DERIVED.*?<!-- END DERIVED -->", pathlib.Path(page).read_text(), re.S)
+if not m:
+    print(f"grammar-certification: REFUSED (2) - {page} carries no <!-- BEGIN DERIVED --> ... "
+          "<!-- END DERIVED --> block, so the check cannot inspect its subject. A check that cannot "
+          "run must SAY SO, not return green.", file=sys.stderr)
+    sys.exit(2)
+published = m.group(0).strip()
+if published != fresh:
+    print("grammar-certification: FAILED (1) - the published table is OUT OF SYNC with the tree.\n"
+          "  Re-derive and republish the DERIVED block:\n"
+          "    bash scripts/report_grammar_certification.sh --markdown", file=sys.stderr)
+    print("\n".join(difflib.unified_diff(published.split("\n"), fresh.split("\n"),
+                                          f"published:{page}", "fresh derivation", lineterm="")),
+          file=sys.stderr)
+    sys.exit(1)
+print(f"grammar-certification: OK (published table equals a fresh derivation, {len(fresh)} bytes)")
+PYCHECK
+  exit $?
+fi
+printf '%s\n' "$RENDERED"

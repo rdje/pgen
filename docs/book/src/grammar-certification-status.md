@@ -78,6 +78,21 @@ tracked contract is only a pin on top of it. Five families that certify cleanly 
 never scored. ⇒ **ask the instrument, not the filesystem.** The table above is now produced by
 running the oracle.
 
+## ⛔ Correction, 2026-08-23 — the second one, on the same page
+
+The fix above shipped with a defect of its own, found the same day and owned by
+`GRAMMAR-CERT-STATUS.1b`: the rewrite deleted the `--check` **implementation** but left the **flag**
+in the argument parser. `--check` went on being accepted, printed a fresh table to stdout and
+**exited 0 without ever opening this page** — so the sentence at the top of this page,
+*"refuses when the two disagree"*, described a capability that had been deleted. Four arms measured
+at that commit — this page, a page with a corrupted table, a page with no derived block, and a path
+that does not exist — **all exited 0 and were mutually indistinguishable.**
+
+⇒ **deleting an implementation while leaving its flag is worse than deleting the flag too**: an
+unknown-argument error would have been loud on the very next run. Now restored, with five arms
+observed: in sync → `OK`; drifted → exit 1 with a unified diff naming the row; no derived block →
+refuse; missing page → refuse; an empty derivation → refuse rather than compare against nothing.
+
 ## Re-derive it yourself
 
 ```bash

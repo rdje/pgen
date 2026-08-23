@@ -1,5 +1,59 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-GRAMMAR-CERT-STATUS-0003 — the fix commit deleted the check and kept the flag
+
+**1. THE SHAPE OF THE DEFECT.** `-0002` corrected a false certification table published to the main
+book. That correction rewrote how the script renders its output, and the `--check` derive-and-diff
+block went with the old rendering path. What did NOT go was the option in the argument parser. So
+`--check <page>` stayed a legal invocation that set `MODE=markdown`, printed a fresh table to
+stdout, and exited 0 — having never opened the page it names.
+
+**2. WHY NOTHING NOTICED, AND THIS IS THE GENERAL LESSON.** Had the flag been removed alongside its
+code, the very next `--check` invocation would have died on an unknown argument: loud, immediate,
+impossible to misread. The surviving flag is precisely what converted a deleted feature into a
+passing check. ⇒ **a leftover entry point is not harmless residue; it is the mechanism that hides
+the deletion.** Promoted to the retrievable layer as
+`docs/knowledge/deleting-an-implementation-while-leaving-its-flag-fails-silently.md`.
+
+**3. THE ARM THAT SETTLES IT IN ONE COMMAND.** Four arms were run at `c06292f4` and all four exited
+0 and were mutually indistinguishable — the real page, a page with a corrupted DERIVED block, a page
+with no DERIVED block, and `--check /nonexistent/no/such/page.md`. The last one is the diagnostic
+worth keeping: **a check that returns 0 for a path that does not exist is not measuring anything.**
+That arm costs nothing and can be run against any inherited gate.
+
+**4. THE CHEAP STATIC DETECTOR.** `grep -n CHECK scripts/report_grammar_certification.sh` returned
+exactly TWO lines — the declaration (26) and the assignment (30). An option variable that is
+declared and assigned but never READ is an inert flag. `bash -n` was clean throughout, before and
+after: the script was always syntactically VALID, it had simply stopped doing the thing, which is
+why no syntax or lint tier could ever have seen this.
+
+**5. THE DOC TIER FAILED IN A WAY THE REPO ALREADY HAS A NAME FOR.** `.1`'s acceptance box quoted
+the success string `grammar-certification: OK` as observed output. A repo-wide search finds that
+string in exactly one place — the task file. `GENERATED-REPRODUCIBILITY` was founded on the same
+shape one tier down: an artifact carrying a line its producer cannot emit. Quoting output is only
+evidence if the producer can emit it; that is checkable, and it was not checked.
+
+**6. WHAT WAS REBUILT, NOT REVERTED.** `git log --all -S"RGC_MODE"` shows the deleted block called a
+rendering path (`RGC_MODE=markdown emit`) that `-0002` replaced, so a revert would have restored
+code that cannot run. The diff is rebuilt on the current architecture: the rendered markdown is
+captured once and compared with the page's `<!-- BEGIN DERIVED -->` block. Refusal codes now follow
+the repository convention — **2 = could not evaluate, 1 = evaluated and breached** — which the
+deleted block did not do consistently (its missing-file arm exited 2, its no-block arm exited 1).
+
+**7. TWO GUARDS THE ORIGINAL DID NOT HAVE.** (a) An EMPTY fresh derivation REFUSES instead of
+comparing: an empty string equals an empty block, so a broken oracle would otherwise report the page
+in sync by construction. (b) The page path is validated at argument-parse time, so a typo refuses in
+**0.00 s** instead of after a **65 s** derivation — the first cut of this fix had that wrong and it
+was caught by re-running the arm rather than by reading the code.
+
+**8. THE GREEN IS NOT VACUOUS, AND THAT WAS ESTABLISHED BEFORE TRUSTING IT.** The published block
+and a fresh derivation are byte-equal at 1579 bytes today; two independent `--markdown` runs are
+byte-identical at 1635 bytes, so the derivation is deterministic and safe to gate on. Both facts
+were measured before the check was wired, not after it went green.
+
+**9. WHAT REMAINS, STATED RATHER THAN IMPLIED.** Nothing runs this check. `.2` — registering it as
+doctrine 26 — is the honest gap, and it is unchanged by this slice.
+
 ## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0182 — the residual you inherit may have died with the fix that came before you
 
 **1. THE LEAF AS OPENED.** `H.16.6c` attributed five of eight self-rejected stimuli to a greedy

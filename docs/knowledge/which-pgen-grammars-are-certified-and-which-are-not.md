@@ -35,6 +35,11 @@ evidence: |
   ⛔ THE FIRST VERSION OF THIS CARD SAID 0/9 WITH SEVEN FAMILIES "NO ORACLE". It was wrong: the
   producing script asked whether a `*cert*contract*.json` file existed rather than running the
   oracle. Five families that certify cleanly were reported as never scored.
+
+  ⛔ AND THE FIX FOR THAT SHIPPED A SECOND DEFECT: it deleted `--check`'s implementation while
+  leaving the FLAG, so for one commit `--check` printed a table and exited 0 on every input,
+  including a path that does not exist. Restored with five observed arms
+  (GRAMMAR-CERT-STATUS.1b) -> [[deleting-an-implementation-while-leaving-its-flag-fails-silently]].
 reverify: "bash scripts/report_grammar_certification.sh"
 ---
 
