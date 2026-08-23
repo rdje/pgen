@@ -200,6 +200,57 @@ question is *"is that enough?"*, and that cannot be answered without naming the 
   compare published shares and a build fingerprint (no grammar digest). **All five are now
   accounted for** — the flag `-0078` raised is discharged rather than carried.
 
+### ⚠️ `.45` NEW `todo` — **`--parser-fingerprint` CLAIMS ENGINE-UNIVERSALITY OVER A HAND-WRITTEN LIST OF NINE, MISSES THE TWO ANNOTATION PARSERS, AND REPORTS `absent: []`** (opened 2026-08-23 session #260 by `GRAMMAR-WELLFORMED.H.16.6c`, which needed the fingerprint to date a `semantic_annotation` measurement and found it does not cover that family)
+
+- **WHY IT MATTERS.** `.24` (ii′) built `--parser-fingerprint` to answer the one question a
+  source-only identity table cannot: *which parser does the executable that produces the numbers
+  actually embed?* `PARSE-COST-RATCHET` depends on it, and TOOLBOX §1.3's stale-binary protocol
+  points at it as the escape hatch. For two of the eleven grammars the probe drives, that escape
+  hatch does not exist — and the tool answers cheerfully rather than refusing.
+- **MEASURED, two-sided, on the shipped release probe at `629ded20`:**
+
+  | grammar | `--supports` | in `--parser-fingerprint` |
+  |---|---|---|
+  | `semantic_annotation` | **supported** | ⛔ **absent** |
+  | `return_annotation` | **supported** | ⛔ **absent** |
+  | `ebnf` | ⛔ **NOT supported** | present (`8e23575d…`) |
+  | the other 8 | supported | present |
+
+  and the report's own `absent` field reads **`[]`**, so the omission is invisible in the PASSING
+  direction — the same shape `.24` was founded on.
+- **ROOT CAUSE (WHY + WHERE), and the comment is the sharpest evidence.** `rust/build.rs` calls
+  `emit_parser_fingerprint(...)` **nine times, by hand** (`:104` ebnf, `:113` json, `:122` regex,
+  `:131` systemverilog, `:140`, `:152` vhdl, `:161`, `:173` rtl_frontend, `:186` scratch). Directly
+  above the helper, `:211-212` states the intent:
+
+  > *"This is engine-universal on purpose — every resolved generated parser gets a fingerprint, not
+  > just the one family whose ratchet needed it first."*
+
+  It is not engine-universal; it is an ENUMERATION that happens to have nine entries. ⛔ The
+  docstring is not merely stale — it is the reason nobody re-checked, because it reads as a
+  structural guarantee.
+- ⭐⭐ **THE TWO OMITTED PARSERS ARE THE WORST TWO TO OMIT.** `GENERATED-REPRODUCIBILITY`'s own
+  founding measurement (2026-08-16) is that *"both annotation parsers carried a line the code
+  generator CANNOT emit … and they are the pair the annotation backend links to generate every
+  OTHER parser."* The two artifacts with a recorded history of carrying content no generator
+  produced are exactly the two the vintage instrument cannot see.
+- **WHAT IT NEEDS** — the fix is the standing repo lesson, not a tenth call: the population must be
+  DERIVED from the same resolution `build.rs` already performs per parser, and `absent` must be
+  computed against that derived population rather than left empty. A two-sided closed population
+  (fingerprinted-but-undrivable is a finding too — `ebnf` is one) with a refusal on any grammar in
+  neither list. ⚠️ `ebnf`'s digest is over `generated/ebnf.rs`, not a `*_parser.rs`, so the naming
+  is a second, smaller question this leaf should settle rather than preserve.
+- **VERIFIED THREE WAYS** (`docs/CLAIM_VERIFICATION.md`): (1) RE-DERIVED by command — `--supports`
+  over all eleven registry names beside `--parser-fingerprint`; (2) FALSIFIED against an oracle I
+  did not build — the reported digests ARE `shasum -a 256` of the on-disk files (`json` and
+  `systemverilog` match exactly), so the instrument is correct about what it *does* cover, which is
+  what makes the silent omission the defect rather than a broken hash; (3) DURABILITY — ⚠️ **NAMED,
+  not met**: nothing compares the two lists, which is why this leaf exists.
+- ⛔ **NOT worked here.** Routed under the SV lane lock: this is engine-universal and reproduces
+  outside SystemVerilog by construction (the two omitted families are the ANNOTATION grammars, and
+  the third mismatch is `ebnf`), so it is owned, sequenced and left for its own slice.
+
+
 ### ⚠️ `.44` NEW `todo` — **the over-ceiling reject is BOUNDED but EXPENSIVE, and 60 % of it is ERROR CONSTRUCTION, not parsing** (opened 2026-08-21 session #253 by `.43`, which made this measurable for the first time)
 
 > ⭐ **THIS LEAF EXISTS BECAUSE `.43` SUCCEEDED.** Before `.43` an over-ceiling parse never
