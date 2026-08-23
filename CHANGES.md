@@ -1,5 +1,40 @@
 # CHANGES.md
 
+## 2026-08-23 - PGEN-DOCTRINE-GAP-OWNERSHIP-0002 (leaf DOCTRINE-GAP-OWNERSHIP.13 OPENED — a director-delegated decision, recorded; routing only, ZERO code bytes): I rejected my own proposal, because it designed an instrument on an unmeasured population to stop the publishing of unmeasured numbers
+
+- **THE DELEGATION**: the director handed me the call on the tripwire I had suggested — *"any
+  multiplier or ratio in a findings callout must name the two measurements it divides"* — with the
+  bar that it be SOTA, signoff, long-term, and that it *really address an issue*.
+- **THE DECISION: open the leaf, do NOT ship that gate.** It fails on three counts and the third is
+  fatal: it scopes to the findings callout, an ephemeral chat surface no gate can read; *"multiplier
+  or ratio"* is a classification I REASONED rather than measured; ⇒ **it designs an instrument on an
+  unmeasured population to prevent publishing an unmeasured number.** Shipping it would have been the
+  defect wearing the fix's clothes — and this tree has already been burned twice by a reasoned
+  classifier (`.13c.2x`(d) *"wrong BOTH ways"*, `LEAF-ID-CENSUS` 38 → 42 → 17).
+- **THE ISSUE IS REAL — and it is an ENFORCEMENT gap, not a missing rule.** `CLAIM_VERIFICATION.md`
+  leg 1 is literally *"RE-DERIVE by command"*. It is applied to a leaf's HEADLINE numbers and nothing
+  asks about the prose: the `LESSON-PROMOTION` provenance verbatim (*"the mechanism existed, was
+  wired, and was skipped 1 592 times because no gate asked"*). A new rule would be the third reminder
+  to lose.
+- **POPULATION SIZED, AND DELIBERATELY NOT QUOTED AS A DEFECT COUNT.** Marker counts over
+  `CHANGES.md` (2 337 dated entries): `REFUTED` **173** · `was wrong` **86** · `retracted` **32** ·
+  `overstat*` **18** · `undercount` **9** · `reasoned, not measured` **4**. ⚠️ These are TEXT MARKERS,
+  not adjudicated events — a marker may name a refuted hypothesis rather than a corrected published
+  number. Unquotable until classified by hand.
+- ⛔ **STEP 1 IS CENSUS-AND-CLASSIFY, and the candidate classes are already visibly NOT one class**:
+  never-derived (the `100×`), derived-then-stale (`104` stale at `137`), unsound-basis
+  (`POSITIONAL-REF-SCAN` is *"a FLOOR and partly UNSOUND"*), wrong-population (grammar text vs
+  shipped artifacts, twice in two slices), mis-derived (`22/13/9` vs `23/13/10`). A gate aimed at the
+  wrong one of these is worse than none.
+- ⭐ **CANDIDATE PROPERTY RECORDED so the next session does not re-derive it**: every legitimate
+  number in the `-0183` callout appears VERBATIM in a tracked artifact, and `100×` appears in none —
+  mechanically checkable, and FP-bounded by construction because this repo's instruments already
+  print greppable headlines. It is a candidate, not the design; its false-positive rate over
+  legitimately-quoted historical numbers is unmeasured.
+- ⚠️ **PARKED behind the SV lane and `H.16.6f`/`H.23`.** A governance lane, recorded because the
+  decision was delegated and nothing important may live only in a conversation — not because it
+  outranks the frontier.
+
 ## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0184 (leaf GRAMMAR-WELLFORMED.H.16.6f — the findings callout re-checked under a director challenge; doc+artifact tier, ZERO code bytes): two of the five findings survive unchanged, one survived and got sharper, and the fourth was oversold on both axes
 
 - **THE CHALLENGE**: the director asked whether I still stand by the five findings published with

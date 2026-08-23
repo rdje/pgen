@@ -869,3 +869,53 @@ the copy has no way to know.*
   staging files the author did not choose is a worse failure than the one it fixes.
 - ⚠️ **Sibling, not duplicate**: `.9` is about a TRACKED render being stale against its TRACKED
   source. This is about a tracked render being CURRENT with sources that are not tracked at all.
+
+### `.13` — a published QUANTITATIVE claim can reach a live surface with NO PRODUCER, and the three-way check does not ask (`todo`, opened 2026-08-23 session #261; **the director DELEGATED this decision to me and the decision recorded here is: open the leaf, do NOT ship the gate I first proposed**)
+
+- **THE TRIGGER, twice in four slices.** `-0183` published *"~100× cheaper"*; re-derived under
+  challenge it is **~3.4×** (`-0184`). `CI-PARITY-GATE-ROT.32` published an *"honest bound"* that was
+  *"reasoned not measured and false in the flattering-to-my-caution direction"*. In both cases the
+  number was not mis-derived — **it was never derived at all**, and that is a different defect from
+  every one this repo already watches.
+- ⛔ **WHY `CLAIM_VERIFICATION.md` DOES NOT COVER IT.** Leg 1 is literally *"RE-DERIVE by command"*,
+  so the rule already exists. It is applied to a leaf's HEADLINE numbers and not to every number in
+  the prose, and nothing asks — the exact provenance of `LESSON-PROMOTION` (*"the promotion mechanism
+  existed, was wired, and was skipped 1 592 times because no gate asked"*). ⇒ **this is an
+  enforcement gap, not a missing rule**, and a new rule would be the third reminder to lose.
+- ⛔⛔ **MY OWN FIRST PROPOSAL IS REJECTED HERE, BY ME, AND THE REASON IS THE POINT.** I offered the
+  director: *"any multiplier or ratio in a findings callout must name the two measurements it
+  divides."* It fails on three counts, and the third is fatal:
+  1. it scopes to the **findings callout**, an ephemeral chat surface no gate can read — the tracked
+     surfaces are `docs/tasks/*.md`, `CHANGES.md`, `MEMORY.md`;
+  2. *"multiplier or ratio"* is a **classification I reasoned rather than measured**, and this tree
+     has already been burned twice by exactly that (`.13c.2x`(d), where a key-name classifier was
+     *"wrong BOTH ways"*, and the `LEAF-ID-CENSUS` that fell 38 → 42 → 17 as conventions were learned);
+  3. ⇒ **it designs an instrument on an unmeasured population to prevent publishing an unmeasured
+     number.** Shipping it would have been the defect wearing the fix's clothes.
+- **THE POPULATION IS REAL AND IT IS LARGE — measured, and this measurement is a FLOOR.** Marker
+  counts over `CHANGES.md` (2 337 dated entries): `REFUTED` **173** · `was wrong` **86** ·
+  `retracted` **32** · `overstat*` **18** · `undercount` **9** · `reasoned, not measured` **4** ·
+  `mis-derived` **2** · `was stale at` **1**. ⚠️ These are *text markers*, not adjudicated events —
+  a marker may name someone else's refuted hypothesis rather than a corrected published number. **No
+  number here may be quoted as a defect count until the events are classified BY HAND.**
+- **WHAT THIS LEAF MUST DO, IN THIS ORDER — and step 1 is not optional.**
+  1. **CENSUS AND CLASSIFY** the correction events by ROOT MECHANISM, over a bounded, named window.
+     The candidate classes are already visible and they are NOT one class: *never derived* (the
+     `100×`), *derived then went stale* (`headline 104 stale at 137`; `bar 319 vs 318`), *derived
+     from an unsound basis* (`POSITIONAL-REF-SCAN` is *"a FLOOR and partly UNSOUND"*), *derived over
+     the wrong population* (grammar text vs shipped artifacts, twice in two slices), *mis-derived*
+     (`22/13/9` vs `23/13/10`). ⛔ **A gate aimed at the wrong one of these is worse than none.**
+  2. Only then price a mechanism against the DOMINANT class, with a **measured false-positive rate**
+     over the tracked leaves — not an argued one.
+  3. ⭐ The sharpest candidate property found so far, recorded so the next session does not re-derive
+     it: **every legitimate number in the `-0183` callout appears VERBATIM in a tracked artifact**
+     (`176/1000` in `duality_break_sweep.txt`, `0/7994` in `own_corpus_selfreject_head.txt`), and
+     `100×` appears in **none**. That is mechanically checkable and it is FP-bounded by construction,
+     because this repo's instruments already print greppable headlines (`SELF-REJECT:`,
+     `ACCEPT-SET-LEDGER:`, `DIRECTED-GENERATION:`, `ARROW-POSITION-CENSUS:`). ⚠️ It is a **candidate**,
+     not the design: it must survive step 1, and its FP rate over legitimately-quoted historical
+     numbers is unmeasured.
+- ⚠️ **PRIORITY, stated honestly**: this is a governance lane and the standing directive is to prefer
+  product/parser work ([[feedback_prefer_feature_work_over_governance_lanes]]). It is parked behind
+  the SV lane and behind `H.16.6f`/`H.23`. It is recorded because the director delegated the decision
+  and *"nothing important may live only in this conversation"* — not because it outranks the frontier.
