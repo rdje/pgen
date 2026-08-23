@@ -2701,7 +2701,33 @@ observation was simply unused.
 > production. The classification therefore reads what each flag's **variable guards**, and names
 > the site per entry so a reader can re-check it in one search. Its guard against the next such
 > row fires on **zero** rows today, so it ships with a self-test that drives it red on synthetic
-> input — a guard never observed firing is not known to work. Earlier, `SV-CORPUS-GRAD.13c.2v` moved the
+> input — a guard never observed firing is not known to work.
+>
+> ⭐⭐⭐ **The companion hole was hiding defects in BOTH directions, and the hidden
+> over-acceptances outnumbered the phantoms.** The same answer key decided whether a
+> compile-error test failed *at the parse stage* by searching its golden log for the words
+> "syntax error" — and of the 394 such tests, 84 carry a usable log and only **6** of those say
+> it. Enumerating what the compiler actually says removed two phantom rejects-valid rows and
+> surfaced **three real over-acceptances**: a task port list with no direction on its items, which
+> IEEE 1364-2005 has no production for. ⛔ **The headline number barely moved — 66 to 67 — while
+> its composition changed materially** (under-acceptances 52 → 50, over-acceptances 14 → 17). A
+> campaign watching only the total would have called that noise; a burn-down tracked as one
+> integer cannot see a correction that trades one defect class for another.
+>
+> ⛔⛔ **And the obvious repair over-admits badly.** Mapping each log message back to the source
+> that emits it puts 97 messages in a "parse-stage" file — and 90 of them are *"X has already been
+> declared in this scope"*, a duplicate declaration every edition derives perfectly well, emitted
+> from a file that builds the parse form *and* performs semantic checks. Being derived from the
+> producer is necessary and not sufficient: the producer's structure has to match the distinction
+> you are drawing.
+>
+> ⭐⭐ **The vocabulary also had to be split by LANGUAGE EDITION, and an unsplit list was measured
+> manufacturing five false defects.** Some of the compiler's refusals are dialect gates — *"this
+> requires a later generation than the one I was given"* — which is a statement about the tool's
+> configuration, not about any fixed standard. Four of the affected files use a construct a later
+> IEEE edition makes legal, and a fifth uses one SystemVerilog explicitly allows. A conformance
+> verdict is relative to an edition and a vendor's refusal is relative to a configuration; those
+> are different frames, and a text match cannot tell them apart. Earlier, `SV-CORPUS-GRAD.13c.2v` moved the
 > bar **282 → 275** by restoring the
 > `[ std :: ] randomize_call` alternative IEEE 1800 A.8.2 gives `primary`. PGEN renders `primary`'s
 > call alternative as `call_primary` — the postfix-chain rule the left-recursion lift authored —

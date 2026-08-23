@@ -1,5 +1,52 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0286 — the vocabulary that would have invented five defects, and the two lines of reasoning that stopped it
+
+**1. I BUILT THE OBVIOUS CLASSIFIER FIRST AND IT WAS QUIETLY WRONG.** *"Which source file emits
+this golden message?"* is a genuinely producer-derived question, it is mechanical, and I had the
+whole iverilog tree to answer it with. It reports 97 parse-stage messages — and 90 of those are
+`'X' has already been declared in this scope.` from `pform.cc`, which is a **duplicate
+declaration**: derivable in every edition, refused for semantic reasons, and nothing to do with
+grammar. `pform.cc` is the parse-time form builder AND a semantic checker, so file membership
+answers *"how early did iverilog notice?"* rather than *"can the LRM derive this?"* ⇒ **being
+derived from the producer is necessary and not sufficient; you still have to check that the
+producer's own structure matches the distinction you are drawing.**
+
+**2. THE SPLIT-BY-EDITION REQUIREMENT IS THE THING I WOULD NOT HAVE PREDICTED.** `.3.24` built the
+verilator vocabulary as one flat list and was right to: unterminated strings and `EOF in (*` are
+lexical facts, edition-independent. I reached for the same shape and it fails here, because
+iverilog reports *"requires SystemVerilog 2012 or later"* — a statement about the distance to **its
+configured generation**, not about any fixed standard. Four rows run at `-g2009` whose construct
+IEEE 1800-2017 makes legal, plus one whose message literally contains the words *"requires
+SystemVerilog"* while describing something SV allows. **Five false over-acceptance defects against
+PGEN, avoided only because I checked what each message means rather than that it looked like a
+parse error.** ⛔ The general form: **a vendor's refusal is relative to the vendor's configuration,
+and a conformance verdict is relative to an edition. Those are different frames and a regex cannot
+tell them apart.**
+
+**3. THE HEADLINE NUMBER WAS THE LEAST INFORMATIVE THING IN THE RESULT.** The v2005 burn-down went
+`66 → 67` — up one, indistinguishable from noise. Underneath, `rejects_valid` fell 52 → 50 and
+`accepts_invalid` rose 14 → 17: two phantom defects deleted and three real ones surfaced. ⭐ **A
+burn-down tracked as a single integer cannot see a correction that trades one defect class for
+another**, and this correction is exactly that shape. Worth watching both components on every
+future move in this lane, and saying so when only the total is quoted.
+
+**4. THE OVER-ACCEPTANCES WERE INVISIBLE FOR A STRUCTURAL REASON, NOT AN ACCIDENTAL ONE.** For a
+row keyed `must_accept` that PGEN accepts, the manifest reads `match` — the strongest-looking
+verdict in the file. Every one of `br1027a/c/e` sat at `match` for the whole campaign. ⇒ **a wrong
+expectation in the accept direction is not merely unnoticed, it is actively camouflaged as
+success**, and the only thing that can reveal it is re-deriving the expectation. That is the
+argument for auditing the KEY rather than the residual, and it is now two leaves' worth of
+evidence.
+
+**5. THE ONE-LINE DISTINCTION THAT KEEPS `.13e.5` FROM BREAKING VALID CODE.**
+`task t(input integer a, b);` is **legal** — `tf_input_declaration ::= input task_port_type
+list_of_port_identifiers` lets one direction cover a list of names. `task t(input integer a,
+integer b);` is not, because the second `task_port_item` restarts. The obvious fix (require a
+direction per identifier) would break the first. That distinction is written into the reproducer
+notes and pinned by a control, because it is precisely the sort of thing that gets lost between
+the leaf that found it and the leaf that fixes it.
+
 ## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0285 — the classifier I would have written from the names was wrong in both directions
 
 **1. I ALMOST CLASSIFIED THE FLAGS BY WHERE THEIR NAMES APPEAR.** The question *"does this `-g`

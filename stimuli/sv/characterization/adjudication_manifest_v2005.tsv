@@ -511,9 +511,9 @@ iverilog	ivtest/ivltests/br1008.v	pass	must_accept	match	ivtest: regress-vlg.lis
 iverilog	ivtest/ivltests/br1015a.v	pass	must_reject	divergence:unexplained_accepts_invalid	ivtest vlg CE pinned .8c.2: malformed tf port declarations - A.2.7/A.2.6 tf_input_declaration ends in list_of_port_identifiers (bare identifiers): 'input make_me_crash i;' juxtaposes two identifiers with no comma and 'input bit_array[3:0]' carries a per-identifier dimension no 1364 production admits; br1015a additionally uses '^=' which exists in neither A.6.2 blocking_assignment nor A.8.6 (1800 compound assignment - edition contrast)
 iverilog	ivtest/ivltests/br1019.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br1027.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
-iverilog	ivtest/ivltests/br1027a.v	pass	must_accept	match	ivtest: vlg CE but golden br1027a.gold shows only post-parse errors - syntax itself valid
-iverilog	ivtest/ivltests/br1027c.v	pass	must_accept	match	ivtest: vlg CE but golden br1027c.gold shows only post-parse errors - syntax itself valid
-iverilog	ivtest/ivltests/br1027e.v	pass	must_accept	match	ivtest: vlg CE but golden br1027e.gold shows only post-parse errors - syntax itself valid
+iverilog	ivtest/ivltests/br1027a.v	pass	must_reject	divergence:unexplained_accepts_invalid	ivtest: vlg CE with golden br1027a.gold reporting a PARSE-stage refusal ('Missing task/function port direction.') - parse-level invalid 1364-2005 (.13e.3)
+iverilog	ivtest/ivltests/br1027c.v	pass	must_reject	divergence:unexplained_accepts_invalid	ivtest: vlg CE with golden br1027c.gold reporting a PARSE-stage refusal ('Missing task/function port direction.') - parse-level invalid 1364-2005 (.13e.3)
+iverilog	ivtest/ivltests/br1027e.v	pass	must_reject	divergence:unexplained_accepts_invalid	ivtest: vlg CE with golden br1027e.gold reporting a PARSE-stage refusal ('Missing task/function port direction.') - parse-level invalid 1364-2005 (.13e.3)
 iverilog	ivtest/ivltests/br1029a.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br1029b.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br1029c.v	pass	must_accept	match	ivtest: vlg CE but golden br1029c.gold shows only post-parse errors - syntax itself valid
@@ -561,18 +561,18 @@ iverilog	ivtest/ivltests/br_gh1099b.v	pass	must_accept	match	ivtest: vvp_tests d
 iverilog	ivtest/ivltests/br_gh1099c.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) br_gh1099c.json - compiles as -g2005 (the compiler's own default, compiler.h GN_DEFAULT; compiler defaults ON: gn_cadence_types_flag, gn_icarus_misc_flag) with no syntax-error golden
 iverilog	ivtest/ivltests/br_gh11.v	pass	must_accept	match	ivtest: regress-vlg.list type CO - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br_gh1104_src2.v	pass	out_of_scope_with_cause:negative_stage_triage_v2005	deferred:negative_stage_triage_v2005	ivtest: vvp_tests descriptor(s) br_gh1104.json - CE without usable golden output and outside the .8c.2 pinned population (added upstream after the vendored pin?)
-iverilog	ivtest/ivltests/br_gh1117.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vlg CE but golden br_gh1117.gold shows only post-parse errors - syntax itself valid
+iverilog	ivtest/ivltests/br_gh1117.v	fail	must_reject	match	ivtest: vlg CE with golden br_gh1117.gold reporting a PARSE-stage refusal ('generate/endgenerate regions cannot nest.') - parse-level invalid 1364-2005 (.13e.3)
 iverilog	ivtest/ivltests/br_gh1122.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) br_gh1122.json - compiles as -g2005 (the compiler's own default, compiler.h GN_DEFAULT; compiler defaults ON: gn_cadence_types_flag, gn_icarus_misc_flag) with no syntax-error golden
 iverilog	ivtest/ivltests/br_gh1155.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) br_gh1155.json - compiles as -g2005 (the compiler's own default, compiler.h GN_DEFAULT; compiler defaults ON: gn_cadence_types_flag, gn_icarus_misc_flag) with no syntax-error golden
 iverilog	ivtest/ivltests/br_gh1163.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) br_gh1163.json - compiles as -g2005 (the compiler's own default, compiler.h GN_DEFAULT; compiler defaults ON: gn_cadence_types_flag, gn_icarus_misc_flag) with no syntax-error golden
 iverilog	ivtest/ivltests/br_gh1173.v	pass	must_accept	match	ivtest: vlg CE but golden br_gh1173.gold shows only post-parse errors - syntax itself valid
-iverilog	ivtest/ivltests/br_gh1174a.v	fail	must_reject	match	ivtest: vlg CE with golden br_gh1174a.gold reporting a syntax error - parse-level invalid 1364-2005
+iverilog	ivtest/ivltests/br_gh1174a.v	fail	must_reject	match	ivtest: vlg CE with golden br_gh1174a.gold reporting a PARSE-stage refusal ('syntax error') - parse-level invalid 1364-2005 (.13e.3)
 iverilog	ivtest/ivltests/br_gh1174b.v	pass	must_accept	match	ivtest: vlg CE but golden br_gh1174b.gold shows only post-parse errors - syntax itself valid
 iverilog	ivtest/ivltests/br_gh1175a.v	pass	must_accept	match	ivtest: vlg CE but golden br_gh1175a.gold shows only post-parse errors - syntax itself valid
 iverilog	ivtest/ivltests/br_gh1175b.v	pass	must_accept	match	ivtest: vlg CE but golden br_gh1175b.gold shows only post-parse errors - syntax itself valid
-iverilog	ivtest/ivltests/br_gh1175c.v	fail	must_reject	match	ivtest: vlg CE with golden br_gh1175c.gold reporting a syntax error - parse-level invalid 1364-2005
-iverilog	ivtest/ivltests/br_gh1175d.v	fail	must_reject	match	ivtest: vlg CE with golden br_gh1175d.gold reporting a syntax error - parse-level invalid 1364-2005
-iverilog	ivtest/ivltests/br_gh1175e.v	fail	must_reject	match	ivtest: vlg CE with golden br_gh1175e.gold reporting a syntax error - parse-level invalid 1364-2005
+iverilog	ivtest/ivltests/br_gh1175c.v	fail	must_reject	match	ivtest: vlg CE with golden br_gh1175c.gold reporting a PARSE-stage refusal ('syntax error') - parse-level invalid 1364-2005 (.13e.3)
+iverilog	ivtest/ivltests/br_gh1175d.v	fail	must_reject	match	ivtest: vlg CE with golden br_gh1175d.gold reporting a PARSE-stage refusal ('syntax error') - parse-level invalid 1364-2005 (.13e.3)
+iverilog	ivtest/ivltests/br_gh1175e.v	fail	must_reject	match	ivtest: vlg CE with golden br_gh1175e.gold reporting a PARSE-stage refusal ('syntax error') - parse-level invalid 1364-2005 (.13e.3)
 iverilog	ivtest/ivltests/br_gh1175f.v	pass	must_accept	match	ivtest: vlg CE but golden br_gh1175f.gold shows only post-parse errors - syntax itself valid
 iverilog	ivtest/ivltests/br_gh1178a.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vlg CE but golden br_gh1178a.gold shows only post-parse errors - syntax itself valid
 iverilog	ivtest/ivltests/br_gh1178b.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
@@ -665,7 +665,7 @@ iverilog	ivtest/ivltests/br_gh782d.v	fail	must_accept	divergence:unexplained_rej
 iverilog	ivtest/ivltests/br_gh782e.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br_gh782f.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br_gh788.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
-iverilog	ivtest/ivltests/br_gh79.v	pass	must_reject	divergence:unexplained_accepts_invalid	ivtest: vlg CE with golden br_gh79.gold reporting a syntax error - parse-level invalid 1364-2005
+iverilog	ivtest/ivltests/br_gh79.v	pass	must_reject	divergence:unexplained_accepts_invalid	ivtest: vlg CE with golden br_gh79.gold reporting a PARSE-stage refusal ('syntax error') - parse-level invalid 1364-2005 (.13e.3)
 iverilog	ivtest/ivltests/br_gh793.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br_gh8.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br_gh827.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
@@ -1612,7 +1612,7 @@ iverilog	ivtest/ivltests/pr2788686.v	pass	must_accept	match	ivtest: regress-vlg.
 iverilog	ivtest/ivltests/pr2790236.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr2792883.v	pass	must_reject	divergence:unexplained_accepts_invalid	ivtest vlg CE pinned .8c.2: hierarchical name in a constant context - A.8.4 constant_primary has no hierarchical alternative (parameter_identifier ::= identifier, one undotted name), so 'parameter WIDTH = dut.WIDTH;' matches no production
 iverilog	ivtest/ivltests/pr2792897.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
-iverilog	ivtest/ivltests/pr2794144.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: vlg CE but golden pr2794144.gold shows only post-parse errors - syntax itself valid
+iverilog	ivtest/ivltests/pr2794144.v	fail	must_reject	match	ivtest: vlg CE with golden pr2794144.gold reporting a PARSE-stage refusal ('is not a valid expression. Please use operator') - parse-level invalid 1364-2005 (.13e.3)
 iverilog	ivtest/ivltests/pr2800985a.v	fail	must_accept	divergence:explained_svpp_conditional	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr2800985b.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) pr2800985b.json - compiles as -g2005 (the compiler's own default, compiler.h GN_DEFAULT; compiler defaults ON: gn_cadence_types_flag, gn_icarus_misc_flag) with no syntax-error golden
 iverilog	ivtest/ivltests/pr2801134.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
@@ -1684,7 +1684,7 @@ iverilog	ivtest/ivltests/pr2994193.v	pass	must_accept	match	ivtest: regress-vlg.
 iverilog	ivtest/ivltests/pr2998515.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr3011327.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr3012758.v	fail	must_accept	divergence:explained_svpp_include	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
-iverilog	ivtest/ivltests/pr3015421.v	fail	must_reject	match	ivtest: vlg CE with golden pr3015421.gold reporting a syntax error - parse-level invalid 1364-2005
+iverilog	ivtest/ivltests/pr3015421.v	fail	must_reject	match	ivtest: vlg CE with golden pr3015421.gold reporting a PARSE-stage refusal ('syntax error') - parse-level invalid 1364-2005 (.13e.3)
 iverilog	ivtest/ivltests/pr3022502.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr3024131.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr3039548.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005

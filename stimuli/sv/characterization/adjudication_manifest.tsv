@@ -5391,7 +5391,7 @@ iverilog	ivtest/ivltests/struct8.v	pass	must_accept	match	ivtest: regress-sv.lis
 iverilog	ivtest/ivltests/struct9.v	pass	must_accept	match	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/struct_enum_partsel.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) struct_enum_partsel.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
 iverilog	ivtest/ivltests/struct_field_left_right.v	pass	must_accept	match	ivtest: vvp_tests descriptor(s) struct_field_left_right.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid
-iverilog	ivtest/ivltests/struct_invalid_member.v	fail	must_reject	match	ivtest: CE with golden struct_invalid_member.gold reporting a syntax error - parse-level invalid
+iverilog	ivtest/ivltests/struct_invalid_member.v	fail	must_reject	match	ivtest: CE with golden struct_invalid_member.gold reporting a PARSE-stage refusal ('syntax error') - parse-level invalid (.13e.3)
 iverilog	ivtest/ivltests/struct_line_info.v	pass	must_accept	match	ivtest: CE but golden struct_line_info.gold shows only post-parse errors - syntax itself valid
 iverilog	ivtest/ivltests/struct_member_signed.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-sv.list type normal - compiles under the iverilog SV dialect, parse-level valid
 iverilog	ivtest/ivltests/struct_nested1.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: vvp_tests descriptor(s) struct_nested1.json - runs under an explicit SV generation with no syntax-error golden, parse-level valid

@@ -473,6 +473,55 @@ VERILATOR_PARSE_STAGE_RE = re.compile(
     re.IGNORECASE)
 
 
+# SV-CORPUS-GRAD.13e.3(b) — ivtest's PARSE-STAGE error vocabulary, enumerated, and SPLIT BY
+# EDITION because it has to be.
+#
+# ⛔ THE HOLE: for an ivtest `type: "CE"` row, `SYNTAX_ERR_RE` alone decided whether the failure
+# was parse-level, and iverilog spells most parse refusals some other way. Measured over the 394
+# ivtest CE rows: 84 carry a usable golden, and only **6** of those say "syntax error".
+#
+# ⛔⛔ AND A FILE-BASED CLASSIFIER IS NOT ENOUGH EITHER. Mapping each golden message back to the
+# source that emits it looks decisive until you read the result: 97 of the messages resolve to a
+# "parse-stage" file and **90 of them are `'X' has already been declared in this scope.` out of
+# `pform.cc`** — a duplicate declaration, which every edition derives perfectly well. `pform.cc`
+# is the parse-time FORM BUILDER and does semantic checks too, so file membership over-admits.
+# Only `parse.y` / `lexor.lex` are reliable, and even they need reading one message at a time.
+#
+# ⭐⭐ THE SPLIT IS THE FINDING. `.3.24` could give verilator ONE flat list because every entry
+# there is a LEXICAL fact true in all editions (unterminated string, `EOF in (*`, block comment).
+# Several ivtest parse refusals are DIALECT GATES instead — true under the generation iverilog
+# was run with, and FALSE under the edition the lane adjudicates. Measured: an unsplit list
+# containing `requires SystemVerilog` would have manufactured FOUR false over-acceptance defects
+# (`br_gh1143e/f/g/h`, run at `-g2009`, whose null for-loop initialization IEEE 1800-2017 A.6.8
+# makes optional) and one more on `br_gh1087a` (`Net data type requires SystemVerilog or
+# -gxtypes` — and IEEE 1800 net declarations DO take a data type). ⇒ that whole family is
+# EXCLUDED, not merely re-worded: iverilog is reporting the distance to ITS configured
+# generation, which is not a statement about the edition PGEN is being judged against.
+IVTEST_PARSE_STAGE_RE = re.compile(
+    r"syntax error"                                    # the parser proper
+    r"|operator is an Icarus Verilog extension"        # parse.y:4162/4174 — binary ~& / ~|,
+                                                       #   in NO IEEE edition (A.8.6)
+    r"|Empty UDP table\."                              # parse.y — A.5.3 makes the 1st entry
+    r"|Invalid table for UDP primitive"                #   mandatory in both editions
+    r"|generate/endgenerate regions cannot nest\."     # A.4.2 module_or_generate_item has no
+                                                       #   generate_region alternative; only
+                                                       #   non_port_module_item does
+    r"|is not a valid expression\. Please use operator",  # parse.y — `~ |x`: A.8.3's unary form
+                                                       #   is `unary_operator primary`, and `|x`
+                                                       #   is an expression, not a primary
+    re.IGNORECASE)
+
+# Parse refusals that hold under IEEE 1364-2005 and are RELAXED by IEEE 1800 — usable only when
+# the row is being judged as plain Verilog. Keeping these in the shared list is exactly the
+# mistake the `requires SystemVerilog` family demonstrates.
+IVTEST_PARSE_STAGE_V2005_ONLY_RE = re.compile(
+    r"Missing task/function port direction\.",         # 1364-2005 A.2.7: task_port_item is one
+                                                       #   of three tf_*_declarations and each
+                                                       #   BEGINS with its direction keyword;
+                                                       #   IEEE 1800 A.2.7 makes it optional
+    re.IGNORECASE)
+
+
 def read_text(path: Path) -> str:
     try:
         return path.read_text(encoding="utf-8", errors="replace")
@@ -2287,16 +2336,27 @@ class IvtestIndex:
             desc["_key"] = jf.stem
             self.vvp_desc[Path(src).stem].append(desc)
 
-    def _gold_has_syntax_error(self, gold_stem: str) -> bool:
+    def _gold_text(self, gold_stem: str) -> str:
         text = ""
         for chan in ("iverilog-stderr", "iverilog-stdout"):
             text += read_text(self.gold_dir / f"{gold_stem}-{chan}.gold")
-        return bool(SYNTAX_ERR_RE.search(text))
+        return text
 
-    def _vvp_implied(self, desc):
-        """Map one SV-dialect descriptor to an implied parse-level verdict
-        tag: 'accept' / 'reject' / 'triage' (CE without usable golden) /
-        'ni' (Not Implemented - upstream runner skips, no testimony)."""
+    def _gold_has_parse_error(self, gold_stem: str, v2005: bool = False) -> bool:
+        """Did the golden report a PARSE-stage refusal? (.13e.3(b))
+
+        ⛔ `v2005` is not a convenience: the second vocabulary holds only for IEEE 1364-2005 and
+        an unsplit list was measured manufacturing five false defects."""
+        text = self._gold_text(gold_stem)
+        if IVTEST_PARSE_STAGE_RE.search(text):
+            return True
+        return bool(v2005 and IVTEST_PARSE_STAGE_V2005_ONLY_RE.search(text))
+
+    def _vvp_implied(self, desc, v2005: bool = False):
+        """Map one descriptor to an implied parse-level verdict tag: 'accept' / 'reject' /
+        'triage' (CE without usable golden) / 'ni' (upstream runner skips, no testimony).
+
+        `v2005` selects the edition the caller is judging against (.13e.3(b))."""
         ttype = desc.get("type")
         if ttype == "NI":
             return "ni"
@@ -2306,7 +2366,7 @@ class IvtestIndex:
             return "accept"
         gold = desc.get("gold")
         if gold:
-            return "reject" if self._gold_has_syntax_error(gold) else "accept"
+            return "reject" if self._gold_has_parse_error(gold, v2005) else "accept"
         return "triage"
 
     def _load(self, list_path: Path, sv: bool):
@@ -2363,10 +2423,15 @@ class IvtestIndex:
                         "the iverilog SV dialect, parse-level valid")
             if gold:
                 gtext = read_text(self.gold_dir / gold)
-                if SYNTAX_ERR_RE.search(gtext):
+                # .13e.3(b): the SV lane gets ONLY the edition-invariant vocabulary. The
+                # v2005-only entries are relaxations IEEE 1800 makes, so applying them here
+                # is precisely the error that would have manufactured five false defects.
+                hit = IVTEST_PARSE_STAGE_RE.search(gtext)
+                if hit:
                     return ("must_reject",
-                            f"ivtest: CE with golden {gold} reporting a syntax "
-                            "error - parse-level invalid")
+                            f"ivtest: CE with golden {gold} reporting a "
+                            f"PARSE-stage refusal ({hit.group(0)!r}) - "
+                            "parse-level invalid (.13e.3)")
                 return ("must_accept",
                         f"ivtest: CE but golden {gold} shows only post-parse "
                         "errors - syntax itself valid")
@@ -2489,10 +2554,15 @@ class IvtestIndex:
                         "parse-level valid 1364-2005")
             if gold:
                 gtext = read_text(self.gold_dir / gold)
-                if SYNTAX_ERR_RE.search(gtext):
+                # .13e.3(b): the vlg lane IS the plain-Verilog lane, so both vocabularies
+                # apply. `SYNTAX_ERR_RE` alone read 78 of 84 usable goldens as post-parse.
+                hit = (IVTEST_PARSE_STAGE_RE.search(gtext)
+                       or IVTEST_PARSE_STAGE_V2005_ONLY_RE.search(gtext))
+                if hit:
                     return ("must_reject",
                             f"ivtest: vlg CE with golden {gold} reporting a "
-                            "syntax error - parse-level invalid 1364-2005")
+                            f"PARSE-stage refusal ({hit.group(0)!r}) - "
+                            "parse-level invalid 1364-2005 (.13e.3)")
                 return ("must_accept",
                         f"ivtest: vlg CE but golden {gold} shows only "
                         "post-parse errors - syntax itself valid")
@@ -2518,7 +2588,7 @@ class IvtestIndex:
                 f"{self.effective_gen(d)} ({self.gen_source(d)})"
                 for d in v_descs}))
             if v_descs:
-                implied = {self._vvp_implied(d) for d in v_descs}
+                implied = {self._vvp_implied(d, v2005=True) for d in v_descs}
                 names = ", ".join(d["_key"] + ".json" for d in v_descs)
                 if implied == {"accept"}:
                     ext_on = sorted({e for d in v_descs

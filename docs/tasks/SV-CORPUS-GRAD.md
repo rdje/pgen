@@ -15734,7 +15734,7 @@ refutation control above. `checked=180 listed=95` → **`checked=191 armed=77 li
   published only in the DERIVED `adjudication_summary_v2005.md` (verified by grep over
   `docs/book/src/` and `docs/contracts/`), and the SV tuple the book carries did not move.
 
-##### ⚠️ `.13e.3` — **(a) DONE: the extension hole is CLOSED and it was INVENTING a defect — one phantom row removed, 53 → 52. (b) the golden-wording hole remains** (`in progress` 2026-08-23, `PGEN-SV-CORPUS-GRAD-0285`; opened by `.13e.2`)
+##### ✅✅✅ `.13e.3` — **DONE (a)+(b): the ivtest answer key read ONE field of `iverilog-args` and ONE wording of a golden; both holes are closed, and between them they were hiding defects in BOTH directions** (`done` 2026-08-23, `PGEN-SV-CORPUS-GRAD-0285` + `-0286`; opens `.13e.5`)
 
 - ⭐⭐⭐ **THE HOLE WAS NOT COSMETIC — IT INVENTED A DEFECT, AND THE PROOF IS TWO ROWS THAT
   CONTRADICT EACH OTHER.** `br_gh552.v` passes `-gno-icarus-misc` and is keyed `must_reject`
@@ -15850,6 +15850,98 @@ initialising `gn_icarus_misc_flag`.
   summary + `verdict_coverage/coverage.md` + the new tracked census artifact + the book's SV
   corpus section + `MEMORY.md` / `CHANGES.md` / `DEVELOPMENT_NOTES.md`, this commit.
 
+
+###### `.13e.3` (b) — **DONE: the golden vocabulary is enumerated AND SPLIT BY EDITION, and it moved the bar in BOTH directions — 2 phantoms removed, 3 REAL over-acceptances surfaced** (2026-08-23, `PGEN-SV-CORPUS-GRAD-0286`; opens `.13e.5`)
+
+- ⭐⭐⭐ **THE HOLE WAS HIDING DEFECTS IN BOTH DIRECTIONS, AND THE HIDDEN OVER-ACCEPTANCES
+  OUTNUMBER THE PHANTOMS.** Measured over the **394** ivtest `CE` rows: **84** carry a usable
+  golden and only **6** of those say the words *"syntax error"*. Enumerating what iverilog
+  actually says moved five rows — `br_gh1117` and `pr2794144` out of the burn-down (phantom
+  rejects-valid), and `br1027a` / `br1027c` / `br1027e` **into** it as
+  `unexplained_accepts_invalid`. ⛔ **The v2005 arm's headline barely moved (66 → 67) and its
+  COMPOSITION changed materially** — `rejects_valid 52 → 50`, `accepts_invalid 14 → 17`. A
+  campaign watching only the headline would have called this noise.
+
+⛔⛔ **A FILE-BASED CLASSIFIER LOOKED DECISIVE AND OVER-ADMITS BADLY.** Mapping every golden
+message back to the source that emits it is the obvious producer-derived move, and the result is
+a trap: **97** distinct messages resolve to a "parse-stage" file and **90 of them are
+`'X' has already been declared in this scope.` out of `pform.cc`** — a duplicate declaration,
+which every edition derives perfectly well. `pform.cc` is the parse-time **form builder** and
+does semantic checking too. ⇒ only `parse.y` / `lexor.lex` are reliable signals, and even those
+had to be read one message at a time.
+
+⭐⭐⭐ **AND THE VOCABULARY HAD TO BE SPLIT BY EDITION — AN UNSPLIT LIST WAS MEASURED
+MANUFACTURING FIVE FALSE DEFECTS.** `.3.24` could give verilator ONE flat list because every
+entry there is a **lexical** fact true in all editions. Several ivtest parse refusals are
+**dialect gates** instead: true under the generation iverilog was run with, false under the
+edition the lane adjudicates.
+
+| candidate entry | what it really says | verdict |
+|---|---|---|
+| `requires SystemVerilog …` | *"you need a LATER generation than the one I was given"* | ⛔ **EXCLUDED** — would have flipped `br_gh1143e/f/g/h` (run at `-g2009`, whose null for-loop initialization **IEEE 1800-2017 A.6.8 makes optional**) and `br_gh1087a` (`Net data type requires SystemVerilog or -gxtypes` — and IEEE 1800 net declarations DO take a data type). **5 false `accepts_invalid` defects against PGEN, avoided by measurement** |
+| `Missing task/function port direction.` | true under 1364-2005 A.2.7, **relaxed** by IEEE 1800 A.2.7 | ⚠️ **v2005 lane ONLY** |
+| `operator is an Icarus Verilog extension` · `Empty UDP table.` · `Invalid table for UDP primitive` · `generate/endgenerate regions cannot nest.` · `is not a valid expression. Please use operator` | no IEEE edition derives them | ✅ **edition-invariant** |
+
+**EVERY MOVER WAS ADJUDICATED BY CLAUSE BEFORE IT WAS ALLOWED TO MOVE** (the auditor's asymmetry:
+a re-derivation that contradicts a standing number carries the heavier burden):
+
+- `br1027a/c/e` — `task t(a, b);` / `task t(integer a, b);` / `task t(input integer a, integer b);`.
+  A.2.7 `task_port_item` (`…Annex_A…txt:290`) is one of exactly three `tf_*_declaration`s and each
+  (`:300`/`:303`/`:306`) **begins with its direction keyword**. ⭐ The distinction that makes the
+  third file a separate row: `tf_input_declaration ::= input task_port_type
+  list_of_port_identifiers` lets ONE `input` cover several names, so `task t(input integer a, b);`
+  **is** legal — the defect is that a *new* `task_port_item` may start directionless.
+  **PGEN accepts all three ⇒ three real over-acceptance defects**, owned by `.13e.5`.
+- `br_gh1117` — nested `generate … endgenerate`. A.4.2 `generate_region ::= generate
+  { module_or_generate_item } endgenerate`, and `module_or_generate_item` (`:65`) has **no**
+  `generate_region` alternative — only `non_port_module_item` (`:88`) does. Not derivable; PGEN
+  rejects; the `must_accept` was a phantom.
+- `pr2794144` — `res = ~ |in;`. A.8.3 `expression ::= unary_operator { attribute_instance }
+  primary` (`:882`) — the operand of a unary operator is a **primary**, and `|in` is an
+  *expression*. Not derivable; PGEN rejects. ⭐ The file says so **itself**: its success path
+  prints *"FAILED: These expressions should be a syntax error."*
+
+- ⚠️ **BOUND**: this enumerates the goldens that EXIST. **310 of the 394 CE rows carry no usable
+  golden at all** and are untouched — they remain the `.8b.3`/`.8c.2` stage-pin population, and
+  no message vocabulary can reach them.
+
+###### Acceptance Checklist (enforced) — `.13e.3` (b)
+
+- [x] **REPRODUCE / ISSUE** — of the 394 ivtest `CE` rows, 84 carry a usable golden and only **6**
+  contain the words *"syntax error"*, the sole test `_gold_has_syntax_error()` applied. Measured
+  by enumerating every golden and normalising its messages; `br1027a`'s golden reads
+  `error: Missing task/function port direction.` and the row was keyed `must_accept / match`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `stimuli/sv/adjudicate_external_corpus.py`
+  `IvtestIndex._gold_has_syntax_error()` (and the two `regress-*.list` CE paths) asked **which
+  stage of iverilog refused** using a two-word probe, rather than whether the LRM derives the
+  text. ⛔ And the obvious repair over-admits: a message→file map puts **97** messages in a
+  parse-stage file of which **90** are `'X' has already been declared in this scope.` from
+  `pform.cc`, a semantic check. Per-clause confirmation of each mover:
+  `…Annex_A…txt:290/:300` (task_port_item), `:65` vs `:88` (module_or_generate_item has no
+  generate_region), `:882` (`unary_operator primary`).
+- [x] **FIX** — declarative tier, ZERO grammar / Rust / codegen / generated bytes:
+  `IVTEST_PARSE_STAGE_RE` (edition-invariant, 6 entries, each carrying its clause) +
+  `IVTEST_PARSE_STAGE_V2005_ONLY_RE` (1 entry), `_gold_has_parse_error(gold, v2005)` replacing
+  `_gold_has_syntax_error`, `_vvp_implied(desc, v2005)` threading the edition, and both
+  `regress-*.list` CE paths reading the vocabulary appropriate to their lane.
+- [x] **ADDRESSED (verified)** — v2005 arm `rejects_valid 52 → 50`, `accepts_invalid 14 → 17`,
+  `unexplained 66 → 67`, `match 2279 → 2278`. `br_gh1117` and `pr2794144` now read
+  `must_reject / match`; `br1027a/c/e` read `must_reject / divergence:unexplained_accepts_invalid`.
+  Re-derivable by `python3 stimuli/sv/adjudicate_external_corpus.py`.
+- [x] **NO REGRESSION** — the SV lane's manifest **and** summary verdict columns are
+  **byte-identical** (`diff` on columns 1-5 vs `HEAD`), the lane total is unmoved at **2 606**,
+  `SV-CORPUS-DENOMINATOR` is green with the tuple `7556/2606/6174/4366/275` unchanged, and the
+  five movers were each confirmed against the tracked LRM **and** re-run through the shipped probe
+  (3 ACCEPT, 2 REJECT — matching the new expectations exactly). The `.13e.3`(a) guard is
+  undisturbed: `--self-test` **16 passed, 0 failed**.
+  `python3 stimuli/sv/run_adjudication_repros.py` → `checked=194 armed=77 listed=109 failures=0`
+  with three new rows added (two `class=accepts_invalid` that FLIP when `.13e.5` lands, plus the
+  control the fix must not break). All **26 doctrines PASS**.
+- [x] **LOCKSTEP** — this leaf + `.13e.5` opened + `docs/TASK_TREE.md` frontier + the regenerated
+  v2005 manifest/summary + `verdict_coverage/coverage.md` + `stimuli/sv/adjudication_repros/`
+  (3 files + `MANIFEST.tsv`) + the book's SV corpus section + `MEMORY.md` / `CHANGES.md` /
+  `DEVELOPMENT_NOTES.md`, this commit.
+
 ##### ⛔ `.13e.4` — `integer signed` / `integer unsigned` PARSE under `verilog_2005`, and IEEE 1364-2005 has no signing on an integer declaration (`todo`, opened 2026-08-23 by `.13e.2`)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
@@ -15880,6 +15972,38 @@ initialising `gn_icarus_misc_flag`.
   `scope_randomize_sv_only` (see `invalid_v2005_scope_randomize.sv`), not an inline edit;
   (c) pin `integer signed u;` / `integer unsigned u;` as `class=accepts_invalid` rows so the fix
   flips them to `invalid` and they guard it forever.
+
+##### ⛔ `.13e.5` — a task/function port item may start with NO DIRECTION under `verilog_2005`, and IEEE 1364-2005 A.2.7 has no such alternative (`todo`, opened 2026-08-23 by `.13e.3`(b))
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
+
+- **MEASURED on the shipped release probe.** All three ivtest rows `br1027a.v` (`task t(a, b);`),
+  `br1027c.v` (`task t(integer a, b);`) and `br1027e.v` (`task t(input integer a, integer b);`)
+  **ACCEPT** under `--profile verilog_2005`, and all three are now
+  `divergence:unexplained_accepts_invalid` in the v2005 manifest.
+- **WHY IT IS A DEFECT.** IEEE 1364-2005 A.2.7 `task_port_item`
+  (`docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:290`) has exactly
+  three alternatives — `tf_input_declaration` / `tf_output_declaration` / `tf_inout_declaration` —
+  and each (`:300`/`:303`/`:306`) **begins with its direction keyword**. There is no directionless
+  alternative, so none of the three files is derivable. Over-acceptance is a defect
+  ([[feedback_sv_strict_lrm_compliance_default]]), and iverilog agrees from its own grammar
+  action: `error: Missing task/function port direction.` (`parse.y`).
+- ⭐ **THE DISTINCTION THAT SIZES THE FIX.** `tf_input_declaration ::= input task_port_type
+  list_of_port_identifiers` lets ONE `input` cover several names, so `task t(input integer a, b);`
+  **is legal** and must keep parsing. The defect is that a *new* `task_port_item` may start
+  without a direction — not that a name may lack one. A fix that tightens `list_of_port_identifiers`
+  would break valid code.
+- ⛔ **`verilog_2005`-ONLY, so the fix must be PROFILE-GATED.** IEEE 1800 A.2.7 `tf_port_item`
+  makes the direction optional (defaulting to `input`), so the same text is valid SystemVerilog and
+  **must keep parsing under `sv_2017`/`sv_2023`**. The shape is the `scope_randomize_sv_only` lift
+  already used in this tree (see `invalid_v2005_scope_randomize.sv`), never an inline tightening.
+- **ALREADY RATCHETED, BOTH SIDES.** `accepts_invalid_v2005_task_port_no_direction.sv` and
+  `accepts_invalid_v2005_task_port_direction_dropped.sv` fail the day the construct starts being
+  rejected — flip them to `class=invalid` then — and
+  `control_v2005_task_port_directions.sv` fails if the fix breaks the legal spelling.
+- **Owed:** (a) locate the admitting carrier with `--trace-rules` (the `.13e.4` method); (b) the
+  profile-gated lift; (c) flip the two `accepts_invalid` rows to `invalid` in the same commit;
+  (d) confirm `function_port_list` (`…:266`), which has the same shape and no corpus row yet.
 
 #### `.13f` — the honest-permanent-deferral set: 302 rows where NO VERDICT is the right answer forever (`todo`, opened 2026-08-11 by `.13a`)
 
