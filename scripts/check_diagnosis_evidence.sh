@@ -73,6 +73,21 @@ for f in "${staged[@]:-}"; do
     grammars/*.ebnf|rust/src/*|generated/*|rust/test_data/ast_shape_contract/*.json) code_changed=1 ;;
     # the proof surface: the doctrine enforcers, the gates, their wiring, the hooks, CI
     scripts/check_*.sh|rust/scripts/*.sh|.githooks/*|.github/workflows/*.yml|rust/build.rs) code_changed=1 ;;
+    # ⭐⭐ THE ORACLE A DOCTRINE CONSUMES IS PART OF THE PROOF SURFACE TOO (GRAMMAR-CERT-STATUS.2,
+    # 2026-08-23). `scripts/check_*.sh` catches the ENFORCER; it does not catch the PRODUCER the
+    # enforcer asks. `GRAMMAR-CERT-CURRENCY` reads its verdict out of
+    # `scripts/report_grammar_certification.sh`, so an edit to that producer changes what the
+    # doctrine MEANS just as surely as an edit to the enforcer — and this check answered
+    # "no code change staged" for it.
+    # ⛔ MEASURED, not hypothetical: that producer was silently broken by exactly such an edit.
+    # `-0002` deleted its `--check` implementation and kept the flag; the check then exited 0 on
+    # every input, including a path that does not exist, for a whole commit (GRAMMAR-CERT-STATUS.1b).
+    # ⛔ PRICED AS A WIDENING MUST BE (the `.4`/`.7` bar): `git ls-files 'scripts/report_*.sh'`
+    # returns **1** file, and **3** commits in the entire history touch it — `7332ece7` (published a
+    # false table), `c06292f4` (deleted the check), `b86d95df` (restored it). All three are this
+    # defect's own incidents and all three staged no other in-scope path, so the pattern binds
+    # exactly the commits it exists for and NOTHING else in ~2 600 commits.
+    scripts/report_*.sh) code_changed=1 ;;
     Makefile|rust/Makefile) code_changed=1 ;;
   esac
 done

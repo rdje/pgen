@@ -7,6 +7,8 @@
 > which **runs the certificate-coverage oracle** against the generated parsers in the tree. Do not
 > hand-edit it — re-run with `--markdown` and republish;
 > `--check docs/book/src/grammar-certification-status.md` refuses when the two disagree.
+> ⭐ **Since 2026-08-23 this is ENFORCED, not merely available**: `GRAMMAR-CERT-CURRENCY` is a
+> registered doctrine and runs on every commit. See *Kept in sync, mechanically* below.
 
 ## The definition
 
@@ -93,6 +95,33 @@ unknown-argument error would have been loud on the very next run. Now restored, 
 observed: in sync → `OK`; drifted → exit 1 with a unified diff naming the row; no derived block →
 refuse; missing page → refuse; an empty derivation → refuse rather than compare against nothing.
 
+## Kept in sync, mechanically
+
+A derivation nothing re-derives is a claim that rots — which is exactly how the roster this page
+replaced went stale. So `GRAMMAR-CERT-CURRENCY` (doctrine 26) holds the page to the tree, in two
+tiers, because the oracle costs about a minute and a pre-commit hook may not:
+
+| tier | when | cost | what it proves |
+|---|---|---|---|
+| **1** (default) | **every commit**, via `.githooks/pre-commit` | **0.27 s** | the page carries exactly one well-formed derived block; the producer's `--check` is genuinely **wired**; the published **population** equals the families that actually ship; and no input the table depends on has run ahead of the page beyond a budget |
+| **2** (`--oracle`) | on demand | **64.5 s** | the whole table is **re-derived and diffed** against the published block — after first proving the producer still **refuses** a page it cannot read |
+
+```bash
+bash scripts/check_grammar_certification.sh              # tier 1 — the doctrine
+bash scripts/check_grammar_certification.sh --oracle     # tier 2 — re-derive and diff
+bash scripts/check_grammar_certification.sh --self-test  # prove the refusal arms fire (9/9)
+```
+
+⚠️ **Stated plainly, because a gate's limits belong beside its green tick**: tier 1 is a *staleness*
+argument, not a correctness proof — it inherits whatever tier 2 last established. And because
+`generated/` is not tracked, a fresh clone reports the population arm as **NOT EVALUATED**, loudly,
+never as a pass.
+
+⭐ **Tier 1 tests the instrument rather than trusting it**, and that is not defensive
+over-engineering — it is this page's own history. The check that keeps this table honest was once
+deleted while its flag survived, and nothing noticed for a commit. Two of the nine self-test arms
+reconstruct that exact failure from both sides.
+
 ## Re-derive it yourself
 
 ```bash
@@ -100,3 +129,7 @@ bash scripts/report_grammar_certification.sh              # human-readable
 bash scripts/report_grammar_certification.sh --markdown   # the table above
 bash scripts/report_grammar_certification.sh --check docs/book/src/grammar-certification-status.md
 ```
+
+Exit codes follow the repository convention: **0** the published table equals a fresh derivation,
+**1** it has drifted (a unified diff naming the row is printed), **2** the check could not evaluate
+its subject at all — a missing page, or one carrying no derived block.

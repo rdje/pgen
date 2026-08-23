@@ -35,8 +35,21 @@ while [ $# -gt 0 ]; do
 done
 # ⛔ VALIDATE `--check`'s SUBJECT BEFORE SPENDING THE DERIVATION. The first cut tested the
 # path only AFTER rendering, so a typo'd page path cost 65 s to be told the file is absent.
-if [ -n "$CHECK" ] && [ ! -f "$CHECK" ]; then
-  echo "grammar-certification: REFUSED (2) - no published page at $CHECK" >&2; exit 2
+# ⭐ THE SAME ARGUMENT COVERS THE *BLOCK*, AND IT IS NOT A DUPLICATE OF THE PYTHON GUARD BELOW.
+# Both questions are properties of the PAGE ALONE and are answerable before any measurement, so
+# spending a 65 s derivation to reject a page that could never have been compared is pure waste --
+# measured: driving the no-block refusal as a red control made tier 2 of GRAMMAR-CERT-CURRENCY cost
+# 128.5 s instead of 64 s, because it paid for a whole derivation to be told something a grep knows.
+# This arm answers only "is there a block at all"; the python step below still EXTRACTS it, which it
+# has to do anyway, so there is one extraction and no second policy to drift.
+if [ -n "$CHECK" ]; then
+  [ -f "$CHECK" ] || { echo "grammar-certification: REFUSED (2) - no published page at $CHECK" >&2; exit 2; }
+  if ! grep -q '<!-- BEGIN DERIVED' "$CHECK" || ! grep -q '<!-- END DERIVED -->' "$CHECK"; then
+    echo "grammar-certification: REFUSED (2) - $CHECK carries no <!-- BEGIN DERIVED --> ... <!-- END DERIVED -->" >&2
+    echo "                       block, so the check cannot inspect its subject. A check that cannot" >&2
+    echo "                       run must SAY SO, not return green." >&2
+    exit 2
+  fi
 fi
 BIN="rust/target/debug/ast_pipeline"
 [ -x "$BIN" ] || { echo "grammar-certification: REFUSED — no ast_pipeline at $BIN" >&2; exit 2; }

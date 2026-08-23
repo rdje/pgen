@@ -1,5 +1,66 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-GRAMMAR-CERT-STATUS-0004 — a gate whose cheap tier tests its own instrument
+
+**1. THE SHAPE OF THE PROBLEM.** `.1` built a derive-and-diff for the certification table and
+nothing ran it; `.1b` then found that the diff had been deleted while its flag survived. Registering
+the check as a doctrine therefore could not be a matter of calling it on every commit — the check
+had already demonstrated that it can be alive, dead, and green in exactly the same way. So the
+question `.2` had to answer was not *"does the table match"* but *"is the thing that would tell me
+still working, and can I afford to ask on every commit"*.
+
+**2. THE COST DECIDED THE ARCHITECTURE, AND IT WAS MEASURED FIRST.** A full derivation is 65.2 s —
+eight families through the real certificate-coverage oracle. That cannot be a pre-commit tax. The
+repository already had the answer in two places (`GENERATED-REPRODUCIBILITY`, `PARSE-COST-RATCHET`):
+a cheap every-commit tier that is a PROOF rather than a shortcut, plus an on-demand oracle. Tier 1
+here costs 0.27 s and never runs the oracle at all.
+
+**3. WHAT A CHEAP TIER CAN HONESTLY PROVE.** Not the numbers. What it can prove is that nothing has
+happened which could have changed them, and that the instrument which would notice is still alive:
+the block is well-formed; the producer's `--check` is wired; the published population equals the
+families that ship; no declared input leads the page past a budget. That is a staleness argument,
+and it inherits whatever tier 2 last established — stated in the doctrine row rather than left for a
+reader to work out.
+
+**4. THE STATIC ARM IS THE ONE THAT WOULD HAVE CAUGHT `.1b` IN ZERO SECONDS.** `grep -c '\$CHECK'`
+over the producer was **0** in the broken vintage: the flag was parsed into a variable nobody read.
+That one line is now an arm. Its behavioural sibling — `--check` on a path that cannot exist must
+refuse — is deliberately paired with it, because each is weak alone: the static arm cannot see a
+wired-but-wrong implementation, and the behavioural arm is satisfied by the early existence guard
+without proving the diff runs. The arm that really proves the diff needs the derivation and lives in
+tier 2, which drives it explicitly rather than skipping it quietly.
+
+**5. A GREEN VERDICT FROM AN UNTESTED INSTRUMENT IS NOT A VERDICT.** Tier 2 first requires the
+producer to REFUSE a page with no DERIVED block, and only then believes its diff of the real page.
+This is the same discipline the self-test applies to the gate itself: nine arms, seven of them
+breaches constructed on purpose, two of them controls — because a doctrine that has never been
+observed failing is a doctrine nobody has tested.
+
+**6. A WRONG PREDICTION, KEPT.** Tier 2 was predicted at 65 s and first measured at **128.5 s**. The
+red control was paying for a whole second derivation to be told something a `grep` knows. The fix
+belonged in the PRODUCER, not the gate: "does this page have a DERIVED block" is a property of the
+page alone and now refuses at argument-parse time in 0.01 s, which brought tier 2 back to 64.5 s.
+⛔ Note the pattern — this is the SECOND refusal in two slices that was cheap to answer and was being
+answered late. A refusal that costs a measurement is a design smell, not a detail.
+
+**7. THE WIDENING, AND WHY A WRAPPER WOULD NOT HAVE DONE.** Registering an enforcer puts
+`scripts/check_grammar_certification.sh` inside `TASK-ACCEPTANCE`'s path scope; it does nothing for
+`scripts/report_grammar_certification.sh`, the file that actually broke. A future edit to the
+producer alone would again require no checklist — exactly the edit `.1b` is about. So the scope now
+includes `scripts/report_*.sh`, on the recorded ground that the ORACLE A DOCTRINE CONSUMES IS PART
+OF THE PROOF SURFACE. Priced as the enforcer's own bar demands: 1 file, 3 commits in ~2 600, all
+three this defect's own incidents.
+
+**8. AND THE PROOF OF THAT WIDENING NEARLY WENT THE WRONG WAY.** Replaying `7332ece7..c06292f4` with
+`PGEN_DIAG_EVIDENCE_RANGE` reported **OK** — which would have said the widening changes nothing. It
+is a hybrid: the enforcer takes changed-line RANGES from the given range but reads checklist CONTENT
+from the WORKING TREE, and today's task file carries `.1b`'s checklist. A faithful replay needs the
+tree as it was. Run in a throwaway `git worktree` at `c06292f4`, with a two-arm control: the widened
+gate exits **1 (blocked)**; the gate as it actually shipped exits **0** on the same tree and range.
+⇒ the commit that deleted the check would have been blocked, and the attribution is unambiguous
+because only the gate differs between the arms. ⭐ This was caught by asking why an expected RED came
+back GREEN — not by reviewing the command.
+
 ## 2026-08-23 - PGEN-GRAMMAR-CERT-STATUS-0003 — the fix commit deleted the check and kept the flag
 
 **1. THE SHAPE OF THE DEFECT.** `-0002` corrected a false certification table published to the main

@@ -217,7 +217,7 @@ a roster.
   measurement, the cheap `grep -n <VAR>` detector and the nonexistent-path red control that any
   inherited gate can be run through.
 
-### `.2` — register the sync check as an enforced doctrine (`todo`, opened 2026-08-23)
+### `.2` — register the sync check as an enforced doctrine (**`done`**, `PGEN-GRAMMAR-CERT-STATUS-0004`, 2026-08-23)
 
 - **WHY, and it is this tree's own lesson turned on itself**: `.1` ships a `--check` mode, a make
   target and a book page — but **nothing RUNS the check automatically**. That is precisely the shape
@@ -245,7 +245,107 @@ a roster.
   independent `--markdown` runs byte-identical at 1635 B), the published block equals a fresh
   derivation at 1579 B, and the check now has five observed arms including two REFUSALS.
 
-### `.3` — give the seven `NO ORACLE` families a certification decision (`todo`, opened 2026-08-23)
+#### What landed — `GRAMMAR-CERT-CURRENCY`, doctrine **26**
+
+- **`scripts/check_grammar_certification.sh`**, registered in `scripts/check_doctrines.sh` with its
+  `DOCTRINE_ENFORCEMENT.md` §10 mirror row and the `docs/book/src/gate-flow.md`
+  `<!-- DOCTRINE-COUNT -->` figure moved in lockstep — **25 → 26**, all three two-sided. The two
+  meta-checks were observed FAILING on the intermediate state (registry ahead of both mirrors) and
+  passing once they caught up, so the lockstep is measured, not assumed.
+- ⭐⭐ **TWO TIERS, PRICED FIRST.** A full derivation is **65.2 s**, which may not be spent on every
+  commit. So tier 1 (**0.27 s**, no oracle, no build) answers everything that does not need the
+  table's NUMBERS, and tier 2 (`--oracle`, **64.5 s**) re-derives and diffs.
+- **TIER 1's FOUR ARMS**: (1) the page carries exactly ONE well-formed `<!-- BEGIN DERIVED -->` …
+  `<!-- END DERIVED -->` block; (2) the producer's `--check` is WIRED — statically, the option
+  variable must be READ rather than merely declared and assigned, and behaviourally, it must refuse
+  a path that does not exist; (3) the published POPULATION equals the families that actually ship;
+  (4) no declared input — the producer, each published family's grammar, the SV union contract —
+  leads the page past a budget.
+- ⛔ **TIER 1 TESTS THE INSTRUMENT RATHER THAN TRUSTING IT, AND THAT IS `.1b` TURNED INTO A GUARD.**
+  Arm (2) is the one-line detector from `.1b` promoted into an enforcer: in the broken vintage
+  `grep -c '\$CHECK'` was **0**. Two of the nine self-test arms reconstruct that regression from
+  both sides — a producer that parses `--check` into a variable it never reads, and one that reads
+  it but still returns 0 for a nonexistent page.
+- ⭐ **TIER 2 DRIVES A RED CONTROL BEFORE IT BELIEVES A GREEN ONE**: it first requires the producer
+  to REFUSE a page with no DERIVED block, so a green diff can never come from an instrument that
+  says green to everything.
+- ⭐⭐ **PREDICTED 65 s, FIRST MEASURED 128.5 s — AND THE PREDICTION IS KEPT.** The red control was
+  paying for a whole second derivation to be told something a `grep` knows. Fixed in the PRODUCER,
+  not in the gate: "does this page have a DERIVED block" is a property of the PAGE ALONE and now
+  refuses at argument-parse time in **0.01 s**, bringing tier 2 to **64.5 s** — one derivation, as
+  predicted. ⛔ Re-reading could never have caught this; only running it could. Same class as the
+  `.1b` refusal that cost 65 s before its guard moved.
+- ⚠️ **HONEST BOUNDS, stated before the check was trusted, not discovered afterwards**: tier 1 is a
+  STALENESS argument and inherits whatever tier 2 last established (`PARSE-COST-RATCHET`'s own words
+  about itself); its behavioural `--check` arm is satisfied by the early existence guard alone, so
+  the arm that really proves the DIFF still runs needs the derivation and lives in tier 2; and
+  `generated/` is untracked, so a fresh clone reports the population arm **NOT EVALUATED, loudly** —
+  never as a pass.
+- ⭐ **STALENESS IS BUDGETED, NOT ZERO-TOLERANCE** (`PGEN_GRAMMAR_CERT_LEAD_BUDGET`, default 10).
+  `BASELINE-IDENTITY` already paid for that lesson: its first cut made a moved input a hard failure
+  inside a pre-commit enforcer, and ONE COMMENT LINE in the SV grammar blocked every commit in the
+  repository. Inside the budget a lead is a printed NOTE; past it, a breach — so rot stays
+  impossible without ambushing an unrelated commit.
+- ⭐⭐ **THE SCOPE GAP `.1b` NAMED IS CLOSED, AND IT WAS NOT SATISFIED BY THE WRAPPER.**
+  `TASK-ACCEPTANCE` decided "is this a code change" from a path list that caught the ENFORCER
+  (`scripts/check_*.sh`) but not the PRODUCER it asks — the file that actually broke. `scripts/report_*.sh`
+  is now on the proof surface, on the recorded ground that **the oracle a doctrine consumes is part
+  of the proof surface too**.
+- **PRICED AS A WIDENING MUST BE** (the `.4`/`.7` bar): `git ls-files 'scripts/report_*.sh'` → **1**
+  file; **3** commits in the entire history touch it — `7332ece7` (published a false table),
+  `c06292f4` (deleted the check), `b86d95df` (restored it). All three are this defect's own
+  incidents and all three staged no other in-scope path, so the pattern binds exactly the commits it
+  exists for and nothing else in ~2 600.
+- ⛔⛔ **AND THE REPLAY THAT PROVES IT EXPOSED A TRAP IN THE ENFORCER'S OWN REPLAY MODE.**
+  `PGEN_DIAG_EVIDENCE_RANGE` takes the changed-line RANGES from history but reads the checklist
+  CONTENT from the WORKING TREE, so replaying `7332ece7..c06292f4` in place reported **OK** — on
+  today's task file, which now carries `.1b`'s checklist. That is not a historical verdict. Re-run
+  as a FAITHFUL replay in a throwaway `git worktree` at `c06292f4`, with a two-arm control:
+
+  | gate | tree | range | exit |
+  |---|---|---|---|
+  | **widened** (this slice) | `c06292f4` | `7332ece7..c06292f4` | **1 — BLOCKED** |
+  | as it actually shipped | `c06292f4` | `7332ece7..c06292f4` | **0** — *"no code change staged"* |
+
+  ⇒ the widening is what turns the verdict, and **the commit that deleted the check would have been
+  blocked by it**. ⛔ The in-place reading would have let me publish the opposite conclusion; it was
+  caught by asking why a RED I expected came back GREEN, not by review.
+
+#### Acceptance Checklist — `.2`
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family. **WHY**: `.1` shipped a derive-and-diff
+  and nothing invoked it, which is `GATE-REACHABILITY`'s own founding sentence applied to this
+  tree — *a check nothing invokes is indistinguishable from one that does not exist*. **WHERE**: the
+  registry in `scripts/check_doctrines.sh` held no row for it, and `TASK-ACCEPTANCE`'s path list did
+  not cover the producer. Both re-derived by command, not by reading:
+
+  ```
+  $ git ls-files 'scripts/report_*.sh'        ->  scripts/report_grammar_certification.sh   (1 file)
+  $ git log --oneline --all -- 'scripts/report_*.sh' | wc -l   ->  3
+  ```
+
+  and the faithful worktree replay above, whose two arms differ only in which gate ran. `bash -n` is
+  clean on every script touched.
+- [x] **ADDRESSED (verified)** — before: nothing ran the check, and an edit to the producer required
+  no acceptance checklist at all. After: the doctrine driver reports
+  `✓ PASS GRAMMAR-CERT-CURRENCY` among **ALL 26 enforced doctrines PASS**, tier 1 costs 0.27 s,
+  tier 2 re-derives and diffs in 64.5 s (`the published table equals a fresh derivation, 1579
+  bytes`), `--self-test` reports **9/9 arms as expected** with each breach observed failing for the
+  right printed reason, and both meta-checks were seen RED on the intermediate state before going
+  green. The widened acceptance gate blocks `c06292f4` in a faithful replay.
+- [x] **NO REGRESSION** — the slice touches **no grammar, no Rust source, no codegen and no
+  generated artifact**, so `generated/` is **byte-identical** by construction and `clippy` does not
+  apply; the seed-0/7/42 oracle gates are untouched and are not claimed. The producer's four
+  behavioural arms are unchanged after the early-guard edit (0 / 1 / 2 / 2), its `--markdown` output
+  is unchanged, and the certification table itself still reads `certified=6/9` with `spf=0` on every
+  family. `mdbook_docs_gate` green.
+- **`promotion: declined (the durable lesson of this slice — deleting an implementation while
+  leaving its flag — is already promoted by `.1b` as
+  [[deleting-an-implementation-while-leaving-its-flag-fails-silently]]; what `.2` adds is the
+  enforcement of it, which belongs in the doctrine registry and its mirror rather than in a second
+  card)`**
+
+### `.3` — give every family without a clean certification a DECISION, and pin the six that have one (`todo`, opened 2026-08-23, RE-SCOPED by `.1a` — the original title said *seven `NO ORACLE` families*, a premise `.1a` refuted)
 
 - ⛔ **RE-SCOPED after `.1a`**: the premise *"seven families have never been scored"* was FALSE — six
   of them certify cleanly today. What actually remains is narrower and real: `return_annotation`
