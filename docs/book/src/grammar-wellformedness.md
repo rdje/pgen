@@ -1090,6 +1090,48 @@ comment at all. Its live reach was measured rather than assumed: across all seve
 grammars, **zero** annotation lines contain a `#`, so nothing in the repository was relying on the
 behaviour that changed.
 
+#### The dynamic backstop had the same shape, one layer out
+
+The fix above is static: codegen decides, per introducer, whether to emit a comment arm at all. There
+is also a *dynamic* backstop inside the emitted skipper — a terminal that IS a comment introducer
+must not have those bytes eaten as trivia while it is the token being matched — and it asked the
+question by exact equality over six spellings:
+
+```rust
+let allow_comment_skip = expected != "#" && expected != "//" && expected != "/*"
+    && expected != "/**" && expected != "///" && expected != "/";
+```
+
+A terminal that merely *starts with* an introducer — `#{`, `##` — is equal to none of them, so
+skipping stayed enabled in front of it. That is the same spelling-versus-property error twice more:
+the look-around check earned its design by asking *does the pattern COMPILE*; the separator check by
+asking *can it carry non-whitespace text*; this one asks *is this terminal AN introducer* when the
+property is *does it BEGIN with one*. The repair is a prefix test, and it is a strict superset of the
+six spellings it replaces, so the accept set can only narrow and can never silently widen.
+
+Sizing it is where the interesting part is. The class had been counted over **grammar text** at 11
+sites; counted over the **shipped artifacts** — the literals that can actually reach the guard, in
+parsers that actually emit it — it is **6**, and only **one** of those is behavioural:
+SystemVerilog's `##`. The five that drop belong to two grammars that ship no parser at all, and two
+of the remaining six sit in parsers that emit no comment arms, so the guard does not exist there in
+either direction. A text census cannot make that distinction; an artifact census cannot miss it.
+
+The behavioural site was then measured rather than argued — and the measurement refuted a concrete
+prediction. Because SystemVerilog claims `#` but still emits `//` and `/*` arms, the prefix test
+should have stopped a comment sitting directly in front of a `##` from being skipped, so
+`a // c ⏎ ##1 b` should have started failing. It does not: accept and `furthest_position` are
+identical in both arms.
+
+Three reproducers cannot license *"the accept set does not move"*, though, and the corpus-wide answer
+came from a technique worth stealing. The guard is implemented twice — in codegen and in the
+parse-harness interpreter — and a gate holds the two byte-identical over a deterministic corpus. So
+the change was applied to **one side only**, and the differential re-run: with the symmetry broken on
+purpose, *every divergence the gate reports is an input on which the change matters*. It reported
+none. And because a clean sweep proves nothing until the sweep is shown able to fail, the same line
+was then replaced with `allow_comment_skip = false` — at which point the gate named three grammars
+and ten divergences. That is what turns "no divergences" from an absence of evidence into a
+measurement.
+
 ### A third way: the terminal IS the layout, and the skipper eats it first
 
 The two mechanisms above share a shape — a terminal that can never match — and there is a third,

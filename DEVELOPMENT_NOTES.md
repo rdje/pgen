@@ -1,5 +1,72 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0178 — break the mirror on purpose and the differential tells you which inputs your change moves
+
+**1. THE DEFECT.** The emitted `consume_layout_for_terminal` carries a dynamic backstop so that a
+terminal which IS a comment introducer is not defeated by the engine skipping those bytes as trivia.
+It asked by exact equality over six spellings (`#`, `//`, `/*`, `/**`, `///`, `/`). A terminal that
+merely BEGINS with an introducer — `#{`, `##` — equals none of them, so skipping stayed on. Third
+instance in this tree of one error: `H.17.2` fixed *does it contain `(?`* → *does it COMPILE*;
+`H.16.2` fixed *is there an unbounded repetition* → *can it carry non-whitespace text*; this one is
+*is this terminal AN introducer* → *does it BEGIN with one*.
+
+**2. THE FIX IS MONOTONE BY CONSTRUCTION.** The prefix test is a strict superset of the six spellings
+(`/**` starts with `/*`, `///` with `//`), so it can only ever disable comment skipping in more
+cases. The accept set can narrow; it cannot silently widen. That property is what makes the change
+safe to reason about at all — but it is emphatically *not* what makes it safe, because a narrow is a
+regression when the narrowed case was load-bearing.
+
+**3. ⛔ THE CENSUS HAD TO BE RE-DERIVED, AND IT SHRANK FROM 11 TO 6.** `H.16.1` counted the class over
+grammar TEXT. The population that can ever reach the guard is narrower and knowable exactly: the
+string literals passed to `match_lit_ascii` / `match_string` in a **generated parser**, since those
+are `consume_layout_for_terminal`'s only callers. Over the shipped artifacts the class is 6, and the
+right way to read it is as a 2×2 — does the parser emit the guard, and is the terminal already
+exact-listed:
+
+| | already exact-listed | not exact-listed |
+|---|---|---|
+| **emits the guard** | `ebnf` `/**` `///` — no-op | **`systemverilog` `##` — the only behavioural site** |
+| **emits no guard** | — | `regex` `##`, `semantic_annotation` `///` `#{` — not exposed either way |
+
+The five that drop are the two `systemverilog_lrm_profiled_*` grammars' `##` / `##[*]` / `##[+]`.
+They ship no generated parser (`lrm_extraction_harness` / `derived_artifact`), so they cannot be
+exposed to a guard that is never emitted. **A text census cannot make that distinction and an
+artifact census cannot miss it** — the same lesson `H.16.4a` learned one slice earlier about a
+different property, which is now twice in two slices.
+
+**4. THE PREDICTION, KEPT.** SV claims `#` so its `#` arm is suppressed, but its `//` and `/*` arms
+are emitted; under the prefix test `expected = "##"` sets `allow_comment_skip = false`, which should
+stop a comment directly in front of a `##` being skipped. Predicted: `a // c ⏎ ##1 b` flips to
+REJECT. Measured, two arms on one binary path with only the guard toggled: **all three inputs accept
+in both arms, with identical `furthest_position`.** The prediction is recorded because a wrong
+prediction that was checked is worth more than a right one that was assumed.
+
+**5. ⭐⭐ THE TRANSFERABLE TECHNIQUE — BREAK THE MIRROR ON PURPOSE.** Three reproducers cannot license
+*"the accept set does not move"*. The guard is implemented twice — codegen and
+`parse_harness_interpreter.rs` — and `parse_harness_equivalence_gate` holds the two byte-identical
+over a deterministic stimuli corpus (11 certified grammars, seeds 0/7/42). So the change was applied
+to **one side only** and the gate re-run. With the symmetry deliberately broken, **every divergence
+the gate reports is an input on which the change matters** — the corpus enumerates the blast radius
+instead of the author guessing at it. Result: 4/4 CLEAN, zero divergences.
+
+**6. AND THE CONTROL IS WHAT MAKES THAT A MEASUREMENT.** A clean sweep is indistinguishable from a
+corpus that never reaches the code. Replacing the same expression with `allow_comment_skip = false`
+fails the gate immediately and names the grammars — `rtl_frontend` 5, `systemverilog_preprocessor` 2,
+`ebnf` 3. The sweep sees this guard; therefore its clean reading of the prefix test is evidence.
+Promoted to `docs/knowledge/half-apply-a-mirrored-change-and-let-the-differential-find-the-inputs.md`
+because the technique is not specific to this guard or to PGEN.
+
+**7. HONEST BOUND, STATED NOT DISCOVERED LATER.** The sweep measures what the corpus reaches. A clean
+result plus a passing red control says *"no input in this corpus discriminates"*, which is strictly
+weaker than *"no input exists"*. The three SV reproducers are the hand-built complement at the one
+site the artifact census identified as behavioural, and they were chosen precisely because the corpus
+is unlikely to generate a comment adjacent to a `##`.
+
+**8. WHAT MOVED.** 8 of 11 generated artifacts changed bytes — exactly the arm-emitting ones, as the
+leaf predicted. The three that did not (`regex`, `semantic_annotation`, and `scratch` until it was
+regenerated) are precisely those emitting no `allow_comment_skip`. Certificates unchanged at every
+seed, which for prophylactic hardening is the result being claimed rather than a null one.
+
 ## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0177 — the certificate observes the protocol graph, not the parse a consumer runs
 
 **1. THE DEFECT.** `grammars/ebnf.ebnf` declares `whitespace := /(\s+)/` as one alternative of

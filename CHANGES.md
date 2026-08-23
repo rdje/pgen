@@ -1,5 +1,64 @@
 # CHANGES.md
 
+## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0178 (leaf GRAMMAR-WELLFORMED.H.16.2b CLOSED — the dynamic comment-skip guard becomes a PREFIX test; CODE / engine-universal codegen + interpreter, ZERO grammar bytes): a text census said 11 sites, the shipped artifacts say 6, and exactly one is behavioural
+
+- **WHAT SHIPPED.** `consume_layout_for_terminal`'s `allow_comment_skip` asked *"is this terminal AN
+  introducer"* by exact equality over six spellings, so a terminal that merely BEGINS with one
+  (`#{`, `##`) kept comment skipping enabled in front of itself. It is now a prefix test —
+  `expected != "/" && !expected.starts_with('#') && !expected.starts_with("//") &&
+  !expected.starts_with("/*")` — a strict SUPERSET of the six, so the accept set can only NARROW and
+  can never silently widen. Both copies moved together (codegen + `parse_harness_interpreter.rs`).
+- ⛔ **THE CLASS WAS RE-CENSUSED OVER THE SHIPPED ARTIFACTS, AND IT IS SMALLER AND SHARPER.** The
+  inherited count was 11 sites over grammar TEXT. The population that can reach the guard is the
+  literals passed to `match_lit_ascii` / `match_string` in a GENERATED parser — its only callers —
+  which reads **6**: `ebnf` `/**` `///` (already exact-listed ⇒ no-op), `regex` `##` and
+  `semantic_annotation` `///` `#{` (those parsers emit NO comment arms, so the guard does not exist
+  there in either direction), and **`systemverilog` `##` — the one site that both emits the guard and
+  is not exact-listed**. The five that drop are the two `systemverilog_lrm_profiled_*` grammars,
+  which ship no parser at all. ⇒ the entire behavioural blast radius is SV's `##`.
+- ⭐⭐ **I PREDICTED A REGRESSION THERE AND THE MEASUREMENT REFUTED IT.** SV claims `#` but still
+  emits `//` and `/*` arms, so the prefix test should have stopped a comment directly in front of a
+  `##` being skipped, failing `a // c ⏎ ##1 b`. Two arms on one binary path, only the guard toggled:
+  no comment / after `// c` / after `/* c */` all `accepted=true` with identical `furthest_position`
+  in BOTH arms. The prediction is kept rather than quietly dropped.
+- ⭐⭐ **HOW THE CORPUS-WIDE CLAIM WAS EARNED — a technique, now promoted to the knowledge layer.**
+  Three reproducers license nothing. The guard is implemented twice and a gate holds the two
+  byte-identical, so the change was applied to the INTERPRETER ONLY and
+  `parse_harness_equivalence_gate` re-run: with the symmetry broken on purpose, **every divergence it
+  reports is an input on which the change matters**. It reported none (4/4 CLEAN, 11 grammars, seeds
+  0/7/42). ⛔ And a clean sweep is worth nothing until the sweep is shown able to go RED on that
+  guard — control `allow_comment_skip = false` fails immediately: `rtl_frontend` 5,
+  `systemverilog_preprocessor` 2, `ebnf` 3 divergences.
+- **ALSO DISCHARGED**: the individual accept/reject probe of every census site, which `H.16.1`
+  explicitly named as a bound it owed and cleared by arm-suppression and witness status instead.
+  All 6 probed individually; all accept.
+- **GATES**: equivalence 4/4 and 11/11 byte-identical; envelope 14/14 AT ceiling; shape 18/18; clippy
+  pass; reproducibility 11/11 byte-identical (0 sites); doctrines 25/25. Certificates unchanged at
+  every seed — `ebnf 144/0/113/31`, `semantic_annotation 119/0/90/29`, `return_annotation 35/0/33/2`
+  — which is the correct result for prophylactic hardening: inertness is the claim, and it is what
+  was proven. Byte movement: **8 of 11 artifacts moved, exactly the arm-emitting ones**.
+- ⚖️ **RULING (director asked for the call at signoff grade): the technique lands as `TOOLBOX.md`
+  Protocol E, NOT as a doctrine — and the refusal is PRICED, not preferential.** Measured before
+  deciding: the mirrored-change population is **19 commits of 3 040**, and only ~6 are
+  behaviour-changing policy edits where a one-sided sweep adds anything (the rest either BUILD the
+  mirror — no "before" to break — or are AST-neutral representation work the two-sided gate already
+  covers). A gate firing on 19 to help 6 is past the false-positive bar
+  `GENERATED-LINT-CORRECTNESS.6`/`.12` refused at 91 %. ⭐⭐ Decisively, **the act leaves nothing to
+  key on**: a correct application ends with BOTH sides changed, so the tree is byte-identical whether
+  the sweep ran or not — the same un-gateable shape TOOLBOX §1.3 records for the scratch-slot probe.
+- ⭐⭐ **`H.22` RE-DERIVED UNDER A DIRECTOR CHALLENGE AND UPGRADED.** Its first write-up recorded the
+  emitted-flag mismatch and REASONED the rest; re-measured, the divergence is a byte-level AST
+  difference inside a certified byte-identity claim — `-> {k: ' abc'}` gives `value: " abc"` from the
+  generated parser and `value: "abc"` from the interpreter (first diff at byte 317), with the control
+  `-> {k: 'abc'}` **AST-IDENTICAL** so the probe is not stuck on one reading. ⇒ "green because the
+  corpus does not reach the hole" is now a DERIVATION from two measurements (gate GREEN + divergence
+  REAL), not an unmeasured claim about what the generator emits.
+- ⭐ **`DOCTRINE-GAP-OWNERSHIP.10` corrected for precision**: `RUST_CODEBASE_ANALYSIS.md` carries
+  **exactly 20** distinct dates against a ceiling of 20 (headroom **0**, re-derived with the
+  instrument's own regex). The block is on the next note carrying a date **not already among those
+  20** — a note reusing an existing date adds no distinct date and passes.
+- **LIVE STATUS: UNCHANGED.** No `claimed_status` moves.
+
 ## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0177 (leaf GRAMMAR-WELLFORMED.H.16.4a CLOSED — the PER-TERMINAL layout guard ships; CODE / engine-universal codegen + interpreter, ZERO grammar bytes): one decision, six spellings, and the certificate could not see five of them
 
 - **WHAT SHIPPED.** A regex terminal whose every match is whitespace **and** that cannot match empty

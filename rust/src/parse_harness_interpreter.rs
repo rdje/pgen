@@ -3045,12 +3045,14 @@ impl<'g, 'i> Interp<'g, 'i> {
     }
 
     fn consume_layout_for_terminal(&mut self, expected: &str) {
-        let allow_comment_skip = expected != "#"
-            && expected != "//"
-            && expected != "/*"
-            && expected != "/**"
-            && expected != "///"
-            && expected != "/";
+        // GRAMMAR-WELLFORMED.H.16.2b — a PREFIX test, not an exact-equality allowlist. A terminal
+        // that merely STARTS with a comment introducer (`#{`, `##`, `/**`, `///`) is not equal to
+        // one, so the old list left comment skipping ENABLED in front of it. Mirrors codegen's
+        // `allow_comment_skip` byte-for-byte (`PARSE-HARNESS.5.2`).
+        let allow_comment_skip = expected != "/"
+            && !expected.starts_with('#')
+            && !expected.starts_with("//")
+            && !expected.starts_with("/*");
         loop {
             let before = self.position;
             self.consume_optional_whitespace();

@@ -1,0 +1,35 @@
+AST-PIPELINE-FEATURE-GUARD: ok — 'rust/target/debug/ast_pipeline' carries [generated_parsers ebnf_dual_run]
+== ARM A — CENSUS over the shipped generated parsers ==
+artifact                                 emits_guard    introducer-PREFIXED terminals
+ebnf.rs                                  1              [/** /// ]
+json_parser.rs                           1              []
+regex_parser.rs                          0              [## ]
+return_annotation_parser.rs              1              []
+rtl_const_expr_parser.rs                 1              []
+rtl_frontend_parser.rs                   1              []
+scratch_parser.rs                        1              []
+semantic_annotation_parser.rs            0              [/// #{ ]
+systemverilog_parser.rs                  1              [## ]
+systemverilog_preprocessor_parser.rs     1              []
+vhdl_parser.rs                           1              []
+H162B-CENSUS: prefixed_sites=6
+
+== ARM B — per-site accept probe (each site's own construct, through its own grammar) ==
+  ebnf '/**' (documentation_comment)             accepted=true
+  ebnf '///' (documentation_comment)             accepted=true
+  semantic_annotation '#{' (set_value)           accepted=true
+  semantic_annotation '///' (doc_comment)        accepted=true
+  regex '##' (callout_hash_payload)              accepted=true
+  systemverilog '##' (cycle_delay)               accepted=true
+
+== ARM C — the ONE behavioural site: a comment directly in front of SV '##' ==
+  SV ##  (control: no comment)                   accepted=true
+  SV ##  after a // line comment                 accepted=true
+  SV ##  after a /* block comment */             accepted=true
+
+⛔ A CLEAN RESULT HERE IS NOT EVIDENCE ON ITS OWN. The corpus-wide oracle for this guard is
+   'make -C rust SHELL=/bin/bash parse_harness_equivalence_gate' with the change applied to
+   ONE side only: any divergence it reports IS an input where the guard matters. That sweep
+   was CLEAN for the prefix test and RED for a control that disables comment skipping
+   outright (rtl_frontend 5, systemverilog_preprocessor 2, ebnf 3 divergences), which is what
+   makes the clean reading a measurement rather than a blind spot.

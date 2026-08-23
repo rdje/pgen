@@ -174,6 +174,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "Which rules exist under which `@profiles`? Which rules can a corpus run under profile P ever exercise?" | [5.4 `--dump-rule-profiles`](#54---dump-rule-profiles) |
 | **"Does the LRM define a production the SHIPPED grammar has never seen?"** — ⛔ Annex A is the only surface the SV extractor reads, and IEEE captions 60 of its own 2017 syntax boxes `(not in Annex A)` | [5.8 the Annex A gap census](#58-does-the-lrm-define-a-production-the-shipped-grammar-has-never-seen--the-annex-a-gap-census) |
 | "Which LRM chapters/clauses does the keyed corpus target? Where is the negative-axis gap?" | [5.4 companion — `corpus_clause_coverage.py`](#54---dump-rule-profiles) |
+| **"Which INPUTS does my change actually move?" — for a behaviour implemented TWICE and held equal by a gate** | [Protocol E](#protocol-e--which-inputs-does-my-change-move-break-the-mirror-on-purpose) — apply it to ONE side and every divergence the differential reports IS an input the change moves; ⛔ then prove the sweep can go RED, or clean and never-reached read identically |
 
 ---
 
@@ -1789,6 +1790,46 @@ A2.4 `DuplicateAlternative` tie-break-conditioned on `@associativity`/`@priority
 `docs/decisions/project_duplicate_alternative_selection_semantics_conditional.md`, the R/P/D/N probes
 above are its worked example). With A2.2/A2.3/A2.4 every ordered-choice deadness verdict now names AND
 checks its selection semantics.
+
+## Protocol E — which INPUTS does my change move? (break the mirror on purpose)
+
+For any change to a behaviour that is deliberately implemented **twice** and held equal by a gate —
+in PGEN, codegen versus `parse_harness_interpreter.rs`, held byte-identical by 1.6 over a
+deterministic corpus of 11 grammars at seeds 0/7/42.
+
+1. **Apply the change to ONE side.**
+2. **Run the differential** — `make -C rust SHELL=/bin/bash parse_harness_equivalence_gate`.
+3. **Every divergence it reports IS an input on which your change matters.** The corpus enumerates
+   your blast radius; you do not guess at it with hand-built reproducers.
+4. ⛔ **Then prove the sweep can go RED on the thing you changed.** Replace the same expression with
+   an obviously-wrong value and re-run; it MUST fail. A clean sweep and a corpus that never reaches
+   your code read identically, and only the control tells them apart
+   ([[feedback_an_instrument_that_can_only_return_one_reading_is_not_a_measurement]]).
+5. **Apply the change to the other side** and confirm the gate returns to green. ⛔ Never leave the
+   tree half-applied — that is a divergence the next author inherits as a mystery.
+
+**Worked example** (`GRAMMAR-WELLFORMED.H.16.2b`): the comment-skip guard's prefix test read
+**4/4 CLEAN** one-sided; the control `allow_comment_skip = false` on the same line read
+`rtl_frontend DIVERGE 5 · systemverilog_preprocessor DIVERGE 2 · ebnf DIVERGE 3`. Three hand-built
+reproducers at the one site an artifact census called behavioural had all passed in both arms, and
+could never have licensed the corpus-wide claim on their own.
+
+⚠️ **HONEST BOUND**: it measures what the corpus reaches. Clean + a passing red control says *"no
+input in this corpus discriminates"*, which is strictly weaker than *"no input exists"*. Say which
+one you are claiming.
+
+⛔ **DELIBERATELY NOT A DOCTRINE, and the refusal is priced.** Measured over the whole history:
+**19 of 3 040 commits** touch both an `ast_based_generator*` emission module and the interpreter, and
+only ~6 of those are behaviour-changing *policy* edits where this technique adds anything — the rest
+either BUILD the mirror (no "before" to break) or are deliberately AST-neutral representation work
+the two-sided gate already covers. A gate firing on all 19 to help ~6 is past the bar
+`GENERATED-LINT-CORRECTNESS.6`/`.12` set when they refused a trigger at 91 % false positives, and
+`.4` (2/304) / `.7` (0/307) refused on thin corpus pressure. ⭐⭐ **And the act leaves nothing to key
+on**: a correct application ends with BOTH sides changed, so the tree is byte-identical whether the
+sweep was run or not — the same un-gateable shape §1.3 documents for the scratch-slot probe. The only
+remaining signal is prose, which is the 91 %-FP trigger already refused. ⇒ it lives HERE, in the file
+the standing toolbox-first directive forces you to open, plus a Knowledge-Map card
+([[half-apply-a-mirrored-change-and-let-the-differential-find-the-inputs]]).
 
 ---
 

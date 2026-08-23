@@ -7382,12 +7382,17 @@ impl AstBasedGenerator {
             fn consume_layout_for_terminal(&mut self, expected: &str) {
                 // Skip comments as layout for structural terminals, but avoid swallowing
                 // comment-introducer tokens themselves.
-                let allow_comment_skip = expected != "#"
-                    && expected != "//"
-                    && expected != "/*"
-                    && expected != "/**"
-                    && expected != "///"
-                    && expected != "/";
+                //
+                // GRAMMAR-WELLFORMED.H.16.2b: a PREFIX test, not an exact-equality allowlist.
+                // The old list named six exact spellings, so a terminal that merely STARTS with
+                // an introducer -- `#{`, `##`, `/**`, `///` -- was not equal to any of them and
+                // kept comment skipping ENABLED in front of itself. The prefix test is a strict
+                // SUPERSET of those six (`/**` starts with `/*`, `///` with `//`), so it can only
+                // ever disable skipping in more cases, never enable it in fewer.
+                let allow_comment_skip = expected != "/"
+                    && !expected.starts_with('#')
+                    && !expected.starts_with("//")
+                    && !expected.starts_with("/*");
 
                 loop {
                     let before = self.position;

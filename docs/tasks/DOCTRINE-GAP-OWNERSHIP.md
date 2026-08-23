@@ -758,6 +758,11 @@ the copy has no way to know.*
   notes are not uniformly disposable — several carry measurements that exist nowhere else, and a
   blind deletion would lose them. The classification is the work, exactly as
   [[feedback_classify_referents_by_requirement]] argues.
-- ⚠️ **Not urgent, but it is a TRIPWIRE, not a wish**: the next architecture change to touch this file
-  is blocked at pre-commit until it is resolved, and the cheap resolution (undated prose) is now
-  demonstrated.
+- ⭐ **HEADROOM MEASURED, not estimated** (re-derived under a director challenge, 2026-08-23, with the
+  instrument's own regex `20\d{2}-\d{2}-\d{2}`): the file carries **exactly 20** distinct dates
+  against a ceiling of 20 ⇒ **headroom 0**.
+- ⚠️ **Not urgent, but it is a TRIPWIRE, not a wish** — stated precisely, because the loose version is
+  wrong: the next architecture note carrying a date **not already among those 20** is blocked at
+  pre-commit. A note dated on an existing date adds no distinct date and passes, so the block is not
+  literally *"the next note"*. The cheap resolution (undated prose naming the owning leaf) is now
+  demonstrated by `-0177`.
