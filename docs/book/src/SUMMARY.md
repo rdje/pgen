@@ -20,6 +20,7 @@
 - [Embedding and Downstream Integration](embedding-and-downstream-integration.md)
 - [Contracts and Support](contracts-and-support.md)
 - [Roadmap and Live Status](roadmap-and-live-status.md)
+- [Grammar Certification Status](grammar-certification-status.md)
 
 # Part II · Inside PGEN
 

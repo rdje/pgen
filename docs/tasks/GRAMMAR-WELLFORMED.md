@@ -5805,13 +5805,26 @@ owning leaf, and `H.20.1` lowers the ceiling when it lands.
   `workflow_dispatch`-only hosted workflows (a deliberate Actions-minutes policy). This is about the
   LOCAL auto tier, where the policy does not apply and the cost is 35 s.
 
-### `H.23` — **A SHIPPED FAMILY'S STIMULI GENERATOR PRODUCES NOTHING AT ALL, AND THE INSTRUMENT THAT SHOULD SAY SO REPORTS IT AS `0/0` CLEAN** (`todo`, opened 2026-08-23 session #261 by `H.16.6f`'s prior-art sweep)
+### `H.23` — **⛔ HALF-RETRACTED SAME DAY: THE FAMILY IS NOT BROKEN — MY SWEEP JUDGED IT AT *MY* DEFAULT DEPTH INSTEAD OF ITS DECLARED LANE. WHAT SURVIVES IS THAT A GENERATION FAILURE STILL EXITS rc 0 AND READS AS CLEAN** (`todo`, opened AND corrected 2026-08-23 session #261, the correction forced by a director challenge)
 
-- **MEASURED, one command.** `ast_pipeline grammars/rtl_const_expr.ebnf --generate-stimuli --count 5
-  --seed 0` exits with `Error: Stimuli generation depth exceeded max_depth=24 while expanding rule
-  'primary_expr'` and writes **no output file at all**. `rtl_const_expr` is a registered family with
-  a shipped `generated/rtl_const_expr_parser.rs`, and the DONE-BAR register carries it as
-  `Mostly Done`.
+- ⛔⛔ **RETRACTED — THE ORIGINAL CLAIM AND WHY IT WAS WRONG, kept in full because the error is the
+  lesson.** As opened, this leaf said: *"`ast_pipeline grammars/rtl_const_expr.ebnf
+  --generate-stimuli --count 5 --seed 0` exits with `Error: Stimuli generation depth exceeded
+  max_depth=24 while expanding rule 'primary_expr'` and writes no output file at all"* — and
+  concluded a shipped family's generator produces nothing. **That command is correct and the
+  conclusion is FALSE.**
+  `24` is the CLI **default**; `rust/test_data/grammar_quality/rtl_const_expr_cert_contract.json`
+  declares this family's certified lane at **`max_depth = 32`**. Re-run there:
+  `--max-depth 32` ⇒ `Generated 5 stimuli`, `rules 44/48 (91.67 %)`, `sample_successes=5/5`, rc 0.
+  ⭐ **I judged a family broken against MY default instead of its DECLARED lane.** The sweep script
+  `duality_break_sweep.sh` hard-codes no `--max-depth`, so it ran every family at 24 — which means
+  the sweep's *whole* `rtl_const_expr` row was an artifact of the harness, not a property of the
+  grammar. ⛔ The same error class as answering *"is SV certified?"* out of a self-authored contract:
+  **a verdict is only as good as whose parameters it was taken under.**
+- ✅ **WHAT SURVIVES, and it is still a real defect.** Generation failure exits **rc 1** with no
+  output file; the duality-break hunter on the same input exits **rc 0** printing
+  `rejected 0/0 unique_breaks=0`. A wrapper that trusts the exit code — which is what a gate does —
+  sees a pass. That half was measured on both arms and is unaffected by the depth error.
 - ⛔⛔ **AND THE FAILURE IS REPORTED IN THE PASSING DIRECTION — AT THE EXIT CODE, not merely in the
   text.** Plain generation exits **rc 1**; the duality-break hunter on the same grammar exits **rc 0**
   and prints `directed rejected 0/0 unique_breaks=0 vs diverse baseline rejected 0/0`, which in
@@ -5819,13 +5832,19 @@ owning leaf, and `H.20.1` lowers the ceiling when it lands.
   code — which is what a gate does — sees a pass. A reader — or a gate — cannot
   tell "nothing was rejected" from "nothing was generated". This is the
   [[a-control-that-cannot-fail-is-not-a-control]] shape inside a shipped instrument.
-- **TWO SEPARABLE DEFECTS, and they should not be fixed together**: (a) the grammar or the depth
-  budget makes `primary_expr` unexpandable at `max_depth=24` — root-cause it with the toolbox before
-  touching either; (b) every reporter that summarises a generation run must publish the SAMPLE COUNT
-  and refuse a zero-sample verdict. (b) is engine-universal and is the one that made (a) invisible.
-- ⚠️ **Price the blast radius first**: if `--generate-stimuli` has never worked for this family, then
-  every claim resting on its generated stimuli — cert coverage, self-rejection, k-path — is vacuous
-  for `rtl_const_expr` and must be re-read rather than re-quoted.
+- **WHAT THIS LEAF NOW OWES, re-scoped after the retraction**: (a) every reporter that summarises a
+  generation run must publish the SAMPLE COUNT and **refuse a zero-sample verdict with a nonzero
+  exit** — engine-universal, and the only surviving defect here; (b) any cross-family sweep must read
+  each family's DECLARED generation parameters from its contract rather than applying one default —
+  `duality_break_sweep.sh` must be fixed before its table is quoted again; (c) an open question, NOT
+  a defect claim: whether `max_depth=24` being insufficient for `rtl_const_expr` is itself worth a
+  look, given the family declares 32 deliberately.
+- ⛔ **AND THE BLAST-RADIUS PARAGRAPH IS RETRACTED TOO.** It read: *"if `--generate-stimuli` has
+  never worked for this family, then every claim resting on its generated stimuli is vacuous."* The
+  premise is false — the family's own cert contract records `total=48 proof=0 witness=48 unknown=0
+  fully_certified=true` at its declared depth, and generation reproduces at that depth today. ⚠️ That
+  contract carries **no identity block** (`verified_at_commit` absent), so its freshness is a
+  separate open question — but it is not vacuous, and saying so was an unmeasured escalation.
 
 ## Current Frontier
 

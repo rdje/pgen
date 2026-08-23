@@ -20,11 +20,20 @@
 #              covering generation AND scoring, vs 14.83 s for score_corpus.py scoring alone
 #              with generation extra ⇒ ~3.4x, NOT ~100x. Absolute cost: ~4.4 s / 1 000 samples.
 #
-# ⛔ A `0/0` ROW IS NOT A PASS. `rtl_const_expr` reports `rejected 0/0 unique_breaks=0`, which
-# reads as clean; plain generation on that grammar exits with
-# `Error: Stimuli generation depth exceeded max_depth=24 while expanding rule 'primary_expr'`.
-# A generation failure is reported in the PASSING direction, so this script prints the sample
-# COUNT beside every verdict and flags a zero-sample row explicitly.
+# ⛔ A `0/0` ROW IS NOT A PASS. A generation failure is reported in the PASSING direction — plain
+# generation exits rc 1 with no file while the hunter exits rc 0 printing `rejected 0/0
+# unique_breaks=0` — so this script prints the sample COUNT beside every verdict and flags a
+# zero-sample row explicitly.
+#
+# ⛔⛔ THIS SCRIPT IS KNOWN-DEFECTIVE AND ITS `rtl_const_expr` ROW MUST NOT BE QUOTED (GRAMMAR-
+# WELLFORMED.H.23, corrected 2026-08-23 under a director challenge). It hard-codes NO --max-depth,
+# so every family is swept at the CLI DEFAULT of 24. `rtl_const_expr` declares max_depth = 32 in
+# rust/test_data/grammar_quality/rtl_const_expr_cert_contract.json and generates fine there
+# (5/5 samples, rules 44/48). Its 0/0 row is an artifact of MY default, not a property of the
+# grammar — I judged a family broken against my parameters instead of its declared lane.
+# => a cross-family sweep MUST read each family's DECLARED generation parameters from its contract.
+# Fixing that is H.23 (b), and until it lands this table is sound only for the families whose
+# declared depth IS the default.
 #
 # Read-only. usage: duality_break_sweep.sh [rounds] [samples_per_round]
 set -uo pipefail
