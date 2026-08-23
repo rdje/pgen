@@ -1,5 +1,34 @@
 # CHANGES.md
 
+## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0277 (leaf SV-CORPUS-GRAD.13c.2x.10 OPENED — the SV `fully_certified` claim is UNVERIFIED at HEAD; routing only, ZERO code bytes): the proof predates its own subject by over a day
+
+- **THE QUESTION**: the director asked *"is the SV parser fully certified now — meaning all its rules
+  are reachable and the stimuli gen can create a string to reach them?"* Answered by re-derivation,
+  not by quoting layer A.
+- **THE LAST GREEN RUN IS REAL**: `sv_cert_recognized_union_gate`, 2026-08-22 — `total=1385 · proof=7
+  · canonical_witness=1367 · canonical_unknown=11 · union_witness=1378 · union_unknown=0 ·
+  residual=[]`, deterministic at seeds 0/7/42, `sample_parse_failures=0`. By the contract's own
+  `done_rule` that IS the recognition.
+- ⛔⛔ **AND IT NO LONGER DESCRIBES THIS TREE — measured three ways.** The contract pins
+  `generated/systemverilog_parser.rs = cc874b60…`; the parser on disk is **`e53cb4a2…`**. Two more
+  declared inputs moved (`grammar_wellformedness.rs`, `stimuli_generator.rs`). And the gate has not
+  been RUN since: `summary.json` is dated **2026-08-22 03:14**, the parser was regenerated
+  **2026-08-23 12:16**.
+- ⭐ **THE GRAMMAR IS INNOCENT.** `git log 767a1b37..HEAD -- grammars/systemverilog.ebnf` is **0
+  commits** — this is engine-universal CODEGEN drift from 2026-08-23 (`-0177`/`-0178`/`-0179`).
+  `-0177` measured `systemverilog` as byte-identical, so the mover is `-0178` or `-0179`; the
+  attribution is owed by the leaf.
+- ⛔ **WHY NO GATE CAUGHT IT.** `BASELINE-IDENTITY` DID see the drift and printed it — but staleness
+  inside a derived commit budget is a NOTE, not a failure, so `check_doctrines.sh` reports ALL 25
+  PASS while the SV certificate claim rests on a parser that no longer exists. Correct for a
+  pre-commit enforcer; wrong for a release claim ⇒ **a signoff claim's freshness needs a different
+  tier from a commit's**, and that tier is what the leaf owes.
+- ⚠️ **AND THE CLAIM IS NARROWER THAN THE QUESTION'S WORDS.** Of 1 385 rules: **1 378 by WITNESS**
+  (a generated string reaches them), **7 by PROOF** (`ProfileEntryUnreachable` /
+  `ProfileUnproducibleGate` — the generator does NOT build a string for these), **11 canonical
+  UNKNOWN** (invisible from `systemverilog_file:sv_2017`). The 1 378 are a UNION over FOUR
+  entry/profile configs, not one run.
+
 ## 2026-08-23 - PGEN-DOCTRINE-GAP-OWNERSHIP-0002 (leaf DOCTRINE-GAP-OWNERSHIP.13 OPENED — a director-delegated decision, recorded; routing only, ZERO code bytes): I rejected my own proposal, because it designed an instrument on an unmeasured population to stop the publishing of unmeasured numbers
 
 - **THE DELEGATION**: the director handed me the call on the tripwire I had suggested — *"any

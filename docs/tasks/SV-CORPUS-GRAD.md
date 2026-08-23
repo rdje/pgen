@@ -15691,3 +15691,52 @@ dialect-tolerance vs bug (read-only) → design the orthogonal EBNF-native stric
 annotation against bucket (a) → implement → wire a gate that proves both settings
 behave as declared. Fix `.3.11` strictly in the meantime; it is independent of all
 of the above.
+
+### `.13c.2x.10` — **THE `fully_certified` CLAIM IS UNVERIFIED AT HEAD: THE GATE THAT PROVED IT HAS NEVER SEEN THE PARSER THAT IS IN THE TREE** (`todo`, opened 2026-08-23 session #261, found by a director question — *"is the SV parser fully certified now?"*)
+
+- **WHAT THE LAST GREEN RUN SAID, and it is a real result**: `sv_cert_recognized_union_gate`,
+  2026-08-22, `total=1385 · proof=7 · canonical_witness=1367 · canonical_unknown=11 ·
+  union_witness=1378 · union_unknown=0 · residual=[]`, deterministic at seeds 0/7/42,
+  `sample_parse_failures=0`. By the contract's own `done_rule` — *"SV is recognized fully_certified
+  when the multi-config certificate-coverage union UNKNOWN reaches 0"* — that IS the recognition.
+- ⛔⛔ **AND IT NO LONGER DESCRIBES THIS TREE. MEASURED, three ways:**
+  1. `systemverilog_recognized_cert_union_contract.json` pins
+     `generated/systemverilog_parser.rs = cc874b60…`. The parser on disk is **`e53cb4a2…`**.
+  2. Two more declared inputs moved: `grammar_wellformedness.rs` (`b6ed770f…` → `420ed130…`) and
+     `stimuli_generator.rs` (`f5d12713…` → `9b5c9a70…`).
+  3. **The gate has not been RUN since.** `rust/target/sv_cert_recognized_union_gate/summary.json`
+     is dated **2026-08-22 03:14**; `generated/systemverilog_parser.rs` was regenerated
+     **2026-08-23 12:16**. The proof predates its own subject by over a day.
+- ⭐ **THE GRAMMAR IS INNOCENT — this is codegen drift, not a language change.**
+  `git log 767a1b37..HEAD -- grammars/systemverilog.ebnf` is **0 commits**. The parser moved because
+  the engine-universal codegen moved under it on 2026-08-23 (`-0177` per-terminal layout guard,
+  `-0178` comment-skip prefix guard, `-0179` the shared `RegexAtomEmitter` kernel). ⚠️ `-0177`
+  explicitly measured `systemverilog` as regenerating BYTE-IDENTICALLY, so the mover is `-0178` or
+  `-0179` and **which one is not yet attributed** — that attribution is part of this leaf.
+- ⛔ **WHY NO GATE CAUGHT IT, and this is the transferable part.** `BASELINE-IDENTITY` DID see the
+  drift — it printed it — but by design staleness inside a derived commit budget is a **NOTE, not a
+  failure**, so `check_doctrines.sh` reports ALL 25 PASS with the SV certificate claim resting on a
+  parser that no longer exists. That is correct behaviour for a pre-commit enforcer (`.13c.2x.4`:
+  a moved input must not block every commit) and it means **the freshness of a SIGNOFF claim needs a
+  different tier from the freshness of a commit**. A release claim cannot rest on a NOTE.
+- **WHAT THIS LEAF OWES**: re-run `sv_cert_recognized_union_gate` (~2 min/seed × 3 seeds × 4 union
+  configs) against the parser actually in the tree, then either re-stamp on green or attribute the
+  divergence on red; attribute which codegen commit moved the parser; and price a tier that re-runs
+  the certificate proof whenever a pinned generated parser digest moves, so a signoff claim can never
+  again be a day older than its subject.
+
+#### ⚠️ AND THE CLAIM IS NARROWER THAN "EVERY RULE IS REACHED BY A GENERATED STRING" — stated because the question was asked in exactly those words
+
+Even on the green run, of **1 385** rules:
+
+| credit | rules | what it means |
+|---|---:|---|
+| **witness** | **1 378** | the stimuli generator emits a string that reaches the rule ✅ |
+| **proof** | **7** | credited by a `ProfileEntryUnreachable` / `ProfileUnproducibleGate` proof — the generator does **not** produce a string for these |
+| canonical UNKNOWN | **11** | invisible from the canonical entry `systemverilog_file:sv_2017`; covered only under another config |
+
+And the 1 378 witnesses are a **UNION over FOUR entry/profile configurations** —
+`systemverilog_file:sv_2023`, `sv_multi_entry_root:sv_2017`, `library_text:sv_2017`,
+`systemverilog_parseable_file:sv_2017` — not a single run. ⇒ *"all rules reachable, and the
+generator can build a string for each"* is true for **1 378 of 1 385, across four configs**; it is
+false for the 7 proof-credited rules by construction, and 11 more need a non-canonical entry.
