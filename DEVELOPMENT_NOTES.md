@@ -1,5 +1,60 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-GRAMMAR-CERT-STATUS-0005 — adjudicating 31 unknowns, and the census that counted comments
+
+**1. WHAT AN "UNKNOWN" COUNT IS AND IS NOT.** `semantic_annotation: 29 unknown` is not a defect
+count. It is the number of rules the generator could not reach from the declared entry, and until
+each one is classified it says nothing about whether the grammar is wrong. `.3` existed to convert
+that number into statements. All 31 are now in one of four classes, and none of the classes is
+"unclear".
+
+**2. THE TOOL VOLUNTEERED THE NEXT STEP, AND FOLLOWING IT WAS THE WHOLE DIAGNOSIS.**
+`PGEN_CERT_COVERAGE_DUMP_ALL=1 … --report-certificate-coverage` does not just list the unknowns; it
+prints `WARNING plannable-rule reach pass: N UNKNOWN rules have NO reach path from the entry
+(dead-rule candidates — adjudicate via the linter)`. Running the linter it names produced the
+`accessor_base` verdict verbatim — *"ELIMINATED 1 left-recursive rule(s) on this grammar"* — which
+is a fact about PGEN's own pipeline that no amount of reading the grammar would have revealed.
+
+**3. THE APPARENT INSTRUMENT DISAGREEMENT WAS NOT ONE, AND CHECKING COST ONE `sed`.** The linter
+says `unreachable_rules=0` for both grammars while the certificate pass says these rules have no
+reach path. That reads like a contradiction and I nearly wrote it up as one. `detect_unreachable_rules`'s
+own doc comment settles it: its roots are *"the canonical entry PLUS every rule that NOTHING
+references"*, explicitly conservative so that an unreferenced orphan is treated as a secondary ROOT
+rather than flagged. The two instruments answer different questions — *is anything a stranded
+island* versus *what can the generator reach from the declared entry* — and the classes I ended up
+with are precisely the difference between them. ⛔ The general form: before reporting that two
+instruments disagree, read what each one claims to measure. They usually do not overlap.
+
+**4. THE CENSUS THAT MEASURED THE PROSE.** My first orphan/island partition counted rule names
+wherever they occurred in the file and reported 6 orphan roots / 23 island members. `annotation`
+scored "6 references" — and every one of them was the English word *annotation* inside a COMMENT
+line. Re-run over production text only: **9 orphans / 20 island members**, and the halves close on
+29 exactly, which the wrong split did not. ⛔ This is the same class as the heading census that read
+22/13/9 against the instrument's 23/13/10: **a count over a file's text measures its prose too.**
+The tell was available before the correction — 6 + 23 = 29 also closed, so closure alone did not
+discriminate; what discriminated was asking *which lines* the six hits were on.
+
+**5. THE SHARPEST SINGLE FINDING TOOK A BYTE COMPARISON, NOT AN EYE.** `semantic_annotation.ebnf:36`
+defines `annotation` with a right-hand side byte-identical to the entry rule at line 32. Reading the
+two lines side by side is exactly the kind of check that passes when it should fail — they are long,
+they are similar, and a reader confirms what they expect. Compared programmatically it is
+unambiguous: the rule is unreachable because it *is* a second copy of the start symbol.
+
+**6. THE 24 THAT ARE NOT A BUG.** Six complete feature islands — precedence, constraint,
+performance/complexity/memory/timing, version, exception, platform — are fully written, and
+`annotation_value` routes to none of them; it offers exactly four families. Wiring them in would
+make `@precedence: 5 left` parse structurally instead of falling through to a generic value, which
+changes the AST SHAPE a downstream consumer reads. That is a scope decision with a contract
+consequence, so it is surfaced rather than settled: the boundary is not "is this hard", it is "does
+this change what we promised a consumer".
+
+**7. DECLINING WORK IS ALSO A DECISION, AND IT NEEDS ITS REASON WRITTEN DOWN.** `.3` also asked for
+a tracked pin per certified family. `.2` had already made that redundant: `GRAMMAR-CERT-CURRENCY`
+watches all six *through the published table*, which carries their per-family tuples, so six cert
+contracts would be a SECOND home for a fact one artifact already holds — and this repository has
+measured what a second home costs. Declined, with the honest residual stated: they are watched for
+DRIFT, not re-proved on a schedule, because tier 2 is operator-invoked.
+
 ## 2026-08-23 - PGEN-GRAMMAR-CERT-STATUS-0004 — a gate whose cheap tier tests its own instrument
 
 **1. THE SHAPE OF THE PROBLEM.** `.1` built a derive-and-diff for the certification table and

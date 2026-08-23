@@ -50,13 +50,42 @@ Measured at seed 0, `--count 40`, against the generated parsers in the tree.
 
 <!-- END DERIVED -->
 
-## The two that are not certified
+## The two that are not certified — and exactly why
 
-- **`return_annotation` — 2 unknown of 35.** Two rules are neither witnessed by a generated sample
-  nor covered by a proof.
-- **`semantic_annotation` — 29 unknown of 119.** Note the total moved from 115 to 119 when
-  `GRAMMAR-WELLFORMED.H.16.6b` added the `map_key` rules, and unknown fell 31 → 29 across the same
-  work, so this number tracks live grammar development.
+**31 rules** are uncertified across the two families. Every one of them is classified below, and
+none of the classes is *"we don't know"*. The counts **and the rule sets** reproduce identically at
+seeds 0, 7 and 42, so this describes the grammars rather than one sample.
+
+### `return_annotation` — 2 unknown of 35
+
+| rule | why it is unknown |
+|---|---|
+| `accessor_base` | ⭐ **Not a defect.** PGEN's own left-recursion elimination pass *replaced* it: the shipped parser carries `parse_accessor_base_lr_base` and `parse_accessor_base_lr_suffix`, which is where the language actually lives. Certifying the pre-elimination name would mean certifying a rule the parser deliberately does not have. |
+| `parenthesized` | **A dead rule.** It is defined once and referenced by nothing, so no input can reach it from the entry. |
+
+### `semantic_annotation` — 29 unknown of 119
+
+| class | count | why |
+|---|---|---|
+| **Whitespace and comments** | 4 | `whitespace`, `line_comment`, `block_comment`, `doc_comment` are lexical constructs the grammar itself marks *"(ignored)"*. No production reaches them and none should. |
+| **A duplicate of the entry rule** | 1 | `annotation` has a right-hand side **byte-identical** to the entry rule `semantic_annotation`. It is unreachable because it is a second copy of the start symbol. |
+| **Specialized value shapes that are written but not wired in** | 24 | Six complete feature islands — precedence, constraint, performance/complexity/memory/timing, version, exception, platform, plus union and intersection types — none of which `annotation_value` routes to. It offers exactly `primitive_value`, `structured_value`, `expression_value` and `reference_value`. |
+
+⭐ **The third class is a real product question, not a bug.** Wiring those shapes in would make
+`@precedence: 5 left` parse *structurally* rather than as a generic value — which changes the AST
+shape a downstream consumer reads for those annotations. It is therefore a scope decision with a
+contract consequence, and it is recorded as an open question rather than settled quietly.
+
+⛔ **Two of the 31 are genuine dead weight** — `annotation` and `parenthesized` — and removing them
+would take these families to 28 and 1 unknown respectively without changing the accepted language.
+Both are owned by `GRAMMAR-CERT-STATUS.4`; the edit regenerates the annotation parser pair that
+every other family's generation depends on, so it is sequenced as its own slice rather than folded
+into a status update.
+
+⭐ **These numbers track live development, which is the point of deriving them.**
+`semantic_annotation` moved `115 / 84 witnessed / 31 unknown` → `119 / 90 / 29` when
+`GRAMMAR-WELLFORMED.H.16.6b` added the `map_key` rules: the total rose because the grammar grew, and
+unknown fell because more rules became witnessed.
 
 ## SystemVerilog, stated precisely
 

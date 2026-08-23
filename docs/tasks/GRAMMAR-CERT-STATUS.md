@@ -345,7 +345,7 @@ a roster.
   enforcement of it, which belongs in the doctrine registry and its mirror rather than in a second
   card)`**
 
-### `.3` — give every family without a clean certification a DECISION, and pin the six that have one (`todo`, opened 2026-08-23, RE-SCOPED by `.1a` — the original title said *seven `NO ORACLE` families*, a premise `.1a` refuted)
+### `.3` — give every family without a clean certification a DECISION, and pin the six that have one (**`done`**, `PGEN-GRAMMAR-CERT-STATUS-0005`, 2026-08-23; RE-SCOPED by `.1a` — the original title said *seven `NO ORACLE` families*, a premise `.1a` refuted)
 
 - ⛔ **RE-SCOPED after `.1a`**: the premise *"seven families have never been scored"* was FALSE — six
   of them certify cleanly today. What actually remains is narrower and real: `return_annotation`
@@ -357,6 +357,126 @@ a roster.
   `not-applicable` with its owner. **A family may not stay silent** — silence is what this tree
   exists to retire.
 - ⚠️ Price it before starting: SV's own gate costs ~2 min/seed × 3 seeds × 4 configs.
+
+#### The adjudication — all **31** uncertified rules, classified with measured evidence
+
+⭐ **SEED-STABLE BEFORE ANYTHING WAS CONCLUDED FROM IT.** Both the COUNTS and the rule SETS are
+byte-identical at seeds **0 / 7 / 42** (`--count 40`), so this is a claim about the grammars, not
+about one sample. A small-sample result is a claim about the sample until that is shown.
+
+**`return_annotation` — 2 of 35**
+
+| rule | measured verdict | class |
+|---|---|---|
+| `accessor_base` | ⭐ **NOT A DEFECT — PGEN's own LR-elimination pass eliminated it.** `--lint-grammar` says so in its own words (*"ELIMINATED 1 left-recursive rule(s) on this grammar: accessor_base"*), and the shipped parser carries its replacements: `parse_accessor_base_lr_base` and `parse_accessor_base_lr_suffix`. The language is covered; the NAME is not. | **A — engine artifact** |
+| `parenthesized` | defined at line 196 and **referenced by nothing**. `grep -nw` returns exactly one hit, its own definition. In the shipped parser its only non-definition occurrence is the by-name entry dispatcher (`"parenthesized" => self.parse_parenthesized()`), which is entry selection, not a production call site. | **C — dead orphan rule** |
+
+**`semantic_annotation` — 29 of 119**, and they partition exactly (9 + 20 = 29):
+
+| class | rules | measured verdict |
+|---|---|---|
+| **B — trivia, unreachable BY DESIGN** (4) | `whitespace`, `line_comment`, `block_comment`, `doc_comment` | the grammar's own section header is *"WHITESPACE AND COMMENTS"* and `whitespace := /\s+/` is commented *"(ignored)"*. These are lexical/skip constructs; no production reaches them and none should. `block_comment` already carries a `GRAMMAR-WELLFORMED.H.17.1` adjudication in the grammar text. |
+| **C — a duplicate of the entry rule** (1) | `annotation` (line 36) | ⛔ its right-hand side is **byte-identical** to the entry `semantic_annotation` (line 32) — compared programmatically, not by eye: `"@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value`. It is unreachable from the entry because it **is a second copy of the entry**. |
+| **D — specialized value shapes never wired in** (24) | `precedence_value`+`precedence_level`+`precedence_associativity` · `constraint_value`+`constraint_type`+`constraint_expression` · `performance_value`+`complexity_spec`+`complexity_expr`+`memory_spec`+`memory_amount`+`memory_unit`+`timing_spec`+`time_amount`+`time_unit` · `version_value`+`semantic_version`+`version_range` · `exception_spec`+`exception_type` · `platform_spec`+`platform_name` · `union_type`+`intersection_type` | ⛔ **`annotation_value` routes to exactly four families** — `primitive_value \| structured_value \| expression_value \| reference_value` (line 101) — and to **none** of these. Six feature islands, each rooted at an unreferenced orphan, sitting under the grammar's own *"SEMANTIC PATTERNS AND SPECIALIZED VALUES"* header. They are written, and nothing routes to them. |
+
+- ⛔⛔ **THE PARTITION ITSELF WAS MIS-MEASURED ONCE AND CORRECTED BY RE-MEASURING, NOT BY REVIEW.**
+  The first census counted rule names occurring **inside COMMENT lines** as references, and reported
+  6 orphan roots / 23 island members. `annotation` scored "6 references" — every one of them the
+  English word *annotation* in a comment. Re-run over production text only: **9 orphans / 20 island
+  members**, and the two halves close on 29 exactly. ⇒ **a census over a file's TEXT measures its
+  prose too**; count over the productions, never over the lines.
+- ⭐ **NO INSTRUMENT DISAGREEMENT — I checked before claiming one.** `--lint-grammar` reports
+  `unreachable_rules=0` for both grammars while the certificate pass reports these rules as having
+  no reach path, which looks like a contradiction and is not. `detect_unreachable_rules`'s own
+  doc comment defines its roots as *"the canonical entry PLUS every rule that NOTHING references"*
+  and is explicitly *"conservative (an unreferenced dead orphan is treated as a root → not flagged;
+  only referenced-but-unreachable dead ISLANDS are caught)"*. So the two answer different questions:
+  the linter asks *is anything a stranded island*, the certificate pass asks *what can the generator
+  reach from the declared entry*. Both are right, and the classes above are the difference between
+  them.
+
+#### The decisions — no family and no class stays silent
+
+| class | decision | owner |
+|---|---|---|
+| **A** `accessor_base` | **`not-applicable`, reasoned**: the rule is an LR-elimination *input*, and its `_lr_*` replacements are witnessed. Certifying the pre-elimination NAME would be certifying a rule the shipped parser deliberately does not have. This is the established `casting_type` precedent, already doctrine-backed by `SV-RULE-FIRE-PARTITION`. | closed here |
+| **B** the 4 trivia rules | **`not-applicable`, reasoned**: lexical/skip constructs are unreachable from the entry BY CONSTRUCTION. ⭐ The principled long-term home is a verified unreachability **PROOF** — the definition already admits proof as an alternative to a witness — which would move them out of UNKNOWN honestly rather than by exemption. Priced and **not** taken here: that is engine work on the proof generator, not a grammar edit. | routed → `GRAMMAR-WELLFORMED` (proof-side) |
+| **C** `annotation`, `parenthesized` | ⛔ **REAL DEFECTS, and the fix is a GRAMMAR edit**: one is a byte-identical duplicate of its own entry rule, the other is referenced by nothing. Both are dead weight that makes two grammars uncertifiable for no benefit. **NOT done in this slice** — a grammar edit to the annotation pair is a code change that regenerates the parsers every other family's generation depends on, and it is not SV-lane work. | routed → new leaf `.4` |
+| **D** the 24 specialized value shapes | ⛔⛔ **A DIRECTOR CALL, NOT MINE — it changes what the annotation grammar MEANS.** Wiring `precedence_value` and friends into `annotation_value` would make `@precedence: 5 left` parse *structurally* instead of falling through to a generic `primitive_value`, i.e. it changes the **AST SHAPE** a downstream consumer reads for those annotations. That is a scope decision with a contract consequence, not an implementation detail. Surfaced. | **awaiting director** → recorded in `.4` |
+
+- ⭐⭐ **AND THE OTHER HALF OF `.3` — "pin the certified six" — IS DISCHARGED BY `.2`, NOT SKIPPED.**
+  The stated worry was that the six certified families have no tracked PIN, so *"their green is
+  re-measured on demand rather than watched"*. `GRAMMAR-CERT-CURRENCY` now watches them **through the
+  table**: the published block carries each family's `total · witness · proof · unknown` and its
+  certified verdict, tier 1 flags any grammar that leads the page past its budget, and tier 2
+  re-derives and DIFFS every row. A family falling out of certification moves its row and turns the
+  diff RED. ⇒ six separate cert contracts would be a **second** home for a fact the table already
+  holds, and this repository has measured what a second home costs (`ENGINE-UNIVERSAL-SERVICES.33`,
+  the mirrored recipe). **Declined with a reason, which is what this leaf demands — not silence.**
+- ⚠️ **HONEST RESIDUAL**: the six are watched for *drift*, not *re-proved on a schedule*. Tier 2 is
+  operator-invoked, so "watched" means a diff will catch a change whenever tier 2 runs — it does not
+  mean the numbers are re-derived every commit. Stated because `.1`'s failure was exactly a status
+  that read stronger than its evidence.
+
+#### Acceptance Checklist — `.3`
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow + correctness diagnosis. **WHY** each family is
+  uncertified is now measured rather than named: `return_annotation`'s 2 are one LR-elimination
+  input and one orphan; `semantic_annotation`'s 29 are 4 trivia rules, 1 duplicate of the entry, and
+  24 specialized value shapes `annotation_value` never routes to. **WHERE**, by instrument:
+  `PGEN_CERT_COVERAGE_DUMP_ALL=1 … --report-certificate-coverage` named all 31 and volunteered
+  `WARNING plannable-rule reach pass: N UNKNOWN rules have NO reach path from the entry (dead-rule
+  candidates — adjudicate via the linter)`; `--lint-grammar` supplied the LR verdict verbatim
+  (*"ELIMINATED 1 left-recursive rule(s) … accessor_base"*); and `grep -nw` over the productions
+  located every definition and reference. Seed-stable: identical COUNTS **and** identical rule SETS
+  at seeds 0 / 7 / 42.
+- [x] **ADDRESSED (verified)** — before: 31 rules sat as an unexplained `UNKNOWN` total on a page the
+  director reads, with no owner and no reason. After: all 31 are classified into four classes with
+  measured evidence per class, each class carries an explicit decision and an owner, the two that
+  are genuine defects are routed to `.4`, the one that is a scope question is surfaced to the
+  director rather than silently decided, and `.3`'s second half is **declined with a reason** —
+  `.2`'s doctrine already watches the certified six through the published table, so six extra cert
+  contracts would be a second home for a fact the table holds. ⭐ One measurement was wrong and was
+  corrected by re-measuring: the first orphan/island census counted rule names inside COMMENTS as
+  references (6/23); over production text only it is 9/20, and 9+20 closes on 29 exactly.
+- [x] **NO REGRESSION** — an adjudication slice: **zero grammar, Rust, codegen and generated bytes**,
+  so `generated/` is **byte-identical** by construction and `clippy` does not apply. The
+  certification numbers themselves are untouched and re-verified unchanged — `certified=6/9`,
+  `spf=0` on every family, `return_annotation` `35/0/33/2` and `semantic_annotation` `119/0/90/29`
+  reproducing at seeds 0/7/42.
+- **`promotion: declined (the durable, general lesson here — a census over a file's TEXT counts its
+  PROSE too, so count over the productions — is a re-statement of the already-promoted
+  [[a-heading-census-is-only-as-good-as-the-heading-grammar]] in a different namespace; the
+  family-specific adjudication belongs in this leaf and on the book page, not in a retrieval card)`**
+
+### `.4` — the two dead rules, and the director call `.3` surfaced (`todo`, opened 2026-08-23 by `.3`)
+
+- ⛔ **(a) TWO GRAMMARS CARRY A DEAD RULE EACH, AND BOTH ARE WHY THEIR FAMILY CANNOT CERTIFY.**
+  `grammars/semantic_annotation.ebnf:36` defines `annotation` with a right-hand side **byte-identical**
+  to its own entry rule at line 32; `grammars/return_annotation.ebnf:196` defines `parenthesized`,
+  which `grep -nw` shows is referenced by nothing. Removing them would take
+  `semantic_annotation` 29 → 28 UNKNOWN and `return_annotation` 2 → 1, and neither can change the
+  accepted language: an unreferenced rule has no call site to lose.
+- ⚠️ **PRICE AND RISK, stated because this is not a free edit**: both are annotation grammars, so the
+  edit regenerates the parser PAIR that the annotation backend links to generate **every other
+  family** — `GENERATED-REPRODUCIBILITY`'s founding artifact. It needs a regeneration, an
+  `emission_sha` rebaseline, and `parse_harness_equivalence_gate` as the oracle that the shipped
+  parse did not move. That is a slice of its own, not a footnote to an adjudication.
+- ⛔ **NOT STARTED HERE, DELIBERATELY**: the SV lane lock binds WORK, and this is a non-SV grammar
+  change with a codegen blast radius. Sequenced, not abandoned.
+- ⭐⭐ **(b) DIRECTOR CALL — `semantic_annotation`'s 24 specialized value shapes.** Six feature
+  islands (`precedence`, `constraint`, `performance`/`complexity`/`memory`/`timing`, `version`,
+  `exception`, `platform`, plus `union_type`/`intersection_type`) are fully written and
+  **`annotation_value` routes to none of them** — it offers exactly
+  `primitive_value | structured_value | expression_value | reference_value`. Two readings, and they
+  are not equivalent:
+  1. **Wire them in.** `@precedence: 5 left` then parses STRUCTURALLY (`{type: "precedence", level,
+     associativity}`) instead of falling through to a generic value. ⛔ This **changes the AST shape**
+     a downstream consumer reads for those annotation kinds — a contract change, with
+     `SV-CONTRACT-CURRENCY`-shaped obligations.
+  2. **Declare them future work** and record it, leaving 24 rules honestly uncertifiable until then.
+- ⛔ **This is a SCOPE decision with a downstream contract consequence, so it is the director's, not
+  mine** — the boundary my standing instructions draw. Nothing is changed pending the answer.
 
 ## Acceptance Checklist (enforced)
 
