@@ -4369,33 +4369,330 @@ setting satisfies both arms.** Two of the four witness the rule; **all four brea
    are already a tracked population, so the watch this owes is over the **LR-residue delta**, which is
    the half no existing instrument computes.
 
+### `H.20` — **THE ENVELOPE RATCHET IS RED ON `systemverilog` (`155 > 151`), AND THE +4 ARE THREE DEFECT INSTANCES IN THREE PRE-EXISTING CLASSES — ONE OF THEM A LIVE FRONTEND DEFECT THAT REACHES A SHIPPED ARTIFACT** (**`done`**, `PGEN-GRAMMAR-WELLFORMED-0176`, CODE / gate ceiling — opened 2026-08-22 session #257 by `H.17.1`, CLOSED 2026-08-23 session #259; the fix it uncovered is routed to `H.20.1`, the flow gap to `H.20.2`)
+
+- **WHY**: `make -C rust ebnf_frontend_dual_run_gate` fails with
+  `envelope divergences REGRESSED: 155 > ceiling 151` on `systemverilog`. The ceiling was set to 151
+  by `SV-CORPUS-GRAD.13c.2i` (`0fd53da4`, 2026-08-18) with its one added row NAMED; four more arrived
+  since and none was adjudicated.
+
+#### ⛔ STEP 0 (mandatory, and it earned its place) — RE-CONFIRM THE RED AT HEAD
+
+The RED was measured before four commits landed, and a stale RED misleads exactly as much as a stale
+GREEN. Re-run at HEAD, strict, under the memory guard:
+
+```
+scripts/run_with_memory_guard.sh --budget-mb 16384 --timeout-s 5400 -- \
+  make -C rust SHELL=/bin/bash ebnf_frontend_dual_run_gate
+```
+
+**STILL RED, and it is the ONLY red row of 14**: `systemverilog … 13955 tokens … 98.89 % … 155 …
+ceiling 151 … fail`. The other thirteen grammars sit **EXACTLY** at their ceilings (0/0/0/0/0/0 for
+the six envelope-equivalent ones, 2, 6, 6, 38, 15, 317, 1399 for the rest) — so the ratchet is
+otherwise perfectly tight and this is a single-row failure, not a decayed gate. Cost: **35 s**
+wall-clock warm, peak tree RSS **2 070 MB** (`guard.64818.marker`).
+
+#### ⭐⭐ THE TWO-ARM CONTROL — PIN THE BINARY, VARY THE GRAMMAR
+
+⛔ **This instrument has TWO inputs** (`grammars/systemverilog.ebnf` = the subject; `grammars/ebnf.ebnf`
+= arm 2's own parser), and this repository has already been bitten twice by a control that pinned
+only one — the **ONE REPORT, TWO VINTAGES** trap (`TOOLBOX.md` §1.3). Both inputs moved since the
+ceiling was set: ten commits
+touched the SV grammar, and `H.17.1` (`dcc2e2d8`) touched `ebnf.ebnf`. So the control varies **one**
+axis with the other pinned: the SAME binary, built at HEAD (arm 2 = the meta-parser generated from
+HEAD's post-`H.17.1` `ebnf.ebnf`), fed the SV grammar at two vintages.
+
+| arm | `grammars/systemverilog.ebnf` | arm-2 parser | rules | tokens compared | `divergence_total` |
+| --- | --- | --- | --- | --- | --- |
+| BEFORE | `0fd53da4` (the ceiling commit) | HEAD | 1 480 | 13 933 | **151** |
+| HEAD | HEAD | HEAD | 1 485 | 13 955 | **155** |
+
+⇒ the BEFORE arm reproduces the declared ceiling **exactly**, so `H.17.1`'s `ebnf.ebnf` repair and
+`H.16.2`'s codegen change contributed **ZERO** and the whole `+4` belongs to the SV grammar's own ten
+commits. ⭐ This also **independently re-derives** `H.17.1`'s "pre-existing" verdict by a *different*
+method — `H.17.1` used a regenerate-the-parser control, this one pins the binary and varies the
+grammar — which is leg 1 of the three-way bar rather than a repetition of it.
+
+#### ⭐⭐ NAMING THE FOUR — A PER-VINTAGE CENSUS, NOT A GUESS
+
+`-S` on the rule names attributes only two of the four (it sees a changed *count* of a string, and two
+of the four rules pre-existed and only had their bodies moved). So the attribution is done by
+**running the differential at every one of the eleven SV grammar vintages** with the binary pinned,
+and diffing the divergence lists as a multiset keyed on the divergence *site*
+`(rule_name, comparison, arm1.kind, arm2.kind)`:
+
+| SV grammar vintage | leaf | rules | div | named delta |
+| --- | --- | --- | --- | --- |
+| `0fd53da4` | `.13c.2i` (ceiling baseline) | 1 480 | 151 | — |
+| `39d281ff` | `.13c.2c` | 1 480 | 151 | no site change |
+| `2b949800` | `.13c.2j` | 1 480 | 151 | no site change |
+| **`4a2703cf`** | **`.13c.2o`** | 1 479 | **152** | **+`covergroup_declaration_sv_2023`** (`return_scalar → return_object`) |
+| `f9cff55e` | `.13c.2q`/`.2r` | 1 483 | 152 | no site change |
+| `6ad18e48` | (re-derivation; `.13c.2t` decided) | 1 483 | 152 | no site change |
+| `fc6aa8f9` | `.13c.2k`/`.2t` | 1 483 | 152 | no site change |
+| `e28cc856` | (re-derivation under director challenge) | 1 483 | 152 | no site change |
+| `cda7ed3d` | `.13c.2s` | 1 483 | 152 | no site change |
+| **`222f7ddb`** | **`.13c.2v`** | 1 484 | **153** | **+`primary_dollar_sv_only`** (`semantic_annotation → rule_reference`) |
+| **`958fcc24`** | **`.13c.2y`** | 1 485 | **155** | **+`kw_implements_e133e2cb`** (`<absent> → semantic_annotation`) **+`kw_implies_470cec58`** (`semantic_annotation → rule_reference`) |
+
+**Every one of the four is attributed to an exact commit, and seven of the ten vintages moved the
+count by zero.** ⛔ **ZERO sites disappeared** over the whole range — the `+4` is a pure addition, so
+no pre-existing divergence was silently traded away for a new one.
+
+#### THE CLASSES DID NOT CHANGE — ONLY THEIR POPULATIONS
+
+| arm 1 kind | → | arm 2 kind | BEFORE | HEAD | Δ |
+| --- | --- | --- | ---: | ---: | ---: |
+| `semantic_annotation` | → | `rule_reference` | 56 | 58 | **+2** |
+| `<absent>` | → | `semantic_annotation` | 46 | 47 | **+1** |
+| `semantic_annotation_inline` | → | `semantic_annotation` | 37 | 37 | 0 |
+| `return_scalar` | → | `return_object` | 5 | 6 | **+1** |
+| `semantic_annotation` | → | `group_open` | 4 | 4 | 0 |
+| `semantic_annotation` | → | `semantic_annotation` | 1 | 1 | 0 |
+| `semantic_annotation_inline` | → | `return_object` | 1 | 1 | 0 |
+| `semantic_annotation` | → | `regex` | 1 | 1 | 0 |
+| | | **total** | **151** | **155** | **+4** |
+
+**No class was created and none was emptied.** ⭐ The `semantic_annotation_inline → semantic_annotation`
+population is **37**, the identical figure the ceiling's own 2026-08-18 comment quotes for it — an
+independent corroboration that the accepted-asymmetry populations are stable and that only the three
+named classes moved.
+
+#### ⭐⭐ THE `.10.14` PAIRING IS MEASURED, NOT ASSERTED — AND TWO OF THE FOUR ARE **ONE** DEFECT
+
+`LANG-CAPABILITY-AUDIT.10.14` says a leading `@annotation` binds to the PREVIOUS rule's expression
+instead of the rule it precedes. If that is the mechanism, it must leave a **paired** signature: rule
+*i* gains a spurious trailing annotation arm 1 never had, and rule *i+1* loses its leading one.
+Measured over the whole HEAD list: **43 of the 47** `<absent> → semantic_annotation` rows have rule
+*i+1* carrying the matching `semantic_annotation → rule_reference` row, and in **31 of those 43** the
+annotation payload matches BYTE-FOR-BYTE across the pair; the other 12 differ **only** by arm 2
+stripping the outer `{ }`. ⇒ the pairing is a property of the data, not a story told about it.
+
+`kw_implements_e133e2cb` (rule 1 224) and `kw_implies_470cec58` (rule 1 225) are exactly such a pair.
+⇒ the `+4` divergence rows are **THREE defect instances**, not four.
+
+#### THREE SURGICAL ONE-EDIT CONTROLS — EACH MECHANISM PROVEN, NOT INFERRED
+
+Each control is a **scratch copy** under `tmp/h20/controls/`; `grammars/systemverilog.ebnf` is
+byte-unmodified throughout.
+
+| control | the single edit | `divergence_total` | rows removed | rows added |
+| --- | --- | --- | --- | --- |
+| **C1** | delete the 16-line in-body comment after `covergroup_declaration_sv_2023`'s `->` | 155 → **154** | exactly `covergroup_declaration_sv_2023` | none |
+| **C2** | delete the one `@profiles:` line above `primary_dollar_sv_only` | 155 → **154** | exactly `primary_dollar_sv_only` | none |
+| **C3** | delete the one `@profiles:` line above `kw_implies_470cec58` | 155 → **153** | exactly `kw_implements_e133e2cb` **and** `kw_implies_470cec58` | none |
+
+Every control is **surgical** — the targeted row(s) go and nothing else in the 155 moves. C3 removing
+**two** rows for **one** deleted line is the decisive proof of the pairing above.
+
+#### ⛔⛔ ROW 1 IS NOT A PROJECTION ASYMMETRY — IT IS A LIVE FRONTEND DEFECT, AND IT REACHES A SHIPPED ARTIFACT
+
+**WHERE**: `rust/src/ebnf_frontend.rs:713` `extract_inline_return_annotation_payload`. Its own doc
+comment states the payload "spans from the first non-whitespace character after `->` to the next
+top-level `|` … or to end-of-expression", and that comments "are tracked so a `|` nested inside an
+object literal does not terminate the annotation". ⭐ **Tracking is for TERMINATION only — the payload
+is never TRIMMED of the comment.** So a `->` annotation followed by an in-body comment block carries
+that comment inside `payload_text`. `classify_return_annotation` (`ebnf_frontend.rs:1472`) then sees a
+string that starts `{` and does **not** end `}`, and returns `"return_scalar"` where arm 2 correctly
+returns `"return_object"`. ⛔ `classify_return_annotation` is the **messenger, not the cause** — the
+obvious "fix" of loosening its suffix test would hide the leak instead of closing it.
+
+**IT SHIPS.** `generated/systemverilog_return_annotations.json` carries the comment **verbatim** at
+annotation index **526**, in `raw_text` *and* `normalized_text` — 1 539 swallowed bytes over 16 lines,
+including the string `IEEE 1800-2023's FOOTNOTE MARKER`. And `auto_return_annotation_shape_gate.rs:73`
+feeds that same `raw_text` to `UnifiedReturnAST::parse_bootstrap`, so the polluted text is a real
+parser input, not merely a record.
+
+**CLOSED-POPULATION CENSUS** over all eleven `generated/*_return_annotations.json`: **9 of 3 495**
+annotations carry a `#` in `raw_text` — **all 9 in `systemverilog`**, **0** in the other ten families.
+Seven rules: `covergroup_declaration_sv_2023`, `data_type`, `net_declaration_sv_2017` (×2),
+`net_declaration_sv_2023` (×2), `primary_hier_scope_prefix`, `scoped_or_hierarchical_tf_identifier`,
+`variable_lvalue_scope`.
+
+⛔⛔ **AND THE INSTRUMENT THAT FOUND IT UNDER-REPORTS ITS OWN POPULATION BY MORE THAN HALF**: only
+**4 of the 9** surface as envelope divergences — `data_type` and the four `net_declaration_*`
+annotations produce **no divergence row at all**. A gate can be the thing that discovers a defect and
+still be the wrong instrument for measuring it. → **`H.20.1`**.
+
+#### ⭐⭐ C4 — A BOUNDING CONTROL, AND IT FALSIFIED MY OWN PREDICTION
+
+**PREDICTED before running it**: fixing the absorption removes the four comment-bearing
+`return_scalar → return_object` rows, so `155 → 151`.
+
+**MEASURED** (C4 = strip all 72 indented in-body comment lines from a scratch copy): `155 → **152**`.
+The four predicted rows do go — and `scoped_or_hierarchical_tf_identifier` **comes back as a different
+row**, `semantic_annotation_inline → semantic_annotation`.
+
+⭐⭐ **A DIVERGENCE CAN MASK ANOTHER DIVERGENCE AT THE SAME SITE, SO THE POST-FIX COUNT IS NOT
+`count − rows_fixed`.** Arithmetic on a ratchet count is a prediction, never a result — the same shape
+as `.13c.2x.7`'s "a count cannot be a judgement about a mechanism".
+⚠️ Recorded in prose rather than as a new `[[wikilink]]`: `DOCTRINE-GAP-OWNERSHIP.7` measured **224
+citations pointing at 29 records that do not exist** and nothing reads a link, so a 30th would make
+that number worse rather than the lesson more findable.
+
+⚠️ **C4 IS A BOUND, NOT THE FIX, AND IS LABELLED AS ONE.** It removes the comments from the
+**grammar**; `H.20.1` removes them from the **payload** and leaves the grammar untouched. C4 also
+strips comments in non-return contexts. So `152` is a **PREDICTION for `H.20.1` to re-measure**, not a
+measured post-fix count.
+
+#### DISPOSITION — RAISE TO 155, EVERY ROW NAMED
+
+⛔ The script's own rule reads *"A ceiling is LOWERED as the owning leaf lands its fix. It is never
+RAISED to land a change."* **Nothing is being landed here.** All ten SV grammar commits shipped
+between 2026-08-18 and 2026-08-21, each under its own leaf and its own gates; this is an
+**adjudication of already-shipped work**, the same shape as `.13c.2i`'s own 150 → 151. The prohibition
+bites on bumping a ceiling so that *your* change can pass, and no change of this leaf's is passing.
+
+⭐⭐ **The argument for raising is the cost of NOT raising: a gate that is red for a KNOWN reason
+cannot detect an UNKNOWN one.** While this row sat red, an envelope regression on any of the other
+thirteen grammars would have changed nothing observable — the gate already said `fail`. Five days of
+that is what the RED actually bought.
+
+⛔ And the ceiling is a **ratchet, not an approval**: row 1 is a live defect with a root cause and an
+owning leaf, and `H.20.1` lowers the ceiling when it lands.
+
+- [x] **ROOT CAUSE (tool-backed WHY + WHERE)** — WHY: the `+4` is four divergence rows from **three**
+  defect instances, each attributed to an exact commit by an eleven-vintage census and each proven by
+  a surgical one-edit control (C1/C2/C3); no class created, no site lost. WHERE: two of the three are
+  `LANG-CAPABILITY-AUDIT.10.14` (leading-annotation binding), the third is
+  `rust/src/ebnf_frontend.rs:713` `extract_inline_return_annotation_payload` tracking in-body comments
+  for termination without trimming them from the payload, surfacing at
+  `ebnf_frontend.rs:1472` `classify_return_annotation`. ⛔ **DIAGNOSIS SIGNATURES, ops/build-flow
+  family** — attribution was attempted with `git log -S'<rule-name>' -- grammars/systemverilog.ebnf`,
+  which named only **2 of the 4** because it reports a changed *count* of a string and two of the four
+  rules only had their bodies moved; `git log --reverse --format=%h 0fd53da4..HEAD -- grammars/systemverilog.ebnf`
+  then enumerated the ten vintages that the per-vintage census actually resolved all four with, and
+  `git show <commit>:grammars/systemverilog.ebnf` produced each arm's input. The edited gate is clean
+  under `bash -n rust/scripts/ebnf_frontend_dual_run_diff_gate.sh`. The divergence lists themselves
+  come from `ebnf_dual_run_diff --envelope-differential` under `PGEN_ENVELOPE_DUMP_ALL=1`, which lifts
+  the report's 40-row cap — without it three of the four rows sit past the cap and are invisible.
+- [x] **ADDRESSED (verified)** — `envelope_divergence_ceiling()` `systemverilog` **151 → 155**, with
+  all four rows named, attributed to their commits and their mechanisms recorded **in the script's own
+  comment** so the next reader needs neither this leaf nor a re-run. Measured before → after:
+  `ebnf_frontend_dual_run_gate` **RED (1 failing flow) → GREEN (0 failing flows)**, 14/14 grammars at
+  their ceilings. ⛔ **ZERO grammar bytes, ZERO Rust bytes, ZERO codegen bytes, ZERO generated bytes** —
+  the only change is the gate's declared ceiling and its comment.
+- [x] **NO REGRESSION** — the ratchet's *lower* arm is what protects this: a count BELOW a ceiling
+  fails too, so raising to 155 leaves the gate exactly as sensitive to a 156th divergence as it was to
+  a 152nd, and it now also fails if any of the four is repaired without lowering the ceiling. All
+  thirteen other grammars re-verified unchanged and exactly at their ceilings in the same run.
+  ⭐ **The parser surface is inert BY MEASUREMENT, not by assertion**: every arm in this leaf ran on a
+  **scratch copy** under `tmp/h20/`, and `grammars/systemverilog.ebnf` is **byte-identical** to its
+  HEAD blob — `git show HEAD:grammars/systemverilog.ebnf | shasum -a 256` and
+  `shasum -a 256 grammars/systemverilog.ebnf` both read
+  `5d3829eae092e02994b91cd8e3ff8bded35bad1e402825001f4f6152db2f5062`, and `git diff HEAD -- grammars/`
+  is empty. `generated/systemverilog_parser.rs` and `generated/systemverilog_return_annotations.json`
+  are untouched at their pre-slice mtime (Aug 22 03:08) — no regeneration ran, so the shipped parser is
+  byte-identical too and no cert/seed re-derivation is owed. ⛔ **No `clippy` run is cited because none
+  is owed**: `git diff --cached --name-only | grep -c '\.rs$'` = **0** — this slice stages no Rust, so
+  `COMMIT.md` step 2's clippy trigger does not fire, and citing it would be an unrun claim.
+  `scripts/check_doctrines.sh` 25/25 and all ten per-parser book gates + `mdbook_docs_gate` re-run
+  GREEN.
+- [x] **LOCKSTEP — AND IT FOUND TWO REAL DRIFTS, WHICH IS WHY IT IS NOT A FORMALITY.** This leaf +
+  `H.20.1` + `H.20.2` + `DOCTRINE-GAP-OWNERSHIP.9` + the Current Frontier + `docs/TASK_TREE.md`;
+  `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`.
+  - ⛔ **MAIN BOOK — TWO GENERATIONS STALE.** `docs/book/src/grammar-wellformedness.md` published
+    *"gated, for the three tracked grammars `ebnf`/`json`/`regex`"* and *"The live count is **12 of 12
+    tracked grammars — 12/12**"*. Live and re-derived from the gate's own `summary.csv`: the gate
+    covers **14 of the 17** grammars (the three `*_lrm_extracted` snapshots are excluded because arm 1
+    rejects them, so there is no *pair* to diff), all 14 pass the verdict, and — the claim the page did
+    not make at all — only **6 of 14** are envelope-EQUIVALENT. Rewritten to publish the envelope layer,
+    all eight live ceilings, the two-sided ratchet rule and this leaf's adjudication.
+  - ⛔⛔ **PER-PARSER BOOKS — A TRACKED ARTIFACT CONTRADICTING ITS OWN TRACKED SOURCE.** Running
+    `mdbook_docs_gate` left **17 dirty files** in `docs/semantic_annotation_parser_book-html/`, a book
+    this slice never touched: its source was committed 2026-08-23 (`2b5b26ea`, `H.16.6b`) and its
+    rendered HTML 2026-07-17 (`ce15385c`) — **37 days** apart — so the published page still described
+    the `=>` map-key defect as LIVE one commit after it was fixed. Regenerated and committed here;
+    ⭐ the *gate* gap that let it happen (`tracked_html_check` runs AFTER `mdbook build` and asserts
+    only that the files it just wrote EXIST — a control that cannot go red) is routed to
+    **`DOCTRINE-GAP-OWNERSHIP.9`**. Closed population measured: **1 of 10** books was stale.
+  - ⭐ **PER-PARSER AST CLAIMS VERIFIED UNAFFECTED BY MEASUREMENT, NOT ASSUMPTION** — see `H.20.1`'s
+    measured bound: the SV book's `covergroup_declaration_sv_2023` = *"2 kinds (single / extends)"* and
+    the shipped parser emits exactly `["extends", "single"]` with no `#` in its 209 560 B function body.
+  - All 10 per-parser book gates + `mdbook_docs_gate` GREEN after the edits.
+
+### `H.20.1` — **THE FRONTEND SWALLOWS AN IN-BODY COMMENT INTO A `->` RETURN-ANNOTATION PAYLOAD, AND IT SHIPS IN `generated/*_return_annotations.json`** (`todo`, opened 2026-08-23 session #259 by `H.20`)
+
+- **WHY**: root-caused and measured in `H.20`. `rust/src/ebnf_frontend.rs:713`
+  `extract_inline_return_annotation_payload` *tracks* comments so a `|` inside one cannot terminate the
+  payload, but never **trims** them from the returned text; the comment therefore reaches
+  `classify_return_annotation` (`:1472`), which misclassifies `return_object` as `return_scalar`, and
+  reaches `generated/systemverilog_return_annotations.json` verbatim in both `raw_text` and
+  `normalized_text`.
+- **POPULATION IS CLOSED AND SMALL**: 9 annotations / 7 rules / 3 495 total, **`systemverilog` only**,
+  0 in the other ten families. Largest leak 1 539 B over 16 lines (`covergroup_declaration_sv_2023`).
+- **THE CONSUMER IS REAL**: `auto_return_annotation_shape_gate.rs:73` parses `entry.raw_text` through
+  `UnifiedReturnAST::parse_bootstrap`, so this is a parser input and not merely a stored string.
+- **ENGINE-UNIVERSAL BY CONSTRUCTION** — the fix is in `ebnf_frontend.rs`, which every family's raw-AST
+  export runs through; that today only SV exhibits it is a property of which grammars carry in-body
+  comments, not of the defect.
+- ⭐⭐ **MEASURED BOUND — THE SHIPPED PARSER IS NOT CORRUPTED, AND THIS IS WHAT SIZES THE LEAF.**
+  `generated/systemverilog_parser.rs`'s `parse_covergroup_declaration_sv_2023` (209 560 B of body)
+  emits exactly the kind literals `["extends", "single"]` and contains **no** `#`, no `FOOTNOTE` and
+  no `SV-CORPUS-GRAD` anywhere — codegen consumes the leading `{ … }` and the swallowed comment never
+  reaches emitted code. The SV parser book's published claim for that rule (*"2 kinds (single /
+  extends)"*, `schema-versioning.md:256`) is therefore **correct and unfalsified**. ⇒ the blast radius
+  is the **inventory artifact** (`generated/*_return_annotations.json`) and
+  `auto_return_annotation_shape_gate`'s parser input — NOT parser behaviour, NOT the emitted AST, NOT
+  any per-parser book's AST claim. ⛔ This LOWERS the urgency and CHANGES the acceptance (no AST
+  ledger row, no schema move is implied); it does **not** lower the obligation, and it must be
+  RE-MEASURED rather than assumed for the other six leaking rules.
+- ⛔ **PRICE THE BLAST RADIUS FIRST, and part of it is already priced**: C4 in `H.20` bounds the
+  envelope effect at `155 → 152` **with a caveat that must be re-measured** — one row
+  (`scoped_or_hierarchical_tf_identifier`) is expected to reappear as
+  `semantic_annotation_inline → semantic_annotation` because the comment row was MASKING it. C4 is not
+  the fix (it edits the grammar, not the payload), so treat `152` as a prediction to falsify.
+- **ACCEPTANCE**: the 9 leaks go to 0 by census over all eleven artifacts; the other ten families'
+  `*_return_annotations.json` regenerate BYTE-IDENTICAL; the SV `return_scalar → return_object` rows
+  fall and the ceiling is **LOWERED** in the same slice; `ast_shape_contract` and the SV gates re-run.
+  ⛔ Touching a shipped artifact ⇒ SV release + ledger row + `generated_reproducibility_rebaseline`
+  belong to this slice.
+- ⛔ **DO NOT "FIX" `classify_return_annotation`'s suffix test** — that hides the leak while leaving the
+  polluted text in the shipped artifact and in the shape gate's parser input.
+
+### `H.20.2` — **A RATCHET GATE THAT NO AUTOMATED TIER RUNS RATCHETED NOTHING FOR FIVE DAYS** (`todo`, opened 2026-08-23 session #259 by `H.20`)
+
+- **WHY**: `H.20`'s per-vintage census is also a flow measurement. Ten commits touched
+  `grammars/systemverilog.ebnf` between 2026-08-18 and 2026-08-21; **three of them moved this gate**
+  and none was adjudicated. The RED was found on 2026-08-22 **by accident**, while `H.17.1` was
+  measuring an unrelated blast radius.
+- **THE COST ARGUMENT IS THE ONE THAT MATTERS**: a gate red for a known reason cannot report an unknown
+  one, so the exposure is not "four un-adjudicated rows" — it is *every envelope regression on all
+  fourteen grammars, for five days*.
+- ⭐ **AND IT IS CHEAP**: measured at **35 s** wall-clock warm / peak tree RSS **2 070 MB** — well
+  inside the ordinary-commit tier that `CI policy` (director, 2026-08-15) reserves for "a selected set
+  of checks that makes sure the main functionalities still well-behave". The obstacle is not cost.
+- **SCOPE**: decide the trigger, not just the tier — the natural one is *any commit touching
+  `grammars/*.ebnf`*, which is exactly the trigger class `GENERATED-LINT-CORRECTNESS.11` already found
+  missing for clippy (`generated/` is gitignored and `grammars/*.ebnf` is in no trigger set). ⇒ check
+  whether the two want ONE shared grammar-touch trigger rather than two.
+- ⚠️ **NOT a duplicate of `CI-PARITY-GATE-ROT`'s hosted-workflow rows**: those concern the eleven
+  `workflow_dispatch`-only hosted workflows (a deliberate Actions-minutes policy). This is about the
+  LOCAL auto tier, where the policy does not apply and the cost is 35 s.
+
 ## Current Frontier
 
 > ⛔ **SEQUENCED, NOT PARKED (director, 2026-08-22: *"do not simply park them"*).** Every `todo` below
 > carries an ORDER, and ordering already-approved work is execution, not a director call
 > ([[feedback_answer_your_own_technical_questions]]). The order is: ✅ `H.16.6a` **RULED** (`-0171`) ·
-> ✅ `H.16.7` **CLOSED** (`-0172`) · ✅ `H.16.6b` **CLOSED** (`-0173`) — all session #258 — → **1**
-> ⭐⭐ **`H.20` — PROMOTED TO THE FRONT (`-0175`, my call, decided not escalated).** It is the only
-> **RED gate at HEAD** in the whole queue, and in this repository a gate IS the proof surface: every
-> measurement taken beside a red one is taken against a tree that fails its own check, so it devalues
-> the work that follows it rather than merely waiting its turn. It is also the only **SV-lane** item
-> here, under a standing SV lane lock reaffirmed four times. Against that, the `H.16.x` leaves are
-> small, green and have momentum — which is an argument about comfort, not about correctness. ⛔ Its
-> FIRST action is cheap and must come first: **re-confirm the gate is still red at HEAD** (it was
-> measured red before three commits landed) — a stale RED is as misleading as a stale GREEN, and this
-> session has already been bitten twice by measurements whose inputs had moved underneath them. Then
-> name the 4 new envelope rows BEFORE touching the ceiling. → **2**
-> `H.16.4a` (the last unfixed arm
-> of the layout-guard family, and it decides `whitespace`'s classification) → **3** `H.16.2b` (the same
-> family, prophylactic, repo-wide radius so it must not ride along inside another slice) → **4**
+> ✅ `H.16.7` **CLOSED** (`-0172`) · ✅ `H.16.6b` **CLOSED** (`-0173`) — all session #258 ·
+> ✅ **`H.20` CLOSED** (`-0176`, session #259 — the queue's only RED gate is GREEN, and closing it
+> opened `H.20.1` + `H.20.2`) — → **1** `H.16.4a` (the last unfixed arm
+> of the layout-guard family, and it decides `whitespace`'s classification) → **2** `H.16.2b` (the same
+> family, prophylactic, repo-wide radius so it must not ride along inside another slice) → **3**
 > `H.16.6c` (the 8 residual self-rejected stimuli — its blocking dependency `H.16.6b` is now CLOSED,
-> so its baseline is current) → **5** `H.16.5` (the 9 LR residue + the `profile.is_some()` proof-promotion gate) → **6**
-> `H.19` (leg 3 for `H.15`) → **7** `H.16.7b` (the shape contract
-> cannot pin a payload key — engine tier, schema-wide) → **8** `H.16.7a` (the collection trailing `""` —
-> it REPLACES the published AST shape of nine rules, so it owes its own shape ledger + release) → **9**
+> so its baseline is current) → **4** `H.16.5` (the 9 LR residue + the `profile.is_some()` proof-promotion gate) → **5**
+> `H.19` (leg 3 for `H.15`) → **6** `H.16.7b` (the shape contract
+> cannot pin a payload key — engine tier, schema-wide) → **7** `H.16.7a` (the collection trailing `""` —
+> it REPLACES the published AST shape of nine rules, so it owes its own shape ledger + release) → **8**
 > `H.16.7c` (the `<invalid_sequence_access>` instances `H.16.7` unmasked — ⛔ after `H.16.7a`, same
-> rules) → **10** `H.21` (a STATIC lint class for a terminal shared by two rules at different depths —
-> the gap `H.16.6`/`.6a`/`.6b` all turned on, and the reason `arrow_census.sh` was NOT promoted).
+> rules) → **9** `H.21` (a STATIC lint class for a terminal shared by two rules at different depths —
+> the gap `H.16.6`/`.6a`/`.6b` all turned on, and the reason `arrow_census.sh` was NOT promoted) →
+> **10** `H.20.1` (the frontend swallows an in-body comment into a `->` return-annotation payload and
+> it SHIPS in `generated/*_return_annotations.json` — engine-universal, and it LOWERS the envelope
+> ceiling `H.20` just raised; MEASURED not to corrupt any parser or any book AST claim) → **11**
+> `H.20.2` (this ratchet gate is in no automated tier — ten SV grammar commits landed over five days,
+> three of them moved it, and the RED was found by accident, at a measured cost of 35 s warm).
 >
 > ⭐ **`H.16.7` WAS RESEQUENCED AHEAD OF `H.16.6b` AND DELIVERED FIRST, ON PURPOSE.** `H.16.6b`'s
 > verification is an AST-identity sweep, and until `H.16.7` landed that sweep was **vacuous at the
@@ -4412,25 +4709,27 @@ setting satisfies both arms.** Two of the four witness the rule; **all four brea
 | — | `GRAMMAR-WELLFORMED.H.16.6` (`=>` is both the map arrow and the implication operator) | **`diagnosed`** (`PGEN-GRAMMAR-WELLFORMED-0168`, doc+artifact tier) | ✅ ROOT-CAUSED to an EXACT BICONDITIONAL: **a map entry parses iff its `key => value` is NOT a valid `implication_expr`** — two complementary 4-row tables prove it. `map_entry`'s KEY consumes the arrow (`annotation_value … consumed 6 bytes: '1 => 2'` → `Terminal '=>' failed at position 14`). ⛔ `--lint-grammar` `ordered_choice_shadowing=0`, and `map_entry` is WITNESSED ⇒ **a witnessed rule can still reject inputs its grammar licenses**. Fix is a language-design call → `H.16.6a` |
 | — | `GRAMMAR-WELLFORMED.H.16.6a` (pick and measure the disambiguation of `=>`) | **`done`** — RULED (`PGEN-GRAMMAR-WELLFORMED-0171`, doc+artifact tier) | ✅ **SIX arms built, linted and scored over 1 211 inputs; the winner is arm (a+)** — a `map_key` routing around ALL THREE arrow-consuming reaches: `ACCEPT-SET-LEDGER: widen=25 narrow=0`, `map_entry` 1 of 9 key shapes → **9 of 9**, and the grammar's self-rejection of its own stimuli **18/1000 → 8**. ⛔ **The leaf's own pricing is REFUTED in three places**: *"none is WIDEN-only"* (both (a) and (a+) are `narrow=0`), *"routing around the implication level"* (that closes 1 of 3 reaches), and *"one of the **two** spellings"* (there are **three roles across four sites** — `map_entry:290`, `implication_expr:332`, `lambda_expression:387`+`:388`, `function_type:426`). ⭐⭐ ARROW-CENSUS proves the partition exactly: `implication ∪ lambda ∪ function_type` = `annotation_value` = `{0,1,2,3,5,6,7,8}`, the **exact complement** of `map_entry`'s `{4}` ⇒ `H.16.6`'s biconditional is superseded — a map entry parses iff `key => value` is not a valid **`annotation_value`**. `ast_moved=0/1156` on an instrument proven able to fire 7/7. ⛔ ZERO grammar/Rust/codegen/generated bytes. Routed out `H.16.6b`/`H.16.6c`/`H.16.7` |
 | — | `GRAMMAR-WELLFORMED.H.16.6b` (LAND arm (a+): give `map_entry` a `map_key` that cannot swallow the arrow) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0173`, CODE / grammar) | ✅ **The ruled arm is SHIPPED and it is a WIDEN on both axes.** `map_entry` now takes a dedicated `map_key` — `annotation_value` minus exactly the three arrow-consuming reaches. Re-derived on the SHIPPED grammar: `ACCEPT-SET-LEDGER: widen=25 narrow=0` over 1 211 inputs, `AST-IDENTITY-SWEEP: 1156/1156 byte-identical, ast_moved=0` at BOTH entries, cert `115/0/84/31` → **`119/0/90/29`** with `spf` **1 → 0** at seed 7 — the metric the whole family came from. ⭐⭐ `UNKNOWN` **31 → 29** attributed BY NAME: all four new rules witnessed, `array_type`+`optional_type` newly reachable, **nothing** newly UNKNOWN. ⛔⛔ **The FIRST cert reading said `UNKNOWN=35` and was a STALE-BINARY artifact** — `ast_pipeline` 00:13 vs parser 00:23; `--report-certificate-coverage` takes `total` from the `.ebnf` and witnesses from the LINKED parser, so it mixes two vintages in one report, and the per-rule tell `parsed=true witnessed_target=false` reads as HEALTHY (unlike §1.3's session-#218 `parsed=false`). TOOLBOX §1.3 extended. ⛔ A same-breath 'control' was also mixed-vintage and is not quoted. ⭐ `--interpret-parse` never links the generated parser, so the ledger and both sweeps were unaffected. Book + contract released; lint-class question RULED (not promoted — a probe-basis census fails open) → `H.21` |
-| 9 | `GRAMMAR-WELLFORMED.H.16.7c` (`semantic_annotation` publishes `<invalid_sequence_access>` from three out-of-range `$N`) | **`todo`** (opened 2026-08-23 by `H.16.7`) | `H.16.7` restored the payload and with it the visibility of what was wrong inside it: **2 of 12** probed shapes now surface the sentinel at the entry rule, where the count was 0 of 12 while `value` was `""`. `power_expr` `exponent: $3` on a 2-element body, `comparison_expression` `right: $3` on 2, `function_type` `return_type: $10` on 9 — the author indexed INTO the optional group. ⭐ The CLASS is already owned in four trees; this leaf owns only this family's instances. ⛔ After `H.16.7a` — same rules |
-| 10 | `GRAMMAR-WELLFORMED.H.21` (a STATIC lint class for a terminal shared by two rules at different depths) | **`todo`** (opened 2026-08-23 by `H.16.6b`) | The gap `H.16.6`/`.6a`/`.6b` all turned on: `--lint-grammar` read `ordered_choice_shadowing=0, exit 0` on the BROKEN grammar and on all six repair arms alike, because the two readings never compete at one choice point. ⛔ `arrow_census.sh` is deliberately NOT promoted as-is — it is PROBE-BASIS, and its own first run missed `function_type` entirely, so a lint class built on it would fail open exactly like the existing one while carrying more authority. Needs a static gen-AST formulation, measured over a CLOSED population first (`H.17.2` is the precedent) |
+| 8 | `GRAMMAR-WELLFORMED.H.16.7c` (`semantic_annotation` publishes `<invalid_sequence_access>` from three out-of-range `$N`) | **`todo`** (opened 2026-08-23 by `H.16.7`) | `H.16.7` restored the payload and with it the visibility of what was wrong inside it: **2 of 12** probed shapes now surface the sentinel at the entry rule, where the count was 0 of 12 while `value` was `""`. `power_expr` `exponent: $3` on a 2-element body, `comparison_expression` `right: $3` on 2, `function_type` `return_type: $10` on 9 — the author indexed INTO the optional group. ⭐ The CLASS is already owned in four trees; this leaf owns only this family's instances. ⛔ After `H.16.7a` — same rules |
+| 9 | `GRAMMAR-WELLFORMED.H.21` (a STATIC lint class for a terminal shared by two rules at different depths) | **`todo`** (opened 2026-08-23 by `H.16.6b`) | The gap `H.16.6`/`.6a`/`.6b` all turned on: `--lint-grammar` read `ordered_choice_shadowing=0, exit 0` on the BROKEN grammar and on all six repair arms alike, because the two readings never compete at one choice point. ⛔ `arrow_census.sh` is deliberately NOT promoted as-is — it is PROBE-BASIS, and its own first run missed `function_type` entirely, so a lint class built on it would fail open exactly like the existing one while carrying more authority. Needs a static gen-AST formulation, measured over a CLOSED population first (`H.17.2` is the precedent) |
+| 10 | `GRAMMAR-WELLFORMED.H.20.1` (the frontend swallows an in-body comment into a `->` payload, and it SHIPS) | **`todo`** (opened 2026-08-23 by `H.20`) | Root-caused and measured in `H.20`: `ebnf_frontend.rs:713` `extract_inline_return_annotation_payload` TRACKS an in-body comment so a `|` inside it cannot terminate the payload, but never TRIMS it, and `classify_return_annotation` (`:1472`) is the messenger. Closed population: **9 of 3 495** annotations over 7 rules, `systemverilog` ONLY, **0** in the other ten families. ⭐ MEASURED BOUND — the shipped parser is NOT corrupted (`parse_covergroup_declaration_sv_2023` emits exactly `["extends";"single"]` and contains no `#`), so no per-parser book AST claim is falsified and no schema move is implied; the radius is the inventory artifact + `auto_return_annotation_shape_gate`'s parser input. Engine-universal; LOWERS the ceiling `H.20` raised |
+| 11 | `GRAMMAR-WELLFORMED.H.20.2` (a ratchet gate that no automated tier runs) | **`todo`** (opened 2026-08-23 by `H.20`) | `H.20`'s per-vintage census is also a flow measurement: ten commits touched `grammars/systemverilog.ebnf` over five days; **three moved this gate**; the RED was found by ACCIDENT while `H.17.1` measured an unrelated blast radius. ⭐ The cost argument is the one that matters — a gate red for a KNOWN reason cannot report an UNKNOWN one — and the gate is **35 s warm / 2 070 MB peak**, well inside the ordinary-commit tier. ⚠️ NOT a duplicate of `CI-PARITY-GATE-ROT`'s hosted-workflow rows (a deliberate Actions-minutes policy); this is the LOCAL auto tier |
 | — | `GRAMMAR-WELLFORMED.H.16.7` (a shipped family's entry rule publishes `value: ""` for every annotation) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0172`, CODE / grammar, **2 characters**) | ✅ `$6` → `$7` at `:33` and `:37`. `$N` counts EVERY top-level element, layout regexes included, so `$6` named the third `/\s*/` separator — always empty — and `annotation_value` is `$7`; `$3` was already right, which is why `name` worked and only `value` was empty. **12 of 12** value shapes go `""` → the declared node; `POSITIONAL-REF-SCAN: flagged=17 → 15`, delta attributed BY NAME to exactly the two rules fixed. Cert two-arm control pre-vs-post at seeds 0/7/42 is **byte-identical** (`115/0/84/31`, spf 0/1/0) — a return annotation moves AST shaping, not acceptance — with a RED ARM (`116/0/84/32`) proving the control can move. ⛔ The first control arm printed NOTHING and was not read as agreement: cert-coverage resolves the grammar NAME from the FILENAME and refuses an unregistered one. ⛔⛔ **The shape contract is GREEN in BOTH arms** — it can only assert key-presence or an exact STRING, and `value` is an object ⇒ its verdict is invariant across a whole-payload restoration → `H.16.7b`. Book corrected: it had documented the populated shape all along, and its worked example was idealised in three further ways | 
-| 7 | `GRAMMAR-WELLFORMED.H.16.7b` (the shape contract cannot say "this key must not be empty") | **`todo`** (opened 2026-08-23 by `H.16.7`) | `rust/src/ast_shape_contract.rs:673`/`:679` implement exactly two assertion kinds — key-PRESENT and exact-STRING — so `value: ""` passed and `value` could not be pinned once it became an object. ⭐⭐ Measured, not argued: **the gate's verdict is identical before and after `H.16.7`**, across a change that restored the entire payload for 12 of 12 value shapes. Engine tier + schema-wide (eight tracked manifests), so it needs its own regression proof; ⛔ do NOT close it by hand-pinning more strings in one manifest |
-| 8 | `GRAMMAR-WELLFORMED.H.16.7a` (every collection publishes a spurious trailing `""`) | **`todo`** (opened 2026-08-23 by `H.16.7`) | Same off-by-one class one layer out: nine rules close `[$3, $4*]` where `$4` is the trailing `/\s*/`. Cosmetic to a reader, **not** to a consumer — it REPLACES the published AST shape of every collection, the class TOOLBOX 5.7 names as the largest and the one a verdict-only ledger cannot see ⇒ owes a shape-keyed `ACCEPT-SET-LEDGER:`, a book + contract release, and a manifest update. ⚠️ Decide the shape deliberately: deleting `$4*` still leaves a `[first,[reps]]` pair, and whether to flatten is a consumer-facing design call. ⭐ `H.16.6a`'s `ast_identity_sweep.py` is the right instrument and is NON-vacuous now that `H.16.7` restored the payload it compares |
-| 4 | `GRAMMAR-WELLFORMED.H.16.6c` (the 8 residual self-rejected stimuli are the arrow collision in the VALUE position) | **`todo`** (opened 2026-08-22 by `H.16.6a`) | `narrow=0` proves the 8 are a PRE-EXISTING subset of the control's 18, not introduced. `map_key` constrains the KEY; `map_entry`'s VALUE is still a full `annotation_value`, so a chained `k => v1 => v2` reads as one entry. ⚠️ The arrow-vs-other split of the 8 is currently by READING, not by tool — the leaf's first job is to attribute all 8 with `--trace-rules`. Sequence AFTER `H.16.6b` |
-| 3 | `GRAMMAR-WELLFORMED.H.16.2b` (the DYNAMIC comment-skip guard is still an exact-equality allowlist) | **`todo`** (opened 2026-08-22 by `H.16.2`) | Prophylactic hardening of a proven class, deliberately NOT ridden along inside `H.16.2`: the prefix test edits the emitted layout skipper of EVERY arm-emitting parser (repo-wide rebaseline) versus `H.16.2`'s measured one-artifact radius. No live victim known. Also owes the 10 unprobed sites of the 11-site class census |
+| 6 | `GRAMMAR-WELLFORMED.H.16.7b` (the shape contract cannot say "this key must not be empty") | **`todo`** (opened 2026-08-23 by `H.16.7`) | `rust/src/ast_shape_contract.rs:673`/`:679` implement exactly two assertion kinds — key-PRESENT and exact-STRING — so `value: ""` passed and `value` could not be pinned once it became an object. ⭐⭐ Measured, not argued: **the gate's verdict is identical before and after `H.16.7`**, across a change that restored the entire payload for 12 of 12 value shapes. Engine tier + schema-wide (eight tracked manifests), so it needs its own regression proof; ⛔ do NOT close it by hand-pinning more strings in one manifest |
+| 7 | `GRAMMAR-WELLFORMED.H.16.7a` (every collection publishes a spurious trailing `""`) | **`todo`** (opened 2026-08-23 by `H.16.7`) | Same off-by-one class one layer out: nine rules close `[$3, $4*]` where `$4` is the trailing `/\s*/`. Cosmetic to a reader, **not** to a consumer — it REPLACES the published AST shape of every collection, the class TOOLBOX 5.7 names as the largest and the one a verdict-only ledger cannot see ⇒ owes a shape-keyed `ACCEPT-SET-LEDGER:`, a book + contract release, and a manifest update. ⚠️ Decide the shape deliberately: deleting `$4*` still leaves a `[first,[reps]]` pair, and whether to flatten is a consumer-facing design call. ⭐ `H.16.6a`'s `ast_identity_sweep.py` is the right instrument and is NON-vacuous now that `H.16.7` restored the payload it compares |
+| 3 | `GRAMMAR-WELLFORMED.H.16.6c` (the 8 residual self-rejected stimuli are the arrow collision in the VALUE position) | **`todo`** (opened 2026-08-22 by `H.16.6a`) | `narrow=0` proves the 8 are a PRE-EXISTING subset of the control's 18, not introduced. `map_key` constrains the KEY; `map_entry`'s VALUE is still a full `annotation_value`, so a chained `k => v1 => v2` reads as one entry. ⚠️ The arrow-vs-other split of the 8 is currently by READING, not by tool — the leaf's first job is to attribute all 8 with `--trace-rules`. Sequence AFTER `H.16.6b` |
+| 2 | `GRAMMAR-WELLFORMED.H.16.2b` (the DYNAMIC comment-skip guard is still an exact-equality allowlist) | **`todo`** (opened 2026-08-22 by `H.16.2`) | Prophylactic hardening of a proven class, deliberately NOT ridden along inside `H.16.2`: the prefix test edits the emitted layout skipper of EVERY arm-emitting parser (repo-wide rebaseline) versus `H.16.2`'s measured one-artifact radius. No live victim known. Also owes the 10 unprobed sites of the 11-site class census |
 | — | `GRAMMAR-WELLFORMED.H.16.3` (the generator shadows any rule named `epsilon` with `""`) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0166`, CODE / engine-universal stimuli generator) | ✅ A DEFINED rule now wins; the builtin is gated on `!grammar_tree.contains_key("epsilon")`, preserving both existing callers exactly (their grammars leave `epsilon` UNDEFINED). `ebnf` cert `144/0/111/33` → **`144/0/112/32`** with `spf` falling at EVERY seed (**8→4 · 11→5 · 7→3**), both arms measured on the same binary path; delta ATTRIBUTED BY NAME (exactly `epsilon` left, nothing newly UNKNOWN). ⭐ ZERO generated-parser bytes move — the rebaselined reproducibility file shows every `parser_sha` unchanged across all 11 artifacts |
 | — | `GRAMMAR-WELLFORMED.H.16.4` (`ebnf`'s `whitespace` is layout-skipped before `grammar_file` sees it) | **`done`** — ADJUDICATED (`PGEN-GRAMMAR-WELLFORMED-0167`, doc+artifact tier) | ✅ Root cause is an ASYMMETRY in the emitted layout skipper: every COMMENT arm is gated on `regex_token_matches_at_cursor(pattern)`, the whitespace skip is not — which is why `comment` is witnessed and `whitespace`, in the SAME alternation, is not. ⛔⛔ The declarative tier EXISTS (`@whitespace_sensitive`, and `systemverilog_preprocessor.ebnf:23` ships the exact shape) and is **REFUTED by a closed facet matrix**: all four settings break `grammars/json.ebnf`, and only two of them even witness the rule. Named a **layout-shadowed** residual; the capability is `H.16.4a` |
-| 2 | `GRAMMAR-WELLFORMED.H.16.4a` (`@whitespace_sensitive` is grammar-wide; the property needed is per-terminal) | **`todo`** (opened 2026-08-22 by `H.16.4`) | The guard shape is already in the engine one arm over, and `H.16.2`'s `hir_matches_only_whitespace` is exactly the predicate that makes it safe. Decides a CLASSIFICATION, not just a rule: guard lands ⇒ `ebnf` `UNKNOWN=31`; guard refused ⇒ `whitespace` joins `H.16.5`'s `proof`-promotion population |
-| 5 | `GRAMMAR-WELLFORMED.H.16.5` (the 9 LR residue + the proof-promotion gate) | **`todo`** — RE-SCOPED by `-0170` | ⛔ **RETRACTED its own escalation**: the 55 source orphans were ALREADY owned by `LANG-CAPABILITY-AUDIT.1`/`.4`/`.6` (27 productions, 7 horizon-mapped clusters, per-cluster dispositions) and the capability is ALREADY greenlit by [[feedback_capability_work_is_greenlit_by_standing_authorization]] — only the parametric NOTATION is open, and `[ … ]` is taken by the optional-element form. What remains genuinely unowned: the **9 LR residue** (PGEN's own, never a capability gap) and the `profile.is_some()` gate on proof promotion |
+| 1 | `GRAMMAR-WELLFORMED.H.16.4a` (`@whitespace_sensitive` is grammar-wide; the property needed is per-terminal) | **`todo`** (opened 2026-08-22 by `H.16.4`) | The guard shape is already in the engine one arm over, and `H.16.2`'s `hir_matches_only_whitespace` is exactly the predicate that makes it safe. Decides a CLASSIFICATION, not just a rule: guard lands ⇒ `ebnf` `UNKNOWN=31`; guard refused ⇒ `whitespace` joins `H.16.5`'s `proof`-promotion population |
+| 4 | `GRAMMAR-WELLFORMED.H.16.5` (the 9 LR residue + the proof-promotion gate) | **`todo`** — RE-SCOPED by `-0170` | ⛔ **RETRACTED its own escalation**: the 55 source orphans were ALREADY owned by `LANG-CAPABILITY-AUDIT.1`/`.4`/`.6` (27 productions, 7 horizon-mapped clusters, per-cluster dispositions) and the capability is ALREADY greenlit by [[feedback_capability_work_is_greenlit_by_standing_authorization]] — only the parametric NOTATION is open, and `[ … ]` is taken by the optional-element form. What remains genuinely unowned: the **9 LR residue** (PGEN's own, never a capability gap) and the `profile.is_some()` gate on proof promotion |
 | — | `GRAMMAR-WELLFORMED.H.16.1` (adjudicate the 68) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0164`, doc+artifact tier) | ✅ **68 = 9 LR-residue + 55 source-orphans + 4 root-caused inert rules**, in **31 islands**, partition CLOSED (zero rules unattributed). ⛔ `--lint-grammar` could never have adjudicated this — it reads `unreachable_rules=0` on all three BY CONSTRUCTION. New reader: `docs/tasks/artifacts/grammar_wellformed/residual_island_census/probe.py`, proven to go RED three ways. Residual-rules-with-no-owning-leaf **68 → 0** |
 | — | `GRAMMAR-WELLFORMED.H.16` (roll `ebnf` / `return_annotation` / `semantic_annotation` to `UNKNOWN=0`) | **`in_progress`** (adjudicated by `H.16.1`; work routed to `H.16.2`–`H.16.5`) | The **clean** conjunct, and now the only engineering half of the `SVPP-EXPANSION` gate left. `H.15` made the three measurable and they read `UNKNOWN` **35 / 2 / 34** = **71**, of which **64 are dead-rule candidates** (no reach path from the entry) ⇒ a `--lint-grammar` adjudication lane, not a witness-generation lane. Lanes cost 0.06–0.38 s and are seed-invariant. |
 | — | `GRAMMAR-WELLFORMED.H.17.1` (repair the 5 live regex-look-around rules) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0161`, CODE / grammar + codegen) | ✅ All five repaired; `uncompilable_regex_terminals` `ebnf` 3→**0**, `semantic_annotation` 2→**0**, both exit 1→**0**. `/* x */` now parses. Cert: `ebnf` `144/0/109/35 → 144/0/111/33` (`spf` 13→8), `semantic_annotation` `114/0/80/34 → 115/0/82/33`. ⭐ `UNKNOWN` delta attributed **by rule name** — exactly `block_comment`+`block_comment_content` and `multiline_string`; **nothing** newly UNKNOWN. ⛔ 3 of the 5 stay UNKNOWN **correctly** — their parents are unreferenced, and a terminal repair cannot confer reachability. Generated parsers verified byte-identical to the interpreter (79/79, 134/134). Opened `H.20`. |
-| 1 | `GRAMMAR-WELLFORMED.H.20` (the envelope gate is RED at HEAD on `systemverilog`, `155 > 151`) | **`todo`** (opened 2026-08-22 by `H.17.1`) | Found while measuring `H.17.1`'s blast radius; **pre-existing**, proven by a regenerate-the-parser two-arm control after the naive `git stash` control turned out to be a no-op for that instrument. Name the 4 new rows before touching the ceiling. |
+| — | `GRAMMAR-WELLFORMED.H.20` (the envelope gate was RED at HEAD on `systemverilog`, `155 > 151`) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0176`, CODE / gate ceiling) | ✅ **RED → GREEN, 14/14 grammars at their ceilings**; ceiling `151 → 155` with all FOUR rows NAMED, ATTRIBUTED and MECHANISM-PROVEN. ⭐ Two-arm control with the BINARY PINNED — the SV grammar at `0fd53da4` reproduces **exactly 151** through HEAD's binary ⇒ `H.17.1`'s `ebnf.ebnf` repair contributed **ZERO**, an independent re-derivation of its 'pre-existing' verdict by a different method. An eleven-vintage census attributed every row to an exact commit: `4a2703cf` (`.13c.2o`) +`covergroup_declaration_sv_2023` · `222f7ddb` (`.13c.2v`) +`primary_dollar_sv_only` · `958fcc24` (`.13c.2y`) +`kw_implements_e133e2cb`+`kw_implies_470cec58`; seven vintages moved it by zero and **ZERO sites disappeared**. No new CLASS (56→58 · 46→47 · 5→6). Three surgical one-edit controls each removed exactly its target and nothing else — C3 removes **two** rows for **one** deleted line, proving that pair is ONE defect. ⛔⛔ Row 1 is NOT a projection asymmetry but a live frontend defect that SHIPS (`ebnf_frontend.rs:713` tracks an in-body comment without trimming it; **9 of 3 495** annotations leak, all SV, and the gate sees only **4 of the 9**) → `H.20.1`. ⭐⭐ C4 falsified my own prediction — `155→152`, not 151: **a divergence can MASK another at the same site**. Flow gap → `H.20.2`. ZERO grammar/Rust/codegen/generated bytes |
 | — | `GRAMMAR-WELLFORMED.H.17.2` (a `--lint-grammar` error class: every regex terminal must compile) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0159`, CODE / engine-universal) | ✅ `uncompilable_regex_terminals` is a hard error class. Checks **does it COMPILE**, not *does it contain `(?`* — a spelling heuristic is unsound (`(?i)`, `(?s:.)`) AND incomplete (backreferences). `ebnf` `0/exit 0 → 3/exit 1`. ⭐ Independently reproduced `H.17`'s grep census from a disjoint code path over all 12 grammars — leg 2, earned. |
 | — | `GRAMMAR-WELLFORMED.H.17` (`spf>0` root cause) | **`diagnosed`** (`PGEN-GRAMMAR-WELLFORMED-0158`, doc+artifact tier) | ⛔ **NOT a generator defect — the leaf's own title was wrong.** Rust's `regex` crate does not support look-around, so the terminal never compiles and the rule matches nothing, ever. The `ebnf` meta-grammar **cannot parse ANY block comment**, `/* x */` included. Both engines agree to the `furthest_position`. Fix owned by `H.17.1`/`H.17.2`. |
 | — | `GRAMMAR-WELLFORMED.H.18` (the cert-failure LABEL is blind for 9 of 13 registry rows) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0157`, CODE / registry-only) | ✅ The duplicate table was **DELETED, not filled in** — `parse_detail` had exactly ONE reader, so `parse_error()` now delegates to the single dispatch and the divergence cannot recur. `ebnf` labels `5 → 0` false / `0 → 5` real `furthest_position=`; all ten cert tuples byte-identical ⇒ the label moved no classification. |
-| 6 | `GRAMMAR-WELLFORMED.H.19` (a doctrine that WATCHES "every register family is cert-WIRED") | **`todo`** (opened 2026-08-22 by `H.15`) | Leg 3 of the claim-verification bar for `H.15`'s `10/10 wired`, NAMED rather than skipped. Both inputs are tracked text ⇒ no cargo, no parser run, cheap always-on tier. |
+| 5 | `GRAMMAR-WELLFORMED.H.19` (a doctrine that WATCHES "every register family is cert-WIRED") | **`todo`** (opened 2026-08-22 by `H.15`) | Leg 3 of the claim-verification bar for `H.15`'s `10/10 wired`, NAMED rather than skipped. Both inputs are tracked text ⇒ no cargo, no parser run, cheap always-on tier. |
 | — | `GRAMMAR-WELLFORMED.H.15` (wire cert-coverage for `ebnf` / `return_annotation` / `semantic_annotation`) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0156`, CODE / registry-only) | ✅ **WIRED conjunct MET — 10/10 register families measurable**, ZERO grammar/codegen/generated bytes. ⛔ **And measuring it REFUTED the gate**: the three hid **71 `UNKNOWN`**, so `SVPP-EXPANSION`'s *WIRED + clean + `UNKNOWN`=0* is **NOT met** and never was. Seven wired families byte-identical, seeds 0/7/42 deterministic. Routed out `H.16`/`H.17`/`H.18`/`H.19`. |
 | 1 | `GRAMMAR-WELLFORMED.H.12.8.3` (close the 3 canonical reach-gaps → SV `fully_certified` via the union) | `active` (`.8.3.1` ✅ `-0146` CODE; `.8.3.2` remaining) | The **director-reaffirmed literal-`UNKNOWN=0` goal** (chosen over the parked `.8.5` accounting lane). After `.8.3.1`: canonical `UNKNOWN 22 → 20`, sound 4-config union `3 → 1`; ONE reach-gap (`context_member_method_call`) remains between SV and `fully_certified`. |
 | 1 | `GRAMMAR-WELLFORMED.H.12.8.3.1` (close the 2 `…scoped_call…` cousins — branch-1 longest-match grammar-gate) | `done` (`PGEN-GRAMMAR-WELLFORMED-0146`, CODE / released-SV; release `1.0.151`, ledger `SV-0013`, schema `6`) | Tool-proven via `--trace-rules class_scoped_call_prefix`: branch 1 `scoped_class_scoped_call_prefix_identifier` (gated only `lacks_class`) longest-matched `IF::m`/`T::m` as `<pkg>::<class>` (14 bytes) and shadowed cousins #3/#4 (5 bytes); added AND-stacked `lacks(interface_class)`+`lacks(type_parameter)` ⇒ both witness via `class_scoped_tf_call`. Canonical `22 → 20`, union `3 → 1` (residual = `context_member_method_call`), deterministic seeds 0/7/42, `spf=0`; 6 fully-certified grammars byte-identical; SV corpus 14/14; `cargo test --lib` 739/0; clippy source-clean. Detail: [GRAMMAR-WELLFORMED-H12831-scoped-call-cousins-grammar-gate.md](GRAMMAR-WELLFORMED-H12831-scoped-call-cousins-grammar-gate.md). |

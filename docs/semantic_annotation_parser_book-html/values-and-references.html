@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-918f50ca.js";
+            window.path_to_searchindex_js = "searchindex-2cd2e7c9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e79d1bb7.js"></script>
@@ -218,6 +218,36 @@
 <p>Object properties may be a plain <code>key: value</code>, a computed key <code>[expr]: value</code>, a shorthand <code>name</code>, or a
 spread <code>...value</code>. An array/argument element may also be a spread <code>...value</code>. (Object and map share the
 <code>{ … }</code> delimiters; a <code>=&gt;</code> between key and value makes it a map entry.)</p>
+<h3 id="what-a-map-key-may-be"><a class="header" href="#what-a-map-key-may-be">What a map KEY may be</a></h3>
+<p>A map <strong>key</strong> is any value <strong>except one that could itself consume a <code>=&gt;</code></strong>. The value language spells
+<code>=&gt;</code> in three other roles — the implication operator (<code>a =&gt; b</code>), the lambda arrow (<code>x =&gt; body</code>) and the
+function-type arrow (<code>(Foo) =&gt; Bar</code>) — and under PEG’s ordered choice a key allowed to be any of those
+swallows the map’s own arrow and the entry stops parsing. So the key grammar excludes exactly those
+three reaches and nothing else:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>may be a key</th><th>may <strong>not</strong> be a key</th></tr>
+</thead>
+<tbody>
+<tr><td>any primitive — <code>"s"</code>, <code>1</code>, <code>true</code>, <code>null</code>, <code>name</code></td><td>an implication — <code>a =&gt; b</code></td></tr>
+<tr><td>any structured value — array, object, tuple, set, nested map</td><td>a lambda — <code>x =&gt; body</code>, <code>(x, y) =&gt; body</code>, <code>[x] =&gt; body</code></td></tr>
+<tr><td>arithmetic / logical-or / comparison / conditional / call</td><td>a function type — <code>(Foo) =&gt; Bar</code></td></tr>
+<tr><td>a rule / symbol / path / URL reference, or a non-function type</td><td></td></tr>
+</tbody>
+</table>
+</div>
+<p>Values are unrestricted, so a lambda or implication is perfectly legal on the right of the arrow —
+<code>{a =&gt; (x) =&gt; y}</code> parses, with key <code>a</code> and a lambda value.</p>
+<blockquote>
+<p>⚠️ <strong>Before 2026-08-23 this was broken and the failure was silent.</strong> The key was declared as a full
+value, so a map entry parsed <em>if and only if</em> its <code>key =&gt; value</code> was <strong>not</strong> itself a valid value.
+Measured over nine key shapes, only the string-keyed one worked: <code>{"a" =&gt; "b"}</code> parsed while
+<code>{1 =&gt; 2}</code>, <code>{a =&gt; b}</code>, <code>{[a] =&gt; b}</code>, <code>{(a) =&gt; b}</code>, <code>{(a, b) =&gt; c}</code>, <code>{true =&gt; false}</code>,
+<code>{(Foo) =&gt; Bar}</code> and <code>{Foo =&gt; Bar}</code> were all rejected. <code>GRAMMAR-WELLFORMED.H.16.6</code>/<code>.6a</code>/<code>.6b</code>.
+The repair only <strong>widens</strong> — measured over 1 211 inputs, 25 newly accepted, 0 newly rejected, and 0
+typed ASTs moved — because a key that had swallowed the arrow could never finish its entry anyway.</p>
+</blockquote>
 <h2 id="expression-values"><a class="header" href="#expression-values">Expression values</a></h2>
 <p>The value language includes a full expression sublanguage — useful for <code>@predicate</code>, <code>@constraint</code>,
 and computed metadata:</p>

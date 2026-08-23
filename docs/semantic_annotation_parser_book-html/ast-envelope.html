@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-918f50ca.js";
+            window.path_to_searchindex_js = "searchindex-2cd2e7c9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e79d1bb7.js"></script>
@@ -186,7 +186,7 @@
 <h2 id="top-level-shape"><a class="header" href="#top-level-shape">Top-level shape</a></h2>
 <p>Every annotation parses to a <code>semantic_annotation</code> node carrying the directive name and the value:</p>
 <pre><code class="language-ebnf">semantic_annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value
-    -&gt; {type: "semantic_annotation", name: $3, value: $6}
+    -&gt; {type: "semantic_annotation", name: $3, value: $7}
 </code></pre>
 <ul>
 <li><code>name</code> is the bare name for a <strong>predefined</strong> name, or <code>{type: "custom_annotation", name: …}</code> for a
@@ -196,24 +196,57 @@ References</a> for the full table — <code>{type: "string", …}</code>,
 <code>{type: "integer", …}</code>, <code>{type: "array", …}</code>, <code>{type: "object", …}</code>, <code>{type: "function_call", …}</code>,
 <code>{type: "rule_reference", …}</code>, and so on).</li>
 </ul>
+<blockquote>
+<p>⛔ <strong><code>$7</code>, not <code>$6</code> — and until 2026-08-23 this grammar said <code>$6</code>.</strong> A positional <code>$N</code> counts
+<strong>every</strong> top-level element of the rule body, the <code>/\s*/</code> layout regexes included, so <code>$6</code> is the
+third separator and <code>annotation_value</code> is <code>$7</code>. The separator always matches the empty string, so
+the shipped parser published <code>value: ""</code> for <strong>every</strong> annotation — measured, 12 of 12 value shapes
+— while this chapter documented the populated shape below. Fixed in
+<code>GRAMMAR-WELLFORMED.H.16.7</code>; the example that follows is now a verbatim parser dump rather than a
+hand-written one, for exactly that reason.</p>
+</blockquote>
 <h2 id="worked-example"><a class="header" href="#worked-example">Worked example</a></h2>
 <pre><code class="language-text">@precedence: {level: 5, associativity: "left"}
 </code></pre>
-<p>parses to (abridged):</p>
+<p>parses to <strong>exactly</strong> this (<code>parseability_probe --parse-dump-ast-pretty semantic_annotation</code>, the
+<code>content.Json</code> payload — nothing abridged):</p>
 <pre><code class="language-json">{
-  "type": "semantic_annotation",
   "name": "precedence",
+  "type": "semantic_annotation",
   "value": {
     "type": "object",
     "properties": [
-      { "type": "property", "key": "level",
-        "value": { "type": "integer", "value": "5", "base": 10 } },
-      { "type": "property", "key": "associativity",
-        "value": { "type": "string", "value": "\"left\"", "quote_style": "double" } }
+      [
+        { "type": "property",
+          "key": { "type": "identifier", "name": "level" },
+          "value": { "type": "integer", "value": "5", "base": 10 } },
+        [
+          [ "", ",", "",
+            { "type": "property",
+              "key": { "type": "identifier", "name": "associativity" },
+              "value": { "type": "string", "value": "\"left\"", "quote_style": "double" } } ]
+        ]
+      ],
+      ""
     ]
   }
 }
 </code></pre>
+<p>Three things about that shape are worth stating plainly, because an idealised version of this example
+stood here previously and a consumer written against it would not have worked:</p>
+<ul>
+<li><strong>A property <code>key</code> is a node, not a bare string</strong> — <code>{"type": "identifier", "name": "level"}</code>.</li>
+<li><strong>A collection is a <code>[first, [repetitions…]]</code> PAIR, not a flat list.</strong> Every collection rule is
+spelled <code>head (sep item)*</code>, and the typed AST mirrors that spelling: element 0 is the first item,
+element 1 is the list of repetitions, and each repetition carries its own separator slots
+(<code>"", ",", ""</code> — the two <code>/\s*/</code> and the comma). Walk it as a pair; do not index it as a list.</li>
+<li>⚠️ <strong>The trailing <code>""</code> is a known defect, not part of the contract.</strong> Every collection rule closes
+its annotation with <code>[$3, $4*]</code>, where <code>$4</code> is the trailing <code>/\s*/</code> — the same off-by-one class as
+the <code>$6</code> above, but cosmetic rather than lossy. It affects <code>array_value</code>, <code>object_value</code>,
+<code>map_value</code>, <code>set_value</code>, <code>tuple_value</code>, <code>generic_type</code>, <code>function_call</code>, <code>exception_spec</code> and
+<code>platform_spec</code>. Tracked as <code>GRAMMAR-WELLFORMED.H.16.7a</code>; <strong>do not depend on that element</strong>, and
+expect it to disappear.</li>
+</ul>
 <h2 id="bootstrap-classification-transformexpr--structured--raw"><a class="header" href="#bootstrap-classification-transformexpr--structured--raw">Bootstrap classification: TransformExpr / Structured / Raw</a></h2>
 <p>The <strong>bootstrap</strong> backend (see <a href="backends.html">Backends</a>) does not parse the full value grammar; instead
 it classifies a payload into one of three envelopes, in this strict order:</p>

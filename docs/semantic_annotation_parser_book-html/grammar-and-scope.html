@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-918f50ca.js";
+            window.path_to_searchindex_js = "searchindex-2cd2e7c9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e79d1bb7.js"></script>
@@ -186,7 +186,7 @@ from <code>grammars/semantic_annotation.ebnf</code> (version <code>2.0</code>).<
 <h2 id="entry-name-value"><a class="header" href="#entry-name-value">Entry: <code>@name: value</code></a></h2>
 <p>Every semantic annotation is a <code>@</code>, a name, a colon, and a value:</p>
 <pre><code class="language-ebnf">semantic_annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value
-    -&gt; {type: "semantic_annotation", name: $3, value: $6}
+    -&gt; {type: "semantic_annotation", name: $3, value: $7}
 </code></pre>
 <p>(<code>annotation</code> is an accepted compact alias for the same shape.) A directive is written on its own line
 <strong>above</strong> the rule it applies to — the directive binds to the <em>following</em> rule:</p>

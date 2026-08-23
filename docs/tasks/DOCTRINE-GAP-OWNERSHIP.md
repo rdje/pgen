@@ -674,6 +674,46 @@ the copy has no way to know.*
   supplied it — so the class's newest instance was closed the moment it was measured, rather than
   joining the backlog it belongs to.
 
+### `.9` — every per-parser book's TRACKED HTML can be stale against its own TRACKED source, and `tracked_html_check` is a control that cannot go red (`todo`, opened 2026-08-23 session #259 by `GRAMMAR-WELLFORMED.H.20`, found by a director lockstep prompt)
+
+- **HOW IT WAS FOUND**: `H.20` touched one main-book page and ran `mdbook_docs_gate` for lockstep. The
+  gate passed — and left **17 dirty files** in `docs/semantic_annotation_parser_book-html/`, a book
+  whose source this slice never touched.
+- ⛔ **MEASURED DRIFT**: `docs/semantic_annotation_parser_book/src/values-and-references.md` was last
+  committed **2026-08-23** (`2b5b26ea`, `GRAMMAR-WELLFORMED.H.16.6b`); its rendered
+  `…-html/values-and-references.html` was last committed **2026-07-17** (`ce15385c`) — **37 days**
+  earlier. So the published HTML still described the `=>` map-key defect as LIVE one commit after
+  `-0173` fixed it, on the surface the director has named as their only window into the project
+  (*"I review the book, not the code"*).
+- ⭐⭐ **ROOT CAUSE — THE CHECK RUNS AFTER THE THING THAT WOULD MAKE IT FAIL.**
+  `rust/scripts/<family>_parser_book_gate.sh` runs `mdbook build` (which WRITES into the tracked HTML
+  directory) and then `tracked_html_check` asserts that three landing files **exist**. The build just
+  created them. ⇒ the check verifies **presence**, never **currency**, and cannot go red for the defect
+  it appears to guard. Same failure shape as
+  [[feedback_an_instrument_that_can_only_return_one_reading_is_not_a_measurement]] — and it is
+  *worse* than no check, because the gate's `pass:` line reads as a currency verdict.
+- ⭐ **CLOSED POPULATION, MEASURED**: the gate rebuilds all **10** per-parser books; exactly **1 of 10**
+  (`semantic_annotation`) was stale. So this is a live, low-frequency, silent drift — not a systemic
+  rot — which is precisely the profile a presence-check will keep missing.
+- ⚠️ **THE DRIFT ITSELF IS REPAIRED** by `-0176` (the regenerated HTML is committed in that slice, since
+  leaving a tracked artifact contradicting its own tracked source is a live falsehood). **What is NOT
+  repaired is the gate**, which is what this leaf owns.
+- **SHAPE OF THE FIX** (design, not yet ruled): after `mdbook build`, assert the tracked HTML is
+  byte-identical to what the build produced — i.e. `git diff --quiet -- docs/<family>_parser_book-html`
+  — and fail naming the file and the regeneration command. ⛔ Price the determinism first: mdBook embeds
+  content-hashed asset names (`searchindex-<hash>.js`), so prove a no-op rebuild is byte-stable across
+  two runs on one tree **before** making it binding, or the gate becomes a flake. ⭐ **THE FIRST DATUM IS
+  ALREADY IN**: `-0176` ran `mdbook_docs_gate` **twice** on one tree and the second run added **no new
+  churn at all** — no second `searchindex-<hash>.js`, no re-touched page — so a no-op rebuild is
+  byte-stable *on one machine, one mdBook version, one tree*. ⚠️ That is one arm, not the proof: the
+  hash is content-derived, so the untested axis is a **different mdBook version**, which is exactly the
+  axis a hosted runner would vary. ⛔ And decide the
+  population deliberately: the main `docs/book/` has **no** tracked HTML, so the rule binds the ten
+  per-parser books only, and that asymmetry must be stated rather than discovered.
+- **ACCEPTANCE**: a control arm that goes RED (edit one `.md`, do not rebuild, gate fails naming it) and
+  a GREEN arm (rebuild, gate passes) — a check that refuses everything passes every RED arm, so both
+  arms are required ([[feedback_an_ops_change_is_proven_by_an_arm_matrix_not_by_its_diff]]).
+
 ## Evidence
 
 - `git log -1 -S "whole-file grep, not box-scoped" -- docs/decisions/project_build_integrity_compiler_root_cause_signature.md`

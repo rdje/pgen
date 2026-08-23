@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-918f50ca.js";
+            window.path_to_searchindex_js = "searchindex-2cd2e7c9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e79d1bb7.js"></script>
@@ -306,7 +306,7 @@ from <code>grammars/semantic_annotation.ebnf</code> (version <code>2.0</code>).<
 <h2 id="entry-name-value"><a class="header" href="#entry-name-value">Entry: <code>@name: value</code></a></h2>
 <p>Every semantic annotation is a <code>@</code>, a name, a colon, and a value:</p>
 <pre><code class="language-ebnf">semantic_annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value
-    -&gt; {type: "semantic_annotation", name: $3, value: $6}
+    -&gt; {type: "semantic_annotation", name: $3, value: $7}
 </code></pre>
 <p>(<code>annotation</code> is an accepted compact alias for the same shape.) A directive is written on its own line
 <strong>above</strong> the rule it applies to — the directive binds to the <em>following</em> rule:</p>
@@ -402,6 +402,36 @@ a <code>Raw</code> classification rather than hard-failing (see <a href="#backen
 <p>Object properties may be a plain <code>key: value</code>, a computed key <code>[expr]: value</code>, a shorthand <code>name</code>, or a
 spread <code>...value</code>. An array/argument element may also be a spread <code>...value</code>. (Object and map share the
 <code>{ … }</code> delimiters; a <code>=&gt;</code> between key and value makes it a map entry.)</p>
+<h3 id="what-a-map-key-may-be"><a class="header" href="#what-a-map-key-may-be">What a map KEY may be</a></h3>
+<p>A map <strong>key</strong> is any value <strong>except one that could itself consume a <code>=&gt;</code></strong>. The value language spells
+<code>=&gt;</code> in three other roles — the implication operator (<code>a =&gt; b</code>), the lambda arrow (<code>x =&gt; body</code>) and the
+function-type arrow (<code>(Foo) =&gt; Bar</code>) — and under PEG’s ordered choice a key allowed to be any of those
+swallows the map’s own arrow and the entry stops parsing. So the key grammar excludes exactly those
+three reaches and nothing else:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>may be a key</th><th>may <strong>not</strong> be a key</th></tr>
+</thead>
+<tbody>
+<tr><td>any primitive — <code>"s"</code>, <code>1</code>, <code>true</code>, <code>null</code>, <code>name</code></td><td>an implication — <code>a =&gt; b</code></td></tr>
+<tr><td>any structured value — array, object, tuple, set, nested map</td><td>a lambda — <code>x =&gt; body</code>, <code>(x, y) =&gt; body</code>, <code>[x] =&gt; body</code></td></tr>
+<tr><td>arithmetic / logical-or / comparison / conditional / call</td><td>a function type — <code>(Foo) =&gt; Bar</code></td></tr>
+<tr><td>a rule / symbol / path / URL reference, or a non-function type</td><td></td></tr>
+</tbody>
+</table>
+</div>
+<p>Values are unrestricted, so a lambda or implication is perfectly legal on the right of the arrow —
+<code>{a =&gt; (x) =&gt; y}</code> parses, with key <code>a</code> and a lambda value.</p>
+<blockquote>
+<p>⚠️ <strong>Before 2026-08-23 this was broken and the failure was silent.</strong> The key was declared as a full
+value, so a map entry parsed <em>if and only if</em> its <code>key =&gt; value</code> was <strong>not</strong> itself a valid value.
+Measured over nine key shapes, only the string-keyed one worked: <code>{"a" =&gt; "b"}</code> parsed while
+<code>{1 =&gt; 2}</code>, <code>{a =&gt; b}</code>, <code>{[a] =&gt; b}</code>, <code>{(a) =&gt; b}</code>, <code>{(a, b) =&gt; c}</code>, <code>{true =&gt; false}</code>,
+<code>{(Foo) =&gt; Bar}</code> and <code>{Foo =&gt; Bar}</code> were all rejected. <code>GRAMMAR-WELLFORMED.H.16.6</code>/<code>.6a</code>/<code>.6b</code>.
+The repair only <strong>widens</strong> — measured over 1 211 inputs, 25 newly accepted, 0 newly rejected, and 0
+typed ASTs moved — because a key that had swallowed the arrow could never finish its entry anyway.</p>
+</blockquote>
 <h2 id="expression-values"><a class="header" href="#expression-values">Expression values</a></h2>
 <p>The value language includes a full expression sublanguage — useful for <code>@predicate</code>, <code>@constraint</code>,
 and computed metadata:</p>
@@ -798,7 +828,7 @@ platform book’s <em>Diagnostic &amp; Debug Toolbox</em> chapter and the 3-step
 <h2 id="top-level-shape"><a class="header" href="#top-level-shape">Top-level shape</a></h2>
 <p>Every annotation parses to a <code>semantic_annotation</code> node carrying the directive name and the value:</p>
 <pre><code class="language-ebnf">semantic_annotation := "@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value
-    -&gt; {type: "semantic_annotation", name: $3, value: $6}
+    -&gt; {type: "semantic_annotation", name: $3, value: $7}
 </code></pre>
 <ul>
 <li><code>name</code> is the bare name for a <strong>predefined</strong> name, or <code>{type: "custom_annotation", name: …}</code> for a
@@ -808,24 +838,57 @@ References</a> for the full table — <code>{type: "string", …}</code>,
 <code>{type: "integer", …}</code>, <code>{type: "array", …}</code>, <code>{type: "object", …}</code>, <code>{type: "function_call", …}</code>,
 <code>{type: "rule_reference", …}</code>, and so on).</li>
 </ul>
+<blockquote>
+<p>⛔ <strong><code>$7</code>, not <code>$6</code> — and until 2026-08-23 this grammar said <code>$6</code>.</strong> A positional <code>$N</code> counts
+<strong>every</strong> top-level element of the rule body, the <code>/\s*/</code> layout regexes included, so <code>$6</code> is the
+third separator and <code>annotation_value</code> is <code>$7</code>. The separator always matches the empty string, so
+the shipped parser published <code>value: ""</code> for <strong>every</strong> annotation — measured, 12 of 12 value shapes
+— while this chapter documented the populated shape below. Fixed in
+<code>GRAMMAR-WELLFORMED.H.16.7</code>; the example that follows is now a verbatim parser dump rather than a
+hand-written one, for exactly that reason.</p>
+</blockquote>
 <h2 id="worked-example"><a class="header" href="#worked-example">Worked example</a></h2>
 <pre><code class="language-text">@precedence: {level: 5, associativity: "left"}
 </code></pre>
-<p>parses to (abridged):</p>
+<p>parses to <strong>exactly</strong> this (<code>parseability_probe --parse-dump-ast-pretty semantic_annotation</code>, the
+<code>content.Json</code> payload — nothing abridged):</p>
 <pre><code class="language-json">{
-  "type": "semantic_annotation",
   "name": "precedence",
+  "type": "semantic_annotation",
   "value": {
     "type": "object",
     "properties": [
-      { "type": "property", "key": "level",
-        "value": { "type": "integer", "value": "5", "base": 10 } },
-      { "type": "property", "key": "associativity",
-        "value": { "type": "string", "value": "\"left\"", "quote_style": "double" } }
+      [
+        { "type": "property",
+          "key": { "type": "identifier", "name": "level" },
+          "value": { "type": "integer", "value": "5", "base": 10 } },
+        [
+          [ "", ",", "",
+            { "type": "property",
+              "key": { "type": "identifier", "name": "associativity" },
+              "value": { "type": "string", "value": "\"left\"", "quote_style": "double" } } ]
+        ]
+      ],
+      ""
     ]
   }
 }
 </code></pre>
+<p>Three things about that shape are worth stating plainly, because an idealised version of this example
+stood here previously and a consumer written against it would not have worked:</p>
+<ul>
+<li><strong>A property <code>key</code> is a node, not a bare string</strong> — <code>{"type": "identifier", "name": "level"}</code>.</li>
+<li><strong>A collection is a <code>[first, [repetitions…]]</code> PAIR, not a flat list.</strong> Every collection rule is
+spelled <code>head (sep item)*</code>, and the typed AST mirrors that spelling: element 0 is the first item,
+element 1 is the list of repetitions, and each repetition carries its own separator slots
+(<code>"", ",", ""</code> — the two <code>/\s*/</code> and the comma). Walk it as a pair; do not index it as a list.</li>
+<li>⚠️ <strong>The trailing <code>""</code> is a known defect, not part of the contract.</strong> Every collection rule closes
+its annotation with <code>[$3, $4*]</code>, where <code>$4</code> is the trailing <code>/\s*/</code> — the same off-by-one class as
+the <code>$6</code> above, but cosmetic rather than lossy. It affects <code>array_value</code>, <code>object_value</code>,
+<code>map_value</code>, <code>set_value</code>, <code>tuple_value</code>, <code>generic_type</code>, <code>function_call</code>, <code>exception_spec</code> and
+<code>platform_spec</code>. Tracked as <code>GRAMMAR-WELLFORMED.H.16.7a</code>; <strong>do not depend on that element</strong>, and
+expect it to disappear.</li>
+</ul>
 <h2 id="bootstrap-classification-transformexpr--structured--raw"><a class="header" href="#bootstrap-classification-transformexpr--structured--raw">Bootstrap classification: TransformExpr / Structured / Raw</a></h2>
 <p>The <strong>bootstrap</strong> backend (see <a href="#backends-bootstrap-vs-generated">Backends</a>) does not parse the full value grammar; instead
 it classifies a payload into one of three envelopes, in this strict order:</p>

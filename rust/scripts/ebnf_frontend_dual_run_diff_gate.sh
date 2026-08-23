@@ -79,7 +79,35 @@ envelope_divergence_ceiling() {
         # fidelity loss. ⛔ It was invisible for ~2.5 weeks because the report's divergence list is
         # capped at 40 and this one sits past it; `PGEN_ENVELOPE_DUMP_ALL=1` now lifts that cap,
         # which is how the row above was identified at all.
-        systemverilog) echo 151 ;;
+        #
+        # GRAMMAR-WELLFORMED.H.20 — 151 -> 155, and all FOUR extra divergences are NAMED,
+        # ATTRIBUTED to an exact commit, and each MECHANISM proven by a surgical one-edit control.
+        # Nothing is being landed by this raise: all ten commits that touched
+        # `grammars/systemverilog.ebnf` between 2026-08-18 and 2026-08-21 shipped under their own
+        # leaves and their own gates, and this is the ADJUDICATION of already-shipped work — the
+        # same shape as the .13c.2i entry above. The rows, from a per-vintage census run with the
+        # binary PINNED (so arm 2 could not vary):
+        #
+        #   `4a2703cf` (.13c.2o) 151 -> 152  covergroup_declaration_sv_2023
+        #        return_scalar -> return_object. ⛔ NOT a projection asymmetry — a LIVE frontend
+        #        defect: `rust/src/ebnf_frontend.rs:713` extract_inline_return_annotation_payload
+        #        TRACKS an in-body comment (so a `|` inside one cannot terminate the payload) but
+        #        never TRIMS it, so the comment lands inside the payload text and
+        #        classify_return_annotation (:1472) reads a string that starts `{` and does not end
+        #        `}`. It ships verbatim in generated/systemverilog_return_annotations.json.
+        #        Owned by GRAMMAR-WELLFORMED.H.20.1, which LOWERS this ceiling when it lands.
+        #   `222f7ddb` (.13c.2v) 152 -> 153  primary_dollar_sv_only
+        #        semantic_annotation -> rule_reference — LANG-CAPABILITY-AUDIT.10.14.
+        #   `958fcc24` (.13c.2y) 153 -> 155  kw_implements_e133e2cb + kw_implies_470cec58
+        #        <absent> -> semantic_annotation AND semantic_annotation -> rule_reference. These
+        #        two rows are ONE .10.14 defect: deleting the single `@profiles:` line above
+        #        kw_implies_470cec58 removes BOTH and nothing else.
+        #
+        # ⇒ NO new divergence CLASS was created and NO site was lost; the three moved classes went
+        # 56->58, 46->47 and 5->6. ⛔ The argument for raising rather than leaving it red: a gate
+        # that is red for a KNOWN reason cannot report an UNKNOWN one, so while this row sat red an
+        # envelope regression on any of the other thirteen grammars was invisible behind it.
+        systemverilog) echo 155 ;;
         systemverilog_lrm_profiled_generated) echo 317 ;;
         # .10.14 plus the two documented arm-2 blind spots: `[> …]` lexical annotations (which
         # arm 2 misparses as character classes) and arm 1's inline/rule-level annotation

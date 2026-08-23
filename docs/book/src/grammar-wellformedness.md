@@ -3708,12 +3708,56 @@ parser cannot self-parse that grammar. This is the EBNF meta-grammar lockstep ru
 feature is not "done" until it is also expressed in the meta-grammar.
 
 Self-hosting is measured by the `ebnf_dual_run_diff` tool (the generated EBNF parser run over each
-grammar file) and gated, for the three tracked grammars `ebnf`/`json`/`regex`, by `make -C rust
-ebnf_frontend_dual_run_gate`. The live count is **12 of 12 tracked grammars — 12/12**, and
-this time for the right reason. The three raw IEEE-LRM *extraction snapshots*
-(`systemverilog_2017/2023_lrm_extracted`, `verilog_2005_lrm_extracted`) are traceability artifacts,
-not part of the tracked self-hosting set. The live count and per-gap history are tracked in
-`docs/book/src/roadmap-and-live-status.md` and the `GRAMMAR-WELLFORMED` task tree (`H.13`/`H.14`).
+grammar file) and gated by `make -C rust ebnf_frontend_dual_run_gate` over **14 of the 17 tracked
+grammars** — widened from the original three (`ebnf`/`json`/`regex`) by `LANG-CAPABILITY-AUDIT.10.6`
+part 2, which measured that all fourteen already passed the assertions the gate had always made and
+that the whole fourteen-grammar differential costs seconds. The three raw IEEE-LRM *extraction
+snapshots* (`systemverilog_2017/2023_lrm_extracted`, `verilog_2005_lrm_extracted`) are deliberately
+absent: the hand-written frontend rejects them, so there is no *pair* to diff. The live verdict count
+is **14 of 14**. The per-gap history is tracked in `docs/book/src/roadmap-and-live-status.md` and the
+`GRAMMAR-WELLFORMED` task tree (`H.13`/`H.14`/`H.20`).
+
+**But the verdict is the weaker half, and since `.10.6` part 2 it is no longer what this gate really
+asserts.** A verdict says the meta-parser *reads* a grammar; only an **envelope differential** says it
+reads it the *same way* — it projects the generated parser's typed AST into the hand-written
+frontend's `raw_ast` token vocabulary and diffs them token by token, in one process running both arms
+so the two sides can never be compared across stale artifacts. That is the real
+frontend-**replacement** verdict, and by it the live count is **6 of 14 envelope-equivalent**
+(`builtin_return_annotation`, `builtin_semantic_annotation`, `ebnf`, `rtl_const_expr`,
+`rtl_frontend`, `vhdl`) — `ebnf` among them, so the meta-grammar is self-hosting at *output* level and
+not merely at verdict level.
+
+The other eight are not a blanket pass. Each carries a **labelled divergence ceiling** and a
+*two-sided* ratchet: a count above the ceiling fails, and a count **below** it fails too, with a
+message to lower the ceiling — so a repair is banked rather than quietly lost. Live ceilings: `json` 2,
+`semantic_annotation` 6, `return_annotation` 6, `systemverilog_preprocessor` 15, `regex` 38,
+**`systemverilog` 155**, `systemverilog_lrm_profiled_generated` 317, and
+`systemverilog_lrm_profiled_wrapper` 1 399 (⚠️ that last is *not* a defect count — arm 1 resolves
+`include(…)` and splices in 1 398 rules while arm 2 stops at the directive, so the two arms describe
+different rule sets, and the report says so in its own `unresolved_include_directives` field).
+
+> ⛔ **A ceiling is LOWERED as the owning leaf lands its fix; it is never RAISED to let a change
+> land.** The one thing it may be raised for is an **adjudication of work that already shipped**, and
+> then only with every added row NAMED. `GRAMMAR-WELLFORMED.H.20` is the worked example: `systemverilog`
+> went 151 → 155 after ten commits touched the SV grammar over five days and three of them moved this
+> gate. A per-vintage census with the binary pinned attributed all four rows to an exact commit —
+> `covergroup_declaration_sv_2023`, `primary_dollar_sv_only`, and the pair
+> `kw_implements_e133e2cb`/`kw_implies_470cec58` — no new divergence *class* was created and no site
+> was lost. ⭐ Two of those four rows are **one** defect: deleting the single `@profiles:` line above
+> `kw_implies_470cec58` removes both and nothing else.
+>
+> ⭐⭐ **The argument for adjudicating rather than leaving it red is the one worth remembering: a gate
+> that is red for a KNOWN reason cannot report an UNKNOWN one.** While that row sat red, an envelope
+> regression on any of the other thirteen grammars would have changed nothing observable — the gate
+> already said `fail`. ⛔ And one of the four is **not** an accepted projection asymmetry at all but a
+> live frontend defect that reaches a shipped artifact, owned by `H.20.1`: the frontend *tracks* an
+> in-body comment inside a `->` return-annotation payload (so a `|` within it cannot terminate the
+> payload) but never *trims* it, so the comment text lands in the payload and ships verbatim in
+> `generated/systemverilog_return_annotations.json`. That leaf lowers this ceiling when it lands.
+
+⚠️ The report's divergence list is capped at 40 entries; set `PGEN_ENVELOPE_DUMP_ALL=1` to lift the
+cap. That cap is not cosmetic — it hid the `.13c.2i` row for roughly two and a half weeks, because the
+row sat past position 40.
 
 > ⛔ **This number went DOWN before it came back, and both moves were the measurement getting
 > honest.** From 2026-06-25 (`GRAMMAR-WELLFORMED.H.14.3`, release `1.0.147`) this chapter

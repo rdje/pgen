@@ -1,5 +1,73 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0176 — a red gate is a blind gate, and a divergence can hide another one
+
+**1. THE INSTRUMENT HAS TWO INPUTS, AND A CONTROL MUST PIN ONE OF THEM.** `ebnf_frontend_dual_run_gate`
+compares a hand-written frontend (arm 1) against the parser generated from `grammars/ebnf.ebnf`
+(arm 2), over a subject grammar. So the subject grammar and `ebnf.ebnf` are *both* inputs, and both had
+changed since the SV ceiling was pinned at 151 — ten commits on the SV grammar, one (`H.17.1`) on
+`ebnf.ebnf`. The control is therefore: build the binary once at HEAD, then feed it the SV grammar at two
+vintages. `0fd53da4` reproduces **exactly 151**; HEAD gives 155. Arm 2 contributed zero. ⭐ The reason
+this matters beyond bookkeeping: `H.17.1` had already published "pre-existing", proven by a
+*regenerate-the-parser* control. Re-running the same method would have repeated its blind spot; pinning
+the other axis is a second **method**, which is what leg 1 of the claim bar actually asks for.
+
+**2. `git log -S` IS NOT AN ATTRIBUTION TOOL FOR THIS QUESTION.** It reports commits where the *count*
+of a string changed. Two of the four new divergence rows sit on rules that already existed and only had
+their bodies moved, so `-S` attributed two of four and silently said nothing about the rest. Running the
+differential at all eleven SV grammar vintages with the binary pinned attributed **all four**, and
+additionally showed that seven of the ten vintages moved the count by zero and that **no site
+disappeared** — a fact no `-S` sweep can produce, and the one that rules out a silent trade.
+
+**3. A SURGICAL CONTROL IS WORTH MORE THAN A PLAUSIBLE CLASSIFICATION.** Each of the three mechanisms
+was proven by deleting exactly one thing from a scratch copy and re-measuring: the covergroup comment
+block (−1 row), the `@profiles` line above `primary_dollar_sv_only` (−1), the `@profiles` line above
+`kw_implies_470cec58` (−**2**). That last one is the finding: **two divergence rows, one defect.** The
+`.10.14` binding error shifts an annotation from the rule it precedes onto the previous rule, so it
+shows up twice — as a spurious token on rule *i* and a missing one on rule *i+1*. Measured across the
+whole list, 43 of 47 such rows pair, 31 of them byte-for-byte on the payload. Counting rows would have
+priced this defect at double.
+
+**4. THE DEFECT THE GATE FOUND IS NOT THE DEFECT THE GATE MEASURES.**
+`extract_inline_return_annotation_payload` (`ebnf_frontend.rs:713`) tracks comments only so that a `|`
+inside one cannot terminate a `->` payload; it never trims them, so the comment lands inside the payload
+and ships in `generated/systemverilog_return_annotations.json`. The envelope gate surfaces **4** of the
+**9** live instances — `data_type` and the four `net_declaration_*` annotations produce no divergence row
+at all. ⇒ *a gate can be the thing that discovers a defect and still be the wrong instrument for sizing
+it.* The census that sized it correctly was a direct sweep of all eleven shipped artifacts, and it is
+what turned "one odd row" into a closed population of 9 over 7 rules with 0 in ten other families.
+
+⭐ The bound that sizes the fix was also measured rather than assumed: `parse_covergroup_declaration_sv_2023`
+in the shipped 130 MB parser emits exactly `["extends", "single"]` and contains no `#`, no `FOOTNOTE`
+and no `SV-CORPUS-GRAD` in its 209 560 B body. Codegen consumes the leading `{ … }` and stops. So the
+blast radius is the inventory artifact and the shape gate's parser input — **not** parser behaviour and
+**not** any per-parser book's AST claim. That downgrades urgency without downgrading the obligation, and
+it removes a schema move from `H.20.1`'s acceptance.
+
+**5. THE PREDICTION I KEPT BECAUSE IT WAS WRONG.** Before running C4 I committed to `155 → 151` after
+the fix — the four comment-bearing rows disappear, arithmetic done. Measured: `155 → **152**`. The four
+do disappear, and `scoped_or_hierarchical_tf_identifier` returns as a *different* divergence
+(`semantic_annotation_inline → semantic_annotation`) that the first one had been hiding. **A divergence
+can mask another divergence at the same site.** The generalisation is the same one `.13c.2x.7` reached
+from the other direction: arithmetic on a ratchet count is a *prediction*, never a result. C4 is also
+honestly labelled a BOUND rather than the fix — it edits the grammar, `H.20.1` will edit the payload —
+so 152 is itself a prediction, now written down for `H.20.1` to falsify.
+
+**6. WHY THE RAISE IS LEGITIMATE, AND WHY LEAVING IT RED WAS NOT.** The script says a ceiling is never
+raised to land a change. Nothing of this leaf's was landing: the ten SV commits shipped days earlier,
+each under its own leaf and its own gates, so this is an adjudication of shipped work — the same shape as
+`.13c.2i`'s own 150 → 151, which is the precedent the file already contains. The decisive argument is the
+other way round: **a gate that is red for a known reason cannot report an unknown one.** For five days
+the gate said `fail`, so an envelope regression on any of the other thirteen grammars would have changed
+nothing observable. That is what the RED actually cost, and it is why `H.20.2` (the gate is in no
+automated tier, at 35 s warm) is the more valuable of the two leaves this closure opened.
+
+**7. LOCKSTEP CAUGHT A BOOK CLAIM TWO GENERATIONS STALE.** `grammar-wellformedness.md` published *"gated,
+for the three tracked grammars"* and *"12 of 12"*. Live: **14 of the 17** grammars are gated, all 14 pass
+the verdict, and only **6 of 14** are envelope-EQUIVALENT — a strictly stronger claim the page never
+mentioned at all. Every replacement number was re-derived from the gate's own `summary.csv` and the
+script's `envelope_divergence_ceiling()` rather than retyped from the run that printed them.
+
 ## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0173 — one report, two vintages, and a prediction worth writing down
 
 **1. THE MEASUREMENT SAID THE FIX MADE THINGS WORSE, AND IT WAS THE BINARY.** Landing the `=>` arm and
