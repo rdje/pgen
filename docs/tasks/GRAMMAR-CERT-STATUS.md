@@ -377,7 +377,8 @@ about one sample. A small-sample result is a claim about the sample until that i
 |---|---|---|
 | **B — trivia, unreachable BY DESIGN** (4) | `whitespace`, `line_comment`, `block_comment`, `doc_comment` | the grammar's own section header is *"WHITESPACE AND COMMENTS"* and `whitespace := /\s+/` is commented *"(ignored)"*. These are lexical/skip constructs; no production reaches them and none should. `block_comment` already carries a `GRAMMAR-WELLFORMED.H.17.1` adjudication in the grammar text. |
 | **C — a duplicate of the entry rule** (1) | `annotation` (line 36) | ⛔ its right-hand side is **byte-identical** to the entry `semantic_annotation` (line 32) — compared programmatically, not by eye: `"@" /\s*/ annotation_name /\s*/ ":" /\s*/ annotation_value`. It is unreachable from the entry because it **is a second copy of the entry**. |
-| **D — specialized value shapes never wired in** (24) | `precedence_value`+`precedence_level`+`precedence_associativity` · `constraint_value`+`constraint_type`+`constraint_expression` · `performance_value`+`complexity_spec`+`complexity_expr`+`memory_spec`+`memory_amount`+`memory_unit`+`timing_spec`+`time_amount`+`time_unit` · `version_value`+`semantic_version`+`version_range` · `exception_spec`+`exception_type` · `platform_spec`+`platform_name` · `union_type`+`intersection_type` | ⛔ **`annotation_value` routes to exactly four families** — `primitive_value \| structured_value \| expression_value \| reference_value` (line 101) — and to **none** of these. Six feature islands, each rooted at an unreferenced orphan, sitting under the grammar's own *"SEMANTIC PATTERNS AND SPECIALIZED VALUES"* header. They are written, and nothing routes to them. |
+| **A — LR-elimination artifact** (2) | `union_type`, `intersection_type` | ⛔⛔ **`.3` FIRST PUT THESE IN CLASS D AND THAT WAS WRONG — RETRACTED, see the correction below.** They are alternatives of `type_reference`, which `--lint-grammar` reports as *"ELIMINATED 1 left-recursive rule(s) on this grammar: type_reference"*, and the shipped parser carries `parse_type_reference_lr_base` / `parse_type_reference_lr_suffix`. Same class as `accessor_base`, one grammar over. |
+| **D — specialized value shapes never wired in** (22) | `precedence_value`+`precedence_level`+`precedence_associativity` · `constraint_value`+`constraint_type`+`constraint_expression` · `performance_value`+`complexity_spec`+`complexity_expr`+`memory_spec`+`memory_amount`+`memory_unit`+`timing_spec`+`time_amount`+`time_unit` · `version_value`+`semantic_version`+`version_range` · `exception_spec`+`exception_type` · `platform_spec`+`platform_name` | ⛔ **`annotation_value` routes to exactly four families** — `primitive_value \| structured_value \| expression_value \| reference_value` (line 101) — and to **none** of these. Six feature islands, each rooted at an unreferenced orphan, sitting under the grammar's own *"SEMANTIC PATTERNS AND SPECIALIZED VALUES"* header. They are written, and nothing routes to them. |
 
 - ⛔⛔ **THE PARTITION ITSELF WAS MIS-MEASURED ONCE AND CORRECTED BY RE-MEASURING, NOT BY REVIEW.**
   The first census counted rule names occurring **inside COMMENT lines** as references, and reported
@@ -394,6 +395,30 @@ about one sample. A small-sample result is a claim about the sample until that i
   the linter asks *is anything a stranded island*, the certificate pass asks *what can the generator
   reach from the declared entry*. Both are right, and the classes above are the difference between
   them.
+
+#### ⛔⛔ CORRECTION to `.3` as first committed (`3b9e009d`) — **2 of the 29 were in the WRONG CLASS**
+
+- **THE ERROR**: `union_type` and `intersection_type` were classified **D** (*"specialized value
+  shapes never wired in"*). They are **A** — PGEN's own LR-elimination artifact — exactly like
+  `accessor_base` in `return_annotation`. So class D is **22**, not 24, and the partition is
+  **2 + 4 + 1 + 22 = 29**, which still closes.
+- **HOW IT WAS CAUGHT**: not by re-reading. Checking whether any downstream consumer referenced the
+  22 before deciding their fate turned up `union_type` and `intersection_type` in
+  `docs/contracts/PGEN_SEMANTIC_ANNOTATION_PARSER_INTEGRATION_CONTRACT.md`, which states that
+  *"`type_reference` is left-recursive through four wrapper alternatives (`union_type`,
+  `intersection_type`, `array_type`, `optional_type`), so PGEN eliminates the recursion."* Verified
+  against the instruments rather than the contract: `--lint-grammar` names `type_reference` as the
+  eliminated rule, and the shipped parser carries `parse_type_reference_lr_base` /
+  `parse_type_reference_lr_suffix`.
+- ⛔ **ROOT CAUSE OF MY MISCLASSIFICATION**: I partitioned by *where the rules sit in the file* — the
+  six islands all live under the *"SEMANTIC PATTERNS AND SPECIALIZED VALUES"* banner — and
+  `union_type`/`intersection_type` do **not**; they sit at lines 472/475, inside the type system.
+  I swept them in with the islands because they shared the *symptom* (no reach path), never asking
+  whether they shared the *mechanism*. ⇒ **CLASSIFY BY MECHANISM, NOT BY THE SYMPTOM THEY SHARE** —
+  and note the tell was in the numbers all along: they were the only two class-D members with a
+  reference count above 1 that were not island-internal.
+- ⭐ **THE CONSUMER CHECK IS WHAT FOUND IT, AND IT WAS RUN FOR A DIFFERENT REASON.** It was meant to
+  ask *"would removing these break anyone"*; it answered *"two of them are not what you think"*.
 
 #### The decisions — no family and no class stays silent
 
@@ -475,8 +500,51 @@ about one sample. A small-sample result is a claim about the sample until that i
      a downstream consumer reads for those annotation kinds — a contract change, with
      `SV-CONTRACT-CURRENCY`-shaped obligations.
   2. **Declare them future work** and record it, leaving 24 rules honestly uncertifiable until then.
-- ⛔ **This is a SCOPE decision with a downstream contract consequence, so it is the director's, not
-  mine** — the boundary my standing instructions draw. Nothing is changed pending the answer.
+- ✅ **DIRECTOR DELEGATED THE CALL TO ME** (2026-08-23: *"it is yours to make but it got to be sota,
+  signoff"*). **DECISION: DO NOT WIRE THEM IN. REMOVE THEM.** They are superseded design, not
+  missing wiring. The evidence, measured before deciding:
+
+  1. ⭐⭐ **THE GRAMMAR ALREADY DOCUMENTS THE INTENDED SPELLING FOR EVERY ONE OF THESE ANNOTATION
+     KINDS, AND IT IS NOT THE UNWIRED ONE.** Its own examples block (lines 670+) specifies
+     `@precedence: {level: 5, associativity: "left"}` · `@constraint: {type: "requires", expression:
+     "x > 0"}` · `@performance: {complexity: "O(n)", memory: "O(1)"}` · `@platform: ["web", "mobile",
+     "desktop"]` · `@version: "2.1.0"`. Every one is a **structured or primitive** value — precisely
+     what `annotation_value` already routes to.
+  2. ⭐⭐ **AND ALL OF THEM PARSE TODAY.** Driven through `--interpret-parse` against the real
+     grammar, all five documented spellings return `accepted=true`. There is no gap to close.
+  3. ⛔⛔ **THE BESPOKE SPELLINGS THE UNWIRED RULES DEFINE ARE REJECTED TODAY** — `@precedence: 5
+     left` → `accepted=false … did not consume full input at position 15`; `@version: 1.2.3` →
+     `accepted=false … position 13`. (`@performance: O(n)` happens to be accepted, but through the
+     generic route, not through `complexity_spec`, which is unreachable.)
+  4. ⭐ **NOTHING CONSUMES THEM.** A search of `docs/contracts/` and `rust/src/` for all 22 returns
+     **zero** references. (It returned two — `union_type`, `intersection_type` — and those turned
+     out not to be class D at all; see the correction above.)
+- ⛔⛔ **THEREFORE WIRING THEM IN WOULD NOT COMPLETE THE GRAMMAR — IT WOULD FORK IT.** It would add a
+  SECOND accepted syntax for annotation kinds that already have a working, documented one, and with
+  it a **second AST shape per kind** (`@precedence: 5 left` → a `precedence` node;
+  `@precedence: {level: 5, …}` → a structured node). A consumer would then have to handle both for
+  the same annotation. That is a widening of the accept set, bought with a downstream ambiguity,
+  requested by nobody, and contradicted by the grammar's own documentation.
+- ⛔ **THE CORRECTION THIS DECISION RESTS ON, STATED PLAINLY**: when I surfaced this question I wrote
+  that `@precedence: 5 left` *"falls through to a generic `primitive_value`"*. **That was wrong and I
+  had not measured it** — it is REJECTED. The mistake mattered: it framed the choice as
+  *"structural parse vs. sloppy generic parse"*, which flatters wiring them in, when the real choice
+  is *"one documented syntax vs. two competing ones"*, which does not.
+- **DECIDED**: remove the 22 class-D rules and the class-C duplicate `annotation`. ⭐ **EFFECT ON
+  CERTIFICATION**: `semantic_annotation` goes **29 → 6** UNKNOWN, and both survivors are already
+  adjudicated — 2 LR-elimination artifacts and 4 trivia rules, the latter being the class whose
+  principled home is a verified unreachability PROOF. The grammar becomes exactly what it documents.
+- ⭐ **REVERSIBILITY, because a removal should say how to undo it**: the rules remain in git history
+  in full. If a consumer ever wants `@precedence: 5 left`, reviving them is a revert plus the wiring
+  — and at that point it would be a deliberate, requested surface addition with a contract bump,
+  which is the process this repository already has for such a change.
+- ⚠️ **PRIOR ART, per `DESIGN-PRIOR-ART`**: the search was the grammar's own documentation block and
+  the published integration contract. Both were read before deciding; the documentation block is
+  what settled it.
+- ⏭️ **IMPLEMENTATION IS A SEPARATE SLICE AND IS NOT DONE HERE**: it is a grammar edit that
+  regenerates the annotation parser PAIR the annotation backend links to generate **every other
+  family**, so it needs a regeneration, an `emission_sha` rebaseline and
+  `parse_harness_equivalence_gate` as the oracle that the shipped parse did not move.
 
 ## Acceptance Checklist (enforced)
 

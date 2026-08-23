@@ -69,18 +69,29 @@ seeds 0, 7 and 42, so this describes the grammars rather than one sample.
 |---|---|---|
 | **Whitespace and comments** | 4 | `whitespace`, `line_comment`, `block_comment`, `doc_comment` are lexical constructs the grammar itself marks *"(ignored)"*. No production reaches them and none should. |
 | **A duplicate of the entry rule** | 1 | `annotation` has a right-hand side **byte-identical** to the entry rule `semantic_annotation`. It is unreachable because it is a second copy of the start symbol. |
-| **Specialized value shapes that are written but not wired in** | 24 | Six complete feature islands — precedence, constraint, performance/complexity/memory/timing, version, exception, platform, plus union and intersection types — none of which `annotation_value` routes to. It offers exactly `primitive_value`, `structured_value`, `expression_value` and `reference_value`. |
+| **Left-recursion elimination artifacts** | 2 | `union_type` and `intersection_type` are alternatives of `type_reference`, which PGEN's own elimination pass replaced with `parse_type_reference_lr_base` / `_lr_suffix`. The same situation as `accessor_base` above — the language is covered, the names are not. |
+| **Specialized value shapes that are written but not wired in** | 22 | Six complete feature islands — precedence, constraint, performance/complexity/memory/timing, version, exception, platform — none of which `annotation_value` routes to. It offers exactly `primitive_value`, `structured_value`, `expression_value` and `reference_value`. |
 
-⭐ **The third class is a real product question, not a bug.** Wiring those shapes in would make
-`@precedence: 5 left` parse *structurally* rather than as a generic value — which changes the AST
-shape a downstream consumer reads for those annotations. It is therefore a scope decision with a
-contract consequence, and it is recorded as an open question rather than settled quietly.
+### The 22 unwired value shapes: decided — they will be removed
 
-⛔ **Two of the 31 are genuine dead weight** — `annotation` and `parenthesized` — and removing them
-would take these families to 28 and 1 unknown respectively without changing the accepted language.
-Both are owned by `GRAMMAR-CERT-STATUS.4`; the edit regenerates the annotation parser pair that
-every other family's generation depends on, so it is sequenced as its own slice rather than folded
-into a status update.
+Those rules define an **alternative syntax** for annotations that already have a working one. The
+grammar's own documentation specifies `@precedence: {level: 5, associativity: "left"}`,
+`@version: "2.1.0"`, `@platform: ["web", "mobile", "desktop"]` and their siblings — and **every one
+of those spellings parses today**, through the generic structured and primitive routes. The bespoke
+spellings the unwired rules would enable (`@precedence: 5 left`, `@version: 1.2.3`) are **rejected**
+today, nothing in the contracts or the source references them, and enabling them would give each
+annotation kind a *second* accepted syntax and a *second* AST shape for a consumer to handle.
+
+⇒ Wiring them in would not complete the grammar; it would fork it. They are removed instead, which
+takes `semantic_annotation` from **29 unknown to 6** — the 2 elimination artifacts and the 4 trivia
+rules, both already adjudicated. The rules stay in git history, so reviving them later is a revert
+plus a deliberate contract bump.
+
+⛔ **`annotation` and `parenthesized` are genuine dead weight too** — a duplicate start symbol and an
+unreferenced rule — and removing them changes nothing about the accepted language. Together with the
+22 above, this work is owned by `GRAMMAR-CERT-STATUS.4`; the edit regenerates the annotation parser
+pair that every other family's generation depends on, so it is sequenced as its own slice rather
+than folded into a status update.
 
 ⭐ **These numbers track live development, which is the point of deriving them.**
 `semantic_annotation` moved `115 / 84 witnessed / 31 unknown` → `119 / 90 / 29` when
