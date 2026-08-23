@@ -4607,6 +4607,55 @@ byte-identical to the corpus this leaf scored — recorded as RED 7 in `red_cont
   `score_corpus.py`, `ledger_vintages.py` and `verify_two_oracles.py` (probe-vintage asserted in both
   directions). All four locate the repo root by walking to `.git`, so they run from any cwd — unlike
   the `parents[N]` form that had left `score_pair.py` unrunnable.
+
+#### ⭐⭐⭐ PRIOR ART — THE INSTRUMENT ALREADY EXISTS, AND IT IS STRONGER AND CHEAPER THAN THE ONE THIS LEAF WAS ABOUT TO BUILD (measured 2026-08-23, `-0183`)
+
+⛔ **Searched before designing** (`feedback_read_prior_art_before_designing`), and it changes the
+leaf's shape. `--directed-generation-goal duality_break` (`STIMULI-SIGNOFF.4.4`, goal G2) already
+*"hunts generator-emitted-but-parser-REJECTED samples against the real generated parser"*, steers
+generation ADVERSARIALLY toward new rejection signatures, and shrinks each break to a minimal
+signature-preserving reproducer. It is strictly stronger than the blind own-corpus sampling
+`H.16.6c`–`H.16.6e` used — it scores against the **shipped parser**, not the interpreter, and it
+searches rather than samples — and it costs **~4 s per family for 1 000 samples, ~16 s for 4 000**.
+⇒ this leaf is wiring an existing instrument into a tier, not building a new one.
+
+⭐ It also gives `H.16.6e` a THIRD independent confirmation from a code path that leaf did not touch:
+`semantic_annotation` reads **`directed rejected 0/4000 unique_breaks=0`** against the shipped parser.
+
+**THE CENSUS ACROSS EVERY REGISTERED FAMILY** — `duality_break_sweep.sh`, rounds 5 × 200, seed 0,
+tracked beside this leaf in `artifacts/grammar_wellformed/self_rejection_watch/`:
+
+| family | directed | diverse | breaks | |
+|---|---|---|---|---|
+| `json` | 0/1000 | 0/1000 | 0 | clean |
+| `regex` | **9/1000** | 11/1000 | 1 | ⚠️ self-rejects |
+| `ebnf` | **176/1000** | 141/1000 | 1 | ⚠️ self-rejects — **17.6 %** |
+| `return_annotation` | 0/1000 | 0/1000 | 0 | clean |
+| `semantic_annotation` | 0/1000 | 0/1000 | 0 | clean |
+| `vhdl` | 0/1000 | 0/1000 | 0 | clean |
+| `rtl_const_expr` | **0/0** | 0/0 | 0 | ⛔ **ZERO SAMPLES — vacuous, not clean** |
+| `rtl_frontend` | 0/1000 | 0/1000 | 0 | clean |
+
+⛔ **`systemverilog` and `systemverilog_preprocessor` are NOT in this sweep** — they are the locked
+lane and their sweep is priced separately. Their absence is a STATED gap, not a pass.
+
+⛔⛔ **A `0/0` ROW READS AS CLEAN AND IS A HARD FAILURE.** `rtl_const_expr` reports
+`rejected 0/0 unique_breaks=0`; plain generation on that grammar exits with
+`Error: Stimuli generation depth exceeded max_depth=24 while expanding rule 'primary_expr'`. **A
+generation failure is reported in the PASSING direction** — the `a-control-that-cannot-fail`
+shape, in the one instrument this leaf was about to promote to a gate. ⇒ the wiring MUST print the
+sample COUNT beside every verdict and refuse a zero-sample row; the sweep script already does, and
+that requirement is now part of this leaf's acceptance. The generation failure itself is routed to
+**`H.23`**, not fixed here.
+
+⚠️ **ADJUDICATION THIS LEAF OWES BEFORE THE `ebnf` AND `regex` ROWS ARE CALLED FINDINGS.** They are
+MEASURED at HEAD; whether they are already owned under a different instrument's name — the regex
+`sample_parse_failures` line that `LEXICAL-ANNOTATIONS.5` drove to 3, or an `EBNF-SOURCE-OF-TRUTH`
+row — is an open question, and a number measured by a new instrument is not automatically a new
+defect. ⛔ Do not publish either as novel until that adjudication is done; **`ebnf` at 17.6 % of its
+own generated stimuli is foundationally surprising for the META-GRAMMAR** and deserves the check
+before it deserves the alarm.
+
 - **WHAT IT NEEDS**: the producers are already tracked and re-runnable, so this is WIRING, not design —
   a cheap tier gate that re-derives the OWN-CORPUS matrix at a pinned seed set and REFUSES on drift,
   with the corpus vintage pinned as an input (the `BASELINE-IDENTITY` shape), because `H.16.6c` proved
@@ -5732,6 +5781,26 @@ owning leaf, and `H.20.1` lowers the ceiling when it lands.
 - ⚠️ **NOT a duplicate of `CI-PARITY-GATE-ROT`'s hosted-workflow rows**: those concern the eleven
   `workflow_dispatch`-only hosted workflows (a deliberate Actions-minutes policy). This is about the
   LOCAL auto tier, where the policy does not apply and the cost is 35 s.
+
+### `H.23` — **A SHIPPED FAMILY'S STIMULI GENERATOR PRODUCES NOTHING AT ALL, AND THE INSTRUMENT THAT SHOULD SAY SO REPORTS IT AS `0/0` CLEAN** (`todo`, opened 2026-08-23 session #261 by `H.16.6f`'s prior-art sweep)
+
+- **MEASURED, one command.** `ast_pipeline grammars/rtl_const_expr.ebnf --generate-stimuli --count 5
+  --seed 0` exits with `Error: Stimuli generation depth exceeded max_depth=24 while expanding rule
+  'primary_expr'` and writes **no output file at all**. `rtl_const_expr` is a registered family with
+  a shipped `generated/rtl_const_expr_parser.rs`, and the DONE-BAR register carries it as
+  `Mostly Done`.
+- ⛔⛔ **AND THE FAILURE IS REPORTED IN THE PASSING DIRECTION.** The duality-break hunter on the same
+  grammar prints `directed rejected 0/0 unique_breaks=0 vs diverse baseline rejected 0/0`, which in
+  a table of families reads exactly like the clean rows beside it. A reader — or a gate — cannot
+  tell "nothing was rejected" from "nothing was generated". This is the
+  [[a-control-that-cannot-fail-is-not-a-control]] shape inside a shipped instrument.
+- **TWO SEPARABLE DEFECTS, and they should not be fixed together**: (a) the grammar or the depth
+  budget makes `primary_expr` unexpandable at `max_depth=24` — root-cause it with the toolbox before
+  touching either; (b) every reporter that summarises a generation run must publish the SAMPLE COUNT
+  and refuse a zero-sample verdict. (b) is engine-universal and is the one that made (a) invisible.
+- ⚠️ **Price the blast radius first**: if `--generate-stimuli` has never worked for this family, then
+  every claim resting on its generated stimuli — cert coverage, self-rejection, k-path — is vacuous
+  for `rtl_const_expr` and must be re-read rather than re-quoted.
 
 ## Current Frontier
 

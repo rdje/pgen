@@ -1,0 +1,15 @@
+DUALITY-BREAK-SWEEP  rounds=5 samples_per_round=200 seed=0
+  a row is the SHIPPED parser's verdict on stimuli the grammar's own generator emitted
+  family                   directed   diverse    breaks   note
+  json                     0/1000     0/1000     0        clean
+  regex                    9/1000     11/1000    1        ⚠️ SELF-REJECTS
+  ebnf                     176/1000   141/1000   1        ⚠️ SELF-REJECTS
+  return_annotation        0/1000     0/1000     0        clean
+  semantic_annotation      0/1000     0/1000     0        clean
+  vhdl                     0/1000     0/1000     0        clean
+  rtl_const_expr           0/0        0/0        0        ⛔ ZERO SAMPLES — vacuous, not clean
+  rtl_frontend             0/1000     0/1000     0        clean
+
+  ⛔ systemverilog / systemverilog_preprocessor are NOT swept here — they are the locked
+     lane and their sweep is priced separately; their absence is a STATED gap, not a pass.
+DUALITY-BREAK-SWEEP: zero_sample_families=1
