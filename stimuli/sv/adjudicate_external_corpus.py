@@ -1160,6 +1160,10 @@ def expect_ispras_v2005(relpath: str, text: str):
 # ⛔ THESE SIX WERE FOUND ONLY BECAUSE THE SWEEP WAS PARAMETERIZED BY LANE. The leaf was
 # cut from the sv_2017 axis-2 worklist, none of that lane's 19 files appear here, and
 # stopping at the lane the task named would have shipped a half fix that looked complete.
+# The tracked IEEE 1364-2005 Annex A extraction every v2005 pin below cites by line. Named
+# once so a re-extraction that moves the file has ONE place to update, not seven.
+V2005_ANNEX_A = "docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt"
+
 V2005_LRM_PINNED = {
     "ivtest/ivltests/br988.v": (
         "must_reject", "pinned .3.15: bare begin/end generate_block at line 7 - "
@@ -1215,6 +1219,84 @@ V2005_LRM_PINNED = {
     "ivtest/ivltests/pr1787423b.v": (
         "must_reject", "pinned .13c.2k: line 68 `pulldown (pd1, pd2);` - the same construct as "
         "pr1787423.v, same clause (IEEE 1364-2005 A.3.1:362, ONE output_terminal), same ruling"),
+    # ---- SV-CORPUS-GRAD.13e.2 (PGEN-SV-CORPUS-GRAD-0284) ------------------------------------
+    # The seven v2005-lane `unexplained_rejects_valid` rows that leaf .13e.1 SURFACED when 147
+    # rows stopped being silent. Each was adjudicated against the tracked IEEE 1364-2005 LRM
+    # (Annex A + the clause bodies), never against what PGEN does, and each carries a MEASURED
+    # accepting control isolating exactly one difference (Protocol B step 4).
+    #
+    # ⛔ THE FILE NAMES SUGGESTED THREE CLUSTERS AND MEASUREMENT REFUTED TWO OF THEM. The real
+    # population is FIVE constructs, and the `partsel_outside_*` pair is not about part-selects
+    # at all: `arr[-'d1 +: 2]` PARSES (control g_partsel), and both files stop on an unbased
+    # unsized `'x` in their self-checking `if`. Naming a cluster from a filename is a guess.
+    #
+    # ⭐ THREE of the seven are keyed `type: "CE"` upstream — the file is EXPECTED not to
+    # compile.
+    # They reached this lane because `_gold_has_syntax_error()` searches the golden for the
+    # literal words "syntax error" and iverilog says something else ("is an Icarus Verilog
+    # extension", "Empty UDP table."). Two of those three descriptors ALSO carry an explicit
+    # non-standard extension flag in their own `iverilog-args` (`-gxtypes`, `-gno-icarus-misc`)
+    # that `effective_gen()`/`gen_source()` do not read, so their basis line says "the compiler's
+    # own default" about a row the descriptor configured by hand — routed to .13e.3.
+    "ivtest/ivltests/br_gh1087b.v": (
+        "must_reject", "pinned .13e.2: line 3 `wire bool [7:0] b;` gives a NET a data type. "
+        "IEEE 1364-2005 A.2.1.3 net_declaration (" + V2005_ANNEX_A + ":153) admits only "
+        "`net_type [signed] [delay3] list_of_net_identifiers ;` or a form whose `range` follows "
+        "the net_type directly - there is no net data type, so `bool` can only fill "
+        "net_identifier and `[7:0]` its dimension (A.2.3:221), leaving `b` with no derivation, "
+        "which is exactly where PGEN stops. `bool` is a CADENCE EXTENDED TYPE the descriptor "
+        "enables ITSELF (`iverilog-args: [\"-gxtypes\"]`), and the golden is an ELABORATION "
+        "error - upstream's parser accepted it only with a non-standard extension switched on. "
+        "Control: `wire [7:0] b;` parses"),
+    "ivtest/ivltests/br_gh552.v": (
+        "must_reject", "pinned .13e.2: lines 8-9 use `~&` and `~|` as BINARY operators. "
+        "IEEE 1364-2005 A.8.6 binary_operator (" + V2005_ANNEX_A + ":954) lists neither; both "
+        "appear only "
+        "under unary_operator (:952) and unary_module_path_operator (:957). Upstream says the "
+        "same in its own words - the descriptor passes `-gno-icarus-misc` and the golden reads "
+        "`The binary NAND operator is an Icarus Verilog extension. Use -gicarus-misc to enable "
+        "it.` Control: `a & b` parses"),
+    "ivtest/ivltests/partsel_outside_const.v": (
+        "must_reject", "pinned .13e.2: line 15 `outside_const !== 'x` is an UNBASED UNSIZED "
+        "literal. IEEE 1364-2005 A.8.7 decimal_number (" + V2005_ANNEX_A + ":978) admits "
+        "`x_digit` only "
+        "after a `decimal_base`, and binary_/octal_/hex_number (:983-985) each require their own "
+        "base, so bare `'x` has no derivation - it is SystemVerilog's unbased_unsized_literal. "
+        "The vendored compiler agrees against itself: stimuli/sv/subs/iverilog/lexor.lex:516 "
+        "warns `Using SystemVerilog 'N bit vector. Use at least -g2005-sv` and TEMPORARILY sets "
+        "`generation_flag = GN_VER2005_SV` (:522) to lex it. NOT the construct the file is named "
+        "for - `arr[-'d1 +: 2]` (line 12) parses, measured. Control: `r !== 2'bxx` parses"),
+    "ivtest/ivltests/partsel_outside_expr.v": (
+        "must_reject", "pinned .13e.2: line 16 `outside_expr !== 'x` - the same unbased unsized "
+        "literal as partsel_outside_const.v, same clause (IEEE 1364-2005 A.8.7 decimal_number, "
+        + V2005_ANNEX_A + ":978), same ruling, same lexor.lex:516/:522 self-testimony. The "
+        "named construct "
+        "`arr[uoffset +: 2]` (line 13) parses"),
+    "ivtest/ivltests/timing_check_syntax.v": (
+        "must_reject", "pinned .13e.2: line 12 `$setup(posedge sig1 , negedge sig2 , 0:0:0);` "
+        "passes a min:typ:max triple as the timing_check_limit. IEEE 1364-2005 A.7.5.2 "
+        "(" + V2005_ANNEX_A + ":800) AND clause 15.5.2 "
+        "(docs/verilog/2005/txt/section-15-timing-checks.txt:92) both define "
+        "`timing_check_limit ::= expression` - not mintypmax_expression, which the SAME argument "
+        "box spends on end_edge_offset (:84), stamptime_condition (:89) and start_edge_offset "
+        "(:90), so the distinction is deliberate rather than an omission. iverilog is a superset "
+        "by its own grammar: stimuli/sv/subs/iverilog/parse.y:3746 "
+        "`delay_value : expression | expression ':' expression ':' expression`. "
+        "Control: `$setup(posedge s1, negedge s2, 0);` parses"),
+    "ivtest/ivltests/timing_check_delayed_signals.v": (
+        "must_reject", "pinned .13e.2: line 13 `$setuphold(posedge sig1, negedge sig2 , 0:0:0 , "
+        "0:0:0 , ...)` - the same min:typ:max timing_check_limit as timing_check_syntax.v, same "
+        "clauses (IEEE 1364-2005 A.7.5.2 " + V2005_ANNEX_A + ":800 and clause 15.5.2 "
+        "docs/verilog/2005/txt/section-15-timing-checks.txt:92), same ruling"),
+    "ivtest/ivltests/udp_empty_table_fail.v": (
+        "must_reject", "pinned .13e.2: lines 7-8 are an EMPTY `table ... endtable`. IEEE "
+        "1364-2005 A.5.3 (" + V2005_ANNEX_A + ":483/:485) is "
+        "`combinational_body ::= table combinational_entry { combinational_entry } endtable` and "
+        "`sequential_body ::= [ udp_initial_statement ] table sequential_entry "
+        "{ sequential_entry } endtable` - the FIRST entry is mandatory in both, so an empty "
+        "table has no derivation and PGEN stops exactly after `table`. The file's own header "
+        "says `Check that an empty old-style UDP table generates an error` and the golden is "
+        "`error: Empty UDP table.` Control: the same primitive with two entries parses"),
 }
 
 

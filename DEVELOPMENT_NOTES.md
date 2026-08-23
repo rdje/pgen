@@ -1,5 +1,58 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0284 — the filename is a hypothesis, and I nearly shipped it as a finding
+
+**1. THE CLUSTERS I WAS HANDED WERE WRONG, AND THEY WERE WRONG IN THE CONFIDENT DIRECTION.** The
+leaf opened with *"the names already suggest three clusters, which is why they are listed rather
+than counted"* — a good instinct that still produced a wrong map. Two of the three did not survive
+contact with the parser. `partsel_outside_const.v` / `partsel_outside_expr.v` are not about
+part-selects: the construct they are named for, `arr[-'d1 +: 2]`, **parses**, and both files stop on
+an unbased unsized `'x` in their *self-checking `if`* — scaffolding, not subject. Had I pinned them
+with a part-select clause cite, the pin would have read plausibly, passed every gate, and been
+false. ⇒ **`furthest_position=` before taxonomy, always. A filename is a hypothesis about a file,
+and this repository already has a doctrine for hypotheses: measure it.**
+
+**2. THE CONTROL IS THE PART THAT MAKES THE REFUTATION PUBLISHABLE.** Observing that `'x` fails does
+not by itself prove the part-select is fine — the parse could have been dying earlier and reporting
+a later high-water mark. What settles it is a control that contains the part-select and *nothing
+else contentious*: `control_v2005_partsel_negative_base.sv` parses. That row is now tracked
+precisely so the next reader cannot re-derive the wrong cluster from the same filenames.
+
+**3. THE NAMING HINT WAS RIGHT ABOUT ONE ROW AND SILENT ABOUT TWO MORE OF THE SAME KIND.**
+`udp_empty_table_fail.v` was singled out because `_fail` hints the text is meant to be invalid. It
+is. But `br_gh1087b.v` and `br_gh552.v` carry the **same upstream key** — `type: "CE"`, compile
+error expected — and nothing in their names says so. A hint that fires on 1 of 3 members of a class
+is worse than no hint, because it feels like coverage. **The key was in the descriptor the whole
+time, one `cat` away.**
+
+**4. SEVEN-FOR-SEVEN IN MY OWN FAVOUR IS A RESULT THAT HAS TO BE ATTACKED, NOT CELEBRATED.** Every
+row resolved to *"the parser is right, the expectation is wrong"* — the flattering direction, and
+exactly the shape `CLAIM_VERIFICATION.md` §1 warns about. What makes it publishable is that the
+falsifying evidence came from **an oracle I did not build and could not tune**: the vendored
+compiler's own golden logs and source. iverilog's message *"The binary NAND operator is an Icarus
+Verilog extension"*, its lexer warning *"Use at least -g2005-sv"* before it will lex `'x`, and its
+`delay_value` production admitting a min:typ:max triple the LRM's `timing_check_limit ::=
+expression` does not — three independent statements, by the tool whose testimony was being
+overruled, that the constructs are non-standard. A seven-for-seven result read off the LRM alone
+would have been consistent with *"I read the LRM the way I wanted to"*; this one is not.
+
+**5. THE HOLE THIS EXPOSED POINTS THE SAME WAY THE DEFECTS DID.** Both adjudicator holes routed to
+`.13e.3` fail toward `must_accept`: an unread extension flag and a golden whose wording is not in
+the parse-stage vocabulary both end with *"upstream compiled it, so PGEN should too."* ⇒ **the
+answer-key's failure mode is to INVENT rejects-valid defects**, which is the direction a burn-down
+campaign will chase for weeks and never question, because finding work looks like diligence. Worth
+stating plainly next to the burn-down number: **a rejects-valid count is only as trustworthy as the
+key that produced it**, and this key has now been measured wrong twice in two leaves.
+
+**6. A DEFECT FOUND WHILE CHECKING SOMETHING ELSE, THAT THE CORPUS STRUCTURALLY CANNOT REPORT.**
+`.13e.4` exists because I asked whether `integer unsigned uoffset = -'d1;` was a *second*
+non-derivable construct in `partsel_outside_expr.v`. It is, and PGEN **accepts** it. So that file is
+at once a correct reject (its `'x`) and a live over-acceptance (its `integer unsigned`) — and no
+verdict-level census can ever say so, because the file has exactly one verdict and it is already
+`fail`. ⇒ **over-acceptances hide inside rejected files, and only reading the rejected text finds
+them.** That is an argument for construct-level adjudication over row-level counting, and it is now
+owned rather than noted.
+
 ## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0282 — the caution that cost more than the measurement it avoided
 
 **1. I NEARLY DEFERRED THIS ON A HAZARD THAT DOES NOT EXIST.** The reclassification needed the v2005

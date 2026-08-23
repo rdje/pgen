@@ -2643,9 +2643,38 @@ observation was simply unused.
 > `GN_VER2005 = 4`. ⇒ they compile as plain IEEE 1364-2005 and belong in the `verilog_2005` lane.
 > ⛔ **Routing them was only legitimate because that lane then answers them, and it does:
 > 107 of the 147 receive a verdict there** (84 `match`, 16 explained, **7 new
-> `unexplained_rejects_valid`** — genuine defect signal that was invisible while the rows were
-> silent), with the other 40 landing on the receiving lane's own *named* deferrals. `dark` fell
-> 4 393 → 4 366, the 27 dark members of the moved set. Earlier, `SV-CORPUS-GRAD.13c.2v` moved the
+> `unexplained_rejects_valid`** — new defect *signal* that was invisible while the rows were
+> silent, adjudicated immediately below), with the other 40 landing on the receiving lane's own
+> *named* deferrals. `dark` fell 4 393 → 4 366, the 27 dark members of the moved set.
+>
+> ⭐⭐ **And `SV-CORPUS-GRAD.13e.2` then adjudicated all seven, and all seven are CORRECT
+> REJECTS** — the *expectation* was the defect, seven times, each for a different IEEE 1364-2005
+> clause: a net carrying a data type (A.2.1.3), `~&`/`~|` used as binary operators (A.8.6), an
+> unbased unsized `'x` (A.8.7), a min:typ:max triple where `timing_check_limit ::= expression`
+> (A.7.5.2 **and** clause 15.5.2), and an empty UDP table (A.5.3). The v2005 arm moved
+> `unexplained_rejects_valid` **60 → 53** with **`accepts_invalid` unmoved at 14**, the bar
+> unmoved at **275** and the tuple above unchanged — an adjudication correction, **zero parser
+> bytes**, every construct still rejected.
+>
+> ⛔⛔ **The file names proposed three clusters and measurement refuted two of them.** From the
+> names alone the seven look like a part-select pair, a timing-check pair, and three one-offs.
+> Measured, the population is **five constructs**, and the part-select cluster does not exist:
+> `arr[-'d1 +: 2]` **parses**, and both `partsel_outside_*` files stop on an unbased unsized `'x`
+> sitting in their *self-checking `if`* — scaffolding, not subject. A pin written from the
+> filename would have read plausibly, passed every gate, and been false. ⇒ **`furthest_position=`
+> before taxonomy; a filename is a hypothesis about a file, not a finding.** The refutation is now
+> a tracked control, so the wrong cluster cannot be re-derived from the same names.
+>
+> ⭐ **A seven-for-seven result in one's own favour has to be attacked, not celebrated**, and what
+> makes this one publishable is that the falsifying evidence comes from an oracle this project did
+> not build: the vendored compiler's own artifacts. iverilog's golden log says *"The binary NAND
+> operator is an Icarus Verilog extension"*; its lexer warns *"Use at least -g2005-sv"* and
+> temporarily switches its own generation flag to SystemVerilog before it will lex `'x`; its
+> grammar admits the min:typ:max triple the LRM's `timing_check_limit` does not. Three independent
+> statements, by the tool whose testimony was being overruled, that the constructs are
+> non-standard. Each verdict is pinned as a two-sided reproducer with an accepting control, so the
+> day some unrelated relaxation lands, that text starts passing and the suite goes **red** rather
+> than the pass rate quietly improving. Earlier, `SV-CORPUS-GRAD.13c.2v` moved the
 > bar **282 → 275** by restoring the
 > `[ std :: ] randomize_call` alternative IEEE 1800 A.8.2 gives `primary`. PGEN renders `primary`'s
 > call alternative as `call_primary` — the postfix-chain rule the left-recursion lift authored —

@@ -7,7 +7,7 @@
 | input | repo-root-relative path | sha256 |
 |---|---|---|
 | sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `cb279a4c224a298023a182edea4f30cb3d20bba48e02efb374ba8dce716f503c` |
-| v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `043d4e97d61c516240142e247693b135b9a79b3315b963ae8f7429e98b470d3a` |
+| v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `585ef13a002d4c37f79a652364e942594a0c26e6e6c2342b3f382d41a052cd41` |
 
 ## The headline
 
