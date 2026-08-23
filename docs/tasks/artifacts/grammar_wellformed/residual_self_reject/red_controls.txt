@@ -1,0 +1,43 @@
+GRAMMAR-WELLFORMED.H.16.6c — PROOF THAT EACH INSTRUMENT CAN GO RED
+==================================================================
+An instrument that cannot fail is not evidence. Each guard below was FIRED on purpose.
+
+### RED CONTROL 1 — build_delimiter_arms.py REFUSES on a missing anchor
+A silently-skipped substitution would produce an arm byte-identical to the control, which
+would then score as widen=0/narrow=0 and read as "the mechanism is cleared".
+Ran a copy with the `url_reference` anchor replaced by a string absent from the grammar:
+
+  arm0_pristine.ebnf       excluded=''          anchors_edited=0 chars=24932
+  build_delimiter_arms: REFUSED — anchor 'url_reference' occurs 0 times (want exactly 1)
+  exit code 1
+
+⛔ The FIRST attempt at this control failed for the WRONG reason — the broken copy was
+   written outside the artifacts directory, so `parents[5]` resolved to a path with no
+   `grammars/` and it died on FileNotFoundError before ever reaching the anchor check. A
+   nonzero exit is not by itself proof the guard fired; the control was re-run at the
+   correct directory depth and the REFUSAL line above is the real one.
+
+### RED CONTROL 2 — ledger_arms.py REFUSES when the control accepts nothing
+An arm that fails to LOAD rejects every input and would read as a maximal NARROW rather
+than as an error. Ran with a one-rule stub as arm0_pristine:
+
+  scored arm0_pristine.ebnf       accepted=0     rejected=0     no_verdict=1000
+  scored arm1_close.ebnf          accepted=990   rejected=10    no_verdict=0
+  ledger_arms: REFUSED — the CONTROL accepts nothing; the harness is broken
+  exit code 1
+
+### RED CONTROL 3 — attribute_rejects.py hard-errors on an oracle disagreement
+Every row is scored by BOTH the code-disjoint interpreter (reads the .ebnf) and the SHIPPED
+generated parser, and the run exits nonzero if any row's verdict or furthest_position
+differs. On the eight residual stimuli: `oracle_disagreements=0`, so the shipped parser
+independently confirms every reject and every furthest position the interpreter reported.
+
+### ⛔ AND ONE INSTRUMENT OF MINE WAS WRONG, KEPT HERE RATHER THAN QUIETLY FIXED
+`attribute_rejects.py` originally published `arrow_in_minimal_core` — a TEXT-CONTAINMENT
+test asking whether the shrunk core contains `=>`. It read 6 arrow / 2 not. The controlled
+arm proves the real split is 5 greedy-terminal / 3 arrow-reach: three cores contain `=>`
+and are still not caused by it (#0397, #0812, #0938 — in each, a path or URL swallows a
+delimiter and the arrow is merely nearby text). The field is renamed
+`arrow_text_in_minimal_core`, the headline says "NOT causal", and the docstring names the
+ledger as the authority. ⭐ A containment test over the input text is a test about the TEXT;
+only an arm that removes the mechanism is a test about the MECHANISM.

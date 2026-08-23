@@ -1,0 +1,114 @@
+{
+  "corpus": "corpus_pristine.txt",
+  "n": 1000,
+  "ledger": {
+    "arm1_close.ebnf": {
+      "widen": [
+        [
+          294,
+          "@   K7Mdj    : #{   [ftp://98eS]   ,    (      )   ,    {JZe   , T4v    ,    JP7u3   ,   wAB   , oCom} ,  null ,%o}"
+        ],
+        [
+          397,
+          "@   verified:   { \"\"\"\"\"\"   : (  )    , ...  LMD    , ...(  {      }   , m3  ,  IW )   =>  file://p!-6,    [ 411e+579    ]:   \"\\E@\", ...[    ]    }"
+        ],
+        [
+          416,
+          "@  aFH    :    [ ../x3N]"
+        ],
+        [
+          812,
+          "@A:    {   ...(     )    ,    [MF    (   )    ]    :{    Z3k   ,   S66 }    ,  [    (   )    ]:  [     ]=>nil    ,   [ G    =>ftp://f]    :    $ pIjsE.s.vTMA.eE  }"
+        ],
+        [
+          938,
+          "@public    :J7Pc_ =>  {  -0=>  {  }    ,   nil =>no , 0o1430   => 5.4189e4   ,\";\" =>../3|z}"
+        ]
+      ],
+      "narrow": [
+        [
+          16,
+          "@    beta :  ./}. "
+        ],
+        [
+          149,
+          "@    R_VcA    :    ~/}vP"
+        ],
+        [
+          188,
+          "@    throws :   /SH}2"
+        ],
+        [
+          764,
+          "@ side_effect    : (   [        ]   )=>    iTAHX. wq   .   T  .L72J .    Q(   L17d   :    file://,T  )"
+        ],
+        [
+          843,
+          "@copyright :   /!, "
+        ],
+        [
+          855,
+          "@example :    { BJI .    Vab  .O_l5    (    )=>    #{      },    -757.56e+883    =>    (    )  =>../]&}  }"
+        ],
+        [
+          907,
+          "@lkVt:    ('\\*',  r\"\" , ~/bRk]     )"
+        ]
+      ]
+    },
+    "arm2_arrow.ebnf": {
+      "widen": [
+        [
+          294,
+          "@   K7Mdj    : #{   [ftp://98eS]   ,    (      )   ,    {JZe   , T4v    ,    JP7u3   ,   wAB   , oCom} ,  null ,%o}"
+        ],
+        [
+          397,
+          "@   verified:   { \"\"\"\"\"\"   : (  )    , ...  LMD    , ...(  {      }   , m3  ,  IW )   =>  file://p!-6,    [ 411e+579    ]:   \"\\E@\", ...[    ]    }"
+        ],
+        [
+          416,
+          "@  aFH    :    [ ../x3N]"
+        ],
+        [
+          812,
+          "@A:    {   ...(     )    ,    [MF    (   )    ]    :{    Z3k   ,   S66 }    ,  [    (   )    ]:  [     ]=>nil    ,   [ G    =>ftp://f]    :    $ pIjsE.s.vTMA.eE  }"
+        ],
+        [
+          938,
+          "@public    :J7Pc_ =>  {  -0=>  {  }    ,   nil =>no , 0o1430   => 5.4189e4   ,\";\" =>../3|z}"
+        ]
+      ],
+      "narrow": [
+        [
+          16,
+          "@    beta :  ./}. "
+        ],
+        [
+          149,
+          "@    R_VcA    :    ~/}vP"
+        ],
+        [
+          188,
+          "@    throws :   /SH}2"
+        ],
+        [
+          764,
+          "@ side_effect    : (   [        ]   )=>    iTAHX. wq   .   T  .L72J .    Q(   L17d   :    file://,T  )"
+        ],
+        [
+          843,
+          "@copyright :   /!, "
+        ],
+        [
+          855,
+          "@example :    { BJI .    Vab  .O_l5    (    )=>    #{      },    -757.56e+883    =>    (    )  =>../]&}  }"
+        ],
+        [
+          907,
+          "@lkVt:    ('\\*',  r\"\" , ~/bRk]     )"
+        ]
+      ]
+    }
+  }
+}

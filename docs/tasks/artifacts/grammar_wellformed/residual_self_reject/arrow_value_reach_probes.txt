@@ -1,0 +1,23 @@
+### route 1 — lambda_expression: the LHS must be a lambda_parameter (an IDENTIFIER)
+  accept [annotation_value  ] a => b
+  accept [annotation_value  ] a => ""
+  reject [annotation_value  ] %RXCy => b
+  reject [annotation_value  ] 'F+|=' => b
+### route 2 — implication_expr: BOTH sides must be logical_or_expr
+  accept [logical_or_expr   ] a
+  accept [logical_or_expr   ] 0x4F
+  accept [logical_or_expr   ] 72e10
+  accept [logical_or_expr   ] $ 2.H
+  reject [logical_or_expr   ] %RXCy
+  reject [logical_or_expr   ] "x"
+  reject [logical_or_expr   ] 'F+|='
+  accept [annotation_value  ] 0x4F => b
+### the three residual rows — outside BOTH routes
+  reject [annotation_value  ] %RXCy   =>    72e10
+  reject [annotation_value  ] 0x4F=>   ""
+  reject [annotation_value  ] 'F+|='=>  $ 2.H
+### and the CHAIN itself is innocent — the control that clears the leaf's framing
+  accept [annotation_value  ] { a => b => c }
+  accept [annotation_value  ] { a => b }
+  reject [annotation_value  ] { W => %RXCy => 72e10 }
+ARROW-VALUE-REACH: all expectations held

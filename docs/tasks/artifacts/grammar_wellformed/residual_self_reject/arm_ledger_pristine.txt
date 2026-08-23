@@ -1,0 +1,33 @@
+scored arm0_pristine.ebnf       accepted=992   rejected=8     no_verdict=0
+scored arm1_close.ebnf          accepted=990   rejected=10    no_verdict=0
+scored arm2_arrow.ebnf          accepted=990   rejected=10    no_verdict=0
+
+ACCEPT-SET-LEDGER: arm=arm1_close.ebnf widen=5 narrow=7
+    WIDEN  #0294 @   K7Mdj    : #{   [ftp://98eS]   ,    (      )   ,    {JZe   , T4v    ,    JP7u3   ,   wAB   , oCom} ,  null ,%o}
+    WIDEN  #0397 @   verified:   { """"""   : (  )    , ...  LMD    , ...(  {      }   , m3  ,  IW )   =>  file://p!-6,    [ 411e+579    ]:   "\E@", ...[    ]    }
+    WIDEN  #0416 @  aFH    :    [ ../x3N]
+    WIDEN  #0812 @A:    {   ...(     )    ,    [MF    (   )    ]    :{    Z3k   ,   S66 }    ,  [    (   )    ]:  [     ]=>nil    ,   [ G    =>ftp://f]    :    $ pIjsE.s.vTMA.eE  }
+    WIDEN  #0938 @public    :J7Pc_ =>  {  -0=>  {  }    ,   nil =>no , 0o1430   => 5.4189e4   ,";" =>../3|z}
+    NARROW #0016 @    beta :  ./}. 
+    NARROW #0149 @    R_VcA    :    ~/}vP
+    NARROW #0188 @    throws :   /SH}2
+    NARROW #0764 @ side_effect    : (   [        ]   )=>    iTAHX. wq   .   T  .L72J .    Q(   L17d   :    file://,T  )
+    NARROW #0843 @copyright :   /!, 
+    NARROW #0855 @example :    { BJI .    Vab  .O_l5    (    )=>    #{      },    -757.56e+883    =>    (    )  =>../]&}  }
+    NARROW #0907 @lkVt:    ('\*',  r"" , ~/bRk]     )
+
+ACCEPT-SET-LEDGER: arm=arm2_arrow.ebnf widen=5 narrow=7
+    WIDEN  #0294 @   K7Mdj    : #{   [ftp://98eS]   ,    (      )   ,    {JZe   , T4v    ,    JP7u3   ,   wAB   , oCom} ,  null ,%o}
+    WIDEN  #0397 @   verified:   { """"""   : (  )    , ...  LMD    , ...(  {      }   , m3  ,  IW )   =>  file://p!-6,    [ 411e+579    ]:   "\E@", ...[    ]    }
+    WIDEN  #0416 @  aFH    :    [ ../x3N]
+    WIDEN  #0812 @A:    {   ...(     )    ,    [MF    (   )    ]    :{    Z3k   ,   S66 }    ,  [    (   )    ]:  [     ]=>nil    ,   [ G    =>ftp://f]    :    $ pIjsE.s.vTMA.eE  }
+    WIDEN  #0938 @public    :J7Pc_ =>  {  -0=>  {  }    ,   nil =>no , 0o1430   => 5.4189e4   ,";" =>../3|z}
+    NARROW #0016 @    beta :  ./}. 
+    NARROW #0149 @    R_VcA    :    ~/}vP
+    NARROW #0188 @    throws :   /SH}2
+    NARROW #0764 @ side_effect    : (   [        ]   )=>    iTAHX. wq   .   T  .L72J .    Q(   L17d   :    file://,T  )
+    NARROW #0843 @copyright :   /!, 
+    NARROW #0855 @example :    { BJI .    Vab  .O_l5    (    )=>    #{      },    -757.56e+883    =>    (    )  =>../]&}  }
+    NARROW #0907 @lkVt:    ('\*',  r"" , ~/bRk]     )
+
+full ledger -> docs/tasks/artifacts/grammar_wellformed/residual_self_reject/delimiter_arm_ledger.json

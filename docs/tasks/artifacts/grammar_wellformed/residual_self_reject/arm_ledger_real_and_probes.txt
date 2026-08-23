@@ -1,0 +1,19 @@
+### the containment arms over the REAL corpus (149 @name: lines the tracked grammars ship)
+scored arm0_pristine.ebnf       accepted=140   rejected=9     no_verdict=0
+scored arm1_close.ebnf          accepted=140   rejected=9     no_verdict=0
+scored arm2_arrow.ebnf          accepted=140   rejected=9     no_verdict=0
+
+ACCEPT-SET-LEDGER: arm=arm1_close.ebnf widen=0 narrow=0
+
+ACCEPT-SET-LEDGER: arm=arm2_arrow.ebnf widen=0 narrow=0
+
+
+### the containment arms over the HAND-AUTHORED discriminating probes (62 rows, tracked beside H.16.6a)
+scored arm0_pristine.ebnf       accepted=49    rejected=13    no_verdict=0
+scored arm1_close.ebnf          accepted=49    rejected=13    no_verdict=0
+scored arm2_arrow.ebnf          accepted=49    rejected=13    no_verdict=0
+
+ACCEPT-SET-LEDGER: arm=arm1_close.ebnf widen=0 narrow=0
+
+ACCEPT-SET-LEDGER: arm=arm2_arrow.ebnf widen=0 narrow=0
+

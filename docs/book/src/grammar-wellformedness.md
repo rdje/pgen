@@ -1271,6 +1271,86 @@ produced a parser that panicked on its own derivation tape rather than mis-parsi
 repair is not "remember all six": it is **one predicate with six callers**, plus a test that pins the
 caller count at six and fails if any site re-spells the decision by hand.
 
+### A fourth way: the terminal matches too much, and eats the delimiter that must follow it
+
+The three mechanisms above share a symptom — a terminal that can **never** match. The fourth,
+found by `GRAMMAR-WELLFORMED.H.16.6c`, has the opposite symptom and is harder to attribute for
+exactly that reason: the terminal matches **too much**, and what it swallows is the byte its own
+*enclosing* rule was waiting for.
+
+`grammars/semantic_annotation.ebnf` spells four value terminals as *any run of non-whitespace*:
+
+```ebnf
+absolute_path := /\/[^\s]*/
+relative_path := /\.\.?\/[^\s]*/
+home_path     := /~\/[^\s]*/
+url_reference := /(https?|ftp|file):\/\/[^\s]+/
+```
+
+`]`, `}`, `)` and `,` are not whitespace. So a path or URL written immediately before a collection's
+closing delimiter consumes it, and the collection can never close. The whole diagnosis is four
+`--interpret-parse` runs at `--interpret-entry-rule annotation_value`:
+
+| input | verdict |
+|---|---|
+| `../x3N` | **accept** — the literal is fine on its own |
+| `[ x3N]` | **accept** — the array is fine on its own |
+| `[ ../x3N]` | **reject** |
+| `[ ../x3N ]` — one added space | **accept** |
+
+and one that names the mechanism outright: `ftp://98eS]` — bracket included — parses as a *whole*
+`annotation_value`. The terminal really did take the `]`.
+
+#### Why reading the input cannot attribute this, and what can
+
+These rows arrived as residual **self-rejected stimuli** — inputs the grammar's own generator emitted
+that the same grammar refuses — sitting beside an unrelated, genuine `=>` ambiguity. Eight rows, and
+the obvious move is to read them and sort them into *arrow* and *not-arrow*. That reading was made,
+and it was wrong: it split them 4/4 where the true split is **5 delimiter-swallowing · 3 arrow**, and
+it mis-assigned rows in both directions. A row like `@public : J7Pc_ => { … ";" => ../3|z}` reads as
+an arrow problem and is a path problem; the arrow next to it is innocent bystander text.
+
+A text search is not much better. Asking *"does the minimal failing fragment contain `=>`"* is a
+question about the **text**; it answered 6/2 and was also wrong. Only a question about the
+**mechanism** attributes correctly — a scratch copy of the grammar with the four character classes
+narrowed, re-scored input by input against the unmodified control:
+
+```text
+ACCEPT-SET-LEDGER: arm=arm1_close.ebnf widen=5 narrow=7
+```
+
+Five rows newly accepted, by name, and nothing else moved. That *is* the attribution.
+
+#### A net count hides the direction, and a derived corpus moves under you
+
+Two traps sit on top of this measurement, and both are general.
+
+The containment arm rejects **10** of the fixed corpus where the control rejects **8**, which reads
+as *"the fix is worse"*. It is not: the per-input ledger says `widen=5 narrow=7`, and every one of
+those seven narrowed rows is an input whose path literal *contains* a delimiter — a row the narrowed
+generator can no longer emit. Scoring a narrowing fix against a corpus its own predecessor generated
+charges it for inputs that would cease to exist. Against stimuli each grammar generates *itself*, the
+same arms read **15 → 1** and **15 → 0** over 3 200 samples.
+
+And the corpus is derived from the artifact under test. Re-running the recorded recipe
+(`--generate-stimuli --count 200 --seed {0,7,42,123,999}`, deduped) at a later commit reproduced the
+row count exactly — 1 000 unique — and was still a *different* 1 000, because an intervening grammar
+change had moved the generator's choice structure. ⇒ **when a corpus is generated from the grammar,
+the corpus vintage is part of the measurement's identity**; a regenerated corpus is a new experiment,
+not a re-run of the old one.
+
+#### The linter is blind to this, and says so with a zero
+
+`--lint-grammar` reports `left_recursion_unhandled=0`, `non_terminating=0`,
+`ordered_choice_shadowing=0` — byte-identically on the grammar whose terminal provably eats its
+enclosing collection's closer and on both arms that fix it. That is the same fail-open the `=>`
+ambiguity exposed: the two readings never compete at a single choice point, so no choice-point
+analysis can see them. The static class that would catch both is tracked as
+`GRAMMAR-WELLFORMED.H.21`, and it must be measured against **both** witnesses — a shared token at
+different depths, and a character class that quietly contains a structural delimiter — or it will
+close one and fail open on the other.
+
+
 ### Reaching deep recursive branches: the constructive-reach witness pass
 
 `rtl_const_expr` was the first grammar to expose a structural gap in the witness side, and the way it was

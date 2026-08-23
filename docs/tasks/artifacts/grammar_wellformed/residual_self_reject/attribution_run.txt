@@ -1,0 +1,28 @@
+REJECT-ATTRIBUTION: grammar=semantic_annotation.ebnf corpus=corpus_pristine.txt rejected=8 arrow_TEXT_in_core=6 no_arrow_text=2 oracle_disagreements=0  ⛔ text-containment, NOT causal — see ledger_arms.py
+
+#0294 [no-=>] core_furthest=24 at='://98eS]   }' shrink=5 -> 1 elements
+        core: @   K7Mdj    : #{   [ftp://98eS]   }
+        stack: semantic_annotation > annotation_value > structured_value > set_value > set_element > annotation_value > structured_value > array_value > array_element > annotation_value > reference_value > type_reference > type_reference_lr_base > generic_type
+#0397 [has-=>] core_furthest=59 at='://p!-6}' shrink=5 -> 1 elements
+        core: @   verified:   { ...(  {      }   , m3  ,  IW )   =>  file://p!-6}
+        stack: semantic_annotation > annotation_value > structured_value > object_value > object_property > spread_property > annotation_value > structured_value > tuple_value > tuple_element > annotation_value > structured_value > map_value > map_entry > map_key > map_key_expression > arithmetic_expression > multiplicative_expr > power_expr > unary_expr > primary_expr > function_call > function_name
+#0416 [no-=>] core_furthest=17 at='../x3N]' shrink=1 -> 1 elements
+        core: @  aFH    :    [ ../x3N]
+        stack: semantic_annotation > annotation_value > structured_value > array_value > array_element > annotation_value > expression_value > arithmetic_expression > multiplicative_expr > power_expr > unary_expr > primary_expr > function_call > function_name
+#0538 [has-=>] core_furthest=66 at="'F+|='=>  $ " shrink=4 -> 1 elements
+        core: @  pQ    : { (  ILXkB  ,[   ], b1eDw   ,{      }  ,  [ ])   =>    'F+|='=>  $ 2.H  }
+        stack: semantic_annotation > annotation_value > structured_value > map_value > map_entry > map_key > structured_value > tuple_value > tuple_element > annotation_value > structured_value > array_value > array_element > annotation_value > expression_value > arithmetic_expression > multiplicative_expr > power_expr > unary_expr > primary_expr > function_call > function_name
+#0787 [has-=>] core_furthest=62 at='""  }' shrink=5 -> 1 elements
+        core: @ type:  { [   J5zl  ,    e4d    ,    JH    ]    =>  0x4F=>   ""  }
+        stack: semantic_annotation > annotation_value > structured_value > map_value > map_entry > annotation_value > expression_value > logical_expression > implication_expr > logical_or_expr > logical_and_expr > logical_not_expr > comparison_expression > additive_comparison_expr > multiplicative_expr > power_expr > unary_expr > primary_expr > function_call > function_name
+#0812 [has-=>] core_furthest=23 at='://f]    :  ' shrink=4 -> 1 elements
+        core: @A:    {   [ G    =>ftp://f]    :    $ pIjsE.s.vTMA.eE  }
+        stack: semantic_annotation > annotation_value > structured_value > object_value > object_property > property_key > computed_key > annotation_value > expression_value > logical_expression > implication_expr > logical_or_expr > logical_and_expr > logical_not_expr > comparison_expression > additive_comparison_expr > multiplicative_expr > power_expr > unary_expr > primary_expr > numeric_literal
+#0875 [has-=>] core_furthest=27 at='RXCy   =>   ' shrink=5 -> 1 elements
+        core: @handles    :   { W  =>   %RXCy   =>    72e10   }
+        stack: semantic_annotation > annotation_value > structured_value > map_value > map_entry > map_key > map_key_expression > conditional_expression > logical_expression > implication_expr > logical_or_expr > logical_and_expr > logical_not_expr > comparison_expression > additive_comparison_expr > multiplicative_expr > power_expr > unary_expr > primary_expr > function_call > function_name
+#0938 [has-=>] core_furthest=84 at='../3|z}' shrink=not-a-collection
+        core: @public    :J7Pc_ =>  {  -0=>  {  }    ,   nil =>no , 0o1430   => 5.4189e4   ,";" =>../3|z}
+        stack: semantic_annotation > annotation_value > expression_value > lambda_expression > annotation_value > structured_value > map_value > map_entry > map_key > map_key_expression > conditional_expression > logical_expression > implication_expr > logical_or_expr > logical_and_expr > logical_not_expr > comparison_expression > additive_comparison_expr > multiplicative_expr > power_expr > unary_expr > primary_expr > function_call > function_name
+
+full attribution -> docs/tasks/artifacts/grammar_wellformed/residual_self_reject/reject_attribution.json

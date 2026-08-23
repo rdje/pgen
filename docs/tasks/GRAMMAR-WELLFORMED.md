@@ -3982,24 +3982,259 @@ unowned**: routed to `H.16.4a`'s sibling queue as `H.21` below.
   `T` and `B` requires it? Engine-universal, and it should be measured against a CLOSED population of
   all shipped grammars before being made an error class (`H.17.2` is the precedent: it became a hard
   error only after being reproduced from a disjoint code path over all 12 grammars).
+- ⭐⭐ **A SECOND INDEPENDENT WITNESS, FROM A DIFFERENT MECHANISM (`H.16.6c`, 2026-08-23).** The four
+  `path_reference`/`url_reference` terminals are spelled `[^\s]`, so a path or URL abutting `]`, `}`,
+  `)` or `,` SWALLOWS its enclosing collection's closer and the collection can never close.
+  `--lint-grammar` reads `left_recursion_unhandled=0 non_terminating=0 ordered_choice_shadowing=0` —
+  **byte-identical** on that grammar and on both containment arms that fix it. ⇒ the fail-open is not
+  specific to the shared-token/different-depth shape this leaf was opened for: a terminal whose
+  character class silently includes a STRUCTURAL DELIMITER is invisible to the same class. Whatever
+  static formulation this leaf lands must be measured against BOTH witnesses, or it will close one
+  and fail open on the other.
 
-### `H.16.6c` — **THE 8 RESIDUAL SELF-REJECTED STIMULI ARE THE ARROW COLLISION IN THE *VALUE* POSITION** (`todo`, opened 2026-08-22 session #258 by `H.16.6a`)
+### `H.16.6c` — **THE EIGHT RESIDUAL SELF-REJECTED STIMULI ARE FIVE GREEDY PATH/URL TERMINALS AND THREE ARROW-REACH GAPS; THE 4/4 ARROW SPLIT WAS A READING AND IT IS REFUTED** (**`done`**, `PGEN-GRAMMAR-WELLFORMED-0180`, doc+artifact tier — opened 2026-08-22 session #258 by `H.16.6a`, CLOSED 2026-08-23 session #260)
 
-- **WHY**: arm (a+) takes the grammar's self-rejection of its own generated stimuli from **18 of
+- **WHY**: arm (a+) took the grammar's self-rejection of its own generated stimuli from **18 of
   1 000 → 8**, with `narrow=0` proving the 8 are a PRE-EXISTING subset rather than anything the arm
-  introduced. `map_key` constrains the KEY; `map_entry`'s VALUE is still a full `annotation_value`,
-  so a chained `k => v1 => v2` is read as one entry whose value is itself an arrow expression.
-- **THE 8** (`--interpret-parse` on `arm_aplus_mapkey_all.ebnf`, seeds 0/7/42/123/999). ⚠️ Shown as
-  VALUES only, with the generator's random annotation name elided — the names carry no information and
-  quoting them verbatim here reads to `check_design_prior_art.sh` as a proposal for new directives
-  named `handles`/`public`. The full lines are tracked verbatim in `accept_set_ledger.json` and are
-  re-derivable from the recorded seeds. Four look arrow-related — `{ … W => %RXCy => 72e10 … }`,
-  `{ … [J5zl,e4d,JH] => 0x4F=> "" … }`, `J7Pc_ => { -0=> { } … }`, `{ … (…) => { } =>{ … } … }` — and
-  four do not (`#{…}`, a `{…}` with computed keys, `[ ../x3N]`, a `{…}` with a spread).
-  ⛔ **That split is by READING, not by tool, so it is a hypothesis and the leaf's first job is to
-  attribute all 8 with `PGEN_TRACE_VERBOSITY=debug --trace-rules`, not to assume it.**
-- ⚠️ **Sequence AFTER `H.16.6b`** — measuring a value-position fix against a key-position fix that has
-  not landed would price the wrong baseline.
+  introduced. The leaf opened with a hypothesis — that all 8 are *"the arrow collision in the VALUE
+  position"*, split 4 arrow / 4 not — and with an explicit instruction not to trust it: *"that split
+  is by READING, not by tool, so it is a hypothesis and the leaf's first job is to attribute all 8."*
+  ⭐ **The instruction was right and the hypothesis was wrong.** The measured split is **5 greedy
+  path/URL terminal · 3 arrow-reach**, and the reading mis-assigned rows in BOTH directions.
+
+#### ✅ THE CONTROL REPRODUCES EXACTLY, AND REPRODUCING IT IS WHAT EXPOSED THE FIRST DEFECT
+
+Re-derived on the code-disjoint interpreter (`ast_pipeline <g>.ebnf --interpret-parse`, TOOLBOX 1.5b):
+
+| grammar | corpus | rejected |
+|---|---|---|
+| pre-(a+) (`dcc2e2d8`) | pre-(a+) stimuli, 1 000 unique | **18** — `H.16.6a`'s control, reproduced |
+| HEAD (`2b5b26ea`) | the SAME 1 000 | **8** — `H.16.6a`'s result, reproduced |
+
+⛔⛔ **BUT MY FIRST RUN READ 3, NOT 8, AND THE REASON IS A PROPERTY OF THE METRIC ITSELF.** I
+regenerated the stimuli at HEAD, exactly as the recorded recipe says (`--generate-stimuli --count 200
+--seed {0,7,42,123,999}`, deduped, 1 000 unique — the count matched to the row), and scored **3**.
+The corpus is **GENERATED FROM the grammar**, so arm (a+)'s four new rules moved the generator's
+choice structure and the 1 000 rows are a DIFFERENT 1 000. `cmp` on the two corpora: they differ.
+⇒ **"the grammar self-rejects N of its own stimuli" has two readings and they disagree** —
+
+- **FIXED-CORPUS** (hold the pre-(a+) corpus constant): the only correct reading for a before/after
+  ledger, because a moving corpus makes the delta unattributable. This is the reading `18 → 8` was
+  measured under, and it is reproduced above.
+- **OWN-CORPUS** (score each grammar on stimuli IT generated): the honest reading of *"its OWN
+  stimuli"*, and the only one under which a NARROWING fix is not charged for rows its own generator
+  would never emit. HEAD reads **3 / 1 000**.
+
+Both are now recorded in `self_reject_matrix.txt`. ⭐ **The transferable part: when a corpus is
+derived from the artifact under test, the corpus is part of the measurement's identity — a
+regenerated corpus is a new experiment, not a re-run of the old one.**
+
+#### ROOT CAUSE (WHY + WHERE) OF FIVE OF THE EIGHT — A TERMINAL THAT EATS ITS ENCLOSING DELIMITER
+
+`grammars/semantic_annotation.ebnf`, four terminals, all spelled `[^\s]` — *any non-whitespace*:
+
+```ebnf
+absolute_path := /\/[^\s]*/                          # :525
+relative_path := /\.\.?\/[^\s]*/                     # :528
+home_path     := /~\/[^\s]*/                         # :531
+url_reference := /(https?|ftp|file):\/\/[^\s]+/      # :535
+```
+
+`]`, `}`, `)` and `,` are all non-whitespace. So a path or URL that ABUTS a structural delimiter
+swallows it and the enclosing collection can never close. Measured, at `--interpret-entry-rule
+annotation_value`:
+
+| input | verdict |
+|---|---|
+| `../x3N` | **accept** |
+| `[ x3N]` | **accept** |
+| `[ ../x3N]` | **reject** |
+| `[ ../x3N ]` (one space before the `]`) | **accept** |
+| `ftp://98eS]` — the bracket alone, as a whole value | **accept** ⇐ the terminal ate the `]` |
+| `[ftp://a, b]` / `[ftp://a , b]` | **reject** / **accept** |
+
+⛔ The literal is innocent in isolation and guilty only in context, which is why every by-eye reading
+of these rows named the wrong noun: `#0416` was read as *"`[ ../x3N]`, not arrow-related"* — correct
+verdict, wrong reason, and the reason is the whole finding.
+
+#### THE ATTRIBUTION IS A CONTROLLED ARM, NOT A READING — AND IT WIDENS EXACTLY FIVE
+
+`build_delimiter_arms.py` builds scratch copies (⛔ never the shipped grammar) whose four terminals
+exclude the delimiters, each substitution a verbatim literal replace that REFUSES on a missing or
+non-unique anchor. `ledger_arms.py` then scores every arm per input against the control:
+
+```
+ACCEPT-SET-LEDGER: arm=arm1_close.ebnf widen=5 narrow=7      # excludes  , ] } )
+ACCEPT-SET-LEDGER: arm=arm2_arrow.ebnf widen=5 narrow=7      # plus      = >
+```
+
+The five widened rows are **`#0294 #0397 #0416 #0812 #0938`** — by name, and nothing else moves.
+⇒ **five of the eight are the greedy terminal; the remaining three are untouched by it.**
+
+⛔ **`10 > 8` IS NOT "THE ARM IS WORSE", AND A NET COUNT CANNOT SAY WHICH.** Both arms reject 10 of
+the fixed corpus versus the control's 8. The per-input ledger shows why: `narrow=7`, and all seven
+narrowed rows are inputs whose path/URL literal CONTAINS a delimiter (`./}.`, `~/}vP`, `/SH}2`,
+`/!,`, `file://,T`, `../]&}`, `~/bRk]`) — rows the un-narrowed generator emits and the narrowed
+generator, by construction, cannot. **Scoring a narrowing fix on the corpus its own predecessor
+generated charges it for rows that would no longer exist.** Under the OWN-CORPUS reading:
+
+| grammar | own corpus, 5 seeds / 1 000 | own corpus, 16 FRESH seeds / 3 200 |
+|---|---|---|
+| HEAD | 3 | **15** |
+| `arm1_close` (`, ] } )`) | 0 | **1** |
+| `arm2_arrow` (`, ] } ) = >`) | 0 | **0** |
+
+⛔ **The 5-seed zero for `arm1_close` is SEED LUCK, and quoting it alone would have been a claim the
+larger sample refutes.** The 16-seed run finds one survivor — `@ PpgR : [ { http://PYJ=>  http://aFC } ]`,
+where the URL swallows the ARROW rather than a bracket. Only `arm2_arrow` reaches zero. All 15 of
+HEAD's 16-seed residuals contain a path or URL abutting a delimiter, so the class is the same one at
+2.1× the sample.
+
+**Blast radius of the containment, measured on two corpora neither arm was tuned against:**
+`widen=0 narrow=0` for BOTH arms over the **149** real `@name:` lines the tracked grammars ship AND
+over the **62** hand-authored discriminating probes tracked beside `H.16.6a`. ⚠️ That real corpus also
+independently REPRODUCES `H.16.6a`'s oracle — **9 of 149** rejected, the `@transform:`/`@generate:`
+families, from a fresh extraction: 9 = 9.
+
+#### THE OTHER THREE ARE THE ARROW — AND THE PRECISE RULE IS NOT THE ONE THE LEAF ASSUMED
+
+The leaf framed the residual as *"`map_entry`'s VALUE is still a full `annotation_value`, so a chained
+`k => v1 => v2` reads as one entry"* — i.e. the value position accepts too MUCH. **Measured, it accepts
+too LITTLE.** `arrow_value_reach_probes.sh` (19 probes, all expectations held) establishes:
+
+> an arrow `X => Y` is an `annotation_value` **iff** X is an `identifier_literal` (route 1 —
+> `lambda_expression`, after which Y is unrestricted) **or** X and Y are both `logical_or_expr`
+> (route 2 — `implication_expr`). `logical_or_expr` reaches identifiers, numbers and rule-references
+> but **not** strings, char literals or symbol references.
+
+The chain itself is innocent: `{ a => b => c }` **accepts**. Each residual row falls outside both routes:
+
+| row | value half | why both routes fail |
+|---|---|---|
+| `#0875` | `%RXCy => 72e10` | `%RXCy` is a `symbol_reference` — not an identifier, not a `logical_or_expr` |
+| `#0787` | `0x4F => ""` | `0x4F` is not an identifier (route 1); `""` is not a `logical_or_expr` (route 2) |
+| `#0538` | `'F+|=' => $ 2.H` | a char literal is neither |
+
+⇒ `H.16.6b` gave the KEY a dedicated `map_key`; the VALUE still relies on the union of the three
+arrow reaches `H.16.6a` censused, and that union does not cover `any => any`. Routed to `H.16.6e`.
+
+#### ⛔ AND ONE OF MY OWN INSTRUMENTS PUBLISHED THE WRONG SPLIT — CORRECTED IN THE ARTIFACT, NOT QUIETLY
+
+`attribute_rejects.py` shrinks each rejected input by a bracket- and quote-aware ddmin over the
+value's top-level elements (the `@ name :` prefix and the value's own brackets held fixed, so a
+candidate can never collapse to garbage), then reads the deepest `rule_stack` the SHIPPED parser
+reports. It also published `arrow_in_minimal_core` — a **TEXT-CONTAINMENT** test asking whether the
+minimal core contains `=>`. It read **6 arrow / 2 not**. The controlled arm proves **5 / 3**: three
+cores contain `=>` and are still not caused by it (`#0397`, `#0812`, `#0938` — in each a path or URL
+swallows a delimiter and the arrow is merely adjacent text). The field is renamed
+`arrow_text_in_minimal_core`, the headline says *"NOT causal"*, and the docstring names the ledger as
+the authority. ⭐⭐ **A containment test over the input text is a test about the TEXT; only an arm
+that removes the mechanism is a test about the MECHANISM.** The instrument also reported the ORIGINAL
+line's `furthest_position` beside the SHRUNK core — a byte offset the core does not have; it now
+re-measures on the core.
+
+#### ⛔ THE LINT IS BLIND TO THIS, EXACTLY AS IT WAS BLIND TO THE ARROW DEFECT
+
+`--lint-grammar` reads `left_recursion_unhandled=0 non_terminating=0 ordered_choice_shadowing=0` —
+**identical** on the grammar that provably lets a terminal eat its enclosing collection's closing
+delimiter and on both arms that do not. Same fail-open shape `H.21` already owns; this is a SECOND
+independent witness for it, from a different mechanism, and it is recorded there.
+
+#### Claim verification (`docs/CLAIM_VERIFICATION.md`) — all three legs, leg 3 NAMED
+
+1. **RE-DERIVE by command** — five tracked, re-runnable producers under
+   `docs/tasks/artifacts/grammar_wellformed/residual_self_reject/`: `build_delimiter_arms.py`,
+   `ledger_arms.py`, `attribute_rejects.py`, `score_pair.py`, `arrow_value_reach_probes.sh`. Raw
+   outputs tracked beside them: `attribution_run.txt`, `arm_ledger_pristine.txt`,
+   `arm_ledger_real_and_probes.txt`, `self_reject_matrix.txt`, `arrow_value_reach_probes.txt`,
+   `reject_attribution.json`, `delimiter_arm_ledger.json`, `red_controls.txt`.
+2. **FALSIFY against an oracle I did not build + prove the control can go RED.**
+   - *Independent oracle*: every one of the 1 000 rows is scored by BOTH the interpreter (reads the
+     `.ebnf`; immune to a stale binary) AND the SHIPPED generated parser
+     (`parseability_probe --parse semantic_annotation`), and `attribute_rejects.py` exits nonzero on
+     any disagreement in verdict OR `furthest_position`. Measured: **`oracle_disagreements=0`**.
+   - *Second independent oracle*: the real-corpus **9 of 149** reproduces `H.16.6a`'s independently
+     derived number exactly, from a fresh extraction.
+   - *Controls proven able to fail*, all three fired on purpose and recorded in `red_controls.txt`:
+     `build_delimiter_arms` REFUSES on a missing anchor; `ledger_arms` REFUSES when the control
+     accepts nothing; `arrow_value_reach_probes.sh` REFUSES when the binary is absent (it fired for
+     real — the first version resolved the repo root one directory short). ⛔ **And the first attempt
+     at the anchor control failed for the WRONG reason** — the broken copy was written outside the
+     artifacts directory, so it died on `FileNotFoundError` before reaching the anchor check. A
+     nonzero exit is not by itself proof a guard fired; it was re-run at the correct depth.
+3. **DURABILITY** — producers TRACKED, results TRACKED, ruling recorded here. ⚠️ **Leg 3 is NAMED,
+   not met: no gate WATCHES these numbers.** Nothing re-runs the self-rejection matrix, so a future
+   grammar edit can move it silently — the same gap `H.16.6a` named and `H.16.6b` did not close.
+   Routed to `H.16.6f`, which is where it becomes wiring rather than a note.
+
+#### Routed out — every finding OWNED, none merely reported (repo policy §15)
+
+- **`H.16.6d`** — LAND the delimiter containment on the four path/URL terminals. That is a CODE change
+  (grammar bytes ⇒ regeneration ⇒ `generated_reproducibility_rebaseline` ⇒ shape-contract ⇒ book +
+  contract lockstep), deliberately not ridden along inside this measurement slice, so the accept-set
+  delta stays attributable by name. ⚠️ It carries a real language decision the arm ledger prices but
+  does not settle: containment NARROWS an unquoted top-level path that legitimately contains `}` or
+  `,`. `arm2_arrow` reaches zero self-rejects but also forbids `=` in a URL, which a query string
+  legitimately uses — so the choice between `arm1_close`, `arm2_arrow` and a lookahead formulation is
+  the leaf's first job, not a foregone conclusion.
+- **`H.16.6e`** — the three arrow-reach rows: an arrow in the map VALUE position is admissible only
+  through `lambda_expression` (identifier LHS) or `implication_expr` (both sides `logical_or_expr`),
+  and the generator emits arrows outside both.
+- **`H.16.6f`** — WATCH the self-rejection matrix. Leg 3 for this leaf and for `H.16.6a`/`H.16.6b`.
+- **`H.21`** (existing, extended not re-opened) — a second independent witness that
+  `ordered_choice_shadowing` fails open: it is `0` on a grammar whose terminal eats its enclosing
+  collection's delimiter.
+
+### `H.16.6d` — **LAND THE DELIMITER CONTAINMENT: A PATH OR URL TERMINAL MUST NOT EAT ITS ENCLOSING COLLECTION'S CLOSER** (`todo`, opened 2026-08-23 session #260 by `H.16.6c`)
+
+- **WHY, already measured** — `grammars/semantic_annotation.ebnf` `:525` `absolute_path`, `:528`
+  `relative_path`, `:531` `home_path`, `:535` `url_reference` are all spelled `[^\s]`, so a path or
+  URL abutting `]`, `}`, `)` or `,` swallows it. `ftp://98eS]` parses as a whole `annotation_value`;
+  `[ftp://98eS]` does not. A scratch containment arm widens **exactly** the five residual rows
+  `#0294 #0397 #0416 #0812 #0938` and moves nothing else, and takes the OWN-CORPUS self-rejection
+  from **15 → 1** (`arm1_close`) or **15 → 0** (`arm2_arrow`) over 3 200 samples on 16 fresh seeds.
+  Full pricing, both arms, three corpora: `docs/tasks/artifacts/grammar_wellformed/residual_self_reject/`.
+- ⚠️ **THE LANGUAGE DECISION IS OPEN AND IS THIS LEAF'S FIRST JOB — the ledger prices it, it does not
+  settle it.** Containment NARROWS an unquoted top-level path that legitimately contains `}` or `,`
+  (seven such rows exist in the pre-(a+) stimuli). `arm2_arrow` reaches zero but also forbids `=` in
+  a URL, which a query string legitimately uses. Three candidate formulations — `arm1_close`,
+  `arm2_arrow`, and a `!(...)` lookahead that stops the terminal only where a collection is actually
+  open — must be scored before one is picked. ⛔ Measured on the shipped corpora, both arms are
+  `widen=0 narrow=0` over the 149 real `@name:` lines and the 62 hand-authored probes, so no shipped
+  annotation is at stake either way.
+- **CODE change** ⇒ grammar bytes ⇒ regeneration ⇒ `generated_reproducibility_rebaseline` ⇒
+  shape-contract ⇒ book + contract lockstep. Deliberately split from `H.16.6c` so the accept-set
+  delta is attributable by name (the `H.16.7`/`H.16.7a` precedent).
+
+### `H.16.6e` — **AN ARROW IN THE MAP *VALUE* POSITION IS ADMISSIBLE ONLY THROUGH TWO NARROW ROUTES, AND THE GENERATOR EMITS ARROWS OUTSIDE BOTH** (`todo`, opened 2026-08-23 session #260 by `H.16.6c`)
+
+- **WHY, already measured** (`arrow_value_reach_probes.sh`, 19 probes, all expectations held): an
+  arrow `X => Y` is an `annotation_value` iff X is an `identifier_literal` (route 1 —
+  `lambda_expression`, Y then unrestricted) or X and Y are both `logical_or_expr` (route 2 —
+  `implication_expr`). `logical_or_expr` reaches identifiers, numbers and rule-references but not
+  strings, char literals or symbol references. The chain itself is innocent — `{ a => b => c }`
+  accepts.
+- **THE THREE ROWS**: `#0875` `%RXCy => 72e10` (symbol-reference LHS), `#0787` `0x4F => ""` (string
+  RHS blocks route 2, non-identifier LHS blocks route 1), `#0538` `'F+|=' => $ 2.H` (char-literal LHS).
+- ⛔ **The framing `H.16.6c` inherited is refuted and must not be re-adopted**: the value position
+  does not accept too MUCH (a chain read as one entry) — it accepts too LITTLE. `H.16.6b` gave the KEY
+  a dedicated `map_key`; the VALUE still relies on the union of the three arrow reaches `H.16.6a`
+  censused, and that union does not cover `any => any`.
+- **Sequence AFTER `H.16.6d`** — measuring a value-position change against a terminal fix that has not
+  landed would price the wrong baseline, exactly as `H.16.6c` was sequenced after `H.16.6b`.
+
+### `H.16.6f` — **NOTHING WATCHES THE SELF-REJECTION MATRIX — LEG 3 FOR `H.16.6a`, `H.16.6b` AND `H.16.6c`** (`todo`, opened 2026-08-23 session #260 by `H.16.6c`)
+
+- **WHY**: three consecutive leaves have published accept-set and self-rejection numbers and all three
+  named leg 3 (DURABILITY) as NOT MET. No gate re-runs the ledger or the matrix, so a future grammar
+  edit moves them silently. `H.16.6a` named the gap and routed it to `H.16.6b`; `H.16.6b` landed the
+  language change without closing it; `H.16.6c` names it again. ⛔ **A gap logged three times by three
+  leaves and fixed zero times is the `CI-PARITY-GATE-ROT.43` shape** — it does not close by being
+  re-noted.
+- **WHAT IT NEEDS**: the producers are already tracked and re-runnable, so this is WIRING, not design —
+  a cheap tier gate that re-derives the OWN-CORPUS matrix at a pinned seed set and REFUSES on drift,
+  with the corpus vintage pinned as an input (the `BASELINE-IDENTITY` shape), because `H.16.6c` proved
+  the corpus moves with the grammar and an unpinned corpus makes the number unattributable.
 
 ### `H.16.7` — **THE ENTRY RULE OF A SHIPPED FAMILY PUBLISHES `value: ""` FOR EVERY ANNOTATION, AND ITS BOOK DOCUMENTS THE OPPOSITE** (**`done`**, `PGEN-GRAMMAR-WELLFORMED-0172`, CODE / grammar — 2 characters — opened 2026-08-22 session #258 by `H.16.6a`, CLOSED 2026-08-23 same session)
 
@@ -5136,9 +5371,16 @@ owning leaf, and `H.20.1` lowers the ceiling when it lands.
 > PREFIX test in both copies; the class re-censused over the SHIPPED artifacts is **6 sites, not 11**,
 > and exactly ONE is behavioural) · ✅ **`H.22` CLOSED** (`-0179`, session #260 — all three per-atom
 > decisions now come from codegen's OWN kernel, and the discriminating corpus row that turned a
-> certified green claim RED was landed BEFORE the fix) — → **1**
-> `H.16.6c` (the 8 residual self-rejected stimuli — its blocking dependency `H.16.6b` is now CLOSED,
-> so its baseline is current) → **4** `H.16.5` (the 9 LR residue + the `profile.is_some()` proof-promotion gate) → **5**
+> certified green claim RED was landed BEFORE the fix) · ✅ **`H.16.6c` CLOSED** (`-0180`, session
+> #260 — the eight residual self-rejected stimuli attributed BY CONTROLLED ARM: **5 greedy path/URL
+> terminal · 3 arrow-reach**, refuting the 4/4 arrow split the leaf carried as a reading; opened
+> `H.16.6d` + `H.16.6e` + `H.16.6f`) — → **1** `H.16.6d` (LAND the delimiter containment — the
+> mechanism is measured and the five widened rows are named, so what remains is the language
+> decision the arm ledger prices but does not settle) → **2** `H.16.6e` (the three arrow-reach rows —
+> ⛔ after `H.16.6d`, same reason `H.16.6c` was sequenced after `H.16.6b`: a value-position change
+> measured against an unlanded terminal fix prices the wrong baseline) → **3** `H.16.6f` (WATCH the
+> self-rejection matrix — leg 3, now named by THREE consecutive leaves and closed by none) → **4**
+> `H.16.5` (the 9 LR residue + the `profile.is_some()` proof-promotion gate) → **5**
 > `H.19` (leg 3 for `H.15`) → **6** `H.16.7b` (the shape contract
 > cannot pin a payload key — engine tier, schema-wide) → **7** `H.16.7a` (the collection trailing `""` —
 > it REPLACES the published AST shape of nine rules, so it owes its own shape ledger + release) → **8**
@@ -5173,7 +5415,10 @@ owning leaf, and `H.20.1` lowers the ceiling when it lands.
 | — | `GRAMMAR-WELLFORMED.H.16.7` (a shipped family's entry rule publishes `value: ""` for every annotation) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0172`, CODE / grammar, **2 characters**) | ✅ `$6` → `$7` at `:33` and `:37`. `$N` counts EVERY top-level element, layout regexes included, so `$6` named the third `/\s*/` separator — always empty — and `annotation_value` is `$7`; `$3` was already right, which is why `name` worked and only `value` was empty. **12 of 12** value shapes go `""` → the declared node; `POSITIONAL-REF-SCAN: flagged=17 → 15`, delta attributed BY NAME to exactly the two rules fixed. Cert two-arm control pre-vs-post at seeds 0/7/42 is **byte-identical** (`115/0/84/31`, spf 0/1/0) — a return annotation moves AST shaping, not acceptance — with a RED ARM (`116/0/84/32`) proving the control can move. ⛔ The first control arm printed NOTHING and was not read as agreement: cert-coverage resolves the grammar NAME from the FILENAME and refuses an unregistered one. ⛔⛔ **The shape contract is GREEN in BOTH arms** — it can only assert key-presence or an exact STRING, and `value` is an object ⇒ its verdict is invariant across a whole-payload restoration → `H.16.7b`. Book corrected: it had documented the populated shape all along, and its worked example was idealised in three further ways | 
 | 6 | `GRAMMAR-WELLFORMED.H.16.7b` (the shape contract cannot say "this key must not be empty") | **`todo`** (opened 2026-08-23 by `H.16.7`) | `rust/src/ast_shape_contract.rs:673`/`:679` implement exactly two assertion kinds — key-PRESENT and exact-STRING — so `value: ""` passed and `value` could not be pinned once it became an object. ⭐⭐ Measured, not argued: **the gate's verdict is identical before and after `H.16.7`**, across a change that restored the entire payload for 12 of 12 value shapes. Engine tier + schema-wide (eight tracked manifests), so it needs its own regression proof; ⛔ do NOT close it by hand-pinning more strings in one manifest |
 | 7 | `GRAMMAR-WELLFORMED.H.16.7a` (every collection publishes a spurious trailing `""`) | **`todo`** (opened 2026-08-23 by `H.16.7`) | Same off-by-one class one layer out: nine rules close `[$3, $4*]` where `$4` is the trailing `/\s*/`. Cosmetic to a reader, **not** to a consumer — it REPLACES the published AST shape of every collection, the class TOOLBOX 5.7 names as the largest and the one a verdict-only ledger cannot see ⇒ owes a shape-keyed `ACCEPT-SET-LEDGER:`, a book + contract release, and a manifest update. ⚠️ Decide the shape deliberately: deleting `$4*` still leaves a `[first,[reps]]` pair, and whether to flatten is a consumer-facing design call. ⭐ `H.16.6a`'s `ast_identity_sweep.py` is the right instrument and is NON-vacuous now that `H.16.7` restored the payload it compares |
-| 3 | `GRAMMAR-WELLFORMED.H.16.6c` (the 8 residual self-rejected stimuli are the arrow collision in the VALUE position) | **`todo`** (opened 2026-08-22 by `H.16.6a`) | `narrow=0` proves the 8 are a PRE-EXISTING subset of the control's 18, not introduced. `map_key` constrains the KEY; `map_entry`'s VALUE is still a full `annotation_value`, so a chained `k => v1 => v2` reads as one entry. ⚠️ The arrow-vs-other split of the 8 is currently by READING, not by tool — the leaf's first job is to attribute all 8 with `--trace-rules`. Sequence AFTER `H.16.6b` |
+| — | `GRAMMAR-WELLFORMED.H.16.6c` (attribute the 8 residual self-rejected stimuli) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0180`, doc+artifact tier) | ✅ **All eight attributed BY CONTROLLED ARM, and the leaf's own 4/4 arrow split is REFUTED: it is 5 greedy path/URL terminal · 3 arrow-reach.** `absolute_path`/`relative_path`/`home_path`/`url_reference` are all spelled `[^\s]`, so a path or URL abutting `]` `}` `)` `,` SWALLOWS it — `ftp://98eS]` parses as a whole `annotation_value`, `[ftp://98eS]` does not. A scratch containment arm widens **exactly** `#0294 #0397 #0416 #0812 #0938` and nothing else. ⛔⛔ **A NET COUNT HID THE DIRECTION**: both arms read `10 > 8` on the fixed corpus while the per-input ledger reads `widen=5 narrow=7`, and all 7 narrows are rows the narrowed generator cannot emit — under the OWN-CORPUS reading it is **15 → 1** (`arm1_close`) / **15 → 0** (`arm2_arrow`) over 3 200 samples on 16 fresh seeds. ⭐⭐ **THE CORPUS MOVES WITH THE GRAMMAR** — regenerating stimuli at HEAD scored **3**, not 8, because arm (a+)'s new rules changed what the generator emits; the recipe matched to the row and the corpus was still a different 1 000. ⛔ My own `arrow_in_minimal_core` field read **6/2** — a TEXT-containment test, corrected in the artifact and renamed. Controls fired 3/3; `oracle_disagreements=0` against the SHIPPED parser; real corpus independently reproduces `H.16.6a`'s 9 of 149. ZERO grammar/Rust/codegen/generated bytes. Routed out `H.16.6d`/`H.16.6e`/`H.16.6f` |
+| 1 | `GRAMMAR-WELLFORMED.H.16.6d` (LAND the delimiter containment on the four path/URL terminals) | **`todo`** (opened 2026-08-23 by `H.16.6c`) | The mechanism is measured and the five widened rows are named, so what remains is the LANGUAGE decision the arm ledger prices but does not settle: containment narrows an unquoted top-level path legitimately containing `}` or `,`, and `arm2_arrow` reaches zero only by also forbidding `=` in a URL, which a query string uses. Three formulations (`arm1_close`, `arm2_arrow`, a `!(...)` lookahead that stops the terminal only where a collection is open) must be scored before one is picked. ⛔ Both arms are `widen=0 narrow=0` over the 149 real `@name:` lines and the 62 hand-authored probes, so no shipped annotation is at stake. CODE / grammar ⇒ regeneration + rebaseline + shape-contract + book/contract lockstep |
+| 2 | `GRAMMAR-WELLFORMED.H.16.6e` (an arrow in the map VALUE position has only two admissible routes) | **`todo`** (opened 2026-08-23 by `H.16.6c`) | Measured by 19 probes, all expectations held: `X => Y` is an `annotation_value` iff X is an `identifier_literal` (route 1, `lambda_expression`) or X and Y are both `logical_or_expr` (route 2, `implication_expr`) — and `logical_or_expr` reaches no string, char literal or symbol reference. The three rows fall outside both. ⛔ **The inherited framing is refuted and must not be re-adopted**: the value position accepts too LITTLE, not too much — the chain itself is innocent (`{ a => b => c }` accepts). Sequence AFTER `H.16.6d` |
+| 3 | `GRAMMAR-WELLFORMED.H.16.6f` (WATCH the self-rejection matrix — leg 3) | **`todo`** (opened 2026-08-23 by `H.16.6c`) | THREE consecutive leaves (`H.16.6a`, `H.16.6b`, `H.16.6c`) have published accept-set / self-rejection numbers and all three named DURABILITY as NOT MET; nothing re-runs them. ⛔ A gap logged three times and fixed zero times is the `CI-PARITY-GATE-ROT.43` shape. The producers are tracked and re-runnable, so this is WIRING not design — with the corpus vintage pinned as an input (`BASELINE-IDENTITY` shape), because `H.16.6c` proved an unpinned corpus makes the number unattributable |
 | — | `GRAMMAR-WELLFORMED.H.16.2b` (the DYNAMIC comment-skip guard is still an exact-equality allowlist) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0178`, CODE / engine-universal codegen + interpreter) | ✅ Prefix test in both copies, a strict SUPERSET of the six exact spellings ⇒ the accept set can only NARROW, never silently widen. ⛔ **The class re-censused over the SHIPPED artifacts is 6 sites, not the inherited 11** — the population is the literals reaching `match_lit_ascii`/`match_string` in a GENERATED parser, so the five `systemverilog_lrm_profiled_*` sites drop (those grammars ship no parser) — and only **`systemverilog` `##`** both emits the guard and is not exact-listed. ⭐⭐ **I predicted that site would regress (`a // c ⏎ ##1 b`) and the two-arm measurement REFUTED it** — accept and `furthest_position` identical in both arms. ⭐⭐ The corpus-wide claim was earned by **breaking the mirror on purpose**: apply the change to the INTERPRETER ONLY and re-run `parse_harness_equivalence_gate`, so every divergence IS an input the change moves — 4/4 CLEAN — with a RED control (`allow_comment_skip = false` ⇒ rtl_frontend 5, svpp 2, ebnf 3) proving the sweep can see this guard. All 6 sites probed individually, discharging the bound `H.16.1` named. 8 of 11 artifacts moved, exactly the arm-emitting ones |
 | — | `GRAMMAR-WELLFORMED.H.16.3` (the generator shadows any rule named `epsilon` with `""`) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0166`, CODE / engine-universal stimuli generator) | ✅ A DEFINED rule now wins; the builtin is gated on `!grammar_tree.contains_key("epsilon")`, preserving both existing callers exactly (their grammars leave `epsilon` UNDEFINED). `ebnf` cert `144/0/111/33` → **`144/0/112/32`** with `spf` falling at EVERY seed (**8→4 · 11→5 · 7→3**), both arms measured on the same binary path; delta ATTRIBUTED BY NAME (exactly `epsilon` left, nothing newly UNKNOWN). ⭐ ZERO generated-parser bytes move — the rebaselined reproducibility file shows every `parser_sha` unchanged across all 11 artifacts |
 | — | `GRAMMAR-WELLFORMED.H.16.4` (`ebnf`'s `whitespace` is layout-skipped before `grammar_file` sees it) | **`done`** — ADJUDICATED (`PGEN-GRAMMAR-WELLFORMED-0167`, doc+artifact tier) | ✅ Root cause is an ASYMMETRY in the emitted layout skipper: every COMMENT arm is gated on `regex_token_matches_at_cursor(pattern)`, the whitespace skip is not — which is why `comment` is witnessed and `whitespace`, in the SAME alternation, is not. ⛔⛔ The declarative tier EXISTS (`@whitespace_sensitive`, and `systemverilog_preprocessor.ebnf:23` ships the exact shape) and is **REFUTED by a closed facet matrix**: all four settings break `grammars/json.ebnf`, and only two of them even witness the rule. Named a **layout-shadowed** residual; the capability is `H.16.4a` |
