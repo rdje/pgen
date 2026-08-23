@@ -121,6 +121,24 @@ pub(crate) fn comment_arm_suppression_for_grammar(
     generator.comment_arm_suppression(grammar_tree)
 }
 
+/// GRAMMAR-WELLFORMED.H.16.4a — what codegen measures about one regex terminal
+/// before deciding whether to skip leading layout in front of it. See
+/// [`AstBasedGenerator::regex_pattern_layout_facts`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RegexLayoutFacts {
+    /// The pattern parses as a regex AND compiles anchored. An uncompilable
+    /// terminal is a defect in its own right (`--lint-grammar`'s
+    /// `uncompilable_regex_terminals`, H.17.2); here it simply means no layout
+    /// verdict can be derived, so the skip stays exactly where it was.
+    pub compiles: bool,
+    /// Every match of the pattern consists solely of whitespace.
+    pub whitespace_only: bool,
+    /// The anchored pattern matches the empty string — the
+    /// `consume_layout_for_regex` early-return class (`/\s*/` separators),
+    /// which never reaches the unconditional whitespace skip.
+    pub can_match_empty: bool,
+}
+
 /// AST-based generator that produces guaranteed syntactically correct Rust code
 pub struct AstBasedGenerator {
     /// ⛔ PascalCase — `snake_to_pascal(<grammar>)`, so `systemverilog` arrives here as
@@ -6013,8 +6031,10 @@ impl AstBasedGenerator {
                             file!(),
                             line!()
                         );
+                        // GRAMMAR-WELLFORMED.H.16.4a — the ONE shared layout decision
+                        // (protocol / cascade-match / cascade-build / scan all call it).
                         let skip_leading_whitespace =
-                            !matches!(rule_name, "string_content_double" | "string_content_single");
+                            self.regex_atom_skips_leading_layout(rule_name, token_value_str)?;
                         let effective_regex_pattern =
                             self.effective_regex_pattern(rule_name, token_value_str);
                         // Check for semantic annotations that should transform the matched string
@@ -6822,6 +6842,119 @@ impl AstBasedGenerator {
                 parts.iter().all(Self::hir_matches_only_whitespace)
             }
         }
+    }
+
+    /// Does a regex terminal spelled `pattern` **own its leading layout**?
+    ///
+    /// GRAMMAR-WELLFORMED.H.16.4a. True iff every match of `pattern` is
+    /// whitespace ([`Self::hir_matches_only_whitespace`]) **and** the pattern
+    /// cannot match the empty string.
+    ///
+    /// ⛔ For exactly this class the engine's pre-match layout skip is not a
+    /// convenience, it is a THEFT: `consume_layout_for_regex` runs
+    /// `consume_optional_whitespace()` unconditionally at the head of its loop,
+    /// so the bytes such a terminal exists to match are gone before it is ever
+    /// offered them, and the rule can never fire on any input. Measured on
+    /// `grammars/ebnf.ebnf`'s `whitespace := /(\s+)/`: an input of four spaces
+    /// parses as `grammar_file` with `elements: []` spanning `0..0` — the
+    /// alternation ran ZERO iterations. Its sibling `comment` in the SAME
+    /// alternation IS witnessed, because every comment arm below that skip is
+    /// gated on `regex_token_matches_at_cursor` (H.11.3) and the whitespace
+    /// skip is not.
+    ///
+    /// The grammar-wide declarative tier (`@whitespace_sensitive:`) cannot
+    /// express this: H.16.4 measured all four settings of its three facets and
+    /// **none** satisfies both arms — the two that witness `whitespace` also
+    /// stop `grammars/json.ebnf` parsing, because they disable layout skipping
+    /// before *every* regex terminal in the grammar. The property a
+    /// layout-owning rule needs is PER-TERMINAL, which is what this is.
+    ///
+    /// The empty-match exclusion is what keeps the blast radius at the rules
+    /// that are actually broken: a `/\s*/` SEPARATOR is whitespace-only too,
+    /// but it takes `consume_layout_for_regex`'s `can_match_empty` early return
+    /// and is unaffected either way — suppressing its skip would change layout
+    /// handling for the overwhelming majority of whitespace-only sites while
+    /// fixing nothing. Emptiness is probed exactly as the emitted parser probes
+    /// it (`\A(?:…)` matched against `""`), so this decision and the runtime's
+    /// own `can_match_empty` fast path cannot disagree.
+    ///
+    /// Conservative in the safe direction: an uncompilable pattern answers
+    /// `false`, leaving the layout skip exactly where it was.
+    pub fn regex_pattern_owns_its_layout(pattern: &str) -> bool {
+        let facts = Self::regex_pattern_layout_facts(pattern);
+        facts.whitespace_only && !facts.can_match_empty
+    }
+
+    /// The two measurements [`Self::regex_pattern_owns_its_layout`] reduces to,
+    /// exposed separately so the `--report-layout-owning-terminals` census can
+    /// show the whitespace-only SEPARATORS (`/\s*/`) alongside the exposed
+    /// class instead of silently excluding them — a census that prints only the
+    /// rules it acts on cannot be read as a blast radius.
+    pub fn regex_pattern_layout_facts(pattern: &str) -> RegexLayoutFacts {
+        let trimmed = pattern.trim();
+        let Ok(hir) = regex_syntax::parse(trimmed) else {
+            return RegexLayoutFacts { compiles: false, whitespace_only: false, can_match_empty: false };
+        };
+        let whitespace_only = Self::hir_matches_only_whitespace(&hir);
+        let Ok(compiled) = regex::Regex::new(&format!(r"\A(?:{trimmed})")) else {
+            return RegexLayoutFacts { compiles: false, whitespace_only, can_match_empty: false };
+        };
+        let can_match_empty = compiled
+            .find("")
+            .map(|m| m.start() == 0 && m.end() == 0)
+            .unwrap_or(false);
+        RegexLayoutFacts { compiles: true, whitespace_only, can_match_empty }
+    }
+
+    /// **The** decision: does the `match_regex` call emitted for this regex atom
+    /// skip leading layout?
+    ///
+    /// ⛔ GRAMMAR-WELLFORMED.H.16.4a — this is deliberately ONE function with
+    /// four callers, because the repository shipped it as four copies of one
+    /// expression and that is why the first cut of the H.16.4a fix was
+    /// incomplete. `generate_atom_logic` emits the PROTOCOL graph, `cascade.rs`
+    /// emits the fused `cascade_match_*` **and** `cascade_build_*` graphs, and
+    /// `scan.rs` emits the derived `scan_*` graph; a production parse runs the
+    /// FUSED one (`bare_parse`), so a change applied only to the protocol site
+    /// moves the certificate — whose witness pass enables coverage and is
+    /// therefore routed to the protocol graph — while leaving the parse a real
+    /// consumer gets untouched. The observability twin makes that failure
+    /// silent in the PASSING direction on every counter-based instrument;
+    /// `parse_harness_equivalence_gate` is what caught it. The cascade pair is
+    /// additionally load-bearing: MATCH and BUILD derive `start_dynamic` from
+    /// this same value and disagreeing would drift the derivation tape.
+    ///
+    /// Two reasons a site does not skip:
+    ///
+    /// 1. the two string-content rules, whose content classes must see the
+    ///    bytes inside the quotes exactly as written; and
+    /// 2. H.16.4a — the terminal OWNS its layout
+    ///    ([`Self::regex_pattern_owns_its_layout`]).
+    ///
+    /// Refuses rather than emitting a parser whose layout decision the
+    /// parse-harness interpreter cannot mirror: the interpreter has only the
+    /// RAW grammar pattern, so a steering directive that moved this terminal
+    /// across the layout-owning boundary would diverge the two SILENTLY. No
+    /// shipped grammar does (`--report-layout-owning-terminals` is the
+    /// closed-population proof); this is what keeps that a property rather
+    /// than a coincidence.
+    pub(crate) fn regex_atom_skips_leading_layout(
+        &self,
+        rule_name: &str,
+        grammar_pattern: &str,
+    ) -> Result<bool> {
+        let effective = self.effective_regex_pattern(rule_name, grammar_pattern);
+        let effective_owns = Self::regex_pattern_owns_its_layout(&effective);
+        if effective_owns != Self::regex_pattern_owns_its_layout(grammar_pattern) {
+            anyhow::bail!(
+                "rule '{rule_name}': token steering moves the regex terminal '{grammar_pattern}' \
+                 across the H.16.4a layout-owning boundary (effective pattern '{effective}'). The \
+                 generated parser and the parse-harness interpreter would disagree on whether to \
+                 skip leading layout here."
+            );
+        }
+        Ok(!matches!(rule_name, "string_content_double" | "string_content_single")
+            && !effective_owns)
     }
 
     /// Is `node` an unbounded content terminal — a regex with an unbounded
@@ -15637,6 +15770,102 @@ mod semantic_usage_tests {
         assert!(
             tokens.to_string().contains("evaluate_relational_expression"),
             "a real relational expression must keep the runtime guard"
+        );
+    }
+}
+
+#[cfg(test)]
+mod layout_owning_terminal_tests {
+    use super::*;
+
+    /// GRAMMAR-WELLFORMED.H.16.4a — the exposed class is whitespace-only AND
+    /// non-empty-matching. The empty-matching half is what keeps the blast
+    /// radius at the rules that are actually broken: the census over the 14
+    /// loadable grammars reads 121 whitespace-only regex atoms of which only 7
+    /// are layout-owning, because 114 are `/\s*/` SEPARATORS that take
+    /// `consume_layout_for_regex`'s `can_match_empty` early return.
+    #[test]
+    fn only_non_empty_whitespace_patterns_own_their_layout() {
+        // The four spellings the shipped grammars actually use, all owning.
+        for pattern in [r"(\s+)", r"\s+", r"[ \t]+", r"\r?\n", r"[ \t\r\n]+"] {
+            assert!(
+                AstBasedGenerator::regex_pattern_owns_its_layout(pattern),
+                "'{pattern}' matches only whitespace and cannot match empty ⇒ it owns its layout"
+            );
+        }
+        // Whitespace-only but EMPTY-matching: the separator class, unaffected.
+        for pattern in [r"\s*", r"[ \t]*", r"(\s*)", r"\r?\n?"] {
+            assert!(
+                !AstBasedGenerator::regex_pattern_owns_its_layout(pattern),
+                "'{pattern}' can match empty ⇒ it never reaches the unconditional skip"
+            );
+        }
+        // Not whitespace-only. `[^\r\n]*` is the comment CONTENT tail and
+        // `.` / `[^x]+` can carry whitespace but are not whitespace-only —
+        // suppressing their skip would change the captured text of every
+        // open content class, which is the over-reach this predicate refuses.
+        for pattern in [
+            r"[a-zA-Z_][a-zA-Z0-9_]*",
+            r"[^\r\n]*",
+            r"[0-9]+",
+            r".",
+            r"[^x]+",
+            r"\s*x",
+        ] {
+            assert!(
+                !AstBasedGenerator::regex_pattern_owns_its_layout(pattern),
+                "'{pattern}' can match a non-whitespace byte ⇒ the layout skip stays"
+            );
+        }
+        // Conservative in the safe direction: what the walk cannot prove is not claimed.
+        assert!(
+            !AstBasedGenerator::regex_pattern_owns_its_layout(r"(?<=a)\s+"),
+            "an uncompilable pattern must leave the layout skip exactly where it was"
+        );
+    }
+
+    /// ⛔ The decision must have exactly ONE definition. It shipped as six
+    /// copies of one expression, and that is why the first cut of the H.16.4a
+    /// fix moved the certificate (whose witness pass enables coverage and so
+    /// runs the PROTOCOL graph) while leaving the FUSED `cascade_*` graph a
+    /// production parse actually runs untouched. This pins the count of
+    /// remaining hand-spelled copies at zero: the two string-content rule
+    /// names may appear only inside `regex_atom_skips_leading_layout` itself
+    /// and in the fusibility census's declared mirror.
+    #[test]
+    fn the_layout_skip_decision_has_exactly_one_definition() {
+        let sources = [
+            ("ast_based_generator.rs", include_str!("ast_based_generator.rs")),
+            ("cascade.rs", include_str!("ast_based_generator/cascade.rs")),
+            ("cascade/value.rs", include_str!("ast_based_generator/cascade/value.rs")),
+            ("scan.rs", include_str!("ast_based_generator/scan.rs")),
+        ];
+        // Composed at runtime so this test's own source does not match its needles
+        // (`ast_based_generator.rs` includes itself).
+        let call_needle =
+            format!("self.{}(rule_name, token_value", "regex_atom_skips_leading_layout");
+        // Spelling-INDEPENDENT: the allowlist's own rule names must not appear in an
+        // emission module at all. A needle matching the `matches!(…)` text would have
+        // missed the multi-line spelling — measured, when the RED control was run.
+        let allowlist_rules = ["string_content_double", "string_content_single"];
+        let mut emitters_calling_the_shared_decision = 0;
+        for (name, src) in sources {
+            emitters_calling_the_shared_decision += src.matches(&call_needle).count();
+            if name == "ast_based_generator.rs" {
+                continue; // holds the one definition (and this test)
+            }
+            for rule in allowlist_rules {
+                assert!(
+                    !src.contains(rule),
+                    "{name}: the string-content layout allowlist ('{rule}') must live only \
+                     inside regex_atom_skips_leading_layout, not in an emission module"
+                );
+            }
+        }
+        assert_eq!(
+            emitters_calling_the_shared_decision, 6,
+            "all six regex-atom emission sites (protocol, cascade match, cascade build, \
+             direct-value build, direct-value discard, scan) must share one decision"
         );
     }
 }

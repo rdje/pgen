@@ -44,6 +44,7 @@ the generation-input / memo observability.
 | **WHERE does the parse time actually go?** ⛔ no counter can answer this — they all route to the PROTOCOL graph, and a production parse runs the FUSED one | `/usr/bin/sample` on a BARE parse | `parseability_probe --parse systemverilog big.sv --profile sv_2017 &` then `/usr/bin/sample $! 4 1 -f prof.txt` |
 | **Two generated parsers differ by N bytes — what moved?** ⛔ ask FIRST whether both were written through the same `-o` spelling | normalise the embedded output path | `LC_ALL=C sed 's\|\.\./generated/<fam>_parser\.rs\|generated/<fam>_parser.rs\|g' armA.rs > armA_norm.rs` then compare sha256 (see [below](#comparing-two-generated-parsers)) |
 | Which rules a derived DFA scanner could fuse + the measured ceiling? the choice-site / merged-choice surface? | `--report-fusibility-census` | `ast_pipeline g.ebnf --report-fusibility-census [--fusibility-entry-counts c.json] [--fusibility-outcome-counts o.json]` |
+| **A rule whose whole body is a whitespace terminal is `UNKNOWN` with `parsed=true` — is the LAYOUT SKIP eating it?** | `--report-layout-owning-terminals` | `ast_pipeline g.ebnf --report-layout-owning-terminals` → the closed population of terminals that own their leading layout, HIR-derived (⛔ a text sweep for `\s` misses `[ \t\r\n]+` and `\r?\n`) |
 | Witness-pass tuning (A/B, budget, ordering)? | `PGEN_WITNESS_*` | see [witness knobs](#witness-pass-knobs) |
 
 > Build note: cert-coverage and any `.ebnf`-direct mode need the debug binary
@@ -159,6 +160,7 @@ requires. (See [The Semantic Store](semantic-store.md) and the
 | `WARNING ... NO reach path from the entry` (Step 0) | **dead-rule candidate** — unreachable from this entry (often belongs to another entry, e.g. `library_text`) | adjudicate via `--lint-grammar`; not a generation bug |
 | `parsed=true witnessed_target=false` | **reach/routing gap** — the planner reaches the context but routes through a sibling | a reach-planner / grammar-shape fix |
 | `parsed=false` + a `🚫 rejected by post predicate` trace | **store-gate rejection** — the gate's precondition fact was never generated | store-aware witness generation (declare-then-use), the `STORE-AWARE-GEN` lane |
+| `parsed=true witnessed_target=false`, the hop chain is correct, and the target's whole body is a whitespace-only terminal | **layout-shadowed** — the skipper consumed the bytes before the rule was offered them, so nothing was routed anywhere; the tell is a typed AST spanning `0..0` on a whitespace-only input | run `--report-layout-owning-terminals`; if the rule is listed `[layout-owning]` the guard already covers it and the residual is elsewhere (`GRAMMAR-WELLFORMED.H.16.4a`) |
 
 This protocol replaces eyeballing the grammar. It is mandatory before proposing
 any fix for an `UNKNOWN`.

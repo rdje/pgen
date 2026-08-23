@@ -1,0 +1,37 @@
+AST-PIPELINE-FEATURE-GUARD: ok — 'rust/target/debug/ast_pipeline' carries [generated_parsers ebnf_dual_run]
+== ARM A — LAYOUT-OWNING-TERMINALS census (closed population) ==
+LAYOUT-OWNING-TERMINALS: grammar='builtin_return_annotation' rules=32 regex_atoms=7 whitespace_only=1 layout_owning=0 separators=1 uncompilable=0
+LAYOUT-OWNING-TERMINALS: grammar='builtin_semantic_annotation' rules=23 regex_atoms=8 whitespace_only=1 layout_owning=0 separators=1 uncompilable=0
+  [layout-owning] rule='whitespace' pattern='(\s+)' can_match_empty=false compiles=true
+LAYOUT-OWNING-TERMINALS: grammar='ebnf' rules=144 regex_atoms=32 whitespace_only=1 layout_owning=1 separators=0 uncompilable=0
+LAYOUT-OWNING-TERMINALS: grammar='json' rules=9 regex_atoms=14 whitespace_only=0 layout_owning=0 separators=0 uncompilable=0
+LAYOUT-OWNING-TERMINALS: grammar='regex' rules=276 regex_atoms=0 whitespace_only=0 layout_owning=0 separators=0 uncompilable=0
+LAYOUT-OWNING-TERMINALS: grammar='return_annotation' rules=35 regex_atoms=6 whitespace_only=0 layout_owning=0 separators=0 uncompilable=0
+LAYOUT-OWNING-TERMINALS: grammar='rtl_const_expr' rules=48 regex_atoms=4 whitespace_only=1 layout_owning=0 separators=1 uncompilable=0
+LAYOUT-OWNING-TERMINALS: grammar='rtl_frontend' rules=169 regex_atoms=47 whitespace_only=0 layout_owning=0 separators=0 uncompilable=0
+LAYOUT-OWNING-TERMINALS: grammar='scratch' rules=2 regex_atoms=0 whitespace_only=0 layout_owning=0 separators=0 uncompilable=0
+  [layout-owning] rule='precedence_value' pattern='\s+' can_match_empty=false compiles=true
+  [layout-owning] rule='constraint_value' pattern='\s+' can_match_empty=false compiles=true
+  [layout-owning] rule='whitespace' pattern='\s+' can_match_empty=false compiles=true
+LAYOUT-OWNING-TERMINALS: grammar='semantic_annotation' rules=119 regex_atoms=134 whitespace_only=112 layout_owning=3 separators=109 uncompilable=0
+  [not-loadable] grammars/systemverilog_2017_lrm_extracted.ebnf — Error: unterminated quoted literal in expression ''0 | '1 | 'z_or_x 48 ;'
+  [not-loadable] grammars/systemverilog_2023_lrm_extracted.ebnf — Error: unterminated regex literal in expression '= | += | -= | *= | /= | %= | &= | |= |
+  [not-loadable] grammars/systemverilog_lrm_profiled_generated.ebnf — Error: grammar 'systemverilog_lrm_profiled_generated': no entry rule is declared. A mai
+  [layout-owning] rule='white_space' pattern='[ \t\r\n]+' can_match_empty=false compiles=true
+LAYOUT-OWNING-TERMINALS: grammar='systemverilog_lrm_profiled_wrapper' rules=1409 regex_atoms=345 whitespace_only=1 layout_owning=1 separators=0 uncompilable=1
+  [layout-owning] rule='space_or_tab' pattern='[ \t]+' can_match_empty=false compiles=true
+  [layout-owning] rule='newline' pattern='\r?\n' can_match_empty=false compiles=true
+LAYOUT-OWNING-TERMINALS: grammar='systemverilog_preprocessor' rules=74 regex_atoms=30 whitespace_only=2 layout_owning=2 separators=0 uncompilable=0
+LAYOUT-OWNING-TERMINALS: grammar='systemverilog' rules=1516 regex_atoms=339 whitespace_only=2 layout_owning=0 separators=2 uncompilable=0
+  [not-loadable] grammars/verilog_2005_lrm_extracted.ebnf — Error: unterminated regex literal in expression '+ | - | * | / | % | == | != | === | !=
+LAYOUT-OWNING-TERMINALS: grammar='vhdl' rules=225 regex_atoms=106 whitespace_only=0 layout_owning=0 separators=0 uncompilable=0
+H164A-CENSUS: loadable_grammars=14 not_loadable=4 layout_owning_total=7
+
+== ARM B — reproducer: ebnf 'whitespace' on four spaces ==
+INTERPRET-PARSE: grammar='ebnf' entry='grammar_file' profile='<unspecified>' input_bytes=4 accepted=true furthest_position=4
+H164A-REPRODUCER: whitespace_elements=1 (pre-fix: 0, span 0..0)
+
+== ARM C — control: the meta-parser still reads a real shipped grammar ==
+H164A-CONTROL: grammars/json.ebnf -> accepted=true furthest_position=1027
+
+H164A-PROBE: PASS (reproducer commits AND the json.ebnf control still parses)

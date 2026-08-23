@@ -1558,10 +1558,11 @@ impl AstBasedGenerator {
                                 "cascade match emission reached regex atom of rule '{rule_name}' which carries a matched-text @transform — the shared cascade gate must have excluded it"
                             );
                         }
-                        let skip_leading_whitespace = !matches!(
-                            rule_name,
-                            "string_content_double" | "string_content_single"
-                        );
+                        // GRAMMAR-WELLFORMED.H.16.4a — the ONE shared layout decision;
+                        // `cascade_build_*` below calls the same predicate on the same
+                        // atom, and the two must agree or the derivation tape drifts.
+                        let skip_leading_whitespace =
+                            self.regex_atom_skips_leading_layout(rule_name, token_value)?;
                         let effective_regex_pattern =
                             self.effective_regex_pattern(rule_name, token_value);
                         // The emitted `match_regex` skips layout iff the site
@@ -2221,10 +2222,10 @@ impl AstBasedGenerator {
                                 "cascade build emission reached regex atom of rule '{rule_name}' which carries a matched-text @transform — the shared cascade gate must have excluded it"
                             );
                         }
-                        let skip_leading_whitespace = !matches!(
-                            rule_name,
-                            "string_content_double" | "string_content_single"
-                        );
+                        // GRAMMAR-WELLFORMED.H.16.4a — the ONE shared layout decision, the
+                        // same call `cascade_match_*` made on this atom (see there).
+                        let skip_leading_whitespace =
+                            self.regex_atom_skips_leading_layout(rule_name, token_value)?;
                         let start_dynamic =
                             skip_leading_whitespace && !self.layout_sensitivity().regex_tokens;
                         let start_tokens = if start_dynamic {

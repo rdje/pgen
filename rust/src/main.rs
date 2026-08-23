@@ -158,6 +158,17 @@ struct Args {
     #[arg(long)]
     report_fusibility_census: bool,
 
+    /// GRAMMAR-WELLFORMED.H.16.4a (LAYOUT-OWNING-TERMINALS census): opt-in read-only report
+    /// naming every regex terminal in the grammar that OWNS its leading layout — whitespace-only
+    /// and unable to match empty — i.e. the closed population for which codegen suppresses the
+    /// pre-match layout skip. Prints one line per whitespace-only regex atom with its
+    /// `can_match_empty` verdict, so the SEPARATORS (`/\s*/`, unaffected — they take the
+    /// `can_match_empty` early return) are visible alongside the exposed class rather than
+    /// silently excluded. Uses codegen's OWN HIR predicate, never a regex over grammar text.
+    /// Read-only; no codegen change and no generation.
+    #[arg(long)]
+    report_layout_owning_terminals: bool,
+
     /// RGX-0078.5.h.1: optional machine-readable JSON output for the fusibility census.
     #[arg(long, value_name = "FILE", requires = "report_fusibility_census")]
     fusibility_census_json: Option<String>,
@@ -1208,6 +1219,18 @@ fn pipeline_main() -> Result<()> {
             args.fusibility_entry_counts.as_deref(),
             args.fusibility_outcome_counts.as_deref(),
         );
+    }
+
+    // GRAMMAR-WELLFORMED.H.16.4a: opt-in read-only layout-owning-terminal census.
+    // Runs on the UNFILTERED bundle for the same reason the fusibility census does —
+    // codegen compiles the FULL grammar and decides the layout skip per terminal there.
+    if args.report_layout_owning_terminals {
+        let grammar = load_grammar_bundle(
+            &args.input_path,
+            &mut pipeline,
+            args.emit_raw_ast_json.as_deref(),
+        )?;
+        return run_layout_owning_terminals_report(&grammar);
     }
 
     // STIMULI-SIGNOFF.2.3 (adoption D): opt-in k-path coverage report.
@@ -4116,6 +4139,94 @@ fn run_certificate_coverage_report(
 /// capability-gate classifier over the loaded gen-AST). Prints the census (and, when
 /// entry-count files are given, the measured entry share), optionally writes the full
 /// machine-readable census as JSON, then exits.
+/// GRAMMAR-WELLFORMED.H.16.4a — the `LAYOUT-OWNING-TERMINALS:` census.
+///
+/// Names every regex terminal in the grammar whose matches are whitespace-only, split by whether
+/// it can match empty. The **exposed** class (whitespace-only AND cannot match empty) is exactly
+/// the population for which codegen now suppresses the pre-match layout skip, so this report is
+/// the blast radius of that decision, re-derivable on any `.ebnf` in well under a second.
+///
+/// ⛔ It is deliberately NOT a regex over grammar text. `H.16.4a` priced the class from such a
+/// sweep and the leaf itself recorded that the engine's own authority is the HIR walk; this calls
+/// [`AstBasedGenerator::regex_pattern_layout_facts`] — the same kernel the emitted skip decision
+/// uses — so the census and the parser cannot disagree about which rules are in the class.
+fn run_layout_owning_terminals_report(grammar: &LoadedGrammar) -> Result<()> {
+    use pgen::ast_pipeline::ast_based_generator::AstBasedGenerator;
+    use pgen::ast_pipeline::{ASTValue, TokenValue};
+
+    /// Collect every `regex` atom under `node`, in source order, as (pattern).
+    fn collect_regex_atoms(node: &ASTNode, out: &mut Vec<String>) {
+        match node {
+            ASTNode::Or { alternatives } => {
+                for alt in alternatives {
+                    collect_regex_atoms(alt, out);
+                }
+            }
+            ASTNode::Sequence { elements } => {
+                for el in elements {
+                    collect_regex_atoms(el, out);
+                }
+            }
+            ASTNode::Quantified { element, .. } => collect_regex_atoms(element, out),
+            ASTNode::Lookahead { element, .. } => collect_regex_atoms(element, out),
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => collect_regex_atoms(inner, out),
+                ASTValue::Token(parts) if parts.len() >= 2 => {
+                    let TokenValue::String(token_type) = &parts[0];
+                    let TokenValue::String(token_value) = &parts[1];
+                    if token_type == "regex" {
+                        out.push(token_value.clone());
+                    }
+                }
+                ASTValue::Token(_) => {}
+            },
+        }
+    }
+
+    let mut regex_atoms = 0usize;
+    let mut whitespace_only = 0usize;
+    let mut layout_owning = 0usize;
+    let mut uncompilable = 0usize;
+    // Rule order, not map order: the report is quoted in task leaves, so it must be stable.
+    for rule in &grammar.rule_order {
+        let Some(body) = grammar.grammar_tree.get(rule) else {
+            continue;
+        };
+        let mut patterns = Vec::new();
+        collect_regex_atoms(body, &mut patterns);
+        for pattern in patterns {
+            regex_atoms += 1;
+            let facts = AstBasedGenerator::regex_pattern_layout_facts(&pattern);
+            if !facts.compiles {
+                uncompilable += 1;
+            }
+            if !facts.whitespace_only {
+                continue;
+            }
+            whitespace_only += 1;
+            let class = if facts.can_match_empty {
+                "separator"
+            } else {
+                layout_owning += 1;
+                "layout-owning"
+            };
+            println!(
+                "  [{class}] rule='{rule}' pattern='{pattern}' can_match_empty={} compiles={}",
+                facts.can_match_empty, facts.compiles
+            );
+        }
+    }
+    println!(
+        "LAYOUT-OWNING-TERMINALS: grammar='{}' rules={} regex_atoms={regex_atoms} \
+         whitespace_only={whitespace_only} layout_owning={layout_owning} \
+         separators={} uncompilable={uncompilable}",
+        grammar.grammar_name,
+        grammar.rule_order.len(),
+        whitespace_only - layout_owning,
+    );
+    Ok(())
+}
+
 fn run_fusibility_census_report(
     grammar: &LoadedGrammar,
     census_json_path: Option<&str>,

@@ -1,5 +1,99 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0177 — the certificate observes the protocol graph, not the parse a consumer runs
+
+**1. THE DEFECT.** `grammars/ebnf.ebnf` declares `whitespace := /(\s+)/` as one alternative of
+`grammar_file`'s element list, beside `comment`. `comment` is witnessed; `whitespace` never was.
+`--interpret-parse` on four spaces returns `accepted=true furthest_position=0` with typed AST
+`{"elements": [], "type": "grammar_file"}`, span **0..0** — the `*` ran ZERO iterations. Nothing was
+routed anywhere and nothing was rejected: the emitted layout skipper's
+`self.consume_optional_whitespace()` runs UNCONDITIONALLY at the head of `consume_layout_for_regex`'s
+loop, while every comment arm below it is gated on `regex_token_matches_at_cursor(pattern)` (H.11.3).
+The bytes are gone before the alternation is offered them.
+
+**2. WHY THE DECLARATIVE TIER CANNOT FIX IT — already measured, and this leaf did not re-litigate it.**
+`H.16.4` ran all four settings of `@whitespace_sensitive:`'s three boolean facets against two arms.
+Two of the four witness the rule; **all four** stop `grammars/json.ebnf` parsing. The reason is a
+property: the directive is grammar-WIDE and disables the layout skip in front of *every* regex
+terminal, and `rule_name := /([a-zA-Z_][a-zA-Z0-9_]*)/` and its neighbours depend on that skip. A
+preprocessor grammar can afford it (it structurally owns all its whitespace); a meta-grammar cannot.
+
+**3. THE PROPERTY THAT WORKS IS PER-TERMINAL**: *every match is whitespace AND the pattern cannot
+match empty*. `AstBasedGenerator::regex_pattern_owns_its_layout` decides it at generation time from
+the HIR, and the emitted call simply becomes `match_regex(pattern, false)` — no runtime test, no
+allowlist, and a grammar with no such terminal regenerates byte-identically. The empty-match half is
+what bounds the radius: `/\s*/` is whitespace-only too but takes `consume_layout_for_regex`'s
+`can_match_empty` early return, so suppressing its skip would change layout handling almost
+everywhere and fix nothing. Emptiness is probed exactly as the emitted parser probes it (`\A(?:…)`
+against `""`), so the codegen decision and the runtime fast path cannot disagree.
+
+**4. ⛔⛔ THE TRANSFERABLE FAILURE: ONE DECISION, SIX SPELLINGS, AND THE HEADLINE METRIC COULD ONLY SEE
+ONE OF THEM.** The first cut changed `generate_atom_logic` — the PROTOCOL-graph emitter — and stopped.
+The certificate moved to its correct post-fix value at all three seeds with the delta attributable by
+rule name, and a **production parse was completely untouched**. Every generated parser computes
+`bare_parse = !self.coverage_enabled && !self.logger_enabled && !self.counters_observed.get() && …`;
+`certificate_coverage`'s witness hook must call `parser.enable_coverage()` to read the committed-rule
+set, so `bare_parse` is false and the certificate runs the protocol graph, while an ordinary
+`parse_full_*` runs the fused `cascade_*` graph emitted from `cascade.rs` / `cascade/value.rs` /
+`scan.rs`. TOOLBOX §3.8 already states this for PROFILING (*"the counters cannot answer this — they
+all route to the PROTOCOL graph"*); it is a CORRECTNESS hazard as well, and on the metric this
+repository leads with. The oracle that caught it is `parse_harness_equivalence_gate`, the one whose
+generated-parser side is a bare parse:
+`ebnf DIVERGE samples=81 agree=60 diverge=8`, interp `…"elements":[{"content":"   ","type":"whitespace"}]…`
+vs oracle `…"elements":[]…`. Written up as
+`docs/decisions/the_certificate_observes_the_protocol_graph_not_the_parse_a_consumer_runs.md`.
+
+**5. AND THE CASCADE PAIR IS LOAD-BEARING.** `cascade_match_*` emits the derivation tape and
+`cascade_build_*` reads it; both derive `start_dynamic` from this same boolean. Fixing three of six
+sites made them disagree, and codegen produced a parser that panicked on its own tape during
+regeneration — `internal error: entered unreachable code: derivation-tape drift in rule 'whitespace':
+expected TokStart, found TokEnd(157319)`. Loud and immediate, and only reachable at all because the
+two sites were separate copies of one decision.
+
+**6. THE REPAIR IS STRUCTURAL, NOT MNEMONIC.** `regex_atom_skips_leading_layout` is now the single
+definition, called by all six emitters, and it also folds in the pre-existing
+`string_content_double`/`string_content_single` allowlist so that allowlist has one home too.
+`layout_owning_terminal_tests::the_layout_skip_decision_has_exactly_one_definition` pins the caller
+count at six and asserts the allowlist's rule names appear in **no** emission module. Its control was
+run: re-spelling the `scan.rs` site by hand fails it `left: 5, right: 6`. ⛔ The test's first arm was
+spelling-DEPENDENT and did **not** fire on the multi-line form during that control — it now asserts
+absence of the rule NAMES, which no spelling can evade.
+
+**7. THE CENSUS HAD TO BE RE-DERIVED, AND THE LEAF WAS RIGHT TO SAY SO.** `H.16.4a` priced the class
+from a regex over grammar text and recorded *"re-derive this rather than inheriting it — the engine's
+own authority is the HIR walk."* Measured through the new instrument, the inherited numbers are wrong
+in both directions: it named *"the two `systemverilog_lrm_profiled_*` `white_space`"* (there is one;
+`_generated` declares no `@entry`, the frontend refuses it, so it has no verdict either way) and
+missed `systemverilog_preprocessor`'s `newline := /\r?\n/`, which no search for `\s` can see. Its
+"112 whitespace-only sites across the grammars" is `semantic_annotation`'s own count. Truth:
+**121 whitespace-only regex atoms over the 14 loadable grammars, 7 layout-owning**. The four `.ebnf`
+files the frontend cannot load are reported `[not-loadable]` with the refusal text, never counted as
+zero — a grammar with no verdict must not read as a grammar with a clean one.
+
+**8. AN INTERACTION CONSIDERED AND LEFT ALONE.** `first_set.rs` lets a consumer trust
+`regex_token_derived` first bytes only when the grammar's regex tokens are whitespace-SENSITIVE — a
+grammar-wide gate (`first_set.rs:704`, `fusibility_census.rs:789`). Suppressing the skip for one
+terminal inside a grammar that is grammar-wide insensitive leaves that gate already refusing, so the
+pruning verdict can only become more conservative, never unsound. No change; recorded so the next
+reader does not re-derive it.
+
+**9. WHAT A REFUSAL BOUGHT.** The two-arm control's first before-arm printed nothing at all: rebuilding
+`ast_pipeline` with `--features ebnf_dual_run` alone produced a single-feature binary that REFUSED
+(`PARSE-HARNESS.10`) rather than emitting empty rows. That is the exact trap TOOLBOX §1.4 names — two
+empty result sets diff clean — and the guard is why the arm was redone on dual-feature builds instead
+of being published. Redone: every accept/reject verdict on six grammars unchanged, `furthest_position`
++1 on every row, reproducer `0 → 4`.
+
+**10. ROUTED OUT — `H.22`.** The interpreter mirrors this decision but not the other two codegen
+decisions on the same call (the string-content allowlist; `effective_regex_pattern`'s steering).
+MEASURED inside a certified claim: `return_annotation` is one of the 11 grammars the equivalence gate
+certifies byte-identical, and its generated parser emits `match_regex("[^']*", false)` ×5 where the
+interpreter passes `true`. The discriminating input — a quoted string whose content begins with
+whitespace — is not in the stimuli corpus, so the gate is green because the corpus does not reach the
+hole. `H.16.4a` closes its own instance of the class differently: codegen REFUSES to emit a parser
+whose raw and effective patterns fall on opposite sides of the layout-owning boundary, so the
+interpreter's raw-pattern mirror is sound by construction rather than by coincidence.
+
 ## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0176 — a red gate is a blind gate, and a divergence can hide another one
 
 **1. THE INSTRUMENT HAS TWO INPUTS, AND A CONTROL MUST PIN ONE OF THEM.** `ebnf_frontend_dual_run_gate`

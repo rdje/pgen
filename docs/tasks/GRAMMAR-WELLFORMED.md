@@ -4245,6 +4245,10 @@ setting satisfies both arms.** Two of the four witness the rule; **all four brea
   alternation (forbidden by this tree) or anchoring it on a non-whitespace byte (a different language).
   ⇒ declarative REFUTED by measurement · grammar tier empty · **the remaining tier needs a capability
   that does not exist** → `H.16.4a`.
+- ✅ **SUPERSEDED 2026-08-23 by `H.16.4a` (`-0177`): the guard LANDED, `whitespace` is WITNESSED, and
+  the disposition below is therefore historical.** It was right to withhold the `proof` promotion —
+  the rule was never *"provably never witnessable"*, it was a fixable engine defect, which is exactly
+  what this paragraph refused to record as a design fact. `ebnf` reads `144/0/113/31`.
 - **DISPOSITION UNTIL THEN — a NAMED residual class, not an unexplained `UNKNOWN`.** `whitespace` is
   **not** a dead rule (it is referenced, and it has a reach path from the entry) and **not** a reach
   gap (the planner routes to it and the sample parses). It is **layout-shadowed**: provably never
@@ -4285,7 +4289,7 @@ setting satisfies both arms.** Two of the four witness the rule; **all four brea
   `DEVELOPMENT_NOTES.md`, `MEMORY.md`. Book: N/A — nothing user-facing changed and no book claim is
   falsified; the layout-guard asymmetry becomes book material when `H.16.4a` lands a fix.
 
-### `H.16.4a` — **`@whitespace_sensitive` IS GRAMMAR-WIDE; THE PROPERTY A LAYOUT-OWNING RULE NEEDS IS PER-TERMINAL** (`todo`, opened 2026-08-22 session #257 by `H.16.4`)
+### `H.16.4a` — **`@whitespace_sensitive` IS GRAMMAR-WIDE; THE PROPERTY A LAYOUT-OWNING RULE NEEDS IS PER-TERMINAL** (**`done`** — `PGEN-GRAMMAR-WELLFORMED-0177`, CODE / engine-universal codegen + interpreter — opened 2026-08-22 session #257 by `H.16.4`, CLOSED 2026-08-23 session #260)
 
 - **WHY**: proven by the closed facet matrix in `H.16.4` — a grammar cannot say *"this ONE rule owns
   its whitespace"*, only *"no regex terminal in this grammar gets layout skipped"*. For `ebnf.ebnf`
@@ -4311,6 +4315,167 @@ setting satisfies both arms.** Two of the four witness the rule; **all four brea
   belongs in `H.16.5`'s `proof`-promotion population as a **layout-shadowed** residual. ⛔ Do not
   promote it before this leaf rules — recording a fixable defect as a design fact is precisely what
   `H.16`'s re-pricing note exists to prevent.
+
+#### ✅ SHIPPED — the guard is PER-TERMINAL, decided at codegen time, and it costs nothing
+
+`AstBasedGenerator::regex_pattern_owns_its_layout` is the property `H.16.4`'s closed facet matrix
+proved the declarative tier cannot express: **every match of the pattern is whitespace AND the
+pattern cannot match empty.** A terminal with that property does not get a pre-match layout skip —
+codegen simply emits `match_regex(pattern, false)`. Nothing is added to the parse path: the decision
+is a codegen-time constant, so a grammar with no such terminal regenerates **byte-identically**.
+
+- **The empty-match exclusion is what bounds the radius.** `/\s*/` is whitespace-only too, but it
+  takes `consume_layout_for_regex`'s `can_match_empty` early return and never reaches the
+  unconditional skip. Emptiness is probed exactly as the emitted parser probes it (`\A(?:…)` against
+  `""`), so the codegen decision and the runtime's own `can_match_empty` fast path cannot disagree.
+- **The interpreter mirrors it** (`parse_harness_interpreter.rs`), calling codegen's OWN predicate —
+  the same shared-kernel posture `comment_arm_suppression_for_grammar` already uses. Codegen
+  **refuses** to emit a parser whose raw and effective (post `@token_class`/`@charset`/`@pattern`)
+  patterns fall on opposite sides of the boundary, because the interpreter has only the raw pattern
+  and the two would then diverge silently. No shipped grammar is anywhere near that boundary.
+
+#### ⛔⛔ THE FIRST CUT WAS INCOMPLETE, AND EVERY COUNTER-BASED INSTRUMENT CALLED IT GREEN
+
+The decision was spelled **SIX times** — `generate_atom_logic` (PROTOCOL graph), `cascade.rs`
+`cascade_match_*` **and** `cascade_build_*`, `cascade/value.rs` direct-value build **and** discard,
+and `scan.rs`. The first cut changed **one**.
+
+- ⭐⭐ **AND THE CERTIFICATE STILL MOVED.** `certificate_coverage` verifies witnesses through
+  `parse_and_cover_ebnf`, which calls `parser.enable_coverage()` — and enabling coverage sets
+  `bare_parse = false`, routing the parse onto the PROTOCOL graph. So the one site that was fixed is
+  exactly the one the certificate observes: cert read `144/0/113/31`, the honest post-fix number,
+  while a **production** parse (`bare_parse`, the fused `cascade_*` graph) was untouched. This is
+  the observability twin failing in the PASSING direction on the repository's headline metric.
+- **What caught it was `parse_harness_equivalence_gate`** — the one oracle that compares the
+  interpreter against the parser a real consumer runs:
+  `ebnf DIVERGE samples=81 agree=60 diverge=8 (+13 suppressed) first=Ast: AST differs at byte 32
+  (interp_len=149 oracle_len=112)`, interp `elements:[{"content":"   ","type":"whitespace"}]` vs
+  oracle `elements:[]`. ⇒ **a cert delta is not evidence that a layout change reached the shipped
+  parse.** Recorded as [[the-certificate-observes-the-protocol-graph-not-the-parse-a-consumer-runs]].
+- **The cascade pair is additionally load-bearing.** `cascade_match_*` and `cascade_build_*` derive
+  `start_dynamic` from this same value; fixing three of six made them disagree and codegen produced
+  a parser that panicked on its own tape —
+  `internal error: entered unreachable code: derivation-tape drift in rule 'whitespace': expected
+  TokStart, found TokEnd(157319)` — during `regenerate_generated_parsers`. Loud, immediate, and only
+  reachable because the two sites were separate copies.
+- ⇒ the fix is **one** `regex_atom_skips_leading_layout` with six callers, and
+  `layout_owning_terminal_tests::the_layout_skip_decision_has_exactly_one_definition` pins the count
+  at six and the hand-spelled allowlist at zero in every emission module. **Control proven to fire**:
+  re-spelling the `scan.rs` site by hand fails it `left: 5, right: 6`. ⛔ Its first arm was
+  spelling-DEPENDENT and missed the multi-line form when that control was run; it now asserts the
+  allowlist's rule NAMES are absent from an emission module at all.
+
+#### ⛔ THE INHERITED CENSUS WAS WRONG IN BOTH DIRECTIONS — which is why this leaf re-derived it
+
+This leaf said to re-derive rather than inherit, *"because the census was produced by a REGEX over
+grammar text, whereas the engine's own authority is the HIR walk"*. It was right, and the new
+instrument (`--report-layout-owning-terminals`, TOOLBOX 5.10) says so by name:
+
+| | inherited (text sweep) | measured (HIR walk) |
+|---|---|---|
+| `systemverilog_lrm_profiled_*` `white_space` | *"the two"* | **one** — `_generated` declares no `@entry`, the frontend refuses it, so it has **no verdict in either direction** |
+| `systemverilog_preprocessor` | `space_or_tab` only | `space_or_tab` **and `newline := /\r?\n/`** — whitespace-only, non-empty, invisible to any search for `\s` |
+| whitespace-only sites "across the grammars" | 112 | **121** over the 14 loadable grammars (112 is `semantic_annotation`'s own count) |
+
+**The closed population: `layout_owning_total=7` over 14 loadable grammars** (4 of the 18 `.ebnf`
+files are raw LRM extraction inputs the frontend cannot load — reported `[not-loadable]`, never
+counted as zero): `ebnf` `whitespace` · `semantic_annotation` `precedence_value` /
+`constraint_value` / `whitespace` · `systemverilog_lrm_profiled_wrapper` `white_space` (not a
+family, ships no parser) · `systemverilog_preprocessor` `space_or_tab` / `newline` (that grammar
+declares `@whitespace_sensitive: { regex_tokens: true }`, so its `match_regex` never skipped
+anyway — the emitted flag moves, the behaviour cannot).
+
+⭐ **`semantic_annotation`'s three do NOT move its certificate, and that is correct**: all three are
+dead-rule candidates (`WARNING plannable-rule reach pass: 29 UNKNOWN rules have NO reach path from
+the entry`, and they are on that list). The fix repairs them for any future referrer; it cannot
+confer reachability, exactly as `H.17.1` recorded for its own three.
+
+#### ⭐ INTERACTION CONSIDERED AND MEASURED SAFE — the FIRST-set pruning surface
+
+`first_set.rs` lets a consumer trust `regex_token_derived` first bytes only when the grammar's regex
+tokens are whitespace-SENSITIVE (`fusibility_census.rs:789`, `first_set.rs:704`) — a **grammar-wide**
+gate. Suppressing the skip for one terminal inside a grammar that is grammar-wide *insensitive*
+leaves that gate already refusing, so the verdict can only become more conservative than necessary,
+never unsound. No change made; recorded so the next reader does not have to re-derive it.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — `PGEN_CERT_COVERAGE_DEBUG_PROBES=1 … --report-certificate-coverage` on
+  `grammars/ebnf.ebnf` prints `[plannable-probe] rule='whitespace' parsed=true
+  witnessed_target=false sample="    "`, and `--interpret-parse` on four spaces returns
+  `INTERPRET-PARSE: … accepted=true furthest_position=0` with typed AST `elements: []`, span
+  **0..0** — the alternation ran ZERO iterations. Baseline cert, binary verified newer than every
+  artifact: `ebnf 144/0/112/32` at seeds 0/7/42 (`spf` 4/5/3).
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `consume_layout_for_regex` in every emitted parser, whose
+  `self.consume_optional_whitespace()` runs UNCONDITIONALLY at the head of the loop while every
+  comment arm below it is gated on `regex_token_matches_at_cursor(pattern)` (H.11.3). WHY the
+  declarative tier cannot fix it: `@whitespace_sensitive:` is GRAMMAR-WIDE and `H.16.4` measured all
+  four settings of its three facets against a two-arm control — **none** satisfies both arms. WHY it
+  is not the planner (TOOLBOX 4.4's standing warning): nothing was routed anywhere, the bytes were
+  gone first. WHERE the property lives: `--report-layout-owning-terminals` names the class through
+  codegen's own HIR predicate — `LAYOUT-OWNING-TERMINALS: grammar='ebnf' rules=144 regex_atoms=32
+  whitespace_only=1 layout_owning=1 separators=0 uncompilable=0`.
+- [x] **ADDRESSED (verified)** — `ebnf` cert `144/0/112/32` → **`144/0/113/31`** at **seeds 0/7/42**,
+  `spf` unchanged 4/5/3. Delta **attributed BY NAME**: exactly `whitespace` left the UNKNOWN set and
+  **nothing** is newly UNKNOWN (32 → 31, set-differenced both directions). Behaviour, on the
+  interpreter arm which never links the generated parser: four spaces `elements: []` span 0..0 →
+  **`elements:[{"content":"    ","type":"whitespace"}]` span 0..4**. Two-arm control with the binary
+  PINNED (one dual-feature build per arm, only the guard toggled): every accept/reject verdict on
+  six grammars is **unchanged** and `furthest_position` moves **+1 on every row** — the trailing
+  newline is now *reached* by the alternation instead of eaten as trailing layout — with the
+  reproducer flipping `0 → 4`. The envelope gate independently shows the same thing as
+  `consumed_pct 99.98/99.99 → 100.00` across the board. ⛔ The obvious before-arm produced NO rows
+  at first: a single-feature `ast_pipeline` REFUSED (`PARSE-HARNESS.10`) rather than printing empty
+  ones, which is the trap TOOLBOX 1.4 names — two empty result sets diff clean.
+- [x] **NO REGRESSION** — `parse_harness_equivalence_gate` GREEN, 4/4, all **11 CERTIFIED grammars
+  byte-identical** interpreter-vs-generated (this gate was RED against the incomplete first cut and
+  is what found it). `ebnf_frontend_dual_run_gate` GREEN, **14/14 at their declared ceilings** — a
+  two-sided ratchet, so every divergence count is *identical*, not merely no worse.
+  `ast_shape_contract_gate` 18/18. `clippy_on_rust_change` pass, generated-parser stage strict, 68
+  pinned correctness lints intact. `scripts/check_doctrines.sh` **25/25**. Generated-parser byte
+  movement attributed over all 11 artifacts: exactly `ebnf.rs`, `semantic_annotation_parser.rs`,
+  `systemverilog_preprocessor_parser.rs` moved — **`systemverilog_parser.rs`, `vhdl_parser.rs`,
+  `json_parser.rs`, `regex_parser.rs`, `return_annotation_parser.rs`, `rtl_*_parser.rs` and
+  `scratch_parser.rs` are BYTE-IDENTICAL**, and every emitted non-skipping site in the three that
+  moved is one of the seven census rows or the pre-existing `string_content_*` allowlist.
+  `generated_reproducibility_rebaseline` re-derives **11/11 byte-identically (0 sites)**; the ebnf
+  bootstrap reaches a **fixpoint** (`ac943fb2…` regenerating to `ac943fb2…` through a binary that
+  already contains it). `semantic_annotation` `119/0/90/29` and `return_annotation` `35/0/33/2`
+  unchanged at every seed.
+- [x] **LOCKSTEP** — this leaf + the Current Frontier + `docs/TASK_TREE.md`; `TOOLBOX.md` §5.10 + the
+  quick chooser + the group-1 signature table; `scripts/check_diagnosis_evidence.sh`
+  (`LAYOUT-OWNING-TERMINALS:` registered **in this commit**, per the standing two-way obligation);
+  the probe artifact `docs/tasks/artifacts/grammar_wellformed/layout_owning_terminals/probe.sh` +
+  its recorded `census.txt`; book `docs/book/src/grammar-wellformedness.md` +
+  `docs/book/src/diagnosing-unknowns.md` (the TOOLBOX mirror, kept in lockstep);
+  `docs/reference/RUST_CODEBASE_ANALYSIS.md`; the lesson PROMOTED to
+  `docs/knowledge/a-certificate-delta-is-not-evidence-a-codegen-change-reached-the-shipped-parse.md`
+  with `answers:` + a runnable `reverify:` (`KNOWLEDGE_MAP.md` regenerated, 181 facts);
+  `docs/decisions/` + its `INDEX.md`; `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`. DONE-BAR
+  register: unchanged — no family's `claimed_status` moves (`ebnf` is not a shipping family row and
+  `UNKNOWN` is still 31). ⭐ `mdbook_docs_gate` pass **and `git status` clean afterwards** — the
+  `-0176` lesson that the gate's PASS is not a currency verdict.
+- ⭐ **A THIRD FINDING, OWNED NOT LOGGED — `DOCTRINE-GAP-OWNERSHIP.10`.** Following `COMMIT.md`'s
+  standing instruction to update `docs/reference/RUST_CODEBASE_ANALYSIS.md` for an architecture
+  change, in that document's own established convention (a dated `## Recent Architecture Change
+  Note`), was REFUSED by `LIVE-DOC-CURRENCY`: *"21 distinct dates (> the `status` ceiling 20) — it
+  has stopped being a status view."* The document's convention now conflicts with its charter, and
+  the file sits exactly AT the ceiling, so the next architecture note is blocked too. Discharged
+  HERE by folding the durable fact into the permanent `Major Architectural Layers → Parser Code
+  Generation` section as undated prose (better for a live assessment — the date lives in
+  `CHANGES.md`); the nineteen existing dated notes and the convention ruling are owned by that leaf.
+  ⛔ The ceiling was NOT raised.
+
+#### Routed OUT (measured, not speculated)
+
+- **`H.22`** — the interpreter does not mirror TWO other codegen decisions on this same call:
+  the `string_content_double`/`string_content_single` layout allowlist (`match_regex(val, …)` is
+  reached with the raw pattern and no rule-name test) and `effective_regex_pattern`'s per-rule
+  steering. `return_annotation` — one of the **11 CERTIFIED byte-identical** grammars — uses both
+  affected rule names, so the certified claim has a hole its corpus does not currently reach.
+  MEASURED here, not inferred: `generated/return_annotation_parser.rs` emits
+  `match_regex("[^']*", false)` ×5 while the interpreter passes `true` for the same atom. Deliberately
+  NOT ridden along — it changes a certified grammar's AST and owes its own before→after.
 
 ### `H.16.5` — **THE 55 SOURCE ORPHANS ARE ALREADY OWNED BY `LANG-CAPABILITY-AUDIT`; WHAT THIS LEAF OWES IS THE 9 LR RESIDUE AND THE PROOF-PROMOTION GATE** (`todo`, opened 2026-08-22 session #257 by `H.16.1`, **RE-SCOPED same session by `-0170` after a director correction**)
 
@@ -4368,6 +4533,34 @@ setting satisfies both arms.** Two of the four witness the rule; **all four brea
    grammar gains a rule. ⚠️ Bound it to what is genuinely unwatched: `LANG-CAPABILITY-AUDIT.1`'s 27
    are already a tracked population, so the watch this owes is over the **LR-residue delta**, which is
    the half no existing instrument computes.
+
+### `H.22` — **THE INTERPRETER MIRRORS ONE OF THREE CODEGEN DECISIONS ON THE SAME `match_regex` CALL** (`todo`, opened 2026-08-23 session #260 by `H.16.4a`)
+
+- **WHY**: `parse_harness_interpreter.rs`'s `parse_atom` reaches `self.match_regex(val, …)` with the
+  RAW grammar pattern. Codegen's emission of that same call makes **three** decisions the
+  interpreter must reproduce for the byte-identity claim to hold:
+  1. ✅ **layout-owning terminals** (`H.16.4a`) — mirrored, through codegen's own predicate.
+  2. ⛔ **the `string_content_double` / `string_content_single` allowlist** — codegen emits
+     `skip_leading_whitespace = false` for those two rule names; the interpreter has no rule-name
+     test and always passes `true`.
+  3. ⛔ **`effective_regex_pattern`** — codegen matches the pattern AFTER per-rule
+     `@token_class` / `@charset` / `@pattern` steering (and the `semantic_annotation`
+     `identifier_literal` special case); the interpreter matches the raw one.
+- ⭐ **MEASURED, not inferred, and it lands inside a CERTIFIED claim.** `return_annotation` is one of
+  the **11 grammars `parse_harness_equivalence_gate` certifies byte-identical**, and it is the
+  grammar that uses both allowlisted rule names: `generated/return_annotation_parser.rs` emits
+  `match_regex("[^']*", false)` ×5 while the interpreter passes `true` for the same atom. The
+  discriminating input is a quoted string whose content begins with whitespace — codegen captures
+  the leading space into the token, the interpreter skips it — and the deterministic stimuli corpus
+  does not currently produce one. ⇒ **the gate is green because the corpus does not reach the hole,
+  not because the hole is closed.**
+- ⛔ **Deliberately NOT ridden along inside `H.16.4a`** ([[feedback_sequence_approved_work_yourself]]
+  applies to ordering, not to scope): closing (2) changes the typed AST of a certified grammar and
+  owes its own before→after plus a corpus row that can DISCRIMINATE — the first job of this leaf is
+  to build that row, because a fix whose gate cannot fail is not verified. `H.16.4a` sidesteps (3)
+  by making codegen REFUSE when steering would move a terminal across the layout-owning boundary;
+  that refusal covers one property, not the general mirror.
+- **Sequence**: after `H.16.2b` (same family — the emitted layout skipper), before `H.16.6c`.
 
 ### `H.20` — **THE ENVELOPE RATCHET IS RED ON `systemverilog` (`155 > 151`), AND THE +4 ARE THREE DEFECT INSTANCES IN THREE PRE-EXISTING CLASSES — ONE OF THEM A LIVE FRONTEND DEFECT THAT REACHES A SHIPPED ARTIFACT** (**`done`**, `PGEN-GRAMMAR-WELLFORMED-0176`, CODE / gate ceiling — opened 2026-08-22 session #257 by `H.17.1`, CLOSED 2026-08-23 session #259; the fix it uncovered is routed to `H.20.1`, the flow gap to `H.20.2`)
 
@@ -4685,9 +4878,13 @@ owning leaf, and `H.20.1` lowers the ceiling when it lands.
 > ([[feedback_answer_your_own_technical_questions]]). The order is: ✅ `H.16.6a` **RULED** (`-0171`) ·
 > ✅ `H.16.7` **CLOSED** (`-0172`) · ✅ `H.16.6b` **CLOSED** (`-0173`) — all session #258 ·
 > ✅ **`H.20` CLOSED** (`-0176`, session #259 — the queue's only RED gate is GREEN, and closing it
-> opened `H.20.1` + `H.20.2`) — → **1** `H.16.4a` (the last unfixed arm
-> of the layout-guard family, and it decides `whitespace`'s classification) → **2** `H.16.2b` (the same
-> family, prophylactic, repo-wide radius so it must not ride along inside another slice) → **3**
+> opened `H.20.1` + `H.20.2`) · ✅ **`H.16.4a` CLOSED** (`-0177`, session #260 — the per-terminal
+> layout guard SHIPPED; `whitespace` is WITNESSED, so it is a fixed defect and **not** a
+> `proof`-promotion candidate, which settles the classification `H.16.5` was waiting on; opened
+> `H.22`) — → **1** `H.16.2b` (the same
+> family, prophylactic, repo-wide radius so it must not ride along inside another slice) → **1b**
+> `H.22` (the interpreter mirrors 1 of 3 codegen decisions on the same call — same emitted surface as
+> `H.16.2b`, and it sits INSIDE a certified byte-identity claim) → **3**
 > `H.16.6c` (the 8 residual self-rejected stimuli — its blocking dependency `H.16.6b` is now CLOSED,
 > so its baseline is current) → **4** `H.16.5` (the 9 LR residue + the `profile.is_some()` proof-promotion gate) → **5**
 > `H.19` (leg 3 for `H.15`) → **6** `H.16.7b` (the shape contract
@@ -4728,8 +4925,9 @@ owning leaf, and `H.20.1` lowers the ceiling when it lands.
 | 2 | `GRAMMAR-WELLFORMED.H.16.2b` (the DYNAMIC comment-skip guard is still an exact-equality allowlist) | **`todo`** (opened 2026-08-22 by `H.16.2`) | Prophylactic hardening of a proven class, deliberately NOT ridden along inside `H.16.2`: the prefix test edits the emitted layout skipper of EVERY arm-emitting parser (repo-wide rebaseline) versus `H.16.2`'s measured one-artifact radius. No live victim known. Also owes the 10 unprobed sites of the 11-site class census |
 | — | `GRAMMAR-WELLFORMED.H.16.3` (the generator shadows any rule named `epsilon` with `""`) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0166`, CODE / engine-universal stimuli generator) | ✅ A DEFINED rule now wins; the builtin is gated on `!grammar_tree.contains_key("epsilon")`, preserving both existing callers exactly (their grammars leave `epsilon` UNDEFINED). `ebnf` cert `144/0/111/33` → **`144/0/112/32`** with `spf` falling at EVERY seed (**8→4 · 11→5 · 7→3**), both arms measured on the same binary path; delta ATTRIBUTED BY NAME (exactly `epsilon` left, nothing newly UNKNOWN). ⭐ ZERO generated-parser bytes move — the rebaselined reproducibility file shows every `parser_sha` unchanged across all 11 artifacts |
 | — | `GRAMMAR-WELLFORMED.H.16.4` (`ebnf`'s `whitespace` is layout-skipped before `grammar_file` sees it) | **`done`** — ADJUDICATED (`PGEN-GRAMMAR-WELLFORMED-0167`, doc+artifact tier) | ✅ Root cause is an ASYMMETRY in the emitted layout skipper: every COMMENT arm is gated on `regex_token_matches_at_cursor(pattern)`, the whitespace skip is not — which is why `comment` is witnessed and `whitespace`, in the SAME alternation, is not. ⛔⛔ The declarative tier EXISTS (`@whitespace_sensitive`, and `systemverilog_preprocessor.ebnf:23` ships the exact shape) and is **REFUTED by a closed facet matrix**: all four settings break `grammars/json.ebnf`, and only two of them even witness the rule. Named a **layout-shadowed** residual; the capability is `H.16.4a` |
-| 1 | `GRAMMAR-WELLFORMED.H.16.4a` (`@whitespace_sensitive` is grammar-wide; the property needed is per-terminal) | **`todo`** (opened 2026-08-22 by `H.16.4`) | The guard shape is already in the engine one arm over, and `H.16.2`'s `hir_matches_only_whitespace` is exactly the predicate that makes it safe. Decides a CLASSIFICATION, not just a rule: guard lands ⇒ `ebnf` `UNKNOWN=31`; guard refused ⇒ `whitespace` joins `H.16.5`'s `proof`-promotion population |
-| 4 | `GRAMMAR-WELLFORMED.H.16.5` (the 9 LR residue + the proof-promotion gate) | **`todo`** — RE-SCOPED by `-0170` | ⛔ **RETRACTED its own escalation**: the 55 source orphans were ALREADY owned by `LANG-CAPABILITY-AUDIT.1`/`.4`/`.6` (27 productions, 7 horizon-mapped clusters, per-cluster dispositions) and the capability is ALREADY greenlit by [[feedback_capability_work_is_greenlit_by_standing_authorization]] — only the parametric NOTATION is open, and `[ … ]` is taken by the optional-element form. What remains genuinely unowned: the **9 LR residue** (PGEN's own, never a capability gap) and the `profile.is_some()` gate on proof promotion |
+| — | `GRAMMAR-WELLFORMED.H.16.4a` (`@whitespace_sensitive` is grammar-wide; the property needed is per-terminal) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0177`, CODE / engine-universal codegen + interpreter) | ✅ **The guard is PER-TERMINAL and costs nothing** — a codegen-time constant, so a grammar with no layout-owning terminal regenerates BYTE-IDENTICALLY (`systemverilog`, `vhdl`, `json`, `regex`, `return_annotation`, both `rtl_*`, `scratch` all unmoved; exactly 3 of 11 artifacts moved). `ebnf` `144/0/112/32` → **`144/0/113/31`** at seeds 0/7/42, `spf` unchanged, delta attributed BY NAME (exactly `whitespace`, nothing newly UNKNOWN); four spaces go `elements:[]` span 0..0 → the declared node, span 0..4. The `json.ebnf` control that REFUTED all four `@whitespace_sensitive` settings still parses. ⛔⛔ **The first cut changed 1 of SIX spellings of the decision and the CERTIFICATE STILL MOVED** — `certificate_coverage` enables coverage, which sets `bare_parse=false`, so it observes the PROTOCOL graph while a real parse runs the FUSED one; `parse_harness_equivalence_gate` is what caught it, and mis-fixing the `cascade_match_*`/`cascade_build_*` PAIR panicked codegen on its own derivation tape. Now ONE predicate with six callers, pinned by a test whose control fires `5 vs 6`. ⛔ The inherited census was wrong BOTH ways (invented one `_lrm_profiled_*` row, missed svpp's `newline := /\r?\n/`); re-derived by the new HIR instrument → **7 layout-owning of 121 whitespace-only over 14 loadable grammars**. Routed out `H.22` |
+| 1b | `GRAMMAR-WELLFORMED.H.22` (the interpreter mirrors 1 of 3 codegen decisions on the same `match_regex` call) | **`todo`** (opened 2026-08-23 by `H.16.4a`) | MEASURED inside a CERTIFIED claim: `return_annotation` is one of the 11 grammars the equivalence gate certifies byte-identical, and its `generated/return_annotation_parser.rs` emits `match_regex("[^']*", false)` ×5 while the interpreter passes `true`. The discriminating input is a quoted string whose content starts with whitespace, which the stimuli corpus does not produce ⇒ **green because the corpus does not reach the hole**. First job is the corpus row that can DISCRIMINATE — a fix whose gate cannot fail is not verified |
+| 4 | `GRAMMAR-WELLFORMED.H.16.5` (the 9 LR residue + the proof-promotion gate) | **`todo`** — RE-SCOPED by `-0170`; ⭐ its `whitespace` question is SETTLED by `H.16.4a` (`-0177`) — the rule is witnessed, so it is NOT a `proof`-promotion candidate and this leaf's population does not grow by it | ⛔ **RETRACTED its own escalation**: the 55 source orphans were ALREADY owned by `LANG-CAPABILITY-AUDIT.1`/`.4`/`.6` (27 productions, 7 horizon-mapped clusters, per-cluster dispositions) and the capability is ALREADY greenlit by [[feedback_capability_work_is_greenlit_by_standing_authorization]] — only the parametric NOTATION is open, and `[ … ]` is taken by the optional-element form. What remains genuinely unowned: the **9 LR residue** (PGEN's own, never a capability gap) and the `profile.is_some()` gate on proof promotion |
 | — | `GRAMMAR-WELLFORMED.H.16.1` (adjudicate the 68) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0164`, doc+artifact tier) | ✅ **68 = 9 LR-residue + 55 source-orphans + 4 root-caused inert rules**, in **31 islands**, partition CLOSED (zero rules unattributed). ⛔ `--lint-grammar` could never have adjudicated this — it reads `unreachable_rules=0` on all three BY CONSTRUCTION. New reader: `docs/tasks/artifacts/grammar_wellformed/residual_island_census/probe.py`, proven to go RED three ways. Residual-rules-with-no-owning-leaf **68 → 0** |
 | — | `GRAMMAR-WELLFORMED.H.16` (roll `ebnf` / `return_annotation` / `semantic_annotation` to `UNKNOWN=0`) | **`in_progress`** (adjudicated by `H.16.1`; work routed to `H.16.2`–`H.16.5`) | The **clean** conjunct, and now the only engineering half of the `SVPP-EXPANSION` gate left. `H.15` made the three measurable and they read `UNKNOWN` **35 / 2 / 34** = **71**, of which **64 are dead-rule candidates** (no reach path from the entry) ⇒ a `--lint-grammar` adjudication lane, not a witness-generation lane. Lanes cost 0.06–0.38 s and are seed-invariant. |
 | — | `GRAMMAR-WELLFORMED.H.17.1` (repair the 5 live regex-look-around rules) | **`done`** (`PGEN-GRAMMAR-WELLFORMED-0161`, CODE / grammar + codegen) | ✅ All five repaired; `uncompilable_regex_terminals` `ebnf` 3→**0**, `semantic_annotation` 2→**0**, both exit 1→**0**. `/* x */` now parses. Cert: `ebnf` `144/0/109/35 → 144/0/111/33` (`spf` 13→8), `semantic_annotation` `114/0/80/34 → 115/0/82/33`. ⭐ `UNKNOWN` delta attributed **by rule name** — exactly `block_comment`+`block_comment_content` and `multiline_string`; **nothing** newly UNKNOWN. ⛔ 3 of the 5 stay UNKNOWN **correctly** — their parents are unreferenced, and a terminal repair cannot confer reachability. Generated parsers verified byte-identical to the interpreter (79/79, 134/134). Opened `H.20`. |

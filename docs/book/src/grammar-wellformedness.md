@@ -1090,6 +1090,145 @@ comment at all. Its live reach was measured rather than assumed: across all seve
 grammars, **zero** annotation lines contain a `#`, so nothing in the repository was relying on the
 behaviour that changed.
 
+### A third way: the terminal IS the layout, and the skipper eats it first
+
+The two mechanisms above share a shape — a terminal that can never match — and there is a third,
+found in the same adjudication and closed by `GRAMMAR-WELLFORMED.H.16.4a`. It is the sharpest of the
+three, because the rule is perfectly well-formed and the engine is doing exactly what it was told.
+
+`grammars/ebnf.ebnf` declares whitespace as a first-class element of a grammar file:
+
+```ebnf
+grammar_file := (include_directive | semantic_annotation | grammar_rule | comment | whitespace)*
+whitespace   := /(\s+)/
+    -> {type: "whitespace", content: $1}
+```
+
+`comment` sits in that same alternation and **is** witnessed. `whitespace` never was. Feeding the
+meta-parser an input of four spaces shows why in one line — the alternation ran **zero** iterations:
+
+```text
+INTERPRET-PARSE: grammar='ebnf' entry='grammar_file' input_bytes=4 accepted=true furthest_position=0
+typed AST: {"elements": [], "type": "grammar_file"}          span 0..0
+```
+
+Nothing was routed anywhere and nothing was rejected. The bytes were simply **gone** before the
+alternation was offered them, consumed by the emitted layout skipper:
+
+```rust
+fn consume_layout_for_regex(&mut self, can_match_empty: bool, pattern: &str) {
+    // …
+    loop {
+        let before = self.position;
+        self.consume_optional_whitespace();                     // <- UNCONDITIONAL
+        // …
+        if bytes[self.position] == b'#' {
+            if self.regex_token_matches_at_cursor(pattern) { break; }   // <- GUARDED
+```
+
+Every **comment** arm asks *"would the token I am about to match consume these bytes itself?"*. The
+**whitespace** skip never asks. That asymmetry is the entire difference between `comment`, which
+survives, and `whitespace`, which cannot.
+
+#### The declarative tier exists, and it is refuted by measurement
+
+PGEN already has a grammar-level layout directive, and a sibling grammar ships the exact shape
+(`grammars/systemverilog_preprocessor.ebnf` declares `@whitespace_sensitive: { regex_tokens: true }`
+and its `space_or_tab := /[ \t]+/` **is** witnessed). So this looked like a one-line lookup. It is
+not, and the population of settings is closed — three boolean facets, all four meaningful
+combinations, each measured against two arms:
+
+| `@whitespace_sensitive:` | `whitespace` commits? | `grammars/json.ebnf` still parses? |
+|---|---|---|
+| *(none — the shipped baseline)* | no | **yes** |
+| `{ regex_tokens: true }` | **yes** | no |
+| `{ terminals: true }` | no | no |
+| `{ trailing: true }` | no — and the whitespace-only input stops parsing | no |
+| `true` (all three) | **yes** | no |
+
+**No setting satisfies both arms.** The reason is a property, not an accident: the directive is
+**grammar-wide**, and disabling the layout skip before *every* regex terminal breaks
+`rule_name := /([a-zA-Z_][a-zA-Z0-9_]*)/` and its neighbours, which rely on preceding layout being
+skipped. A preprocessor grammar can afford that because it structurally owns all of its whitespace.
+A meta-grammar cannot.
+
+#### The property a layout-owning rule needs is per-TERMINAL
+
+The guard is one predicate, applied to each regex terminal at generation time:
+
+> **every match of this pattern is whitespace, and the pattern cannot match empty.**
+
+A terminal with that property does not get a pre-match layout skip — codegen emits
+`match_regex(pattern, false)` and the terminal is handed its own bytes. Nothing is added to the parse
+path: the decision is a codegen-time constant, so a grammar with no such terminal regenerates
+**byte-identically** and pays nothing.
+
+The empty-match half is what keeps the change small. `/\s*/` is whitespace-only too, but an
+empty-matching regex takes `consume_layout_for_regex`'s early return and never reaches the
+unconditional skip — suppressing *its* skip would change layout handling almost everywhere while
+fixing nothing. Over the fourteen grammars the frontend can load there are **121** whitespace-only
+regex terminals and only **7** are layout-owning; the other 114 are separators.
+
+You can re-derive that population yourself, and it is HIR-derived rather than text-matched:
+
+```bash
+./rust/target/debug/ast_pipeline grammars/ebnf.ebnf --report-layout-owning-terminals
+#   [layout-owning] rule='whitespace' pattern='(\s+)' can_match_empty=false compiles=true
+# LAYOUT-OWNING-TERMINALS: grammar='ebnf' rules=144 regex_atoms=32 whitespace_only=1
+#                          layout_owning=1 separators=0 uncompilable=0
+```
+
+⛔ **Do not answer this question by grepping the grammar text.** The first census of this class was a
+text sweep and it was wrong in both directions: it invented a row that does not exist, and it missed
+`systemverilog_preprocessor`'s `newline := /\r?\n/` — whitespace-only, non-empty-matching, and
+invisible to any search for `\s`. The report above calls the *same* predicate codegen uses, so the
+census and the emitted parser cannot disagree about what is in the class.
+
+#### What moved
+
+```text
+ebnf cert:  144/0/112/32  ->  144/0/113/31     at seeds 0/7/42, spf unchanged (4/5/3)
+UNKNOWN delta, by name:  exactly `whitespace` left; nothing newly UNKNOWN
+four spaces:  elements: [] span 0..0  ->  [{"content":"    ","type":"whitespace"}] span 0..4
+```
+
+Three of eleven generated artifacts moved — `ebnf`, `semantic_annotation` and
+`systemverilog_preprocessor` — and the other eight, `systemverilog_parser.rs` included, regenerate
+byte-identically. The `grammars/json.ebnf` control that refuted all four directive settings still
+parses. And the improvement is visible on a surface that has nothing to do with certificates: in the
+frontend⟷meta-parser differential the meta-parser's consumed share goes from 99.98–99.99 % to
+**100.00 %** on every grammar, because the trailing newline is now matched structurally instead of
+swallowed as trailing layout — with every divergence count unchanged.
+
+#### The transferable part: one decision, six spellings
+
+The first version of this fix changed the layout decision at **one** codegen site. The certificate
+moved anyway — to the correct post-fix number, at all three seeds, with the delta attributable by
+rule name — and the parse a real consumer runs was **completely untouched**.
+
+The reason is worth internalising before trusting any before→after on an emission change.
+`certificate_coverage` verifies a witness through the generated parser, but its hook must call
+`parser.enable_coverage()` to read the committed-rule set, and every generated parser computes
+`bare_parse = !self.coverage_enabled && !self.logger_enabled && …`. Enabling coverage therefore
+routes the parse onto the **protocol** graph, while an ordinary parse is `bare_parse` and runs the
+**fused `cascade_*`** graph — emitted from a different codegen site. One site fixed happened to be
+exactly the site the certificate observes.
+
+What caught it was the differential-equivalence gate, whose generated-parser side is a bare parse:
+
+```text
+ebnf   DIVERGE samples=81 agree=60 diverge=8
+       interp …"elements":[{"content":"   ","type":"whitespace"}]…
+       oracle …"elements":[]…
+```
+
+The decision was spelled six times across four modules — the protocol emitter, the fused
+`cascade_match_*` **and** `cascade_build_*` pair, the two direct-value builders, and the derived
+`scan_*` emitter. Fixing three of six made the cascade pair disagree with each other, and codegen
+produced a parser that panicked on its own derivation tape rather than mis-parsing quietly. The
+repair is not "remember all six": it is **one predicate with six callers**, plus a test that pins the
+caller count at six and fails if any site re-spells the decision by hand.
+
 ### Reaching deep recursive branches: the constructive-reach witness pass
 
 `rtl_const_expr` was the first grammar to expose a structural gap in the witness side, and the way it was

@@ -728,3 +728,36 @@ the copy has no way to know.*
 |---|---|---|
 | `PGEN-DOCTRINE-GAP-OWNERSHIP-0001` | (tree opened) | a known defect filed in a decision record is not tracked work — 58 commits proved it |
 | `PGEN-DOCTRINE-GAP-OWNERSHIP-0002` | `.1` | the census was itself a recorded-but-inert fact — 143 orphans triaged to 18, behind a ratchet that BLOCKS |
+
+### `.10` — `RUST_CODEBASE_ANALYSIS.md` sits AT its distinct-date ceiling, so the NEXT architecture note breaches it (`todo`, opened 2026-08-23 session #260 by `GRAMMAR-WELLFORMED.H.16.4a`)
+
+- **WHY**: the document's charter in the register is `status` — a live architecture/state assessment,
+  reviewed and updated *"whenever a task materially changes Rust architecture"* (`COMMIT.md`). Its
+  actual shape is **nineteen `## Recent Architecture Change Note (<date>)` / `## Steering Note
+  (<date>)` sections stacked above the assessment**, i.e. a changelog wearing a status document's
+  charter. `LIVE-DOC-CURRENCY` instrument A caps a `status` surface at **20 distinct dates**, and the
+  file is at **20**.
+- **MEASURED, and it fired on a real slice rather than on inspection.** `H.16.4a` followed the
+  standing `COMMIT.md` instruction to review/update this document for an architecture change, added a
+  dated note in the document's own established convention, and the pre-commit enforcer refused: *"21
+  distinct dates (> the `status` ceiling 20) — it has stopped being a status view."* ⇒ **the
+  document's own convention now conflicts with its charter**, and any author who follows the
+  convention is blocked.
+- **HOW `-0177` DISCHARGED ITS OWN INSTANCE, which is the shape the fix should generalise**: the
+  dated note was DROPPED and the durable architectural fact folded into the permanent
+  `## Major Architectural Layers → 2. Parser Code Generation` section as undated prose naming its
+  owning leaf. That is strictly better for a live assessment — a reader wants *what the architecture
+  IS*, and the date is already in `CHANGES.md` and `DEVELOPMENT_NOTES.md` — but it was one author's
+  call on one slice, not a policy, and the nineteen existing notes are untouched.
+- ⛔ **The ceiling must NOT be raised** — the doctrine says so explicitly, and raising it is the
+  failure restated as a policy (`README-POLICY.2`'s lesson).
+- **What this leaf owes**: a ruling on the document's convention (fold dated notes into the permanent
+  sections and route the history to `CHANGES.md`, versus declaring an `out_of_charter` entry in
+  `rust/test_data/grammar_quality/live_document_currency_register_v0.json` with this leaf as owner),
+  then the mechanical pass that implements it over the nineteen existing notes. ⚠️ Price it first: the
+  notes are not uniformly disposable — several carry measurements that exist nowhere else, and a
+  blind deletion would lose them. The classification is the work, exactly as
+  [[feedback_classify_referents_by_requirement]] argues.
+- ⚠️ **Not urgent, but it is a TRIPWIRE, not a wish**: the next architecture change to touch this file
+  is blocked at pre-commit until it is resolved, and the cheap resolution (undated prose) is now
+  demonstrated.

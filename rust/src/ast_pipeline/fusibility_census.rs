@@ -1237,14 +1237,18 @@ impl<'a> Classifier<'a> {
                     },
                     // Regex-literal terminals — `match_regex` skips leading layout iff the
                     // regex_tokens facet is insensitive AND the rule is not one of the two
-                    // generator-special-cased string-content rules (mirrored exactly).
+                    // generator-special-cased string-content rules AND the terminal does
+                    // not OWN its layout (GRAMMAR-WELLFORMED.H.16.4a — a whitespace-only,
+                    // non-empty-matching terminal, for which codegen emits no skip at all).
+                    // All three mirrored exactly.
                     "regex" => NodeFacts {
                         ok: true,
                         reasons: Vec::new(),
                         uses_lookahead: false,
                         arity: Arity::Single,
                         skipping_atom: !self.layout.regex_tokens
-                            && !REGEX_ATOM_NO_SKIP_RULES.contains(&rule),
+                            && !REGEX_ATOM_NO_SKIP_RULES.contains(&rule)
+                            && !AstBasedGenerator::regex_pattern_owns_its_layout(token_value),
                         is_text: true,
                         is_lookahead_node: false,
                     },

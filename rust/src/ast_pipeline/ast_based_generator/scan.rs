@@ -466,10 +466,9 @@ impl AstBasedGenerator {
                         }
                     }
                     "regex" => {
-                        let skip_leading_whitespace = !matches!(
-                            rule_name,
-                            "string_content_double" | "string_content_single"
-                        );
+                        // GRAMMAR-WELLFORMED.H.16.4a — the ONE shared layout decision.
+                        let skip_leading_whitespace =
+                            self.regex_atom_skips_leading_layout(rule_name, token_value)?;
                         let effective_regex_pattern =
                             self.effective_regex_pattern(rule_name, token_value);
                         Ok(quote! {

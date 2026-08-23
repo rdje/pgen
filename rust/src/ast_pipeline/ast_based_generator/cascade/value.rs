@@ -915,10 +915,11 @@ impl AstBasedGenerator {
                                 "direct-value emission reached regex atom of rule '{rule_name}' which carries a matched-text @transform — the shared cascade gate must have excluded it"
                             );
                         }
-                        let skip_leading_whitespace = !matches!(
-                            rule_name,
-                            "string_content_double" | "string_content_single"
-                        );
+                        // GRAMMAR-WELLFORMED.H.16.4a — the ONE shared layout decision, the
+                        // same call the `cascade_match_*` emitter made on this atom; the
+                        // two must agree or the derivation tape drifts.
+                        let skip_leading_whitespace =
+                            self.regex_atom_skips_leading_layout(rule_name, token_value)?;
                         let start_dynamic =
                             skip_leading_whitespace && !self.layout_sensitivity().regex_tokens;
                         let start_tokens = if start_dynamic {
@@ -1144,10 +1145,11 @@ impl AstBasedGenerator {
                         }
                     }
                     "regex" => {
-                        let skip_leading_whitespace = !matches!(
-                            rule_name,
-                            "string_content_double" | "string_content_single"
-                        );
+                        // GRAMMAR-WELLFORMED.H.16.4a — the ONE shared layout decision, the
+                        // same call the `cascade_match_*` emitter made on this atom; the
+                        // two must agree or the derivation tape drifts.
+                        let skip_leading_whitespace =
+                            self.regex_atom_skips_leading_layout(rule_name, token_value)?;
                         let start_dynamic =
                             skip_leading_whitespace && !self.layout_sensitivity().regex_tokens;
                         let start_consume = if start_dynamic {

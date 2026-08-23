@@ -1,5 +1,95 @@
 # CHANGES.md
 
+## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0177 (leaf GRAMMAR-WELLFORMED.H.16.4a CLOSED — the PER-TERMINAL layout guard ships; CODE / engine-universal codegen + interpreter, ZERO grammar bytes): one decision, six spellings, and the certificate could not see five of them
+
+- **WHAT SHIPPED.** A regex terminal whose every match is whitespace **and** that cannot match empty
+  now owns its leading layout: codegen emits `match_regex(pattern, false)` and the engine's
+  pre-match layout skip is not run in front of it. `ebnf`'s `whitespace := /(\s+)/` — declared in the
+  same alternation as `comment`, which IS witnessed — could never fire, because
+  `consume_layout_for_regex` runs `consume_optional_whitespace()` UNCONDITIONALLY at the head of its
+  loop while every comment arm below it is gated on `regex_token_matches_at_cursor` (H.11.3).
+- **IT COSTS NOTHING.** The decision is a codegen-time constant, so a grammar with no layout-owning
+  terminal regenerates BYTE-IDENTICALLY. Measured over all eleven generated artifacts: exactly
+  `ebnf.rs`, `semantic_annotation_parser.rs` and `systemverilog_preprocessor_parser.rs` moved;
+  `systemverilog_parser.rs`, `vhdl_parser.rs`, `json_parser.rs`, `regex_parser.rs`,
+  `return_annotation_parser.rs`, both `rtl_*` and `scratch_parser.rs` are unchanged.
+- **MEASURED**: `ebnf` cert `144/0/112/32` → **`144/0/113/31`** at seeds 0/7/42, `spf` unchanged
+  (4/5/3), delta attributed BY NAME — exactly `whitespace` left the UNKNOWN set and nothing is newly
+  UNKNOWN. Behaviourally, four spaces go from `elements: []` span **0..0** (the alternation ran ZERO
+  iterations) to `[{"content":"    ","type":"whitespace"}]` span **0..4**.
+- **THE CONTROL THAT DISTINGUISHES THIS FROM THE REJECTED FIX.** `H.16.4` had already measured the
+  declarative tier (`@whitespace_sensitive:`) over a CLOSED facet matrix — all four settings of its
+  three booleans — and **every one of them stops `grammars/json.ebnf` parsing** through the
+  meta-parser, because the directive is grammar-WIDE. The per-terminal guard passes that arm:
+  `grammars/json.ebnf` still reads `accepted=true`.
+- ⛔⛔ **THE FIRST CUT CHANGED 1 OF SIX SPELLINGS OF THE DECISION — AND THE CERTIFICATE STILL MOVED.**
+  `certificate_coverage`'s witness hook calls `parser.enable_coverage()`, which sets
+  `bare_parse = false`, so the certificate observes the **PROTOCOL** graph; a parse a real consumer
+  runs is `bare_parse` and executes the **FUSED `cascade_*`** graph, emitted from different codegen
+  sites. The one site fixed was precisely the site the certificate observes, so the headline number
+  reached its honest post-fix value while the shipped parse was untouched — and every counter-based
+  instrument (TOOLBOX §3.1-§3.6) routes to the protocol graph too, so none could disagree.
+  `parse_harness_equivalence_gate` caught it (`ebnf DIVERGE samples=81 agree=60 diverge=8`, oracle
+  `elements:[]`). Recorded as a decision record, because a future session WILL re-derive it.
+- ⛔ **AND THE CASCADE PAIR IS LOAD-BEARING**: `cascade_match_*` and `cascade_build_*` derive
+  `start_dynamic` from the same value, so fixing three of six made them disagree and codegen emitted
+  a parser that panicked on its own tape — `derivation-tape drift in rule 'whitespace': expected
+  TokStart, found TokEnd(157319)`. Loud, and only reachable because they were separate copies.
+- **THE STRUCTURAL REPAIR**: one `regex_atom_skips_leading_layout` with six callers (protocol,
+  cascade match, cascade build, direct-value build, direct-value discard, scan), plus
+  `layout_owning_terminal_tests::the_layout_skip_decision_has_exactly_one_definition`, which pins the
+  caller count at six and the hand-spelled allowlist at zero in every emission module. **Control
+  proven to fire**: re-spelling the `scan.rs` site fails it `left: 5, right: 6`.
+- **NEW INSTRUMENT**: `ast_pipeline --report-layout-owning-terminals` (TOOLBOX 5.10), registered in
+  `DIAGNOSIS_SIG` in this same commit. ⛔ It exists because the inherited census was a text sweep and
+  was wrong in BOTH directions — it invented a `systemverilog_lrm_profiled_*` row (the second grammar
+  declares no `@entry`, so the frontend cannot load it and it has no verdict either way) and MISSED
+  `systemverilog_preprocessor`'s `newline := /\r?\n/`, invisible to any search for `\s`. It also
+  published "112 whitespace-only sites across the grammars", which is `semantic_annotation`'s own
+  count. HIR-derived truth: **121 whitespace-only over 14 loadable grammars, of which 7 are
+  layout-owning**; the other 114 are `/\s*/` separators that take the `can_match_empty` early return.
+  The report prints the separators too, deliberately — a census showing only the rules the fix acts
+  on cannot be read as a blast radius.
+- ⭐ `semantic_annotation`'s three layout-owning rules (`precedence_value`, `constraint_value`,
+  `whitespace`) do NOT move its certificate, and that is correct: all three are dead-rule candidates
+  with no reach path from the entry. The fix repairs them for any future referrer; it cannot confer
+  reachability. `systemverilog_preprocessor`'s two are behaviour-inert — that grammar declares
+  `@whitespace_sensitive: { regex_tokens: true }`, so its `match_regex` never skipped anyway.
+- **GATES**: `parse_harness_equivalence_gate` 4/4, **11/11 certified grammars byte-identical**;
+  `ebnf_frontend_dual_run_gate` **14/14 AT their declared ceilings** (a two-sided ratchet, so every
+  divergence count is identical, not merely no worse — and the meta-parser's consumed share rises
+  99.98/99.99 % → **100.00 %** on every grammar, the trailing newline now matched structurally);
+  `ast_shape_contract_gate` 18/18; `clippy_on_rust_change` pass with the generated stage strict and
+  68 pinned correctness lints intact; `scripts/check_doctrines.sh` **25/25**;
+  `generated_reproducibility_rebaseline` re-derives **11/11 byte-identically (0 sites)** with the
+  ebnf bootstrap reaching a FIXPOINT; `mdbook_docs_gate` pass **and `git status` clean afterwards**
+  (the `-0176` lesson: the gate's PASS is not a currency verdict).
+- ⛔ **A REFUSAL SAVED THE TWO-ARM CONTROL.** The first before-arm produced NO rows: a single-feature
+  `ast_pipeline` REFUSED (`PARSE-HARNESS.10`) instead of printing empty ones — the trap TOOLBOX 1.4
+  names, where two empty result sets diff clean. Redone on dual-feature builds in both arms, the
+  control reads: every accept/reject verdict on six grammars UNCHANGED, `furthest_position` **+1 on
+  every row** (the trailing newline is now reached rather than eaten), reproducer `0 → 4`.
+- **ROUTED OUT — `GRAMMAR-WELLFORMED.H.22`**: the interpreter mirrors ONE of the three codegen
+  decisions on this same `match_regex` call. It does not mirror the
+  `string_content_double`/`string_content_single` allowlist, nor `effective_regex_pattern`'s per-rule
+  steering. MEASURED inside a CERTIFIED claim: `return_annotation` is one of the 11 grammars the
+  equivalence gate certifies byte-identical, and its generated parser emits
+  `match_regex("[^']*", false)` ×5 while the interpreter passes `true` — the discriminating input is
+  a quoted string whose content starts with whitespace, which the stimuli corpus does not produce.
+  ⇒ green because the corpus does not reach the hole. `H.16.4a` sidesteps its own instance of that
+  class by making codegen REFUSE when steering would move a terminal across the boundary.
+- **A THIRD FINDING, OWNED NOT LOGGED — `DOCTRINE-GAP-OWNERSHIP.10`.** Updating
+  `docs/reference/RUST_CODEBASE_ANALYSIS.md` in that document's OWN established convention (a dated
+  `## Recent Architecture Change Note`), as `COMMIT.md` instructs for an architecture change, was
+  REFUSED by `LIVE-DOC-CURRENCY`: *"21 distinct dates (> the `status` ceiling 20) — it has stopped
+  being a status view."* The document is a changelog wearing a status charter, it sits exactly AT
+  the ceiling, and the next architecture note is blocked too. Discharged here by folding the durable
+  fact into the permanent `Major Architectural Layers → Parser Code Generation` section as UNDATED
+  prose — better for a live assessment, since the date already lives here. ⛔ The ceiling was NOT
+  raised; the nineteen existing notes and the convention ruling are owned by that leaf.
+- **LIVE STATUS: UNCHANGED.** No `claimed_status` moves — `ebnf` stays `In Progress` (`UNKNOWN` 31,
+  not 0) and no other family's proof surface changed.
+
 ## 2026-08-23 - PGEN-CI-PARITY-GATE-ROT-0033 (leaf CI-PARITY-GATE-ROT.43 SLICE 1 done — UNPARKED BY DIRECT DIRECTOR ORDER; the shared codegen-input trigger EXISTS and its first consumer is wired; CODE / build-flow, ZERO grammar bytes, ZERO generated bytes, ZERO codegen bytes): one missing trigger, logged three times by three lanes, fixed zero times
 
 - ⛔ **DIRECTOR CORRECTION 2026-08-23**: *"do not just log or note issue, task-tree own them and later

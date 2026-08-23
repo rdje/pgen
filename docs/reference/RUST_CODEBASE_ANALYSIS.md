@@ -1032,6 +1032,34 @@ Assessment:
 - The AST-based codegen approach is a real strength because it reduces syntax-generation fragility.
 - The downside is that too much emitted-parser policy is encoded in one giant generator module.
 
+⛔ **There are FOUR emission surfaces, not one, and a per-atom decision has to reach all of them.**
+`ast_based_generator.rs` emits the PROTOCOL graph; `ast_based_generator/cascade.rs` emits the fused
+`cascade_match_*` / `cascade_build_*` pair; `ast_based_generator/cascade/value.rs` emits the
+direct-value build and discard forms; `ast_based_generator/scan.rs` emits the derived `scan_*`
+graph. A parse chooses between them at runtime — `self.bare_parse = !self.coverage_enabled &&
+!self.logger_enabled && !self.counters_observed.get() && !report_memo_stats_enabled()` — so an
+ordinary consumer parse runs the FUSED graph while **every diagnostic consumer, including
+`certificate_coverage`'s witness hook, forces the PROTOCOL one**.
+
+The practical consequence is a measurement hazard, and it is the single most important thing to know
+before trusting a before→after on an emission change: *a certificate delta does not prove a codegen
+change reached the parse a consumer runs* (`GRAMMAR-WELLFORMED.H.16.4a` — a layout fix
+applied to one of six sites moved the certificate to its correct post-fix value at all three seeds
+while the shipped parse was untouched; every counter-based instrument routes the same way, so only
+`parse_harness_equivalence_gate` could see it). The `cascade_match_*` / `cascade_build_*` pair is
+additionally coupled — they share the derivation tape — so a decision they disagree on panics at
+parse time rather than mis-parsing quietly.
+
+⇒ **the structural discipline is one predicate with N callers plus a test pinning N**, not a
+remembered list of sites. `AstBasedGenerator::regex_atom_skips_leading_layout` is the worked example:
+it is the sole definition of whether an emitted `match_regex` skips leading layout, folding both the
+`string_content_*` allowlist and the per-terminal layout-ownership property
+(`regex_pattern_owns_its_layout` — every match is whitespace and the pattern cannot match empty),
+and `layout_owning_terminal_tests::the_layout_skip_decision_has_exactly_one_definition` fails if any
+emission module re-spells it. `parse_harness_interpreter.rs` mirrors that same predicate, and codegen
+REFUSES to emit a parser whose raw and `effective_regex_pattern` verdicts differ — the one way
+steering could make the mirror unsound.
+
 ### 3. Stimuli, Coverage, Debt, And Closure Planning
 Primary file:
 - `rust/src/ast_pipeline/stimuli_generator.rs`

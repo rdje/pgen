@@ -63,7 +63,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
 use crate::ast_pipeline::ast_based_generator::{
-    CommentArmSuppression, comment_arm_suppression_for_grammar,
+    AstBasedGenerator, CommentArmSuppression, comment_arm_suppression_for_grammar,
 };
 use crate::ast_pipeline::semantic_directive_registry::{
     SemanticAssociativity, SemanticBranchPolicy, SemanticValueConstraints,
@@ -2761,7 +2761,10 @@ impl<'g, 'i> Interp<'g, 'i> {
                 Ok(ParseContent::Alternative(self.arena.alloc(node)))
             }
             "regex" => {
-                let matched = self.match_regex(val, true)?;
+                // GRAMMAR-WELLFORMED.H.16.4a — mirror codegen's per-terminal layout
+                // decision: a terminal whose every match is whitespace owns its leading
+                // layout, so skipping first would eat exactly the bytes it needs.
+                let matched = self.match_regex(val, !regex_terminal_owns_its_layout(val))?;
                 self.enforce_value_constraints(rule_name, matched)?;
                 Ok(ParseContent::Terminal(matched))
             }
@@ -3603,6 +3606,32 @@ fn with_anchored_regex<T>(
     }
     let re = cache.get(pattern).expect("just inserted");
     Ok(f(re))
+}
+
+/// GRAMMAR-WELLFORMED.H.16.4a — codegen's per-terminal layout-owning decision, mirrored so the
+/// interpreter skips leading layout before a regex token byte-identically to the generated parser.
+///
+/// Calls codegen's OWN predicate ([`AstBasedGenerator::regex_pattern_owns_its_layout`]), the same
+/// shared-kernel posture `comment_arm_suppression_for_grammar` uses, so the two can never drift.
+/// ⛔ Codegen decides on the EFFECTIVE pattern (post `@token_class`/`@charset`/`@pattern` steering)
+/// while this has only the raw grammar pattern; codegen REFUSES to emit a parser where the two
+/// verdicts differ, which is what makes this mirror sound rather than merely usually-right.
+///
+/// Memoized per pattern: the predicate parses and compiles the pattern, and this sits on the atom
+/// path — the same reason `with_anchored_regex` above keeps a thread-local cache.
+fn regex_terminal_owns_its_layout(pattern: &str) -> bool {
+    use std::cell::RefCell;
+    thread_local! {
+        static LAYOUT_OWNING_CACHE: RefCell<HashMap<String, bool>> = RefCell::new(HashMap::new());
+    }
+    LAYOUT_OWNING_CACHE.with(|cache| {
+        if let Some(known) = cache.borrow().get(pattern) {
+            return *known;
+        }
+        let owns = AstBasedGenerator::regex_pattern_owns_its_layout(pattern);
+        cache.borrow_mut().insert(pattern.to_string(), owns);
+        owns
+    })
 }
 
 /// Whether the anchored `\A(?:pattern)` matches the empty string (the codegen's `can_match_empty`

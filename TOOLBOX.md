@@ -85,7 +85,7 @@ same leaf keeps its checklist, and a deletion-only edit still counts as touching
 
 | # | family | when it applies | verbatim tokens that count |
 |---|---|---|---|
-| 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `PGEN_LINT_DUMP_ALL`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `INTERPRET-PARSE:`/`--interpret-parse`, `INDIRECT-LR-SURVEY:`/`--report-indirect-lr-plan`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]` |
+| 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `PGEN_LINT_DUMP_ALL`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `INTERPRET-PARSE:`/`--interpret-parse`, `INDIRECT-LR-SURVEY:`/`--report-indirect-lr-plan`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]`, `LAYOUT-OWNING-TERMINALS:`/`--report-layout-owning-terminals` |
 | 2 | **performance / SPEED** | it is correct but slow | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph` |
 | 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
 | 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
@@ -158,6 +158,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | **"`store_entry_raises=N` — but how many of those raises were actually NEEDED?"** | [6.3 blocked-verdict census](#63-store-entry-blocked-verdict-census--is-a-witness-entry-raise-actually-needed-or-is-the-verdict-over-approximating) — names each blocked target SPURIOUS vs GENUINE; measured 15 of 16 spurious on `sv_2017` |
 | **"The plan FORCES branch N — so why does the probe show branch 0? was the branch ever driven at all?"** — ⛔ `generate_or` falls back SILENTLY, and on the cert-coverage path 6.1 cannot answer (`--coverage-output` is refused there) | [6.4 `PGEN_REACH_FORCED_OVERRIDE_DUMP`](#64-pgen_reach_forced_override_dump--the-reach-plan-forced-a-branch-did-it-actually-render) — pairs the lost directive with the generator's own reason string |
 | "Is my grammar well-formed (LR / shadowing / non-terminating)?" | [5.1 `--lint-grammar`](#51---lint-grammar) |
+| **"A rule whose terminal is `/\s+/` is never witnessed — is the LAYOUT SKIP eating it?"** | [5.10 `--report-layout-owning-terminals`](#510---report-layout-owning-terminals) — the closed population of terminals that OWN their leading layout; ⛔ a text sweep for `\s` misses `[ \t\r\n]+` and `\r?\n`, which is how the first census of this class was wrong in two directions |
 | **"`--lint-grammar` says `left_recursion_unhandled=N` — so WHICH rule could absorb the chain, what suffix, and what does it cost?"** | [5.5 `--report-indirect-lr-plan`](#55---report-indirect-lr-plan) — ⛔ the lint names the cycle, not the fix; picking the wrong base rule is a measured REGRESSION |
 | "What IR do the generators actually consume?" | [5.2 `--dump-gen-ast`](#52---dump-gen-ast) |
 | "Packrat memo hit/miss perf?" | [3.3 `PGEN_REPORT_MEMO_STATS`](#33-pgen_report_memo_stats) |
@@ -1439,6 +1440,50 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   backtick opens a command substitution and the printed name silently loses the word. Measured
   here, and the same defect `scripts/check_doctrines.sh` shipped in its own registry descriptions —
   `bash -n` is clean throughout, so only RUNNING it shows the loss.
+
+### 5.10 `--report-layout-owning-terminals`
+- **WHAT:** the closed population of regex terminals that **own their leading layout** — every
+  match is whitespace AND the pattern cannot match empty. That is exactly the class for which the
+  engine's pre-match layout skip is not a convenience but a THEFT: `consume_layout_for_regex` runs
+  `consume_optional_whitespace()` unconditionally at the head of its loop, so such a terminal is
+  never offered the bytes it exists to match. Prints one line per whitespace-only regex atom —
+  `[layout-owning]` for the exposed class, `[separator]` for the `/\s*/` majority that takes the
+  `can_match_empty` early return and is unaffected — then one `LAYOUT-OWNING-TERMINALS:` summary.
+  Read-only; no codegen, no generation, no seeds. `GRAMMAR-WELLFORMED.H.16.4a`.
+- **WHEN:** a rule whose whole body is a whitespace terminal is `UNKNOWN` with
+  `parsed=true witnessed_target=false` and the reach plan checks out (Protocol A's cause map has no
+  arm for this — the bytes were gone before anything was routed anywhere); before changing the
+  layout skip, to price the blast radius; and to confirm a grammar you are authoring has not
+  acquired a layout-owning terminal by accident.
+- **HOW:**
+  ```bash
+  ./rust/target/debug/ast_pipeline grammars/<g>.ebnf --report-layout-owning-terminals
+  # the whole population, plus the reproducer and the json.ebnf control, in one command:
+  bash docs/tasks/artifacts/grammar_wellformed/layout_owning_terminals/probe.sh
+  ```
+- **OUTPUT:**
+  ```text
+    [layout-owning] rule='whitespace' pattern='(\s+)' can_match_empty=false compiles=true
+  LAYOUT-OWNING-TERMINALS: grammar='ebnf' rules=144 regex_atoms=32 whitespace_only=1 layout_owning=1 separators=0 uncompilable=0
+  ```
+- ⛔⛔ **DO NOT ANSWER THIS QUESTION WITH A TEXT SWEEP — the inherited census was wrong in BOTH
+  directions.** `H.16.4a` priced the class from a regex over grammar text and got two errors a
+  reader could not see: it named *"the two `systemverilog_lrm_profiled_*` `white_space`"* (there is
+  **one**; the other grammar declares no `@entry` and the frontend cannot load it, so it has no
+  verdict in either direction), and it MISSED `systemverilog_preprocessor`'s
+  `newline := /\r?\n/` — whitespace-only, non-empty-matching, and invisible to any search for `\s`.
+  It also published *"112 whitespace-only sites across the grammars"*, which is
+  `semantic_annotation`'s own count read as a repository total; the HIR walk says **121** over the
+  14 loadable grammars, of which **7** are layout-owning. This report calls codegen's OWN predicate
+  (`AstBasedGenerator::regex_pattern_layout_facts`), so the census and the emitted parser cannot
+  disagree about which rules are in the class.
+- ⭐ **It prints the SEPARATORS too, on purpose.** 114 of the 121 whitespace-only atoms are `/\s*/`
+  separators that never reach the unconditional skip. A census that showed only the rules the fix
+  acts on could not be read as a blast radius — it would look like the class was seven sites out of
+  seven rather than seven out of a hundred and twenty-one.
+- ⚠️ **A grammar the frontend cannot load has NO verdict** and is reported `[not-loadable]` with the
+  refusal text, never counted as zero. Four of the eighteen `.ebnf` files under `grammars/` are raw
+  LRM extraction inputs in that state.
 
 ## 6. Coverage / gap reports (`ast_pipeline`)
 
