@@ -1,0 +1,74 @@
+GRAMMAR-WELLFORMED.H.16.6d — THE FIVE CANDIDATE FORMULATIONS, SCORED
+====================================================================
+
+`H.16.6c` proved the mechanism: `absolute_path` / `relative_path` / `home_path` / `url_reference`
+were spelled `[^\s]`, so a path or URL abutting `]` `}` `)` `,` SWALLOWED the delimiter and the
+enclosing collection could never close. This is the choice of what replaces that, scored rather than
+argued. ⛔ Every arm is a SCRATCH COPY; the shipped grammar was edited only after the ruling, and its
+four rules are byte-identical to the winning arm.
+
+THE CANDIDATES
+  arm0_pristine  the control — `[^\s]`
+  arm1_close     exclude the value language's delimiters                     , ] } )
+  arm2_arrow     arm1 plus the arrow's own characters                        , ] } ) = >
+  arm3_rfc       exclude , ] } ) >  AND forbid a TRAILING `=`
+                 (RFC 3986 §2 excludes < > from a URI outright; `=` stays legal INSIDE a URL so
+                 query strings survive, and the trailing-`=` rule is what stops `http://x=>y`
+                 eating the map arrow)
+  arm4_escape    arm3 PLUS a backslash escape — DIRECTOR'S PROPOSAL, 2026-08-23 — so a delimiter
+                 can still appear in place: `https://h/a\,b`, `/opt/a\,b`, `https://h/p?a\=`
+
+  ⛔ A SIXTH CANDIDATE IS REFUTED AND NOT BUILT: a trailing `!(/\s*/ "=>")` guard on the terminal.
+     A guard after a GREEDY REGEX ATOM cannot SHORTEN the match, only reject the whole alternative.
+     Measured on a scratch arm: it left `http://PYJ=>http://aFC` ACCEPTED (the regex had already
+     eaten the arrow, so the guard saw nothing after it) and made `{ http://PYJ => http://aFC }`
+     REJECT outright — a URL could no longer be a map key at all. Strictly worse than the control.
+
+THE SCORES
+  arm            own corpus, 16 seeds    fixed corpus       legitimate values    real     probes
+                 (3 200 samples)         (1 000 rows)       (33 rows)            (149)    (62)
+  arm0_pristine  15 self-rejected        8 rejected         0 narrowed           —        —
+  arm1_close      1                      widen=5 narrow=7    7 narrowed          0/0      0/0
+  arm2_arrow      0                      widen=5 narrow=7   13 narrowed          0/0      0/0
+  arm3_rfc        0                      widen=5 narrow=7    9 narrowed          0/0      0/0
+  arm4_escape     0                      widen=5 narrow=7    4 narrowed          0/0      0/0   ⭐ SHIPPED
+
+  Every arm widens EXACTLY the same five rows — `#0294 #0397 #0416 #0812 #0938` — which is what
+  makes them comparable: they differ only in what they COST, never in what they FIX.
+
+WHY arm4 WINS, and it is not close
+  · It reaches ZERO self-rejects, which arm1 does not (arm1's survivor is
+    `@ PpgR : [ { http://PYJ=>  http://aFC } ]`, where the URL eats the ARROW rather than a bracket).
+  · It costs 4 narrowed legitimate values where arm3 costs 9 and arm2 costs 13. arm2's 13 include
+    plain query strings (`?a=1&b=2`), which disqualifies it on its own.
+  · Its 4 remaining narrows are exactly the UNESCAPED forms of values it now accepts ESCAPED —
+    `https://h/a,b` is narrowed, `https://h/a\,b` parses. The cost is a backslash, in place, not a
+    re-quoting of the whole value.
+  · ⭐⭐ IT IS NOT A NEW CONVENTION. `double_quoted_string := /"([^"\\]|\\.)*"/` (:158) and
+    `single_quoted_string := /'([^'\\]|\\.)*'/` (:165) ALREADY use exactly this shape for the quote
+    delimiter. arm4 makes the four path/URL terminals CONSISTENT with the six string terminals in
+    the same file, which is why no new prior-art surface is being proposed.
+
+⛔ THE FIXED-CORPUS COLUMN IS NOT A REGRESSION, AND THE `narrow=7` IS NOT A COST
+  All five arms reject 10 of the fixed corpus where the control rejects 8. Read as a total that says
+  "worse". The per-input ledger says `widen=5 narrow=7`, and all seven narrowed rows are inputs whose
+  path literal CONTAINS a bare delimiter (`./}.`, `~/}vP`, `/SH}2`, `/!,`, `file://,T`, `../]&}`,
+  `~/bRk]`) — rows the FIXED generator can no longer emit, which is why the own-corpus column reads
+  zero. This is the `H.16.6c` lesson applied: a narrowing fix scored against the corpus its own
+  predecessor generated is charged for inputs that cease to exist. See
+  [[a-corpus-generated-from-the-artifact-under-test-is-part-of-the-measurement]].
+
+VERIFICATION ON THE SHIPPED PARSER, not only the interpreter
+  Five corpora, every row scored by BOTH the code-disjoint interpreter and the regenerated parser
+  (`verify_two_oracles.py`, hard error on any disagreement):
+    corpus_pristine       n=1000  interp=990  shipped=990  disagreements=0
+    own corpus (16 seeds) n=3200  interp=3200 shipped=3200 disagreements=0
+    legitimate values     n=33    interp=29   shipped=29   disagreements=0
+    real corpus           n=149   interp=140  shipped=140  disagreements=0
+    hand-authored probes  n=62    interp=49   shipped=49   disagreements=0
+  ⛔ Run against the DEBUG probe rebuilt after this regeneration. The release probe on disk predates
+     it and is stale — the two-vintage trap TOOLBOX §1.3 names.
+
+  `--lint-grammar` on all five arms: `left_recursion_unhandled=0 non_terminating=0
+  ordered_choice_shadowing=0 uncompilable_regex_terminals=0` — identical on the defective grammar and
+  on every repair, which is the `H.21` fail-open, recorded there.

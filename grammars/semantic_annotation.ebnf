@@ -516,23 +516,50 @@ symbol_reference := "%" identifier_literal
     -> {type: "symbol_reference", name: $2}
 
 # Path references (file system paths)
+#
+# ⛔ GRAMMAR-WELLFORMED.H.16.6d — DELIMITER CONTAINMENT. These four terminals were spelled
+# `[^\s]` ("any non-whitespace"). `]`, `}`, `)` and `,` are not whitespace, so a path or URL
+# written immediately before a collection's closing delimiter SWALLOWED it and the collection
+# could never close: `ftp://98eS]` parsed as a WHOLE annotation_value while `[ftp://98eS]` was
+# rejected, and `[ ../x3N ]` accepted on one added space. Measured on the grammar's own generated
+# stimuli, that cost 15 self-rejected samples in 3 200.
+#
+# The classes below therefore exclude this value language's structural delimiters, plus `>`
+# (RFC 3986 §2 excludes `<` and `>` from a URI outright, so this is standards-aligned rather than
+# a PGEN quirk), and forbid a TRAILING `=`. The trailing-`=` rule is what stops `http://x=>y`
+# from eating the map arrow while leaving `=` legal INSIDE a value, so query strings such as
+# `?a=1&b=2` still parse. ⛔ It cannot be expressed as a following `!(...)` guard: a guard after a
+# greedy regex atom cannot SHORTEN the match, only reject the whole alternative — measured, that
+# arm left `http://PYJ=>http://aFC` accepted and made `{ http://PYJ => http://aFC }` reject.
+#
+# ⭐ A value that genuinely needs a delimiter or a trailing `=` ESCAPES it with a backslash:
+# `https://h/a\,b`, `/opt/a\,b` and `https://h/p?a\=` all parse, in every position, including
+# inside a collection. That is NOT a new convention invented here — `double_quoted_string` (:158)
+# and `single_quoted_string` (:165) already use exactly this shape, `([^"\\]|\\.)*`, for the quote
+# delimiter, so these four terminals are being made CONSISTENT with the six string terminals in
+# this same file. Quoting the whole value still works too.
+#
+# Full pricing of all FIVE candidate formulations against four corpora — including the two that
+# reach zero self-rejects and why the escaping one wins on expressiveness (4 narrowed legitimate
+# values instead of 9, and all four recoverable IN PLACE) —
+# is in docs/tasks/artifacts/grammar_wellformed/delimiter_containment/
 path_reference := 
     absolute_path |
     relative_path |
     home_path
     -> $1
 
-absolute_path := /\/[^\s]*/
+absolute_path := /\/(([^\s,\]\}\)>\\]|\\.)*([^\s,\]\}\)>=\\]|\\.))?/
     -> {type: "absolute_path", path: $1}
 
-relative_path := /\.\.?\/[^\s]*/
+relative_path := /\.\.?\/(([^\s,\]\}\)>\\]|\\.)*([^\s,\]\}\)>=\\]|\\.))?/
     -> {type: "relative_path", path: $1}  
 
-home_path := /~\/[^\s]*/
+home_path := /~\/(([^\s,\]\}\)>\\]|\\.)*([^\s,\]\}\)>=\\]|\\.))?/
     -> {type: "home_path", path: $1}
 
 # URL references
-url_reference := /(https?|ftp|file):\/\/[^\s]+/
+url_reference := /(https?|ftp|file):\/\/([^\s,\]\}\)>\\]|\\.)*([^\s,\]\}\)>=\\]|\\.)/
     -> {type: "url_reference", url: $1}
 
 # =============================================================================

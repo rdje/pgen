@@ -1,5 +1,108 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0181 — a guard after a greedy regex atom cannot shorten the match, and the design answer was five lines up
+
+**1. THE DEFECT.** Four terminals in `grammars/semantic_annotation.ebnf` were spelled `[^\s]`, so a
+path or URL abutting `]`, `}`, `)` or `,` consumed it and the enclosing collection could never close.
+`ftp://98eS]`, bracket included, parsed as one complete `annotation_value`. Full attribution in
+`H.16.6c`; this note is about the FIX.
+
+**2. ⛔ THE OBVIOUS FIX IS WRONG, AND THE MEASUREMENT IS CHEAPER THAN THE ARGUMENT.** The instinct is
+to leave the greedy class alone and add a guard: *match non-whitespace, but not if an arrow follows.*
+
+```ebnf
+url_reference := /(https?|ftp|file):\/\/[^\s,\]\}\)]+/ !(/\s*/ "=>")
+```
+
+A guard placed **after** a greedy regex atom cannot make the atom give bytes back. It sees the
+position the regex left it at, and its only power is to reject the whole alternative. Measured on a
+scratch arm, both arms of the outcome are wrong in opposite directions:
+
+| input | with the guard | why |
+|---|---|---|
+| `http://PYJ=>http://aFC` | **accepted** | the regex ate the arrow; the guard saw nothing after it |
+| `{ http://PYJ => http://aFC }` | **rejected** | the guard fired, so a URL cannot be a map key at all |
+
+Strictly worse than the control, and it never entered the scored set. ⇒ **when a terminal matches too
+much, the constraint has to live inside the terminal.** A following guard is a filter on where the
+match ENDED, never a lever on where it ends.
+
+**3. FIVE FORMULATIONS, SCORED.** Each is a scratch copy with the four character classes rewritten,
+scored input-by-input against the unmodified control over four corpora. The key property that makes
+them comparable: **every arm widens exactly the same five rows**, so the ledger is purely a cost
+comparison.
+
+| arm | own corpus, 16 seeds (3 200) | legitimate values (33) | real (149) | probes (62) |
+|---|---|---|---|---|
+| `arm0` control | 15 self-rejected | 0 narrowed | — | — |
+| `arm1_close` `, ] } )` | 1 | 7 | 0/0 | 0/0 |
+| `arm2_arrow` + `= >` | 0 | 13 | 0/0 | 0/0 |
+| `arm3_rfc` `, ] } ) >` + no trailing `=` | 0 | 9 | 0/0 | 0/0 |
+| `arm4_escape` = arm3 + backslash escape | **0** | **4** | 0/0 | 0/0 |
+
+`arm1` leaves a survivor where a URL eats the ARROW rather than a bracket. `arm2` disqualifies itself:
+13 narrowed includes ordinary query strings (`?a=1&b=2`), because forbidding `=` outright is too
+blunt. `arm3` keeps `=` legal *inside* a URL and forbids it only as the LAST character, which is
+precisely the condition under which `http://x=>y` would swallow the arrow.
+
+**4. ⭐⭐ THE DECIDING FACT WAS ALREADY IN THE FILE, AND I HAD RULED WITHOUT LOOKING.** I had scored
+four arms, ruled for `arm3`, landed it, regenerated the parser and rebaselined reproducibility. The
+director then proposed — tentatively, *"maybe that's a dumb idea"* — that the delimiters be
+**escapable** rather than simply forbidden. Checking it surfaced this:
+
+```ebnf
+double_quoted_string := /"([^"\\]|\\.)*"/     # :158
+single_quoted_string := /'([^'\\]|\\.)*'/     # :165
+```
+
+The grammar already solves this exact problem, with this exact shape, for the quote delimiter —
+**five lines above the rules I was editing.** So the proposal was not a new escape convention needing
+prior-art justification; the four path/URL terminals were simply the odd ones out, and the fix makes
+them consistent with the six string terminals beside them.
+
+⇒ **a design question that presents as a trade-off is often a consistency question already answered
+elsewhere in the same artifact.** The instinct to score arms is right, but "what do the neighbouring
+rules do about this?" is cheaper than any of them and I never asked it. It also *dominated*: same
+containment (0 self-rejects), less than half the expressiveness cost (4 narrowed vs 9), and the
+recovery is one backslash in place rather than re-quoting the whole value.
+
+I re-landed on `arm4`, which meant regenerating twice and re-running the reproducibility gate — which
+promptly caught its own now-stale baseline from the `arm3` run. Cheap, and the right order.
+
+**5. THE SHIPPED RULES.**
+
+```ebnf
+absolute_path := /\/(([^\s,\]\}\)>\\]|\\.)*([^\s,\]\}\)>=\\]|\\.))?/
+relative_path := /\.\.?\/(([^\s,\]\}\)>\\]|\\.)*([^\s,\]\}\)>=\\]|\\.))?/
+home_path     := /~\/(([^\s,\]\}\)>\\]|\\.)*([^\s,\]\}\)>=\\]|\\.))?/
+url_reference := /(https?|ftp|file):\/\/([^\s,\]\}\)>\\]|\\.)*([^\s,\]\}\)>=\\]|\\.)/
+```
+
+The three path rules keep the tail OPTIONAL because a bare `/` is a legal path; `url_reference` does
+not, because `://` must be followed by something. Proven equal to what was scored: `diff` of the four
+shipped rules against `arm4_escape.ebnf` is empty.
+
+**6. VERIFICATION ON THE SHIPPED PARSER.** Parser `3341943e…` → `0f5e0b95…`. Five corpora, every row
+scored by BOTH the code-disjoint interpreter and the regenerated parser, hard error on any
+disagreement: `disagreements=0` across 1 000 / 3 200 / 33 / 149 / 62 rows. Run against the DEBUG probe
+**rebuilt after the regeneration** — the release probe on disk predates it and is stale, which is the
+two-vintage trap TOOLBOX §1.3 names and which `-0173` was already caught by once.
+
+**7. ⛔ AND ONE CONTROL WAS RUN BACKWARDS.** The first shipped-parser probe round read `reject` on all
+seven inputs — including cases the interpreter accepts, which looks exactly like the oracle
+disagreement this whole verification exists to detect. It was my harness: I fed BARE VALUES
+(`ftp://98eS]`) to the default entry rule, which requires the full `@name: value` form. The
+interpreter probes had used `--interpret-entry-rule annotation_value`; the probe run had no
+equivalent and I did not carry it across. ⭐ **An all-red result from a newly-written harness is a
+suspicion about the harness before it is a finding about the artifact** — the tell is that it is
+*uniformly* red, including on cases with no plausible mechanism.
+
+**8. THE NARROW, AND WHY IT IS ACCEPTABLE.** An unquoted path or URL containing a bare `, ] } ) >`,
+or ending in a bare `=`, no longer parses. Four of 33 hand-authored legitimate values; all four
+recoverable with one backslash, in every position; `narrow=0` over the 149 real annotation lines the
+tracked grammars ship, so nothing shipped moves. Published in the integration contract's *Notable
+Recent Shape Changes* and in the family book, both with the migration spelled out.
+
 ## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0180 — a net count over a derived corpus cannot say which direction a fix moved
 
 **1. WHAT WAS WRONG.** Four terminals in `grammars/semantic_annotation.ebnf` are spelled with the

@@ -1278,7 +1278,8 @@ found by `GRAMMAR-WELLFORMED.H.16.6c`, has the opposite symptom and is harder to
 exactly that reason: the terminal matches **too much**, and what it swallows is the byte its own
 *enclosing* rule was waiting for.
 
-`grammars/semantic_annotation.ebnf` spells four value terminals as *any run of non-whitespace*:
+`grammars/semantic_annotation.ebnf` **spelled** four value terminals as *any run of
+non-whitespace* — the form below is the defect, and the repair is at the end of this section:
 
 ```ebnf
 absolute_path := /\/[^\s]*/
@@ -1349,6 +1350,44 @@ analysis can see them. The static class that would catch both is tracked as
 `GRAMMAR-WELLFORMED.H.21`, and it must be measured against **both** witnesses — a shared token at
 different depths, and a character class that quietly contains a structural delimiter — or it will
 close one and fail open on the other.
+
+#### The repair, and why the obvious guard cannot work
+
+The instinct is to leave the greedy class alone and add a guard after it — *"match non-whitespace,
+but not if an arrow follows"*. **That cannot work, and measuring it is quicker than arguing it.** A
+guard placed after a greedy regex atom cannot make the atom give bytes back; it can only reject the
+whole alternative. On a scratch arm the guard left `http://PYJ=>http://aFC` accepted — the regex had
+already eaten the arrow, so the guard saw nothing after it to object to — while
+`{ http://PYJ => http://aFC }` now failed outright, because there the guard *did* fire and a URL
+could no longer be a map key at all. Strictly worse than the defect.
+
+The constraint has to live **inside** the class. Four formulations were scored against four corpora
+rather than chosen by argument, and they differ only in what they *cost* — every one of them fixes
+exactly the same five inputs:
+
+| formulation | self-contradictions (3 200 samples) | legitimate values broken (of 33) |
+|---|---|---|
+| the defect | 15 | 0 |
+| exclude `, ] } )` | 1 | 7 |
+| also exclude `= >` | **0** | 13 — including ordinary query strings |
+| exclude `, ] } ) >`, no trailing `=` | **0** | 9 |
+| **…plus a backslash escape** | **0** | **4** ⭐ shipped |
+
+The shipped rule excludes the value language's own delimiters and `>` (RFC 3986 §2 excludes `<` and
+`>` from a URI outright), forbids a *trailing* `=` — which is what stops `http://x=>y` swallowing the
+map arrow while leaving `=` legal *inside* a value, so `?a=1&b=2` still parses — and lets a delimiter
+be written in place with a backslash:
+
+```ebnf
+url_reference := /(https?|ftp|file):\/\/([^\s,\]\}\)>\\]|\\.)*([^\s,\]\}\)>=\\]|\\.)/
+```
+
+⭐ **That escape is not a new convention, and noticing so is what settled the design.** The same file
+already spells `double_quoted_string := /"([^"\\]|\\.)*"/` — *not the delimiter, or a backslash
+followed by anything* — five lines above. The four path/URL terminals were the odd ones out; the fix
+makes them consistent with the six string terminals beside them. A design question that looks like a
+trade-off is often a consistency question that has already been answered elsewhere in the same
+artifact.
 
 
 ### Reaching deep recursive branches: the constructive-reach witness pass

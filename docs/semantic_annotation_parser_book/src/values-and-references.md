@@ -81,6 +81,42 @@ References point at things outside the literal value:
 | path reference | absolute `/…`, relative `./…`/`../…`, home `~/…` | `./src/p.sv` | `{type: "relative_path", path: …}` |
 | URL reference | `(https?\|ftp\|file)://…` | `https://example.com` | `{type: "url_reference", url: …}` |
 
+#### Where a path or URL ends — and how to put a delimiter inside one
+
+A path or a URL is written **unquoted**, so the parser needs a rule for where it stops. It stops at
+whitespace, at any of this value language's structural delimiters — `,` `]` `}` `)` — and at `>`
+(RFC 3986 §2 excludes `<` and `>` from a URI outright). It also may not *end* on `=`, which is what
+lets an unquoted URL sit immediately left of the map arrow:
+
+```text
+@ x : [ https://example.com/p ]          # the `]` closes the array
+@ x : { https://example.com/p=>1 }       # the `=>` is the map arrow, not part of the URL
+@ x : https://example.com/p?a=1&b=2      # `=` is fine INSIDE a URL — query strings parse
+```
+
+To put one of those characters **into** a path or URL, escape it with a backslash. This is the same
+convention the string literals use for their own quote character, and it works in every position:
+
+```text
+@ x : https://example.com/a\,b           # a comma inside the URL
+@ x : [ https://example.com/a\,b , 1 ]   # …and the bare comma still separates the array
+@ x : { k => /opt/a\,b }
+@ x : https://example.com/p?a\=          # a trailing `=`
+```
+
+Quoting the whole value works too, and is the better choice when a value has several such
+characters:
+
+```text
+@ x : "https://example.com/a,b(c)"
+```
+
+> ⚠️ **Changed in `GRAMMAR-WELLFORMED.H.16.6d`.** These four terminals were previously *"any run of
+> non-whitespace"*, which meant a path or URL abutting a closing delimiter **swallowed it** —
+> `[ftp://server]` failed to parse while `ftp://server]` parsed as one complete value, and adding a
+> space (`[ftp://server ]`) was the only workaround. If you were relying on a bare `,` `]` `}` `)`
+> or `>` inside an unquoted path or URL, escape it or quote the value.
+
 ### Rule references — `$…` (dotted + indexed, depth-unbounded)
 
 The `$<ref>` reference is the one you will use most (it is how a directive payload names a captured

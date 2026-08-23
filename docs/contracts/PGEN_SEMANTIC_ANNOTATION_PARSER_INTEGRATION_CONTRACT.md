@@ -116,6 +116,51 @@ Strict trailing-dot / strict-bracket policy. Malformed forms (bare `.`, `[` with
 
 ## Notable Recent Shape Changes
 
+### 2026-08-23 — a path or URL no longer swallows its enclosing delimiter (`GRAMMAR-WELLFORMED.H.16.6d`)
+
+`absolute_path`, `relative_path`, `home_path` and `url_reference` were each spelled `[^\s]` — *any
+run of non-whitespace*. `]`, `}`, `)` and `,` are not whitespace, so an unquoted path or URL written
+immediately before a collection's closing delimiter **consumed it** and the collection could never
+close:
+
+```text
+ftp://server]          parsed as ONE complete annotation_value   (the terminal ate the `]`)
+[ftp://server]         REJECTED
+[ftp://server ]        accepted — a single space was the only workaround
+```
+
+The four terminals now stop at whitespace, at `,` `]` `}` `)`, and at `>` (RFC 3986 §2 excludes `<`
+and `>` from a URI outright), and may not END on `=` — which is what lets an unquoted URL sit
+immediately left of the map arrow while `=` stays legal *inside* a value, so query strings such as
+`?a=1&b=2` are unaffected. **A delimiter is written into a path or URL by escaping it with a
+backslash** — `https://h/a\,b`, `/opt/a\,b`, `https://h/p?a\=` — the same convention
+`double_quoted_string` and `single_quoted_string` already use for their quote character. Quoting the
+whole value continues to work.
+
+**ACCEPT-SET IMPACT — a WIDEN on the shipped surface, with a NAMED narrow.** Measured input-by-input
+against the previous grammar over four corpora:
+
+| corpus | verdict |
+|---|---|
+| the grammar's own generated stimuli, 3 200 samples over 16 seeds | **15 self-rejected → 0** |
+| the 149 real `@name:` lines the tracked grammars ship | `widen=0 narrow=0` |
+| the 62 hand-authored discriminating probes | `widen=0 narrow=0` |
+| 33 hand-authored legitimate paths/URLs | 4 narrowed, all four recoverable in place by escaping |
+
+⛔ **The narrow, stated plainly:** an unquoted path or URL containing a bare `,` `]` `}` `)` `>`, or
+ending in a bare `=`, no longer parses. `https://h/a,b` must be written `https://h/a\,b` or
+`"https://h/a,b"`. No annotation in any tracked grammar is affected (`narrow=0` above), and every
+alternative formulation was scored before this one was chosen — the pricing of all five candidates is
+in `docs/tasks/artifacts/grammar_wellformed/delimiter_containment/self_reject_matrix.txt`.
+
+⭐ **Published-surface impact on the verdict API: NONE.** This family's stable surface returns a
+verdict plus diagnostics and carries no AST; the `path` / `url` fields of the raw typed AST now carry
+the escaped text as written, exactly as `string_literal` carries its quotes.
+
+Regression locks: the interpreter and the generated parser are held byte-identical by
+`parse_harness_equivalence_gate` (`certified_grammars_are_byte_identical`), and every row of all four
+corpora above was scored by BOTH oracles with a hard error on disagreement — `disagreements=0`.
+
 ### 2026-08-11 — LR-eliminated rules now return the DECLARED AST (`ENGINE-UNIVERSAL-SERVICES.8`)
 
 `type_reference` is left-recursive through four wrapper alternatives (`union_type`,

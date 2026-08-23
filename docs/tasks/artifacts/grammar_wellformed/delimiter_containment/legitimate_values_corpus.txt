@@ -1,0 +1,33 @@
+@ url_plain : https://example.com/path
+@ url_query : https://example.com/p?a=1&b=2
+@ url_query_in_array : [ https://example.com/p?a=1&b=2 ]
+@ url_query_in_map_value : { key => https://example.com/p?a=1&b=2 }
+@ url_fragment : https://example.com/p#section
+@ url_percent_encoded : https://example.com/a%20b
+@ url_port : http://example.com:8080/p
+@ url_trailing_equals : https://example.com/p?a=
+@ url_comma_subdelim : https://example.com/a,b
+@ url_paren_subdelim : https://example.com/a(b)
+@ url_before_arrow_spaced : { https://example.com/p => 1 }
+@ url_before_arrow_tight : { https://example.com/p=>1 }
+@ abs_path_plain : /opt/tools/bin
+@ abs_path_root : /
+@ abs_path_in_array : [ /opt/tools/bin ]
+@ abs_path_with_equals : /opt/x=1
+@ abs_path_with_comma : /opt/a,b
+@ abs_path_before_arrow : { /opt/x => 1 }
+@ rel_path_plain : ../sibling/file
+@ rel_path_dot : ./local/file
+@ rel_path_in_array : [ ../sibling/file ]
+@ home_path_plain : ~/config/settings
+@ home_path_in_array : [ ~/config/settings ]
+@ home_path_root : ~/
+@ url_in_tuple : ( https://example.com/p , 1 )
+@ path_in_object_value : { k: /opt/x }
+@ path_in_set : #{ /opt/x }
+@ url_comma_escaped : https://example.com/a\,b
+@ url_paren_escaped : https://example.com/a\(b\)
+@ url_trailing_equals_escaped : https://example.com/p?a\=
+@ abs_path_comma_escaped : /opt/a\,b
+@ url_comma_escaped_in_array : [ https://example.com/a\,b , 1 ]
+@ abs_path_comma_escaped_in_map : { k => /opt/a\,b }

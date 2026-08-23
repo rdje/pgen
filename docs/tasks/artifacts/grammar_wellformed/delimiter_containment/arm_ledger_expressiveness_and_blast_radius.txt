@@ -1,0 +1,80 @@
+### ALL FIVE ARMS — the LEGITIMATE-VALUE basis (33 hand-authored rows; the EXPRESSIVENESS decision)
+scored arm0_pristine.ebnf       accepted=33    rejected=0     no_verdict=0
+scored arm1_close.ebnf          accepted=26    rejected=7     no_verdict=0
+scored arm2_arrow.ebnf          accepted=20    rejected=13    no_verdict=0
+scored arm3_rfc.ebnf            accepted=24    rejected=9     no_verdict=0
+scored arm4_escape.ebnf         accepted=29    rejected=4     no_verdict=0
+
+ACCEPT-SET-LEDGER: arm=arm1_close.ebnf widen=0 narrow=7
+    NARROW #0008 @ url_comma_subdelim : https://example.com/a,b
+    NARROW #0009 @ url_paren_subdelim : https://example.com/a(b)
+    NARROW #0016 @ abs_path_with_comma : /opt/a,b
+    NARROW #0027 @ url_comma_escaped : https://example.com/a\,b
+    NARROW #0028 @ url_paren_escaped : https://example.com/a\(b\)
+    NARROW #0030 @ abs_path_comma_escaped : /opt/a\,b
+    NARROW #0032 @ abs_path_comma_escaped_in_map : { k => /opt/a\,b }
+
+ACCEPT-SET-LEDGER: arm=arm2_arrow.ebnf widen=0 narrow=13
+    NARROW #0001 @ url_query : https://example.com/p?a=1&b=2
+    NARROW #0002 @ url_query_in_array : [ https://example.com/p?a=1&b=2 ]
+    NARROW #0003 @ url_query_in_map_value : { key => https://example.com/p?a=1&b=2 }
+    NARROW #0007 @ url_trailing_equals : https://example.com/p?a=
+    NARROW #0008 @ url_comma_subdelim : https://example.com/a,b
+    NARROW #0009 @ url_paren_subdelim : https://example.com/a(b)
+    NARROW #0015 @ abs_path_with_equals : /opt/x=1
+    NARROW #0016 @ abs_path_with_comma : /opt/a,b
+    NARROW #0027 @ url_comma_escaped : https://example.com/a\,b
+    NARROW #0028 @ url_paren_escaped : https://example.com/a\(b\)
+    NARROW #0029 @ url_trailing_equals_escaped : https://example.com/p?a\=
+    NARROW #0030 @ abs_path_comma_escaped : /opt/a\,b
+    NARROW #0032 @ abs_path_comma_escaped_in_map : { k => /opt/a\,b }
+
+ACCEPT-SET-LEDGER: arm=arm3_rfc.ebnf widen=0 narrow=9
+    NARROW #0007 @ url_trailing_equals : https://example.com/p?a=
+    NARROW #0008 @ url_comma_subdelim : https://example.com/a,b
+    NARROW #0009 @ url_paren_subdelim : https://example.com/a(b)
+    NARROW #0016 @ abs_path_with_comma : /opt/a,b
+    NARROW #0027 @ url_comma_escaped : https://example.com/a\,b
+    NARROW #0028 @ url_paren_escaped : https://example.com/a\(b\)
+    NARROW #0029 @ url_trailing_equals_escaped : https://example.com/p?a\=
+    NARROW #0030 @ abs_path_comma_escaped : /opt/a\,b
+    NARROW #0032 @ abs_path_comma_escaped_in_map : { k => /opt/a\,b }
+
+ACCEPT-SET-LEDGER: arm=arm4_escape.ebnf widen=0 narrow=4
+    NARROW #0007 @ url_trailing_equals : https://example.com/p?a=
+    NARROW #0008 @ url_comma_subdelim : https://example.com/a,b
+    NARROW #0009 @ url_paren_subdelim : https://example.com/a(b)
+    NARROW #0016 @ abs_path_with_comma : /opt/a,b
+
+
+### the REAL corpus (149 @name: lines the tracked grammars ship)
+scored arm0_pristine.ebnf       accepted=140   rejected=9     no_verdict=0
+scored arm1_close.ebnf          accepted=140   rejected=9     no_verdict=0
+scored arm2_arrow.ebnf          accepted=140   rejected=9     no_verdict=0
+scored arm3_rfc.ebnf            accepted=140   rejected=9     no_verdict=0
+scored arm4_escape.ebnf         accepted=140   rejected=9     no_verdict=0
+
+ACCEPT-SET-LEDGER: arm=arm1_close.ebnf widen=0 narrow=0
+
+ACCEPT-SET-LEDGER: arm=arm2_arrow.ebnf widen=0 narrow=0
+
+ACCEPT-SET-LEDGER: arm=arm3_rfc.ebnf widen=0 narrow=0
+
+ACCEPT-SET-LEDGER: arm=arm4_escape.ebnf widen=0 narrow=0
+
+
+### the HAND-AUTHORED discriminating probes (62 rows, tracked beside H.16.6a)
+scored arm0_pristine.ebnf       accepted=49    rejected=13    no_verdict=0
+scored arm1_close.ebnf          accepted=49    rejected=13    no_verdict=0
+scored arm2_arrow.ebnf          accepted=49    rejected=13    no_verdict=0
+scored arm3_rfc.ebnf            accepted=49    rejected=13    no_verdict=0
+scored arm4_escape.ebnf         accepted=49    rejected=13    no_verdict=0
+
+ACCEPT-SET-LEDGER: arm=arm1_close.ebnf widen=0 narrow=0
+
+ACCEPT-SET-LEDGER: arm=arm2_arrow.ebnf widen=0 narrow=0
+
+ACCEPT-SET-LEDGER: arm=arm3_rfc.ebnf widen=0 narrow=0
+
+ACCEPT-SET-LEDGER: arm=arm4_escape.ebnf widen=0 narrow=0
+

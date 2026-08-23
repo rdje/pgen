@@ -1,5 +1,67 @@
 # CHANGES.md
 
+## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0181 (leaf GRAMMAR-WELLFORMED.H.16.6d CLOSED — the delimiter containment SHIPS, on the DIRECTOR'S backslash-escape formulation; CODE / grammar, four terminals): a design question that looked like a trade-off was a consistency question already answered five lines up
+
+- **THE DEFECT, from `H.16.6c`.** `absolute_path`, `relative_path`, `home_path` and `url_reference`
+  were each spelled `[^\s]` — *any run of non-whitespace*. `]`, `}`, `)` and `,` are not whitespace,
+  so an unquoted path or URL abutting a closing delimiter **swallowed it**: `ftp://98eS]` parsed as a
+  WHOLE `annotation_value`, `[ftp://98eS]` was rejected, and `[ftp://98eS ]` accepted on one space.
+- ⛔ **THE OBVIOUS FIX IS REFUTED BY MEASUREMENT, AND WAS NEVER SCORED.** A trailing
+  `!(/\s*/ "=>")` guard cannot make a greedy regex atom give bytes back — it can only reject the
+  whole alternative. On a scratch arm it left `http://PYJ=>http://aFC` ACCEPTED (the regex had already
+  eaten the arrow) while making `{ http://PYJ => http://aFC }` REJECT outright, so a URL could no
+  longer be a map key. Strictly worse than the control. ⇒ the constraint must live INSIDE the class.
+- **FIVE FORMULATIONS, FOUR CORPORA, SCORED NOT ARGUED.** Every arm widens **exactly** the same five
+  rows (`#0294 #0397 #0416 #0812 #0938`), so they differ only in what they COST:
+
+  | arm | own corpus (3 200) | legitimate values (33) | real (149) | probes (62) |
+  |---|---|---|---|---|
+  | control | 15 self-rejected | 0 narrowed | — | — |
+  | exclude `, ] } )` | 1 | 7 | 0/0 | 0/0 |
+  | plus `= >` | **0** | **13** — incl. plain query strings | 0/0 | 0/0 |
+  | `, ] } ) >` + no trailing `=` | **0** | 9 | 0/0 | 0/0 |
+  | **…plus a backslash escape** | **0** | **4** ⭐ SHIPPED | 0/0 | 0/0 |
+
+- ⭐⭐ **THE SHIPPED FORMULATION IS THE DIRECTOR'S, AND CHECKING IT SURFACED THE DECIDING FACT.**
+  Proposed mid-slice and offered tentatively (*"maybe that's a dumb idea"*): exclude the delimiters,
+  and make them escapable with a backslash. It is not a new convention — **the grammar already does
+  exactly this, five lines above the rules being edited**: `double_quoted_string := /"([^"\\]|\\.)*"/`
+  (`:158`) and `single_quoted_string` (`:165`). The four path/URL terminals were the odd ones out. ⇒
+  a design question that looked like a trade-off was a CONSISTENCY question already answered in the
+  same artifact, and I had ruled on four scored arms without once looking at how the neighbouring
+  terminals solve the identical problem.
+- **THE FIX** — `git diff --numstat grammars/` reads `31 4`, of which 27 lines are the WHY comment:
+
+  ```ebnf
+  url_reference := /(https?|ftp|file):\/\/([^\s,\]\}\)>\\]|\\.)*([^\s,\]\}\)>=\\]|\\.)/
+  ```
+
+  Excludes the value language's delimiters and `>` (RFC 3986 §2 excludes `<`/`>` from a URI
+  outright), forbids a TRAILING `=` — which is what stops `http://x=>y` eating the map arrow while
+  leaving `=` legal INSIDE a value, so `?a=1&b=2` still parses — and admits `\,` in place. The three
+  path rules keep their tail OPTIONAL because a bare `/` is a legal path.
+- **MEASURED ON THE SHIPPED PARSER**, `3341943e…` → `0f5e0b95…`. Five corpora, every row scored by
+  BOTH the code-disjoint interpreter and the regenerated parser with a hard error on disagreement:
+  `disagreements=0` on all five (1 000 / 3 200 / 33 / 149 / 62). ⛔ Against the DEBUG probe rebuilt
+  AFTER the regeneration — the release probe on disk predates it and is stale.
+- ⛔ **THE NARROW, STATED NOT BURIED.** An unquoted path or URL containing a bare `, ] } ) >`, or
+  ending in a bare `=`, no longer parses — 4 of 33 hand-authored legitimate values, all four
+  recoverable IN PLACE with one backslash, and `narrow=0` over the 149 real annotation lines the
+  tracked grammars ship. Published in the integration contract and the family book with the migration
+  written out.
+- ⚠️ **`widen=5 narrow=7` on the FIXED corpus is not a cost** — all seven narrowed rows carry a bare
+  delimiter inside a path, i.e. rows the FIXED generator can no longer emit, which is why the
+  own-corpus column reads zero. `H.16.6c`'s lesson applied to its own fix.
+- **GATES**: `generated_reproducibility` 11/11 byte-identical (run TWICE — re-landing on the escape
+  arm made the first baseline stale, and the gate caught it), `ast_shape_contract` 18/18,
+  `parse_harness_equivalence` 4/4 incl. `certified_grammars_are_byte_identical`, `clippy_on_rust_change`
+  under `PGEN_CLIPPY_FORCE=1` (a grammar-only change is invisible to the trigger). `--lint-grammar` is
+  byte-identically blind on all five arms — recorded on `H.21`.
+- ⛔ **ONE CONTROL WAS RUN BACKWARDS AND CAUGHT**: the first shipped-parser probe round fed BARE
+  VALUES to an entry rule that requires `@name: value` and read `reject` on all seven, which looked
+  exactly like an oracle disagreement. ⭐ An all-red result from a new harness is a suspicion about
+  the harness before it is a finding about the artifact.
+
 ## 2026-08-23 - PGEN-GRAMMAR-WELLFORMED-0180 (leaf GRAMMAR-WELLFORMED.H.16.6c CLOSED — the eight residual self-rejected stimuli attributed BY CONTROLLED ARM, and the leaf's own arrow hypothesis is REFUTED; doc+artifact tier, ZERO grammar / Rust / codegen / generated bytes): a net count cannot say which direction a fix moved
 
 - **THE LEAF OPENED WITH A READING AND SAID SO.** `H.16.6a` left eight stimuli the grammar generates

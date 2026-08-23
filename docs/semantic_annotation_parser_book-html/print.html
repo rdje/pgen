@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2cd2e7c9.js";
+            window.path_to_searchindex_js = "searchindex-903323ec.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e79d1bb7.js"></script>
@@ -461,6 +461,33 @@ and computed metadata:</p>
 </tbody>
 </table>
 </div>
+<h4 id="where-a-path-or-url-ends--and-how-to-put-a-delimiter-inside-one"><a class="header" href="#where-a-path-or-url-ends--and-how-to-put-a-delimiter-inside-one">Where a path or URL ends — and how to put a delimiter inside one</a></h4>
+<p>A path or a URL is written <strong>unquoted</strong>, so the parser needs a rule for where it stops. It stops at
+whitespace, at any of this value language’s structural delimiters — <code>,</code> <code>]</code> <code>}</code> <code>)</code> — and at <code>&gt;</code>
+(RFC 3986 §2 excludes <code>&lt;</code> and <code>&gt;</code> from a URI outright). It also may not <em>end</em> on <code>=</code>, which is what
+lets an unquoted URL sit immediately left of the map arrow:</p>
+<pre><code class="language-text">@ x : [ https://example.com/p ]          # the `]` closes the array
+@ x : { https://example.com/p=&gt;1 }       # the `=&gt;` is the map arrow, not part of the URL
+@ x : https://example.com/p?a=1&amp;b=2      # `=` is fine INSIDE a URL — query strings parse
+</code></pre>
+<p>To put one of those characters <strong>into</strong> a path or URL, escape it with a backslash. This is the same
+convention the string literals use for their own quote character, and it works in every position:</p>
+<pre><code class="language-text">@ x : https://example.com/a\,b           # a comma inside the URL
+@ x : [ https://example.com/a\,b , 1 ]   # …and the bare comma still separates the array
+@ x : { k =&gt; /opt/a\,b }
+@ x : https://example.com/p?a\=          # a trailing `=`
+</code></pre>
+<p>Quoting the whole value works too, and is the better choice when a value has several such
+characters:</p>
+<pre><code class="language-text">@ x : "https://example.com/a,b(c)"
+</code></pre>
+<blockquote>
+<p>⚠️ <strong>Changed in <code>GRAMMAR-WELLFORMED.H.16.6d</code>.</strong> These four terminals were previously <em>“any run of
+non-whitespace”</em>, which meant a path or URL abutting a closing delimiter <strong>swallowed it</strong> —
+<code>[ftp://server]</code> failed to parse while <code>ftp://server]</code> parsed as one complete value, and adding a
+space (<code>[ftp://server ]</code>) was the only workaround. If you were relying on a bare <code>,</code> <code>]</code> <code>}</code> <code>)</code>
+or <code>&gt;</code> inside an unquoted path or URL, escape it or quote the value.</p>
+</blockquote>
 <h3 id="rule-references---dotted--indexed-depth-unbounded"><a class="header" href="#rule-references---dotted--indexed-depth-unbounded">Rule references — <code>$…</code> (dotted + indexed, depth-unbounded)</a></h3>
 <p>The <code>$&lt;ref&gt;</code> reference is the one you will use most (it is how a directive payload names a captured
 sub-result). It accepts named heads (<code>$head</code>), positional heads (<code>$1</code>, 1-indexed), dotted property
