@@ -1,5 +1,62 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0281 — "unknowable" is a claim about where you looked
+
+**1. THE SHAPE OF THE DEFECT.** An adjudicator classified 147 corpus rows as having no usable key,
+and wrote down exactly why: *"the upstream default generation is not encoded in the descriptor."*
+That sentence is precise, honest, and completely true. It is also a statement about **one artifact**
+— and the question it was answering ("which dialect does this test run under?") is not a question
+about that artifact at all. The default generation is a property of the **compiler**, and the
+compiler is vendored in the same corpus, two directories away. ⇒ **`unresolved` was a fact about the
+descriptor that got recorded as a fact about the world.**
+
+**2. WHY IT SURVIVED, and it is not carelessness.** The basis string is *good* — specific, falsifiable,
+and it names its own limit. That is exactly what makes it durable: a reader checks the descriptor,
+confirms there is no `-g` flag, and agrees. The check that would have refuted it is a different
+question — *what happens when no flag is given* — and nothing in the row, the basis, or the
+descriptor prompts it. ⭐ The general form: **a well-written "we cannot know" is harder to overturn
+than a sloppy one, because it invites verification of the thing it already got right.**
+
+**3. THE MEASUREMENT, and the leg that made it publishable.** `compiler.h`'s `enum generation_t` has
+`GN_VER2005 = 4` and `GN_DEFAULT = 4`; `main.cc:108` initialises `generation_flag = GN_DEFAULT`. That
+alone would be a plausible reading of C++. What makes it a verdict is the **contrast arm**: the
+primary key `regress-sv.list` encodes a generation explicitly in **907 of its 922** entries. If the
+default were SystemVerilog, that near-universal explicit labelling would be redundant; and if the
+ratio had come back low, the primary key's own SV premise would have been the finding instead. ⇒
+**check what the same corpus does when it DOES know the answer** — the positive control was sitting
+in the file next door.
+
+**4. AND THE ARM THAT COULD INVERT IT IS ONE EDIT AWAY, SO IT IS A CHECK RATHER THAN A PARAGRAPH.**
+`vvp_reg.py` contains `force_gen()`, which strips any generation and inserts `-g2023`. Everything
+about this finding depends on that function not running by default. Three facts hold it: it is
+guarded by `cfg['force-sv']`, the flag is `store_true` (default off), and the vendored `Makefile.in`
+target does not pass it. Any one of the three is a one-line upstream change. So all three are
+re-derived on every run and the instrument REFUSES if any moves — and each refusal was **fired**, not
+asserted, in a mini-repo carrying mutated copies of the inputs.
+
+**5. THE LINE BETWEEN THIS AND THE RELABELLING THE TREE FORBIDS.** `.13` warns, in bold, against
+making the NO-VERDICT figure shrink by pinning deferred rows to an expectation and calling them
+adjudicated. The test that separates the two is not *"did a number improve?"* — it is **what kind of
+claim the row now carries**. Nothing here becomes adjudicated. A row moves from *answered nowhere* to
+*answered in the v2005 manifest*, which is a **weaker** claim than adjudication and, crucially, a
+**checkable** one: the v2005 lane must actually produce an answer for it, and that check is written
+into the follow-up's acceptance rather than left as a hope.
+
+**6. A KEY IS NOT A VERDICT — the discipline that kept 37 rows from becoming 37 false defects.** The
+second half of the leaf found that 37 of 52 remaining dark rows *are* named by some other ivtest
+list, and the tempting next step is to read each list's type column as a parse verdict. It would have
+been wrong in a specific, measurable way: `regress-vlog95.list` is a Verilog-**95 output** lane, and
+it contains `always_comb_rfunc CE` — a compile error about the back end refusing a construct that is
+perfectly legal SystemVerilog. Reading that `CE` as `must_reject` would have invented a parser defect
+out of a back-end limitation. ⇒ enumerate the keys, then adjudicate each key's **meaning** separately;
+the two are different pieces of work and only the first is cheap.
+
+**7. WHY THE ROW MOVE IS A SEPARATE COMMIT.** The edit lands in
+`stimuli/sv/adjudicate_external_corpus.py` — the file class `DOCTRINE-GAP-OWNERSHIP.6` identifies as
+able to move the SV graduation bar with **zero parser change**. A change there that produces a
+plausible-looking delta is the worst outcome available, because it is indistinguishable from a
+correct one. So the follow-up's acceptance is row-by-row accounting, not a delta that looks right.
+
 ## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0280 — the second stale `todo` in one session, and why the first one's diagnosis was too comfortable
 
 **1. THE FIRST CASE HAD A SATISFYING CAUSE, AND SATISFYING IS THE WARNING SIGN.** `-0279` closed a

@@ -1,0 +1,51 @@
+SV-CORPUS-GRAD.13e — secondary keys for the `deferred:no_sv_key` population
+manifest: stimuli/sv/characterization/adjudication_manifest.tsv   rows in class: 743
+
+GROUND TRUTH, re-derived from the vendored tool rather than assumed:
+  · stimuli/sv/subs/iverilog/compiler.h: GN_DEFAULT = 4 = GN_VER2005
+  · stimuli/sv/subs/iverilog/ivtest/vvp_reg.py: force_gen() forces -g2023 but only under cfg['force-sv']; --force-sv is store_true (default off) and stimuli/sv/subs/iverilog/ivtest/Makefile.in's own target does not pass it
+  ⇒ an ivtest run whose args carry no `-g` flag compiles under **GN_VER2005**, not SystemVerilog.
+
+THE TWO BASES, AND THEY GET DIFFERENT ANSWERS
+
+  A. `ivtest: vvp_tests descriptor(s) without an explicit generation flag …`
+     rows  147   of which DARK (the parse FAILED)   27
+     ⇒ RESOLVED. The dialect is not unresolved — it is GN_VER2005. These rows are
+       `v2005_profile_lane` (ROUTED), not `no_sv_key` (NO VERDICT).
+
+  B. `ivtest: no regress-sv.list entry …`
+     rows  596   of which DARK (the parse FAILED)   52
+     ⇒ enumerated below: which OTHER ivtest list names the row, if any.
+
+B, ENUMERATED — the lists that name each DARK row (a row may appear in several)
+
+  lists naming the row                                     rows
+  -------------------------------------------------------- ----
+  regress-ivl1.list                                          16
+  (NONE — no ivtest list names it)                           15
+  regress-ivl1.list, regress-vlog95.list                      4
+  regress-synth.list, vhdl_regress.list                       4
+  vpi_regress.list                                            4
+  blif.list                                                   2
+  regress-ivl1.list, vhdl_regress.list                        2
+  regress-synth.list, regress-vlog95.list                     2
+  regress-fsv.list, regress-ivl1.list, regress-vlog95.list    1
+  regress-synth.list                                          1
+  regress-fsv.list, regress-synth.list                        1
+
+  ⇒ 37 of 52 DARK rows in basis B ARE named by another ivtest list;
+    15 are named by none and are the honest-permanent-deferral candidates.
+
+⚠️ WHAT THIS AUDIT DOES NOT DO, stated rather than implied
+  · It does NOT adjudicate what each secondary list IMPLIES for SV parse validity.
+    That is per-list work and the lists disagree: `regress-fsv.list` is read ONLY under
+    --force-sv (so it testifies about FORCED SystemVerilog), `regress-vlog95.list` is a
+    Verilog-95 OUTPUT lane whose `CE` means the back end refused, not the parser, and
+    `vhdl_regress.list` / `blif.list` / `vpi_regress.list` are other back ends again.
+    Reading a `CE` out of one of those as `must_reject` would manufacture a defect.
+  · It does NOT move any row. Reclassification touches the adjudicator, which can move
+    the SV graduation bar with zero parser change (DOCTRINE-GAP-OWNERSHIP.6), so it is
+    sequenced as its own slice with the corpus re-measure in the same commit.
+  · The GN_VER2005 verdict is about the UPSTREAM DEFAULT INVOCATION. A user running
+    `vvp_reg.py --force-sv` gets -g2023, which is why that flag is checked above and
+    why this script refuses if its default ever changes.

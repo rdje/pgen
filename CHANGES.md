@@ -1,5 +1,59 @@
 # CHANGES.md
 
+## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0281 (leaf SV-CORPUS-GRAD.13e ANSWERED — the secondary key EXISTS and 147 rows were misclassified; opens .13e.1; instrument + doc tier, ZERO grammar / Rust / codegen / generated / adjudicator bytes): the answer was vendored one directory below the question
+
+- ⭐⭐⭐ **147 CORPUS ROWS SAT IN `NO VERDICT` ON A PREMISE THE CORPUS ITSELF REFUTES.** Their
+  adjudication basis reads *"vvp_tests descriptor(s) without an explicit generation flag — dialect
+  unresolved (**the upstream default generation is not encoded in the descriptor**)"*. Every word is
+  true about the descriptor and it is the wrong artifact to interrogate: the default generation is
+  compiled into `iverilog`, and `iverilog` is **vendored in this same corpus**.
+  `stimuli/sv/subs/iverilog/compiler.h` declares `GN_DEFAULT = 4` in an enum whose `GN_VER2005 = 4`,
+  and `main.cc:108` initialises `generation_flag = GN_DEFAULT`. ⇒ an unflagged run compiles as
+  **plain IEEE 1364-2005 Verilog**, so those rows are `v2005_profile_lane` (**ROUTED**), not
+  `no_sv_key` (**NO VERDICT**).
+- ⭐ **THE CONTRAST IS WHAT MADE IT SAFE TO SAY, AND IT WAS MEASURED.** The primary key
+  `regress-sv.list` encodes the dialect explicitly in **907 of its 922** entries — which is *why* it
+  is the SV key. An unflagged descriptor is not an SV entry missing its label; it is a different
+  lane. Had that ratio come back near zero the primary key itself would have been in question, and
+  this leaf would have reported that instead.
+- ⛔⛔ **THE ONE EDIT THAT WOULD INVERT THE VERDICT IS A CHECKED ARM.** `vvp_reg.py`'s `force_gen()`
+  strips any generation and inserts `-g2023`; if it ran by default every unflagged descriptor would
+  be SystemVerilog and this finding would be backwards. Three facts re-derived at run time: it is
+  guarded by `cfg['force-sv']`; `--force-sv` is `action='store_true'` (default off); and the vendored
+  `Makefile.in`'s own target invokes `python3 vvp_reg.py $(opts)` with no such flag.
+- ⛔ **NOT THE RELABELLING `.13` FORBIDS, and the distinction is load-bearing.** That warning is
+  against pinning a deferred row to an expectation and calling it **adjudicated**. Nothing here
+  becomes adjudicated: a row moves to a **weaker and checkable** deferral, because the stated ground
+  for its original class — *the dialect cannot be determined* — is refuted by measurement. The move
+  creates a real obligation: a row claiming the v2005 lane must actually be answered there.
+- **THE SECOND BASIS IS ANSWERED BY ENUMERATION.** 596 rows carry *"no `regress-sv.list` entry"*; the
+  vendored tree holds **11** `*.list` files and the adjudicator reads **2**. Of the 52 DARK rows,
+  **37 are named by another list and 15 by none** ⇒ **the honest permanent deferral this leaf owed is
+  15 rows, not 743** — its own ask (*"naming the 78 rather than the 743"*) met two orders of
+  magnitude tighter.
+- ⛔⛔ **AND THE AUDIT REFUSES TO READ A VERDICT OUT OF A SECONDARY LIST**, which is what keeps those
+  37 rows from becoming 37 false defects. The lists are different **back ends**: `regress-fsv.list`
+  is read only under `--force-sv`; `regress-vlog95.list` is a Verilog-95 **output** lane where a `CE`
+  means the back end refused, not the parser (`always_comb_rfunc CE` sits in it, and `always_comb` is
+  legal SystemVerilog); `vhdl_regress.list` / `blif.list` / `vpi_regress.list` are other back ends
+  again. ⇒ **a key is not a verdict.**
+- ⚠️ **THE LEAF'S OWN OPENING FIGURES HAD MOVED AND WERE RE-DERIVED BEFORE USE**: `one_sided_unit`
+  665 → 664, DARK 78 → 79, no-backtick 26 → 27. The parser changed under them since 2026-08-11.
+- ⭐⭐ **ALL 8 REFUSAL ARMS FIRED**, driven in a throwaway mini-repo under `rust/target/` carrying
+  mutated copies of the four vendored inputs (removed afterwards; the unmutated copy reproduces the
+  real verdict and returns to exit 0): `GN_DEFAULT` deleted / aliasing nothing / no longer read;
+  `--force-sv` default-on; `force_gen()` un-guarded; the Makefile passing `--force-sv`; an unbucketed
+  basis string; an empty class. Four of those are **one upstream edit** away, which is the point.
+- **NO REGRESSION**: read-only — no grammar, Rust, codegen, generated or adjudicator bytes, and no
+  corpus row moved, so `SV-CORPUS-DENOMINATOR` re-derives `7556/2459/6321/4393/275` unchanged.
+  The banked report is byte-identical across two runs (`cmp`). All 26 doctrines PASS.
+- **ROW MOVE SEQUENCED AS `.13e.1`**, deliberately not folded in: it edits
+  `stimuli/sv/adjudicate_external_corpus.py`, the one file class `DOCTRINE-GAP-OWNERSHIP.6` names as
+  able to move the SV graduation bar with **zero parser change**, and it moves a published
+  denominator — so the bar must be shown to move only by the amount the reclassification accounts
+  for, row by row.
+- **LIVE STATUS: UNCHANGED.** No `claimed_status` moved; `systemverilog` remains `Mostly Done`.
+
 ## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0280 (leaf SV-CORPUS-GRAD.13c.2d CLOSED — `cross_body_item_sv_2017` references the real nonterminal and §19.6.1's example parses on BOTH profiles; opens DOCTRINE-GAP-OWNERSHIP.14; doc tier, ZERO grammar / Rust / codegen / generated bytes): the commit that fixed it NAMED the leaf, and the leaf still said `todo`
 
 - ✅✅ **CLOSED AND VERIFIED AT HEAD.** IEEE 1800-2017 A.2.11 misspells the nonterminal
