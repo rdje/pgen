@@ -1,5 +1,71 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-24 - PGEN-SV-CORPUS-GRAD-0290 — a probe that only ever returns ACCEPT is not an oracle, and mine did until the third leg
+
+**1. THE TASK AS WRITTEN WOULD HAVE PRODUCED A FOURTH SAMPLE.** `.13e.7`(c) said to census
+`block_data_type`, `net_declaration` and the port declarations. Those three rules were chosen by the
+same reading that produced the nine rows the leaf already had — so running it would have produced
+another unbounded list, which is exactly the sample-vs-population defect `-0289` had corrected me on
+one commit earlier. The question the sample was a proxy for has a closed answer: IEEE 1364-2005
+Annex B is a finite normative keyword list, and `grammars/systemverilog.ebnf` spells every keyword as
+its own `kw_*` terminal. So *"which IEEE-1800-only keywords can a `verilog_2005` parse reach"* is
+finite and derivable over all 1 493 rules, not three.
+
+**2. THE REACHABILITY HALF DID NOT EXIST, AND THE TOOL THAT LOOKS LIKE IT ANSWERS IT DOES NOT.**
+`--dump-rule-profiles` publishes `satisfiable_under` per rule and reads like reachability.
+`compute_sat_by_profile` (`rust/src/ast_pipeline/grammar_wellformedness.rs:931`) is a BOTTOM-UP
+fixpoint over `node_satisfiable` — *can this rule derive a string under P* — and never consults an
+entry rule. The falsifier is one command: it reports `kw_void_e9cede9b` satisfiable under
+`verilog_2005`, and `function void f;` is correctly REJECTED there, because both rules referencing
+that terminal are `_sv_only` while the terminal itself is ungated. Its structural dual,
+`detect_unreachable_rules` (`:386`), DOES compute reachability — over the UNFILTERED grammar. Nothing
+crosses the two, so the census had to.
+
+**3. THE RULE-LEVEL GRAPH WAS WRONG, AND THE FAILURE WAS SILENT AND FLATTERING.** The first model
+reused `scripts/parse_cost_containment.py --graph`, whose edges are `{rule: [rules it references]}`.
+That keeps a reference alive when a MANDATORY SIBLING in the same alternative has been
+profile-filtered away. It reported `rand`, `randc`, `packed`, `dist`, `inside`, `local`, `matches`,
+`std` and `type` reachable through `data_type`'s struct alternative — whose FIRST element is
+`struct_union`, gated to `sv_2017`/`sv_2023`. `struct { reg a; } s;` cannot even open under
+`verilog_2005`: `furthest_position=16`, exactly at the `{`. The fix is an alternative-aware walk over
+the frontend's own `raw_ast` token stream: an alternative contributes edges only when every mandatory
+member is satisfiable, an optional never kills its sequence, a positive lookahead is mandatory and a
+negative lookahead contributes nothing because it never accepts. Candidates fell 31 → 24. What
+remains is a deliberate over-approximation — a path gated only by a `@predicate` still counts — which
+can carry false positives the probe removes, never false negatives nothing would.
+
+**4. THE THIRD LEG IS THE WHOLE INSTRUMENT.** With legs 1+2 — accepts under `verilog_2005`, accepts
+under `sv_2017` — the census reported **21** over-acceptances and I believed it. Seven were wrong.
+None of `type`, `this`, `super`, `new`, `null`, `randomize`, `tx_path_delay_expression` is reserved by
+IEEE 1364-2005, so `x = type(y)'(1);` is a legal call to a function NAMED `type`. `--parse-dump-ast-pretty`
+settles it: the literal lands at `…/call_primary/function_call/…/plain_tf/name/body`, a function-call
+slot, not a keyword slot. The `sv_2017` control is a control for the WITNESS, not for the KEYWORD, and
+nothing had noticed the difference. Leg 3 — substitute the keyword for a fresh identifier and require
+the parse to REJECT — is mechanical, costs one parse per row, and is the difference between publishing
+21 defects and measuring 13 real ones (14 once `with` was found).
+
+**5. THE MISSING-WITNESS REFUSAL PAID FOR ITSELF ON ITS FIRST RUN.** The census refuses when a
+reachable IEEE-1800-only keyword has no witness in the tracked manifest. Its first real execution
+refused on `with` — reachable through `array_manipulation_call:737`, absent from every hand list I had
+produced across three passes. Had the census merely skipped unwitnessed keywords, the headline would
+have read 13 and been quietly incomplete, in the flattering direction.
+
+**6. TWO POPULATIONS THAT LOOK COMMENSURABLE AND ARE NOT.** `--dump-rule-profiles` runs on the
+POST-elimination grammar and reports 1 524 rules; `raw_ast` is the SOURCE grammar at 1 493. The 31
+extras are all `_lr_*` rules the indirect-left-recursion eliminator synthesises, 19 of them
+`verilog_2005`-satisfiable. Subtracting reachability from the raw `1 148` would have folded those 19
+into the gap silently. The report publishes the intersection (1 129), names the residue, and
+`1 129 + 19 = 1 148` reconciles to `verilog_2005_conformance_contract_v0.json`'s `expected_total`
+exactly — which is also the cross-check that the reachability model is reading the same grammar the
+contract is pinned against.
+
+**7. WHAT THE CONTROL BOUGHT.** The same computation under `sv_2017` reaches 136 word-shaped
+IEEE-1800-only keywords against `verilog_2005`'s 24. That pair is now printed in the baseline report,
+because a census blind to the profile would print one number twice and look identical from outside.
+Censusing the control profile itself is refused by name — a degenerate self-comparison would report a
+flattering `leaks 0`, and a flattering reading a reader cannot distinguish from a real one is worse
+than no reading.
+
 ## 2026-08-24 - PGEN-SV-CORPUS-GRAD-0288 — the leaf that sent me was wrong about its own size, twice, and both times one command said so
 
 **1. THE ROUTING EVIDENCE NAMED ONE SPELLING AT ONE SITE. IT WAS FOUR SPELLINGS AT TWO SITES.**

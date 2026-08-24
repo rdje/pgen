@@ -45,6 +45,7 @@ the generation-input / memo observability.
 | **Two generated parsers differ by N bytes — what moved?** ⛔ ask FIRST whether both were written through the same `-o` spelling | normalise the embedded output path | `LC_ALL=C sed 's\|\.\./generated/<fam>_parser\.rs\|generated/<fam>_parser.rs\|g' armA.rs > armA_norm.rs` then compare sha256 (see [below](#comparing-two-generated-parsers)) |
 | Which rules a derived DFA scanner could fuse + the measured ceiling? the choice-site / merged-choice surface? | `--report-fusibility-census` | `ast_pipeline g.ebnf --report-fusibility-census [--fusibility-entry-counts c.json] [--fusibility-outcome-counts o.json]` |
 | **A rule whose whole body is a whitespace terminal is `UNKNOWN` with `parsed=true` — is the LAYOUT SKIP eating it?** | `--report-layout-owning-terminals` | `ast_pipeline g.ebnf --report-layout-owning-terminals` → the closed population of terminals that own their leading layout, HIR-derived (⛔ a text sweep for `\s` misses `[ \t\r\n]+` and `\r?\n`) |
+| **Does a DIALECT PROFILE accept something its LRM never defined?** ⛔ a different question from *"is the profile COHERENT"* — the coherence half (`profile_orphans=0`) is gated on every commit and the faithfulness half was checked only by a curated sample | the keyword-faithfulness census | `python3 stimuli/sv/v2005_keyword_faithfulness_census.py` → the CLOSED population of IEEE-1800-only keywords a `verilog_2005` parse can reach, three probe legs per row (see [below](#is-a-dialect-profile-faithful-to-its-standard)) |
 | Witness-pass tuning (A/B, budget, ordering)? | `PGEN_WITNESS_*` | see [witness knobs](#witness-pass-knobs) |
 
 > Build note: cert-coverage and any `.ebnf`-direct mode need the debug binary
@@ -496,6 +497,83 @@ discrepancy rather than a six-figure one, which is the point of having hoisted i
 input JSON named absolutely and relatively yields a byte-identical parser, and no `generated_at` or
 date string survives into the emitted parser either. The `-o` path is the only provenance a
 generated parser carries, which is why it is the only thing to normalise.
+
+---
+
+## Is a dialect profile FAITHFUL to its standard?
+
+A grammar that ships several dialect profiles — PGEN's SystemVerilog grammar ships `sv_2017`,
+`sv_2023` and `verilog_2005` — has to answer two different questions about each one, and only the
+first was ever gated.
+
+**Coherence** asks: *is every rule this profile admits still usable there?* A rule whose every
+production references something the profile filtered away is a `ProfileOrphan`, and
+`--lint-grammar` holds that count at 0 on every commit.
+
+**Faithfulness** asks: *is every rule this profile admits DERIVABLE from the standard the profile
+names?* Nothing structural answers that. For `verilog_2005` it was checked by 85 curated
+conformance cases — a sample against roughly 1 100 rules — and a sample cannot bound what it did
+not think to look for. Nine over-acceptances sat behind a single `@profiles` annotation until one
+of them was found by hand.
+
+The census closes that for one lens, the reserved **keyword**, because the keyword is the one axis
+with a closed normative oracle on both sides: IEEE 1364-2005 Annex B is a finite list, and PGEN
+spells every keyword as its own `kw_*` terminal rule.
+
+```bash
+python3 stimuli/sv/v2005_keyword_faithfulness_census.py            # gate mode: recompute + diff
+python3 stimuli/sv/v2005_keyword_faithfulness_census.py --write    # promote a baseline
+```
+```text
+V2005-KEYWORD-FAITHFULNESS: reachable_rules=827 reachable_keywords=161 candidates=24
+                            over_acceptances=14 gated=10 identifier_consumed=7
+```
+
+### A row is earned by three legs, not one
+
+A keyword reaching the parser is not yet a defect. Each candidate is adjudicated on the shipped
+release probe:
+
+1. the witness is **ACCEPTED** under `verilog_2005`;
+2. the same witness is **ACCEPTED** under `sv_2017` — the control proving it is well-formed
+   SystemVerilog, so what is being isolated is a profile difference and not a typo;
+3. replacing the keyword with a fresh identifier makes the witness **REJECT** under
+   `verilog_2005` — the falsifier proving the keyword was consumed *as a keyword*.
+
+⛔ Leg 3 is not a formality. Without it the founding run reported 21 over-acceptances; seven were
+wrong. `type`, `this`, `super`, `new`, `null`, `randomize` and `tx_path_delay_expression` are not
+reserved words in IEEE 1364-2005, so `x = type(y)'(1);` is a perfectly legal call to a function
+*named* `type` — and dumping the AST puts the literal in a `plain_tf` function-call slot, exactly
+where a user identifier belongs. The parser was right and the witness was lying.
+
+### Two instruments that look like they answer this, and do not
+
+`--dump-rule-profiles` reports a `satisfiable_under` set per rule, which reads like reachability
+and is not. It is a **bottom-up** fixpoint — *can this rule derive a string under this profile* —
+and it never consults an entry rule. The measured consequence: `kw_void_e9cede9b` reports
+satisfiable under `verilog_2005`, while `function void f;` is correctly **rejected** there,
+because both rules that reference the terminal are profile-gated and the terminal itself is not.
+
+`--lint-grammar`'s `unreachable_rules` is the missing top-down half, but it runs on the
+**unfiltered** grammar, so it cannot see a profile either. Nothing in the tree crosses the two.
+Crossing them is what the census does, and the gap it exposes is large: of the 1 129 source-grammar
+rules satisfiable under `verilog_2005`, **827 are reachable and 302 are not** — against 5 and 4
+unreachable under `sv_2017` and `sv_2023`, and 0 on the unfiltered grammar.
+
+### What the census cannot see, stated in its own report
+
+This is lens **L1**, keyword admission. Two classes are structurally invisible to it because
+neither introduces a keyword the standard's list lacks:
+
+| lens | what it catches | measured instance |
+|---|---|---|
+| **L1** | an IEEE-1800-only keyword is reachable | `chandle c;` |
+| **L2** | a genuine 1364-2005 keyword in a position the LRM never allows | `automatic integer i;` at module scope — `automatic` is Annex B, but Annex A allows it only on `function`/`task` |
+| **L3** | the right keywords in the wrong arity | `reg [7:0][3:0] r;` — `reg_declaration` carries exactly one `[ range ]` |
+
+The report prints that bound rather than implying it, alongside the census's own red control: the
+identical computation under `sv_2017`, where these keywords are native, reaches 136 of them — so
+`verilog_2005` gates 112 and leaks 24. A census blind to the profile would print one number twice.
 
 ---
 

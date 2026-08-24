@@ -174,6 +174,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "Which rules exist under which `@profiles`? Which rules can a corpus run under profile P ever exercise?" | [5.4 `--dump-rule-profiles`](#54---dump-rule-profiles) |
 | **"Does the LRM define a production the SHIPPED grammar has never seen?"** — ⛔ Annex A is the only surface the SV extractor reads, and IEEE captions 60 of its own 2017 syntax boxes `(not in Annex A)` | [5.8 the Annex A gap census](#58-does-the-lrm-define-a-production-the-shipped-grammar-has-never-seen--the-annex-a-gap-census) |
 | "Which LRM chapters/clauses does the keyed corpus target? Where is the negative-axis gap?" | [5.4 companion — `corpus_clause_coverage.py`](#54---dump-rule-profiles) |
+| **"Does this DIALECT PROFILE accept something its LRM never defined?"** — ⛔ a different question from *"is the profile COHERENT"*, which is the only one gated; and 5.4's `satisfiable_under` will look like it answers it and does not (it is bottom-up: `void` reports satisfiable under `verilog_2005` and REJECTS there) | [5.11 the keyword-faithfulness census](#511-does-this-dialect-profile-accept-something-its-lrm-never-defined--the-keyword-faithfulness-census) — closed population, three legs per row, and the third leg moved the founding headline by seven |
 | **"Which INPUTS does my change actually move?" — for a behaviour implemented TWICE and held equal by a gate** | [Protocol E](#protocol-e--which-inputs-does-my-change-move-break-the-mirror-on-purpose) — apply it to ONE side and every divergence the differential reports IS an input the change moves; ⛔ then prove the sweep can go RED, or clean and never-reached read identically |
 
 ---
@@ -1485,6 +1486,27 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - ⚠️ **A grammar the frontend cannot load has NO verdict** and is reported `[not-loadable]` with the
   refusal text, never counted as zero. Four of the eighteen `.ebnf` files under `grammars/` are raw
   LRM extraction inputs in that state.
+
+### 5.11 "Does this DIALECT PROFILE accept something its LRM never defined?" — the keyword-faithfulness census
+- **WHAT:** `stimuli/sv/v2005_keyword_faithfulness_census.py` — the CLOSED population of IEEE-1800-only **keywords** a `verilog_2005` parse can still reach, each one adjudicated on the shipped release probe. Profile-filtered, **alternative-aware** reachability from the declared entry roots over the frontend's own `raw_ast` envelope, intersected with the `kw_*` terminals, minus IEEE 1364-2005 Annex B. Deterministic, ~2.3 s, reads the repository and mutates nothing.
+- **WHEN:** any *"is this profile FAITHFUL to its standard?"* question — as opposed to *"is this profile COHERENT?"*, which `--lint-grammar`'s `profile_orphans` already holds at 0 on every commit. ⛔ **The two are not the same check and only the second was ever gated**, which is how nine `verilog_2005` over-acceptances sat behind one `@profiles` annotation.
+- **HOW:**
+  ```bash
+  python3 stimuli/sv/v2005_keyword_faithfulness_census.py            # gate mode: recompute + diff the tracked artifact
+  python3 stimuli/sv/v2005_keyword_faithfulness_census.py --write    # promote a new baseline (deliberate)
+  bash docs/tasks/artifacts/sv_corpus_grad/v2005_keyword_faithfulness/probe.sh   # 13/13 refusal + control arms
+  ```
+- **OUTPUT:** `docs/tasks/artifacts/sv_corpus_grad/v2005_keyword_faithfulness/` — `census.tsv` (per-keyword, the three legs as columns) and `census.md` (population, verdicts, honest bound), both under an instrument-identity block.
+  ```text
+  V2005-KEYWORD-FAITHFULNESS: reachable_rules=827 reachable_keywords=161 candidates=24
+                              over_acceptances=14 gated=10 identifier_consumed=7
+  ```
+- ⛔⛔ **A ROW NEEDS THREE LEGS AND THE THIRD IS THE ONE THAT GETS SKIPPED — it moved the founding headline by SEVEN.** (1) the probe accepts the witness under the censused profile; (2) it accepts under `sv_2017`, proving the witness is well-formed SV isolating a PROFILE difference; **(3) substituting the keyword for a fresh identifier makes it REJECT.** Without leg 3 the census reported 21; seven were `type`, `this`, `super`, `new`, `null`, `randomize` and `tx_path_delay_expression` — none reserved by IEEE 1364-2005, so `type(y)` is a legal call to a function NAMED `type`, and `--parse-dump-ast-pretty` puts it in a `plain_tf` **function-call** slot. **The parser was right and the witness was lying.** This is `SV-CORPUS-GRAD.13c.2q`'s *"the slot is NAMED, not inferred"* as a mechanical leg instead of per-row discipline.
+- ⭐⭐ **THE BASELINE RUN CARRIES ITS OWN RED CONTROL.** The identical computation under `sv_2017` reaches **136** word-shaped IEEE-1800-only keywords, so `verilog_2005` **gates 112 and leaks 24** — printed as a pair, because a census blind to the profile would print one number twice. Censusing the control profile itself is refused BY NAME as a degenerate self-comparison rather than reporting a flattering `leaks 0`.
+- ⛔ **`--dump-rule-profiles` (5.4) CANNOT ANSWER THIS AND WILL LOOK LIKE IT CAN.** Its `satisfiable_under` is `compute_sat_by_profile`, a BOTTOM-UP fixpoint asking *"can this rule derive a string under P"* — never *"can a parse ARRIVE here"*. Measured: `kw_void_e9cede9b` reports `satisfiable_under … verilog_2005` while `void` **rejects** under `verilog_2005`, because both rules that reference it are `_sv_only`. The same gap is why **302 of the 1 129** source-grammar rules the `verilog_2005` certificate denominator counts are not reachable under it at all (`SV-CORPUS-GRAD.13e.8`). The two directions are complements: use 5.4 for satisfiability, this for reachability, and never subtract one from the other without first removing the **19** `_lr_*` rules the eliminator synthesises, which exist in the post-elimination grammar and in no `.ebnf` file.
+- ⚠️ **HONEST BOUND, printed by the report rather than implied — this is lens L1 of three.** **L1** keyword admission (this census) · **L2** POSITION, a genuine 1364-2005 keyword accepted where the LRM never allows it (`automatic integer i;` at module scope) · **L3** SHAPE/CARDINALITY, the right keywords in the wrong arity (`reg [7:0][3:0] r;` — `reg_declaration` carries exactly one `[ range ]`). L2 and L3 are structurally invisible here because neither introduces a keyword Annex B lacks, and two of the nine rows that founded the census are exactly those.
+- ⭐ **PARSER-AGNOSTIC IN THE HALF THAT MATTERS.** The reachability computation reads only `@profiles` and the `raw_ast` envelope, so any grammar with a dialect profile and a closed keyword oracle can be censused the same way; only the Annex B path is SV-specific.
+- **Refusals proven:** `docs/tasks/artifacts/sv_corpus_grad/v2005_keyword_faithfulness/probe.sh` (**13/13**, incl. a GREEN control on the real tree). ⭐ The missing-witness refusal fired **on its own first real run**, on `with` — a reachable IEEE-1800-only keyword absent from every hand list that preceded it.
 
 ## 6. Coverage / gap reports (`ast_pipeline`)
 

@@ -1,0 +1,37 @@
+# `verilog_2005` keyword-faithfulness census — witness manifest (SV-CORPUS-GRAD.13e.7).
+# One row per IEEE-1800-only keyword the profile-filtered reach analysis can arrive at.
+# A keyword with no row REFUSES the census: a new reachable keyword cannot land silently.
+#
+# keyword	witness	note
+chandle	chandle.sv	
+class_qualifier	class_qualifier.sv	IEEE 1800-2017 defines `class_qualifier` as a NONTERMINAL (clause 41 Annex A); PGEN spells it as a keyword TERMINAL
+clocking	clocking.sv	
+const	const.sv	
+dist	dist.sv	
+enum	enum.sv	
+extern	extern.sv	
+iff	iff.sv	
+inside	inside.sv	
+interface	interface.sv	
+join_any	join_any.sv	
+join_none	join_none.sv	
+local	local.sv	
+matches	matches.sv	
+new	new.sv	
+null	null.sv	
+packed	packed.sv	
+rand	rand.sv	
+randc	randc.sv	reachable only via `random_qualifier` -> `struct_union_member`, whose alternative needs `struct_union` (gated to sv_2017/sv_2023); `checker_or_generate_item_declaration` admits `rand` but not `randc`
+randomize	randomize.sv	
+ref	ref.sv	
+static	static.sv	
+std	std.sv	
+string	string.sv	
+super	super.sv	
+this	this.sv	
+tx_path_delay_expression	tx_path_delay_expression.sv	IEEE 1364-2005 A.7.4 defines `tx_path_delay_expression` as a NONTERMINAL; PGEN spells it as a keyword TERMINAL
+type	type.sv	
+unique	unique.sv	
+var	var.sv	
+virtual	virtual.sv	
+with	with.sv	
