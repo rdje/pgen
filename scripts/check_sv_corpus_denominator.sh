@@ -229,6 +229,24 @@ for surface in LIVE_SURFACES:
         note(f"{surface} publishes verdict-coverage tuple(s) {wrong} but the census derives "
              f"{derived}. The bar and its denominator move TOGETHER — update the anchor.")
 
+# --- the bar's TRUST BOUND is one link away, and the link is CHECKED ------------------------------
+# ⛔ CORPUS-KEY-AUDIT.2(b), decided 2026-08-24. This doctrine holds the bar equal to its DENOMINATOR.
+# One layer under that sits a different question — what the denominator's expectations REST ON —
+# and the answer is uncomfortable: 93.8 % of the SV answer key rests on evidence OUTSIDE the
+# standard, both non-clause classes having already produced a measured defect. ⭐ The tuple is NOT
+# widened to carry that number: several live surfaces are held equal to it, so a sixth field is a
+# contract change for every one of them. Naming the artifact costs nothing and puts a reader of the
+# bar one link from its bound. ⛔ The pointer is EXISTENCE-CHECKED rather than printed blind — an
+# unchecked path in a passing gate's own success line is how a reference rots into a dangling one,
+# which is the whole family of defect this repository's currency doctrines exist to stop.
+TRUST_BOUND = "docs/tasks/artifacts/corpus_key_audit/provenance.md"
+if not os.path.isfile(os.path.join(ROOT, TRUST_BOUND)):
+    note(f"the bar's trust-bound artifact is missing: {TRUST_BOUND}. The denominator says how much "
+         "of the corpus was ASKED a question; that artifact says how much of the answer key rests "
+         "on evidence outside the standard. Re-derive it: python3 "
+         "docs/tasks/artifacts/corpus_key_audit/key_provenance_census.py "
+         "(CORPUS-KEY-INTEGRITY tier A4 holds it current).")
+
 # --- verdict -------------------------------------------------------------------------------------
 if unevaluated:
     for u in unevaluated:
@@ -241,5 +259,5 @@ if failures:
     sys.exit(1)
 
 print(f"sv-corpus-denominator: OK (tuple {derived} = adjudicated/routed/no-verdict/dark/bar; "
-      f"artifacts fresh: {', '.join(compared)})")
+      f"artifacts fresh: {', '.join(compared)}; trust bound: {TRUST_BOUND})")
 PYEOF

@@ -1,5 +1,25 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-24 - PGEN-CORPUS-KEY-AUDIT-0005 — the cheapest fix in the lane, and it still had a way to be wrong
+
+**1. THE CHOICE WAS BETWEEN A CONTRACT CHANGE AND A POINTER, AND THE POINTER WINS ON A REASON THAT
+IS NOT LAZINESS.** Widening `SV-CORPUS-DENOMINATOR`'s tuple to carry the trust bound would make every
+live surface holding that tuple carry a number that moves on a *different cadence* from the bar —
+the bound changes when the answer key's provenance changes, the bar changes when the corpus or the
+parser does. Coupling two independently-moving numbers into one checked string means every move of
+either one edits every surface. Naming the artifact keeps them independent and still one link apart.
+
+**2. AND THE POINTER ITSELF HAD A WAY TO BE WRONG.** A path printed in a gate's success line, never
+checked, is a reference that rots the moment the file moves — and it rots *inside a green gate*,
+which is the worst place for it. This repository has three currency doctrines precisely because
+documented promises drift; adding an unchecked path while closing a documentation gap would have
+been the same defect wearing the fix's clothes. One `os.path.isfile` and a RED control settle it.
+
+**3. `-0003`'S LESSON ARRIVED AGAIN, IN ONE LINE.** My first cut wrote `(ROOT / TRUST_BOUND)`. In
+that script `ROOT = os.getcwd()` — a `str`. Every other file I had touched this session used
+`pathlib`. ⇒ **the convention you just internalised is not a property of the next file**; running it
+is what tells you, and it took one command.
+
 ## 2026-08-24 - PGEN-CORPUS-KEY-AUDIT-0004 — I wrote the pattern first twice, and the corpus refuted me twice in opposite directions
 
 **1. THE FIRST CUT CLASSIFIED THE PUREST TOOL TESTIMONY IN THE CORPUS AS ITS EXACT OPPOSITE.** The
