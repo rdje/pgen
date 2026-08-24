@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-24 - PGEN-CORPUS-KEY-AUDIT-0003 — the gate found two defects in the thing it was built to watch, and neither was findable any other way
+
+**1. BUILDING THE CONSUMER IS A TEST OF THE PRODUCER, AND IT IS NOT A TEST YOU CAN SUBSTITUTE.** The
+census had shipped one commit earlier, measured, self-tested, doctrine-green. Wiring a gate to it
+broke it twice inside ten minutes. `--md` is a documented option, and every prior invocation had
+pointed it at the default path *inside* the repo; a gate must point it at scratch, and
+`args.md.relative_to(ROOT)` raises on anything outside. ⛔ The failure shape is the one worth
+remembering: **the summary line had already printed and the file had already been written**, so the
+work succeeded and only the exit code said otherwise. A reader skimming the output would have seen a
+correct census and a red gate and gone looking in the wrong place. ⇒ **an option nobody has exercised
+is not a feature yet**, and the first real consumer is where you find out.
+
+**2. THE SECOND DEFECT WAS MINE, IN THE GATE, AND IT WAS A POLICY VIOLATION BY DEFAULT.** My first
+cut wrote scratch to `${TMPDIR:-/tmp}`. On this host `TMPDIR` happens to sit on the repository's own
+volume, so it would have passed every check I ran — and been wrong by construction on any host where
+it does not. The repo already had the right answer everywhere else (`rust/target/`, git-ignored,
+derived from the script's own location). ⇒ **a default that happens to be correct on your machine is
+not a correct default**; copy the house pattern rather than reaching for the environment.
+
+**3. WHY A1 CHECKS THE CENSUS BEFORE A2 TRUSTS IT.** The obvious gate is "run the census, fail if it
+reports anything". That gates on an oracle whose own correctness is unestablished — and `.1`(a) had
+just proved this particular oracle can be wrong in the flattering direction, twice, inside one
+commit. So A1 runs the census's self-test first and refuses three ways the obvious version would
+pass: a shrunken arm set, a zero-arm run reporting `failed=0`, and a summary it cannot parse. The
+third is the subtle one. A reader that returns "no findings" for text it does not understand fails
+**in the passing direction**, which is the exact family this whole lane exists to catch — so both
+verdict readers refuse an unparsable line rather than defaulting to clean.
+
+**4. A GREEN --self-test IS NOT PROOF THE DOCTRINE BLOCKS A COMMIT.** Thirteen arms passing shows the
+enforcer's logic refuses. It says nothing about whether `scripts/check_doctrines.sh` — the thing
+`.githooks/pre-commit` actually runs — surfaces that refusal. Those are different claims and the
+repository has been bitten by exactly that gap before (`GRAMMAR-CERT-STATUS.1b`: a flag survived its
+implementation's deletion and went on exiting 0). So the control was run **through the driver**: one
+appended line in `census.md` → `commit/merge blocked`; restore → `ALL 27 enforced doctrines PASS`.
+⇒ **prove the refusal at the surface that enforces it, not one layer below.**
+
+**5. THE BOUND TRAVELS WITH THE DOCTRINE ON PURPOSE.** A registered doctrine is read by people
+looking for reassurance, and `CORPUS-KEY-INTEGRITY: PASS` invites the reading *"the answer key is
+correct"*. It is not. It is *"no two rows keyed from the same evidence disagree, over a 4-class
+reject side against 124 accept-side"*. That sentence is in the registry row, in the book paragraph
+and in the artifact — three places a reader might stop — because a bound stated only in the task
+leaf is a bound nobody encounters at the moment they are forming the wrong belief.
+
 ## 2026-08-24 - PGEN-CORPUS-KEY-AUDIT-0002 — I was handed a plan by my own past self, and the first honest thing to do was measure whether it works
 
 **1. THE LEAF TOLD ME EXACTLY WHAT TO BUILD, AND IT WAS WRONG.** `.1`(a) read: *"attribute a row to

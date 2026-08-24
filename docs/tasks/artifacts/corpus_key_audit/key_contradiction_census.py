@@ -369,7 +369,15 @@ def main() -> int:
     print(f"KEY-CONTRADICTION-CENSUS: rows={res['rows']} messages={len(res['vocabulary'])} "
           f"contradictory_classes={len(res['refined'])} "
           f"(naive={len(res['naive'])}) key_integrity_findings={len(res['integrity'])}")
-    print(f"wrote {args.md.relative_to(ROOT)}")
+    # ⛔ `--md` may legitimately point OUTSIDE the repo — a gate drives this census into a scratch
+    # file to diff against the tracked artifact without mutating it. `relative_to` RAISES on such a
+    # path, so the reporting line crashed a run whose actual work had already succeeded: the summary
+    # above had printed, the file had been written, and the exit code still said failure.
+    try:
+        shown = args.md.resolve().relative_to(ROOT)
+    except ValueError:
+        shown = args.md
+    print(f"wrote {shown}")
     return 0
 
 

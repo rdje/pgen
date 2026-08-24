@@ -7,8 +7,8 @@
 - Family / slice-id prefix: `PGEN-CORPUS-KEY-AUDIT-<NNNN>`
 - Created: `2026-08-24`
 - Owner: repo-local corpus-oracle workflow
-- **Frontier: `.1`(e)** (wire the census to a gate — `.1`(a)/(b)/(c) DONE, (d) DECIDED),
-  then `.2`
+- **Frontier: `.2`** (the key-PROVENANCE census). ✅ `.1` is CLOSED — (a)–(d) done and (e) wired
+  as doctrine `CORPUS-KEY-INTEGRITY`
 
 ## ⛔ THE DIRECTOR'S APPROVAL (2026-08-24)
 
@@ -65,7 +65,7 @@ being wrong, and disagreements inside the corpus are surfaced mechanically inste
 
 ## Task tree
 
-### `.1` — the CONTRADICTION census: do two rows keyed from the same evidence disagree? (`in progress`, instrument LANDED 2026-08-24)
+### `.1` — the CONTRADICTION census: do two rows keyed from the same evidence disagree? (`done` 2026-08-24, gate-held by `CORPUS-KEY-INTEGRITY`)
 
 **The question is mechanical and nobody was asking it.** A corpus large enough to contain a
 contradiction is an oracle you already own: group keyed rows by the upstream messages their key
@@ -158,14 +158,65 @@ The manifests are edited by nearly every SV burn-down slice, so the population t
 constantly. ⇒ `.1`(e) below owns the wiring; the decision is not left as a note
 (`CI-PARITY-GATE-ROT.44` is the standing example of a tracked instrument no gate invokes).
 
-### `.1`(e) — wire the census to the doctrine enforcer (`todo`)
+### `.1`(e) — DONE 2026-08-24 (`PGEN-CORPUS-KEY-AUDIT-0003`): doctrine `CORPUS-KEY-INTEGRITY`
 
-Register a `CORPUS-KEY-INTEGRITY` doctrine in `scripts/check_doctrines.sh` whose enforcer runs the
-self-test (5 arms, corpus-independent) and then the census, failing on any contradictory class or
-unresolved quoted decider. ⛔ It must REFUSE (exit 2, never pass) when the vendored corpora are
-absent, exactly as the census already does — a submodule-less clone must not read as clean.
+`scripts/check_corpus_key_integrity.sh`, registered as the repository's **27th** doctrine. ⇒ the
+durability leg `.1`(a)–(d) had to NAME as open is now satisfied: **the claim is watched.**
 
-## Acceptance Checklist (enforced)
+⭐⭐ **TWO TIERS, BECAUSE THEY NEED DIFFERENT THINGS PRESENT** — and A1 is the one that matters most
+here, because `.1`(a) proved the *census itself* can be the wrong half:
+
+- **A1 INSTRUMENT ALIVE** (always, corpus-INDEPENDENT, ~0.1 s) — runs the census's own
+  `--self-test`. It refuses three ways a naive check would pass: a **shrunken** arm set (coverage
+  lost silently), a **zero-arm** run reporting `failed=0` (a control that cannot fail), and an
+  **unparsable** summary (a reader that treats what it cannot read as *no findings* fails in the
+  passing direction — the exact family this lane exists to catch).
+- **A2/A3 KEY CLEAN + ARTIFACT CURRENT** (corpus-dependent) — zero contradictory classes, zero bases
+  quoting evidence their golden lacks, a **non-empty population** (*a clean verdict over zero rows is
+  not a clean key*), and the tracked `census.md` **byte-identical** to a fresh derivation. A3 exists
+  because `SV-CORPUS-DENOMINATOR` was founded on a derived artifact measured stale one day after
+  landing.
+
+⛔ **NOT EVALUATED, not blocked, on a corpus-less clone.** The vendored corpora are submodules, so
+A2/A3 announce themselves loudly and A1 still binds — the posture `GRAMMAR-CERT-CURRENCY` takes for
+the untracked `generated/` tree. ⭐ That branch is **exercised, not assumed**: a self-test arm
+relocates a copy of the census so its own `parents[4]` repo-root walk lands on no corpus and requires
+exit 2. Otherwise the fresh-clone path would be the one branch of the gate nobody had ever seen run.
+
+⛔⛔ **BUILDING THE GATE FOUND TWO LIVE DEFECTS THAT ONLY A REAL CONSUMER COULD EXPOSE.** Both were
+in code that had already been committed and measured green:
+
+1. **The census crashed on its own documented `--md` option** whenever the path lay outside the repo
+   — `args.md.relative_to(ROOT)` raises `ValueError`. The failure is the nastiest shape: the summary
+   line had already printed and the file had already been written, so the *work succeeded* and the
+   *exit code said failure*. Nothing had ever passed an out-of-repo `--md` because nothing had ever
+   driven the census as a gate does. Fixed with a `try/except` that falls back to the plain path.
+2. **The enforcer's first cut put its scratch file in `$TMPDIR`**, violating the same-volume data
+   policy by construction on any host where `TMPDIR` is off the repo volume. Now repo-derived
+   (`rust/target/`, git-ignored) — the choice every other self-test here already makes.
+
+**MEASURED:**
+
+```text
+bash scripts/check_corpus_key_integrity.sh --self-test   -> self-test 13 passed, 0 failed
+bash scripts/check_corpus_key_integrity.sh               -> OK, 0.311 s, tree unmutated
+bash scripts/check_doctrines.sh                          -> ALL 27 enforced doctrines PASS
+```
+
+**RED CONTROL THROUGH THE REAL DRIVER, not through the enforcer alone**: appending one line to the
+tracked `census.md` turns `scripts/check_doctrines.sh` to
+`✗ FAIL CORPUS-KEY-INTEGRITY … commit/merge blocked`; restoring the file returns it to
+`ALL 27 enforced doctrines PASS`. A doctrine proven only by its own `--self-test` has not been shown
+to reach the surface that actually blocks a commit.
+
+⚠️ **HONEST BOUND, carried from `.1`(c′) into the doctrine's own registry text**: a green A2 is
+**not** *"the key is correct"*. The census's power is the intersection of its two sides — 4
+reject-side deciding classes against 124 accept-side — and the artifact publishes that ratio beside
+its zero. `.2`/`.3` are what widen it.
+
+## Acceptance Checklist (enforced) — leaf `.1`, both landings
+
+### `.1`(a)–(d) — `PGEN-CORPUS-KEY-AUDIT-0002`
 
 - [x] **REPRODUCE / ISSUE** — `python3 docs/tasks/artifacts/corpus_key_audit/key_contradiction_census.py`
   at parent `b551244d` → `rows=499 messages=168 contradictory_classes=2`; both classes hand-shown
@@ -194,6 +245,53 @@ absent, exactly as the census already does — a submodule-less clone must not r
   updated. No contract / ledger / AST-schema surface touched: this leaf changes no parser
   behaviour and no published family status.
 
+### `.1`(e) — `PGEN-CORPUS-KEY-AUDIT-0003`
+
+- [x] **REPRODUCE / ISSUE** — `.1`(a)–(d) had to publish verification leg 3 (durability) as
+  NAMED-not-satisfied because nothing invoked the census. `CI-PARITY-GATE-ROT.44` is the standing
+  example of the same shape: a tracked instrument no gate runs.
+- [x] **ROOT CAUSE (WHY + WHERE)** — not a parse defect: a **coverage gap in the enforcement layer**,
+  measured at parent `631c9f74` with the ops/build-flow family:
+
+  ```bash
+  git ls-files 'scripts/check_*.sh' 'rust/Makefile*' '.github/workflows/*' \
+    | xargs grep -l key_contradiction_census | wc -l   # -> 0
+  git ls-files 'scripts/check_*.sh' | wc -l            # -> 26 enforcers, none of them this one
+  ```
+
+  **WHY:** the `DOCTRINES` registry in `scripts/check_doctrines.sh` is the only automatic lane, and
+  it had no row for the corpus answer key. **WHERE:** `scripts/check_doctrines.sh`, the `DOCTRINES`
+  array. ⭐ Wiring it then exposed **two live code defects only a real consumer could surface**,
+  both tool-measured: (1) `python3 …/key_contradiction_census.py --md <path-outside-repo>` →
+  `ValueError: '…' is not in the subpath of '…/pgen'` from `args.md.relative_to(ROOT)` at the
+  reporting line — raised *after* the summary had printed and the file had been written, i.e.
+  **work succeeded, exit code said failure**; (2) the enforcer's first cut wrote its scratch file
+  under `$TMPDIR`, off the repository volume by construction on any host whose `TMPDIR` is
+  elsewhere. `bash -n scripts/check_corpus_key_integrity.sh` clean throughout, which is why neither
+  was a syntax-level catch.
+- [x] **FIX** — declarative/instrument tier, no grammar / Rust / codegen / generated bytes: a new
+  `scripts/check_corpus_key_integrity.sh` (A1 corpus-independent instrument check; A2/A3 key +
+  published-artifact check), one registry row, the `DOCTRINE_ENFORCEMENT.md` §10 mirror row, the
+  book's two marked `DOCTRINE-COUNT` sites, plus the two defects above (`try/except` on the
+  reported path; repo-derived `rust/target/` scratch).
+- [x] **ADDRESSED (verified)** — `bash scripts/check_corpus_key_integrity.sh --self-test` →
+  **13 passed, 0 failed**; the doctrine itself → `OK` in **0.311 s** with `git status --porcelain`
+  showing the gate mutated nothing; `bash scripts/check_doctrines.sh` → **ALL 27 enforced doctrines
+  PASS** (26 → 27). ⭐ **RED CONTROL THROUGH THE REAL DRIVER**, not through the enforcer alone:
+  appending one line to the tracked `census.md` turns the driver to
+  `✗ FAIL CORPUS-KEY-INTEGRITY … commit/merge blocked`, and restoring it returns
+  `ALL 27 enforced doctrines PASS`.
+- [x] **NO REGRESSION** — all 27 doctrines PASS including the two meta-checks that would catch a
+  half-registration (`<meta:mirror>` = `DOCTRINE_ENFORCEMENT.md` §10 lists exactly the 27;
+  `<meta:book-count>` = `gate-flow.md` publishes 27 at 2 marked sites). ZERO grammar / Rust /
+  codegen / generated bytes. `mdbook_docs_gate` PASS. The census's own output is byte-identical
+  before and after the `--md` fix on the in-repo path (`contradictory_classes=0`,
+  `key_integrity_findings=0`), so the repair touched the reporting line only.
+- [x] **LOCKSTEP** — `DOCTRINE_ENFORCEMENT.md` §10, `docs/book/src/gate-flow.md` (count) and
+  `docs/book/src/grammar-wellformedness.md` (the doctrine's own paragraph), `CHANGES.md`,
+  `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`. No contract / ledger / AST-schema
+  surface: no parser behaviour and no published family status changed.
+
 ### `.2` — the key-PROVENANCE census: which expectations rest on a CLAUSE, and which on TOOL TESTIMONY? (`todo`)
 
 Every basis string already names its evidence. Sweep both manifests and classify each expectation:
@@ -220,13 +318,12 @@ have manufactured five false defects.
 
 ## Current frontier
 
-1. `.1`(e) — wire the census to the doctrine enforcer (decided cheap enough at 0.242 s).
-2. `.2` — the provenance census (cheap, and it produces the trust bound the bar is missing).
+1. `.2` — the provenance census (cheap, and it produces the trust bound the bar is missing).
    ⭐ `.1`(a) already built and measured the classifier over the 499 golden-mapped rows
    (`clause-cited` 9 / `quoted-decider` 11 / `whole-golden` 479); `.2` widens it to all **3 134**
    keyed iverilog rows — the 2 635 with no golden are exactly the ones whose provenance is
    currently unmeasured.
-3. `.3`, `.4`.
+2. `.3`, `.4`.
 
 ## Decisions
 
@@ -243,6 +340,14 @@ have manufactured five false defects.
   leaf had planned to use the parser's `furthest_position`. Measurement killed it twice: it does not
   reach the candidates (`br_gh1087b` is pinned at line 3, its only golden message is at line 6) and
   it is circular. The basis string already records what the key read; that is the authority.
+- **2026-08-24 (`.1`(e)) — A1 checks the CENSUS before A2 trusts it, and that ordering is the
+  doctrine's point.** `.1`(a) had just proved the census can be the wrong half of the comparison, so
+  a gate that read only its verdict would gate on a broken oracle. A1 is also the tier that survives
+  a corpus-less clone, which makes the instrument's health the part that is checked *most* often.
+- **2026-08-24 (`.1`(e)) — a corpus-less clone gets NOT EVALUATED, never a pass and never a block.**
+  `BASELINE-IDENTITY` already learned the other way round: its first cut made a moved input a hard
+  failure inside a pre-commit enforcer and one comment line blocked every commit. A doctrine that
+  cannot see its subject must say so, loudly, and let the tiers that can still bind.
 - **2026-08-24 (`.1`(c′)) — the census publishes its own POWER BOUND beside its result.** `0
   contradictions` over a 4-class reject side is a much weaker statement than `0` alone implies, and
   the artifact says so in the same table. A clean number whose reach is unstated is the
@@ -264,7 +369,7 @@ have manufactured five false defects.
 
 ## Blockers
 
-None. The lane is chartered and its first instrument is landed.
+None. `.1` is closed and gate-held; `.2` is unblocked and needs no new tooling.
 
 ## Verification log
 
@@ -292,13 +397,30 @@ None. The lane is chartered and its first instrument is landed.
      silence its row; arm 5 pins the untagged `syntax error` in the vocabulary. The external oracle
      is the vendored iverilog goldens, which this lane does not author.
   3. **DURABILITY** — producer TRACKED (`key_contradiction_census.py`, `census.md`, both in git).
-     ⛔ **Claim NOT YET WATCHED — naming the gap rather than publishing unqualified**: no gate
-     invokes the census. `.1`(e) owns it, and `.1`(d) priced it at 0.242 s.
+     ⛔ **Claim NOT YET WATCHED at the time of that commit — named rather than published
+     unqualified**: no gate invoked the census. ✅ **Closed by `.1`(e) the same day** (below).
+- **2026-08-24, `.1`(e)** — three-way verification of the DOCTRINE:
+  1. **RE-DERIVE** — `bash scripts/check_corpus_key_integrity.sh` → `OK` in **0.311 s**, and
+     `git status --porcelain` unchanged across the run, so the gate's *mutates nothing* contract is
+     measured rather than asserted. `bash scripts/check_doctrines.sh` → **ALL 27 enforced doctrines
+     PASS**, both meta-checks included.
+  2. **FALSIFY** — `--self-test` → **13 passed, 0 failed**, every arm a distinct refusal path
+     (shrunken arm set / zero-arm "pass" / unparsable summary on both readers / contradiction /
+     integrity finding / empty population / hand-edited artifact), plus GREEN controls so none is
+     vacuous, plus the corpus-less REFUSAL arm that drives a relocated census copy and requires
+     exit 2. ⭐ And the control that matters most ran through the **real driver**, not the enforcer:
+     one appended line in `census.md` → `✗ FAIL CORPUS-KEY-INTEGRITY … commit/merge blocked`;
+     restore → `ALL 27 enforced doctrines PASS`.
+  3. **DURABILITY** — ✅ **satisfied**: the producer is tracked and the claim is now WATCHED by a
+     registered doctrine that `.githooks/pre-commit` runs, with the `<meta:mirror>` and
+     `<meta:book-count>` checks holding the registry, `DOCTRINE_ENFORCEMENT.md` §10 and the book's
+     published count equal at 27.
 
 ## Commit log
 
 - `.1` instrument landed: `PGEN-CORPUS-KEY-AUDIT-0001` (2026-08-24).
 - `.1`(a)–(d) done: `PGEN-CORPUS-KEY-AUDIT-0002` (2026-08-24).
+- `.1`(e) done, leaf `.1` CLOSED: `PGEN-CORPUS-KEY-AUDIT-0003` (2026-08-24).
 
 ## Changelog
 
@@ -309,3 +431,8 @@ None. The lane is chartered and its first instrument is landed.
   blindness to iverilog's untagged `syntax error` fixed (168 → 176 classes); contradictions
   2 → 0 with the 100 % false-positive rate and the 4-vs-124 power bound both published; `.1`(e)
   opened to wire the gate.
+- **2026-08-24** — `.1`(e) done and leaf `.1` CLOSED. Doctrine `CORPUS-KEY-INTEGRITY` registered
+  (the repository's 27th), 13/13 refusal arms firing, RED control proven through the real driver.
+  Wiring it surfaced two live defects only a real consumer could expose: the census crashed on its
+  own documented `--md` when the path lay outside the repo (after the work had succeeded), and the
+  enforcer's first scratch path was off the repository volume. Frontier → `.2`.

@@ -2652,6 +2652,31 @@ The instrument is `docs/tasks/artifacts/corpus_key_audit/key_contradiction_censu
 the whole population); `--self-test` runs five corpus-independent arms that prove the detector goes
 RED, and that the clause exclusion — not luck — is what turns it green.
 
+**It is a doctrine, not a tool somebody remembers to run.** `CORPUS-KEY-INTEGRITY`
+(`scripts/check_corpus_key_integrity.sh`, 0.31 s, every commit) holds all of it, in two tiers that
+need different things present:
+
+- **A1 — instrument alive** (corpus-independent, so it binds even on a clone with no submodules):
+  the census's own self-test must run its full arm set with zero failures. It refuses three ways a
+  naive check would pass — a *shrunken* arm set, a *zero-arm* run reporting `failed=0`, and an
+  *unparsable* summary. That last one matters: a reader that treats what it cannot read as "no
+  findings" fails in the passing direction, which is the whole family of defect this layer exists to
+  catch. ⭐ A1 exists because the census itself was wrong twice inside one commit; a gate that
+  trusted its verdict would have been gating on a broken oracle.
+- **A2/A3 — key clean, artifact current**: zero contradictory classes, zero bases quoting evidence
+  their golden lacks, a non-empty population (*a clean verdict over zero rows is not a clean key*),
+  and the published `census.md` byte-identical to a fresh derivation. A3 is there because
+  `SV-CORPUS-DENOMINATOR` was founded on a derived artifact measured stale **one day** after landing.
+
+The vendored corpora are submodules, so a fresh clone reports A2/A3 **NOT EVALUATED — loudly, never
+as a pass**, and never as a failure that would block every commit; A1 still binds. That branch is
+*exercised* rather than assumed: a self-test arm relocates a copy of the census so its own repo-root
+walk lands on no corpus and requires the documented refusal code.
+
+⚠️ Read a green A2 for exactly what it says. It is not *"the key is correct"* — it is *"no two rows
+keyed from the same evidence disagree, over a 4-class reject side"*. Widening that side is `.2` and
+`.3`'s work, not something a passing gate has already done.
+
 #### The denominator — what fraction of the corpus was asked a question it could answer?
 
 Everything above counts **divergences**. That answers *how many defects do we know about* and is
