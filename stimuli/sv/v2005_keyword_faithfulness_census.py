@@ -32,6 +32,12 @@ run here is not a clean bill of health:
 L2 and L3 are structurally invisible here: neither introduces a keyword Annex B lacks.  Of the
 nine rows `.13e.7` routed in, seven are L1, one is L2 and one is L3.
 
+⛔ AND A FOURTH LENS EXISTS, FOUND WHILE FIXING THE FIRST THREE.  `{ << { a } }` — an IEEE 1800
+streaming concatenation — parsed under `verilog_2005`, and no keyword-level census can ever see
+it because `<<` and `>>` are OPERATORS.  Call it **L4, PUNCTUATION-ONLY**: an IEEE-1800-only
+construct that introduces no keyword at all.  It was gated by `.13e.7` as a whole rule; nothing
+enumerates the rest of its class.
+
 HOW A ROW IS EARNED — three independent legs, because two of them are not enough
 --------------------------------------------------------------------------------
 A candidate keyword becomes a CONFIRMED over-acceptance only when all three hold:
@@ -42,12 +48,13 @@ A candidate keyword becomes a CONFIRMED over-acceptance only when all three hold
   3. substituting the keyword for a fresh identifier makes the witness REJECT under
      `verilog_2005` — the falsifier that proves the keyword was consumed AS A KEYWORD.
 
-⛔⛔ LEG 3 IS THE ONE THAT GETS SKIPPED, AND IT MOVED THE HEADLINE BY SIX.  Legs 1+2 alone
-called `type`, `this`, `super`, `new`, `null`, `randomize` and `tx_path_delay_expression`
-over-acceptances.  Every one is wrong: none is reserved in IEEE 1364-2005, so `type(y)` is a
-perfectly legal call to a function NAMED `type`, and the AST dump puts it in a `plain_tf`
-function-call slot.  The parser was right and the witness was lying.  Leg 3 costs one extra
-parse per row and is the difference between 19 published defects and 13 real ones.
+⛔⛔ LEG 3 IS THE ONE THAT GETS SKIPPED, AND IT MOVED THE FOUNDING HEADLINE FROM 21 TO 14.
+Legs 1+2 alone called `type`, `this`, `super`, `new`, `null`, `randomize` and
+`tx_path_delay_expression` over-acceptances.  All seven are wrong: none is reserved in IEEE
+1364-2005, so `type(y)` is a perfectly legal call to a function NAMED `type`, and the AST dump
+puts it in a `plain_tf` function-call slot.  The parser was right and the witness was lying.
+Leg 3 costs one extra parse per row and is the difference between publishing 21 defects and
+measuring 14 real ones.
 
 THE CANDIDATE SET IS DERIVED, NOT LISTED
 ----------------------------------------
@@ -661,6 +668,15 @@ def main() -> int:
         tsv_path.write_text(tsv)
         md_path.write_text(md)
         print(headline + " (written)")
+        return 0
+
+    if controlled:
+        # ⛔ A CONTROL RUN MUST NOT BE COMPARED AGAINST THE TRACKED BASELINE. Its whole purpose is
+        # to produce a DIFFERENT reading (another profile, a mutated witness set), so the drift
+        # check would fire on every arm and mask the refusal the arm is actually testing —
+        # measured: two `probe.sh` arms reported DRIFT instead of the missing-witness and
+        # broken-control refusals they exist to prove.
+        print("V2005-KEYWORD-FAITHFULNESS: control run complete — no baseline comparison")
         return 0
 
     drift = []

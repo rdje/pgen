@@ -15,6 +15,7 @@ arithmetic_shift_right	472256	2	0
 arithmetic_shift_right_assign	15361	0	0
 array_manipulation_call	21933	19042	0
 array_method_name	21933	19042	0
+array_method_with_sv_only	21933	0	0
 array_pattern_key	2805	2750	16
 assert_property_statement	98514	0	0
 assertion_item	73566	0	1412
@@ -95,6 +96,7 @@ casting_type_lr_suffix_r0	479730	0	0
 casting_type_lr_suffix_r2	479730	0	64
 casting_type_lr_suffix_r4	479730	0	64
 chainable_call_initial	663110	0	0
+chandle_type_sv_only	220014	4	11673
 charge_strength	383	0	102
 checked_nettype_identifier	81827	0	189
 checked_type_identifier	219948	533	11607
@@ -105,6 +107,7 @@ checker_identifier	99055	0	0
 checker_instantiation	101964	0	0
 checker_or_generate_item	993	160	284
 checker_or_generate_item_declaration	709	28	6
+checker_rand_qualifier_sv_only	703	0	35
 class_constraint	43	3	2
 class_constructor_declaration	80528	3	677
 class_constructor_declaration_sv_2017	79851	3	0
@@ -154,6 +157,7 @@ conditional_generate_construct	73525	2	1522
 conditional_statement	32833	1522	5515
 config_declaration	605	0	0
 consecutive_repetition	2441	0	250
+const_qualifier_sv_only	802328	0	121331
 constant_assignment_pattern_expression	942333	86	365291
 constant_bit_select	1202020	66925	894140
 constant_cast	253070	96	4158
@@ -199,6 +203,7 @@ data_type_or_implicit	91068	11052	0
 data_type_or_void	3430	2213	312
 data_type_or_void_sv_only	3118	48	22
 declaration_identifier	9763258	139801	0
+declaration_lifetime_sv_only	113661	3	1579
 declared_class_alias_identifier	1	0	0
 declared_class_identifier	26	10	1
 declared_forward_class_identifier	9	9	0
@@ -246,6 +251,7 @@ enable_gatetype	71988	0	0
 enum_base_type	143	113	0
 enum_id_scope_prefix	942333	77	357081
 enum_identifier	946345	16941	0
+enum_keyword_sv_only	220014	114	11673
 enum_name_declaration	4012	3751	0
 equal	472256	11412	0
 escaped_identifier	1622971	0	0
@@ -263,6 +269,7 @@ expression_or_cond_pattern	381098	6767	0
 expression_or_dist	2723	11	1356
 extern_constraint_declaration	80484	1	675
 extern_constraint_declaration_sv_2017	79809	1	0
+extern_keyword_sv_only	145060	2	73135
 extern_tf_declaration	725	0	53
 final_construct	73566	2	1574
 for_initialization	152	10	0
@@ -314,6 +321,7 @@ identifier_rooted_method_chain	1352373	0	767121
 if_generate_construct	72044	2	41
 if_generate_else_clause	43	0	1
 iff_arrow	472256	0	0
+iff_keyword_sv_only	4562	0	1052
 immediate_assertion_statement	29810	0	3288
 implicit_class_handle	3192452	4	2593212
 implicit_class_rooted_method_chain	1435517	0	858475
@@ -360,7 +368,9 @@ interface_nonansi_header	71932	0	0
 interface_or_generate_item	997	361	272
 interface_port_declaration	2382	1	0
 interface_port_header	1565	2	0
+join_any_keyword_sv_only	1	0	0
 join_keyword	1	0	0
+join_none_keyword_sv_only	1	0	0
 jump_statement	32377	388	5855
 known_unscoped_base_class_type_identifier	14	0	1
 known_unscoped_base_class_type_parameter_identifier	14	0	1
@@ -397,7 +407,7 @@ kw_and_cffa50a3	95266	0	0
 kw_assert_64b5daad	322064	0	0
 kw_assign_9009b730	170746	3462	0
 kw_assume_661e458e	322064	0	0
-kw_automatic_ebe88724	113928	90	0
+kw_automatic_ebe88724	112349	90	0
 kw_b_e9d71f5e	22	0	0
 kw_begin_8cbd0a74	27887	2474	0
 kw_bind_6bdd4db9	145194	0	0
@@ -410,14 +420,14 @@ kw_byte_8cf1783f	717716	0	0
 kw_case_6406510c	125149	177	0
 kw_casex_b31a7350	26522	0	0
 kw_casez_b8fbe0e1	26522	27	0
-kw_chandle_34401c13	220014	4	0
+kw_chandle_34401c13	208341	4	0
 kw_checker_29e5b9a8	79809	0	0
 kw_class_8d767bf5	80482	26	0
 kw_class_qualifier_fa08937d	2427595	0	0
 kw_clocking_4d22041d	71993	0	0
 kw_cmos_aabe63a7	71988	0	0
 kw_config_dfba7aad	605	0	0
-kw_const_b42f3f6f	802708	0	0
+kw_const_b42f3f6f	681377	0	0
 kw_constraint_9f454fd4	79891	4	0
 kw_context_ec2727b3	64	1	0
 kw_continue_eee0bbba	26522	0	0
@@ -444,13 +454,13 @@ kw_endprimitive_f53f53d4	2	2	0
 kw_endprogram_6b609b1f	1	1	0
 kw_endtable_0b3f3e00	2	2	0
 kw_endtask_eb64ab0d	85	81	0
-kw_enum_e338e8e3	220635	114	0
+kw_enum_e338e8e3	208962	114	0
 kw_event_5006ed02	220014	1	0
 kw_eventually_5865020f	2	0	0
 kw_expect_ff93c451	26523	2	0
 kw_export_51713409	175253	4	0
 kw_extends_2b781ff8	32	2	0
-kw_extern_bf1ee311	434247	6	0
+kw_extern_bf1ee311	361112	6	0
 kw_f_4a0a1921	2	0	0
 kw_final_d594c2cc	71992	2	0
 kw_first_match_2ddb8d09	1358	0	0
@@ -467,7 +477,7 @@ kw_global_9027cc5a	71992	0	0
 kw_highz0	1	0	0
 kw_highz1	2	0	0
 kw_if_958f57f5	99331	1524	0
-kw_iff_ee1c009e	4564	0	0
+kw_iff_ee1c009e	3512	0	0
 kw_implements_e133e2cb	25	0	0
 kw_implies_470cec58	2	0	1
 kw_import_62fdfbd5	271734	31	0
@@ -529,7 +539,7 @@ kw_pulldown_20560243	71988	0	0
 kw_pullup_f7402b53	71988	0	0
 kw_pure_afe003f1	270	6	0
 kw_r_4dc7c9ec	2	0	0
-kw_rand_52400560	3703	7	0
+kw_rand_52400560	3668	7	0
 kw_randc_c870e2bc	3000	0	0
 kw_randcase_89bbd045	26522	0	0
 kw_randomize_e3b19624	598975	0	0
@@ -564,9 +574,9 @@ kw_soft_eb74f2cb	8	0	0
 kw_solve_f544e4c9	8	0	0
 kw_specify_ade6a05c	71755	0	0
 kw_specparam_54af7813	71755	0	0
-kw_static_a381562a	193873	5	0
+kw_static_a381562a	192294	5	0
 kw_std_55ec981f	1424828	0	0
-kw_string_ecb25204	909277	53	0
+kw_string_ecb25204	695419	53	0
 kw_strong0	1	0	0
 kw_strong1	2	0	0
 kw_strong_0117691d	2	0	0
@@ -609,9 +619,9 @@ kw_until_b310f4d4	2	0	0
 kw_until_with_f31dfb3c	2	0	0
 kw_us_da2b1288	201309	0	0
 kw_uwire_9143a634	81638	0	0
-kw_var_e5b4e786	115268	0	0
+kw_var_e5b4e786	114041	0	0
 kw_vectored_53eb166d	383	0	0
-kw_virtual_af84d91f	300018	6	0
+kw_virtual_af84d91f	288345	6	0
 kw_void_e9cede9b	29618	49	0
 kw_wait_daaad336	53044	0	0
 kw_wait_order_e1b7850a	26522	0	0
@@ -639,7 +649,7 @@ let_list_of_arguments	176	0	0
 let_named_arg	176	0	0
 level_input_list	9	5	0
 level_symbol	34	13	12
-lifetime	113928	94	0
+lifetime	112349	94	0
 line_comment	2351223	7197	0
 list_of_arguments	4493	8172	12
 list_of_arguments_mixed	4481	0	0
@@ -951,6 +961,7 @@ streaming_concatenation	2533318	0	1934081
 strength0	2	0	1
 strength1	3	0	1
 string_literal	577042	20474	0
+string_type_sv_only	909277	53	213858
 struct_union	220014	724	11673
 struct_union_member	2951	2113	0
 struct_union_sv_2017	208341	724	0
@@ -987,7 +998,7 @@ time_unit	201312	7	3
 timeunit_separator_slash	2	2	0
 timeunit_separator_trivia	2	2	0
 timeunits_declaration	80452	5	1309
-trivia	93872066	1192158	91581168
+trivia	93423251	1192158	91132353
 type_assignment	40	20	0
 type_assignment_sv_2017	40	20	0
 type_declaration	113075	570	1184
@@ -1021,6 +1032,7 @@ unsized_dimension	366316	9	75800
 value_range	24	4	0
 value_range_sv_2017	24	4	0
 var_data_type	1829	452	0
+var_qualifier_sv_only	115084	0	1227
 variable_assignment	22194	1740	0
 variable_decl_assignment	114754	6203	8
 variable_dimension	99815	1144	503
@@ -1031,6 +1043,7 @@ variable_lvalue_scope	590585	4	2125
 variable_port_header	1565	447	0
 variable_port_identifier_decl	3	3	0
 variable_port_type	1829	452	0
+virtual_interface_keyword_sv_only	220014	0	11673
 void_cast_statement_sv_only	32377	1	5855
 wait_statement	32377	0	5855
 wait_statement_sv_only	26522	0	0

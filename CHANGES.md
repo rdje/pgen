@@ -1,5 +1,64 @@
 # CHANGES.md
 
+## 2026-08-24 - PGEN-SV-CORPUS-GRAD-0293 (leaf SV-CORPUS-GRAD.13e.7 CLOSED — 13 named `_sv_only` gates over 19 sites; ledger `SV-0070`, release `1.0.197`, AST schema 26 unchanged; GRAMMAR tier)
+
+- ⭐⭐⭐ **THE `verilog_2005` PROFILE NO LONGER ACCEPTS THIRTEEN IEEE-1800 SURFACES**, and the
+  population was MEASURED over a closed set rather than listed. `chandle` / `enum` / `string` /
+  `virtual interface` types, the `const` / `var` qualifiers, the DATA-declaration and MODULE-header
+  `lifetime`, `extern` on a module or UDP header, `default disable iff`, `fork join_any` /
+  `join_none`, the checker `rand`, the array-method `with`, and the whole streaming concatenation.
+  The closed-population census moves **`over_acceptances 14 -> 1`**, `gated 10 -> 23`,
+  `candidates 24 -> 11`; the survivor `class_qualifier` is owned by `.13c.2m`, whose remedy is
+  deletion in EVERY profile.
+- ⭐⭐ **A FOURTH LENS, FOUND WHILE FIXING THE FIRST THREE: `{ << { a } }` PARSED under
+  `verilog_2005`.** "streaming" occurs 0 times in the IEEE 1364-2005 Annex A — and **no
+  keyword-level census can ever see this**, because `<<` and `>>` are OPERATORS. L4,
+  PUNCTUATION-ONLY, beside the report's declared L1/L2/L3. Gated as a whole rule; the CLASS is
+  routed to `.13e.10`, which also records that leg 3 (identifier substitution) does not transfer to
+  a punctuation falsifier.
+- ⛔⛔ **`lifetime` MUST NOT BE GATED, and two pinned controls enforce it.** IEEE 1364-2005 A.2.6:254
+  and A.2.7:275 give `function`/`task` a legitimate `[automatic]`. The gate sits on the
+  `( lifetime )?` OPTIONAL at the declaration and module-header sites — the `.13e.4` idiom.
+- ⛔⛔ **THE FIRST INSERTION SILENTLY STOLE TWO PRE-EXISTING GATES, AND THE LINT CAUGHT IT.** Placing
+  a new rule immediately before its alphabetical anchor drops it BETWEEN that anchor's own
+  `@profiles:` annotation and the rule it annotates: `extern_tf_declaration` and
+  `immediate_assertion_statement` both lost their gate and became `verilog_2005` profile ORPHANS,
+  named by `--lint-grammar` with a derived fix. ⇒ **an annotation binds to the NEXT rule, so
+  inserting a rule is an edit to whatever precedes it.**
+- ⛔⛔ **AND THE FIRST BEFORE/AFTER SWEEP WAS GARBAGE IN THE FLATTERING DIRECTION.** Its baseline arm
+  pointed at a `.bak` path the frontend refuses to load — and **a load failure is indistinguishable
+  from a parse rejection at the exit code** — so it reported 160 moved verdicts, all
+  `reject -> ACCEPT`, on rows the change cannot touch. Too uniform to be real, which is the only
+  reason it was checked. The harness now REFUSES unless each arm emits an `INTERPRET-PARSE:` verdict
+  line and both accept a smoke test. The corrected sweep: **283 checks, exactly 17 verdicts moved,
+  every one `ACCEPT -> reject` under `verilog_2005`, ZERO under sv_2017/sv_2023.**
+- **VERIFIED, on the regenerated release parser:** `run_adjudication_repros.py` went RED on exactly
+  the 17 pinned rows with *"AN OVER-ACCEPTANCE IS GONE … flip it"* and reads **`checked=227
+  failures=0`** after the flip — the ratchet's designed round trip, observed not assumed.
+  `verilog_2005_conformance_gate` **GREEN** (corpus matrix **255 -> 303 checks / 0 mismatches**).
+  `ast_shape_contract_gate` **18/18**, AST-dump schema **unchanged at 26**.
+  `sv_cert_recognized_union_gate`: `total 1388->1401`, `canonical_witness 1369->1382`,
+  `union_witness 1380->1393` — all three **+13 = exactly the rules added** — with `union_unknown`
+  still **0** and residual `[]`. `sv_external_corpus_triage_gate` **14/14 executed,
+  parse_fail_total=0**. **ALL 27 doctrines PASS.**
+- ⛔ **PARSE COST ATTRIBUTED, NOT WAIVED**: `entries` +0.45 % / `committed` +0.00 % recorded under
+  the coded `profile_split_respelling` invariant, which the ratchet **RE-DERIVED on its own run** —
+  *"0 pre-existing rule counters rose; 13 introduced rule(s) gained +2,772,652 entries"*. The
+  standing structural cost of the `@profiles` named-gate idiom, bought deliberately per `-0289`.
+  `memo_hits` FELL. The LR-family share re-derived **2.743 -> 2.729** and was adopted on all three
+  designated live surfaces (the instrument deliberately refuses to edit its own constant).
+- ⚠️ **THE `verilog_2005` CERT BASELINE MOVED AND IS ADJUDICATED BY NAME, NOT RE-STAMPED**:
+  `1148/334/799/15 -> 1147/356/769/22`, both failure counts 0, all three seeds agreeing. `total -1`
+  is `streaming_concatenation` leaving the profile — the ONLY pre-existing rule to move.
+  **`UNKNOWN +7` is a WITNESS-GENERATION artifact and the PARSER says so**:
+  `--dump-rule-outcome-counts-json` reports all seven LIVE and COMMITTING —
+  `data_declaration_sv_2017` **6x** on the legal A.2.1.3 declaration set, `event_expression` **1x**
+  on `always @(posedge clk)`, `lifetime` **1x** on both `function automatic` and `task automatic`.
+  Each used to be witnessed through an optional the generator could render; with that optional's
+  content gated it can no longer produce a sample while the parse is unchanged. ⛔ NOT a licence —
+  routed to **`.13e.9`**, with the discriminator to start from: `.13e.4` gated ONE optional in a
+  SECOND alternative and the v2005 cert was byte-identical.
+
 ## 2026-08-24 - PGEN-SV-CORPUS-GRAD-0292 (leaf SV-CORPUS-GRAD.13e.7 (b) DONE — 19 over-acceptances and 6 controls PINNED before the fix; TEST-DATA tier, ZERO grammar / Rust / codegen / generated bytes)
 
 - ⭐⭐ **THE POPULATION IS NOW WATCHED, NOT WRITTEN DOWN.** `stimuli/sv/run_adjudication_repros.py`

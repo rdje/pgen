@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-71f0d235.js";
+            window.path_to_searchindex_js = "searchindex-a77110f5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -1978,6 +1978,49 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10197--contract-10197--sv-corpus-grad13e7-pgen-sv-corpus-grad-0293-2026-08-24-ledger-sv-0070-released-thirteen-ieee-1800-surfaces-still-reached-the-verilog_2005-profile-grammar-verilog_2005-only--a-narrow-schema-unchanged-at-26"><a class="header" href="#10197--contract-10197--sv-corpus-grad13e7-pgen-sv-corpus-grad-0293-2026-08-24-ledger-sv-0070-released-thirteen-ieee-1800-surfaces-still-reached-the-verilog_2005-profile-grammar-verilog_2005-only--a-narrow-schema-unchanged-at-26">1.0.197 / Contract 1.0.197 — SV-CORPUS-GRAD.13e.7 (<code>PGEN-SV-CORPUS-GRAD-0293</code>, 2026-08-24), ledger <code>SV-0070</code> (<code>Released</code>): <strong>THIRTEEN IEEE-1800 SURFACES STILL REACHED THE <code>verilog_2005</code> PROFILE (GRAMMAR; <code>verilog_2005</code> ONLY — a NARROW; SCHEMA UNCHANGED at 26)</strong></a></h3>
+<p>⛔ <strong>This release narrows one profile and touches nothing else.</strong> Under the strict Verilog-2005
+profile all of the following parsed, and IEEE 1364-2005 derives none of them:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>accepted under <code>verilog_2005</code> before <code>1.0.197</code></th><th>why the standard does not derive it</th></tr>
+</thead>
+<tbody>
+<tr><td><code>chandle c;</code> · <code>enum { A } e;</code> · <code>virtual interface I vi;</code></td><td>each keyword occurs <strong>0×</strong> in Annex A</td></tr>
+<tr><td><code>string s;</code></td><td>A.8.8 <code>:1218</code> makes <code>string</code> the <strong>literal</strong>, never a data type</td></tr>
+<tr><td><code>const integer i = 1;</code> · <code>var integer i;</code> · <code>static integer i;</code> · <code>automatic integer i;</code></td><td>A.2.1.3 <code>:152</code> gives a declaration no qualifier and no lifetime</td></tr>
+<tr><td><code>module automatic m;</code> · <code>module static m;</code></td><td>A.1.2 <code>:29</code> has no lifetime in either alternative</td></tr>
+<tr><td><code>extern module m;</code></td><td><code>extern</code> occurs 0×; A.1.2 has no extern alternative</td></tr>
+<tr><td><code>default disable iff x;</code></td><td><code>iff</code> occurs 0×; A.1.5 <code>:65</code> has no such module item</td></tr>
+<tr><td><code>fork join_any</code> · <code>fork join_none</code></td><td>A.6.3 <code>par_block:529</code> — <strong><code>join</code> is the only terminator</strong></td></tr>
+<tr><td><code>generate rand integer x;</code></td><td><code>rand</code> occurs 0×; 1364-2005 has no checker construct</td></tr>
+<tr><td><code>a.sum with (item)</code> · <code>{ &lt;&lt; { a } }</code></td><td><code>with</code> occurs 0×, and there is no streaming operator at all</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>THE POPULATION WAS MEASURED, NOT LISTED — and that is the substantive part of this release.</strong>
+The previous release fixed one over-acceptance found by hand. This one is backed by a new
+instrument, <code>stimuli/sv/v2005_keyword_faithfulness_census.py</code>, which crosses profile-filtered
+reachability against IEEE 1364-2005 <strong>Annex B</strong> — a closed, normative keyword list — and then
+adjudicates every candidate on the shipped parser with three independent legs. It read <strong>14
+confirmed over-acceptances out of 24 candidates</strong> before this release and <strong>1</strong> after.</p>
+<p>⭐ <strong><code>lifetime</code> itself is NOT gated, and that is the load-bearing distinction.</strong> IEEE 1364-2005
+A.2.6 <code>:254</code> and A.2.7 <code>:275</code> give <code>function</code> and <code>task</code> a legitimate <code>[ automatic ]</code>. The gate sits
+on the <code>( lifetime )?</code> <strong>optional</strong> at the declaration and module-header sites — the <code>1.0.196</code>
+idiom — and two accepting controls are pinned to fail if that is ever broken.</p>
+<p>⭐ <strong>The streaming concatenation was found outside the census</strong>, because <code>&lt;&lt;</code> and <code>&gt;&gt;</code> are
+operators and a keyword-level lens cannot see a construct made only of punctuation.</p>
+<p><strong>Consumer impact: none on <code>sv_2017</code> / <code>sv_2023</code>.</strong> Each gate is a bare pass-through alias and the
+reference site keeps its own return annotation, so no branch index moves and the typed AST is
+byte-identical — the AST-shape contract gate passes 18/18 and the AST-dump schema stays at <strong>26</strong>.
+The recognized cert union moves <code>total</code> 1388 → 1401 and <code>union_witness</code> 1380 → 1393, both <strong>+13 =
+exactly the rules added</strong>, with <code>union_unknown</code> still <strong>0</strong>.</p>
+<p>⚠️ <strong>Two known over-acceptances remain on <code>verilog_2005</code> and are stated rather than implied</strong>:
+<code>class_qualifier</code> as an expression prefix (an IEEE 1800 <em>nonterminal</em> PGEN extracted as a keyword —
+the remedy is deletion in every profile, not a profile gate) and <code>reg [7:0][3:0] r;</code> (A.2.1.3
+<code>reg_declaration:172</code> carries exactly <strong>one</strong> <code>[ range ]</code>; a cardinality defect needs an alternative
+split, not a terminal gate). Both stay pinned as watched over-acceptances.</p>
 <h3 id="10196--contract-10196--sv-corpus-grad13e4-pgen-sv-corpus-grad-0288-2026-08-24-ledger-sv-0069-released-an-integer-or-time-declaration-could-carry-signed--unsigned-under-verilog_2005-grammar-verilog_2005-only--a-narrow-schema-unchanged-at-26"><a class="header" href="#10196--contract-10196--sv-corpus-grad13e4-pgen-sv-corpus-grad-0288-2026-08-24-ledger-sv-0069-released-an-integer-or-time-declaration-could-carry-signed--unsigned-under-verilog_2005-grammar-verilog_2005-only--a-narrow-schema-unchanged-at-26">1.0.196 / Contract 1.0.196 — SV-CORPUS-GRAD.13e.4 (<code>PGEN-SV-CORPUS-GRAD-0288</code>, 2026-08-24), ledger <code>SV-0069</code> (<code>Released</code>): <strong>AN INTEGER OR TIME DECLARATION COULD CARRY <code>signed</code> / <code>unsigned</code> UNDER <code>verilog_2005</code> (GRAMMAR; <code>verilog_2005</code> ONLY — a NARROW; SCHEMA UNCHANGED at 26)</strong></a></h3>
 <p>⛔ <strong>This release narrows one profile and touches nothing else.</strong> IEEE 1364-2005 A.2.1.3 spells the
 two declarations plainly — <code>integer_declaration ::= integer list_of_variable_identifiers ;</code> and

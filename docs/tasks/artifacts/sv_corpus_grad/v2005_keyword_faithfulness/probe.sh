@@ -59,7 +59,7 @@ echo "[2] CONTROL — the reading MOVES with the profile (it is not stuck)"
 # once only the profile changes. `verilog_2005` reaches 24 word-shaped IEEE-1800-only keywords;
 # `sv_2017`, where those keywords are native, reaches 136. A census blind to the profile would
 # print one of those numbers twice.
-check "verilog_2005 reaches 24 IEEE-1800-only keywords" 0 "candidates=24" -- \
+check "verilog_2005 reaches 11 IEEE-1800-only keywords" 0 "candidates=11" -- \
     python3 "$CENSUS"
 check "sv_2017 reaches 136 — the same code, a different reading" 1 "\`sv_2017\` reaches 136" -- \
     python3 "$CENSUS" --profile sv_2017
@@ -78,7 +78,7 @@ check "--write refused under --witness-dir" 2 "must never become the baseline" -
 echo
 echo "[4] a NEW reachable IEEE-1800-only keyword cannot land silently"
 cp -R "$WITNESSES" "$SCRATCH/dropped_row"
-grep -v $'^chandle\t' "$WITNESSES/MANIFEST.tsv" > "$SCRATCH/dropped_row/MANIFEST.tsv"
+grep -v $'^class_qualifier\t' "$WITNESSES/MANIFEST.tsv" > "$SCRATCH/dropped_row/MANIFEST.tsv"
 check "manifest row removed for a reachable keyword" 1 "have no witness" -- \
     python3 "$CENSUS" --witness-dir "$SCRATCH/dropped_row"
 
@@ -99,7 +99,7 @@ check "witness does not contain its own keyword" 1 "cannot be run" -- \
 echo
 echo "[7] a reachable keyword whose sv_2017 CONTROL fails is an unmeasured HOLE, not 'clean'"
 cp -R "$WITNESSES" "$SCRATCH/broken_control"
-printf 'module m; chandle chandle chandle; endmodule\n' > "$SCRATCH/broken_control/chandle.sv"
+printf 'module top; integer y; class_qualifier class_qualifier; endmodule\n' > "$SCRATCH/broken_control/class_qualifier.sv"
 check "sv_2017 control fails on a reachable keyword" 1 "nothing was measured" -- \
     python3 "$CENSUS" --witness-dir "$SCRATCH/broken_control"
 

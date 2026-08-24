@@ -5,6 +5,61 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-08-24, `SV-CORPUS-GRAD.13e.7` — GRAMMAR-level, release `1.0.197`,
+> ledger `SV-0070`, schema `26` UNCHANGED, `verilog_2005` ONLY):** the strict IEEE 1364-2005 profile
+> still accepted **thirteen IEEE-1800 surfaces**, and the population was **measured over a closed
+> set rather than listed** (`PGEN-SV-CORPUS-GRAD-0293`). A new instrument
+> (`stimuli/sv/v2005_keyword_faithfulness_census.py`) crosses profile-filtered reachability against
+> IEEE 1364-2005 Annex B — a closed, normative keyword list — and adjudicates every candidate on the
+> shipped probe. It read **14 confirmed over-acceptances of 24 candidates** before the fix and
+> **1** after; the survivor, `class_qualifier`, is owned by `SV-CORPUS-GRAD.13c.2m` and its remedy
+> is deletion in *every* profile, not a `verilog_2005` gate.
+>
+> **What no longer parses under `verilog_2005`:** `chandle c;` · `enum { A } e;` · `string s;` ·
+> `virtual interface I vi;` (each keyword occurs **0×** in Annex A; `string` is the A.8.8 `:1218`
+> **literal**, never a type) · `const integer i = 1;` · `var integer i;` · `static integer i;` ·
+> `automatic integer i;` (A.2.1.3 `:152` carries no qualifier and no lifetime) ·
+> `module automatic m;` / `module static m;` (A.1.2 `:29` has no lifetime in either alternative) ·
+> `extern module m;` · `default disable iff x;` · `fork join_any` / `fork join_none` (A.6.3
+> `par_block:529` — **`join` is the only terminator**) · `generate rand integer x;` ·
+> `a.sum with (item)` · `{ << { a } }`.
+>
+> ⭐ **`lifetime` itself is NOT gated, and that is the load-bearing distinction.** IEEE 1364-2005
+> A.2.6 `:254` and A.2.7 `:275` give `function` and `task` a legitimate `[ automatic ]`. The gate
+> therefore sits on the `( lifetime )?` **optional** at the declaration and module-header sites —
+> the `SV-0069` idiom — and `control_v2005_function_automatic.sv` / `control_v2005_task_automatic.sv`
+> are pinned to fail if that is ever broken.
+>
+> ⭐ **The streaming concatenation was found OUTSIDE the census**, because `<<` and `>>` are
+> operators and no keyword-level lens can see a construct made only of punctuation. It is gated as a
+> whole rule; the class it belongs to is not yet enumerated.
+>
+> **Consumer impact:** **none on `sv_2017` / `sv_2023`.** Each gate is a bare pass-through alias and
+> the reference site keeps its own return annotation, so no branch index moves and the typed AST is
+> byte-identical — `ast_shape_contract_gate` **18 passed / 0 failed**, AST-dump schema unchanged at
+> `26`. `sv_cert_recognized_union_gate` moves `total` 1388 → 1401 and `union_witness` 1380 → 1393,
+> both **+13 = exactly the rules added**, with `union_unknown` still **0**,
+> `union_residual_rules` still `[]` and `fully_certified_via_union` still `true`. On
+> `verilog_2005`, `verilog_2005_conformance_gate` is **GREEN at 303 file×profile checks / 0
+> mismatches** (from 255) — the 48 new checks being 16 reject cases × 3 profiles, each
+> `verilog_2005=reject` + `sv_2017=accept` + `sv_2023=accept`.
+>
+> ⚠️ **The `verilog_2005` cert baseline moved and every movement is adjudicated by name**:
+> `1148/334/799/15` → `1147/356/769/22`, both failure counts still 0 and all three seeds agreeing.
+> `total −1` is `streaming_concatenation` leaving the profile — the only pre-existing rule to move.
+> `UNKNOWN +7` is a **witness-generation** artifact, not a parse change, and the parser says so:
+> `--dump-rule-outcome-counts-json` reports `data_declaration_sv_2017` COMMITTED **6×** on the legal
+> A.2.1.3 declaration set, `event_expression` **1×** on `always @(posedge clk)`, and `lifetime`
+> **1×** on both `function automatic` and `task automatic`. Each of those rules used to be witnessed
+> through an optional the generator could render; with that optional's content gated it can no
+> longer produce a sample, while the parse is unchanged. Tracked as `SV-CORPUS-GRAD.13e.9`.
+>
+> ⚠️ Parse cost `entries` **+0.45 %**, ACCEPTED under the coded `profile_split_respelling`
+> invariant, which the ratchet **re-derived** on the measurement: *0 pre-existing rule counters
+> rose; 13 introduced rules gained +2,772,652 entries.* That is the standing structural cost of the
+> `@profiles` named-gate idiom, which `PGEN-SV-CORPUS-GRAD-0289` ruled is bought deliberately
+> because a named gate is visible to four instruments and an inline guard to none.
+
 > **Current-state note (2026-08-24, `SV-CORPUS-GRAD.13e.4` — GRAMMAR-level, release `1.0.196`,
 > ledger `SV-0069`, schema `26` UNCHANGED, `verilog_2005` ONLY):** an **integer or time declaration
 > could carry a `signed` / `unsigned` under the strict IEEE 1364-2005 profile**
@@ -604,15 +659,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.196`
+  - `1.0.197`
 - Parser release version:
-  - `1.0.196`
-  - history: `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.197`
+  - history: `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `0fcfef1af74e095e563033b07e64ec150b42634713a4c74b3a47c8f3f2405eb4` (SV grammar semantic digest — sha256 of the
+  - `470d49988cf7b2bf55b0e438269980f5bc6ae493e8edc885287a927e58381190` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`

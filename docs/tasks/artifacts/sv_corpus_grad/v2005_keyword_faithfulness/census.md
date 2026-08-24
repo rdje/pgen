@@ -9,20 +9,20 @@ describes your tree** and the honest act is to re-measure, not to quote.
 
 | input | sha256 |
 | --- | --- |
-| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `0fcfef1af74e095e563033b07e64ec150b42634713a4c74b3a47c8f3f2405eb4` |
+| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `470d49988cf7b2bf55b0e438269980f5bc6ae493e8edc885287a927e58381190` |
 | `docs/verilog/2005/md/section-Annex_B-normative-list-of-keywords.md` | `08ba9745b0f0791ad48b786284b733414ab26ce7b2b9373d95174d094218025d` |
 | `docs/tasks/artifacts/sv_corpus_grad/v2005_keyword_faithfulness/witnesses/MANIFEST.tsv` | `cf3138dcaeb0f7609ea8b028202ff8b4ae19ea19f2c255d407b573d13893c6ce` |
 
 ## Population
 
-- rules in the source grammar: **1493**
-- of those, SATISFIABLE under `verilog_2005`: **1129** (the bottom-up half — *can this rule derive a string here*)
-- of those, REACHABLE under `verilog_2005` from the 4 declared entry roots: **827** (the top-down half — *can a parse get here*)
-- ⛔ **satisfiable but UNREACHABLE: 302** — rules the profile admits that no `verilog_2005` input can arrive at. `kw_void_e9cede9b` is the worked example: the terminal is ungated and trivially satisfiable, while both rules that reference it are `_sv_only`. The `verilog_2005` certificate denominator is the SATISFIABLE population, so it counts these; that is a separate finding and this census does not act on it.
-- not adjudicated here: **19** `_lr_*` rules the indirect-left-recursion eliminator synthesises, which exist in no `.ebnf` file and so have no source-graph edges. The certificate denominator counts them too, which is why it reads 1148 where this row reads 1129.
-- keyword literals reachable under `verilog_2005`: **161**
+- rules in the source grammar: **1506**
+- of those, SATISFIABLE under `verilog_2005`: **1128** (the bottom-up half — *can this rule derive a string here*)
+- of those, REACHABLE under `verilog_2005` from the 4 declared entry roots: **805** (the top-down half — *can a parse get here*)
+- ⛔ **satisfiable but UNREACHABLE: 323** — rules the profile admits that no `verilog_2005` input can arrive at. `kw_void_e9cede9b` is the worked example: the terminal is ungated and trivially satisfiable, while both rules that reference it are `_sv_only`. The `verilog_2005` certificate denominator is the SATISFIABLE population, so it counts these; that is a separate finding and this census does not act on it.
+- not adjudicated here: **19** `_lr_*` rules the indirect-left-recursion eliminator synthesises, which exist in no `.ebnf` file and so have no source-graph edges. The certificate denominator counts them too, which is why it reads 1147 where this row reads 1128.
+- keyword literals reachable under `verilog_2005`: **148**
 - of those, reserved by IEEE 1364-2005 Annex B: **122**
-- of those, NOT reserved by Annex B: **39** (**24** word-shaped, **15** single-letter / symbol terminals used by the UDP tables, edge descriptors and `PATHPULSE$`, which are 1364-2005 terminals rather than keywords)
+- of those, NOT reserved by Annex B: **26** (**11** word-shaped, **15** single-letter / symbol terminals used by the UDP tables, edge descriptors and `PATHPULSE$`, which are 1364-2005 terminals rather than keywords)
 
 ### Profile sensitivity — the census carries its own control
 
@@ -30,7 +30,7 @@ The same computation under `sv_2017`, where these keywords legitimately
 live, gives the denominator this profile is being judged against:
 
 - word-shaped IEEE-1800-only keywords reachable under `sv_2017`: **136**
-- of those, `verilog_2005` GATES **112** and LEAKS **24**
+- of those, `verilog_2005` GATES **125** and LEAKS **11**
 
 ⛔ A census blind to the profile would report the identical population under both, so
 this row is what separates *"measured and mostly clean"* from *"the reachability
@@ -40,8 +40,8 @@ computation never read the profile"*.
 
 | verdict | count |
 | --- | --- |
-| **over-acceptance (confirmed, 3 legs)** | **14** |
-| correctly gated | 10 |
+| **over-acceptance (confirmed, 3 legs)** | **1** |
+| correctly gated | 23 |
 | identifier-consumed (refuted by leg 3) | 7 |
 | unreachable, no witness required | 1 |
 
@@ -49,24 +49,11 @@ computation never read the profile"*.
 
 | keyword | witness |
 | --- | --- |
-| `chandle` | `chandle.sv` |
 | `class_qualifier` | `class_qualifier.sv` |
-| `const` | `const.sv` |
-| `enum` | `enum.sv` |
-| `extern` | `extern.sv` |
-| `iff` | `iff.sv` |
-| `join_any` | `join_any.sv` |
-| `join_none` | `join_none.sv` |
-| `rand` | `rand.sv` |
-| `static` | `static.sv` |
-| `string` | `string.sv` |
-| `var` | `var.sv` |
-| `virtual` | `virtual.sv` |
-| `with` | `with.sv` |
 
 ### Correctly gated (the control set — the census is not stuck on ACCEPT)
 
-`clocking`, `dist`, `inside`, `interface`, `local`, `matches`, `packed`, `ref`, `std`, `unique`
+`chandle`, `clocking`, `const`, `dist`, `enum`, `extern`, `iff`, `inside`, `interface`, `join_any`, `join_none`, `local`, `matches`, `packed`, `rand`, `ref`, `static`, `std`, `string`, `unique`, `var`, `virtual`, `with`
 
 ### Refuted by leg 3 — the keyword was consumed as an ORDINARY IDENTIFIER
 

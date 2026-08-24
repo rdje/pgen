@@ -598,6 +598,19 @@ real_number := /[0-9][0-9_]*\.[0-9][0-9_]*([eE][+-]?[0-9][0-9_]*)?/
 # ranges, replication, sizes) so it stays a named rule.
 unsigned_number := /[0-9][0-9_]*/
 
+# SV-CORPUS-GRAD.13e.7 (SV-0070): an IEEE-1800-ONLY surface lifted into a profile-gated named
+# rule — the established `_sv_only` idiom (cf. `data_type_or_void_sv_only`,
+# `integer_atom_signing_sv_only`). The reference site keeps its return annotation, so the
+# sv_2017 / sv_2023 AST is byte-identical and no branch index moves; only `verilog_2005`
+# loses the alternative.
+# ⛔ THE GATE IS A NAMED RULE AND NOT AN INLINE GUARD, by the `-0289` engine ruling: a named
+# rule is visible to `--dump-rule-profiles`, both cert baselines, the profile-orphan lint and
+# `rule_costs.tsv`. An inline guard is invisible to all four.
+# IEEE 1364-2005 A.8.8 `:1218` defines `string` as the LITERAL
+# (`string ::= " { Any_ASCII_Characters_except_new_line } "`), never as a data type.
+@profiles: ["sv_2017", "sv_2023"]
+string_type_sv_only := kw_string_ecb25204
+
 # SV-EXH-PROOF.3.3.4.b.6.2.15 — REMOVED broken triple-quoted regex.
 # Pre-fix: branch 1 was `/"""([^"]|"(?!""))*"""/` which uses `(?!"")`
 # negative lookahead — NOT SUPPORTED by Rust's `regex` crate. Every
@@ -734,8 +747,21 @@ ansi_port_declaration := ansi_port_header? port_identifier unpacked_dimension* (
 
 // array_identifier := identifier
 
-array_manipulation_call := array_method_name attribute_instance* ( lparen list_of_arguments rparen )? ( kw_with_8fcd25a3 lparen expression rparen )?
+array_manipulation_call := array_method_name attribute_instance* ( lparen list_of_arguments rparen )? ( array_method_with_sv_only lparen expression rparen )?
                         -> {method: $1, attributes: $2, args: $3, with_clause: $4}
+
+# SV-CORPUS-GRAD.13e.7 (SV-0070): an IEEE-1800-ONLY surface lifted into a profile-gated named
+# rule — the established `_sv_only` idiom (cf. `data_type_or_void_sv_only`,
+# `integer_atom_signing_sv_only`). The reference site keeps its return annotation, so the
+# sv_2017 / sv_2023 AST is byte-identical and no branch index moves; only `verilog_2005`
+# loses the alternative.
+# ⛔ THE GATE IS A NAMED RULE AND NOT AN INLINE GUARD, by the `-0289` engine ruling: a named
+# rule is visible to `--dump-rule-profiles`, both cert baselines, the profile-orphan lint and
+# `rule_costs.tsv`. An inline guard is invisible to all four.
+# IEEE 1364-2005 Annex A contains no `with` and no array-method call at all; the whole
+# `array_manipulation_call` shape is IEEE 1800 A.8.2.
+@profiles: ["sv_2017", "sv_2023"]
+array_method_with_sv_only := kw_with_8fcd25a3
 
 array_method_name := method_identifier      -> {kind: "method_identifier", body: $1}
                    | kw_unique_58037c00     -> {kind: "unique"}
@@ -979,7 +1005,7 @@ block_item_declaration := attribute_instance* block_data_declaration
                                     -> {kind: "let",               attributes: $1, body: $2}
 
 @profiles: ["sv_2017", "verilog_2005"]
-block_data_declaration_sv_2017 := @probe_sample: "int a;" ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? block_data_type_or_implicit list_of_variable_decl_assignments semi
+block_data_declaration_sv_2017 := @probe_sample: "int a;" ( const_qualifier_sv_only )? ( var_qualifier_sv_only )? ( declaration_lifetime_sv_only )? block_data_type_or_implicit list_of_variable_decl_assignments semi
                                -> {const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, items: $5}
                                | @probe_sample: "typedef int t;" type_declaration
                                | @probe_sample: "import p::*;" package_import_declaration
@@ -1100,13 +1126,26 @@ cast := casting_type tick lparen expression rparen
 casting_type := simple_type            -> {kind: "simple_type",     body: $1}
               | constant_primary       -> {kind: "constant_primary", body: $1}
               | signing                -> {kind: "signing",          body: $1}
-              | kw_string_ecb25204     -> {kind: "string"}
-              | kw_const_b42f3f6f      -> {kind: "const"}
+              | string_type_sv_only     -> {kind: "string"}
+              | const_qualifier_sv_only -> {kind: "const"}
 
 cell_clause := kw_cell_5f435eb3 ( library_identifier dot )? cell_identifier
             -> {library: $2, name: $3}
 
 cell_identifier := non_keyword_identifier
+
+# SV-CORPUS-GRAD.13e.7 (SV-0070): an IEEE-1800-ONLY surface lifted into a profile-gated named
+# rule — the established `_sv_only` idiom (cf. `data_type_or_void_sv_only`,
+# `integer_atom_signing_sv_only`). The reference site keeps its return annotation, so the
+# sv_2017 / sv_2023 AST is byte-identical and no branch index moves; only `verilog_2005`
+# loses the alternative.
+# ⛔ THE GATE IS A NAMED RULE AND NOT AN INLINE GUARD, by the `-0289` engine ruling: a named
+# rule is visible to `--dump-rule-profiles`, both cert baselines, the profile-orphan lint and
+# `rule_costs.tsv`. An inline guard is invisible to all four.
+# `chandle` occurs 0 times in IEEE 1364-2005 Annex A; its variable types are the A.2.1.3
+# set integer / time / real / realtime / reg / event.
+@profiles: ["sv_2017", "sv_2023"]
+chandle_type_sv_only := kw_chandle_34401c13
 
 charge_strength := lparen kw_small_89f6229a rparen   -> {kind: "small"}
                  | lparen kw_medium_20af4186 rparen  -> {kind: "medium"}
@@ -1162,7 +1201,21 @@ checker_or_generate_item := checker_or_generate_item_declaration -> {kind: "decl
                           | continuous_assign                    -> {kind: "continuous_assign", body: $1}
                           | checker_generate_item                -> {kind: "generate",         body: $1}
 
-checker_or_generate_item_declaration := ( kw_rand_52400560 )? data_declaration
+# SV-CORPUS-GRAD.13e.7 (SV-0070): an IEEE-1800-ONLY surface lifted into a profile-gated named
+# rule — the established `_sv_only` idiom (cf. `data_type_or_void_sv_only`,
+# `integer_atom_signing_sv_only`). The reference site keeps its return annotation, so the
+# sv_2017 / sv_2023 AST is byte-identical and no branch index moves; only `verilog_2005`
+# loses the alternative.
+# ⛔ THE GATE IS A NAMED RULE AND NOT AN INLINE GUARD, by the `-0289` engine ruling: a named
+# rule is visible to `--dump-rule-profiles`, both cert baselines, the profile-orphan lint and
+# `rule_costs.tsv`. An inline guard is invisible to all four.
+# `rand` occurs 0 times in IEEE 1364-2005 Annex A, which has no checker construct.
+# ⛔ Its sibling `randc` needs no gate: it reaches `verilog_2005` only through
+# `struct_union_member`, whose alternative requires the sv-gated `struct_union`.
+@profiles: ["sv_2017", "sv_2023"]
+checker_rand_qualifier_sv_only := kw_rand_52400560
+
+checker_or_generate_item_declaration := ( checker_rand_qualifier_sv_only )? data_declaration
                                               -> {kind: "data_declaration",         rand: $1, body: $2}
                                       | function_declaration
                                               -> {kind: "function_declaration",     body: $1}
@@ -1178,7 +1231,7 @@ checker_or_generate_item_declaration := ( kw_rand_52400560 )? data_declaration
                                               -> {kind: "clocking_declaration",     body: $1}
                                       | kw_default_7505d64a kw_clocking_4d22041d clocking_identifier semi
                                               -> {kind: "default_clocking",         name: $3}
-                                      | kw_default_7505d64a kw_disable_ccf09e2d kw_iff_ee1c009e expression_or_dist semi
+                                      | kw_default_7505d64a kw_disable_ccf09e2d iff_keyword_sv_only expression_or_dist semi
                                               -> {kind: "default_disable_iff",      condition: $4}
                                       | semi
                                               -> {kind: "semi"}
@@ -1601,6 +1654,19 @@ const_or_range_expression := constant_expression                    -> {kind: "e
 constant_assignment_pattern_expression := assignment_pattern_expression
                                        -> {body: $1}
 
+# SV-CORPUS-GRAD.13e.7 (SV-0070): an IEEE-1800-ONLY surface lifted into a profile-gated named
+# rule — the established `_sv_only` idiom (cf. `data_type_or_void_sv_only`,
+# `integer_atom_signing_sv_only`). The reference site keeps its return annotation, so the
+# sv_2017 / sv_2023 AST is byte-identical and no branch index moves; only `verilog_2005`
+# loses the alternative.
+# ⛔ THE GATE IS A NAMED RULE AND NOT AN INLINE GUARD, by the `-0289` engine ruling: a named
+# rule is visible to `--dump-rule-profiles`, both cert baselines, the profile-orphan lint and
+# `rule_costs.tsv`. An inline guard is invisible to all four.
+# bare `const` occurs 0 times in IEEE 1364-2005 Annex A; A.2.1.3 `:152` gives a
+# declaration no qualifier.
+@profiles: ["sv_2017", "sv_2023"]
+const_qualifier_sv_only := kw_const_b42f3f6f
+
 constant_bit_select := ( lbrack constant_expression rbrack )*
                     -> {bits: $1}
 
@@ -1970,7 +2036,7 @@ cycle_delay_range := kw_token_93ac8946 constant_primary
                             -> {kind: "plus"}
 
 @profiles: ["sv_2017", "verilog_2005"]
-data_declaration_sv_2017 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? data_type_or_implicit list_of_variable_decl_assignments semi
+data_declaration_sv_2017 := ( const_qualifier_sv_only )? ( var_qualifier_sv_only )? ( declaration_lifetime_sv_only )? data_type_or_implicit list_of_variable_decl_assignments semi
                                 -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
                          | type_declaration
                                 -> {kind: "type",                  body: $1}
@@ -2081,10 +2147,10 @@ block_data_type := integer_vector_type ( signing )? packed_dimension*
                  | integer_atom_type ( integer_atom_signing_sv_only )?
                  | non_integer_type
                  | @sample: "struct { int a; }" struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension*
-                 | @sample: "enum { A }" kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension*
-                 | kw_string_ecb25204
-                 | kw_chandle_34401c13
-                 | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )?
+                 | @sample: "enum { A }" enum_keyword_sv_only ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension*
+                 | string_type_sv_only
+                 | chandle_type_sv_only
+                 | virtual_interface_keyword_sv_only ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )?
                  | scoped_block_type_identifier
                  | known_unscoped_block_type_identifier
                  | scoped_block_class_type
@@ -2109,13 +2175,13 @@ data_type := @probe_sample: "int" integer_vector_type ( signing )? packed_dimens
                   -> {kind: "non_integer",           base: $1}
            | @sample: "struct { int a; }" struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension*
                   -> {kind: "struct_union",         header: $1, packed_signing: $2, members: {first: $4, rest: $5}, dims: $7}
-           | @sample: "enum { A }" kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension*
+           | @sample: "enum { A }" enum_keyword_sv_only ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension*
                   -> {kind: "enum",                  base_type: $2, names: [$4, $5::2*], dims: $7}
-           | kw_string_ecb25204
+           | string_type_sv_only
                   -> {kind: "string"}
-           | kw_chandle_34401c13
+           | chandle_type_sv_only
                   -> {kind: "chandle"}
-           | kw_virtual_af84d91f ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )?
+           | virtual_interface_keyword_sv_only ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )?
                   -> {kind: "virtual_interface",     interface_keyword: $2, name: $3, params: $4, modport: $5}
            | scoped_data_type_identifier
                   -> {kind: "scoped_data_type",      body: $1}
@@ -2166,6 +2232,23 @@ data_type_or_void_sv_only := kw_void_e9cede9b -> {kind: "void"}
 
 data_type_or_void := data_type                 -> {kind: "data_type", body: $1}
                    | data_type_or_void_sv_only
+
+# SV-CORPUS-GRAD.13e.7 (SV-0070): an IEEE-1800-ONLY surface lifted into a profile-gated named
+# rule — the established `_sv_only` idiom (cf. `data_type_or_void_sv_only`,
+# `integer_atom_signing_sv_only`). The reference site keeps its return annotation, so the
+# sv_2017 / sv_2023 AST is byte-identical and no branch index moves; only `verilog_2005`
+# loses the alternative.
+# ⛔ THE GATE IS A NAMED RULE AND NOT AN INLINE GUARD, by the `-0289` engine ruling: a named
+# rule is visible to `--dump-rule-profiles`, both cert baselines, the profile-orphan lint and
+# `rule_costs.tsv`. An inline guard is invisible to all four.
+# ⛔⛔ `lifetime` ITSELF MUST STAY UNGATED. IEEE 1364-2005 A.2.6 `:255` and A.2.7 `:276` give
+# `function` and `task` a legitimate `[ automatic ]`, and both parse under `verilog_2005`
+# today — `control_v2005_function_automatic.sv` / `control_v2005_task_automatic.sv` go RED
+# if that is broken. What 1364-2005 has NO lifetime for is a DATA declaration (A.2.1.3
+# `:152`) and a MODULE header (A.1.2 `:29`), so the gate sits on the OPTIONAL at those
+# sites — the `.13e.4` idiom, and for the same reason.
+@profiles: ["sv_2017", "sv_2023"]
+declaration_lifetime_sv_only := lifetime
 
 default_clause := kw_default_7505d64a
                -> {kind: "default"}
@@ -2482,6 +2565,18 @@ enum_base_type := integer_atom_type ( signing )?
 
 enum_identifier := declaration_identifier
 
+# SV-CORPUS-GRAD.13e.7 (SV-0070): an IEEE-1800-ONLY surface lifted into a profile-gated named
+# rule — the established `_sv_only` idiom (cf. `data_type_or_void_sv_only`,
+# `integer_atom_signing_sv_only`). The reference site keeps its return annotation, so the
+# sv_2017 / sv_2023 AST is byte-identical and no branch index moves; only `verilog_2005`
+# loses the alternative.
+# ⛔ THE GATE IS A NAMED RULE AND NOT AN INLINE GUARD, by the `-0289` engine ruling: a named
+# rule is visible to `--dump-rule-profiles`, both cert baselines, the profile-orphan lint and
+# `rule_costs.tsv`. An inline guard is invisible to all four.
+# `enum` occurs 0 times in IEEE 1364-2005 Annex A.
+@profiles: ["sv_2017", "sv_2023"]
+enum_keyword_sv_only := kw_enum_e338e8e3
+
 enum_name_declaration := enum_identifier ( lbrack integral_number ( colon integral_number )? rbrack )? ( assign constant_expression )?
                       -> {name: $1, range: $2, value: $3}
 
@@ -2506,9 +2601,9 @@ event_control_sv_2023 := clocking_event           -> {kind: "clocking",     body
 event_control := event_control_sv_2017 -> {kind: "sv_2017", body: $1}
                | event_control_sv_2023 -> {kind: "sv_2023", body: $1}
 
-event_expression_primary := ( edge_identifier )? expression ( kw_iff_ee1c009e expression )?
+event_expression_primary := ( edge_identifier )? expression ( iff_keyword_sv_only expression )?
                                   -> {kind: "expression", edge: $1, expr: $2, iff: $3}
-                          | sequence_instance ( kw_iff_ee1c009e expression )?
+                          | sequence_instance ( iff_keyword_sv_only expression )?
                                   -> {kind: "sequence",   body: $1, iff: $2}
                           | lparen event_expression rparen
                                   -> {kind: "paren",      body: $2}
@@ -2596,6 +2691,19 @@ extern_constraint_declaration_sv_2023 := ( kw_static_a381562a )? kw_constraint_9
 extern_constraint_declaration := extern_constraint_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                                | extern_constraint_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
 
+# SV-CORPUS-GRAD.13e.7 (SV-0070): an IEEE-1800-ONLY surface lifted into a profile-gated named
+# rule — the established `_sv_only` idiom (cf. `data_type_or_void_sv_only`,
+# `integer_atom_signing_sv_only`). The reference site keeps its return annotation, so the
+# sv_2017 / sv_2023 AST is byte-identical and no branch index moves; only `verilog_2005`
+# loses the alternative.
+# ⛔ THE GATE IS A NAMED RULE AND NOT AN INLINE GUARD, by the `-0289` engine ruling: a named
+# rule is visible to `--dump-rule-profiles`, both cert baselines, the profile-orphan lint and
+# `rule_costs.tsv`. An inline guard is invisible to all four.
+# `extern` occurs 0 times in IEEE 1364-2005 Annex A; A.1.2 `:29` `module_declaration` has no
+# extern alternative, and neither does its UDP sibling.
+@profiles: ["sv_2017", "sv_2023"]
+extern_keyword_sv_only := kw_extern_bf1ee311
+
 @profiles: ["sv_2017", "sv_2023"]
 extern_tf_declaration := kw_extern_bf1ee311 method_prototype semi
                                   -> {kind: "method",   prototype: $2}
@@ -2630,7 +2738,7 @@ for_step_assignment := operator_assignment   -> {kind: "operator_assignment", bo
                      | inc_or_dec_expression -> {kind: "inc_or_dec",          body: $1}
                      | function_subroutine_call -> {kind: "function_call",    body: $1}
 
-for_variable_declaration := ( kw_var_e5b4e786 )? data_type variable_identifier assign expression ( comma variable_identifier assign expression )*
+for_variable_declaration := ( var_qualifier_sv_only )? data_type variable_identifier assign expression ( comma variable_identifier assign expression )*
                          -> {var_keyword: $1, data_type: $2, name: $3, value: $5, tail: $6}
 
 // formal_identifier := declaration_identifier
@@ -2842,6 +2950,19 @@ if_generate_construct := kw_if_958f57f5 lparen constant_expression rparen genera
 
 if_generate_else_clause := kw_else_ae050f5b if_generate_construct -> {kind: "elseif",     body: $2}
                          | kw_else_ae050f5b generate_block        -> {kind: "else_block", body: $2}
+
+# SV-CORPUS-GRAD.13e.7 (SV-0070): an IEEE-1800-ONLY surface lifted into a profile-gated named
+# rule — the established `_sv_only` idiom (cf. `data_type_or_void_sv_only`,
+# `integer_atom_signing_sv_only`). The reference site keeps its return annotation, so the
+# sv_2017 / sv_2023 AST is byte-identical and no branch index moves; only `verilog_2005`
+# loses the alternative.
+# ⛔ THE GATE IS A NAMED RULE AND NOT AN INLINE GUARD, by the `-0289` engine ruling: a named
+# rule is visible to `--dump-rule-profiles`, both cert baselines, the profile-orphan lint and
+# `rule_costs.tsv`. An inline guard is invisible to all four.
+# `iff` occurs 0 times in IEEE 1364-2005 Annex A: neither the A.1.5 `:65`
+# `module_or_generate_item` list nor the A.6.5 event expression admits it.
+@profiles: ["sv_2017", "sv_2023"]
+iff_keyword_sv_only := kw_iff_ee1c009e
 
 @profiles: ["sv_2017", "sv_2023"]
 immediate_assertion_statement := simple_immediate_assertion_statement   -> {kind: "simple",   body: $1}
@@ -3092,9 +3213,34 @@ interface_port_identifier_sv_2023 := non_keyword_identifier
 @profiles: ["sv_2023"]
 interface_port_identifier := interface_port_identifier_sv_2023
 
+# SV-CORPUS-GRAD.13e.7 (SV-0070): an IEEE-1800-ONLY surface lifted into a profile-gated named
+# rule — the established `_sv_only` idiom (cf. `data_type_or_void_sv_only`,
+# `integer_atom_signing_sv_only`). The reference site keeps its return annotation, so the
+# sv_2017 / sv_2023 AST is byte-identical and no branch index moves; only `verilog_2005`
+# loses the alternative.
+# ⛔ THE GATE IS A NAMED RULE AND NOT AN INLINE GUARD, by the `-0289` engine ruling: a named
+# rule is visible to `--dump-rule-profiles`, both cert baselines, the profile-orphan lint and
+# `rule_costs.tsv`. An inline guard is invisible to all four.
+# IEEE 1364-2005 A.6.3 `par_block` `:529` is `fork … join` — `join` is the ONLY terminator
+# the standard admits.
+@profiles: ["sv_2017", "sv_2023"]
+join_any_keyword_sv_only := kw_join_any_24358a7a
+
+# SV-CORPUS-GRAD.13e.7 (SV-0070): an IEEE-1800-ONLY surface lifted into a profile-gated named
+# rule — the established `_sv_only` idiom (cf. `data_type_or_void_sv_only`,
+# `integer_atom_signing_sv_only`). The reference site keeps its return annotation, so the
+# sv_2017 / sv_2023 AST is byte-identical and no branch index moves; only `verilog_2005`
+# loses the alternative.
+# ⛔ THE GATE IS A NAMED RULE AND NOT AN INLINE GUARD, by the `-0289` engine ruling: a named
+# rule is visible to `--dump-rule-profiles`, both cert baselines, the profile-orphan lint and
+# `rule_costs.tsv`. An inline guard is invisible to all four.
+# The sibling of `join_any_keyword_sv_only`; IEEE 1364-2005 A.6.3 `:529` again.
+@profiles: ["sv_2017", "sv_2023"]
+join_none_keyword_sv_only := kw_join_none_4454a7a6
+
 join_keyword := kw_join_c455b38e      -> {kind: "join"}
-              | kw_join_any_24358a7a  -> {kind: "join_any"}
-              | kw_join_none_4454a7a6 -> {kind: "join_none"}
+              | join_any_keyword_sv_only  -> {kind: "join_any"}
+              | join_none_keyword_sv_only -> {kind: "join_none"}
 
 @profiles: ["sv_2017", "sv_2023"]
 jump_statement := kw_return_63143b6f ( expression )? semi -> {kind: "return",   value: $2}
@@ -3676,7 +3822,7 @@ modport_tf_ports_declaration := import_export modport_tf_port ( comma modport_tf
                              -> {import_export: $1, ports: [$2, $3::2*]}
 
 @sample: "module m(input logic a);"
-module_ansi_header := attribute_instance* module_keyword ( lifetime )? module_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
+module_ansi_header := attribute_instance* module_keyword ( declaration_lifetime_sv_only )? module_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
                    -> {attributes: $1, keyword: $2, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 
 @profiles: ["sv_2017", "verilog_2005"]
@@ -3717,11 +3863,11 @@ module_declaration_sv_2017 := @sample: "module m; endmodule" module_ansi_header 
                                 -> {kind: "ansi", header: $1, timeunits: $2, items: $3, end_label: $5}
                             | @sample: "module m(a); endmodule" module_nonansi_header ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )?
                                 -> {kind: "nonansi", header: $1, timeunits: $2, items: $3, end_label: $5}
-                            | @sample: "module m(.*); endmodule" attribute_instance* module_keyword ( lifetime )? module_identifier lparen dot_star rparen semi ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )?
+                            | @sample: "module m(.*); endmodule" attribute_instance* module_keyword ( declaration_lifetime_sv_only )? module_identifier lparen dot_star rparen semi ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )?
                                 -> {kind: "wildcard", attributes: $1, keyword: $2, lifetime: $3, name: $4, timeunits: $9, items: $10, end_label: $12}
-                            | @sample: "extern module m(a);" kw_extern_bf1ee311 module_nonansi_header
+                            | @sample: "extern module m(a);" extern_keyword_sv_only module_nonansi_header
                                 -> {kind: "extern_nonansi", header: $2}
-                            | @sample: "extern module m;" kw_extern_bf1ee311 module_ansi_header
+                            | @sample: "extern module m;" extern_keyword_sv_only module_ansi_header
                                 -> {kind: "extern_ansi", header: $2}
 
 @profiles: ["sv_2023"]
@@ -3731,9 +3877,9 @@ module_declaration_sv_2023 := @sample: "module m; endmodule" module_ansi_header 
                                 -> {kind: "nonansi", header: $1, timeunits: $2, items: $3, end_label: $5}
                             | @sample: "module m(.*); endmodule" attribute_instance* module_keyword ( lifetime )? module_identifier lparen dot star rparen semi ( timeunits_declaration )? module_item* kw_endmodule_2eb38ec9 ( colon module_identifier )?
                                 -> {kind: "wildcard", attributes: $1, keyword: $2, lifetime: $3, name: $4, timeunits: $10, items: $11, end_label: $13}
-                            | @sample: "extern module m(a);" kw_extern_bf1ee311 module_nonansi_header
+                            | @sample: "extern module m(a);" extern_keyword_sv_only module_nonansi_header
                                 -> {kind: "extern_nonansi", header: $2}
-                            | @sample: "extern module m;" kw_extern_bf1ee311 module_ansi_header
+                            | @sample: "extern module m;" extern_keyword_sv_only module_ansi_header
                                 -> {kind: "extern_ansi", header: $2}
 
 module_declaration := @sample: "module m; endmodule" module_declaration_sv_2017
@@ -3753,7 +3899,7 @@ module_keyword := kw_module_fbd34a2b      -> {kind: "module"}
                 | kw_macromodule_df04b866 -> {kind: "macromodule"}
 
 @sample: "module m(a,b);"
-module_nonansi_header := attribute_instance* module_keyword ( lifetime )? module_identifier package_import_declaration* ( parameter_port_list )? list_of_ports semi
+module_nonansi_header := attribute_instance* module_keyword ( declaration_lifetime_sv_only )? module_identifier package_import_declaration* ( parameter_port_list )? list_of_ports semi
                       -> {attributes: $1, keyword: $2, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 
 module_or_generate_item := attribute_instance* parameter_override
@@ -3775,7 +3921,7 @@ module_or_generate_item_declaration := package_or_generate_item_declaration
                                           -> {kind: "clocking",            body: $1}
                                     | kw_default_7505d64a kw_clocking_4d22041d clocking_identifier semi
                                           -> {kind: "default_clocking",    name: $3}
-                                    | kw_default_7505d64a kw_disable_ccf09e2d kw_iff_ee1c009e expression_or_dist semi
+                                    | kw_default_7505d64a kw_disable_ccf09e2d iff_keyword_sv_only expression_or_dist semi
                                           -> {kind: "default_disable_iff", expr: $4}
 
 module_path_concatenation := lbrace ( module_path_expression ( comma module_path_expression )* ) rbrace
@@ -5831,6 +5977,12 @@ stream_expression := expression ( kw_with_8fcd25a3 lbrack array_range_expression
 stream_operator := shift_right -> {kind: "shift_right"}
                  | shift_left  -> {kind: "shift_left"}
 
+# SV-CORPUS-GRAD.13e.7 (SV-0070): IEEE 1364-2005 has NO streaming concatenation — "streaming"
+# occurs 0 times in its Annex A, and IEEE 1800-2017 A.8.1 is where `{ << { a } }` comes from.
+# ⛔ FOUND OUTSIDE THE KEYWORD CENSUS: `<<` and `>>` are OPERATORS, so no keyword-level lens can
+# see this construct at all — it is the L4 class .13e.7(c) names as an honest bound. Gated as a
+# WHOLE RULE because every one of its reference sites is equally IEEE-1800-only.
+@profiles: ["sv_2017", "sv_2023"]
 streaming_concatenation := lbrace stream_operator ( slice_size &lbrace )? stream_concatenation rbrace
                         -> {op: $2, slice_size: $3, body: $4}
 
@@ -6098,7 +6250,7 @@ tf_identifier := callable_identifier
 tf_item_declaration := block_item_declaration -> {kind: "block_item", body: $1}
                      | tf_port_declaration    -> {kind: "tf_port",    body: $1}
 
-tf_port_declaration := attribute_instance* tf_port_direction ( kw_var_e5b4e786 )? data_type_or_implicit list_of_tf_variable_identifiers semi
+tf_port_declaration := attribute_instance* tf_port_direction ( var_qualifier_sv_only )? data_type_or_implicit list_of_tf_variable_identifiers semi
                     -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, items: $5}
 
 @profiles: ["sv_2017"]
@@ -6122,14 +6274,14 @@ tf_port_item_sv_only := attribute_instance* ( tf_port_direction )? ( kw_var_e5b4
                      -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, port_spec: $5}
 
 @profiles: ["verilog_2005"]
-tf_port_item_v2005 := attribute_instance* tf_port_direction ( kw_var_e5b4e786 )? data_type_or_implicit ( port_identifier variable_dimension* ( assign expression )? )?
+tf_port_item_v2005 := attribute_instance* tf_port_direction ( var_qualifier_sv_only )? data_type_or_implicit ( port_identifier variable_dimension* ( assign expression )? )?
                    -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, port_spec: $5}
 
 @profiles: ["verilog_2005"]
 data_type_implicit_only_v2005 := implicit_data_type -> {kind: "implicit", body: $1}
 
 @profiles: ["verilog_2005"]
-tf_port_item_v2005_continuation := attribute_instance* ( tf_port_direction )? ( kw_var_e5b4e786 )? data_type_implicit_only_v2005 ( port_identifier variable_dimension* ( assign expression )? )?
+tf_port_item_v2005_continuation := attribute_instance* ( tf_port_direction )? ( var_qualifier_sv_only )? data_type_implicit_only_v2005 ( port_identifier variable_dimension* ( assign expression )? )?
                                 -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, port_spec: $5}
 
 @profiles: ["verilog_2005"]
@@ -6411,9 +6563,9 @@ udp_declaration_sv_2017 := udp_nonansi_declaration udp_port_declaration udp_port
                             -> {kind: "nonansi", header: $1, port_decls: {first: $2, rest: $3}, body: $4, end_label: $6}
                          | udp_ansi_declaration udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )?
                             -> {kind: "ansi", header: $1, body: $2, end_label: $4}
-                         | kw_extern_bf1ee311 udp_nonansi_declaration
+                         | extern_keyword_sv_only udp_nonansi_declaration
                             -> {kind: "extern_nonansi", header: $2}
-                         | kw_extern_bf1ee311 udp_ansi_declaration
+                         | extern_keyword_sv_only udp_ansi_declaration
                             -> {kind: "extern_ansi", header: $2}
                          | attribute_instance* kw_primitive_9756bf34 udp_identifier lparen dot_star rparen semi udp_port_declaration* udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )?
                             -> {kind: "wildcard", attributes: $1, name: $3, port_decls: $8, body: $9, end_label: $11}
@@ -6423,9 +6575,9 @@ udp_declaration_sv_2023 := udp_nonansi_declaration udp_port_declaration udp_port
                             -> {kind: "nonansi", header: $1, port_decls: {first: $2, rest: $3}, body: $4, end_label: $6}
                          | udp_ansi_declaration udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )?
                             -> {kind: "ansi", header: $1, body: $2, end_label: $4}
-                         | kw_extern_bf1ee311 udp_nonansi_declaration
+                         | extern_keyword_sv_only udp_nonansi_declaration
                             -> {kind: "extern_nonansi", header: $2}
-                         | kw_extern_bf1ee311 udp_ansi_declaration
+                         | extern_keyword_sv_only udp_ansi_declaration
                             -> {kind: "extern_ansi", header: $2}
                          | attribute_instance* kw_primitive_9756bf34 udp_identifier lparen dot star rparen semi udp_port_declaration* udp_body kw_endprimitive_f53f53d4 ( colon udp_identifier )?
                             -> {kind: "wildcard", attributes: $1, name: $3, port_decls: $9, body: $10, end_label: $12}
@@ -6599,7 +6751,19 @@ value_range := value_range_sv_2017 -> {kind: "sv_2017", body: $1}
              | value_range_sv_2023 -> {kind: "sv_2023", body: $1}
 
 var_data_type := data_type                            -> {kind: "data_type",     body: $1}
-              | kw_var_e5b4e786 data_type_or_implicit  -> {kind: "var",          body: $2}
+              | var_qualifier_sv_only data_type_or_implicit  -> {kind: "var",          body: $2}
+
+# SV-CORPUS-GRAD.13e.7 (SV-0070): an IEEE-1800-ONLY surface lifted into a profile-gated named
+# rule — the established `_sv_only` idiom (cf. `data_type_or_void_sv_only`,
+# `integer_atom_signing_sv_only`). The reference site keeps its return annotation, so the
+# sv_2017 / sv_2023 AST is byte-identical and no branch index moves; only `verilog_2005`
+# loses the alternative.
+# ⛔ THE GATE IS A NAMED RULE AND NOT AN INLINE GUARD, by the `-0289` engine ruling: a named
+# rule is visible to `--dump-rule-profiles`, both cert baselines, the profile-orphan lint and
+# `rule_costs.tsv`. An inline guard is invisible to all four.
+# `var` occurs 0 times in IEEE 1364-2005 Annex A.
+@profiles: ["sv_2017", "sv_2023"]
+var_qualifier_sv_only := kw_var_e5b4e786
 
 variable_assignment := variable_lvalue assign expression
                     -> {lvalue: $1, value: $3}
@@ -6660,6 +6824,18 @@ wait_statement_sv_only := kw_wait_daaad336 kw_fork_3f673f2a semi
                                -> {kind: "wait_fork"}
                         | kw_wait_order_e1b7850a lparen hierarchical_identifier ( comma hierarchical_identifier )* rparen action_block
                                -> {kind: "wait_order", events: [$3, $4::2*], action: $6}
+
+# SV-CORPUS-GRAD.13e.7 (SV-0070): an IEEE-1800-ONLY surface lifted into a profile-gated named
+# rule — the established `_sv_only` idiom (cf. `data_type_or_void_sv_only`,
+# `integer_atom_signing_sv_only`). The reference site keeps its return annotation, so the
+# sv_2017 / sv_2023 AST is byte-identical and no branch index moves; only `verilog_2005`
+# loses the alternative.
+# ⛔ THE GATE IS A NAMED RULE AND NOT AN INLINE GUARD, by the `-0289` engine ruling: a named
+# rule is visible to `--dump-rule-profiles`, both cert baselines, the profile-orphan lint and
+# `rule_costs.tsv`. An inline guard is invisible to all four.
+# `virtual` occurs 0 times in IEEE 1364-2005 Annex A, which has no interface construct.
+@profiles: ["sv_2017", "sv_2023"]
+virtual_interface_keyword_sv_only := kw_virtual_af84d91f
 
 wait_statement := kw_wait_daaad336 lparen expression rparen statement_or_null
                        -> {kind: "wait",       condition: $3, body: $5}

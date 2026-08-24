@@ -16273,7 +16273,7 @@ a live artifact — and this time the staleness was hiding a **fix**, not a defe
   the register now lists every grammar revision, so the population is derivable rather than
   guessed.
 
-##### ⛔ `.13e.7` — ⭐⭐ NINE MORE `verilog_2005` over-acceptances reach through the SAME door `.13e.4` gated, and the door is `data_declaration_sv_2017` itself (**(a) `ruled`** + **(b)+(c) `done`** 2026-08-24, `PGEN-SV-CORPUS-GRAD-0290` / `-0291` / `-0292`; **the FIX `todo`**; opened 2026-08-24 by `.13e.4`)
+##### ✅✅✅ `.13e.7` — ⭐⭐ NINE MORE `verilog_2005` over-acceptances reach through the SAME door `.13e.4` gated, and the door is `data_declaration_sv_2017` itself (✅ **CLOSED 2026-08-24** — (c) `-0290`, (a) `-0291`, (b) `-0292`, THE FIX `-0293`: ledger `SV-0070`, release `1.0.197`, AST schema 26 unchanged; opened 2026-08-24 by `.13e.4`)
 
 > ⭐⭐⭐ **(c) IS DONE AND IT RE-SIZED THE LEAF — THE POPULATION IS NOT NINE, AND IT IS NOT
 > DECLARATION-SHAPED.** The census below measures **14** confirmed keyword-level over-acceptances
@@ -16377,6 +16377,118 @@ a live artifact — and this time the staleness was hiding a **fix**, not a defe
   declarations~~ — **(c) DONE 2026-08-24 (`-0290`), and done WIDER than it was written.** Naming
   three rules would have been a third hand-picked sample; the sub-leaf below builds a CLOSED
   population instead, over every rule in the grammar. ⛔ **(b) must now pin 14 rows, not 9.**
+
+###### `.13e.7` THE FIX — **DONE: 13 named `_sv_only` gates over 19 v2005-live sites + one whole-rule gate; 17 of 19 pinned rows FLIPPED, ledger `SV-0070`, release `1.0.197`, AST schema 26 unchanged** (2026-08-24, `PGEN-SV-CORPUS-GRAD-0293`; GRAMMAR tier)
+
+**WHAT LANDED.** 13 new `@profiles: ["sv_2017","sv_2023"]` alias rules referenced at the 19
+`verilog_2005`-live sites the (a) ruling enumerated — `chandle_type_sv_only`, `enum_keyword_sv_only`,
+`string_type_sv_only`, `virtual_interface_keyword_sv_only`, `const_qualifier_sv_only`,
+`var_qualifier_sv_only`, `declaration_lifetime_sv_only`, `extern_keyword_sv_only`,
+`iff_keyword_sv_only`, `join_any_keyword_sv_only`, `join_none_keyword_sv_only`,
+`checker_rand_qualifier_sv_only`, `array_method_with_sv_only` — plus **one whole-rule** `@profiles`
+gate on `streaming_concatenation`.
+
+⭐⭐ **THE STREAMING CONCATENATION IS A FOURTH LENS, AND IT WAS FOUND WHILE FIXING THE FIRST THREE.**
+`{ << { a } }` and `{ >> { a } }` PARSED under `verilog_2005`; "streaming" occurs **0 times** in the
+IEEE 1364-2005 Annex A. ⛔ **No keyword-level census can ever see it, because `<<` and `>>` are
+OPERATORS** — an IEEE-1800-only construct that introduces no keyword at all. Call it **L4,
+PUNCTUATION-ONLY**, alongside (c)'s L1/L2/L3. It is gated here as a whole rule; **nothing enumerates
+the rest of its class**, which is routed to `.13e.10`.
+
+⛔⛔ **`lifetime` MUST NOT BE GATED, and the controls are what enforce that.** IEEE 1364-2005 A.2.6
+`:254` and A.2.7 `:275` give `function` and `task` a legitimate `[ automatic ]`, and both parse
+under `verilog_2005` today. The gate therefore sits on the `( lifetime )?` OPTIONAL at
+`data_declaration_sv_2017`, `block_data_declaration_sv_2017`, `module_ansi_header:3679`,
+`module_nonansi_header` and `module_declaration_sv_2017`'s wildcard alternative — the `.13e.4` idiom
+— and `control_v2005_function_automatic.sv` / `control_v2005_task_automatic.sv` go RED if it is ever
+widened.
+
+⛔⛔ **THE FIRST INSERTION SILENTLY STOLE TWO PRE-EXISTING GATES, AND THE LINT CAUGHT IT.** Placing a
+new rule immediately before its alphabetical anchor drops it BETWEEN that anchor's own
+`@profiles:` annotation and the rule the annotation belongs to. Measured: `extern_tf_declaration`
+and `immediate_assertion_statement` both lost `@profiles: ["sv_2017","sv_2023"]` and became
+`verilog_2005` profile ORPHANS — `--lint-grammar` named both with a derived fix. The applier now
+walks back over the anchor's contiguous comment/annotation header before inserting.
+⇒ **an annotation binds to the next rule, so inserting a rule is an edit to whatever precedes it.**
+
+**MEASURED — the grammar side, before a single byte was generated:**
+
+| instrument | before → after |
+|---|---|
+| `--lint-grammar` | rules `1524 → 1537`; `profile_orphans` **0**, `unreachable_rules` **0**, `undefined_references` **0**, `non_terminating` **0**, `left_recursion_unhandled` **0** — all unchanged |
+| `--dump-rule-profiles` | `sv_2017` **1388 → 1401**, `sv_2023` **1410 → 1423** (both **+13** = exactly the rules added), `verilog_2005` **1148 → 1147** |
+| pre-existing rules whose satisfiable set moved | **exactly one** — `streaming_concatenation`, the deliberate whole-rule gate |
+
+⭐ **THE INTERPRETER PAID FOR THE 40-MINUTE CYCLE ONCE.** A full before/after sweep over all **283**
+pinned row × profile checks on `--interpret-parse` moved **exactly 17 verdicts, every one `ACCEPT →
+reject` under `verilog_2005`, and ZERO under `sv_2017`/`sv_2023`** — the blast radius enumerated in
+minutes instead of guessed. The interpreter was FALSIFIED first: it agreed with the shipped parser
+on all 48 v2005 pinned rows at HEAD before the edit, and SV's `left_recursion_unhandled=0` clears
+the one condition TOOLBOX 1.5b says voids it.
+
+⛔⛔ **AND THE FIRST SWEEP WAS GARBAGE IN THE FLATTERING DIRECTION.** Its baseline arm was pointed at
+`systemverilog.ebnf.bak`; the frontend refuses that path (`Error: expected value at line 1 column
+1`), and **a load failure is indistinguishable from a parse rejection at the exit code** — so it
+reported **160** moved verdicts, all `reject → ACCEPT`, on rows the change cannot touch. The number
+was too good and too uniform to be real, which is the only reason it was checked. The harness now
+REFUSES unless each arm emits an `INTERPRET-PARSE:` verdict line, and asserts both arms accept a
+smoke test before it measures anything.
+
+###### Acceptance Checklist (enforced) — `.13e.7` THE FIX
+
+- [x] **REPRODUCE / ISSUE** — `./rust/target/release/parseability_probe --parse systemverilog <f>
+  --profile verilog_2005` ACCEPTED all 19 pinned `accepts_invalid_v2005_*.sv` rows and
+  `python3 stimuli/sv/run_adjudication_repros.py` reported them green as `class=accepts_invalid`
+  (`checked=227 failures=0`) — i.e. the defect was watched and reproducible before a byte moved.
+- [x] **ROOT CAUSE (WHY + WHERE)** — carried from (c)/(a) and re-derived per site rather than
+  inherited. `--dump-rule-profiles` is the tool that misleads here: `compute_sat_by_profile`
+  (`rust/src/ast_pipeline/grammar_wellformedness.rs:931`) is a BOTTOM-UP fixpoint asking *can this
+  rule derive a string*, never *can a parse arrive here* — it calls `kw_void_e9cede9b` satisfiable
+  under `verilog_2005` while `function void f;` correctly REJECTS there. WHERE: the 19 sites the
+  census's own BFS over the profile-filtered graph produced — `data_type:2101` /
+  `block_data_type:2075` (chandle · enum · string · virtual), `casting_type:1100`,
+  `data_declaration_sv_2017:1973` + `block_data_declaration_sv_2017:982` (const · var · lifetime),
+  `module_ansi_header:3679` + `module_nonansi_header` + the wildcard alternative (module lifetime),
+  `module_declaration_sv_2017` + `udp_declaration_sv_2017` (extern),
+  `checker_or_generate_item_declaration:1165`/`:1181` + `module_or_generate_item_declaration:3778` +
+  `event_expression_primary:2509` (rand · iff), `join_keyword:3095`,
+  `array_manipulation_call:737` + `stream_expression:5828` (with), and `streaming_concatenation:5834`.
+- [x] **FIX** — grammar tier, declarative, no engine and no codegen change: 13 profile-gated alias
+  rules + 1 whole-rule `@profiles`. Fix-hierarchy: declarative > grammar > engine, and the named
+  rule IS the declarative answer — the `-0289` engine ruling already refused the inline
+  sub-expression guard on the measurement that a named gate is visible to four instruments and an
+  inline guard to none. Why not the structural `_v2005` sibling: `(a)` priced it at **6 of 14**.
+- [x] **ADDRESSED (verified)** — on the REGENERATED release parser: `run_adjudication_repros.py`
+  went **RED on exactly the 17 rows** with *"expected ACCEPT, got REJECT — ⭐ AN OVER-ACCEPTANCE IS
+  GONE … flip it"*, and after flipping them to `class=invalid` reads **`checked=227 armed=81
+  listed=141 failures=0`** — the ratchet's designed round trip, observed rather than assumed.
+  The closed-population census moves **`over_acceptances 14 → 1`, `gated 10 → 23`, `candidates
+  24 → 11`**; the survivor is `class_qualifier`, owned by `.13c.2m`.
+  `verilog_2005_conformance_gate` **GREEN**: `lint_profile_orphans=0`, corpus matrix **255 → 303
+  file×profile checks / 0 mismatches**, aliases 2, cert deterministic at seeds 0/7/42.
+- [x] **NO REGRESSION** — `ast_shape_contract_gate` **18 passed / 0 failed**, AST-dump schema
+  unchanged at **26**. `sv_cert_recognized_union_gate`: `total 1388 → 1401`, `canonical_witness
+  1369 → 1382`, `union_witness 1380 → 1393` — all three **+13 = exactly the rules added** — with
+  `proof` unmoved at 8, `canonical_unknown` unmoved at 11, **`union_unknown` unmoved at 0**,
+  residual `[]`, `fully_certified_via_union: true`, deterministic at seeds 0/7/42.
+  `sv_parse_cost_ratchet`: `entries` +0.45 % and `committed` +0.00 % **ACCEPTED under the coded
+  `profile_split_respelling` invariant, RE-DERIVED by the gate on its own run — *"0 pre-existing
+  rule counters rose; 13 introduced rule(s) gained +2,772,652 entries"*** (`memo_hits` FELL).
+  `bash scripts/check_doctrines.sh` **ALL 27 PASS**. ⚠️ **The `verilog_2005` cert baseline MOVED and
+  is adjudicated by name, not re-stamped**: `1148/334/799/15 → 1147/356/769/22`, both failure counts
+  0. `total −1` = `streaming_concatenation` leaving the profile. **`UNKNOWN +7` is a
+  WITNESS-GENERATION artifact and the PARSER says so** — `--dump-rule-outcome-counts-json --profile
+  verilog_2005` reports `data_declaration_sv_2017`/`data_declaration` COMMITTED **6×** on the legal
+  A.2.1.3 declaration set, `event_expression`/`event_expression_primary` **1×** on `always @(posedge
+  clk)`, and `lifetime` **1×** on BOTH `function automatic` and `task automatic`. Routed to
+  `.13e.9`.
+- [x] **LOCKSTEP** — grammar + this leaf + `.13e.9`/`.13e.10` opened + the contract (`1.0.197`, new
+  semantic digest, release section) + `PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv` row + bug ledger
+  `SV-0070` (13 cells, checked) + the per-parser book release section + `grammar-wellformedness.md`'s
+  union tuple + the two rebaselined cert contracts + `accepted_rises.tsv` + the promoted parse-cost
+  baseline + the re-derived family share (**2.743 → 2.729**, adopted on all three designated live
+  surfaces) + the regenerated census artifact + `CHANGES.md` + `DEVELOPMENT_NOTES.md` + `MEMORY.md`
+  + `docs/TASK_TREE.md`. AST-dump schema **unchanged at 26** — no schema bump is owed.
 
 ###### `.13e.7` (b) — **DONE: 19 over-acceptances and 6 controls are PINNED on the two-sided ratchet BEFORE the fix, and both RED controls were observed firing** (2026-08-24, `PGEN-SV-CORPUS-GRAD-0292`; TEST-DATA tier, ZERO grammar / Rust / codegen / generated bytes)
 
@@ -16728,6 +16840,63 @@ IEEE-1800-only keyword absent from every hand list this leaf had produced.
   wins, adjudicate the 19 `_lr_*` rules, which have no source-graph edges and so are outside every
   reachability model in the tree today; (c) either way, publish the reachable/satisfiable pair
   beside the fraction, so a reader can never again mistake the one for the other.
+
+##### ⛔ `.13e.9` — a rule that PARSES but can no longer be WITNESSED: gating an optional's content costs 7 `verilog_2005` certificate rules, and the parse is unchanged (`todo`, opened 2026-08-24 by `.13e.7`)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing):
+
+- **MEASURED on the shipped parser, not argued.** `.13e.7`'s fix moved the `verilog_2005` cert
+  baseline `1148/334/799/15 → 1147/356/769/22`. `total −1` is fully explained (one rule left the
+  profile). **`UNKNOWN +7` is not a parse change**: `--dump-rule-outcome-counts-json --profile
+  verilog_2005` reports every one of the seven **LIVE and COMMITTING** —
+  `data_declaration_sv_2017` and `data_declaration` **committed 6×** on the legal IEEE 1364-2005
+  declaration set, `event_expression` and `event_expression_primary` **1×** on `always @(posedge
+  clk)`, and `lifetime` (with `kw_automatic_ebe88724` / `kw_static_a381562a` beneath it) **1×** on
+  BOTH `function automatic` and `task automatic`.
+- ⭐ **THE MECHANISM IS ONE SENTENCE.** Each of those rules used to be witnessed through an OPTIONAL
+  the stimuli generator could render — `( const )?` / `( var )?` / `( lifetime )?` on the
+  declaration, `( iff … )?` on the event expression. With the optional's CONTENT profile-gated the
+  generator can no longer produce a sample for the enclosing rule, while the parser is untouched.
+- ⛔ **IT IS NOT A LICENCE, WHICH IS WHY IT IS A LEAF AND NOT A FOOTNOTE.** A rule that parses but
+  cannot be witnessed is a real certification loss: the profile's `fully_certified` claim is
+  measured over a population that now contains 7 rules no witness can reach. It is recorded in the
+  contract's `baseline_note` and tracked here rather than absorbed into a rebaseline.
+- ⚠️ **`.13e.4` did NOT show this and that is the discriminator to start from**: it gated ONE
+  optional inside `data_type`'s second alternative and the v2005 cert was byte-identical
+  (`1148/334/799/15` unchanged). `.13e.7` gated THREE optionals at the START of
+  `data_declaration_sv_2017`'s FIRST alternative. Whether the generator's failure is about
+  position, count, or the leading-element case is the first thing to measure.
+- **Owed:** (a) `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` on the seven, to see whether each is
+  `parsed=false` (the forced sample is malformed) or `parsed=true witnessed_target=false` (a reach
+  gap) — Protocol A step 2, which this leaf has NOT yet run; (b) if the generator can render a
+  profile-gated optional as ABSENT rather than giving up, fix it — that is a parser-agnostic
+  stimuli-generator fix, not an SV one; (c) either way, re-derive the v2005 cert and shrink the
+  `UNKNOWN` pin back.
+
+##### ⛔ `.13e.10` — ⭐⭐ a FOURTH lens: an IEEE-1800-only construct made only of PUNCTUATION, which no keyword census can ever see (`todo`, opened 2026-08-24 by `.13e.7`)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing):
+
+- **MEASURED, and found by accident.** `{ << { a } }` and `{ >> { a } }` — IEEE 1800 streaming
+  concatenations — **PARSED under `verilog_2005`** on the shipped probe. "streaming" occurs **0
+  times** in the tracked IEEE 1364-2005 Annex A. Gated by `.13e.7` as a whole rule
+  (`streaming_concatenation`), so the instance is FIXED; the CLASS is not.
+- ⛔ **THE CENSUS COULD NOT HAVE FOUND IT, BY CONSTRUCTION.** `.13e.7`(c)'s instrument crosses
+  reachable `kw_*` terminals against IEEE 1364-2005 **Annex B**. `<<` and `>>` are operators, not
+  keywords, so a construct built entirely from punctuation introduces no candidate at all. This is
+  a fourth lens beside the report's declared L1 (keyword admission) / L2 (position) / L3 (shape):
+  **L4 — PUNCTUATION-ONLY**.
+- ⛔ **THE POPULATION IS UNKNOWN AND THAT IS THE FINDING.** One instance was found because a `with`
+  witness happened to be written inside a streaming concatenation. Nothing enumerates the rest.
+  Candidate neighbours worth measuring first, each IEEE-1800-only and punctuation-led: the
+  assignment-pattern `'{…}`, the `+:`/`-:` indexed part-selects, `==?`/`!=?`, `->>`, `|->`/`|=>`,
+  `##`, `[*]`/`[+]`/`[=]`/`[->]`.
+- **Owed:** (a) derive the closed set of PUNCTUATION terminals reachable under `verilog_2005` — the
+  same reachability half the keyword census already computes, intersected with the non-`kw_*`
+  terminals instead; (b) cross it against the tracked IEEE 1364-2005 Annex A's own operator and
+  punctuation vocabulary; (c) adjudicate each survivor with the same three probe legs, noting that
+  leg 3 (identifier substitution) does NOT transfer — a punctuation control needs a different
+  falsifier, and designing it is part of the leaf.
 
 #### `.13f` — the honest-permanent-deferral set: 302 rows where NO VERDICT is the right answer forever (`todo`, opened 2026-08-11 by `.13a`)
 

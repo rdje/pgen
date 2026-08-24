@@ -34,6 +34,50 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.197 / Contract 1.0.197 — SV-CORPUS-GRAD.13e.7 (`PGEN-SV-CORPUS-GRAD-0293`, 2026-08-24), ledger `SV-0070` (`Released`): **THIRTEEN IEEE-1800 SURFACES STILL REACHED THE `verilog_2005` PROFILE (GRAMMAR; `verilog_2005` ONLY — a NARROW; SCHEMA UNCHANGED at 26)**
+
+⛔ **This release narrows one profile and touches nothing else.** Under the strict Verilog-2005
+profile all of the following parsed, and IEEE 1364-2005 derives none of them:
+
+| accepted under `verilog_2005` before `1.0.197` | why the standard does not derive it |
+|---|---|
+| `chandle c;` · `enum { A } e;` · `virtual interface I vi;` | each keyword occurs **0×** in Annex A |
+| `string s;` | A.8.8 `:1218` makes `string` the **literal**, never a data type |
+| `const integer i = 1;` · `var integer i;` · `static integer i;` · `automatic integer i;` | A.2.1.3 `:152` gives a declaration no qualifier and no lifetime |
+| `module automatic m;` · `module static m;` | A.1.2 `:29` has no lifetime in either alternative |
+| `extern module m;` | `extern` occurs 0×; A.1.2 has no extern alternative |
+| `default disable iff x;` | `iff` occurs 0×; A.1.5 `:65` has no such module item |
+| `fork join_any` · `fork join_none` | A.6.3 `par_block:529` — **`join` is the only terminator** |
+| `generate rand integer x;` | `rand` occurs 0×; 1364-2005 has no checker construct |
+| `a.sum with (item)` · `{ << { a } }` | `with` occurs 0×, and there is no streaming operator at all |
+
+**THE POPULATION WAS MEASURED, NOT LISTED — and that is the substantive part of this release.**
+The previous release fixed one over-acceptance found by hand. This one is backed by a new
+instrument, `stimuli/sv/v2005_keyword_faithfulness_census.py`, which crosses profile-filtered
+reachability against IEEE 1364-2005 **Annex B** — a closed, normative keyword list — and then
+adjudicates every candidate on the shipped parser with three independent legs. It read **14
+confirmed over-acceptances out of 24 candidates** before this release and **1** after.
+
+⭐ **`lifetime` itself is NOT gated, and that is the load-bearing distinction.** IEEE 1364-2005
+A.2.6 `:254` and A.2.7 `:275` give `function` and `task` a legitimate `[ automatic ]`. The gate sits
+on the `( lifetime )?` **optional** at the declaration and module-header sites — the `1.0.196`
+idiom — and two accepting controls are pinned to fail if that is ever broken.
+
+⭐ **The streaming concatenation was found outside the census**, because `<<` and `>>` are
+operators and a keyword-level lens cannot see a construct made only of punctuation.
+
+**Consumer impact: none on `sv_2017` / `sv_2023`.** Each gate is a bare pass-through alias and the
+reference site keeps its own return annotation, so no branch index moves and the typed AST is
+byte-identical — the AST-shape contract gate passes 18/18 and the AST-dump schema stays at **26**.
+The recognized cert union moves `total` 1388 → 1401 and `union_witness` 1380 → 1393, both **+13 =
+exactly the rules added**, with `union_unknown` still **0**.
+
+⚠️ **Two known over-acceptances remain on `verilog_2005` and are stated rather than implied**:
+`class_qualifier` as an expression prefix (an IEEE 1800 *nonterminal* PGEN extracted as a keyword —
+the remedy is deletion in every profile, not a profile gate) and `reg [7:0][3:0] r;` (A.2.1.3
+`reg_declaration:172` carries exactly **one** `[ range ]`; a cardinality defect needs an alternative
+split, not a terminal gate). Both stay pinned as watched over-acceptances.
+
 ### 1.0.196 / Contract 1.0.196 — SV-CORPUS-GRAD.13e.4 (`PGEN-SV-CORPUS-GRAD-0288`, 2026-08-24), ledger `SV-0069` (`Released`): **AN INTEGER OR TIME DECLARATION COULD CARRY `signed` / `unsigned` UNDER `verilog_2005` (GRAMMAR; `verilog_2005` ONLY — a NARROW; SCHEMA UNCHANGED at 26)**
 
 ⛔ **This release narrows one profile and touches nothing else.** IEEE 1364-2005 A.2.1.3 spells the
