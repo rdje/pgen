@@ -2592,6 +2592,66 @@ wrongly *accepts*. Only the positive-test path became positional; the existence 
 as it was for the other caller. A predicate serving two questions must be changed for one of them at
 a time.
 
+#### Auditing the EXPECTATION itself — the direction that produces no flag at all
+
+The audit above checks a row's *explanation*. One layer under it sits a question nothing was asking:
+**is the expected verdict right?** The manifest's `basis` column is an instrument like any other, and
+`CORPUS-KEY-AUDIT` exists because nothing was measuring it.
+
+⛔ **The asymmetry is the whole argument, and it is sharper than the `explained` one.** Residual
+burn-down only ever looks at rows already *flagged*. An expectation error in the **accept** direction
+produces no flag at all — it produces a `match`, the strongest verdict in the file. Three rows keyed
+`must_accept` for text IEEE 1364-2005 cannot derive sat at `match` for an entire campaign and were
+found only when the upstream compiler's own words were enumerated instead of grepped for one phrase
+(they became bug-ledger `SV-0068`). So the population this lane audits is, by construction, invisible
+to the lane that precedes it.
+
+**The mechanical question is contradiction.** A corpus large enough to disagree with itself is an
+oracle you already own: group keyed rows by the upstream messages their key reads, and flag any
+message class whose rows disagree about `must_accept` versus `must_reject`. The founding case was
+found by hand — two files using the **same** operator (`~&` as a binary) carried **opposite**
+expectations, and the difference was an `iverilog` command-line flag the key never read.
+
+⭐ **The refinement that matters: a row's deciding evidence is read from the KEY, never from the
+PARSER.** The census's first cut attributed *every* message in a golden to the row's single verdict,
+which manufactures a disagreement whenever a file was pinned for a reason unrelated to most of what
+its golden says — a **100 % false-positive rate**, 2 of 2. The obvious fix, narrowing to the message
+the parser's own `furthest_position` lands on, was measured before it was built and rejected twice
+over: it does not reach the candidates (one row is pinned at line 3 while its only golden message
+sits at line 6), and asking the parser under test to interpret its own answer key is not evidence
+about either. The `basis` string already records what the key read:
+
+| provenance | what the basis says | what the row attributes |
+|---|---|---|
+| clause-cited | names an IEEE clause / Annex A production / an LRM line | **nothing** — the clause decided it, and the spec outranks tool testimony |
+| quoted decider | quotes it verbatim, `PARSE-stage refusal ('…')` | only the golden messages containing that fragment |
+| whole-golden | a `must_accept` key | every message — the claim *is* that each one is post-parse |
+
+That reading takes the census from 2 contradictions to **0**, and it comes with a second check for
+free: a basis quoting evidence its own golden does not contain is a key that contradicts itself.
+Such a row is reported *and* keeps the widest attribution, so a broken quote can never silence a row.
+
+⛔ **And the extractor was blind, which is the sharper half.** The census's message regex required a
+literal `error:`/`sorry:` tag — but Icarus emits its bare parse refusal untagged
+(`./ivltests/br_gh79.v:6: syntax error`). The one class that most directly answers a parse-stage
+question was therefore **absent from the vocabulary the founding number was measured over**, along
+with `Net data type requires SystemVerilog or -gxtypes.`, the dialect-gate class that had just caught
+the key mis-reading a row. Corrected, the vocabulary is 176 classes instead of 168 — and six of the
+eleven quoted deciders had been unresolvable purely because of that blindness, i.e. the integrity
+check would have reported instrument blindness as key defects.
+
+⚠️ **The result ships with its own power bound, because `0` reads far stronger without one.** A
+contradiction needs a class on **both** sides, so the census only ever reaches the intersection:
+after attribution the reject side is **4 classes** wide against **124** on the accept side. The row
+worth having is `syntax error` — a `must_accept` row whose golden carried the upstream's own bare
+parse refusal would be a near-certain key defect, and that question was *unaskable* rather than
+answered until the extractor was fixed. It is now asked over all 479 accept rows, and the answer is
+zero.
+
+The instrument is `docs/tasks/artifacts/corpus_key_audit/key_contradiction_census.py` (0.24 s over
+the whole population); `--self-test` runs five corpus-independent arms that prove the detector goes
+RED, and that the clause exclusion — not luck — is what turns it green.
+
 #### The denominator — what fraction of the corpus was asked a question it could answer?
 
 Everything above counts **divergences**. That answers *how many defects do we know about* and is

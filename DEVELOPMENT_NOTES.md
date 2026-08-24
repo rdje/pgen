@@ -1,5 +1,59 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-24 - PGEN-CORPUS-KEY-AUDIT-0002 — I was handed a plan by my own past self, and the first honest thing to do was measure whether it works
+
+**1. THE LEAF TOLD ME EXACTLY WHAT TO BUILD, AND IT WAS WRONG.** `.1`(a) read: *"attribute a row to
+its deciding message — the one the parser's own `furthest_position` lands on"*. That is a specific,
+plausible, tool-flavoured instruction written one commit earlier by me, and the temptation is to
+execute it. Measuring it first took ten minutes and killed it twice: `br_gh1087b` is pinned at
+**line 3** while the only message in its golden sits at **line 6**, so positional narrowing finds
+nothing to attribute and falls straight back to the whole golden — the false positive survives. And
+it is **circular**: the census exists to audit the answer key, and the answer key is what tells the
+parser whether it is right. ⭐ **A plan in a task leaf is a hypothesis, not an instruction.** The
+toolbox-first rule is usually invoked against *guessing a root cause*; this is the same rule
+pointing at a *proposed fix*, and it has the same answer — measure before you build.
+
+**2. THE EVIDENCE WAS ALREADY WRITTEN DOWN, IN THE ARTIFACT I WAS AUDITING.** Every `must_reject`
+row's basis either cites a clause (`IEEE 1364-2005 A.2.1.3 …`) or quotes the upstream message it
+read (`PARSE-stage refusal ('Missing task/function port direction.')`). The key **records its own
+provenance**, and the whole attribution problem dissolves into reading it. `pr1704726a`'s basis even
+states the ranking: *"spec outranks the ivtest driver key"*. ⇒ before building a second oracle to
+interpret an instrument, check whether the instrument already testifies about itself.
+
+**3. THE FINDING THAT MATTERS IS NOT THE ONE THE LEAF WAS ABOUT.** Checking whether each quoted
+fragment actually appears in its golden — a throwaway sanity probe on the way to the real work — came
+back **hit 5 / miss 6**. Six rows quoting `'syntax error'` against goldens that visibly contain
+`./ivltests/br_gh79.v:6: syntax error`. The key was fine; **my regex** required a literal
+`error:`/`sorry:` tag and iverilog emits its bare parse refusal untagged. ⛔ So the founding
+`messages=168` was measured over a vocabulary **missing the single class that most directly answers
+a parse-stage question** — and missing `Net data type requires SystemVerilog or -gxtypes.`, the
+dialect-gate class the previous leaf had just caught the key mis-reading. The tree exists to catch
+instruments that are wrong in the flattering direction; its own instrument was one, for a commit.
+⇒ **a "fishy" side-result is the finding. Do not classify it and move on** — six misses could have
+been written off as *"the key quotes loosely"*, and that sentence would have been the end of it.
+
+**4. THE SECOND DERIVATION EARNED ITS KEEP, AND NOT WHERE I EXPECTED.** The three-way rule says
+re-derive by command. The census printed `0` and I could have stopped. Comparing the *rendered
+artifact* against an independent probe showed the power-bound table reporting `0` rows on **both**
+sides for **every** class — it was reading the contradictory subset instead of the full attribution,
+i.e. a table silently claiming the census had no reach at all. The headline was right; the table
+below it was not. ⇒ **verify the published surface, not just the headline number.** A gate that
+only checks the tuple would have shipped that table.
+
+**5. WHY THE POWER BOUND IS IN THE ARTIFACT AND NOT IN A NOTE.** After attribution the reject side
+is **4 classes** against 124 on the accept side. `0 contradictions` over a 4-class reject side is a
+much weaker statement than `0` alone implies, and the difference is exactly the kind a reader cannot
+reconstruct. The strongest single check inside it — *does any `must_accept` row's golden contain the
+upstream's own bare `syntax error`?* — is genuinely worth having, answers **0 of 479**, and was
+**unaskable** rather than answered one commit ago. Publishing the ratio beside the zero is what
+keeps those two facts from being read as the same fact.
+
+**6. WHAT I DID NOT DO.** No gate invokes this census. I priced it (0.242 s), decided it should be
+gated, and opened `.1`(e) rather than widening this slice — but the honest statement today is that
+verification leg 3 (durability) is **named, not satisfied**. `CI-PARITY-GATE-ROT.44` is already the
+standing example of a tracked instrument nothing runs; leaving a second one would be repeating a
+defect I have written down.
+
 ## 2026-08-24 - PGEN-CORPUS-KEY-AUDIT-0001 — the lane's own founding number tried to inflate itself on day one
 
 **1. I BUILT THE CENSUS AND IT IMMEDIATELY OFFERED ME A BETTER HEADLINE THAN IT HAD EARNED.**
