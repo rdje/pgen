@@ -26,7 +26,7 @@ it, or a generated sample witnesses it **through the real generated parser** —
 ⛔ **It is not a correctness claim about the language.** A certified grammar can still accept invalid
 input or reject valid input; that is the *corpus* axis, tracked per family in
 [Roadmap and Live Status](roadmap-and-live-status.md). SystemVerilog's corpus axis currently reads
-**46.3 % adjudicated** with **275** known defects.
+**46.3 % adjudicated** with **274** known defects.
 
 ## Status
 

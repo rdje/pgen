@@ -186,6 +186,15 @@ from scratch next time, per this tree's own §Phase-2.5 discipline.
   strictly stronger than correcting the digits. What it does NOT do is stop the next stored copy of
   the next derived quantity, which is why this leaf exists rather than the instance being closed.
 
+- ID: `LIVE-DOC-CONTAINMENT.8`
+  Status: `todo` — ⛔ **ROUTED, NOT WORKED** (opened 2026-08-24 by `SV-CORPUS-GRAD.13e.4`,
+  `PGEN-SV-CORPUS-GRAD-0288`). The SV lane lock binds work rather than conversation, so this is
+  parked here with its measurement rather than fixed in an SV commit.
+  Goal: `A TRACKED MARKDOWN TABLE SILENTLY DROPS CELLS, AND 25 ROWS OF THE RELEASED-PARSER BUG LEDGER ARE DOING IT NOW.` GFM's table rule is that a row with MORE cells than the header has the excess **ignored** — not rendered, not warned about. `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` declares **13** columns, and a census of its 192 data rows (splitting on unescaped `|` only) finds **25 rows — 13 % — carrying 14 to 37**. Every one of them is losing its rightmost cells in the rendered book, and the rightmost column is **Notes**, which is where the consumer-impact statement lives. ⇒ a downstream reader of the ledger is being shown a row whose *"what this means for you"* was deleted by the renderer.
+  Routing_evidence: `MEASURED, not inferred. The census is one command over the tracked file; the offenders are REGEX-0003/0010/0016/0035/0036/0037/0038/0039/0040/0064/0068/0099/0105/0106/0108/0112 and SV-0008/0034/0035/0042/0043/0047/0048/0050/0052, with REGEX-0105 at 37 columns. ⭐ FOUND BY WRITING ONE: `.13e.4` authored the SV-0069 row by copying the shape of its immediate neighbour SV-0068 — which was itself 14 columns — so the defect REPRODUCED ITSELF THROUGH IMITATION, which is how it reached 25. Both of those rows were repaired in -0288 (cells 11+12 merged into the single Fix Proof column the header declares); the other 23 are this leaf's. ⛔ The two causes are DIFFERENT and a fix must not conflate them: an unescaped `|` inside PROSE (a grammar alternation quoted in a Root Cause cell) needs escaping, while a genuine extra CELL means the author invented a column. Only reading each row separates them, which is why this is a leaf and not a sed.`
+  Acceptance: `(a) every data row in every tracked contract/ledger table has exactly the column count its own header declares, measured by a re-runnable census that splits on unescaped pipes; (b) the census is WIRED — an arity check belongs with the other live-doc guards, because this defect is invisible to every existing one: it breaks no build, fails no gate, and the rendered page looks fine (the missing cell leaves no gap); (c) the check is two-sided — a row with FEWER cells than the header is padded silently by GFM and is equally a defect, so it must fail too; (d) prove the control can go RED on a real pre-fix row replayed from git.`
+  Blocked_by: `the SV lane lock (director 2026-08-21, "focus on the SV lanes"). Nothing technical.`
+
 ## Deferred / transition debt (honest, per the doctrine's own §Phase-2.5)
 
 ⛔ NOT adopted in this pass, recorded rather than silently skipped: the full Phase-2 registry data

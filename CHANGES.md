@@ -1,5 +1,92 @@
 # CHANGES.md
 
+## 2026-08-24 - PGEN-SV-CORPUS-GRAD-0288 (leaf SV-CORPUS-GRAD.13e.4 DONE — `integer signed` / `time signed` no longer parse under `verilog_2005`; GRAMMAR tier, ledger `SV-0069`, release `1.0.196`, AST schema `26` unchanged): the leaf's own routing evidence understated the defect twice, and one command said so each time
+
+- ⛔ **THE DEFECT.** IEEE 1364-2005 A.2.1.3 is `integer_declaration ::= integer
+  list_of_variable_identifiers ;` (`…Annex_A…txt:152`) and `time_declaration ::= time
+  list_of_variable_identifiers ;` (`:174`); A.2.8's block forms (`:314`/`:315`) are the same shape.
+  Neither `signing` nor `integer_atom_type` appears **anywhere** in that Annex — signing on an
+  integer ATOM is IEEE 1800 A.2.2.1 only. PGEN carried the IEEE 1800 spelling
+  `integer_atom_type ( signing )?` with **no `@profiles` gate**, so `integer unsigned u;` parsed as
+  plain Verilog on a strict-1364-2005 profile. Over-acceptance is a defect.
+- ⛔⛔ **THE ROUTING EVIDENCE WAS WRONG ABOUT ITS OWN SIZE, TWICE.** It named one spelling at one
+  site. `integer_atom_type` admits exactly `integer` **and `time`** under `verilog_2005`, so
+  `time signed t;` is the same defect; and `grep -n 'signing'` returned a **second** byte-identical
+  site, `block_data_type:2077`, reached from `block_item_declaration`. Ten accepting spellings in
+  total, across module, block, `function` and `task` scope. ⇒ **grep the SHAPE, not the rule you
+  were sent to** — a leaf's routing evidence records what a past session could see.
+- ⭐⭐ **THE GATE GOES ON THE OPTIONAL, NOT ON THE ALTERNATIVE — and that is the difference from
+  `SV-0068` one leaf earlier.** The invited fix was the idiom that had just worked: split the
+  `data_type` alternative into `_sv_only` / `_v2005` variants. Wrong here, for a specific reason:
+  `integer_atom_type` **must** stay reachable under `verilog_2005`, because that admission is
+  exactly what makes plain `integer i;` parse. Only the `( signing )?` beside it is IEEE-1800-only.
+  One new rule — `integer_atom_signing_sv_only := signing`, `@profiles: ["sv_2017", "sv_2023"]`,
+  referenced *inside* the optional at both sites — adds no alternative, moves no branch index, and
+  leaves `signing: $2` in its slot, simply always absent under `verilog_2005`. ⭐ Not a new idiom
+  either: `hierarchical_identifier` has shipped `( hierarchical_root_prefix_sv_only )?` for a long
+  time. **The precedent you reach for first is the most recent one, not the most similar one.**
+- ⭐⭐ **THE INTERPRETER PROVED THE THING MOST LIKELY TO BE WRONG, BEFORE ANY CODEGEN.** A bare
+  pass-through `X := Y` is exactly the shape that could quietly add a wrapper level to the typed
+  AST, and `block_data_type`'s alternative carries **no** `->` annotation, so its return is
+  structural and maximally exposed. `--interpret-parse-ast-json` on the old and new grammars over
+  **11** sv_2017 inputs returned **byte-identical** JSON every time, in seconds. The ~40-minute
+  regenerate + release-probe cycle was then paid **once**, for a grammar already known correct in
+  both directions.
+- ⛔ **AND THE CORPUS COULD NOT HAVE FOUND IT — MEASURED.** A basename join of the 2 606-row
+  `verilog_2005` lane manifest against every corpus file containing `integer|time` + a signing
+  keyword returns **exactly one** row (`partsel_outside_expr.v`, already `fail`/`must_reject`/`match`
+  for an unrelated `'x`). The whole defect moves **zero** corpus rows. ⇒ **a corpus of code written
+  to be COMPILED is structurally blind to accepts-invalid defects** — nobody hands
+  `integer unsigned` to a 1364-2005 tool, which is why the tool never complained and why the row
+  never existed.
+- ⭐⭐ **SIZING THE POPULATION WAS THE HIGHEST-YIELD PART OF THE LEAF.** One probe per construct,
+  verdict **plus the AST slot the text lands in**, cross-checked on the shipped release probe:
+  **nine more live `verilog_2005` over-acceptances** — `enum`, `string`, `chandle`,
+  `virtual interface`, `const`, `var`, `automatic`, `static`, and a second packed dimension on
+  `reg` — against four that are correctly gated already (`struct`, `int`, `logic`, `shortreal`).
+  They are not nine bugs but one: `data_declaration_sv_2017` is `@profiles: ["sv_2017",
+  "verilog_2005"]` and its first alternative is the whole IEEE 1800 declaration shape. Routed as
+  **`.13e.7`** rather than bundled — it is a structural decision that moves the `verilog_2005` cert
+  baseline, whereas this fix moves one optional.
+- ⭐ **GUARDED IN TWO PLACES, DELIBERATELY.** Three `accepts_invalid` rows + three controls in
+  `stimuli/sv/adjudication_repros/` (the burn-down ratchet, which went **RED** with
+  `expect=ACCEPT got=REJECT` on the regenerated parser and was then flipped to `invalid` — the
+  designed "flip it, the fix landed" signal, observed rather than assumed), **and** five two-sided
+  cases in `verilog_2005_conformance` (`reject/` = reject under v2005 + accept under both SV
+  profiles). The second home is not redundancy: `CI-PARITY-GATE-ROT.44` measured that
+  `run_adjudication_repros.py` is invoked by **no** gate, make target or workflow, so the
+  conformance corpus is where this defect is actually *gated*.
+- ⭐ **The `arm` claims were proven able to fail**, not assumed: swapping
+  `control_v2005_reg_signed_range.sv`'s claim to `integer_atom>signed` makes the runner report
+  `expect=ACCEPT got=ACCEPT` **and fail on the arm** — the verdict right, the route wrong. Restored.
+- ⛔⛔ **`PARSE-COST-RATCHET` WENT RED, AND ATTRIBUTING IT WAS THE REAL WORK OF THE SLICE.** The
+  north star REJECTS cost rather than trading it, and a profile gate is not free: binding
+  `entries 415,030,726 → 415,031,629` (**+903**) and `committed 6,759,589 → 6,759,697` (**+108**).
+  ⭐ Differencing the two `rule_costs.tsv` attributes it **to the digit**: **exactly one** rule
+  appears (`integer_atom_signing_sv_only`, `entries=903 committed=108 memo_hits=0`), **zero** rules
+  are removed, and **zero** pre-existing rules rise *or fall* on either binding counter.
+  `signing`'s own counters are unchanged ⇒ **the work did not grow, the call chain did.** Recorded
+  as irreducible under the existing coded invariant `profile_split_respelling` — expressing a
+  profile-conditional *sub-expression* in this engine requires naming a rule, so one dispatcher
+  entry per attempt is the standing structural cost of the `@profiles` idiom. ⭐⭐ **The gate then
+  RE-DERIVED the invariant on its own run** rather than trusting the acceptance row.
+- ⭐⭐ **A LEDGER ROW I WROTE BY IMITATION INHERITED A RENDERING DEFECT — AND THE CENSUS FOUND 25.**
+  `PGEN_RELEASED_PARSER_BUG_LEDGER.md` declares **13** columns; GFM *silently ignores* a row's
+  excess cells. `SV-0068` carries **14**, so its rightmost column — **Notes**, the consumer-impact
+  statement — has never rendered. Copying its shape gave `SV-0069` the same defect. Both repaired;
+  a census of all 192 data rows then found **25 (13 %)** overflowing, `REGEX-0105` at **37**.
+  ⇒ **a defect that propagates by imitation reaches everything shaped like its host**, and this one
+  is invisible to every existing guard: it breaks no build, fails no gate, and the rendered page
+  looks fine because a dropped cell leaves no gap. Routed as `LIVE-DOC-CONTAINMENT.8`.
+- ⭐ **A LIVE PUBLISHED NUMBER WAS ALREADY STALE, ONE COMMIT OLD.**
+  `docs/book/src/grammar-certification-status.md` said SystemVerilog's corpus axis *"currently reads
+  … **275** known defects"* while the denominator doctrine derived **274**. It went stale in the
+  immediately preceding commit. Cause: `check_sv_corpus_denominator.sh`'s `LIVE_SURFACES` is a
+  hand-written list of **one** page, so a second page publishing the same number is invisible to it.
+  ⇒ this leaf's thesis has a dual worth naming: *live vs historical is indistinguishable* is one
+  half; **a watch list enumerated by hand is a claim about the whole repository that nothing
+  re-derives** is the other. Corrected forward; the class recorded under `.13c.2x.8`.
+
 ## 2026-08-24 - PGEN-CORPUS-KEY-AUDIT-0006 (leaf CORPUS-KEY-AUDIT.2 CORRECTION under director challenge — the BAR is a different population from the KEY; instrument tier, ZERO grammar / Rust / codegen / generated bytes): 90.5 %, not 93.8 %, is the number that belongs to the shipped bar
 
 - ⛔⛔ **CORRECTION TO `-0004`'s PUBLISHED CLAIM.** It said the trust bound *"applies directly to the

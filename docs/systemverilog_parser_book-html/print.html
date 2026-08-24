@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-21d58e08.js";
+            window.path_to_searchindex_js = "searchindex-71f0d235.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -1978,6 +1978,51 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10196--contract-10196--sv-corpus-grad13e4-pgen-sv-corpus-grad-0288-2026-08-24-ledger-sv-0069-released-an-integer-or-time-declaration-could-carry-signed--unsigned-under-verilog_2005-grammar-verilog_2005-only--a-narrow-schema-unchanged-at-26"><a class="header" href="#10196--contract-10196--sv-corpus-grad13e4-pgen-sv-corpus-grad-0288-2026-08-24-ledger-sv-0069-released-an-integer-or-time-declaration-could-carry-signed--unsigned-under-verilog_2005-grammar-verilog_2005-only--a-narrow-schema-unchanged-at-26">1.0.196 / Contract 1.0.196 — SV-CORPUS-GRAD.13e.4 (<code>PGEN-SV-CORPUS-GRAD-0288</code>, 2026-08-24), ledger <code>SV-0069</code> (<code>Released</code>): <strong>AN INTEGER OR TIME DECLARATION COULD CARRY <code>signed</code> / <code>unsigned</code> UNDER <code>verilog_2005</code> (GRAMMAR; <code>verilog_2005</code> ONLY — a NARROW; SCHEMA UNCHANGED at 26)</strong></a></h3>
+<p>⛔ <strong>This release narrows one profile and touches nothing else.</strong> IEEE 1364-2005 A.2.1.3 spells the
+two declarations plainly — <code>integer_declaration ::= integer list_of_variable_identifiers ;</code> and
+<code>time_declaration ::= time list_of_variable_identifiers ;</code> — and A.2.8’s block forms are the same
+shape. Neither <code>signing</code> nor <code>integer_atom_type</code> appears <strong>anywhere</strong> in that Annex; signing on an
+integer atom is IEEE 1800 A.2.2.1 only. PGEN spelled the rule the way <strong>IEEE 1800</strong> does,
+<code>integer_atom_type ( signing )?</code>, with no profile gate and at <strong>two</strong> sites, so under the strict
+Verilog-2005 profile <code>integer unsigned u;</code>, <code>integer signed i;</code>, <code>time signed t;</code> and
+<code>time unsigned t;</code> all parsed — at module scope, inside a named block, in a <code>function</code> and in a
+<code>task</code>. Ten spellings the standard cannot derive.</p>
+<p><strong>THE FIX GATES THE OPTIONAL, NOT THE ALTERNATIVE — and that is the difference from <code>1.0.195</code>.</strong>
+<code>integer_atom_type</code> <strong>must</strong> remain reachable under <code>verilog_2005</code>: that admission is exactly what
+makes plain <code>integer i;</code> and <code>time t;</code> parse. So the profile split that fixed the task-port defect
+one release earlier is the wrong instrument here. Instead a single new rule,
+<code>integer_atom_signing_sv_only := signing</code> gated to <code>sv_2017</code>+<code>sv_2023</code>, is referenced <em>inside</em> the
+optional at both sites. No <code>data_type</code> alternative is added, no branch index moves, and the
+<code>signing</code> field keeps its place in the AST — it is simply always absent under <code>verilog_2005</code>.</p>
+<p><strong>MEASURED, in both directions and both editions.</strong> Under <code>verilog_2005</code> all ten illegal spellings
+now REJECT, while everything the standard does derive still parses — <code>integer i;</code>, <code>time t;</code>,
+<code>integer j = 1;</code>, <code>reg signed [7:0] r;</code>, <code>real</code>, <code>realtime</code>, <code>event</code>, and the block-scope forms.
+Under <code>sv_2017</code> and <code>sv_2023</code> every one of those spellings still ACCEPTS. The typed AST was proven
+<strong>byte-identical</strong> across the change on eleven SystemVerilog inputs before any code was generated.
+Gates: <code>ast_shape_contract_gate</code> <strong>18/18, drift 0</strong>; <code>verilog_2005_conformance_gate</code> <strong>GREEN</strong> —
+<strong>255</strong> file×profile checks / <strong>0 mismatches</strong> (fifteen of them new and two-sided: reject under
+Verilog-2005, accept under both SystemVerilog profiles), <code>profile_orphans=0</code>, and certificate
+coverage <strong>byte-identical to the previous baseline</strong> at seeds 0/7/42;
+<code>sv_cert_recognized_union_gate</code> <strong>GREEN</strong> — canonical <code>UNKNOWN=11</code>, <strong>union <code>UNKNOWN=0</code>, residual
+<code>[]</code></strong>; <code>sv_external_corpus_triage_gate</code> <strong>14/14, <code>parse_fail_total=0</code></strong>.</p>
+<p>⭐ <strong>The external corpus moved ZERO rows, and that is the finding rather than a disappointment.</strong>
+Both raw outcome files and both adjudication manifests are byte-identical across the change, against
+a freshly re-measured run whose recorded parser and grammar hashes both moved. A corpus of code
+written to be <em>compiled</em> cannot see this class of defect: nobody hands <code>integer unsigned</code> to a
+Verilog-2005 tool, so no tool ever complained and no corpus row ever existed. The defect was found by
+reading the standard against the grammar, not by burning down a residual.</p>
+<p><strong>NO consumer migration, and the schema does not move.</strong> <code>sv_2017</code> and <code>sv_2023</code> are unchanged in
+accept set <em>and</em> in AST. On <code>verilog_2005</code>, code that relied on the signing was relying on
+SystemVerilog, and the fix is to drop it — IEEE 1364-2005 gives <code>integer</code> and <code>time</code> no signed form.</p>
+<p>⚠️ <strong>What is still over-accepted here, stated rather than left to be discovered:</strong>
+<code>enum integer signed { A } e;</code> still parses under <code>verilog_2005</code>, because <code>enum_base_type</code> carries
+its own optional signing and the whole <code>enum</code> construct is a <em>separate</em> over-acceptance on that
+profile — gating the signing inside it would fix a leaf of a branch that has to be removed whole.
+Eight further constructs were measured accepting under <code>verilog_2005</code> and are open, not overlooked:
+<code>string</code>, <code>chandle</code>, <code>virtual interface</code>, <code>const</code>, <code>var</code>, <code>automatic</code>, <code>static</code>, and a second packed
+dimension on <code>reg</code>. IEEE 1364-2005 <code>function_port_list</code> also still admits an <code>output</code>. All are
+tracked leaves.</p>
 <h3 id="10195--contract-10195--sv-corpus-grad13e5-pgen-sv-corpus-grad-0287-2026-08-24-ledger-sv-0068-released-a-task-or-function-port-item-could-start-with-no-direction-under-verilog_2005-grammar-verilog_2005-only--a-narrow-schema-unchanged-at-26"><a class="header" href="#10195--contract-10195--sv-corpus-grad13e5-pgen-sv-corpus-grad-0287-2026-08-24-ledger-sv-0068-released-a-task-or-function-port-item-could-start-with-no-direction-under-verilog_2005-grammar-verilog_2005-only--a-narrow-schema-unchanged-at-26">1.0.195 / Contract 1.0.195 — SV-CORPUS-GRAD.13e.5 (<code>PGEN-SV-CORPUS-GRAD-0287</code>, 2026-08-24), ledger <code>SV-0068</code> (<code>Released</code>): <strong>A TASK OR FUNCTION PORT ITEM COULD START WITH NO DIRECTION UNDER <code>verilog_2005</code> (GRAMMAR; <code>verilog_2005</code> ONLY — a NARROW; SCHEMA UNCHANGED at 26)</strong></a></h3>
 <p>⛔ <strong>This release narrows one profile and touches nothing else.</strong> IEEE 1364-2005 A.2.7 spells
 <code>task_port_item</code> as one of exactly three <code>tf_*_declaration</code>s, and each of those begins with its
@@ -2018,7 +2063,8 @@ direction the standard requires.</p>
 <p>⚠️ <strong>What is still over-accepted here, stated rather than left to be discovered:</strong> IEEE 1364-2005
 <code>function_port_list</code> admits <strong>only</strong> <code>tf_input_declaration</code>, so <code>function f(output integer b);</code>
 remains accepted under <code>verilog_2005</code>; and <code>integer signed</code> / <code>integer unsigned</code> — which A.2.1.3 does
-not admit either — is tracked separately. Both are open leaves, not oversights.</p>
+not admit either — was tracked separately and is <strong>fixed in <code>1.0.196</code></strong> above (ledger <code>SV-0069</code>).
+The <code>function_port_list</code> half is still an open leaf, not an oversight.</p>
 <h3 id="10194--contract-10194--engine-universal-services43-pgen-engine-universal-services-0081-2026-08-21-ledger-sv-0067-released-crossing-the-recursion-ceiling-hung-instead-of-failing-engine-all-profiles-zero-grammar-bytes-schema-unchanged-at-26"><a class="header" href="#10194--contract-10194--engine-universal-services43-pgen-engine-universal-services-0081-2026-08-21-ledger-sv-0067-released-crossing-the-recursion-ceiling-hung-instead-of-failing-engine-all-profiles-zero-grammar-bytes-schema-unchanged-at-26">1.0.194 / Contract 1.0.194 — ENGINE-UNIVERSAL-SERVICES.43 (<code>PGEN-ENGINE-UNIVERSAL-SERVICES-0081</code>, 2026-08-21), ledger <code>SV-0067</code> (<code>Released</code>): <strong>CROSSING THE RECURSION CEILING HUNG INSTEAD OF FAILING (ENGINE; all profiles; ZERO GRAMMAR BYTES; SCHEMA UNCHANGED at 26)</strong></a></h3>
 <p>⛔ <strong>This release changes no language and no AST shape. It changes whether the parser RETURNS.</strong> ~4 KB of legal-looking SystemVerilog — a deeply parenthesised expression — made the shipped parser run without producing a verdict at all. Measured on the release probe: <strong>315</strong> nested parens accepted in 0.15 s, <strong>316</strong> in 0.23 s, <strong>317</strong> in <strong>4.90 s</strong>, and <strong>318 returned nothing in 30 s</strong>. On the embedding path — the vehicle this parser ships to downstream consumers on — that is an unbounded hang holding the caller’s thread, and it is <em>worse</em> than the process abort <code>1.3.1</code> (<code>SV-CORPUS-GRAD.8c.3</code>) replaced: a crash fails fast and loud, a hang does not.</p>
 <p><strong>ROOT CAUSE — one field was carrying two kinds of fact.</strong> <code>SV-CORPUS-GRAD.3.12</code> routes every recursion-guard verdict through one field, a parse-stack <strong>frame index</strong>, and refuses to cache a FAILURE whose block came from a frame outside the memoized rule (correct: that outcome depends on the caller’s stack, which the memo key <code>(rule, position)</code> does not carry). <code>Infinite</code> and <code>LeftRecursive</code> genuinely name a frame. The whole-stack DEPTH CEILING names none, so it passed <code>0</code> — the index outside <strong>every</strong> rule — which makes that gate true for every rule at <code>entry_depth &gt;= 2</code>. ⇒ <strong>one trip of the ceiling disabled FAILURE memoisation for the entire remaining parse</strong>, and the packrat parse degenerated into exponential backtracking over the expression cascade’s alternative fan-out.</p>

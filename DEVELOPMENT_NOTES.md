@@ -1,5 +1,58 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-24 - PGEN-SV-CORPUS-GRAD-0288 — the leaf that sent me was wrong about its own size, twice, and both times one command said so
+
+**1. THE ROUTING EVIDENCE NAMED ONE SPELLING AT ONE SITE. IT WAS FOUR SPELLINGS AT TWO SITES.**
+`.13e.4` was opened with `integer signed` / `integer unsigned` under `verilog_2005`, root-caused to
+`data_type`'s `integer_atom_type ( signing )?`. Both extensions came from asking the grammar rather
+than re-reading the leaf. `integer_atom_type` has three alternatives and exactly two survive the
+`verilog_2005` filter — `kw_integer` and `kw_time` — so `time signed t;` is the same defect, and
+IEEE 1364-2005 A.2.1.3:174 says so as plainly as :152 does. Then `grep -n 'signing'` on the grammar
+returned **two** occurrences of the byte-identical shape: `data_type:2099` and
+`block_data_type:2077`, the second reached from `block_item_declaration`, where A.2.8:314 is equally
+signing-free. ⇒ **grep the SHAPE, not the rule you were sent to** — a leaf's routing evidence
+records what a past session could see, and a fix scoped to it inherits its blind spot.
+
+**2. THE `.13e.5` IDIOM WAS THE WRONG IDIOM, AND THE REASON IS SPECIFIC.** The obvious move was the
+one that had just worked: split the alternative into `_sv_only` / `_v2005` variants. That is wrong
+here because `integer_atom_type` **must remain reachable under `verilog_2005`** — that admission is
+precisely what makes plain `integer i;` parse — so the thing to gate is not the alternative but the
+`( signing )?` beside it. Wrapping the OPTIONAL in a profile-gated alias
+(`integer_atom_signing_sv_only := signing`, `@profiles: ["sv_2017","sv_2023"]`) is a one-rule change
+that adds no `data_type` alternative, moves no branch index, and leaves `signing: $2` in its slot,
+simply always absent under `verilog_2005`. ⭐ It is not a novel idiom either: `hierarchical_identifier`
+has shipped `( hierarchical_root_prefix_sv_only )?` for a long time, and
+`--dump-rule-profiles` confirms it keeps the parent satisfiable under all three profiles. **The
+precedent you reach for first is the most recent one, not the most similar one.**
+
+**3. THE INTERPRETER DID NOT JUST SAVE TIME — IT PROVED THE THING MOST LIKELY TO BE WRONG.** A bare
+pass-through `X := Y` is exactly the shape that could quietly add a wrapper level to the typed AST,
+and `block_data_type`'s alternative carries **no** `->` annotation, so its return is structural and
+therefore maximally exposed. `--interpret-parse-ast-json` on the old and new grammars over 11
+sv_2017 inputs — including the block, function and enum-base paths — returned **byte-identical**
+JSON every time, in seconds, before a single line of Rust was compiled. The regenerate + release
+build (~40 min here) was then paid once, for a grammar already known to be right in both directions.
+
+**4. AND THE CORPUS COULD NOT HAVE FOUND ANY OF IT — MEASURED, NOT ASSERTED.** A basename join of
+the 2 606-row `verilog_2005` lane manifest against every corpus file containing `integer|time` +
+a signing keyword returns **exactly one** row, `partsel_outside_expr.v`, already
+`fail`/`must_reject`/`match` for an unrelated `'x`. So the whole defect moves **zero** corpus rows.
+⇒ a corpus of code written to be *compiled* is structurally blind to accepts-invalid defects: nobody
+hands `integer unsigned` to a 1364-2005 tool, which is exactly why the tool never complained and
+exactly why the row never existed. The same asymmetry `CORPUS-KEY-AUDIT` was chartered for, arriving
+from the other side.
+
+**5. SIZING THE POPULATION WAS THE HIGHEST-YIELD PART OF THE LEAF, AND IT WAS THE OWED ITEM I
+ALMOST TREATED AS PAPERWORK.** `.13e.4`(a) asked which other `sv_2017`-shaped `data_type`
+alternatives reach `verilog_2005`. One probe per construct, verdict plus the AST slot the text lands
+in: **nine** more live over-acceptances (`enum`, `string`, `chandle`, `virtual interface`, `const`,
+`var`, `automatic`, `static`, and a second packed dimension on `reg`) and four that are correctly
+gated already. The nine are not nine bugs — they are one: `data_declaration_sv_2017` is
+`@profiles: ["sv_2017", "verilog_2005"]` and its first alternative is the whole IEEE 1800
+declaration shape. Routed as `.13e.7` rather than bundled, because that is a structural decision
+about the declaration rule and it moves the `verilog_2005` cert baseline, whereas this leaf's fix
+moves one optional.
+
 ## 2026-08-24 - PGEN-CORPUS-KEY-AUDIT-0005 — the cheapest fix in the lane, and it still had a way to be wrong
 
 **1. THE CHOICE WAS BETWEEN A CONTRACT CHANGE AND A POINTER, AND THE POINTER WINS ON A REASON THAT

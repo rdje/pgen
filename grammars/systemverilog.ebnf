@@ -2074,7 +2074,11 @@ scoped_block_covergroup_identifier := scoped_covergroup_type_identifier
 
 block_data_type := integer_vector_type ( signing )? packed_dimension*
                 -> {base: $1, signing: $2, dims: $3}
-                 | integer_atom_type ( signing )?
+                 # SV-CORPUS-GRAD.13e.4 (SV-0069): the block form of the integer/time signing
+                 # gate — IEEE 1364-2005 A.2.8 `:314`/`:315` are `integer`/`time
+                 # list_of_block_variable_identifiers ;` with no signing either. See
+                 # `integer_atom_signing_sv_only` for the full rationale.
+                 | integer_atom_type ( integer_atom_signing_sv_only )?
                  | non_integer_type
                  | @sample: "struct { int a; }" struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension*
                  | @sample: "enum { A }" kw_enum_e338e8e3 ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension*
@@ -2096,7 +2100,10 @@ block_data_type_or_implicit := block_data_type    -> {kind: "block_data",     bo
 
 data_type := @probe_sample: "int" integer_vector_type ( signing )? packed_dimension*
                   -> {kind: "integer_vector",        base: $1, signing: $2, dims: $3}
-           | integer_atom_type ( signing )?
+           # SV-CORPUS-GRAD.13e.4 (SV-0069): `integer_atom_type` STAYS reachable under
+           # `verilog_2005` (that admission is what makes plain `integer i;` work); only the
+           # optional `signing` beside it is IEEE-1800-only. See `integer_atom_signing_sv_only`.
+           | integer_atom_type ( integer_atom_signing_sv_only )?
                   -> {kind: "integer_atom",          base: $1, signing: $2}
            | non_integer_type
                   -> {kind: "non_integer",           base: $1}
@@ -5659,6 +5666,29 @@ showcancelled_declaration := kw_showcancelled_ac9a7408 list_of_path_outputs semi
                                    -> {kind: "noshowcancelled", outputs: $2}
 
 signal_identifier := non_keyword_identifier
+
+# SV-CORPUS-GRAD.13e.4 (SV-0069): IEEE 1364-2005 puts NO signing on an integer or a time
+# declaration. A.2.1.3 is `integer_declaration ::= integer list_of_variable_identifiers ;` and
+# `time_declaration ::= time list_of_variable_identifiers ;`
+# (`docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:152` / `:174`),
+# and A.2.8's block forms (`:314` / `:315`) are the same shape. Neither `signing` nor
+# `integer_atom_type` appears anywhere in that Annex — signing on an integer ATOM is IEEE 1800
+# A.2.2.1 only — so `integer signed i;` under `verilog_2005` is an over-acceptance, which the
+# north star calls a defect.
+#
+# The gate goes on the OPTIONAL, not on a new alternative. `integer_atom_type` must stay
+# reachable under `verilog_2005` (that is what makes plain `integer i;` / `time t;` parse); it is
+# only the `( signing )?` beside it that IEEE 1364-2005 does not derive. Wrapping the optional in
+# a profile-gated alias — the live `hierarchical_root_prefix_sv_only` idiom, cf.
+# `hierarchical_identifier` — keeps the sv_2017/sv_2023 AST BYTE-IDENTICAL (`signing: $2` keeps
+# its slot and is simply always absent under `verilog_2005`) and adds no `data_type` /
+# `block_data_type` alternative, so no branch index moves.
+#
+# ⛔ NOT gated here: `enum_base_type`'s own `( signing )?`. Under `verilog_2005` the whole `enum`
+# construct is a separate, larger over-acceptance (`enum { A } e;` accepts today) — gating the
+# signing inside it would fix a leaf of a branch that must be removed whole. Owned by `.13e.7`.
+@profiles: ["sv_2017", "sv_2023"]
+integer_atom_signing_sv_only := signing
 
 signing := kw_signed_07235a80   -> {kind: "signed"}
          | kw_unsigned_9861ca25 -> {kind: "unsigned"}

@@ -334,6 +334,7 @@ input_terminal	1948	1945	0
 inside_expression	866606	4	485508
 inside_expression_sv_2017	381098	4	0
 instance_identifier	61666	8642	0
+integer_atom_signing_sv_only	903	108	0
 integer_atom_type	1503984	688	0
 integer_atom_type_sv_only	1503984	563	786268
 integer_type	577631	0	589

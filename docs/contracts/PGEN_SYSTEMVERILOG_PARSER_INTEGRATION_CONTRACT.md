@@ -5,6 +5,40 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-08-24, `SV-CORPUS-GRAD.13e.4` — GRAMMAR-level, release `1.0.196`,
+> ledger `SV-0069`, schema `26` UNCHANGED, `verilog_2005` ONLY):** an **integer or time declaration
+> could carry a `signed` / `unsigned` under the strict IEEE 1364-2005 profile**
+> (`PGEN-SV-CORPUS-GRAD-0288`). A.2.1.3 spells them `integer_declaration ::= integer
+> list_of_variable_identifiers ;` and `time_declaration ::= time list_of_variable_identifiers ;`,
+> A.2.8's block forms are the same shape, and neither `signing` nor `integer_atom_type` appears
+> **anywhere** in that Annex — signing on an integer atom is IEEE 1800 A.2.2.1 only. Yet
+> `integer unsigned u;`, `integer signed i;`, `time signed t;` and `time unsigned t;` all parsed, at
+> module, block, `function` and `task` scope. PGEN carried the **IEEE 1800** shape,
+> `integer_atom_type ( signing )?`, on every profile and at **two** grammar sites.
+>
+> ⭐ **The gate goes on the OPTIONAL, not on the alternative** — and that is the difference from
+> `SV-0068`, which the same-shaped fix would have got wrong. `integer_atom_type` **must** stay
+> reachable under `verilog_2005`: that admission is exactly what makes plain `integer i;` parse. So
+> instead of splitting the `data_type` alternative into `_sv_only` / `_v2005` variants, one new rule
+> `integer_atom_signing_sv_only := signing`, gated `@profiles: ["sv_2017", "sv_2023"]`, is referenced
+> **inside** the optional at both sites. No `data_type` alternative is added, no branch index moves,
+> and `signing: $2` keeps its slot — it is simply always absent under `verilog_2005`.
+>
+> **Consumer impact:** none on `sv_2017`/`sv_2023` — the accept set is unchanged and the typed AST is
+> **byte-identical**, proven on 11 inputs (module, block, `function`, `task` and `enum_base_type`
+> paths) before any code was generated. On `verilog_2005`, four spellings that previously parsed are
+> now correctly rejected at every scope; everything IEEE 1364-2005 does derive — `integer i;`,
+> `time t;`, `integer j = 1;`, `reg signed [7:0] r;`, `real`/`realtime`, `event` — still parses. AST
+> schema is **unchanged at `26`**.
+>
+> ⚠️ **Residual, stated rather than implied:** `enum integer signed { A } e;` still parses under
+> `verilog_2005`, because `enum_base_type` carries its own `( signing )?` and the whole `enum`
+> construct is a *separate* over-acceptance on this profile — gating the signing inside it would fix
+> a leaf of a branch that has to be removed whole. That, and eight more `data_type` /
+> `data_declaration_sv_2017` constructs measured accepting under `verilog_2005` (`string`, `chandle`,
+> `virtual interface`, `const`, `var`, `automatic`, `static`, a second packed dimension on `reg`), are
+> owned by `SV-CORPUS-GRAD.13e.7`.
+
 > **Current-state note (2026-08-24, `SV-CORPUS-GRAD.13e.5` — GRAMMAR-level, release `1.0.195`,
 > ledger `SV-0068`, schema `26` UNCHANGED, `verilog_2005` ONLY):** a **task or function port item
 > could start with NO DIRECTION under the strict IEEE 1364-2005 profile**
@@ -570,15 +604,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.195`
+  - `1.0.196`
 - Parser release version:
-  - `1.0.195`
-  - history: `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.196`
+  - history: `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `52f5bc882c5287a95cd61f0b09974490855b1422749ca082e4efaecfa8e1c63e` (SV grammar semantic digest — sha256 of the
+  - `0fcfef1af74e095e563033b07e64ec150b42634713a4c74b3a47c8f3f2405eb4` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`

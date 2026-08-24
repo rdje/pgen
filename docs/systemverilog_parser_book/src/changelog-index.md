@@ -34,6 +34,58 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.196 / Contract 1.0.196 — SV-CORPUS-GRAD.13e.4 (`PGEN-SV-CORPUS-GRAD-0288`, 2026-08-24), ledger `SV-0069` (`Released`): **AN INTEGER OR TIME DECLARATION COULD CARRY `signed` / `unsigned` UNDER `verilog_2005` (GRAMMAR; `verilog_2005` ONLY — a NARROW; SCHEMA UNCHANGED at 26)**
+
+⛔ **This release narrows one profile and touches nothing else.** IEEE 1364-2005 A.2.1.3 spells the
+two declarations plainly — `integer_declaration ::= integer list_of_variable_identifiers ;` and
+`time_declaration ::= time list_of_variable_identifiers ;` — and A.2.8's block forms are the same
+shape. Neither `signing` nor `integer_atom_type` appears **anywhere** in that Annex; signing on an
+integer atom is IEEE 1800 A.2.2.1 only. PGEN spelled the rule the way **IEEE 1800** does,
+`integer_atom_type ( signing )?`, with no profile gate and at **two** sites, so under the strict
+Verilog-2005 profile `integer unsigned u;`, `integer signed i;`, `time signed t;` and
+`time unsigned t;` all parsed — at module scope, inside a named block, in a `function` and in a
+`task`. Ten spellings the standard cannot derive.
+
+**THE FIX GATES THE OPTIONAL, NOT THE ALTERNATIVE — and that is the difference from `1.0.195`.**
+`integer_atom_type` **must** remain reachable under `verilog_2005`: that admission is exactly what
+makes plain `integer i;` and `time t;` parse. So the profile split that fixed the task-port defect
+one release earlier is the wrong instrument here. Instead a single new rule,
+`integer_atom_signing_sv_only := signing` gated to `sv_2017`+`sv_2023`, is referenced *inside* the
+optional at both sites. No `data_type` alternative is added, no branch index moves, and the
+`signing` field keeps its place in the AST — it is simply always absent under `verilog_2005`.
+
+**MEASURED, in both directions and both editions.** Under `verilog_2005` all ten illegal spellings
+now REJECT, while everything the standard does derive still parses — `integer i;`, `time t;`,
+`integer j = 1;`, `reg signed [7:0] r;`, `real`, `realtime`, `event`, and the block-scope forms.
+Under `sv_2017` and `sv_2023` every one of those spellings still ACCEPTS. The typed AST was proven
+**byte-identical** across the change on eleven SystemVerilog inputs before any code was generated.
+Gates: `ast_shape_contract_gate` **18/18, drift 0**; `verilog_2005_conformance_gate` **GREEN** —
+**255** file×profile checks / **0 mismatches** (fifteen of them new and two-sided: reject under
+Verilog-2005, accept under both SystemVerilog profiles), `profile_orphans=0`, and certificate
+coverage **byte-identical to the previous baseline** at seeds 0/7/42;
+`sv_cert_recognized_union_gate` **GREEN** — canonical `UNKNOWN=11`, **union `UNKNOWN=0`, residual
+`[]`**; `sv_external_corpus_triage_gate` **14/14, `parse_fail_total=0`**.
+
+⭐ **The external corpus moved ZERO rows, and that is the finding rather than a disappointment.**
+Both raw outcome files and both adjudication manifests are byte-identical across the change, against
+a freshly re-measured run whose recorded parser and grammar hashes both moved. A corpus of code
+written to be *compiled* cannot see this class of defect: nobody hands `integer unsigned` to a
+Verilog-2005 tool, so no tool ever complained and no corpus row ever existed. The defect was found by
+reading the standard against the grammar, not by burning down a residual.
+
+**NO consumer migration, and the schema does not move.** `sv_2017` and `sv_2023` are unchanged in
+accept set *and* in AST. On `verilog_2005`, code that relied on the signing was relying on
+SystemVerilog, and the fix is to drop it — IEEE 1364-2005 gives `integer` and `time` no signed form.
+
+⚠️ **What is still over-accepted here, stated rather than left to be discovered:**
+`enum integer signed { A } e;` still parses under `verilog_2005`, because `enum_base_type` carries
+its own optional signing and the whole `enum` construct is a *separate* over-acceptance on that
+profile — gating the signing inside it would fix a leaf of a branch that has to be removed whole.
+Eight further constructs were measured accepting under `verilog_2005` and are open, not overlooked:
+`string`, `chandle`, `virtual interface`, `const`, `var`, `automatic`, `static`, and a second packed
+dimension on `reg`. IEEE 1364-2005 `function_port_list` also still admits an `output`. All are
+tracked leaves.
+
 ### 1.0.195 / Contract 1.0.195 — SV-CORPUS-GRAD.13e.5 (`PGEN-SV-CORPUS-GRAD-0287`, 2026-08-24), ledger `SV-0068` (`Released`): **A TASK OR FUNCTION PORT ITEM COULD START WITH NO DIRECTION UNDER `verilog_2005` (GRAMMAR; `verilog_2005` ONLY — a NARROW; SCHEMA UNCHANGED at 26)**
 
 ⛔ **This release narrows one profile and touches nothing else.** IEEE 1364-2005 A.2.7 spells
@@ -81,7 +133,8 @@ direction the standard requires.
 ⚠️ **What is still over-accepted here, stated rather than left to be discovered:** IEEE 1364-2005
 `function_port_list` admits **only** `tf_input_declaration`, so `function f(output integer b);`
 remains accepted under `verilog_2005`; and `integer signed` / `integer unsigned` — which A.2.1.3 does
-not admit either — is tracked separately. Both are open leaves, not oversights.
+not admit either — was tracked separately and is **fixed in `1.0.196`** above (ledger `SV-0069`).
+The `function_port_list` half is still an open leaf, not an oversight.
 
 ### 1.0.194 / Contract 1.0.194 — ENGINE-UNIVERSAL-SERVICES.43 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0081`, 2026-08-21), ledger `SV-0067` (`Released`): **CROSSING THE RECURSION CEILING HUNG INSTEAD OF FAILING (ENGINE; all profiles; ZERO GRAMMAR BYTES; SCHEMA UNCHANGED at 26)**
 

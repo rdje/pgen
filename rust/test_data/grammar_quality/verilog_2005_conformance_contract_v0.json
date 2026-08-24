@@ -3,11 +3,11 @@
     "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/verilog_2005_conformance_contract_v0.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
     "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
     "expectations": "confirmed",
-    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1148/334/799/15 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=240/0_mismatches aliases=2",
-    "verified_at_commit": "8730bbf05a6842f0e2586faa48b8020ab1288053",
+    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1148/334/799/15 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=255/0_mismatches aliases=2",
+    "verified_at_commit": "f50add4531032021add3a8232a4b74abc7aacdc1",
     "inputs": {
-      "generated/systemverilog_parser.rs": "e030153afe0a6fea38b1120016adac57236d6a13a78a1917a02a52460b83a675",
-      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "52f5bc882c5287a95cd61f0b09974490855b1422749ca082e4efaecfa8e1c63e" },
+      "generated/systemverilog_parser.rs": "47a50a092b0d2fab22b37a360783477a865091ee25657b43a13f7777a88c92ef",
+      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "0fcfef1af74e095e563033b07e64ec150b42634713a4c74b3a47c8f3f2405eb4" },
       "rust/src/ast_pipeline/grammar_wellformedness.rs": "420ed130b84360f71d3f0df06d17e112d656a02b36da2bd0b42dd97c47e3c3ff",
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "b36125f8f2ff02c87026399160616f8691a29b8fa72bb97813b42ff21d50acb3",
       "rust/src/ast_pipeline/stimuli_generator.rs": "9b5c9a707883d905e8b20912946d47550f9f5e9affb580200e493b44f2750108"
@@ -746,6 +746,51 @@
         "sv_2023": "accept"
       },
       "note": "SV-0031: a package-scoped constant expression (`wire w = p::X;`) — the `::` scope-resolution surface in expression context, IEEE 1800 only; gated at VERILOG-2005-PROFILE.6.11 (whole-rule @profiles gate on `scope_resolution`)."
+    },
+    {
+      "file": "reject/integer_signing.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "SV-CORPUS-GRAD.13e.4 (ledger SV-0069): IEEE 1364-2005 A.2.1.3 `integer_declaration ::= integer list_of_variable_identifiers ;` (…Annex_A…txt:152) admits no signing, and neither `signing` nor `integer_atom_type` appears anywhere in that Annex — signing on an integer ATOM is IEEE 1800 A.2.2.1 only. Gated by a profile-gated alias on the OPTIONAL (`integer_atom_signing_sv_only`), never on `integer_atom_type` itself, which must stay reachable so plain `integer i;` still parses. Two-sided by construction: the same text must still ACCEPT under both SV profiles."
+    },
+    {
+      "file": "reject/time_signing.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "SV-CORPUS-GRAD.13e.4 (ledger SV-0069): the SECOND atom `integer_atom_type` reaches under verilog_2005. IEEE 1364-2005 A.2.1.3 `time_declaration ::= time list_of_variable_identifiers ;` (…Annex_A…txt:174) admits no signing either, so a gate written only for the `integer` spelling would leave this one accepting."
+    },
+    {
+      "file": "reject/block_integer_signing.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "SV-CORPUS-GRAD.13e.4 (ledger SV-0069): the BLOCK-scope half, reached through `block_data_type` rather than `data_type` — a SECOND grammar site carrying the same `integer_atom_type ( signing )?` shape, so a fix applied to one site only leaves this live. IEEE 1364-2005 A.2.8 `block_item_declaration` (…Annex_A…txt:314) is `{ attribute_instance } integer list_of_block_variable_identifiers ;`; only :313's `reg [ signed ] [ range ]` takes signing inside a block."
+    },
+    {
+      "file": "accept/integer_time_plain.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "SV-CORPUS-GRAD.13e.4 control: the half of the construct the signing gate must NOT touch. IEEE 1364-2005 A.2.1.3 derives `integer i;` (:152) and `time t;` (:174), and A.2.2.1 `variable_type` (:185-187) derives the `= constant_expression` initialiser. A fix that gated `integer_atom_type` itself instead of the optional `signing` beside it turns this REJECT."
+    },
+    {
+      "file": "accept/reg_signed_range.v",
+      "expect": {
+        "verilog_2005": "accept",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "SV-CORPUS-GRAD.13e.4 control: the sibling `data_type` alternative where signing IS legal in IEEE 1364-2005 — A.2.1.3 `reg_declaration ::= reg [ signed ] [ range ] list_of_variable_identifiers ;` (:172). Pins the gate to the ATOM branch (`integer_atom_type ( signing )?`) rather than the VECTOR branch (`integer_vector_type ( signing )? packed_dimension*`) beside it."
     }
   ]
 }
