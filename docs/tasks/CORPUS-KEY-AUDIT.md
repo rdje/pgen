@@ -480,11 +480,32 @@ have manufactured five false defects.
 
 ## Current frontier
 
-1. `.3` — the CAMOUFLAGED-match audit. ⭐ `.2` sharpened its target: **7 172 suite-convention +
-   2 287 tool-testimony** expectations, of which **9 118 are `must_accept`** — and a wrong
-   `must_accept` on a file the parser accepts reads `match`, which is precisely the population `.3`
-   samples.
-2. `.4`.
+⛔⛔ **THIS TREE IS PAUSED, DELIBERATELY, AND THE REASON IS EVIDENCE THIS TREE PRODUCED**
+(sequencing call 2026-08-24, director: *"the decision is yours to make, but it got to be sota,
+signoff and production-grade"*).
+
+**Resume on `SV-CORPUS-GRAD` first — `.13e.4`, then `.13e.1`(d)/(e) — not on `.3`.** Three reasons,
+in order of weight:
+
+1. **A CONFIRMED defect outranks a search for unknown ones.** `SV-CORPUS-GRAD.13e.4` is a LIVE,
+   reproduced, clause-cited over-acceptance re-verified at HEAD (`integer signed` / `integer
+   unsigned` parse under `verilog_2005`; IEEE 1364-2005 A.2.1.3 admits no signing on
+   `integer_declaration`). The north star calls over-acceptance a defect and the project goal is
+   **0 % defects remaining**; *"logging them is the first step, fixing them is the end goal."*
+   `.3` is an audit that **may** find defects. Fixing a known one first is the signoff-grade order.
+2. **`.2` LOWERED `.3`'s relative urgency, and that is a measured reason rather than a preference.**
+   The correction in `-0006` showed the rows behind the published bar are **better** evidenced than
+   the key as a whole — 90.5 % non-clause-cited against 93.8 % — because a divergence gets
+   investigated and investigation is what produces a clause cite. `.3` remains worth doing; it is
+   no longer the most urgent thing this lane knows about.
+3. **The lane lock binds.** SV is not left until it ships to Nexsim, and `.13e.*` is the SV
+   burn-down itself, while this tree is its instrument layer. The instrument layer is now
+   gate-held (`CORPUS-KEY-INTEGRITY`, tiers A1–A4), so pausing it costs nothing and rots nothing.
+
+When this tree resumes: `.3` (the CAMOUFLAGED-match audit) is next, and `.2` already sharpened its
+target — **7 172 suite-convention + 2 287 tool-testimony** expectations, of which **9 118 are
+`must_accept`**, and a wrong `must_accept` on a file the parser accepts reads `match`, which is
+exactly the population `.3` samples. Then `.4`.
 
 ## Decisions
 
