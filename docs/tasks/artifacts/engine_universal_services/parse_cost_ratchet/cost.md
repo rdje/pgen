@@ -41,8 +41,8 @@ tier still reported `fresh`.
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| grammar raw ast | `grammars/systemverilog.ebnf` | `4ebcc61b86aab15f1e6056bafe94423fe60cc0f65de416c04c09016005a4af82` |
-| generated parser | `generated/systemverilog_parser.rs` | `e53cb4a229e5576191908a1a5324f69af5fb53d1972ef7c8ff21accf8623bc68` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `52f5bc882c5287a95cd61f0b09974490855b1422749ca082e4efaecfa8e1c63e` |
+| generated parser | `generated/systemverilog_parser.rs` | `e030153afe0a6fea38b1120016adac57236d6a13a78a1917a02a52460b83a675` |
 | instrument | `stimuli/sv/corpus_parse_cost.py` | `04e07bf7fc215dfd30e31acb6082d9c5bd1fab6de13782bfa1120ab77f6467ab` |
 | sample inputs | `stimuli/sv/parse_cost_sample.tsv` | `c3e01f2d29714af9bb15e977e3ca52c48045616d1cf157a8c13e5bd645016205` |
 
@@ -59,10 +59,10 @@ byte-identical between the debug and release probes before being made binding.
 |---|---:|---|
 | sample files measured | 192 | — |
 | accepted / rejected | 87 / 105 | a correctness move, not a cost move |
-| **rule entries** | **415,030,590** | more rule-method entries: structural work grew |
-| **committed entries** | **6,759,473** | more surviving work |
-| **failed speculation** (`entries − committed`) | **408,271,117** | more probing waste — the mechanism a GUARD spends through |
-| **memo hits** | **184,295,144** | memo behaviour moved |
+| **rule entries** | **415,030,726** | more rule-method entries: structural work grew |
+| **committed entries** | **6,759,589** | more surviving work |
+| **failed speculation** (`entries − committed`) | **408,271,137** | more probing waste — the mechanism a GUARD spends through |
+| **memo hits** | **184,295,136** | memo behaviour moved |
 
 Failed speculation is **98.4 %** of all rule entries in
 this sample: the parse is overwhelmingly probing work, so a guard that probes more shows
@@ -71,8 +71,8 @@ up here long before it shows up in the raw entry count.
 ⚠️ **`committed` is only meaningful for an ACCEPTED parse** (TOOLBOX 3.5) — a rejected parse
 commits nothing durable, so its entries are ALL speculation by construction and it drags
 the whole-sample ratio up. The accepted-only sub-total is published beside it so neither is
-mistaken for the other: over the 87 accepted files, entries 110,472,353 and
-committed 6,708,589 — 93.9 %
+mistaken for the other: over the 87 accepted files, entries 110,472,455 and
+committed 6,708,693 — 93.9 %
 failed speculation even where the parse succeeded.
 
 ## The left-recursion-elimination family
@@ -99,7 +99,7 @@ mistake the family's entry count for productive work.
 
 ⛔⛔ **AND IT CARRIES A FINDING THAT BOUNDS THIS WHOLE INSTRUMENT.** Across the full
 corpus the family takes **2.743 %** of all rule entries
-(24 571 950 of 895 676 831 entries over 16 336 files, `ENGINE-UNIVERSAL-SERVICES.21`; the previous 0.681 % counted only `_lr_base`/`_lr_suffix`).
+(24 571 950 of 895 679 959 entries over 16 336 files, `ENGINE-UNIVERSAL-SERVICES.21`; the previous 0.681 % counted only `_lr_base`/`_lr_suffix`).
 
 ⛔ **What this metric cannot see, stated as a property rather than as a number.** These
 counters tick only in the PROTOCOL graph, and a counter counts EVENTS — a rise in the cost
@@ -137,9 +137,9 @@ parser's 127 LR rule names. What `.26` removed is the ratio built on top of it.
 
 | tier | files | entries | what it is for |
 |---|---:|---:|---|
-| `hot` | 40 | 350,117,723 | the heaviest files — where parse cost concentrates |
-| `lr` | 40 | 62,574,644 | the heaviest guarded-admission files — the mechanism `.20` owns |
-| `breadth` | 112 | 2,338,223 | a deterministic stride across the rest — so the ratchet is not blind elsewhere |
+| `hot` | 40 | 350,117,764 | the heaviest files — where parse cost concentrates |
+| `lr` | 40 | 62,574,685 | the heaviest guarded-admission files — the mechanism `.20` owns |
+| `breadth` | 112 | 2,338,277 | a deterministic stride across the rest — so the ratchet is not blind elsewhere |
 
 _Per-file rows: `entries.tsv` — 9 columns (sub-corpus, tier, path, accepted, entries,
 committed, memo_hits, lr_entries, lr_committed), sorted by (sub-corpus, path) so two runs

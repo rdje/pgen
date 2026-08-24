@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `196ce48973a64f8bc09bd76a8aaa23e2fd822b902970f66b943973889f6ceb4b` |
-| grammar | `grammars/systemverilog.ebnf` | `5502bf280accf1f67aaa292fd8e800de88d56e5ec14c64282181a39a99f92f04` |
-| generated parser | `generated/systemverilog_parser.rs` | `bfaca030172cd7dd1c66f4aeb586e026d3df7affdf107d80c9e4604148bcb8c5` |
+| parse binary | `rust/target/release/parseability_probe` | `c689cccd13e8f1e7a8d221154754806c1b9b40a4f69a0567526043f944af8ded` |
+| grammar | `grammars/systemverilog.ebnf` | `fd19ce4326916996482a04bd79b8f76d7be9aac422fd8e5392348055977a6ce1` |
+| generated parser | `generated/systemverilog_parser.rs` | `e030153afe0a6fea38b1120016adac57236d6a13a78a1917a02a52460b83a675` |
 
-Measured at `HEAD` = `126034ab+dirty` (2026-08-20).
+Measured at `HEAD` = `8730bbf0+dirty` (2026-08-23).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -32,9 +32,9 @@ Measured at `HEAD` = `126034ab+dirty` (2026-08-20).
 
 | parameter | value | source for this run |
 |---|---|---|
-| per-file timeout | 60 s | provenance |
-| parallel jobs | 8 | provenance |
-| max files | 0 (no cap) | provenance |
+| per-file timeout | 60 s | caller |
+| parallel jobs | 8 | caller |
+| max files | 0 (no cap) | caller |
 | parse binary | `rust/target/release/parseability_probe` | provenance |
 
 ## Deadline proximity and serial re-confirmation
@@ -53,13 +53,13 @@ Measured at `HEAD` = `126034ab+dirty` (2026-08-20).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `5.28` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `6.31` s — `stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 16336 | 9793 | 6543 | 0 | 0 | 59.9% |
+| 16336 | 9794 | 6542 | 0 | 0 | 60.0% |
 
 ## Per sub-corpus
 
@@ -78,7 +78,7 @@ Slowest completing file: `5.28` s — `stimuli/sv/subs/opentitan/hw/top_darjeeli
 | sv2v | 953 | 727 | 226 | 0 | 0 | 76.3% |
 | uvm-core | 174 | 20 | 154 | 0 | 0 | 11.5% |
 | verible | 152 | 122 | 30 | 0 | 0 | 80.3% |
-| verilator | 3263 | 2092 | 1171 | 0 | 0 | 64.1% |
+| verilator | 3263 | 2093 | 1170 | 0 | 0 | 64.1% |
 
 _Raw per-file results: `stimuli/sv/characterization/results.tsv` (3 columns: sub-corpus, status,
 repo-root-relative path — a stable contract three consumers unpack positionally)._

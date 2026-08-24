@@ -1,10 +1,10 @@
 bucket	class	rows	pct
-ADJUDICATED	match	5844	35.77
+ADJUDICATED	match	5845	35.78
 NO VERDICT	deferred:chained_only	5276	32.30
 ROUTED	deferred:v2005_profile_lane	2606	15.95
 ADJUDICATED	divergence:explained_svpp_macro_use	1093	6.69
 NO VERDICT	deferred:no_sv_key	596	3.65
-ADJUDICATED	divergence:unexplained_rejects_valid	254	1.55
+ADJUDICATED	divergence:unexplained_rejects_valid	253	1.55
 ADJUDICATED	divergence:explained_svpp_conditional	200	1.22
 NO VERDICT	deferred:svpp_owned	186	1.14
 ADJUDICATED	divergence:explained_svpp_include	140	0.86

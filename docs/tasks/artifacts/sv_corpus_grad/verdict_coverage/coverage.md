@@ -6,8 +6,8 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `0031526bc85a10c67e90253e2e7235b0c044ebcac0c4e489c03b8e5f7c53ca1a` |
-| v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `da8448451b2384d1230738738323937d6a50198b51bcf363f42574afa75c55f4` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `a32e13c6f005af076449a51f23b4bb3ee4e97c77a22cd56432f5a9911cee3cfc` |
+| v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `ec1475e727b282b53193ee22e4f499bbeb76dd68233090a286a3324005409554` |
 
 ## The headline
 
@@ -19,9 +19,9 @@
 
 | bucket | adjudication class | rows | % | why |
 |---|---|---:|---:|---|
-| ADJUDICATED | `match` | 5,844 | 35.8 % | expected and observed agree - the row testifies FOR the parser |
+| ADJUDICATED | `match` | 5,845 | 35.8 % | expected and observed agree - the row testifies FOR the parser |
 | ADJUDICATED | `divergence:explained_svpp_macro_use` | 1,093 | 6.7 % | parse stops on a macro use - positionally gated since .12a |
-| ADJUDICATED | `divergence:unexplained_rejects_valid` | 254 | 1.6 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
+| ADJUDICATED | `divergence:unexplained_rejects_valid` | 253 | 1.5 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
 | ADJUDICATED | `divergence:explained_svpp_conditional` | 200 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_include` | 140 | 0.9 % | parse stops on an `include - positionally gated since .12a |
 | ADJUDICATED | `divergence:unexplained_accepts_invalid` | 21 | 0.1 % | a known defect: invalid SV the parser accepts (the axis-2 bar) |

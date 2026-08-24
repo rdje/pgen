@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `a45f5b149c2796d96f6aef2a46bb0bf85c08376e10289e5df957bda646366afa` |
-| grammar | `grammars/systemverilog.ebnf` | `5d3829eae092e02994b91cd8e3ff8bded35bad1e402825001f4f6152db2f5062` |
-| generated parser | `generated/systemverilog_parser.rs` | `e53cb4a229e5576191908a1a5324f69af5fb53d1972ef7c8ff21accf8623bc68` |
+| parse binary | `rust/target/release/parseability_probe` | `c689cccd13e8f1e7a8d221154754806c1b9b40a4f69a0567526043f944af8ded` |
+| grammar | `grammars/systemverilog.ebnf` | `fd19ce4326916996482a04bd79b8f76d7be9aac422fd8e5392348055977a6ce1` |
+| generated parser | `generated/systemverilog_parser.rs` | `e030153afe0a6fea38b1120016adac57236d6a13a78a1917a02a52460b83a675` |
 
-Measured at `HEAD` = `a1d5d395+dirty` (2026-08-23).
+Measured at `HEAD` = `8730bbf0+dirty` (2026-08-23).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -53,20 +53,20 @@ Measured at `HEAD` = `a1d5d395+dirty` (2026-08-23).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `0.59` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
+Slowest completing file: `0.53` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1000.v`.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 2606 | 2298 | 308 | 0 | 0 | 88.2% |
+| 2606 | 2295 | 311 | 0 | 0 | 88.1% |
 
 ## Per sub-corpus
 
 | sub-corpus | files | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|---|
 | ispras-sv-tests | 356 | 317 | 39 | 0 | 0 | 89.0% |
-| iverilog | 1909 | 1700 | 209 | 0 | 0 | 89.1% |
+| iverilog | 1909 | 1697 | 212 | 0 | 0 | 88.9% |
 | sv2v | 341 | 281 | 60 | 0 | 0 | 82.4% |
 
 _Raw per-file results: `stimuli/sv/characterization/results_v2005.tsv` (3 columns: sub-corpus, status,

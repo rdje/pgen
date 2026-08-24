@@ -140,7 +140,7 @@ cmos_switchtype	71988	0	0
 colon	350952	37260	126991
 combinational_body	2	2	0
 combinational_entry	7	5	0
-comma	622357	89201	283170
+comma	622349	89201	283162
 compiler_directive	605	189	0
 concatenation	1948509	6213	1367475
 concurrent_assertion_item	72154	0	0
@@ -975,8 +975,9 @@ tf_port_declaration	279	177	79
 tf_port_direction	384	232	0
 tf_port_direction_const_ref_sv_only	339	0	0
 tf_port_direction_sv_2017	384	232	45
-tf_port_item	192	132	8
+tf_port_item_sv_only	184	132	0
 tf_port_list	152	116	0
+tf_port_list_sv_only	152	116	8
 tf_variable_identifier_decl	98	177	0
 tick	5658447	292	0
 tilde	530718	639	0

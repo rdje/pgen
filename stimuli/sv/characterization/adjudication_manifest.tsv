@@ -15409,7 +15409,7 @@ verilator	test_regress/t/t_property_sexpr_multi.v	fail	must_accept	divergence:ex
 verilator	test_regress/t/t_property_sexpr_range_delay.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_sexpr_range_delay.py expects success
 verilator	test_regress/t/t_property_sexpr_range_delay_bad.v	pass	must_accept	match	verilator: driver t_property_sexpr_range_delay_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_property_sexpr_unsup.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_sexpr_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_property_unsup.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_property_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
+verilator	test_regress/t/t_property_unsup.v	pass	must_accept	match	verilator: driver t_property_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_property_until.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_until.py expects success
 verilator	test_regress/t/t_property_until_implication.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_property_until_implication.py expects success
 verilator	test_regress/t/t_property_untyped.v	pass	must_accept	match	verilator: driver t_property_untyped.py expects success

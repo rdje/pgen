@@ -2299,11 +2299,11 @@ grammar, parser, generator or generated artifact; the cert numbers are read-only
 
 | Field | Contract key | Value |
 |---|---|---:|
-| canonical `total` | `expected_total` | 1385 |
-| canonical `proof` | `expected_proof` | 7 |
-| canonical `witness` | `expected_canonical_witness` | 1367 |
+| canonical `total` | `expected_total` | 1387 |
+| canonical `proof` | `expected_proof` | 8 |
+| canonical `witness` | `expected_canonical_witness` | 1368 |
 | canonical `UNKNOWN` | `expected_canonical_unknown` | 11 |
-| union `witness` | `expected_union_witness` | 1378 |
+| union `witness` | `expected_union_witness` | 1379 |
 | union `UNKNOWN` | `expected_union_unknown` | 0 |
 | union residual rule set | `expected_union_residual_rules` | `[]` |
 | recognized `fully_certified` via the union | `fully_certified_via_union` — derived as `expected_union_unknown == 0` | true |
@@ -2632,7 +2632,7 @@ observation was simply unused.
 > **mislabelled deferral**, owned by `.13c`/`.13d`, not an under-reporting bar.
 
 > ⭐ **Live verdict-coverage tuple — `adjudicated/routed/no-verdict/dark/axis-2-bar` =
-> `7556/2606/6174/4366/275`.** ⭐⭐ **`SV-CORPUS-GRAD.13e.1` moved `routed` +147 and `no-verdict`
+> `7556/2606/6174/4366/274`.** ⭐⭐ **The bar's move to 274 was not earned by this session's work and the honest reading is uncomfortable: the tracked corpus outcomes were three days STALE.** `SV-CORPUS-GRAD.13e.5` re-ran both lanes after a grammar change and the SystemVerilog lane moved one row — `t_property_unsup.v`, `fail → pass`. That file contains no task or function at all, so the change under test is structurally unable to reach it; what it does contain is the SVA `implies` operator that `SV-0066` fixed on 2026-08-21. The row has been passing ever since and **nothing re-measured it**, so a defect that was already repaired kept being counted. ⇒ **a corpus outcome file is a measurement with an expiry date, and this one had none** — the `.13i` finding (six self-describing oracles, one gate-checked, four measurably stale) reproducing on a live artifact, this time hiding a FIX rather than a defect. ⭐⭐ **`SV-CORPUS-GRAD.13e.1` moved `routed` +147 and `no-verdict`
 > −147** — and the two numbers that did **not** move are the ones that make it honest:
 > `adjudicated` is **unchanged at 7 556**, so nothing was promoted to a verdict it did not earn,
 > and the **bar is unchanged at 275**, so no defect appeared or vanished. Those 147 rows had been

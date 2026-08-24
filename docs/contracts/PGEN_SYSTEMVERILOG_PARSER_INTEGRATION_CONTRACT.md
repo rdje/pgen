@@ -5,6 +5,31 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-08-24, `SV-CORPUS-GRAD.13e.5` — GRAMMAR-level, release `1.0.195`,
+> ledger `SV-0068`, schema `26` UNCHANGED, `verilog_2005` ONLY):** a **task or function port item
+> could start with NO DIRECTION under the strict IEEE 1364-2005 profile**
+> (`PGEN-SV-CORPUS-GRAD-0287`). A.2.7 spells `task_port_item` as one of exactly three
+> `tf_*_declaration`s and each of those BEGINS with its `input` / `output` / `inout` keyword, so
+> `task t(a, b);` and `task t(integer a, b);` have no derivation — yet both parsed. PGEN carried
+> the **IEEE 1800** shape, in which the direction is optional and inherited, on every profile.
+> **Fixed by splitting `tf_port_item`/`tf_port_list` into profile-gated variants**: the
+> `sv_2017`/`sv_2023` body is a byte-for-byte re-spelling of what shipped, and only the
+> `verilog_2005` path narrows.
+>
+> ⛔ **The obvious fix is wrong, and it was MEASURED wrong before it shipped.** Requiring a
+> direction on *every* item rejects `task t(input integer a, b);`, which A.2.7 **does** derive —
+> `tf_input_declaration ::= input task_port_type list_of_port_identifiers` takes a *list* of names,
+> so one `input` covers both. Because PGEN renders a port list the IEEE 1800 way (one item per
+> comma), a continuation name arrives as its own directionless item. The shipped rule therefore
+> admits a directionless item **only when it is a bare port identifier** — no data type, no `var` —
+> and requires the **first** item of the list to carry a direction. Both halves are pinned as
+> reproducers, the refuting input among them.
+>
+> **Consumer impact:** none on `sv_2017`/`sv_2023` (accept set and AST byte-identical; the two rules
+> added there are a re-spelling). On `verilog_2005`, three constructs that previously parsed are now
+> correctly rejected. AST schema is **unchanged at `26`** — both variants emit the identical
+> five-field `tf_port_item` return, and `ast_shape_contract_gate` is 18/18 with drift 0.
+
 > **Current-state note (2026-08-20, `SV-CORPUS-GRAD.13c.2y` — GRAMMAR-level, release `1.0.193`,
 > ledger `SV-0066`, SCHEMA `25` → `26`):** an **IEEE 1800 KEYWORD WAS BOUND TO AN OPERATOR TOKEN OF
 > THE SAME NAME** (`PGEN-SV-CORPUS-GRAD-0261`). `grammars/systemverilog.ebnf` defines
@@ -545,15 +570,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.192`
+  - `1.0.195`
 - Parser release version:
-  - `1.0.194`
-  - history: `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.195`
+  - history: `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `4ebcc61b86aab15f1e6056bafe94423fe60cc0f65de416c04c09016005a4af82` (SV grammar semantic digest — sha256 of the
+  - `52f5bc882c5287a95cd61f0b09974490855b1422749ca082e4efaecfa8e1c63e` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`

@@ -6087,11 +6087,38 @@ tf_port_direction_sv_2023 := port_direction
 tf_port_direction := tf_port_direction_sv_2017 -> {kind: "sv_2017", body: $1}
                    | tf_port_direction_sv_2023 -> {kind: "sv_2023", body: $1}
 
-tf_port_item := attribute_instance* ( tf_port_direction )? ( kw_var_e5b4e786 )? data_type_or_implicit ( port_identifier variable_dimension* ( assign expression )? )?
-             -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, port_spec: $5}
+@profiles: ["sv_2017", "sv_2023"]
+tf_port_item_sv_only := attribute_instance* ( tf_port_direction )? ( kw_var_e5b4e786 )? data_type_or_implicit ( port_identifier variable_dimension* ( assign expression )? )?
+                     -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, port_spec: $5}
 
-tf_port_list := tf_port_item ( comma tf_port_item )*
-             -> [$1, $2::2*]
+@profiles: ["verilog_2005"]
+tf_port_item_v2005 := attribute_instance* tf_port_direction ( kw_var_e5b4e786 )? data_type_or_implicit ( port_identifier variable_dimension* ( assign expression )? )?
+                   -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, port_spec: $5}
+
+@profiles: ["verilog_2005"]
+data_type_implicit_only_v2005 := implicit_data_type -> {kind: "implicit", body: $1}
+
+@profiles: ["verilog_2005"]
+tf_port_item_v2005_continuation := attribute_instance* ( tf_port_direction )? ( kw_var_e5b4e786 )? data_type_implicit_only_v2005 ( port_identifier variable_dimension* ( assign expression )? )?
+                                -> {attributes: $1, direction: $2, var_keyword: $3, data_type: $4, port_spec: $5}
+
+@profiles: ["verilog_2005"]
+tf_port_item_v2005_tail := tf_port_item_v2005
+                         | tf_port_item_v2005_continuation
+
+@profiles: ["sv_2017", "sv_2023"]
+tf_port_list_sv_only := tf_port_item_sv_only ( comma tf_port_item_sv_only )*
+                     -> [$1, $2::2*]
+
+@profiles: ["verilog_2005"]
+tf_port_list_v2005 := tf_port_item_v2005 ( comma tf_port_item_v2005_tail )*
+                   -> [$1, $2::2*]
+
+tf_port_item := tf_port_item_sv_only
+              | tf_port_item_v2005
+
+tf_port_list := tf_port_list_sv_only
+              | tf_port_list_v2005
 
 tfall_path_delay_expression := path_delay_expression
                             -> {body: $1}

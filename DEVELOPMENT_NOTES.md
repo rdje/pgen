@@ -1,5 +1,54 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-24 - PGEN-SV-CORPUS-GRAD-0287 — I shipped the wrong grammar into a regeneration, and the cheap tool is the one that caught it
+
+**1. THE FIX THE DEFECT INVITES IS NOT THE FIX THE SPEC ASKS FOR.** The finding was *"a task port
+item may start with no direction"*, and the repair that writes itself is *"require a direction on
+every item."* It is wrong. A.2.7's `tf_input_declaration` takes a `list_of_port_identifiers`, so one
+`input` legitimately covers several names — and because PGEN renders a port list the IEEE 1800 way,
+one item per comma, those continuation names arrive as directionless items indistinguishable from
+the defect. ⇒ **the constraint is positional, not per-item**: the FIRST item must be directed, and a
+later one may be bare *only* if it carries no data type. I did not see that from the clause; I saw
+it from a control file that went red.
+
+**2. I HAD ALREADY WARNED MYSELF ABOUT THIS, IN WRITING, AND IT DID NOT HELP.** The `.13e.5` routing
+evidence — written by me one slice earlier — says in as many words: *"a fix that tightens
+`list_of_port_identifiers` would break valid code."* I then wrote a fix that broke exactly that, from
+the other direction. ⛔ **A hazard note is not a control.** The note told me where to look; only the
+executable case told me I had failed to look. That is the whole argument for pinning the refuting
+input rather than describing it, and it is now
+`control_v2005_task_port_shared_direction.sv`.
+
+**3. THE ORDER I RAN THE TOOLS IN COST ME A 20-MINUTE REBUILD, AND THE FIX IS FREE.** I edited the
+grammar, regenerated the parser, started the release-probe build, and *then* used
+`--interpret-parse` to check the design — which answers the same question against the raw `.ebnf` in
+**seconds, with no codegen and no `rustc`**. Had I run it first, the wrong shape would have been
+caught before a single artifact was built. ⇒ **iterate a grammar design on the interpreter; spend
+codegen only on a design that has already passed.** The second build was for the right grammar, and
+it was the only one that needed to happen.
+
+**4. KILLING A CARGO BUILD DOES NOT KILL ITS RUSTC.** After I superseded the first grammar I killed
+the `cargo build`, and an orphaned `rustc` kept compiling the **superseded** parser for another
+twelve minutes alongside the new one, both on the same target directory. It was visible only by
+comparing a rustc's elapsed time against its parent's — a child older than its parent is an orphan.
+Worth remembering the next time a "long build" is inexplicably slow: it may be two builds.
+
+**5. THE MOST VALUABLE THING THIS SLICE FOUND WAS NOT THE DEFECT IT SET OUT TO FIX.** The SV corpus
+lane moved one row, and the honest work was proving it was not mine: the file contains no `task` or
+`function` at all, so the rule I changed is structurally unreachable in it, while line 65 carries the
+construct `SV-0066` repaired three days earlier. The tracked outcomes had been stale that whole time
+and the axis-2 bar was counting a defect that no longer existed. ⛔ **A corpus outcome file is a
+measurement, and this one had no expiry date** — no identity block, no gate, nothing that could say
+"I no longer describe your tree." And the direction of such an error is not fixed: staleness hides a
+fix (inflating the bar, so the campaign chases phantoms) exactly as silently as it hides a regression
+(deflating it, so the campaign ships). That is `.13e.6`.
+
+**6. "IT SHOULD BE BYTE-IDENTICAL" IS A PREDICTION, AND PREDICTIONS ARE FOR TESTING.** I expected the
+SV lane to be untouched because the change is profile-gated, and I re-ran it anyway. Had I trusted
+the prediction and skipped the run, the stale-oracle finding would still be sitting there — and the
+bar would still be wrong. ⭐ **The run that confirms what you already believe is the one that finds
+what you did not.**
+
 ## 2026-08-23 - PGEN-SV-CORPUS-GRAD-0286 — the vocabulary that would have invented five defects, and the two lines of reasoning that stopped it
 
 **1. I BUILT THE OBVIOUS CLASSIFIER FIRST AND IT WAS QUIETLY WRONG.** *"Which source file emits

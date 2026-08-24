@@ -34,6 +34,55 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.195 / Contract 1.0.195 — SV-CORPUS-GRAD.13e.5 (`PGEN-SV-CORPUS-GRAD-0287`, 2026-08-24), ledger `SV-0068` (`Released`): **A TASK OR FUNCTION PORT ITEM COULD START WITH NO DIRECTION UNDER `verilog_2005` (GRAMMAR; `verilog_2005` ONLY — a NARROW; SCHEMA UNCHANGED at 26)**
+
+⛔ **This release narrows one profile and touches nothing else.** IEEE 1364-2005 A.2.7 spells
+`task_port_item` as one of exactly three `tf_*_declaration`s, and each of those begins with its
+`input` / `output` / `inout` keyword — there is no directionless alternative, and `function_port_list`
+is narrower still. PGEN spelled the rule the way **IEEE 1800** does, with the direction optional and
+inherited from the previous item, and applied that spelling to **every** profile. So under the strict
+Verilog-2005 profile `task t(a, b);` and `task t(integer a, b);` parsed, and so did
+`task t(input integer a, integer b);` — three constructs the standard cannot derive. Icarus Verilog
+refuses all three from its own grammar action, `error: Missing task/function port direction.`
+
+**THE FIX IS A PROFILE SPLIT.** `tf_port_item` and `tf_port_list` become gated pairs:
+`tf_port_item_sv_only` / `tf_port_list_sv_only` for `sv_2017`+`sv_2023`, whose bodies are a
+byte-for-byte re-spelling of what shipped, and a `verilog_2005` set in which the direction is
+mandatory. Only the Verilog-2005 path changes.
+
+⛔⛔ **THE OBVIOUS FIX IS WRONG, AND IT WAS MEASURED WRONG BEFORE IT SHIPPED.** *"Require a direction
+on every item"* is the reading the defect invites, and it **rejects `task t(input integer a, b);`** —
+which A.2.7 *does* derive, because `tf_input_declaration ::= input task_port_type
+list_of_port_identifiers` takes a **list** of names, so one `input` legitimately covers both. Because
+PGEN renders a port list the IEEE 1800 way — one item per comma — a continuation name arrives as its
+own directionless item, indistinguishable by shape from the defect. That version was written, the
+parser was regenerated, and the grammar-AST interpreter reported the rejection before any of it
+reached a release. **The shipped rule admits a directionless item only when it is a bare port
+identifier** — no data type, no `var` — **and requires the first item of the list to carry a
+direction.** The refuting input is now a tracked reproducer, so the wrong shape cannot be re-derived
+from the same reasoning.
+
+**MEASURED, in both directions and both editions.** Under `verilog_2005`, five invalid forms REJECT
+and ten legal ones ACCEPT — shared direction, mixed directions, an empty list, the non-ANSI
+`task t; input a;` form, and four function analogues. Under `sv_2017`, every one of them still
+ACCEPTS. External corpus: the `verilog_2005` lane moves `pass 2298 → 2295`, and a diff of the raw
+outcomes names **exactly the three target files and nothing else**. Gates: `ast_shape_contract_gate`
+**18/18, drift 0**; `verilog_2005_conformance_gate` **GREEN** — 240 file×profile checks / **0
+mismatches**, `profile_orphans=0`, certificate coverage byte-identical at seeds 0/7/42;
+`sv_cert_recognized_union_gate` **GREEN** — canonical `UNKNOWN=11`, **union `UNKNOWN=0`, residual
+`[]`**; `sv_external_corpus_triage_gate` **14/14, `parse_fail_total=0`**.
+
+**NO consumer migration, and the schema does not move.** Both variants emit the identical five-field
+`tf_port_item` return, so a consumer reading a task or function port list sees exactly what it saw
+before. `sv_2017` and `sv_2023` are unchanged in accept set *and* in AST. On `verilog_2005`, code
+that relied on the omitted direction was relying on SystemVerilog, and the fix is to write the
+direction the standard requires.
+
+⚠️ **What is still over-accepted here, stated rather than left to be discovered:** IEEE 1364-2005
+`function_port_list` admits **only** `tf_input_declaration`, so `function f(output integer b);`
+remains accepted under `verilog_2005`; and `integer signed` / `integer unsigned` — which A.2.1.3 does
+not admit either — is tracked separately. Both are open leaves, not oversights.
+
 ### 1.0.194 / Contract 1.0.194 — ENGINE-UNIVERSAL-SERVICES.43 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0081`, 2026-08-21), ledger `SV-0067` (`Released`): **CROSSING THE RECURSION CEILING HUNG INSTEAD OF FAILING (ENGINE; all profiles; ZERO GRAMMAR BYTES; SCHEMA UNCHANGED at 26)**
 
 ⛔ **This release changes no language and no AST shape. It changes whether the parser RETURNS.** ~4 KB of legal-looking SystemVerilog — a deeply parenthesised expression — made the shipped parser run without producing a verdict at all. Measured on the release probe: **315** nested parens accepted in 0.15 s, **316** in 0.23 s, **317** in **4.90 s**, and **318 returned nothing in 30 s**. On the embedding path — the vehicle this parser ships to downstream consumers on — that is an unbounded hang holding the caller's thread, and it is *worse* than the process abort `1.3.1` (`SV-CORPUS-GRAD.8c.3`) replaced: a crash fails fast and loud, a hang does not.

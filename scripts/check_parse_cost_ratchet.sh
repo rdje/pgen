@@ -717,17 +717,95 @@ def _contained_in_introduced_subgraph(base_tot, new_tot, ctx):
     return holds, detail
 
 
+def _profile_split_respelling(base_tot, new_tot, ctx):
+    """The rise is a RE-SPELLING, not new work: **no rule that already existed got dearer**, and
+    the whole delta is the arrival of the rule names the row declares as `introduced` net of the
+    retirement of the ones they replace.
+
+    ⛔ WHY THE OTHER FOUR CANNOT COVER IT. `pure_memo_lookups` needs `Δcommitted == 0`; the two
+    terminal-shaped identities need the rise to be unmatched alternatives; and
+    `contained_in_introduced_subgraph` REFUSES on both of this shape's defining features — it
+    rejects `Δcommitted > 0` (*"an accepted derivation got dearer"*) and it rejects ANY rule losing
+    entries (*"the change is not purely additive"*). A profile split is precisely a change where
+    work MOVES: the old rule's entries fall to zero and a new gated rule picks them up. Both
+    predicates are right to refuse it, and neither is describing this.
+
+    ⭐ WHAT THIS ONE ASSERTS INSTEAD, and it is stronger than a total-based identity: **for every
+    rule present in BOTH measurements, entries did not rise and committed did not rise.** The
+    parser does no more work anywhere it already worked; the only new counts sit on rule names that
+    did not exist before, and every one of those must be declared in `introduced`. A rise that
+    escapes onto a pre-existing rule fails, which is exactly the "the parser now speculates
+    everywhere" outcome the scoped predicate was built to exclude — reached here without needing
+    the reference graph, because a rule name that did not exist cannot have been entered before.
+
+    ⚠️⚠️ HONEST BOUND, stated where it will be read: this says the delta is bookkeeping, NOT that
+    the split was free of a cheaper spelling. In `SV-CORPUS-GRAD.13e.5` the residue is one extra
+    dispatcher entry per occurrence of the split rule — the standing structural cost of this
+    repository's `@profiles` idiom, already paid by `data_declaration`, `task_declaration`,
+    `tf_port_direction` and every other profile-split pair in the SV grammar. Eliminating it would
+    mean abandoning the idiom, not tuning this change. Say so in the row's `why`.
+    """
+    if CONTAINMENT is None:
+        raise RuntimeError(f"scripts/parse_cost_containment.py could not be imported "
+                           f"({CONTAINMENT_IMPORT_ERROR}), so this acceptance cannot be evaluated")
+    introduced = ctx["introduced"]
+    if not introduced:
+        raise RuntimeError("the profile-split predicate needs the rule names the change "
+                           "INTRODUCED; the acceptance row declares none, so the delta is "
+                           "unattributed")
+    base_rules = CONTAINMENT.read_rule_costs(ctx["base_rule_costs"])
+    new_rules = CONTAINMENT.read_rule_costs(ctx["new_rule_costs"])
+    declared = set(introduced)
+
+    # (1) An introduced name must be NEW. A row that lists a pre-existing rule would let this
+    #     predicate excuse a genuine rise on it, which is the one thing it must never do.
+    not_new = sorted(r for r in declared if r in base_rules)
+    if not_new:
+        raise RuntimeError(f"{not_new} already existed in the baseline measurement — `introduced` "
+                           f"names the rules the split CREATES, and listing an existing rule would "
+                           f"turn this acceptance into a waiver for real work on it")
+
+    # (2) No rule present in BOTH may get dearer, on either binding per-rule counter.
+    dearer = []
+    for r in sorted(set(base_rules) & set(new_rules)):
+        for metric in ("entries", "committed"):
+            d = new_rules[r].get(metric, 0) - base_rules[r].get(metric, 0)
+            if d > 0:
+                dearer.append(f"{r} {metric} {d:+,}")
+    if dearer:
+        return False, (f"{len(dearer)} pre-existing rule counter(s) ROSE — the change is not a "
+                       f"re-spelling, the parser does more work where it already worked: "
+                       + ", ".join(dearer[:3]))
+
+    # (3) Every rule that is new to the measurement must be declared.
+    undeclared = sorted(r for r in new_rules if r not in base_rules and r not in declared)
+    if undeclared:
+        return False, (f"{len(undeclared)} rule name(s) appear in the measurement and are not "
+                       f"declared as introduced, so their entries are unattributed: "
+                       + " ".join(undeclared[:5]))
+
+    gained = sum(new_rules[r].get("entries", 0) for r in new_rules if r not in base_rules)
+    retired = sorted(r for r in base_rules if r not in new_rules)
+    lost = sum(base_rules[r].get("entries", 0) for r in retired)
+    return True, (f"re-spelling: 0 pre-existing rule counters rose; {len(declared)} introduced "
+                  f"rule(s) gained {gained:+,} entries, {len(retired)} retired rule(s) released "
+                  f"{-lost:+,}, net {new_tot['entries'] - base_tot['entries']:+,} on a "
+                  f"{base_tot['entries']:,}-entry corpus")
+
+
 INVARIANTS = {
     "pure_memo_lookups": _pure_memo_lookups,
     "unmatched_terminal_alternatives": _unmatched_terminal_alternatives,
     "unmatched_lookahead_terminals": _unmatched_lookahead_terminals,
     "contained_in_introduced_subgraph": _contained_in_introduced_subgraph,
+    "profile_split_respelling": _profile_split_respelling,
 }
 
 # ⛔ WHICH INVARIANTS TAKE A SCOPE, AND THE CHECK IS TWO-SIDED. A containment row with no
 # `introduced` set cannot be evaluated; a row naming a set for an invariant that ignores it reads as
 # a scoped acceptance and is not one. Both REFUSE, so the column can never become decoration.
-INVARIANTS_TAKING_INTRODUCED = {"contained_in_introduced_subgraph"}
+INVARIANTS_TAKING_INTRODUCED = {"contained_in_introduced_subgraph",
+                                "profile_split_respelling"}
 NO_INTRODUCED = "-"
 
 

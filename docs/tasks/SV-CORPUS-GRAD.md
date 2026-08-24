@@ -15973,37 +15973,145 @@ a re-derivation that contradicts a standing number carries the heavier burden):
   (c) pin `integer signed u;` / `integer unsigned u;` as `class=accepts_invalid` rows so the fix
   flips them to `invalid` and they guard it forever.
 
-##### ⛔ `.13e.5` — a task/function port item may start with NO DIRECTION under `verilog_2005`, and IEEE 1364-2005 A.2.7 has no such alternative (`todo`, opened 2026-08-23 by `.13e.3`(b))
+##### ✅✅✅ `.13e.5` — **DONE: the `verilog_2005` task/function port direction is MANDATORY again (ledger `SV-0068`, release `1.0.195`) — and the OBVIOUS fix was built, regenerated and MEASURED WRONG before it shipped** (`done` 2026-08-24, `PGEN-SV-CORPUS-GRAD-0287`)
+
+- **THE DEFECT.** IEEE 1364-2005 A.2.7 `task_port_item`
+  (`docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:290`) is one of
+  exactly three `tf_*_declaration`s and each (`:300`/`:303`/`:306`) **begins with its direction
+  keyword** — there is no directionless alternative. PGEN spelled the rule as IEEE 1800 does
+  (`( tf_port_direction )?`, optional and inherited) with **no `@profiles` gate**, so
+  `task t(a, b);` parsed as plain Verilog on a strict-1364-2005 profile. Over-acceptance is a defect
+  ([[feedback_sv_strict_lrm_compliance_default]]).
+
+⛔⛔ **THE OBVIOUS FIX IS WRONG, AND ONLY MEASUREMENT SAID SO.** *"Every item must carry a
+direction"* is the reading the defect invites, and it **rejects `task t(input integer a, b);`** —
+which A.2.7 derives, because `tf_input_declaration ::= input task_port_type
+list_of_port_identifiers` takes a **list** of names, so one `input` covers both. PGEN renders a port
+list the IEEE 1800 way (one `tf_port_item` per comma), so a continuation name arrives as its own
+directionless item and a per-item requirement forbids it. ⭐ **That version was written, the parser
+was regenerated, and the grammar-AST interpreter reported the rejection — before any of it
+shipped.** The refuting input is now the tracked control
+`control_v2005_task_port_shared_direction.sv`, so the wrong shape cannot be re-derived from the same
+reasoning.
+
+**THE SHIPPED SHAPE**, which is what A.2.7 actually says: a directionless item is admitted **only
+when it is a bare port identifier** (no data type, no `var` — i.e. a `list_of_port_identifiers`
+continuation), and the **first** item of the list must carry a direction.
+
+```ebnf
+@profiles: ["verilog_2005"]
+tf_port_list_v2005 := tf_port_item_v2005 ( comma tf_port_item_v2005_tail )*
+tf_port_item_v2005_tail := tf_port_item_v2005 | tf_port_item_v2005_continuation
+```
+
+⭐⭐ **THE INTERPRETER IS WHAT MADE THE CORRECTION CHEAP.** `--interpret-parse` (TOOLBOX §1.5b) gives
+a verdict against the raw `.ebnf` in **seconds, with no codegen and no `rustc`**, so the design was
+iterated to correctness *before* paying the ~20-minute release-probe rebuild — which was paid once,
+for the right grammar. Had the first shape been validated only through the generated parser, the
+correction would have cost two full rebuild cycles instead of one.
+
+**VERIFIED IN BOTH DIRECTIONS AND BOTH EDITIONS** (interpreter first, then the regenerated parser):
+
+| under `verilog_2005` | verdict |
+|---|---|
+| `t(a, b)` · `t(integer a, b)` · `t(input integer a, integer b)` · `f(a)` · the two pinned repros | **REJECT** ✅ |
+| `t(input integer a, b)` · `t(input integer a, output integer b)` · `t()` · non-ANSI `task t; input a;` · `f(input integer a)` · `f(input integer a, b)` · non-ANSI `function` · `f([7:0] ranges)` | **ACCEPT** ✅ |
+| **under `sv_2017`: every one of the above** | **ACCEPT** ✅ (IEEE 1800 relaxation preserved) |
+
+**CORPUS, and the row that is NOT this change.** `verilog_2005` lane `pass 2298 → 2295`, and a diff
+of the raw outcomes names **exactly the three target rows and nothing else**. ⭐⭐ The SV lane moved
+**one** row — `t_property_unsup.v`, `fail → pass` — and it is **not attributable to this change**:
+the file contains no `task` or `function` at all, so `tf_port_item` is structurally unreachable in
+it, while line 65 carries the SVA `implies` operator that `SV-0066` fixed on **2026-08-21**. ⇒ **the
+tracked SV corpus outcomes were three days stale and this re-run refreshed them**, dropping the
+axis-2 bar **275 → 274** on work that had already landed. That is the `.13i` finding reproducing on
+a live artifact — and this time the staleness was hiding a **fix**, not a defect. Routed as
+`.13e.6`.
+
+###### Acceptance Checklist (enforced) — `.13e.5`
+
+- [x] **REPRODUCE / ISSUE** — `./rust/target/release/parseability_probe --parse systemverilog
+  stimuli/sv/subs/iverilog/ivtest/ivltests/br1027a.v --profile verilog_2005` → **accepted**, for
+  `task t(a, b);`; same for `br1027c.v` and `br1027e.v`. All three read
+  `divergence:unexplained_accepts_invalid` in `adjudication_manifest_v2005.tsv` after `.13e.3`(b).
+- [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/systemverilog.ebnf:6090`
+  `tf_port_item := attribute_instance* ( tf_port_direction )? …` carried the IEEE 1800 shape with
+  **no `@profiles` gate**. `PGEN_TRACE_VERBOSITY=debug … --trace-rules` on the accepting input names
+  the chain: `parse_tf_port_item` → `data_type_or_implicit` selected **branch 2/2 consuming 0
+  chars** (the implicit type) with the direction optional absent, so a bare identifier satisfies the
+  item. LRM ground truth: A.2.7 `task_port_item` (`…Annex_A…txt:290`) + `tf_input_declaration`
+  (`:300`), each beginning with its direction keyword.
+- [x] **FIX** — grammar tier (declarative; no engine, no codegen change): `tf_port_item`/
+  `tf_port_list` split into `@profiles`-gated variants — `tf_port_item_sv_only` /
+  `tf_port_list_sv_only` (`sv_2017`+`sv_2023`, body byte-for-byte unchanged) and
+  `tf_port_item_v2005` / `tf_port_item_v2005_continuation` / `data_type_implicit_only_v2005` /
+  `tf_port_item_v2005_tail` / `tf_port_list_v2005`. `--dump-rule-profiles` confirms the gating:
+  5 of the 7 new rules satisfiable under `verilog_2005`, 2 under `sv_2017`, none under both.
+- [x] **ADDRESSED (verified)** — v2005 arm `accepts_invalid` **17 → 14**, `rejects_valid`
+  **unmoved at 50**, `match` 2278 → 2281; the raw-outcome diff names exactly `br1027a/c/e`.
+  `python3 stimuli/sv/run_adjudication_repros.py` → **`checked=195 armed=77 listed=110
+  failures=0`**, the two `accepts_invalid` rows having first gone **RED** (`expect=ACCEPT
+  got=REJECT`) on the regenerated parser and then been flipped to `class=invalid` — the ratchet's
+  designed "flip it, the fix landed" signal, observed rather than assumed.
+- [x] **NO REGRESSION** — `ast_shape_contract_gate` **18/18, drift 0** (schema stays **26**: both
+  variants emit the identical five-field return). `verilog_2005_conformance_gate` **GREEN** — 240
+  file×profile checks / **0 mismatches**, `profile_orphans=0`, cert `1148/334/799/15` **byte-identical
+  at seeds 0/7/42**, `sample_parse_failures=0`. `sv_cert_recognized_union_gate` **GREEN** — canonical
+  `UNKNOWN=11`, **union `UNKNOWN=0`, residual `[]`**, `fully_certified_via_union: true`, deterministic
+  at seeds 0/7/42. `sv_external_corpus_triage_gate` **14/14 executed, 0 blocked, parse_fail_total=0,
+  preprocess_fail_total=0**. `clippy_on_rust_change` clean (source strict + generated). All **26
+  doctrines PASS**. ⛔ **Both cert baselines were rebaselined and each delta CLOSES EXACTLY with zero
+  defect content**: v2005 `total 1143 → 1148` = precisely the five new v2005-satisfiable rules,
+  landing `+1 proof / +4 witness` (fully positive) with the 15-rule residual **set-identical**;
+  union `total 1385 → 1387` = precisely the two new sv-satisfiable rules, `+1 proof / +1 witness`,
+  union UNKNOWN still 0. Both sets of numbers were **parsed out of the gates' own logs** by scripts
+  that REFUSE on seed disagreement or a nonzero failure counter — never re-typed.
+- [x] **LOCKSTEP** — grammar + this leaf + `.13e.6` opened + `docs/TASK_TREE.md` frontier +
+  `PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv` (RELEASE `1.0.195`, digest `52f5bc88…`) +
+  `PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` (current-state note + Contract Identity:
+  contract `1.0.192 → 1.0.195`, parser release `1.0.194 → 1.0.195`, grammar digest) +
+  `PGEN_RELEASED_PARSER_BUG_LEDGER.md` row `SV-0068` + both rebaselined cert contracts + the
+  regenerated corpus/characterization/adjudication artifacts + `verdict_coverage/coverage.md` +
+  `stimuli/sv/adjudication_repros/` (1 new control, 2 flipped) + the book's SV corpus section
+  (tuple anchor `275 → 274`) + `MEMORY.md` / `CHANGES.md` / `DEVELOPMENT_NOTES.md`, this commit.
+
+##### ⛔ `.13e.6` — the SV corpus OUTCOMES are a measurement with no expiry date, and they were three days stale hiding a FIX (`todo`, opened 2026-08-24 by `.13e.5`)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):
 
-- **MEASURED on the shipped release probe.** All three ivtest rows `br1027a.v` (`task t(a, b);`),
-  `br1027c.v` (`task t(integer a, b);`) and `br1027e.v` (`task t(input integer a, integer b);`)
-  **ACCEPT** under `--profile verilog_2005`, and all three are now
-  `divergence:unexplained_accepts_invalid` in the v2005 manifest.
-- **WHY IT IS A DEFECT.** IEEE 1364-2005 A.2.7 `task_port_item`
-  (`docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt:290`) has exactly
-  three alternatives — `tf_input_declaration` / `tf_output_declaration` / `tf_inout_declaration` —
-  and each (`:300`/`:303`/`:306`) **begins with its direction keyword**. There is no directionless
-  alternative, so none of the three files is derivable. Over-acceptance is a defect
-  ([[feedback_sv_strict_lrm_compliance_default]]), and iverilog agrees from its own grammar
-  action: `error: Missing task/function port direction.` (`parse.y`).
-- ⭐ **THE DISTINCTION THAT SIZES THE FIX.** `tf_input_declaration ::= input task_port_type
-  list_of_port_identifiers` lets ONE `input` cover several names, so `task t(input integer a, b);`
-  **is legal** and must keep parsing. The defect is that a *new* `task_port_item` may start
-  without a direction — not that a name may lack one. A fix that tightens `list_of_port_identifiers`
-  would break valid code.
-- ⛔ **`verilog_2005`-ONLY, so the fix must be PROFILE-GATED.** IEEE 1800 A.2.7 `tf_port_item`
-  makes the direction optional (defaulting to `input`), so the same text is valid SystemVerilog and
-  **must keep parsing under `sv_2017`/`sv_2023`**. The shape is the `scope_randomize_sv_only` lift
-  already used in this tree (see `invalid_v2005_scope_randomize.sv`), never an inline tightening.
-- **ALREADY RATCHETED, BOTH SIDES.** `accepts_invalid_v2005_task_port_no_direction.sv` and
-  `accepts_invalid_v2005_task_port_direction_dropped.sv` fail the day the construct starts being
-  rejected — flip them to `class=invalid` then — and
-  `control_v2005_task_port_directions.sv` fails if the fix breaks the legal spelling.
-- **Owed:** (a) locate the admitting carrier with `--trace-rules` (the `.13e.4` method); (b) the
-  profile-gated lift; (c) flip the two `accepts_invalid` rows to `invalid` in the same commit;
-  (d) confirm `function_port_list` (`…:266`), which has the same shape and no corpus row yet.
+- **MEASURED, on a live artifact.** `.13e.5` re-ran the SV corpus lane after a `verilog_2005`-only
+  grammar change and **one** SV-lane row moved: `t_property_unsup.v`, `fail → pass`. It is not
+  attributable to that change — the file contains **no `task` or `function` at all**, so the rule
+  the change touches is structurally unreachable in it — and it carries the SVA `implies` operator
+  on line 65, the construct `SV-0066` repaired on **2026-08-21**. The `SV-0066` ledger row even
+  **predicted** this file would parse in full. ⇒ the tracked outcomes had been wrong for three days
+  and the axis-2 bar was counting a defect that no longer existed (**275 → 274**).
+- ⛔ **THE DIRECTION OF THE ERROR IS WHAT MAKES IT A DOCTRINE QUESTION, NOT A CHORE.** A stale
+  outcome file that hides a *fix* inflates the bar, so the campaign works on phantoms; a stale one
+  that hides a *regression* deflates it, so the campaign ships. Both are silent, and nothing in the
+  repository distinguishes them — `SV-CORPUS-DENOMINATOR` re-derives the published NUMBERS from the
+  manifests and says so in its own header: *"it does not re-adjudicate the corpus."*
+- **Reproduces beyond this row by construction, and the mechanism is sharper than "no identity
+  block"** — `results.tsv` / `results_v2005.tsv` are **`.gitignore`d** (`.gitignore:424-427`,
+  deliberately: *"External-corpus bulk characterization raw dumps (regenerable; track
+  characterization.md only)"*; 1.3 MB and 181 KB). So they carry no identity block AND no history:
+  nothing can say when they were produced, against which parser, or that they have drifted — and
+  `.13e.1` noted the ignore rule in passing without drawing this consequence. ⭐ **The ignore rule
+  is defensible on size and the reasoning behind it is exactly one step short**: the DERIVED
+  artifacts it points at (`characterization.md`, the adjudication manifests) are tracked and two of
+  them carry identity blocks — but an identity block on a derivation cannot detect that its own
+  INPUT was measured against yesterday's parser. Same shape as `SV-CORPUS-DENOMINATOR`'s own stated
+  limit, one layer further down. ⇒ a **`CLAIM_VERIFICATION` leg-3 breach on the campaign's
+  foundational input**, not a housekeeping note. They are the INPUT to every number this campaign
+  publishes: the bar, the denominator tuple, and every burn-down delta quoted in the book.
+- **Owed:** (a) the outcome files are `.gitignore`d, so an identity block cannot live IN them — put
+  the producing run's identity (grammar digest + generated-parser sha + probe fingerprint + row
+  count) into the TRACKED artifact they feed, and have the adjudicator REFUSE when the outcome file
+  it reads does not match it; (b) decide whether a grammar-revision commit must
+  re-run the lanes, or whether the identity check is enough to make the staleness LOUD — `.13i`'s
+  finding is that only the gate-checked one never went stale; (c) size how often it has happened:
+  the register now lists every grammar revision, so the population is derivable rather than
+  guessed.
 
 #### `.13f` — the honest-permanent-deferral set: 302 rows where NO VERDICT is the right answer forever (`todo`, opened 2026-08-11 by `.13a`)
 

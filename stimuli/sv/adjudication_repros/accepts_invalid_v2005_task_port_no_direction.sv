@@ -9,8 +9,7 @@
 // so from its own grammar action: `error: Missing task/function port direction.` (parse.y).
 // ⛔ IEEE 1800 A.2.7 makes the direction OPTIONAL, so this is a verilog_2005-ONLY defect and the
 // fix must be profile-gated (the `scope_randomize_sv_only` idiom), not an inline tightening.
-// Expected: ACCEPT today (the defect). FLIPS TO REJECT — and this row to `class=invalid` — when
-// SV-CORPUS-GRAD.13e.5 lands. Owner of the corpus rows: ivtest br1027a / br1027c.
+// FIXED by SV-CORPUS-GRAD.13e.5: REJECT FOREVER on verilog_2005, ACCEPT on sv_2017/sv_2023. Owner of the corpus rows: ivtest br1027a / br1027c.
 module test();
   task t(a, b);
     $display(a,,b);

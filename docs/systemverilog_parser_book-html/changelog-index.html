@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-bbdd65ba.js";
+            window.path_to_searchindex_js = "searchindex-21d58e08.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -217,6 +217,47 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10195--contract-10195--sv-corpus-grad13e5-pgen-sv-corpus-grad-0287-2026-08-24-ledger-sv-0068-released-a-task-or-function-port-item-could-start-with-no-direction-under-verilog_2005-grammar-verilog_2005-only--a-narrow-schema-unchanged-at-26"><a class="header" href="#10195--contract-10195--sv-corpus-grad13e5-pgen-sv-corpus-grad-0287-2026-08-24-ledger-sv-0068-released-a-task-or-function-port-item-could-start-with-no-direction-under-verilog_2005-grammar-verilog_2005-only--a-narrow-schema-unchanged-at-26">1.0.195 / Contract 1.0.195 — SV-CORPUS-GRAD.13e.5 (<code>PGEN-SV-CORPUS-GRAD-0287</code>, 2026-08-24), ledger <code>SV-0068</code> (<code>Released</code>): <strong>A TASK OR FUNCTION PORT ITEM COULD START WITH NO DIRECTION UNDER <code>verilog_2005</code> (GRAMMAR; <code>verilog_2005</code> ONLY — a NARROW; SCHEMA UNCHANGED at 26)</strong></a></h3>
+<p>⛔ <strong>This release narrows one profile and touches nothing else.</strong> IEEE 1364-2005 A.2.7 spells
+<code>task_port_item</code> as one of exactly three <code>tf_*_declaration</code>s, and each of those begins with its
+<code>input</code> / <code>output</code> / <code>inout</code> keyword — there is no directionless alternative, and <code>function_port_list</code>
+is narrower still. PGEN spelled the rule the way <strong>IEEE 1800</strong> does, with the direction optional and
+inherited from the previous item, and applied that spelling to <strong>every</strong> profile. So under the strict
+Verilog-2005 profile <code>task t(a, b);</code> and <code>task t(integer a, b);</code> parsed, and so did
+<code>task t(input integer a, integer b);</code> — three constructs the standard cannot derive. Icarus Verilog
+refuses all three from its own grammar action, <code>error: Missing task/function port direction.</code></p>
+<p><strong>THE FIX IS A PROFILE SPLIT.</strong> <code>tf_port_item</code> and <code>tf_port_list</code> become gated pairs:
+<code>tf_port_item_sv_only</code> / <code>tf_port_list_sv_only</code> for <code>sv_2017</code>+<code>sv_2023</code>, whose bodies are a
+byte-for-byte re-spelling of what shipped, and a <code>verilog_2005</code> set in which the direction is
+mandatory. Only the Verilog-2005 path changes.</p>
+<p>⛔⛔ <strong>THE OBVIOUS FIX IS WRONG, AND IT WAS MEASURED WRONG BEFORE IT SHIPPED.</strong> <em>“Require a direction
+on every item”</em> is the reading the defect invites, and it <strong>rejects <code>task t(input integer a, b);</code></strong> —
+which A.2.7 <em>does</em> derive, because <code>tf_input_declaration ::= input task_port_type list_of_port_identifiers</code> takes a <strong>list</strong> of names, so one <code>input</code> legitimately covers both. Because
+PGEN renders a port list the IEEE 1800 way — one item per comma — a continuation name arrives as its
+own directionless item, indistinguishable by shape from the defect. That version was written, the
+parser was regenerated, and the grammar-AST interpreter reported the rejection before any of it
+reached a release. <strong>The shipped rule admits a directionless item only when it is a bare port
+identifier</strong> — no data type, no <code>var</code> — <strong>and requires the first item of the list to carry a
+direction.</strong> The refuting input is now a tracked reproducer, so the wrong shape cannot be re-derived
+from the same reasoning.</p>
+<p><strong>MEASURED, in both directions and both editions.</strong> Under <code>verilog_2005</code>, five invalid forms REJECT
+and ten legal ones ACCEPT — shared direction, mixed directions, an empty list, the non-ANSI
+<code>task t; input a;</code> form, and four function analogues. Under <code>sv_2017</code>, every one of them still
+ACCEPTS. External corpus: the <code>verilog_2005</code> lane moves <code>pass 2298 → 2295</code>, and a diff of the raw
+outcomes names <strong>exactly the three target files and nothing else</strong>. Gates: <code>ast_shape_contract_gate</code>
+<strong>18/18, drift 0</strong>; <code>verilog_2005_conformance_gate</code> <strong>GREEN</strong> — 240 file×profile checks / <strong>0
+mismatches</strong>, <code>profile_orphans=0</code>, certificate coverage byte-identical at seeds 0/7/42;
+<code>sv_cert_recognized_union_gate</code> <strong>GREEN</strong> — canonical <code>UNKNOWN=11</code>, <strong>union <code>UNKNOWN=0</code>, residual
+<code>[]</code></strong>; <code>sv_external_corpus_triage_gate</code> <strong>14/14, <code>parse_fail_total=0</code></strong>.</p>
+<p><strong>NO consumer migration, and the schema does not move.</strong> Both variants emit the identical five-field
+<code>tf_port_item</code> return, so a consumer reading a task or function port list sees exactly what it saw
+before. <code>sv_2017</code> and <code>sv_2023</code> are unchanged in accept set <em>and</em> in AST. On <code>verilog_2005</code>, code
+that relied on the omitted direction was relying on SystemVerilog, and the fix is to write the
+direction the standard requires.</p>
+<p>⚠️ <strong>What is still over-accepted here, stated rather than left to be discovered:</strong> IEEE 1364-2005
+<code>function_port_list</code> admits <strong>only</strong> <code>tf_input_declaration</code>, so <code>function f(output integer b);</code>
+remains accepted under <code>verilog_2005</code>; and <code>integer signed</code> / <code>integer unsigned</code> — which A.2.1.3 does
+not admit either — is tracked separately. Both are open leaves, not oversights.</p>
 <h3 id="10194--contract-10194--engine-universal-services43-pgen-engine-universal-services-0081-2026-08-21-ledger-sv-0067-released-crossing-the-recursion-ceiling-hung-instead-of-failing-engine-all-profiles-zero-grammar-bytes-schema-unchanged-at-26"><a class="header" href="#10194--contract-10194--engine-universal-services43-pgen-engine-universal-services-0081-2026-08-21-ledger-sv-0067-released-crossing-the-recursion-ceiling-hung-instead-of-failing-engine-all-profiles-zero-grammar-bytes-schema-unchanged-at-26">1.0.194 / Contract 1.0.194 — ENGINE-UNIVERSAL-SERVICES.43 (<code>PGEN-ENGINE-UNIVERSAL-SERVICES-0081</code>, 2026-08-21), ledger <code>SV-0067</code> (<code>Released</code>): <strong>CROSSING THE RECURSION CEILING HUNG INSTEAD OF FAILING (ENGINE; all profiles; ZERO GRAMMAR BYTES; SCHEMA UNCHANGED at 26)</strong></a></h3>
 <p>⛔ <strong>This release changes no language and no AST shape. It changes whether the parser RETURNS.</strong> ~4 KB of legal-looking SystemVerilog — a deeply parenthesised expression — made the shipped parser run without producing a verdict at all. Measured on the release probe: <strong>315</strong> nested parens accepted in 0.15 s, <strong>316</strong> in 0.23 s, <strong>317</strong> in <strong>4.90 s</strong>, and <strong>318 returned nothing in 30 s</strong>. On the embedding path — the vehicle this parser ships to downstream consumers on — that is an unbounded hang holding the caller’s thread, and it is <em>worse</em> than the process abort <code>1.3.1</code> (<code>SV-CORPUS-GRAD.8c.3</code>) replaced: a crash fails fast and loud, a hang does not.</p>
 <p><strong>ROOT CAUSE — one field was carrying two kinds of fact.</strong> <code>SV-CORPUS-GRAD.3.12</code> routes every recursion-guard verdict through one field, a parse-stack <strong>frame index</strong>, and refuses to cache a FAILURE whose block came from a frame outside the memoized rule (correct: that outcome depends on the caller’s stack, which the memo key <code>(rule, position)</code> does not carry). <code>Infinite</code> and <code>LeftRecursive</code> genuinely name a frame. The whole-stack DEPTH CEILING names none, so it passed <code>0</code> — the index outside <strong>every</strong> rule — which makes that gate true for every rule at <code>entry_depth &gt;= 2</code>. ⇒ <strong>one trip of the ceiling disabled FAILURE memoisation for the entire remaining parse</strong>, and the packrat parse degenerated into exponential backtracking over the expression cascade’s alternative fan-out.</p>
