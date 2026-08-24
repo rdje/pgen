@@ -16790,56 +16790,72 @@ IEEE-1800-only keyword absent from every hand list this leaf had produced.
   ledger or schema change: nothing shipped moved, so `SV-CONTRACT-CURRENCY` and the bug ledger are
   correctly untouched.
 
-##### ⛔ `.13e.8` — ⭐⭐ the `verilog_2005` certificate denominator counts **302** rules no `verilog_2005` input can reach, because BOTH instruments that could notice are bottom-up (`todo`, opened 2026-08-24 by `.13e.7`(c))
+##### ⛔⛔ `.13e.8` — **RETRACTED: the finding was FALSE. The engine already crosses profile-filtered reachability with the whole rule set, and has since `VERILOG-2005-PROFILE.6.7`** (opened 2026-08-24 by `.13e.7`(c); **RETRACTED 2026-08-25, `PGEN-SV-CORPUS-GRAD-0294`, under director challenge**)
 
-**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing):
+**WHAT I PUBLISHED, AND IT IS WRONG.** This leaf claimed that *"the `verilog_2005` certificate
+denominator counts 302 rules no `verilog_2005` input can reach, because BOTH instruments that could
+notice are bottom-up … Nothing crosses them"*, and that
+`PGEN_CERT_RESIDUAL_CLASSIFICATION`'s `profile_entry_unreachable` class *"is applied to the RESIDUAL
+and never to the DENOMINATOR"*. **Both halves are false.**
 
-- **MEASURED, and the worked example is one command.** `--dump-rule-profiles` reports
-  `kw_void_e9cede9b` as `satisfiable_under ["sv_2017","sv_2023","verilog_2005"]`. The shipped
-  release probe **REJECTS** `function void f;` under `--profile verilog_2005` and ACCEPTS it under
-  `sv_2017` — correctly, since `VERILOG-2005-PROFILE.6.8` gated `void` on purpose. Both rules that
-  reference the terminal (`grammars/systemverilog.ebnf:2165` `data_type_or_void_sv_only`, `:5913`
-  `void_cast_statement_sv_only`) are `_sv_only`; the terminal itself is ungated and trivially
-  derives a string, so a bottom-up fixpoint calls it satisfiable forever.
-- ⛔ **THE MECHANISM IS NAMED, NOT INFERRED.** `compute_sat_by_profile`
-  (`rust/src/ast_pipeline/grammar_wellformedness.rs:931`) iterates to a fixpoint over
-  `node_satisfiable`, i.e. *"can this rule derive a string under P"*. It never consults an entry
-  rule. `detect_unreachable_rules` (`:386`) DOES compute reachability — and takes the **unfiltered**
-  grammar, so it cannot see a profile. ⇒ **no instrument in the tree crosses the two**, and the
-  certificate `total` is the satisfiable set.
-- **SIZED, over a closed population** (`stimuli/sv/v2005_keyword_faithfulness_census.py`, TOOLBOX
-  5.11): of the **1 129** source-grammar rules satisfiable under `verilog_2005`, **827** are
-  reachable from the four declared entry roots and **302 are not**. Sampled and confirmed by their
-  referrers: `base_class_type` is referenced only by `class_declaration_sv_2017`/`_sv_2023`;
-  `assertion_variable_declaration` only by `property_declaration`/`sequence_declaration`;
-  `action_block` only by rules gated `["sv_2017","sv_2023"]`. Each is ungated ITSELF and dead under
-  the profile regardless.
-- ⭐⭐ **THE CONTROL IS WHAT MAKES THIS A FINDING RATHER THAN A PROPERTY OF THE GRAMMAR.** The same
-  computation reads **5** unreachable under `sv_2017` and **4** under `sv_2023`; an independent
-  instrument sharing no code, `--lint-grammar`, reads `unreachable_rules=0` on the UNFILTERED
-  grammar. **302 is not what this grammar looks like — it is what the `verilog_2005` filter does to
-  it.** ⚠️ Disambiguation, because the number collides: this is 302 **RULES**, unrelated to `.13f`'s
-  302 **corpus rows**.
-- **WHAT IT COSTS.** `rust/test_data/grammar_quality/verilog_2005_conformance_contract_v0.json`
-  pins `expected_total: 1148` (= 1 129 + the **19** `_lr_*` rules the eliminator synthesises), with
-  `expected_proof: 334` / `expected_witness: 799` / `expected_unknown: 15`. If ~302 of that
-  denominator is unreachable by construction, then the published `verilog_2005` certification
-  fraction is measured against a population a quarter larger than the language the profile can
-  actually parse — and the residual-classification tool already has a name for this exact class
-  (`PGEN_CERT_RESIDUAL_CLASSIFICATION`'s `profile_entry_unreachable`, TOOLBOX 4.6). ⛔ **It is
-  applied to the RESIDUAL and not to the DENOMINATOR**, which is the whole finding: the concept is
-  implemented, adjudicated and trusted — for 4 rules, not for 302.
-- ⛔ **NOT WORKED HERE, AND THE REASON IS SEQUENCING, NOT SIZE.** `.13e.7`(a) owes a structural
-  ruling *priced against the `verilog_2005` cert baseline it moves*. If that baseline's denominator
-  is itself wrong, the price is wrong. But `.13e.7`(b)+(a) fix **confirmed defects**, and by the
-  standing sequencing call recorded in `-0007` (*a confirmed defect outranks a search for unknown
-  ones*) they go first. This leaf is the immediate next candidate after them.
-- **Owed:** (a) decide whether the `verilog_2005` cert `total` should be the SATISFIABLE or the
-  REACHABLE population — a contract-level ruling, since `expected_total`/`proof`/`witness`/`unknown`
-  all move together and `BASELINE-IDENTITY` requires the change be re-derivable; (b) if REACHABLE
-  wins, adjudicate the 19 `_lr_*` rules, which have no source-graph edges and so are outside every
-  reachability model in the tree today; (c) either way, publish the reachable/satisfiable pair
-  beside the fraction, so a reader can never again mistake the one for the other.
+**WHAT REFUTED IT** — a test this leaf never ran, and the director's challenge is what prompted it.
+The contradiction was sitting in my own evidence and I explained it away instead of closing it: the
+cert pass reported **1 144 certified rules** under `verilog_2005` while my model said only **827**
+were reachable. I wrote that off as *"the witness passes re-route through an alternative parent
+carrier"* and never checked. Intersecting the two sets settles it in one command:
+
+```text
+proof-covered = 356 · my 'unreachable' set = 323 · overlap = 323 of 323
+```
+
+**Every single rule my model calls unreachable is in the certificate pass's `proof` category — an
+exact set match, not a correlation.** `gather_verified_profile_proof_covered_rules`
+(`rust/src/ast_pipeline/grammar_wellformedness.rs:3017`, wired on the cert path at
+`rust/src/main.rs:3409`) classifies the **WHOLE active rule set** — its own comment says so, and it
+passes `rule_order` as the candidate universe — and issues every `profile_entry_unreachable` rule a
+`ProfileEntryUnreachable` certificate that is **independently RE-VERIFIED**, with a re-verify
+failure reported as *a LINTER BUG, never silently covered*. The pre-fix numbers corroborate:
+302 unreachable against 334 proof, 323 against 356 — the same ~32-rule remainder both times.
+
+⭐ **AND COUNTING THEM AS CERTIFIED IS SOUND, not a loophole.** The engine's own justification is
+correct: a rule not positively reachable from any declared entry *can never be exercised by an
+accepted parse*, so the transactional witness primitive correctly never records it — demanding a
+witness would be impossible by construction. There is no defect here to fix.
+
+⛔⛔ **THE SHAPE OF MY ERROR IS THE ONE `-0289` HAD CORRECTED ME ON ONE COMMIT EARLIER.** That
+retraction was of the claim *"`verilog_2005` faithfulness is checked by NOTHING"*, and its lesson
+was recorded as: **an "X is checked by nothing" claim is a CENSUS claim, and must not be published
+without running the census.** I then opened this leaf with *"nothing crosses the two"* — the
+identical form — on the identical subject, having read two `grammar_wellformedness.rs` functions and
+not looked for a third. ⇒ **reading two implementations is not a census of implementations.** The
+cheap check I skipped is `grep -n "fn .*profile.*proof\|fn .*proof.*profile"`, which names the
+function in one line.
+
+⚠️ **A SECOND OVERCLAIM IN THE SAME LEAF, ALSO REFUTED.** It said the census's reachability model
+was cross-confirmed by cert-coverage's own reach computation. Measured: cert-coverage's
+`NO reach path from the entry` list is **11 rules and my model calls all 11 REACHABLE — agreement
+on 0 of 11.** Neither is wrong; they answer different questions (mine unions the four declared entry
+roots, that warning was produced under a single `--entry-rule systemverilog_file`). But *"the two
+instruments agree"* was asserted and never checked, which is the same failure one level down.
+
+**WHAT SURVIVES, AND IT IS WORTH KEEPING:**
+
+- **`--dump-rule-profiles`' `satisfiable_under` is bottom-up and does NOT mean reachable.** The
+  `kw_void_e9cede9b` worked example stands: it reports satisfiable under `verilog_2005` while
+  `function void f;` correctly REJECTS there. That trap is real and is why TOOLBOX 5.11 warns about
+  it — a reader reaching for 5.4 to answer a reachability question still gets the wrong answer.
+- **The 323 satisfiable-but-unreachable count is CORRECT**, and the profile control stands (5 under
+  `sv_2017`, 4 under `sv_2023`, `unreachable_rules=0` unfiltered). It describes the profile's live
+  surface honestly. It is simply **not a defect**, and the census report, TOOLBOX 5.11 and the book
+  chapter are all corrected to say so.
+- **The falsification against the shipped parser also held**: over 38 real `verilog_2005` files,
+  **0** of the 323 was ever committed. ⚠️ Honest bound, stated because it was measured: those files
+  commit only **410 of the 805** rules the model calls reachable, so that test exercises **51 %** of
+  the model.
+
+**Owed:** nothing. The leaf is closed as REFUTED, not deferred. Its one durable output is the
+lesson, which is promoted rather than left here:
+[[an-x-is-checked-by-nothing-claim-is-a-census-claim]].
 
 ##### ⛔ `.13e.9` — a rule that PARSES but can no longer be WITNESSED: gating an optional's content costs 7 `verilog_2005` certificate rules, and the parse is unchanged (`todo`, opened 2026-08-24 by `.13e.7`)
 

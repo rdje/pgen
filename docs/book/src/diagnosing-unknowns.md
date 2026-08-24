@@ -555,10 +555,19 @@ satisfiable under `verilog_2005`, while `function void f;` is correctly **reject
 because both rules that reference the terminal are profile-gated and the terminal itself is not.
 
 `--lint-grammar`'s `unreachable_rules` is the missing top-down half, but it runs on the
-**unfiltered** grammar, so it cannot see a profile either. Nothing in the tree crosses the two.
-Crossing them is what the census does, and the gap it exposes is large: of the 1 129 source-grammar
-rules satisfiable under `verilog_2005`, **827 are reachable and 302 are not** — against 5 and 4
-unreachable under `sv_2017` and `sv_2023`, and 0 on the unfiltered grammar.
+**unfiltered** grammar, so it cannot see a profile either. Crossing the two is what the census does,
+and the population it exposes is large: of the 1 128 source-grammar rules satisfiable under
+`verilog_2005`, **805 are reachable and 323 are not** — against 5 and 4 unreachable under `sv_2017`
+and `sv_2023`, and 0 on the unfiltered grammar.
+
+⛔ **What that number is NOT is a hole in the certificate accounting — and this book said it was.**
+The engine crosses those directions too, and has since `VERILOG-2005-PROFILE.6.7`:
+`gather_verified_profile_proof_covered_rules` classifies the *whole* active rule set and issues
+every profile-entry-unreachable rule an explicitly **re-verified** `ProfileEntryUnreachable`
+certificate, treating a re-verify failure as a linter bug rather than covering it silently.
+Measured: all 323 of those rules land in the certificate pass's `proof` category, exactly. Counting
+them as certified is sound — a rule no accepted parse can reach cannot be witnessed, so demanding a
+witness for it would be impossible by construction.
 
 ### What the census cannot see, stated in its own report
 

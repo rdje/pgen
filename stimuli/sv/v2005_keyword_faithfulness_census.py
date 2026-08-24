@@ -452,11 +452,17 @@ def render(rows: list[dict], stats: dict) -> tuple[str, str]:
         "(the bottom-up half — *can this rule derive a string here*)",
         f"- of those, REACHABLE under `{PROFILE}` from the {len(ENTRY_ROOTS)} declared entry "
         f"roots: **{stats['reachable']}** (the top-down half — *can a parse get here*)",
-        f"- ⛔ **satisfiable but UNREACHABLE: {stats['unreachable']}** — rules the profile admits "
+        f"- **satisfiable but UNREACHABLE: {stats['unreachable']}** — rules the profile admits "
         f"that no `{PROFILE}` input can arrive at. `kw_void_e9cede9b` is the worked example: the "
         "terminal is ungated and trivially satisfiable, while both rules that reference it are "
-        f"`_sv_only`. The `{PROFILE}` certificate denominator is the SATISFIABLE population, so "
-        "it counts these; that is a separate finding and this census does not act on it.",
+        "`_sv_only`. ⭐ **This is NOT a gap in the certificate accounting, and an earlier version of "
+        "this report said it was.** The engine already crosses the two directions: "
+        "`gather_verified_profile_proof_covered_rules` (`VERILOG-2005-PROFILE.6.7`) classifies the "
+        "WHOLE active rule set, and every profile-entry-unreachable rule gets an explicitly "
+        "RE-VERIFIED `ProfileEntryUnreachable` certificate — a re-verify failure is reported as a "
+        "linter bug, never silently covered. Measured: all of these rules appear in the cert pass's "
+        "`proof` category, exactly. The number below is useful for understanding the profile's live "
+        "surface; it is not a defect.",
         f"- not adjudicated here: **{stats['synthesised']}** `_lr_*` rules the "
         "indirect-left-recursion eliminator synthesises, which exist in no `.ebnf` file and so "
         "have no source-graph edges. The certificate denominator counts them too, which is why "
