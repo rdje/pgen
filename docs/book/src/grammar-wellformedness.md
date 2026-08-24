@@ -2677,6 +2677,63 @@ walk lands on no corpus and requires the documented refusal code.
 keyed from the same evidence disagree, over a 4-class reject side"*. Widening that side is `.2` and
 `.3`'s work, not something a passing gate has already done.
 
+#### The trust bound — how much of the answer key rests on the standard, and how much on a tool
+
+`SV-CORPUS-DENOMINATOR` publishes the defect bar beside its denominator, because a bar without one
+is not a claim about the corpus. There is a layer under that, and it went unmeasured for the whole
+campaign: **a denominator whose expectations rest on tool testimony is only as good as the tool** —
+and the corpus already contains two measured cases where it was not good enough.
+
+Every expectation in the manifests carries a `basis` string naming its evidence, so the question is
+mechanical. Over all **10 090** keyed rows:
+
+| provenance | what the basis rests on | rows | share |
+|---|---|---|---|
+| `clause-cited` | a place in the standard — an Annex A production, a numbered clause, an LRM line | **627** | 6.2 % |
+| `tool-testimony` | observed upstream **output** — a golden log, an error-suite key, a compile refusal | **2 287** | 22.7 % |
+| `suite-convention` | suite **metadata** — a driver list `type`, a descriptor, a `TYPE: POSITIVE` tag, a fixture role | **7 172** | 71.1 % |
+| `UNCLASSIFIED` | matches no rule; printed verbatim in the artifact | **4** | 0.04 % |
+
+⇒ **93.8 % of the SV answer key rests on evidence outside the standard** (94.4 % on the `sv_2017`
+lane, 92.1 % on `verilog_2005`). That is the trust bound on every number derived from it, and it was
+unpublished until `CORPUS-KEY-AUDIT.2`.
+
+⚠️ **Read it for what it says.** A `tool-testimony` or `suite-convention` expectation is not wrong —
+it is *capable of being wrong in the way already measured twice*: a driver key that never read the
+flag deciding the dialect, and a golden read by one phrase out of many. Both classes have now failed
+once each, which is why the census sizes them separately rather than lumping them as "not
+clause-cited".
+
+⛔ **The classifier was wrong twice before it was right, in both directions, and both corrections are
+pinned as self-test arms** — a classifier's own history is the only evidence its current rule is not
+the next mistake:
+
+1. **Over-counting, 623 rows.** *"Any basis naming `IEEE 1800-2017` is clause-cited"* swept in every
+   Surelog row, whose basis reads *"…parses under **Surelog's** IEEE 1800-2017 grammar"* — an edition
+   naming the upstream **tool's** grammar, i.e. the purest tool testimony in the corpus, classified as
+   its exact opposite.
+2. **Under-counting, 72 rows.** Demanding an `A.n.n` production then missed rows citing a numbered
+   clause directly — *"IEEE 1800-2017 22.8 / IEEE 1364-2005 19.2 permit it only OUTSIDE…"*.
+
+The rule is not *does it mention the standard* but ***does it point at a place in it***. It was
+settled by **enumerating** what actually follows every edition mention rather than guessing a third
+time — 623 `grammar`, 72 a dotted clause number, 63 `clauses`/`Annex`/`production`, and nothing else.
+That the partition came out *exhaustive* is what makes the split trustworthy. The same discipline
+fixed the residual: the first cut left **4 961 rows (49 %)** unclassified, and the vocabulary was
+extended by reading those shapes, **not** by widening a rule until the number fell.
+
+⭐ **The residual is published verbatim, all four rows.** Two of them *are* clause cites in a bare
+dotted-number spelling the classifier deliberately does not chase — `.8b.3` and `.13e.2` are
+task-leaf ids in the very same strings, so a general rule would classify every pinned row as
+clause-cited on its own bookkeeping. So `clause-cited` is a **lower** bound, short by exactly two:
+two rows misfiled in the conservative direction is the cheaper error. The other two cite nothing
+external at all — the adjudicator's own reading of the file — a third trust profile with too small a
+population to name a class for.
+
+`CORPUS-KEY-INTEGRITY` tier A4 holds this artifact current and pins the unmatched residual under a
+ceiling. A *rise* is the signal that matters: it means the manifests gained a basis shape nobody
+classified, so the published bound silently stopped covering the whole population.
+
 #### The denominator — what fraction of the corpus was asked a question it could answer?
 
 Everything above counts **divergences**. That answers *how many defects do we know about* and is

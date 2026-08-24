@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-24 - PGEN-CORPUS-KEY-AUDIT-0004 — I wrote the pattern first twice, and the corpus refuted me twice in opposite directions
+
+**1. THE FIRST CUT CLASSIFIED THE PUREST TOOL TESTIMONY IN THE CORPUS AS ITS EXACT OPPOSITE.** The
+rule looked obviously right: a basis naming `IEEE 1800-2017` is citing the standard. It swept in all
+**623** Surelog rows, whose basis reads *"…parses under **Surelog's** IEEE 1800-2017 grammar"*. The
+possessive is the whole meaning: that is an edition naming the upstream tool's grammar, i.e. the
+single most tool-dependent expectation class in the corpus, filed as clause-cited. ⛔ What caught it
+was not re-reading the regex — it was printing one sample per suite and reading them. A regex is
+never refuted by staring at the regex.
+
+**2. THEN I OVER-CORRECTED AND MISSED 72 IN THE OTHER DIRECTION.** Demanding an `A.n.n` production
+dropped every row citing a numbered clause directly (*"IEEE 1800-2017 22.8 / IEEE 1364-2005 19.2
+permit it only OUTSIDE…"*). Two cuts, two opposite errors, one cause: **I was writing patterns
+before I had enumerated the vocabulary.** The fix was to stop guessing and print the token that
+follows every edition mention — 623 `grammar`, 72 a dotted number, 63 `clauses`/`Annex`/`production`,
+nothing else. ⭐ **The partition came out EXHAUSTIVE, and that is the property that makes the split
+trustworthy** — not that the third rule looked better than the second.
+
+**3. THE RESIDUAL IS WHERE IT NEARLY SHIPPED WRONG, AND IT WOULD HAVE LOOKED FINE.** The first
+complete run printed a clean-looking table and a headline trust bound — over a population that was
+**49 % unclassified**. Every number in it was correct and the conclusion would have been false,
+because a bound computed over half a corpus is a *lower bound wearing the clothes of a measurement*.
+Nothing in the output said so until I asked for the residual by name. ⇒ **make the residual a
+first-class output, and print it verbatim.** The census now does, all four rows, and the gate pins a
+ceiling on it.
+
+**4. A CEILING, NOT A ZERO — AND THE REASON IS THE FIRST DEFECT.** It would be tidier to require
+`unclassified == 0`. That converts the next unknown basis shape into *pressure to widen a rule until
+the number falls*, which is precisely how 623 tool-testimony rows became clause cites. A ceiling
+turns the same event into a signal that says *enumerate*. ⛔ And two of the four residual rows ARE
+clause cites that I chose not to chase: a general bare-dotted-number rule would match `.8b.3` and
+`.13e.2`, which are task-leaf ids in the same strings, so every pinned row would classify as
+clause-cited **on its own bookkeeping**. Two rows misfiled in the conservative direction is the
+cheaper error, and saying which direction is part of publishing the number.
+
+**5. THE LEAF I WAS EXECUTING WAS WRONG ABOUT ITS OWN SUBJECT, FOR THE SECOND SLICE RUNNING.** `.2`
+was written as *"only tool testimony can be wrong the way `.13e.3` found twice"*. The measurement
+splits those two incidents across **both** non-clause classes: `.13e.3`(a) was a driver key (suite
+convention), `.13e.3`(b)/`SV-0068` was a golden reading (tool testimony). One each. ⇒ the bound is
+everything that is not clause-cited. That is the second consecutive leaf whose written plan the
+measurement corrected, which is now a pattern worth naming rather than an anecdote: **a task leaf
+records what a past session believed, and belief is what this lane audits.**
+
 ## 2026-08-24 - PGEN-CORPUS-KEY-AUDIT-0003 — the gate found two defects in the thing it was built to watch, and neither was findable any other way
 
 **1. BUILDING THE CONSUMER IS A TEST OF THE PRODUCER, AND IT IS NOT A TEST YOU CAN SUBSTITUTE.** The

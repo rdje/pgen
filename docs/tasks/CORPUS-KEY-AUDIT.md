@@ -7,8 +7,8 @@
 - Family / slice-id prefix: `PGEN-CORPUS-KEY-AUDIT-<NNNN>`
 - Created: `2026-08-24`
 - Owner: repo-local corpus-oracle workflow
-- **Frontier: `.2`** (the key-PROVENANCE census). ✅ `.1` is CLOSED — (a)–(d) done and (e) wired
-  as doctrine `CORPUS-KEY-INTEGRITY`
+- **Frontier: `.3`** (the CAMOUFLAGED-match audit). ✅ `.1` and `.2` are CLOSED and both are
+  gate-held by doctrine `CORPUS-KEY-INTEGRITY`
 
 ## ⛔ THE DIRECTOR'S APPROVAL (2026-08-24)
 
@@ -292,13 +292,112 @@ its zero. `.2`/`.3` are what widen it.
   `DEVELOPMENT_NOTES.md`, `MEMORY.md`, `docs/TASK_TREE.md`. No contract / ledger / AST-schema
   surface: no parser behaviour and no published family status changed.
 
-### `.2` — the key-PROVENANCE census: which expectations rest on a CLAUSE, and which on TOOL TESTIMONY? (`todo`)
+### `.2` — the key-PROVENANCE census: which expectations rest on a CLAUSE, and which on TOOL TESTIMONY? (`done` 2026-08-24, `PGEN-CORPUS-KEY-AUDIT-0004`)
 
-Every basis string already names its evidence. Sweep both manifests and classify each expectation:
-**clause-cited** (a pin naming an Annex A / clause line), **tool testimony** (an upstream driver key
-or golden log), or **suite convention**. ⛔ Only the second class can be wrong in the way `.13e.3`
-found twice, so its size IS the trust bound on the published bar — and today that number is
-unpublished. Publish it beside the bar.
+**MEASURED over all 10 090 keyed rows in both manifests:**
+
+```text
+KEY-PROVENANCE-CENSUS: rows=10090 clause_cited=627 tool_testimony=2287
+                       suite_convention=7172 unclassified=4 trust_bound=9463/10090
+```
+
+⇒ ⭐⭐ **93.8 % of the SV answer key rests on evidence OUTSIDE the standard** — 94.4 % on the
+`sv_2017` lane (whose 7 556 keyed rows are exactly `SV-CORPUS-DENOMINATOR`'s published
+`adjudicated` field, so the two numbers compose), 92.1 % on `verilog_2005`. **That is the trust
+bound on every number derived from the key, and it was unpublished.**
+
+⛔ **THE TREE'S OWN FRAMING WAS TOO NARROW AND THE MEASUREMENT SAYS SO.** This leaf was written as
+*"only tool testimony can be wrong in the way `.13e.3` found twice"*. It is not one class: `.13e.3`(a)
+was a **driver-key** error (the `-gxtypes` flag the key never read = `suite-convention`) and
+`.13e.3`(b) / `SV-0068` was a **golden-reading** error (= `tool-testimony`). **Both classes have now
+failed once each**, so the bound is everything that is not clause-cited, and the census sizes the two
+separately rather than lumping them.
+
+⛔⛔ **THE CLASSIFIER WAS WRONG TWICE BEFORE IT WAS RIGHT, IN BOTH DIRECTIONS.** Both corrections are
+pinned as `--self-test` arms, because a classifier's own history is the only evidence its current
+rule is not the next mistake:
+
+| # | the rule | what it did | rows |
+|---|---|---|---|
+| 1 | *any basis naming `IEEE 1800-2017` is clause-cited* | swept in **every** Surelog row, whose basis reads *"parses under **Surelog's** IEEE 1800-2017 grammar"* — an edition naming the upstream TOOL's grammar, the purest tool testimony in the corpus, classified as its exact opposite | **623 over-counted** |
+| 2 | *a clause cite needs an `A.n.n` production* | missed rows citing a numbered clause directly — *"IEEE 1800-2017 22.8 / IEEE 1364-2005 19.2 permit it only OUTSIDE…"* | **72 under-counted** |
+
+⇒ the rule is not *does it mention the standard* but ***does it point at a PLACE in it***. Settled by
+**ENUMERATING** what follows every edition mention rather than guessing a third time: 623 `grammar`,
+72 a dotted clause number, 63 `clauses`/`Annex`/`production`, **and nothing else** — an exhaustive
+partition of all 758, which is why the split is trustworthy.
+
+⭐ **THE SAME DISCIPLINE FIXED THE RESIDUAL, AND IT IS THE HALF THAT NEARLY SHIPPED WRONG.** The
+first complete run left **4 961 rows (49 %)** unclassified, because the vocabulary had been built
+from the ivtest lane alone — a trust bound over half a population is a **lower bound wearing the
+clothes of a measurement**. Enumerating those shapes (`verilator: driver t_X.py expects success`,
+`ispras: '// ! TYPE: POSITIVE' clause-keyed valid example`, `sv-tests: positive test`,
+`sv2v: conversion-input .sv (valid SV by suite contract)`, the `verible`/`slang` fixture roles, the
+`LRM 5.7.1` pins, the parenthesized `(6.21)` clause numbers) took it **4 961 → 4**.
+
+⭐ **THE RESIDUAL IS PUBLISHED VERBATIM, ALL FOUR ROWS.** Two of them *are* clause cites in a bare
+dotted-number spelling the classifier **deliberately does not chase** — `.8b.3` and `.13e.2` are
+task-leaf ids in the very same strings, so a general bare-dotted-number rule would classify every
+pinned row as clause-cited on its own bookkeeping. ⇒ `clause-cited` is a **LOWER bound, short by
+exactly 2**; two rows misfiled in the conservative direction is the cheaper error. The other two cite
+nothing external at all — the adjudicator's own reading of the file — a third trust profile with too
+small a population (2) to justify naming a class.
+
+**GATE-HELD**: `CORPUS-KEY-INTEGRITY` gained tier **A4** — the provenance census's self-test, its
+artifact's byte-identity, and a **ceiling on the unmatched residual**. ⛔ A *rise* is the signal: it
+means the manifests gained a basis SHAPE nobody classified, so the published bound silently stopped
+covering the population. The fix for a rise is to ENUMERATE, never to widen a rule until the number
+falls — which is exactly how cut 1 turned 623 tool-testimony rows into clause cites.
+
+**OPEN QUESTION ANSWERED, PARTLY**: the leaf asked whether to co-publish the bound beside the bar on
+every designated live surface. ⇒ **Published on the director's review surface (the book) and
+gate-held by A4; NOT co-published into `SV-CORPUS-DENOMINATOR`'s tuple.** Widening that doctrine's
+tuple would change a checked contract several surfaces already carry, which is a separate, priced
+change — routed as `.2`(b) below rather than done as a side effect.
+
+#### Acceptance Checklist (enforced)
+
+- [x] **REPRODUCE / ISSUE** — the bound did not exist. `bash scripts/check_sv_corpus_denominator.sh`
+  publishes `tuple 7556/2606/6174/4366/274` with no statement of what the 7 556 adjudicated
+  expectations REST ON, and `git ls-files 'stimuli/sv/*.py' 'docs/tasks/artifacts/**'` names no
+  instrument that classifies a `basis` field.
+- [x] **ROOT CAUSE (WHY + WHERE)** — a measurement gap, then two classifier defects found by
+  measuring. WHERE: no producer read the manifests' `basis` column at all. ⛔ Building one exposed
+  the real hazard, and `git ls-files` + a differential over the same 10 090 rows pins it: rule 1
+  (*mentions the edition*) classified **623** Surelog rows — basis *"parses under Surelog's IEEE
+  1800-2017 grammar"* — as clause-cited, the exact opposite of what they are; rule 2 (*requires
+  `A.n.n`*) missed **72** rows citing a numbered clause directly. Enumerating the token after every
+  edition mention partitions all 758 exhaustively (623 / 72 / 63), which is what settled it.
+- [x] **FIX** — instrument tier, no grammar / Rust / codegen / generated bytes:
+  `docs/tasks/artifacts/corpus_key_audit/key_provenance_census.py` with a locator-based clause rule,
+  an enumerated suite/tool vocabulary, a stated precedence (clause > tool output > suite metadata),
+  a verbatim residual, and 16 self-test arms; plus `CORPUS-KEY-INTEGRITY` tier A4.
+- [x] **ADDRESSED (verified)** — `unclassified 4 961 → 4` (0.04 %); `clause_cited` corrected in both
+  directions (−623 false, +72 missed, +17 parenthesized, +5 `LRM n.n`); the bound published:
+  **9 463 / 10 090 = 93.8 %**. `--self-test` → `arms=16 failed=0`.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **ALL 27 enforced doctrines PASS**;
+  `bash scripts/check_corpus_key_integrity.sh --self-test` → **17 passed, 0 failed** (13 → 17, the
+  four new arms all A4); the doctrine runs in **0.491 s** and `git status --porcelain` is unchanged
+  across it. ⭐ **THE SIBLING INSTRUMENT IS UNMOVED, MEASURED NOT ASSUMED**: `git diff --cached
+  --stat` shows this change adds two files under `corpus_key_audit/` and edits none, and a fresh
+  `key_contradiction_census.py --md <scratch>` is **byte-identical** to the tracked `census.md`
+  (`diff -q` silent) — the contradiction lane's published numbers did not move. ⭐ **A4 RED CONTROL
+  THROUGH THE REAL DRIVER**: one appended line in `provenance.md` → `✗ FAIL CORPUS-KEY-INTEGRITY`;
+  restore → `ALL 27 enforced doctrines PASS`. `mdbook_docs_gate` PASS (10 per-parser book gates +
+  docs gate). ZERO grammar / Rust / codegen / generated bytes, so the cert seeds / `spf=0` /
+  external-corpus arms are structurally unreachable by this change rather than merely unrun.
+- [x] **LOCKSTEP** — book (*Grammar Wellformedness* → **The trust bound**), `DOCTRINE_ENFORCEMENT.md`
+  §10, the registry description, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`,
+  `docs/TASK_TREE.md`. No contract / ledger / AST-schema surface: no parser behaviour and no
+  published family status changed.
+
+### `.2`(b) — co-publish the trust bound beside the denominator tuple? (`todo`, PRICED)
+
+`SV-CORPUS-DENOMINATOR` holds an `adjudicated/routed/no-verdict/dark/bar` tuple equal across every
+designated live surface. Adding a sixth field would touch that doctrine, its artifacts and every
+surface carrying the tuple. ⭐ The cheaper alternative, and probably the right one: leave the tuple
+alone and have `SV-CORPUS-DENOMINATOR` **name** the provenance artifact beside it, so a reader of the
+bar is one link from its trust bound. Decide before `.3`.
 
 ### `.3` — the CAMOUFLAGED-match audit: over-acceptances hide inside `match` (`todo`)
 
@@ -318,12 +417,12 @@ have manufactured five false defects.
 
 ## Current frontier
 
-1. `.2` — the provenance census (cheap, and it produces the trust bound the bar is missing).
-   ⭐ `.1`(a) already built and measured the classifier over the 499 golden-mapped rows
-   (`clause-cited` 9 / `quoted-decider` 11 / `whole-golden` 479); `.2` widens it to all **3 134**
-   keyed iverilog rows — the 2 635 with no golden are exactly the ones whose provenance is
-   currently unmeasured.
-2. `.3`, `.4`.
+1. `.3` — the CAMOUFLAGED-match audit. ⭐ `.2` sharpened its target: **7 172 suite-convention +
+   2 287 tool-testimony** expectations, of which **9 118 are `must_accept`** — and a wrong
+   `must_accept` on a file the parser accepts reads `match`, which is precisely the population `.3`
+   samples.
+2. `.2`(b) — decide the co-publication question (cheap, and it is a one-line ruling either way).
+3. `.4`.
 
 ## Decisions
 
@@ -340,6 +439,16 @@ have manufactured five false defects.
   leaf had planned to use the parser's `furthest_position`. Measurement killed it twice: it does not
   reach the candidates (`br_gh1087b` is pinned at line 3, its only golden message is at line 6) and
   it is circular. The basis string already records what the key read; that is the authority.
+- **2026-08-24 (`.2`) — a classifier is extended by ENUMERATION, never by widening a rule until the
+  number falls.** Both of this leaf's mistakes came from pattern-first thinking, in opposite
+  directions, and both were settled the same way: read what the corpus actually says, partition it
+  exhaustively, then write the rule. The 4 961 → 4 residual collapse is the same move a second time.
+  ⇒ `CORPUS-KEY-INTEGRITY` A4 pins the residual under a CEILING rather than requiring zero, so the
+  next unclassified shape is a signal instead of pressure to widen a rule.
+- **2026-08-24 (`.2`) — the trust bound goes on the BOOK, not into the denominator TUPLE.**
+  Co-publishing it into `SV-CORPUS-DENOMINATOR`'s checked tuple would change a contract several live
+  surfaces already carry. The book is the director's stated review surface, and A4 keeps the artifact
+  current; widening the tuple is priced separately as `.2`(b).
 - **2026-08-24 (`.1`(e)) — A1 checks the CENSUS before A2 trusts it, and that ordering is the
   doctrine's point.** `.1`(a) had just proved the census can be the wrong half of the comparison, so
   a gate that read only its verdict would gate on a broken oracle. A1 is also the tier that survives
@@ -362,14 +471,18 @@ have manufactured five false defects.
   it is not silently answered by inaction.
 
 - Is `.3` affordable? The `match` population is ~5 845 rows on the SV lane alone; the audit must be
-  a sampled or construct-keyed sweep, and the sampling design is the leaf's first job.
-- Should `.2`'s trust bound be published beside the bar (a co-publication like
-  `SV-CORPUS-DENOMINATOR`'s tuple), or reported on demand? Co-publication is the stronger claim and
-  the more expensive one.
+  a sampled or construct-keyed sweep, and the sampling design is the leaf's first job. ⭐ `.2`
+  narrows the sampling frame usefully: the 627 clause-cited rows are the ones that CANNOT fail this
+  way, so `.3` samples the other 9 463.
+- ~~Should `.2`'s trust bound be co-published beside the bar?~~ **ANSWERED in part by `.2`**:
+  published on the book (the director's review surface) and gate-held by `CORPUS-KEY-INTEGRITY` A4.
+  Whether `SV-CORPUS-DENOMINATOR`'s own tuple should carry it is `.2`(b) — priced, and the cheaper
+  shape (name the artifact beside the tuple rather than widen the tuple) is probably right.
 
 ## Blockers
 
-None. `.1` is closed and gate-held; `.2` is unblocked and needs no new tooling.
+None. `.1` and `.2` are closed and both gate-held by `CORPUS-KEY-INTEGRITY`; `.3` is unblocked and
+`.2` has already narrowed its sampling frame to the 9 463 non-clause-cited rows.
 
 ## Verification log
 
@@ -399,6 +512,22 @@ None. `.1` is closed and gate-held; `.2` is unblocked and needs no new tooling.
   3. **DURABILITY** — producer TRACKED (`key_contradiction_census.py`, `census.md`, both in git).
      ⛔ **Claim NOT YET WATCHED at the time of that commit — named rather than published
      unqualified**: no gate invoked the census. ✅ **Closed by `.1`(e) the same day** (below).
+- **2026-08-24, `.2`** — three-way verification:
+  1. **RE-DERIVE** — `python3 …/key_provenance_census.py` →
+     `rows=10090 clause_cited=627 tool_testimony=2287 suite_convention=7172 unclassified=4
+     trust_bound=9463/10090`. ⭐ The lane totals were independently cross-checked against a
+     DIFFERENT instrument: `bash scripts/check_sv_corpus_denominator.sh` publishes
+     `tuple 7556/2606/…`, and this census's `sv_2017` keyed count is **7556** — the same population
+     reached by two producers that share no code.
+  2. **FALSIFY** — `--self-test` → `arms=16 failed=0`, every arm a basis string this corpus actually
+     contains or the exact trap it produced, including both measured mistakes pinned in **opposite**
+     directions and the negative arm proving a task-leaf id (`.8b.3`) is not read as a clause number.
+     ⛔ The classifier was also falsified against its own output twice before it was trusted: the
+     623-row Surelog sample and the 4 961-row residual were both read by hand, which is what refuted
+     each cut.
+  3. **DURABILITY** — ✅ producer TRACKED and claim WATCHED from the same commit:
+     `CORPUS-KEY-INTEGRITY` tier A4 (self-test + artifact byte-identity + a residual ceiling), with
+     the RED control driven **through `scripts/check_doctrines.sh`**, not through the enforcer alone.
 - **2026-08-24, `.1`(e)** — three-way verification of the DOCTRINE:
   1. **RE-DERIVE** — `bash scripts/check_corpus_key_integrity.sh` → `OK` in **0.311 s**, and
      `git status --porcelain` unchanged across the run, so the gate's *mutates nothing* contract is
@@ -421,6 +550,7 @@ None. `.1` is closed and gate-held; `.2` is unblocked and needs no new tooling.
 - `.1` instrument landed: `PGEN-CORPUS-KEY-AUDIT-0001` (2026-08-24).
 - `.1`(a)–(d) done: `PGEN-CORPUS-KEY-AUDIT-0002` (2026-08-24).
 - `.1`(e) done, leaf `.1` CLOSED: `PGEN-CORPUS-KEY-AUDIT-0003` (2026-08-24).
+- `.2` done, gate-held by `CORPUS-KEY-INTEGRITY` A4: `PGEN-CORPUS-KEY-AUDIT-0004` (2026-08-24).
 
 ## Changelog
 
@@ -436,3 +566,11 @@ None. `.1` is closed and gate-held; `.2` is unblocked and needs no new tooling.
   Wiring it surfaced two live defects only a real consumer could expose: the census crashed on its
   own documented `--md` when the path lay outside the repo (after the work had succeeded), and the
   enforcer's first scratch path was off the repository volume. Frontier → `.2`.
+- **2026-08-24** — `.2` done. The trust bound is measured and published: **93.8 %** of the SV answer
+  key (9 463 of 10 090 keyed rows) rests on evidence OUTSIDE the standard — 627 clause-cited /
+  2 287 tool-testimony / 7 172 suite-convention / 4 unmatched-and-printed-verbatim. The classifier
+  was wrong in BOTH directions first (623 over-counted, 72 missed) and its residual was 4 961 (49 %)
+  before the vocabulary was enumerated; all of that is pinned as self-test arms and published in the
+  artifact. `CORPUS-KEY-INTEGRITY` gained tier A4 with a residual CEILING. The tree's own framing was
+  corrected: BOTH non-clause classes have now failed once each, so the bound is everything that is
+  not clause-cited. `.2`(b) opened for the co-publication ruling. Frontier → `.3`.

@@ -31,6 +31,14 @@
 #     ⛔ An arm COUNT floor is enforced: a self-test that runs zero arms and prints `failed=0` is a
 #     control that cannot fail, which is worse than no control (see the `--self-test` arms below).
 #
+#   A4 PROVENANCE CLASSIFIED (corpus-INDEPENDENT — it reads the tracked manifests, not the vendored
+#     corpora) — the provenance census's self-test must pass, its published `provenance.md` must be
+#     byte-identical to a fresh derivation, and its UNMATCHED RESIDUAL must not RISE above the
+#     pinned ceiling. ⛔ That ceiling is the rot-catcher: a rise means the manifests gained a basis
+#     SHAPE nobody classified, so the published trust bound silently stopped covering the whole
+#     population. The fix is to ENUMERATE the new shapes — never to widen a rule until the number
+#     falls, which is exactly how the first cut turned 623 tool-testimony rows into clause cites.
+#
 #   A2/A3 KEY CLEAN + PUBLISHED ARTIFACT CURRENT (corpus-DEPENDENT, 0.24 s) — the census must report
 #     zero contradictory message classes and zero key-integrity findings, AND the tracked
 #     `census.md` must be byte-identical to a fresh derivation. ⭐ A3 exists because a derived
@@ -54,7 +62,15 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT" || exit 2
 
 CENSUS="docs/tasks/artifacts/corpus_key_audit/key_contradiction_census.py"
 ARTIFACT="docs/tasks/artifacts/corpus_key_audit/census.md"
-MIN_ARMS=5   # the arm set at adoption; a self-test that shrinks below it has lost coverage
+PROV="docs/tasks/artifacts/corpus_key_audit/key_provenance_census.py"
+PROV_ARTIFACT="docs/tasks/artifacts/corpus_key_audit/provenance.md"
+MIN_ARMS=5        # the contradiction arm set at adoption
+MIN_PROV_ARMS=16  # the provenance arm set at adoption
+# ⛔ A CEILING, NOT A TARGET. The provenance classifier leaves 4 rows unmatched and prints all four
+# verbatim. A RISE means the manifests gained a basis shape nobody has classified, so the published
+# trust bound silently stopped covering the whole population — the one way this census can rot.
+# A FALL is fine and is not rebaselined automatically: shrinking it is a deliberate edit here.
+MAX_UNCLASSIFIED=4
 
 say() { printf 'corpus-key-integrity: %s\n' "$1" >&2; }
 
@@ -83,6 +99,31 @@ verdict_from_selftest() {  # <summary line> -> 0 holds / 1 breach
     say "       floor deliberately in CORPUS-KEY-AUDIT.1(e)."
     return 1
   fi
+  return 0
+}
+
+verdict_from_provenance() {  # <summary line> -> 0 holds / 1 breach
+  local line="$1" rows unc clause
+  rows="$(field rows "$line")"; unc="$(field unclassified "$line")"
+  clause="$(field clause_cited "$line")"
+  if [ -z "$rows" ] || [ -z "$unc" ] || [ -z "$clause" ]; then
+    say "✗ (A4) the provenance census printed no parsable summary (rows= / clause_cited= /"
+    say "       unclassified=): ${line:-<no output>}"
+    return 1
+  fi
+  if [ "$rows" -eq 0 ]; then
+    say "✗ (A4) the provenance census classified ZERO rows."
+    return 1
+  fi
+  if [ "$unc" -gt "$MAX_UNCLASSIFIED" ]; then
+    say "✗ (A4) $unc rows match no provenance rule, above the ceiling $MAX_UNCLASSIFIED."
+    say "       The manifests gained a basis SHAPE nobody has classified, so the published trust"
+    say "       bound no longer covers the whole population. ⛔ ENUMERATE the new shapes and extend"
+    say "       the vocabulary — do NOT widen a rule until the number falls (that is how the first"
+    say "       cut turned 623 tool-testimony rows into clause cites)."
+    return 1
+  fi
+  say "  (A4) provenance classified over $rows rows ($clause clause-cited, $unc unmatched)"
   return 0
 }
 
@@ -156,8 +197,42 @@ run_doctrine() {
     diff -u "$ARTIFACT" "$tmp" 2>&1 | head -30 >&2
     rc=1
   fi
+  # ---- A4 the PROVENANCE census: same two obligations (instrument alive, artifact current), plus
+  # a ceiling on the unmatched residual.
+  [ -f "$PROV" ] || { say "✗ the provenance census is missing: $PROV"; rm -f "$tmp"; return 1; }
+  out="$(python3 "$PROV" --self-test 2>&1)"
+  line="$(printf '%s\n' "$out" | grep -E 'SELF-TEST: .*arms=' | tail -1)"
+  MIN_ARMS="$MIN_PROV_ARMS" verdict_from_selftest_prov "$line" || { printf '%s\n' "$out" >&2; rc=1; }
+
+  local ptmp
+  ptmp="$(mktemp "$ROOT/rust/target/corpus_key_prov.XXXXXX")" || { rm -f "$tmp"; return 2; }
+  out="$(python3 "$PROV" --md "$ptmp" 2>&1)"; local prov_rc=$?
+  if [ "$prov_rc" -eq 0 ]; then
+    line="$(printf '%s\n' "$out" | grep -E '^KEY-PROVENANCE-CENSUS: ' | tail -1)"
+    verdict_from_provenance "$line" || rc=1
+    if [ ! -f "$PROV_ARTIFACT" ]; then
+      say "✗ (A4) the published provenance artifact is missing: $PROV_ARTIFACT"; rc=1
+    elif ! diff -q "$PROV_ARTIFACT" "$ptmp" >/dev/null 2>&1; then
+      say "✗ (A4) $PROV_ARTIFACT is NOT what the census produces today — stale or hand-edited."
+      say "       Re-derive and commit it: python3 $PROV"
+      diff -u "$PROV_ARTIFACT" "$ptmp" 2>&1 | head -20 >&2
+      rc=1
+    fi
+  else
+    say "✗ (A4) the provenance census exited $prov_rc:"; printf '%s\n' "$out" >&2; rc=1
+  fi
+  rm -f "$ptmp"
+
   rm -f "$tmp"
   return $rc
+}
+
+# The provenance self-test has its own arm floor. A separate wrapper rather than a mutated global,
+# because `MIN_ARMS=… verdict_from_selftest` only exports to a COMMAND, not to a shell function.
+verdict_from_selftest_prov() {
+  local line="$1" saved="$MIN_ARMS" rc
+  MIN_ARMS="$MIN_PROV_ARMS"; verdict_from_selftest "$line"; rc=$?
+  MIN_ARMS="$saved"; return $rc
 }
 
 self_test() {
@@ -192,6 +267,15 @@ self_test() {
       "KEY-CONTRADICTION-CENSUS: rows=0 messages=0 contradictory_classes=0 (naive=0) key_integrity_findings=0"
   arm "A2 RED: an unparsable summary REFUSES, never passes" 1 verdict_from_census \
       "KEY-CONTRADICTION-CENSUS: everything is fine"
+
+  arm "A4 GREEN: provenance classified with the residual at its ceiling" 0 verdict_from_provenance \
+      "KEY-PROVENANCE-CENSUS: rows=10090 clause_cited=627 tool_testimony=2287 suite_convention=7172 unclassified=$MAX_UNCLASSIFIED trust_bound=9463/10090"
+  arm "A4 RED: an unmatched basis SHAPE appeared (residual above the ceiling)" 1 verdict_from_provenance \
+      "KEY-PROVENANCE-CENSUS: rows=10090 clause_cited=627 tool_testimony=2287 suite_convention=7172 unclassified=$((MAX_UNCLASSIFIED+1)) trust_bound=9463/10090"
+  arm "A4 RED: zero rows classified" 1 verdict_from_provenance \
+      "KEY-PROVENANCE-CENSUS: rows=0 clause_cited=0 tool_testimony=0 suite_convention=0 unclassified=0 trust_bound=0/0"
+  arm "A4 RED: an unparsable summary REFUSES, never passes" 1 verdict_from_provenance \
+      "KEY-PROVENANCE-CENSUS: all good"
 
   # A3 end-to-end: a corrupted published artifact must be caught by the real doctrine path.
   local rc saved
@@ -236,7 +320,7 @@ self_test() {
 case "${1:-}" in
   --self-test) self_test; exit $? ;;
   "") run_doctrine || exit 1
-      echo "corpus-key-integrity: OK (census self-test alive; key clean; published artifact current)"
+      echo "corpus-key-integrity: OK (both censuses self-test alive; key clean; provenance residual within ceiling; both published artifacts current)"
       exit 0 ;;
   *)  say "unknown argument: $1"; exit 2 ;;
 esac
