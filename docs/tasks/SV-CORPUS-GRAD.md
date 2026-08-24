@@ -16857,37 +16857,246 @@ instruments agree"* was asserted and never checked, which is the same failure on
 lesson, which is promoted rather than left here:
 [[an-x-is-checked-by-nothing-claim-is-a-census-claim]].
 
-##### ⛔ `.13e.9` — a rule that PARSES but can no longer be WITNESSED: gating an optional's content costs 7 `verilog_2005` certificate rules, and the parse is unchanged (`todo`, opened 2026-08-24 by `.13e.7`)
+##### ✅✅✅ `.13e.9` — **DONE: the seven rules PARSE and the generator DID produce samples for every one; each sample was rejected by its own CARRIER, because a `@sample` is ONE PROFILE-BLIND STRING and `verilog_2005` did not exist when it was written** (`done` 2026-08-25, `PGEN-SV-CORPUS-GRAD-0296`; GRAMMAR tier, register disposition `GENERATOR-ONLY`, ZERO generated-parser bytes, AST schema 26 unchanged; opened 2026-08-24 by `.13e.7`)
 
-**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing):
+⛔⛔ **THE LEAF'S OWN ROUTING HYPOTHESIS IS REFUTED, AND THAT IS THE FINDING.** `.13e.7` routed this
+as *"with the optional's CONTENT profile-gated the generator can no longer produce a sample for the
+enclosing rule"*. Protocol A step 2 says otherwise: the generator produced **8 to 16 samples for
+every one of the seven**, and **not one of them was a reach gap**. All seven are `parsed=false` —
+the forced sample is MALFORMED — which routes to Protocol A step **4**, not step 3.
 
-- **MEASURED on the shipped parser, not argued.** `.13e.7`'s fix moved the `verilog_2005` cert
-  baseline `1148/334/799/15 → 1147/356/769/22`. `total −1` is fully explained (one rule left the
-  profile). **`UNKNOWN +7` is not a parse change**: `--dump-rule-outcome-counts-json --profile
-  verilog_2005` reports every one of the seven **LIVE and COMMITTING** —
-  `data_declaration_sv_2017` and `data_declaration` **committed 6×** on the legal IEEE 1364-2005
-  declaration set, `event_expression` and `event_expression_primary` **1×** on `always @(posedge
-  clk)`, and `lifetime` (with `kw_automatic_ebe88724` / `kw_static_a381562a` beneath it) **1×** on
-  BOTH `function automatic` and `task automatic`.
-- ⭐ **THE MECHANISM IS ONE SENTENCE.** Each of those rules used to be witnessed through an OPTIONAL
-  the stimuli generator could render — `( const )?` / `( var )?` / `( lifetime )?` on the
-  declaration, `( iff … )?` on the event expression. With the optional's CONTENT profile-gated the
-  generator can no longer produce a sample for the enclosing rule, while the parser is untouched.
-- ⛔ **IT IS NOT A LICENCE, WHICH IS WHY IT IS A LEAF AND NOT A FOOTNOTE.** A rule that parses but
-  cannot be witnessed is a real certification loss: the profile's `fully_certified` claim is
-  measured over a population that now contains 7 rules no witness can reach. It is recorded in the
-  contract's `baseline_note` and tracked here rather than absorbed into a rebaseline.
-- ⚠️ **`.13e.4` did NOT show this and that is the discriminator to start from**: it gated ONE
-  optional inside `data_type`'s second alternative and the v2005 cert was byte-identical
-  (`1148/334/799/15` unchanged). `.13e.7` gated THREE optionals at the START of
-  `data_declaration_sv_2017`'s FIRST alternative. Whether the generator's failure is about
-  position, count, or the leading-element case is the first thing to measure.
-- **Owed:** (a) `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` on the seven, to see whether each is
-  `parsed=false` (the forced sample is malformed) or `parsed=true witnessed_target=false` (a reach
-  gap) — Protocol A step 2, which this leaf has NOT yet run; (b) if the generator can render a
-  profile-gated optional as ABSENT rather than giving up, fix it — that is a parser-agnostic
-  stimuli-generator fix, not an SV one; (c) either way, re-derive the v2005 cert and shrink the
-  `UNKNOWN` pin back.
+⭐⭐ **AND THE DISCRIMINATOR THE LEAF ASKED FOR — `position` / `count` / `leading-element`, from the
+`.13e.4` contrast — IS THE WRONG AXIS ENTIRELY.** None of the three explains it. What separates
+`.13e.4` from `.13e.7` is which FALLBACK CARRIER the witness pass lands on once the preferred route
+is gated, and that carrier is `module_ansi_header`'s rule-level `@sample`.
+
+**ROOT CAUSE (WHY + WHERE).** A `@sample` annotation is a **single profile-blind string**.
+`module_ansi_header` carries no `@profiles`, so it is live under all three profiles, but its sample
+is written in IEEE 1800:
+
+| site | annotation | IEEE-1800-only token |
+|---|---|---|
+| `grammars/systemverilog.ebnf:3824` | `@sample: "module m(input logic a);"` | `logic` |
+| `grammars/systemverilog.ebnf:4976` | `@sample: "program p(input logic a);"` | `logic` |
+| `grammars/systemverilog.ebnf:2775` | `function_body_declaration` alt 0, `@sample: "int f; endfunction : f"` | `int` |
+| `grammars/systemverilog.ebnf:2777` | `function_body_declaration` alt 1, `@sample: "int f(); endfunction : f"` | `int` |
+
+IEEE 1364-2005 spells these `wire`/`reg` and `integer`. Every witness probe that short-circuits
+through one of those samples therefore emits a file `verilog_2005` **must** reject — the target
+construct is never reached.
+
+⭐ **ISOLATED TO ONE TOKEN, WITH A CONTROL THAT GOES BOTH WAYS.** The carrier SHAPE is fine; only the
+keyword is wrong, and a spelling legal in **all three** profiles already exists:
+
+| probe (`--interpret-parse`) | `verilog_2005` | `sv_2017` |
+|---|---|---|
+| `module m(input logic a);endmodule` | ⛔ **reject** `furthest_position=20` | ✅ accept |
+| `module m(input wire a);endmodule` | ✅ **accept** | ✅ accept |
+| `module m(input a);endmodule` | ✅ accept | ✅ accept |
+| `… function int f; endfunction : f …` | ⛔ **reject** `furthest_position=44` | ✅ accept |
+| `… function integer f; endfunction : f …` | ✅ **accept** | ✅ accept |
+| `… function automatic integer f; …` | ✅ **accept** | ✅ accept |
+| `… function static integer f; …` | ✅ **accept** | ✅ accept |
+
+The last two independently re-confirm `.13e.7`'s outcome-counts claim that `lifetime` is legitimately
+reachable under `verilog_2005` (IEEE 1364-2005 A.2.6:254 / A.2.7:275) — this time by a direct parse
+rather than by a committed-count dump, which is a second instrument agreeing with the first.
+
+⭐⭐⭐ **THE BLAST RADIUS IS 55 % OF THE PROBE BUDGET AND IT HAS NO EXCEPTIONS.** Over the full
+`PGEN_CERT_COVERAGE_DEBUG_PROBES=1` log at seed 0 — **10 110** `[plannable-probe]` lines:
+
+| | count |
+|---|---|
+| `parsed=false` | **5 776** |
+| … of which the sample contains `input logic` | **5 608** |
+| samples containing `input logic` that EVER parsed | **0 of 5 608** |
+
+## ⛔⛔ `.13e.7` DID NOT CAUSE THIS — IT UNMASKED A DEFECT 1 912 COMMITS OLD
+
+Established by `git`, not by argument. The four sample strings are **byte-identical before and
+after** `.13e.7` (`git show ac2aa012^:grammars/systemverilog.ebnf`, `grep -cF` = 1 on both sides for
+each of the four):
+
+| when | commit | what happened |
+|---|---|---|
+| **2026-04-22** | `cd8770cd` *"SV stimuli: promote header seeds to rule-level"* | `@sample: "module m(input logic a);"` written. Only SV profiles existed — **the sample was CORRECT.** |
+| **2026-07-02** | `3d398364` `VERILOG-2005-PROFILE.2` | the `verilog_2005` profile is registered. **At that instant the sample became wrong**, for a profile that did not exist when it was written. Nothing re-checked it. |
+| **2026-08-24** | `ac2aa012` `.13e.7` | gating the optionals removed the route that had been masking it; seven rules fell through to the profile-blind carrier and went `UNKNOWN`. |
+
+⭐⭐⭐ **THE TRANSFERABLE LESSON, AND IT IS ENGINE-UNIVERSAL RATHER THAN SV:**
+**adding a profile retroactively invalidates every profile-blind annotation already in the grammar,
+and nothing re-checks them.** A profile NARROWS the accepted language, so every literal already
+written against the wider language becomes a candidate defect the moment the narrower profile
+exists. This binds any PGEN grammar that ever gains a profile. ⚠️ Two of the ten cleared residuals
+(`data_type_or_void`, `function_statement`) were UNKNOWN **before** `.13e.7` — i.e. the defect was
+already costing certificate coverage for 53 days, in a number the project publishes.
+
+## THE POPULATION IS CLOSED, AND IT WAS COUNTED TWO INDEPENDENT WAYS
+
+Extracted from the **gen-AST** (`--dump-gen-ast`), never by grepping the `.ebnf` — an annotation
+binds to the NEXT rule, and a regex census over annotation text is exactly the instrument `-0293`
+was burned by:
+
+- **52 `@sample` annotations** — 9 rule-level (`semantic_annotations`) + 43 branch-level
+  (`branch_semantic_annotations`), across 23 rules.
+- Cross-confirmed: `grep -c '@sample' grammars/systemverilog.ebnf` = **54**, of which **2** sit in
+  prose comments (lines 805, 1601). 54 − 2 = **52**. Exact agreement, two unrelated instruments.
+
+**115 `(sample × live profile)` checks** via
+`--interpret-parse --interpret-entry-rule R --grammar-profile P`, one per profile in that rule's
+`--dump-rule-profiles` `satisfiable_under` set. ⭐ The TOOLBOX 5.11 trap does not bite here and that
+is worth stating: `satisfiable_under` is bottom-up and is NOT reachability, but the question asked
+is *can rule R derive this string under P*, which is exactly the bottom-up question.
+
+| verdict | before | after |
+|---|---|---|
+| accept | 104 | **108** |
+| reject | **11** — every one under `verilog_2005`, **0** under `sv_2017`/`sv_2023` | **7** |
+
+⚠️ **`satisfiable_under` is a RULE-level field and 43 of the samples are BRANCH-level, so that join
+over-reports BY CONSTRUCTION** — a branch can be dead under P while its rule is live. Each of the 11
+was therefore adjudicated **by parse**, substituting the IEEE 1364-2005 spelling and requiring the
+repair to ACCEPT:
+
+| rule | branch | sample | repair accepts under v2005? | verdict |
+|---|---|---|---|---|
+| `module_ansi_header` | rule | `module m(input logic a);` | ✅ `wire` | ⛔ **DEFECT** |
+| `program_ansi_header` | rule | `program p(input logic a);` | ✅ `wire` | ⛔ **DEFECT** |
+| `function_body_declaration` | 0 | `int f; endfunction : f` | ✅ `integer` | ⛔ **DEFECT** |
+| `function_body_declaration` | 1 | `int f(); endfunction : f` | ✅ `integer` | ⛔ **DEFECT** |
+| `block_data_type` | 3, 4 | `struct { int a; }`, `enum { A }` | ✗ still rejects | branch DEAD under v2005 — sample honest |
+| `data_type` | 3, 4 | `struct { int a; }`, `enum { A }` | ✗ still rejects | branch DEAD under v2005 — sample honest |
+| `case_statement` | 1 | `case (a) matches default: ; endcase` | ✗ still rejects | branch DEAD under v2005 — sample honest |
+| `module_declaration_sv_2017` | 3, 4 | `extern module m(a);`, `extern module m;` | ✗ still rejects | branch DEAD under v2005 — sample honest |
+
+⇒ **4 defects + 7 honest = 11**, and the post-fix census reads **exactly those 7 and nothing else**.
+The 7 are confirmed dead by `--dump-rule-profiles`: `struct_union`, `enum_keyword_sv_only`,
+`extern_keyword_sv_only`, `pattern`, `cond_pattern` and `case_pattern_item` are all declared
+`["sv_2017","sv_2023"]`.
+
+⛔ **MY OWN ADJUDICATOR WAS WRONG ONCE, AND THE CORRECTION IS THE POINT.** Its first run labelled
+`case_statement` alt 1 a DEFECT. The "repair" it substituted was `case (a) default: ; endcase` —
+which is **alt 0's sample, not a repair of alt 1**. `matches` has no IEEE 1364-2005 spelling, so
+that arm proved only that a *different alternative* parses. ⇒ **a repair control must repair the
+SAME branch; substituting a sibling's text tests the sibling.** Re-measured against the declared
+profiles, alt 1 is correctly dead — and `kw_matches_9f3e9242`, which IS ungated, is nevertheless
+unreachable under `verilog_2005` because every rule that consumes it is gated. **No over-acceptance
+here**: a suspicion measured and refuted rather than carried into a routing note.
+
+## NOTHING CHECKED THIS — AND THAT IS A CENSUS CLAIM, SO HERE IS THE CENSUS
+
+Per `DOCTRINE-GAP-OWNERSHIP.15`'s own ruling (`-0295`, one commit earlier), a *"nothing checks X"*
+claim is a CENSUS claim and must carry its census in its own leaf:
+
+```text
+$ git ls-files 'scripts/*' 'rust/scripts/*' '.github/workflows/*' 'rust/Makefile' '.githooks/*' \
+    | xargs grep -ln 'interpret-parse'
+scripts/check_diagnosis_evidence.sh      # greps task-leaf PROSE for evidence keywords; reads no sample
+```
+
+- `--lint-grammar`'s implementation (`rust/src/ast_pipeline/grammar_wellformedness.rs`) contains
+  **one** occurrence of `sample`, a doc comment about witness inputs. It does not read `@sample`.
+- **0 of the 27 registered doctrines** (`scripts/check_doctrines.sh`) concern `@sample`.
+
+⇒ the population of checks over `@sample`-vs-profile is **empty**, by a named re-runnable command
+rather than by assertion. ⭐ **The guard is routed to `.13e.11`, deliberately AFTER the fix** — and
+the sequencing is the argument, not a preference: `DOCTRINE-GAP-OWNERSHIP.15` refused a blocking
+census over 76 pre-existing violations because a blocker firing on legacy debt teaches bypass. Here
+the fix lands first and drives the population to **0 of 115**, so a full-population blocker costs
+nothing and can never teach that habit. ⇒ **a guard is safe to make blocking over its whole
+population exactly when the fix precedes it.**
+
+## ⛔ THE REGISTER HAD NO HONEST SLOT FOR THIS CHANGE, AND THAT WAS ITS OWN DEFECT
+
+`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv` defined two dispositions: `RELEASE` (contract section + bug
+ledger row) and `NEUTRAL` (comment-only; **digest EQUALS its predecessor's**). A `@sample` repair
+fits NEITHER — annotations are in the `raw_ast` and comments are not, so the digest MOVES
+(`470d4998… → 6cffb405…`) and `NEUTRAL` refutes itself, while `RELEASE` would buy its currency check
+with a bug-ledger row describing a defect **no released parser has**. ⇒ a third disposition,
+`GENERATOR-ONLY`, whose claim is STRONGER than `NEUTRAL`'s and cheaper to check than tier D: *the
+digest moved and the generated parser did not*. New **tier E** re-hashes
+`generated/systemverilog_parser.rs` against the row's `parser_sha256=`; on a clone with no
+`generated/` it reports **NOT EVALUATED, loudly, never a pass**. ⚠️ HONEST BOUND, stated before the
+tier is trusted: tier E compares the row against the parser PRESENT in `generated/`; that this is
+the parser HEAD's grammar produces is `GENERATED-REPRODUCIBILITY`'s job. The two compose; neither
+alone is the argument.
+
+⛔ **A green enforcer proves nothing until its refusals fire.** All five drove RED, and the register
+was restored byte-identical (`cmp`) with a GREEN control re-run on the real tree afterwards:
+
+| control | verdict |
+|---|---|
+| `parser_sha256` wrong | ✗ tier E refuses, naming both hashes |
+| `parser_sha256` absent | ✗ tier C refuses |
+| `GENERATOR-ONLY` + a release number | ✗ tier C refuses |
+| digest EQUALS predecessor's (i.e. really `NEUTRAL`) | ✗ tier C refuses — **verified to be the INTENDED arm**, `grep -c` = 1, not merely a neighbouring tier reacting to the same edit |
+| disposition `MAYBE` | ✗ refuses; "only RELEASE, NEUTRAL and GENERATOR-ONLY are defined" |
+
+⭐ **AND ONE MORE DEFECT FELL OUT OF READING THAT FILE.** `check_sv_contract_currency.sh` tier A
+built its scratch in `${TMPDIR:-/tmp}` — the off-volume default that `CLAUDE.md` §13 forbids and
+that the function **15 lines below it** carries a comment saying was fixed by `.13c.2x.4`. The
+earlier fix was applied where the bug was REPORTED rather than over the file's own population.
+⇒ **a per-site fix to a per-file defect is half a fix.** Now derived from `$ROOT`.
+
+###### Acceptance Checklist (enforced) — `.13e.9`
+
+- [x] **REPRODUCE / ISSUE** — `PGEN_CERT_COVERAGE_DUMP_ALL=1 ./rust/target/debug/ast_pipeline
+  grammars/systemverilog.ebnf --report-certificate-coverage --grammar-profile verilog_2005
+  --entry-rule systemverilog_file --count 40 --seed 0` + the 3 `--cert-union-config` entries
+  reproduces the pinned baseline exactly: `CERTIFICATE-COVERAGE: … total=1147 proof=356 witness=769
+  UNKNOWN=22 (sample_parse_failures=0, proof_reverify_failures=0)`, `UNION … UNKNOWN=11`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — Protocol A step 2,
+  `PGEN_CERT_COVERAGE_DEBUG_PROBES=1`: all seven targets `parsed=false witnessed_target=false`, and
+  **0** `parsed=true witnessed_target=false`, e.g. `[plannable-probe] rule='lifetime' parsed=false
+  witnessed_target=false sample="module m(input logic a);generate function static int f;
+  endfunction : f endgenerate endmodule"`. Step 4 localizes it: `--interpret-parse … --grammar-profile
+  verilog_2005` rejects all four distinct forced samples at the **identical** `furthest_position=20`,
+  inside the shared carrier, before the target. WHERE: `grammars/systemverilog.ebnf:3824`
+  (`module_ansi_header`), `:4976` (`program_ansi_header`), `:2775`/`:2777`
+  (`function_body_declaration` alts 0/1) — a profile-blind `@sample` on a rule live under a profile
+  whose language does not contain it. Whole-log census: **5 608 of 5 776** `parsed=false` samples
+  carry `input logic`, and **0 of those 5 608** ever parsed.
+- [x] **FIX** — declarative tier, the top of the hierarchy (declarative > grammar > engine):
+  **four tokens**, `logic → wire` ×2 and `int → integer` ×2, each spelling measured legal in all
+  three profiles in both directions. No rule added or removed, no `@profiles` touched, no engine
+  change, no codegen change. Why not an engine fix (per-profile `@sample`): unnecessary here —
+  every one of the four HAS a profile-neutral spelling. The case that has none is real but
+  unwitnessed, and is routed to `.13e.11` rather than built speculatively.
+- [x] **ADDRESSED (verified)** — `verilog_2005` cert **`1147/356/769/22` → `1147/356/774/17`**,
+  **UNION `UNKNOWN` 11 → 2**, `sample_parse_failures=0` and `proof_reverify_failures=0` throughout,
+  **byte-identical at seeds 0/7/42** including the residual list
+  `["context_member_method_call","identifier_rooted_method_chain"]` (a different class, `.13c.2x.9`).
+  Probe health in the same pass: `parsed=false` **2 820 → 0**, witnessed **187 → 584**. The
+  `@sample`×profile census closes **11 → 7 rejects**, and the 7 are EXACTLY the rows adjudicated
+  honest. ⭐ It clears **more than this leaf's seven**: `data_type_or_void` and `function_statement`
+  were pre-existing residuals from before `.13e.7`.
+- [x] **NO REGRESSION** — ⭐ **the generated parser is BYTE-IDENTICAL, so no accept-set change is
+  even possible**: `sha256` of the parser generated from the fixed grammar, of the parser generated
+  from HEAD's grammar, and of the shipped `generated/systemverilog_parser.rs` are all
+  `8bc4746aeb0363e92b13a59d6a3e473f6992a73ba90ac0d75435303b6ecb23cc` (`cmp` clean, 3-way).
+  `sv_2017` cert **byte-identical on both headline lines** — `total=1401 proof=8 witness=1382
+  UNKNOWN=11`, union `witness=1393 UNKNOWN=0 fully_certified=true` — A/B'd against the tracked
+  grammar in the same run rather than against the contract's stored number. `--lint-grammar`:
+  **1537 rules** unchanged, `profile_orphans=0`, `unreachable_rules=0`, `undefined_references=0`,
+  `non_terminating=0`, `ordered_choice_shadowing=0`, `left_recursion_unhandled=0`. AST-dump schema
+  unchanged at **26**. ⭐ **`verilog_2005_conformance_gate` GREEN** — `lint_profile_orphans=0`,
+  corpus **303 file×profile checks / 0 mismatches** (the independent accept-set control, unmoved
+  from `.13e.7`), aliases 2, cert deterministic across seeds `[0,7,42]`, `unmet_criteria_count: 0`.
+  `python3 stimuli/sv/run_adjudication_repros.py`: **`checked=227 armed=81 listed=141
+  multi_profile_rows=60 failures=0`** against parser `8bc4746a…`. `generated_reproducibility_gate`
+  tier 2: **all 11 artifacts re-derive byte-identically (0 sites)**.
+  `bash scripts/check_doctrines.sh` **ALL 27 PASS** with the whole change staged, so the six
+  staged-scoped doctrines actually evaluated rather than passing vacuously.
+  `PARSE-COST-RATCHET`'s two identity arms refused on the moved grammar digest — by design, not by
+  breach — and were **re-measured, never re-typed** (`sv_parse_cost_ratchet`,
+  `sv_parse_cost_family_share`); the promoted baseline differs from its predecessor by **exactly one
+  line**, the digest.
+- [x] **LOCKSTEP** — grammar + this leaf + `.13e.11` opened + `check_sv_contract_currency.sh`
+  (tier E, the `GENERATOR-ONLY` disposition, and the tier-A off-volume scratch) + the register
+  header and its first `GENERATOR-ONLY` row + the contract's Contract Identity digest and its
+  no-release note + the book + `CHANGES.md` + `DEVELOPMENT_NOTES.md` + `MEMORY.md` +
+  `docs/TASK_TREE.md`. **No release number, no bug-ledger row and no schema bump are owed** — the
+  parser bytes did not move, and that is checked rather than claimed.
 
 ##### ⛔ `.13e.10` — ⭐⭐ a FOURTH lens: an IEEE-1800-only construct made only of PUNCTUATION, which no keyword census can ever see (`todo`, opened 2026-08-24 by `.13e.7`)
 
@@ -16913,6 +17122,36 @@ lesson, which is promoted rather than left here:
   punctuation vocabulary; (c) adjudicate each survivor with the same three probe legs, noting that
   leg 3 (identifier substitution) does NOT transfer — a punctuation control needs a different
   falsifier, and designing it is part of the leaf.
+
+##### ⛔ `.13e.11` — ⭐⭐ NEW `todo`: nothing checks that a rule's `@sample` PARSES under the profiles that rule is live in, and the population is 0 today so a blocking guard is free (opened 2026-08-25 by `.13e.9`)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
+reproduces outside the family it is being sent to):
+
+- **The defect class is engine-universal and the mechanism is dated.** `.13e.9` measured four
+  profile-blind `@sample` strings that cost 10 certificate rules under `verilog_2005`, latent since
+  the profile was registered on **2026-07-02** and written **2026-04-22**. Nothing re-checked them:
+  no gate, no workflow, no hook and no lint reads `@sample` at all (census in `.13e.9`).
+- ⭐ **THE INSTRUMENT ALREADY EXISTS AND WAS RUN 230 TIMES THIS SESSION.**
+  `--interpret-parse --interpret-entry-rule R --grammar-profile P` answers exactly the question, in
+  ~1.3 s per check; the whole SV population is **115 checks in 2 m 41 s**, single-threaded, with no
+  codegen and no `rustc`. Nothing needs to be built — it needs to be WIRED.
+- ⭐⭐ **AND THE SEQUENCING IS THE WHOLE DESIGN.** `DOCTRINE-GAP-OWNERSHIP.15` ruled that a census
+  blocker must be STAGED-DIFF-SCOPED when it would fire on pre-existing debt (76 of 108 claims), on
+  the measurement that a blocker firing on legacy teaches bypass. That ruling does NOT apply here,
+  and the reason is arithmetic rather than taste: `.13e.9`'s fix already drove the population to
+  **0 defects over 115 checks**, so a FULL-population blocker fires on nothing on day one.
+  ⇒ **a guard is safe to make blocking over its whole population exactly when the fix precedes it.**
+- ⚠️ **The honest residual, stated before the leaf is scoped:** 7 of the 115 checks reject and are
+  CORRECT (a branch dead under `verilog_2005` whose sample is honest). A naive guard would fire on
+  all 7. The join is the culprit — `satisfiable_under` is RULE-level while 43 of 52 samples are
+  BRANCH-level — so the leaf owes either branch-level profile satisfiability or an explicit,
+  justified allow-list. **Building the guard on the rule-level join would ship a 7/11 false-positive
+  rate**, which is the `.6`/`.12` shape that was refused.
+- **Owed:** (a) derive branch-level profile satisfiability, or price the allow-list; (b) wire the
+  check as a gate arm with a RED control proven firing; (c) decide whether it is an SV gate arm or a
+  registered doctrine — it is grammar-agnostic, so the second is the honest home, and every PGEN
+  grammar with both `@profiles` and `@sample` is in its population, not just SystemVerilog.
 
 #### `.13f` — the honest-permanent-deferral set: 302 rows where NO VERDICT is the right answer forever (`todo`, opened 2026-08-11 by `.13a`)
 

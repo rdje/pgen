@@ -1,5 +1,67 @@
 # CHANGES.md
 
+## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0296 (leaf `SV-CORPUS-GRAD.13e.9` CLOSED — four profile-blind `@sample` annotations repaired; GRAMMAR tier, register disposition `GENERATOR-ONLY`, ZERO generated-parser bytes, AST schema 26 unchanged)
+
+- ⛔⛔ **THE LEAF'S OWN ROUTING HYPOTHESIS WAS REFUTED BY THE FIRST TOOL RUN, AND THAT WAS THE
+  FINDING.** `.13e.7` routed this as *"with the optional's content profile-gated the generator can no
+  longer produce a sample for the enclosing rule"*. `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` says
+  otherwise: the generator produced **8-16 samples for every one of the seven** rules, and **zero**
+  were reach gaps — all seven are `parsed=false`, i.e. the sample was MALFORMED. Protocol A step
+  **4**, never step 3.
+- ⭐⭐ **ROOT CAUSE: a `@sample` is ONE PROFILE-BLIND STRING.** `module_ansi_header` (`:3824`) and
+  `program_ansi_header` (`:4976`) spelled their port `input logic a`; `function_body_declaration`
+  alternatives 0 and 1 (`:2775`/`:2777`) spelled their return type `int`. Both are IEEE-1800-only,
+  and neither rule carries `@profiles`, so both are live under `verilog_2005` — where those strings
+  are not samples of anything. All four distinct forced samples reject at the **identical**
+  `furthest_position=20`, inside the shared carrier, before the target is ever reached.
+- ⭐⭐⭐ **THE BLAST RADIUS HAD NO EXCEPTIONS.** Over the seed-0 probe log (10 110 `[plannable-probe]`
+  lines): **5 776** `parsed=false`, of which **5 608** carry `input logic`, and **0 of those 5 608
+  ever parsed**.
+- **FIX: four tokens** — `logic → wire` ×2, `int → integer` ×2, each spelling measured legal under
+  all three profiles in both directions. `verilog_2005` cert **`1147/356/769/22` →
+  `1147/356/774/17`**, **union `UNKNOWN` 11 → 2**, `sample_parse_failures=0` throughout, identical at
+  seeds 0/7/42 including the residual list. Probe health in the same pass: `parsed=false` **2 820 →
+  0**, witnessed **187 → 584**. ⭐ It clears more than the leaf's seven: `data_type_or_void` and
+  `function_statement` were residuals from *before* `.13e.7`.
+- ⭐ **ACCEPT-SET NEUTRAL AND PROVABLY SO.** The parser generated from the fixed grammar, the parser
+  generated from its predecessor, and the shipped `generated/systemverilog_parser.rs` are all
+  `sha256 8bc4746aeb0363e92b13a59d6a3e473f6992a73ba90ac0d75435303b6ecb23cc`. `sv_2017` is
+  byte-identical on both headline lines (`1401/8/1382/11`, union `1393/0`, `fully_certified=true`),
+  A/B'd in the same run rather than compared against a stored number. The parse-cost baseline moved
+  by **exactly one line** — the grammar digest — with rule entries `416,905,072` and committed
+  `6,759,873` unchanged and the corpus family share re-deriving to `2.729 %`.
+- ⛔⛔ **`.13e.7` DID NOT CAUSE THIS; IT UNMASKED A DEFECT 1 912 COMMITS OLD.** The four strings are
+  byte-identical before and after it. The sample was written **2026-04-22** (`cd8770cd`) when only
+  the SV profiles existed — and was **correct**. Registering `verilog_2005` on **2026-07-02**
+  (`3d398364`) made it wrong *retroactively*, for a profile that did not exist when it was written,
+  and nothing re-checked it for 53 days. ⇒ **adding a profile retroactively invalidates every
+  profile-blind annotation already in the grammar.** Engine-universal, not SystemVerilog.
+- ⛔ **THE REGISTER HAD NO HONEST SLOT FOR THIS CHANGE, WHICH WAS ITS OWN DEFECT.** `RELEASE` demands
+  a bug-ledger row describing a defect **no released parser has**; `NEUTRAL` is defined as *the digest
+  EQUALS its predecessor's* and a `@sample` edit moves it (annotations are in the `raw_ast`, comments
+  are not). New third disposition **`GENERATOR-ONLY`** — a STRONGER claim than `NEUTRAL`'s and
+  cheaper to check than tier D: *the digest moved and the generated parser did not*. New **tier E**
+  re-hashes `generated/systemverilog_parser.rs` against the row's `parser_sha256=`; on a clone with
+  no `generated/` it reports **NOT EVALUATED, loudly, never a pass**. All **five** refusals were
+  driven RED — including a check that the intended tier-C arm fired rather than a neighbouring tier
+  reacting to the same edit — with the register restored byte-identical and a GREEN control re-run.
+- ⭐ **AND ONE MORE DEFECT FELL OUT OF READING THAT FILE.** `check_sv_contract_currency.sh` tier A
+  built its scratch in `${TMPDIR:-/tmp}` — the off-volume default `CLAUDE.md` §13 forbids, and which
+  the function **15 lines below it** carries a comment saying was fixed. The earlier fix was applied
+  where the bug was *reported* rather than over the file's own population. ⇒ **a per-site fix to a
+  per-file defect is half a fix.**
+- ⛔ **MY OWN ADJUDICATOR WAS WRONG ONCE AND THE CORRECTION IS RECORDED.** It labelled
+  `case_statement` alt 1 a defect; the "repair" it substituted was **alt 0's sample**, so that arm
+  proved only that a different alternative parses. ⇒ **a repair control must repair the SAME branch.**
+  Re-measured: alt 1 is correctly dead under `verilog_2005`. No over-acceptance — a suspicion
+  measured and refuted rather than carried.
+- **Routed:** `SV-CORPUS-GRAD.13e.11` — nothing checks `@sample` against the profiles its rule is
+  live in (census in the leaf: no gate, workflow, hook or lint reads it; 0 of 27 doctrines concern
+  it). Deliberately opened **after** the fix, because the fix drives the population to **0 defects
+  over 115 checks**, so a full-population blocker fires on nothing on day one — the condition
+  `DOCTRINE-GAP-OWNERSHIP.15` said was missing when it refused one over 76 pre-existing violations.
+  ⇒ **a guard is safe to make blocking over its whole population exactly when the fix precedes it.**
+
 ## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0294 (RETRACTION under director challenge — `SV-CORPUS-GRAD.13e.8` is FALSE and is closed as REFUTED; tracker + instrument-report tier, ZERO grammar / Rust / codegen / generated bytes)
 
 - ⛔⛔ **RETRACTED: *"the `verilog_2005` certificate denominator counts 302 rules no v2005 input can

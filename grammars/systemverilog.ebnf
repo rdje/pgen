@@ -2772,9 +2772,9 @@ full_edge_sensitive_path_description := full_edge_sensitive_path_description_sv_
 full_path_description := lparen list_of_path_inputs ( polarity_operator )? full_path_arrow list_of_path_outputs rparen
                       -> {inputs: $2, polarity: $3, outputs: $5}
 
-function_body_declaration := @sample: "int f; endfunction : f" function_data_type_or_implicit function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
+function_body_declaration := @sample: "integer f; endfunction : f" function_data_type_or_implicit function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
                           -> {return_type: $1, name: $2, items: $4, statements: $5, end_label: $7}
-                           | @sample: "int f(); endfunction : f" function_data_type_or_implicit function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
+                           | @sample: "integer f(); endfunction : f" function_data_type_or_implicit function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
                            | function_data_type_or_implicit ( interface_identifier dot | class_scope ) function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
                            | function_data_type_or_implicit ( interface_identifier dot | class_scope ) function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
 
@@ -3821,7 +3821,7 @@ modport_tf_port := method_prototype  -> {kind: "method_prototype", body: $1}
 modport_tf_ports_declaration := import_export modport_tf_port ( comma modport_tf_port )*
                              -> {import_export: $1, ports: [$2, $3::2*]}
 
-@sample: "module m(input logic a);"
+@sample: "module m(input wire a);"
 module_ansi_header := attribute_instance* module_keyword ( declaration_lifetime_sv_only )? module_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
                    -> {attributes: $1, keyword: $2, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 
@@ -4973,7 +4973,7 @@ production_item_sv_2017 := production_identifier ( lparen list_of_arguments rpar
 production_item := production_item_sv_2017
                 -> {body: $1}
 
-@sample: "program p(input logic a);"
+@sample: "program p(input wire a);"
 program_ansi_header := attribute_instance* kw_program_81d9aeea ( lifetime )? program_identifier package_import_declaration* ( parameter_port_list )? ( list_of_port_declarations )? semi
                     -> {attributes: $1, lifetime: $3, name: $4, imports: $5, parameters: $6, ports: $7}
 

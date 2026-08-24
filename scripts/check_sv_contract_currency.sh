@@ -38,6 +38,24 @@
 #   D — IDENTITY  the working tree's digest re-derived from the producer must equal the newest row's
 #                 and the contract's declared digest. Needs `ast_pipeline`; when it is absent the
 #                 tier is reported NOT EVALUATED and tier B is what still binds.
+#   E — PARSER    a `GENERATOR-ONLY` row claims the digest MOVED while the generated parser did not,
+#                 and that claim is re-derived rather than believed: the row's `parser_sha256=<hex>`
+#                 must equal the sha256 of the shipped `generated/systemverilog_parser.rs`.
+#                 `generated/` is untracked, so on a fresh clone this tier reports NOT EVALUATED,
+#                 loudly — never a pass.
+#
+# ⛔ WHY A THIRD DISPOSITION EXISTS (SV-CORPUS-GRAD.13e.9, 2026-08-25). The first two were RELEASE
+# (contract section + bug-ledger row) and NEUTRAL (comment-only; digest EQUALS its predecessor's).
+# A `@sample` repair fits NEITHER: the annotation IS in the raw_ast, so the digest moves and NEUTRAL
+# refutes itself — while the generated parser is byte-identical, so the accept set cannot have moved
+# and a bug-ledger row would describe a defect no consumer of the parser can observe. Forcing such a
+# change into RELEASE buys a currency check with a false ledger row; forcing it into NEUTRAL buys a
+# green tier C by lying about the digest. The honest third slot states a STRONGER claim than
+# NEUTRAL's and is checked more cheaply than tier D: not "the grammar text barely changed" but
+# "whatever changed, the code generator's output did not".
+# ⚠️ HONEST BOUND, stated before the tier is trusted: tier E compares the row against the parser
+# that is PRESENT in generated/. That it is the parser HEAD's grammar actually produces is the
+# separate GENERATED-REPRODUCIBILITY doctrine's job. The two compose; neither alone is the argument.
 #
 # Contract: exit 0 = the doctrine holds; nonzero = a breach, explained on stderr (DOCTRINE_ENFORCEMENT.md §4).
 set -uo pipefail
@@ -87,7 +105,12 @@ print(hashlib.sha256(json.dumps(raw, sort_keys=True, separators=(",", ":")).enco
 
 # ── tier A — HISTORY: every grammar commit since genesis is accounted for, BY DIGEST ─────────────
 if [ -x "$PIPELINE" ]; then
-  scratch="$(mktemp -d "${TMPDIR:-/tmp}/sv_contract_currency_hist.XXXXXX")"
+  # ⛔ ON-VOLUME BY POLICY (CLAUDE.md §13), same as sv_semantic_digest above. This line read
+  # `${TMPDIR:-/tmp}` until SV-CORPUS-GRAD.13e.9 — the exact off-volume default the function 15 lines
+  # up documents as fixed, left behind because that fix was made where the bug was REPORTED rather
+  # than over the file's whole population. A per-site fix to a per-file defect is half a fix.
+  hist_root="$ROOT/rust/target/sv_contract_currency"; mkdir -p "$hist_root" 2>/dev/null
+  scratch="$(mktemp -d "$hist_root/hist.XXXXXX")"
   missing=""
   while read -r sha; do
     [ -n "$sha" ] || continue
@@ -119,8 +142,9 @@ else
 fi
 if [ -n "$missing" ]; then
   note "the SV grammar moved in commit(s)$missing to a semantic state NO row in $REGISTER records."
-  note "  Each grammar revision owes a row: a RELEASE (contract section + bug-ledger row) or a"
-  note "  NEUTRAL claim whose digest equals its predecessor's. Re-derive the digest with:"
+  note "  Each grammar revision owes a row: a RELEASE (contract section + bug-ledger row), a"
+  note "  NEUTRAL claim whose digest equals its predecessors, or a GENERATOR-ONLY claim whose"
+  note "  parser_sha256 equals the shipped parsers. Re-derive the digest with:"
   note "    $PIPELINE $GRAMMAR --emit-raw-ast-json raw.json && python3 -c \"import json,sys,hashlib; print(hashlib.sha256(json.dumps(json.load(open('raw.json'))['raw_ast'],sort_keys=True,separators=(',',':')).encode()).hexdigest())\""
 fi
 
@@ -148,8 +172,28 @@ for row in "${ROWS[@]}"; do
   register's own numbers."
       fi
       ;;
-    *) note "row $commit carries disposition '$disp' — only RELEASE and NEUTRAL are defined, and an
-  unreadable disposition must never read as a green one" ;;
+    GENERATOR-ONLY)
+      # The claim is "the digest moved, the PARSER did not". Both halves are checked: the digest
+      # half here (a GENERATOR-ONLY row whose digest EQUALS its predecessor's is a NEUTRAL row
+      # mislabelled, and the stronger label must not be used to dress up the weaker fact), the
+      # parser half in tier E.
+      if [ -z "$prev_digest" ]; then
+        note "row $commit claims GENERATOR-ONLY with no predecessor row to have moved away from"
+      elif [ "$digest" = "$prev_digest" ]; then
+        note "row $commit claims GENERATOR-ONLY, but its semantic digest EQUALS its predecessor's
+  ($digest). Nothing moved, so this row is NEUTRAL — a stronger disposition must not be used to
+  describe a weaker fact."
+      fi
+      [ -z "$(row_field "$row" 6)" ] || note "row $commit claims GENERATOR-ONLY and also names a
+  release ($(row_field "$row" 6)). A revision the generated parser cannot observe ships no release;
+  if it does ship one, it is a RELEASE row."
+      printf '%s' "$(row_field "$row" 7)" | grep -qE 'parser_sha256=[0-9a-f]{64}' \
+        || note "row $commit claims GENERATOR-ONLY but carries no \`parser_sha256=<64 hex>\` in its
+  notes. The whole point of this disposition is that the claim is re-derivable; without the digest
+  of the parser it claims did not move, it is an assertion."
+      ;;
+    *) note "row $commit carries disposition '$disp' — only RELEASE, NEUTRAL and GENERATOR-ONLY are
+  defined, and an unreadable disposition must never read as a green one" ;;
   esac
   [ -n "$digest" ] || note "row $commit carries no semantic digest, so nothing about it is checkable"
   prev_digest="$digest"
@@ -187,6 +231,32 @@ else
   printf 'sv-contract-currency: tier D NOT EVALUATED — %s is not built, so the working-tree digest
   was not re-derived from the producer. Tiers A-C ran. Build it to close the loop:
     cargo build --features "generated_parsers ebnf_dual_run" --manifest-path rust/Cargo.toml\n' "$PIPELINE"
+fi
+
+# ── tier E — PARSER: a GENERATOR-ONLY row's "the parser did not move" is RE-DERIVED ─────────────
+# Scoped to the NEWEST row deliberately: generated/ holds exactly one parser, so only the newest
+# row's claim is one this tree can still answer. An older row's claim was answered when it landed.
+if [ "$(row_field "$newest_row" 5)" = "GENERATOR-ONLY" ]; then
+  PARSER="generated/systemverilog_parser.rs"
+  claimed="$(printf '%s' "$(row_field "$newest_row" 7)" | grep -oE 'parser_sha256=[0-9a-f]{64}' | head -1 | cut -d= -f2)"
+  if [ ! -f "$PARSER" ]; then
+    printf 'sv-contract-currency: tier E NOT EVALUATED — %s is absent (generated/ is untracked, so a
+  fresh clone reaches here). The GENERATOR-ONLY claim of row %s is UNCHECKED until the tree is
+  generated. Tiers A-D ran. Close the loop with:
+    make -C rust SHELL=/bin/bash regenerate_generated_parsers\n' "$PARSER" "$(row_field "$newest_row" 1)"
+  elif [ -z "$claimed" ]; then
+    : # already reported by tier C — do not double-count one defect as two
+  else
+    live_parser="$(shasum -a 256 "$PARSER" 2>/dev/null | cut -d' ' -f1)"
+    if [ -z "$live_parser" ]; then
+      note "tier E could not hash $PARSER — a tier that cannot inspect its subject must say so, not pass"
+    elif [ "$live_parser" != "$claimed" ]; then
+      note "row $(row_field "$newest_row" 1) claims GENERATOR-ONLY with parser_sha256=$claimed, but
+  $PARSER hashes to $live_parser. The claim is that this grammar revision left the generated parser
+  untouched; the parser in the tree says otherwise, so the revision is a RELEASE and owes a contract
+  section and a bug-ledger row."
+    fi
+  fi
 fi
 
 if [ "$fail" = 0 ]; then

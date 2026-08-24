@@ -22,7 +22,7 @@
     "grammar": {
       "kind": "ebnf_raw_ast",
       "path": "grammars/systemverilog.ebnf",
-      "sha256": "470d49988cf7b2bf55b0e438269980f5bc6ae493e8edc885287a927e58381190"
+      "sha256": "6cffb4059fca5f948900cc65fe8001ac667e229a1f15fb12633da96dd01fc8c6"
     }
   },
   "lr_entries": 24571950,

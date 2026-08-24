@@ -523,6 +523,58 @@ So the maintained doctrine is:
 - prefer branch-local `@probe_sample` on that owning seam over broad child-rule canonicalization
 - keep the recursive branch visible if it still remains open after the local debt around it has been reduced
 
+## ⛔ A `@sample` Is One String, But A Rule Can Be Live In Several Profiles
+
+This is the sharpest edge on the whole annotation, and it is invisible until a grammar gains a
+second profile.
+
+`@sample` holds **one literal string**. `@profiles` narrows which profiles a rule is live in. Those
+two features do not talk to each other. So a rule that carries **no** `@profiles` — live everywhere
+— can carry a sample written in the vocabulary of exactly **one** profile, and every witness probe
+that short-circuits through it will emit a file the *other* profiles must reject. The parser is
+untouched; the certificate is not.
+
+**Measured on SystemVerilog** (`SV-CORPUS-GRAD.13e.9`, 2026-08-25). `module_ansi_header` carried
+`@sample: "module m(input logic a);"`. `logic` is IEEE-1800-only, so under the `verilog_2005`
+profile that string is not a sample of anything:
+
+```bash
+./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf \
+  --interpret-parse carrier.sv --grammar-profile verilog_2005
+# INTERPRET-PARSE: … accepted=false furthest_position=20   ← the byte after `logic`
+```
+
+Over one certificate-coverage run at seed 0, **5 608** of the **5 776** rejected probe samples
+carried that carrier, and **not one of the 5 608 ever parsed**. Four such samples cost ten rules
+their certificate. The repair was four tokens — `logic → wire`, `int → integer` — each spelling
+legal in *all three* profiles, and the generated parser came out **byte-identical**.
+
+⭐⭐⭐ **The timeline is the lesson, and it generalises past SystemVerilog.** The sample was written
+on 2026-04-22, when only the SV profiles existed — it was **correct**. The `verilog_2005` profile
+was registered on 2026-07-02, and *that* is when the sample became wrong: retroactively, for a
+profile that did not exist when anyone wrote it. Nothing re-checked it for 53 days.
+
+> **Adding a profile retroactively invalidates every profile-blind annotation already in the
+> grammar.** A profile NARROWS the accepted language, so every literal already written against the
+> wider language becomes a candidate defect the moment the narrower profile exists.
+
+**What to do when you add a profile to an existing grammar.** Re-check every literal-bearing
+annotation against it — the population is small and the check is one command per `(sample, profile)`
+pair:
+
+```bash
+ast_pipeline <grammar> --dump-gen-ast ga.json      # the samples, from the frontend, not from grep
+ast_pipeline <grammar> --dump-rule-profiles rp.json # which profiles each rule is live in
+ast_pipeline <grammar> --interpret-parse s.txt --interpret-entry-rule <R> --grammar-profile <P>
+```
+
+⛔ Read the samples out of the **gen-AST**, never by grepping the `.ebnf`: an annotation binds to the
+*next* rule, so a regex census miscounts exactly where it matters. And note that
+`--dump-rule-profiles`' `satisfiable_under` is **rule**-level while most `@sample`s are
+**branch**-level — a branch can be dead under a profile while its rule is live, so a raw join
+over-reports. Adjudicate each hit by substituting the other profile's spelling and requiring the
+repair to *accept*; if it still rejects, the branch is dead there and the sample was honest.
+
 ## Replay Progress Tracing
 
 The heavy replay gates are quiet by default, and the retained SystemVerilog replay lane has an

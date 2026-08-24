@@ -667,11 +667,21 @@ This is the document downstream projects such as Nexsim should read first when d
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `470d49988cf7b2bf55b0e438269980f5bc6ae493e8edc885287a927e58381190` (SV grammar semantic digest — sha256 of the
+  - `6cffb4059fca5f948900cc65fe8001ac667e229a1f15fb12633da96dd01fc8c6` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`
     re-derives this digest from the producer and refuses a tree where the grammar has moved and this document has not.)
+  - ⚠️ **The digest moved without a release, and that is a CHECKED claim, not a footnote.** The
+    previous digest `470d4998…` shipped as `1.0.197`; the current one is the `SV-CORPUS-GRAD.13e.9`
+    `@sample` repair (`PGEN-SV-CORPUS-GRAD-0296`, 2026-08-25), registered as the register's first
+    **`GENERATOR-ONLY`** row. `@sample` steers STIMULI GENERATION and nothing else, so the accept
+    set and the AST cannot move — and that is not argued, it is measured: the parser generated from
+    this grammar is **byte-identical** to the one generated from `470d4998…` and to the shipped
+    `generated/systemverilog_parser.rs`, all three `sha256 8bc4746aeb0363e92b13a59d6a3e473f6992a73b`
+    `a90ac0d75435303b6ecb23cc`. The doctrine's tier E re-hashes that parser on every run, so this
+    paragraph cannot quietly become false. **No parser release, no ledger row, schema unchanged at
+    `26`** — a consumer of `1.0.197` needs to do nothing.
 - Embedding API contract baseline:
   - `1.3.2` (backward-compatible fix completing `1.3.1`, `ENGINE-UNIVERSAL-SERVICES.43` 2026-08-21: crossing the 4096-frame recursion ceiling now returns its clean `E_PARSE_FAILURE` in **bounded time**. `1.3.1` guaranteed the host's STACK and left the parse unbounded; measured on the shipped SV parser, 315 nested parens were accepted in 0.16 s and 320 returned no result in 30 s, because the ceiling — the one guard verdict that names no blocking frame — tainted the packrat failure cache globally and one trip disabled failure memoisation for the rest of the parse. The ceiling now files its failures under a DEPTH STAMP (monotone: a failure at depth `D` holds at every depth `>= D`), which restores memoisation without touching the frame-scoped taint `SV-CORPUS-GRAD.3.12` added. Engine-level and grammar-agnostic — VHDL showed the identical cliff in a byte-identical parser. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. Parser release `1.0.193` → `1.0.194` because the generated artifact IS regenerated; AST-dump schema unchanged at `26` and no accept-set change.)
   - history: `1.3.1` (backward-compatible stack-robustness fix, `SV-CORPUS-GRAD.8c.3` 2026-07-22: every SV/VHDL embedding parse runs on a dedicated 256 MiB-stack thread, so over-deep recursion returns a clean `E_PARSE_FAILURE` diagnostic — the engine's 4096-frame recursion ceiling — instead of aborting the HOST process with a stack-overflow SIGABRT; measured pre-fix, a ~400-deep parenthesized expression (≈4 KB of text) killed a release embedder at the default 8 MB main stack. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. No parser release/schema bump — the generated parser artifact is unchanged.)

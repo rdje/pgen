@@ -1,5 +1,76 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0296 — adding a profile retroactively invalidates every profile-blind annotation already in the grammar
+
+**1. THE HYPOTHESIS IN THE ROUTING NOTE WAS WRONG, AND ONE TOOL RUN SAID SO.** `.13e.7` routed
+`.13e.9` as *"the generator can no longer produce a sample for the enclosing rule"*, and proposed
+the first thing to measure as *"position, count, or the leading-element case"*. Protocol A step 2 —
+`PGEN_CERT_COVERAGE_DEBUG_PROBES=1` — reported the generator producing **8-16 samples for every one
+of the seven** rules, all `parsed=false`, **zero** reach gaps. The generator never gave up; the
+CARRIER was rejected. None of the three proposed axes was the discriminator. ⇒ **a routing note is a
+hypothesis, and the leaf's first job is to try to falsify it, not to inherit it.** Owed step (a) was
+"run the probes"; running it retired the leaf's whole framing in four minutes.
+
+**2. THE SIGNATURE THAT MADE IT OBVIOUS WAS "IDENTICAL", NOT "LARGE".** Four structurally different
+forced samples — a function declaration, an event control, two lifetimes — all rejected at
+`furthest_position=20`. A defect in four different constructs does not land on one byte offset;
+a defect in the string they *share* does. The shared prefix was `module m(input logic a);`, and 20
+is the byte after `logic`. ⇒ **when independent reproducers agree to the byte, stop looking at the
+reproducers and look at what they have in common.**
+
+**3. A CENSUS OVER THE WHOLE LOG COST ONE `grep` AND TURNED AN ANECDOTE INTO A BOUND.** Four samples
+is a story; `5 608 of 5 776` rejected probe samples carrying that carrier, with **0 of the 5 608
+ever parsing**, is a measurement — and the zero is what makes it a mechanism rather than a
+correlation. The instrument was already on disk from step 2; only the question was new.
+
+**4. GIT DATED THE DEFECT AND EXONERATED THE COMMIT THAT SURFACED IT.** `git show
+ac2aa012^:grammars/systemverilog.ebnf` shows all four strings byte-identical before `.13e.7`, and
+`git log -S` dates the first to **2026-04-22**, **1 912 commits** back — before the `verilog_2005`
+profile existed (**2026-07-02**). So the sample was CORRECT when written and was invalidated
+retroactively by a profile added later. ⇒ **a profile NARROWS the accepted language, so every
+literal already written against the wider language becomes a candidate defect the moment the
+narrower profile exists.** This is the engine-universal statement; it binds any PGEN grammar that
+ever gains a profile, and nothing in the repository re-checks it.
+
+**5. THE JOIN I BUILT THE CENSUS ON OVER-REPORTED BY CONSTRUCTION, AND I ALMOST SHIPPED IT.**
+`--dump-rule-profiles`' `satisfiable_under` is **rule**-level; 43 of the 52 `@sample`s are
+**branch**-level. A branch can be dead under a profile while its rule is live, so 7 of my 11 "hits"
+were honest samples on dead branches. Adjudicating each by parse — substitute the other profile's
+spelling, require the repair to ACCEPT — split 11 into 4 defects and 7 correct rows.
+
+**6. AND THE ADJUDICATOR ITSELF WAS WRONG ONCE.** For `case_statement` it substituted
+`case (a) default: ; endcase` as the "repair" of the `matches` alternative — but that is **alt 0's
+sample**, not a repair of alt 1. The arm went green by testing a different alternative. ⇒ **a repair
+control must repair the SAME branch; substituting a sibling's text tests the sibling.** The
+correction also refuted the follow-on suspicion it created: `kw_matches` IS ungated, but every rule
+that consumes it is `["sv_2017","sv_2023"]`, so there is no over-acceptance to route.
+
+**7. THE FIX WAS FOUR TOKENS AND THE PROOF WAS A DIGEST.** `logic → wire`, `int → integer`. Because
+`@sample` steers stimuli generation and nothing else, the accept set cannot move — and that was not
+argued, it was hashed: the parser generated from the fixed grammar, the parser generated from its
+predecessor, and the shipped artifact are all `8bc4746a…`. ⇒ **when a change is claimed
+accept-set-neutral, generate both parsers and `cmp` them; it is 26 seconds and it converts an
+argument into a fact.**
+
+**8. THE BOOKKEEPING VOCABULARY HAD A HOLE, AND A HOLE DOES NOT FAIL LOUDLY — IT GETS THE NEAREST
+WRONG LABEL.** The revision register defined `RELEASE` (contract section + bug-ledger row) and
+`NEUTRAL` (*digest EQUALS its predecessor's*). A `@sample` repair fits neither: the digest moves, so
+`NEUTRAL` refutes itself, while `RELEASE` would buy a currency check with a ledger row describing a
+defect no released parser has. Both wrong labels PASS their gates. The third disposition
+`GENERATOR-ONLY` states the claim that is actually true and is cheaper to check than either — *the
+digest moved and the parser did not* — and tier E re-hashes the parser to prove it.
+
+**9. FIVE RED CONTROLS, AND ONE OF THEM NEEDED A SECOND LOOK.** Setting the row's digest equal to its
+predecessor's did fail — but it also breaks tiers A and D and the contract-declaration check, so
+"rc=1" alone would not have shown that the arm I wrote was the one that fired. `grep -c` on the
+intended message settled it at 1. ⇒ **a control that proves the verdict is not a control that proves
+the mechanism** — the same lesson `-0290` paid for, in a new place.
+
+**10. A PER-SITE FIX TO A PER-FILE DEFECT IS HALF A FIX.** `check_sv_contract_currency.sh` carries a
+comment saying its scratch path was moved on-volume per `CLAUDE.md` §13. Fifteen lines above that
+comment, tier A still built its scratch in `${TMPDIR:-/tmp}`. The earlier fix was applied where the
+bug was *reported*. ⇒ when a defect is a property of a file, close the population, not the ticket.
+
 ## 2026-08-24 - PGEN-SV-CORPUS-GRAD-0293 — an annotation binds to the NEXT rule, so inserting a rule is an edit to whatever precedes it
 
 **1. THE INSERTION THAT SILENTLY DISARMED TWO GATES.** The 13 new `_sv_only` rules go in
