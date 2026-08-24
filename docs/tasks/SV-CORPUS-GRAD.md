@@ -16324,6 +16324,35 @@ a live artifact — and this time the staleness was hiding a **fix**, not a defe
   code written to be *compiled*, and nobody writes `chandle` in a file they hand to a 1364-2005
   tool. ⇒ **a rejects-valid corpus is structurally blind to accepts-invalid defects**, which is the
   same asymmetry `CORPUS-KEY-AUDIT` was chartered for, arriving from the other side.
+- ⭐⭐⭐ **ENGINE RULING, MINE TO MAKE, MADE (2026-08-24, `-0289`; director delegated it — *"it is
+  yours to make as it is low level details, but it got to be sota, signoff and production-grade"*):
+  ⛔ NO inline sub-expression `@profiles` guard. The named-rule idiom STAYS, and `.13e.7` must not
+  reopen this.** The question arose because `.13e.4`'s gate cost one dispatcher frame per attempt
+  and `.13e.7` will add more.
+  - **MEASURED, both data points, alias-only gates** (a pass-through gate rule's own entries ARE its
+    overhead): `.13e.4`'s `integer_atom_signing_sv_only` = **903** entries, `.13e.5`'s pair = **136**,
+    on a **415,031,629**-entry corpus ⇒ **0.000218 %** and **0.000033 %**. Fifty more such gates stay
+    under **0.01 %**. ⛔ **NOT the number to quote here**: profile-gated rules hold **13.46 %** of all
+    entries, but that is dominated by gated rules doing REAL parsing work (`data_declaration_sv_2017`
+    parses whole declarations) — reading it as overhead would be exactly the mis-attribution this
+    tree exists to catch. Recorded so the next session does not make it.
+  - ⭐⭐ **THE DECIDING ARGUMENT IS NOT THE SIZE OF THE COST — IT IS THAT THE COST BUYS
+    OBSERVABILITY.** Because the gate is a NAMED RULE, four independent instruments see it:
+    `--dump-rule-profiles` reports its per-profile satisfiability, both cert baselines count it, the
+    profile-orphan lint reaches it, and `rule_costs.tsv` prices it. That is precisely how `.13e.4`
+    proved sv_2017 `1387 → 1388` with `verilog_2005` **unmoved at 1148**, and how its parse-cost rise
+    was attributed to the digit with zero pre-existing rules moving. An inline guard is invisible to
+    all four ⇒ it trades a **measured** 0.0002 % for an **unmeasurable** change. In this repository an
+    unmeasurable claim is worse than a measured cost.
+  - **Supporting, not deciding:** the fix hierarchy is declarative > grammar > engine and the named
+    rule already IS the declarative answer; `derive_rule_profiles` is per-RULE by construction, so
+    sub-rule profiles would mean redesigning it plus codegen, the interpreter, the linter, the
+    stimuli generator and cert coverage; and `DESIGN-PRIOR-ART` requires a prior-art search before a
+    new annotation surface is even proposed.
+  - ⛔ **REVISIT TRIGGER, stated so this is a decision and not a preference** — reopen if EITHER
+    holds: (i) the aggregate entries of *alias-only* profile gates cross **0.5 %** of corpus entries,
+    or (ii) a reproducible wall-clock regression outside `PARSE-COST-RATCHET`'s advisory band is
+    attributed to gate dispatch. Neither is close — (i) is ~0.00025 % over the two gates that exist.
 - **Owed:** (a) rule on the structural question above (one `_v2005` declaration sibling vs nine
   gates) — priced against the `verilog_2005` cert baseline it moves; (b) pin all nine as
   `class=accepts_invalid` rows plus their `verilog_2005_conformance` two-sided cases *before*
