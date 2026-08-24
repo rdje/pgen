@@ -16075,6 +16075,8 @@ a live artifact — and this time the staleness was hiding a **fix**, not a defe
   `stimuli/sv/adjudication_repros/` (1 new control, 2 flipped) + the book's SV corpus section
   (tuple anchor `275 → 274`) + `MEMORY.md` / `CHANGES.md` / `DEVELOPMENT_NOTES.md`, this commit.
 
+> ⭐ **SIBLING LANE, chartered 2026-08-24**: the ANSWER KEY half of this problem is owned by the new tree [`CORPUS-KEY-AUDIT`](CORPUS-KEY-AUDIT.md), by director approval. `.13e.6` below owns the OUTCOMES (are the measurements current?); that tree owns the EXPECTATIONS (are the questions right?). Both feed the same published bar, and this session's evidence is that the second was the higher-yield question.
+
 ##### ⛔ `.13e.6` — the SV corpus OUTCOMES are a measurement with no expiry date, and they were three days stale hiding a FIX (`todo`, opened 2026-08-24 by `.13e.5`)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine):

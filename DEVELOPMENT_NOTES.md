@@ -1,5 +1,47 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-24 - PGEN-CORPUS-KEY-AUDIT-0001 — the lane's own founding number tried to inflate itself on day one
+
+**1. I BUILT THE CENSUS AND IT IMMEDIATELY OFFERED ME A BETTER HEADLINE THAN IT HAD EARNED.**
+`contradictory_classes=2` is a fine number to open a lane with — it says the technique works and the
+corpus really does disagree with itself. It is also wrong as a defect count, and I could see why in
+the same output: a row carries ONE expected verdict while its golden carries SEVERAL messages, so
+attributing all of them to that verdict manufactures a disagreement for any file pinned on a reason
+unrelated to most of what its golden says. Both classes are exactly that. ⇒ **the honest number is 0
+confirmed and 2 candidates**, and I wrote the over-reporting mechanism into the artifact's own header
+rather than into a leaf where a future reader would meet the table first. ⭐ A lane chartered on
+*"make published numbers more trustworthy"* that opened with a self-flattering one would have refuted
+itself in its first commit.
+
+**2. THE SAME LESSON, THIRD TIME IN TWO SESSIONS, AND THE SHAPE IS NOW UNMISTAKABLE.** A filename
+suggested three defect clusters and two were wrong (`.13e.2`). A text filter over 53 rows produced 11
+candidates and 10 were false (`.13e.3`(b)). A message census produced 2 candidates and both are
+artifacts (`CORPUS-KEY-AUDIT.1`). ⇒ **a filter's output is an input to measurement, never a result** —
+and the discriminator has been the parser every single time. That is now three independent
+confirmations, which is why it belongs in the census's header and not only in a note.
+
+**3. WHY THIS IS A TREE AND NOT A LEAF, and it is not organisational preference.** `SV-CORPUS-GRAD`
+owns one family's burn-down; the key-audit technique is family-agnostic and `.4` has to reach sv2v,
+Surelog and ispras, none of which are SV-lane rows. Filing it as an SV leaf would have forced either
+a widened leaf or a second copy when VHDL's corpus lands. The split that matters is the one recorded
+in both trees: **`.13e.6` asks whether the MEASUREMENTS are current; this tree asks whether the
+QUESTIONS are right.** Both feed the same bar, and last session's evidence is that the second was the
+higher-yield question by 5 to 3.
+
+**4. THE NUMBER I MOST WANT FROM THIS LANE IS `.2`'s, AND IT IS THE CHEAPEST ONE.** Every basis string
+already names its evidence, so classifying expectations into clause-cited versus tool-testimony versus
+suite-convention is a sweep, not an investigation. Only the tool-testimony class can be wrong in the
+way `.13e.3` found twice — so **its size is the trust bound on the published defect bar**, and today
+that bound is unpublished. A bar quoted without it is a point estimate with no interval, which is
+exactly what `CLAIM_VERIFICATION.md` §4 says not to ship.
+
+**5. RE-VERIFYING THE FOUR FINDINGS BEFORE OPENING THE LANE CHANGED ONE OF THEM FOR THE BETTER.** I
+claimed the SV bar had read 275 since 2026-08-21 when it should have read 274. Checking commit by
+commit, the bar reads 275 at `958fcc24` — **the `SV-0066` commit itself**. So the sharper statement is
+not that the number went stale afterwards: **the very commit that fixed the construct published a bar
+its own fix had already invalidated.** Same defect, strictly stronger sentence, and I would not have
+had it from re-reading my own summary.
+
 ## 2026-08-24 - PGEN-SV-CORPUS-GRAD-0287 — I shipped the wrong grammar into a regeneration, and the cheap tool is the one that caught it
 
 **1. THE FIX THE DEFECT INVITES IS NOT THE FIX THE SPEC ASKS FOR.** The finding was *"a task port
