@@ -971,3 +971,46 @@ the copy has no way to know.*
   product/parser work ([[feedback_prefer_feature_work_over_governance_lanes]]). It is parked behind
   the SV lane and behind `H.16.6f`/`H.23`. It is recorded because the director delegated the decision
   and *"nothing important may live only in this conversation"* — not because it outranks the frontier.
+
+#### ⛔ `.15` — a "nothing checks X" claim is a CENSUS claim, and 70 % of them in this repo carry no census (`todo`, opened 2026-08-25 by `PGEN-SV-CORPUS-GRAD-0294`)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing):
+
+- ⛔ **THE DEFECT IS MINE AND IT REPEATED INSIDE THREE DAYS.** `-0288` published *"`verilog_2005`
+  faithfulness is checked by NOTHING"* (false — 85 curated conformance cases; retracted by `-0289`).
+  `-0290` then opened `SV-CORPUS-GRAD.13e.8` with *"nothing crosses the two"* (false —
+  `gather_verified_profile_proof_covered_rules`, shipped as `VERILOG-2005-PROFILE.6.7`; retracted by
+  `-0294`). **Same form, same subject, one commit after the lesson that names it.**
+- **MEASURED over the closed tracked population** — 320 files under `docs/tasks/`:
+
+  ```text
+  gap-claim hits: 108 across 21 files
+    BACKED by a census command in the same leaf section:   32  (30 %)
+    UNBACKED:                                              76  (70 %)
+  ```
+
+  Phrase distribution: `no instrument` 28 · `nothing in the repo` 18 · `nothing reads` 15 ·
+  `nothing checks` 13 · `nothing compares` 7 · `nothing measured` 7 · `nothing watches` 6 · and six
+  rarer spellings. Concentrated in `SV-CORPUS-GRAD` (17), `DONE-BAR` (11),
+  `ENGINE-UNIVERSAL-SERVICES` (10).
+- ⭐ **CORPUS PRESSURE IS DECISIVELY ABOVE THIS REPOSITORY'S OWN BAR.** `GENERATED-LINT-CORRECTNESS.4`
+  refused a widening at **2 of 304** and `.7` at **0 of 307**. 108 instances is three orders above
+  either. The trigger is real, not a hypothetical.
+- ⛔⛔ **MY RULING, AND IT IS MINE — NOT A DIRECTOR CALL** (recorded because I wrongly escalated it
+  once): **the check is warranted, and it must be SCOPED TO THE STAGED DIFF, never to the existing
+  corpus.** A blocker that fires on 76 pre-existing claims is unusable and teaches bypass — the
+  failure mode `GENERATED-LINT-CORRECTNESS.6`/`.12` refused at 91 % FP. `DOCTRINE_ENFORCEMENT.md` §4
+  rule 5 already prescribes the shape: a check about a *change* reads `git diff --cached` and exempts
+  what it does not govern. Scoped that way the steady-state fire rate is *"claims added by this
+  commit that quantify over the tree without a census"* — which for a compliant commit is **0**.
+- ⚠️ **THE 70 % IS NOT A FALSE-POSITIVE RATE AND MUST NOT BE QUOTED AS ONE.** It is the rate at which
+  existing claims lack an in-leaf census; whether each is *wrong* is unmeasured, and two audited so
+  far were wrong. Pricing the true FP rate needs a sample adjudicated against the tree — owed by (b).
+- **Owed:** (a) `scripts/check_gap_claims.sh`, staged-diff-scoped, on the `check_diagnosis_evidence.sh`
+  evidence archetype (a pasted `grep -rn` / `git ls-files` / census invocation inside the same leaf
+  section), registered in `check_doctrines.sh` with its refusals proven by a probe including a GREEN
+  control; (b) adjudicate a sample of the 76 to price the real FP rate before the check is made
+  blocking; (c) decide whether `CHANGES.md` / `DEVELOPMENT_NOTES.md` join the governed population.
+- ⚠️ **PRIORITY, stated honestly**: governance lane, and the standing directive prefers product/parser
+  work ([[feedback_prefer_feature_work_over_governance_lanes]]). **Parked behind the SV lane** — it is
+  recorded so it survives the session, not because it outranks `SV-CORPUS-GRAD.13e.9`.
