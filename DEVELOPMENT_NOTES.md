@@ -1,5 +1,64 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-24 - PGEN-SV-CORPUS-GRAD-0292 — a reproducer's CARRIER is part of its scope, and an existing pin proved it the expensive way
+
+**1. THE ROW THAT COULD NOT SEE ITS OWN DEFECT.** `.13c.2m` pinned `class_qualifier` on
+2026-08-18 as `class=accepts_invalid` for `sv_2017,sv_2023`, and the pin was correct. Its carrier is
+
+```systemverilog
+module top;
+  int y, m;
+  initial y = class_qualifier m;
+endmodule
+```
+
+`int` is not an IEEE 1364-2005 type, so the whole file REJECTS under `verilog_2005` — for a reason
+that has nothing to do with `class_qualifier`. The row was therefore structurally incapable of ever
+reporting the `verilog_2005` leak, and the profiles column said `sv_2017,sv_2023` honestly. Swapping
+one word — `int` → `integer` — makes the identical claim measurable on the third profile, and it
+ACCEPTS. ⇒ **a pin's profile scope is bounded by what its CARRIER can survive, not by what its
+claim is about.** Nothing in the manifest can express that, and nothing checks it; the census found
+the leak from the other direction and the collision is what exposed the hole.
+
+**2. WHY THE ROWS ARE `accepts_invalid` AND NOT `invalid`, PROVEN RATHER THAN ARGUED.** The obvious
+filing for nineteen known-illegal constructs is `class=invalid` — *this text must never parse*. That
+expects REJECT, and every one of them parses today, so the manifest would go RED on the commit that
+files it and the slice could not land. Filing them as `accepts_invalid` states the true present
+verdict (ACCEPT) and arms the runner to fail the day the fix lands. The control makes the reasoning
+checkable instead of rhetorical: refiling `accepts_invalid_v2005_chandle.sv` as `invalid` produces
+
+```text
+⛔ accepts_invalid_v2005_chandle.sv [verilog_2005]: expected REJECT, got ACCEPT
+   ⛔ AN INVALID-SV REPRODUCER NOW PARSES. PGEN has acquired an OVER-ACCEPTANCE defect …
+```
+
+— exactly the failure the class exists to prevent, observed on demand.
+
+**3. THE LOAD-BEARING CONTROL IS THE ONE THAT PROTECTS THE REASON THE DOOR EXISTS.**
+`data_declaration_sv_2017` was admitted to `verilog_2005` deliberately, because it is the only path
+to `integer i;`. Nineteen gates are about to be drawn near that path, and the failure mode of a gate
+drawn too wide is that a legal declaration stops parsing. So `control_v2005_plain_declarations.sv`
+carries the whole A.2.1.3 set — integer, time, real, realtime, event, reg — in one file, and
+corrupting it produces *"⛔ A CONTROL STOPPED PARSING"*. `function automatic` and `task automatic`
+are pinned beside it for the same reason on the `lifetime` axis: A.2.6:254 and A.2.7:275 make those
+legal in IEEE 1364-2005, so a gate placed on `lifetime` itself — rather than on the declaration-site
+`( lifetime )?` optional — goes RED immediately instead of shipping.
+
+**4. SEQUENCING THE TWO ORACLES, WHICH WANT OPPOSITE THINGS.** The adjudication ratchet wants the
+row filed BEFORE the fix (that is what makes the fix un-silent). The `verilog_2005_conformance`
+contract wants the row filed WITH the fix, because it encodes the post-fix expectation
+`verilog_2005: reject` and would otherwise turn a green gate red for a defect nobody has fixed yet.
+`.13e.4` demonstrated the correct end state — its corpus matrix moved 240 → 255 in the fixing
+commit while its three `accepts_invalid` rows had been filed earlier and went RED on cue. This slice
+does the first half only, and says so in the leaf rather than leaving the omission to look like one.
+
+**5. AN ASYMMETRY RECORDED SO IT DOES NOT READ AS A MISS.** `rand` is pinned; `randc` is not. They
+share `random_qualifier`, so the obvious expectation is both or neither. `rand` has a second
+v2005-live site — `checker_or_generate_item_declaration:1165`'s `( kw_rand )?` — and `randc` does
+not; `randc` reaches `verilog_2005` only through `struct_union_member`, whose alternative requires
+the `sv_2017`-gated `struct_union`. The `rand` row's note carries that sentence, because a future
+reader counting keywords will otherwise find the gap before they find the reason.
+
 ## 2026-08-24 - PGEN-SV-CORPUS-GRAD-0290 — a probe that only ever returns ACCEPT is not an oracle, and mine did until the third leg
 
 **1. THE TASK AS WRITTEN WOULD HAVE PRODUCED A FOURTH SAMPLE.** `.13e.7`(c) said to census
