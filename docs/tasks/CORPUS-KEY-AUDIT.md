@@ -302,9 +302,23 @@ KEY-PROVENANCE-CENSUS: rows=10090 clause_cited=627 tool_testimony=2287
 ```
 
 ⇒ ⭐⭐ **93.8 % of the SV answer key rests on evidence OUTSIDE the standard** — 94.4 % on the
-`sv_2017` lane (whose 7 556 keyed rows are exactly `SV-CORPUS-DENOMINATOR`'s published
-`adjudicated` field, so the two numbers compose), 92.1 % on `verilog_2005`. **That is the trust
-bound on every number derived from the key, and it was unpublished.**
+`sv_2017` lane, 92.1 % on `verilog_2005`. **That is the trust bound on the answer key, and it was
+unpublished.**
+
+⭐ **POPULATION IDENTITY, PROVEN AS A SET AND NOT MERELY AS A COUNT** (re-verified 2026-08-24 under
+director challenge): the census's `sv_2017` keyed rows and `SV-CORPUS-DENOMINATOR`'s `adjudicated`
+field are both 7 556 **and are the same set of `relpath`s** — two producers sharing no code over an
+identical population. A matching count alone would not have shown that.
+
+⛔⛔ **CORRECTION, SAME CHALLENGE: THE PUBLISHED BAR IS A DIFFERENT POPULATION AND CARRIES A
+DIFFERENT NUMBER.** `-0004` published *"the bound applies directly to the shipped number"* while
+quoting 93.8 %, which is the **key-wide** share. The bar is the `sv_2017` `divergence:unexplained_*`
+subset — **274** rows — and a divergence tends to get INVESTIGATED, which is exactly the event that
+produces a clause cite. Derived (`bar_trust_bound=248/274`): 26 clause-cited / 121 tool-testimony /
+126 suite-convention / 1 unmatched ⇒ **90.5 %**, not 93.8 %. The direction and the conclusion are
+unchanged; the number attached to the bar was the wrong one of the two. ⇒ the census now DERIVES the
+bar subset and prints it in its own section, so the two populations cannot be conflated again by a
+reader or by me.
 
 ⛔ **THE TREE'S OWN FRAMING WAS TOO NARROW AND THE MEASUREMENT SAYS SO.** This leaf was written as
 *"only tool testimony can be wrong in the way `.13e.3` found twice"*. It is not one class: `.13e.3`(a)

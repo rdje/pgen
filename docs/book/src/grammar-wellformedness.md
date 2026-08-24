@@ -2695,8 +2695,16 @@ mechanical. Over all **10 090** keyed rows:
 | `UNCLASSIFIED` | matches no rule; printed verbatim in the artifact | **4** | 0.04 % |
 
 ⇒ **93.8 % of the SV answer key rests on evidence outside the standard** (94.4 % on the `sv_2017`
-lane, 92.1 % on `verilog_2005`). That is the trust bound on every number derived from it, and it was
-unpublished until `CORPUS-KEY-AUDIT.2`.
+lane, 92.1 % on `verilog_2005`). That is the trust bound on the answer key, and it was unpublished
+until `CORPUS-KEY-AUDIT.2`.
+
+⛔ **The published defect BAR is a different population, and it carries a different number.** The bar
+is the `sv_2017` `divergence:unexplained_*` subset — **274** rows — and a divergence tends to get
+*investigated*, which is exactly the event that produces a clause cite. Measured over those 274 rows:
+26 clause-cited, 121 tool-testimony, 126 suite-convention, 1 unmatched ⇒ **248 of 274 = 90.5 %** rest
+on evidence outside the standard. Use **90.5 %** when speaking about the bar and **93.8 %** when
+speaking about the answer key; the bar is the better-evidenced of the two, and quoting the key-wide
+share against it overstates the claim.
 
 ⚠️ **Read it for what it says.** A `tool-testimony` or `suite-convention` expectation is not wrong —
 it is *capable of being wrong in the way already measured twice*: a driver key that never read the

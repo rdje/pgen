@@ -107,7 +107,8 @@ def load_rows():
             for r in csv.DictReader(fh, delimiter="\t"):
                 if r["expected"] in VERDICTS:
                     rows.append({"lane": lane, "suite": r["suite"], "expected": r["expected"],
-                                 "basis": r["basis"], "relpath": r["relpath"]})
+                                 "basis": r["basis"], "relpath": r["relpath"],
+                                 "adjudication": r["adjudication"]})
     return rows
 
 
@@ -124,8 +125,20 @@ def census(rows):
             samples[c].append((r["suite"], r["expected"], r["basis"][:150]))
         if c == UNCLASSIFIED:
             residual.append((r["suite"], r["expected"], r["basis"]))
+    # ⛔ THE BAR'S OWN ROWS ARE A DIFFERENT POPULATION FROM THE WHOLE KEY, AND CONFLATING THEM
+    # OVERSTATES THE CLAIM. The published defect bar is the `divergence:unexplained_*` subset, and
+    # a divergence tends to get INVESTIGATED, which is exactly the event that produces a clause
+    # cite. So the bar is measurably better-evidenced than the key as a whole, and the honest
+    # sentence attaches the right number to the right population.
+    # ⛔ sv_2017 ONLY. `SV-CORPUS-DENOMINATOR` publishes `bar` as the sv_2017 lane's
+    # unexplained divergences; taking BOTH lanes gives 338, not the published 274, and a
+    # "bar" that is not the bar anyone reads is worse than no number. The first cut of this
+    # block did exactly that, and the two numbers disagreeing on sight is how it was caught.
+    bar = [r for r in rows if r["lane"] == "sv_2017"
+           and r["adjudication"].startswith("divergence:unexplained")]
+    bar_by = collections.Counter(classify(r["basis"]) for r in bar)
     return {"by": by, "per_suite": per_suite, "samples": samples, "rows": len(rows),
-            "residual": residual}
+            "residual": residual, "bar_rows": len(bar), "bar_by": bar_by}
 
 
 def render(res, rows):
@@ -156,6 +169,25 @@ def render(res, rows):
                      f"{res['by'][(lane, c, 'must_reject')]} |")
         L += ["", f"⇒ **trust bound: {tot - clause} of {tot} ({(tot - clause) / tot:.1%})** of this "
               f"lane's expectations rest on evidence OUTSIDE the standard.", ""]
+
+    n_bar = res["bar_rows"]
+    cls_clause = sum(n for (_l, c, _e), n in res["by"].items() if c == CLAUSE)
+    if n_bar:
+        bar_clause = res["bar_by"][CLAUSE]
+        L += [f"## ⛔ The BAR's own rows ({n_bar}, `sv_2017`) — a different population, a different number",
+              "",
+              "The published defect bar is the `sv_2017` `divergence:unexplained_*` subset, **not** the whole",
+              "key. A divergence tends to get INVESTIGATED, and investigation is exactly the event",
+              "that produces a clause cite — so the bar is measurably **better**-evidenced than the",
+              "key as a whole. Attaching the key-wide share to the bar overstates the claim.", "",
+              "| provenance | bar rows | share |", "|---|---|---|"]
+        for c in (CLAUSE, TOOL, SUITE, UNCLASSIFIED):
+            L.append(f"| `{c}` | {res['bar_by'][c]} | {res['bar_by'][c] / n_bar:.1%} |")
+        L += ["", f"⇒ **{n_bar - bar_clause} of {n_bar} ({(n_bar - bar_clause) / n_bar:.1%})** of the "
+              "rows *behind the published bar* rest on evidence outside the standard, against "
+              f"**{(res['rows'] - cls_clause) / res['rows']:.1%}** key-wide. ⭐ Use **this** number "
+              "when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: "
+              "they are different populations, and the bar is the better-evidenced of the two.", ""]
 
     L += ["## By suite — where the non-clause evidence actually lives", "",
           "| suite | rows | `clause-cited` | `tool-testimony` | `suite-convention` | `UNCLASSIFIED` |",
@@ -295,7 +327,8 @@ def main() -> int:
     print(f"KEY-PROVENANCE-CENSUS: rows={res['rows']} clause_cited={cls[CLAUSE]} "
           f"tool_testimony={cls[TOOL]} suite_convention={cls[SUITE]} "
           f"unclassified={cls[UNCLASSIFIED]} "
-          f"trust_bound={res['rows'] - cls[CLAUSE]}/{res['rows']}")
+          f"trust_bound={res['rows'] - cls[CLAUSE]}/{res['rows']} "
+          f"bar_trust_bound={res['bar_rows'] - res['bar_by'][CLAUSE]}/{res['bar_rows']}")
     try:
         shown = args.md.resolve().relative_to(ROOT)
     except ValueError:
