@@ -1,0 +1,20 @@
+rule	literal	leg1_verilog_2005	leg2_sv_2017	leg3_committed	leg3b_control_committed	verdict
+arithmetic_shift_left_assign	<<<=	accept	accept	1	0	CONFIRMED over-acceptance
+arithmetic_shift_right_assign	>>>=	accept	accept	1	0	CONFIRMED over-acceptance
+wildcard_not_equal	!=?	accept	accept	1	0	CONFIRMED over-acceptance
+iff_arrow	<->	accept	accept	1	0	CONFIRMED over-acceptance
+shift_left_assign	<<=	accept	accept	1	0	CONFIRMED over-acceptance
+wildcard_equal	==?	accept	accept	1	0	CONFIRMED over-acceptance
+shift_right_assign	>>=	accept	accept	1	0	CONFIRMED over-acceptance
+percent_assign	%=	accept	accept	1	0	CONFIRMED over-acceptance
+and_assign	&=	accept	accept	1	0	CONFIRMED over-acceptance
+star_assign	*=	accept	accept	1	0	CONFIRMED over-acceptance
+plus_plus	++	reject	accept	0	0	correctly excluded
+plus_assign	+=	accept	accept	1	0	CONFIRMED over-acceptance
+minus_minus	--	reject	accept	0	0	correctly excluded
+minus_assign	-=	accept	accept	1	0	CONFIRMED over-acceptance
+dot_star	.*	accept	accept	3	0	CONFIRMED over-acceptance
+slash_assign	/=	accept	accept	1	0	CONFIRMED over-acceptance
+xor_assign	^=	accept	accept	1	0	CONFIRMED over-acceptance
+or_assign	|=	accept	accept	1	0	CONFIRMED over-acceptance
+tick	'	accept	accept	1	0	CONFIRMED over-acceptance

@@ -171,31 +171,68 @@ def annex_a_punctuation_alphabet() -> tuple[set[str], int, int]:
     return alphabet, len(bnf), productions
 
 
-def main() -> int:
-    try:
-        raw = L1.raw_ast()
-        satisfiable = L1.rule_satisfiability()
-        reachable, source_satisfiable, synthesised = L1.reachable_rules(raw, satisfiable)
-        literal, regexish, not_terminal = terminal_literals()
-        alphabet, bnf_lines, productions = annex_a_punctuation_alphabet()
-    except (L1.Refused, Refused) as exc:
-        print(f"v2005-punctuation-census: REFUSED — {exc}", file=sys.stderr)
-        return 2
+def candidate_set() -> tuple[dict[str, str], dict[str, str], dict[str, object]]:
+    """Derive the L4 candidate set: `(candidates, accounted, stats)`.
+
+    ⛔ EXTRACTED FROM `main()` BY `SV-CORPUS-GRAD.13e.10` (c) SO THE ADJUDICATOR CANNOT DRIFT FROM
+    THE CENSUS.  The adjudication table in
+    `docs/tasks/artifacts/sv_corpus_grad/v2005_punctuation_adjudication/adjudicate.py` names one
+    witness per candidate, and a hand-listed population beside a derived one is a copy that rots —
+    exactly the failure `DERIVED_STATE_CONTAINMENT.md` R1/R3 exists to stop.  Both consumers now
+    call THIS function, so a candidate that appears or disappears is a REFUSAL in the adjudicator
+    rather than a silently unadjudicated row.
+
+    Raises `L1.Refused` / `Refused` on any oracle or grammar problem — never returns a partial set,
+    because a shrunken candidate set is a report of *fewer defects* and fails in the flattering
+    direction.
+    """
+    raw = L1.raw_ast()
+    satisfiable = L1.rule_satisfiability()
+    reachable, source_satisfiable, synthesised = L1.reachable_rules(raw, satisfiable)
+    literal, regexish, not_terminal = terminal_literals()
+    alphabet, bnf_lines, productions = annex_a_punctuation_alphabet()
 
     non_keyword = {n: v for n, v in literal.items() if not n.startswith("kw_")}
     reachable_punct = {n: v for n, v in non_keyword.items() if n in reachable}
     candidates = {n: v for n, v in reachable_punct.items() if v not in alphabet}
     accounted = {n: v for n, v in reachable_punct.items() if v in alphabet}
+    stats = {
+        "reachable": len(reachable),
+        "source_satisfiable": source_satisfiable,
+        "synthesised": len(synthesised),
+        "literal": len(literal),
+        "regexish": len(regexish),
+        "not_terminal": not_terminal,
+        "non_keyword": len(non_keyword),
+        "reachable_punct": len(reachable_punct),
+        "alphabet": len(alphabet),
+        "bnf_lines": bnf_lines,
+        "productions": productions,
+    }
+    return candidates, accounted, stats
 
-    print(f"grammar:   rules reachable under {L1.PROFILE} = {len(reachable)} "
-          f"(source-satisfiable {source_satisfiable}; {len(synthesised)} eliminator-synthesised "
+
+def main() -> int:
+    try:
+        candidates, accounted, st = candidate_set()
+    except (L1.Refused, Refused) as exc:
+        print(f"v2005-punctuation-census: REFUSED — {exc}", file=sys.stderr)
+        return 2
+
+    reachable, source_satisfiable, synthesised = st["reachable"], st["source_satisfiable"], st["synthesised"]
+    literal, regexish, not_terminal = st["literal"], st["regexish"], st["not_terminal"]
+    non_keyword, reachable_punct = st["non_keyword"], st["reachable_punct"]
+    alphabet, bnf_lines, productions = st["alphabet"], st["bnf_lines"], st["productions"]
+
+    print(f"grammar:   rules reachable under {L1.PROFILE} = {reachable} "
+          f"(source-satisfiable {source_satisfiable}; {synthesised} eliminator-synthesised "
           f"rules excluded as unadjudicable)")
-    print(f"terminals: string-literal {len(literal)}, regex {len(regexish)}; "
+    print(f"terminals: string-literal {literal}, regex {regexish}; "
           f"`:= trivia …` lines that are NOT terminals: {len(not_terminal)} {not_terminal}")
-    print(f"           non-keyword string-literal terminals {len(non_keyword)}, "
-          f"of which REACHABLE under {L1.PROFILE}: {len(reachable_punct)}")
+    print(f"           non-keyword string-literal terminals {non_keyword}, "
+          f"of which REACHABLE under {L1.PROFILE}: {reachable_punct}")
     print(f"oracle:    IEEE 1364-2005 Annex A — {productions} productions over {bnf_lines} BNF "
-          f"lines; punctuation-only alphabet = {len(alphabet)} tokens")
+          f"lines; punctuation-only alphabet = {alphabet} tokens")
     print(f"VERDICT:   {len(accounted)} reachable punctuation terminals appear in the Annex A "
           f"alphabet; {len(candidates)} DO NOT and are L4 candidates")
     for name, lit in sorted(candidates.items(), key=lambda kv: (-len(kv[1]), kv[1])):
