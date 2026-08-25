@@ -1,5 +1,84 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-25 - PGEN-ENGINE-UNIVERSAL-SERVICES-0086 — the audit was clean; what it found on the way was a green control that had stopped being one, a census claim nobody had censused, and an invariant the grammar disproves
+
+**1. ⭐⭐⭐ NO GATE RAN THE CRATE'S UNIT TESTS, AND THE COST WAS A GREEN CONTROL DYING SILENTLY.**
+`grep -rn 'cargo test' .github/workflows/ rust/scripts/sota_exit_gate.sh scripts/check_doctrines.sh`
+returns nothing: the ~1 130-test lib suite was run by no CI workflow, no doctrine enforcer and no
+gate, the flagship aggregate included — and four of its tests were RED on HEAD, three of them shipped
+by the immediately preceding commit, including the GREEN CONTROL of the arm that commit changed. The
+fourth had been red for **403 commits and 25 days**. ⇒ **a test suite nothing runs is documentation,
+and stale documentation at that.** The generalisation is the one this repository keeps re-deriving
+from a new direction: an instrument nobody invokes is indistinguishable from an instrument that does
+not exist — here it was not a gate but the test suite itself, which felt too obvious to check.
+
+⛔⛔ **AND THE FIRST STATEMENT OF THIS LESSON COMMITTED THE LESSON BELOW IT (#5), IN THE SAME
+COMMIT.** I wrote *"every `cargo test` in `rust/Makefile` is FILTERED to a named module"* off three
+paths and one file. A director challenge sent me to the closed census — `git ls-files -z | xargs -0
+grep -l` over the whole tree — and it is false twice: `test-parser` (`rust/Makefile:575`) runs a
+bare unfiltered `cargo test`, and **14** tracked `docs/tasks/artifacts/*/battery.sh` batteries run
+the exact full featured suite as a `libsuite` step. Neither is a gate; nothing invokes either;
+`test-parser` uses DEFAULT features where 12 tests fail and 9 of those are feature-gating refusals,
+so it was never a clean signal. **The claim is about GATES and had to be restated.** ⇒ writing a
+lesson about a failure mode does not immunise the same commit against it — the census I skipped was
+one `git ls-files` away, and the reason I skipped it is that I had already found what I was looking
+for.
+
+**2. ⭐⭐⭐ A CONTROL CAN STOP BEING A CONTROL WITHOUT ANYONE EDITING IT.** The arm named
+`the_same_shape_with_the_gate_removed_is_silent` spelled *"gate removed"* as
+`@profiles: [wide, narrow]` — a gate admitting every DECLARED profile. That was a faithful spelling
+until the previous commit added an UNDECLARED-profile sentinel to the universe, at which point a rule
+gated to every declared profile is still ABSENT under an undeclared spelling, and the control fired.
+Nobody touched the control; the *universe underneath it* changed. ⇒ **when you widen a domain, every
+control defined by enumerating that domain is now unverified** — and the cheapest remedy (relax the
+assertion to the new count) would have retired the only arm proving the detector keys on the gate
+rather than on the presence of a lookahead.
+
+**3. ⭐⭐⭐ AN INVARIANT IS A CLAIM, AND THIS ONE WAS FALSE IN SEVEN PUBLISHED PLACES.** *"Gating a
+rule out of a profile must only ever REMOVE strings from the language, never ADD them"* was the
+starred justification for the whole repair — in the lint message, two doc comments, a codegen
+comment, a make banner and two book pages. Measured on the real grammar: `module m; reg class;
+endmodule` REJECTS with no profile requested and ACCEPTS under `verilog_2005`. The gate ADDED the
+string. It is the SELECTION idiom, i.e. **the exact case the repair had already been corrected to
+skip** — so the sentence justifying the repair contradicted the behaviour the repair implements, and
+sat within a page of the table that violates it. ⇒ **state an invariant in the narrowest form that is
+true, even when the blunt form is more quotable.** The true one: *gating may remove a PRODUCTION; it
+may never DELETE a CONSTRAINT.*
+
+**4. ⭐⭐ AN "AUDIT UNDER EVERY X" IS FIRST A CENSUS OF X.** `.46` audited its sites under
+`verilog_2005`. The runtime universe is five states: unspecified (no gate applied at all), the three
+declared dialects, and an undeclared spelling (every gated rule absent at once — 427 of 1 537 here).
+⛔ **Neither extra state can be named in a `@profiles` list**, so an audit driven off the declared
+list cannot reach them by construction. ⇒ **before auditing "under every P", derive the set of P from
+the RUNTIME, not from the declarations** — the declarations are a subset by definition.
+
+**5. ⭐⭐ "NOTHING ELSE CAN CONSUME X" IS A CENSUS CLAIM — THE THIRD TIME THIS SHAPE HAS BEEN
+CORRECTED HERE.** `.46` published *"nothing else in the v2005 grammar can consume `::`"* as the
+reason the live sites were safe. Run over all 413 terminals (0 uncompilable, so the population is
+closed): two rules can consume a leading `:`, and one of them — `colon`, ungated — is LIVE under
+`verilog_2005`. ⇒ the safety rested on reasoning that had never been executed, and the nearest hazard
+is live. Same lesson, new subject: **if the sentence quantifies over the grammar, run the
+quantifier.**
+
+⚠️ **And the correction has a second half I got wrong first: UNSUPPORTED is not REFUTED.** I first
+published this as *"refuted as literally written"*. It is not — `colon` consumes ONE `:`, and whether
+two adjacent `colon`s are placeable at the guarded position is unmeasured, which the same leaf said
+two sections later. ⇒ **when you run a census that undermines a claim, say precisely which of the two
+it did: removed its support, or established its negation.** Reaching for the stronger word is the
+accepting-direction error's mirror image, and it is just as wrong.
+
+**6. ⭐ A COUNT MISMATCH BETWEEN TWO ENGINES CAN BE CORRECT, AND SAYING SO IS PART OF THE AUDIT.** The
+lint reports 4 negative SOURCE sites; the shipped parser emits 5 bypass wrappers. Codegen INLINES one
+rule into another's first alternative, so one source site is emitted twice. Both numbers are right.
+⇒ **reconcile the two counts explicitly in the artifact**, or the next reader reads a missing repair
+and goes hunting.
+
+**7. ⛔ A DOC COMMENT THAT SURVIVES A BEHAVIOUR CHANGE BECOMES AN ACTIVE FALSEHOOD.** The
+`ProfileGatedLookahead` struct still carried *"HONEST BOUND — DIRECT REFERENCES ONLY"* after the
+previous commit made the negative polarity transitive and satisfiability-keyed. An honest-bound
+paragraph is exactly the text a careful reader trusts most. ⇒ **when a change makes two cases
+diverge, the shared comment is part of the blast radius.**
+
 ## 2026-08-25 - PGEN-ENGINE-UNIVERSAL-SERVICES-0085 — the fix for a silent over-acceptance was one measurement away from shipping a loud over-rejection, and the measurement that caught it was "which files changed"
 
 **1. ⭐⭐⭐ THE SAME ANNOTATION CAN MEAN TWO OPPOSITE THINGS, AND A REPAIR HAS TO ASK WHICH.**

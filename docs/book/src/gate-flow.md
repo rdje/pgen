@@ -130,11 +130,28 @@ The release gate. It runs ~40 stages, each declared **required** or
 **informational**, driven by the tracked policy `rust/config/sota_exit_policy.env`:
 
 ```
-PGEN_SOTA_POLICY_REQUIRED_CHECKS="differential_baseline_contract fixed_point_gate
-  annotation_contract_gate annotation_100_gate annotation_nonbootstrap_e2e_gate
-  ebnf_stimuli_quality_gate stimuli_module_parity_gate differential_regression_gate
-  performance_gate embedding_api_gate"
+PGEN_SOTA_POLICY_REQUIRED_CHECKS="differential_baseline_contract lib_unit_test_gate
+  fixed_point_gate annotation_contract_gate annotation_100_gate
+  annotation_nonbootstrap_e2e_gate ebnf_stimuli_quality_gate stimuli_module_parity_gate
+  differential_regression_gate performance_gate embedding_api_gate"
 ```
+
+⛔⛔ **`lib_unit_test_gate` is there because until `ENGINE-UNIVERSAL-SERVICES.46` (d) no CI
+workflow, no doctrine enforcer and no gate — this aggregate included — ran the crate's own unit
+tests.** Four of the ~1 130 were red on HEAD when that was first measured; three had shipped one
+commit earlier from the very leaf that changed their subject, **including the green control of
+the arm it changed**, and a fourth had been red for 403 commits and 25 days. The target skips the
+three `parse_harness_*::gate` suites, each of which is already its own gate and one of which
+costs ~665 s on its own.
+
+⚠️ **Honest bound, and it is a correction.** The first statement of this finding said *"every
+`cargo test` in `rust/Makefile` is filtered to a named module"*. A closed census over every
+tracked file says otherwise twice: `rust/Makefile`'s `test-parser` target runs a bare, unfiltered
+`cargo test`, and 14 `docs/tasks/artifacts/*/battery.sh` experiment batteries run the exact full
+featured suite as a `libsuite` step. Neither is a gate and nothing invokes either — and
+`test-parser` runs on *default* features, where the suite has 12 failures of which 9 are
+feature-gating refusals, so it could never have been a clean signal. **The claim is about gates,
+not about the command being absent from the tree.**
 
 plus per-family switches (`PGEN_SOTA_POLICY_RUN_SV_STIMULI_QUALITY=1`,
 `..._REQUIRE_SV_STIMULI_QUALITY_STRICT=1`, …) that promote individual stages
@@ -905,6 +922,22 @@ build-script cfg census — and **exit 2 rather than 0** when it was not.
 
 `ast_dump_contract_gate` was red for four sessions. No aggregate, no workflow and
 no hook referenced it, so nobody found out.
+
+⛔⛔ **And the same failure had a much larger sibling nobody had looked for: the crate's own
+unit-test suite.** `ENGINE-UNIVERSAL-SERVICES.46` (d) ran
+`grep -rn 'cargo test' .github/workflows/ rust/scripts/sota_exit_gate.sh scripts/check_doctrines.sh`
+and got **nothing** — so ~1 130 tests were run by no gate, no doctrine and no workflow, and four
+were red on HEAD, one of them for 403 commits. The lesson generalises past gates: **anything that
+can go red is a check, and a test suite is the one everybody assumes someone else is running.**
+Closed by `lib_unit_test_gate` (§Layer 3), and `GATE-REACHABILITY` refused the new target as
+*"invoked by NOTHING"* until it was wired, which is this rule catching its own repair.
+
+⭐ **The finding's own first statement was over-broad, and the correction belongs here because it
+is the same failure a third time.** It said the command appeared *nowhere* unfiltered. A closed
+census over every tracked file found two unfiltered invocations — `test-parser` and 14 experiment
+batteries — neither of them a gate, neither invoked by anything. ⇒ **"nothing runs X" is a census
+claim about a population you must first close**, and three-paths-and-a-Makefile is not a
+population.
 
 **Rule:** §6. Be reachable, or carry a recorded disposition.
 

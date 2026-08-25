@@ -12467,6 +12467,182 @@ Rows 1-2 are the ones the blanket bypass would have broken.
 - [x] **NO REGRESSION** — the three oracle gates a codegen + interpreter change turns on, then the cost, then the corpus. `make -C rust SHELL=/bin/bash parse_harness_equivalence_gate` **4 passed / 0 failed** (interpreter == generated parser, byte-identical verdict + typed AST, all 11 registered grammars, seeds 0/7/42). `parse_harness_combinator_gate` **CLEAN in 664.54 s**, zero divergences — including all four profile combinators (`profile_unspecified_permissive`, `profile_default_gate`, `profile_alias_resolves`, `profile_alias_unknown_passthrough`), which are the ones this repair could plausibly have moved. `parse_harness_semantic_gate` **CLEAN in 391.01 s**. ⭐ **`python3 stimuli/sv/run_adjudication_repros.py` — `checked=247 armed=81 listed=161 multi_profile_rows=60 failures=0`, and its printed fingerprint reads `sv_parser=7d03b035…`, the REPAIRED parser**: no SV verdict moved. ⛔ The first run of that ratchet reported `sv_parser=8bc4746a…` — the PRE-repair parser, because `rust/target/release/parseability_probe` was stale — and would have been a green verdict about the wrong artifact; the runner prints the digest, which is the only reason it was caught. ⭐⭐ **PARSE COST: ZERO MOVEMENT ON ALL THREE BINDING COUNTERS** over the pinned 192-file sample — rule entries **416,905,072 → 416,905,072**, committed **6,759,873 → 6,759,873**, memo hits **184,293,557 → 184,293,557**, and `entries.tsv` is byte-identical. That is the profile-conditional design paying for itself: the SV corpus parses under `sv_2017`, where `scope_resolution` is live, so `profile_gate_bypass_applies` returns false and the memo is never suspended. Advisory wall clock -3.2 %/-4.3 % across two runs (non-binding, machine-dependent). Family share re-derived and **reproduces exactly at 2.729 %**. `generated_reproducibility_rebaseline` **11/11 byte-identical (0 sites each)**. ⚠️ **Reading the reproducibility diff correctly: `parser_sha` moved for EXACTLY ONE artifact (`systemverilog`); every other parser hash is unchanged.** The eight `input_sha` values that also moved are the `raw_ast` envelope digest, which embeds a wall-clock `generated_at` and therefore churns on every regeneration by construction — the known `CI-PARITY-GATE-ROT.42` finding, not eight moved parsers. `bash scripts/check_sv_contract_currency.sh` green after the tier-E re-stamp, whose claim was then **re-derived** rather than copied (see `.48`). `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` clean. `bash scripts/check_doctrines.sh` **ALL 27 PASS**. `make -C rust SHELL=/bin/bash mdbook_docs_gate` green.
 - [x] **LOCKSTEP** — `rust/src/ast_pipeline/ast_based_generator.rs`, `rust/src/ast_pipeline/grammar_wellformedness.rs`, `rust/src/parse_harness_interpreter.rs`, `rust/src/main.rs`, `rust/tests/profile_gate_negative_lookahead_generated_parser.rs` (pin flipped), `docs/tasks/artifacts/sv_corpus_grad/profile_gate_sizing/probe.sh` (arm flipped), `docs/tasks/artifacts/engine_universal_services/profile_gate_neg_lookahead/` (`census.sh` re-framed, `selection_vs_narrowing_probe.sh` new), `rust/test_data/grammar_quality/generated_reproducibility_v0.json`, this leaf, `docs/TASK_TREE.md`, the book, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`.
 
+#### ✅ `.46` SLICE 4 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0086`, 2026-08-25 session #263) — **(d) DISCHARGED: the all-profile re-audit is CLEAN on every site, and it found THREE defects the single-profile reading could not — including FOUR UNIT TESTS RED ON HEAD, three of them shipped by (c) itself**
+
+###### ⭐⭐⭐ THE ONE-LINE RESULT, AND THE ONE-LINE COST
+
+Every live site is correct under every profile. **Getting there cost four red tests, one refuted
+census claim and one false invariant** — none of which the `verilog_2005`-only reading could reach,
+and all of which were sitting in the tree while `-0085` published *"ALL 27 PASS"* and five green
+gates.
+
+###### [1] THE PROFILE UNIVERSE IS FIVE STATES WIDE, AND `.46` AUDITED ONE
+
+`.46`'s routing evidence audited the live sites under `verilog_2005` alone. The runtime universe is:
+
+| state | how it is reached | what it does to gating |
+|---|---|---|
+| **unspecified** | no `--grammar-profile` | ⭐ NO gate is applied at all — every rule live |
+| `sv_2017` / `sv_2023` / `verilog_2005` | a declared spelling | the ordinary case |
+| **undeclared** | an unknown spelling, passed through **un-coerced** (the pinned `profile_alias_unknown_passthrough` combinator) | ⛔ EVERY gated rule absent at once — **427 of 1 537** |
+
+⭐ **Neither of the two extra states can be named in a `@profiles` list**, which is why an audit
+driven off the declared list misses both. `unspecified` is safe *by construction* (no gate ⇒ no
+vacuity) and that is now measured rather than assumed; `undeclared` is where the sentinel notes live.
+
+###### [2] THE SITE CENSUS, RECONCILED ACROSS BOTH ENGINES — 4 negative + 1 positive source sites, **5** emitted wrappers
+
+| lint note (rule × profile) | polarity | emitted wrapper in `generated/systemverilog_parser.rs` |
+|---|---|---|
+| `non_keyword_identifier` × undeclared | NEG | `parse_non_keyword_identifier` — `applies(&[], true)` |
+| `simple_identifier_no_scope` × {v2005, undeclared} | NEG | `parse_simple_identifier_no_scope` — `applies(&["verilog_2005"], true)` |
+| `scope_free_identifier` × {v2005, undeclared} | NEG | ⭐ **TWO** wrappers in `parse_scope_free_identifier` |
+| `system_tf_call` × {v2005, undeclared} | NEG | `parse_system_tf_call` — `applies(&["verilog_2005"], true)` |
+| `class_scope_type` × v2005 | POS | none — deliberately not bypassed |
+
+⭐⭐ **5 emitted against 4 source negative sites is CORRECT, and the reconciliation is the point.**
+Codegen INLINES `simple_identifier_no_scope` into `scope_free_identifier`'s first alternative, so one
+source site is emitted twice (line 47507 sits after the regex `[a-zA-Z_][a-zA-Z0-9_$]*`, line 47962
+after `\\[!-~]+`). **The lint counts SOURCE sites; the parser emits per INLINED site.** A reader
+diffing the two counts without this row reads a missing repair.
+
+###### [3] ⛔⛔ THE ROUTING CLAIM *"nothing else in the v2005 grammar can consume `::`"* IS UNSUPPORTED — WHICH IS **NOT** THE SAME AS REFUTED, AND THE FIRST WRITE-UP OF THIS SECTION SAID REFUTED
+
+That is a **census claim**, and no census stood behind it — the same shape
+[[an-x-is-checked-by-nothing-claim-is-a-census-claim]] corrected twice already in this repository.
+Run over all **413** terminals of the grammar (74 quoted + 339 regex, **0** uncompilable, so the
+population is closed), exactly **2** rules carry a terminal that can consume a leading `:`:
+
+| rule | `@profiles` | live under v2005? | terminal |
+|---|---|---|---|
+| `colon` | *(ungated)* | ⭐ **yes** | `":"` |
+| `scope_resolution` | `["sv_2017","sv_2023"]` | no | `"::"` |
+
+⇒ **a live v2005 consumer of the first colon exists.**
+
+⚠️⚠️ **AND THAT DOES NOT REFUTE THE SENTENCE — the first write-up of this section said it did, and a
+director challenge caught it.** `colon` consumes ONE `:`; consuming `::` by that route needs TWO
+adjacent `colon`s at the guarded position, and **whether the grammar admits that is UNMEASURED** —
+this leaf says so itself two sections down, so the artifact contradicted itself inside one commit.
+⛔ The honest verdict is **UNSUPPORTED**: `.46` published the sentence as the REASON the live sites
+were safe, and the census that would establish it was never run. What the census does establish is
+that the nearest hazard — a live `:` consumer under the narrow dialect — **exists**, so the margin
+was an argument rather than a measurement. Moot for soundness only because (c) shipped and the guard
+is now enforced.
+
+⭐ **Why the distinction is worth the words:** *refuted* would mean the live sites were unsafe
+pre-repair, which nothing here shows; *unsupported* means the safety rested on an unrun census, which
+is exactly what (d) was opened to check. Publishing the stronger word would have been the accepting-
+direction error's mirror image — an over-claim in the alarming direction.
+
+###### [4] ⛔⛔⛔ THE DECIDING INVARIANT `.46` SHIPPED IS FALSE OF THIS GRAMMAR, AND IT IS PUBLISHED IN SEVEN PLACES
+
+`.46` published, unqualified and starred: *"gating a rule out of a profile must only ever REMOVE
+strings from the language, never ADD them."* Measured on the real grammar:
+
+| input | unspecified (NO gate) | `verilog_2005` (gated) |
+|---|---|---|
+| `module m; reg class; endmodule` | **reject** | ⛔ **ACCEPT** |
+
+Applying the `verilog_2005` gate **ADDED** that string. That is not a defect — it is the SELECTION
+idiom, and (c)'s whole correction was to leave SELECTION alone — but **the invariant that justifies
+the repair is contradicted by the idiom the repair was corrected to skip**, and it was stated as a
+universal in the lint message, two doc comments, this leaf and **two book pages** (the director's
+review surface), each time within a page of the SELECTION table that violates it.
+
+⭐⭐ **THE INVARIANT THE ENGINE ACTUALLY IMPLEMENTS, and the one that survives this audit:**
+**gating may remove a PRODUCTION; it may never DELETE a CONSTRAINT.** A negative lookahead derives
+nothing, so emptying its body deletes a constraint — the inversion. Swapping a live alternative for a
+per-dialect sibling replaces a production — intended, and two dialects' languages are incomparable by
+construction. Corrected in all seven locations in this commit.
+
+###### [5] ⛔⛔⛔ FOUR UNIT TESTS WERE RED ON HEAD, AND **NO GATE IN THIS REPOSITORY RUNS THE CRATE'S UNIT TESTS**
+
+Re-deriving the `(declared: …)` field led straight into the detector's own test module. Baseline on
+HEAD, canonical feature set: **`1123 passed / 4 failed / 28 ignored`, 705.43 s.**
+
+| test | why it was red | vintage |
+|---|---|---|
+| `a_negative_lookahead_on_a_gated_rule_is_reported_under_the_profile_that_gates_it` | (c) added the undeclared sentinel ⇒ 2 findings, not 1; **and (c) set the negative branch's `target_profiles` to `Vec::new()`**, which this arm had asserted populated since (b) | ⛔ **`-0085`, one commit earlier** |
+| `a_lookahead_nested_under_a_quantifier_is_still_found` | same sentinel arithmetic | ⛔ `-0085` |
+| `the_same_shape_with_the_gate_removed_is_silent` — ⭐ **the GREEN CONTROL** | it spelled *"gate removed"* as `[wide, narrow]`, a gate admitting every **declared** profile — which stopped being gate-free the moment the sentinel joined the universe | ⛔ `-0085` |
+| `unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names` | asserts an `@`-slurp arm that `LANG-CAPABILITY-AUDIT.10.3` **deliberately deleted**; `.10.4` renamed the test and rewrote its doc comment without re-running it | ⛔⛔ **`cc0cbffe`, 2026-07-31 — RED for 403 commits and 25 days** |
+
+⭐⭐⭐ **THE PROCESS FINDING IS THE BIG ONE.** `grep -rn 'cargo test' .github/workflows/
+rust/scripts/sota_exit_gate.sh scripts/check_doctrines.sh` returns **nothing**: no CI workflow, no
+doctrine enforcer and no gate — the flagship aggregate included — ran the ~1 130-test lib suite. The
+three gates `-0085` ran are all `parse_harness_*`; the module carrying the arms for the very feature
+it changed is run by none of them. ⇒ its "NO REGRESSION" line was true of everything it measured and
+silent about the one place the regression was.
+
+⛔ **CORRECTED under director challenge, by a CLOSED census over every tracked file:** the command is NOT absent from the tree, only from every GATE. `rust/Makefile`'s `test-parser` (line 575) runs a bare unfiltered `cargo test` — on DEFAULT features, where the suite has 12 failures of which 9 are feature-gating refusals, so it was never a clean signal — and **14** tracked `docs/tasks/artifacts/*/battery.sh` batteries run the exact full featured suite as a `libsuite` step. Nothing invokes any of them either. My first census read three paths and a Makefile, which is not a population — **the same *"nothing checks X" is a CENSUS claim* shape this session had just written a lesson about.** ⭐ **What survives is the claim that matters, and it is unweakened**: the four red
+tests are an EMPIRICAL reading that does not depend on the census at all — three survived a commit,
+one survived **403** of them.
+
+###### ⭐⭐ THE FIX FOR THE GREEN CONTROL IS THE INTENDED REMEDY, NOT THE CHEAPEST ONE
+
+The cheapest remedy for `the_same_shape_with_the_gate_removed_is_silent` was to relax it to *"1
+finding"*. That would have retired the **only arm proving the detector keys on the gate rather than
+on the presence of a lookahead** — `-0085`'s own lesson (4), *when a guard fires and you find
+yourself explaining why the guard is wrong, check whether you took its cheapest remedy instead of its
+intended one*. The intended remedy is to spell gate-free as gate-free: the fixture's
+`gated_profiles` became `Option<&str>` and the control passes `None`. The `[wide, narrow]` case it
+vacated is now pinned on purpose by a **new** arm,
+`a_gate_admitting_every_declared_profile_still_fires_under_the_undeclared_sentinel` — because a set
+built from positive declarations cannot name its own complement
+([[feedback_ask_the_instrument_the_question_its_founding_case_cannot_answer]]).
+
+###### [6] THE BEHAVIOURAL MATRIX — every input, every profile state, on the REAL grammar
+
+| input | unspec | v2005 | sv_2017 | sv_2023 | undecl |
+|---|---|---|---|---|---|
+| `reg foo;` (control) | accept | accept | accept | accept | ⛔ reject |
+| bare `module m; endmodule` (control) | accept | accept | accept | accept | ⛔ reject |
+| `$display(1);` (control) | accept | accept | accept | accept | ⛔ reject |
+| `assign x = \foo ;` (control) | accept | accept | accept | accept | ⛔ reject |
+| `assign x = p::b;` (NARROWING) | accept | **reject** | accept | accept | reject |
+| `assign x = \foo ::b;` (NARROWING) | accept | **reject** | accept | accept | reject |
+| `$unit::f();` (NARROWING) | accept | **reject** | accept | accept | reject |
+| `C::T x;` (POSITIVE, dead path) | accept | **reject** | accept | accept | reject |
+| `reg class;` (SELECTION) | ⭐ **reject** | ⭐ **accept** | reject | reject | reject |
+| `reg macromodule;` (mirror) | reject | reject | reject | reject | reject |
+
+⭐ **UNDER AN UNDECLARED PROFILE EVEN THE MINIMAL LEGAL MODULE REJECTS.** The four sentinel-profile
+notes are therefore **statically real and behaviourally inert**: the guard they describe is enforced,
+on a profile that accepts no module. Kept in the report rather than dropped — a note is cheaper than
+the census a future reader would otherwise redo. ⚠️ Measured as stated: `module m; endmodule` and
+`reg foo;` both reject, the empty input accepts. That is **not** a proof the language is `{ε}` and
+is not claimed as one.
+
+###### ⭐ WHAT (d) CHANGED IN THE TREE, AND WHY EACH IS THE INTENDED REMEDY
+
+| # | change | why not the cheaper thing |
+|---|---|---|
+| 1 | `grammar_wellformedness.rs` — the negative branch populates `target_profiles` (union over the guarded rules) again | the cheaper thing was to delete the assertion; the field is what an auditor reads |
+| 2 | the negative note reads `(those rules are declared under: …)` | `(declared: …)` beside a joined multi-rule `target` is ambiguous even when populated |
+| 3 | the invariant re-stated in its **narrow, true** form in **7** places — lint message, 2 doc comments, the codegen comment, the `profile_gate_monotonicity_gate` banner, `parse-harness.md`, `annotation-system.md` | leaving it unqualified keeps a starred sentence the grammar disproves on the director's review surface |
+| 4 | the struct's *"HONEST BOUND — DIRECT REFERENCES ONLY"* is now per-polarity | (c) made the negative polarity transitive and satisfiability-keyed; the comment still described the shared model |
+| 5 | 3 test arms corrected + **1 new** arm pinning the sentinel case | see above — the green control was restored, not relaxed |
+| 6 | `unresolved_reference_codegen_...` asserts the post-`.10.3` behaviour, and its doc comment stops describing a deleted arm | it was asserting a behaviour deliberately removed 403 commits ago |
+| 7 | ⭐ **`make -C rust lib_unit_test_gate`, WIRED INTO `sota_exit_gate` as a REQUIRED check** | a target nothing invokes is the defect being fixed — `GATE-REACHABILITY` refused it until it was wired, which is the doctrine working |
+| 8 | `site_profile_audit.sh` — the tracked instrument, **20/20** | (d) is a claim about a 1 537-rule grammar under 5 profile states; a hand reading is what produced the two corrected claims above |
+
+###### Acceptance Checklist (enforced) — `.46` slice 4, acceptance (d)
+
+- [x] **REPRODUCE / ISSUE** — (d) is an AUDIT, so the reproduction is the audit finding what a single-profile reading could not. Three reproduced defects, each by command: `bash scripts/…` shows `rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --lint-grammar` printing `(declared: [])` on all seven negative notes for rules declared under `["sv_2017","sv_2023"]`; `cargo test --features "generated_parsers ebnf_dual_run" --lib` on HEAD printing **`1123 passed / 4 failed / 28 ignored`**; and the SELECTION measurement `reg class;` → reject with no profile / **accept** under `verilog_2005`, which the published invariant says cannot happen.
+- [x] **ROOT CAUSE (WHY + WHERE)** — three, each located. (1) `grammar_wellformedness.rs` negative branch built its issue with `target_profiles: Vec::new()` while the message rendered `(declared: {target_profiles:?})` — introduced by `eef4f432` (`-0085`), confirmed by `git log -S`. (2) The same commit added `UNDECLARED_PROFILE_SENTINEL` to the profile universe, which doubles every negative finding on an ungated referrer and makes a rule gated to *every declared profile* still absent — so three arms written against a 3-profile universe were arithmetically stale, one of them the GREEN CONTROL whose fixture spelled "gate removed" as `[wide, narrow]`. (3) `ast_based_generator.rs:15901` asserted an `@`-slurp arm that `cc0cbffe` (`LANG-CAPABILITY-AUDIT.10.3`, 2026-07-31) deliberately deleted. ⛔ **And the reason all four survived: `grep -rn 'cargo test' .github/workflows/ rust/scripts/sota_exit_gate.sh scripts/check_doctrines.sh` returns NOTHING** — the crate's unit-test suite was run by no CI workflow, no doctrine enforcer and no gate, the flagship aggregate included. ⛔ **CORRECTED under director challenge, by a CLOSED census over every tracked file:** the command is NOT absent from the tree, only from every GATE. `rust/Makefile`'s `test-parser` (line 575) runs a bare unfiltered `cargo test` — on DEFAULT features, where the suite has 12 failures of which 9 are feature-gating refusals, so it was never a clean signal — and **14** tracked `docs/tasks/artifacts/*/battery.sh` batteries run the exact full featured suite as a `libsuite` step. Nothing invokes any of them either. My first census read three paths and a Makefile, which is not a population — **the same *"nothing checks X" is a CENSUS claim* shape this session had just written a lesson about.**
+- [x] **FIX** — the eight rows above. Engine-side it is lint-only (`grammar_wellformedness.rs`) plus comment-only inside `quote!` (`ast_based_generator.rs`), so no emitted byte is at stake — asserted and then MEASURED, not assumed. Process-side it is one new make target wired into the flagship aggregate as a **required** check.
+- [x] **ADDRESSED (verified)** — `bash docs/tasks/artifacts/engine_universal_services/profile_gate_neg_lookahead/site_profile_audit.sh` **20/20, 0 not-measured** (profile universe derived from the grammar; 7+1 lint notes reconciled against 5 emitted wrappers in the shipped parser; the `::` census over 413 terminals with 0 uncompilable; 13 pinned behavioural arms across all five profile states). `cargo test --features "generated_parsers ebnf_dual_run" --lib grammar_wellformedness` **60 passed / 0 failed** (was 56/3). ⭐ **RED CONTROL PROVEN THROUGH THE PRODUCTION CODE, not the assertion**: re-injecting `target_profiles: Vec::new()` turns both the founding arm and the new sentinel arm RED (58 passed / 2 failed), and restoring it returns 60/0 — so the two new assertions bind on the behaviour rather than on each other. `bash scripts/check_gate_reachability.sh` went **RED → GREEN** on the new target: it refused `lib_unit_test_gate` as invoked by nothing until it was wired into `sota_exit_gate`, which is the doctrine catching the exact defect this slice is about, on this slice's own change.
+- [x] **NO REGRESSION** — `cargo test --features "generated_parsers ebnf_dual_run" --lib` **1128 passed / 0 failed / 28 ignored, 920.01 s** (HEAD baseline: 1123 passed / 4 failed / 28 ignored, 705.43 s) ⇒ **every previously-passing test still passes and the four red are green**. `bash scripts/check_doctrines.sh` **ALL 27 PASS**. `make -C rust SHELL=/bin/bash generated_reproducibility_rebaseline` re-derived **11 of 11 artifacts BYTE-IDENTICAL (0 sites each)** — the measurement behind *"a comment-only edit inside `quote!` cannot move an emitted byte"*, which is asserted nowhere else and is measured here; the baseline was then re-recorded because the declared SOURCE digests moved (`emission_sha`, `verified_at_commit`), which is the designed response and not a divergence. ⭐ **It fired TWICE and both firings were correct** — once for the codegen comment edit, and again after the director-challenge correction pass touched `rust/Makefile`, which is the file the recipe itself is DERIVED from. Both re-derivations returned **11/11 byte-identical**, and the second diff moves exactly one field (`emission_sha`), so the doctrine distinguished *"an input moved"* from *"an output moved"* on a commit where only the former was true. `make -C rust SHELL=/bin/bash mdbook_docs_gate` **green, 10/10 per-parser book gates + the main docs gate**. `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` **clean on both stages** (source all-targets + generated all-targets; the policy arm re-confirms 68 pinned lints still in `clippy::correctness`). ⭐ **The `sota_exit_gate` wiring is verified by a SCOPED run** rather than by the hours-long aggregate: `PGEN_SOTA_POLICY_FILE=<scoped> PGEN_SOTA_EXIT_STATE_DIR=<scratch> bash rust/scripts/sota_exit_gate.sh` dispatched `==> lib_unit_test_gate (required)` and recorded `lib_unit_test_gate,required,pass` in its own `summary.csv`, with the stage log reading **1120 passed / 0 failed / 28 ignored / 8 filtered out, 352.55 s** — the 8 filtered are the three `parse_harness_*::gate` suites the target deliberately skips (each already its own gate; the combinator one alone costs ~665 s). ⭐ **The scoped policy is how the wiring is proven without paying the hours-long aggregate**: every other `RUN_*`/`REQUIRE_*` switch set to 0 and `PGEN_SOTA_POLICY_REQUIRED_CHECKS="lib_unit_test_gate"`, so a green verdict here is about the case arm and the policy plumbing and nothing else.
+- [x] ⛔⛔ **PUBLISHED-CLAIM CORRECTION PASS (director challenge, same commit)** — the director asked whether I still stood by the three findings. Re-derived rather than repeated, and **two of the three were overstated by me and are corrected in every surface before landing**. (1) *"nothing runs the crate's unit tests / every `cargo test` in `rust/Makefile` is FILTERED"* — a CLOSED census (`git ls-files -z | xargs -0 grep -l`) refutes the second clause twice: `test-parser` (`rust/Makefile:575`) runs a bare unfiltered `cargo test`, and **14** `docs/tasks/artifacts/*/battery.sh` batteries run the exact full featured suite. Neither is a gate, nothing invokes either, `test-parser` runs DEFAULT features where 12 fail (9 feature-gating refusals) ⇒ the claim is about **GATES**, restated as such. ⭐ The empirical half is unweakened and needs no census: 4 red at HEAD, one for 403 commits. (2) The `::` claim is **UNSUPPORTED, not REFUTED** — `colon` consumes ONE `:` and whether two adjacent ones are placeable at the guarded position is UNMEASURED, which this very leaf said two sections later, so the artifact contradicted itself inside one commit. (3) The invariant finding **STANDS**, and is now verified a second, independent way: both engines short-circuit the gate when the active profile is `None` (`generated/systemverilog_parser.rs` `rule_profile_is_enabled` → `None => true`; `parse_harness_interpreter.rs:964` `active_profile.is_some() && …`), so *unspecified* IS the ungated grammar and the SELECTION measurement compares the right two things. ⛔ **I wrote the *"nothing checks X is a CENSUS claim"* lesson in this same commit and then committed it one turn later** — recorded in the decision record rather than smoothed over.
+- [x] **LOCKSTEP** — `rust/src/ast_pipeline/grammar_wellformedness.rs`, `rust/src/ast_pipeline/ast_based_generator.rs`, `rust/Makefile`, `rust/scripts/sota_exit_gate.sh`, `rust/config/sota_exit_policy.env`, `docs/tasks/artifacts/engine_universal_services/profile_gate_neg_lookahead/site_profile_audit.sh` (new), `docs/book/src/parse-harness.md`, `docs/book/src/annotation-system.md`, `docs/book/src/gate-flow.md`, `docs/decisions/a-control-defined-by-enumerating-a-domain-expires-when-the-domain-widens.md` (new) + `docs/decisions/INDEX.md`, `KNOWLEDGE_MAP.md` (derived), `rust/test_data/grammar_quality/generated_reproducibility_v0.json`, this leaf, `docs/TASK_TREE.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`.
+
+###### ⛔ WHAT (d) DID **NOT** SETTLE — named rather than left for a reader to find
+
+- ⭐⭐ **The cadence WAS escalated as a spend call and was DELEGATED BACK mid-commit** (*"This call is yours to make … but it got to be sota and signoff"*), so it is **ruled in `.49`, not open**: the automatic `push:` lane is the right home, and it is BLOCKED on `CI-PARITY-GATE-ROT.40` — every such workflow runs `.github/actions/regenerate-parsers` on a bare checkout and that path dies with one `E0425`, so a `push:` workflow landed today is RED on arrival at step 3 of 5, forever, without reaching a test. ⇒ order: this commit (pre-push cadence, zero hosted spend) → `.40` → the workflow, GREEN. ⚠️ A hosted run cannot be observed from here, so `.49` step 3 closes on a first GREEN run plus a deliberate RED control, never on YAML that merely parses.
+- ⚠️ **The `::` census is a TERMINAL census, not a reachability proof.** It establishes that exactly one live `:`-consumer (`colon`) exists under `verilog_2005`; it does NOT establish whether the grammar can place two `colon`s adjacently at the guarded position. That question is MOOT for soundness now — (c) enforces the guard — and is not claimed either way.
+- ⚠️ **The undeclared profile's accepted language is not characterised.** Measured: the empty input accepts; `module m; endmodule` and `module m; reg foo; endmodule` reject. That is **not** a proof the language is `{ε}` and is not published as one.
+
 ### ⚠️ `.47` — `detect_profile_orphans` reads the **FILTERED** profile context and a universe that omits `@default_profile`, so on any grammar declaring a default it has never evaluated the profile that SHIPS (`todo`, opened 2026-08-25 by `.46` slice 2 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0084`)
 
 **WHAT WAS MEASURED, and it was measured against a control rather than read off the source.** While
@@ -12580,3 +12756,65 @@ says so today.
 
 ⚠️ **PRIORITY: after `.46` and `.47`.** It blocks nothing — the row is green and its claim is now
 re-derived — and the SV lane lock means the owning tree is not being worked.
+
+### ⛔ `.49` — **DIRECTOR-DELEGATED AND RULED BY ME: the unit-test gate BELONGS on the automatic `push:` lane — and it is BLOCKED on `CI-PARITY-GATE-ROT.40`, measured, because the regeneration step every such workflow needs DIES ON A BARE CHECKOUT** (`todo`, opened 2026-08-25 by `.46` slice 4 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0086`)
+
+⛔⛔ **DIRECTOR DELEGATION, 2026-08-25, verbatim: *"This call is yours to make … but it got to be sota
+and signoff."*** I had escalated the cadence as a hosted-spend decision. It came back to me, so it is
+ruled here.
+
+**MY RULING, IN ONE LINE: the automatic `push:` lane is the right home, and shipping it TODAY would
+be the opposite of signoff, because it would be RED on arrival for a reason that has nothing to do
+with the tests.**
+
+**WHY — MEASURED, NOT ARGUED.** A workflow running this suite needs `generated/`, which is untracked,
+so it must run `.github/actions/regenerate-parsers` on a bare checkout exactly as
+`differential-regression-gate.yml` does. ⛔ **That path is BROKEN and the break is already measured
+and owned**: `CI-PARITY-GATE-ROT.40` reproduces, twice, `make -C rust regenerate_generated_parsers`
+dying on a tracked-files-only tree with **exactly one** error —
+
+```
+error[E0425]: cannot find function `active_grammar_profile` in module `crate::parser_registry`
+   --> src/parse_harness_equivalence.rs:332:50
+note: found an item that was configured out
+   --> src/parser_registry.rs:443:8
+```
+
+— a circular dependency across three files (`lib.rs:36` gates on FEATURES, `parser_registry.rs:435`
+gates on ARTIFACT PRESENCE, `parse_harness_equivalence.rs:332` calls unconditionally), introduced by
+`0099d0d3` / `CI-PARITY-GATE-ROT.24` slice 2. ⇒ **a `push:` workflow landed today fails at step 3 of
+5 on every push, forever, and never reaches a single test.**
+
+⭐⭐ **AND A PERMANENTLY-RED GATE IS NOT A NEUTRAL PLACEHOLDER — IT IS THE FAILURE MODE THIS
+REPOSITORY HAS ALREADY RECORDED.** `ast_dump_contract_gate` was red for four sessions and taught
+readers to ignore red arms; [[feedback_ground_truth_control_must_not_pin_untracked_state]] names the
+same shape from the control side. Shipping a red-on-arrival workflow to close a *"nothing runs this"*
+finding would replace a silent gap with a loud one everybody learns to scroll past. **That is why the
+answer to a delegated call can be "not yet, and here is the thing in the way" without it being a
+deferral** — the decision IS made; the sequencing is part of it.
+
+**THE ORDER, WHICH IS THE RULING'S OTHER HALF:**
+
+| # | unit | why this order |
+|---|---|---|
+| 1 | ✅ `-0086` — `lib_unit_test_gate` exists and is a REQUIRED check of `sota_exit_gate` | closes the finding at the PRE-PUSH cadence CI policy §16 names, with zero hosted spend, TODAY. Verified: the scoped run records `lib_unit_test_gate,required,pass` |
+| 2 | ⛔ `CI-PARITY-GATE-ROT.40` — repair the cold-clone bootstrap | the blocker. Its own leaf already recommends it *"should jump the rest of this tree's queue"*, and this is the second independent consumer to hit it (`ENGINE-UNIVERSAL-SERVICES.43` was the first) |
+| 3 | `lib-unit-test-gate.yml` on `push:` — regenerate step, `timeout-minutes: 60`, artifact upload, mirroring `differential-regression-gate.yml` | ships GREEN, on a path proven green by (2), which is what makes it signoff rather than theatre |
+
+⭐ **The spend question, answered rather than returned:** this is the cheapest regeneration-needing
+job in the catalogue — the three `parse_harness_*::gate` suites are skipped inside the target and the
+combinator one alone costs ~665 s. Measured locally through the gate: **352.55 s** of tests over
+1 120 tests. On a hosted runner, regeneration (~258 s measured by `.4` when the path last worked) plus
+a cached build plus that ⇒ a 60-minute budget is generous, not tight.
+
+⚠️ **HONEST BOUND ON THIS RULING.** I cannot observe a hosted run from here. Step 3's acceptance is
+therefore *"the first hosted run observed GREEN, plus a deliberate RED control"* — a workflow whose
+YAML parses and whose steps mirror a working peer is a **structural** verification only, and this leaf
+must not be closed on it.
+
+**Owed, in order:** (a) `CI-PARITY-GATE-ROT.40` repaired and the cold-clone bootstrap proven
+end-to-end from a tracked-files-only tree; (b) `lib-unit-test-gate.yml` on `push:`, with its first
+hosted run observed GREEN and a deliberate RED control; (c) if (a) proves harder than its one-line
+diagnosis suggests, the fallback is `workflow_dispatch:` parity with its peers PLUS a recorded
+disposition in `rust/test_data/grammar_quality/gate_reachability_register_v0.json`, so the cadence is
+a decision on the record rather than an omission — ⛔ **but that is the fallback, not the plan.**

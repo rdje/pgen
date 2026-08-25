@@ -1070,10 +1070,19 @@ impl AstBasedGenerator {
                 // lookahead fails only when its body MATCHED. Compose the two and `!X`
                 // succeeds VACUOUSLY the moment `X` is gated away — the constraint is
                 // deleted and the NARROWER profile accepts strings a wider one rejects.
-                // That inverts the purpose of a strictness gate: gating must only ever
-                // REMOVE strings from the language, never ADD them. A lookahead is a
-                // CONSTRAINT, not a production — it derives nothing — so removing its
-                // subject from the dialect must not loosen it.
+                // That inverts the purpose of a strictness gate: gating may remove a
+                // PRODUCTION from a dialect, but it must never DELETE a CONSTRAINT. A
+                // lookahead is a CONSTRAINT, not a production — it derives nothing — so
+                // removing its subject from the dialect must not loosen it.
+                //
+                // ⛔ SAY IT IN THAT NARROW FORM. The blunter *"gating may only ever REMOVE
+                // strings, never ADD them"* is how `.46` (a)-(c) published it and it is
+                // FALSE of `grammars/systemverilog.ebnf`, measured by `.46` (d):
+                // `reg class;` REJECTS with no profile requested (nothing gated, so the
+                // IEEE 1800 keyword list is live) and ACCEPTS under `verilog_2005`, where
+                // that list is gated away. That is the SELECTION idiom — two dialects'
+                // languages are incomparable by construction — and it is exactly the case
+                // the condition below is keyed on SATISFIABILITY to leave alone.
                 //
                 // ⛔ IT ALSO SUSPENDS THE PACKRAT MEMO (`memoized_call`), and that is not
                 // optional. The memo key is `(rule_id, position)` and carries no profile
@@ -15868,9 +15877,15 @@ mod semantic_usage_tests {
     /// an unconditional zero-width matcher because the emitted payload literal
     /// `Terminal("true")` was all it looked at. A render-level `contains` cannot see
     /// that the matcher never consumes input — the same blind spot `.8` hit, where a
-    /// `contains("2usize")` assertion pinned a type error. Both directions are now
-    /// asserted behaviourally-in-source: `semantic_annotation` must still test a byte,
-    /// and `true` must be an ordinary never-matching stub.
+    /// `contains("2usize")` assertion pinned a type error. Both directions are
+    /// asserted behaviourally-in-source.
+    ///
+    /// ⛔ `ENGINE-UNIVERSAL-SERVICES.46` (d) corrected what "both directions" MEANS
+    /// here. This comment used to say *"`semantic_annotation` must still test a
+    /// byte"*, and `LANG-CAPABILITY-AUDIT.10.3` had already deleted that arm — so the
+    /// rename in `.10.4` carried a false description onto a test that was RED from
+    /// then on. BOTH names are now ordinary undefined references emitting the bare
+    /// never-matching stub, and that is what is asserted.
     #[test]
     fn unresolved_reference_codegen_emits_semantic_fallback_and_stubs_boolean_names() {
         let generator = AstBasedGenerator::new("usage_test".to_string());
@@ -15898,12 +15913,31 @@ mod semantic_usage_tests {
             rendered.contains("pub fn parse_semantic_annotation"),
             "expected semantic_annotation fallback method in unresolved reference emission"
         );
+        // ⛔⛔ `ENGINE-UNIVERSAL-SERVICES.46` (d) — THIS ASSERTION USED TO READ
+        // `rendered.contains("starts_with") || rendered.contains("b'@'")`, i.e. it
+        // demanded the `@`-to-end-of-line slurp that `LANG-CAPABILITY-AUDIT.10.3`
+        // had ALREADY DELETED ON PURPOSE (the arm served one grammar, substituted
+        // for a broken `include`, and blinded the linter to a dangling reference;
+        // `.10.2` gave the meta-grammar a real rule and deleting the arm left
+        // `generated/ebnf.rs` byte-identical). `.10.4` then RENAMED this test and
+        // rewrote its doc comment without re-running it. It has been RED ever since,
+        // and no gate in this repository runs the crate's unit tests, so nothing
+        // said so. The intended post-`.10.3` behaviour is asserted instead: the name
+        // is an ORDINARY undefined reference, emitting the same bare stub as `true`.
+        let parse_semantic = rendered
+            .split("pub fn parse_semantic_annotation")
+            .nth(1)
+            .expect("parse_semantic_annotation must be emitted");
         assert!(
-            rendered.contains("starts_with") || rendered.contains("b'@'"),
-            "expected semantic_annotation fallback to detect '@' directives"
+            parse_semantic.contains("Backtrack"),
+            "parse_semantic_annotation must be the never-matching stub, got: {parse_semantic}"
         );
-        // `true` is no longer a native builtin: it must emit the bare Backtrack stub
-        // like any other undefined reference, so the linter's undefined-reference
+        assert!(
+            !parse_semantic.contains("starts_with") && !parse_semantic.contains("b'@'"),
+            "the `@`-slurp arm was deleted by LANG-CAPABILITY-AUDIT.10.3 and must not return:              {parse_semantic}"
+        );
+        // `true` is no longer a native builtin either: it must emit the bare Backtrack
+        // stub like any other undefined reference, so the linter's undefined-reference
         // error is the single diagnostic for it.
         assert!(
             rendered.contains("pub fn parse_true"),

@@ -60,8 +60,16 @@ look for elsewhere.** Gating does not delete a rule; it makes the rule's parse m
 unconditionally. A negative lookahead fails only when its body *matched*. Composed, `!X` used to
 succeed **vacuously** the moment `X` was gated away — so the *narrower* profile accepted strings the
 wider one rejected, silently, with `--lint-grammar` reporting every counter at zero. ⭐⭐⭐ That broke
-the invariant every dialect-profile system depends on: **gating a rule out of a profile must only
-ever REMOVE strings from the language, never ADD them.**
+the invariant every dialect-profile system depends on: **gating may remove a production from a
+dialect, but it must never delete a constraint.**
+
+⛔ **State that invariant precisely or it is false here.** The blunter version — *"gating may only
+ever remove strings from the language, never add them"* — is what this page said until
+`ENGINE-UNIVERSAL-SERVICES.46` (d), and the **selection** row of the table below violates it on
+purpose: `reg class;` is rejected with no profile requested and accepted under `verilog_2005`,
+because gating the IEEE 1800 keyword list away removes a *constraint that the v2005 list replaces*.
+Two dialects' languages are incomparable; what may never happen is a constraint being deleted with
+nothing put in its place.
 
 ⭐⭐ **The condition is satisfiability, and the distinction matters when you write a profiled
 grammar.** A `@profiles` gate gets used two ways:

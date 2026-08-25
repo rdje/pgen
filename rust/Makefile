@@ -1830,12 +1830,43 @@ parse_harness_semantic_gate:
 	cd $(RUST_DIR) && cargo test --features "generated_parsers ebnf_dual_run" --lib parse_harness_semantic_suite::gate -- --nocapture
 	@echo "✅ Parse-harness semantic-directive orchestration suite passed."
 
+# ENGINE-UNIVERSAL-SERVICES.46 (d) — THE CRATE'S OWN UNIT TESTS, WHICH NOTHING RAN.
+# `grep -rn 'cargo test' .github/workflows/ rust/scripts/sota_exit_gate.sh scripts/check_doctrines.sh`
+# returned NOTHING: no CI workflow, no doctrine enforcer and no gate — the flagship aggregate
+# included — ran the ~1 130-test lib suite. Four of its tests were RED on HEAD, three shipped by
+# ENGINE-UNIVERSAL-SERVICES.46 (c) one commit earlier, including the GREEN CONTROL of the very arm
+# (c) changed, and a fourth red for 403 commits.
+#
+# HONEST BOUND (a director challenge re-derived this against a CLOSED census over all tracked
+# files): the command is not ABSENT from the tree, only from every gate. `test-parser` below runs a
+# bare unfiltered `cargo test` — on DEFAULT features, where the suite has 12 failures of which 9 are
+# feature-gating refusals, so it was never a clean signal — and 14 tracked
+# docs/tasks/artifacts/*/battery.sh experiment batteries run the exact full featured suite as a
+# `libsuite` step. Nothing invokes any of them either. The claim is about GATES.
+#
+# The three `parse_harness_*::gate` suites are SKIPPED here: each already has its own target above
+# and the combinator one alone costs ~665 s, which would put this target out of reach of the cadence
+# that makes it useful. What remains is the fast majority — the arms that go stale when an engine
+# behaviour changes deliberately and no one re-runs them.
+.PHONY: lib_unit_test_gate
+lib_unit_test_gate:
+	@echo "🧪 Running the crate's unit-test suite (ENGINE-UNIVERSAL-SERVICES.46 (d))..."
+	@echo "   Excludes the three parse_harness_*::gate suites — they have their own targets."
+	cd $(RUST_DIR) && cargo test --features "generated_parsers ebnf_dual_run" --lib -- \
+		--skip parse_harness_combinator_suite::gate \
+		--skip parse_harness_equivalence::gate \
+		--skip parse_harness_semantic_suite::gate
+	@echo "✅ Crate unit-test suite passed."
+
 .PHONY: profile_gate_monotonicity_gate
 profile_gate_monotonicity_gate:
 	@echo "🚦 Running the profile-gate monotonicity probe (ENGINE-UNIVERSAL-SERVICES.46)..."
-	@echo "   THE INVARIANT: gating a rule out of a @profiles profile must only ever REMOVE strings"
-	@echo "   from the language, never ADD them. A negative lookahead breaks it: gate X out and !X"
-	@echo "   succeeds VACUOUSLY, so the STRICT profile becomes MORE permissive at that site."
+	@echo "   THE INVARIANT: gating may remove a PRODUCTION from a dialect, but it must never DELETE"
+	@echo "   a CONSTRAINT. A negative lookahead breaks it: gate X out and !X succeeds VACUOUSLY, so"
+	@echo "   the STRICT profile becomes MORE permissive at that site."
+	@echo "   (.46 (d): the blunter 'gating may only ever REMOVE strings' form is FALSE of the SV"
+	@echo "    grammar — 'reg class;' rejects with no profile requested and ACCEPTS under"
+	@echo "    verilog_2005, because a SELECTION dispatcher swaps dialect alternatives.)"
 	@echo "   8 cases on the GENERATED parser (compile_and_parse, TOOLBOX 1.4 — authoritative BY"
 	@echo "   CONSTRUCTION), each cross-checked against the interpreter rung (TOOLBOX 1.5) and asserted"
 	@echo "   verdict-identical, because .46(c) must repair codegen and interpreter TOGETHER."

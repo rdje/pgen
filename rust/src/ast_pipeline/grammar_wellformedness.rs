@@ -175,10 +175,21 @@ pub enum WellformednessIssue {
     /// mirrored by `parse_harness_interpreter.rs:944`), and a negative lookahead fails ONLY when its
     /// body MATCHED (`:4484`). Composed, `!target` used to succeed **vacuously** under `profile` —
     /// the constraint deleted, the NARROWER profile accepting strings the wider one rejects, in
-    /// breach of the invariant every dialect-profile system depends on: **gating a rule out of a
-    /// profile must only ever REMOVE strings from the language, never ADD them.** `.46` (c) fixed
-    /// it: a negative lookahead's body is evaluated with gating IGNORED, because a lookahead is a
+    /// breach of the invariant every dialect-profile system depends on: **gating may remove a
+    /// PRODUCTION from a dialect, but it must never DELETE a CONSTRAINT.** `.46` (c) fixed it: a
+    /// negative lookahead's body is evaluated with gating IGNORED, because a lookahead is a
     /// CONSTRAINT rather than a production.
+    ///
+    /// ⛔⛔ **THE BLUNTER FORM OF THAT INVARIANT — *"gating may only ever REMOVE strings from the
+    /// language, never ADD them"*, which is how `.46` (a)-(c) published it — IS FALSE OF THIS
+    /// GRAMMAR, BY MEASUREMENT.** `.46` (d) ran the SELECTION site under every runtime profile
+    /// state: `module m; reg class; endmodule` is REJECTED with no profile requested (nothing is
+    /// gated, so the IEEE 1800 keyword list is live) and ACCEPTED under `verilog_2005` (that list
+    /// is gated away). Applying the gate ADDED the string. That is not a defect — a SELECTION
+    /// dispatcher trades one dialect's alternative for another's, and two dialects' languages are
+    /// incomparable by construction — but the unqualified sentence says otherwise, and the repair
+    /// this arm documents deliberately does NOT enforce it at a SELECTION site. Read the narrow
+    /// form; it is the one the engine implements.
     ///
     /// ⇒ **The negative case is now CORRECT, and is reported only because the reading is
     /// non-obvious** — a grammar author looking at `!target` with `target` gated out will assume the
@@ -190,13 +201,20 @@ pub enum WellformednessIssue {
     /// repair; the dead path is the more conservative reading and was deliberately left alone. It is
     /// counted so the decision stays visible rather than implicit.
     ///
-    /// ⚠️ **HONEST BOUND — DIRECT REFERENCES ONLY.** Only rules referenced *syntactically inside*
-    /// the lookahead body are examined; the analysis does not follow `target`'s own body looking for
-    /// a gated rule one hop down. That is not laziness: a `target` that is PRESENT under `profile`
-    /// but whose body became unsatisfiable there is exactly a
-    /// [`WellformednessIssue::ProfileOrphan`], already an ERROR-class arm, and one that is
-    /// unsatisfiable under *every* profile is a [`WellformednessIssue::NonTerminating`]. The two
-    /// existing arms cover the hop this one declines to take.
+    /// ⚠️ **HONEST BOUND — AND IT IS NOW PER-POLARITY, WHICH THIS COMMENT DID NOT SAY.** The two
+    /// polarities stopped sharing a reach model when `.46` (c) landed, and the wording here still
+    /// described the old shared one until `.46` (d) corrected it:
+    ///
+    /// * **NEGATIVE** — TRANSITIVE, and keyed on SATISFIABILITY rather than reachability
+    ///   ([`profiles_making_node_unsatisfiable`]). It has to be: the runtime bypass is dynamically
+    ///   scoped, so every rule entered beneath the lookahead is in play. The direct-only version
+    ///   shipped in `.46` (b) and its own regeneration refuted it — `grammars/regex.ebnf` has nine
+    ///   sites whose gated rules sit one or more hops down, and the arm reported regex CLEAN.
+    /// * **POSITIVE** — DIRECT references only, deliberately. "Is this path dead?" is not
+    ///   established by a transitive reach (the reachable gated rule may sit behind an alternation
+    ///   or a `?`), and transitive here measured 586 SystemVerilog notes against 6 negatives — noise
+    ///   that would bury the arm. ⛔ Even direct over-approximates (`&( a | gated_b )` is not dead),
+    ///   which is one reason this polarity never gates.
     ProfileGatedLookahead {
         rule: String,
         node_path: String,
@@ -285,7 +303,7 @@ impl WellformednessIssue {
                     )
                 } else {
                     format!(
-                        "grammar NOTE (informational, never gates): rule '{rule}' is LIVE under profile '{profile}' and its NEGATIVE lookahead at '{node_path}' guards against '{target}', which @profiles gates out of '{profile}' (declared: {target_profiles:?}). ⭐ THE CONSTRAINT IS STILL ENFORCED under '{profile}': since ENGINE-UNIVERSAL-SERVICES.46 (c) a negative lookahead's body is evaluated with @profiles gating IGNORED, because a lookahead is a CONSTRAINT rather than a production — it derives nothing, so removing its subject from a dialect must not loosen it. This is reported because the reading is non-obvious: before that repair `!{target}` succeeded VACUOUSLY here, deleting the constraint and letting '{profile}' accept strings a WIDER profile rejects. ⚠️ If you expected the guard to disappear under '{profile}', it does not — and it must not, because gating may only ever REMOVE strings from the language, never ADD them."
+                        "grammar NOTE (informational, never gates): rule '{rule}' is LIVE under profile '{profile}' and its NEGATIVE lookahead at '{node_path}' guards against '{target}', which @profiles gates out of '{profile}' (those rules are declared under: {target_profiles:?}). ⭐ THE CONSTRAINT IS STILL ENFORCED under '{profile}': since ENGINE-UNIVERSAL-SERVICES.46 (c) a negative lookahead's body is evaluated with @profiles gating IGNORED, because a lookahead is a CONSTRAINT rather than a production — it derives nothing, so removing its subject from a dialect must not loosen it. This is reported because the reading is non-obvious: before that repair `!{target}` succeeded VACUOUSLY here, deleting the constraint and letting '{profile}' accept strings a WIDER profile rejects. ⚠️ If you expected the guard to disappear under '{profile}', it does not — and it must not: gating may remove a PRODUCTION from a dialect, but it must never DELETE a CONSTRAINT, and a lookahead body emptied by a gate is a deleted constraint. ⛔ The blunter form of that invariant — *gating may only ever REMOVE strings from the language, never ADD them* — is FALSE of a SELECTION dispatcher, which swaps one dialect's alternative for another's so the two dialect languages are incomparable by construction; ENGINE-UNIVERSAL-SERVICES.46 (d) measured that on grammars/systemverilog.ebnf (`reg class;` REJECTS with no profile requested and ACCEPTS under verilog_2005)."
                     )
                 }
             }
@@ -1423,6 +1441,23 @@ fn collect_profile_gated_lookaheads(
                 // The gated rules the body reaches, named in the message so the reader is not sent
                 // hunting for which one went away.
                 let reached = gated_rules_reachable_from(element, grammar, rule_profiles);
+                // ⛔ `ENGINE-UNIVERSAL-SERVICES.46` (d): this was `Vec::new()`, so EVERY negative
+                // note rendered `(declared: [])` — telling a reader auditing "which profiles is
+                // this gated out of?" that the guarded rules are declared under NO profile. False
+                // for all seven live SystemVerilog notes (`scope_resolution` is declared under
+                // `["sv_2017","sv_2023"]`), and false in the direction that defeats the audit. The
+                // detector's own unit test has asserted the populated value since `.46` (b); (c)
+                // left it RED and nothing in any gate runs it.
+                // The value is the UNION over the guarded rules — the only honest single answer
+                // when `target` names more than one, which the SELECTION site does.
+                let mut declared_union: Vec<String> = reached
+                    .iter()
+                    .filter_map(|r| rule_profiles.get(r))
+                    .flatten()
+                    .cloned()
+                    .collect();
+                declared_union.sort();
+                declared_union.dedup();
                 for profile in vacuous {
                     // Only profiles in which the REFERRING rule still runs can exhibit the vacuity.
                     // The undeclared-profile sentinel keeps every UNGATED rule live by construction.
@@ -1435,7 +1470,7 @@ fn collect_profile_gated_lookaheads(
                         target: reached.join(", "),
                         profile: profile.clone(),
                         positive: false,
-                        target_profiles: Vec::new(),
+                        target_profiles: declared_union.clone(),
                     });
                 }
             }
@@ -3549,9 +3584,14 @@ mod tests {
     /// Build the founding shape: `referrer := lit !gated` with `gated` restricted to `["wide"]`,
     /// in a two-profile universe. `referrer` is universal, so it is live under BOTH profiles while
     /// `gated` is absent under `narrow` — which is the whole defect.
+    /// `gated_profiles = None` leaves `gated` genuinely UNGATED — the honest spelling of "the gate
+    /// removed". `.46` (d): the control below used to spell that as `[wide, narrow]`, i.e. a gate
+    /// admitting every DECLARED profile, which stopped being gate-free the moment (c) added the
+    /// undeclared-profile sentinel to the universe. Under an undeclared spelling a rule gated to
+    /// every declared profile is still ABSENT, so the arm fired and the control went RED.
     fn gated_lookahead_fixture(
         positive: bool,
-        gated_profiles: &str,
+        gated_profiles: Option<&str>,
         referrer_profiles: Option<&str>,
     ) -> (HashMap<String, ASTNode>, Vec<String>, Annotations) {
         let mut g = HashMap::new();
@@ -3563,8 +3603,10 @@ mod tests {
         g.insert("other".into(), token("string", "o"));
         let order: Vec<String> = vec!["referrer".into(), "gated".into(), "other".into()];
         let mut ann = Annotations::default();
-        ann.semantic_annotations
-            .insert("gated".into(), vec![profiles_ann(gated_profiles)]);
+        if let Some(gp) = gated_profiles {
+            ann.semantic_annotations
+                .insert("gated".into(), vec![profiles_ann(gp)]);
+        }
         // Puts `narrow` in the declared universe without gating anything the fixture depends on.
         ann.semantic_annotations
             .insert("other".into(), vec![profiles_ann("[narrow]")]);
@@ -3588,41 +3630,99 @@ mod tests {
     fn a_negative_lookahead_on_a_gated_rule_is_reported_under_the_profile_that_gates_it() {
         // RED — the founding case. `referrer` is live under `narrow`; `gated` is not; `!gated` is
         // therefore vacuous there, so the NARROWER profile accepts more.
-        let (g, order, ann) = gated_lookahead_fixture(false, "[wide]", None);
+        let (g, order, ann) = gated_lookahead_fixture(false, Some("[wide]"), None);
         let issues = run_gated_lookahead_detector(&g, &order, &ann);
-        assert_eq!(issues.len(), 1, "expected exactly one finding, got: {issues:?}");
-        match &issues[0] {
+        // ⭐ TWO findings, and the SECOND is the point of `.46` (d). `.46` (c) added the
+        // undeclared-profile sentinel to the universe, so a rule gated to `[wide]` is vacuous BOTH
+        // under `narrow` AND under an undeclared spelling — a real runtime state that no
+        // enumeration of declared profiles contains. This arm asserted `1` until (d); it was RED on
+        // HEAD for a whole commit, because no gate in this repository runs the crate's unit tests.
+        assert_eq!(issues.len(), 2, "expected the declared AND the sentinel finding, got: {issues:?}");
+        let profiles: Vec<&str> = issues
+            .iter()
+            .map(|i| match i {
+                WellformednessIssue::ProfileGatedLookahead { profile, .. } => profile.as_str(),
+                other => panic!("wrong issue variant: {other:?}"),
+            })
+            .collect();
+        assert!(profiles.contains(&"narrow"), "the declared gating profile must report: {profiles:?}");
+        assert!(
+            profiles.contains(&UNDECLARED_PROFILE_SENTINEL),
+            "the undeclared-profile state must report — it is where EVERY gated rule vanishes at              once: {profiles:?}"
+        );
+        // Reported under the profile that GATES the target, never under the one that keeps it.
+        assert!(!profiles.contains(&"wide"), "must NOT report where the target is live: {profiles:?}");
+        let declared = issues
+            .iter()
+            .find(|i| matches!(i, WellformednessIssue::ProfileGatedLookahead { profile, .. } if profile == "narrow"))
+            .expect("the declared-profile finding");
+        match declared {
             WellformednessIssue::ProfileGatedLookahead {
                 rule,
                 target,
-                profile,
                 positive,
                 target_profiles,
                 ..
             } => {
                 assert_eq!(rule, "referrer");
                 assert_eq!(target, "gated");
-                // Reported under the profile that GATES the target, never under the one that keeps it.
-                assert_eq!(profile, "narrow");
                 assert!(!positive, "the founding case is the NEGATIVE polarity");
+                // ⛔ `.46` (d): (c) set this to `Vec::new()` for the negative polarity, so every
+                // note rendered `(declared: [])` — the guarded rule declared under NO profile,
+                // which is exactly the fact an auditor is reading the note to learn.
                 assert_eq!(target_profiles, &vec!["wide".to_string()]);
             }
             other => panic!("wrong issue variant: {other:?}"),
         }
         // The message must NAME the inversion, since the message is the whole product for a
         // report-only arm — a finding a reader cannot act on is a finding that gets ignored.
-        let msg = issues[0].message();
+        let msg = declared.message();
         assert!(msg.contains("VACUOUSLY"), "message must name the mechanism: {msg}");
-        assert!(msg.contains("never ADD them"), "message must name the invariant: {msg}");
+        assert!(
+            msg.contains("never DELETE a CONSTRAINT"),
+            "message must name the invariant IN ITS TRUE FORM — the blunter 'never ADD strings'              version is false of a SELECTION dispatcher, measured by `.46` (d): {msg}"
+        );
+        assert!(
+            msg.contains("declared under: [\"wide\"]"),
+            "the note must say which profiles DO declare the guarded rule: {msg}"
+        );
     }
 
     #[test]
     fn the_same_shape_with_the_gate_removed_is_silent() {
-        // GREEN control, ONE difference: `gated` is admitted to BOTH profiles. If this still
+        // GREEN control, ONE difference: `gated` carries NO `@profiles` at all. If this still
         // reported, the detector would be keying on "there is a lookahead" rather than on the gate.
-        let (g, order, ann) = gated_lookahead_fixture(false, "[wide, narrow]", None);
+        //
+        // ⛔⛔ `.46` (d) — THIS CONTROL SPELLED "GATE REMOVED" AS `[wide, narrow]`, i.e. A GATE
+        // ADMITTING EVERY DECLARED PROFILE, AND THAT STOPPED BEING GATE-FREE WHEN (c) LANDED.
+        // (c) added the undeclared-profile sentinel to the universe; a rule gated to every
+        // DECLARED profile is still ABSENT under an UNDECLARED spelling, so the arm fired and the
+        // control went RED. The finding was correct and the control's premise was wrong — the
+        // cheapest remedy would have been to relax the assertion to "1 finding", which would have
+        // retired the only arm proving the detector keys on the gate. The intended remedy is to
+        // spell gate-free as gate-free, and the `[wide, narrow]` case is pinned on its own below.
+        let (g, order, ann) = gated_lookahead_fixture(false, None, None);
         let issues = run_gated_lookahead_detector(&g, &order, &ann);
         assert!(issues.is_empty(), "gate removed ⇒ nothing to report, got: {issues:?}");
+    }
+
+    #[test]
+    fn a_gate_admitting_every_declared_profile_still_fires_under_the_undeclared_sentinel() {
+        // `.46` (d) — the case the "gate removed" control used to occupy, now pinned for what it
+        // actually is rather than mistaken for gate-free. `gated` is admitted to BOTH declared
+        // profiles, so no DECLARED profile can exhibit the vacuity — and an UNDECLARED spelling
+        // still can, because `@profiles` is a set of positive declarations and no such set can
+        // name its own complement. Exactly one finding, and it is the sentinel's.
+        let (g, order, ann) = gated_lookahead_fixture(false, Some("[wide, narrow]"), None);
+        let issues = run_gated_lookahead_detector(&g, &order, &ann);
+        assert_eq!(issues.len(), 1, "only the undeclared state can be vacuous here, got: {issues:?}");
+        match &issues[0] {
+            WellformednessIssue::ProfileGatedLookahead { profile, target_profiles, .. } => {
+                assert_eq!(profile, UNDECLARED_PROFILE_SENTINEL);
+                assert_eq!(target_profiles, &vec!["narrow".to_string(), "wide".to_string()]);
+            }
+            other => panic!("wrong issue variant: {other:?}"),
+        }
     }
 
     #[test]
@@ -3631,7 +3731,7 @@ mod tests {
         // subject is live. Then there is no profile in which the referrer runs and the subject is
         // absent — which is exactly the "restrict the referring rule" half of the fix the message
         // suggests, so this arm proves the suggested fix actually works.
-        let (g, order, ann) = gated_lookahead_fixture(false, "[wide]", Some("[wide]"));
+        let (g, order, ann) = gated_lookahead_fixture(false, Some("[wide]"), Some("[wide]"));
         let issues = run_gated_lookahead_detector(&g, &order, &ann);
         assert!(issues.is_empty(), "referrer confined to the subject's profiles ⇒ silent, got: {issues:?}");
     }
@@ -3641,7 +3741,7 @@ mod tests {
         // The other polarity. `&gated` on a gated subject always FAILS ⇒ the path is dead ⇒ the
         // profile gets NARROWER, which is monotonic. Counted (it is the same conflation seen from
         // the other side) but worded as a NOTE, and it must NOT claim the inversion.
-        let (g, order, ann) = gated_lookahead_fixture(true, "[wide]", None);
+        let (g, order, ann) = gated_lookahead_fixture(true, Some("[wide]"), None);
         let issues = run_gated_lookahead_detector(&g, &order, &ann);
         assert_eq!(issues.len(), 1, "expected exactly one finding, got: {issues:?}");
         assert!(
@@ -3690,12 +3790,16 @@ mod tests {
         ann.semantic_annotations.insert("gated".into(), vec![profiles_ann("[wide]")]);
         ann.semantic_annotations.insert("other".into(), vec![profiles_ann("[narrow]")]);
         let issues = run_gated_lookahead_detector(&g, &order, &ann);
-        assert_eq!(issues.len(), 1, "a nested lookahead must be found, got: {issues:?}");
-        match &issues[0] {
-            WellformednessIssue::ProfileGatedLookahead { node_path, .. } => {
-                assert_eq!(node_path, "root/q/s1", "the path must locate the lookahead: {node_path}")
+        // Two, for the same reason as the founding arm: `narrow` plus the undeclared sentinel.
+        // What this arm is actually about is the PATH, and both findings must carry it.
+        assert_eq!(issues.len(), 2, "a nested lookahead must be found, got: {issues:?}");
+        for issue in &issues {
+            match issue {
+                WellformednessIssue::ProfileGatedLookahead { node_path, .. } => {
+                    assert_eq!(node_path, "root/q/s1", "the path must locate the lookahead: {node_path}")
+                }
+                other => panic!("wrong issue variant: {other:?}"),
             }
-            other => panic!("wrong issue variant: {other:?}"),
         }
     }
 

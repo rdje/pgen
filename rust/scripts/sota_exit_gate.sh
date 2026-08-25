@@ -30,7 +30,7 @@ fi
 source "$POLICY_FILE"
 
 POLICY_VERSION="${PGEN_SOTA_POLICY_VERSION:-1}"
-POLICY_REQUIRED_CHECKS="${PGEN_SOTA_POLICY_REQUIRED_CHECKS:-differential_baseline_contract fixed_point_gate annotation_contract_gate annotation_nonbootstrap_e2e_gate ebnf_stimuli_quality_gate stimuli_module_parity_gate differential_regression_gate performance_gate embedding_api_gate}"
+POLICY_REQUIRED_CHECKS="${PGEN_SOTA_POLICY_REQUIRED_CHECKS:-differential_baseline_contract lib_unit_test_gate fixed_point_gate annotation_contract_gate annotation_nonbootstrap_e2e_gate ebnf_stimuli_quality_gate stimuli_module_parity_gate differential_regression_gate performance_gate embedding_api_gate}"
 POLICY_RUN_EBNF_READINESS="${PGEN_SOTA_POLICY_RUN_EBNF_READINESS:-1}"
 POLICY_REQUIRE_EBNF_STRICT="${PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT:-0}"
 POLICY_RUN_EBNF_DUAL_RUN_DIFF="${PGEN_SOTA_POLICY_RUN_EBNF_DUAL_RUN_DIFF:-1}"
@@ -1013,6 +1013,27 @@ run_required_check_by_name() {
                 ' \
                 "$RUST_DIR/test_data/differential_baseline/return_annotation_baseline.json" \
                 "$RUST_DIR/test_data/differential_baseline/semantic_annotation_baseline.json"
+            ;;
+        # ENGINE-UNIVERSAL-SERVICES.46 (d) — THE CRATE'S OWN UNIT TESTS.
+        # Until this stage existed, no CI workflow, no doctrine enforcer and no gate — this
+        # aggregate included — ran them. Four tests were RED on HEAD when that was measured,
+        # three of them shipped one commit earlier by the very leaf that changed their subject
+        # — including the GREEN CONTROL of the arm it changed — and a fourth red for 403
+        # commits. A release gate that certifies a tree whose own unit tests fail is certifying
+        # something it never looked at.
+        # HONEST BOUND (closed census, after a director challenge): the command is not absent
+        # from the tree, only from every gate — `rust/Makefile`'s `test-parser` runs a bare
+        # unfiltered `cargo test` on DEFAULT features (12 failures there, 9 of them feature-
+        # gating refusals) and 14 docs/tasks/artifacts/*/battery.sh batteries run the full
+        # featured suite. Nothing invokes any of them either.
+        # The three `parse_harness_*::gate` suites are skipped inside the target: each is
+        # already its own gate and the combinator one alone costs ~665 s.
+        lib_unit_test_gate)
+            run_check \
+                "lib_unit_test_gate" \
+                "required" \
+                "the crate's unit-test suite (excl. the three parse_harness_*::gate suites, which have their own gates)" \
+                make -C rust SHELL=/bin/bash lib_unit_test_gate
             ;;
         fixed_point_gate)
             run_check \

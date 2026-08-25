@@ -835,10 +835,19 @@ gated rule, so the *narrower* profile accepted more. The behaviour is documented
 under [Annotation System § a `@profiles` gate and a negative lookahead](annotation-system.md); this
 section is about the probe.
 
-**The invariant under test.** ⭐⭐⭐ *Gating a rule out of a profile must only ever REMOVE strings
-from the language, never ADD them.* A `!X` is a **constraint**, not a production — it derives
-nothing — so removing its subject must not loosen it. Before the repair it did: gate `X` out and
-`!X` succeeded vacuously.
+**The invariant under test.** ⭐⭐⭐ *Gating may remove a **production** from a dialect; it must
+never delete a **constraint**.* A `!X` is a constraint, not a production — it derives nothing — so
+removing its subject must not loosen it. Before the repair it did: gate `X` out and `!X` succeeded
+vacuously.
+
+⛔⛔ **The blunter form of that sentence is false, and this book published it.** Until
+`ENGINE-UNIVERSAL-SERVICES.46` (d) this paragraph read *"gating must only ever REMOVE strings from
+the language, never ADD them"*, which is not true of `grammars/systemverilog.ebnf` and was measured
+not to be: `module m; reg class; endmodule` is **rejected** with no profile requested — nothing is
+gated, so the IEEE 1800 keyword list is live — and **accepted** under `verilog_2005`, where that
+list is gated away. Applying the gate *added* the string. That is the **selection** idiom two
+paragraphs down, and it is intended: two dialects' languages are incomparable by construction. The
+narrow form is the one the engine actually enforces, and the one the repair is aimed at.
 
 **Why it is a harness probe rather than a unit test.** The finding was first measured on the
 **interpreter** (`--interpret-parse`), which is authoritative *by verification, not by construction*
