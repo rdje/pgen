@@ -230,10 +230,112 @@ def render(rows: list[dict[str, object]]) -> tuple[str, str]:
     return "\n".join(tsv) + "\n", "\n".join(md) + "\n"
 
 
+REPROS = REPO_ROOT / "stimuli/sv/adjudication_repros"
+
+# `SV-CORPUS-GRAD.13e.10` (c3) — the LRM evidence per confirmed row. Kept beside the witness table
+# so a pinned reproducer, its manifest citation and the text that was actually adjudicated all come
+# from ONE place; a repro whose comment cites an LRM clause its witness does not exercise is a
+# claim nothing checks.
+LRM_NOTE: dict[str, str] = {
+    "arithmetic_shift_left_assign":  "`<<<=` occurs 0 times in the whole IEEE 1364-2005 LRM; 1364-2005 has no assignment operator other than `=` and `<=` (A.6.2 blocking/nonblocking_assignment)",
+    "arithmetic_shift_right_assign": "`>>>=` occurs 0 times in the whole IEEE 1364-2005 LRM; 1364-2005 has no compound assignment (A.6.2)",
+    "shift_left_assign":             "`<<=` occurs 0 times in the whole IEEE 1364-2005 LRM; 1364-2005 has no compound assignment (A.6.2)",
+    "shift_right_assign":            "`>>=` occurs 0 times in the whole IEEE 1364-2005 LRM; 1364-2005 has no compound assignment (A.6.2)",
+    "percent_assign":                "`%=` occurs 0 times in the whole IEEE 1364-2005 LRM; 1364-2005 has no compound assignment (A.6.2)",
+    "and_assign":                    "`&=` occurs 0 times in the whole IEEE 1364-2005 LRM; 1364-2005 has no compound assignment (A.6.2)",
+    "or_assign":                     "`|=` occurs 0 times in the whole IEEE 1364-2005 LRM; 1364-2005 has no compound assignment (A.6.2)",
+    "xor_assign":                    "`^=` occurs 0 times in the whole IEEE 1364-2005 LRM; 1364-2005 has no compound assignment (A.6.2)",
+    "star_assign":                   "`*=` occurs 0 times in the whole IEEE 1364-2005 LRM; 1364-2005 has no compound assignment (A.6.2)",
+    "slash_assign":                  "`/=` occurs 0 times in the whole IEEE 1364-2005 LRM; 1364-2005 has no compound assignment (A.6.2)",
+    "plus_assign":                   "`+=` appears in IEEE 1364-2005 ONLY inside the clause-14 specify-path polarity operator `+=>` (`(In1 +=> q)`), never as an assignment operator; A.6.2 has no compound assignment",
+    "minus_assign":                  "`-=` appears in IEEE 1364-2005 ONLY inside the clause-14 specify-path polarity operator `-=>` (`(In1 -=> q)`), never as an assignment operator; A.6.2 has no compound assignment",
+    "wildcard_equal":                "`==?` occurs 0 times in the whole IEEE 1364-2005 LRM; A.8.6 defines no wildcard equality operator",
+    "wildcard_not_equal":            "`!=?` occurs 0 times in the whole IEEE 1364-2005 LRM; A.8.6 defines no wildcard inequality operator",
+    "iff_arrow":                     "`<->` occurs 0 times in the whole IEEE 1364-2005 LRM; the equivalence operator is IEEE 1800 only (A.8.6)",
+    "tick":                          "`'{` occurs 0 times in the whole IEEE 1364-2005 LRM; assignment patterns are IEEE 1800 only (A.6.7.1)",
+    "dot_star":                      "`.*` appears in IEEE 1364-2005 ONLY as a clause-13 library-map FILENAME GLOB (`library aLib adder.*;`) — a different grammar and a different token role; A.4.1 module_instantiation has no implicit port connection form",
+}
+
+
+def emit_repros(rows: list[dict[str, object]]) -> int:
+    """`(c3)` — write the two-sided ratchet reproducers for every CONFIRMED row.
+
+    ⛔ GENERATED FROM THE SAME WITNESS TABLE THE ADJUDICATION RAN, so a pinned reproducer can never
+    drift from the text that earned the verdict.  Emits `class=accepts_invalid` files (expected
+    ACCEPT until the fix lands, at which point the runner goes RED saying *flip it to invalid*) plus
+    the three matched CONTROLS, which must keep ACCEPTING afterwards — the arm that catches a gate
+    made too wide.  Manifest rows are PRINTED, never spliced: `MANIFEST.tsv` is shared by many
+    leaves and a generator that rewrites it wholesale would own rows it did not author.
+    """
+    confirmed = [r for r in rows if r["verdict"] == "CONFIRMED over-acceptance"]
+    missing = sorted(str(r["rule"]) for r in confirmed if r["rule"] not in LRM_NOTE)
+    if missing:
+        raise Refused(
+            f"{len(missing)} CONFIRMED row(s) have no LRM citation here: {', '.join(missing)}. "
+            f"A reproducer pinned with no evidence is an assertion; cite the standard or do not pin."
+        )
+    REPROS.mkdir(parents=True, exist_ok=True)
+    tsv_rows: list[str] = []
+    for r in confirmed:
+        rule, lit = str(r["rule"]), str(r["literal"])
+        ident = f"accepts_invalid_v2005_punct_{rule}.sv"
+        body = "\n".join(
+            [f"// SV-CORPUS-GRAD.13e.10 (c3) — an OVER-ACCEPTANCE under verilog_2005, expected ACCEPT until fixed.",
+             f"// WHAT: the IEEE 1800-only operator `{lit}` reaches through the `verilog_2005` profile.",
+             f"// LRM: {LRM_NOTE[rule]}",
+             f"// LEG 3: the operator's own terminal rule `{rule}` COMMITS on this text under",
+             f"//        verilog_2005 (committed={r['leg3_committed']}), and reads 0 on the matched",
+             f"//        control with the operator removed — so the ACCEPT is carried by the operator",
+             f"//        itself, not by the surrounding text parsing as something else.",
+             f"// Pinned BEFORE the fix so the ratchet goes RED the day it lands (flip to class=invalid).",
+             str(r["witness"]).replace("module m; initial begin ", "module m;\n  initial begin\n    ")
+                              .replace(" end endmodule", "\n  end\nendmodule")
+                              .replace("module m; ", "module m;\n  ").replace("; endmodule", ";\nendmodule")])
+        (REPROS / ident).write_text(body + "\n")
+        construct = f"{str(r['witness']).splitlines()[-1].strip()} - the IEEE 1800-only operator `{lit}` under the IEEE 1364-2005 profile"
+        note = (f"SV-CORPUS-GRAD.13e.10(c3), sized by .13e.10(a)+(b)'s closed 19-candidate L4 census and "
+                f"adjudicated two-sided by .13e.10(c): leg 3 committed={r['leg3_committed']}, matched control 0. "
+                f"Pinned BEFORE the fix; (c4) owns the _sv_only gate and must flip this row to class=invalid.")
+        tsv_rows.append("\t".join([ident, "ACCEPT", "accepts_invalid", "", STRICT, "0",
+                                   construct, LRM_NOTE[rule], note]))
+
+    controls = [
+        ("control_v2005_punct_blocking_assign.sv", _stmt("a = 1;"),
+         "a = 1; - the plain blocking assignment the twelve compound-assignment repros differ from by one operator",
+         "1364-2005 A.6.2 blocking_assignment ::= variable_lvalue = [ delay_or_event_control ] expression"),
+        ("control_v2005_punct_equality.sv", _stmt("if (a == b) ;"),
+         "if (a == b) ; - the plain equality the ==? / !=? / <-> repros differ from by one operator",
+         "1364-2005 A.8.6 - `==` and `!=` are defined; no wildcard or equivalence form is"),
+        ("control_v2005_punct_named_port.sv", "module s; endmodule\nmodule m; s u(.a(1)); endmodule",
+         "s u(.a(1)); - the explicit named port connection the .* repro differs from",
+         "1364-2005 A.4.1 named_port_connection ::= { attribute_instance } . port_identifier ( [ expression ] )"),
+    ]
+    for ident, src, construct, lrm in controls:
+        head = ("// SV-CORPUS-GRAD.13e.10 (c3) — CONTROL. Legal IEEE 1364-2005 that must keep parsing\n"
+                "// under verilog_2005 AFTER (c4)'s _sv_only gates land. This is the arm that catches a\n"
+                "// gate made TOO WIDE: the over-acceptance repros prove the fix works, this proves it\n"
+                "// did not take legal Verilog with it.\n")
+        (REPROS / ident).write_text(head + src.replace("module m; initial begin ", "module m;\n  initial begin\n    ")
+                                                .replace(" end endmodule", "\n  end\nendmodule")
+                                                .replace("module m; ", "module m;\n  ")
+                                                .replace("; endmodule", ";\nendmodule") + "\n")
+        tsv_rows.append("\t".join([ident, "ACCEPT", "control", "", STRICT, "0", construct, lrm,
+                                   "SV-CORPUS-GRAD.13e.10(c3) - pins that (c4)'s gates stay NARROW."]))
+
+    print(f"wrote {len(confirmed)} accepts_invalid + {len(controls)} control reproducers to "
+          f"{_shown(REPROS)}\n")
+    print("--- append these rows to stimuli/sv/adjudication_repros/MANIFEST.tsv ---")
+    for row in tsv_rows:
+        print(row)
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--write", action="store_true", help="refresh the tracked report files")
     ap.add_argument("--self-test", action="store_true", help="drive every refusal arm + a GREEN control")
+    ap.add_argument("--emit-repros", action="store_true",
+                    help="(c3) write the two-sided ratchet reproducers + print their manifest rows")
     args = ap.parse_args()
 
     if args.self_test:
@@ -249,6 +351,13 @@ def main() -> int:
     except (CENSUS.Refused, Refused) as exc:
         print(f"v2005-punctuation-adjudication: REFUSED — {exc}", file=sys.stderr)
         return 2
+
+    if args.emit_repros:
+        try:
+            return emit_repros(rows)
+        except Refused as exc:
+            print(f"v2005-punctuation-adjudication: REFUSED — {exc}", file=sys.stderr)
+            return 2
 
     tsv, md = render(rows)
     tsv_path, md_path = ARTIFACT / "adjudication.tsv", ARTIFACT / "adjudication.md"

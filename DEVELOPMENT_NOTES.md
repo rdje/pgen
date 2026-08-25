@@ -1,5 +1,49 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0302 — pinning a defect is a claim about the parser, so the pin needs its own controls
+
+**1. THE CONTROL ROWS ARE THE HALF THAT IS EASY TO SKIP AND EXPENSIVE TO OMIT.** Pinning 17
+over-acceptances proves a future fix WORKS. It says nothing about whether that fix took legal
+Verilog with it — and a `_sv_only` gate is exactly the kind of change that can be too wide. Three
+`class=control` rows (`a = 1;`, `if (a == b) ;`, `s u(.a(1));`) cost minutes now and are the only
+thing that will fail if (c4) gates the whole assignment, comparison or port-connection surface
+instead of the SV-only spelling. ⇒ **when you pin a defect before its fix, pin the neighbour that
+must survive the fix in the same commit** — afterwards there is no independent record of what
+"unchanged" meant.
+
+**2. ⛔ THE PRETTY-PRINTING WAS A REAL RISK AND I ONLY NOTICED BECAUSE THE ORACLE RUNS.** The
+adjudicator's witnesses are one-liners; a tracked reproducer is formatted across lines for a human.
+That is a **different input**, and in a grammar with explicit `trivia` rules whitespace is not free
+— `.13c.2` has a whole family of spaced-literal defects. I did not reason about it; the ratchet ran
+all 17 and they accepted. ⇒ **any reformatting between the text you measured and the text you commit
+is a new claim**, and the cheap guard is to let the oracle re-verify the committed form rather than
+the measured one.
+
+**3. ⭐⭐ GENERATE THE PIN FROM THE MEASUREMENT, BUT DO NOT LET THE GENERATOR OWN THE SHARED FILE.**
+`--emit-repros` writes the 20 `.sv` files from the adjudicator's own rows, so a pin cannot drift from
+the text that earned its verdict, and each header carries that row's measured `committed` count and
+LRM citation. But `MANIFEST.tsv` holds 141 rows authored by a dozen other leaves, so the emitter
+**prints** its rows for appending rather than rewriting the file. ⇒ **a generator may own the
+artifacts it authors and must not own a file it merely contributes to** — the same boundary that
+keeps `MEMORY.md` overwrite-only and `CHANGES.md` append-only.
+
+**4. THE EMITTER REFUSES RATHER THAN PINNING AN UNEVIDENCED ROW.** Every confirmed rule must carry an
+LRM citation in the emitter's own table or it raises `Refused`. It would have been easy to emit a
+generic *"IEEE 1800 only"* comment for all 17. ⇒ **a reproducer pinned with no evidence is an
+assertion**, and the two rows where the evidence is subtle (`+=`/`-=` exist in 1364-2005 only inside
+the specify-path `+=>`/`-=>`; `.*` exists only as a library-map filename glob) are exactly the ones a
+generic comment would have flattened into a false claim.
+
+**5. AND I DROVE THE RED ARM THAT (c4) WILL ACTUALLY HIT.** Not an artificial failure — I mis-filed
+the `dot_star` row as `class=invalid`, which is precisely the edit the fix commit must make, and
+confirmed the runner refuses it *today* with the right message. ⇒ **the most useful red control is
+the one that simulates the next commit**, because it proves the hand-off works before you need it.
+
+**6. HONEST BOUND, STATED IN THE LEAF RATHER THAN IMPLIED.** These rows pin behaviour that is a
+defect. A green ratchet here means *"the 17 over-acceptances are still exactly the 17 we measured"* —
+a **staleness** guard, not a correctness one. That is the strongest thing available before the fix,
+and saying so is what stops a later reader reading green as healthy.
+
 ## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0301 — the control I was forced to build one commit earlier is what let the headline quadruple safely
 
 **1. THE OBLIGATION ADDED YESTERDAY PAID FOR ITSELF IMMEDIATELY.** `.13e.12` ended by making a
