@@ -133,6 +133,44 @@ assert_generated_artifact() {
   (This is a REFUSAL, not a pass: the gate cannot audit include! wiring it cannot see.)"
 }
 
+# assert_documented_on_live_surface <identifier>
+#
+# ⛔⛔ CI-PARITY-GATE-ROT.46 — THIS REPLACES TEN `assert_file_contains "README.md" '<sentence>'`
+# ASSERTIONS THAT WERE **10 OF 10 FAILING**, and had been since 2026-07-30.
+#
+# WHAT HAPPENED: `README-POLICY.1` (`d29c3dd7`) turned README.md into a deliberate LANDING PAGE and
+# moved detail to its canonical destinations — gate recipes to `docs/book/src/gate-flow.md`, the
+# path inventory to `docs/book/src/developer-architecture.md`, contracts to `docs/contracts/`. That
+# was a REVIEWED POLICY DECISION with a doctrine (`README-STABILITY`) enforcing it. These ten
+# assertions pinned the README to the shape the policy abolished, so they did not detect a
+# regression — they demanded one.
+#
+# ⭐ MEASURED before choosing a fix, because "the content was deleted" and "the content moved" call
+# for opposite responses: all TEN subjects are still documented on a live surface. ⚠️ The first
+# census said one was NOWHERE; that was an artifact of exact-string matching — the repository path
+# inventory entry moved to `docs/book/src/developer-architecture.md:156` and was REWORDED on the
+# way. Rehoming the pins would therefore not have been enough either.
+#
+# ⇒ THE ENCODING WAS THE DEFECT: a pin on (one file × one sentence) breaks when EITHER moves, and
+# both move routinely. This pins the IDENTIFIER — a doc path or a make-target name, which is what
+# the invariant is actually about — and looks for it anywhere on the live-doc surface. A rehome or
+# a rewording no longer produces a false red; deleting the subject still produces a true one.
+LIVE_DOC_SURFACE=(README.md PGEN_USER_GUIDE.md COMMIT.md 'docs/book/src/*.md' 'docs/contracts/*.md' 'docs/reference/*.md')
+assert_documented_on_live_surface() {
+  local identifier="$1"
+  local rc=0
+  (cd "$ROOT_DIR" && git grep -q -F -- "$identifier" -- "${LIVE_DOC_SURFACE[@]}") || rc=$?
+  case "$rc" in
+    0) : ;;
+    1) fail "$identifier is documented on NO live surface (${LIVE_DOC_SURFACE[*]}); a gate or contract a consumer cannot find is undocumented, whatever the code does" ;;
+    *) fail "git grep failed (exit $rc) while checking whether '$identifier' is documented; the audit could not run, which is NOT a pass" ;;
+  esac
+}
+
+# ⚠️ CI-PARITY-GATE-ROT.46: currently UNCALLED — its two call sites were the Perl-runtime
+# assertions inverted in `audit_workflow_surface` when the Perl frontend was retired. Kept, not
+# deleted, because it is the symmetric half of `assert_workflow_not_contains` below: a workflow
+# audit needs both polarities, and removing one half guarantees the next author re-writes it.
 assert_workflow_contains() {
   local workflow_file="$1"
   local expected="$2"
@@ -305,22 +343,34 @@ audit_static_include_paths() {
 #
 # REFUSAL POLARITY: `git grep` returns 0 on a match, 1 on no match, and >=2 on an error. Only 1 is a
 # pass. An error REFUSES rather than being read as "clean" — that is defect 3 restated as a rule.
+# ⛔⛔ CI-PARITY-GATE-ROT.46 — THIS AUDIT NO LONGER RE-DERIVES THE RULE; IT CALLS THE ENFORCER.
+#
+# It used to run its own `git grep`, and that copy disagreed with the registered enforcer on BOTH
+# axes a rule has:
+#   * SCOPE — it governed every `*.md`, including `CHANGES.md`/`DEVELOPMENT_NOTES.md`, which
+#     `scripts/check_diagnostics_and_docpaths.sh` deliberately exempts as append-only history. On
+#     2026-08-17 a changelog entry QUOTED an absolute path while reporting a finding ABOUT one, and
+#     this gate went red at HEAD for eight days with its whole replay phase unreachable — while the
+#     doctrine, correctly, stayed green.
+#   * PATTERN — it matched the fixed string `/Users/<one developer>/<one checkout>/`, so it could
+#     not fire for another user, another checkout, or a hosted runner. That half failed in the
+#     PASSING direction, which is worse than the half that blocked.
+# `.20a` had already ruled on this exact shape from the submodule side — *"a doctrine whose two
+# enforcers disagree is not one doctrine"* — and aligned the two on WHICH TREE. Nothing aligned them
+# on WHICH FILES or WHAT PATTERN, so the disagreement simply moved axis.
+#
+# ⛔ Aligning the pathspec and the regex by hand would rebuild the defect: two spellings of one rule
+# that must agree. `scripts/check_diagnostics_and_docpaths.sh` IS the rule — registered, run from
+# `.githooks/pre-commit` and in CI, its scope decision documented with its reasoning, 0.32 s. The
+# gate replays it rather than paraphrasing it, and gains the doctrine's severity arm as a bonus.
 audit_markdown_repo_relative_paths() {
-  note "auditing markdown repo-path policy"
-  local hits rc=0
-  hits="$(cd "$ROOT_DIR" && git grep --no-recurse-submodules -nI -F \
-    -- '/Users/richarddje/Documents/github/pgen/' -- '*.md' 2>&1)" || rc=$?
-  case "$rc" in
-    0)
-      printf '%s\n' "$hits" | head -20 >&2
-      fail "absolute PGEN checkout path found in markdown docs; use relative repo paths"
-      ;;
-    1) : ;;   # no match — the only passing outcome
-    *)
-      printf '%s\n' "$hits" | head -20 >&2
-      fail "git grep failed (exit $rc) while auditing markdown repo-paths; the audit could not run, which is NOT a pass"
-      ;;
-  esac
+  note "auditing diagnostics+docpath doctrine (delegated to scripts/check_diagnostics_and_docpaths.sh)"
+  local output rc=0
+  output="$(cd "$ROOT_DIR" && bash scripts/check_diagnostics_and_docpaths.sh 2>&1)" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    printf '%s\n' "$output" | head -20 >&2
+    fail "scripts/check_diagnostics_and_docpaths.sh failed (exit $rc) — the DIAG-SEVERITY/DOCPATH doctrine does not hold on this tree"
+  fi
 }
 
 audit_root_markdown_surface() {
@@ -333,6 +383,14 @@ audit_root_markdown_surface() {
     "DOCTRINE_ENFORCEMENT.md"
     "GEMINI.md"
     "KNOWLEDGE_MAP.md"
+    # CI-PARITY-GATE-ROT.46 (2026-08-25): added here 17 days LATE. LIVE_DOCUMENT_SIZE_CONTAINMENT.md
+    # is a deliberate root policy doc, adopted 2026-08-08 by LIVE-DOC-CONTAINMENT.1
+    # (PGEN-LIVE-DOC-CONTAINMENT-0001) and a sibling of README_POLICY.md, which is already on this
+    # roster. This is an EXACT-SET comparison, so a root doc added without the same-commit roster
+    # entry turns this gate RED — and it did, from 2026-08-08 until this leaf, with the gate's whole
+    # REPLAY phase unreachable behind it. ⚠️ Nothing told that commit: this gate is
+    # operator-invoked, not in the automatic tier, so the failure had no audience.
+    "LIVE_DOCUMENT_SIZE_CONTAINMENT.md"
     # LIVE-MEANS-LIVE.1c3 (2026-07-31): LIVE_ACHIEVEMENT_STATUS.md is DELETED. Its one load-bearing
     # value — the hand-authored family-status claim — moved to `claimed_status` in
     # rust/test_data/grammar_quality/done_bar_family_register_v0.json (.1a), and its human view to
@@ -389,6 +447,16 @@ audit_top_level_docs_surface() {
     "docs/AST_GENERATOR_ARCHITECTURE.md"
     "docs/ast_transformation_pipeline.md"
     "docs/BOOTSTRAP_MODE_SPECIFICATION.md"
+    # CI-PARITY-GATE-ROT.46 (2026-08-25) — the SAME deliberate admission `.1` performed in 2026-07-27,
+    # for the same reason and to the same standard: both were live, heavily-referenced policy docs
+    # this roster had never been updated for, and the audit was RIGHT that no deliberate policy
+    # update had happened. Verified before admission, reference counts measured across tracked
+    # markdown: CLAIM_VERIFICATION 17 files / 46 mentions — it is the standing director directive
+    # named in the session prompt itself — and DERIVED_STATE_CONTAINMENT 14 files / 46 mentions,
+    # cited by layer-A MEMORY.md's own header as R1/R3. Neither is a stray.
+    # ⚠️ ORDER IS LOAD-BEARING (see below): taken verbatim from this audit's own `sort` output.
+    "docs/CLAIM_VERIFICATION.md"
+    "docs/DERIVED_STATE_CONTAINMENT.md"
     "docs/EBNF_INCLUDE_SYSTEM.md"
     "docs/parser_architecture_evolution.md"
     # CI-PARITY-GATE-ROT.1 (2026-07-27): the four entries below were live, heavily-referenced
@@ -636,22 +704,32 @@ audit_workflow_surface() {
   assert_tracked "rust/scripts/performance_gate.sh"
   assert_tracked "rust/scripts/sota_exit_gate.sh"
 
-  assert_workflow_contains \
-    ".github/workflows/ebnf-frontend-dual-run-diff.yml" \
-    "Verify Perl runtime for Perl-vs-Rust dual-run"
-  assert_workflow_contains \
-    ".github/workflows/sota-exit-gate.yml" \
-    "Verify Perl runtime for SOTA dual-run surfaces"
-
-  for workflow_file in \
-    .github/workflows/annotation-contract-gate.yml \
-    .github/workflows/annotation-nonbootstrap-e2e-gate.yml \
-    .github/workflows/branch-protection-contract-gate.yml \
-    .github/workflows/differential-regression-gate.yml \
-    .github/workflows/fixed-point-gate.yml \
-    .github/workflows/mdbook-docs-gate.yml \
-    .github/workflows/performance-gate.yml \
-    .github/workflows/stimuli-cross-family-platform-gate.yml; do
+  # ⛔⛔ CI-PARITY-GATE-ROT.46 — THE PERL ASSERTION IS INVERTED HERE, ~4 WEEKS LATE, AND ITS
+  # POPULATION IS NOW DERIVED INSTEAD OF HAND-LISTED.
+  #
+  # This block used to assert that TWO named workflows CONTAIN a "Verify Perl runtime …" step
+  # (marking an intentional Perl CI dependency) while eight OTHERS do not. On 2026-07-30
+  # `1ea5a87b` / `LANG-CAPABILITY-AUDIT.10.6` retired the Perl EBNF frontend outright — its own
+  # subject reads *"the Perl EBNF frontend is RETIRED, and the guard that pinned it is INVERTED"* —
+  # and inverted the guard it knew about. This one was missed, so the gate went on demanding a step
+  # that had been deliberately deleted, and its whole REPLAY phase sat behind that demand.
+  #
+  # ⭐ Measured 2026-08-25 over ALL tracked workflows: `grep -il perl .github/workflows/*.yml`
+  # returns NOTHING — 0 of 15. So the rule is no longer "these two may, those eight may not"; it is
+  # "no workflow may reintroduce Perl", and that is a CLOSED-POPULATION claim.
+  # ⛔ The population is therefore DERIVED from `git ls-files`, not typed out. A hand roster is
+  # exactly what rotted here — and in the root-markdown and top-level-docs audits above, twice more
+  # in the same run — because a file added later joins the tree without joining the list. A derived
+  # population covers a sixteenth workflow by construction. It also REFUSES on an empty population
+  # rather than passing vacuously, because a loop over nothing asserts nothing.
+  local -a tracked_workflows=()
+  while IFS= read -r workflow_file; do
+    [ -n "$workflow_file" ] && tracked_workflows+=("$workflow_file")
+  done < <(cd "$ROOT_DIR" && git ls-files '.github/workflows/*.yml')
+  if [ "${#tracked_workflows[@]}" -eq 0 ]; then
+    fail "no tracked workflows matched .github/workflows/*.yml; the Perl-retirement assertion would be vacuous, which is NOT a pass"
+  fi
+  for workflow_file in "${tracked_workflows[@]}"; do
     assert_workflow_not_contains "$workflow_file" "Verify Perl runtime"
   done
 }
@@ -1118,6 +1196,18 @@ audit_embedding_api_surface() {
     "PGEN_USER_GUIDE.md" \
     '  - `(?R)` now appears as `subroutine_call` / `subroutine_target`, not `inline_modifiers`'
 
+  # CI-PARITY-GATE-ROT.46 — identifier-pinned, rehome-proof (see the helper's header).
+  assert_documented_on_live_surface 'docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md'
+  assert_documented_on_live_surface 'docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md'
+  assert_documented_on_live_surface 'docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md'
+  assert_documented_on_live_surface 'rtl_frontend_generated_contract_gate'
+  assert_documented_on_live_surface 'stimuli_cross_family_platform_gate'
+  assert_documented_on_live_surface 'annotation_contract_gate'
+  assert_documented_on_live_surface 'semantic_full_contract_gate'
+  assert_documented_on_live_surface 'return_annotation_support_gate'
+  assert_documented_on_live_surface 'regex_corpus_bundle/'
+  assert_documented_on_live_surface 'regex_pcre2_compile_oracle_gate'
+
   assert_file_contains \
     "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
     'Every current and future parser family that PGEN publishes for downstream consumption must have a tracked integration-contract document.'
@@ -1246,15 +1336,6 @@ audit_embedding_api_surface() {
   assert_file_contains \
     "docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md" \
     'local git-tracked records in PGEN plus zero-or-more downstream consumer repos are sufficient'
-  assert_file_contains \
-    "README.md" \
-    '`docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md`'
-  assert_file_contains \
-    "README.md" \
-    '`docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`'
-  assert_file_contains \
-    "README.md" \
-    '`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`'
   assert_file_contains \
     "COMMIT.md" \
     '`docs/contracts/PGEN_PARSER_INTEGRATION_CONTRACTS.md` and `docs/contracts/PGEN_*_PARSER_INTEGRATION_CONTRACT.md`'
@@ -1413,9 +1494,6 @@ audit_rtl_frontend_generated_contract_surface() {
   assert_file_contains \
     "rust/Makefile" \
     'cd $(RUST_DIR) && ./scripts/rtl_frontend_generated_contract_gate.sh'
-  assert_file_contains \
-    "README.md" \
-    '`make -C rust SHELL=/bin/bash rtl_frontend_generated_contract_gate`'
 }
 
 audit_stimuli_cross_family_platform_surface() {
@@ -1499,9 +1577,6 @@ audit_stimuli_cross_family_platform_surface() {
   assert_file_contains \
     "rust/Makefile" \
     'cd $(RUST_DIR) && ./scripts/stimuli_cross_family_platform_gate.sh'
-  assert_file_contains \
-    "README.md" \
-    '`make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate`'
 }
 
 audit_annotation_aggregate_contract_surface() {
@@ -1695,15 +1770,6 @@ audit_annotation_aggregate_contract_surface() {
     "PGEN_USER_GUIDE.md" \
     '`return_full_contract_gate` (local gate target)'
 
-  assert_file_contains \
-    "README.md" \
-    '`make -C rust SHELL=/bin/bash annotation_contract_gate`'
-  assert_file_contains \
-    "README.md" \
-    '`make -C rust SHELL=/bin/bash semantic_full_contract_gate`'
-  assert_file_contains \
-    "README.md" \
-    '`make -C rust SHELL=/bin/bash return_annotation_support_gate`'
 
   assert_file_contains \
     "QUICKSTART_AI_ONBOARDING.md" \
@@ -2729,13 +2795,10 @@ audit_regex_corpus_bundle_surface() {
     '`regex_corpus_bundle/` is the canonical PCRE2-first starter for widening regex evidence'
   # LIVE-MEANS-LIVE.1c2: the LIVE_ACHIEVEMENT_STATUS.md arm is RETIRED (the file is deleted by
   # `.1c3`). It was 1 arm of 21 here; the same feature stays asserted on PGEN_USER_GUIDE.md ×3, the
-  # roadmap, RUST_CODEBASE_ANALYSIS.md and README.md — measured, not assumed, before dropping it.
+  # roadmap, docs/reference/RUST_CODEBASE_ANALYSIS.md and README.md — measured, not assumed, before dropping it.
   assert_file_contains \
     "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     '`regex_corpus_bundle/`'
-  assert_file_contains \
-    "README.md" \
-    '`regex_corpus_bundle/`: PCRE2-first regex corpus acquisition/inventory starter for future regex hardening'
 }
 
 audit_regex_pcre2_compile_oracle_surface() {
@@ -2796,7 +2859,7 @@ audit_regex_pcre2_compile_oracle_surface() {
     "PGEN_USER_GUIDE.md" \
     'the compile-oracle gate is the first external-corpus lane that actually measures expected compile outcomes against PCRE2 source truth'
   # LIVE-MEANS-LIVE.1c2: retired tracker arm (1 of 20 here; guide ×2, roadmap,
-  # RUST_CODEBASE_ANALYSIS.md ×2 and README.md still assert this feature).
+  # docs/reference/RUST_CODEBASE_ANALYSIS.md ×2 and README.md still assert this feature).
   assert_file_contains \
     "docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
     '`make -C rust regex_pcre2_compile_oracle_gate` consumes the new normalizer `regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py`'
@@ -2806,9 +2869,6 @@ audit_regex_pcre2_compile_oracle_surface() {
   assert_file_contains \
     "docs/reference/RUST_CODEBASE_ANALYSIS.md" \
     '`rust/src/regex_compile_validation.rs`'
-  assert_file_contains \
-    "README.md" \
-    '`make -C rust regex_pcre2_compile_oracle_gate`'
 }
 
 audit_regex_formal_exhaustive_closure_surface() {
@@ -2988,7 +3048,7 @@ audit_sv_formal_exhaustive_closure_surface() {
     "PGEN_USER_GUIDE.md" \
     'make -C rust SHELL=/bin/bash sv_formal_exhaustive_closure_gate'
   # LIVE-MEANS-LIVE.1c2: retired tracker arm (1 of 15 here; guide, roadmap and
-  # RUST_CODEBASE_ANALYSIS.md still assert this feature).
+  # docs/reference/RUST_CODEBASE_ANALYSIS.md still assert this feature).
   assert_file_contains \
     "docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
     '`sv_formal_exhaustive_closure_gate` now makes the missing-vs-present SystemVerilog external-corpus proof surface explicit'
@@ -3084,7 +3144,7 @@ audit_sv_preprocessor_formal_exhaustive_closure_surface() {
     "PGEN_USER_GUIDE.md" \
     'make -C rust SHELL=/bin/bash sv_preprocessor_formal_exhaustive_closure_gate'
   # LIVE-MEANS-LIVE.1c2: retired tracker arm (1 of 37 here; guide, roadmap and
-  # RUST_CODEBASE_ANALYSIS.md still assert this feature).
+  # docs/reference/RUST_CODEBASE_ANALYSIS.md still assert this feature).
   assert_file_contains \
     "docs/reference/PGEN_SOTA_IMPLEMENTATION_ROADMAP.md" \
     '`sv_preprocessor_formal_exhaustive_closure_gate` now makes the missing-vs-present SystemVerilog-preprocessor grammar-level proof surface explicit'

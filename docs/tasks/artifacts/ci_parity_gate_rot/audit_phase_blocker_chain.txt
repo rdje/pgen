@@ -1,0 +1,127 @@
+# CI-PARITY-GATE-ROT.46 — THE PARITY GATE'S AUDIT PHASE HAD SEVEN LAYERED BLOCKERS, AND EACH ONE
+# HID THE NEXT. Measured 2026-08-25 at HEAD 337bf248, while discharging ENGINE-UNIVERSAL-SERVICES.49(a).
+#
+# The tree's own title says this gate is "the one the README names as the way to prove workflow
+# parity while hosted Actions are paused". It has not been able to clear its own AUDIT phase since
+# 2026-07-30 — 26 days — so its REPLAY phase, and the cold-clone bootstrap inside it, were
+# unreachable that whole time.
+
+## 0. WHY THE FAILURES CAME ONE AT A TIME
+
+`main()` runs the audits in sequence and `fail` aborts on the first one. So each blocker MASKED
+every later blocker, and the only way to size the population was to fix and re-run, seven times.
+⇒ "the gate is red for reason X" is never a complete statement about a fail-fast pipeline. The
+count is not knowable until the last one clears.
+
+⚠️ This also means the routing note in `.20` (2026-07-31, *"two fresh audit-phase blockers"*) was
+not wrong so much as **bounded by the same mechanism** — two is what was visible from where it stood.
+
+## 1. THE SEVEN, EACH DATED TO THE COMMIT THAT INTRODUCED IT
+
+| # | audit | what broke it | date | commit |
+|---|---|---|---|---|
+| 1 | markdown repo-path policy | a `CHANGES.md` entry QUOTED an absolute checkout path while reporting a finding about one; this gate greps ALL `*.md`, and the registered enforcer deliberately exempts append-only history | 2026-08-17 | `8bb61555` |
+| 2 | root markdown allowlist | `LIVE_DOCUMENT_SIZE_CONTAINMENT.md` added at repo root; the EXACT-SET roster was not updated in the same commit | 2026-08-08 | `6344e6ba` |
+| 3 | top-level docs allowlist | `docs/DERIVED_STATE_CONTAINMENT.md`, then `docs/CLAIM_VERIFICATION.md`; same EXACT-SET roster problem, twice | 2026-08-08 / 2026-08-15 | `dec22e73` / `b8c117c5` |
+| 4 | active docs rehome paths | four BARE `RUST_CODEBASE_ANALYSIS.md` references written into this gate's OWN comments — the audit greps its own source file | 2026-07-31 | `c776bfac` |
+| 5 | tracked workflow surface | the Perl EBNF frontend was RETIRED and this gate still asserted two workflows must CONTAIN a "Verify Perl runtime" step | 2026-07-30 | `1ea5a87b` |
+| 6 | regex contract instruction section | a sentence naming `grammars/<the regex grammar>` landed inside the consumer-facing recipe section a director ruling forbids citing it in | 2026-07-31 | `ae5fa2d6` |
+| 7 | README content pins | `README-POLICY.1` made README.md a deliberate LANDING PAGE; the gate pinned **ten** exact sentences to it | 2026-07-30 | `d29c3dd7` |
+
+⇒ **EARLIEST BLOCKER: 2026-07-30** (two of them, same day). The gate has been unable to pass since.
+
+## 2. THE COMMON MECHANISM — THREE OF THE SEVEN ARE THE SAME DEFECT
+
+Blockers 2, 3 and 7 are one shape: **an EXACT-SET or exact-string roster, maintained by hand, in a
+gate nothing automatic runs.** A doc added to the tree does not join the roster, so the gate goes
+red; and because the gate is operator-invoked, the red has no audience. Every one of these commits
+was a legitimate, deliberate addition by a leaf doing its job. None of them was told.
+
+Blockers 5 and 6 are a second shape: **a pinned assertion that outlived the decision it encoded.**
+The Perl step was deliberately deleted; the README detail was deliberately moved. In both cases the
+gate did not detect a regression — **it demanded one.**
+
+Blocker 4 is a third: **the audit greps its own source**, so writing an explanatory comment about a
+doc is indistinguishable from citing that doc badly. `.20` already recorded the self-referential
+assertion class and measured *"exactly one site repo-wide … already written in the sound form"*.
+⚠️ That measurement was over `assert_*` self-targeting calls; this is the same disease reached by a
+different route — the file appearing in a grep FILE LIST — so it was outside that census by
+construction, not missed by it.
+
+Blocker 1 is a fourth: **one doctrine, two enforcers, different scopes** — `.20a`'s shape exactly,
+on the axis `.20a` did not close. It aligned them on WHICH TREE (`--no-recurse-submodules`);
+nothing aligned them on WHICH FILES or WHAT PATTERN.
+
+## 3. THE FIXES — AND WHY NONE OF THEM IS "ADD IT TO THE LIST AND MOVE ON"
+
+1. **Delegate, do not paraphrase.** `audit_markdown_repo_relative_paths` now CALLS
+   `scripts/check_diagnostics_and_docpaths.sh` instead of re-deriving the rule. That enforcer is
+   registered, runs from `.githooks/pre-commit` and in CI, documents its scope decision with its
+   reasoning, and costs 0.32 s. The re-implementation it replaced was over-scoped in one direction
+   and, in the other, matched a FIXED string containing ONE developer's username and ONE checkout
+   location — so it could not have fired on a hosted runner at all. **That half failed in the
+   PASSING direction, which is worse than the half that blocked.**
+   ⛔ `CHANGES.md` is NOT edited. Append-only history is exactly the surface the doctrine exempts by
+   design, and a changelog quoting a path creates no dependency on it.
+2/3. **Deliberate admission, to `.1`'s standard** — reference counts measured before admitting, and
+   the sort order taken verbatim from the audit's own output rather than guessed:
+   `docs/CLAIM_VERIFICATION.md` 17 files / 46 mentions (it is the standing director directive named
+   in the session prompt itself), `docs/DERIVED_STATE_CONTAINMENT.md` 14 / 46 (cited by layer-A
+   `MEMORY.md`'s own header), `LIVE_DOCUMENT_SIZE_CONTAINMENT.md` a sibling of the already-listed
+   `README_POLICY.md`.
+4. **The stale comments now name the rehomed path** — the audit was RIGHT; the text was five months
+   stale. ⚠️ I first dated these to March via `git log -L` and concluded the audit was "red at
+   birth". **That was wrong and is retracted here**: `-L` traces line POSITIONS through history, not
+   text. Running the audit's own pattern against the file AT the audit's birth commit returns ZERO
+   hits, and `git log -S` on the exact strings dates all four to `c776bfac`, 2026-07-31.
+5. **The Perl assertion is INVERTED and its population DERIVED.** Measured: `grep -il perl
+   .github/workflows/*.yml` → **0 of 15**. The rule is no longer "these two may, those eight may
+   not" but "no workflow may reintroduce Perl", which is a closed-population claim — so the
+   population comes from `git ls-files`, and an empty population REFUSES rather than passing
+   vacuously. A hand roster is what rotted in blockers 2, 3 and 7; it is not the fix for blocker 5.
+6. **Reworded, not deleted.** The forbidden citation was explanatory prose that happened to sit
+   inside the guarded section. The ruling's own text says the invariant is about INSTRUCTIONS and
+   that history may name the file — so the sentence keeps its meaning and drops the internal path.
+7. **The ENCODING was the defect, and rehoming the pins would not have fixed it.** All ten subjects
+   are still documented on a live surface. ⚠️ My first census reported one as living NOWHERE; that
+   was an artifact of exact-string matching — the repository path-inventory entry moved to
+   `docs/book/src/developer-architecture.md:156` and was REWORDED on the way. So a pin on
+   (one file × one sentence) breaks when EITHER moves, and both move routinely.
+   ⇒ new `assert_documented_on_live_surface <identifier>`: it pins the **identifier** — a doc path
+   or a make-target name, which is what the invariant is actually about — and looks for it anywhere
+   on the live-doc surface set. A rehome or a rewording no longer produces a false red; deleting
+   the subject still produces a true one. 10/10 pass.
+
+## 4. THE GATE IS GREEN, END TO END
+
+  $ scripts/run_with_memory_guard.sh --budget-mb 16384 --timeout-s 5400 -- \
+      env PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate \
+          PGEN_CI_WORKFLOW_LOCAL_KEEP_RUNS=true \
+      bash rust/scripts/ci_workflow_local_gate.sh
+
+    … every audit passes …
+    preparing generated/ inside the export dir (cold-clone bootstrap)
+    ok prepare generated/
+    ok branch-protection-contract-gate
+    all selected local workflow commands passed (1 replayed)
+    memory-guard: completed exit=0 peak_tree_rss=5010MB elapsed=282s
+
+## 5. AND THAT DISCHARGES `ENGINE-UNIVERSAL-SERVICES.49` (a)
+
+`.49`(a) owed *"the cold-clone bootstrap proven end-to-end from a tracked-files-only tree"* — which
+`CI-PARITY-GATE-ROT.40` did NOT provide: `-0034` proved the cold COMPILE, which is a different and
+weaker claim. This is the missing half, and it is the repository's own instrument rather than a
+second implementation of one:
+
+  export dir = `git ls-files` output only            → `git ls-files generated | wc -l` = **0**
+  after `make -C rust regenerate_generated_parsers`  → **10** artifacts on disk:
+      ebnf.rs · return_annotation_parser.rs · semantic_annotation_parser.rs · json_parser.rs
+      regex_parser.rs · systemverilog_parser.rs · systemverilog_preprocessor_parser.rs
+      vhdl_parser.rs · rtl_const_expr_parser.rs · rtl_frontend_parser.rs
+  occurrences of `E0425` anywhere in the preparation log → **0**
+  the recipe's own verdict → `✅ generated/ regenerated: annotation pair + 7 grammar families.`
+
+⚠️ **TEN, NOT ELEVEN, AND THAT IS CORRECT.** `scratch_parser.rs` is the blessed scratch slot,
+produced by `make focus_scratch` and not by the canonical regeneration — which is precisely the
+asymmetry `CI-PARITY-GATE-ROT.41` owns ("an 11th artifact `regenerate_generated_parsers` never
+produces"). This run is consistent with `.41`, and does not close it.

@@ -1,5 +1,60 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-25 - PGEN-CI-PARITY-GATE-ROT-0035 — a fail-fast pipeline cannot tell you how broken it is, and three of its seven wounds were self-inflicted by the roster it asks you to maintain
+
+**1. ⭐⭐⭐ "THE GATE IS RED FOR REASON X" IS NEVER A COMPLETE STATEMENT ABOUT A FAIL-FAST PIPELINE.**
+I opened this leaf with a confident, well-evidenced, single-cause headline. It was the first of
+SEVEN, and the other six were invisible from where I stood, by construction: `main()` aborts on the
+first failing audit. The population could only be measured by fixing and re-running, seven times.
+⇒ when a sequential checker fails, the honest report is *"the first blocker is X; the count is
+unknown until X clears"* — and the same sentence exonerates `.20`, whose 2026-07-31 note said
+*"two fresh audit-phase blockers"* and was bounded by the identical mechanism rather than by
+carelessness. ⭐ The generalisation worth keeping: **a diagnosis produced by an instrument that stops
+at the first finding inherits that instrument's stopping rule, and must publish it.**
+
+**2. ⭐⭐⭐ A HAND-MAINTAINED EXACT-SET ROSTER INSIDE AN OPERATOR-INVOKED GATE IS A TRAP THAT PUNISHES
+CORRECT WORK.** Three of the seven blockers were `LIVE_DOCUMENT_SIZE_CONTAINMENT.md`,
+`docs/DERIVED_STATE_CONTAINMENT.md` and `docs/CLAIM_VERIFICATION.md` — three deliberate, reviewed,
+load-bearing policy docs added by three leaves doing exactly their job. Each addition turned the gate
+red, and because nothing automatic runs it, no one was told. The tempting write-up is "people forgot
+to update the roster". The true one is that **the roster is unrememberable and its only reminder is
+the thing it breaks** — so the fix for the fourth instance is not a fourth roster entry. Where the
+rule permitted it (the Perl assertion), the population is now DERIVED from `git ls-files`, with a
+refuse-on-empty arm so a derived population can never pass vacuously.
+
+**3. ⭐⭐⭐ A STALE PIN DOES NOT DETECT A REGRESSION — IT DEMANDS ONE.** Two blockers were assertions
+that outlived the decisions they encoded: the retired Perl step, and ten exact sentences pinned to a
+README that a reviewed policy had deliberately turned into a landing page. **10 of 10 were failing.**
+A check in that state is worse than absent: it enforces nothing (its subject is gone) while blocking
+everything behind it, and it teaches the next reader that this gate is "just always red". ⇒ when a
+policy changes a surface, the assertions ABOUT that surface are part of the change's blast radius,
+and the commit that changes the policy is the one that must sweep them.
+
+**4. ⭐⭐ FIXING THE PIN WOULD NOT HAVE FIXED THE DEFECT — THE ENCODING WAS THE DEFECT.** My first
+instinct was to rehome the ten pins to the files that now carry the content. Measurement killed that:
+one subject had not merely MOVED, it had been **REWORDED** on the way
+(`docs/book/src/developer-architecture.md:156`), so a rehomed exact-string pin would have rotted on
+the next edit. A pin on (one file × one sentence) breaks when either moves, and both move routinely.
+The invariant is not about a sentence — it is about whether an IDENTIFIER (a doc path, a make-target
+name) is findable by a consumer. Pin the identifier, scan the surface set. ⇒ **when a check keeps
+rotting, suspect what it is keyed on before you suspect the people editing around it.**
+
+**5. ⛔⛔ I ALMOST PUBLISHED "THE AUDIT WAS RED ON THE DAY IT WAS BORN", AND IT IS FALSE.** `git log
+-L 2762,2762:file` dated the offending comments to March, four months before the audit existed —
+a striking claim about an enforcement check shipping broken. `-L` traces line POSITIONS through
+history, not text. Two independent re-derivations killed it: running the audit's own pattern against
+the file AT the audit's birth commit returns ZERO hits, and `git log -S` on the exact strings dates
+all four to 2026-07-31. ⇒ **`git log -L` answers "what happened at these coordinates", never "when
+did this text appear"** — and the tell was that the claim was more interesting than the evidence had
+earned. That is the second time this session that the interesting hypothesis was the wrong one
+(the first: blaming the previous commit for a `GENERATED-REPRODUCIBILITY` breach my own edit caused).
+
+**6. ⭐ AND I COMMITTED THE DEFECT I WAS DOCUMENTING, WHILE DOCUMENTING IT.** Writing the leaf, I
+pasted the forbidden absolute-path literal into `docs/tasks/**` — a guarded surface — three times,
+in a paragraph that QUOTES `.20a` warning that doing so *"makes this routing note trip the very
+doctrine it reports"*. The red control I had just built is what caught it. ⇒ reporting a defect and
+reproducing it are separated by nothing but an instrument that runs.
+
 ## 2026-08-25 - PGEN-CI-PARITY-GATE-ROT-0034 — the fix took fifteen minutes; what the leaf is worth is that the reproduction stopped destroying the tree it measured, and that the wiring was inert on its first cut
 
 **1. ⭐⭐⭐ A REPRODUCTION THAT MUTATES ITS SUBJECT CAN NEVER BECOME A GATE — AND THAT IS WHY A FULLY

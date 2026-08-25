@@ -143,6 +143,171 @@ commands.
 
 **It cannot complete, and has not been able to for 1,371 commits.**
 
+### ✅ `.46` `done` — **`ci_workflow_local_gate` HAD SEVEN LAYERED AUDIT-PHASE BLOCKERS AND HAS BEEN RED SINCE 2026-07-30 — 26 DAYS — SO ITS REPLAY PHASE, AND THE COLD-CLONE BOOTSTRAP INSIDE IT, WERE UNREACHABLE** (opened AND closed 2026-08-25 by `ENGINE-UNIVERSAL-SERVICES.49`(a), which needs this gate to prove the cold bootstrap end-to-end; `PGEN-CI-PARITY-GATE-ROT-0035`)
+
+⛔ **WHY THIS IS BEING WORKED RATHER THAN ROUTED**: it is on the frontier's critical path.
+`ENGINE-UNIVERSAL-SERVICES.49`(a) owes *"the cold-clone bootstrap proven end-to-end from a
+tracked-files-only tree"*, and this gate's `prepare_generated_artifacts` is the repository's ONE
+instrument that replays that bootstrap into a `git ls-files`-only export dir. The gate aborts in its
+AUDIT phase, so that preparation is never reached.
+
+> ⛔⛔ **THIS LEAF'S OWN FIRST HEADLINE IS RETRACTED, IN PLACE.** It was opened as *"RED since
+> 2026-08-17 because one doctrine has two enforcers that disagree"*. That was the FIRST blocker
+> visible, not the population: `main()` runs the audits in sequence and aborts on the first failure,
+> so **each blocker masked every later one**, and the count was not knowable until the last cleared.
+> Measured: **SEVEN**, the earliest dated **2026-07-30**. ⇒ *"the gate is red for reason X"* is never
+> a complete statement about a fail-fast pipeline — and `.20`'s own *"two fresh audit-phase blockers"*
+> (2026-07-31) was bounded by the identical mechanism, not by carelessness.
+> Full chain, dated to the introducing commit: [`artifacts/ci_parity_gate_rot/audit_phase_blocker_chain.txt`](artifacts/ci_parity_gate_rot/audit_phase_blocker_chain.txt).
+
+- ⛔ **REPRODUCED AT HEAD `337bf248`**, `PGEN_CI_WORKFLOW_LOCAL_FILTER=branch-protection-contract-gate`
+  (the cheap shell+jq replay), guard `exit=1` after 65 s — this is blocker **1 of 7**:
+  ```
+  auditing markdown repo-path policy
+  CHANGES.md:6548:  <an absolute `/Users/<user>/` … ending in `pgen/` … >, in a tracked file).
+  error: absolute PGEN checkout path found in markdown docs; use relative repo paths
+  ```
+- ⭐⭐ **THE POPULATION IS EXACTLY ONE HIT, AND IT IS NOT A PATH — IT IS A QUOTATION OF ONE.**
+  `git grep --no-recurse-submodules -nI -F -- '<the absolute `/Users/<user>/` … `pgen/` prefix>' -- '*.md'`
+  returns that single line. It ends in `…` — a changelog entry *describing a finding whose subject is
+  an absolute path in a tracked file*. Quoting the thing you are reporting is what trips the audit.
+- ⛔⛔ **AND `.20a` ALREADY RECORDED THIS, IN WORDS, ELEVEN MONTHS OF COMMITS AGO**: *"The literal is
+  deliberately NOT reproduced here: `docs/tasks/**` is itself on the guarded surface, so pasting it
+  makes this routing note trip the very doctrine it reports."* `-0217` (2026-08-17, `8bb61555`) then
+  pasted the literal into `CHANGES.md` — a surface the OTHER enforcer deliberately does not guard —
+  and the parity gate has been unrunnable ever since. ⇒ **a warning written in prose in one leaf does
+  not bind a different surface eight days later.**
+- ⛔⛔⛔ **THE ROOT CAUSE IS NOT THE CHANGELOG LINE. IT IS THAT ONE DOCTRINE HAS TWO ENFORCERS WITH
+  DIFFERENT SCOPES AND DIFFERENT PATTERNS**, and only one of them is reasoned:
+
+  | | `scripts/check_diagnostics_and_docpaths.sh` (`DOCPATH`, pre-commit + CI) | `ci_workflow_local_gate.sh` `audit_markdown_repo_relative_paths` |
+  |---|---|---|
+  | scope | an ALLOW-LIST of LIVE doc surfaces: `docs/book/src/**`, `docs/contracts/**`, `PGEN_USER_GUIDE.md`, `README.md`, `docs/tasks/**`, `docs/decisions/**`, `KNOWLEDGE_MAP.md`, `docs/knowledge/**` | **every** `*.md` |
+  | append-only history | **deliberately excluded, and says so**: *"repo-external refs and append-only history (CHANGES.md/DEVELOPMENT_NOTES.md) are deliberately out of scope"* | included |
+  | pattern | `-E '/Users/[^ )` + "`" + `]*/pgen/'` — general over user and checkout | `-F` on a FIXED string — one developer's `/Users/<user>/` … `pgen/` checkout, hard-coding ONE username and ONE location |
+  | verdict on HEAD | **OK** | **FAIL** |
+
+  ⇒ the parity gate's arm is simultaneously **over-scoped** (it governs history the doctrine
+  deliberately exempts) and **under-general** (it cannot fire for any other user, or for this user on
+  any other checkout path — so it would be silently blind on a hosted runner, where `$HOME` is not
+  `/Users/richarddje`). Both directions are defects, and the second one fails in the PASSING
+  direction.
+- ⭐ **`.20a` RESOLVED THE SUBMODULE AXIS OF THIS SAME DISAGREEMENT AND LEFT THE OTHER OPEN.** Its
+  ruling — *"a doctrine whose two enforcers disagree is not one doctrine"* — was applied by adding
+  `--no-recurse-submodules` to the parity gate's arm, aligning the two on WHICH TREE. Nothing aligned
+  them on WHICH FILES, or on WHAT PATTERN. The second axis then went live.
+
+#### The fix — delete the re-implementation, do not align a copy
+
+⛔ **Aligning the pathspec and the regex by hand would create the very thing this leaf is about**: two
+spellings of one rule that must agree. `DOCPATH` is the enforcer — it is registered, it runs at
+commit time and in CI, its scope decision is documented with its reasoning, and it costs **0.32 s**.
+⇒ the parity gate's audit **calls it** instead of re-deriving it. The gate's audit also gets the
+doctrine's severity arm for free, which is strictly more coverage than the line it replaces.
+
+⛔ **`CHANGES.md:6548` IS DELIBERATELY NOT EDITED.** It is append-only history, which is exactly the
+surface `DOCPATH` exempts by design, and a changelog quoting a path creates no dependency on that
+path — the doctrine exists so *live* docs survive the repo being moved. Editing a past entry to
+satisfy a mis-scoped check would be treating the symptom and rewriting the record to do it.
+
+#### THE OTHER SIX, EACH DATED TO THE COMMIT THAT INTRODUCED IT
+
+| # | audit | what broke it | date | commit |
+|---|---|---|---|---|
+| 2 | root markdown allowlist | `LIVE_DOCUMENT_SIZE_CONTAINMENT.md` added at repo root; the EXACT-SET roster not updated in the same commit | 2026-08-08 | `6344e6ba` |
+| 3 | top-level docs allowlist | `docs/DERIVED_STATE_CONTAINMENT.md`, then `docs/CLAIM_VERIFICATION.md` — the same roster problem, twice | 2026-08-08 / 08-15 | `dec22e73` / `b8c117c5` |
+| 4 | active docs rehome paths | four BARE `RUST_CODEBASE_ANALYSIS.md` references written into this gate's OWN comments; the audit greps its own source file | 2026-07-31 | `c776bfac` |
+| 5 | tracked workflow surface | the Perl EBNF frontend was RETIRED and this gate still asserted two workflows must CONTAIN a "Verify Perl runtime" step | 2026-07-30 | `1ea5a87b` |
+| 6 | regex contract instruction section | a sentence naming the regex grammar's internal path landed inside the consumer-facing recipe section a director ruling forbids citing it in | 2026-07-31 | `ae5fa2d6` |
+| 7 | README content pins | `README-POLICY.1` made README.md a deliberate LANDING PAGE; this gate pinned **ten** exact sentences to it, and **10 of 10 now fail** | 2026-07-30 | `d29c3dd7` |
+
+⭐⭐⭐ **THREE OF THE SEVEN ARE ONE DEFECT: A HAND-MAINTAINED EXACT-SET ROSTER IN A GATE NOTHING
+AUTOMATIC RUNS.** A doc added to the tree does not join the roster, so the gate goes red — and
+because the gate is operator-invoked, that red has no audience. ⛔ **Every one of those commits was
+a legitimate, deliberate addition by a leaf doing its job.** None of them was careless and none of
+them was told. That is the diagnosis: not "people forgot the roster" but "the roster cannot be
+remembered, and the only thing that would remind them is the gate that the roster breaks".
+
+⭐⭐ **TWO MORE (5, 7) ARE A PINNED ASSERTION THAT OUTLIVED THE DECISION IT ENCODED.** The Perl step
+was deliberately deleted (`1ea5a87b`'s own subject: *"the Perl EBNF frontend is RETIRED, and the
+guard that pinned it is INVERTED"* — it inverted the guard it knew about and missed this one); the
+README detail was deliberately moved by a reviewed policy with its own doctrine. In neither case did
+the gate detect a regression — **it demanded one.**
+
+#### The fixes, and why none of them is "add it to the list and move on"
+
+- **(1) Delegate, do not paraphrase** — as above.
+- **(2, 3) Deliberate admission to `.1`'s standard**: reference counts measured BEFORE admitting
+  (`docs/CLAIM_VERIFICATION.md` 17 files / 46 mentions — the standing director directive named in
+  the session prompt itself; `docs/DERIVED_STATE_CONTAINMENT.md` 14 / 46, cited by layer-A
+  `MEMORY.md`'s own header), and the sort order taken VERBATIM from the audit's own output rather
+  than guessed, because that list is compared against `sort` and this locale is not obvious.
+- **(4) The stale comments now name the rehomed path** — the audit was RIGHT, the text was stale.
+  ⛔⛔ **AND MY FIRST DATING OF THEM IS RETRACTED.** `git log -L` put them in March, from which I
+  concluded *"the audit was RED on the day it was born"* — a strong and interesting claim. It is
+  FALSE: `-L` traces line POSITIONS through history, not text. Running the audit's own pattern
+  against the file AT the audit's birth commit (`a2791bbc`) returns **ZERO** hits, and `git log -S`
+  on the exact strings dates all four to `c776bfac`, 2026-07-31. ⇒ **the audit was green at birth
+  and was broken four months later, by the same leaf `.20` was watching.**
+- **(5) The Perl assertion is INVERTED and its population DERIVED.** Measured: `grep -il perl
+  .github/workflows/*.yml` → **0 of 15**. So the rule is no longer *"these two may, those eight may
+  not"* but *"no workflow may reintroduce Perl"* — a CLOSED-POPULATION claim, so the population now
+  comes from `git ls-files` and an empty population REFUSES rather than passing vacuously. ⛔ A hand
+  roster is what rotted in 2, 3 and 7; it is not the fix for 5.
+- **(6) Reworded, not deleted.** The ruling's own text says the invariant is about INSTRUCTIONS and
+  that history may name the file, so the sentence keeps its meaning and drops the internal path.
+- **(7) ⭐⭐⭐ THE ENCODING WAS THE DEFECT, AND REHOMING THE PINS WOULD NOT HAVE FIXED IT.** All ten
+  subjects are still documented on a live surface. ⚠️ My first census reported one as living
+  NOWHERE — an artifact of exact-string matching: the repository path-inventory entry moved to
+  `docs/book/src/developer-architecture.md:156` and was **REWORDED** on the way. ⇒ a pin on
+  (one file × one sentence) breaks when EITHER moves, and both move routinely. New
+  `assert_documented_on_live_surface <identifier>` pins the **identifier** — a doc path or a
+  make-target name, which is what the invariant is actually about — anywhere on the live-doc
+  surface set. A rehome or a rewording no longer produces a false red; deleting the subject still
+  produces a true one. **10/10 pass.**
+
+#### Acceptance Checklist (enforced) — `.46`
+
+- [x] **REPRODUCE / ISSUE** — reproduced deterministically at HEAD `337bf248`: the gate exits 1 in
+  its audit phase after 65 s, never reaching `prepare_generated_artifacts`. Re-reproduced SIX more
+  times, once per blocker, each time by re-running the gate after clearing the previous one — which
+  is the only way a fail-fast pipeline's blocker count can be measured.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY, three mechanisms, not one: (i) hand-maintained EXACT-SET
+  rosters in a gate nothing automatic runs (blockers 2, 3, 7 — a deliberate doc addition cannot
+  join the roster and the resulting red has no audience); (ii) pinned assertions that outlived the
+  decisions they encoded (5, 7 — a deleted Perl step and a policy-mandated README rewrite, where
+  the gate demanded the regression rather than detecting one); (iii) one doctrine with two
+  enforcers disagreeing on scope and pattern (1 — `.20a`'s shape on the axis `.20a` left open), plus
+  an audit that greps its own source (4). Diagnosed with the ops/build-flow toolbox, not by reading:
+  each blocker was localized by re-running the gate under the memory guard and reading its own abort
+  line, then the population behind it sized with `git ls-files` / `git grep -F` over the guarded
+  surface (root roster drift = 1 file; docs roster drift = 2; README pins = **10 of 10 failing**;
+  Perl = **0 of 15** workflows), and every date established with `git log -S` on the exact string
+  after `git log -L` was proven to answer a different question. WHERE: `rust/scripts/ci_workflow_local_gate.sh`
+  `audit_markdown_repo_relative_paths`, `audit_root_markdown_surface`, its top-level docs roster,
+  `audit_active_docs_rehome_paths`, `audit_workflow_surface`, and the ten README pins; plus
+  `docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md`'s recipe section.
+- [x] **FIX** — fix-hierarchy tier = **ops/gate + docs**; ZERO grammar, engine, codegen or generated
+  bytes. One re-implementation DELETED in favour of calling the registered enforcer; two rosters
+  deliberately extended with measured justification; one assertion inverted and its population
+  DERIVED from `git ls-files` with a refuse-on-empty arm; four stale comments repathed; one contract
+  sentence reworded; ten file×sentence pins replaced by ten identifier pins.
+- [x] **ADDRESSED (verified)** — measured before→after on the identical command. **BEFORE:** `exit=1`
+  in the audit phase, 65 s, replay phase unreachable. **AFTER:** every audit passes, the gate reaches
+  and completes the cold-clone bootstrap, replays its workflow and reports
+  `all selected local workflow commands passed (1 replayed)`, guard **`exit=0`**, peak 5010 MB,
+  282 s. The identifier pins are 10/10 green, verified independently of the gate.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → all 27 enforced doctrines PASS.
+  `bash scripts/check_diagnostics_and_docpaths.sh` → OK (it is now also the parity gate's own
+  enforcer, so it is exercised from two callers). ZERO generated bytes: no grammar, no `rust/src`,
+  no codegen file is touched, so all eleven parsers are byte-identical BY CONSTRUCTION.
+- promotion: covered by [[a-conditional-compilation-gate-is-a-claim-about-which-trees-exist]]'s
+  sibling lesson recorded in `DEVELOPMENT_NOTES.md` for `-0035`; no new knowledge file — the
+  fail-fast-masking and hand-roster shapes are restatements of
+  [[an-x-is-checked-by-nothing-claim-is-a-census-claim]] and
+  [[a-control-defined-by-enumerating-a-domain-expires-when-the-domain-widens]], and a fourth copy of
+  a lesson already twice-recorded is exactly the duplication those records warn about.
+
 ### ⚠️ `.45` NEW `todo` — **the aggregate's required-check roster is spelled TWICE, and one of the two spellings is DEAD CODE that has already drifted — so adding a check to the wrong one wires NOTHING** (opened 2026-08-25 session by `.40`, which nearly shipped exactly that)
 
 > ⛔ **ROUTED, NOT WORKED.** `.40` hit this while wiring its own gate, corrected its own change, and

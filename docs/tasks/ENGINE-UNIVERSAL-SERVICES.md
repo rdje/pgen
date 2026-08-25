@@ -12757,7 +12757,7 @@ says so today.
 ⚠️ **PRIORITY: after `.46` and `.47`.** It blocks nothing — the row is green and its claim is now
 re-derived — and the SV lane lock means the owning tree is not being worked.
 
-### ⛔ `.49` — **DIRECTOR-DELEGATED AND RULED BY ME: the unit-test gate BELONGS on the automatic `push:` lane — and it is BLOCKED on `CI-PARITY-GATE-ROT.40`, measured, because the regeneration step every such workflow needs DIES ON A BARE CHECKOUT** (`todo`, opened 2026-08-25 by `.46` slice 4 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0086`)
+### ⏳ `.49` — **DIRECTOR-DELEGATED AND RULED BY ME: the unit-test gate BELONGS on the automatic `push:` lane. ✅ (a) IS DISCHARGED — the blocker is repaired AND the cold bootstrap is proven end-to-end; (b) the workflow itself is next** (`in-progress`, opened 2026-08-25 by `.46` slice 4 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0086`; (a) closed 2026-08-25 by `PGEN-CI-PARITY-GATE-ROT-0034` + `-0035`)
 
 ⛔⛔ **DIRECTOR DELEGATION, 2026-08-25, verbatim: *"This call is yours to make … but it got to be sota
 and signoff."*** I had escalated the cadence as a hosted-spend decision. It came back to me, so it is
@@ -12812,8 +12812,34 @@ therefore *"the first hosted run observed GREEN, plus a deliberate RED control"*
 YAML parses and whose steps mirror a working peer is a **structural** verification only, and this leaf
 must not be closed on it.
 
-**Owed, in order:** (a) `CI-PARITY-GATE-ROT.40` repaired and the cold-clone bootstrap proven
-end-to-end from a tracked-files-only tree; (b) `lib-unit-test-gate.yml` on `push:`, with its first
+#### ✅ (a) DISCHARGED 2026-08-25 — and it took TWO commits, because the leaf asked for more than the fix
+
+`-0034` repaired `CI-PARITY-GATE-ROT.40` and proved the cold **compile** (before `exit=101` / one
+`E0425` → after `exit=0`, lib and `--bin ast_pipeline`). ⛔ **That is a weaker claim than this leaf
+asked for**, and saying so is the point: (a)'s words are *"proven END-TO-END from a
+tracked-files-only tree"*, which a `cargo check` does not establish.
+
+`-0035` supplied the missing half — through the repository's own instrument rather than a second
+implementation of one. Getting there required repairing `ci_workflow_local_gate`, which turned out
+to have **SEVEN layered audit-phase blockers** and to have been RED since **2026-07-30**, so the
+bootstrap replay inside it had been unreachable for 26 days (`CI-PARITY-GATE-ROT.46`). Then:
+
+```
+export dir = `git ls-files` output only            git ls-files generated | wc -l  ->  0
+after `make -C rust regenerate_generated_parsers`  10 artifacts on disk
+occurrences of E0425 in the preparation log        0
+the gate's own verdict                             all selected local workflow commands passed
+                                                   memory-guard: completed exit=0 … elapsed=282s
+```
+
+⚠️ **TEN artifacts, not eleven, and that is correct** — `scratch_parser.rs` comes from
+`make focus_scratch`, not from the canonical regeneration, which is exactly the asymmetry
+`CI-PARITY-GATE-ROT.41` owns. This run is consistent with `.41` and does not close it.
+
+⇒ **the `push:` lane's step 3 of 5 is now proven green on the path a hosted runner would take.**
+
+**Owed, in order:** (a) ✅ **DONE** — `CI-PARITY-GATE-ROT.40` repaired and the cold-clone bootstrap
+proven end-to-end from a tracked-files-only tree; (b) `lib-unit-test-gate.yml` on `push:`, with its first
 hosted run observed GREEN and a deliberate RED control; (c) if (a) proves harder than its one-line
 diagnosis suggests, the fallback is `workflow_dispatch:` parity with its peers PLUS a recorded
 disposition in `rust/test_data/grammar_quality/gate_reachability_register_v0.json`, so the cadence is
