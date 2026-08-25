@@ -382,6 +382,9 @@ fn interpret_parse_gen_ast_core(
     let mut interp = Interp {
         arena: &node_arena,
         grammar: grammar_tree,
+        // ENGINE-UNIVERSAL-SERVICES.46 (c) — see the fields' doc comments.
+        profile_gate_bypass_depth: 0,
+        lookahead_vacuity_cache: std::cell::RefCell::new(std::collections::HashMap::new()),
         annotations,
         layout: grammar_layout_policy(&compiled_sem),
         comment_arms: comment_arm_suppression_for_grammar(grammar_name, grammar_tree, annotations),
@@ -715,6 +718,22 @@ struct Interp<'g, 'i> {
     /// unifies to the arena's scope (input is reborrowed down to it).
     arena: &'i NodeArena<'i>,
     grammar: &'g HashMap<String, ASTNode>,
+    /// ⭐⭐⭐ `ENGINE-UNIVERSAL-SERVICES.46` (c) — depth of the profile-gate bypass currently in
+    /// effect, mirroring the generated parser's `profile_gate_bypass_depth` field and set under the
+    /// SAME emission condition (a NEGATIVE lookahead whose body can reach a `@profiles`-gated rule).
+    /// While non-zero the rule-entry `@profiles` guard is skipped AND the packrat memo is suspended.
+    ///
+    /// A `@profiles` gate does not remove a rule, it makes the rule backtrack unconditionally, and a
+    /// negative lookahead fails only when its body MATCHED — so `!X` succeeded VACUOUSLY once `X`
+    /// was gated away, and the NARROWER profile accepted strings a wider one rejects. A lookahead is
+    /// a CONSTRAINT, not a production; removing its subject from a dialect must not loosen it.
+    /// The memo must be suspended with it: the key is `(rule, position)` and carries no profile bit,
+    /// so a bypassed success would otherwise be replayed by an ordinary call at the same position.
+    profile_gate_bypass_depth: usize,
+    /// `ENGINE-UNIVERSAL-SERVICES.46` (c) — memoized `(lookahead-body pointer, active profile) ->
+    /// is the guard vacuous here`. `parse_lookahead` is hot and the answer is a pure function of the
+    /// grammar and the profile, neither of which moves during a parse.
+    lookahead_vacuity_cache: std::cell::RefCell<std::collections::HashMap<(usize, String), bool>>,
     annotations: Option<&'g Annotations>,
     /// The grammar's layout/whitespace-skipping policy (PARSE-HARNESS.5.1) — consulted by
     /// `match_string`, `match_regex`, and the trailing-layout consume so the interpreter is
@@ -939,7 +958,10 @@ impl<'g, 'i> Interp<'g, 'i> {
         // (ast_based_generator.rs:2692-2704) + `rule_profile_is_enabled` (:4903). Empty (ungated) rule
         // or `None` active profile ⇒ always enabled. This is what makes the interpreter reject a
         // relaxed-only construct (e.g. `directive_name_relaxed`) under strict `pcre2` (PARSE-HARNESS.5.1).
-        if self.active_profile.is_some() {
+        // ENGINE-UNIVERSAL-SERVICES.46 (c) — inside a NEGATIVE lookahead the gate is not applied:
+        // a lookahead is a CONSTRAINT, and removing its subject from a dialect must not loosen the
+        // constraint. Mirrors codegen's `rule_profile_is_enabled` early-out.
+        if self.active_profile.is_some() && self.profile_gate_bypass_depth == 0 {
             let profiles = self.rule_profiles(rule_name);
             if !profiles.is_empty() && !self.profile_enabled(&profiles) {
                 return Err(ParseError::Backtrack { position: start_pos });
@@ -1140,6 +1162,11 @@ impl<'g, 'i> Interp<'g, 'i> {
         rule_name: &'static str,
         f: impl FnOnce(&mut Self) -> ParseResult<(ParseNode<'i>, Option<ParseContent<'i>>)>,
     ) -> ParseResult<(ParseNode<'i>, Option<ParseContent<'i>>)> {
+        // ENGINE-UNIVERSAL-SERVICES.46 (c) — a bypassed parse must not share the memo with an
+        // ordinary one; the key carries no profile bit. Mirrors the generated `memoized_call`.
+        if self.profile_gate_bypass_depth > 0 {
+            return f(self);
+        }
         let key = (rule_name, self.position);
         if self.memo_fail.contains(&key) {
             return Err(ParseError::Backtrack { position: key.1 });
@@ -2184,6 +2211,73 @@ impl<'g, 'i> Interp<'g, 'i> {
 
     /// The rule's allowed dialect profiles from its `@profiles` annotation (lowercased, empty = ungated)
     /// — mirrors codegen's `rule_profiles` (`ast_based_generator.rs:7108`).
+    /// `ENGINE-UNIVERSAL-SERVICES.46` (c) — is the negative lookahead over `element` VACUOUS under
+    /// the ACTIVE profile? The interpreter mirror of codegen's `lookahead_vacuous_profiles` plus its
+    /// emitted `profile_gate_bypass_applies` runtime check, collapsed into one call because the
+    /// interpreter already knows the active profile.
+    ///
+    /// ⭐⭐⭐ **SATISFIABILITY, NOT REACHABILITY.** A gate is used either to NARROW (the rule is
+    /// simply absent from the dialect, nothing replaces it — gate it out and `!X` has nothing to
+    /// match, so the guard is DELETED) or to SELECT (sibling rules, one per dialect, behind a
+    /// dispatcher — `reserved_non_keyword_identifier` in `grammars/systemverilog.ebnf`, where one
+    /// alternative is always live so the guard is SWITCHED, never deleted). Bypassing the SELECTION
+    /// case would make the guard see every dialect's list at once and reject `class` as an
+    /// identifier under `verilog_2005` — a regression in the REJECTING direction. Satisfiability
+    /// separates them; reachability does not.
+    ///
+    /// ⚠️ Memoized per lookahead-body pointer + active profile: `parse_lookahead` is hot and the
+    /// answer is a pure function of the grammar and the profile, neither of which moves during a
+    /// parse.
+    fn negative_lookahead_is_vacuous_here(&self, element: &'g ASTNode) -> bool {
+        let Some(active) = self.active_profile.as_deref() else {
+            // Unset profile = the permissive posture, every rule live, nothing vacuous.
+            return false;
+        };
+        let key = (element as *const ASTNode as usize, active.to_string());
+        if let Some(hit) = self.lookahead_vacuity_cache.borrow().get(&key) {
+            return *hit;
+        }
+        let verdict = self.compute_negative_lookahead_vacuity(element, active);
+        self.lookahead_vacuity_cache.borrow_mut().insert(key, verdict);
+        verdict
+    }
+
+    fn compute_negative_lookahead_vacuity(&self, element: &ASTNode, active: &str) -> bool {
+        let Some(annotations) = self.annotations else {
+            return false;
+        };
+        let (rule_profiles, mut declared) =
+            crate::ast_pipeline::grammar_wellformedness::extract_profile_context(annotations);
+        if let Ok(Some(default_profile)) =
+            crate::ast_pipeline::semantic_runtime::compile_default_profile(annotations)
+        {
+            declared.push(default_profile.trim().to_ascii_lowercase());
+        }
+        declared.sort();
+        declared.dedup();
+        if declared.is_empty() {
+            return false;
+        }
+        let mut rule_order: Vec<String> = self.grammar.keys().cloned().collect();
+        rule_order.sort();
+        let vacuous = crate::ast_pipeline::grammar_wellformedness::profiles_making_node_unsatisfiable(
+            element,
+            self.grammar,
+            &rule_order,
+            &rule_profiles,
+            &declared,
+        );
+        let sentinel = crate::ast_pipeline::grammar_wellformedness::UNDECLARED_PROFILE_SENTINEL;
+        if vacuous
+            .iter()
+            .any(|p| p != sentinel && p.eq_ignore_ascii_case(active))
+        {
+            return true;
+        }
+        vacuous.iter().any(|p| p == sentinel)
+            && !declared.iter().any(|p| p.eq_ignore_ascii_case(active))
+    }
+
     fn rule_profiles(&self, rule_name: &str) -> Vec<String> {
         let Some(annotations) = self.annotations else {
             return Vec::new();
@@ -2730,7 +2824,17 @@ impl<'g, 'i> Interp<'g, 'i> {
     ) -> ParseResult<ParseContent<'i>> {
         let lookahead_start = self.position;
         let selection_start = self.selection_log_len();
+        // ENGINE-UNIVERSAL-SERVICES.46 (c) — evaluate a NEGATIVE lookahead's body with `@profiles`
+        // gating IGNORED (and the memo suspended), under the SAME condition codegen uses to decide
+        // whether to emit its bypass, so the two engines cannot diverge on this surface.
+        let bypass_profile_gate = !positive && self.negative_lookahead_is_vacuous_here(element);
+        if bypass_profile_gate {
+            self.profile_gate_bypass_depth += 1;
+        }
         let matched = self.try_parse(|p| p.parse_node(element, rule_name, capture_raw, raw_out));
+        if bypass_profile_gate {
+            self.profile_gate_bypass_depth -= 1;
+        }
         self.position = lookahead_start;
         // STIMULI-SIGNOFF.4.3: a lookahead is a zero-width PREDICATE — its speculative parse
         // contributes nothing to the derivation even when it matches (parity: the generator is

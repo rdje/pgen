@@ -46,36 +46,54 @@ A grammar that gates rules by dialect profile (`@profiles`) can declare what an 
 
 A profiled grammar can also declare which request **spellings** resolve to its canonical profile names, with the grammar-level `@profile_alias: { "<spelling>": <canonical>, … }` map directive. `grammars/systemverilog.ebnf` declares `2017`/`ieee1800-2017`/`ieee_1800_2017` → `sv_2017` (plus the `2023` and `1364-2005` groups), which is why `--profile 2017` works everywhere. Multiple declarations **merge** (an alias table is naturally written in groups); re-declaring a spelling with a different target is a hard error. Every alias target must be a profile the grammar actually declares (the union of its `@profiles` lists and its `@default_profile`), and a spelling may not shadow a canonical name — so typos and alias-chains are compile errors, linted early as `W_SEM_INVALID_PROFILE_ALIAS_PAYLOAD`. The map is carried by the artifact itself — the generated parser embeds a sorted `GRAMMAR_PROFILE_ALIASES` constant and resolves spellings case-insensitively inside `set_grammar_profile` — and the registry's profile oracle, the generation-side profile filter, and the parse-harness interpreter resolve from the same compiled declaration. An undeclared spelling passes through un-coerced (it simply matches no `@profiles` list). This replaced the historical engine alias tables (a `"systemverilog"`-name-gated match in the parser registry and a global spelling table on the generation side) — any grammar can now declare its own request spellings. Grammar-author reference: the ebnf parser book's *Semantic Annotations* chapter (Profile aliases section); proof cases: the structural combinator suite's `profile_alias_resolves` / `profile_alias_unknown_passthrough` pair.
 
-#### ⛔ KNOWN DEFECT — a `@profiles` gate INVERTS a negative lookahead on the gated rule (`ENGINE-UNIVERSAL-SERVICES.46`)
+#### ⭐ A `@profiles` gate and a negative lookahead: the guard does NOT vanish (`ENGINE-UNIVERSAL-SERVICES.46`)
 
-**If you gate a rule `X` out of a profile, every `!X` negative lookahead elsewhere in the grammar
-stops constraining anything under that profile.** `!X` means *refuse if `X` matches here*; gate `X`
-out and `X` matches nothing, so `!X` succeeds **vacuously** — the constraint is deleted, and the
-narrower profile accepts strings the wider one rejects. Measured on the **generated** parser
-(`compile_and_parse`, so this is the shipped engine, not an interpreter artefact) and on the
-interpreter, 8/8 agreeing:
+**If you gate a rule `X` out of a profile, a `!X` negative lookahead elsewhere keeps constraining
+under that profile.** That is deliberate, and it is worth stating because the naive reading is the
+opposite. A lookahead is a **constraint**, not a production — it derives nothing — so removing its
+subject from a dialect must not loosen it. Concretely, a negative lookahead's body is evaluated with
+`@profiles` gating **ignored** under exactly the profiles in which that body would otherwise be
+unsatisfiable.
 
-| grammar | profile | input | verdict |
-|---|---|---|---|
-| `top := lit_one !tick catchall`, with `tick` gated to `["loose"]` | `loose` (tick live) | `1'` | reject — `!tick` refuses, as intended |
-| the same grammar, unchanged | `strict` (tick gated) | `1'` | ⛔ **accept** — `!tick` is vacuous, `catchall` eats the `'` |
+⛔ **It did not always work this way, and the bug is worth knowing about because it is the shape to
+look for elsewhere.** Gating does not delete a rule; it makes the rule's parse method backtrack
+unconditionally. A negative lookahead fails only when its body *matched*. Composed, `!X` used to
+succeed **vacuously** the moment `X` was gated away — so the *narrower* profile accepted strings the
+wider one rejected, silently, with `--lint-grammar` reporting every counter at zero. ⭐⭐⭐ That broke
+the invariant every dialect-profile system depends on: **gating a rule out of a profile must only
+ever REMOVE strings from the language, never ADD them.**
 
-⭐⭐⭐ **This breaks the invariant that makes dialect profiles meaningful: gating a rule out of a
-profile must only ever REMOVE strings from the language, never ADD them.** Today gating can ADD
-strings, so profile narrowing is non-monotonic. It fails **silently** — `--lint-grammar` is clean, no
-`profile_orphans`, no `unreachable_rules`, no warning — and in the **accepting** direction, the class
-a positive-only test suite cannot see and the one a strict-by-default profile exists to prevent.
+⭐⭐ **The condition is satisfiability, and the distinction matters when you write a profiled
+grammar.** A `@profiles` gate gets used two ways:
 
-⚠️ **Until this is repaired, treat a `!X` whose subject is `@profiles`-gated as a constraint that is
-present only in the profiles `X` is admitted to.** In `grammars/systemverilog.ebnf` the live
-population is **3** sites, all `!scope_resolution`, and none produces an over-acceptance today — under
-`verilog_2005` nothing else can consume `::`, so the parse fails on the unconsumable token regardless.
-That makes the hazard **undefended rather than absent**: it bites the moment some other alternative
-can consume what the lookahead was guarding.
+| use | shape | what gating does to `!X` |
+|---|---|---|
+| **narrowing** | the rule is absent from the narrow dialect, nothing replaces it | the guard would be **deleted** — so the engine bypasses the gate inside the lookahead and the guard survives |
+| **selection** | sibling rules, one per dialect, behind a dispatcher | the guard is **switched**, never deleted — one alternative is always live, so the engine leaves it alone |
 
-The reproduction is a standing gate — `make -C rust SHELL=/bin/bash profile_gate_monotonicity_gate`,
-see [The Parse Harness § The profile-gate monotonicity probe](parse-harness.md) — and the repair is
-tracked as `ENGINE-UNIVERSAL-SERVICES.46`.
+`grammars/systemverilog.ebnf` uses both. Its keyword guard is selection:
+
+```ebnf
+reserved_non_keyword_identifier := reserved_non_keyword_identifier_sv      # @profiles ["sv_2017","sv_2023"]
+                                 | reserved_non_keyword_identifier_v2005   # @profiles ["verilog_2005"]
+non_keyword_identifier := escaped_identifier | !reserved_non_keyword_identifier simple_identifier
+```
+
+`class` is a legal IEEE 1364-2005 identifier and an IEEE 1800 keyword, and `reg class;` parses under
+`--profile 1364-2005` and is refused under `--profile 2017` — which only works because the guard
+switches rather than unions. A repair that bypassed the gate *everywhere* would have broken exactly
+that.
+
+⚠️ **One case remains vacuous and cannot be helped by any static rule: a requested profile the
+grammar never declares.** `set_grammar_profile` passes an unknown spelling through un-coerced, and in
+that state every `@profiles`-gated rule is absent. The engine treats such a profile as maximally
+narrow — a `!X` whose body is unsatisfiable there is bypassed too — but a grammar author should
+request a declared profile.
+
+`--lint-grammar` reports both polarities as notes (`profile_gated_negative_lookaheads`,
+`profile_gated_positive_lookaheads`) so the sites are visible; see
+[Grammar Well-Formedness § the profile-gated lookahead arm](grammar-wellformedness.md) and, for the
+standing proof lane, [The Parse Harness § the profile-gate monotonicity probe](parse-harness.md).
 
 #### Rule-level stimuli separator cohesion: `@quantified_separator` (STIMULI-SIGNOFF.12)
 

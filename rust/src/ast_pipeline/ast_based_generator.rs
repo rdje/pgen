@@ -240,6 +240,10 @@ pub struct AstBasedGenerator {
     /// never populates it) resolves every rule reference as `unresolved` and emits
     /// no guard — byte-identical to the pre-feature codegen.
     pub first_set_grammar_tree: std::cell::RefCell<HashMap<String, ASTNode>>,
+    /// `ENGINE-UNIVERSAL-SERVICES.46` (c) — memoized answer to
+    /// [`Self::grammar_needs_profile_gate_bypass`]. `None` = not yet computed. Interior-mutable to
+    /// be settable behind `&self`, exactly like `first_set_grammar_tree` and `uses_match_regex`.
+    pub profile_gate_bypass_needed: std::cell::RefCell<Option<bool>>,
     /// RGX-0078.5.i.3 (P2) — the compiled runtime-annotation table for codegen-time
     /// ANALYSIS queries (the degenerate-dispatch gate (e): branch-phase predicates),
     /// compiled lazily ONCE per generation from `self.annotations`. `None` inside the
@@ -634,6 +638,7 @@ impl AstBasedGenerator {
             emit_typed_entry_skeleton: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -1049,6 +1054,39 @@ impl AstBasedGenerator {
             quote! {}
         };
 
+        // ENGINE-UNIVERSAL-SERVICES.46 (c) — emitted ONLY when this grammar has a negative
+        // lookahead that needs the bypass, so every other grammar regenerates byte-identically
+        // and pays no field. See `grammar_needs_profile_gate_bypass`.
+        let profile_gate_bypass_field = if self.grammar_needs_profile_gate_bypass() {
+            quote! {
+                // ⭐⭐⭐ ENGINE-UNIVERSAL-SERVICES.46 (c) — DEPTH OF THE PROFILE-GATE BYPASS
+                // currently in effect. Non-zero exactly while a NEGATIVE lookahead's
+                // speculative parse is running, and only for lookaheads whose body can
+                // reach a `@profiles`-gated rule (elsewhere the wrapper is not emitted at
+                // all, so those parsers are byte-identical and pay nothing).
+                //
+                // WHY IT EXISTS. A `@profiles` gate does not REMOVE a rule; it makes the
+                // rule's parse method return `Backtrack` unconditionally. A negative
+                // lookahead fails only when its body MATCHED. Compose the two and `!X`
+                // succeeds VACUOUSLY the moment `X` is gated away — the constraint is
+                // deleted and the NARROWER profile accepts strings a wider one rejects.
+                // That inverts the purpose of a strictness gate: gating must only ever
+                // REMOVE strings from the language, never ADD them. A lookahead is a
+                // CONSTRAINT, not a production — it derives nothing — so removing its
+                // subject from the dialect must not loosen it.
+                //
+                // ⛔ IT ALSO SUSPENDS THE PACKRAT MEMO (`memoized_call`), and that is not
+                // optional. The memo key is `(rule_id, position)` and carries no profile
+                // bit, so a rule parsed with the gate bypassed would otherwise file a
+                // SUCCESS under a key an ordinary parse at the same position reads back —
+                // re-introducing the very over-acceptance this repair removes, by a
+                // different route. Bypassed bodies are re-parsed instead of cached.
+                profile_gate_bypass_depth: usize,
+            }
+        } else {
+            quote! {}
+        };
+
         quote! {
             /// High-performance parser with memoization and zero-copy parsing
             pub struct #parser_name<'input> {
@@ -1127,6 +1165,7 @@ impl AstBasedGenerator {
                 // (taint-EXCLUSION measured 117× on SV); there the cure was
                 // epoch validation, here it is frame scoping.
                 recursion_block_floor: usize,
+                #profile_gate_bypass_field
                 // ENGINE-UNIVERSAL-SERVICES.43 — monotone count of WHOLE-STACK
                 // DEPTH-CEILING rejections taken during this parse. Separate
                 // from `recursion_block_floor` because the two verdicts have
@@ -1729,6 +1768,13 @@ impl AstBasedGenerator {
         // its declared default profile — the artifact carries its own default,
         // so no caller has to remember to set it. Grammars without the
         // directive emit today's exact `None` (byte-identical regeneration).
+        // ENGINE-UNIVERSAL-SERVICES.46 (c) — paired with `profile_gate_bypass_field`; a grammar
+        // that emits no such field must emit no initializer for it.
+        let profile_gate_bypass_init = if self.grammar_needs_profile_gate_bypass() {
+            quote! { profile_gate_bypass_depth: 0, }
+        } else {
+            quote! {}
+        };
         let grammar_profile_init = if self.default_grammar_profile().is_some() {
             quote! { grammar_profile: Some(Self::DEFAULT_GRAMMAR_PROFILE.to_string()), }
         } else {
@@ -1810,6 +1856,7 @@ impl AstBasedGenerator {
                     recursion_guard: RecursionGuard::new(#recursion_guard_max_depth),
                     // SV-CORPUS-GRAD.3.12 — see the field's doc comment.
                     recursion_block_floor: usize::MAX,
+                    #profile_gate_bypass_init
                     // ENGINE-UNIVERSAL-SERVICES.43 — see the field's comment.
                     recursion_depth_block_events: 0,
                     #grammar_profile_init
@@ -4455,7 +4502,70 @@ impl AstBasedGenerator {
             "negative lookahead"
         };
 
+        // ⭐⭐⭐ ENGINE-UNIVERSAL-SERVICES.46 (c) — does THIS lookahead body need the profile-gate
+        // bypass? Emitted only where it can matter. Measured across the tracked grammars: 3 sites,
+        // all in `systemverilog.ebnf`.
+        //
+        // ⛔ THE PER-SITE CONDITION ALONE DOES NOT BOUND THE BLAST RADIUS, AND SAYING SO WAS WRONG
+        // FOR ONE REGENERATION. This comment first claimed 10 of the 11 shipped artifacts were
+        // unaffected "by construction rather than by hope" — and the very next full regeneration
+        // moved ALL ELEVEN, because the machinery this wrapper drives (the field, its initializer,
+        // the `rule_profile_is_enabled` early-out and the `memoized_call` early-out) was still being
+        // emitted into the shared skeleton every parser gets. The claim became true only once
+        // `grammar_needs_profile_gate_bypass` gated those too. ⇒ a blast-radius claim is a CLAIM;
+        // the regeneration is what checks it.
+        // The profiles under which THIS site's guard is vacuous. Empty ⇒ nothing emitted here, so a
+        // grammar whose gates are all SELECTION rather than NARROWING regenerates byte-identically.
+        let vacuous_profiles = if positive {
+            Vec::new()
+        } else {
+            self.lookahead_vacuous_profiles(element)
+        };
+        let sentinel = crate::ast_pipeline::grammar_wellformedness::UNDECLARED_PROFILE_SENTINEL;
+        let bypass_when_undeclared = vacuous_profiles.iter().any(|p| p == sentinel);
+        let vacuous_declared: Vec<&str> = vacuous_profiles
+            .iter()
+            .filter(|p| p.as_str() != sentinel)
+            .map(|p| p.as_str())
+            .collect();
+        let needs_profile_bypass = !vacuous_profiles.is_empty();
+        // ⛔ The decision is made at RUNTIME against the active profile, not baked in: the site is
+        // vacuous only under the profiles listed, and under every other profile the guard is doing
+        // exactly what it should. A blanket bypass would over-apply it — see
+        // `lookahead_vacuous_profiles` for the SELECTION case that makes this load-bearing.
+        let bypass_enter = if needs_profile_bypass {
+            quote! {
+                let __pgen_profile_gate_bypass = parser.profile_gate_bypass_applies(
+                    &[#(#vacuous_declared),*],
+                    #bypass_when_undeclared,
+                );
+                if __pgen_profile_gate_bypass {
+                    parser.profile_gate_bypass_depth += 1;
+                }
+            }
+        } else {
+            quote! {}
+        };
+        let bypass_leave = if needs_profile_bypass {
+            quote! {
+                if __pgen_profile_gate_bypass {
+                    parser.profile_gate_bypass_depth -= 1;
+                }
+            }
+        } else {
+            quote! {}
+        };
+
         if positive {
+            // ⚠️ THE POSITIVE POLARITY IS DELIBERATELY UNCHANGED, and the reason is the invariant
+            // rather than caution. `&X` on a gated `X` always FAILS, so every path through it is
+            // dead and the gated profile gets strictly NARROWER — it REMOVES strings, which is
+            // exactly what a gate is for. Both the current behaviour and a bypassed one are
+            // monotonic here (a bypassed `&X` would widen the narrow profile only to a subset of
+            // the wide one), so there is no invariant violation to repair; changing it would move
+            // generated bytes and live/dead paths for no measured defect. `--lint-grammar` counts
+            // the population anyway (`profile_gated_positive_lookaheads`, a NOTE) so the decision
+            // stays visible rather than implicit.
             Ok(quote! {
                 let lookahead_start = parser.position;
                 let matched = parser.try_parse(|p| {
@@ -4482,11 +4592,16 @@ impl AstBasedGenerator {
         } else {
             Ok(quote! {
                 let lookahead_start = parser.position;
+                // ENGINE-UNIVERSAL-SERVICES.46 (c) — the body is evaluated with `@profiles` gating
+                // IGNORED (and the memo suspended). Balanced around `try_parse`, which cannot
+                // unwind past this point: it returns `Option`, it does not propagate `?`.
+                #bypass_enter
                 let matched = parser.try_parse(|p| {
                     let parser = p;
                     #inner_logic;
                     Ok(())
                 });
+                #bypass_leave
                 parser.position = lookahead_start;
                 if matched.is_some() {
                     return Err(ParseError::Backtrack {
@@ -7092,6 +7207,75 @@ impl AstBasedGenerator {
         // ENGINE-UNIVERSAL-SERVICES.31 (b)/(c) — the `Logger::log_*` `file` argument is the ONE
         // emitted module constant, not a fresh copy of the `-o` path at every site.
         let file_label = source_label_ident();
+        // ⭐⭐⭐ ENGINE-UNIVERSAL-SERVICES.46 (c) — the two shared-runtime halves of the profile-gate
+        // bypass, emitted ONLY when this grammar has a negative lookahead that needs it. A grammar
+        // with no gated rule under any negative lookahead regenerates BYTE-IDENTICALLY and, more to
+        // the point, pays no branch in `memoized_call` — the hottest function in the emitted parser.
+        //
+        // (1) THE GATE. Inside a negative lookahead the `@profiles` gate is not applied: a lookahead
+        //     is a CONSTRAINT, not a production — it derives nothing — so removing its subject from
+        //     a dialect must not loosen it. Without this, `!X` succeeded VACUOUSLY once `X` was
+        //     gated away, and the NARROWER profile accepted strings a wider one rejects.
+        // (2) THE MEMO. A bypassed parse MUST NOT share the memo with an ordinary one: the key is
+        //     `(rule_id, position)` and carries no profile bit, so a success recorded under bypass
+        //     would be replayed by an ordinary call at the same position — the same over-acceptance
+        //     arriving through the cache instead of through the lookahead. The bypass is confined to
+        //     a speculative parse that is discarded whatever it returns, so re-parsing is the cost.
+        // ENGINE-UNIVERSAL-SERVICES.46 (c) — the runtime decision for a bypassing site. `None`
+        // (profile unset) is the permissive posture in which every rule is live, so nothing is
+        // vacuous and no bypass applies. An active profile the grammar never DECLARED is a real
+        // state — `set_grammar_profile` passes an unknown spelling through un-coerced — and in it
+        // every `@profiles`-gated rule is absent, which is why sites vacuous in that state carry the
+        // `when_undeclared` flag rather than relying on an enumeration that cannot contain it.
+        let declared_profiles_for_bypass = self.declared_grammar_profiles();
+        let declared_profiles_literals: Vec<&str> =
+            declared_profiles_for_bypass.iter().map(|p| p.as_str()).collect();
+        let profile_gate_bypass_helper = if self.grammar_needs_profile_gate_bypass() {
+            quote! {
+                const DECLARED_GRAMMAR_PROFILES: &'static [&'static str] =
+                    &[#(#declared_profiles_literals),*];
+
+                fn profile_gate_bypass_applies(
+                    &self,
+                    vacuous_profiles: &[&str],
+                    when_undeclared: bool,
+                ) -> bool {
+                    let Some(active) = self.grammar_profile.as_deref() else {
+                        return false;
+                    };
+                    if vacuous_profiles
+                        .iter()
+                        .any(|candidate| active.eq_ignore_ascii_case(candidate))
+                    {
+                        return true;
+                    }
+                    when_undeclared
+                        && !Self::DECLARED_GRAMMAR_PROFILES
+                            .iter()
+                            .any(|candidate| active.eq_ignore_ascii_case(candidate))
+                }
+            }
+        } else {
+            quote! {}
+        };
+        let profile_gate_bypass_check = if self.grammar_needs_profile_gate_bypass() {
+            quote! {
+                if self.profile_gate_bypass_depth > 0 {
+                    return true;
+                }
+            }
+        } else {
+            quote! {}
+        };
+        let profile_gate_bypass_memo_skip = if self.grammar_needs_profile_gate_bypass() {
+            quote! {
+                if self.profile_gate_bypass_depth > 0 {
+                    return f(self);
+                }
+            }
+        } else {
+            quote! {}
+        };
         // RGX-0078.5.i.4 (P1a + P1b) — the inlined-wrapper-frame engine helper,
         // emitted ONLY when ≥1 rule is decided for inlining (grammars with no
         // decided rule regenerate without a dead helper). ONE definition carries
@@ -7815,10 +7999,12 @@ impl AstBasedGenerator {
                 let clamped_end = end.min(self.input.len());
                 String::from_utf8_lossy(&self.input.as_bytes()[start..clamped_end]).to_string()
             }
+            #profile_gate_bypass_helper
             fn rule_profile_is_enabled(&self, allowed_profiles: &[&str]) -> bool {
                 if allowed_profiles.is_empty() {
                     return true;
                 }
+                #profile_gate_bypass_check
 
                 match self.grammar_profile.as_deref() {
                     Some(active) => allowed_profiles
@@ -9474,6 +9660,7 @@ impl AstBasedGenerator {
             where
                 F: FnOnce(&mut Self) -> ParseResult<(ParseNode<'input>, Option<ParseContent<'input>>)>,
             {
+                #profile_gate_bypass_memo_skip
                 let key = (rule_id, self.position);
 
                 // PARSE-TERMINATION.6 — SPLIT MEMO. Failures (the ~81% majority on
@@ -10394,6 +10581,146 @@ impl AstBasedGenerator {
             self.annotations.as_ref(),
             rule_name,
         )
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.46` (c) — does THIS GRAMMAR contain any negative lookahead that
+    /// needs the profile-gate bypass at all?
+    ///
+    /// ⛔ **WHY THIS EXISTS RATHER THAN EMITTING THE SCAFFOLDING UNCONDITIONALLY.** The per-site
+    /// wrapper is already conditional, but the machinery it drives — the `profile_gate_bypass_depth`
+    /// field, its initializer, the `rule_profile_is_enabled` early-out and the `memoized_call`
+    /// early-out — is emitted into the shared skeleton every parser gets. Emitting it everywhere
+    /// moved **all 11** generated artifacts on the first cut, and put a branch on `memoized_call`,
+    /// the hottest function in the emitted parser, for grammars that can never take it. This
+    /// repository's second non-negotiable is peak speed, and a cost with no benefit is REJECTED
+    /// rather than traded. Gated on this predicate, a grammar with no gated rule under any negative
+    /// lookahead regenerates BYTE-IDENTICALLY and pays nothing.
+    ///
+    /// Computed once per generation from [`Self::first_set_grammar_tree`] — the same normalized
+    /// snapshot the per-site query walks, so the whole-grammar answer and the per-site answers
+    /// cannot disagree.
+    fn grammar_needs_profile_gate_bypass(&self) -> bool {
+        if let Some(cached) = *self.profile_gate_bypass_needed.borrow() {
+            return cached;
+        }
+        let needed = {
+            // Cloned rather than held: the per-site predicate re-borrows the same RefCell.
+            let rules: Vec<(String, ASTNode)> = self
+                .first_set_grammar_tree
+                .borrow()
+                .iter()
+                .map(|(r, b)| (r.clone(), b.clone()))
+                .collect();
+            rules
+                .iter()
+                .any(|(rule, body)| self.node_has_bypassing_negative_lookahead(rule, body))
+        };
+        *self.profile_gate_bypass_needed.borrow_mut() = Some(needed);
+        needed
+    }
+
+    /// Recursive helper for [`Self::grammar_needs_profile_gate_bypass`]: does `node` contain a
+    /// NEGATIVE lookahead whose body reaches a `@profiles`-gated rule? The per-site emission uses
+    /// exactly the same predicate, so "the grammar needs the machinery" and "this site uses it" are
+    /// the same question asked at two scopes.
+    fn node_has_bypassing_negative_lookahead(&self, enclosing_rule: &str, node: &ASTNode) -> bool {
+        match node {
+            ASTNode::Or { alternatives } => alternatives
+                .iter()
+                .any(|a| self.node_has_bypassing_negative_lookahead(enclosing_rule, a)),
+            ASTNode::Sequence { elements } => elements
+                .iter()
+                .any(|e| self.node_has_bypassing_negative_lookahead(enclosing_rule, e)),
+            ASTNode::Quantified { element, .. } => {
+                self.node_has_bypassing_negative_lookahead(enclosing_rule, element)
+            }
+            ASTNode::Lookahead { element, positive } => {
+                (!*positive && !self.lookahead_vacuous_profiles(element).is_empty())
+                    || self.node_has_bypassing_negative_lookahead(enclosing_rule, element)
+            }
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => {
+                    self.node_has_bypassing_negative_lookahead(enclosing_rule, inner)
+                }
+                ASTValue::Token(_) => false,
+            },
+        }
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.46` (c) — under which profiles is the negative lookahead over
+    /// `element` VACUOUS? Empty ⇒ the site needs no bypass and emits byte-identically.
+    ///
+    /// ⭐⭐⭐ **THE CONDITION IS SATISFIABILITY, NOT REACHABILITY, AND THE FIRST CUT GOT THIS WRONG
+    /// IN A WAY THAT WOULD HAVE SHIPPED A REGRESSION.** A `@profiles` gate is used two ways:
+    ///
+    /// * **NARROWING** — the rule simply is not in the narrow dialect, and nothing replaces it. Gate
+    ///   it out and `!X` has nothing to match: the guard is DELETED and the narrow profile accepts
+    ///   strings the wide one rejects. That is the soundness inversion this leaf exists for.
+    /// * **SELECTION** — sibling rules, one per dialect, behind a dispatcher.
+    ///   `grammars/systemverilog.ebnf`:
+    ///   `reserved_non_keyword_identifier := reserved_non_keyword_identifier_sv | reserved_non_keyword_identifier_v2005`,
+    ///   gated `["sv_2017","sv_2023"]` and `["verilog_2005"]`. Under any declared profile ONE is
+    ///   live, so `!reserved_non_keyword_identifier` is never vacuous — it is SWITCHED, which is the
+    ///   entire point of the construct.
+    ///
+    /// ⛔ Keying the bypass on "the body reaches a gated rule" cannot tell those apart, and applying
+    /// it to the SELECTION case makes the guard see BOTH dialects' keyword lists at once — so
+    /// `class`, a perfectly legal `verilog_2005` identifier, would stop parsing as an identifier
+    /// under `verilog_2005`. **A regression in the REJECTING direction, introduced by a fix for one
+    /// in the accepting direction.** Satisfiability separates the two exactly.
+    ///
+    /// The returned list may contain
+    /// [`crate::ast_pipeline::grammar_wellformedness::UNDECLARED_PROFILE_SENTINEL`] — an undeclared
+    /// requested profile is a real runtime state (`set_grammar_profile` passes an unknown spelling
+    /// through un-coerced) in which EVERY gated rule is absent, and no enumeration of declared
+    /// profiles contains it.
+    fn lookahead_vacuous_profiles(&self, element: &ASTNode) -> Vec<String> {
+        if self.annotations.is_none() {
+            return Vec::new();
+        }
+        let tree = self.first_set_grammar_tree.borrow();
+        if tree.is_empty() {
+            // A generator built directly in a unit test has no grammar to close over — the same
+            // posture the FIRST-set prune guard takes, and byte-identical to the pre-feature codegen.
+            return Vec::new();
+        }
+        let declared = self.declared_grammar_profiles();
+        if declared.is_empty() {
+            return Vec::new();
+        }
+        let mut rule_order: Vec<String> = tree.keys().cloned().collect();
+        rule_order.sort();
+        crate::ast_pipeline::grammar_wellformedness::profiles_making_node_unsatisfiable(
+            element,
+            &tree,
+            &rule_order,
+            &self.all_rule_profiles(),
+            &declared,
+        )
+    }
+
+    /// Every profile this grammar DECLARES: the union of its `@profiles` lists and its
+    /// `@default_profile`. The set an undeclared requested spelling is measured against.
+    fn declared_grammar_profiles(&self) -> Vec<String> {
+        let Some(annotations) = &self.annotations else {
+            return Vec::new();
+        };
+        let (_, mut universe) =
+            crate::ast_pipeline::grammar_wellformedness::extract_profile_context(annotations);
+        if let Some(default_profile) = self.default_grammar_profile() {
+            universe.push(default_profile.trim().to_ascii_lowercase());
+        }
+        universe.sort();
+        universe.dedup();
+        universe
+    }
+
+    /// Every rule's `@profiles` list, in the shape the well-formedness helpers take.
+    fn all_rule_profiles(&self) -> HashMap<String, Vec<String>> {
+        let Some(annotations) = &self.annotations else {
+            return HashMap::new();
+        };
+        crate::ast_pipeline::grammar_wellformedness::extract_profile_context(annotations).0
     }
 
     fn rule_profiles(&self, rule_name: &str) -> Vec<String> {
@@ -11377,6 +11704,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -11414,6 +11742,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -11469,6 +11798,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -11526,6 +11856,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -11587,6 +11918,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -11678,6 +12010,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -11794,6 +12127,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -11864,6 +12198,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -11939,6 +12274,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -12035,6 +12371,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -12329,6 +12666,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -13541,6 +13879,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -13578,6 +13917,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -13612,6 +13952,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -13681,6 +14022,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -13760,6 +14102,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -13827,6 +14170,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -13887,6 +14231,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -13919,6 +14264,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -13952,6 +14298,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14010,6 +14357,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14223,6 +14571,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14285,6 +14634,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14310,6 +14660,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14379,6 +14730,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14426,6 +14778,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14487,6 +14840,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14512,6 +14866,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14576,6 +14931,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14620,6 +14976,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14675,6 +15032,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14700,6 +15058,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14779,6 +15138,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14822,6 +15182,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14896,6 +15257,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14941,6 +15303,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -14990,6 +15353,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -15036,6 +15400,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -15082,6 +15447,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -15157,6 +15523,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -15210,6 +15577,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -15267,6 +15635,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -15318,6 +15687,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -15375,6 +15745,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -15424,6 +15795,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),
@@ -15464,6 +15836,7 @@ mod semantic_usage_tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),

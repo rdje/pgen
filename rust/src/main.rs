@@ -4594,12 +4594,17 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     // reads. Unlike the orphan arm it needs no "satisfiable elsewhere" test, so a SINGLE declared
     // profile is already enough to produce the defect (a rule gated to `["a"]` is absent whenever
     // the requested profile is anything else) — hence >= 1, not >= 2.
-    // ⚠️ REPORT-ONLY in this slice, by measurement rather than by preference: the shipped SV
-    // grammar's own population is non-zero, so a blocking arm would land as "a guard plus an
-    // exemption for every existing instance of the defect it exists to catch" — the shape
-    // `GENERATED-LINT-CORRECTNESS.6`/`.12` refused and `DOCTRINE-GAP-OWNERSHIP.15` ruled against.
-    // The semantics repair (`.46` (c)) is what drives the population to zero; the blocking decision
-    // is made on the post-repair number and is owned by that leaf.
+    // ⭐⭐⭐ NEVER GATES, AND THE BLOCKING HALF IS NOW FORMALLY DECLINED. `.46` slice 2 shipped this
+    // arm report-only and deferred the blocking decision to the post-repair population, on the
+    // measured grounds that a blocker over a non-zero population ships as "a guard plus an exemption
+    // for every existing instance of the defect it exists to catch" (`GENERATED-LINT-CORRECTNESS.6`/
+    // `.12`, `DOCTRINE-GAP-OWNERSHIP.15`). `.46` (c) then repaired the SEMANTICS rather than the
+    // SPELLING, so the population did NOT fall to zero — it stayed at 3 — and the reason is the
+    // whole answer: **there is no longer anything wrong at those sites to block.** A negative
+    // lookahead's body is evaluated with gating IGNORED, so the guard is enforced under every
+    // profile and the construct is monotonic. What survives is documentation: the reading is
+    // non-obvious, so the arm names the sites once, as a NOTE. ⇒ had the blocker shipped in slice 2
+    // it would be deleted here.
     //
     // ⛔⛔ THIS ARM DERIVES ITS PROFILE CONTEXT FROM THE **UNFILTERED** GRAMMAR, AND THAT IS
     // LOAD-BEARING — THE FILTERED ONE IS BLIND EXACTLY WHERE THE DEFECT LIVES. `rule_profiles` /
@@ -4694,7 +4699,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         )
     };
     println!(
-        "grammar lint: '{}' ({} rules) — {}, non_terminating={} (error), ordered_choice_shadowing={} (error), always_succeeds_alternatives={} (note), unreachable_rules={} (error), undefined_references={} (error), uncompilable_regex_terminals={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?}), profile_gated_negative_lookaheads={} (report-only pending ENGINE-UNIVERSAL-SERVICES.46 (c) — a SOUNDNESS INVERSION: the gated profile accepts MORE), profile_gated_positive_lookaheads={} (note — monotonic)",
+        "grammar lint: '{}' ({} rules) — {}, non_terminating={} (error), ordered_choice_shadowing={} (error), always_succeeds_alternatives={} (note), unreachable_rules={} (error), undefined_references={} (error), uncompilable_regex_terminals={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?}), profile_gated_negative_lookaheads={} (note — the guard is STILL ENFORCED under the gating profile since ENGINE-UNIVERSAL-SERVICES.46 (c); reported because the reading is non-obvious), profile_gated_positive_lookaheads={} (note — the path is DEAD under the gating profile; monotonic, deliberately not bypassed)",
         grammar.grammar_name,
         g.len(),
         left_recursion_headline,
@@ -4784,15 +4789,14 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     // under an edition); locking it at 0 stops regressions. Grammars with < 2 profiles never
     // produce orphans (the detector is skipped), so this only binds the SV grammar.
     print_lint_findings(&orphans, "[error]", 40, "profile-orphan findings");
-    // ENGINE-UNIVERSAL-SERVICES.46 (b). The NEGATIVE rows carry the ERROR wording in their own
-    // message (they ARE the soundness inversion) but this arm does NOT gate yet — see the
-    // measurement note at the computation site. The tag is `[found]` rather than `[error]` so the
-    // line never claims a gating power it does not have.
+    // ENGINE-UNIVERSAL-SERVICES.46 (b)+(c). `[note]` and never `[error]`: after the (c) repair
+    // neither polarity is a defect, and a tag that outranks the finding teaches readers to ignore
+    // the tag.
     print_lint_findings(
         &gated_lookaheads,
-        "[found]",
+        "[note] ",
         40,
-        "profile-gated lookahead findings (report-only; negative = soundness inversion, positive = monotonic note)",
+        "profile-gated lookahead notes (never gate; the negative guard is ENFORCED under the gating profile, the positive path is DEAD there)",
     );
     // Non-terminating rules are never capped: the class is a hard error and has always printed in
     // full, so it needs no "show all" escape.

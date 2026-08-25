@@ -1,5 +1,109 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-25 - PGEN-ENGINE-UNIVERSAL-SERVICES-0085 — the fix for a silent over-acceptance was one measurement away from shipping a loud over-rejection, and the measurement that caught it was "which files changed"
+
+**1. ⭐⭐⭐ THE SAME ANNOTATION CAN MEAN TWO OPPOSITE THINGS, AND A REPAIR HAS TO ASK WHICH.**
+`@profiles` is used to NARROW (this rule is not in that dialect, nothing replaces it) and to SELECT
+(sibling rules, one per dialect, behind a dispatcher). Under NARROWING, gating a rule out of a
+negative lookahead DELETES the guard — the defect. Under SELECTION it SWITCHES the guard, which is
+the entire point of the construct. My ruling said *"evaluate a negative lookahead's body with gating
+IGNORED"*, and implemented literally that is a blanket bypass which repairs the first and BREAKS the
+second: SystemVerilog's `!reserved_non_keyword_identifier` would have seen both dialects' keyword
+lists at once, and `reg class;` — legal IEEE 1364-2005 — would have stopped parsing under
+`verilog_2005`. ⇒ **before repairing a mechanism, enumerate what the mechanism is USED for.** A rule
+about a construct is only as good as the survey of how the construct appears in the real grammars.
+
+**2. ⭐⭐⭐ "WHICH FILES CHANGED" IS A CORRECTNESS INSTRUMENT, AND HERE IT WAS THE ONLY ONE THAT
+FIRED.** Nothing about a byte-level blast radius looks like a semantic check. But the blanket
+version moved all 11 generated artifacts; fixing that moved 2; the second was regex, which my own
+census had just reported clean. Chasing *that* discrepancy forced a transitive census, which raised
+SystemVerilog's population from 3 to 6 and put `non_keyword_identifier` on the screen — and reading
+that rule is what exposed the collision. No test failed at any point. ⇒ **when a change moves more
+than you predicted, the gap is a finding, not a chore.** Predict the blast radius BEFORE regenerating
+precisely so the difference has somewhere to show up.
+
+**3. ⭐⭐ THE DISCRIMINATOR ALREADY EXISTED, BUILT FOR SOMETHING ELSE.** "Is the guard vacuous under
+P" is exactly "is the lookahead body UNSATISFIABLE under P", and `compute_sat_by_profile` /
+`node_satisfiable` had been sitting in `grammar_wellformedness.rs` since the profile-orphan arm. The
+repair needed one new public entry point over machinery that was already correct. ⇒ **when a
+condition feels like it needs new analysis, check whether an existing arm already answers it** — and
+if it does, share the entry point so the consumers cannot drift.
+
+**4. ⭐⭐ A REAL RUNTIME STATE THAT NO ENUMERATION OF DECLARED PROFILES CONTAINS.**
+`set_grammar_profile` passes an undeclared spelling through un-coerced — documented, deliberate — and
+in that state EVERY `@profiles`-gated rule is absent while every ungated rule is live. Any analysis
+that iterates the declared profiles is blind to it by construction. It is modelled here as an
+explicit sentinel rather than assumed away, and it is the reason `non_keyword_identifier` is still
+reported once. ⇒ **when a set is built from positive declarations, ask what the complement is and
+whether anything can select it at runtime.** Second time this exact shape has bitten in this leaf.
+
+**5. ⭐⭐ THE DEFECT PIN PAID FOR ITSELF, AND SO DID PINNING THE REDESIGN ON THE REAL GRAMMAR.** The
+pin planted in slice 1 turned RED on both rungs the instant the repair landed, with a message telling
+the author to flip it — a repair could not have landed silently. And the redesign got its own
+two-sided pin, deliberately on `grammars/systemverilog.ebnf` rather than a synthetic, because the
+collision lived in the real grammar's idiom and no synthetic I would have invented had a
+dialect-selection dispatcher in it. ⇒ **pin a design decision on the artifact whose shape motivated
+it**, not on the reduction that is convenient to write.
+
+**6. ⛔ AND A COST I ALMOST TRADED WITHOUT NOTICING.** The first cut emitted the bypass machinery —
+including a branch in `memoized_call`, the hottest function in every generated parser — into ALL
+ELEVEN artifacts, for a defect present in one. This repository's second non-negotiable is peak speed,
+and a cost with no benefit is REJECTED rather than traded. Every emitted piece is now conditional.
+⇒ **shared-skeleton emission spreads a local change globally by default**; the blast radius is the
+thing that says so.
+
+## 2026-08-25 - PGEN-ENGINE-UNIVERSAL-SERVICES-0085b — the director challenged four published claims; one was overstated, and the overstatement was hiding a gap of my own
+
+**1. ⛔⛔⛔ I MIS-ATTRIBUTED MY OWN GAP TO THE INSTRUMENT, AND THE OVERSTATEMENT IS WHAT MADE IT
+INVISIBLE.** `SV-CONTRACT-CURRENCY` tier E fired because my codegen change moved the SV parser while a
+`GENERATOR-ONLY` register row pinned the old hash. I re-stamped the pin and opened `.48` saying the
+defect was *"an absolute pin with no producer"*. Re-reading the enforcer under challenge: tier E's
+stated contract is literally *"the row's `parser_sha256` must equal the sha256 of the shipped
+parser"*, and lines 58-60 already carry the honest bound that it composes with
+`GENERATED-REPRODUCIBILITY`. **A re-stamp after an unrelated codegen change is the DESIGNED response.**
+⛔ The real defect was that **I re-stamped without re-deriving the claim the row makes** — the cheapest
+way to make the check green is to copy the new hash, and that is exactly what I did. ⇒ **when a guard
+fires and you find yourself explaining why the guard is wrong, check first whether you took its
+cheapest remedy instead of its intended one.** Blaming the instrument is how a silenced guard gets
+written up as a finding.
+
+**2. ⭐⭐ THE RE-DERIVATION NEEDED THREE ATTEMPTS, BECAUSE THE EMITTED PARSER CARRIES TWO FACTS ABOUT
+ITS OWN INVOCATION.** Regenerating one grammar revision and its predecessor and comparing looks
+trivial and is not: the `-o` path is embedded (`ENGINE-UNIVERSAL-SERVICES.19`) and `PGEN_SOURCE_LABEL`
+is derived from the GRAMMAR FILE NAME. First attempt: 5 bytes apart. Second: 10 lines apart. Neither
+difference came from the grammar. Only with the basename AND the output path held constant do both
+revisions hash identically. ⇒ **before diffing two builds of the same artifact, enumerate what the
+build embeds about itself.**
+
+**3. ⭐⭐⭐ THE COUNTERFACTUAL REFUTED MY OWN PREDICTION, WHICH IS THE POINT OF RUNNING IT.** I had
+published that the blanket design would make `reg class;` **reject** under `verilog_2005`. Driven red,
+it **did not terminate in 600 s** — the shipped design answers in under a second. Cause: bypassing
+every negative lookahead suspends the packrat memo on `non_keyword_identifier`, which is on the path
+of every identifier in the grammar, so the parse degenerates into exponential re-search. The rejection
+claim stays DERIVED; non-termination is what is MEASURED, and the two rejected designs fail in
+different ways. ⇒ **a counterfactual you were sure of is still worth running** — I was right that the
+design was unshippable and wrong about why.
+
+**4. ⛔ A NEAR-MISS THAT ONLY A PRINTED FINGERPRINT CAUGHT.** The SV adjudication ratchet's first run
+came back `161 rows / 0 failures` — against `sv_parser=8bc4746a…`, the PRE-repair parser, because the
+release probe binary was stale. A green verdict about code that no longer existed. The runner prints
+the parser digest it used; without that line I would have filed it as evidence. ⇒ **an oracle must say
+WHICH artifact it graded**, and `PARSE-COST-RATCHET`'s probe-fingerprint arm exists for exactly this.
+
+**5. ⛔ AND I NEARLY REPEATED THE SAME MISTAKE ONE STEP LATER.** Comparing the parse-cost counters, I
+first diffed `cost.md` against `cost.md` — but the ratchet had REFUSED at its identity arm and never
+promoted new numbers, so both sides were HEAD's. Zero delta, and it meant nothing. The real comparison
+is the tracked baseline against the re-measure's scratch `entries.tsv`; done properly it shows genuine
+zero movement on all three binding counters. ⇒ **before quoting a delta, check the two sides came from
+different runs.**
+
+**6. ⭐ TWO STALE NUMBERS, BOTH MINE.** The "3 sites" framing is the pre-correction direct-only figure;
+the measured SV negative population moved **3 → 6 → 7** as the detector's condition was corrected
+twice, and I kept quoting the first. And *"the sites cannot be handled without the repair"* was an
+ARGUMENT when published; one half is now measured — `scope_resolution` has **8 positive users with no
+`@profiles` gate**, all live under `verilog_2005`, so un-gating it admits `::` through eight doors.
+⇒ **a number that moved during the work must be re-read at publication time, not recalled.**
+
 ## 2026-08-25 - PGEN-ENGINE-UNIVERSAL-SERVICES-0084 — the instrument I built to size a defect had the same disease as the defect: it reported zero, silently, in the passing direction
 
 **1. ⭐⭐⭐ ASK YOUR NEW INSTRUMENT THE QUESTION ITS FOUNDING CASE CANNOT ANSWER.** The lookahead

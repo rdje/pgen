@@ -1150,6 +1150,7 @@ mod tests {
             enable_debug: false,
             uses_match_regex: std::cell::Cell::new(false),
             first_set_grammar_tree: std::cell::RefCell::new(HashMap::new()),
+            profile_gate_bypass_needed: std::cell::RefCell::new(None),
             analysis_runtime_annotations: std::cell::OnceCell::new(),
             inline_decided_rules: std::cell::OnceCell::new(),
             inline_emission_stack: std::cell::RefCell::new(Vec::new()),

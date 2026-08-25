@@ -1,5 +1,76 @@
 # CHANGES.md
 
+## 2026-08-25 - PGEN-ENGINE-UNIVERSAL-SERVICES-0085 (leaf ENGINE-UNIVERSAL-SERVICES.46 (c) SHIPPED — the profile-gate soundness inversion is REPAIRED in codegen AND the interpreter, and the first design of the repair would have shipped a REJECTING-direction regression; ENGINE tier, ONE generated artifact moved of eleven)
+
+The director ordered `.46` fixed. It is fixed — and the first design of the fix was wrong in a way
+only a measurement could find.
+
+- ⭐⭐⭐ **THE REPAIR.** A negative lookahead's body is evaluated with `@profiles` gating IGNORED,
+  under exactly the profiles in which that body is UNSATISFIABLE — i.e. only where the guard was
+  actually vacuous. A lookahead is a CONSTRAINT, not a production: it derives nothing, so removing
+  its subject from a dialect must not loosen it. The packrat memo is suspended alongside, because its
+  key is `(rule, position)` and carries no profile bit.
+- ⛔⛔⛔ **THE FIRST DESIGN WAS A BLANKET BYPASS AND IT COLLIDES WITH HOW SystemVerilog USES
+  `@profiles`.** A gate NARROWS (the rule is absent, nothing replaces it — the guard is DELETED) or
+  it SELECTS (sibling rules, one per dialect, behind a dispatcher — the guard is SWITCHED). SV does
+  both: `reserved_non_keyword_identifier := reserved_non_keyword_identifier_sv | …_v2005`. Under the
+  blanket bypass, `!reserved_non_keyword_identifier` would have seen BOTH dialects' keyword lists at
+  once — so `reg class;`, legal IEEE 1364-2005, would have STOPPED PARSING under `verilog_2005`.
+  **A rejection introduced by a fix for an over-acceptance.**
+- ⭐⭐ **AND IT WAS CAUGHT BY A BLAST-RADIUS MEASUREMENT, NOT BY REVIEW.** The blanket version moved
+  all 11 generated artifacts; gating the emission still moved regex, which the slice-2 census had
+  reported clean; chasing that forced a transitive census, which raised SV's population 3 → 6 and
+  named `non_keyword_identifier`. Reading that rule is what exposed the collision. ⇒ "which files
+  changed" is not obviously a correctness instrument, and here it was the only one that fired.
+- ⭐⭐⭐ **THE DISCRIMINATOR IS SATISFIABILITY, NOT REACHABILITY.** SELECTION stays satisfiable;
+  NARROWING does not. One shared entry point, `profiles_making_node_unsatisfiable`, is consumed by
+  the lint, the codegen and the interpreter so the three cannot drift. It also models a profile the
+  grammar never declares — `set_grammar_profile` passes an unknown spelling through un-coerced, and
+  in that state every gated rule is absent — as an explicit sentinel rather than assuming it away.
+- ⭐ **BLAST RADIUS, MEASURED THREE TIMES:** blanket **11 of 11** artifacts moved → reachability
+  **2** (regex + SV) → satisfiability **1** (SV alone). regex is back to its pre-repair hash. Every
+  emitted piece is conditional, so a grammar with no vacuous lookahead pays no branch in
+  `memoized_call`, the hottest emitted function.
+- ⭐⭐ **THE DEFECT PIN WORKED EXACTLY AS BUILT.** Slice 1 planted it; the repair turned the gate RED
+  on BOTH rungs simultaneously with the message telling the author to flip it; it is flipped here in
+  the same commit and now pins the monotonic verdict forever.
+- **New two-sided pin on the redesign**, on the real grammar rather than a synthetic:
+  `selection_vs_narrowing_probe.sh` **5/5** — `reg class;` accepts under `verilog_2005` and rejects
+  under `sv_2017`, which are the two rows the blanket bypass would have broken.
+- ⭐⭐ **ZERO PARSE-COST MOVEMENT** on the pinned 192-file sample — entries / committed / memo-hits all
+  identical to the digit, `entries.tsv` byte-identical. The bypass is decided at RUNTIME against the
+  active profile, and the SV corpus runs under `sv_2017` where `scope_resolution` is live, so it never
+  fires. Advisory wall clock -3.2 %. Family share reproduces exactly at 2.729 %.
+- **Oracles:** `parse_harness_equivalence_gate` 4/4 · `parse_harness_combinator_gate` CLEAN 664.5 s
+  (all four profile combinators included) · `parse_harness_semantic_gate` CLEAN 391 s ·
+  `run_adjudication_repros.py` **161 rows / 0 failures** against the repaired parser.
+- ⛔ **A near-miss worth recording: the SV ratchet's FIRST run graded the WRONG ARTIFACT.**
+  `rust/target/release/parseability_probe` was stale, so it reported `sv_parser=8bc4746a…` — the
+  pre-repair parser — and would have been a green verdict about code that no longer existed. Caught
+  only because the runner PRINTS the parser digest it used.
+- ⭐⭐⭐ **UNDER DIRECTOR CHALLENGE, FOUR PUBLISHED CLAIMS WERE RE-DERIVED. ONE WAS OVERSTATED AND WAS
+  CONCEALING A GAP OF MY OWN.** `.48` was opened claiming `SV-CONTRACT-CURRENCY`'s `parser_sha256` pin
+  is *"an absolute pin with no producer"* — but tier E's stated contract IS "the pin equals the shipped
+  parser", and the script already carries the honest bound that it composes with
+  `GENERATED-REPRODUCIBILITY`. So a re-stamp is the DESIGNED response, and calling it rot
+  mis-attributed my gap to the instrument. ⛔ **The real defect was mine: I re-stamped the pin without
+  re-deriving the claim the row makes** — the cheapest way to make the check green is to copy the hash,
+  and that is what I did. Now re-derived: regenerating the grammar at `2e492d08^` and at `2e492d08`
+  with the repaired codegen yields **byte-identical output hashing to the stamped value**, so the
+  claim holds. `.48` is re-scoped to the survivable finding — *a guard whose cheapest remedy is to
+  silence it*.
+- ⭐ **The counterfactual REFUTED my own prediction and is recorded as such.** I claimed the blanket
+  design would have made `reg class;` **reject** under `verilog_2005`. Driven red, it **did not
+  terminate in 600 s** (the shipped design answers in under a second): bypassing every negative
+  lookahead suspends the memo on `non_keyword_identifier`, which is on the path of every identifier.
+  ⇒ the rejection stays DERIVED; non-termination is what is MEASURED.
+- ⛔ **Two stale numbers corrected**: the "3 sites" framing is the pre-correction direct-only figure
+  (the measured SV negative population moved 3 → 6 → 7 as the condition was corrected twice), and the
+  claim that those sites cannot be handled without the repair is now MEASURED on one half —
+  `scope_resolution` has **8 positive users carrying no `@profiles` gate**, all live under
+  `verilog_2005`, so un-gating it would admit `::` through eight doors.
+- ⇒ **Frontier: `.46`(d)**, the all-profiles re-audit, then `SV-CORPUS-GRAD.13e.10`(c4).
+
 ## 2026-08-25 - PGEN-ENGINE-UNIVERSAL-SERVICES-0084 (leaf ENGINE-UNIVERSAL-SERVICES.46 (b) DETECTOR SHIPPED + population SIZED over every tracked grammar; sizing found TWO defects in the instrument itself and opened .47; ENGINE-LINT tier, ZERO grammar / codegen / interpreter / generated bytes)
 
 `.46`'s routing sized the live population BY HAND at 3. A hand count over 1 537 rules is a claim, so

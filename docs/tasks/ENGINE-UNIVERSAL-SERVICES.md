@@ -12230,6 +12230,19 @@ repair worked.
 
 #### ✅ `.46` SLICE 2 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0084`, 2026-08-25 session #262) — **(b) DETECTOR SHIPPED and the population SIZED over every tracked grammar; the BLOCKING half is deferred on measured grounds, and sizing found TWO defects in the instrument itself**
 
+> ⛔⛔ **CORRECTED BY SLICE 3 — READ THIS FIRST IF YOU ARE QUOTING A NUMBER FROM THIS SECTION.** The
+> population published below (`negative=3 positive=1`) was measured by a **direct-reference-only**
+> detector, and the bound it rested on — *"the one-hop case is `ProfileOrphan`'s"* — was **measurably
+> wrong**. `grammars/regex.ebnf` carries nine `!invalid_class_range` sites whose gated rules sit one
+> or more hops down, and `ProfileOrphan` never covered them because that arm is skipped entirely
+> below two profiles and regex's universe measures one (`.47`). The detector is TRANSITIVE for the
+> negative polarity since slice 3, and the condition is now **satisfiability of the lookahead body**
+> rather than reachability of a gated rule from it — which also removed the false positives this
+> direct count never had a way to see. ⭐ The live figures are the census's, re-derived on demand:
+> `bash docs/tasks/artifacts/engine_universal_services/profile_gate_neg_lookahead/census.sh`. The
+> section below is kept verbatim because the REASONING it records — sizing beat the hand count, and
+> sizing found two defects in the instrument — is what led to the correction.
+
 ###### ⭐⭐⭐ THE SIZING CONFIRMED THE HAND COUNT AND THEN BEAT IT
 
 `.46` routed with a hand-sized live population of **3**. A hand count over a 1 537-rule grammar is a
@@ -12289,11 +12302,20 @@ population nobody has sized, which is the thing this very slice declined to do b
 
 `.46`'s ruling was *ship B (a **blocking** lint arm) first, then A (the semantics repair)*, on the
 premise that B's population would be **"0 violations after the author handles the 3 sites."** Slice 1
-located the mechanism, and that premise does not survive it: **the 3 sites cannot be "handled" without
-A.** The two available handlings are to un-gate `scope_resolution` under `verilog_2005` (which would
-admit `::` to a dialect that has no such construct — a genuine over-acceptance) or to confine the three
-referrers to `sv_2017`/`sv_2023` (which would delete identifiers from `verilog_2005`). Both are worse
-than the defect.
+located the mechanism, and that premise does not survive it: **those sites cannot be "handled" without
+A.** The two available handlings are to un-gate `scope_resolution` under `verilog_2005`, or to confine
+the referrers to `sv_2017`/`sv_2023` (which would delete identifiers from `verilog_2005`).
+
+⚠️ **BOTH HALVES OF THAT WERE ARGUMENTS WHEN FIRST PUBLISHED. THE FIRST IS NOW MEASURED** (under
+director challenge, slice 3): `scope_resolution` has **8 positive users that carry NO `@profiles`
+gate** — `class_scope_type`, `base_class_type`, `class_type`, `constant_function_call`,
+`function_subroutine_call`, `subroutine_call`, `known_unscoped_block_class_type` and
+`provisional_unscoped_block_class_type` — every one of them live under `verilog_2005`. Un-gating
+`scope_resolution` would therefore admit `::` to a dialect that has no such construct, through eight
+doors. The second half (confining the referrers deletes identifiers) remains an argument, and a
+trivial one. ⛔ **AND THE COUNT `3` IS STALE**: it is the pre-correction, direct-reference-only figure.
+The measured negative population for SystemVerilog moved **3 → 6 → 7** across this leaf as the
+detector's condition was corrected twice; the live figure is the census's, never a number typed here.
 
 ⇒ A blocking arm today would necessarily ship as **a guard plus an exemption for every existing
 instance of the defect it exists to catch** — the exact shape `GENERATED-LINT-CORRECTNESS.6`/`.12`
@@ -12327,6 +12349,124 @@ reads the gate, so every arm is a one-difference pair against the finding case:
 - [x] **NO REGRESSION** — `make -C rust SHELL=/bin/bash generated_reproducibility_rebaseline` re-derived **all 11 artifacts byte-identically (0 sites each)**, so a lint-only change moved zero shipped bytes; the baseline diff is `verified_at_commit` + `emission_sha` and nothing else. Existing lint counters on `systemverilog.ebnf` unchanged (`non_terminating=0`, `ordered_choice_shadowing=0`, `unreachable_rules=0`, `undefined_references=0`, `uncompilable_regex_terminals=0`, `unbound_fact_kinds=0`, `nullable_repetition=0`, `profile_orphans=0`) — the new arm computes its own profile context and does not touch `all_profiles`, which the orphan arm still reads. `cargo test --lib grammar_wellformedness::tests` **59 passed, 0 failed**. `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` clean. `bash scripts/check_doctrines.sh` **ALL 27 PASS**. `make -C rust SHELL=/bin/bash profile_gate_monotonicity_gate` still **8/8, interpreter agreed 8/8** — slice 1's DEFECT PIN is untouched, as it must be until (c).
 - [x] **LOCKSTEP** — `rust/src/ast_pipeline/grammar_wellformedness.rs`, `rust/src/main.rs`, `docs/tasks/artifacts/engine_universal_services/profile_gate_neg_lookahead/census.sh` (new) + `default_profile_universe_control.ebnf` (new), `rust/test_data/grammar_quality/generated_reproducibility_v0.json` (re-derived), this leaf, `docs/TASK_TREE.md`, `docs/book/src/grammar-wellformedness.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`.
 
+#### ✅ `.46` SLICE 3 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0085`, 2026-08-25 session #262) — **(c) SHIPPED: the semantics are repaired in codegen AND the interpreter, and the FIRST DESIGN OF THE REPAIR WAS WRONG IN A WAY THAT WOULD HAVE SHIPPED A REJECTING-DIRECTION REGRESSION**
+
+###### ⭐⭐⭐ THE REPAIR, AND THE CONDITION IT TURNS ON
+
+A negative lookahead's body is now evaluated with `@profiles` gating **IGNORED** — but only under the
+profiles in which that body is **UNSATISFIABLE**, i.e. only where the guard was actually vacuous.
+A lookahead is a CONSTRAINT, not a production: it derives nothing, so removing its subject from a
+dialect must not loosen it.
+
+Three pieces, in both engines:
+
+1. a `profile_gate_bypass_depth` counter; while non-zero the rule-entry `@profiles` guard is skipped;
+2. the **packrat memo is suspended** while it is non-zero — not optional: the key is
+   `(rule, position)` and carries no profile bit, so a success recorded under bypass would be
+   replayed by an ordinary call at the same position, re-introducing the over-acceptance through the
+   cache instead of through the lookahead;
+3. a per-site runtime check against the profiles under which that site is vacuous.
+
+###### ⛔⛔⛔ THE FIRST DESIGN WAS "BYPASS WHEREVER THE BODY REACHES A GATED RULE", AND IT WAS WRONG
+
+`.46`'s ruling — mine — said *"evaluate a negative lookahead's body with gating IGNORED"*, full stop.
+Implemented literally, that is a **blanket** bypass, and it collides with the second way a
+`@profiles` gate is actually used:
+
+| use | shape | what gating does to `!X` | correct response |
+|---|---|---|---|
+| **NARROWING** | the rule is absent from the narrow dialect, nothing replaces it | the guard is **DELETED** — the narrow profile accepts strings the wide one rejects | ⇒ bypass |
+| **SELECTION** | sibling rules, one per dialect, behind a dispatcher | the guard is **SWITCHED**, never deleted — one alternative is always live | ⇒ leave alone |
+
+`grammars/systemverilog.ebnf` does BOTH:
+
+```ebnf
+reserved_non_keyword_identifier := reserved_non_keyword_identifier_sv       # @profiles ["sv_2017","sv_2023"]
+                                 | reserved_non_keyword_identifier_v2005    # @profiles ["verilog_2005"]
+non_keyword_identifier := escaped_identifier | !reserved_non_keyword_identifier simple_identifier
+```
+
+⇒ **Under the blanket bypass, `!reserved_non_keyword_identifier` sees BOTH dialects' keyword lists at
+once.** `class` is a legal IEEE 1364-2005 identifier and an IEEE 1800 keyword, so the guard that must
+SWITCH would instead UNION — trading a silent accepting-direction defect for a rejecting-direction
+one, in the family under a director order.
+
+⚠️ **WHAT IS MEASURED HERE, AND WHAT IS STILL DERIVED — because the counterfactual returned a
+DIFFERENT answer than predicted.** Driven under director challenge, the maximal blanket (bypass every
+negative lookahead) was re-injected into the interpreter and `reg class;` re-run under
+`verilog_2005`. It **did not terminate in 600 s** and was killed; the shipped design answers the same
+input in under a second. That is a *second, independent* failure of the blanket design and it is the
+one that was actually observed: suspending the packrat memo inside EVERY negative lookahead destroys
+memoisation on `non_keyword_identifier`, which is on the path of every identifier in the grammar, and
+the parse degenerates into exponential re-search — the `PARSE-TERMINATION.6` /
+`ENGINE-UNIVERSAL-SERVICES.43` failure mode. ⛔ **So the REJECTION of `reg class;` remains DERIVED from
+the grammar's structure, not measured** — the run never got far enough to produce a verdict. The
+narrower reachability variant did terminate (it regenerated and ran), so the two rejected designs fail
+differently: the maximal blanket hangs, the reachability variant ships the semantic collision. Neither
+is shippable, and the arm that would have caught the second is
+`selection_vs_narrowing_probe.sh` row 1.
+
+###### ⭐⭐ HOW IT WAS CAUGHT — BY A MEASUREMENT THE REPAIR ITSELF FORCED, NOT BY REVIEW
+
+The blanket version was implemented, and the first full regeneration moved **all 11** generated
+artifacts. Chasing that (the machinery was being emitted into every parser's shared skeleton) led to
+gating the emission — and the tightened version still moved **regex**, which the slice-2 census had
+reported clean at `negative=0`. Chasing *that* forced a transitive census, which raised
+SystemVerilog's negative population from 3 to 6 and named the three new rows:
+`non_keyword_identifier`, guarding `!reserved_non_keyword_identifier_sv` / `_v2005`. Reading that
+rule is what exposed the SELECTION case. ⇒ **the byte-level blast-radius measurement is what found a
+semantic design error.** Nothing about "which files changed" is obviously a correctness instrument,
+and here it was the only one that fired.
+
+###### ⭐⭐⭐ THE DISCRIMINATOR: SATISFIABILITY, NOT REACHABILITY
+
+The lookahead body is unsatisfiable under `P` exactly when the guard is vacuous under `P`.
+SELECTION stays satisfiable (a sibling is live); NARROWING does not. The machinery already existed —
+`compute_sat_by_profile` / `node_satisfiable`, built for `detect_profile_orphans` — and is now shared
+by the lint, the codegen and the interpreter through one new public entry point,
+`profiles_making_node_unsatisfiable`, so the three cannot drift.
+
+⭐ **It also has to model a profile the grammar never declares.** `set_grammar_profile` passes an
+unknown spelling through un-coerced, and in that state EVERY gated rule is absent while every ungated
+rule is live — a real runtime state that no enumeration of declared profiles contains. It is added as
+an explicit sentinel (`UNDECLARED_PROFILE_SENTINEL`) rather than assumed away, and it is why
+`non_keyword_identifier` is still reported once: under an undeclared profile BOTH keyword lists
+vanish and the guard really is vacuous there.
+
+###### ⭐⭐ THE MEASURED RESULT — BLAST RADIUS OF EXACTLY ONE ARTIFACT
+
+| version of the condition | artifacts moved (of 11) | verdict |
+|---|---|---|
+| blanket, scaffolding emitted everywhere | **11** | the machinery went into every parser, including a branch in `memoized_call` |
+| reachability, scaffolding gated | **2** (`regex`, `systemverilog`) | regex's `!invalid_class_range` is SELECTION — a cost with no benefit, in the family the SPEED campaign runs on |
+| ⭐ satisfiability (shipped) | **1** (`systemverilog`) | only the sites that were actually vacuous |
+
+⇒ regex returned to its **pre-repair hash**, and 10 of 11 artifacts are byte-identical.
+
+###### ⭐⭐ THE TWO-SIDED PIN ON THE REDESIGN, ON THE REAL GRAMMAR
+
+`selection_vs_narrowing_probe.sh` — **5/5** — is the arm that decides whether the repair is aimed
+correctly, and it runs against `grammars/systemverilog.ebnf` rather than a synthetic:
+
+| arm | input | profile | verdict |
+|---|---|---|---|
+| ⭐ SELECTION intact | `reg class;` | `verilog_2005` | **accept** — `class` is not a 1364-2005 keyword |
+| ⭐ SELECTION intact | `reg class;` | `sv_2017` | **reject** — it is an IEEE 1800 keyword |
+| the mirror asymmetry | `reg macromodule;` | `verilog_2005` | reject — v2005-reserved |
+| NARROWING, verdict unmoved | `p::b` | `verilog_2005` | reject (nothing can consume `::` there) |
+| NARROWING, wide profile | `p::b` | `sv_2017` | accept |
+
+Rows 1-2 are the ones the blanket bypass would have broken.
+
+###### Acceptance Checklist (enforced) — `.46` slice 3, acceptance (c)
+
+- [x] **REPRODUCE / ISSUE** — the DEFECT PIN slice 1 planted went RED on both rungs the moment the repair landed: `make -C rust SHELL=/bin/bash profile_gate_monotonicity_gate` failed with `FINDING !X is VACUOUS, X gated ⛔ DEFECT PIN [strict]: generated=false wanted=true`, and the interpreter agreed 8/8, so the two engines moved together exactly as the arm was built to require. The pin is flipped to the monotonic expectation in this same commit and the gate is **8/8** again.
+- [x] **ROOT CAUSE (WHY + WHERE)** — two composing emission sites, read off the EMITTED artifact in slice 1 and unchanged as the diagnosis: `p.rs:2337` — a `@profiles`-gated rule's method opens `if !self.rule_profile_is_enabled(&[…]) { return Err(ParseError::Backtrack { position }); }` (emitted at `rust/src/ast_pipeline/ast_based_generator.rs:4181`), so gating makes a rule ALWAYS BACKTRACK rather than removing it; `p.rs:1618` — `!X` is `matched = parser.try_parse(…); if matched.is_some() { return Err(Backtrack) }` (emitted at `:4484`), so a negative lookahead fails only when its body MATCHED. ⇒ a gated body always backtracks ⇒ `matched.is_none()` ⇒ `!X` always succeeds. The one-sentence cause: **a negative lookahead reads *backtracked* as *did not match*, which is true for an ABSENT rule and false for a merely DISABLED one.** The interpreter carries the identical guard at `rust/src/parse_harness_interpreter.rs:944`, which is why both rungs agreed before and after. ⛔ Silent by construction: `--lint-grammar` on the reproducing grammar reports `profile_orphans=0`, `unreachable_rules=0`, `ordered_choice_shadowing=0`, `left_recursion_unhandled=0` — every counter zero, because every other arm asks whether a rule can still be DERIVED and a lookahead derives nothing.
+- [x] **FIX** — engine tier, both rungs together. Codegen (`ast_based_generator.rs`): a `profile_gate_bypass_depth` field, a `rule_profile_is_enabled` early-out, a `memoized_call` early-out, a `profile_gate_bypass_applies` runtime helper with a `DECLARED_GRAMMAR_PROFILES` const, and a per-site wrapper carrying that site's vacuous-profile list. Interpreter (`parse_harness_interpreter.rs`): the same four, with the runtime check collapsed into `negative_lookahead_is_vacuous_here` (memoized per body-pointer × profile, because `parse_lookahead` is hot). One shared condition, `grammar_wellformedness::profiles_making_node_unsatisfiable`, consumed by the lint, the codegen and the interpreter so they cannot drift. ⛔ **Every piece is emitted CONDITIONALLY**: a grammar with no vacuous negative lookahead regenerates byte-identically and pays no branch in `memoized_call`, the hottest emitted function — a cost with no benefit is REJECTED, not traded.
+- [x] **ADDRESSED (verified)** — `bash docs/tasks/artifacts/sv_corpus_grad/profile_gate_sizing/probe.sh` **6/6** with its second arm flipped from `accept` (the defect) to `reject` (the repair); `make -C rust SHELL=/bin/bash profile_gate_monotonicity_gate` **8/8 on the generated parser, interpreter agreed 8/8**; `selection_vs_narrowing_probe.sh` **5/5** on the real SV grammar, proving the SELECTION case is untouched in BOTH directions. The census re-derives at SystemVerilog **7** notes and **0** everywhere else — regex back to clean, and back to its pre-repair artifact hash.
+- [x] **NO REGRESSION** — the three oracle gates a codegen + interpreter change turns on, then the cost, then the corpus. `make -C rust SHELL=/bin/bash parse_harness_equivalence_gate` **4 passed / 0 failed** (interpreter == generated parser, byte-identical verdict + typed AST, all 11 registered grammars, seeds 0/7/42). `parse_harness_combinator_gate` **CLEAN in 664.54 s**, zero divergences — including all four profile combinators (`profile_unspecified_permissive`, `profile_default_gate`, `profile_alias_resolves`, `profile_alias_unknown_passthrough`), which are the ones this repair could plausibly have moved. `parse_harness_semantic_gate` **CLEAN in 391.01 s**. ⭐ **`python3 stimuli/sv/run_adjudication_repros.py` — `checked=247 armed=81 listed=161 multi_profile_rows=60 failures=0`, and its printed fingerprint reads `sv_parser=7d03b035…`, the REPAIRED parser**: no SV verdict moved. ⛔ The first run of that ratchet reported `sv_parser=8bc4746a…` — the PRE-repair parser, because `rust/target/release/parseability_probe` was stale — and would have been a green verdict about the wrong artifact; the runner prints the digest, which is the only reason it was caught. ⭐⭐ **PARSE COST: ZERO MOVEMENT ON ALL THREE BINDING COUNTERS** over the pinned 192-file sample — rule entries **416,905,072 → 416,905,072**, committed **6,759,873 → 6,759,873**, memo hits **184,293,557 → 184,293,557**, and `entries.tsv` is byte-identical. That is the profile-conditional design paying for itself: the SV corpus parses under `sv_2017`, where `scope_resolution` is live, so `profile_gate_bypass_applies` returns false and the memo is never suspended. Advisory wall clock -3.2 %/-4.3 % across two runs (non-binding, machine-dependent). Family share re-derived and **reproduces exactly at 2.729 %**. `generated_reproducibility_rebaseline` **11/11 byte-identical (0 sites each)**. ⚠️ **Reading the reproducibility diff correctly: `parser_sha` moved for EXACTLY ONE artifact (`systemverilog`); every other parser hash is unchanged.** The eight `input_sha` values that also moved are the `raw_ast` envelope digest, which embeds a wall-clock `generated_at` and therefore churns on every regeneration by construction — the known `CI-PARITY-GATE-ROT.42` finding, not eight moved parsers. `bash scripts/check_sv_contract_currency.sh` green after the tier-E re-stamp, whose claim was then **re-derived** rather than copied (see `.48`). `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` clean. `bash scripts/check_doctrines.sh` **ALL 27 PASS**. `make -C rust SHELL=/bin/bash mdbook_docs_gate` green.
+- [x] **LOCKSTEP** — `rust/src/ast_pipeline/ast_based_generator.rs`, `rust/src/ast_pipeline/grammar_wellformedness.rs`, `rust/src/parse_harness_interpreter.rs`, `rust/src/main.rs`, `rust/tests/profile_gate_negative_lookahead_generated_parser.rs` (pin flipped), `docs/tasks/artifacts/sv_corpus_grad/profile_gate_sizing/probe.sh` (arm flipped), `docs/tasks/artifacts/engine_universal_services/profile_gate_neg_lookahead/` (`census.sh` re-framed, `selection_vs_narrowing_probe.sh` new), `rust/test_data/grammar_quality/generated_reproducibility_v0.json`, this leaf, `docs/TASK_TREE.md`, the book, `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`.
+
 ### ⚠️ `.47` — `detect_profile_orphans` reads the **FILTERED** profile context and a universe that omits `@default_profile`, so on any grammar declaring a default it has never evaluated the profile that SHIPS (`todo`, opened 2026-08-25 by `.46` slice 2 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0084`)
 
 **WHAT WAS MEASURED, and it was measured against a control rather than read off the source.** While
@@ -12347,6 +12487,16 @@ of them also sit under `detect_profile_orphans`:
    is requested.
 3. ⛔ **AND THE ORPHAN ARM IS SKIPPED BELOW 2 PROFILES** (`if all_profiles.len() >= 2`). With regex's
    universe measuring `{relaxed}` — one entry — `detect_profile_orphans` does not run on regex at all.
+4. ⛔⛔ **AND A THIRD, FOUND BY `.46`(c) AND ROUTED HERE: THE UNIVERSE CANNOT EXPRESS AN UNDECLARED
+   REQUESTED PROFILE, UNDER WHICH *EVERY* GATED RULE IS ABSENT.** `set_grammar_profile` accepts an
+   undeclared spelling and passes it through un-coerced — the book states this as designed behaviour
+   (*"An undeclared spelling passes through un-coerced (it simply matches no `@profiles` list)"*). So
+   there is always a reachable runtime profile in which every `@profiles`-gated rule is gated OUT
+   while every UNGATED rule is live, and **no enumeration of declared profiles contains it.** ⭐ It is
+   not hypothetical: `.46`(c)'s codegen-side emission condition had to model it explicitly, because
+   an ungated rule guarding a gated one is vacuous under such a profile even when no *declared*
+   profile exhibits it. ⇒ every profile-reasoning arm that enumerates declared profiles is an
+   UNDER-count by exactly that case, and the fix is one extra hypothetical member, not a bigger list.
 
 ⇒ **`profile_orphans=0` on `grammars/regex.ebnf` is an UNEVALUATED arm, not a clean grammar**, and it
 has read that way for every commit since the arm landed. The same holds for any future grammar that
@@ -12369,10 +12519,64 @@ different arm, would also make the reproducibility and corpus evidence in that s
 - **(c)** the `>= 2` guard: it encodes the orphan arm's "satisfiable elsewhere" test, which genuinely
   needs two profiles — but the universe it counts is the one measured wrong above. Re-derive the
   guard from the CORRECTED universe rather than deleting it.
-- **(d)** a census of which OTHER lint arms read the filtered context and would report an unevaluated
-  zero on a defaulted grammar. ⛔ **This is a census claim and must carry its census**
-  ([[an-x-is-checked-by-nothing-claim-is-a-census-claim]]); the two found so far were found by
-  accident, which is the defect.
+- **(d)** a census of which OTHER lint arms read the filtered context, or enumerate only declared
+  profiles, and would therefore report an unevaluated or under-counted zero. ⛔ **This is a census
+  claim and must carry its census** ([[an-x-is-checked-by-nothing-claim-is-a-census-claim]]); all
+  three found so far were found by accident, which is the defect.
+- **(e)** decide whether `detect_profile_gated_lookaheads` (`.46`(b)) should also model the
+  undeclared-profile case. It is a NOTE-class arm post-repair, so the value is low and the cost is
+  not zero — priced here rather than done silently in a slice about something else.
 
 ⚠️ **PRIORITY: after `.46` closes.** It is a real unevaluated-gate finding, but `.46` is under a
 direct director order and this is not a blocker for it.
+
+### ⚠️ `.48` — `SV-CONTRACT-CURRENCY` tier E's CHEAPEST REMEDY IS A RE-STAMP, AND NOTHING FORCES THE RE-STAMPER TO RE-DERIVE THE CLAIM (`todo`, opened 2026-08-25 by `.46` slice 3 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0085`, **RE-SCOPED under director challenge the same day**; mechanism owned by `SV-CORPUS-GRAD.13c.2l`)
+
+⛔⛔ **THIS LEAF WAS OPENED OVERSTATED AND IS CORRECTED HERE RATHER THAN QUIETLY EDITED.** It first
+claimed the defect was that a `GENERATOR-ONLY` row's `parser_sha256` is *"an ABSOLUTE pin with no
+producer"*. That is not a defect of the doctrine: tier E's stated contract is literally *"the row's
+`parser_sha256=<hex>` must equal the sha256 of the shipped `generated/systemverilog_parser.rs`"*, and
+`scripts/check_sv_contract_currency.sh:58-60` already carries the HONEST BOUND that tier E compares
+against what is PRESENT in `generated/` and composes with `GENERATED-REPRODUCIBILITY` for the rest.
+⇒ **a re-stamp after an unrelated codegen change is the DESIGNED response, not evidence of rot**, and
+publishing it as rot mis-attributed my own gap to the instrument.
+
+**WHAT SURVIVES, AND IT IS ABOUT THE WORKFLOW RATHER THAN THE PIN.** When tier E fires, the cheapest
+way to make it green is to copy the new hash into the row. That is what `-0085` did. Nothing in the
+check, the register or the commit flow asks the re-stamper to re-derive the claim the row actually
+makes — *"this grammar revision moved the semantic digest and left the generated parser untouched"* —
+and a re-stamp is indistinguishable from a rewrite that quietly makes a false claim true. **A guard
+whose easiest remedy is to silence it** is the shape this repository has refused before.
+
+**MEASURED — and the re-stamp turns out to have been CORRECT, which is why it is a workflow finding
+rather than a retraction.** Re-derived under director challenge:
+
+```
+git show 2e492d08^:grammars/systemverilog.ebnf  ->  regenerate with TODAY's codegen -> 7d03b035…
+git show 2e492d08 :grammars/systemverilog.ebnf  ->  regenerate with TODAY's codegen -> 7d03b035…
+```
+
+byte-identical, and equal to the value stamped into the row. ⇒ the `GENERATOR-ONLY` claim for
+revision `2e492d08` **still holds under the repaired codegen**, re-derived rather than assumed.
+
+⭐⭐ **A REUSABLE TRAP THE RE-DERIVATION EXPOSED: THE EMITTED PARSER CARRIES TWO FACTS ABOUT ITS OWN
+INVOCATION, SO A NAIVE TWO-REVISION COMPARISON IS WRONG BY CONSTRUCTION.** The first attempt produced
+files 5 bytes apart, the second 10 lines apart, and neither difference came from the grammar:
+`-o <path>` is embedded (`ENGINE-UNIVERSAL-SERVICES.19`) and `PGEN_SOURCE_LABEL` is derived from the
+GRAMMAR FILE NAME. Both must be held constant — same basename, equal-length output path — before two
+revisions can be compared at all. Anyone re-deriving a `GENERATOR-ONLY` row must do this, and nothing
+says so today.
+
+**Owed:**
+- **(a)** give the re-stamp a PRODUCER: a command that regenerates the row's revision and its
+  predecessor with the current codegen, holding the grammar basename and `-o` path constant, and
+  writes the resulting hash. Then the row is derived rather than typed, and re-stamping re-verifies
+  by construction instead of by discipline.
+- **(b)** ⚠️ price it first. It costs **two full SystemVerilog regenerations** per re-stamp (~2 min
+  each measured here), so it belongs in the operator tier, not on the commit path — the same
+  reasoning that keeps `generated_reproducibility_gate` tier 2 off every commit.
+- **(c)** the trap above belongs in `TOOLBOX.md` beside the regeneration entries, whatever (a)
+  decides: it is a fact about the emitted artifact, not about this doctrine.
+
+⚠️ **PRIORITY: after `.46` and `.47`.** It blocks nothing — the row is green and its claim is now
+re-derived — and the SV lane lock means the owning tree is not being worked.

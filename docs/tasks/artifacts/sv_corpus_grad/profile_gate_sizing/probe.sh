@@ -8,10 +8,13 @@
 # and the leaf's own instruction is SIZE IT FIRST. Sizing turned up two things that would have made
 # the obvious fix wrong, and both are measurements rather than readings:
 #
-#   1. ⛔ A `@profiles` GATE INVERTS EVERY NEGATIVE LOOKAHEAD THAT REFERENCES THE GATED RULE.
-#      `!X` means "refuse if X matches here". Gate X out of a profile and X matches nothing, so
-#      `!X` succeeds VACUOUSLY — the STRICT profile becomes MORE permissive at that site, which is
-#      exactly backwards. Silent: no lint, no warning, and it fails in the ACCEPTING direction.
+#   1. ⛔ A `@profiles` GATE INVERTED EVERY NEGATIVE LOOKAHEAD THAT REFERENCED THE GATED RULE.
+#      `!X` means "refuse if X matches here". Gate X out of a profile and X matched nothing, so
+#      `!X` succeeded VACUOUSLY — the STRICT profile became MORE permissive at that site, which is
+#      exactly backwards. Silent: no lint, no warning, and it failed in the ACCEPTING direction.
+#      ⭐ REPAIRED by `ENGINE-UNIVERSAL-SERVICES.46` (c): a negative lookahead's body is evaluated
+#      with `@profiles` gating IGNORED, in codegen and the interpreter together. Arm [2]'s second
+#      row is flipped accordingly and now pins the monotonic verdict.
 #
 #   2. ⭐ THE LINT ALREADY NAMES THE COMPANION EDITS. Gating `tick` produces 11 `profile_orphans`
 #      ERRORS, each carrying a DERIVED minimal fix. The other 16 terminals gate at orphans=0.
@@ -64,12 +67,18 @@ expect "gated rule REQUIRED, profile=loose  -> accept" "$(verdict "$HERE/gate_ac
 expect "gated rule REQUIRED, profile=strict -> reject" "$(verdict "$HERE/gate_active_control.ebnf" "1'" strict)" accepted=false
 
 echo
-echo "[2] ⛔ THE FINDING — a gate makes \`!X\` succeed VACUOUSLY, widening the STRICT profile"
+echo "[2] ⭐ THE FINDING, NOW REPAIRED — \`!X\` still refuses once its subject is gated away"
 # Discriminating by construction: a catch-all can consume the guarded token, so
-#   H1 (gated rule still matches inside `!`) -> strict REJECTS
-#   H2 (gated rule matches nothing)          -> strict ACCEPTS
+#   H1 (the lookahead's subject still matches inside `!`) -> strict REJECTS
+#   H2 (the subject matches nothing, so `!X` is vacuous)  -> strict ACCEPTS
+#
+# ⭐⭐⭐ THIS ARM MEASURED `accepted=true` — H2, the DEFECT — from the day it was written until
+# `ENGINE-UNIVERSAL-SERVICES.46` (c) repaired the semantics: a negative lookahead's body is now
+# evaluated with `@profiles` gating IGNORED, in codegen AND the interpreter together. It is flipped
+# here to pin the MONOTONIC verdict, and it must never read `accepted=true` again — that would mean
+# gating had gone back to ADDING strings to the narrower profile.
 expect "!X refuses under loose  (X live)            -> reject" "$(verdict "$HERE/neg_lookahead_discriminating.ebnf" "1'" loose)"  accepted=false
-expect "!X is VACUOUS under strict (X gated)        -> accept" "$(verdict "$HERE/neg_lookahead_discriminating.ebnf" "1'" strict)" accepted=true
+expect "!X still refuses under strict (X gated)     -> reject" "$(verdict "$HERE/neg_lookahead_discriminating.ebnf" "1'" strict)" accepted=false
 
 echo
 echo "[3] sanity — the catch-all path itself works under both profiles"

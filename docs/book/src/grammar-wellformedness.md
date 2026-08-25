@@ -49,14 +49,14 @@ independent axis. (This is literature-grounded, not invented; sources at the end
 4. **No dangling references, no profile orphans.** Every referenced rule is defined, and every rule
    present under a language profile (e.g. `sv_2017` vs `sv_2023`) is actually satisfiable under it.
 4b. **Profile narrowing is MONOTONIC — gating a rule out of a profile only ever REMOVES strings from
-   the language, never ADDS them.** This is the axis a profiled grammar lives or dies on, and PGEN
-   currently **violates it at one construct**: a `@profiles` gate does not delete a rule, it makes the
-   rule's parse method backtrack unconditionally, and a negative lookahead fails only when its body
-   *matched* — so `!X` succeeds **vacuously** the moment `X` is gated away, and the narrower profile
-   accepts more. Measured on the shipped engine, and reported by
-   `--lint-grammar`'s `profile_gated_negative_lookaheads` counter (see
-   *the profile-gated lookahead arm*, below). The counter is **report-only** while the repair
-   (`ENGINE-UNIVERSAL-SERVICES.46` (c)) is outstanding.
+   the language, never ADDS them.** This is the axis a profiled grammar lives or dies on. PGEN
+   **violated it at one construct** until `ENGINE-UNIVERSAL-SERVICES.46`: a `@profiles` gate made
+   every negative lookahead on the gated rule succeed vacuously, so the *narrower* profile accepted
+   more. Repaired — a negative lookahead's body is evaluated with gating ignored under exactly the
+   profiles in which it would otherwise be unsatisfiable — and held by a standing probe. Reported for
+   grammar authors under
+   [Annotation System § a `@profiles` gate and a negative lookahead](annotation-system.md), and
+   reported by `--lint-grammar`'s `profile_gated_*_lookaheads` counters (below).
 
 ### Well-defined (semantic)
 
@@ -90,8 +90,12 @@ the **referring rule is still live in**:
 
 | counter | class | why |
 |---|---|---|
-| `profile_gated_negative_lookaheads` | ⛔ soundness inversion (report-only pending the repair) | `!X` on a gated `X` succeeds **vacuously** — the constraint is deleted, so the NARROWER profile accepts strings a wider one rejects |
-| `profile_gated_positive_lookaheads` | note (monotonic) | `&X` on a gated `X` always **fails** — the path is dead, so the profile gets strictly narrower. Surprising, but it removes strings rather than adding them |
+| `profile_gated_negative_lookaheads` | note | the guard is **still enforced** under that profile since the `.46` repair, which is the non-obvious part — a reader seeing `!X` with `X` gated out will assume it vanishes |
+| `profile_gated_positive_lookaheads` | note | `&X` on a gated `X` always **fails** — the path is dead, so the profile gets strictly narrower. Deliberately NOT bypassed: both behaviours are monotonic, so there is no invariant to repair |
+
+Neither gates. The negative counter uses **satisfiability** of the lookahead body, not reachability
+of a gated rule from it: a gate that *selects* between sibling per-dialect rules leaves the body
+satisfiable and is not a finding, while a gate that *narrows* leaves nothing to match and is.
 
 Nothing else in the linter finds these. Every other arm asks whether a rule can still be **derived**;
 a lookahead derives nothing, so a constraint whose subject was gated away is invisible to all of

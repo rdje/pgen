@@ -829,17 +829,16 @@ behaviors of the *shipped engine*, now pinned differentially and worth knowing w
 ## The profile-gate monotonicity probe (`ENGINE-UNIVERSAL-SERVICES.46`)
 
 `make -C rust SHELL=/bin/bash profile_gate_monotonicity_gate` (module
-`rust/tests/profile_gate_negative_lookahead_generated_parser.rs`, ~9 s warm) is the standing
-reproduction of a **live engine defect**: a `@profiles` gate silently inverts every negative
-lookahead on the gated rule, so the *narrower* profile accepts more. It is documented for
-grammar authors under
-[Annotation System § a `@profiles` gate INVERTS a negative lookahead](annotation-system.md); this
+`rust/tests/profile_gate_negative_lookahead_generated_parser.rs`, ~9 s warm) is the standing guard on
+a repaired engine defect: a `@profiles` gate used to silently invert every negative lookahead on the
+gated rule, so the *narrower* profile accepted more. The behaviour is documented for grammar authors
+under [Annotation System § a `@profiles` gate and a negative lookahead](annotation-system.md); this
 section is about the probe.
 
 **The invariant under test.** ⭐⭐⭐ *Gating a rule out of a profile must only ever REMOVE strings
 from the language, never ADD them.* A `!X` is a **constraint**, not a production — it derives
-nothing — so removing its subject should not loosen it. Today it does: gate `X` out and `!X`
-succeeds vacuously.
+nothing — so removing its subject must not loosen it. Before the repair it did: gate `X` out and
+`!X` succeeded vacuously.
 
 **Why it is a harness probe rather than a unit test.** The finding was first measured on the
 **interpreter** (`--interpret-parse`), which is authoritative *by verification, not by construction*
@@ -861,9 +860,18 @@ the profile requested through the artifact's own `set_grammar_profile` resolutio
 currently 8/8). The repair must move codegen and the interpreter together, and that column is what
 makes a one-sided repair fail loudly instead of silently splitting the two engines.
 
-⛔ **One case is a DEFECT PIN** — it asserts today's *wrong* verdict on purpose. The semantics repair
-cannot land silently: it must turn this gate RED, and flipping the pin in the same commit is how the
-author states that the repair worked.
+⭐⭐ **One case WAS a DEFECT PIN, and it did its job.** Until the repair it asserted the *wrong*
+verdict on purpose, so the fix could not land silently. It turned this gate RED **on both rungs at
+once** the moment the semantics changed, with a message telling the author to flip it; the flip
+landed in that same commit, and the case now pins the monotonic verdict forever.
+
+⚠️ **The repair is narrower than "ignore gating inside `!`", and the reason is worth knowing before
+you write a profiled grammar.** The bypass applies only under the profiles in which the lookahead
+body is *unsatisfiable* — i.e. only where the guard was genuinely deleted. A gate that selects
+between sibling per-dialect rules leaves the body satisfiable and is left alone; bypassing there
+would union the dialects and reject text the narrow dialect allows. The pin for that decision is
+`docs/tasks/artifacts/engine_universal_services/profile_gate_neg_lookahead/selection_vs_narrowing_probe.sh`,
+which runs against the real SystemVerilog grammar rather than a synthetic.
 
 ## Honest bounds
 

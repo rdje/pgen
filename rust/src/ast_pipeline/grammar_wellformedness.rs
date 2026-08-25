@@ -165,26 +165,30 @@ pub enum WellformednessIssue {
         kind: String,
         primitive: String,
     },
-    /// ERROR (`ENGINE-UNIVERSAL-SERVICES.46`): `rule` is LIVE under grammar profile `profile` and
-    /// contains a lookahead at `node_path` whose body references `target`, which `@profiles`
-    /// (`target_profiles`) gates OUT of `profile`.
+    /// NOTE, never gating (`ENGINE-UNIVERSAL-SERVICES.46`): `rule` is LIVE under grammar profile
+    /// `profile` and contains a lookahead at `node_path` whose body references `target`, which
+    /// `@profiles` (`target_profiles`) gates OUT of `profile`.
     ///
-    /// ⛔ **THE NEGATIVE CASE (`positive == false`) IS A SOUNDNESS INVERSION.** Gating does not
-    /// REMOVE a rule; it makes the rule's parse method return `Backtrack` unconditionally (emitted
-    /// at `ast_based_generator.rs:4181`, mirrored by `parse_harness_interpreter.rs:944`). A negative
-    /// lookahead fails ONLY when its body MATCHED (`ast_based_generator.rs:4484`). Compose the two
-    /// and `!target` succeeds **vacuously** under `profile` — the constraint is deleted, so the
-    /// NARROWER profile accepts strings the wider one rejects. That breaks the invariant every
-    /// dialect-profile system depends on: **gating a rule out of a profile must only ever REMOVE
-    /// strings from the language, never ADD them.** The lookahead reads *backtracked* as *did not
-    /// match*, which is true for a rule that is ABSENT and false for one that is merely DISABLED.
+    /// ⭐⭐⭐ **THIS CLASS WAS FOUNDED ON A SOUNDNESS INVERSION THAT IS NOW REPAIRED, AND THE ARM
+    /// SURVIVES ITS OWN FIX AS DOCUMENTATION.** Gating does not REMOVE a rule; it makes the rule's
+    /// parse method return `Backtrack` unconditionally (emitted at `ast_based_generator.rs:4181`,
+    /// mirrored by `parse_harness_interpreter.rs:944`), and a negative lookahead fails ONLY when its
+    /// body MATCHED (`:4484`). Composed, `!target` used to succeed **vacuously** under `profile` —
+    /// the constraint deleted, the NARROWER profile accepting strings the wider one rejects, in
+    /// breach of the invariant every dialect-profile system depends on: **gating a rule out of a
+    /// profile must only ever REMOVE strings from the language, never ADD them.** `.46` (c) fixed
+    /// it: a negative lookahead's body is evaluated with gating IGNORED, because a lookahead is a
+    /// CONSTRAINT rather than a production.
     ///
-    /// ⚠️ **THE POSITIVE CASE (`positive == true`) IS NOT AN INVERSION AND IS REPORTED AS A NOTE.**
-    /// `&target` on a gated `target` always FAILS, so every path through it dies and the profile
-    /// gets strictly NARROWER — monotonic, hence not the defect this class was founded on. It is
-    /// counted because it is the same conflation viewed from the other side (a constraint whose
-    /// meaning changed because its subject was gated), and because sizing the whole population is
-    /// what tells the repair whether to cover both polarities.
+    /// ⇒ **The negative case is now CORRECT, and is reported only because the reading is
+    /// non-obvious** — a grammar author looking at `!target` with `target` gated out will assume the
+    /// guard vanishes under `profile`. It does not, and per the invariant it must not.
+    ///
+    /// ⚠️ **THE POSITIVE CASE (`positive == true`) IS NOT BYPASSED AND IS NOT A DEFECT.** `&target`
+    /// on a gated `target` always FAILS, so every path through it dies and the profile gets strictly
+    /// NARROWER. Both that behaviour and a bypassed one are monotonic, so there is no invariant to
+    /// repair; the dead path is the more conservative reading and was deliberately left alone. It is
+    /// counted so the decision stays visible rather than implicit.
     ///
     /// ⚠️ **HONEST BOUND — DIRECT REFERENCES ONLY.** Only rules referenced *syntactically inside*
     /// the lookahead body are examined; the analysis does not follow `target`'s own body looking for
@@ -277,11 +281,11 @@ impl WellformednessIssue {
             } => {
                 if *positive {
                     format!(
-                        "grammar NOTE (not a soundness inversion): rule '{rule}' is LIVE under profile '{profile}' and its POSITIVE lookahead at '{node_path}' requires '{target}', which @profiles gates out of '{profile}' (declared: {target_profiles:?}). A gated rule's parse method returns Backtrack unconditionally, so `&{target}` always FAILS here and every path through it is dead — the profile gets strictly NARROWER, which is monotonic and therefore not the ERROR class. Reported so the population of 'a lookahead whose subject was gated away' is sized on both sides; confirm the deadness is intended."
+                        "grammar NOTE (informational, never gates): rule '{rule}' is LIVE under profile '{profile}' and its POSITIVE lookahead at '{node_path}' requires '{target}', which @profiles gates out of '{profile}' (declared: {target_profiles:?}). A gated rule's parse method returns Backtrack unconditionally, so `&{target}` always FAILS here and every path through it is dead under '{profile}' — the profile gets strictly NARROWER, which is what a gate is for. ⚠️ Unlike the negative polarity this is NOT bypassed by ENGINE-UNIVERSAL-SERVICES.46 (c): both behaviours are monotonic here, so there is no invariant to repair, and the dead path is the more conservative of the two. Confirm the deadness is intended."
                     )
                 } else {
                     format!(
-                        "grammar well-formedness ERROR: rule '{rule}' is LIVE under profile '{profile}' and its NEGATIVE lookahead at '{node_path}' guards against '{target}', which @profiles gates out of '{profile}' (declared: {target_profiles:?}). Gating does NOT remove '{target}' — it makes '{target}' return Backtrack unconditionally — and a negative lookahead fails only when its body MATCHED, so `!{target}` succeeds VACUOUSLY under '{profile}'. The constraint is DELETED and profile '{profile}' accepts strings a WIDER profile REJECTS, which inverts the purpose of the gate: gating must only ever REMOVE strings from the language, never ADD them. Fix: make the lookahead's subject reachable under '{profile}' (drop or widen the @profiles gate on '{target}'), or restrict rule '{rule}' to the profiles where '{target}' is live."
+                        "grammar NOTE (informational, never gates): rule '{rule}' is LIVE under profile '{profile}' and its NEGATIVE lookahead at '{node_path}' guards against '{target}', which @profiles gates out of '{profile}' (declared: {target_profiles:?}). ⭐ THE CONSTRAINT IS STILL ENFORCED under '{profile}': since ENGINE-UNIVERSAL-SERVICES.46 (c) a negative lookahead's body is evaluated with @profiles gating IGNORED, because a lookahead is a CONSTRAINT rather than a production — it derives nothing, so removing its subject from a dialect must not loosen it. This is reported because the reading is non-obvious: before that repair `!{target}` succeeded VACUOUSLY here, deleting the constraint and letting '{profile}' accept strings a WIDER profile rejects. ⚠️ If you expected the guard to disappear under '{profile}', it does not — and it must not, because gating may only ever REMOVE strings from the language, never ADD them."
                     )
                 }
             }
@@ -1168,6 +1172,110 @@ pub fn detect_profile_orphans(
 ///
 /// PURE and parser-agnostic; deterministic (iterates `rule_order`, then structural node order, then
 /// `target` sorted, then `all_profiles` in the caller's order).
+/// The synthetic profile standing for **a requested profile the grammar never declared**.
+///
+/// `set_grammar_profile` accepts an undeclared spelling and passes it through un-coerced — the book
+/// states this as designed behaviour — so there is always a reachable runtime profile under which
+/// EVERY `@profiles`-gated rule is absent and every ungated rule is live. No enumeration of declared
+/// profiles contains it, which is why it is added explicitly rather than assumed away. The name is
+/// deliberately unspellable in a grammar: `@profiles` payload entries are trimmed and lower-cased,
+/// and this contains characters no identifier survives.
+pub const UNDECLARED_PROFILE_SENTINEL: &str = "<pgen:undeclared-profile>";
+
+/// `ENGINE-UNIVERSAL-SERVICES.46` (c) — the profiles under which `node` is **UNSATISFIABLE**, i.e.
+/// the profiles in which a negative lookahead over `node` is VACUOUS.
+///
+/// ⭐⭐⭐ **THIS, NOT "the body reaches a gated rule", IS THE DEFECT CONDITION — AND THE DIFFERENCE
+/// IS LOAD-BEARING.** A `@profiles` gate is used two ways in real grammars:
+///
+/// * **NARROWING** — a rule exists in the wide dialect and not the narrow one, with nothing taking
+///   its place. Gate it out and `!X` has nothing to match, so the guard is DELETED and the narrow
+///   profile accepts strings the wide one rejects. That is the soundness inversion.
+/// * **SELECTION** — sibling rules, one per dialect, behind a dispatcher.
+///   `grammars/systemverilog.ebnf` does exactly this:
+///   `reserved_non_keyword_identifier := reserved_non_keyword_identifier_sv | reserved_non_keyword_identifier_v2005`,
+///   the two alternatives gated to `["sv_2017","sv_2023"]` and `["verilog_2005"]`. Under any profile
+///   ONE of them is live, so `!reserved_non_keyword_identifier` is never vacuous — it is *switched*,
+///   which is the whole point of the construct.
+///
+/// ⛔ A repair keyed on "reaches a gated rule" cannot tell those apart, and applying it to the
+/// SELECTION case is actively WRONG: it would make the guard see BOTH dialects' keyword lists at
+/// once, so `class` — a legal `verilog_2005` identifier — would stop parsing as an identifier under
+/// `verilog_2005`. A regression in the REJECTING direction, introduced by a fix for one in the
+/// accepting direction. Satisfiability separates them exactly: SELECTION stays satisfiable,
+/// NARROWING does not.
+///
+/// The returned list is sorted and may contain [`UNDECLARED_PROFILE_SENTINEL`].
+pub fn profiles_making_node_unsatisfiable(
+    node: &ASTNode,
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    rule_profiles: &HashMap<String, Vec<String>>,
+    declared_profiles: &[String],
+) -> Vec<String> {
+    let mut universe: Vec<String> = declared_profiles.to_vec();
+    universe.push(UNDECLARED_PROFILE_SENTINEL.to_string());
+    universe.sort();
+    universe.dedup();
+    let sat_by_profile = compute_sat_by_profile(grammar, rule_order, rule_profiles, &universe);
+    let defined: HashSet<String> = grammar.keys().cloned().collect();
+    let mut out: Vec<String> = universe
+        .into_iter()
+        .filter(|profile| {
+            let sat = match sat_by_profile.get(profile) {
+                Some(s) => s,
+                None => return false,
+            };
+            !node_satisfiable(node, sat, rule_profiles, &defined, profile)
+        })
+        .collect();
+    out.sort();
+    out
+}
+
+/// The `@profiles`-gated rules TRANSITIVELY reachable from `node`, over `grammar`. Deterministic
+/// (sorted, deduplicated). The engine mirror is `AstBasedGenerator::gated_rules_reachable_from`,
+/// which decides where the runtime bypass is emitted — the two must answer the same question, or
+/// the lint would name sites the engine does not repair (or, worse, stay silent about ones it does).
+fn gated_rules_reachable_from(
+    node: &ASTNode,
+    grammar: &HashMap<String, ASTNode>,
+    rule_profiles: &HashMap<String, Vec<String>>,
+) -> Vec<String> {
+    let mut direct: HashSet<String> = HashSet::new();
+    collect_node_rule_refs(node, &mut direct);
+    if direct.is_empty() {
+        return Vec::new();
+    }
+    let mut seen: HashSet<String> = HashSet::new();
+    let mut frontier: Vec<String> = direct.into_iter().collect();
+    frontier.sort();
+    let mut gated: Vec<String> = Vec::new();
+    while let Some(rule) = frontier.pop() {
+        if !seen.insert(rule.clone()) {
+            continue;
+        }
+        // Only a rule DEFINED here can be gated; an external/include reference is not ours to judge,
+        // and an undefined one is already `detect_undefined_references`' finding.
+        if !grammar.contains_key(&rule) {
+            continue;
+        }
+        if rule_profiles.get(&rule).is_some_and(|p| !p.is_empty()) {
+            gated.push(rule.clone());
+        }
+        if let Some(body) = grammar.get(&rule) {
+            let mut next: HashSet<String> = HashSet::new();
+            collect_node_rule_refs(body, &mut next);
+            let mut next: Vec<String> = next.into_iter().filter(|r| !seen.contains(r)).collect();
+            next.sort();
+            frontier.extend(next);
+        }
+    }
+    gated.sort();
+    gated.dedup();
+    gated
+}
+
 pub fn detect_profile_gated_lookaheads(
     grammar: &HashMap<String, ASTNode>,
     rule_order: &[String],
@@ -1182,6 +1290,7 @@ pub fn detect_profile_gated_lookaheads(
             body,
             "root",
             grammar,
+            rule_order,
             rule_profiles,
             all_profiles,
             &mut out,
@@ -1196,6 +1305,7 @@ fn collect_profile_gated_lookaheads(
     node: &ASTNode,
     path: &str,
     grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
     rule_profiles: &HashMap<String, Vec<String>>,
     all_profiles: &[String],
     out: &mut Vec<WellformednessIssue>,
@@ -1208,6 +1318,7 @@ fn collect_profile_gated_lookaheads(
                     a,
                     &format!("{path}/o{i}"),
                     grammar,
+                    rule_order,
                     rule_profiles,
                     all_profiles,
                     out,
@@ -1221,6 +1332,7 @@ fn collect_profile_gated_lookaheads(
                     e,
                     &format!("{path}/s{i}"),
                     grammar,
+                    rule_order,
                     rule_profiles,
                     all_profiles,
                     out,
@@ -1232,45 +1344,98 @@ fn collect_profile_gated_lookaheads(
             element,
             &format!("{path}/q"),
             grammar,
+            rule_order,
             rule_profiles,
             all_profiles,
             out,
         ),
         ASTNode::Lookahead { element, positive } => {
-            // Every rule the lookahead body references DIRECTLY. Sorted so the report is stable.
-            let mut targets: Vec<String> = {
+            // Every `@profiles`-gated rule the lookahead body can reach, TRANSITIVELY. Sorted so
+            // the report is stable.
+            //
+            // ⛔⛔ TRANSITIVE, AND THE DIRECT-ONLY VERSION WAS MEASURED WRONG. `.46` slice 2 shipped
+            // this arm direct-only and argued the one-hop case belonged to `ProfileOrphan`. The
+            // repair's own regeneration refuted it: `grammars/regex.ebnf` has NINE sites of the
+            // shape `class_item_visible = !invalid_class_range …`, where `invalid_class_range` is
+            // UNGATED and the `["relaxed"]`-gated rules sit one or more hops beneath it. Under
+            // `pcre2` — regex's own `@default_profile`, the profile every unqualified parse uses —
+            // those are exactly the vacuous-`!X` defect, and this arm reported regex CLEAN. Nor did
+            // `ProfileOrphan` cover them: it is skipped entirely below two profiles, and regex's
+            // universe measures one (`ENGINE-UNIVERSAL-SERVICES.47`).
+            //
+            // ⚠️ THE TWO POLARITIES ASK DIFFERENT QUESTIONS.
+            // NEGATIVE: "could this guard become vacuous?" — the runtime bypass is dynamically
+            //   scoped, so every rule entered beneath the lookahead is in play ⇒ TRANSITIVE, and it
+            //   is exactly the set the engine bypasses.
+            // POSITIVE: "is this path dead under the gating profile?" — a path dies only when a
+            //   REQUIRED element is gated away, which a transitive reach does not establish (the
+            //   reachable gated rule may sit behind an alternation or a `?`). Transitive here
+            //   measured 586 SystemVerilog notes against 6 negatives, i.e. noise that would bury the
+            //   arm's actual content ⇒ DIRECT references only. ⛔ Even direct over-approximates
+            //   (`&( a | gated_b )` is not dead), which is one reason this polarity never gates.
+            // NEGATIVE: "is this guard VACUOUS under some profile?" — which is true exactly when the
+            //   lookahead BODY is UNSATISFIABLE there, not merely when it can reach a gated rule.
+            //   The difference is the SELECTION-vs-NARROWING distinction documented on
+            //   `profiles_making_node_unsatisfiable`; keying on reachability flags SystemVerilog's
+            //   dialect-switching keyword guard, which is correct code.
+            // POSITIVE: "is this path dead under the gating profile?" — reported from DIRECT gated
+            //   references only. ⛔ Even that over-approximates (`&( a | gated_b )` is not dead),
+            //   which is one reason this polarity never gates and is worded as a note.
+            if *positive {
                 let mut refs: HashSet<String> = HashSet::new();
                 collect_node_rule_refs(element, &mut refs);
-                refs.into_iter().collect()
-            };
-            targets.sort();
-            for target in targets {
-                // Only a rule DEFINED here can be gated; an external/include reference is not ours
-                // to judge, and an undefined one is already `detect_undefined_references`' finding.
-                if !grammar.contains_key(&target) {
-                    continue;
+                let mut refs: Vec<String> = refs
+                    .into_iter()
+                    .filter(|r| {
+                        grammar.contains_key(r)
+                            && rule_profiles.get(r).is_some_and(|p| !p.is_empty())
+                    })
+                    .collect();
+                refs.sort();
+                for target in refs {
+                    let Some(target_profiles) = rule_profiles.get(&target) else {
+                        continue;
+                    };
+                    for profile in all_profiles {
+                        if !rule_present_under_profile(rule, rule_profiles, profile)
+                            || rule_present_under_profile(&target, rule_profiles, profile)
+                        {
+                            continue;
+                        }
+                        out.push(WellformednessIssue::ProfileGatedLookahead {
+                            rule: rule.to_string(),
+                            node_path: path.to_string(),
+                            target: target.clone(),
+                            profile: profile.clone(),
+                            positive: true,
+                            target_profiles: target_profiles.clone(),
+                        });
+                    }
                 }
-                // A rule with no `@profiles` list is universal — it is present under every profile,
-                // so it can never be the subject of this defect.
-                let Some(target_profiles) = rule_profiles.get(&target) else {
-                    continue;
-                };
-                if target_profiles.is_empty() {
-                    continue;
-                }
-                for profile in all_profiles {
-                    if !rule_present_under_profile(rule, rule_profiles, profile)
-                        || rule_present_under_profile(&target, rule_profiles, profile)
-                    {
+            } else {
+                let vacuous = profiles_making_node_unsatisfiable(
+                    element,
+                    grammar,
+                    rule_order,
+                    rule_profiles,
+                    all_profiles,
+                );
+                // The gated rules the body reaches, named in the message so the reader is not sent
+                // hunting for which one went away.
+                let reached = gated_rules_reachable_from(element, grammar, rule_profiles);
+                for profile in vacuous {
+                    // Only profiles in which the REFERRING rule still runs can exhibit the vacuity.
+                    // The undeclared-profile sentinel keeps every UNGATED rule live by construction.
+                    if !rule_present_under_profile(rule, rule_profiles, &profile) {
                         continue;
                     }
                     out.push(WellformednessIssue::ProfileGatedLookahead {
                         rule: rule.to_string(),
                         node_path: path.to_string(),
-                        target: target.clone(),
+                        target: reached.join(", "),
                         profile: profile.clone(),
-                        positive: *positive,
-                        target_profiles: target_profiles.clone(),
+                        positive: false,
+                        target_profiles: Vec::new(),
                     });
                 }
             }
@@ -1280,6 +1445,7 @@ fn collect_profile_gated_lookaheads(
                 element,
                 &format!("{path}/l"),
                 grammar,
+                rule_order,
                 rule_profiles,
                 all_profiles,
                 out,
@@ -1292,6 +1458,7 @@ fn collect_profile_gated_lookaheads(
                     inner,
                     &format!("{path}/a"),
                     grammar,
+                    rule_order,
                     rule_profiles,
                     all_profiles,
                     out,

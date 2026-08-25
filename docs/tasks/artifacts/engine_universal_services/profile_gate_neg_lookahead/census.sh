@@ -6,6 +6,12 @@
 # `.46`'s routing sized the live SystemVerilog population BY HAND at 3 sites. A hand count is a
 # claim about a 1 537-rule grammar, so it is re-derived here by the engine's own traversal — the
 # same `detect_profile_gated_lookaheads` the lint runs — over EVERY tracked grammar, not just SV.
+#
+# ⭐⭐ WHAT THIS CENSUS IS FOR CHANGED WHEN `.46` (c) LANDED, AND THE NUMBER DID NOT MOVE. It was
+# built to size a DEFECT and to decide whether a blocking lint arm was affordable. The repair fixed
+# the SEMANTICS rather than the spelling, so the population stayed at 3 while the defect went to 0 —
+# which is the answer to the blocking question, not an obstacle to it: there is nothing left to
+# block. The census now measures a documentation surface, and its self-check is what keeps it honest.
 # ⭐ The re-derivation CONFIRMED the 3 and found a FOURTH the hand count missed: a POSITIVE
 # `&scope_resolution` in `class_scope_type`, nested at `root/s2/q/s3` — under a quantifier, which is
 # exactly where an eye scanning top-level sequences stops looking.
@@ -71,7 +77,19 @@ echo
 printf 'POPULATION: negative=%d (the SOUNDNESS INVERSION) positive=%d (monotonic note) over %d measured grammar(s); %d NOT MEASURED\n' \
     "$total_neg" "$total_pos" "$measured" "$not_measured"
 echo
-echo "⛔ A blocking arm is NOT affordable while negative > 0: it would ship as a guard plus an"
-echo "   exemption for every existing instance of the defect it exists to catch — the shape"
-echo "   GENERATED-LINT-CORRECTNESS.6/.12 refused and DOCTRINE-GAP-OWNERSHIP.15 ruled against."
-echo "   The semantics repair (.46 (c)) is what drives this number to zero. Re-run then."
+echo "⭐ THESE ARE NOTES, NOT DEFECTS — AND THE COUNT DID NOT FALL WHEN THE DEFECT WAS FIXED."
+echo "   .46 (c) repaired the SEMANTICS, not the spelling. At a site whose guard is VACUOUS under"
+echo "   some profile, the lookahead body is now evaluated with @profiles gating IGNORED under"
+echo "   exactly that profile, so the guard survives and the construct is monotonic. The sites are"
+echo "   still counted because the reading is non-obvious — a reader seeing !X with X gated out will"
+echo "   assume the guard vanishes, and it does not."
+echo
+echo "⛔ THE CONDITION IS SATISFIABILITY, NOT REACHABILITY, AND THAT DISTINCTION IS THE WHOLE ARM."
+echo "   A gate NARROWS (the rule is absent and nothing replaces it — the guard is DELETED) or it"
+echo "   SELECTS (sibling rules, one per dialect, behind a dispatcher — the guard is SWITCHED)."
+echo "   SystemVerilog does both. Keying on \"the body reaches a gated rule\" flagged the SELECTION"
+echo "   case too, and repairing THAT would have made !reserved_non_keyword_identifier see every"
+echo "   dialect keyword list at once — rejecting \"class\" as an identifier under verilog_2005, a"
+echo "   regression in the REJECTING direction introduced by a fix for one in the accepting one."
+echo
+echo "   ⇒ the BLOCKING half of (b) is DECLINED: there is nothing wrong here to block."

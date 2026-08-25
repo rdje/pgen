@@ -12,10 +12,16 @@
 //!
 //! THE CLAIM UNDER TEST
 //! --------------------
-//! `!X` means *refuse if `X` matches here*. Gate `X` out of a profile and `X` matches nothing, so
-//! `!X` succeeds **VACUOUSLY** — deleting a constraint, which makes the STRICT profile **MORE
-//! PERMISSIVE** at that site. The deciding invariant it breaks: **gating a rule out of a profile
-//! must only ever REMOVE strings from the language, never ADD them.**
+//! `!X` means *refuse if `X` matches here*. Before `.46`(c), gating `X` out of a profile made `X`
+//! match nothing, so `!X` succeeded **VACUOUSLY** — deleting a constraint, which made the STRICT
+//! profile **MORE PERMISSIVE** at that site and broke the invariant every dialect-profile system
+//! depends on: **gating a rule out of a profile must only ever REMOVE strings from the language,
+//! never ADD them.**
+//!
+//! ⭐ **`.46`(c) repaired it in both engines**: a negative lookahead's body is now evaluated with
+//! `@profiles` gating IGNORED (and the packrat memo suspended, since its key carries no profile
+//! bit). A lookahead is a CONSTRAINT, not a production — it derives nothing — so removing its
+//! subject from a dialect must not loosen it. This file is what holds that.
 //!
 //! THE ARMS. Cases 1-6 reuse the interpreter probe's own grammars and inputs, so the two rungs are
 //! directly diffable; cases 7-8 are this leaf's own addition.
@@ -41,9 +47,11 @@
 //! The interpreter-only sizing probe this leaf grew out of remains its own command:
 //!   bash docs/tasks/artifacts/sv_corpus_grad/profile_gate_sizing/probe.sh
 //!
-//! ⛔ **CASE 4 IS A DEFECT PIN.** It asserts today's WRONG verdict on purpose, so `.46`(c) cannot
-//! land silently: the repair MUST turn this test RED and the author MUST flip the pin in the same
-//! commit, on both rungs at once.
+//! ⭐⭐⭐ **CASE 4 WAS A DEFECT PIN AND IS NOW THE REPAIR'S RATCHET.** Until `.46`(c) it asserted
+//! today's WRONG verdict on purpose, so the repair could not land silently. It worked exactly as
+//! designed: the repair turned this test RED **on both rungs at once** and the expectation was
+//! flipped in that same commit. It now pins the MONOTONIC verdict, and it fails again the moment
+//! anything re-introduces the vacuity.
 
 use std::path::{Path, PathBuf};
 
@@ -159,12 +167,17 @@ fn a_profile_gate_inverts_a_negative_lookahead_on_the_generated_parser_too() {
             on_mismatch: "`!X` must REFUSE while X is live in the profile",
         },
         Case {
-            // ⛔⛔ THE DEFECT PIN. `expected: true` is the WRONG verdict, asserted on purpose.
-            label: "FINDING  !X is VACUOUS, X gated  ⛔ DEFECT PIN",
-            grammar: finding.clone(), slot: "finding", input: "1'", profile: "strict", expected: true,
-            on_mismatch: "DEFECT PIN no longer holds. If `.46`(c) landed, flip this case's `expected` \
-                          to `false` — the monotonic verdict — in that same commit; if it did not, a \
-                          silent behaviour change occurred and must be root-caused",
+            // ⭐⭐⭐ THE REPAIRED CASE — and the reason this whole file exists. It was a DEFECT PIN
+            // asserting `expected: true` (the WRONG verdict) until `.46`(c) landed, at which point
+            // it went RED on both rungs at once and was flipped here in the same commit.
+            label: "MONOTONIC  !X still refuses, X gated  ⭐ was the DEFECT PIN",
+            grammar: finding.clone(), slot: "finding", input: "1'", profile: "strict", expected: false,
+            on_mismatch: "THE SOUNDNESS INVERSION IS BACK. `strict` gates the lookahead's subject \
+                          out, and this input must STILL be refused — gating may only ever REMOVE \
+                          strings from the language, never ADD them. An `accept` here means a \
+                          negative lookahead is once again reading `backtracked` as `did not \
+                          match`, which is true for an ABSENT rule and false for a merely DISABLED \
+                          one. Do NOT relax this expectation; find what re-introduced the vacuity",
         },
         Case {
             label: "SANITY   catch-all consumes a plain char",
