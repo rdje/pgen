@@ -1,5 +1,68 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0303 — I ran the same probe three times; the first two printed verdicts and measured nothing
+
+**1. ⭐⭐⭐ THE CONTROL ARM CAUGHT A NON-RESULT THAT LOOKED EXACTLY LIKE A RESULT.** I wrote a 5-rule
+synthetic to ask whether gating a rule breaks a `!X` lookahead on it, ran it under both profiles, and
+got a clean, plausible answer: *the hazard does not exist*. Then I ran the control — the SAME gated
+rule in a REQUIRED position, which must reject under the strict profile — and it **accepted**. The
+gate had never been applied: I had written `@profiles` **inline after `:=`**, which is the
+**branch-level** placement, while the rule-level form is a line of its own **above** the rule.
+⇒ **placement is semantic, and a probe whose gate is off returns confident nonsense.** Nothing about
+the output looked wrong. The only thing that could have caught it is the arm I nearly skipped.
+
+**2. ⭐⭐ THE SECOND ATTEMPT WAS BETTER AND STILL WORTHLESS, FOR A DIFFERENT REASON.** With the gate
+genuinely on, `!tick` rejected `1'` under both profiles and I nearly wrote that up as *the lookahead
+still refuses*. It cannot mean that: with nothing else able to consume the `'`, a **vacuous** `!tick`
+and a **refusing** `!tick` both end in a reject, because the leftover token kills the parse either
+way. Two hypotheses, one reading
+([[feedback_a_control_that_passes_under_both_hypotheses_is_not_evidence]]). The fix was to add a
+catch-all that CAN consume the guarded token, so the hypotheses predict **opposite** verdicts — and
+then the answer inverted: `strict` **accepts**. ⇒ **before running a probe, write down what each
+hypothesis predicts. If they predict the same reading, you have not built an experiment.**
+
+**3. THE FINDING ITSELF IS THE WORST SHAPE A DEFECT CAN HAVE.** A `@profiles` gate makes every `!X`
+on the gated rule succeed vacuously, so the **STRICT** profile becomes **MORE PERMISSIVE** at that
+site. It is silent (`--lint-grammar` clean), it fails in the **accepting** direction — the class the
+strict-LRM default exists to prevent — and it is invisible to a positive-only test suite, because the
+symptom is an *extra accept*. And it is engine-universal: `@profiles` and `!` are both generic EBNF
+surfaces.
+
+**4. ⭐ BUT IT IS CURRENTLY HARMLESS, AND SAYING SO IS PART OF THE FINDING.** The live SV population is
+**3** sites, all `!scope_resolution`, and none produces an over-acceptance: `p::b` still rejects under
+`verilog_2005` because nothing there can consume `::`. ⇒ the hazard bites **only when some other
+alternative can consume what the lookahead guarded against**, which is exactly why it has survived
+unnoticed. Reporting it as *"3 live over-acceptances"* would have been false and would have cost the
+next reader an afternoon. **Undefended is not the same as broken**, and the distinction is the whole
+value of having measured it.
+
+**5. AND THE NEXT COMMIT WALKS INTO IT — which is why sizing before fixing paid.** (c4) must gate
+`tick`, and `scalar_constant` spells `kw_n_1 !tick`. On the scratch grammar `1'b0` still parses, so
+the goal direction is safe — but I only checked because the sizing had already surfaced the
+mechanism. Had I gone straight to the fix, that check would not have existed to run.
+
+**6. THE SECOND FINDING IS A REPEAT, AND REPEATS ARE THE INTERESTING KIND.** All 7 `dot_star` hosts
+are named `_sv_2017`; **3 are `@profiles`-admitted to `verilog_2005`**. `.13e.7` measured exactly this
+on `data_declaration_sv_2017` and fixed that instance. ⇒ **a naming convention is not an enforcement
+mechanism**, and fixing the instance did not shrink the class. The census that would have found the
+other three is one grep — and nothing runs it.
+
+**7. ⛔⛔ AND I ALMOST TURNED THE REPEAT INTO A 27-DEFECT HEADLINE.** Running the class census gave
+**27** dialect-named rules admitted to `verilog_2005`, and the obvious write-up — *"27 rules whose
+name lies about their profile"* — is **false**. Admission is usually CORRECT: `module_declaration`
+and the specify-path descriptions exist in IEEE 1364-2005 too, so the suffix records *which Annex A
+the production text was extracted from*, not *which dialect may use it*, and removing the admission
+would break legal Verilog. What the mismatch marks is a **site where an SV-only element can leak** —
+which is why the repair in both measured cases was a per-element gate INSIDE the rule, never a
+profile change ON it. ⇒ **before quoting a census as a defect count, ask what the population would
+look like if the code were correct.** Here a correct grammar still has ~27 rows. **2 of the 27 are
+audited; 25 are not**, and that — not "27 defects" — is the schedulable work.
+
+**8. WHAT THE SIZING BOUGHT.** An edit budget of **28** (17 terminal tags + 11 lint-derived
+companions) instead of an open-ended "17 gates"; four gate arms each driven with a defect-flip and a
+control-holds; two named traps; and a tracked 6/6 probe whose first arm is the control that caught my
+own mistake. ZERO tracked grammar bytes moved.
+
 ## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0302 — pinning a defect is a claim about the parser, so the pin needs its own controls
 
 **1. THE CONTROL ROWS ARE THE HALF THAT IS EASY TO SKIP AND EXPENSIVE TO OMIT.** Pinning 17

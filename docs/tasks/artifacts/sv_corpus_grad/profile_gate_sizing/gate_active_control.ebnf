@@ -1,0 +1,11 @@
+@profiles: ["strict", "loose"]
+
+@entry: true
+top := trivia lit_one tick trivia                -> {kind: "t"}
+
+lit_one := trivia "1"                          -> {kind: "one"}
+
+@profiles: ["loose"]
+tick := trivia "'"                             -> {kind: "tick"}
+
+trivia := /[ \t\r\n]*/

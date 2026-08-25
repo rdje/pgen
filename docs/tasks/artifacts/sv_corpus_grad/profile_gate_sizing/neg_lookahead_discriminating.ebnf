@@ -1,0 +1,19 @@
+# DISCRIMINATING probe. The previous shape could not tell "the lookahead refused" from "the tick
+# was left unconsumed", because both produce a reject. Here a catch-all CAN consume the tick, so:
+#
+#   H1  a gated rule still MATCHES inside `!` ⇒ !tick refuses  ⇒ strict REJECTS
+#   H2  a gated rule matches nothing          ⇒ !tick vacuous  ⇒ catchall eats "'" ⇒ strict ACCEPTS
+#
+# loose REJECTS under both hypotheses, and is the sanity arm.
+@profiles: ["strict", "loose"]
+
+@entry: true
+top := trivia lit_one !tick catchall trivia     -> {kind: "t"}
+
+lit_one := trivia "1"                           -> {kind: "one"}
+catchall := trivia /['a-z]/                     -> {kind: "c"}
+
+@profiles: ["loose"]
+tick := trivia "'"                              -> {kind: "tick"}
+
+trivia := /[ \t\r\n]*/

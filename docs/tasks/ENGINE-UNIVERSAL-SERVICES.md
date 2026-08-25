@@ -11981,3 +11981,55 @@ surviving cycles from the shipped grammars, which shrinks the exposure but does 
 synthetic or a future grammar can always present one); (d) a sweep for other surviving cycles whose
 verdicts differ — the 7 SV + 3 `ebnf` distinct cycles of `.13` slice 1 are the obvious first
 denominator.
+
+### ⛔ `.46` NEW `todo` — **a `@profiles` gate SILENTLY INVERTS every NEGATIVE LOOKAHEAD on the gated rule, widening the STRICT profile** (opened 2026-08-25 by `SV-CORPUS-GRAD.13e.10`(c4) sizing / `PGEN-SV-CORPUS-GRAD-0303`)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
+reproduces outside the family it is being sent to):
+
+- **THE MECHANISM, MEASURED on a 5-rule synthetic with a proven-active control.** `!X` means *refuse
+  if `X` matches here*. Gate `X` out of a profile and `X` matches nothing, so `!X` succeeds
+  **VACUOUSLY**:
+
+  | arm | `loose` (X live) | `strict` (X gated) |
+  |---|---|---|
+  | a REQUIRED gated rule — ⭐ the control proving the gate is ON | accept | **reject** |
+  | `!X`, with a catch-all able to consume the guarded token | reject | ⛔ **accept** |
+
+  ⇒ **the STRICT profile becomes MORE PERMISSIVE at that site**, which is precisely backwards for a
+  strictness gate. Re-derive: `bash docs/tasks/artifacts/sv_corpus_grad/profile_gate_sizing/probe.sh`
+  (**6/6**, ~1 s).
+- ⛔ **IT FAILS SILENTLY AND IN THE ACCEPTING DIRECTION.** `--lint-grammar` is clean: this produces no
+  `profile_orphans`, no `unreachable_rules`, no warning of any kind. The accepting direction is the
+  class the SV strict-LRM default exists to prevent, and the one a positive-only test suite cannot
+  see.
+- **REPRODUCES OUTSIDE THE FAMILY: yes, by construction.** `@profiles` and `!` lookaheads are both
+  engine-universal EBNF surfaces; nothing about this is SystemVerilog. Any grammar with a dialect
+  profile and a negative lookahead is in the population.
+- ⭐ **LIVE POPULATION IN THE SV GRAMMAR TODAY: 3 sites**, all `!scope_resolution`
+  (`simple_identifier_no_scope` L528, `scope_free_identifier` L546, `system_tf_call` L6142), with
+  `scope_resolution` gated to `["sv_2017","sv_2023"]`. ✅ **None produces an over-acceptance today** —
+  `p::b` correctly REJECTS under `verilog_2005`, because nothing else in the v2005 grammar can
+  consume `::`, so the parse fails on the unconsumable token regardless. ⇒ **the hazard bites only
+  when some other alternative can consume what the lookahead was guarding against**, which is why it
+  has never been noticed. ⚠️ **Undefended, not absent.**
+- ⛔ **AND THE NEXT SV COMMIT WALKS INTO IT.** `SV-CORPUS-GRAD.13e.10`(c4) must gate `tick`, and
+  `scalar_constant` spells `kw_n_1 !tick` / `kw_n_0 !tick`. Measured on a scratch grammar, `1'b0`
+  still parses — so the goal direction is safe — but that is an empirical fact about this grammar,
+  not a guarantee, and it was only checked because the sizing found this first.
+- ⛔⛔ **THE TWO WORTHLESS MEASUREMENTS ARE PART OF THE EVIDENCE, because both look like results.**
+  (1) `@profiles` written **INLINE** after `:=` is a **branch-level** gate and does not gate the
+  rule; the probe ran, printed verdicts, and measured nothing — only the CONTROL (a *required* gated
+  rule that still parsed under `strict`) revealed it. A probe without that arm would have published
+  *"the hazard does not exist"*. (2) The corrected probe still could not DISCRIMINATE: with nothing
+  able to consume the `'`, a vacuous `!tick` and a refusing `!tick` both end in a reject — two
+  hypotheses, one reading ([[feedback_a_control_that_passes_under_both_hypotheses_is_not_evidence]]).
+- **Owed:** (a) decide the correct SEMANTICS — should a gated rule be *absent* (today: `!X` vacuous)
+  or *unmatchable-but-present* (`!X` still refuses)? ⚠️ This is a language-design call, not a bug fix,
+  and it is the reason this is routed rather than patched; (b) whichever is chosen, make the other
+  spelling REFUSE — a `--lint-grammar` arm naming every `!X` where `X` is `@profiles`-gated is cheap
+  and its population here is **3**, so a blocking guard is affordable today
+  (`DOCTRINE-GAP-OWNERSHIP.15`'s staged-diff ruling does not bind at this size); (c) audit the 3 live
+  sites against every profile, not just `verilog_2005`.
+- ⚠️ **PRIORITY:** engine-universal and currently harmless in the shipped grammars (measured). It
+  does **not** block `SV-CORPUS-GRAD.13e.10`(c4), which now knows about it. Parked behind the SV lane.
