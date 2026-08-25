@@ -365,10 +365,16 @@ tier even trustworthy?"* — `gh run list` answers it, and the answer was no.
   (simulated Linux) condition: **exit 2 → exit 0**, expanding to all **10** book-gate targets.
   `make -C rust --no-print-directory -s print-SHELL` → `/opt/homebrew/bin/bash`, i.e. local
   behaviour is UNCHANGED. `bash scripts/check_gate_reachability.sh` → exit 0.
-  ⚠️ **HONEST BOUND, stated rather than implied: the hosted GREEN has NOT been observed.** The fix is
-  verified against the reproduced mechanism, not against a runner — the remote is 224 commits behind,
-  so no hosted run can exercise it until a push. That observation is exactly what `.49`'s acceptance
-  reserves, and `gh` is authenticated here, so it is available the moment a push lands.
+  ✅ **THE HONEST BOUND IS NOW DISCHARGED — the hosted GREEN IS OBSERVED.** It was stated as *"the fix
+  is verified against the reproduced mechanism, not against a runner"*. On the director's explicit
+  order the 226 commits were pushed (2026-08-25), and `memory-architecture-gate` run **32889486760**
+  ran `scripts/check_doctrines.sh` on a real Linux runner: **`GATE-REACHABILITY` PASSES**, where the
+  same check on the same workflow had failed for 11 days with
+  `make: /opt/homebrew/bin/bash: No such file or directory`. ⇒ before→after is now measured on the
+  environment that exhibited the defect, not only on a simulation of it.
+  ⛔ **That run is still RED overall, for TWO DIFFERENT doctrines behind the one this leaf fixed —
+  routed as `.48`.** The fail-fast masking shape of `.46` again: clearing one failure is what makes
+  the next one visible.
 - [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → all 27 enforced doctrines PASS after the
   prescribed `GENERATED-REPRODUCIBILITY` tier-2 re-verification, which re-derived **11 of 11
   artifacts BYTE-IDENTICALLY** (guard exit 0, 81 s) — so the Makefile edit provably changes no
@@ -381,6 +387,51 @@ tier even trustworthy?"* — `gh run list` answers it, and the answer was no.
   [[a-conditional-compilation-gate-is-a-claim-about-which-trees-exist]] in build-tool form and is
   NOT re-recorded, because a second copy of a lesson already written is the duplication that record
   warns about.
+
+### ⛔⛔ `.48` NEW `todo` — **TWO doctrines FAIL on a hosted checkout instead of reporting NOT EVALUATED, so the automatic tier is RED for "this environment lacks submodules and `generated/`" rather than for any defect in the subject** (opened 2026-08-25 by `.47`, whose fix made them visible; observed on hosted run `32889486760`)
+
+> ⛔ **ROUTED, NOT WORKED.** Found by observing the first push after `.47` landed, while the director
+> was closing the session. It blocks no published claim and nothing gates on it
+> (`required_status_checks` is `[]`), but it leaves the ONLY automatic doctrine lane RED, which is
+> the state `.47` was opened to end.
+
+- ⛔ **MEASURED ON A REAL RUNNER, not inferred** — `gh run view 32889486760 --log-failed`, `main`,
+  push, 2026-08-25, `actions/checkout` with `submodules: false`:
+  ```
+  ✗ FAIL  PARSE-COST-RATCHET
+      ✗ the published LR-family share no longer describes this tree:
+            parse-cost: corpus manifest missing: stimuli/sv/characterization/durations.tsv
+  ✗ FAIL  BASELINE-IDENTITY
+      Traceback (most recent call last):
+        File "<stdin>", line 752, in grammar_byte_keying_offences
+        File "/usr/lib/python3.12/json/__init__.py", line 293, in json.load
+  ```
+- ⭐⭐ **THE CLASS IS ALREADY NAMED IN THIS REPOSITORY, WHICH IS WHY THIS IS A DEFECT AND NOT A
+  CONFIGURATION CHOICE**: `docs/decisions/feedback_a_check_that_cannot_run_must_say_so.md`, and both
+  doctrines' own registry text promises it — `PARSE-COST-RATCHET` says *"the corpora are git
+  submodules, so a checkout without them reports NOT EVALUATED — loudly, never as a pass"*, and the
+  same run PROVES the mechanism works for five other arms, which print exactly that. ⇒ **the
+  doctrines are right about themselves in five places and wrong in two**, and the two that are wrong
+  fail in the BLOCKING direction on the one lane that runs unattended.
+- ⚠️ **ROUTING EVIDENCE — does it reproduce outside the hosted environment?** NO, and that is the
+  point: `bash scripts/check_doctrines.sh` passes **27/27 locally** on the identical commit. The
+  variable is the CHECKOUT, not the tree — no submodules (so `stimuli/sv/characterization/` is
+  absent) and no `generated/` (untracked). The same run's five NOT-EVALUATED lines name both causes
+  explicitly, so nothing here is a guess about why.
+- ⭐ **THE SECOND ONE IS A CRASH, NOT A VERDICT.** `BASELINE-IDENTITY` dies in `json.load` inside
+  `grammar_byte_keying_offences` rather than refusing — an unhandled missing file. A crashing
+  enforcer cannot distinguish *"cannot run"* from *"the tree is broken"*, which is the whole
+  distinction this class exists to preserve.
+- **WHAT THIS LEAF OWES**: (a) both arms classify an ABSENT input as NOT EVALUATED, on the pattern
+  their own five working arms already use, never as a breach and never as a traceback; (b) a control
+  proving each still BREACHES on a present-but-wrong input, so the repair cannot be a blanket
+  "missing ⇒ fine"; (c) re-observe a hosted run GREEN, which is now cheap — `gh` is authenticated and
+  the lane runs on every push.
+- ⚠️ **HONEST BOUND**: I did not establish WHEN these two started failing hosted. They are not in the
+  2026-08-14 run's failure list, and both doctrines were adopted/extended inside the 226-commit
+  window since, so *"introduced in that window"* is the likely reading and is NOT measured. `git
+  log -S` on the failing call sites would settle it — the same discipline `.47` had to apply after
+  `git log -L` misled it.
 
 ### ⚠️ `.45` NEW `todo` — **the aggregate's required-check roster is spelled TWICE, and one of the two spellings is DEAD CODE that has already drifted — so adding a check to the wrong one wires NOTHING** (opened 2026-08-25 session by `.40`, which nearly shipped exactly that)
 
