@@ -688,6 +688,7 @@ audit_workflow_surface() {
     .github/workflows/ebnf-frontend-dual-run-diff.yml \
     .github/workflows/fixed-point-gate.yml \
     .github/workflows/generated-clippy-correctness-gate.yml \
+    .github/workflows/lib-unit-test-gate.yml \
     .github/workflows/mdbook-docs-gate.yml \
     .github/workflows/performance-gate.yml \
     .github/workflows/stimuli-cross-family-platform-gate.yml \
@@ -3664,6 +3665,14 @@ main() {
     ".github/workflows/stimuli-cross-family-platform-gate.yml" \
     "make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate" \
     "make -C rust SHELL=/bin/bash stimuli_cross_family_platform_gate"
+  # ENGINE-UNIVERSAL-SERVICES.49(b) — the crate's own unit suite. Replayed here because a hosted
+  # workflow nothing exercises locally is the class this whole gate exists to remove, and this one
+  # is `workflow_dispatch`-only (see its header), so the local replay is its ONLY automatic reader.
+  run_workflow \
+    "lib-unit-test-gate" \
+    ".github/workflows/lib-unit-test-gate.yml" \
+    "make -C rust SHELL=/bin/bash lib_unit_test_gate" \
+    "make -C rust SHELL=/bin/bash lib_unit_test_gate"
   run_workflow \
     "mdbook-docs-gate" \
     ".github/workflows/mdbook-docs-gate.yml" \

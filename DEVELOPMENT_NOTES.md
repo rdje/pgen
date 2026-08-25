@@ -1,5 +1,55 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-25 - PGEN-ENGINE-UNIVERSAL-SERVICES-0087 — executing a ruling is how you find out what the ruling did not know, and a delegation is only as good as the evidence it was granted on
+
+**1. ⭐⭐⭐ A RULING IS A CLAIM, AND EXECUTING IT IS THE VERIFICATION STEP.** `.49` was a careful,
+well-argued, director-delegated ruling: the automatic `push:` lane is the right home for the unit
+suite. Building the thing surfaced three facts the ruling contains no trace of — a published
+billing-control policy pausing hosted auto-runs, a prior director call scoping the automatic tier to
+exactly the gates that need no regeneration, and the fact that THIS gate must regenerate. `.49`
+priced the TIMEOUT and never priced the SPEND. ⇒ **the gap between "I ruled" and "I executed" is
+where a ruling's unstated premises live**, and the honest move on finding them is to revise the
+ruling in place, in its own leaf, rather than either following it blindly or quietly doing something
+else.
+
+**2. ⭐⭐⭐ A DELEGATION IS SCOPED BY THE EVIDENCE IT WAS GRANTED ON.** *"This call is yours to make"*
+covered the cadence. It did not cover "and if it turns out a prior call of mine drew a line right
+where you are standing, cross it". Deciding dispatch-only IS making the delegated call — on strictly
+better evidence than the delegation had — and it is not the same as returning it. The asymmetry is
+what makes it decidable without asking: enabling spends someone else's money against a published
+pause; not enabling leaves a tracked, locally-replayed, one-line-from-promotion gate with its price
+measured in its own header. **When one branch is cheaply reversible and the other spends, take the
+reversible one and price the other.**
+
+**3. ⭐⭐ AN INCIDENTAL-LOOKING POLICY BECAME A LEGIBLE RULE ONLY WHEN THE POPULATION WAS CLOSED.**
+"`DONE-BAR.4` turned on three workflows" reads like a list. Re-derived over all 16 tracked
+workflows, it is a partition: 12 `workflow_dispatch`-only and all 12 regenerate; 4 auto-triggered
+and none of them does — coinciding with **no exceptions**. That is a RULE ("a workflow joins the
+automatic tier when it can run on a bare checkout"), and it is only visible from the closed
+population. ⇒ before treating a precedent as "some examples", count the whole set; the examples may
+be a law.
+
+**4. ⭐⭐ "STRUCTURAL VERIFICATION ONLY" IS A BOUND YOU CAN OFTEN BEAT WITHOUT THE REAL THING.**
+`.49` said a hosted run cannot be observed from here, so a workflow whose YAML parses proves little.
+True — and not the end of it: the workflow's exact command was replayed against a `git ls-files`-only
+export tree with a full cold regeneration in front of it, which is what a hosted runner actually
+does. 952 s, exit 0. The unobservable part shrank to "does GitHub's runner behave like a cold
+checkout", which is a much smaller act of faith than "does this workflow work". ⇒ when you cannot
+run the real thing, ask what part of the real thing you CAN run, instead of filing the whole claim
+under structural.
+
+**5. ⭐ A PRESCRIBED FALLBACK CAN BE MEASURABLY WRONG, AND SKIPPING IT SILENTLY IS THE ERROR.**
+`.49`(c) told me to record a disposition in the gate-reachability register. That register is an
+ORPHAN register and it is two-sided: an entry naming a target that IS reachable is flagged STALE and
+FAILS. Following (c) would have turned `GATE-REACHABILITY` red. Reading the enforcer instead of the
+instruction is what caught it — and the record now says why (c) was not followed, which is the
+difference between a decision and an omission.
+
+**6. ⚠️ AND A TOOLING TRAP WORTH REMEMBERING: `pgrep -f <pattern>` MATCHES THE WAITER ITSELF.**
+Three background `until ! pgrep -f ci_workflow_local_gate.sh; do sleep; done` loops never fired,
+because each loop's own command line contains the pattern it greps for. They waited on themselves.
+A self-matching predicate is a control that can never go false.
+
 ## 2026-08-25 - PGEN-CI-PARITY-GATE-ROT-0035 — a fail-fast pipeline cannot tell you how broken it is, and three of its seven wounds were self-inflicted by the roster it asks you to maintain
 
 **1. ⭐⭐⭐ "THE GATE IS RED FOR REASON X" IS NEVER A COMPLETE STATEMENT ABOUT A FAIL-FAST PIPELINE.**

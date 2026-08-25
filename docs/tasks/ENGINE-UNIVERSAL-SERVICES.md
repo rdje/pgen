@@ -12838,6 +12838,93 @@ the gate's own verdict                             all selected local workflow c
 
 ⇒ **the `push:` lane's step 3 of 5 is now proven green on the path a hosted runner would take.**
 
+#### ⏳ (b) THE WORKFLOW IS SHIPPED — AND `workflow_dispatch:`-ONLY, WHICH REVISES THIS LEAF'S OWN RULING
+
+⛔⛔ **`.49`'s ruling said the automatic `push:` lane is the right home. EXECUTING IT SURFACED
+EVIDENCE THE RULING NEVER WEIGHED, so the ruling is REVISED here rather than followed off a cliff.**
+Three measurements, none of which appear anywhere in the text above:
+
+1. `docs/reference/PGEN_RELEASE_POLICY.md` publishes a **temporary BILLING-CONTROL policy**:
+   *"Hosted GitHub Actions auto-runs are paused to conserve account Actions minutes. Tracked
+   workflows remain available through `workflow_dispatch`."* This leaf priced the **timeout**
+   (*"a 60-minute budget is generous, not tight"*) and never priced the **spend**.
+2. The automatic tier that DOES exist is **deliberately narrow, by a prior DIRECTOR call**.
+   `DONE-BAR.4` (director-approved 2026-07-30, session #227) enabled `push:` on exactly THREE
+   workflows, and all three say why in their own `on:` block, verbatim: they are *"the three gate
+   targets that need NO `generated/` regeneration, so [they] can run on a bare checkout"*.
+   Measured 2026-08-25: **4 of 15** tracked workflows carry `push:`, and **0 of those 4** reference
+   the regeneration composite action.
+3. This gate compiles the crate with `--features "generated_parsers ebnf_dual_run"`, so it MUST
+   regenerate. ⇒ enabling `push:` would make it **the FIRST regeneration-carrying automatic lane**,
+   outside the cheap subset the director's own call was scoped to.
+
+⭐⭐⭐ **THIS IS THE DELEGATED CALL BEING MADE, NOT RETURNED.** The delegation — *"This call is yours
+to make … but it got to be sota and signoff"* — was granted on the analysis above, which did not
+know boundary (2) existed. **The asymmetry decides it:** enabling spends the director's money
+against a published pause, on a delegation formed without the evidence; not enabling leaves a gate
+that is tracked, locally replayed on a cold export tree, runnable on demand, and **one line from
+promotion** — with the price measured in its own header so the decision stays cheap. Landing the
+first expensive auto-lane anyway would be precisely the *"evidence accurate, and blind to the axis
+you moved"* failure `CI-PARITY-GATE-ROT.40` is a case study in, committed one commit after writing
+that case study up.
+
+**WHAT SHIPPED:** `.github/workflows/lib-unit-test-gate.yml` — `workflow_dispatch:`, the
+regeneration composite action, `timeout-minutes: 60`, `make -C rust SHELL=/bin/bash
+lib_unit_test_gate`, artifact upload; registered in `ci_workflow_local_gate.sh` both in the tracked
+roster and as a **replay**, because a hosted workflow nothing exercises locally is the exact class
+that gate exists to remove — and while it is dispatch-only, the local replay is its ONLY automatic
+reader. `pull_request:` is omitted for the reason the three existing lanes give: this repository has
+0 merge commits, so a PR trigger would fire never.
+
+⛔ **(c)'s PRESCRIBED MECHANISM IS MEASURABLY INAPPLICABLE, AND THAT IS RECORDED RATHER THAN
+SILENTLY SKIPPED.** (c) asks for a disposition in
+`rust/test_data/grammar_quality/gate_reachability_register_v0.json`. That register is an **ORPHAN**
+register and it is two-sided: `check_gate_reachability.sh:620` computes
+`stale = [t for t in registered if t not in needs_entry]` and FAILS on it. `lib_unit_test_gate` is
+reachable — it is a required check of `sota_exit_gate`, and now also has a workflow and a local
+replay — so an entry for it would be STALE BY CONSTRUCTION and would turn `GATE-REACHABILITY` red.
+⇒ the cadence decision is on the record where it belongs: this leaf, the workflow's own header, and
+`CHANGES.md`.
+
+#### Acceptance Checklist (enforced) — `.49` (b), the workflow
+
+- [x] **REPRODUCE / ISSUE** — the finding `.46`(d) established stands unchanged: `grep -rn 'cargo
+  test' .github/workflows/` returned NOTHING, so the crate's ~1 130-test suite had no hosted lane at
+  all, and four tests were red on HEAD when that was first measured.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY the lane could not simply be added: a workflow running this
+  suite must regenerate `generated/` on a bare checkout, and that path died with one
+  `rustc error[E0425]` from 2026-08-11 to 2026-08-25 (`CI-PARITY-GATE-ROT.40`), so any such workflow
+  was RED on arrival at step 3 of 5. WHERE the CADENCE question actually lives, derived by command
+  rather than reasoned: `git ls-files '.github/workflows/*.yml'` over all 16 tracked workflows shows
+  4 carry `push:` and 12 are `workflow_dispatch`-only, and the two partitions coincide EXACTLY with
+  "does not regenerate" / "regenerates" — the boundary `DONE-BAR.4` drew and this leaf did not know
+  about.
+- [x] **FIX** — fix-hierarchy tier = **ops/CI**; ZERO grammar, engine, codegen or generated bytes.
+  New `.github/workflows/lib-unit-test-gate.yml` (dispatch-only, regeneration composite action,
+  `timeout-minutes: 60`, artifact upload), registered in `ci_workflow_local_gate.sh` in BOTH the
+  tracked-workflow roster and the replay roster.
+- [x] **ADDRESSED (verified)** — verified beyond structure, which is what this leaf's own honest
+  bound demands: the workflow's exact command was REPLAYED by `ci_workflow_local_gate` against a
+  `git ls-files`-only export tree with a full cold regeneration in front of it — i.e. what a hosted
+  runner does — and reported `all selected local workflow commands passed (1 replayed)`, guard
+  **`exit=0`**, **952 s**, peak **10 943 MB**. The gate also PROVED it was reading the real thing:
+  the first attempt refused with *"required tracked file missing from git index"* until the new
+  workflow was staged.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → all 27 enforced doctrines PASS;
+  `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes. No grammar, `rust/src` or codegen file is
+  touched, so all eleven parsers are **byte-identical BY CONSTRUCTION**. Two published live counts
+  that this change moves were RE-DERIVED, not incremented, and corrected in
+  `docs/book/src/gate-flow.md`; the two neighbouring counts that read as historical
+  (*"14 of 15 workflows could not build"*, *"at that point fourteen of the fifteen"*) were checked
+  and deliberately left, because they describe past measurements.
+
+⏳ **THIS LEAF STAYS `in-progress`, BY ITS OWN ACCEPTANCE.** Its honest bound already says a hosted
+run cannot be observed from here and that *"a workflow whose YAML parses and whose steps mirror a
+working peer is a **structural** verification only, and this leaf must not be closed on it."* What
+IS established beyond structure: the same command, replayed by `ci_workflow_local_gate` against a
+`git ls-files`-only export tree with a full cold regeneration in front of it — which is what a
+hosted runner does.
+
 **Owed, in order:** (a) ✅ **DONE** — `CI-PARITY-GATE-ROT.40` repaired and the cold-clone bootstrap
 proven end-to-end from a tracked-files-only tree; (b) `lib-unit-test-gate.yml` on `push:`, with its first
 hosted run observed GREEN and a deliberate RED control; (c) if (a) proves harder than its one-line

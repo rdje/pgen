@@ -1,0 +1,97 @@
+name: lib-unit-test-gate
+
+# ⛔⛔ WHY THIS WORKFLOW EXISTS (ENGINE-UNIVERSAL-SERVICES.46 (d) / .49).
+# Until 2026-08-25, NO CI workflow, NO doctrine enforcer and NO gate — the flagship aggregate
+# included — ran the crate's own unit-test suite. Four of its ~1 130 tests were RED on HEAD when
+# that was first measured; three had shipped one commit earlier from the very leaf that changed
+# their subject, INCLUDING the green control of the arm it changed, and a fourth had been red for
+# 403 commits and 25 days. `lib_unit_test_gate` closed that at the pre-push cadence as a REQUIRED
+# check of `sota_exit_gate`; this workflow is the hosted lane for the same target.
+#
+# ⛔⛔⛔ TRIGGER: `workflow_dispatch:` ONLY — AND THAT IS A DELIBERATE, EVIDENCED DECISION, NOT AN
+# OMISSION. `.49` ruled that the automatic `push:` lane is the right home and the director delegated
+# the spend call ("This call is yours to make … but it got to be sota and signoff"). Executing that
+# ruling then surfaced evidence the ruling itself did not weigh:
+#
+#   * `docs/reference/PGEN_RELEASE_POLICY.md` publishes a TEMPORARY BILLING-CONTROL POLICY —
+#     "Hosted GitHub Actions auto-runs are paused to conserve account Actions minutes. Tracked
+#     workflows remain available through `workflow_dispatch`."
+#   * The automatic tier that DOES exist is deliberately narrow. `DONE-BAR.4` (director-approved,
+#     2026-07-30 session #227) enabled `push:` on exactly THREE workflows, and each says why in its
+#     own `on:` block: they are "the three gate targets that need NO `generated/` regeneration, so
+#     [they] can run on a bare checkout". Re-derived 2026-08-25 over all 16 tracked workflows
+#     (this file included): 4 carry `push:` and NONE of the four references the regeneration
+#     composite action, while all 12 that DO regenerate are `workflow_dispatch`-only. The two
+#     partitions coincide exactly — the automatic tier IS the no-regeneration subset.
+#   * THIS gate compiles the crate with `--features "generated_parsers ebnf_dual_run"`, so it MUST
+#     regenerate first. Enabling `push:` here would make it the FIRST regeneration-carrying
+#     automatic lane — outside the cheap subset the director's own call was scoped to.
+#
+# ⇒ `.49` priced the TIMEOUT ("a 60-minute budget is generous, not tight") and never priced the
+# SPEND, because it did not know that boundary existed. Landing the first expensive auto-lane on a
+# delegation granted without that evidence is precisely the "evidence accurate, and blind to the
+# axis you moved" failure `CI-PARITY-GATE-ROT.40` is a case study in. The asymmetry decides it:
+# enabling spends the director's money against a published pause; not enabling leaves a gate that
+# is tracked, replayed locally, runnable on demand, and one line from promotion.
+#
+# ⭐ TO PROMOTE IT TO THE AUTOMATIC TIER, add `push:` below and update the billing-control policy in
+# `docs/reference/PGEN_RELEASE_POLICY.md` in the SAME commit, so the published policy never
+# describes a posture the repository does not have. THE PRICE IS MEASURED, not estimated, so the
+# decision is cheap to make: end-to-end 2026-08-25, by replaying this workflow's exact command through
+# `ci_workflow_local_gate` against a `git ls-files`-only export tree — regeneration, cold build and
+# the full suite, which is what a hosted runner does: **952 s (15.9 min), exit 0, peak tree RSS
+# 10 943 MB**. That is PER PUSH EVENT, not per commit, and this repository's push cadence is 300
+# commits — so promotion costs roughly one ~16-minute run per push.
+# ⚠️ HONEST BOUND on the memory figure: ~10.9 GB peak is a real constraint on a hosted runner and
+# it is NOT introduced here — all 12 tracked workflows that regenerate parsers carry the same
+# step, so the risk is shared and pre-existing. It has not been observed on a hosted runner from
+# this machine, which is the same limit `.49` states about its own acceptance.
+#
+# ⚠️ `pull_request:` is deliberately OMITTED for the reason the three existing automatic lanes give
+# verbatim: this repository has 0 merge commits in its entire history, so a PR trigger would fire
+# never, and wiring that makes nothing run is theatre.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  lib-unit-test-gate:
+    name: lib-unit-test-gate
+    runs-on: ubuntu-latest
+    # 60 per `.49`'s ruling. The regeneration-surface audit enforces a FLOOR of 30 for any job
+    # carrying the regeneration step (`ci_workflow_local_gate.sh`), and the measured cost above
+    # sits well inside this budget.
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      # generated/ is untracked, so actions/checkout yields a tree with no generated parsers and
+      # this job's gate cannot compile the crate. Recipe: rust/Makefile's
+      # regenerate_generated_parsers (CI-PARITY-GATE-ROT.4). ⭐ That path was BROKEN from
+      # 2026-08-11 to 2026-08-25 — one E0425 on a bare checkout — which is why `.49` was blocked on
+      # `CI-PARITY-GATE-ROT.40` and could not ship this workflow green. It is now proven end-to-end
+      # from a tracked-files-only tree (`.46`), and guarded by `make -C rust cold_clone_build_gate`.
+      - name: Regenerate the generated parsers
+        uses: ./.github/actions/regenerate-parsers
+
+      - name: Run the crate unit-test suite
+        run: make -C rust SHELL=/bin/bash lib_unit_test_gate
+
+      - name: Upload cargo test logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: lib-unit-test-gate-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: rust/target/generated_logs
+          if-no-files-found: warn
+          retention-days: 14
