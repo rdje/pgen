@@ -4481,9 +4481,9 @@ fn run_interpret_parse(
 fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar) -> Result<()> {
     use pgen::ast_pipeline::grammar_wellformedness::{
         classify_left_recursion, detect_always_succeeds_alternatives, detect_nonterminating_rules,
-        detect_nullable_repetition, detect_ordered_choice_shadowing, detect_profile_orphans,
-        detect_unbound_fact_kinds, detect_uncompilable_regex_terminals,
-        detect_undefined_references, detect_unreachable_rules,
+        detect_nullable_repetition, detect_ordered_choice_shadowing,
+        detect_profile_gated_lookaheads, detect_profile_orphans, detect_unbound_fact_kinds,
+        detect_uncompilable_regex_terminals, detect_undefined_references, detect_unreachable_rules,
     };
     use pgen::ast_pipeline::semantic_directive_registry::parse_semantic_string_list;
     let g = &grammar.grammar_tree;
@@ -4587,6 +4587,80 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     } else {
         Vec::new()
     };
+    // ENGINE-UNIVERSAL-SERVICES.46 (b) — a LOOKAHEAD whose subject `@profiles` gated out of a
+    // profile the referring rule is still live in. ⛔ Runs on the UNFILTERED grammar deliberately:
+    // this arm reasons ACROSS profiles, so it needs every rule and every `@profiles` list present —
+    // see the load-bearing note below, which is why it does NOT reuse the context the orphan arm
+    // reads. Unlike the orphan arm it needs no "satisfiable elsewhere" test, so a SINGLE declared
+    // profile is already enough to produce the defect (a rule gated to `["a"]` is absent whenever
+    // the requested profile is anything else) — hence >= 1, not >= 2.
+    // ⚠️ REPORT-ONLY in this slice, by measurement rather than by preference: the shipped SV
+    // grammar's own population is non-zero, so a blocking arm would land as "a guard plus an
+    // exemption for every existing instance of the defect it exists to catch" — the shape
+    // `GENERATED-LINT-CORRECTNESS.6`/`.12` refused and `DOCTRINE-GAP-OWNERSHIP.15` ruled against.
+    // The semantics repair (`.46` (c)) is what drives the population to zero; the blocking decision
+    // is made on the post-repair number and is owned by that leaf.
+    //
+    // ⛔⛔ THIS ARM DERIVES ITS PROFILE CONTEXT FROM THE **UNFILTERED** GRAMMAR, AND THAT IS
+    // LOAD-BEARING — THE FILTERED ONE IS BLIND EXACTLY WHERE THE DEFECT LIVES. `rule_profiles` /
+    // `profile_universe` above are read off `grammar.annotations`, i.e. the grammar AFTER the
+    // load-time profile filter ran. When a grammar declares `@default_profile`, that filter has
+    // already DELETED the gated rules — and with them their `@profiles` annotations. MEASURED while
+    // sizing: on a five-rule reduction of `grammars/regex.ebnf`'s shape (`@default_profile: pcre2`
+    // plus a rule gated to `["relaxed"]`) the lint printed `profiles=[]` — an EMPTY universe — while
+    // the very same grammar's runtime verdicts show the defect (unspecified profile ACCEPTS `1'`,
+    // `relaxed` REJECTS it). A detector handed an empty universe reports 0 and looks clean.
+    // ⛔⛔ AND THE UNIVERSE MUST ALSO BE WIDENED BY `@default_profile` ITSELF. It is built from
+    // `@profiles` LISTS, and a gated rule's list names the profiles it is PRESENT in — never the one
+    // it is absent from. For regex that means `{relaxed}`, the single profile in which the gate is
+    // inactive, while every parse that does not ask for a profile runs under `pcre2`. Without both
+    // corrections this arm reported regex clean over 95 `!` sites without ever testing the profile
+    // that ships. ⚠️ Alias TARGETS add nothing further — the semantic validator already requires
+    // every `@profile_alias` target to be a declared profile (a `@profiles` entry or the default).
+    // ⚠️ ROUTED, NOT FIXED HERE: `detect_profile_orphans` above reads the FILTERED context and the
+    // narrow universe, and is skipped entirely below 2 profiles — so on any grammar declaring a
+    // default it has never evaluated the shipping profile either. That arm is ERROR-class and
+    // GATING, so correcting it moves a blocking counter and needs its own sized slice:
+    // `ENGINE-UNIVERSAL-SERVICES.47`.
+    let (unfiltered_rule_profiles, unfiltered_profile_universe) = unfiltered_grammar
+        .annotations
+        .as_ref()
+        .map(pgen::ast_pipeline::grammar_wellformedness::extract_profile_context)
+        .unwrap_or_default();
+    let lookahead_profiles: Vec<String> = {
+        let mut set: std::collections::BTreeSet<String> =
+            unfiltered_profile_universe.into_iter().collect();
+        if let Some(ann) = unfiltered_grammar.annotations.as_ref()
+            && let Ok(Some(default_profile)) =
+                pgen::ast_pipeline::semantic_runtime::compile_default_profile(ann)
+        {
+            set.insert(default_profile.trim().to_ascii_lowercase());
+        }
+        set.into_iter().collect()
+    };
+    let gated_lookaheads = if lookahead_profiles.is_empty() {
+        Vec::new()
+    } else {
+        detect_profile_gated_lookaheads(
+            &unfiltered_grammar.grammar_tree,
+            &unfiltered_grammar.rule_order,
+            &unfiltered_rule_profiles,
+            &lookahead_profiles,
+        )
+    };
+    let gated_lookaheads_negative = gated_lookaheads
+        .iter()
+        .filter(|i| {
+            matches!(
+                i,
+                pgen::ast_pipeline::grammar_wellformedness::WellformednessIssue::ProfileGatedLookahead {
+                    positive: false,
+                    ..
+                }
+            )
+        })
+        .count();
+    let gated_lookaheads_positive = gated_lookaheads.len() - gated_lookaheads_negative;
 
     // A2.6: the left-recursion headline states the DERIVED status. When the pass never ran (a
     // pre-transformed grammar JSON, or `eliminate_left_recursion: false`) no handling claim is made
@@ -4620,7 +4694,7 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         )
     };
     println!(
-        "grammar lint: '{}' ({} rules) — {}, non_terminating={} (error), ordered_choice_shadowing={} (error), always_succeeds_alternatives={} (note), unreachable_rules={} (error), undefined_references={} (error), uncompilable_regex_terminals={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?})",
+        "grammar lint: '{}' ({} rules) — {}, non_terminating={} (error), ordered_choice_shadowing={} (error), always_succeeds_alternatives={} (note), unreachable_rules={} (error), undefined_references={} (error), uncompilable_regex_terminals={} (error), unbound_fact_kinds={} (error), nullable_repetition={} (warning), profile_orphans={} (error; profiles={:?}), profile_gated_negative_lookaheads={} (report-only pending ENGINE-UNIVERSAL-SERVICES.46 (c) — a SOUNDNESS INVERSION: the gated profile accepts MORE), profile_gated_positive_lookaheads={} (note — monotonic)",
         grammar.grammar_name,
         g.len(),
         left_recursion_headline,
@@ -4633,7 +4707,9 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
         unbound_facts.len(),
         nullrep.len(),
         orphans.len(),
-        all_profiles
+        all_profiles,
+        gated_lookaheads_negative,
+        gated_lookaheads_positive
     );
     // QUANT-PLUS-ITER.2: name the resolved entry rule. Until this landed no surface at
     // default verbosity reported a grammar's start symbol at all, so a helper rule
@@ -4708,6 +4784,16 @@ fn run_grammar_lint(grammar: &LoadedGrammar, unfiltered_grammar: &LoadedGrammar)
     // under an edition); locking it at 0 stops regressions. Grammars with < 2 profiles never
     // produce orphans (the detector is skipped), so this only binds the SV grammar.
     print_lint_findings(&orphans, "[error]", 40, "profile-orphan findings");
+    // ENGINE-UNIVERSAL-SERVICES.46 (b). The NEGATIVE rows carry the ERROR wording in their own
+    // message (they ARE the soundness inversion) but this arm does NOT gate yet — see the
+    // measurement note at the computation site. The tag is `[found]` rather than `[error]` so the
+    // line never claims a gating power it does not have.
+    print_lint_findings(
+        &gated_lookaheads,
+        "[found]",
+        40,
+        "profile-gated lookahead findings (report-only; negative = soundness inversion, positive = monotonic note)",
+    );
     // Non-terminating rules are never capped: the class is a hard error and has always printed in
     // full, so it needs no "show all" escape.
     for issue in &nonterm {

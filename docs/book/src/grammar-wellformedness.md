@@ -48,6 +48,15 @@ independent axis. (This is literature-grounded, not invented; sources at the end
    PGEN stands").
 4. **No dangling references, no profile orphans.** Every referenced rule is defined, and every rule
    present under a language profile (e.g. `sv_2017` vs `sv_2023`) is actually satisfiable under it.
+4b. **Profile narrowing is MONOTONIC — gating a rule out of a profile only ever REMOVES strings from
+   the language, never ADDS them.** This is the axis a profiled grammar lives or dies on, and PGEN
+   currently **violates it at one construct**: a `@profiles` gate does not delete a rule, it makes the
+   rule's parse method backtrack unconditionally, and a negative lookahead fails only when its body
+   *matched* — so `!X` succeeds **vacuously** the moment `X` is gated away, and the narrower profile
+   accepts more. Measured on the shipped engine, and reported by
+   `--lint-grammar`'s `profile_gated_negative_lookaheads` counter (see
+   *the profile-gated lookahead arm*, below). The counter is **report-only** while the repair
+   (`ENGINE-UNIVERSAL-SERVICES.46` (c)) is outstanding.
 
 ### Well-defined (semantic)
 
@@ -73,6 +82,39 @@ apply:
    effect, dead. *(Jim, Mandelbaum, Walker — data-dependent grammars, 2010.)*
 
 A grammar satisfying 1–4 is **well-formed**; satisfying 5–7 as well is **well-defined**.
+
+### The profile-gated lookahead arm (`profile_gated_*_lookaheads`)
+
+`--lint-grammar` reports two counters for lookaheads whose subject `@profiles` gates out of a profile
+the **referring rule is still live in**:
+
+| counter | class | why |
+|---|---|---|
+| `profile_gated_negative_lookaheads` | ⛔ soundness inversion (report-only pending the repair) | `!X` on a gated `X` succeeds **vacuously** — the constraint is deleted, so the NARROWER profile accepts strings a wider one rejects |
+| `profile_gated_positive_lookaheads` | note (monotonic) | `&X` on a gated `X` always **fails** — the path is dead, so the profile gets strictly narrower. Surprising, but it removes strings rather than adding them |
+
+Nothing else in the linter finds these. Every other arm asks whether a rule can still be **derived**;
+a lookahead derives nothing, so a constraint whose subject was gated away is invisible to all of
+them. On the reproducing grammar `--lint-grammar` reports `profile_orphans=0`, `unreachable_rules=0`,
+`ordered_choice_shadowing=0` — every counter zero.
+
+**Two things about this arm are worth copying if you write another one.**
+
+First, it derives its profile context from the **unfiltered** grammar. The lint's shared
+`rule_profiles` / profile-universe are read off the grammar *after* the load-time profile filter,
+and a grammar declaring `@default_profile` has its gated rules — and their `@profiles` annotations —
+removed by then. Measured: a five-rule grammar with `@default_profile: pcre2` and a rule gated to
+`["relaxed"]` linted as `profiles=[]`, an empty universe, on a grammar that visibly has the defect at
+runtime. A detector handed an empty universe reports zero and looks clean.
+
+Second, the profile **universe** is widened by `@default_profile`. It is built from `@profiles` lists,
+and a gated rule's list names the profiles it is *present* in — never the one it is absent from. For
+`grammars/regex.ebnf` that universe is `{relaxed}`: the single profile in which the gate is inactive,
+while every parse that does not request a profile runs under `pcre2`.
+
+Both corrections are held by a control the census refuses to run without — a grammar whose only route
+to the defect is a profile appearing in no `@profiles` list. Without it, "regex reports 0" and "the
+instrument never tested regex's shipping profile" are the same output.
 
 ## The duality: two proofs of the same property
 

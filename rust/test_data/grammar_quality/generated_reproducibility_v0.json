@@ -1,8 +1,8 @@
 {
   "_comment": "GENERATED-REPRODUCIBILITY baseline. DERIVED — never hand-edit. Rewrite with: bash scripts/check_generated_reproducibility.sh --rebaseline",
   "_what_this_proves": "every artifact below re-derived BYTE-IDENTICALLY from HEAD at the recorded commit. Tier 1 re-hashes these three fields and demands a re-verify the moment any of them moves.",
-  "verified_at_commit": "c5b3321347b4b5857eb75892e447416afe1f131d",
-  "emission_sha": "c958cffe75558407e307d3b79f640c3f1e923c16efe5e5c26fab5b4388077f06",
+  "verified_at_commit": "47820f94f3d719f20172f4979f2b444702c53042",
+  "emission_sha": "91bb5f9fc2f898b42db7a594838edb8b6ca2e229470c1ab1de020ff71629d39b",
   "artifacts": {
     "return_annotation": { "parser_sha": "9e25e79bef3661871dfe659998f7e4b8f957766d0882b09b52f7a58746038fde", "input_sha": "46beabeba2bc4811371c9a6711d80ab3eba4dbe9b6f0b1d008486a4328f977e9" },
     "semantic_annotation": { "parser_sha": "0f5e0b95f44a24cd996dbc0965e9051cb21b9636dc076918e8b7db183c22bc5a", "input_sha": "03c2f6fb210c21457848ac5a1d49dc835490b389fa495cd54e4d943e14f8dc6b" },

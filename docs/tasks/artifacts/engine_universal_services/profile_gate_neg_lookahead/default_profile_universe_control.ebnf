@@ -1,0 +1,26 @@
+# ENGINE-UNIVERSAL-SERVICES.46 (b) — THE CONTROL FOR THE `@default_profile` WIDENING.
+#
+# The lint's profile universe is built from `@profiles` LISTS. This grammar's only `@profiles` list
+# is `["relaxed"]`, so the NARROW universe is exactly `{relaxed}` — the one profile in which `gated`
+# is PRESENT, and therefore the one profile in which the defect cannot be seen. The profile that
+# actually runs is `pcre2`, declared as `@default_profile`, where `gated` is ABSENT and `!gated` is
+# vacuous.
+#
+#   narrow universe  {relaxed}         -> 0 findings   (the instrument is blind, and says "clean")
+#   widened universe {pcre2, relaxed}  -> 1 finding    (the defect, under `pcre2`)
+#
+# ⛔ This is `grammars/regex.ebnf`'s exact shape — `@default_profile: pcre2` with rules gated to
+# `["relaxed"]` — reduced to five rules. Regex measures 0 for this arm, and without this control
+# that 0 would be indistinguishable from an instrument that never tested the shipping profile.
+@default_profile: pcre2
+
+@entry: true
+top := trivia lit_one !gated catchall trivia     -> {kind: "t"}
+
+lit_one := trivia "1"                            -> {kind: "one"}
+catchall := trivia /['a-z]/                      -> {kind: "c"}
+
+@profiles: ["relaxed"]
+gated := trivia "'"                              -> {kind: "gated"}
+
+trivia := /[ \t\r\n]*/

@@ -1,5 +1,56 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-25 - PGEN-ENGINE-UNIVERSAL-SERVICES-0084 — the instrument I built to size a defect had the same disease as the defect: it reported zero, silently, in the passing direction
+
+**1. ⭐⭐⭐ ASK YOUR NEW INSTRUMENT THE QUESTION ITS FOUNDING CASE CANNOT ANSWER.** The lookahead
+detector was built from the SystemVerilog finding and it worked perfectly on SystemVerilog:
+`negative=3`, matching the hand count exactly. It also reported `0` for `grammars/regex.ebnf` — a
+grammar with **95** `!` occurrences and seven `@profiles`-gated rules. That zero was false, twice
+over, and the only reason I looked is that I asked *what does this arm do on the grammar that is
+shaped differently?* SystemVerilog declares no `@default_profile`, so both defects hide there
+completely. ⇒ **the founding case is the one case that cannot validate the instrument**: it is where
+the instrument was fitted. Pick the population member with the most different shape and ask that one.
+
+**2. ⛔⛔ A FILTER THAT RUNS BEFORE YOUR ANALYSIS CAN DELETE THE EVIDENCE YOUR ANALYSIS NEEDS.** The
+lint builds its profile context from the grammar it was handed — which is the grammar *after* the
+load-time `@profiles` filter. For a grammar declaring `@default_profile`, that filter has already
+removed the gated rules **and their annotations**. The lint printed `profiles=[]` — an empty
+universe — on a grammar whose runtime verdicts show the defect in both directions. ⭐ The general
+shape: **an analysis that reasons ACROSS configurations must not read a structure produced by
+choosing one.** Worth checking for wherever a pipeline stage narrows before a checker widens.
+
+**3. ⛔ AN ENUMERATION BUILT FROM "WHERE THINGS ARE PRESENT" CANNOT NAME WHERE THEY ARE ABSENT.** The
+profile universe is the union of `@profiles` lists. A gated rule's list names the profiles it is
+present in; the profile it is *absent* from — which is the only profile where the defect exists — is
+by construction in no list. For regex that is `pcre2`, arriving only through `@default_profile`.
+⇒ **when a set is derived from positive declarations, ask what the complement is and whether anything
+declares it.** The complement is where absence-shaped defects live.
+
+**4. ⭐⭐ THE FIX FOR ALL THREE IS ONE CONTROL, AND IT HAS TO RUN FIRST.** `census.sh` now runs a
+five-rule grammar whose ONLY route to the defect is a profile appearing in no `@profiles` list, and
+REFUSES to report a population if that control finds nothing. Without it, *"regex reports 0"* and
+*"the instrument never tested regex's shipping profile"* are the same output — which is the
+`-0303` lesson (a probe whose gate is off returns confident nonsense) arriving in a new costume.
+⇒ **a census whose instrument is unproven is a claim about the instrument, not the population.**
+
+**5. ⭐⭐ SIZING BEAT THE HAND COUNT, AND THE THING IT ADDED WAS UNDER A QUANTIFIER.** The hand count
+found 3; the traversal found 4, the extra being a POSITIVE `&scope_resolution` nested at
+`root/s2/q/s3`. Not a soundness inversion — `&X` on a gated `X` always fails, so the profile gets
+narrower, which is monotonic — but the same conflation seen from the other side, and invisible to
+every existing arm. ⇒ **hand counts systematically miss nesting**, so the unit bank now carries a
+nested-under-a-quantifier arm specifically.
+
+**6. ⭐⭐⭐ AND I REVISED MY OWN PUBLISHED RULING, ON EVIDENCE THAT DID NOT EXIST WHEN I MADE IT.**
+`.46` ruled *ship the blocking lint arm FIRST*, priced on the premise that its population would be
+"0 after the author handles the 3 sites". Slice 1 located the mechanism, and the premise fails: the 3
+sites cannot be handled without the semantics repair — the only two handlings are admitting `::` to a
+dialect that has no such construct, or deleting identifiers from that dialect. So a blocking arm
+today would necessarily ship as **a guard plus an exemption for every existing instance of the defect
+it exists to catch** — the shape this repository has already refused twice. ⇒ **a ruling priced on an
+unchecked premise is provisional until the premise is checked**; the honest move is to keep the part
+of the ordering that was doing work (the detector lands before any new site can be written) and drop
+the part that was resting on the premise. Surfaced to the director rather than quietly changed.
+
 ## 2026-08-25 - PGEN-ENGINE-UNIVERSAL-SERVICES-0083 — a probe that has never failed is a probe whose green means nothing, and driving mine red is what found the defect inside it
 
 **1. ⭐⭐⭐ THE STEP THAT LOOKS LIKE OVERHEAD IS THE STEP THAT DECIDES WHETHER THE FIX IS AIMED AT

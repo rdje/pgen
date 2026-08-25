@@ -165,6 +165,42 @@ pub enum WellformednessIssue {
         kind: String,
         primitive: String,
     },
+    /// ERROR (`ENGINE-UNIVERSAL-SERVICES.46`): `rule` is LIVE under grammar profile `profile` and
+    /// contains a lookahead at `node_path` whose body references `target`, which `@profiles`
+    /// (`target_profiles`) gates OUT of `profile`.
+    ///
+    /// ⛔ **THE NEGATIVE CASE (`positive == false`) IS A SOUNDNESS INVERSION.** Gating does not
+    /// REMOVE a rule; it makes the rule's parse method return `Backtrack` unconditionally (emitted
+    /// at `ast_based_generator.rs:4181`, mirrored by `parse_harness_interpreter.rs:944`). A negative
+    /// lookahead fails ONLY when its body MATCHED (`ast_based_generator.rs:4484`). Compose the two
+    /// and `!target` succeeds **vacuously** under `profile` — the constraint is deleted, so the
+    /// NARROWER profile accepts strings the wider one rejects. That breaks the invariant every
+    /// dialect-profile system depends on: **gating a rule out of a profile must only ever REMOVE
+    /// strings from the language, never ADD them.** The lookahead reads *backtracked* as *did not
+    /// match*, which is true for a rule that is ABSENT and false for one that is merely DISABLED.
+    ///
+    /// ⚠️ **THE POSITIVE CASE (`positive == true`) IS NOT AN INVERSION AND IS REPORTED AS A NOTE.**
+    /// `&target` on a gated `target` always FAILS, so every path through it dies and the profile
+    /// gets strictly NARROWER — monotonic, hence not the defect this class was founded on. It is
+    /// counted because it is the same conflation viewed from the other side (a constraint whose
+    /// meaning changed because its subject was gated), and because sizing the whole population is
+    /// what tells the repair whether to cover both polarities.
+    ///
+    /// ⚠️ **HONEST BOUND — DIRECT REFERENCES ONLY.** Only rules referenced *syntactically inside*
+    /// the lookahead body are examined; the analysis does not follow `target`'s own body looking for
+    /// a gated rule one hop down. That is not laziness: a `target` that is PRESENT under `profile`
+    /// but whose body became unsatisfiable there is exactly a
+    /// [`WellformednessIssue::ProfileOrphan`], already an ERROR-class arm, and one that is
+    /// unsatisfiable under *every* profile is a [`WellformednessIssue::NonTerminating`]. The two
+    /// existing arms cover the hop this one declines to take.
+    ProfileGatedLookahead {
+        rule: String,
+        node_path: String,
+        target: String,
+        profile: String,
+        positive: bool,
+        target_profiles: Vec<String>,
+    },
 }
 
 impl WellformednessIssue {
@@ -231,6 +267,24 @@ impl WellformednessIssue {
                 "grammar well-formedness ERROR: rule '{}' consults fact-kind '{}' via {}(...), but NO @emit_fact in the grammar emits kind '{}' — the fact can never be established (binding-before-use, Jim et al. POPL 2010). The predicate is degenerate (has_fact always-false / lacks_fact always-true). Fix: emit '{}' somewhere with @emit_fact, or correct the consulted kind (likely a typo).",
                 rule, kind, primitive, kind, kind
             ),
+            WellformednessIssue::ProfileGatedLookahead {
+                rule,
+                node_path,
+                target,
+                profile,
+                positive,
+                target_profiles,
+            } => {
+                if *positive {
+                    format!(
+                        "grammar NOTE (not a soundness inversion): rule '{rule}' is LIVE under profile '{profile}' and its POSITIVE lookahead at '{node_path}' requires '{target}', which @profiles gates out of '{profile}' (declared: {target_profiles:?}). A gated rule's parse method returns Backtrack unconditionally, so `&{target}` always FAILS here and every path through it is dead — the profile gets strictly NARROWER, which is monotonic and therefore not the ERROR class. Reported so the population of 'a lookahead whose subject was gated away' is sized on both sides; confirm the deadness is intended."
+                    )
+                } else {
+                    format!(
+                        "grammar well-formedness ERROR: rule '{rule}' is LIVE under profile '{profile}' and its NEGATIVE lookahead at '{node_path}' guards against '{target}', which @profiles gates out of '{profile}' (declared: {target_profiles:?}). Gating does NOT remove '{target}' — it makes '{target}' return Backtrack unconditionally — and a negative lookahead fails only when its body MATCHED, so `!{target}` succeeds VACUOUSLY under '{profile}'. The constraint is DELETED and profile '{profile}' accepts strings a WIDER profile REJECTS, which inverts the purpose of the gate: gating must only ever REMOVE strings from the language, never ADD them. Fix: make the lookahead's subject reachable under '{profile}' (drop or widen the @profiles gate on '{target}'), or restrict rule '{rule}' to the profiles where '{target}' is live."
+                    )
+                }
+            }
         }
     }
 }
@@ -1087,6 +1141,164 @@ pub fn detect_profile_orphans(
         }
     }
     out
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.46` (b) — every LOOKAHEAD whose subject `@profiles` gates out of a
+/// profile the REFERRING rule is still live in.
+///
+/// ⛔ **WHY THIS ARM EXISTS AND WHY NOTHING ELSE FINDS IT.** A `@profiles` gate does not delete a
+/// rule; it makes the rule's parse method return `Backtrack` unconditionally. A negative lookahead
+/// fails only when its body MATCHED. Compose them and `!X` succeeds **vacuously** the moment `X` is
+/// gated away — so the *narrower* profile accepts strings the wider one rejects, silently, in the
+/// ACCEPTING direction. Measured on the shipped engine (`.46` slice 1, 8/8 through
+/// `compile_and_parse`), and `--lint-grammar` on the reproducing grammar reported EVERY counter at
+/// zero — `profile_orphans=0`, `unreachable_rules=0`, `ordered_choice_shadowing=0` — because no
+/// existing arm models a *constraint* whose subject was gated away. They all ask whether a rule can
+/// still be DERIVED; a lookahead derives nothing.
+///
+/// **WHAT IS REPORTED.** One issue per `(rule, node_path, target, profile)` where the referring
+/// `rule` is present under `profile`, the lookahead's body directly references `target`, `target` is
+/// defined in this grammar, and `target`'s `@profiles` list excludes `profile`. The NEGATIVE
+/// polarity is the ERROR class (the soundness inversion); the POSITIVE polarity is reported as a
+/// NOTE and never gates — `&X` on a gated `X` always fails, which makes the profile NARROWER, i.e.
+/// monotonic. Both are counted so the population is sized on both sides.
+///
+/// ⚠️ **Bound: DIRECT references only** — see [`WellformednessIssue::ProfileGatedLookahead`] for why
+/// the one-hop case is `ProfileOrphan`'s and `NonTerminating`'s, not this arm's.
+///
+/// PURE and parser-agnostic; deterministic (iterates `rule_order`, then structural node order, then
+/// `target` sorted, then `all_profiles` in the caller's order).
+pub fn detect_profile_gated_lookaheads(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    rule_profiles: &HashMap<String, Vec<String>>,
+    all_profiles: &[String],
+) -> Vec<WellformednessIssue> {
+    let mut out = Vec::new();
+    for rule in rule_order {
+        let Some(body) = grammar.get(rule) else { continue };
+        collect_profile_gated_lookaheads(
+            rule,
+            body,
+            "root",
+            grammar,
+            rule_profiles,
+            all_profiles,
+            &mut out,
+        );
+    }
+    out
+}
+
+#[allow(clippy::too_many_arguments)]
+fn collect_profile_gated_lookaheads(
+    rule: &str,
+    node: &ASTNode,
+    path: &str,
+    grammar: &HashMap<String, ASTNode>,
+    rule_profiles: &HashMap<String, Vec<String>>,
+    all_profiles: &[String],
+    out: &mut Vec<WellformednessIssue>,
+) {
+    match node {
+        ASTNode::Or { alternatives } => {
+            for (i, a) in alternatives.iter().enumerate() {
+                collect_profile_gated_lookaheads(
+                    rule,
+                    a,
+                    &format!("{path}/o{i}"),
+                    grammar,
+                    rule_profiles,
+                    all_profiles,
+                    out,
+                );
+            }
+        }
+        ASTNode::Sequence { elements } => {
+            for (i, e) in elements.iter().enumerate() {
+                collect_profile_gated_lookaheads(
+                    rule,
+                    e,
+                    &format!("{path}/s{i}"),
+                    grammar,
+                    rule_profiles,
+                    all_profiles,
+                    out,
+                );
+            }
+        }
+        ASTNode::Quantified { element, .. } => collect_profile_gated_lookaheads(
+            rule,
+            element,
+            &format!("{path}/q"),
+            grammar,
+            rule_profiles,
+            all_profiles,
+            out,
+        ),
+        ASTNode::Lookahead { element, positive } => {
+            // Every rule the lookahead body references DIRECTLY. Sorted so the report is stable.
+            let mut targets: Vec<String> = {
+                let mut refs: HashSet<String> = HashSet::new();
+                collect_node_rule_refs(element, &mut refs);
+                refs.into_iter().collect()
+            };
+            targets.sort();
+            for target in targets {
+                // Only a rule DEFINED here can be gated; an external/include reference is not ours
+                // to judge, and an undefined one is already `detect_undefined_references`' finding.
+                if !grammar.contains_key(&target) {
+                    continue;
+                }
+                // A rule with no `@profiles` list is universal — it is present under every profile,
+                // so it can never be the subject of this defect.
+                let Some(target_profiles) = rule_profiles.get(&target) else {
+                    continue;
+                };
+                if target_profiles.is_empty() {
+                    continue;
+                }
+                for profile in all_profiles {
+                    if !rule_present_under_profile(rule, rule_profiles, profile)
+                        || rule_present_under_profile(&target, rule_profiles, profile)
+                    {
+                        continue;
+                    }
+                    out.push(WellformednessIssue::ProfileGatedLookahead {
+                        rule: rule.to_string(),
+                        node_path: path.to_string(),
+                        target: target.clone(),
+                        profile: profile.clone(),
+                        positive: *positive,
+                        target_profiles: target_profiles.clone(),
+                    });
+                }
+            }
+            // A lookahead can nest another lookahead; keep walking.
+            collect_profile_gated_lookaheads(
+                rule,
+                element,
+                &format!("{path}/l"),
+                grammar,
+                rule_profiles,
+                all_profiles,
+                out,
+            );
+        }
+        ASTNode::Atom { value } => {
+            if let ASTValue::Node(inner) = value {
+                collect_profile_gated_lookaheads(
+                    rule,
+                    inner,
+                    &format!("{path}/a"),
+                    grammar,
+                    rule_profiles,
+                    all_profiles,
+                    out,
+                );
+            }
+        }
+    }
 }
 
 /// The fact-query primitives whose FIRST argument is a fact-KIND and which read the store that
@@ -3159,6 +3371,165 @@ mod tests {
             verify_wellformedness_certificate(&g, &order, Some(&ann), &bogus).is_err(),
             "claiming an orphan under a profile where the rule IS satisfiable must be rejected"
         );
+    }
+
+    // ── ENGINE-UNIVERSAL-SERVICES.46 (b) — the profile-gated lookahead arm ────────────────────────
+    //
+    // Every arm below is a ONE-DIFFERENCE pair against the finding case, so a green verdict cannot
+    // come from a detector that says "found" (or "clean") to everything. The RED direction is the
+    // finding; the GREEN direction changes exactly one thing and must go silent.
+
+    /// Build the founding shape: `referrer := lit !gated` with `gated` restricted to `["wide"]`,
+    /// in a two-profile universe. `referrer` is universal, so it is live under BOTH profiles while
+    /// `gated` is absent under `narrow` — which is the whole defect.
+    fn gated_lookahead_fixture(
+        positive: bool,
+        gated_profiles: &str,
+        referrer_profiles: Option<&str>,
+    ) -> (HashMap<String, ASTNode>, Vec<String>, Annotations) {
+        let mut g = HashMap::new();
+        g.insert(
+            "referrer".into(),
+            seq(vec![token("string", "x"), look(rule_ref("gated"), positive)]),
+        );
+        g.insert("gated".into(), token("string", "'"));
+        g.insert("other".into(), token("string", "o"));
+        let order: Vec<String> = vec!["referrer".into(), "gated".into(), "other".into()];
+        let mut ann = Annotations::default();
+        ann.semantic_annotations
+            .insert("gated".into(), vec![profiles_ann(gated_profiles)]);
+        // Puts `narrow` in the declared universe without gating anything the fixture depends on.
+        ann.semantic_annotations
+            .insert("other".into(), vec![profiles_ann("[narrow]")]);
+        if let Some(p) = referrer_profiles {
+            ann.semantic_annotations
+                .insert("referrer".into(), vec![profiles_ann(p)]);
+        }
+        (g, order, ann)
+    }
+
+    fn run_gated_lookahead_detector(
+        g: &HashMap<String, ASTNode>,
+        order: &[String],
+        ann: &Annotations,
+    ) -> Vec<WellformednessIssue> {
+        let (rule_profiles, all_profiles) = extract_profile_context(ann);
+        detect_profile_gated_lookaheads(g, order, &rule_profiles, &all_profiles)
+    }
+
+    #[test]
+    fn a_negative_lookahead_on_a_gated_rule_is_reported_under_the_profile_that_gates_it() {
+        // RED — the founding case. `referrer` is live under `narrow`; `gated` is not; `!gated` is
+        // therefore vacuous there, so the NARROWER profile accepts more.
+        let (g, order, ann) = gated_lookahead_fixture(false, "[wide]", None);
+        let issues = run_gated_lookahead_detector(&g, &order, &ann);
+        assert_eq!(issues.len(), 1, "expected exactly one finding, got: {issues:?}");
+        match &issues[0] {
+            WellformednessIssue::ProfileGatedLookahead {
+                rule,
+                target,
+                profile,
+                positive,
+                target_profiles,
+                ..
+            } => {
+                assert_eq!(rule, "referrer");
+                assert_eq!(target, "gated");
+                // Reported under the profile that GATES the target, never under the one that keeps it.
+                assert_eq!(profile, "narrow");
+                assert!(!positive, "the founding case is the NEGATIVE polarity");
+                assert_eq!(target_profiles, &vec!["wide".to_string()]);
+            }
+            other => panic!("wrong issue variant: {other:?}"),
+        }
+        // The message must NAME the inversion, since the message is the whole product for a
+        // report-only arm — a finding a reader cannot act on is a finding that gets ignored.
+        let msg = issues[0].message();
+        assert!(msg.contains("VACUOUSLY"), "message must name the mechanism: {msg}");
+        assert!(msg.contains("never ADD them"), "message must name the invariant: {msg}");
+    }
+
+    #[test]
+    fn the_same_shape_with_the_gate_removed_is_silent() {
+        // GREEN control, ONE difference: `gated` is admitted to BOTH profiles. If this still
+        // reported, the detector would be keying on "there is a lookahead" rather than on the gate.
+        let (g, order, ann) = gated_lookahead_fixture(false, "[wide, narrow]", None);
+        let issues = run_gated_lookahead_detector(&g, &order, &ann);
+        assert!(issues.is_empty(), "gate removed ⇒ nothing to report, got: {issues:?}");
+    }
+
+    #[test]
+    fn a_referrer_gated_to_the_same_profiles_as_its_subject_is_silent() {
+        // GREEN control, ONE difference: the REFERRER is restricted to the profiles where the
+        // subject is live. Then there is no profile in which the referrer runs and the subject is
+        // absent — which is exactly the "restrict the referring rule" half of the fix the message
+        // suggests, so this arm proves the suggested fix actually works.
+        let (g, order, ann) = gated_lookahead_fixture(false, "[wide]", Some("[wide]"));
+        let issues = run_gated_lookahead_detector(&g, &order, &ann);
+        assert!(issues.is_empty(), "referrer confined to the subject's profiles ⇒ silent, got: {issues:?}");
+    }
+
+    #[test]
+    fn a_positive_lookahead_on_a_gated_rule_is_a_note_not_an_error() {
+        // The other polarity. `&gated` on a gated subject always FAILS ⇒ the path is dead ⇒ the
+        // profile gets NARROWER, which is monotonic. Counted (it is the same conflation seen from
+        // the other side) but worded as a NOTE, and it must NOT claim the inversion.
+        let (g, order, ann) = gated_lookahead_fixture(true, "[wide]", None);
+        let issues = run_gated_lookahead_detector(&g, &order, &ann);
+        assert_eq!(issues.len(), 1, "expected exactly one finding, got: {issues:?}");
+        assert!(
+            matches!(&issues[0], WellformednessIssue::ProfileGatedLookahead { positive: true, .. }),
+            "polarity must be carried through: {:?}",
+            issues[0]
+        );
+        let msg = issues[0].message();
+        assert!(msg.contains("NOTE"), "the positive polarity is a NOTE: {msg}");
+        assert!(
+            !msg.contains("well-formedness ERROR"),
+            "a monotonic finding must not be worded as the soundness inversion: {msg}"
+        );
+    }
+
+    #[test]
+    fn an_ungated_grammar_produces_nothing_even_with_negative_lookaheads() {
+        // GREEN control for the whole class: no `@profiles` anywhere ⇒ an empty profile universe ⇒
+        // the arm cannot fire. Guards against a detector that reports on lookaheads alone.
+        let mut g = HashMap::new();
+        g.insert(
+            "referrer".into(),
+            seq(vec![token("string", "x"), look(rule_ref("gated"), false)]),
+        );
+        g.insert("gated".into(), token("string", "'"));
+        let order: Vec<String> = vec!["referrer".into(), "gated".into()];
+        let ann = Annotations::default();
+        let issues = run_gated_lookahead_detector(&g, &order, &ann);
+        assert!(issues.is_empty(), "no @profiles ⇒ no finding, got: {issues:?}");
+    }
+
+    #[test]
+    fn a_lookahead_nested_under_a_quantifier_is_still_found() {
+        // The SV population is not flat: the positive site this arm found in `class_scope_type`
+        // sits at `root/s2/q/s3`, i.e. under a quantifier. A walker that only looked at a rule's
+        // top-level sequence would have missed it, and the hand count did.
+        let mut g = HashMap::new();
+        g.insert(
+            "referrer".into(),
+            quant(seq(vec![token("string", "x"), look(rule_ref("gated"), false)]), "*"),
+        );
+        g.insert("gated".into(), token("string", "'"));
+        g.insert("other".into(), token("string", "o"));
+        let order: Vec<String> = vec!["referrer".into(), "gated".into(), "other".into()];
+        let mut ann = Annotations::default();
+        ann.semantic_annotations.insert("gated".into(), vec![profiles_ann("[wide]")]);
+        ann.semantic_annotations.insert("other".into(), vec![profiles_ann("[narrow]")]);
+        let issues = run_gated_lookahead_detector(&g, &order, &ann);
+        assert_eq!(issues.len(), 1, "a nested lookahead must be found, got: {issues:?}");
+        match &issues[0] {
+            WellformednessIssue::ProfileGatedLookahead { node_path, .. } => {
+                assert_eq!(node_path, "root/q/s1", "the path must locate the lookahead: {node_path}")
+            }
+            other => panic!("wrong issue variant: {other:?}"),
+        }
     }
 
     #[test]
