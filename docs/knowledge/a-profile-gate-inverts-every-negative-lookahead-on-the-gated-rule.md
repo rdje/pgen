@@ -13,7 +13,7 @@ tags: [profiles, dialects, lookahead, grammar, engine-universal, controls, sv-co
 date: 2026-08-25
 status: current
 evidence: "PGEN-SV-CORPUS-GRAD-0303, sizing SV-CORPUS-GRAD.13e.10(c4). Measured on a 5-rule synthetic driven with ast_pipeline --interpret-parse --grammar-profile, with a proven-active control: a REQUIRED gated rule accepts under `loose` and REJECTS under `strict` (so the gate is on), while `!X` with a catch-all able to consume the guarded token REJECTS under `loose` and ACCEPTS under `strict`. --lint-grammar is completely clean on this: no profile_orphans, no unreachable_rules, no warning. Live population in PGEN's SystemVerilog grammar: 3 sites, all !scope_resolution, with scope_resolution gated to [sv_2017, sv_2023]; none produces an over-acceptance today because nothing else under verilog_2005 can consume `::`, so the parse fails on the unconsumable token regardless — the hazard bites only when some other alternative CAN consume what the lookahead guarded against. TWO EARLIER ATTEMPTS TO MEASURE THIS PRODUCED CONFIDENT NON-RESULTS: (1) @profiles written INLINE after := is a BRANCH-level gate and never gated the rule, revealed only by the control arm; (2) the corrected probe could not discriminate, because with nothing able to consume the token a vacuous lookahead and a refusing one both end in a reject."
-reverify: "bash docs/tasks/artifacts/sv_corpus_grad/profile_gate_sizing/probe.sh   # 6/6, ~1s. Arm [1] is the control that proves the gate is active; arm [2] is the finding: !X rejects under loose and ACCEPTS under strict."
+reverify: "⛔ MEASURED ON THE INTERPRETER ONLY — the probe makes 0 generated-parser invocations, and TOOLBOX 1.5b marks the interpreter authoritative BY VERIFICATION, not by construction. Reproducing on the shipped engine (scratch slot 1.3 / compile_and_parse 1.4) is step (a) of ENGINE-UNIVERSAL-SERVICES.46 and is OWED. bash docs/tasks/artifacts/sv_corpus_grad/profile_gate_sizing/probe.sh   # 6/6, ~1s. Arm [1] is the control that proves the gate is active; arm [2] is the finding: !X rejects under loose and ACCEPTS under strict."
 ---
 
 # A profile gate inverts every negative lookahead on the gated rule
@@ -23,6 +23,11 @@ will tell me?
 
 **Answer:** every `!X` in the grammar, where `X` is what you gated — and it breaks in the
 *accepting* direction, in the profile you were trying to make *stricter*.
+
+⛔⛔ **EVIDENCE BOUND, stated before the finding is used: this is measured on the INTERPRETER.**
+The probe makes zero generated-parser invocations, and PGEN's own toolbox marks the interpreter
+authoritative *by verification, not by construction*. Reproducing it on the shipped engine is
+owed work, not a formality — if the generated parser does not reproduce it, this card is wrong.
 
 ## The mechanism
 
