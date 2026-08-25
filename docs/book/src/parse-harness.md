@@ -826,6 +826,45 @@ behaviors of the *shipped engine*, now pinned differentially and worth knowing w
   `Err(Backtrack)` stub with no `furthest_position` bump, no memo, no rule context — the interpreter
   dispatches these before its own rule preamble to stay byte-identical.
 
+## The profile-gate monotonicity probe (`ENGINE-UNIVERSAL-SERVICES.46`)
+
+`make -C rust SHELL=/bin/bash profile_gate_monotonicity_gate` (module
+`rust/tests/profile_gate_negative_lookahead_generated_parser.rs`, ~9 s warm) is the standing
+reproduction of a **live engine defect**: a `@profiles` gate silently inverts every negative
+lookahead on the gated rule, so the *narrower* profile accepts more. It is documented for
+grammar authors under
+[Annotation System § a `@profiles` gate INVERTS a negative lookahead](annotation-system.md); this
+section is about the probe.
+
+**The invariant under test.** ⭐⭐⭐ *Gating a rule out of a profile must only ever REMOVE strings
+from the language, never ADD them.* A `!X` is a **constraint**, not a production — it derives
+nothing — so removing its subject should not loosen it. Today it does: gate `X` out and `!X`
+succeeds vacuously.
+
+**Why it is a harness probe rather than a unit test.** The finding was first measured on the
+**interpreter** (`--interpret-parse`), which is authoritative *by verification, not by construction*
+— and this book's own *Honest bounds* records a class where that verification does not hold. An
+interpreter-only measurement therefore licenses no claim about the shipped engine. The probe drives
+[the compile-and-run harness](#the-compile-and-run-harness) instead: real codegen, real runtime,
+the profile requested through the artifact's own `set_grammar_profile` resolution.
+
+**The eight cases**, over three synthetic grammars:
+
+| class | what it establishes |
+|---|---|
+| gate-active control (2) | the `@profiles` gate is actually applied. Without it every verdict below is worthless — and this arm has caught exactly that, when `@profiles` written inline after `:=` turned out to be a *branch*-level gate that does not gate the rule |
+| the finding (2) | the same grammar and input go **reject under `loose` → accept under `strict`**. Discriminating by construction: a catch-all *can* consume the guarded token, so a vacuous `!X` and a refusing `!X` predict OPPOSITE verdicts instead of the same reject |
+| sanity (2) | the catch-all path is live under both profiles |
+| ⭐ red control (2) | the finding shape with the gate REMOVED rejects under both profiles. It kills the rival reading that `strict` is simply not wired into this shape — that reading predicts accept here |
+
+**Every case is measured on both rungs and asserted verdict-identical** (generated vs interpreter,
+currently 8/8). The repair must move codegen and the interpreter together, and that column is what
+makes a one-sided repair fail loudly instead of silently splitting the two engines.
+
+⛔ **One case is a DEFECT PIN** — it asserts today's *wrong* verdict on purpose. The semantics repair
+cannot land silently: it must turn this gate RED, and flipping the pin in the same commit is how the
+author states that the repair worked.
+
 ## Honest bounds
 
 - The scratch slot and the compile-and-run harness are authoritative *by construction* — they run the

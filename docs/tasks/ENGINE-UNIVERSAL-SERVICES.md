@@ -12088,3 +12088,142 @@ is exactly why B must land before (c4).
 - ⚠️ **PRIORITY: TOP.** Ahead of `SV-CORPUS-GRAD.13e.10`(c4), by director order. The SV lane lock does
   not apply — this is the lock's own named exception, a defect that BLOCKS the SV release path,
   because (c4) is the commit that would trip it.
+
+#### ✅ `.46` SLICE 1 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0083`, 2026-08-25 session #262) — **(a) DISCHARGED: the defect REPRODUCES on the shipped engine, 8/8, and the interpreter it was found on agrees on all 8** — so *engine-universal* is a reading now, not an inference
+
+###### ⭐⭐⭐ THE POINT OF THIS SLICE — IT IS NOT A FIX, IT IS THE STEP THAT DECIDES WHETHER THE FIX IS THE RIGHT ONE
+
+The leaf named its own evidence hole before anyone else could: **every measurement behind `.46` was
+taken with `--interpret-parse`**, and TOOLBOX 1.5b says in as many words that the interpreter is
+authoritative **BY VERIFICATION, NOT BY CONSTRUCTION**, with a *measured* divergence class where that
+verification does not hold (`ENGINE-UNIVERSAL-SERVICES.13`/`.14`, un-eliminated left recursion, the
+two engines disagreeing in BOTH directions). The tracked probe made **1** interpreter invocation and
+**0** generated-parser invocations. So the claim *"reproduces outside the family, by construction"*
+rested on a rung whose agreement with the shipped engine is an empirical property, not a guarantee —
+and the leaf's own instruction was that if the generated parser does not reproduce it, **the finding
+changes shape entirely and the repair below is wrong.**
+
+It reproduces. Exactly, on every arm.
+
+###### ⭐⭐⭐ THE MEASUREMENT — `compile_and_parse` (TOOLBOX 1.4), REAL CODEGEN + REAL RUNTIME, AUTHORITATIVE BY CONSTRUCTION
+
+One command: `make -C rust SHELL=/bin/bash profile_gate_monotonicity_gate` (9.4 s warm, ~4 min cold).
+
+| case | grammar | profile | input | GENERATED | interpreted | agree |
+|---|---|---|---|---|---|---|
+| CONTROL — a REQUIRED gated rule, X live | `gate_active_control.ebnf` | `loose` | `1'` | accept | accept | yes |
+| ⭐ CONTROL — a REQUIRED gated rule, X gated | `gate_active_control.ebnf` | `strict` | `1'` | **reject** | reject | yes |
+| FINDING — `!X` refuses while X is live | `neg_lookahead_discriminating.ebnf` | `loose` | `1'` | reject | reject | yes |
+| ⛔ FINDING — `!X` is VACUOUS once X is gated | `neg_lookahead_discriminating.ebnf` | `strict` | `1'` | ⛔ **accept** | accept | yes |
+| SANITY — the catch-all path is live | `neg_lookahead_discriminating.ebnf` | `loose` | `1a` | accept | accept | yes |
+| SANITY — the catch-all path is live | `neg_lookahead_discriminating.ebnf` | `strict` | `1a` | accept | accept | yes |
+| ⭐ RED CONTROL — same shape, gate REMOVED | `neg_lookahead_ungated_red_control.ebnf` | `strict` | `1'` | reject | reject | yes |
+| ⭐ RED CONTROL — same shape, gate REMOVED | `neg_lookahead_ungated_red_control.ebnf` | `loose` | `1'` | reject | reject | yes |
+
+⇒ **THE SHIPPED ENGINE WIDENS THE STRICT PROFILE.** Row 3 vs row 4 is the whole finding on the
+generated parser alone: the SAME grammar and the SAME input go from **reject** under `loose` to
+**accept** under `strict`, and `strict` is the profile with FEWER rules in it. Gating removed a rule
+and the language got BIGGER. That is the deciding invariant — *gating must only ever REMOVE strings,
+never ADD them* — broken by measurement rather than by argument.
+
+###### ⭐⭐ THE RED CONTROL IS NEW, AND IT IS WHAT KILLS THE RIVAL READING
+
+The interpreter probe had a gate-active control but no arm that varied *only the gate* on the finding
+shape. Without one, *"strict accepts"* is equally consistent with a second hypothesis that has nothing
+to do with lookaheads: **that `strict` is simply not wired into this shape at all**, so the parse
+behaves as if unprofiled. That hypothesis predicts ACCEPT on the red control too.
+`neg_lookahead_ungated_red_control.ebnf` is `neg_lookahead_discriminating.ebnf` with ONE byte-level
+difference — `tick` admitted to both profiles instead of `["loose"]` — and it measures **reject**
+under both. One reading survives. This is the leaf's own lesson applied to the leaf
+([[feedback_a_control_that_passes_under_both_hypotheses_is_not_evidence]]).
+
+###### ⭐⭐ AND THE TWO RUNGS ARE NOW HELD TOGETHER BY THE PROBE, BECAUSE (c) MUST MOVE BOTH
+
+Every case is measured on BOTH engines and asserted verdict-identical. `.46`(c) requires codegen and
+interpreter to be repaired together; the agreement column is what makes a one-sided repair fail
+loudly instead of silently splitting the two engines — the `ENGINE-UNIVERSAL-SERVICES.14` failure mode,
+in advance. **Measured: 8/8 agreement**, so the interpreter-only evidence in `-0303` was sound after
+all; it was the *licence to generalise* that was missing, and it is supplied now rather than assumed.
+
+###### ⭐ BOTH FAILURE PATHS WERE DRIVEN RED BEFORE THE GREEN WAS BELIEVED
+
+A probe that has never failed is a probe whose green means nothing.
+
+- **the expectation arm** — flipping the red control's `expected` to `true` produced
+  `RED CTL … generated=false wanted=true — RED CONTROL FAILED — with X ADMITTED to `strict`, `!X` must
+  still refuse. An accept here means the finding arm is not measuring the gate at all`. Reverted.
+- **the rung-split detector** — forcing the interpreter side to always request `loose` produced TWO
+  split rows, naming both: `CONTROL … RUNG SPLIT — generated=false interpreted=true` and
+  `FINDING … ⛔ DEFECT PIN … RUNG SPLIT — generated=true interpreted=false`. Reverted.
+
+###### ⛔ A DEFECT IN MY OWN INSTRUMENT, FOUND BY DRIVING IT RED AND FIXED IN THIS SLICE
+
+The split-detector RED run printed its two split rows and then closed with
+`interpreter rung agreed on 8/8`. The summary counted **evaluations** and called them
+**agreements** — a report line that reads flatteringly on the very run that just found the failure,
+which is the same class of defect this leaf is about (silent, in the passing direction). The counter
+is now agreements over evaluated, and the comment says why so the next author cannot re-introduce it
+by tidying. ⭐ It was invisible on every GREEN run; only the RED control exposed it — which is the
+argument for driving a probe red rather than reading it.
+
+###### ⭐⭐⭐ AND THE MECHANISM IS NOW LOCATED TO TWO LINES — READ OFF THE **EMITTED ARTIFACT**, NOT THE GENERATOR
+
+Reproducing it made the next question cheap, so it was answered rather than deferred. The parser for
+the discriminating grammar was generated to `rust/target/es46_emit/p.rs` and **read**; both halves are
+visible in the shipped emission:
+
+```rust
+// p.rs:2337 — the GATE. A @profiles-gated rule is not REMOVED; it is made to ALWAYS BACKTRACK.
+pub fn parse_tick(&mut self) -> ParseResult<ParseNode<'input>> {
+    let position = self.position;
+    if !self.rule_profile_is_enabled(&["loose"]) {
+        return Err(ParseError::Backtrack { position });
+    }
+    …
+
+// p.rs:1618 — the LOOKAHEAD. `!X` fails ONLY when its body MATCHED.
+let matched = parser.try_parse(|p| { let parser = p; let __pgen_alt_child = parser.parse_tick()?; … });
+parser.position = lookahead_start;
+if matched.is_some() {
+    return Err(ParseError::Backtrack { position: lookahead_start });
+}
+```
+
+⇒ **compose them and the defect is arithmetic**: gated body ⇒ always `Backtrack` ⇒ `matched.is_none()`
+⇒ `!X` always succeeds. ⭐⭐⭐ **The one-sentence root cause: a negative lookahead reads *backtracked*
+as *did not match*, which is true for a rule that is ABSENT and false for a rule that is merely
+DISABLED — and `@profiles` produces the second while every reader assumes the first.**
+
+The emission sites are `rust/src/ast_pipeline/ast_based_generator.rs:4181` (the guard) and `:4484-4494`
+(the negative arm of `generate_lookahead_logic`). ⭐ The interpreter carries the identical guard at
+rule entry — `rust/src/parse_harness_interpreter.rs:944`, whose doc comment at `:2216` names
+`rule_profile_is_enabled` as the thing it mirrors — which is **why** the two rungs agree on all eight
+arms rather than agreeing by luck, and why (c) must move both.
+
+⛔ **AND IT IS SILENT BY CONSTRUCTION, MEASURED:** `--lint-grammar` on the defective grammar reports
+`profile_orphans=0 (error; profiles=["loose", "strict"])`, `unreachable_rules=0`,
+`ordered_choice_shadowing=0`, `always_succeeds_alternatives=0`, `left_recursion_unhandled=0` — every
+counter zero. Nothing in the linter models a *constraint* whose subject was gated away, so there is no
+arm for it to fire. That is precisely the hole **(b)** fills.
+
+⇒ **(c) NOW HAS AN EXACT TARGET rather than a design brief**: evaluate a negative lookahead's body with
+the `:4181` guard bypassed, and move `parse_harness_interpreter.rs:944` in the same commit.
+
+###### ⭐ WHAT SLICE 1 DELIBERATELY DOES NOT DO
+
+No engine bytes moved: no codegen change, no interpreter change, no grammar change, no generated
+artifact. **(b)** — the blocking `--lint-grammar` arm — and **(c)** — the semantics repair — are the
+next two slices, in that order, per the leaf's standing ruling (B first, because shipping A alone lets
+the next author re-introduce the hazard in a spelling A does not cover). **(d)**, the all-profiles
+re-audit of the 3 live SV sites, rides with (c). The DEFECT PIN is what connects this slice to those:
+(c) cannot land without turning this gate RED, and flipping the pin is how the author states the
+repair worked.
+
+###### Acceptance Checklist (enforced) — `.46` slice 1, acceptance (a)
+
+- [x] **REPRODUCE / ISSUE** — `make -C rust SHELL=/bin/bash profile_gate_monotonicity_gate` prints the 8-row table above and passes; the two finding rows are `neg_lookahead_discriminating.ebnf` / input `1'` going **reject under `loose` → accept under `strict`** on the GENERATED parser. Binary feature surface confirmed first: `bash scripts/require_ast_pipeline_features.sh rust/target/debug/ast_pipeline generated_parsers ebnf_dual_run` → `AST-PIPELINE-FEATURE-GUARD: ok`. Interpreter baseline re-derived unchanged beforehand: `bash docs/tasks/artifacts/sv_corpus_grad/profile_gate_sizing/probe.sh` → `pass=6 fail=0`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — **TWO composing emission sites, read off the EMITTED ARTIFACT rather than the generator.** Generated with `--generate-parser --eliminate-left-recursion -o rust/target/es46_emit/p.rs` from the discriminating grammar, then read: **(WHERE 1)** `p.rs:2337-2341` — a `@profiles`-gated rule's method OPENS with `if !self.rule_profile_is_enabled(&["loose"]) { return Err(ParseError::Backtrack { position }); }`, i.e. gating does **not remove** the rule, it makes it **always BACKTRACK**; emitted at `rust/src/ast_pipeline/ast_based_generator.rs:4181`. **(WHERE 2)** `p.rs:1618-1631` — `!tick` is `matched = parser.try_parse(|p| p.parse_tick()?)` followed by `if matched.is_some() { return Err(Backtrack) }`, i.e. a negative lookahead fails **only when its body MATCHED**; emitted at `ast_based_generator.rs:4484-4494`. ⇒ **(WHY)** composing them, a gated body always returns `Backtrack` ⇒ `matched.is_none()` ⇒ `!X` always SUCCEEDS. **The lookahead reads *backtracked* as *did not match* — true for a rule that is ABSENT, false for a rule that is merely DISABLED**, and that conflation is the defect. ⭐ The interpreter carries the identical guard at rule entry (`rust/src/parse_harness_interpreter.rs:944`, whose own doc comment names `rule_profile_is_enabled` as the thing it mirrors), which is exactly WHY the two rungs agree 8/8 rather than by luck. ⛔ And it is SILENT by construction: `--lint-grammar` on the defective grammar reports `profile_orphans=0 (error; profiles=["loose", "strict"])`, `unreachable_rules=0`, `ordered_choice_shadowing=0`, `left_recursion_unhandled=0` — every counter zero, so TOOLBOX 1.5b's own cross-check trigger does not fire either. Verbatim, both directions: `INTERPRET-PARSE: grammar='neg_lookahead_discriminating' entry='top' profile='strict' input_bytes=2 accepted=true furthest_position=2` vs `… profile='loose' … accepted=false furthest_position=1 error="Backtrack { position: 1 }"`. ⚠️ **Honest scope: locating the mechanism is not repairing it.** (a) owed the *locus* — is this the shipped engine or an interpreter artefact — and the answer is the shipped engine. Choosing between the two candidate repairs and moving engine bytes is **(c)**, and this box is what gives (c) its exact target: `ast_based_generator.rs:4484` must evaluate its body with the `:4181` guard bypassed, and `parse_harness_interpreter.rs:944` must move with it.
+- [x] **FIX** — none, by design. Zero engine bytes: no grammar, no codegen, no interpreter, no generated artifact. What landed is measurement + durability — a tracked 8-case two-rung probe (`rust/tests/profile_gate_negative_lookahead_generated_parser.rs`), its own RED-control grammar (`docs/tasks/artifacts/engine_universal_services/profile_gate_neg_lookahead/neg_lookahead_ungated_red_control.ebnf`), a named gate target, and a `GATE-REACHABILITY` disposition for it.
+- [x] **ADDRESSED (verified)** — the evidence hole this leaf named is CLOSED: the probe made **0** generated-parser invocations before this slice and makes **8** after, so *engine-universal* is now a reading. Falsification leg: the RED control varies ONLY the gate and measures reject under both profiles, eliminating the "`strict` is not wired into this shape" reading. Durability leg: the claim is WATCHED — case 4 is a DEFECT PIN asserting today's wrong verdict, so `.46`(c) cannot land without turning this gate RED. Both failure paths were driven RED and observed firing with their intended messages (above), and driving them red is what exposed the flattering summary line, now fixed.
+- [x] **NO REGRESSION** — ⭐ **the strongest available arm is byte-identity, and it was run rather than argued.** `rust/Makefile` is inside the `GENERATED-REPRODUCIBILITY` emission-source digest, so adding the gate target moved `emission_sha` and tier 1 correctly went RED; `make -C rust SHELL=/bin/bash generated_reproducibility_rebaseline` (under the memory guard, 71 s, peak 1 829 MB) re-derived **every one of the 11 artifacts BYTE-IDENTICALLY (0 sites each)** and re-recorded. ⇒ the diff on `generated_reproducibility_v0.json` is `verified_at_commit` + `emission_sha` and **nothing else — every `parser_sha` and `input_sha` is unchanged**, which is what makes "zero generated bytes" a measurement instead of a claim. `bash scripts/check_doctrines.sh` **ALL 27 PASS** (`KNOWLEDGE-MAP` needed `gen_knowledge_map.sh` re-run for the new decision record — 209 facts / 1 493 question keys). `bash scripts/check_gate_reachability.sh` → `OK (126 targets; 93 reachable, 32 orphan + 1 policy-only, all dispositioned; 14 ground-truth controls reproduced)` — the new target enters the universe dispositioned, same `accepted-operator-invoked` class and cost shape as its three `parse_harness_*` siblings. `make -C rust SHELL=/opt/homebrew/bin/bash clippy_on_rust_change` clean (source + generated stages, 68 pinned correctness lints intact). `make -C rust SHELL=/bin/bash mdbook_docs_gate` — main book + all **10** per-parser book gates pass. The new gate itself re-run last: **8/8, interpreter agreed 8/8**.
+- [x] **LOCKSTEP** — `rust/tests/profile_gate_negative_lookahead_generated_parser.rs` (new), `docs/tasks/artifacts/engine_universal_services/profile_gate_neg_lookahead/neg_lookahead_ungated_red_control.ebnf` (new), `rust/Makefile`, `rust/test_data/grammar_quality/gate_reachability_register_v0.json`, `rust/test_data/grammar_quality/generated_reproducibility_v0.json` (re-derived, not hand-edited), this leaf, `docs/TASK_TREE.md`, `docs/book/src/parse-harness.md` (the probe) and `docs/book/src/annotation-system.md` (⛔ the defect itself, published where a GRAMMAR AUTHOR reading about `@profiles` will meet it — the book is the director's review surface, so an engine defect that changes how a grammar must be written belongs there and not only in a task tree), `docs/decisions/feedback_check_the_summary_line_on_the_failing_run.md` (new, layer C — the promoted lesson) + `docs/decisions/INDEX.md` + `KNOWLEDGE_MAP.md` (re-derived), `CHANGES.md`, `DEVELOPMENT_NOTES.md`, `MEMORY.md`.

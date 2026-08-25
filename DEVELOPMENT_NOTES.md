@@ -1,5 +1,52 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-25 - PGEN-ENGINE-UNIVERSAL-SERVICES-0083 — a probe that has never failed is a probe whose green means nothing, and driving mine red is what found the defect inside it
+
+**1. ⭐⭐⭐ THE STEP THAT LOOKS LIKE OVERHEAD IS THE STEP THAT DECIDES WHETHER THE FIX IS AIMED AT
+ANYTHING.** `-0304` ordered `.46` fixed and named the hole in its own evidence: every measurement
+behind the finding came from the **interpreter**, which TOOLBOX 1.5b calls authoritative *by
+verification, not by construction*, with a **measured** divergence class. So the first owed step was
+not a repair — it was reproducing the defect through `compile_and_parse`, the rung that runs the real
+codegen and the real runtime. Had the shipped engine not reproduced it, the whole planned repair
+(a blocking lint arm plus a semantics change) would have been aimed at an interpreter artefact. It
+reproduces, on all eight arms. ⇒ **before repairing behaviour you measured with a second
+implementation, measure it once with the first.** The cost was one test file and nine seconds; the
+thing it bought was the licence to spend the next two slices.
+
+**2. ⭐⭐⭐ A CONTROL THAT VARIES THE THING YOU ARE CLAIMING ABOUT IS WORTH MORE THAN A CONTROL THAT
+VARIES SOMETHING ELSE.** The inherited probe had a gate-active control — a *required* gated rule that
+stops parsing under `strict` — which proves the gate is applied *somewhere*. It does not prove the
+finding arm is reading the gate. *"Strict accepts"* was equally consistent with a rival reading that
+has nothing to do with lookaheads: **that `strict` is not wired into this shape at all**, so the parse
+behaves as if unprofiled — and that reading predicts accept on every arm. The fix is a control whose
+ONLY difference from the finding grammar is the gate itself: `tick` admitted to both profiles instead
+of one. It measures **reject** under both, and the rival reading dies. ⇒ **build the control by
+varying the independent variable, not by varying convenience**
+([[feedback_a_control_that_passes_under_both_hypotheses_is_not_evidence]]).
+
+**3. ⛔⛔ THE INSTRUMENT LIED IN THE FLATTERING DIRECTION AND ONLY THE RED RUN COULD SEE IT.** To prove
+the rung-split detector worked, I forced the interpreter side to request the wrong profile. It
+correctly printed two `RUNG SPLIT` rows — and then closed with `interpreter rung agreed on 8/8`. The
+summary counted **evaluations** and called them **agreements**. On every green run the two numbers are
+identical, so no amount of re-reading the passing output could ever have exposed it; it is visible
+only when the thing fails. ⇒ **a summary line is a claim, and it must be checked on the FAILING run,
+not the passing one.** Same family as the standing lesson that a reader which treats what it cannot
+read as *no findings* fails in the passing direction — here an instrument that treats *measured* as
+*agreed*.
+
+**4. ⭐ THE DEFECT PIN IS HOW A REPRODUCTION BECOMES A RATCHET.** Asserting today's WRONG verdict on
+purpose feels backwards until you ask what the alternative buys: a probe that merely *prints* the
+defect can be satisfied by a repair that half-works, and a probe that asserts the RIGHT verdict is
+red from birth and gets ignored. A pin is green today, must go red exactly when the repair lands, and
+forces the author to state the flip in the same commit. ⇒ **pin the defect before fixing it**, the
+shape `SV-CORPUS-GRAD.13e.10`(c3) established for the corpus and this slice reuses for the engine.
+
+**5. ⭐ AND THE PROBE GUARDS THE REPAIR'S HARDEST CONSTRAINT BEFORE THE REPAIR EXISTS.** `.46`(c) must
+move codegen and the interpreter **together** — `ENGINE-UNIVERSAL-SERVICES.14` is the standing record
+of what happens when they split. Rather than trusting a future author to remember, every case is
+measured on both rungs and asserted verdict-identical, so a one-sided repair fails loudly. ⇒ **when a
+future slice has a known way to go wrong, encode it in the instrument that slice will have to run.**
+
 ## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0304 — I parked a soundness inversion on three cost arguments and none of them was about the failure mode
 
 **1. ⛔⛔⛔ THE ROUTING DECISION WAS WRONG, AND THE REASONING IS WORTH KEEPING BECAUSE IT SOUNDED

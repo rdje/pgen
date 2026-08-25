@@ -66,6 +66,11 @@
       "reason": "parse-harness semantic oracle, run per codegen change"
     },
     {
+      "target": "profile_gate_monotonicity_gate",
+      "disposition": "accepted-operator-invoked",
+      "reason": "the ENGINE-UNIVERSAL-SERVICES.46 profile-gate monotonicity probe — 8 cases through compile_and_parse, so every case pays a codegen + rustc round trip (~9 s warm, ~4 min cold). Same class and cost shape as its three parse_harness siblings above: run per codegen change and per @profiles / lookahead change, not per commit. It carries the DEFECT PIN for .46, so the repair that flips the pin necessarily names this target."
+    },
+    {
       "target": "regex_ast_shape_contract_gate",
       "disposition": "accepted-operator-invoked",
       "reason": "regex typed-AST shape contract, run when the regex AST changes"

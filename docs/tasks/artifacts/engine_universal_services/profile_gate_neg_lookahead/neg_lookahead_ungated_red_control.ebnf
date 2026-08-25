@@ -1,0 +1,26 @@
+# ENGINE-UNIVERSAL-SERVICES.46 (a) — THE RED CONTROL for the finding arm.
+#
+# Character-for-character `neg_lookahead_discriminating.ebnf` with ONE difference: `tick` is
+# admitted to BOTH profiles instead of `["loose"]` only. So the ONLY variable between this file
+# and the finding file is THE GATE ITSELF.
+#
+#   finding file, strict : `tick` GATED OUT   -> measured ACCEPT (the defect: `!tick` is vacuous)
+#   this file,    strict : `tick` ADMITTED    -> must REJECT     (`!tick` refuses, as it should)
+#
+# ⛔ WHY IT EARNS ITS COMPILE. Without it, "strict accepts" is consistent with a second hypothesis
+# that has nothing to do with negative lookaheads — that `--grammar-profile` / `set_grammar_profile`
+# is simply not wired into this shape at all, so `strict` behaves like an unprofiled parse. That
+# hypothesis predicts ACCEPT here too. Measuring REJECT here kills it, and leaves the vacuous-`!X`
+# reading as the only survivor. A control that passes under both hypotheses is not evidence.
+@profiles: ["strict", "loose"]
+
+@entry: true
+top := trivia lit_one !tick catchall trivia     -> {kind: "t"}
+
+lit_one := trivia "1"                           -> {kind: "one"}
+catchall := trivia /['a-z]/                     -> {kind: "c"}
+
+@profiles: ["strict", "loose"]
+tick := trivia "'"                              -> {kind: "tick"}
+
+trivia := /[ \t\r\n]*/

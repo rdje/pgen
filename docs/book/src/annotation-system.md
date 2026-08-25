@@ -46,6 +46,37 @@ A grammar that gates rules by dialect profile (`@profiles`) can declare what an 
 
 A profiled grammar can also declare which request **spellings** resolve to its canonical profile names, with the grammar-level `@profile_alias: { "<spelling>": <canonical>, … }` map directive. `grammars/systemverilog.ebnf` declares `2017`/`ieee1800-2017`/`ieee_1800_2017` → `sv_2017` (plus the `2023` and `1364-2005` groups), which is why `--profile 2017` works everywhere. Multiple declarations **merge** (an alias table is naturally written in groups); re-declaring a spelling with a different target is a hard error. Every alias target must be a profile the grammar actually declares (the union of its `@profiles` lists and its `@default_profile`), and a spelling may not shadow a canonical name — so typos and alias-chains are compile errors, linted early as `W_SEM_INVALID_PROFILE_ALIAS_PAYLOAD`. The map is carried by the artifact itself — the generated parser embeds a sorted `GRAMMAR_PROFILE_ALIASES` constant and resolves spellings case-insensitively inside `set_grammar_profile` — and the registry's profile oracle, the generation-side profile filter, and the parse-harness interpreter resolve from the same compiled declaration. An undeclared spelling passes through un-coerced (it simply matches no `@profiles` list). This replaced the historical engine alias tables (a `"systemverilog"`-name-gated match in the parser registry and a global spelling table on the generation side) — any grammar can now declare its own request spellings. Grammar-author reference: the ebnf parser book's *Semantic Annotations* chapter (Profile aliases section); proof cases: the structural combinator suite's `profile_alias_resolves` / `profile_alias_unknown_passthrough` pair.
 
+#### ⛔ KNOWN DEFECT — a `@profiles` gate INVERTS a negative lookahead on the gated rule (`ENGINE-UNIVERSAL-SERVICES.46`)
+
+**If you gate a rule `X` out of a profile, every `!X` negative lookahead elsewhere in the grammar
+stops constraining anything under that profile.** `!X` means *refuse if `X` matches here*; gate `X`
+out and `X` matches nothing, so `!X` succeeds **vacuously** — the constraint is deleted, and the
+narrower profile accepts strings the wider one rejects. Measured on the **generated** parser
+(`compile_and_parse`, so this is the shipped engine, not an interpreter artefact) and on the
+interpreter, 8/8 agreeing:
+
+| grammar | profile | input | verdict |
+|---|---|---|---|
+| `top := lit_one !tick catchall`, with `tick` gated to `["loose"]` | `loose` (tick live) | `1'` | reject — `!tick` refuses, as intended |
+| the same grammar, unchanged | `strict` (tick gated) | `1'` | ⛔ **accept** — `!tick` is vacuous, `catchall` eats the `'` |
+
+⭐⭐⭐ **This breaks the invariant that makes dialect profiles meaningful: gating a rule out of a
+profile must only ever REMOVE strings from the language, never ADD them.** Today gating can ADD
+strings, so profile narrowing is non-monotonic. It fails **silently** — `--lint-grammar` is clean, no
+`profile_orphans`, no `unreachable_rules`, no warning — and in the **accepting** direction, the class
+a positive-only test suite cannot see and the one a strict-by-default profile exists to prevent.
+
+⚠️ **Until this is repaired, treat a `!X` whose subject is `@profiles`-gated as a constraint that is
+present only in the profiles `X` is admitted to.** In `grammars/systemverilog.ebnf` the live
+population is **3** sites, all `!scope_resolution`, and none produces an over-acceptance today — under
+`verilog_2005` nothing else can consume `::`, so the parse fails on the unconsumable token regardless.
+That makes the hazard **undefended rather than absent**: it bites the moment some other alternative
+can consume what the lookahead was guarding.
+
+The reproduction is a standing gate — `make -C rust SHELL=/bin/bash profile_gate_monotonicity_gate`,
+see [The Parse Harness § The profile-gate monotonicity probe](parse-harness.md) — and the repair is
+tracked as `ENGINE-UNIVERSAL-SERVICES.46`.
+
 #### Rule-level stimuli separator cohesion: `@quantified_separator` (STIMULI-SIGNOFF.12)
 
 A line-oriented (or otherwise junction-sensitive) rule can declare how the **stimuli generator** separates its **stacked quantified renderings**, with the rule-level `@quantified_separator` directive. `grammars/systemverilog_preprocessor.ebnf` declares `{ insert: "\n", satisfied_by: ["\n", "\r\n"] }` on `pp_item`: every directive's trailing newline is optional in that grammar, so two stacked `pp_item` renderings could fuse into one line (a `` `define `` body eats to end-of-line and would swallow the next directive) — the generator therefore inserts `"\n"` between adjacent renderings unless the junction already carries a line break, and `"\r\n"` also counts as one *because the grammar's own `newline` token is `/\r?\n/`*. That last part is the design point: alternate junction spellings are **grammar knowledge, declared in the grammar** — the engine hardcodes no language-specific spellings. The shorthand `@quantified_separator: "<sep>"` means "satisfied only by itself"; the object form requires `satisfied_by` to contain `insert`. The directive binds to the **quantified** rule (the item), so every container that stacks it inherits the policy. It steers stimuli generation only — it compiles to zero runtime directives and the annotated rule keeps the fast-path parser emission, so declaring it is emit-neutral for the generated parser (pinned by a codegen test). Malformed payloads are linted (`W_SEM_INVALID_QUANTIFIED_SEPARATOR_PAYLOAD`) and fail generation loudly at the first join that would need them. This replaced the last per-language literal in the stimuli generator (a hardcoded `systemverilog_preprocessor` + container-rule-name gate) — any grammar, including a scratch/probe grammar, can now declare separator cohesion. Grammar-author reference: the ebnf parser book's *Semantic Annotations* chapter (Quantified separator section).

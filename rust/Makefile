@@ -1830,6 +1830,19 @@ parse_harness_semantic_gate:
 	cd $(RUST_DIR) && cargo test --features "generated_parsers ebnf_dual_run" --lib parse_harness_semantic_suite::gate -- --nocapture
 	@echo "✅ Parse-harness semantic-directive orchestration suite passed."
 
+.PHONY: profile_gate_monotonicity_gate
+profile_gate_monotonicity_gate:
+	@echo "🚦 Running the profile-gate monotonicity probe (ENGINE-UNIVERSAL-SERVICES.46)..."
+	@echo "   THE INVARIANT: gating a rule out of a @profiles profile must only ever REMOVE strings"
+	@echo "   from the language, never ADD them. A negative lookahead breaks it: gate X out and !X"
+	@echo "   succeeds VACUOUSLY, so the STRICT profile becomes MORE permissive at that site."
+	@echo "   8 cases on the GENERATED parser (compile_and_parse, TOOLBOX 1.4 — authoritative BY"
+	@echo "   CONSTRUCTION), each cross-checked against the interpreter rung (TOOLBOX 1.5) and asserted"
+	@echo "   verdict-identical, because .46(c) must repair codegen and interpreter TOGETHER."
+	cd $(RUST_DIR) && cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline
+	cd $(RUST_DIR) && cargo test --features "generated_parsers ebnf_dual_run" --test profile_gate_negative_lookahead_generated_parser -- --nocapture
+	@echo "✅ Profile-gate monotonicity probe passed."
+
 .PHONY: regex_ast_shape_contract_gate
 regex_ast_shape_contract_gate:
 	@echo "🧬 Running regex AST-shape contract gate..."
