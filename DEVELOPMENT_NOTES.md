@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0298 — an instrument's census is only as good as its own tokenizer, three times in one afternoon
+
+**1. THE DELIMITER WAS INSIDE THE LITERAL.** A PGEN terminal reads `name := trivia <literal> -> {…}`,
+so splitting the body on `->` is the obvious extractor. It truncates every terminal whose literal
+CONTAINS that arrow: `iff_arrow := trivia "<->"` became `"<`, `implies := trivia "->"` became `"`.
+Both are operators — the entire subject of a PUNCTUATION census — so the instrument was silent
+exactly where it mattered, and the population read 66 instead of 68. ⇒ parse the literal ANCHORED,
+then require the remainder to be empty or an annotation. Never split on a token the grammar also
+permits inside a value.
+
+**2. THE ORACLE WAS A SUBSTRING COUNT, AND ITS ERROR DIRECTION IS BACKWARDS FROM HOW IT READS.**
+`annex_a.count("--")` returns 2 for a standard with no decrement operator; both hits are the YAML
+front-matter delimiter `---` on lines 1 and 9. A substring count can report a token PRESENT when it
+is absent but never absent when present — so its **zeros are sound and its non-zeros are worthless**,
+which is the opposite of how a "is this in the standard?" oracle gets used. Tokenizing the BNF and
+comparing SET to SET recovered `--` and `'`, moving 17 candidates to 19.
+
+**3. THE REFUSAL PATH ITSELF RAISED, AND ONLY RUNNING IT SHOWED THAT.** The missing-oracle red
+control died with a `ValueError` traceback and exit **1** instead of the published refusal code
+**2**, because the refusal MESSAGE formatted its path with `Path.relative_to`, which raises on a
+path outside the repo root. The only call site in the file sat inside that message — the
+least-exercised branch in the program. ⇒ **a check that tracebacks is indistinguishable from a check
+that is broken**, so the FORMATTING of a refusal must not be able to fail.
+
+**4. WHAT ALL THREE HAVE IN COMMON.** Each failed in the direction that makes the tree look cleaner,
+and none was caught by reading the code. Each was caught by a result that was slightly too tidy: a
+population that felt short, a count of 2 in a document that should have had 0, and a control that
+"failed" with the wrong number. ⇒ the cheapest reliable check on a census is to name the two or
+three rows you MOST expect and confirm the instrument found them.
+
+**5. WHY A SIBLING INSTRUMENT AND NOT AN EXTENSION OF THE KEYWORD CENSUS.** L1's oracle is IEEE
+1364-2005 Annex B — a normative, closed keyword list. L4's is Annex A's BNF alphabet — a DERIVED set
+with its own extraction and its own staleness modes. Folding them into one file would let one lens's
+oracle rot degrade the other's verdict silently. The reach MODEL is shared (imported, not copied), so
+the two lenses stay commensurable and one fix to reachability fixes both; the ORACLES stay separate,
+because that is where they actually differ.
+
+**6. AND THE RECONNAISSANCE MATTERED MORE THAN THE COUNT.** 19 candidates is a number; `.*`, `+=`,
+`<<=` and `==?` accepting under `verilog_2005` while `++` and `--` correctly reject is a
+MEASUREMENT — it proves the candidate set discriminates instead of flagging everything, which is the
+property that makes the adjudication step worth paying for. `-0290` is the cautionary twin: legs 1+2
+alone called 21 keyword over-acceptances and leg 3 took it to 14.
+
 ## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0296 — adding a profile retroactively invalidates every profile-blind annotation already in the grammar
 
 **1. THE HYPOTHESIS IN THE ROUTING NOTE WAS WRONG, AND ONE TOOL RUN SAID SO.** `.13e.7` routed
