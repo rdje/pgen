@@ -49,8 +49,10 @@
 # A `@sample` repair fits NEITHER: the annotation IS in the raw_ast, so the digest moves and NEUTRAL
 # refutes itself — while the generated parser is byte-identical, so the accept set cannot have moved
 # and a bug-ledger row would describe a defect no consumer of the parser can observe. Forcing such a
-# change into RELEASE buys a currency check with a false ledger row; forcing it into NEUTRAL buys a
-# green tier C by lying about the digest. The honest third slot states a STRONGER claim than
+# change into RELEASE buys a currency check with a false ledger row. ⛔ THE HOLE IS ONE-SIDED, AND
+# THAT IS THE SHARP PART: mislabelling it NEUTRAL is REFUSED by tier C below (measured, rc=1), so
+# the only wrong label that PASSES is RELEASE -- the single remaining slot is the silent one.
+# The honest third slot states a STRONGER claim than
 # NEUTRAL's and is checked more cheaply than tier D: not "the grammar text barely changed" but
 # "whatever changed, the code generator's output did not".
 # ⚠️ HONEST BOUND, stated before the tier is trusted: tier E compares the row against the parser

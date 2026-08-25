@@ -16929,7 +16929,7 @@ and nothing re-checks them.** A profile NARROWS the accepted language, so every 
 written against the wider language becomes a candidate defect the moment the narrower profile
 exists. This binds any PGEN grammar that ever gains a profile. ⚠️ Two of the ten cleared residuals
 (`data_type_or_void`, `function_statement`) were UNKNOWN **before** `.13e.7` — i.e. the defect was
-already costing certificate coverage for 53 days, in a number the project publishes.
+already costing certificate coverage for 54 days, in a number the project publishes.
 
 ## THE POPULATION IS CLOSED, AND IT WAS COUNTED TWO INDEPENDENT WAYS
 
@@ -17219,25 +17219,69 @@ candidate set genuinely discriminates and (c) is not a formality.
   `DEVELOPMENT_NOTES.md` + the promoted knowledge card + `MEMORY.md` + `docs/TASK_TREE.md`.
   No contract, ledger, release or schema change is owed — nothing shipped changed.
 
-###### `.13e.10` (c) — the adjudication, and its leg 3 has to be DESIGNED rather than copied (`todo`)
+###### `.13e.10` (c) — **LEG 3 RUN under director challenge: all four candidates are CONFIRMED `verilog_2005` over-acceptances, not candidates** (2026-08-25, `PGEN-SV-CORPUS-GRAD-0299`; the remaining 15 are still `todo`)
 
 ⛔ **LEG 3 OF THE KEYWORD CENSUS DOES NOT TRANSFER.** There, substituting the keyword for a fresh
 identifier and requiring REJECT proves the token was consumed AS A KEYWORD. For punctuation that
 substitution is meaningless — an operator has no identifier reading to fall back to.
 
-⭐ **THE PUNCTUATION ANALOGUE, and it is measurable today:** require the operator's **own terminal
-rule to COMMIT** on the witness under `verilog_2005` —
+⭐ **THE PUNCTUATION ANALOGUE, now RUN rather than merely designed:** require the operator's **own
+terminal rule to COMMIT** on the witness under `verilog_2005` —
 `--dump-rule-outcome-counts-json` (TOOLBOX 3.5), read by rule NAME from `rule_committed_counts`,
 never from the AST (PGEN's AST is annotation-shaped, so grepping it for a rule name is pinned at 0
-for any rule without a `->`, which cost `.13c.2x.9` two wrong root-cause labels). That is what
-proves the ACCEPT was carried by the operator rather than by the surrounding text parsing as
-something else — the exact risk `{ << { a } }` embodies, since `{ a << b }` is a perfectly legal
-1364-2005 concatenation of one shift expression.
+for any rule without a `->`, which cost `.13c.2x.9` two wrong root-cause labels).
 
-- **Owed:** (c1) a witness per candidate, each proven well-formed under `sv_2017` first; (c2) the
-  committed-count leg per row; (c3) pin every confirmed row on the two-sided ratchet
+| candidate | leg 1 `verilog_2005` | leg 2 `sv_2017` | **leg 3 — own terminal `committed`** | verdict |
+|---|---|---|---|---|
+| `+=` `plus_assign` | ⛔ accept | ✅ accept | **1** | ⛔ **CONFIRMED over-acceptance** |
+| `<<=` `shift_left_assign` | ⛔ accept | ✅ accept | **1** | ⛔ **CONFIRMED over-acceptance** |
+| `==?` `wildcard_equal` | ⛔ accept | ✅ accept | **1** | ⛔ **CONFIRMED over-acceptance** |
+| `.*` `dot_star` | ⛔ accept | ✅ accept | **3** | ⛔ **CONFIRMED over-acceptance** |
+| `++` `plus_plus` | ✅ reject | ✅ accept | — | correctly excluded |
+| `--` `minus_minus` | ✅ reject | ✅ accept | — | correctly excluded |
+
+⇒ **the finding was UNDER-claimed, not over-claimed.** It was published as *"4 candidates awaiting
+leg 3"*; leg 3 confirms all four. IEEE 1364-2005 has no compound assignment, no wildcard equality
+and no implicit port connection, and the parser commits to each of those terminals under the strict
+profile.
+
+⛔⛔ **A NUMBER IN MY OWN EVIDENCE I CANNOT ACCOUNT FOR, AND IT IS ROUTED RATHER THAN EXPLAINED
+AWAY** ([[an-x-is-checked-by-nothing-claim-is-a-census-claim]]'s tell, and the `-0294` failure mode
+exactly). `dot_star` reports `rule_committed_counts = 3` against `rule_entry_counts = 1` — a rule
+COMMITTED more times than it was ENTERED, in one parse of one file. The two maps also differ wildly
+in size: `rule_committed_counts` carries **35** keys, `rule_entry_counts` **298**. TOOLBOX 3.5 says
+committed semantics are C3-B (tournament winners AND successful-but-losing branches both survive),
+which explains committed ≥ 1 on a losing branch but **does not explain committed > entered**. It
+does not change this row's verdict — any value ≥ 1 confirms it — but an instrument whose two
+counters disagree in that direction is a live question about the instrument, and it now owns a leaf.
+→ **`.13e.12`**.
+
+- **Owed (the remaining 15):** (c1) a witness per candidate, each proven well-formed under `sv_2017`
+  first; (c2) the committed-count leg per row; (c3) pin every confirmed row on the two-sided ratchet
   (`stimuli/sv/adjudication_repros/` + `MANIFEST.tsv`, `class=accepts_invalid`) BEFORE any fix, as
   `.13e.7`(b) did; (c4) then the gate, in the `_sv_only` idiom `.13e.7` established.
+
+##### ⛔ `.13e.12` — ⭐ NEW `todo`: `--dump-rule-outcome-counts-json` reports a rule COMMITTED more times than it was ENTERED, and its two counter maps differ 35 vs 298 keys (opened 2026-08-25 by `.13e.10`(c))
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing):
+
+- **MEASURED on the shipped release probe**, parsing `module s; endmodule` / `module m; s u(.*); endmodule`
+  under `--profile verilog_2005`: `rule_committed_counts["dot_star"] = 3` while
+  `rule_entry_counts["dot_star"] = 1`. Same rule, same file, same run.
+- **The maps are not the same population**: `rule_committed_counts` holds **35** keys,
+  `rule_entry_counts` **298**, `rule_memo_hit_counts` **29**. So they are populated by different
+  mechanisms, and TOOLBOX 3.5's C3-B semantics (winners AND successful-but-losing branches both
+  count as committed) explain why committed can exceed the AST's view — but not why it can exceed
+  ENTRIES, which ought to bound it.
+- ⛔ **WHY THIS IS A LEAF AND NOT A FOOTNOTE.** `rule_committed_counts` is the instrument TOOLBOX
+  Protocol A names as the cross-check for the whole `parsed=true witnessed=false` class, and
+  `.13e.10`(c) has just made it the leg-3 oracle for an entire lens. An oracle whose own two
+  counters disagree in an unexplained direction is a trust question for every verdict built on it.
+  ⚠️ It does NOT invalidate `.13e.10`(c)'s four rows: those need only `committed ≥ 1`, and three of
+  the four report exactly 1 with `entered` 1 or 3.
+- **Owed:** (a) read the emitter and say which events increment each map; (b) decide whether
+  `committed > entered` is a defect or a documented consequence of C3-B accounting; (c) whichever it
+  is, write it into TOOLBOX 3.5 — the trap is that a reader assumes entries bound commits.
 
 ##### ⛔ `.13e.11` — ⭐⭐ NEW `todo`: nothing checks that a rule's `@sample` PARSES under the profiles that rule is live in, and the population is 0 today so a blocking guard is free (opened 2026-08-25 by `.13e.9`)
 

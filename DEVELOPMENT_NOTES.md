@@ -1,5 +1,44 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0299 — a challenge is a request to re-derive, not to re-read
+
+**1. RE-DERIVING FOUND WHAT RE-READING COULD NOT.** Asked whether I stood by four findings, I ran
+them again instead of re-reading them. One was FALSE, one was UNDER-claimed, and two carried numeric
+errors. ⛔ Not one of the four would have moved on a careful re-read: the false one is a sentence
+that *sounds* right ("both wrong labels pass their gates"), the under-claimed one needed a probe I
+had explicitly deferred, and the two numeric errors are a date subtraction and a stored counter.
+⇒ **a challenge is answered with commands, not with confidence.**
+
+**2. THE FALSE CLAIM WAS THE ONE I HAD NOT DRIVEN.** I drove five red controls on the new register
+disposition and reported them honestly — and then wrote, one paragraph away, that "both wrong labels
+PASS their gates" **without driving either**. Measured now: `NEUTRAL` with a moved digest is REFUSED
+(`rc=1`); only `RELEASE` passes. The controls I ran were rigorous; the sentence beside them was
+free-hand. ⇒ **rigour does not spread by proximity** — a claim in the same paragraph as a measured
+one is still unmeasured.
+
+**3. THE CORRECTED FINDING IS SHARPER THAN THE ONE I PUBLISHED.** "Both labels are silent" is a
+diffuse complaint about a vocabulary. "Exactly one label is silent, and it is the only remaining
+slot" names the failure mode precisely. Over-claiming cost me the sharper statement, which is the
+under-appreciated price of it — not just credibility, but resolution.
+
+**4. A STORED DERIVED NUMBER DRIFTED INSIDE ONE COMMIT.** "1 912 commits" was CORRECT when measured
+and became wrong the moment my own commit landed — 1 913 at publication, 1 915 now. This is
+`DERIVED_STATE_CONTAINMENT.md` R1/R3 in one line, and the tell was available before I wrote it:
+**a distance to HEAD cannot be stored in something that changes HEAD.** Replaced by the command.
+
+**5. THE DEFERRED LEG WAS CHEAP AND I SHOULD NOT HAVE PUBLISHED WITHOUT IT.** Leg 3 for the four L4
+rows took four probe invocations and about ten seconds, and it turned "candidates" into "confirmed".
+I had designed it, written it into the leaf, and deferred it to a later slice — while publishing the
+four rows to the director as a finding. ⇒ **if the missing leg is minutes away, it is not a later
+slice; it is part of the claim.**
+
+**6. AND THE LEG-3 RUN IMMEDIATELY PRODUCED A NUMBER I CANNOT ACCOUNT FOR.** `dot_star` committed 3
+against entered 1 — a rule committing more often than it is entered. It does not change the verdict
+(any value ≥ 1 confirms the row), which is exactly the condition under which such a number gets
+waved through. Routed to `.13e.12` instead, because `rule_committed_counts` is the oracle TOOLBOX
+Protocol A names for a whole diagnostic class, and `-0294` is the standing reminder of what happens
+when a number in my own evidence gets explained rather than chased.
+
 ## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0298 — an instrument's census is only as good as its own tokenizer, three times in one afternoon
 
 **1. THE DELIMITER WAS INSIDE THE LITERAL.** A PGEN terminal reads `name := trivia <literal> -> {…}`,
@@ -68,7 +107,7 @@ correlation. The instrument was already on disk from step 2; only the question w
 
 **4. GIT DATED THE DEFECT AND EXONERATED THE COMMIT THAT SURFACED IT.** `git show
 ac2aa012^:grammars/systemverilog.ebnf` shows all four strings byte-identical before `.13e.7`, and
-`git log -S` dates the first to **2026-04-22**, **1 912 commits** back — before the `verilog_2005`
+`git log -S` dates the first to **2026-04-22** — before the `verilog_2005`
 profile existed (**2026-07-02**). So the sample was CORRECT when written and was invalidated
 retroactively by a profile added later. ⇒ **a profile NARROWS the accepted language, so every
 literal already written against the wider language becomes a candidate defect the moment the
@@ -99,7 +138,11 @@ argument into a fact.**
 WRONG LABEL.** The revision register defined `RELEASE` (contract section + bug-ledger row) and
 `NEUTRAL` (*digest EQUALS its predecessor's*). A `@sample` repair fits neither: the digest moves, so
 `NEUTRAL` refutes itself, while `RELEASE` would buy a currency check with a ledger row describing a
-defect no released parser has. Both wrong labels PASS their gates. The third disposition
+defect no released parser has. ⛔ **CORRECTED 2026-08-25 under director challenge (`-0299`): I
+published "both wrong labels PASS their gates" and that is FALSE.** Measured: a `NEUTRAL` row whose
+digest moved is **REFUSED, rc=1** — tier C catches it by design. Only `RELEASE` passes. The hole is
+**one-sided**, and that is a sharper finding than the one I published, not a weaker one: the single
+remaining slot is the one that stays silent. The third disposition
 `GENERATOR-ONLY` states the claim that is actually true and is cheaper to check than either — *the
 digest moved and the parser did not* — and tier E re-hashes the parser to prove it.
 

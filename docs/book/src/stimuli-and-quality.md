@@ -552,7 +552,7 @@ legal in *all three* profiles, and the generated parser came out **byte-identica
 ⭐⭐⭐ **The timeline is the lesson, and it generalises past SystemVerilog.** The sample was written
 on 2026-04-22, when only the SV profiles existed — it was **correct**. The `verilog_2005` profile
 was registered on 2026-07-02, and *that* is when the sample became wrong: retroactively, for a
-profile that did not exist when anyone wrote it. Nothing re-checked it for 53 days.
+profile that did not exist when anyone wrote it. Nothing re-checked it for 54 days.
 
 > **Adding a profile retroactively invalidates every profile-blind annotation already in the
 > grammar.** A profile NARROWS the accepted language, so every literal already written against the
