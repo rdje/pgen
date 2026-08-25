@@ -230,7 +230,7 @@ direct_callable_method_call	1326220	0	663110
 direct_method_call	83144	0	0
 disable_statement	32377	0	5855
 dot	4569857	86927	3785725
-dot_star	212265	2	0
+dot_star	212265	2	85617
 dpi_function_import_property	32	1	0
 dpi_function_proto	32	4	0
 dpi_import_export	80484	5	675
@@ -998,7 +998,7 @@ time_unit	201312	7	3
 timeunit_separator_slash	2	2	0
 timeunit_separator_trivia	2	2	0
 timeunits_declaration	80452	5	1309
-trivia	93423251	1192158	91132353
+trivia	93337634	1192158	91046736
 type_assignment	40	20	0
 type_assignment_sv_2017	40	20	0
 type_declaration	113075	570	1184

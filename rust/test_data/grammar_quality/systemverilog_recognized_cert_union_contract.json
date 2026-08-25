@@ -1,17 +1,14 @@
 {
   "identity": {
-    "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED \u2014 re-stamp with --stamp, never hand-edit.",
+    "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/systemverilog_recognized_cert_union_contract.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
     "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
     "expectations": "confirmed",
-    "confirmed_by": "auto re-stamped by a GREEN sv_cert_recognized_union_gate run: canonical=1388/8/1369/11 union_witness=1380 union_unknown=0 residual=[] seeds=[0,7,42] sample_parse_failures=0",
-    "verified_at_commit": "f50add4531032021add3a8232a4b74abc7aacdc1",
+    "confirmed_by": "auto re-stamped by a GREEN sv_cert_recognized_union_gate run: canonical=1401/8/1382/11 union_witness=1393 union_unknown=0 residual=[] seeds=[0,7,42] sample_parse_failures=0",
+    "verified_at_commit": "3a713ab11837bd4a836cccdd040e64e998c98985",
     "inputs": {
-      "generated/systemverilog_parser.rs": "47a50a092b0d2fab22b37a360783477a865091ee25657b43a13f7777a88c92ef",
-      "grammars/systemverilog.ebnf": {
-        "kind": "ebnf_raw_ast",
-        "digest": "0fcfef1af74e095e563033b07e64ec150b42634713a4c74b3a47c8f3f2405eb4"
-      },
-      "rust/src/ast_pipeline/grammar_wellformedness.rs": "420ed130b84360f71d3f0df06d17e112d656a02b36da2bd0b42dd97c47e3c3ff",
+      "generated/systemverilog_parser.rs": "23351ee85c391505a9ef20272bb280d53eb06d9b97cf25959a2040b07090159c",
+      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "b744a239bf8e5053f9c89036a25166df8ec99e3b92884423b23a236fc40bbf12" },
+      "rust/src/ast_pipeline/grammar_wellformedness.rs": "6b882d669b083553c5fdb60bc061f87fbc9abcc0e02c3f1287d971532cd85b83",
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "b36125f8f2ff02c87026399160616f8691a29b8fa72bb97813b42ff21d50acb3",
       "rust/src/ast_pipeline/stimuli_generator.rs": "9b5c9a707883d905e8b20912946d47550f9f5e9affb580200e493b44f2750108"
     }

@@ -5,6 +5,39 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-08-25, `SV-CORPUS-GRAD.13e.10`(c4) — GRAMMAR-level, release `1.0.198`,
+> ledger `SV-0071`, schema `26` UNCHANGED, `verilog_2005` ONLY):** the strict IEEE 1364-2005 profile
+> still accepted **sixteen IEEE-1800-only OPERATORS**, and the class was invisible to every census
+> that preceded it (`PGEN-SV-CORPUS-GRAD-0305`). `1.0.197`'s instrument crosses profile-filtered
+> reachability against IEEE 1364-2005 **Annex B** — a normative list of *keywords* — so a construct
+> spelled entirely in **punctuation** can never become a candidate. `.13e.10`(a)+(b) closed that gap
+> with a derived population of **19**; (c) adjudicated all 19 two-sided, confirming **17** and
+> correctly excluding `++` / `--`.
+>
+> **What no longer parses under `verilog_2005`:** the twelve compound assignments
+> `a += 1;` `-=` `*=` `/=` `%=` `&=` `|=` `^=` `<<=` `>>=` `<<<=` `>>>=` (A.6.2 gives `=` and `<=`
+> and nothing else) · `if (a ==? b)` / `if (a !=? b)` (A.8.6 defines no wildcard equality) ·
+> `if (a <-> b)` (the equivalence operator is IEEE 1800 only) · `s u(.*);` (A.4.1
+> `named_port_connection` has no implicit form). ⭐ The LRM evidence is re-derivable: **13 of the 16
+> occur ZERO times** in the whole in-repo IEEE 1364-2005 corpus; `+=` / `-=` occur only inside the
+> clause-14 specify-path polarity operators `+=>` / `-=>`, and `.*` only as a clause-13 library-map
+> filename glob.
+>
+> ⛔⛔ **THE SEVENTEENTH IS NOT FIXED AND A CONSUMER MUST KNOW IT.** The assignment-pattern / cast
+> apostrophe — `a = '{1,2};` and `T'(expr)` — **still parses under `verilog_2005`**. Gating it
+> requires tagging `constant_cast`, which puts two **crossing** dialect gates on the indirect-LR
+> route PGEN's eliminator rewrites; the eliminator then refuses that route and 15 left-recursive
+> cycles fall back to the runtime guard, which `--lint-grammar` reports only as a *warning* while the
+> parser silently loses derivations under `sv_2017` / `sv_2023`. Taking that trade to close one
+> `verilog_2005` over-acceptance would be a bad bargain, so it is **deferred, not unwatched**: the
+> engine repair is `ENGINE-UNIVERSAL-SERVICES.50`, and
+> `accepts_invalid_v2005_punct_tick.sv` stays pinned `accepts_invalid` in the adjudication ratchet
+> until it lands. **Treat `'{…}` as SystemVerilog-only when running the strict profile.**
+>
+> ⭐ **`sv_2017` and `sv_2023` are untouched.** Each gate is a whole-rule `@profiles` tag on a
+> TERMINAL: no alternative is added, no branch index moves, and every reference site keeps its return
+> annotation — so the typed AST is unchanged and a consumer of `1.0.197` needs to do nothing.
+
 > **Current-state note (2026-08-24, `SV-CORPUS-GRAD.13e.7` — GRAMMAR-level, release `1.0.197`,
 > ledger `SV-0070`, schema `26` UNCHANGED, `verilog_2005` ONLY):** the strict IEEE 1364-2005 profile
 > still accepted **thirteen IEEE-1800 surfaces**, and the population was **measured over a closed
@@ -659,15 +692,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.197`
+  - `1.0.198`
 - Parser release version:
-  - `1.0.197`
-  - history: `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.198`
+  - history: `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `6cffb4059fca5f948900cc65fe8001ac667e229a1f15fb12633da96dd01fc8c6` (SV grammar semantic digest — sha256 of the
+  - `b744a239bf8e5053f9c89036a25166df8ec99e3b92884423b23a236fc40bbf12` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`

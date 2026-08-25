@@ -419,9 +419,43 @@ tier even trustworthy?"* — `gh run list` answers it, and the answer was no.
   absent) and no `generated/` (untracked). The same run's five NOT-EVALUATED lines name both causes
   explicitly, so nothing here is a guess about why.
 - ⭐ **THE SECOND ONE IS A CRASH, NOT A VERDICT.** `BASELINE-IDENTITY` dies in `json.load` inside
-  `grammar_byte_keying_offences` rather than refusing — an unhandled missing file. A crashing
-  enforcer cannot distinguish *"cannot run"* from *"the tree is broken"*, which is the whole
-  distinction this class exists to preserve.
+  `grammar_byte_keying_offences` rather than refusing. A crashing enforcer cannot distinguish
+  *"cannot run"* from *"the tree is broken"*, which is the whole distinction this class exists to
+  preserve.
+  - ⛔⛔ **CORRECTION 2026-08-25 (session #264, `PGEN-SV-CORPUS-GRAD-0305`), because this leaf
+    published a root cause its OWN quoted traceback refutes.** The line above originally read *"an
+    unhandled missing file"*. It is not. The quotation in this leaf stops two frames early; the
+    exception line is:
+    ```
+    File "/usr/lib/python3.12/json/decoder.py", line 353, in raw_decode
+      obj, end = self.scan_once(s, idx)
+    RecursionError: maximum recursion depth exceeded while decoding a JSON array from a unicode string
+    ```
+    A missing file raises `FileNotFoundError`. `json.load` reached `scan_once`, so the file was
+    **opened and read successfully** and the decoder ran out of stack on its **nesting DEPTH**.
+    ⇒ (a) below is not the whole repair: an absent-input guard would not have prevented this, and
+    shipping one would have left the lane red with the same traceback. ⭐ The transferable part is
+    that a traceback's *value* is in its LAST line and this leaf quoted its first two — the frames
+    say where, only the exception says what.
+  - ⚠️ **AND THE `submodules: false` READING IS NOW ONLY HALF-SUPPORTED FOR THIS ARM.** A
+    `RecursionError` is about the CONTENT of a file that exists, not about a file that does not, so
+    *"the variable is the CHECKOUT"* — measured and correct for `PARSE-COST-RATCHET` — is NOT
+    established for `BASELINE-IDENTITY`. What differs about the JSON it decodes on a hosted runner is
+    **unmeasured**, and (a) must start by naming the file and its depth on both sides rather than
+    assuming they are the same defect.
+- ⛔⛔ **A THIRD FAILURE IS IN THE SAME LOG AND IS NOT PART OF THIS LEAF — `DOCTRINE-GAP-OWNERSHIP.16`,
+  OBSERVED FIRING, AND IT WAS NEVER HOSTED-SPECIFIC.** The run's first two lines are:
+  ```
+  scripts/check_doctrines.sh: line 77: match: command not found
+  scripts/check_doctrines.sh: line 77: syntax: command not found
+  ```
+  — the 4 unescaped backticks inside the `CORPUS-KEY-INTEGRITY` registry string (`:76`, which bash
+  reports at the array's closing `:77`), routed by `-0300`. ⭐⭐ **It reproduces LOCALLY, on the
+  first two lines of every run this repository has ever made**, and was invisible for a reading-habit
+  reason rather than an environment one: every local read of this driver pipes it through `tail`.
+  ⇒ the hosted log is not what made this defect real; it is what made someone read the TOP of the
+  output. Ownership stays with `DOCTRINE-GAP-OWNERSHIP.16`; recorded here because a reader of this
+  leaf sees those two lines above the failures it DOES own and would otherwise attribute them here.
 - **WHAT THIS LEAF OWES**: (a) both arms classify an ABSENT input as NOT EVALUATED, on the pattern
   their own five working arms already use, never as a breach and never as a traceback; (b) a control
   proving each still BREACHES on a present-but-wrong input, so the repair cannot be a blanket

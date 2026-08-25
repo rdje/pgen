@@ -12975,3 +12975,132 @@ hosted run observed GREEN and a deliberate RED control; (c) if (a) proves harder
 diagnosis suggests, the fallback is `workflow_dispatch:` parity with its peers PLUS a recorded
 disposition in `rust/test_data/grammar_quality/gate_reachability_register_v0.json`, so the cadence is
 a decision on the record rather than an omission — ⛔ **but that is the fallback, not the plan.**
+
+#### ✅ `.49` (b) — **THE FIRST HOSTED RUN IS OBSERVED GREEN. The GREEN half of the acceptance is DISCHARGED; the RED control is still owed, so the leaf stays `in-progress`** (2026-08-25, session #264 — observation only, ZERO bytes)
+
+`gh run view 32889486784` — `main`, triggered by the 226-commit push of `-0088`:
+
+```
+✓ main lib-unit-test-gate · 32889486784
+✓ lib-unit-test-gate in 29m4s (ID 97937766558)
+   ✓ Checkout · ✓ Setup Rust · ✓ Cache Rust artifacts
+   ✓ Regenerate the generated parsers        <-- the step no hosted run had EVER executed
+   ✓ Run the crate unit-test suite
+```
+
+⭐⭐ **WHAT THIS ESTABLISHES THAT NO LOCAL REPLAY COULD.** Every one of this repository's historical
+hosted runs belonged to the "does not regenerate" partition (`.49`(b)'s own census: 4 `push:` / 12
+dispatch-only, coinciding EXACTLY with that boundary). This run regenerates `generated/` on a bare
+checkout and then runs the crate suite, both hosted — so **hosted regeneration is now an OBSERVED
+fact rather than a replayed one**, and the ~1 130-test suite has a green hosted lane for the first
+time. The `ci_workflow_local_gate` replay predicted it; prediction and observation now agree.
+
+⛔ **AND THE RUN SURFACED A DEFECT IN ITSELF, IN THE PASSING DIRECTION.** The job carries an
+annotation:
+
+```
+! No files were found with the provided path: rust/target/generated_logs.
+  No artifacts will be uploaded.
+```
+
+⇒ **the diagnostic-artifact upload is a NO-OP.** The step exists, it is green, and it uploads
+nothing — so the day this lane goes RED, the logs it was built to hand over will not be there, and
+the annotation that says so is a `!` notice on a ✓ job. This is the same shape as the rest of this
+tree's findings: the failure is invisible while the thing is passing. Owed as **(d)**.
+
+**Owed, updated:** (b) ⏳ the **RED control** — drive the lane deliberately red once and observe the
+verdict, because a gate never seen failing is not evidence
+([[feedback_an_instrument_that_can_only_return_one_reading_is_not_a_measurement]]); (d) ⛔ NEW — repair
+the artifact-upload path so a RED run actually hands over its logs, and prove it by observing a
+non-empty upload.
+
+### ⛔⛔ `.50` — **A `@profiles` TAG ON A RULE INSIDE AN ELIMINATED INDIRECT-LR CYCLE SILENTLY DISABLES THAT ELIMINATION FOR EVERY PROFILE, AND THE COUNTER THAT REPORTS IT IS A `WARNING`** (`todo`, opened 2026-08-25 by `SV-CORPUS-GRAD.13e.10`(c4) / `PGEN-SV-CORPUS-GRAD-0305`)
+
+**HOW IT WAS FOUND.** `.13e.10`(c4) is the fix that gates the 17 IEEE-1800-only punctuation
+terminals out of `verilog_2005`. Sixteen gate cleanly. The seventeenth, `tick` (`'`), orphans 11
+rules, and `--lint-grammar` derives a minimal `@profiles` tag for each. Applying those derived tags
+is what tripped this: the lint went green (`profile_orphans=0`) **while a different counter moved in
+the failing direction and reported it as a warning.**
+
+**THE MEASUREMENT — bisected to ONE tag, with `cast` proven harmless as the discriminating control:**
+
+| grammar variant | rules | `left_recursion_unhandled` | `left_recursion_eliminated` | `profile_orphans` |
+|---|---|---|---|---|
+| tracked baseline | 1537 | **0** | 4 | 0 |
+| + 16 terminal gates (no `tick`) | 1537 | **0** | 4 | 0 |
+| + all 17 terminal gates | 1537 | **0** | 4 | 11 |
+| + 17 and the 5 `assignment_pattern*` companions | 1537 | **0** | 4 | 6 |
+| + 17 and `cast` alone | 1537 | **0** | 4 | 10 |
+| ⛔ + 17 and **`constant_cast` alone** | **1513** | ⛔ **15** | **3** | 6 |
+| + 17 and all 7 source companions | **1513** | ⛔ **15** | **3** | **0** |
+
+⇒ the fully-repaired grammar — the one whose `profile_orphans` is **0** — is also the one that has
+**silently stopped eliminating an indirect-LR cycle**, trading 24 synthesized rules for 15 cycles
+served only by the runtime guard.
+
+**ROOT CAUSE (WHY + WHERE), read off the engine and confirmed by the planner, not inferred.**
+`route_profile_gate`, `rust/src/ast_pipeline/indirect_lr_elimination.rs:1364`. A route's derivation
+exists only where every rule on it exists, so the route's gate is the INTERSECTION of the `@profiles`
+lists along it. The function then does this, and its own doc-comment states the assumption:
+
+> ⭐ The gate is **copied verbatim** from the rule on the route whose declared list IS the
+> intersection, never synthesized … When no rule's list equals the intersection the route is
+> refused, **which is rare by construction — dialect gates nest.**
+
+`--report-indirect-lr-plan` names the refusal in exactly those terms:
+
+```
+⛔ REFUSED 'casting_type': the route's @profiles intersection is ["sv_2017"],
+   which no single rule on the route declares, so the gate cannot be copied verbatim
+```
+
+⭐⭐ **THE ASSUMPTION IS THE DEFECT: `.13e.10`(c4) IS THE FIRST EDIT THAT MAKES TWO DIALECT GATES
+CROSS RATHER THAN NEST.** The route is
+`casting_type -> constant_primary -> constant_primary_sv_2017 -> constant_cast -> casting_type`.
+`constant_primary_sv_2017` declares `["sv_2017", "verilog_2005"]`; the tag the lint derives for
+`constant_cast` is `["sv_2017", "sv_2023"]`. Neither contains the other, their intersection is
+`["sv_2017"]`, and **no rule on the route declares that set** — so a correctly-computed gate cannot
+be expressed, and the whole candidate is refused. Every other dialect gate in the grammar nests, which
+is why the pass has never hit this in 1537 rules.
+
+⛔⛔ **AND THE FAILURE IS IN THE PASSING DIRECTION, TWICE OVER.**
+1. `profile_orphans` is ERROR-class and goes to **0** — the counter an operator would quote.
+2. `left_recursion_unhandled` going **0 → 15** is a **WARNING**. `--lint-grammar` still exits **0**.
+   Nothing in the doctrine set blocks the commit.
+3. The consequence is an **UNDER-acceptance on `sv_2017`/`sv_2023` — the profiles being released** —
+   and the lint states it plainly: *"every derivation that needs the recursion at the seed position
+   is UNREACHABLE and this grammar declares strictly more than its parser accepts."* This is not
+   hygiene; refusing costs real parser capability on the shipping families.
+
+⭐ **A CORRECTION TO `(c4)`'s OWN SIZING, MEASURED HERE: THE EDIT BUDGET IS 24, NOT 28.** `-0303`
+priced *"17 terminal tags + 11 companion tags = 28, every one tool-derived."* Four of those 11
+(`casting_type_lr_suffix`, `casting_type_lr_suffix_r4`, `casting_type_lr_guard0_suffix`,
+`casting_type_lr_guard1_suffix`) **do not exist in the source grammar** — they are synthesized by
+this very elimination pass, and they resolve on their own once their hosts are tagged (measured:
+17 + 7 source tags ⇒ `profile_orphans=0`). ⛔ The sizing read all 11 off the lint and counted them as
+edits without checking which were writable — a reminder that *a tool-derived list is not thereby an
+actionable list.*
+
+**Owed:**
+- **(a)** ⛔ **SIZE IT FIRST.** Over every tracked grammar: how many routes today have a
+  non-nested `@profiles` intersection, and how many would once the obvious future dialect gates land?
+  The answer decides whether this is a narrow repair or a design change. Do not touch the pass first.
+- **(b)** the repair. Two candidates, and they are not equivalent: **(i)** let the pass EMIT the
+  intersection it already computes as a fresh `@profiles` annotation on the clone — this contradicts
+  the "never synthesized" rule the doc-comment defends on PROVENANCE grounds, so the ruling must
+  engage that argument rather than skip it; **(ii)** widen the donor search to accept any rule whose
+  list is a SUPERSET, plus an explicit refusal when that is still ambiguous. (i) is more complete;
+  (ii) preserves the provenance invariant.
+- **(c)** a control that goes RED without the repair — a small synthetic with two CROSSING dialect
+  gates on one LR route, driven on BOTH engines, asserting the cycle is eliminated. ⛔ It must fail
+  today; a control that passes before the fix is not a control.
+- **(d)** ⛔ **re-derive the SEVERITY of `left_recursion_unhandled`.** A grammar that has always had
+  surviving cycles is a different fact from one whose count moved 0 → 15 in a single commit. A
+  RATCHET on this counter would have blocked the whole thing; the WARNING did not. Price it.
+- **(e)** then unblock `SV-CORPUS-GRAD.13e.10`(c4)'s residue: gate `tick` plus its 7 source-level
+  companions and flip the 17th pinned row to `invalid`. **That row stays `accepts_invalid` and keeps
+  watching the defect until this leaf lands** — the over-acceptance is deferred, never unwatched.
+
+⚠️ **PRIORITY:** this BLOCKS the last of `.13e.10`(c4), which is on the SV release path, so it is not
+parked with the rest. It is not itself SV-specific — any grammar with two crossing dialect gates on
+one left-recursive route hits it, which is what makes it an ENGINE-UNIVERSAL leaf.

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a77110f5.js";
+            window.path_to_searchindex_js = "searchindex-edf94900.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -217,6 +217,37 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10198--contract-10198--sv-corpus-grad13e10c4-pgen-sv-corpus-grad-0305-2026-08-25-ledger-sv-0071-released-sixteen-ieee-1800-only-operators-still-reached-the-verilog_2005-profile-grammar-verilog_2005-only--a-narrow-schema-unchanged-at-26"><a class="header" href="#10198--contract-10198--sv-corpus-grad13e10c4-pgen-sv-corpus-grad-0305-2026-08-25-ledger-sv-0071-released-sixteen-ieee-1800-only-operators-still-reached-the-verilog_2005-profile-grammar-verilog_2005-only--a-narrow-schema-unchanged-at-26">1.0.198 / Contract 1.0.198 — SV-CORPUS-GRAD.13e.10(c4) (<code>PGEN-SV-CORPUS-GRAD-0305</code>, 2026-08-25), ledger <code>SV-0071</code> (<code>Released</code>): <strong>SIXTEEN IEEE-1800-ONLY OPERATORS STILL REACHED THE <code>verilog_2005</code> PROFILE (GRAMMAR; <code>verilog_2005</code> ONLY — a NARROW; SCHEMA UNCHANGED at 26)</strong></a></h3>
+<p>⛔ <strong>This release narrows one profile and touches nothing else.</strong> Under the strict Verilog-2005
+profile all of the following parsed, and IEEE 1364-2005 derives none of them:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>accepted under <code>verilog_2005</code> before <code>1.0.198</code></th><th>why the standard does not derive it</th></tr>
+</thead>
+<tbody>
+<tr><td><code>a += 1;</code> <code>-=</code> <code>*=</code> <code>/=</code> <code>%=</code> <code>&amp;=</code> <code>|=</code> <code>^=</code> <code>&lt;&lt;=</code> <code>&gt;&gt;=</code> <code>&lt;&lt;&lt;=</code> <code>&gt;&gt;&gt;=</code></td><td>A.6.2 gives assignment <code>=</code> and <code>&lt;=</code> and nothing else; ten of the twelve occur <strong>0×</strong> in the whole LRM</td></tr>
+<tr><td><code>if (a ==? b)</code> · <code>if (a !=? b)</code></td><td>A.8.6 defines no wildcard equality; both occur <strong>0×</strong></td></tr>
+<tr><td><code>if (a &lt;-&gt; b)</code></td><td>the equivalence operator is IEEE 1800 only; occurs <strong>0×</strong></td></tr>
+<tr><td><code>s u(.*);</code></td><td>A.4.1 <code>named_port_connection</code> has no implicit form</td></tr>
+</tbody>
+</table>
+</div>
+<p>⭐ <strong>THE LENS IS THE POINT: THIS CLASS IS INVISIBLE TO EVERY CENSUS THAT PRECEDED IT.</strong> <code>1.0.197</code>’s
+instrument crosses profile-filtered reachability against IEEE 1364-2005 <strong>Annex B</strong> — a normative
+list of <strong>keywords</strong>. An operator appears in no keyword list, so a construct spelled entirely in
+punctuation can never become a candidate. <code>1.0.197</code> found <code>{ &lt;&lt; { a } }</code> only by accident, and named
+the class rather than claiming it; this release closes it over a <strong>derived, closed population of 19</strong>,
+of which 17 were confirmed over-acceptances and <code>++</code>/<code>--</code> correctly excluded.</p>
+<p>⛔⛔ <strong>ONE OF THE SEVENTEEN IS NOT FIXED HERE, AND SAYING SO IS PART OF THE RELEASE.</strong> The assignment-
+pattern / cast apostrophe (<code>a = '{1,2};</code>) still parses under <code>verilog_2005</code>. Gating it requires
+tagging <code>constant_cast</code>, which puts two <strong>crossing</strong> dialect gates on the indirect-LR route PGEN’s
+eliminator rewrites; the eliminator then refuses that route and 15 left-recursive cycles fall back to
+the runtime guard — a change <code>--lint-grammar</code> reports only as a <strong>warning</strong> while the parser silently
+loses derivations under <code>sv_2017</code>/<code>sv_2023</code>. The engine repair is tracked as
+<code>ENGINE-UNIVERSAL-SERVICES.50</code>, and the over-acceptance stays <strong>pinned and watched</strong> in the
+adjudication ratchet until it lands. <strong>A consumer of <code>1.0.198</code> should still treat <code>'{…}</code> as
+SV-only when running the strict profile.</strong></p>
 <h3 id="10197--contract-10197--sv-corpus-grad13e7-pgen-sv-corpus-grad-0293-2026-08-24-ledger-sv-0070-released-thirteen-ieee-1800-surfaces-still-reached-the-verilog_2005-profile-grammar-verilog_2005-only--a-narrow-schema-unchanged-at-26"><a class="header" href="#10197--contract-10197--sv-corpus-grad13e7-pgen-sv-corpus-grad-0293-2026-08-24-ledger-sv-0070-released-thirteen-ieee-1800-surfaces-still-reached-the-verilog_2005-profile-grammar-verilog_2005-only--a-narrow-schema-unchanged-at-26">1.0.197 / Contract 1.0.197 — SV-CORPUS-GRAD.13e.7 (<code>PGEN-SV-CORPUS-GRAD-0293</code>, 2026-08-24), ledger <code>SV-0070</code> (<code>Released</code>): <strong>THIRTEEN IEEE-1800 SURFACES STILL REACHED THE <code>verilog_2005</code> PROFILE (GRAMMAR; <code>verilog_2005</code> ONLY — a NARROW; SCHEMA UNCHANGED at 26)</strong></a></h3>
 <p>⛔ <strong>This release narrows one profile and touches nothing else.</strong> Under the strict Verilog-2005
 profile all of the following parsed, and IEEE 1364-2005 derives none of them:</p>

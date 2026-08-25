@@ -1,5 +1,56 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0305 — the lint derived eleven fixes for me, and applying all eleven would have broken the parser while every counter I was watching went green
+
+**1. ⭐⭐⭐ A GREEN COUNTER CAN BE THE ONE HIDING THE COUNTER THAT MOVED.** `--lint-grammar` prints
+a dozen counters on one line. I was steering `profile_orphans`, an ERROR-class arm, and drove it
+**11 → 0** by applying the minimal fixes the lint itself derived. In the same run
+`left_recursion_unhandled` went **0 → 15** and the rule count fell **1537 → 1513** — and because that
+arm is WARNING-class, the lint exited **0**. Nothing in 27 doctrines would have blocked the commit.
+The warning's own text says what it costs: *"every derivation that needs the recursion at the seed
+position is UNREACHABLE and this grammar declares strictly more than its parser accepts"* — an
+**under-acceptance on `sv_2017`/`sv_2023`, the two profiles under a release order**, introduced by a
+fix for an over-acceptance on a third. ⇒ diff the WHOLE summary line, never the counter you are
+steering. **A severity class says how loud a STATE is; it never says whether YOUR change caused it.**
+PROMOTED: [[a-green-counter-can-be-the-one-hiding-the-counter-that-moved]].
+
+**2. ⭐⭐ A TOOL-DERIVED LIST IS NOT THEREBY AN ACTIONABLE LIST.** The lint named eleven orphans and
+derived a minimal `@profiles` tag for each — unusually helpful, and exactly what made the previous
+slice price *"11 companion tags, every one tool-derived"* into a 28-edit budget. **Four of the eleven
+do not exist in any tracked grammar**: `casting_type_lr_suffix{,_r4}` and
+`casting_type_lr_guard{0,1}_suffix` are synthesized by PGEN's own LR-elimination pass, which runs
+BEFORE the lint. They cannot be written to, and they resolve on their own once their hosts are
+tagged (17 + **7** source tags ⇒ `profile_orphans=0`). Real budget 24. ⛔ The lint was not wrong; the
+pricing step treated *named* as *actionable*. Whenever a tool runs after a transformation pass, its
+population is the ANALYSED artifact and your budget is over the MAINTAINED one.
+PROMOTED: [[a-tool-derived-list-is-not-thereby-an-actionable-list]].
+
+**3. ⭐⭐ THE ASSUMPTION WAS WRITTEN DOWN, IN THE FUNCTION, AND IT WAS STILL THE DEFECT.**
+`route_profile_gate` copies an LR route's `@profiles` gate **verbatim** from whichever rule declares
+exactly the intersection, and its doc-comment defends that on provenance grounds while stating the
+premise plainly: *"rare by construction — **dialect gates nest**."* This slice is the first edit that
+makes two of them **CROSS** (`["sv_2017","verilog_2005"]` against `["sv_2017","sv_2023"]`,
+intersection `["sv_2017"]`, declared by nobody). ⇒ a documented assumption is a **tripwire location**,
+not a reassurance: grep for the premises your change might invalidate before you trust the code that
+rests on them. Routed as `ENGINE-UNIVERSAL-SERVICES.50`.
+
+**4. ⭐ MY FIRST TWO INSTRUMENTS BOTH RETURNED ONE READING, AND THE CONTROL IS WHAT SAID SO.** The
+arm-driver reported REJECT for all 20 pinned reproducers — including the three CONTROLS the tracked
+ratchet proves ACCEPT. Two bugs, both mine, both silent: the probe binary consumed the `while read`
+loop's stdin, and then `IFS=$'\t' read` **collapsed the empty `arm` column**, because tab is
+IFS-whitespace, so `--grammar-profile` received the wrong field. A driver with no control would have
+published *"the fix works"* from an instrument that could only ever say REJECT
+([[feedback_an_instrument_that_can_only_return_one_reading_is_not_a_measurement]]). ⇒ extract TSV
+columns with `awk`, never with bash `read`; and always include rows whose expected verdict is the
+OPPOSITE of the one you are hoping for.
+
+**5. ⭐ THE HOSTED LOG DID NOT MAKE A DEFECT REAL — IT MADE SOMEONE READ THE TOP OF THE OUTPUT.**
+`check_doctrines.sh` emits `line 77: match: command not found` as its **first two lines**, on every
+run, everywhere, from four unescaped backticks in a registry string (`DOCTRINE-GAP-OWNERSHIP.16`). It
+had been routed as a hosted-CI observation. It reproduces locally and always has; it was invisible
+because every local read of that driver pipes it through `tail`. ⇒ when a finding looks
+environment-specific, check whether the difference is the environment or the **reading habit**.
+
 ## 2026-08-25 - PGEN-ENGINE-UNIVERSAL-SERVICES-0088 — a policy outlived its premise and went on making decisions, and the invariant I published two commits ago was the first casualty of fixing that
 
 **1. ⭐⭐⭐ A POLICY WHOSE PREMISE EXPIRED KEEPS GIVING ORDERS, AND NOTHING IN THE REPOSITORY CAN

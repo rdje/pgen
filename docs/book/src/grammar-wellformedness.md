@@ -3334,6 +3334,34 @@ Post-slice-5 class size: `ebnf` **5 → 0**, SystemVerilog **30 → 28**, every 
 still **0**. ⛔ SystemVerilog's cast/call and SVA property knots are **declined**, and the reason is
 measured rather than unfinished — see *what the pass refuses, and why it says so* below.
 
+⛔⛔ **A HAZARD FOR GRAMMAR AUTHORS, MEASURED 2026-08-25 ON THIS EXACT CYCLE: A `@profiles` TAG ON A
+RULE INSIDE AN ELIMINATED ROUTE CAN SILENTLY UN-ELIMINATE IT, FOR EVERY PROFILE.** A route exists only
+where every rule on it exists, so the pass gives each route the **intersection** of the `@profiles`
+lists along it — and it copies that gate **verbatim** from whichever rule on the route declares
+exactly the intersection, never synthesizing one. That works while dialect gates **nest**, which they
+did in every grammar here until `SV-CORPUS-GRAD.13e.10`(c4) tried to gate the assignment-pattern
+apostrophe out of `verilog_2005`. Tagging `constant_cast` with `["sv_2017", "sv_2023"]` makes its list
+**cross** `constant_primary_sv_2017`'s `["sv_2017", "verilog_2005"]`; the intersection is
+`["sv_2017"]`, no rule on the route declares that set, and the pass refuses the whole `casting_type`
+candidate:
+
+```text
+⛔ REFUSED 'casting_type': the route's @profiles intersection is ["sv_2017"],
+   which no single rule on the route declares, so the gate cannot be copied verbatim
+```
+
+⚠️ **What makes this worth a warning rather than a footnote is how it READS.** The measured effect is
+`left_recursion_unhandled` **0 → 15** and the rule count **1537 → 1513** — i.e. the 30-of-30 state
+above, restored — while `profile_orphans`, the ERROR-class counter such an edit is normally steering,
+goes **11 → 0** and `--lint-grammar` exits **0**. A warning-class counter moving is the only signal,
+and it moves in the direction that makes the grammar declare more than the parser accepts. ⇒ **diff
+the whole lint headline across a `@profiles` edit, not the counter you are aiming at**, and check
+`--report-indirect-lr-plan` if the rule count moved. The engine-side repair is tracked as
+`ENGINE-UNIVERSAL-SERVICES.50`; until it lands, a crossing dialect gate on an eliminated route is a
+trade — one profile's over-acceptance closed, fifteen cycles' derivations lost in two others — and
+`.13e.10`(c4) declined it, shipping its other sixteen gates and leaving the seventeenth pinned and
+watched.
+
 ⭐ **Three properties are worth knowing as a grammar author.**
 
 - **Your declared AST survives.** The route's per-hop return annotations are **composed** into one

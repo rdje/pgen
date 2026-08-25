@@ -1,5 +1,72 @@
 # CHANGES.md
 
+## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0305 (leaf SV-CORPUS-GRAD.13e.10(c4) — 16 of 17 IEEE-1800-only punctuation gates SHIPPED; ledger `SV-0071`, release `1.0.198`, schema `26` unchanged; leaf `ENGINE-UNIVERSAL-SERVICES.50` NEW + ROUTED; GRAMMAR tier): the lint derived eleven fixes for me, and applying all eleven would have broken the parser while the counter I was watching went green
+
+- ✅ **THE `verilog_2005` PROFILE NO LONGER ACCEPTS SIXTEEN IEEE-1800-ONLY OPERATORS** — the twelve
+  compound assignments (`+= -= *= /= %= &= |= ^= <<= >>= <<<= >>>=`), the two wildcard equalities
+  (`==? !=?`), the equivalence operator (`<->`) and the implicit port connection (`.*`). Sixteen
+  whole-rule `@profiles` gates on the TERMINALS, the `scope_resolution` (`SV-0031`) idiom.
+  **73 inserted lines, 0 deleted.**
+- ⭐ **THE LRM EVIDENCE WAS RE-DERIVED HERE, NOT CARRIED.** A census over the whole in-repo IEEE
+  1364-2005 corpus: **13 of the 16 occur ZERO times.** `+=` and `-=` occur only inside the clause-14
+  specify-path polarity operators (`section-14-specify-blocks.txt:553 (In1 +=> q)` and `:566
+  (In1 -=> q)`), and `.*` only as a clause-13 library-map filename glob. Leg 2 of the three-way
+  check, against an oracle this project did not build.
+- ⭐⭐ **THE RATCHET'S ROUND TRIP OBSERVED, AND THE FAILURE *SET* IS THE EVIDENCE, NOT THE COUNT.**
+  Before the flip: `checked=247 armed=81 listed=161 failures=16`, the 16 being EXACTLY the gated
+  terminals. `accepts_invalid_v2005_punct_tick.sv` did **not** fail (it is deliberately not gated)
+  and neither did the three `control_v2005_punct_*` rows (`a = 1;` · `if (a == b) ;` ·
+  `s u(.a(1));`) — so the gate is neither too narrow nor too wide. After the flip: **`failures=0`**.
+- ⭐⭐ **483-CHECK BEFORE/AFTER SWEEP: exactly 16 moved, every one `ACCEPT->reject` under
+  `verilog_2005`, ZERO under `sv_2017`/`sv_2023`, zero in the `reject->ACCEPT` direction anywhere.**
+  Typed-AST identity measured rather than argued from the shape of the edit: **22 of 22 byte-identical**
+  ASTs over 11 inputs × 2 SV profiles, the inputs deliberately including `8'hff`, `1'b0` and
+  `a = '{1,2};`. `ast_shape_contract_gate` **18/18** with `rust/test_data/ast_shape_contract/`
+  untouched, so schema **26** holds by the gate's definition rather than by re-typing the number.
+- ⛔⛔ **THE SEVENTEENTH GATE IS DEFERRED, AND FINDING OUT WHY IS THIS SLICE'S REAL YIELD.** Gating
+  `tick` (`'`) orphans 11 rules; applying the eleven minimal fixes `--lint-grammar` itself derives
+  takes `profile_orphans` **11 → 0** — and in the same run takes `left_recursion_unhandled`
+  **0 → 15** and the rule count **1537 → 1513**. That arm is WARNING-class, so **the lint still
+  exits 0** and no doctrine would have blocked the commit. The lint's own warning names the cost:
+  *"this grammar declares strictly more than its parser accepts"* — an **under-acceptance on
+  `sv_2017`/`sv_2023`, the two profiles under a release order**, introduced by a fix for an
+  over-acceptance on a third. Bisected to ONE tag (`constant_cast`), with `cast` proven harmless as
+  the discriminating control.
+- ⛔ **ROOT CAUSE, named by `--report-indirect-lr-plan` and confirmed in the engine, not inferred:**
+  *"REFUSED 'casting_type': the route's @profiles intersection is ["sv_2017"], which no single rule
+  on the route declares, so the gate cannot be copied verbatim."* `route_profile_gate`
+  (`rust/src/ast_pipeline/indirect_lr_elimination.rs:1364`) copies a route's gate VERBATIM and its
+  own doc-comment states the premise: *"rare by construction — dialect gates nest."* This is the
+  first edit that makes two of them **CROSS**. Routed as `ENGINE-UNIVERSAL-SERVICES.50`; the `tick`
+  reproducer row **stays `accepts_invalid`** and keeps watching the defect. Deferred, never unwatched.
+- ⭐ **A CORRECTION TO (c4)'s OWN SIZING: the budget was 24, not 28.** Four of the eleven
+  lint-named companions (`casting_type_lr_suffix{,_r4}`, `casting_type_lr_guard{0,1}_suffix`) exist
+  in **no tracked grammar** — the LR-elimination pass synthesizes them — and resolve on their own
+  once their hosts are tagged. ⇒ **a tool-derived list is not thereby an actionable list.**
+- ⛔ **NEW MEASUREMENT ROUTED TO `LIVE-DOC-CONTAINMENT.8`: the column-overflow defect is in the
+  RESUME INDEX, worst on the trees anyone would look up.** `docs/TASK_TREE.md` declares 5 columns and
+  **14 of its 112 tree rows carry 6 to 21** — `SV-CORPUS-GRAD` 21, `ENGINE-UNIVERSAL-SERVICES` 20,
+  `GRAMMAR-WELLFORMED` 16, `REGEX-PCRE2-FIDELITY` 15 — so GFM silently drops their `Current frontier`
+  and `File` cells and renders prose fragments in their place. The cause is unescaped `|` inside
+  quoted SVA/strength operators (`|->`, `|=>`, `unique0 | priority`, `highz|pull_*`). This slice
+  repaired only the cell it authored.
+- ⛔ **`CI-PARITY-GATE-ROT.48` CORRECTED — it published a root cause its own quoted traceback
+  refutes.** The leaf said `BASELINE-IDENTITY` dies on *"an unhandled missing file"*; the exception is
+  `RecursionError: maximum recursion depth exceeded while decoding a JSON array`. `json.load` reached
+  `scan_once`, so the file was **opened and read**, and the failure is about its nesting DEPTH. The
+  planned absent-input guard would have left the lane red with the same traceback. ⭐ A traceback's
+  value is in its LAST line; the leaf quoted its first two.
+- ⭐ **AND A THIRD FAILURE IN THAT LOG WAS NEVER HOSTED-SPECIFIC.** `check_doctrines.sh: line 77:
+  match: command not found` is the driver's FIRST TWO LINES on every run, everywhere
+  (`DOCTRINE-GAP-OWNERSHIP.16`, four unescaped backticks). It reproduces locally and always has; it
+  was invisible because every local read of that driver pipes it through `tail`. ⇒ when a finding
+  looks environment-specific, check whether the difference is the environment or the reading habit.
+- ✅ **`ENGINE-UNIVERSAL-SERVICES.49`(b): the first hosted `lib-unit-test-gate` run is GREEN** —
+  `32889486784`, 29 m 04 s, with *"Regenerate the generated parsers"* ✓. Hosted regeneration is now
+  OBSERVED, not replayed. ⛔ The run also annotates *"No files were found with the provided path:
+  rust/target/generated_logs"* — the diagnostic upload is a **no-op**, so a RED run would hand over
+  nothing. Owed as `.49`(d). The RED control is still owed, so `.49` stays `in-progress`.
+
 ## 2026-08-25 - PGEN-CI-PARITY-GATE-ROT-0037 (leaf CI-PARITY-GATE-ROT.47 honest bound DISCHARGED on a real runner; leaf `.48` NEW + ROUTED; TRACKER tier, ZERO code bytes): the push the director ordered turned a simulated verification into an observed one, and immediately showed the next two failures behind it
 
 - ✅ **`.47` IS CONFIRMED ON A REAL LINUX RUNNER.** Its acceptance carried an explicit bound — *"the

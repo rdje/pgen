@@ -6863,10 +6863,58 @@ zero_or_one := kw_n_0_b6589fc6 -> {kind: "0"}
 
 # Generated literal tokens
 
+# ⛔ SV-0071 (SV-CORPUS-GRAD.13e.10(c4)) — THE IEEE-1800-ONLY PUNCTUATION CLASS.
+# Sixteen terminals below spell an operator IEEE 1364-2005 does not have, so under `verilog_2005`
+# they must not be producible. Each carries a whole-rule @profiles gate and an `SV-0071` marker.
+# All were adjudicated TWO-SIDED before any gate was written — the defect flips accept->reject and
+# a neighbouring legal-Verilog control still accepts — and each one's LRM citation is the evidence
+# column of its reproducer row in `stimuli/sv/adjudication_repros/MANIFEST.tsv`.
+#
+#   compound assignment (12): &= <<<= >>>= -= |= %= += <<= >>= /= *= ^=
+#     1364-2005 A.6.2 gives blocking/nonblocking assignment `=` and `<=` and nothing else. All
+#     twelve funnel through ONE rule, `assignment_operator`, whose alternative 0 is `assign` (`=`),
+#     the only 1364-2005 form — so the gate is 12 tags, not 12 independent repairs.
+#     (`+=` / `-=` DO occur in 1364-2005, but only inside the clause-14 specify-path polarity
+#     operators `+=>` / `-=>`, which are their own terminals: a different token, a different role.)
+#
+#   comparison / equivalence (3): ==?  !=?  <->
+#     1364-2005 A.8.6 defines `==` / `!=` / `===` / `!==` and no wildcard or equivalence form.
+#     All three funnel through `binary_operator`.
+#
+#   implicit port connection (1): .*
+#     1364-2005 A.4.1 named_port_connection has no implicit form. `.*` does occur in that LRM, but
+#     only as a clause-13 library-map FILENAME GLOB (`library aLib adder.*;`) — a different grammar
+#     and a different token role.
+#     ⛔ A NAMING CONVENTION IS NOT AN ENFORCEMENT MECHANISM. `.*` has 7 reference sites and every
+#     host is NAMED `_sv_2017`, yet exactly THREE are @profiles-ADMITTED to verilog_2005
+#     (`module_declaration_sv_2017`, `named_port_connection_sv_2017`, `udp_declaration_sv_2017`) —
+#     which is how `.*` reached v2005 at all. Gating the TOKEN ROOT prunes the class in one place;
+#     retagging those hosts would not, and would break legal Verilog, since the suffix records which
+#     Annex A the production text was extracted from, not which dialect may use it (.13e.7's root
+#     cause, measured again here).
+#
+# ⛔⛔ THE SEVENTEENTH MEMBER, `tick` (`'`), IS DELIBERATELY *NOT* GATED HERE — see
+# ENGINE-UNIVERSAL-SERVICES.50. Its 16 reference sites are all assignment patterns and casts
+# (IEEE 1800 A.6.7.1), so it belongs to this class, but gating it orphans 11 rules and the two that
+# matter (`cast`, `constant_cast`) sit on the indirect-LR route the eliminator rewrites. Tagging
+# `constant_cast` makes its list CROSS `constant_primary_sv_2017`'s `["sv_2017", "verilog_2005"]`,
+# the route intersection becomes `["sv_2017"]` — a set no rule on the route declares — and the
+# eliminator REFUSES the whole `casting_type` candidate, dropping 15 cycles onto the runtime guard
+# (`left_recursion_unhandled` 0 -> 15, a WARNING, so nothing would have blocked it). `tick`'s
+# reproducer row therefore stays `accepts_invalid` and keeps watching the defect.
+#
+# Whole-rule @profiles gate idiom, cf. `scope_resolution` (SV-0031) / `associative_dimension`.
+
+# SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 and_assign := trivia "&="                     -> {kind: "and_assign"}
 arithmetic_shift_left := trivia "<<<"          -> {kind: "arithmetic_shift_left"}
+# SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 arithmetic_shift_left_assign := trivia "<<<="   -> {kind: "arithmetic_shift_left_assign"}
 arithmetic_shift_right := trivia ">>>"         -> {kind: "arithmetic_shift_right"}
+# SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 arithmetic_shift_right_assign := trivia ">>>="  -> {kind: "arithmetic_shift_right_assign"}
 assign := trivia "="                         -> {kind: "assign"}
 at_sign := trivia "@"                        -> {kind: "at_sign"}
@@ -6881,12 +6929,16 @@ case_not_equal := trivia "!=="                 -> {kind: "case_not_equal"}
 colon := trivia ":"                          -> {kind: "colon"}
 comma := trivia ","                          -> {kind: "comma"}
 dot := trivia "."                            -> {kind: "dot"}
+# SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 dot_star := trivia ".*"                       -> {kind: "dot_star"}
 equal := trivia "=="                          -> {kind: "equal"}
 full_path_arrow := trivia "*>"                -> {kind: "full_path_arrow"}
 greater_equal := trivia ">="                  -> {kind: "greater_equal"}
 greater_than := trivia ">"                   -> {kind: "greater_than"}
 hash := trivia "#"                           -> {kind: "hash"}
+# SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 iff_arrow := trivia "<->"                      -> {kind: "iff_arrow"}
 implies := trivia "->"                        -> {kind: "implies"}
 kw_B_ae4f281d := trivia /B\b/
@@ -7635,6 +7687,8 @@ logical_and3 := trivia "&&&"                   -> {kind: "logical_and3"}
 logical_or := trivia "||"                     -> {kind: "logical_or"}
 lparen := trivia "("                         -> {kind: "lparen"}
 minus := trivia "-"                          -> {kind: "minus"}
+# SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 minus_assign := trivia "-="                   -> {kind: "minus_assign"}
 minus_minus := trivia "--"                    -> {kind: "minus_minus"}
 # SVA sequence-implication operators (IEEE 1800-2017 A.2.10) — SystemVerilog-only,
@@ -7642,12 +7696,18 @@ minus_minus := trivia "--"                    -> {kind: "minus_minus"}
 @profiles: ["sv_2017", "sv_2023"]
 non_overlapped_implication := trivia "|=>"    -> {kind: "non_overlapped_implication"}
 not_equal := trivia "!="                      -> {kind: "not_equal"}
+# SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 or_assign := trivia "|="                      -> {kind: "or_assign"}
 @profiles: ["sv_2017", "sv_2023"]
 overlapped_implication := trivia "|->"        -> {kind: "overlapped_implication"}
 percent := trivia "%"                        -> {kind: "percent"}
+# SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 percent_assign := trivia "%="                 -> {kind: "percent_assign"}
 plus := trivia "+"                           -> {kind: "plus"}
+# SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 plus_assign := trivia "+="                    -> {kind: "plus_assign"}
 plus_plus := trivia "++"                      -> {kind: "plus_plus"}
 power := trivia "**"                          -> {kind: "power"}
@@ -7672,17 +7732,37 @@ scope_resolution := trivia "::"               -> {kind: "scope_resolution"}
 semi := trivia ";"                           -> {kind: "semi"}
 sequence_implies := trivia "=>"               -> {kind: "sequence_implies"}
 shift_left := trivia "<<"                     -> {kind: "shift_left"}
+# SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 shift_left_assign := trivia "<<="              -> {kind: "shift_left_assign"}
 shift_right := trivia ">>"                    -> {kind: "shift_right"}
+# SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 shift_right_assign := trivia ">>="             -> {kind: "shift_right_assign"}
 slash := trivia "/"                          -> {kind: "slash"}
+# SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 slash_assign := trivia "/="                   -> {kind: "slash_assign"}
 star := trivia "*"                           -> {kind: "star"}
+# SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 star_assign := trivia "*="                    -> {kind: "star_assign"}
+# ⛔ SV-0071 — `tick` IS THE SEVENTEENTH MEMBER OF THE GATED CLASS AND ITS MISSING @profiles IS
+# DELIBERATE, NOT AN OVERSIGHT. Gating it orphans 11 rules; tagging the two that matter puts a
+# CROSSING pair of dialect gates on the indirect-LR route the eliminator rewrites, which makes the
+# pass refuse the whole `casting_type` candidate (left_recursion_unhandled 0 -> 15, a WARNING, lint
+# exit 0). See the SV-0071 block above and ENGINE-UNIVERSAL-SERVICES.50, which owns the engine
+# repair. Until it lands, `accepts_invalid_v2005_punct_tick.sv` keeps the over-acceptance WATCHED.
 tick := trivia "'"                           -> {kind: "tick"}
 tilde := trivia "~"                          -> {kind: "tilde"}
+# SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 wildcard_equal := trivia "==?"                 -> {kind: "wildcard_equal"}
+# SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 wildcard_not_equal := trivia "!=?"             -> {kind: "wildcard_not_equal"}
+# SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 xor_assign := trivia "^="                     -> {kind: "xor_assign"}
 @predicate: { name: fact_attribute_equals, args: [type_name, $body, declaration_family, class], phase: post }
 known_unscoped_class_scoped_call_class_identifier := class_identifier

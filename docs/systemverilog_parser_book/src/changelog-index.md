@@ -34,6 +34,35 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.198 / Contract 1.0.198 — SV-CORPUS-GRAD.13e.10(c4) (`PGEN-SV-CORPUS-GRAD-0305`, 2026-08-25), ledger `SV-0071` (`Released`): **SIXTEEN IEEE-1800-ONLY OPERATORS STILL REACHED THE `verilog_2005` PROFILE (GRAMMAR; `verilog_2005` ONLY — a NARROW; SCHEMA UNCHANGED at 26)**
+
+⛔ **This release narrows one profile and touches nothing else.** Under the strict Verilog-2005
+profile all of the following parsed, and IEEE 1364-2005 derives none of them:
+
+| accepted under `verilog_2005` before `1.0.198` | why the standard does not derive it |
+|---|---|
+| `a += 1;` `-=` `*=` `/=` `%=` `&=` `\|=` `^=` `<<=` `>>=` `<<<=` `>>>=` | A.6.2 gives assignment `=` and `<=` and nothing else; ten of the twelve occur **0×** in the whole LRM |
+| `if (a ==? b)` · `if (a !=? b)` | A.8.6 defines no wildcard equality; both occur **0×** |
+| `if (a <-> b)` | the equivalence operator is IEEE 1800 only; occurs **0×** |
+| `s u(.*);` | A.4.1 `named_port_connection` has no implicit form |
+
+⭐ **THE LENS IS THE POINT: THIS CLASS IS INVISIBLE TO EVERY CENSUS THAT PRECEDED IT.** `1.0.197`'s
+instrument crosses profile-filtered reachability against IEEE 1364-2005 **Annex B** — a normative
+list of **keywords**. An operator appears in no keyword list, so a construct spelled entirely in
+punctuation can never become a candidate. `1.0.197` found `{ << { a } }` only by accident, and named
+the class rather than claiming it; this release closes it over a **derived, closed population of 19**,
+of which 17 were confirmed over-acceptances and `++`/`--` correctly excluded.
+
+⛔⛔ **ONE OF THE SEVENTEEN IS NOT FIXED HERE, AND SAYING SO IS PART OF THE RELEASE.** The assignment-
+pattern / cast apostrophe (`a = '{1,2};`) still parses under `verilog_2005`. Gating it requires
+tagging `constant_cast`, which puts two **crossing** dialect gates on the indirect-LR route PGEN's
+eliminator rewrites; the eliminator then refuses that route and 15 left-recursive cycles fall back to
+the runtime guard — a change `--lint-grammar` reports only as a **warning** while the parser silently
+loses derivations under `sv_2017`/`sv_2023`. The engine repair is tracked as
+`ENGINE-UNIVERSAL-SERVICES.50`, and the over-acceptance stays **pinned and watched** in the
+adjudication ratchet until it lands. **A consumer of `1.0.198` should still treat `'{…}` as
+SV-only when running the strict profile.**
+
 ### 1.0.197 / Contract 1.0.197 — SV-CORPUS-GRAD.13e.7 (`PGEN-SV-CORPUS-GRAD-0293`, 2026-08-24), ledger `SV-0070` (`Released`): **THIRTEEN IEEE-1800 SURFACES STILL REACHED THE `verilog_2005` PROFILE (GRAMMAR; `verilog_2005` ONLY — a NARROW; SCHEMA UNCHANGED at 26)**
 
 ⛔ **This release narrows one profile and touches nothing else.** Under the strict Verilog-2005
