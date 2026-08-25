@@ -1,5 +1,37 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-25 - PGEN-ENGINE-UNIVERSAL-SERVICES-0088 — a policy outlived its premise and went on making decisions, and the invariant I published two commits ago was the first casualty of fixing that
+
+**1. ⭐⭐⭐ A POLICY WHOSE PREMISE EXPIRED KEEPS GIVING ORDERS, AND NOTHING IN THE REPOSITORY CAN
+NOTICE.** *"Hosted auto-runs are paused to conserve account Actions minutes"* was correct when
+written and had silently stopped being true — the repository was made public, and public repos are
+not billed for standard runners. It went on shaping decisions anyway: it is why `.49`'s ruling was
+revised to dispatch-only one commit earlier, and I was the one who revised it. One API call
+(`…/actions/runs/<id>/timing` → `billable.UBUNTU.total_ms = 0`) retired it. ⇒ **a policy document
+states a conclusion; it does not state whether its premise still holds.** When a policy is about to
+constrain a real decision, re-derive its premise first — especially a policy about cost, which the
+platform will answer numerically and for free.
+
+**2. ⭐⭐⭐ THE INVARIANT I PUBLISHED TWO COMMITS AGO BECAME FALSE BY MY OWN NEXT ACTION.** `-0087`
+established, over a CLOSED population and with no exceptions, that the automatic tier was exactly
+the no-regeneration subset. It was a good measurement and a real finding. Then `-0088` deliberately
+broke it. ⭐ The tell was there in the original: **a coincidence over a closed population is not
+automatically a rule** — it can be a consequence of a constraint, and constraints expire. What
+survives is the history (*why* the partition once coincided), not the partition. ⇒ when you publish
+an exact coincidence, publish what CAUSES it, or the next reader inherits a law where there was only
+a cost.
+
+**3. ⭐⭐ ORDER WAS THE DECISION, NOT THE TRIGGER.** The interesting call was not "push: or not" — it
+was "fix the tier's 11-day-old red BEFORE adding a lane to it". A new automatic lane on a tier whose
+existing red nobody reads does not add signal; it adds furniture. The sequencing is what made this
+signoff rather than a config change, and it is the half that would have been invisible in a diff.
+
+**4. ⭐ SAY WHAT A RED WILL MEAN BEFORE IT HAPPENS.** No hosted run in this repository's history has
+ever carried the regeneration step, so this workflow's first run is simultaneously its own first
+test AND the first test of hosted regeneration. Writing that into the workflow header *before* the
+run means a red arrives pre-diagnosed — "regeneration is unproven", not "the unit suite regressed" —
+instead of being triaged by whoever sees the badge.
+
 ## 2026-08-25 - PGEN-CI-PARITY-GATE-ROT-0036 — three leaves reasoned about the hosted side for weeks and none of us ran `gh run list`
 
 **1. ⭐⭐⭐ THE CHEAPEST UNRUN COMMAND BEAT WEEKS OF REASONING.** `CI-PARITY-GATE-ROT` exists because

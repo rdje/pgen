@@ -12886,6 +12886,50 @@ replay — so an entry for it would be STALE BY CONSTRUCTION and would turn `GAT
 ⇒ the cadence decision is on the record where it belongs: this leaf, the workflow's own header, and
 `CHANGES.md`.
 
+#### ⭐⭐⭐ (b) PROMOTED TO `push:` 2026-08-25 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0088`) — the director RE-DELEGATED the call, and BOTH objections were measured away rather than overruled
+
+⛔ **DIRECTOR, 2026-08-25, verbatim: *"it looks way too low level for me, too technical for me. I
+will have no issue delegating that to you, provided you make sota, signoff decisions."*** — and,
+separately: *"that was a long time ago, when the project was private, now it has been made public."*
+
+The dispatch-only decision recorded above rested on two objections. Both are now settled:
+
+1. ⛔ **THE SPEND OBJECTION IS VOID, NOT OVERRULED — measured from the account's own runs.**
+   `gh api /repos/rdje/pgen/actions/runs/31783006358/timing` →
+   `{"billable":{"UBUNTU":{"total_ms":0,…}},"run_duration_ms":103000}` — **zero billable
+   milliseconds for a 103-second run**, because `pgen` is a PUBLIC repository on standard runners.
+   The billing-control policy was written while the repository was private (director-confirmed), so
+   its premise expired. ⇒ this is not "the cost is acceptable"; it is **there is no cost**, and the
+   policy is corrected in `docs/reference/PGEN_RELEASE_POLICY.md` in the same commit rather than
+   left to constrain a decision it can no longer justify.
+2. ⛔ **THE RED WAS FIXED FIRST.** When (b) shipped dispatch-only, the automatic tier's only
+   doctrine lane had been FAILING on `main` for 11 days — `CI-PARITY-GATE-ROT.47`, a
+   macOS-Homebrew absolute path in `rust/Makefile`'s `SHELL` that killed every `make` target on
+   Linux. Adding a lane to a tier whose existing red nobody reads is precisely the failure mode
+   this leaf warned about, so the red was repaired in the preceding commit (`-0036`) and only then
+   was the trigger added.
+
+⛔⛔ **AND THIS BREAKS AN INVARIANT THIS PROJECT PUBLISHED TWO COMMITS EARLIER, DELIBERATELY.**
+`-0087` published, over a closed population: *"the automatic tier is EXACTLY the subset that needs
+no regeneration — 12 dispatch-only and all 12 regenerate; 4 auto-triggered and none does,
+coinciding with no exceptions."* True when written; **false the moment this trigger lands** (now 5
+auto-triggered, 1 of which regenerates). It is corrected in the same commit on every surface that
+carries it, because the coincidence was never a design rule — it was a CONSEQUENCE of a cost
+constraint that no longer bills, and a published invariant left standing after its subject changes
+is an active falsehood.
+
+⚠️ **THE FIRST RUN IS ALSO THE FIRST HOSTED TEST OF REGENERATION ITSELF, and that is stated up
+front so a red is read correctly.** Measured via `gh run list`: of every hosted run this repository
+has ever had, **not one** carried the regeneration composite action. So a red first run means
+*"hosted regeneration is unproven"*, not *"the unit suite regressed"*. Nothing is gated by it
+either way — `required_status_checks` is `[]`, so the lane REPORTS and never blocks.
+
+⏳ **THE LEAF STILL DOES NOT CLOSE HERE**, by its own acceptance: it closes on a first hosted run
+observed GREEN plus a deliberate RED control. ⭐ What HAS changed is that the observation is now
+mine to make rather than the director's — `gh` is authenticated in this environment, so
+`gh run list` / `gh run view --log-failed` will read the verdict the moment a push lands. The remote
+is 224 commits behind and the push cadence is 300.
+
 #### Acceptance Checklist (enforced) — `.49` (b), the workflow
 
 - [x] **REPRODUCE / ISSUE** — the finding `.46`(d) established stands unchanged: `grep -rn 'cargo

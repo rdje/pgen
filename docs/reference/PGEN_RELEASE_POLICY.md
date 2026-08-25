@@ -83,8 +83,23 @@ Validated by:
 Current hosted Actions mode:
 - `manual_only`
 
-Temporary billing-control policy:
-- Hosted GitHub Actions auto-runs are paused to conserve account Actions minutes.
+Temporary billing-control policy — ⛔ **SUPERSEDED 2026-08-25, because its premise no longer holds**:
+- ⛔ **The pause was adopted while this repository was PRIVATE. It has since been made PUBLIC**
+  (director-confirmed 2026-08-25), and GitHub does not bill standard runners on public
+  repositories. **MEASURED against this account's own runs, not asserted**:
+  `gh api /repos/rdje/pgen/actions/runs/31783006358/timing` →
+  `{"billable":{"UBUNTU":{"total_ms":0,…}},"run_duration_ms":103000}` — **zero billable
+  milliseconds for a 103-second run.**
+  ⇒ *"conserve account Actions minutes"* describes a cost this repository does not incur, and a
+  policy whose premise has expired must not go on constraining decisions. Re-derive the figure with
+  the command above before trusting this paragraph; if the repository is ever made private again,
+  the original pause applies unchanged and should be restored deliberately.
+- Auto-runs are therefore **no longer paused on cost grounds**. Trigger choice is now an
+  engineering question — does this lane run on a bare checkout, and is its red readable — not a
+  billing one. `ENGINE-UNIVERSAL-SERVICES.49`(b) is the first lane promoted under the corrected
+  policy, and it carries its own measured price and honest bounds in its `on:` block.
+- ⚠️ **`required_status_checks` remains intentionally empty**, so every hosted lane REPORTS and none
+  of them gates a merge. That is unchanged by the above and is a separate decision.
 - Tracked workflows remain available through `workflow_dispatch`.
 - `required_status_checks` is intentionally empty while hosted auto-runs are paused.
 - `require_up_to_date_before_merge` is intentionally disabled while the required hosted checks are paused.

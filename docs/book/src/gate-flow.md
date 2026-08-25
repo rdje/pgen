@@ -145,9 +145,11 @@ exist — and cannot compile on a fresh clone. That is not hypothetical: from 20
 2026-08-25 the repository could not bootstrap itself, dying on a single `error[E0425]` in the
 command [Getting Started](getting-started.md) says a clean checkout must run *first*. It went
 undetected for ten of those fourteen days. Nothing automatic
-noticed, because every hosted workflow that regenerates parsers is `workflow_dispatch`-only by
-deliberate Actions-minutes policy — twelve of twelve, re-derived — and the one local instrument
-that replays a tracked-files-only tree is operator-invoked.
+noticed, because at the time every hosted workflow that regenerates parsers was
+`workflow_dispatch`-only under a deliberate Actions-minutes policy — twelve of twelve — and the one
+local instrument that replays a tracked-files-only tree is operator-invoked. (That policy has since
+been superseded: the repository is public, standard-runner minutes are free, and
+`lib-unit-test-gate.yml` now regenerates on `push:`. It would catch this class today.)
 
 The gate runs `rust/scripts/cold_clone_build_probe.sh`, which reaches the cold configuration
 **without touching `generated/`**: `build.rs` already resolves every family artifact from a
@@ -869,20 +871,28 @@ workflows, the git hooks and `COMMIT.md` — and sorts targets into three tiers.
 > checkout — `branch-protection-contract-gate`, `fixed-point-gate` and
 > `mdbook-docs-gate`. Those three, plus `parser_books_gate` and the ten per-parser
 > book gates `mdbook_docs_gate` pulls in, are the whole automatic tier.
-> The other 12 tracked workflows stay `workflow_dispatch`-only to conserve account
-> minutes, and `memory-architecture-gate.yml` — the only one also on
-> `pull_request` — runs the doctrine driver and no `make` target at all.
+> The other 11 tracked workflows stay `workflow_dispatch`-only, and
+> `memory-architecture-gate.yml` — the only one also on `pull_request` — runs the
+> doctrine driver and no `make` target at all.
 >
-> ⭐ **The boundary is sharper than "three lanes were chosen": re-derived over all
-> 16 tracked workflows, the automatic tier is EXACTLY the subset that needs no
-> regeneration.** 12 are `workflow_dispatch`-only and all 12 carry the regeneration
-> step; 4 are auto-triggered and none of them does. The two partitions coincide
-> with no exceptions, which makes the rule legible rather than incidental: a
-> workflow joins the automatic tier when it can run on a bare checkout, and asking
-> to join it while carrying a ~258 s regeneration is a spend decision, not a wiring
-> one. `ENGINE-UNIVERSAL-SERVICES.49`(b) is the first case to test that boundary —
-> `lib-unit-test-gate.yml` compiles the crate, so it ships `workflow_dispatch`-only
-> with its promotion price measured in its own header. **The
+> ⭐⭐ **That boundary was once exact, and it has been deliberately broken — the
+> history is the useful part.** Re-derived over all 16 tracked workflows in
+> 2026-08-25, the automatic tier was EXACTLY the subset needing no regeneration:
+> 12 `workflow_dispatch`-only, all 12 carrying the regeneration step; 4
+> auto-triggered, none of them doing so — coinciding with no exceptions. That
+> looked like a design rule. It was a **consequence of a cost constraint**, and the
+> constraint expired: this repository was made public, and
+> `gh api …/actions/runs/<id>/timing` reports `billable.UBUNTU.total_ms = 0` for a
+> 103-second run, so standard-runner minutes are free.
+>
+> `lib-unit-test-gate.yml` is therefore the first regeneration-carrying lane on the
+> automatic tier, and the partition no longer coincides — 5 auto-triggered, one of
+> which regenerates. **Trigger choice is now an engineering question, not a billing
+> one:** does this lane run correctly on a bare checkout, and will its red be read?
+> The second half is not rhetorical — the tier's only doctrine lane had been red on
+> `main` for 11 days when that promotion was proposed
+> (`CI-PARITY-GATE-ROT.47`), and it was fixed *first*, because adding a lane to a
+> tier nobody reads is how a red becomes furniture. **The
 > automatic layer covers the <!-- DOCTRINE-COUNT -->27<!-- /DOCTRINE-COUNT --> enforced doctrines and 14 of the 118 gate
 > targets.** Every other proof lane in this chapter runs only when a human asks —
 > the 79 operator-reachable ones exactly as much as the 31 orphans.
