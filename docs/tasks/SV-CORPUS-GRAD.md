@@ -17502,7 +17502,13 @@ with the adjudication's citations on all 16.
 WENT *GREEN* ON THE VERSION THAT BREAKS THE PARSER.** `tick`'s gate orphans 11 rules, and
 `--lint-grammar` derives a minimal `@profiles` tag for each. Applying them takes `profile_orphans`
 to **0** — and simultaneously takes `left_recursion_unhandled` from **0 to 15**, which is a
-**WARNING**, so `--lint-grammar` still exits **0** and nothing in the doctrine set would have blocked
+**WARNING**, so `--lint-grammar` still exits **0**. ⚠️ **CORRECTED 2026-08-26, on the director's
+challenge: this sentence first continued *"and nothing in the doctrine set would have blocked it"*,
+which is a CENSUS claim that no census backs** ([[an-x-is-checked-by-nothing-claim-is-a-census-claim]]).
+What is measured is the LINT's own exit code. Whether any of the 27 doctrines or the operator-invoked
+SV gates would catch the regression downstream is **UNMEASURED** — and
+`sv_cert_recognized_union_gate` is a live candidate to catch it, since it pins `union_witness=1393`
+and lost derivations would move that number. Routed to `ENGINE-UNIVERSAL-SERVICES.50`(d).
 it. Bisected to a single tag, with `cast` proven harmless as the discriminating control:
 
 | variant | rules | `lr_unhandled` | `lr_eliminated` | `profile_orphans` | lint exit |

@@ -157,7 +157,23 @@ tier1() {
 
   # ---- A4 NOTHING HAS RUN AHEAD OF THE PAGE. Every declared input is a thing the table is a
   # function of; if one has a newer last-modifying commit than the page, the table MAY be stale.
+  # ⛔⛔ STAGED-AWARE, AND THAT IS THE WHOLE POINT (GRAMMAR-CERT-STATUS.5, 2026-08-26). `git log -1`
+  # reads the page's last COMMIT, which a staged republish cannot move — and this enforcer runs from
+  # .githooks/pre-commit. So once the lead passed the budget, the remedy this arm PRESCRIBES
+  # (re-derive, republish, commit) could never reach a commit: the arm blocked the very commit that
+  # would clear it, and with it every other commit to the repository. Measured, twice, before the
+  # fix. An enforcer that runs at commit time must judge the tree the commit WILL create.
+  # Precedent, twice, both the same bug: BASELINE-IDENTITY (SV-CORPUS-GRAD.13c.2x.4 — "ONE COMMENT
+  # LINE in the SV grammar BLOCKED EVERY COMMIT") and SV-CONTRACT-CURRENCY tier A (-0242), whose
+  # positive form — "add its row in the SAME commit" — this mirrors.
   local page_c inputs f in_c lead
+  if git diff --cached --name-only 2>/dev/null | grep -Fxq "$PAGE"; then
+    say "NOTE — $PAGE is STAGED in this commit, so the block is being republished here and the"
+    say "       staleness budget is satisfied by construction. (An UNSTAGED page is still measured:"
+    say "       rot past the budget stays impossible for anyone who does not republish.)"
+    page_c=""
+    inputs=""
+  else
   page_c=$(git log -1 --format=%H -- "$PAGE" 2>/dev/null)
   if [ -z "$page_c" ]; then
     say "⚠️ NOT EVALUATED — $PAGE has no commit yet, so nothing can lead it."
@@ -182,6 +198,7 @@ tier1() {
         notes=$((notes + 1))
       fi
     done
+  fi
   fi
 
   if [ "$rc" -eq 0 ]; then

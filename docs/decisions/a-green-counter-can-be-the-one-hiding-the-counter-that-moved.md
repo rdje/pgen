@@ -1,6 +1,6 @@
 ---
 name: a-green-counter-can-be-the-one-hiding-the-counter-that-moved
-description: "DISCIPLINE (2026-08-25, SV-CORPUS-GRAD.13e.10(c4) / PGEN-SV-CORPUS-GRAD-0305) — a lint prints many counters, and the one you are watching going GREEN is not a statement about the others. MEASURED: applying the eleven minimal fixes `--lint-grammar` itself derived took `profile_orphans` 11 -> 0, the error-class counter the edit was aimed at, while `left_recursion_unhandled` went 0 -> 15 and the rule count fell 1537 -> 1513 in the same run. `left_recursion_unhandled` is WARNING-class, so `--lint-grammar` exited 0 and no doctrine blocked it — and the warning's own text says the consequence is that the grammar `declares strictly more than its parser accepts`, i.e. an UNDER-acceptance on the two profiles being released. The green counter was the one that made the moved counter easy to skip. ⇒ diff the WHOLE summary line before and after, never the counter you are steering, and treat any counter that MOVES as a finding regardless of its severity class — a class says how loud a state is, never whether your change caused it."
+description: "DISCIPLINE (2026-08-25, SV-CORPUS-GRAD.13e.10(c4) / PGEN-SV-CORPUS-GRAD-0305) — a lint prints many counters, and the one you are watching going GREEN is not a statement about the others. MEASURED: applying the eleven minimal fixes `--lint-grammar` itself derived took `profile_orphans` 11 -> 0, the error-class counter the edit was aimed at, while `left_recursion_unhandled` went 0 -> 15 and the rule count fell 1537 -> 1513 in the same run. `left_recursion_unhandled` is WARNING-class, so `--lint-grammar` exited 0 — and the warning's own text says the consequence is that the grammar `declares strictly more than its parser accepts`, i.e. an UNDER-acceptance on the two profiles being released. The green counter was the one that made the moved counter easy to skip. ⇒ diff the WHOLE summary line before and after, never the counter you are steering, and treat any counter that MOVES as a finding regardless of its severity class — a class says how loud a state is, never whether your change caused it."
 id: a-green-counter-can-be-the-one-hiding-the-counter-that-moved
 title: "A green counter can be the one hiding the counter that moved — diff the whole summary line"
 date: 2026-08-25
@@ -44,6 +44,30 @@ seed position is UNREACHABLE and this grammar declares strictly more than its pa
 
 An **under-acceptance on `sv_2017`/`sv_2023`** — the profiles under a release order — introduced by a
 fix for an over-acceptance on a third profile, with a green error-class counter and exit 0.
+
+## ⚠️ Honest bound — what is MEASURED here and what is INFERRED
+
+Stated because this record's own subject is a claim read further than its evidence.
+
+**MEASURED**, on scratch copies, this session: the counter table above; the eliminator's refusal
+message verbatim from `--report-indirect-lr-plan`; that `constant_cast` alone is the trigger and
+`cast` alone is harmless; and that `--lint-grammar` **exits 0** on the variant that breaks it.
+
+**INFERRED, not measured:** that `sv_2017`/`sv_2023` actually lose accepted inputs. The chain is
+strong — the lint's own warning states it, the book's grammar-wellformedness chapter records this
+exact cycle rejecting `int'(2)'(3)` with *"Infinite recursion detected in rule 'casting_type'"* when
+it last survived elimination, and `int'(2)'(3)` is measured **ACCEPT under all three profiles on the
+shipped parser today**, so the eliminated cycle is carrying live derivations rather than dead ones —
+but no parser was generated from the breaking grammar and observed rejecting it.
+`ENGINE-UNIVERSAL-SERVICES.50`(c) owes exactly that control.
+
+⛔ **And a claim in the first publication of this record was RETRACTED on the director's challenge**
+(2026-08-26): *"no doctrine blocked it"* is a CENSUS claim and no census backs it
+([[an-x-is-checked-by-nothing-claim-is-a-census-claim]]). Only the LINT's exit code was measured.
+`sv_cert_recognized_union_gate` pins `union_witness=1393` and is a live candidate to have caught the
+regression — just not on the automatic per-commit tier. ⇒ **the lesson survives the retraction and is
+narrower for it:** the hazard is that the counter you are steering goes green, not that the whole
+enforcement surface is blind.
 
 ## The two corollaries
 

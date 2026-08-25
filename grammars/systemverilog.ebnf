@@ -7750,8 +7750,8 @@ star_assign := trivia "*="                    -> {kind: "star_assign"}
 # ⛔ SV-0071 — `tick` IS THE SEVENTEENTH MEMBER OF THE GATED CLASS AND ITS MISSING @profiles IS
 # DELIBERATE, NOT AN OVERSIGHT. Gating it orphans 11 rules; tagging the two that matter puts a
 # CROSSING pair of dialect gates on the indirect-LR route the eliminator rewrites, which makes the
-# pass refuse the whole `casting_type` candidate (left_recursion_unhandled 0 -> 15, a WARNING, lint
-# exit 0). See the SV-0071 block above and ENGINE-UNIVERSAL-SERVICES.50, which owns the engine
+# pass refuse the whole `casting_type` candidate (left_recursion_unhandled 0 -> 15, a WARNING, so
+# --lint-grammar itself still exits 0). See the SV-0071 block above and ENGINE-UNIVERSAL-SERVICES.50, which owns the engine
 # repair. Until it lands, `accepts_invalid_v2005_punct_tick.sv` keeps the over-acceptance WATCHED.
 tick := trivia "'"                           -> {kind: "tick"}
 tilde := trivia "~"                          -> {kind: "tilde"}

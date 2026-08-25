@@ -598,3 +598,69 @@ about one sample. A small-sample result is a claim about the sample until that i
   artifact; `generated/` is byte-identical by construction. All 25 doctrines PASS with the change
   staged, `mdbook_docs_gate` builds the new page, and `clippy` is not applicable — no Rust byte moved.
 - **`promotion: declined (the durable lesson is already promoted as the KM card [[which-pgen-grammars-are-certified-and-which-are-not]], which is this slice's product rather than a side note)`**
+
+### ⛔⛔ `.5` — **TIER 1's STALENESS BUDGET IS UNSATISFIABLE ONCE EXCEEDED: ITS OWN PRESCRIBED REMEDY CANNOT REACH A COMMIT, AND WHILE IT IS BREACHED THE REPOSITORY ACCEPTS NO COMMIT AT ALL** (`done`, `PGEN-SV-CORPUS-GRAD-0306`, 2026-08-26; found by `SV-CORPUS-GRAD.13e.10`(c4)'s follow-up under a director challenge)
+
+**HOW IT WAS FOUND.** `-0305` committed a grammar revision and a cert-union contract update. Both are
+declared inputs of this page. That single commit pushed their lead over the page from inside the
+budget to **27** (the lead is a whole-history commit distance, not a count of commits touching those
+files, so one commit can move it by many). The next commit attempt was refused:
+
+```
+grammar-cert-currency: ✗ (1) grammars/systemverilog.ebnf leads the published table by 27 commits
+                            (budget 10) — the table may be stale. Re-derive it:
+                            bash scripts/report_grammar_certification.sh --markdown,
+                            then republish the block.
+```
+
+⛔⛔ **THE REMEDY IT NAMES CANNOT BE PERFORMED.** The arm computes
+`page_c=$(git log -1 --format=%H -- "$PAGE")` — the page's last **commit**. Re-deriving and
+republishing the block leaves the page STAGED, and `git log -1` cannot see staged content, so
+`page_c` is unchanged and the lead is still 27. The enforcer runs from `.githooks/pre-commit`, so it
+then blocks the very commit that would clear it. ⇒ **a closed loop: past the budget, the doctrine
+refuses every commit to the repository, including the one that fixes it.** Measured, not reasoned: a
+republish + `git add` + `git commit` was attempted and refused, twice, with the page staged.
+
+⭐ **THE FIX IS PRECEDENTED TWICE IN THIS REPOSITORY, AND BOTH PRECEDENTS ARE THE SAME BUG.**
+`SV-CORPUS-GRAD.13c.2x.4` records `BASELINE-IDENTITY`'s first cut making a moved input a hard failure
+in an enforcer that runs from `pre-commit`, so *"ONE COMMENT LINE in the SV grammar BLOCKED EVERY
+COMMIT"*; `-0242` re-keyed `SV-CONTRACT-CURRENCY` tier A on a digest after *"its own first real
+customer exposed a chicken-and-egg"*. ⇒ **an enforcer that runs at commit time must judge the tree
+the commit WILL create, not the one it is replacing.** `SV-CONTRACT-CURRENCY` already states the
+correct shape positively — *"add its row in the SAME commit"* — and this arm is its mirror image.
+
+**FIX (applied):** the budget arm now asks whether `$PAGE` is in the **staged diff**. If it is, the
+page is being republished by this very commit, the budget is satisfied **by construction**, and the
+arm says so instead of computing a distance against a commit that is about to be superseded. Nothing
+else changes: an unstaged page is still measured exactly as before, so rot past the budget is still
+impossible for anyone who does NOT republish.
+
+**CONTROLS — both observed, because a fix to a gate needs the gate driven both ways:**
+
+| arm | state | verdict |
+|---|---|---|
+| the defect, reconstructed | page republished but **NOT** staged | ✗ `leads the published table by 27 commits (budget 10)` — still refuses, so the budget is not simply disabled |
+| the fix | page republished **AND** staged | ✓ `OK (tier 1: … no input past budget)` |
+
+⚠️ **HONEST BOUND.** This repairs the *reachability* of the remedy, not the *truth* of the table: a
+staged page is trusted to have been re-derived, exactly as `SV-CONTRACT-CURRENCY` trusts a staged
+register row. Tier 2 (`--oracle`) is what re-derives and DIFFS all nine rows, and it is unchanged. The
+arm's purpose was always staleness, and staleness is precisely what a republish in the same commit
+resolves.
+
+#### Acceptance Checklist (enforced) — `.5`
+
+- [x] **REPRODUCE / ISSUE** — measured, not inferred: with the block re-derived and republished, `git
+  commit` was refused twice by this arm, with the page both unstaged and staged.
+- [x] **ROOT CAUSE (WHY + WHERE)** — `scripts/check_grammar_certification.sh`, tier 1 arm A4:
+  `page_c=$(git log -1 --format=%H -- "$PAGE")` reads the page's last COMMIT, which a staged
+  republish cannot move, while the enforcer itself runs from `.githooks/pre-commit`.
+- [x] **FIX** — fix-hierarchy tier = **ops/enforcer**; ZERO grammar, engine, codegen or generated
+  bytes. The arm becomes staged-aware, mirroring `SV-CONTRACT-CURRENCY`'s same-commit rule.
+- [x] **ADDRESSED (verified)** — both controls above driven and observed: the un-staged arm still
+  REFUSES with the original message (so the budget still binds), the staged arm PASSES.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` all 27 PASS with the change staged; no
+  grammar, `rust/src` or codegen byte is touched, so all eleven parsers are byte-identical by
+  construction and `generated/` is untouched.
+- [x] **LOCKSTEP** — this leaf + the enforcer + the republished book page + the register NEUTRAL row
+  for the comment-only grammar edit + `CHANGES.md` + `MEMORY.md`.

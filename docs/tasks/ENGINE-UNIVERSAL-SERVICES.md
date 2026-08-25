@@ -13091,6 +13091,17 @@ actionable list.*
   engage that argument rather than skip it; **(ii)** widen the donor search to accept any rule whose
   list is a SUPERSET, plus an explicit refusal when that is still ambiguous. (i) is more complete;
   (ii) preserves the provenance invariant.
+⭐ **EVIDENCE ADDED 2026-08-26 (director challenge on `-0305`'s findings): THE CYCLE IS CARRYING LIVE
+DERIVATIONS, so the refusal costs real language rather than dead paths.** Measured on the SHIPPED
+release parser: `a = int'(2)'(3);` — the chained cast IEEE 1800-2017 A.8.4 derives, and the exact
+construct the book records this cycle rejecting when it last survived elimination — reads **ACCEPT
+under `sv_2017`, `sv_2023` AND `verilog_2005`** today. ⛔ **What is still NOT measured, and (c) owes
+it:** a parser GENERATED from the breaking grammar, observed rejecting that input. The interpreter
+cannot settle it — TOOLBOX 1.5b marks its verdicts untrustworthy precisely when
+`left_recursion_unhandled > 0`, which is the state under test. Until (c) lands, *"the strict profiles
+lose derivations"* is a well-supported INFERENCE, not a measurement, and `-0305`'s findings callout
+has been corrected to say so.
+
 - **(c)** a control that goes RED without the repair — a small synthetic with two CROSSING dialect
   gates on one LR route, driven on BOTH engines, asserting the cycle is eliminated. ⛔ It must fail
   today; a control that passes before the fix is not a control.
