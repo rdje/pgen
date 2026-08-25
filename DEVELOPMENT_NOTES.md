@@ -1,5 +1,67 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-25 - PGEN-CI-PARITY-GATE-ROT-0034 — the fix took fifteen minutes; what the leaf is worth is that the reproduction stopped destroying the tree it measured, and that the wiring was inert on its first cut
+
+**1. ⭐⭐⭐ A REPRODUCTION THAT MUTATES ITS SUBJECT CAN NEVER BECOME A GATE — AND THAT IS WHY A FULLY
+DIAGNOSED DEFECT SAT FOR FOUR DAYS.** `CI-PARITY-GATE-ROT.40` was routed with the root cause located
+to three files, the breaking commit dated, and the blast radius named. Nothing about it was
+under-investigated. But both of its reproductions worked by DAMAGING the tree — one wiped
+`generated/`, one moved two artifacts aside — and the leaf said so as an honest bound. A destructive
+repro is a thing a person performs, never a thing a gate runs, so the finding could only ever be
+prose. The unlock was reading the PRODUCER instead of the symptom: `build.rs` already resolves every
+artifact through a `PGEN_*_PARSER_PATH` env var, so pointing all eight at a path that does not exist
+reaches the identical cold cfg state through the identical code path — nothing moved, nothing
+restored, warm cache untouched, 6.4 s. ⇒ **when a finding will not convert into a check, suspect the
+REPRODUCTION before suspecting the finding.** The question to ask early is not *"can I reproduce
+this?"* but *"can I reproduce this without touching anything?"*, because only the second one ends in
+an instrument.
+
+**2. ⭐⭐⭐ THE WIRING WAS INERT, `GATE-REACHABILITY` WENT GREEN OVER IT, AND THE BOOK IS WHAT CAUGHT
+IT.** I added the new required check to `POLICY_REQUIRED_CHECKS="${PGEN_SOTA_POLICY_REQUIRED_CHECKS:-…}"`
+in `sota_exit_gate.sh:33`. That line is DEAD: the script sources the tracked policy file at line 30,
+so the variable is always already set and the `:-` default can never bind. The doctrine passed —
+correctly, on its own terms, since it sees the `make … cold_clone_build_gate` call inside the
+dispatch arm — and the gate would have shipped **wired in appearance and unreachable in fact**. What
+exposed it was writing the book page: the book names `rust/config/sota_exit_policy.env` as the
+policy, which did not match where I had made the change. ⇒ **a duplicated configuration surface
+does not fail loudly; it fails by making the wrong copy look right.** Measured drift between the two
+copies: one check (`annotation_100_gate`), present in the live roster and absent from the dead one.
+Routed as `.45`. ⭐ The second-order lesson is about documentation: writing the user-facing
+explanation is not overhead after the work — it is a DIFFERENT reader of the same change, and here
+it was the only reader that caught the defect.
+
+**3. ⭐⭐ THE FIX SHAPE WAS THE OPPOSITE OF THE PRICED ONE, AND THE REASON IS "DON'T CREATE A SECOND
+BODY".** The routing note priced a `#[cfg(not(any(...)))]` companion returning `None`; what shipped
+DELETED two cfg attributes instead. A `cfg(not(...))` twin is a body no warm build compiles and no
+warm test runs — a divergence surface created to paper over a gate that should not have existed,
+when the artifact-specific knowledge was already gated one level down in a match arm. ⇒ **gate the
+DATA, not the accessor a feature-gated caller reaches.** ⚠️ And I stopped short of calling the priced
+direction wrong: the two differ only for a `pub` caller that does not exist yet, because the one row
+that could distinguish them is guarded by a `supports_grammar()` check that is false in exactly the
+configuration where the stub would live. The preference is structural, and saying "structural" when
+the evidence supports "structural" is the whole discipline — this repository has been corrected three
+times for reaching for the stronger word.
+
+**4. ⭐⭐ A SUSPICION ABOUT SOMEONE ELSE'S COMMIT IS A CLAIM, AND IT COST ONE COMMAND TO CHECK.**
+`GENERATED-REPRODUCIBILITY` breached with *"recorded ed05e4f5…, live 77861be3…"*, and the value
+recorded after the rebaseline was that same live one — which is EXACTLY as consistent with "the
+previous commit left this doctrine red" as with "my own uncommitted edit did it". The observation
+cannot separate them; only a discriminator can. Recomputing `emission_sha()` by hand from its own
+definition with HEAD's `rust/Makefile` substituted for mine returns `ed05e4f5…`, the old recorded
+value, exactly ⇒ my edit alone moved it, the baseline was correct at HEAD, and there is no finding
+against the previous commit. ⇒ **when two hypotheses predict the same observation, do not publish the
+one that is more interesting — build the observation that separates them.** The interesting one here
+would have been an accusation.
+
+**5. ⭐ EVIDENCE CAN BE ACCURATE, VERIFIED, AND BLIND TO THE AXIS YOU MOVED.** The commit that broke
+the bootstrap says *"ops/build-flow, ONE recipe line; ZERO shipped bytes, generated parsers
+byte-identical"*. Both halves are TRUE. Neither is a statement about the cold path. That leaf had even
+NAMED the missing test one paragraph earlier — *"a cold-clone test this slice did not take"* — and
+deferred it; the break then arrived through the recipe it HAD changed rather than the three it had
+not. ⇒ **the missing instrument, not the missing caution, is what let two weeks pass**, and a leaf
+that identifies its own blind spot has done the hard half already: what it needs next is the cheapest
+possible way to convert that sentence into something that runs.
+
 ## 2026-08-25 - PGEN-ENGINE-UNIVERSAL-SERVICES-0086 — the audit was clean; what it found on the way was a green control that had stopped being one, a census claim nobody had censused, and an invariant the grammar disproves
 
 **1. ⭐⭐⭐ NO GATE RAN THE CRATE'S UNIT TESTS, AND THE COST WAS A GREEN CONTROL DYING SILENTLY.**

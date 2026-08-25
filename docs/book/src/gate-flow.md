@@ -130,11 +130,35 @@ The release gate. It runs ~40 stages, each declared **required** or
 **informational**, driven by the tracked policy `rust/config/sota_exit_policy.env`:
 
 ```
-PGEN_SOTA_POLICY_REQUIRED_CHECKS="differential_baseline_contract lib_unit_test_gate
-  fixed_point_gate annotation_contract_gate annotation_100_gate
+PGEN_SOTA_POLICY_REQUIRED_CHECKS="differential_baseline_contract cold_clone_build_gate
+  lib_unit_test_gate fixed_point_gate annotation_contract_gate annotation_100_gate
   annotation_nonbootstrap_e2e_gate ebnf_stimuli_quality_gate stimuli_module_parity_gate
   differential_regression_gate performance_gate embedding_api_gate"
 ```
+
+⛔⛔ **`cold_clone_build_gate` is there because this aggregate certifies a WARM tree and a fresh
+clone builds in the opposite configuration.** PGEN gates code on two independent axes: cargo
+**features**, chosen by the caller, and `has_generated_*` **artifact cfgs**, set by `build.rs` from
+what is present on disk. An item gated on artifact presence, referenced from feature-gated code,
+compiles on every developer tree — which is by definition the population where the artifacts
+exist — and cannot compile on a fresh clone. That is not hypothetical: from 2026-08-11 to
+2026-08-25 the repository could not bootstrap itself, dying on a single `error[E0425]` in the
+command [Getting Started](getting-started.md) says a clean checkout must run *first*. It went
+undetected for ten of those fourteen days. Nothing automatic
+noticed, because all eleven hosted workflows that regenerate parsers are `workflow_dispatch`-only
+by deliberate Actions-minutes policy, and the one local instrument that replays a tracked-files-only
+tree is operator-invoked.
+
+The gate runs `rust/scripts/cold_clone_build_probe.sh`, which reaches the cold configuration
+**without touching `generated/`**: `build.rs` already resolves every family artifact from a
+`PGEN_*_PARSER_PATH` environment variable, so pointing all eight at a path that does not exist
+reproduces the cold cfg state exactly, through the same `build.rs` code path, with the working tree
+and warm build cache untouched. It checks the library and the `ast_pipeline` binary — the build the
+regeneration recipe itself runs — in **6.4 s** warm. Two opt-in modes extend it: `--census` widens
+the same cold check across every feature set `Cargo.toml` declares, and `--self-test` re-injects the
+founding defect into an isolated copy and requires the probe to go **red** with the identical
+`E0425`, then requires the same copy to go green once the injection is removed. A check never
+observed failing is not known to work.
 
 ⛔⛔ **`lib_unit_test_gate` is there because until `ENGINE-UNIVERSAL-SERVICES.46` (d) no CI
 workflow, no doctrine enforcer and no gate — this aggregate included — ran the crate's own unit
@@ -897,7 +921,7 @@ breaks; each was watched failing against a mutated reader before being trusted.
 
 ## 7. How this flow has actually failed
 
-Twelve distinct shapes, all measured, all from real incidents. A new gate should be
+Thirteen distinct shapes, all measured, all from real incidents. A new gate should be
 read against this list.
 
 ### 1. A check that *cannot run* and returns green
@@ -1202,6 +1226,47 @@ spends it on a hypothesis space that does not contain the answer.
 > compares its own runs must hold the *input* still, or its disagreement names no cause.
 
 ---
+
+### 13. A change that is provably correct on every tree you own — and broken on the one you never build
+
+`generated/` is not tracked, so PGEN gates code on **two independent axes**: cargo
+**features**, chosen by the caller, and `has_generated_*` **artifact cfgs**, set by
+`build.rs` from what is present on disk. Nothing forces the two to agree, and they do not
+have to: feature-gated code is routinely compiled on a tree where an artifact cfg is unset.
+
+Which means an item gated on *artifact presence*, referenced from code gated only on
+*features*, is a compile error on exactly one population — trees without the artifact — and
+correct everywhere else. Every developer tree, every agent session and every warm CI job is
+in the other population. On 2026-08-11 a one-line build-flow fix added `ebnf_dual_run` to
+the canonical `ast_pipeline` recipe, which pulled `parse_harness_equivalence` into the
+**bootstrap** build, which references `parser_registry::active_grammar_profile` — then gated
+on the SystemVerilog or regex artifact existing. The repository could not bootstrap itself
+for **fourteen days** — undetected for the first ten of them — dying on a single
+`error[E0425]` in the command that [Getting Started](getting-started.md) says a clean
+checkout must run *first*.
+
+⭐ **The commit that caused it was not careless, and its evidence was not wrong.** Its
+subject reads *"ops/build-flow, ONE recipe line; ZERO shipped bytes, generated parsers
+byte-identical"* — and both halves are true. Neither is a statement about the cold path.
+Evidence can be accurate, verified, and blind to the axis the change moved. That leaf had
+even *named* the missing test one paragraph earlier, deferring "a cold-clone test this slice
+did not take" to a later slice; the break then arrived through the recipe it had changed
+rather than the ones it had not. **The missing instrument, not the missing caution, is what
+let two weeks pass.**
+
+**Rule:** when a repository has more than one gating axis, at least one gate must build in
+the configuration nobody develops in. And make that reproduction *non-destructive*, or it
+will never be automated: the obvious repros — wipe `generated/`, move the artifacts aside —
+mutate the tree they measure, which is why the finding sat in a task file instead of in a
+gate. `build.rs` already resolved every artifact through a `PGEN_*_PARSER_PATH` variable, so
+redirecting all eight at a path that does not exist reaches the identical cold state with
+nothing moved and nothing to restore — 6.4 s, and therefore gateable
+(`cold_clone_build_gate`, §Layer 3).
+
+⚠️ The honest bound: that gate proves the cold **compile**, not a full cold regeneration.
+The end-to-end cold path is exercised by the hosted regeneration workflows, which are
+`workflow_dispatch`-only by deliberate Actions-minutes policy — which is precisely why the
+compile-level proof had to become automatic.
 
 ## 8. What stops it drifting back
 

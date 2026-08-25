@@ -1858,6 +1858,18 @@ lib_unit_test_gate:
 		--skip parse_harness_semantic_suite::gate
 	@echo "✅ Crate unit-test suite passed."
 
+.PHONY: cold_clone_build_gate
+cold_clone_build_gate:
+	@echo "🧊 Proving the COLD-CLONE build configuration compiles (CI-PARITY-GATE-ROT.40)..."
+	@echo "   PGEN gates code on TWO INDEPENDENT AXES: FEATURES (caller-chosen) and ARTIFACT cfgs"
+	@echo "   (has_generated_*, set by build.rs from what is on disk). An item gated on ARTIFACT"
+	@echo "   presence, referenced from FEATURE-gated code, compiles on every developer tree and"
+	@echo "   makes a FRESH CLONE unbuildable — README.md's Quick Start command included."
+	@echo "   That is exactly how the bootstrap died from 0099d0d3 on one E0425: undetected 10"
+	@echo "   days, unrepaired 14 (2026-08-11 -> 2026-08-25)."
+	bash $(RUST_DIR)/scripts/cold_clone_build_probe.sh
+	@echo "✅ Cold-clone build configuration compiles."
+
 .PHONY: profile_gate_monotonicity_gate
 profile_gate_monotonicity_gate:
 	@echo "🚦 Running the profile-gate monotonicity probe (ENGINE-UNIVERSAL-SERVICES.46)..."

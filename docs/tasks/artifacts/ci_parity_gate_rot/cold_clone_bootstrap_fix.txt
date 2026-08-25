@@ -1,0 +1,201 @@
+# CI-PARITY-GATE-ROT.40 — THE COLD-CLONE BOOTSTRAP, FIXED AND INSTRUMENTED
+# Measured 2026-08-25. Companion to cold_clone_bootstrap_break.txt, which routed the finding.
+# Fix = rust/src/parser_registry.rs (two cfg attributes deleted).
+# Instrument = rust/scripts/cold_clone_build_probe.sh + `make -C rust cold_clone_build_gate`,
+#              wired as a REQUIRED check of sota_exit_gate.
+
+## 0. A BETTER REPRODUCTION THAN THE ONE THAT ROUTED THE FINDING
+
+  The routing leaf reproduced this twice, and stated as an HONEST BOUND that neither reproduction
+  was pristine: one wiped `generated/`, one moved two files out of it. Both mutate the tree they
+  are measuring, so neither can be run by a gate.
+
+  ⭐ `build.rs` already resolves every family artifact from a `PGEN_*_PARSER_PATH` env var
+  (default `../generated/<name>.rs`) and sets `has_generated_*` only when `is_file()` holds
+  (rust/build.rs:29-60, 95-181). Pointing all eight at a path that does not exist reproduces the
+  cold cfg state EXACTLY — same build.rs code path, same absent cfgs — while `generated/` and the
+  warm build cache are untouched. Builds go to a separate CARGO_TARGET_DIR.
+
+  ⇒ the reproduction became non-destructive, repeatable and therefore GATEABLE. That is the whole
+    reason the instrument in §3 can exist.
+
+  SCOPE BOUND: the two ANNOTATION parsers are `include!`d by HARDCODED path under
+  `#[cfg(feature = "generated_parsers")]` (rust/src/lib.rs:84,90) — no artifact cfg guards them.
+  The bootstrap generates that pair BEFORE any family parser, so this models the bootstrap state AT
+  THE FAILING STEP (annotation pair present, families absent), not the earlier bare state.
+
+## 1. BEFORE — the defect, at HEAD ddabf65f
+
+  $ env CARGO_TARGET_DIR=target/coldprobe PGEN_<all eight>_PARSER_PATH=<absent> \
+      cargo check --manifest-path rust/Cargo.toml \
+                  --features "generated_parsers ebnf_dual_run" --lib --message-format short
+
+    src/parse_harness_equivalence.rs:332:50: error[E0425]: cannot find function
+      `active_grammar_profile` in module `crate::parser_registry`: not found in
+      `crate::parser_registry`
+
+    exit=101      error[ ] lines: 1      (memory guard: peak tree RSS 1648 MB, 81 s)
+
+  Byte-for-byte the error the routing leaf recorded from the full cold `regenerate_generated_parsers`
+  run — same code, same file, same line, same column, same count.
+
+## 2. THE FIX — the gate comes OFF the accessor and stays ON the data
+
+  rust/src/parser_registry.rs, two attributes deleted:
+
+    -#[cfg(any(has_generated_systemverilog_parser, has_generated_regex_parser))]
+     pub fn active_grammar_profile(grammar_name: &str, grammar_profile: Option<&str>) -> Option<String>
+
+    -#[cfg(any(has_generated_systemverilog_parser, has_generated_regex_parser))]
+     fn default_generated_grammar_profile(grammar_name: &str) -> Option<&'static str>
+
+  ⭐ WHY THIS SHAPE AND NOT THE ONE THE ROUTING LEAF PRICED. That leaf priced "a
+  `#[cfg(not(any(...)))]` companion returning `None`". Both compile. The ungate is preferred on
+  three measured grounds:
+
+    (i)   PRIOR ART, three lines away in the same file: `resolve_generated_grammar_profile_alias`
+          already carries exactly the cfg/cfg-not companion pair (parser_registry.rs:487,497) —
+          and it is the ONLY thing under `active_grammar_profile` that actually needs a parser.
+          The knowledge is already gated one level down. A second companion pair would gate the
+          same knowledge twice.
+    (ii)  ONE DEFINITION, so there is no divergence surface. A `cfg(not(...))` twin is a second
+          body that no warm build ever compiles and no warm test ever runs.
+    (iii) `default_generated_grammar_profile`'s only artifact-specific content is ALREADY a cfg'd
+          match arm (`#[cfg(has_generated_regex_parser)] "regex" => …`). With no family artifact
+          the arm vanishes and the lookup answers `None` — which is the correct answer, not a stub's
+          answer: no registered grammar declares a `@default_profile` it could source.
+
+  ⚠️ HONEST BOUND on (ii): the two directions are NOT behaviourally distinguishable through any
+  live path today. A stub returning `None` would DROP a requested profile, where the ungated body
+  returns it normalized — but `EquivalenceConfig` is constructed only inside
+  parse_harness_equivalence (measured: no other module names it), its profile comes from
+  EQUIVALENCE_TARGETS, and `systemverilog` is the only row with a non-`None` profile — a row
+  guarded by `supports_grammar()` at parse_harness_equivalence.rs:312, which is false in exactly
+  the configuration where the stub would exist. So the difference is LATENT, reachable only by a
+  future non-gate caller of this `pub fn`. The preference is structural, not a refutation.
+
+## 3. AFTER — same command, same cold configuration
+
+    cold `cargo check --lib`              exit=0    error[ ] lines: 0
+    cold `cargo check --bin ast_pipeline` exit=0    error[ ] lines: 0     <- the build the
+                                                                            bootstrap itself runs
+
+  ⭐ THE AFTER RUN IS THE CENSUS. Rust name resolution is a whole-crate pass: it collects every
+  unresolved reference before aborting, so "exactly 1 E0425" was a complete count for this
+  configuration, not a first-hit. And the clean AFTER run proves no second instance was masked
+  behind the first — including error classes (type, trait) that resolution failure would have
+  hidden. The routing leaf asked (a) to "confirm it is the only such reference rather than the
+  first one found"; this is that confirmation, by the compiler rather than by grep.
+
+  ⚠️ BOUND: the census is closed over the BOOTSTRAP feature set
+  (`generated_parsers ebnf_dual_run`) — the one the cold path uses — for the lib and the
+  `ast_pipeline` bin. Other feature combinations are measured separately in §5.
+
+## 4. THE INSTRUMENT — 4/4 arms, RED control included
+
+  $ rust/scripts/cold_clone_build_probe.sh --self-test
+
+    arm 1  cold cargo check --lib                        expect pass   ✅ exit=0, 0 errors
+    arm 2  cold cargo check --bin ast_pipeline           expect pass   ✅ exit=0, 0 errors
+    arm 3  RED CONTROL: artifact gate re-added to
+           active_grammar_profile, in an ISOLATED COPY   expect fail   ✅ exit=101
+             src/parse_harness_equivalence.rs:332:50: error[E0425]: cannot find function
+               `active_grammar_profile` in module `crate::parser_registry`
+    arm 4  GREEN CONTROL: same copy, injection removed   expect pass   ✅ exit=0, 0 errors
+
+    ✅ 4/4 arms.
+
+  Arm 3 REPRODUCES THE FOUNDING DEFECT — the identical E0425 — so this probe is known to detect the
+  thing it was built for (CI-PARITY-GATE-ROT.27: a check that cannot fail proves nothing). Arm 4
+  isolates the cause to the re-injected gate rather than to the copy. The injection happens in
+  tmp/cold_clone_build_probe_selftest/, never in the working tree, and the copy is removed after.
+
+  COST (measured):  6.4 s warm  |  28.4 s with a partly-cold probe target dir  |  45.9 s with
+  --self-test  |  ~81 s from a completely cold probe target dir.
+
+  WIRING (GATE-REACHABILITY refuses a gate nothing invokes — it refused .46(d)'s new target until
+  it was wired):
+    rust/Makefile                 `cold_clone_build_gate`  → runs the probe
+    rust/scripts/sota_exit_gate.sh  POLICY_REQUIRED_CHECKS gains `cold_clone_build_gate`,
+                                    dispatched by a `run_check … "required"` arm
+  ⚠️ HONEST BOUND on the wiring: sota_exit_gate is an hours-long aggregate, which is the exact
+  late-reporting shape CI-PARITY-GATE-ROT.39 filed. The probe is cheap enough (6.4 s warm) for a
+  faster tier; it is not placed there in this slice because the automatic `push:` lane that would
+  host it is CI-PARITY-GATE-ROT.49, whose own workflow — running the composite regeneration action
+  on a bare checkout — exercises the REAL cold path end to end. .49 was blocked on this leaf and is
+  now unblocked; that is where the automatic tier belongs.
+
+## 5. FEATURE-SET WIDENING — the cold check over every feature set the crate declares
+
+  §3's census is closed over the BOOTSTRAP feature set. "It is the only such reference" is a CENSUS
+  claim, so the population is the feature sets, and it is enumerated from `rust/Cargo.toml`'s own
+  `[features]` block rather than from the ones that came to mind.
+
+  $ rust/scripts/cold_clone_build_probe.sh --census --self-test
+
+    arm 3  cold --lib, DEFAULT features                              ✅ exit=0, 0 errors
+    arm 4  cold --lib --features normal                              ✅ exit=0, 0 errors
+    arm 5  cold --lib --features generated_parsers                   ✅ exit=0, 0 errors
+    arm 6  cold --lib --features ebnf_dual_run                       ✅ exit=0, 0 errors
+    arm 7  cold --bin ast_pipeline_bootstrap --features bootstrap    ✅ exit=0, 0 errors
+             (the bootstrap's FIRST build — the one that seeds generated/ebnf.rs)
+
+    ✅ 9/9 arms with --census --self-test.
+
+  ⇒ no OTHER item gated on artifact presence is referenced from feature-gated code, in ANY declared
+    feature configuration, for the lib or either pipeline binary.
+
+  ⚠️ BOUND: `mimalloc_perf` and `never_free_arena_perf` are excluded — both only install a
+  `#[global_allocator]` and neither is on any bootstrap path. The census mode is opt-in (~2 min);
+  the gate runs the two bootstrap arms.
+
+## 6. NO REGRESSION
+
+  * GENERATED-REPRODUCIBILITY tier 2 (`--rebaseline`): rust/Makefile is inside the DERIVED emission-
+    source identity set (`git ls-files rust/src/ast_pipeline` + rust/Makefile), so adding a gate
+    target moved the digest and the doctrine went RED — by design, over-inclusive on purpose. The
+    prescribed remedy re-derives EVERY artifact from HEAD and compares byte-for-byte.
+    RESULT: see §6.1.
+  * scripts/check_doctrines.sh: full run, all registered doctrines.
+  * The fix changes no warm-configuration code path: in any build where either family artifact is
+    present, the two functions are compiled from the same bytes as before, with the same cfg'd match
+    arms. The deleted attributes were TRUE in every warm configuration.
+
+### 6.1 tier-2 re-derivation result — 11/11 BYTE-IDENTICAL
+
+  $ scripts/run_with_memory_guard.sh --budget-mb 16384 --timeout-s 7200 -- \
+      make -C rust SHELL=/bin/bash generated_reproducibility_rebaseline
+
+    ✓ return_annotation   ✓ semantic_annotation   ✓ json      ✓ regex     ✓ systemverilog
+    ✓ systemverilog_preprocessor   ✓ vhdl   ✓ rtl_const_expr  ✓ rtl_frontend  ✓ scratch  ✓ ebnf
+      — every one "re-derives byte-identically (0 sites)"
+    memory-guard: completed exit=0 peak_tree_rss=7037MB elapsed=126s
+
+  Baseline diff: exactly TWO fields — `verified_at_commit` and `emission_sha`. No artifact hash
+  moved. This slice changes ZERO generated bytes.
+
+  ⛔ I SUSPECTED THIS WAS A PRE-EXISTING RED AT HEAD AND IT IS NOT — measured, not assumed.
+  The breach message read "recorded ed05e4f5…, live 77861be3…", and the value RECORDED after the
+  rebaseline was that same live 77861be3… — which is equally consistent with (H1) the digest reading
+  HEAD's committed content, meaning the previous commit left the doctrine red, and (H2) the digest
+  reading the WORKING TREE, meaning my own uncommitted Makefile edit caused it. The observation
+  alone cannot separate them.
+
+  DISCRIMINATOR — recompute the digest exactly as `emission_sha()` does (`git ls-files` for the
+  file LIST, `sha_file` for the CONTENT), once from the working tree and once with HEAD's
+  `rust/Makefile` substituted for mine:
+
+    working tree (my edit present)  -> 77861be38c2577686d5fcb9ea76e9ce5a12a0e2d9a66d843c578b4dccecd0c1a
+    HEAD's Makefile substituted     -> ed05e4f564ba3636b035456d27bf96b9f13654f97f227c0ac1e9fe1c310acd87
+    files hashed: 29  (28 under rust/src/ast_pipeline + rust/Makefile)
+
+  The second value IS the old recorded one. ⇒ H2. The baseline was CORRECT at HEAD `ddabf65f`; my
+  Makefile edit alone moved it, which is the over-inclusive identity set behaving exactly as
+  designed ("a change to a code-generator file that happens not to affect emission costs one
+  re-verify"). No finding against `-0086`. The suspicion is retracted here rather than published.
+
+  ⚠️ NOT OBSERVED: `CI-PARITY-GATE-ROT.41` predicts "an 11th artifact the canonical regeneration
+  recipe does not produce, so every codegen change fails its own rebaseline once". This rebaseline
+  recorded 11 rows and none failed — but this is NOT evidence that `.41` is fixed: `.41`'s trigger
+  is a CODEGEN change, and this slice changes no code-generator file. `.41` stays open, untested by
+  this run.

@@ -431,7 +431,6 @@ type ParseAndCoverFn =
 /// counting them. Same data-driven boundary as `parse_and_cover`: the per-grammar knowledge lives in
 /// the registry table, never in the pipeline.
 
-#[cfg(any(has_generated_systemverilog_parser, has_generated_regex_parser))]
 /// The **active** dialect profile a grammar parses under, given a requested profile — the single source
 /// of truth for per-grammar profile resolution (an unspecified/empty profile resolves to the grammar's
 /// DECLARED `@default_profile`, sourced from the generated parser's `DEFAULT_GRAMMAR_PROFILE` constant
@@ -439,6 +438,15 @@ type ParseAndCoverFn =
 /// a profile-aware second parser (the PARSE-HARNESS interpreter) must gate `@profiles` rules against so
 /// it matches `parse_sample` byte-for-byte (PARSE-HARNESS.5.1). Returns an owned `String` so a
 /// non-registry caller need not borrow the request.
+///
+/// ⛔ `CI-PARITY-GATE-ROT.40`: this accessor is **UNGATED on purpose — do not re-add a
+/// `has_generated_*` cfg to it.** Its only caller, `parse_harness_equivalence`, is gated on
+/// FEATURES (`ebnf_dual_run` + `generated_parsers`), an axis ORTHOGONAL to the `has_generated_*`
+/// ARTIFACT cfgs — so an artifact gate here makes the crate unbuildable (`E0425`) in exactly the
+/// configuration the COLD-CLONE BOOTSTRAP passes through: the build that GENERATES the first family
+/// parser must compile before any family parser exists. The artifact-specific knowledge stays gated
+/// one level down — inside `default_generated_grammar_profile`'s match arm and the alias
+/// resolver's cfg companion pair. **The data is gated; the accessor never is.**
 pub fn active_grammar_profile(grammar_name: &str, grammar_profile: Option<&str>) -> Option<String> {
     normalize_generated_grammar_profile(grammar_name, grammar_profile)
         .map(|s| s.to_string())
@@ -452,7 +460,11 @@ pub fn active_grammar_profile(grammar_name: &str, grammar_profile: Option<&str>)
 /// retired `== "regex" → "pcre2"` literal was exactly that defect class). Same data-driven
 /// boundary as `parse_and_cover`: the per-grammar datum lives in this table, sourced from the
 /// grammar-derived artifact.
-#[cfg(any(has_generated_systemverilog_parser, has_generated_regex_parser))]
+///
+/// ⛔ `CI-PARITY-GATE-ROT.40`: **UNGATED on purpose** (see `active_grammar_profile`). With neither
+/// family artifact compiled in, every arm below is cfg-ed out and the lookup answers `None` — no
+/// registered grammar declares a `@default_profile` it could source. The arms carry the gate; the
+/// function does not.
 fn default_generated_grammar_profile(grammar_name: &str) -> Option<&'static str> {
     match grammar_name {
         #[cfg(has_generated_regex_parser)]

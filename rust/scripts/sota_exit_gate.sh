@@ -30,7 +30,7 @@ fi
 source "$POLICY_FILE"
 
 POLICY_VERSION="${PGEN_SOTA_POLICY_VERSION:-1}"
-POLICY_REQUIRED_CHECKS="${PGEN_SOTA_POLICY_REQUIRED_CHECKS:-differential_baseline_contract lib_unit_test_gate fixed_point_gate annotation_contract_gate annotation_nonbootstrap_e2e_gate ebnf_stimuli_quality_gate stimuli_module_parity_gate differential_regression_gate performance_gate embedding_api_gate}"
+POLICY_REQUIRED_CHECKS="${PGEN_SOTA_POLICY_REQUIRED_CHECKS:-differential_baseline_contract cold_clone_build_gate lib_unit_test_gate fixed_point_gate annotation_contract_gate annotation_nonbootstrap_e2e_gate ebnf_stimuli_quality_gate stimuli_module_parity_gate differential_regression_gate performance_gate embedding_api_gate}"
 POLICY_RUN_EBNF_READINESS="${PGEN_SOTA_POLICY_RUN_EBNF_READINESS:-1}"
 POLICY_REQUIRE_EBNF_STRICT="${PGEN_SOTA_POLICY_REQUIRE_EBNF_STRICT:-0}"
 POLICY_RUN_EBNF_DUAL_RUN_DIFF="${PGEN_SOTA_POLICY_RUN_EBNF_DUAL_RUN_DIFF:-1}"
@@ -1028,6 +1028,22 @@ run_required_check_by_name() {
         # featured suite. Nothing invokes any of them either.
         # The three `parse_harness_*::gate` suites are skipped inside the target: each is
         # already its own gate and the combinator one alone costs ~665 s.
+        # CI-PARITY-GATE-ROT.40: the aggregate certifies a WARM tree — one where `generated/` is
+        # populated and every `has_generated_*` cfg is set. The configuration a FRESH CLONE builds
+        # in is the opposite one, and it is not otherwise exercised by anything automatic: all 11
+        # hosted workflows using the composite regeneration action are `workflow_dispatch` only,
+        # and the local tracked-files-only replay (`prepare_generated_artifacts`) is operator-
+        # invoked. So the bootstrap broke on 2026-08-11 and no gate said so for 10 days, while
+        # README.md's Quick Start named the failing command as a fresh clone's FIRST step.
+        # ⚠️ HONEST BOUND: this arm proves the cold COMPILE, not the full cold regeneration —
+        # it is a `cargo check` in the cold artifact configuration, ~6 s warm, ~80 s cold.
+        cold_clone_build_gate)
+            run_check \
+                "cold_clone_build_gate" \
+                "required" \
+                "the crate compiles in the COLD-CLONE artifact configuration (fresh-clone bootstrap)" \
+                make -C rust SHELL=/bin/bash cold_clone_build_gate
+            ;;
         lib_unit_test_gate)
             run_check \
                 "lib_unit_test_gate" \

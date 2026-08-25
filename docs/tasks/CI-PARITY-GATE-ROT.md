@@ -143,6 +143,48 @@ commands.
 
 **It cannot complete, and has not been able to for 1,371 commits.**
 
+### ⚠️ `.45` NEW `todo` — **the aggregate's required-check roster is spelled TWICE, and one of the two spellings is DEAD CODE that has already drifted — so adding a check to the wrong one wires NOTHING** (opened 2026-08-25 session by `.40`, which nearly shipped exactly that)
+
+> ⛔ **ROUTED, NOT WORKED.** `.40` hit this while wiring its own gate, corrected its own change, and
+> measured the drift. Fixing the duplication is a change to the aggregate's configuration surface,
+> which is not something to fold into an unrelated leaf closure.
+
+- ⛔ **THE FINDING.** The list of required checks exists in two places:
+  * `rust/config/sota_exit_policy.env:15` — `PGEN_SOTA_POLICY_REQUIRED_CHECKS=...`, the TRACKED
+    policy, and the one the book documents;
+  * `rust/scripts/sota_exit_gate.sh:33` — `POLICY_REQUIRED_CHECKS="${PGEN_SOTA_POLICY_REQUIRED_CHECKS:-<the same roster>}"`.
+
+  The script **sources the policy file at line 30**, three lines earlier. The env var is therefore
+  ALWAYS set by the time line 33 runs, so the `:-` default **can never bind in a real run**. It is
+  dead code that reads exactly like live configuration.
+- ⛔⛔ **AND IT HAS ALREADY DRIFTED — measured, not predicted:**
+  ```
+  policy names: 12 · every one has a dispatch arm (12/12)
+  script-default-only names : []
+  policy-only names         : ['annotation_100_gate']
+  ```
+  ⇒ the dead default is **one check behind** the live roster. Nothing compares them, and nothing
+  can: the dead one produces no behaviour to disagree with.
+- ⭐ **HOW IT WAS FOUND, because the near-miss is the point.** `.40` added `cold_clone_build_gate`
+  to the **script default** first, ran `scripts/check_doctrines.sh`, and got a GREEN
+  `GATE-REACHABILITY` — the doctrine sees the `make -C rust … cold_clone_build_gate` invocation
+  inside the dispatch arm and is satisfied, which is correct as far as it goes. The gate would have
+  been **wired in appearance and unreachable in fact**, and the only reason it was caught is that
+  the book names `rust/config/sota_exit_policy.env` as the policy, which prompted a check of which
+  spelling actually binds. ⇒ **this is `.40`'s own defect class one level up**: a change that is
+  right on the path you can see and inert on the path that runs.
+- **WHAT THIS LEAF OWES**: (a) delete one of the two spellings — the script default is the natural
+  casualty, but it must first be confirmed that no caller runs the script with `PGEN_SOTA_POLICY_FILE`
+  pointed at a file lacking the variable (that is the only configuration in which the default is
+  reachable, and it is why the fix is not a one-line delete); (b) if the default must stay as a
+  last-resort, make the divergence a REFUSAL rather than a silent preference; (c) consider whether
+  the `policy name ⊆ dispatch arms` check — 12/12 today, and mechanically cheap — belongs in
+  `FLOW-INTEGRITY`, since an unknown name is already `exit 2` at RUN time, hours in.
+- ⚠️ **HONEST BOUND**: the drift measured here is one name in the harmless direction (the dead list
+  is missing a check the live list has). I did NOT establish that the reverse has never happened, and
+  the reverse — a check present only in the dead default — is the shape that publishes a gate nobody
+  runs. That is a `git log -p` question this leaf did not take.
+
 ### ⭐⭐ `.44` NEW `todo` — **the SV parser's construct-level regression suite — 180 rows, 2.25 s, `failures=0` — is invoked by NO gate, NO make target and NO workflow** (routed in 2026-08-23 session by `SV-CORPUS-GRAD.13c.2b` / `PGEN-SV-CORPUS-GRAD-0279`)
 
 > ⛔ **ROUTED, NOT WORKED** — found while closing an SV-release leaf. It is on the SV release path
@@ -292,8 +334,13 @@ commands.
   this adds is that a reproduction attempt must first ensure the recipe is out of date, or it will
   conclude the bug does not exist.
 
-### ⛔⛔ `.40` NEW `todo` — **THE COLD-CLONE BOOTSTRAP IS BROKEN, AND `.24` SLICE 2 BROKE IT — a one-line fix whose own evidence ("ZERO shipped bytes, generated parsers byte-identical") was TRUE and could not see this** (routed in 2026-08-21 session #253 by `ENGINE-UNIVERSAL-SERVICES.43`, which needed a full regeneration and hit it twice)
+### ✅ `.40` `done` — **THE COLD-CLONE BOOTSTRAP IS BROKEN, AND `.24` SLICE 2 BROKE IT — a one-line fix whose own evidence ("ZERO shipped bytes, generated parsers byte-identical") was TRUE and could not see this** (routed in 2026-08-21 session #253 by `ENGINE-UNIVERSAL-SERVICES.43`, which needed a full regeneration and hit it twice)
 
+> ✅ **CLOSED 2026-08-25 (`PGEN-CI-PARITY-GATE-ROT-0034`) — (a) fix, (b) instrument and (c) the
+> `.24` note are all discharged; the work record is at the end of this leaf.** The blockquote below
+> is the ROUTING note, kept verbatim because its recommendation ("it should jump the rest of this
+> tree's queue") is what actually happened, two consumers later.
+>
 > ⛔ **ROUTED, NOT WORKED.** Found while executing the director-ruled SV-release frontier
 > (`ENGINE-UNIVERSAL-SERVICES.43`). The lane lock binds work, not discovery, so this leaf carries
 > the measurement and the fix direction and is **not** implemented here. ⭐ **Recommendation: it
@@ -366,6 +413,118 @@ commands.
   2026-08-11 — it cannot have been run AND passed, so either it was not run or its failure was not
   acted on; and neither reproduction was a pristine `git clone` (one wiped `generated/`, one removed
   two files), though both isolate the same variable.
+
+
+#### ✅ `.40` WORKED AND CLOSED (2026-08-25, `PGEN-CI-PARITY-GATE-ROT-0034`) — full evidence in [`artifacts/ci_parity_gate_rot/cold_clone_bootstrap_fix.txt`](artifacts/ci_parity_gate_rot/cold_clone_bootstrap_fix.txt)
+
+⭐⭐ **WHY IT WAS WORKED NOW, ahead of the rest of this tree's queue and ahead of the SV lane it was
+parked behind**: `ENGINE-UNIVERSAL-SERVICES.49` — the director-delegated automatic `push:` lane for
+the crate's unit tests — is BLOCKED on it. Every such workflow runs
+`.github/actions/regenerate-parsers` on a bare checkout, which is precisely the path this leaf
+records as dead, so a `push:` workflow landed before this fix is RED on arrival at step 3 of 5,
+forever, without ever reaching a test. `.40` was the SECOND consumer to hit it; its own routing note
+had already recommended it jump the queue.
+
+⭐⭐⭐ **A BETTER REPRODUCTION IS WHAT MADE THE INSTRUMENT POSSIBLE — and it came from reading the
+producer instead of the symptom.** The routing note's two reproductions both MUTATE the tree they
+measure (one wiped `generated/`, one moved two files out of it), and it declared as an honest bound
+that neither was pristine. A gate cannot run either. But `rust/build.rs` already resolves every
+family artifact from a `PGEN_*_PARSER_PATH` env var and sets `has_generated_*` only when
+`is_file()` holds — so pointing all eight at a path that does not exist reproduces the cold cfg
+state EXACTLY, through the same `build.rs` code path, with `generated/` and the warm build cache
+untouched. ⇒ **the reproduction became non-destructive, repeatable, and therefore GATEABLE.** The
+fix was ~15 minutes; the reproduction is what this leaf is actually worth.
+
+⭐⭐ **THE FIX IS THE OPPOSITE SHAPE TO THE ONE PRICED — the gate comes OFF, it does not get a
+twin.** The routing note priced a `#[cfg(not(any(...)))]` companion returning `None`. What shipped
+deletes TWO cfg attributes instead, leaving one definition of each function:
+
+```
+-#[cfg(any(has_generated_systemverilog_parser, has_generated_regex_parser))]
+ pub fn active_grammar_profile(grammar_name: &str, grammar_profile: Option<&str>) -> Option<String>
+-#[cfg(any(has_generated_systemverilog_parser, has_generated_regex_parser))]
+ fn default_generated_grammar_profile(grammar_name: &str) -> Option<&'static str>
+```
+
+Three grounds, in order of weight: (i) **PRIOR ART three lines away in the same file** —
+`resolve_generated_grammar_profile_alias` already carries the cfg/cfg-not companion pair
+(`parser_registry.rs:487,497`), and it is the ONLY thing under `active_grammar_profile` that needs a
+parser at all, so the knowledge is already gated one level down and a second pair would gate it
+twice; (ii) **one definition, so there is no divergence surface** — a `cfg(not(...))` twin is a body
+no warm build compiles and no warm test runs; (iii) `default_generated_grammar_profile`'s only
+artifact-specific content is ALREADY a cfg'd match arm, so with no artifact the arm vanishes and the
+lookup answers `None` — the *correct* answer, not a stub's. ⇒ **the data is gated; the accessor
+never is**, and both functions now carry a doc block saying so, because the next reader's instinct
+will be to restore the gate.
+
+⚠️ **HONEST BOUND, because the temptation was to call the priced direction WRONG**: the two
+directions are NOT behaviourally distinguishable through any live path today. A `None` stub would
+DROP a requested profile where the ungated body normalizes and returns it — but `EquivalenceConfig`
+is constructed only inside `parse_harness_equivalence` (measured: no other module names it), its
+profile comes from `EQUIVALENCE_TARGETS`, and `systemverilog` is the only row with a non-`None`
+profile — a row guarded by `supports_grammar()` at `parse_harness_equivalence.rs:312`, which is
+FALSE in exactly the configuration where the stub would exist. The difference is **LATENT**,
+reachable only by a future non-gate caller of this `pub fn`. **The preference is structural, not a
+refutation.**
+
+⭐ **(b) THE INSTRUMENT — `rust/scripts/cold_clone_build_probe.sh`, 9/9 arms.** Default: the cold
+`--lib` and the cold `--bin ast_pipeline` (the build `regenerate_generated_parsers` itself runs).
+`--census`: the same cold configuration under EVERY feature set `Cargo.toml` declares, including
+`--bin ast_pipeline_bootstrap --features bootstrap`, the build that seeds `generated/ebnf.rs`.
+`--self-test`: a **RED CONTROL** that re-injects the founding artifact gate into an isolated copy
+and must go red with the identical `E0425`, plus a **GREEN CONTROL** on the same copy with the
+injection removed, so the red is attributed to the gate and not to the copy. Wired as
+`make -C rust cold_clone_build_gate` and as a **required** check of `sota_exit_gate` —
+`GATE-REACHABILITY` treats a gate nothing invokes as one that does not exist, exactly as it refused
+`.46`(d)'s target until it was wired. Cost **6.4 s** warm, ~81 s from a cold probe target dir.
+
+⚠️ **HONEST BOUND ON THE WIRING, filed rather than glossed**: `sota_exit_gate` is an hours-long
+aggregate, which is the precise late-reporting shape `.39` filed against this tree. The probe is
+cheap enough for a faster tier. It is not placed there in this slice because the automatic `push:`
+lane that should host it is `ENGINE-UNIVERSAL-SERVICES.49`, whose workflow exercises the REAL cold
+path end-to-end on a bare checkout — and `.49` was blocked on this leaf until now.
+
+#### Acceptance Checklist (enforced) — `.40`
+
+- [x] **REPRODUCE / ISSUE** — reproduced deterministically and NON-DESTRUCTIVELY at HEAD `ddabf65f`
+  by redirecting all eight `PGEN_*_PARSER_PATH` vars to an absent path:
+  `cargo check --features "generated_parsers ebnf_dual_run" --lib` → **exit 101, exactly ONE
+  `error[...]` line**, byte-for-byte the error the routing note captured from the full cold
+  `regenerate_generated_parsers` run:
+  `src/parse_harness_equivalence.rs:332:50: error[E0425]: cannot find function
+  active_grammar_profile in module crate::parser_registry`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: PGEN gates code on TWO INDEPENDENT AXES — FEATURES
+  (caller-chosen) and ARTIFACT cfgs (`has_generated_*`, set by `build.rs` from what is on disk). An
+  item gated on ARTIFACT presence, referenced from FEATURE-gated code, compiles on every developer
+  tree and cannot compile on a fresh clone. WHERE, three files: `lib.rs:36` gates
+  `parse_harness_equivalence` on FEATURES; `parser_registry.rs:434` gated `active_grammar_profile`
+  on ARTIFACTS; `parse_harness_equivalence.rs:332` calls it unconditionally — while `rust/Makefile`
+  makes the target that CREATES the first artifact depend on a build that needed one to exist.
+  Dated to `0099d0d3` (2026-08-11, `.24` slice 2) by the routing note, which resolved a
+  contradiction in the repository's own record rather than dismissing it.
+- [x] **FIX** — fix-hierarchy tier = **engine/source**, ZERO grammar, codegen, interpreter or
+  generated bytes. Two `#[cfg(any(...))]` attributes deleted in `rust/src/parser_registry.rs`; the
+  artifact knowledge stays gated one level down, in the match arm and the alias companion pair.
+- [x] **ADDRESSED (verified)** — measured before→after on the identical command. **BEFORE:**
+  exit 101, 1 error. **AFTER:** cold `--lib` exit **0**, 0 errors; cold `--bin ast_pipeline` exit
+  **0**, 0 errors. ⭐ **The AFTER run IS the census the routing note asked for** ("(a) must confirm
+  it is the only such reference rather than the first one found"): Rust name resolution is a
+  whole-crate pass, so "exactly 1 `E0425`" was a complete count for that configuration, and a clean
+  AFTER run proves no second instance — nor any type/trait error — was masked behind the first.
+  Widened by `--census` to every declared feature set (default, `normal`, `generated_parsers`,
+  `ebnf_dual_run`, and `bootstrap` + `ast_pipeline_bootstrap`): **9/9 arms**, 0 errors everywhere.
+  ⚠️ BOUND: `mimalloc_perf`/`never_free_arena_perf` excluded — allocator-only, on no bootstrap path.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **all 27 enforced doctrines PASS**.
+  `GENERATED-REPRODUCIBILITY` went RED on the `rust/Makefile` edit (the DERIVED emission-source
+  identity set is over-inclusive on purpose) and its prescribed tier-2 `--rebaseline` re-derived
+  **11 of 11 artifacts BYTE-IDENTICALLY** (`0 sites` each; guard exit 0, peak 7037 MB, 126 s). The
+  baseline diff is exactly two fields — `verified_at_commit` and `emission_sha`. This slice changes
+  ZERO generated bytes. ⛔ **A SUSPICION WAS RAISED AND MEASURED AWAY RATHER THAN PUBLISHED**: the
+  breach was equally consistent with the previous commit having left the doctrine red, so
+  `emission_sha()` was recomputed by hand from its own definition with HEAD's `rust/Makefile`
+  substituted for the working-tree one — it returns `ed05e4f5…`, **the old recorded value exactly**.
+  The baseline was CORRECT at HEAD; my edit alone moved it. No finding against `-0086`.
+- promotion: `docs/knowledge/a-conditional-compilation-gate-is-a-claim-about-which-trees-exist.md` **NEW**.
 
 ### The first blocker (repaired by `GENERATED-LINT-CORRECTNESS.3`, not by this tree)
 
@@ -3771,6 +3930,24 @@ evidence is a ~10-minute 3-seed run this slice did not have time to take. **Owed
    `ebnf_dual_run` ALONE (losing `generated_parsers`). Deliberately untouched — that is the
    cold-clone seed path where `generated/` may be empty, so changing its feature set needs a
    cold-clone test this slice did not take. **Slice 3.**
+
+   ⛔⛔ **NOTE ADDED 2026-08-25 BY `.40`, WHICH THIS SLICE CAUSED — AND SLICE 2'S EVIDENCE IS NOT
+   WRONG.** Adding `ebnf_dual_run` to `$(RUST_AST_PIPELINE)` pulled `parse_harness_equivalence` —
+   gated on BOTH features — into the BOOTSTRAP build, and with it a reference to
+   `parser_registry::active_grammar_profile`, then gated on artifact presence. The cold-clone
+   bootstrap died on one `E0425` and stayed dead for 10 days. ⭐ **Read slice 2's own claims
+   carefully before concluding it was sloppy: *"ops/build-flow, ONE recipe line; ZERO shipped bytes,
+   generated parsers byte-identical"* is TRUE in both halves, and NEITHER half is a statement about
+   the cold path.** The evidence was accurate and blind to the axis the change moved — which is the
+   whole lesson, and why `.40` did not file this as a defect in slice 2's rigour.
+   ⭐⭐ **AND SLICE 2 SAW THE EXACT RISK, ONE PARAGRAPH UP**: its residual says the seed path
+   *"is the cold-clone seed path where `generated/` may be empty, so changing its feature set needs
+   a cold-clone test this slice did not take."* It named the missing test, deferred it to slice 3,
+   and the breakage arrived through the recipe it HAD changed rather than the three it had not.
+   ⇒ the missing instrument, not the missing caution, is what let 10 days pass. `.40` built it:
+   `rust/scripts/cold_clone_build_probe.sh` reproduces the cold artifact configuration
+   NON-DESTRUCTIVELY (all eight `PGEN_*_PARSER_PATH` vars redirected to an absent path), so **slice 3
+   now has the cold-clone test slice 2 said it did not take**, at 6.4 s.
 
 1. **Give the path one owner.** Make the canonical rule build both features, and let the 21
    dependants inherit it. ⛔ Price first: `ebnf_dual_run` compiles the `.ebnf` frontend into every
