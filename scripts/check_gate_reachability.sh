@@ -333,10 +333,24 @@ def expand_make_var(token):
         #   with EMPTY stdout, so the legitimate "this token is not a make variable" case never raises
         #   and never returns nonzero. ⇒ an exception or a nonzero exit can ONLY mean a real failure,
         #   and there is no legitimate empty expansion to preserve. Refusing costs no false positives.
+        # ⛔ `SHELL=/bin/bash` — explicit on purpose (CI-PARITY-GATE-ROT.47), matching every other
+        # `make` invocation in this repository, the workflows and the regeneration composite action.
+        # ⭐ It is BELT-AND-BRACES, not the fix: the ROOT CAUSE was `rust/Makefile` defaulting SHELL
+        # to a hardcoded macOS-Homebrew ABSOLUTE path, which `make` resolves before running a single
+        # recipe, so on Linux EVERY target died with
+        #     make: /opt/homebrew/bin/bash: No such file or directory
+        # and this call was the one caller that omitted the override that hid it everywhere else.
+        # MEASURED CONSEQUENCE: `GATE-REACHABILITY` — the only doctrine with an automatic hosted
+        # lane — FAILED on `memory-architecture-gate` run 31783006365 (2026-08-14) and stayed RED on
+        # `main` for 11 days, while passing locally on every run. A doctrine that passes where you
+        # develop and fails where you ship is not enforcing anything about what you ship.
+        # The Makefile default is now derived (`command -v bash`), so this override is no longer
+        # required — it is kept because an enforcer should not depend on a default it does not own.
         try:
             import subprocess
             out = subprocess.run(["make", "-C", "rust", "--no-print-directory", "-s",
-                                  f"print-{name}"], cwd=ROOT, capture_output=True, text=True,
+                                  "SHELL=/bin/bash", f"print-{name}"],
+                                 cwd=ROOT, capture_output=True, text=True,
                                  timeout=30)
         except Exception as exc:
             print(f"gate-reachability: cannot expand make variable '{name}' "

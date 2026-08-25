@@ -1,6 +1,19 @@
 # Makefile for pgen - Regex Parser Generator Pipeline
 # This manages the complex build dependencies for generating Rust parsers from EBNF grammars
-SHELL=/opt/homebrew/bin/bash
+# ⛔⛔ CI-PARITY-GATE-ROT.47 — THIS WAS A HARDCODED macOS-HOMEBREW ABSOLUTE PATH
+# (`SHELL=/opt/homebrew/bin/bash`), which exists on one developer machine and on NO Linux runner.
+# `make` resolves SHELL before it runs a single recipe, so on Linux EVERY target died with
+#     make: /opt/homebrew/bin/bash: No such file or directory
+# MEASURED CONSEQUENCE: `GATE-REACHABILITY` — the only doctrine carrying an automatic hosted lane —
+# FAILED on `memory-architecture-gate` run 31783006365 (2026-08-14) and stayed RED on `main` for
+# 11 days, passing locally on every run. It is also why 23 documented commands in
+# `PGEN_USER_GUIDE.md` cannot work for a Linux reader of a PUBLIC repository.
+# ⭐ SAFE BY MEASUREMENT, not by hope: `/bin/bash` here is 3.2.57 and EVERY documented invocation in
+# this repository already forces `SHELL=/bin/bash` (README Quick Start included) and works — so the
+# recipes are demonstrably bash-3.2 compatible and the Homebrew default was never load-bearing.
+# On this machine the expansion resolves to the same Homebrew bash as before, so local behaviour is
+# unchanged; on Linux it resolves to a bash that exists.
+SHELL := $(shell command -v bash 2>/dev/null || echo /bin/bash)
 
 # Directories
 GRAMMARS_DIR = ../grammars

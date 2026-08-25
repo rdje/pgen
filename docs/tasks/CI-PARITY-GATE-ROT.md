@@ -308,6 +308,80 @@ the gate detect a regression — **it demanded one.**
   [[a-control-defined-by-enumerating-a-domain-expires-when-the-domain-widens]], and a fourth copy of
   a lesson already twice-recorded is exactly the duplication those records warn about.
 
+### ✅ `.47` `done` — **THE ONLY DOCTRINE WITH AN AUTOMATIC HOSTED LANE HAS BEEN RED ON `main` FOR 11 DAYS, AND THE CAUSE IS A macOS-HOMEBREW ABSOLUTE PATH IN `rust/Makefile`'S `SHELL`** (opened AND closed 2026-08-25 while executing the director's re-delegation of the `.49` cadence call; `PGEN-CI-PARITY-GATE-ROT-0036`)
+
+⭐⭐⭐ **FOUND BY LOOKING AT THE ACTUAL HOSTED RUNS, WHICH NOTHING IN THIS REPOSITORY HAD EVER DONE.**
+The director re-delegated the `push:`/spend call, so the first question became *"is the automatic
+tier even trustworthy?"* — `gh run list` answers it, and the answer was no.
+
+- ⛔ **REPRODUCED FROM THE HOSTED LOG, not inferred.** `gh run view 31783006365 --log`
+  (`memory-architecture-gate`, `main`, push, 2026-08-14):
+  ```
+  gate-reachability: cannot expand make variable 'PARSER_BOOK_GATES'
+    (`make -C rust print-PARSER_BOOK_GATES` exited 2:
+     'make: /opt/homebrew/bin/bash: No such file or directory')
+  ✗ FAIL  GATE-REACHABILITY
+  ```
+  It has been RED on `main` ever since — **11 days, and the tier's only real doctrine lane.**
+- ⛔⛔ **ROOT CAUSE: `rust/Makefile:3` was `SHELL=/opt/homebrew/bin/bash`** — a machine-specific
+  ABSOLUTE path. `make` resolves `SHELL` before running a single recipe, so on Linux **every target
+  in this repository died immediately**. The reason nobody noticed is that the whole repo works
+  around it: README's Quick Start, every workflow and the regeneration composite action all pass
+  `SHELL=/bin/bash` explicitly. `scripts/check_gate_reachability.sh:338` was the one caller that
+  did not — so it was the one thing that failed hosted while passing locally on every run.
+- ⭐⭐ **THE FIX IS THE ROOT CAUSE, NOT THE CALLER.** Patching the one caller would have left 23
+  documented commands in `PGEN_USER_GUIDE.md` broken for any Linux reader of what is now a **PUBLIC**
+  repository — and left the next forgetful caller to re-find this. `rust/Makefile` now derives it:
+  `SHELL := $(shell command -v bash 2>/dev/null || echo /bin/bash)`.
+  ⭐ **SAFE BY MEASUREMENT, not by hope:** `/bin/bash` on this machine is **3.2.57** (2007) and every
+  documented invocation already forces it and works ⇒ the recipes are demonstrably bash-3.2
+  compatible, so the fallback cannot break them and the Homebrew default was never load-bearing.
+  ⭐ It is also an UPGRADE, not a downgrade: the expansion takes the first `bash` on PATH — **5.3.3**
+  here, a modern 5.x on a Linux runner — where the documented `SHELL=/bin/bash` workaround pinned
+  macOS's 3.2. Local resolution is byte-identical to before (`print-SHELL` → `/opt/homebrew/bin/bash`).
+- ⭐ **THE CALLER'S OVERRIDE IS KEPT AS BELT-AND-BRACES** and its comment says so, because an
+  enforcer should not depend on a default it does not own — and because a comment that survives a
+  behaviour change becomes an active falsehood, which is a lesson this tree has already paid for.
+
+#### Acceptance Checklist (enforced) — `.47`
+
+- [x] **REPRODUCE / ISSUE** — reproduced from the authoritative artifact (the hosted run's own log,
+  `gh run view 31783006365 --log`), and the MECHANISM reproduced locally by making the Makefile's
+  default SHELL unavailable, which is exactly the Linux condition:
+  `make -C rust ... SHELL=/opt/homebrew/bin/bash.ABSENT print-PARSER_BOOK_GATES` → **exit 2**,
+  `make: /opt/homebrew/bin/bash.ABSENT: No such file or directory` — the same message shape the
+  hosted runner printed.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY: `make` resolves `SHELL` before any recipe runs, so a
+  machine-specific absolute path there is fatal on every other machine, and the repository's
+  universal `SHELL=/bin/bash` workaround hid it from all but the one caller that omitted it. WHERE:
+  `rust/Makefile:3` (the default) and `scripts/check_gate_reachability.sh:338` (the caller). Sized
+  by an ops/build-flow census over `git ls-files`: the executing caller is that one, while the
+  remaining matches in `ci_workflow_local_gate.sh` are ASSERTION STRING LITERALS rather than
+  invocations — and separately **23** documented commands in the user guide omit the override, which
+  is the user-facing half.
+- [x] **FIX** — fix-hierarchy tier = **ops/build-flow**; ZERO grammar, engine, codegen or generated
+  bytes. One Makefile line becomes a derived expansion; the caller keeps an explicit override.
+- [x] **ADDRESSED (verified)** — measured before→after on the identical command under the identical
+  (simulated Linux) condition: **exit 2 → exit 0**, expanding to all **10** book-gate targets.
+  `make -C rust --no-print-directory -s print-SHELL` → `/opt/homebrew/bin/bash`, i.e. local
+  behaviour is UNCHANGED. `bash scripts/check_gate_reachability.sh` → exit 0.
+  ⚠️ **HONEST BOUND, stated rather than implied: the hosted GREEN has NOT been observed.** The fix is
+  verified against the reproduced mechanism, not against a runner — the remote is 224 commits behind,
+  so no hosted run can exercise it until a push. That observation is exactly what `.49`'s acceptance
+  reserves, and `gh` is authenticated here, so it is available the moment a push lands.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → all 27 enforced doctrines PASS after the
+  prescribed `GENERATED-REPRODUCIBILITY` tier-2 re-verification, which re-derived **11 of 11
+  artifacts BYTE-IDENTICALLY** (guard exit 0, 81 s) — so the Makefile edit provably changes no
+  emitted byte. `make -C rust SHELL=/bin/bash mdbook_docs_gate` passes;
+  `rust/scripts/cold_clone_build_probe.sh` passes.
+- promotion: `docs/knowledge/fetch-the-other-environments-own-record-instead-of-modelling-it.md`
+  **NEW** — the durable half is not the `SHELL` bug but the reason it survived four leaves: when the
+  question is about another environment, that environment keeps its own record, and modelling it is
+  not evidence about it. The `SHELL` defect itself is
+  [[a-conditional-compilation-gate-is-a-claim-about-which-trees-exist]] in build-tool form and is
+  NOT re-recorded, because a second copy of a lesson already written is the duplication that record
+  warns about.
+
 ### ⚠️ `.45` NEW `todo` — **the aggregate's required-check roster is spelled TWICE, and one of the two spellings is DEAD CODE that has already drifted — so adding a check to the wrong one wires NOTHING** (opened 2026-08-25 session by `.40`, which nearly shipped exactly that)
 
 > ⛔ **ROUTED, NOT WORKED.** `.40` hit this while wiring its own gate, corrected its own change, and

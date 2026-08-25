@@ -1,5 +1,35 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-25 - PGEN-CI-PARITY-GATE-ROT-0036 — three leaves reasoned about the hosted side for weeks and none of us ran `gh run list`
+
+**1. ⭐⭐⭐ THE CHEAPEST UNRUN COMMAND BEAT WEEKS OF REASONING.** `CI-PARITY-GATE-ROT` exists because
+the hosted side and the local side disagree. `.4`, `.40`, `.46` and `.49` all reasoned carefully
+about hosted behaviour — measuring `on:` blocks, counting workflows, pricing runner minutes — and not
+one of them ran `gh run list`. It takes a second, `gh` was already authenticated, and it showed the
+only automatic doctrine lane RED on `main` for 11 days plus the fact that no regenerating workflow
+has EVER run hosted. ⇒ **when a whole tree is about "the other environment", the first move is to
+fetch that environment's own record, not to model it.**
+
+**2. ⭐⭐⭐ A WORKAROUND APPLIED EVERYWHERE HIDES THE DEFECT AND ELECTS ITS OWN VICTIM.**
+`SHELL=/opt/homebrew/bin/bash` in `rust/Makefile` made every target fatal on Linux. The repository
+had absorbed that as a habit — README, every workflow, the composite action, 100+ documented
+commands all pass `SHELL=/bin/bash`. A defect that everything routes around is invisible until
+exactly one caller forgets, and then it looks like *that caller's* bug. ⇒ when one site fails and a
+hundred pass, ask why the hundred pass before fixing the one. The answer here was "they all carry the
+same workaround", which relocates the bug from the caller to the default.
+
+**3. ⭐⭐ FIXING THE CALLER WOULD HAVE PASSED THE GATE AND LEFT THE USERS BROKEN.** Patching
+`check_gate_reachability.sh` turns the doctrine green — and leaves 23 commands in the user guide
+unusable for any Linux reader of a now-PUBLIC repository. The green would have been earned against
+the symptom I could see. ⇒ **"which of these does the gate measure" and "which of these does a user
+hit" are different sets, and the fix belongs to the union.**
+
+**4. ⭐ EVIDENCE FOR A FALLBACK, NOT A HOPE.** The change makes the fallback `/bin/bash` — bash 3.2.57
+from 2007. That is only safe if the recipes never need bash 4+, and the proof was already sitting in
+the repository: every documented command forces `SHELL=/bin/bash` and works. ⇒ before adopting a
+fallback, look for an existing execution path that already exercises it; the repo often contains its
+own compatibility proof.
+
 ## 2026-08-25 - PGEN-ENGINE-UNIVERSAL-SERVICES-0087 — executing a ruling is how you find out what the ruling did not know, and a delegation is only as good as the evidence it was granted on
 
 **1. ⭐⭐⭐ A RULING IS A CLAIM, AND EXECUTING IT IS THE VERIFICATION STEP.** `.49` was a careful,
