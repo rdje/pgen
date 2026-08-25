@@ -1014,3 +1014,67 @@ the copy has no way to know.*
 - ⚠️ **PRIORITY, stated honestly**: governance lane, and the standing directive prefers product/parser
   work ([[feedback_prefer_feature_work_over_governance_lanes]]). **Parked behind the SV lane** — it is
   recorded so it survives the session, not because it outranks `SV-CORPUS-GRAD.13e.9`.
+
+#### ⛔ `.16` — the doctrine registry EXECUTES its own descriptions, and the guard added when this last happened cites the defect as prior art without checking for it (`todo`, opened 2026-08-25 by `PGEN-SV-CORPUS-GRAD-0300`)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
+reproduces outside the family it is being sent to):
+
+- **MEASURED on the tree at HEAD, by running the enforcer.** `scripts/check_doctrines.sh` line **76**
+  — the `CORPUS-KEY-INTEGRITY` row, registered **two commits ago** by `CORPUS-KEY-AUDIT.2` /
+  `PGEN-CORPUS-KEY-AUDIT-0004` — carries **4 UNESCAPED backticks** inside a double-quoted bash
+  string. Bash therefore runs `` `match` `` and `` `syntax error` `` as **command substitutions** at
+  array-definition time:
+  ```
+  scripts/check_doctrines.sh: line 77: match: command not found
+  scripts/check_doctrines.sh: line 77: syntax: command not found
+  ```
+- ⛔ **AND THE SUBSTITUTION SWALLOWS THE TEXT.** The published doctrine description — the sentence a
+  reader uses to learn what the doctrine actually checks — loses the words outright. Measured, source
+  against report:
+
+  | | text |
+  |---|---|
+  | SOURCE | ``sitting at `match` -- the STRONGEST verdict`` |
+  | **PRINTED** | `sitting at  -- the STRONGEST verdict` |
+  | SOURCE | ``UNTAGGED, so `syntax error`, the most parse-relevant class`` |
+  | **PRINTED** | `UNTAGGED, so , the most parse-relevant class` |
+
+  ⚠️ Both surviving sentences still read as **grammatical English**, which is why re-reading the
+  report cannot catch it — the missing token is exactly the technical term the sentence was written
+  to carry.
+- **MECHANISM ISOLATED with a matched control** (no path games, no script copy):
+  ```
+  A=( "X|sitting at `match` -- the STRONGEST verdict|s.sh" )    -> "sitting at  -- the STRONGEST verdict"
+  B=( "X|sitting at \`match\` -- the STRONGEST verdict|s.sh" )  -> "sitting at `match` -- the STRONGEST verdict"
+  ```
+- ⛔⛔ **IT FAILS IN THE PASSING DIRECTION AND THE DRIVER EXITS `0`.** `bash scripts/check_doctrines.sh
+  >/dev/null 2>&1; echo $?` → **0**, "ALL 27 enforced doctrines PASS". The two errors go to stderr,
+  which every caller that greps the verdict discards. `bash -n` is clean — this is valid bash doing
+  exactly what it was told.
+- ⭐⭐ **WHY THIS IS A DOCTRINE GAP AND NOT A TYPO.** This is the **fourth** escaping defect in this
+  one registry, and the previous fix *names this exact one as its own prior art*: the comment at
+  `check_doctrines.sh:84-88` says *"the third escaping defect this registry has had, after the
+  unescaped backticks that ran a command substitution (`-0241`)"* — and the guard it introduced
+  checks the **`|` separator count** only. ⇒ **a fix that cites a defect class in its comment and
+  guards a different member of that class is an invitation for the cited one to recur**, and it
+  recurred within days. Census over the registry: **1 of 27 rows** affected, 4 backticks, all in the
+  row added most recently.
+- ⛔ **A LATENT INJECTION SURFACE, stated plainly and NOT as the headline.** A doctrine description is
+  prose written by whoever registers a doctrine; today an unescaped backtick runs a nonexistent
+  command harmlessly. The population is tracked, reviewed text, so this is a *robustness* argument
+  for the guard, not a live security finding — recorded so the guard is scoped to refuse rather than
+  to sanitize.
+- **REPRODUCES OUTSIDE THIS FAMILY:** yes — nothing about it is SystemVerilog. The registry is the
+  repo-wide enforcement driver; every family's commits run through it.
+- **Owed:** (a) escape the 4 backticks on line 76 (2-character-class fix, no behaviour change);
+  (b) add a `<meta:registry>` arm beside the existing `|`-count arm that refuses **any** unescaped
+  backtick in a registry row, with the refusal observed firing and a GREEN control on the real
+  registry — the guard the `-0241` fix described but did not build; (c) decide whether the arm
+  should also refuse `$(`, `${` and `\` sequences, i.e. guard the CLASS rather than this member —
+  the whole point of (b).
+- ⚠️ **PRIORITY, stated honestly**: governance lane, and it blocks nothing — the enforcer's
+  **verdicts** are unaffected, only its printed descriptions. **Parked behind the SV lane** under the
+  standing lane lock; recorded so it survives the session, not because it outranks
+  `SV-CORPUS-GRAD.13e.10`(c). ⭐ (a) alone is minutes and could ride any future commit that touches
+  the registry; (b) is the part that stops the fifth occurrence.

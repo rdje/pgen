@@ -1,5 +1,82 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0300 — the number I could not account for was an assumption I brought, not a defect I found
+
+**1. THE ROUTING NOTE'S PREMISE WAS THE ERROR, AND FALSIFYING IT WAS THE LEAF'S FIRST JOB.** `-0299`
+routed `dot_star committed=3 / entered=1` on the stated ground that entries *"ought to bound"*
+commits. Nothing ever claimed they did. `rule_entry_counts[R]` counts INVOCATIONS of `R`'s rule
+method — and a memo **hit** still invokes the method, so a hit counts. `rule_committed_counts[R]`
+counts OCCURRENCES of `R` in the fully expanded derivation tree of the accepted parse: not a counter
+at all, but a post-parse FOLD in which a memoized body's recorded slots are moved into a side table
+and replaced by ONE marker the fold expands *with its multiplicity*. ⇒ **a memo hit on an ANCESTOR
+of `R` adds an occurrence of `R` without invoking `R` at all.** The memo makes the parse a DAG; the
+fold reports the TREE. ⭐ **The generalisable form: two counters bound each other only if they count
+the same population** — and "ought to bound" is an assumption you carried in, not a claim the
+instrument made. Promoted to
+`docs/knowledge/two-counters-bound-each-other-only-if-they-count-the-same-population.md`.
+
+**2. ⭐⭐ THE ANSWER WAS ALREADY IN THE CONSUMER, AND THAT IS THE CHEAPEST TELL I NOW KNOW.** Before
+opening a defect on a producer's number, read its primary CONSUMER.
+`--fusibility-outcome-counts` already carried a named `committed_overshoot` field, accumulated with
+`saturating_sub` so a per-rule discard can never go silently negative, and printed a loud
+`WARNING: committed_overshoot=…` — with a doc comment naming **both** contributing mechanisms. The
+hazard was known and handled downstream the entire time; what was actually defective was the
+operator-facing documentation. ⇒ **a handled hazard leaves a named field behind.** Grep the
+consumers for a name that sounds like the anomaly (`*_overshoot`, `*_unmatched`, `saturating_*`, a
+warning string). Finding one converts *"is this a defect?"* into *"why did the docs never say so?"*,
+which is a different and far cheaper leaf.
+
+**3. THE HALF OF THE FINDING THAT WAS NOT EVEN A DISCREPANCY.** I also routed the maps holding
+**35** vs **298** keys as evidence they were "populated by different mechanisms". They are — and the
+maps are **NESTED, not disjoint**: `committed-not-entered = 0`, exact set containment, one set
+difference to check. 298 rules had their method invoked; 263 only inside speculation `try_parse`
+truncated; 35 survive into the accepted tree. That direction is the instrument's whole purpose.
+⇒ **a gap between two key counts is evidence of nothing until you know which way the containment is
+supposed to run**, and checking costs one command. I published it as half a finding without checking.
+
+**4. ⭐⭐⭐ ANSWERING (b) PRODUCED THE CONTROL THE PREVIOUS LEAF WAS MISSING — AND THAT WAS NOT
+LUCK.** To show the instrument was working I had to show it could read something OTHER than a
+positive number. That is precisely the RED control `.13e.10`(c)'s four leg-3 verdicts never had.
+All four are now two-sided (witness `committed ≥ 1` / matched control `committed = 0`). ⛔⛔ And the
+control exposed something a bare re-read never would: `wildcard_equal` is **ENTERED 2 in BOTH
+arms** — the parser speculates that branch whether or not `==?` is present — so the **entry counter
+is provably blind** to the question leg 3 asks, and only the committed map separates the accept from
+the failed probe. ⇒ **"can this instrument read the other value?" and "is this instrument sound?"
+are the same question asked twice**; answering either one for real answers both.
+
+**5. AND THE CAVEAT I FOUND IS NOT THE ONE I WENT LOOKING FOR.** Chasing the memo mechanism, I found
+a second contributor with a different shape entirely: `try_parse` truncates coverage only on its
+**Err** arm, so a **positive lookahead that SUCCEEDS** keeps its inner pushes while its position is
+restored by hand. Measured over the comment-stripped SV grammar: **7** positive-lookahead sites,
+every one a *peek-the-token-the-next-element-consumes* shape ⇒ today it inflates a multiplicity
+rather than manufacturing a phantom. ⛔ **That is a property of THIS GRAMMAR, not of the
+instrument** — and stating it that way is the difference between a caveat and a false clean bill of
+health. A `&( X )` whose body is not subsequently consumed would put `X`'s rules in `committed`
+without them appearing in the accepted tree.
+
+**6. ⛔⛔ THE NO-REGRESSION RUN FOUND A DEFECT IN THE ENFORCER ITSELF — THE FOURTH OF ITS CLASS, AND
+THE GUARD FOR IT WAS DESCRIBED BUT NEVER BUILT.** `bash scripts/check_doctrines.sh` printed `ALL 27
+PASS` **and** two stderr lines: `match: command not found`, `syntax: command not found`. Root cause:
+line 76 carries **4 UNESCAPED backticks** inside a double-quoted bash string, so the driver runs
+`` `match` `` and `` `syntax error` `` as command substitutions — and the substitution **swallows the
+words**, so the published doctrine description reads `sitting at  -- the STRONGEST verdict` and
+`UNTAGGED, so , the most parse-relevant class`. ⚠️ Both survive as grammatical English, which is why
+re-reading the report can never catch it: the missing token is exactly the technical term the
+sentence exists to carry. `bash -n` is clean; the driver exits **0**. ⭐⭐ The durable part: the
+guard added when this last happened (`-0241`) *names this exact defect as its own prior art in its
+own comment* — *"the third escaping defect this registry has had, after the unescaped backticks that
+ran a command substitution"* — and then checks the **`|` separator count** instead. ⇒ **a fix that
+cites a defect class in its comment and guards a different member of that class is an invitation for
+the cited one to recur**, and it recurred within days, in the row registered two commits earlier.
+Routed as `DOCTRINE-GAP-OWNERSHIP.16` (census: 1 of 27 rows, 4 backticks), parked behind the SV lane
+— it blocks nothing, because verdicts are unaffected and only descriptions are corrupted.
+
+**7. WHAT THIS COST AND WHAT IT BOUGHT.** ZERO grammar / Rust / codegen / generated bytes. One
+tracked probe (16 arms, RED control observed firing, refuses `rc=2` without its binary), TOOLBOX 3.5
+and the book corrected **at the point of first statement** rather than ten bullets later, a leg-3
+oracle upgraded from a reading to a measurement, one binding obligation added to the 15 rows still
+owed, and two defects routed with measurements rather than opinions.
+
 ## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0299 — a challenge is a request to re-derive, not to re-read
 
 **1. RE-DERIVING FOUND WHAT RE-READING COULD NOT.** Asked whether I stood by four findings, I ran

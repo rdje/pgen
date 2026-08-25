@@ -17231,57 +17231,189 @@ terminal rule to COMMIT** on the witness under `verilog_2005` —
 never from the AST (PGEN's AST is annotation-shaped, so grepping it for a rule name is pinned at 0
 for any rule without a `->`, which cost `.13c.2x.9` two wrong root-cause labels).
 
-| candidate | leg 1 `verilog_2005` | leg 2 `sv_2017` | **leg 3 — own terminal `committed`** | verdict |
-|---|---|---|---|---|
-| `+=` `plus_assign` | ⛔ accept | ✅ accept | **1** | ⛔ **CONFIRMED over-acceptance** |
-| `<<=` `shift_left_assign` | ⛔ accept | ✅ accept | **1** | ⛔ **CONFIRMED over-acceptance** |
-| `==?` `wildcard_equal` | ⛔ accept | ✅ accept | **1** | ⛔ **CONFIRMED over-acceptance** |
-| `.*` `dot_star` | ⛔ accept | ✅ accept | **3** | ⛔ **CONFIRMED over-acceptance** |
-| `++` `plus_plus` | ✅ reject | ✅ accept | — | correctly excluded |
-| `--` `minus_minus` | ✅ reject | ✅ accept | — | correctly excluded |
+⭐⭐ **STRENGTHENED 2026-08-25 (`-0300`, by `.13e.12`): leg 3 now carries a MATCHED CONTROL, so the
+column is a MEASUREMENT and not a reading.** A `committed ≥ 1` that has never been observed reading
+`0` proves nothing; each row below is now a pair over the SAME enclosing construct with the operator
+removed.
+
+| candidate | leg 1 `verilog_2005` | leg 2 `sv_2017` | **leg 3 — own terminal `committed`** | ⭐ **leg 3 CONTROL (operator absent)** | verdict |
+|---|---|---|---|---|---|
+| `+=` `plus_assign` | ⛔ accept | ✅ accept | **1** | `a = 1;` → **0** | ⛔ **CONFIRMED over-acceptance** |
+| `<<=` `shift_left_assign` | ⛔ accept | ✅ accept | **1** | `a = 1;` → **0** | ⛔ **CONFIRMED over-acceptance** |
+| `==?` `wildcard_equal` | ⛔ accept | ✅ accept | **1** | `if (a == b)` → **0** | ⛔ **CONFIRMED over-acceptance** |
+| `.*` `dot_star` | ⛔ accept | ✅ accept | **3** | `s u(.a(1));` → **0** | ⛔ **CONFIRMED over-acceptance** |
+| `++` `plus_plus` | ✅ reject | ✅ accept | — | — | correctly excluded |
+| `--` `minus_minus` | ✅ reject | ✅ accept | — | — | correctly excluded |
+
+⛔⛔ **AND THE CONTROL EXPOSED THAT THE *ENTRY* COUNTER IS PROVABLY BLIND TO THIS QUESTION.**
+`wildcard_equal` is **ENTERED 2 in BOTH arms** — the parser speculates that branch whether or not
+`==?` is present — and only `rule_committed_counts` separates the accept from the failed probe.
+Reading the committed map rather than the entry map was therefore load-bearing, not stylistic.
 
 ⇒ **the finding was UNDER-claimed, not over-claimed.** It was published as *"4 candidates awaiting
 leg 3"*; leg 3 confirms all four. IEEE 1364-2005 has no compound assignment, no wildcard equality
 and no implicit port connection, and the parser commits to each of those terminals under the strict
 profile.
 
-⛔⛔ **A NUMBER IN MY OWN EVIDENCE I CANNOT ACCOUNT FOR, AND IT IS ROUTED RATHER THAN EXPLAINED
-AWAY** ([[an-x-is-checked-by-nothing-claim-is-a-census-claim]]'s tell, and the `-0294` failure mode
-exactly). `dot_star` reports `rule_committed_counts = 3` against `rule_entry_counts = 1` — a rule
-COMMITTED more times than it was ENTERED, in one parse of one file. The two maps also differ wildly
-in size: `rule_committed_counts` carries **35** keys, `rule_entry_counts` **298**. TOOLBOX 3.5 says
-committed semantics are C3-B (tournament winners AND successful-but-losing branches both survive),
-which explains committed ≥ 1 on a losing branch but **does not explain committed > entered**. It
-does not change this row's verdict — any value ≥ 1 confirms it — but an instrument whose two
-counters disagree in that direction is a live question about the instrument, and it now owns a leaf.
-→ **`.13e.12`**.
+✅ **THE NUMBER I ROUTED RATHER THAN EXPLAINED AWAY IS NOW ANSWERED — `.13e.12` CLOSED IT
+(`-0300`).** `dot_star` `committed = 3` against `entered = 1` is **the instrument working**: the two
+maps count different populations and neither bounds the other. `rule_entry_counts` counts
+INVOCATIONS of a rule method; `rule_committed_counts` counts OCCURRENCES in the fully expanded
+derivation tree, so a memo hit on an **ancestor** multiplies the second without touching the first.
+Here the enclosing `list_of_port_connections` is invoked 3× — 1 memo miss + **2 memo hits**,
+confirmed independently by `--trace-rules` — and its body delta contains `dot_star` once. The
+`35 vs 298` half dissolves outright: the maps are **NESTED**, with **committed-not-entered = 0**
+measured exactly. ⭐ Routing it was right and it paid: answering it is what produced the leg-3
+control column above.
 
 - **Owed (the remaining 15):** (c1) a witness per candidate, each proven well-formed under `sv_2017`
-  first; (c2) the committed-count leg per row; (c3) pin every confirmed row on the two-sided ratchet
-  (`stimuli/sv/adjudication_repros/` + `MANIFEST.tsv`, `class=accepts_invalid`) BEFORE any fix, as
-  `.13e.7`(b) did; (c4) then the gate, in the `_sv_only` idiom `.13e.7` established.
+  first; (c2) the committed-count leg per row; ⭐ **(c2b) — NEW, binding, from `.13e.12`: a MATCHED
+  CONTROL per row** in which the operator is absent and the same terminal must read `committed = 0`.
+  Four rows have it; **15 do not**, and a bare `committed ≥ 1` is a reading until they do. (c3) pin
+  every confirmed row on the two-sided ratchet (`stimuli/sv/adjudication_repros/` + `MANIFEST.tsv`,
+  `class=accepts_invalid`) BEFORE any fix, as `.13e.7`(b) did; (c4) then the gate, in the `_sv_only`
+  idiom `.13e.7` established.
+- ⚠️ **A STANDING CAVEAT THE 15 MUST RESPECT** (`.13e.12`, measured): `try_parse` truncates coverage
+  only on its **Err** arm, so a **positive lookahead that SUCCEEDS** leaves its inner pushes behind.
+  The SV grammar's **7** positive-lookahead sites are all *peek-then-consume*, so no candidate is
+  affected today — but a candidate terminal reachable under a `&( … )` whose body is not
+  subsequently consumed would report `committed ≥ 1` **without being consumed**, and its control
+  would be the only thing to catch it.
 
-##### ⛔ `.13e.12` — ⭐ NEW `todo`: `--dump-rule-outcome-counts-json` reports a rule COMMITTED more times than it was ENTERED, and its two counter maps differ 35 vs 298 keys (opened 2026-08-25 by `.13e.10`(c))
+##### ✅✅✅ `.13e.12` — **DONE: `committed > entered` is the instrument WORKING — the two maps count different populations and neither bounds the other; and the run that proved it also gave `.13e.10`(c)'s leg-3 oracle the RED control it never had** (`done` 2026-08-25, `PGEN-SV-CORPUS-GRAD-0300`; INSTRUMENT + DOC tier, ZERO grammar / Rust / codegen / generated bytes; opened 2026-08-25 by `.13e.10`(c))
+
+**THE ROUTING NOTE WAS A HYPOTHESIS AND THE LEAF'S FIRST JOB WAS TO FALSIFY IT** (the `-0296`
+lesson, applied). The note said TOOLBOX 3.5's C3-B semantics *"do not explain why committed can
+exceed ENTRIES, which ought to bound it."* ⛔ **The premise is the error.** Entries do not bound
+commits, by construction, and nothing in C3-B was ever supposed to make them.
+
+**(a) — WHICH EVENTS INCREMENT EACH MAP** (read at the emitter, cited by line, then MEASURED):
+
+| map | what it counts | where |
+|---|---|---|
+| `rule_entry_counts[R]` | **INVOCATIONS of `R`'s generated rule method** — one monotone `fetch_add`, never rolled back, delta'd past a pre-parse baseline. ⚠️ a memo **HIT** still invokes the method, so a hit counts. | `ast_based_generator.rs:4285` + `:7122` (`inlined_frame_call`) |
+| `rule_committed_counts[R]` | **OCCURRENCES of `R` in the FULLY EXPANDED derivation tree of the accepted parse.** ⛔ **not a counter at all** — a post-parse FOLD over `coverage_stack` + `coverage_deltas`. | fold `:1973`; push `:4295`/`:7125`; truncate-on-fail `:9318`; body `split_off` + `REPLAY\|d` marker `:9776`; memo-hit marker `:9586` |
+| `rule_memo_hit_counts[R]` | `record_memo_hit` inside `memoized_call`, same coverage opt-in. | `:9586` region |
+
+⇒ **A MEMO HIT ON AN *ANCESTOR* OF `R` ADDS AN OCCURRENCE OF `R` WITHOUT INVOKING `R` AT ALL.**
+That is the whole mechanism, and it is the point of `ENGINE-UNIVERSAL-SERVICES.22`(e): the memoized
+body's slots are moved into a side table and replaced by ONE marker, which the fold expands *with
+its multiplicity*. The DAG is counted, not materialised — so the count is the TREE's, while the
+entry counter is the DAG's.
+
+**(b) — RULED: a DOCUMENTED, HANDLED CONSEQUENCE, not a defect.** Three independent supports:
+
+1. **RE-DERIVED by command.** `dot_star` **entered 1 / committed 3**; the enclosing
+   `list_of_port_connections` is invoked **3×** — **1 memo miss + 2 memo hits** — and its body delta
+   contains `dot_star` once. Rule id `571` resolved against the generated `RULE_NAMES` table rather
+   than inferred from the trace frame.
+2. **FALSIFIED against an oracle I did not build, and the control MOVES.** `--trace-rules
+   list_of_port_connections` independently reports `Memo hit for rule 571` **×2** — the trace and
+   the counter maps agree on the *derivation*, not merely on the verdict. The **multiplicity law**
+   is the falsifier: two `.*` sites must give committed **6** and memo hits **4**, and they do. A
+   miscounting counter has no reason to land on exactly 2×.
+3. **THE PRIMARY CONSUMER ALREADY HANDLED IT — this was never unknown to the engine, only to
+   TOOLBOX.** `--fusibility-outcome-counts` carries a named `committed_overshoot` field, accumulates
+   it with `saturating_sub` so a per-rule discard can never go silently negative
+   (`fusibility_census.rs:2493`), and prints a loud `WARNING: committed_overshoot=…` (`:5528`). Its
+   own doc-comment names both contributors.
+
+⭐ **AND THE `35 vs 298` HALF OF THE ROUTING NOTE DISSOLVES ENTIRELY.** The maps are **NESTED, not
+disjoint**: 298 rules had their method invoked, 35 survive into the accepted tree, and
+**committed-not-entered = 0** (measured, exact set containment). The 263-rule gap is ordinary
+truncated speculation. Only **5** rules overshoot, and all five sit inside the memo-shared subtree
+above.
+
+⚠️ **A SECOND CONTRIBUTOR, FOUND WHILE ANSWERING (b), AND IT IS *NOT* MEMO-SHAPED.** `try_parse`
+truncates coverage only on its **Err** arm, so a **positive lookahead that SUCCEEDS** keeps its
+inner pushes while its position is restored by hand (`generate_lookahead_logic`). Measured over
+comment-stripped `grammars/systemverilog.ebnf`: **7** positive-lookahead sites, every one a
+*peek-the-token-the-next-element-consumes* shape, so today it inflates a multiplicity rather than
+manufacturing a phantom. ⛔ **That is a property of THIS GRAMMAR, not of the instrument** — a
+`&( X )` whose body is not subsequently consumed would put `X`'s rules in `committed` without them
+appearing in the accepted tree. Stated as a standing caveat rather than a clean bill of health.
+
+**(c) — WRITTEN INTO TOOLBOX 3.5**, and corrected **at the point of first statement**: the WHAT
+bullet's `raw − committed` = FAILED-speculation entries is now marked an **approximation, not an
+identity**, in the same sentence a reader meets it. The section previously carried the correction
+ten bullets later and only in AGGREGATE form ("over the whole corpus the sign is now negative"); the
+**per-rule** form — the one a leg-3 adjudication actually needs — had never been stated.
+
+⭐⭐⭐ **THE UNPLANNED DIVIDEND — `.13e.10`(c)'s LEG-3 ORACLE NOW HAS A RED CONTROL.** Answering (b)
+required showing the instrument can read something other than a positive number, and that is
+exactly the control the leg-3 verdicts were missing:
+
+| terminal | witness `committed` | matched control | control `committed` |
+|---|---|---|---|
+| `plus_assign` (`+=`) | **1** | `a = 1;` | **0** |
+| `shift_left_assign` (`<<=`) | **1** | `a = 1;` | **0** |
+| `wildcard_equal` (`==?`) | **1** | `if (a == b)` | **0** |
+| `dot_star` (`.*`) | **3** | `s u(.a(1));` | **0** |
+
+⛔⛔ **AND THE ENTRY COUNTER CANNOT DO THIS JOB — MEASURED, NOT ARGUED.** `wildcard_equal` is
+**ENTERED 2 in BOTH arms**: the parser speculates that branch whether or not `==?` is present. Only
+`rule_committed_counts` separates the accept from the failed probe. ⇒ `.13e.10`(c) reading
+`rule_committed_counts` and never `rule_entry_counts` was not a stylistic choice; the entry counter
+is **provably blind** to the question it asks.
+
+**DURABILITY (leg 3 — producer TRACKED, claim WATCHED).**
+`docs/tasks/artifacts/sv_corpus_grad/committed_vs_entered/probe.sh` — **16 arms, pass=16 fail=0**,
+~1 s. It re-derives every number above, carries the multiplicity-law control, the set-containment
+check, the four two-sided oracle pairs, the entry-counter-is-blind arm, **a RED control on the probe
+itself** (a deliberately wrong expectation, observed failing), and **refuses `rc=2`** when the
+release binary is absent rather than reporting a flattering zero.
+
+###### Acceptance Checklist (enforced) — `.13e.12`
+
+- [x] **REPRODUCE / ISSUE** — reproduced on the shipped release probe at the exact command in the
+  routing evidence: `dot_star` `rule_committed_counts=3` against `rule_entry_counts=1`, maps at
+  **35** and **298** keys. Re-runnable as arm [1] of the tracked probe.
+- [x] **ROOT CAUSE (WHY + WHERE)** — **WHY:** the two maps count different populations —
+  invocations of a rule method versus occurrences in the fully expanded derivation tree — and a
+  memo hit on an *ancestor* multiplies the second without touching the first. **WHERE:** the fold
+  `exercised_rule_entry_counts` (`ast_based_generator.rs:1973`) expanding the `REPLAY|d` markers
+  pushed at `:9586`/`:9776`, against the monotone `fetch_add` at `:4285`/`:7122`. Confirmed by an
+  instrument I did not build for it (`--trace-rules`, 2 memo hits on rule `571`).
+- [x] **FIX** — DOC tier. The instrument is correct and its primary consumer already guards the
+  case; what was defective was the **operator-facing documentation**, which asserted an identity
+  that does not hold and never stated the per-rule form. TOOLBOX 3.5 now states the mechanism, the
+  measured numbers, both contributors, the consumer's existing guard, and the operating rule
+  (occurrence oracle + matched control; never subtract without checking the sign).
+- [x] **ADDRESSED (verified)** — the number is accounted for exactly rather than explained away:
+  committed 3 = 1 miss + 2 hits on the enclosing memoized rule, and the control predicts and hits
+  **6** at two sites. `committed-not-entered = 0` retires the `35 vs 298` half outright.
+- [x] **NO REGRESSION** — read-only: **zero** grammar / Rust / codegen / generated bytes. `git
+  status` shows one new tracked probe plus tracker/doc surfaces. `bash scripts/check_doctrines.sh`
+  re-run green; probe **16/16** with its RED arm observed firing.
+- [x] **LOCKSTEP** — this leaf + `.13e.10`(c) strengthened with the two-sided controls + `.13e.12`(d)
+  routed + TOOLBOX 3.5 + the promoted knowledge card + `CHANGES.md` + `DEVELOPMENT_NOTES.md` +
+  `KNOWLEDGE_MAP.md` + `MEMORY.md` + `docs/TASK_TREE.md`. No contract, ledger, release or schema
+  change is owed — nothing shipped changed.
+
+###### ⛔ `.13e.12` (d) — ⭐ NEW `todo`, ROUTED: the FALSE IDENTITY is still asserted in **9 source locations**, one of which SHIPS inside every generated parser (opened 2026-08-25 by `.13e.12`)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing):
 
-- **MEASURED on the shipped release probe**, parsing `module s; endmodule` / `module m; s u(.*); endmodule`
-  under `--profile verilog_2005`: `rule_committed_counts["dot_star"] = 3` while
-  `rule_entry_counts["dot_star"] = 1`. Same rule, same file, same run.
-- **The maps are not the same population**: `rule_committed_counts` holds **35** keys,
-  `rule_entry_counts` **298**, `rule_memo_hit_counts` **29**. So they are populated by different
-  mechanisms, and TOOLBOX 3.5's C3-B semantics (winners AND successful-but-losing branches both
-  count as committed) explain why committed can exceed the AST's view — but not why it can exceed
-  ENTRIES, which ought to bound it.
-- ⛔ **WHY THIS IS A LEAF AND NOT A FOOTNOTE.** `rule_committed_counts` is the instrument TOOLBOX
-  Protocol A names as the cross-check for the whole `parsed=true witnessed=false` class, and
-  `.13e.10`(c) has just made it the leg-3 oracle for an entire lens. An oracle whose own two
-  counters disagree in an unexplained direction is a trust question for every verdict built on it.
-  ⚠️ It does NOT invalidate `.13e.10`(c)'s four rows: those need only `committed ≥ 1`, and three of
-  the four report exactly 1 with `entered` 1 or 3.
-- **Owed:** (a) read the emitter and say which events increment each map; (b) decide whether
-  `committed > entered` is a defect or a documented consequence of C3-B accounting; (c) whichever it
-  is, write it into TOOLBOX 3.5 — the trap is that a reader assumes entries bound commits.
+- **MEASURED, by grep over the tracked tree:** `raw − committed` / `total_entries −
+  total_committed` = "the FAILED-speculation entry count" is asserted **unconditionally** at
+  `parser_registry.rs:61` and `:132`, `ast_based_generator.rs:1953`, `fusibility_census.rs:203`,
+  `:377`, `:444`, `:460`, `parseability_probe.rs:111`, and — ⛔ **not a comment but a PRINTED REPORT
+  LINE** — `fusibility_census.rs:5489` (`"model: discarded = raw − committed (failed-speculation
+  work…)"`). `.13e.12` measured that identity FALSE.
+- ⛔ **ONE OF THEM SHIPS.** `ast_based_generator.rs:1953` is inside a `quote!` block, so it is
+  emitted as a doc comment into **11 of 11** generated parsers (`grep -l FAILED-speculation
+  generated/*.rs` = 11). A downstream reader of `generated/systemverilog_parser.rs:4472` is told an
+  identity the engine's own census guards against.
+- ⛔ **WHY IT IS ROUTED AND NOT FIXED HERE, PRICED RATHER THAN ASSERTED.** The change is
+  comment-only, but landing it *coherently* means regenerating all 11 parsers so `generated/` still
+  matches HEAD's source (TOOLBOX 5.5b). That moves generated bytes, and `SV-CONTRACT-CURRENCY`'s
+  tier A is **re-keyed on a digest** (`-0242`) — so a comment fix acquires a currency/ledger blast
+  radius that deserves its own before→after measurement, not a footnote in a doc leaf. ⭐ It is also
+  **engine-universal**, not SV: every family's parser carries the sentence.
+- **Owed:** (a) measure the digest blast radius (which currency doctrines actually move); (b) correct
+  all 9 sites to the occurrence-oracle wording `.13e.12` established; (c) regenerate + re-run the
+  currency gates; (d) decide whether `fusibility_census.rs:5489`'s printed model line should also
+  name `committed_overshoot`, which it already computes but does not mention in the model.
 
 ##### ⛔ `.13e.11` — ⭐⭐ NEW `todo`: nothing checks that a rule's `@sample` PARSES under the profiles that rule is live in, and the population is 0 today so a blocking guard is free (opened 2026-08-25 by `.13e.9`)
 

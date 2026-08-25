@@ -563,7 +563,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - **ROUTING (RGX-0078.5.i.7 D2-A):** requesting this dump routes the parse to the PROTOCOL graph automatically — the `rule_call_counts()` accessor (grabbed pre-parse for the baseline) marks the parser's counter-consumer flag, so the fused cascade graph (which ticks no per-rule counters) never serves a counted parse. (The regex dedicated-stack lane constructs a fresh worker parser that needs no baseline, so it fires the trigger explicitly pre-parse — `RGX-0078.5.i.8.t1` fixed a lane that skipped it and undercounted to protocol-boundary frames only.)
 
 ### 3.5 `--dump-rule-outcome-counts-json`
-- **WHAT:** after a `--parse` run with the transactional coverage stack enabled, write the raw monotone per-rule entry counters, the COMMITTED (surviving) per-rule counts, AND the per-rule memo-HIT counts as JSON `{grammar, accepted, total_entries, total_committed, total_memo_hits, rule_entry_counts, rule_committed_counts, rule_memo_hit_counts}` — plus the parse's semantic-store counter DELTAS (`store_counters`: rollbacks / facts emitted / rolled back / scopes± / predicate evaluations — RGX-0078.5.i.1 — and the checkpoint/delta-protocol exposure classification `rollbacks_unchanged` / `rollbacks_tournament` (=`extract_delta_since` calls) / `rollbacks_tournament_unchanged` (=empty-delta extractions) / `rollbacks_nonempty_chain` — RGX-0078.5.i.5, the P3c scout). ⚠️ OBSERVED-PARSE boundary (RGX-0078.5.j.4 `-0201`): this dump's pre-parse opt-in routes the parse to the PROTOCOL graph, so every counter it serializes is exact; a BARE parse (no diagnostic consumer — which this dump can therefore never describe) skips the diagnostic-only `rollbacks_nonempty_chain` classification, while the telemetry quartet and the REQUIRED `predicate_evaluations` memo-taint signal stay exact on every parse — the same documented boundary the per-rule entry counters already have. `raw − committed` = the rule's FAILED-speculation entries (every entry `try_parse` rolled back — the parse's probing waste); `raw − memo_hits` = the rule's BODY executions (a memo hit answers from cache without running the body — RGX-0078.5.i.4, the P1 inline census's lost-hit input; hits are recorded by `memoized_call` under the same coverage opt-in, so ordinary parsing pays nothing). Committed semantics are C3-B: tournament winners AND successful-but-losing branches both survive. Deterministic ⇒ a re-runnable oracle; committed counts are meaningful only for an ACCEPTED parse. RGX-0078.5.h.1b + .5.i.4.
+- **WHAT:** after a `--parse` run with the transactional coverage stack enabled, write the raw monotone per-rule entry counters, the COMMITTED (surviving) per-rule counts, AND the per-rule memo-HIT counts as JSON `{grammar, accepted, total_entries, total_committed, total_memo_hits, rule_entry_counts, rule_committed_counts, rule_memo_hit_counts}` — plus the parse's semantic-store counter DELTAS (`store_counters`: rollbacks / facts emitted / rolled back / scopes± / predicate evaluations — RGX-0078.5.i.1 — and the checkpoint/delta-protocol exposure classification `rollbacks_unchanged` / `rollbacks_tournament` (=`extract_delta_since` calls) / `rollbacks_tournament_unchanged` (=empty-delta extractions) / `rollbacks_nonempty_chain` — RGX-0078.5.i.5, the P3c scout). ⚠️ OBSERVED-PARSE boundary (RGX-0078.5.j.4 `-0201`): this dump's pre-parse opt-in routes the parse to the PROTOCOL graph, so every counter it serializes is exact; a BARE parse (no diagnostic consumer — which this dump can therefore never describe) skips the diagnostic-only `rollbacks_nonempty_chain` classification, while the telemetry quartet and the REQUIRED `predicate_evaluations` memo-taint signal stay exact on every parse — the same documented boundary the per-rule entry counters already have. `raw − committed` ≈ the rule's FAILED-speculation entries (every entry `try_parse` rolled back — the parse's probing waste), ⛔ **an APPROXIMATION and not an identity — it can go NEGATIVE, per-rule and corpus-wide; see the `committed > entered` bullet below BEFORE you subtract**; `raw − memo_hits` = the rule's BODY executions (a memo hit answers from cache without running the body — RGX-0078.5.i.4, the P1 inline census's lost-hit input; hits are recorded by `memoized_call` under the same coverage opt-in, so ordinary parsing pays nothing). Committed semantics are C3-B: tournament winners AND successful-but-losing branches both survive. Deterministic ⇒ a re-runnable oracle; committed counts are meaningful only for an ACCEPTED parse. RGX-0078.5.h.1b + .5.i.4.
 - **WHEN:** quantifying wasted vs productive parse work per rule; feeding the choice-site + inline census's dynamic input (5.3 `--fusibility-outcome-counts`); any "how much of this parse was failing probes" or "how memo-hot is this rule" question.
 - **HOW:**
   ```bash
@@ -571,6 +571,54 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ```
 - **OUTPUT:** the JSON file (rules sorted; zero-count rules omitted per map). Opt-in: unset ⇒ the coverage stack stays disabled and behavior is byte-identical. Build-mode-independent like 3.4.
 - **ROUTING (RGX-0078.5.i.7 D2-A):** the outcome dump enables coverage ⇒ the parse runs the PROTOCOL graph, so the raw/committed/memo-hit pins stay byte-exact forever under the observability twin (a BARE parse — no coverage/trace/counters/memo-stats consumer — runs the fused `cascade_*` graph instead; its byte-identity is enforced by the equivalence/AST oracles, not by counters).
+- ⛔⛔ **`committed` CAN EXCEED `entered` FOR A SINGLE RULE IN A SINGLE PARSE, AND THAT IS THE
+  INSTRUMENT WORKING — NOT A DEFECT (`SV-CORPUS-GRAD.13e.12`, 2026-08-25, measured).** The trap is
+  that a reader assumes entries bound commits. They do not, **by construction**, because the two
+  maps count different populations:
+  - **`rule_entry_counts[R]` = INVOCATIONS of `R`'s generated rule method.** One monotone
+    `fetch_add` at the top of the method (`ast_based_generator.rs:4285`) and at
+    `inlined_frame_call` (`:7122`). Never rolled back; reported as a delta past a pre-parse
+    baseline. ⚠️ A memo **HIT** at `R` still invokes `R`'s method, so a hit counts as an entry.
+  - **`rule_committed_counts[R]` = OCCURRENCES of `R` in the FULLY EXPANDED derivation tree of the
+    accepted parse.** It is not a counter at all — it is a post-parse **fold**
+    (`exercised_rule_entry_counts`, `:1973`) over two structures. The push site is the same place
+    as the entry counter but gated on `coverage_enabled` (`:4295` / `:7125`); `try_parse`'s **Err**
+    arm truncates it (`:9318`), which is what discards failed speculation; and when a **memoized
+    body completes**, its slots are `split_off` into the append-only `coverage_deltas` side table
+    and replaced by **ONE `REPLAY|d` marker** (`:9776`). A later memo hit pushes another marker
+    (`:9586`). The fold expands each marker **with its multiplicity**.
+  - **`rule_memo_hit_counts[R]`** — `record_memo_hit` inside `memoized_call`, same coverage opt-in.
+  ⇒ **a memo hit on an ANCESTOR of `R` adds an occurrence of `R` without invoking `R` at all.**
+  ⭐ **MEASURED** on `module s; endmodule` / `module m; s u(.*); endmodule` under
+  `--profile verilog_2005`: `dot_star` **entered 1, committed 3**, because the enclosing
+  `list_of_port_connections` is invoked 3× (**1 memo miss + 2 memo hits**, confirmed independently
+  by `--trace-rules list_of_port_connections` → `Memo hit for rule 571` ×2) and its body delta
+  contains `dot_star` once. The **multiplicity law** is the control: two `.*` sites → committed
+  **6**, memo hits **4**. Same file: entry keys **298**, committed keys **35**,
+  committed-not-entered **0** — the maps are NESTED (263 rules were entered only inside truncated
+  speculation), and exactly **5** rules overshoot.
+  - ⚠️ **A SECOND CONTRIBUTOR, AND IT IS NOT MEMO-SHAPED.** `try_parse` truncates coverage only on
+    the **Err** arm, so a **positive lookahead that SUCCEEDS** keeps its inner pushes even though
+    the position is restored (`generate_lookahead_logic` restores `parser.position` by hand). The
+    SV grammar has **7** positive-lookahead sites (measured over comment-stripped
+    `grammars/systemverilog.ebnf`), every one of them a *peek-the-token-the-next-element-consumes*
+    shape, so today it inflates a multiplicity rather than manufacturing a phantom — ⛔ but that is
+    a property of **this grammar**, not of the instrument. A `&( X )` whose body is not
+    subsequently consumed WOULD put `X`'s rules in `committed` without them appearing in the
+    accepted tree.
+  - ✅ **THE PRIMARY CONSUMER ALREADY KNEW.** `--fusibility-outcome-counts` carries a named
+    `committed_overshoot` field, accumulates it with `saturating_sub` so per-rule discards can
+    never go silently negative (`fusibility_census.rs:2493`), and prints a loud `WARNING:
+    committed_overshoot=…` (`:5528`). ⇒ this was a **documented, handled consequence** that TOOLBOX
+    had never stated in its per-rule form.
+  - ⭐⭐ **THE OPERATING RULE.** Use `rule_committed_counts` as an **OCCURRENCE oracle**
+    (`committed ≥ 1` ⇔ the rule is in the accepted parse), never as an arithmetic operand.
+    **Never subtract it from entries without checking the sign first.** And because a *reading* is
+    not a *measurement*, pair every `committed ≥ 1` verdict with a **matched control** in which the
+    construct is absent and the count must read **0** — see Protocol D and the probe below.
+  - **Re-derive it all, with its own RED control:**
+    `bash docs/tasks/artifacts/sv_corpus_grad/committed_vs_entered/probe.sh` (16 arms, ~1 s;
+    refuses `rc=2` when the release probe is absent rather than reporting a flattering zero).
 - ✅ **AND THE TWIN IS NOW MEASURED TO AGREE ON THE DERIVATION, NOT JUST THE VERDICT
   (`ENGINE-UNIVERSAL-SERVICES.22` (b), 2026-08-16).** *A verdict agreement is not a derivation
   agreement*, and this is the assumption every counter-based tool in 3.1-3.6 rests on. Measured
