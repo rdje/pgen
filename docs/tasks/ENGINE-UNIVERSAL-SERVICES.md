@@ -13014,7 +13014,97 @@ verdict, because a gate never seen failing is not evidence
 the artifact-upload path so a RED run actually hands over its logs, and prove it by observing a
 non-empty upload.
 
-### ⛔⛔ `.51` — **THE REACH PLANNER ROUTES THROUGH A BRANCH THE PROFILE FILTER HAS ALREADY KILLED: it validates the rule REFERENCED at a hop site but never the ALTERNATIVE containing it, so a live target with a live route silently fails to witness** (`todo`, opened 2026-08-26 by `SV-CORPUS-GRAD.13e.11`(a) / `PGEN-SV-CORPUS-GRAD-0307`)
+### ⛔ `.52` — **THE RULE-LEVEL `@sample` STAND-DOWN ASKS "DOES THE PLAN FORCE A DECISION INSIDE THIS RULE?" WHEN THE QUESTION IS "IS THIS RULE AN ON-PATH HOP AT ALL?" — so a hop reached through a MANDATORY sequence element is invisible to it and its sample short-circuits the descent** (`todo`, opened 2026-08-26 by `.51` slice 1 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0089`)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
+reproduces outside the family it is being sent to):
+
+⛔⛔ **READ THIS FIRST: THE OBVIOUS ROUTING NOTE FOR THIS FINDING IS FALSE, AND IT WAS CAUGHT BY
+RUNNING THE CENSUS THE LESSON DEMANDS.** The natural way to write this up — *"nothing suppresses a
+rule-level `@sample` when the reach plan descends through that rule"* — is a CENSUS claim
+([[an-x-is-checked-by-nothing-claim-is-a-census-claim]]). **That suppression exists and shipped**:
+`GRAMMAR-WELLFORMED.H.12.5.5.2.2` (`PGEN-GRAMMAR-WELLFORMED-0087`) built it and measured SV
+`UNKNOWN 121 -> 93`, and its worked example is `module_ansi_header` — the exact rule involved here.
+`H.12.3` had built a rule-level gate first and **REVERTED** it as unproven at the time. So this leaf
+is a REFINEMENT of a live mechanism, never a missing one, and any fix must extend `-0087` rather
+than re-introduce what `H.12.3` withdrew.
+
+**HOW IT WAS FOUND.** `.51` slice 1 repaired the reach PLANNER, which had been routing
+`kw_macromodule_df04b866` through a profile-dead branch. The plan is now correct end to end:
+
+```
+[reach-path] target='kw_macromodule_df04b866' hops=[…, ("module_declaration_sv_2017", "root/o0/s0"),
+    ("module_ansi_header", "root/s1"), ("module_keyword", "root/o1")]
+```
+
+and the target is **still `UNKNOWN`** — now the sole `verilog_2005` union residual. Plan correct,
+render wrong: verbatim `ENGINE-UNIVERSAL-SERVICES.10`'s shape, which is why TOOLBOX 4.4 insists the
+two instruments are different.
+
+⭐ **THE SHORT-CIRCUIT IS MEASURED, NOT INFERRED — TWO INDEPENDENT CARRIERS EACH EMITTED THEIR OWN
+`@sample` VERBATIM.** Under `verilog_2005`, with the corrected plan:
+
+| probe pass | sample | that string is |
+|---|---|---|
+| `[plannable-probe]` | `module m(input wire a);endmodule` | `module_ansi_header`'s rule-level `@sample` + `endmodule` |
+| `[carrier-div-probe]` | `module m(a,b);endmodule` | `module_nonansi_header`'s rule-level `@sample` + `endmodule` |
+| `[target-own-probe]` | `//x\nmodule m(input wire a);//x\nendmodule//x\n` | the same, trivia-injected |
+
+Two *different* carriers, each reproducing *that* carrier's sample exactly. All four fallback passes
+hit the same wall, so this is not one pass misbehaving.
+
+**ROOT CAUSE (WHY + WHERE), read off the source rather than inferred.**
+`ReachPlan::needs_rule_body_descent`, `rust/src/ast_pipeline/stimuli_generator.rs:1708`:
+
+```rust
+    fn needs_rule_body_descent(&self, rule_name: &str) -> bool {
+        self.directives.keys().any(|(r, _)| r == rule_name)
+            || self.forced_quantifier_min.keys().any(|(r, _)| r == rule_name)
+    }
+```
+
+Both key sets are built from the hop's `node_path`: `directives_along_path` (`:10732`) emits one
+entry per **`o{i}`** segment, `quantifier_sites_along_path` (`:10760`) one per **`q`** segment.
+⇒ **a hop whose path is a pure mandatory Sequence element yields NEITHER.**
+
+Our hop is `("module_ansi_header", "root/s1")`. `module_ansi_header := attribute_instance*
+module_keyword ( declaration_lifetime_sv_only )? module_identifier …` — `module_keyword` sits at
+sequence position **1**: mandatory, no alternation to force, no quantifier to expand. The plan
+therefore records **nothing** keyed on `module_ansi_header`, `needs_rule_body_descent` returns
+`false`, and the rule-level literal override at `:11409` fires and emits the canonical sample.
+
+⭐⭐ **WHY `-0087` WORKS FOR ITS OWN EXAMPLE AND NOT FOR THIS ONE — the discriminator is what kind of
+node the path crosses, and it is a one-word difference.** `-0087`'s M1a routes descend
+`module_ansi_header` → `( list_of_port_declarations )?` → … : an **OPTIONAL**, which contributes a
+`q` segment and therefore a forced quantifier site, so the stand-down sees the rule. This route
+descends to a **MANDATORY** element, which contributes nothing. The predicate is not wrong about
+decisions; it is being used to answer a question about PATH MEMBERSHIP that it cannot see.
+
+⇒ **the plan knows the answer and is not being asked**: the hop chain already names
+`module_ansi_header`. ⭐ `H.12.3`'s reverted infra was called `on_path_rules` — this is the
+measurement that was missing when it was withdrawn, and it now exists.
+
+⛔ **IT REPRODUCES OUTSIDE SystemVerilog BY CONSTRUCTION.** The predicate is grammar-agnostic and
+gates every rule-level `@sample`/`@probe_sample` in every not-yet-fully-certified grammar. Any rule
+carrying a rule-level sample whose reach path enters it through a mandatory sequence element is
+exposed. ⚠️ Today SV is the only shipped grammar that is not fully certified, so it is where the
+cost is visible — but that is a fact about the roster, not about the defect.
+
+**Acceptance:** (a) make the stand-down consult PATH MEMBERSHIP, not only forced decisions — the hop
+chain is already in the plan, so this is an extension of `-0087`, ⛔ **not a revival of `H.12.3`'s
+withdrawn blanket gate**: it must still be byte-identical off-reach and for any rule the plan does
+not cross; (b) prove `kw_macromodule_df04b866` returns to `witness` under `verilog_2005`, taking the
+cert to `UNKNOWN 14 -> 13` / `witness 761 -> 762` with `total` and `proof` unmoved and the union
+residual to **0**, adjudicated BY NAME; (c) ⛔ measure the BLAST RADIUS before believing the fix is
+small — `-0087`'s analogous change moved SV `UNKNOWN` by **28**, so this one must be re-measured on
+all three profiles at seeds `[0, 7, 42]` and every moved rule attributed, never re-stamped;
+(d) a RED control synthetic: a target reachable only through a rule whose sample short-circuits it,
+entered via a mandatory sequence element, failing before and witnessing after — ⛔ and a matched
+control entered via an OPTIONAL, which must be unaffected, or the test cannot tell this fix from
+`-0087`; (e) ⚠️ **honest bound**: whether any of the other 13 `verilog_2005` `UNKNOWN` rules or the
+11 `sv_2017` ones are held by this mechanism is UNMEASURED — only this one has been traced to it.
+
+### ⛔ `.51` — **THE REACH PLANNER ROUTES THROUGH A BRANCH THE PROFILE FILTER HAS ALREADY KILLED: it validates the rule REFERENCED at a hop site but never the ALTERNATIVE containing it** (`in progress` — **slice 1 FIXED the planner 2026-08-26, `PGEN-ENGINE-UNIVERSAL-SERVICES-0089`**: acceptance (a)(c)(d)(e)(f) discharged, `verilog_2005` `UNKNOWN 18 -> 14` and union residual `3 -> 1`. ⛔ **(b) is NOT discharged and the leaf stays OPEN**: the founding target `kw_macromodule_df04b866` is still `UNKNOWN`, held by a THIRD mechanism one stack frame further — routed as `.52`; opened 2026-08-26 by `SV-CORPUS-GRAD.13e.11`(a) / `PGEN-SV-CORPUS-GRAD-0307`)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -13123,6 +13213,226 @@ is repaired by making the BFS match it (the fix) or by deleting the claim — �
 asserting a mirror that does not hold**; (f) ⚠️ **honest bound to discharge, not assume**: whether
 any OTHER currently-`UNKNOWN` rule on any profile is held by this same mechanism is UNMEASURED — the
 `verilog_2005` residual is 18 and only this one has been traced to a dead-branch plan.
+
+#### `.51` slice 1 — **THE PLANNER IS FIXED AND FOUR RULES CAME BACK, BUT THE FOUNDING TARGET DID NOT: a THIRD mechanism sits one stack frame further, and (b) is NOT discharged** (2026-08-26, `PGEN-ENGINE-UNIVERSAL-SERVICES-0089`; ENGINE tier, ZERO grammar / codegen / generated bytes)
+
+**WHAT LANDED.** `reach_hops_pass` now PREFERS a route whose every hop sits in a branch the active
+profile can still render, via `collect_renderable_rule_reference_sites`, and FALLS BACK to the
+unpruned walk when the target is unreachable under pruning. The renderability verdict is a fixpoint
+(`compute_unrenderable_rules`) computed ONCE in `new()`, carrying the semantics
+`mandatory_node_gated` already documents with the store-gate half removed.
+
+⛔⛔ **THE FALLBACK IS LOAD-BEARING, NOT DEFENSIVE PADDING — AND THE FIRST CUT WITHOUT IT SHIPPED A
+REGRESSION THAT A UNIT TEST CAUGHT.** A rule is absent from `grammar_tree` for **two** reasons the
+generator cannot tell apart, because `apply_grammar_profile_filter` (`main.rs:2657`) prunes
+`rule_order` **as well as** the tree, leaving no residue to discriminate on:
+
+| why the rule is missing | what it means for routing |
+|---|---|
+| the profile filter removed it | genuinely unrenderable — prune |
+| it was never defined here (an `include(...)` external reference) | ⛔ **NOT a profile fact** — `node_satisfiable` deliberately treats it as ⊤, *"no false positives"* |
+
+The first cut treated both as dead and took
+`spurious_store_entry_block_keeps_its_own_rule_witness` **RED** — its fixture reaches its target
+through an UNDEFINED `epsilon`, so the whole branch was pruned and the plan would not install.
+⭐ **The control that caught it was a pre-existing test I did not write, and it was right**: verified
+by reverting to `HEAD` (test passes) and re-applying (test fails), so the attribution is measured,
+not assumed. With the fallback, pruning can only ever IMPROVE a route — a target reachable both ways
+takes the renderable one, a target reachable only through a dead branch is planned exactly as before,
+and a grammar using includes is untouched. Pinned by
+`an_undefined_reference_must_not_prune_a_route_the_way_a_profile_gate_does`.
+
+⚠️ **HONEST BOUND ON THAT SECOND ROW, because it would be easy to overstate the danger.** The four
+tracked grammars that use `include(` RESOLVE it at load — SV's lint reports
+`undefined_references=0` — so no *shipped* grammar carries a dangling reference today. The
+undefined-reference case is exercised by test fixtures, and the fallback exists because the
+generator **cannot tell the two apart**, not because a shipped grammar currently needs it. That is
+the right reason to keep it: the discriminator is absent by construction, so a future grammar or a
+mid-refactor tree would hit it silently.
+
+⚠️ **THE DESCENT RULE IS NOT THE PROPAGATION RULE, and that is the second design subtlety.**
+`( dead )?` does NOT make its container unrenderable — it renders empty — but a site INSIDE it is
+still unroutable, because reaching that site requires the quantifier to render a copy. So deadness
+propagates upward through min≥1 quantifiers only, while descent requires a renderable element at
+EVERY quantifier. Both directions are pinned by
+`a_min_zero_quantifier_does_not_kill_its_container_but_does_block_descent`.
+
+⭐ **AND THE VERDICT IS PRECOMPUTED BECAUSE THE OBVIOUS IMPLEMENTATION WAS TOO SLOW TO SHIP — MEASURED,
+NOT FEARED.** Answering renderability lazily re-walked the referenced rules transitively at every
+alternative of every rule the BFS visited, which on a 1 537-rule grammar pushed this command past
+**600 s**. Hoisting it to a fixpoint in `new()` — the same shape as the lint's own
+`compute_sat_by_profile`, so the two agree by construction rather than as two hand-kept models —
+brings it to **3 m 53 s against a HEAD baseline of 3 m 22.8 s (+15 % wall)**, both measured on the
+same command and machine. ⚠️ Not a like-for-like comparison and stated as such: the fixed run also
+witnesses four more rules, so it is doing strictly more downstream work. ⭐ `unrenderable_rules` is
+**empty** for any grammar with nothing missing from its tree, which is every grammar declaring no
+`@profiles` — so the whole mechanism is inert there by construction, not merely by measurement.
+
+⭐⭐ **THE PLAN IS FIXED, AND THAT IS OBSERVED ON THE REAL GRAMMAR RATHER THAN ON THE SYNTHETIC.**
+The same dump that diagnosed it, re-run under `verilog_2005`, now routes through the live route the
+planner had been declining:
+
+```
+BEFORE  hops=[…, ("module_declaration_sv_2017", "root/o2/s1"), ("module_keyword", "root/o1")]
+AFTER   hops=[…, ("module_declaration_sv_2017", "root/o0/s0"),
+               ("module_ansi_header", "root/s1"), ("module_keyword", "root/o1")]
+```
+
+`root/o2` was the implicit-port alternative whose mandatory `dot_star` the filter removes;
+`root/o0` is the ANSI-header alternative, which is live. Identical under both entry roots.
+
+⭐⭐⭐ **AND THE BLAST RADIUS IS FOUR RULES, NOT ONE — WHICH IS ACCEPTANCE (f) DISCHARGED BY
+MEASUREMENT RATHER THAN LEFT AS A BOUND.** (f) asked whether any OTHER `UNKNOWN` was held by this
+same mechanism. It was, and the leaf had no way to guess it:
+
+| field | before | after | attribution |
+|---|---|---|---|
+| `total` | 1131 | **1131** | unmoved — no rule entered or left the profile |
+| `proof` | 356 | **356** | unmoved |
+| `witness` | 757 | **761** | ⭐ **+4**, every one named below |
+| `UNKNOWN` | 18 | **14** | the same four |
+| union residual | 3 | **1** | `context_member_method_call` and `identifier_rooted_method_chain` cleared |
+
+The four, by name: **`data_declaration_sv_2017`, `data_declaration`, `context_member_method_call`,
+`identifier_rooted_method_chain`**. `356 + 761 + 14 = 1131`; the arithmetic closes exactly, which is
+what makes this an attribution rather than a re-baseline. ⚠️ Stated precisely because the two runs
+differ: three of the four are picked up by the ORDINARY 40-sample generation pass (all of their
+`[*-probe]` lines still read `witnessed_target=false`) — reach plans steer ordinary generation, not
+only the probes — while `context_member_method_call` is witnessed by the structured-witness probe.
+The debug-probe run and the plain run agree on the same 14-rule `UNKNOWN` set, so the observability
+flag did not change what was measured.
+
+## ⛔⛔ (b) IS **NOT** DISCHARGED, AND THE HONEST STATEMENT IS THAT THE FIX DID NOT REACH ITS FOUNDING TARGET
+
+`kw_macromodule_df04b866` is **still `UNKNOWN`**, and it is now the **only** union residual. The plan
+is correct and the RENDER still misses — which is verbatim `ENGINE-UNIVERSAL-SERVICES.10`'s shape,
+the one TOOLBOX 4.4 exists to warn about: *"The real defect was one stack frame away, in the RENDER."*
+
+⭐ **THE THIRD MECHANISM IS MEASURED, NOT INFERRED — TWO INDEPENDENT CARRIERS EACH RENDERED THEIR OWN
+`@sample` VERBATIM.** With the plan now hopping through `module_ansi_header`, the probes emit:
+
+| probe pass | sample | that string is |
+|---|---|---|
+| `[plannable-probe]` | `module m(input wire a);endmodule` | `module_ansi_header`'s rule-level `@sample` + `endmodule` |
+| `[carrier-div-probe]` | `module m(a,b);endmodule` | `module_nonansi_header`'s rule-level `@sample` + `endmodule` |
+| `[target-own-probe]` | `//x\nmodule m(input wire a);//x\nendmodule//x\n` | the same, trivia-injected |
+
+Two *different* carriers, each reproducing *that* carrier's sample exactly — so the rule-level
+`@sample` override is firing on a rule the plan is descending THROUGH.
+
+⛔⛔ **AND THE FIRST ROUTING NOTE FOR THIS WAS WRONG, CAUGHT BEFORE IT WAS PUBLISHED.** The obvious
+reading — *"nothing suppresses a rule-level `@sample` on an interior hop"* — is a CENSUS claim
+([[an-x-is-checked-by-nothing-claim-is-a-census-claim]]), and the census refutes it: **that
+suppression exists and shipped**, as `GRAMMAR-WELLFORMED.H.12.5.5.2.2`
+(`PGEN-GRAMMAR-WELLFORMED-0087`, SV `UNKNOWN 121 -> 93`), whose own worked example is
+`module_ansi_header` — the very rule here. `H.12.3` had even built a rule-level gate first and
+REVERTED it as unproven; `-0087` brought it back with evidence.
+
+⭐⭐ **THE REAL MECHANISM IS NARROWER AND SHARPER: THE STAND-DOWN ASKS THE WRONG QUESTION.**
+`needs_rule_body_descent` (`stimuli_generator.rs:1708`) returns true iff the plan holds a forced
+OR-**directive** or a forced **quantifier site** keyed on the rule:
+
+```rust
+    fn needs_rule_body_descent(&self, rule_name: &str) -> bool {
+        self.directives.keys().any(|(r, _)| r == rule_name)
+            || self.forced_quantifier_min.keys().any(|(r, _)| r == rule_name)
+    }
+```
+
+and those keys are built by `directives_along_path` (one per `o{i}` segment) and
+`quantifier_sites_along_path` (one per `q` segment). **A hop whose path is a pure mandatory Sequence
+element yields NEITHER.** Our hop is `("module_ansi_header", "root/s1")` — `module_keyword` sits at
+sequence position 1, mandatory, no `o`, no `q` — so the plan records nothing for the rule, the
+stand-down cannot see it, and the sample wins.
+
+⇒ **the predicate asks *"does the plan force a DECISION inside this rule?"* when the question that
+matters is *"is this rule an on-path HOP at all?"*** `-0087`'s own canonical route descends through
+`( list_of_port_declarations )?` — an OPTIONAL, which registers a `q` site — which is exactly why it
+worked there and is invisible here. ⭐ `H.12.3`'s reverted infra was even named `on_path_rules`; this
+is the measurement that was missing when it was reverted. ⇒ routed as **`.52`**.
+
+⛔ The `verilog_2005` cert baseline is therefore re-attributed to **14**, not to 13 — the residue is
+OWNED and still WATCHED, not quietly dropped.
+
+## ACCEPTANCE (c) — INERT WHERE IT MUST BE, MEASURED ON EVERY SURFACE THAT COULD MOVE
+
+- **`sv_2017` hits EVERY contract expectation exactly — canonical AND union — measured on the FINAL
+  binary, not the first cut.** Canonical `total=1401 proof=8 witness=1382 UNKNOWN=11` with the
+  identical 11-rule set; union `witness=1393 UNKNOWN=0 fully_certified=true`. Those are
+  `expected_total` / `expected_proof` / `expected_canonical_witness` / `expected_canonical_unknown` /
+  `expected_union_witness` / `expected_union_unknown` verbatim. ⭐ That is the strongest statement
+  available that the change is `verilog_2005`-only on the SV surface: **nothing moved**, rather than
+  moving and being re-baselined.
+- ⭐⭐ **THE SHIPPED PARSER'S ACCEPT/REJECT BEHAVIOUR IS BYTE-IDENTICAL, WHICH IS THE CLAIM THAT
+  MATTERS MOST AND THE ONE A CERT NUMBER CANNOT MAKE.** `verilog_2005_conformance_gate`'s corpus
+  matrix: **360 file×profile checks, 0 mismatches** — exactly the population `-0305` established
+  (`corpus_checks 303 → 360`), every case asserting a verdict under all three profiles. A stimuli
+  reach-planner edit *should* be parse-neutral by construction, and this is the measurement that
+  says it is rather than the argument that it ought to be.
+
+⛔⛔ **THE GATE REFUSED THE LAZY OPTION FIRST, AND THAT IS WHY THIS IS AN ATTRIBUTION AND NOT A
+RE-BASELINE.** Run against the pre-existing contract it went RED with **exactly 6 unmet criteria —
+2 fields × 3 seeds** — and printed *"do NOT re-stamp to make it green, because a stamp asserts the
+numbers were RE-DERIVED and matched, which is precisely what just did not happen."*
+
+```
+primary_unmet_criterion: seed=0 cert witness=761 (expected 757)
+unmet_criteria_json: ["seed=0 cert witness=761 (expected 757)","seed=0 cert UNKNOWN=14 (expected 18)",
+                      "seed=7 …","seed=42 …"]
+corpus_checks: 360   corpus_mismatches: 0   lint_profile_orphans: 0   alias_checks: 2
+```
+
+⭐ **The unmet set is the evidence, not the count**: only the two fields that moved appear, on all
+three seeds, and `total`/`proof`/both failure counts are absent — i.e. every OTHER criterion the gate
+checks still held. `expected_witness 757 → 761` and `expected_unknown 18 → 14` were then adjudicated
+by name in the contract's `baseline_note`, with the four recovered rules listed and the still-`UNKNOWN`
+founding target stated rather than hidden.
+- **`json` 9/9, `vhdl` 225/225, `regex` 269 (`proof=9 witness=260`) — all `UNKNOWN=0`,
+  `fully_certified=true`.** ⭐ `regex` is the one that matters: it is the *other* grammar that
+  declares `@profiles`, so it is the cross-family control rather than a formality.
+- ⭐ **AND THE INERTNESS IS STRUCTURAL, NOT JUST OBSERVED.** With no rule missing from the tree,
+  `node_unrenderable_under_profile` is `false` everywhere, so the pruned collector emits a vector
+  BYTE-IDENTICAL to the unpruned one — pinned over every rule of the fixture by
+  `reach_plan_pruning_is_inert_when_every_rule_is_present`, which also proves the fix does not
+  permanently prefer the longer route once the branch is live again.
+
+###### Acceptance Checklist (enforced) — `.51` slice 1
+
+- [x] **REPRODUCE / ISSUE** — reproduced at the tracked contract's own parameters before any edit:
+  `CERTIFICATE-COVERAGE: … total=1131 proof=356 witness=757 UNKNOWN=18`, union residual
+  `["context_member_method_call", "identifier_rooted_method_chain", "kw_macromodule_df04b866"]` —
+  exactly the published baseline, so the starting point is the tracked one.
+- [x] **ROOT CAUSE (WHY + WHERE)** — tool-backed, never eyeballed.
+  `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` classifies the target `parsed=true witnessed_target=false`
+  (TOOLBOX 4.3's reach/routing gap, not the malformed-sample class), and `PGEN_REACH_PATH_DUMP=1`
+  names the WHERE: `hops=[…, ("module_declaration_sv_2017", "root/o2/s1"), …]`, a plan through the
+  alternative whose mandatory `dot_star` the `verilog_2005` filter removes. In source:
+  `reach_hops_pass` (`rust/src/ast_pipeline/stimuli_generator.rs`) admitted a site on
+  `grammar_tree.contains_key(site.referenced_rule)` alone — asymmetric with `mandatory_node_gated`,
+  which IS Sequence-aware and whose doc-comment claims to mirror it.
+- [x] **ADDRESSED** — measured before→after on the symptom, at the contract's parameters:
+  the plan moves `root/o2/s1` → `root/o0/s0` → `module_ansi_header` → `module_keyword`, and the cert
+  moves `witness 757 → 761 / UNKNOWN 18 → 14` with `total` and `proof` unmoved and the arithmetic
+  closing exactly (`356 + 761 + 14 = 1131`). Union residual `3 → 1`. ⛔ **PARTIAL BY DECLARATION:
+  acceptance (b) is NOT discharged** — the founding target is still `UNKNOWN`, held by the rule-level
+  `@sample` short-circuit routed to `.52`, and the baseline is re-attributed to 14 rather than 13.
+- [x] **NO REGRESSION** — ⛔ **and one WAS caused, caught, root-caused and fixed inside the slice,
+  which is why this box is not a formality.** The first cut took
+  `spurious_store_entry_block_keeps_its_own_rule_witness` RED; attribution was MEASURED by reverting
+  to `HEAD` (passes) and re-applying (fails), and the cause was conflating "missing because the
+  profile removed it" with "missing because it was never defined". Fixed by the fallback, pinned by
+  a new control. Final state: `cargo test --lib stimuli_generator` **224 passed / 0 failed**
+  (5 new tests) and `grammar_wellformedness` **63/63**. `sv_2017` canonical **unmoved on all four
+  fields** (`1401/8/1382/11`, same 11-rule set); `sv_cert_recognized_union_gate` **GREEN with EVERY EXPECTATION UNMOVED** — `canonical_unknown=11` (expected 11), `union_unknown=0` (expected 0), `union_witness=1393` (expected 1393), `union_residual_rules=[]` (expected []), `fully_certified_via_union: true`, `unmet_criteria_count: 0`, deterministic across seeds `[0,7,42]`. ⛔ Contrast with the `verilog_2005` side, where two counters moved and had to be adjudicated by name: here **NOTHING moved**, so the whole SV certification surface is unchanged rather than re-baselined; `verilog_2005_conformance_gate` **GREEN on the re-run against the adjudicated baseline** (`gate_green: true`, `unmet_criteria_count: 0`, `lint orphans=0`, `corpus 360 checks / 0 mismatches`, `aliases 2`, cert deterministic across seeds `[0,7,42]`) — and it AUTO-RE-STAMPED its own identity from that run (`confirmed_by: … cert=1131/356/761/14 … seeds=[0,7,42]`), which is the STALE+GREEN branch working as designed and the branch the FIRST run deliberately did NOT take; `json`
+  9/9, `vhdl` 225/225 and `regex` 269 all still `fully_certified=true` with `UNKNOWN=0` — ⭐ `regex`
+  is the load-bearing one, being the other grammar that declares `@profiles`. ZERO grammar, codegen
+  and `generated/` bytes: the change is in the stimuli reach planner, which no generated parser
+  links. ⚠️ Tool cost measured rather than assumed: **3 m 53 s vs a HEAD baseline of 3 m 22.8 s**
+  on the same command (+15 % wall, not like-for-like — the fixed run witnesses four more rules).
+- [x] **LOCKSTEP** — this leaf + `.52` opened and routed with its measured two-carrier evidence + the
+  `verilog_2005` contract re-baselined BY NAME + `TOOLBOX.md` + the book + `CHANGES.md` +
+  `MEMORY.md` + `DEVELOPMENT_NOTES.md` + the knowledge record.
+
 
 ### ⛔⛔ `.50` — **A `@profiles` TAG ON A RULE INSIDE AN ELIMINATED INDIRECT-LR CYCLE SILENTLY DISABLES THAT ELIMINATION FOR EVERY PROFILE, AND THE COUNTER THAT REPORTS IT IS A `WARNING`** (`todo`, opened 2026-08-25 by `SV-CORPUS-GRAD.13e.10`(c4) / `PGEN-SV-CORPUS-GRAD-0305`)
 

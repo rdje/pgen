@@ -1,5 +1,62 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0089 — the fix worked, recovered four rules I had not predicted, and still did not reach the target it was written for
+
+**1. ⭐⭐⭐ `contains_key` IS NOT A PROFILE PREDICATE, AND ASSUMING IT WAS TOOK A PASSING TEST RED.**
+I taught the reach BFS to skip a hop site whose enclosing alternative the profile filter had killed,
+keyed on `!self.grammar_tree.contains_key(name)`. That predicate is true for **two** unrelated
+situations: the profile filter removed the rule, or it was never defined here at all (an
+`include(...)` external reference, which `node_satisfiable` deliberately treats as ⊤ with the stated
+reason *"no false positives"*). **There is no residue to tell them apart** —
+`apply_grammar_profile_filter` builds a `retained_rule_order`, so it prunes `rule_order` alongside
+the tree, and `StimuliGenerator` holds no profile field at all. A fixture reaching its target through
+an undefined `epsilon` was pruned as profile-dead. ⇒ **a pass that concludes something NEGATIVE from
+an ABSENCE must ask what else produces that absence.** PROMOTED:
+[[a-rule-missing-from-the-active-tree-has-two-causes-and-only-one-is-a-profile-fact]].
+
+**2. ⭐⭐ WHEN A HEURISTIC CANNOT DISTINGUISH TWO CASES AND BEING WRONG ABOUT ONE IS A REGRESSION,
+DON'T SHARPEN IT — MAKE ITS FAILURE RECOVERABLE.** My instinct was to find a better discriminator.
+There isn't one: the data no longer carries it. The fix that actually works is structural —
+`reach_hops_pass` PREFERS the pruned walk and FALLS BACK to the unpruned one, so pruning can only
+ever IMPROVE a route and can never delete the last one. ⭐ And the fallback was then shown to cost
+nothing in correctness rather than assumed to: the cert reads **identically** with and without it.
+Covered by the promoted record above.
+
+**3. ⭐⭐ THE PRE-EXISTING TEST WAS RIGHT AND MY NEW CODE WAS WRONG — AND I ESTABLISHED THAT BY
+MEASUREMENT INSTEAD OF READING.** `git checkout HEAD -- <file>` → the test passes; re-apply → it
+fails. One minute, and it replaces an argument about whose change it was with a fact. ⛔ The
+temptation in the moment was to read the fixture and decide it was "testing something unusual" —
+which is how a real regression gets waived. DECLINED for promotion as its own record: it is a
+restatement of the standing three-way-verification directive (leg 1, RE-DERIVE by command), not a
+new fact.
+
+**4. ⭐⭐⭐ THE ROUTING NOTE FOR THE FOLLOW-ON DEFECT WAS FALSE ON ITS FIRST DRAFT, AND THE HABIT THAT
+CAUGHT IT WAS A LESSON THIS REPOSITORY ALREADY LEARNED.** I had written *"nothing suppresses a
+rule-level `@sample` when the plan descends through that rule"*. That is a CENSUS claim
+([[an-x-is-checked-by-nothing-claim-is-a-census-claim]]), so I looked — and the suppression **exists
+and shipped**, as `GRAMMAR-WELLFORMED.H.12.5.5.2.2`, whose own worked example is the exact rule I was
+looking at. ⭐ The true mechanism turned out to be far sharper and more useful than the false one:
+`needs_rule_body_descent` keys on forced OR-directives and quantifier sites, and those are derived
+from `o{i}` and `q` path segments — **a hop through a mandatory Sequence element yields neither**, so
+an on-path rule with nothing to force is invisible to it. ⇒ **checking a "nothing does X" claim does
+not just avoid publishing a falsehood; it is often how the real mechanism gets found.**
+
+**5. ⚠️ I MEASURED THE PERFORMANCE COST INSTEAD OF ASSERTING THE CHANGE WAS CHEAP — AND IT WASN'T.**
+The obvious implementation answered renderability lazily, re-walking referenced rules transitively at
+every alternative of every rule the BFS visited. On a 1 537-rule grammar that pushed a 3-minute
+command past **600 s**. Hoisting it to a fixpoint computed once in `new()` brought it to 3 m 53 s
+against a HEAD baseline of 3 m 22.8 s. ⭐ The fixpoint is also the *more correct* shape, because it is
+the same computation the well-formedness lint already performs — so the engine and the lint agree by
+construction rather than as two hand-kept models. DECLINED for promotion: "memoize a transitive
+predicate" is general programming knowledge, not a PGEN fact.
+
+**6. ⭐ A FIX CAN SUCCEED, EXCEED ITS PREDICTED SCOPE, AND STILL MISS ITS TARGET — REPORT ALL THREE.**
+This slice was written to return `kw_macromodule_df04b866` to `witness`. It did not. It *did* return
+four other rules nobody had predicted (two of them long-standing union residuals) and it *did* repair
+the planner defect. The honest shape is: acceptance (a)(c)(d)(e)(f) discharged, **(b) explicitly
+NOT**, the leaf left open, and the baseline re-attributed to 14 rather than the 13 the leaf predicted.
+⛔ Re-baselining to 13 "because the fix landed" would have been the failure mode.
+
 ## 2026-08-26 - PGEN-SV-CORPUS-GRAD-0307 — the defect I was sent to fix was not a defect, and the thing that WAS broken had been mis-attributed into a tracked contract
 
 **1. ⭐⭐⭐ WHEN A NEW FINDING LANDS BESIDE ROWS ALREADY ADJUDICATED THE OTHER WAY, THE

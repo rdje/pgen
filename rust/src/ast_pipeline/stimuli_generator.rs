@@ -2036,6 +2036,12 @@ pub struct StimuliGenerator<'a> {
     store_aware_gen: bool,
     // STORE-AWARE-GEN.3: rule → its `@emit_fact` specs (literal-resolved), emitted on rule success.
     gen_emit_facts: HashMap<String, Vec<SemanticFactSpec>>,
+    /// ENGINE-UNIVERSAL-SERVICES.51: rules that cannot be RENDERED under the active profile —
+    /// precomputed ONCE as a fixpoint in `new()`, never recomputed per query. Computing it lazily
+    /// per node cost more than the BFS it serves: every alternative re-walked the referenced rules
+    /// transitively, so a 1 537-rule grammar paid roughly O(rules) per node. Empty for any grammar
+    /// with nothing missing from its tree, which is every grammar declaring no `@profiles`.
+    unrenderable_rules: HashSet<String>,
     // STRUCTURED-WITNESS-SYNTH.3: `true` ONLY while `generate_structured_witnesses` (PASS 3f) runs.
     // Scopes the pass's three composition capabilities — the (b1) dotted-emit producer admission,
     // the (b2) typed-branch forcing on the prelude sub-path, and the (c) head-leaf name pin — so
@@ -2249,6 +2255,12 @@ impl<'a> StimuliGenerator<'a> {
         // once (the SAME annotation parse the codegen/store-aware path use), for the two-pass
         // `reach_hops` store-gated-edge deprioritization. Empty ⇒ inert (no behavior change).
         let reach_gate_kinds = Self::compute_reach_gate_kinds(annotations);
+        // ENGINE-UNIVERSAL-SERVICES.51: the rules that cannot be RENDERED under the active profile,
+        // as a fixpoint over the already-filtered tree. Precomputed because the reach BFS asks the
+        // question once per alternative per rule visited, and answering it lazily re-walked the
+        // referenced rules transitively every time. EMPTY whenever nothing is missing from the tree
+        // ⇒ inert (byte-identical reach planning).
+        let unrenderable_rules = Self::compute_unrenderable_rules(grammar_tree, rule_order);
         // SV-KEYWORD-PRIMARY-FIDELITY.3.2: precompute the reserved whole-word lists once from the
         // already-profile-filtered tree (so an `!reserved-regex identifier` shape excludes exactly the
         // words the active-profile parser reserves). EMPTY for grammars without a whole-word-list rule
@@ -2315,6 +2327,7 @@ impl<'a> StimuliGenerator<'a> {
             gen_semantic_state: SemanticRuntimeState::new(),
             store_aware_gen,
             gen_emit_facts,
+            unrenderable_rules,
             structured_witness_mode: false,
             pending_head_pin: None,
             gen_count_kinds,
@@ -8615,6 +8628,170 @@ impl<'a> StimuliGenerator<'a> {
     /// `dead_code`-allowed: analysis-only in `.7.2.1`; the production caller that
     /// drives generation lands in `.7.2.2`. Exercised now by unit tests.
     #[allow(dead_code)]
+    /// ENGINE-UNIVERSAL-SERVICES.51: the fixpoint behind [`Self::unrenderable_rules`] — every rule
+    /// that cannot be rendered under the active profile because its body bottoms out in a rule the
+    /// profile filter removed.
+    ///
+    /// Seeded from nothing and grown to a fixpoint, exactly like `compute_sat_by_profile`'s
+    /// complement in the well-formedness lint, so the engine and the lint agree by construction
+    /// rather than by two hand-kept models. Terminates because the set only grows and is bounded by
+    /// the rule count.
+    fn compute_unrenderable_rules(
+        grammar_tree: &HashMap<String, ASTNode>,
+        rule_order: &[String],
+    ) -> HashSet<String> {
+        let mut dead: HashSet<String> = HashSet::new();
+        loop {
+            let mut changed = false;
+            for rule in rule_order {
+                if dead.contains(rule) {
+                    continue;
+                }
+                let Some(body) = grammar_tree.get(rule) else {
+                    continue; // absent entirely — recorded at the reference site, not here
+                };
+                if Self::node_dead_given(body, grammar_tree, &dead) {
+                    dead.insert(rule.clone());
+                    changed = true;
+                }
+            }
+            if !changed {
+                return dead;
+            }
+        }
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.51: can this node be RENDERED under the active profile, given the
+    /// rules already known dead?
+    ///
+    /// This propagates the way a generator MATERIALISES, which is not how `node_satisfiable`
+    /// propagates for satisfiability: `Or` = dead iff EVERY alternative is · `Sequence` = dead iff
+    /// ANY element is (all sequence elements are mandatory) · `?`/`*` (min 0) = NEVER dead, it
+    /// renders empty · `+`/`{N,}` (min≥1) = dead iff its element is · lookahead = never dead (it
+    /// materialises nothing) · a reference = dead iff the rule is absent from the pruned tree, or
+    /// already known dead.
+    ///
+    /// Deliberately the same shape as [`Self::mandatory_node_gated`] with the store-gate half
+    /// removed — that function is about a gate consulting an unavailable fact, this one is purely
+    /// about profile pruning, and conflating them would make a reach decision depend on the store.
+    fn node_dead_given(
+        node: &ASTNode,
+        grammar_tree: &HashMap<String, ASTNode>,
+        dead: &HashSet<String>,
+    ) -> bool {
+        match node {
+            ASTNode::Or { alternatives } => {
+                !alternatives.is_empty()
+                    && alternatives
+                        .iter()
+                        .all(|alt| Self::node_dead_given(alt, grammar_tree, dead))
+            }
+            ASTNode::Sequence { elements } => elements
+                .iter()
+                .any(|element| Self::node_dead_given(element, grammar_tree, dead)),
+            ASTNode::Quantified {
+                element,
+                quantifier,
+            } => {
+                super::parse_quantifier_bounds(quantifier).is_some_and(|(min, _)| min >= 1)
+                    && Self::node_dead_given(element, grammar_tree, dead)
+            }
+            ASTNode::Lookahead { .. } => false,
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => Self::node_dead_given(inner, grammar_tree, dead),
+                ASTValue::Token(parts) => match Self::extract_token_pair(parts) {
+                    Some(("rule_reference", name)) => {
+                        !grammar_tree.contains_key(name) || dead.contains(name)
+                    }
+                    _ => false,
+                },
+            },
+        }
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.51: [`Self::node_dead_given`] against the precomputed fixpoint.
+    fn node_unrenderable_under_profile(&self, node: &ASTNode) -> bool {
+        Self::node_dead_given(node, self.grammar_tree, &self.unrenderable_rules)
+    }
+
+    /// ENGINE-UNIVERSAL-SERVICES.51: [`Self::collect_rule_reference_sites`], pruned to the sites a
+    /// plan could actually ROUTE through under the active profile.
+    ///
+    /// ⛔⛔ **WHY THE UNPRUNED COLLECTOR IS WRONG FOR ROUTING, MEASURED.** `reach_hops_pass` used to
+    /// admit a hop site whenever the rule REFERENCED there survived the profile filter, and never
+    /// asked whether the ALTERNATIVE containing it could still be rendered. On `systemverilog` under
+    /// `verilog_2005` that routed `kw_macromodule_df04b866` through
+    /// `("module_declaration_sv_2017", "root/o2/s1")` — the implicit-port alternative, whose
+    /// mandatory `dot_star` the filter removes — so the renderer could not execute the plan and
+    /// generation fell back silently to an unrelated construct. The rule stayed `UNKNOWN` in a
+    /// PUBLISHED certificate baseline while two live sibling routes to the same target both accepted.
+    ///
+    /// ⚠️ **THE DESCENT RULE IS NOT THE PROPAGATION RULE, and the difference is a min-0 quantifier.**
+    /// `( dead )?` does not make its container unrenderable (it renders empty), but a site INSIDE it
+    /// is still unroutable, because reaching that site requires the quantifier to render a copy. So
+    /// deadness propagates upward through min≥1 only, while descent requires a renderable element at
+    /// EVERY quantifier. Getting this backwards would either prune live routes or keep dead ones.
+    ///
+    /// ⭐ Site ORDER is preserved exactly, and for a grammar with no `@profiles` nothing is ever
+    /// pruned, so the emitted vector is identical to the unpruned collector's — which is what makes
+    /// this safe to put on the shared BFS.
+    fn collect_renderable_rule_reference_sites(
+        &self,
+        node: &ASTNode,
+        base_path: &str,
+        out: &mut Vec<RuleReferenceSite>,
+    ) {
+        match node {
+            ASTNode::Or { alternatives } => {
+                for (idx, alternative) in alternatives.iter().enumerate() {
+                    if self.node_unrenderable_under_profile(alternative) {
+                        continue;
+                    }
+                    let alt_path = format!("{}/o{}", base_path, idx);
+                    self.collect_renderable_rule_reference_sites(alternative, &alt_path, out);
+                }
+            }
+            ASTNode::Sequence { elements } => {
+                // Every element is mandatory, so one dead element makes the WHOLE sequence
+                // unroutable — including sites beside the dead one, which is precisely the case
+                // that shipped: `module_keyword` is live, `dot_star` beside it is not.
+                if self.node_unrenderable_under_profile(node) {
+                    return;
+                }
+                for (idx, element) in elements.iter().enumerate() {
+                    let element_path = format!("{}/s{}", base_path, idx);
+                    self.collect_renderable_rule_reference_sites(element, &element_path, out);
+                }
+            }
+            ASTNode::Quantified { element, .. } => {
+                if self.node_unrenderable_under_profile(element) {
+                    return;
+                }
+                let quantified_path = format!("{}/q", base_path);
+                self.collect_renderable_rule_reference_sites(element, &quantified_path, out);
+            }
+            // A lookahead materialises nothing, so it is no reach edge — identical to the unpruned
+            // collector, whose long-form rationale for this applies verbatim.
+            ASTNode::Lookahead { .. } => {}
+            ASTNode::Atom { value } => match value {
+                ASTValue::Node(inner) => {
+                    let atom_path = format!("{}/a", base_path);
+                    self.collect_renderable_rule_reference_sites(inner, &atom_path, out);
+                }
+                ASTValue::Token(parts) => {
+                    if let Some((token_type, token_value)) = Self::extract_token_pair(parts) {
+                        if token_type == "rule_reference" {
+                            out.push(RuleReferenceSite {
+                                referenced_rule: token_value.to_string(),
+                                node_path: base_path.to_string(),
+                            });
+                        }
+                    }
+                }
+            },
+        }
+    }
+
     fn collect_rule_reference_sites(
         node: &ASTNode,
         base_path: &str,
@@ -9593,6 +9770,33 @@ impl<'a> StimuliGenerator<'a> {
         target_rule: &str,
         exclude_store_gated_edges: bool,
     ) -> Option<Vec<(String, String)>> {
+        // ENGINE-UNIVERSAL-SERVICES.51: PREFER a route whose every hop sits in a branch the active
+        // profile can still render, and FALL BACK to the unpruned walk rather than reporting the
+        // target unreachable. The fallback is not defensive padding — it is load-bearing, because
+        // the generator cannot tell the two reasons a rule is absent from `grammar_tree` apart:
+        // the profile filter removed it (`apply_grammar_profile_filter` prunes `rule_order` too),
+        // OR it was never defined here at all — an `include(...)` external reference, which
+        // `node_satisfiable` deliberately treats as ⊤ "no false positives". Pruning on the second
+        // kind would silently shrink the reach graph of every grammar that uses includes. With the
+        // fallback, pruning can only ever IMPROVE a route: a target reachable both ways takes the
+        // renderable route, and a target reachable only through a dead branch is planned exactly as
+        // before. ⛔ Measured cost of getting this wrong: without the fallback,
+        // `spurious_store_entry_block_keeps_its_own_rule_witness` goes RED, because its fixture
+        // reaches `soft_target` through an UNDEFINED `epsilon`.
+        self.reach_hops_bfs(entry_rule, target_rule, exclude_store_gated_edges, true)
+            .or_else(|| self.reach_hops_bfs(entry_rule, target_rule, exclude_store_gated_edges, false))
+    }
+
+    /// The BFS itself. `prune_unrenderable_branches` selects the site enumerator — see
+    /// [`Self::collect_renderable_rule_reference_sites`] for what pruning means and why the caller
+    /// retries without it.
+    fn reach_hops_bfs(
+        &self,
+        entry_rule: &str,
+        target_rule: &str,
+        exclude_store_gated_edges: bool,
+        prune_unrenderable_branches: bool,
+    ) -> Option<Vec<(String, String)>> {
         use std::collections::VecDeque;
         struct Discovery {
             predecessor: Option<String>,
@@ -9634,7 +9838,15 @@ impl<'a> StimuliGenerator<'a> {
                 }
             }
             let mut sites: Vec<RuleReferenceSite> = Vec::new();
-            Self::collect_rule_reference_sites(rule_node, "root", &mut sites);
+            // ENGINE-UNIVERSAL-SERVICES.51: sites a plan can actually ROUTE through. The unpruned
+            // collector admits a site whose enclosing alternative the profile filter has killed —
+            // the rule referenced there is live, a MANDATORY SIBLING is not — and the renderer then
+            // cannot execute the plan, so the target silently never witnesses.
+            if prune_unrenderable_branches {
+                self.collect_renderable_rule_reference_sites(rule_node, "root", &mut sites);
+            } else {
+                Self::collect_rule_reference_sites(rule_node, "root", &mut sites);
+            }
             // GRAMMAR-WELLFORMED.H.12.5.8.3.1.1 (PGEN-GRAMMAR-WELLFORMED-0132): when
             // several reference sites in this rule reach the same target, prefer one in a
             // SOLE-MANDATORY-REFERENCE passthrough top-level alternative (the `-> $1`
@@ -18207,6 +18419,207 @@ mod tests {
                 TokenValue::String(token_value.to_string()),
             ]),
         }
+    }
+
+    // ENGINE-UNIVERSAL-SERVICES.51 — the reach BFS must not route through a branch the profile
+    // filter has killed. Two-sided by design: the founding defect is that a DEAD branch was chosen,
+    // and the opposite failure (pruning a LIVE branch, or pruning when no profile is in play) would
+    // silently shrink every grammar's reach graph, so both directions are pinned.
+    //
+    // The tree handed to StimuliGenerator is ALREADY profile-filtered, so a rule the filter removed
+    // is simply absent from the map — which is exactly how these fixtures spell "gated out".
+
+    // `rule_ref` exists in the OTHER test module in this file and is not in scope here.
+    fn e51_rule_ref(rule: &str) -> ASTNode {
+        token("rule_reference", rule)
+    }
+
+    fn e51_fixture() -> (HashMap<String, ASTNode>, Vec<String>) {
+        // host := header                 <- alt 0: reaches `target` at distance 2, and is LIVE
+        //       | target gated           <- alt 1: reaches `target` at distance 1, but `gated` is
+        //                                          absent from the tree, so the branch cannot render
+        // header := mark target
+        //
+        // The distances are the point: first-discovery-wins BFS prefers alt 1, so only skipping it
+        // lets the distance-2 live route be found at all. This is the `module_declaration_sv_2017`
+        // shape reduced — `module_keyword` sits directly in the dead implicit-port alternative and
+        // two hops away through `module_ansi_header`.
+        let mut g = HashMap::new();
+        g.insert(
+            "host".into(),
+            ASTNode::Or {
+                alternatives: vec![
+                    e51_rule_ref("header"),
+                    ASTNode::Sequence {
+                        elements: vec![e51_rule_ref("target"), e51_rule_ref("gated")],
+                    },
+                ],
+            },
+        );
+        g.insert(
+            "header".into(),
+            ASTNode::Sequence {
+                elements: vec![e51_rule_ref("mark"), e51_rule_ref("target")],
+            },
+        );
+        g.insert("mark".into(), token("string", "m"));
+        g.insert("target".into(), token("string", "t"));
+        // `gated` is deliberately NOT inserted: the profile filter removed it.
+        let order: Vec<String> =
+            vec!["host".into(), "header".into(), "mark".into(), "target".into()];
+        (g, order)
+    }
+
+    #[test]
+    fn reach_plan_skips_a_hop_site_whose_branch_the_profile_filter_killed() {
+        let (g, order) = e51_fixture();
+        let generator = simple_generator(&g, &order, 0);
+
+        // ⛔ THE RED ARM, made permanent: the UNPRUNED collector still offers the dead site, so this
+        // test fails the moment the BFS goes back to using it.
+        let mut unpruned = Vec::new();
+        StimuliGenerator::collect_rule_reference_sites(&g["host"], "root", &mut unpruned);
+        assert!(
+            unpruned
+                .iter()
+                .any(|s| s.referenced_rule == "target" && s.node_path == "root/o1/s0"),
+            "fixture is wrong: the unpruned collector must offer the DEAD site, or there is nothing \
+             for the fix to skip: {unpruned:?}"
+        );
+
+        // ✅ THE GREEN ARM: the pruned collector drops the whole dead alternative — including the
+        // live `target` reference sitting BESIDE the dead element, which is the case that shipped.
+        let mut pruned = Vec::new();
+        generator.collect_renderable_rule_reference_sites(&g["host"], "root", &mut pruned);
+        assert!(
+            !pruned.iter().any(|s| s.node_path.starts_with("root/o1")),
+            "every site in the dead alternative must be pruned, not just the dead reference: {pruned:?}"
+        );
+        assert!(
+            pruned
+                .iter()
+                .any(|s| s.referenced_rule == "header" && s.node_path == "root/o0"),
+            "the LIVE alternative must survive untouched: {pruned:?}"
+        );
+
+        // And the plan the BFS actually installs now runs through the live route.
+        let hops = generator
+            .reach_hops("host", "target")
+            .expect("`target` is reachable through the live alternative");
+        assert_eq!(
+            hops,
+            vec![
+                ("host".to_string(), "root/o0".to_string()),
+                ("header".to_string(), "root/s1".to_string()),
+            ],
+            "the plan must route through the live distance-2 alternative, never the dead distance-1 one"
+        );
+    }
+
+    #[test]
+    fn reach_plan_pruning_is_inert_when_every_rule_is_present() {
+        // ⭐ The safety property the shared BFS depends on: with nothing missing from the tree —
+        // i.e. every grammar that declares no `@profiles`, and every profiled grammar under a
+        // profile that removes nothing — the pruned collector emits EXACTLY the unpruned vector,
+        // so no existing grammar's reach graph moves.
+        let (mut g, mut order) = e51_fixture();
+        g.insert("gated".into(), token("string", "g"));
+        order.push("gated".into());
+        let generator = simple_generator(&g, &order, 0);
+
+        for rule in &order {
+            let mut unpruned = Vec::new();
+            StimuliGenerator::collect_rule_reference_sites(&g[rule], "root", &mut unpruned);
+            let mut pruned = Vec::new();
+            generator.collect_renderable_rule_reference_sites(&g[rule], "root", &mut pruned);
+            assert_eq!(
+                unpruned, pruned,
+                "with no rule missing, pruning must be a no-op for '{rule}'"
+            );
+        }
+
+        // ⛔ And with `gated` present the SHORTEST route is the right answer again — the fix must not
+        // permanently prefer the longer one.
+        let hops = generator.reach_hops("host", "target").expect("reachable");
+        assert_eq!(
+            hops,
+            vec![("host".to_string(), "root/o1/s0".to_string())],
+            "when the branch is live, first-discovery-wins must still pick the distance-1 route"
+        );
+    }
+
+    #[test]
+    fn an_undefined_reference_must_not_prune_a_route_the_way_a_profile_gate_does() {
+        // ⛔⛔ THE REGRESSION THIS FIX ACTUALLY CAUSED, pinned so it cannot come back.
+        //
+        // A rule can be absent from `grammar_tree` for TWO reasons the generator cannot tell apart:
+        // the profile filter removed it (`apply_grammar_profile_filter` prunes `rule_order` too), or
+        // it was never defined here — an `include(...)` external reference, which `node_satisfiable`
+        // deliberately treats as ⊤ "no false positives". The first cut of this fix treated both as
+        // dead and took `spurious_store_entry_block_keeps_its_own_rule_witness` RED, because that
+        // fixture reaches its target through an UNDEFINED `epsilon`.
+        //
+        // The fallback in `reach_hops_pass` is what makes pruning safe: it can only ever IMPROVE a
+        // route, never delete the last one.
+        let mut g = HashMap::new();
+        g.insert(
+            "unit".into(),
+            ASTNode::Sequence {
+                elements: vec![token("string", "u"), e51_rule_ref("target")],
+            },
+        );
+        // `target`'s body references a rule that is DEFINED NOWHERE — not gated, just external.
+        g.insert(
+            "target".into(),
+            ASTNode::Sequence {
+                elements: vec![token("string", "t"), e51_rule_ref("external_include")],
+            },
+        );
+        let order: Vec<String> = vec!["unit".into(), "target".into()];
+        let generator = simple_generator(&g, &order, 0);
+
+        let hops = generator.reach_hops("unit", "target").expect(
+            "an undefined reference must NOT make the target unreachable — the fallback walk finds it",
+        );
+        assert_eq!(hops, vec![("unit".to_string(), "root/s1".to_string())]);
+    }
+
+    #[test]
+    fn a_min_zero_quantifier_does_not_kill_its_container_but_does_block_descent() {
+        // ⚠️ The one place the DESCENT rule and the PROPAGATION rule disagree, pinned because
+        // getting it backwards silently prunes live routes or keeps dead ones.
+        //   host := ( gated )? target      <- `gated` is absent; the optional renders EMPTY, so the
+        //                                     SEQUENCE is still renderable and `target` is routable,
+        //                                     but nothing inside the optional ever is.
+        let mut g = HashMap::new();
+        g.insert(
+            "host".into(),
+            ASTNode::Sequence {
+                elements: vec![
+                    ASTNode::Quantified {
+                        element: Box::new(e51_rule_ref("gated")),
+                        quantifier: "?".to_string(),
+                    },
+                    e51_rule_ref("target"),
+                ],
+            },
+        );
+        g.insert("target".into(), token("string", "t"));
+        let order: Vec<String> = vec!["host".into(), "target".into()];
+        let generator = simple_generator(&g, &order, 0);
+
+        let mut pruned = Vec::new();
+        generator.collect_renderable_rule_reference_sites(&g["host"], "root", &mut pruned);
+        assert!(
+            pruned
+                .iter()
+                .any(|s| s.referenced_rule == "target" && s.node_path == "root/s1"),
+            "a dead OPTIONAL must not kill its sequence — `target` stays routable: {pruned:?}"
+        );
+        assert!(
+            !pruned.iter().any(|s| s.node_path.starts_with("root/s0")),
+            "but nothing inside the dead optional is routable, since reaching it needs a rendered copy: {pruned:?}"
+        );
     }
 
     fn simple_generator<'a>(

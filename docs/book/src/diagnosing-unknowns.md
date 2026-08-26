@@ -115,11 +115,20 @@ never tells you what the plan *asked for*. Always run the reach-path dump (below
 | What the hop dump shows | Cause | Where the fix lives |
 |---|---|---|
 | chain missing, short, or routed through the wrong carrier | **plan-side** — a genuine reach/routing gap | the reach planner |
+| chain complete but a hop lands in a branch the **profile** cannot render | **plan-side, profile-specific** — the planner steered into an alternative holding a profile-removed *mandatory sibling*, so the renderer could never execute it | cross-check the hop's branch against `--dump-rule-profiles`' `branch_satisfiable_under` |
 | chain complete and correct, sample ignores it | **render-side** — generation *was* steered and then failed, and `generate_or`'s forced-first-**with-fallback** silently rendered a sibling | whatever made the forced descent fail (a re-firing forced quantifier, a depth budget) |
 | sample renders the target construct correctly, still not witnessed | **parser-side** — the parser never *commits* to the target, typically a longest-match sibling spanning the same syntax | the grammar shape, or seed selection in the witness planner |
 
 The last row is easy to misread: use `--parse-dump-ast-pretty` and check the discriminator `kind`,
 because rule **entry** counts will show the target entered (speculatively) and tell you nothing.
+
+The profile row was added after it was measured: under `verilog_2005` the planner routed
+`kw_macromodule_df04b866` through `module_declaration_sv_2017`'s implicit-port alternative, whose
+mandatory `.*` that profile removes, while two live sibling routes to the same target both accepted.
+The planner now **prefers** a renderable route and falls back only when there is no other — so a dump
+that still shows a dead branch means the target is reachable *only* that way, which is itself the
+answer. Two of these can also stack: fixing the plan there left the same rule unwitnessed for a
+*different*, render-side reason, so re-run the dump after every fix rather than assuming one cause.
 
 Aggregate the whole pass to see the dominant failure mode:
 
