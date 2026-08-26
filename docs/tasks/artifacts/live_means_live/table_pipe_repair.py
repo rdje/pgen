@@ -95,6 +95,18 @@ HAND_JOINS = {
     # Fix-Proof cells are each shredded by `|` characters inside regex character classes written
     # in code spans (`[\d-[|z]]`, `[~-||]`, `[|-||]`, `[a-|b]`). Empty fragments are real: `||`
     # is two adjacent separators produced by one two-pipe class.
+    # docs/TASK_TREE.md table 1 declares `Tree | Status | Roadmap lane | Current frontier | File`.
+    # Same reading method: the Tree cell, the lane sentence and the trailing `](tasks/…)` link are
+    # recognisable, so the fragments read back onto their columns and the groups are the remainder.
+    # ⚠️ `ENGINE-UNIVERSAL-SERVICES`, `DOCTRINE-GAP-OWNERSHIP`, `CI-PARITY-GATE-ROT` and `DONE-BAR`
+    # were ALSO missing cells outright; those were authored in `-0013` before this pass ran, because
+    # this applier only ever escapes and must never invent a column.
+    ("docs/TASK_TREE.md", 1, "RGX-0078"): [[3, 4, 5]],
+    ("docs/TASK_TREE.md", 1, "DOCTRINE-GAP-OWNERSHIP"): [[1, 2, 3]],
+    ("docs/TASK_TREE.md", 1, "CI-PARITY-GATE-ROT"): [[1, 2]],
+    ("docs/TASK_TREE.md", 1, "GRAMMAR-WELLFORMED"): [list(range(1, 9)), list(range(10, 14)), [14, 15]],
+    ("docs/TASK_TREE.md", 1, "ENGINE-UNIVERSAL-SERVICES"): [list(range(1, 5)), list(range(6, 20))],
+    ("docs/TASK_TREE.md", 1, "SV-CORPUS-GRAD"): [list(range(1, 7)), list(range(8, 17)), list(range(17, 22))],
     ("docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md", 1, "REGEX-0105"): [
         [4, 5, 6],
         list(range(10, 23)),

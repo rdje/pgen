@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-27 - PGEN-LIVE-DOC-CONTAINMENT-0013 — a missing column is invisible, because the renderer supplies one
+
+**1. ⭐⭐⭐ HALF THE INDEX DEFECTS WERE NOT ESCAPING AT ALL — FOUR ROWS WERE MISSING WHOLE COLUMNS.**
+`ENGINE-UNIVERSAL-SERVICES` carried **no `File` cell anywhere in the row**: the index this project
+resumes from held no path to the tree file of one of its most active trees. `DOCTRINE-GAP-OWNERSHIP`
+had no `Current frontier`; `CI-PARITY-GATE-ROT` and `DONE-BAR` had neither. GFM **pads** a short row
+in silence, so the rendered table looks structurally perfect — every row has five cells, the header
+count is honoured, and the missing content simply is not there. ⇒ **an over-wide row loses content
+loudly enough to be noticed eventually; a short row loses it in a way the format actively conceals.**
+A census that only hunts surplus cells finds the visible half of the class.
+
+**2. ⭐⭐ A MECHANICAL APPLIER MUST NEVER INVENT A COLUMN, AND THAT CONSTRAINT IS WHAT ORDERED THE
+WORK.** The repair tool escapes separators and nothing else, so it cannot author a `File` link or a
+frontier sentence — and it correctly refused all four rows by landing them short. The order that
+falls out is: **author the missing cells by hand FIRST, then run the escaping pass**, which then
+lands on the declared arity and passes its own predicate. A tool permitted to add cells to reach a
+target count would have produced five columns of which one was fabricated, and nothing downstream
+could have told the difference.
+
+**3. ⛔ THE FRONTIER VALUES HAD TO BE DERIVED, BECAUSE EACH TREE'S OWN `Frontier:` FIELD IS STALE.**
+`DOCTRINE-GAP-OWNERSHIP`'s metadata says `Frontier: .2` while `.15` and `.16` are DONE and `.17` is
+the open leaf; `CI-PARITY-GATE-ROT`'s says *"NONE in this tree — product now"* while `.41`, `.42` and
+`.48` are `todo`. Both were written once and never re-derived. ⇒ filling a tracker cell from another
+tracker field copies its rot; the cells were written from the leaf headings that actually carry a
+status. ⚠️ That staleness is a live finding in its own right and is NOT fixed here — it belongs to
+`DOCTRINE-GAP-OWNERSHIP.14` (*a leaf's STATUS is prose in its heading and nothing derives it*).
+
+**4. ⭐ LOSSLESSNESS IS PROVABLE PER ROW EVEN WHEN THE INVARIANT DOES NOT APPLY.** The escaping pass
+has an exact invariant (only a backslash may be inserted), but authoring a missing cell breaks it by
+design. The replacement check is just as strong and just as cheap: **every fragment of the old row
+must appear VERBATIM in the repaired row** — 8 of 8 — and exactly 8 lines of the file changed. ⇒ when
+an edit must add content, do not abandon the invariant; weaken it to a containment property that is
+still mechanically checkable.
+
+**5. ⚠️ `README-POLICY` HAD THE RIGHT NUMBER OF CELLS AND THE WRONG ORDER.** Five cells against a
+five-column header, so every arity instrument on both sides of this leaf called it healthy — while
+the rendered `File` column showed frontier prose and the `Current frontier` column showed the link.
+⇒ **a count is not a schema.** Only reading finds a defect whose count is right, and this one is the
+third distinct cause in a leaf that opened believing there were two.
+
 ## 2026-08-27 - PGEN-LIVE-DOC-CONTAINMENT-0012 — the position an imbalance detector reports is where the scan ran out, not where the author slipped
 
 **1. ⭐⭐⭐ I CHASED FOUR REPORTED POSITIONS AND ALL FOUR WERE CORRECT CODE.** The scan said
