@@ -1,5 +1,43 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0096 — my no-regression evidence was a control that had disarmed itself, and it printed clean
+
+**1. ⛔⛔⛔ I CHECKED A GATE'S OUTPUT INSTEAD OF ITS EXIT CODE, AND THE GATE HAD REFUSED.**
+`generated_reproducibility_rebaseline` runs tier 2 FIRST and, on a breach, declines to record —
+correctly. I grepped the count of `re-derives byte-identically` lines (10, not 11 — the signal was
+right there) and then diffed `shasum generated/*.rs` before vs after. The diff was empty **because
+nothing had been regenerated**, and I read that as confirmation. ⇒ **a before/after digest is only
+evidence if something ran between them**; when the "after" step can decline, its EXIT CODE is the
+verdict and the digests are downstream of it. This is the same lesson two of my own gates encode this
+session (*"a load failure and a parse rejection are both nonzero"*, *"score from the headline, never
+the exit code"*) — the general form is: **know which of exit code and output carries the verdict for
+the specific tool, and check that one.**
+
+**2. ⛔⛆ THE 10-vs-11 WAS VISIBLE AND I EXPLAINED IT AWAY WITH THE OTHER CHECK.** Two instruments
+disagreed — the line count said 10, the digests said unchanged — and I let the one I trusted more
+settle it. The correct move on a disagreement is to find out WHY, not to pick a winner; the missing
+line WAS the breach. Every other rebaseline this session printed 11.
+
+**3. ⭐⭐ THE REFUTATION WAS ALREADY IN MY OWN CENSUS, ONE SLICE EARLIER.** I wrote that the new
+branch is "unreachable for any base that declares its own gate or any choice with an unconstrained
+route, which is every tracked case today". `.50`(a)'s census says `casting_type` has **7 gated + 4
+underivable** routes — and an underivable route contributes NO suffix branch, so *every branch that
+exists* is gated and the union applies. ⇒ **a claim of inertness is a claim about a population, and I
+had the population.** Re-reading my own measurement would have caught it before the oracle did.
+
+**4. ⭐ "ALMOST CERTAINLY SOUND" IS THE REASON TO STOP, NOT THE REASON TO PROCEED.** The gate the
+repair adds is very likely accept-set-neutral: the routes are gated to dialects a `verilog_2005`
+parse cannot enter. But that is an argument, and the repo has instruments for accept-set claims
+precisely because arguments of that shape have been wrong here before. A −36 814-byte change to a
+parser a downstream consumer builds against does not land on reasoning.
+
+**5. ⭐ ROUTING A BUILT-AND-MEASURED FIX IS NOT "LOGGING INSTEAD OF FIXING".** The fix exists, its
+RED control exists, and its effect is measured to the byte. What is missing is the release machinery
+— regeneration, accept-set adjudication, ledger row, release bump, contract re-key — which is
+`.50`(e)'s machinery anyway. Landing them together cuts one release for one behavioural change
+instead of two. The leaf records the blast radius so the next slice starts from the measurement
+rather than rediscovering it.
+
 ## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0095 — a ratchet does not need a stored baseline when the thing it ratchets is already versioned
 
 **1. ⭐⭐⭐ THE REPO'S OWN RATCHET SHAPE WAS THE WRONG ONE HERE, AND COPYING IT WOULD HAVE IMPORTED

@@ -13885,6 +13885,99 @@ founding target stated rather than hidden.
   `MEMORY.md` + `DEVELOPMENT_NOTES.md` + the knowledge record.
 
 
+### ⚠️ `.55` — **THE ELIMINATION PASS'S OWN SUFFIX WRAPPER BECOMES A PROFILE ORPHAN, THE LINT'S DERIVED FIX IS UNFOLLOWABLE BECAUSE THERE IS NO SOURCE LINE TO TAG — AND THE REPAIR IS *NOT* INERT, WHICH I FIRST WROTE DOWN THAT IT WAS** (`todo`, opened 2026-08-26 by `.50`(e)'s first step; the repair was BUILT, MEASURED, and DELIBERATELY NOT LANDED — see the blast radius)
+
+**ROUTING EVIDENCE** (intra-tree — the mechanism is the elimination pass, this tree's subject;
+recorded anyway, because a routing decision without a measurement is what `ROUTING-EVIDENCE` exists
+to stop).
+
+⛔ **HOW IT WAS FOUND — by taking `.50`(e)'s first step, not by reading code.** With `.50`(a)+(b)
+landed, applying `SV-CORPUS-GRAD.13e.10`(c4)'s 17th gate (`@profiles: ["sv_2017","sv_2023"]` on
+`tick`) plus its **7 source companions** gives:
+
+| | tick + 7 companions, on HEAD |
+|---|---|
+| `left_recursion_unhandled` | **0** ✅ — `.50`(b) already fixed that half |
+| `left_recursion_eliminated` | **4** ✅ |
+| ⛔ `profile_orphans` | **3** (ERROR class, lint rc **1**) |
+
+⛔⛔ **AND ALL THREE ORPHANS ARE RULES THE PASS INVENTS**: `casting_type_lr_suffix`,
+`casting_type_lr_guard0_suffix`, `casting_type_lr_guard1_suffix`. The lint derives a minimal fix for
+each — *"tag 'casting_type_lr_suffix' with @profiles: [sv_2017, sv_2023] (the profiles where it IS
+satisfiable)"* — and **that fix cannot be applied**: there is no source line to tag. ⇒ **a
+tool-derived instruction that is unfollowable is itself the signal**; the rule that must carry the
+gate is generated, so the GENERATOR must derive it. ⭐ `casting_type_lr_suffix_r4` resolved on its
+own, which is `.50`(b) working — the per-ROUTE rules now carry their intersection. `.55` is the level
+ABOVE: the ordered choice over those routes, and the guard clones that reference it.
+
+**ROOT CAUSE (WHY + WHERE).** `apply_plan`
+(`rust/src/ast_pipeline/indirect_lr_elimination.rs`) copies `@profiles` onto BOTH helpers from the
+BASE rule:
+
+```rust
+if !base_profiles.is_empty() {
+    annotations.semantic_annotations.insert(plan.helper_base_rule.clone(),   base_profiles.clone());
+    annotations.semantic_annotations.insert(plan.helper_suffix_rule.clone(), base_profiles.clone());
+}
+```
+
+`casting_type` declares no `@profiles`, so `base_profiles` is empty and `casting_type_lr_suffix` gets
+nothing — while every one of its alternatives is gated. ⛔ **The two helpers are not the same kind of
+rule and must not share a rule**: `X_lr_base` carries the BASE's alternatives (the base's gate is
+right for it); `X_lr_suffix` is an ordered choice over the ROUTES (the routes' gate is).
+
+**THE DESIGN, BUILT AND MEASURED.** `node_satisfiable`'s own `Or` law: a choice is satisfiable where
+SOME alternative is, so the suffix helpers take the **UNION** of their branches' gates — and only
+when **EVERY** branch carries one, because a single unconstrained branch makes the choice universally
+satisfiable and gating it then would be an **under-acceptance invented by the rewrite**.
+`X_lr_guard{v}_suffix := X_lr_suffix &( residual )` references the wrapper MANDATORILY, so it
+inherits the same union. On the tick+7 grammar this reads **`profile_orphans` 3 → 0, lint rc 1 → 0**,
+with `unhandled=0`, `eliminated=4`, `unreachable_rules=0`, `undefined_references=0`,
+`ordered_choice_shadowing=0` and 1537 rules throughout — ⇒ **the 17th gate then lands cleanly, at 8
+source tags rather than the 24-28 `(c4)` priced.** A unit control was written and observed RED
+without the derivation (`left: None / right: Some(["a", "b"])`).
+
+## ⛔⛔⛔ WHY IT IS NOT LANDED: I WROTE "11/11 BYTE-IDENTICAL, INERT" AND THE ORACLE SAID OTHERWISE
+
+**The claim was false and the check that "confirmed" it was VACUOUS.** I ran
+`generated_reproducibility_rebaseline`, grepped the count of `re-derives byte-identically` lines, and
+separately diffed `shasum` of `generated/*.rs` before and after. The diff was empty, so I wrote down
+*11/11 byte-identical*. ⛔ **The rebaseline had REFUSED** — tier 2 found a breach and, by design,
+declines to record one — so `generated/` was never rewritten and my before/after digests compared the
+**stale tree with itself**. A control that disarms itself while still printing as evidence.
+
+**What tier 2 actually reported:**
+
+```
+generated-reproducibility: systemverilog DOES NOT re-derive from HEAD:
+    live 23351ee85c39… (131 848 013 B) vs fresh 58d65015f58a… (131 811 199 B)
+      -    const THIN_ROW_CASTING_TYPE_LR_GUARD0_SUFFIX: usize = 19usize;
+      -    const THIN_ROW_CASTING_TYPE_LR_GUARD1_SUFFIX: usize = 21usize;
+      -    const THIN_ROW_CASTING_TYPE_LR_SUFFIX: usize = 28usize;
+generated-reproducibility: refusing to rebaseline: tier 2 found a breach.
+```
+
+⇒ **−36 814 bytes on the SHIPPED SystemVerilog parser, on the TRACKED grammar, with no grammar edit
+at all.** The reason is in `.50`(a)'s own census and I did not read it back: `casting_type`'s 11
+routes are **7 gated + 4 underivable**, and an underivable route contributes NO suffix branch — so
+*every branch that exists* is gated, the union applies, and the wrapper gets a gate it did not have.
+**My "unreachable on every tracked case today" was refuted by the artifact digest.**
+
+⭐ **The change is almost certainly SOUND — and "almost certainly" is exactly why it does not ship
+here.** Those routes are gated to `sv_2017`/`sv_2023`, so no `verilog_2005` parse can use them and
+gating the wrapper cannot remove a live derivation. But that is an ARGUMENT about the accept set, and
+this repository has an instrument for accept-set claims (`ACCEPT-SET-LEDGER:` /
+`SV-CONTRACT-CURRENCY`). An acceptance-affecting edit to a parser a downstream consumer builds
+against is not landed on an argument.
+
+**Owed:** (a) land the derivation together with its release machinery — regenerate, adjudicate
+accept-set neutrality on the GENERATED parser (not the interpreter: TOOLBOX 1.5b), bug-ledger row,
+release bump, `SV-CONTRACT-CURRENCY` tier A re-key; (b) ⭐ **do it in the SAME slice as `.50`(e)** —
+both move the SV parser, both need one regeneration and one release, and splitting them would cut two
+releases for one behavioural change; (c) ⛔ **re-derive the blast radius rather than trusting this
+leaf's**: the census says 7 gated + 4 underivable routes on ONE base rule today, and `(c4)`'s tags
+change which routes are gated, so the set is a function of the grammar being landed.
+
 ### ⛔ `.50` — **A `@profiles` TAG ON A RULE INSIDE AN ELIMINATED INDIRECT-LR CYCLE SILENTLY DISABLES THAT ELIMINATION FOR EVERY PROFILE, AND THE COUNTER THAT REPORTS IT IS A `WARNING`** (`in progress`; **(a) DONE `-0093` — SIZED, answer DESIGN CHANGE, and the leaf's premise *"dialect gates nest"* REFUTED at 10 of 44 routes; ✅✅ (b)+(c) DONE 2026-08-26 `PGEN-ENGINE-UNIVERSAL-SERVICES-0094` — the pass SYNTHESIZES the intersection instead of abandoning the candidate: on the breaking grammar `left_recursion_unhandled` **15 → 0**, `eliminated` **3 → 4**, refusals **4 → 0**, and 11/11 tracked artifacts BYTE-IDENTICAL**; ✅ **(d) DONE 2026-08-26 `PGEN-ENGINE-UNIVERSAL-SERVICES-0095` — the 29th doctrine `LR-ELIMINATION-RATCHET`, with GIT as the baseline so there is no artifact to rot**; (e) `todo`; opened 2026-08-25 by `SV-CORPUS-GRAD.13e.10`(c4) / `PGEN-SV-CORPUS-GRAD-0305`)
 
 **HOW IT WAS FOUND.** `.13e.10`(c4) is the fix that gates the 17 IEEE-1800-only punctuation
