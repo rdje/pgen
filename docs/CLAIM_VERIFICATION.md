@@ -34,6 +34,19 @@ unverified measurement enforces the wrong thing precisely and forever.
 If you remember one rule: **re-derive · falsify · make durable — three different questions, in that
 order.**
 
+⛔ **Authoring rule for this file — state every rule in domain-free terms FIRST; an example is an
+instance, never the statement.** If an illustration needs machinery a reader may not have — a
+linker, a scheduler, a GPU, a grammar, a query planner — the rule above it must already be complete
+without it, and the illustration must be *labelled* as an instance so a reader in another domain
+knows they may skip it. This file is a **template**: a leak of one project's vocabulary into a rule
+statement propagates to every adopter, and the adopters are the only people who can see it.
+
+**Template identity.** Adopters import the body of this file verbatim and add their local adoption
+note in a delimited block, so the two never interleave. An adopter that pins the import by digest
+must **gate that pin, not carry it** (§5B applies to this file too) — a recorded digest that nothing
+re-checks is the anti-pattern in §6, and it fails silently the first time the template legitimately
+improves.
+
 ---
 
 ## 1. The problem: "check it again" does not work
@@ -71,6 +84,7 @@ permit?**
 | a hash of the inputs | stale inputs | ❌ every logic bug downstream of them |
 | tests written from the spec, over an implementation written from the same spec | typos | ❌ **every misreading of the spec** |
 | a ticked checklist box | "I forgot the step" | ❌ the step being done wrong |
+| **a per-X fact checked against per-Y data**, where Y *contains* X | dropped items, wrong values | ❌ **every item whose own answer differs from its container's** — and the check reproduces perfectly while getting it wrong |
 | **per-bucket agreement with an independent source** | ✅ misassignment, redistribution, wrong bucketing | genuinely little |
 
 **The general form: a check and the thing it checks must not share a parent.** When the test and the
@@ -87,6 +101,18 @@ evidence about a **specification** error.
 Not *"do I remember measuring this"*, and not *"is it written consistently in three places"* —
 consistency propagates errors faithfully. Run the command; keep the output.
 
+- ⛔ **Before re-deriving, ask what you are re-deriving.** A command that reproduces reliably still
+  answers only the question it was given. When your claim is about an item and your data is about
+  that item's **container** — a row and its table, a test and its suite, a member and its group — the
+  container's answer is an over-approximation, and the check will confirm it faithfully. **Match the
+  granularity of the evidence to the granularity of the claim, and say which level you used.**
+  Measured in the reference deployment: a per-item property checked against its container's attribute
+  reported **8 failures, all 8 false**; moved to the item's own level, the same population reported
+  **0**. Every leg passed. The defect was upstream of all three.
+- **When a check goes red, attribute it by revert-and-re-apply, not by reading.** Restore the prior
+  state, confirm the check passes, re-apply, confirm it fails. One minute, and it replaces an
+  argument about whose change it was with a fact — including the case where the answer is *yours*.
+
 - Applies to numbers you are **quoting from your own project's documentation**. In the reference
   deployment a live status line had been stale in **two of its three numbers** for days: everyone
   read it, nobody re-ran it.
@@ -95,12 +121,27 @@ consistency propagates errors faithfully. Run the command; keep the output.
 
 ### Leg 2 — FALSIFY. What would make this false, and is there an oracle you did not build?
 
-- **Name the competing hypothesis, then find evidence that separates them.** "10 families, 1 symbol"
-  is equally consistent with *the linker merged them* and *this family's copy was inlined away*. A
-  symbol census cannot separate those; a **call-target address** can. ⛔ If your evidence is
-  consistent with both hypotheses, you have not tested — you have illustrated.
-- **Prefer an oracle you did not build.** A profiler's own per-symbol table caught an 8× error that
-  the author's own control had passed. Look for one already sitting in your inputs; it is free.
+- **Name the competing hypothesis, then find evidence that separates them.** Two explanations that
+  predict the same observation are not distinguished by *more* of that observation. ⛔ If your
+  evidence is consistent with both hypotheses, you have not tested — you have **illustrated**.
+  *Instance (reference deployment): "10 units, 1 emitted definition" is equally consistent with "the
+  toolchain merged them" and "this unit's copy was eliminated". A census of definitions cannot
+  separate those; a record of which definition each call actually reaches can.*
+- ⛔ **A claim about a SET carries its enumeration, in BOTH directions.** *"Nothing checks X"*, *"no
+  test covers Y"*, *"this is the only caller"* — each is refuted by a single counterexample, so it is
+  a census, not an impression, and the command that enumerated it belongs beside it. **The mirror is
+  equally wrong**: a search returning N hits gives you a **population**, not a count of defects.
+  Classify the N before publishing it, or you have traded a false negative for a false positive.
+  Measured in the reference deployment: the same session published *"nothing does X"* (refuted by an
+  existing mechanism found on the first look) and nearly published a raw search count of **62** as a
+  defect class that classification reduced to **3**, of which **1** was actionable.
+- **Prefer an oracle you did not build.** Look for one already sitting in your inputs; it is free.
+  An independent instrument's own breakdown caught an 8× error that the author's own control had
+  passed. ⭐ **The cheapest such oracle is your own project's history**: before publishing a finding,
+  check whether a case of the same shape has already been adjudicated. If it was ruled the other way,
+  your finding must **name the difference** — and if you cannot name one, the earlier ruling wins.
+  Measured: a finding was published about one item while its **sibling items under the same parent**
+  had been adjudicated the opposite way one commit earlier, and nothing distinguished them.
 - **Make the control go RED on purpose.** A control never observed failing is not known to work. A
   21-case suite became trustworthy only once it was run against the *old, broken* predicate and
   correctly missed **8 of 21**.
@@ -164,8 +205,14 @@ live=$(cat $(cat inputs.list) | sha256sum | cut -d' ' -f1)
 [ "$recorded" = "$live" ] || { echo "baseline no longer describes this tree — re-measure"; exit 1; }
 ```
 
+⭐ **This rule applies to this file.** A project that records *"imported from the template with
+digest D"* has carried a constant that is a function of another repository. Nothing re-checks it, so
+the day the template legitimately improves, the record silently describes a file that no longer
+exists — and the adopter cannot tell that from being up to date. **Gate the pin or drop it**; a pin
+that only a human re-reads is §6's *"do not edit by hand"* comment wearing a hash.
+
 ⛔ **Name every input the ARTIFACT depends on, not every input the HEADLINE METRIC depends on.** A
-baseline whose identity covered grammar + binary + inputs was still silently staled by a change to
+baseline whose identity covered its source inputs and the binary that consumed them was still silently staled by a change to
 *the instrument that wrote it* — the identity was sound for the headline number and insufficient for
 the file.
 
@@ -181,6 +228,9 @@ the file.
 - ❌ Correcting a stale constant to a fresh constant and changing nothing about *why* it went stale.
 - ❌ A comment reading *"do not edit by hand — re-derive it"*. That is prose; write the check.
 - ❌ A point estimate for a stochastic quantity.
+- ❌ *"Nothing checks X"* published without the command that enumerated the checkers.
+- ❌ A search hit-count published as a defect count, unclassified.
+- ❌ A claim about an item, evidenced by data about that item's container.
 - ❌ Treating your own re-derivation as automatically authoritative over the thing it contradicts.
 
 ---
@@ -195,6 +245,12 @@ the file.
 4. **Fire every control**: run each against a known-bad input and confirm it goes RED. Delete or fix
    any that cannot.
 5. Add the claim tag (§5A) to your review or pull-request template.
+6. ⭐ **Neutrality review — read §1–§6 substituting your own domain for every example.** Any sentence
+   you cannot restate in your project's terms is a **leak**, and you are the only person positioned
+   to see it. **Report it upstream rather than patching your local copy**: a patched copy is a fork,
+   and the next project inherits the leak you fixed for yourself.
+7. **Import the body verbatim into a delimited block**, keep your local adoption note outside it, and
+   if you pin the import by digest, **gate the pin** (§5B) rather than writing it in prose.
 
 ---
 

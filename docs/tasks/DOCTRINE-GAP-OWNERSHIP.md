@@ -1031,6 +1031,49 @@ It was parked behind the SV lane as governance work. That classification is now 
   work ([[feedback_prefer_feature_work_over_governance_lanes]]). **Parked behind the SV lane** — it is
   recorded so it survives the session, not because it outranks `SV-CORPUS-GRAD.13e.9`.
 
+#### ⚠️ `.17` — **A PORTABLE STANDARD THIS REPO OWNS IS PINNED BY DIGEST IN A SIBLING PROJECT, AND NOTHING RE-CHECKS THE PIN — so improving the standard silently stales its adopter** (`todo`, opened 2026-08-26 by `PGEN-CLAIM-VERIFICATION-0001`)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing):
+
+⭐ **MEASURED, not assumed: `docs/CLAIM_VERIFICATION.md` in THIS repo IS the canonical neutral
+template.** Its pre-edit digest was
+`8f194574ec718749e90a402cf6e4dc6650e44f6185dd194853a54482eef68643`, which is **byte-for-byte the
+digest the sibling project's adoption note records** as *"the neutral body … imported byte-for-byte
+from the director-selected template"*. The sibling wraps that body in a delimited
+`CLAIM-VERIFICATION-LOCAL-ADOPTION` block and keeps its local policy outside it — a sound
+separation.
+
+⛔ **THE PIN IS CARRIED, NOT GATED.** The sibling registers a `CLAIM-VERIFICATION` doctrine with its
+own checker; that checker validates the local claim registry and **never reads the recorded digest**
+(`grep` for the digest / `sha` in it returns nothing). ⇒ the adoption identity is prose. That is
+verbatim the template's own §5B (*"any constant that is a function of the repository is derived or
+gated, never carried"*) and its §6 anti-pattern (*"a comment reading 'do not edit by hand' … that is
+prose; write the check"*).
+
+⭐⭐ **AND THE FIRST EDIT TO THE TEMPLATE DEMONSTRATED THE FAILURE MODE IT DESCRIBES.**
+`PGEN-CLAIM-VERIFICATION-0001` improved the template (two neutrality defects + three additions), so
+the recorded digest now describes **a file that no longer exists at that path**, and no check
+anywhere can notice. The adopter cannot distinguish *"up to date"* from *"three versions behind"*.
+⚠️ This is not a defect the edit introduced — it is a pre-existing gap the edit MADE VISIBLE, which
+is the honest framing and the reason it is routed rather than quietly repaired.
+
+⛔ **NOT UNILATERALLY MINE TO FIX, and that is stated in the adopter's own words**: *"the originating
+template is not an upstream. Later changes require deliberate local review and task-tree ownership."*
+⇒ PGEN owns the TEMPLATE and therefore owns *announcing* that it moved; the sibling owns whether and
+when to re-import. Editing another repository's adoption block from here would violate exactly the
+independence that note asserts.
+
+**Acceptance:** (a) decide the durable shape of a template identity — ⭐ my leaning, to be confirmed
+by measurement rather than taste: a **version line inside the template itself**, so an adopter pins a
+*version* (stable, human-meaningful, greppable) and optionally gates the digest, rather than pinning
+a bare hash of a file that is *expected* to improve; (b) whatever shape wins, it must be **gated on
+the adopter side** — a pin only a human re-reads is the anti-pattern this leaf exists to close;
+(c) notify the sibling that the template moved, with the old and new digests, so its re-import is a
+decision and not a discovery; ⛔ **do not edit its adoption block from this repository**;
+(d) ⚠️ honest bound: only ONE adopter is known. Whether other projects imported this template is
+UNMEASURED, and a notification mechanism that assumes one adopter is the same carried-constant error
+one level up.
+
 #### ⛔ `.16` — the doctrine registry EXECUTES its own descriptions, and the guard added when this last happened cites the defect as prior art without checking for it (`todo`, opened 2026-08-25 by `PGEN-SV-CORPUS-GRAD-0300`)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
