@@ -34,6 +34,43 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.199 / Contract 1.0.199 — SV-CORPUS-GRAD.13e.10(c4) RESIDUE + ENGINE-UNIVERSAL-SERVICES.50(e)/.55 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0098`, 2026-08-26), ledger `SV-0072` (`Released`): **THE SEVENTEENTH AND LAST IEEE-1800-ONLY OPERATOR — THE CLASS IS NOW CLOSED, 17 OF 17 (GRAMMAR + ENGINE; `verilog_2005` ONLY — a NARROW; SCHEMA UNCHANGED at 26)**
+
+⛔ **This release narrows one profile and touches nothing else.** The assignment-pattern / cast
+apostrophe that `1.0.198` deliberately left open is now gated:
+
+| accepted under `verilog_2005` before `1.0.199` | why the standard does not derive it |
+|---|---|
+| `a = '{1,2};` and the assignment-pattern / cast family reached through `'` | IEEE 1800 A.6.7.1 defines assignment patterns and A.8.4 defines casts; IEEE 1364-2005 has **neither construct** |
+
+⭐ **`1'b0` AND `8'hff` STILL PARSE UNDER ALL THREE PROFILES, AND THAT IS THE POINT OF THE GATE'S
+PLACEMENT.** Every `'` in IEEE 1364-2005 sits inside a **sized/based number literal**, which the
+`number` terminal lexes as one token — it never reaches the `tick` rule. The literals are pinned as
+standing controls, together with three timing-check shapes that exercise the two `!tick` guard sites.
+
+⭐ **`sv_2017` / `sv_2023` are UNMOVED**: 10 of 10 typed ASTs byte-identical over 5 inputs × 2 SV
+profiles, and the chained cast `int'(2)'(3)` still parses — verified on the **generated** parser,
+because the interpreter cannot settle this question while `left_recursion_unhandled > 0`, which was
+the state under test.
+
+⛔⛔ **WHY IT TOOK A SECOND RELEASE, AND WHY THE SPLIT WAS RIGHT.** `1.0.198` could have landed all
+seventeen in one commit. It would have shipped a parser that **silently lost 15 left-recursive
+cycles on the profiles being released**, with every counter an operator reads showing green — because
+tagging `constant_cast` makes two dialect gates **cross** on the route PGEN's eliminator rewrites, the
+eliminator refused the whole candidate, and `left_recursion_unhandled` is a *warning* that leaves
+`--lint-grammar` at exit 0. Three engine repairs were needed: the eliminator now **synthesizes** a
+crossing route's profile intersection instead of refusing it; its own suffix wrapper takes the
+**union** of its routes' gates instead of the base rule's (it was becoming a profile orphan whose
+tool-derived fix nobody could apply, because there is no source line to tag); and the counter is now
+**ratcheted** as a registered doctrine, so that silence cannot recur.
+
+⭐ **The companion set is 7 source rules, not the 11 the linter names** — four are the eliminator's
+own temporaries, which resolve once the engine derives their gates. **A tool-derived list is not
+thereby an actionable list.**
+
+**For consumers:** if you ran the strict profile against `1.0.198` or earlier, `'{…}` was accepted
+and is now correctly rejected. Nothing else changes; the AST schema stays **26**.
+
 ### 1.0.198 / Contract 1.0.198 — SV-CORPUS-GRAD.13e.10(c4) (`PGEN-SV-CORPUS-GRAD-0305`, 2026-08-25), ledger `SV-0071` (`Released`): **SIXTEEN IEEE-1800-ONLY OPERATORS STILL REACHED THE `verilog_2005` PROFILE (GRAMMAR; `verilog_2005` ONLY — a NARROW; SCHEMA UNCHANGED at 26)**
 
 ⛔ **This release narrows one profile and touches nothing else.** Under the strict Verilog-2005

@@ -1977,9 +1977,65 @@ fn apply_plan(
         annotations
             .semantic_annotations
             .insert(plan.helper_base_rule.clone(), base_profiles.clone());
+    }
+    // ⭐⭐⭐ ENGINE-UNIVERSAL-SERVICES.55: THE SUFFIX HELPERS ARE AN ORDERED CHOICE OVER THE ROUTES,
+    // SO THEIR GATE IS THE ROUTES' UNION — NOT THE BASE RULE'S.
+    //
+    // ⛔ `X_lr_suffix` used to inherit `@profiles` from the BASE rule and nothing else, so a base
+    // that declares none left it UNGATED while every one of its alternatives was gated. The lint
+    // then reports it — correctly — as a profile ORPHAN: *"present under 'verilog_2005' but NOT
+    // satisfiable there — every production references a rule absent under it"*. MEASURED on the
+    // shipped grammar the moment `SV-CORPUS-GRAD.13e.10`(c4)'s 17th gate is applied: 3 orphans, all
+    // of them rules this PASS invents (`casting_type_lr_suffix`, `casting_type_lr_guard0_suffix`,
+    // `casting_type_lr_guard1_suffix`), and the lint's own DERIVED fix — *"tag it with
+    // @profiles: [sv_2017, sv_2023]"* — is unfollowable, because there is no source line to tag.
+    //
+    // ⭐ The rule is `node_satisfiable`'s own `Or` law: a choice is satisfiable where SOME
+    // alternative is. So the helper's gate is the UNION of its branches' gates — and only when EVERY
+    // branch carries one. A single unconstrained branch makes the choice universally satisfiable,
+    // and gating it then would be an under-acceptance invented by the rewrite.
+    //
+    // ⚠️ The base's own gate still WINS when it declares one: the helper carries the base's
+    // productions, so the base's constraint is authoritative and is a subset of the union by
+    // construction. This branch changes nothing for such a base — which is every case that existed
+    // before `(c4)`.
+    let helper_suffix_profiles: Vec<SemanticAnnotation> = if !base_profiles.is_empty() {
+        base_profiles.clone()
+    } else {
+        let mut union: BTreeSet<String> = BTreeSet::new();
+        let mut every_branch_gated = !plan.suffix_branches.is_empty();
+        for branch in &plan.suffix_branches {
+            match &branch.profile_key {
+                Some(profiles) => union.extend(profiles.iter().cloned()),
+                None => {
+                    every_branch_gated = false;
+                    break;
+                }
+            }
+        }
+        if every_branch_gated && !union.is_empty() {
+            let payload = format!(
+                "[{}]",
+                union
+                    .iter()
+                    .map(|p| format!("\"{p}\""))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
+            vec![SemanticAnnotation::Named {
+                name: "profiles".to_string(),
+                ast: super::unified_semantic_ast::UnifiedSemanticAST::from_named_payload(
+                    "profiles", &payload,
+                ),
+            }]
+        } else {
+            Vec::new()
+        }
+    };
+    if !helper_suffix_profiles.is_empty() {
         annotations
             .semantic_annotations
-            .insert(plan.helper_suffix_rule.clone(), base_profiles.clone());
+            .insert(plan.helper_suffix_rule.clone(), helper_suffix_profiles.clone());
     }
     // The base rule's own per-branch annotations have moved to `X_lr_base`; its body is now a
     // Sequence with exactly one branch.
@@ -2126,10 +2182,13 @@ fn apply_plan(
             annotations
                 .branch_return_annotations
                 .insert(guarded_suffix.clone(), vec![Some(pass_through())]);
-            if !base_profiles.is_empty() {
+            // ENGINE-UNIVERSAL-SERVICES.55: `X_lr_guard{v}_suffix := X_lr_suffix &( residual )`
+            // references `X_lr_suffix` MANDATORILY, so it is satisfiable exactly where that is —
+            // the same union, not the base's (possibly absent) gate.
+            if !helper_suffix_profiles.is_empty() {
                 annotations
                     .semantic_annotations
-                    .insert(guarded_suffix.clone(), base_profiles.clone());
+                    .insert(guarded_suffix.clone(), helper_suffix_profiles.clone());
             }
         }
     }
@@ -2994,6 +3053,140 @@ mod tests {
         assert!(
             detect_left_recursion(&grammar, &order).is_empty(),
             "the rewritten grammar must carry no left recursion at all"
+        );
+    }
+
+    /// ⛔⛔⛔ **ENGINE-UNIVERSAL-SERVICES.55 — THE SUFFIX HELPERS ARE AN ORDERED CHOICE, SO THEIR
+    /// GATE IS THE ROUTES' UNION, NOT THE BASE RULE'S.**
+    ///
+    /// `X_lr_suffix` used to inherit `@profiles` from the BASE rule alone. A base that declares none
+    /// therefore left the wrapper UNGATED while every one of its alternatives was gated — and the
+    /// lint reports that, correctly, as a profile ORPHAN: *"present under 'P' but NOT satisfiable
+    /// there — every production references a rule absent under it"*.
+    ///
+    /// ⛔ MEASURED on the shipped grammar the moment `SV-CORPUS-GRAD.13e.10`(c4)'s 17th gate is
+    /// applied: `profile_orphans=3`, and all three are rules this PASS invents
+    /// (`casting_type_lr_suffix`, `casting_type_lr_guard0_suffix`, `casting_type_lr_guard1_suffix`),
+    /// so the lint's own DERIVED fix — *"tag it with `@profiles: [sv_2017, sv_2023]`"* — is
+    /// unfollowable: there is no source line to tag. With this fix the same grammar reads
+    /// `profile_orphans=0` and the lint exits 0.
+    ///
+    /// ⭐ Two-sided: the union must appear when EVERY route is gated, and must NOT when any route is
+    /// unconstrained — gating a choice that has a universal alternative would be an under-acceptance
+    /// invented by the rewrite.
+    #[test]
+    fn the_suffix_wrapper_inherits_the_union_of_its_routes_not_the_base_rules_gate() {
+        use crate::ast_pipeline::unified_semantic_ast::UnifiedSemanticAST;
+
+        let profiles = |list: &str| SemanticAnnotation::Named {
+            name: "profiles".to_string(),
+            ast: UnifiedSemanticAST::Raw {
+                content: format!("[{list}]"),
+            },
+        };
+
+        // `prim := prim_a | prim_b`, base UNGATED, each twin on its own dialect — so both routes are
+        // gated and the wrapper is satisfiable in the union of the two.
+        let build = |gate_second_twin: bool| {
+            let mut grammar = HashMap::new();
+            grammar.insert("scratch".to_string(), rule("prim"));
+            grammar.insert(
+                "prim".to_string(),
+                ASTNode::Or {
+                    alternatives: vec![rule("prim_a"), rule("prim_b")],
+                },
+            );
+            for (twin, seed) in [("prim_a", "lit_a"), ("prim_b", "lit_b")] {
+                grammar.insert(
+                    twin.to_string(),
+                    ASTNode::Or {
+                        alternatives: vec![rule(seed), rule("cast_expr")],
+                    },
+                );
+            }
+            grammar.insert(
+                "cast_expr".to_string(),
+                ASTNode::Sequence {
+                    elements: vec![rule("ct"), text("'"), text("("), rule("lit_a"), text(")")],
+                },
+            );
+            grammar.insert("ct".to_string(), rule("prim"));
+            grammar.insert("lit_a".to_string(), text("n"));
+            grammar.insert("lit_b".to_string(), text("m"));
+            let order: Vec<String> = [
+                "scratch", "prim", "prim_a", "prim_b", "cast_expr", "ct", "lit_a", "lit_b",
+            ]
+            .iter()
+            .map(|name| name.to_string())
+            .collect();
+
+            let mut annotations = Annotations::default();
+            annotations
+                .semantic_annotations
+                .insert("prim_a".to_string(), vec![profiles("\"a\"")]);
+            if gate_second_twin {
+                annotations
+                    .semantic_annotations
+                    .insert("prim_b".to_string(), vec![profiles("\"b\"")]);
+            }
+            annotations.branch_return_annotations.insert(
+                "prim".to_string(),
+                vec![
+                    annotation(object(vec![("kind", literal("a")), ("body", positional(1))])),
+                    annotation(object(vec![("kind", literal("b")), ("body", positional(1))])),
+                ],
+            );
+            annotations.branch_return_annotations.insert(
+                "cast_expr".to_string(),
+                vec![annotation(object(vec![
+                    ("type", positional(1)),
+                    ("body", positional(4)),
+                ]))],
+            );
+            (grammar, order, annotations)
+        };
+
+        let gate_of = |annotations: &Annotations, rule: &str| -> Option<Vec<String>> {
+            annotations
+                .semantic_annotations
+                .get(rule)
+                .and_then(|entries| entries.first())
+                .and_then(|entry| {
+                    super::super::semantic_directive_registry::parse_semantic_string_list(
+                        entry.ast().payload_text(),
+                    )
+                })
+        };
+
+        // ⭐ EVERY ROUTE GATED ⇒ the wrapper carries the UNION.
+        let (mut grammar, mut order, mut annotations) = build(true);
+        let outcome =
+            eliminate_indirect_left_recursion(&mut grammar, &mut order, Some(&mut annotations));
+        assert_eq!(outcome.eliminated_base_rules, vec!["prim"]);
+        assert_eq!(
+            gate_of(&annotations, "prim_lr_suffix"),
+            Some(vec!["a".to_string(), "b".to_string()]),
+            "the ordered choice over the routes is satisfiable where SOME route is — the UNION"
+        );
+        // ⛔ And the SEED helper is NOT gated: it carries the base's alternatives, not the routes,
+        // and the base declares nothing. Gating it would be an under-acceptance the rewrite invented.
+        assert_eq!(
+            gate_of(&annotations, "prim_lr_base"),
+            None,
+            "the seed carries the BASE's productions, so an ungated base leaves it ungated"
+        );
+
+        // ⛔ THE OTHER SIDE: one unconstrained route makes the choice universally satisfiable, so
+        // the wrapper must stay UNGATED. A union taken over "the gates that happen to exist" would
+        // silently narrow the language here.
+        let (mut g2, mut o2, mut a2) = build(false);
+        let outcome2 = eliminate_indirect_left_recursion(&mut g2, &mut o2, Some(&mut a2));
+        assert_eq!(outcome2.eliminated_base_rules, vec!["prim"]);
+        assert_eq!(
+            gate_of(&a2, "prim_lr_suffix"),
+            None,
+            "one unconstrained route makes the choice universal — gating it would invent an \
+             under-acceptance"
         );
     }
 

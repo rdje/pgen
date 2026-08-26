@@ -5,6 +5,48 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-08-26, `SV-CORPUS-GRAD.13e.10`(c4) RESIDUE +
+> `ENGINE-UNIVERSAL-SERVICES.50`(e)/`.55` — GRAMMAR + ENGINE, release `1.0.199`, ledger `SV-0072`,
+> schema `26` UNCHANGED, `verilog_2005` ONLY):** the **seventeenth and last** IEEE-1800-only
+> punctuation member, `'` (`tick`), is now gated out of the strict profile, closing the class
+> `.13e.10` opened. IEEE 1800 A.6.7.1 spells assignment patterns and A.8.4 spells casts with `'`;
+> IEEE 1364-2005 has neither construct.
+>
+> **What no longer parses under `verilog_2005`:** `a = '{1,2};` and the assignment-pattern /
+> cast family reached through it. ⭐ **`1'b0` and `8'hff` still parse under all three profiles** —
+> the `'` occurrences in IEEE 1364-2005 are inside sized/based number literals, which the `number`
+> terminal lexes and which never reach this rule. That is the standing control, and it is pinned.
+>
+> **`sv_2017` / `sv_2023` are UNMOVED**: 10 of 10 typed ASTs byte-identical over 5 inputs × 2 SV
+> profiles, and the chained cast `int'(2)'(3)` still ACCEPTs on the **generated** parser — the
+> observation `ENGINE-UNIVERSAL-SERVICES.50`(c) owed, which the interpreter could not settle because
+> TOOLBOX 1.5b marks its verdicts untrustworthy exactly when `left_recursion_unhandled > 0`, the
+> state under test.
+>
+> ⛔ **IT TOOK THREE ENGINE REPAIRS TO MAKE ONE TAG LANDABLE**, and they are why it was deferred:
+> `.50`(b) — tagging `constant_cast` makes its `@profiles` **cross** `constant_primary_sv_2017`'s,
+> the route intersection `["sv_2017"]` is a set no rule on the route declares, and the eliminator
+> **refused the whole `casting_type` candidate** (`left_recursion_unhandled` **0 → 15**, a WARNING,
+> so `--lint-grammar` still exited 0); it now SYNTHESIZES that intersection onto the clone. `.55` —
+> the pass's own `casting_type_lr_suffix` / `_lr_guard{0,1}_suffix` are an ordered choice over the
+> ROUTES and inherited `@profiles` from the BASE rule, which declares none, leaving them profile
+> **orphans whose lint-derived fix nobody could apply** (there is no source line to tag); the wrapper
+> now takes the UNION of its branches' gates. `.50`(d) — the counter is now RATCHETED.
+> ⭐ **The companion set is 7 SOURCE rules, not the 11 the lint names**: four are eliminator
+> temporaries that resolve once the engine derives their gates, so the edit is **8 tags**, not the
+> 24-28 `(c4)` priced.
+>
+> **`verilog_2005` cert baseline moved and is adjudicated BY NAME**: `1131/356/762/13` →
+> `1119/373/732/14`, and the arithmetic closes exactly. **total −12** = the 8 gated source rules plus
+> the 4 eliminator temporaries, all 12 of which were in `witness`. **proof +17** = 17 survivors moved
+> `witness → proof`, i.e. to the STRONGER certificate — the `casting_type` LR seeds/guards/base plus
+> `array_pattern_key`, `assignment_pattern_key`, `assignment_pattern_expression_type`,
+> `structure_pattern_key`, `integer_type`, `simple_type`. **UNKNOWN +1** is `member_identifier`, and
+> it is the fix working rather than a parse change: its `verilog_2005` witness was carried by
+> `'{a:1}` — the illegal assignment pattern this release removes — measured as `committed=1` under
+> `sv_2017` and ACCEPT-before / reject-after under `verilog_2005`. The rule stays satisfiable under
+> the profile through `select` / `constant_select` / `nonrange_select`.
+
 > **Current-state note (2026-08-25, `SV-CORPUS-GRAD.13e.10`(c4) — GRAMMAR-level, release `1.0.198`,
 > ledger `SV-0071`, schema `26` UNCHANGED, `verilog_2005` ONLY):** the strict IEEE 1364-2005 profile
 > still accepted **sixteen IEEE-1800-only OPERATORS**, and the class was invisible to every census
@@ -692,15 +734,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.198`
+  - `1.0.199`
 - Parser release version:
-  - `1.0.198`
-  - history: `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.199`
+  - history: `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `b744a239bf8e5053f9c89036a25166df8ec99e3b92884423b23a236fc40bbf12` (SV grammar semantic digest — sha256 of the
+  - `825db0318c69a8fb79c88872724855a551ab07a3bccc2c86e7e3e5606dae417a` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`

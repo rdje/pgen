@@ -1,5 +1,37 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0098 — the certificate got WORSE by one and that was the fix working, which only a reconstructed before-state could show
+
+**1. ⭐⭐⭐ A METRIC MOVING THE WRONG WAY IS NOT AUTOMATICALLY A REGRESSION, AND THE ONLY WAY TO KNOW
+IS TO NAME THE MOVER.** `UNKNOWN` went 13 → 14 and the union residual 0 → 1 — both in the bad
+direction, both on a release. The name is `member_identifier`, and its `verilog_2005` witness was
+carried by `'{a:1}`: the illegal assignment pattern this very release removes. **Deleting an
+over-acceptance deletes the witnesses it was carrying.** A gate that only watched the number would
+have blocked a correct fix; a gate that let it through unnamed would have hidden a real one.
+
+**2. ⭐⭐ THE BEFORE-STATE WAS RECONSTRUCTED, NOT ASSUMED, AND THAT IS WHAT MADE THE TABLE A
+MEASUREMENT.** `generated/` is untracked, so the pre-change parser was gone. Restoring HEAD's grammar
+and re-running `focus_systemverilog` produced a parser whose sha matched **exactly** the `fresh` sha
+`GENERATED-REPRODUCIBILITY` tier 2 had already computed when it refused — and the cert then re-ran to
+the contract's own declared numbers. Two independent instruments agreeing on the before-state is what
+licenses attributing every delta by name afterwards.
+
+**3. ⭐ THE GATE REFUSING WAS THE USEFUL OUTCOME.** Exit 2 with *"do NOT re-stamp to make it green,
+because a stamp asserts the numbers were RE-DERIVED and matched, which is precisely what just did not
+happen"* is the single most valuable line in this slice. It is the difference between a release whose
+numbers were adjudicated and one whose numbers were overwritten.
+
+**4. ⭐⭐ A TOOL-DERIVED LIST IS NOT THEREBY AN ACTIONABLE LIST — the same lesson, one release later.**
+`(c4)` priced 11 companion tags off the lint and counted them all as edits; `(a)` had already found
+4 of them are rules the eliminator invents. The real edit is **8 tags**. The lint is right about
+WHICH rules need gates and cannot know which of them a human can write on.
+
+**5. ⭐ SPLITTING A RELEASE TO AVOID SHIPPING A SILENT LOSS IS WORTH ONE VERSION NUMBER.** All
+seventeen gates could have landed in `1.0.198`. That parser would have silently dropped 15
+left-recursive cycles on the profiles being released, with `profile_orphans` at 0, the lint at exit 0
+and every doctrine green. The split cost one release and bought three engine repairs, a refuted
+premise (*"dialect gates nest"* — 10 of 44 routes already cross) and a blocking ratchet.
+
 ## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0096 — my no-regression evidence was a control that had disarmed itself, and it printed clean
 
 **1. ⛔⛔⛔ I CHECKED A GATE'S OUTPUT INSTEAD OF ITS EXIT CODE, AND THE GATE HAD REFUSED.**

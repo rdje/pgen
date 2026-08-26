@@ -836,6 +836,8 @@ assignment_pattern_entry := member_identifier colon pattern -> {name: $1, patter
 #
 # ⛔ Comments stay OUTSIDE the rule body: a column-0 comment between alternatives
 # DELETES the alternatives that follow it (project_standing_tripwires).
+# SV-0072 companion — assignment-pattern host: every alternative is `'{ … }` (IEEE 1800 A.6.7.1). Unreachable under verilog_2005 once `tick` is gated.
+@profiles: ["sv_2017", "sv_2023"]
 assignment_pattern := @sample: "'{0, 1}" tick lbrace expression ( comma expression )* rbrace
                    -> {exprs: [$3, $4::2*]}
                     | @sample: "'{x: 0}" tick lbrace structure_pattern_key colon expression ( comma structure_pattern_key colon expression )* rbrace
@@ -844,6 +846,8 @@ assignment_pattern := @sample: "'{0, 1}" tick lbrace expression ( comma expressi
                     | @sample: "'{}" tick lbrace rbrace
                    -> {exprs: []}
 
+# SV-0072 companion — assignment-pattern host (IEEE 1800 A.6.7.1). Unreachable under verilog_2005 once `tick` is gated.
+@profiles: ["sv_2017", "sv_2023"]
 assignment_pattern_expression := ( assignment_pattern_expression_type )? assignment_pattern
                               -> {type: $1, pattern: $2}
 
@@ -876,9 +880,13 @@ assignment_pattern_key := simple_type        -> {kind: "type",      body: $1}
                         | data_type          -> {kind: "data_type", body: $1}
                         | kw_default_7505d64a -> {kind: "default"}
 
+# SV-0072 companion — assignment-pattern host (IEEE 1800 A.6.7.1). Unreachable under verilog_2005 once `tick` is gated.
+@profiles: ["sv_2017", "sv_2023"]
 assignment_pattern_net_lvalue := tick lbrace net_lvalue ( comma net_lvalue )* rbrace
                               -> {items: [$3, $4::2*]}
 
+# SV-0072 companion — assignment-pattern host (IEEE 1800 A.6.7.1). Unreachable under verilog_2005 once `tick` is gated.
+@profiles: ["sv_2017", "sv_2023"]
 assignment_pattern_variable_lvalue := tick lbrace variable_lvalue ( comma variable_lvalue )* rbrace
                                    -> {items: [$3, $4::2*]}
 
@@ -1120,6 +1128,8 @@ case_statement := @sample: "case (a) default: ; endcase" ( unique_priority )? ca
                 | @sample: "case (a) matches default: ; endcase" ( unique_priority )? case_keyword lparen case_expression rparen kw_matches_9f3e9242 case_pattern_item case_pattern_item* kw_endcase_a27a6786
                 | @sample: "case (a) inside [0:1]: ; endcase" ( unique_priority )? kw_case_6406510c lparen case_expression rparen kw_inside_fcc53788 case_inside_item case_inside_item* kw_endcase_a27a6786
 
+# SV-0072 companion — cast host: `casting_type ' ( expression )` (IEEE 1800 A.8.4). Unreachable under verilog_2005 once `tick` is gated.
+@profiles: ["sv_2017", "sv_2023"]
 cast := casting_type tick lparen expression rparen
      -> {type: $1, body: $4}
 
@@ -1651,6 +1661,8 @@ const_identifier := non_keyword_identifier
 const_or_range_expression := constant_expression                    -> {kind: "expression", body: $1}
                            | cycle_delay_const_range_expression     -> {kind: "range",      body: $1}
 
+# SV-0072 companion — assignment-pattern host (IEEE 1800 A.6.7.1). Unreachable under verilog_2005 once `tick` is gated.
+@profiles: ["sv_2017", "sv_2023"]
 constant_assignment_pattern_expression := assignment_pattern_expression
                                        -> {body: $1}
 
@@ -1670,6 +1682,8 @@ const_qualifier_sv_only := kw_const_b42f3f6f
 constant_bit_select := ( lbrack constant_expression rbrack )*
                     -> {bits: $1}
 
+# SV-0072 companion — constant-cast host: `casting_type ' ( constant_expression )` (IEEE 1800 A.8.4). Unreachable under verilog_2005 once `tick` is gated.
+@profiles: ["sv_2017", "sv_2023"]
 constant_cast := casting_type tick lparen constant_expression rparen
               -> {type: $1, body: $4}
 
@@ -7747,12 +7761,33 @@ star := trivia "*"                           -> {kind: "star"}
 # SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.
 @profiles: ["sv_2017", "sv_2023"]
 star_assign := trivia "*="                    -> {kind: "star_assign"}
-# ⛔ SV-0071 — `tick` IS THE SEVENTEENTH MEMBER OF THE GATED CLASS AND ITS MISSING @profiles IS
-# DELIBERATE, NOT AN OVERSIGHT. Gating it orphans 11 rules; tagging the two that matter puts a
-# CROSSING pair of dialect gates on the indirect-LR route the eliminator rewrites, which makes the
-# pass refuse the whole `casting_type` candidate (left_recursion_unhandled 0 -> 15, a WARNING, so
-# --lint-grammar itself still exits 0). See the SV-0071 block above and ENGINE-UNIVERSAL-SERVICES.50, which owns the engine
-# repair. Until it lands, `accepts_invalid_v2005_punct_tick.sv` keeps the over-acceptance WATCHED.
+# ⛔ SV-0072 (SV-CORPUS-GRAD.13e.10(c4) RESIDUE) — `tick` IS THE SEVENTEENTH MEMBER OF THE
+# IEEE-1800-ONLY PUNCTUATION CLASS, AND IT IS NOW GATED. IEEE 1800 A.6.7.1 spells assignment
+# patterns and casts with `'`; IEEE 1364-2005 has neither construct, and its own `'` occurrences are
+# inside SIZED/BASED NUMBER LITERALS (`1'b0`, `8'hff`), which are lexed by `number` and never reach
+# this terminal — that is why the gate is safe and why `1'b0` is a standing control below.
+#
+# ⛔⛔ IT TOOK THREE ENGINE REPAIRS TO MAKE THIS ONE TAG LANDABLE, and each is recorded because the
+# next dialect gate on an LR route will need them:
+#   ENGINE-UNIVERSAL-SERVICES.50(b) — tagging `constant_cast` makes its list CROSS
+#     `constant_primary_sv_2017`'s ["sv_2017", "verilog_2005"]; the route intersection is
+#     ["sv_2017"], which no rule on the route declares, and the eliminator used to REFUSE the whole
+#     `casting_type` candidate (left_recursion_unhandled 0 -> 15, a WARNING, so --lint-grammar still
+#     exited 0). It now SYNTHESIZES the intersection onto the clone.
+#   ENGINE-UNIVERSAL-SERVICES.55 — the pass's own `casting_type_lr_suffix` / `_lr_guard{0,1}_suffix`
+#     are an ordered choice over the ROUTES, and inherited @profiles from the BASE rule, which
+#     declares none. Every alternative gated + wrapper ungated = a profile ORPHAN the lint reports
+#     with a fix nobody can apply, because there is no source line to tag. The wrapper now takes the
+#     UNION of its branches' gates.
+#   ENGINE-UNIVERSAL-SERVICES.50(d) — `left_recursion_unhandled` is now RATCHETED, so the silent
+#     0 -> 15 that blocked this gate for a day cannot recur unnoticed.
+#
+# ⭐ THE COMPANION SET IS 7 SOURCE RULES, NOT THE 11 THE LINT NAMES: four of the eleven
+# (`casting_type_lr_suffix`, `_lr_suffix_r4`, `_lr_guard0_suffix`, `_lr_guard1_suffix`) are
+# SYNTHESIZED BY THE ELIMINATOR and resolve on their own once the engine derives their gates.
+# A tool-derived list is not thereby an actionable list.
+# SV-0072 — IEEE 1800-only operator; gated out of verilog_2005.
+@profiles: ["sv_2017", "sv_2023"]
 tick := trivia "'"                           -> {kind: "tick"}
 tilde := trivia "~"                          -> {kind: "tilde"}
 # SV-0071 — IEEE 1800-only operator; gated out of verilog_2005.

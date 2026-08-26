@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-edf94900.js";
+            window.path_to_searchindex_js = "searchindex-cacc9bb0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -217,6 +217,42 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10199--contract-10199--sv-corpus-grad13e10c4-residue--engine-universal-services50e55-pgen-engine-universal-services-0098-2026-08-26-ledger-sv-0072-released-the-seventeenth-and-last-ieee-1800-only-operator--the-class-is-now-closed-17-of-17-grammar--engine-verilog_2005-only--a-narrow-schema-unchanged-at-26"><a class="header" href="#10199--contract-10199--sv-corpus-grad13e10c4-residue--engine-universal-services50e55-pgen-engine-universal-services-0098-2026-08-26-ledger-sv-0072-released-the-seventeenth-and-last-ieee-1800-only-operator--the-class-is-now-closed-17-of-17-grammar--engine-verilog_2005-only--a-narrow-schema-unchanged-at-26">1.0.199 / Contract 1.0.199 — SV-CORPUS-GRAD.13e.10(c4) RESIDUE + ENGINE-UNIVERSAL-SERVICES.50(e)/.55 (<code>PGEN-ENGINE-UNIVERSAL-SERVICES-0098</code>, 2026-08-26), ledger <code>SV-0072</code> (<code>Released</code>): <strong>THE SEVENTEENTH AND LAST IEEE-1800-ONLY OPERATOR — THE CLASS IS NOW CLOSED, 17 OF 17 (GRAMMAR + ENGINE; <code>verilog_2005</code> ONLY — a NARROW; SCHEMA UNCHANGED at 26)</strong></a></h3>
+<p>⛔ <strong>This release narrows one profile and touches nothing else.</strong> The assignment-pattern / cast
+apostrophe that <code>1.0.198</code> deliberately left open is now gated:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>accepted under <code>verilog_2005</code> before <code>1.0.199</code></th><th>why the standard does not derive it</th></tr>
+</thead>
+<tbody>
+<tr><td><code>a = '{1,2};</code> and the assignment-pattern / cast family reached through <code>'</code></td><td>IEEE 1800 A.6.7.1 defines assignment patterns and A.8.4 defines casts; IEEE 1364-2005 has <strong>neither construct</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p>⭐ <strong><code>1'b0</code> AND <code>8'hff</code> STILL PARSE UNDER ALL THREE PROFILES, AND THAT IS THE POINT OF THE GATE’S
+PLACEMENT.</strong> Every <code>'</code> in IEEE 1364-2005 sits inside a <strong>sized/based number literal</strong>, which the
+<code>number</code> terminal lexes as one token — it never reaches the <code>tick</code> rule. The literals are pinned as
+standing controls, together with three timing-check shapes that exercise the two <code>!tick</code> guard sites.</p>
+<p>⭐ <strong><code>sv_2017</code> / <code>sv_2023</code> are UNMOVED</strong>: 10 of 10 typed ASTs byte-identical over 5 inputs × 2 SV
+profiles, and the chained cast <code>int'(2)'(3)</code> still parses — verified on the <strong>generated</strong> parser,
+because the interpreter cannot settle this question while <code>left_recursion_unhandled &gt; 0</code>, which was
+the state under test.</p>
+<p>⛔⛔ <strong>WHY IT TOOK A SECOND RELEASE, AND WHY THE SPLIT WAS RIGHT.</strong> <code>1.0.198</code> could have landed all
+seventeen in one commit. It would have shipped a parser that <strong>silently lost 15 left-recursive
+cycles on the profiles being released</strong>, with every counter an operator reads showing green — because
+tagging <code>constant_cast</code> makes two dialect gates <strong>cross</strong> on the route PGEN’s eliminator rewrites, the
+eliminator refused the whole candidate, and <code>left_recursion_unhandled</code> is a <em>warning</em> that leaves
+<code>--lint-grammar</code> at exit 0. Three engine repairs were needed: the eliminator now <strong>synthesizes</strong> a
+crossing route’s profile intersection instead of refusing it; its own suffix wrapper takes the
+<strong>union</strong> of its routes’ gates instead of the base rule’s (it was becoming a profile orphan whose
+tool-derived fix nobody could apply, because there is no source line to tag); and the counter is now
+<strong>ratcheted</strong> as a registered doctrine, so that silence cannot recur.</p>
+<p>⭐ <strong>The companion set is 7 source rules, not the 11 the linter names</strong> — four are the eliminator’s
+own temporaries, which resolve once the engine derives their gates. <strong>A tool-derived list is not
+thereby an actionable list.</strong></p>
+<p><strong>For consumers:</strong> if you ran the strict profile against <code>1.0.198</code> or earlier, <code>'{…}</code> was accepted
+and is now correctly rejected. Nothing else changes; the AST schema stays <strong>26</strong>.</p>
 <h3 id="10198--contract-10198--sv-corpus-grad13e10c4-pgen-sv-corpus-grad-0305-2026-08-25-ledger-sv-0071-released-sixteen-ieee-1800-only-operators-still-reached-the-verilog_2005-profile-grammar-verilog_2005-only--a-narrow-schema-unchanged-at-26"><a class="header" href="#10198--contract-10198--sv-corpus-grad13e10c4-pgen-sv-corpus-grad-0305-2026-08-25-ledger-sv-0071-released-sixteen-ieee-1800-only-operators-still-reached-the-verilog_2005-profile-grammar-verilog_2005-only--a-narrow-schema-unchanged-at-26">1.0.198 / Contract 1.0.198 — SV-CORPUS-GRAD.13e.10(c4) (<code>PGEN-SV-CORPUS-GRAD-0305</code>, 2026-08-25), ledger <code>SV-0071</code> (<code>Released</code>): <strong>SIXTEEN IEEE-1800-ONLY OPERATORS STILL REACHED THE <code>verilog_2005</code> PROFILE (GRAMMAR; <code>verilog_2005</code> ONLY — a NARROW; SCHEMA UNCHANGED at 26)</strong></a></h3>
 <p>⛔ <strong>This release narrows one profile and touches nothing else.</strong> Under the strict Verilog-2005
 profile all of the following parsed, and IEEE 1364-2005 derives none of them:</p>

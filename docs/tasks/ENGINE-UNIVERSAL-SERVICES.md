@@ -13885,7 +13885,7 @@ founding target stated rather than hidden.
   `MEMORY.md` + `DEVELOPMENT_NOTES.md` + the knowledge record.
 
 
-### ⚠️ `.55` — **THE ELIMINATION PASS'S OWN SUFFIX WRAPPER BECOMES A PROFILE ORPHAN, THE LINT'S DERIVED FIX IS UNFOLLOWABLE BECAUSE THERE IS NO SOURCE LINE TO TAG — AND THE REPAIR IS *NOT* INERT, WHICH I FIRST WROTE DOWN THAT IT WAS** (`todo`, opened 2026-08-26 by `.50`(e)'s first step; the repair was BUILT, MEASURED, and DELIBERATELY NOT LANDED — see the blast radius)
+### ✅✅ `.55` — **THE ELIMINATION PASS'S OWN SUFFIX WRAPPER BECAME A PROFILE ORPHAN AND THE LINT'S DERIVED FIX WAS UNFOLLOWABLE — LANDED WITH `.50`(e) AS ONE RELEASE, EXACTLY AS THE ROUTING SAID IT MUST BE** (`done` 2026-08-26, `PGEN-ENGINE-UNIVERSAL-SERVICES-0098`, release `1.0.199`, ledger `SV-0072`; opened 2026-08-26 by `.50`(e)'s first step. ⭐ The routing note said *not inert, −36 814 bytes, land it with (e)* — and that is what happened: **exactly one** generated artifact moved, adjudicated by name)
 
 **ROUTING EVIDENCE** (intra-tree — the mechanism is the elimination pass, this tree's subject;
 recorded anyway, because a routing decision without a measurement is what `ROUTING-EVIDENCE` exists
@@ -14421,4 +14421,109 @@ gap is visible rather than implied.
 - [x] **LOCKSTEP** — `DOCTRINE_ENFORCEMENT.md` §10 row (gate-enforced), `docs/book/src/gate-flow.md`
   count 28 → 29 (gate-enforced), `TOOLBOX.md` §5.1 records the ratchet beside the counter it guards,
   and the tree/index/`MEMORY.md` updated. No grammar, parser, contract, ledger or schema moved.
+
+
+#### ✅✅ `.50` (e) + `.55` — **THE RELEASE: THE SEVENTEENTH GATE LANDS, THE CLASS CLOSES 17 OF 17, AND EVERY CERTIFICATE DELTA IS NAMED** (2026-08-26, `PGEN-ENGINE-UNIVERSAL-SERVICES-0098`; GRAMMAR + ENGINE tier, release `1.0.199`, ledger `SV-0072`, schema `26` unchanged)
+
+**WHAT LANDED.** `@profiles: ["sv_2017", "sv_2023"]` on `tick` plus **7 SOURCE hosts**
+(`assignment_pattern{,_expression,_net_lvalue,_variable_lvalue}`, `cast`,
+`constant_assignment_pattern_expression`, `constant_cast`), together with `.55`'s engine derivation.
+⭐ **8 tags, not the 24-28 `(c4)` priced** — four of the eleven rules the lint names are eliminator
+temporaries that resolve once the engine derives their own gates.
+
+**⛔ THE BLAST RADIUS IS EXACTLY ONE ARTIFACT, MEASURED.** `generated/systemverilog_parser.rs` moved;
+the other **10 of 11 are byte-identical**. `.55`'s routing note had priced −36 814 bytes on this one
+artifact and that is what moved.
+
+## THE ACCEPT SET — TWO-SIDED, ON THE GENERATED PARSER
+
+| input | before | after | note |
+|---|---|---|---|
+| `a = '{1,2};` under `verilog_2005` | ACCEPT | ⭐ **reject** | the over-acceptance `SV-0072` removes |
+| `a = '{1,2};` under `sv_2017` / `sv_2023` | ACCEPT | ACCEPT | untouched |
+| `1'b0`, `8'hff` under **all three** | ACCEPT | ACCEPT | ⭐ the standing control — `'` inside a sized literal is lexed by `number` and never reaches `tick` |
+| `int'(2)'(3)` under `sv_2017` / `sv_2023` | ACCEPT | ACCEPT | ⭐⭐ **this discharges `(c)`'s outstanding half** — the GENERATED-parser observation the interpreter could not give |
+| three timing-check shapes exercising the two `!tick` guard sites | ACCEPT | ACCEPT | identical under both profiles, before and after |
+
+⭐ **10 of 10 typed ASTs BYTE-IDENTICAL** over 5 inputs × 2 SV profiles. And
+`profile_gated_negative_lookaheads` **7 → 11** is exactly the two `!tick` sites × the two affected
+profile contexts — `.46`(c)'s semantics holding, reported as a NOTE because the reading is
+non-obvious, with the behaviour measured unchanged rather than assumed.
+
+## THE RATCHET'S DESIGNED ROUND TRIP, OBSERVED
+
+`run_adjudication_repros.py` went RED on **exactly one row, with zero collateral** —
+`failures=1`, `accepts_invalid_v2005_punct_tick.sv`, *"AN OVER-ACCEPTANCE IS GONE … flip it"* — and
+after flipping that row to `class=invalid` reads **`checked=247 armed=81 listed=161 failures=0`**.
+The `verilog_2005` conformance gate's corpus half is fully green: `corpus_checks=360 / 0 mismatches`,
+`lint_exit_code=0`, `lint_profile_orphans=0`, `alias_checks=2`.
+
+## ⭐⭐⭐ THE CERT BASELINE MOVED, AND EVERY DELTA IS NAMED — THE *BEFORE* WAS RECONSTRUCTED, NOT ASSUMED
+
+The gate REFUSED first (**exit 2**, 12 unmet criteria = 4 fields × 3 seeds, printing *"do NOT
+re-stamp to make it green"*). So the before-state was rebuilt: HEAD's grammar restored,
+`focus_systemverilog` regenerating a parser whose sha **`58d65015f58a`** matches **exactly** the
+`fresh` sha `GENERATED-REPRODUCIBILITY` tier 2 had already computed, and the cert re-run to
+`1131/356/762/13` — byte-identical to what the contract declared. That is what makes the table below
+a measurement.
+
+| class | before | after | Δ | attribution |
+|---|---|---|---|---|
+| total | 1131 | 1119 | **−12** | 8 source tags + 4 eliminator temporaries (`casting_type_lr_suffix`, `_lr_suffix_r4`, `_lr_guard0_suffix`, `_lr_guard1_suffix`) — **all 12 were `witness`**, 0 proof, 0 UNKNOWN |
+| proof | 356 | 373 | **+17** | 17 survivors moving `witness → proof`, i.e. to the **STRONGER** certificate: the 11 `casting_type` LR seeds/guards/base, plus `array_pattern_key`, `assignment_pattern_expression_type`, `assignment_pattern_key`, `structure_pattern_key`, `integer_type`, `simple_type` |
+| witness | 762 | 732 | **−30** | = 12 removed + 17 → proof + 1 → UNKNOWN |
+| UNKNOWN | 13 | 14 | **+1** | `member_identifier` — see below |
+| union residual | 0 | 1 | **+1** | the same single name |
+
+⭐ **INDEPENDENTLY CROSS-CHECKED**: `--dump-rule-profiles`' `verilog_2005`-satisfiable set reads
+**1131 before / 1119 after** — the contract's own totals, from a different instrument.
+
+⛔⛔ **THE +1 UNKNOWN IS THE FIX WORKING, AND IT IS MEASURED RATHER THAN ARGUED.**
+`PGEN_CERT_COVERAGE_DEBUG_PROBES=1` classifies `member_identifier` **`parsed=true
+witnessed_target=false`** — TOOLBOX 4.3's reach/routing gap, not the `parsed=false` malformed-sample
+class — so no sample text is the blocker. Its `verilog_2005` witness was carried by **the
+over-acceptance this release removes**: `module m; initial x = '{a:1}; endmodule` commits
+`member_identifier=1` under `sv_2017`, and under `verilog_2005` it **ACCEPTed on HEAD's grammar and
+REJECTs on this one**. The rule stays satisfiable under the profile (it is in the 1119, not among the
+12 that left) through `select` / `constant_select` / `nonrange_select`, so it is an *unwitnessed*
+rule and not an *unreachable* one — UNKNOWN is the honest class, and a proof would have been a lie.
+
+⭐ **THE DEFERRAL WAS THE RIGHT CALL, and this slice is the evidence.** `(c4)` could have landed all
+seventeen at once. It would have shipped a parser that silently lost 15 left-recursive cycles on the
+profiles being RELEASED with every operator-facing counter green. Splitting it cost one release and
+bought three engine repairs, a refuted premise (*"dialect gates nest"* — 10 of 44 routes already
+cross) and a new blocking doctrine.
+
+#### Acceptance Checklist (enforced) — `.50` (e) + `.55` (`PGEN-ENGINE-UNIVERSAL-SERVICES-0098`)
+
+- [x] **REPRODUCE / ISSUE** — `./rust/target/release/parseability_probe --parse systemverilog
+  <a = '{1,2};> --profile verilog_2005` → **accepted** on `1.0.198`, pinned as
+  `accepts_invalid_v2005_punct_tick.sv`; and the engine blocker reproduced as
+  `left_recursion_unhandled=15 / eliminated=3 / 1513 rules` on the one-tag grammar.
+- [x] **ROOT CAUSE (WHY + WHERE)** — three, all tool-named. (1) `route_profile_gate`
+  (`indirect_lr_elimination.rs`) refused a route whose `@profiles` intersection no rule declares —
+  `PGEN_INDIRECT_LR_GATE_DUMP=1 … --lint-grammar` prints `verdict=REFUSED-CROSSING …
+  intersection=sv_2017 donor=false` on 4 routes. (2) `apply_plan` gave the suffix WRAPPER the BASE
+  rule's gate, so `PGEN_LINT_DUMP_ALL=1 … --lint-grammar` reported `profile_orphans=3`, all three
+  rules the pass invents, with a derived fix that cannot be applied. (3) The counter that would have
+  said so is a WARNING at exit 0, with **0** consumers repo-wide.
+- [x] **FIX** — fix-hierarchy tier: **grammar** for the 8 tags (the `scope_resolution` / `SV-0031`
+  whole-rule idiom, gating the TOKEN ROOT so the class is pruned in one place) and **engine** for
+  the two derivations, which no grammar can express because the rules needing the gates are ones the
+  pass invents.
+- [x] **ADDRESSED (verified)** — `a = '{1,2};` **ACCEPT → reject** under `verilog_2005` on the
+  GENERATED parser with `1'b0` / `8'hff` / `int'(2)'(3)` / three `!tick` shapes all holding;
+  `run_adjudication_repros` **RED on exactly 1 row → `247 checked / 0 failures`** after the flip;
+  `corpus_checks=360 / 0 mismatches`; lint rc **1 → 0** with `profile_orphans` **3 → 0**;
+  `left_recursion_unhandled=0` and `eliminated=4` throughout.
+- [x] **NO REGRESSION** — `verilog_2005_conformance_gate` GREEN on the re-baselined contract; cert
+  deterministic at seeds 0/7/42; **10 of 11 generated artifacts byte-identical** (only the SV parser
+  moved, which is the point of the release); `lib_unit_test_gate`, `clippy_on_rust_change`,
+  `mdbook_docs_gate` and `check_doctrines.sh` all green. ⛔ Every cert delta is attributed BY NAME
+  above against a RECONSTRUCTED before-state, not re-stamped.
+- [x] **LOCKSTEP** — grammar + `MANIFEST.tsv` row flipped to `invalid` + bug-ledger `SV-0072` (and
+  `SV-0071`'s forward reference closed) + `PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv` row
+  (`RELEASE`, digest `825db0318c69`) + the SV integration contract (identity `1.0.199`, new
+  current-state note) + the SV parser book (`PARSER-BOOK-CURRENCY` verifies `book 1.0.199 == contract
+  1.0.199`) + `verilog_2005_conformance_contract_v0.json` re-baselined by name.
 
