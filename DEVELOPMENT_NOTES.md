@@ -1,5 +1,40 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-27 - PGEN-LIVE-DOC-CONTAINMENT-0014 — a detector's headline is not a defect count until its false-positive class has been named
+
+**1. ⭐⭐⭐ I ROUTED A LEAF WITH A NUMBER AND THE NUMBER WAS 31 % HIGH, AND I ONLY FOUND OUT BECAUSE I
+RE-DERIVED BEFORE IMPLEMENTING.** The routing census said **21 cells across 12 rows** show a literal
+backtick in the render. The detector was *"a backtick that survives into the rendered text"* — sound
+sounding, renderer-authoritative, and wrong: **a backtick rendered INSIDE a `<code>` element is the
+author's correctly-escaped content**, i.e. the `` `` `` idiom working exactly as intended. Excluding
+`<code>` gives **16 in 11**. `SV-0046` was entirely healthy; `SV-0048` scored 5 cells against a real
+1. ⇒ a detector built from *"the symptom is visible in the output"* still needs its **success case**
+enumerated, or the success case is counted as the symptom.
+
+**2. ⛔⛔ THE MECHANICAL REPAIR WAS BUILT, DRY-RUN AND REFUSED — AND THE DRY RUN IS THE ONLY REASON.**
+The transform looked obviously right: find a `` \` `` inside a single-backtick span, widen the
+delimiter, make the backtick raw. Its dry run turned `` `\`, so ` `` (prose between two unrelated
+spans in `REGEX-0073`) into `` `` `, so  `` `` and turned `` ``\`\`` `` — an already-correct
+double-backtick span — into five consecutive backticks. **Locating "the enclosing single-backtick
+span" requires exactly the pairing the defect corrupts**, which is `LIVE-DOC-CONTAINMENT.8`'s cascade
+one class over. ⇒ **a repair that must first parse the thing the defect corrupted cannot be
+mechanised from the corrupted side.** Applied as hand-adjudicated replacements instead, each with a
+DECLARED occurrence count asserted before the write — and that assertion immediately caught
+`` `` \` `` `` living in two cells where I had assumed one.
+
+**3. ⭐ THE SUBJECT MATTER CREATED THE EXPOSURE, WHICH IS WHY IT CLUSTERED.** SystemVerilog compiler
+directives ARE backtick-initial tokens, so documenting the preprocessor family in markdown means
+putting a backtick inside a code span on almost every line. All four `SVPP-*` rows and `SV-0048` —
+the rows that document directives — carried the defect; the rest of a 197-row ledger did not. ⇒ when
+a defect clusters, look for a property of the SUBJECT before looking for a property of the author.
+
+**4. ⭐⭐ THE REPAIR IS VISIBLE IN THE PRODUCT, NOT JUST IN THE CENSUS.** Before, a downstream reader
+of the shipped ledger saw `include "x.svh"` and `ifdef X` — the leading backtick that MAKES them
+SystemVerilog gone, the filename curly-quoted because the text had fallen out of code formatting.
+After, the repro reads `` printf 'module m;\n`timescale 1ns / 1ps…' `` and the preprocessor
+operators render as `` `` ``, `` `" `` and `` `ident ``. ⇒ state a documentation fix in terms of what
+the reader now sees; a count of repaired cells is not the deliverable.
+
 ## 2026-08-27 - PGEN-LIVE-DOC-CONTAINMENT-0013 — a missing column is invisible, because the renderer supplies one
 
 **1. ⭐⭐⭐ HALF THE INDEX DEFECTS WERE NOT ESCAPING AT ALL — FOUR ROWS WERE MISSING WHOLE COLUMNS.**

@@ -136,4 +136,46 @@ if b is not None:
           if key(cells[-1])[-40:] and key(cells[-1])[-40:] not in key(b.get(n, (0, '', ''))[2])}
     la = {n for n, _, _ in lost}
     print(f"  the two renderers agree on the lost set: {la == lb}" + ("" if la == lb else f"  mdbook-only={sorted(la-lb)} pandoc-only={sorted(lb-la)}"))
+
+
+# ⭐ SECOND DEFECT CLASS, SAME ORACLE (`LIVE-DOC-CONTAINMENT.9`): a code span that cannot hold its
+#   own content. A single-backtick span CANNOT contain a backtick — the first inner one closes it —
+#   and SystemVerilog's compiler directives ARE backtick-initial tokens (`` `timescale ``,
+#   `` `include ``), so quoting one inside a single-backtick span breaks and the break CASCADES.
+#
+# ⛔ THE DETECTOR MUST EXCLUDE <code> CONTENT, AND GETTING THAT WRONG OVERCOUNTS BY 31 %. A backtick
+#   rendered INSIDE a <code> element is the author's correctly-escaped content, rendered exactly as
+#   intended. The loose test — "any backtick in the rendered text" — reads the bug ledger at 21 cells
+#   in 12 rows against a true 16 in 11: `SV-0046` was entirely healthy and `SV-0048` scored 5 cells
+#   against a real 1. Measured, and it is why this arm strips <code> before looking.
+def backtick_census(path, label):
+    if not os.path.exists(path):
+        return None
+    s = open(path, encoding='utf-8').read()
+    tables = re.findall(r'<table>.*?</table>', s, re.S)
+    if idx >= len(tables):
+        return None
+    rows = re.findall(r'<tr[^>]*>(.*?)</tr>', tables[idx], re.S)
+    hits, cells = {}, 0
+    for r in rows:
+        tds = re.findall(r'<td(?:\s[^>]*)?>(.*?)</td>', r, re.S)
+        if not tds:
+            continue
+        nm = re.sub(r'<[^>]+>', '', tds[0]).strip().strip('` ')
+        for i, td in enumerate(tds):
+            cells += 1
+            prose = re.sub(r'<code[^>]*>.*?</code>', ' ', td, flags=re.S)
+            if '`' in html.unescape(re.sub(r'<[^>]+>', ' ', prose)):
+                hits.setdefault(nm, []).append(i)
+    print(f"  {label}: cells whose PROSE shows a backtick (a code span that could not hold it): "
+          f"{sum(len(v) for v in hits.values())} of {cells}"
+          + (f" in {len(hits)} rows" if hits else ""))
+    for k, v in sorted(hits.items()):
+        print(f"     {k:14s} cells {v}")
+    return hits
+
+ha = backtick_census(f"{W}/book/t.html", "mdbook ")
+hb = backtick_census(f"{W}/pandoc.html", "pandoc ")
+if ha is not None and hb is not None:
+    print(f"  the two renderers agree on the backtick set: {ha == hb}")
 PY
