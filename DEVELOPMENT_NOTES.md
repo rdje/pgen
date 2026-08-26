@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-27 - PGEN-LIVE-DOC-CONTAINMENT-0012 — the position an imbalance detector reports is where the scan ran out, not where the author slipped
+
+**1. ⭐⭐⭐ I CHASED FOUR REPORTED POSITIONS AND ALL FOUR WERE CORRECT CODE.** The scan said
+`REGEX-0108` had an unmatched backtick at `` `descending_class_range ``; the source reads
+`` `descending_class_range` ``, properly closed. Same for `SV-0035`'s `` `.3` `` and `SV-0048`'s
+`` `undefineall` ``. CommonMark pairs a backtick run with the NEXT run of the same length, left to
+right over the whole line, so an odd count anywhere leaves the leftover wherever the scan happens to
+run out — which is the END, not the defect. The report is a BOUND (*somewhere at or before here*),
+and reading it as a location cost several steps. ⇒ promoted to
+[[a-delimiter-imbalance-is-not-a-local-defect]].
+
+**2. ⭐⭐ THE THING THAT LOCALISED IT WAS THE HEADER, NOT A BETTER SCANNER.** The bug ledger declares
+13 columns whose shapes are recognisable — an id, a bare ISO date in column 6, a release string in
+column 12, free prose in column 13. Reading the fragments back onto the columns they belong to
+reconstructs the intended boundaries with **no delimiter model at all**, and it is what produced
+every one of the five hand groupings. ⇒ when a syntactic model of a record fails, the record's own
+SCHEMA is usually still intact and is a stronger anchor than a smarter parse.
+
+**3. ⭐ A HAND ADJUDICATION SHOULD BE DATA, NOT AN EDIT.** The five groupings went into a `HAND_JOINS`
+table in the repair tool rather than into the ledger by hand. The applier still escapes only
+separators, so a mis-read grouping surfaces as the wrong arity instead of as lost text, and all three
+endorsement arms run over a hand grouping exactly as over a mechanical one. The decision is now
+re-runnable, reviewable and diffable; a hand edit would have been none of those.
+
+**4. ⛔⛔ THE READING FOUND A SECOND DEFECT CLASS, AND IT IS EATING SYSTEMVERILOG SYNTAX.** A
+single-backtick code span cannot contain a backtick — the first inner one closes it. SystemVerilog's
+compiler directives ARE backtick-initial tokens, so quoting `` `timescale `` inside a single-backtick
+span breaks, and the breakage cascades. Measured in the render over the ledger's 2 561 cells: **21
+cells in 12 rows** still show a literal backtick, and `SV-0048`'s controls list renders as
+`include "x.svh"` / `ifdef X` — **the leading backtick that makes them directives is gone**, with the
+filename curly-quoted because the text fell out of code formatting. The exposure is created by the
+subject matter, so it lands hardest on `SV-0048` and all four `SVPP-*` rows: the preprocessor family
+is *defined* by backtick-initial tokens. Owned by `LIVE-DOC-CONTAINMENT.9`, sequenced before the gate.
+
+**5. ⚠️ A RENDERER MAKES A BETTER IMBALANCE DETECTOR THAN A BACKTICK COUNTER, AND NEEDS NO MODEL.**
+The rule is one line: *a backtick that survives into the rendered text was not consumed as a
+delimiter, so the source is imbalanced.* It has no notion of runs, spans or pairing, cannot be
+cascaded, and it is what produced the census in item 4 after a counter had already proved unreliable
+on the same file.
+
 ## 2026-08-27 - PGEN-LIVE-DOC-CONTAINMENT-0011 — the optional half of a delimiter is where a census goes blind
 
 **1. ⭐⭐⭐ A COUNT DERIVED FROM A FIELD SPLITTER INHERITS THAT SPLITTER'S ASSUMPTION ABOUT THE EDGES,

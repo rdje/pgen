@@ -64,6 +64,45 @@ PREDICATES = {
 
 SEP_ROW = re.compile(r"^\| *:?-+:? *\|")
 
+# HAND-ADJUDICATED JOINS — the rows the mechanical arm REFUSED, read one by one and recorded as
+# DATA so the decision is durable, re-runnable and reviewable rather than a one-off edit.
+#
+# ⛔ WHY THE MECHANICAL ARM CANNOT DO THESE, MEASURED RATHER THAN ASSUMED. CommonMark pairs a
+#   backtick run with the NEXT run of the same length, left to right. That pairing is GLOBAL over
+#   the line, so ONE unmatched backtick anywhere shifts every pairing after it — and a shifted
+#   pairing swallows REAL cell separators into phantom code spans. `SV-0034` is the worked case:
+#   it has exactly ONE pipe that needs escaping (a BNF alternation inside
+#   `associative_dimension := …`), but a stray trailing backtick later in the row makes the scan
+#   report THREE, so escaping them all lands the row at 11 cells against a 13-column header. The
+#   tool refused it — landing SHORT is the refusal — and reading is what separates the one real
+#   join from the two false ones.
+#
+# ⭐ HOW EACH GROUPING WAS DERIVED: from the header's OWN column semantics, not from counting down
+#   to 13. The bug ledger's 13 columns have recognisable shapes — column 1 is the id, column 6 a
+#   bare ISO date, column 12 a release string, column 13 free prose — so the fragments were read
+#   back onto the columns they belong to and the groups are what remains. Each grouping is then
+#   checked three ways by the code below exactly like a mechanical repair: exact declared arity,
+#   the table's semantic predicate (which knows nothing about counting), and the
+#   content-preservation invariant.
+#
+# Format: (file, table index, row name) -> list of fragment-index groups (0-based) to re-join.
+HAND_JOINS = {
+    ("docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md", 1, "SV-0034"): [[10, 11]],
+    ("docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md", 1, "SV-0035"): [[10, 11, 12]],
+    ("docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md", 1, "SV-0048"): [[10, 11]],
+    ("docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md", 1, "REGEX-0108"): [[12, 13, 14]],
+    # REGEX-0105 carries 37 fragments: the Downstream-Consumer, Reproducer-Bundle, Root-Cause and
+    # Fix-Proof cells are each shredded by `|` characters inside regex character classes written
+    # in code spans (`[\d-[|z]]`, `[~-||]`, `[|-||]`, `[a-|b]`). Empty fragments are real: `||`
+    # is two adjacent separators produced by one two-pipe class.
+    ("docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md", 1, "REGEX-0105"): [
+        [4, 5, 6],
+        list(range(10, 23)),
+        list(range(23, 28)),
+        list(range(28, 35)),
+    ],
+}
+
 
 def code_spans(line):
     """CommonMark code spans in `line`, as (content_start, content_end) offsets.
@@ -150,6 +189,35 @@ def repair(line):
     return "".join(out)
 
 
+def join_groups(line, groups):
+    """Re-join the fragment groups a human adjudicated, by ESCAPING the separators inside them.
+
+    The only edit is `|` -> `\\|`, exactly as in the mechanical path, so the content-preservation
+    invariant applies unchanged and a mis-read grouping shows up as the wrong arity rather than as
+    lost text.
+    """
+    masked = line.replace("\\|", "\x01")
+    segs = masked.split("|")
+    lead = segs.pop(0) if segs and segs[0].strip() == "" else None
+    trail = segs.pop() if segs and segs[-1].strip() == "" else None
+    inside = set()
+    for g in groups:
+        for i in g[1:]:
+            inside.add(i)
+    out = []
+    if lead is not None:
+        out.append(lead)
+        out.append("|")
+    for i, cell in enumerate(segs):
+        if i > 0:
+            out.append("\\|" if i in inside else "|")
+        out.append(cell)
+    if trail is not None:
+        out.append("|")
+        out.append(trail)
+    return "".join(out).replace("\x01", "\\|")
+
+
 def tables(lines):
     """Yield (index, header_lineno, header_cols, [data lineno...]) for each GFM table."""
     found, tbl, prev_pipe = [], None, False
@@ -179,12 +247,14 @@ def process(path, apply_fix, show_residual):
             have = len(split_cells(original))
             if have <= tbl["cols"]:
                 continue
-            fixed = repair(original)
+            name0 = split_cells(original)[0].strip().strip("` ")
+            groups = HAND_JOINS.get((rel, tbl["n"], name0))
+            fixed = join_groups(original, groups) if groups else repair(original)
             if normalise(fixed) != normalise(original):
                 aborted.append((ln, "CONTENT CHANGED — the edit was not a pure escape"))
                 continue
             cells = split_cells(fixed)
-            name = split_cells(original)[0].strip().strip("` ")
+            name = name0
             if len(cells) != tbl["cols"]:
                 residual.append((ln, name, have, len(cells), tbl["cols"], "arity %d after repair" % len(cells)))
                 continue
@@ -195,7 +265,7 @@ def process(path, apply_fix, show_residual):
                 continue
             lines[ln] = fixed
             endorsed += 1
-            print("   ENDORSED line %-5d %-34s %2d -> %d cols" % (ln + 1, name, have, len(cells)))
+            print("   %-8s line %-5d %-34s %2d -> %d cols" % ("HAND" if groups else "ENDORSED", ln + 1, name, have, len(cells)))
     print("\n== %s ==" % rel)
     print("  endorsed (mechanically repairable, all three checks pass): %d" % endorsed)
     print("  residual (must be READ — cause (2) or an unreconstructable span): %d" % len(residual))
