@@ -134,6 +134,17 @@ for "which doctrines are enforced by what"; a human-readable manifest mirrors it
   prints a per-doctrine report, and exits nonzero iff any failed. It also **meta-checks** that
   every registered check exists and is executable — so a registry entry can never be a dangling
   promise.
+- ⛔ **And it meta-checks the registry TEXT, because a registry is code.** A description lives in a
+  double-quoted shell string, where `$` `` ` `` `\` and `"` stay live. Four times this registry
+  expanded its own prose; the fourth (`DOCTRINE-GAP-OWNERSHIP.16`) ran `` `match` `` and
+  `` `syntax error` `` as command substitutions and **silently deleted those words from the published
+  description**, while the surviving sentence still read as grammatical English and the driver exited
+  **0**. ⭐ The arm reads the driver's **unexpanded source text**, never `"${DOCTRINES[@]}"` — by the
+  time the array exists the substitution has already happened and the evidence is gone — and it
+  **refuses when it cannot read that source**, because a check that cannot inspect its subject must
+  say so rather than pass. ⚠️ Guard the *class* (`$`, `` ` ``, `"`, stray `\`), not the member: the
+  previous fix cited this exact defect as prior art and then checked the `|` separator count instead,
+  and the cited defect recurred within days.
 - **Adding a doctrine** = write a `check_*.sh` obeying §4 + add one registry line. Nothing else.
 
 This repo ships the reference driver at [`scripts/check_doctrines.sh`](scripts/check_doctrines.sh)

@@ -40,7 +40,13 @@
 # Registry below = the source of truth for "which doctrines are enforced by what". The
 # human-readable mirror is DOCTRINE_ENFORCEMENT.md §10 (kept in lockstep).
 set -uo pipefail   # deliberately NOT `-e`: run ALL checks, collect every result, then report.
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# ⛔ Resolve THIS FILE absolutely BEFORE the cd. `<meta:registry-escaping>` below reads the
+# driver's own SOURCE TEXT, and a relative `${BASH_SOURCE[0]}` stops resolving the moment the cwd
+# moves — the arm then inspects nothing and PASSES, which is the failure direction this whole
+# driver exists to close. MEASURED: the RED control fired exactly that way on its first run.
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+cd "$ROOT"
 
 # Each entry: "ID|what it proves|relative/path/to/check.sh"
 # Add a new doctrine here AND in docs/decisions/DOCTRINE_ENFORCEMENT.md (a meta-check below
@@ -73,7 +79,7 @@ DOCTRINES=(
   "SV-CONTRACT-CURRENCY|the SV downstream integration contract describes the grammar that is actually in the tree: every revision of grammars/systemverilog.ebnf since the register genesis is accounted for as a RELEASE (contract section + bug-ledger row) or as ACCEPT-SET-NEUTRAL, and a neutrality claim is CHECKED against the frontend's own raw_ast digest rather than believed (SV-CORPUS-GRAD.13c.2l; measured 2026-08-19: the contract said 1.0.183 while SEVEN semantically-distinct grammar revisions had shipped, FOUR of them REPLACING an AST shape a consumer was already reading, and one of those four moved ZERO verdicts — nothing compared the grammar's last-modified commit with the contract's, and the leaf tracking the population BY HAND went stale twice more inside the same week)|scripts/check_sv_contract_currency.sh"
   "GRAMMAR-CERT-CURRENCY|the published per-grammar certification table stays a DERIVATION of the tree, and the instrument that would notice is still ALIVE: tier 1 (0.27 s, every commit, no oracle) proves the book page carries exactly one well-formed DERIVED block, that the producer's --check is WIRED (statically -- the option variable is READ, not merely assigned -- and behaviourally -- it refuses a path that does not exist), that the published POPULATION equals the families that actually ship, and that no declared input leads the page past a budget; tier 2 (--oracle, 64.5 s MEASURED -- predicted 65 s, first measured 128.5 s because the red control paid for a whole second derivation to be told something a grep knows, fixed in the producer by refusing a block-less page at argument-parse time in 0.01 s) re-derives all nine rows and DIFFS them, after first driving the producer's own refusal arm so a green verdict cannot come from an instrument that says green to everything (GRAMMAR-CERT-STATUS.2). MEASURED twice over: the roster was DOC-ASSERTED and rotted (CHANGES.md: \"fully-certified-6 roster membership was doc-asserted only\"), then the derive-and-diff that replaced it was itself DELETED while its FLAG survived, so --check was accepted, printed a table and exited 0 on EVERY input -- including a nonexistent path -- for a whole commit, while the main book, the owning leaf and layer-A MEMORY.md all published that it \"refuses when the two disagree\" (GRAMMAR-CERT-STATUS.1b). HONEST BOUND, stated before the check is trusted: tier 1 is a staleness argument and inherits whatever tier 2 last established, exactly as PARSE-COST-RATCHET says of itself; generated/ is untracked, so a fresh clone reports the population arm NOT EVALUATED, loudly, never as a pass. 9/9 refusal arms observed firing via --self-test, including the two that reconstruct the .1b regression from both sides|scripts/check_grammar_certification.sh"
   "BASELINE-IDENTITY|a tracked baseline holding a value DERIVED from the tree says WHICH tree, and the enforcer RE-HASHES every input it declares on every run: a generic \`identity\` block (\`verified_at_commit\` + an \`inputs\` map of repo-root-relative path -> sha256) whose dependency set is DATA rather than hard-coded in a script, ONE shared verifier so every gate refuses in provably identical words, and a CLOSED two-sided population over rust/test_data/grammar_quality/ in which an entry with no verdict FAILS and a verdict naming no entry FAILS. ⛔⛔ The block answers TWO questions and the \`expectations\` field (\`confirmed\` or \`unconfirmed\`, with NO default) is the second: input digests say whether the inputs MOVED, never whether the numbers were ever RIGHT about them. Shipping without it inverted this doctrine on its own first customer (-0248, retracted by -0249) -- the gate printed \"identity fresh\" and then an unattributable drift, turning an honest vague RED into a confident WRONG answer. \`unconfirmed\` is RED for every consumer, never a waiver, so a baseline nobody can re-derive yet can still be watched for input drift and still name the leaf that owes the re-derivation. ⭐⭐ AND PROVENANCE DISAMBIGUATES A VERDICT RATHER THAN GATING WORK (SV-CORPUS-GRAD.13c.2x.4): the first cut made a moved input a FAILURE in an enforcer that runs from .githooks/pre-commit, so ONE COMMENT LINE in the SV grammar BLOCKED EVERY COMMIT -- for an edit the frontend strips. Now an input may be digested SEMANTICALLY (\`ebnf_raw_ast\`, the frontend's own envelope, the same definition SV-CONTRACT-CURRENCY uses), staleness is a printed NOTE inside a DERIVED budget of commits touching the declared inputs and a hard failure past it (so ROT stays impossible -- the founding artifact sat 69 revisions stale), and a gate MEASURES a stale baseline instead of refusing: green re-stamps it from that run's own numbers, red refuses as ambiguous, and the env-gated escape the old design needed is DELETED (SV-CORPUS-GRAD.13c.2x.2, director-ordered 2026-08-20; measured 2026-08-20: sv_cert_recognized_union_gate had been RED at HEAD for ELEVEN grammar revisions by 71 rules and 53 UNKNOWNs, every expected_* field an exact function of that grammar and not one byte in the file able to say the baseline was the stale half). ⛔ A block nobody READS is the defect, not the fix — SV-CORPUS-GRAD.13i measured SIX oracles already carrying a self-describing identity block, only ONE gate-checked and FOUR measurably stale — so a row registered anything but adopted that CARRIES a block is a hard failure, and the first adoption shipped with its consuming gate REFUSING TO MEASURE (exit 2, the published refusal code) until the identity verifies|scripts/check_baseline_identity.sh"
-  "CORPUS-KEY-INTEGRITY|the corpus ANSWER KEY is checked like the instrument it is, and so is the instrument that checks it: tier A1 (always, corpus-INDEPENDENT, 0.1 s) runs the census self-test and refuses a shrunken arm set, a zero-arm 'pass' or an unparsable summary; tier A4 (also corpus-INDEPENDENT, it reads the tracked manifests) holds the PROVENANCE census the same way and pins its UNMATCHED residual under a ceiling -- a rise means the manifests gained a basis SHAPE nobody classified, so the published trust bound (93.8 % of the answer key rests on evidence OUTSIDE the standard: 627 clause-cited / 2287 tool-testimony / 7172 suite-convention / 4 unmatched, over 10 090 keyed rows) silently stopped covering the population; tier A2/A3 (0.49 s total) requires zero contradictory upstream-message classes, zero bases quoting evidence their own golden lacks, and the tracked census.md to be BYTE-IDENTICAL to a fresh derivation. Founded on the key measurably deciding wrong twice in three days (SV-CORPUS-GRAD.13e.3(a): two files, the same binary ~& operator, OPPOSITE expectations, the difference an iverilog flag the key never read; SV-0068: three rows keyed must_accept for text IEEE 1364-2005 cannot derive, sitting at `match` -- the STRONGEST verdict in the file -- for the whole campaign, because an expectation error in the ACCEPT direction produces no flag at all). ⛔⛔ AND THE FIRST CENSUS BUILT TO CATCH THAT WAS ITSELF WRONG TWICE INSIDE ONE COMMIT (CORPUS-KEY-AUDIT.1(a)) -- a 100 % false-positive rate, 2 of 2, and a message regex requiring an error:/sorry: tag while iverilog emits its bare parse refusal UNTAGGED, so `syntax error`, the most parse-relevant class in the corpus, was absent from the vocabulary its headline was measured over -- which is why A1 tests the census before A2 trusts its verdict. The vendored corpora are submodules, so a fresh clone reports A2/A3 NOT EVALUATED, LOUDLY, never as a pass and never as a commit-blocking failure; that refusal branch is EXERCISED by the self-test (a relocated census copy whose repo-root walk lands on no corpus), not assumed. 13/13 refusal arms observed firing via --self-test, including a GREEN control on the real tree so the refusals are not vacuous|scripts/check_corpus_key_integrity.sh"
+  "CORPUS-KEY-INTEGRITY|the corpus ANSWER KEY is checked like the instrument it is, and so is the instrument that checks it: tier A1 (always, corpus-INDEPENDENT, 0.1 s) runs the census self-test and refuses a shrunken arm set, a zero-arm 'pass' or an unparsable summary; tier A4 (also corpus-INDEPENDENT, it reads the tracked manifests) holds the PROVENANCE census the same way and pins its UNMATCHED residual under a ceiling -- a rise means the manifests gained a basis SHAPE nobody classified, so the published trust bound (93.8 % of the answer key rests on evidence OUTSIDE the standard: 627 clause-cited / 2287 tool-testimony / 7172 suite-convention / 4 unmatched, over 10 090 keyed rows) silently stopped covering the population; tier A2/A3 (0.49 s total) requires zero contradictory upstream-message classes, zero bases quoting evidence their own golden lacks, and the tracked census.md to be BYTE-IDENTICAL to a fresh derivation. Founded on the key measurably deciding wrong twice in three days (SV-CORPUS-GRAD.13e.3(a): two files, the same binary ~& operator, OPPOSITE expectations, the difference an iverilog flag the key never read; SV-0068: three rows keyed must_accept for text IEEE 1364-2005 cannot derive, sitting at \`match\` -- the STRONGEST verdict in the file -- for the whole campaign, because an expectation error in the ACCEPT direction produces no flag at all). ⛔⛔ AND THE FIRST CENSUS BUILT TO CATCH THAT WAS ITSELF WRONG TWICE INSIDE ONE COMMIT (CORPUS-KEY-AUDIT.1(a)) -- a 100 % false-positive rate, 2 of 2, and a message regex requiring an error:/sorry: tag while iverilog emits its bare parse refusal UNTAGGED, so \`syntax error\`, the most parse-relevant class in the corpus, was absent from the vocabulary its headline was measured over -- which is why A1 tests the census before A2 trusts its verdict. The vendored corpora are submodules, so a fresh clone reports A2/A3 NOT EVALUATED, LOUDLY, never as a pass and never as a commit-blocking failure; that refusal branch is EXERCISED by the self-test (a relocated census copy whose repo-root walk lands on no corpus), not assumed. 13/13 refusal arms observed firing via --self-test, including a GREEN control on the real tree so the refusals are not vacuous|scripts/check_corpus_key_integrity.sh"
   "SAMPLE-PROFILE-PARITY|every @sample annotation in a grammar still parses under the profiles its own BRANCH is live in — an @sample is a single PROFILE-BLIND string, so declaring a @profiles dialect NARROWS the language and silently strands every sample written against the wider one. Measured (SV-CORPUS-GRAD.13e.9): FOUR such samples on systemverilog cost TEN certificate rules, written 2026-04-22 and latent since the profile was registered on 2026-07-02 — 54 days — because NOTHING in the repository read @sample at all: no gate, no workflow, no hook, no lint. The class is created by an edit that is otherwise correct (adding a dialect), which is why nobody looks. ⛔ THE JOIN IS THE WHOLE DESIGN AND THE OBVIOUS ONE IS 100 % FALSE POSITIVES: @profiles is RULE-level while 43 of SystemVerilog 52 samples are BRANCH-level, so joining a branch sample against the rule set over-reports BY CONSTRUCTION — measured 115 checks / 8 reported / 0 true defects against the branch join 101 / 0 / 0, and those 8 are exactly the 7 that .13e.9 adjudicated BY HAND as branch-dead-sample-honest plus the 1 that .13e.10(c4) created. ⭐ ORACLE archetype, not a currency proxy: it re-executes the census and gates whether the samples PARSE, never whether the census was re-run. STAGED-DIFF-SCOPED for cadence — 33 s on systemverilog, so inert unless a grammar is staged, which was made affordable by moving the census into the engine (2 m 43 s to 33 s, PGEN-SV-CORPUS-GRAD-0308). A grammar with no @profiles is NOT EVALUATED, loudly, never a pass; a missing headline REFUSES rather than scoring, because a load failure and a parse rejection are indistinguishable at rc 1|scripts/check_sample_profile_parity.sh"
   "LR-ELIMINATION-RATCHET|a grammar edit may not RAISE the number of left-recursive cycles the elimination pass DECLINES. An unhandled cycle is not untidy: the runtime guard does not handle it, it REJECTS same-position re-entry, so every derivation needing the recursion at the seed position is UNREACHABLE and the grammar declares strictly more than its parser accepts — an UNDER-acceptance on the profiles being released. ⛔ FOUNDING MEASUREMENT (ENGINE-UNIVERSAL-SERVICES.50): ONE @profiles tag, the tag --lint-grammar itself DERIVES for constant_cast, moved systemverilog from left_recursion_unhandled=0 to 15 and left_recursion_eliminated 4 to 3 — while profile_orphans, the ERROR-class counter an operator would quote, went to 0, the lint still exited 0, and every registered doctrine stayed GREEN. Nothing in the repository read this counter. ⭐ GIT IS THE BASELINE: the comparison is staged content versus HEAD content of the SAME file, so there is no tracked artifact to go stale, no rebaseline step and no identity block — and both sides are linted with the same binary, which isolates the GRAMMAR axis by construction. ⭐ SHORT-CIRCUITED so the common case costs ONE lint: a staged grammar reading 0 cannot have risen INTO 0, and 0 is every shipping grammar today. It BLOCKS with no env escape, which is free on day one because ENGINE-UNIVERSAL-SERVICES.50(b) shipped the fix FIRST — the SV-CORPUS-GRAD.13e.11 rule that a guard is safe to make blocking over its whole population exactly when the fix precedes it. ⚠️ HONEST LIMIT: staged-scope-aware on GRAMMARS, so an ENGINE change that raises the counter without touching a grammar is not caught here|scripts/check_lr_elimination_ratchet.sh"
   "GAP-CLAIM-CENSUS|a task leaf that ADDS a nothing-checks-X claim records the CENSUS it rests on. Such a sentence is a UNIVERSALLY QUANTIFIED claim over the whole tree, not a description, and it is false the moment ONE reader exists; this repository published it wrong three times in three days (-0288 retracted by -0289, -0290 CLOSED AS REFUTED by -0294 once gather_verified_profile_proof_covered_rules turned out to cross the two, and one more caught in draft). STAGED-DIFF-SCOPED so the 74 unbacked claims of 205 already in docs/tasks never block, and calibrated by REPLAYING 150 real commits rather than an imagined phrasing: 79 added claim lines, 13 would have blocked, adjudicated one by one to 11 true positives, and the real -0290 sentence is itself in the fired set|scripts/check_gap_claims.sh"
@@ -110,6 +116,84 @@ for entry in "${DOCTRINES[@]}"; do
     fail=1
   fi
 done
+
+# ------------------------------------------------------------------ meta-check: registry ESCAPING
+# ⛔⛔ THE REGISTRY EXECUTED ITS OWN DESCRIPTIONS, FOUR TIMES, AND THE THIRD FIX CITED THE SECOND AS
+# PRIOR ART WITHOUT CHECKING FOR IT. A doctrine description is prose inside a DOUBLE-QUOTED bash
+# string, where four characters stay live: $ ` \ and ". MEASURED 2026-08-25 (DOCTRINE-GAP-OWNERSHIP
+# .16): the CORPUS-KEY-INTEGRITY row carried 4 unescaped backticks, so bash ran `match` and
+# `syntax error` as command substitutions at ARRAY-DEFINITION time and the published description lost
+# those exact words -- "sitting at  -- the STRONGEST verdict". Both surviving sentences still read as
+# grammatical English, which is why re-reading the report could never catch it, and the missing token
+# was precisely the technical term the sentence existed to carry.
+#
+# ⛔⛔ IT FAILED IN THE PASSING DIRECTION: the driver printed two "command not found" lines to stderr
+# -- which every caller that greps the verdict discards -- and exited 0. `bash -n` was clean
+# throughout. This is valid bash doing exactly what it was told.
+#
+# ⭐⭐ IT READS THE SOURCE FILE, NOT "${DOCTRINES[@]}", AND THAT IS THE WHOLE DESIGN. By the time the
+# array can be inspected bash has ALREADY performed the substitution: the array holds the RESULT, with
+# the offending words gone. A guard over the expanded values is blind to this defect BY CONSTRUCTION
+# -- it would inspect the evidence after the fire. Only the unexpanded source text can answer.
+#
+# ⭐ IT GUARDS THE CLASS, NOT THE MEMBER -- which is the whole complaint against the third fix, whose
+# guard counted `|` separators only and left the cited backtick defect free to recur (it recurred
+# within days). Refused here: any unescaped ` $ or ", and any backslash escaping something other than
+# those four. MEASURED over the registry before wiring it: 30 rows, of which 1 carried 4 unescaped
+# backticks (fixed in the same commit) and 4 more carried 24 CORRECTLY escaped ones, with ZERO
+# unescaped $ or " anywhere and only \" (8) and \` (28) in use. ⇒ the convention is already known and
+# followed, and after the fix this arm fires on NOTHING -- the SV-CORPUS-GRAD.13e.11 condition for a
+# guard that is safe to make blocking: the fix precedes it.
+#
+# ⚠️ Honest limit: this checks the ROWS, not the driver's other double-quoted strings, and it cannot
+# tell a deliberate substitution from an accidental one -- it refuses both. In a registry of reviewed
+# prose that is the right trade; a row that genuinely needs a computed value should build it above the
+# array, not inside a description.
+registry_escape_findings="$(awk '
+  /^DOCTRINES=\(/ { inreg = 1; next }
+  /^\)$/          { if (inreg) inreg = 0 }
+  inreg && /^  "/ {
+    body = $0
+    sub(/^[ \t]*"/, "", body)
+    sub(/"[ \t]*$/, "", body)
+    id = body
+    sub(/\|.*$/, "", id)
+    i = 1; bad = ""
+    while (i <= length(body)) {
+      c = substr(body, i, 1)
+      if (c == "\\") {
+        n = substr(body, i + 1, 1)
+        if (n != "\"" && n != "`" && n != "$" && n != "\\") bad = bad " backslash-before-<" n ">"
+        i += 2
+        continue
+      }
+      if (c == "`")       bad = bad " unescaped-backtick"
+      else if (c == "$")  bad = bad " unescaped-dollar"
+      else if (c == "\"") bad = bad " unescaped-doublequote"
+      i++
+    }
+    if (bad != "") printf "        line %d (%s):%s\n", NR, id, bad
+  }
+' "$SELF")"
+if [ ! -r "$SELF" ]; then
+  # ⛔ A check that cannot inspect its subject must SAY SO, not pass — the rule the mirror and
+  # book-count arms below already follow. Without this branch an unreadable SELF is indistinguishable
+  # from a clean registry, and that is how the RED control first passed against a copy it never read.
+  printf 'registry-escaping: cannot read the driver source at %s, so the registry text was NEVER inspected\n' "$SELF" >&2
+  report+=("✗ FAIL  <meta:registry-escaping> — the driver could not read its OWN source; the registry was not inspected")
+  fail=1
+elif [ -n "$registry_escape_findings" ]; then
+  {
+    echo "registry rows carry SHELL-ACTIVE text that bash expands at array-definition time:"
+    printf '%s\n' "$registry_escape_findings"
+    echo "  Escape it: \` -> \\\` , \$ -> \\\$ , \" -> \\\" . The published description silently LOSES"
+    echo "  the substituted words while still reading as grammatical English, and the driver exits 0."
+  } >&2
+  report+=("✗ FAIL  <meta:registry-escaping> — a registry description would be EXPANDED by bash (see above)")
+  fail=1
+else
+  report+=("✓ PASS  <meta:registry-escaping> — no registry row carries unescaped \` \$ or \" (${#DOCTRINES[@]} rows)")
+fi
 
 # ------------------------------------------------------------------ meta-check: the human mirror
 # The registry above is the SOURCE OF TRUTH and the header has always CLAIMED that
