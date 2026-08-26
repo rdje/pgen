@@ -1,5 +1,64 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0091 — a pin whose justification is false is a pin the next reader removes, and the comment I was sent to fix had written the bug down as the design intent
+
+**1. ⭐⭐⭐ THE RULING SURVIVED; THE ARGUMENT DID NOT — AND THOSE ARE DIFFERENT ARTEFACTS WITH
+DIFFERENT LIFETIMES.** `.53` ruled *PIN, do not refactor* on the surviving `contains_key` conflation
+in `mandatory_node_gated`, and that ruling is right: the behaviour is correct today, and moving bytes
+in the most reach-sensitive function in the engine to buy nothing measurable is the trade
+`GENERATED-LINT-CORRECTNESS.4` refuses. But the leaf justified it with *"its SOLE consumer happens to
+sit behind a fallback"*, and a caller census returns **seven** functions reaching that walk. The
+ruling and its justification are stored in different places — the ruling in a task leaf that nobody
+reads while editing, the justification in the doc comment that everybody does. ⇒ **a false
+justification is the more dangerous half, because it is the half that is co-located with the code.**
+
+**2. ⛔⛔ THE COMMENT DID NOT GO STALE — IT ENCODED THE DEFECT AS INTENT, AND THAT IS A DIFFERENT
+FAILURE.** The clause was *"A reference to a rule MISSING from the active (profile-pruned) tree is
+treated as gated — it cannot be rendered, so it is no escape."* The leaf sent me to fix the
+parenthetical cross-reference (*"mirrors `reach_hops_pass` skipping that edge"*), and `git log -S`
+shows that cross-reference was true at authorship (`2acad95b`), true on the tree `.51` began from,
+and true today. The clause that is actually wrong is *"it cannot be rendered"* — which holds for one
+of the two causes of absence and is false for the other. A reader coming to repair `.51`'s conflation
+at this site would have found the code's own documentation asserting the conflated reading as the
+design. ⇒ **when a leaf tells you which sentence is wrong, re-derive that too.** The leaf's own
+diagnosis is a claim like any other.
+
+**3. ⭐⭐ A BOUND THAT COVERS EVERY CALLER BEATS A BOUND THAT COVERS THE ONE YOU READ.** Replacing
+*"the sole consumer has a fallback"* did not mean finding seven fallbacks. It meant asking what the
+site can actually get WRONG: absence has two causes, and only the *never-defined* one produces a bad
+answer. That reframing turns a call-graph question into a corpus question with a one-line instrument —
+`--lint-grammar`'s `undefined_references`, ERROR-class, `0` on 16 of the 17 tracked grammars. The
+seventeenth is the LRM extraction harness at 5, which has never generated a parser. ⇒ **the exposure
+bound is grammar-content, not call-graph, and it holds for all seven callers at once.** The fallback
+survives in the comment as the *local* half of the argument, named as such.
+
+**4. ⛔ A POPULATION IS NOT A DEFECT COUNT, AND THE CORRECTION HAS A MIRROR.** The leaf's own routing
+evidence says so — it refused to publish *"62 sites have this conflation"*. Re-deriving its
+classification under the rule it states yields **2 verdicts / 55 guards over 57 engine sites**, not 3,
+and the `62` includes **5 `#[cfg(test)]` rows** the leaf did not separate. The four nearest misses
+(`mandatory_reach_gate`'s `None => false`, `node_leads_with_rule_reference`,
+`rule_leads_with_rule_reference`, `rule_render_is_single_leading_token`) all return a classification
+from an absence branch, and all four answer *conservatively* — which is exactly what the leaf's own
+wording calls a guard. Adjudicating them individually is what made the `2` defensible; leaving them
+as "the remaining 59" is what let a `3` with two sub-rows stand unexamined.
+
+**5. ⭐ WHY THE CENSUS SHIPPED AS A SCRIPT AND NOT A DOCTRINE.** Acceptance (c) asked for
+*re-runnable*, and there is a standing reason not to go further: `DOCTRINE-GAP-OWNERSHIP.15`'s ruling
+that a blocker firing over a pre-existing corpus teaches bypass. So the check is a task artifact with
+a manifest keyed on `(scope, fn, normalized-source)` — never a line number, which drifts on any edit
+above the site — and both drift directions were observed RED before it was called working. The event
+it exists for is a NEW `verdict` row; the manifest's header names the classification rule so that row
+gets classified rather than pattern-matched.
+
+**6. ⛔ UNSOUGHT, AND CHECKED AGAINST THE OPEN LEAVES BEFORE IT WAS ROUTED.** Measuring
+`undefined_references` over all 17 grammars incidentally re-derived the LR-elimination census, and
+`TOOLBOX.md` 5.1's SV row has drifted: `4 (2 direct + 2 indirect)` against a published `5 (2 + 3)`.
+The first instinct — *"this is `.50`, the `@profiles`-tag-disables-elimination leaf"* — is wrong, and
+`.50`'s own bisection table is what says so: it records the *tracked baseline* at `4` on 2026-08-25,
+so the move predates `-0305`. `left_recursion_unhandled=0` and `property_expr` is still defined, so no
+capability was lost. ⇒ `.54`, routed with the ten-row census, the zero-consumer census behind
+*"nothing re-derives it"*, and an acceptance that refuses to default to *build an instrument*.
+
 ## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0090 — the fourth mechanism to short-circuit the same reach plan, and the first fix that stopped widening a proxy
 
 **1. ⭐⭐⭐ WHEN THE THIRD FIX FOR ONE SYMPTOM WIDENS A THIRD DIFFERENT PREDICATE, THE PREDICATES ARE

@@ -1,0 +1,86 @@
+# ENGINE-UNIVERSAL-SERVICES.53 (c) — the pinned ABSENCE-SITE manifest for
+# `rust/src/ast_pipeline/stimuli_generator.rs`. Re-derive and compare with:
+#   bash docs/tasks/artifacts/engine_universal_services/es53_absence_verdict_census/census_absence_sites.sh
+#
+# Columns: class <TAB> scope <TAB> fn <TAB> count <TAB> normalized-source
+# The key is (scope, fn, source) — never a line number, which drifts on any edit above the site.
+#
+# CLASSIFICATION RULE (stated so the number is checkable, not asserted). A name absent from
+# `grammar_tree` is absent for one of TWO reasons no site here can tell apart: the profile filter
+# removed it, or it was never defined in this grammar (an `include(...)` external, which
+# `node_satisfiable` treats as ⊤). The class turns on the DIRECTION the absence branch answers in:
+#
+#   verdict — it answers in the direction that RESTRICTS behaviour (dead / gated: prune a route,
+#             exclude an edge, block a target). Being wrong here COSTS COVERAGE, silently.
+#   guard   — it answers in the direction that declines to restrict: `continue`, an early
+#             `return`/`?` yielding no answer, a `.filter(..)`/`.retain(..)`, an error, or a `false`
+#             its consumer reads as "take the general path". Being wrong here costs nothing.
+#   fixture — inside `#[cfg(test)]`: test plumbing, not engine logic.
+#
+# ⛔ THE POPULATION IS NOT THE DEFECT COUNT. 62 sites, 2 verdicts. Publishing 62 would mistake a
+# population for a defect count; publishing only the 2 would leave the other 60 silently
+# unexamined. Both are census-claim errors, in opposite directions — hence a full manifest.
+#
+# ⛔ A NEW `verdict` ROW IS THE EVENT THIS FILE EXISTS FOR. Classify it before pinning it, and read
+# `mandatory_node_gated`'s own doc comment first: it records why the surviving conflation is latent
+# and what would make it live.
+guard	engine	apply_targets	1	if self.grammar_tree.contains_key(target.rule_name.as_str()) {
+guard	engine	best_dependency_probe_candidate	1	|| !self.grammar_tree.contains_key(rule_name.as_str())
+guard	engine	best_pending_probe_candidate	1	|| !self.grammar_tree.contains_key(status.rule_name.as_str())
+guard	engine	compute_k_paths	1	let Some(node) = self.grammar_tree.get(rule_name.as_str()) else {
+guard	engine	compute_k_paths	2	.filter(|r| self.grammar_tree.contains_key(r.as_str()))
+guard	engine	compute_min_full_derivation_depths	1	let Some(node) = self.grammar_tree.get(rule_name.as_str()) else {
+guard	engine	compute_min_terminal_lengths	1	let Some(node) = self.grammar_tree.get(rule_name.as_str()) else {
+guard	engine	compute_reachable_rules	1	if self.grammar_tree.contains_key(referenced_rule.as_str())
+guard	engine	compute_reachable_rules	1	let Some(rule_node) = self.grammar_tree.get(rule_name.as_str()) else {
+guard	engine	compute_rule_reach_target	1	if !self.grammar_tree.contains_key(site.referenced_rule.as_str()) {
+guard	engine	compute_rule_reach_target	1	if !self.grammar_tree.contains_key(target_rule) {
+guard	engine	compute_rule_reach_target	1	let Some(rule_node) = self.grammar_tree.get(rule_name.as_str()) else {
+guard	engine	compute_unrenderable_rules	1	let Some(body) = grammar_tree.get(rule) else {
+guard	engine	count_gate_in_mandatory_node	1	if token_type == "rule_reference" && self.grammar_tree.contains_key(token_value)
+guard	engine	count_gate_via_mandatory_descent	1	let node = self.grammar_tree.get(rule)?;
+guard	engine	emittable_kinds_within_closure	1	if self.grammar_tree.contains_key(site.referenced_rule.as_str())
+guard	engine	emittable_kinds_within_closure	1	let Some(rule_node) = self.grammar_tree.get(rule.as_str()) else {
+guard	engine	escape_walk	1	if !self.grammar_tree.contains_key(name) {
+guard	engine	escape_walk	1	if let Some(inner) = self.grammar_tree.get(name) {
+guard	engine	gate_in_mandatory_prefix_node	1	if token_type == "rule_reference" && self.grammar_tree.contains_key(token_value) {
+guard	engine	gate_in_mandatory_prefix_rule	1	let node = self.grammar_tree.get(rule)?;
+guard	engine	generate_rule	1	if rule_name == "epsilon" && !self.grammar_tree.contains_key("epsilon") {
+guard	engine	generate_rule	1	let rule_node = self.grammar_tree.get(rule_name).with_context(|| {
+guard	engine	generate_target_witnesses	1	if !self.grammar_tree.contains_key(status.rule_name.as_str()) {
+guard	engine	hop_escape_sites	1	let Some(node) = self.grammar_tree.get(hop_rule) else {
+guard	engine	lookahead_keyword_literal	1	let body = self.grammar_tree.get(token_value)?;
+guard	engine	mandatory_child_rules	1	let Some(root) = self.grammar_tree.get(rule) else {
+guard	engine	mandatory_leading_rule_reference	1	&& self.grammar_tree.contains_key(token_value))
+guard	engine	mandatory_leading_rule_reference	1	let mut node: &ASTNode = self.grammar_tree.get(rule)?;
+verdict	engine	mandatory_node_gated	1	if self.grammar_tree.contains_key(name) {
+guard	engine	mandatory_reach_gate	1	match self.grammar_tree.get(rule) {
+guard	engine	max_offpath_mandatory_sibling_depth_along_hops	1	let Some(rule_node) = self.grammar_tree.get(hop_rule.as_str()) else {
+guard	engine	missing_rule_references	1	.filter(|rule_name| !self.grammar_tree.contains_key(rule_name))
+guard	engine	name_gate_via_offpath_sibling	1	let rule_node = self.grammar_tree.get(hop_rule.as_str())?;
+guard	engine	new	1	if let Some(rule_node) = grammar_tree.get(rule_name) {
+verdict	engine	node_dead_given	1	!grammar_tree.contains_key(name) || dead.contains(name)
+guard	engine	node_leads_with_rule_reference	1	Some(("rule_reference", name)) if self.grammar_tree.contains_key(name)
+guard	engine	node_reserved_word_list	1	if !grammar_tree.contains_key(name) {
+guard	engine	or_alternatives_for_group_path	1	let rule_node = self.grammar_tree.get(rule_name)?;
+guard	engine	quantified_body_rule_name	1	&& self.grammar_tree.contains_key(token_value))
+guard	engine	quantified_body_rule_name	1	let rule_node = self.grammar_tree.get(rule)?;
+guard	engine	reach_hops_bfs	1	if !self.grammar_tree.contains_key(site.referenced_rule.as_str()) {
+guard	engine	reach_hops_bfs	1	let Some(rule_node) = self.grammar_tree.get(rule_name.as_str()) else {
+guard	engine	reach_path_renders_unsatisfiable_gate	1	let Some(rule_node) = self.grammar_tree.get(hop_rule.as_str()) else {
+guard	engine	reach_seed_rules	1	let Some(root) = self.grammar_tree.get(hop_rule.as_str()) else {
+guard	engine	reach_seed_rules	1	out.retain(|name| self.grammar_tree.contains_key(name.as_str()));
+guard	engine	resolve_entry_rule	1	if self.grammar_tree.contains_key(rule) {
+guard	engine	rule_can_reach	1	if let Some(node) = self.grammar_tree.get(&rule) {
+guard	engine	rule_leads_with_rule_reference	1	let Some(node) = self.grammar_tree.get(rule) else {
+guard	engine	rule_render_is_single_leading_token	1	let Some(node) = self.grammar_tree.get(rule) else {
+guard	engine	rule_reserved_word_list	1	let body = grammar_tree.get(rule_name)?;
+guard	engine	select_target_probe_rule_legacy	2	&& self.grammar_tree.contains_key(status.rule_name.as_str())
+guard	engine	target_own_reach_sites	1	let Some(root) = self.grammar_tree.get(rule) else {
+guard	engine	target_probe_threshold	1	&& self.grammar_tree.contains_key(rule_name.as_str())
+guard	engine	typed_branch_directives_along_subpath	1	let Some(node) = self.grammar_tree.get(rule.as_str()) else {
+fixture	test	coverage_guidance_multiplier_deemphasizes_low_yield_target_branch	1	let alternatives = match grammar_tree.get("start").expect("rule should exist") {
+fixture	test	coverage_guidance_multiplier_preserves_dependency_blocked_target_branch	1	let alternatives = match grammar_tree.get("start").expect("rule should exist") {
+fixture	test	line_greedy_content_forces_optional_newline_terminator	1	let directive_elems = match grammar_tree.get("directive").unwrap() {
+fixture	test	real_sv_preprocessor_in_process_closer_scope_observation	1	grammar_tree.contains_key(entry),
+fixture	test	structural_closer_unspellable_by_free_terminal_while_construct_open	1	match grammar_tree.get("wrap").unwrap() {

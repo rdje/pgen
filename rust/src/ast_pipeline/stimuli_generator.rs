@@ -10405,8 +10405,34 @@ impl<'a> StimuliGenerator<'a> {
     /// (gated iff EVERY alternative is gated — any non-gated alternative is a clean escape),
     /// Sequence-aware (gated iff ANY element is, since all sequence elements are mandatory), `?`/`*`
     /// non-propagating (a min-0 quantifier is skippable), lookahead-skipping (assertions render
-    /// nothing). A reference to a rule MISSING from the active (profile-pruned) tree is treated as
-    /// gated — it cannot be rendered, so it is no escape (mirrors `reach_hops_pass` skipping that edge).
+    /// nothing).
+    ///
+    /// ⛔ ENGINE-UNIVERSAL-SERVICES.53 — THE ABSENCE BRANCH IS AN OVER-APPROXIMATION, NOT A
+    /// DERIVATION, AND THIS COMMENT IS RE-DERIVED FROM THE CODE RATHER THAN ASSERTED ABOUT ANOTHER
+    /// FUNCTION. A reference to a rule missing from `grammar_tree` returns `true` (gated). A rule is
+    /// absent for one of two reasons this site cannot tell apart: the profile filter removed it
+    /// (`apply_grammar_profile_filter` prunes `rule_order` too), or it was never defined in this
+    /// grammar at all — an `include(...)` external reference, which `node_satisfiable` deliberately
+    /// treats as ⊤ "no false positives". Only the FIRST justifies *"it cannot be rendered, so it is
+    /// no escape"*; on the second the answer is simply wrong. This is `.51`'s conflation surviving
+    /// in the store-gate half, and it is LATENT rather than fixed for two measured reasons, neither
+    /// of which is *"nothing else calls this"* — **seven** functions reach this walk.
+    ///
+    /// 1. **No tracked grammar that ships can supply the wrong case.** `--lint-grammar` hard-errors
+    ///    on an undefined reference, and `undefined_references=0` measures 16 of the 17
+    ///    `grammars/*.ebnf`. The seventeenth, `systemverilog_lrm_profiled_wrapper`, carries 5 — and
+    ///    it is the LRM extraction harness, which has never generated a parser.
+    /// 2. **The one caller that can act on an over-exclusion recovers from it.**
+    ///    `edge_is_store_gated` is reached only from `reach_hops_bfs` under
+    ///    `exclude_store_gated_edges`, whose sole `true` caller is
+    ///    `set_reach_plan_for_rule_mode(.., store_free = true)` — and that PREFERS the store-free
+    ///    walk, then falls back to the all-edges one. An over-exclusion there costs a route
+    ///    PREFERENCE, never the last route.
+    ///
+    /// ⛔ Leg 2 is the protection, not politeness:
+    /// `an_undefined_reference_must_not_make_a_target_unreachable_through_the_store_free_pass` goes
+    /// RED the moment that fallback is removed. A NEW caller passing `exclude_store_gated_edges:
+    /// true` without one inherits the conflation silently — repair this branch before adding it.
     fn mandatory_node_gated(
         &self,
         node: &ASTNode,
@@ -18612,6 +18638,94 @@ mod tests {
             "an undefined reference must NOT make the target unreachable — the fallback walk finds it",
         );
         assert_eq!(hops, vec![("unit".to_string(), "root/s1".to_string())]);
+    }
+
+    // ENGINE-UNIVERSAL-SERVICES.53 (a) — the SAME conflation, in the store-gate half.
+    //
+    // `mandatory_node_gated` reads a rule-reference MISSING from `grammar_tree` as GATED. That is an
+    // OVER-approximation, not a derivation: absence has the two causes the sibling test above names,
+    // and only one of them ("the profile filter removed it") justifies the answer. The `.53` ruling
+    // is PIN, not refactor — the behaviour is right today and the protection is structural — so what
+    // is pinned here is the PROTECTION, on the one caller that can act on the answer.
+    fn e53_undefined_mandatory_reference_fixture(
+        define_the_external: bool,
+    ) -> (HashMap<String, ASTNode>, Vec<String>) {
+        // unit := "u" hop
+        // hop  := "h" external_include target      <- `external_include` is defined NOWHERE, so
+        //                                             `edge_is_store_gated("hop", …)` answers `true`
+        // target := "t"
+        let mut g = HashMap::new();
+        g.insert(
+            "unit".into(),
+            ASTNode::Sequence {
+                elements: vec![token("string", "u"), e51_rule_ref("hop")],
+            },
+        );
+        g.insert(
+            "hop".into(),
+            ASTNode::Sequence {
+                elements: vec![
+                    token("string", "h"),
+                    e51_rule_ref("external_include"),
+                    e51_rule_ref("target"),
+                ],
+            },
+        );
+        g.insert("target".into(), token("string", "t"));
+        let mut order: Vec<String> = vec!["unit".into(), "hop".into(), "target".into()];
+        if define_the_external {
+            g.insert("external_include".into(), token("string", "e"));
+            order.push("external_include".into());
+        }
+        (g, order)
+    }
+
+    #[test]
+    fn an_undefined_reference_must_not_make_a_target_unreachable_through_the_store_free_pass() {
+        let (g, order) = e53_undefined_mandatory_reference_fixture(false);
+        let mut generator = simple_generator(&g, &order, 0);
+
+        // PRECONDITION — the over-exclusion really fires, so this is a control and not a tautology.
+        // `hop` carries a MANDATORY reference to a rule defined nowhere, `mandatory_node_gated`
+        // calls that GATED, and pass 1 therefore refuses the ONLY edge into `hop`.
+        assert!(
+            generator.reach_hops_pass("unit", "target", true).is_none(),
+            "the fixture must reproduce the over-exclusion, or the fallback has nothing to recover"
+        );
+        // …and the all-edges walk does reach it, so a route exists to be recovered.
+        assert_eq!(
+            generator.reach_hops_pass("unit", "target", false),
+            Some(vec![
+                ("unit".to_string(), "root/s1".to_string()),
+                ("hop".to_string(), "root/s2".to_string()),
+            ]),
+            "the all-edges walk must find the route the store-free pass just refused"
+        );
+
+        // ⛔ THE PROTECTION, pinned: the store-free planner PREFERS the store-free walk and FALLS
+        // BACK to the all-edges one, so an over-exclusion costs a route PREFERENCE, never the last
+        // route. This assert goes RED the moment that `.or_else(…)` is dropped from
+        // `set_reach_plan_for_rule_mode` — which is exactly the future change `.53` exists to catch.
+        assert!(
+            generator.set_reach_plan_for_rule_mode("unit", "target", 16, true),
+            "the store-free planner must fall back to the all-edges walk rather than report the \
+             target unreachable"
+        );
+        generator.clear_reach_plan();
+
+        // AND THE MECHANISM IS THE ABSENCE ITSELF — define the missing rule, change nothing else,
+        // and pass 1 reaches the target on its own. Without this arm the preconditions above would
+        // hold for any fixture that merely fails to reach.
+        let (defined, defined_order) = e53_undefined_mandatory_reference_fixture(true);
+        let defined_generator = simple_generator(&defined, &defined_order, 0);
+        assert_eq!(
+            defined_generator.reach_hops_pass("unit", "target", true),
+            Some(vec![
+                ("unit".to_string(), "root/s1".to_string()),
+                ("hop".to_string(), "root/s2".to_string()),
+            ]),
+            "with the reference DEFINED the edge is not store-gated, so pass 1 needs no fallback"
+        );
     }
 
     #[test]
