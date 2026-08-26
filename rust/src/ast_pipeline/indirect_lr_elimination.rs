@@ -847,7 +847,51 @@ fn plan_elimination(
     let mut suffix_branches: Vec<SuffixBranch> = Vec::new();
     let mut underivable_routes = 0usize;
     for (index, route) in candidate.routes.iter().enumerate() {
-        let (profiles, profile_key) = match route_profile_gate(route, annotations)? {
+        let gate = route_profile_gate(route, annotations);
+        // ENGINE-UNIVERSAL-SERVICES.50 (a) — OBSERVABILITY ONLY, env-gated, so generation is
+        // byte-identical when the variable is absent (a presence-gated print, never a computation
+        // change). It exists because (a) says SIZE IT FIRST and DO NOT TOUCH THE PASS: the sizing
+        // question is how many routes carry CROSSING dialect gates today and how many are one edit
+        // away, and only the pass knows what a route is. The crate shadows `eprintln!` -> trace, so
+        // force stderr with `::std::eprintln!`.
+        if std::env::var_os("PGEN_INDIRECT_LR_GATE_DUMP").is_some() {
+            let declared = annotations
+                .map(|a| route_declared_profiles(route, a))
+                .unwrap_or_default();
+            let verdict = match &gate {
+                Ok(RouteGate::Unconstrained) => "unconstrained",
+                Ok(RouteGate::Gated { .. }) => "gated",
+                Ok(RouteGate::Underivable) => "underivable",
+                Err(_) => "REFUSED-CROSSING",
+            };
+            let distinct: BTreeSet<Vec<String>> = declared
+                .iter()
+                .map(|(_, profiles, _)| {
+                    let mut sorted = profiles.clone();
+                    sorted.sort();
+                    sorted
+                })
+                .collect();
+            let (intersection, donor) = match profile_intersection_has_donor(&declared) {
+                Some((set, has)) => (set.into_iter().collect::<Vec<_>>().join(","), has.to_string()),
+                None => ("-".to_string(), "n/a".to_string()),
+            };
+            ::std::eprintln!(
+                "[indirect-lr-gate] base='{}' route={} verdict={} hops={} declaring_hops={} \
+                 distinct_lists={} nested={} intersection={} donor={} lists={:?}",
+                base_rule,
+                index,
+                verdict,
+                route.steps.len(),
+                declared.len(),
+                distinct.len(),
+                profile_lists_nest(&declared),
+                intersection,
+                donor,
+                distinct.iter().collect::<Vec<_>>()
+            );
+        }
+        let (profiles, profile_key) = match gate? {
             RouteGate::Unconstrained => (None, None),
             RouteGate::Gated {
                 annotation,
@@ -1374,14 +1418,14 @@ fn compose_route_template(
 /// intersection, never synthesized: a constructed annotation would be a second spelling of a
 /// directive whose only authoritative spelling is the grammar's. When no rule's list equals the
 /// intersection the route is refused, which is rare by construction — dialect gates nest.
-fn route_profile_gate(
-    route: &ChainRoute,
-    annotations: Option<&Annotations>,
-) -> Result<RouteGate, String> {
-    let Some(annotations) = annotations else {
-        return Ok(RouteGate::Unconstrained);
-    };
-    // (rule, declared list, the annotation itself) for every hop that declares one.
+/// ENGINE-UNIVERSAL-SERVICES.50 (a): the `@profiles` lists declared along a route, in hop order.
+///
+/// Factored out of [`route_profile_gate`] so the SIZING dump and the gate decision read the SAME
+/// extraction — a census that re-models what it is censusing measures its own model.
+fn route_declared_profiles<'r>(
+    route: &'r ChainRoute,
+    annotations: &Annotations,
+) -> Vec<(&'r str, Vec<String>, SemanticAnnotation)> {
     let mut declared: Vec<(&str, Vec<String>, SemanticAnnotation)> = Vec::new();
     for step in &route.steps {
         for entry in annotations
@@ -1410,6 +1454,68 @@ fn route_profile_gate(
             }
         }
     }
+    declared
+}
+
+/// ENGINE-UNIVERSAL-SERVICES.50 (a): do these declared lists form a ⊆-CHAIN (they NEST)?
+///
+/// ⛔⛔ **NESTING IS SUFFICIENT FOR A VERBATIM DONOR, NOT NECESSARY — and the doc-comment on
+/// [`route_profile_gate`] justified its refusal with the claim that dialect gates nest, which the
+/// `.50`(a) census REFUTES on the shipped grammar.** When the lists nest, the intersection is the
+/// smallest of them and that list IS declared, so a copy exists. But crossing lists can still admit
+/// a donor: `["sv_2017"]`, `["sv_2017","sv_2023"]`, `["sv_2017","verilog_2005"]` cross pairwise and
+/// intersect to `["sv_2017"]`, which the first hop declares. Measured over every tracked grammar:
+/// **10 of 44** routes already cross, **6 of them on `systemverilog`**, with **0** refusals. The
+/// property that actually decides is [`profile_intersection_has_donor`]; this one is kept because
+/// the CONTRAST between the two is the finding. Distinct lists only — duplicates are trivially
+/// comparable.
+fn profile_lists_nest(declared: &[(&str, Vec<String>, SemanticAnnotation)]) -> bool {
+    let sets: Vec<BTreeSet<String>> = declared
+        .iter()
+        .map(|(_, profiles, _)| profiles.iter().cloned().collect())
+        .collect();
+    for (i, a) in sets.iter().enumerate() {
+        for b in sets.iter().skip(i + 1) {
+            if !a.is_subset(b) && !b.is_subset(a) {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+/// ENGINE-UNIVERSAL-SERVICES.50 (a): the property [`route_profile_gate`] ACTUALLY decides on — is
+/// the intersection of the declared lists itself one of those lists, so the gate can be copied
+/// VERBATIM from a rule rather than synthesized? `None` when nothing is declared (unconstrained) or
+/// the intersection is empty (underivable); those are separate verdicts, not refusals.
+fn profile_intersection_has_donor(
+    declared: &[(&str, Vec<String>, SemanticAnnotation)],
+) -> Option<(BTreeSet<String>, bool)> {
+    if declared.is_empty() {
+        return None;
+    }
+    let mut intersection: BTreeSet<String> = declared[0].1.iter().cloned().collect();
+    for (_, profiles, _) in declared.iter().skip(1) {
+        let other: BTreeSet<String> = profiles.iter().cloned().collect();
+        intersection = intersection.intersection(&other).cloned().collect();
+    }
+    if intersection.is_empty() {
+        return None;
+    }
+    let donor = declared
+        .iter()
+        .any(|(_, profiles, _)| profiles.iter().cloned().collect::<BTreeSet<String>>() == intersection);
+    Some((intersection, donor))
+}
+
+fn route_profile_gate(
+    route: &ChainRoute,
+    annotations: Option<&Annotations>,
+) -> Result<RouteGate, String> {
+    let Some(annotations) = annotations else {
+        return Ok(RouteGate::Unconstrained);
+    };
+    let declared = route_declared_profiles(route, annotations);
     if declared.is_empty() {
         return Ok(RouteGate::Unconstrained);
     }

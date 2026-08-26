@@ -1,5 +1,50 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0093 — the leaf told me the invariant that protects the pass, and the census it asked for showed the invariant does not hold and is not the one doing the protecting
+
+**1. ⭐⭐⭐ A SIZING TASK IS ALSO A TEST OF THE PREMISE THAT MADE IT WORTH SIZING.** `.50` was opened
+on the reading that `.13e.10`(c4) is *"the FIRST edit that makes two dialect gates CROSS rather than
+nest"*, quoting the pass's own doc-comment: *"rare by construction — dialect gates nest."* The census
+says **10 of 44** routes already cross, **6 on the shipped SystemVerilog grammar**, with **zero**
+refusals. Both halves of the premise were wrong at once: crossing is not new, and crossing is not
+what causes the refusal. ⇒ **when a leaf hands you a mechanism AND a reason it is rare, census the
+reason too.**
+
+**2. ⭐⭐ SUFFICIENT IS NOT NECESSARY, AND THE CODE KNEW BETTER THAN ITS COMMENT.** Nesting
+guarantees the intersection equals the smallest declared list, so a verbatim donor exists — that
+much is true. But `find(|list| list == intersection)` is satisfied whenever the intersection
+coincides with ANY declared list, which crossing does not prevent: `["sv_2017"]`,
+`["sv_2017","sv_2023"]`, `["sv_2017","verilog_2005"]` cross pairwise and intersect to a list one hop
+declares. **The doc-comment stated a sufficient condition as if it were the mechanism**, and that is
+what made the defect look rare. Censusing `nested` alone would have reproduced the same mistake in
+an instrument, so the dump reports BOTH and the contrast is the deliverable.
+
+**3. ⭐⭐ "IS THIS A NARROW REPAIR OR A DESIGN CHANGE" IS ANSWERED BY WHETHER THE PROTECTION IS
+STRUCTURAL.** Zero refusals today reads like a narrow repair. But nothing keeps a donor available —
+not the grammar language, not the annotation registry, not the pass — so every one of the 33 gated
+routes is one annotation away. Measured rather than argued: the single `@profiles` tag the lint
+ITSELF derives for `constant_cast` moves refusals 0 → 4 and elimination 4 → 3. ⇒ **count the
+population that could break, not the population that has.**
+
+**4. ⛔ THE MINIMAL REPRODUCER WAS SMALLER THAN THE LEAF'S OWN TABLE SAID.** That table labels the
+breaking row *"+ 17 and `constant_cast` alone"*, which reads as eighteen edits. One annotation on the
+otherwise-tracked grammar reproduces it exactly — 1513 rules, unhandled 15, eliminated 3. A bisection
+that varies two things and attributes to the pair understates how easy the defect is to hit, and
+hands the control in (c) far more fixture than it needs.
+
+**5. ⭐ A REJECTED ALTERNATIVE CAN BE REJECTED ON SOUNDNESS RATHER THAN ON TASTE, AND THAT IS WORTH
+THE PARAGRAPH.** Option (ii) — copy from any rule whose list is a SUPERSET — sounds like the
+conservative choice next to synthesizing an annotation. On the actual refusing route BOTH declared
+lists are supersets of the intersection and neither is correct: copying one admits a `verilog_2005`
+parse onto a route only `sv_2017` derives. The option's own "refuse when ambiguous" clause then
+fires. ⇒ **check a candidate design against the concrete instance it was proposed for before ranking
+it against its rival** — on this shape it is not a weaker fix, it is not a fix.
+
+**6. ⭐ AN OBSERVABILITY-ONLY CHANGE IS THE RIGHT SHAPE WHEN THE TASK SAYS "SIZE IT, DO NOT TOUCH THE
+PASS".** Env-gated print, two helpers factored so census and decision share one extraction, nothing
+on the generation path reading the variable — 11/11 artifacts byte-identical, so the sizing cost the
+shipped parsers nothing and the repair stays a separate, deliberate slice.
+
 ## 2026-08-26 - PGEN-SV-CORPUS-GRAD-0309 — I ran my new gate over the whole population instead of the two grammars I already knew about, and it refuted the gate
 
 **1. ⭐⭐⭐ THE CLOSED POPULATION IS NOT A COMPLETENESS RITUAL — IT IS THE TEST THAT FINDS THE

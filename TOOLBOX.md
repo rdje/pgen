@@ -1149,6 +1149,28 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --lint-grammar \
     --indirect-lr-admit-starvation-safe-only
   ```
+- ⭐⭐ **`PGEN_INDIRECT_LR_GATE_DUMP=1` — the per-route `@profiles` verdict the pass computes and
+  never printed** (`ENGINE-UNIVERSAL-SERVICES.50`(a)). Presence-gated `eprintln!` in the elimination
+  pass, so generation is byte-identical when it is unset. One line per route:
+  ```bash
+  PGEN_INDIRECT_LR_GATE_DUMP=1 ./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --lint-grammar 2>&1 \
+    | grep '^\[indirect-lr-gate\]'
+  #  [indirect-lr-gate] base='casting_type' route=0 verdict=gated hops=12 declaring_hops=3 \
+  #                     distinct_lists=3 nested=false intersection=sv_2017 donor=true lists=[…]
+  ```
+  Verdicts: `unconstrained` (no `@profiles` on the route) · `gated` (a rule on the route declares
+  EXACTLY the intersection, so the gate is copied verbatim) · `underivable` (empty intersection —
+  sheared, contributes no suffix branch) · ⛔ `REFUSED-CROSSING` (the intersection is not itself a
+  declared list, so the whole elimination candidate is abandoned).
+- ⛔⛔ **READ `donor=`, NOT `nested=` — and the difference is a measured refutation.** The pass's own
+  doc-comment justified its refusal with *"rare by construction — dialect gates nest"*. Censused over
+  all 18 tracked grammars, **44 routes: 10 already CROSS** (6 on `systemverilog`) with **0**
+  refusals, because a crossing route can still carry a donor: `["sv_2017"]`,
+  `["sv_2017","sv_2023"]`, `["sv_2017","verilog_2005"]` cross pairwise and intersect to
+  `["sv_2017"]`, which one hop declares. ⇒ nesting is SUFFICIENT for a verbatim donor, never
+  necessary, and the protection is coincidental: adding the ONE `@profiles` tag the lint itself
+  derives for `constant_cast` moves refusals **0 → 4**, elimination **4 → 3** and
+  `left_recursion_unhandled` **0 → 15**, from a single annotation.
 - ⭐ **`--no-eliminate-indirect-left-recursion` is the A/B switch, and it is a MEASUREMENT switch, not a policy one.** A shipped parser is always generated with the pass on. It exists because every left-recursion counter this repository quotes (`--lint-grammar`'s headline, this survey's census) loses its "before" the moment the pass lands, and a before→after taken from two different binaries is not a measurement.
 - ⭐⭐ **`--indirect-lr-admit-starvation-safe-only` IS THE SECOND A/B LEVER, AND THE TWO ARE NOT THE SAME QUESTION** (`.17` slice 9). The first asks *"what if the indirect pass never ran?"*; this one asks *"what if it ran with the pre-flip ADMISSION?"* — the criterion every generated parser shipped under up to `PGEN-ENGINE-UNIVERSAL-SERVICES-0030`. Measured on one binary: `systemverilog` `left_recursion_unhandled` **28 under the lever → 0 shipped**, every other family 0 under both. ⛔ **It NARROWS, and a parser built with it REJECTS LRM-legal SystemVerilog** (`8'(1)` in a constant expression). It prints a loud banner at default verbosity for that reason; it is a measurement arm, never a way to build a deliverable, and no `make` target passes it. ⭐ It is also what keeps the `guard_feasibility` and `guard_dry_run` banks measuring their own subject: a census OF THE UNABSORBED KNOTS is empty once the knots are absorbed, and reading that emptiness as "option (iii) is free" would be exactly backwards.
 - **OUTPUT:** `=== INDIRECT-LR-SURVEY: '<grammar>' ===`, then per candidate `routes=/seeds=/clone_cost=/verdict=MAY-ABSORB|STARVED`, each route as `path -> base   suffix: …`, and each starvation site. `PGEN_INDIRECT_LR_DUMP_ALL=1` lifts the per-candidate print caps (3 routes / 5 sites / 5 declines).
