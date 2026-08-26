@@ -1043,7 +1043,7 @@ All three owed items are discharged: **(a)** the enforcer, **(b)** the adjudicat
 git grep -icE '(^|[^[:alnum:]])nothing([^[:alnum:]]|$)' -- 'docs/tasks/*.md' | awk -F: '{s+=$2}END{print s}'
   -> 1492      # the house idiom — why the predicate keys on the VERB, not the word
 scripts/check_gap_claims.sh --all
-  -> 205 claim line(s) across 29 file(s), 74 with no census in their own section
+  -> 242 claim line(s) across 29 file(s), 81 with no census in their own section
 ```
 
 Discharge = an enumerating command in the claim's **own heading section**, or an explicit `census: not run (<why>)`. Section boundaries are **any ATX heading**, deliberately: `.8` measured that THREE leaf-heading conventions are in live use, so a predicate keyed on a leaf-id grammar would silently mis-scope, while *"nearest heading above"* needs no such grammar. ⛔ The bare word *census* is NOT a discharge — it occurs inside the claims themselves (*"nothing re-runs this census"*), so accepting it would let a claim discharge itself.
@@ -1052,23 +1052,29 @@ Discharge = an enumerating command in the claim's **own heading section**, or an
 
 ```text
 docs/tasks/artifacts/doctrine_gap_ownership/gap_claim_census_replay.sh 150
-  claim lines ADDED to docs/tasks : 79, in 49 of 150 commits
-  WOULD HAVE BLOCKED              : 13 line(s), in 11 of 150 commits (7.3%)
+  claim lines ADDED to docs/tasks : 95, in 50 of 150 commits
+  WOULD HAVE BLOCKED              : 16 line(s), in 14 of 150 commits (9.3%)
 docs/tasks/artifacts/doctrine_gap_ownership/gap_claim_census_replay.sh 150 --narrow-discharge
-  WOULD HAVE BLOCKED              : 25 line(s), in 21 of 150 commits (14.0%)   # the CONTROL
+  WOULD HAVE BLOCKED              : 30 line(s), in 22 of 150 commits (14.7%)   # the CONTROL
 ```
 
-⭐ **The founding incident REPRODUCES.** `-0290`'s real sentence — *"**no instrument in the tree crosses the two**"*, `493f5ea6`, `docs/tasks/SV-CORPUS-GRAD.md` — is in the fired set, and `--self-test` **arm 3** pins it there verbatim so a future narrowing cannot quietly drop it. ⛔ The retraction's paraphrase of occurrence 1 (*"faithfulness is checked by NOTHING"*) is NOT what `-0288` wrote; the literal sentence was *"built to wellformedness COHERENCE, not to LRM FAITHFULNESS, and only the first is gated"*, which carries no `nothing`-token at all and this predicate does **not** catch. Named rather than implied: **occurrence 1 is a MISS**, and it is the honest bound on the phrasing axis.
+⭐ **BOTH founding incidents REPRODUCE, and getting there required RETRACTING a claim I made in the first draft of this leaf.** `-0290`'s real sentence — *"**no instrument in the tree crosses the two**"*, `493f5ea6` — is in the fired set, pinned verbatim by `--self-test` **arm 3**.
+
+⛔⛔ **RETRACTION, within this leaf, of *"occurrence 1 carries no `nothing`-token at all"*.** I wrote that after reading `-0288`'s **task-tree** lines and its MEMORY.md **headline**, and stopped. `git show 3aba01ec:MEMORY.md` carries the literal sentence *"**faithfulness — every reachable rule DERIVABLE from IEEE 1364-2005 — is checked by nothing**"*. The retraction's paraphrase was FAITHFUL; my correction of it was the error. ⇒ **I made this doctrine's own defect while documenting this doctrine** — a universal claim (*"no token at all"*) published on a partial census of the sites. ⭐ **And it was worth catching, because the sentence was a real GAP IN THE PREDICATE, not a phrasing curiosity**: the doctrine is named after [[an-x-is-checked-by-nothing-claim-is-a-census-claim]] and its first cut could not match that card's own title. The passive voice is now a first-class alternative — measured **22** `by nothing` occurrences in `docs/tasks/`, of which the participle form catches 16 real claims and correctly skips the **2** `and by nothing else` idioms (`and` does not end in `ed`) — and **arm 3b** pins `-0288`'s sentence verbatim while **arm 3c** pins the idiom as a non-claim.
+
+⚠️ **Occurrence 1 is STILL only half-caught, and the remaining half is structural, not lexical**: the sentence lives in `MEMORY.md`, which is out of the governed population for the byte-cap reason below. The predicate would catch it in a leaf; the population does not include the file it was written to.
 
 **(b) THE 13 ADJUDICATED ONE BY ONE — the real false-positive rate, which the `70 %` was never a measure of.** Rows captured in `gap_claim_census_replay_blocked.txt`:
 
 | verdict | n | what they are |
 |---|---|---|
-| **TRUE POSITIVE** | **11** | a genuine universal-absence claim with no census in its own section — six of them *"leg 3 NAMED, not met"* durability disclosures (`nothing WATCHES the self-rejection matrix`, `nothing re-runs this census`), three new-leaf headings, two mid-leaf assertions |
+| **TRUE POSITIVE** | **12** | a genuine universal-absence claim with no census in its own section — six of them *"leg 3 NAMED, not met"* durability disclosures (`nothing WATCHES the self-rejection matrix`, `nothing re-runs this census`), four new-leaf headings, two mid-leaf assertions |
 | FALSE POSITIVE — **quotation** | 1 | `c8b11f3a` quotes an EARLIER claim (*"nothing routes to them, nothing consumes them"*) rather than making one |
-| FALSE POSITIVE — **cross-referenced census** | 1 | `ab9cee04` cites `.7`'s already-published **224 / 29** result instead of re-running it in place |
+| FALSE POSITIVE — **states its own count, not the command** | 3 | `ab9cee04` cites `.7`'s published **224 / 29**; two `.13c.2x.8` revisions cite **59** and **63** published tuples |
 
-⇒ **~85 % true-positive**, the inverse of the 91 %-FP shape `GENERATED-LINT-CORRECTNESS.6`/`.12` refused. ⚠️ **The 74-of-205 is NOT a false-positive rate and must not be quoted as one** — it is the rate at which EXISTING claims lack an in-section census; whether each is *wrong* is unmeasured, and the two audited so far were both wrong.
+⇒ **75 % true-positive** on the strict reading, the inverse of the 91 %-FP shape `GENERATED-LINT-CORRECTNESS.6`/`.12` refused. ⚠️ **Those 3 are scored as false positives CONSERVATIVELY.** Under this doctrine's own standard a number you cannot RE-RUN is not a census — the whole point is re-derivability — so the honest range is **12 to 15 of 16**, and I report the low end. ⚠️ **The 81-of-242 is NOT a false-positive rate and must not be quoted as one** — it is the rate at which EXISTING claims lack an in-section census; whether each is *wrong* is unmeasured, and the two audited so far were both wrong.
+
+⭐ **ONE MEASURED FALSE POSITIVE WAS FIXED RATHER THAN ACCEPTED**: the widening's first replay reported *"which `grep -nw` shows is referenced by nothing"* — a claim whose census sits **in the same sentence** — because the discharge list carried `grep -r/-c/-l/-o` but not `grep -n`, by far the commonest spelling here. Added, and the block count fell 17 → 16. ⚠️ A **bare** `grep` is still not a discharge: `check_diagnosis_evidence.sh` measured that it matches 16 boxes on prose such as *"verified by grep"*. The FLAG is what makes it an invocation.
 
 ⚠️ **QUOTATION IS AN ACCEPTED, PRICED RESIDUAL — 1 in 13, measured rather than guessed.** It is the self-referential shape this repository already priced at one site and deliberately did not mechanize around ([[reference_self_referential_assertion_is_unsound]]); narrowing the predicate around quotation marks re-introduces exactly the phrasing-guessing that made `ROUTING-EVIDENCE`'s first cut miss `-0015`. The discharge is one pasted command.
 
@@ -1096,8 +1102,8 @@ Governing them would double-fire on one underlying claim in the large majority o
   (*"no instrument in the tree crosses the two"*) rather than the retraction's paraphrase — which is
   what the predicate was then calibrated against. `bash -n scripts/check_gap_claims.sh` clears.
 - [x] **ADDRESSED (verified)** — the enforcer exists, refuses, and its refusals were OBSERVED firing:
-  `scripts/check_gap_claims.sh --self-test` -> **arms=8/8** in **0.41 s**, and the arm set is chosen so
-  no arm can pass vacuously.
+  `scripts/check_gap_claims.sh --self-test` -> **arms=10/10**, and the arm set is chosen so no arm can
+  pass vacuously.
 
   | arm | proves |
   |---|---|
@@ -1108,6 +1114,8 @@ Governing them would double-fire on one underlying claim in the large majority o
   | 5 idiom | `nothing else` / `nothing shipped` / `nothing technical` do NOT fire |
   | 6 disclosure | `census: not run (<why>)` discharges — an honest *not run* is legal |
   | 7 section scope | a census in a DIFFERENT section does NOT discharge |
+  | 3b passive voice | `-0288`'s *"is checked by nothing"* — the sentence this doctrine is NAMED after — fires; the first cut did NOT catch it |
+  | 3c the idiom | *"and by nothing else"* does NOT fire, so the passive widening costs no false positives |
   | 8 hunk arithmetic | added lines resolve to NEW-file positions (`2 3 11`), the one step with no natural oracle |
 
   ⛔ **Arms 1-7 call the classifier DIRECTLY, so they bypass the git plumbing the real check runs on**
@@ -1142,9 +1150,30 @@ Governing them would double-fire on one underlying claim in the large majority o
 
 ##### What this leaf does NOT close, stated rather than implied
 
-- **Occurrence 1 is a MISS.** `-0288`'s literal sentence carries no `nothing`-token, and it landed in
-  `MEMORY.md`, which is out of the governed population for the structural reason above. The predicate
-  catches the FORM the class usually takes, not every possible spelling of an absence claim.
+- **Occurrence 1 is HALF caught, and the remaining half is STRUCTURAL.** Its literal sentence — *"is
+  checked by nothing"* — now fires (arm 3b), but it was written to `MEMORY.md`, which is out of the
+  governed population for the byte-cap reason above. The predicate would catch it in a leaf; the
+  population does not include the file it was written to. ⚠️ And the predicate still catches the FORM
+  the class usually takes, not every possible spelling of an absence claim.
+
+  ⭐⭐ **THIS VERY BULLET WAS BLOCKED BY THE DOCTRINE IT DOCUMENTS, ON ITS OWN COMMIT** — the quotation
+  false-positive class, priced at 1 in 16 above, firing on the leaf that priced it. It is discharged
+  the way the tool tells an author to discharge it, with the census that actually backs the sentence:
+
+  ```text
+  git show 3aba01ec:MEMORY.md | grep -c 'is checked by nothing'                -> 1
+  git grep -l 'is checked by nothing' 3aba01ec -- 'docs/tasks/*.md' | wc -l    -> 0
+  git grep -l 'is checked by nothing' -- 'docs/tasks/*.md'                     -> 2 (both QUOTING it, today)
+  ```
+
+  ⇒ at the founding commit the sentence was in layer A and in **no** task leaf, which is exactly the
+  structural half named above; the only task-leaf copies today are this leaf and `SV-CORPUS-GRAD`
+  quoting it in retrospect. ⛔ **The first draft of this very census block wrote `-> 0 files` for the
+  third line and the command returns `2`** — I typed the number I expected beside a command I had not
+  re-run, which is `DERIVED_STATE_CONTAINMENT` R1/R3 in its smallest possible form, inside the census
+  that exists to stop it. Caught by running it.
+  ⛔ Recorded rather than worked around: the alternative was to weaken the predicate so that quoting a
+  claim stops firing, and that is the phrasing-guessing `ROUTING-EVIDENCE`'s first cut died of.
 - **Evidence archetype, with the bound every evidence check carries**: this verifies the census was
   RECORDED, never that it was RUN, that its population was the right one, or that its conclusion was
   correct. It would have caught `-0290`, because `-0290` recorded no census at all; it cannot tell a

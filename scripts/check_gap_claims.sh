@@ -23,8 +23,8 @@
 #
 # ⛔⛔ STAGED-DIFF-SCOPED, NEVER OVER THE EXISTING CORPUS — and the reason is measured.
 #   Re-derived 2026-08-26 over the closed tracked population (321 tracked files under
-#   `docs/tasks/`), by this script's own `--all`: **205** claim lines across 29 files, of which **74**
-#   carry no census in their own heading section. A blocker firing on 74 pre-existing claims is
+#   `docs/tasks/`), by this script's own `--all`: **242** claim lines across 29 files, of which **81**
+#   carry no census in their own heading section. A blocker firing on 81 pre-existing claims is
 #   unusable and teaches bypass — the 91 %-false-positive shape
 #   `GENERATED-LINT-CORRECTNESS.6`/`.12` refused. Scoped to what a commit ADDS, it fires on nothing
 #   that is already in the tree. This is the condition `SV-CORPUS-GRAD.13e.11` established for a safe
@@ -35,17 +35,20 @@
 #   would not have caught its own founding incident because it was calibrated against a phrasing
 #   nobody had written. Replayed here over the last 150 commits, judging each commit's ADDED lines
 #   against ITS OWN version of the file:
-#     claim lines added : 79, in 49 of 150 commits
-#     WOULD HAVE BLOCKED: 13 lines, in 11 of 150 commits (7.3 %)
-#   Those 13 were adjudicated ONE BY ONE (the `.15`(b) deliverable): 11 genuine unbacked census
-#   claims, 1 QUOTATION of an earlier claim, 1 whose census lives in a cross-referenced leaf.
-#   ⇒ ~85 % true-positive, the inverse of the shape this repository refuses. `-0290`'s real sentence
-#   ("no instrument in the tree crosses the two") IS in the fired set — the founding incident
-#   reproduces.
+#     claim lines added : 95, in 50 of 150 commits
+#     WOULD HAVE BLOCKED: 16 lines, in 14 of 150 commits (9.3 %)
+#   Those 16 were adjudicated ONE BY ONE (the `.15`(b) deliverable): **12** genuine unbacked census
+#   claims, 1 QUOTATION of an earlier claim, and 3 that state their own COUNT (59 / 63 / 224) without
+#   the command that produced it. ⇒ **75 % true-positive** on the strict reading. ⚠️ Those 3 are
+#   scored as false positives CONSERVATIVELY; under this doctrine's own standard a number you cannot
+#   re-run is not a census, so the honest range is 12-15 of 16. Either way it is the inverse of the
+#   91 %-FP shape this repository refuses. ⭐ BOTH founding sentences are in the fired set —
+#   `-0290`'s "no instrument in the tree crosses the two" and `-0288`'s passive "is checked by
+#   nothing" — and `--self-test` arms 3 and 3b pin them there verbatim.
 #
-# ⚠️ THE 74-OF-205 IS NOT A FALSE-POSITIVE RATE AND MUST NOT BE QUOTED AS ONE. It is the rate at
+# ⚠️ THE 81-OF-242 IS NOT A FALSE-POSITIVE RATE AND MUST NOT BE QUOTED AS ONE. It is the rate at
 #   which EXISTING claims lack an in-section census; whether each is WRONG is unmeasured — two
-#   audited so far were wrong. The measured false-positive rate is the 2-of-13 above.
+#   audited so far were wrong. The measured false-positive rate is the 4-of-16 above.
 #
 # ⛔ THE GOVERNED POPULATION IS `docs/tasks/*.md` ONLY, and that is a MEASURED ruling, not taste.
 #   Over the same 150 commits: `CHANGES.md` added 20 claim lines of which **18 (90 %)** co-occur with
@@ -87,17 +90,36 @@ ok()   { printf '%s: %s\n' "$HEADLINE" "$1"; }
 # ⛔ Keyed on `nothing` + a TRANSITIVE VERB, never on the bare word: `nothing` is a house idiom
 # occurring on 1 492 lines of `docs/tasks/`, and `nothing else` / `nothing shipped` / `nothing
 # technical` are not claims about the tree. The verb is what makes the sentence quantify over it.
-CLAIM_RE='nothing (checks|checked|reads|compares|measures|measured|watches|enforces|gates|verifies|validates|asserts|consumes|notices|invokes|runs|ran|re-runs|re-derives|derives|looks|tracks|tracked|reports|counts|sees|knows)|nothing (in|inside) the (repo|repository|tree|codebase|doctrine|gate|registry)|no instrument'
+#
+# ⭐⭐ AND THE PASSIVE VOICE IS THE SAME CLAIM WITH THE SUBJECT MOVED, WHICH THE FIRST CUT MISSED — on
+# its own founding sentence. `-0288` literally wrote *"faithfulness — every reachable rule DERIVABLE
+# from IEEE 1364-2005 — is checked by nothing"*, and the knowledge card this doctrine is named after
+# is [[an-x-is-checked-by-nothing-claim-is-a-census-claim]]. An active-only predicate reads that as
+# clean. Measured over `docs/tasks/`: **22** occurrences of `by nothing`, of which the participle form
+# catches 16 real claims (`is checked by nothing` x5, `referenced by nothing` x3, plus `reached`,
+# `invoked`, `computed`, `eliminated`, `held`, `read`, `bounded`, `protected`, `consulted`) and
+# correctly skips the **2** `and by nothing else` idioms. ⛔ The participle is what does the skipping:
+# `and` does not end in `ed`, so `[a-z]+ed by nothing` cannot match `and by nothing else`. The
+# irregulars that do not end in `ed` (`held`, `read`, `kept`, `built`, `met`) are listed explicitly,
+# because a rule that silently drops them fails in the PASSING direction.
+CLAIM_RE='nothing (checks|checked|reads|compares|measures|measured|watches|enforces|gates|verifies|validates|asserts|consumes|notices|invokes|runs|ran|re-runs|re-derives|derives|looks|tracks|tracked|reports|counts|sees|knows)|nothing (in|inside) the (repo|repository|tree|codebase|doctrine|gate|registry)|[a-z]+ed by nothing|held by nothing|read by nothing|kept by nothing|built by nothing|met by nothing|no instrument'
 
 # ── the discharge ───────────────────────────────────────────────────────────────────────────────
 # A COMMAND-SHAPED token in the claim's own heading section — the thing that ENUMERATES a population
 # — or an explicit `census:` disclosure. ⛔ The bare word "census" is deliberately NOT a discharge:
 # it appears inside the claims themselves ("nothing re-runs this census"), so accepting it would let
 # a claim discharge itself. Measured: widening the discharge from a bare `grep`/`git` list to this
-# one moved the block count from 25 to 13 over the same 150 commits (21 commits -> 11), and every
-# one of the 12 removed was a census the author HAD recorded in a spelling the narrow list could not
-# see. That control is re-runnable: same claim predicate, discharge list cut back to bare grep/git.
-CENSUS_RE='git grep|grep -r|grep -c|grep -l|grep -o|git ls-files|git log -s|git log --grep|git log --oneline|rg -|--dump-|--report-|--lint-grammar|--self-test|scripts/check_|make -c rust|comm -|wc -l|sort -u|uniq -c|sed -n|git show|git diff|cargo |ast_pipeline|a search of|searched (the|all|every)|census:'
+# one moved the block count from 30 to 16 over the same 150 commits (22 commits -> 14), and every one
+# of the 14 removed was a census the author HAD recorded in a spelling the narrow list could not see.
+# That control is re-runnable: same claim predicate, discharge list cut back to bare grep/git
+# (`--narrow-discharge`).
+# ⛔ `grep -n` AND `grep -w` ARE IN THE LIST BECAUSE THEY ARE THE COMMONEST CENSUS SPELLING HERE, and
+# leaving them out cost a measured false positive on the widening's very first replay: *"which
+# `grep -nw` shows is referenced by nothing"* — a claim whose census sits IN THE SAME SENTENCE — was
+# reported. ⚠️ A BARE `grep` is still not a discharge, deliberately: `check_diagnosis_evidence.sh`
+# measured that it matches 16 boxes on prose such as *"verified by grep"*, which is a claim, not tool
+# output. The FLAG is what makes it an invocation.
+CENSUS_RE='git grep|grep -r|grep -c|grep -l|grep -o|grep -n|grep -w|git ls-files|git log -s|git log --grep|git log --oneline|rg -|--dump-|--report-|--lint-grammar|--self-test|scripts/check_|make -c rust|comm -|wc -l|sort -u|uniq -c|sed -n|git show|git diff|cargo |ast_pipeline|a search of|searched (the|all|every)|census:'
 
 # Classify one file. Reads: a newline-separated list of ADDED line numbers, then the file content.
 # Emits one `BLOCKED<TAB>lineno<TAB>text` row per undischarged added claim.
@@ -209,8 +231,37 @@ EOF
     note "arm 3 FAILED — the sentence this doctrine exists for must fire"
   fi
 
+  # ARM 3b — OCCURRENCE 1, VERBATIM, IN THE PASSIVE VOICE. The first cut of this predicate did not
+  # catch the sentence the doctrine is NAMED after, because it matched only `nothing <verb>`. This arm
+  # is the standing guard against an active-only narrowing.
+  arms=$((arms + 1))
+  cat > "$work/passive.md" <<'EOF'
+### `.13e.7` — the v2005 profile
+- coherence is checked at 0 on every commit; **faithfulness — every reachable rule DERIVABLE from
+  IEEE 1364-2005 — is checked by nothing**, which is why nine over-acceptances sat behind one profile.
+EOF
+  printf '2\n3\n' > "$work/passive.nums"
+  if classify "$work/passive.nums" "$work/passive.md" | grep -q '^BLOCKED'; then
+    passed=$((passed + 1)); ok "arm 3b — occurrence 1's PASSIVE sentence (-0288, verbatim) is caught"
+  else
+    note "arm 3b FAILED — 'is checked by nothing' is the sentence this doctrine is named after"
+  fi
+
+  # ARM 3c — and the idiom the participle rule must NOT catch, or the widening costs false positives.
+  arms=$((arms + 1))
+  cat > "$work/bynothingelse.md" <<'EOF'
+### `.9` — an ordinary leaf
+- the re-derivation differed by the `-o` path spelling **and by nothing else at all**.
+EOF
+  printf '2\n' > "$work/bynothingelse.nums"
+  if [ -z "$(classify "$work/bynothingelse.nums" "$work/bynothingelse.md")" ]; then
+    passed=$((passed + 1)); ok "arm 3c — 'and by nothing else' is the idiom, not a claim, and does NOT fire"
+  else
+    note "arm 3c FAILED — the participle rule must skip 'and by nothing else'"
+  fi
+
   # ARM 4 — a claim already IN the tree, not added by this change, is INERT. This is the whole
-  # staged-diff scoping ruling: 74 pre-existing unbacked claims must not block anything.
+  # staged-diff scoping ruling: 81 pre-existing unbacked claims must not block anything.
   arms=$((arms + 1))
   if [ -z "$(printf '' > "$work/none.nums"; classify "$work/none.nums" "$work/red.md")" ]; then
     passed=$((passed + 1)); ok "arm 4 — a pre-existing claim (not in the added set) is INERT"
@@ -283,7 +334,7 @@ EOF
 fi
 
 # ── --all: the advisory corpus census (never blocks) ────────────────────────────────────────────
-# ⛔ ADVISORY BY CONSTRUCTION, and that is the ruling, not a shortcut: blocking on the 74 claims
+# ⛔ ADVISORY BY CONSTRUCTION, and that is the ruling, not a shortcut: blocking on the 81 claims
 # already in the tree teaches bypass. This mode exists so the backlog is VISIBLE and countable
 # rather than implied — the number that told this doctrine it was warranted.
 if [ "$mode" = "--all" ]; then
