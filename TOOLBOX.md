@@ -1607,6 +1607,21 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   guessed index** — left-recursion elimination rewrites a top-level `Or`. It counts as `unjoinable`
   only when it actually carries a `@sample`, so a re-indexed rule with nothing to check is not
   reported as a problem. Measured on SV: 2 such rules, neither carrying one.
+- ⭐⭐ **IT IS THE 28th REGISTERED DOCTRINE** — `SAMPLE-PROFILE-PARITY`,
+  `scripts/check_sample_profile_parity.sh`, **oracle** archetype (it re-executes the census, so it
+  gates whether the samples PARSE — never whether the census was re-run). **STAGED-DIFF-SCOPED**:
+  **0.026 s** and inert when no `grammars/**.ebnf` is staged, one census when one is.
+  `--all` sweeps the closed population of all 18 tracked grammars in **41.8 s** (3 censused,
+  15 NOT EVALUATED); `--self-test` fires **5/5** refusal arms, including a GREEN control so the RED
+  arms are not red for the copy.
+- ⛔ **A GRAMMAR THAT DOES NOT LOAD IS `NOT EVALUATED`, NEVER A BLOCK — and that distinction was
+  MEASURED, not designed.** The gate's first cut treated *"no headline"* as one failing case; the
+  `--all` sweep then refused **4 of the 18** grammars — `verilog_2005_lrm_extracted` and the two
+  `systemverilog_*_lrm_extracted` files carry raw LRM text the loader rejects (*"unterminated regex
+  literal"*), and `systemverilog_lrm_profiled_generated` is an include fragment with no `@entry`. A
+  load failure and a parity defect are both nonzero and need OPPOSITE dispositions; the block is
+  reserved for a **clean exit with no verdict line**, the one case that reads as *"checked
+  everything, found nothing"*.
 - ⭐ **PRICE, and why it lives in the engine.** The census was first shipped as a Python driver
   shelling out to `--interpret-parse` once per (sample, profile):
   `docs/tasks/artifacts/sv_corpus_grad/sample_profile_parity/sample_profile_parity.py`, **2 m 43 s**

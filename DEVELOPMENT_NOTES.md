@@ -1,5 +1,44 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-26 - PGEN-SV-CORPUS-GRAD-0309 — I ran my new gate over the whole population instead of the two grammars I already knew about, and it refuted the gate
+
+**1. ⭐⭐⭐ THE CLOSED POPULATION IS NOT A COMPLETENESS RITUAL — IT IS THE TEST THAT FINDS THE
+FALSE POSITIVES.** The gate was green on the two grammars the leaf talks about (`systemverilog`,
+`regex`) and green on its own five-arm self-test. Running `--all` over all 18 tracked grammars turned
+up **4** that it refused and would have BLOCKED: three LRM extractions carrying raw standard text the
+loader rejects, and one include fragment with no `@entry`. A false-positive blocker on 22 % of the
+population, in a check whose header cites `GENERATED-LINT-CORRECTNESS.6`/`.12` for refusing exactly
+that. ⇒ **run a new gate over its whole population before shipping it, not over the instances that
+motivated it** — those are the ones it was shaped to handle.
+
+**2. ⭐⭐ TWO NONZERO CAUSES, OPPOSITE DISPOSITIONS, AND ONLY ONE DISCRIMINATOR.** *"The samples do
+not parse"* and *"the grammar does not load"* both come back as a nonzero exit. Collapsing them is
+the `-0293` failure — there it read a load failure as 160 phantom moves in the FLATTERING direction;
+here the same collapse ran in the BLOCKING direction. The discriminator was already in the output and
+I had not used it: the instrument's headline is printed only after the grammar loads. **When two
+causes share an exit code, look for the artefact that only one of them produces.**
+
+**3. ⛔ A PASS LINE THAT CANNOT DISTINGUISH "CHECKED AND CLEAN" FROM "CHECKED NOTHING" IS A FAILING
+INSTRUMENT.** *"Every staged grammar's `@sample` set parses"* is literally true when zero grammars
+were censused, and it reads as coverage. The summary now reports censused and NOT-EVALUATED counts
+separately. This is the `CORPUS-KEY-INTEGRITY` A1 shape one level up: a reader that treats what was
+not evaluated as *no findings* fails in the passing direction — including when that reader is a
+future me skimming a green log.
+
+**4. ⭐ AN ORACLE GATE BEATS A CURRENCY GATE, AND THE ONLY REASON TO PREFER THE PROXY IS COST.** The
+well-precedented design here is a tracked baseline plus an identity block: tier 1 hashes inputs every
+commit, tier 2 does the real work on demand. It gates *"was the census re-run since the grammar
+moved"*. Once slice 1 made the census 33 s and the check staged-scope-aware, the real question fit
+inside the budget and the proxy had no argument left. ⇒ **price the honest check first; reach for a
+proxy only after it is measured unaffordable.**
+
+**5. ⛔ AVOIDING A CHARACTER BEATS ESCAPING IT WHEN THE CONSUMER IS A SHELL.** The doctrine registry
+is a bash array of double-quoted strings, and `DOCTRINE-GAP-OWNERSHIP.16` is open because four
+UNESCAPED backticks in one description are EXECUTED by the driver — words silently vanish from the
+published text at `bash -n` clean and exit 0. The new entry contains no backticks at all. Escaping
+correctly is a thing you have to keep getting right; not using the character is a thing you cannot
+get wrong.
+
 ## 2026-08-26 - PGEN-SV-CORPUS-GRAD-0308 — the gate I was asked to build could not be afforded, and the right response was to make the check cheap rather than to gate a proxy for it
 
 **1. ⭐⭐⭐ "WHICH GATE" IS THE SECOND QUESTION. THE FIRST IS "WHAT DOES THE CHECK COST".** The leaf
