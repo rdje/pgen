@@ -1,5 +1,46 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0092 — when a published number goes stale, the first question is not "what watches it" but "why is it written down at all"
+
+**1. ⭐⭐⭐ A GUARD THAT WOULD FIRE ON CORRECT WORK IS NOT A GUARD.** The obvious response to a stale
+published census is an instrument that re-derives it. I priced that honestly first — 6.4 s for all ten
+rows, cheap enough — precisely so the ruling could not be cost-driven by accident. It still fails, for
+a reason cost never reaches: `left_recursion_eliminated` is SUPPOSED to move. `958fcc24` dropped SV
+from 5 to 4 by correctly deleting a `property_expr implies property_expr` alternative, and a gate
+holding the count equal would have gone RED on that fix. ⇒ **before building a watcher, ask whether the
+thing it watches is an invariant or a reading.** A watcher on a reading manufactures false REDs, and
+`DOCTRINE-GAP-OWNERSHIP.15`'s bypass lesson says what happens next.
+
+**2. ⭐⭐ THE FIELD NEXT DOOR *IS* AN INVARIANT, AND THAT DISTINCTION IS THE WHOLE ANSWER.**
+`left_recursion_unhandled` rising off 0 is a genuine capability loss — `.50` measured `0 → 15` with the
+lint still exiting 0 because the class is a warning. Same headline, same instrument, one field apart,
+opposite gating verdicts. Noticing that is what turned *"no instrument"* from a shrug into a decision:
+the census gets none, the invariant gets one, and the invariant's severity belongs to the leaf already
+holding that repair. **Routing it is not deferral when the receiving leaf's own design work decides
+it** — building a partial guard first would have pre-empted `.50`'s (b).
+
+**3. ⭐⭐ A TWO-INPUT NUMBER CANNOT BE BISECTED UNTIL ONE INPUT IS HELD STILL.** *"Which commit moved
+the count?"* has no answer while both the grammar and the elimination pass are moving. Extracting all
+18 SV grammar revisions and linting each with ONE fixed binary makes any transition necessarily a
+grammar edit — and it landed on a single revision with no ambiguity. The cheap version (walking
+`git log` and reading commit subjects) would have pointed at `-0305`, the most recent grammar commit
+with a plausible story, which is **wrong**: `.50`'s own bisection table already records the tracked
+baseline at 4 on 2026-08-25. ⇒ **the open leaf that sounds like your finding is the first thing to rule
+out, not the first thing to blame.**
+
+**4. ⭐ THE STALENESS WAS NEVER CONFINED TO THE SENTENCE THAT WAS WRONG.** Fixing the SV tuple would
+have left two more present-tense claims in the same bullet — *"SV published 2 and is 5"* and *"the full
+join is now 11 of 11 consistent"* — of which the second asserts a re-derivation this leaf never ran.
+⇒ **when one number in a paragraph is found stale, the paragraph is the unit of repair**, and any
+claim you are not re-deriving gets re-dated rather than re-asserted.
+
+**5. ⛔ THE REAL DEFECT WAS STORING A DERIVATION, AND THIS REPO ALREADY HAD THE RULE.**
+`DERIVED_STATE_CONTAINMENT.md` R1/R3 — a field a command answers EXACTLY is looked up, never written
+down. Ten numbers a six-second loop prints were being carried as prose. Replacing them with the command
+plus the four invariants no single run prints removes the rot surface instead of monitoring it, which
+is why ruling *no instrument* leaves nothing unguarded. **The existing rule was one directory away and
+I reached for a new gate first.**
+
 ## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0091 — a pin whose justification is false is a pin the next reader removes, and the comment I was sent to fix had written the bug down as the design intent
 
 **1. ⭐⭐⭐ THE RULING SURVIVED; THE ARGUMENT DID NOT — AND THOSE ARE DIFFERENT ARTEFACTS WITH
