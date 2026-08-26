@@ -34,18 +34,12 @@ unverified measurement enforces the wrong thing precisely and forever.
 If you remember one rule: **re-derive · falsify · make durable — three different questions, in that
 order.**
 
-⛔ **Authoring rule for this file — state every rule in domain-free terms FIRST; an example is an
-instance, never the statement.** If an illustration needs machinery a reader may not have — a
-linker, a scheduler, a GPU, a grammar, a query planner — the rule above it must already be complete
-without it, and the illustration must be *labelled* as an instance so a reader in another domain
-knows they may skip it. This file is a **template**: a leak of one project's vocabulary into a rule
-statement propagates to every adopter, and the adopters are the only people who can see it.
-
-**Template identity.** Adopters import the body of this file verbatim and add their local adoption
-note in a delimited block, so the two never interleave. An adopter that pins the import by digest
-must **gate that pin, not carry it** (§5B applies to this file too) — a recorded digest that nothing
-re-checks is the anti-pattern in §6, and it fails silently the first time the template legitimately
-improves.
+⛔ **State every rule in domain-free terms first; an example is an instance, never the statement.**
+If an illustration needs machinery a reader may not have — a scheduler, a GPU, a query planner — the
+rule above it must already be complete without it, and the illustration must be *labelled* as an
+instance so a reader in another domain knows they may skip it. This applies to the rules you write
+from this standard as much as to the ones in it: a rule stated only through an example is a rule only
+its author can apply.
 
 ---
 
@@ -205,12 +199,6 @@ live=$(cat $(cat inputs.list) | sha256sum | cut -d' ' -f1)
 [ "$recorded" = "$live" ] || { echo "baseline no longer describes this tree — re-measure"; exit 1; }
 ```
 
-⭐ **This rule applies to this file.** A project that records *"imported from the template with
-digest D"* has carried a constant that is a function of another repository. Nothing re-checks it, so
-the day the template legitimately improves, the record silently describes a file that no longer
-exists — and the adopter cannot tell that from being up to date. **Gate the pin or drop it**; a pin
-that only a human re-reads is §6's *"do not edit by hand"* comment wearing a hash.
-
 ⛔ **Name every input the ARTIFACT depends on, not every input the HEADLINE METRIC depends on.** A
 baseline whose identity covered its source inputs and the binary that consumed them was still silently staled by a change to
 *the instrument that wrote it* — the identity was sound for the headline number and insufficient for
@@ -245,12 +233,10 @@ the file.
 4. **Fire every control**: run each against a known-bad input and confirm it goes RED. Delete or fix
    any that cannot.
 5. Add the claim tag (§5A) to your review or pull-request template.
-6. ⭐ **Neutrality review — read §1–§6 substituting your own domain for every example.** Any sentence
-   you cannot restate in your project's terms is a **leak**, and you are the only person positioned
-   to see it. **Report it upstream rather than patching your local copy**: a patched copy is a fork,
-   and the next project inherits the leak you fixed for yourself.
-7. **Import the body verbatim into a delimited block**, keep your local adoption note outside it, and
-   if you pin the import by digest, **gate the pin** (§5B) rather than writing it in prose.
+6. ⭐ **Read §1–§6 substituting your own domain for every example.** Any rule you cannot restate in
+   your project's terms is **under-specified for you** — the example is carrying weight the rule
+   should carry. Rewrite that rule for yourself before adopting it, or you will apply it only to
+   cases that happen to look like the illustration.
 
 ---
 
