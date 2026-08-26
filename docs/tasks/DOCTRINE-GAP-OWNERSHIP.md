@@ -1031,48 +1031,63 @@ It was parked behind the SV lane as governance work. That classification is now 
   work ([[feedback_prefer_feature_work_over_governance_lanes]]). **Parked behind the SV lane** — it is
   recorded so it survives the session, not because it outranks `SV-CORPUS-GRAD.13e.9`.
 
-#### ⚠️ `.17` — **A PORTABLE STANDARD THIS REPO OWNS IS PINNED BY DIGEST IN A SIBLING PROJECT, AND NOTHING RE-CHECKS THE PIN — so improving the standard silently stales its adopter** (`todo`, opened 2026-08-26 by `PGEN-CLAIM-VERIFICATION-0001`)
+#### ⚠️ `.17` — **THIS REPO'S COPY OF A PORTABLE STANDARD CARRIES NO ADOPTION IDENTITY: nothing here records what it was imported from, who owns changes to it, or whether a local edit forks it** (`todo`, opened 2026-08-26 by `PGEN-CLAIM-VERIFICATION-0001`; ⛔ **RE-SCOPED IN-LANE the same day — its first framing rested on an ORIGINATION claim that identical digests cannot support**)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing):
 
-⭐ **MEASURED, not assumed: `docs/CLAIM_VERIFICATION.md` in THIS repo IS the canonical neutral
-template.** Its pre-edit digest was
-`8f194574ec718749e90a402cf6e4dc6650e44f6185dd194853a54482eef68643`, which is **byte-for-byte the
-digest the sibling project's adoption note records** as *"the neutral body … imported byte-for-byte
-from the director-selected template"*. The sibling wraps that body in a delimited
-`CLAIM-VERIFICATION-LOCAL-ADOPTION` block and keeps its local policy outside it — a sound
-separation.
+⛔⛔ **READ THE CORRECTION FIRST, BECAUSE THE ORIGINAL FRAMING OF THIS LEAF WAS WRONG AND IT WAS
+WRONG IN THIS DOCUMENT'S OWN SIGNATURE WAY.** It opened by asserting that
+`docs/CLAIM_VERIFICATION.md` **IS** the canonical template another project imported, on the evidence
+that this repo's pre-edit digest
+(`8f194574ec718749e90a402cf6e4dc6650e44f6185dd194853a54482eef68643`) equals the digest that
+project's adoption note records for its import. **Identical digests prove CONTENT IDENTITY, not
+ORIGINATION.** A competing hypothesis predicts exactly the same observation — *both repositories
+imported the same director-selected template from a third source* — and the adopter's own wording
+(*"the **director-selected** template"*) is at least as consistent with it. ⇒ the origination claim
+is WITHDRAWN. What is measured is narrower and still useful: **two repositories hold byte-identical
+copies of the same standard, and this one carries no record of where its copy came from.**
+⭐ This is verbatim `docs/CLAIM_VERIFICATION.md` §3 leg 2 (*"if your evidence is consistent with both
+hypotheses, you have not tested — you have illustrated"*), committed by the slice that ADDED that
+sentence to the file.
 
-⛔ **THE PIN IS CARRIED, NOT GATED.** The sibling registers a `CLAIM-VERIFICATION` doctrine with its
-own checker; that checker validates the local claim registry and **never reads the recorded digest**
-(`grep` for the digest / `sha` in it returns nothing). ⇒ the adoption identity is prose. That is
-verbatim the template's own §5B (*"any constant that is a function of the repository is derived or
-gated, never carried"*) and its §6 anti-pattern (*"a comment reading 'do not edit by hand' … that is
-prose; write the check"*).
+⭐ **THE MEASURED, IN-SCOPE GAP.** The other project's copy opens with a delimited
+`…-LOCAL-ADOPTION` block declaring: the authority, the authoritative path, the import digest, an
+explicit *independence* statement, its local scope, and the name of the checker that enforces it.
+**This repository's copy has none of that** — no adoption note, no import record, no statement of
+who owns changes to it here, no marker separating a neutral body from local additions:
 
-⭐⭐ **AND THE FIRST EDIT TO THE TEMPLATE DEMONSTRATED THE FAILURE MODE IT DESCRIBES.**
-`PGEN-CLAIM-VERIFICATION-0001` improved the template (two neutrality defects + three additions), so
-the recorded digest now describes **a file that no longer exists at that path**, and no check
-anywhere can notice. The adopter cannot distinguish *"up to date"* from *"three versions behind"*.
-⚠️ This is not a defect the edit introduced — it is a pre-existing gap the edit MADE VISIBLE, which
-is the honest framing and the reason it is routed rather than quietly repaired.
+```text
+$ head -1 docs/CLAIM_VERIFICATION.md
+# Claim Verification — verify a claim three ways before you publish it     # ← straight into the body
+```
 
-⛔ **NOT UNILATERALLY MINE TO FIX, and that is stated in the adopter's own words**: *"the originating
-template is not an upstream. Later changes require deliberate local review and task-tree ownership."*
-⇒ PGEN owns the TEMPLATE and therefore owns *announcing* that it moved; the sibling owns whether and
-when to re-import. Editing another repository's adoption block from here would violate exactly the
-independence that note asserts.
+⇒ a reader of THIS repository cannot tell whether the file is locally authored, locally owned, or an
+import that a local edit has just forked. That is a `docs/CLAIM_VERIFICATION.md` §5B failure about
+**our own** artifact, which is what makes it ours to fix.
 
-**Acceptance:** (a) decide the durable shape of a template identity — ⭐ my leaning, to be confirmed
-by measurement rather than taste: a **version line inside the template itself**, so an adopter pins a
-*version* (stable, human-meaningful, greppable) and optionally gates the digest, rather than pinning
-a bare hash of a file that is *expected* to improve; (b) whatever shape wins, it must be **gated on
-the adopter side** — a pin only a human re-reads is the anti-pattern this leaf exists to close;
-(c) notify the sibling that the template moved, with the old and new digests, so its re-import is a
-decision and not a discovery; ⛔ **do not edit its adoption block from this repository**;
-(d) ⚠️ honest bound: only ONE adopter is known. Whether other projects imported this template is
-UNMEASURED, and a notification mechanism that assumes one adopter is the same carried-constant error
-one level up.
+⛔ **AND THE SLICE THAT OPENED THIS LEAF EDITED THE FILE, so the question is live rather than
+theoretical.** `PGEN-CLAIM-VERIFICATION-0001` changed the body (digest now
+`fdcd1ed49b22b48a3662849ee35d7870ed4be4534dbc165c33c86288eaf70622`). Whether that is *"this project
+improving its own copy"* or *"this project forking a shared standard"* is exactly the question no
+artifact in this repository can currently answer.
+
+⛔⛔ **EXPLICITLY OUT OF SCOPE: another repository's state.** The first framing carried an acceptance
+item to *"notify the sibling that the template moved"* and tracked its re-import as an obligation
+here. ⇒ **DROPPED.** The standing rule is that cross-project standards are COPIED IN, not referenced
+across repos (`LIVE_DOCUMENT_SIZE_CONTAINMENT.md`'s own adoption note states the same discipline and
+measures its own leakage). A leaf in this tree that tracks another project's adoption state is that
+rule inverted. If the director wants the other project informed, that is a message from the
+director's desk, not a durable obligation in PGEN's task tree.
+
+**Acceptance:** (a) give this repository's copy an adoption note in a delimited block — what it was
+imported from *if that is known and evidenced*, ⛔ **stated as provenance and never as origination
+unless something other than a digest establishes it**; who owns changes here; and whether local
+edits are permitted or must be proposed upstream; (b) if the note pins an import by digest, **gate
+the pin** (§5B) — a pin only a human re-reads is §6's *"do not edit by hand"* comment wearing a hash,
+and this leaf exists because that gap was measured, not imagined; (c) ⚠️ honest bound to keep
+attached: **the provenance of this repository's copy is currently UNKNOWN**, and (a) must not invent
+one. *"Imported from a director-selected template; origin not recorded"* is an honest note; naming a
+source on digest equality alone is the error this leaf was re-scoped for.
 
 #### ⛔ `.16` — the doctrine registry EXECUTES its own descriptions, and the guard added when this last happened cites the defect as prior art without checking for it (`todo`, opened 2026-08-25 by `PGEN-SV-CORPUS-GRAD-0300`)
 
