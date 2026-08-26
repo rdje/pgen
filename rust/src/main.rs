@@ -138,6 +138,32 @@ struct Args {
     #[arg(long, value_name = "FILE", requires = "interpret_parse")]
     interpret_parse_ast_json: Option<String>,
 
+    /// SV-CORPUS-GRAD.13e.11 (b): the `@sample`-vs-profile PARITY census, in one process.
+    ///
+    /// An `@sample` is a SINGLE PROFILE-BLIND STRING. Declaring a `@profiles` dialect NARROWS the
+    /// accepted language, so every sample written against the wider language becomes a candidate
+    /// defect the moment the narrower profile exists — `.13e.9` measured four such samples costing
+    /// 10 certificate rules, latent for 54 days, with nothing re-checking them. This interprets
+    /// every `@sample` under exactly the profiles ITS OWN BRANCH is satisfiable in
+    /// (`derive_branch_profiles`, never the rule-level set, which over-reports by construction),
+    /// prints one `SAMPLE-PROFILE-PARITY:` headline and exits — rc 0 clean, rc 1 on any defect or
+    /// unjoinable rule.
+    ///
+    /// ⭐ Grammar-agnostic: a grammar declaring no `@profiles` has an empty profile universe and
+    /// yields ZERO checks, reported as NOT EVALUATED — never as a pass.
+    #[arg(long)]
+    report_sample_parity: bool,
+
+    /// SV-CORPUS-GRAD.13e.11 (b): write the full per-check parity result to this JSON file.
+    #[arg(long, value_name = "FILE", requires = "report_sample_parity")]
+    sample_parity_json: Option<String>,
+
+    /// SV-CORPUS-GRAD.13e.11 (b): reproduce the WRONG join (rule-level for every sample) so the
+    /// cost of the design decision stays MEASURED rather than argued. A contrast mode for the
+    /// leaf's own table — never a gate mode.
+    #[arg(long, requires = "report_sample_parity")]
+    sample_parity_rule_join: bool,
+
     /// SV-CORPUS-GRAD.7 (parser-agnostic corpus rule-coverage instrument): serialize the
     /// loaded grammar's FULL rule inventory with, per rule, the declared `@profiles` set
     /// (absent = universal) and the DERIVED per-profile satisfiability (the same transitive
@@ -1189,6 +1215,24 @@ fn pipeline_main() -> Result<()> {
             args.grammar_profile.as_deref(),
             args.interpret_entry_rule.as_deref(),
             args.interpret_parse_ast_json.as_deref(),
+        );
+    }
+
+    // SV-CORPUS-GRAD.13e.11 (b): the `@sample`-vs-profile parity census. Runs on the UNFILTERED
+    // bundle for the SAME reason `--interpret-parse` does — `@profiles` selection is a RUNTIME
+    // guard the interpreter applies itself — so every check here is byte-for-byte the check a
+    // separate `--interpret-parse --grammar-profile P` invocation would make, without paying a
+    // grammar load per check (measured: 101 SV checks, 2 m 43 s as 101 processes).
+    if args.report_sample_parity {
+        let grammar = load_grammar_bundle(
+            &args.input_path,
+            &mut pipeline,
+            args.emit_raw_ast_json.as_deref(),
+        )?;
+        return run_report_sample_parity(
+            &grammar,
+            args.sample_parity_json.as_deref(),
+            args.sample_parity_rule_join,
         );
     }
 
@@ -4277,6 +4321,160 @@ fn run_fusibility_census_report(
 /// universal) and the DERIVED per-profile satisfiability (`derive_rule_profiles`, the same
 /// transitive computation the profile-orphan lint gates on). Deterministic output (BTreeMap
 /// ordering + sorted profile lists) so coverage reports diff cleanly across sessions.
+/// SV-CORPUS-GRAD.13e.11 (b): the `@sample`-vs-profile parity census, in ONE process.
+///
+/// ⛔ **WHY IT LIVES IN THE ENGINE.** (a) shipped this census as a Python driver that shells out to
+/// `--interpret-parse` once per (sample, profile). That is correct and it is what proved the design,
+/// but it pays a full grammar load per check — MEASURED at 2 m 43 s for SystemVerilog's 101 checks,
+/// which is a cadence no every-commit gate can carry. In-process the grammar is loaded once. It also
+/// removes the second model: the driver re-implemented the sample/branch join in Python against two
+/// JSON dumps, and (a)'s own principle was that the predicate is DERIVED IN THE ENGINE rather than
+/// re-modelled in the instrument.
+///
+/// ⭐ Every check is the check `--interpret-parse --interpret-entry-rule <rule> --grammar-profile
+/// <p>` would make: same UNFILTERED bundle, same `interpret_parse_gen_ast` entry point, same
+/// runtime-profile posture.
+fn run_report_sample_parity(
+    grammar: &LoadedGrammar,
+    json_out: Option<&str>,
+    rule_join: bool,
+) -> Result<()> {
+    use pgen::ast_pipeline::grammar_wellformedness::{
+        collect_profile_samples, derive_branch_profiles, derive_rule_profiles,
+        extract_profile_context, profiles_requiring_sample,
+    };
+
+    let Some(annotations) = grammar.annotations.as_ref() else {
+        println!(
+            "SAMPLE-PROFILE-PARITY: grammar='{}' NOT EVALUATED — the grammar carries no annotations, \
+             so it declares neither `@profiles` nor `@sample`",
+            grammar.grammar_name
+        );
+        return Ok(());
+    };
+    let (declared, all_profiles) = extract_profile_context(annotations);
+    let rule_satisfiable = derive_rule_profiles(
+        &grammar.grammar_tree,
+        &grammar.rule_order,
+        &declared,
+        &all_profiles,
+    );
+    let branch_satisfiable = derive_branch_profiles(
+        &grammar.grammar_tree,
+        &grammar.rule_order,
+        &declared,
+        &all_profiles,
+    );
+    let (samples, unjoinable) = collect_profile_samples(&grammar.grammar_tree, annotations);
+
+    // ⛔ A grammar with no profile universe yields no checks, and that is reported as NOT EVALUATED
+    // rather than as a pass. A reader that treats what it cannot evaluate as "no findings" fails in
+    // the PASSING direction — the `CORPUS-KEY-INTEGRITY` A1 shape.
+    if all_profiles.is_empty() {
+        println!(
+            "SAMPLE-PROFILE-PARITY: grammar='{}' NOT EVALUATED — no `@profiles` declared \
+             (samples={}), so there is no profile universe to check against",
+            grammar.grammar_name,
+            samples.len()
+        );
+        return Ok(());
+    }
+
+    let mut checks: Vec<serde_json::Value> = Vec::new();
+    let mut defects: Vec<String> = Vec::new();
+    for site in &samples {
+        let required = if rule_join {
+            rule_satisfiable.get(&site.rule).cloned().unwrap_or_default()
+        } else {
+            profiles_requiring_sample(site, &rule_satisfiable, &branch_satisfiable)
+        };
+        for profile in &required {
+            let outcome = pgen::parse_harness_interpreter::interpret_parse_gen_ast(
+                &grammar.grammar_name,
+                Some(profile.as_str()),
+                &grammar.grammar_tree,
+                &grammar.rule_order,
+                grammar.annotations.as_ref(),
+                Some(site.rule.as_str()),
+                &site.sample,
+            )
+            .map_err(|err| {
+                anyhow::anyhow!(
+                    "interpreter could not run on grammar '{}' for rule '{}' under profile '{}': {err}",
+                    grammar.grammar_name,
+                    site.rule,
+                    profile
+                )
+            })?;
+            if !outcome.accepted {
+                defects.push(format!(
+                    "rule='{}' branch={} profile='{}' sample={:?} furthest_position={}",
+                    site.rule,
+                    site.branch
+                        .map(|b| b.to_string())
+                        .unwrap_or_else(|| "rule-level".to_string()),
+                    profile,
+                    site.sample,
+                    outcome.furthest_position
+                ));
+            }
+            checks.push(serde_json::json!({
+                "rule": site.rule,
+                "branch": site.branch,
+                "profile": profile,
+                "sample": site.sample,
+                "accepted": outcome.accepted,
+                "furthest_position": outcome.furthest_position,
+            }));
+        }
+    }
+
+    for defect in &defects {
+        eprintln!("SAMPLE-PROFILE-PARITY: DEFECT — {defect}");
+    }
+    for rule in &unjoinable {
+        eprintln!(
+            "SAMPLE-PROFILE-PARITY: UNJOINABLE — rule '{rule}' carries a branch `@sample` but its \
+             branch-annotation vector no longer indexes its body; refusing to join on a guessed index"
+        );
+    }
+    println!(
+        "SAMPLE-PROFILE-PARITY: grammar='{}' join={} profiles={} samples={} checks={} defects={} \
+         unjoinable={}",
+        grammar.grammar_name,
+        if rule_join { "rule" } else { "branch" },
+        all_profiles.len(),
+        samples.len(),
+        checks.len(),
+        defects.len(),
+        unjoinable.len()
+    );
+
+    if let Some(path) = json_out {
+        let payload = serde_json::json!({
+            "grammar": grammar.grammar_name,
+            "join": if rule_join { "rule" } else { "branch" },
+            "profiles": all_profiles,
+            "samples": samples.len(),
+            "checks": checks,
+            "defects": defects,
+            "unjoinable": unjoinable,
+        });
+        std::fs::write(path, serde_json::to_string_pretty(&payload)?)
+            .with_context(|| format!("failed to write --sample-parity-json output '{path}'"))?;
+    }
+
+    if !defects.is_empty() || !unjoinable.is_empty() {
+        anyhow::bail!(
+            "grammar '{}': {} `@sample` parity defect(s) and {} unjoinable rule(s)",
+            grammar.grammar_name,
+            defects.len(),
+            unjoinable.len()
+        );
+    }
+    Ok(())
+}
+
 fn run_dump_rule_profiles(unfiltered_grammar: &LoadedGrammar, out_path: &str) -> Result<()> {
     use pgen::ast_pipeline::grammar_wellformedness::{
         derive_branch_profiles, derive_rule_profiles, extract_profile_context,

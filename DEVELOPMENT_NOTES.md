@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-26 - PGEN-SV-CORPUS-GRAD-0308 — the gate I was asked to build could not be afforded, and the right response was to make the check cheap rather than to gate a proxy for it
+
+**1. ⭐⭐⭐ "WHICH GATE" IS THE SECOND QUESTION. THE FIRST IS "WHAT DOES THE CHECK COST".** The leaf
+owed a gate arm. The census cost 2 m 43 s. Every design that starts from *"wire it as it is"* then
+has to hide that cost somewhere — a tracked baseline plus an identity block, tier 1 hashing inputs
+and tier 2 doing the real work on demand. That shape is well-precedented here and I nearly reached
+for it. But it gates *"was the census re-run since the grammar moved"*, not *"is the census clean"* —
+**a currency PROXY**, and `.53` had just re-learned in the same session what a proxy costs when the
+question moves out from under it. Making the check 4.9× cheaper made the proxy unnecessary.
+
+**2. ⭐⭐ THE COST WAS NOT WHERE THE WORK WAS.** 101 checks at 1.6 s each reads like an expensive
+predicate. It is not: one `--interpret-parse` on SystemVerilog is 1.457 s for a **19-byte input**,
+and `--lint-grammar`'s load-and-analyse pass on the same grammar is 4.797 s. The parse is noise; the
+grammar LOAD is everything, and the driver paid it 101 times because a CLI exits. ⇒ **before
+optimising a loop body, measure the loop's fixed cost** — the same reading turns any
+one-process-per-item driver over a large grammar into a single-process pass.
+
+**3. ⭐⭐ A PORT IS ONLY VERIFIED WHEN IT REPRODUCES THE ORACLE'S *RED* TOO.** Agreeing with the
+Python driver on `checks=101 defects=0` would have been satisfied by a census that finds nothing —
+including one that silently checks nothing. The arm that actually pins the port is the deliberately
+WRONG join: `--sample-parity-rule-join` must reproduce `checks=115 defects=8`, the same eight rows,
+because that number can only come from doing the work. **Keep a mode that produces findings, purely
+so a port can be checked against it.**
+
+**4. ⛔ AND KEEP THE ORACLE.** The obvious tidy-up after moving a census into the engine is to delete
+the Python driver it replaces. That would delete the only thing that can falsify the engine version —
+leg 2 of the three-way check by construction. It stays, and the leaf says why, so a future
+housekeeping pass does not read it as dead weight.
+
+**5. ⭐ A NEW INSTRUMENT IS INVISIBLE TO THE ACCEPTANCE GATE UNTIL IT IS REGISTERED, AND THAT IS A
+SAME-COMMIT OBLIGATION.** `SAMPLE-PROFILE-PARITY:` had to go into `DIAGNOSIS_SIG`, the TOOLBOX
+signature table and a TOOLBOX section in the commit that created it — otherwise every future leaf
+root-caused with it is blocked, leaving only two dishonest ways out (cite a tool that did not produce
+the diagnosis, or waive). `ENGINE-UNIVERSAL-SERVICES.11` slice 1 was refused for exactly this, and
+the rule is written down because of it.
+
+**6. ⚠️ A FEATURE-LESS `cargo build` SILENTLY REPLACED THE WORKING BINARY.** `cargo build --bin
+ast_pipeline` (no `--features`) overwrote `rust/target/debug/ast_pipeline` with a build that refuses
+every `.ebnf`: *"requires building with --features ebnf_dual_run"*. It fails LOUDLY, which is the
+good case — but the canonical spelling is `cargo build --features "generated_parsers ebnf_dual_run"
+--bin ast_pipeline` (`rust/Makefile:269`), and the two builds share one output path. **Rebuild
+through the Makefile target, not a bare cargo line.**
+
 ## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0092 — when a published number goes stale, the first question is not "what watches it" but "why is it written down at all"
 
 **1. ⭐⭐⭐ A GUARD THAT WOULD FIRE ON CORRECT WORK IS NOT A GUARD.** The obvious response to a stale

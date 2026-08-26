@@ -85,7 +85,7 @@ same leaf keeps its checklist, and a deletion-only edit still counts as touching
 
 | # | family | when it applies | verbatim tokens that count |
 |---|---|---|---|
-| 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `PGEN_LINT_DUMP_ALL`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `INTERPRET-PARSE:`/`--interpret-parse`, `INDIRECT-LR-SURVEY:`/`--report-indirect-lr-plan`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]`, `LAYOUT-OWNING-TERMINALS:`/`--report-layout-owning-terminals` |
+| 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `PGEN_LINT_DUMP_ALL`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `INTERPRET-PARSE:`/`--interpret-parse`, `INDIRECT-LR-SURVEY:`/`--report-indirect-lr-plan`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]`, `LAYOUT-OWNING-TERMINALS:`/`--report-layout-owning-terminals`, `SAMPLE-PROFILE-PARITY:`/`--report-sample-parity` |
 | 2 | **performance / SPEED** | it is correct but slow | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph` |
 | 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
 | 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
@@ -1566,6 +1566,54 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - ⚠️ **HONEST BOUND, printed by the report rather than implied — this is lens L1 of three.** **L1** keyword admission (this census) · **L2** POSITION, a genuine 1364-2005 keyword accepted where the LRM never allows it (`automatic integer i;` at module scope) · **L3** SHAPE/CARDINALITY, the right keywords in the wrong arity (`reg [7:0][3:0] r;` — `reg_declaration` carries exactly one `[ range ]`). L2 and L3 are structurally invisible here because neither introduces a keyword Annex B lacks, and two of the nine rows that founded the census are exactly those.
 - ⭐ **PARSER-AGNOSTIC IN THE HALF THAT MATTERS.** The reachability computation reads only `@profiles` and the `raw_ast` envelope, so any grammar with a dialect profile and a closed keyword oracle can be censused the same way; only the Annex B path is SV-specific.
 - **Refusals proven:** `docs/tasks/artifacts/sv_corpus_grad/v2005_keyword_faithfulness/probe.sh` (**13/13**, incl. a GREEN control on the real tree). ⭐ The missing-witness refusal fired **on its own first real run**, on `with` — a reachable IEEE-1800-only keyword absent from every hand list that preceded it.
+
+### 5.12 "Does every `@sample` still parse under the profiles its own branch is live in?" — the sample/profile parity census
+
+- **WHAT:** `--report-sample-parity` (`SV-CORPUS-GRAD.13e.11`) — interprets **every `@sample` in the
+  grammar** under exactly the profiles that sample's own BRANCH is satisfiable in, and prints one
+  `SAMPLE-PROFILE-PARITY:` headline. rc 0 clean, rc 1 on any defect or unjoinable rule. Read-only;
+  no codegen, no `rustc`, no registered parser.
+- **WHEN:** you added or narrowed a `@profiles` dialect. An `@sample` is a **single profile-blind
+  string**, and declaring a dialect NARROWS the accepted language — so every sample already written
+  against the wider language becomes a candidate defect the moment the narrower profile exists.
+  ⛔ Measured: `.13e.9` found **four** such samples costing **10** certificate rules, latent for
+  **54 days**, with no gate, workflow, hook or lint reading `@sample` at all.
+- **HOW:**
+  ```bash
+  ./rust/target/debug/ast_pipeline grammars/systemverilog.ebnf --report-sample-parity
+  #   SAMPLE-PROFILE-PARITY: grammar='systemverilog' join=branch profiles=3 samples=52 \
+  #                          checks=101 defects=0 unjoinable=0
+  ```
+  `--sample-parity-json <FILE>` writes every check (`rule`, `branch`, `profile`, `sample`,
+  `accepted`, `furthest_position`).
+- ⭐⭐ **THE JOIN IS THE WHOLE DESIGN, AND THE WRONG ONE IS 100 % FALSE POSITIVES.** `@profiles` is a
+  RULE-level annotation while **43 of SystemVerilog's 52 samples are BRANCH-level**. A rule stays
+  live while individual alternatives are dead under a profile, so joining a branch sample against the
+  rule's `satisfiable_under` over-reports BY CONSTRUCTION. `--sample-parity-rule-join` reproduces
+  that wrong join **as a contrast mode, never a gate mode**, so the cost stays measured:
+
+  | join | checks | reported | TRUE defects |
+  |---|---|---|---|
+  | ⛔ `--sample-parity-rule-join` | 115 | 8 | **0 — every row a false positive** |
+  | ⭐ default (branch) | 101 | 0 | 0 |
+
+- ⛔ **A GRAMMAR WITH NO `@profiles` REPORTS `NOT EVALUATED`, LOUDLY — NEVER A PASS.** There is no
+  profile universe to check against, and a reader that treats what it cannot evaluate as *no
+  findings* fails in the PASSING direction. `systemverilog_preprocessor` is the live example: **2**
+  real `@sample` annotations, **0** profiles, and the sample count is printed beside the refusal.
+  ⭐ The population is read from the NORMALIZED gen-AST, never by grepping the `.ebnf` — that file
+  has **6** `grep -c '@sample:'` hits and 2 real annotations; four sit in prose comments.
+- ⛔ **A RULE WHOSE BRANCH-ANNOTATION VECTOR NO LONGER INDEXES ITS BODY IS REFUSED, not joined on a
+  guessed index** — left-recursion elimination rewrites a top-level `Or`. It counts as `unjoinable`
+  only when it actually carries a `@sample`, so a re-indexed rule with nothing to check is not
+  reported as a problem. Measured on SV: 2 such rules, neither carrying one.
+- ⭐ **PRICE, and why it lives in the engine.** The census was first shipped as a Python driver
+  shelling out to `--interpret-parse` once per (sample, profile):
+  `docs/tasks/artifacts/sv_corpus_grad/sample_profile_parity/sample_profile_parity.py`, **2 m 43 s**
+  for SV's 101 checks, because a single `--interpret-parse` is 1.46 s and it is nearly all grammar
+  LOAD. In-process the grammar is loaded once: **33 s**. ⛔ That driver is deliberately KEPT — it is
+  the independent oracle the engine census was falsified against, and the two agree on every number
+  in BOTH joins.
 
 ## 6. Coverage / gap reports (`ast_pipeline`)
 

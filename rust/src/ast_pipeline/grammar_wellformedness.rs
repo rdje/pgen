@@ -1134,6 +1134,133 @@ pub fn derive_branch_profiles(
     derived
 }
 
+/// SV-CORPUS-GRAD.13e.11 (b): one `@sample` annotation, tagged with the branch it belongs to.
+///
+/// `branch` is `None` for a rule-level sample and `Some(i)` for a sample on top-level alternative
+/// `i` — the SAME index space [`derive_branch_profiles`] uses, which is what makes the join total.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProfileSampleSite {
+    pub rule: String,
+    pub branch: Option<usize>,
+    pub sample: String,
+}
+
+/// The `@sample` payload of one annotation list, or `None`.
+///
+/// ⛔ `probe_sample` is a DIFFERENT annotation and is deliberately not read here — the parity
+/// census asks whether the sample a HUMAN wrote still parses under every profile its branch is
+/// live in, and a probe sample is machinery.
+fn profile_sample_text(entries: &[SemanticAnnotation]) -> Option<String> {
+    for annotation in entries {
+        if annotation.name().map(str::trim) != Some("sample") {
+            continue;
+        }
+        if let super::unified_semantic_ast::UnifiedSemanticAST::Structured { value, .. } =
+            annotation.ast()
+        {
+            if let super::unified_semantic_ast::UnifiedSemanticValue::String(text) = value {
+                return Some(text.clone());
+            }
+        }
+    }
+    None
+}
+
+/// SV-CORPUS-GRAD.13e.11 (b): every `@sample` in the grammar, plus the rules whose branch-annotation
+/// vector no longer indexes their body.
+///
+/// ⛔ **A MIS-INDEXED RULE IS REFUSED, NEVER JOINED ON A GUESSED INDEX.** Left-recursion elimination
+/// rewrites a rule's top-level `Or`, and the engine's own `pre_lr_elim_branch_return_annotations`
+/// exists because it does. When `branch_semantic_annotations[rule].len()` disagrees with the body's
+/// top-level alternative count, the rule is returned in `unjoinable` — but ONLY if it actually
+/// carries a `@sample`, so a re-indexed rule with nothing to check is not reported as a problem.
+/// Measured on `systemverilog`: 2 such rules (`block_event_expression`, `select_expression`),
+/// neither carrying a `@sample`, so the join is total today and guarded for when it is not.
+///
+/// Deterministic: both maps are walked in sorted key order. Parser-agnostic — keyed only on the
+/// annotation name and the body shape.
+pub fn collect_profile_samples(
+    grammar: &HashMap<String, ASTNode>,
+    annotations: &Annotations,
+) -> (Vec<ProfileSampleSite>, Vec<String>) {
+    let branch_count = |rule: &str| -> usize {
+        match grammar.get(rule) {
+            Some(ASTNode::Or { alternatives }) => alternatives.len(),
+            Some(_) => 1,
+            None => 0,
+        }
+    };
+
+    let mut samples: Vec<ProfileSampleSite> = Vec::new();
+    let mut unjoinable: Vec<String> = Vec::new();
+
+    let mut rule_level: Vec<&String> = annotations.semantic_annotations.keys().collect();
+    rule_level.sort();
+    for rule in rule_level {
+        if !grammar.contains_key(rule.as_str()) {
+            continue;
+        }
+        if let Some(text) = profile_sample_text(&annotations.semantic_annotations[rule]) {
+            samples.push(ProfileSampleSite {
+                rule: rule.clone(),
+                branch: None,
+                sample: text,
+            });
+        }
+    }
+
+    let mut branch_level: Vec<&String> = annotations.branch_semantic_annotations.keys().collect();
+    branch_level.sort();
+    for rule in branch_level {
+        if !grammar.contains_key(rule.as_str()) {
+            continue;
+        }
+        let per_branch = &annotations.branch_semantic_annotations[rule];
+        if per_branch.len() != branch_count(rule.as_str()) {
+            if per_branch
+                .iter()
+                .any(|entries| profile_sample_text(entries).is_some())
+            {
+                unjoinable.push(rule.clone());
+            }
+            continue;
+        }
+        for (index, entries) in per_branch.iter().enumerate() {
+            if let Some(text) = profile_sample_text(entries) {
+                samples.push(ProfileSampleSite {
+                    rule: rule.clone(),
+                    branch: Some(index),
+                    sample: text,
+                });
+            }
+        }
+    }
+
+    samples.sort_by(|a, b| (&a.rule, a.branch).cmp(&(&b.rule, b.branch)));
+    unjoinable.sort();
+    (samples, unjoinable)
+}
+
+/// SV-CORPUS-GRAD.13e.11 (b): the profiles a sample is REQUIRED to parse under.
+///
+/// A rule-level sample is required wherever its RULE is satisfiable; a branch-level sample only
+/// where ITS BRANCH is. ⛔ That distinction is the whole design: measured on `systemverilog`, the
+/// rule-level join reports 8 `verilog_2005` "failures" of which **0** are defects.
+pub fn profiles_requiring_sample(
+    site: &ProfileSampleSite,
+    rule_satisfiable: &HashMap<String, Vec<String>>,
+    branch_satisfiable: &HashMap<String, Vec<Vec<String>>>,
+) -> Vec<String> {
+    match site.branch {
+        None => rule_satisfiable.get(&site.rule).cloned().unwrap_or_default(),
+        Some(index) => branch_satisfiable
+            .get(&site.rule)
+            .and_then(|branches| branches.get(index))
+            .cloned()
+            .unwrap_or_default(),
+    }
+}
+
 /// Extract each rule's `@profiles` set + the profile universe from the annotations (the same shape
 /// the generator filters by, and `run_grammar_lint` computes inline). Shared by the profile-orphan
 /// certificate checker (G.2.1b). A rule absent from the map is universal (present under all profiles).
@@ -4148,6 +4275,124 @@ mod tests {
         let branch = derive_branch_profiles(&g, &order, &HashMap::new(), &[]);
         assert_eq!(branch["host"], vec![Vec::<String>::new(), Vec::<String>::new()]);
         assert_eq!(branch["plain"], vec![Vec::<String>::new()]);
+    }
+
+    // SV-CORPUS-GRAD.13e.11 (b) — the `@sample` COLLECTOR and its join. Two-sided by design: the
+    // whole value of the census is that a sample on a DEAD branch is not required to parse, so the
+    // tests pin both that a live branch demands its sample and that a dead one does not.
+
+    fn sample_annotation(text: &str) -> SemanticAnnotation {
+        SemanticAnnotation::Named {
+            name: "sample".to_string(),
+            ast: super::super::unified_semantic_ast::UnifiedSemanticAST::Structured {
+                canonical: format!("{text:?}"),
+                value: super::super::unified_semantic_ast::UnifiedSemanticValue::String(
+                    text.to_string(),
+                ),
+            },
+        }
+    }
+
+    #[test]
+    fn collect_profile_samples_tags_each_sample_with_its_own_branch() {
+        // host := plain | seq(plain, gated) — a sample on EACH branch, plus a rule-level sample on
+        // `plain`, so both collection paths are exercised in one fixture.
+        let mut g = HashMap::new();
+        g.insert("gated".into(), token("string", ".*"));
+        g.insert("plain".into(), token("string", "m"));
+        g.insert(
+            "host".into(),
+            or(vec![rule_ref("plain"), seq(vec![rule_ref("plain"), rule_ref("gated")])]),
+        );
+        let mut annotations = Annotations::default();
+        annotations
+            .semantic_annotations
+            .insert("plain".into(), vec![sample_annotation("m")]);
+        annotations.branch_semantic_annotations.insert(
+            "host".into(),
+            vec![
+                vec![sample_annotation("m")],
+                vec![sample_annotation("m.*")],
+            ],
+        );
+
+        let (samples, unjoinable) = collect_profile_samples(&g, &annotations);
+        assert!(unjoinable.is_empty(), "the vector indexes the body: {unjoinable:?}");
+        assert_eq!(
+            samples,
+            vec![
+                ProfileSampleSite { rule: "host".into(), branch: Some(0), sample: "m".into() },
+                ProfileSampleSite { rule: "host".into(), branch: Some(1), sample: "m.*".into() },
+                ProfileSampleSite { rule: "plain".into(), branch: None, sample: "m".into() },
+            ],
+            "a rule-level sample carries branch=None; a branch sample carries its own index"
+        );
+    }
+
+    #[test]
+    fn a_dead_branch_does_not_require_its_sample_but_its_live_siblings_do() {
+        // ⛔ THE FOUNDING DISTINCTION, pinned in both directions. `host` stays satisfiable under
+        // BOTH profiles (branch 0 is neutral), so the rule-level join would demand that branch 1's
+        // `.*` sample parse under `verilog_2005` — where its own branch is dead. Measured on the
+        // real grammar this is the difference between 8 reported "defects" and 0.
+        let mut g = HashMap::new();
+        g.insert("gated".into(), token("string", ".*"));
+        g.insert("plain".into(), token("string", "m"));
+        g.insert(
+            "host".into(),
+            or(vec![rule_ref("plain"), seq(vec![rule_ref("plain"), rule_ref("gated")])]),
+        );
+        let order: Vec<String> = vec!["host".into(), "plain".into(), "gated".into()];
+        let mut profiles: HashMap<String, Vec<String>> = HashMap::new();
+        profiles.insert("gated".into(), vec!["sv_2017".into()]);
+        let all = vec!["sv_2017".into(), "verilog_2005".into()];
+
+        let rule_level = derive_rule_profiles(&g, &order, &profiles, &all);
+        let branch_level = derive_branch_profiles(&g, &order, &profiles, &all);
+
+        let live = ProfileSampleSite { rule: "host".into(), branch: Some(0), sample: "m".into() };
+        let dead = ProfileSampleSite { rule: "host".into(), branch: Some(1), sample: "m.*".into() };
+        assert_eq!(
+            profiles_requiring_sample(&live, &rule_level, &branch_level),
+            vec!["sv_2017".to_string(), "verilog_2005".to_string()],
+            "a live branch's sample is required under every profile the branch survives in"
+        );
+        assert_eq!(
+            profiles_requiring_sample(&dead, &rule_level, &branch_level),
+            vec!["sv_2017".to_string()],
+            "a DEAD branch's sample must not be demanded under the profile that killed it"
+        );
+
+        // ⛔ THE RED CONTROL FOR THE JOIN ITSELF: the rule-level set the wrong join would use still
+        // reads BOTH profiles, so without this distinction the dead branch's sample IS demanded.
+        assert_eq!(
+            rule_level.get("host"),
+            Some(&vec!["sv_2017".to_string(), "verilog_2005".to_string()])
+        );
+    }
+
+    #[test]
+    fn a_mis_indexed_branch_vector_is_refused_only_when_it_carries_a_sample() {
+        // Left-recursion elimination rewrites a top-level `Or`, so the annotation vector can stop
+        // indexing the body. Refusing to guess is right — but refusing a rule with NOTHING to check
+        // would report a problem where there is none, so the refusal is conditioned on a `@sample`.
+        let mut g = HashMap::new();
+        g.insert("two".into(), or(vec![token("string", "a"), token("string", "b")]));
+        g.insert("also_two".into(), or(vec![token("string", "a"), token("string", "b")]));
+        let mut annotations = Annotations::default();
+        // Three entries against a two-alternative body, WITH a sample -> refused.
+        annotations.branch_semantic_annotations.insert(
+            "two".into(),
+            vec![vec![sample_annotation("a")], vec![], vec![]],
+        );
+        // Same mis-index, no sample -> silent, because there is nothing to join.
+        annotations
+            .branch_semantic_annotations
+            .insert("also_two".into(), vec![vec![], vec![], vec![]]);
+
+        let (samples, unjoinable) = collect_profile_samples(&g, &annotations);
+        assert!(samples.is_empty(), "a refused rule contributes no checks: {samples:?}");
+        assert_eq!(unjoinable, vec!["two".to_string()]);
     }
 
     // GRAMMAR-WELLFORMED.H.17.2 — the uncompilable-regex-terminal class. Two-sided by design: the
