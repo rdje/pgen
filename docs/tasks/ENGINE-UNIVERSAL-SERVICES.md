@@ -13293,7 +13293,7 @@ must say so IN PLACE — a census with no watcher that does not admit it is how 
 **(a) THE MOVER, ISOLATED ON THE GRAMMAR AXIS.** The count is a function of TWO inputs — the grammar
 and the elimination pass — so *"which commit moved it"* is ambiguous until one axis is held still.
 Every SV grammar revision since 2026-08-14 was extracted and linted with **one fixed binary**
-(`tmp/es54_lr_bisect/grammar_axis.tsv`, 18 revisions), which makes any transition necessarily a
+(`docs/tasks/artifacts/engine_universal_services/es54_lr_elimination_bisect/grammar_axis.tsv`, 18 revisions, tracked with its re-derivation command), which makes any transition necessarily a
 grammar edit:
 
 | revision span | `left_recursion_eliminated` | `unhandled` |

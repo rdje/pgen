@@ -1,0 +1,38 @@
+# ENGINE-UNIVERSAL-SERVICES.54 (a) — the LR-elimination bisect, GRAMMAR axis isolated.
+#
+# left_recursion_eliminated is a function of TWO inputs — the grammar and the elimination
+# pass — so "which commit moved it" is ambiguous until one axis is held still. Every
+# grammars/systemverilog.ebnf revision since 2026-08-14 was extracted with
+# `git show <rev>:grammars/systemverilog.ebnf` and linted with ONE FIXED binary, which makes
+# any transition necessarily a grammar edit.
+#
+# Re-derive:
+#   for c in $(git log --format='%h' --since=2026-08-14 -- grammars/systemverilog.ebnf | tac); do
+#     git show "$c:grammars/systemverilog.ebnf" > /tmp/sv.ebnf
+#     ./rust/target/debug/ast_pipeline /tmp/sv.ebnf --lint-grammar | grep -m1 '^grammar lint:'
+#   done
+#
+# The transition is at 958fcc24 (PGEN-SV-CORPUS-GRAD-0261, leaf SV-CORPUS-GRAD.13c.2y,
+# ledger SV-0066, release 1.0.193), which moved the `implies` property operator into the
+# prop_until_sv_* cascade and deleted `property_expr implies property_expr` — so
+# property_expr's CYCLE ceased to exist rather than stopping being handled.
+#
+# columns: commit <TAB> date <TAB> eliminated=total|direct|indirect <TAB> unhandled=N
+6d1a18b3	2026-08-17	eliminated=5|2|3	unhandled=0
+cb78d01f	2026-08-17	eliminated=5|2|3	unhandled=0
+39d281ff	2026-08-18	eliminated=5|2|3	unhandled=0
+2b949800	2026-08-18	eliminated=5|2|3	unhandled=0
+4a2703cf	2026-08-18	eliminated=5|2|3	unhandled=0
+f9cff55e	2026-08-19	eliminated=5|2|3	unhandled=0
+6ad18e48	2026-08-19	eliminated=5|2|3	unhandled=0
+fc6aa8f9	2026-08-19	eliminated=5|2|3	unhandled=0
+e28cc856	2026-08-19	eliminated=5|2|3	unhandled=0
+cda7ed3d	2026-08-19	eliminated=5|2|3	unhandled=0
+222f7ddb	2026-08-20	eliminated=5|2|3	unhandled=0
+958fcc24	2026-08-21	eliminated=4|2|2	unhandled=0
+31d51896	2026-08-24	eliminated=4|2|2	unhandled=0
+3aba01ec	2026-08-24	eliminated=4|2|2	unhandled=0
+ac2aa012	2026-08-24	eliminated=4|2|2	unhandled=0
+2e492d08	2026-08-25	eliminated=4|2|2	unhandled=0
+c46cac8c	2026-08-25	eliminated=4|2|2	unhandled=0
+ea01160b	2026-08-26	eliminated=4|2|2	unhandled=0
