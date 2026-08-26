@@ -13885,7 +13885,7 @@ founding target stated rather than hidden.
   `MEMORY.md` + `DEVELOPMENT_NOTES.md` + the knowledge record.
 
 
-### ⛔⛔ `.50` — **A `@profiles` TAG ON A RULE INSIDE AN ELIMINATED INDIRECT-LR CYCLE SILENTLY DISABLES THAT ELIMINATION FOR EVERY PROFILE, AND THE COUNTER THAT REPORTS IT IS A `WARNING`** (`in progress`; **(a) DONE 2026-08-26 `PGEN-ENGINE-UNIVERSAL-SERVICES-0093` — SIZED, and the answer is DESIGN CHANGE: the pass's protection is COINCIDENTAL, and this leaf's own founding premise *"dialect gates nest"* is REFUTED at 10 of 44 routes on the shipped grammars**; (b)-(e) `todo`; opened 2026-08-25 by `SV-CORPUS-GRAD.13e.10`(c4) / `PGEN-SV-CORPUS-GRAD-0305`)
+### ⛔ `.50` — **A `@profiles` TAG ON A RULE INSIDE AN ELIMINATED INDIRECT-LR CYCLE SILENTLY DISABLES THAT ELIMINATION FOR EVERY PROFILE, AND THE COUNTER THAT REPORTS IT IS A `WARNING`** (`in progress`; **(a) DONE `-0093` — SIZED, answer DESIGN CHANGE, and the leaf's premise *"dialect gates nest"* REFUTED at 10 of 44 routes; ✅✅ (b)+(c) DONE 2026-08-26 `PGEN-ENGINE-UNIVERSAL-SERVICES-0094` — the pass SYNTHESIZES the intersection instead of abandoning the candidate: on the breaking grammar `left_recursion_unhandled` **15 → 0**, `eliminated` **3 → 4**, refusals **4 → 0**, and 11/11 tracked artifacts BYTE-IDENTICAL**; (d)+(e) `todo`; opened 2026-08-25 by `SV-CORPUS-GRAD.13e.10`(c4) / `PGEN-SV-CORPUS-GRAD-0305`)
 
 **HOW IT WAS FOUND.** `.13e.10`(c4) is the fix that gates the 17 IEEE-1800-only punctuation
 terminals out of `verilog_2005`. Sixteen gate cleanly. The seventeenth, `tick` (`'`), orphans 11
@@ -14130,3 +14130,105 @@ derivations"* remains a well-supported INFERENCE.
 ⚠️ **PRIORITY:** this BLOCKS the last of `.13e.10`(c4), which is on the SV release path, so it is not
 parked with the rest. It is not itself SV-specific — any grammar with two crossing dialect gates on
 one left-recursive route hits it, which is what makes it an ENGINE-UNIVERSAL leaf.
+
+#### ✅✅ `.50` (b) + (c) — **THE PASS SYNTHESIZES THE INTERSECTION INSTEAD OF ABANDONING THE CANDIDATE, AND THE CONTROL WAS RED BEFORE IT** (2026-08-26, `PGEN-ENGINE-UNIVERSAL-SERVICES-0094`; ENGINE tier, ZERO grammar / codegen bytes, **11/11 generated artifacts byte-identical**)
+
+**(c) FIRST, BECAUSE A CONTROL WRITTEN AFTER THE FIX IS NOT A CONTROL.**
+`two_crossing_dialect_gates_on_one_route_still_eliminate_the_cycle` is the sibling of the existing
+`a_profile_gate_survives_on_both_the_clone_and_the_suffix_route`, and the difference is the whole
+defect: that one gates two twins to DISJOINT profiles on DIFFERENT routes, which every tracked
+grammar does and the pass has always handled; this one puts two CROSSING lists on the SAME route —
+`prim_a` admits `{x, y}`, `cast_expr` admits `{x, z}` — so the route's constraint is `{x}` and **no
+rule on the route declares it**. Observed RED on HEAD before a byte of the fix existed:
+
+```
+thread '…::two_crossing_dialect_gates_on_one_route_still_eliminate_the_cycle' panicked at
+  indirect_lr_elimination.rs:3036: assertion `left == right` failed:
+    left: []            <- the WHOLE candidate abandoned by one crossing route
+   right: ["prim"]
+```
+
+**(b) THE REPAIR — option (i), as `(a)` ruled.** `route_profile_gate`'s `None` arm no longer returns
+`Err`; it builds the intersection through `UnifiedSemanticAST::from_named_payload`, the frontend's
+own normalizer, so the result is indistinguishable downstream from an authored `@profiles`. The test
+asserts the round-trip through `parse_semantic_string_list` — **the same reader the profile filter
+uses** — rather than a string equality, because the value only matters if the filter can read it.
+
+⭐ **AND THE FIX MUST NOT FIRE WHERE A DONOR ALREADY EXISTS**, so the control pins both routes: r0
+(crossing) must carry the synthesized `["x"]`, r1 (one declaring hop) must still carry `["x","z"]`
+**verbatim**. A repair that synthesized everywhere would have replaced every author's spelling with
+a generated one and passed a test that only checked r0.
+
+## ⭐⭐⭐ THE MEASUREMENT ON THE REAL GRAMMAR — the defect is GONE, not merely tested
+
+Applied to the one-annotation reproducer `(a)` isolated (`@profiles: ["sv_2017", "sv_2023"]` on
+`constant_cast`, the tag `--lint-grammar` itself derives):
+
+| | tracked | + the tag, BEFORE (b) | + the tag, AFTER (b) |
+|---|---|---|---|
+| rules | 1537 | 1513 | ⭐ **1537** |
+| `left_recursion_unhandled` | 0 | ⛔ **15** | ⭐ **0** |
+| `left_recursion_eliminated` | 4 (2+2) | 3 (2+1) | ⭐ **4 (2 direct + 2 indirect)** |
+| routes explored | 44 | 58 | 11 |
+| `REFUSED-CROSSING` | 0 | ⛔ **4** | ⭐ **0** |
+| `underivable` | 8 | 26 | 4 |
+
+⇒ **the tagged grammar now behaves exactly like the untagged one**: the 24 rules that had vanished
+are the synthesized clones coming back, and the 15 cycles served only by the runtime guard are
+eliminated again. ⛔ **This is the capability `.13e.10`(c4) was blocked on**, and it is now
+measurable rather than inferred.
+
+## ⛔ AND IT IS INERT ON EVERYTHING THAT SHIPS — a property, not a hope
+
+`(a)` measured **0 refusals** across all 18 tracked grammars, so the new arm cannot be reached by any
+of them today. That prediction is checked rather than trusted: `generated_reproducibility_rebaseline`
+re-derived **11 of 11** artifacts BYTE-IDENTICALLY, and the tracked SystemVerilog lint still reads
+`left_recursion_unhandled=0 left_recursion_eliminated=4`. ⇒ the repair buys a capability and costs
+zero shipped bytes.
+
+⚠️ **STILL OWED, and the leaf stays `in progress`:** **(d)** the severity of
+`left_recursion_unhandled` — the counter moved 0 → 15 at exit 0 and nothing blocked, which the fix
+does not change; and **(e)** the grammar payload — gate `tick` plus its 7 source companions and flip
+the 17th pinned row. ⛔ (b) removes the BLOCKER for (e); it does not perform it.
+
+⚠️ **AND (c)'s SECOND HALF IS STILL NOT DISCHARGED.** The leaf asked for a control *"driven on BOTH
+engines"* and for a parser GENERATED from the breaking grammar observed rejecting
+`a = int'(2)'(3);`. What landed is the pass-level control, which is what pins the repair. The
+generated-parser observation belongs with **(e)**, where a grammar carrying the tags is actually
+built — and it is cheaper there, because (e) regenerates anyway. Recorded rather than quietly
+dropped.
+
+#### Acceptance Checklist (enforced) — `.50` (b) + (c) (`PGEN-ENGINE-UNIVERSAL-SERVICES-0094`)
+
+- [x] **REPRODUCE / ISSUE** — two ways, one synthetic and one real. Synthetic:
+  `cargo test --lib two_crossing_dialect_gates` on HEAD → `FAILED … left: [] right: ["prim"]`, the
+  whole candidate abandoned. Real: `./rust/target/debug/ast_pipeline tmp/…/sv_c4tag.ebnf
+  --lint-grammar` → `left_recursion_unhandled=15 … left_recursion_eliminated=3`, 1513 rules, against
+  the tracked grammar's `0` / `4` / 1537.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `route_profile_gate`'s `None => Err(...)` arm
+  (`rust/src/ast_pipeline/indirect_lr_elimination.rs`), whose `Err` the caller propagates with `?`,
+  so ONE crossing route abandons the ENTIRE elimination candidate. WHY: the route's constraint is the
+  INTERSECTION of the `@profiles` lists along it, and the pass would only ever COPY a gate verbatim,
+  so an intersection no rule declares had no expressible gate. `PGEN_INDIRECT_LR_GATE_DUMP=1
+  … --lint-grammar` names it per route — `verdict=REFUSED-CROSSING … intersection=sv_2017
+  donor=false` on 4 routes of the tagged grammar — and the same dump refutes the comment's excuse
+  (*"dialect gates nest"*) at **10 of 44** routes already crossing on the tracked grammars.
+- [x] **FIX** — fix-hierarchy tier: **engine**, and the lower tiers cannot express it (the gate lives
+  on a rule the PASS invents, which no grammar author can annotate). Option (i) per `(a)`'s ruling:
+  synthesize the computed intersection through the frontend's own `from_named_payload`. Option (ii),
+  copying from a SUPERSET, was refused on soundness — both declared lists are supersets of
+  `["sv_2017"]` and copying either admits a parse the route cannot derive.
+- [x] **ADDRESSED (verified)** — control **RED → GREEN** (`left: []` → `ok`), and on the real
+  breaking grammar `left_recursion_unhandled` **15 → 0**, `left_recursion_eliminated` **3 → 4**,
+  rules **1513 → 1537**, `REFUSED-CROSSING` **4 → 0**. The tracked grammar is UNMOVED
+  (`unhandled=0`, `eliminated=4`).
+- [x] **NO REGRESSION** — `make -C rust SHELL=/bin/bash lib_unit_test_gate` **1133 passed / 0
+  failed** (1132 + the new control); `make -C rust SHELL=/opt/homebrew/bin/bash
+  clippy_on_rust_change` clean; `bash scripts/check_doctrines.sh` ALL 28 PASS;
+  `generated_reproducibility_rebaseline` re-derived **11/11 artifacts byte-identically** — which is
+  the measurement behind *"inert on everything that ships"*, not an argument for it.
+- [x] **LOCKSTEP** — `TOOLBOX.md` §5.5's dump entry updated to record the repair; book / contract /
+  ledger / schema **N/A**: no grammar, no generated parser, no published status and no downstream
+  surface moved. The capability change becomes user-visible only when a grammar exercises it, which
+  is `(e)`.
+

@@ -1171,6 +1171,14 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   necessary, and the protection is coincidental: adding the ONE `@profiles` tag the lint itself
   derives for `constant_cast` moves refusals **0 → 4**, elimination **4 → 3** and
   `left_recursion_unhandled` **0 → 15**, from a single annotation.
+- ✅ **`REFUSED-CROSSING` IS NOW UNREACHABLE, AND THE VERDICT IS KEPT AS AN OBSERVABLE**
+  (`ENGINE-UNIVERSAL-SERVICES.50`(b)): the pass SYNTHESIZES the intersection onto the clone instead
+  of abandoning the candidate, so on that same one-tag grammar `left_recursion_unhandled` goes
+  **15 → 0**, `left_recursion_eliminated` **3 → 4** and rules **1513 → 1537** — the synthesized
+  clones coming back. ⛔ The dump still prints the verdict because a future refusal would mean a
+  route whose constraint cannot be expressed at all, which is worth seeing rather than inferring.
+
+
 - ⭐ **`--no-eliminate-indirect-left-recursion` is the A/B switch, and it is a MEASUREMENT switch, not a policy one.** A shipped parser is always generated with the pass on. It exists because every left-recursion counter this repository quotes (`--lint-grammar`'s headline, this survey's census) loses its "before" the moment the pass lands, and a before→after taken from two different binaries is not a measurement.
 - ⭐⭐ **`--indirect-lr-admit-starvation-safe-only` IS THE SECOND A/B LEVER, AND THE TWO ARE NOT THE SAME QUESTION** (`.17` slice 9). The first asks *"what if the indirect pass never ran?"*; this one asks *"what if it ran with the pre-flip ADMISSION?"* — the criterion every generated parser shipped under up to `PGEN-ENGINE-UNIVERSAL-SERVICES-0030`. Measured on one binary: `systemverilog` `left_recursion_unhandled` **28 under the lever → 0 shipped**, every other family 0 under both. ⛔ **It NARROWS, and a parser built with it REJECTS LRM-legal SystemVerilog** (`8'(1)` in a constant expression). It prints a loud banner at default verbosity for that reason; it is a measurement arm, never a way to build a deliverable, and no `make` target passes it. ⭐ It is also what keeps the `guard_feasibility` and `guard_dry_run` banks measuring their own subject: a census OF THE UNABSORBED KNOTS is empty once the knots are absorbed, and reading that emptiness as "option (iii) is free" would be exactly backwards.
 - **OUTPUT:** `=== INDIRECT-LR-SURVEY: '<grammar>' ===`, then per candidate `routes=/seeds=/clone_cost=/verdict=MAY-ABSORB|STARVED`, each route as `path -> base   suffix: …`, and each starvation site. `PGEN_INDIRECT_LR_DUMP_ALL=1` lifts the per-candidate print caps (3 routes / 5 sites / 5 declines).

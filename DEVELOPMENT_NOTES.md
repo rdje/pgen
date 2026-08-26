@@ -1,5 +1,44 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0094 — the pass was willing to ACT on a value it would not write down
+
+**1. ⭐⭐⭐ "NEVER SYNTHESIZE" WAS DEFENDING PROVENANCE ON A RULE THAT HAS NO PROVENANCE.** The
+refusal existed because *"a constructed annotation would be a second spelling of a directive whose
+only authoritative spelling is the grammar's."* That is a real principle, and it does not reach here:
+the annotation lands on `X_lr_suffix_rN`, a rule THIS PASS invented, which no author wrote and no
+author can annotate. There is no first spelling for the synthesized one to be second to. ⇒ **check
+that a principle's precondition holds before letting it veto**; a rule about authored artifacts says
+nothing about generated ones.
+
+**2. ⭐⭐ AND THE VALUE WAS ALREADY TRUSTED — just not recorded.** The same function computes the
+intersection and then abandons an entire elimination candidate on the strength of it. Refusing to
+WRITE DOWN a number you are willing to ACT on is not conservatism; it is a gap between what the code
+believes and what it will say. Naming that asymmetry is what made the ruling easy.
+
+**3. ⭐⭐ A CONTROL MUST FAIL FOR THE REASON YOU THINK, AND THE SIBLING TEST PROVES THE SHAPE
+MATTERS.** `a_profile_gate_survives_on_both_the_clone_and_the_suffix_route` has existed for a while
+and is green: it gates two twins to DISJOINT profiles on DIFFERENT routes. Superficially that is
+"two dialect gates on one cycle" — and it never touched the defect, because crossing needs both
+gates on the SAME route. ⇒ **when an existing test looks like it should already cover a defect, work
+out precisely which axis it varies.** Here it was route-membership, not gate-count.
+
+**4. ⭐⭐ PIN THE PATH THE FIX MUST *NOT* TAKE, in the same test.** The obvious over-fix is to
+synthesize the intersection always. It passes any test that only checks the crossing route, and it
+silently replaces every author's own `@profiles` spelling with a generated one — losing provenance
+for real this time. The control asserts the non-crossing sibling still carries its donor VERBATIM.
+**A test that only pins the new behaviour licenses the over-fix.**
+
+**5. ⭐ ASSERT THROUGH THE CONSUMER'S READER, NOT AGAINST A STRING.** The synthesized annotation only
+matters if the profile filter can read it back, so the control asserts
+`parse_semantic_string_list(payload_text()) == ["x"]` rather than comparing to a literal. String
+equality would have pinned MY spelling; the round-trip pins the property.
+
+**6. ⭐ "INERT ON EVERYTHING THAT SHIPS" IS A MEASUREMENT, AND IT WAS AVAILABLE FOR FREE.** The
+sizing slice had already counted 0 refusals across all 18 grammars, which PREDICTS zero shipped-byte
+movement. The rebaseline then re-derived 11/11 artifacts byte-identically. Prediction plus
+confirmation beats either alone: the count says the arm is unreachable, the digests say nothing else
+moved either.
+
 ## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0093 — the leaf told me the invariant that protects the pass, and the census it asked for showed the invariant does not hold and is not the one doing the protecting
 
 **1. ⭐⭐⭐ A SIZING TASK IS ALSO A TEST OF THE PREMISE THAT MADE IT WORTH SIZING.** `.50` was opened

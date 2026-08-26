@@ -1414,10 +1414,14 @@ fn compose_route_template(
 /// iterate byte-identical suffixes — so without the gate the sv_2017 branch would serve an sv_2023
 /// parse and stamp `kind: "sv_2017"` on its AST.
 ///
-/// ⭐ The gate is **copied verbatim** from the rule on the route whose declared list IS the
-/// intersection, never synthesized: a constructed annotation would be a second spelling of a
-/// directive whose only authoritative spelling is the grammar's. When no rule's list equals the
-/// intersection the route is refused, which is rare by construction — dialect gates nest.
+/// ⭐ The gate is **copied verbatim** whenever a rule on the route declares exactly the
+/// intersection — a copy is always preferable to a construction, because it carries the author's
+/// own spelling. ⛔ ENGINE-UNIVERSAL-SERVICES.50 (b): when no rule declares it, the intersection is
+/// **SYNTHESIZED** onto the clone rather than the whole candidate being refused. The refusal used
+/// to be defended as "rare by construction — dialect gates nest"; `.50`(a) censused that claim over
+/// all 18 tracked grammars and it is FALSE — **10 of 44** routes already cross (6 on
+/// `systemverilog`) and survive only because their intersection coincidentally equals a declared
+/// list. See the `None` arm for why synthesizing is sound and why copying a SUPERSET is not.
 /// ENGINE-UNIVERSAL-SERVICES.50 (a): the `@profiles` lists declared along a route, in hop order.
 ///
 /// Factored out of [`route_profile_gate`] so the SIZING dump and the gate decision read the SAME
@@ -1544,11 +1548,60 @@ fn route_profile_gate(
             annotation: annotation.clone(),
             profiles: profiles.clone(),
         }),
-        None => Err(format!(
-            "the route's @profiles intersection is {:?}, which no single rule on the route \
-             declares, so the gate cannot be copied verbatim",
-            intersection.iter().collect::<Vec<_>>()
-        )),
+        // ⭐⭐⭐ ENGINE-UNIVERSAL-SERVICES.50 (b): NO VERBATIM DONOR — SYNTHESIZE THE INTERSECTION.
+        //
+        // ⛔ THIS REPLACES A REFUSAL THAT SILENTLY COST REAL LANGUAGE. `?` propagated this `Err`
+        // out of the whole elimination candidate, so ONE crossing route abandoned the entire cycle
+        // — and `left_recursion_unhandled` is a WARNING, so `--lint-grammar` still exited 0.
+        // Measured by `.50`(a): the single `@profiles` tag the lint ITSELF derives for
+        // `constant_cast` moves SystemVerilog's elimination 4 → 3 and its unhandled cycles 0 → 15.
+        //
+        // ⛔⛔ AND THE OLD JUSTIFICATION FOR TOLERATING IT IS REFUTED. This function's comment said
+        // the case is "rare by construction — dialect gates nest". Censused over all 18 tracked
+        // grammars (`PGEN_INDIRECT_LR_GATE_DUMP=1`): 10 of 44 routes ALREADY cross, 6 of them on
+        // `systemverilog`, with 0 refusals — because nesting is SUFFICIENT for a verbatim donor and
+        // never NECESSARY. Those 10 survive only while their intersection happens to coincide with
+        // a declared list, which nothing in the grammar language, the annotation registry or this
+        // pass preserves. The protection was a coincidence, not an invariant.
+        //
+        // ⭐⭐ WHY SYNTHESIZING IS SOUND HERE, AND WHY THE SUPERSET ALTERNATIVE IS NOT. The rejected
+        // design was "copy from any rule whose list is a SUPERSET, refusing when ambiguous". On the
+        // real case the intersection is ["sv_2017"] and BOTH declared lists are supersets
+        // (["sv_2017","verilog_2005"], ["sv_2017","sv_2023"]) — copying either admits a parse the
+        // route cannot derive, which is the over-acceptance the gate exists to prevent, and the
+        // ambiguity clause then fires. It reduces to refusing.
+        //
+        // ⭐ THE PROVENANCE OBJECTION, ENGAGED RATHER THAN SKIPPED. The rule this annotation lands
+        // on is a CLONE this pass invented (`X_lr_suffix_rN`) — no author wrote it and no author can
+        // annotate it, so a gate on it has no authored spelling to be a second copy of. And the
+        // value is DERIVED, not invented: it is the intersection this function already computes and
+        // already trusted enough to abandon a whole candidate over. The pass was willing to ACT on
+        // this number; it just would not write it down.
+        //
+        // Built through `from_named_payload`, the frontend's own normalizer, so the result is
+        // indistinguishable downstream from an authored `@profiles` — and
+        // `two_crossing_dialect_gates_on_one_route_still_eliminate_the_cycle` asserts it parses back
+        // through `parse_semantic_string_list`, the SAME reader the profile filter uses.
+        None => {
+            let profiles: Vec<String> = intersection.iter().cloned().collect();
+            let payload = format!(
+                "[{}]",
+                profiles
+                    .iter()
+                    .map(|p| format!("\"{p}\""))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
+            Ok(RouteGate::Gated {
+                annotation: SemanticAnnotation::Named {
+                    name: "profiles".to_string(),
+                    ast: super::unified_semantic_ast::UnifiedSemanticAST::from_named_payload(
+                        "profiles", &payload,
+                    ),
+                },
+                profiles,
+            })
+        }
     }
 }
 
@@ -2941,6 +2994,135 @@ mod tests {
         assert!(
             detect_left_recursion(&grammar, &order).is_empty(),
             "the rewritten grammar must carry no left recursion at all"
+        );
+    }
+
+    /// ⛔⛔⛔ **ENGINE-UNIVERSAL-SERVICES.50 (c) — TWO CROSSING DIALECT GATES ON ONE ROUTE.**
+    ///
+    /// The sibling test below gates two twins to DISJOINT profiles on DIFFERENT routes, which every
+    /// grammar in the tree does and which the pass has always handled. This one puts two gates whose
+    /// lists CROSS — neither contains the other — on the SAME route, so the route's constraint is
+    /// their intersection and **no single rule on the route declares it**.
+    ///
+    /// ⛔ Before `.50`(b) this made `route_profile_gate` return `Err`, which `?` propagates, so the
+    /// WHOLE elimination candidate was abandoned and the cycle survived — silently, because
+    /// `left_recursion_unhandled` is a WARNING and the lint still exits 0. Measured on the shipped
+    /// grammar by `.50`(a): the single `@profiles` tag `--lint-grammar` itself derives for
+    /// `constant_cast` moves SystemVerilog's elimination 4 → 3 and its unhandled cycles 0 → 15.
+    ///
+    /// ⭐ `.50`(a) also refuted the reason the pass gave for thinking this rare (*"dialect gates
+    /// nest"*): 10 of 44 routes across the tracked grammars already cross, and they survive only
+    /// because their intersection happens to coincide with a declared list. This control removes
+    /// that coincidence, which is the whole point — a control that passes before the fix is not a
+    /// control.
+    #[test]
+    fn two_crossing_dialect_gates_on_one_route_still_eliminate_the_cycle() {
+        use crate::ast_pipeline::unified_semantic_ast::UnifiedSemanticAST;
+
+        let profiles = |list: &str| SemanticAnnotation::Named {
+            name: "profiles".to_string(),
+            ast: UnifiedSemanticAST::Raw {
+                content: format!("[{list}]"),
+            },
+        };
+
+        let mut grammar = HashMap::new();
+        grammar.insert("scratch".to_string(), rule("prim"));
+        grammar.insert(
+            "prim".to_string(),
+            ASTNode::Or {
+                alternatives: vec![rule("prim_a"), rule("prim_b")],
+            },
+        );
+        for (twin, seed) in [("prim_a", "lit_a"), ("prim_b", "lit_b")] {
+            grammar.insert(
+                twin.to_string(),
+                ASTNode::Or {
+                    alternatives: vec![rule(seed), rule("cast_expr")],
+                },
+            );
+        }
+        grammar.insert(
+            "cast_expr".to_string(),
+            ASTNode::Sequence {
+                elements: vec![rule("ct"), text("'"), text("("), rule("lit_a"), text(")")],
+            },
+        );
+        grammar.insert("ct".to_string(), rule("prim"));
+        grammar.insert("lit_a".to_string(), text("n"));
+        grammar.insert("lit_b".to_string(), text("m"));
+        let mut order: Vec<String> = [
+            "scratch", "prim", "prim_a", "prim_b", "cast_expr", "ct", "lit_a", "lit_b",
+        ]
+        .iter()
+        .map(|name| name.to_string())
+        .collect();
+
+        let mut annotations = Annotations::default();
+        // ⭐ THE CROSSING. `prim_a` admits {x, y}; `cast_expr`, which route 0 must pass through,
+        // admits {x, z}. Neither list contains the other and the intersection is {x}, which NO rule
+        // on the route declares — the exact shape `constant_primary_sv_2017` (["sv_2017",
+        // "verilog_2005"]) and a tagged `constant_cast` (["sv_2017", "sv_2023"]) produce.
+        annotations
+            .semantic_annotations
+            .insert("prim_a".to_string(), vec![profiles("\"x\", \"y\"")]);
+        annotations
+            .semantic_annotations
+            .insert("cast_expr".to_string(), vec![profiles("\"x\", \"z\"")]);
+        annotations.branch_return_annotations.insert(
+            "prim".to_string(),
+            vec![
+                annotation(object(vec![("kind", literal("a")), ("body", positional(1))])),
+                annotation(object(vec![("kind", literal("b")), ("body", positional(1))])),
+            ],
+        );
+        annotations.branch_return_annotations.insert(
+            "cast_expr".to_string(),
+            vec![annotation(object(vec![
+                ("type", positional(1)),
+                ("body", positional(4)),
+            ]))],
+        );
+
+        let outcome =
+            eliminate_indirect_left_recursion(&mut grammar, &mut order, Some(&mut annotations));
+        assert_eq!(
+            outcome.eliminated_base_rules,
+            vec!["prim"],
+            "a crossing gate must not abandon the whole candidate — the cycle is real and the \
+             route's constraint is expressible as the intersection"
+        );
+        assert!(
+            detect_left_recursion(&grammar, &order).is_empty(),
+            "the rewritten grammar must carry no left recursion at all"
+        );
+
+        let gate_of = |rule: &str| -> Option<String> {
+            annotations
+                .semantic_annotations
+                .get(rule)
+                .and_then(|entries| entries.first())
+                .map(|entry| entry.ast().payload_text().to_string())
+        };
+
+        // ⭐⭐ THE ROUTE THROUGH BOTH GATES CARRIES THEIR INTERSECTION, not either list. Copying
+        // `prim_a`'s would admit a `y` parse the route cannot derive; copying `cast_expr`'s would
+        // admit a `z` parse — which is exactly why the SUPERSET-donor design was refused.
+        let crossing = gate_of("prim_lr_suffix_r0").expect("route 0 must carry a profile gate");
+        assert_eq!(
+            super::super::semantic_directive_registry::parse_semantic_string_list(&crossing),
+            Some(vec!["x".to_string()]),
+            "the crossing route's gate must be the INTERSECTION, and it must parse back through the \
+             SAME reader the profile filter uses: {crossing:?}"
+        );
+
+        // And the non-crossing route is untouched: only `cast_expr` gates it, so its list is copied
+        // verbatim exactly as before — the fix must not synthesize where a donor already exists.
+        let plain = gate_of("prim_lr_suffix_r1").expect("route 1 must carry a profile gate");
+        assert_eq!(
+            super::super::semantic_directive_registry::parse_semantic_string_list(&plain),
+            Some(vec!["x".to_string(), "z".to_string()]),
+            "a route with a verbatim donor must still copy it verbatim: {plain:?}"
         );
     }
 
