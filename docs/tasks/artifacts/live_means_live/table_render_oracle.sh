@@ -47,8 +47,16 @@ printf '[book]\ntitle = "render oracle"\nsrc = "src"\n' > "$W/book.toml"
 printf '# S\n\n- [t](./t.md)\n' > "$W/src/SUMMARY.md"
 cp "$FILE" "$W/src/t.md"
 mdbook build "$W" >"$W/build.log" 2>&1 || { echo "render-oracle: mdbook failed, see $W/build.log" >&2; exit 2; }
+# ⛔ `-tex_math_dollars` IS REQUIRED FOR A FAIR GFM COMPARISON, AND LEAVING IT ON COSTS A FALSE
+#   DISAGREEMENT. pandoc's `gfm` reader enables TeX math on `$…$`, which is NOT part of GFM and which
+#   pulldown-cmark (and GitHub's cmark-gfm) do not implement. MEASURED on `docs/TASK_TREE.md`: a
+#   SystemVerilog identifier containing `$` (`PATHPULSE$ = 3`, plus a later `` `$` ``) let pandoc pair
+#   two dollars ACROSS the intervening code spans and swallow them — 111 code spans in that cell
+#   against pulldown-cmark's far larger count, and one cell reported as defective. With the extension
+#   off, pandoc reads **0 of 335** — exactly mdbook. Reported as a document defect it would have sent
+#   a reader to "repair" correct markdown; it is a READER-EXTENSION artifact.
 if command -v pandoc >/dev/null 2>&1; then
-  pandoc -f gfm -t html "$FILE" -o "$W/pandoc.html" 2>"$W/pandoc.log" || true
+  pandoc -f gfm-tex_math_dollars -t html "$FILE" -o "$W/pandoc.html" 2>"$W/pandoc.log" || true
 fi
 
 FILE="$FILE" IDX="$IDX" W="$W" python3 - <<'PY'

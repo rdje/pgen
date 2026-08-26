@@ -1,5 +1,49 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-27 - PGEN-LIVE-DOC-CONTAINMENT-0016 — a count is not a schema, and writing about a defect is the highest-risk moment for creating one
+
+**1. ⭐⭐⭐ TWO ROWS PASSED THE ARITY DOCTRINE AND WERE STILL WRONG, AND BOTH ARE IN ITS OWN FOUNDING
+POPULATION.** `GENERATED-LINT-CORRECTNESS` carried an OVER and an UNDER that **cancelled** — a `|`
+inside a regex code span split its Status cell in two, and the row was separately missing
+`Current frontier` — netting to exactly the declared 5. `LANG-CAPABILITY-AUDIT` had a boundary in the
+**wrong place at the right count**: `-0011`'s mechanical arm escaped the real separator standing
+before the `File` link and left a real in-span `` `\|` `` unescaped, so the `File` column was
+swallowed into the frontier cell while the row still counted 5. ⇒ **a cell count is a checksum, not a
+schema**; it cannot see a compensating pair, and it cannot see a correctly-sized row whose contents
+are in the wrong columns. Owned by `LIVE-DOC-CONTAINMENT.11`, with both rows as RED controls.
+
+**2. ⭐⭐ WHAT FOUND THEM WAS A SEMANTIC SIGNAL, EVERY TIME.** The cancelling pair surfaced through the
+rendered-backtick arm (the split left an unpaired backtick); the mis-placed boundary surfaced because
+the last cell no longer *was* the `File` link; a third defect — `LIVE-MEANS-LIVE` pointing at
+`docs/docs/tasks/…`, a path that does not exist — surfaced from a column predicate. None of the three
+is visible to counting, and all three predicates were already written and tracked. ⇒ when a
+structural check passes and the artifact still looks wrong, reach for a property of the CONTENT, not
+a finer count.
+
+**3. ⭐⭐⭐ WRITING THE TRACKER ROW THAT DESCRIBES THIS DEFECT INTRODUCED TWO FRESH INSTANCES OF IT.**
+Documenting *"a `\|` inside a regex code span"* and *"a real in-span `` `\|` ``"* put two unescaped
+pipes inside code spans in the same edit; the census went `OVER 0 → 1` and the row's widest reading
+went 7, then 6, then 0 as each was escaped. It is the third such occurrence in this tree —
+`SV-CORPUS-GRAD.13e.4` authored a 14-column row by copying its 14-column neighbour, and `-0014`
+shipped `` `` `` `` (an empty code span) while documenting the token-paste operator. ⇒ **the class
+propagates by imitation, and the highest-risk commit is the one that documents it**, which is the
+argument for a gate on every commit rather than a census someone remembers to run.
+
+**4. ⚠️ AN OBVIOUS HYPOTHESIS SURVIVED AN ISOLATED REPRODUCTION AND WAS STILL WRONG.** pandoc and
+mdbook disagreed on one cell. The suspicion — pandoc's `gfm` reader enables TeX math on `$…$`, which
+GFM does not have — was tested on a minimal two-row table carrying the same sentence, and pandoc
+rendered it **correctly**, which reads as an exoneration. Only the whole-file A/B settled it:
+`pandoc -f gfm` reads 1 of 335, `pandoc -f gfm-tex_math_dollars` reads **0 of 335**, exactly mdbook.
+⇒ **a minimal repro that passes does not clear a hypothesis when the mechanism is non-local** — the
+`$` that paired was in a different part of the same cell.
+
+**5. ⭐ TEXT THAT WAS LOST TO AN EDIT IS RECOVERABLE, AND RESTORING IT BEATS REWORDING IT.**
+`SV-CORPUS-GRAD` carried a dangling `` … simple_identifier` `` whose opening half a later edit had
+deleted; `git log -S` on the surviving fragment found the original at `fc6aa8f9` and it was restored
+verbatim. Similarly, a truncated `docs/decisions/INDEX.md` summary was restored from the record's own
+`description:` field — the authority the index summarises. ⇒ before authoring a repair for missing
+prose, look for the prose; a tracked file and an append-only history usually still have it.
+
 ## 2026-08-27 - PGEN-LIVE-DOC-CONTAINMENT-0015 — the population you sized decides the shape of the gate, not the severity of the defect
 
 **1. ⭐⭐⭐ THE SIZING IS WHAT MADE A BLOCKING GATE AFFORDABLE, AND IT ALMOST ARGUED THE OTHER WAY.**
