@@ -7,13 +7,14 @@
 #   fewer is silently padded. A census that sweeps a whole FILE with one row pattern compares every
 #   row against the FIRST table's header and answers about a population that does not exist.
 #   MEASURED on `docs/TASK_TREE.md`: the unbounded sweep sees 120 rows across FOUR tables and calls
-#   25 of them wrong; the per-table census sees 67 + 18 + 27 + 8 and finds all 17 defects in table 1,
-#   with tables 2, 3 and 4 clean. The leaf's own earlier note recorded "14 of its 112 tree rows",
-#   which is the unbounded denominator — a right observation with a wrong population.
+#   25 of them wrong; the per-table census sees 67 + 18 + 27 + 8 and finds every arity defect in
+#   table 1 (14 OVER + 2 UNDER), with tables 2, 3 and 4 clean. The leaf's own earlier note recorded
+#   "14 of its 112 tree rows", which is the unbounded denominator — a right observation with a
+#   wrong population.
 #
 # ⛔⛔ AN ESCAPED `\|` IS NOT A SEPARATOR, AND GETTING THAT WRONG INFLATES THE ANSWER BY 3.8x.
 #   The first cut of this script split on EVERY `|` and reported **94 of 197** ledger rows over-wide
-#   against the leaf's recorded **25 of 192**. The difference is not drift: **75** ledger rows carry a
+#   against the leaf's then-recorded **25**. The difference is not drift: **75** ledger rows carry a
 #   deliberately escaped `\|`, which GFM renders as a literal pipe INSIDE a cell and never as a
 #   column break — so the naive splitter was counting the FIX as the defect, and would have sent an
 #   author to re-escape rows that are already correct. Escaped pipes are masked before splitting here.
@@ -45,20 +46,39 @@ done
 for f in "${files[@]}"; do
   [ -r "$f" ] || { printf 'table-arity: %s is unreadable — REPORTED, not skipped silently\n' "$f"; continue; }
   printf '\n== %s ==\n' "$f"
-  awk -F'|' -v show="$SHOW_ROWS" '
-    # ⛔ Mask `\|` FIRST: it is a literal pipe in a cell, not a column break. Done on a copy so the
-    # reported row text stays verbatim, and with a byte no markdown table can contain.
-    { raw = $0; masked = raw; gsub(/\\\|/, "\001", masked); $0 = masked }
+  awk -v show="$SHOW_ROWS" '
+    # ⛔ Mask `\|` FIRST: it is a literal pipe in a cell, not a column break. Masking happens
+    # inside the helpers, on a copy, so the reported row text stays verbatim.
+    #
+    # ⛔⛔ THE LEADING AND TRAILING PIPES ARE **BOTH OPTIONAL** IN GFM, AND DERIVING THE COUNT FROM
+    #   awk`s NF GETS THAT WRONG IN THE FALSE-NEGATIVE DIRECTION. `NF-2` assumes a pipe at each end;
+    #   a row that omits the trailing one has NF one lower, so an over-wide row is reported at
+    #   exactly the declared arity and DISAPPEARS from the census. MEASURED, and it had already
+    #   corrupted this leaf`s published figure: `REGEX-0098` in the bug ledger omits its trailing
+    #   pipe, renders 14 cells against a 13-column header, LOSES its Notes cell in both renderers,
+    #   and the `NF-2` census called it healthy — which is how the leaf came to publish **25 of 197**
+    #   for a population that is **26**. The same bug read `README-POLICY` in the resume index as a
+    #   4-cell UNDER row when it carries 5, and `SV-CORPUS-GRAD` at 21 when it carries 22.
+    function cellcount(s,   arr) {
+      gsub(/\\\|/, "\001", s)
+      sub(/^[[:space:]]*\|/, "", s); sub(/\|[[:space:]]*$/, "", s)
+      return split(s, arr, /\|/)
+    }
+    function firstcell(s,   arr) {
+      gsub(/\\\|/, "\001", s)
+      sub(/^[[:space:]]*\|/, "", s); split(s, arr, /\|/)
+      return arr[1]
+    }
     /^\| *:?-+:? *\|/ { next }                      # the header separator row
     /^\|/ {
-      if (prev !~ /^\|/) { tbl++; hdr[tbl]=NF-2; start[tbl]=NR; prev=$0; next }
+      if (prev !~ /^\|/) { tbl++; hdr[tbl]=cellcount($0); start[tbl]=NR; prev=$0; next }
       if (!tbl) { prev=$0; next }
-      rows[tbl]++; c=NF-2
+      rows[tbl]++; c=cellcount($0); nm=firstcell($0)
       if (c > hdr[tbl]) { over[tbl]++
-        if (c > mx[tbl]) { mx[tbl]=c; mxn[tbl]=$2 }
-        if (show) printf "   OVER  line %-5d %2d cols (header %d, drops %d): %s\n", NR, c, hdr[tbl], c-hdr[tbl], substr($2,1,38) }
+        if (c > mx[tbl]) { mx[tbl]=c; mxn[tbl]=nm }
+        if (show) printf "   OVER  line %-5d %2d cols (header %d, drops %d): %s\n", NR, c, hdr[tbl], c-hdr[tbl], substr(nm,1,38) }
       else if (c < hdr[tbl]) { under[tbl]++
-        if (show) printf "   UNDER line %-5d %2d cols (header %d): %s\n", NR, c, hdr[tbl], substr($2,1,38) }
+        if (show) printf "   UNDER line %-5d %2d cols (header %d): %s\n", NR, c, hdr[tbl], substr(nm,1,38) }
     }
     { prev=$0 }
     END {

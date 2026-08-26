@@ -8,19 +8,23 @@
 #   available here — `mdbook` (pulldown-cmark, the one this project actually publishes through) and
 #   `pandoc` (an independent implementation) — and reports the cells they really emit.
 #
-# ⛔ IT EARNED ITS KEEP IMMEDIATELY. Run against `docs/TASK_TREE.md` it settled three things the
-#   census could not:
-#     1. **15 of 67** rows lose their `File` link in the rendered HTML — both renderers agreeing
-#        row-for-row. The census counts **14 over-wide + 3 under-wide = 17** arity-defective rows, so
-#        the census is a SOUND but not EXACT predictor: **0 false negatives, 2 false positives**
-#        (`RGX-0078`, `DOCTRINE-GAP-OWNERSHIP` are over-wide yet still render their link, because
-#        their surplus cell is trailing). Zero false negatives is the safe direction for a gate.
-#     2. `\|` inside a code span in a table cell renders as a LITERAL pipe and does NOT split the
+# ⛔ IT EARNED ITS KEEP IMMEDIATELY, AND THEN IT CAUGHT THE CENSUS. What it has settled:
+#     1. `\|` inside a code span in a table cell renders as a LITERAL pipe and does NOT split the
 #        row — in BOTH renderers. That is what makes the repair `|` -> `\|` and nothing else.
-#     3. ⚠️ `\\|` is NOT portable. pulldown-cmark renders it as a literal `\|` and does NOT split;
+#     2. ⚠️ `\\|` is NOT portable. pulldown-cmark renders it as a literal `\|` and does NOT split;
 #        it is the one sequence where a re-implementation and a renderer can disagree. `SV-0066` is
 #        the only row carrying it, it renders at the declared 13 cells, and it is therefore NOT
 #        defective — a row a naive fixer would have "repaired" into a real defect.
+#     3. ⛔⛔ **THE CENSUS HAD A FALSE NEGATIVE, AND ONLY THE RENDERER COULD SHOW IT.** The tail
+#        probe below reads the bug ledger at **26** rows losing their final authored cell; the
+#        `NF-2` census read **25**, because `REGEX-0098` omits its trailing pipe and GFM makes that
+#        pipe OPTIONAL. An earlier revision of this header claimed the census had "0 false
+#        negatives" — that was measured on `docs/TASK_TREE.md` alone and did not generalise. It is
+#        corrected here rather than left standing: a claim about an instrument is a claim.
+#     4. Cell COUNT in the render is useless as a defect signal — GFM truncates every over-wide row
+#        to the header width, so healthy and defective rows both report the declared arity. The
+#        question a reader cares about is whether the AUTHORED TAIL is still on the page, which is
+#        what this tool now asks.
 #
 # ⚠️ HONEST LIMIT: it reports what THESE two renderers do. GitHub.com runs cmark-gfm, which is not
 #   installed here; where the two available implementations agree, a third disagreeing is unlikely
@@ -48,7 +52,7 @@ if command -v pandoc >/dev/null 2>&1; then
 fi
 
 FILE="$FILE" IDX="$IDX" W="$W" python3 - <<'PY'
-import os, re
+import os, re, html
 W=os.environ['W']; idx=int(os.environ['IDX']); src_file=os.environ['FILE']
 
 def analyse(path,label):
@@ -66,9 +70,41 @@ def analyse(path,label):
         tds=re.findall(r'<td(?:\s[^>]*)?>(.*?)</td>', r, re.S)
         if not tds: continue
         name=re.sub(r'<[^>]+>','',tds[0]).strip().strip('` ')
-        res[name]=(len(tds), tds[-1])
-    print(f"  {label}: header cols={len(ths)}  body rows={len(res)}  cells/row={sorted({c for c,_ in res.values()})}")
+        res[name]=(len(tds), tds[-1], html.unescape(re.sub(r'<[^>]+>', ' ', ' '.join(tds))))
+    print(f"  {label}: header cols={len(ths)}  body rows={len(res)}  cells/row={sorted({c for c,_,_ in res.values()})}")
     return res
+
+
+def source_rows(path, want):
+    """The table's rows AS WRITTEN, split the way GFM splits them (escaped `\\|` is not a break)."""
+    sep = re.compile(r'^\| *:?-+:? *\|')
+    out, n, inside, prev = {}, 0, False, False
+    for line in open(path, encoding='utf-8').read().split('\n'):
+        isp = line.startswith('|')
+        if isp and sep.match(line):
+            prev = True
+            continue
+        if isp and not prev:
+            n += 1
+            inside = (n == want + 1)
+        elif isp and inside:
+            cells = [c.replace('\x01', '\\|') for c in line.replace('\\|', '\x01').split('|')]
+            if cells and cells[0].strip() == '': cells = cells[1:]
+            if cells and cells[-1].strip() == '': cells = cells[:-1]
+            if cells: out[cells[0].strip().strip('` ')] = cells
+        prev = isp
+    return out
+
+
+def key(x):
+    """Alphanumeric-only comparison key.
+
+    ⛔ mdbook applies SMART PUNCTUATION (`'`->U+2019, `"`->U+201C/D), so any probe that compares
+    punctuation reports the RENDERER'S TYPOGRAPHY as content loss. Measured: comparing raw text
+    false-positived 11 healthy ledger rows (`SV-0015`..`SV-0020`, `REGEX-0078`, `RTL-FE-0002`,
+    `SV-0053`, `SV-0064`) before this normalisation, at 36 reported against a true 26.
+    """
+    return re.sub(r'[^0-9A-Za-z]', '', re.sub(r'\[([^\]]*)\]\([^)]*\)', r'\1', x))
 
 print(f"== rendered arity oracle: {src_file} (table {idx}) ==")
 a=analyse(f"{W}/book/t.html", "mdbook (pulldown-cmark)")
@@ -78,8 +114,26 @@ if a is None:
 if b is not None:
     only=[k for k in a if (a[k][0]!=b.get(k,(None,))[0])]
     print(f"  renderers agree on cells/row for {len(a)-len(only)} of {len(a)} rows" + (f"; DISAGREE on {only}" if only else ""))
-# A row whose LAST rendered cell no longer looks like the header's last column is losing content.
-lost=[k for k,(c,last) in a.items() if 'tasks/' not in last and '](' not in last]
-print(f"  rows whose last rendered cell is NOT a link (content lost): {len(lost)}")
-for k in sorted(lost): print(f"     {k}")
+
+# ⭐ THE ACCEPTANCE TEST ITSELF, ASKED OF THE RENDERER: does the row's FINAL AUTHORED CELL survive?
+#   Cell COUNT cannot answer it — GFM truncates every over-wide row to the header width, so the
+#   render reports the declared arity for healthy and defective rows alike. What separates them is
+#   whether the tail the author wrote is still on the page. This is table-shape agnostic and
+#   replaces the earlier `docs/TASK_TREE.md`-specific "last cell is a link" heuristic, which could
+#   not be pointed at the bug ledger (whose last column is free prose) and which also flagged the
+#   three SHORT rows, a different defect.
+src = source_rows(src_file, idx)
+lost = []
+for name, cells in src.items():
+    tail = key(cells[-1])[-40:]
+    if tail and tail not in key(a.get(name, (0, '', ''))[2]):
+        lost.append((name, len(cells), tail))
+print(f"  rows whose FINAL AUTHORED CELL is ABSENT from the render (content LOST): {len(lost)} of {len(src)}")
+for name, c, tail in sorted(lost):
+    print(f"     {name:34s} {c:3d} source cells  missing tail: …{tail}")
+if b is not None:
+    lb = {n for n, cells in src.items()
+          if key(cells[-1])[-40:] and key(cells[-1])[-40:] not in key(b.get(n, (0, '', ''))[2])}
+    la = {n for n, _, _ in lost}
+    print(f"  the two renderers agree on the lost set: {la == lb}" + ("" if la == lb else f"  mdbook-only={sorted(la-lb)} pandoc-only={sorted(lb-la)}"))
 PY

@@ -1,5 +1,51 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-27 - PGEN-LIVE-DOC-CONTAINMENT-0011 — the optional half of a delimiter is where a census goes blind
+
+**1. ⭐⭐⭐ A COUNT DERIVED FROM A FIELD SPLITTER INHERITS THAT SPLITTER'S ASSUMPTION ABOUT THE EDGES,
+AND THE EDGE IS EXACTLY WHERE THE SPEC SAYS "OPTIONAL".** `table_arity_census.sh` computed a GFM row's
+cell count as awk's `NF-2` under `-F'|'` — subtract the empty field before the leading pipe and the
+empty field after the trailing one. That is correct for every row that HAS both pipes, and GFM makes
+both **optional**. A row omitting the trailing pipe has one fewer field, so it counts one cell LOW,
+reads at exactly the declared arity, and vanishes from a census whose whole job is to find rows that
+do not. The failure is in the **passing** direction and leaves no trace: no build breaks, no gate
+reddens, and the rendered page looks fine because a dropped cell leaves no gap. ⇒ **when you
+re-implement a spec's tokenizer to count something, enumerate what the spec marks OPTIONAL and write
+a case for each — the optional element is not an edge case of the format, it is the blind spot of
+every counter built on the mandatory one.**
+
+**2. ⭐⭐ THE INSTRUMENT WAS CAUGHT BY A SECOND INSTRUMENT THAT DISAGREED, NOT BY RE-READING IT.** The
+census and the repair tool were written independently against the same rule and answered **25** and
+**26** on the same file. Re-reading either one would have found nothing — both are short, both look
+right, and the disagreement is one row out of 197. What settled it was neither: it was the RENDERER,
+which reports what a reader actually loses, and which said 26. ⇒ **two implementations of the same
+rule are worth more than one careful implementation, and an oracle outside both is worth more than
+the pair** — the three-way rule (re-derive · falsify against an oracle you did not build · durability)
+applied to an instrument rather than to a number.
+
+**3. ⛔ AN "INSTRUMENT HAS 0 FALSE NEGATIVES" CLAIM IS A CENSUS CLAIM AND CARRIES ITS POPULATION.**
+`-0010` published that the arity census had *"0 false negatives, 2 false positives"*. It was true —
+**on `docs/TASK_TREE.md`**, the only file the oracle had been pointed at. Applied to the ledger it was
+false. The sentence did not say which file, so it read as a property of the instrument. ⇒ **a
+measured property of a tool is scoped to the population it was measured over, and the scope belongs
+IN the sentence**; this is the same shape as
+[[an-x-is-checked-by-nothing-claim-is-a-census-claim]], one level up — about the checker instead of
+about the tree.
+
+**4. ⭐ A MECHANICAL REPAIR SHOULD BE ABLE TO SAY "I DO NOT KNOW", AND LANDING SHORT IS HOW.** The
+repair escapes pipes inside code spans and accepts the result only if the row lands on EXACTLY the
+declared arity. 10 of 40 rows landed BELOW it. That is not a failure of the rule — it is the rule
+reporting that the backtick runs in those rows do not pair the way the author intended, i.e. an odd
+backtick or a genuinely invented cell. A fixer that had merely counted DOWN to the target would have
+written all 40 and corrupted 10 of them inside a contract this project ships.
+
+**5. ⚠️ A RENDERER IS AN ORACLE FOR CONTENT, NOT FOR TYPOGRAPHY.** mdbook applies smart punctuation,
+so the first cut of the tail probe reported 36 lost rows against a true 26 — 11 healthy rows flagged
+because `'` had become `’`. The probe was comparing the renderer's editorial choices, not the
+author's content. Reducing the comparison key to alphanumerics removed the whole class. ⇒ **when you
+diff source against render, normalise away everything the renderer is ALLOWED to change first, or the
+oracle reports its own licence as your defect.**
+
 ## 2026-08-26 - PGEN-DOCTRINE-GAP-OWNERSHIP-0296 — a guard you have not replayed against real history is a guard calibrated against a phrasing nobody wrote
 
 **1. ⭐⭐⭐ THE RETRACTION'S PARAPHRASE WAS NOT THE SENTENCE, AND BUILDING AGAINST THE PARAPHRASE WOULD
