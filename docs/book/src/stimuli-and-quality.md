@@ -559,21 +559,61 @@ profile that did not exist when anyone wrote it. Nothing re-checked it for 54 da
 > wider language becomes a candidate defect the moment the narrower profile exists.
 
 **What to do when you add a profile to an existing grammar.** Re-check every literal-bearing
-annotation against it — the population is small and the check is one command per `(sample, profile)`
-pair:
+annotation against it. This is one command, over every grammar in the tree:
 
 ```bash
-ast_pipeline <grammar> --dump-gen-ast ga.json      # the samples, from the frontend, not from grep
-ast_pipeline <grammar> --dump-rule-profiles rp.json # which profiles each rule is live in
-ast_pipeline <grammar> --interpret-parse s.txt --interpret-entry-rule <R> --grammar-profile <P>
+python3 docs/tasks/artifacts/sv_corpus_grad/sample_profile_parity/sample_profile_parity.py \
+    --grammar grammars/<g>.ebnf          # 0 defects = every sample parses where its branch is live
+python3 docs/tasks/artifacts/sv_corpus_grad/sample_profile_parity/sample_profile_parity.py \
+    --self-test                          # prove the refusals fire before trusting a green run
 ```
 
-⛔ Read the samples out of the **gen-AST**, never by grepping the `.ebnf`: an annotation binds to the
-*next* rule, so a regex census miscounts exactly where it matters. And note that
-`--dump-rule-profiles`' `satisfiable_under` is **rule**-level while most `@sample`s are
-**branch**-level — a branch can be dead under a profile while its rule is live, so a raw join
-over-reports. Adjudicate each hit by substituting the other profile's spelling and requiring the
-repair to *accept*; if it still rejects, the branch is dead there and the sample was honest.
+It reads the sample population from the gen-AST, joins it against per-branch profile satisfiability,
+and drives `--interpret-parse` once per `(sample × live profile)` — SystemVerilog's 52 samples come
+to 101 checks in about two and a half minutes. A grammar that declares no `@profiles` reports **NOT
+EVALUATED, loudly** — never a pass.
+
+### ⛔ Join on the BRANCH, never on the rule
+
+`@profiles` is a **rule**-level annotation, but most `@sample`s are **branch**-level. The profile
+filter removes rules, so a rule survives under a profile as long as *some* alternative survives —
+while its other alternatives are dead there, and their samples are then honestly unparseable. Join a
+per-branch fact against the rule's `satisfiable_under` and you inherit that gap as false positives.
+
+This is not a small effect. Measured over the SystemVerilog grammar:
+
+| join | checks | reported | true defects | false positives |
+|---|---|---|---|---|
+| rule-level (`satisfiable_under`) | 115 | 8 | **0** | **8 — every row it produced** |
+| branch-level (`branch_satisfiable_under`) | **101** | **0** | **0** | **0** |
+
+So `--dump-rule-profiles` gives you both, and the branch field is the one a per-branch question
+wants. Each rule carries `branch_count` and `branch_satisfiable_under` — **one profile set per
+top-level alternative, in body order**, the same index space `branch_semantic_annotations` uses:
+
+```text
+module_declaration_sv_2017
+  satisfiable_under         ["sv_2017", "verilog_2005"]      <- the rule-level view
+  branch_satisfiable_under  [["sv_2017","verilog_2005"],     <- 0  module m; endmodule
+                             ["sv_2017","verilog_2005"],     <- 1  module m(a); endmodule
+                             ["sv_2017"],                    <- 2  module m(.*); endmodule
+                             ["sv_2017"],                    <- 3  extern module m(a);
+                             ["sv_2017"]]                    <- 4  extern module m;
+```
+
+Branches 2, 3 and 4 each carry a sample spelling SystemVerilog that IEEE 1364-2005 cannot parse, and
+none of the three is a defect: those alternatives are not live under `verilog_2005`.
+
+Both fields come from the same fixpoint the profile-orphan lint gates on, so there is no second model
+of the grammar to drift — and the **union** of a rule's per-branch sets always **equals** its
+`satisfiable_under` (measured: 0 violations over all 1 537 SystemVerilog rules). That invariant is the
+cheapest way to check the field is being read correctly.
+
+⛔ Two things to keep in mind. Read the samples out of the **gen-AST**, never by grepping the `.ebnf`:
+an annotation binds to the *next* rule, so a regex census miscounts exactly where it matters —
+SystemVerilog greps 54 and has 52, the preprocessor greps 6 and has 2. And `branch_satisfiable_under`
+is bottom-up **satisfiability**, not reachability: right for a sample (which is parsed *at* its owning
+rule as the entry), wrong for any entry-relative claim.
 
 ## Replay Progress Tracing
 

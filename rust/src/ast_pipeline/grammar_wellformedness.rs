@@ -1072,6 +1072,68 @@ pub fn derive_rule_profiles(
     derived
 }
 
+/// SV-CORPUS-GRAD.13e.11 (a): BRANCH-level profile satisfiability — the same composition-algebra
+/// fixpoint as [`derive_rule_profiles`], read off ONE TOP-LEVEL ALTERNATIVE AT A TIME. For each
+/// rule, `result[rule][i]` is the sorted set of profiles under which top-level alternative `i` is
+/// satisfiable; a rule whose body is not an `Or` has exactly one entry (the whole body).
+///
+/// ⛔ **WHY THIS EXISTS AND WHY THE RULE-LEVEL SET CANNOT SUBSTITUTE FOR IT.** `@profiles` is a
+/// RULE-level annotation, so a rule stays live under a profile as long as *some* alternative
+/// survives the profile filter — while the other alternatives are dead there. Any consumer that
+/// joins a per-BRANCH fact (a branch-level `@sample`, a branch-level obligation) against the
+/// rule-level `satisfiable_under` therefore over-reports BY CONSTRUCTION. Measured on
+/// `systemverilog` at the time this was written: 43 of the 52 `@sample` annotations are
+/// branch-level, and the rule-level join reports 8 `verilog_2005` "failures" of which 0 are
+/// defects — every one is an alternative that is honestly dead under that profile.
+///
+/// ⭐ **THE CROSS-CHECK IS AN INVARIANT, NOT A CONVENTION**: because `node_satisfiable` on an `Or`
+/// is exactly "any alternative is satisfiable", the UNION of a rule's per-branch sets equals its
+/// `derive_rule_profiles` set, always. Consumers can assert that, and
+/// `derive_branch_profiles_unions_to_the_rule_level_set` pins it.
+///
+/// PURE; deterministic (profile order follows `all_profiles`); parser-agnostic — keyed only on
+/// `@profiles` and the body shape, exactly like the profile-orphan lint it shares its fixpoint with.
+pub fn derive_branch_profiles(
+    grammar: &HashMap<String, ASTNode>,
+    rule_order: &[String],
+    rule_profiles: &HashMap<String, Vec<String>>,
+    all_profiles: &[String],
+) -> HashMap<String, Vec<Vec<String>>> {
+    let defined: HashSet<String> = grammar.keys().cloned().collect();
+    let sat_by_profile = compute_sat_by_profile(grammar, rule_order, rule_profiles, all_profiles);
+    let mut derived: HashMap<String, Vec<Vec<String>>> = HashMap::new();
+    for rule in rule_order {
+        let Some(body) = grammar.get(rule) else {
+            continue;
+        };
+        // A non-`Or` body is a single branch. This mirrors how branch-indexed annotations
+        // (`branch_semantic_annotations`) are laid out, so index `i` means the same thing to both.
+        let branches: Vec<&ASTNode> = match body {
+            ASTNode::Or { alternatives } => alternatives.iter().collect(),
+            single => vec![single],
+        };
+        let per_branch: Vec<Vec<String>> = branches
+            .iter()
+            .map(|branch| {
+                all_profiles
+                    .iter()
+                    .filter(|profile| {
+                        // The rule itself must survive the profile filter: a branch of a rule the
+                        // filter removed is not live no matter how satisfiable its own body is.
+                        rule_present_under_profile(rule, rule_profiles, profile)
+                            && sat_by_profile.get(*profile).is_some_and(|sat| {
+                                node_satisfiable(branch, sat, rule_profiles, &defined, profile)
+                            })
+                    })
+                    .cloned()
+                    .collect()
+            })
+            .collect();
+        derived.insert(rule.clone(), per_branch);
+    }
+    derived
+}
+
 /// Extract each rule's `@profiles` set + the profile universe from the annotations (the same shape
 /// the generator filters by, and `run_grammar_lint` computes inline). Shared by the profile-orphan
 /// certificate checker (G.2.1b). A rule absent from the map is universal (present under all profiles).
@@ -3975,6 +4037,117 @@ mod tests {
             derived.get("universal"),
             Some(&vec!["sv_2017".to_string(), "sv_2023".to_string()])
         );
+    }
+
+    // SV-CORPUS-GRAD.13e.11 (a) — BRANCH-level profile satisfiability. Two-sided by design: the
+    // founding defect is that the RULE-level set says "live" for a rule whose branch is dead, so the
+    // tests pin BOTH that a dead branch reads dead AND that its live siblings still read live.
+
+    #[test]
+    fn derive_branch_profiles_separates_a_dead_branch_from_its_live_siblings() {
+        // The `module_declaration_sv_2017` shape, reduced: an untagged rule with three top-level
+        // alternatives, exactly ONE of which references a profile-gated rule as a MANDATORY element.
+        //   host := plain | seq( plain , gated ) | plain
+        //   gated @profiles ["sv_2017"]
+        let mut g = HashMap::new();
+        g.insert("gated".into(), token("string", ".*"));
+        g.insert("plain".into(), token("string", "m"));
+        g.insert(
+            "host".into(),
+            or(vec![
+                rule_ref("plain"),
+                seq(vec![rule_ref("plain"), rule_ref("gated")]),
+                rule_ref("plain"),
+            ]),
+        );
+        let order: Vec<String> = vec!["host".into(), "plain".into(), "gated".into()];
+        let mut profiles: HashMap<String, Vec<String>> = HashMap::new();
+        profiles.insert("gated".into(), vec!["sv_2017".into()]);
+        let all = vec!["sv_2017".into(), "verilog_2005".into()];
+
+        let branch = derive_branch_profiles(&g, &order, &profiles, &all);
+        let host = branch.get("host").expect("host must be derived");
+        assert_eq!(host.len(), 3, "one entry per top-level alternative: {host:?}");
+        // Branches 0 and 2 are profile-neutral; branch 1 is dead wherever `gated` is filtered out.
+        assert_eq!(host[0], vec!["sv_2017".to_string(), "verilog_2005".to_string()]);
+        assert_eq!(
+            host[1],
+            vec!["sv_2017".to_string()],
+            "the branch with the mandatory gated element must be DEAD under verilog_2005: {host:?}"
+        );
+        assert_eq!(host[2], vec!["sv_2017".to_string(), "verilog_2005".to_string()]);
+
+        // ⛔ The whole point: the RULE-level set cannot see this — it still reads BOTH profiles,
+        // which is exactly the over-report a branch-level consumer must not inherit.
+        let rule_level = derive_rule_profiles(&g, &order, &profiles, &all);
+        assert_eq!(
+            rule_level.get("host"),
+            Some(&vec!["sv_2017".to_string(), "verilog_2005".to_string()]),
+            "the founding defect: the rule-level set is blind to the dead branch"
+        );
+    }
+
+    #[test]
+    fn derive_branch_profiles_unions_to_the_rule_level_set() {
+        // The invariant the doc-comment promises, pinned over a body mixing every node shape a
+        // branch can carry: an optional gated element (skippable ⇒ never kills a branch), a
+        // mandatory gated element (kills it), a lookahead (produces nothing ⇒ neutral), and a rule
+        // whose EVERY branch is dead under one profile (so the union is a proper subset there).
+        let mut g = HashMap::new();
+        g.insert("gated".into(), token("string", ".*"));
+        g.insert("plain".into(), token("string", "m"));
+        g.insert(
+            "mixed".into(),
+            or(vec![
+                seq(vec![rule_ref("plain"), quant(rule_ref("gated"), "?")]),
+                seq(vec![rule_ref("plain"), rule_ref("gated")]),
+                seq(vec![look(rule_ref("gated"), true), rule_ref("plain")]),
+            ]),
+        );
+        g.insert(
+            "all_dead".into(),
+            or(vec![rule_ref("gated"), seq(vec![rule_ref("plain"), rule_ref("gated")])]),
+        );
+        let order: Vec<String> =
+            vec!["mixed".into(), "all_dead".into(), "plain".into(), "gated".into()];
+        let mut profiles: HashMap<String, Vec<String>> = HashMap::new();
+        profiles.insert("gated".into(), vec!["sv_2017".into()]);
+        let all = vec!["sv_2017".into(), "verilog_2005".into()];
+
+        let branch = derive_branch_profiles(&g, &order, &profiles, &all);
+        let rule_level = derive_rule_profiles(&g, &order, &profiles, &all);
+        for rule in &order {
+            let mut union: Vec<String> = branch[rule].iter().flatten().cloned().collect();
+            union.sort();
+            union.dedup();
+            let mut expected = rule_level[rule].clone();
+            expected.sort();
+            assert_eq!(
+                union, expected,
+                "branch-set union must equal the rule-level set for '{rule}'"
+            );
+        }
+        // And the union is a PROPER subset somewhere, so the assertion above is not vacuous:
+        // `all_dead` has no live branch under verilog_2005 at all.
+        assert_eq!(rule_level.get("all_dead"), Some(&vec!["sv_2017".to_string()]));
+        // `mixed` branch 0 survives on the OPTIONAL gated element; branch 1 does not.
+        let mixed = &branch["mixed"];
+        assert_eq!(mixed[0], vec!["sv_2017".to_string(), "verilog_2005".to_string()]);
+        assert_eq!(mixed[1], vec!["sv_2017".to_string()]);
+        assert_eq!(mixed[2], vec!["sv_2017".to_string(), "verilog_2005".to_string()]);
+    }
+
+    #[test]
+    fn derive_branch_profiles_is_inert_for_a_grammar_with_no_profiles() {
+        // ⭐ The safety property every consumer relies on: with no `@profiles` anywhere the profile
+        // universe is EMPTY, so every branch set is empty and no consumer can conclude "dead".
+        let mut g = HashMap::new();
+        g.insert("plain".into(), token("string", "m"));
+        g.insert("host".into(), or(vec![rule_ref("plain"), token("string", "x")]));
+        let order: Vec<String> = vec!["host".into(), "plain".into()];
+        let branch = derive_branch_profiles(&g, &order, &HashMap::new(), &[]);
+        assert_eq!(branch["host"], vec![Vec::<String>::new(), Vec::<String>::new()]);
+        assert_eq!(branch["plain"], vec![Vec::<String>::new()]);
     }
 
     // GRAMMAR-WELLFORMED.H.17.2 — the uncompilable-regex-terminal class. Two-sided by design: the

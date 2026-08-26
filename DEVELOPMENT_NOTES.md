@@ -1,5 +1,61 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-26 - PGEN-SV-CORPUS-GRAD-0307 — the defect I was sent to fix was not a defect, and the thing that WAS broken had been mis-attributed into a tracked contract
+
+**1. ⭐⭐⭐ WHEN A NEW FINDING LANDS BESIDE ROWS ALREADY ADJUDICATED THE OTHER WAY, THE
+DISCRIMINATOR TO CHECK FIRST IS YOUR OWN JOIN.** `.13e.9` examined `module_declaration_sv_2017`
+branches **3 and 4**, found their `@sample`s unparseable under `verilog_2005`, and correctly ruled
+them *"branch DEAD under v2005 — sample honest"*. One commit later `-0305` examined **branch 2** of
+the same rule, found the same symptom, and filed it as a **DEFECT** — publishing that to the task
+tree and into `verilog_2005_conformance_contract_v0.json`. Nothing about branch 2 differs from its
+two neighbours. What differed was the join: `.13e.9` asked whether the BRANCH was live, `-0305`
+asked whether the RULE was. `@profiles` is rule-level, so a rule stays live while its alternatives
+die, and a per-branch fact checked against `satisfiable_under` over-reports **by construction** —
+measured at **8 defects over 115 checks with a 100 % false-positive rate**, against **0 over 101**
+for the branch-level join. ⛔ The symptom was identical in all three rows; only the question asked
+about it changed. PROMOTED:
+[[a-per-branch-fact-joined-against-a-rule-level-profile-set-over-reports]].
+
+**2. ⭐⭐ THE PROBE CLASS IS A FREE CAUSE-FAMILY VERDICT, AND I ALMOST INHERITED AN ATTRIBUTION
+INSTEAD OF READING IT.** The leaf handed me a stated mechanism — *"fixing this one sample is
+expected to return `kw_macromodule_df04b866` to `witness`, and that is this leaf's first acceptance
+arm rather than a hoped-for side effect"* — phrased precisely to discourage treating it as a
+hypothesis. One command refuted it: `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` reports the target
+**`parsed=true witnessed_target=false`**, which TOOLBOX 4.3 defines as a reach/routing gap, NOT the
+`parsed=false` malformed-sample class the predecessor leaf had fixed. `parsed=true` means the probe
+input was never malformed, so **no `@sample` text could have been the blocker**. ⇒ a stated
+mechanism inherited from a prior leaf is a CLAIM, and the cheapest instrument that can refute it
+should run before any work is planned on top of it. (The follow-on discipline was already recorded
+and I used it rather than rediscovering it:
+[[a-probe-sample-says-where-generation-ended-up-never-what-the-plan-asked-for]] — dump the PLAN
+before blaming the planner. It named the dead branch in the next command.)
+
+**3. ⭐ THE ENGINE HAD ALREADY WRITTEN DOWN THE CORRECT RULE, AS A CLAIM THAT IT MIRRORED THE
+FUNCTION THAT GETS IT WRONG.** `mandatory_node_gated` (`stimuli_generator.rs:10166`) documents
+itself as *Sequence-aware (gated iff ANY element is)* and closes with *"mirrors `reach_hops_pass`
+skipping that edge"*. `reach_hops_pass` (`:9661`) checks only the rule REFERENCED at a hop site,
+never its mandatory siblings — so the mirror does not hold, and the doc-comment asserting it is how
+the gap stayed invisible. ⇒ **a doc-comment claiming two functions agree is an unchecked assertion
+about a second function**, and it reads as reassurance exactly where a reader would otherwise look.
+DECLINED for promotion as its own record: it is one instance, and the general form
+(*a comment is not a test*) is too thin to retrieve on. Owned instead by
+`ENGINE-UNIVERSAL-SERVICES.51` acceptance (e), which requires the claim be made true or deleted.
+
+**4. ⚠️ I OVERWROTE A 221 MB BINARY WITH A FEATURELESS ONE BY DROPPING `--features`.** `cargo build
+--bin ast_pipeline` succeeds and produces a binary that cannot load any registered grammar
+(*"requires building with --features ebnf_dual_run"*). Cost: one rebuild. ⇒ take the build line from
+the gate that owns it (`verilog_2005_conformance_gate.sh` spells it
+`cargo build --features "generated_parsers ebnf_dual_run" --bin ast_pipeline`), never from memory.
+DECLINED for promotion: an operational slip with a loud, immediate failure and a one-command
+recovery — it costs minutes and teaches nothing durable.
+
+**5. ⚠️ `json.dump` REFORMATTED 34 LINES OF A TRACKED CONTRACT I ONLY MEANT TO APPEND ONE STRING
+TO.** Round-tripping the file through Python normalised `\u00a7` escapes to literal `§` and
+re-wrapped a deliberately-compact object — 37 insertions / 34 deletions for a one-clause edit.
+Reverted and redone as a single-line splice: **1 insertion / 1 deletion**. ⇒ when the intent is to
+append to one value, edit the TEXT and let the parser only VALIDATE the result. A structural
+round-trip rewrites every formatting decision the file's authors made.
+
 ## 2026-08-25 - PGEN-SV-CORPUS-GRAD-0305 — the lint derived eleven fixes for me, and applying all eleven would have broken the parser while every counter I was watching went green
 
 **1. ⭐⭐⭐ A GREEN COUNTER CAN BE THE ONE HIDING THE COUNTER THAT MOVED.** `--lint-grammar` prints

@@ -553,6 +553,9 @@ and is not. It is a **bottom-up** fixpoint — *can this rule derive a string un
 and it never consults an entry rule. The measured consequence: `kw_void_e9cede9b` reports
 satisfiable under `verilog_2005`, while `function void f;` is correctly **rejected** there,
 because both rules that reference the terminal are profile-gated and the terminal itself is not.
+Its per-alternative companion `branch_satisfiable_under` refines *which* alternatives are live — and
+inherits this limitation verbatim, because it is the same fixpoint read one branch at a time. A
+narrower satisfiability answer is still not a reachability answer.
 
 `--lint-grammar`'s `unreachable_rules` is the missing top-down half, but it runs on the
 **unfiltered** grammar, so it cannot see a profile either. Crossing the two is what the census does,

@@ -4279,7 +4279,7 @@ fn run_fusibility_census_report(
 /// ordering + sorted profile lists) so coverage reports diff cleanly across sessions.
 fn run_dump_rule_profiles(unfiltered_grammar: &LoadedGrammar, out_path: &str) -> Result<()> {
     use pgen::ast_pipeline::grammar_wellformedness::{
-        derive_rule_profiles, extract_profile_context,
+        derive_branch_profiles, derive_rule_profiles, extract_profile_context,
     };
     use std::collections::BTreeMap;
 
@@ -4288,6 +4288,15 @@ fn run_dump_rule_profiles(unfiltered_grammar: &LoadedGrammar, out_path: &str) ->
         None => (HashMap::new(), Vec::new()),
     };
     let satisfiable = derive_rule_profiles(
+        &unfiltered_grammar.grammar_tree,
+        &unfiltered_grammar.rule_order,
+        &declared,
+        &all_profiles,
+    );
+    // SV-CORPUS-GRAD.13e.11 (a): the BRANCH-level companion. `satisfiable_under` is rule-level, so
+    // a consumer joining a per-branch fact (a branch `@sample`, a branch obligation) against it
+    // over-reports by construction — a rule stays live while some of its alternatives are dead.
+    let branch_satisfiable = derive_branch_profiles(
         &unfiltered_grammar.grammar_tree,
         &unfiltered_grammar.rule_order,
         &declared,
@@ -4305,11 +4314,17 @@ fn run_dump_rule_profiles(unfiltered_grammar: &LoadedGrammar, out_path: &str) ->
         });
         let mut sat = satisfiable.get(rule).cloned().unwrap_or_default();
         sat.sort();
+        // One entry per TOP-LEVEL alternative, in body order — the same index space
+        // `branch_semantic_annotations` uses, so a consumer can join on the index. A non-`Or` body
+        // yields exactly one entry, so `branch_count` is never 0 and the join is total.
+        let branches = branch_satisfiable.get(rule).cloned().unwrap_or_default();
         rules.insert(
             rule.clone(),
             serde_json::json!({
                 "declared_profiles": declared_json,
                 "satisfiable_under": sat,
+                "branch_count": branches.len(),
+                "branch_satisfiable_under": branches,
             }),
         );
     }

@@ -13014,6 +13014,116 @@ verdict, because a gate never seen failing is not evidence
 the artifact-upload path so a RED run actually hands over its logs, and prove it by observing a
 non-empty upload.
 
+### ⛔⛔ `.51` — **THE REACH PLANNER ROUTES THROUGH A BRANCH THE PROFILE FILTER HAS ALREADY KILLED: it validates the rule REFERENCED at a hop site but never the ALTERNATIVE containing it, so a live target with a live route silently fails to witness** (`todo`, opened 2026-08-26 by `SV-CORPUS-GRAD.13e.11`(a) / `PGEN-SV-CORPUS-GRAD-0307`)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
+reproduces outside the family it is being sent to):
+
+⛔ **THIS IS THE REAL CAUSE OF A CERTIFICATE REGRESSION THAT WAS PUBLISHED TWICE UNDER A DIFFERENT
+NAME.** `-0305` moved the `verilog_2005` baseline `witness 774 -> 757 / UNKNOWN 17 -> 18` and
+attributed the `+1` — `kw_macromodule_df04b866` — to a profile-blind `@sample`, in this repository's
+task tree AND in the tracked contract `verilog_2005_conformance_contract_v0.json`. `.13e.11`(a)
+refuted both and corrected both. The defect is here.
+
+⭐ **THE PROBE CLASS SETTLES THE CAUSE IN ONE LINE, and it is the line TOOLBOX 4.3 exists to have you
+read.** `parsed=false` is the malformed-forced-sample class (`.13e.9`); `parsed=true
+witnessed_target=false` is a reach/routing gap. Measured under `verilog_2005` at the contract's own
+parameters:
+
+```
+$ PGEN_CERT_COVERAGE_DEBUG_PROBES=1 ast_pipeline grammars/systemverilog.ebnf \
+    --report-certificate-coverage --grammar-profile verilog_2005 --entry-rule systemverilog_file \
+    --count 40 --seed 0 --cert-union-config …
+  [plannable-probe] rule='kw_macromodule_df04b866' parsed=true witnessed_target=false
+      sample="primitive\foo (output o, input i);table 0:0;endtable endprimitive"
+```
+
+⇒ the probe input PARSED — it is simply a UDP primitive, containing no module keyword at all. No
+`@sample` text was ever the blocker, and repairing one could not have moved the baseline.
+
+⭐⭐ **AND THE PLAN, WHICH TOOLBOX 4.4 SAYS TO DUMP BEFORE BLAMING THE PLANNER, NAMES THE WHERE:**
+
+```
+$ PGEN_REACH_PATH_DUMP=1 ast_pipeline … --grammar-profile verilog_2005 …
+  [reach-path] target='kw_macromodule_df04b866' hops=[…, ("module_declaration", "root/o0"),
+      ("module_declaration_sv_2017", "root/o2/s1"), ("module_keyword", "root/o1")]
+```
+
+`root/o2/s1` is alternative **2** of `module_declaration_sv_2017` — the implicit-port form, whose
+MANDATORY `dot_star` the `verilog_2005` filter removed in `-0305`. The renderer cannot execute that
+plan, so generation falls back silently and the target never witnesses.
+
+**ROOT CAUSE (WHY + WHERE).** `reach_hops_pass`,
+`rust/src/ast_pipeline/stimuli_generator.rs:9661`. A hop site is admitted on one test:
+
+```rust
+for site in sites {
+    if !self.grammar_tree.contains_key(site.referenced_rule.as_str()) { continue; }
+```
+
+The rule REFERENCED at the site must survive the profile filter — and nothing more. Whether the
+ALTERNATIVE containing that site can still be rendered is never asked. `module_keyword` is live, so
+the edge is taken; `dot_star`, a mandatory SIBLING in the same sequence, is not, so the branch is
+dead and the plan is unrenderable.
+
+⛔⛔ **THE ENGINE ALREADY STATES THE CORRECT RULE, AND STATES IT AS A MIRROR OF THIS VERY FUNCTION.**
+`mandatory_node_gated`'s doc-comment (`stimuli_generator.rs:10166`):
+
+> Or-aware (gated iff EVERY alternative is gated), **Sequence-aware (gated iff ANY element is, since
+> all sequence elements are mandatory)**, `?`/`*` non-propagating, lookahead-skipping. A reference to
+> a rule MISSING from the active (profile-pruned) tree is treated as gated — it cannot be rendered,
+> so it is no escape (**mirrors `reach_hops_pass` skipping that edge**).
+
+⇒ **the mirror is asymmetric, and the asymmetry IS the defect.** The escape analysis is
+Sequence-aware; the BFS that feeds it is not. One of the two is wrong about the same question, and
+the doc-comment asserts they agree.
+
+⭐ **IT IS A DEFECT AND NOT A LIMIT, because a correct plan existed the whole time.** Two sibling
+alternatives reach `module_keyword` through routes that are live under `verilog_2005`, and both
+accept — the planner declined a route it could have taken:
+
+| input | `verilog_2005` | `sv_2017` | route |
+|---|---|---|---|
+| `macromodule m; endmodule` | ✅ accept | ✅ accept | `root/o0` → `module_ansi_header` → `module_keyword` |
+| `macromodule m(a,b); endmodule` | ✅ accept | ✅ accept | `root/o1` → `module_nonansi_header` → `module_keyword` |
+
+⚠️ **WHY THE BFS PREFERS THE DEAD ONE, so the fix is not "reorder the alternatives".** The BFS is
+shortest-path and first-discovery-wins: alternative 2 references `module_keyword` DIRECTLY (distance
+1), while alternatives 0 and 1 reach it through an intervening header rule (distance 2).
+`module_keyword` is therefore discovered via `root/o2/s1` and never revisited. Skipping the dead
+branch is what lets the distance-2 live route be discovered at all.
+
+⭐ **THE PREDICATE THE FIX NEEDS ALREADY EXISTS AND IS ALREADY DERIVED.** `.13e.11`(a) added
+`derive_branch_profiles` (`grammar_wellformedness.rs`), which reuses the profile-orphan lint's own
+`compute_sat_by_profile` / `node_satisfiable` fixpoint to compute, per rule, one profile set per
+top-level alternative. `module_declaration_sv_2017`'s reads
+`[["sv_2017","verilog_2005"], ["sv_2017","verilog_2005"], ["sv_2017"], ["sv_2017"], ["sv_2017"]]` —
+**`root/o2` is exactly the entry that says `["sv_2017"]`**. The planner is choosing a branch the
+engine's own analysis can already prove dead.
+
+⛔ **IT REPRODUCES OUTSIDE SystemVerilog BY CONSTRUCTION, and the population is the honest bound.**
+`reach_hops_pass` is grammar-agnostic and drives the plannable-rule reach pass for EVERY profiled
+grammar, so any grammar whose profile filter kills a mandatory element inside an otherwise-live
+alternative is exposed. ⚠️ Today the tracked population of grammars declaring `@profiles` is
+**`systemverilog` and `regex`** (censused in `.13e.11`(a)), so SV is where it bites — but the defect
+is in the engine, not in the SV grammar, and a grammar gains exposure the moment it gains a profile.
+⭐ **A grammar with no `@profiles` cannot hit it at all**: nothing is ever missing from the tree.
+
+**Acceptance:** (a) skip a hop site whose enclosing top-level alternative is unrenderable under the
+active profile, using the SAME Sequence-aware/`?`-non-propagating/lookahead-skipping semantics
+`mandatory_node_gated` already documents — ⛔ **not a second model of the grammar**; (b) prove
+`kw_macromodule_df04b866` returns to `witness` under `verilog_2005`, with the cert arithmetic
+re-attributed BY NAME (`UNKNOWN 18 -> 17`, `witness 757 -> 758`, `total` unmoved at `1131`) and the
+union residual falling `3 -> 2`, never re-stamped; (c) ⛔ **prove the change is INERT where it must
+be** — byte-identical certificates for `sv_2017`, `sv_2023` and every unprofiled grammar, at seeds
+`[0, 7, 42]`, because a reach-planner edit is exactly the kind that moves numbers nobody was
+watching; (d) a RED control: a synthetic whose only route to a target crosses a profile-dead sibling,
+proven to fail before and witness after; (e) decide whether the asymmetric doc-comment at `:10166`
+is repaired by making the BFS match it (the fix) or by deleting the claim — ⛔ **it must not be left
+asserting a mirror that does not hold**; (f) ⚠️ **honest bound to discharge, not assume**: whether
+any OTHER currently-`UNKNOWN` rule on any profile is held by this same mechanism is UNMEASURED — the
+`verilog_2005` residual is 18 and only this one has been traced to a dead-branch plan.
+
 ### ⛔⛔ `.50` — **A `@profiles` TAG ON A RULE INSIDE AN ELIMINATED INDIRECT-LR CYCLE SILENTLY DISABLES THAT ELIMINATION FOR EVERY PROFILE, AND THE COUNTER THAT REPORTS IT IS A `WARNING`** (`todo`, opened 2026-08-25 by `SV-CORPUS-GRAD.13e.10`(c4) / `PGEN-SV-CORPUS-GRAD-0305`)
 
 **HOW IT WAS FOUND.** `.13e.10`(c4) is the fix that gates the 17 IEEE-1800-only punctuation
