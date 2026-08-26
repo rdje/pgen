@@ -1,5 +1,47 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-26 - PGEN-DOCTRINE-GAP-OWNERSHIP-0296 — a guard you have not replayed against real history is a guard calibrated against a phrasing nobody wrote
+
+**1. ⭐⭐⭐ THE RETRACTION'S PARAPHRASE WAS NOT THE SENTENCE, AND BUILDING AGAINST THE PARAPHRASE WOULD
+HAVE PRODUCED A CHECK THAT MISSES ITS OWN FOUNDING INCIDENT.** The knowledge card and the routing
+evidence both quote occurrence 1 as *"`verilog_2005` faithfulness is checked by NOTHING"*. `git show`
+on `3aba01ec` says otherwise: the literal text is *"built to wellformedness COHERENCE, not to LRM
+FAITHFULNESS, and only the first is gated"* — no `nothing`-token at all — and it landed in
+**`MEMORY.md`**, not in a task leaf. Occurrence 2's real sentence (*"no instrument in the tree crosses
+the two"*) is the one the predicate was ultimately calibrated on, and it is now pinned by a self-test
+arm. ⇒ **when you build a checker for a class of defect, read the defects, not the write-ups of the
+defects.** A summary is written to be understood; a checker has to match what was typed.
+
+**2. ⭐⭐ A DISCHARGE LIST IS AS LOAD-BEARING AS THE PREDICATE, AND MINE WAS WRONG BY A FACTOR OF TWO.**
+The same claim predicate, replayed over the same 150 commits, blocks **25** lines under a narrow
+`grep`/`git` discharge list and **13** under the shipped one. All 12 removed were censuses the author
+HAD recorded — in spellings the narrow list could not see (*"A search of `docs/contracts/` and
+`rust/src/` for all 22 returns…"*, *"`--lint-grammar` reports **0** mentions"*, *"confirmed by census
+(**0** consumers)"*). A guard tuned only on its trigger and never on its **exit** reports honest work
+as a violation, which is precisely how a gate teaches bypass.
+
+**3. ⛔ A DISCHARGE THE CLAIM CAN SATISFY BY ITSELF IS NOT A DISCHARGE.** Adding the bare word
+*census* to the discharge list looked generous and was silently fatal: *"nothing re-runs this census"*
+is a claim that contains its own exemption. The fix was not to forbid claim lines from discharging —
+that broke a REAL case where the census command sits on the same line as the claim
+(`CI-PARITY-GATE-ROT`: *"**AND NOTHING RUNS IT.** `grep -rln "run_adjudication_repros" …`"*) — but to
+require the discharge to be **command-shaped**, so it cannot be a word the claim already uses.
+
+**4. ⭐ A CONTROL THAT RUNS THE CLASSIFIER DIRECTLY DOES NOT TEST THE PLUMBING.** `--self-test` arms
+1-7 were green while nothing had exercised the INDEX read or the `-U0` hunk resolution together on a
+genuinely staged file. Building that end-to-end arm found two real defects in the control itself: a
+hygiene assertion that judged the worktree while the fixture was still in it, and an `EXIT` trap
+reading the variable the arm had just `unset` — so it died with *"unbound variable"* AFTER reporting,
+leaving residue while looking like it ran. ⇒ **the control needs a control.**
+
+**5. ⛔ AND THE FIRST DRAFT OF THIS SLICE CARRIED A NUMBER IT HAD NOT RE-DERIVED.** The enforcer's
+header shipped *"141 claim lines, 70 unbacked"* — measured with an EARLIER, narrower predicate, then
+carried forward beside a wider one that reads **205 / 74**. Nothing was wrong with either
+measurement; what was wrong was writing one down next to the other instrument. `DERIVED_STATE_CONTAINMENT`
+R1/R3 names exactly this, and it was caught only because the shipped `--all` was run and its output
+disagreed with the comment above it. **Publish the number the shipped instrument prints, not the one
+your notes remember.**
+
 ## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0098 — the certificate got WORSE by one and that was the fix working, which only a reconstructed before-state could show
 
 **1. ⭐⭐⭐ A METRIC MOVING THE WRONG WAY IS NOT AUTOMATICALLY A REGRESSION, AND THE ONLY WAY TO KNOW

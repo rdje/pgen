@@ -1,0 +1,19 @@
+# GAP-CLAIM-CENSUS — the 13 lines the guard WOULD HAVE BLOCKED, replayed over the 150
+# commits ending at $(git log -1 --format=%h) at capture time. Regenerate with:
+#   docs/tasks/artifacts/doctrine_gap_ownership/gap_claim_census_replay.sh 150 --dump
+# Adjudication (the DOCTRINE-GAP-OWNERSHIP.15(b) deliverable) is in the leaf, one row each.
+# capture commit: a8642b995c5dcd6339314a4c8dac27fe216b5588
+#
+2e492d08	BLOCKED	docs/tasks/SV-CORPUS-GRAD.md:17126	##### ⛔ `.13e.11` — ⭐⭐ NEW `todo`: nothing checks that a rule's `@sample` PARSES under the profiles that rule is live in, and the population is 0 today so a block
+5a440cd8	BLOCKED	docs/tasks/DOCTRINE-GAP-OWNERSHIP.md:873	### `.14` — a leaf's STATUS is prose in its heading, and NOTHING derives it from the leaf's own recorded slices, so a leaf can be FIXED and still read `todo` (`todo`, r
+5a440cd8	BLOCKED	docs/tasks/DOCTRINE-GAP-OWNERSHIP.md:891	  once when the leaf is opened, and no instrument compares it against anything the leaf later
+c8b11f3a	BLOCKED	docs/tasks/GRAMMAR-CERT-STATUS.md:512	  I decided to remove the 22 on the strength of *"nothing routes to them, nothing consumes them, the
+f4474ba5	BLOCKED	docs/tasks/GRAMMAR-WELLFORMED.md:4559	   ⚠️ **Leg 3 NAMED, not met**: nothing WATCHES the self-rejection matrix — the **fifth** leaf in
+69f12317	BLOCKED	docs/tasks/GRAMMAR-WELLFORMED.md:4335	   ⚠️ **Leg 3 NAMED, not met**: nothing WATCHES the self-rejection matrix, now the fourth leaf in
+aecac498	BLOCKED	docs/tasks/ENGINE-UNIVERSAL-SERVICES.md:248	  not met**: nothing compares the two lists, which is why this leaf exists.
+629ded20	BLOCKED	docs/tasks/GRAMMAR-WELLFORMED.md:4166	   not met: no gate WATCHES these numbers.** Nothing re-runs the self-rejection matrix, so a future
+629ded20	BLOCKED	docs/tasks/GRAMMAR-WELLFORMED.md:4226	### `H.16.6f` — **NOTHING WATCHES THE SELF-REJECTION MATRIX — LEG 3 FOR `H.16.6a`, `H.16.6b` AND `H.16.6c`** (`todo`, opened 2026-08-23 session #260 by `H.16.6c`)
+ab9cee04	BLOCKED	docs/tasks/GRAMMAR-WELLFORMED.md:4530	citations pointing at 29 records that do not exist** and nothing reads a link, so a 30th would make
+bb4feb33	BLOCKED	docs/tasks/GRAMMAR-WELLFORMED.md:3737	3. **LEG 3 FOR `H.16.1`** — nothing re-runs the island census, so the 9/55 split rots the moment a
+b276b368	BLOCKED	docs/tasks/GRAMMAR-WELLFORMED.md:3141	3. **DURABILITY — NOT DISCHARGED, and named.** Nothing re-runs this census, so the split rots the
+958fcc24	BLOCKED	docs/tasks/SV-CORPUS-GRAD.md:13561	- ⭐⭐ **AND NOTHING IN THE REPOSITORY WATCHES IT, WHICH IS THE ACTUAL DEFECT.** `PUBLISHED-VERSION-CURRENCY`
