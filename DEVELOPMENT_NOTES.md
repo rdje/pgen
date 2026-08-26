@@ -1,5 +1,45 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0095 — a ratchet does not need a stored baseline when the thing it ratchets is already versioned
+
+**1. ⭐⭐⭐ THE REPO'S OWN RATCHET SHAPE WAS THE WRONG ONE HERE, AND COPYING IT WOULD HAVE IMPORTED
+ITS DEFECTS.** `PARSE-COST-RATCHET` pins a tracked baseline because the number it guards comes from
+running a probe — you cannot re-derive last week's value without last week's tree. A grammar's
+`left_recursion_unhandled` is not like that: the input is a FILE, and git already stores every prior
+version of it. Comparing staged-vs-`HEAD` removes the artifact, the identity block, the staleness
+budget and `.35`'s records-its-own-parent defect in one stroke. ⇒ **before adopting a house pattern,
+ask what forced it** — here it was un-re-derivability, and that precondition does not hold.
+
+**2. ⭐⭐ AND IT ISOLATES THE AXIS FOR FREE.** Both sides are linted with the SAME binary, so a rise
+can only come from the edit. That is the same discipline `.54` had to arrange by hand — extracting 18
+grammar revisions and linting each with one fixed binary — except here it falls out of the design
+instead of being a procedure someone must remember.
+
+**3. ⭐⭐ THE SHORT-CIRCUIT IS THE COST MODEL, NOT AN OPTIMISATION.** A ratchet that costs two lints
+per staged grammar is a ~10 s tax on every SV grammar commit, on top of another doctrine's 33 s. But
+a grammar reading `unhandled=0` cannot have risen INTO 0 — so HEAD is never reconstructed for it, and
+0 is every grammar that generates a parser. The expensive path exists only for a grammar that already
+has survivors. ⇒ **look for the case where the comparison is unnecessary by arithmetic**, not for a
+faster way to do it.
+
+**4. ⭐ "BLOCKS WITH NO ESCAPE" IS AFFORDABLE ONLY BECAUSE THE FIX SHIPPED FIRST, and that ordering
+was deliberate.** `.50`(b) landed one commit earlier and drove the population to 0. Had the ratchet
+landed first it would have blocked on a real, unfixed defect and taught bypass immediately — the
+`DOCTRINE-GAP-OWNERSHIP.15` failure. **Fix, then gate** is not a nicety; it is what makes a blocking
+guard honest.
+
+**5. ⛔ AN EXCLUSION LIST IS A SECOND POPULATION TO MAINTAIN.** `systemverilog_lrm_profiled_wrapper`
+has 23 surviving cycles and is not a family — the obvious move is to exclude it. Unnecessary: a
+ratchet compares a file with ITSELF, so 23 → 23 is not a rise. Reaching for an allowlist would have
+created a roster that rots the moment a grammar's status changes, to solve a problem the comparison
+already does not have.
+
+**6. ⭐ THE CONTROL HAD TO BE REBUILT BECAUSE THE FIX WORKED.** The founding reproducer — one
+`@profiles` tag on `constant_cast` — no longer raises the counter, which is exactly what `.50`(b)
+was for. A control must therefore come from a DIFFERENT refusal path: an indirect cycle whose hop has
+a residual and no return annotation. ⇒ **when a fix lands, the control for the guard that watches it
+cannot be the fix's own reproducer** — that reproducer is now green by design.
+
 ## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0094 — the pass was willing to ACT on a value it would not write down
 
 **1. ⭐⭐⭐ "NEVER SYNTHESIZE" WAS DEFENDING PROVENANCE ON A RULE THAT HAS NO PROVENANCE.** The
