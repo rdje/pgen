@@ -13014,7 +13014,71 @@ verdict, because a gate never seen failing is not evidence
 the artifact-upload path so a RED run actually hands over its logs, and prove it by observing a
 non-empty upload.
 
-### ⛔ `.52` — **THE RULE-LEVEL `@sample` STAND-DOWN ASKS "DOES THE PLAN FORCE A DECISION INSIDE THIS RULE?" WHEN THE QUESTION IS "IS THIS RULE AN ON-PATH HOP AT ALL?" — so a hop reached through a MANDATORY sequence element is invisible to it and its sample short-circuits the descent** (`todo`, opened 2026-08-26 by `.51` slice 1 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0089`)
+### ⚠️ `.53` — **THE SAME `contains_key`-IS-A-PROFILE-PREDICATE CONFLATION SURVIVES IN `mandatory_node_gated`, AND IT IS LATENT ONLY BECAUSE ITS SOLE CONSUMER HAPPENS TO SIT BEHIND A FALLBACK** (`todo`, opened 2026-08-26 by `.51` slice 1's own root cause, censused before routing)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing):
+
+⛔ **THIS IS A CENSUS RESULT, NOT AN IMPRESSION — the class was counted before it was claimed.**
+`.51` slice 1's root cause was that `!grammar_tree.contains_key(name)` conflates *"the profile filter
+removed it"* with *"it was never defined"*. The obvious follow-up question — **how many other sites
+do that?** — was measured rather than asserted:
+
+| population | count |
+|---|---|
+| `grammar_tree.contains_key` / `.get` sites in `stimuli_generator.rs` | **62** |
+| … of which turn an ABSENCE into a *verdict* (dead / gated / unreachable) rather than a conservative guard (`continue`, `filter`, a name list) | **3** |
+| … of those, already protected: `node_dead_given` (`.51`'s own, behind the `reach_hops_pass` fallback) | 1 |
+| … of those, the one this leaf owns: **`mandatory_node_gated`** | **1** |
+| … conservative guards needing no change (skip-edge, filter, threshold guard, missing-name list) | the remaining 59 |
+
+⭐ **The honest headline is therefore "one, and it is latent" — not "62 instances of a defect".**
+Publishing the raw 62 would have been the census-claim error in its other direction: a population
+mistaken for a defect count.
+
+**THE SITE.** `mandatory_node_gated` (`stimuli_generator.rs`), the function `.51` quoted as the model
+for correct propagation:
+
+```rust
+Some(("rule_reference", name)) => {
+    if self.grammar_tree.contains_key(name) {
+        self.mandatory_reach_gate(name, available, visited, scope)
+    } else {
+        true          // <- "absent" read as GATED, exactly the conflation
+    }
+}
+```
+
+An `include(...)` external reference is absent for a reason that has nothing to do with store gates,
+and is nevertheless reported as mandatorily gated.
+
+⭐⭐ **WHY IT IS NOT A LIVE DEFECT TODAY, established by tracing the consumer rather than by
+assuming.** `mandatory_node_gated` is reached only through `edge_is_store_gated`, whose sole call
+site is guarded by `exclude_store_gated_edges`, and the only caller that passes `true` is:
+
+```rust
+self.reach_hops_pass(entry_rule, target_rule, true)
+    .or_else(|| self.reach_hops_pass(entry_rule, target_rule, false))
+```
+
+⇒ an over-exclusion there is recoverable by construction — **the same prefer-then-fall-back shape
+`.51` had to add**, arrived at independently by an earlier slice. That is corroboration of the
+design rule, not a coincidence to leave unremarked.
+
+**Acceptance:** (a) ⭐ **DECIDED — PIN, do not refactor.** The behaviour is correct today and the
+protection is structural; the risk is that a future caller passes `exclude_store_gated_edges: true`
+WITHOUT a fallback and silently inherits the conflation. So: a test asserting the fallback exists
+(an undefined mandatory reference must not make a target unreachable through the store-gated pass
+either), which fails the moment that protection is removed. ⛔ A refactor to "fix" a latent,
+protected site would move bytes in the most reach-sensitive function in the engine to buy nothing
+measurable — the `GENERATED-LINT-CORRECTNESS.4` bar refuses exactly that trade;
+(b) correct `mandatory_node_gated`'s doc-comment, which claims *"mirrors `reach_hops_pass` skipping
+that edge"* — ⚠️ **that claim was FALSE when `.51` began and is TRUE now**, so the comment must
+either be re-derived against the current code or dropped, never left as a stale assertion about a
+second function (this is the `.51`(e) lesson generalised); (c) ⛔ **the 59 conservative sites are
+DECLARED OUT, not silently unexamined** — the acceptance is that the classification above is
+re-runnable, so a future site added in the verdict class is visible rather than lost in the 62.
+
+### ✅✅ `.52` — **DONE: the rule-level `@sample` stand-down asked "DOES THE PLAN FORCE A DECISION INSIDE THIS RULE?" WHEN THE QUESTION IS "IS THIS RULE AN ON-PATH HOP AT ALL?" — so a hop reached through a MANDATORY sequence element was invisible to it — replaced by ONE invariant that retires three proxy predicates** (`done` 2026-08-26, `PGEN-ENGINE-UNIVERSAL-SERVICES-0090`; ENGINE tier, ZERO grammar / codegen / generated bytes. ⭐⭐ **`kw_macromodule_df04b866` IS WITNESSED** — `verilog_2005` `witness 761 → 762`, `UNKNOWN 14 → 13`, union residual `1 → 0`; **`sv_2017` UNMOVED on every axis including all five internal reach-pass statistics**. This DISCHARGES `.51`(b); opened 2026-08-26 by `.51` slice 1 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0089`)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -13090,7 +13154,122 @@ carrying a rule-level sample whose reach path enters it through a mandatory sequ
 exposed. ⚠️ Today SV is the only shipped grammar that is not fully certified, so it is where the
 cost is visible — but that is a fact about the roster, not about the defect.
 
-**Acceptance:** (a) make the stand-down consult PATH MEMBERSHIP, not only forced decisions — the hop
+## ⭐⭐⭐ THE DESIGN — ONE INVARIANT REPLACING THREE PROXY PREDICATES (decided 2026-08-26)
+
+⛔ **THIS IS THE FOURTH TIME THE SAME PLAN HAS BEEN SHORT-CIRCUITED, AND THE PATTERN IS THE ARGUMENT
+FOR STOPPING THE POINT-PATCHING.** Each previous repair widened a *different proxy* for the same
+question:
+
+| slice | what short-circuited the plan | the proxy that was widened |
+|---|---|---|
+| `GRAMMAR-WELLFORMED.H.12.3` (`-0078`) | a BRANCH-level `@sample` on the exactly-forced branch | `forced_branch_for(rule, node_path) == selected` |
+| `GRAMMAR-WELLFORMED.H.12.5.5.2.2` (`-0087`) | a RULE-level `@sample` on a rule the plan forces a decision inside | `needs_rule_body_descent` = has a directive or a quantifier site |
+| ⛔ **`.52` (this leaf)** | a RULE-level `@sample` on a rule the plan crosses through a MANDATORY element | — none of the above fires |
+
+⭐ **Every one of those proxies is trying to answer the same question — *"is this rule on the active
+plan's path?"* — using whatever the plan happened to record.** `H.12.3` keyed on a forced branch
+because that is what a branch plan records; `-0087` keyed on directives + quantifier sites because
+that is what a rule plan records. Neither is the question; both are artefacts of the plan's storage.
+
+⛔⛔ **AND THE PLAN ALREADY KNOWS THE ANSWER — IT IS BEING THROWN AWAY.**
+`compute_reach_path_with_quantifier_sites` returns `(chain, quantifier_sites, hops)`, and
+`install_reach_plan_from_hops` already iterates `hops` to build the chain:
+
+```rust
+for (hop_rule, hop_site_path) in hops {
+    chain.extend(Self::directives_along_path(hop_rule, hop_site_path));
+    quantifier_sites.extend(Self::quantifier_sites_along_path(hop_rule, hop_site_path));
+}
+```
+
+`directives_along_path` emits only for `o{i}` segments and `quantifier_sites_along_path` only for
+`q` segments, so **`hop_rule` itself is discarded whenever its hop path is a pure `s{i}`** — which is
+exactly the case that leaks. The membership fact is in hand at the one place that could record it.
+
+⭐⭐ **THE DECISION: record path membership as a first-class field and make the invariant explicit.**
+`ActiveReachPlan` gains `on_path_rules: HashSet<String>`, filled from `hops` (plus the target rule)
+in `install_reach_plan_from_hops` — the **single** builder both public entry points funnel through,
+so the two paths cannot drift, which is a property that file already documents and relies on. The
+invariant then reads, once, in words a reader can check:
+
+> **While a reach plan is installed, no literal short-circuit may fire for a rule the plan's path
+> crosses.** A `@sample` renders a rule INSTEAD of its body; the plan exists to steer THROUGH that
+> body; the two are unconditionally in conflict.
+
+`needs_rule_body_descent` becomes membership ∪ (directives, quantifier sites) — the union, not a
+replacement, because the existing keys also cover sub-plans that carry no hop chain, and dropping
+them would silently narrow `-0087`.
+
+⭐ **WHY THIS IS NOT A REVIVAL OF WHAT `H.12.3` WITHDREW, which is the obvious objection and deserves
+answering before the code is written.** `H.12.3` built an `on_path_rules` gate FIRST and reverted it
+with the reason recorded verbatim: *"the rule-level gate + `on_path_rules` infra explored first were
+REVERTED once the dump proved the short-circuit is branch-level (targeted-fix discipline — no code on
+a hypothesis)."* ⇒ it was withdrawn for lacking EVIDENCE, not for being wrong. That evidence now
+exists and is specific: a measured target, a measured hop (`("module_ansi_header", "root/s1")`), a
+measured probe output reproducing two different carriers' samples verbatim, and a named reason the
+existing predicate cannot see it. **The discipline that reverted it is the same discipline that
+reinstates it.**
+
+⚠️ **THE SCOPE RISK, PRICED BEFORE THE EDIT.** `-0087`'s analogous widening moved SV `UNKNOWN` by
+**28**, so this is NOT presumed small: the blast radius must be measured on all three profiles at
+seeds `[0,7,42]` and every moved rule attributed by name. ⭐ It remains INERT off-reach by
+construction — `on_path_rules` is empty when no plan is installed, and sub-plans built from a bare
+`sub_chain` carry an empty set, so their behaviour is byte-identical.
+
+## ✅ THE RESULT — THE TARGET IS WITNESSED, AND THE PRICED RISK DID NOT MATERIALISE
+
+| field | slice 1 (`.51`) | after `.52` | attribution |
+|---|---|---|---|
+| `total` | 1131 | **1131** | unmoved |
+| `proof` | 356 | **356** | unmoved |
+| `witness` | 761 | **762** | ⭐ **`kw_macromodule_df04b866`**, the founding target of the whole chain |
+| `UNKNOWN` | 14 | **13** | the same one |
+| union residual | `["kw_macromodule_df04b866"]` | **`[]`** | the `verilog_2005` union residual reaches **0** |
+
+`356 + 762 + 13 = 1131` — the arithmetic closes exactly, so this is an attribution rather than a
+re-baseline.
+
+⭐⭐⭐ **THE PRICED SCOPE RISK WAS MEASURED AWAY RATHER THAN ASSUMED AWAY.** Acceptance (c) demanded
+this because `-0087`'s analogous widening moved SV `UNKNOWN` by **28**. Re-measured on `sv_2017`:
+
+- canonical `total=1401 proof=8 witness=1382 UNKNOWN=11`, **identical 11-rule set**;
+- union `witness=1393 UNKNOWN=0 fully_certified=true`;
+- ⭐ **and ALL FIVE internal reach-pass statistics are BYTE-IDENTICAL** to the pre-change run — the
+  store-free, carrier-diversification, structured-witness, plannable-rule and target-own-structure
+  lines, down to the pre-existing *"64 probe samples did not re-parse"*. That is a far stronger
+  statement than an unmoved headline: not one probe in any pass behaved differently.
+- `corpus_checks` **360 / 0 mismatches** ⇒ parse behaviour untouched.
+
+###### Acceptance Checklist (enforced) — `.52`
+
+- [x] **REPRODUCE / ISSUE** — after `.51` slice 1 the plan was correct end to end
+  (`hops=[…, ("module_declaration_sv_2017", "root/o0/s0"), ("module_ansi_header", "root/s1"),
+  ("module_keyword", "root/o1")]`) and `kw_macromodule_df04b866` was STILL `UNKNOWN`, the sole
+  `verilog_2005` union residual.
+- [x] **ROOT CAUSE (WHY + WHERE)** — measured, and the first draft of it was REFUTED by census
+  before publication. `PGEN_CERT_COVERAGE_DEBUG_PROBES=1` showed two independent carriers each
+  emitting THEIR OWN rule-level `@sample` verbatim (`module m(input wire a);endmodule` from
+  `module_ansi_header`, `module m(a,b);endmodule` from `module_nonansi_header`) — so a rule-level
+  short-circuit was firing on a rule the plan descends through. WHERE:
+  `ActiveReachPlan::needs_rule_body_descent` (`stimuli_generator.rs`) keys on `directives` +
+  `forced_quantifier_min`, which `directives_along_path` / `quantifier_sites_along_path` build from
+  `o{i}` / `q` segments only, so a hop through a mandatory `s{i}` element contributes NEITHER.
+- [x] **ADDRESSED** — `ActiveReachPlan` gains `on_path_rules`, filled from the hop chain in
+  `install_reach_plan_from_hops` (the single builder both entry points funnel through); the
+  predicate becomes membership **UNION** the existing keys. Measured before→after on the symptom:
+  `kw_macromodule_df04b866` leaves the `UNKNOWN` list, `witness 761 → 762`, union residual `1 → 0`.
+- [x] **NO REGRESSION** — `sv_2017` unmoved on canonical, union AND all five reach-pass statistics;
+  `verilog_2005` corpus `360 checks / 0 mismatches`; `cargo test --lib stimuli_generator`
+  **225 passed / 0 failed**. ⭐ The new control
+  `a_mandatory_hop_stands_the_rule_sample_down_where_the_forced_decision_keys_cannot_see_it` asserts
+  that BOTH of `-0087`'s key sets are EMPTY for the fixture rule before asserting the fix — so the
+  test cannot pass for `-0087`'s reason, which is the only way it can prove `.52` specifically.
+  Off-reach generation is pinned byte-identical by its first control.
+- [x] **LOCKSTEP** — this leaf + `.51` CLOSED with (b) discharged + the `verilog_2005` contract
+  re-baselined by name + `CHANGES.md` + `DEVELOPMENT_NOTES.md` + `MEMORY.md` + `docs/TASK_TREE.md`.
+
+**Acceptance:** (a) ⭐ **DECIDED — implement the invariant above**: make the stand-down consult PATH
+MEMBERSHIP as a first-class plan field, unioned with (not replacing) the existing forced-decision keys — the hop
 chain is already in the plan, so this is an extension of `-0087`, ⛔ **not a revival of `H.12.3`'s
 withdrawn blanket gate**: it must still be byte-identical off-reach and for any rule the plan does
 not cross; (b) prove `kw_macromodule_df04b866` returns to `witness` under `verilog_2005`, taking the
@@ -13104,7 +13283,7 @@ control entered via an OPTIONAL, which must be unaffected, or the test cannot te
 `-0087`; (e) ⚠️ **honest bound**: whether any of the other 13 `verilog_2005` `UNKNOWN` rules or the
 11 `sv_2017` ones are held by this mechanism is UNMEASURED — only this one has been traced to it.
 
-### ⛔ `.51` — **THE REACH PLANNER ROUTES THROUGH A BRANCH THE PROFILE FILTER HAS ALREADY KILLED: it validates the rule REFERENCED at a hop site but never the ALTERNATIVE containing it** (`in progress` — **slice 1 FIXED the planner 2026-08-26, `PGEN-ENGINE-UNIVERSAL-SERVICES-0089`**: acceptance (a)(c)(d)(e)(f) discharged, `verilog_2005` `UNKNOWN 18 -> 14` and union residual `3 -> 1`. ⛔ **(b) is NOT discharged and the leaf stays OPEN**: the founding target `kw_macromodule_df04b866` is still `UNKNOWN`, held by a THIRD mechanism one stack frame further — routed as `.52`; opened 2026-08-26 by `SV-CORPUS-GRAD.13e.11`(a) / `PGEN-SV-CORPUS-GRAD-0307`)
+### ✅✅ `.51` — **CLOSED: the reach planner no longer routes through a branch the profile filter has already killed** (`done` — **slice 1 `PGEN-ENGINE-UNIVERSAL-SERVICES-0089`** fixed the planner: acceptance (a)(c)(d)(e)(f) discharged, `verilog_2005` `UNKNOWN 18 -> 14`, union residual `3 -> 1`, FOUR rules recovered where the leaf priced one. ⭐⭐ **(b) DISCHARGED 2026-08-26 by `.52` / `PGEN-ENGINE-UNIVERSAL-SERVICES-0090`** — `kw_macromodule_df04b866` is WITNESSED, `UNKNOWN 14 -> 13`, union residual `1 -> 0`. ⛔ It took a SECOND slice because slice 1's plan fix was necessary and not sufficient: plan correct, RENDER wrong; opened 2026-08-26 by `SV-CORPUS-GRAD.13e.11`(a) / `PGEN-SV-CORPUS-GRAD-0307`)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing, and whether it
 reproduces outside the family it is being sent to):
@@ -13262,9 +13441,13 @@ NOT FEARED.** Answering renderability lazily re-walked the referenced rules tran
 alternative of every rule the BFS visited, which on a 1 537-rule grammar pushed this command past
 **600 s**. Hoisting it to a fixpoint in `new()` — the same shape as the lint's own
 `compute_sat_by_profile`, so the two agree by construction rather than as two hand-kept models —
-brings it to **3 m 53 s against a HEAD baseline of 3 m 22.8 s (+15 % wall)**, both measured on the
-same command and machine. ⚠️ Not a like-for-like comparison and stated as such: the fixed run also
-witnesses four more rules, so it is doing strictly more downstream work. ⭐ `unrenderable_rules` is
+brings it back under three minutes of the pre-change figure. ⚠️ **THE PUBLISHED `+15 %` IS WITHDRAWN
+— it was one run per arm.** The measurement that stands is the gate's own `elapsed`, which now has
+three full runs of the identical command: **2 083 s / 2 013 s** before, **2 113 s** after. The
+within-arm spread is 70 s, so the between-arm difference is not resolvable at this sample size. What
+IS established is the direction of the earlier problem: the lazy implementation pushed the same
+command past **600 s** where the fixpoint keeps it near four minutes — an order-of-magnitude signal
+that survives any reasonable spread, unlike a 15 % one. ⭐ `unrenderable_rules` is
 **empty** for any grammar with nothing missing from its tree, which is every grammar declaring no
 `@profiles` — so the whole mechanism is inert there by construction, not merely by measurement.
 
@@ -13427,8 +13610,13 @@ founding target stated rather than hidden.
   9/9, `vhdl` 225/225 and `regex` 269 all still `fully_certified=true` with `UNKNOWN=0` — ⭐ `regex`
   is the load-bearing one, being the other grammar that declares `@profiles`. ZERO grammar, codegen
   and `generated/` bytes: the change is in the stimuli reach planner, which no generated parser
-  links. ⚠️ Tool cost measured rather than assumed: **3 m 53 s vs a HEAD baseline of 3 m 22.8 s**
-  on the same command (+15 % wall, not like-for-like — the fixed run witnesses four more rules).
+  links. ⚠️ **TOOL COST — AND THIS CLAIM IS CORRECTED BY ITS OWN FOLLOW-UP EVIDENCE.** First published as
+  *"3 m 53 s vs a HEAD baseline of 3 m 22.8 s, +15 % wall"*. That is **one run per arm**, i.e. a point
+  estimate for a stochastic quantity — the rider `docs/CLAIM_VERIFICATION.md` §4 names explicitly, and
+  I published it anyway. Three FULL gate runs of the same command now exist (`elapsed` 2 083 s and
+  2 013 s before this leaf's change, 2 113 s after), so the **within-arm spread alone is 70 s** and the
+  between-arm difference is **comparable to it**. ⇒ the honest statement is *"no cost difference
+  resolvable at one run per arm"*, and the `+15 %` figure is WITHDRAWN rather than restated.
 - [x] **LOCKSTEP** — this leaf + `.52` opened and routed with its measured two-carrier evidence + the
   `verilog_2005` contract re-baselined BY NAME + `TOOLBOX.md` + the book + `CHANGES.md` +
   `MEMORY.md` + `DEVELOPMENT_NOTES.md` + the knowledge record.

@@ -1485,6 +1485,20 @@ struct ActiveReachPlan {
     /// (`from_directives` never fills it), so existing reach-plan replay is
     /// byte-identical by construction.
     forced_quantifier_min: HashMap<(String, String), usize>,
+    /// ENGINE-UNIVERSAL-SERVICES.52: every rule the plan's PATH CROSSES — the hop chain's rules
+    /// plus the target. This is the question the three earlier short-circuit stand-downs were each
+    /// approximating with whatever the plan happened to record (`H.12.3` used the forced branch;
+    /// `H.12.5.5.2.2` used directives + quantifier sites). Both are storage artefacts: a hop whose
+    /// path is a pure mandatory `s{i}` segment contributes NEITHER, so an on-path rule with no
+    /// decision to force was invisible and its rule-level `@sample` short-circuited the descent.
+    ///
+    /// ⛔ THE INVARIANT, stated once: **while a reach plan is installed, no literal short-circuit
+    /// may fire for a rule the plan's path crosses.** A `@sample` renders a rule INSTEAD of its
+    /// body; the plan exists to steer THROUGH that body; the two are unconditionally in conflict.
+    ///
+    /// EMPTY for every sub-plan built from a bare `sub_chain` (no hop chain to record) and whenever
+    /// no plan is installed ⇒ off-reach generation is byte-identical by construction.
+    on_path_rules: HashSet<String>,
     /// GRAMMAR-WELLFORMED.C2.2: optional semantic-prelude spec for a count-gated
     /// target (a rule on the plan path carrying a `fact_count_at_least(K, $ref)`
     /// post-predicate). `None` for every constructor (`from_directives` never fills
@@ -1672,6 +1686,9 @@ impl ActiveReachPlan {
             .unwrap_or_else(|| (String::new(), 0));
         Self {
             directives,
+            // ENGINE-UNIVERSAL-SERVICES.52: filled by `install_reach_plan_from_hops`, the single
+            // builder that has the hop chain. A plan built from a bare chain has no path to record.
+            on_path_rules: HashSet::new(),
             bypass_fuel,
             target_group_key,
             target_branch_index,
@@ -1705,7 +1722,12 @@ impl ActiveReachPlan {
     /// rule name, so it is byte-identical off-reach and for any rule the plan does not
     /// steer into.
     fn needs_rule_body_descent(&self, rule_name: &str) -> bool {
-        self.directives.keys().any(|(r, _)| r == rule_name)
+        // ENGINE-UNIVERSAL-SERVICES.52: PATH MEMBERSHIP is the question; the two key sets below are
+        // what earlier slices could ask instead. Kept as a UNION rather than replaced, because a
+        // sub-plan carries directives but no hop chain — dropping them would silently narrow the
+        // `H.12.5.5.2.2` stand-down this extends.
+        self.on_path_rules.contains(rule_name)
+            || self.directives.keys().any(|(r, _)| r == rule_name)
             || self
                 .forced_quantifier_min
                 .keys()
@@ -3734,6 +3756,14 @@ impl<'a> StimuliGenerator<'a> {
             quantifier_sites.extend(Self::quantifier_sites_along_path(hop_rule, hop_site_path));
         }
         let mut plan = ActiveReachPlan::from_directives(&chain, bypass_fuel);
+        // ENGINE-UNIVERSAL-SERVICES.52: record PATH MEMBERSHIP, which `directives_along_path` and
+        // `quantifier_sites_along_path` both discard for a hop whose path is a pure mandatory
+        // `s{i}` segment. The target is included: the plan descends into it too.
+        plan.on_path_rules = hops
+            .iter()
+            .map(|(hop_rule, _)| hop_rule.clone())
+            .chain(std::iter::once(target_rule.to_string()))
+            .collect();
         plan.baseline_selected_hits =
             self.branch_selected_hits(&plan.target_group_key, plan.target_branch_index);
         plan.baseline_success_hits =
@@ -27034,6 +27064,105 @@ mod tests {
             "the reach plan descends through wrapper's body: the rule-level @sample must \
              stand down and the deep token must appear: {:?}",
             reached_out
+        );
+    }
+
+    #[test]
+    fn a_mandatory_hop_stands_the_rule_sample_down_where_the_forced_decision_keys_cannot_see_it() {
+        // ENGINE-UNIVERSAL-SERVICES.52 — the case `H.12.5.5.2.2` cannot reach, and the test is
+        // written so it can only pass for the RIGHT reason.
+        //
+        // `-0087` keys the stand-down on `needs_rule_body_descent` = "the plan holds a forced
+        // OR-directive or quantifier site for this rule". Those keys come from `o{i}` and `q`
+        // segments of the hop path. Here the plan crosses `wrapper` at a PURE MANDATORY `s{i}`
+        // element, so BOTH key sets are empty for it — the shape of the real SV defect, where the
+        // plan hopped `("module_ansi_header", "root/s1")` to reach `module_keyword`.
+        //
+        //   start   := wrapper                 <- hop 1
+        //   wrapper := deep_token              <- hop 2, MANDATORY: no `|`, no `?`
+        //   wrapper carries a rule-level @sample "SHELL"
+        let mut grammar_tree = HashMap::new();
+        grammar_tree.insert(
+            "start".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("rule_reference", "wrapper")],
+            },
+        );
+        grammar_tree.insert(
+            "wrapper".to_string(),
+            ASTNode::Sequence {
+                elements: vec![token("rule_reference", "deep_token")],
+            },
+        );
+        grammar_tree.insert("deep_token".to_string(), token("quoted_string", "DEEP"));
+        let rule_order = vec![
+            "start".to_string(),
+            "wrapper".to_string(),
+            "deep_token".to_string(),
+        ];
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert(
+            "wrapper".to_string(),
+            vec![SemanticAnnotation::Named {
+                name: "sample".to_string(),
+                ast: UnifiedSemanticAST::Structured {
+                    canonical: "\"SHELL\"".to_string(),
+                    value: UnifiedSemanticValue::String("SHELL".to_string()),
+                },
+            }],
+        );
+
+        // CONTROL 1 — off-reach: the rule-level @sample still short-circuits, byte-identical.
+        let mut control = annotated_generator(&grammar_tree, &rule_order, &annotations, 7);
+        let control_out = control
+            .generate_many(1, Some("start"))
+            .expect("control generation should succeed");
+        assert!(
+            control_out[0].contains("SHELL") && !control_out[0].contains("DEEP"),
+            "off-reach: the rule-level @sample must still short-circuit: {control_out:?}"
+        );
+
+        let mut reached = annotated_generator(&grammar_tree, &rule_order, &annotations, 7);
+        assert!(
+            reached.set_reach_plan_for_rule("start", "deep_token", 16),
+            "a reach plan to `deep_token` must install"
+        );
+
+        // ⛔⛔ CONTROL 2 — THE ONE THAT MAKES THIS TEST DISTINGUISH `.52` FROM `-0087`.
+        // Both of `-0087`'s key sets must be EMPTY for `wrapper`; if either is populated, the
+        // older predicate would already fire and this test would pass without the new field,
+        // proving nothing. This asserts the fixture really is out of `-0087`'s reach.
+        {
+            let plan = reached
+                .reach_plan
+                .as_ref()
+                .expect("the plan is installed");
+            assert!(
+                !plan.directives.keys().any(|(r, _)| r == "wrapper"),
+                "fixture invalid: a forced OR-directive exists for `wrapper`, so -0087 would \
+                 already cover this and the test could not tell the two fixes apart"
+            );
+            assert!(
+                !plan
+                    .forced_quantifier_min
+                    .keys()
+                    .any(|(r, _)| r == "wrapper"),
+                "fixture invalid: a forced quantifier site exists for `wrapper` — same problem"
+            );
+            assert!(
+                plan.on_path_rules.contains("wrapper"),
+                "the .52 field is what must carry `wrapper`: {:?}",
+                plan.on_path_rules
+            );
+        }
+
+        // FIX — the plan crosses `wrapper`, so its rule-level @sample stands down.
+        let reached_out = reached
+            .generate_many(1, Some("start"))
+            .expect("reach generation should succeed");
+        assert!(
+            reached_out[0].contains("DEEP") && !reached_out[0].contains("SHELL"),
+            "a MANDATORY on-path hop must stand the rule-level @sample down: {reached_out:?}"
         );
     }
 

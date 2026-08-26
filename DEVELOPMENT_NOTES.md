@@ -1,5 +1,61 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0090 — the fourth mechanism to short-circuit the same reach plan, and the first fix that stopped widening a proxy
+
+**1. ⭐⭐⭐ WHEN THE THIRD FIX FOR ONE SYMPTOM WIDENS A THIRD DIFFERENT PREDICATE, THE PREDICATES ARE
+THE BUG.** `H.12.3` keyed the `@sample` stand-down on the forced branch. `-0087` keyed it on
+directives + quantifier sites. `.52` would have keyed it on "also `s{i}` hops". All three are
+proxies for one question — *is this rule on the active plan's path?* — each shaped by whatever the
+plan happened to record, not by the question. The fix was to store the answer: `on_path_rules`,
+filled from the hop chain the builder was already iterating and discarding. ⇒ **a proxy that needs
+widening a third time is not a predicate that needs another case; it is a missing field.** DECLINED
+for promotion as a knowledge record — it is a design-review instinct, not a PGEN fact, and the
+retrievable form is already carried by `.52`'s leaf where a future reader of that code will meet it.
+
+**2. ⭐⭐ THE OBJECTION TO MY OWN FIX WAS ALREADY WRITTEN DOWN IN THE REPOSITORY, BY THE SLICE THAT
+TRIED IT FIRST AND REVERTED IT.** `H.12.3`'s record says the `on_path_rules` infra was *"explored
+first and REVERTED once the dump proved the short-circuit is branch-level (targeted-fix discipline —
+no code on a hypothesis)"*. Reading that BEFORE writing code changed the shape of the work: the leaf
+now has to answer *"what evidence do you have that H.12.3 lacked?"* rather than silently rebuild a
+withdrawn design. ⇒ **a reverted design is prior art with a stated reason, and the reason is the
+acceptance criterion for reinstating it.** The `DESIGN-PRIOR-ART` doctrine exists for the
+forward case; this is the same discipline applied to the repository's own history.
+
+**3. ⭐⭐ I MEASURED THE SCOPE RISK I HAD PRICED, AND THE STRONGEST EVIDENCE WAS NOT THE HEADLINE.**
+`-0087`'s analogous widening moved SV `UNKNOWN` by 28, so "this one is probably small" was not
+available. `sv_2017` came back unmoved — but the headline alone would have been weak evidence, since
+a headline can be unmoved while the internals churn. The load-bearing check was that **all five
+internal reach-pass statistics are byte-identical**, down to a pre-existing *"64 probe samples did
+not re-parse"*. ⇒ **when a change is inert, prove it on the most granular counter the tool already
+prints, not the one the contract happens to pin.** DECLINED for promotion: it is an instance of the
+standing three-way-verification directive, not a new fact.
+
+**4. ⭐⭐⭐ A TEST THAT PASSES FOR THE PREDECESSOR'S REASON PROVES NOTHING ABOUT THIS FIX, SO THE
+CONTROL ASSERTS THE PREDECESSOR CANNOT SEE ITS FIXTURE.** `-0087`'s stand-down would happily cover a
+fixture whose hop crosses an OPTIONAL. Mine must cross a MANDATORY element — and rather than trust
+that the fixture is shaped right, the test asserts it: both of `-0087`'s key sets must be EMPTY for
+the rule before the fix is asserted. ⇒ **when a fix extends a live mechanism, the control's job is to
+prove the OLD mechanism is out of reach**, or a green test is indistinguishable from a redundant one.
+This one generalises and is worth retrieving later, but it needs a second instance before it earns a
+record; noted here deliberately as a DECLINED-for-now with that condition stated.
+
+**5. ⭐⭐ I NEARLY PUBLISHED "62 SITES HAVE THIS DEFECT" — WHICH IS THE CENSUS-CLAIM ERROR RUN
+BACKWARDS.** Hunting the `contains_key` conflation across the generator returns 62 hits. Only **3**
+turn an absence into a VERDICT; of those one was already protected and one is latent behind an
+existing fallback; the other 59 are conservative guards. A raw 62 would have been a POPULATION
+mistaken for a DEFECT COUNT — the mirror image of asserting "nothing checks X" without counting.
+⇒ **a census protects in both directions: it stops you claiming a gap you have not measured, and it
+stops you claiming a defect class you have only grepped.**
+
+**6. ⛔ THE DIRECTOR WAS RIGHT THAT REPORTING IS NOT FIXING, AND THE CORRECTION CHANGED WHAT I BUILT.**
+My previous findings callout listed three defect classes with durable records and no fix plan for two
+of them. Recording is step one; policy 15 says the end goal is zero defects. Acting on that produced,
+in the same session: `.52` implemented and closed (not filed), `.53` routed with a measured census
+and a decided disposition (PIN, not refactor, with the reason), and `DOCTRINE-GAP-OWNERSHIP.15`
+un-parked on a third measured occurrence rather than left behind the lane lock. ⇒ **"logged in a
+durable layer" is a property of the RECORD, not of the DEFECT** — the defect is only addressed when
+something is sequenced to remove it.
+
 ## 2026-08-26 - PGEN-ENGINE-UNIVERSAL-SERVICES-0089 — the fix worked, recovered four rules I had not predicted, and still did not reach the target it was written for
 
 **1. ⭐⭐⭐ `contains_key` IS NOT A PROFILE PREDICATE, AND ASSUMING IT WAS TOOK A PASSING TEST RED.**
@@ -44,8 +100,14 @@ not just avoid publishing a falsehood; it is often how the real mechanism gets f
 **5. ⚠️ I MEASURED THE PERFORMANCE COST INSTEAD OF ASSERTING THE CHANGE WAS CHEAP — AND IT WASN'T.**
 The obvious implementation answered renderability lazily, re-walking referenced rules transitively at
 every alternative of every rule the BFS visited. On a 1 537-rule grammar that pushed a 3-minute
-command past **600 s**. Hoisting it to a fixpoint computed once in `new()` brought it to 3 m 53 s
-against a HEAD baseline of 3 m 22.8 s. ⭐ The fixpoint is also the *more correct* shape, because it is
+command past **600 s**. Hoisting it to a fixpoint computed once in `new()` brought it back to a few
+minutes. ⛔⛔ **AND I THEN OVERCLAIMED THE RESIDUAL COST — one run per arm, published as `+15 %`.**
+That is exactly the rider `docs/CLAIM_VERIFICATION.md` §4 states (*"intervals, not point estimates,
+for anything stochastic"*), on a document this project adopted. WITHDRAWN once three full gate runs of
+the identical command existed (**2 083 s / 2 013 s** before, **2 113 s** after): within-arm spread
+**70 s**, between-arm difference not resolvable. ⇒ **the order-of-magnitude signal (600 s → minutes)
+was always sound; the 15 % was noise wearing a decimal point.** The lesson is not "measure twice" but
+**"a percentage difference smaller than your unmeasured spread is not a measurement at all"**. ⭐ The fixpoint is also the *more correct* shape, because it is
 the same computation the well-formedness lint already performs — so the engine and the lint agree by
 construction rather than as two hand-kept models. DECLINED for promotion: "memoize a transitive
 predicate" is general programming knowledge, not a PGEN fact.

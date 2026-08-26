@@ -972,7 +972,23 @@ the copy has no way to know.*
   the SV lane and behind `H.16.6f`/`H.23`. It is recorded because the director delegated the decision
   and *"nothing important may live only in this conversation"* — not because it outranks the frontier.
 
-#### ⛔ `.15` — a "nothing checks X" claim is a CENSUS claim, and 70 % of them in this repo carry no census (`todo`, opened 2026-08-25 by `PGEN-SV-CORPUS-GRAD-0294`)
+#### ⛔⛔ `.15` — a "nothing checks X" claim is a CENSUS claim, and 70 % of them in this repo carry no census (`todo` — ⭐⭐ **UN-PARKED 2026-08-26 by my own ruling; it is now SEQUENCED, not deferred**; opened 2026-08-25 by `PGEN-SV-CORPUS-GRAD-0294`)
+
+⭐⭐⭐ **SEQUENCING RULING 2026-08-26 (mine to make — `feedback_sequence_approved_work_yourself`): THIS COMES OFF THE PARK, AND THE ARGUMENT IS A THIRD OCCURRENCE RATHER THAN A PREFERENCE.**
+It was parked behind the SV lane as governance work. That classification is now refuted by measurement: the habit has produced a WRONG PUBLISHED CLAIM **three times**, and every one of them landed inside the SV lane and cost a correction:
+
+| # | claim | where it was published | cost |
+|---|---|---|---|
+| 1 | *"the `verilog_2005` cert denominator counts 302 rules no v2005 input can reach — nothing crosses the two"* | `SV-CORPUS-GRAD.13e.8` | leaf CLOSED AS REFUTED (`-0294`) |
+| 2 | *"nothing in the doctrine set would have blocked it"* | `-0305`'s findings callout | retracted at 4 sites (`-0306`) |
+| 3 | *"nothing suppresses a rule-level `@sample` on an interior hop"* | `ENGINE-UNIVERSAL-SERVICES.52`, first draft | caught pre-publication, 2026-08-26 |
+
+⇒ **it is not a governance lane adjacent to the SV lane — it IS the SV lane's recurring failure mode.** Three occurrences in three days, two of which reached a commit and one of which reached a TRACKED CONTRACT.
+
+⭐ **AND OCCURRENCE 3 IS THE ONE THAT SETTLES THE DESIGN QUESTION, because checking it was not merely defensive — it FOUND THE REAL MECHANISM.** The false claim would have sent a fix at a mechanism that does not exist; the census instead produced the exact predicate (`needs_rule_body_descent` keying on `o{i}`/`q` segments and therefore missing an `s{i}` hop) that `.52` then fixed. ⇒ the guard's value is not that it blocks bad prose; it is that **it converts a vague suspicion into a located defect**, which is the strongest possible argument for making it blocking rather than advisory.
+
+⛔ **MY EARLIER RULING STANDS AND IS UNCHANGED — STAGED-DIFF-SCOPED, never over the existing corpus.** 76 of 108 pre-existing claims carry no census; a blocker firing on all of them teaches bypass (the 91 %-FP shape `.6`/`.12` refused). Scoped to claims a commit ADDS, it fires on nothing today — the same condition `SV-CORPUS-GRAD.13e.11` established for a safe blocking guard: *a guard is safe to make blocking over its whole population exactly when the fix precedes it*, and here scope-limiting plays the part the fix plays there.
+⭐ **Sequenced AFTER `ENGINE-UNIVERSAL-SERVICES.53` and `SV-CORPUS-GRAD.13e.11`(b)+(c)** — both are smaller, both are already designed, and `.13e.11`(b) builds the same kind of staged guard, so its wiring is the prior art this one should reuse rather than reinvent.
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing):
 
