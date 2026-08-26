@@ -1,5 +1,49 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-27 - PGEN-LIVE-DOC-CONTAINMENT-0015 — the population you sized decides the shape of the gate, not the severity of the defect
+
+**1. ⭐⭐⭐ THE SIZING IS WHAT MADE A BLOCKING GATE AFFORDABLE, AND IT ALMOST ARGUED THE OTHER WAY.**
+54 of 1 164 tracked `.md` files carry an arity defect: 148 OVER + 51 UNDER. Read as a total that is
+an argument for a blanket gate — the defect is real, it is in shipped contracts, and it is silent.
+Read by CLASS it is the opposite argument: **88 % of the UNDER population lives in 22
+machine-converted LRM files** under `docs/{systemverilog,verilog,vhdl}/*/md/`, which nobody here
+authored, while **74 % of the OVER population is in 32 project-authored files**. A blanket gate would
+have fired mostly on documents no author in this repository can be asked to fix — the 91 %
+false-positive shape `GENERATED-LINT-CORRECTNESS.6`/`.12` already refused once. ⇒ **size the
+population by PROVENANCE before choosing between a gate and a ratchet**; a total tells you the defect
+matters, a breakdown tells you what a blocking rule would actually do to the people it fires on.
+
+**2. ⭐⭐ "NOTHING ELSE CATCHES THIS" IS A CENSUS CLAIM, AND THE GREP ANSWER WAS THE WRONG ONE.**
+`grep -lEi 'column|arity|cell count'` over the enforcers returns **14 of 31** — which reads as *plenty
+of things look at columns* and proves nothing either way, because none of them compares a row's cell
+count against its header. The claim that actually holds is behavioural and was already measured: on
+commit `2a61a0ea`, `check_doctrines.sh` reported **ALL 30 doctrines PASS** on a clean tree carrying 26
+defective rows in a shipped contract and 14 in the resume index. ⇒ **when the question is "would
+anything have noticed?", the strongest evidence is a green run over the known-defective state**, not
+a keyword search over the checkers.
+
+**3. ⚠️ THE GATE CAUGHT A DEFECT IN ITSELF ON ITS FIRST DRIVER RUN.** `[ "$1" = "--self-test" ]` under
+`set -u` is a **fatal unbound-positional error**, not a false comparison: the shell exits before any
+check runs. Invoked directly with an argument it worked perfectly; invoked by the driver with none it
+reported FAIL — and the failure looked like a real doctrine breach rather than a script bug. `bash -n`
+was clean throughout, and `--self-test` passed 10/10, because both paths supply `$1`. ⇒ **a script's
+argument-less path is a distinct arm, and it is the one the driver actually uses.**
+
+**4. ⭐ THE ENFORCER CALLS THE SAME CENSUS EVERY NUMBER IN THE LEAF WAS MEASURED WITH.** It shells out
+to `docs/tasks/artifacts/live_means_live/table_arity_census.sh` rather than re-implementing the
+splitting rule, so the gate and the owning record cannot drift apart, and the two traps that instrument
+already survived — an escaped `\|` is not a separator, and the trailing pipe is optional — are
+inherited rather than re-discovered. Both are additionally pinned as self-test arms, so a regression in
+the shared instrument fails the doctrine instead of silently changing what it measures.
+
+**5. ⭐⭐ THE REGISTRY'S OWN MIRROR WAS CARRYING THE DEFECT IT WAS ABOUT TO DOCUMENT.**
+`DOCTRINE_ENFORCEMENT.md` §10 had two over-wide rows — `SV-CORPUS-DENOMINATOR` and
+`PARSE-COST-RATCHET`, each losing a cell to an unescaped shell pipe inside a code span — so the
+published description of two doctrines was silently truncated in the rendered page. It had to be
+repaired *before* the new row was added, or the ratchet's own defining document would have started
+life with a dirty baseline. ⇒ a defect class propagates by imitation, and the documents that describe
+the enforcement are written by the same hands and carry the same habits.
+
 ## 2026-08-27 - PGEN-LIVE-DOC-CONTAINMENT-0014 — a detector's headline is not a defect count until its false-positive class has been named
 
 **1. ⭐⭐⭐ I ROUTED A LEAF WITH A NUMBER AND THE NUMBER WAS 31 % HIGH, AND I ONLY FOUND OUT BECAUSE I
