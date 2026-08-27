@@ -1,0 +1,124 @@
+# probe systemverilog fingerprint: 240da0a4f9e7be064a61c5076e4fcca5ca9dac0cfeb7b6a3282346fea03d5d2f
+# fingerprint MATCHES generated/systemverilog_parser.rs
+
+==============================================================================
+ARM A — the four ATTEMPT-ELISION gates on SystemVerilog, and WHY they refuse
+==============================================================================
+FUSIBILITY-CENSUS: grammar=systemverilog rules=1537 fusible=6 (token=6 lookahead=0) not_fusible=1531 (shape_only=1) maximal_roots=6 static_share=0.4%
+CHOICE-SITE-CENSUS: grammar=systemverilog sites=559 (top_level=535) with_encodable_subset=9 all_encodable=4
+DEGENERACY-CENSUS: grammar=systemverilog top_level_sites=535 degenerate_dispatch=0
+PREFIX2-CENSUS: grammar=systemverilog blocked_top_level_sites=535 prefix2_dispatchable=0 (wildcard_limited=0)
+FIRSTK-CENSUS: grammar=systemverilog top_level_branches=1934 guarded=0 deeper_than_level1=0 with_emulation=0 truncated=0 d1_fallback=0
+QUANT-SITE-CENSUS: grammar=systemverilog quantified_sites=1163 min_zero=1157 guardable=0 (bare_ref=0 no_refs=0 mixed=0)
+CASCADE-CENSUS: grammar=systemverilog rules=1537 cascade_eligible=1044 (roots=440 internal=604 internal_cyclic=109) residual=493 boundary_edges=317
+
+-- blocker histograms (the WHY: read the count against the site total on the line above) --
+        1  rule has branch-phase predicates (a rejected sole candidate must roll back and continue the tournament)
+        1  rule has branch-start effect directives
+      535  terminals skip leading layout (R2 raw-byte peek unsound)
+      909  reachable rule carries branch predicates/effects
+     1157  element not first-byte-decided
+     1157  terminal layout skipping (R2 raw-byte peek unsound)
+     1934  branch not first-byte-decided
+     1934  terminals skip leading layout (R2 raw-byte peek unsound)
+
+==============================================================================
+ARM B — RED/GREEN CONTROL: the SAME instrument on regex must report NON-ZERO
+==============================================================================
+FUSIBILITY-CENSUS: grammar=regex rules=276 fusible=68 (token=40 lookahead=28) not_fusible=208 (shape_only=76) maximal_roots=57 static_share=24.6%
+CHOICE-SITE-CENSUS: grammar=regex sites=149 (top_level=113) with_encodable_subset=133 all_encodable=107
+DEGENERACY-CENSUS: grammar=regex top_level_sites=113 degenerate_dispatch=60
+PREFIX2-CENSUS: grammar=regex blocked_top_level_sites=53 prefix2_dispatchable=33 (wildcard_limited=26)
+FIRSTK-CENSUS: grammar=regex top_level_branches=853 guarded=853 deeper_than_level1=203 with_emulation=29 truncated=241 d1_fallback=1
+QUANT-SITE-CENSUS: grammar=regex quantified_sites=140 min_zero=118 guardable=102 (bare_ref=78 no_refs=2 mixed=22)
+CASCADE-CENSUS: grammar=regex rules=276 cascade_eligible=236 (roots=20 internal=216 internal_cyclic=28) residual=40 boundary_edges=32
+   ⇒ non-zero here + zero in arm A means arm A measured SystemVerilog, not a dead instrument.
+
+==============================================================================
+ARM C — the elision surface priced on the REAL depth-300 workload
+==============================================================================
+QUANT-EXPOSURE: grammar=systemverilog attributable_rules=0 entries=0 committed=0 discarded=0 | shared_rules=0 shared_entries=0 shared_discarded=0
+CASCADE-EXPOSURE: grammar=systemverilog files=1 total_entries=173697 | internal=33393 (19.2%) committed=624 discarded=33070 memo_hits=4512 | roots=103483 committed=4853 | residual=36821 committed=605 | committed_floor=5458 unmatched=0
+OUTCOME-SHARE: grammar=systemverilog files=1 total_entries=173697 committed=6082 discarded=168518 (on_encodable=3022 on_structural=165496) committed_on_encodable=4 unmatched=0 ceiling≈1.02x
+DEGENERACY-EXPOSURE: grammar=systemverilog degenerate_site_entries=0 (0.0% of total) committed=0 discarded=0
+PREFIX2-EXPOSURE: grammar=systemverilog prefix2_site_entries=0 (0.0% of total) committed=0 discarded=0
+
+==============================================================================
+ARM D — where the calls actually go, and which rules the memo NEVER serves (depth 300)
+==============================================================================
+input 633 B  =>  at most 634 distinct (rule,position) keys PER RULE
+rule-method entries :       173697   (the call population)
+memo HITS           :        79623   (45.8% — served from the memo, returns Backtrack)
+committed           :         6082   discarded 167615 (96.49850%)
+
+rules the memo NEVER serves: 465 of 535 rules, carrying 76213 entries (43.9% of ALL calls)
+
+hit-rate    rules        entries    share   <- a BIMODAL split is the finding: a rule is served or it is not
+0%            465          76213    43.9%
+<50%           25          10893     6.3%
+50-90%         41          37679    21.7%
+90-99.9%        4          48912    28.2%
+>=99.9%         0              0     0.0%
+
+top zero-hit rules — `calls/key` is the PIGEONHOLE bound: with at most 634 keys, a rule called
+this many times per key and still reporting ZERO hits has never had a result RETAINED.
+rule                                          calls     hits   calls/key
+declaration_identifier                         3980        0         6.3
+lbrace                                         2712        0         4.3
+kw_this_c2543fff                               1507        0         2.4
+kw_null_2be88ca4                               1504        0         2.4
+class_identifier                               1218        0         1.9
+kw_class_qualifier_fa08937d                    1204        0         1.9
+type_identifier                                 913        0         1.4
+empty_unpacked_array_concatenation              903        0         1.4
+
+==============================================================================
+ARM C — the elision surface priced on the REAL depth-800 workload
+==============================================================================
+QUANT-EXPOSURE: grammar=systemverilog attributable_rules=0 entries=0 committed=0 discarded=0 | shared_rules=0 shared_entries=0 shared_discarded=0
+CASCADE-EXPOSURE: grammar=systemverilog files=1 total_entries=18901646 | internal=1979644 (10.5%) committed=0 discarded=1979644 memo_hits=653083 | roots=13733801 committed=3 | residual=3188201 committed=1 | committed_floor=4 unmatched=0
+OUTCOME-SHARE: grammar=systemverilog files=1 total_entries=18901646 committed=4 discarded=18901642 (on_encodable=8022 on_structural=18893620) committed_on_encodable=0 unmatched=0 ceiling≈1.00x
+DEGENERACY-EXPOSURE: grammar=systemverilog degenerate_site_entries=0 (0.0% of total) committed=0 discarded=0
+PREFIX2-EXPOSURE: grammar=systemverilog prefix2_site_entries=0 (0.0% of total) committed=0 discarded=0
+
+==============================================================================
+ARM D — where the calls actually go, and which rules the memo NEVER serves (depth 800)
+==============================================================================
+input 1633 B  =>  at most 1634 distinct (rule,position) keys PER RULE
+rule-method entries :     18901646   (the call population)
+memo HITS           :     11266754   (59.6% — served from the memo, returns Backtrack)
+committed           :            4   discarded 18901642 (99.99998%)
+
+rules the memo NEVER serves: 438 of 531 rules, carrying 6306475 entries (33.4% of ALL calls)
+
+hit-rate    rules        entries    share   <- a BIMODAL split is the finding: a rule is served or it is not
+0%            438        6306475    33.4%
+<50%           34         686323     3.6%
+50-90%         37        1368816     7.2%
+90-99.9%       21        8096760    42.8%
+>=99.9%         1        2443272    12.9%
+
+top zero-hit rules — `calls/key` is the PIGEONHOLE bound: with at most 1634 keys, a rule called
+this many times per key and still reporting ZERO hits has never had a result RETAINED.
+rule                                          calls     hits   calls/key
+declaration_identifier                      1219974        0       746.6
+kw_null_2be88ca4                             614379        0       376.0
+enum_identifier                              606216        0       371.0
+formal_port_identifier                       606216        0       371.0
+genvar_identifier                            606216        0       371.0
+specparam_identifier                         606216        0       371.0
+constant_expression_operand                  602268        0       368.6
+constant_primary                             601963        0       368.4
+
+==============================================================================
+READ IT LIKE THIS
+==============================================================================
+ARM A/B  A gate reporting 0 is only a FACT about the grammar once arm B shows the same gate
+         reporting non-zero elsewhere. Read each blocker count against its own site total: a
+         blocker firing on 100 % of sites is one grammar-level property, not N site verdicts.
+ARM C    `*-EXPOSURE: … entries=0` prices the elision on the workload itself. `OUTCOME-SHARE`'s
+         `on_encodable` vs `on_structural` split says whether the shape-encodable lanes can matter
+         here at all; `ceiling≈1.00x` means they cannot.
+ARM D    `calls/key` is a COUNTING argument, not an inference: a rule cannot be called hundreds of
+         times per available key, report zero hits, and still be having its results retained. It is
+         how the failure-store suppression is priced from the OUTCOME side with no codegen change.

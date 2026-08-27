@@ -123,7 +123,20 @@ The fix keeps both halves true at once, because both are real:
   `≥ D`. That condition the entry can carry, so it is carried and validated on every replay.
 
 The result is the contract `1.3.1` intended: over-ceiling input comes back as a clean
-`E_PARSE_FAILURE` in milliseconds instead of never. The ceiling's location did not move — a
+`E_PARSE_FAILURE` in bounded time instead of never. ⚠️ **"Bounded" is not "fast", and an embedder
+should size for the plateau rather than for the cliff edge.** Just past the ceiling the reject is
+indeed milliseconds (SystemVerilog at nesting depth 350/400: **0.29 / 0.76 s**), but the cost rises
+to a plateau and then *saturates*: depth 800 and depth 2000 both cost about **12 s** of
+single-threaded CPU on ~1.6 KB of input, and VHDL saturates near **18 s**. Saturation is the proof
+the search is bounded — past the ceiling the parse only ever descends 4096 frames however long the
+input is — but a bounded 12 s is still a real cost for a host parsing untrusted or machine-generated
+source. ⛔ This is tracked as an open defect, not an accepted residual, in
+`docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` leaf `.44`, whose (d) ruling is explicit that
+*bounded-and-terminating is the difference between a crash and a slowdown, not the difference
+between a defect and a non-defect*. Where the time actually goes has been measured rather than
+guessed: on SystemVerilog error construction is only ~24 % of it, the parse cascade re-descending is
+~72 %, and the driving term is **call volume** — 18.9 M rule calls at depth 800, of which a third
+land on rules the memo can never serve. The ceiling's location did not move — a
 sub-ceiling control is accepted at exactly the same depth as before — and this is locked from both
 sides by `parser_embedding_*_over_ceiling_nesting_fails_in_bounded_time` (over the cliff: clean
 diagnostic **within a wall-clock budget**) and

@@ -1,5 +1,62 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-27 - PGEN-ENGINE-UNIVERSAL-SERVICES-0102 — a census that reported zero everywhere, and the zero was the instrument's question, not the grammar's answer
+
+**1. ⭐⭐⭐ A BLOCKER FIRING ON 100 % OF A POPULATION IS ONE GLOBAL PROPERTY WEARING THE COSTUME OF N
+FINDINGS.** Four independent dispatch gates reported `0` on SystemVerilog — 0 of 535 sites, 0 of 535,
+0 of 1 934 branches, 0 of 1 157 sites. Four gates, four models, four zeros reads like *"this grammar
+is structurally undispatchable"*. It is not four facts: every histogram's top blocker count **equals
+its own population size exactly**, and it is the SAME blocker — `terminals skip leading layout`. One
+property of the layout discipline, reported four times. ⇒ **read every histogram count against the
+population on the line above it before reading the verdict.** A count equal to the population is not
+a finding about the items; it is a finding about the gate. `FIRSTK`'s histogram made it unmissable by
+having exactly ONE entry — which is why the cheapest thing to look at first is the gate with the
+fewest blockers, not the one you care about most.
+**promotion: PROMOTED** → `docs/decisions/a-blocker-firing-on-the-whole-population-is-one-fact-not-n.md`.
+
+**2. A NEGATIVE RESULT NEEDS A POSITIVE CONTROL, AND IT IS THE SAME RULE AS A RED CONTROL.** `0` from
+a census and `0` from a broken census are the same bytes. Arm B runs the identical binary on
+`grammars/regex.ebnf` and reads 60 / 33 / 853 / 102, which is what converts *"the census returned
+zero"* into *"SystemVerilog has no surface here"*.
+**promotion: DECLINED — it is [[feedback_an_instrument_that_can_only_return_one_reading_is_not_a_measurement]]**,
+whose own description already says *"before a probe's reading is cited, prove the probe can return
+the OTHER reading"*. That record was written about a RED control (prove it can report a defect); this
+is the mirror (prove it can report a non-zero) and the rule is identical. A second record would be a
+competing authority on one rule. Arm B is an INSTANCE of it, and the leaf says so.
+
+**3. ⭐⭐ A COUNTING ARGUMENT CAN TURN A ZERO COUNTER INTO A PROOF, WHERE A TRACE ONLY GIVES A
+SAMPLE.** `declaration_identifier`: 0 memo hits. The innocent reading is *"never re-queried at the
+same key"*. The input is 1 633 B ⇒ at most 1 634 distinct `(rule, position)` keys, and the rule was
+called 1 219 974 times — **746.6 per available key**. If one result had ever been retained the
+counter could not read zero. No trace, no instrumentation, no codegen change: the input SIZE and the
+call COUNT settle it. ⇒ when a counter reads zero, look for a pigeonhole before looking for a bug.
+**promotion: DECLINED, and ROUTED instead.** It is a TECHNIQUE for a specific question shape, not a
+standing rule about how I work, and its natural home is the toolbox beside the counter it reads —
+`TOOLBOX.md` 3.5 already documents `--dump-rule-outcome-counts-json`. Routed there as a scope
+question if the shape recurs; a decisions record would be a third authority on "how to read the
+outcome dump" beside 3.4 and 3.5.
+
+**4. THE CORRECTION REACHED THE BODY AND NOT THE `description:` — AND THE `description:` IS THE FIELD
+RECALL READS.** `-0101` withdrew a published pairing (a PROTOCOL call count against a FUSED wall
+clock, `85×`) and corrected the record's body to `86.8×`. The frontmatter `description:` still
+carried `85x (0.144 s -> 12.25 s)` today — the withdrawn pairing, in the one field a future session
+retrieves first. Same class as the `.53` finding this leaf already records: **a fix that lands on one
+surface and not its twin.**
+**promotion: DECLINED as a record, FIXED in place instead** — the description, the ~99 % corollary and
+the "nothing is re-derived" absolutism are all corrected in
+`docs/decisions/a-healthy-cache-is-not-evidence-the-cache-is-the-bottleneck.md` in this slice.
+⚠️ **Routed as a QUESTION, not a claim**: whether a durable record's `description:` and body can
+disagree without anything noticing is a doctrine-shaped gap, and it belongs to
+`DOCTRINE-GAP-OWNERSHIP` if it recurs. I have NOT censused how many of the 193 records have a
+body/description disagreement, so nothing here may be quoted as a population fact.
+
+**5. MY OWN HYPOTHESIS WAS REFUTED BY THE CONTROL I RAN TO CONFIRM IT.** I expected the zero-hit rule
+class to be an over-ceiling artefact and ran depth 300 expecting it to vanish. It got *bigger*
+(43.9 % vs 33.4 %). The control was cheap, I ran it because the three-way discipline says to, and it
+turned a plausible wrong mechanism into a measured right one before it reached a leaf.
+**promotion: DECLINED — per-slice history**, and it is [[feedback_verify_a_claim_three_ways_before_publishing_it]]
+working as designed rather than a new rule. It stays here, which is what this surface is for.
+
 ## 2026-08-27 - PGEN-ENGINE-UNIVERSAL-SERVICES-0100 — the memo was never the bottleneck; it was answering 134 questions per fact it knew
 
 **1. ⭐⭐⭐ "IS THE CACHE WORKING?" AND "IS THE CACHE THE PROBLEM?" ARE DIFFERENT QUESTIONS, AND THE
