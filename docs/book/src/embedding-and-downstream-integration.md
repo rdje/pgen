@@ -125,9 +125,11 @@ The fix keeps both halves true at once, because both are real:
 The result is the contract `1.3.1` intended: over-ceiling input comes back as a clean
 `E_PARSE_FAILURE` in bounded time instead of never. ⚠️ **"Bounded" is not "fast", and an embedder
 should size for the plateau rather than for the cliff edge.** Just past the ceiling the reject is
-indeed milliseconds (SystemVerilog at nesting depth 350/400: **0.29 / 0.76 s**), but the cost rises
-to a plateau and then *saturates*: depth 800 and depth 2000 both cost about **12 s** of
-single-threaded CPU on ~1.6 KB of input, and VHDL saturates near **18 s**. Saturation is the proof
+indeed sub-second (SystemVerilog at nesting depth 350/400: **0.31 / 0.77 s**), but the cost rises
+to a plateau and then *saturates*: SystemVerilog costs **12.4 s** at depth 800 and **13.0 s** at
+depth 2000 on ~1.6 KB and ~4 KB of input respectively, and VHDL sits at **~19 s** across the same
+range (18.92 s at 700, 19.09 s at 2000 — **0.9 %** more time for **2.76×** more input, which is what
+saturation looks like). Saturation is the proof
 the search is bounded — past the ceiling the parse only ever descends 4096 frames however long the
 input is — but a bounded 12 s is still a real cost for a host parsing untrusted or machine-generated
 source. ⛔ This is tracked as an open defect, not an accepted residual, in
@@ -137,7 +139,25 @@ between a defect and a non-defect*. Where the time actually goes has been measur
 guessed: on SystemVerilog error construction is only ~24 % of it, the parse cascade re-descending is
 ~72 %, and the driving term is **call volume** — 18.9 M rule calls at depth 800, of which about a
 quarter run on rules whose packrat memo is deliberately elided because inlining their one-node body
-is cheaper than probing for it. The ceiling's location did not move — a
+is cheaper than probing for it.
+
+**The bar this is measured against, and it is a ratio rather than a stopwatch.** A rejection may cost
+no more than **2× the same parser's deepest ACCEPTED parse**, measured on the same host in the same
+run — because a parser must not spend more effort failing than succeeding, and because an absolute
+second count is a claim about one laptop. Measured today: SystemVerilog accepts at depth 318 in
+**0.151 s** and rejects at depth 800 in **12.43 s** (**≈ 82×**); VHDL accepts in **0.071 s** and
+rejects in **18.98 s** (**≈ 267×**). **Both families are far outside the bar**, which is why `.44`
+stays open.
+
+> 📮 **Open question for embedders (Nexsim in particular) — tracked as
+> `ENGINE-UNIVERSAL-SERVICES.57`.** The ratio bar above is derived from the parser and needs nobody's
+> permission. What PGEN cannot derive is your side of it: **how many files a representative
+> elaboration parses and whether that is parallel, what total front-end time reads as "hung" to your
+> users, whether you would rather supply a per-file budget through the embedding API than have PGEN
+> pick one, and whether your real corpora contain machine-generated RTL deep enough to reach the
+> ceiling.** An answer can only tighten the bar, never loosen it, so no work waits on it — but it
+> would let us set the target from your elaboration budget instead of from the parser's own
+> behaviour. Please raise it with the PGEN maintainers when convenient. The ceiling's location did not move — a
 sub-ceiling control is accepted at exactly the same depth as before — and this is locked from both
 sides by `parser_embedding_*_over_ceiling_nesting_fails_in_bounded_time` (over the cliff: clean
 diagnostic **within a wall-clock budget**) and

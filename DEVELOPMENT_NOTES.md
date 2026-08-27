@@ -1,5 +1,47 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-27 - PGEN-ENGINE-UNIVERSAL-SERVICES-0104 — a refusal to invent a number is not the same as a refusal to derive one
+
+**1. ⭐⭐⭐ "I HAVE NO AUTHORITY TO SET THIS NUMBER" IS A REASON NOT TO INVENT ONE, NOT A REASON TO SHIP
+WITHOUT ONE.** `.44`(d)'s first ruling declined a latency budget because *"inventing one here would be
+a number with no authority behind it"* — correct, and it stopped one step early. The move it missed:
+**derive the bar from the subject instead of importing it from a stakeholder.** A parser's own deepest
+ACCEPTED parse is a measured quantity, it is on the same host, it moves when the parser moves, and it
+supports a one-sentence argument (*a parser must not spend more effort failing than succeeding*). The
+resulting bar needed no external authority, is falsifiable, and both released families fail it by two
+orders of magnitude. ⇒ when blocked on "whose number is this?", ask whether the SUBJECT already
+contains a defensible unit.
+**promotion: PROMOTED** → `docs/decisions/derive-the-bar-from-the-subject-when-no-authority-owns-the-number.md`.
+
+**2. A RATIO SURVIVES A HOST CHANGE; A STOPWATCH IS A CLAIM ABOUT ONE LAPTOP.** "Under 1 s" would have
+needed a rebaseline on every machine and would have quietly gone green on faster hardware without the
+defect moving. The ratio re-derives anywhere and cancels host variance by construction.
+**promotion: DECLINED — routed.** It is the same idea as this repository's standing preference for
+derived-not-stored state (`docs/DERIVED_STATE_CONTAINMENT.md` R1/R3) applied to a threshold rather than
+a field, and that document is the right home if the pattern recurs. A second record would compete.
+
+**3. THE CENSUS PRINTED MY DENOMINATOR AND I DID NOT CHECK IT — AGAIN, IN THE SAME LOG FAMILY.** My
+inlined population read 634 from my own grep while `INLINE-DECISIONS: decided_under_budget=650` was in
+the same output. That is the SECOND time in two slices that a line I had already generated contained
+the number I got wrong (the first was `memo_hits_on_decided=0`). The cause here is narrower and worth
+naming on its own: **a character class is a census predicate**, and `[a-z_0-9]+` silently excluded
+every uppercase-named rule. A pattern that cannot match part of its population does not report an
+error, it reports a smaller number.
+**promotion: DECLINED as a new record — it is [[a-heading-census-is-only-as-good-as-the-heading-grammar]]
+verbatim**, in the other namespace (rule names rather than headings); that record already says a census
+is only as good as the pattern that enumerates it. ⭐ Instead **routed to `DOCTRINE-GAP-OWNERSHIP`**,
+where `-0100` already parked *"a line-based grep over rustfmt'd output has a silent floor"* as the same
+class awaiting a third occurrence. **This is that third occurrence** — noted there rather than
+re-litigated here.
+
+**4. CARRYING A NUMBER INTO THE BOOK IS WORSE THAN CARRYING IT INTO A LEAF.** I took the plateau
+timings from a five-day-old table and put them on the director's review surface without measuring
+them. Both were optimistic. A leaf is read by me; the book is read by the consumer, and it is the
+surface where a flattering number becomes a promise.
+**promotion: DECLINED — per-slice history**, and the standing self-correction in `MEMORY.md` ("a
+carried number is a different defect from a mis-derived one — derive it, never re-type it") already
+owns the rule. What is new here is only the aggravating factor, which belongs in the leaf.
+
 ## 2026-08-27 - PGEN-ENGINE-UNIVERSAL-SERVICES-0103 — the census printed the answer, I read past it, and explained the same number wrongly
 
 **1. ⭐⭐⭐ WHEN AN INSTRUMENT PRINTS A NUMBER YOU DID NOT ASK FOR, READ IT BEFORE YOU EXPLAIN A NUMBER

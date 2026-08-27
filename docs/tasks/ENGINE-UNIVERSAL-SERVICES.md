@@ -558,6 +558,64 @@ reached and working with the residue genuinely elsewhere?"* ⇒ **reached, worki
   not a durable project rule; it stays in `DEVELOPMENT_NOTES.md`, which is exactly what that surface
   is for.
 
+#### ⚖️⚖️ `.44` (d) — **THE LATENCY BAR, RULED BY ME 2026-08-27 UNDER A SECOND DIRECTOR DELEGATION** (*"it is yours to make but it got to be sota, signoff and production-grade … what would NEXSIM want here?"*): **A REJECTION MAY NOT COST MORE THAN 2× THE PARSER'S OWN DEEPEST ACCEPTED PARSE. TODAY SV IS 82× AND VHDL IS 267×** (`PGEN-ENGINE-UNIVERSAL-SERVICES-0104`)
+
+⭐⭐⭐ **THE FIRST (d) RULING DELIBERATELY DECLINED TO SET A NUMBER** — *"a latency budget for an
+over-ceiling reject is a consumer-contract question … inventing one here would be a number with no
+authority behind it."* That reasoning was right about **invented** numbers and wrong to stop there:
+**a number can be DERIVED from the parser instead of invented for it**, and derived is exactly what
+signoff means. This ruling supersedes the refusal, not the analysis.
+
+- ⚖️ **THE BAR — a RATIO, not a wall-clock constant.** *An over-ceiling rejection must cost no more
+  than **2×** the same parser's **deepest ACCEPTED** parse of the same input shape, measured on the
+  same host in the same run.* Per released family.
+- ⭐⭐ **WHY A RATIO IS THE PRODUCTION-GRADE FORM AND AN ABSOLUTE SECOND COUNT IS NOT.**
+  1. **It cannot rot.** *"Under 1 s"* is a claim about a laptop. A ratio re-derives on the customer's
+     hardware, in CI, and on a machine nobody has bought yet, without a rebaseline.
+  2. **The parser defines its own budget.** No external authority is needed — which is precisely the
+     objection the first ruling raised, answered rather than dodged.
+  3. **It has a correctness story a reviewer can check in one sentence:** *a parser must not spend
+     more effort FAILING than SUCCEEDING.* A success yields an AST; a rejection yields one
+     diagnostic. Paying 82× more for the lesser product is indefensible on its face, and needs no
+     appeal to anyone's latency budget to say so.
+  4. **`2×`, not `1×`**, because a reject legitimately does work an accept does not — the guard trip,
+     the unwind, the diagnostic construction — so the bar leaves engineering headroom instead of
+     demanding the parser beat its own accept path.
+- ⛔ **MEASURED TODAY, BY ME, ON THE SHIPPED RELEASE PROBE** (plain runs — the FUSED graph, which is
+  what an embedder actually executes; not the instrumented protocol graph):
+
+  | family | deepest ACCEPTED | its cost | over-ceiling REJECT (depth 800) | ratio | bar | verdict |
+  |---|---:|---:|---:|---:|---:|---|
+  | systemverilog | depth 318 | **0.151 s** | **12.43 s** | **≈ 82×** | ≤ 2× (≤ 0.30 s) | ⛔ **RED** |
+  | vhdl | depth 310 | **0.071 s** | **18.98 s** | **≈ 267×** | ≤ 2× (≤ 0.14 s) | ⛔ **RED** |
+
+  ⭐ **The bar is not hypothetical-friendly: both released families FAIL it today, by two orders of
+  magnitude.** A bar every subject already passes would have been worth nothing.
+- ⭐ **WHAT NEXSIM WOULD WANT — reasoned from what a simulator front end DOES, not assumed.** Nexsim
+  parses a whole design at elaboration, over thousands of files, much of it machine-generated (HLS
+  output, UVM macro expansion, code generators) where deep nesting is not exotic. Three consequences
+  follow, and all three point the same way:
+  - **The over-ceiling path ends in REJECTION, so its cost buys the consumer nothing.** Twelve seconds
+    are spent to produce an error message. On the accept path a slow parse at least yields an AST.
+  - **A stall is worse than a failure at elaboration time.** A tool that rejects a file in 0.2 s with
+    a clear diagnostic is strictly more usable than one that appears hung for 12 s and then says the
+    same thing. The diagnostic IS the product on this path.
+  - **It aggregates.** A handful of pathological files in a 5 000-file design is minutes of wall
+    clock that no user can attribute to a cause.
+  ⇒ **Nexsim wants a fast, predictable, well-labelled refusal**, which is what the ratio bar encodes.
+- ⛔⛔ **WHAT I DELIBERATELY DO NOT RULE, AND WHY IT IS NOT A DODGE.** I do **not** set the absolute
+  wall-clock budget Nexsim needs for whole-design elaboration. That is a genuine function of their
+  file counts, parallelism and elaboration target, and I have no measurement of any of them — it is
+  the one part of this question that is really theirs. ⭐ **The engineering bar above does not wait on
+  it**: it is a parser-quality bar, it is actionable today, and a Nexsim answer can only ever make it
+  STRICTER, never looser. ⇒ **routed and kept alive as `.57`**, not left in conversation.
+- ⚠️ **HONEST BOUND**: one input shape (nested parentheses) per family, one host, single runs for the
+  accept anchor. The bar is a ratio precisely so that host variance cancels, but the anchor should be
+  re-derived per family whenever the accept path itself changes.
+- **CONSEQUENCE FOR `.44`**: the leaf now has a **falsifiable exit condition** it did not have —
+  `.44` closes when both families read ≤ 2×, not when someone judges the burn tolerable. Step 3's
+  design is measured against this and nothing else.
+
 #### ✅ `.44` (b) STEP 2 — **THE CENSUS: THE EXISTING ELISION MACHINERY PRICES SYSTEMVERILOG AT EXACTLY ZERO, ALL FOUR GATES, FOR ONE REASON THAT IS A PROPERTY OF THE LAYOUT DISCIPLINE AND NOT OF SV'S CHOICE STRUCTURE — AND A THIRD OF THE CALL VOLUME LANDS ON RULES THAT RECORD NO MEMO HIT — ⛔⛔ THE SECOND HALF OF THIS HEADLINE IS RETRACTED THE SAME DAY BY `-0103`: 23.4 OF THE 33.4 POINTS ARE THE P1b INLINE EMISSION ELIDING THE MEMO **BY DESIGN**, NOT A SUPPRESSION GATE, AND A 9.9 % RESIDUAL IS ROUTED TO `.56`** (2026-08-27, `PGEN-ENGINE-UNIVERSAL-SERVICES-0102`; DIAGNOSTIC + ARTIFACT tier, **ZERO Rust / grammar / codegen / generated bytes**)
 
 ⭐⭐⭐ **(b) STEP 1 MADE A CENSUS THE PRICE OF ENTRY TO STEP 2, AND ITS TWO QUESTIONS NOW HAVE
@@ -13178,6 +13236,43 @@ is not claimed as one.
 - ⚠️ **The `::` census is a TERMINAL census, not a reachability proof.** It establishes that exactly one live `:`-consumer (`colon`) exists under `verilog_2005`; it does NOT establish whether the grammar can place two `colon`s adjacently at the guarded position. That question is MOOT for soundness now — (c) enforces the guard — and is not claimed either way.
 - ⚠️ **The undeclared profile's accepted language is not characterised.** Measured: the empty input accepts; `module m; endmodule` and `module m; reg foo; endmodule` reject. That is **not** a proof the language is `{ε}` and is not published as one.
 
+#### ✅ `.44` (b) STEP 2 — **DIRECTOR RE-VERIFICATION CHALLENGE 2026-08-27 (*"do you stand by your findings?"*): EVERY SURVIVING NUMBER REPRODUCES BIT-EXACT, AND THE CHALLENGE FOUND A DEFECT IN MY OWN INSTRUMENT PLUS TWO CARRIED NUMBERS I HAD PUT IN THE BOOK** (`PGEN-ENGINE-UNIVERSAL-SERVICES-0104`)
+
+- ✅ **LEG 1 — RE-DERIVED BY COMMAND.** A fresh end-to-end run of `census_attempt_elision.sh`
+  reproduces, digit for digit: the four SV gate zeros (0/535, 0/535, 0/1934, 0/1157), the regex
+  control (60 / 33 / 853 / 102), `OUTCOME-SHARE total_entries=18901646 committed=4
+  on_encodable=8022`, all three `*-EXPOSURE` zeros, `memo HITS 11266754 (59.6 %)`, and the zero-hit
+  class at `438 rules / 6306475 entries / 33.4 %`. The depth-300 inertness re-runs identically too
+  (`0 depth-ceiling rejections`, `0 store-tainted`→2 of 33 596, and `Infinite=0 LeftRecursive=0
+  DepthExceeded=0` on a full trace).
+- ⛔⛔ **CORRECTION 1 — A DEFECT IN MY OWN INSTRUMENT: MY INLINED SET WAS 634 AND THE TRUE SET IS 650.**
+  The `-0103` intersection derived its inlined population with a grep whose character class was
+  `[a-z_0-9]+`, **lowercase only**, so **16 rules with uppercase letters in their names were silently
+  dropped** — `kw_B_ae4f281d`, `kw_F_e69f20e9`, `kw_N_b51a6073`, `kw_PATHPULSE_dollar_…`,
+  `kw_n_1_tick_B0_…`, `kw_tick_B1_…` and nine more. The census's own `INLINE-DECISIONS` line printed
+  `decided_under_budget=650` in the same output; **650 − 634 = 16** was sitting there to be checked
+  and I did not check it. ⭐ **The conclusion is UNCHANGED and STRICTLY STRONGER**: re-derived over
+  the full 650, `inlined rules that DO record a hit = 0` still holds, and the split is identical
+  (248 inlined / 190 not / 438 total; 23.4 % / 9.9 % / 33.4 %) because **all 16 recovered rules have
+  ZERO entries in this parse** — they are keyword rules the input never reaches. ⇒ same shape as the
+  `-0097` and `-0101` challenges: **the finding survived, my denominator did not.**
+- ⛔⛔ **CORRECTION 2 — THE PLATEAU NUMBERS I PUT IN THE BOOK WERE CARRIED, NOT DERIVED, AND BOTH WERE
+  OPTIMISTIC.** `-0102` wrote *"depth 800 and depth 2000 both cost about **12 s** … VHDL saturates
+  near **18 s**"* into `embedding-and-downstream-integration.md`, taking them from `.44`'s 2026-08-21
+  opening table rather than measuring them. Re-derived by me on plain (fused-graph) runs:
+
+  | family | 350 | 400 | 700 | 800 | 2000 | published | corrected |
+  |---|---:|---:|---:|---:|---:|---|---|
+  | systemverilog | 0.31 s | 0.77 s | — | **12.43 s** | **13.01 s** | "about 12 s" | **~12–13 s** |
+  | vhdl | — | — | 18.92 s | **18.98 s** | **19.09 s** | "~18 s" | **~19 s** |
+
+  ⭐ Both errors are in the **flattering direction** — they made the defect sound smaller — which is
+  exactly the direction `MEMORY.md`'s standing self-correction says re-reading can never catch.
+  ⭐ **Saturation is CONFIRMED and is stronger than published**: VHDL grows **0.9 %** in time across a
+  **2.76×** input growth (700→2000). The book is corrected in the same slice.
+- ⭐ **WHAT THE CHALLENGE DID NOT MOVE**: every claim in the `-0102` "what survives" list, and every
+  claim in `-0103`. Two instrument-hygiene defects, zero findings retracted.
+
 ### ⚠️ `.56` — **190 NON-INLINED RULES TAKE 1 880 482 CALLS (9.9 % OF AN OVER-CEILING PARSE) AND RECORD ZERO MEMO HITS; 96 % OF IT IS THREE `internal thin_memo` LR-CASCADE RULES, AND ONE OF THEM DOES CARRY A `memoized_call`** (`todo`, opened 2026-08-27 by `.44`(b) step 2's own retraction / `PGEN-ENGINE-UNIVERSAL-SERVICES-0103`, ROUTED + PARKED behind the SV lane)
 
 > ⭐ **THIS LEAF EXISTS BECAUSE A RETRACTION LEFT A REAL REMAINDER.** `-0102` published *"438 rules the
@@ -13213,6 +13308,38 @@ is not claimed as one.
   (c) only if it is a real cost, price it against `.44`(b)'s attempt-elision lane.
 - ⚠️ **HONEST BOUND**: one input shape (nested parentheses), one family, one depth, protocol graph.
   The share on ordinary sub-ceiling corpus parses is unmeasured.
+
+### 📮 `.57` — **OPEN QUESTION FOR NEXSIM (awaiting consumer input, NOT blocked on it): what whole-design elaboration budget should a pathological-input rejection fit inside?** (`pending-external`, opened 2026-08-27 by `.44`(d)'s second ruling / `PGEN-ENGINE-UNIVERSAL-SERVICES-0104`, by DIRECTOR INSTRUCTION to keep the question alive rather than lose it in conversation)
+
+> ⭐ **THIS LEAF EXISTS SO A QUESTION WITH NO OWNER DOES NOT EVAPORATE.** The director's instruction
+> was explicit: *"write a note, to ask NEXSIM to provide an answer to this at some point. Don't lose
+> it, keep it alive somewhere."* It is `pending-external`: it waits on a person, not on work.
+
+- **THE QUESTION, in the form Nexsim can actually answer** (deliberately not *"how fast should the
+  parser be?"*, which invites a made-up number):
+  1. At elaboration, roughly **how many source files** does a representative Nexsim design parse, and
+     is that parse **parallel** across files?
+  2. What is the **total front-end time budget** a user tolerates before elaboration reads as hung?
+  3. Should a pathological file be **rejected fast** (current design), or is a **caller-supplied
+     per-file time/complexity budget** on the embedding API preferable, so the host decides?
+  4. Does Nexsim see **machine-generated RTL** (HLS output, code generators, heavy UVM macro
+     expansion) in its real corpora, and at what nesting depths?
+- ⛔⛔ **WHAT IS *NOT* BLOCKED ON THE ANSWER — stated first so nobody parks work behind this leaf.**
+  `.44`(d) already ruled the engineering bar and it is derived from the parser itself, not from
+  Nexsim: **an over-ceiling rejection may cost no more than 2× the parser's own deepest ACCEPTED
+  parse** (measured today: SV **≈ 82×**, VHDL **≈ 267×** — both RED). That bar is actionable now, and
+  a Nexsim answer can only ever make it **stricter**, never looser. ⇒ **`.44` proceeds at full speed;
+  this leaf changes nothing about whether the work happens, only whether the bar tightens.**
+- **WHAT AN ANSWER WOULD CHANGE**: (a) whether `2×` should become a smaller multiple; (b) whether the
+  embedding API grows a caller-supplied budget knob (question 3), which is an API-surface change and
+  therefore genuinely a consumer call, not mine; (c) whether VHDL's ratio deserves separate treatment
+  from SystemVerilog's, since the two families sit two orders apart on the same input shape.
+- **WHERE THIS IS ALSO PUBLISHED so a Nexsim reader meets it without reading the task tree**:
+  `docs/book/src/embedding-and-downstream-integration.md`, in the over-ceiling section, as an
+  explicit open question addressed to the embedder.
+- **STATUS**: no owner assigned on our side, no due date, no work parked behind it. Re-raise with the
+  director if `.44` reaches its bar and the question is still unanswered — at that point the answer
+  stops being informational and starts deciding whether to tighten.
 
 ### ⚠️ `.47` — `detect_profile_orphans` reads the **FILTERED** profile context and a universe that omits `@default_profile`, so on any grammar declaring a default it has never evaluated the profile that SHIPS (`todo`, opened 2026-08-25 by `.46` slice 2 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0084`)
 
