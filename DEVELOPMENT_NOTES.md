@@ -1,5 +1,36 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-27 - PGEN-ENGINE-UNIVERSAL-SERVICES-0107 — ask which graph runs before asking what it does
+
+**1. ⭐⭐⭐ WHEN A SYSTEM SHIPS ONE PATH AND INSTRUMENTS ANOTHER, EVERY MEASUREMENT NAMES A GRAPH —
+AND THE HABIT OF WRITING THAT DOWN IS WHAT KEEPS A DIAGNOSIS FROM MIGRATING.** `.56`(a) established
+that the spine's failing memo stores are refused. True, careful, controlled — and about the graph a
+diagnostic run executes, not the one an embedder does. A closed census over the emitted artifact
+puts **0 of 1 544** entry counters, **0 of 4** hit counters and **0 of 10** trace lines inside the
+fused rule bodies, which hold **109 of 109** thin-memo probes. The fix I was about to price would
+have been aimed at code the customer never runs.
+⇒ before designing a fix from a measurement, name the execution mode the measurement ran in and the
+one the fix must improve, and say out loud whether they are the same.
+**promotion: PROMOTED** → `docs/decisions/name-the-graph-your-measurement-ran-on.md`.
+
+**2. THE OBSERVER-IS-THE-SWITCH SHAPE, AND WHY IT IS NOT A BUG.** The emitted selector is
+`bare_parse = !coverage && !logger && !counters_observed && !report_memo_stats`. Those four
+disjuncts are the complete observation surface, so **every** way of looking also changes what runs.
+That is deliberate — it is what keeps the shipped path free of observer cost, which this project's
+second non-negotiable demands — and it means the fused path is unobservable by construction rather
+than by omission. The escape is not a better flag; it is a build that is not meant to ship.
+**promotion: DECLINED — routed.** It is a property of THIS engine's observability-twin design, which
+`TOOLBOX.md` §2.1 and the book's *observability twin* chapter already own; the new half (that the
+disjunct set is closed and therefore the path is unobservable) belongs in the leaf, where it is.
+
+**3. A CENSUS OVER THE EMITTED ARTIFACT ANSWERS A QUESTION THE TEMPLATE CANNOT.** Both this slice and
+`.56`(a) took their decisive counts from `generated/systemverilog_parser.rs` rather than from
+`ast_based_generator.rs`. The template says what WOULD be emitted under conditions; the artifact says
+what IS there. For "is anything counting this?", only the second is an answer.
+**promotion: DECLINED.** Already the standing practice in this leaf's family (`-0102` pinned counter
+semantics on the emitted artifact before reading a ratio); recorded as reinforcement, not as a new
+rule.
+
 ## 2026-08-27 - PGEN-ENGINE-UNIVERSAL-SERVICES-0106 — a zero has to be divided by its denominator before it is a defect
 
 **1. ⭐⭐⭐ A 0 % RATE IS NOT A FINDING UNTIL YOU KNOW HOW MANY CHANCES IT HAD.** Three commits read

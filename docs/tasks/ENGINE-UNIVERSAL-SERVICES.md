@@ -13439,7 +13439,7 @@ log: `…/logs/layout_aware_dispatch_census.txt`.
   tracked, claim **NOT** watched by a gate; stated as a gap above.
 
 
-### ⚠️ `.56` — **190 NON-INLINED RULES TAKE 1 880 482 CALLS (9.9 % OF AN OVER-CEILING PARSE) AND RECORD ZERO MEMO HITS; 96 % OF IT IS THREE `internal thin_memo` LR-CASCADE RULES, AND ONE OF THEM DOES CARRY A `memoized_call`** (`todo`, opened 2026-08-27 by `.44`(b) step 2's own retraction / `PGEN-ENGINE-UNIVERSAL-SERVICES-0103`; ⭐⭐⭐ **UN-PARKED AND PROMOTED TO `.44`(b)'s NEXT STEP 2026-08-27 by `-0105`, which measured what this leaf's three rules actually cost: the spine site `constant_primary_sv_2017` is entered 601 658 times on an input with at most 1 634 keys — 368.2 calls/key at 0.0 % hits — while the tournament's leaves are ~100 % memo-served. `.44`(d)'s ≤2× exit needs 41×; dispatch elision tops out at 5× and THIS term is worth up to 368×. ⛔ Not a pivot out of the SV lane: these three rules ARE the SystemVerilog expression spine**; ⭐⭐ **(a) DONE 2026-08-27 `…-0106`: REAL COST, not an accounting gap — 4 of 4 `record_memo_hit` sites in the SHIPPED artifact are inside `memoized_call`, so the per-rule counter is blind to no channel; the zero is REGIME-DEPENDENT (sub-ceiling the rule is entered once per NESTING LEVEL — 0.1–0.5 entries/key — so its 0 % is arithmetic, and it rises to 368.4/key only past the ceiling); and at depth 350 the spine records **3 707 misses over 350 keys (max 113 probes at ONE key), 0 failure stores, 0 hits** while the control `primary_literal` stores 32 failures and takes 4 160 hits in the SAME run. ⛔ WHICH gate refuses (`:9913` vs `:9934`) is still NOT separated and (c) must not assume it. ⭐ Favourable for (c): the cost is entirely over-ceiling, so a regime-scoped fix cannot regress the accept path by construction**)
+### ⚠️ `.56` — **190 NON-INLINED RULES TAKE 1 880 482 CALLS (9.9 % OF AN OVER-CEILING PARSE) AND RECORD ZERO MEMO HITS; 96 % OF IT IS THREE `internal thin_memo` LR-CASCADE RULES, AND ONE OF THEM DOES CARRY A `memoized_call`** (`todo`, opened 2026-08-27 by `.44`(b) step 2's own retraction / `PGEN-ENGINE-UNIVERSAL-SERVICES-0103`; ⭐⭐⭐ **UN-PARKED AND PROMOTED TO `.44`(b)'s NEXT STEP 2026-08-27 by `-0105`, which measured what this leaf's three rules actually cost: the spine site `constant_primary_sv_2017` is entered 601 658 times on an input with at most 1 634 keys — 368.2 calls/key at 0.0 % hits — while the tournament's leaves are ~100 % memo-served. `.44`(d)'s ≤2× exit needs 41×; dispatch elision tops out at 5× and THIS term is worth up to 368×. ⛔ Not a pivot out of the SV lane: these three rules ARE the SystemVerilog expression spine**; ⭐⭐ **(a) DONE 2026-08-27 `…-0106`: REAL COST, not an accounting gap — 4 of 4 `record_memo_hit` sites in the SHIPPED artifact are inside `memoized_call`, so the per-rule counter is blind to no channel; the zero is REGIME-DEPENDENT (sub-ceiling the rule is entered once per NESTING LEVEL — 0.1–0.5 entries/key — so its 0 % is arithmetic, and it rises to 368.4/key only past the ceiling); and at depth 350 the spine records **3 707 misses over 350 keys (max 113 probes at ONE key), 0 failure stores, 0 hits** while the control `primary_literal` stores 32 failures and takes 4 160 hits in the SAME run. ⛔ WHICH gate refuses (`:9913` vs `:9934`) is still NOT separated and (c) must not assume it. ⭐ Favourable for (c): the cost is entirely over-ceiling, so a regime-scoped fix cannot regress the accept path by construction**; ⛔⛔ **(b) DONE 2026-08-27 `…-0107` AND IT BOUNDS (a): the graph that SHIPS carries a DIFFERENT memo and NO instrument at all.** Closed census over the emitted artifact — the fused rule-body region (1 445 534–1 708 518, 1 044 `cascade_match_*` bodies) holds **109 of 109** thin-memo probes and **218 of 220** depth-gated refs but **0 of 1 544** entry counters, **0 of 4** hit counters and **0 of 10** memo trace lines. ⛔ And it cannot be switched on: the emitted selector `bare_parse = !coverage && !logger && !counters_observed && !report_memo_stats` (`ast_based_generator.rs:2252-2256`) makes **every observation channel a disjunct of the predicate that routes off the fused graph** — observing it converts it into the other one. ⇒ (c) needs a MEASUREMENT-ONLY BUILD (the never-free-allocator ceiling-probe pattern), env-gated as a same-binary A/B, never landed**)
 
 > ⭐ **THIS LEAF EXISTS BECAUSE A RETRACTION LEFT A REAL REMAINDER.** `-0102` published *"438 rules the
 > memo never serves, 33.4 % of calls"* and `-0103` retracted the explanation: **248 of those rules
@@ -13474,6 +13474,24 @@ log: `…/logs/layout_aware_dispatch_census.txt`.
   (c) only if it is a real cost, price it against `.44`(b)'s attempt-elision lane.
 - ⚠️ **HONEST BOUND**: one input shape (nested parentheses), one family, one depth, protocol graph.
   The share on ordinary sub-ceiling corpus parses is unmeasured.
+- ⛔ **THE CENSUS BEHIND THIS LEAF'S *"NO INSTRUMENT AT ALL"* CLAIM** (`GAP-CLAIM-CENSUS`: an
+  X-is-checked-by-nothing sentence is a universally quantified claim, not a description). The
+  population is CLOSED — it is the emitted artifact, whose fused rule-body region is derived rather
+  than carried (first `fn cascade_match_*` to the last `fn cascade_*`): lines **1 445 534 –
+  1 708 518**. Run by arm D of `census_spine_memo_refusal.sh`, and re-derivable by hand:
+  ```bash
+  F=generated/systemverilog_parser.rs
+  awk 'NR>=1445534 && NR<=1708518 && index($0,"rule_call_counts")'    "$F" | wc -l   # 0   (1544 in the file)
+  awk 'NR>=1445534 && NR<=1708518 && index($0,"record_memo_hit")'     "$F" | wc -l   # 0   (4    in the file)
+  LC_ALL=C awk 'NR>=1445534 && NR<=1708518 && /\xf0\x9f\x92\xbe/'     "$F" | wc -l   # 0   (10   in the file)
+  awk 'NR>=1445534 && NR<=1708518 && index($0,"thin_scratch.lookup")' "$F" | wc -l   # 109 (109  in the file)
+  grep -n -A 3 'bare_parse = !self.coverage_enabled' rust/src/ast_pipeline/ast_based_generator.rs
+  ```
+  ⭐ The last command is the load-bearing one: it prints the whole graph-selection predicate, and the
+  claim is that its **four disjuncts are the complete observation surface** — so the census that
+  would REFUTE this leaf is *"find a fifth observation channel that is not a disjunct"*, and that is
+  the search the grep makes cheap for the next reader.
+
 
 #### ✅ `.56` (a) — **IT IS A REAL COST AND NOT AN ACCOUNTING GAP; THE ZERO IS REGIME-DEPENDENT, AND SUB-CEILING IT IS ARITHMETIC RATHER THAN A DEFECT. EVERY ONE OF THE SPINE RULE'S FAILING CALLS IS REFUSED A MEMO ENTRY WHILE A CONTROL RULE'S ARE STORED IN THE SAME RUN** (2026-08-27, `PGEN-ENGINE-UNIVERSAL-SERVICES-0106`; DIAGNOSTIC + ARTIFACT tier, **ZERO Rust / grammar / codegen / generated bytes**)
 
@@ -13560,6 +13578,80 @@ log: `…/logs/spine_memo_refusal_census.txt`.
   not for every shape; (iv) the trace changes the execution the same way every diagnostic here does
   (`TOOLBOX.md` §2.1) — the entry counts it reports reconcile digit-exact with the untraced outcome
   dump (3 707 at depth 350, 998 at 330), which is the check that licenses reading them together.
+
+
+#### ⛔⛔ `.56` (b) — **THE GRAPH THAT SHIPS CARRIES A DIFFERENT MEMO AND NO INSTRUMENT AT ALL, AND IT CANNOT BE SWITCHED ON: EVERY OBSERVATION CHANNEL IS ALSO THE GRAPH SELECTOR. (c) CANNOT PRICE A FIX UNTIL THAT IS SOLVED, AND THE SOLUTION IS A MEASUREMENT-ONLY BUILD** (2026-08-27, `PGEN-ENGINE-UNIVERSAL-SERVICES-0107`; DIAGNOSTIC + ARTIFACT tier, **ZERO Rust / grammar / codegen / generated bytes**)
+
+⭐⭐⭐ **(a) ANSWERED ITS QUESTION AND (b) ASKED THE ONE THAT DECIDES WHETHER THE ANSWER TRANSFERS.**
+(a) established, on the PROTOCOL graph, that the spine's failing calls are refused a memo entry.
+(b) asked the obvious follow-up before any fix was designed: *is that the memo a shipped parse even
+uses?* **It is not**, and the reason the question had never been answered is structural rather than
+anybody's oversight.
+Producer: the same `census_spine_memo_refusal.sh`, arm D (a closed census over the emitted artifact
+plus the emitted graph-selection predicate — static, no parse, no timing).
+
+- ⛔ **CLOSED CENSUS OVER THE EMITTED ARTIFACT.** The fused rule-body region is derived, not carried:
+  lines **1 445 534 … 1 708 518**, **1 044** `cascade_match_*` bodies of 2 529 `cascade_*` functions.
+
+  | emitted site class | total in the artifact | **inside the fused region** |
+  |---|---:|---:|
+  | per-rule ENTRY counter (`rule_call_counts`) | 1 544 | **0** |
+  | memo-HIT counter (`record_memo_hit`) | 4 | **0** |
+  | memo trace lines (`💾`) | 10 | **0** |
+  | thin-memo PROBE (`thin_scratch.lookup`) | 109 | **109** |
+  | thin-memo depth-gated map references | 220 | **218** |
+
+  ⇒ **the graph a shipped parse executes carries the whole thin memo and nothing that counts or
+  prints what it does.**
+- ⛔⛔ **AND IT CANNOT BE FIXED BY TURNING AN INSTRUMENT ON, BECAUSE THE INSTRUMENT IS THE SWITCH.**
+  The emitted per-parse predicate (`rust/src/ast_pipeline/ast_based_generator.rs:2252-2256`) is:
+  ```rust
+  self.bare_parse = !self.coverage_enabled
+      && !self.logger_enabled
+      && !self.counters_observed.get()
+      && !crate::ast_pipeline::report_memo_stats_enabled();
+  ```
+  Those four disjuncts are the **complete** set of observation channels this parser has — coverage
+  (the outcome dump), the logger (trace), the per-rule counters, and `PGEN_REPORT_MEMO_STATS`.
+  **Every one of them is also a disjunct of the predicate that routes off the fused graph.**
+  ⇒ **observing the fused graph converts it into the other one.** This is not a defect: the routing
+  is the deliberate observability-twin design (`TOOLBOX.md` §2.1, credited to `QUANT-PLUS-ITER.3`),
+  and it is what keeps the shipped path free of observer cost — which is this project's second
+  non-negotiable. It is nonetheless a hard limit on what (c) can measure.
+- ⭐⭐ **WHAT THIS DOES AND DOES NOT INVALIDATE — stated precisely, because the temptation is to
+  over-correct.** `-0101` measured the two graphs at **within 8 %** at depth 300 and
+  **indistinguishable** at depth 800, and licensed reading protocol numbers as representative of the
+  **COST** and explicitly **not** of the fused graph's internal **SHAPE**. That licence still holds:
+  - ✅ **UNAFFECTED** — every wall-clock number in `.44` (the 12.3–12.9 s plateau, the 81–86× ratio),
+    because those are plain FUSED runs measured with `/usr/bin/sample`, an instrument that sets none
+    of the four disjuncts.
+  - ✅ **UNAFFECTED** — (a)'s conclusion that the protocol memo refuses every failing store for the
+    spine. That is a true statement about the protocol graph and it is what it claims to be.
+  - ⛔ **NOT ESTABLISHED, and this is the finding** — that the fused thin memo refuses the same
+    stores for the same rules. The two memos are different code with different entry types
+    (`ThinTapeMemoEntry` vs `MemoEntry`), a different container (a generation-stamped row table vs
+    `FxHashMap`) and a different depth-gated map (`thin_fail_depth_gated` vs `memo_fail_depth_gated`).
+    **Same-shaped design is not evidence of same behaviour, and nothing has ever looked.**
+- ⚖️ **RULING FOR (c), MADE HERE RATHER THAN DISCOVERED LATER**: the per-refusal counter `.44`(b)
+  steps 1 and 2 priced would answer the WRONG graph's question if emitted into `memoized_call`
+  alone. (c) needs a **MEASUREMENT-ONLY BUILD** — the ceiling-probe pattern this repository already
+  uses and publishes (`docs/book/src/inside-parser-performance.md`: the never-free bump
+  `#[global_allocator]` that priced allocator removal at −40 %, banked as a ceiling and never
+  landed). Concretely: emit counters into the fused thin-memo probe/store sites, build, measure the
+  depth-800 reject, **revert**. It answers two questions at once — whether the fused memo refuses
+  the same stores, and what a perfect retention would be worth — and it lands no bytes.
+- ⭐ **A CHEAPER FIRST ARM FOR (c), AND IT NEEDS NO COUNTER AT ALL**: the same measurement-only build
+  can simply make the two failure-store gates always retain (unsound, deliberately) and time the
+  depth-800 reject. That is an **upper bound on what any sound retention fix can buy**, measured
+  rather than estimated, and it either clears `.44`(d)'s 41× or refutes the lane in one run.
+  ⚠️ It must be run as an A/B on ONE binary under an env gate, not as two builds — the same-run
+  discipline `-0101`'s graph-switch correction was founded on.
+- ⚠️ **HONEST BOUNDS**: (i) the census is over the SystemVerilog artifact; the other ten parsers are
+  emitted by the same codegen and are expected to match, but *expected* is not *measured*.
+  (ii) `thin_fail_depth_gated` has 2 of 220 references outside the fused region — the struct field
+  declaration (line 99) and its initializer (line 4395), verified by name — which is why the row
+  reads 218 and not 220; neither is a second consumer. (iii) The census is static: it proves no instrument is EMITTED there, not that no
+  instrument could observe the fused memo by some other route, and I know of none.
 
 
 ### 📮 `.57` — **OPEN QUESTION FOR NEXSIM (awaiting consumer input, NOT blocked on it): what whole-design elaboration budget should a pathological-input rejection fit inside?** (`pending-external`, opened 2026-08-27 by `.44`(d)'s second ruling / `PGEN-ENGINE-UNIVERSAL-SERVICES-0104`, by DIRECTOR INSTRUCTION to keep the question alive rather than lose it in conversation)

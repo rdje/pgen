@@ -7,7 +7,7 @@
 # artefact rather than a cost. It also named the reasoning that must NOT be used — `-0103` retracted
 # an explanation that attributed the class to a suppression gate before showing the gate FIRES.
 #
-# THREE ARMS:
+# FOUR ARMS:
 #   A  REGIME   — entries, memo hits and entries-per-key for the three spine rules across depths
 #                 that straddle the recursion ceiling. This is the arm that reframes the question:
 #                 SUB-ceiling the rules are entered EXACTLY ONCE PER KEY, so a 0 % hit rate there is
@@ -16,6 +16,9 @@
 #                 template: every `record_memo_hit` call site in `generated/systemverilog_parser.rs`
 #                 must lie inside `memoized_call`, which is what makes the per-rule counter blind to
 #                 nothing on the PROTOCOL graph. A CLOSED census (all sites, not a sample).
+#   D  GRAPH    — WHICH memo a shipped parse actually executes, and whether anything observes it.
+#                 A closed census over the emitted artifact plus the emitted graph-selection
+#                 predicate. This arm bounds the other three: they describe the PROTOCOL graph.
 #   C  TRACE    — per-rule memo EVENT counts at one over-ceiling depth: misses, failure stores,
 #                 success stores, hits and stale evictions, for the spine rule AND for a control
 #                 rule the memo demonstrably serves in the SAME run. The trace is STREAMED, never
@@ -175,6 +178,53 @@ echo "   ⇒ the spine rule's failures are NEVER stored while the control rule's
 echo "     on the same input, from the same binary. That is the finding; WHICH gate refuses is not"
 echo "     separated here and must not be inferred (see the header)."
 
+echo
+echo "=============================================================================="
+echo "ARM D — THE GRAPH. Which memo does a SHIPPED parse execute, and is it observable?"
+echo "=============================================================================="
+python3 - <<'PY'
+import re
+lines = open('generated/systemverilog_parser.rs').read().split('\n')
+
+casc = [i + 1 for i, l in enumerate(lines) if re.search(r'\bfn cascade_[a-z0-9_]+', l)]
+# The first few `fn cascade_*` are shared HELPERS (error mapping), not fused rule bodies; the
+# fused RULE region starts at the first `cascade_match_*`. Derived, never carried.
+body = [c for c in casc if re.search(r'\bfn cascade_match_', lines[c - 1])]
+if not body:
+    print("# NOT EVALUATED — no fused cascade_match_* bodies in the artifact"); raise SystemExit(0)
+lo, hi = body[0], casc[-1]
+print("fused rule-body region: lines %d .. %d   (%d cascade_* functions, %d of them cascade_match_*)"
+      % (lo, hi, len(casc), len(body)))
+
+def sites(pat):
+    return [i + 1 for i, l in enumerate(lines) if pat in l]
+
+def inside(xs):
+    return [x for x in xs if lo <= x <= hi]
+
+rows = [
+    ("per-rule ENTRY counter (rule_call_counts)", sites('rule_call_counts')),
+    ("memo-HIT counter (record_memo_hit)",        sites('record_memo_hit')),
+    ("memo trace lines (the U+1F4BE marker)",     sites('\U0001F4BE')),
+    ("thin-memo PROBE (thin_scratch.lookup)",     sites('thin_scratch.lookup')),
+    ("thin-memo depth-gated map refs",            sites('thin_fail_depth_gated')),
+]
+print()
+print("%-46s %10s %10s" % ("emitted site class", "total", "in fused"))
+for name, xs in rows:
+    print("%-46s %10d %10d" % (name, len(xs), len(inside(xs))))
+print()
+print("⇒ the fused rule bodies carry the thin memo and NOTHING that counts or prints what it does.")
+PY
+echo
+echo "-- and the reason it cannot simply be switched on: the observer IS the graph selector --"
+sed -n '/self.bare_parse = !self.coverage_enabled/,/report_memo_stats_enabled/p' \
+    rust/src/ast_pipeline/ast_based_generator.rs | sed 's/^/     /'
+echo "     (rust/src/ast_pipeline/ast_based_generator.rs — the emitted per-parse predicate)"
+echo "   ⇒ coverage, the logger, the per-rule counters and PGEN_REPORT_MEMO_STATS are the COMPLETE"
+echo "     set of observation channels, and every one of them is a disjunct of the predicate that"
+echo "     selects the PROTOCOL graph. Observing the fused graph converts it into the other one."
+
 cat <<'NOTE'
 
 ==============================================================================
@@ -190,4 +240,10 @@ ARM B   A closed census over the SHIPPED artifact, not over the codegen template
 ARM C   The control rule is the whole point: it proves the memo, the counters and the trace all work
         in the run that reports the spine's zero. `fail_store=0` beside a non-zero control is the
         measurement; the gate that produces it is NOT identified by this script.
+ARM D   Read this BEFORE generalising anything arms A-C report. They describe the PROTOCOL graph,
+        which is the one every instrument routes to. The graph a shipped parse executes carries a
+        different memo and no instrument at all — so a fix aimed at the numbers above must first
+        show that the same mechanism is what the fused graph does. `-0101` licensed reading the
+        protocol graph as representative of the COST and explicitly NOT of the fused graph's
+        internal SHAPE; arm D is why that distinction has teeth.
 NOTE
