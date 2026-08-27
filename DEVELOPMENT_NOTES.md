@@ -1,5 +1,50 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-27 - PGEN-LIVE-DOC-CONTAINMENT-0017 — asked whether I still stood by the findings, four did not survive, and one was an instrument defect one step from a blocking gate
+
+**1. ⛔⛔ A TRACKED INSTRUMENT CARRIED A WRONG COMMONMARK RULE, AND I WAS ABOUT TO BUILD A GATE ON
+IT.** `table_pipe_repair.py`'s code-span scanner skipped any backtick preceded by an odd number of
+backslashes — a rule borrowed from the *table-pipe* pass, where it is correct. CommonMark parses code
+spans **before** backslash escapes, so a backtick span holding one backslash is a valid span whose
+content is that backslash. Under the wrong rule the released-parser bug ledger reads **4** cells with
+an unpaired backtick where both renderers read **0**, every one of them correct. I had already
+written the detector and was one step from making it the second arm of a commit-blocking doctrine
+that would have refused four correct rows in a shipped contract. ⇒ promoted to
+[[two-escaping-rules-that-look-alike-and-only-one-is-real]].
+
+**2. ⛔⛔ I PUBLISHED THAT THE GATE "HOLDS THE LINE". IT HELD IT ON ARITY ONLY.** A backtick imbalance
+carrying no pipe cannot move a cell count. Measured behaviourally: re-introducing the exact defect
+this repository shipped in `-0014` leaves the census at **0 OVER / 0 UNDER** and **ALL 31 doctrines
+GREEN**, while both renderers see it. Closed here by a second ratchet arm over cells holding an
+unpaired backtick run — the same shape on a new file now blocks. ⇒ **when a check and a defect class
+are not the same shape, say which half is watched**; "the gate holds the line" is a claim about the
+class, and mine was only true of one half of it.
+
+**3. ⚠️ MY FIRST ATTEMPT TO PROVE THE GAP WAS A KEYWORD GREP — THE EXACT MISTAKE I PROMOTED A RECORD
+AGAINST EARLIER THE SAME SESSION.** `grep -lEi 'backtick|code span'` over the enforcers returned
+**19 of 31**, because every one of them *discusses* escaping in its own comments. It proves nothing
+in either direction. What settled it was staging the defect and running the driver. ⇒ a census over
+*checkers* is not evidence about *checking*; run the defect through and watch.
+
+**4. ⚠️ A FALSE SUMMARY LINE IN THE GATE I HAD JUST SHIPPED.** It reported *"N staged markdown
+file(s) with tables"* while counting every staged `.md` — and **567 of 1 168** tracked markdown files
+contain no table at all. Roughly half of all markdown commits were told something false, by the
+GREEN run, which is the one run that structurally cannot catch it. Fixed by reading the census's own
+table count. ⇒ [[feedback_check_the_summary_line_on_the_failing_run]], now with a second instance in
+this repository.
+
+**5. ⛔ A THIRD CANCELLING INSTANCE, IN A TABLE THE PREVIOUS LEAF HAD SCOPED OUT.** `.10`'s acceptance
+said *table 1*; tables 2, 3 and 4 of `docs/TASK_TREE.md` were never examined for this class.
+`RTL-FE-CLOSURE` in table 2 had `` `trivia := ( line_comment \| block_comment )*` `` splitting the row
+on an unescaped in-span pipe **and** a missing `Roadmap lane` — cancelling to exactly 5 again. ⇒
+**an acceptance criterion that names a scope is a promise about the scope, not about the file**; the
+next reader will believe the file was cleared.
+
+**6. ⭐⭐ AND ONE FINDING WAS UNDERSTATED, NOT WRONG.** I wrote that two rows "passed the doctrine".
+Replaying `bd12c92e` shows the whole index table read **0 OVER / 0 UNDER** — the doctrine reported a
+clean file, not merely two clean rows. ⇒ when re-deriving under challenge, check the direction of the
+error too: a finding can survive and still be misstated in the flattering direction.
+
 ## 2026-08-27 - PGEN-LIVE-DOC-CONTAINMENT-0016 — a count is not a schema, and writing about a defect is the highest-risk moment for creating one
 
 **1. ⭐⭐⭐ TWO ROWS PASSED THE ARITY DOCTRINE AND WERE STILL WRONG, AND BOTH ARE IN ITS OWN FOUNDING

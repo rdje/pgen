@@ -120,23 +120,30 @@ def code_spans(line):
     """CommonMark code spans in `line`, as (content_start, content_end) offsets.
 
     A backtick run of length N opens a span closed by the NEXT run of exactly length N; an
-    unmatched run is literal text and scanning resumes after it.  A backtick preceded by an odd
-    number of backslashes is escaped and does not participate.
+    unmatched run is literal text and scanning resumes after it.
+
+    ⛔⛔ A BACKSLASH DOES **NOT** ESCAPE A CODE-SPAN DELIMITER, AND ASSUMING IT DOES IS WRONG IN THE
+      DIRECTION THAT INVENTS DEFECTS. CommonMark parses code spans BEFORE backslash escapes and
+      states plainly that backslash escapes do not work in code spans, so `` `\` `` is a valid span
+      whose content is one backslash -- both renderers emit `<code>\</code>` for it.
+      An earlier revision of this function skipped any backtick preceded by an odd number of
+      backslashes. MEASURED under a director re-verification challenge (2026-08-27): that rule left
+      the released-parser bug ledger reading **4** cells with an unpaired backtick run where both
+      renderers see **0** (`REGEX-0073`, `REGEX-0108`, `REGEX-0110`, `REGEX-0086` -- every one of
+      them a correct `` `\` `` or `` `\d` `` span), and it was one step away from being built into a
+      commit-blocking gate that would have refused four correct rows in a shipped contract.
+      ⚠️ The `\|` masking elsewhere in this file is a DIFFERENT rule and is correct: GFM really does
+      honour a backslash before a table PIPE, because cell splitting happens before inline parsing.
+      The two look alike and only one of them is real.
     """
     runs = []
     i, n = 0, len(line)
     while i < n:
         if line[i] == "`":
-            back = 0
-            k = i - 1
-            while k >= 0 and line[k] == "\\":
-                back += 1
-                k -= 1
             j = i
             while j < n and line[j] == "`":
                 j += 1
-            if back % 2 == 0:
-                runs.append((i, j))
+            runs.append((i, j))
             i = j
         else:
             i += 1
