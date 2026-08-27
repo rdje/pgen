@@ -1,0 +1,57 @@
+# probe systemverilog fingerprint: 240da0a4f9e7be064a61c5076e4fcca5ca9dac0cfeb7b6a3282346fea03d5d2f
+# fingerprint MATCHES generated/systemverilog_parser.rs
+# rule ids resolved from the emitted RULE_NAMES table: constant_primary=247  primary_literal=787
+
+==============================================================================
+ARM A — THE REGIME. Entries per KEY across the recursion ceiling
+==============================================================================
+depth     bytes      total     sp_ent   sp_hit sp_per_key |    ctl_ent  ctl_hit  ctl_hit%
+3            39       4407          3        0       0.1 |         19       15     78.9%
+20           73      14097         20        0       0.3 |        104       83     79.8%
+60          153      36897         60        0       0.4 |        304      243     79.9%
+300         633     173697        300        0       0.5 |       1504     1203     80.0%
+315         663     183014        318        0       0.5 |       1584     1268     80.1%
+320         673     193127        433        0       0.6 |       1822     1501     82.4%
+330         693     241465        998        0       1.4 |       3241     2910     89.8%
+350         733     349649       3707        0       5.1 |       6383     6032     94.5%
+400         833     889146      19438        0      23.3 |      23204    22803     98.3%
+500        1033    3092752      88443        0      85.5 |      94357    93856     99.5%
+800        1633   18901646     601963        0     368.4 |     614379   613578     99.9%
+   ⭐ SUB-ceiling the spine is entered ~ONCE PER KEY — a 0 % hit rate there is ARITHMETIC,
+     not a defect: there is nothing to hit. The cost is the OVER-ceiling column.
+
+==============================================================================
+ARM B — THE ACCOUNTING-GAP HYPOTHESIS, on the EMITTED ARTIFACT (closed census)
+==============================================================================
+fn memoized_call spans lines 1445232..1445474
+record_memo_hit call sites in the WHOLE artifact: 4  [1445259, 1445279, 1445339, 1445359]
+of those INSIDE memoized_call:                    4
+⇒ every hit-recording site is inside the memo wrapper, so the per-rule hit counter is blind to NO channel of it — the four probe paths (plain failure, tainted failure, success, depth-gated failure) all record.
+   ⚠️ SCOPE: this is the PROTOCOL graph. The FUSED graph's thin memo records no hits at all,
+     which is why every number here comes from a coverage-enabled (protocol) run and why the
+     control column in arm A must be non-zero for the arm to mean anything.
+
+==============================================================================
+ARM C — THE EVENT CENSUS at one over-ceiling depth (trace STREAMED, never stored)
+==============================================================================
+depth 350  rule constant_primary       (id  247): miss=3707    fail_store=0      succ_store=350    hit=0       evict=0/0
+                                        distinct key positions=350  mean probes/key=10.6  MAX probes at one key=113
+depth 350  rule primary_literal        (id  787): miss=33      fail_store=32     succ_store=1      hit=4160    evict=0/0
+                                        distinct key positions=33  mean probes/key=1.0  MAX probes at one key=1
+   ⇒ the spine rule's failures are NEVER stored while the control rule's are, in the SAME run,
+     on the same input, from the same binary. That is the finding; WHICH gate refuses is not
+     separated here and must not be inferred (see the header).
+
+==============================================================================
+READ IT LIKE THIS
+==============================================================================
+ARM A   Read `sp_per_key` before reading `sp_hit`. A rule entered once per key CANNOT hit, so a
+        0 % hit rate sub-ceiling is arithmetic. The finding is the RISE in that column across the
+        ceiling — the same rule, the same grammar, two regimes.
+ARM B   A closed census over the SHIPPED artifact, not over the codegen template: the template says
+        what WOULD be emitted, the artifact says what IS. If every hit-recording site is inside the
+        memo wrapper, a zero from the per-rule counter is a fact about the parse, not about the
+        counter.
+ARM C   The control rule is the whole point: it proves the memo, the counters and the trace all work
+        in the run that reports the spine's zero. `fail_store=0` beside a non-zero control is the
+        measurement; the gate that produces it is NOT identified by this script.

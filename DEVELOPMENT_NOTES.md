@@ -1,5 +1,44 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-27 - PGEN-ENGINE-UNIVERSAL-SERVICES-0106 — a zero has to be divided by its denominator before it is a defect
+
+**1. ⭐⭐⭐ A 0 % RATE IS NOT A FINDING UNTIL YOU KNOW HOW MANY CHANCES IT HAD.** Three commits read
+`constant_primary`'s 0 % memo-hit rate as a defect signature. Sub-ceiling the rule is entered
+**once per nesting level** — 0.1 to 0.5 entries per available `(rule, position)` key — so a hit is
+arithmetically impossible and the zero says nothing at all. The same rule past the ceiling reaches
+**368 entries per key** and the same zero is then a large real cost. One number, two regimes,
+opposite meanings; what separates them is the DENOMINATOR, which nobody had printed beside it.
+⇒ print the opportunity count next to every rate, and treat a rate whose denominator is ~1 as
+undefined rather than as zero.
+**promotion: PROMOTED** → `docs/decisions/a-zero-rate-is-undefined-until-its-denominator-is-printed.md`.
+
+**2. THE CONTROL BELONGS IN THE SAME RUN, NOT IN THE SAME SCRIPT.** The first cut of the event census
+ran one traced parse per rule. Two traced runs of a backtracking parser are two different
+executions, and the whole claim is *"the control's failures are stored while the spine's are not,
+in the same run"*. Merging them into one stream counted by one `awk` pass made the comparison a
+measurement instead of a juxtaposition — and halved a 2-minute arm.
+**promotion: DECLINED.** It is an instance of the standing same-binary/same-run discipline this
+repository already applies to every A/B (the `-0101` graph-switch correction is the founding case);
+recorded here as evidence rather than as a competing rule.
+
+**3. WHEN A JOIN PRODUCES A SUSPICIOUSLY CLEAN ANSWER, SUSPECT THE FIELD BEFORE THE FINDING.**
+Intersecting the trace's miss positions with its success-store positions gave 350 and 350 with
+**zero** overlap — a beautiful structural claim. The two lines print different quantities: the probe
+prints the memo key, the store prints where the body ended, and both say *"at position N"*. A census
+of all ten `💾` lines put four on the wrong side of that split, including the success-HIT line.
+⇒ before joining two fields that share a NAME, check they share a DEFINITION.
+**promotion: DECLINED — routed to leaf `.59`**, which owns the fix and carries the ten-line census.
+The general form is already covered by this repository's standing rule that an instrument needs
+ground truth; what is durable here is the specific defect, and a leaf is where a defect lives.
+
+**4. THE FIX'S SAFETY ARGUMENT CAME OUT OF THE DIAGNOSIS FOR FREE, AND THAT IS WORTH NOTICING.**
+Establishing that the cost is entirely over-ceiling also establishes that a regime-scoped fix cannot
+regress the accept path — not by benchmarking, but by construction, because every shipped-corpus
+parse trips the ceiling zero times. A diagnosis that also bounds the blast radius of its own fix is
+worth more than one that only locates the cost, and it is worth asking for deliberately.
+**promotion: DECLINED.** Too close to this slice's specifics to state generally without inventing
+the general form; kept here where a future reader of this leaf will meet it.
+
 ## 2026-08-27 - PGEN-ENGINE-UNIVERSAL-SERVICES-0105 — the control that confirms you is not the control that tests you
 
 **1. ⭐⭐⭐ PROVING AN INSTRUMENT IS ALIVE AND PROVING ITS VERDICT MATTERS ARE TWO DIFFERENT CONTROLS,
