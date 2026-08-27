@@ -1,5 +1,52 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0108 — the challenge moved no census and broke the ruling
+
+**1. ⭐⭐⭐ A BAR ANCHORED ON THE SUBJECT'S WORST *ACCEPTABLE* CASE IS SATISFIABLE BY MAKING THAT CASE
+WORSE — AND NOBODY HAS TO BE GAMING IT.** `.44`(d) ruled that a rejection may cost no more than 2× the
+parser's **deepest accepted** parse: derived rather than invented, host-independent, and it scored
+both released families RED, which is the test of whether a bar is worth having. Then the anchor was
+measured properly. VHDL's true accept cliff is depth 681, not the ladder's 400, and the accept there
+costs **18.557 s** — so VHDL scores 1.0× and PASSES, from a parser needing nineteen seconds either
+way on 1.4 KB. The ratio hid the magnitude, which is exactly what a ratio is for across hardware and
+exactly its blind spot within one machine. ⇒ anchor in the HEALTHY régime and add a leg that bounds
+the anchor itself.
+**promotion: PROMOTED** → `docs/decisions/a-bar-anchored-on-the-worst-healthy-case-can-be-met-by-degrading-it.md`.
+
+**2. ⭐⭐⭐ A BOUNDARY SEARCH REPORTS WHATEVER ITS WINDOW AND RUNGS ALLOW, CONFIDENTLY — AND I GOT THE
+SAME NUMBER WRONG TWICE, BY TWO DIFFERENT METHODS, IN THE SAME SESSION.** First a ladder: its deepest
+passing rung was published as the cliff (VHDL 400 against a true 681). Then the bisection written to
+fix that reported 499, because its window ended at 500 and 500 accepts — **a bisection whose upper
+bound is never verified to reject converges to `hi−1`**. Its own output even printed "first rejected
+= 500", a fact the loop had never evaluated. Only a wider window disagreeing caught it.
+**promotion: PROMOTED** → `docs/decisions/a-bisection-that-never-checks-its-upper-bound-returns-hi-minus-one.md`.
+
+**3. A PRODUCER THAT GREPS A FAILED RUN'S OUTPUT PUBLISHES SILENCE AS A MEASUREMENT.** Re-running the
+step-3 census after rebuilding `ast_pipeline` without `ebnf_dual_run` produced a log with every
+heading, every section marker and no data — eight empty blocker blocks and four empty gate blocks.
+The script's refusal discipline covered the probe fingerprint and the probe grammar's diff, and not
+"the census produced nothing". It is worst on this census specifically, because the finding it
+publishes IS a row of zeros, so an empty run and the headline are indistinguishable.
+**promotion: DECLINED — routed.** Fixed in both affected producers with an explicit
+`FUSIBILITY-CENSUS` headline check; it is an instance of the standing *instruments need ground truth*
+line rather than a new rule, and the concrete guard belongs in the scripts, where it now is.
+
+**4. THE CHEAPEST WAY TO KEEP A LONG EXPERIMENT REVERSIBLE IS TO COPY THE BINARY BEFORE YOU BUILD OVER
+IT.** The measurement-only build overwrote `target/release/parseability_probe`; a copy taken before
+the link step preserved the shipped binary, which then served as arm S *and* removed the second
+20-minute rebuild from the revert path entirely. The revert cost was a `git checkout`, a 4-minute
+regeneration and a `cp` — and `generated/systemverilog_parser.rs` came back byte-identical, which is
+its own small proof that the codegen is deterministic across the round trip.
+**promotion: DECLINED.** Operational technique for this repository's build shape; it belongs in the
+session record, not in the retrievable layer.
+
+**5. THE UNSOUND ARM'S VERDICT COLUMN WAS THE MOST VALUABLE COLUMN IN THE TABLE.** The retention probe
+was built to answer "how much time would this buy" and the timing answered it (87–91×). What made the
+result usable was reporting the parse VERDICTS beside the clocks: the arm rejects at depths 315 and
+320 what the shipped parser accepts. Without that column the same table reads as a solved problem.
+**promotion: DECLINED.** Same family as this leaf's standing habit of naming what a measurement did
+NOT establish; recorded here as the clearest instance of it paying off.
+
 ## 2026-08-27 - PGEN-ENGINE-UNIVERSAL-SERVICES-0107 — ask which graph runs before asking what it does
 
 **1. ⭐⭐⭐ WHEN A SYSTEM SHIPS ONE PATH AND INSTRUMENTS ANOTHER, EVERY MEASUREMENT NAMES A GRAPH —

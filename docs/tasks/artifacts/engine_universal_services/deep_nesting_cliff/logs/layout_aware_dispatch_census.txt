@@ -127,8 +127,8 @@ BOUND 1 (this site only, no cross-site double counting): 17 rules named ONLY by 
           kw_null_2be88ca4                                614379  = 1.021× the site
           ps_parameter_identifier                         607812  = 1.010× the site
           type_reference                                  607014  = 1.009× the site
-          formal_port_identifier                          606216  = 1.008× the site
-          genvar_identifier                               606216  = 1.008× the site
+          enum_identifier                                 606216  = 1.008× the site
+          specparam_identifier                            606216  = 1.008× the site
 
 BOUND 2 (grammar-wide, rules named ONLY by '('-refuted top-level branches): 848 rules, 11481140 entries = 60.7%
 BOUND 3 (grammar-wide, rules named by ANY '('-refuted top-level branch): 962 rules, 15151416 entries = 80.2%  ⚠️ UPPER — a rule reachable from an admitting branch too is counted here
@@ -155,19 +155,27 @@ THE SECOND MULTIPLIER, ON THE SAME SITE — repetition, which dispatch elision d
 ARM E — .44 (d) THE <=2x BAR ACROSS FIVE FAMILIES (plain runs: the FUSED graph)
 ==============================================================================
 ⛔ THE FALSIFICATION LEG. json and rtl_const_expr are layout-SKIPPING: all four elision gates
-   read 0 on them exactly as on SystemVerilog. If they reject at ≈1× anyway, the elision
+   read 0 on them exactly as on SystemVerilog. If they reject at ~1x anyway, the elision
    machinery is NOT what makes a reject cheap, and arm A's headroom is not by itself the fix.
-family           accepted       cost   reject       cost    ratio  verdict
-json                 1200     0.065s     2400     0.063s     1.0x  PASS(<=2x)
-regex                 400     0.028s     1200     0.026s     0.9x  PASS(<=2x)
-rtl_const_expr        300     0.038s      600     0.030s     0.8x  PASS(<=2x)
-systemverilog         320     0.149s      800    12.854s    86.3x  RED
-vhdl                  400     0.095s      800    19.328s   203.5x  RED
-   (accepted = deepest depth ON THE LADDER that parsed; reject = the DEEPEST over-ceiling
-    depth, i.e. the saturated plateau, which is what a pathological input reaches.)
-   WARNING: a ladder brackets the accept anchor from BELOW, and a shallower anchor is a
-      CHEAPER anchor, so every ratio printed here is an UPPER bound. A RED row therefore
-      cannot be a ladder artefact, and a PASS row would only improve with a finer ladder.
+⛔⛔ METHOD, CORRECTED 2026-08-28 UNDER A DIRECTOR RE-VERIFICATION CHALLENGE. The first cut
+   took the accept anchor from the deepest rung of a hand-written LADDER and timed it ONCE.
+   Both halves were wrong. A ladder reports the deepest depth it happened to TRY — bisection
+   put SystemVerilog's true cliff at 322 (published 318 and 320) and VHDL's at 499 (published
+   310) — and a single sub-second run carries ~35 % of run-to-run variance that lands entirely
+   in the ratio. The first cut also CLAIMED the resulting ratios were upper bounds; they were
+   not, because the anchor-noise term is larger than the ladder term and points the other way.
+   This arm now BISECTS the cliff and takes the MIN OF FIVE runs on both sides.
+family            accepted  min-of-5    reject  min-of-5    ratio  verdict
+json                  1364    0.073s      4000    0.040s     0.5x  PASS(<=2x)
+regex                  511    0.019s      2000    0.010s     0.5x  PASS(<=2x)
+rtl_const_expr         314    0.018s      1000    0.018s     1.0x  PASS(<=2x)
+systemverilog          322    0.184s       800   12.349s    67.0x  RED
+vhdl                   681   18.753s       800   18.791s     1.0x  PASS(<=2x)
+
+⚠️ For the three fast families BOTH sides are dominated by fixed process cost (tens of ms),
+   so their ratio is close to 1 by construction and is NOT a statement about parse-time
+   ratio. What IS load-bearing about them: their over-ceiling reject has no PLATEAU at all,
+   tens of milliseconds against SystemVerilog's twelve seconds.
 
 ==============================================================================
 READ IT LIKE THIS

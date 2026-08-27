@@ -1,0 +1,51 @@
+# experiment probe SV fingerprint : 72619e34ab2b12a76fa4356d381fbe37c32f88d09861aec0d7a7054cbdc80617
+# reference probe SV fingerprint  : 240da0a4f9e7be064a61c5076e4fcca5ca9dac0cfeb7b6a3282346fea03d5d2f
+# generated/ on disk              : 72619e34ab2b12a76fa4356d381fbe37c32f88d09861aec0d7a7054cbdc80617
+# ⇒ two DIFFERENT parsers, the experiment one matching disk. Arms S / A / B are separable.
+
+⛔⛔ EVERY NUMBER BELOW COMES FROM AN UNSOUND MEASUREMENT-ONLY BUILD. It prices a CEILING.
+   Nothing here is a proposal to land, and the VERDICT columns are why.
+
+==============================================================================
+THE THREE ARMS on nested-parenthesis SystemVerilog (plain runs = the FUSED graph)
+==============================================================================
+depth   | S_verdict    S_sec | A_verdict    A_sec | B_verdict    B_sec |      A/S      A/B
+300     | accept      0.169 | accept      0.135 | accept      0.129 |    0.80x    1.05x
+315     | accept      0.139 | accept      0.138 | reject      0.129 |    0.99x    1.07x
+320     | accept      0.149 | accept      0.149 | reject      0.127 |    1.00x    1.17x
+350     | reject      0.291 | reject      0.295 | reject      0.128 |    1.01x    2.30x
+400     | reject      0.758 | reject      0.755 | reject      0.129 |    1.00x    5.85x
+500     | reject      2.440 | reject      2.441 | reject      0.127 |    1.00x   19.22x
+800     | reject     12.139 | reject     11.982 | reject      0.132 |    0.99x   90.77x
+   A/S = the PROBE's own overhead (branch only, retention off).
+   A/B = what RETENTION buys, with the branch held constant. Read the VERDICT columns first:
+         a row where B disagrees with S is a wrong answer, not a win.
+
+==============================================================================
+THE (d) BAR under each arm — a rejection may cost <= 2x the deepest ACCEPTED parse
+==============================================================================
+arm              accepted      cost     reject      cost     ratio  verdict
+S shipped             320    0.181s        800   12.172s     67.4x  RED
+A probe-off           320    0.133s        800   12.222s     92.2x  RED
+B retain-all          300    0.130s        800    0.131s      1.0x  PASS(<=2x)
+
+⛔ A PASS on arm B is a CEILING, not a result: it says a sound fix that retained everything
+   would clear the bar. It does not say a sound fix CAN retain everything — arm B is unsound,
+   and the verdict table above is where that shows up.
+
+==============================================================================
+READ IT LIKE THIS
+==============================================================================
+VERDICTS FIRST.  Arm B changes what the parser ANSWERS, deliberately. Any depth where B's verdict
+                 differs from S's is the unsoundness being visible, and it is the reason this build
+                 is a probe rather than a patch.
+A/S              isolates the cost of the added branch. If it is ~1.00x the probe is free and arm B
+                 measures retention alone; if it is not, say so beside every B number.
+A/B              is the answer this leaf owes: the UPPER BOUND on what any sound retention fix can
+                 buy on the over-ceiling plateau. Compare it against `.44`(d)'s requirement of 41x.
+
+
+==============================================================================
+AFTER THE REVERT — the same script, re-run once the probe was removed from the tree:
+# ⛔ NOT EVALUATED — generated/systemverilog_parser.rs carries no experiment gate, so the
+#   probe build is not in place (or has already been reverted). Re-apply, regenerate, rebuild.

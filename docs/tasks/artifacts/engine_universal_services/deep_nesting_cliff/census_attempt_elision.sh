@@ -52,6 +52,16 @@ echo "==========================================================================
 echo "ARM A — the four ATTEMPT-ELISION gates on SystemVerilog, and WHY they refuse"
 echo "=============================================================================="
 "$A" grammars/systemverilog.ebnf --report-fusibility-census > "$W/sv_static.txt" 2>&1 || true
+# ⛔⛔ REFUSE ON AN EMPTY CENSUS (2026-08-28, director re-verification challenge): an `ast_pipeline`
+# built without `ebnf_dual_run` errors on every grammar, and a grep over that output prints nothing
+# while every heading still appears. Silence on a census of ZEROS is indistinguishable from the
+# finding this script exists to publish.
+if ! grep -qE '^FUSIBILITY-CENSUS: ' "$W/sv_static.txt"; then
+  echo "# ⛔ NOT EVALUATED — no FUSIBILITY-CENSUS headline; first line of the census output was:"
+  sed -n '1p' "$W/sv_static.txt" | sed 's/^/#     /'
+  echo "#   Canonical build: (cd rust && cargo build --features \"generated_parsers ebnf_dual_run\" --bin ast_pipeline)"
+  exit 2
+fi
 grep -E "$GATES" "$W/sv_static.txt"
 echo
 echo "-- blocker histograms (the WHY: read the count against the site total on the line above) --"

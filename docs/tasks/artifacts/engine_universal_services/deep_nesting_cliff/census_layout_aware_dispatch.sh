@@ -58,7 +58,7 @@ if [ "$PROBE_SV" != "$DISK_SV" ]; then
 fi
 echo "# fingerprint MATCHES generated/systemverilog_parser.rs"
 
-W="rust/target/layout_aware_dispatch_census"; rm -rf "$W"; mkdir -p "$W/tracked" "$W/layout_aware"
+W="rust/target/layout_aware_dispatch_census"; export W; rm -rf "$W"; mkdir -p "$W/tracked" "$W/layout_aware"
 GATES='^(FUSIBILITY-CENSUS|CHOICE-SITE-CENSUS|DEGENERACY-CENSUS|PREFIX2-CENSUS|FIRSTK-CENSUS|QUANT-SITE-CENSUS)'
 
 # ⛔ The census names the grammar after the FILE STEM and refuses an outcome-counts join whose
@@ -87,6 +87,22 @@ fi
      --fusibility-census-json "$W/tracked.json"      > "$W/tracked.txt"      2>&1 || true
 "$A" "$W/layout_aware/systemverilog.ebnf" --report-fusibility-census \
      --fusibility-census-json "$W/layout_aware.json" > "$W/layout_aware.txt" 2>&1 || true
+
+# ⛔⛔ REFUSE ON AN EMPTY CENSUS — added 2026-08-28 under a director re-verification challenge, which
+# found this script printing EIGHT empty blocker sections and four empty gate blocks because the
+# `ast_pipeline` binary had been rebuilt WITHOUT `ebnf_dual_run` and was erroring on every grammar.
+# Every arm still ran, every heading still printed, and the log looked structurally normal. A
+# producer that greps a failed run's output reports SILENCE as if it were a measurement, and silence
+# on a census of ZEROS is indistinguishable from the finding it exists to publish.
+for facet in tracked layout_aware; do
+  if ! grep -qE '^FUSIBILITY-CENSUS: ' "$W/$facet.txt"; then
+    echo "# ⛔ NOT EVALUATED — the census produced no FUSIBILITY-CENSUS headline for the $facet facet."
+    echo "#   First line of its output was:"
+    sed -n '1p' "$W/$facet.txt" | sed 's/^/#     /'
+    echo "#   The canonical build is:  (cd rust && cargo build --features \"generated_parsers ebnf_dual_run\" --bin ast_pipeline)"
+    exit 2
+  fi
+done
 
 echo
 echo "-- TRACKED facet (terminals skip layout; regex tokens skip layout) --"
@@ -269,47 +285,87 @@ echo "==========================================================================
 echo 'ARM E — .44 (d) THE <=2x BAR ACROSS FIVE FAMILIES (plain runs: the FUSED graph)'
 echo "=============================================================================="
 echo "⛔ THE FALSIFICATION LEG. json and rtl_const_expr are layout-SKIPPING: all four elision gates"
-echo "   read 0 on them exactly as on SystemVerilog. If they reject at ≈1× anyway, the elision"
+echo "   read 0 on them exactly as on SystemVerilog. If they reject at ~1x anyway, the elision"
 echo "   machinery is NOT what makes a reject cheap, and arm A's headroom is not by itself the fix."
-printf '%-16s %8s %10s %8s %10s %8s  %s\n' family accepted cost reject cost ratio verdict
-# spec = family : template : open+close pair : profile : depth ladder
-for spec in "json:%s1%s:[]::400 800 1200 1600 2400" \
-            "regex:%sa%s:()::200 400 600 800 1200" \
-            "rtl_const_expr:%s1%s:()::100 200 300 400 600" \
-            "systemverilog:module m; assign x = %s1%s; endmodule:():sv_2017:200 300 320 400 800" \
-            "vhdl:entity e is end entity; architecture a of e is begin s <= %s1%s; end architecture;:():vhdl_1076_2019:200 300 320 400 800"; do
-  fam="${spec%%:*}"; rest="${spec#*:}"
-  tmpl="${rest%%:*}"; rest="${rest#*:}"
-  pair="${rest%%:*}"; rest="${rest#*:}"
-  prof="${rest%%:*}"; ladder="${rest#*:}"
-  op="${pair:0:1}"; cl="${pair:1:1}"
-  best_n=""; best_t=""; rej_n=""; rej_t=""
-  for n in $ladder; do
-    python3 -c "import sys;n=$n;sys.stdout.write('''$tmpl''' % ('$op'*n, '$cl'*n))" > "$W/e_in.txt"
-    st=$(python3 -c 'import time;print(time.monotonic())')
-    if [ -n "$prof" ]; then "$P" --parse "$fam" "$W/e_in.txt" --profile "$prof" >/dev/null 2>&1
-    else                    "$P" --parse "$fam" "$W/e_in.txt"                    >/dev/null 2>&1; fi
-    rc=$?
-    el=$(python3 -c "import time;print(f'{time.monotonic()-$st:.3f}')")
-    if [ "$rc" = "0" ]; then best_n="$n"; best_t="$el"; else
-      rej_n="$n"; rej_t="$el"   # keep the DEEPEST (saturated) reject — the plateau, not the cliff
-    fi
-  done
-  if [ -z "$best_t" ] || [ -z "$rej_t" ]; then
-    printf '%-16s %8s %10s %8s %10s %8s  %s\n' "$fam" "${best_n:--}" "${best_t:--}" "${rej_n:--}" "${rej_t:--}" "-" \
-      "NOT EVALUATED (ladder never crossed the cliff)"
-    continue
-  fi
-  read -r ratio verdict <<<"$(python3 -c "
-r = $rej_t / $best_t
-print('%.1fx' % r, 'PASS(<=2x)' if r <= 2.0 else 'RED')")"
-  printf '%-16s %8s %9ss %8s %9ss %8s  %s\n' "$fam" "$best_n" "$best_t" "$rej_n" "$rej_t" "$ratio" "$verdict"
-done
-echo "   (accepted = deepest depth ON THE LADDER that parsed; reject = the DEEPEST over-ceiling"
-echo "    depth, i.e. the saturated plateau, which is what a pathological input reaches.)"
-echo "   WARNING: a ladder brackets the accept anchor from BELOW, and a shallower anchor is a"
-echo "      CHEAPER anchor, so every ratio printed here is an UPPER bound. A RED row therefore"
-echo "      cannot be a ladder artefact, and a PASS row would only improve with a finer ladder."
+echo "⛔⛔ METHOD, CORRECTED 2026-08-28 UNDER A DIRECTOR RE-VERIFICATION CHALLENGE. The first cut"
+echo "   took the accept anchor from the deepest rung of a hand-written LADDER and timed it ONCE."
+echo "   Both halves were wrong. A ladder reports the deepest depth it happened to TRY — bisection"
+echo "   put SystemVerilog's true cliff at 322 (published 318 and 320) and VHDL's at 499 (published"
+echo "   310) — and a single sub-second run carries ~35 % of run-to-run variance that lands entirely"
+echo "   in the ratio. The first cut also CLAIMED the resulting ratios were upper bounds; they were"
+echo "   not, because the anchor-noise term is larger than the ladder term and points the other way."
+echo "   This arm now BISECTS the cliff and takes the MIN OF FIVE runs on both sides."
+python3 - <<'PY'
+import os, subprocess, time
+W = os.environ.get('W', 'rust/target/layout_aware_dispatch_census')
+P = 'rust/target/release/parseability_probe'
+# family : template : open+close : profile : bisection window : saturated over-ceiling depth
+FAM = [('json',           '%s1%s',                                                                 '[]', None,            (50, 4000), 4000),
+       ('regex',          '%sa%s',                                                                 '()', None,            (50, 2000), 2000),
+       ('rtl_const_expr', '%s1%s',                                                                 '()', None,            (20, 1000), 1000),
+       ('systemverilog',  'module m; assign x = %s1%s; endmodule',                                 '()', 'sv_2017',       (50, 1000), 800),
+       ('vhdl',           'entity e is end entity; architecture a of e is begin s <= %s1%s; end architecture;',
+                                                                                                   '()', 'vhdl_1076_2019',(50, 1000), 800)]
+N = 5
+
+def run(fam, path, prof):
+    cmd = [P, '--parse', fam, path] + (['--profile', prof] if prof else [])
+    t = time.monotonic()
+    try:
+        rc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                            timeout=300).returncode
+    except subprocess.TimeoutExpired:
+        return None, time.monotonic() - t
+    return rc == 0, time.monotonic() - t
+
+print("%-16s %9s %9s %9s %9s %8s  %s"
+      % ("family", "accepted", "min-of-5", "reject", "min-of-5", "ratio", "verdict"))
+for fam, tmpl, pair, prof, (lo, hi), deep in FAM:
+    op, cl = pair[0], pair[1]
+    def mk(d):
+        path = os.path.join(W, 'e_%s_%d.txt' % (fam, d))
+        open(path, 'w').write(tmpl % (op * d, cl * d))
+        return path
+    a, b = lo, hi
+    # ⛔⛔ ASSERT THE BRACKET BEFORE SEARCHING — both ends, not just the low one. A bisection whose
+    # upper bound was never verified to REJECT converges to hi-1 and prints it as the boundary with
+    # full confidence; that is exactly how this arm's first correction reported VHDL's cliff at 499
+    # from a window ending at 500, which accepts. Two extra probes are the cheapest part of a search.
+    ok_lo, _ = run(fam, mk(a), prof)
+    if not ok_lo:
+        print("%-16s %9s %9s %9s %9s %8s  NOT EVALUATED (bracket: lo=%d already REJECTS)"
+              % (fam, '-', '-', '-', '-', '-', a))
+        continue
+    ok_hi, _ = run(fam, mk(b), prof)
+    if ok_hi is None or ok_hi:
+        print("%-16s %9s %9s %9s %9s %8s  NOT EVALUATED (bracket: hi=%d still ACCEPTS — widen it)"
+              % (fam, '-', '-', '-', '-', '-', b))
+        continue
+    while a + 1 < b:                       # BISECT the cliff — never a ladder rung
+        m = (a + b) // 2
+        ok, _ = run(fam, mk(m), prof)
+        if ok is None:
+            a = b = None; break
+        (a, b) = (m, b) if ok else (a, m)
+    if a is None:
+        print("%-16s TIMED OUT during bisection — NOT EVALUATED" % fam); continue
+    acc = min(run(fam, mk(a), prof)[1] for _ in range(N))
+    rv, _ = run(fam, mk(deep), prof)
+    if rv is None:
+        print("%-16s over-ceiling depth %d TIMED OUT — NOT EVALUATED" % (fam, deep)); continue
+    if rv:
+        print("%-16s depth %d still ACCEPTS — the window never crossed the cliff; NOT EVALUATED"
+              % (fam, deep)); continue
+    rej = min(run(fam, mk(deep), prof)[1] for _ in range(N))
+    r = rej / acc
+    print("%-16s %9d %8.3fs %9d %8.3fs %7.1fx  %s"
+          % (fam, a, acc, deep, rej, r, "PASS(<=2x)" if r <= 2.0 else "RED"))
+print()
+print("⚠️ For the three fast families BOTH sides are dominated by fixed process cost (tens of ms),")
+print("   so their ratio is close to 1 by construction and is NOT a statement about parse-time")
+print("   ratio. What IS load-bearing about them: their over-ceiling reject has no PLATEAU at all,")
+print("   tens of milliseconds against SystemVerilog's twelve seconds.")
+PY
 
 cat <<'NOTE'
 

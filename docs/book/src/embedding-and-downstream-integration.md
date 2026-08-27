@@ -141,30 +141,35 @@ guessed: on SystemVerilog error construction is only ~24 % of it, the parse casc
 quarter run on rules whose packrat memo is deliberately elided because inlining their one-node body
 is cheaper than probing for it.
 
-**The bar this is measured against, and it is a ratio rather than a stopwatch.** A rejection may cost
-no more than **2× the same parser's deepest ACCEPTED parse**, measured on the same host in the same
-run — because a parser must not spend more effort failing than succeeding, and because an absolute
-second count is a claim about one laptop. Measured today: SystemVerilog accepts at depth 318 in
-**0.151 s** and rejects at depth 800 in **12.43 s** (**≈ 82×**); VHDL accepts in **0.071 s** and
-rejects in **18.98 s** (**≈ 267×**). **Both families are far outside the bar**, which is why `.44`
-stays open.
+**The bar this is measured against, and it has two legs rather than one.** The first is a ratio
+rather than a stopwatch: a rejection may cost no more than **2×** the same parser's accepted parse of
+the same shape — because a parser must not spend more effort failing than succeeding, and because an
+absolute second count is a claim about one laptop. The second leg exists because the first one, on
+its own, turned out to be satisfiable by making success worse: **no accepted depth may cost more than
+2× the accepted depth at 80 % of the parser's cliff.** Measured across five families, on plain runs,
+with the accept cliff found by bisection and both sides timed as the best of five runs:
 
-**And the bar is not a SystemVerilog-shaped impossibility — three other PGEN families already pass
-it.** The same ratio, measured across five families on plain runs with the same nested-bracket
-shape, is the most useful single table an embedder can have here, because it says the plateau is a
-property of two specific grammars rather than of the engine:
+| family | cliff (deepest accepted) | accept cost | saturated reject | reject cost | leg 1 (ratio) | leg 2 (accept plateau) |
+|---|---:|---:|---:|---:|---:|---:|
+| json | 1 364 | 0.071 s | 4 000 | 0.071 s | **1.0×** ✅ | ✅ |
+| regex | 511 | 0.020 s | 2 000 | 0.010 s | **0.5×** ✅ | ✅ |
+| rtl_const_expr | 314 | 0.020 s | 1 000 | 0.019 s | **1.0×** ✅ | ✅ |
+| systemverilog | 322 | 0.14–0.18 s | 800 | 12.3–12.4 s | **67–90×** ⛔ | **1.4×** ✅ |
+| vhdl | 681 | 18.6 s | 800 | 18.7 s | **1.0×** ✅ | **102×** ⛔ |
 
-| family | deepest accepted | its cost | saturated reject | its cost | ratio | verdict |
-|---|---:|---:|---:|---:|---:|---|
-| json | depth 1 200 | 0.065 s | depth 2 400 | 0.060–0.063 s | **0.9–1.0×** | ✅ passes |
-| regex | depth 400 | 0.028 s | depth 1 200 | 0.026 s | **0.8–0.9×** | ✅ passes |
-| rtl_const_expr | depth 300 | 0.036 s | depth 600 | 0.029 s | **0.8×** | ✅ passes |
-| systemverilog | depth 320 | 0.149 s | depth 800 | 12.3–12.9 s | **81–86×** | ⛔ fails |
-| vhdl | depth 400 | 0.094 s | depth 800 | 18.8–19.3 s | **199–204×** | ⛔ fails |
+⚠️ Read the two red cells before anything else, because they are red for **different reasons**.
+SystemVerilog rejects far more expensively than it accepts. VHDL does not — it passes leg 1 at 1.0×
+**because its accept path is just as expensive**: valid VHDL at nesting depth 681 parses
+*successfully* in **18.6 s**, a 102× rise over depth 575, and that is tracked as its own defect
+(`ENGINE-UNIVERSAL-SERVICES.60`). A single-leg bar scored that parser as passing, which is why the
+second leg exists.
 
-Each accepted anchor is the deepest rung of a coarse ladder, so every ratio is an *upper* bound —
-which means the two red rows cannot be a measurement artefact, and the three green ones can only get
-better.
+⚠️ Two more honest notes on this table. The SystemVerilog ratio is quoted as a **range** on purpose:
+its accept anchor is a sub-second measurement whose spread (four anchored runs read 67.0, 70.4,
+80.6 and 89.5) is the whole range, so nothing finer than *two orders of magnitude* is supported. And for the three fast families both sides are dominated
+by fixed process cost, so their ≈1× is close to true by construction — what is load-bearing about
+them is not the ratio but the **absence of any plateau at all**: tens of milliseconds against
+SystemVerilog's twelve seconds.
 
 **Why those three are cheap turned out to refute the obvious explanation, and that is worth stating
 because it redirected the fix.** The natural theory was PGEN's *attempt-elision* machinery: a family
@@ -178,14 +183,22 @@ site that dominates a deep-nesting reject, **12 of its 15 alternatives are refut
 byte**.
 
 But `json` and `rtl_const_expr` have the *same* zero elision surface for the *same* layout reason,
-and they reject at ≈1× anyway. So the zero is a symptom, not the cause. Priced against the real
-workload, a perfect layout-aware dispatch removes at most 80 % of the rule entries — a 2.5–5×
-improvement — where the bar needs **41×**. The term that can supply it is *repetition*: on a
+and they show no plateau anyway. So the zero is a symptom, not the cause. Priced against the real
+workload, a perfect layout-aware dispatch removes at most 80 % of the rule entries — worth roughly
+**1.8–3.5×** — where the bar needs about **41×**. The term that can supply it is *repetition*: on a
 1 633-byte input with at most 1 634 distinct memo keys, the dominant expression-spine rule is
 entered **601 658 times with zero memo hits**, roughly 368 re-derivations per position, while the
-leaves of the same tournament are served from the memo ~100 % of the time. Breadth and repetition
-multiply, and PGEN is currently attacking the smaller factor. Both are tracked —
-`ENGINE-UNIVERSAL-SERVICES.56` for the repetition term, `.58` for the layout-aware emission.
+leaves of the same tournament are served from the memo ~100 % of the time.
+
+**That second term has since been priced, with a measurement-only build that was reverted in the same
+change.** Making both memos retain every failure — which is *unsound*, and deliberately so — collapses
+the depth-800 parse from 18 901 646 rule entries to **149 914**, and the reject from twelve seconds to
+**0.132 s**, flat at every depth from 315 to 800. That is an **87–91×** improvement against the ~41×
+the bar needs. It is a **ceiling, not a fix**: the same build rejects valid input at depths 315 and
+320, which is exactly the correctness the refusal was protecting. The open engineering question is
+therefore narrow and well-posed — the sound depth-stamped channel already exists, and the question is
+whether a recursion-tainted failure can be keyed by what it actually depends on. Tracked as
+`ENGINE-UNIVERSAL-SERVICES.56`, with `.58` holding the layout-aware emission behind it.
 
 > 📮 **Open question for embedders (Nexsim in particular) — tracked as
 > `ENGINE-UNIVERSAL-SERVICES.57`.** The ratio bar above is derived from the parser and needs nobody's
