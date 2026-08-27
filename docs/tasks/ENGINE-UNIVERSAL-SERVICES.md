@@ -317,17 +317,28 @@ SystemVerilog is the family that SHIPS to Nexsim. **It does not have the same co
   SystemVerilog fingerprint `240da0a4f9e7be06…` was checked equal to `generated/systemverilog_parser.rs`
   on disk before any number was read:
 
-  | family | `create_contextual_error` | memmove | allocator | `parse_*`/`cascade_*` | ⇒ error construction | ⇒ actual parsing |
-  |---|---:|---:|---:|---:|---:|---:|
-  | **systemverilog** | **18.7 %** | 6.0 % | 1.5 % | **71.7 %** over 23 fns | **24.7 %** | **71.7 %** |
-  | **vhdl** | **62.0 %** | 17.0 % | 6.7 % | 7.6 % over 7 fns | **78.9 %** | **7.6 %** |
+  | family | `create_contextual_error` | memmove | ⇒ error construction | ⇒ actual parsing (listed + tail) |
+  |---|---:|---:|---:|---:|
+  | **systemverilog** | **15.2 – 18.5 %** | 4.9 – 6.0 % | **20.1 – 23.6 %** | **~71 – 75 %** over 25-28 fns |
+  | **vhdl** | **59.3 – 61.1 %** | 16.1 – 17.0 % | **75.5 – 77.1 %** | **~9.3 – 10.0 %** over 7 fns |
 
-  ⭐ VHDL re-derives to **62.0 %** against the opening note's **60 %** — the same measurement, so the
-  original reading STANDS for VHDL. ⇒ **the headline is a VHDL fact.** On SystemVerilog, error
+  ⛔⛔ **CORRECTED UNDER A DIRECTOR RE-VERIFICATION CHALLENGE (2026-08-27), AND THE FIRST CUT'S
+  DENOMINATOR WAS WRONG.** `/usr/bin/sample` collapses its self-time section at *"when >= 5"* and
+  **omits every entry below that threshold**, so summing the LISTED rows divides by a number smaller
+  than the truth and OVERSTATES every share. The omitted tail is **7.7 – 8.6 %** of the SystemVerilog
+  worker thread and **1.5 %** of the VHDL one, and it is a long list of DISTINCT parse functions —
+  so the error-construction share was overstated and the parsing share understated, both in the same
+  direction. The denominator is now the worker thread's own `N Thread_…` total. Point estimates are
+  also replaced by the spread over **three runs per family**, because the first cut published a
+  single sample as if it were a constant.
+  ⇒ published `18.7 % / 62.0 %` → honest **`~17 % / ~60 %`**. ⭐ **The FINDING IS UNCHANGED and
+  slightly STRENGTHENED**: VHDL re-derives onto the opening note's **60 %**, so that reading STANDS
+  for VHDL, while SystemVerilog sits at roughly a FIFTH of the plateau, not three fifths.
+  ⇒ **the headline is a VHDL fact.** On SystemVerilog, error
   construction is roughly a QUARTER of the plateau and the parse cascade itself is ~72 %, spread over
   23 distinct functions rather than concentrated in one.
   ⚠️ **Consequence for (b), priced before it is designed**: deleting the rich error entirely buys at
-  most ~25 % on the family being released, not ~80 %. A fix justified by the VHDL number would be
+  most **~24 %** on the family being released, not ~80 %. A fix justified by the VHDL number would be
   sold on a benefit SystemVerilog does not have.
   Re-derivable: `docs/tasks/artifacts/engine_universal_services/deep_nesting_cliff/measure_reject_composition.sh`
   (prints the fingerprint, excludes the parked main thread from the denominator, and reports
@@ -339,7 +350,11 @@ SystemVerilog is the family that SHIPS to Nexsim. **It does not have the same co
   `create_contextual_error` (`+188`, `+216`, `+276`) are **all in the `rule_stack` collect loop** —
   the length store, the `RULE_NAMES` table load, and the data-pointer reload immediately after
   `alloc::raw_vec::RawVecInner::reserve::do_reserve_and_handle`. Instrument: `otool -tV` on the
-  shipped probe, hot offsets taken from the sample. Evidence:
+  shipped probe, hot offsets taken from the sample. ⭐ **STRENGTHENED under the re-verification
+  challenge**: the sample attributes TEN distinct offsets inside the function, and **1 215 of 1 223**
+  weighted samples fall in the collect-loop region (`+144 … +276`); only **6** land past it (`+328`),
+  which is where the 40-byte excerpt work begins. The rich message and the excerpt are not merely
+  bounded — they are not measurably on the profile at all. Evidence:
   `artifacts/engine_universal_services/deep_nesting_cliff/logs/cce_disassembly_attribution.txt`.
 - ✅ **ROOT CAUSE (WHY + WHERE), with a file:line the opening note explicitly said it did not have.**
   WHERE: `rust/src/ast_pipeline/ast_based_generator.rs:10022-10024` — the codegen site that emits
@@ -349,8 +364,9 @@ SystemVerilog is the family that SHIPS to Nexsim. **It does not have the same co
       .collect();
   ```
   WHY: that walks **every live frame**, and on the over-ceiling path the live depth is pinned at
-  `GENERATED_RECURSION_GUARD_MAX_DEPTH` = **4096** (`ast_based_generator.rs:31`) ⇒ up to
-  **4096 × 16 B = 64 KiB per error**, built with **no `with_capacity`** (the emitted code mallocs
+  `GENERATED_RECURSION_GUARD_MAX_DEPTH` = **4096** (`ast_based_generator.rs:31`) ⇒ **up to**
+  4096 × 16 B = **64 KiB per error** — an UPPER bound at the ceiling and NOT a per-error constant,
+  since errors are constructed while the stack unwinds too — built with **no `with_capacity`** (the emitted code mallocs
   `0x40` = 4 elements at `+140` and grows by repeated `do_reserve_and_handle` at `+272`) — which is
   exactly the `_platform_memmove` band in the flat profile.
 - ⚠️⚠️ **AND THE COMMENT ABOVE THAT LOOP WRITES THE COST DOWN AS DESIGN INTENT.** It reads
@@ -365,6 +381,40 @@ SystemVerilog is the family that SHIPS to Nexsim. **It does not have the same co
   ⚠️ Still NOT established, and (b) must not assume it: whether the same construction cost is present
   on ordinary SUB-ceiling parses. The shipped corpus parses in milliseconds, which is evidence but not
   a measurement, and the opening note already flagged it as an inference.
+
+#### ⚖️ `.44` (d) — **RULED BY ME 2026-08-27 under director delegation** (*"I think it is yours to make but it got to be sota, signoff and production-grade"*): **THE BURN IS NOT ACCEPTABLE, AND THE ERROR-CONSTRUCTION LANE IS NOT THE FIX**
+
+- ⚖️ **THE VERDICT: NOT ACCEPTABLE AS-IS for a production embedding consumer.** ~1.6 KB of
+  legal-looking SystemVerilog costs ~12 s of single-threaded CPU — roughly **7.5 s per KB** of
+  amplification — and `embedding_api` is the vehicle by which this parser reaches Nexsim, which will
+  parse third-party and machine-generated SV. ⛔ **Bounded-and-terminating is the difference between
+  a crash and a slowdown, not the difference between a defect and a non-defect.** `.43` earned the
+  first distinction; SOTA/signoff means closing the second. ⇒ this stays OPEN as a defect, not
+  accepted as a residual.
+- ⛔⛔ **BUT THE FIX LANE THIS LEAF OPENED ON IS THE WRONG ONE, BY ITS OWN MEASUREMENT.** (a) shows
+  error construction is **20.1 – 23.6 %** of the SystemVerilog plateau. Removing ALL of it leaves
+  roughly **9 s** of the 12. A fix designed against the VHDL number would be sold on a benefit the
+  released family does not have. ⇒ **(b) must be priced against the SV split, not the VHDL headline.**
+- ⭐ **WHERE THE COST ACTUALLY IS ON THE RELEASED FAMILY**: the parse cascade re-descending —
+  **~71 – 75 %**, spread over 25-28 distinct `parse_*`/`cascade_*` functions. Every sibling
+  alternative at the same position descends to the same ceiling and fails the same way.
+- ⚠️⚠️ **AND THE OBVIOUS DESIGN ALREADY PARTLY EXISTS, WHICH IS WHY (b) IS A MEASUREMENT AND NOT A
+  DESIGN.** `.43` already ships **depth-gated memo channels** probed only once
+  `recursion_depth_block_events != 0` (see `ceiling_contact_census.txt` in this leaf's artifacts).
+  So "memoize ceiling contact" is not a new idea to invent — it is machinery to ACCOUNT FOR. The
+  honest open question, which I have **not** measured and must not assert: **why does SystemVerilog
+  still spend ~72 % re-descending when those channels exist** — are they not reached on SV's cascade
+  shape, keyed too narrowly to collapse sibling alternatives, or reached and working with the residue
+  genuinely elsewhere? ⇒ **that census is (b)'s first step**, before any emission change.
+- ⭐ **ONE CHEAP WIN IS SEPARABLE AND SHOULD BE TAKEN ON ITS OWN MERITS, SOLD AS WHAT IT IS**: the
+  emitted `rule_stack` collect has **no `with_capacity`**, so it re-grows through
+  `do_reserve_and_handle` once per error. `Vec::with_capacity(rule_id_stack.len())` at
+  `ast_based_generator.rs:10022` is one line, changes no behaviour, and removes the memmove band —
+  **4.9 – 6.0 % on SV, 16.1 – 17.0 % on VHDL**. ⛔ It is NOT a fix for (d) and must never be
+  reported as one; it regenerates all 11 parsers, so it is priced, not free.
+- ⛔ **WHAT THIS RULING DOES NOT DO**: it does not set a target number. A latency budget for an
+  over-ceiling reject is a consumer-contract question that belongs with the `embedding_api` contract
+  and Nexsim's own limits, and inventing one here would be a number with no authority behind it.
 
 - ⚠️ **HONEST BOUND**: one 6-second sample of one input in one family. It has not been shown that
   SystemVerilog's plateau has the same composition, and it has not been shown that the same cost is

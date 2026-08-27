@@ -1,18 +1,60 @@
-# parser-fingerprint: {"pgen_parser_fingerprint_version":1,"parsers":{"ebnf":"8e23575d9bf0e30c2c88e8e4f6eb8b663417d09261adab6de2ea83df4076fb9d","json":"a440f714cc0723f342ef9ee5a66adf
-# depth=800 sample=6s
+ENGINE-UNIVERSAL-SERVICES.44 (a) — over-ceiling reject COMPOSITION, both families, depth 800.
+CORRECTED 2026-08-27 under a director re-verification challenge: the denominator is the
+WORKER THREAD'S OWN TOTAL, not the sum of the listed rows. /usr/bin/sample collapses its
+self-time section at '>= 5' and omits everything below, so summing listed rows divides by
+too small a number and OVERSTATES every share. The omitted tail is 7.7-8.6 % of the
+SystemVerilog worker thread and 1.5 % of the VHDL one, and it is a long list of DISTINCT
+parse functions -- so the error-construction share was overstated and parsing understated.
+Three runs per family, so the spread is visible rather than a single point estimate.
 
+----- run 1 -----
 == systemverilog (depth 800, probe rc=1 — nonzero is the REJECT this leaf is about) ==
-   idle (main thread parked): 2712   non-idle listed: 2498
-   create_contextual_error     466   18.7%
-   memmove/memcpy              121    4.8%
-   allocator                    34    1.4%
-   parse_*/cascade_*          1814   72.6%   over 21 distinct fns
-   => error construction 23.5%  |  actual parsing 72.6%
-
+   worker-thread samples (THE denominator): 2859   main thread parked: 2859
+   unlisted tail (<5 samples each, collapsed away): 213  7.5%  — parse functions, not error construction
+   create_contextual_error     485   17.0%
+   memmove/memcpy              145    5.1%
+   allocator                    45    1.6%
+   parse_*/cascade_*          1876   65.6%   over 28 distinct fns
+   => error construction 22.0%  |  actual parsing 65.6%
 == vhdl (depth 800, probe rc=1 — nonzero is the REJECT this leaf is about) ==
-   idle (main thread parked): 3306   non-idle listed: 3242
-   create_contextual_error    2047   63.1%
-   memmove/memcpy              517   15.9%
-   allocator                   249    7.7%
-   parse_*/cascade_*           268    8.3%   over 7 distinct fns
-   => error construction 79.1%  |  actual parsing 8.3%
+   worker-thread samples (THE denominator): 3513   main thread parked: 3513
+   unlisted tail (<5 samples each, collapsed away): 69  2.0%  — parse functions, not error construction
+   create_contextual_error    2146   61.1%
+   memmove/memcpy              552   15.7%
+   allocator                   251    7.1%
+   parse_*/cascade_*           271    7.7%   over 7 distinct fns
+   => error construction 76.8%  |  actual parsing 7.7%
+----- run 2 -----
+== systemverilog (depth 800, probe rc=1 — nonzero is the REJECT this leaf is about) ==
+   worker-thread samples (THE denominator): 2863   main thread parked: 2863
+   unlisted tail (<5 samples each, collapsed away): 211  7.4%  — parse functions, not error construction
+   create_contextual_error     488   17.0%
+   memmove/memcpy              135    4.7%
+   allocator                    47    1.6%
+   parse_*/cascade_*          1899   66.3%   over 25 distinct fns
+   => error construction 21.8%  |  actual parsing 66.3%
+== vhdl (depth 800, probe rc=1 — nonzero is the REJECT this leaf is about) ==
+   worker-thread samples (THE denominator): 3523   main thread parked: 3523
+   unlisted tail (<5 samples each, collapsed away): 67  1.9%  — parse functions, not error construction
+   create_contextual_error    2078   59.0%
+   memmove/memcpy              579   16.4%
+   allocator                   263    7.5%
+   parse_*/cascade_*           274    7.8%   over 7 distinct fns
+   => error construction 75.4%  |  actual parsing 7.8%
+----- run 3 -----
+== systemverilog (depth 800, probe rc=1 — nonzero is the REJECT this leaf is about) ==
+   worker-thread samples (THE denominator): 2844   main thread parked: 2844
+   unlisted tail (<5 samples each, collapsed away): 245  8.6%  — parse functions, not error construction
+   create_contextual_error     432   15.2%
+   memmove/memcpy              140    4.9%
+   allocator                    60    2.1%
+   parse_*/cascade_*          1859   65.4%   over 27 distinct fns
+   => error construction 20.1%  |  actual parsing 65.4%
+== vhdl (depth 800, probe rc=1 — nonzero is the REJECT this leaf is about) ==
+   worker-thread samples (THE denominator): 3525   main thread parked: 3525
+   unlisted tail (<5 samples each, collapsed away): 52  1.5%  — parse functions, not error construction
+   create_contextual_error    2126   60.3%
+   memmove/memcpy              568   16.1%
+   allocator                   237    6.7%
+   parse_*/cascade_*           298    8.5%   over 7 distinct fns
+   => error construction 76.4%  |  actual parsing 8.5%

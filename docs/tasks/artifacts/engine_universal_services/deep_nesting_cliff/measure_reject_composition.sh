@@ -15,6 +15,19 @@
 #   main thread's `__ulock_wait` samples are IDLE and must be excluded from the denominator.
 #   Counting them makes every share look ~2x smaller.
 #
+# ⛔⛔ THE DENOMINATOR IS THE WORKER THREAD'S OWN TOTAL, **NOT** THE SUM OF THE LISTED ROWS, AND
+#   GETTING THAT WRONG OVERSTATES EVERY SHARE. `sample` prints its self-time section as
+#   "same collapsed (when >= 5)" -- entries with FEWER THAN FIVE samples are NOT LISTED AT ALL.
+#   Summing the listed rows therefore divides by a number smaller than the truth. MEASURED under a
+#   director re-verification challenge (2026-08-27): the unlisted tail is **7.9 %** of the
+#   SystemVerilog worker thread and 1.9 % of the VHDL one, so the first cut published
+#   create_contextual_error at 18.7 % / 62.0 % where the honest figures are **17.2 % / 61.9 %**.
+#   The tail is a long list of DISTINCT parse functions each below the threshold, so it belongs to
+#   the parsing bucket, not to error construction -- which means the error-construction share was
+#   overstated and the parsing share understated, both in the same direction.
+#   ⇒ This script now reads `N Thread_...` for the non-main thread and divides by THAT, and prints
+#   the unlisted tail explicitly so the reader can see what the collapse hid.
+#
 # USAGE:  measure_reject_composition.sh [depth] [seconds] [family ...]
 #         defaults: depth 800, 6 s, both families
 # Exit 0 always: this is a MEASUREMENT, not a gate.
@@ -67,9 +80,16 @@ for line in txt.split(marker)[1].split("\n\n")[0].strip().split("\n"):
         rows.append((m.group(1).strip(), int(m.group(2))))
 idle = sum(n for f, n in rows if '__ulock_wait' in f or 'thread_start' in f)
 work = [(f, n) for f, n in rows if not ('__ulock_wait' in f or 'thread_start' in f)]
-tot = sum(n for _, n in work)
+listed = sum(n for _, n in work)
+# ⛔ The TRUE denominator is the worker thread's own sample total, not the sum of listed rows:
+# the self-time section omits every entry below 5 samples.
+threads = re.findall(r'^\s*(\d+) Thread_\w+(.*)$', txt, re.M)
+worker = [int(n) for n, d in threads if 'main-thread' not in d]
+if not worker:
+    print("   NOT EVALUATED — no worker thread found in the sample"); raise SystemExit
+tot = worker[0]
 if not tot:
-    print("   NOT EVALUATED — no non-idle samples"); raise SystemExit
+    print("   NOT EVALUATED — worker thread has no samples"); raise SystemExit
 def share(pred):
     s = sum(n for f, n in work if pred(f)); return s, 100.0 * s / tot
 cce = share(lambda f: 'create_contextual_error' in f)
@@ -77,7 +97,9 @@ mm  = share(lambda f: 'memmove' in f or 'memcpy' in f)
 alc = share(lambda f: re.search(r'malloc|free|realloc|nanov2|szone', f, re.I))
 par = share(lambda f: re.search(r'::(parse_|cascade_)', f))
 nfn = sum(1 for f, n in work if re.search(r'::(parse_|cascade_)', f))
-print("   idle (main thread parked): %d   non-idle listed: %d" % (idle, tot))
+print("   worker-thread samples (THE denominator): %d   main thread parked: %d" % (tot, idle))
+print("   unlisted tail (<5 samples each, collapsed away): %d  %.1f%%  — parse functions, not error construction"
+      % (tot - listed, 100.0 * (tot - listed) / tot))
 print("   create_contextual_error   %5d  %5.1f%%" % cce)
 print("   memmove/memcpy            %5d  %5.1f%%" % mm)
 print("   allocator                 %5d  %5.1f%%" % alc)
