@@ -1289,6 +1289,47 @@ The end-to-end cold path is exercised by the hosted regeneration workflows, whic
 `workflow_dispatch`-only by deliberate Actions-minutes policy — which is precisely why the
 compile-level proof had to become automatic.
 
+### 14. A check that measures the right population and asks the wrong question
+
+`TABLE-ARITY-RATCHET` was founded on a real, measured defect: GFM silently **discards** the
+surplus cells of an over-wide table row and silently **pads** a short one, and a shipped
+contract had 26 of 197 rows losing their rightmost column. The gate compares each row's cell
+**count** against its own header, over exactly the right population, and it works.
+
+⛔ **But a count says nothing about *where* the boundaries fell.** Two distinct defect shapes
+land on the declared count and are still wrong, and both were sitting in the gate's own
+founding population:
+
+1. **A cancelling pair.** In `docs/TASK_TREE.md`, `GENERATED-LINT-CORRECTNESS` had a `|`
+   inside a regex code span splitting its `Status` cell in two **and** was missing
+   `Current frontier` entirely — one OVER and one UNDER, netting to exactly the declared 5.
+   Replayed from `9dc3289d`, the file reads **0 OVER / 0 UNDER** while three of its rows
+   carry a boundary inside a code span.
+2. **A boundary in the wrong place at the right count.** Four `File` cells held the tree's
+   markdown link followed by an essay of frontier narration — 1 424, 435, 1 247 and
+   **56 717** authored characters in a column whose header says `File`. The table *did* have
+   a registered semantic predicate; it was a **substring** test (`\]\(tasks/`), and a link
+   sitting anywhere in the cell satisfies it.
+
+Both shapes were found by **semantic** signals — a column predicate and a rendered-backtick
+arm — never by an arity number, and the file passed every arm that had shipped.
+
+**Rule:** a check earns the right to be quiet only about the question it actually asks. State
+the question, then ask whether the *defect class* is larger than it. Here the answer added two
+arms: a **structural** one that asks where the boundaries fell (does a separator land inside a
+code span?), which needs no per-table knowledge; and a **semantic** one that reads a registered
+column against a **whole-cell** match plus its link target. A table with no registered predicate
+is reported `NOT EVALUATED` and **counted in the summary line** — never scored as a pass.
+
+⚠️ **Two bounds worth copying, both measured rather than reasoned.** First, scope the semantic
+arm to the columns that have a predicate: swept over every cell instead, it reports 192 of 236
+relative links in the shipped bug ledger as broken — and all 192 are deliberate pointers into a
+sibling consumer repository that `docs/tasks/DOCPATH.md` had already
+adjudicated as having no repo-relative equivalent. Second, a predicate failing on a **majority**
+of its own table is an instrument defect, not a document one: it is refused as `NOT CREDIBLE`
+and cannot block a commit, because predicates are *derived from healthy rows* and a majority
+failure means the derivation is wrong.
+
 ## 8. What stops it drifting back
 
 Fixing the flow is not the same as keeping it fixed, and the difference turned out

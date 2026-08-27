@@ -58,7 +58,13 @@ PREDICATES = {
         5: (r"^\s*`?\d{4}-\d{2}-\d{2}`?\s*$", "column 6 `First Reported` is a bare ISO date"),
     },
     ("docs/TASK_TREE.md", 1): {
-        4: (r"\]\(tasks/", "column 5 `File` is a markdown link into tasks/"),
+        # ⛔ ANCHORED, and that is the whole correction `LIVE-DOC-CONTAINMENT.11` was opened for.
+        # The substring form `\]\(tasks/` is satisfied by a link sitting ANYWHERE in the cell, so a
+        # row whose `File` column carries the link followed by an essay of frontier prose passes it.
+        # MEASURED 2026-08-27 by BOTH renderers: 4 of 67 rows were in exactly that state, one of
+        # them with 54 378 characters of narration in a column whose header says `File`.
+        4: (r"^\s*\[[^\]]+\]\(tasks/[^)]+\)\s*$",
+            "column 5 `File` is a markdown link into tasks/ AND NOTHING ELSE"),
     },
 }
 
@@ -117,7 +123,7 @@ HAND_JOINS = {
 
 
 def code_spans(line):
-    """CommonMark code spans in `line`, as (content_start, content_end) offsets.
+    r"""CommonMark code spans in `line`, as (content_start, content_end) offsets.
 
     A backtick run of length N opens a span closed by the NEXT run of exactly length N; an
     unmatched run is literal text and scanning resumes after it.

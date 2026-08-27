@@ -1,5 +1,69 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-27 - PGEN-LIVE-DOC-CONTAINMENT-0018 — a count is not a schema, and the arm that catches the cancelling pair turns out not to need the table at all
+
+**1. ⭐⭐⭐ THE TWO SHAPES NEEDED DIFFERENT ANSWERS, AND THE STRUCTURAL ONE IS THE CHEAPER AND THE
+MORE GENERAL.** The leaf named two arity-neutral defects: a cancelling OVER+UNDER pair, and a
+boundary in the wrong place at the right count. My first instinct was to answer both with per-table
+column predicates. That is wrong for the first one. A cancelling pair is not really a *counting*
+problem and not really a *column* problem either — it is a **separator that landed inside a code
+span**. Asking that question directly needs no per-table knowledge, generalises to all 1 169 tracked
+markdown files, and is the root cause of the OVER class as well. ⇒ **when two symptoms of one class
+resist the same instrument, check whether one of them has a cause you can ask about directly**; the
+column predicate is the *fallback* for the shape that has no structural signature, not the primary.
+
+**2. ⛔⛔ A SUBSTRING PREDICATE IS SATISFIED BY A LINK SITTING ANYWHERE IN AN ESSAY.** The registered
+predicate for the resume index was `\]\(tasks/` under `re.search`. Four rows carried the tree link
+followed by 1 424 / 435 / 1 247 / **56 717** characters of frontier narration, in a column whose
+header says `File`, and every one of them passed. Under `re.fullmatch` against an anchored pattern
+all four are refused. ⇒ **a predicate that says what a cell CONTAINS is a different claim from one
+that says what a cell IS**, and only the second one describes a column.
+
+**3. ⚠️ THE LINK-TARGET ARM'S SCOPE WAS DECIDED BY A MEASUREMENT THAT NEARLY WENT THE OTHER WAY.**
+Sweeping every cell for unresolvable relative links reports **192 of 236** in
+`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` — an artifact the SV release SHIPS. All 192 are
+`../rgx/pgen-issues/…` pointers into the sibling consumer repo, written from the column the ledger's
+own `## Purpose` describes as the consumer's local tracking; and `docs/tasks/DOCPATH.md` § Non-Goals
+had **already adjudicated** repo-external paths (naming `rgx`/`nexsim`/`specforge`) as having no
+repo-relative equivalent, with a tool-backed 20/293 split at its creation. ⇒ **before a new rule
+fires on an old population, look for the tree that already ruled on it.** I found DOCPATH by reading
+for a prior adjudication rather than by re-deriving one — which is the cheap half of
+[[an-x-is-checked-by-nothing-claim-is-a-census-claim]] applied to *rules* rather than to *readers*.
+
+**4. ⚠️ `grep -q` UNDER `pipefail` TURNS A MATCH INTO A FAILURE.** The link self-test arm piped the
+checker into `grep -q`. `grep -q` exits at the FIRST match and closes the pipe; the producer takes
+`SIGPIPE`; `set -o pipefail` reports the pipeline failed. The arm therefore failed **precisely when
+the behaviour it pins was correct** — a false RED whose direction is the safe one, which is the only
+reason it cost minutes rather than a wrong published claim. ⇒ **capture, then match**, whenever
+`pipefail` is in force.
+
+**5. ⚠️ THE GATE TOLD THE OPERATOR THE ROWS WERE LISTED ABOVE WHILE SENDING THEM TO `/dev/null`.**
+The first wiring passed `2>/dev/null` on both sides of the ratchet comparison, so a RISE named a
+count and nothing else, and a `NOT CREDIBLE` instrument warning could never reach anybody. This is
+the *same failure class* the file already carries a fix for one arm up
+([[feedback_check_the_summary_line_on_the_failing_run]]): a gate's own output is a claim, and the
+GREEN run is the one that structurally cannot catch it.
+
+**6. ⚠️ MY FIRST RED CONTROL DID NOT FIRE, AND THE GATE WAS RIGHT.** I injected ONE semantic defect
+into `docs/TASK_TREE.md` and got no block — because `HEAD` still carried **4**, so 4 → 1 is a FALL,
+which a ratchet must allow. ⇒ **a RED control for a RATCHET must exceed the baseline, not merely
+introduce the defect.** Obvious once stated; I still got it wrong first, and for one turn the arm
+looked broken when it was the test that was.
+
+**7. ⚠️ AND THE THIRD INSTRUMENT NEAR-MISS OF THIS TREE WAS MINE AGAIN.** The first cross-renderer
+reading said pandoc saw 58 polluted cells where mdbook saw 0. Pandoc line-wraps its HTML and emits
+`<a\nhref=…>`; my probe pattern was `<a ` with a literal space. Nothing was wrong with the document.
+⇒ the running score in this tree is that **an instrument disagreeing with a renderer is more often
+the instrument** — `\\|`, `tex_math_dollars`, the backslash mis-rule, and now this.
+
+**Lesson routing.** promotion: declined. Points 1–3 are recorded where they act (the leaf's
+`Closed_2026-08-27_*` fields and the two arms' own header comments, beside the measurements that
+justify them); point 4 is a shell fact pinned by a comment on the line it broke; points 5 and 7
+belong to records that already own their shape ([[feedback_check_the_summary_line_on_the_failing_run]]
+and [[name-the-success-case-or-it-is-counted-as-the-symptom]]); point 6 is a property of one test I
+wrote, now stated in the leaf. Nothing here generalises past this repository the way
+[[two-escaping-rules-that-look-alike-and-only-one-is-real]] did.
+
 ## 2026-08-27 - PGEN-LIVE-DOC-CONTAINMENT-0017 — asked whether I still stood by the findings, four did not survive, and one was an instrument defect one step from a blocking gate
 
 **1. ⛔⛔ A TRACKED INSTRUMENT CARRIED A WRONG COMMONMARK RULE, AND I WAS ABOUT TO BUILD A GATE ON
