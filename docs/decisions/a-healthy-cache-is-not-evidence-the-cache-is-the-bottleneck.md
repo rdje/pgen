@@ -33,12 +33,13 @@ included — is *the cache must be failing*.
 
 | depth | rule calls | memo entries | wall clock | calls / key |
 |---:|---:|---:|---:|---:|
-| 300 (sub-ceiling) | 173 697 | 42 066 | 0.144 s | 4.1 |
+| 300 (sub-ceiling) | 173 697 | 42 066 | 0.142 s | 4.1 |
 | 400 | 889 146 | 63 982 | — | 13.9 |
-| 800 | **18 901 646** | 141 332 | **12.25 s** | **133.7** |
+| 800 | **18 901 646** | 141 332 | **12.33 s** | **133.7** |
 
-Input grows **2.67×**. Entries grow **3.4×**. Calls grow **109×** and time **85×**. Time tracks the
-call count and nothing else. Every one of those 18.9 M calls is cheap and correctly answered — a hash
+Input grows **2.67×**. Entries grow **3.4×**. Calls grow **109×** and time **86.8×** — both measured
+on the SAME graph, which the first cut of this record did not do. Time tracks the call count and
+nothing else; per-call cost falls only 1.25× across a 109× change in volume. Every one of those 18.9 M calls is cheap and correctly answered — a hash
 probe returning `Backtrack`. **Nothing is re-derived. The engine is paying to ask.**
 
 ## The corollary that changes what you build
@@ -59,8 +60,11 @@ not be read as naming a fix site.
 ⛔ **Routing caveat, which is prior art and not a finding**: `TOOLBOX.md` §2.1 records that a trace or
 a counter clears `bare_parse` and routes the parse onto the PROTOCOL graph, so the call and entry
 columns describe that graph. What licenses reading them as the plateau's COST is a separate
-measurement — the fused graph is worth ~2.0× at depth 300 and **exactly nothing** at depth 800.
-Below the ceiling that licence does **not** hold.
+measurement — the graph switch ALONE costs **~1.08×** at depth 300 and **nothing** at depth 800, so
+the two graphs agree within 8 % across the censused range. ⛔ An earlier cut of this record said
+**~2.0×**, measured against `--dump-rule-call-counts`, which switches the graph AND counts every rule
+entry; the counter was the missing 1.99×. Corrected 2026-08-27 under a director re-verification
+challenge (`PGEN-ENGINE-UNIVERSAL-SERVICES-0101`).
 
 Related: [[a-green-counter-can-be-the-one-hiding-the-counter-that-moved]] is the same failure at the
 level of a single run — a number you are steering going green while the one that matters moves. Here

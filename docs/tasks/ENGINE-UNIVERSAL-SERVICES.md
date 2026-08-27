@@ -467,11 +467,22 @@ reached and working with the residue genuinely elsewhere?"* ⇒ **reached, worki
   already tight**: a failure observed at depth *d* is a failure at every depth ≥ *d*, and at a
   SHALLOWER stack the search has headroom it did not have, so replaying there would be unsound.
   ⇒ this is a real inefficiency with no free fix, and it is **not** where the 12 seconds are.
+  ⚠️ **CONFOUND NOT EXCLUDED — named under the `-0101` challenge rather than left for a reader to
+  find.** A gated entry is created only at ceiling contact, hence later in the parse than a typical
+  plain entry, so it has fewer remaining opportunities to be replayed. *"Created later"* predicts a
+  lower hits-per-entry ratio just as *"the depth gate refuses shallower retries"* does, and this
+  census cannot separate them: the ratio's stability across four depths is suggestive, not decisive.
+  Separating them needs a per-refusal counter — the same codegen change (b) step 2 already prices.
 - ⭐⭐⭐ **HYPOTHESIS 3 — AND THE ACTUAL ANSWER: THE PLATEAU IS CALL VOLUME. THE MEMO BOUNDS THE
   ENTRY COUNT AND DOES NOT BOUND THE CALL COUNT.** Between depth 300 and depth 800 the input grows
   **2.67×**, memo entries grow **3.4×** (42 066 → 141 332) — and rule CALLS grow **109×**
-  (173 697 → 18 901 646) while wall clock grows **85×** (0.144 s → 12.25 s). ⇒ **time tracks the call
-  count, not the input length and not the memo population.** `calls / memo key` rising 4.1 → 133.7 is
+  (173 697 → 18 901 646) while wall clock grows **86.8×** measured on the SAME graph the calls were
+  counted on (`PGEN_REPORT_MEMO_STATS`, 0.142 s → 12.33 s; the fused graph gives 93.4×). ⇒ **time
+  tracks the call count, not the input length and not the memo population** — per-call cost falls only
+  **1.25×** (0.82 µs → 0.65 µs) across a 109× change in call volume, which is the rising memo-hit
+  share. ⛔ Re-derived under the `-0101` challenge: the first cut published **85×** by pairing a
+  PROTOCOL call count with a FUSED wall clock (0.144 s). The ratio survived; the pairing did not, and
+  a ratio that is right by luck is not a measurement. `calls / memo key` rising 4.1 → 133.7 is
   the same fact stated per key: by depth 800 the memo is absorbing ~134 calls for every entry it
   holds. Each of those calls is cheap and correctly answered — it is a hash probe returning
   `Backtrack` — and there are **18.9 million** of them. ⇒ **nothing is being re-derived; the engine is
@@ -496,19 +507,30 @@ reached and working with the residue genuinely elsewhere?"* ⇒ **reached, worki
   and **zero** `memo_fail` references. What IS new here is the SIZE of the effect on THIS workload,
   measured with `/usr/bin/sample`, an instrument that does not itself set the flag:
 
-  | depth | plain (fused — what SHIPS) | instrumented (protocol) | fused advantage |
-  |---:|---:|---:|---:|
-  | 300 | 0.140 – 0.144 s | 0.281 – 0.295 s | **~2.0×** |
-  | 350 | 0.296 – 0.299 s | 0.541 – 0.553 s | ~1.8× |
-  | 800 | 12.12 – 12.42 s | 12.14 – 12.51 s | ⛔ **none — 1.00×** |
+  | depth | plain (fused — what SHIPS) | `PGEN_REPORT_MEMO_STATS` (protocol) | `--dump-rule-call-counts` (protocol + counters) | graph switch ALONE |
+  |---:|---:|---:|---:|---:|
+  | 300 | 0.130 – 0.171 s | 0.140 – 0.144 s | 0.278 – 0.286 s | **~1.08×** |
+  | 800 | 12.24 – 13.08 s | 12.25 – 12.43 s | 12.24 – 12.51 s | ⛔ **none — 1.00×** |
 
   and the routing itself is visible in the sample: at depth 800 a plain run shows **12 562**
   `cascade_match_` frames, a `PGEN_REPORT_MEMO_STATS=1` run shows **0**, from the same binary on the
   same input — re-run by the script's own arm at **13 038 / 0**, so the non-zero side is a sampled
-  quantity and the ZERO is the invariant. ⭐⭐ **THE FUSED CASCADE'S ADVANTAGE EVAPORATES EXACTLY WHERE THIS LEAF LIVES**: it is
-  worth ~2× on an ordinary parse and **nothing at all** on the plateau. That licenses reading the
-  protocol-graph numbers above as representative OF THE COST at depth 800 — and it does **not**
-  license reading them as representative of the fused graph's internal SHAPE, which is not measured.
+  quantity and the ZERO is the invariant.
+  ⛔⛔ **CORRECTED UNDER A DIRECTOR RE-VERIFICATION CHALLENGE (2026-08-27, `-0101`) — THE FIRST CUT
+  PUBLISHED *"the fused cascade is worth ~2.0× at depth 300"* AND THAT IS FALSE.** It compared the
+  plain run against `--dump-rule-call-counts`, which does TWO things: it switches the graph **and** it
+  increments a per-rule counter on every entry while refreshing a dashboard every 250 ms. Separating
+  them with `PGEN_REPORT_MEMO_STATS` — which switches the graph and adds no per-entry work — the
+  **graph switch alone costs ~1.08×** at depth 300, and the missing **1.99×** was the COUNTER, not the
+  cascade. ⇒ **there was never a 2× advantage to evaporate**, and the sentence that said so is
+  WITHDRAWN. ⭐ **The conclusion it was offered in support of is UNCHANGED and is now better founded**:
+  the two graphs are within **8 %** at depth 300 and indistinguishable at 800, so reading the
+  protocol-graph numbers above as representative OF THE COST is licensed across the whole censused
+  range rather than only at the plateau. It still does **not** license reading them as representative
+  of the fused graph's internal SHAPE, which is not measured.
+  ⭐ **The transferable half: an instrument that changes TWO things at once cannot attribute an effect
+  to either of them.** The repair was not more runs of the same A/B — it was finding a second
+  instrument that changes only one.
 - ⛔ **WHAT (b) STEP 1 DELIBERATELY DID NOT ESTABLISH — named rather than left for a reader to find.**
   (i) The two suppression paths cannot be SEPARATED with the instruments that exist: the
   content-taint early return at `:9930` caches **nothing at all**, the ceiling-touch return at
