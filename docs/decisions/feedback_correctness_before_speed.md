@@ -99,3 +99,26 @@ matters for any PGEN parser is accuracy and speed, size is irrelevant for now."*
 and binary SIZE is explicitly a NON-goal: never trade accuracy or speed for smaller generated
 sources/binaries; size-motivated optimizations are out of scope until the director says
 otherwise.
+
+**⛔⛔ REAFFIRMED A THIRD TIME (director 2026-08-28), and this time it RE-ORDERED an active lane
+rather than merely constraining one.** Told that VHDL takes **18.6 s to successfully parse a 1.4 KB
+file**, the director's answer was: *"18.6s is slow to parse a 1.4KB file, but right now we need to
+focus on accuracy and precision, speed will come next."*
+
+⭐ **The transferable part is what that ordering EXPOSED, not what it deferred.** The
+`ENGINE-UNIVERSAL-SERVICES.44`/`.56` lane had spent nine slices measuring how EXPENSIVE an
+over-ceiling rejection is. Re-read under accuracy-first, the same measurements say something the
+speed framing had walked past for the whole lane: **both released parsers REJECT syntactically
+well-formed input** (SystemVerilog accepts nesting depth 322 and rejects 323; VHDL accepts 681 —
+confirmed by a 224 913-byte AST dump — and rejects 682), and **the shipped diagnostic names the wrong
+cause**: grepping it for `depth|ceiling|limit|nest|recursion` returns **0 of 5 terms on both
+families**, so a consumer is told *"did not consume full input at position 0"* about a file that is
+syntactically correct. Neither half had an owning leaf; both now do
+(`ENGINE-UNIVERSAL-SERVICES.61`).
+
+⇒ **When a lane has been optimising something, ask what the accuracy reading of the same measurements
+would be before continuing.** A speed framing does not merely deprioritise correctness questions — it
+can make them invisible, because a wrong answer delivered quickly still looks like progress on the
+axis you are watching. The banked speed work is not lost (retention measured 87–91×, layout-aware
+dispatch ≈1.8–3.5×); it is parked behind the correctness half, which is what this policy has said
+since 2026-05-24.

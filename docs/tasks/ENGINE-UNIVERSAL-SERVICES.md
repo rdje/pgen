@@ -13509,7 +13509,7 @@ ruling built on them.
   anchor is a sub-second quantity and the whole spread lives in it.
 
 
-### ⚠️ `.56` — **190 NON-INLINED RULES TAKE 1 880 482 CALLS (9.9 % OF AN OVER-CEILING PARSE) AND RECORD ZERO MEMO HITS; 96 % OF IT IS THREE `internal thin_memo` LR-CASCADE RULES, AND ONE OF THEM DOES CARRY A `memoized_call`** (`todo`, opened 2026-08-27 by `.44`(b) step 2's own retraction / `PGEN-ENGINE-UNIVERSAL-SERVICES-0103`; ⭐⭐⭐ **UN-PARKED AND PROMOTED TO `.44`(b)'s NEXT STEP 2026-08-27 by `-0105`, which measured what this leaf's three rules actually cost: the spine site `constant_primary_sv_2017` is entered 601 658 times on an input with at most 1 634 keys — 368.2 calls/key at 0.0 % hits — while the tournament's leaves are ~100 % memo-served. `.44`(d)'s ≤2× exit needs 41×; dispatch elision tops out at 5× and THIS term is worth up to 368×. ⛔ Not a pivot out of the SV lane: these three rules ARE the SystemVerilog expression spine**; ⭐⭐ **(a) DONE 2026-08-27 `…-0106`: REAL COST, not an accounting gap — 4 of 4 `record_memo_hit` sites in the SHIPPED artifact are inside `memoized_call`, so the per-rule counter is blind to no channel; the zero is REGIME-DEPENDENT (sub-ceiling the rule is entered once per NESTING LEVEL — 0.1–0.5 entries/key — so its 0 % is arithmetic, and it rises to 368.4/key only past the ceiling); and at depth 350 the spine records **3 707 misses over 350 keys (max 113 probes at ONE key), 0 failure stores, 0 hits** while the control `primary_literal` stores 32 failures and takes 4 160 hits in the SAME run. ⛔ WHICH gate refuses (`:9913` vs `:9934`) is still NOT separated and (c) must not assume it. ⭐ Favourable for (c): the cost is entirely over-ceiling, so a regime-scoped fix cannot regress the accept path by construction**; ⛔⛔ **(b) DONE 2026-08-27 `…-0107` AND IT BOUNDS (a): the graph that SHIPS carries a DIFFERENT memo and NO instrument at all.** Closed census over the emitted artifact — the fused rule-body region (1 445 534–1 708 518, 1 044 `cascade_match_*` bodies) holds **109 of 109** thin-memo probes and **218 of 220** depth-gated refs but **0 of 1 544** entry counters, **0 of 4** hit counters and **0 of 10** memo trace lines. ⛔ And it cannot be switched on: the emitted selector `bare_parse = !coverage && !logger && !counters_observed && !report_memo_stats` (`ast_based_generator.rs:2252-2256`) makes **every observation channel a disjunct of the predicate that routes off the fused graph** — observing it converts it into the other one. ⇒ (c) needs a MEASUREMENT-ONLY BUILD (the never-free-allocator ceiling-probe pattern), env-gated as a same-binary A/B, never landed**; ✅✅ **(c) DONE 2026-08-28 `…-0108`, BUILD APPLIED AND REVERTED IN THE SAME SLICE (`generated/systemverilog_parser.rs` restored BYTE-IDENTICAL): retaining every failure collapses the depth-800 parse from 18 901 646 to **149 914** entries (126.1×) and, on the SAME graph, from 12.17–12.32 s to 0.139–0.141 s (**87–89×**); on plain FUSED runs 11.98 s → **0.132 s** (90.8×) and the plateau VANISHES — 0.127–0.132 s at every depth 315→800. The probe's own branch is free (A/S 0.99–1.01×). ⇒ the lever CLEARS (d)'s ~41× with a factor of two in hand. ⛔⛔ And the naive form costs CORRECTNESS exactly where `.43` said: at depths 315 and 320 it REJECTS what the shipped parser ACCEPTS, and its deepest accept falls 322 → 300 — so it is a CEILING, not a patch. The well-posed follow-on: the sound depth-stamped channel already exists; can a RECURSION-tainted failure be keyed by what it actually depends on?**)
+### ⚠️ `.56` — **190 NON-INLINED RULES TAKE 1 880 482 CALLS (9.9 % OF AN OVER-CEILING PARSE) AND RECORD ZERO MEMO HITS; 96 % OF IT IS THREE `internal thin_memo` LR-CASCADE RULES, AND ONE OF THEM DOES CARRY A `memoized_call`** (`todo`, opened 2026-08-27 by `.44`(b) step 2's own retraction / `PGEN-ENGINE-UNIVERSAL-SERVICES-0103`; ⭐⭐⭐ **UN-PARKED AND PROMOTED TO `.44`(b)'s NEXT STEP 2026-08-27 by `-0105`, which measured what this leaf's three rules actually cost: the spine site `constant_primary_sv_2017` is entered 601 658 times on an input with at most 1 634 keys — 368.2 calls/key at 0.0 % hits — while the tournament's leaves are ~100 % memo-served. `.44`(d)'s ≤2× exit needs 41×; dispatch elision tops out at 5× and THIS term is worth up to 368×. ⛔ Not a pivot out of the SV lane: these three rules ARE the SystemVerilog expression spine**; ⭐⭐ **(a) DONE 2026-08-27 `…-0106`: REAL COST, not an accounting gap — 4 of 4 `record_memo_hit` sites in the SHIPPED artifact are inside `memoized_call`, so the per-rule counter is blind to no channel; the zero is REGIME-DEPENDENT (sub-ceiling the rule is entered once per NESTING LEVEL — 0.1–0.5 entries/key — so its 0 % is arithmetic, and it rises to 368.4/key only past the ceiling); and at depth 350 the spine records **3 707 misses over 350 keys (max 113 probes at ONE key), 0 failure stores, 0 hits** while the control `primary_literal` stores 32 failures and takes 4 160 hits in the SAME run. ⛔ WHICH gate refuses (`:9913` vs `:9934`) is still NOT separated and (c) must not assume it. ⭐ Favourable for (c): the cost is entirely over-ceiling, so a regime-scoped fix cannot regress the accept path by construction**; ⛔⛔ **(b) DONE 2026-08-27 `…-0107` AND IT BOUNDS (a): the graph that SHIPS carries a DIFFERENT memo and NO instrument at all.** Closed census over the emitted artifact — the fused rule-body region (1 445 534–1 708 518, 1 044 `cascade_match_*` bodies) holds **109 of 109** thin-memo probes and **218 of 220** depth-gated refs but **0 of 1 544** entry counters, **0 of 4** hit counters and **0 of 10** memo trace lines. ⛔ And it cannot be switched on: the emitted selector `bare_parse = !coverage && !logger && !counters_observed && !report_memo_stats` (`ast_based_generator.rs:2252-2256`) makes **every observation channel a disjunct of the predicate that routes off the fused graph** — observing it converts it into the other one. ⇒ (c) needs a MEASUREMENT-ONLY BUILD (the never-free-allocator ceiling-probe pattern), env-gated as a same-binary A/B, never landed**; ✅✅ **(c) DONE 2026-08-28 `…-0108`, BUILD APPLIED AND REVERTED IN THE SAME SLICE (`generated/systemverilog_parser.rs` restored BYTE-IDENTICAL): retaining every failure collapses the depth-800 parse from 18 901 646 to **149 914** entries (126.1×) and, on the SAME graph, from 12.17–12.32 s to 0.139–0.141 s (**87–89×**); on plain FUSED runs 11.98 s → **0.132 s** (90.8×) and the plateau VANISHES — 0.127–0.132 s at every depth 315→800. The probe's own branch is free (A/S 0.99–1.01×). ⇒ the lever CLEARS (d)'s ~41× with a factor of two in hand. ⛔⛔ And the naive form costs CORRECTNESS exactly where `.43` said: at depths 315 and 320 it REJECTS what the shipped parser ACCEPTS, and its deepest accept falls 322 → 300 — so it is a CEILING, not a patch. The well-posed follow-on: the sound depth-stamped channel already exists; can a RECURSION-tainted failure be keyed by what it actually depends on?** ⛔⛔ **(d) IS PARKED BEHIND `.61` BY DIRECTOR ORDERING 2026-08-28** — *"right now we need to focus on accuracy and precision, speed will come next"* — which reaffirms the standing `feedback_correctness_before_speed` policy for a THIRD time. The 87–91× is BANKED, not abandoned**)
 
 > ⭐ **THIS LEAF EXISTS BECAUSE A RETRACTION LEFT A REAL REMAINDER.** `-0102` published *"438 rules the
 > memo never serves, 33.4 % of calls"* and `-0103` retracted the explanation: **248 of those rules
@@ -13934,11 +13934,77 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   term `.44`(b) measured on the reject path, or a distinct accept-path term? The instruments are
   ready (`--dump-rule-outcome-counts-json` + the entries-per-key reading `.56`(a) established);
   (b) price a fix; (c) re-score `.44`(d) leg 2 after it.
+- ✅ **RE-VERIFIED 2026-08-28 UNDER A SECOND DIRECTOR CHALLENGE, WITH A SECOND INSTRUMENT.** Every
+  verdict is deterministic over 3 runs at every depth (575/600/625/650/675/681 accept, 682 rejects),
+  and the accepts are confirmed by `--parse-dump-ast` rather than by an exit code: depth 675 dumps a
+  **222 939-byte** AST and depth 681 a **224 913-byte** one, while 682 produces none. ⇒ the plateau is
+  on genuine successful parses. Costs re-derive within 1 %: 0.150 s (575) → 0.904 s (600) → 4.523 s
+  (625) → 10.090 s (650) → 16.989 s (675) → **18.641 s (681)**.
 - ⚠️ **HONEST BOUNDS**: (i) one input shape (nested parentheses in a signal assignment), one host;
   (ii) every number is a plain fused run — no per-rule counters were taken, so nothing here says
   WHERE the time goes, only that it is on the accept path; (iii) the shoulder's location (575→600) is
   bracketed by the depths sampled, not bisected; (iv) ⛔ **ROUTED, NOT WORKED**: VHDL is outside the
   standing SV lane lock, and this is not a defect that blocks the SystemVerilog release.
+
+
+### ⛔⛔ `.61` — **THE RECURSION CEILING IS AN *ACCURACY* DEFECT BEFORE IT IS A SPEED ONE: BOTH RELEASED PARSERS REJECT SYNTACTICALLY WELL-FORMED INPUT, AND THE DIAGNOSTIC NAMES THE WRONG CAUSE — ZERO OF THE FIVE WORDS A CONSUMER WOULD LOOK FOR APPEAR IN IT** (`todo`, opened 2026-08-28 by the DIRECTOR'S ACCURACY-BEFORE-SPEED ORDERING / `PGEN-ENGINE-UNIVERSAL-SERVICES-0109`; **THE SV LANE'S NEXT ACTION**)
+
+> ⭐⭐⭐ **THIS LEAF EXISTS BECAUSE A STEERING CALL RE-READ A MEASUREMENT I ALREADY HAD.** The director's
+> ordering — *"right now we need to focus on accuracy and precision, speed will come next"* — was made
+> about VHDL's 18.6 s parse. Applied to the whole `.44`/`.56` lane it says something sharper: that lane
+> has spent nine slices on how EXPENSIVE an over-ceiling rejection is, and never once on the fact that
+> **the rejection is WRONG and its message is MISLEADING**. Both halves were measured on the way to the
+> speed numbers and neither had an owner.
+
+- ⛔ **HALF ONE — UNDER-ACCEPTANCE, measured, 3 runs per depth, verdicts deterministic.** Neither
+  IEEE 1800 nor IEEE 1076 bounds expression nesting depth, so both inputs below are well-formed:
+
+  | family | deepest ACCEPTED | first REJECTED | the rejected input |
+  |---|---:|---:|---|
+  | systemverilog | **322** (0.140 s) | **323** | `module m; assign x = (((…1…))); endmodule` |
+  | vhdl | **681** (18.641 s, AST 224 913 B) | **682** | `… architecture a of e is begin s <= (((…1…))); end architecture;` |
+
+  ⭐ The accepts are confirmed by a SECOND instrument, not by an exit code: `--parse-dump-ast`
+  produces a real AST at depth 675 (222 939 B) and 681 (224 913 B) and fails at 682. ⇒ these are
+  genuine parses, and the boundary is genuine.
+  ⛔ **This project calls over-acceptance a defect. Under-acceptance is the same defect in the
+  direction that breaks a user's working file** — and it is a REJECTION of conforming source, which
+  is the strongest failure class a parser has.
+- ⛔⛔ **HALF TWO — AND THE DIAGNOSTIC NAMES THE WRONG CAUSE, WHICH IS THE PRECISION HALF.** The
+  shipped rejection is indistinguishable from an ordinary syntax error:
+  ```
+  systemverilog: Parser did not consume full input at position 0   [furthest_position=668, …]
+  vhdl:          Parser did not consume full input at position 24  [furthest_position=741, …]
+  ```
+  ⭐ **CENSUSED, not asserted**: grepping each shipped diagnostic for `depth|ceiling|limit|nest|recursion`
+  returns **0 of 5 terms on both families**. ⇒ a consumer is told *"your file has a syntax error near
+  the start"* about a file that is **syntactically correct**, and the only true statement available —
+  *"this input exceeds the parser's nesting capacity"* — appears nowhere in it.
+  ⚠️ The information EXISTS but only behind a diagnostic env var: `PGEN_REPORT_MEMO_STATS` reports
+  `depth-ceiling rejections` on its headline. **That is a debugging surface, not the error an embedder
+  receives.**
+- ⛔ **WHY THIS OUTRANKS THE PLATEAU, stated plainly.** A slow rejection costs an embedder seconds. A
+  WRONG rejection costs them a working design file and sends them hunting a syntax error that does not
+  exist — and the message actively points them at the wrong place (`position 0`, `position 24`), which
+  is the start of the construct rather than the depth at which the parser gave up.
+- **WHAT THIS LEAF OWES**, in the director's order:
+  (a) **PRECISION FIRST, because it is cheap and it is a pure win**: the over-ceiling rejection must
+      SAY SO — a distinct, labelled diagnostic naming the nesting capacity and the depth reached. The
+      engine already counts both (`recursion_depth_block_events`, the guard's own depth), so this is a
+      surfacing change, not a new measurement. It does not move the accept set and cannot regress the
+      accept path.
+  (b) **ACCURACY SECOND**: decide, with evidence, whether the ceiling's LOCATION is defensible — 322
+      for SystemVerilog is roughly 4096 frames ÷ ~12.7 frames per nesting level, and whether a
+      conforming consumer meets it in practice is a corpus question this leaf must answer rather than
+      assume.
+  (c) **SPEED LAST** — `.56`(d) and `.58`, explicitly parked behind (a) and (b) by the director's
+      ordering, with the measurements already banked (`.56`(c): retention is worth 87–91×).
+- ⚠️ **HONEST BOUNDS**: (i) one input shape per family; a different construct may hit the ceiling at a
+  different depth, and the leaf must not quote 322/681 as the parser's capacity in general — they are
+  this shape's capacity; (ii) "syntactically well-formed" is a claim about the LRMs' *grammar*, not
+  about semantic validity — `s` and `x` are undeclared, which a parser is right to accept and an
+  elaborator is right to reject; (iii) the 0-of-5 term census covers the message these two invocations
+  print, not every error path in the engine.
 
 
 ### ⚠️ `.47` — `detect_profile_orphans` reads the **FILTERED** profile context and a universe that omits `@default_profile`, so on any grammar declaring a default it has never evaluated the profile that SHIPS (`todo`, opened 2026-08-25 by `.46` slice 2 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0084`)

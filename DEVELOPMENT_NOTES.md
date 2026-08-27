@@ -1,5 +1,35 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0109 — a speed framing does not deprioritise correctness questions, it hides them
+
+**1. ⭐⭐⭐ WHEN A LANE HAS BEEN OPTIMISING SOMETHING, ASK WHAT THE ACCURACY READING OF THE SAME
+MEASUREMENTS WOULD BE — BEFORE CONTINUING.** `.44`/`.56` spent nine slices on how EXPENSIVE an
+over-ceiling rejection is: a bounded 12 s, a 90× ratio, a 126× entry collapse, three routed leaves and
+two rulings. Every one of those slices ran inputs the parser REJECTED, and not one asked whether the
+rejection was CORRECT. It is not: both released parsers reject syntactically well-formed input, and
+the message names the wrong cause (0 of 5 of `depth|ceiling|limit|nest|recursion` appear in it). The
+data had been on my screen since the first cliff measurement. ⇒ a speed framing does not merely
+deprioritise correctness questions — it makes them INVISIBLE, because a wrong answer delivered quickly
+still looks like progress on the axis you are watching.
+**promotion: PROMOTED — into the EXISTING record** `docs/decisions/feedback_correctness_before_speed.md`
+rather than as a sibling. That record already owns "correctness before speed"; what is new is the
+mechanism by which the ordering gets violated without anyone deciding to violate it, and it belongs
+beside the policy it explains, not competing with it.
+
+**2. THE VERDICT COLUMN, AGAIN.** `-0108` recorded that the unsound retention arm's most valuable
+column was its parse VERDICTS, not its clocks. One slice later the same omission shows up at lane
+scale: every cliff table published a depth and a duration, and none published *"is this rejection
+correct?"*. The column that answers the question you are NOT asking is the one worth adding.
+**promotion: DECLINED.** It is lesson 1 at a different altitude; recorded here so the pair is visible
+together rather than given a competing home.
+
+**3. AN AST DUMP IS A BETTER ACCEPT ORACLE THAN AN EXIT CODE, AND IT COST ONE FLAG.** The claim "VHDL
+accepts at depth 681" rested on `rc == 0`. `--parse-dump-ast` turns it into a 224 913-byte artifact
+that either exists or does not — a second instrument, already built, that distinguishes "the process
+succeeded" from "the parser produced a parse".
+**promotion: DECLINED — routed** to `TOOLBOX.md`'s accept/reject sections if the pattern recurs; for
+now it is one line in `.60` and `.61`, where a reader of those leaves will meet it.
+
 ## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0108 — the challenge moved no census and broke the ruling
 
 **1. ⭐⭐⭐ A BAR ANCHORED ON THE SUBJECT'S WORST *ACCEPTABLE* CASE IS SATISFIABLE BY MAKING THAT CASE
