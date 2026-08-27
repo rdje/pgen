@@ -1,0 +1,20 @@
+# probe systemverilog fingerprint: 240da0a4f9e7be064a61c5076e4fcca5ca9dac0cfeb7b6a3282346fea03d5d2f
+# fingerprint MATCHES generated/systemverilog_parser.rs
+
+depth       calls   ceil-rej  ent-plain  ent-depth  hit-plain  hit-depth      miss   cal/key h/e-depth
+300        173697          0      33594          0      38092          0     42066       4.1       0.0
+325        224721        997      40152       4765      62904       2572     52428       4.5      0.54
+350        349649       3834      43119       6447     119488       6421     75516       6.4      1.00
+375        566274       6675      46099       8125     221881      13311    113907       9.6      1.64
+400        889146       9617      49168       9864     377241      23744    170074      13.9      2.41
+
+== observer-effect arm (depth 800): does an instrument delete the fused graph? ==
+   plain      cascade_match_ frames=13038    parse_ frames=44161
+   memostats  cascade_match_ frames=0        parse_ frames=55870
+   ⇒ a ZERO in the memostats row means every number above describes the PROTOCOL graph.
+
+READ IT LIKE THIS:
+  cal/key    = total rule CALLS / total distinct memo entries. It is the collapse ratio: how many
+               calls the memo has to absorb per key it stores. It rising with depth is the blow-up.
+  h/e-depth  = HITS per depth-gated ENTRY. A memo entry that is replayed ~once has paid for exactly
+               one avoided re-descent; the plain channel's ratio is the control to compare it against.

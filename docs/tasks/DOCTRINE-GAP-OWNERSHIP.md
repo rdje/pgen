@@ -1385,3 +1385,72 @@ $ SELF=/nonexistent/driver.sh                          # the unreadable-subject 
   HEAD's tracked source produces. The escaping edit is provably prose-preserving: the patch asserts
   that un-escaping its result reproduces the original row exactly.
 - **`promotion: declined (the transferable half — a fix that cites a defect class in its comment and guards a different member of that class invites the cited one to recur — is this leaf's own ROUTING EVIDENCE and is recorded in the driver's header at the site where the next author will read it; a knowledge card would be a third copy of a lesson whose natural home is the code)`**
+
+#### ⚠️ `.18` — **THE SLICE ID IS "THE UNIT OF COMMIT TRACEABILITY" AND IT IS NOT UNIQUE: 62 IDS NAME MORE THAN ONE COMMIT, AND THE COUNTER RESTARTED INSIDE THE ACTIVE LANE TWO COMMITS BEFORE THIS ONE** (`todo`, opened 2026-08-27 session #266 by `PGEN-ENGINE-UNIVERSAL-SERVICES-0100`, which met the collision while resolving a citation in the leaf it was resuming; ⛔ **PARKED behind the SV lane** per the standing lane lock — routed, sequenced later by me, not worked now)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing):
+
+- ⛔ **THE CLAIM AND ITS CENSUS, IN THAT ORDER** (`GAP-CLAIM-CENSUS`: a *"nothing checks X"* claim is a
+  CENSUS claim and carries its census in its own leaf). `docs/TASK_TREE.md` states that
+  `PGEN-<FAMILY>-<NNNN>` slice ids *"remain the unit of commit traceability"*, and `COMMIT.md` §19
+  makes the same id the sufficient identifier for a non-code slice. **Nothing derives, allocates or
+  checks that id.** ⛔ **The first cut of this bullet claimed `grep` returns 0 hits and that is FALSE
+  — corrected before publishing, by running it.** The pattern appears **8** times across the enforcement
+  surface (`scripts/check_doctrines.sh` ×2, `.githooks/pre-commit` ×5, `.githooks/commit-msg` ×1) and
+  **every one is a prose citation of a specific slice id inside a comment**, not a read of the id being
+  committed. What is actually measured:
+  `.githooks/commit-msg` is **13 lines** and enforces only that the subject *"begin with an
+  identifier-shaped token"* (`^[A-Za-z][A-Za-z0-9._-]+`) — its own comment says it is *"permissive by
+  design"* and that *"the work-unit id"* is merely *"expected"*; **0** of the **31** registered doctrines
+  carry `SLICE` or a uniqueness term in their name; and **0** scripts derive a next id. ⇒ the id is
+  written from memory and read by humans only.
+- ⛔⛔ **AND IT HAS COLLIDED, AT SCALE.** Censused over the whole history at
+  `71dde1e4`, three ways (below):
+
+  | population | count |
+  |---|---:|
+  | commits in history | 3 136 |
+  | commits carrying a `PGEN-…-NNNN` id | 1 773 |
+  | commits carrying **no** id (older leaf-id-first convention) | 1 363 |
+  | distinct ids | 1 680 |
+  | ⛔ **ids naming MORE THAN ONE commit** | **62** |
+  | ⛔ **commits NOT uniquely addressable by their own id** | **155** (8.7 % of id-bearing commits) |
+
+  ⭐ The collisions are not an old-history artifact that stopped: `PGEN-ENGINE-UNIVERSAL-SERVICES-0096`
+  and `-0097` were each issued **twice** — on 2026-08-26 (`5892ab46`, `df306908`) and again on
+  2026-08-27 (`ebb0c34f`, `71dde1e4`) — after the counter had already reached `-0099` (`a8642b99`).
+  The worst case is `PGEN-RGX-0078-0102`, on **six** commits.
+- ⛔ **THE CONSEQUENCE IS ALREADY LIVE IN A TRACKED LEAF, WHICH IS WHY THIS IS NOT COSMETIC.**
+  `ENGINE-UNIVERSAL-SERVICES.44` (a) cites *"`PGEN-ENGINE-UNIVERSAL-SERVICES-0096`"* as the commit that
+  discharged it. That string now resolves to **two** commits — one about `.44` (a), one about a
+  `.55` routing note — so the citation cannot be followed mechanically, and a reader who picks the
+  first match reads the wrong commit. Every leaf citing a colliding id has the same defect.
+  ⚠️ **NOT MEASURED, and this leaf must not assert it**: how many tracked leaf citations point at a
+  colliding id. That census is step (a) below, and it is a `docs/tasks/`-wide grep, not a guess.
+- ⭐ **THREE-WAY VERIFICATION OF THE COUNT ITSELF** (`feedback_verify_a_claim_three_ways_before_publishing_it`),
+  because the first cut was WRONG in the flattering direction:
+  1. **RE-DERIVE** — greedy-regex extraction of a leading id: **51** duplicate ids / 112 commits.
+  2. **FALSIFY** — an independent whitespace tokenizer (no regex backtracking), leading token only:
+     **51** / 112. It agreed, **and agreeing is what exposed the shared blind spot**: both methods
+     read only the FIRST token, and **361** subjects carry their id later in the line. Widening the
+     denominator to *"first id anywhere in the subject"* gives the honest **62 / 155**. ⇒ the two
+     agreeing methods were both undercounting, exactly the *"a repeated pass repeats its own blind
+     spot"* failure the directive names.
+  3. **RED CONTROL** — the detector must be able to disagree with itself:
+     `PGEN-ENGINE-UNIVERSAL-SERVICES-0099` reports **1** occurrence (unique) and `-0096` reports
+     **2** (colliding), on the same run of the same code.
+  ⛔ **HONEST BOUND**: `62` counts ids that collide, not commits that are *wrongly* numbered — some
+  collisions may be a deliberate multi-commit slice (`PGEN-RGX-0078-0102` × 6 looks like one). The
+  leaf's own first step must separate *"one slice, several commits"* from *"the counter restarted"*
+  before any remedy is designed, because a gate that refuses the former would be wrong.
+- **WHAT THIS LEAF OWES**: (a) census how many tracked `docs/tasks/` citations resolve ambiguously,
+  and split the 62 into *deliberate multi-commit slices* vs *counter restarts*; (b) an ALLOCATOR —
+  the next id for a family is `max(existing)+1` and is derivable by command, so the defect is that
+  it is currently derived by memory; (c) decide whether a `SLICE-ID-UNIQUENESS` ratchet belongs in
+  the registry, **scoped to the staged commit only** — `DOCTRINE-GAP-OWNERSHIP.15`'s ruling binds
+  here: a blocker that fires on 155 pre-existing commits teaches bypass, which is the 91 %-FP shape
+  `GENERATED-LINT-CORRECTNESS.6`/`.12` already refused.
+  ⛔ **NOT a history rewrite.** `git` history is append-only in this repo; the 155 existing commits
+  stay exactly as they are and any remedy is forward-only.
+- **producer (tracked, so the claim can be re-derived rather than re-typed)**:
+  `scripts/census_slice_id_collisions.sh`.

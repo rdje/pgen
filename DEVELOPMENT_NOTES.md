@@ -1,5 +1,50 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-27 - PGEN-ENGINE-UNIVERSAL-SERVICES-0100 — the memo was never the bottleneck; it was answering 134 questions per fact it knew
+
+**1. ⭐⭐⭐ "IS THE CACHE WORKING?" AND "IS THE CACHE THE PROBLEM?" ARE DIFFERENT QUESTIONS, AND THE
+FIRST ANSWERING *YES* IS EXACTLY WHAT HIDES THE SECOND.** `.44`(d) asked why SystemVerilog still
+spends ~72 % re-descending when `.43` shipped depth-gated memo channels. Every instinct — mine
+included — reads that as *the cache is failing*. It is not: the channels store 4 765 entries at the
+first over-ceiling depth and 36 964 at depth 800, and they hit. What the census found instead is that
+memo ENTRIES grow **3.4×** between depth 300 and 800 while rule CALLS grow **109×**. The cache bounds
+what is *known*; nothing bounds how many times the engine *asks*. ⇒ **when a cache is healthy and the
+workload is still quadratic, measure the call count before you touch the cache** — `calls / memo key`
+(4.1 → 133.7) is the one number that separates "recomputing" from "re-asking", and neither a hit rate
+nor an entry count can distinguish them.
+
+**2. ⛔⛔ TWO INSTRUMENTS AGREEING IS NOT CORROBORATION WHEN THEY SHARE A BLIND SPOT.** The slice-id
+collision census read **51** duplicates by greedy regex and **51** by an independent whitespace
+tokenizer written to avoid regex backtracking entirely. Different code, different failure modes, same
+answer — and both wrong, because both read only the FIRST token of the commit subject and 361
+subjects carry their id later in the line. The honest count is **62**. The directive's wording is
+exact and I had to learn it again: *verify three DIFFERENT WAYS, not three repetitions* — and the leg
+that caught it was not a third parser, it was asking **what the denominator excludes**.
+
+**3. ⭐ A LINE-BASED GREP OVER RUSTFMT'D OUTPUT IS A CENSUS WITH A SILENT FLOOR.** Searching the
+emitted parser for `memo_fail_depth_gated.insert` returned **zero**, which reads as *the shipped
+parser has no depth-gated channel* — a spectacular false finding, one step from publication. rustfmt
+had split the receiver and the method across two lines. The same shape had already bitten this repo
+via heading grammars (`a-heading-census-is-only-as-good-as-the-heading-grammar`). ⇒ **when a grep over
+generated code returns zero, the null result is a claim about your pattern until you prove it is a
+claim about the code**; searching the whole file as one string found all 8 occurrences immediately.
+
+**4. ⚠️ CHECK THE TOOLBOX BEFORE PUBLISHING A "DISCOVERY" ABOUT YOUR OWN TOOLS.** I measured that
+`PGEN_REPORT_MEMO_STATS=1` deletes the fused `cascade_*` graph from the execution (12 562 → 0 frames)
+and was ready to write it up as a measurement-integrity finding. `TOOLBOX.md` §2.1 already documents
+it, quotes the same four-term `bare_parse` expression, and credits `QUANT-PLUS-ITER.3` with measuring
+it; §3.6 even says the protocol graph *"is the correct graph here"*. The contribution that survives is
+narrower and genuinely new — **the fused graph is worth ~2.0× at depth 300 and exactly nothing at
+depth 800** — which is what licenses reading protocol-graph numbers as the plateau's cost. ⇒ the
+prior-art check is not only for designs; it is for findings.
+
+**5. ⛔ EDITING A BASH SCRIPT WHILE BASH IS EXECUTING IT IS A CORRUPTION RISK, AND "IT WORKED" IS NOT
+THE PROOF.** I appended an arm to the census script mid-run; bash picked it up and the output looked
+well-formed. That is not evidence the earlier rows were unaffected — bash reads by byte offset and an
+insertion can desynchronise the next read. The cheap rows were re-run from the finished file and
+reproduce **exactly**, and depth 350 had already been reproduced by ad-hoc commands issued before the
+script existed. ⇒ **if you edit a running script, the reproduction is owed, not optional.**
+
 ## 2026-08-27 - PGEN-ENGINE-UNIVERSAL-SERVICES-0096 — the honest bound was the most valuable line in the leaf, and discharging it changed the answer
 
 **1. ⭐⭐⭐ A LEAF THAT NAMES ITS OWN UNMEASURED POPULATION IS TELLING YOU WHERE TO LOOK FIRST.**
