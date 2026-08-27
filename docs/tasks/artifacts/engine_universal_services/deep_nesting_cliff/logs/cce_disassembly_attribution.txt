@@ -1,0 +1,87 @@
+ENGINE-UNIVERSAL-SERVICES.44 (a) — instruction-level attribution INSIDE create_contextual_error.
+Instrument: otool -tV on the shipped release probe; hot offsets from the SV depth-800 sample
+(+188, +216, +276 — the three sites the sampler reports as SELF time).
+
+⛔ ALL THREE ARE IN THE rule_stack COLLECT LOOP. The input EXCERPT is NOT here at all:
+   byte_window_lossy copies at most 40 bytes (position-20 .. position+20), a code fact.
+   The unbounded term is Vec<&'static str> over the LIVE rule_id_stack, which at the
+   ceiling is GENERATED_RECURSION_GUARD_MAX_DEPTH = 4096 entries = 64 KiB per error,
+   and it is built with NO with_capacity — see the malloc #0x40 at +140 and the
+   RawVecInner::reserve::do_reserve_and_handle at +272 that the growth path calls.
+
+  +0    sub	sp, sp, #0x80
+  +4    stp	x28, x27, [sp, #0x20]
+  +8    stp	x26, x25, [sp, #0x30]
+  +12   stp	x24, x23, [sp, #0x40]
+  +16   stp	x22, x21, [sp, #0x50]
+  +20   stp	x20, x19, [sp, #0x60]
+  +24   stp	x29, x30, [sp, #0x70]
+  +28   add	x29, sp, #0x70
+  +32   mov	x19, x3
+  +36   mov	x27, x2
+  +40   mov	x22, x1
+  +44   mov	x20, x0
+  +48   ldr	x25, [x1, #0x528]
+  +52   ldp	x26, x8, [x1, #0x20]
+  +56   lsl	x8, x8, #4
+  +60   add	x24, x26, x8
+  +64   cbz	x8, 0x10005a220
+  +68   ldrh	w9, [x26], #0x10
+  +72   sub	x8, x8, #0x10
+  +76   cmp	x9, #0x600
+  +80   b.hi	0x10005a1e8
+  +84   adrp	x8, 17573 ; 0x1044ff000
+  +88   add	x8, x8, #0x688
+  +92   add	x8, x8, x9, lsl #4
+  +96   ldp	x21, x23, [x8]
+  +100  cbnz	x21, 0x10005a22c
+  +104  mov	x23, #0x0
+  +108  mov	x26, #0x0
+  +112  mov	w24, #0x8
+  +116  b	0x10005a2cc
+  +120  mov	x21, #0x0
+  +124  mov	x26, x24
+  +128  cbz	x21, 0x10005a210
+  +132  str	x27, [sp]
+  +136  mov	w0, #0x40
+  +140  bl	0x103ddcb54 ; symbol stub for: _malloc
+  +144  cbz	x0, 0x10005a368
+  +148  stp	x21, x23, [x0]
+  +152  mov	w8, #0x4
+  +156  stp	x8, x0, [sp, #0x8]
+  +160  mov	w23, #0x1
+  +164  adrp	x27, 17573 ; 0x1044ff000
+  +168  add	x27, x27, #0x688
+  +172  b	0x10005a264
+  +176  add	x8, x0, x23, lsl #4
+  +180  stp	x28, x21, [x8]
+  +184  add	x23, x23, #0x1
+  +188  str	x23, [sp, #0x18]   <<< HOT (sampler self-time)
+  +192  cmp	x26, x24
+  +196  b.eq	0x10005a28c
+  +200  ldrh	w8, [x26], #0x10
+  +204  cmp	x8, #0x600
+  +208  b.hi	0x10005a268
+  +212  add	x8, x27, x8, lsl #4
+  +216  ldp	x28, x21, [x8]   <<< HOT (sampler self-time)
+  +220  cbnz	x28, 0x10005a298
+  +224  b	0x10005a2c4
+  +228  mov	x28, #0x0
+  +232  mov	x26, x24
+  +236  cbz	x28, 0x10005a2c4
+  +240  ldr	x8, [sp, #0x8]
+  +244  cmp	x23, x8
+  +248  b.ne	0x10005a258
+  +252  add	x0, sp, #0x8
+  +256  mov	x1, x23
+  +260  mov	w2, #0x1
+  +264  mov	w3, #0x8
+  +268  mov	w4, #0x10
+  +272  bl	__ZN5alloc7raw_vec20RawVecInner$LT$A$GT$7reserve21do_reserve_and_hand
+  +276  ldr	x0, [sp, #0x10]   <<< HOT (sampler self-time)
+  +280  b	0x10005a258
+  +284  ldp	x26, x24, [sp, #0x8]
+  +288  ldr	x27, [sp]
+  +292  add	x8, x25, #0x14
+  +296  ldr	x9, [x22, #0x368]
+  +300  cmp	x9, x8

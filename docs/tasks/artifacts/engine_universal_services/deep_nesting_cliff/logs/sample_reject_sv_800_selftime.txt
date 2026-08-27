@@ -1,0 +1,34 @@
+ENGINE-UNIVERSAL-SERVICES.44 (a) — SystemVerilog over-ceiling reject, depth 800, 6 s sample.
+Probe: rust/target/release/parseability_probe, systemverilog fingerprint 240da0a4f9e7be06…
+Re-derive: bash docs/tasks/artifacts/engine_universal_services/deep_nesting_cliff/measure_reject_composition.sh
+
+Sort by top of stack, same collapsed (when >= 5):
+        __ulock_wait  (in libsystem_kernel.dylib)        2706
+        pgen::generated_parsers::systemverilog::SystemverilogParser::create_contextual_error::h0d269934dc60d959  (in parseability_probe)        460
+        pgen::generated_parsers::systemverilog::SystemverilogParser::parse_constant_expression::hf71e3d1ddabf4061  (in parseability_probe)        225
+        _platform_memmove  (in libsystem_platform.dylib)        148
+        pgen::generated_parsers::systemverilog::SystemverilogParser::parse_constant_function_call::hf12e6eb16571f811  (in parseability_probe)        124
+        pgen::generated_parsers::systemverilog::SystemverilogParser::parse_constant_multiple_concatenation::h9364250f9a4a21bb  (in parseability_probe)        122
+        pgen::generated_parsers::systemverilog::SystemverilogParser::cascade_match_constant_primary::h9f4f6e9873a93e46  (in parseability_probe)        120
+        pgen::generated_parsers::systemverilog::SystemverilogParser::parse_ps_parameter_identifier::h973adbd780d6adf1  (in parseability_probe)        114
+        pgen::generated_parsers::systemverilog::SystemverilogParser::parse_constant_let_expression::hd984ca80fc99ce7b  (in parseability_probe)        112
+        pgen::generated_parsers::systemverilog::SystemverilogParser::parse_constant_primary_sv_2023::h9f5b8fc1438c2b69  (in parseability_probe)        109
+        pgen::generated_parsers::systemverilog::SystemverilogParser::parse_type_reference::hcf8398a1ddc88ee9  (in parseability_probe)        105
+        pgen::generated_parsers::systemverilog::SystemverilogParser::cascade_match_constant_expression_operand::h35a9bc97f062eb20  (in parseability_probe)        104
+        pgen::generated_parsers::systemverilog::SystemverilogParser::parse_constant_mintypmax_expression::hca0c09d4b1a7caad  (in parseability_probe)        103
+        pgen::generated_parsers::systemverilog::SystemverilogParser::parse_constant_assignment_pattern_expression::hd225c478877e0499  (in parseability_probe)        102
+        pgen::generated_parsers::systemverilog::SystemverilogParser::parse_enum_id_scope_prefix::h0a0b402c99043984  (in parseability_probe)        96
+        pgen::generated_parsers::systemverilog::SystemverilogParser::parse_constant_primary_sv_2017::hf23e2be51a91104f  (in parseability_probe)        93
+        pgen::generated_parsers::systemverilog::SystemverilogParser::parse_constant_concatenation::h659d7dfd6e9ff3f9  (in parseability_probe)        90
+        pgen::generated_parsers::systemverilog::SystemverilogParser::parse_constant_cast::h9c51bd52a0bd3270  (in parseability_probe)        84
+        mach_absolute_time  (in libsystem_kernel.dylib)        29
+        pgen::generated_parsers::systemverilog::SystemverilogParser::parse_constant_primary_sv_2017::_$u7b$$u7b$closure$u7d$$u7d$::_$u7b$$u7b$closure$u7d$$u7d$::hbb5098f9dda7f3e9  (in parseability_probe)        16
+        _$LT$pgen..ast_pipeline..semantic_runtime..SemanticRuntimeDelta$u20$as$u20$core..clone..Clone$GT$::clone::he1ee744dd7f3362d  (in parseability_probe)        15
+        pgen::generated_parsers::systemverilog::SystemverilogParser::parse_non_keyword_identifier::_$u7b$$u7b$closure$u7d$$u7d$::h110835b3256b2c65  (in parseability_probe)        12
+        _xzm_free  (in libsystem_malloc.dylib)        11
+        xzm_realloc  (in libsystem_malloc.dylib)        11
+        pgen::generated_parsers::systemverilog::SystemverilogParser::parse_trivia::_$u7b$$u7b$closure$u7d$$u7d$::h071c8468d1dfe547  (in parseability_probe)        10
+        xzm_malloc_zone_size  (in libsystem_malloc.dylib)        8
+        _xzm_xzone_malloc  (in libsystem_malloc.dylib)        6
+        pgen::generated_parsers::systemverilog::SystemverilogParser::cascade_kw_null_2be88ca4::hd7613f18debbf5b6  (in parseability_probe)        6
+        pgen::generated_parsers::systemverilog::SystemverilogParser::cascade_match_system_tf_call::h1c2c7ae1a2624df0  (in parseability_probe)        6

@@ -1,5 +1,46 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-27 - PGEN-ENGINE-UNIVERSAL-SERVICES-0096 — the honest bound was the most valuable line in the leaf, and discharging it changed the answer
+
+**1. ⭐⭐⭐ A LEAF THAT NAMES ITS OWN UNMEASURED POPULATION IS TELLING YOU WHERE TO LOOK FIRST.**
+`.44` published *"60 % of it is ERROR CONSTRUCTION, not parsing"* and, two bullets later, *"it has not
+been shown that SystemVerilog's plateau has the same composition"*. Measuring exactly that took one
+6-second sample and **refuted the generalisation**: 62.0 % on VHDL, **18.7 %** on SystemVerilog, where
+the parse cascade itself is 71.7 % over 23 distinct functions. ⇒ **the cheapest next measurement in a
+leaf is usually the one its own honest bound names**, and a bound that goes undischarged long enough
+stops reading as a bound and starts reading as a footnote to a settled number.
+
+**2. ⛔⛔ A HOT FUNCTION IS NOT A ROOT CAUSE, AND THE GUESS ABOUT *WHICH PART* WAS WRONG.** The opening
+note attributed the `memmove` band to *"the input EXCERPT being copied per error"*. That was plausible
+and it was wrong: the excerpt is `position-20 .. position+20`, **40 bytes, bounded in source**. The
+real term is a `Vec<&'static str>` collected over the entire live rule-id stack — 4096 entries at the
+ceiling, 64 KiB, no `with_capacity`. ⇒ **when a profiler names a function, disassemble it before
+naming a line**: `otool -tV` put all three sampled self-time offsets inside the collect loop (length
+store, `RULE_NAMES` load, pointer reload after `do_reserve_and_handle`), which no amount of reading
+the source would have settled against a competing hypothesis in the same function.
+
+**3. ⚠️ THE COMMENT ABOVE THE HOT LOOP JUSTIFIES THE COST.** *"rule names are `&'static str` — pointer
+copy, no allocation per entry."* True per entry; silent about the per-CALL cost. This is the same
+shape `.53` was corrected on: a justification clause that answers a **narrower** question than the one
+a reader will ask of it, and the fact that it is *correct* is what makes it load-bearing — a wrong
+comment gets challenged, an narrowly-true one gets believed.
+
+**4. ⚠️ THE PARKED MAIN THREAD IS NOT WORK, AND COUNTING IT HALVES EVERY SHARE.** The parse runs on a
+dedicated 256 MiB thread, so the main thread's `__ulock_wait` samples are idle. On the SV run they are
+**2 706** against 2 466 non-idle — including them would have reported `create_contextual_error` at
+~9 % instead of 18.7 %. Written into the instrument's header rather than left to whoever reads it next.
+
+**5. ⚠️ AND MY OWN NEW INSTRUMENT COULD NOT FIND THE BINARY ON ITS FIRST RUN** — it climbed `../../../..`
+from a file five directories deep and landed on `docs/`, then reported the probe missing while it sat
+there. The sibling harness in the same folder already asked git for the root. ⇒ **copy the neighbour's
+root resolution, do not re-count the dots.**
+
+**Lesson routing.** promotion: declined. Point 1 is a sharper instance of a discipline the repository
+already enforces (an honest bound is a claim — [[feedback_verify_a_claim_three_ways_before_publishing_it]]);
+points 2 and 4 are recorded in the instrument's own header beside the measurements that justify them;
+point 3 belongs to the record `.53` already established; point 5 is a property of one script, fixed
+with a comment on the line it broke.
+
 ## 2026-08-27 - PGEN-LIVE-DOC-CONTAINMENT-0018 — a count is not a schema, and the arm that catches the cancelling pair turns out not to need the table at all
 
 **1. ⭐⭐⭐ THE TWO SHAPES NEEDED DIFFERENT ANSWERS, AND THE STRUCTURAL ONE IS THE CHEAPER AND THE

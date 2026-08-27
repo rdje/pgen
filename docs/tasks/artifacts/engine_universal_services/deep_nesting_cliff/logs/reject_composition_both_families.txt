@@ -1,0 +1,18 @@
+# parser-fingerprint: {"pgen_parser_fingerprint_version":1,"parsers":{"ebnf":"8e23575d9bf0e30c2c88e8e4f6eb8b663417d09261adab6de2ea83df4076fb9d","json":"a440f714cc0723f342ef9ee5a66adf
+# depth=800 sample=6s
+
+== systemverilog (depth 800, probe rc=1 — nonzero is the REJECT this leaf is about) ==
+   idle (main thread parked): 2712   non-idle listed: 2498
+   create_contextual_error     466   18.7%
+   memmove/memcpy              121    4.8%
+   allocator                    34    1.4%
+   parse_*/cascade_*          1814   72.6%   over 21 distinct fns
+   => error construction 23.5%  |  actual parsing 72.6%
+
+== vhdl (depth 800, probe rc=1 — nonzero is the REJECT this leaf is about) ==
+   idle (main thread parked): 3306   non-idle listed: 3242
+   create_contextual_error    2047   63.1%
+   memmove/memcpy              517   15.9%
+   allocator                   249    7.7%
+   parse_*/cascade_*           268    8.3%   over 7 distinct fns
+   => error construction 79.1%  |  actual parsing 8.3%
