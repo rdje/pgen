@@ -251,7 +251,7 @@ question is *"is that enough?"*, and that cannot be answered without naming the 
   the third mismatch is `ebnf`), so it is owned, sequenced and left for its own slice.
 
 
-### ⚠️ `.44` `in progress` — **the over-ceiling reject is BOUNDED but EXPENSIVE; the *"60 % is ERROR CONSTRUCTION"* headline is TRUE OF VHDL AND FALSE OF SYSTEMVERILOG** (opened 2026-08-21 session #253 by `.43`, which made this measurable for the first time; **(a) DONE 2026-08-27 `PGEN-ENGINE-UNIVERSAL-SERVICES-0096`** — the excerpt hypothesis REFUTED at instruction level, and the leaf's own honest bound discharged against it; **(d) RULED 2026-08-27 `…-0097`**; ⭐⭐ **(b) STEP 1 — THE CENSUS — DONE 2026-08-27 `…-0100`: the depth-gated channels are reached, storing and hitting, and the plateau is CALL VOLUME (18.9 M calls at depth 800, `calls/key` 4.1 → 133.7) rather than re-derivation, which retires the caching fix lane and redirects (b) to ATTEMPT ELISION**; ⭐⭐⭐ **(b) STEP 2 — THE CENSUS — DONE 2026-08-27 `…-0102`: the existing elision machinery prices SystemVerilog at EXACTLY ZERO on all FOUR gates (0/535, 0/535, 0/1934, 0/1157 — against 60/33/853/102 on the regex CONTROL) for ONE reason firing on 100 % of every population, `terminals skip leading layout (R2 raw-byte peek unsound)`; 0 entries of 18 901 646 on every EXPOSURE axis; and the memo hit rate is **59.6 %**, NOT step 1's ~99 %, with **33.4 % of calls on 438 rules recording NO memo hit** — ⛔⛔ **whose EXPLANATION is RETRACTED by `-0103` the same day: 23.4 points are the P1b inline emission eliding the memo BY DESIGN (`inlined but has hits = 0` over 634 rules), the suppression-gate mechanism I named is REFUTED (all three gates provably inert at depth 300), and the honest residual is 9.9 % on 190 rules, 96 % of it three LR-cascade rules → new leaf `.56`**; the gate census, the regex control and the 59.6 % correction all STAND**)
+### ⚠️ `.44` `in progress` — **the over-ceiling reject is BOUNDED but EXPENSIVE; the *"60 % is ERROR CONSTRUCTION"* headline is TRUE OF VHDL AND FALSE OF SYSTEMVERILOG** (opened 2026-08-21 session #253 by `.43`, which made this measurable for the first time; **(a) DONE 2026-08-27 `PGEN-ENGINE-UNIVERSAL-SERVICES-0096`** — the excerpt hypothesis REFUTED at instruction level, and the leaf's own honest bound discharged against it; **(d) RULED 2026-08-27 `…-0097`**; ⭐⭐ **(b) STEP 1 — THE CENSUS — DONE 2026-08-27 `…-0100`: the depth-gated channels are reached, storing and hitting, and the plateau is CALL VOLUME (18.9 M calls at depth 800, `calls/key` 4.1 → 133.7) rather than re-derivation, which retires the caching fix lane and redirects (b) to ATTEMPT ELISION**; ⭐⭐⭐ **(b) STEP 2 — THE CENSUS — DONE 2026-08-27 `…-0102`: the existing elision machinery prices SystemVerilog at EXACTLY ZERO on all FOUR gates (0/535, 0/535, 0/1934, 0/1157 — against 60/33/853/102 on the regex CONTROL) for ONE reason firing on 100 % of every population, `terminals skip leading layout (R2 raw-byte peek unsound)`; 0 entries of 18 901 646 on every EXPOSURE axis; and the memo hit rate is **59.6 %**, NOT step 1's ~99 %, with **33.4 % of calls on 438 rules recording NO memo hit** — ⛔⛔ **whose EXPLANATION is RETRACTED by `-0103` the same day: 23.4 points are the P1b inline emission eliding the memo BY DESIGN (`inlined but has hits = 0` over 634 rules), the suppression-gate mechanism I named is REFUTED (all three gates provably inert at depth 300), and the honest residual is 9.9 % on 190 rules, 96 % of it three LR-cascade rules → new leaf `.56`**; the gate census, the regex control and the 59.6 % correction all STAND**; ⭐⭐⭐ **(b) STEP 3 — THE DESIGN — DONE 2026-08-27 `…-0105`: the layout-aware dispatch is DESIGNED and PRICED at 2.5–5× (FIRSTK 0 → 1 906 of 1 934 branches once the R2 layout blocker is removed; 12 of 15 branches refuted on the first byte at the dominant executed site), and it **CANNOT CLOSE** (d)'s 41× — 80.2 % is the whole guardable population. ⛔ The five-family ratio arm REFUTES the premise: **json and rtl_const_expr have the SAME zero elision surface and reject at ≈1×**, so the zero is a SYMPTOM. The 41× is in the REPETITION term — the spine site is entered 601 658 times on 1 634 keys with ZERO memo hits ⇒ **`.56` is on (d)'s critical path and the emission (new leaf `.58`) is not**)
 
 > ⭐ **THIS LEAF EXISTS BECAUSE `.43` SUCCEEDED.** Before `.43` an over-ceiling parse never
 > returned, so there was no cost to attribute. Now that it terminates, the residual cost is
@@ -13273,7 +13273,173 @@ is not claimed as one.
 - ⭐ **WHAT THE CHALLENGE DID NOT MOVE**: every claim in the `-0102` "what survives" list, and every
   claim in `-0103`. Two instrument-hygiene defects, zero findings retracted.
 
-### ⚠️ `.56` — **190 NON-INLINED RULES TAKE 1 880 482 CALLS (9.9 % OF AN OVER-CEILING PARSE) AND RECORD ZERO MEMO HITS; 96 % OF IT IS THREE `internal thin_memo` LR-CASCADE RULES, AND ONE OF THEM DOES CARRY A `memoized_call`** (`todo`, opened 2026-08-27 by `.44`(b) step 2's own retraction / `PGEN-ENGINE-UNIVERSAL-SERVICES-0103`, ROUTED + PARKED behind the SV lane)
+#### ✅ `.44` (b) STEP 3 — **THE LAYOUT-AWARE DISPATCH: DESIGNED, PRICED, AND MEASURED AGAINST `(d)`'s ≤ 2× EXIT — IT IS WORTH 2.5–5× AND IT CANNOT CLOSE 82×. THE LEAF'S OWN ORDERING IS BACKWARDS: THE TERM THAT CAN CLOSE IT IS `.56`, WHICH IS PARKED** (2026-08-27, `PGEN-ENGINE-UNIVERSAL-SERVICES-0105`; DIAGNOSTIC + ARTIFACT + TRACKER tier, **ZERO Rust / grammar / codegen / generated bytes**)
+
+⭐⭐⭐ **STEP 2 HANDED STEP 3 A DIAGNOSIS AND ONE CONTROL. THE DIAGNOSIS SURVIVES; THE CONTROL DID
+NOT, AND REPLACING IT IS WHAT CHANGED THE ANSWER.** `-0102` measured SystemVerilog's four elision
+gates at exactly zero against **regex**, which differs from SystemVerilog in **two** ways at once —
+layout policy *and* grammar scale. That is precisely the shape step 1 had already recorded as
+un-attributable (*"an instrument that changes TWO things at once cannot attribute an effect to
+either of them"*), and step 3 caught it by adding the controls step 2 lacked.
+Producer: `docs/tasks/artifacts/engine_universal_services/deep_nesting_cliff/census_layout_aware_dispatch.sh`
+(five arms; refuses with exit 2 rather than reporting a flattering number when the probe fingerprint
+differs from `generated/systemverilog_parser.rs` **or** when the probe grammar is not the tracked
+grammar plus exactly one asserted line);
+log: `…/logs/layout_aware_dispatch_census.txt`.
+
+- ✅ **THE HEADROOM IS REAL, AND IT IS MEASURED WITH ZERO RUST BYTES.** The instrument is a
+  controlled facet flip: the census runs on `grammars/systemverilog.ebnf` and on a copy that differs
+  by **exactly one line**, `@whitespace_sensitive: { terminals: true, regex_tokens: true }` — which
+  is exactly the hypothetical *"a raw byte peek at the dispatch point is sound"*. The one-line diff
+  is **asserted by the script** (`+1 −0`, and the added line compared verbatim), so the delta cannot
+  quietly become a different experiment.
+
+  | gate | population | tracked facet | **layout-aware** | regex (arm-B control) |
+  |---|---:|---:|---:|---:|
+  | `DEGENERACY` (P2 byte-switch) | top-level Or sites | 0 of 535 | **0** of 535 | 60 of 113 |
+  | `PREFIX2` (D1 FIRST₂ dispatch) | blocked top-level sites | 0 of 535 | **249** of 535 | 33 of 53 |
+  | `FIRSTK` (C1 bounded trie) | top-level branches | 0 of 1 934 | **1 906** of 1 934 | 853 of 853 |
+  | `QUANT-SITE` (Q-GUARD) | min-0 quantified sites | 0 of 1 157 | **317** of 1 157 | 102 of 118 |
+
+  ⭐ **`FIRSTK` is the clean read, because its gate is the shared level-1 admission predicate and
+  nothing else**: its refusal histogram goes from **`1 934 terminals skip leading layout`** to
+  **`28 nullable (can match empty)`**. ⇒ **the layout gate alone accounts for 1 906 of 1 934
+  undecided branches (98.6 %)**, and the residual 28 are nullable — a structural fact no amount of
+  layout-awareness can fix.
+- ⛔ **AND ONE GATE STAYS AT ZERO EVEN UNDER THE HYPOTHETICAL, WHICH IS A DESIGN CONSTRAINT AND NOT
+  A DISAPPOINTMENT.** `DEGENERACY` still reports 0 of 535, with the blocker replaced rather than
+  removed: **`12 105 first-byte overlap between branches`**. ⇒ SystemVerilog's alternatives share
+  first bytes, so **a single byte-switch can never dispatch a whole site** — only *per-branch
+  admission* can. That rules the P2 lane out of the design and rules the C1 lane in.
+- ✅ **PRICED ON THE PLATEAU WORKLOAD, NOT ON A REGULAR CORPUS.** Joined to the depth-800
+  over-ceiling outcome dump (`18 901 646` entries, digit-identical to `-0102`'s and `-0104`'s):
+
+  | exposure | tracked | layout-aware |
+  |---|---:|---:|
+  | `PREFIX2-EXPOSURE` | 0 (0.0 %) | **5 575 217 (29.5 %)** |
+  | `QUANT-EXPOSURE` attributable | 0 | 12 236 (+ 4 331 783 shared) |
+  | `OUTCOME-SHARE` `on_encodable` | 8 022 | 2 739 345 |
+  | merged-choice `ceiling≈` | 1.00× | 1.17× |
+- ⭐⭐ **THE SITE-LEVEL ANSWER STEP 2 EXPLICITLY COULD NOT GIVE.** `-0102` named its own gap —
+  *"rule-level attribution is a proxy, and the step-3 design must not quote it as a site-level
+  fact"*. Arm D closes it. The dominant **executed** top-level site is **`constant_primary_sv_2017`**
+  (601 658 entries, 15 branches); at the workload's own dispatch byte `(`, **12 of its 15 branches
+  are REFUTED on the first byte** and 3 admit.
+  ⭐ **The attribution is ARITHMETIC, not assertion**: the 17 rules named only by those 12 branches
+  are each entered **1.008 – 1.021×** the site's own entry count — the signature of exactly one
+  attempt per site entry. A branch's rules being entered once per site entry is what makes those
+  entries that branch's attempts.
+  ⛔ **The ranking that found it is CAPPED BY EXECUTION, and the cap is load-bearing.** A purely
+  static ranking ties four clone sites exactly — the `sv_2017`/`sv_2023` profile twins and their
+  LR-elimination seed copies name identical rules — and the first cut of this instrument therefore
+  picked `casting_type_lr_seed_constant_primary_sv_2017`, which is entered **4 558** times against
+  the twin's **601 658**. The `≈1.0×` per-attempt check caught it by reading **134.8×**. The fix is
+  a bound with a one-sentence justification: *a site cannot elide more attempts than it makes*
+  (`entries(rule) × refuted branches`). ⇒ **`379 of 535` top-level sites are never entered on this
+  input at all**, and the census now says so instead of ranking dead clones.
+- ⛔⛔ **THE VERDICT AGAINST `(d)`'s EXIT CONDITION — AND IT IS A REFUSAL TO CLAIM THIS DESIGN CLOSES
+  IT.** `(d)` ruled `.44` closed only when both released families read ≤ 2×. SystemVerilog must go
+  from ~12.3–12.9 s to ≤ 0.30 s: a **41×** cut. Three bracketing bounds on what a perfect
+  layout-aware level-1 guard removes from the 18 901 646 entries:
+
+  | bound | population | entries | share | ⇒ speed-up ceiling |
+  |---|---|---:|---:|---:|
+  | 1 — one site, execution-capped | `constant_primary_sv_2017` alone | 7 219 896 | 38.2 % | 1.62× |
+  | 2 — grammar-wide, rules named ONLY by `(`-refuted branches | 848 rules | 11 481 140 | 60.7 % | **2.54×** |
+  | 3 — grammar-wide, rules named by ANY `(`-refuted branch (UPPER) | 962 rules | 15 151 416 | 80.2 % | **5.05×** |
+
+  ⇒ **layout-aware dispatch is worth between 2.5× and 5×, and NO version of it can be worth more —
+  80.2 % is the entire guardable population.** 82× ÷ 5.05 = **16×**, still an order of magnitude
+  outside the bar. ⭐ **This is the number the design step existed to produce, and it says the design
+  is not the fix.**
+- ⭐⭐⭐ **BECAUSE THE PLATEAU IS A PRODUCT OF TWO INDEPENDENT MULTIPLIERS, AND THIS DESIGN DIVIDES
+  ONLY THE SMALLER ONE.** Measured on the same site, in the same run:
+  - **BREADTH** — 15 branches per entry, 12 refutable on the first byte ⇒ the factor a dispatch
+    guard divides, worth **15/3 = 5×** at that site.
+  - **REPETITION** — `constant_primary_sv_2017` is entered **601 658** times on an input with at
+    most **1 634** distinct `(rule, position)` keys: **368.2 calls per key, with ZERO memo hits**.
+    Its two neighbours on the same spine read the same way (`constant_primary` 368.4,
+    `constant_expression_operand` 368.6, all at 0.0 % hits), while the tournament's LEAVES are
+    ~100 % memo-served (`non_keyword_identifier` 100.0 %, `lparen` 99.9 %, `trivia` 99.8 %).
+  ⇒ **the spine is re-derived, the leaves are cached, and the two factors MULTIPLY.** Dividing
+  repetition is worth up to **368×** on that site; dividing breadth is worth 5×. **The 41× lives in
+  the repetition term.**
+- ⛔⛔ **AND THE CONTROL ARM SAYS THE ELISION MACHINERY WAS NEVER THE DISCRIMINATOR.** `(d)`'s ratio
+  bar, measured across **five** families on plain runs (the FUSED graph an embedder executes), three
+  runs each:
+
+  | family | layout facet | elision gates | deepest accept | saturated reject | ratio | verdict |
+  |---|---|---|---:|---:|---:|---|
+  | json | skipping | **all four 0** | 1 200 / 0.065 s | 2 400 / 0.060–0.063 s | **0.9–1.0×** | ✅ PASS |
+  | regex | sensitive | 60/33/853/102 | 400 / 0.028 s | 1 200 / 0.026 s | **0.8–0.9×** | ✅ PASS |
+  | rtl_const_expr | skipping | **all four 0** | 300 / 0.036 s | 600 / 0.029 s | **0.8×** | ✅ PASS |
+  | systemverilog | skipping | all four 0 | 320 / 0.149 s | 800 / 12.3–12.9 s | **81.1–86.3×** | ⛔ RED |
+  | vhdl | skipping | all four 0 | 400 / 0.094 s | 800 / 18.8–19.3 s | **198.7–203.7×** | ⛔ RED |
+
+  ⭐ **`json` and `rtl_const_expr` have EXACTLY the elision surface SystemVerilog has — zero, for
+  exactly the same layout reason — and they reject at ≈ 1×.** ⇒ *"the machinery prices SV at zero"*
+  is a **symptom, not the cause**; a PGEN parser can meet the bar with no elision at all. What those
+  two have is a cascade whose tournaments do not re-run — the repetition axis again, reached from an
+  independent direction and with parsers this leaf did not build. ⭐ `rtl_const_expr` is the sharper
+  of the two: it is a layout-skipping *precedence-cascade expression grammar*, structurally the same
+  shape as the SystemVerilog spine, differing mainly in size and in determinism.
+  ⚠️ A ladder brackets each accept anchor from BELOW, and a shallower anchor is a cheaper anchor, so
+  **every ratio above is an UPPER bound** — a RED row cannot be a ladder artefact, and a PASS row can
+  only improve.
+- ⚖️ **THE DESIGN ITSELF, RECORDED SO THE 2.5–5× IS NOT LOST — AND IT IS ROUTED, NOT ORPHANED.**
+  **L1-LA (layout-aware level-1 admission)**: at a rule-top-level Or site, compute
+  `p' = skip_layout(pos)` **once**, then admit each branch on `input[p']` against its FIRST-byte set
+  (C1 lane: walk the bounded prefix trie from `p'`). Soundness rests on one identity — every branch's
+  first atom would itself have performed the same skip from the same `pos`, and the skip is a pure
+  function of `(input, pos)` — so `p'` is the position each branch's first terminal would have begun
+  matching at. **Four obligations, each a blocker until discharged:**
+  1. **Skip uniformity.** The identity fails for the two `REGEX_ATOM_NO_SKIP_RULES`
+     (`string_content_double` / `string_content_single`), for a regex-token first atom under a
+     regex-token-sensitive facet, and for a branch opening with a zero-width lookahead that inspects
+     `pos` itself. ⇒ a per-branch predicate mirroring codegen's own `skip_leading_whitespace`
+     decision, exactly as today's gates mirror the layout facet.
+  2. **Furthest-position parity (R1).** The hoist moves *where* a refuted branch's counterfactual
+     attempt would have written `furthest_position`. The C1 lane already carries the machinery
+     (`with_emulation = 138` under the layout-aware facet) — this is where the design's residual risk
+     lives, and it is an emission obligation, not an analysis one.
+  3. **The skip must be paid ONCE.** If `p'` is not threaded into the admitted branch, the hoist ADDS
+     a skip to the accept path — which this project's peak-speed non-negotiable **rejects rather than
+     trades**. (`trivia` at 99.8 % memo hits is evidence the skip is cheap; it is not evidence it is
+     free.)
+  4. **P2 is out, C1 is in.** 12 105 first-byte overlaps say a whole-site byte-switch is
+     unreachable on this grammar; per-branch admission is the only lane with a measured surface.
+  ⇒ **ROUTED as new leaf `.58`** (emission + measurement), priced at 2.5–5×, and explicitly **not**
+  on `(d)`'s critical path.
+- ⚖️⚖️ **RULING — THE LEAF'S OWN ORDERING IS BACKWARDS, AND I AM CORRECTING IT RATHER THAN EXECUTING
+  IT.** `(b)` step 2 directed step 3 to design the layout-aware dispatch and routed the zero-memo-hit
+  spine to `.56`, **parked**. The measurement inverts that: the parked leaf owns the 368× term and
+  the active one owns a 5× term. ⇒ **`.56` is ON `(d)`'s critical path and `.58` is not.**
+  `(b)`'s next step is `.56`, not the emission. ⛔ This is a re-ordering *inside* the SV lane, not a
+  pivot out of it: `.56`'s three rules are the SystemVerilog expression spine, and `.44` is the leaf
+  the SV release's latency bar hangs on.
+- ⚠️ **HONEST BOUNDS, all five named rather than left for a reader to find.** (i) One input SHAPE
+  (nested parentheses) per family, one host; a different over-ceiling shape may concentrate
+  elsewhere. (ii) Bounds 2 and 3 attribute over `direct_refs` of top-level Or branches **only** — an
+  entry issued from a sequence element or a nested Or site is neither covered nor excluded, so they
+  are bracketing *estimates*, not proofs; only bound 1 carries the `≈1.0×` per-attempt check.
+  (iii) The 2.54×/5.05× projections assume eliding an entry removes its whole cost and adds none —
+  the guard itself costs a byte test per branch, so a real emission will not reach either ceiling.
+  (iv) Arm C/D numbers describe the PROTOCOL graph (the outcome dump enables coverage —
+  `TOOLBOX.md` §2.1, `-0101`'s 8 %-at-300 / indistinguishable-at-800 licence); **arm E is the FUSED
+  graph**. (v) The three-way check's DURABILITY leg is **partial**: the producer is tracked and the
+  numbers re-derive on demand, but **no gate watches them**, so a regression in the ratio would not
+  fail a commit. Naming it rather than publishing unqualified.
+- **VERIFICATION (three DIFFERENT ways, per the standing directive).** (1) **RE-DERIVE** — the
+  producer ran end to end three times; every static count is bit-identical across runs and the
+  entry total `18 901 646` re-derives digit-exact against `-0102`/`-0104`. (2) **FALSIFY against an
+  oracle I did not build, with a control proven able to go RED** — arm B shows the same binary
+  reporting 60/33/853/102 on regex (the instrument is alive); arm E's verdict column returns PASS on
+  three families and RED on two from one code path (the verdict can disagree with itself); and the
+  tracked-facet column is the RED control for the headroom delta. (3) **DURABILITY** — producer
+  tracked, claim **NOT** watched by a gate; stated as a gap above.
+
+
+### ⚠️ `.56` — **190 NON-INLINED RULES TAKE 1 880 482 CALLS (9.9 % OF AN OVER-CEILING PARSE) AND RECORD ZERO MEMO HITS; 96 % OF IT IS THREE `internal thin_memo` LR-CASCADE RULES, AND ONE OF THEM DOES CARRY A `memoized_call`** (`todo`, opened 2026-08-27 by `.44`(b) step 2's own retraction / `PGEN-ENGINE-UNIVERSAL-SERVICES-0103`; ⭐⭐⭐ **UN-PARKED AND PROMOTED TO `.44`(b)'s NEXT STEP 2026-08-27 by `-0105`, which measured what this leaf's three rules actually cost: the spine site `constant_primary_sv_2017` is entered 601 658 times on an input with at most 1 634 keys — 368.2 calls/key at 0.0 % hits — while the tournament's leaves are ~100 % memo-served. `.44`(d)'s ≤2× exit needs 41×; dispatch elision tops out at 5× and THIS term is worth up to 368×. ⛔ Not a pivot out of the SV lane: these three rules ARE the SystemVerilog expression spine**)
 
 > ⭐ **THIS LEAF EXISTS BECAUSE A RETRACTION LEFT A REAL REMAINDER.** `-0102` published *"438 rules the
 > memo never serves, 33.4 % of calls"* and `-0103` retracted the explanation: **248 of those rules
@@ -13340,6 +13506,47 @@ is not claimed as one.
 - **STATUS**: no owner assigned on our side, no due date, no work parked behind it. Re-raise with the
   director if `.44` reaches its bar and the question is still unanswered — at that point the answer
   stops being informational and starts deciding whether to tighten.
+
+### ⚠️ `.58` — **L1-LA: THE LAYOUT-AWARE LEVEL-1 ADMISSION EMISSION. DESIGNED AND PRICED AT 2.5–5× BY `.44`(b) STEP 3, AND DELIBERATELY *NOT* ON `(d)`'s CRITICAL PATH** (`todo`, opened 2026-08-27 by `.44`(b) step 3 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0105`, ROUTED + PARKED **behind `.56`**)
+
+> ⭐ **THIS LEAF EXISTS SO A MEASURED 2.5–5× IS NOT LOST BECAUSE IT WAS NOT THE 41×.** `.44`(b)
+> step 3 designed the layout-aware dispatch, measured its ceiling, and ruled it insufficient for
+> `(d)`'s bar. Insufficient is not worthless: it is the largest single elision win this grammar has
+> ever been shown to have, and it is engine-universal.
+
+- **WHAT IT IS.** At a rule-top-level `Or` site, compute `p' = skip_layout(pos)` **once**, then admit
+  each branch on `input[p']` against its FIRST-byte set — the C1 bounded-trie lane walking from `p'`.
+  Today every one of the four elision gates refuses SystemVerilog for one reason, `terminals skip
+  leading layout (R2 raw-byte peek unsound)`, because the emission it models peeks the raw byte at
+  `pos`. Hoisting the skip restores the identity the peek needs.
+- **WHY IT IS SOUND.** Every branch's first atom would itself have performed the same skip from the
+  same `pos`, and the skip is a pure function of `(input, pos)` ⇒ `p'` is the position each branch's
+  first terminal would have begun matching at.
+- ⛔ **THE FOUR OBLIGATIONS, each a blocker until discharged** (from `.44`(b) step 3):
+  1. **Skip uniformity** — the identity fails for `REGEX_ATOM_NO_SKIP_RULES`
+     (`string_content_double` / `string_content_single`), for a regex-token first atom under a
+     regex-token-sensitive facet, and for a branch opening with a zero-width lookahead that inspects
+     `pos`. Needs a per-branch predicate mirroring codegen's own `skip_leading_whitespace` decision.
+  2. **Furthest-position parity (R1)** — the hoist moves *where* a refuted branch's counterfactual
+     attempt would have written `furthest_position`. The C1 lane carries the machinery
+     (`with_emulation = 138`); this is the residual risk and it is an EMISSION obligation.
+  3. **The skip must be paid ONCE** — if `p'` is not threaded into the admitted branch the hoist ADDS
+     a skip to the ACCEPT path, which the peak-speed non-negotiable rejects rather than trades.
+  4. **P2 is out, C1 is in** — `12 105 first-byte overlap between branches` says a whole-site
+     byte-switch is unreachable on this grammar; only per-branch admission has a measured surface.
+- **THE MEASURED SURFACE IT WOULD UNLOCK** (`…-0105`, `logs/layout_aware_dispatch_census.txt`):
+  `FIRSTK` **0 → 1 906** of 1 934 top-level branches, `PREFIX2` **0 → 249** of 535 sites,
+  `QUANT-SITE` **0 → 317** of 1 157; `PREFIX2-EXPOSURE` **0 → 29.5 %** of the depth-800 workload.
+- ⛔ **THE PRICE, AND WHY IT IS PARKED**: bounds 2/3 cap a perfect L1-LA at **2.54×–5.05×**. `(d)`'s
+  exit needs **41×**. `.56` owns the term that can supply it. ⇒ **land `.56` first, then this**, and
+  re-price L1-LA against whatever plateau `.56` leaves — a 5× on a smaller number is a different
+  proposition from a 5× on 12.4 s.
+- **ACCEPTANCE**: the four obligations discharged with evidence; a before→after on the depth-800
+  reject AND on the shipped corpus parse cost (the accept path must not regress by a single
+  measurable step — obligation 3 is the one that can silently break it); the four gates re-censused
+  on the TRACKED grammar reporting the same numbers the facet-flip hypothetical predicted, which is
+  the check that the emission matches the analysis rather than merely being fast.
+
 
 ### ⚠️ `.47` — `detect_profile_orphans` reads the **FILTERED** profile context and a universe that omits `@default_profile`, so on any grammar declaring a default it has never evaluated the profile that SHIPS (`todo`, opened 2026-08-25 by `.46` slice 2 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0084`)
 

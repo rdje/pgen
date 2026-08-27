@@ -1,0 +1,186 @@
+# probe systemverilog fingerprint: 240da0a4f9e7be064a61c5076e4fcca5ca9dac0cfeb7b6a3282346fea03d5d2f
+# fingerprint MATCHES generated/systemverilog_parser.rs
+
+==============================================================================
+ARM A — HEADROOM: the four gates under the TRACKED layout facet vs. the
+        LAYOUT-AWARE hypothetical (the tracked grammar + exactly one line)
+==============================================================================
+probe-grammar diff vs tracked: +1 -0   added: @whitespace_sensitive: { terminals: true, regex_tokens: true }
+
+-- TRACKED facet (terminals skip layout; regex tokens skip layout) --
+FUSIBILITY-CENSUS: grammar=systemverilog rules=1537 fusible=6 (token=6 lookahead=0) not_fusible=1531 (shape_only=1) maximal_roots=6 static_share=0.4%
+CHOICE-SITE-CENSUS: grammar=systemverilog sites=559 (top_level=535) with_encodable_subset=9 all_encodable=4
+DEGENERACY-CENSUS: grammar=systemverilog top_level_sites=535 degenerate_dispatch=0
+PREFIX2-CENSUS: grammar=systemverilog blocked_top_level_sites=535 prefix2_dispatchable=0 (wildcard_limited=0)
+FIRSTK-CENSUS: grammar=systemverilog top_level_branches=1934 guarded=0 deeper_than_level1=0 with_emulation=0 truncated=0 d1_fallback=0
+QUANT-SITE-CENSUS: grammar=systemverilog quantified_sites=1163 min_zero=1157 guardable=0 (bare_ref=0 no_refs=0 mixed=0)
+
+-- LAYOUT-AWARE facet (the hypothetical: skip layout ONCE at the dispatch point, then peek) --
+FUSIBILITY-CENSUS: grammar=systemverilog rules=1537 fusible=6 (token=6 lookahead=0) not_fusible=1531 (shape_only=444) maximal_roots=6 static_share=0.4%
+CHOICE-SITE-CENSUS: grammar=systemverilog sites=559 (top_level=535) with_encodable_subset=162 all_encodable=71
+DEGENERACY-CENSUS: grammar=systemverilog top_level_sites=535 degenerate_dispatch=0
+PREFIX2-CENSUS: grammar=systemverilog blocked_top_level_sites=535 prefix2_dispatchable=249 (wildcard_limited=249)
+FIRSTK-CENSUS: grammar=systemverilog top_level_branches=1934 guarded=1906 deeper_than_level1=1301 with_emulation=138 truncated=1902 d1_fallback=68
+QUANT-SITE-CENSUS: grammar=systemverilog quantified_sites=1163 min_zero=1157 guardable=317 (bare_ref=189 no_refs=0 mixed=128)
+
+-- WHY the tracked side reads zero, and what is LEFT once the layout reason is removed --
+   (FIRSTK first: its gate is the shared level-1 admission predicate and nothing else, so it
+    isolates the layout fact alone. The other three carry co-firing blockers.)
+   [tracked] FIRSTK-CENSUS residual blockers:
+          1934  terminals skip leading layout (R2 raw-byte peek unsound)
+   [tracked] DEGENERACY-CENSUS residual blockers:
+          1934  branch not first-byte-decided
+           535  terminals skip leading layout (R2 raw-byte peek unsound)
+             1  rule has branch-phase predicates (a rejected sole candidate must roll back and continue the tournament)
+             1  rule has branch-start effect directives
+   [tracked] PREFIX2-CENSUS residual blockers:
+          1934  branch not first-byte-decided
+           535  terminals skip leading layout (R2 raw-byte peek unsound)
+             1  rule has branch-phase predicates (a rejected sole candidate must roll back and continue the tournament)
+             1  rule has branch-start effect directives
+   [tracked] QUANT-SITE-CENSUS residual blockers:
+          1157  element not first-byte-decided
+          1157  terminal layout skipping (R2 raw-byte peek unsound)
+           909  reachable rule carries branch predicates/effects
+   [layout_aware] FIRSTK-CENSUS residual blockers:
+            28  nullable (can match empty)
+   [layout_aware] DEGENERACY-CENSUS residual blockers:
+         12105  first-byte overlap between branches
+            28  branch not first-byte-decided
+             1  rule has branch-phase predicates (a rejected sole candidate must roll back and continue the tournament)
+             1  rule has branch-start effect directives
+   [layout_aware] PREFIX2-CENSUS residual blockers:
+          2761  second-byte overlap between branches
+          2034  branch second bytes unresolved
+            28  branch not first-byte-decided
+             1  rule has branch-phase predicates (a rejected sole candidate must roll back and continue the tournament)
+             1  rule has branch-start effect directives
+   [layout_aware] QUANT-SITE-CENSUS residual blockers:
+           909  reachable rule carries branch predicates/effects
+            40  element not first-byte-decided
+
+==============================================================================
+ARM B — RED/GREEN CONTROL: the SAME instrument on regex must report NON-ZERO
+==============================================================================
+FUSIBILITY-CENSUS: grammar=regex rules=276 fusible=68 (token=40 lookahead=28) not_fusible=208 (shape_only=76) maximal_roots=57 static_share=24.6%
+CHOICE-SITE-CENSUS: grammar=regex sites=149 (top_level=113) with_encodable_subset=133 all_encodable=107
+DEGENERACY-CENSUS: grammar=regex top_level_sites=113 degenerate_dispatch=60
+PREFIX2-CENSUS: grammar=regex blocked_top_level_sites=53 prefix2_dispatchable=33 (wildcard_limited=26)
+FIRSTK-CENSUS: grammar=regex top_level_branches=853 guarded=853 deeper_than_level1=203 with_emulation=29 truncated=241 d1_fallback=1
+QUANT-SITE-CENSUS: grammar=regex quantified_sites=140 min_zero=118 guardable=102 (bare_ref=78 no_refs=2 mixed=22)
+   ⇒ non-zero here + zero on arm A's tracked side means arm A measured the grammar, not a
+     dead instrument. ⚠️ It does NOT license reading regex as a control for arm E — see there.
+
+==============================================================================
+ARM C — the elision surface priced on the REAL depth-800 over-ceiling workload
+==============================================================================
+-- [tracked] --
+   QUANT-EXPOSURE: grammar=systemverilog attributable_rules=0 entries=0 committed=0 discarded=0 | shared_rules=0 shared_entries=0 shared_discarded=0
+   OUTCOME-SHARE: grammar=systemverilog files=1 total_entries=18901646 committed=4 discarded=18901642 (on_encodable=8022 on_structural=18893620) committed_on_encodable=0 unmatched=0 ceiling≈1.00x
+   DEGENERACY-EXPOSURE: grammar=systemverilog degenerate_site_entries=0 (0.0% of total) committed=0 discarded=0
+   PREFIX2-EXPOSURE: grammar=systemverilog prefix2_site_entries=0 (0.0% of total) committed=0 discarded=0
+-- [layout_aware] --
+   QUANT-EXPOSURE: grammar=systemverilog attributable_rules=37 entries=12236 committed=0 discarded=12236 | shared_rules=80 shared_entries=4331783 shared_discarded=4331783
+   OUTCOME-SHARE: grammar=systemverilog files=1 total_entries=18901646 committed=4 discarded=18901642 (on_encodable=2739345 on_structural=16162297) committed_on_encodable=2 unmatched=0 ceiling≈1.17x
+   DEGENERACY-EXPOSURE: grammar=systemverilog degenerate_site_entries=0 (0.0% of total) committed=0 discarded=0
+   PREFIX2-EXPOSURE: grammar=systemverilog prefix2_site_entries=5575217 (29.5% of total) committed=0 discarded=5575217
+
+==============================================================================
+ARM D — the DOMINANT SITE, branch by branch, at the workload's own dispatch byte
+==============================================================================
+top-6 top-level sites by elidable entries at byte '(' (the DERIVED ranking):
+   constant_primary_sv_2017                       or#0   branches=15  elidable=   7219896 (38.2%)  entries_on_rule=601658
+   ps_parameter_identifier                        or#0   branches=4   elidable=   1217791 ( 6.4%)  entries_on_rule=607812
+   constant_expression_operand                    or#0   branches=2   elidable=    602268 ( 3.2%)  entries_on_rule=602268
+   call_primary                                   or#0   branches=11  elidable=     65016 ( 0.3%)  entries_on_rule=7224
+   casting_type_lr_seed_constant_primary_sv_2017  or#0   branches=14  elidable=     54696 ( 0.3%)  entries_on_rule=4558
+   method_call_receiver_sv_2017                   or#0   branches=14  elidable=     52188 ( 0.3%)  entries_on_rule=4349
+   ⛔ 379 of 535 top-level sites were NEVER ENTERED on this input (profile twins and
+      LR-seed clones tie exactly on the static ranking); the dominant site is taken from
+      the 156 that WERE entered, so the cost is attributed to code that ran.
+
+dominant EXECUTED top-level site: constant_primary_sv_2017 or#0 — 15 branches, 601658 entries on the rule itself
+   br  direct refs                                    at byte '('      refs entries
+   b1  primary_literal                                REFUTED                614379
+   b2  constant_select,ps_parameter_identifier        REFUTED                607813
+   b3  constant_range_expression,lbrack,rbrack,specpa REFUTED                606227
+   b4  genvar_identifier                              REFUTED                606216
+   b5  constant_select,formal_port_identifier         REFUTED                606217
+   b6  enum_id_scope_prefix,enum_identifier           REFUTED               1211825
+   b7  constant_multiple_concatenation,constant_range REFUTED                605620
+   b8  constant_concatenation,constant_range_expressi REFUTED                605620
+   b9  constant_function_call                         admits                 601354
+   b10 constant_let_expression                        REFUTED                605609
+   b11 constant_mintypmax_expression,lparen,rparen    admits                1224780
+   b12 constant_cast                                  admits                 601354
+   b13 constant_assignment_pattern_expression         REFUTED                605609
+   b14 type_reference                                 REFUTED                607014
+   b15 kw_null_2be88ca4                               REFUTED                614379
+   ⇒ 3 admit, 12 REFUTED on the first byte, 0 undecided
+
+BOUND 1 (this site only, no cross-site double counting): 17 rules named ONLY by its
+        '('-refuted branches carry 7896505 entries = 41.8% of all 18901646
+        (issue cap 601658 entries x 12 refuted branches = 7219896 ⇒ BOUND 1 = 7219896 = 38.2%).
+        ⭐ ATTRIBUTION IS ARITHMETIC, NOT ASSERTION: each is entered ≈ONCE per site entry
+        (site entries = 601658), which is what a per-ATTEMPT entry looks like:
+          primary_literal                                 614379  = 1.021× the site
+          kw_null_2be88ca4                                614379  = 1.021× the site
+          ps_parameter_identifier                         607812  = 1.010× the site
+          type_reference                                  607014  = 1.009× the site
+          formal_port_identifier                          606216  = 1.008× the site
+          genvar_identifier                               606216  = 1.008× the site
+
+BOUND 2 (grammar-wide, rules named ONLY by '('-refuted top-level branches): 848 rules, 11481140 entries = 60.7%
+BOUND 3 (grammar-wide, rules named by ANY '('-refuted top-level branch): 962 rules, 15151416 entries = 80.2%  ⚠️ UPPER — a rule reachable from an admitting branch too is counted here
+
+⛔ WHAT NONE OF THE THREE BOUNDS COVER: an entry issued from a SEQUENCE element or a NESTED
+   Or site. `direct_refs` here spans top-level Or branches only, which is the population a
+   level-1 dispatch guard can refute. Bounds 1-2 are therefore not strict lower bounds on
+   the rule's entries; they are the share ATTRIBUTABLE to guardable branches on this input.
+
+THE SECOND MULTIPLIER, ON THE SAME SITE — repetition, which dispatch elision does not touch:
+   rule                                              entries  memo hits     hit%  calls/key
+   constant_primary_sv_2017                           601658          0     0.0%      368.2
+   constant_primary                                   601963          0     0.0%      368.4
+   constant_expression_operand                        602268          0     0.0%      368.6
+   declaration_identifier                            1219974          0     0.0%      746.6
+   non_keyword_identifier                            2443272    2442467   100.0%     1495.3
+   lparen                                             618360     617557    99.9%      378.4
+   trivia                                             742625     741017    99.8%      454.5
+   ⇒ input is 1633 B ⇒ at most 1634 distinct (rule,position) keys. A rule entered hundreds of
+     times per key with ZERO hits is being RE-DERIVED, not probed — and it re-runs its whole
+     tournament every time. The two multipliers COMPOSE: breadth × repetition.
+
+==============================================================================
+ARM E — .44 (d) THE <=2x BAR ACROSS FIVE FAMILIES (plain runs: the FUSED graph)
+==============================================================================
+⛔ THE FALSIFICATION LEG. json and rtl_const_expr are layout-SKIPPING: all four elision gates
+   read 0 on them exactly as on SystemVerilog. If they reject at ≈1× anyway, the elision
+   machinery is NOT what makes a reject cheap, and arm A's headroom is not by itself the fix.
+family           accepted       cost   reject       cost    ratio  verdict
+json                 1200     0.065s     2400     0.063s     1.0x  PASS(<=2x)
+regex                 400     0.028s     1200     0.026s     0.9x  PASS(<=2x)
+rtl_const_expr        300     0.038s      600     0.030s     0.8x  PASS(<=2x)
+systemverilog         320     0.149s      800    12.854s    86.3x  RED
+vhdl                  400     0.095s      800    19.328s   203.5x  RED
+   (accepted = deepest depth ON THE LADDER that parsed; reject = the DEEPEST over-ceiling
+    depth, i.e. the saturated plateau, which is what a pathological input reaches.)
+   WARNING: a ladder brackets the accept anchor from BELOW, and a shallower anchor is a
+      CHEAPER anchor, so every ratio printed here is an UPPER bound. A RED row therefore
+      cannot be a ladder artefact, and a PASS row would only improve with a finer ladder.
+
+==============================================================================
+READ IT LIKE THIS
+==============================================================================
+ARM A   The delta between the two facets IS the layout-aware headroom, because the two grammars
+        differ by one asserted line. A gate that stays 0 on BOTH sides (degeneracy) is blocked by
+        something layout-awareness cannot fix; read its blocker histogram to see by what.
+ARM B   Arm A's tracked-side zero is a grammar fact only because this arm shows the same gates
+        reporting large numbers elsewhere from the same binary.
+ARM C   `PREFIX2-EXPOSURE` moving off zero prices the D1 lane on the plateau workload itself.
+ARM D   Bound 1 has no cross-site double counting and its attribution is CHECKED by the ≈1.0×
+        entries-per-site-entry ratio, not asserted. Bounds 2/3 bracket the grammar-wide figure.
+        The repetition table is the term dispatch elision CANNOT reach — read it before concluding
+        that a bigger elision surface closes the ratio.
+ARM E   Two families with ZERO elision surface reject at ≈1×. That is the control step 2 lacked,
+        and it is what turns "the machinery prices SV at zero" from a diagnosis into a symptom.

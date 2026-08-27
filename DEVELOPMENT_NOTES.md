@@ -1,5 +1,60 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-27 - PGEN-ENGINE-UNIVERSAL-SERVICES-0105 — the control that confirms you is not the control that tests you
+
+**1. ⭐⭐⭐ PROVING AN INSTRUMENT IS ALIVE AND PROVING ITS VERDICT MATTERS ARE TWO DIFFERENT CONTROLS,
+AND I RAN THE FIRST AND CALLED IT THE SECOND.** Step 2 measured four attempt-elision gates at zero on
+SystemVerilog and ran the right control for the instrument — the same binary on regex reads
+60/33/853/102, so the zero is a grammar fact. That is necessary and it settles nothing about *why
+SystemVerilog is slow*, because regex differs from SystemVerilog in **two** ways at once (layout
+policy AND scale). The control that settles it is a subject that **shares the zero and is healthy**:
+`json` and `rtl_const_expr` are layout-skipping, report the same zero on all four gates for the same
+reason, and reject an over-ceiling input at **0.8–1.0×** their own deepest accepted parse — against
+SystemVerilog's 81–86× and VHDL's 199–204×. The zero was a symptom. ⇒ before spending a lane making a
+refusing gate applicable, look for a subject that already fails the gate and is fine.
+**promotion: PROMOTED** → `docs/decisions/a-zero-a-healthy-subject-also-reports-is-a-symptom.md`.
+
+**2. A GRAMMAR-LEVEL POLICY DIRECTIVE MAKES A HYPOTHETICAL MEASURABLE FOR ZERO CODE.** Every one of
+those four gates takes the layout facet as an *input*, and the facet is declared by a grammar-level
+`@whitespace_sensitive:` annotation — so *"what would these gates say if the raw byte peek were
+sound?"* is answered by running the census on the tracked grammar and on a copy carrying one extra
+line, with the one-line diff **asserted by the producer** so the probe cannot silently become a
+different experiment. It moved the per-branch admission gate from 0 to 1 906 of 1 934 branches
+without touching Rust. The generalisation: when an analysis is parameterised by a declared policy,
+the A/B is a copy of the input, not a build of the tool.
+**promotion: DECLINED — routed.** This is a diagnostic technique for a specific instrument family,
+and `TOOLBOX.md` §5.3 is its home; it now carries the recipe beside the gate it applies to. A memory
+record would be a second authority on the same paragraph.
+
+**3. A STATIC RANKING OVER A GRAMMAR WITH CLONE FAMILIES RANKS DEAD CODE — AND MY OWN CHECK IS WHAT
+CAUGHT IT.** SystemVerilog carries `_sv_2017`/`_sv_2023` profile twins and LR-elimination seed copies
+that name *identical* rules, so "which choice site would elide the most entries" ties four sites
+exactly. My first ranking maximised entries-on-the-rule and picked a 2-branch, 100 %-memo-served
+site; my second picked the clone entered **4 558** times over its twin entered **601 658**. The
+`≈1.0× entries-per-site-entry` sanity line — added to *show* the attribution rather than to test it —
+printed **134.8×** and made the mis-pick unmissable. The fix is a cap with a one-sentence
+justification: *a site cannot elide more attempts than it makes* (`entries(rule) × refuted
+branches`), plus printing the **379 of 535** never-entered sites instead of filtering them silently.
+**promotion: DECLINED — routed.** It is an instance of the standing *instruments need ground truth*
+line in the north star, and the concrete cap belongs in the leaf and in `TOOLBOX.md`, both of which
+now carry it. Promoting an instance would compete with the general record.
+
+**4. A DISPLAY LINE THAT EXPLAINS A NUMBER IS ALSO A TEST OF IT, AND THAT IS WORTH DESIGNING FOR.**
+The `1.008–1.021×` line existed to let a reader see *why* the attribution holds. It is the only thing
+in five arms that could have caught a wrong site, and it caught one. A printed justification that
+would look absurd if the claim were false is cheaper than a separate assertion and is read by
+everyone, including the author.
+**promotion: DECLINED.** Close enough to lesson 3 to be its corollary; recorded here rather than
+given a competing home.
+
+**5. THE FIRST RATIO ARM PARENTHESISED EVERY FAMILY, SO `json` COULD NEVER ACCEPT.** The bug was a
+per-family bracket pair I had not made per-family. What matters is what the arm did with it: it
+reported **NOT EVALUATED (ladder never crossed the cliff)** rather than a ratio, because the arm
+refuses when it has no accept anchor. The refusal discipline this repository already enforces is what
+turned a template bug into a visible gap instead of a published number.
+**promotion: DECLINED.** The refusal doctrine already exists and worked exactly as designed; this is
+evidence for it, not a new rule.
+
 ## 2026-08-27 - PGEN-ENGINE-UNIVERSAL-SERVICES-0104 — a refusal to invent a number is not the same as a refusal to derive one
 
 **1. ⭐⭐⭐ "I HAVE NO AUTHORITY TO SET THIS NUMBER" IS A REASON NOT TO INVENT ONE, NOT A REASON TO SHIP

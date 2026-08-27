@@ -149,6 +149,44 @@ second count is a claim about one laptop. Measured today: SystemVerilog accepts 
 rejects in **18.98 s** (**≈ 267×**). **Both families are far outside the bar**, which is why `.44`
 stays open.
 
+**And the bar is not a SystemVerilog-shaped impossibility — three other PGEN families already pass
+it.** The same ratio, measured across five families on plain runs with the same nested-bracket
+shape, is the most useful single table an embedder can have here, because it says the plateau is a
+property of two specific grammars rather than of the engine:
+
+| family | deepest accepted | its cost | saturated reject | its cost | ratio | verdict |
+|---|---:|---:|---:|---:|---:|---|
+| json | depth 1 200 | 0.065 s | depth 2 400 | 0.060–0.063 s | **0.9–1.0×** | ✅ passes |
+| regex | depth 400 | 0.028 s | depth 1 200 | 0.026 s | **0.8–0.9×** | ✅ passes |
+| rtl_const_expr | depth 300 | 0.036 s | depth 600 | 0.029 s | **0.8×** | ✅ passes |
+| systemverilog | depth 320 | 0.149 s | depth 800 | 12.3–12.9 s | **81–86×** | ⛔ fails |
+| vhdl | depth 400 | 0.094 s | depth 800 | 18.8–19.3 s | **199–204×** | ⛔ fails |
+
+Each accepted anchor is the deepest rung of a coarse ladder, so every ratio is an *upper* bound —
+which means the two red rows cannot be a measurement artefact, and the three green ones can only get
+better.
+
+**Why those three are cheap turned out to refute the obvious explanation, and that is worth stating
+because it redirected the fix.** The natural theory was PGEN's *attempt-elision* machinery: a family
+whose choice sites can dispatch on the next input byte never enters the branches that cannot match,
+so its tournaments stay small. That machinery reports exactly zero applicable sites on
+SystemVerilog, for one reason — SystemVerilog's terminals skip leading whitespace and comments, so a
+raw byte peek at the current position is unsound. Making the dispatch *layout-aware* (skip layout
+once, then peek) would unlock a large surface: measured on a copy of the grammar differing by one
+line, the per-branch admission gate goes from **0 to 1 906 of 1 934** top-level branches, and at the
+site that dominates a deep-nesting reject, **12 of its 15 alternatives are refutable on the first
+byte**.
+
+But `json` and `rtl_const_expr` have the *same* zero elision surface for the *same* layout reason,
+and they reject at ≈1× anyway. So the zero is a symptom, not the cause. Priced against the real
+workload, a perfect layout-aware dispatch removes at most 80 % of the rule entries — a 2.5–5×
+improvement — where the bar needs **41×**. The term that can supply it is *repetition*: on a
+1 633-byte input with at most 1 634 distinct memo keys, the dominant expression-spine rule is
+entered **601 658 times with zero memo hits**, roughly 368 re-derivations per position, while the
+leaves of the same tournament are served from the memo ~100 % of the time. Breadth and repetition
+multiply, and PGEN is currently attacking the smaller factor. Both are tracked —
+`ENGINE-UNIVERSAL-SERVICES.56` for the repetition term, `.58` for the layout-aware emission.
+
 > 📮 **Open question for embedders (Nexsim in particular) — tracked as
 > `ENGINE-UNIVERSAL-SERVICES.57`.** The ratio bar above is derived from the parser and needs nobody's
 > permission. What PGEN cannot derive is your side of it: **how many files a representative
