@@ -49,8 +49,12 @@ A *better* memo cannot help — and the reason is STRONGER than the one this rec
 ⛔ The first cut said *"the memo already answers ~99 % of calls correctly"*; the measured hit rate is
 **59.6 %** (`ENGINE-UNIVERSAL-SERVICES.44`(b) step 2, `-0102`), because `1 − entries/calls` counts
 calls that create no NEW KEY, which is not the same as calls the memo ANSWERS. What replaces it is
-better: **438 of 531 rules receive ZERO hits across 18.9 M calls, carrying 33.4 % of the volume**, and
-they are uncacheable by a gate that is SOUND — so no memo improvement can reach them at all. The only
+better, though it took a retraction to get right (`-0103`, same day): **23.4 % of the calls run on
+INLINED rules, where the P1b emission elides the packrat memo deliberately** — the body of a 1-node
+pass-through is cheaper to run than to probe for — so improving the memo cannot reach a quarter of the
+volume *by design*. ⛔ `-0102` first reported this as *"438 rules the memo never serves, uncacheable by
+a sound gate"* and named a suppression gate; the gate was shown INERT and the explanation was wrong.
+A further **9.9 %** records no hit for reasons still open (`ENGINE-UNIVERSAL-SERVICES.56`). The only
 term that can move a 109× is the fan-out that issues the calls — sibling alternatives at a choice site
 re-entering the same rules to be told, one probe at a time, what the cache already knows. ⇒ the fix
 lane is **attempt elision at the choice site**, not caching.

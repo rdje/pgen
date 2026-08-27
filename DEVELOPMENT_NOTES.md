@@ -1,5 +1,47 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-27 - PGEN-ENGINE-UNIVERSAL-SERVICES-0103 — the census printed the answer, I read past it, and explained the same number wrongly
+
+**1. ⭐⭐⭐ WHEN AN INSTRUMENT PRINTS A NUMBER YOU DID NOT ASK FOR, READ IT BEFORE YOU EXPLAIN A NUMBER
+YOU DID.** My arm C emitted `INLINE-EXPOSURE-DECIDED: decided_entries=4425993 (23.4% of total) ...
+memo_hits_on_decided=0`. My arm D then computed a zero-hit class and I went to the *source* to explain
+it, landing on a suppression gate that a later measurement showed never fires. The two numbers are
+**digit-exact**: `4 425 993`. The census had already told me the mechanism, in the log I committed, in
+a line whose name contains the word `INLINE`. ⇒ **a rich instrument's unrequested output is not noise
+to scroll past; it is the part you did not know to ask for.** The practical rule: when a census prints
+several families of line and I use one, I owe the others a read against my conclusion — specifically,
+any line whose number matches mine to more than two significant figures is about my finding.
+**promotion: PROMOTED** → `docs/decisions/read-the-line-the-instrument-printed-before-explaining-the-one-you-computed.md`.
+
+**2. A MECHANISM IS NOT ESTABLISHED UNTIL YOU SHOW IT FIRES, AND "IT HAS A file:line" IS NOT THAT.**
+I named `ast_based_generator.rs:9913-9918` as *"the candidate with a file:line"* — reading the code,
+confirming the condition would produce my signature, and citing it. It never executes on this input:
+the floor it tests is only ever lowered by two arms that record **zero** events, so the condition is
+FALSE for the whole parse. Reading a gate's *condition* tells you what it would do; only a measurement
+tells you whether it ran.
+**promotion: DECLINED — it is [[an-x-is-checked-by-nothing-claim-is-a-census-claim]] in the other
+direction** (that record is about asserting nothing reaches a site; this is asserting something does),
+and the repository already treats "show the population" as the standing answer to both. Recording it
+separately would split one rule across two authorities. ⭐ Routed into `.56`'s own text instead, as an
+explicit prohibition on that leaf, which is where it will actually be read.
+
+**3. THE CHEAP SEPARATION EXISTED AND THE LEAF SAID IT DID NOT.** `-0102` (and `-0100` before it) said
+telling the two suppression paths apart needed a per-refusal counter, i.e. a codegen change
+regenerating 11 parsers. It needed **one run at a depth where one path cannot fire**: sub-ceiling,
+`0` ceiling rejections, and the depth-gated path is provably inert. ⇒ before pricing an instrument,
+look for a REGIME in which the confound is already absent — a workload where one arm is structurally
+dead is a free control.
+**promotion: DECLINED as its own record, ROUTED to `TOOLBOX.md`** as the natural home (it is a
+technique for using the existing dumps, and 3.4/3.5 already own how to read them). Not written yet
+because one instance is not a pattern; if a second regime-separation lands, it earns the toolbox note.
+
+**4. A SELF-RETRACTION IS CHEAPEST WHEN THE LEAF NAMED ITS OWN GAP.** `-0102` shipped with an explicit
+*"NOT ESTABLISHED, and step 3 must not assume it"* bullet. That sentence is the entire reason this was
+caught inside one day instead of being built on: the next step's first move was to discharge it. The
+honest-bound habit is not decoration — it is a work item addressed to the next session.
+**promotion: DECLINED — per-slice history**, and it is [[feedback_verify_a_claim_three_ways_before_publishing_it]]
+plus the standing honest-bound practice working as intended rather than a new rule.
+
 ## 2026-08-27 - PGEN-ENGINE-UNIVERSAL-SERVICES-0102 — a census that reported zero everywhere, and the zero was the instrument's question, not the grammar's answer
 
 **1. ⭐⭐⭐ A BLOCKER FIRING ON 100 % OF A POPULATION IS ONE GLOBAL PROPERTY WEARING THE COSTUME OF N

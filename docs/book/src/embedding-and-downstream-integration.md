@@ -135,8 +135,9 @@ source. ⛔ This is tracked as an open defect, not an accepted residual, in
 *bounded-and-terminating is the difference between a crash and a slowdown, not the difference
 between a defect and a non-defect*. Where the time actually goes has been measured rather than
 guessed: on SystemVerilog error construction is only ~24 % of it, the parse cascade re-descending is
-~72 %, and the driving term is **call volume** — 18.9 M rule calls at depth 800, of which a third
-land on rules the memo can never serve. The ceiling's location did not move — a
+~72 %, and the driving term is **call volume** — 18.9 M rule calls at depth 800, of which about a
+quarter run on rules whose packrat memo is deliberately elided because inlining their one-node body
+is cheaper than probing for it. The ceiling's location did not move — a
 sub-ceiling control is accepted at exactly the same depth as before — and this is locked from both
 sides by `parser_embedding_*_over_ceiling_nesting_fails_in_bounded_time` (over the cliff: clean
 diagnostic **within a wall-clock budget**) and
