@@ -21,6 +21,33 @@ The SystemVerilog parser's changelog index is long because its return-annotation
 
 This book is **live** and tracks current main HEAD. The entries below mirror the "Schema Versioning" table and the Resolved-Defects sections in `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`; the contract is authoritative for the live state.
 
+### 1.0.7 / Contract 1.0.7 — ENGINE-UNIVERSAL-SERVICES.65 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0117`, 2026-08-28), ledger `VHDL-0006` — the 4096-frame recursion ceiling becomes a measurement of the host's stack (ENGINE; ZERO grammar bytes; schema stays 3)
+
+⛔ **A fixed acceptance ceiling, replaced by the stack this host actually supplies.** `4096`
+survives only as the depth at which the guard first measures its own stack spend; the ceiling is
+whatever the parse thread's remaining headroom can carry.
+
+**Measured VHDL effect.** Nested parentheses cliffed at **681** accepted levels before this release.
+After it — measured at a deliberately small **96 MiB** reservation, under a third of the shipped
+default — they no longer cliff anywhere below the measurement harness's own **16 384**-level cap.
+Nested function calls (371) and nested `if` statements (2 043) rise with them.
+
+**Proved host-derived rather than merely larger.** Varying the reservation moves the boundary
+linearly: on the cross-checked SystemVerilog shape, 96 / 128 / 192 / 256 MiB give
+1 807 / 2 410 / 3 611 / 4 813 accepted levels — **18.82 levels per MiB, flat to 0.14 %**. A constant
+of any size cannot produce that. `PGEN_PARSE_STACK_BYTES` (bytes, floored at 96 MiB) buys more depth
+on a host that can afford it, and the rejection message names that knob itself.
+
+**Nothing else moves.** External-corpus verdicts are identical over **13 720 files** (0 per-file
+differences); the interpreter stays byte-identical to the generated parser; AST-dump schema stays
+`3`.
+
+⚠️ **Bound**: parse cost is **quadratic in depth**, and an over-ceiling refusal is far dearer than it
+was because the parse descends much further before refusing (`ENGINE-UNIVERSAL-SERVICES.68`). The
+reservation's DEFAULT is still a compiled-in 256 MiB (`.69`). VHDL frames are measurably cheaper than
+SystemVerilog's, which is why the same reservation buys VHDL far more source depth — a further reason
+the capacity is a property of the host and the shape rather than a number to publish once.
+
 ### 1.0.6 / Contract 1.0.6 — ENGINE-UNIVERSAL-SERVICES.66 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0115`, 2026-08-28), ledger `VHDL-0005` — a silent 10 000-iteration quantifier cap is removed (ENGINE; ZERO grammar bytes; schema stays 3)
 
 ⛔ **An acceptance limit that never announced itself.** Every quantifier in every generated parser

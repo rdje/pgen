@@ -1,5 +1,76 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0117 — a guard that asks the host is not the same thing as a bigger number, and only proportionality can tell them apart
+
+**1. ⭐⭐⭐ THE VERIFICATION PROBLEM WAS HARDER THAN THE FIX.** Removing a `4096` and watching a
+boundary go up is not evidence that a ceiling became host-derived — it is evidence that a number got
+bigger, which is exactly what `.63`(c) refused (*"raising the constant is affordable but is not the
+answer — it is still a constant"*). The only claim that separates the two is **proportionality**: if
+the ceiling really is the stack, then halving the stack must halve the depth. That required making
+the reservation settable at all (`PGEN_PARSE_STACK_BYTES`), which is why the knob is part of the fix
+rather than a convenience — **a control that cannot vary the cause cannot test it.** Measured
+1 807 / 2 410 / 3 611 / 4 813 at 96 / 128 / 192 / 256 MiB: **18.82 levels per MiB, flat to 0.14 %**.
+⇒ **when you replace a constant with a derivation, the acceptance test is not "is the new value
+better" but "does the new value move when its input moves, and by the right factor".**
+
+**2. ⛔⛔ A CONTROL WENT RED AND CAUGHT A WRONG ASSUMPTION IN THE DESIGN'S FOUNDATION, not in its
+edges.** The whole mechanism rests on `base − current_sp` being the stack a parse has spent. I wrote
+a test asserting the obvious: a probe taken inside the thread closure sits BELOW the base recorded at
+thread entry. **It failed — `here = base + 176`.** `approximate_stack_pointer` returns the address of
+a local, and the compiler places frame slots in whatever order it likes, so the "base" is a slot
+INSIDE the entry frame rather than the frame's top; a probe from a shallower position in the same
+frame can legitimately read higher. The fix was to pad the recorded base upward, which can only make
+the derived spend an OVER-estimate (the safe direction), and to re-write the test to measure the
+property the design actually needs: spend must GROW with call depth, checked at 16 / 256 / 1024
+ballasted frames. ⇒ **the assertion I would have skipped as "obviously true" was the one that was
+false**, and it was false in a way that would have silently disabled the feature (the guard treats an
+inverted difference as "unknown" and keeps the old floor) rather than crashing.
+
+**3. ⭐⭐ THE CONSERVATIVE DIRECTION IS AN ARITHMETIC PROPERTY HERE, WHICH IS WHY IT IS WORTH WRITING
+DOWN.** The derived per-frame cost is `used / depth`, where `used = prologue + depth × real_cost`.
+That expands to `prologue/depth + real_cost`, which is **≥ real_cost for every depth** — so the
+estimate can only over-state the per-frame price, and the guard can only fire early. A safety
+argument that reduces to an inequality needs no measurement to defend and cannot rot; one that
+appeals to "the prologue is small" would have needed both.
+
+**4. ⛔ THE CONSTANT REACHED THE SHIPPED ARTIFACTS THROUGH THREE EMISSIONS, AND ONLY ONE OF THEM WAS
+THE OBVIOUS ONE.** Patching `GENERATED_RECURSION_GUARD_MAX_DEPTH` alone would have left **497**
+per-rule arm guards (`… if depth >= 4096usize`) and the `.61`(a) diagnostic's baked-in `ceiling`
+still reading the old value in `systemverilog_parser.rs` — the guard would have extended while every
+arm re-tested the retired number. The census that found this was taken over the EMITTED artifacts,
+not over the source, which is the same discipline `.66` needed for `SAFETY_LIMIT` one slice earlier.
+⭐ Deleting the arm clause is what makes the verdict single-sourced: `check_cycle_id` returns the
+ceiling variant only when the host is genuinely out of headroom, so a second test against a literal
+could only ever DISAGREE with the guard that produced the verdict.
+
+**5. ⛔⛔ THE SEED-REGENERATION TRAP FIRED AGAIN, ON THE SAME ARTIFACT, ONE SLICE LATER.**
+`make regenerate_generated_parsers` exited **0** having regenerated **9 of 11**: `generated/ebnf.rs`
+is guarded by `[ ! -f generated/ebnf.rs ]` and skipped on a warm tree, and `generated/scratch_parser.rs`
+is not in that target's set at all. `.66` was bitten by the identical thing and recorded it as
+`CI-PARITY-GATE-ROT.49`; knowing that is the only reason the census here was taken by enumerating
+`generated/*.rs` from the DIRECTORY rather than by a name pattern. ⇒ **a known trap is only defused
+when the instrument changes; remembering it merely means you get to catch it again by hand.**
+
+**6. ⚠️⚠️ THE FIX RELOCATED THE BINDING CONSTRAINT RATHER THAN REMOVING IT, AND SAYING SO IS THE
+POINT.** With the stack bound gone, the accept path's **Θ(depth²)** term is what a consumer meets
+first: 0.13 s at 250 levels, **22.24 s at 4 000**, each doubling costing ≈3.95×. The refusal side
+moved from 0.19 s to **37.7 s**. Under the director's standing correction — *"we need to have a
+problem solving mindset and not just a logging, reporting mindset"* — that is not a caveat to
+publish and leave: it is `.68`, whose WHY+WHERE is already located (`check_cycle_id` walks the whole
+`rule_id_stack` on every rule entry with no index and no early exit) and whose fix shape is already
+visible (a per-rule position stack answers both of the scan's questions in O(1) and still yields the
+oldest matching frame index `last_block_frame` needs).
+
+**7. ⭐ WHAT THE A/B HARNESS BOUGHT THAT A STORED BASELINE COULD NOT.** The pre-change release probe
+was copied out of `target/release/` **before the first source edit**, so the corpus comparison runs
+the same script over the same file lists with only the parser differing. That is what makes "0
+differences over 16 336 files" a statement about this change rather than about whatever the stored
+baseline happened to be — the failure mode `.66` had to work around when it found the tracked scratch
+results 34 files stale. ⭐ It also produced a free cross-check worth more than the arm itself: the
+before side reproduces `.61`(b)'s tracked per-file census EXACTLY, although that census was taken on
+the PROTOCOL graph and this one on the FUSED graph that ships — two different graphs agreeing
+file-for-file on 16 336 real files.
+
 ## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0116 — verifying the number you distrust leaves the one you supplied unexamined
 
 **1. ⭐⭐⭐ A RATIO IS A CLAIM ABOUT TWO QUANTITIES, AND I AUDITED ONLY ONE.** `.61`(b) published an

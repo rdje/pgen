@@ -81,15 +81,23 @@ if !decoded.encoding.preserves_disk_byte_offsets() {
 ### Stack robustness at the embedding boundary (`1.3.1`, `1.3.2`)
 
 A host process embedding a recursive-descent parser must never be aborted by that parser's
-recursion. The generated parsers carry a 4096-frame recursion ceiling, but a ceiling only
-protects the host when the calling thread has enough real stack for 4096 frames — measured for
-SystemVerilog that is ≈8 MB in release and ≈70 MB in debug, more than the 8 MB default main
-stack (a ~400-deep parenthesized expression, ≈4 KB of text, was enough to SIGABRT a release
-embedder). Since `1.3.1` (`SV-CORPUS-GRAD.8c.3`), every SystemVerilog and VHDL embedding parse
-runs its parser work on a dedicated **256 MiB-stack** thread (virtual reservation, lazily
-committed; one short-lived thread per call, so concurrent host threads never serialize), which
-guarantees the ceiling fires as a clean `E_PARSE_FAILURE` diagnostic before the OS guard page
-can kill the process — in both build modes. The regex family keeps its own earlier defense
+recursion. The generated parsers carry a recursion ceiling, but a ceiling only protects the host
+when the calling thread has enough real stack for the frames it admits — measured for
+SystemVerilog a frame costs ≈2 KB in release and ≈17 KB in debug, so the 4096 frames the ceiling
+admitted when this was written needed ≈8 MB / ≈70 MB, more than the 8 MB default main stack (a
+~400-deep parenthesized expression, ≈4 KB of text, was enough to SIGABRT a release embedder).
+Since `1.3.1` (`SV-CORPUS-GRAD.8c.3`), every SystemVerilog and VHDL embedding parse runs its
+parser work on a dedicated **256 MiB-stack** thread (virtual reservation, lazily committed; one
+short-lived thread per call, so concurrent host threads never serialize), which guarantees the
+ceiling fires as a clean `E_PARSE_FAILURE` diagnostic before the OS guard page can kill the
+process — in both build modes.
+
+⭐ **Since `ENGINE-UNIVERSAL-SERVICES.65` that reservation is also what SETS the ceiling**, rather
+than merely being large enough for it: the guard measures how much of this thread's stack the parse
+has really spent and refuses only when the headroom is gone. `PGEN_PARSE_STACK_BYTES` (bytes,
+floored at 96 MiB) therefore buys proportionally more nesting capacity on a host that can afford
+it. See *[The Recursion Ceiling Is Now The Host's Stack](#the-recursion-ceiling-is-now-the-hosts-stack)*
+below. The regex family keeps its own earlier defense
 (the RGX-0085 dedicated worker plus a PCRE2-parity nesting pre-check), unchanged. The same
 256 MiB guarantee wraps the `parseability_probe` and `ast_pipeline` instrument drivers, so a
 pathologically deep input is a reproducible clean rejection everywhere rather than a crash.
@@ -132,7 +140,11 @@ range (18.92 s at 700, 19.09 s at 2000 — **0.9 %** more time for **2.76×** mo
 saturation looks like). Saturation is the proof
 the search is bounded — past the ceiling the parse only ever descends 4096 frames however long the
 input is — but a bounded 12 s is still a real cost for a host parsing untrusted or machine-generated
-source. ⛔ This is tracked as an open defect, not an accepted residual, in
+source. ⚠️ **Every figure in this paragraph was measured while the ceiling was a fixed 4096
+frames.** `ENGINE-UNIVERSAL-SERVICES.65` moved the ceiling to the host's stack, so the plateau
+moved with it — the same shape now refuses one level past its (much deeper) boundary in **37.7 s**
+where it refused in 0.19 s, because the parse descends much further before the refusal. The
+saturation *argument* is unchanged; the numbers it saturates at are not. ⛔ This is tracked as an open defect, not an accepted residual, in
 `docs/tasks/ENGINE-UNIVERSAL-SERVICES.md` leaf `.44`, whose (d) ruling is explicit that
 *bounded-and-terminating is the difference between a crash and a slowdown, not the difference
 between a defect and a non-defect*. Where the time actually goes has been measured rather than
@@ -260,14 +272,22 @@ they receive.
 the ceiling now says so, on every family, in the error an embedder actually gets:
 
 ```text
-Parser did not consume full input at position 0 [recursion ceiling CONTACTED: the depth guard
-reached its 4096-frame limit and refused 953 rule entries during this parse. The limit counts
-PARSER FRAMES, not source nesting levels — one level of a nested construct costs several frames.
-If the input is syntactically valid it exceeds this parser's nesting capacity, and the defect is
-the ceiling — not a syntax error at position 0] [furthest_position=668, +668 bytes deeper …]
+Parser did not consume full input at position 0 [recursion ceiling CONTACTED: this host's parse
+stack ran out at 81675 parser frames, refusing 513 rule entries during this parse. The limit
+counts PARSER FRAMES, not source nesting levels — one level of a nested construct costs several
+frames — and it is derived from the parse thread's stack rather than compiled in, so raising
+PGEN_PARSE_STACK_BYTES buys proportionally more depth on a host that can afford it. If the input
+is syntactically valid it exceeds this parser's nesting capacity ON THIS HOST — not a syntax error
+at position 0] [furthest_position=28906, +28906 bytes deeper than surface position]
 ```
 
-Same census, same five terms, same two families: **5 of 5**.
+Same census, same five terms, same two families: **5 of 5**. (That is verbatim output, captured
+from the shipped release probe on 4 814 nested casts — one level past this host's boundary. The
+**81 675** frames is what the guard actually stopped at on a 256 MiB parse stack, which is why the
+number differs from host to host and from build mode to build mode. The wording above is the
+post-`ENGINE-UNIVERSAL-SERVICES.65` form: the frame count is now the depth at which *this host's*
+stack ran out, read from the guard that stopped there, and the sentence names the knob that moves
+it. `.61`(a) shipped the same label with a fixed `4096-frame limit` in place of the first clause.)
 
 Four properties of that label are worth knowing before you build on it:
 
@@ -289,17 +309,17 @@ Four properties of that label are worth knowing before you build on it:
   counter the guard already maintains, as a per-parse delta — so a parser reused across parses
   cannot inherit an earlier input's contact.
 
-### Is 4096 Frames The Right Place For It? — No. Two Limits Are Being Removed
+### The Recursion Ceiling Is Now The Host's Stack
 
 > ⛔⛔ **CORRECTION, 2026-08-28.** An earlier version of this section ruled that *"4096 frames stays
-> where it is"* on the strength of the contact census below. **That ruling is withdrawn**
-> (`ENGINE-UNIVERSAL-SERVICES.63`), and the standing requirement is now the opposite: **a PGEN RTL
+> where it is"* on the strength of the contact census below. **That ruling was withdrawn**
+> (`ENGINE-UNIVERSAL-SERVICES.63`), and the standing requirement is the opposite: **a PGEN RTL
 > parser must ingest any RTL file — hand-written, generated, optimized or not — with no limitation
 > or restriction, the only legitimate bound being the host's RAM and disk.** The census facts below
 > survive; the conclusion drawn from them did not. What changed is that the census was measured over
 > hand- and tool-written open-source RTL, and the target population is all RTL a real chip project
-> contains. Two limits are consequently being removed — the frame ceiling (`.65`) and a second,
-> silent one described at the end of this section (`.66`).
+> contains. **Both limits have since been removed** — the frame ceiling (`.65`, described at the end
+> of this section) and a second, silent one (`.66`, the section after it).
 
 ⭐ The ceiling rejects conforming source, so the fair question is whether *you* will meet it. The
 honest answer for a generated-RTL flow is **yes, and sooner than the corpus suggests**.
@@ -375,6 +395,74 @@ shape-agnostic bracket depth (22). **The defensible summary is that headroom ran
 ≈1× across emission styles for the same logic**, which is why the ceiling is being removed rather
 than re-sized.
 
+### ✅ The Frame Ceiling Is Gone — What Replaced It, And What It Costs
+
+`ENGINE-UNIVERSAL-SERVICES.65` removed the constant. **`4096` survives only as the depth at which
+the guard first *measures* how much stack the parse has spent**; from there the ceiling is whatever
+the parse thread's remaining headroom can still carry. Nothing in the mechanism reads a
+frames-per-level table, a build mode, or a family: the per-frame cost is derived from the spend the
+parse has already made, which is why release and debug — whose frames differ by ~8× — size
+themselves.
+
+**How you can tell it is genuinely host-derived, and not just a bigger number.** A larger boundary
+proves nothing on its own. The discriminating prediction is *proportionality*: if the ceiling is the
+stack, halving the stack must halve the depth. Measured on nested `int'(…)` casts, varying the
+reservation through `PGEN_PARSE_STACK_BYTES`:
+
+| parse-stack reservation | deepest accepted | levels per MiB |
+|---:|---:|---:|
+| 96 MiB | 1 807 | 18.823 |
+| 128 MiB | 2 410 | 18.828 |
+| 192 MiB | 3 611 | 18.807 |
+| **256 MiB (the shipped default)** | **4 813** | 18.801 |
+
+**Flat to 0.14 % across a 2.67× range.** No constant can produce that curve. Every boundary in the
+table is a genuine ceiling contact — confirmed by the `.61`(a) label rather than assumed — and the
+boundary is exactly reproducible (three accepts at 4 813, three rejections at 4 814).
+
+**What each shape gained.** The before column is the fixed 4096-frame ceiling, which no reservation
+could move; the after column is measured at a deliberately small **96 MiB** reservation — *under a
+third of the shipped default* — so it is a floor on what you get, not a best case:
+
+| shape | before | after (at 96 MiB) |
+|---|---:|---:|
+| `(s ? a : (…))` — mux, both arms parenthesised (the worst measured shape) | **146** | **1 142** |
+| `$signed(…)` | 163 | 1 550 |
+| `int'(int'(…))` | 249 | 1 807 → **4 813** at the default |
+| `(((…)))` | 322 | 2 434 |
+| `{{{…}}}` | 314 | 2 487 |
+| `f(f(f(…)))` | 340 | 3 055 |
+| VHDL `((( … )))` | 681 | **no cliff below 16 384**, the harness's own cap |
+
+⚠️ That table is a subset, and the shapes left out are the ones that would have looked BEST: the
+bisection is itself quadratic in depth, so the cheapest-per-level shapes (`begin`/`end` nesting,
+nested `if`, the bracket-free ternary chain that already reached 2 041) were dropped for cost. They
+spend the fewest frames per source level and therefore gain the most, so the numbers above are a
+floor rather than a flattering selection.
+
+⚠️ **What it costs, and this is not a footnote.** Parse cost is **quadratic in depth**. Measured on
+the shipped release probe, the nested-cast accept path: 250 levels → **0.13 s**, 500 → 0.40 s,
+1 000 → 1.43 s, 2 000 → 5.63 s, 4 000 → **22.24 s** — each doubling costing 3.1×, 3.6×, 3.9×, 3.95×,
+converging on 4×. The refusal side moves with it: rejecting input one level past the boundary cost
+**0.19 s** before this change and costs **37.7 s** now, still bounded and still ceiling-labelled.
+⇒ **the stack is no longer the first thing a deep parse runs out of — time is.** If you feed this
+parser thousands of nesting levels, plan for seconds, not milliseconds. The quadratic term is a
+whole-stack scan on every rule entry and is tracked as `ENGINE-UNIVERSAL-SERVICES.68`.
+
+⚠️ **One literal remains, named rather than left to be discovered.** The ceiling is derived from the
+reservation; the reservation's *default* is still a compiled-in 256 MiB
+(`ENGINE-UNIVERSAL-SERVICES.69`). It is host-settable today — `PGEN_PARSE_STACK_BYTES`, in bytes,
+floored at 96 MiB — which is what made the proportionality table above possible at all.
+
+⚠️ **Scope.** The derived bound applies to threads PGEN creates for parsing, which is every
+embedding-API entry and every CLI instrument. A parse driven on some other thread keeps the previous
+4096-frame behaviour, deliberately: this process cannot know that thread's stack size, and guessing
+it is how a diagnosed rejection becomes a `SIGSEGV` in someone else's host.
+
+**No regression, both released families**: the external corpus shows **0 differences over 16 336
+SystemVerilog files and 0 over 13 720 VHDL files**, per file rather than in aggregate, measured on
+the fused graph that actually ships with the pre-change binary preserved for the A/B.
+
 ### A Second Limit, And This One Was Silent — Now Removed
 
 The shape sweep above turned up a limit nobody had recorded, and for an embedder it mattered more
@@ -411,8 +499,9 @@ release is the explanation. The frame-ceiling boundaries are byte-for-byte where
 it does not yet make one *ingestible*. Parse memory measures **2 500×–8 000× the input size** and
 scales linearly — a 523 KB netlist peaks at ≈4.0 GB, a 1.1 MB one at ≈8.1 GB. So the limit is now
 your host's RAM rather than a constant in our source, which is the intended shape, but it arrives
-sooner than it should. That footprint is tracked as `ENGINE-UNIVERSAL-SERVICES.67` and is the next
-ingestion bound after the frame ceiling (`.65`).
+sooner than it should. That footprint is tracked as `ENGINE-UNIVERSAL-SERVICES.67`. With the frame
+ceiling now removed (`.65`, above) it is — together with the quadratic depth cost (`.68`) — what
+actually bounds ingestion today.
 
 ## Linter-Oriented Downstream Surfaces
 

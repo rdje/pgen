@@ -616,7 +616,6 @@ impl AstBasedGenerator {
             // marks, and a cached FAILURE carries no segment.
             let rule_const = format_ident!("RULE_{}", rule_name.to_uppercase());
             let thin_row_const = format_ident!("THIN_ROW_{}", rule_name.to_uppercase());
-            let recursion_guard_max_depth = super::GENERATED_RECURSION_GUARD_MAX_DEPTH;
             return Ok(quote! {
                 fn #match_fn(&mut self) -> CascadeResult<()> {
                     let parser = self;
@@ -645,7 +644,11 @@ impl AstBasedGenerator {
                                 position,
                             });
                         }
-                        CycleType::MutualRecursive { depth, .. } if depth >= #recursion_guard_max_depth => {
+                        // `ENGINE-UNIVERSAL-SERVICES.65` — mirrored one-for-one
+                        // from the protocol guard: the depth clause is gone from
+                        // both graphs, so the fused and protocol paths cannot
+                        // disagree about where the ceiling is.
+                        CycleType::MutualRecursive { depth, .. } => {
                             // ENGINE-UNIVERSAL-SERVICES.43 — the depth ceiling
                             // names no blocking frame, so it is counted on its
                             // own channel rather than tainting the frame floor

@@ -45,6 +45,39 @@ seeds 0/7/42. Exactly one number moved, in one family, in the intended direction
 **Observability.** `PGEN_REACH_ESCAPE_DUMP=1` prints the installed escape sites (TOOLBOX 4.4a), the
 sibling of `PGEN_REACH_PATH_DUMP`'s hop chain. Presence-gated print only.
 
+## Recent Architecture Change Note (2026-08-28) — the recursion ceiling STOPS BEING A COMPILE-TIME CONSTANT and becomes a runtime measurement of the host's stack (`ENGINE-UNIVERSAL-SERVICES.65`)
+
+**What moved, and it is a new dependency edge rather than a tuned number.** `RecursionGuard`
+(`rust/src/ast_pipeline/mod.rs`) now consults `crate::dedicated_parse_stack` on its rare path.
+Before, `max_depth` was a ceiling supplied once at construction from a codegen constant; now it is a
+**sample threshold**, and on reaching it `RecursionGuard::extend_depth_probe` reads the current
+thread's recorded stack extent, derives the per-frame cost from the spend measured so far, and moves
+the threshold outward by a share of the headroom that remains. The ceiling is therefore whatever the
+parse thread's stack can carry, per parse, per build mode, with nothing reading a frames-per-level
+table.
+
+| axis | before | after |
+|---|---|---|
+| where the ceiling lives | `GENERATED_RECURSION_GUARD_MAX_DEPTH = 4096`, baked into every emitted arm | derived at runtime from `dedicated_parse_stack::current_parse_stack_extent()` |
+| emitted per-rule test | `MutualRecursive { .. } if depth >= 4096usize` (**497** sites in the SV parser) | `MutualRecursive { .. }` — the guard is the only decider |
+| what a rejection reports | the codegen constant | `recursion_guard.last_ceiling_depth`, read from the guard that stopped |
+| host input | none | `PGEN_PARSE_STACK_BYTES` (reservation, floored at 96 MiB) |
+
+**The new module boundary.** `ast_pipeline` previously had no dependency on `dedicated_parse_stack`;
+the dependency ran the other way (the stack module existed to make the ceiling *able* to fire). It is
+now bidirectional in the conceptual sense — the stack module owns the extent, the guard consumes it —
+and deliberately one-directional in code: `dedicated_parse_stack` exports
+`current_parse_stack_extent()` and `approximate_stack_pointer()` and knows nothing about parsing.
+
+**Risk posture.** Every unknown is answered with the pre-`.65` behaviour: an unrecorded extent (any
+thread this process did not create for parsing), a stack that did not grow downward, a spend too
+small to divide honestly, or no headroom left all keep the compiled floor. That matters because the
+failure this replaces is a `SIGSEGV` in someone else's host process, which is strictly worse than a
+diagnosed rejection. ⚠️ The change relocates rather than removes the binding constraint: with the
+stack bound gone, the accept path's **Θ(depth²)** cycle scan (`check_cycle_id` walks the whole live
+`rule_id_stack` per rule entry) is what a deep parse meets first — tracked as
+`ENGINE-UNIVERSAL-SERVICES.68`.
+
 ## Recent Architecture Change Note (2026-08-21) — the recursion taint SPLITS INTO TWO CHANNELS, because one field was carrying a frame index and a whole-stack fact (`ENGINE-UNIVERSAL-SERVICES.43`)
 
 **What moved.** Every generated parser (both execution graphs) and the parse-harness interpreter
@@ -621,52 +654,28 @@ grammar-author facts (store-blind memo failure cache; variant-sensitive fact-nam
 rule-wide inline branch-predicate flattening; the `$`-stripped positional-reference dead path) —
 see the parse-harness book chapter and `docs/tasks/PARSE-HARNESS.md` §21.
 
-## Recent Architecture Change Note (2026-06-10, later)
+## Demoted architecture notes — the two oldest, routed to their canonical homes
 
-**Layout-skipper comment-introducer guard for regex terminals (`GRAMMAR-WELLFORMED.H.11.3`,
-vhdl release `1.0.4`, ledger `VHDL-0002`).** The emitted layout skipper
-`consume_layout_for_regex` ([rust/src/ast_pipeline/ast_based_generator.rs](../../rust/src/ast_pipeline/ast_based_generator.rs))
-hard-codes `#`-to-end-of-line, `//`, and `/* */` comment skipping into every
-non-blocklisted generated parser. Its string-terminal sibling
-`consume_layout_for_terminal` has always guarded against swallowing
-comment-introducer tokens (`expected != "#"` …); the regex side had no such
-guard, so a regex terminal that IS a comment introducer — VHDL's
-`hash := trivia /#/` — had its own token consumed as a "comment" and
-`based_literal` failed on every input since the family's first release. The
-fix adds the symmetric guard: each comment arm now calls the new emitted
-helper `regex_token_matches_at_cursor(pattern)` (anchored match at the cursor,
-cold-path sibling regex cache) and stands down when the active token's own
-pattern matches at the introducer. `consume_layout_for_regex` also moved
-inside the `uses_match_regex` conditional (it is only called from
-`match_regex`), so fully-literal parsers (the regex grammar) no longer carry
-it as dead code. Knock-on behavior worth knowing: explicit comment-token
-rules (`line_comment`, `block_comment`) in grammars that model trivia
-explicitly (SV, rtl_frontend) can now match directly at a comment instead of
-being pre-empted by the skipper — comment ownership is grammar-faithful. That
-surfaced one pre-existing generator-side `/`↔comment fusion hazard in
-generated SV samples (ticketed `GRAMMAR-WELLFORMED.H.11.5`); acceptance for
-real-token inputs is unchanged (the guard only fires where the old behavior
-self-defeated the active token).
+⛔ **`LIVE-DOC-CURRENCY` (instrument A) fired here, and this is the fix it names rather than a
+waiver.** This file is a *status view* of the Rust codebase; its charter allows **20** distinct
+dates, and it reached **21** by accumulating dated per-slice architecture notes — a dated history
+living in a status document, which is the class the doctrine exists to catch. The ceiling was NOT
+raised. The two oldest notes are removed here and their content is unchanged in the homes that own
+it:
 
-## Recent Architecture Change Note (2026-06-10)
+- **the layout-skipper comment-introducer guard for regex terminals** — `GRAMMAR-WELLFORMED.H.11.3`
+  in [docs/tasks/GRAMMAR-WELLFORMED.md](../tasks/GRAMMAR-WELLFORMED.md), released as vhdl `1.0.4`
+  with ledger row `VHDL-0002` in
+  [docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md](../contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md),
+  and in `CHANGES.md`;
+- **memo-hit coverage-delta replay** — `GRAMMAR-WELLFORMED.H.10.2.2` in the same tree and in
+  `CHANGES.md`, with its generalisable rule (*any new transactional per-rule record must be
+  delta-captured in `MemoEntry` and replayed on hits*) already promoted to the knowledge card
+  [memo-hit-transactional-replay](../knowledge/memo-hit-transactional-replay.md).
 
-**Memo-hit coverage-delta replay (`GRAMMAR-WELLFORMED.H.10.2.2`).** The shared packrat
-`MemoEntry` ([rust/src/ast_pipeline/mod.rs](../../rust/src/ast_pipeline/mod.rs)) gains a
-`coverage_delta: Option<Vec<u32>>` field, and the emitted `memoized_call`
-([rust/src/ast_pipeline/ast_based_generator.rs](../../rust/src/ast_pipeline/ast_based_generator.rs))
-now (a) snapshots the transactional coverage stack's length before executing a rule body,
-(b) stores the body's pushed coverage entries in the `MemoEntry` on success (`None` — no
-allocation — when coverage recording is disabled, the ordinary-parsing default), and (c)
-replays that delta onto the live coverage stack on every memo hit. This closes the
-memoization × transactional-record composition gap for the certifying-linter witness record —
-the same defect class `.b.6.2.36.4` closed for the semantic store (`semantic_delta` replay):
-a memo hit bypasses the rule body, so without the replay a subtree first parsed inside a
-rolled-back speculation and then memo-hit on the committed path was silently absent from
-`exercised_rule_names()`. Engine-wide rule for future work: **any new transactional per-rule
-record added to generated parsers must also be delta-captured in `MemoEntry` and replayed on
-hits** (see the `memo-hit-transactional-replay` knowledge card). All generated parsers were
-regenerated with the new shape; parse outcomes are byte-identical (the change affects only
-the opt-in diagnostic coverage record).
+⚠️ **The standing consequence, so the next author does not have to re-derive it**: this file is at
+its charter's edge. Adding a dated note now costs demoting an older one — which is the intended
+behaviour of a capped status surface, not an obstacle to route around.
 
 ## Recent Architecture Change Note (2026-07-16) — the committed-value representation: `ParseContent::Shaped(PgenValue)`
 

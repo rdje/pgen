@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0feab8a1.js";
+            window.path_to_searchindex_js = "searchindex-40112409.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -1978,6 +1978,40 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10201--contract-10201--engine-universal-services65-pgen-engine-universal-services-0117-2026-08-28-ledger-sv-0074-released"><a class="header" href="#10201--contract-10201--engine-universal-services65-pgen-engine-universal-services-0117-2026-08-28-ledger-sv-0074-released">1.0.201 / Contract 1.0.201 — ENGINE-UNIVERSAL-SERVICES.65 (<code>PGEN-ENGINE-UNIVERSAL-SERVICES-0117</code>, 2026-08-28), ledger <code>SV-0074</code> (<code>Released</code>):</a></h3>
+<p>⛔ <strong>The 4096-frame recursion ceiling is gone. What replaced it is not a bigger number — it is a
+measurement of the stack this host actually gave the parse thread.</strong> <code>4096</code> survives only as the
+depth at which the guard first <em>asks</em> how much stack it has spent; from there the ceiling is
+whatever the remaining headroom can carry.</p>
+<p><strong>What now parses that did not</strong> (measured at a deliberately small 96 MiB reservation — under a
+third of the shipped default — so these are a floor):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>shape</th><th style="text-align: right">before</th><th style="text-align: right">after @ 96 MiB</th></tr>
+</thead>
+<tbody>
+<tr><td><code>(s ? a : (…))</code> — mux, both arms parenthesised (worst measured shape)</td><td style="text-align: right">146</td><td style="text-align: right"><strong>1 142</strong></td></tr>
+<tr><td><code>$signed(…)</code></td><td style="text-align: right">163</td><td style="text-align: right">1 550</td></tr>
+<tr><td><code>int'(int'(…))</code></td><td style="text-align: right">249</td><td style="text-align: right">1 807 → <strong>4 813</strong> at the shipped default</td></tr>
+<tr><td><code>{{{…}}}</code></td><td style="text-align: right">314</td><td style="text-align: right">2 487</td></tr>
+<tr><td><code>(((…)))</code></td><td style="text-align: right">322</td><td style="text-align: right">2 434</td></tr>
+<tr><td><code>f(f(f(…)))</code></td><td style="text-align: right">340</td><td style="text-align: right">3 055</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>How you can tell it is genuinely host-derived.</strong> Vary the reservation and the boundary moves with
+it, linearly. At 96 / 128 / 192 / 256 MiB the deepest accepted nested cast reads
+1 807 / 2 410 / 3 611 / 4 813 — <strong>18.82 levels per MiB, flat to 0.14 %</strong>. No constant of any size
+produces that curve. Set <code>PGEN_PARSE_STACK_BYTES</code> (bytes, floored at 96 MiB) to buy more depth on a
+host that can afford it; the rejection message now names that knob itself.</p>
+<p><strong>Nothing else moves.</strong> External-corpus verdicts are identical over <strong>16 336 files</strong> (<code>pass=9794 fail=6542</code>, 0 per-file differences, measured on the fused graph that ships); the interpreter stays
+byte-identical to the generated parser; no grammar bytes changed and AST-dump schema stays at <code>26</code>.</p>
+<p>⚠️ <strong>Bound — the capability is not free and the cost is quadratic in depth.</strong> The same cast shape
+parses in <strong>0.13 s</strong> at 250 levels and <strong>22.24 s</strong> at 4 000 (each doubling ≈3.95×), and refusing
+input one level past the boundary now costs <strong>37.7 s</strong> where it cost 0.19 s — still bounded, still
+ceiling-labelled. Plan for seconds, not milliseconds, at thousands of levels. Tracked as
+<code>ENGINE-UNIVERSAL-SERVICES.68</code>; the reservation’s remaining compiled-in default is <code>.69</code>.</p>
 <h3 id="10200--contract-10200--engine-universal-services66-pgen-engine-universal-services-0115-2026-08-28-ledger-sv-0073-released"><a class="header" href="#10200--contract-10200--engine-universal-services66-pgen-engine-universal-services-0115-2026-08-28-ledger-sv-0073-released">1.0.200 / Contract 1.0.200 — ENGINE-UNIVERSAL-SERVICES.66 (<code>PGEN-ENGINE-UNIVERSAL-SERVICES-0115</code>, 2026-08-28), ledger <code>SV-0073</code> (<code>Released</code>):</a></h3>
 <p>⛔ <strong>This release removes a silent acceptance limit and changes nothing else.</strong> Every quantifier in
 every generated parser carried a <strong>10 000-iteration cap</strong> (<code>SAFETY_LIMIT</code>). It did not refuse — it

@@ -1,5 +1,91 @@
 # CHANGES.md
 
+## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0117 (leaf `ENGINE-UNIVERSAL-SERVICES.65` DONE — the 4096-frame RECURSION CEILING is replaced by a bound MEASURED from the host's own parse stack; SV release `1.0.201` ledger `SV-0074`, VHDL release `1.0.7` ledger `VHDL-0006`; new leaves `.68`/`.69`/`.70`; ENGINE + CONTRACT + BOOK + TRACKER tier, ZERO grammar bytes)
+
+- ⛔⛔ **THE DEFECT.** `GENERATED_RECURSION_GUARD_MAX_DEPTH = 4096` was a FIXED ACCEPTANCE CEILING,
+  which [[project_rtl_parsers_accept_any_rtl_no_limits_non_negotiable]] forbids outright. It refused
+  loudly — unlike `.66`'s cap — but it refused syntactically valid input, and 4096 frames is only
+  **61 source levels** for the worst emitter-plausible shape against a corpus already nesting **256**.
+- **RE-DERIVED, not quoted.** A pre-change release probe was copied out BEFORE the first source edit,
+  and the whole `.63`(b) shape table reproduces **bit-exact** against it (SV 322/314/340/272/249/146,
+  VHDL 681/2043/681/371), with exactly the five rows `.66` freed now reading `>16384`.
+- ⛔ **WHERE — a census over the EMITTED artifacts, because the constant reached the shipped parsers
+  through THREE emissions and patching the source constant alone would have left two of them**:
+  `generated/systemverilog_parser.rs` carried **499** occurrences of `4096usize` = **497** per-rule
+  arm guards + the `RecursionGuard::new` argument + the `.61`(a) diagnostic's reported `ceiling`. The
+  497 is MEASURED, not inferred — the arm sites survive with the clause removed, so the same
+  population counts **497** today, and `generated/ebnf.rs` reconciles identically (52 = 50 + 2).
+- ⭐⭐ **THE FIX: THE THRESHOLD BECOMES A SAMPLE POINT AND THE HOST ANSWERS.** `dedicated_parse_stack`
+  records each parse thread's extent at entry; on reaching its threshold the guard reads how much
+  stack the parse has really spent, divides by the live depth for a MEASURED per-frame cost, and
+  moves the threshold out by a quarter of the headroom that remains. **The estimate cannot be
+  optimistic**: `used/depth = prologue/depth + real_cost ≥ real_cost`, so it over-states the cost and
+  the guard fires early rather than late. Release and debug — whose frames differ ≈8× — size
+  themselves, and nothing reads a frames-per-level table.
+- ⛔ **EVERY UNKNOWN IS ANSWERED WITH THE OLD BEHAVIOUR**: no recorded extent → the compiled floor
+  stands; a stack that did not grow down → floor; a spend too small to divide honestly → floor; no
+  headroom → fire. A stack overflow ABORTS the embedder and is strictly worse than a diagnosed
+  rejection, which is the bound `.63`(c) set and it is honoured.
+- ⭐ **THE 500 LITERALS GO BECAUSE THE ARM CLAUSE GOES, which is also the single-sourcing**:
+  `check_cycle_id` returns the ceiling verdict only when the host is really out of headroom, so a
+  re-test against a baked-in number could only DISAGREE with the guard that produced it. Closed
+  census over `generated/*.rs` enumerated from the DIRECTORY: **11 of 11** artifacts now carry
+  exactly **1** `4096usize` (the sample floor) and **0** `depth >= 4096` comparisons.
+- ⛔⛔ **THE `.66` SEED TRAP FIRED AGAIN, ON THE SAME ARTIFACT.** The first
+  `make regenerate_generated_parsers` exited **0** having regenerated **9 of 11** — `generated/ebnf.rs`
+  is skipped by `[ ! -f … ]` on a warm tree and `generated/scratch_parser.rs` is not in that target's
+  set at all. Both were re-derived before any census was published. ⇒ second consecutive slice in
+  which the seed guard would have published a 9-of-11 as an 11-of-11 (`CI-PARITY-GATE-ROT.49`).
+- ⭐⭐⭐ **THE PROOF IS PROPORTIONALITY, NOT MAGNITUDE.** A bigger boundary shows a number got bigger;
+  it does not show a ceiling became host-derived. Varying the reservation through the new
+  `PGEN_PARSE_STACK_BYTES`, nested casts accept to **1 807 / 2 410 / 3 611 / 4 813** at
+  **96 / 128 / 192 / 256 MiB** — **18.82 levels per MiB, flat to 0.14 % over a 2.67× range**, every
+  boundary a labelled ceiling contact, and exactly reproducible (3/3 accept at 4 813, 3/3 reject at
+  4 814). No constant of any size can produce that curve. ⭐ **The frame ceiling this host actually
+  supplies is `81 675`** — read verbatim out of the shipped probe's own rejection, and it
+  reconciles two ways: 81 675 ÷ 4 813 = **16.97 frames/level** against `.63`(b)'s independently
+  measured 16.4, and 240 MiB ÷ 81 675 = **3.08 KB/frame** against `SV-CORPUS-GRAD.8c.3`'s
+  independently measured ≈2 KB, over-stated in exactly the direction the derivation guarantees.
+- ⭐ **CAPABILITY, measured at a deliberately SMALL 96 MiB reservation so the numbers are a floor**:
+  worst shape `(s ? a : (…))` **146 → 1 142**, `$signed(…)` 163 → 1 550, `int'(…)` 249 → 1 807
+  (**4 813** at the shipped default), `(((…)))` 322 → 2 434, `{{{…}}}` 314 → 2 487, `f(f(…))`
+  340 → 3 055; **VHDL nested parens 681 → no cliff below the harness's own 16 384 cap.**
+- [x] **NO REGRESSION — four arms.** Corpus A/B on the SAME harness with the pre-change binary
+  preserved: **SystemVerilog 0 differences over 16 336 files**, **VHDL 0 over 13 720**, per file
+  rather than in aggregate, on the FUSED graph that ships. Unit tests 6/6.
+  `parse_harness_equivalence_gate` 4/4. Clippy strict source + generated correctness PASS.
+- ⭐⭐ **A CONTROL WENT RED AND FOUND A REAL ERROR IN MY OWN ASSUMPTION.** The stack-direction test
+  asserted that a probe inside the thread closure sits BELOW the recorded base; it failed with
+  `here = base + 176`, because the address of a local is a slot INSIDE the entry frame and the
+  compiler orders slots as it likes — the recorded anchor is not the frame's top. Fixed by padding
+  the base upward (which can only make the derived spend an OVER-estimate) and by re-writing the test
+  to measure the property the design actually rests on: spend must GROW with depth, checked at
+  16/256/1024 ballasted frames.
+- ⚠️⚠️ **HONEST BOUND — THE CAPABILITY IS NOT FREE AND THE COST IS QUADRATIC.** Accept path, shipped
+  release probe: 250 → **0.13 s**, 500 → 0.40, 1 000 → 1.43, 2 000 → 5.63, 4 000 → **22.24 s**, each
+  doubling costing ≈**3.95×**. Refusing one level past the boundary cost **0.19 s** before and costs
+  **37.7 s** now — still bounded, still labelled, ≈198× dearer. ⇒ **the stack is no longer the first
+  thing a deep parse runs out of; time is.** ROUTED to **new leaf `.68`** (the guard scans the whole
+  live stack on every rule entry ⇒ Θ(depth²)), not explained away.
+- ⚠️ **HONEST BOUND — ONE LITERAL REMAINS AND IS NAMED**: the reservation's DEFAULT is still
+  `256 * 1024 * 1024`. It is now host-settable (floored at 96 MiB), which is what made the
+  proportionality control possible — but a default a developer typed is not host-derived. **New leaf
+  `.69`**, which also owns widening the derived path to an arbitrary embedder thread (needs an OS
+  stack query, i.e. `libc` as a direct dependency the crate does not have).
+- ⛔ **NEW `.70` (ROUTED + PARKED behind the SV lane)**: the WHERE census surfaced a THIRD fixed
+  acceptance ceiling — `REGEX_MAX_NESTING_DEPTH = 250`, a parenthesis pre-check at the regex
+  embedding boundary. Same class, different family; whether it should move is a scope question for
+  the regex contract (PCRE2 parity is the prior art there), recorded so the answer is deliberate.
+- ⛔ **A STALE WITHDRAWN NUMBER CORRECTED IN PASSING**: `docs/TASK_TREE.md` still asserted *"the
+  11.3× margin is really **1.06×**"* as live fact. `-0116` withdrew that number and its own message
+  said the tree index was corrected — but `docs/TASK_TREE.md` was not in that commit's file list, so
+  only the tree FILE's header was. Fixed here.
+- **The embedder-facing label changed with the mechanism**, not just its number: it now reads
+  *"this host's parse stack ran out at N parser frames"* and names `PGEN_PARSE_STACK_BYTES`, because
+  an embedder told that a limit exists and not how to move it files a bug instead of setting an
+  environment variable. `.61`(a)'s five-term census property (`depth|ceiling|limit|nest|recursion`)
+  is preserved: 5 of 5.
+
 ## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0116 (CORRECTION under a director re-verification challenge — my own replacement margin `1.06×` is WITHDRAWN as the SAME category error it was correcting; MEASUREMENT + BOOK + TRACKER tier, ZERO Rust / grammar / codegen / generated bytes)
 
 - ⛔⛔⛔ **THE RETRACTION.** `-0114` published that `.61`(b)'s *"margin on the deepest REAL file is

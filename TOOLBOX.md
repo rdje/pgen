@@ -543,9 +543,12 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
       = 28548 total, 411903 subtree-nodes, 612 distinct rules, 0 depth-ceiling rejections ===
   ```
 - ⭐⭐ **READ THE LAST FIELD FIRST ON ANY "THIS PARSE NEVER RETURNS" QUESTION** (`ENGINE-UNIVERSAL-SERVICES.43`).
-  `depth-ceiling rejections` is the count of times this parse crossed the engine's **4096-frame**
-  whole-stack ceiling, and `depth-gated` is how many failures were cached under the depth stamp that
-  crossing produces. **A healthy parse of any shipped corpus file reads `0` for both.** A non-zero
+  `depth-ceiling rejections` is the count of times this parse crossed the engine's whole-stack
+  recursion ceiling, and `depth-gated` is how many failures were cached under the depth stamp that
+  crossing produces. ⛔ **Since `ENGINE-UNIVERSAL-SERVICES.65` that ceiling is NOT 4096 frames and is
+  not a constant at all** — it is measured from the parse thread's real stack headroom, so it moves
+  with `PGEN_PARSE_STACK_BYTES` and with the build mode. Read the depth out of the rejection's own
+  label (*"this host's parse stack ran out at N parser frames"*) rather than assuming a number. **A healthy parse of any shipped corpus file reads `0` for both.** A non-zero
   count means the input is at or past the ceiling — the parse is bounded and will reject, but the
   numbers tell you *that* is why, before you go looking for a grammar defect. ⛔ A ceiling rejection
   used to be un-cacheable outright, and one trip disabled failure memoisation for the whole remaining

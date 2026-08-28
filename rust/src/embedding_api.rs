@@ -1721,9 +1721,9 @@ fn generated_regex_worker() -> &'static GeneratedRegexWorker {
 // real pattern, and comfortably within the 64 MiB dedicated worker stack
 // (~512 nesting in debug) with a >2x margin. This is the integration-
 // boundary analogue of PCRE2's compile-time parens-nest limit; it does NOT
-// touch the *global* engine `RecursionGuard`
-// (`GENERATED_RECURSION_GUARD_MAX_DEPTH`), so SV/VHDL recursion is provably
-// unaffected. Single-source-of-truth knob: to change the ceiling, change
+// touch the *global* engine `RecursionGuard` (whose ceiling is derived from
+// real host stack headroom since `ENGINE-UNIVERSAL-SERVICES.65`), so SV/VHDL
+// recursion is provably unaffected. Single-source-of-truth knob: to change the ceiling, change
 // this one const (PCRE2's build-time `--with-parens-nest-limit` model);
 // also surfaced in `parser_embedding_api_contract()` for downstream
 // discoverability.

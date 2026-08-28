@@ -26,9 +26,26 @@ use quote::{ToTokens, format_ident, quote};
 use std::collections::{HashMap, HashSet};
 use syn::Ident;
 
-// PCRE2 conformance includes legal regexes whose syntax is shallow in bytes but
-// deep in generated parser calls. Keep this bounded, but above real corpus depth.
-const GENERATED_RECURSION_GUARD_MAX_DEPTH: usize = 4096;
+// `ENGINE-UNIVERSAL-SERVICES.65` — THE DEPTH AT WHICH A GENERATED PARSER FIRST
+// SAMPLES ITS HOST STACK. It is NOT the recursion ceiling and must not be read as
+// one; it was called `GENERATED_RECURSION_GUARD_MAX_DEPTH` while it was.
+//
+// The ceiling itself is derived from the stack the thread actually owns, measured
+// per parse (`ast_pipeline::RecursionGuard::extend_depth_probe`). Reaching this
+// depth only makes the guard ASK; the host answers. Two properties make 4096 the
+// right place to ask rather than an arbitrary one:
+//
+//   * it is above every measured real-corpus parse, so the overwhelming majority
+//     of parses never reach the probe and pay exactly what they paid before the
+//     ceiling moved (PCRE2 conformance includes legal regexes that are shallow in
+//     bytes and deep in generated parser calls — those are the deepest ordinary
+//     population known here), and
+//   * it is far enough down that the first per-frame cost measurement is taken
+//     over thousands of real frames rather than over a handful.
+//
+// ⛔ A parse on a thread whose stack size this process does not know keeps this
+// value as a hard ceiling — the conservative answer, and the pre-`.65` behaviour.
+const GENERATED_RECURSION_GUARD_STACK_PROBE_FLOOR: usize = 4096;
 
 /// `ENGINE-UNIVERSAL-SERVICES.31` — the name of the ONE module constant a generated parser holds
 /// its diagnostic label in.
@@ -1689,7 +1706,7 @@ impl AstBasedGenerator {
     fn generate_constructor(&self) -> Result<TokenStream> {
         let compiled_semantic_runtime_annotations =
             self.generate_compiled_semantic_runtime_annotations_tokens()?;
-        let recursion_guard_max_depth = GENERATED_RECURSION_GUARD_MAX_DEPTH;
+        let recursion_guard_max_depth = GENERATED_RECURSION_GUARD_STACK_PROBE_FLOOR;
         // RGX-0078.5.i.7 (D2-A) — twin-routing state init (plan-active only; see
         // `generate_parser_struct`). `bare_parse` starts false: the real verdict is
         // computed at `parse()` start, and `parse_from` (entry-relative) keeps it
@@ -2215,10 +2232,6 @@ impl AstBasedGenerator {
     ) -> TokenStream {
         let parse_method = format_ident!("parse_{}", entry_rule);
         let parse_full_method = format_ident!("parse_full_{}", entry_rule);
-        // `ENGINE-UNIVERSAL-SERVICES.61`(a) — the guard's frame capacity, baked in at
-        // codegen from the SAME constant the guard's own `depth >= …` test uses, so the
-        // number a rejection reports and the number that produced it cannot drift apart.
-        let recursion_ceiling_frames = GENERATED_RECURSION_GUARD_MAX_DEPTH;
         // GENERATED-LINT-CORRECTNESS.2 — the trailing-layout policy is a
         // codegen-time constant (`@whitespace_sensitive:`), so the emitted
         // `if true { … }` / `if false { … }` is decided here instead. A
@@ -2644,7 +2657,13 @@ impl AstBasedGenerator {
                 ParseError::RecursionCeilingContacted {
                     surface: err.to_string(),
                     position,
-                    ceiling: #recursion_ceiling_frames,
+                    // `ENGINE-UNIVERSAL-SERVICES.65` — READ, not baked in.
+                    // `.61`(a) baked the capacity in at codegen so the reported
+                    // number and the number that produced the rejection could not
+                    // drift apart; there is no such number any more, so the
+                    // requirement is met more strictly by reading the depth the
+                    // guard actually stopped at, from the guard that stopped it.
+                    ceiling: self.recursion_guard.last_ceiling_depth,
                     events,
                 }
             }
@@ -4253,8 +4272,6 @@ impl AstBasedGenerator {
         } else {
             quote! {}
         };
-        let recursion_guard_max_depth = GENERATED_RECURSION_GUARD_MAX_DEPTH;
-
         // Optim #14: conditionally emit the semantic-runtime transaction
         // wrapper per rule. The inner `memoized_call` body is identical
         // in both arms; only the surrounding wrapper differs. The Optim
@@ -4370,7 +4387,14 @@ impl AstBasedGenerator {
                             position,
                         });
                     }
-                    CycleType::MutualRecursive { depth, ref rules } if depth >= #recursion_guard_max_depth => {
+                    // `ENGINE-UNIVERSAL-SERVICES.65` — NO `depth >= <literal>`
+                    // GUARD HERE. `check_cycle_id` returns this variant only when
+                    // the host stack is genuinely out of headroom, so re-testing
+                    // the depth against a baked-in number could only DISAGREE with
+                    // the guard that produced the verdict. Deleting the clause is
+                    // what removes the constant from the shipped artifacts (500
+                    // occurrences in the SystemVerilog parser alone).
+                    CycleType::MutualRecursive { depth, .. } => {
                         // ENGINE-UNIVERSAL-SERVICES.43 — the depth ceiling is a
                         // fact about the WHOLE stack, not about one frame, so it
                         // has no blocking frame to record and must NOT be routed

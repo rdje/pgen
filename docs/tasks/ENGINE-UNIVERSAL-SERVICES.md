@@ -14698,20 +14698,230 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   director's *"thorough and accurate and fast (not reached yet, because it is not the focus right
   now)"* ordering; this leaf is admitted because it is an INGESTION bound, not a performance one.
 
-### ⛔⛔ `.65` — **RE-ANCHOR `GENERATED_RECURSION_GUARD_MAX_DEPTH` ON HOST STACK HEADROOM INSTEAD OF A COMPILED-IN 4096** (`todo`, opened 2026-08-28 by `.63`(c)'s ruling / `PGEN-ENGINE-UNIVERSAL-SERVICES-0114`; behind `.66`)
+### ✅✅✅ `.65` — **THE RECURSION CEILING IS NO LONGER A NUMBER ANYBODY TYPED. IT IS MEASURED, PER PARSE, FROM THE STACK THE HOST ACTUALLY GAVE THE THREAD** (**DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0117`; opened 2026-08-28 by `.63`(c)'s ruling / `…0114`; taken after `.66`)
 
-- **WHY + WHERE**: `GENERATED_RECURSION_GUARD_MAX_DEPTH = 4096`
-  (`rust/src/ast_pipeline/ast_based_generator.rs:31`, mirrored at
-  `ast_based_generator/cascade.rs:648`, read by the protocol guard at `:4281`). `.63`(b) measured its
-  real capacity at **61 source levels** for the worst emitter-plausible shape, against a corpus that
-  already nests **256**.
-- **OWES**: capacity bounded by measured remaining stack rather than a frame count, sized against the
-  dedicated parse thread (`dedicated_parse_stack.rs`, 256 MiB today, ≈2 KB/frame release /
-  ≈17 KB/frame debug per `SV-CORPUS-GRAD.8c.3`); the thread reservation grows with it. ⇒ raising the
-  constant is a legitimate INTERIM step, and `.63`(c) priced it — but it is not closure, because the
-  mandate forbids a constant, not merely a small one.
-- ⚠️ **Sequencing note**: `.61`(a)'s self-naming rejection stays — it is what makes a residual refusal
-  diagnosable while this leaf is open, and it is the model `.66` must copy.
+#### ✅ `.65` DONE 2026-08-28 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0117`) — **`4096` SURVIVES ONLY AS THE DEPTH AT WHICH THE GUARD FIRST *ASKS*. THE ANSWER COMES FROM THE HOST, AND IT IS PROVED HOST-DERIVED BY PROPORTIONALITY RATHER THAN BY A BIGGER NUMBER**
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — `GENERATED_RECURSION_GUARD_MAX_DEPTH = 4096` was a fixed
+  ACCEPTANCE ceiling, which [[project_rtl_parsers_accept_any_rtl_no_limits_non_negotiable]] forbids
+  outright. **Re-derived by command on a PRE-CHANGE binary saved before any edit**
+  (`tmp/eus65/parseability_probe.before`, copied from `rust/target/release/` at the start of the
+  slice) rather than quoted from `.63`(b): the whole `.63`(b) shape table reproduces **bit-exact** —
+  `paren_expr` 322/323, `concat` 314/315, `ternary` 272/273, `cast_paren` 249/250,
+  `gen_mux_both_arms` 146/147, VHDL `paren_expr` 681/682, `gen_if_nest` 2043/2044 — with exactly the
+  five rows `.66` freed now reading `>16384` instead of `10000`. **The tool signature, verbatim from
+  `./rust/target/release/parseability_probe --parse systemverilog <f> --profile sv_2017` on 250
+  nested casts against the PRE-change binary** — the rejection carries `.61`(a)'s ceiling label and
+  the furthest-position suffix that distinguishes a capacity refusal from a syntax error at the
+  surface position:
+  `Parser did not consume full input at position 0 [recursion ceiling CONTACTED: the depth guard
+  reached its 4096-frame limit and refused 498 rule entries …] [furthest_position=1522, +1522 bytes
+  deeper than surface position]`. The same probe on the POST-change binary at 4 814 levels reads
+  `[recursion ceiling CONTACTED: this host's parse stack ran out at 81675 parser frames …]
+  [furthest_position=28906, +28906 bytes deeper than surface position]` — same instrument, same
+  flag, the ceiling moved from a compiled constant to a measured one.
+- ⛔ **WHERE — A CENSUS OVER THE EMITTED ARTIFACTS, NOT OVER THE SOURCE, because the constant reached
+  the shipped parsers through THREE DIFFERENT EMISSIONS and patching the source constant alone would
+  have left two of them.** In `generated/systemverilog_parser.rs`: **499** occurrences of
+  `4096usize` = **497** per-rule arm guards `CycleType::MutualRecursive { depth, ref rules } if depth
+  >= 4096usize` + 1 `RecursionGuard::new(4096usize)` + 1 `ceiling: 4096usize` in the `.61`(a)
+  diagnostic. The 497 is MEASURED, not inferred — the arm sites survive the change with the clause
+  removed, so `grep -c 'CycleType::MutualRecursive { depth, .. } =>'` counts the same population
+  today and reads **497** exactly; `generated/ebnf.rs` reconciles the same way (52 = 50 + 2).
+  Source sites: `ast_based_generator.rs:31` (the constant), `:1692`/`:1865` (constructor),
+  `:2221`/`:2647` (the diagnostic), `:4256`/`:4373` (the protocol arm), `cascade.rs:619`/`:648` (the
+  fused arm — the graph a bare parse actually runs).
+- ⭐⭐ **THE FIX: THE THRESHOLD BECOMES A SAMPLE POINT, AND THE HOST ANSWERS.**
+  `dedicated_parse_stack.rs` records each parse thread's extent (`(base, reservation)`) at thread
+  entry; when a guard reaches its current threshold, `RecursionGuard::extend_depth_probe` asks how
+  much stack the parse has really spent (`base − current`), divides by the live frame depth to get a
+  MEASURED per-frame cost, and moves the threshold out by a quarter of what the remaining headroom
+  can still carry. **Why the estimate cannot be optimistic**: `used = prologue + depth × real_cost`,
+  so `used / depth = prologue/depth + real_cost ≥ real_cost` — the derived per-frame cost is an
+  OVER-estimate by construction, and the guard therefore fires early rather than late.
+  **Release and debug size themselves** (`SV-CORPUS-GRAD.8c.3` measured ≈2 KB/frame release and
+  ≈17 KB/frame debug; nothing in the fix reads either number).
+- ⛔ **EVERY UNKNOWN IS ANSWERED WITH THE OLD BEHAVIOUR, never with a guess**: no recorded extent
+  (any thread this process did not create for parsing) → the compiled floor stands; a stack that did
+  not grow downward → floor; a spend too small to divide honestly → floor; no headroom → fire. A
+  stack overflow ABORTS the embedder and is strictly worse than a diagnosed rejection, which is the
+  bound `.63`(c) set on this leaf and it is honoured.
+- ⭐ **THE 500 LITERALS ARE GONE BECAUSE THE ARM CLAUSE IS GONE, WHICH IS ALSO THE SINGLE-SOURCING.**
+  `check_cycle_id` returns `MutualRecursive` only when the host is genuinely out of headroom, so a
+  re-test against a baked-in number could only DISAGREE with the guard that produced the verdict.
+  **Closed emission census, 11 of 11 artifacts enumerated from the directory**: every one now carries
+  **exactly 1** `4096usize` (the sample floor in `RecursionGuard::new`), **0**
+  `if depth >= 4096usize`, and **1** `ceiling: self.recursion_guard.last_ceiling_depth` — so the
+  number a rejection reports is now read from the guard that stopped it, which meets `.61`(a)'s
+  no-drift requirement more strictly than baking it in did.
+- ⛔⛔ **AND THE `.66` TRAP FIRED AGAIN, ON THE SAME ARTIFACT.** The first
+  `make regenerate_generated_parsers` exited **0** having regenerated **9 of 11**:
+  `generated/ebnf.rs` still carried **52** literals and **50** arm guards because
+  `regex_parser_bootstrap` guards the seed with `[ ! -f generated/ebnf.rs ]`, and
+  `generated/scratch_parser.rs` is not in that target's set at all. Both were re-derived (`rm` +
+  re-run; `make focus_scratch`) before any census was published. ⇒ the census is closed only because
+  it was taken over `generated/*.rs` enumerated from the DIRECTORY — this is the second consecutive
+  slice in which the seed guard would have published a 9-of-11 as an 11-of-11. Owned by
+  `CI-PARITY-GATE-ROT.49`.
+- [x] **ADDRESSED (verified) — AND THE PROOF IS PROPORTIONALITY, NOT MAGNITUDE.** A bigger accept
+  boundary is evidence that a number got bigger; it is not evidence that a ceiling became
+  host-derived. The discriminating prediction is that the boundary must be LINEAR in the stack the
+  thread owns — which no constant, of any size, can produce. Measured on `cast_paren` with the
+  reservation varied through `PGEN_PARSE_STACK_BYTES` (producer
+  `docs/tasks/artifacts/eus65/reservation_scaling.py`), every boundary confirmed to be a real
+  ceiling contact by its `.61`(a) label rather than a timeout:
+
+  | reservation | deepest accepted | first rejected | **levels / MiB** | ceiling-labelled |
+  |---:|---:|---:|---:|:--:|
+  | 96 MiB | 1 807 | 1 808 | **18.823** | yes |
+  | 128 MiB | 2 410 | 2 411 | **18.828** | yes |
+  | 192 MiB | 3 611 | 3 612 | **18.807** | yes |
+  | 256 MiB (default) | **4 813** | 4 814 | **18.801** | yes |
+
+  ⇒ **flat to 0.14 % across a 2.67× range**, and `2410/1807 = 1.3337` against `128/96 = 1.3333`.
+  ⭐ **On the DEFAULT reservation `cast_paren` goes 249 → 4 813 source levels, a 19.3× rise**, and the
+  boundary is exactly reproducible: 3 of 3 accepts at 4 813 and 3 of 3 rejections at 4 814.
+  ⭐ **The frame ceiling this host actually supplies is `81 675`** — not a number in any source file,
+  read verbatim out of the shipped probe's own rejection at 4 814 (*"this host's parse stack ran out
+  at 81675 parser frames"*). It reconciles: 81 675 frames ÷ 4 813 levels = **16.97 frames/level**
+  against `.63`(b)'s independently measured 16.4 for this shape, and 240 MiB of budget ÷ 81 675 =
+  **3.08 KB/frame** against `SV-CORPUS-GRAD.8c.3`'s independently measured ≈2 KB release — the same
+  order, and the direction of the difference is the expected one, because the derived per-frame cost
+  is an over-estimate by construction (see the fix note above).
+
+- ⛔ **THE EMBEDDER-FACING LABEL CHANGED WITH THE MECHANISM, not just its number.** It now reads
+  *"this host's parse stack ran out at N parser frames … it is derived from the parse thread's stack
+  rather than compiled in, so raising `PGEN_PARSE_STACK_BYTES` buys proportionally more depth"* — an
+  embedder told that a limit exists and not how to move it files a bug instead of setting an
+  environment variable. `.61`(a)'s five-term census property (`depth|ceiling|limit|nest|recursion`)
+  is preserved at **5 of 5**, checked term by term against the new string.
+- [x] **NO REGRESSION — four arms, each blind to what the others see:**
+  - **Corpus, BOTH released families, A/B on the SAME harness rather than against a stored
+    baseline.** The pre-change binary was saved before the first edit, so both sides differ only in
+    the parser: **SystemVerilog 0 differences over 16 336 files** (`9794` accept / `6542` reject,
+    identical both sides) and **VHDL 0 differences over 13 720 files** (`4370` / `9350`). ⭐ The
+    before-side independently reproduces `.61`(b)'s tracked per-file census EXACTLY (9794/6542) even
+    though that census was taken on the PROTOCOL graph and this one on the FUSED graph that ships —
+    two different graphs agreeing file-for-file. (⛔ `.62`'s lesson honoured: `--profile sv_2017`
+    throughout, because an unnamed SV profile parses the union of every dialect.)
+  - **Unit tests, including a control that went RED and found a real error in my own assumption.**
+    6 of 6 pass. The direction control originally asserted that a probe taken inside the thread
+    closure sits BELOW the recorded base; it failed with `here = base + 176`, because
+    `approximate_stack_pointer` returns the address of a local and the compiler orders frame slots as
+    it likes — the anchor is a slot INSIDE the entry frame, not the frame's top. Fixed by padding the
+    recorded base upward (`STACK_BASE_ANCHOR_PAD_BYTES`, which can only make the derived spend an
+    over-estimate) and by re-writing the test to measure the property the design actually rests on:
+    spend must GROW with call depth, checked at 16 / 256 / 1024 ballasted frames.
+  - **Interpreter ≡ generated parser.** `parse_harness_equivalence_gate` PASSES (4 tests, 26.80 s).
+  - **Clippy** — strict source lint + the generated-parser correctness stage (deny-by-default), run
+    because Rust sources and all eleven regenerated artifacts changed.
+- ⚠⚠ **HONEST BOUND — THE CAPABILITY IS REAL AND IT IS NOT FREE, AND THE COST IS QUADRATIC.**
+  Measured on the shipped release probe, `cast_paren` accept path: 250 → **0.13 s**, 500 → 0.40 s,
+  1 000 → 1.43 s, 2 000 → 5.63 s, 4 000 → **22.24 s** — each doubling of depth costs ≈**3.95×**, i.e.
+  Θ(depth²). The REJECT side moves with it: refusing input one level past the boundary cost
+  **0.19 s** before this change (depth 250) and costs **37.70 s** now (depth 4 814), still bounded
+  and still ceiling-labelled, but ≈198× dearer. ⇒ **the stack is no longer the first thing a deep
+  parse runs out of — time is.** That is the director's accepted ordering (*"thorough and accurate
+  and fast (not reached yet, because it is not the focus right now)"*), and it is ROUTED, not
+  explained away: **new leaf `.68`** owns the Θ(depth²) term.
+- ⚠ **HONEST BOUND — ONE LITERAL REMAINS AND IT IS NAMED, not left to be re-discovered.** The
+  ceiling is derived from the reservation; the reservation's DEFAULT is still `256 * 1024 * 1024`.
+  It is now host-settable (`PGEN_PARSE_STACK_BYTES`, floored at 96 MiB so an operator cannot shrink
+  the stack below the first sample depth), which is what made the proportionality control above
+  possible at all — but a default a developer typed is not a host-derived default. **New leaf
+  `.69`.**
+- ⚠ **HONEST BOUND — SCOPE.** The derived path requires a thread whose stack size this process
+  knows, which today means a thread created by `dedicated_parse_stack`. That covers 100 % of the
+  product surface (the SystemVerilog/VHDL embedding-API entries and the CLI instruments all route
+  through it), and every other thread keeps the pre-`.65` behaviour exactly. Widening it to an
+  arbitrary embedder thread needs an OS stack query and is part of `.69`.
+- ⚠ **HONEST BOUND — the AFTER shape table below is measured at a 96 MiB reservation** so the rows
+  fit a sane time budget at Θ(depth²); the default-reservation anchor is the `cast_paren` row above
+  (249 → 4 813), and the two are connected by the proportionality law measured to 0.14 %. ⚠️ **It is
+  a SUBSET, and the subset was chosen for cost rather than for the answer it would give**: the
+  bisection is itself quadratic, so the deepest shapes (`begin_end`, `if_nest`, the bracket-free
+  ternary chain) were dropped after the first two took ~20 minutes each. Their `frames/level` is the
+  LOWEST in the table, so they gain the MOST — dropping them makes this table a floor, not a
+  flattering selection.
+- **AFTER vs BEFORE, per shape.** BEFORE is the fixed 4096-frame ceiling, which no reservation could
+  move; AFTER is at 96 MiB, under a third of the shipped default. Producer
+  `docs/tasks/artifacts/eus65/shape_cliff_subset.py` — `.63`(b)'s harness with the bisection and
+  monotonicity logic byte-unchanged and a shape filter added, so the two tables are comparable by
+  construction. Every AFTER row is `labelled=True` (a real ceiling contact, not a timeout) and
+  `mono=True` (accept still downward-closed, re-checked over `[D−2, D+2]`):
+
+  | shape | before | after @ 96 MiB | ratio |
+  |---|---:|---:|---:|
+  | `(s ? a : (…))` — mux, both arms parenthesised (**worst measured shape**) | 146 | **1 142** | 7.8× |
+  | `$signed(…)` | 163 | 1 550 | 9.5× |
+  | `int'(int'(…))` | 249 | 1 807 (**4 813** at the default) | 7.3× (19.3×) |
+  | `{{{…}}}` | 314 | 2 487 | 7.9× |
+  | `(((…)))` | 322 | 2 434 | 7.6× |
+  | `f(f(f(…)))` | 340 | 3 055 | 9.0× |
+  | VHDL `((( … )))` | 681 | **no cliff below 16 384** (the harness's own cap) | ≥24× |
+
+  ⭐ The ratios are NOT constant across shapes, and that is the expected signature rather than noise:
+  the ceiling is a FRAME count derived from bytes of stack, and different constructs spend different
+  numbers of bytes per frame as well as different frames per source level. A constant ratio would
+  have meant the boundary was still being computed from a per-level model.
+
+### ⛔⛔ `.68` — **THE CYCLE GUARD SCANS THE WHOLE LIVE STACK ON EVERY RULE ENTRY, SO A DEPTH-`D` PARSE IS Θ(D²). WITH THE CEILING NOW AT THE HOST'S STACK, THIS IS THE FIRST THING A DEEP PARSE RUNS OUT OF** (`todo`, opened 2026-08-28 by `.65`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0117`)
+
+- **WHY + WHERE**: `RecursionGuard::check_cycle_id` (`rust/src/ast_pipeline/mod.rs`) walks the entire
+  `rule_id_stack` on every rule entry looking for a same-id frame, with no early exit and no index.
+  `check_cycle` (the legacy name-scan) has the same shape.
+- **MEASURED, on the shipped release probe** (`cast_paren`, accept path): 250 → 0.13 s · 500 → 0.40 s
+  · 1 000 → 1.43 s · 2 000 → 5.63 s · 4 000 → 22.24 s. Each doubling costs 3.1× → 3.6× → 3.9× → 3.95×,
+  converging on 4× — the signature of a quadratic term, and consistent with an Θ(depth) scan per
+  entry.
+- ⛔ **WHY IT IS A LEAF NOW RATHER THAN BEFORE**: while the ceiling was 4096 frames the quadratic
+  term was capped at a few hundred source levels and never dominated. `.65` moved the ceiling to
+  ≈4 800 levels for this shape at the default reservation, so the term is now the binding constraint
+  on *"any type of RTL files we throw at them"* — the mandate's own words — even though the stack
+  bound is satisfied.
+- ⭐ **THE SHAPE OF THE FIX IS ALREADY VISIBLE, so this is a sizing question rather than a research
+  one**: the scan answers two questions — "is `(rule_id, position)` already live?" and "is `rule_id`
+  live at a LATER position?" — both of which a per-rule position stack answers in O(1) while still
+  yielding the OLDEST matching frame index that `last_block_frame` needs (it is the bottom of that
+  rule's own stack).
+- ⛔ **SEQUENCING**: this is SPEED, and speed is blocked behind accuracy by standing director
+  ordering. It is recorded here so the ordering is a decision rather than an omission, and it sits
+  with `.56`(d)/`.58`.
+
+### ⛔ `.69` — **THE PARSE-STACK RESERVATION'S DEFAULT IS STILL A COMPILED-IN 256 MiB, SO ONE LITERAL SURVIVES `.65` — IT IS THE ONE THE CEILING IS NOW DERIVED FROM** (`todo`, opened 2026-08-28 by `.65` / `PGEN-ENGINE-UNIVERSAL-SERVICES-0117`)
+
+- **WHY + WHERE**: `DEDICATED_PARSE_STACK_BYTES = 256 * 1024 * 1024`
+  (`rust/src/dedicated_parse_stack.rs`). `.65` made the ceiling a function of this number and made
+  the number host-settable (`PGEN_PARSE_STACK_BYTES`), but a default a developer typed is not a
+  host-derived default, and the mandate names *"the host RAM and disk allowance"* as the bound.
+- **OWES**: (a) derive the default from a real host quantity — physical RAM and/or `RLIMIT_STACK` —
+  rather than from a literal; (b) decide whether an arbitrary embedder thread should be queried for
+  its own stack extent (`pthread_get_stacksize_np` / `pthread_getattr_np`), which is what would
+  widen `.65`'s derived path beyond `dedicated_parse_stack`-created threads; (c) price the new
+  dependency, since both (a) and (b) need `libc` as a DIRECT dependency, which the crate does not
+  have today.
+- ⚠ **A reservation is VIRTUAL and lazily committed, so a larger one costs address space rather than
+  RAM — but with `.65` the guard will now actually descend into whatever is reserved, so raising it
+  raises real RSS.** ⇒ (a) must be sized against host RAM, not against address space; sizing it
+  against the latter would hand a 16 GB machine a stack it cannot afford to fill.
+
+### ⛔ `.70` — **A THIRD FIXED ACCEPTANCE CEILING, IN THE REGEX EMBEDDING BOUNDARY: `REGEX_MAX_NESTING_DEPTH = 250`** (`todo`, ROUTED + PARKED behind the SV lane, opened 2026-08-28 by `.65`'s WHERE census / `PGEN-ENGINE-UNIVERSAL-SERVICES-0117`)
+
+- **WHY + WHERE**: `rust/src/embedding_api.rs` — `pub(crate) const REGEX_MAX_NESTING_DEPTH: usize =
+  250`, a parenthesis-nesting PRE-CHECK applied at the regex embedding boundary before the parser is
+  entered. It is modelled on PCRE2's build-time `--with-parens-nest-limit` and is documented as a
+  deliberate single-source knob.
+- ⛔ **WHY IT IS A LEAF AND NOT A NOTE**: it is the same CLASS the director's mandate rules against —
+  a fixed acceptance ceiling with a compiled-in threshold — and `.65` has now removed that class from
+  the engine, so this is the last one of its kind in the repository's acceptance path. It was found
+  by the WHERE census for `.65`, not by a gate.
+- ⚠ **NOT covered by the mandate as written**, which names RTL parsers; regex is a different family
+  with a different downstream (RGX) and its own PCRE2-conformance reference behaviour, where a
+  documented nesting limit is the PRIOR ART rather than a defect. ⇒ whether it should move is a
+  SCOPE question for the regex contract, not an obvious defect — recorded so the answer is
+  deliberate.
+- ⛔ **PARKED behind the SV lane lock** ([[project_nexsim_sv_signoff_delivery_focus]]): it is not an
+  SV-release blocker and touching it would be a pivot.
 
 
 ### ⏸️ `.64` — **VERILOG-AMS IS A LONG-TERM HORIZON GOAL, PARKED BY DIRECTOR RULING UNTIL AFTER THE FIRST OFFICIAL SV RELEASE. THIS LEAF HOLDS THE MEASURED STARTING POINT AND NOTHING ELSE** (`parked`, opened 2026-08-28 / `…-0112`, SCOPED SAME DAY by the director / `PGEN-ENGINE-UNIVERSAL-SERVICES-0113`)

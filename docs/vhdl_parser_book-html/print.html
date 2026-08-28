@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-163c90e5.js";
+            window.path_to_searchindex_js = "searchindex-a71c68c3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-77be4d5d.js"></script>
@@ -1865,6 +1865,27 @@ walk_schema_v3(&amp;root);
 <p>The SystemVerilog parser’s changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. <strong>The VHDL grammar is different: it was typed in a single comprehensive batch — VHDL-Slice-1 — so the VHDL schema timeline is short.</strong> A follow-up correctness fix (<code>1.0.2</code>, schema <code>2</code>, <code>VHDL-0001</code>) added the third entry, the <code>1.0.3</code> POST-SV-AUDIT Category-A list-shape batch (schema <code>3</code>) added the fourth, and the <code>1.0.4</code> <code>VHDL-0002</code> based-literal acceptance fix (schema stays <code>3</code>) added the fifth. This is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a <a href="#schema-versioning">Schema Versioning</a> row, and an entry below.</p>
 <h2 id="releases-relevant-to-this-book"><a class="header" href="#releases-relevant-to-this-book">Releases relevant to this book</a></h2>
 <p>This book is <strong>live</strong> and tracks current main HEAD. The entries below mirror the “Schema Versioning” table and the Resolved-Defects sections in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>; the contract is authoritative for the live state.</p>
+<h3 id="107--contract-107--engine-universal-services65-pgen-engine-universal-services-0117-2026-08-28-ledger-vhdl-0006--the-4096-frame-recursion-ceiling-becomes-a-measurement-of-the-hosts-stack-engine-zero-grammar-bytes-schema-stays-3"><a class="header" href="#107--contract-107--engine-universal-services65-pgen-engine-universal-services-0117-2026-08-28-ledger-vhdl-0006--the-4096-frame-recursion-ceiling-becomes-a-measurement-of-the-hosts-stack-engine-zero-grammar-bytes-schema-stays-3">1.0.7 / Contract 1.0.7 — ENGINE-UNIVERSAL-SERVICES.65 (<code>PGEN-ENGINE-UNIVERSAL-SERVICES-0117</code>, 2026-08-28), ledger <code>VHDL-0006</code> — the 4096-frame recursion ceiling becomes a measurement of the host’s stack (ENGINE; ZERO grammar bytes; schema stays 3)</a></h3>
+<p>⛔ <strong>A fixed acceptance ceiling, replaced by the stack this host actually supplies.</strong> <code>4096</code>
+survives only as the depth at which the guard first measures its own stack spend; the ceiling is
+whatever the parse thread’s remaining headroom can carry.</p>
+<p><strong>Measured VHDL effect.</strong> Nested parentheses cliffed at <strong>681</strong> accepted levels before this release.
+After it — measured at a deliberately small <strong>96 MiB</strong> reservation, under a third of the shipped
+default — they no longer cliff anywhere below the measurement harness’s own <strong>16 384</strong>-level cap.
+Nested function calls (371) and nested <code>if</code> statements (2 043) rise with them.</p>
+<p><strong>Proved host-derived rather than merely larger.</strong> Varying the reservation moves the boundary
+linearly: on the cross-checked SystemVerilog shape, 96 / 128 / 192 / 256 MiB give
+1 807 / 2 410 / 3 611 / 4 813 accepted levels — <strong>18.82 levels per MiB, flat to 0.14 %</strong>. A constant
+of any size cannot produce that. <code>PGEN_PARSE_STACK_BYTES</code> (bytes, floored at 96 MiB) buys more depth
+on a host that can afford it, and the rejection message names that knob itself.</p>
+<p><strong>Nothing else moves.</strong> External-corpus verdicts are identical over <strong>13 720 files</strong> (0 per-file
+differences); the interpreter stays byte-identical to the generated parser; AST-dump schema stays
+<code>3</code>.</p>
+<p>⚠️ <strong>Bound</strong>: parse cost is <strong>quadratic in depth</strong>, and an over-ceiling refusal is far dearer than it
+was because the parse descends much further before refusing (<code>ENGINE-UNIVERSAL-SERVICES.68</code>). The
+reservation’s DEFAULT is still a compiled-in 256 MiB (<code>.69</code>). VHDL frames are measurably cheaper than
+SystemVerilog’s, which is why the same reservation buys VHDL far more source depth — a further reason
+the capacity is a property of the host and the shape rather than a number to publish once.</p>
 <h3 id="106--contract-106--engine-universal-services66-pgen-engine-universal-services-0115-2026-08-28-ledger-vhdl-0005--a-silent-10-000-iteration-quantifier-cap-is-removed-engine-zero-grammar-bytes-schema-stays-3"><a class="header" href="#106--contract-106--engine-universal-services66-pgen-engine-universal-services-0115-2026-08-28-ledger-vhdl-0005--a-silent-10-000-iteration-quantifier-cap-is-removed-engine-zero-grammar-bytes-schema-stays-3">1.0.6 / Contract 1.0.6 — ENGINE-UNIVERSAL-SERVICES.66 (<code>PGEN-ENGINE-UNIVERSAL-SERVICES-0115</code>, 2026-08-28), ledger <code>VHDL-0005</code> — a silent 10 000-iteration quantifier cap is removed (ENGINE; ZERO grammar bytes; schema stays 3)</a></h3>
 <p>⛔ <strong>An acceptance limit that never announced itself.</strong> Every quantifier in every generated parser
 carried a <strong>10 000-iteration cap</strong> (<code>SAFETY_LIMIT</code>). It did not refuse — it <strong>stopped iterating</strong>,

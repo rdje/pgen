@@ -813,10 +813,17 @@ impl std::fmt::Display for ParseError {
             // saying "capacity" where a reader would look for "limit".
             //
             // ⛔ The frames-vs-levels sentence is not padding: the number is a PARSER
-            // FRAME count, and a reader who takes 4096 for 4096 levels of source
+            // FRAME count, and a reader who takes it for that many levels of source
             // nesting concludes their file is nowhere near the limit when it is over
-            // it. SystemVerilog rejects at 323 nested parens — roughly 4096 ÷ ~12.7
-            // frames per level.
+            // it. A nested-parenthesis level costs SystemVerilog ~12.7 frames, and a
+            // sign-coerced mux level costs ~67.
+            //
+            // `ENGINE-UNIVERSAL-SERVICES.65` — the number is no longer a constant, so
+            // the sentence naming it changed too. It is the depth at which THIS host's
+            // stack ran out, read from the guard that stopped there, and the last
+            // sentence names the knob that buys more of it — an embedder who is told a
+            // limit exists and not how to move it will file a bug instead of setting an
+            // environment variable.
             ParseError::RecursionCeilingContacted {
                 surface,
                 position,
@@ -825,12 +832,15 @@ impl std::fmt::Display for ParseError {
             } => {
                 write!(
                     f,
-                    "{} [recursion ceiling CONTACTED: the depth guard reached its \
-                     {}-frame limit and refused {} rule entries during this parse. The \
-                     limit counts PARSER FRAMES, not source nesting levels — one level \
-                     of a nested construct costs several frames. If the input is \
-                     syntactically valid it exceeds this parser's nesting capacity, and \
-                     the defect is the ceiling — not a syntax error at position {}]",
+                    "{} [recursion ceiling CONTACTED: this host's parse stack ran out \
+                     at {} parser frames, refusing {} rule entries during this parse. \
+                     The limit counts PARSER FRAMES, not source nesting levels — one \
+                     level of a nested construct costs several frames — and it is \
+                     derived from the parse thread's stack rather than compiled in, so \
+                     raising PGEN_PARSE_STACK_BYTES buys proportionally more depth on a \
+                     host that can afford it. If the input is syntactically valid it \
+                     exceeds this parser's nesting capacity ON THIS HOST — not a syntax \
+                     error at position {}]",
                     surface, ceiling, events, position
                 )
             }
@@ -1885,7 +1895,39 @@ pub struct RecursionGuard {
     /// the FIRST (oldest, shallowest) match, so this index is exactly the floor a caller needs to
     /// compare against its own frame depth. See `memoized_call`'s taint gate.
     pub last_block_frame: usize,
+    /// `ENGINE-UNIVERSAL-SERVICES.65` — the frame depth at which the recursion
+    /// ceiling most recently FIRED, i.e. the depth the host stack could not
+    /// carry past. `0` until it fires.
+    ///
+    /// The ceiling is no longer a compiled-in number, so a rejection cannot
+    /// report one. `.61`(a)'s requirement — that the number a rejection reports
+    /// and the number that produced it cannot drift apart — is met more
+    /// strictly than before: the diagnostic reads the depth the guard actually
+    /// stopped at, from the guard that stopped it.
+    pub last_ceiling_depth: usize,
 }
+
+/// `ENGINE-UNIVERSAL-SERVICES.65` — the share of a dedicated parse thread's
+/// reservation the depth probe refuses to spend, as a divisor of the whole.
+///
+/// This is an implementation margin, NOT an acceptance bound: it exists because
+/// the probe samples the stack at intervals rather than at every frame, so the
+/// reserve has to absorb the frames between the last sample and the true edge,
+/// plus the unwind that carries the rejection back out. Sizing it as a fraction
+/// of the reservation rather than as a byte count keeps it correct when the
+/// reservation changes.
+const STACK_HEADROOM_RESERVE_DIVISOR: usize = 16;
+
+/// `ENGINE-UNIVERSAL-SERVICES.65` — the probe advances by at most this fraction
+/// of the frames the measured headroom can still afford.
+///
+/// Advancing by the whole affordable count would leave the next sample AT the
+/// edge; advancing by a quarter tolerates the per-frame cost quadrupling
+/// between samples and still costs only a logarithmic number of samples
+/// (each advance spends a quarter of the remaining headroom, so the sample
+/// count is `log(capacity)` base 4/3 — tens of samples for a 256 MiB stack, on
+/// a `#[cold]` path).
+const STACK_HEADROOM_STRIDE_DIVISOR: usize = 4;
 
 impl RecursionGuard {
     pub fn new(max_depth: usize) -> Self {
@@ -1895,7 +1937,71 @@ impl RecursionGuard {
             max_depth,
             cycle_cache: HashMap::new(),
             last_block_frame: usize::MAX,
+            last_ceiling_depth: 0,
         }
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.65` — RE-ANCHOR THE CEILING ON REAL STACK
+    /// HEADROOM. Returns `true` when the depth probe was pushed further out,
+    /// `false` when the guard must fire.
+    ///
+    /// ⛔ **WHY THIS EXISTS.** `max_depth` used to be a compiled-in `4096`
+    /// frames, which `.63`(b) measured at **61 source levels** for the worst
+    /// emitter-plausible shape against a corpus that already nests **256** — a
+    /// fixed ACCEPTANCE ceiling, which the director's capability mandate
+    /// forbids outright (*"the only obvious limit shall be the host RAM and
+    /// disk allowance"*). The guard survives; its threshold stops being a
+    /// literal. `4096` is now only the depth of the FIRST sample, so the
+    /// overwhelming majority of parses never reach the probe at all and pay
+    /// exactly what they paid before.
+    ///
+    /// **HOW.** When the probe threshold is reached, ask the thread what it has
+    /// actually spent (`current_parse_stack_extent` names the base and the
+    /// reservation; `approximate_stack_pointer` names where we are now). The
+    /// per-frame cost is then MEASURED for this parse — not read from a table,
+    /// not assumed per build mode — and the threshold moves out by a share of
+    /// what the remaining headroom can still carry. Release and debug builds,
+    /// and any future reservation, size themselves.
+    ///
+    /// **WHAT MAKES IT SAFE.** Every unknown is answered conservatively, i.e.
+    /// by keeping the old behaviour: no extent (any thread this process did not
+    /// create for parsing) → `false`; a stack that did not grow downward →
+    /// `false`; a usage too small to divide honestly → `false`; no headroom
+    /// left → `false`. A stack overflow ABORTS the embedder and is strictly
+    /// worse than a diagnosed rejection, so the probe never trades a clean
+    /// refusal for a guess.
+    #[cold]
+    #[inline(never)]
+    fn extend_depth_probe(&mut self, depth: usize) -> bool {
+        let Some((base, reservation)) = crate::dedicated_parse_stack::current_parse_stack_extent()
+        else {
+            // Not a thread whose stack size this process knows. The compiled
+            // floor stands — see the doc comment: an unknown is never a licence.
+            return false;
+        };
+        let here = crate::dedicated_parse_stack::approximate_stack_pointer();
+        let Some(used) = base.checked_sub(here) else {
+            // The stack did not grow down (or this guard was built on another
+            // thread). Refuse to derive anything from an address we cannot read.
+            return false;
+        };
+        if depth == 0 || used < depth {
+            // Under one byte per frame is not physically measurable; treating it
+            // as "frames are free" would extend the ceiling off a rounding error.
+            return false;
+        }
+        let budget = reservation - reservation / STACK_HEADROOM_RESERVE_DIVISOR;
+        if used >= budget {
+            return false;
+        }
+        let bytes_per_frame = used / depth;
+        let affordable = (budget - used) / bytes_per_frame;
+        if affordable == 0 {
+            return false;
+        }
+        self.max_depth =
+            depth.saturating_add((affordable / STACK_HEADROOM_STRIDE_DIVISOR).max(1));
+        true
     }
 
     /// Legacy NAME-scan cycle check — byte-for-byte the pre-C1 behavior, used
@@ -1913,11 +2019,16 @@ impl RecursionGuard {
             }
         }
         if self.parse_stack.len() >= self.max_depth {
+            // `ENGINE-UNIVERSAL-SERVICES.65` — the threshold is a SAMPLE POINT,
+            // not the ceiling: ask the host stack first, and only refuse when it
+            // is really out of headroom.
+            let depth = self.parse_stack.len();
+            if self.extend_depth_probe(depth) {
+                return CycleType::None;
+            }
+            self.last_ceiling_depth = depth;
             let rules: Vec<&'static str> = self.parse_stack.iter().map(|(r, _)| *r).collect();
-            return CycleType::MutualRecursive {
-                depth: self.parse_stack.len(),
-                rules,
-            };
+            return CycleType::MutualRecursive { depth, rules };
         }
         CycleType::None
     }
@@ -1957,11 +2068,15 @@ impl RecursionGuard {
             }
         }
         if self.rule_id_stack.len() >= self.max_depth {
+            // `ENGINE-UNIVERSAL-SERVICES.65` — see `check_cycle`: the threshold
+            // is where the guard SAMPLES the host stack, and the host decides.
+            let depth = self.rule_id_stack.len();
+            if self.extend_depth_probe(depth) {
+                return CycleType::None;
+            }
+            self.last_ceiling_depth = depth;
             let rules: Vec<&'static str> = self.parse_stack.iter().map(|(r, _)| *r).collect();
-            return CycleType::MutualRecursive {
-                depth: self.rule_id_stack.len(),
-                rules,
-            };
+            return CycleType::MutualRecursive { depth, rules };
         }
         CycleType::None
     }
@@ -5620,6 +5735,61 @@ mod tests {
         assert_eq!(guard.parse_stack.len(), 1);
         assert_eq!(guard.rule_id_stack.len(), 1);
         assert_eq!(guard.check_cycle_id(1, 0), CycleType::Infinite);
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.65` — THE CEILING IS THE HOST'S STACK, AND AN
+    /// UNKNOWN HOST IS ANSWERED CONSERVATIVELY.
+    ///
+    /// Two arms, and the first one is the one that must never regress: off a
+    /// dedicated parse thread the process cannot know how much stack it owns, so
+    /// the compiled sample depth stays a hard ceiling and the guard behaves
+    /// exactly as it did before this leaf. On a dedicated parse thread the same
+    /// threshold is only a place to MEASURE, and the measurement moves it out.
+    #[test]
+    fn recursion_ceiling_is_derived_from_real_stack_headroom() {
+        // ARM 1 (the fallback, and the pre-`.65` behaviour): a libtest worker has
+        // no recorded extent, so reaching the threshold rejects.
+        assert_eq!(
+            crate::dedicated_parse_stack::current_parse_stack_extent(),
+            None
+        );
+        let mut unknown_host = RecursionGuard::new(4);
+        for id in 0..4u16 {
+            unknown_host.enter_id(id, "frame", id as usize);
+        }
+        match unknown_host.check_cycle_id(9, 99) {
+            CycleType::MutualRecursive { depth, .. } => assert_eq!(depth, 4),
+            other => panic!("an unknown host stack must keep the compiled floor, got {other:?}"),
+        }
+        assert_eq!(unknown_host.max_depth, 4, "the floor must not move");
+        assert_eq!(unknown_host.last_ceiling_depth, 4);
+
+        // ARM 2 (the derived path): on a dedicated parse thread the same guard
+        // measures headroom instead, extends the sample point, and does not
+        // reject.
+        let measured =
+            crate::dedicated_parse_stack::run_on_dedicated_parse_stack("pgen-test-ceiling", || {
+                let mut known_host = RecursionGuard::new(4);
+                for id in 0..4u16 {
+                    known_host.enter_id(id, "frame", id as usize);
+                }
+                let verdict = known_host.check_cycle_id(9, 99);
+                (known_host.max_depth, verdict, known_host.last_ceiling_depth)
+            });
+        // `DedicatedParseStackError` carries a panic payload and is not `Debug`.
+        let Ok((extended_to, verdict, fired_at)) = measured else {
+            panic!("dedicated parse-stack spawn failed");
+        };
+        assert_eq!(
+            verdict,
+            CycleType::None,
+            "a stack with headroom left must not be refused"
+        );
+        assert!(
+            extended_to > 4,
+            "the sample point must move out when the host can carry more frames, got {extended_to}"
+        );
+        assert_eq!(fired_at, 0, "nothing fired, so nothing may be reported");
     }
 
     /// RGX-0078.5.i.1.t2 — the loud-refusal opt-in accepts EXACTLY "1"

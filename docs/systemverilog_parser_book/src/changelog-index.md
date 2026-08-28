@@ -34,6 +34,41 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.201 / Contract 1.0.201 — ENGINE-UNIVERSAL-SERVICES.65 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0117`, 2026-08-28), ledger `SV-0074` (`Released`):
+
+⛔ **The 4096-frame recursion ceiling is gone. What replaced it is not a bigger number — it is a
+measurement of the stack this host actually gave the parse thread.** `4096` survives only as the
+depth at which the guard first *asks* how much stack it has spent; from there the ceiling is
+whatever the remaining headroom can carry.
+
+**What now parses that did not** (measured at a deliberately small 96 MiB reservation — under a
+third of the shipped default — so these are a floor):
+
+| shape | before | after @ 96 MiB |
+|---|---:|---:|
+| `(s ? a : (…))` — mux, both arms parenthesised (worst measured shape) | 146 | **1 142** |
+| `$signed(…)` | 163 | 1 550 |
+| `int'(int'(…))` | 249 | 1 807 → **4 813** at the shipped default |
+| `{{{…}}}` | 314 | 2 487 |
+| `(((…)))` | 322 | 2 434 |
+| `f(f(f(…)))` | 340 | 3 055 |
+
+**How you can tell it is genuinely host-derived.** Vary the reservation and the boundary moves with
+it, linearly. At 96 / 128 / 192 / 256 MiB the deepest accepted nested cast reads
+1 807 / 2 410 / 3 611 / 4 813 — **18.82 levels per MiB, flat to 0.14 %**. No constant of any size
+produces that curve. Set `PGEN_PARSE_STACK_BYTES` (bytes, floored at 96 MiB) to buy more depth on a
+host that can afford it; the rejection message now names that knob itself.
+
+**Nothing else moves.** External-corpus verdicts are identical over **16 336 files** (`pass=9794
+fail=6542`, 0 per-file differences, measured on the fused graph that ships); the interpreter stays
+byte-identical to the generated parser; no grammar bytes changed and AST-dump schema stays at `26`.
+
+⚠️ **Bound — the capability is not free and the cost is quadratic in depth.** The same cast shape
+parses in **0.13 s** at 250 levels and **22.24 s** at 4 000 (each doubling ≈3.95×), and refusing
+input one level past the boundary now costs **37.7 s** where it cost 0.19 s — still bounded, still
+ceiling-labelled. Plan for seconds, not milliseconds, at thousands of levels. Tracked as
+`ENGINE-UNIVERSAL-SERVICES.68`; the reservation's remaining compiled-in default is `.69`.
+
 ### 1.0.200 / Contract 1.0.200 — ENGINE-UNIVERSAL-SERVICES.66 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0115`, 2026-08-28), ledger `SV-0073` (`Released`):
 
 ⛔ **This release removes a silent acceptance limit and changes nothing else.** Every quantifier in

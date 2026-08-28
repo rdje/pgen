@@ -5,6 +5,38 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-08-28, `ENGINE-UNIVERSAL-SERVICES.65` — ENGINE, grammar-agnostic,
+> release `1.0.201`, ledger `SV-0074`, schema `26` UNCHANGED, ALL profiles): the 4096-frame
+> recursion ceiling is gone.** It is replaced by a bound the parse thread's own stack supplies:
+> `4096` survives only as the depth at which the guard first MEASURES how much stack it has spent,
+> and the ceiling is whatever the remaining headroom can still carry.
+>
+> **What now parses that did not**: syntactically valid deeply-nested expressions. On the shipped
+> default reservation, nested `int'(…)` casts go from **249** accepted source levels to **4 813**
+> (19.3×); VHDL's nested parentheses leave the measurement harness's own 16 384-level cap entirely,
+> against 681 before. Because constructs spend frames at very different rates, the practical effect
+> is largest exactly where it mattered least before — machine-emitted RTL, where bracketing style
+> alone could decide whether a design parsed.
+>
+> **How you can tell it is really host-derived and not just a bigger number**: vary the reservation
+> and the boundary moves with it, linearly. At 96 / 128 / 192 / 256 MiB the deepest accepted nested
+> cast is 1 807 / 2 410 / 3 611 / 4 813 — **18.82 levels per MiB, flat to 0.14 %**. Set
+> `PGEN_PARSE_STACK_BYTES` (bytes; floored at 96 MiB) to buy more depth on a host that can afford
+> it. A constant of any size cannot produce that curve.
+>
+> ⚠️ **What this costs, stated up front.** Parse cost is **quadratic in depth**: the same cast shape
+> takes 0.13 s at depth 250 and **22.24 s at depth 4 000** (each doubling ≈3.95×), and refusing
+> input one level past the boundary now costs **37.7 s** where it used to cost 0.19 s. The refusal
+> is still bounded and still carries the `.61`(a) ceiling label — but if you feed this parser
+> thousands of nesting levels, plan for seconds-to-minutes, not milliseconds. Tracked as
+> `ENGINE-UNIVERSAL-SERVICES.68`.
+>
+> ⚠️ **One literal remains, and it is named rather than left to be discovered**: the reservation's
+> DEFAULT is still a compiled-in 256 MiB (`ENGINE-UNIVERSAL-SERVICES.69`). The derived bound applies
+> to threads PGEN creates for parsing, which is every embedding-API entry and every CLI instrument;
+> a parse driven on some other thread keeps the previous 4096-frame behaviour, deliberately, because
+> this process cannot know that thread's stack size.
+>
 > **Current-state note (2026-08-28, `ENGINE-UNIVERSAL-SERVICES.66` — ENGINE, grammar-agnostic,
 > release `1.0.200`, ledger `SV-0073`, schema `26` UNCHANGED, ALL profiles):** a per-quantifier
 > **10 000-iteration cap** (`SAFETY_LIMIT`) is removed from every generated parser. It did not
@@ -764,10 +796,10 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.200`
+  - `1.0.201`
 - Parser release version:
-  - `1.0.200`
-  - history: `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.201`
+  - history: `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.

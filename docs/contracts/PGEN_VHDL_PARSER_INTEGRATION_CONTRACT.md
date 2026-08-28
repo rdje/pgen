@@ -7,8 +7,20 @@ This is the document downstream projects embedding the PGEN VHDL parser should r
 
 ## Contract Identity
 - Contract version:
-  - `1.0.4`
+  - `1.0.5`
 - Parser release version:
+  - `1.0.7` (`ENGINE-UNIVERSAL-SERVICES.65`, 2026-08-28: engine-level, grammar-agnostic, ledger
+    `VHDL-0006` — **the 4096-frame recursion ceiling is replaced by a bound the parse thread's own
+    stack supplies.** `4096` survives only as the depth at which the guard first measures its stack
+    spend. Measured after the change at a deliberately SMALL 96 MiB reservation — under a third of
+    the shipped default — nested parentheses no longer cliff below the measurement harness's own
+    16 384-level cap, against **681** before. The bound is provably host-derived rather than merely
+    larger: varying the reservation moves the boundary linearly (18.82 levels per MiB, flat to
+    0.14 % across 96–256 MiB on the cross-checked SystemVerilog shape), and `PGEN_PARSE_STACK_BYTES`
+    lets a host that can afford more depth buy it. Corpus: **0 differences over 13 720 files**;
+    AST-dump schema stays `3`. ⚠️ Cost is **quadratic in depth** and an over-ceiling refusal is now
+    far dearer than it was (`ENGINE-UNIVERSAL-SERVICES.68`); the reservation's DEFAULT is still a
+    literal (`.69`))
   - `1.0.6` (`ENGINE-UNIVERSAL-SERVICES.66`, 2026-08-28: engine-level, grammar-agnostic — a
     per-quantifier **10 000-iteration cap** (`SAFETY_LIMIT`) is removed. It did not refuse: it
     **stopped iterating**, silently truncating the repetition, so the parse failed at the enclosing

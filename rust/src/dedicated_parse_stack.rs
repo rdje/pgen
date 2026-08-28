@@ -3,9 +3,12 @@
 //! `SV-CORPUS-GRAD.8c.3` — the recursion ceiling must bound the REAL stack
 //! (the PGEN-RGX-0085 law, generalized parser-agnostically). The generated
 //! parsers carry a clean mutual-recursion ceiling
-//! (`GENERATED_RECURSION_GUARD_MAX_DEPTH = 4096`,
-//! `ast_pipeline/ast_based_generator.rs`), but a ceiling only protects the
-//! process if the thread it runs on has enough stack for 4096 frames.
+//! (4096 frames when `.8c.3` measured it — since
+//! `ENGINE-UNIVERSAL-SERVICES.65` that number is only the depth at which the
+//! guard first SAMPLES this module's stack extent, and the ceiling itself is
+//! whatever the reservation below can really carry), but a ceiling only
+//! protects the process if the thread it runs on has enough stack for the
+//! frames it admits.
 //! Measured (2026-07-22, deep-parens SV synthetic,
 //! `docs/tasks/artifacts/sv_corpus_grad/8c3_stack_ceiling_measurement.md`):
 //! ≈2 KB/frame in release and ≈17 KB/frame in debug, so the ceiling needs
@@ -63,10 +66,113 @@
 /// only — the pages are committed lazily as the parse actually deepens.
 pub const DEDICATED_PARSE_STACK_BYTES: usize = 256 * 1024 * 1024;
 
+/// `ENGINE-UNIVERSAL-SERVICES.65` — the smallest reservation this module will
+/// honour, so an operator cannot shrink the stack below the depth at which the
+/// guard first samples it.
+///
+/// 4096 frames is where a generated parser takes its first stack measurement
+/// (`GENERATED_RECURSION_GUARD_STACK_PROBE_FLOOR`), and `SV-CORPUS-GRAD.8c.3`
+/// measured ≈17 KB/frame in debug — the expensive build mode. A floor below
+/// ≈70 MB could therefore let the first sample happen after the stack was
+/// already gone, which is the abort this whole module exists to prevent.
+pub const MIN_DEDICATED_PARSE_STACK_BYTES: usize = 96 * 1024 * 1024;
+
+/// `ENGINE-UNIVERSAL-SERVICES.65` — the reservation actually used for dedicated
+/// parse threads: [`DEDICATED_PARSE_STACK_BYTES`] unless the host operator
+/// names another size in `PGEN_PARSE_STACK_BYTES`.
+///
+/// ⛔ **WHY THIS IS A KNOB AND NOT A CONSTANT.** Since `.65` the recursion
+/// ceiling is derived from the stack a parse really owns, so THIS number — not
+/// a frame count — is what a host spends to accept deeper input. The director's
+/// capability mandate makes the host's own RAM the legitimate bound
+/// (*"the only obvious limit shall be the host RAM and disk allowance"*), and a
+/// host cannot express its allowance to a compiled-in literal. It is also what
+/// makes the ceiling FALSIFIABLE: halve the reservation and the measured
+/// accept boundary must halve with it, which is the control that separates
+/// "derived from the stack" from "a bigger number than before".
+///
+/// Resolved once per process. An unparseable or too-small value falls back to
+/// the floor rather than failing the parse — a stack reservation is not a place
+/// to turn a typo into an outage — and a value below
+/// [`MIN_DEDICATED_PARSE_STACK_BYTES`] is raised to it.
+pub fn dedicated_parse_stack_bytes() -> usize {
+    static RESOLVED: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
+    *RESOLVED.get_or_init(|| match std::env::var("PGEN_PARSE_STACK_BYTES") {
+        Ok(raw) => raw
+            .trim()
+            .parse::<usize>()
+            .map(|bytes| bytes.max(MIN_DEDICATED_PARSE_STACK_BYTES))
+            .unwrap_or(DEDICATED_PARSE_STACK_BYTES),
+        Err(_) => DEDICATED_PARSE_STACK_BYTES,
+    })
+}
+
 thread_local! {
     // True on threads created by this module (and only those), so nested
     // boundary crossings run inline instead of spawning again.
     static ON_DEDICATED_PARSE_STACK: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+
+    // `ENGINE-UNIVERSAL-SERVICES.65` — the dedicated parse thread's stack
+    // extent as `(base_address, reserved_bytes)`, recorded once at thread
+    // entry. `None` on every thread this module did not create, which is the
+    // whole point: a caller that cannot prove how much stack it owns must not
+    // be told a number.
+    static PARSE_STACK_EXTENT: std::cell::Cell<Option<(usize, usize)>> =
+        const { std::cell::Cell::new(None) };
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.65` — the calling frame's approximate stack
+/// address.
+///
+/// The address of a local is inside the frame the call is inlined into, so the
+/// difference between this and the thread's recorded base is the stack the
+/// thread has actually consumed. `black_box` keeps the compiler from reasoning
+/// the anchor away; the value is an approximation by construction (the
+/// optimizer places frame slots as it likes), which is why every consumer
+/// spends it against a reserve rather than to the last byte.
+///
+/// ⛔ Callers must treat a value that does not decrease with depth as
+/// "unknown", not as zero usage: stack growth direction is a target property,
+/// and every currently supported target grows down.
+#[inline(always)]
+pub fn approximate_stack_pointer() -> usize {
+    let anchor = 0u8;
+    std::hint::black_box(&anchor) as *const u8 as usize
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.65` — how far ABOVE the recorded anchor the
+/// thread's true stack top may sit.
+///
+/// ⛔ **MEASURED, not assumed — and the assumption it replaces was wrong.**
+/// [`approximate_stack_pointer`] returns the address of a local, and the
+/// compiler places frame slots in whatever order it likes, so the anchor taken
+/// at thread entry is a slot INSIDE that frame rather than the frame's top. A
+/// probe taken from a shallower position in the same frame can therefore sit
+/// ABOVE the recorded base: the first version of this module's own test read
+/// `here = base + 176` and failed, which is how the error was found rather than
+/// shipped.
+///
+/// Padding the recorded base upward makes the derived usage an OVER-estimate by
+/// at most this much, which is the safe direction (the guard fires marginally
+/// early rather than marginally late) and removes the only case in which a
+/// shallow probe could read as "direction unknown". One thread-entry frame is
+/// orders of magnitude smaller than this pad, and the pad itself is negligible
+/// against the reservation it is subtracted from.
+const STACK_BASE_ANCHOR_PAD_BYTES: usize = 64 * 1024;
+
+/// `ENGINE-UNIVERSAL-SERVICES.65` — the current thread's parse-stack extent as
+/// `(base_address, reserved_bytes)`, or `None` when this thread's stack size is
+/// not knowable.
+///
+/// This is the HOST-derived quantity that replaced the compiled-in recursion
+/// ceiling. A generated parser's guard asks how much stack is really left
+/// rather than how many frames a developer once typed
+/// (`ast_pipeline::RecursionGuard::extend_depth_probe`); off a dedicated parse
+/// thread the answer is `None` and the guard keeps its conservative compiled
+/// floor, because guessing an unknown thread's stack size is exactly the
+/// literal this leaf exists to delete.
+pub fn current_parse_stack_extent() -> Option<(usize, usize)> {
+    PARSE_STACK_EXTENT.with(|cell| cell.get())
 }
 
 /// Why a dedicated-stack run did not return a value.
@@ -82,7 +188,7 @@ pub enum DedicatedParseStackError {
     Panic(Box<dyn std::any::Any + Send + 'static>),
 }
 
-/// Runs `f` with [`DEDICATED_PARSE_STACK_BYTES`] of stack guaranteed.
+/// Runs `f` with [`dedicated_parse_stack_bytes`] of stack guaranteed.
 ///
 /// Already-on-a-dedicated-stack callers run inline (no nested spawn); all
 /// others pay one thread spawn+join (~50–100 µs). Panics inside `f` are
@@ -106,9 +212,18 @@ where
     }
     let handle = std::thread::Builder::new()
         .name(thread_name.to_string())
-        .stack_size(DEDICATED_PARSE_STACK_BYTES)
+        .stack_size(dedicated_parse_stack_bytes())
         .spawn(move || {
             ON_DEDICATED_PARSE_STACK.with(|c| c.set(true));
+            // `ENGINE-UNIVERSAL-SERVICES.65` — record the extent at the
+            // shallowest point of the thread, so every later depth probe
+            // measures consumption from the true top of the reservation.
+            PARSE_STACK_EXTENT.with(|c| {
+                c.set(Some((
+                    approximate_stack_pointer() + STACK_BASE_ANCHOR_PAD_BYTES,
+                    dedicated_parse_stack_bytes(),
+                )))
+            });
             f()
         })
         .map_err(DedicatedParseStackError::Spawn)?;
@@ -170,6 +285,93 @@ mod tests {
             matches!(inner, Err(DedicatedParseStackError::Panic(_)))
         });
         assert!(matches!(result, Ok(true)));
+    }
+
+    #[test]
+    fn stack_extent_is_known_only_on_a_dedicated_thread() {
+        // `ENGINE-UNIVERSAL-SERVICES.65` — the extent is what replaced the
+        // compiled-in recursion ceiling, so "who is allowed to see one" is a
+        // correctness property, not a detail: an unknown thread must report
+        // `None` so the guard keeps its conservative floor.
+        assert_eq!(
+            current_parse_stack_extent(),
+            None,
+            "a libtest worker thread must not claim a parse-stack extent"
+        );
+        // `DedicatedParseStackError` is deliberately not `Debug` (it carries a
+        // panic payload), so unwrap through a match rather than `expect`.
+        let seen = match run_on_dedicated_parse_stack("pgen-test-extent", || {
+            let extent = current_parse_stack_extent();
+            let here = approximate_stack_pointer();
+            (extent, here)
+        }) {
+            Ok(seen) => seen,
+            Err(_) => panic!("dedicated parse-stack spawn failed"),
+        };
+        let (extent, here) = seen;
+        let Some((base, reserved)) = extent else {
+            panic!("a dedicated parse thread must know its own extent");
+        };
+        assert_eq!(reserved, dedicated_parse_stack_bytes());
+        assert!(
+            here < base && base - here < reserved,
+            "a shallow probe must read as a small, positive spend: here={here} base={base}"
+        );
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.65` — THE ASSUMPTION THE DERIVED CEILING RESTS
+    /// ON: the stack grows DOWNWARD, and spend measured from the recorded base
+    /// increases with call depth.
+    ///
+    /// The guard converts (base − current) into a per-frame cost and then into a
+    /// frame capacity. If that difference did not grow monotonically with depth
+    /// the capacity would be meaningless, so it is measured here rather than
+    /// asserted in prose — and it is measured at real depth, because the first
+    /// version of the test above proved that a difference read WITHIN one frame
+    /// says nothing about direction.
+    #[test]
+    fn stack_spend_grows_with_call_depth() {
+        #[inline(never)]
+        fn descend(remaining: usize) -> usize {
+            let mut ballast = [0u8; 1024];
+            ballast[remaining % ballast.len()] = remaining as u8;
+            std::hint::black_box(&ballast);
+            if remaining == 0 {
+                approximate_stack_pointer()
+            } else {
+                descend(remaining - 1)
+            }
+        }
+        let measured = run_on_dedicated_parse_stack("pgen-test-growth", || {
+            let (base, reserved) = current_parse_stack_extent().expect("extent on this thread");
+            (base, reserved, descend(16), descend(256), descend(1024))
+        });
+        let Ok((base, reserved, at16, at256, at1024)) = measured else {
+            panic!("dedicated parse-stack spawn failed");
+        };
+        let (s16, s256, s1024) = (base - at16, base - at256, base - at1024);
+        assert!(
+            s16 < s256 && s256 < s1024,
+            "spend must grow with depth: 16={s16} 256={s256} 1024={s1024}"
+        );
+        assert!(
+            s1024 < reserved,
+            "1024 ballasted frames must fit inside the reservation ({s1024} of {reserved})"
+        );
+        // The per-frame cost the guard divides by is a real quantity: with a
+        // 1 KiB ballast per frame it must be at least that.
+        assert!(
+            (s1024 - s256) / (1024 - 256) >= 1024,
+            "per-frame spend under-reads its own ballast"
+        );
+    }
+
+    #[test]
+    fn reservation_is_never_below_the_first_sample_depth() {
+        // The resolved reservation must always leave room for the depth at which
+        // a generated parser takes its FIRST stack measurement; a smaller one
+        // could let the abort happen before the guard ever looks.
+        assert!(dedicated_parse_stack_bytes() >= MIN_DEDICATED_PARSE_STACK_BYTES);
     }
 
     #[test]
