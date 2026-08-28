@@ -1,5 +1,30 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0112 — an honest bound that names a population exclusion is a ruling waiting to be overturned
+
+**1. ⭐⭐⭐ RULING FROM ABSENCE REQUIRES KNOWING WHOSE ABSENCE IT IS.** `.61`(b) measured 0 ceiling
+contact over 30 056 files and ruled the ceiling defensible. It also WROTE ITS OWN honest bound: *"bulk
+machine-generated RTL is not represented."* Both things were in the same commit. One director sentence
+— *assume all RTL, generated or not, assume the worst* — made the exclusion the target, and the ruling
+collapsed **with no new measurement at all**: the overturning evidence (casts cliff at 249, ternaries at
+272, and generators emit exactly those shapes) was already in the slice's own table. ⇒ **when a
+conclusion rests on absence and the honest bound says "population X is not represented", the verdict is
+UNADJUDICATED, not DEFENSIBLE.** Writing the bound does not discharge it; it records the debt.
+
+**2. ⛔ THE STRONGER THE EVIDENCE, THE EASIER IT IS TO OVERSHOOT THE CLAIM.** 30 056 files, two
+families, an independent no-parser oracle, ten bisected shapes — the evidence was genuinely good, and
+that is exactly what made "do not move it" feel earned. The size of a sample says nothing about whether
+it is the right sample, and a big number is the most persuasive way to answer the wrong question.
+
+**3. ⭐ WHAT SURVIVED THE WITHDRAWAL IS THE PART THAT WAS A MEASUREMENT.** Every number in `(b)` stands;
+only the sentence built on top of them fell. Keeping those separable — facts in tables, the ruling in
+its own paragraph — is what made the withdrawal a re-scoping rather than a retraction of the slice.
+⇒ **state a ruling as a distinct, attackable sentence, not woven through the evidence.**
+
+**4. ⛔ AND THE SEQUENCING CLAIM HAD TO GO WITH IT.** I had published that accuracy-before-speed was
+DISCHARGED and speed was unblocked. That was downstream of the ruling, so it fell too. A derived claim
+does not survive its premise just because it was published in a different bullet.
+
 ## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0111 — an instrument you build for one answer must survive the answer you did not want
 
 **1. ⭐⭐⭐ A LABEL ON THE FAILURE PATH CANNOT ANSWER A QUESTION ABOUT THE ACCEPT PATH, AND THE

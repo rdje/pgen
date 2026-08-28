@@ -13947,7 +13947,7 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   standing SV lane lock, and this is not a defect that blocks the SystemVerilog release.
 
 
-### ⛔⛔ `.61` — **THE RECURSION CEILING IS AN *ACCURACY* DEFECT BEFORE IT IS A SPEED ONE: BOTH RELEASED PARSERS REJECT SYNTACTICALLY WELL-FORMED INPUT, AND THE DIAGNOSTIC NAMES THE WRONG CAUSE — ZERO OF THE FIVE WORDS A CONSUMER WOULD LOOK FOR APPEAR IN IT** (`todo`, opened 2026-08-28 by the DIRECTOR'S ACCURACY-BEFORE-SPEED ORDERING / `PGEN-ENGINE-UNIVERSAL-SERVICES-0109`; ✅✅ **(a) DONE 2026-08-28 `…-0110` — the shipped over-ceiling rejection now NAMES the ceiling on both released families, `0 of 5` → **5 of 5** on this leaf's own term census, with the accept boundary measured UNMOVED (SV 322/323, VHDL 681/682) and the label pinned by a RED-capable control that refuses to fire on an ordinary syntax error; embedding API `1.3.3`. ⭐ The obvious signal was DISPROVED in-slice: depth 322 ACCEPTS while recording 847 ceiling refusals, so `events != 0` is not a discriminator and the wording is conditional by design**; ✅✅ **(b) DONE 2026-08-28 `…-0111` — RULED DEFENSIBLE: ZERO of **30 056** real files across BOTH released families contact the ceiling, on the ACCEPT path as well as the reject path, and an independent no-parser oracle puts the deepest real nesting at **22** against a worst-shape capacity of **249** (a 3.3× range across ten shapes, so `.61`'s own `322` was not the binding number). The residual under-acceptance is REAL and stays open — no measured consumer meets it**; ⇒ **(c) SPEED IS NOW UNBLOCKED**: `.56`(d) + `.58`)
+### ⛔⛔ `.61` — **THE RECURSION CEILING IS AN *ACCURACY* DEFECT BEFORE IT IS A SPEED ONE: BOTH RELEASED PARSERS REJECT SYNTACTICALLY WELL-FORMED INPUT, AND THE DIAGNOSTIC NAMES THE WRONG CAUSE — ZERO OF THE FIVE WORDS A CONSUMER WOULD LOOK FOR APPEAR IN IT** (`todo`, opened 2026-08-28 by the DIRECTOR'S ACCURACY-BEFORE-SPEED ORDERING / `PGEN-ENGINE-UNIVERSAL-SERVICES-0109`; ✅✅ **(a) DONE 2026-08-28 `…-0110` — the shipped over-ceiling rejection now NAMES the ceiling on both released families, `0 of 5` → **5 of 5** on this leaf's own term census, with the accept boundary measured UNMOVED (SV 322/323, VHDL 681/682) and the label pinned by a RED-capable control that refuses to fire on an ordinary syntax error; embedding API `1.3.3`. ⭐ The obvious signal was DISPROVED in-slice: depth 322 ACCEPTS while recording 847 ceiling refusals, so `events != 0` is not a discriminator and the wording is conditional by design**; ⛔⛔ **(b) RULING WITHDRAWN 2026-08-28 `…-0112` BY THE DIRECTOR'S POPULATION RULING — the MEASUREMENTS stand, the CONCLUSION does not; re-adjudication owned by `.63`. What it had measured: ZERO of **30 056** real files across BOTH released families contact the ceiling, on the ACCEPT path as well as the reject path, and an independent no-parser oracle puts the deepest real nesting at **22** against a worst-shape capacity of **249** (a 3.3× range across ten shapes, so `.61`'s own `322` was not the binding number). The residual under-acceptance is REAL and stays open — no measured consumer meets it**; ⇒ **(c) SPEED IS NOW UNBLOCKED**: `.56`(d) + `.58`)
 
 > ⭐⭐⭐ **THIS LEAF EXISTS BECAUSE A STEERING CALL RE-READ A MEASUREMENT I ALREADY HAD.** The director's
 > ordering — *"right now we need to focus on accuracy and precision, speed will come next"* — was made
@@ -14258,6 +14258,39 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   **`.56`(d) and `.58` are UNBLOCKED** — speed is next, with the measurements already banked
   (retention 87–91×, L1-LA ≈1.8–3.5×).
 
+##### ⛔⛔⛔ `.61`(b)'s RULING IS **WITHDRAWN** THE SAME DAY IT WAS PUBLISHED — DIRECTOR POPULATION RULING 2026-08-28 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0112`). THE MEASUREMENTS STAND; THE CONCLUSION DOES NOT
+
+> Asked *"do you stand by your findings?"*, and told: *"Assume NEXSIM real flow includes all types
+> of RTL, generated or not, optimized or not, assume the worst here, but NEXSIM aimed at being used
+> on real RTL, ASIC, SoC, digital chip and analog projects."*
+> → [[project_nexsim_target_population_is_all_rtl_assume_the_worst]]
+
+- ✅ **WHAT I STAND BY, re-derived on fresh runs after the challenge, not reasserted**: `(a)` holds
+  — **5 of 5** terms on both released families, accept boundary UNMOVED (SV 322 accept / 323 reject,
+  VHDL 681 / 682). The contact census is a FACT and is not retracted: 0 of 30 056 **corpus** files
+  contact the ceiling. The ten-shape cliff table is a fact. The 22-level bracket-depth oracle is a
+  fact.
+- ⛔⛔ **WHAT I DO NOT STAND BY: the RULING I built on top of them.** `(b)` concluded *"4096 frames is
+  a defensible location; do not move it"* from corpus absence, and hedged it with honest bound (ii):
+  *"bulk machine-generated RTL is not represented, and `.60` named exactly that as the case an
+  embedder could hit."* **The director has now ruled that bound IS the target population.** ⇒ the
+  ruling's evidence covers a sample of one kind of RTL and the bar is the other kinds. A conclusion
+  whose own stated exclusion turns out to be the population is not a conclusion — it is a
+  measurement waiting for one.
+- ⭐⭐ **AND THE SLICE'S OWN TABLE SAYS THE RISK IS LIVE, NOT THEORETICAL — I did not need new data to
+  overturn myself, only to read what I had against the right population**: `int'()` casts cliff at
+  **249** nesting levels, ternaries at **272**, concatenations at **314**. **Deeply nested ternary
+  mux trees and wide concatenations are exactly what generated and optimized RTL emits** — a
+  priority encoder or a flattened mux tree emitted as a nested conditional is the canonical shape.
+  Against hand-written RTL's measured max of 22 those cliffs are 11× away; against generator output
+  nobody has measured them at all.
+- ⇒ **`.61`(b) is REOPENED and re-scoped. Its status is: DEFENSIBLE OVER HAND-WRITTEN OPEN-SOURCE
+  RTL, UNADJUDICATED OVER THE TARGET POPULATION.** The re-adjudication is `.63`, which owns it.
+- ⚠️ **AND THE SEQUENCING CONSEQUENCE IS THE HONEST ONE, NOT THE CONVENIENT ONE**: I published that
+  the accuracy-before-speed ordering was DISCHARGED for this lane and that `.56`(d)/`.58` were
+  unblocked. **That is withdrawn too.** Accuracy is not discharged while the ceiling's location is
+  unadjudicated over the population that matters. `.63` comes before the speed work.
+
 
 
 ### ⛔⛔ `.62` — **SYSTEMVERILOG DECLARES NO `@default_profile`, SO AN UNNAMED PROFILE PARSES THE *UNION* OF EVERY DIALECT: IT ACCEPTS 28 REAL CORPUS FILES `sv_2017` REJECTS, AND ON ONE OF THEM IT DOES NOT TERMINATE IN 181 s WHERE `sv_2017` ANSWERS IN 0.2 s** (`todo`, ROUTED + PARKED behind `.61`(b), opened 2026-08-28 by `.61`(a)'s own no-regression census / `PGEN-ENGINE-UNIVERSAL-SERVICES-0110`)
@@ -14322,6 +14355,69 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   re-run under BOTH profiles and the result is the same), and the director's ordering puts
   `.61`(b) next. Routed, owned, and sequenced — not merely logged.
 
+
+### ⛔⛔⛔ `.63` — **RE-ADJUDICATE THE 4096-FRAME CEILING OVER THE *TARGET* POPULATION: GENERATED AND OPTIMIZED RTL, WHICH `.61`(b)'s EVIDENCE EXPLICITLY DID NOT COVER. THE SLICE'S OWN SHAPE TABLE ALREADY CLIFFS TERNARIES AT 272 AND CASTS AT 249** (`todo`, opened 2026-08-28 by the DIRECTOR'S POPULATION RULING / `PGEN-ENGINE-UNIVERSAL-SERVICES-0112`; ⛔ **AHEAD OF THE SPEED WORK — accuracy is not discharged**)
+
+> ⭐⭐⭐ **THIS LEAF EXISTS BECAUSE AN HONEST BOUND TURNED OUT TO NAME THE POPULATION.** `.61`(b) ruled
+> the ceiling defensible on 0-contact over 30 056 files and wrote bound (ii) itself: *"bulk
+> machine-generated RTL is not represented."* One director sentence later that exclusion is the
+> target. → [[project_nexsim_target_population_is_all_rtl_assume_the_worst]]
+
+- ⛔ **WHY IT IS NOT A RE-RUN OF `.61`(b).** `.61`(b) asked *"does anything in the corpus touch the
+  ceiling?"* and answered no. This leaf asks the question that actually binds: **what is the deepest
+  nesting a REAL chip flow produces, and how close is it to the WORST shape's 249?** The corpus
+  cannot answer it, because the corpus is the sample the ruling was ruled non-representative.
+- ⛔⛔ **THE SHAPES THAT MATTER ARE THE CHEAP-TO-MEASURE ONES, and they are already the worst three
+  rows of `.61`(b)'s own table**: `int'(int'(…))` **249** (16.4 frames/level), `a ? b : (…)` **272**
+  (15.1), `{{{…}}}` **314** (13.0). Generated RTL emits exactly these: flattened mux trees and
+  priority encoders as nested conditionals, bus assembly as nested concatenation, width coercion as
+  nested casts. ⇒ the pessimistic reading the director's ruling requires is that a generator can
+  reach them, and nothing in this repository yet says otherwise.
+- **WHAT THIS LEAF OWES:**
+  - **(a)** GET REPRESENTATIVE INPUT. Priced options, cheapest first: (i) synthesise the shapes a
+    generator emits (a parameterised mux-tree / priority-encoder / bus-concat emitter) and measure
+    the nesting each produces as a function of width — this needs nobody's permission and is the
+    honest lower bound; (ii) elaborate/flatten something already in the tree; (iii) ask Nexsim for a
+    sample of their generated and optimized RTL, which is the only source that settles it. ⛔ (i)
+    FIRST — a bar built on a request nobody has answered is a bar that never fires.
+  - **(b)** RE-DERIVE the worst-shape capacity over a WIDER shape set than ten, chosen from what
+    generators emit rather than from what is easy to write. `.61`(b) measured a 3.3× spread over ten
+    shapes and had already been wrong once about `322` being the number; **assume a worse shape
+    exists until the search says otherwise.**
+  - **(c)** ONLY THEN rule on the location, and price the alternatives honestly: raising 4096 costs
+    stack (`1.3.1` already runs SV/VHDL on a dedicated 256 MiB thread, so the ceiling and the stack
+    are one budget, not two); making the guard depth-adaptive; or converting the ceiling from a
+    silent under-acceptance into a *declared, documented capacity* — which `(a)` has already made
+    self-diagnosing.
+- ⭐ **WHAT `(a)` ALREADY BOUGHT, and it is worth stating because it changes the risk shape**: a
+  consumer who DOES hit the ceiling is now told so in the error they receive, on every family, with
+  the frame limit and the frames-vs-levels caveat named. The failure mode changed from *"your valid
+  file has a syntax error at position 0"* to *"you exceeded a stated parser limit."* That does not
+  make the under-acceptance acceptable; it makes it diagnosable while this leaf adjudicates it.
+- ⚠️ **HONEST BOUND, stated up front so it is not discovered later**: option (a)(i) synthesises what
+  *I* think a generator emits. That is a model, not the population, and it can only produce a LOWER
+  bound on real depth. Only (a)(iii) closes it.
+
+
+### ⚠️ `.64` — **THE DIRECTOR NAMED *ANALOG* PROJECTS AND THE SV GRAMMAR HAS NO VERILOG-AMS SURFACE AT ALL** (`todo`, ROUTED, opened 2026-08-28 by the DIRECTOR'S POPULATION RULING / `PGEN-ENGINE-UNIVERSAL-SERVICES-0112`)
+
+- ⛔ **MEASURED, fast**: a word-boundary census of `grammars/systemverilog.ebnf` for `analog`,
+  `wreal`, `electrical`, `discipline`, `nature` returns **zero**. There is no `analog` block, no
+  wreal net type, no discipline/nature declaration — i.e. **no Verilog-AMS surface**.
+- ⛔ **WHY IT IS A LEAF AND NOT A NOTE.** The population ruling names *"analog projects"* as a Nexsim
+  target. If Nexsim's analog flow needs AMS source parsed, that is a **capability gap in the
+  deliverable**, not a defect in an existing parser — and no current gate would notice, because a
+  gate measures a language surface the grammar claims. ⭐ **CENSUSED, not asserted** — the population
+  that would REFUTE me is every gate/driver/workflow that could name an AMS surface:
+  `git grep -lniE '\b(verilog-?ams|vhdl-?ams|wreal|electrical|discipline|nature)\b' -- scripts rust/src .github rust/Makefile | wc -l`
+  → **0**, alongside the grammar census above (also 0).
+- **WHAT THIS LEAF OWES**: (a) establish WHICH standard is actually needed (IEEE 1800 with AMS
+  extensions / Verilog-AMS 2.4 / VHDL-AMS 1076.1) and whether Nexsim parses analog source at all or
+  only co-simulates it — ⛔ **this one is genuinely a director/Nexsim question, not a technical
+  call I can answer**, and it is the rare kind that changes WHAT gets built; (b) if in scope, price
+  it against the horizon register `LANG-CAPABILITY-AUDIT.11`, which owns capability commitments.
+- ⚠️ **HONEST BOUND**: the census is a fast grep over one grammar, not an adjudication — it proves
+  the tokens are absent, not that every AMS construct is unreachable by some other spelling.
 ### ⚠️ `.47` — `detect_profile_orphans` reads the **FILTERED** profile context and a universe that omits `@default_profile`, so on any grammar declaring a default it has never evaluated the profile that SHIPS (`todo`, opened 2026-08-25 by `.46` slice 2 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0084`)
 
 **WHAT WAS MEASURED, and it was measured against a control rather than read off the source.** While
