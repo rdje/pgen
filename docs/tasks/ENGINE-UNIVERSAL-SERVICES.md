@@ -14399,7 +14399,7 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   bound on real depth. Only (a)(iii) closes it.
 
 
-### ⚠️ `.64` — **THE DIRECTOR NAMED *ANALOG* PROJECTS AND THE SV GRAMMAR HAS NO VERILOG-AMS SURFACE AT ALL** (`todo`, ROUTED, opened 2026-08-28 by the DIRECTOR'S POPULATION RULING / `PGEN-ENGINE-UNIVERSAL-SERVICES-0112`)
+### ⏸️ `.64` — **VERILOG-AMS IS A LONG-TERM HORIZON GOAL, PARKED BY DIRECTOR RULING UNTIL AFTER THE FIRST OFFICIAL SV RELEASE. THIS LEAF HOLDS THE MEASURED STARTING POINT AND NOTHING ELSE** (`parked`, opened 2026-08-28 / `…-0112`, SCOPED SAME DAY by the director / `PGEN-ENGINE-UNIVERSAL-SERVICES-0113`)
 
 - ⛔ **MEASURED, fast**: a word-boundary census of `grammars/systemverilog.ebnf` for `analog`,
   `wreal`, `electrical`, `discipline`, `nature` returns **zero**. There is no `analog` block, no
@@ -14411,11 +14411,26 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   that would REFUTE me is every gate/driver/workflow that could name an AMS surface:
   `git grep -lniE '\b(verilog-?ams|vhdl-?ams|wreal|electrical|discipline|nature)\b' -- scripts rust/src .github rust/Makefile | wc -l`
   → **0**, alongside the grammar census above (also 0).
-- **WHAT THIS LEAF OWES**: (a) establish WHICH standard is actually needed (IEEE 1800 with AMS
-  extensions / Verilog-AMS 2.4 / VHDL-AMS 1076.1) and whether Nexsim parses analog source at all or
-  only co-simulates it — ⛔ **this one is genuinely a director/Nexsim question, not a technical
-  call I can answer**, and it is the rare kind that changes WHAT gets built; (b) if in scope, price
-  it against the horizon register `LANG-CAPABILITY-AUDIT.11`, which owns capability commitments.
+- ✅⛔ **THE SCOPE QUESTION IS ANSWERED — BY THE DIRECTOR, THE SAME DAY IT WAS ASKED (2026-08-28).**
+  I raised it as *"a genuine director/Nexsim question, the rare kind that changes WHAT gets built"*.
+  The answer: *"support verilog-AMS is a new long term goal, not now… just a long term goal I added
+  very recently. It is part of the north star, horizon goal"*, positioned as *"for future support
+  following the first official release of the SV parser to NEXSIM."*
+- ⛔⛔ **⇒ THIS LEAF IS PARKED BY DESIGN AND THE PARKING IS THE DIRECTOR'S OWN, NOT MY DEFERRAL.** It
+  is sequenced BEHIND the first official SV release, so it sits behind the standing SV lane lock
+  ([[project_nexsim_sv_signoff_delivery_focus]]) and behind `.63`. ⭐ **Reading this leaf as licence
+  to start AMS grammar work would be exactly the error the lane lock exists to prevent.**
+- ⭐ **WHAT THE LEAF IS FOR, then**: it holds the MEASURED starting point so the horizon row is a
+  fact rather than an aspiration — **0** AMS tokens in the grammar, **0** gates naming one (both
+  censused above). A future session picking this up starts from a number, not from a hunch.
+- ⚠️ **WHAT IS STILL UNDECIDED and must NOT be assumed when the time comes**: which standard
+  (Verilog-AMS 2.4 / IEEE 1800 with AMS extensions / VHDL-AMS 1076.1), and whether Nexsim parses
+  analog SOURCE or only co-simulates it. ⛔ The director recorded the GOAL; scoping it is a separate
+  call and is deliberately left open.
+- **TRACKED WHERE COMMITMENTS LIVE**: horizon record [[project_horizon_universal_parser]] (new
+  target-language section) + register row **`A10`** in `LANG-CAPABILITY-AUDIT.11`, added in the SAME
+  commit — that record's own standing rule (*"when adding a commitment to this record, add its
+  register row in the same commit"*), which exists because six priced rows once had no owning leaf.
 - ⚠️ **HONEST BOUND**: the census is a fast grep over one grammar, not an adjudication — it proves
   the tokens are absent, not that every AMS construct is unreachable by some other spelling.
 ### ⚠️ `.47` — `detect_profile_orphans` reads the **FILTERED** profile context and a universe that omits `@default_profile`, so on any grammar declaring a default it has never evaluated the profile that SHIPS (`todo`, opened 2026-08-25 by `.46` slice 2 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0084`)

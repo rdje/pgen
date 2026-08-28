@@ -25,6 +25,10 @@ layer-A pointer does not have to carry them (`MEMORY-ARCH.6`: the block was **2 
 
 - **The goal**: parse any precisely-described language with the right EBNF; the bar is *eagerness*,
   not sufficiency — expressive awkwardness is a defect class → [[project_horizon_universal_parser]].
+  ⭐ **Newest named target: Verilog-AMS** (director 2026-08-28) — *"a new long term goal, not now…
+  following the first official release of the SV parser to NEXSIM"*. The first ANALOG/mixed-signal
+  target, sequenced explicitly BEHIND the SV release and the lane lock; register row `A10` in
+  `LANG-CAPABILITY-AUDIT.11`, measurement in `ENGINE-UNIVERSAL-SERVICES.64`.
 - **The two non-negotiable constraints on reaching it**: parser-neutrality and theoretical peak
   speed. Capability that costs either is REJECTED, not traded; the mechanism is COMPILE AWAY
   (non-users pay ZERO) → [[project_capability_growth_is_zero_cost_and_neutral]].

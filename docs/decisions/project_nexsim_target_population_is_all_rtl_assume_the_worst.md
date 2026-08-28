@@ -49,11 +49,19 @@ theoretical one.
 
 ## Analog — a second, separate consequence
 
-The ruling names **analog projects**. A fast census of `grammars/systemverilog.ebnf` finds **no
-Verilog-AMS surface** (no `analog` block, `wreal`, `electrical`, `discipline`, `nature`). Whether Nexsim
-needs AMS parsing — and in which language — is a CAPABILITY question this record raises and does not
-answer; it is routed to `ENGINE-UNIVERSAL-SERVICES.64` and belongs to the horizon register
-`LANG-CAPABILITY-AUDIT.11`. ⚠️ The grep is a fast negative, not an adjudication.
+The ruling names **analog projects**, and a fast census of `grammars/systemverilog.ebnf` finds **no
+Verilog-AMS surface** (no `analog` block, `wreal`, `electrical`, `discipline`, `nature`; **0** gates or
+scripts name one either).
+
+⛔ **SCOPED BY THE DIRECTOR THE SAME DAY, so do not read this record as opening AMS work.**
+*"Support verilog-AMS is a new long term goal, not now… just a long term goal I added very recently.
+It is part of the north star, horizon goal"* — positioned *"for future support following the first
+official release of the SV parser to NEXSIM."* ⇒ **AMS is a HORIZON commitment sequenced behind the
+first official SV release**, recorded in [[project_horizon_universal_parser]] with register row `A10`
+in `LANG-CAPABILITY-AUDIT.11`; `ENGINE-UNIVERSAL-SERVICES.64` is PARKED and holds only the measured
+starting point. **This record's population ruling binds the SV parser NOW; the analog half is a
+horizon goal, not present scope.** ⚠️ The grep is a fast negative, not an adjudication, and the
+standard (Verilog-AMS 2.4 / 1800-with-AMS / VHDL-AMS 1076.1) is still an open scope call.
 
 Related: [[project_nexsim_sv_signoff_delivery_focus]], [[project_horizon_universal_parser]],
 [[feedback_correctness_before_speed]], [[an-x-is-checked-by-nothing-claim-is-a-census-claim]].

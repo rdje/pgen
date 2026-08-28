@@ -70,6 +70,36 @@ stronger** — this is the driver for capability/primitive work.
    the true scope: not every pathological corner, but every construct with a precise spec, via a
    duality-complete primitive.
 
+## ⭐ NEW TARGET LANGUAGE — **Verilog-AMS** (director, 2026-08-28)
+
+> *"support verilog-AMS is a new long term goal, not now. […] just a long term goal I added very
+> recently. It is part of the north star, horizon goal."* — and its position is stated as precisely
+> as the goal: *"for future support following the first official release of the SV parser to
+> NEXSIM."*
+
+**Verilog-AMS joins the named target list** (beside JavaScript, Perl5, Raku, the markup languages,
+any LRM). It is the first target named that is **analog/mixed-signal** rather than digital or
+general-purpose, which is why it is recorded here rather than folded silently into "any LRM":
+
+- ⛔ **IT IS SEQUENCED, NOT MERELY DESIRED.** It sits **after the first official SV parser release to
+  Nexsim** — so it is explicitly BEHIND the standing SV lane lock
+  ([[project_nexsim_sv_signoff_delivery_focus]]) and behind the ceiling re-adjudication the same-day
+  population ruling opened ([[project_nexsim_target_population_is_all_rtl_assume_the_worst]],
+  `ENGINE-UNIVERSAL-SERVICES.63`). ⭐ **Nothing about it is work now**, and reading it as a reason to
+  start AMS grammar work would be the error the lane lock exists to prevent.
+- **MEASURED starting point, so the register row is not an empty aspiration** (2026-08-28,
+  `ENGINE-UNIVERSAL-SERVICES.64`): a word-boundary census of `grammars/systemverilog.ebnf` for
+  `analog`, `wreal`, `electrical`, `discipline`, `nature` returns **0**, and
+  `git grep -lniE '\b(verilog-?ams|vhdl-?ams|wreal|electrical|discipline|nature)\b' -- scripts rust/src .github rust/Makefile`
+  returns **0** files. ⇒ the surface is absent from the grammar AND unmeasured by any gate. This is a
+  greenfield capability, not a gap in something partly built.
+- ⚠️ **WHAT IS NOT YET DECIDED, and must not be assumed when the time comes**: which standard
+  (Verilog-AMS 2.4 / IEEE 1800 with AMS extensions / VHDL-AMS 1076.1), and whether Nexsim parses
+  analog *source* or only co-simulates it. Those are director/Nexsim scope calls, deliberately left
+  open — recording the goal is not the same as scoping it.
+
+Register row: **`A10`** in [`LANG-CAPABILITY-AUDIT.11`](../tasks/LANG-CAPABILITY-AUDIT.md).
+
 ## How to apply
 
 - **Reframes prioritization:** capability/primitive-strengthening is the through-line; the regex

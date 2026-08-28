@@ -3936,6 +3936,7 @@ priced `schedule:` lane addresses.
 | A7 | encoding / Unicode (identifier classes, normalization) | `.4` P3-8, unscheduled | ⛔ **UNOWNED** |
 | A8 | lexical adjacency / no-layout boundaries | `LEX-ADJACENCY` (+ `-design`) | ✅ owned |
 | A9 | steering-surface GRANULARITY (gates every other axis) | `ANNOTATION-PLACEMENT`, `INLINE-ACTIONS`, `LEXICAL-ANNOTATIONS` | ✅ owned |
+| A10 | **Verilog-AMS / analog-mixed-signal as a TARGET LANGUAGE** (director 2026-08-28, new horizon goal) | `ENGINE-UNIVERSAL-SERVICES.64` — measurement + disposition only | ⏸️ **PARKED BY DESIGN, and the parking is the director's own**: *"a new long term goal, not now… following the first official release of the SV parser to NEXSIM"*. Behind the SV lane lock. ⭐ Not unowned — the leaf holds the measured starting point (**0** AMS tokens in `grammars/systemverilog.ebnf`, **0** gates/scripts naming one) so the row is a fact, not an aspiration. ⚠️ Standard (Verilog-AMS 2.4 / 1800-with-AMS / VHDL-AMS 1076.1) and whether Nexsim parses analog SOURCE at all are OPEN director/Nexsim scope calls |
 
 **B. Priced roadmap rows** (`.4`) — the six with no owning leaf are the core of this leaf:
 
