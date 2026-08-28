@@ -1,0 +1,34 @@
+[
+ {
+  "reservation_MiB": 96,
+  "deepest_ok": 1142,
+  "first_bad": 1143,
+  "labelled": true,
+  "levels_per_MiB": 11.896,
+  "wall_s": 172.3
+ },
+ {
+  "reservation_MiB": 128,
+  "deepest_ok": 1524,
+  "first_bad": 1525,
+  "labelled": true,
+  "levels_per_MiB": 11.906,
+  "wall_s": 280.0
+ },
+ {
+  "reservation_MiB": 192,
+  "deepest_ok": 2286,
+  "first_bad": 2287,
+  "labelled": true,
+  "levels_per_MiB": 11.906,
+  "wall_s": 725.4
+ },
+ {
+  "reservation_MiB": 256,
+  "deepest_ok": 3049,
+  "first_bad": 3050,
+  "labelled": true,
+  "levels_per_MiB": 11.91,
+  "wall_s": 1227.6
+ }
+]

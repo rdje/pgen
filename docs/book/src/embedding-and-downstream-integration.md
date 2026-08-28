@@ -409,20 +409,45 @@ proves nothing on its own. The discriminating prediction is *proportionality*: i
 stack, halving the stack must halve the depth. Measured on nested `int'(…)` casts, varying the
 reservation through `PGEN_PARSE_STACK_BYTES`:
 
-| parse-stack reservation | deepest accepted | levels per MiB |
-|---:|---:|---:|
-| 96 MiB | 1 807 | 18.823 |
-| 128 MiB | 2 410 | 18.828 |
-| 192 MiB | 3 611 | 18.807 |
-| **256 MiB (the shipped default)** | **4 813** | 18.801 |
+| parse-stack reservation | nested `int'(…)` | levels / MiB | mux, both arms parenthesised | levels / MiB |
+|---:|---:|---:|---:|---:|
+| 96 MiB | 1 807 | 18.823 | 1 142 | 11.896 |
+| 128 MiB | 2 410 | 18.828 | 1 524 | 11.906 |
+| 192 MiB | 3 611 | 18.807 | 2 286 | 11.906 |
+| **256 MiB (the shipped default)** | **4 813** | 18.801 | **3 049** | 11.910 |
 
-**Flat to 0.14 % across a 2.67× range.** No constant can produce that curve. ⚠️ **Measured on one
-shape** (nested `int'(…)`) across four reservations, not across the shape set — so what is
-established is that *this* shape's capacity is linear in the stack, which is what a constant cannot
-do; corroborating it on a second shape is outstanding (`ENGINE-UNIVERSAL-SERVICES.65`, qualification
-1). Every boundary in the
-table is a genuine ceiling contact — confirmed by the `.61`(a) label rather than assumed — and the
-boundary is exactly reproducible (three accepts at 4 813, three rejections at 4 814).
+**Flat to 0.145 % and 0.120 % across a 2.67× range.** No constant can produce either curve. Every
+boundary in the table is a genuine ceiling contact — confirmed by the `.61`(a) label rather than
+assumed — and the boundaries are exactly reproducible (three accepts at 4 813, three rejections at
+4 814).
+
+⭐ **The second shape was a prediction, not an illustration.** The first version of this table
+measured one shape, and that was recorded here as an open qualification rather than smoothed over.
+Discharging it (`ENGINE-UNIVERSAL-SERVICES.71`), the mux column's 96 MiB point was used to publish a
+falsifiable number *before* the run — **≈ 2 284 levels at 192 MiB** — and the measurement came back
+at **2 286**, inside **0.09 %**.
+
+**A second instrument agrees, and it is not the same measurement.** The two columns above come from
+bisecting the accept/reject boundary. The guard also reports the frame ceiling the host gave it,
+inside its own rejection text, and nothing in the bisection computes that number:
+
+| parse-stack reservation | nested `int'(…)` frames | frames / MiB | mux frames | frames / MiB |
+|---:|---:|---:|---:|---:|
+| 96 MiB | 30 615 | 318.91 | 32 008 | 333.42 |
+| 128 MiB | 40 827 | 318.96 | 42 684 | 333.47 |
+| 192 MiB | 61 250 | 319.01 | 64 039 | 333.54 |
+| **256 MiB (the shipped default)** | **81 675** | 319.04 | **85 392** | 333.56 |
+
+Flat to **0.041 %** and **0.042 %** — tighter than the levels tables. A straight line fits each with
+**residuals under 0.001 %** and an intercept of **−0.03 %** of the largest ceiling. ⭐ **That
+near-zero intercept is what separates the two hypotheses**: a fixed ceiling is precisely the
+intercept-only model — slope zero, the whole value in the constant — and this is its opposite.
+
+⚠️ **Read the claim at its real width: two shapes, not the shape set.** The frame ceiling itself is
+**shape-dependent at the 4.6 % level** (318.9 vs 333.6 frames/MiB), because different rule mixes have
+different average frame sizes — so "frames per MiB" is a property of *this parser on this shape*, not
+of the host alone. What is established is that both measured shapes are linear in the reservation,
+which no constant can be; that every shape is, is an ordinary empirical expectation, not a proof.
 
 **What each shape gained.** The before column is the fixed 4096-frame ceiling, which no reservation
 could move; the after column is measured at a deliberately small **96 MiB** reservation — *under a

@@ -14883,6 +14883,12 @@ STRENGTH I attributed to my own evidence.
   choice — the worst-case shape and the most frames per level: it reads 1 142 at 96 MiB, so the
   prediction to falsify is ≈2 284 at 192 MiB). Until that runs, the honest headline is *"linear in
   the reservation on the one shape measured across four reservations"*, not *"linear"*.
+  ✅✅ **DISCHARGED 2026-08-28 by `.71` (`PGEN-ENGINE-UNIVERSAL-SERVICES-0119`) — the prediction was
+  published before the run and landed at 2 286 (0.09 %); levels/MiB flat to 0.120 % on the second
+  shape, plus a second instrument (the guard's own frame count) flat to 0.042 % with a −0.03 %
+  intercept, falsified against `.63`(b)'s pre-change 4 096-frame regime to within 0.45 %.** ⛔ The
+  headline is now *"linear on TWO shapes"* — still not *"linear"*, and `.71` records why the
+  stronger phrasing it nearly published instead was withdrawn.
 - ⛔⛔ **(2) THE CORPUS ARM PROVES THE CHANGE IS INERT ON THE CORPUS — IT CANNOT VALIDATE THE NEW
   CODE PATH, BECAUSE THE CORPUS NEVER EXECUTES IT.** `extend_depth_probe` runs only when a parse
   reaches depth 4096. **MEASURED THIS SLICE on the POST-change binary: 0 of 400 sampled corpus files
@@ -14910,6 +14916,124 @@ STRENGTH I attributed to my own evidence.
   proportionality"* (one shape), *"0 differences over 30 056 files"* (a population that cannot reach
   the code) and *"MEASURED"* (one of the two counts) are each a true measurement carrying a claim
   wider than its own population. → [[an-x-is-checked-by-nothing-claim-is-a-census-claim]]
+
+### ✅✅ `.71` — **DISCHARGE `-0118`(1): THE PROPORTIONALITY CLAIM NOW CARRIES TWO SHAPES AND A SECOND INSTRUMENT — AND THE TWO FINDINGS I DREW *AROUND* IT WERE BOTH REFUTED BY DATA I ALREADY HAD** (**DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0119`; opened same day by `-0118`(1)'s own OWED item)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — not a defect: an evidence debt `-0118`(1) named in writing.
+  `.65`'s 4-point scaling table is measured on `cast_paren` and on nothing else, which is
+  structurally `.61`(b)'s single-axis-oracle error. Leaving it as a note would have made the debt a
+  property of the RECORD rather than of the EVIDENCE — the posture the director's 2026-08-26
+  standing correction rules out.
+- ⭐ **THE PREDICTION WAS PUBLISHED BEFORE THE RUN, and it is the whole point of the exercise**:
+  `-0118`(1) committed to **≈2 284 levels at 192 MiB** for `gen_mux_both_arms` from its 1 142 at
+  96 MiB. **MEASURED: 2 286** — **0.09 %**. A shape bound by anything other than stack would have
+  read flat on `cast_paren` and non-linear on itself.
+- [x] **ADDRESSED (verified) — AXIS 1, the same tracked producer, unmodified, on the second shape.**
+  `docs/tasks/artifacts/eus65/reservation_scaling.py`, byte-identical (sha256 `26af2f38…`) to the
+  copy `.65` ran; probe `rust/target/release/parseability_probe` sha256 `e0c8de1a…`, the shipped
+  binary, **zero source bytes changed this slice**:
+
+  | reservation | `gen_mux_both_arms` deepest accepted | first rejected | **levels / MiB** | ceiling-labelled |
+  |---:|---:|---:|---:|:--:|
+  | 96 MiB | 1 142 | 1 143 | **11.896** | yes |
+  | 128 MiB | 1 524 | 1 525 | **11.906** | yes |
+  | 192 MiB | 2 286 | 2 287 | **11.906** | yes |
+  | 256 MiB (default) | **3 049** | 3 050 | **11.910** | yes |
+
+  ⇒ **flat to 0.120 %** across the same 2.67× range on which `cast_paren` reads 0.145 %, and
+  `3049/1142 = 2.6699` against `256/96 = 2.6667`. The 96 MiB row reproduces `.65`'s 1 142 exactly —
+  produced there by a DIFFERENT script (`shape_cliff_subset.py`), so the two producers agree.
+- ⭐⭐ **AXIS 2 — A SECOND INSTRUMENT, AND IT IS NOT MY BISECTION.** The guard reports the frame
+  ceiling the host supplied inside its own rejection text (*"ran out at N parser frames"*); nothing
+  in `reservation_scaling.py` computes or consumes it. Producer
+  `docs/tasks/artifacts/eus71/frame_ceiling_readout.py`, fit
+  `docs/tasks/artifacts/eus71/proportionality_fit.py`:
+
+  | reservation | `cast_paren` frames | frames / MiB | `gen_mux_both_arms` frames | frames / MiB |
+  |---:|---:|---:|---:|---:|
+  | 96 MiB | 30 615 | 318.91 | 32 008 | 333.42 |
+  | 128 MiB | 40 827 | 318.96 | 42 684 | 333.47 |
+  | 192 MiB | 61 250 | 319.01 | 64 039 | 333.54 |
+  | 256 MiB | **81 675** | 319.04 | **85 392** | 333.56 |
+
+  ⇒ **flat to 0.041 % and 0.042 %** — tighter than the levels table, on a quantity the bisection
+  never produces. A least-squares line through each fits with **residuals ≤ 0.001 %** and an
+  intercept of **−21 / −23 frames = −0.03 %** of the largest ceiling. ⭐ **That near-zero intercept
+  is the discriminator, not the slope**: a fixed ceiling is exactly the intercept-only model
+  (slope 0, all the value in the constant), and the measurement is its opposite. The 81 675 at
+  256 MiB reproduces `.65`'s separately-read value digit-for-digit.
+- ⭐⭐ **FALSIFIED AGAINST AN ORACLE BUILT UNDER THE OLD CEILING** — `.63`(b) measured each shape's
+  boundary when the guard fired at a fixed 4 096 frames: a different mechanism, a different binary,
+  a different slice. Fitting frames against DEPTH on this slice's four points and **extrapolating
+  ~7× below the fitted range** onto that anchor: `cast_paren` (fitted 1 808–4 814) predicts 4 131
+  frames at depth 250 against 4 096 measured — **−0.84 %**; `gen_mux_both_arms` (fitted 1 143–3 050)
+  predicts 4 115 at depth 147 against 4 096 — **−0.45 %**. Per-level slopes **16.996** and **28.004**
+  with the anchor included.
+- ⛔ **AND THAT FIT CORRECTED MY OWN CROSS-CHECK.** The screening quotient `frames/level` reads
+  16.966 here against `.63`(b)'s 4096/250 = 16.384, a **+3.55 %** gap I first recorded as an
+  instrument disagreement. It is not one: `frames = a + b·depth` makes the QUOTIENT drift with
+  depth, so two regimes measured 7× apart differ on it while agreeing on `b`. Both producers now say
+  so in their own docstrings, and the field is renamed `ratio_vs_63b_screening`.
+- ⭐ **THE CONTROL GOES RED ON PURPOSE** — the same readout one level shallower (`cast_paren`, 96 MiB,
+  depth 1 807, which ACCEPTS) reports `ceiling_labelled: false`, `frames: null` and emits no derived
+  row. The instrument cannot manufacture a frame count from a non-ceiling outcome.
+- [x] **NO REGRESSION** — **ZERO Rust / grammar / codegen / generated bytes**: this slice measures
+  the shipped binary and writes documents. All 8 frame rows were measured twice, singly and then in
+  one batch invocation, and **reproduce digit-for-digit**. Both jobs ran under the memory guard and
+  exited 0 (sweep 2 405 s, peak tree RSS 798 MB; readout 257 s, 781 MB).
+- ⛔⛔⛔ **TWO FINDINGS PUBLISHED TO THE DIRECTOR IN THIS SLICE AND BOTH WITHDRAWN UNDER HIS
+  RE-VERIFICATION CHALLENGE, BEFORE EITHER REACHED A DURABLE LAYER. Recorded here because the
+  pattern is about HOW I PUBLISH, not about this measurement.**
+  - ⛔ **(W1) *"The frames axis replaces induction with structure; the frame ceiling is a property of
+    the host stack, flat to 0.04 %."* REFUTED BY MY OWN DATA.** The 0.04 % is the flatness WITHIN
+    `cast_paren`. **Across the two shapes the same quantity spreads 4.59 %** — 112× wider than the
+    number quoted in its support — so the frame ceiling is a function of `(shape, reservation)`.
+    I had written the cross-shape spread line into `proportionality_fit.py` myself before publishing
+    the claim it refutes. And the "structure" was not structure: both supporting facts are measured
+    on the same two shapes, so **the induction moved from the levels axis onto the frames/level
+    axis** rather than being eliminated. ⇒ third occurrence of `.61`(b)'s shape, committed inside the
+    slice whose only job is to discharge the second.
+  - ⛔ **(W2) *"The guard over-estimates per-frame cost ~1.6×, so it refuses with a third of the
+    stack free."* WRONG IN MECHANISM, and the number was CARRIED.** (i) `extend_depth_probe`
+    (`rust/src/ast_pipeline/mod.rs:1975`) is **ITERATIVE**: it re-samples at each new threshold and
+    extends by `affordable / STACK_HEADROOM_STRIDE_DIVISOR`, refusing only when `used >= budget` or
+    `affordable == 0`. An over-estimate therefore shortens each STRIDE and raises the sample count —
+    it does **not** leave stack unspent. The constant's own doc comment says exactly this. My
+    inference assumed a single-shot computation. (ii) The flat frames/MiB **already refuted it**: the
+    shortfall factor `1 + prologue/(depth·real_cost)` would shrink as sampling depth grows with the
+    reservation, so frames/MiB would climb materially; measured rise is **0.04 %**, and I had
+    flagged that monotone drift as a caveat in the same message. (iii) The *"~2 KB/frame"* was
+    **never re-derived** — lifted from `.65`'s prose. `SV-CORPUS-GRAD.8c.3` actually reports
+    ≈8 MB / 4096 frames from a **ulimit bisection on a deep-parenthesis shape**, and records
+    **~6 frames/paren under `verilog_2005` against ~11 under `sv_2017`** ⇒ frames-per-level is
+    **profile**-dependent as well as shape-dependent, an axis I had not accounted for at all.
+  - ⇒ ⭐⭐⭐ **THE LESSON, and it is the one `-0118` named coming true one slice later: a findings
+    callout is a claim and gets leg 2 LAST, if at all.** Both withdrawn claims passed leg 1 (the
+    numbers in them are real) and neither was ever asked *"what would make this false, and is the
+    refuting measurement already on my screen?"* — it was, twice. → [[an-x-is-checked-by-nothing-claim-is-a-census-claim]],
+    [[feedback_verify_a_claim_three_ways_before_publishing_it]]
+- ✅ **THE HONEST HEADLINE, at exactly the width the evidence carries** — *"the accept boundary is
+  linear in the parse-stack reservation on TWO shapes across four reservations, corroborated by a
+  second instrument read out of the guard itself (residuals ≤ 0.001 %, intercept −0.03 %) and
+  falsified against an oracle built under the previous ceiling to within 0.84 %; the frame ceiling
+  is itself shape-dependent at the 4.6 % level."* NOT *"linear"*, NOT *"proved by structure"*, and
+  not a claim about shapes nobody has measured.
+- ⚠️ **WHAT IS STILL NOT MEASURED, named rather than left to be discovered**: nobody has instrumented
+  the ACTUAL stack spend at refusal. The reservation cost fits at **3.209 KB/frame** (`cast_paren`)
+  and **3.069** (`gen_mux_both_arms`); with `STACK_HEADROOM_RESERVE_DIVISOR = 16` withholding 6.25 %
+  by design, real per-frame cost is **≤ 3.008 / 2.877 KB** — an upper bound from arithmetic, not a
+  measurement. ⇒ folded into `.69`(d) rather than made a leaf of its own, because opening one on a
+  withdrawn premise would launder a bad finding into the tracker.
+- [x] **LOCKSTEP** — this leaf + `.65`'s qualification (1) marked DISCHARGED + `.69`(d) + the
+  platform book's proportionality section (second shape added, the "outstanding" note retired) +
+  `docs/TASK_TREE.md` frontier + `MEMORY.md` / `CHANGES.md` / `DEVELOPMENT_NOTES.md`.
+- ⭐ **DURABILITY (leg 3), and the tracked set is stated exactly** — `*.log` is gitignored
+  repo-wide, so the durable evidence is the PRODUCERS plus their JSON:
+  `docs/tasks/artifacts/eus71/{frame_ceiling_readout.py, proportionality_fit.py,
+  frame_ceiling_readout.json, reservation_scaling_gen_mux_both_arms.json}`. Every number published
+  above is re-derivable from those alone — demonstrated this slice by running the tracked fit over
+  the tracked JSON. ⚠️ `.65` cites `reservation_scaling_cast_paren.log` the same way and that log is
+  likewise NOT in git; its JSON is, which is what carries the numbers.
 
 ### ⛔⛔ `.68` — **THE CYCLE GUARD SCANS THE WHOLE LIVE STACK ON EVERY RULE ENTRY, SO A DEPTH-`D` PARSE IS Θ(D²). WITH THE CEILING NOW AT THE HOST'S STACK, THIS IS THE FIRST THING A DEEP PARSE RUNS OUT OF** (`todo`, opened 2026-08-28 by `.65`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0117`)
 
@@ -14946,6 +15070,35 @@ STRENGTH I attributed to my own evidence.
   widen `.65`'s derived path beyond `dedicated_parse_stack`-created threads; (c) price the new
   dependency, since both (a) and (b) need `libc` as a DIRECT dependency, which the crate does not
   have today.
+- ⚠️ **(d) INSTRUMENT THE ACTUAL SPEND AT REFUSAL — added 2026-08-28 by `.71`, deliberately as a
+  sub-item and not as a leaf.** Everything published about how tightly the derived ceiling tracks
+  the real stack is arithmetic over `reservation ÷ frames` plus a reading of the algorithm: `.71`
+  fits **3.209 KB of reservation per frame** (`cast_paren`) and **3.069** (`gen_mux_both_arms`),
+  and with `STACK_HEADROOM_RESERVE_DIVISOR = 16` withholding 6.25 % by design the real per-frame
+  cost is **≤ 3.008 / 2.877 KB**. That is an upper bound, not a measurement; the measurement is
+  `used` at the moment of refusal, which **no RUNTIME surface emits** — censused rather than
+  asserted, and the census NARROWED the claim I first wrote:
+
+  ```
+  git grep -n "ran out at\|last_ceiling_depth" -- rust/src   # -> 5 hits, ALL last_ceiling_depth
+                                                             #    (a FRAME COUNT); no byte quantity
+  git grep -oh "PGEN_[A-Z_]*" -- rust/src | sort -u           # -> PGEN_PARSE_STACK_BYTES (an INPUT),
+                                                             #    PGEN_REPORT_MEMO_STATS,
+                                                             #    PGEN_TRACE_LOG_FILE/_VERBOSITY
+                                                             #    — none emits stack bytes
+  git grep -n "current_parse_stack_extent\|approximate_stack_pointer" -- rust/src rust/tests
+                                                             # -> outside dedicated_parse_stack.rs:
+                                                             #    extend_depth_probe + ONE #[test]
+  ```
+  ⚠️ **And it is NOT a vacuum, which is what my first phrasing implied**: spend is ALREADY measured
+  by three asserts in `rust/src/dedicated_parse_stack.rs` — `:318` (*"a shallow probe must read as a
+  small, positive spend"*), `:333` `stack_spend_grows_with_call_depth`, and `:365` (*"per-frame spend
+  under-reads its own ballast"*). Those measure spend on synthetic recursion, not at a refusal on
+  real input; they are the instrument (a)/(b) would EXTEND, not something to build from nothing.
+  ⛔ **It is a sub-item because the
+  finding that motivated it was WITHDRAWN** (`.71`(W2) — the over-estimate controls the probe's
+  STRIDE, not its stopping point, so the "refuses with a third of the stack free" premise is false);
+  opening a leaf on a withdrawn premise would launder a bad finding into the tracker.
 - ⚠ **A reservation is VIRTUAL and lazily committed, so a larger one costs address space rather than
   RAM — but with `.65` the guard will now actually descend into whatever is reserved, so raising it
   raises real RSS.** ⇒ (a) must be sized against host RAM, not against address space; sizing it

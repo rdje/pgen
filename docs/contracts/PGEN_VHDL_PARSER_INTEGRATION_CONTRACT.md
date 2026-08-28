@@ -16,7 +16,9 @@ This is the document downstream projects embedding the PGEN VHDL parser should r
     the shipped default — nested parentheses no longer cliff below the measurement harness's own
     16 384-level cap, against **681** before. The bound is provably host-derived rather than merely
     larger: varying the reservation moves the boundary linearly (18.82 levels per MiB, flat to
-    0.14 % across 96–256 MiB on the cross-checked SystemVerilog shape), and `PGEN_PARSE_STACK_BYTES`
+    0.145 % across 96–256 MiB on the cross-checked SystemVerilog shape, and 0.120 % on a second
+    SV shape added by `ENGINE-UNIVERSAL-SERVICES.71` whose 192 MiB point was PREDICTED to ≈2 284
+    before the run and measured 2 286), and `PGEN_PARSE_STACK_BYTES`
     lets a host that can afford more depth buy it. Corpus: **0 differences over 13 720 files**;
     AST-dump schema stays `3`. ⚠️ Cost is **quadratic in depth** and an over-ceiling refusal is now
     far dearer than it was (`ENGINE-UNIVERSAL-SERVICES.68`); the reservation's DEFAULT is still a
