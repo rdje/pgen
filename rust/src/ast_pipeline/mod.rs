@@ -984,6 +984,19 @@ impl<'input> NodeArena<'input> {
     /// — the header only; the heap text each one owns is a separate allocation
     /// no `&self` accessor can reach. The COUNT is reported beside the bytes so
     /// a reader can see whether the omission could matter for their grammar.
+    ///
+    /// ⛔⛔ **THE THIRD OMISSION WAS *UNDECLARED* IN THE FIRST CUT, AND IT IS THE
+    /// ONE THAT CHANGED A CONCLUSION** (`ENGINE-UNIVERSAL-SERVICES.67`(b),
+    /// corrected under a director re-verification challenge). A `ParseNode` is
+    /// 48 bytes, but [`ParseContent::Sequence`] is `Vec<&ParseNode>` and
+    /// [`ParseContent::Quantified`] is `(Vec<&ParseNode>, _)` — **each such node
+    /// owns a SEPARATE heap allocation holding 8 bytes per child**, and
+    /// `TransformedTerminal(String)` owns another. Those bytes are AST-owned and
+    /// live OUTSIDE the arena, so this census counts NODE HEADERS, not the AST.
+    /// ⇒ **a reader must not subtract this number from peak RSS and call the
+    /// remainder "not the AST".** That inference was published once and is
+    /// withdrawn; sizing the child-`Vec` heap needs an arena walk (`&mut`, so
+    /// `typed_arena::Arena::iter_mut`) that this `&self` accessor cannot do.
     pub fn footprint(&self) -> NodeArenaFootprint {
         let c = self.census();
         NodeArenaFootprint {

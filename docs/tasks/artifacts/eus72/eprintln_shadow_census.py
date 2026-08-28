@@ -33,9 +33,15 @@ from __future__ import annotations
 import re
 import sys
 
+# (path, line of its `macro_rules! eprintln`). ⛔ THE LINE IS LOAD-BEARING: `macro_rules!`
+# is TEXTUALLY SCOPED, so ONLY call sites AFTER the definition are shadowed. The first
+# version of this census ignored that and scanned whole files, counting `mod.rs:424` —
+# which sits ABOVE the definition and reaches stderr normally — as suppressed. It cost one
+# site here because the macro sits near the top; in a file where it sat near the bottom the
+# same bug would have inverted the answer.
 FILES = [
-    "rust/src/ast_pipeline/mod.rs",
-    "rust/src/ast_pipeline/ast_based_generator.rs",
+    ("rust/src/ast_pipeline/mod.rs", 532),
+    ("rust/src/ast_pipeline/ast_based_generator.rs", 90),
 ]
 SEVERITY = re.compile(r"WARNING|ERROR|FAILED|FAILURE|⚠|❌|🛑|⛔")
 CALL = re.compile(r"(?<![:\w])eprintln!\s*[(\[{]")
@@ -76,9 +82,9 @@ def statement_at(src: str, open_idx: int) -> str:
 def main() -> int:
     show = "--list" in sys.argv
     grand_shadowed = grand_sev = 0
-    for path in FILES:
+    for path, macro_line in FILES:
         src = open(path).read()
-        shadowed = severity_hits = 0
+        shadowed = severity_hits = before_shadow = 0
         std_qualified = len(
             [
                 m
@@ -95,6 +101,9 @@ def main() -> int:
                 continue
             if "macro_rules" in src[line_start : line_start + 60]:
                 continue
+            if src.count("\n", 0, start) + 1 < macro_line:
+                before_shadow += 1        # above the definition => real stderr
+                continue
             shadowed += 1
             body = statement_at(src, m.end() - 1)
             if SEVERITY.search(body):
@@ -104,6 +113,7 @@ def main() -> int:
         grand_sev += severity_hits
         print(f"{path}")
         print(f"  std::eprintln!  (reaches stderr)              : {std_qualified}")
+        print(f"  bare eprintln! ABOVE the macro (real stderr)  : {before_shadow}")
         print(f"  bare eprintln!  (SHADOWED -> debug-gated)     : {shadowed}")
         print(f"  ...of which the STATEMENT carries a severity  : {severity_hits}")
         if show:

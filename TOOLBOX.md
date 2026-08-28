@@ -576,8 +576,15 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
       rendered_strings=N (X.XX MB, header only) · arena item total X.XX MB
       [LOWER BOUND - chunk capacity and string payloads are NOT counted] ===
   ```
-- ⚠️ **IT IS A LOWER BOUND AND SAYS SO ON EVERY LINE — do not subtract it from peak RSS and call the
-  remainder "the memo".** Two exclusions are named rather than left to be discovered: `typed_arena`
+- ⛔⛔ **IT MEASURES NODE HEADERS, NOT THE AST — do not subtract it from peak RSS and call the
+  remainder "not the AST". That inference was published once and WITHDRAWN**
+  (`ENGINE-UNIVERSAL-SERVICES.67`(b), `-0122`). A `ParseNode` is 48 B, but
+  `ParseContent::Sequence` is a `Vec<&ParseNode>` and `Quantified` carries one too: **each such
+  node owns a SEPARATE heap allocation of 8 B per child, outside the arena**, and
+  `TransformedTerminal` owns a `String`. None of that is counted here. How much AST-owned memory
+  lives outside the arena is UNMEASURED — it needs an `iter_mut` walk this `&self` accessor cannot do.
+- ⚠️ **IT IS A LOWER BOUND AND SAYS SO ON EVERY LINE.** Two further exclusions are named rather than
+  left to be discovered: `typed_arena`
   allocates in chunks that DOUBLE and frees none until the arena drops, so resident chunk bytes can
   exceed live item bytes by up to ~2×; and `rendered_strings` contributes only its 24-byte header,
   because the heap text each one owns is a separate allocation no `&self` accessor can reach. The
@@ -590,6 +597,11 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   dropck answers `E0597`; the reasoning is recorded on the type. The unit test
   `parser_registry::tests::parse_paths_all_report_footprint` censuses this crate's own source and
   fails if a detail lane loses its call OR if the unwired population moves off 23.
+- ⚠️ **AND THE SHADOW ITSELF IS A TRAP FOR YOUR OWN DIAGNOSTICS.** `ast_pipeline/mod.rs:532` and
+  `ast_based_generator.rs:90` redefine `eprintln!` as `pgen_trace_debug!`, so **247 call sites below
+  those definitions are debug-gated traces, not stderr** (`ENGINE-UNIVERSAL-SERVICES.72`). If you add
+  a diagnostic to either file and it does not appear, that is why — use `std::eprintln!`, and note
+  that `macro_rules!` is TEXTUALLY SCOPED so sites ABOVE the definition are unaffected.
 
 ### 3.4 `--dump-rule-entry-counts-json`
 - **WHAT:** after a `--parse`, write the parser's monotone per-rule ENTRY counters (every rule-method entry, successful AND backtracked — the always-on `fetch_add` on rule entry) as JSON `{grammar, accepted, total_entries, rule_entry_counts}`. The machine-readable dual of the live dashboard (3.1), which is stderr-only/refresh-based and useless for a sub-millisecond parse. Counts are a DELTA past a pre-parse baseline (SV's stdlib preload never pollutes them) and deterministic for a deterministic parser ⇒ a re-runnable oracle. Wired for every registered grammar's canonical-entry `--parse` path (not `--entry-rule`). RGX-0078.5.h.1.

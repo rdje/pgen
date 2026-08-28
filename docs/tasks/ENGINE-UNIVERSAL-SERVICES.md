@@ -14857,6 +14857,60 @@ names four legs and this discharges one.
   LOWEST share in the table** — so whatever the intercept is, it is mostly not AST nodes. Still not
   resolved; now pointed at the same residual the mimalloc comparison targets.
 
+##### ⛔⛔⛔ `.67`(b) — **WITHDRAWAL AND QUALIFICATIONS UNDER A DIRECTOR RE-VERIFICATION CHALLENGE, SAME DAY (`PGEN-ENGINE-UNIVERSAL-SERVICES-0122`). THE MEASUREMENTS STAND. THE HEADLINE INFERENCE DOES NOT.**
+
+- ⛔⛔⛔ **(1) WITHDRAWN — *"a substantial majority is provably NOT the AST arena"*, and its
+  director-facing form *"the AST is not where the parse memory goes"*.** The instrument counts
+  `size_of::<ParseNode>()` = 48 B per node plus the three side arenas. But
+  **`ParseContent::Sequence` is `Vec<&'input ParseNode>` and `Quantified` is
+  `(Vec<&'input ParseNode>, _)`** (`mod.rs:1234`/`:1244`) — **every such node owns a SEPARATE heap
+  allocation of 8 bytes per child**, and `TransformedTerminal(String)` owns another. Those bytes are
+  **AST-owned and outside the arena**, and the census never counted them. ⇒ the published share
+  measures **NODE HEADERS, not the AST**, and the residual cannot be attributed away from the AST.
+  ⭐ **The two omissions I DID declare (chunk capacity, string payloads) made me feel the bound was
+  honest; the one that mattered was the one I never thought to look for** — which is why the fix is
+  a declaration at the instrument itself, not in this leaf.
+- ⚠️ **(2) THE PREDICTION IS NOT CLEANLY FALSIFIED — 2 of its 3 legs are, the headline one is
+  UNDECIDED.** The two COUNT legs are exact and stand: predicted 4–5 M nodes, measured **1 409 813**;
+  predicted 100+ nodes/byte, measured **38.4**. The SHARE leg does not: predicted *"> 50 % of peak
+  RSS"*, measured 27.9 % of **node headers**, which rises to ≤ 55.8 % under worst-case chunk doubling
+  and rises further by an unmeasured amount once child `Vec`s are counted. ⇒ *"prediction falsified"*
+  was itself a claim wider than its evidence, published in the same breath as the correction it was
+  meant to model.
+- ⚠️ **(3) THE CROSS-INSTRUMENT CHECK IS A REPLICATION, NOT AN INDEPENDENT METHOD.** `.66`'s figures
+  and mine are both *peak RSS via `/usr/bin/time -l` on the release probe*. Two independently written
+  HARNESSES agreeing to 0.20 % rules out a scripting error; it cannot rule out anything the METHOD is
+  blind to — and this leaf just demonstrated that peak RSS is blind to *where* the bytes are. The
+  phrase *"falsified against an oracle I did not build"* is downgraded to *"replicated by a harness I
+  did not build"*.
+- ⚠️ **(4) THE 16 GB CEILING IS AN EXTRAPOLATION BEYOND THE MEASURED RANGE.** The largest real file
+  measured is **1.9 MB**; *"a 16 GB host tops out at ~1.7–16 MB"* projects a per-byte ratio ~8× past
+  it and assumes the ratio holds at that scale, which was verified only on SYNTHETIC shapes to 10 000
+  items. It is a projection, not a measurement.
+- ⚠️ **(5) THE `ACCEPT` POPULATION IS 59 FILES AND IS NOT A RANDOM SAMPLE OF "REAL SV".** 428 of the
+  487 files ≥ 20 KB REJECT, mostly for want of includes/defines, so the ACCEPT subset is exactly the
+  large corpus files that happen to parse STANDALONE under `sv_2017`. The percentiles are true of
+  that population and are not claimed of any other.
+- ⛔ **(6) `.72`'s COUNT IS CORRECTED 248 → 247, AND THE METHOD BUG MATTERS MORE THAN THE NUMBER.**
+  `macro_rules!` is **textually scoped**: only call sites AFTER the definition are shadowed. `mod.rs`
+  defines it at line 532 and has **one** `eprintln!` above it (`:424`), which reaches stderr
+  normally. My census scanned the whole file. Corrected: **171 + 76 = 247** shipped shadowed sites
+  (0 inside `#[cfg(test)]`). ⇒ a census over a *scoped* construct must model the scope; here it cost
+  one site, in a file where the macro sits near the top — in a file where it sat near the bottom the
+  same bug would have inverted the answer.
+- ✅ **WHAT STANDS, UNCHANGED.** Every raw measurement: the `.67`(a) distribution and its census; the
+  arena item counts and bytes; **1 409 813 nodes / 38.4 per byte**; the **15.1 %** memo-stats routing
+  confound; the no-regression deltas; **11/11 byte-identical**; the `.72` root cause and its
+  `PGEN_TRACE_VERBOSITY=debug` proof; and both census defects I caught in myself. The surviving
+  claim is narrower and still worth having: **`ParseNode` HEADERS alone are a minority of the parse
+  footprint (14–36 %), so a node-slimming lever cannot by itself move the ingestion bound** — but how
+  much of the remainder is AST is now an OPEN measurement, not a settled one.
+- **OWES (new, and it is (b)'s real remaining shape).** Measure the child-`Vec` + `String` heap:
+  `typed_arena::Arena::iter_mut` needs `&mut`, so the detail paths must drop the parser before taking
+  it — priced, not asserted. ⛔ `--parse-dump-ast` CANNOT substitute: it emits the annotation-SHAPED
+  `PgenValue` tree, not the internal `ParseContent` node tree, so it cannot see a `Sequence` `Vec` at
+  all (verified on `spi_device_reg_pkg.sv`).
+
 ##### ACCEPTANCE CHECKLIST — `.67`(b) instrument (`PGEN-ENGINE-UNIVERSAL-SERVICES-0121`)
 
 - [x] **ROOT CAUSE (WHY + WHERE), tool-backed** — build-integrity signature `error[E0597]`
@@ -15334,8 +15388,12 @@ STRENGTH I attributed to my own evidence.
 
   | file | `std::eprintln!` (reaches stderr) | bare (SHADOWED) | of which severity-bearing |
   |---|---|---|---|
-  | `ast_pipeline/mod.rs` | 2 | 172 | **31** |
+  | `ast_pipeline/mod.rs` | 2 | **171** | **31** |
   | `ast_pipeline/ast_based_generator.rs` | 0 | 76 | 0 |
+
+  ⛔ **CORRECTED 248 → 247 by `-0122`**: `macro_rules!` is TEXTUALLY SCOPED, so the one `eprintln!`
+  ABOVE the definition (`mod.rs:424`) is not shadowed and reaches stderr normally. The first census
+  scanned the whole file.
 
 - ⚠️ **31 IS A CANDIDATE COUNT, NOT A DEFECT COUNT, and the distinction is the whole leaf.** Those two
   files carry large deliberately-verbose debug dumps, and a `⚠️`/`❌` line *inside a debug dump* is
