@@ -1701,10 +1701,16 @@ impl AstBasedGenerator {
             ));
             let mut last_position = parser.position;
             let mut iteration_count: usize = 0;
-            const SAFETY_LIMIT: usize = 10_000;
+            // `ENGINE-UNIVERSAL-SERVICES.66` — input-derived, never a literal. This is the
+            // FUSED path, and it was the worse half: it carried the same 10 000-iteration
+            // cap as the protocol graph and logged NOTHING at all when it truncated. See
+            // the protocol emitter in `../ast_based_generator.rs` for the full argument;
+            // the short version is that the zero-length guard below makes every counted
+            // iteration consume a byte, so a repetition cannot outnumber the input's bytes.
+            let __pgen_iteration_ceiling: usize = parser.input.len() + 1;
 
             loop {
-                if iteration_count >= SAFETY_LIMIT {
+                if iteration_count >= __pgen_iteration_ceiling {
                     break;
                 }
 
@@ -1732,7 +1738,9 @@ impl AstBasedGenerator {
 
             #min_check_tokens
 
-            // The patch is total: the count is bounded by SAFETY_LIMIT.
+            // The patch is total: the count is bounded by the INPUT LENGTH
+            // (`ENGINE-UNIVERSAL-SERVICES.66` retired the 10 000 cap), which is
+            // far below `TapeWord::NARROW_LIMIT` (`usize::MAX >> 3`).
             parser.deriv_tape[__pgen_quant_mark] = TapeWord::narrow_event(
                 crate::ast_pipeline::DerivEvent::QuantCount(iteration_count),
             );

@@ -5950,3 +5950,33 @@ measured wall-clock cost, because that is the number that decides promotion; (c)
 set with its total cost, and ⛔ price it against the automatic tier's current budget rather than
 asserting it is affordable; (d) state the honest bound: this closes the *reporting-latency* half of
 `GATE-REACHABILITY`, not the coverage half, and the two are different properties.
+
+### ⛔⛔ `.49` NEW `todo` — **`regenerate_generated_parsers` DOES NOT REFRESH `generated/ebnf.rs` ON A WARM TREE, SO A CODEGEN CHANGE SILENTLY DOES NOT REACH ONE OF THE ELEVEN ARTIFACTS** (opened 2026-08-28 by `ENGINE-UNIVERSAL-SERVICES.66` / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`, ROUTED OUT and PARKED behind the SV lane)
+
+- **WHY + WHERE (measured, not read).** `rust/Makefile`'s `regex_parser_bootstrap` guards the seed
+  step with `if [ ! -f $(GENERATED_DIR)/ebnf.rs ]`. The guard is correct for its stated purpose —
+  breaking the chicken-and-egg bootstrap on a cold clone — but it also means that on a tree where
+  `generated/ebnf.rs` already exists, **the seed is skipped and the artifact keeps whatever the
+  PREVIOUS codegen emitted**. `regenerate_generated_parsers` calls that target first, so the
+  documented *"regenerate everything"* recipe silently regenerates ten of eleven artifacts.
+- ⭐⭐ **MEASURED on a real codegen change**: `ENGINE-UNIVERSAL-SERVICES.66` replaced a constant at
+  five emission sites and ran `make regenerate_generated_parsers` to completion (exit 0, *"✅
+  generated/ regenerated: annotation pair + 7 grammar families"*). All nine `*_parser.rs` artifacts
+  carried the new emission; **`generated/ebnf.rs` still carried 152 occurrences of the retired
+  `SAFETY_LIMIT` and 0 of the replacement**, and re-derives 7 000 bytes larger from HEAD.
+- ⛔ **WHAT CAUGHT IT, and what did NOT.** `GENERATED-REPRODUCIBILITY` tier 2 caught it exactly as
+  designed — it re-derives every artifact from HEAD and diffs, and it printed the offending lines.
+  ⚠️ **The slice's own emission census did NOT**, because it globbed `generated/*_parser.rs` and
+  `ebnf.rs` does not match that pattern: **a census is only as good as its glob**, the same shape as
+  [[a-heading-census-is-only-as-good-as-the-heading-grammar]]. ⇒ the doctrine is load-bearing here,
+  not ceremonial, and it is currently the ONLY thing standing between a codegen change and a stale
+  seed parser.
+- **OWES**: (a) decide whether the fix is to make the seed unconditional when sources are newer (a
+  freshness comparison, not an existence test — ⛔ note `CI-PARITY-GATE-ROT.32`'s finding that GNU
+  Make 3.81 compares mtimes at WHOLE SECONDS, so an mtime rule is the wrong instrument here), to
+  re-seed always at a measured cost, or to leave the guard and make the *documentation* honest;
+  (b) fix `README.md`'s Quick Start claim that the target *"seeds `generated/ebnf.rs`"* — true only
+  for a cold clone; (c) price each option, since a re-seed rebuilds `ast_pipeline` twice.
+- ⚠️ **HONEST BOUND**: the artifact is untracked and the tier-2 gate re-derives it on every run, so
+  the exposure is bounded to *between* a codegen change and the next gate run — not shipped state.
+  That is why this is ROUTED rather than treated as release-blocking.

@@ -1,19 +1,19 @@
 {
   "_comment": "GENERATED-REPRODUCIBILITY baseline. DERIVED — never hand-edit. Rewrite with: bash scripts/check_generated_reproducibility.sh --rebaseline",
   "_what_this_proves": "every artifact below re-derived BYTE-IDENTICALLY from HEAD at the recorded commit. Tier 1 re-hashes these three fields and demands a re-verify the moment any of them moves.",
-  "verified_at_commit": "6789881a5c2efc82e30ae1fbac770251614c388d",
-  "emission_sha": "87938f6f32206ffbbaf02dcb89272b6cba657ea7396f8e32eb1efd68f091609a",
+  "verified_at_commit": "31a0d262be8f8af618f7c19172c8349b0eaf04f5",
+  "emission_sha": "fb31c70244ff70b630e71d6f6221cab0857ac7d195ace2dc63d80e1bd9dc9a76",
   "artifacts": {
-    "return_annotation": { "parser_sha": "81ebd6bf8dadd35aece672e2ef17ab2e3082e521e26f94d89d8d45466badcc61", "input_sha": "6575a2675582f1b0aefe63286d233e6de062a995a62786fc429b5fc3ca1016f4" },
-    "semantic_annotation": { "parser_sha": "402d25b1875bb9cdecaad2a46ccb387c86a5028d8100eeb50a35259b4ec79a20", "input_sha": "042150bd98ed6a687a821d682cc04ccc51d0154bf425980b8832e091f61a5f38" },
-    "json": { "parser_sha": "6f4feab884962975893d1fbcade8cbea99677c2bbbb57cf90d072997bf554161", "input_sha": "b0fae993d230ac9cf1da9147e3a0c3ee519000b13f2d77fb31cfc310c34df3e8" },
-    "regex": { "parser_sha": "55a6f5d7066ea77ba44933ef76b80e95b600e8363e5695874976d4cac08b57d9", "input_sha": "6d541630aa636b28eba794b847f2c10c9f12a271726a4cd6752cc361c32a5b5e" },
-    "systemverilog": { "parser_sha": "bbcfe332116b2fa77e2a03d8047e5a42a808eb89198d1482d0eb5b550d5c30d5", "input_sha": "2c4cc06f06f4c69767b8cf57c1b55bfbf696baad6a0e73268c300915009e4d0c" },
-    "systemverilog_preprocessor": { "parser_sha": "da14cdfe80d425e2051cabe2444e4fec4a1fa138e539a92050f702a971b544ed", "input_sha": "99f2b47c3232269560d52c02097cfeb4470c417318cf35c1815ef42c1ef3d474" },
-    "vhdl": { "parser_sha": "0106f901beac7f88a0eb3a7b9264dcaf84de38be32974566205a987739db546d", "input_sha": "ef699957fbe35ef2076942b3b33078ad5e84446f77a4f234a0b5b2c5a80e1ce6" },
-    "rtl_const_expr": { "parser_sha": "4946438123705579b6ef110d498f803b3b1279defce7bd98ddc26b1bb948431d", "input_sha": "520476ad5c0b213b116d20f8ec499eba1f048bea1127946a295cdc8cf7b4577f" },
-    "rtl_frontend": { "parser_sha": "c008aa0f380f4f1bed725eba440dd7f1f2d917b486657e36fa9b715ea86544bc", "input_sha": "011f7f1be38270e9edf331bede690653fb150168d35d6469c533e9b711008849" },
+    "return_annotation": { "parser_sha": "b5982b2c4f15790badaed79f6e04dbf2f2a58cdf5a207e8d30a981814283a38e", "input_sha": "2d642d45ffc3385faa573a6901b7a3ea9f5e98f814459d67dc08d593fcd1ec6d" },
+    "semantic_annotation": { "parser_sha": "e59075b11f005371a4587c44330b6d9fc0dad8d0c46e0ac39d2f26d8f831c7ce", "input_sha": "fb330d329b9cf136ae9fdb48b5d6fccf124ab78e23b8784e61d1437fa7517943" },
+    "json": { "parser_sha": "6f4feab884962975893d1fbcade8cbea99677c2bbbb57cf90d072997bf554161", "input_sha": "cf12b94ac9af794d0f049a27ae7ff0f1c2b2eaec6e96d5ce2795ad8af624fe44" },
+    "regex": { "parser_sha": "cd84e5f3625bb5d369c83c3a089813f7395c847ab501fda891795598bea79e6a", "input_sha": "e092c3807af101ba497bbcab1b36c4149bb58314f655b3cfea41a245d5a28fbc" },
+    "systemverilog": { "parser_sha": "fddf371cc7c9360da4c649b84db5c5189a4108e9da6487e7c9d4c0d495a53bd9", "input_sha": "8fc68b5c615845669c6ae86e1d8f0ebd94f0cc6cca1696bea8d97145ae6a4c6f" },
+    "systemverilog_preprocessor": { "parser_sha": "5fa624c0e08f65fc936d676fca6d0b5a366cae6a319ffc89e5a3848be313637d", "input_sha": "5046ac09f03d0f74ff4c7a73341bdd60bf530c59c2f6eeb3c8bac1fd9b6e8243" },
+    "vhdl": { "parser_sha": "9ca3d0a00ac0eff4478f6fa006c4aa8c09e68b2dc883779d9bea47ab655ed0c3", "input_sha": "96ab57720ac78822ed448dc8f79152160e218c56cc8b94f34fc5adfc70da3f41" },
+    "rtl_const_expr": { "parser_sha": "e4f73bf98469318f09b3b4c6a39eefd5597e591e662f08cfd33d8f68036174ed", "input_sha": "b2fd0517b775c5ce28414127954d6c7e894f42e3ca90e4131d5ba61286c546c8" },
+    "rtl_frontend": { "parser_sha": "04ac64e5eee46bf8f7343bf4dad12d9d33ec0d25043c7c4fcebe18f504afb0e7", "input_sha": "c953960859b96df09dc1d4252281a93133c910fdae6622a47756348c8ba5dd66" },
     "scratch": { "parser_sha": "9260db51e0637202b86d0d0a18571d1e535b8588afdc3873738ec8fea8d5b630", "input_sha": "9fa2e92da058205339de309f792e5023c484aae8b160eaabc47aec17d1e3aad2" },
-    "ebnf": { "parser_sha": "17d1a46428e54f30bc91fcd81d4d5ce0af7e75616af44cca37b493bbd6004310", "input_sha": "e383300eb646e4cd39375bea7f8d929a2adafb9778f6a2bf1aefe3dfbb26f6db" }
+    "ebnf": { "parser_sha": "b7313716a3411636dbdea195290cc7eb57c5c9284cbd4b593fe1945669c576ed", "input_sha": "8f79694fd62c49905f7957cbe09598efb2bd924ec510f1e644bbac341a987182" }
   }
 }

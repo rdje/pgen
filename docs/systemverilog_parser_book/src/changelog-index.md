@@ -34,6 +34,36 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.200 / Contract 1.0.200 — ENGINE-UNIVERSAL-SERVICES.66 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0115`, 2026-08-28), ledger `SV-0073` (`Released`):
+
+⛔ **This release removes a silent acceptance limit and changes nothing else.** Every quantifier in
+every generated parser carried a **10 000-iteration cap** (`SAFETY_LIMIT`). It did not refuse — it
+**stopped iterating**, silently truncating the repetition, so the parse failed at the enclosing level
+as an ordinary *"did not consume full input"* with no diagnostic naming the cause.
+
+| generated shape | 10 001 items | 12 000 items | 20 000 items |
+|---|---|---|---|
+| flattened-netlist instances | rejected → **accepted** | rejected → **accepted** | rejected → **accepted** |
+| wire declarations | rejected → **accepted** | rejected → **accepted** | rejected → **accepted** |
+| `case` items | rejected → **accepted** | rejected → **accepted** | rejected → **accepted** |
+| concat elements | accepted | rejected → **accepted** | rejected → **accepted** |
+| module port list | accepted | rejected → **accepted** | rejected → **accepted** |
+
+**13 of 13 measured rejections eliminated, 0 introduced.** The replacement bound is derived from the
+input rather than being a bigger constant: every counted iteration must advance the cursor, so a
+repetition cannot have more elements than the input has bytes. The guard still terminates a
+pathological zero-width loop; it can no longer refuse conforming source.
+
+**Nothing else moves.** External-corpus verdicts are identical over **16 336 files** (`pass=9794
+fail=6542 timeout=0 crash=0`, 0 per-file differences); the recursion ceiling's accept boundaries are
+byte-for-byte unchanged (322/323, 272/273, 249/250); the interpreter stays byte-identical to the
+generated parser. No grammar bytes changed — the artifact is regenerated because codegen moved, and
+AST-dump schema stays at `26`.
+
+⚠️ **Bound**: this makes a large netlist *legal*, not yet *ingestible* — parse memory is
+**2 500×–8 000× the input size** and linear (523 KB → ≈4.0 GB). Tracked as
+`ENGINE-UNIVERSAL-SERVICES.67`.
+
 ### 1.0.199 / Contract 1.0.199 — SV-CORPUS-GRAD.13e.10(c4) RESIDUE + ENGINE-UNIVERSAL-SERVICES.50(e)/.55 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0098`, 2026-08-26), ledger `SV-0072` (`Released`): **THE SEVENTEENTH AND LAST IEEE-1800-ONLY OPERATOR — THE CLASS IS NOW CLOSED, 17 OF 17 (GRAMMAR + ENGINE; `verilog_2005` ONLY — a NARROW; SCHEMA UNCHANGED at 26)**
 
 ⛔ **This release narrows one profile and touches nothing else.** The assignment-pattern / cast

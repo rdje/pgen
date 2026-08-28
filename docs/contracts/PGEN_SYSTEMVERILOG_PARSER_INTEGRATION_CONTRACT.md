@@ -5,6 +5,36 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-08-28, `ENGINE-UNIVERSAL-SERVICES.66` — ENGINE, grammar-agnostic,
+> release `1.0.200`, ledger `SV-0073`, schema `26` UNCHANGED, ALL profiles):** a per-quantifier
+> **10 000-iteration cap** (`SAFETY_LIMIT`) is removed from every generated parser. It did not
+> refuse — **it stopped iterating**, silently truncating the repetition, so the parse failed at the
+> enclosing level as an ordinary *"did not consume full input"* with nothing naming the cause.
+>
+> **What now parses that did not**: any construct built from a repetition longer than 10 000 —
+> measured, a **flattened-netlist module with 10 001 instances**, 10 001 wire declarations, and a
+> `case` with 10 001 items; concatenation element lists and module port lists failed just above the
+> same cap. All accept at 10 001, 12 000 and 20 000 after this release: **13 of 13 measured
+> rejections eliminated, 0 introduced.** This is the limit a GENERATED or FLATTENED RTL flow was
+> most likely to meet, and real ASIC gate-level netlists run 10⁵–10⁷ instances.
+>
+> **The replacement bound is the INPUT, not a bigger constant**: every counted iteration must advance
+> the cursor, so a repetition cannot have more elements than the input has bytes. The guard still
+> terminates a pathological zero-width loop; it can no longer refuse conforming source.
+>
+> **Nothing else moves.** External-corpus verdicts are **identical over 16 336 files** (`pass=9794
+> fail=6542 timeout=0 crash=0`, 0 per-file differences, same `--profile sv_2017`); the recursion
+> ceiling's accept boundaries are byte-for-byte unchanged (`(((…)))` 322/323, `a ? b : (…)` 272/273,
+> `int'(…)` 249/250); the interpreter remains byte-identical to the generated parser
+> (`parse_harness_equivalence_gate`, 4/4). No grammar bytes, so the SV grammar digest below is
+> unchanged; the parser artifact is regenerated because codegen moved.
+>
+> ⚠️ **Read this bound before sizing a job**: removing the cap makes a large netlist *legal*, not yet
+> *ingestible*. Parse memory measures **2 500×–8 000× the input size** and scales linearly — a 523 KB
+> netlist peaks at ≈4.0 GB and a 1.1 MB one at ≈8.1 GB. The limit is now your host's RAM rather than
+> a constant in PGEN's source, which is the intended shape, but it arrives sooner than it should.
+> Tracked as `ENGINE-UNIVERSAL-SERVICES.67`.
+
 > **Current-state note (2026-08-26, `SV-CORPUS-GRAD.13e.10`(c4) RESIDUE +
 > `ENGINE-UNIVERSAL-SERVICES.50`(e)/`.55` — GRAMMAR + ENGINE, release `1.0.199`, ledger `SV-0072`,
 > schema `26` UNCHANGED, `verilog_2005` ONLY):** the **seventeenth and last** IEEE-1800-only
@@ -734,10 +764,10 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.199`
+  - `1.0.200`
 - Parser release version:
-  - `1.0.199`
-  - history: `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.200`
+  - history: `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.

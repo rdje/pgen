@@ -6584,14 +6584,32 @@ impl AstBasedGenerator {
             let mut results: Vec<&'input ParseNode<'input>> = Vec::new();
             let mut last_position = parser.position;
             let mut iteration_count: usize = 0;
-            const SAFETY_LIMIT: usize = 10_000;
+            // `ENGINE-UNIVERSAL-SERVICES.66` — the iteration bound is DERIVED FROM THE
+            // INPUT, never a compiled-in literal.
+            //
+            // It used to be `const SAFETY_LIMIT: usize = 10_000`, and that constant did
+            // not refuse — it `break`s, silently TRUNCATING the repetition, so the parse
+            // failed at the enclosing level as an ordinary "did not consume full input"
+            // with nothing naming the cause. Measured: a 10 001-instance flattened
+            // netlist did not parse (10 000 accepted, 10 001 rejected), and real ASIC
+            // netlists run 10^5-10^7 instances.
+            //
+            // WHY THIS BOUND IS SAFE, and why it can never refuse conforming input: the
+            // zero-length guard below breaks on any iteration that does not advance the
+            // cursor, so every COUNTED iteration consumes at least one byte. A repetition
+            // therefore cannot have more elements than the input has bytes, and this
+            // ceiling is unreachable by construction for any real parse. It exists only
+            // so the loop still terminates if a non-advancing iteration ever escaped that
+            // guard — per the capability mandate the guard survives, its THRESHOLD stops
+            // being a literal.
+            let __pgen_iteration_ceiling: usize = parser.input.len() + 1;
 
             loop {
-                if iteration_count >= SAFETY_LIMIT {
+                if iteration_count >= __pgen_iteration_ceiling {
                     if parser.trace_enabled() {
                         parser.logger.log_warning(#file_label, parser.position as u32, &format!(
-                            "⚠️ SAFETY_LIMIT ({}) reached in quantifier {} at position {}",
-                            SAFETY_LIMIT, #quantifier_label, parser.position
+                            "⚠️ input-derived iteration ceiling ({}) reached in quantifier {} at position {} — this is unreachable for an advancing repetition and indicates a zero-width iteration escaping the zero-length guard",
+                            __pgen_iteration_ceiling, #quantifier_label, parser.position
                         ));
                     }
                     break;

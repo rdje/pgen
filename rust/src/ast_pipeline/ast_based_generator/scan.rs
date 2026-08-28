@@ -839,10 +839,15 @@ impl AstBasedGenerator {
             #quantifier_start_position_bind
             let mut last_position = parser.position;
             let mut iteration_count: usize = 0;
-            const SAFETY_LIMIT: usize = 10_000;
+            // `ENGINE-UNIVERSAL-SERVICES.66` — input-derived, never a literal; the D3
+            // boundary-scanner mirror of the protocol and cascade emitters. The scan
+            // functions must stay behaviourally identical to their protocol twins, so
+            // this bound has to move in lockstep with them or the two graphs would
+            // disagree about which inputs are in the language.
+            let __pgen_iteration_ceiling: usize = parser.input.len() + 1;
 
             loop {
-                if iteration_count >= SAFETY_LIMIT {
+                if iteration_count >= __pgen_iteration_ceiling {
                     break;
                 }
 

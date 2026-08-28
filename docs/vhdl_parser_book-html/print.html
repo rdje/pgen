@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2695eac6.js";
+            window.path_to_searchindex_js = "searchindex-163c90e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-77be4d5d.js"></script>
@@ -1865,6 +1865,29 @@ walk_schema_v3(&amp;root);
 <p>The SystemVerilog parser’s changelog index is long because its return-annotation campaign landed rule-by-rule across 115 slices, each bumping the schema version and getting its own row. <strong>The VHDL grammar is different: it was typed in a single comprehensive batch — VHDL-Slice-1 — so the VHDL schema timeline is short.</strong> A follow-up correctness fix (<code>1.0.2</code>, schema <code>2</code>, <code>VHDL-0001</code>) added the third entry, the <code>1.0.3</code> POST-SV-AUDIT Category-A list-shape batch (schema <code>3</code>) added the fourth, and the <code>1.0.4</code> <code>VHDL-0002</code> based-literal acceptance fix (schema stays <code>3</code>) added the fifth. This is the intended state, not an incomplete index. Subsequent shape-affecting slices, if any, will each add a contract Highlights section, a <a href="#schema-versioning">Schema Versioning</a> row, and an entry below.</p>
 <h2 id="releases-relevant-to-this-book"><a class="header" href="#releases-relevant-to-this-book">Releases relevant to this book</a></h2>
 <p>This book is <strong>live</strong> and tracks current main HEAD. The entries below mirror the “Schema Versioning” table and the Resolved-Defects sections in <code>docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md</code>; the contract is authoritative for the live state.</p>
+<h3 id="106--contract-106--engine-universal-services66-pgen-engine-universal-services-0115-2026-08-28-ledger-vhdl-0005--a-silent-10-000-iteration-quantifier-cap-is-removed-engine-zero-grammar-bytes-schema-stays-3"><a class="header" href="#106--contract-106--engine-universal-services66-pgen-engine-universal-services-0115-2026-08-28-ledger-vhdl-0005--a-silent-10-000-iteration-quantifier-cap-is-removed-engine-zero-grammar-bytes-schema-stays-3">1.0.6 / Contract 1.0.6 — ENGINE-UNIVERSAL-SERVICES.66 (<code>PGEN-ENGINE-UNIVERSAL-SERVICES-0115</code>, 2026-08-28), ledger <code>VHDL-0005</code> — a silent 10 000-iteration quantifier cap is removed (ENGINE; ZERO grammar bytes; schema stays 3)</a></h3>
+<p>⛔ <strong>An acceptance limit that never announced itself.</strong> Every quantifier in every generated parser
+carried a <strong>10 000-iteration cap</strong> (<code>SAFETY_LIMIT</code>). It did not refuse — it <strong>stopped iterating</strong>,
+silently truncating the repetition, so the parse failed at the enclosing level as an ordinary <em>“did
+not consume full input”</em> with no diagnostic naming the cause.</p>
+<p><strong>Measured VHDL carriers</strong>: <code>when</code>/<code>else</code> conditional-assignment chains and <code>elsif</code> ladders, both
+capping at exactly 10 000 arms. Machine-generated and tool-rewritten VHDL is where such lengths
+occur; hand-written sources in the external corpus stay far below (deepest measured <code>elsif</code> ladder:
+35).</p>
+<p><strong>The replacement bound is the input, not a bigger constant.</strong> Every counted iteration must advance
+the cursor, so a repetition cannot have more elements than the input has bytes. The guard still
+terminates a pathological zero-width loop; it can no longer refuse conforming source.</p>
+<p><strong>A real upstream file was being rejected because of this cap, and it is the only corpus verdict that
+moves.</strong> Measured against a pre-change per-file census, exactly <strong>one file of 13 720</strong> changes:
+<code>ghdl/testsuite/gna/issue3002/top_concat_16k.vhdl</code> — 192 384 bytes carrying <strong>17 407</strong> <code>&amp;</code>
+concatenation operators, 1.7x past the retired cap — goes <strong>fail -&gt; pass</strong>. It had been reported as
+an ordinary syntax error, which is exactly how a silent truncation presents.</p>
+<p><strong>Nothing else moves.</strong> The recursion ceiling’s accept boundary is unmoved (nested parens 681 accept
+/ 682 reject) and the interpreter stays byte-identical to the generated parser
+(<code>parse_harness_equivalence_gate</code>, 4/4). No grammar bytes — the artifact is regenerated because
+codegen moved, and the AST-dump schema stays <code>3</code>.</p>
+<p>⚠️ <strong>Bound</strong>: this makes a large generated file <em>legal</em>, not yet <em>ingestible</em> — parse memory measures
+<strong>2 500×–8 000× the input size</strong> and scales linearly. Tracked as <code>ENGINE-UNIVERSAL-SERVICES.67</code>.</p>
 <h3 id="105--contract-105--engine-universal-services43-pgen-engine-universal-services-0081-2026-08-21-ledger-vhdl-0004--the-recursion-ceiling-now-bounds-time-as-well-as-stack-engine-zero-grammar-bytes-schema-stays-3"><a class="header" href="#105--contract-105--engine-universal-services43-pgen-engine-universal-services-0081-2026-08-21-ledger-vhdl-0004--the-recursion-ceiling-now-bounds-time-as-well-as-stack-engine-zero-grammar-bytes-schema-stays-3">1.0.5 / Contract 1.0.5 — ENGINE-UNIVERSAL-SERVICES.43 (<code>PGEN-ENGINE-UNIVERSAL-SERVICES-0081</code>, 2026-08-21), ledger <code>VHDL-0004</code> — the recursion ceiling now bounds TIME as well as stack (ENGINE; ZERO grammar bytes; schema stays 3)</a></h3>
 <p>⛔ <strong>This release changes no language and no AST shape. It changes whether the parser RETURNS.</strong>
 Measured on the shipped release probe: <strong>575</strong> nested parens in <code>s &lt;= (((…)))1(((…)));</code> were

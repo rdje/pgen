@@ -2764,7 +2764,12 @@ impl<'g, 'i> Interp<'g, 'i> {
         capture_raw: bool,
         raw_out: &mut Option<ParseContent<'i>>,
     ) -> ParseResult<ParseContent<'i>> {
-        const SAFETY_LIMIT: usize = 10_000;
+        // `ENGINE-UNIVERSAL-SERVICES.66` — input-derived, never a literal. The interpreter
+        // is credible only while it stays byte-identical to the generated parsers
+        // (`TOOLBOX.md` 1.5), so it retires the 10 000-iteration cap in the same commit
+        // they do; leaving it here would make the interpreter reject inputs the shipped
+        // parsers now accept, which is exactly the disagreement that rung exists to rule out.
+        let iteration_ceiling: usize = self.input.len() + 1;
         let (min, max) = parse_quantifier_bounds(quantifier).unwrap_or((0, None));
         let quantifier_start = self.position;
 
@@ -2772,7 +2777,7 @@ impl<'g, 'i> Interp<'g, 'i> {
         let mut last_position = self.position;
         let mut iteration_count = 0usize;
         loop {
-            if iteration_count >= SAFETY_LIMIT {
+            if iteration_count >= iteration_ceiling {
                 break;
             }
             if let Some(m) = max {

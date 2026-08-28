@@ -14533,7 +14533,7 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
 - ⇒ ⛔ **ACCURACY IS STILL NOT DISCHARGED.** `.56`(d)/`.58` (speed) stay blocked behind `.66` and
   `.65`, and the director's *"fast … not the focus right now"* says so independently.
 
-### ⛔⛔⛔ `.66` — **A SECOND, SILENT CEILING: `SAFETY_LIMIT = 10_000` CAPS EVERY QUANTIFIER AND DOES NOT REFUSE — IT TRUNCATES. A 10 001-INSTANCE FLATTENED NETLIST DOES NOT PARSE, AND THE ERROR NAMES NOTHING** (`todo`, opened 2026-08-28 by `.63`(b)'s own sweep / `PGEN-ENGINE-UNIVERSAL-SERVICES-0114`; ⛔ **FIRST — ahead of `.65`**)
+### ✅✅ `.66` — **A SECOND, SILENT CEILING: `SAFETY_LIMIT = 10_000` CAPS EVERY QUANTIFIER AND DOES NOT REFUSE — IT TRUNCATES. A 10 001-INSTANCE FLATTENED NETLIST DOES NOT PARSE, AND THE ERROR NAMES NOTHING** (**DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`; opened same day by `.63`(b)'s own sweep / `…-0114`; ⛔ **taken FIRST, ahead of `.65`**)
 
 - **WHY + WHERE (tool-backed).** `const SAFETY_LIMIT: usize = 10_000` bounds the iteration count of
   **every** quantifier in every generated parser — `rust/src/ast_pipeline/ast_based_generator.rs:6587`
@@ -14566,6 +14566,123 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   keep a non-crashing answer for genuinely unbounded input, and make any residual refusal NAME itself
   the way `.61`(a) made the recursion ceiling name itself. ⚠️ Note `proc_statements` shows no cliff at
   20 000, so the cap is per-quantifier-SITE — the fix must census the sites, not patch one.
+
+#### ✅ `.66` DONE 2026-08-28 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0115`) — **THE CAP IS GONE FROM ALL FIVE SITES AND EVERY GENERATED PARSER. 13 OF 13 MEASURED REJECTIONS FLIP TO ACCEPT, 0 OF 16 336 CORPUS VERDICTS MOVE**
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — `const SAFETY_LIMIT: usize = 10_000` bounded the iteration count
+  of every quantifier loop. **The diagnosis signature that localised it EXACTLY**: a 10 001-declaration
+  module rejects with `furthest_position=138901` while declaration #10 001 begins at byte **138 902**
+  — the parser stops one byte short of the item the cap refused to take, which is what distinguishes
+  a silent truncation from an ordinary syntax error (an ordinary one stops where the text is wrong).
+  10 000 items ACCEPT, 10 001 REJECT, on the same file shape. **WHERE — a CENSUS, not the two sites
+  the sweep first surfaced**, because
+  `.63`(b)'s own note said the cap is per-quantifier-SITE and a patch of one would have left the rest:
+  `ast_based_generator.rs:6587` (protocol, SHIPS) · `ast_based_generator/cascade.rs:1704` (fused —
+  the path a bare parse runs, SHIPS) · `ast_based_generator/scan.rs:842` (D3 boundary scanner, SHIPS)
+  · `ast_code_generator.rs:486` (bootstrap emitter) · `parse_harness_interpreter.rs:2767` (the
+  interpreter rung). All five confirmed at `HEAD` by `git show` rather than from memory.
+- ⭐⭐ **THE FIX IS A BOUND THE INPUT SUPPLIES, AND IT IS UNREACHABLE BY CONSTRUCTION.** Each site now
+  reads `parser.input.len() + 1` (`self.input.len() + 1` in the interpreter). **Why that is not
+  merely a bigger constant**: every one of these loops already breaks on an iteration that does not
+  advance the cursor (the zero-length guard), so every COUNTED iteration consumes at least one byte
+  — a repetition therefore cannot have more elements than the input has bytes. The guard still
+  terminates a hypothetical zero-width escape, which is what
+  [[project_rtl_parsers_accept_any_rtl_no_limits_non_negotiable]] requires: the guard survives, its
+  THRESHOLD stops being a literal. ⇒ the old cap was not protecting anything the zero-length guard
+  did not already protect; it only ever refused conforming input.
+- ⛔ **A COUPLING THAT HAD TO BE CHECKED BEFORE THE CONSTANT COULD GO, and it was documented as
+  depending on it**: the derivation tape's narrow placeholder is justified in `mod.rs` by
+  *"an iteration count [is bounded] by the emitted `SAFETY_LIMIT` (10,000)"*, and
+  `cascade.rs` asserts *"the patch is total: the count is bounded by SAFETY_LIMIT"*.
+  **`TapeWord::NARROW_LIMIT` is `usize::MAX >> 3` = 2^61−1**, so an input-length-derived count is
+  narrow by an enormous margin and the invariant survives — for a better reason. All three claims
+  rewritten in this commit rather than left asserting a constant that no longer exists.
+- [x] **ADDRESSED (verified) — MEASURED BEFORE → AFTER on the SAME shapes and ladder** (producer
+  `docs/tasks/artifacts/eus63/iteration_cap_probe.py` before, `…/iteration_cap_after.py` after):
+
+  | generated shape | 10 001 before → after | 12 000 before → after | 20 000 before → after |
+  |---|---|---|---|
+  | flattened-netlist instances | **REJECT → ACCEPT** | REJECT → ACCEPT | REJECT → ACCEPT |
+  | wire declarations | **REJECT → ACCEPT** | REJECT → ACCEPT | REJECT → ACCEPT |
+  | `case` items | **REJECT → ACCEPT** | REJECT → ACCEPT | REJECT → ACCEPT |
+  | concat elements | ACCEPT → ACCEPT | REJECT → ACCEPT | REJECT → ACCEPT |
+  | module port list | ACCEPT → ACCEPT | REJECT → ACCEPT | REJECT → ACCEPT |
+
+  ⇒ **13 of 13 measured rejections eliminated, 0 introduced.** Emission census over the artifacts
+  themselves, enumerated from the directory (`generated/*.rs`) rather than from a name pattern, so
+  the population is closed: **11 of 11 artifacts carry 0 occurrences of `SAFETY_LIMIT`**, against
+  2 285 new bounds in `systemverilog_parser.rs`, 278 in `vhdl_parser.rs`, 627 in `regex_parser.rs`
+  and 124 in the `ebnf.rs` seed. (`json_parser.rs` and `scratch_parser.rs` read 0 on BOTH counts —
+  neither grammar reaches this quantifier emission at all, so their zero is a property of the
+  grammar and not evidence about the fix; naming that is what keeps 9 of 11 from being read as
+  11 of 11.)
+- ⛔⛔ **AND THE FIRST VERSION OF THAT CENSUS WAS WRONG IN THE PASSING DIRECTION — corrected before
+  commit by a doctrine, not by me.** It globbed `generated/*_parser.rs`, and **`generated/ebnf.rs`
+  does not match that pattern**: the eleventh artifact still carried **152** occurrences of the
+  retired constant and **0** of the replacement, because `regex_parser_bootstrap` guards its seed
+  with `[ ! -f generated/ebnf.rs ]` and therefore skips it on a warm tree — so
+  `make regenerate_generated_parsers` exited 0 having regenerated ten of eleven. `GENERATED-
+  REPRODUCIBILITY` tier 2 caught it by re-deriving every artifact from HEAD and printing the diff.
+  ⇒ **a census is only as good as its glob** — the same shape as
+  [[a-heading-census-is-only-as-good-as-the-heading-grammar]], and the second time in two slices that
+  an instrument's COVERAGE rather than its correctness was the defect. The seed was removed and
+  re-derived in this commit; the Makefile guard itself is ROUTED to `CI-PARITY-GATE-ROT.49`.
+- [x] **NO REGRESSION — four arms, each blind to what the others see:**
+  - **Corpus, BOTH released families, against a PRE-CHANGE per-file baseline.** ⛔ The baseline had to
+    be chosen carefully: `stimuli/<fam>/characterization/results.tsv` is **UNTRACKED local scratch**
+    and the VHDL copy is **34 files stale** (it reads `pass=4335` where the pre-change parser measures
+    `4369`). Diffing against it would have attributed 34 pre-existing flips to this commit. The
+    correct baseline is `.61`(b)'s own per-file census, taken yesterday on the PRE-change binary:
+    - **SystemVerilog: 0 attributable differences over 16 336 files** (`pass=9794 fail=6542
+      timeout=0 crash=0`, identical both sides) — and confirmed twice, since the stale-free SV
+      scratch copy and `.61`(b)'s census agree with each other exactly.
+    - **VHDL: exactly 1 attributable difference, and it is the defect being fixed** —
+      `ghdl/testsuite/gna/issue3002/top_concat_16k.vhdl` goes **fail → pass**. That is a REAL
+      UPSTREAM FILE from GHDL's own regression suite: 192 384 bytes carrying **17 407** `&`
+      concatenation operators, i.e. a repetition 1.7× past the retired cap. 13 719 of 13 720
+      verdicts unchanged.
+    ⭐ **A witness is stronger evidence than an absence.** `.66` did not have to argue that the cap
+    bites real code — the corpus contained a file that proves it, and it was invisible while the cap
+    stood because a truncated parse reports an ordinary syntax error.
+    (⛔ `.62`'s lesson honoured throughout: an unnamed SV profile parses the UNION of every dialect,
+    so a diff taken across profiles measures the profile, not the change.)
+  - **The OTHER ceiling is UNMOVED.** `paren_expr` accepts 322 / rejects 323, `ternary` 272 / 273,
+    `cast_paren` 249 / 250 — byte-for-byte the `.63`(b) boundaries, so this change did not perturb
+    the recursion guard it sits beside.
+  - **Interpreter ≡ generated parser.** `parse_harness_equivalence_gate` PASSES (4 tests, 26.41 s) —
+    the right arm for a change that touches the interpreter and all three shipping emitters at once,
+    because it asserts byte-identical verdict AND typed AST rather than testing one rung in isolation.
+  - **Clippy** — strict source lint + the generated-parser correctness stage (deny-by-default), run
+    because Rust and regenerated artifacts changed.
+- ⚠️ **HONEST BOUND, and it is the reason `.67` exists**: this leaf removes a FALSE REJECTION; it does
+  not make a large netlist ingestible. Measured on the same runs, parse memory is **2 500×–8 000× the
+  input size** and LINEAR, so host RAM now binds where the constant used to — which is what the
+  mandate asks for, and is still far below real netlist scale. Routed to `.67`, not explained away.
+- ⭐ The change is **memory-neutral**, and the control is in the data rather than argued: 10 000
+  instances — which ACCEPTED before this commit too — costs **4 064.0 MB**, and 10 001 costs
+  **4 064.1 MB**. The 4 GB is pre-existing and is `.67`'s subject, not this leaf's.
+
+### ⛔⛔ `.67` — **PARSE MEMORY IS 2 500×–8 000× THE INPUT SIZE AND LINEAR, SO "BOUNDED ONLY BY HOST RAM" BINDS AT ~40 000 NETLIST INSTANCES ON A 16 GB MACHINE** (`todo`, opened 2026-08-28 by `.66`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`)
+
+- **WHY THIS IS A LEAF AND NOT A FOOTNOTE.** The director's mandate names host RAM as the ONE
+  legitimate limit ([[project_rtl_parsers_accept_any_rtl_no_limits_non_negotiable]]). `.66` moved the
+  wall from a compiled-in constant to host RAM exactly as ordered — and the measurement says host RAM
+  arrives almost as early. A 523 KB netlist costs **4 064 MB**; a 1 089 KB one costs **8 128 MB**
+  (linear, ~406 KB of RAM per ~52-byte instance line). Real gate-level netlists run 10^5–10^7
+  instances and are 100 MB–10 GB of text.
+- **MEASURED across five generated shapes** (peak RSS via `/usr/bin/time -l`, release probe, at
+  10 000 items): netlist instances 523.1 KB → 4 064.0 MB (**≈7 950×**); `case` items 193.2 KB →
+  1 143.2 MB (≈6 060×); concat elements 67.3 KB → 498.8 MB (≈7 590×); wire declarations 135.7 KB →
+  572.2 MB (≈4 320×); module ports 125.9 KB → 304.6 MB (≈2 480×). ⇒ the ratio is STRUCTURAL across
+  shapes, not a property of one pathological input.
+- ⚠️ **NOT YET ADJUDICATED, and the bound is named rather than discovered later**: every figure above
+  is from a SYNTHETIC generated-netlist shape. Before any ruling this must be re-derived on REAL
+  corpus files — the same mistake `.61`(b) made was ruling from a population it had not measured.
+- **OWES**: (a) re-derive the ratio over real corpus files and publish the distribution, not one
+  number; (b) attribute it — memo tables vs node arena vs deriv tape vs AST — with a measurement, not
+  a reading; (c) only then price a fix. ⛔ Speed/footprint work is otherwise BLOCKED behind the
+  director's *"thorough and accurate and fast (not reached yet, because it is not the focus right
+  now)"* ordering; this leaf is admitted because it is an INGESTION bound, not a performance one.
 
 ### ⛔⛔ `.65` — **RE-ANCHOR `GENERATED_RECURSION_GUARD_MAX_DEPTH` ON HOST STACK HEADROOM INSTEAD OF A COMPILED-IN 4096** (`todo`, opened 2026-08-28 by `.63`(c)'s ruling / `PGEN-ENGINE-UNIVERSAL-SERVICES-0114`; behind `.66`)
 

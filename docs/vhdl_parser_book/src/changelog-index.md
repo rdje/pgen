@@ -21,6 +21,36 @@ The SystemVerilog parser's changelog index is long because its return-annotation
 
 This book is **live** and tracks current main HEAD. The entries below mirror the "Schema Versioning" table and the Resolved-Defects sections in `docs/contracts/PGEN_VHDL_PARSER_INTEGRATION_CONTRACT.md`; the contract is authoritative for the live state.
 
+### 1.0.6 / Contract 1.0.6 — ENGINE-UNIVERSAL-SERVICES.66 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0115`, 2026-08-28), ledger `VHDL-0005` — a silent 10 000-iteration quantifier cap is removed (ENGINE; ZERO grammar bytes; schema stays 3)
+
+⛔ **An acceptance limit that never announced itself.** Every quantifier in every generated parser
+carried a **10 000-iteration cap** (`SAFETY_LIMIT`). It did not refuse — it **stopped iterating**,
+silently truncating the repetition, so the parse failed at the enclosing level as an ordinary *"did
+not consume full input"* with no diagnostic naming the cause.
+
+**Measured VHDL carriers**: `when`/`else` conditional-assignment chains and `elsif` ladders, both
+capping at exactly 10 000 arms. Machine-generated and tool-rewritten VHDL is where such lengths
+occur; hand-written sources in the external corpus stay far below (deepest measured `elsif` ladder:
+35).
+
+**The replacement bound is the input, not a bigger constant.** Every counted iteration must advance
+the cursor, so a repetition cannot have more elements than the input has bytes. The guard still
+terminates a pathological zero-width loop; it can no longer refuse conforming source.
+
+**A real upstream file was being rejected because of this cap, and it is the only corpus verdict that
+moves.** Measured against a pre-change per-file census, exactly **one file of 13 720** changes:
+`ghdl/testsuite/gna/issue3002/top_concat_16k.vhdl` — 192 384 bytes carrying **17 407** `&`
+concatenation operators, 1.7x past the retired cap — goes **fail -> pass**. It had been reported as
+an ordinary syntax error, which is exactly how a silent truncation presents.
+
+**Nothing else moves.** The recursion ceiling's accept boundary is unmoved (nested parens 681 accept
+/ 682 reject) and the interpreter stays byte-identical to the generated parser
+(`parse_harness_equivalence_gate`, 4/4). No grammar bytes — the artifact is regenerated because
+codegen moved, and the AST-dump schema stays `3`.
+
+⚠️ **Bound**: this makes a large generated file *legal*, not yet *ingestible* — parse memory measures
+**2 500×–8 000× the input size** and scales linearly. Tracked as `ENGINE-UNIVERSAL-SERVICES.67`.
+
 ### 1.0.5 / Contract 1.0.5 — ENGINE-UNIVERSAL-SERVICES.43 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0081`, 2026-08-21), ledger `VHDL-0004` — the recursion ceiling now bounds TIME as well as stack (ENGINE; ZERO grammar bytes; schema stays 3)
 
 ⛔ **This release changes no language and no AST shape. It changes whether the parser RETURNS.**

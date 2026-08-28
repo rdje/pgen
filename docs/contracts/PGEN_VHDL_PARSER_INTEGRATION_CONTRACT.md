@@ -9,11 +9,27 @@ This is the document downstream projects embedding the PGEN VHDL parser should r
 - Contract version:
   - `1.0.4`
 - Parser release version:
-  - `1.0.5` (`ENGINE-UNIVERSAL-SERVICES.43`, 2026-08-21: engine-level, grammar-agnostic — the
-    recursion ceiling now bounds TIME as well as stack. The VHDL grammar is unchanged; the
-    generated parser is regenerated because codegen moved. No accept-set and no AST-shape change,
-    so the AST-dump schema stays `3`.)
-  - history: `1.0.4`
+  - `1.0.6` (`ENGINE-UNIVERSAL-SERVICES.66`, 2026-08-28: engine-level, grammar-agnostic — a
+    per-quantifier **10 000-iteration cap** (`SAFETY_LIMIT`) is removed. It did not refuse: it
+    **stopped iterating**, silently truncating the repetition, so the parse failed at the enclosing
+    level as an ordinary *"did not consume full input"* with nothing naming the cause. On VHDL the
+    measured carriers were **`when`/`else` conditional-assignment chains and `elsif` ladders**, both
+    of which capped at exactly 10 000 arms. The replacement bound is derived from the INPUT rather
+    than being a larger constant — every counted iteration must advance the cursor, so a repetition
+    cannot have more elements than the input has bytes — which makes it unreachable for any real
+    parse while still terminating a pathological zero-width loop. **This is an ACCEPT-SET WIDENING**:
+    conforming source that was silently truncated now parses. The VHDL grammar is unchanged; the
+    generated parser is regenerated because codegen moved; no AST-shape change, so the AST-dump
+    schema stays `3`. The recursion ceiling's own accept boundary is unmoved (nested parens 681/682)
+    and the interpreter stays byte-identical to the generated parser
+    (`parse_harness_equivalence_gate`, 4/4). **External-corpus effect, measured against a PRE-change
+    per-file census: exactly ONE file of 13 720 changes verdict, and it is the defect being fixed** —
+    `ghdl/testsuite/gna/issue3002/top_concat_16k.vhdl` (192 384 bytes, **17 407** `&` concatenation
+    operators, i.e. 1.7x past the retired cap) goes **fail -> pass**. A real file from GHDL's own
+    regression suite that this parser had been rejecting, reported as an ordinary syntax error. ⚠️ Bound: this makes a large machine-generated file
+    *legal*, not yet *ingestible* — parse memory measures 2 500×–8 000× the input size and scales
+    linearly, tracked as `ENGINE-UNIVERSAL-SERVICES.67`.)
+  - history: `1.0.5`; `1.0.4`
 - Embedding API contract baseline:
   - tracked under `rust/docs/EMBEDDING_API_CONTRACT.md`
   - `1.3.2` (`ENGINE-UNIVERSAL-SERVICES.43`, 2026-08-21, backward-compatible fix completing `1.3.1`): crossing the 4096-frame recursion ceiling now returns its clean `E_PARSE_FAILURE` in **bounded time**. `1.3.1` guaranteed the host's STACK and left the parse unbounded — measured on this family's shipped parser, 400 nested parens were accepted in 0.09 s and 600 returned no result in 90 s. ⭐ VHDL is where the finding was proven ENGINE-level rather than SystemVerilog-specific: its generated parser was byte-identical across the concurrent SV grammar campaign (`generated_reproducibility_gate` tier 2, 11/11) and showed the identical threshold, so a defect present in an unchanged parser was not introduced by a change to a different one. The ceiling now files its failures under a depth stamp; see the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. The generated VHDL parser IS regenerated (engine-level codegen change); no accept-set and no AST-shape change.

@@ -1,5 +1,76 @@
 # CHANGES.md
 
+## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0115 (leaf `ENGINE-UNIVERSAL-SERVICES.66` DONE — the SILENT 10 000-iteration quantifier cap is REMOVED from all five sites and every generated parser; SV release `1.0.200` ledger `SV-0073`, VHDL release `1.0.6` ledger `VHDL-0005`; new leaf `.67`; ENGINE + CONTRACT + BOOK + TRACKER tier, ZERO grammar bytes)
+
+- ⛔⛔ **THE DEFECT.** `const SAFETY_LIMIT: usize = 10_000` bounded the iteration count of every
+  quantifier loop in every generated parser. **It did not refuse — it `break`s**, silently truncating
+  the repetition, so the parse failed at the enclosing level as an ordinary *"did not consume full
+  input"* with nothing naming the cause. The FUSED path — what a bare parse actually runs — logged
+  nothing at all; the protocol path warned only under `trace_enabled()`.
+- **WHERE — a CENSUS, not the two sites the sweep first surfaced**, because `.63`(b) had already
+  measured that the cap is per-quantifier-SITE and a patch of one would have left the rest:
+  `ast_based_generator.rs:6587` (protocol, SHIPS) · `ast_based_generator/cascade.rs:1704` (fused,
+  SHIPS) · `ast_based_generator/scan.rs:842` (D3 boundary scanner, SHIPS) · `ast_code_generator.rs:486`
+  (bootstrap emitter) · `parse_harness_interpreter.rs:2767` (interpreter). All five confirmed at
+  `HEAD` by `git show`, not from memory.
+- ⭐⭐ **THE FIX IS A BOUND THE INPUT SUPPLIES, NOT A BIGGER CONSTANT.** Each site now reads
+  `parser.input.len() + 1`. It is unreachable by construction: every one of these loops already
+  breaks on a non-advancing iteration, so every COUNTED iteration consumes at least one byte and a
+  repetition cannot have more elements than the input has bytes. The guard still terminates a
+  hypothetical zero-width escape — per the director's mandate the guard survives, its THRESHOLD stops
+  being a literal. ⇒ the retired cap was protecting nothing the zero-length guard did not already
+  protect; it only ever refused conforming input.
+- ⛔ **A COUPLING THAT HAD TO BE CHECKED BEFORE THE CONSTANT COULD GO, and it was DOCUMENTED as
+  depending on it**: the derivation tape's narrow placeholder is justified in `mod.rs` by *"an
+  iteration count [is bounded] by the emitted `SAFETY_LIMIT` (10,000)"*, and `cascade.rs` asserted
+  *"the patch is total: the count is bounded by SAFETY_LIMIT"*. **`TapeWord::NARROW_LIMIT` is
+  `usize::MAX >> 3` = 2^61-1**, so an input-length-derived count is narrow by an enormous margin and
+  the invariant survives for a better reason. All three claims rewritten in this commit rather than
+  left asserting a constant that no longer exists.
+- ⭐⭐⭐ **MEASURED BEFORE → AFTER on the same shapes and ladder: 13 of 13 rejections eliminated, 0
+  introduced.** Flattened-netlist instances, wire declarations and `case` items all went REJECT →
+  ACCEPT at 10 001; concat elements and module port lists at 12 000; every shape also accepts 20 000.
+  Emission census over the artifacts, enumerated from the directory (`generated/*.rs`) rather than
+  from a name pattern so the population is CLOSED: **11 of 11 artifacts carry 0 occurrences of
+  `SAFETY_LIMIT`**, against 2 285 new bounds in `systemverilog_parser.rs`, 278 in `vhdl_parser.rs`,
+  627 in `regex_parser.rs` and 124 in the `ebnf.rs` seed. (`json` and `scratch` read 0 on BOTH
+  counts — neither grammar reaches this emission, so their zero is a property of the grammar, not
+  evidence about the fix.)
+- ⛔⛔ **THAT CENSUS WAS WRONG IN THE PASSING DIRECTION AT FIRST, AND A DOCTRINE CAUGHT IT, NOT ME.**
+  It globbed `generated/*_parser.rs`; **`generated/ebnf.rs` does not match that pattern** and still
+  carried **152** occurrences of the retired constant. Cause: `regex_parser_bootstrap` guards its
+  seed with `[ ! -f generated/ebnf.rs ]`, so on a warm tree the seed is SKIPPED and
+  `make regenerate_generated_parsers` exits 0 having regenerated **ten of eleven** artifacts.
+  `GENERATED-REPRODUCIBILITY` tier 2 found it by re-deriving every artifact from HEAD and printing
+  the offending lines. The seed was removed and re-derived here (11 879 439 B → 11 886 439 B,
+  matching the gate's predicted fresh digest exactly); the Makefile guard is ROUTED to
+  **`CI-PARITY-GATE-ROT.49`**. ⇒ **a census is only as good as its glob.**
+- **NO REGRESSION — four arms, each blind to what the others see.** (1) Both released corpora re-run
+  under the same profiles into a SANDBOXED `PGEN_CORPUS_OUT_DIR`. ⛔ **The baseline had to be chosen
+  carefully**: `stimuli/<fam>/characterization/results.tsv` is UNTRACKED local scratch and the VHDL
+  copy is **34 files stale** (`pass=4335` where the pre-change parser measures `4369`), so diffing
+  against it would have credited this commit with 34 pre-existing flips. Against `.61`(b)'s own
+  PRE-change per-file census: **SystemVerilog 0 attributable differences over 16 336 files**
+  (`pass=9794 fail=6542 timeout=0 crash=0`), and **VHDL exactly 1 of 13 720 — the defect being
+  fixed**: `ghdl/testsuite/gna/issue3002/top_concat_16k.vhdl`, a REAL upstream GHDL regression file
+  of 192 384 bytes carrying **17 407** `&` concatenation operators (1.7x past the retired cap), goes
+  **fail → pass**. ⭐ A witness beats an absence: the corpus already contained proof the cap bit real
+  code, invisible while the cap stood because a truncated parse reports an ordinary syntax error.
+  (2) The OTHER ceiling is UNMOVED — 322/323, 272/273, 249/250 byte-for-byte. (3)
+  `parse_harness_equivalence_gate` PASSES (4 tests, 26.41 s):
+  the interpreter stays byte-identical to the generated parser in verdict AND typed AST, which is the
+  right arm for a change touching the interpreter and all three shipping emitters at once. (4) Clippy
+  source + generated-correctness stages.
+- **DOWNSTREAM**: SV parser release `1.0.199` → **`1.0.200`** (ledger `SV-0073`), VHDL `1.0.5` →
+  **`1.0.6`** (ledger `VHDL-0005`); both contracts, both per-parser book changelogs and the main book
+  chapter updated in lockstep. This is an **ACCEPT-SET WIDENING** on two released families, so it is
+  recorded as a release rather than as an internal fix.
+- ⚠️ **HONEST BOUND, and it is why `.67` exists**: this removes a FALSE REJECTION; it does not make a
+  large netlist ingestible. Parse memory measures **2 500x-8 000x the input size** and is LINEAR
+  (523 KB → 4 064 MB; 1 089 KB → 8 128 MB), so host RAM now binds where the constant used to. ⭐ The
+  change is memory-NEUTRAL and the control is in the data rather than argued: 10 000 instances —
+  which accepted before this commit too — costs **4 064.0 MB**, and 10 001 costs **4 064.1 MB**.
+
 ## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0114 (leaf `ENGINE-UNIVERSAL-SERVICES.63` DONE (a)+(b)+(c) — the 4096-frame ceiling is RULED NOT DEFENSIBLE and a SECOND, SILENT ceiling was found; DIRECTOR CAPABILITY MANDATE recorded + new leaves `.66`/`.65`; MEASUREMENT + DOCTRINE-RECORD + BOOK + TRACKER tier, ZERO Rust / grammar / codegen / generated bytes)
 
 - ⛔⛔⛔ **DIRECTOR CAPABILITY MANDATE, delivered mid-slice and recorded verbatim** in the new

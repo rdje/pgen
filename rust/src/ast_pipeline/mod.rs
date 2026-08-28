@@ -1459,10 +1459,19 @@ pub enum DerivEvent {
 ///
 /// PATCHED placeholders (`OrWinner`/`QuantCount`/`OptPresent`) are narrow by
 /// construction — a branch index is bounded by its site's branch count, an
-/// iteration count by the emitted `SAFETY_LIMIT` (10,000), and `OptPresent`
-/// is payload-free — so in-place patching (`tape[mark] = word`) is total and
-/// never needs the wide escape; only appended `TokStart`/`TokEnd` positions
-/// can be wide, and an append chooses 1 or 2 words at push time.
+/// iteration count by the INPUT LENGTH (every counted iteration advances the
+/// cursor at least one byte, so a repetition cannot outnumber the input's
+/// bytes), and `OptPresent` is payload-free — so in-place patching
+/// (`tape[mark] = word`) is total and never needs the wide escape; only
+/// appended `TokStart`/`TokEnd` positions can be wide, and an append chooses
+/// 1 or 2 words at push time.
+///
+/// ⭐ `ENGINE-UNIVERSAL-SERVICES.66` — this used to read *"bounded by the
+/// emitted `SAFETY_LIMIT` (10,000)"*. That constant was retired because it
+/// silently truncated conforming input, and the narrowness invariant did NOT
+/// depend on it: `NARROW_LIMIT` is `usize::MAX >> 3` (2^61 - 1 on a 64-bit
+/// host), so an input-length-derived count is narrow by an enormous margin.
+/// The invariant now rests on a bound the input itself supplies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TapeWord<'input> {
     word: *const ParseNode<'input>,
@@ -2290,7 +2299,8 @@ mod tape_word_tests {
     #[test]
     fn narrow_event_patch_form_round_trips_placeholder_values() {
         // The patch population: branch indices (bounded by branch counts),
-        // iteration counts (bounded by the emitted SAFETY_LIMIT), OptPresent.
+        // iteration counts (bounded by the INPUT LENGTH since
+        // ENGINE-UNIVERSAL-SERVICES.66 retired the 10 000 cap), OptPresent.
         for event in [
             DerivEvent::OrWinner(0),
             DerivEvent::OrWinner(23),

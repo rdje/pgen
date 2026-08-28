@@ -1,5 +1,68 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0115 — a guard whose job was already done by another guard can only ever refuse valid input
+
+**1. ⭐⭐⭐ THE RETIRED CONSTANT WAS PROTECTING NOTHING.** `SAFETY_LIMIT = 10_000` reads like prudent
+defensive engineering: bound the loop, avoid a hang. But every one of the five quantifier loops it
+guarded ALREADY breaks on an iteration that fails to advance the cursor — the zero-length guard,
+sitting eight lines below it in the same `loop`. Given that guard, every counted iteration consumes
+at least one byte, so **iteration_count <= input length** without any cap at all. The termination
+argument the constant appeared to supply was already supplied, for free, by the input. What the
+constant added was the only thing it could add: a refusal of conforming source at 10 001 items.
+⇒ **before trusting a defensive bound, find the OTHER guard on the same path and ask what is left
+for this one to do.** Two guards on one loop is a smell, not belt-and-braces: the weaker one is
+usually dead, and a dead guard on an accept path is an under-acceptance waiting to be measured.
+
+**2. THE FIX HAD TO BE A BOUND, NOT A DELETION, AND THE MANDATE SAYS WHY.** The director's ruling is
+*"no limitation or restriction … the only obvious limit shall be the host RAM and disk allowance"* —
+which is not a licence to delete the guard, because a stack overflow ABORTS the embedder and Nexsim
+is an embedder. The shape that satisfies both is a bound **derived from the data**:
+`parser.input.len() + 1`. It is unreachable by construction for any real parse, still terminates a
+pathological zero-width loop, and needs no tuning on a bigger machine. **The guard survives; its
+threshold stops being a literal.** That is the general form the mandate implies for every remaining
+constant, `.65` included.
+
+**3. ⛔ THE CONSTANT WAS LOAD-BEARING IN A DOCUMENT, WHICH IS WHERE THIS COULD HAVE GONE WRONG.** The
+derivation tape's narrow-word encoding is justified in `mod.rs` by *"an iteration count [is bounded]
+by the emitted `SAFETY_LIMIT` (10,000)"*, and `cascade.rs` asserted *"the patch is total: the count
+is bounded by SAFETY_LIMIT"*. Deleting the constant while leaving those sentences would have left the
+codebase asserting an invariant on a value that no longer existed. Checked rather than assumed:
+`TapeWord::NARROW_LIMIT` is `usize::MAX >> 3` = **2^61-1**, so an input-derived count is narrow by an
+enormous margin — the invariant holds, for a better reason, and all three sentences were rewritten in
+the same commit. ⇒ **`grep` for the constant in PROSE, not only in code**: a retired value that
+survives in a justification is how the next reader reintroduces it.
+
+**4. THE CENSUS MATTERED MORE THAN THE EDIT.** The sweep surfaced two sites; the real population was
+**five**, and `.63`(b) had already recorded the reason (`proc_statements` showed no cliff, proving the
+cap is per-quantifier-SITE). Patching the two visible ones would have left the D3 boundary scanner and
+the interpreter capped — and the interpreter's whole credibility is that it matches the generated
+parsers, so it would have started REJECTING inputs the shipped parsers accept. The arm that would
+have caught it is the one that was run: `parse_harness_equivalence_gate`, which asserts byte-identical
+verdict AND typed AST across both. ⇒ when one change touches an emitter and its mirrors, the
+regression arm is the DIFFERENTIAL gate, not a per-rung spot check.
+
+**5. ⛔⛔ MY OWN VERIFICATION CENSUS WAS BLIND, IN THE PASSING DIRECTION, AND ONLY A DOCTRINE SAW IT.**
+I proved the fix landed by counting `SAFETY_LIMIT` across `generated/*_parser.rs` and reading **0**.
+`generated/ebnf.rs` does not match that glob, and it still held **152** of them — because
+`regex_parser_bootstrap` guards its seed with `[ ! -f generated/ebnf.rs ]`, so on a warm tree
+`make regenerate_generated_parsers` exits 0 having refreshed ten of eleven artifacts. What caught it
+was `GENERATED-REPRODUCIBILITY` tier 2, which re-derives EVERY artifact from HEAD and diffs rather
+than trusting a count. ⇒ **a census is only as good as its glob** — and this is the SECOND time in two
+slices that the defect was an instrument's COVERAGE rather than its correctness (the first: a bracket
+oracle blind to bracket-free nesting). The generalisation is the same one both times: *name a member
+of the population your instrument cannot see, before you trust its zero.* A pattern-based census
+should enumerate the population from the directory, then assert the pattern MATCHED all of it.
+
+**6. ⚠️ AND THE FIX EXPOSED THE NEXT WALL, WHICH IS THE ONE THAT ACTUALLY BINDS.** Removing the cap
+makes a 10 001-instance netlist *legal*; it does not make a real one *ingestible*. Measured on the
+same runs, parse memory is **2 500x-8 000x the input size** and LINEAR — 523 KB costs 4 064 MB,
+1 089 KB costs 8 128 MB — so a 16 GB host tops out near 40 000 instances while real gate-level
+netlists run 10^5-10^7. The director's mandate names host RAM as the one legitimate limit, and this
+change moves the wall from an arbitrary constant to exactly that; the honest reading is that host RAM
+then arrives far sooner than the mandate intends. Routed to `.67` with the bound stated (every figure
+is from SYNTHETIC shapes and must be re-derived on real corpus files before any ruling) rather than
+published as a conclusion — which is the mistake `.61`(b) made and `.63` had just finished correcting.
+
 ## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0114 — an oracle's blind spot is inherited by every conclusion built on it, and a clean replication cannot reveal it
 
 **1. ⭐⭐⭐ THE PROXY THAT WAS BLIND TO THE ONLY SHAPE THAT MATTERED.** `.61`(b) answered *"how deep does

@@ -366,29 +366,44 @@ lowering does — one conditional level per item, the file's own conditions and 
 not a property of your design. Against the worst shape's real capacity, the margin on a file already
 vendored in this repository is **1.06×**, not 11.3×.
 
-### ⛔ A Second Limit, And This One Is Silent
+### A Second Limit, And This One Was Silent — Now Removed
 
-The shape sweep above turned up a limit nobody had recorded, and for an embedder it matters more than
-the frame ceiling. Every quantifier in every generated parser is capped at **10 000 iterations**
-(`SAFETY_LIMIT`). **It does not refuse — it stops iterating**, so the parse fails at the enclosing
-level as an ordinary *"did not consume full input"* with **no diagnostic naming the cause**.
+The shape sweep above turned up a limit nobody had recorded, and for an embedder it mattered more
+than the frame ceiling. Every quantifier in every generated parser was capped at **10 000
+iterations** (`SAFETY_LIMIT`). It did not refuse — **it stopped iterating**, so the parse failed at
+the enclosing level as an ordinary *"did not consume full input"* with **no diagnostic naming the
+cause**. A gate-level netlist of 10 001 instances did not parse, and real ASIC netlists run 10⁵–10⁷.
 
-| generated shape | 10 000 items | 10 001 items |
-|---|---|---|
-| flattened-netlist instances | accepted | **rejected** |
-| wire declarations | accepted | **rejected** |
-| `case` items | accepted | **rejected** |
-| concat elements / module ports | accepted | accepted (cap lands just above) |
+✅ **Removed in parser release `1.0.200` (SystemVerilog) / `1.0.6` (VHDL)**
+(`ENGINE-UNIVERSAL-SERVICES.66`). The bound is now derived from the input — a repetition cannot have
+more elements than the input has bytes, because every counted iteration must advance the cursor — so
+it is unreachable for any real parse while still terminating a pathological one:
 
-VHDL is affected identically — `when`/`else` chains and `elsif` ladders both cap at 10 000. A
-gate-level netlist of 10 001 instances does not parse, and real ASIC netlists run 10⁵–10⁷.
+| generated shape | 10 001 items | 12 000 items | 20 000 items |
+|---|---|---|---|
+| flattened-netlist instances | rejected → **accepted** | rejected → **accepted** | rejected → **accepted** |
+| wire declarations | rejected → **accepted** | rejected → **accepted** | rejected → **accepted** |
+| `case` items | rejected → **accepted** | rejected → **accepted** | rejected → **accepted** |
+| concat elements | accepted | rejected → **accepted** | rejected → **accepted** |
+| module port list | accepted | rejected → **accepted** | rejected → **accepted** |
 
-⇒ **If you feed PGEN generated, flattened or optimized RTL today, this is the limit you are most
-likely to hit, and it will not tell you so.** Both limits are being removed: `.66` (the iteration
-cap, first) and `.65` (the frame ceiling), each re-anchored on host memory rather than on a
-compiled-in constant. Until they land, the frame ceiling at least names itself in the error — the
-iteration cap does not, so a rejection near the end of a very long list is worth reporting to the
-PGEN maintainers.
+VHDL was affected identically — `when`/`else` chains and `elsif` ladders capped at the same 10 000 —
+and is fixed by the same engine change.
+
+⭐ **A real file in the corpus was being rejected by this cap, which is the clearest evidence it was
+not a theoretical limit.** Against a pre-change per-file census, SystemVerilog shows **0 differences
+over 16 336 files** and VHDL shows exactly **one of 13 720**:
+`ghdl/testsuite/gna/issue3002/top_concat_16k.vhdl` — 192 KB carrying **17 407** `&` concatenation
+operators, 1.7× past the cap — goes from rejected to accepted. It is a GHDL regression file, and
+while the cap stood it looked like an ordinary syntax error. If you saw a rejection like that, this
+release is the explanation. The frame-ceiling boundaries are byte-for-byte where they were.
+
+⚠️ **What this does not yet buy you, stated plainly.** Removing the cap makes a large netlist *legal*;
+it does not yet make one *ingestible*. Parse memory measures **2 500×–8 000× the input size** and
+scales linearly — a 523 KB netlist peaks at ≈4.0 GB, a 1.1 MB one at ≈8.1 GB. So the limit is now
+your host's RAM rather than a constant in our source, which is the intended shape, but it arrives
+sooner than it should. That footprint is tracked as `ENGINE-UNIVERSAL-SERVICES.67` and is the next
+ingestion bound after the frame ceiling (`.65`).
 
 ## Linter-Oriented Downstream Surfaces
 

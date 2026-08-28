@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cacc9bb0.js";
+            window.path_to_searchindex_js = "searchindex-0feab8a1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-34905c9b.js"></script>
@@ -217,6 +217,36 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10200--contract-10200--engine-universal-services66-pgen-engine-universal-services-0115-2026-08-28-ledger-sv-0073-released"><a class="header" href="#10200--contract-10200--engine-universal-services66-pgen-engine-universal-services-0115-2026-08-28-ledger-sv-0073-released">1.0.200 / Contract 1.0.200 — ENGINE-UNIVERSAL-SERVICES.66 (<code>PGEN-ENGINE-UNIVERSAL-SERVICES-0115</code>, 2026-08-28), ledger <code>SV-0073</code> (<code>Released</code>):</a></h3>
+<p>⛔ <strong>This release removes a silent acceptance limit and changes nothing else.</strong> Every quantifier in
+every generated parser carried a <strong>10 000-iteration cap</strong> (<code>SAFETY_LIMIT</code>). It did not refuse — it
+<strong>stopped iterating</strong>, silently truncating the repetition, so the parse failed at the enclosing level
+as an ordinary <em>“did not consume full input”</em> with no diagnostic naming the cause.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>generated shape</th><th>10 001 items</th><th>12 000 items</th><th>20 000 items</th></tr>
+</thead>
+<tbody>
+<tr><td>flattened-netlist instances</td><td>rejected → <strong>accepted</strong></td><td>rejected → <strong>accepted</strong></td><td>rejected → <strong>accepted</strong></td></tr>
+<tr><td>wire declarations</td><td>rejected → <strong>accepted</strong></td><td>rejected → <strong>accepted</strong></td><td>rejected → <strong>accepted</strong></td></tr>
+<tr><td><code>case</code> items</td><td>rejected → <strong>accepted</strong></td><td>rejected → <strong>accepted</strong></td><td>rejected → <strong>accepted</strong></td></tr>
+<tr><td>concat elements</td><td>accepted</td><td>rejected → <strong>accepted</strong></td><td>rejected → <strong>accepted</strong></td></tr>
+<tr><td>module port list</td><td>accepted</td><td>rejected → <strong>accepted</strong></td><td>rejected → <strong>accepted</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>13 of 13 measured rejections eliminated, 0 introduced.</strong> The replacement bound is derived from the
+input rather than being a bigger constant: every counted iteration must advance the cursor, so a
+repetition cannot have more elements than the input has bytes. The guard still terminates a
+pathological zero-width loop; it can no longer refuse conforming source.</p>
+<p><strong>Nothing else moves.</strong> External-corpus verdicts are identical over <strong>16 336 files</strong> (<code>pass=9794 fail=6542 timeout=0 crash=0</code>, 0 per-file differences); the recursion ceiling’s accept boundaries are
+byte-for-byte unchanged (322/323, 272/273, 249/250); the interpreter stays byte-identical to the
+generated parser. No grammar bytes changed — the artifact is regenerated because codegen moved, and
+AST-dump schema stays at <code>26</code>.</p>
+<p>⚠️ <strong>Bound</strong>: this makes a large netlist <em>legal</em>, not yet <em>ingestible</em> — parse memory is
+<strong>2 500×–8 000× the input size</strong> and linear (523 KB → ≈4.0 GB). Tracked as
+<code>ENGINE-UNIVERSAL-SERVICES.67</code>.</p>
 <h3 id="10199--contract-10199--sv-corpus-grad13e10c4-residue--engine-universal-services50e55-pgen-engine-universal-services-0098-2026-08-26-ledger-sv-0072-released-the-seventeenth-and-last-ieee-1800-only-operator--the-class-is-now-closed-17-of-17-grammar--engine-verilog_2005-only--a-narrow-schema-unchanged-at-26"><a class="header" href="#10199--contract-10199--sv-corpus-grad13e10c4-residue--engine-universal-services50e55-pgen-engine-universal-services-0098-2026-08-26-ledger-sv-0072-released-the-seventeenth-and-last-ieee-1800-only-operator--the-class-is-now-closed-17-of-17-grammar--engine-verilog_2005-only--a-narrow-schema-unchanged-at-26">1.0.199 / Contract 1.0.199 — SV-CORPUS-GRAD.13e.10(c4) RESIDUE + ENGINE-UNIVERSAL-SERVICES.50(e)/.55 (<code>PGEN-ENGINE-UNIVERSAL-SERVICES-0098</code>, 2026-08-26), ledger <code>SV-0072</code> (<code>Released</code>): <strong>THE SEVENTEENTH AND LAST IEEE-1800-ONLY OPERATOR — THE CLASS IS NOW CLOSED, 17 OF 17 (GRAMMAR + ENGINE; <code>verilog_2005</code> ONLY — a NARROW; SCHEMA UNCHANGED at 26)</strong></a></h3>
 <p>⛔ <strong>This release narrows one profile and touches nothing else.</strong> The assignment-pattern / cast
 apostrophe that <code>1.0.198</code> deliberately left open is now gated:</p>

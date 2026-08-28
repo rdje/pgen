@@ -483,10 +483,14 @@ impl AstCodeGenerator {
             #quantifier_start_position_bind
             let mut results: Vec<ParseNode> = Vec::new();
             let mut iteration_count: usize = 0;
-            const SAFETY_LIMIT: usize = 10_000;
+            // `ENGINE-UNIVERSAL-SERVICES.66` — input-derived, never a literal. Kept in
+            // lockstep with the three shipping emitters even though this generator is not
+            // on the release path: a stale copy of a retired bound is how the next reader
+            // reintroduces it.
+            let __pgen_iteration_ceiling: usize = parser.input.len() + 1;
 
             loop {
-                if iteration_count >= SAFETY_LIMIT {
+                if iteration_count >= __pgen_iteration_ceiling {
                     break;
                 }
                 #max_check_tokens
