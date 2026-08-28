@@ -416,7 +416,11 @@ reservation through `PGEN_PARSE_STACK_BYTES`:
 | 192 MiB | 3 611 | 18.807 |
 | **256 MiB (the shipped default)** | **4 813** | 18.801 |
 
-**Flat to 0.14 % across a 2.67× range.** No constant can produce that curve. Every boundary in the
+**Flat to 0.14 % across a 2.67× range.** No constant can produce that curve. ⚠️ **Measured on one
+shape** (nested `int'(…)`) across four reservations, not across the shape set — so what is
+established is that *this* shape's capacity is linear in the stack, which is what a constant cannot
+do; corroborating it on a second shape is outstanding (`ENGINE-UNIVERSAL-SERVICES.65`, qualification
+1). Every boundary in the
 table is a genuine ceiling contact — confirmed by the `.61`(a) label rather than assumed — and the
 boundary is exactly reproducible (three accepts at 4 813, three rejections at 4 814).
 
@@ -462,6 +466,13 @@ it is how a diagnosed rejection becomes a `SIGSEGV` in someone else's host.
 **No regression, both released families**: the external corpus shows **0 differences over 16 336
 SystemVerilog files and 0 over 13 720 VHDL files**, per file rather than in aggregate, measured on
 the fused graph that actually ships with the pre-change binary preserved for the A/B.
+
+⚠️ **Read that zero for what it is.** The new bound only engages once a parse passes 4 096 frames,
+and **no corpus file gets there** — 0 of 400 sampled files record any ceiling contact, consistent
+with the 0-of-30 056 census above. So the zero proves this change does not disturb the parses that
+never approach the ceiling; it is *not* evidence that the derived bound itself is correct. That
+evidence is the proportionality table, the boundary's exact reproducibility, and the engine's unit
+tests.
 
 ### A Second Limit, And This One Was Silent — Now Removed
 

@@ -14865,6 +14865,52 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   numbers of bytes per frame as well as different frames per source level. A constant ratio would
   have meant the boundary was still being computed from a per-level model.
 
+#### ⛔⛔⛔ `.65` — THREE QUALIFICATIONS PUBLISHED THE SAME DAY UNDER A DIRECTOR RE-VERIFICATION CHALLENGE (`PGEN-ENGINE-UNIVERSAL-SERVICES-0118`). **THE FIX AND EVERY MEASURED NUMBER STAND; THREE THINGS I SAID *ABOUT* THEM CLAIMED MORE THAN THE EVIDENCE**
+
+⛔ Asked *"do you still stand by your findings?"* — the same one-sentence question that retired
+`.61`(b) and withdrew my own `1.06×` in `-0116` — I re-derived instead of re-reading. Nothing below
+changes the fix, the ruling, the boundaries, the corpus result or any gate. All three are about the
+STRENGTH I attributed to my own evidence.
+
+- ⛔⛔ **(1) THE PROPORTIONALITY PROOF RESTS ON ONE SHAPE, AND I PRESENTED IT AS *THE* PROOF.** The
+  4-point table (96/128/192/256 MiB → 1 807/2 410/3 611/4 813, flat to 0.14 %) is measured on
+  `cast_paren` and on nothing else. **That is structurally the same instrument error as `.61`(b)'s
+  bracket-depth oracle**: a single axis, read confidently, with no second axis able to disagree. The
+  four points are real and reproducible; what is NOT established is that *every* shape's capacity is
+  linear in the reservation. A shape whose ceiling were bound by something other than stack would
+  read flat on `cast_paren` and non-linear on itself, and I would not have seen it.
+  ⇒ **OWED: re-run `reservation_scaling.py` on a second shape** (`gen_mux_both_arms` is the natural
+  choice — the worst-case shape and the most frames per level: it reads 1 142 at 96 MiB, so the
+  prediction to falsify is ≈2 284 at 192 MiB). Until that runs, the honest headline is *"linear in
+  the reservation on the one shape measured across four reservations"*, not *"linear"*.
+- ⛔⛔ **(2) THE CORPUS ARM PROVES THE CHANGE IS INERT ON THE CORPUS — IT CANNOT VALIDATE THE NEW
+  CODE PATH, BECAUSE THE CORPUS NEVER EXECUTES IT.** `extend_depth_probe` runs only when a parse
+  reaches depth 4096. **MEASURED THIS SLICE on the POST-change binary: 0 of 400 sampled corpus files
+  record ANY depth-ceiling contact** (`PGEN_REPORT_MEMO_STATS`), consistent with `.61`(b)'s 0 of
+  30 056. ⇒ *"0 differences over 16 336 SV + 13 720 VHDL files"* is **true, and is evidence of
+  non-disturbance rather than of correctness** — it is the arm that shows I did not break the 99.99 %
+  of parses that never approach the ceiling, and it is silent about the code I actually wrote. What
+  validates the new path is the reservation-scaling table, the boundary reproducibility and the unit
+  tests — a much narrower base, and I should have said so when I listed the arms.
+- ⚠️ **(3) *"The 497 is MEASURED, not inferred"* IS OVERSTATED.** What was measured: **499** total
+  `4096usize` in the PRE-change SV parser, and **497** arm sites in the POST-change one. The
+  identification of those two populations is an INFERENCE — sound (the change removes a clause, not
+  an arm) and corroborated on `generated/ebnf.rs`, where both sides *were* measured (52 = 50 + 2) —
+  but the pre-change SV arm count itself was never counted. The decomposition is right; the word
+  MEASURED is not.
+- ⚠️ **(4) A ratio understated in the direction flattering to me.** The reject-cost rise was
+  published as **≈198×** (0.19 s → 37.70 s). Both figures include process startup, measured this
+  slice at **0.027 s** steady-state; net of it the rise is **≈231×**. The claim was conservative
+  rather than wrong, which is exactly why re-reading would never have caught it.
+- ✅ **RE-CONFIRMED, unchanged**: startup is 0.027 s against a 22.24 s parse at depth 4 000, so the
+  Θ(depth²) curve is real parse time and not an overhead artifact; the same input at depth 250 goes
+  **0.19 s REJECT → 0.13 s ACCEPT**, i.e. it got faster *and* now parses.
+- ⇒ ⭐⭐⭐ **THE TRANSFERABLE LESSON, and it is the third time this question has paid: my three-way
+  check verifies the NUMBERS and never audits the QUANTIFIER I wrap around them.** *"Proved by
+  proportionality"* (one shape), *"0 differences over 30 056 files"* (a population that cannot reach
+  the code) and *"MEASURED"* (one of the two counts) are each a true measurement carrying a claim
+  wider than its own population. → [[an-x-is-checked-by-nothing-claim-is-a-census-claim]]
+
 ### ⛔⛔ `.68` — **THE CYCLE GUARD SCANS THE WHOLE LIVE STACK ON EVERY RULE ENTRY, SO A DEPTH-`D` PARSE IS Θ(D²). WITH THE CEILING NOW AT THE HOST'S STACK, THIS IS THE FIRST THING A DEEP PARSE RUNS OUT OF** (`todo`, opened 2026-08-28 by `.65`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0117`)
 
 - **WHY + WHERE**: `RecursionGuard::check_cycle_id` (`rust/src/ast_pipeline/mod.rs`) walks the entire
