@@ -1,0 +1,13 @@
+path	bytes	verdict	exit	real_s	peak_rss_bytes
+stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh330.v	36673	ACCEPT	0	0.68	314425344
+stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh330.v	36673	ACCEPT	0	0.68	313524224
+stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh330.v	36673	ACCEPT	0	0.69	315015168
+stimuli/sv/subs/verilator/test_regress/t/t_math_synmul_mul.v	330162	ACCEPT	0	3.08	2056142848
+stimuli/sv/subs/verilator/test_regress/t/t_math_synmul_mul.v	330162	ACCEPT	0	3.32	2057519104
+stimuli/sv/subs/verilator/test_regress/t/t_math_synmul_mul.v	330162	ACCEPT	0	3.00	2055241728
+stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_top.sv	1237143	REJECT	1	4.71	3191259136
+stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_top.sv	1237143	REJECT	1	4.62	3191078912
+stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_top.sv	1237143	REJECT	1	4.59	3190341632
+tmp/eus67/shapes/syn_netlist_instances_2500.sv	130637	ACCEPT	0	1.77	1092632576
+tmp/eus67/shapes/syn_netlist_instances_2500.sv	130637	ACCEPT	0	1.78	1092763648
+tmp/eus67/shapes/syn_netlist_instances_2500.sv	130637	ACCEPT	0	1.78	1093156864

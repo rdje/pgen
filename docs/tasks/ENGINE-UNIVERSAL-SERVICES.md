@@ -14676,7 +14676,7 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   instances — which ACCEPTED before this commit too — costs **4 064.0 MB**, and 10 001 costs
   **4 064.1 MB**. The 4 GB is pre-existing and is `.67`'s subject, not this leaf's.
 
-### ⛔⛔ `.67` — **PARSE MEMORY IS 2 500×–8 000× THE INPUT SIZE AND LINEAR, SO "BOUNDED ONLY BY HOST RAM" BINDS AT ~40 000 NETLIST INSTANCES ON A 16 GB MACHINE** (`todo`, opened 2026-08-28 by `.66`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`)
+### ⛔⛔ `.67` — **PARSE MEMORY IS 2 500×–8 000× THE INPUT SIZE AND LINEAR, SO "BOUNDED ONLY BY HOST RAM" BINDS AT ~40 000 NETLIST INSTANCES ON A 16 GB MACHINE** (`in progress` — ✅ **(a) DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0120`, (b)/(c) open; opened 2026-08-28 by `.66`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`)
 
 - **WHY THIS IS A LEAF AND NOT A FOOTNOTE.** The director's mandate names host RAM as the ONE
   legitimate limit ([[project_rtl_parsers_accept_any_rtl_no_limits_non_negotiable]]). `.66` moved the
@@ -14692,11 +14692,98 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
 - ⚠️ **NOT YET ADJUDICATED, and the bound is named rather than discovered later**: every figure above
   is from a SYNTHETIC generated-netlist shape. Before any ruling this must be re-derived on REAL
   corpus files — the same mistake `.61`(b) made was ruling from a population it had not measured.
-- **OWES**: (a) re-derive the ratio over real corpus files and publish the distribution, not one
-  number; (b) attribute it — memo tables vs node arena vs deriv tape vs AST — with a measurement, not
-  a reading; (c) only then price a fix. ⛔ Speed/footprint work is otherwise BLOCKED behind the
-  director's *"thorough and accurate and fast (not reached yet, because it is not the focus right
-  now)"* ordering; this leaf is admitted because it is an INGESTION bound, not a performance one.
+  ✅ **DISCHARGED by (a) below**: the synthetic figures are NOT an artifact — they reproduce on a
+  second instrument to within 0.20 % and they bracket the real range — but they are the real
+  distribution's TAIL, not its middle.
+- **OWES**: ✅ (a) re-derive the ratio over real corpus files and publish the distribution, not one
+  number — **DONE `…-0120`**; (b) attribute it — memo tables vs node arena vs deriv tape vs AST —
+  with a measurement, not a reading; (c) only then price a fix. ⛔ Speed/footprint work is otherwise
+  BLOCKED behind the director's *"thorough and accurate and fast (not reached yet, because it is not
+  the focus right now)"* ordering; this leaf is admitted because it is an INGESTION bound, not a
+  performance one.
+
+#### ✅ `.67`(a) DONE 2026-08-28 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0120`) — **THE RATIO IS REAL AND REPRODUCES ON A SECOND INSTRUMENT, BUT 7 950× IS THE REAL p99, NOT THE REAL MEDIAN. AND 97 % OF THE CORPUS CANNOT ANSWER THE QUESTION AT ALL**
+
+Full report + raw data: [`docs/tasks/artifacts/eus67/REPORT.md`](artifacts/eus67/REPORT.md).
+Producers, both tracked and re-runnable:
+`docs/tasks/artifacts/eus67/measure_parse_rss.sh` (one `fork` per file, peak RSS from
+`/usr/bin/time -l`, profile `sv_2017`) and `…/parse_rss_distribution.py`.
+
+- **POPULATION — a CENSUS where it counts, not a sample.** All **487** SV corpus files ≥ 20 KB;
+  plus a 300-file stratified sample of the body (< 20 KB); plus the six `.63`/`.66` synthetic shapes
+  re-measured at n = 2 500 / 5 000 / 10 000; plus 4 files × 3 repeats and 8 floor repeats.
+  **Reproducibility 0.03 %–0.48 %** on inputs costing 300 MB–3 GB, so the percentiles are stable to
+  far better than their own resolution.
+- ⭐ **THE ANSWER, over real input (files ≥ 20 KB, floor 14.72 MB):**
+
+  | population | n | min | p25 | p50 | p75 | p90 | max |
+  |---|---|---|---|---|---|---|---|
+  | all verdicts | 487 | 874× | 940× | 1 022× | 2 237× | 3 352× | 8 158× |
+  | **ACCEPT** | 59 | 1 042× | 2 181× | **2 595×** | 4 334× | 5 889× | **8 158×** |
+  | REJECT | 428 | 874× | 935× | 982× | 1 431× | 3 140× | 4 535× |
+
+  ⛔ **The process floor is a BAND, not a constant** — 14.72 MB (lowest peak over any real file) to
+  18.86 MB (highest of eight repeats on a 20-byte module), a ~19 % spread — so every figure is
+  reported at BOTH ends. At 18.86 MB the ACCEPT row reads p50 **2 407×**, max **8 040×**: the
+  conclusion does not depend on which floor is chosen.
+- ⭐⭐ **THE CROSS-INSTRUMENT CHECK PASSES, WHICH IS WHAT MAKES THE COMPARISON A POPULATION CLAIM
+  RATHER THAN A METHOD ARTEFACT.** This instrument re-measures `.66`/`.67`'s five published
+  synthetic figures as 4 062.1 / 1 142.3 / 499.8 / 573.2 / 305.0 MB against their published
+  4 064.0 / 1 143.2 / 498.8 / 572.2 / 304.6 MB — **worst disagreement 0.20 %**, on an instrument
+  built independently of theirs.
+- ⇒ **THE RULING ON `.67`'s ⚠️: the synthetic band is NOT an artifact, and it is NOT the middle.**
+  Synthetic 2 361×–7 923× vs real ACCEPT 1 042×–8 158×. The real ACCEPT **max** (8 158×) matches
+  the synthetic max to 3 %; the real ACCEPT **p50** (2 595×) sits just above the synthetic
+  **minimum** (2 361×). **`.67`'s headline 7 950× is the real p99+; the honest real-input figure is
+  ~2 600× accepted / ~1 000× across all verdicts.** The leaf header keeps its range because the
+  range is right; the reading of it changes.
+- **LINEARITY — CONFIRMED BY FIT, NOT BY EYEBALL.** Least squares over the three item counts, all
+  six shapes: `peak RSS = per-item × N + intercept`, intercepts **16.8–36.1 MB** (i.e. the process
+  floor itself) and max residual **6.4 MB against an RSS of 4 GB**. ⇒ linear in item count with **no
+  fixed parse component**. Per-item cost spans **14×** across shapes — 29.5 KB for a module port,
+  412.3 KB for a netlist instance — so "the ratio" is a per-SHAPE constant, not a parser constant.
+- ⚠️⚠️ **THE ONE REAL-INPUT LINEARITY PROBE DISAGREES WITH THAT MODEL, AND NO RULING IS DRAWN FROM
+  IT.** The three `pinmux_reg_top.sv` files (one generator, three chip tops; 1 161 034 / 1 237 143 /
+  1 328 188 B → 2 937 / 3 044 / 3 178 MB) fit with **marginal slope 1 513× and intercept 1 261 MB**
+  (max residual 1.8 MB against 3 GB), while their *average* ratio is 2 509× — the marginal byte
+  costing **40 % less** than the average byte, the opposite of every synthetic shape. ⛔ **Three
+  points from three DIFFERENT files is one degree of freedom, and this instrument cannot tell a
+  1 261 MB fixed PARSE cost from 1 261 MB of shared file CONTENT all three chip tops emit.** Handed
+  to (b) as the question attribution must answer, because the two readings extrapolate very
+  differently at netlist scale.
+- **WHAT THE MANDATE'S BOUND BUYS, on real input.** A 16 GB host (≈14 GB usable) tops out at
+  **~1.7 MB** of SV at the real ACCEPT worst, **~5.4 MB** at the real ACCEPT median, **~16 MB** at
+  the real minimum. Worst real files measured: `verilator/…/t_math_synmul_mul.v` 330 162 B ACCEPT →
+  **1 961 MB**, and `opentitan/top_darjeeling/…/pinmux_reg_top.sv` 1 328 188 B REJECT → **3 178 MB**.
+  `.67`'s own *"~40 000 netlist instances on a 16 GB machine"* re-derives here as **40 551**
+  (14 GB ÷ 412.3 KB/instance) — **CONFIRMED**. ⇒ the ingestion bound stands and is **20×–6 000×**
+  short of the 10⁵–10⁷-instance, 100 MB–10 GB target population.
+- ⛔⛔ **97 % OF THE CORPUS CANNOT ANSWER THIS QUESTION, AND THAT IS REPORTED RATHER THAN FUDGED.**
+  The median corpus file is **826 bytes**; 290 of 299 body rows peak below 2× the floor and 32 peak
+  *below the floor file's own* RSS. ⭐ Worse — and this is the trap — **the admissibility rule that
+  removes those rows SELECTS ON THE MEASURED QUANTITY**: at the body's median size the 2×-floor bar
+  is itself ≈ 9 500×, so the "admissible body" p50 of 11 123× is an artifact of the rule and not a
+  measurement. **No ratio is published for the corpus body.**
+- ⭐ **THE LOWER BOUND SURVIVES THAT, and the check is the reason it can be published.** The two
+  *uncensored* bands clear their own bar by a wide margin and bottom out in the same place:
+  100–256 KB (n=27, bar **301×**) → min **886×**; 256 KB–1.9 MB (n=22, bar **102×**) → min **874×**
+  — the same ~875× the two censored bands show. ⇒ the ~875× minimum is a property of the parser,
+  not of the selection rule.
+- ⛔⛔⛔ **THE DEFECT THIS ANALYSIS CAUGHT IN ITSELF, recorded because it is the same class as
+  `.61`(b)'s oracle blind spot.** The first pass computed `(rss − floor) / bytes` and dropped
+  non-positive values with `if x > 0`. On the body that **silently discarded 10.7 % of rows —
+  every one of them a row whose peak came in BELOW the floor — and biased the survivors upward.**
+  A filter that removes the inconvenient tail of a distribution and says nothing is not a cleanup;
+  it is the defect. `parse_rss_distribution.py` now excludes by a NAMED rule and COUNTS the
+  exclusion on every run. ⇒ **a subtraction is a claim about its subtrahend: I subtracted a "floor"
+  I had not shown to be a floor, and 32 rows were already telling me so.**
+- **THREE-WAY CHECK.** (1) RE-DERIVED by command — both producers are tracked and re-runnable, and
+  the reproducibility arm re-ran 4 inputs 3× at 0.03–0.48 %. (2) FALSIFIED against an oracle I did
+  not build — `.66`'s five published synthetic figures, reproduced to 0.20 %; and the RED control is
+  real, since the same instrument spans 15 MB → 4 GB, a 270× dynamic range, and it *did* go red on
+  my own floor assumption. (3) DURABILITY — producers + raw TSVs + report all tracked under
+  `docs/tasks/artifacts/eus67/`. ⚠️ Named gap: **no gate WATCHES these numbers**; they are a
+  measurement record, not a ratchet, and (c) is where a ratchet would be priced.
 
 ### ✅✅✅ `.65` — **THE RECURSION CEILING IS NO LONGER A NUMBER ANYBODY TYPED. IT IS MEASURED, PER PARSE, FROM THE STACK THE HOST ACTUALLY GAVE THE THREAD** (**DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0117`; opened 2026-08-28 by `.63`(c)'s ruling / `…0114`; taken after `.66`)
 

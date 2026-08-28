@@ -128,6 +128,43 @@ The two levers that *do* target this, each its own future work:
   down (arena/bump allocation for parse nodes, fewer transient clones per rule) is the
   architectural path below ~14 GB.
 
+### How much RAM does parsing an *N*-byte file need? (measured, per file, over the real corpus)
+
+The section above profiles one pathological input. The question an embedder actually asks is
+the opposite one — *given a file of this size, how much memory should I budget?* — and it is
+answered by a census rather than by a single profile.
+
+Measured with `docs/tasks/artifacts/eus67/measure_parse_rss.sh` (one process per file, peak
+RSS from `/usr/bin/time -l`, profile `sv_2017`) over **all 487 SystemVerilog corpus files
+≥ 20 KB**, repeatable to **0.03 %–0.48 %**:
+
+| verdict | n | min | p25 | p50 | p75 | p90 | max |
+|---|---|---|---|---|---|---|---|
+| accepted | 59 | 1 042× | 2 181× | **2 595×** | 4 334× | 5 889× | **8 158×** |
+| rejected | 428 | 874× | 935× | 982× | 1 431× | 3 140× | 4 535× |
+
+Read that as *bytes of peak RSS per byte of input*, above a **14.7–18.9 MB process floor**.
+So a 330 KB accepted file measured **1 961 MB**, and a 1.3 MB one **3 178 MB**.
+
+Two consequences worth planning around:
+
+- **Budget from the shape, not from the size.** Peak RSS is linear in the *number of
+  repeated constructs*, not in bytes, and the per-construct cost spans **14×** — 29.5 KB for a
+  module port against 412.3 KB for a flattened netlist instance. A 100 KB port list and a
+  100 KB netlist are not the same parse.
+- **A 16 GB host tops out at roughly 1.7 MB – 16 MB of SystemVerilog source**, depending on
+  which of those shapes dominates (≈5.4 MB at the accepted median). Flattened gate-level
+  netlists are far larger than that, and closing the gap is tracked work, not a settled
+  property — see `ENGINE-UNIVERSAL-SERVICES.67`.
+
+⚠️ **The ratio is not measurable for small files, and PGEN's own instrument says so rather
+than reporting a number.** The median corpus file is 826 bytes; its whole parse costs less
+than the ~19 % run-to-run spread of the process floor it would have to be separated from.
+`parse_rss_distribution.py` therefore excludes such rows by a named rule and *counts* the
+exclusion on every run, because the alternative — quietly dropping the rows whose
+floor-subtracted value comes out negative — silently biases the surviving distribution
+upward. That is a general lesson about subtracted baselines, not a SystemVerilog one.
+
 ## How we keep it honest
 
 Three habits make the numbers above trustworthy, and they are the rules a contributor
