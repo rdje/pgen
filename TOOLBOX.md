@@ -558,9 +558,11 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 
 ### 3.3b `PGEN_REPORT_PARSE_FOOTPRINT`
 - **WHAT:** print the ARENA leg of a parse's memory footprint — how many `ParseNode`s, shaped values,
-  shaped pairs and rendered strings the parse allocated, and what they cost in bytes. **WHEN:** a
-  parse whose peak RSS is the problem, or any "why does this file need N GB" question
-  (`ENGINE-UNIVERSAL-SERVICES.67`). **HOW:**
+  shaped pairs and rendered strings the parse allocated, and what they cost in bytes — **plus the
+  AST-owned heap that lives OUTSIDE the arena**: the `Vec<&ParseNode>` a `Sequence`/`Quantified`
+  node owns, and the `String` payloads behind `TransformedTerminal` and the interned rendered
+  strings. **WHEN:** a parse whose peak RSS is the problem, or any "why does this file need N GB"
+  question (`ENGINE-UNIVERSAL-SERVICES.67`). **HOW:**
   `PGEN_REPORT_PARSE_FOOTPRINT=1 ./rust/target/release/parseability_probe --parse <g> f.sv --profile <p>`
 - ⭐⭐ **UNLIKE 3.3 IT DOES NOT ROUTE THE PARSE, WHICH IS THE WHOLE POINT.**
   `PGEN_REPORT_MEMO_STATS` clears `bare_parse` and moves the parse onto the PROTOCOL graph, so it
@@ -571,25 +573,50 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   two numbers are not about the same parse.**
 - **OUTPUT (one line per parse, on stderr):**
   ```
-  === PARSE FOOTPRINT (arena leg) [systemverilog]: nodes=N (X.XX MB @ 48 B) ·
+  === PARSE FOOTPRINT (arena + AST-owned heap) [systemverilog]: nodes=N (X.XX MB @ 48 B) ·
       shaped_values=N (X.XX MB) · shaped_pairs=N (X.XX MB) ·
-      rendered_strings=N (X.XX MB, header only) · arena item total X.XX MB
-      [LOWER BOUND - chunk capacity and string payloads are NOT counted] ===
+      rendered_strings=N (X.XX MB, header only) · arena item total X.XX MB ·
+      child_vecs=N (N slots, X.XX MB) · transformed_strings=N (X.XX MB) ·
+      rendered_payload X.XX MB · AST-owned heap total X.XX MB · arena+owned total X.XX MB
+      [LOWER BOUND - typed_arena CHUNK CAPACITY is still NOT counted] ===
   ```
-- ⛔⛔ **IT MEASURES NODE HEADERS, NOT THE AST — do not subtract it from peak RSS and call the
+- ⭐⭐ **THE OWNED-HEAP LEG IS MEASURED AT ALLOCATION TIME, BECAUSE THE ARENA CANNOT BE WALKED
+  AFTERWARDS — and that is a property of `NodeArena`'s lifetime design, not an oversight.** A walk
+  needs `typed_arena::Arena::iter_mut`, i.e. `&mut self`, but `'input` is unified to the arena's own
+  scope, so a consumer holds `&'input NodeArena<'input>` and the shared borrow lives as long as the
+  arena. All three escapes were COMPILED and all three are refused: dropping the parser first
+  `E0502`, confining the parser to an inner scope `E0502`, consuming the arena by value (`into_vec`)
+  `E0505` — the same root cause as the `E0597` that already refuses a `Drop` impl.
+- ⛔ **`NOT MEASURED` IS NOT ZERO.** The owned legs are armed once per parse from this variable, so a
+  `NodeArena` built before it was read reports **`AST-owned heap NOT MEASURED`** rather than `0.00 MB`.
+  `NodeArenaFootprint::owned` is an `Option` for the same reason. To arm it without the variable —
+  an embedder budgeting its own parse — build the arena with `NodeArena::with_owned_heap_census(true)`.
+- ⭐ **MEASURED: THE OWNED HEAP IS SMALL, AND KNOWING THAT IS THE POINT OF HAVING MEASURED IT.**
+  Over the ten-input ladder it is **0.00 %–1.49 % of the arena item bytes** (median 0.40 %), so it
+  moves the AST's share of the floor-subtracted peak from `-0121`'s headers-only **14.1–35.6 %** to
+  **14.8–36.2 %** — at most **+0.6 percentage points**. `transformed_strings` and `rendered_payload`
+  measured **exactly 0 on all eleven inputs**; the child `Vec`s are the whole of it.
+  ⚠️ **Do not read `child_vecs` as "vectors that cost something"**: 53–73 % of all nodes carry one,
+  at a mean of **0.00–0.15 slots each**, because a quantifier that matched zero times holds
+  `Vec::new()` (capacity 0, no allocation) and a list that DID grow is consumed into a
+  `PgenValue::Array` slice in the `shaped_values` arena and freed. The sharpest case is
+  `syn_case_items`: **40 slots at both 2 500 and 10 000 items** — 7 500 more case items, zero more
+  resident child-vec slots.
+- ⛔⛔ **IT STILL MEASURES LESS THAN THE WHOLE PARSE — do not subtract it from peak RSS and call the
   remainder "not the AST". That inference was published once and WITHDRAWN**
-  (`ENGINE-UNIVERSAL-SERVICES.67`(b), `-0122`). A `ParseNode` is 48 B, but
-  `ParseContent::Sequence` is a `Vec<&ParseNode>` and `Quantified` carries one too: **each such
-  node owns a SEPARATE heap allocation of 8 B per child, outside the arena**, and
-  `TransformedTerminal` owns a `String`. None of that is counted here. How much AST-owned memory
-  lives outside the arena is UNMEASURED — it needs an `iter_mut` walk this `&self` accessor cannot do.
-- ⚠️ **IT IS A LOWER BOUND AND SAYS SO ON EVERY LINE.** Two further exclusions are named rather than
-  left to be discovered: `typed_arena`
-  allocates in chunks that DOUBLE and frees none until the arena drops, so resident chunk bytes can
-  exceed live item bytes by up to ~2×; and `rendered_strings` contributes only its 24-byte header,
-  because the heap text each one owns is a separate allocation no `&self` accessor can reach. The
-  COUNT is printed beside the bytes so you can see whether that second omission could matter for
-  your grammar.
+  (`ENGINE-UNIVERSAL-SERVICES.67`(b), `-0122`), and closing the omission that caused the withdrawal
+  did NOT license it back, because a different one is binding. **THREE exclusions, all named:**
+  1. **`typed_arena` CHUNK CAPACITY** — chunks DOUBLE and none are freed until the arena drops, so
+     resident chunk bytes reach up to ~2× live item bytes. **This is now the binding one**: it alone
+     keeps the arena's share anywhere in **28–71 %**, which is exactly the band that leaves the
+     withdrawn conclusion undecided.
+  2. **`ParseNode`s THE MEMO OWNS** — `MemoEntry::result` is an `Option<ParseNode>` and
+     `raw_semantic_content` an `Option<ParseContent>`, owned clones that never pass through
+     `NodeArena::alloc`, so neither their headers nor their child `Vec`s appear in any field here.
+     Those are MEMO-leg bytes, and the memo leg is still unmeasured.
+  3. **TRANSIENT COLLECTION VECTORS** — a quantifier collects into a local `Vec` that is freed once
+     its contents move into the shaped-value arena. Those bytes can contribute to PEAK RSS and are
+     resident nowhere at report time, so this instrument cannot see them.
 - **COVERAGE — 12 of 35 arena-owning parse lanes, and the gap is pinned, not hidden.** The report is
   wired into every `parse_with_<family>_detail*` path (the `Result` lane `--parse` runs). The bare
   `bool` and `_ast_json` lanes do NOT report. ⛔ It is not a `Drop` impl — which would have covered

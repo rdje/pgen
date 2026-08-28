@@ -898,15 +898,63 @@ pub struct NodeArena<'input> {
     /// text) interned for the parse's lifetime; `typed_arena` is drop-correct,
     /// so they are freed with the arena exactly like node payloads.
     rendered_strings: typed_arena::Arena<String>,
+    /// `ENGINE-UNIVERSAL-SERVICES.67`(b) — the AST-owned heap that lives
+    /// OUTSIDE all four arenas, accumulated at ALLOCATION time.
+    ///
+    /// ⛔ **AT ALLOCATION TIME BECAUSE THE ARENA CANNOT BE WALKED AFTERWARDS,
+    /// AND THAT IS A PROPERTY OF THIS TYPE'S OWN LIFETIME DESIGN — MEASURED,
+    /// NOT ASSUMED.** A post-parse walk needs `typed_arena::Arena::iter_mut`,
+    /// i.e. `&mut self`; but `'input` is unified to the arena's scope (see
+    /// [`NodeArena`]), so a consumer holds `&'input NodeArena<'input>` and the
+    /// shared borrow is forced to live as long as the arena itself. All three
+    /// escapes were compiled and all three are refused — dropping the parser
+    /// first: `E0502`; confining the parser to an inner scope: `E0502`;
+    /// consuming the arena by value (`into_vec`): `E0505`. Same root cause as
+    /// the `E0597` that already refused a `Drop` impl.
+    owned_child_slots: std::cell::Cell<usize>,
+    owned_child_vecs: std::cell::Cell<usize>,
+    owned_transformed_bytes: std::cell::Cell<usize>,
+    owned_transformed_strings: std::cell::Cell<usize>,
+    owned_rendered_bytes: std::cell::Cell<usize>,
+    /// Read ONCE per parse (one arena per parse, 121 construction sites) from
+    /// `PGEN_REPORT_PARSE_FOOTPRINT`, so [`alloc`](NodeArena::alloc) pays a
+    /// field load and a predictable branch rather than a `OnceLock` acquire on
+    /// every one of the ~1.4 M allocations a 36 KB file makes.
+    ///
+    /// ⛔ When this is false the accumulators are never touched and
+    /// [`NodeArenaFootprint::owned`] reports `None` — **not zero**. A counter
+    /// that cannot be non-zero is not a measurement, and reporting one as if it
+    /// were is how this leaf published a wrong attribution once already.
+    count_owned_heap: bool,
 }
 
 impl<'input> NodeArena<'input> {
     pub fn new() -> Self {
+        Self::with_owned_heap_census(report_parse_footprint_enabled())
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.67`(b) — [`new`](Self::new) with the
+    /// out-of-arena owned-heap census armed EXPLICITLY rather than from the
+    /// environment.
+    ///
+    /// Two reasons it is public rather than test-only. (1) The env gate is a
+    /// process-wide `OnceLock`, so a test cannot arm or disarm it
+    /// deterministically — and a census test that can pass vacuously is the
+    /// same defect as a counter that cannot be non-zero. (2) An embedder
+    /// budgeting its own parse wants the numbers without having to set a
+    /// variable before the first arena is built.
+    pub fn with_owned_heap_census(count_owned_heap: bool) -> Self {
         NodeArena {
             nodes: typed_arena::Arena::new(),
             shaped_values: typed_arena::Arena::new(),
             shaped_pairs: typed_arena::Arena::new(),
             rendered_strings: typed_arena::Arena::new(),
+            owned_child_slots: std::cell::Cell::new(0),
+            owned_child_vecs: std::cell::Cell::new(0),
+            owned_transformed_bytes: std::cell::Cell::new(0),
+            owned_transformed_strings: std::cell::Cell::new(0),
+            owned_rendered_bytes: std::cell::Cell::new(0),
+            count_owned_heap,
         }
     }
 
@@ -914,7 +962,53 @@ impl<'input> NodeArena<'input> {
     /// `typed_arena::Arena::alloc` every generated artifact already calls.
     #[inline]
     pub fn alloc(&self, node: ParseNode<'input>) -> &mut ParseNode<'input> {
+        if self.count_owned_heap {
+            self.record_owned_heap(&node.content);
+        }
         self.nodes.alloc(node)
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.67`(b) — accumulate the heap this node owns
+    /// OUTSIDE the arena, so [`footprint`](NodeArena::footprint) can report the
+    /// AST rather than only its node headers.
+    ///
+    /// `#[cold]` + `#[inline(never)]` deliberately: when the instrument is off,
+    /// the entire cost at the call site is one field load and one branch the
+    /// predictor gets right every time, and `alloc` keeps the small body every
+    /// generated artifact inlines.
+    ///
+    /// ⭐ **THE MATCH IS EXHAUSTIVE BY HAND, WITH NO `_` ARM, AND THAT IS THE
+    /// POINT.** A new `ParseContent` variant that owns heap must then fail the
+    /// BUILD instead of silently reading as zero here — which is exactly the
+    /// failure mode that put this instrument's first cut through a withdrawal.
+    #[cold]
+    #[inline(never)]
+    fn record_owned_heap(&self, content: &ParseContent<'input>) {
+        match content {
+            // `Vec<&'input ParseNode>`: one heap allocation per node, holding
+            // `capacity()` pointer slots. `capacity()`, not `len()` — the
+            // resident bytes are what the allocator handed out.
+            ParseContent::Sequence(children) | ParseContent::Quantified(children, _) => {
+                self.owned_child_vecs.set(self.owned_child_vecs.get() + 1);
+                self.owned_child_slots
+                    .set(self.owned_child_slots.get() + children.capacity());
+            }
+            // `String`: header is inside the node (already counted by
+            // `node_bytes`); the text is a separate allocation.
+            ParseContent::TransformedTerminal(text) => {
+                self.owned_transformed_strings
+                    .set(self.owned_transformed_strings.get() + 1);
+                self.owned_transformed_bytes
+                    .set(self.owned_transformed_bytes.get() + text.capacity());
+            }
+            // Own nothing outside the node: `Terminal` is an input slice,
+            // `Alternative` is one arena reference, and every `PgenValue`
+            // composite is an arena BORROW (`Array`/`Object` are `&'input [..]`),
+            // so `Shaped` carries no heap of its own either.
+            ParseContent::Terminal(_)
+            | ParseContent::Shaped(_)
+            | ParseContent::Alternative(_) => {}
+        }
     }
 
     /// Allocate a contiguous shaped-value slice (a `PgenValue::Array` body).
@@ -950,6 +1044,12 @@ impl<'input> NodeArena<'input> {
     pub fn alloc_rendered_string(&self, text: String) -> &str {
         #[cfg(debug_assertions)]
         shaped_conversion_census::record(|c| c.arena_rendered_strings += 1);
+        // ENGINE-UNIVERSAL-SERVICES.67(b): the payload the `String` header
+        // points at — the second of the two omissions the first cut declared.
+        if self.count_owned_heap {
+            self.owned_rendered_bytes
+                .set(self.owned_rendered_bytes.get() + text.capacity());
+        }
         self.rendered_strings.alloc(text).as_str()
     }
 
@@ -985,18 +1085,38 @@ impl<'input> NodeArena<'input> {
     /// no `&self` accessor can reach. The COUNT is reported beside the bytes so
     /// a reader can see whether the omission could matter for their grammar.
     ///
-    /// ⛔⛔ **THE THIRD OMISSION WAS *UNDECLARED* IN THE FIRST CUT, AND IT IS THE
-    /// ONE THAT CHANGED A CONCLUSION** (`ENGINE-UNIVERSAL-SERVICES.67`(b),
-    /// corrected under a director re-verification challenge). A `ParseNode` is
-    /// 48 bytes, but [`ParseContent::Sequence`] is `Vec<&ParseNode>` and
+    /// ✅ **THE THIRD OMISSION — THE ONE THAT CHANGED A CONCLUSION — IS NOW
+    /// MEASURED, AND IT IS THE [`owned`](NodeArenaFootprint::owned) FIELD**
+    /// (`ENGINE-UNIVERSAL-SERVICES.67`(b)). A `ParseNode` is 48 bytes, but
+    /// [`ParseContent::Sequence`] is `Vec<&ParseNode>` and
     /// [`ParseContent::Quantified`] is `(Vec<&ParseNode>, _)` — **each such node
     /// owns a SEPARATE heap allocation holding 8 bytes per child**, and
     /// `TransformedTerminal(String)` owns another. Those bytes are AST-owned and
-    /// live OUTSIDE the arena, so this census counts NODE HEADERS, not the AST.
-    /// ⇒ **a reader must not subtract this number from peak RSS and call the
-    /// remainder "not the AST".** That inference was published once and is
-    /// withdrawn; sizing the child-`Vec` heap needs an arena walk (`&mut`, so
-    /// `typed_arena::Arena::iter_mut`) that this `&self` accessor cannot do.
+    /// live OUTSIDE the arena, so the four `*_bytes` fields below count NODE
+    /// HEADERS, not the AST. ⇒ **`node_bytes` alone must never be subtracted
+    /// from peak RSS and the remainder called "not the AST"** — that inference
+    /// was published once and withdrawn. Use
+    /// [`total_with_owned_bytes`](NodeArenaFootprint::total_with_owned_bytes),
+    /// which is `None` exactly when the owned legs were not measured.
+    ///
+    /// ⚠️ **TWO OMISSIONS REMAIN, AND BOTH ARE NAMED HERE RATHER THAN LEFT TO BE
+    /// DISCOVERED — which is the whole lesson of the withdrawal above.**
+    ///
+    /// 1. **`typed_arena` CHUNK CAPACITY**, as described further up: resident
+    ///    chunk bytes exceed live item bytes by up to ~2×, and the crate exposes
+    ///    no accessor for them.
+    /// 2. **`ParseNode`s THE MEMO OWNS.** [`MemoEntry::result`] is an
+    ///    `Option<ParseNode<'input>>` and [`MemoEntry::raw_semantic_content`] an
+    ///    `Option<ParseContent<'input>>` — **owned clones that never pass through
+    ///    [`alloc`](NodeArena::alloc)**, so neither their 48-byte headers nor
+    ///    their child `Vec`s appear in any field of this type. Those are MEMO-leg
+    ///    bytes by construction (the children stay arena borrows, so the clone is
+    ///    shallow), and the memo leg is a separate, still-unmeasured leg of
+    ///    `ENGINE-UNIVERSAL-SERVICES.67`(b).
+    ///
+    /// ⇒ the scope of this census is precisely **the heap owned by nodes that
+    /// were allocated INTO the arena**, and the bound stays one-sided in the same
+    /// direction: item bytes + owned heap ≤ resident parse bytes.
     pub fn footprint(&self) -> NodeArenaFootprint {
         let c = self.census();
         NodeArenaFootprint {
@@ -1005,6 +1125,15 @@ impl<'input> NodeArena<'input> {
             shaped_value_bytes: c.shaped_values * std::mem::size_of::<PgenValue<'_>>(),
             shaped_pair_bytes: c.shaped_pairs * std::mem::size_of::<(&str, PgenValue<'_>)>(),
             rendered_string_header_bytes: c.rendered_strings * std::mem::size_of::<String>(),
+            owned: self.count_owned_heap.then(|| OwnedHeapFootprint {
+                child_vecs: self.owned_child_vecs.get(),
+                child_slots: self.owned_child_slots.get(),
+                child_slot_bytes: self.owned_child_slots.get()
+                    * std::mem::size_of::<&ParseNode<'_>>(),
+                transformed_strings: self.owned_transformed_strings.get(),
+                transformed_payload_bytes: self.owned_transformed_bytes.get(),
+                rendered_payload_bytes: self.owned_rendered_bytes.get(),
+            }),
         }
     }
 }
@@ -1034,19 +1163,72 @@ pub struct NodeArenaFootprint {
     pub shaped_value_bytes: usize,
     pub shaped_pair_bytes: usize,
     pub rendered_string_header_bytes: usize,
+    /// The AST-owned heap OUTSIDE the arenas, or `None` when it was not
+    /// measured (`PGEN_REPORT_PARSE_FOOTPRINT` unset at
+    /// [`NodeArena::new`]). ⛔ `None` and `Some(0)` are different facts and the
+    /// type keeps them apart on purpose.
+    pub owned: Option<OwnedHeapFootprint>,
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.67`(b) — the AST-owned heap that lives OUTSIDE the
+/// four arenas, accumulated at allocation time by
+/// [`NodeArena::record_owned_heap`].
+///
+/// These are the bytes whose omission forced the withdrawal of *"a substantial
+/// majority is provably NOT the AST"*: a `Sequence`/`Quantified` node is 48
+/// resident bytes in the arena PLUS a separate `Vec` allocation of 8 bytes per
+/// child slot, and a `TransformedTerminal` is 48 bytes plus its text.
+///
+/// ⭐ Unlike the arena legs these are EXACT, not a lower bound: `Vec::capacity`
+/// and `String::capacity` are the allocation the allocator actually handed out,
+/// not the live prefix of it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OwnedHeapFootprint {
+    /// Nodes carrying a child `Vec` (`Sequence` + `Quantified`).
+    pub child_vecs: usize,
+    /// Summed `Vec::capacity()` over those nodes — pointer SLOTS, not bytes.
+    pub child_slots: usize,
+    /// `child_slots × size_of::<&ParseNode>()`.
+    pub child_slot_bytes: usize,
+    /// `TransformedTerminal` nodes.
+    pub transformed_strings: usize,
+    /// Summed `String::capacity()` over those nodes (the text, not the header —
+    /// the header is already inside `node_bytes`).
+    pub transformed_payload_bytes: usize,
+    /// Summed `String::capacity()` over the `rendered_strings` arena — the
+    /// payload behind the headers `rendered_string_header_bytes` counts.
+    pub rendered_payload_bytes: usize,
+}
+
+impl OwnedHeapFootprint {
+    pub fn total_bytes(&self) -> usize {
+        self.child_slot_bytes + self.transformed_payload_bytes + self.rendered_payload_bytes
+    }
 }
 
 impl NodeArenaFootprint {
+    /// Arena ITEM bytes only — node headers and the three side arenas.
+    /// ⛔ This is NOT "the AST": see [`NodeArena::footprint`]. For the AST use
+    /// [`total_with_owned_bytes`](Self::total_with_owned_bytes).
     pub fn total_bytes(&self) -> usize {
         self.node_bytes
             + self.shaped_value_bytes
             + self.shaped_pair_bytes
             + self.rendered_string_header_bytes
     }
+
+    /// Arena item bytes PLUS the measured out-of-arena AST-owned heap, or
+    /// `None` when the owned legs were not measured. Still a lower bound on
+    /// resident bytes — `typed_arena` chunk capacity remains unreadable through
+    /// the crate's public surface.
+    pub fn total_with_owned_bytes(&self) -> Option<usize> {
+        self.owned.map(|owned| self.total_bytes() + owned.total_bytes())
+    }
 }
 
 impl NodeArenaFootprint {
-    /// Print the arena leg on stderr when `PGEN_REPORT_PARSE_FOOTPRINT` is set,
+    /// Print the arena leg AND the out-of-arena AST-owned heap on stderr when
+    /// `PGEN_REPORT_PARSE_FOOTPRINT` is set,
     /// and do nothing at all otherwise (one cached bool read per parse — not per
     /// rule). `label` names the parse so a batch run stays attributable.
     ///
@@ -1066,11 +1248,30 @@ impl NodeArenaFootprint {
         // Measured: the first cut of this instrument printed nothing on any
         // family while `enabled=true raw=Ok("1")` — the env check had been
         // correct all along and the OUTPUT was being routed away.
+        // ⛔ The owned leg is printed as "NOT MEASURED", never as 0, when the
+        // accumulators were never armed — `None` and `Some(0)` are different
+        // facts (`ENGINE-UNIVERSAL-SERVICES.67`(b)).
+        let owned = match self.owned {
+            Some(owned) => format!(
+                "child_vecs={} ({} slots, {:.2} MB) · transformed_strings={} ({:.2} MB) · \
+                 rendered_payload {:.2} MB · AST-owned heap total {:.2} MB · \
+                 arena+owned total {:.2} MB",
+                owned.child_vecs,
+                owned.child_slots,
+                mb(owned.child_slot_bytes),
+                owned.transformed_strings,
+                mb(owned.transformed_payload_bytes),
+                mb(owned.rendered_payload_bytes),
+                mb(owned.total_bytes()),
+                mb(self.total_bytes() + owned.total_bytes()),
+            ),
+            None => "AST-owned heap NOT MEASURED (arena built before the flag was read)".to_string(),
+        };
         std::eprintln!(
-            "=== PARSE FOOTPRINT (arena leg) [{label}]: nodes={} ({:.2} MB @ {} B) · \
+            "=== PARSE FOOTPRINT (arena + AST-owned heap) [{label}]: nodes={} ({:.2} MB @ {} B) · \
              shaped_values={} ({:.2} MB) · shaped_pairs={} ({:.2} MB) · \
-             rendered_strings={} ({:.2} MB, header only) · arena item total {:.2} MB \
-             [LOWER BOUND — chunk capacity and string payloads are NOT counted] ===",
+             rendered_strings={} ({:.2} MB, header only) · arena item total {:.2} MB · {} \
+             [LOWER BOUND — typed_arena CHUNK CAPACITY is still NOT counted] ===",
             self.census.nodes,
             mb(self.node_bytes),
             std::mem::size_of::<ParseNode<'_>>(),
@@ -1081,6 +1282,7 @@ impl NodeArenaFootprint {
             self.census.rendered_strings,
             mb(self.rendered_string_header_bytes),
             mb(self.total_bytes()),
+            owned,
         );
     }
 }
@@ -5823,6 +6025,85 @@ pub(crate) fn syntax_is_single_whole_body_group(syntax_elements: &[serde_json::V
 mod tests {
     use super::*;
     use serde_json::json;
+
+    /// `ENGINE-UNIVERSAL-SERVICES.67`(b) — the out-of-arena owned-heap census
+    /// counts what it says it counts, on EXACT numbers rather than on a shape.
+    ///
+    /// ⭐ Both arms are asserted, and the disarmed arm is the load-bearing one:
+    /// it pins `None` rather than `Some(0)`. A disarmed census that reported
+    /// zero would read as "this parse owns no heap outside the arena" — a
+    /// measurement the run never made, which is the precise error class that
+    /// forced `-0122`'s withdrawal.
+    #[test]
+    fn owned_heap_census_counts_child_vecs_and_string_payloads() {
+        const NAME: &&str = &"probe_rule";
+        let arena = NodeArena::with_owned_heap_census(true);
+
+        // One `Terminal` — owns nothing outside the node.
+        let leaf: &ParseNode<'_> = arena.alloc(ParseNode {
+            rule_name: NAME,
+            content: ParseContent::Terminal("t"),
+            span: Span::new(0, 1),
+        });
+        // `vec![..]` allocates EXACTLY its length, so the slot counts below are
+        // exact and independent of `RawVec`'s growth policy.
+        arena.alloc(ParseNode {
+            rule_name: NAME,
+            content: ParseContent::Sequence(vec![leaf, leaf, leaf]),
+            span: Span::new(0, 1),
+        });
+        arena.alloc(ParseNode {
+            rule_name: NAME,
+            content: ParseContent::Quantified(vec![leaf, leaf], &"*"),
+            span: Span::new(0, 1),
+        });
+        arena.alloc(ParseNode {
+            rule_name: NAME,
+            content: ParseContent::TransformedTerminal(String::with_capacity(64)),
+            span: Span::new(0, 1),
+        });
+        arena.alloc_rendered_string(String::with_capacity(16));
+
+        let owned = arena
+            .footprint()
+            .owned
+            .expect("census armed explicitly, so the legs are measured");
+        assert_eq!(owned.child_vecs, 2, "Sequence + Quantified, not Terminal");
+        assert_eq!(owned.child_slots, 5, "3 + 2 pointer slots");
+        assert_eq!(
+            owned.child_slot_bytes,
+            5 * std::mem::size_of::<&ParseNode<'_>>()
+        );
+        assert_eq!(owned.transformed_strings, 1);
+        assert_eq!(owned.transformed_payload_bytes, 64);
+        assert_eq!(owned.rendered_payload_bytes, 16);
+        assert_eq!(owned.total_bytes(), 5 * 8 + 64 + 16);
+
+        // The arena legs are unchanged by the new counters: 4 nodes, and the
+        // rendered string still contributes its HEADER to the arena side.
+        let footprint = arena.footprint();
+        assert_eq!(footprint.census.nodes, 4);
+        assert_eq!(footprint.census.rendered_strings, 1);
+        assert_eq!(
+            footprint.total_with_owned_bytes(),
+            Some(footprint.total_bytes() + owned.total_bytes())
+        );
+
+        // ⛔ THE CONTROL: disarmed reports `None`, never `Some(0)`.
+        let disarmed = NodeArena::with_owned_heap_census(false);
+        disarmed.alloc(ParseNode {
+            rule_name: NAME,
+            content: ParseContent::Sequence(vec![]),
+            span: Span::new(0, 1),
+        });
+        let disarmed_footprint = disarmed.footprint();
+        assert_eq!(disarmed_footprint.census.nodes, 1, "the node still lands");
+        assert!(
+            disarmed_footprint.owned.is_none(),
+            "a census that was never armed must report NOT MEASURED, not zero"
+        );
+        assert_eq!(disarmed_footprint.total_with_owned_bytes(), None);
+    }
 
     /// RGX-0078.5.j.4 (`-0200`) — the BARE id-only guard path: bare frames
     /// maintain only `rule_id_stack`; the cycle scan sees them, the depth

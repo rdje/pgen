@@ -14676,7 +14676,7 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   instances — which ACCEPTED before this commit too — costs **4 064.0 MB**, and 10 001 costs
   **4 064.1 MB**. The 4 GB is pre-existing and is `.67`'s subject, not this leaf's.
 
-### ⛔⛔ `.67` — **PARSE MEMORY IS 2 500×–8 000× THE INPUT SIZE AND LINEAR, SO "BOUNDED ONLY BY HOST RAM" BINDS AT ~40 000 NETLIST INSTANCES ON A 16 GB MACHINE** (`in progress` — ✅ **(a) DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0120`, (b)/(c) open; opened 2026-08-28 by `.66`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`)
+### ⛔⛔ `.67` — **PARSE MEMORY IS 2 500×–8 000× THE INPUT SIZE AND LINEAR, SO "BOUNDED ONLY BY HOST RAM" BINDS AT ~40 000 NETLIST INSTANCES ON A 16 GB MACHINE** (`in progress` — ✅ **(a) DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0120`, 🟡 **(b) legs 1–2 of 3 done, leg 3 (chunk capacity) NEXT** `…-0121`/`-0122`/`-0124`, (c) open; opened 2026-08-28 by `.66`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`)
 
 - **WHY THIS IS A LEAF AND NOT A FOOTNOTE.** The director's mandate names host RAM as the ONE
   legitimate limit ([[project_rtl_parsers_accept_any_rtl_no_limits_non_negotiable]]). `.66` moved the
@@ -14697,11 +14697,15 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   distribution's TAIL, not its middle.
 - **OWES**: ✅ (a) re-derive the ratio over real corpus files and publish the distribution, not one
   number — **DONE `…-0120`**; 🟡 (b) attribute it — memo tables vs node arena vs deriv tape vs AST —
-  with a measurement, not a reading — **PARTIAL `…-0121`: the ARENA leg is measured (14.1–35.6 % of
-  the marginal footprint, median 27.4 %, so the residual is 64.4–85.9 %) and my pre-registered
-  prediction that the arena is the MAJORITY leg is FALSIFIED; the memo and tape legs are still
-  owed, and the next step is the `mimalloc_perf` comparison that separates FRAGMENTATION from live
-  data**; (c) only then price a fix. ⛔ Speed/footprint work is otherwise
+  with a measurement, not a reading — **PARTIAL: the ARENA leg is measured (`…-0121`, 14.1–35.6 % of
+  the marginal footprint, median 27.4 %) and its headline inference was WITHDRAWN (`…-0122`); the
+  out-of-arena AST-owned heap that forced that withdrawal is now MEASURED and is worth
+  **≤ +0.26 percentage points** (`…-0124`), which does NOT restore the withdrawn conclusion —
+  `typed_arena` CHUNK CAPACITY is the binding exclusion and it alone keeps the arena's share
+  anywhere in 28–71 %. ⇒ **leg 3 is to compute chunk capacity EXACTLY** (2.0.2's growth is a pure
+  function of item count and item size), which collapses that band to a point; the memo and tape
+  legs and the `mimalloc_perf` comparison follow, the last needing its own code slice per `…-0123`**;
+  (c) only then price a fix. ⛔ Speed/footprint work is otherwise
   BLOCKED behind the director's *"thorough and accurate and fast (not reached yet, because it is not
   the focus right now)"* ordering; this leaf is admitted because it is an INGESTION bound, not a
   performance one.
@@ -14958,6 +14962,175 @@ names four legs and this discharges one.
   `["parse_with_vhdl_detail"]`. ⚠️ Declared scope: **12 of 35** arena-owning parse lanes (the `_detail`
   lane); the other 23 (`bool` + `_ast_json`) are a NAMED gap pinned by a count, so a new unwired lane
   breaks the test rather than drifting in.
+
+#### ✅ `.67`(b) — **THE OUT-OF-ARENA AST HEAP IS MEASURED, AND THE OMISSION THAT FORCED THE WITHDRAWAL IS WORTH A QUARTER OF ONE PERCENTAGE POINT. THE OMISSION THAT ACTUALLY KEEPS THE CONCLUSION OPEN IS THE ONE I DECLARED FROM THE START** (`PGEN-ENGINE-UNIVERSAL-SERVICES-0124`, 2026-08-29)
+
+Discharges `-0122`'s OWED item verbatim — *"Measure the child-`Vec` + `String` heap"*. Producers and
+raw data: [`attribution_owned.tsv`](artifacts/eus67/attribution_owned.tsv),
+[`owned_heap_shares.py`](artifacts/eus67/owned_heap_shares.py),
+[`measure_noregress.sh`](artifacts/eus67/measure_noregress.sh),
+[`noregress_summary.py`](artifacts/eus67/noregress_summary.py),
+[`verify_ladder_shapes.py`](artifacts/eus67/verify_ladder_shapes.py),
+prediction [`PREDICTION_OWNED_HEAP.md`](artifacts/eus67/PREDICTION_OWNED_HEAP.md).
+
+- ⛔⛔ **FIRST, `-0122`'s OWN PRICING OF THIS ITEM IS REFUTED — AND IT WAS REFUTED BY COMPILING IT,
+  NOT BY READING IT.** It priced the walk as *"`typed_arena::Arena::iter_mut` needs `&mut`, so the
+  detail paths must drop the parser before taking it."* **Dropping the parser is not sufficient and
+  no arrangement of the detail path can be.** `'input` is unified to the arena's own scope, so a
+  consumer holds `&'input NodeArena<'input>` and the shared borrow is forced to live as long as the
+  arena itself. All three escapes were compiled:
+
+  | shape | verdict |
+  |---|---|
+  | drop the parser, then walk with `&mut` | **`E0502`** |
+  | confine the parser to an inner scope, then walk | **`E0502`** |
+  | consume the arena by value (`into_vec`) | **`E0505`** |
+
+  Same root cause as the `E0597` that already refused a `Drop` impl — which this leaf had already
+  recorded on the type, and which I still priced a walk against. ⇒ **a structural refusal recorded
+  for one shape is a refusal for the whole family; re-derive it before pricing the next shape.**
+  Probe TRACKED at [`arena_mut_reachability_probe.rs`](artifacts/eus67/arena_mut_reachability_probe.rs) — under `docs/tasks/artifacts/`, not `tmp/`, because this slice's other finding is a producer that was committed but could not run, and a probe cited from a gitignored path is the same defect one step earlier.
+- **THE INSTRUMENT (engine-side, ZERO generated bytes).** `NodeArena::record_owned_heap` accumulates
+  at ALLOCATION time — the only `&self` surface the lifetime design leaves open. It counts
+  `Vec::capacity()` slots for `Sequence`/`Quantified`, `String::capacity()` for
+  `TransformedTerminal`, and the payloads behind `alloc_rendered_string`. Three properties are
+  deliberate:
+  - ⭐ **the match is exhaustive with no `_` arm**, so a new heap-owning `ParseContent` variant
+    fails the BUILD instead of silently reading zero — the failure mode that caused the withdrawal;
+  - ⛔ **`NodeArenaFootprint::owned` is an `Option`**, and the report prints `NOT MEASURED` rather
+    than `0.00 MB` when the census was never armed. A counter that cannot be non-zero is not a
+    measurement, and one that reads zero because nobody armed it is worse — it looks like an answer;
+  - the accumulator is `#[cold] #[inline(never)]` and armed once per parse from a field, so the
+    hot path pays one field load and one predictable branch, not a `OnceLock` acquire per allocation.
+    `NodeArena::with_owned_heap_census(bool)` arms it deterministically, which is what makes the
+    unit test's disarmed arm testable at all.
+- ⭐⭐ **PRE-REGISTERED, THEN 2 OF 4 LEGS FALSIFIED — INCLUDING THE HEADLINE, AND IN THE DIRECTION
+  I NAMED AS THE UNCOMFORTABLE ONE.** Written to `PREDICTION_OWNED_HEAP.md` before any number was read:
+
+  | leg | predicted | measured | verdict |
+  |---|---|---|---|
+  | owned heap vs arena item bytes | 25–75 % | **0.00–1.49 %** (median 0.40 %) | **FALSIFIED, ~60×** |
+  | child `Vec`s dominate; strings < 5 % of it | yes | strings **exactly 0** on 11 of 11 | **CONFIRMED** |
+  | `Sequence`+`Quantified` share of nodes | 35–65 % | **52.9–72.8 %** | band too LOW (5 of 9 above) |
+  | AST share of floor-subtracted peak | 35–50 % | **14.8–36.2 %** | **FALSIFIED** |
+
+- **MEASURED — the same 11-input ladder as `-0121`, release probe `a787e823…`, shares of the
+  FLOOR-SUBTRACTED peak, both computed from the SAME run so the delta isolates the addition:**
+
+  | input | arena only | + owned heap | delta | owned / arena items | slots per vec |
+  |---|---|---|---|---|---|
+  | `br_gh330.v` | 28.07 % | 28.19 % | +0.12 | 0.43 % | 0.047 |
+  | `comp1000.v` | 25.20 % | 25.21 % | +0.01 | 0.05 % | 0.005 |
+  | `t_math_synmul_mul.v` | 26.89 % | 27.00 % | +0.10 | 0.38 % | 0.049 |
+  | `pinmux_reg_top.sv` | 23.20 % | 23.36 % | +0.17 | 0.72 % | 0.085 |
+  | `spi_device_reg_pkg.sv` | 14.55 % | 14.76 % | +0.22 | 1.49 % | 0.145 |
+  | `syn_netlist_instances` 2 500 | 30.60 % | 30.73 % | +0.12 | 0.40 % | 0.050 |
+  | `syn_netlist_instances` 10 000 | 31.05 % | 31.18 % | +0.12 | 0.40 % | 0.050 |
+  | `syn_case_items` 10 000 | 29.41 % | 29.41 % | **+0.00** | **0.00 %** | **0.000** |
+  | `syn_port_list` 10 000 | 17.99 % | 18.04 % | +0.05 | 0.29 % | 0.034 |
+  | `syn_concat_items` 10 000 | 35.63 % | 35.88 % | +0.26 | 0.72 % | 0.104 |
+
+  ⇒ **every AST byte outside the arena, added together, moves the share by +0.00 to +0.26
+  percentage points.** `floor.sv` is excluded by the named 2×-floor admissibility rule and the
+  exclusion is COUNTED on every run (`.67`(a)'s discipline, carried forward).
+- ⭐ **AND THE *WHY* IS MEASURED TOO, WHICH IS WHAT MAKES THE SMALL NUMBER TRUSTWORTHY RATHER THAN
+  SUSPICIOUS.** Between **52.9 % and 72.8 %** of all nodes carry a child `Vec` — the majority — yet
+  those `Vec`s average **0.000–0.145 slots**. Two mechanisms, both verified in the generated source:
+  a quantifier that matched zero times holds `Vec::new()`, which is capacity 0 and allocates
+  nothing; and a list that DID grow is consumed into a `PgenValue::Array` slice in the
+  `shaped_values` arena and freed, so its bytes are already counted on the arena side.
+  ⭐⭐ **The decisive case is `syn_case_items`: 40 child-vec slots at 2 500 items and the SAME 40 at
+  10 000.** Seven thousand five hundred more `case` arms cost ZERO resident slots. I chased that
+  constant instead of accepting the small number it produced, and it is the reason this measurement
+  is reported as a property of the representation rather than as a suspiciously convenient result.
+- ⛔⛔⛔ **THE RULING — AND IT IS NOT THE ONE THE WITHDRAWAL POINTED AT.** `-0122` withdrew *"a
+  substantial majority is provably NOT the AST"* because the census measured node headers rather
+  than the AST. That omission is now closed and it is worth **≤ 0.26 points**. ⛔ **The conclusion
+  still cannot be restored**, because a DIFFERENT exclusion is binding: `typed_arena` chunks double
+  and are never freed, so resident arena bytes lie in `[items, ~2×items]` and the arena's true share
+  is anywhere in **28–71 %** — the same band `-0121` published, unmoved by any of this work.
+  ⭐⭐ **THE CARRY-FORWARD: I WITHDREW FOR THE OMISSION I HAD JUST DISCOVERED, AND THE OMISSION THAT
+  ACTUALLY DECIDES THE QUESTION IS THE ONE I HAD DECLARED FROM THE FIRST VERSION.** `-0122`'s lesson
+  was *"the one that changed a conclusion is the one I never thought to look for"*. Measured, for
+  this pair it is exactly backwards: the one I never thought to look for changes the answer by a
+  quarter of a point, and the boring one I wrote down at the start is what leaves it open. ⇒ **rank
+  your declared omissions by how much of the answer they could move, BEFORE a new one arrives and
+  takes the attention.**
+- ✅ **AND THE NEXT STEP IS NAMED, PRICED AND CONSTRUCTIVE, NOT LOGGED.** Chunk capacity is
+  **exactly computable**, not merely boundable: `typed-arena` 2.0.2 grows by
+  `INITIAL_SIZE / size_of::<T>()` items (1024 B / 48 B = 21 for `ParseNode`) and then
+  `max(2 × current_capacity, next_power_of_two(additional))`
+  (`typed-arena-2.0.2/src/lib.rs:83,125,550-560`), so resident chunk bytes are a pure function of
+  the item count and the item size. Closing it collapses **28–71 % to a point** and settles the
+  withdrawn conclusion in one direction or the other. Owned by **`.67`(b) leg 3**, and it is the
+  next thing this leaf does — ahead of the `mimalloc` comparison, which `-0123` has already shown
+  needs its own code slice.
+- ⛔ **THREE OMISSIONS REMAIN, ALL NAMED AT THE INSTRUMENT AND IN TOOLBOX §3.3b RATHER THAN ONLY
+  HERE** — a caveat only the leaf carries is invisible at the point of use (`-0122`'s own fix
+  shape): (1) chunk capacity, above; (2) **`ParseNode`s the MEMO owns** — `MemoEntry::result` is an
+  `Option<ParseNode>` and `raw_semantic_content` an `Option<ParseContent>`, owned clones that never
+  pass through `alloc`, so neither their headers nor their child `Vec`s are in any field of this
+  census; they are MEMO-leg bytes and that leg is still owed; (3) **transient collection `Vec`s**,
+  freed once their contents move into the shaped-value arena — they can contribute to PEAK RSS and
+  are resident nowhere at report time. ⭐ (2) was found by a census of every owner of an owned
+  `ParseNode`/`ParseContent` in the tree, run BEFORE publishing rather than after being challenged.
+- ⛔ **A DEFECT IN THIS LEAF'S OWN TRACKED PRODUCER, FOUND BY RUNNING IT.**
+  `measure_parse_footprint.sh` was authored at `tmp/eus67/` and copied into
+  `docs/tasks/artifacts/eus67/` without re-deriving its repo-root walk, so the TRACKED copy `cd`-ed
+  two levels to `docs/tasks` and could not open its own inputs or output. `-0121` published it as
+  *"tracked and re-runnable"*; it was tracked. ⇒ **leg 3 of the three-way check is not satisfied by
+  a producer being COMMITTED — it is satisfied by the committed copy RUNNING.** Fixed to the same
+  four-level walk its sibling `measure_parse_rss.sh` had right all along, plus refusal arms for a
+  missing probe and a missing file list (RED control observed: `no probe at /nonexistent`, exit 2).
+
+##### ACCEPTANCE CHECKLIST — `.67`(b) owned-heap census (`PGEN-ENGINE-UNIVERSAL-SERVICES-0124`)
+
+- [x] **ROOT CAUSE (WHY + WHERE), tool-backed.** WHY the AST was unmeasured:
+  `ParseContent::Sequence` is `Vec<&'input ParseNode>` and `Quantified` carries one too
+  (`rust/src/ast_pipeline/mod.rs:1234`/`:1244` at `-0122`), so the bytes are AST-owned and outside
+  the arena. WHERE it must be measured: **`NodeArena::alloc`, and nowhere else** — proved by
+  compiling all three post-parse walks (`E0502`/`E0502`/`E0505`, tracked probe `docs/tasks/artifacts/eus67/arena_mut_reachability_probe.rs`),
+  and by a census showing `alloc` + `alloc_rendered_string` are the only doors into the arena
+  (fields are private; the only owned `ParseNode`/`ParseContent` holders in the tree are
+  `MemoEntry` and the interpreter's own memo entry, both declared as exclusions).
+  ⛔ Verified rather than assumed: **zero post-`alloc` content mutation** in the generated SV parser
+  (`grep -cE '\.content = |\.content\.push' generated/systemverilog_parser.rs` → **0**), so a
+  capacity read at allocation time is the final capacity.
+- [x] **ADDRESSED (verified).** The report prints the owned legs, is silent without
+  `PGEN_REPORT_PARSE_FOOTPRINT`, and prints `NOT MEASURED` rather than `0.00 MB` when unarmed.
+  Unit test `ast_pipeline::tests::owned_heap_census_counts_child_vecs_and_string_payloads` asserts
+  EXACT byte counts on both arms. ⭐ **TWO RED controls observed firing**: dropping the `Quantified`
+  arm → `left: 1, right: 2`; making the disarmed census report `Some(0)` → *"a census that was never
+  armed must report NOT MEASURED, not zero"*.
+- [x] **NO REGRESSION (measured, on BOTH axes — and the second axis is new for this leaf because
+  this change touches the ALLOCATION hot path, which `-0121`'s did not).**
+  - **Behaviour — the strongest arm and it is deterministic**: arena node counts are **IDENTICAL on
+    11 of 11 ladder inputs** against `-0121`'s published `attribution.tsv` (1 409 813 · 2 461 332 ·
+    9 036 490 · 12 302 764 · 158 308 · 5 474 012 · 21 891 512 · 5 991 977 · 910 465 · 2 930 895 ·
+    454). The parse does the same work, node for node.
+  - **Peak RSS, instrument OFF, 4 inputs × 9 repeats, new binary vs the preserved pre-change binary
+    `68169c0e…`**: **−0.04 % / −0.07 % / −0.46 % / −0.91 %** — every one NEGATIVE
+    (`noregress_owned.tsv`).
+  - **Wall clock.** At 4 inputs × 9 repeats the answer was NOT RESOLVABLE and is reported as such:
+    `/usr/bin/time` ticks at 10 ms, which is 1 % of `comp1000.v`, and the machine produced 5.9 s
+    outliers against a 2.8 s floor. ⇒ a second arm on the input where a per-allocation cost would
+    show up most — `syn_netlist_instances` 10 000, **21 891 512 allocations, 7 s**, tick = 0.142 % —
+    5 repeats per side: **minimum 7.05 s → 6.98 s (−0.99 %), median −0.85 %**
+    (`noregress_long.tsv`). **The change does not cost time; it measures marginally faster, which is
+    code layout, not a win to claim.**
+  - `clippy` strict (source + generated) PASS · all eleven generated artifacts re-derive
+    **BYTE-IDENTICAL** · `check_doctrines.sh` ALL 31 PASS · `mdbook_docs_gate` PASS.
+- [x] **THREE-WAY CHECK, with leg 3 the one this slice actually repaired.**
+  (1) **RE-DERIVED by command** — every producer tracked and re-run from the repository root.
+  (2) **FALSIFIED against an oracle I did not build** — the pre-registered prediction, 2 of 4 legs
+  falsified; and `-0121`'s published arena counts, reproduced EXACTLY on 11 of 11 inputs. ⚠️ Still a
+  REPLICATION on the RSS axis, per `-0122`(3) — both harnesses read `/usr/bin/time -l`.
+  (3) **DURABILITY** — and this is where `-0121` failed silently: its producer was committed but
+  could not run. Now the producer runs from the tracked path, refuses without a probe, and
+  `verify_ladder_shapes.py` proves **18 of 18** synthetic ladder inputs reproduce BYTE-IDENTICALLY
+  from the tracked `eus63` generator (RED control observed: one mutated byte → `DIFFER`, 17/18).
+  ⚠️ **NAMED GAP, unchanged from `-0121`: no gate WATCHES these numbers.** They are a measurement
+  record, not a ratchet, and a ratchet is priced in `.67`(c).
 
 ### ✅✅✅ `.65` — **THE RECURSION CEILING IS NO LONGER A NUMBER ANYBODY TYPED. IT IS MEASURED, PER PARSE, FROM THE STACK THE HOST ACTUALLY GAVE THE THREAD** (**DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0117`; opened 2026-08-28 by `.63`(c)'s ruling / `…0114`; taken after `.66`)
 

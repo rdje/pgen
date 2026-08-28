@@ -188,15 +188,45 @@ chapter said exactly that for one revision before it was corrected.** A `ParseNo
 bytes, but `ParseContent::Sequence` is a `Vec<&ParseNode>` and `Quantified` carries one too:
 **every such node owns a separate heap allocation of 8 bytes per child, outside the arena**,
 and `TransformedTerminal` owns a `String`. The number above therefore measures **node
-headers**, not the AST. How much AST-owned memory lives outside the arena has not been
-measured — it needs a walk over the arena that the read-only accessor cannot perform.
+headers**, not the AST.
 
-So the honest statement is narrower and still useful: **node headers alone are a minority of
-the footprint**, and the remainder is some mix of child vectors, interned strings, the packrat
-memo, the derivation tape, and allocator overhead — the last of which the `vmmap` profile above
-already puts at ~50 % on the uvm input, across ~72 million small allocations. Those child
-vectors are themselves small allocations, which is why the allocator comparison is the next
-measurement rather than another struct diet.
+### The omission that forced that correction turned out to be worth 0.2 points
+
+Those out-of-arena bytes are now measured. `NodeArena` accumulates them as it allocates —
+a post-parse walk is structurally unavailable, because `'input` is unified to the arena's own
+scope, so the borrow the parser holds lives as long as the arena and `&mut` is never
+reachable (all three escapes compile to `E0502`, `E0502`, `E0505`). Over the same ten inputs:
+
+| | node headers only | + AST-owned heap outside the arena |
+|---|---|---|
+| share of the floor-subtracted peak | 14.1 – 35.6 % | **14.8 – 36.2 %** |
+| median | 27.4 % | **27.6 %** |
+
+**The AST-owned heap is 0.0 – 1.5 % of the arena's item bytes** (median 0.4 %), and the string
+payloads — `TransformedTerminal` and the interned rendered strings — measured **exactly zero on
+all eleven inputs**. Child vectors are the whole of it.
+
+The reason is worth knowing if you are ever tempted to slim the node representation. Between
+53 % and 73 % of all nodes carry a child vector, but those vectors average **0.00 – 0.15 slots
+each**, for two reasons: a quantifier that matched nothing holds a `Vec::new()`, which allocates
+nothing at all; and a list that *did* grow is consumed into a `PgenValue::Array` slice in the
+shaped-value arena and freed, so its bytes are already counted on the arena side. The clearest
+case is a synthetic `case` with 10 000 arms — it holds **40 child-vector slots, the same 40 the
+2 500-arm version holds.** Seven thousand five hundred more arms cost zero resident slots.
+
+So the honest statement is narrower than the withdrawn one and barely wider than the
+correction: **the AST — headers and everything a node owns — is a minority of the footprint on
+every input measured**, and the remainder is some mix of the packrat memo, the derivation tape,
+and allocator overhead, the last of which the `vmmap` profile above already puts at ~50 % on the
+uvm input across ~72 million small allocations.
+
+⚠️ And **closing that omission did not license the withdrawn conclusion back**, which is the
+part worth carrying. Three exclusions remain, and the binding one is not the dramatic one: the
+arena allocates in chunks that double and frees none, so its resident bytes can reach twice its
+live item bytes, putting the arena anywhere in **28 – 71 %**. That was declared from the very
+first version of the measurement. The omission that triggered the withdrawal — the child vectors
+nobody had thought to look for — moves the answer by two tenths of a point; the boring one that
+had been written down all along is what still leaves the question open.
 
 ## How we keep it honest
 
