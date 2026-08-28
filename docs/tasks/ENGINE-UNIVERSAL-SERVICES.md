@@ -14910,6 +14910,20 @@ names four legs and this discharges one.
   it — priced, not asserted. ⛔ `--parse-dump-ast` CANNOT substitute: it emits the annotation-SHAPED
   `PgenValue` tree, not the internal `ParseContent` node tree, so it cannot see a `Sequence` `Vec` at
   all (verified on `spi_device_reg_pkg.sv`).
+- ⛔⛔⛔ **AND THE ALLOCATOR COMPARISON IS NOT A BUILD FLAG AWAY — A NEAR-MISS WORTH THE SPACE.** I
+  built `parseability_probe` with `--features "generated_parsers mimalloc_perf"` (21 min) intending to
+  price fragmentation, and **that binary is NOT a mimalloc arm.** `#[global_allocator]` is declared
+  only in the regex perf binaries (`regex_perf_probe.rs`, `regex_perf_probe_embedding_api.rs`,
+  `regex_validation_microbench.rs`); `parseability_probe` never installs it, so the feature compiles
+  the crate as a dependency and changes nothing. ⭐ **Measuring it would have shown ~no difference and
+  I would have concluded "fragmentation is not the answer" — a confident, false ruling from a silently
+  wrong arm**, which is precisely the failure `ENGINE-UNIVERSAL-SERVICES.24`'s probe FINGERPRINT exists
+  to stop (*"a probe built from an experimental arm was measured — silently — while the gate reported
+  a fresh baseline"*). Caught by VERIFYING THE ARM BEFORE MEASURING IT (`grep global_allocator`), not
+  after. The canonical probe was preserved and restored, hash-verified identical.
+  ⇒ the comparison needs `#[cfg(feature = "mimalloc_perf")] #[global_allocator]` added to
+  `parseability_probe.rs` — a CODE change, so it needs its own leaf-owned slice, and the fingerprint
+  discipline must cover the resulting binary before any number from it is quoted.
 
 ##### ACCEPTANCE CHECKLIST — `.67`(b) instrument (`PGEN-ENGINE-UNIVERSAL-SERVICES-0121`)
 
