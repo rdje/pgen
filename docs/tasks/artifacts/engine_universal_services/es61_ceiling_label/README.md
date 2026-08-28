@@ -30,3 +30,31 @@ shipped parse itself, so these runs need no env var and measure the graph that s
 ⛔ **The probe exits 1 on a rejected parse**, so a nonzero status is not a timeout — only
 `gtimeout`'s own 124/137 is. Conflating them reported 2 381 phantom "timeouts" on a population
 that parses in milliseconds.
+
+## `.61`(b) — is 4096 frames a defensible LOCATION?
+
+| file | what it is |
+|---|---|
+| `contact_census.sh` / `contact_census_vhdl.sh` | ceiling-CONTACT censuses — read the guard's own refusal counter, so they cover the ACCEPT path the `(a)` label cannot |
+| `contact_census_sv_2017.tsv` / `contact_census_vhdl.tsv` | `verdict`, refusal count, path — 16 336 + 13 720 rows |
+| `nesting_depth_census.py` | the INDEPENDENT oracle: `()[]{}` depth from source text, no parser involved |
+| `nesting_depth_sv_top400.tsv` / `nesting_depth_vhdl_top400.tsv` | the 400 deepest files per family |
+| `shape_cliff.py` | bisects the accept cliff for ten SV construct shapes, deriving frames-per-level for each |
+
+### The ruling's numbers
+
+| family | files | ACCEPT | REJECT | contacting the ceiling |
+|---|---:|---:|---:|---:|
+| systemverilog (`sv_2017`) | 16 336 | 9 794 | 6 542 | **0** |
+| vhdl | 13 720 | 4 369 | 9 351 | **0** |
+| **total** | **30 056** | 14 163 | 15 893 | **0** |
+
+Worst measured shape capacity **249** levels (`cast_paren`, 16.4 frames/level); best **816**
+(`begin_end`, 5.0); `index_sel` is iterative and has no cliff. Deepest real bracket nesting:
+SystemVerilog **22** (p99.9 = 8), VHDL **16** (p99.9 = 6) — an **11.3×** margin.
+
+⚠️ A keyword-block nesting oracle was written and REFUTED before publication: it reported 1 427
+on a UVM package, an artifact of prototypes (`extern`/`pure virtual`/`import "DPI-C" function`)
+and forward typedefs (`typedef class foo;`) opening nothing — that file reads `function` 4 316
+against `endfunction` 3 225. The keyword axis is covered by the guard's counter instead, which
+is shape-blind by construction.

@@ -13947,7 +13947,7 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   standing SV lane lock, and this is not a defect that blocks the SystemVerilog release.
 
 
-### ⛔⛔ `.61` — **THE RECURSION CEILING IS AN *ACCURACY* DEFECT BEFORE IT IS A SPEED ONE: BOTH RELEASED PARSERS REJECT SYNTACTICALLY WELL-FORMED INPUT, AND THE DIAGNOSTIC NAMES THE WRONG CAUSE — ZERO OF THE FIVE WORDS A CONSUMER WOULD LOOK FOR APPEAR IN IT** (`todo`, opened 2026-08-28 by the DIRECTOR'S ACCURACY-BEFORE-SPEED ORDERING / `PGEN-ENGINE-UNIVERSAL-SERVICES-0109`; ✅✅ **(a) DONE 2026-08-28 `…-0110` — the shipped over-ceiling rejection now NAMES the ceiling on both released families, `0 of 5` → **5 of 5** on this leaf's own term census, with the accept boundary measured UNMOVED (SV 322/323, VHDL 681/682) and the label pinned by a RED-capable control that refuses to fire on an ordinary syntax error; embedding API `1.3.3`. ⭐ The obvious signal was DISPROVED in-slice: depth 322 ACCEPTS while recording 847 ceiling refusals, so `events != 0` is not a discriminator and the wording is conditional by design**; ⛔ **(b) IS NOW THE LANE'S NEXT ACTION** — is 4096 frames a defensible LOCATION?; (c) speed, still parked behind it)
+### ⛔⛔ `.61` — **THE RECURSION CEILING IS AN *ACCURACY* DEFECT BEFORE IT IS A SPEED ONE: BOTH RELEASED PARSERS REJECT SYNTACTICALLY WELL-FORMED INPUT, AND THE DIAGNOSTIC NAMES THE WRONG CAUSE — ZERO OF THE FIVE WORDS A CONSUMER WOULD LOOK FOR APPEAR IN IT** (`todo`, opened 2026-08-28 by the DIRECTOR'S ACCURACY-BEFORE-SPEED ORDERING / `PGEN-ENGINE-UNIVERSAL-SERVICES-0109`; ✅✅ **(a) DONE 2026-08-28 `…-0110` — the shipped over-ceiling rejection now NAMES the ceiling on both released families, `0 of 5` → **5 of 5** on this leaf's own term census, with the accept boundary measured UNMOVED (SV 322/323, VHDL 681/682) and the label pinned by a RED-capable control that refuses to fire on an ordinary syntax error; embedding API `1.3.3`. ⭐ The obvious signal was DISPROVED in-slice: depth 322 ACCEPTS while recording 847 ceiling refusals, so `events != 0` is not a discriminator and the wording is conditional by design**; ✅✅ **(b) DONE 2026-08-28 `…-0111` — RULED DEFENSIBLE: ZERO of **30 056** real files across BOTH released families contact the ceiling, on the ACCEPT path as well as the reject path, and an independent no-parser oracle puts the deepest real nesting at **22** against a worst-shape capacity of **249** (a 3.3× range across ten shapes, so `.61`'s own `322` was not the binding number). The residual under-acceptance is REAL and stays open — no measured consumer meets it**; ⇒ **(c) SPEED IS NOW UNBLOCKED**: `.56`(d) + `.58`)
 
 > ⭐⭐⭐ **THIS LEAF EXISTS BECAUSE A STEERING CALL RE-READ A MEASUREMENT I ALREADY HAD.** The director's
 > ordering — *"right now we need to focus on accuracy and precision, speed will come next"* — was made
@@ -14159,6 +14159,104 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   ceiling? The corpus half of that question is already half-answered by this slice's census (see
   the false-positive row above) — what remains is whether a conforming consumer meets it in
   practice, and what raising or removing it would cost.
+
+
+#### ✅ `.61`(b) DONE 2026-08-28 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0111`) — **RULING: THE CEILING'S LOCATION IS DEFENSIBLE. DO NOT MOVE IT.** ZERO of **30 056** real-world files across BOTH released families contact it — on the ACCEPT path as well as the reject path
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — (b) is an ADJUDICATION, so the question is what the evidence
+  says, not where a bug is. The instruments: `--parse … --profile sv_2017` under
+  `PGEN_REPORT_MEMO_STATS` for the guard's own refusal counter, `--parse-dump-ast` and
+  `furthest_position=` for the boundary bisections, and a source-level nesting oracle that uses no
+  parser at all. **WHERE the ceiling lives**: `GENERATED_RECURSION_GUARD_MAX_DEPTH = 4096`
+  (`ast_based_generator.rs:31`), read by the protocol guard (`:4281`) and mirrored one-for-one in
+  the fused cascade guard (`ast_based_generator/cascade.rs:648`).
+- ⛔⛔ **FIRST, A MEASUREMENT THAT CORRECTS `.61`'s OWN FRAMING.** `.61` quoted **322** and its
+  honest bound (i) warned it was one shape's capacity. Bisecting **ten** SystemVerilog construct
+  shapes shows how far that varies — and 322 is **not** the binding number:
+
+  | shape | deepest ACCEPTED | first REJECTED | frames/level | ceiling-labelled |
+  |---|---:|---:|---:|---|
+  | `cast_paren` — `int'(int'(…))` | **249** | 250 | **16.4** | yes |
+  | `ternary` — `a ? b : (…)` | 272 | 273 | 15.1 | yes |
+  | `concat` — `{{{…}}}` | 314 | 315 | 13.0 | yes |
+  | `paren_expr` — `(((…)))` (`.61`'s shape) | 322 | 323 | 12.7 | yes |
+  | `call` — `f(f(f(…)))` | 340 | 341 | 12.0 | yes |
+  | `generate_if` | 583 | 584 | 7.0 | yes |
+  | `if_nest` | 815 | 816 | 5.0 | yes |
+  | `begin_end` | 816 | 817 | 5.0 | yes |
+  | `index_sel` — `y[0][0]…` | **> 8192, no cliff** | — | — | iterative, not recursive |
+  | `unary_not` — `!!1` | 1 | 2 | — | **NO — different cause** |
+
+  ⇒ **the parser's capacity is a 3.3× RANGE (249–816), not a number**, and the honest bound is the
+  WORST shape: **249**. ⭐ Two rows are their own findings. `index_sel` has **no cliff at all** —
+  postfix selection is iterative, so it costs no frames per level. And `unary_not` rejects at depth
+  2 **without the ceiling label**, which is the control working on a real construct: it is not a
+  capacity failure. ⛔ **And that rejection is CORRECT, checked against the in-repo LRM rather than
+  inferred** — IEEE 1800-2017 A.8.3 reads `expression ::= primary | unary_operator {
+  attribute_instance } primary | …`, so `!` takes a **primary**; `!1` is an *expression*, not a
+  primary, so `!!1` is **not derivable** while `!(!1)` is. Rejecting it is LRM fidelity.
+- ⭐⭐⭐ **THE DECIDING MEASUREMENT — CEILING CONTACT OVER BOTH RELEASED CORPORA, EVERY FILE, BOTH
+  PATHS.** `.61`(a)'s label answers only half the question: it is composed on the FAILURE path, so
+  "0 of 16 336 rejections labelled" does not bound contact on ACCEPTS — depth 322 accepts while
+  recording 847 refusals. The guard's own counter does bound it:
+
+  | family | files | ACCEPT | REJECT | **files contacting the ceiling** | max refusals seen |
+  |---|---:|---:|---:|---:|---:|
+  | systemverilog (`--profile sv_2017`) | 16 336 | 9 794 | 6 542 | **0** | **0** |
+  | vhdl | 13 720 | 4 369 | 9 351 | **0** | **0** |
+  | **total** | **30 056** | 14 163 | 15 893 | **0** | **0** |
+
+  ⇒ **not one refusal, on either path, in either family, across fourteen upstream projects**
+  (OpenTitan, Verilator, iverilog, Surelog, slang, verible, sv2v, black-parrot, VeeR, ibex, GHDL,
+  VESTS, UVVM, …).
+- ⭐ **AND AN INDEPENDENT ORACLE AGREES — one that uses no parser**, so it cannot inherit the
+  parser's blind spots: a lexical scan of `()[]{}` depth over the same corpora, strings and
+  comments skipped. SystemVerilog **max 22**, p99.9 **8**, median 2. VHDL **max 16**, p99.9 **6**.
+  ⇒ against the worst measured shape (249) the margin on the deepest REAL file is **11.3×**, and
+  on the 99.9th percentile **31×**.
+- ⛔ **THE ORACLE'S FIRST FORM WAS WRONG AND WAS REFUTED BEFORE IT WAS PUBLISHED.** Bracket depth
+  misses the three shapes that nest through KEYWORDS (`begin_end`, `if_nest`, `generate_if`), so a
+  keyword-block counter was written — and it reported **1 427** on a UVM package, which would have
+  been an alarming number. It is an artifact: whole-token counts on that file read `function`
+  **4 316** against `endfunction` **3 225**, `class` 580 against `endclass` 378, because
+  **prototypes** (`extern`/`pure virtual`/`import "DPI-C"`) and **forward typedefs**
+  (`typedef class foo;`) open nothing. A correct keyword-nesting oracle needs real parsing, which
+  defeats its purpose as an independent instrument — so the keyword axis is answered by the guard's
+  own counter above (which covers every shape by construction), and the bracket oracle is reported
+  only for what it soundly measures.
+- ⭐ **A NATURAL FALSE-POSITIVE CONTROL, found in the corpus rather than synthesised.**
+  `ghdl/testsuite/gna/issue2768/many_parent.vhdl` carries **1 003** nested parens in 1 023 bytes —
+  a GHDL fuzzer crash-regression beginning `entity function(0(` + binary. It REJECTS at
+  `furthest_position=15`, never descending into the parens, and it is **not** ceiling-labelled. An
+  upstream file with the deepest bracket nesting in either corpus, correctly diagnosed as an
+  ordinary syntax error.
+- ⛔⛔ **THE RULING, and the residual it does NOT dissolve.** **4096 frames is a defensible
+  location; do not move it.** The constant's own comment (`ast_based_generator.rs:29-30`) says it
+  was chosen for PCRE2 conformance and to sit *"above real corpus depth"* — that clause was an
+  assumption when it was written and is now a measurement, on 30 056 files, in the two families
+  that ship. ⇒ raising it would cost stack (`1.3.1` already runs SV/VHDL on a dedicated 256 MiB
+  thread) and buy nothing any measured consumer needs. ⚠️ **What survives is real and stays open**:
+  the parser still REJECTS conforming source past ~250 levels of the worst shape, which is an
+  under-acceptance. `(a)` made it self-diagnosing rather than misdiagnosed, and this ruling says
+  only that **no measured consumer meets it** — not that it is correct.
+- ⚠️ **HONEST BOUNDS**: (i) ten shapes, not an exhaustive enumeration of SV constructs; the
+  observed frames/level range is 5.0–16.4, and a hypothetical 40 frames/level shape would still
+  cliff near 102, itself 4.6× above the deepest real file; (ii) both corpora are human- and
+  tool-written open-source RTL — **bulk machine-generated RTL is not represented**, and `.60`
+  named exactly that as the case an embedder could hit, so this ruling is about the population
+  measured, not about all possible input; (iii) the contact census runs under
+  `PGEN_REPORT_MEMO_STATS`, which `.56`(b) proved routes the parse onto the PROTOCOL graph — so it
+  bounds contact on that graph, and the fused graph's counts differ (953 vs 1 013 on `sv_323.sv`);
+  (iv) the SV arm is `--profile sv_2017`, not the unnamed profile, whose separate defect is `.62`.
+- [x] **ADDRESSED (verified)** — the question (b) asked is answered with evidence rather than
+  assumed: contact = 0 over 30 056 files; worst-shape capacity 249; deepest real nesting 22.
+- [x] **NO REGRESSION** — (b) is measurement and adjudication only: **zero source bytes changed**,
+  so the generated artifacts stay byte-identical and no gate's inputs move. `clippy` unrun by
+  design — there is nothing to lint.
+- ⇒ ⭐⭐⭐ **THE DIRECTOR'S ACCURACY-BEFORE-SPEED ORDERING IS NOW DISCHARGED FOR THIS LANE.**
+  (a) fixed the precision defect; (b) adjudicated the accuracy one and ruled the location sound.
+  **`.56`(d) and `.58` are UNBLOCKED** — speed is next, with the measurements already banked
+  (retention 87–91×, L1-LA ≈1.8–3.5×).
 
 
 

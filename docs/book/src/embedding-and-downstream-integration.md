@@ -289,10 +289,57 @@ Four properties of that label are worth knowing before you build on it:
   counter the guard already maintains, as a per-parse delta — so a parser reused across parses
   cannot inherit an earlier input's contact.
 
-⛔ **What this does NOT fix**: the ceiling still rejects conforming source. Whether 4096 frames is
-the right place for it — and what a conforming consumer actually meets in practice — is
-`ENGINE-UNIVERSAL-SERVICES.61`(b), and the speed work (`.56`(d), `.58`) is explicitly sequenced
-behind both.
+### Is 4096 Frames The Right Place For It? — Measured
+
+⭐ The ceiling still rejects conforming source, so the fair question is whether *you* will ever meet
+it. That was adjudicated rather than assumed (`ENGINE-UNIVERSAL-SERVICES.61`(b)), and the answer is
+**no measured consumer does**.
+
+**Ceiling contact across both released families, every file, the accept path included** — read from
+the guard's own refusal counter rather than from the diagnostic, because the label above is composed
+on the failure path and a deep *accepted* parse can touch the ceiling without producing one:
+
+| family | files | accepted | rejected | **contacting the ceiling** |
+|---|---:|---:|---:|---:|
+| systemverilog (`sv_2017`) | 16 336 | 9 794 | 6 542 | **0** |
+| vhdl | 13 720 | 4 369 | 9 351 | **0** |
+| **total** | **30 056** | 14 163 | 15 893 | **0** |
+
+Not one refusal, in either family, across fourteen upstream projects — OpenTitan, Verilator,
+iverilog, Surelog, slang, verible, sv2v, black-parrot, VeeR, ibex, GHDL, VESTS, UVVM and others.
+An independent oracle that uses no parser at all agrees: a lexical scan of bracket depth puts the
+deepest real SystemVerilog file at **22** levels (99.9th percentile **8**) and the deepest VHDL at
+**16**.
+
+⚠️ **Do not read the ceiling as a single depth, though.** It counts parser frames, and constructs
+spend frames at different rates. Ten SystemVerilog shapes, each bisected to its exact accept
+boundary:
+
+| shape | deepest accepted | frames per level |
+|---|---:|---:|
+| `int'(int'(…))` | **249** | 16.4 |
+| `a ? b : (…)` | 272 | 15.1 |
+| `{{{…}}}` | 314 | 13.0 |
+| `(((…)))` | 322 | 12.7 |
+| `f(f(f(…)))` | 340 | 12.0 |
+| nested `generate`-`if` | 583 | 7.0 |
+| nested `if` | 815 | 5.0 |
+| nested `begin`/`end` | 816 | 5.0 |
+| `y[0][0][0]…` | **no limit** | iterative — costs no frames |
+
+So the parser's capacity is a **3.3× range**, and the honest number to plan against is the worst
+one: **~249 levels**, against a deepest-real-file measurement of 22. That is an **11.3× margin**,
+and ~31× against the 99.9th percentile.
+
+⇒ **4096 frames stays where it is.** The constant's own rationale was that it sits *"above real
+corpus depth"*; that was an assumption when written and is now a measurement.
+
+⛔ **What this does NOT claim.** The parser still rejects syntactically valid source past that
+boundary — the under-acceptance is real and remains open, and the ruling says only that no
+*measured* consumer meets it. Both corpora are human- and tool-written RTL; **bulk machine-generated
+code is not represented**, and that is exactly the case an embedder could hit. If you generate RTL
+programmatically, the label above is what tells you — and the PGEN maintainers would want to know.
+With accuracy adjudicated, the speed work (`.56`(d), `.58`) is what comes next.
 
 ## Linter-Oriented Downstream Surfaces
 

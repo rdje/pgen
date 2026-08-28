@@ -1,5 +1,33 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0111 — an instrument you build for one answer must survive the answer you did not want
+
+**1. ⭐⭐⭐ A LABEL ON THE FAILURE PATH CANNOT ANSWER A QUESTION ABOUT THE ACCEPT PATH, AND THE
+NUMBER LOOKS THE SAME EITHER WAY.** `.61`(a) had just produced "0 of 16 336 rejections labelled",
+which reads exactly like "nothing touches the ceiling" — and is not. Depth 322 ACCEPTS while
+recording 847 ceiling refusals, so an accepted parse can sit right against the ceiling and produce
+no label at all. The honest instrument for a CONTACT question is the guard's counter, not the
+diagnostic. ⇒ **before reusing yesterday's number, re-read what its producer is scoped to.**
+
+**2. ⛔ THE ORACLE THAT REPORTED THE ALARMING NUMBER WAS THE ONE THAT WAS WRONG.** A keyword-nesting
+counter read 1 427 on a UVM package — deep enough to overturn the whole ruling. Checking it cost one
+command: `function` 4 316 against `endfunction` 3 225, because prototypes and forward typedefs open
+nothing. ⇒ **a number that would change your conclusion is the one to attack first**, and the
+temptation runs the other way: a comfortable number gets checked and an alarming one gets published,
+because alarm feels like rigour.
+
+**3. ⭐⭐ THE RANGE, NOT THE NUMBER.** `.61` published 322 with an honest bound saying it was one
+shape's capacity. Bisecting ten shapes turned that bound into a measurement: 249 to 816, a 3.3×
+spread, plus one construct with no limit at all because it is iterative. The leaf's honest bound was
+correct and was still hiding a factor of 3.3. ⇒ **an honest bound is a promissory note, not a
+discharge** — the number it hedges is still wrong until someone measures the spread.
+
+**4. ⭐ ADJUDICATING A DEFECT AS "REAL BUT UNMET" IS A RULING, NOT A DISMISSAL, AND THE WORDING HAS
+TO CARRY BOTH HALVES.** The ceiling still rejects conforming source; 30 056 files say nobody meets
+it. Writing only the first half makes the lane chase a non-problem; writing only the second half
+retires a defect by counting. Both corpora are hand-written RTL, so the ruling names the population
+it covers and names machine-generated code as the case it does not.
+
 ## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0110 — the obvious signal for a defect is a claim, and it needs its own control
 
 **1. ⭐⭐⭐ WHEN A COUNTER LOOKS LIKE A DISCRIMINATOR, RUN IT ON THE CASE THAT MUST NOT FIRE.** The
