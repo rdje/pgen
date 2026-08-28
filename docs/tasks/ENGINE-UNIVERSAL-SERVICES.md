@@ -14429,7 +14429,21 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
 
   ⇒ **the bracket axis replicates `.61`(b) exactly (22), and the axis that matters reads 256.** The
   published *"margin on the deepest REAL file is 11.3×"* is therefore measured against the wrong
-  number: against the worst shape's real capacity the margin on an ALREADY-VENDORED file is **1.06×**.
+  number — it divides one shape's FRAME capacity (249) by a shape-agnostic BRACKET depth (22), two
+  quantities that are not commensurable.
+  ⛔⛔ **CORRECTION 2026-08-28, under a director re-verification challenge (`-0116`): my replacement
+  figure repeated the same category error in the ALARMING direction and is WITHDRAWN.** I published
+  *"the margin on an ALREADY-VENDORED file is 1.06×"*. **`br_gh330.v` carries its 256 arms
+  BRACKET-FREE, and that style's own cliff is 2 041** (`gen_ternary_chain`; the realistic-arm variant
+  bisects to 2 028 accept / 2 029 reject) ⇒ **the file's REAL margin is ≈8×, not 1.06×.** The 1.06×
+  (271 ÷ 256) is the margin that would apply **IF the same logic were re-emitted parenthesised** — a
+  counterfactual about emitter style, not a measurement of the corpus. ⭐ **What actually survives is
+  the finding that matters and it does not need the inflated number**: headroom for the SAME LOGIC
+  ranges from ≈8× to ≈1× purely by emission style, so the corpus cannot bound the risk — which is the
+  point `.61`(b) missed and the reason the ceiling is removed rather than re-sized.
+  ⚠️ **AND A BOUND I OWE PLAINLY**: I measured per-AXIS maxima (deepest bracket depth, longest chain),
+  never per-FILE frame usage. A file combining moderate depth on several axes is not covered by either
+  number, and nothing in this slice measures one.
 - ⭐ **`br_gh330.v` IS THE TARGET POPULATION, VENDORED.** 36 673 B, a 4-bit truth table lowered into
   **two 256-arm mux chains** (512 `?` total) — precisely *"generated, optimized or not"*. Verified
   three independent ways: 256 arms per function by pattern count, 512 `?` by raw token count, and

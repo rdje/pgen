@@ -363,8 +363,17 @@ lowering does — one conditional level per item, the file's own conditions and 
 | **parenthesised** (sv2v / Verilator / yosys style) | 568 | **rejected — ceiling-labelled** |
 
 ⇒ whether your generated RTL parses today can depend on **your emitter's bracketing style**, which is
-not a property of your design. Against the worst shape's real capacity, the margin on a file already
-vendored in this repository is **1.06×**, not 11.3×.
+not a property of your design.
+
+⚠️ **Read the margins carefully — they are per emission style, and an earlier draft of this section
+compared two that are not commensurable.** `br_gh330.v` carries its 256 arms **bracket-free**, and
+that style's own cliff is **2 041**, so the file's real headroom is **≈8×**. The **1.06×** figure
+(271 ÷ 256) is what the margin would become **if the same logic were re-emitted parenthesised** — a
+consequence of emitter choice, not a measurement of the corpus. The earlier *"11.3× margin"* was
+incommensurable in the other direction: it divided one shape's frame capacity (249) by a
+shape-agnostic bracket depth (22). **The defensible summary is that headroom ranges from ≈8× down to
+≈1× across emission styles for the same logic**, which is why the ceiling is being removed rather
+than re-sized.
 
 ### A Second Limit, And This One Was Silent — Now Removed
 

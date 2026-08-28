@@ -1,5 +1,41 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0116 — verifying the number you distrust leaves the one you supplied unexamined
+
+**1. ⭐⭐⭐ A RATIO IS A CLAIM ABOUT TWO QUANTITIES, AND I AUDITED ONLY ONE.** `.61`(b) published an
+*"11.3× margin"* — one shape's FRAME capacity (249) divided by a shape-agnostic BRACKET depth (22).
+I correctly identified that as incommensurable, and then replaced it with **271 ÷ 256**: a
+PARENTHESISED shape's capacity divided by a BRACKET-FREE file's chain length. **The identical
+category error, pointed the other way.** Every leg of my three-way check passed, because all three
+legs interrogate the number I inherited and none of them asks whether the number I SUPPLIED shares a
+denominator with it. ⇒ **when correcting a ratio, state the units of numerator and denominator
+explicitly before publishing it** — "levels of shape X" and "levels of shape Y" are not the same unit,
+and prose hides that where an explicit unit label cannot.
+
+**2. THE FAILURE DIRECTION IS THE TELL, AND IT IS THE OPPOSITE OF LAST TIME.** `.61`(b)'s error was
+flattering to its own caution (it made the ceiling look safer than it is). Mine was flattering to my
+own finding (it made the ceiling look more dangerous than the corpus shows). **Both survive re-reading
+for the same reason: a number that confirms the conclusion you have already reached does not get
+re-derived.** `br_gh330.v`'s real headroom is ≈8×, measured against its own emission style's cliff of
+2 041 — a number I had already produced in the same slice and never divided by.
+
+**3. ⭐⭐ WHAT SURVIVES IS STRONGER THAN WHAT I RETRACTED.** The defensible statement needs no single
+ratio: for the SAME 256-arm logic, headroom spans **≈8× bracket-free down to ≈1× parenthesised**. That
+says the corpus CANNOT bound the risk, because the binding variable is the EMITTER and no corpus
+census observes emitter choice. The inflated 1.06× was arguing for a conclusion the honest spread
+already establishes — which is the general shape of an overstatement: it is usually unnecessary.
+
+**4. THE PROCESS FIX.** My verification protocol (re-derive / falsify against an outside oracle /
+durability) has no leg that compares a quantity against its own denominator. Added to the standing
+checks: **for any published ratio, name both units and confirm they are the same kind of thing.** It
+took a second director challenge — the same one-sentence question that retired `.61`(b) the day
+before — to surface it, which is evidence the protocol gap is real and not a lapse.
+
+**5. ⚠️ AND A BOUND NOW STATED PLAINLY RATHER THAN DISCOVERED LATER.** `.63` measured per-AXIS maxima
+— deepest bracket depth, longest conditional chain — and never per-FILE frame usage. A file sitting at
+moderate depth on several axes simultaneously is covered by neither number, and nothing in that slice
+measures one. That is an open gap in the evidence, not a reassurance.
+
 ## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0115 — a guard whose job was already done by another guard can only ever refuse valid input
 
 **1. ⭐⭐⭐ THE RETIRED CONSTANT WAS PROTECTING NOTHING.** `SAFETY_LIMIT = 10_000` reads like prudent
