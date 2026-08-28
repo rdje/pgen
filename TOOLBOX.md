@@ -596,12 +596,14 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   moves the AST's share of the floor-subtracted peak from `-0121`'s headers-only **14.1–35.6 %** to
   **14.8–36.2 %** — at most **+0.6 percentage points**. `transformed_strings` and `rendered_payload`
   measured **exactly 0 on all eleven inputs**; the child `Vec`s are the whole of it.
-  ⚠️ **Do not read `child_vecs` as "vectors that cost something"**: 53–73 % of all nodes carry one,
-  at a mean of **0.00–0.15 slots each**, because a quantifier that matched zero times holds
-  `Vec::new()` (capacity 0, no allocation) and a list that DID grow is consumed into a
-  `PgenValue::Array` slice in the `shaped_values` arena and freed. The sharpest case is
-  `syn_case_items`: **40 slots at both 2 500 and 10 000 items** — 7 500 more case items, zero more
-  resident child-vec slots.
+  ⚠️ **Do not read `child_vecs` as "vectors that cost something"**: 53–91 % of all nodes carry one,
+  at a mean of **0.00–0.15 slots each**. On `syn_case_items` 10 000 that is **≥ 99.9990 % of them
+  EMPTY** (3 941 540 vecs against 40 slots, and a non-empty vec holds ≥ 1) — which is arithmetic on
+  two measured counters. ⛔ **WHY they are empty is NOT measured**: there is no per-variant
+  empty/non-empty breakdown here. Measured instead: the per-item content lands in the SHAPED arenas,
+  at **+2.0 `shaped_values` and +148.0 `shaped_pairs` per case item** — i.e. predominantly
+  `PgenValue::Object` PAIRS. The sharpest case is `syn_case_items`: **40 slots at both 2 500 and
+  10 000 items** — 7 500 more case items, zero more resident child-vec slots.
 - ⛔⛔ **IT STILL MEASURES LESS THAN THE WHOLE PARSE — do not subtract it from peak RSS and call the
   remainder "not the AST". That inference was published once and WITHDRAWN**
   (`ENGINE-UNIVERSAL-SERVICES.67`(b), `-0122`), and closing the omission that caused the withdrawal
@@ -609,7 +611,11 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   1. **`typed_arena` CHUNK CAPACITY** — chunks DOUBLE and none are freed until the arena drops, so
      resident chunk bytes reach up to ~2× live item bytes. **This is now the binding one**: it alone
      keeps the arena's share anywhere in **28–71 %**, which is exactly the band that leaves the
-     withdrawn conclusion undecided.
+     withdrawn conclusion undecided. ⚠️ Computable exactly for `nodes` (fed only by `alloc`:
+     capacity starts at `1024 / size_of::<T>()` and doubles), **but NOT for `shaped_values` /
+     `shaped_pairs`** — `alloc_extend` fills the current chunk item-by-item and on overflow calls
+     `reserve(i + 1)` and drains items back, so their resident capacity depends on the SEQUENCE of
+     extend sizes rather than the total. Those two arenas need an instrument, not a formula.
   2. **`ParseNode`s THE MEMO OWNS** — `MemoEntry::result` is an `Option<ParseNode>` and
      `raw_semantic_content` an `Option<ParseContent>`, owned clones that never pass through
      `NodeArena::alloc`, so neither their headers nor their child `Vec`s appear in any field here.

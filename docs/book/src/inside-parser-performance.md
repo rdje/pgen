@@ -207,12 +207,17 @@ payloads — `TransformedTerminal` and the interned rendered strings — measure
 all eleven inputs**. Child vectors are the whole of it.
 
 The reason is worth knowing if you are ever tempted to slim the node representation. Between
-53 % and 73 % of all nodes carry a child vector, but those vectors average **0.00 – 0.15 slots
-each**, for two reasons: a quantifier that matched nothing holds a `Vec::new()`, which allocates
-nothing at all; and a list that *did* grow is consumed into a `PgenValue::Array` slice in the
-shaped-value arena and freed, so its bytes are already counted on the arena side. The clearest
-case is a synthetic `case` with 10 000 arms — it holds **40 child-vector slots, the same 40 the
-2 500-arm version holds.** Seven thousand five hundred more arms cost zero resident slots.
+53 % and 91 % of all nodes carry a child vector, and on a synthetic `case` with 10 000 arms
+**at least 99.999 % of those vectors are empty** — 3 941 540 of them holding 40 pointer slots
+between them. That file holds **the same 40 slots the 2 500-arm version holds**: seven thousand
+five hundred more arms cost zero resident slots.
+
+⚠️ *Why* they are empty is not measured, and the honest version of this paragraph says so. Two
+mechanisms are plausible — a quantifier that matched nothing holds a `Vec::new()`, which allocates
+nothing; and a list that *did* grow is handed to the shaped-value arena and freed. What is measured
+is that the per-item content does land in the shaped arenas, at **+2 shaped values and +148 shaped
+pairs per case arm** — as `PgenValue::Object` pairs rather than the `Array` values an earlier
+revision of this chapter named.
 
 So the honest statement is narrower than the withdrawn one and barely wider than the
 correction: **the AST — headers and everything a node owns — is a minority of the footprint on
@@ -223,7 +228,9 @@ uvm input across ~72 million small allocations.
 ⚠️ And **closing that omission did not license the withdrawn conclusion back**, which is the
 part worth carrying. Three exclusions remain, and the binding one is not the dramatic one: the
 arena allocates in chunks that double and frees none, so its resident bytes can reach twice its
-live item bytes, putting the arena anywhere in **28 – 71 %**. That was declared from the very
+live item bytes, putting the arena anywhere in **28 – 71 %**. That is exactly computable for the
+node arena and *not* for the two arenas fed by `alloc_extend`, whose resident capacity depends on
+the order the extends arrived in rather than on how many items they carried. That was declared from the very
 first version of the measurement. The omission that triggered the withdrawal — the child vectors
 nobody had thought to look for — moves the answer by two tenths of a point; the boring one that
 had been written down all along is what still leaves the question open.

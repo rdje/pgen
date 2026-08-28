@@ -1,0 +1,7 @@
+# ENGINE-UNIVERSAL-SERVICES.67(b) qualification evidence (PGEN-ENGINE-UNIVERSAL-SERVICES-0125).
+# Does the per-item content land in the SHAPED arenas? Measured on syn_case_items, sv_2017,
+# release probe a787e823. Deltas are per additional case item over the 2500 -> 10000 step.
+shape	items	nodes	shaped_values	shaped_pairs	child_vecs	child_slots
+syn_case_items	2500	1499477	5011	370293	986540	40
+syn_case_items	10000	5991977	20011	1480293	3941540	40
+# delta per item: nodes +599.0  shaped_values +2.0  shaped_pairs +148.0  child_vecs +394.0  child_slots +0.0

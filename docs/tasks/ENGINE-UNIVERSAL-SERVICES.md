@@ -15083,6 +15083,62 @@ prediction [`PREDICTION_OWNED_HEAP.md`](artifacts/eus67/PREDICTION_OWNED_HEAP.md
   four-level walk its sibling `measure_parse_rss.sh` had right all along, plus refusal arms for a
   missing probe and a missing file list (RED control observed: `no probe at /nonexistent`, exit 2).
 
+##### ⛔⛔ `.67`(b) — **THREE QUALIFICATIONS TO `-0124`, PUBLISHED UNDER A DIRECTOR RE-VERIFICATION CHALLENGE (`PGEN-ENGINE-UNIVERSAL-SERVICES-0125`). EVERY MEASUREMENT STANDS. TWO CLAIMS *ABOUT* THEM WERE WIDER THAN THEIR EVIDENCE, AND ONE RANGE WAS SILENTLY CENSORED.**
+
+- ⛔⛔ **(1) *"THE WHY IS MEASURED TOO"* IS OVERSTATED — THE *WHAT* IS MEASURED, THE *MECHANISM* WAS
+  READ OFF ONE CODE SNIPPET.** What is genuinely derived from measured quantities and stands:
+  `child_vecs` = 3 941 540 against `child_slots` = 40 on `syn_case_items` 10 000, and a non-empty
+  `Vec` holds ≥ 1 slot, so **≥ 3 941 500 of 3 941 540 child `Vec`s — 99.9990 % — are EMPTY.** That is
+  arithmetic on two measured counters. ⛔ What was NOT measured: *why* they are empty. I published
+  two mechanisms — zero-match quantifiers holding `Vec::new()`, and grown lists *"consumed into a
+  `PgenValue::Array` slice in the `shaped_values` arena and freed"* — from reading ONE shaping block
+  at `generated/systemverilog_parser.rs:9368`. There is no per-variant empty/non-empty breakdown in
+  the instrument, so the FIRST mechanism remains unmeasured.
+  ⭐ **And re-measuring corrected the NOUN in the second.** Over the same 2 500 → 10 000 step the
+  shaped arenas absorb **+2.0 `shaped_values` and +148.0 `shaped_pairs` per case item**
+  ([`shaped_arena_scaling.tsv`](artifacts/eus67/shaped_arena_scaling.tsv)) — so the per-item content
+  does land in the shaped arenas, which supports the mechanism's DIRECTION, but it lands
+  overwhelmingly as `PgenValue::Object` PAIRS, not as the `Array` values I named. ⇒ **`Array` was the
+  wrong noun by a factor of 74, and I would not have caught it by re-running the instrument — only by
+  measuring the thing the sentence actually named.** The precise handoff (that it is the SAME `Vec`
+  being consumed) is still an inference and is labelled as one.
+- ⛔⛔ **(2) *"CHUNK CAPACITY IS EXACTLY COMPUTABLE … A PURE FUNCTION OF ITEM COUNT AND ITEM SIZE"*
+  IS TRUE FOR ONE ARENA OF THREE, AND LEG 3 IS RE-PRICED BECAUSE OF IT.** For `nodes`, which is fed
+  only by `alloc`, the claim holds: capacity starts at `INITIAL_SIZE / max(1, size_of::<T>())`
+  = 1024/48 = **21** and doubles, so resident chunk bytes are a pure function of `len()`. ⛔ For
+  `shaped_values` and `shaped_pairs`, fed by `alloc_extend`, it does **not**: the `else` branch fills
+  the current chunk item-by-item and, on overflow, calls `reserve(i + 1)` and DRAINS the partially
+  written items back out (`typed-arena-2.0.2/src/lib.rs:237-265`), so resident capacity depends on
+  the SEQUENCE of extend sizes, not on their total. ⚠️ **This is not a footnote: on
+  `syn_case_items` 10 000 the shaped arenas are 56.9 MB of the 331.2 MB arena total, and
+  `shaped_pairs` is the leg that scales with the input.** ⇒ leg 3 collapses the NODES band exactly
+  by arithmetic and needs a different method — an instrument, not a formula — for the two extend
+  arenas. `-0124`'s *"collapses 28–71 % to a POINT"* is therefore **PARTIAL, not whole**.
+- ⚠️ **(3) THE PUBLISHED RANGE *"52.9–72.8 % OF ALL NODES CARRY A CHILD `Vec`"* SILENTLY EXCLUDED A
+  ROW, USING AN ADMISSIBILITY RULE THAT DOES NOT GOVERN THAT QUANTITY.** `floor.sv` reads **91.2 %**
+  (414 of 454). It was dropped by the 2×-floor rule — which exists because a FLOOR-SUBTRACTED share
+  has an unreliable denominator — but `child_vecs / nodes` involves no floor subtraction at all, so
+  the rule buys nothing there and the exclusion is unjustified. **Over all eleven inputs the range is
+  52.9–91.2 %.** ⇒ **an admissibility rule is scoped to the quantity it was derived for; carrying it
+  to a neighbouring column is the same class of error as `.67`(a)'s filter that selected on the
+  measured quantity** — and here it trimmed the range in the flattering direction.
+- ✅ **WHAT STANDS, UNCHANGED.** Every number in `-0124`: the owned heap at 0.00–1.49 % of arena item
+  bytes and **+0.00 to +0.26 percentage points**; the 40-slots-at-both-sizes constant; the
+  99.9990 % empty-`Vec` derivation; `transformed_strings` and `rendered_payload` at EXACTLY 0 on 11
+  of 11; the three-shape `E0502`/`E0502`/`E0505` refutation; arena node counts identical on 11 of 11;
+  the RSS and wall-clock no-regression arms; the producer defect and its repair. **The ruling also
+  stands and is unweakened**: closing the withdrawal's omission does not restore the withdrawn
+  conclusion, and chunk capacity is still the binding exclusion — qualification (2) makes it
+  *harder* to close, not easier.
+- ⛔⛔⛔ **THE CARRY-FORWARD, and it is the same shape twice in three slices: I RE-RAN THE INSTRUMENT
+  AND CALLED THAT VERIFICATION.** `-0122` was *"I audited the number and not the noun"*; this is the
+  identical failure one layer out — I audited the MEASUREMENT and not the SENTENCE. The three
+  defects here are a mechanism asserted from one snippet, a formula generalised from one of three
+  arenas, and a range trimmed by a rule borrowed from a different column. **None of them is a wrong
+  number, and none of them could have been caught by re-running anything.** ⇒ **verification leg 2
+  must falsify the CLAIM, not re-execute the instrument: take each published sentence, name the
+  measurement that would refute it, and check that the measurement was actually taken.**
+
 ##### ACCEPTANCE CHECKLIST — `.67`(b) owned-heap census (`PGEN-ENGINE-UNIVERSAL-SERVICES-0124`)
 
 - [x] **ROOT CAUSE (WHY + WHERE), tool-backed.** WHY the AST was unmeasured:
