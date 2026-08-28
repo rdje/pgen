@@ -1,5 +1,42 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0110 — the obvious signal for a defect is a claim, and it needs its own control
+
+**1. ⭐⭐⭐ WHEN A COUNTER LOOKS LIKE A DISCRIMINATOR, RUN IT ON THE CASE THAT MUST NOT FIRE.** The
+whole of `.61`(a) turns on one measurement that took ten seconds: the engine counts ceiling refusals,
+so the natural fix is *"label the rejection when the count is nonzero"*. **Depth 322 — which
+ACCEPTS — records 847 of them.** The counter measures CONTACT, not CAUSE, and a label built on it
+would have fired on any rejection from a file that merely nested deeply somewhere. ⇒ the design
+question stopped being *"how do I surface the count"* and became *"what can I honestly say from it"*,
+which is why the shipped wording is conditional and why the regression lock is a PAIR whose second
+half asserts the label is ABSENT on an ordinary syntax error. A diagnostic that names a wrong cause
+more often is not an improvement on one that names a wrong cause.
+
+**2. ⛔ THE MORE LEGIBLE DESIGN WAS THE BACKWARD-INCOMPATIBLE ONE.** A dedicated
+`E_RECURSION_CEILING` diagnostic code is what a machine-readable distinction wants, and it silently
+breaks every embedder arm that branches on `E_PARSE_FAILURE` today — the improvement is paid for by
+consumers, in a currency they never agreed to. Keeping the code and adding a TYPED variant gives Rust
+embedders the same structure with no breakage. ⇒ **when a surfacing change reaches a published
+surface, ask which half of the audience pays for the legibility.**
+
+**3. ⭐⭐ A REGRESSION CENSUS THAT DISAGREES WITH ITS BASELINE IS A FINDING UNTIL PROVEN OTHERWISE.**
+Mine differed on 28 verdicts and 6 timeouts, and the comfortable reading was available and endorsed by
+the baseline's own header: *"this report no longer describes your tree"*. Chasing it instead found
+that SystemVerilog declares no `@default_profile`, so an unnamed profile parses the union of every
+dialect — over-accepting on 28 of 28 real files and, on one, not terminating in 181 s where the named
+profile answers in 0.2 s. ⇒ **the stale-baseline explanation is the one to distrust, precisely
+because it always fits.** Re-running under the baseline's own parameters then gave 0 differences over
+all 16 336 files, which is a far stronger no-regression arm than the one I set out to produce.
+
+**4. ⛔ A "REGENERATE EVERYTHING" TARGET DID NOT REGENERATE EVERYTHING.**
+`regenerate_generated_parsers` covers the annotation pair plus seven families; `generated/ebnf.rs`
+and `generated/scratch_parser.rs` are separate cohorts, and the ebnf seed recipe is guarded by
+`if [ ! -f ]` so it is a no-op whenever the file exists. Nine of eleven artifacts carried the change
+and two did not, and the tree was internally inconsistent in a way no build error shows.
+GENERATED-REPRODUCIBILITY caught it, refused to record the divergence, and named both. ⇒ **the
+doctrine that refuses to rebaseline over a breach is worth more than the one that reports it**, and a
+codegen change must ask which cohorts a regeneration target actually covers.
+
 ## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0109 — a speed framing does not deprioritise correctness questions, it hides them
 
 **1. ⭐⭐⭐ WHEN A LANE HAS BEEN OPTIMISING SOMETHING, ASK WHAT THE ACCURACY READING OF THE SAME

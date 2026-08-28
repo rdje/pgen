@@ -1,5 +1,57 @@
 # CHANGES.md
 
+## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0110 (`ENGINE-UNIVERSAL-SERVICES.61`(a) DONE — the over-ceiling rejection now NAMES the ceiling on every family: `0 of 5` → **5 of 5** on the leaf's own term census, embedding API `1.3.3`; ENGINE + BOOK + CONTRACT tier, ZERO grammar bytes)
+
+- ⭐⭐ **WHAT SHIPPED.** A rejection from a parse that contacted the 4096-frame recursion ceiling now
+  says so, in the error an embedder actually receives, on every generated family. `-0109` had
+  censused the old message for the five terms a consumer would search (`depth`, `ceiling`, `limit`,
+  `nest`, `recursion`) and measured **0 of 5** on both released families; it now reads **5 of 5**:
+  `… at position 0 [recursion ceiling CONTACTED: the depth guard reached its 4096-frame limit and
+  refused 953 rule entries during this parse. The limit counts PARSER FRAMES, not source nesting
+  levels — one level of a nested construct costs several frames. If the input is syntactically valid
+  it exceeds this parser's nesting capacity, and the defect is the ceiling — not a syntax error at
+  position 0]`.
+- ⛔ **ROOT CAUSE, and it was DISCARD rather than absence.** The ceiling refusal is a correctly
+  constructed `ParseError::RecursionDepthExceeded`, but it is raised inside a failing ALTERNATIVE
+  and backtracked away like any ordinary rejection; the parse then unwinds to `parse_full`, which
+  had one unconditional arm — `InvalidSyntax { "Parser did not consume full input" }`. The
+  information existed one frame below the surface and was thrown away. Both `parse_full` and
+  `parse_full_from` are engine-universal, so the fix is ONE codegen site for eleven artifacts.
+- ⛔⛔ **THE OBVIOUS SIGNAL IS NOT A SOUND ONE, and one command disproved it.** *"Label it whenever
+  `recursion_depth_block_events != 0`"* is wrong: **depth 322 ACCEPTS while recording 847 ceiling
+  refusals.** The counter counts contact on abandoned branches too. ⇒ the label is scoped to the
+  FAILURE path and its wording is CONDITIONAL rather than causal. A label that over-claimed would
+  have traded a diagnostic naming the wrong cause for one naming a wrong cause more often.
+- ⛔ **A NEW DIAGNOSTIC CODE WAS PRICED AND DECLINED.** `E_RECURSION_CEILING` reads better and is
+  **not backward-compatible**: every embedder arm branching on `E_PARSE_FAILURE` would silently stop
+  matching. The code set stays stable and the structured distinction is carried by a new typed
+  `ParseError::RecursionCeilingContacted { surface, position, ceiling, events }` variant. Locked by
+  an assertion in the new test.
+- ⭐ **VERIFIED ON THE GRAPH THAT SHIPS**, which is the arm that matters: `.56`(b) established that
+  every observation channel is a disjunct of the `bare_parse` selector, so the pre-change instrument
+  (`PGEN_REPORT_MEMO_STATS`) ROUTED THE PARSE OFF the fused graph and could not have witnessed this —
+  it also timed out on 762 of the first 2 179 corpus files. The label is emitted by the shipped parse
+  itself, so the census needs no env var. A number that only exists because of the change: the fused
+  graph records **953** refusals where the instrumented graph recorded **1 013** on the same input.
+- ⭐⭐ **NO REGRESSION — a DOUBLE full-corpus census, because the first disagreed with its baseline
+  and the disagreement was chased rather than explained away.** Under `--profile sv_2017` (what the
+  tracked characterization used and what ships): **16 336 files, 9 794 ACCEPT / 6 542 REJECT, ZERO
+  verdict differences from the tracked baseline, and 0 of 6 542 rejections labelled.** Under the
+  unnamed profile: 0 of 6 512 labelled. Accept boundary measured unmoved (SV 322/323, VHDL 681/682).
+  Binding parse-cost counters (`entries.tsv`, `rule_costs.tsv`, `rule_graph.json`) **byte-identical**;
+  the LR family share re-derives to exactly **2.759 %**; advisory wall clock within ±1.7 %.
+  `embedding_api_gate` **37 + 60 passed, 0 failed**; all **31** doctrines PASS; all **11** generated
+  artifacts re-derive byte-identically.
+- ⛔⛔ **AND THE CENSUS FOUND A NEW DEFECT — now `ENGINE-UNIVERSAL-SERVICES.62`, ROUTED.**
+  SystemVerilog declares **no `@default_profile`**, so an unnamed profile parses the UNION of every
+  dialect. All **28** files whose verdict differed REJECT under `sv_2017` and ACCEPT unnamed — 28 of
+  28 — and one ordinary vendored OpenTitan file answers in **0.2 s** under `sv_2017` and **not at all
+  in 181 s** without it. The project's north star is that SV is 100 % LRM-compliant BY DEFAULT; the
+  default is the path that is over-accepting.
+- **LOCKSTEP** — embedding API `1.3.2` → `1.3.3` (constant + `rust/docs/EMBEDDING_API_CONTRACT.md`);
+  new book section **The Rejection Now Says It Is A Ceiling** in
+  `docs/book/src/embedding-and-downstream-integration.md`.
+
 ## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0109 (DIRECTOR ORDERING: accuracy and precision first, speed next — a THIRD reaffirmation that RE-ORDERED the lane + new leaf ENGINE-UNIVERSAL-SERVICES.61 + `.60` re-verified with a second instrument; TRACKER + DOCTRINE-RECORD tier, ZERO Rust / grammar / codegen / generated bytes)
 
 - ⛔⛔ **THE ORDERING, AND WHAT IT EXPOSED.** Told that VHDL takes **18.6 s to successfully parse a

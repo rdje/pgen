@@ -2215,6 +2215,10 @@ impl AstBasedGenerator {
     ) -> TokenStream {
         let parse_method = format_ident!("parse_{}", entry_rule);
         let parse_full_method = format_ident!("parse_full_{}", entry_rule);
+        // `ENGINE-UNIVERSAL-SERVICES.61`(a) — the guard's frame capacity, baked in at
+        // codegen from the SAME constant the guard's own `depth >= …` test uses, so the
+        // number a rejection reports and the number that produced it cannot drift apart.
+        let recursion_ceiling_frames = GENERATED_RECURSION_GUARD_MAX_DEPTH;
         // GENERATED-LINT-CORRECTNESS.2 — the trailing-layout policy is a
         // codegen-time constant (`@whitespace_sensitive:`), so the emitted
         // `if true { … }` / `if false { … }` is decided here instead. A
@@ -2590,8 +2594,75 @@ impl AstBasedGenerator {
                 }
             }
 
+            /// `ENGINE-UNIVERSAL-SERVICES.61`(a) — LABEL AN OVER-CEILING REJECTION AS ONE.
+            ///
+            /// ⛔ The defect this closes is an ACCURACY defect wearing a performance
+            /// costume. When an input nests deeper than the guard's frame capacity the
+            /// parse rejects — but the refusal is backtracked away like any other failing
+            /// alternative, so what reached the consumer was
+            /// `Parser did not consume full input at position 0`: a syntax-error message,
+            /// pointing at the START of the construct, about input that is syntactically
+            /// well-formed. Censused on both released families, the shipped diagnostic
+            /// contained **0 of the 5** words a consumer would search for
+            /// (`depth|ceiling|limit|nest|recursion`). The one true statement lived only
+            /// behind `PGEN_REPORT_MEMO_STATS` — a debugging surface, not the embedder's
+            /// error.
+            ///
+            /// This is a pure SURFACING change and it is engine-universal by
+            /// construction: it reads a counter the guard already maintains, on the
+            /// FAILURE path only, in every family's `parse_full`/`parse_full_from`. It
+            /// cannot move the accept set (an `Ok` never reaches here) and it cannot
+            /// regress the accept path (no work is done on it).
+            ///
+            /// `events_at_entry` makes the reading a PER-PARSE DELTA rather than the
+            /// lifetime counter: `prepare_parse_state` deliberately does not reset
+            /// `recursion_depth_block_events` (`memoized_call` reads it as a
+            /// within-parse delta too), so an embedder reusing one parser across parses
+            /// would otherwise see the first over-ceiling input label every subsequent
+            /// rejection.
+            ///
+            /// A `RecursionDepthExceeded` that survived to the top already names the
+            /// ceiling, so it is returned untouched rather than double-labelled.
+            fn label_recursion_ceiling_contact(
+                &self,
+                err: ParseError,
+                events_at_entry: u64,
+            ) -> ParseError {
+                let events = self.recursion_depth_block_events.saturating_sub(events_at_entry);
+                if events == 0 || matches!(err, ParseError::RecursionDepthExceeded { .. }) {
+                    return err;
+                }
+                let position = match &err {
+                    ParseError::UnexpectedEof { position }
+                    | ParseError::UnexpectedToken { position, .. }
+                    | ParseError::InvalidSyntax { position, .. }
+                    | ParseError::Backtrack { position }
+                    | ParseError::RecursionDepthExceeded { position, .. }
+                    | ParseError::ContextualError { position, .. }
+                    | ParseError::RecursionCeilingContacted { position, .. } => *position,
+                };
+                ParseError::RecursionCeilingContacted {
+                    surface: err.to_string(),
+                    position,
+                    ceiling: #recursion_ceiling_frames,
+                    events,
+                }
+            }
+
             pub fn parse_full(&mut self) -> ParseResult<ParseNode<'input>> {
-                let parsed = self.parse()?;
+                // `ENGINE-UNIVERSAL-SERVICES.61`(a): snapshot the guard's refusal counter
+                // BEFORE the parse so the label reports this parse's contact, not the
+                // parser's lifetime total.
+                let __pgen_depth_events_at_entry = self.recursion_depth_block_events;
+                let parsed = match self.parse() {
+                    Ok(parsed) => parsed,
+                    Err(e) => {
+                        return Err(self.label_recursion_ceiling_contact(
+                            e,
+                            __pgen_depth_events_at_entry,
+                        ));
+                    }
+                };
                 #trailing_layout_skip
                 if self.position == self.input.len() {
                     // FINAL-PHASE-PREDICATE.2: whole-input obligations discharge
@@ -2600,10 +2671,16 @@ impl AstBasedGenerator {
                     self.discharge_final_phase_obligations()?;
                     Ok(parsed)
                 } else {
-                    Err(ParseError::InvalidSyntax {
-                        message: "Parser did not consume full input",
-                        position: self.position,
-                    })
+                    // `ENGINE-UNIVERSAL-SERVICES.61`(a): this is the arm the over-ceiling
+                    // rejection actually surfaces through — the ceiling refusal itself was
+                    // backtracked away, leaving a partial parse and unconsumed input.
+                    Err(self.label_recursion_ceiling_contact(
+                        ParseError::InvalidSyntax {
+                            message: "Parser did not consume full input",
+                            position: self.position,
+                        },
+                        __pgen_depth_events_at_entry,
+                    ))
                 }
             }
 
@@ -2616,7 +2693,19 @@ impl AstBasedGenerator {
             /// (and `parseability_probe --entry-rule`) from the configured entry. The
             /// trailing-layout / full-consumption check is byte-identical to `parse_full`.
             pub fn parse_full_from(&mut self, entry: &str) -> ParseResult<ParseNode<'input>> {
-                let parsed = self.parse_from(entry)?;
+                // `ENGINE-UNIVERSAL-SERVICES.61`(a) — same per-parse snapshot as
+                // `parse_full`; the entry-aware path is a consumer surface too
+                // (`parseability_probe --entry-rule`, certificate witness verification).
+                let __pgen_depth_events_at_entry = self.recursion_depth_block_events;
+                let parsed = match self.parse_from(entry) {
+                    Ok(parsed) => parsed,
+                    Err(e) => {
+                        return Err(self.label_recursion_ceiling_contact(
+                            e,
+                            __pgen_depth_events_at_entry,
+                        ));
+                    }
+                };
                 #trailing_layout_skip
                 if self.position == self.input.len() {
                     // FINAL-PHASE-PREDICATE.2: whole-input obligations discharge
@@ -2625,10 +2714,13 @@ impl AstBasedGenerator {
                     self.discharge_final_phase_obligations()?;
                     Ok(parsed)
                 } else {
-                    Err(ParseError::InvalidSyntax {
-                        message: "Parser did not consume full input",
-                        position: self.position,
-                    })
+                    Err(self.label_recursion_ceiling_contact(
+                        ParseError::InvalidSyntax {
+                            message: "Parser did not consume full input",
+                            position: self.position,
+                        },
+                        __pgen_depth_events_at_entry,
+                    ))
                 }
             }
 

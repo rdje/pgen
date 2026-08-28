@@ -13947,7 +13947,7 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   standing SV lane lock, and this is not a defect that blocks the SystemVerilog release.
 
 
-### ⛔⛔ `.61` — **THE RECURSION CEILING IS AN *ACCURACY* DEFECT BEFORE IT IS A SPEED ONE: BOTH RELEASED PARSERS REJECT SYNTACTICALLY WELL-FORMED INPUT, AND THE DIAGNOSTIC NAMES THE WRONG CAUSE — ZERO OF THE FIVE WORDS A CONSUMER WOULD LOOK FOR APPEAR IN IT** (`todo`, opened 2026-08-28 by the DIRECTOR'S ACCURACY-BEFORE-SPEED ORDERING / `PGEN-ENGINE-UNIVERSAL-SERVICES-0109`; **THE SV LANE'S NEXT ACTION**)
+### ⛔⛔ `.61` — **THE RECURSION CEILING IS AN *ACCURACY* DEFECT BEFORE IT IS A SPEED ONE: BOTH RELEASED PARSERS REJECT SYNTACTICALLY WELL-FORMED INPUT, AND THE DIAGNOSTIC NAMES THE WRONG CAUSE — ZERO OF THE FIVE WORDS A CONSUMER WOULD LOOK FOR APPEAR IN IT** (`todo`, opened 2026-08-28 by the DIRECTOR'S ACCURACY-BEFORE-SPEED ORDERING / `PGEN-ENGINE-UNIVERSAL-SERVICES-0109`; ✅✅ **(a) DONE 2026-08-28 `…-0110` — the shipped over-ceiling rejection now NAMES the ceiling on both released families, `0 of 5` → **5 of 5** on this leaf's own term census, with the accept boundary measured UNMOVED (SV 322/323, VHDL 681/682) and the label pinned by a RED-capable control that refuses to fire on an ordinary syntax error; embedding API `1.3.3`. ⭐ The obvious signal was DISPROVED in-slice: depth 322 ACCEPTS while recording 847 ceiling refusals, so `events != 0` is not a discriminator and the wording is conditional by design**; ⛔ **(b) IS NOW THE LANE'S NEXT ACTION** — is 4096 frames a defensible LOCATION?; (c) speed, still parked behind it)
 
 > ⭐⭐⭐ **THIS LEAF EXISTS BECAUSE A STEERING CALL RE-READ A MEASUREMENT I ALREADY HAD.** The director's
 > ordering — *"right now we need to focus on accuracy and precision, speed will come next"* — was made
@@ -14006,6 +14006,223 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   elaborator is right to reject; (iii) the 0-of-5 term census covers the message these two invocations
   print, not every error path in the engine.
 
+#### ✅ `.61`(a) DONE 2026-08-28 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0110`) — THE OVER-CEILING REJECTION NOW NAMES THE CEILING, ON EVERY FAMILY, IN THE ERROR AN EMBEDDER ACTUALLY RECEIVES. **0 of 5 → 5 of 5** ON THE LEAF'S OWN CENSUS
+
+- [x] **REPRODUCE / ISSUE** — reproduced on the SHIPPED release binary before touching anything,
+  with `--parser-fingerprint` asserting the binary embeds the parser on disk
+  (`systemverilog 240da0a4…` = `shasum` of `generated/systemverilog_parser.rs`). Depth 322
+  ACCEPTS; depth 323 rejects as
+  `Parser did not consume full input at position 0 [furthest_position=668, …]`, and depth 350 the
+  same at 722. `PGEN_REPORT_MEMO_STATS=1` on the SAME inputs reports **847** (322, accepted) and
+  **1 013** (323, rejected) `depth-ceiling rejections`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — tool signature, from the shipped rejection itself:
+  `Parser did not consume full input at position 0 [furthest_position=668, +668 bytes deeper
+  than surface position]` on `sv_323.sv`, cross-read with `PGEN_REPORT_MEMO_STATS=1`'s
+  `1013 depth-ceiling rejections` on the SAME input, and the accept confirmed by
+  `--parse-dump-ast`. ⭐ **That pair IS the diagnosis**: `furthest_position=668` says the parse
+  reached the END of the parenthesis run while the message it prints names position **0**, so
+  the reported locus is the start of the construct and the real one is 668 bytes deeper.
+  **WHY**: the ceiling refusal is a real, correctly-constructed
+  `ParseError::RecursionDepthExceeded` (emitted at `ast_based_generator.rs:4299` for the protocol
+  graph and `ast_based_generator/cascade.rs:657` for the fused one), but it is raised inside a
+  failing ALTERNATIVE and is therefore backtracked away exactly like an ordinary rejection. The
+  parse then unwinds to the top with a partial derivation and unconsumed input, and the only site
+  that composes a top-level verdict — `parse_full` / `parse_full_from` — had one unconditional
+  arm: `InvalidSyntax { message: "Parser did not consume full input", position: self.position }`.
+  ⇒ **the information was not missing, it was DISCARDED one frame below the surface.**
+  **WHERE**: `ast_based_generator.rs` `generate_parse_method`, the `parse_full` and
+  `parse_full_from` failure arms (pre-change `:2604` / `:2629`). Both are engine-universal —
+  every one of the eleven generated artifacts routes its top-level verdict through them — which
+  is why the fix is one codegen site and not a per-family patch.
+- ⛔⛔ **AND THE OBVIOUS SIGNAL IS NOT A SOUND ONE — measured, and it changed the design.** The
+  first instinct is "label the rejection whenever `recursion_depth_block_events != 0`". That is
+  **wrong**, and the disproof was one command: **depth 322 ACCEPTS and still records 847 ceiling
+  refusals.** The counter is not a discriminator; it counts contact on abandoned branches too. ⇒
+  the label is scoped to the FAILURE path (where an accept can never reach it) and its wording is
+  **conditional** — *"if the input is syntactically valid it exceeds this parser's nesting
+  capacity"* — rather than an assertion that the ceiling caused the rejection. **A label that
+  over-claimed would have traded a diagnostic that names the wrong cause for one that names a
+  wrong cause more often**, which is the same defect this leaf exists to close, pointed the other
+  way.
+- [x] **FIX** — ENGINE tier, **ZERO grammar bytes**, three source files plus codegen:
+  - a new `ParseError::RecursionCeilingContacted { surface, position, ceiling, events }`
+    (`ast_pipeline/mod.rs`). It **WRAPS**: `surface` is the diagnostic the parse would otherwise
+    have reported, rendered first and unchanged, so the reported position is byte-identical and
+    anything already parsing `at position N` or the `furthest_position` suffix keeps working.
+  - `label_recursion_ceiling_contact`, emitted once per parser beside
+    `discharge_final_phase_obligations`, called from **both** `parse_full` and `parse_full_from`
+    on their failure arms only.
+  - the reading is a **per-parse DELTA** (`events_at_entry` snapshotted before `self.parse()`),
+    because `prepare_parse_state` deliberately does not reset `recursion_depth_block_events` —
+    without the delta an embedder reusing one parser would see the first over-ceiling input label
+    every subsequent rejection.
+  - the ceiling constant is interpolated from `GENERATED_RECURSION_GUARD_MAX_DEPTH`, the SAME
+    constant the guard's own `depth >= …` test uses, so the number reported and the number that
+    produced it cannot drift apart.
+  - the two exhaustive `match`es over `ParseError` extended (`embedding_api::parse_error_position`
+    — which returns the WRAPPED position, so an embedder's reported location does not move; and
+    `bin/ebnf_dual_run_diff::parse_error_fields`, which carries the contact counts rather than
+    hiding them).
+- ⭐⭐ **THE WORDING IS MEASURED, NOT STYLED — and the first draft failed its own test.** `.61`
+  censused the old message for the five terms a consumer would search (`depth`, `ceiling`,
+  `limit`, `nest`, `recursion`) and found **0 of 5**. My first draft scored **4 of 5**: it said
+  *"nesting capacity"* where a reader would look for *"limit"*. Re-worded to carry all five, and
+  to state that **the number counts PARSER FRAMES, not source nesting levels** — a reader who
+  takes 4096 for 4096 levels of source nesting concludes their file is nowhere near the limit
+  when it is well over it (SV rejects at 323 parens ≈ 4096 ÷ ~12.7 frames/level).
+- ⛔ **A NEW DIAGNOSTIC CODE WAS PRICED AND DECLINED, not overlooked.** `E_RECURSION_CEILING`
+  would be the more legible design and is what a machine-readable distinction wants. It is
+  **not backward-compatible**: every embedder arm that branches on `E_PARSE_FAILURE` today would
+  silently stop matching over-ceiling input — a regression handed to consumers in exchange for
+  legibility. The code set therefore stays stable, and the structured distinction is carried by
+  the typed variant (`ceiling` and `events` as fields) for embedders who want it without string
+  matching. Locked by an assertion in the new test.
+- [x] **ADDRESSED (verified)** — ⭐ **on the graph that SHIPS, with no env var**, which is the
+  arm that matters: `.56`(b) established that every observation channel is a disjunct of
+  `bare_parse`, so the pre-change instrument (`PGEN_REPORT_MEMO_STATS`) **routed the parse off the
+  fused graph** and could not have witnessed this. Parser identity asserted on the new binary too
+  (`systemverilog bbcfe332…`, `vhdl 0106f901…`, both `MATCH` against `shasum` of the artifacts on
+  disk).
+
+  | family | over-ceiling diagnostic, shipped fused graph | 5-term census |
+  |---|---|---:|
+  | systemverilog (323) | `… at position 0 [recursion ceiling CONTACTED: the depth guard reached its 4096-frame limit and refused **953** rule entries during this parse. The limit counts PARSER FRAMES, not source nesting levels …]` | **5 of 5** |
+  | vhdl (682) | same label, **879** refusals, surface position **24** | **5 of 5** |
+
+  ⭐ **A number that only exists because of this change**: the fused graph records **953**
+  refusals where the instrumented protocol graph recorded **1 013** on the same input. The two
+  graphs' ceiling contact was never comparable before, because observing one converted it into
+  the other.
+- [x] **NO REGRESSION** — external corpus **16 336/16 336 verdicts byte-identical** to the tracked
+  characterization under its own profile; the binding parse-cost counters (`entries.tsv`,
+  `rule_costs.tsv`, `rule_graph.json`) **byte-identical**; `embedding_api_gate` 37 + 60 passed /
+  0 failed; the clippy flow GREEN on both stages (`clippy` source + generated, 68 pinned
+  `clippy::correctness` lints intact); all **11** generated artifacts re-derive byte-identically;
+  all 31 doctrines PASS. ⭐⭐ **the structural arm first, because it is stronger than any table**:
+  the label is composed on the `Err` path only and it WRAPS rather than replaces, so (i) no
+  accepted parse can reach it, (ii) no verdict can move, and (iii) the surface position and the
+  pre-existing `furthest_position` augmentation are unchanged by construction. Measured
+  confirmation that the accept boundary did not move: **SV 322 ACCEPT / 323 REJECT, VHDL 681
+  ACCEPT / 682 REJECT — identical to this leaf's own pre-change table.**
+  - **FALSE-POSITIVE CENSUS over the external corpus, on the shipped fused graph**:
+⭐⭐ **the strongest arm in this slice, and it is
+    a DOUBLE census because the first one disagreed with its baseline and I chased the
+    disagreement instead of explaining it away.**
+
+    | census | profile | files | ACCEPT | REJECT | TIMEOUT | **LABELLED** | vs tracked baseline |
+    |---|---|---:|---:|---:|---:|---:|---|
+    | A | unnamed (the union — see `.62`) | 16 336 | 9 818 | 6 512 | 6 | **0** | 28 verdicts + 6 timeouts differ |
+    | B | `--profile sv_2017` (what the baseline used, and what ships) | 16 336 | 9 794 | 6 542 | 0 | **0** | ⭐ **0 differences over all 16 336** |
+
+    ⇒ **census B is exact**: every verdict in the tracked external-corpus characterization is
+    reproduced file-for-file (`9 794` / `6 542`, its own published totals), and **0 of 6 542
+    rejections gained the ceiling label** — a false-positive rate of zero on the population an
+    embedder actually meets. Census A independently agrees on the label (0 of 6 512) under a
+    grammar doing far more backtracking, so the claim does not depend on which profile is read.
+    ⭐ Census A was additionally run **twice** by accident (a stray backgrounded job appended to
+    the same file) — **16 336 distinct files, 32 610 rows, 0 disagreements**, which is a free
+    determinism check on the instrument.
+    ⛔⛔ **AND CENSUS A's DISAGREEMENT WAS A REAL FINDING, NOT NOISE — it is now `.62`.** All 28
+    differing files REJECT under `sv_2017` and ACCEPT under the unnamed profile, 28 of 28; SV
+    declares no `@default_profile`, so an unnamed profile parses the UNION of every dialect. One
+    real OpenTitan file answers in **0.2 s** under `sv_2017` and **not at all in 181 s** without
+    it. None of that is caused by this slice — the label is composed on the `Err` path and a parse
+    that never returns never reaches it — and census B proves the point by reproducing the
+    baseline exactly.
+  - **163-file SV adjudication-repro corpus** (pre-change, instrumented): **36 REJECT / 125
+    ACCEPT, 0 with any depth-ceiling contact** ⇒ the ordinary adjudication population does not
+    reach the changed path at all.
+  - the error string is **not** part of the parse-harness differential (verdict +
+    `furthest_position` + typed AST are compared, `parse_harness_interpreter.rs:1475`), so the
+    interpreter needs no mirror for this and its byte-identity claim is untouched.
+- [x] **DURABILITY (leg 3 — the one that gets skipped)** — the claim is WATCHED, not just made.
+  Two new locks in `embedding_api.rs`, deliberately a PAIR so the bar can go RED in both
+  directions:
+  - `parser_embedding_over_ceiling_diagnostic_names_the_recursion_ceiling` — an over-ceiling SV
+    parse must carry **all five** terms, and must still carry code `E_PARSE_FAILURE`.
+  - `parser_embedding_ordinary_syntax_error_diagnostic_does_not_name_the_ceiling` — **the control,
+    and the important half**: an ordinary syntax error must NOT be labelled. A label that fired on
+    every rejection would score 5 of 5 and be worthless; this is the arm that refuses that.
+- [x] **LOCKSTEP** — embedding API `1.3.2` → **`1.3.3`** (constant + `rust/docs/EMBEDDING_API_CONTRACT.md`
+  Versioning, which states the three specific senses in which it is backward-compatible: stable code
+  set, wrapping rather than replacing, no accept-set change). Book: a new
+  **The Rejection Now Says It Is A Ceiling** section in
+  `docs/book/src/embedding-and-downstream-integration.md`, placed where that page already documents
+  the ceiling's speed behaviour — because the accuracy half belongs beside it, not somewhere else.
+- ⚠️ **HONEST BOUNDS ON (a) ITSELF**: (i) it is a **CONTACT** report, not a causal proof — the
+  guard can refuse a branch that was going to be abandoned anyway, and the wording is conditional
+  for exactly that reason; (ii) it labels the two `parse_full*` verdict sites, which is where the
+  over-ceiling rejection surfaces, **not** every error path in the engine; (iii) **(a) does not
+  make the parser accept anything it rejected before, and it is not meant to** — the parser still
+  rejects conforming source, and that is `.61`(b).
+- ⇒ **`.61`(b) IS NOW THE LANE'S NEXT ACTION**: is 4096 frames a defensible LOCATION for the
+  ceiling? The corpus half of that question is already half-answered by this slice's census (see
+  the false-positive row above) — what remains is whether a conforming consumer meets it in
+  practice, and what raising or removing it would cost.
+
+
+
+### ⛔⛔ `.62` — **SYSTEMVERILOG DECLARES NO `@default_profile`, SO AN UNNAMED PROFILE PARSES THE *UNION* OF EVERY DIALECT: IT ACCEPTS 28 REAL CORPUS FILES `sv_2017` REJECTS, AND ON ONE OF THEM IT DOES NOT TERMINATE IN 181 s WHERE `sv_2017` ANSWERS IN 0.2 s** (`todo`, ROUTED + PARKED behind `.61`(b), opened 2026-08-28 by `.61`(a)'s own no-regression census / `PGEN-ENGINE-UNIVERSAL-SERVICES-0110`)
+
+> ⭐⭐⭐ **THIS LEAF EXISTS BECAUSE A REGRESSION CENSUS DISAGREED WITH ITS BASELINE AND I DID NOT
+> EXPLAIN THE DISAGREEMENT AWAY.** `.61`(a)'s no-regression arm ran the full 16 336-file external
+> SV corpus and compared it to the tracked characterization. It differed on **28 verdicts and 6
+> timeouts**. The comfortable reading was available and wrong — *"the baseline is stale, many SV
+> slices have landed since, of course it moved"*. The baseline's own instrument-identity block does
+> say it no longer describes this tree. But the census also used a **different profile**, and that
+> turned out to be the whole difference and a defect underneath it.
+
+- ⛔ **THE MEASUREMENT, three ways, all deterministic on repeat.**
+  1. **`grep '@default_profile' grammars/systemverilog.ebnf` returns NOTHING**, and the shipped
+     `generated/systemverilog_parser.rs` emits no `DEFAULT_GRAMMAR_PROFILE`. So
+     `normalize_generated_grammar_profile` answers `None` for an unspecified SV profile
+     (`parser_registry.rs:476`) and there is no declared default to fall back to. The parse runs
+     with **no `@profiles` gating at all** — the union of `sv_2017`, `sv_2023` and `verilog_2005`,
+     which is not a dialect any LRM defines.
+  2. **OVER-ACCEPTANCE, 28 of 28, both directions clean.** Every one of the 28 files whose verdict
+     differed from the tracked baseline **REJECTS under `--profile sv_2017` and ACCEPTS under the
+     unnamed profile**. Not a sample — the whole disagreement set, re-run under both profiles.
+  3. **AND IT CAN FAIL TO TERMINATE.** `stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/rtl/ibex_compressed_decoder.sv`
+     (35 306 B, ordinary vendored OpenTitan RTL) answers in **0.2 s** under `--profile sv_2017`
+     and produces **no result in 181 s** with no profile — reproduced at 121 s, 151 s (×2) and
+     181 s, always a timeout. Three more real files accept but cost **30 s / 30 s / 73 s** under
+     the unnamed profile.
+- ⛔⛔ **WHY THIS IS A DEFECT AND NOT A CONFIGURATION FOOTGUN.** The project's north star is that
+  **SystemVerilog is 100 % LRM-compliant BY DEFAULT and over-acceptance is a defect**. The unnamed
+  profile is precisely the default path, and it is over-accepting against a real corpus by a
+  measured 28 files. A caller who names no dialect does not get a permissive-but-honest superset —
+  they get a grammar whose accept set corresponds to no publication, at up to ~1 000× the cost.
+- ⭐ **AND IT SILENTLY DEGRADES THE PROJECT'S OWN INSTRUMENTS.** `stimuli/run_external_corpus.sh`
+  passes `--profile sv_2017`, so every tracked characterization number is a `sv_2017` number. Any
+  ad-hoc `parseability_probe --parse systemverilog <file>` — the spelling that appears throughout
+  `TOOLBOX.md` and in this tree's own repro lines — measures the union instead, and the two are
+  not comparable. That is how this was found: two of my own censuses, taken the same hour on the
+  same binary, disagreed.
+- **WHAT THIS LEAF OWES:**
+  - **(a)** SIZE IT on the corpus, not on the 28: under the unnamed profile versus `sv_2017`, how
+    many of the 16 336 files change verdict, and in which direction? ⛔ Do not change the default
+    before the number exists — `DOCTRINE-GAP-OWNERSHIP.15`'s ruling applies (never move a gating
+    behaviour over a population nobody has sized).
+  - **(b)** ADJUDICATE the 28 by name against the LRMs. `sv_2017` rejecting them is only the
+    *right* answer if the constructs really are non-conforming; if any is conforming, this leaf has
+    found an under-acceptance in `sv_2017` instead, which is a different and larger defect.
+  - **(c)** DECIDE the default. The obvious candidate is declaring `@default_profile: sv_2017` on
+    the grammar, which would make the unnamed spelling mean the newest full LRM dialect and make
+    the union unreachable except by asking for it. ⚠️ That is a **behaviour change on a shipped
+    surface** and needs (a) first.
+  - **(d)** the cost half — whether the union's non-termination is the same call-volume term
+    `.44`(b) measured or a distinct one. Sequenced last, per the director's accuracy-before-speed
+    ordering.
+- ⚠️ **HONEST BOUNDS**: (i) the 28 and the timing figures come from ONE census pair on one host;
+  (a) is exactly the arm that replaces them with a full sized number; (ii) *"the unnamed profile is
+  the union"* is derived from the absent `@default_profile` plus the measured behaviour, not from
+  reading the filter — the filter's own code path is `.47`'s subject and this leaf should re-derive
+  it rather than inherit my reading; (iii) the embedding API's `parse_systemverilog_2017` /
+  `_2023` wrappers **do** name a profile, so an embedder on that surface is not exposed — this is
+  the `parse_grammar_profile`-with-nothing and CLI paths.
+- ⛔ **NOT WORKED IN `.61`(a)**: it is not a blocker for the ceiling label (the label census was
+  re-run under BOTH profiles and the result is the same), and the director's ordering puts
+  `.61`(b) next. Routed, owned, and sequenced — not merely logged.
 
 ### ⚠️ `.47` — `detect_profile_orphans` reads the **FILTERED** profile context and a universe that omits `@default_profile`, so on any grammar declaring a default it has never evaluated the profile that SHIPS (`todo`, opened 2026-08-25 by `.46` slice 2 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0084`)
 

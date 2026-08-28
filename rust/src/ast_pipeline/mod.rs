@@ -718,6 +718,39 @@ pub enum ParseError {
         rule_stack: Vec<&'static str>,
         input_context: String,
     },
+    /// `ENGINE-UNIVERSAL-SERVICES.61`(a) — the parse FAILED, and while it ran the
+    /// recursion depth guard refused at least one rule entry at its frame capacity.
+    ///
+    /// ⛔ This variant exists because the alternative is a diagnostic that names the
+    /// WRONG CAUSE. An over-ceiling input is syntactically well-formed — neither IEEE
+    /// 1800 nor IEEE 1076 bounds expression nesting depth — but a ceiling refusal is
+    /// backtracked away like any other failing alternative, so the parse surfaced as an
+    /// ordinary `InvalidSyntax { "Parser did not consume full input" }` at the START of
+    /// the construct. Measured on both released families: grepping that shipped message
+    /// for `depth|ceiling|limit|nest|recursion` returned **0 of 5** terms, so a consumer
+    /// was told "syntax error near the start of your file" about a file that is
+    /// syntactically correct. The true statement existed only behind
+    /// `PGEN_REPORT_MEMO_STATS`, a debugging surface rather than the error an embedder
+    /// receives.
+    ///
+    /// `surface` is the diagnostic the parse would have reported without this label,
+    /// already rendered — the label WRAPS the original error, it never replaces it, so
+    /// no position or message an existing consumer parses out of it moves. `events` is
+    /// the number of rule entries the guard refused DURING THIS PARSE (a per-parse
+    /// delta, so a reused parser cannot inherit an earlier parse's contact), and
+    /// `ceiling` is the guard's frame capacity.
+    ///
+    /// ⚠️ **It is a CONTACT report, not a causal proof.** A refusal on a branch that
+    /// was abandoned for an unrelated reason also counts, so the rendered wording is
+    /// conditional ("if the input is syntactically valid…") rather than an assertion
+    /// that the ceiling caused the rejection. Whether the ceiling's LOCATION is
+    /// defensible at all is `.61`(b), not this variant.
+    RecursionCeilingContacted {
+        surface: String,
+        position: usize,
+        ceiling: usize,
+        events: u64,
+    },
 }
 
 impl std::fmt::Display for ParseError {
@@ -764,6 +797,42 @@ impl std::fmt::Display for ParseError {
                     writeln!(f, "  {}: {}", i, rule)?;
                 }
                 Ok(())
+            }
+            // `ENGINE-UNIVERSAL-SERVICES.61`(a). The surface diagnostic is rendered
+            // FIRST and unchanged, so `... at position N` still terminates the string
+            // exactly as it did before the label existed — `parser_registry`'s
+            // `extract_position_from_message` reads the LAST such segment, and both
+            // occurrences below carry the same `position`. The label is additive.
+            //
+            // ⭐ The WORDING is measured, not styled. `.61`'s census of the old message
+            // grepped it for the five terms a consumer would search — `depth`,
+            // `ceiling`, `limit`, `nest`, `recursion` — and found **0 of 5** on both
+            // released families. This text carries all five deliberately: "depth guard"
+            // (depth), "recursion ceiling" (ceiling + recursion), "{}-frame limit"
+            // (limit) and "nesting levels" (nest). A first draft scored 4 of 5 by
+            // saying "capacity" where a reader would look for "limit".
+            //
+            // ⛔ The frames-vs-levels sentence is not padding: the number is a PARSER
+            // FRAME count, and a reader who takes 4096 for 4096 levels of source
+            // nesting concludes their file is nowhere near the limit when it is over
+            // it. SystemVerilog rejects at 323 nested parens — roughly 4096 ÷ ~12.7
+            // frames per level.
+            ParseError::RecursionCeilingContacted {
+                surface,
+                position,
+                ceiling,
+                events,
+            } => {
+                write!(
+                    f,
+                    "{} [recursion ceiling CONTACTED: the depth guard reached its \
+                     {}-frame limit and refused {} rule entries during this parse. The \
+                     limit counts PARSER FRAMES, not source nesting levels — one level \
+                     of a nested construct costs several frames. If the input is \
+                     syntactically valid it exceeds this parser's nesting capacity, and \
+                     the defect is the ceiling — not a syntax error at position {}]",
+                    surface, ceiling, events, position
+                )
             }
         }
     }

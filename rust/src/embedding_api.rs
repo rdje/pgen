@@ -33,7 +33,7 @@ const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
 /// instead of a host-process stack-overflow SIGABRT. Backward compatible; the
 /// regex path is unchanged (it keeps its own RGX-0085 worker + nesting
 /// pre-check).
-pub const EMBEDDING_API_VERSION: &str = "1.3.2";
+pub const EMBEDDING_API_VERSION: &str = "1.3.3";
 
 /// Stable schema version for serialized embedding API metadata.
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
@@ -524,7 +524,11 @@ fn parse_error_position(error: &ParseError) -> usize {
         | ParseError::InvalidSyntax { position, .. }
         | ParseError::Backtrack { position }
         | ParseError::RecursionDepthExceeded { position, .. }
-        | ParseError::ContextualError { position, .. } => *position,
+        | ParseError::ContextualError { position, .. }
+        // `ENGINE-UNIVERSAL-SERVICES.61`(a): the ceiling label carries the SURFACE
+        // position of the error it wraps, so an embedder's reported location is
+        // byte-identical to the unlabelled one.
+        | ParseError::RecursionCeilingContacted { position, .. } => *position,
     }
 }
 
@@ -3465,6 +3469,88 @@ mod tests {
              search. Took {:?}, budget {:?} — see ENGINE-UNIVERSAL-SERVICES.43",
             elapsed,
             CEILING_WALL_CLOCK_BUDGET
+        );
+    }
+
+    // ── `ENGINE-UNIVERSAL-SERVICES.61`(a) — THE PRECISION LOCKS ────────────────────
+    //
+    // The pair above proves the over-ceiling rejection is CLEAN and BOUNDED. It says
+    // nothing about whether the rejection is COMPREHENSIBLE, and for the whole life of
+    // that pair it was not: the ceiling refusal is backtracked away like any other
+    // failing alternative, so what an embedder received was
+    // `Parser did not consume full input at position 0` — a syntax-error message,
+    // pointing at the START of the construct, about input that is syntactically
+    // well-formed (neither IEEE 1800 nor IEEE 1076 bounds expression nesting depth).
+    // Censused on both released families, that message contained **0 of the 5** terms a
+    // consumer would search for.
+    //
+    // These two are a PAIR for the same reason the ones above are, and the second is
+    // the one that matters most: a label that fires on every rejection would score 5 of
+    // 5 on the census and be worthless — it would trade a diagnostic that names the
+    // wrong cause for one that names a wrong cause more often. The control pins the
+    // label to inputs that actually reached the ceiling.
+    const CEILING_DIAGNOSTIC_TERMS: [&str; 5] =
+        ["depth", "ceiling", "limit", "nest", "recursion"];
+
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn parser_embedding_over_ceiling_diagnostic_names_the_recursion_ceiling() {
+        let over = format!(
+            "module m; assign x = {}1{}; endmodule",
+            "(".repeat(400),
+            ")".repeat(400)
+        );
+        let outcome =
+            parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2017, &over);
+        let diagnostic = outcome
+            .diagnostic
+            .expect("over-ceiling nesting must carry a diagnostic");
+        // ⛔ The published code set stays STABLE: an embedder branching on
+        // `E_PARSE_FAILURE` must keep matching this. The machine-readable distinction
+        // is carried by the typed `ParseError::RecursionCeilingContacted` variant, not
+        // by a new code string that would silently stop matching their existing arm.
+        assert_eq!(
+            diagnostic.code, "E_PARSE_FAILURE",
+            "the ceiling label must not change the published diagnostic code"
+        );
+        let message = diagnostic.message.to_lowercase();
+        let missing: Vec<&str> = CEILING_DIAGNOSTIC_TERMS
+            .iter()
+            .copied()
+            .filter(|term| !message.contains(term))
+            .collect();
+        assert!(
+            missing.is_empty(),
+            "an over-ceiling rejection must NAME the ceiling. Missing {:?} from: {}",
+            missing,
+            diagnostic.message
+        );
+    }
+
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn parser_embedding_ordinary_syntax_error_diagnostic_does_not_name_the_ceiling() {
+        // The CONTROL half. This input is a genuine syntax error nowhere near the
+        // ceiling, so the label must be ABSENT — mislabelling an ordinary syntax error
+        // as a capacity failure sends the embedder hunting a nesting problem that does
+        // not exist, which is the same defect class as the one `.61`(a) closes, pointed
+        // the other way.
+        let broken = "module m; assign x = ; endmodule";
+        let outcome =
+            parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2017, broken);
+        assert_eq!(
+            outcome.status,
+            ParseStatus::Failure,
+            "the control input must actually be rejected, or this lock proves nothing"
+        );
+        let message = outcome
+            .diagnostic
+            .expect("a rejection must carry a diagnostic")
+            .message;
+        assert!(
+            !message.contains("recursion ceiling CONTACTED"),
+            "an ordinary syntax error must NOT be labelled a capacity failure: {}",
+            message
         );
     }
 

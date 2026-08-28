@@ -131,6 +131,22 @@ fn parse_error_fields(error: &ParseError) -> (String, String, Option<usize>) {
             message.clone(),
             Some(*position),
         ),
+        // `ENGINE-UNIVERSAL-SERVICES.61`(a): report the label's own kind, and carry
+        // the WRAPPED diagnostic plus the contact counts as the message — a dual-run
+        // diff that hides the ceiling would be exactly the blindness this leaf closes.
+        ParseError::RecursionCeilingContacted {
+            surface,
+            position,
+            ceiling,
+            events,
+        } => (
+            "RecursionCeilingContacted".to_string(),
+            format!(
+                "{} (recursion ceiling contacted: {} refusals at {} frames)",
+                surface, events, ceiling
+            ),
+            Some(*position),
+        ),
     }
 }
 

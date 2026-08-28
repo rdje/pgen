@@ -53,7 +53,34 @@ Root-level parser-family handoff docs (`PGEN_*_PARSER_INTEGRATION_CONTRACT.md`) 
   - default via `AstDumpOptions::default()`
 
 ## Versioning
-- Contract version constant: `EMBEDDING_API_VERSION = "1.3.2"`
+- Contract version constant: `EMBEDDING_API_VERSION = "1.3.3"`
+  - `1.3.3` (2026-08-28, `ENGINE-UNIVERSAL-SERVICES.61`(a)): backward-compatible DIAGNOSTIC fix.
+    A rejection from a parse that contacted the 4096-frame recursion ceiling now **says so**.
+    `1.3.1` made crossing the ceiling clean and `1.3.2` made it bounded; both left the message
+    itself naming the wrong cause — the ceiling refusal is backtracked away like any other
+    failing alternative, so an embedder received `Parser did not consume full input at position
+    0` about input that is **syntactically well-formed** (neither IEEE 1800 nor IEEE 1076 bounds
+    expression nesting depth). Censused on both released families, that message contained **0 of
+    the 5** terms a consumer would search for (`depth`, `ceiling`, `limit`, `nest`,
+    `recursion`); it now contains **5 of 5**. Engine-level and grammar-agnostic — every family's
+    `parse_full`/`parse_full_from` inherits it.
+    ⛔ **Backward-compatible in three specific senses, all of them deliberate:**
+    (i) the published diagnostic **code set is unchanged** — an over-ceiling rejection is still
+    `E_PARSE_FAILURE`, because a new code would silently stop matching every embedder arm that
+    branches on that one today (the more legible design, priced and declined);
+    (ii) the label **wraps** the original diagnostic rather than replacing it, so the reported
+    surface position is byte-identical and anything parsing `at position N` out of the message
+    keeps working;
+    (iii) **no accept-set change** — the label is composed on the failure path only, and the
+    accept boundary is unmoved (SystemVerilog 322 accept / 323 reject; VHDL 681 / 682, both
+    identical to the pre-change measurement).
+    A new `ParseError::RecursionCeilingContacted` variant carries the frame `ceiling` and the
+    refusal `events` as typed fields for embedders who want the distinction without string
+    matching. Schema stays `2`; struct shapes unchanged.
+    ⚠️ It is a **contact** report, not a causal proof — the guard can refuse a branch that was
+    going to be abandoned anyway — and the wording is conditional for that reason. The ceiling
+    still rejects conforming source; whether 4096 frames is the right location for it is
+    `ENGINE-UNIVERSAL-SERVICES.61`(b).
   - `1.3.2` (2026-08-21, `ENGINE-UNIVERSAL-SERVICES.43`): backward-compatible fix completing
     `1.3.1` — crossing the 4096-frame recursion ceiling now returns its clean `E_PARSE_FAILURE`
     diagnostic in **bounded time**. `1.3.1` guaranteed the host's stack; it did not bound the

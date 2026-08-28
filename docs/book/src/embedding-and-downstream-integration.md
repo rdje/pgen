@@ -222,6 +222,78 @@ that cannot finish is not a lock.
 count on its headline, so "this input is at the ceiling" is one command away rather than inferred
 from a hang.
 
+### The Rejection Now Says It Is A Ceiling
+
+⛔ **Before you size for the plateau, understand what the ceiling costs you in *correctness*.**
+Everything above treats crossing the ceiling as a performance question. It is an accuracy question
+first, and for the whole life of the `1.3.1`/`1.3.2` guarantees the accuracy half had no owner.
+
+Neither IEEE 1800 nor IEEE 1076 bounds expression nesting depth, so an over-ceiling input is
+**syntactically well-formed** and the parser **rejects it anyway**. That is under-acceptance — the
+same defect class PGEN calls out for over-acceptance, pointed in the direction that breaks a
+working file. Measured on the shipped parsers, one nested-parenthesis shape per family:
+
+| family | deepest ACCEPTED | first REJECTED |
+|---|---:|---:|
+| systemverilog | **322** | **323** |
+| vhdl | **681** | **682** |
+
+⚠️ Those are *this shape's* capacity, not the parsers' capacity in general — the ceiling counts
+parser frames, and a different construct spends a different number of frames per nesting level.
+
+The second half was worse than the first. A ceiling refusal is backtracked away like any other
+failing alternative, so the parse surfaced as an ordinary syntax error at the **start** of the
+construct:
+
+```text
+systemverilog: Parser did not consume full input at position 0   [furthest_position=668, …]
+vhdl:          Parser did not consume full input at position 24  [furthest_position=741, …]
+```
+
+Grepping each shipped message for the five terms a consumer would search — `depth`, `ceiling`,
+`limit`, `nest`, `recursion` — returned **0 of 5 on both families**. An embedder was told their
+syntactically correct file had a syntax error near its start, and pointed at the wrong place. The
+one true statement lived only behind `PGEN_REPORT_MEMO_STATS`: a debugging surface, not the error
+they receive.
+
+⭐ **`ENGINE-UNIVERSAL-SERVICES.61`(a) closes that half.** A rejection from a parse that contacted
+the ceiling now says so, on every family, in the error an embedder actually gets:
+
+```text
+Parser did not consume full input at position 0 [recursion ceiling CONTACTED: the depth guard
+reached its 4096-frame limit and refused 953 rule entries during this parse. The limit counts
+PARSER FRAMES, not source nesting levels — one level of a nested construct costs several frames.
+If the input is syntactically valid it exceeds this parser's nesting capacity, and the defect is
+the ceiling — not a syntax error at position 0] [furthest_position=668, +668 bytes deeper …]
+```
+
+Same census, same five terms, same two families: **5 of 5**.
+
+Four properties of that label are worth knowing before you build on it:
+
+- **It wraps, it never replaces.** The original diagnostic is rendered first and unchanged, and the
+  surface position it reports is byte-identical to the unlabelled one. Anything already parsing
+  `at position N` or the `furthest_position` suffix out of these messages keeps working.
+- **The published diagnostic code is unchanged.** An over-ceiling rejection is still
+  `E_PARSE_FAILURE`. Introducing a new code would have been the more legible design and was
+  declined deliberately: it would silently stop matching every embedder arm that branches on
+  `E_PARSE_FAILURE` today. Rust embedders who want the distinction *typed* should match
+  `ParseError::RecursionCeilingContacted`, which carries the frame `ceiling` and the refusal
+  `events` as fields rather than as prose.
+- **It is a CONTACT report, not a causal proof, and the wording is hedged for exactly that
+  reason.** The guard can refuse a branch that was going to be abandoned anyway, so the label says
+  *"if the input is syntactically valid it exceeds this parser's nesting capacity"* rather than
+  asserting the ceiling caused the rejection. A label that over-claimed would trade a diagnostic
+  naming the wrong cause for one naming a wrong cause more often.
+- **It costs the accept path nothing.** The label is composed on the failure path only, from a
+  counter the guard already maintains, as a per-parse delta — so a parser reused across parses
+  cannot inherit an earlier input's contact.
+
+⛔ **What this does NOT fix**: the ceiling still rejects conforming source. Whether 4096 frames is
+the right place for it — and what a conforming consumer actually meets in practice — is
+`ENGINE-UNIVERSAL-SERVICES.61`(b), and the speed work (`.56`(d), `.58`) is explicitly sequenced
+behind both.
+
 ## Linter-Oriented Downstream Surfaces
 
 One downstream direction now tracked explicitly is linter enablement. The idea is not that PGEN should become a linter by itself. The idea is that PGEN should be able to hand downstream tools a stronger front-end product than "just a parse tree."
