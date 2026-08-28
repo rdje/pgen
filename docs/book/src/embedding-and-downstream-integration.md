@@ -289,11 +289,20 @@ Four properties of that label are worth knowing before you build on it:
   counter the guard already maintains, as a per-parse delta — so a parser reused across parses
   cannot inherit an earlier input's contact.
 
-### Is 4096 Frames The Right Place For It? — Measured
+### Is 4096 Frames The Right Place For It? — No. Two Limits Are Being Removed
 
-⭐ The ceiling still rejects conforming source, so the fair question is whether *you* will ever meet
-it. That was adjudicated rather than assumed (`ENGINE-UNIVERSAL-SERVICES.61`(b)), and the answer is
-**no measured consumer does**.
+> ⛔⛔ **CORRECTION, 2026-08-28.** An earlier version of this section ruled that *"4096 frames stays
+> where it is"* on the strength of the contact census below. **That ruling is withdrawn**
+> (`ENGINE-UNIVERSAL-SERVICES.63`), and the standing requirement is now the opposite: **a PGEN RTL
+> parser must ingest any RTL file — hand-written, generated, optimized or not — with no limitation
+> or restriction, the only legitimate bound being the host's RAM and disk.** The census facts below
+> survive; the conclusion drawn from them did not. What changed is that the census was measured over
+> hand- and tool-written open-source RTL, and the target population is all RTL a real chip project
+> contains. Two limits are consequently being removed — the frame ceiling (`.65`) and a second,
+> silent one described at the end of this section (`.66`).
+
+⭐ The ceiling rejects conforming source, so the fair question is whether *you* will meet it. The
+honest answer for a generated-RTL flow is **yes, and sooner than the corpus suggests**.
 
 **Ceiling contact across both released families, every file, the accept path included** — read from
 the guard's own refusal counter rather than from the diagnostic, because the label above is composed
@@ -307,39 +316,79 @@ on the failure path and a deep *accepted* parse can touch the ceiling without pr
 
 Not one refusal, in either family, across fourteen upstream projects — OpenTitan, Verilator,
 iverilog, Surelog, slang, verible, sv2v, black-parrot, VeeR, ibex, GHDL, VESTS, UVVM and others.
-An independent oracle that uses no parser at all agrees: a lexical scan of bracket depth puts the
-deepest real SystemVerilog file at **22** levels (99.9th percentile **8**) and the deepest VHDL at
-**16**.
+That is a fact about those files, and it is the whole of what the census establishes.
 
-⚠️ **Do not read the ceiling as a single depth, though.** It counts parser frames, and constructs
-spend frames at different rates. Ten SystemVerilog shapes, each bisected to its exact accept
-boundary:
+⛔⛔ **The oracle that turned it into a safety claim was measuring the wrong thing.** A lexical scan
+of `()[]{}` depth puts the deepest SystemVerilog file at **22** levels, and an earlier version of
+this page reported an **11.3× margin** on that basis. **A right-associative conditional chain
+carries no brackets at all** — `c0 ? v0 : c1 ? v1 : … : d`, which is what a priority mux lowers to —
+so that oracle scores such a file **0** however deep it nests. Re-measured on the axis that matters,
+the same corpus reads:
+
+| axis | max | p99.9 | deepest file |
+|---|---:|---:|---|
+| bracket depth (the old oracle) | 22 | 8 | `iverilog/…/comp1000.v` |
+| **conditional-chain length** | **256** | 8 | `iverilog/…/br_gh330.v` |
+| items in one `case` | **569** | 169 | `opentitan/…/pinmux_reg_top.sv` |
+
+`br_gh330.v` is a 4-bit truth table lowered into two 256-arm mux chains; the parser's own AST depth
+on it is **561**. `pinmux_reg_top.sv` is OpenTitan register-generator output.
+
+⚠️ **And the ceiling is not a single depth.** It counts parser frames, and constructs spend frames at
+different rates — a **13.4× range** across the shapes measured, so the number to plan against is the
+worst, not the typical:
 
 | shape | deepest accepted | frames per level |
 |---|---:|---:|
-| `int'(int'(…))` | **249** | 16.4 |
+| `$signed({1'b0, (s ? a : (…))})` — sign-coerced mux | **61** | 67.1 |
+| `int'(s ? int'(a) : int'(…))` — width-coerced mux | 113 | 36.2 |
+| `(s ? a : (…))` — mux, both arms parenthesised | **146** | 28.1 |
+| `$signed(…)` | 163 | 25.1 |
+| `int'(int'(…))` | 249 | 16.4 |
 | `a ? b : (…)` | 272 | 15.1 |
 | `{{{…}}}` | 314 | 13.0 |
 | `(((…)))` | 322 | 12.7 |
 | `f(f(f(…)))` | 340 | 12.0 |
-| nested `generate`-`if` | 583 | 7.0 |
-| nested `if` | 815 | 5.0 |
-| nested `begin`/`end` | 816 | 5.0 |
-| `y[0][0][0]…` | **no limit** | iterative — costs no frames |
+| `c0 ? v0 : c1 ? v1 : …` — **bracket-free** chain | 2 041 | 2.0 |
+| nested `generate`-`if` / `if` / `begin`-`end` | 583 / 815 / 816 | 7.0 / 5.0 / 5.0 |
+| `y[0][0][0]…` | no frame limit | iterative — costs no frames |
 
-So the parser's capacity is a **3.3× range**, and the honest number to plan against is the worst
-one: **~249 levels**, against a deepest-real-file measurement of 22. That is an **11.3× margin**,
-and ~31× against the 99.9th percentile.
+⛔⛔ **What this means for a generated-RTL flow, demonstrated rather than argued.** Take the 568-arm
+`unique case` out of that vendored OpenTitan register file and lower it the way every case→mux
+lowering does — one conditional level per item, the file's own conditions and expressions:
 
-⇒ **4096 frames stays where it is.** The constant's own rationale was that it sits *"above real
-corpus depth"*; that was an assumption when written and is now a measurement.
+| emitted style | levels | verdict |
+|---|---:|---|
+| bracket-free chain | 568 | accepted |
+| **parenthesised** (sv2v / Verilator / yosys style) | 568 | **rejected — ceiling-labelled** |
 
-⛔ **What this does NOT claim.** The parser still rejects syntactically valid source past that
-boundary — the under-acceptance is real and remains open, and the ruling says only that no
-*measured* consumer meets it. Both corpora are human- and tool-written RTL; **bulk machine-generated
-code is not represented**, and that is exactly the case an embedder could hit. If you generate RTL
-programmatically, the label above is what tells you — and the PGEN maintainers would want to know.
-With accuracy adjudicated, the speed work (`.56`(d), `.58`) is what comes next.
+⇒ whether your generated RTL parses today can depend on **your emitter's bracketing style**, which is
+not a property of your design. Against the worst shape's real capacity, the margin on a file already
+vendored in this repository is **1.06×**, not 11.3×.
+
+### ⛔ A Second Limit, And This One Is Silent
+
+The shape sweep above turned up a limit nobody had recorded, and for an embedder it matters more than
+the frame ceiling. Every quantifier in every generated parser is capped at **10 000 iterations**
+(`SAFETY_LIMIT`). **It does not refuse — it stops iterating**, so the parse fails at the enclosing
+level as an ordinary *"did not consume full input"* with **no diagnostic naming the cause**.
+
+| generated shape | 10 000 items | 10 001 items |
+|---|---|---|
+| flattened-netlist instances | accepted | **rejected** |
+| wire declarations | accepted | **rejected** |
+| `case` items | accepted | **rejected** |
+| concat elements / module ports | accepted | accepted (cap lands just above) |
+
+VHDL is affected identically — `when`/`else` chains and `elsif` ladders both cap at 10 000. A
+gate-level netlist of 10 001 instances does not parse, and real ASIC netlists run 10⁵–10⁷.
+
+⇒ **If you feed PGEN generated, flattened or optimized RTL today, this is the limit you are most
+likely to hit, and it will not tell you so.** Both limits are being removed: `.66` (the iteration
+cap, first) and `.65` (the frame ceiling), each re-anchored on host memory rather than on a
+compiled-in constant. Until they land, the frame ceiling at least names itself in the error — the
+iteration cap does not, so a rejection near the end of a very long list is worth reporting to the
+PGEN maintainers.
 
 ## Linter-Oriented Downstream Surfaces
 

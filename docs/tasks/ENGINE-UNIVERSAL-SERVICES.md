@@ -14356,7 +14356,17 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   `.61`(b) next. Routed, owned, and sequenced — not merely logged.
 
 
-### ⛔⛔⛔ `.63` — **RE-ADJUDICATE THE 4096-FRAME CEILING OVER THE *TARGET* POPULATION: GENERATED AND OPTIMIZED RTL, WHICH `.61`(b)'s EVIDENCE EXPLICITLY DID NOT COVER. THE SLICE'S OWN SHAPE TABLE ALREADY CLIFFS TERNARIES AT 272 AND CASTS AT 249** (`todo`, opened 2026-08-28 by the DIRECTOR'S POPULATION RULING / `PGEN-ENGINE-UNIVERSAL-SERVICES-0112`; ⛔ **AHEAD OF THE SPEED WORK — accuracy is not discharged**)
+### ✅✅✅ `.63` — **RE-ADJUDICATE THE 4096-FRAME CEILING OVER THE *TARGET* POPULATION: GENERATED AND OPTIMIZED RTL, WHICH `.61`(b)'s EVIDENCE EXPLICITLY DID NOT COVER. THE SLICE'S OWN SHAPE TABLE ALREADY CLIFFS TERNARIES AT 272 AND CASTS AT 249** (**DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0114`; opened 2026-08-28 by the DIRECTOR'S POPULATION RULING / `…-0112`; ⛔ **AHEAD OF THE SPEED WORK — accuracy is not discharged**)
+
+> ⭐⭐⭐ **RULING: THE CEILING'S LOCATION IS *NOT* DEFENSIBLE — AND THE RULING WAS TAKEN OUT OF MY HANDS
+> MID-SLICE BY A DIRECTOR MANDATE THAT AGREED WITH THE MEASUREMENTS.** `(a)` and `(b)` had already
+> shown the worst shape caps at **61** source levels (not `.61`(b)'s 249), that a REAL vendored file
+> already nests **256** levels deep on an axis `.61`(b)'s oracle reads as **0**, and that a REAL
+> vendored autogen file's own 569-item `case`, lowered by the canonical transformation, **REJECTS**.
+> ⛔⛔ **AND THE SWEEP FOUND A SECOND, UNRECORDED CEILING THAT IS WORSE: `SAFETY_LIMIT = 10_000` caps
+> every quantifier and does not refuse — it SILENTLY TRUNCATES. A 10 001-instance flattened netlist
+> does not parse, and the error names nothing.** → [[project_rtl_parsers_accept_any_rtl_no_limits_non_negotiable]]
+> ⇒ fixes owned by **`.66`** (the silent iteration cap, FIRST) and **`.65`** (the recursion ceiling).
 
 > ⭐⭐⭐ **THIS LEAF EXISTS BECAUSE AN HONEST BOUND TURNED OUT TO NAME THE POPULATION.** `.61`(b) ruled
 > the ceiling defensible on 0-contact over 30 056 files and wrote bound (ii) itself: *"bulk
@@ -14397,6 +14407,180 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
 - ⚠️ **HONEST BOUND, stated up front so it is not discovered later**: option (a)(i) synthesises what
   *I* think a generator emits. That is a model, not the population, and it can only produce a LOWER
   bound on real depth. Only (a)(iii) closes it.
+
+#### ✅ `.63`(a) DONE 2026-08-28 — REPRESENTATIVE INPUT. **`.61`(b)'s "DEEPEST REAL NESTING = 22" IS AN INSTRUMENT ARTIFACT: THE SAME CORPUS ALREADY NESTS 256 LEVELS ON AN AXIS ITS ORACLE READS AS ZERO**
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHY `.61`(b)'s corpus evidence could not answer the question it
+  was asked: its oracle (`tmp/eus61/nesting_depth_census.py`) measures **`()[]{}` bracket depth**.
+  WHERE that goes blind: **a right-associative ternary chain carries no brackets at all.**
+  `c0 ? v0 : c1 ? v1 : … : d` — the canonical Chisel/FIRRTL-class priority-mux lowering — nests one
+  conditional level per arm at **bracket depth 0**. Measured directly: a 1 600-arm chain parses fine
+  and the bracket oracle scores that file **0**.
+- ⭐⭐⭐ **THE CORPUS ALREADY CONTAINS THE SHAPE, AND `.61`(b) SCORED IT SHALLOW.** Re-censused all
+  **16 336** SV files on four axes with a lexical scanner (no parser, so no inherited parser blind
+  spot — producer `docs/tasks/artifacts/eus63/generated_shape_oracle.py`):
+
+  | axis | max | p99.9 | p99 | median | deepest file |
+  |---|---:|---:|---:|---:|---|
+  | bracket depth (`.61`(b)'s axis, replicated) | **22** | 8 | 5 | 2 | `iverilog/…/comp1000.v` |
+  | **conditional-chain length** | **256** | 8 | 2 | 0 | `iverilog/…/br_gh330.v` |
+  | `else if` ladder | 57 | 19 | 4 | 0 | `opentitan/…/pulp_riscv_dbg/tb/mm_ram.sv` |
+  | items in one `case` | **569** | 169 | 21 | 0 | `opentitan/…/pinmux/rtl/pinmux_reg_top.sv` |
+
+  ⇒ **the bracket axis replicates `.61`(b) exactly (22), and the axis that matters reads 256.** The
+  published *"margin on the deepest REAL file is 11.3×"* is therefore measured against the wrong
+  number: against the worst shape's real capacity the margin on an ALREADY-VENDORED file is **1.06×**.
+- ⭐ **`br_gh330.v` IS THE TARGET POPULATION, VENDORED.** 36 673 B, a 4-bit truth table lowered into
+  **two 256-arm mux chains** (512 `?` total) — precisely *"generated, optimized or not"*. Verified
+  three independent ways: 256 arms per function by pattern count, 512 `?` by raw token count, and
+  **the parser's own AST depth on the real file = 561** (an oracle I did not build).
+- ⛔⛔ **THE FALSIFICATION, ON INPUT I DID NOT SYNTHESISE.** Took the `unique case (1'b1)` block out of
+  the vendored OpenTitan **reggen output** `top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`
+  (1.24 MB, machine-generated) and lowered it the way every case→mux lowering does — one conditional
+  level per item, **the file's own 568 conditions and its own RHS expressions**, multi-bit arms
+  assembled as the concat they are (66 of 568). Nothing invented:
+
+  | emitted style | levels | bytes | verdict |
+  |---|---:|---:|---|
+  | bracket-free chain | 568 | 45 426 | ACCEPT |
+  | **parenthesised** (sv2v / Verilator / yosys style) | **568** | 46 562 | **REJECT — ceiling-labelled** |
+
+  ⇒ **whether real generated RTL parses depends on the EMITTER'S BRACKETING STYLE, which is not a
+  property of the design.** `.61`(b)'s *"no measured consumer meets it"* is false: a standard
+  transformation of a file already in this repository meets it.
+- ⭐ Machine-generated RTL is **not** absent from the corpus the way `.61`(b)'s bound (ii) implied —
+  **1 094** files sit under `autogen` / `ip_autogen` / generated paths. What is absent is
+  *synthesis-flattened* RTL, and `.66` below shows that class fails for a different reason entirely.
+- ⚠️ **HONEST BOUNDS**: (i) the lowering is faithful but is still MY transformation of a real file —
+  it is not captured tool output, so it evidences what a standard lowering produces, not what one
+  specific vendor's tool emitted on one specific day; (ii) the four axes are lexical and each is a
+  LOWER bound on parser frames; (iii) option (a)(iii) — a real generated/optimized sample from Nexsim
+  — is still the only thing that closes the population question, and remains unrequested.
+
+#### ✅ `.63`(b) DONE 2026-08-28 — WIDER SHAPE SET. **THE WORST SHAPE IS 61 LEVELS, NOT 249 — `.61`(b)'s OWN BOUND (i) SAID TO ASSUME THIS AND IT WAS RIGHT**
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — (b) is a search, not a bug hunt. Method is `.61`(b)'s own so the
+  tables compose: exponential probe → binary search on the accept/reject boundary, frames/level =
+  4096 / deepest-accepted. Producers: `docs/tasks/artifacts/eus63/shape_cliff_wide.py` (27 SV + 6
+  VHDL shapes) and `worst_shape_search.py` (14 wrapper composites).
+- ✅ **THE TEN PRIOR SHAPES REPLICATE EXACTLY** — `paren_expr` 322, `concat` 314, `call` 340,
+  `ternary` 272, `cast_paren` 249, `begin_end` 816, `if_nest` 815, `generate_if` 583, and VHDL
+  `paren_expr` **681**, every one matching `.61`(b) and `.61`(a)'s boundaries digit-for-digit. An
+  independent re-derivation, not a re-read.
+- ⭐ **AND A CONTROL `.61`(b) NEVER RAN**: bisection is only sound if accept is downward-closed. Every
+  boundary here is re-checked over `[D−2, D+2]`; **all monotone**. The prior table's numbers were
+  right, but nothing in that slice had established they were.
+- ⛔⛔ **THE WORST SHAPE IS 4.1× WORSE THAN PUBLISHED.** Shapes below `.61`(b)'s honest worst of 249:
+
+  | shape | deepest ACCEPTED | frames/level | what emits it |
+  |---|---:|---:|---|
+  | `$signed({1'b0, (s ? a : (…))})` | **61** | **67.1** | mixed-width signed select (sv2v lowering) |
+  | `int'((s ? int'(a) : (…)))` | 90 | 45.5 | width-coerced mux |
+  | `int'(s ? int'(a) : int'(…))` | 113 | 36.2 | width-coerced mux |
+  | `(s ? a : (…))` — **both arms parenthesised** | **146** | 28.1 | any defensive emitter |
+  | `{(…)}` | 157 | 26.1 | bus assembly |
+  | `$signed(…)` / `$unsigned(…)` | 163 | 25.1 | sign coercion |
+  | `8'(…)` | 240 | 17.1 | width coercion |
+
+  ⇒ **capacity is 61–816 across the measured set, a 13.4× range.** `.61`(b) reported 249–816 (3.3×)
+  and wrote *"assume a worse shape exists until the search says otherwise"*. It does, and the two
+  worst — a both-arms-parenthesised mux at **146** and a sign-coerced one at **61** — are ordinary,
+  not exotic. ⚠️ The composites are emitter-PLAUSIBLE constructions verified to be valid SV, not
+  captured tool output; and the search is still not exhaustive, so **61 is an upper bound on capacity
+  discovered so far, not a floor**.
+- ⭐ New generator-shape rows worth their own line: `gen_ternary_chain` (bracket-free) **2 041**
+  at 2.0 frames/level, `gen_else_if_chain` 1 356, `gen_else_if_block` 339, `gen_for_nest` 681,
+  `gen_case_nest` 679. VHDL: `gen_func_nest` **371**, `gen_concat_nest` 681, `gen_if_nest` 2 043.
+- ⛔⛔⛔ **AND THE SWEEP FOUND A SECOND CEILING NOBODY HAD RECORDED — see `.66`.** Five iterative shapes
+  cliffed at *exactly* 10 000/10 001 in BOTH families with **no ceiling label**. That is not the
+  recursion guard; it is `SAFETY_LIMIT`. A boundary landing on a round number in two unrelated
+  families is a constant, and it was chased rather than classified.
+
+#### ✅ `.63`(c) DONE 2026-08-28 — **RULING: NOT DEFENSIBLE. AND THE DIRECTOR SETTLED IT MID-SLICE, IN THE SAME DIRECTION THE MEASUREMENTS POINTED**
+
+- ⛔⛔⛔ **DIRECTOR MANDATE 2026-08-28, delivered while (a)/(b) were running**: *"PGEN SV and VHDL or
+  any of the RTL related parser shall be able to parser, ingest any type of RTL files we throw at
+  them, no limitation or restriction there, hand-written, generated, optimized or not, anything, they
+  should be able to parse them, no exception, non-negotiable"*, refined by *"The only obvious limit
+  shall be the host RAM and disk allowance, but the PGEN parsers shall be thorough and accurate and
+  fast (not reached yet, because it is not the focus right now)."*
+  → [[project_rtl_parsers_accept_any_rtl_no_limits_non_negotiable]]
+- ⇒ **THE RULING**: **4096 frames is NOT a defensible location, and no constant is.** The second
+  sentence is the constructive half and it names what legitimate looks like: **the bound must be the
+  HOST's RAM/disk, not a compiled-in literal.** A parser may exhaust the machine; it may not exhaust
+  a number a developer typed. ⛔ *"Convert the ceiling into a declared, documented capacity"* — the
+  third option this leaf was chartered to price — **is refused by the mandate**, not merely
+  outranked: a documented limit is still a limit.
+- **PRICED, with measurement rather than assertion** (producer `…/eus63/ceiling_pricing.py`):
+  - **Stack** — `SV-CORPUS-GRAD.8c.3` measured ≈**2 KB/frame** release and ≈**17 KB/frame** debug;
+    4096 frames therefore needs ≈8 MB / ≈70 MB against the dedicated **256 MiB** parse thread
+    (`dedicated_parse_stack.rs`). ⇒ the shipped ceiling consumes **3.1 %** of its own reservation in
+    release. The constant is nowhere near the resource it claims to protect.
+  - **Time and memory at the accept boundary** (this slice, release probe): `paren`@322 **0.14 s /
+    46.8 MB**; `mux_paren`@272 **0.31 s / 70.8 MB**; `sv2v_mux`@61 **0.17 s / 53.3 MB**;
+    `bare_chain`@2028 **1.42 s / 278 MB**. Wall time grows ≈quadratically in depth.
+  - ⇒ **raising the constant is affordable but is not the answer** — it is still a constant. It is a
+    legitimate INTERIM step and is priced as one in `.65`.
+- ⚠️ **WHAT THE MANDATE DOES NOT LICENSE, recorded because the cheap reading is wrong**: deleting the
+  guards. A stack overflow ABORTS the embedder, which is strictly worse than a diagnosed rejection,
+  and Nexsim is an embedder. The guard survives; its **threshold** stops being a literal.
+- [x] **ADDRESSED (verified)** — the question is answered with evidence: worst-shape capacity **61**,
+  real corpus conditional nesting **256**, a real autogen `case` lowering **rejected**, and a second
+  ceiling found and located. The ruling is recorded and routed to owning leaves.
+- [x] **NO REGRESSION** — measurement and adjudication only: **zero source, grammar and generated
+  bytes changed**, so every artifact stays byte-identical and no gate's inputs move. `clippy` unrun
+  by design — there is nothing to lint.
+- ⇒ ⛔ **ACCURACY IS STILL NOT DISCHARGED.** `.56`(d)/`.58` (speed) stay blocked behind `.66` and
+  `.65`, and the director's *"fast … not the focus right now"* says so independently.
+
+### ⛔⛔⛔ `.66` — **A SECOND, SILENT CEILING: `SAFETY_LIMIT = 10_000` CAPS EVERY QUANTIFIER AND DOES NOT REFUSE — IT TRUNCATES. A 10 001-INSTANCE FLATTENED NETLIST DOES NOT PARSE, AND THE ERROR NAMES NOTHING** (`todo`, opened 2026-08-28 by `.63`(b)'s own sweep / `PGEN-ENGINE-UNIVERSAL-SERVICES-0114`; ⛔ **FIRST — ahead of `.65`**)
+
+- **WHY + WHERE (tool-backed).** `const SAFETY_LIMIT: usize = 10_000` bounds the iteration count of
+  **every** quantifier in every generated parser — `rust/src/ast_pipeline/ast_based_generator.rs:6587`
+  (protocol path) and `rust/src/ast_pipeline/ast_based_generator/cascade.rs:1704` (fused path).
+  ⛔ **It does not produce a diagnostic. It `break`s**, silently truncating the repetition; the parse
+  then fails at the enclosing level as an ordinary *"did not consume full input"*. The protocol path
+  logs a warning **only under `trace_enabled()`**; the fused path — the one a bare parse runs — logs
+  nothing at all.
+- ⭐⭐ **MEASURED, and the truncation point is exact.** A 10 001-declaration module rejects with
+  `furthest_position=138901`; declaration #10 001 begins at byte **138 902**. The parser stops one
+  byte short of the item the cap refused to take.
+
+  | generated shape | 10 000 | 10 001 | 12 000 | 20 000 |
+  |---|---|---|---|---|
+  | flattened-netlist instances | ACCEPT | **REJECT** | REJECT | REJECT |
+  | wire declarations | ACCEPT | **REJECT** | REJECT | REJECT |
+  | `case` items | ACCEPT | **REJECT** | REJECT | REJECT |
+  | concat elements | ACCEPT | ACCEPT | REJECT | REJECT |
+  | module port list | ACCEPT | ACCEPT | REJECT | REJECT |
+  | procedural statements | ACCEPT | ACCEPT | ACCEPT | ACCEPT |
+
+  ⛔ VHDL is hit too: `when/else` chains and `elsif` ladders both cliff at the same 10 000.
+- ⛔⛔ **WHY THIS OUTRANKS `.65`.** 61 levels of nesting is at least unusual; **10 001 module items is
+  a small netlist.** Real ASIC gate-level netlists run 10⁵–10⁷ instances, which is exactly the
+  *"optimized"* class [[project_nexsim_target_population_is_all_rtl_assume_the_worst]] names — and
+  unlike the recursion ceiling, which `.61`(a) taught to name itself, this one is **mute**: the
+  consumer is told their valid file has a syntax error near the end.
+- **OWES**: re-anchor the quantifier bound on host memory per
+  [[project_rtl_parsers_accept_any_rtl_no_limits_non_negotiable]] (iterate while allocation succeeds),
+  keep a non-crashing answer for genuinely unbounded input, and make any residual refusal NAME itself
+  the way `.61`(a) made the recursion ceiling name itself. ⚠️ Note `proc_statements` shows no cliff at
+  20 000, so the cap is per-quantifier-SITE — the fix must census the sites, not patch one.
+
+### ⛔⛔ `.65` — **RE-ANCHOR `GENERATED_RECURSION_GUARD_MAX_DEPTH` ON HOST STACK HEADROOM INSTEAD OF A COMPILED-IN 4096** (`todo`, opened 2026-08-28 by `.63`(c)'s ruling / `PGEN-ENGINE-UNIVERSAL-SERVICES-0114`; behind `.66`)
+
+- **WHY + WHERE**: `GENERATED_RECURSION_GUARD_MAX_DEPTH = 4096`
+  (`rust/src/ast_pipeline/ast_based_generator.rs:31`, mirrored at
+  `ast_based_generator/cascade.rs:648`, read by the protocol guard at `:4281`). `.63`(b) measured its
+  real capacity at **61 source levels** for the worst emitter-plausible shape, against a corpus that
+  already nests **256**.
+- **OWES**: capacity bounded by measured remaining stack rather than a frame count, sized against the
+  dedicated parse thread (`dedicated_parse_stack.rs`, 256 MiB today, ≈2 KB/frame release /
+  ≈17 KB/frame debug per `SV-CORPUS-GRAD.8c.3`); the thread reservation grows with it. ⇒ raising the
+  constant is a legitimate INTERIM step, and `.63`(c) priced it — but it is not closure, because the
+  mandate forbids a constant, not merely a small one.
+- ⚠️ **Sequencing note**: `.61`(a)'s self-naming rejection stays — it is what makes a residual refusal
+  diagnosable while this leaf is open, and it is the model `.66` must copy.
 
 
 ### ⏸️ `.64` — **VERILOG-AMS IS A LONG-TERM HORIZON GOAL, PARKED BY DIRECTOR RULING UNTIL AFTER THE FIRST OFFICIAL SV RELEASE. THIS LEAF HOLDS THE MEASURED STARTING POINT AND NOTHING ELSE** (`parked`, opened 2026-08-28 / `…-0112`, SCOPED SAME DAY by the director / `PGEN-ENGINE-UNIVERSAL-SERVICES-0113`)

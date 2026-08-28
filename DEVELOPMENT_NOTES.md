@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0114 — an oracle's blind spot is inherited by every conclusion built on it, and a clean replication cannot reveal it
+
+**1. ⭐⭐⭐ THE PROXY THAT WAS BLIND TO THE ONLY SHAPE THAT MATTERED.** `.61`(b) answered *"how deep does
+real RTL nest?"* with a lexical `()[]{}` depth scan — cheap, parser-independent, sound for what it
+measures — and published **22**, an **11.3× margin**, and a ruling built on both. **A right-associative
+ternary chain has no brackets**: `c0 ? v0 : c1 ? v1 : … : d`, the canonical priority-mux lowering, nests
+arbitrarily deep at bracket depth **0**. Re-measured on the axis that matters, the SAME corpus reads
+**256** — and I re-ran the original oracle this slice and it returned **22** again. ⇒ **replication
+confirms the INSTRUMENT, never its COVERAGE.** A second run, a second implementation and a larger sample
+all agree with a blind proxy, because none of them changes what it is blind to.
+
+**2. THE CHEAP TEST THAT WOULD HAVE CAUGHT IT, stated as a rule because it generalises.** Before trusting
+a proxy metric, **name one instance of the thing you are measuring that the proxy would score ZERO.** If
+you can construct it in a minute, the proxy is not measuring what you think. Here the instance is four
+tokens long. And the distribution actively hides it: the bracket axis reads p99.9 = 8, so the proxy looks
+*calm*, and a calm proxy is the most persuasive kind of wrong.
+
+**3. ⭐⭐ THE SAME DISCIPLINE PAID TWICE IN ONE SLICE, ON MY OWN INSTRUMENT.** The new multi-axis oracle
+reported **870** items in the largest real `case`; hand-counting the file gave **568**. Cause: the counter
+incremented on every `:` while a `case` was open, so `[31:0]` slice colons inside arm bodies were counted
+as case labels. Fixed by gating on the case's own bracket depth — it now reads **569**, and the residual
+1 reconciles EXACTLY as the `default:` label. ⇒ two numbers that disagree are not a problem to round
+away; the reconciliation is where the instrument gets verified. **A number I could not reproduce by a
+second method never reached the write-up.**
+
+**4. ⛔⛔ AND CHASING A ROUND NUMBER FOUND A SECOND DEFECT THAT NOTHING WAS LOOKING FOR.** The wide shape
+sweep showed five unrelated iterative shapes cliffing at exactly **10 000 / 10 001**, in BOTH released
+families, with the ceiling label absent. A boundary that lands on a round number in two unrelated
+subjects is a **constant**, not a phenomenon. `grep` found it in two lines: `const SAFETY_LIMIT: usize =
+10_000`, capping every quantifier in every generated parser — and it does not refuse, it `break`s,
+**silently truncating the repetition** so the parse fails at the enclosing level as an ordinary *"did not
+consume full input"*. The fused path logs nothing at all. Confirmed exactly: `furthest_position=138901`
+against item #10 001 starting at byte **138 902**, i.e. the parser stops one byte short of the item the
+cap refused. ⇒ **a 10 001-instance flattened netlist does not parse**, and real ASIC netlists run 10⁵–10⁷.
+The frame ceiling at least names itself since `.61`(a); this one is mute.
+
+**5. THE SEQUENCING LESSON.** I had ranked the frame ceiling as the release risk for two slices. The
+bigger defect was one `grep` away the whole time, and it outranks the ceiling on every axis that matters
+— it triggers at ordinary design sizes rather than unusual nesting, it is silent rather than labelled,
+and it hits the *optimized/flattened* class most directly. ⇒ when a leaf is chartered to re-adjudicate
+ONE limit, **census the CLASS the limit belongs to before ruling on the instance.** `.66` now owns the
+iteration cap and runs ahead of `.65`.
+
 ## 2026-08-28 - PGEN-ENGINE-UNIVERSAL-SERVICES-0112 — an honest bound that names a population exclusion is a ruling waiting to be overturned
 
 **1. ⭐⭐⭐ RULING FROM ABSENCE REQUIRES KNOWING WHOSE ABSENCE IT IS.** `.61`(b) measured 0 ceiling
