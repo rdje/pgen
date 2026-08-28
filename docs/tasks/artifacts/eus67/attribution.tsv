@@ -1,0 +1,12 @@
+path	bytes	verdict	peak_rss_bytes	arena_nodes	arena_node_MB	arena_total_MB
+tmp/eus67/floor.sv	20	ACCEPT	19562496	454	0.02	0.02
+stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh330.v	36673	ACCEPT	314408960	1409813	64.54	79.59
+stimuli/sv/subs/iverilog/ivtest/ivltests/comp1000.v	69795	ACCEPT	580534272	2461332	112.67	135.44
+stimuli/sv/subs/verilator/test_regress/t/t_math_synmul_mul.v	330162	ACCEPT	2056683520	9036490	413.66	522.97
+stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_top.sv	1237143	REJECT	3190996992	12302764	563.18	702.31
+stimuli/sv/subs/opentitan/hw/ip/spi_device/rtl/spi_device_reg_pkg.sv	30419	ACCEPT	80150528	158308	7.25	8.73
+tmp/eus67/shapes/syn_netlist_instances_2500.sv	130637	ACCEPT	1092386816	5474012	250.58	314.28
+tmp/eus67/shapes/syn_netlist_instances_10000.sv	535637	ACCEPT	4259577856	21891512	1002.11	1256.87
+tmp/eus67/shapes/syn_case_items_10000.sv	197863	ACCEPT	1199521792	5991977	274.29	331.22
+tmp/eus67/shapes/syn_port_list_10000.sv	128912	ACCEPT	319258624	910465	41.68	52.21
+tmp/eus67/shapes/syn_concat_items_10000.sv	68923	ACCEPT	522829824	2930895	134.17	172.32

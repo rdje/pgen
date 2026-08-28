@@ -162,6 +162,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | **"`--lint-grammar` says `left_recursion_unhandled=N` — so WHICH rule could absorb the chain, what suffix, and what does it cost?"** | [5.5 `--report-indirect-lr-plan`](#55---report-indirect-lr-plan) — ⛔ the lint names the cycle, not the fix; picking the wrong base rule is a measured REGRESSION |
 | "What IR do the generators actually consume?" | [5.2 `--dump-gen-ast`](#52---dump-gen-ast) |
 | "Packrat memo hit/miss perf?" | [3.3 `PGEN_REPORT_MEMO_STATS`](#33-pgen_report_memo_stats) |
+| "Where does the parse MEMORY go?" | [3.3b `PGEN_REPORT_PARSE_FOOTPRINT`](#33b-pgen_report_parse_footprint) |
 | "EXACT per-rule entry counts for a parse (machine-readable)?" | [3.4 `--dump-rule-entry-counts-json`](#34---dump-rule-entry-counts-json) |
 | "How much parse work is DISCARDED (failed speculation)? committed vs wasted per rule?" | [3.5 `--dump-rule-outcome-counts-json`](#35---dump-rule-outcome-counts-json) |
 | **"Did the whole SV parser get SLOWER — and would anything have told me?"** — ⛔ never answer with an ad-hoc timing script against a remembered number; that produced `~11 %`, then `+24.3 %`, and **BOTH were machine-variance artifacts** (`.26`) | [3.7 the SV parse-cost ratchet](#37-the-sv-parse-cost-ratchet--did-the-whole-parser-get-slower-and-would-anything-have-told-me) |
@@ -554,6 +555,41 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   used to be un-cacheable outright, and one trip disabled failure memoisation for the whole remaining
   parse: 315 nested parens parsed in 0.16 s and 320 returned nothing in 30 s. Those two fields exist
   so that state is legible from one command instead of inferred from a hang.
+
+### 3.3b `PGEN_REPORT_PARSE_FOOTPRINT`
+- **WHAT:** print the ARENA leg of a parse's memory footprint — how many `ParseNode`s, shaped values,
+  shaped pairs and rendered strings the parse allocated, and what they cost in bytes. **WHEN:** a
+  parse whose peak RSS is the problem, or any "why does this file need N GB" question
+  (`ENGINE-UNIVERSAL-SERVICES.67`). **HOW:**
+  `PGEN_REPORT_PARSE_FOOTPRINT=1 ./rust/target/release/parseability_probe --parse <g> f.sv --profile <p>`
+- ⭐⭐ **UNLIKE 3.3 IT DOES NOT ROUTE THE PARSE, WHICH IS THE WHOLE POINT.**
+  `PGEN_REPORT_MEMO_STATS` clears `bare_parse` and moves the parse onto the PROTOCOL graph, so it
+  measures a *different, larger* parse — measured on `iverilog/ivtest/ivltests/br_gh330.v`,
+  **299.9 MB** fused against **345.2 MB** with memo stats on, a **15.1 % confound**. This report is
+  read-only over the arena, so it observes the graph the process was already going to run. ⇒ **use
+  3.3b when you want the production parse's memory and 3.3 when you want the memo's contents; the
+  two numbers are not about the same parse.**
+- **OUTPUT (one line per parse, on stderr):**
+  ```
+  === PARSE FOOTPRINT (arena leg) [systemverilog]: nodes=N (X.XX MB @ 48 B) ·
+      shaped_values=N (X.XX MB) · shaped_pairs=N (X.XX MB) ·
+      rendered_strings=N (X.XX MB, header only) · arena item total X.XX MB
+      [LOWER BOUND - chunk capacity and string payloads are NOT counted] ===
+  ```
+- ⚠️ **IT IS A LOWER BOUND AND SAYS SO ON EVERY LINE — do not subtract it from peak RSS and call the
+  remainder "the memo".** Two exclusions are named rather than left to be discovered: `typed_arena`
+  allocates in chunks that DOUBLE and frees none until the arena drops, so resident chunk bytes can
+  exceed live item bytes by up to ~2×; and `rendered_strings` contributes only its 24-byte header,
+  because the heap text each one owns is a separate allocation no `&self` accessor can reach. The
+  COUNT is printed beside the bytes so you can see whether that second omission could matter for
+  your grammar.
+- **COVERAGE — 12 of 35 arena-owning parse lanes, and the gap is pinned, not hidden.** The report is
+  wired into every `parse_with_<family>_detail*` path (the `Result` lane `--parse` runs). The bare
+  `bool` and `_ast_json` lanes do NOT report. ⛔ It is not a `Drop` impl — which would have covered
+  all of them by construction — because `NodeArena`'s `'input` is unified to its own scope, so
+  dropck answers `E0597`; the reasoning is recorded on the type. The unit test
+  `parser_registry::tests::parse_paths_all_report_footprint` censuses this crate's own source and
+  fails if a detail lane loses its call OR if the unwired population moves off 23.
 
 ### 3.4 `--dump-rule-entry-counts-json`
 - **WHAT:** after a `--parse`, write the parser's monotone per-rule ENTRY counters (every rule-method entry, successful AND backtracked — the always-on `fetch_add` on rule entry) as JSON `{grammar, accepted, total_entries, rule_entry_counts}`. The machine-readable dual of the live dashboard (3.1), which is stderr-only/refresh-based and useless for a sub-millisecond parse. Counts are a DELTA past a pre-parse baseline (SV's stdlib preload never pollutes them) and deterministic for a deterministic parser ⇒ a re-runnable oracle. Wired for every registered grammar's canonical-entry `--parse` path (not `--entry-rule`). RGX-0078.5.h.1.

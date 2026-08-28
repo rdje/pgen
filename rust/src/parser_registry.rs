@@ -547,6 +547,10 @@ fn parse_with_return_annotation_detail(sample: &str) -> Result<(), String> {
             .map(|_| ())
             .map_err(|err| err.to_string())
     );
+    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
+    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
+    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
+    node_arena.footprint().report("return_annotation");
     result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
@@ -607,6 +611,10 @@ fn parse_with_semantic_annotation_detail(sample: &str) -> Result<(), String> {
             .map(|_| ())
             .map_err(|err| err.to_string())
     );
+    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
+    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
+    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
+    node_arena.footprint().report("semantic_annotation");
     result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
@@ -704,6 +712,10 @@ fn parse_with_ebnf_detail(sample: &str) -> Result<(), String> {
             .map(|_| ())
             .map_err(|err| err.to_string())
     );
+    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
+    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
+    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
+    node_arena.footprint().report("ebnf");
     result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
@@ -765,6 +777,10 @@ fn parse_with_json_detail(sample: &str) -> Result<(), String> {
             .map(|_| ())
             .map_err(|err| err.to_string())
     );
+    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
+    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
+    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
+    node_arena.footprint().report("json");
     result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
@@ -905,6 +921,10 @@ fn parse_with_regex_detail(sample: &str, grammar_profile: Option<&str>) -> Resul
                 outcome.is_ok(),
             );
         }
+        // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
+        // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
+        // arena's drop, hence here rather than in a Drop impl (see NodeArena).
+        node_arena.footprint().report("regex");
         outcome
     })
 }
@@ -980,6 +1000,10 @@ fn parse_with_rtl_const_expr_detail(sample: &str) -> Result<(), String> {
             .map(|_| ())
             .map_err(|err| err.to_string())
     );
+    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
+    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
+    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
+    node_arena.footprint().report("rtl_const_expr");
     result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
@@ -1040,6 +1064,10 @@ fn parse_with_rtl_frontend_detail(sample: &str) -> Result<(), String> {
             .map(|_| ())
             .map_err(|err| err.to_string())
     );
+    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
+    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
+    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
+    node_arena.footprint().report("rtl_frontend");
     result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
@@ -1253,6 +1281,10 @@ fn parse_with_systemverilog_detail_profile_entry(
             None => parser.parse_full_systemverilog_file().map(|_| ()),
         }
     );
+    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
+    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
+    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
+    node_arena.footprint().report("systemverilog");
     result.map_err(|err| augment_error_with_furthest_position(err.to_string(), parser.furthest_position()))
 }
 
@@ -1329,6 +1361,10 @@ fn parse_with_systemverilog_detail_profile_with_library(
         .parse_full_systemverilog_file()
         .map(|_| ())
         .map_err(|err| err.to_string());
+    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
+    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
+    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
+    node_arena.footprint().report("systemverilog(library)");
     result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
@@ -1520,6 +1556,10 @@ fn parse_with_systemverilog_preprocessor_detail(sample: &str) -> Result<(), Stri
             .map(|_| ())
             .map_err(|err| err.to_string())
     );
+    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
+    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
+    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
+    node_arena.footprint().report("systemverilog_preprocessor");
     result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
@@ -1585,6 +1625,10 @@ fn parse_with_vhdl_detail(sample: &str) -> Result<(), String> {
             .map(|_| ())
             .map_err(|err| err.to_string())
     );
+    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
+    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
+    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
+    node_arena.footprint().report("vhdl");
     result.map_err(|err| augment_error_with_furthest_position(err, parser.furthest_position()))
 }
 
@@ -1676,6 +1720,10 @@ fn parse_with_scratch_detail_entry(sample: &str, entry: Option<&str>) -> Result<
             None => parser.parse_full().map(|_| ()),
         }
     );
+    // ENGINE-UNIVERSAL-SERVICES.67(b) — arena leg of the parse footprint;
+    // no-op unless PGEN_REPORT_PARSE_FOOTPRINT is set. Must precede the
+    // arena's drop, hence here rather than in a Drop impl (see NodeArena).
+    node_arena.footprint().report("scratch");
     result.map_err(|err| augment_error_with_furthest_position(err.to_string(), parser.furthest_position()))
 }
 
@@ -2163,6 +2211,77 @@ mod tests {
     use std::path::PathBuf;
 
     use super::{parse_sample, parse_sample_ast_json, registered_grammars, supports_grammar};
+
+    /// `ENGINE-UNIVERSAL-SERVICES.67`(b) — **every DETAIL parse path that owns an arena
+    /// reports its footprint, and the lanes that do not are COUNTED rather than ignored.**
+    ///
+    /// This test exists because the construction-safe design was refused by the compiler:
+    /// a `Drop` impl on `NodeArena` cannot be written — its `'input` is unified to its own
+    /// scope, so dropck answers `E0597` (the reasoning is recorded on the type) — which
+    /// leaves an EXPLICIT call at each site.
+    ///
+    /// ⛔ **Hand-placed calls are exactly the shape this file already has a scar from.**
+    /// `augment_error_with_furthest_position` was born as an inline block, was hand-copied
+    /// ONCE, and the other **10** detail paths silently never got it while `TOOLBOX.md`
+    /// called the diagnostic "always on". A comment asking the next author to remember is
+    /// prose, and `DOCTRINE_ENFORCEMENT.md` §1 is that a rule nothing checks is a
+    /// suggestion — so the census is the rule.
+    ///
+    /// ⭐ **SCOPE IS DECLARED AND RATCHETED, NOT QUIETLY FITTED TO WHAT WAS DONE.** The
+    /// census measures **35** arena-owning `fn parse_with_*` paths in three lanes per
+    /// grammar: `_detail*` (the `Result` lane `parseability_probe --parse` runs — the
+    /// diagnostic lane this instrument is for), the bare `bool` lane, and the `_ast_json`
+    /// lane. The instrument is wired into the **12** detail paths. The remaining **23** are
+    /// a NAMED gap held by a count, so a new unwired lane breaks this test and forces a
+    /// decision instead of silently widening the blind spot.
+    #[test]
+    fn parse_paths_all_report_footprint() {
+        let src = include_str!("parser_registry.rs");
+        let mut detail_missing: Vec<&str> = Vec::new();
+        let mut detail_ok = 0usize;
+        let mut unwired_other = 0usize;
+        let mut cursor = 0usize;
+        while let Some(rel) = src[cursor..].find("\nfn parse_with_") {
+            let start = cursor + rel + 1;
+            let name_end = src[start..].find('(').map(|i| start + i).unwrap_or(src.len());
+            let name = src[start + 3..name_end].trim();
+            let end = src[start..]
+                .find("\n}\n")
+                .map(|i| start + i)
+                .unwrap_or(src.len());
+            let body = &src[start..end];
+            if body.contains("NodeArena::new()") {
+                let reports = body.contains(".footprint().report(");
+                if name.contains("_detail") {
+                    if reports {
+                        detail_ok += 1;
+                    } else {
+                        detail_missing.push(name);
+                    }
+                } else if !reports {
+                    unwired_other += 1;
+                }
+            }
+            cursor = end;
+        }
+        assert!(
+            detail_missing.is_empty(),
+            "these DETAIL parse paths construct a NodeArena but never report its footprint, \
+             so PGEN_REPORT_PARSE_FOOTPRINT is silently blind on them: {detail_missing:?}"
+        );
+        // A census that silently shrinks is the failure mode it exists to prevent, so the
+        // populations are pinned in BOTH directions rather than only the interesting one.
+        assert_eq!(
+            detail_ok, 12,
+            "the wired detail-lane population moved from 12 to {detail_ok}; if a family was \
+             added or removed, update this pin deliberately"
+        );
+        assert_eq!(
+            unwired_other, 23,
+            "the DECLARED gap (bool + _ast_json lanes with no footprint report) moved from \
+             23 to {unwired_other}; a new unwired parse lane must be a decision, not a drift"
+        );
+    }
 
     // PARSE-HARNESS.2 — the scratch-register slot is authoritative BY CONSTRUCTION: this test proves
     // the blessed `grammars/scratch/scratch.ebnf` fixture is driven through the REAL generated parser +

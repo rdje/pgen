@@ -165,6 +165,31 @@ exclusion on every run, because the alternative — quietly dropping the rows wh
 floor-subtracted value comes out negative — silently biases the surviving distribution
 upward. That is a general lesson about subtracted baselines, not a SystemVerilog one.
 
+### And where does that memory actually sit? (measured — it is mostly *not* the AST)
+
+The obvious assumption is that a parse's memory is the tree it builds. Measured, it is not.
+`PGEN_REPORT_PARSE_FOOTPRINT=1` (TOOLBOX §3.3b) prints the arena leg — every `ParseNode`,
+shaped value, shaped pair and interned string the parse allocated — beside the process's
+peak RSS. Over ten inputs, real and synthetic, spanning 30 KB to 1.2 MB:
+
+| input | peak RSS | arena items | share |
+|---|---|---|---|
+| `br_gh330.v` (36 KB) | 300 MB | 79.6 MB | 27.9 % |
+| `t_math_synmul_mul.v` (322 KB) | 1 961 MB | 523.0 MB | 26.9 % |
+| `pinmux_reg_top.sv` (1.2 MB) | 3 043 MB | 702.3 MB | 23.2 % |
+
+The arena accounts for **14–36 %** of the footprint (median 27 %), at **5–43 `ParseNode`
+allocations per input byte**. Even granting `typed_arena`'s worst case — it allocates chunks
+that double and frees none until the arena drops, so resident bytes can reach roughly twice
+the live item bytes — the arena still tops out at 28–71 %, so a substantial majority of the
+memory is something else.
+
+What that something else is has not been measured yet, and the honest candidates are the
+packrat memo, the derivation tape, and allocator fragmentation — the last of which the
+`vmmap` profile above already puts at ~50 % on the uvm input. **Practical consequence for
+anyone tuning this: shrinking the AST node cannot fix a footprint the AST does not own.**
+That is why the next step is an allocator comparison rather than another struct diet.
+
 ## How we keep it honest
 
 Three habits make the numbers above trustworthy, and they are the rules a contributor

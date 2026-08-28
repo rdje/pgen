@@ -162,6 +162,25 @@ pub fn report_memo_stats_enabled() -> bool {
     *REPORT_MEMO_STATS_ENABLED.get_or_init(|| std::env::var("PGEN_REPORT_MEMO_STATS").is_ok())
 }
 
+/// Process-once cache of the `PGEN_REPORT_PARSE_FOOTPRINT` diagnostic switch
+/// (`ENGINE-UNIVERSAL-SERVICES.67`(b)). Same launch-switch argument as
+/// [`report_memo_stats_enabled`]: no code path sets it via `set_var`, so one
+/// read per process is behaviour-identical and keeps the hot path free of a
+/// locked `environ` scan.
+///
+/// ⛔ **THIS FLAG DELIBERATELY DOES NOT ROUTE THE PARSE.** `PGEN_REPORT_MEMO_STATS`
+/// clears `bare_parse`, so switching it on moves the parse onto the PROTOCOL graph
+/// and measures a *different, larger* parse — measured on
+/// `iverilog/ivtest/ivltests/br_gh330.v`, 299.9 MB fused against 345.2 MB with memo
+/// stats on, a **15.1 % confound**. The footprint report is read-only over the
+/// arena, so it observes the graph the process was already going to run.
+static REPORT_PARSE_FOOTPRINT_ENABLED: OnceLock<bool> = OnceLock::new();
+
+pub fn report_parse_footprint_enabled() -> bool {
+    *REPORT_PARSE_FOOTPRINT_ENABLED
+        .get_or_init(|| std::env::var("PGEN_REPORT_PARSE_FOOTPRINT").is_ok())
+}
+
 fn trace_sink() -> &'static Mutex<Option<File>> {
     TRACE_OUTPUT_SINK.get_or_init(|| Mutex::new(None))
 }
@@ -948,6 +967,33 @@ impl<'input> NodeArena<'input> {
             rendered_strings: self.rendered_strings.len(),
         }
     }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.67`(b) — the arena leg of the parse footprint
+    /// in BYTES, derived from [`census`](Self::census) and the `size_of` of the
+    /// four item types.
+    ///
+    /// ⚠️ **THE ITEM BYTES ARE A LOWER BOUND ON RESIDENT ARENA BYTES, AND THE
+    /// GAP IS NOT SMALL.** `typed_arena` allocates in chunks that DOUBLE and
+    /// frees none of them until the arena drops, so resident chunk bytes can
+    /// exceed live item bytes by up to ~2× at the moment a chunk has just
+    /// grown. This counts ITEMS × their `size_of`; it does not — and cannot,
+    /// through the crate's public surface — read chunk capacity.
+    ///
+    /// ⚠️ **AND THE STRING PAYLOAD IS EXCLUDED BY NAME RATHER THAN BY
+    /// SILENCE.** `rendered_strings` contributes `size_of::<String>()` per item
+    /// — the header only; the heap text each one owns is a separate allocation
+    /// no `&self` accessor can reach. The COUNT is reported beside the bytes so
+    /// a reader can see whether the omission could matter for their grammar.
+    pub fn footprint(&self) -> NodeArenaFootprint {
+        let c = self.census();
+        NodeArenaFootprint {
+            census: c,
+            node_bytes: c.nodes * std::mem::size_of::<ParseNode<'_>>(),
+            shaped_value_bytes: c.shaped_values * std::mem::size_of::<PgenValue<'_>>(),
+            shaped_pair_bytes: c.shaped_pairs * std::mem::size_of::<(&str, PgenValue<'_>)>(),
+            rendered_string_header_bytes: c.rendered_strings * std::mem::size_of::<String>(),
+        }
+    }
 }
 
 /// Arena population counts reported by [`NodeArena::census`] (RGX-0078.5.j.1
@@ -965,6 +1011,87 @@ pub struct NodeArenaCensus {
     pub rendered_strings: usize,
 }
 
+/// The arena leg of the parse footprint, in bytes (`ENGINE-UNIVERSAL-SERVICES.67`(b)).
+/// Every field is a LOWER bound — see [`NodeArena::footprint`] for the two named
+/// exclusions (chunk capacity, string payloads).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct NodeArenaFootprint {
+    pub census: NodeArenaCensus,
+    pub node_bytes: usize,
+    pub shaped_value_bytes: usize,
+    pub shaped_pair_bytes: usize,
+    pub rendered_string_header_bytes: usize,
+}
+
+impl NodeArenaFootprint {
+    pub fn total_bytes(&self) -> usize {
+        self.node_bytes
+            + self.shaped_value_bytes
+            + self.shaped_pair_bytes
+            + self.rendered_string_header_bytes
+    }
+}
+
+impl NodeArenaFootprint {
+    /// Print the arena leg on stderr when `PGEN_REPORT_PARSE_FOOTPRINT` is set,
+    /// and do nothing at all otherwise (one cached bool read per parse — not per
+    /// rule). `label` names the parse so a batch run stays attributable.
+    ///
+    /// ⛔ It reports NO ratio: the arena cannot see the input, and inventing a
+    /// denominator it does not have is how an instrument starts disagreeing with
+    /// the run it describes. The caller knows the input size.
+    pub fn report(&self, label: &str) {
+        if !report_parse_footprint_enabled() {
+            return;
+        }
+        let mb = |b: usize| b as f64 / (1024.0 * 1024.0);
+        // ⛔⛔ `std::eprintln!` IS LOAD-BEARING AND MUST NOT BE SIMPLIFIED TO
+        // `eprintln!`. This module SHADOWS the std macro at `mod.rs`'s
+        // `macro_rules! eprintln` -> `pgen_trace_debug!`, so a bare `eprintln!`
+        // here is not stderr at all: it is a trace record that only materialises
+        // at `PGEN_TRACE_VERBOSITY=debug` and is DROPPED silently otherwise.
+        // Measured: the first cut of this instrument printed nothing on any
+        // family while `enabled=true raw=Ok("1")` — the env check had been
+        // correct all along and the OUTPUT was being routed away.
+        std::eprintln!(
+            "=== PARSE FOOTPRINT (arena leg) [{label}]: nodes={} ({:.2} MB @ {} B) · \
+             shaped_values={} ({:.2} MB) · shaped_pairs={} ({:.2} MB) · \
+             rendered_strings={} ({:.2} MB, header only) · arena item total {:.2} MB \
+             [LOWER BOUND — chunk capacity and string payloads are NOT counted] ===",
+            self.census.nodes,
+            mb(self.node_bytes),
+            std::mem::size_of::<ParseNode<'_>>(),
+            self.census.shaped_values,
+            mb(self.shaped_value_bytes),
+            self.census.shaped_pairs,
+            mb(self.shaped_pair_bytes),
+            self.census.rendered_strings,
+            mb(self.rendered_string_header_bytes),
+            mb(self.total_bytes()),
+        );
+    }
+}
+
+/// ⛔⛔ **`Drop` WAS THE RIGHT SHAPE AND IT IS STRUCTURALLY UNAVAILABLE — recorded
+/// here so the next reader does not re-derive it** (`ENGINE-UNIVERSAL-SERVICES.67`(b)).
+/// A `Drop` impl would make every family inherit the report by construction, which
+/// is what this module already has a scar about: `augment_error_with_furthest_position`
+/// was born as an inline block, was hand-copied ONCE, and the other **10** detail
+/// paths silently never got it while `TOOLBOX.md` called the diagnostic "always on".
+///
+/// It does not compile, and the reason is this type's OWN documented lifetime design
+/// rather than an accident: `'input` is *unified to the arena's scope* (see
+/// [`NodeArena`]), so consumers hold `&'input NodeArena<'input>` — self-referential
+/// by construction. `impl Drop` makes dropck require `'input` to STRICTLY outlive the
+/// value, which that unification can never satisfy: measured, `cargo check --lib`
+/// answers `E0597 'node_arena' does not live long enough … borrow might be used here,
+/// when 'node_arena' is dropped and runs the Drop code`. Adding it would mean
+/// re-splitting the lifetime across the 22 029 consumer sites the unification exists
+/// to avoid.
+///
+/// ⇒ the report is an EXPLICIT call, and the forgettability that buys is answered by a
+/// TEST rather than by care: `parse_paths_all_report_footprint` censuses this crate's
+/// own source and fails when a detail path creates an arena without reporting it.
 impl Default for NodeArena<'_> {
     fn default() -> Self {
         Self::new()
