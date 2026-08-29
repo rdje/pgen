@@ -14676,7 +14676,7 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   instances — which ACCEPTED before this commit too — costs **4 064.0 MB**, and 10 001 costs
   **4 064.1 MB**. The 4 GB is pre-existing and is `.67`'s subject, not this leaf's.
 
-### ⛔⛔ `.67` — **PARSE MEMORY IS 2 500×–8 000× THE INPUT SIZE AND LINEAR, SO "BOUNDED ONLY BY HOST RAM" BINDS AT ~40 000 NETLIST INSTANCES ON A 16 GB MACHINE** (`in progress` — ✅ **(a) DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0120`, ✅ **(b) legs 1–3 of 4 DONE — the AST side is CLOSED and the withdrawn conclusion is RESTORED** `…-0121`/`-0122`/`-0124`/`-0125`/`-0126`; ✅ **leg 4 DONE `…-0128` — the residual is ATTRIBUTED and the biggest thing in it was on nobody's candidate list: a dense `109 × (len + 1)` thin-memo table costing 872 B per input byte that is NEVER FREED (10.4–44.6 % of near-peak live bytes, and 1 029 MB still resident after a 1.2 MB parse RETURNS); memo tables 24–52 %; the DERIV TAPE — one of this leg's own three candidates — is 0.00–0.55 %; unattributed 3.0–9.2 %**; ✅ **(c)(i)+(iii) DONE `…-0129` — the table is **95.4–99.93 % NEVER WRITTEN** (occupancy 0.07–4.58 %, median 3.74 %, against a pre-registered 28.6 % sparse break-even) **AND FULLY RESIDENT ANYWAY**: an isolating comment-only shape writes **112 bytes** of a 914 MB table and pays **906 MB of RAM**, slope **885.9 B per input byte** against a table costing 872.0. (c)(ii) — the memo REHASH spike and the fix pricing — is what remains; opened 2026-08-28 by `.66`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`)
+### ⛔⛔ `.67` — **PARSE MEMORY IS 2 500×–8 000× THE INPUT SIZE AND LINEAR, SO "BOUNDED ONLY BY HOST RAM" BINDS AT ~40 000 NETLIST INSTANCES ON A 16 GB MACHINE** (`in progress` — ✅ **(a) DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0120`, ✅ **(b) legs 1–3 of 4 DONE — the AST side is CLOSED and the withdrawn conclusion is RESTORED** `…-0121`/`-0122`/`-0124`/`-0125`/`-0126`; ✅ **leg 4 DONE `…-0128` — the residual is ATTRIBUTED and the biggest thing in it was on nobody's candidate list: a dense `109 × (len + 1)` thin-memo table costing 872 B per input byte that is NEVER FREED (10.4–44.6 % of near-peak live bytes, and 1 029 MB still resident after a 1.2 MB parse RETURNS); memo tables 24–52 %; the DERIV TAPE — one of this leg's own three candidates — is 0.00–0.55 %; unattributed 3.0–9.2 %**; ✅ **(c)(i)+(ii) DONE `…-0129` — the table is **95.4–99.93 % NEVER WRITTEN** (occupancy 0.07–4.58 %, median 3.74 %, against a pre-registered 28.6 % sparse break-even) **AND FULLY RESIDENT ANYWAY**: an isolating comment-only shape writes **112 bytes** of a 914 MB table and pays **906 MB of RAM**, slope **885.9 B per input byte** against a table costing 872.0. (c)(iii) — the memo REHASH spike and the fix pricing — is what remains; opened 2026-08-28 by `.66`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`)
 
 - **WHY THIS IS A LEAF AND NOT A FOOTNOTE.** The director's mandate names host RAM as the ONE
   legitimate limit ([[project_rtl_parsers_accept_any_rtl_no_limits_non_negotiable]]). `.66` moved the
@@ -15729,7 +15729,7 @@ output: [`alloc_prediction_scorecard.txt`](artifacts/eus67/alloc_prediction_scor
   `class_of`'s bucketing by the 114-allocation class-range oracle above, which is strictly stronger
   than the ten hand-picked values the unit test checks.
 
-#### ✅✅✅ `.67`(c)(i)+(iii) DONE — **THE DENSE TABLE IS 95.4 %–99.93 % NEVER WRITTEN, AND IT IS FULLY RESIDENT ANYWAY. A FILE THAT IS 99.998 % COMMENT WRITES 112 BYTES OF IT AND PAYS 906 MB OF RAM** (`PGEN-ENGINE-UNIVERSAL-SERVICES-0129`, 2026-08-29)
+#### ✅✅✅ `.67`(c)(i)+(ii) DONE — **THE DENSE TABLE IS 95.4 %–99.93 % NEVER WRITTEN, AND IT IS FULLY RESIDENT ANYWAY. A FILE THAT IS 99.998 % COMMENT WRITES 112 BYTES OF IT AND PAYS 906 MB OF RAM** (`PGEN-ENGINE-UNIVERSAL-SERVICES-0129`, 2026-08-29)
 
 Discharges the first and third of the three measurements `-0128` said `.67`(c) owed before any fix
 could be chosen. Producers and raw data:
@@ -15794,7 +15794,7 @@ be in a long-lived embedder.)
   table is the right design and `.67`(c) should say so and stop. **Every input ≥ 30 KB measured
   BELOW it — 10 of 10, by a factor of 6 to 400.**
 
-## (iii) RESIDENCY — and the first attempt to settle it was WRONG, which is why it is here
+## (ii) RESIDENCY — and the first attempt to settle it was WRONG, which is why it is here
 
 ⛔⛔⛔ **A BOUND I BUILT, BELIEVED, AND THEN RETRACTED BEFORE PUBLISHING IT.** The obvious move was to
 settle residency from the ladder's own aggregate: take `peak_live` versus `peak_rss − floor`,
@@ -15831,14 +15831,14 @@ discipline leg 3's `N`/`N + 1` experiment used, and the reason three sizes were 
 - ✅ **A sparse structure would be smaller** — occupancy is 6× to 400× below break-even. ⛔ **And it
   is still REFUSED as the fix**, because it trades hashing for the dense table's O(1) and peak speed
   is the non-negotiable half of the north star. A cost is rejected, not traded.
-- ⭐⭐ **THE CANDIDATE THAT IS NOT A TRADE, and it is what `.67`(c)(ii) should price first: stop
+- ⭐⭐ **THE CANDIDATE THAT IS NOT A TRADE, and it is what `.67`(c)(iii) should price first: stop
   faulting in what is never written.** The slot word is `(generation: u32, index + 1: u32)` and the
   generation check ALREADY makes an unwritten slot invalid whatever it contains — so the zero-fill
   is redundant to correctness. Two directions, both preserving O(1) with no hashing: obtain the
   table from a ZEROED mapping the kernel backs lazily (untouched pages never become resident), or
   narrow the word so the same table costs half. ⚠️ Neither is measured here and neither is claimed;
   they are named so (c)(ii) starts from a shape rather than a blank page.
-- ⚠️ **`.67`(c)(ii) — the memo REHASH spike — is still owed** (`-0128`: two success tables live at
+- ⚠️ **`.67`(c)(iii) — the memo REHASH spike — is still owed** (`-0128`: two success tables live at
   once on 4 of 8 inputs ⇒ the memo's contribution to peak is 1.5× its steady state).
 
 ## THE PRE-REGISTRATION — 4 OF 8, AND ONE ROW FAILED BECAUSE *I* UNDER-SPECIFIED IT
@@ -15870,7 +15870,50 @@ at will. ⇒ **name the ESTIMATOR as well as the quantity — the fifth variatio
 after the QUANTITY (`-0126`), the SENTENCE (`-0125`), the SET (`-0127`) and the LIFETIME
 (`-0128`).**
 
-##### ACCEPTANCE CHECKLIST — `.67`(c)(i)+(iii) (`PGEN-ENGINE-UNIVERSAL-SERVICES-0129`)
+##### ⛔⛔ `.67`(c) — SELF-AUDIT UNDER A DIRECTOR RE-VERIFICATION CHALLENGE, SAME DAY (`PGEN-ENGINE-UNIVERSAL-SERVICES-0130`). **EVERY MEASUREMENT STANDS. TWO OF THE FOUR PUBLISHED FINDINGS DO NOT SURVIVE AS WORDED, AND ONE OF THEM IS A COUNT THAT CONTRADICTED MY OWN TABLE.**
+
+The director asked *"do you still stand by your last 4 findings?"*. Re-derived one at a time.
+
+- ⛔⛔⛔ **(2) IS WRONG — I RENUMBERED `.67`(c)'s OWN LEGS BETWEEN TWO COMMITS.** `-0128` committed
+  the roster as **(i) occupancy · (ii) RESIDENCY · (iii) REHASH spike** (`git show f4c1a486:MEMORY.md`).
+  `-0129` then published *"(i)+(iii) DONE"* with *"(ii) owes the memo REHASH spike"* — **residency and
+  rehash swapped**. A reader joining the two commits gets contradictory labels for the same work, and
+  my director-facing finding *"`.67`(c)(ii) is the last leg"* named the wrong one. ⭐ **`-0128` is
+  canonical because it is first**, so this slice corrects FORWARD: `-0129` did **(i)+(ii)** and
+  **(iii)** is what remains. ⇒ **a leg roster is an IDENTIFIER, not a description — renumbering it is
+  the same defect class as renaming a slice id, and `DOCTRINE-GAP-OWNERSHIP.18` already records what
+  ambiguous ids cost.**
+- ⛔⛔ **(4)'s COUNT IS WRONG AND MY OWN TABLE SAID SO: I published NINE killed background jobs and
+  can enumerate only EIGHT.** The table in the same message listed 1 + 2 + 3 + 2 = **8**
+  (`b3nattxuo`, `b0fikq1s8`, `bdzufqewh`, `bgk5oka39`, `b343ufy2j`, `by53yaa72`, `b7vo9zyh3`,
+  `b01pvrnwm`), and the sentence above it said nine, decomposed as *"one real + eight waiters"*.
+  ⭐ **This is `-0127`(2) recurring exactly — a headline count over a table that does not carry it** —
+  in the very session whose carry-forward was to verify the grouping. The substance is unaffected
+  (one job was real work, the rest were idle waiters; the guard logged an external INT/TERM, and the
+  memory guard's own limits and OS memory pressure were both ruled out by command). The number is not.
+- ⚠️ **(1) STANDS AS A MEASUREMENT AND ITS CAVEAT DID NOT SHIP AT THE POINT OF USE.** Re-derived: the
+  family census reproduces exactly (**10 of 11** generated parsers, **48–872 B per input byte**), and
+  the residency slope stands. ⛔ But the residency experiment runs on a **SYNTHETIC comment-only
+  shape** — this leaf says so, and the sentence I handed the director (*"confirmed real, not address
+  space"*) did not. Two further clauses in it are SOURCE READINGS rather than measurements and were
+  stated as fact: *"before the parser reads a token"* (true of `begin()`'s `resize`, not timed) and
+  *"holds it until the thread ends"* (measured only as far as *after the parse returns*). ⇒ the same
+  shape as `-0127`(3): a caveat that lives in the leaf and not where the claim is read is a caveat
+  that does not exist for the reader.
+- ⚠️ **(3) STANDS IN SUBSTANCE AND WAS FIRMER THAN ITS OWN LEAF.** Re-derived: **37** uses of
+  `env!("CARGO_MANIFEST_DIR")` in `rust/src/`, and `parser_registry.rs:1399` still returns `Ok(())`
+  on a missing bundle. But `.73` itself says the behaviour delta is *inferred, not yet measured*, and
+  I told the director flatly that a moved repository *"silently loads no SV stdlib at exit 0"*.
+  **The repository was never moved and the parse never re-run.** The path being baked in IS measured
+  (`strings` on the shipped probe); what a moved tree then DOES is not.
+- ⭐⭐⭐ **THE CARRY-FORWARD, and it is the fourth variation in five slices: I verified the GROUPING
+  and then miscounted the group.** `-0127` said *"when you publish N findings as a group, verify that
+  N is the whole population"*; here N was right (four findings, four audited) and a count INSIDE one
+  of them was wrong against a table in the same message. ⇒ **the check has to run on every count in
+  the artifact, not on the roster of claims** — a headline number and the rows under it are two
+  claims, and agreeing with yourself is not corroboration.
+
+##### ACCEPTANCE CHECKLIST — `.67`(c)(i)+(ii) (`PGEN-ENGINE-UNIVERSAL-SERVICES-0129`)
 
 - [x] **ROOT CAUSE (WHY + WHERE), tool-backed.** WHY `-0128` could publish a cost but not a verdict:
   nothing counted how much of the table a parse WRITES, so "872 B per input byte" was an allocation
@@ -15912,7 +15955,7 @@ after the QUANTITY (`-0126`), the SENTENCE (`-0125`), the SET (`-0127`) and the 
   predicted 872.0) is decided by it; the pre-registration falsified **4 of 8** legs; and the
   aggregate bound was refuted by its own algebra before it shipped. (3) **DURABILITY** — instrument,
   producer, three analysers, four raw artifacts and the scorecard are tracked. ⚠️ **NAMED GAP,
-  unchanged: no gate WATCHES these numbers**; a ratchet is still priced in `.67`(c)(ii). ⚠️ **SECOND
+  unchanged: no gate WATCHES these numbers**; a ratchet is still priced in `.67`(c)(iii). ⚠️ **SECOND
   NAMED GAP: the residency experiment uses a SYNTHETIC comment-only shape.** It isolates the table by
   construction, which is its whole value, and it is not a claim about what any real file does — the
   real-input occupancies in (i) are the population claim.
