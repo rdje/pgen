@@ -16066,10 +16066,14 @@ ways over its own tracked artifacts ([`memo_table_count_methods.py`](artifacts/e
 **A and B are not in conflict about the data. A is answering a narrower question and its answer is a
 FLOOR BY CONSTRUCTION** — a table sharing its class with anything else is invisible to it, which is
 exactly what happens to `t_math_synmul_mul.v`'s 2²⁰-bucket table and `syn_port_list`'s only table.
-⇒ **the published `4` is what the strict method answers, and the leaf's own attribution artifact
-said `5` on the same page.** ⭐ The lesson is not "the count was wrong": it is that **a count over
-inferred identities carries the inference's scope, and publishing the number without the method is
-what turns a sound measurement into a wrong sentence.**
+
+⛔⛔⛔ **WITHDRAWN, SAME DAY, BY THIS LEAF'S OWN SELF-AUDIT (`-0132`) — SEE BELOW.** I wrote here that
+*"the published `4` is what the strict method answers"*, i.e. that `-0128`'s count was
+METHOD-DEPENDENT rather than wrong. **It is not.** `-0128`'s own sentence names
+`t_math_synmul_mul.v` as its worked example of an input holding two tables, and **method A sees only
+ONE table there** — so A cannot be the method it counted with. `-0128` was reading B, which says 5,
+and published 4: **a miscount of its own artifact.** The table above is unchanged and every entry in
+it stands; the sentence that made the 4 *reasonable* is withdrawn.
 
 ## ⛔⛔⛔ AND THE SUBSET-SUM SEARCH IS REFUTED OUTRIGHT ON THE FLOOR ROW
 
@@ -16082,7 +16086,11 @@ across the **complete** 8 KiB-threshold tape of the whole ladder there is **not 
 - ⛔ **SCOPE, STATED BEFORE IT CAN BE OVERREAD.** On the **eight attributed body inputs the
   subset-sum naming and the tape AGREE table for table** — every bucket count, on every input. The
   refutation is the FLOOR row, which `-0128` had already excluded from every published band as *"the
-  floor, and not a shape"*. **The attribution's bands are not affected.**
+  floor, and not a shape"*. **The LEAF's bands are not affected** (`memo 18.3–46.3 %`, n = 8).
+  ⚠️ **NARROWED BY `-0132`, because "the attribution's bands" was wider than the evidence**: the
+  PRODUCER prints its own band line `memo table  n=9  min 9.74% · median 26.48% · max 46.33%`, and
+  that **minimum, 9.74 %, IS `floor.sv`'s share — derived from three tables that were never
+  allocated.** A band printed by a producer is a published number too.
 - ⇒ **A DECOMPOSITION OF A TOTAL IS A HYPOTHESIS, AND ON A CLASS CROWDED WITH SMALL ALLOCATIONS IT
   IS A WEAK ONE.** The search has a free degree of freedom exactly where the evidence is thinnest.
   The seventh variation on the running theme: `-0126` the QUANTITY, `-0125` the SENTENCE, `-0127`
@@ -16327,6 +16335,67 @@ Measured, `grep -l` says **10 of the task files** are already permanently exempt
   whether a doubling straddles the peak — is a property of the INPUT, so a ratchet over a fixed
   ladder would fire on a corpus change and not on an engine change. The engine-side quantity worth
   watching is `MemoEntry`'s size, and it is already covered by `PARSE-ALLOC-TYPE-SIZES:`.
+
+##### ⛔⛔ `.67`(c)(iii) — SELF-AUDIT UNDER A DIRECTOR RE-VERIFICATION CHALLENGE, SAME DAY (`PGEN-ENGINE-UNIVERSAL-SERVICES-0132`). **EVERY MEASUREMENT STANDS. ONE OF THE SEVEN FINDINGS IS REFUTED — BY EVIDENCE THAT WAS SITTING IN MY OWN TABLE, IN THE SAME MESSAGE.**
+
+The director asked *"do you trust or stand by your 7 findings?"*. Re-derived one at a time, by
+command, against the committed tree rather than by re-reading what I wrote.
+
+- ⛔⛔⛔ **(3) IS REFUTED AND I WITHDRAW IT.** I published *"the published `4 of 8` was
+  METHOD-DEPENDENT, not wrong"* and asserted that **the published 4 is what the strict class method
+  answers**. `-0128`'s own sentence refutes it. It reads: *"TWO SUCCESS TABLES ARE LIVE AT ONCE ON
+  4 OF 8 INPUTS — e.g. `t_math_synmul_mul.v` holds 622 854 152 B (2²¹ buckets) AND 311 427 080 B
+  (2²⁰)"* — and the STRICT method sees only **ONE** table on `t_math_synmul_mul.v`, because the 2²⁰
+  table shares its size class. **A method that misses `-0128`'s own worked example cannot be the
+  method `-0128` counted with.** `-0128` was reading the SUBSET-SUM attribution, which says **5**,
+  and published **4**. ⇒ **it is a MISCOUNT of its own artifact, exactly like `-0130`(4) — not a
+  method artifact at all.**
+  - ⭐⭐ **AND THE REFUTING ROW WAS IN THE TABLE I PUBLISHED IT WITH.** The three-method comparator
+    prints `t_math_synmul_mul.v  [2097152] | [2097152, 1048576] | [2097152, 1048576]`. Column A
+    disagreeing with B and C on the very input `-0128` cited is the whole refutation, and I read
+    that table as *evidence for* the reconstruction instead of *against* it.
+  - ⇒ ⭐⭐⭐ **THE CARRY-FORWARD, AND IT IS THE TENTH IN THE SERIES: PROVENANCE.** *Why did they get
+    that number* is a CLAIM, not context — and a CHARITABLE reconstruction is the most dangerous
+    kind, because being generous to the earlier author feels like rigour. **A provenance claim is
+    checked against the artifact the earlier author CITED, never against plausibility.** Here the
+    citation was one input long and settled it in one line.
+  - **WHAT SURVIVES**: the strict method really does read 4 and really is a lower bound by
+    construction; the attribution and the tape really do read 5; the tape is the only one of the
+    three that needs no identification inference. What does NOT survive is the sentence that made
+    `-0128`'s 4 *reasonable*.
+- ⚠️ **(2) STANDS AS A MEASUREMENT AND ITS SCOPE SENTENCE WAS TOO WIDE.** Re-derived: the ladder
+  never allocates 19 016 or 38 024 bytes, `floor.sv` makes exactly one table-shaped allocation, and
+  the tape reproduces both crowded class totals to the byte. ⛔ But I wrote **"the attribution's
+  bands are not affected"**, and that is false of the ATTRIBUTION's own bands: `alloc_attribution.txt`
+  prints `memo table  n=9  min 9.74% · median 26.48% · max 46.33%`, and the **min, 9.74 %, IS
+  `floor.sv`'s share — computed from three tables that were never allocated.** What is unaffected is
+  the **LEAF's** published band (`memo 18.3–46.3 %`, n = 8, `floor.sv` excluded by name). ⇒ the
+  qualification is *"the leaf's bands"*, and a band printed by a producer is a published number too.
+- ⚠️ **(4) STANDS AS CODE AND AS A LESSON; ONE CLAUSE IS REASONED, NOT MEASURED.** Re-derived:
+  `ALLOC_CALLS` and `FREE_CALLS` are separate statics (`:100`, `:102`), `EVENT_SEQ` is one clock
+  (`:161`), and the tape stamps only event seqs. ⛔ But *"the tape's own control could not have
+  caught it"* describes a form that was **never committed** — the committed analyser's `live_at`
+  already takes a single cut, so the two-clock control cannot be replayed from this tree. The
+  reasoning is sound and the code is checkable; **the counterfactual is not re-derivable, and the
+  knowledge card must say so** rather than resting on a `reverify:` that demonstrates the control's
+  SCOPE but not its blindness.
+- ⚠️ **(6) STANDS, ITS OWN ARTIFACT IS ALREADY STALE, AND THE FIX SHAPE I PROPOSED IS INSUFFICIENT.**
+  `.19` prints `grep -c 'promotion: declined (' … # -> 5`. At the commit that SHIPPED it the answer
+  is **9**: this slice added four more. ⭐⭐ **And three of those nine are PROSE ABOUT the token** —
+  the leaf's own *"this tree already carries 5 `promotion: declined (…)` tokens"* and `.19`'s two
+  command lines — which the gate's `grep` matches. **A document describing the trigger trips the
+  trigger**, which is the failure the gate's own comment says it fixed one level down.
+  ⛔⛔ **⇒ `.19`'s proposed fix — scope arm (b) to the staged diff — DOES NOT FIX THIS, because my
+  prose lines WERE added lines in that diff.** The arm must additionally require the token to head a
+  list item (`^\s*[-*] \**promotion: declined \(`), not merely appear on a line. `.19` is corrected.
+- ✅ **(1), (5) AND (7) STAND, re-derived by command.** The spike re-runs to `5 of 10` superseded,
+  ratio exactly 1.5000, `8.18 %–15.44 %` median `15.01 %`, spread `7.45×`, control `148 / 0`;
+  `class_of(usize::MAX)` is 64 against 48 classes and 2⁴⁷ is the first clamped size, with the
+  ladder's largest allocation at class 31; `.74`, `.75` and `DOCTRINE-GAP-OWNERSHIP.19` are all
+  present in `340baafd`, and the knowledge card is in the regenerated map.
+- ⛔ **AND A COUNT INSIDE THIS AUDIT, CHECKED BECAUSE `-0130` SAYS TO**: the roster is **7**, seven
+  were audited, **three stand clean (1, 5, 7)**, **three stand with a named qualification (2, 4, 6)**
+  and **one is withdrawn (3)** — 3 + 3 + 1 = 7.
 
 ### ✅✅✅ `.65` — **THE RECURSION CEILING IS NO LONGER A NUMBER ANYBODY TYPED. IT IS MEASURED, PER PARSE, FROM THE STACK THE HOST ACTUALLY GAVE THE THREAD** (**DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0117`; opened 2026-08-28 by `.63`(c)'s ruling / `…0114`; taken after `.66`)
 

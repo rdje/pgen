@@ -798,7 +798,11 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   on 5 of 10 inputs, ratio exactly 1.5000) and the floor-row naming was **fabricated** — the search
   named four `T=296` tables on `floor.sv` where the ladder never allocated 19 016 or 38 024 bytes at
   all. ⚠️ On the eight attributed BODY inputs the two agree table for table; the failure is on the
-  crowded low classes where the search has the most freedom and the least evidence.
+  crowded low classes where the search has the most freedom and the least evidence. ⛔ **And a
+  fabricated decomposition still reaches a published number**: `alloc_attribution.txt`'s own band
+  line `memo table  n=9  min 9.74%` IS the floor row's share, derived from three tables that were
+  never allocated. A band a producer prints is published output — check the producer's bands, not
+  only the leaf's.
 - ⛔⛔ **ONE CLOCK. `alloc_calls` AND `free_calls` ARE TWO.** An allocation stamped `alloc_ord=988`
   beside a release stamped `free_ord=195` is not out of order — they count different events and
   cannot be compared. The tape stamps a single `EVENT_SEQ` that every allocation AND every release

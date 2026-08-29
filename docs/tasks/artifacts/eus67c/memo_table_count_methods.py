@@ -15,10 +15,21 @@ depends entirely on the IDENTIFICATION METHOD:
      class total at all, and the instant asked about is the PEAK rather than the snapshot.
 
 A and B are not in conflict about the data; A is answering a narrower question and its answer
-is a floor. Publishing either number without saying which question it answers is what turns a
-sound measurement into a wrong sentence. C settles it because it needs no identification
-inference — and it is also the only one of the three that can distinguish CO-RESIDENCE from
-SUCCESSION, which is what the word "rehash" actually claims.
+is a floor. C settles it because it needs no identification inference — and it is also the only
+one of the three that can distinguish CO-RESIDENCE from SUCCESSION, which is what the word
+"rehash" actually claims.
+
+⛔⛔ WITHDRAWN BY `-0132`, AND THE ROW THAT REFUTES IT IS PRINTED BY THIS SCRIPT. An earlier
+version of this docstring concluded that `-0128`'s published 4 was METHOD-DEPENDENT — that it
+"is what the strict method answers". It is not. `-0128` cited `t_math_synmul_mul.v` as its
+worked example of an input holding two tables, and column A sees only ONE there. A method that
+misses the earlier author's own example cannot be the method they used: `-0128` was reading B,
+which says 5, and published 4. It is a MISCOUNT of its own artifact.
+
+=> The transferable rule, and it is why this note stays in the producer rather than only in the
+leaf: a reconstruction of WHY someone got a number is a PROVENANCE CLAIM, and provenance is
+checked against the artifact they CITED, never against plausibility. Run this script and read
+the `t_math_synmul_mul.v` row: A disagrees with B and C on exactly the input `-0128` named.
 
 Usage: memo_table_count_methods.py <alloc_census_classes.tsv> <alloc_attribution.txt> \
                                    [<rehash_tape.tsv> <rehash_meta.tsv> <rehash_classes.tsv>]

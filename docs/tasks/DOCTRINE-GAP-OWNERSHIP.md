@@ -1464,19 +1464,32 @@ $ SELF=/nonexistent/driver.sh                          # the unreadable-subject 
 - **MEASURED, on this very commit.** `PGEN-ENGINE-UNIVERSAL-SERVICES-0131` staged a NEW dated lesson
   heading in `DEVELOPMENT_NOTES.md` with no promotion and no new decline, and the gate exited **0**:
   ```
-  grep -c 'promotion: declined (' docs/tasks/ENGINE-UNIVERSAL-SERVICES.md   # -> 5
+  grep -c 'promotion: declined (' docs/tasks/ENGINE-UNIVERSAL-SERVICES.md   # -> 5 at 0e3bc12c,
+                                                                           #    9 at 340baafd
   grep -l 'promotion: declined (' docs/tasks/*.md | wc -l                   # -> 10
   ```
   ⇒ **10 of the task files are already permanently exempt from arm (b)**, and every tree acquires the
-  exemption the first time it declines.
+  exemption the first time it declines. ⚠️ **The first count is dated on purpose (`-0132`): it was 5
+  before `-0131` and is 9 after, because that slice wrote four more — so an undated `# -> 5` in a
+  tracked artifact is stale the moment it ships.**
 - ⭐ **THE GATE'S OWN COMMENT DESCRIBES THIS DEFECT ONE LEVEL DOWN AND WAS FIXED THERE.** It records
   that the first real run *"passed on a leaf that merely DOCUMENTED the token … a gate satisfied by
   its own documentation is decoration"*, and rejects the literal `(<reason>)` placeholder. The same
   shape met one level up — a gate satisfied by its own HISTORY — was not covered by that fix.
-- **THE FIX SHAPE**, and it is the one the rest of this registry already uses: make arm (b)
+- **THE FIX SHAPE** — ⛔⛔ **AND `-0132` FOUND THE FIRST VERSION OF IT INSUFFICIENT, WHICH IS WHY IT
+  IS WRITTEN TWICE.** The obvious move is what the rest of this registry already does: make arm (b)
   STAGED-DIFF-SCOPED, exactly as `GAP-CLAIM-CENSUS` and `TABLE-ARITY-RATCHET` are — the token must be
   an ADDED line in the staged diff (`git diff --cached -U0 -- docs/tasks | grep -E '^\+.*promotion: declined \('`),
-  not merely present in the file. ⛔ Free on day one by the `SV-CORPUS-GRAD.13e.11` rule only if the
+  not merely present in the file. **That is necessary and NOT sufficient.** Three of the nine tokens
+  now in `ENGINE-UNIVERSAL-SERVICES.md` are **PROSE ABOUT the token** — this leaf's own two command
+  lines and `.67`(c)(iii)'s sentence *"this tree already carries 5 `promotion: declined (…)`
+  tokens"* — and every one of them WAS an added line in `-0131`'s staged diff, so a diff-scoped arm
+  would have accepted them unchanged. **A document that describes the trigger trips the trigger.**
+  ⇒ the arm must ALSO require the token to HEAD a list item — `^\s*[-*] \**promotion: declined \(` —
+  so a mention inside a sentence, a command line or a fenced block cannot satisfy it. ⭐ That is the
+  same correction the gate's own comment records making one level down (it rejects the literal
+  `(<reason>)` placeholder because *"a gate satisfied by its own documentation is decoration"*); the
+  placeholder was the symptom and the substring match is the cause. ⛔ Free on day one by the `SV-CORPUS-GRAD.13e.11` rule only if the
   fix precedes the blocking: the 10 exempt files must not suddenly block on their next edit, and
   scoping to the ADDED lines achieves that by construction (an old token is not an added line, and a
   commit with no new lesson heading is not judged at all).

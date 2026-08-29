@@ -14,7 +14,7 @@ tags: [instruments, controls, evidence, verification, measurement, allocators, o
 date: 2026-08-29
 status: current
 evidence: "ENGINE-UNIVERSAL-SERVICES.67(c)(iii) (PGEN-ENGINE-UNIVERSAL-SERVICES-0131). The allocation LIFETIME tape in rust/src/bin/parse_alloc_census_probe.rs stamped allocations with ALLOC_CALLS and releases with FREE_CALLS — two counters that count different events — so every succession verdict (alloc(A) < alloc(B) < free(A)) compared incomparable numbers. Its control, `live at instant I`, reconstructs the size-class table at the snapshot instant and passed with 148 of 148 (input, class) pairs matching byte-for-byte, BOTH before and after the defect was fixed: that comparison puts alloc ordinals against I's alloc ordinal and free ordinals against I's free ordinal, staying inside one clock each time. Fixed with a single EVENT_SEQ that every allocation AND every release advances."
-reverify: "python3 docs/tasks/artifacts/eus67c/rehash_spike_report.py docs/tasks/artifacts/eus67c/rehash_tape.tsv docs/tasks/artifacts/eus67c/rehash_meta.tsv docs/tasks/artifacts/eus67c/rehash_classes.tsv | head -3   # '148 (input, class) pairs ... 0 mismatched' — a control over RESIDENCY at an instant, which is silent about ORDERING"
+reverify: "python3 docs/tasks/artifacts/eus67c/rehash_spike_report.py docs/tasks/artifacts/eus67c/rehash_tape.tsv docs/tasks/artifacts/eus67c/rehash_meta.tsv docs/tasks/artifacts/eus67c/rehash_classes.tsv | head -3   # '148 (input, class) pairs ... 0 mismatched'. This re-derives the control and shows its SCOPE is residency-at-an-instant; it does NOT replay the two-clock form, which was never committed (see the honest limit below)."
 ---
 
 **A control is not a blessing on an instrument. It is evidence about ONE property, and it stays
@@ -50,6 +50,13 @@ control over *ordering between events*. Different property, no coverage.
 
 The fix was a single `EVENT_SEQ` that every allocation **and** every release advances, so that a
 comparison between an allocation and a release is a comparison between two readings of one counter.
+
+⚠️ **Honest limit, added by the same session's self-audit.** The two-clock form was never committed,
+so *"the control would still have passed"* is **reasoning about the code, not a replay of it**: the
+committed analyser's `live_at` already takes a single cut. What IS checkable from the tree is the
+part the rule rests on — that `ALLOC_CALLS` and `FREE_CALLS` are separate statics, and that the
+control's comparison is residency-at-an-instant rather than ordering-between-events. Treat the
+counterfactual as an argument you can follow, not as a measurement you can re-run.
 
 ## The rule
 
