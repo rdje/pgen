@@ -17010,6 +17010,76 @@ STRENGTH I attributed to my own evidence.
   allocations of 8 192 B; the complete run reports 220 773. A truncated tape is a PREFIX of the
   event stream, not a sample of it.
 
+### ⛔ `.76` — **`peak_live` INCLUDES THE PROBE'S OWN COMMAND LINE: THE SAME FILE, PARSED IDENTICALLY, REPORTS A DIFFERENT PEAK DEPENDING ON HOW ITS PATH IS SPELLED** (`todo`, ROUTED + PARKED behind the SV lane, opened 2026-08-29 by an ORPHANED BACKGROUND JOB's overwrite / `PGEN-ENGINE-UNIVERSAL-SERVICES-0134`)
+
+- ⛔ **THIS DOES NOT RE-OPEN `.67`.** `.67` is CLOSED and its bound stands: the effect is **~2 bytes
+  per path character against a 2.34 MB peak — 0.004 %**, four orders below any published digit. What
+  is defective is not the bound but the PROPERTY `peak_live` is relied on for. `MEMORY.md` leans on
+  it as the DETERMINISTIC control that distinguishes real signal from RSS noise (`-0128`:
+  *"byte-identical across both runs on 11 of 11"*). That determinism is real **only while argv is
+  held fixed**, and nothing anywhere says so.
+- **HOW IT WAS FOUND, WHICH IS THE ONLY REASON IT WAS FOUND AT ALL.** An orphaned `chain.sh` from a
+  dead session (scratchpad `d2751264`, no surviving log) re-ran the `.67`(c)(iii) ladder **without**
+  `PGEN_EUS67_TAPE_MIN_BYTES=16384` and overwrote three tracked artifacts at the script's default
+  `8192`. The diff moved `peak_live` by **exactly −1 on 11 of 11 rows** while
+  `peak_at_event_seq` and `peak_at_alloc_calls` were **identical on 11 of 11** and the extra tape
+  events ranged **+28 … +220 797**. ⭐ **A recording perturbation scales with the event count and
+  moves the sequence numbers; a constant −1 across an 8 000× range of extra events is an OFFSET.**
+  Chasing the −1 instead of explaining it away is the whole finding — cf. `.66`, found the same way.
+- ✅ **THE DECISIVE CONTROL — `08192`: the same threshold, one more character.** Run on
+  `tmp/eus67/floor.sv`, `--profile sv_2017`:
+
+  | argv value | chars | threshold | `peak_live` |
+  |---|---|---|---|
+  | `8192` | 4 | 8192 | 2 344 417 |
+  | `16384` | 5 | 16384 | 2 344 418 |
+  | `08192` | 5 | **8192** | **2 344 418** |
+  | `000008192` | 9 | 8192 | 2 344 422 |
+  | `0000000016384` | 13 | 16384 | 2 344 426 |
+
+  `peak_live = 2 344 413 + len(argv_value)`, slope exactly **1 byte per character**. ⭐ **The
+  hypothesis *the tape threshold perturbs the parse* is REFUTED, not merely unsupported**: `08192`
+  and `16384` are DIFFERENT thresholds with IDENTICAL `peak_live`, while `08192` and `8192` are the
+  SAME threshold and differ. The varying quantity is the STRING, not the number.
+- ⛔ **AND THE INPUT PATH IS IN THERE TOO, AT TWICE THE RATE** (same file, `--tape-min-bytes 16384`
+  held fixed): `tmp/eus67/floor.sv` (18 ch) → 2 344 418 · `./tmp/eus67/floor.sv` (20) → 2 344 422 ·
+  `././././tmp/eus67/floor.sv` (26) → 2 344 434 · the absolute path (53) → 2 344 488. Exactly
+  **2 bytes per character**, linear over a 35-character span. ⇒ **`peak_live` is not a pure function
+  of (input, grammar, profile).** Two consumers are affected in principle: any cross-file comparison
+  silently compares path lengths, and any re-run under a different working directory shifts.
+- ⚠️ **AN UNMEASURED TERM, STATED RATHER THAN ROUNDED AWAY (`-0129`).** Omitting the flag entirely
+  reads **2 344 349**, i.e. **−69** against the 5-character run. A pure-argv model predicts
+  **−21** (`--tape-min-bytes` = 16 chars, `16384` = 5). **48 bytes are unaccounted for**, and the
+  1×/2× asymmetry between the flag value and the path is likewise unexplained. ⇒ *"`peak_live`
+  includes argv"* is CONFIRMED for the varying part and is **NOT a closed accounting** — this leaf
+  must not inherit it as one.
+- **THE FIX SHAPE, NAMED RATHER THAN LEFT TO BE INVENTED.** Latch the live-bytes counter once, after
+  argument parsing and immediately before the parse begins, and report the peak RELATIVE to that
+  baseline — i.e. give the instrument an explicit measurement epoch instead of letting process
+  startup sit inside the measured region. Cheap, local to `parse_alloc_census_probe.rs`, and it
+  makes the reported quantity a function of the parse alone. ⛔ It CHANGES every `peak_live` digit
+  by a small constant, so it is a re-baselining and must land with its own re-run, never silently.
+- ⛔ **PARKED, NOT ABANDONED.** This is instrument HYGIENE, not parser functionality, and the
+  director's ordering ruling of 2026-08-29 (third reaffirmation) puts `.69` ahead of everything in
+  this family. Owned here so it cannot be re-found from scratch.
+
+- ✅ **promotion: ACCEPTED** — the measurement lesson is promoted to the retrievable layer as
+  [`docs/knowledge/an-instrument-inside-its-own-measurement-window-measures-itself.md`](../knowledge/an-instrument-inside-its-own-measurement-window-measures-itself.md),
+  carrying the leading-zero control as a reusable technique and its own honest limit (the 48
+  unattributed bytes). `KNOWLEDGE_MAP.md` regenerated: 234 → 235 facts.
+- **promotion: declined (the orphaned-background-job trap is recorded in THIS leaf, in `CHANGES.md`
+  and in `DEVELOPMENT_NOTES.md` — all durable — and it is an OPERATING-PROCEDURE fact about
+  resuming, not an engineering principle about the parser or its instruments; the knowledge layer
+  indexes questions asked of the CODE and the MEASUREMENTS, and a card here would be a fourth copy
+  of a one-line habit. ⚠️ Promote it if it recurs: a second occurrence makes it a class, not an
+  incident.)**
+- **promotion: declined (*a restore is proven by re-deriving the consumer, not by `git restore`
+  exiting 0* is a genuine rule, but it is an INSTANCE of the already-promoted
+  [[a-control-validates-the-property-it-is-built-from]] — the property being validated is
+  "these bytes are the ones the published numbers came from", and byte-identical report
+  re-derivation is the control built from exactly that property. A second card would split one
+  idea across two entries.)**
+
 ### ⏸️ `.64` — **VERILOG-AMS IS A LONG-TERM HORIZON GOAL, PARKED BY DIRECTOR RULING UNTIL AFTER THE FIRST OFFICIAL SV RELEASE. THIS LEAF HOLDS THE MEASURED STARTING POINT AND NOTHING ELSE** (`parked`, opened 2026-08-28 / `…-0112`, SCOPED SAME DAY by the director / `PGEN-ENGINE-UNIVERSAL-SERVICES-0113`)
 
 - ⛔ **MEASURED, fast**: a word-boundary census of `grammars/systemverilog.ebnf` for `analog`,
