@@ -1,0 +1,22 @@
+=== PREDICTIONS (roster of 8) ===
+  1  CONFIRMED  occupancy below 10 % on every input >= 30 KB
+      max 0.045833 on syn_netlist_instances_2500.sv
+  2  CONFIRMED  median occupancy over those inputs in [0.5 %, 5 %]
+      median 0.037392
+  3  CONFIRMED  shape dominates size: netlist rungs within 1.5x, cross-shape spread > 3x
+      netlist rungs 1.025x, cross-shape spread 64.3x
+  4  FALSIFIED  clear_calls == 0 on at least 8 of 11 inputs
+      7 of 11; where it is not, distinct is an UPPER bound, which errs toward MORE occupancy
+  5  FALSIFIED  store_calls / distinct >= 1.5 (the table is re-stored)
+      measured exactly 1.00..1.00 — every slot written ONCE
+  6  FALSIFIED  occupancy lowest on pinmux_reg_top.sv
+      lowest is syn_port_list_10000.sv at 0.000713; pinmux is 0.010112
+  7  FALSIFIED  no regression: worst wall < 1.5 % AND worst RSS < 0.5 %
+      ⛔ THE PREDICTION NAMED NO ESTIMATOR, so it is scored on all three. RSS worst: min 0.88 % · median 0.29 % · max 0.66 %. Wall worst: min 16.67 % · median 2.13 %. Rows where the RSS statistics DISAGREE IN SIGN and the answer is therefore NOT RESOLVABLE: ['br_gh330.v', 't_math_synmul_mul.v', 'spi_device_reg_pkg.sv']. ⇒ the honest reading is that the effect is BELOW THE NOISE FLOOR, not that it is zero: every magnitude is <= 0.88 % while the sign is inconsistent across estimators on most rows, and the wall MINIMA are bit-identical on 3 of 4. Quoting any single statistic would read as a regression or an improvement at will
+  8  CONFIRMED  all eleven generated artifacts re-derive byte-identical
+      observed externally: 11/11 at 0 sites; only emission_sha and verified_at_commit moved in the baseline
+
+  CONFIRMED 4 of 8 · FALSIFIED 4 of 8
+
+=== RULING (committed to before the numbers) ===
+  break-even 0.2857; every input >= 30 KB measured BELOW it (10 of 10)

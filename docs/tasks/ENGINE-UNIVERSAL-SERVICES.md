@@ -14676,7 +14676,7 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   instances — which ACCEPTED before this commit too — costs **4 064.0 MB**, and 10 001 costs
   **4 064.1 MB**. The 4 GB is pre-existing and is `.67`'s subject, not this leaf's.
 
-### ⛔⛔ `.67` — **PARSE MEMORY IS 2 500×–8 000× THE INPUT SIZE AND LINEAR, SO "BOUNDED ONLY BY HOST RAM" BINDS AT ~40 000 NETLIST INSTANCES ON A 16 GB MACHINE** (`in progress` — ✅ **(a) DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0120`, ✅ **(b) legs 1–3 of 4 DONE — the AST side is CLOSED and the withdrawn conclusion is RESTORED** `…-0121`/`-0122`/`-0124`/`-0125`/`-0126`; ✅ **leg 4 DONE `…-0128` — the residual is ATTRIBUTED and the biggest thing in it was on nobody's candidate list: a dense `109 × (len + 1)` thin-memo table costing 872 B per input byte that is NEVER FREED (10.4–44.6 % of near-peak live bytes, and 1 029 MB still resident after a 1.2 MB parse RETURNS); memo tables 24–52 %; the DERIV TAPE — one of this leg's own three candidates — is 0.00–0.55 %; unattributed 3.0–9.2 %**, (c) open; opened 2026-08-28 by `.66`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`)
+### ⛔⛔ `.67` — **PARSE MEMORY IS 2 500×–8 000× THE INPUT SIZE AND LINEAR, SO "BOUNDED ONLY BY HOST RAM" BINDS AT ~40 000 NETLIST INSTANCES ON A 16 GB MACHINE** (`in progress` — ✅ **(a) DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0120`, ✅ **(b) legs 1–3 of 4 DONE — the AST side is CLOSED and the withdrawn conclusion is RESTORED** `…-0121`/`-0122`/`-0124`/`-0125`/`-0126`; ✅ **leg 4 DONE `…-0128` — the residual is ATTRIBUTED and the biggest thing in it was on nobody's candidate list: a dense `109 × (len + 1)` thin-memo table costing 872 B per input byte that is NEVER FREED (10.4–44.6 % of near-peak live bytes, and 1 029 MB still resident after a 1.2 MB parse RETURNS); memo tables 24–52 %; the DERIV TAPE — one of this leg's own three candidates — is 0.00–0.55 %; unattributed 3.0–9.2 %**; ✅ **(c)(i)+(iii) DONE `…-0129` — the table is **95.4–99.93 % NEVER WRITTEN** (occupancy 0.07–4.58 %, median 3.74 %, against a pre-registered 28.6 % sparse break-even) **AND FULLY RESIDENT ANYWAY**: an isolating comment-only shape writes **112 bytes** of a 914 MB table and pays **906 MB of RAM**, slope **885.9 B per input byte** against a table costing 872.0. (c)(ii) — the memo REHASH spike and the fix pricing — is what remains; opened 2026-08-28 by `.66`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`)
 
 - **WHY THIS IS A LEAF AND NOT A FOOTNOTE.** The director's mandate names host RAM as the ONE
   legitimate limit ([[project_rtl_parsers_accept_any_rtl_no_limits_non_negotiable]]). `.66` moved the
@@ -15728,6 +15728,194 @@ output: [`alloc_prediction_scorecard.txt`](artifacts/eus67/alloc_prediction_scor
   are instead observed in shipped output — `arm_verdict(0)`'s refusal by `--red-control-arm`, and
   `class_of`'s bucketing by the 114-allocation class-range oracle above, which is strictly stronger
   than the ten hand-picked values the unit test checks.
+
+#### ✅✅✅ `.67`(c)(i)+(iii) DONE — **THE DENSE TABLE IS 95.4 %–99.93 % NEVER WRITTEN, AND IT IS FULLY RESIDENT ANYWAY. A FILE THAT IS 99.998 % COMMENT WRITES 112 BYTES OF IT AND PAYS 906 MB OF RAM** (`PGEN-ENGINE-UNIVERSAL-SERVICES-0129`, 2026-08-29)
+
+Discharges the first and third of the three measurements `-0128` said `.67`(c) owed before any fix
+could be chosen. Producers and raw data:
+[`mod.rs` `ThinMemoScratch` census](../../rust/src/ast_pipeline/mod.rs),
+[`parse_alloc_census_probe.rs`](../../rust/src/bin/parse_alloc_census_probe.rs),
+[`thin_occupancy.tsv`](artifacts/eus67c/thin_occupancy.tsv),
+[`thin_occupancy_report.py`](artifacts/eus67c/thin_occupancy_report.py),
+[`thin_occupancy_report.txt`](artifacts/eus67c/thin_occupancy_report.txt),
+[`measure_thin_residency.sh`](artifacts/eus67c/measure_thin_residency.sh),
+[`thin_residency.tsv`](artifacts/eus67c/thin_residency.tsv),
+[`thin_residency_report.txt`](artifacts/eus67c/thin_residency_report.txt),
+[`noregress.tsv`](artifacts/eus67c/noregress.tsv),
+[`score_thin_predictions.py`](artifacts/eus67c/score_thin_predictions.py),
+[`thin_prediction_scorecard.txt`](artifacts/eus67c/thin_prediction_scorecard.txt),
+prediction [`PREDICTION_THIN_OCCUPANCY.md`](artifacts/eus67c/PREDICTION_THIN_OCCUPANCY.md).
+
+- **THE INSTRUMENT — ENGINE TIER, ZERO CODEGEN, BECAUSE THE CALL SITES ARE ALREADY ENGINE
+  METHODS.** Generated parsers reach the table only through `parser.thin_scratch.{store,lookup,clear}`,
+  so four counters on `ThinMemoScratch` reach every family without emitting a byte.
+  ⛔ **ARMED, NOT ALWAYS-ON** — the north star rejects a cost rather than trading it: disarmed,
+  `store` and `clear` pay one load of a parse-constant `bool` and one predicted branch, and
+  `lookup`, the hottest of the three, is **not touched at all**.
+- ⛔ **THE READOUT IS `AFTER` THE PARSE AND THAT IS THE ONLY MOMENT IT WORKS.** A live parser holds
+  the table through `ThinMemoScratchLease`, so during the parse the thread-local is EMPTY and
+  `thin_memo_scratch_stats()` returns `None`. The lease's `Drop` puts it back — the same recycling
+  `-0128` measured as ~872 B per input byte still resident after the call returns. A unit test pins
+  it so a caller cannot read `None` as "no census".
+
+## (i) OCCUPANCY — the denominator was named before the number, and it is `need_slots`
+
+⛔ `capacity_slots` is NOT the denominator: the table is recycled and never shrinks, so a small file
+run after a large one sees a capacity unrelated to its own cost. `need_slots` is what THIS parse
+asked for and what `-0128` priced at 872 B per input byte. (On this harness one parse per process
+makes `cap/need` read exactly **1.00** on 11 of 11, so the distinction is latent here and would not
+be in a long-lived embedder.)
+
+| input | file B | need slots | need MB | slots written | occupancy | clears |
+|---|---|---|---|---|---|---|
+| `syn_port_list` 10 000 | 128 912 | 14 051 517 | 107.20 | 10 014 | **0.0713 %** | 0 |
+| `spi_device_reg_pkg.sv` | 30 419 | 3 315 780 | 25.30 | 14 215 | **0.4287 %** | 0 |
+| `pinmux_reg_top.sv` | 1 237 143 | 134 848 696 | 1 028.81 | 1 363 525 | **1.0112 %** | 126 046 |
+| `t_math_synmul_mul.v` | 330 162 | 35 987 767 | 274.56 | 1 087 740 | **3.0225 %** | 191 313 |
+| `syn_case_items` 10 000 | 197 863 | 21 567 176 | 164.54 | 780 224 | **3.6176 %** | 0 |
+| `syn_concat_items` 10 000 | 68 923 | 7 512 716 | 57.32 | 290 050 | **3.8608 %** | 0 |
+| `comp1000.v` | 69 795 | 7 607 764 | 58.04 | 324 197 | **4.2614 %** | 0 |
+| `br_gh330.v` | 36 673 | 3 997 466 | 30.50 | 174 694 | **4.3701 %** | 0 |
+| `syn_netlist_instances` 10 000 | 535 637 | 58 384 542 | 445.44 | 2 610 148 | **4.4706 %** | 420 000 |
+| `syn_netlist_instances` 2 500 | 130 637 | 14 239 542 | 108.64 | 652 648 | **4.5833 %** | 105 000 |
+
+**Occupancy 0.0713 %–4.5833 %, median 3.74 % over the ten inputs ≥ 30 KB** ⇒ the table is
+**95.4 %–99.93 % never written**.
+
+- ⭐ **`store_calls / distinct_slots` is EXACTLY 1.00 on every input.** Each slot is written once and
+  never re-stored — so the table is not a working set being churned, it is a write-once sparse
+  scatter over a dense address space.
+- ⚠️ **`clear_calls` is non-zero on 4 of 11, so `distinct` is an UPPER BOUND there** (a cleared slot
+  re-stored counts twice). The bound errs toward MORE occupancy, so every conclusion below is
+  one-sided in the direction that makes the dense table look BETTER than it is.
+- ⭐⭐⭐ **THE RULING, AND IT WAS COMMITTED TO IN WRITING BEFORE THE NUMBERS WERE READ.** The
+  pre-registration fixed the sparse break-even at **8/28 ≈ 28.57 %** (an 8-byte dense slot against a
+  ~28-byte hash entry with its control byte and load factor) and said: at or above it the dense
+  table is the right design and `.67`(c) should say so and stop. **Every input ≥ 30 KB measured
+  BELOW it — 10 of 10, by a factor of 6 to 400.**
+
+## (iii) RESIDENCY — and the first attempt to settle it was WRONG, which is why it is here
+
+⛔⛔⛔ **A BOUND I BUILT, BELIEVED, AND THEN RETRACTED BEFORE PUBLISHING IT.** The obvious move was to
+settle residency from the ladder's own aggregate: take `peak_live` versus `peak_rss − floor`,
+subtract the arena chunk slack leg 3 PROVED non-resident, and see what is left for the thin table.
+It produced a beautiful answer — **"100 % resident, saturated on 11 of 11 inputs"** — and it is
+worthless. The identity is `N_thin ≤ V − 348 MB` on `pinmux_reg_top.sv`, where `V` is the
+allocator/non-heap overhead **which nothing here measures**; the table only came out saturated
+because I had silently set `V = 0`. ⇒ **a bound with an unmeasured term in it is not a bound, and a
+saturated result on every row is exactly when to look for the term you forgot.**
+
+⭐⭐ **SO IT WAS MEASURED WITH AN ISOLATING SHAPE INSTEAD, AND THE SLOPE DECIDES IT.** The table is
+sized from input LENGTH alone, so a file that is almost entirely COMMENT makes it huge while the
+parse does essentially nothing — no AST, no memo growth, no tape. Three sizes give a slope:
+
+| input B | table MB | slots written | occupancy | peak RSS MB | peak_live MB |
+|---|---|---|---|---|---|
+| 262 100 | 218.0 | **14** | 0.000012 % | 241.5 | 227.7 |
+| 524 260 | 436.0 | **14** | 0.000006 % | 463.6 | 449.1 |
+| 1 048 580 | 872.0 | **14** | 0.000003 % | **906.0** | 891.9 |
+
+**ΔRSS/Δinput = 888.3 and 884.7 B per input byte over the two intervals; overall 885.9, against a
+table costing exactly 872.0.** The table is **98.4 % of the marginal resident cost**. A resident
+table predicts ~872; a lazy one predicts ~0.
+
+⇒ ⛔⛔⛔ **THE NEVER-WRITTEN PAGES ARE RESIDENT. 914 362 632 BYTES ALLOCATED, 112 BYTES WRITTEN,
+906 MB RESIDENT.** `Vec::resize(need, 0)` faults in every page; the parse then writes 0.07 %–4.6 %
+of them, and 0.00001 % on this shape. ⭐ The slope is the invariant and the level is not — the same
+discipline leg 3's `N`/`N + 1` experiment used, and the reason three sizes were run rather than one.
+
+## ⇒ WHAT THIS DECIDES, AND WHAT IT DELIBERATELY DOES NOT
+
+- ✅ **The cost is REAL RAM, not address space.** `-0128` could only publish an allocation figure and
+  named that gap; it is now closed in the direction that makes it worse.
+- ✅ **A sparse structure would be smaller** — occupancy is 6× to 400× below break-even. ⛔ **And it
+  is still REFUSED as the fix**, because it trades hashing for the dense table's O(1) and peak speed
+  is the non-negotiable half of the north star. A cost is rejected, not traded.
+- ⭐⭐ **THE CANDIDATE THAT IS NOT A TRADE, and it is what `.67`(c)(ii) should price first: stop
+  faulting in what is never written.** The slot word is `(generation: u32, index + 1: u32)` and the
+  generation check ALREADY makes an unwritten slot invalid whatever it contains — so the zero-fill
+  is redundant to correctness. Two directions, both preserving O(1) with no hashing: obtain the
+  table from a ZEROED mapping the kernel backs lazily (untouched pages never become resident), or
+  narrow the word so the same table costs half. ⚠️ Neither is measured here and neither is claimed;
+  they are named so (c)(ii) starts from a shape rather than a blank page.
+- ⚠️ **`.67`(c)(ii) — the memo REHASH spike — is still owed** (`-0128`: two success tables live at
+  once on 4 of 8 inputs ⇒ the memo's contribution to peak is 1.5× its steady state).
+
+## THE PRE-REGISTRATION — 4 OF 8, AND ONE ROW FAILED BECAUSE *I* UNDER-SPECIFIED IT
+
+Scored by a tracked scorer over a fixed roster, so the census cannot lose a row (`-0127`).
+
+| # | predicted | measured | verdict |
+|---|---|---|---|
+| 1 | occupancy < 10 % on every input ≥ 30 KB | max **4.58 %** | CONFIRMED |
+| 2 | median occupancy in [0.5 %, 5 %] | **3.74 %** | CONFIRMED |
+| 3 | shape dominates size — netlist rungs within 1.5×, cross-shape spread > 3× | **1.025×** and **64.3×** | CONFIRMED |
+| 4 | `clear_calls == 0` on ≥ 8 of 11 | **7 of 11** | **FALSIFIED** (narrowly; the bound errs toward more occupancy) |
+| 5 | `store_calls / distinct` ≥ 1.5 | **exactly 1.00 on all** | **FALSIFIED — and it is the better finding**: write-once, never churned |
+| 6 | occupancy lowest on `pinmux_reg_top.sv` | lowest is `syn_port_list` at **0.0713 %** | **FALSIFIED** |
+| 7 | no regression: wall < 1.5 % and RSS < 0.5 % | see below | **FALSIFIED as worded** |
+| 8 | all eleven generated artifacts re-derive byte-identical | **11/11, 0 sites** | CONFIRMED |
+
+⛔⛔ **PREDICTION 7 IS THE CARRY-FORWARD, AND THE DEFECT IS IN THE PREDICTION RATHER THAN THE
+CHANGE: IT NAMED NO ESTIMATOR.** *"Worst absolute peak-RSS delta < 0.5 %"* does not say whether that
+is the min, the median or the max over repeats — and my own two instruments then answered
+differently for the same run, `noregress_summary.py` reporting **0.29 %** (median) and the first cut
+of the scorer **0.88 %** (min). Scored on all three: RSS worst **min 0.88 % · median 0.29 % · max
+0.66 %**; wall worst **min 16.67 % · median 2.13 %**. ⭐ **And on 3 of 4 inputs the three RSS
+statistics DISAGREE IN SIGN**, so the honest reading is that the effect is **below the noise floor**
+rather than measured to be zero — every magnitude ≤ 0.88 % while the sign is inconsistent, and the
+wall-clock MINIMA are bit-identical (0.620 / 0.980 / 2.720 s on both arms) against a within-arm
+spread of 5.1 %–117.7 %. Quoting any one statistic would have read as a regression or an improvement
+at will. ⇒ **name the ESTIMATOR as well as the quantity — the fifth variation on the same theme
+after the QUANTITY (`-0126`), the SENTENCE (`-0125`), the SET (`-0127`) and the LIFETIME
+(`-0128`).**
+
+##### ACCEPTANCE CHECKLIST — `.67`(c)(i)+(iii) (`PGEN-ENGINE-UNIVERSAL-SERVICES-0129`)
+
+- [x] **ROOT CAUSE (WHY + WHERE), tool-backed.** WHY `-0128` could publish a cost but not a verdict:
+  nothing counted how much of the table a parse WRITES, so "872 B per input byte" was an allocation
+  figure with no utilisation denominator, and a sparse replacement could not be priced. WHERE it had
+  to be measured: `ThinMemoScratch::{store,clear}` in `rust/src/ast_pipeline/mod.rs`, the only sites
+  that touch a slot, reached by every generated family through `parser.thin_scratch.*` — which is
+  why this needs no codegen. Tool-backed by the instrument's own output, `PARSE-THIN-OCCUPANCY:`
+  beside `PARSE-ALLOC-CENSUS:`, whose `need_bytes` reproduces `-0128`'s independently measured
+  class-25 allocation **to the byte** (26 526 240 on `spi_device_reg_pkg.sv`) — a third confirmation
+  of the identification, from the engine's counter rather than the allocator's size classes.
+- [x] **FIX** — ENGINE tier, instrument only: four arm-gated counters, a `ThinMemoScratchStats`
+  accessor and a thread-local peek. **ZERO grammar, ZERO codegen, ZERO generated bytes** — all
+  eleven artifacts re-derive byte-identically and only `emission_sha`/`verified_at_commit` moved in
+  the baseline. No lower tier exists: the quantity is a property of an engine data structure.
+- [x] **ADDRESSED (verified).** Occupancy is measured on 11 of 11 inputs and residency is settled by
+  an isolating experiment. ⭐ **RED / control behaviour observed**: the disarmed census reports
+  `occupancy=NOT_MEASURED`, never `0.0000` (pinned by a unit test, because a disarmed census and an
+  untouched table are different facts); and the aggregate residency bound was driven RED by its own
+  missing term and DISCARDED rather than published.
+- [x] **NO REGRESSION (measured, three axes).**
+  - **Behaviour**: all **eleven** generated artifacts re-derive **byte-identical** (0 sites each);
+    the emission-source digest moved because `ast_pipeline/mod.rs` is in it, and the re-derivation is
+    the evidence that the change emits nothing different.
+  - **Peak RSS and wall clock, census OFF, 4 inputs × 9 repeats, new `a6ec5225…` against the
+    preserved pre-change `646475a2…`** — the binary `-0126`/`-0128` published with. Reported as
+    NOT RESOLVABLE rather than as a number: every magnitude ≤ 0.88 %, the three RSS statistics
+    disagree in sign on 3 of 4 inputs, and the wall minima are bit-identical on 3 of 4.
+    The structural bound is what carries it: `lookup` is untouched, and `store`/`clear` gain one load
+    of a parse-constant `bool` plus one predicted branch.
+  - **6 unit tests, EXECUTED** (`cargo test --lib thin_memo_scratch_census`, 6 passed / 0 failed) —
+    including the two that pin the caveats: the cleared-slot upper bound, and that stats are
+    unreadable while a lease holds the table. ⭐ This closes `-0128`'s named gap, where the probe's
+    tests compiled but could not be run.
+  - `clippy` strict (source + generated) **PASS** · `check_doctrines.sh` **ALL 31 PASS** against the
+    staged diff · `mdbook_docs_gate` **PASS**.
+- [x] **THREE-WAY CHECK.** (1) **RE-DERIVED by command** — every producer tracked and run from the
+  repository root. (2) **FALSIFIED against an oracle I did not build** — peak RSS is the kernel's
+  page accounting, not anything in this repository, and the residency slope (885.9 against a
+  predicted 872.0) is decided by it; the pre-registration falsified **4 of 8** legs; and the
+  aggregate bound was refuted by its own algebra before it shipped. (3) **DURABILITY** — instrument,
+  producer, three analysers, four raw artifacts and the scorecard are tracked. ⚠️ **NAMED GAP,
+  unchanged: no gate WATCHES these numbers**; a ratchet is still priced in `.67`(c)(ii). ⚠️ **SECOND
+  NAMED GAP: the residency experiment uses a SYNTHETIC comment-only shape.** It isolates the table by
+  construction, which is its whole value, and it is not a claim about what any real file does — the
+  real-input occupancies in (i) are the population claim.
 
 ### ✅✅✅ `.65` — **THE RECURSION CEILING IS NO LONGER A NUMBER ANYBODY TYPED. IT IS MEASURED, PER PARSE, FROM THE STACK THE HOST ACTUALLY GAVE THE THREAD** (**DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0117`; opened 2026-08-28 by `.63`(c)'s ruling / `…0114`; taken after `.66`)
 

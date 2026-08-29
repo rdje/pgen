@@ -30,7 +30,9 @@ printf '\tarm_verified_calls\tpeak_at_alloc_calls\tpeak_at_free_calls\tpeak_at_a
 printf '\tpost_peak_alloc_calls\tpost_peak_alloc_bytes\tpost_peak_free_calls' >> "$OUT"
 printf '\tmemo_entry_B\tmemo_bucket_B\tmemo_fail_bucket_B\ttape_word_B' >> "$OUT"
 printf '\tarena_allocated_MB\tarena_touched_MB\tarena_ast_touched_MB\tarena_ast_allocated_MB\towned_MB' >> "$OUT"
-printf '\tchunk_nodes_cap\tchunk_sv_cap\tchunk_sp_cap\tchunk_rs_cap\n' >> "$OUT"
+printf '\tchunk_nodes_cap\tchunk_sv_cap\tchunk_sp_cap\tchunk_rs_cap' >> "$OUT"
+printf '\tthin_armed\tthin_need_slots\tthin_capacity_slots\tthin_distinct_slots' >> "$OUT"
+printf '\tthin_store_calls\tthin_clear_calls\tthin_need_bytes\tthin_occupancy\tthin_distinct_exact\n' >> "$OUT"
 printf 'path\tclass\tlo\thi\tlive_bytes\tlive_count\tshare\n' > "$OUTC"
 
 while IFS= read -r f; do
@@ -44,6 +46,9 @@ while IFS= read -r f; do
   rss=$(awk '/maximum resident set size/{print $1; exit}' "$W/time")
   cen=$(grep -m1 -E 'PARSE[- ]ALLOC[- ]CENSUS' "$W/out" 2>/dev/null)
   tsz=$(grep -m1 -E 'PARSE[- ]ALLOC[- ]TYPE[- ]SIZES' "$W/out" 2>/dev/null)
+  # ENGINE-UNIVERSAL-SERVICES.67(c)(i) — the thin-memo OCCUPANCY line. Absent on a
+  # probe built before that slice, in which case every column below stays NA.
+  occ=$(grep -m1 'PARSE-THIN-OCCUPANCY' "$W/out" 2>/dev/null)
   # The engine-side lines, from the SAME process.
   fline=$(grep -m1 'PARSE FOOTPRINT' "$W/err" 2>/dev/null)
   cline=$(grep -m1 'chunk capacity' "$W/err" 2>/dev/null)
@@ -80,6 +85,14 @@ while IFS= read -r f; do
   # hand-computed bucket size would be an inference dressed as a measurement.
   tsz_memo=$(kv MemoEntry "$tsz");        tsz_bucket=$(kv memo_bucket "$tsz")
   tsz_failb=$(kv memo_fail_bucket "$tsz"); tsz_tape=$(kv TapeWord "$tsz")
+  # ⛔ `occupancy` may read NOT_MEASURED rather than a number — a disarmed census
+  # and an untouched table are different facts, and the probe refuses to conflate
+  # them. It is carried through verbatim, never coerced to 0.
+  th_arm=$(kv armed "$occ");            th_need=$(kv need_slots "$occ")
+  th_cap=$(kv capacity_slots "$occ");   th_dist=$(kv distinct_slots "$occ")
+  th_st=$(kv store_calls "$occ");       th_cl=$(kv clear_calls "$occ")
+  th_nb=$(kv need_bytes "$occ");        th_occ=$(kv occupancy "$occ")
+  th_ex=$(kv distinct_exact "$occ")
 
   # The engine-side lines use their own anchors and are extracted with the same
   # `-0126` discipline: `grep -m1` selects the line, and each pattern names a token
@@ -114,7 +127,10 @@ while IFS= read -r f; do
   printf '\t%s\t%s\t%s\t%s' "${tsz_memo:-NA}" "${tsz_bucket:-NA}" "${tsz_failb:-NA}" "${tsz_tape:-NA}" >> "$OUT"
   printf '\t%s\t%s\t%s\t%s\t%s' "${aalloc:-NA}" "${atouch:-NA}" \
       "${aast:-NA}" "${aasa:-NA}" "${omb:-NA}" >> "$OUT"
-  printf '\t%s\t%s\t%s\t%s\n' "${ncap:-NA}" "${svcap:-NA}" "${spcap:-NA}" "${rscap:-NA}" >> "$OUT"
+  printf '\t%s\t%s\t%s\t%s' "${ncap:-NA}" "${svcap:-NA}" "${spcap:-NA}" "${rscap:-NA}" >> "$OUT"
+  printf '\t%s\t%s\t%s\t%s' "${th_arm:-NA}" "${th_need:-NA}" "${th_cap:-NA}" "${th_dist:-NA}" >> "$OUT"
+  printf '\t%s\t%s\t%s\t%s\t%s\n' "${th_st:-NA}" "${th_cl:-NA}" "${th_nb:-NA}" \
+      "${th_occ:-NA}" "${th_ex:-NA}" >> "$OUT"
 
   # The size-class histogram at the near-peak snapshot, one row per non-empty class.
   # ⛔⛔ KEYED ON UNPADDED `key=value` TOKENS, AND THE FIRST CUT OF THIS BLOCK IS WHY.

@@ -443,6 +443,45 @@ fn run() -> Result<(), String> {
     // 428 of the 487 corpus files >= 20 KB REJECT — reporting only on ACCEPT would
     // silently restrict the population to the one that parses standalone.
     report(&grammar, &input, before_calls, before_live, before_parse_calls);
+
+    // `ENGINE-UNIVERSAL-SERVICES.67`(c)(i) — the OCCUPANCY of the dense thin-memo
+    // table leg 4 measured at 872 bytes per input byte.
+    //
+    // ⛔ IT IS READ HERE, AFTER THE PARSE RETURNED, AND THAT IS THE ONLY MOMENT IT
+    // WORKS. A live parser holds the table through a `ThinMemoScratchLease`, so
+    // during the parse the thread-local is empty; the lease's `Drop` puts it back —
+    // which is the same recycling that leaves ~872 B per input byte resident after
+    // the call returns. Reading it before the parse, or on another thread, reports
+    // `None` and would look exactly like "no census".
+    match pgen::ast_pipeline::thin_memo_scratch_stats() {
+        Some(stats) => println!(
+            "PARSE-THIN-OCCUPANCY: armed={} need_slots={} capacity_slots={} \
+             distinct_slots={} store_calls={} clear_calls={} need_bytes={} \
+             occupancy={} distinct_exact={}",
+            stats.armed,
+            stats.need_slots,
+            stats.capacity_slots,
+            stats.distinct_slots_written,
+            stats.store_calls,
+            stats.clear_calls,
+            stats.need_slots * std::mem::size_of::<u64>(),
+            // ⛔ NOT MEASURED, never 0.0000 — a disarmed census and an untouched
+            // table are different facts.
+            match stats.occupancy() {
+                Some(v) => format!("{v:.6}"),
+                None => "NOT_MEASURED".to_string(),
+            },
+            // `distinct_slots` is exact only when nothing was cleared; a cleared
+            // slot re-stored is counted twice, so this flag tells the reader
+            // whether the number is a count or an upper bound.
+            stats.clear_calls == 0,
+        ),
+        None => println!(
+            "PARSE-THIN-OCCUPANCY: NOT AVAILABLE — the thread-local scratch is empty, \
+             which means either no generated parser ran on this thread or a lease is \
+             still holding it"
+        ),
+    }
     verdict
 }
 

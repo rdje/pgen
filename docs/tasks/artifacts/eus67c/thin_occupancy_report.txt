@@ -1,0 +1,32 @@
+=== THIN-MEMO OCCUPANCY (denominator = need_slots, this parse's own ask) ===
+input	file B	need_slots	need MB	distinct	occupancy	stores/distinct	clears	exact?	cap/need
+floor.sv	20	2289	0.02	14	0.006116	1.00	0	exact	1.00
+br_gh330.v	36673	3997466	30.50	174694	0.043701	1.00	0	exact	1.00
+comp1000.v	69795	7607764	58.04	324197	0.042614	1.00	0	exact	1.00
+t_math_synmul_mul.v	330162	35987767	274.56	1087740	0.030225	1.00	191313	UPPER BOUND	1.00
+pinmux_reg_top.sv	1237143	134848696	1028.81	1363525	0.010112	1.00	126046	UPPER BOUND	1.00
+spi_device_reg_pkg.sv	30419	3315780	25.30	14215	0.004287	1.00	0	exact	1.00
+syn_netlist_instances_2500.sv	130637	14239542	108.64	652648	0.045833	1.00	105000	UPPER BOUND	1.00
+syn_netlist_instances_10000.sv	535637	58384542	445.44	2610148	0.044706	1.00	420000	UPPER BOUND	1.00
+syn_case_items_10000.sv	197863	21567176	164.54	780224	0.036176	1.00	0	exact	1.00
+syn_port_list_10000.sv	128912	14051517	107.20	10014	0.000713	1.00	0	exact	1.00
+syn_concat_items_10000.sv	68923	7512716	57.32	290050	0.038608	1.00	0	exact	1.00
+
+=== BANDS ===
+  occupancy, all inputs      : min 0.000713 · median 0.036176 · max 0.045833  (n=11)
+  occupancy, inputs >= 30 KB : min 0.000713 · median 0.037392 · max 0.045833  (n=10)
+  store_calls / distinct     : min 1.00 · median 1.00 · max 1.00
+  rows where distinct is EXACT (clear_calls == 0): 7 of 11
+
+=== THE RULING THE PRE-REGISTRATION COMMITTED TO BEFORE THE NUMBERS ===
+  sparse break-even ~= 0.2857 (8 B dense slot vs ~28 B hash entry)
+  EVERY input >= 30 KB is BELOW break-even (10 of 10).
+  => the dense table is not paying for itself in memory terms. But a sparse
+     replacement is a SPEED trade, and peak speed is the non-negotiable, so the
+     candidate that is NOT a trade is narrowing the (generation, index) word.
+  Headroom if the word narrowed 8 B -> 4 B: the table halves with identical
+  O(1) access. Worst measured occupancy 0.045833 leaves 95.42 % of slots never written.
+
+  ⚠️ Occupancy alone cannot rule: the table's RESIDENCY is still an allocation
+     figure (-0128 named that gap), and a fix that shrinks allocation without
+     shrinking resident bytes moves nothing. That measurement is .67(c)(iii).

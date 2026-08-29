@@ -2418,6 +2418,86 @@ pub struct ThinTapeMemoEntry<'input> {
 pub struct ThinMemoScratch {
     slots: Vec<u64>,
     generation: u32,
+    /// `ENGINE-UNIVERSAL-SERVICES.67`(c)(i) — the OCCUPANCY census, armed once
+    /// per parse from `PGEN_REPORT_PARSE_FOOTPRINT` and off otherwise.
+    ///
+    /// ⛔ **WHY IT EXISTS.** `.67`(b) leg 4 measured this table at
+    /// `THIN_RULE_COUNT × (len + 1)` slots — **872 bytes per input byte** on
+    /// SystemVerilog, 10.4 %–44.6 % of near-peak live bytes, and still resident
+    /// after the parse returns because [`ThinMemoScratchLease`] recycles it. That
+    /// is a COST, and it is not yet a defect: a dense direct-address memo is what
+    /// makes the fused-cascade path fast, and replacing it with a sparse
+    /// structure only pays if most of those slots are never written. **How many
+    /// are written was not instrumented, so the question could not be answered.**
+    /// These four counters answer exactly it and nothing else.
+    ///
+    /// ⛔ **AND THE NORTH STAR FORBIDS PAYING FOR THEM.** Peak speed is
+    /// non-negotiable and a cost is REJECTED rather than traded, so the census is
+    /// ARMED, not always-on: disarmed, [`store`](Self::store) and
+    /// [`clear`](Self::clear) gain one load of a `bool` field that is constant
+    /// for the whole parse and one perfectly-predicted branch, and
+    /// [`lookup`](Self::lookup) — the hotter of the three — is **not touched at
+    /// all**.
+    census_armed: bool,
+    /// Slots this parse ASKED for (`thin_rule_count × (input_len + 1)`), which is
+    /// the occupancy DENOMINATOR. It is not the same as `slots.len()`: the table
+    /// is recycled across parses and never shrinks, so a small file after a large
+    /// one sees a capacity far larger than its own need. Reporting the wrong one
+    /// would understate occupancy by an arbitrary factor.
+    need_slots: usize,
+    /// Slots whose stored generation did not already match the current one when
+    /// [`store`](Self::store) wrote them. ⚠️ **Exact only when
+    /// `clear_calls == 0`, and an UPPER BOUND otherwise** — [`clear`](Self::clear)
+    /// zeroes a slot, so a cleared-then-restored slot is counted twice. Both
+    /// numbers are reported so the reader can tell which case they are in rather
+    /// than being told to assume the flattering one.
+    distinct_slots: usize,
+    store_calls: u64,
+    clear_calls: u64,
+}
+
+/// The occupancy census [`ThinMemoScratch`] collects (`ENGINE-UNIVERSAL-SERVICES.67`(c)(i)).
+/// `armed == false` means NOT MEASURED — never zero occupancy.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct ThinMemoScratchStats {
+    pub armed: bool,
+    /// `slots.len()` — the RECYCLED table's capacity, which may exceed `need_slots`.
+    pub capacity_slots: usize,
+    /// This parse's own `thin_rule_count × (input_len + 1)` — the occupancy denominator.
+    pub need_slots: usize,
+    /// See [`ThinMemoScratch::distinct_slots`]: exact iff `clear_calls == 0`.
+    pub distinct_slots_written: usize,
+    pub store_calls: u64,
+    pub clear_calls: u64,
+}
+
+impl ThinMemoScratchStats {
+    /// Written slots over the slots this parse asked for, or `None` when the
+    /// census was not armed or the parse asked for nothing.
+    pub fn occupancy(&self) -> Option<f64> {
+        if !self.armed || self.need_slots == 0 {
+            return None;
+        }
+        Some(self.distinct_slots_written as f64 / self.need_slots as f64)
+    }
+}
+
+/// Read the thread's recycled scratch census **after a parse has returned**.
+///
+/// ⛔ **AFTER, and that is not a convenience — it is the only moment it works.**
+/// A live parser holds the scratch through a [`ThinMemoScratchLease`], so while
+/// the parse is running the thread-local is EMPTY and this returns `None`. The
+/// lease's `Drop` puts the table back, counters and all, which is the same
+/// recycling `.67`(b) leg 4 measured as ~872 bytes per input byte still resident
+/// after the call returns. ⇒ a caller reads this immediately after the parse
+/// function returns, on the SAME thread it ran on.
+pub fn thin_memo_scratch_stats() -> Option<ThinMemoScratchStats> {
+    THIN_MEMO_SCRATCH.with(|cell| {
+        let held = cell.take();
+        let out = held.as_ref().map(ThinMemoScratch::stats);
+        cell.set(held);
+        out
+    })
 }
 
 impl ThinMemoScratch {
@@ -2433,6 +2513,27 @@ impl ThinMemoScratch {
         }
         if self.slots.len() < need {
             self.slots.resize(need, 0);
+        }
+        // `ENGINE-UNIVERSAL-SERVICES.67`(c)(i): once per parse, not per slot. The
+        // counters reset here rather than in `Drop` so a recycled table reports
+        // THIS parse and not the sum of every parse the thread has run.
+        self.census_armed = report_parse_footprint_enabled();
+        self.need_slots = need;
+        self.distinct_slots = 0;
+        self.store_calls = 0;
+        self.clear_calls = 0;
+    }
+
+    /// The occupancy census for the parse that just ran
+    /// (`ENGINE-UNIVERSAL-SERVICES.67`(c)(i)).
+    pub fn stats(&self) -> ThinMemoScratchStats {
+        ThinMemoScratchStats {
+            armed: self.census_armed,
+            capacity_slots: self.slots.len(),
+            need_slots: self.need_slots,
+            distinct_slots_written: self.distinct_slots,
+            store_calls: self.store_calls,
+            clear_calls: self.clear_calls,
         }
     }
 
@@ -2450,6 +2551,16 @@ impl ThinMemoScratch {
     /// Store `idx` at `slot` for the current generation.
     #[inline]
     pub fn store(&mut self, slot: usize, idx: u32) {
+        // `ENGINE-UNIVERSAL-SERVICES.67`(c)(i) — occupancy. Disarmed this is one
+        // load of a parse-constant `bool` and one predicted branch; the slot read
+        // inside is the same cache line the store below writes, so armed it costs
+        // no extra miss either.
+        if self.census_armed {
+            self.store_calls += 1;
+            if (self.slots[slot] >> 32) as u32 != self.generation {
+                self.distinct_slots += 1;
+            }
+        }
         self.slots[slot] = (u64::from(self.generation) << 32) | u64::from(idx + 1);
     }
 
@@ -2457,7 +2568,125 @@ impl ThinMemoScratch {
     /// itself stays as bounded garbage, superseded on re-insert).
     #[inline]
     pub fn clear(&mut self, slot: usize) {
+        // Counted because it is what makes `distinct_slots` an upper bound rather
+        // than an exact count — a cleared slot re-stored is counted twice.
+        if self.census_armed {
+            self.clear_calls += 1;
+        }
         self.slots[slot] = 0;
+    }
+}
+
+#[cfg(test)]
+mod thin_memo_scratch_census_tests {
+    use super::*;
+
+    /// Arm the census directly instead of through the environment: the env read
+    /// is `OnceLock`-cached process-wide, so a test that set the variable would
+    /// leak into every other test in the binary and would be order-dependent.
+    fn armed(need: usize) -> ThinMemoScratch {
+        let mut scratch = ThinMemoScratch::default();
+        scratch.begin(need);
+        scratch.census_armed = true;
+        scratch
+    }
+
+    /// ⛔ `None`, never `Some(0.0)`. A disarmed census and a table nothing wrote
+    /// are different facts, and reporting the second for the first is exactly the
+    /// confusion `NodeArenaFootprint::owned` is an `Option` to prevent.
+    #[test]
+    fn disarmed_reports_not_measured_rather_than_zero() {
+        let mut scratch = ThinMemoScratch::default();
+        scratch.begin(64);
+        scratch.census_armed = false;
+        scratch.store(3, 7);
+        let stats = scratch.stats();
+        assert!(!stats.armed);
+        assert_eq!(stats.occupancy(), None, "disarmed must be NOT MEASURED, not 0 %");
+    }
+
+    #[test]
+    fn distinct_counts_a_slot_once_however_often_it_is_restored() {
+        let mut scratch = armed(1000);
+        scratch.store(0, 1);
+        scratch.store(0, 2);
+        scratch.store(0, 3);
+        scratch.store(5, 1);
+        let stats = scratch.stats();
+        assert_eq!(stats.store_calls, 4);
+        assert_eq!(stats.distinct_slots_written, 2, "two slots touched, not four stores");
+        assert_eq!(stats.need_slots, 1000);
+        assert_eq!(stats.occupancy(), Some(2.0 / 1000.0));
+    }
+
+    /// The one case where the number is an UPPER bound, pinned so the caveat in
+    /// the doc comment cannot quietly stop being true.
+    #[test]
+    fn a_cleared_slot_restored_is_double_counted_and_clear_calls_says_so() {
+        let mut scratch = armed(100);
+        scratch.store(9, 1);
+        scratch.clear(9);
+        scratch.store(9, 2);
+        let stats = scratch.stats();
+        assert_eq!(stats.clear_calls, 1, "the reader's signal that distinct is a bound");
+        assert_eq!(stats.distinct_slots_written, 2, "the same slot, counted twice");
+    }
+
+    /// The table is RECYCLED across parses and never shrinks, so a census that did
+    /// not reset would report the sum of every parse the thread ever ran, and a
+    /// denominator taken from `slots.len()` would understate occupancy by however
+    /// much larger the previous file was.
+    #[test]
+    fn begin_reports_this_parse_not_the_thread_s_history() {
+        let mut scratch = armed(4096);
+        for slot in 0..100 {
+            scratch.store(slot, 1);
+        }
+        assert_eq!(scratch.stats().distinct_slots_written, 100);
+
+        scratch.begin(16);
+        scratch.census_armed = true;
+        scratch.store(1, 1);
+        let stats = scratch.stats();
+        assert_eq!(stats.distinct_slots_written, 1, "counters reset per parse");
+        assert_eq!(stats.store_calls, 1);
+        assert_eq!(stats.need_slots, 16, "the DENOMINATOR is this parse's need");
+        assert_eq!(stats.capacity_slots, 4096, "... while the recycled table stays large");
+        assert_eq!(stats.occupancy(), Some(1.0 / 16.0));
+    }
+
+    /// A generation bump must not make previously-written slots look fresh in the
+    /// SLOT SENSE while also not making them look occupied in the CENSUS sense.
+    #[test]
+    fn a_second_parse_rewriting_the_same_slots_counts_them_again() {
+        let mut scratch = armed(32);
+        scratch.store(7, 1);
+        assert_eq!(scratch.stats().distinct_slots_written, 1);
+        scratch.begin(32);
+        scratch.census_armed = true;
+        scratch.store(7, 1);
+        assert_eq!(
+            scratch.stats().distinct_slots_written,
+            1,
+            "the slot is stale by generation, so this parse wrote it for the first time"
+        );
+    }
+
+    /// The accessor works only AFTER the lease is dropped, which is the whole
+    /// contract of `thin_memo_scratch_stats`. Pinned because a caller reading it
+    /// while a parser is alive gets `None` and could read that as "no census".
+    #[test]
+    fn stats_are_unreadable_while_a_lease_holds_the_scratch() {
+        let lease = ThinMemoScratchLease::take();
+        assert!(
+            thin_memo_scratch_stats().is_none(),
+            "a live lease holds the table, so the thread-local is empty"
+        );
+        drop(lease);
+        assert!(
+            thin_memo_scratch_stats().is_some(),
+            "the lease's Drop puts it back — which is also why it stays resident"
+        );
     }
 }
 

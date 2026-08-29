@@ -305,9 +305,42 @@ the parse built has been dropped. Measured: live bytes after return, minus the p
 size, is a flat 1.6 – 3.8 MB on all eleven inputs — against scratch sizes from 18 KB to 1 029 MB. If
 you embed PGEN and parse a large file on a long-lived thread, budget for that table staying put.
 
-That is a cost, not yet a verdict. The table is what makes the fused-cascade path fast, and **how
-many of its slots a real parse actually writes is not instrumented**. A sparse replacement only pays
-if occupancy is low, and nobody has measured occupancy.
+### And is that table actually used? (measured: almost not at all)
+
+That was a cost, not a verdict, for exactly one revision: a dense direct-address memo is what makes
+the fused-cascade path fast, and a sparse replacement only pays if most of those slots are never
+written. So PGEN now counts them (`PARSE-THIN-OCCUPANCY:`, TOOLBOX §3.3d). Over ten real and
+synthetic inputs, **occupancy is 0.07 % – 4.58 %, median 3.7 %** — the table is **95.4 % – 99.93 %
+never written** — and `store_calls / distinct_slots` is **exactly 1.00 on every input**, so it is a
+write-once scatter rather than a working set being churned.
+
+⚠️ That is an *allocation*-side ratio, and the question that decides anything is whether the
+never-written pages cost RAM. The ladder's own aggregate cannot answer it — an attempt to bound it
+from requested-live-bytes against resident-bytes leaves an unmeasured allocator-overhead term, and
+produced a confident, saturated, meaningless result before it was discarded. What answers it is an
+isolating shape: a file that is almost entirely *comment* makes the table huge while the parse does
+essentially nothing.
+
+| input | table size | slots written | peak RSS |
+|---|---|---|---|
+| 262 KB | 218 MB | 14 | 241.5 MB |
+| 524 KB | 436 MB | 14 | 463.6 MB |
+| 1 049 KB | 872 MB | 14 | **906.0 MB** |
+
+The slope is **886 bytes of resident memory per input byte**, against a table costing 872 — so the
+table is 98 % of the marginal cost, and a lazily-backed table would have shown a slope near zero.
+**914 MB allocated, 112 bytes written, 906 MB resident.** `Vec::resize(need, 0)` faults in every
+page.
+
+If you are budgeting a parse, that is the practical form of it: a large SystemVerilog file costs
+roughly 872 bytes of resident memory per input byte before the parser has looked at a single token,
+and it keeps them until the thread ends.
+
+⛔ **What this does *not* license is a sparse rewrite.** Peak speed is the non-negotiable here, and
+trading the dense table's O(1) for hashing is a trade, not a fix. The direction that is not a trade
+is to stop faulting in what is never written — the generation stamp already makes an unwritten slot
+invalid whatever it contains, so the zero-fill is redundant to correctness. That is tracked work,
+not a settled design.
 
 One qualification survives on the AST side and is not in that conclusion's favour: a quantifier
 collects into a temporary vector that is freed once its contents reach the shaped arenas, so those

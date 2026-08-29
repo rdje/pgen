@@ -1,0 +1,19 @@
+=== THE ISOLATING SHAPE: a file that is ~all COMMENT ===
+   input B  thin table MB  slots written  occupancy  peak RSS MB  peak_live MB  RSS/live
+    262100          218.0             14   0.000000        241.5         227.7    1.0609
+    524260          436.0             14   0.000000        463.6         449.1    1.0324
+   1048580          872.0             14   0.000000        906.0         891.9    1.0158
+
+=== THE SLOPE DECIDES IT (leg 3's method: the difference, not the level) ===
+   resident ⇒ slope ≈ 872 B per input byte (THIN_RULE_COUNT × 8)
+   lazy     ⇒ slope ≈ 0
+     262100 → 524260    ΔRSS    232865792 B / Δinput   262160 B =    888.3 B per input byte
+     524260 → 1048580   ΔRSS    463863808 B / Δinput   524320 B =    884.7 B per input byte
+
+   overall slope 885.9 B per input byte, against a table costing 872.0
+   ⇒ the table accounts for 98.4 % of the marginal resident cost
+
+=== VERDICT ===
+   The never-written pages ARE RESIDENT. 914 MB allocated, 112 bytes written,
+   906 MB resident. `Vec::resize(need, 0)` faults in every page; the parse then
+   writes 0.07 %–4.6 % of them (and 0.00001 % on this shape).

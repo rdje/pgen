@@ -86,7 +86,7 @@ same leaf keeps its checklist, and a deletion-only edit still counts as touching
 | # | family | when it applies | verbatim tokens that count |
 |---|---|---|---|
 | 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `PGEN_LINT_DUMP_ALL`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `INTERPRET-PARSE:`/`--interpret-parse`, `INDIRECT-LR-SURVEY:`/`--report-indirect-lr-plan`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]`, `LAYOUT-OWNING-TERMINALS:`/`--report-layout-owning-terminals`, `SAMPLE-PROFILE-PARITY:`/`--report-sample-parity` |
-| 2 | **performance / SPEED / FOOTPRINT** | it is correct but slow, or its memory is the problem | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph`, `ARENA-CHUNK-ORACLE:` (`rust/target/release/arena_chunk_oracle_probe` — proves the `typed_arena` chunk-capacity model against a counting `GlobalAlloc`; `--red-control` required to go red), `PARSE-ALLOC-CENSUS:` (`rust/target/release/parse_alloc_census_probe` — the whole parse's requested-live-bytes high-water and a size-class table at that high-water, so a structure can be attributed by NAME instead of subtracted for; `--red-control-arm` required to go red) |
+| 2 | **performance / SPEED / FOOTPRINT** | it is correct but slow, or its memory is the problem | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph`, `ARENA-CHUNK-ORACLE:` (`rust/target/release/arena_chunk_oracle_probe` — proves the `typed_arena` chunk-capacity model against a counting `GlobalAlloc`; `--red-control` required to go red), `PARSE-ALLOC-CENSUS:` (`rust/target/release/parse_alloc_census_probe` — the whole parse's requested-live-bytes high-water and a size-class table at that high-water, so a structure can be attributed by NAME instead of subtracted for; `--red-control-arm` required to go red), `PARSE-THIN-OCCUPANCY:` (same probe — how much of the dense `THIN_RULE_COUNT × (len + 1)` thin-memo table a parse actually WRITES; `NOT_MEASURED` is never `0`) |
 | 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
 | 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
 | 5 | **ops / build-flow** | the defect is in the repo's OWN scripts, Makefiles, hooks or tracking state — shell/make, so no rustc error either | `git ls-files`/`log -S`/`rev-list`/`fsck`/`reflog`/`diff-tree`/`merge-base`, `shellcheck`, `bash -n`, `make -n`/`make --dry-run`, `E2BIG`/`ENOSPC`/`EACCES`/`ARG_MAX`, `guard.<pid>.marker`, `reason=rss-budget\|free-floor\|disk-floor\|timeout`, `GATE-REACHABILITY-PROBE:`, `SV-CONTRACT-CURRENCY:` (`scripts/check_sv_contract_currency.sh` — the SV grammar's semantic digest versus the contract's), `ACCEPT-SET-LEDGER:` (`docs/tasks/artifacts/sv_corpus_grad/contract_accept_set_ledger/measure_accept_set_transitions.py` — which grammar commit moved which verdict or which typed AST), `LRM-ANNEX-A-GAP:` (`stimuli/sv/lrm_annex_a_gap_census.py` — the IEEE 1800 productions the CLAUSE bodies define and Annex A, the only surface the extractor reads, does not) |
@@ -162,7 +162,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | **"`--lint-grammar` says `left_recursion_unhandled=N` — so WHICH rule could absorb the chain, what suffix, and what does it cost?"** | [5.5 `--report-indirect-lr-plan`](#55---report-indirect-lr-plan) — ⛔ the lint names the cycle, not the fix; picking the wrong base rule is a measured REGRESSION |
 | "What IR do the generators actually consume?" | [5.2 `--dump-gen-ast`](#52---dump-gen-ast) |
 | "Packrat memo hit/miss perf?" | [3.3 `PGEN_REPORT_MEMO_STATS`](#33-pgen_report_memo_stats) |
-| "Where does the parse MEMORY go?" | [3.3b `PGEN_REPORT_PARSE_FOOTPRINT`](#33b-pgen_report_parse_footprint) (the AST arena) then [3.3c `PARSE-ALLOC-CENSUS:`](#33c-parse-alloc-census--where-the-rest-of-the-parse-memory-is) (everything else) |
+| "Where does the parse MEMORY go?" | [3.3b `PGEN_REPORT_PARSE_FOOTPRINT`](#33b-pgen_report_parse_footprint) (the AST arena), [3.3c `PARSE-ALLOC-CENSUS:`](#33c-parse-alloc-census--where-the-rest-of-the-parse-memory-is) (everything else), [3.3d `PARSE-THIN-OCCUPANCY:`](#33d-parse-thin-occupancy--how-much-of-the-dense-thin-memo-table-a-parse-writes) (is the biggest of them USED?) |
 | "EXACT per-rule entry counts for a parse (machine-readable)?" | [3.4 `--dump-rule-entry-counts-json`](#34---dump-rule-entry-counts-json) |
 | "How much parse work is DISCARDED (failed speculation)? committed vs wasted per rule?" | [3.5 `--dump-rule-outcome-counts-json`](#35---dump-rule-outcome-counts-json) |
 | **"Did the whole SV parser get SLOWER — and would anything have told me?"** — ⛔ never answer with an ad-hoc timing script against a remembered number; that produced `~11 %`, then `+24.3 %`, and **BOTH were machine-variance artifacts** (`.26`) | [3.7 the SV parse-cost ratchet](#37-the-sv-parse-cost-ratchet--did-the-whole-parser-get-slower-and-would-anything-have-told-me) |
@@ -745,6 +745,42 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   the three inputs peaking above ~1.9 GB, while the allocation-side figures were BYTE-IDENTICAL
   across the two runs on 11 of 11. Re-run idle, RSS agreed with the canonical probe within ±0.95 %.
   ⇒ **run any RSS measurement on an idle machine; nothing in the harness enforces it.**
+
+### 3.3d `PARSE-THIN-OCCUPANCY:` — how much of the dense thin-memo table a parse WRITES
+- **WHAT:** the occupancy census of `ThinMemoScratch`, the dense `THIN_RULE_COUNT × (len + 1)`
+  direct-address memo every generated parser sizes before reading a token. Reports the slots this
+  parse ASKED for, the slots it actually WROTE, and the store/clear counts.
+  **WHEN:** you are deciding whether that table's memory is earning anything
+  (`ENGINE-UNIVERSAL-SERVICES.67`(c)). **HOW:** it prints beside §3.3c —
+  `PGEN_REPORT_PARSE_FOOTPRINT=1 ./rust/target/release/parse_alloc_census_probe systemverilog f.sv --profile sv_2017`
+- ⛔⛔ **THE DENOMINATOR IS `need_slots`, NOT `capacity_slots`.** The table is leased from a
+  thread-local and NEVER SHRINKS, so a small file parsed after a large one sees a capacity unrelated
+  to its own cost; dividing by it understates occupancy by however much bigger the previous file was.
+  `need_slots` is what this parse asked for and what the 872 B/input-byte figure is made of. (One
+  parse per process makes them equal — an embedder reusing a thread will not.)
+- ⛔ **READ IT AFTER THE PARSE RETURNS.** A live parser holds the table through
+  `ThinMemoScratchLease`, so mid-parse the thread-local is empty and `thin_memo_scratch_stats()`
+  answers `None` — which looks exactly like "no census". The lease's `Drop` puts it back, which is
+  also why the table stays resident after the call returns.
+- ⛔ **`occupancy=NOT_MEASURED` IS NOT `0`.** Disarmed, the probe prints the token, never a number:
+  a census that did not run and a table nothing wrote are different facts.
+- ⚠️ **`distinct_slots` is EXACT only when `clear_calls == 0`, and an UPPER BOUND otherwise** — a
+  cleared slot re-stored is counted twice. `distinct_exact=` says which case you are in. The bound
+  errs toward MORE occupancy, so a low reading is safe to act on.
+- ⭐⭐⭐ **MEASURED, so you know what to expect: occupancy is 0.07 %–4.58 % (median 3.74 %) over ten
+  real and synthetic inputs ≥ 30 KB — the table is 95.4 %–99.93 % NEVER WRITTEN** — and
+  `store_calls / distinct_slots` is **exactly 1.00 on every input**, so it is a write-once scatter
+  rather than a churned working set.
+- ⛔⛔⛔ **AND IT IS RESIDENT ANYWAY, WHICH IS THE HALF THAT DECIDES ANYTHING.** Occupancy is an
+  ALLOCATION-side ratio; whether the untouched pages cost RAM is a separate question, and the
+  aggregate cannot answer it (an attempt to bound it from `peak_live` vs `peak_rss − floor` leaves an
+  unmeasured allocator-overhead term and produces a saturated, meaningless result — see
+  `docs/tasks/artifacts/eus67c/measure_thin_residency.sh` for why it was discarded). The isolating
+  shape answers it: a file that is almost all COMMENT makes the table huge while the parse does
+  nothing. **262 KB → 241.5 MB, 524 KB → 463.6 MB, 1 049 KB → 906.0 MB of peak RSS, with 14 slots
+  written in every case; slope 885.9 B per input byte against a table costing 872.0.** ⇒ the
+  never-written pages ARE faulted in — `Vec::resize(need, 0)` writes them all.
+  ⭐ The SLOPE is the invariant, not the level, which is why three sizes are run and not one.
 
 ### 3.4 `--dump-rule-entry-counts-json`
 - **WHAT:** after a `--parse`, write the parser's monotone per-rule ENTRY counters (every rule-method entry, successful AND backtracked — the always-on `fetch_add` on rule entry) as JSON `{grammar, accepted, total_entries, rule_entry_counts}`. The machine-readable dual of the live dashboard (3.1), which is stderr-only/refresh-based and useless for a sub-millisecond parse. Counts are a DELTA past a pre-parse baseline (SV's stdlib preload never pollutes them) and deterministic for a deterministic parser ⇒ a re-runnable oracle. Wired for every registered grammar's canonical-entry `--parse` path (not `--entry-rule`). RGX-0078.5.h.1.
