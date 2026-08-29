@@ -1271,11 +1271,36 @@ directive says to check whether the reusable policy documents the director keeps
   section and a delimited `README-POLICY-LOCAL-ADOPTION` block that names the adopting project,
   its authority, its reviewed health targets and its routed destinations.
 
-⭐ **THE FINDING IS NOT "WE ARE BEHIND" — IT IS THAT NOTHING COULD EVER SAY SO.** `.4` deliberately
+⛔ **CORRECTED 2026-08-29 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0127`) UNDER A DIRECTOR RE-VERIFICATION
+CHALLENGE — the sentence below originally read *"nothing in either repository can notice"*, and a
+census refutes that as worded.** `rust/scripts/ci_workflow_local_gate.sh:415` DOES read
+`README_POLICY.md`: it is a member of an EXACT-SET roster of root `.md` files, so adding or removing
+the file turns that gate RED. What no instrument reads is its CONTENT, and none can see the sibling
+repository at all. ⇒ the finding's substance survives; its universal quantifier did not. ⚠️ It was
+published as a *"nothing checks X"* claim with no census behind it, which is exactly the class
+`GAP-CLAIM-CENSUS` exists for — the doctrine passed because the phrasing missed its regex, and **a
+gate that does not fire is not a census**.
+
+⭐ **THE FINDING, RESTATED PRECISELY: not "we are behind" but that no instrument reads the file's
+CONTENT, so drift from the template is invisible by construction.**
+
+**The census, over every executable surface in the repository — run against the population that
+would REFUTE the claim, not the one that confirms it:**
+
+```
+$ git grep -n 'README_POLICY' -- 'rust' 'scripts' '.githooks' '.github' 'Makefile' | grep -v '\.md:'
+rust/scripts/ci_workflow_local_gate.sh:388:    # ... a sibling of README_POLICY.md, which is already on this
+rust/scripts/ci_workflow_local_gate.sh:415:    "README_POLICY.md"
+```
+
+**Two hits, one file, and it is a ROSTER MEMBERSHIP entry** (`local -a expected_root_md=(…)`, an
+exact-set comparison of which `.md` files sit at the repository root). ⇒ the file is read for
+PRESENCE; its BYTES are read by nothing, and nothing in this repository can open the sibling
+`fsmgen` copy at all — that is what makes the drift invisible rather than merely unnoticed. `.4` deliberately
 put a project-NEUTRAL copy at the repository root and recorded that *"the originating template is
 not an upstream"*, which is the right call and is why this is not a bug. But the consequence is that
-the two copies drift silently and by design, and the only instrument in the loop is a human
-remembering to `diff` across a volume boundary — which is also the thing the local-adoption block in
+the two copies drift silently and by design, and the only instrument that would notice a CONTENT
+change is a human remembering to `diff` across a volume boundary — which is also the thing the local-adoption block in
 the newer template exists to make unnecessary.
 
 ⛔ **PARKED, NOT ABANDONED, AND THE PARK HAS A REASON**: the SV lane lock binds work, and this is a

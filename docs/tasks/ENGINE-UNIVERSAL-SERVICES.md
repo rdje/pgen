@@ -15303,7 +15303,7 @@ prediction [`PREDICTION_CHUNK_CAPACITY.md`](artifacts/eus67/PREDICTION_CHUNK_CAP
   doubling sequence — which is why `syn_netlist_instances` reads 2.5 % slack and `syn_concat_items`
   reads 45.7 % on the same parser.
 
-## ⛔⛔ WHAT THE PRE-REGISTRATION COST ME — THREE FALSIFIED LEGS, AND TWO OF THEM SHARE THE SLICE'S OWN DEFECT
+## ⛔⛔ WHAT THE PRE-REGISTRATION COST ME — THREE FALSIFIED LEGS OF NINE, AND *TWO* OF THEM SHARE THE SLICE'S OWN DEFECT
 
 Written to `PREDICTION_CHUNK_CAPACITY.md` before any ladder number was read.
 
@@ -15316,22 +15316,83 @@ Written to `PREDICTION_CHUNK_CAPACITY.md` before any ladder number was read.
 | 5 | the withdrawn conclusion is NOT restored | it **is** restored | **FALSIFIED** |
 | 6 | `items_agree` true on 11 of 11 | true on 11 of 11 | CONFIRMED |
 | 7 | `extend_regrow` 0 on 11 of 11 | 0 on 11 of 11 | CONFIRMED |
+| 8 | no-regression within ±1 % on every input | RSS 0.48 %, wall 0.37 %; long arm min +0.45 / p25 −0.15 / median +0.88 | CONFIRMED, weakly — the wall axis is unresolvable, not tight |
 | 9 | the pre-leg-3 TSV columns re-derive unchanged | **154 of 154 identical** | CONFIRMED |
 | 12 | written/item ratio 1.00–1.15 | **exactly 1.000**, 44 of 44 | CONFIRMED, at the floor of the band |
 | 13 | the touched share is below the allocated one on every input | 28.6 vs 51.2, 36.3 vs 66.6, … | CONFIRMED |
 
-⭐⭐⭐ **THE CARRY-FORWARD: PREDICTIONS 1, 3 AND 5 ARE ALL WRONG FOR ONE REASON, AND IT IS THE SAME
-CONFUSION THIS SLICE THEN CAUGHT IN THE MEASUREMENT — I PRE-REGISTERED AGAINST *ALLOCATION* WHILE
-THE LEAF ASKS ABOUT *RESIDENCY*.** A pre-registration inherits the frame of the question it was
-written in, so it cannot catch an error in that frame — it can only make the error legible
-afterwards, which is what happened here. ⇒ **before pre-registering, name the QUANTITY as well as
-the number: which instrument would read it, and is that instrument reading the same thing the
-denominator is made of.** `-0125` said verification leg 2 must falsify the CLAIM rather than re-run
-the instrument; this is the layer beneath it — falsify the QUESTION.
+⭐⭐ **THE CARRY-FORWARD: PREDICTIONS 3 AND 5 ARE WRONG FOR ONE REASON, AND IT IS THE SAME CONFUSION
+THIS SLICE THEN CAUGHT IN THE MEASUREMENT — I PRE-REGISTERED AGAINST *ALLOCATION* WHILE THE LEAF
+ASKS ABOUT *RESIDENCY*.** (3) predicted a "resident" share computed by scaling the item share by an
+ALLOCATION overhead, and (5) is its downstream consequence. A pre-registration inherits the frame of
+the question it was written in, so it cannot catch an error in that frame — it can only make the
+error legible afterwards. ⇒ **before pre-registering, name the QUANTITY as well as the number: which
+instrument would read it, and is that instrument reading the same thing the denominator is made
+of.** `-0125` said verification leg 2 must falsify the CLAIM rather than re-run the instrument; this
+is the layer beneath it — falsify the QUESTION.
+
+⛔⛔ **AND PREDICTION 1 IS NOT PART OF THAT GROUP — SEE THE SELF-AUDIT BELOW.** It is an
+allocation-side prediction judged against an allocation-side measurement, so residency cannot be its
+cause. Published first as *"1, 3 and 5 are all wrong for one reason"*, which was wider than the
+evidence in the same section whose own heading said TWO.
 
 ⚠️ And rows 10 and 11 of that file are labelled **POST-HOC, not pre-registered**, because the
 residency experiment was run before they were written down. The reasoning did precede the run; the
 file did not, and a prediction that is not written down before the measurement is a recollection.
+
+##### ⛔⛔ `.67`(b) LEG 3 — SELF-AUDIT UNDER A DIRECTOR RE-VERIFICATION CHALLENGE, SAME DAY (`PGEN-ENGINE-UNIVERSAL-SERVICES-0127`). **EVERY MEASUREMENT STANDS. TWO OF THE FOUR PUBLISHED FINDINGS DID NOT SURVIVE AS WORDED, AND ONE CAVEAT I WROTE NEVER SHIPPED.**
+
+The director asked *"do you still stand by your 4 findings?"*. Re-derived one at a time:
+
+- ⛔⛔ **(1) *"three falsified legs, all three from one cause"* IS WIDER THAN ITS EVIDENCE — AND IT
+  CONTRADICTED THIS SECTION'S OWN HEADING, WHICH SAID TWO.** Prediction 1 (`chunk overhead
+  1.25–1.65`) is an ALLOCATION-side prediction judged against an ALLOCATION-side measurement, so the
+  allocation/residency conflation cannot be its cause. Its real cause is different and worth more
+  than the wrong attribution was: I derived `2 ln 2 ≈ 1.386` — the MEAN of the doubling sawtooth
+  over a log-uniform stopping point — and then published it as the range of INDIVIDUAL per-input
+  draws. The per-input ratio ranges over `[1, 2)` by construction, so a ±0.2 band around the mean
+  was never going to hold. ⇒ **I predicted the spread of an AVERAGE as the spread of an
+  OBSERVATION.** Only 3 and 5 share the residency cause.
+- ⛔⛔ **(2) THE SCORECARD WAS AN UNFINISHED CENSUS: prediction 8 was missing from it with no note,**
+  while the headline arithmetic said *"3 of 9"* over a table showing eight. Row 8 is now present and
+  CONFIRMED — weakly, since its wall-clock half is unresolvable rather than tight. ⭐ This is the
+  exact shape `-0091` recorded (*"a count with a missing sub-row is an unfinished census, not a
+  rounding"*), re-committed in a table whose whole purpose is to keep me honest.
+- ⛔⛔⛔ **(3) A CAVEAT I WROTE FOR THE RESIDENCY RESULT NEVER SHIPPED — `grep` = 0 in the committed
+  leaf.** It is restored below. This is worse than `-0122`'s *"a caveat only the leaf carries is
+  invisible at the point of use"*: this one was not even in the leaf. ⇒ **a caveat drafted and not
+  greped for in the artifact that ships is a caveat that does not exist.**
+
+  ⚠️ **HONEST BOUND ON THE RESIDENCY RESULT, restored.** The experiment grows one arena with nothing
+  else allocating, so each new chunk is a fresh mapping and its untouched tail is provably not
+  resident. A real parse allocates and frees constantly, so a SMALL chunk request can be served from
+  an already-resident region and its slack would then be resident. ⭐ That does not weaken the
+  conclusion where it matters, and the reason is structural: `typed_arena` doubles, so the slack is
+  concentrated in the LAST chunk — the largest, at least half the arena's total capacity — which is
+  exactly the size class the experiment covers. The residual exposure is bounded by the largest
+  chunk small enough to come from the resident heap, orders of magnitude below the arena totals here.
+- ⚠️ **(4) THE `README-POLICY.12` ROUTING CARRIED AN UNCENSUSED *"nothing can notice"* CLAIM, AND A
+  CENSUS REFUTES IT AS WORDED.** `rust/scripts/ci_workflow_local_gate.sh:415` DOES read
+  `README_POLICY.md` — as a member of an EXACT-SET roster of root `.md` files. So a reader exists;
+  it watches PRESENCE, not content, and cannot see the sibling repository at all. The finding's
+  substance survives and its sentence does not. ⇒ corrected in `README-POLICY.12`. ⭐ The claim is
+  precisely the class `GAP-CLAIM-CENSUS` exists for, and the doctrine passed because my phrasing
+  missed its regex — **a gate that does not fire is not a census**.
+- ✅ **WHAT STANDS, RE-DERIVED RATHER THAN RE-ASSERTED.** Every MEASUREMENT: 230/230 exact oracle
+  and its 230/230 RED control; allocated ×2.0000 against peak RSS ×1.0000 (32 768 B), reproduced on
+  two binaries; `writ/item` = 1.000 on 44 of 44; the AST at 15.6–36.3 %; 154/154 behaviour columns;
+  the eleven byte-identical artifacts. **And finding 3 is upgraded from inference to evidence**: the
+  emission set is `git ls-files rust/src/ast_pipeline` plus `rust/Makefile`
+  (`scripts/check_generated_reproducibility.sh:187-189`), so an untracked new module is outside the
+  digest BY CONSTRUCTION — I had inferred that from a 28→29 file count, and the source says it.
+- ⭐⭐⭐ **THE CARRY-FORWARD, and it is the third variation on the same theme in four slices:
+  `-0122` audited the number and not the noun; `-0125` audited the measurement and not the sentence;
+  this one audited the sentences and not the SET THEY WERE DRAWN FROM.** All three published
+  findings were individually defensible; what failed was the roll-up — a count over an incomplete
+  table, a shared cause asserted over a group without checking each member, and a caveat that never
+  made it out of the draft. ⇒ **when you publish N findings as a group, verify the GROUPING: that N
+  is the whole population, that the shared cause holds member by member, and that every clause you
+  drafted is present in the artifact that ships.**
 
 ##### ACCEPTANCE CHECKLIST — `.67`(b) leg 3 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0126`)
 
