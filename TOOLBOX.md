@@ -86,7 +86,7 @@ same leaf keeps its checklist, and a deletion-only edit still counts as touching
 | # | family | when it applies | verbatim tokens that count |
 |---|---|---|---|
 | 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `PGEN_LINT_DUMP_ALL`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `INTERPRET-PARSE:`/`--interpret-parse`, `INDIRECT-LR-SURVEY:`/`--report-indirect-lr-plan`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]`, `LAYOUT-OWNING-TERMINALS:`/`--report-layout-owning-terminals`, `SAMPLE-PROFILE-PARITY:`/`--report-sample-parity` |
-| 2 | **performance / SPEED** | it is correct but slow | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph` |
+| 2 | **performance / SPEED / FOOTPRINT** | it is correct but slow, or its memory is the problem | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph`, `ARENA-CHUNK-ORACLE:` (`rust/target/release/arena_chunk_oracle_probe` — proves the `typed_arena` chunk-capacity model against a counting `GlobalAlloc`; `--red-control` required to go red) |
 | 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
 | 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
 | 5 | **ops / build-flow** | the defect is in the repo's OWN scripts, Makefiles, hooks or tracking state — shell/make, so no rustc error either | `git ls-files`/`log -S`/`rev-list`/`fsck`/`reflog`/`diff-tree`/`merge-base`, `shellcheck`, `bash -n`, `make -n`/`make --dry-run`, `E2BIG`/`ENOSPC`/`EACCES`/`ARG_MAX`, `guard.<pid>.marker`, `reason=rss-budget\|free-floor\|disk-floor\|timeout`, `GATE-REACHABILITY-PROBE:`, `SV-CONTRACT-CURRENCY:` (`scripts/check_sv_contract_currency.sh` — the SV grammar's semantic digest versus the contract's), `ACCEPT-SET-LEDGER:` (`docs/tasks/artifacts/sv_corpus_grad/contract_accept_set_ledger/measure_accept_set_transitions.py` — which grammar commit moved which verdict or which typed AST), `LRM-ANNEX-A-GAP:` (`stimuli/sv/lrm_annex_a_gap_census.py` — the IEEE 1800 productions the CLAUSE bodies define and Annex A, the only surface the extractor reads, does not) |
@@ -571,15 +571,56 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   read-only over the arena, so it observes the graph the process was already going to run. ⇒ **use
   3.3b when you want the production parse's memory and 3.3 when you want the memo's contents; the
   two numbers are not about the same parse.**
-- **OUTPUT (one line per parse, on stderr):**
+- **OUTPUT (TWO lines per parse, on stderr — the second was added by leg 3):**
   ```
   === PARSE FOOTPRINT (arena + AST-owned heap) [systemverilog]: nodes=N (X.XX MB @ 48 B) ·
       shaped_values=N (X.XX MB) · shaped_pairs=N (X.XX MB) ·
       rendered_strings=N (X.XX MB, header only) · arena item total X.XX MB ·
       child_vecs=N (N slots, X.XX MB) · transformed_strings=N (X.XX MB) ·
       rendered_payload X.XX MB · AST-owned heap total X.XX MB · arena+owned total X.XX MB
-      [LOWER BOUND - typed_arena CHUNK CAPACITY is still NOT counted] ===
+      [ITEM BYTES - the CHUNK CAPACITY holding them is on the next line] ===
+  === PARSE FOOTPRINT (typed_arena chunk capacity) [systemverilog]: nodes cap=N items=N
+      touched=N chunks=N (X.XX MB) · shaped_values cap=N items=N touched=N chunks=N (X.XX MB) ·
+      shaped_pairs cap=N items=N touched=N chunks=N (X.XX MB) ·
+      rendered_strings cap=N items=N touched=N chunks=N (X.XX MB) · spines N B ·
+      allocated total X.XX MB · touched total X.XX MB ·
+      arena+AST touched X.XX MB .. allocated X.XX MB · items_agree=true · extend_regrow=0 ===
   ```
+  ⛔ **TWO LINES AND NOT MORE FIELDS ON ONE, for a mechanical reason worth copying.** The tracked
+  producer `docs/tasks/artifacts/eus67/measure_parse_footprint.sh` extracts with GREEDY
+  `sed 's/.*<token>=…/'` patterns, so a new token ending in `nodes=` would have silently
+  re-targeted the existing `nodes=` capture at it — a *passing* extraction of the wrong number.
+  A separate line with its own anchor cannot do that.
+- ⭐⭐ **THREE COUNTS PER ARENA, AND YOU MUST NOT SUBSTITUTE ANY OF THEM FOR ANOTHER.** `items=` is
+  what the arena holds (`Arena::len()`); `cap=` is the slots it took from the ALLOCATOR; `touched=`
+  is the slots that were actually WRITTEN. The crate exposes no capacity accessor, so `cap`/`touched`
+  come from a MODEL of its chunk arithmetic (`rust/src/ast_pipeline/arena_chunk_model.rs`) driven by
+  the real call sequence — a model and not a formula precisely because no closed form exists for two
+  of the four arenas: `shaped_values`/`shaped_pairs` are fed by `alloc_extend`, whose capacity
+  depends on the SEQUENCE of extend sizes rather than their total.
+- ⛔⛔ **`allocated` IS NOT RESIDENT, AND THAT IS MEASURED RATHER THAN ASSERTED — USE THE BAND.** A
+  fresh chunk is untouched anonymous memory; its pages enter RSS when they are first written. So
+  quoting `allocated` against a peak-RSS denominator attributes the arena's unused chunk slack to
+  the arena. `docs/tasks/artifacts/eus67/measure_chunk_residency.sh` decides it with no floor model
+  at all — the same workload at `N` and `N + 1` items where `N` fills the last chunk exactly:
+  **allocated 1 008 MB → 2 016 MB (×2.0000) while peak RSS moved 1 063 174 144 → 1 063 206 912 B,
+  i.e. 32 768 bytes, ×1.0000.** ⇒ **`touched` is the RSS-relevant end**; `allocated` is the upper
+  bound; report `arena+AST touched X .. allocated Y` and never the second alone.
+  ⭐ `touched` is neither `items` nor `cap`: a chunk is normally retired FULL, so its whole capacity
+  is written, and `alloc_extend`'s overflow path drains already-written items out of a chunk,
+  lowering its item count without un-writing its pages.
+- ⛔ **THE MODEL IS PROVED, NOT ASSERTED — `ARENA-CHUNK-ORACLE:`.**
+  `./rust/target/release/arena_chunk_oracle_probe` drives a REAL `typed_arena::Arena` under a
+  counting `#[global_allocator]` and compares measured live bytes to the model's, for EXACT
+  equality — no tolerance. **230 cases (46 scripts × 5 item sizes): 0 byte mismatches, 0 item
+  mismatches.** `--red-control` perturbs the model by one 48-byte item and requires the comparison
+  to notice: **230 of 230 rejected it**. Run it whenever `typed-arena` is upgraded — the model
+  transcribes version **2.0.2** and a chunk-growth change would silently bias every footprint.
+- ⭐ **`items_agree` IS A FREE CONTINUOUS ORACLE AND IT MUST READ `true`.** The model's item count is
+  compared against the arena's own `Arena::len()` on every report; a `false` there invalidates that
+  arena's byte figure outright. `extend_regrow` counts `alloc_extend` calls that outran their own
+  `size_hint` (both PGEN call sites pass exact-size iterators, so it must read **0**; a non-zero
+  value means the chunk figure has fallen back on modelling `std`'s `Vec` growth).
 - ⭐⭐ **THE OWNED-HEAP LEG IS MEASURED AT ALLOCATION TIME, BECAUSE THE ARENA CANNOT BE WALKED
   AFTERWARDS — and that is a property of `NodeArena`'s lifetime design, not an oversight.** A walk
   needs `typed_arena::Arena::iter_mut`, i.e. `&mut self`, but `'input` is unified to the arena's own
@@ -604,25 +645,35 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   at **+2.0 `shaped_values` and +148.0 `shaped_pairs` per case item** — i.e. predominantly
   `PgenValue::Object` PAIRS. The sharpest case is `syn_case_items`: **40 slots at both 2 500 and
   10 000 items** — 7 500 more case items, zero more resident child-vec slots.
+- ⭐⭐⭐ **THE RULING LEG 3 REACHED, because it changes how you READ every number above.** Written
+  slots equal live items on **44 of 44** arena measurements (11 inputs × 4 arenas), because a chunk
+  is retired either FULL or at exactly the item count it held, and the only path that leaves
+  written-but-dead slots behind needs an iterator that understates its own `size_hint`
+  (`extend_regrow`, **0 on 11 of 11**). ⇒ **the arena ITEM bytes were already the RSS-relevant
+  figure, and the old 28–71 % band was an artifact of bounding ALLOCATION.** Measured over the
+  ladder, the AST — arena items plus everything a node owns outside them — is **15.6 %–36.3 % of the
+  floor-subtracted peak (median 28.6 %)** at the 14.72 MB floor and **14.6 %–36.0 %** at 18.86 MB: a
+  minority on every input, at both ends of the floor band. ⚠️ Had the ALLOCATED end been quoted
+  against the same denominator it would have read **17.7 %–66.6 %** — a majority on one input. The
+  chunk slack it counts runs **2.5 %–45.7 %** of allocated arena bytes and is address space, not RAM.
 - ⛔⛔ **IT STILL MEASURES LESS THAN THE WHOLE PARSE — do not subtract it from peak RSS and call the
   remainder "not the AST". That inference was published once and WITHDRAWN**
-  (`ENGINE-UNIVERSAL-SERVICES.67`(b), `-0122`), and closing the omission that caused the withdrawal
-  did NOT license it back, because a different one is binding. **THREE exclusions, all named:**
-  1. **`typed_arena` CHUNK CAPACITY** — chunks DOUBLE and none are freed until the arena drops, so
-     resident chunk bytes reach up to ~2× live item bytes. **This is now the binding one**: it alone
-     keeps the arena's share anywhere in **28–71 %**, which is exactly the band that leaves the
-     withdrawn conclusion undecided. ⚠️ Computable exactly for `nodes` (fed only by `alloc`:
-     capacity starts at `1024 / size_of::<T>()` and doubles), **but NOT for `shaped_values` /
-     `shaped_pairs`** — `alloc_extend` fills the current chunk item-by-item and on overflow calls
-     `reserve(i + 1)` and drains items back, so their resident capacity depends on the SEQUENCE of
-     extend sizes rather than the total. Those two arenas need an instrument, not a formula.
-  2. **`ParseNode`s THE MEMO OWNS** — `MemoEntry::result` is an `Option<ParseNode>` and
+  (`ENGINE-UNIVERSAL-SERVICES.67`(b), `-0122`). Closing the omission that caused the withdrawal did
+  NOT license it back; leg 3 closed the one that was actually binding, and **TWO named exclusions
+  remain, BOTH of them memo-leg or transient bytes rather than arena bytes:**
+  1. **`ParseNode`s THE MEMO OWNS** — `MemoEntry::result` is an `Option<ParseNode>` and
      `raw_semantic_content` an `Option<ParseContent>`, owned clones that never pass through
      `NodeArena::alloc`, so neither their headers nor their child `Vec`s appear in any field here.
      Those are MEMO-leg bytes, and the memo leg is still unmeasured.
-  3. **TRANSIENT COLLECTION VECTORS** — a quantifier collects into a local `Vec` that is freed once
+  2. **TRANSIENT COLLECTION VECTORS** — a quantifier collects into a local `Vec` that is freed once
      its contents move into the shaped-value arena. Those bytes can contribute to PEAK RSS and are
      resident nowhere at report time, so this instrument cannot see them.
+  ✅ **CLOSED by leg 3 — `typed_arena` CHUNK CAPACITY.** It used to be the binding one, keeping the
+  arena's share anywhere in **28–71 %** on a *reasoned* `[items, 2 × items]` bound; the second
+  report line MEASURES it per input, and the residency experiment then says which end of the
+  measured band an RSS denominator may be divided by. ⚠️ Closed by a *model with an oracle*, not by
+  an accessor the crate does not have — see the `ARENA-CHUNK-ORACLE:` bullet above, and re-run that
+  probe on any `typed-arena` upgrade.
 - **COVERAGE — 12 of 35 arena-owning parse lanes, and the gap is pinned, not hidden.** The report is
   wired into every `parse_with_<family>_detail*` path (the `Result` lane `--parse` runs). The bare
   `bool` and `_ast_json` lanes do NOT report. ⛔ It is not a `Drop` impl — which would have covered

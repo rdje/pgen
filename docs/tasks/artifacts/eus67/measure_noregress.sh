@@ -14,12 +14,27 @@ OLD="$1"; NEW="$2"; OUT="$3"; REPS="${4:-3}"
 [ -x "$OLD" ] || { echo "no baseline probe at $OLD" >&2; exit 2; }
 [ -x "$NEW" ] || { echo "no candidate probe at $NEW" >&2; exit 2; }
 W="tmp/eus67b/.nr.$$"; mkdir -p "$W"; trap 'rm -rf "$W"' EXIT
-INPUTS=(
-  "stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh330.v"
-  "stimuli/sv/subs/iverilog/ivtest/ivltests/comp1000.v"
-  "stimuli/sv/subs/verilator/test_regress/t/t_math_synmul_mul.v"
-  "stimuli/sv/subs/opentitan/hw/ip/spi_device/rtl/spi_device_reg_pkg.sv"
-)
+# ENGINE-UNIVERSAL-SERVICES.67(b) leg 3 — the input set is OVERRIDABLE, because `-0124`'s
+# second (long-input) wall-clock arm was run by hand against a hard-coded list and therefore
+# was not re-runnable from the tracked producer. That is the same defect this artifact
+# directory already recorded once ("durability is the COMMITTED COPY RUNNING"), one level up:
+# the script ran, but the ARM that decided the wall-clock question did not live in it.
+# Space-separated, repo-root-relative.
+if [ -n "${PGEN_EUS67_NOREGRESS_INPUTS:-}" ]; then
+  # shellcheck disable=SC2206  # word splitting is the documented interface here
+  INPUTS=($PGEN_EUS67_NOREGRESS_INPUTS)
+else
+  INPUTS=(
+    "stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh330.v"
+    "stimuli/sv/subs/iverilog/ivtest/ivltests/comp1000.v"
+    "stimuli/sv/subs/verilator/test_regress/t/t_math_synmul_mul.v"
+    "stimuli/sv/subs/opentitan/hw/ip/spi_device/rtl/spi_device_reg_pkg.sv"
+  )
+fi
+for f in "${INPUTS[@]}"; do
+  # A missing input must REFUSE, not silently produce fewer rows than the caller asked for.
+  [ -r "$f" ] || { echo "no input at $f" >&2; exit 2; }
+done
 printf 'arm\tpath\trep\tpeak_rss_bytes\twall_s\n' > "$OUT"
 for rep in $(seq 1 "$REPS"); do
   for f in "${INPUTS[@]}"; do

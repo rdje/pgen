@@ -179,9 +179,9 @@ peak RSS. Over ten inputs, real and synthetic, spanning 30 KB to 1.2 MB:
 | `pinmux_reg_top.sv` (1.2 MB) | 3 043 MB | 702.3 MB | 23.2 % |
 
 Those arena items account for **14–36 %** of the footprint (median 27 %), at **5–43
-`ParseNode` allocations per input byte**. `typed_arena` allocates chunks that double and frees
-none until the arena drops, so its resident bytes can reach roughly twice the live item bytes —
-putting the arena somewhere under 28–71 %.
+`ParseNode` allocations per input byte**. `typed_arena` allocates chunks that grow and frees none
+until the arena drops, so for one revision this chapter could only bound the arena's share by
+*28–71 %*; that bound is now measured, and the section below is where it goes.
 
 ⚠️ **What that does *not* license is the conclusion "so the memory is not the AST", and this
 chapter said exactly that for one revision before it was corrected.** A `ParseNode` is 48
@@ -225,15 +225,50 @@ every input measured**, and the remainder is some mix of the packrat memo, the d
 and allocator overhead, the last of which the `vmmap` profile above already puts at ~50 % on the
 uvm input across ~72 million small allocations.
 
-⚠️ And **closing that omission did not license the withdrawn conclusion back**, which is the
-part worth carrying. Three exclusions remain, and the binding one is not the dramatic one: the
-arena allocates in chunks that double and frees none, so its resident bytes can reach twice its
-live item bytes, putting the arena anywhere in **28 – 71 %**. That is exactly computable for the
-node arena and *not* for the two arenas fed by `alloc_extend`, whose resident capacity depends on
-the order the extends arrived in rather than on how many items they carried. That was declared from the very
-first version of the measurement. The omission that triggered the withdrawal — the child vectors
-nobody had thought to look for — moves the answer by two tenths of a point; the boring one that
-had been written down all along is what still leaves the question open.
+⚠️ For one revision, closing that omission still did not license the withdrawn conclusion back.
+One exclusion was doing all the work: the arena allocates in chunks that grow and frees none, so
+the bytes it takes from the allocator exceed the bytes its items occupy — putting the arena
+anywhere in **28 – 71 %**. The omission that triggered the withdrawal (the child vectors nobody had
+thought to look for) moves the answer by two tenths of a point; the boring one written down from
+the start is what kept the question open.
+
+### That exclusion turned out to be about address space, not memory
+
+`typed-arena` exposes no capacity accessor, so PGEN models its chunk arithmetic
+(`arena_chunk_model.rs`), driven by the real call sequence — a model rather than a formula, because
+for the two arenas fed by `alloc_extend` the resident capacity depends on the *order* the extends
+arrived in, not on how many items they carried. The model is not trusted: a probe drives a real
+`typed_arena::Arena` under a counting global allocator and demands **exact** byte equality. 230
+cases, 0 mismatches; a model perturbed by a single 48-byte item is rejected by all 230.
+
+⭐ **And then measuring it showed the band was never a band about RAM.** The model reports what the
+arena took from the *allocator*. A freshly allocated chunk is untouched anonymous memory, and its
+pages enter a process's resident set only when written. The experiment that settles it needs no
+calibration: run the same workload at `N` items and at `N + 1`, where `N` fills the last chunk
+exactly.
+
+| | items | allocated | written | peak RSS |
+|---|---|---|---|---|
+| fills the last chunk | 22 020 075 | 1 008 MB | 1 008 MB | 1 063 174 144 B |
+| one item more | 22 020 076 | **2 016 MB** | 1 008 MB | **1 063 206 912 B** |
+
+One gigabyte of extra allocation costs **32 kilobytes** of resident memory. Chunk slack is address
+space, not RAM — and on the ten-input ladder it runs from 2.5 % to **45.7 %** of the arena's
+allocated bytes.
+
+⇒ **the 28 – 71 % band was an artifact of bounding allocation when the question was residency.**
+Written slots equal live items on 44 of 44 arena measurements, so the item-bytes figure above was
+already the resident figure. The honest statement is the one the withdrawal had removed: **the AST
+is a minority of the parse footprint on every input measured — 15.6 % to 36.3 %, median 28.6 %** —
+and the rest is the packrat memo, the derivation tape and allocator overhead.
+
+One qualification survives and is not in that conclusion's favour: a quantifier collects into a
+temporary vector that is freed once its contents reach the shaped arenas, so those bytes can be in
+the *peak* and are resident nowhere by the time anything reports. They are bounded by the largest
+single composite rather than by the total, but they are unmeasured.
+
+If you are budgeting a parse, this is the practical form: PGEN prints both ends —
+`arena+AST touched X MB .. allocated Y MB` — and it is the *touched* end that competes for RAM.
 
 ## How we keep it honest
 

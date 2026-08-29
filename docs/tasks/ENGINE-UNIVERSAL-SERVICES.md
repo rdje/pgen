@@ -14676,7 +14676,7 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   instances — which ACCEPTED before this commit too — costs **4 064.0 MB**, and 10 001 costs
   **4 064.1 MB**. The 4 GB is pre-existing and is `.67`'s subject, not this leaf's.
 
-### ⛔⛔ `.67` — **PARSE MEMORY IS 2 500×–8 000× THE INPUT SIZE AND LINEAR, SO "BOUNDED ONLY BY HOST RAM" BINDS AT ~40 000 NETLIST INSTANCES ON A 16 GB MACHINE** (`in progress` — ✅ **(a) DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0120`, 🟡 **(b) legs 1–2 of 3 done, leg 3 (chunk capacity) NEXT** `…-0121`/`-0122`/`-0124`, (c) open; opened 2026-08-28 by `.66`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`)
+### ⛔⛔ `.67` — **PARSE MEMORY IS 2 500×–8 000× THE INPUT SIZE AND LINEAR, SO "BOUNDED ONLY BY HOST RAM" BINDS AT ~40 000 NETLIST INSTANCES ON A 16 GB MACHINE** (`in progress` — ✅ **(a) DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0120`, ✅ **(b) legs 1–3 of 4 DONE — the AST side is CLOSED and the withdrawn conclusion is RESTORED** `…-0121`/`-0122`/`-0124`/`-0125`/`-0126`; 🟡 **leg 4 (memo + deriv tape + transient `Vec`s) is what remains**, (c) open; opened 2026-08-28 by `.66`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`)
 
 - **WHY THIS IS A LEAF AND NOT A FOOTNOTE.** The director's mandate names host RAM as the ONE
   legitimate limit ([[project_rtl_parsers_accept_any_rtl_no_limits_non_negotiable]]). `.66` moved the
@@ -14701,11 +14701,16 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   the marginal footprint, median 27.4 %) and its headline inference was WITHDRAWN (`…-0122`); the
   out-of-arena AST-owned heap that forced that withdrawal is now MEASURED and is worth
   **≤ +0.26 percentage points** (`…-0124`), which does NOT restore the withdrawn conclusion —
-  `typed_arena` CHUNK CAPACITY is the binding exclusion and it alone keeps the arena's share
-  anywhere in 28–71 %. ⇒ **leg 3 is to compute chunk capacity EXACTLY** (2.0.2's growth is a pure
-  function of item count and item size), which collapses that band to a point; the memo and tape
-  legs and the `mimalloc_perf` comparison follow, the last needing its own code slice per `…-0123`**;
-  (c) only then price a fix. ⛔ Speed/footprint work is otherwise
+  `typed_arena` CHUNK CAPACITY was the binding exclusion and it alone kept the arena's share
+  anywhere in 28–71 %. ✅ **LEG 3 CLOSED IT (`…-0126`) AND THE ANSWER IS THAT THE BAND WAS NEVER AN
+  RSS BAND**: chunk capacity is measured and oracle-proved, and the residency experiment then showed
+  1 008 MB of extra ALLOCATION costs 32 768 B of peak RSS ⇒ **written slots equal live items on 44
+  of 44 arena rows, `-0121`'s ITEM bytes were already the resident figure, and the AST is
+  15.6–36.3 % of the floor-subtracted peak — a MINORITY on every input, restoring the withdrawn
+  conclusion as a measurement.** 🟡 **Leg 4 is the memo leg, the deriv tape and the transient
+  collection `Vec`s** — the last being the one exclusion that is NOT one-sided in the restored
+  conclusion's favour — and the `mimalloc_perf` comparison follows, needing its own code slice per
+  `…-0123`**; (c) only then price a fix. ⛔ Speed/footprint work is otherwise
   BLOCKED behind the director's *"thorough and accurate and fast (not reached yet, because it is not
   the focus right now)"* ordering; this leaf is admitted because it is an INGESTION bound, not a
   performance one.
@@ -15187,6 +15192,224 @@ prediction [`PREDICTION_OWNED_HEAP.md`](artifacts/eus67/PREDICTION_OWNED_HEAP.md
   from the tracked `eus63` generator (RED control observed: one mutated byte → `DIFFER`, 17/18).
   ⚠️ **NAMED GAP, unchanged from `-0121`: no gate WATCHES these numbers.** They are a measurement
   record, not a ratchet, and a ratchet is priced in `.67`(c).
+
+#### ✅✅✅ `.67`(b) LEG 3 DONE — **CHUNK CAPACITY IS MEASURED, AND MEASURING IT SHOWED THE 28–71 % BAND WAS NEVER A BAND ABOUT RAM. THE WITHDRAWN CONCLUSION IS RESTORED — BY THE NUMBER `-0121` ALREADY HAD** (`PGEN-ENGINE-UNIVERSAL-SERVICES-0126`, 2026-08-29)
+
+Discharges `-0125`'s re-pricing verbatim — *"leg 3 collapses the NODES band by arithmetic and needs
+an INSTRUMENT for the other two"*. Producers and raw data:
+[`arena_chunk_model.rs`](../../rust/src/ast_pipeline/arena_chunk_model.rs),
+[`arena_chunk_oracle_probe.rs`](../../rust/src/bin/arena_chunk_oracle_probe.rs),
+[`arena_chunk_oracle.txt`](artifacts/eus67/arena_chunk_oracle.txt),
+[`measure_chunk_residency.sh`](artifacts/eus67/measure_chunk_residency.sh),
+[`chunk_residency.tsv`](artifacts/eus67/chunk_residency.tsv),
+[`attribution_chunks.tsv`](artifacts/eus67/attribution_chunks.tsv),
+[`chunk_shares.py`](artifacts/eus67/chunk_shares.py),
+[`compare_prechunk_columns.py`](artifacts/eus67/compare_prechunk_columns.py),
+[`noregress_chunks.tsv`](artifacts/eus67/noregress_chunks.tsv),
+prediction [`PREDICTION_CHUNK_CAPACITY.md`](artifacts/eus67/PREDICTION_CHUNK_CAPACITY.md).
+
+- **THE INSTRUMENT — a MODEL, because `-0125` proved a formula cannot exist for two of the four
+  arenas.** `ArenaChunkModel` transcribes `typed-arena` 2.0.2's chunk arithmetic (`INITIAL_SIZE`
+  1024, `MIN_CAPACITY` 1; `reserve` retires the live chunk WITH its capacity and opens
+  `max(2 × cap, next_power_of_two(additional))`) and is driven by the REAL call sequence — one
+  `alloc()` per `Arena::alloc`, one `alloc_extend(min_hint, actual)` per `Arena::alloc_extend`.
+  ⛔ **Both extend arguments are load-bearing and neither is derivable from the other**: `min_hint`
+  is `size_hint().0`, which is what the crate BRANCHES on, and `actual` is what the iterator really
+  yielded; the two branches leave different resident capacities, so a model given one number is
+  modelling a call that did not happen. `NodeArena` keeps one model per arena and updates it on the
+  SAME armed branch as the owned-heap census, so a production parse pays one field load and one
+  predicted branch.
+- ⭐⭐ **PROVED AGAINST THE ALLOCATOR, NOT REASONED ABOUT.** `arena_chunk_oracle_probe` drives a REAL
+  `typed_arena::Arena` under a counting `#[global_allocator]` (the `regex_alloc_census_probe` shape)
+  and compares measured live bytes to the model's for **EXACT equality — not a tolerance**:
+  **230 cases over 46 scripts × 5 item sizes (1/24/48/64/1536 B), 0 byte mismatches, 0 item
+  mismatches.** The scripts include the pair no formula covers — `1000 × extend(1)` versus
+  `1 × extend(1000)`, same items, different capacity — and a deliberately SPINE-FREE case, so a
+  compensating pair of errors in the chunk model and the `rest`-spine model cannot cancel.
+  ⭐ **RED control observed: a model perturbed by ONE 48-byte item is rejected 230 of 230.**
+- ⛔⛔⛔ **AND THEN THE ORACLE'S OWN SCOPE IS THE FINDING: IT PROVES THE MODEL REPRODUCES THE
+  ALLOCATOR, AND THIS LEAF IS ATTRIBUTING PEAK RSS.** A freshly allocated chunk is untouched
+  anonymous memory; its pages enter RSS when first WRITTEN. So the model's number is an **upper
+  bound on residency** and the gap is exactly the arena's unused slack. ⚠️ **The oracle cannot see
+  this — it measures the allocator too.** Subtracting an allocation figure from peak RSS would have
+  attributed that slack to the arena, silently, in the flattering direction, with an exact oracle
+  standing behind it.
+- ⭐⭐⭐ **SO IT WAS MEASURED, WITH AN EXPERIMENT THAT NEEDS NO FLOOR MODEL AND NO CALIBRATION.**
+  `measure_chunk_residency.sh` runs the same `alloc`-only workload at `N` and `N + 1`, where
+  `N = 21 × (2²⁰ − 1)` fills the last chunk EXACTLY, so one extra item opens a chunk of twice the
+  size and writes one slot in it:
+
+  | arm | items | allocated | written | peak RSS |
+  |---|---|---|---|---|
+  | `full` | 22 020 075 | 1 008.00 MB | 1 008.00 MB | 1 063 174 144 B |
+  | `one_over` | 22 020 076 | **2 016.00 MB** | 1 008.00 MB | **1 063 206 912 B** |
+
+  **Allocated ×2.0000. Peak RSS ×1.0000 — 32 768 bytes, two pages.** ⭐ Run TWICE, an hour apart,
+  on different probe binaries: the absolute peak moved between runs (1 063 190 528 → 1 063 174 144
+  on the `full` arm, 0.0015 %) and **the delta was 32 768 B both times**, so the invariant is the
+  difference and not the level — which is why the numbers above are re-derived from the tracked
+  `chunk_residency.tsv` rather than re-typed beside the run that first printed them. ⇒
+  allocated-but-unwritten
+  chunk slack is **NOT resident**; it is address space, not RAM. The script REFUSES rather than
+  scoring if the arms lack the shape the experiment needs, and it NAMES which hypothesis the ratio
+  supports instead of assuming one.
+- ⭐ **`touched` IS NEITHER `items` NOR `capacity`, and the model tracks it as a HIGH-WATER MARK,
+  because a DRAIN is the one operation that lowers a chunk's item count without un-writing its
+  pages** (`alloc_extend`'s overflow path moves already-written items forward). Three unit tests pin
+  the three shapes: a chunk retired FULL, a chunk retired PARTLY filled by a large extend, and a
+  DRAINED chunk whose written slots (36) exceed the arena's live items (20).
+
+## THE LADDER — the same 11 inputs as `-0121`/`-0124`, release probe `646475a2…`
+
+| input | arena items | **written** | allocated | slack | AST share (touched) | AST share had I quoted *allocated* |
+|---|---|---|---|---|---|---|
+| `br_gh330.v` | 79.59 MB | **79.59 MB** | 142.61 MB | 44.2 % | **28.6 %** | 51.2 % |
+| `comp1000.v` | 135.44 MB | **135.44 MB** | 158.23 MB | 14.4 % | **25.4 %** | 29.6 % |
+| `t_math_synmul_mul.v` | 522.97 MB | **522.97 MB** | 636.87 MB | 17.9 % | **27.0 %** | 32.9 % |
+| `pinmux_reg_top.sv` | 702.31 MB | **702.31 MB** | 1 273.75 MB | 44.9 % | **23.4 %** | 42.3 % |
+| `spi_device_reg_pkg.sv` | 8.73 MB | **8.73 MB** | 9.89 MB | 11.7 % | **15.6 %** | 17.7 % |
+| `syn_netlist_instances` 2 500 | 314.28 MB | **314.28 MB** | 322.37 MB | 2.5 % | **30.9 %** | 31.7 % |
+| `syn_netlist_instances` 10 000 | 1 256.87 MB | **1 256.87 MB** | 1 289.50 MB | 2.5 % | **31.2 %** | 32.0 % |
+| `syn_case_items` 10 000 | 331.22 MB | **331.22 MB** | 567.12 MB | 41.6 % | **29.5 %** | 50.5 % |
+| `syn_port_list` 10 000 | 52.21 MB | **52.21 MB** | 80.59 MB | 35.2 % | **18.3 %** | 28.2 % |
+| `syn_concat_items` 10 000 | 172.32 MB | **172.32 MB** | 317.13 MB | 45.7 % | **36.3 %** | **66.6 %** |
+
+- ⭐⭐⭐ **THE COLUMN THAT DECIDES THE LEAF IS `writ/item`, AND IT READS EXACTLY 1.000 ON EVERY ROW —
+  44 of 44 arena rows over 11 inputs × 4 arenas.** Written slots equal live items, and the reason is
+  structural rather than lucky: `typed_arena` retires a chunk either FULL (the `alloc` path, which
+  only reserves when `len == capacity`) or at exactly the item count it held (the `alloc_extend`
+  reserve path), and the ONLY path that leaves written-but-dead slots behind needs an iterator that
+  understates its own `size_hint` — which is what `extend_regrow` counts, and it reads **0 on 11 of
+  11**. ⇒ **`-0121`'s arena ITEM bytes were already the resident figure.**
+- ⛔⛔⛔ **THE RULING, AND IT REVERSES `-0124`'s: THE 28–71 % BAND WAS AN ARTIFACT OF BOUNDING
+  *ALLOCATION* WHEN THE QUESTION WAS *RESIDENCY*.** The band came from `resident ∈ [items, 2 ×
+  items]`. The upper half of it is address space that no page ever backed. Measured over the ladder,
+  the AST — arena items plus everything a node owns outside them — is **15.6 %–36.3 % of the
+  floor-subtracted peak (median 28.6 %)**, at the 14.72 MB floor, and **14.6 %–36.0 %** at 18.86 MB:
+  a MINORITY on every input, at both ends of the floor band. ⇒ **the conclusion `-0122` withdrew is
+  restored as a MEASUREMENT** — *"a substantial majority of the parse footprint is not the AST"* —
+  with the word **provably** deliberately not restored with it, for the one exclusion below.
+- ⚠️ **THE ONE EXCLUSION THAT IS NOT ONE-SIDED IN MY FAVOUR, AND WHY THE RESTORED SENTENCE IS
+  QUALIFIED.** Two exclusions survive. `ParseNode`s the MEMO owns are memo-leg bytes and cannot move
+  the AST share. **TRANSIENT collection `Vec`s can**: a quantifier collects into a local `Vec` that
+  is freed once its contents reach the shaped arenas, so those bytes contribute to PEAK and are
+  resident nowhere at report time — and they are AST-shaped, not memo-shaped. They are bounded by
+  the largest single composite rather than by the total (one such `Vec` is live at a time), which is
+  why the qualification is narrow, but it is unmeasured and it is named here rather than left to be
+  found. **ROUTED to `.67`(b) leg 4 with the memo leg.**
+- ⭐ **PREDICTION 2 CONFIRMED AND WORTH KEEPING: the slack is a `nodes`-arena phenomenon.** The node
+  arena is **78.2 %–88.9 %** of allocated arena bytes on every real and synthetic input (100 % on
+  `floor.sv`), so the sawtooth is governed by where the `ParseNode` count falls in the 21 × 2ᵏ
+  doubling sequence — which is why `syn_netlist_instances` reads 2.5 % slack and `syn_concat_items`
+  reads 45.7 % on the same parser.
+
+## ⛔⛔ WHAT THE PRE-REGISTRATION COST ME — THREE FALSIFIED LEGS, AND TWO OF THEM SHARE THE SLICE'S OWN DEFECT
+
+Written to `PREDICTION_CHUNK_CAPACITY.md` before any ladder number was read.
+
+| # | predicted | measured | verdict |
+|---|---|---|---|
+| 1 | chunk overhead 1.25–1.65, median ≈ 1.40 | allocated/items **1.026–1.840**, median 1.500 | **FALSIFIED** (range) |
+| 2 | the overhead is dominated by the `nodes` arena | **78.2–88.9 %** of allocated bytes | CONFIRMED |
+| 3 | resident AST share 20–55 %, median 35–45 % | **15.6–36.3 %**, median **28.6 %** | **FALSIFIED** (both) |
+| 4 | the points sit in the lower half of the old band | all at or BELOW its lower end | confirmed, for a reason the prediction did not contain |
+| 5 | the withdrawn conclusion is NOT restored | it **is** restored | **FALSIFIED** |
+| 6 | `items_agree` true on 11 of 11 | true on 11 of 11 | CONFIRMED |
+| 7 | `extend_regrow` 0 on 11 of 11 | 0 on 11 of 11 | CONFIRMED |
+| 9 | the pre-leg-3 TSV columns re-derive unchanged | **154 of 154 identical** | CONFIRMED |
+| 12 | written/item ratio 1.00–1.15 | **exactly 1.000**, 44 of 44 | CONFIRMED, at the floor of the band |
+| 13 | the touched share is below the allocated one on every input | 28.6 vs 51.2, 36.3 vs 66.6, … | CONFIRMED |
+
+⭐⭐⭐ **THE CARRY-FORWARD: PREDICTIONS 1, 3 AND 5 ARE ALL WRONG FOR ONE REASON, AND IT IS THE SAME
+CONFUSION THIS SLICE THEN CAUGHT IN THE MEASUREMENT — I PRE-REGISTERED AGAINST *ALLOCATION* WHILE
+THE LEAF ASKS ABOUT *RESIDENCY*.** A pre-registration inherits the frame of the question it was
+written in, so it cannot catch an error in that frame — it can only make the error legible
+afterwards, which is what happened here. ⇒ **before pre-registering, name the QUANTITY as well as
+the number: which instrument would read it, and is that instrument reading the same thing the
+denominator is made of.** `-0125` said verification leg 2 must falsify the CLAIM rather than re-run
+the instrument; this is the layer beneath it — falsify the QUESTION.
+
+⚠️ And rows 10 and 11 of that file are labelled **POST-HOC, not pre-registered**, because the
+residency experiment was run before they were written down. The reasoning did precede the run; the
+file did not, and a prediction that is not written down before the measurement is a recollection.
+
+##### ACCEPTANCE CHECKLIST — `.67`(b) leg 3 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0126`)
+
+- [x] **ROOT CAUSE (WHY + WHERE), tool-backed.** WHY the arena's share could not be closed: the four
+  `*_bytes` fields count ITEMS, `typed_arena` allocates CHUNKS that grow and frees none until the
+  arena drops, and the crate exposes no capacity accessor — so `-0121` could only bound the share by
+  `[items, 2 × items]` and published **28–71 %**. WHERE it had to be measured: at the four
+  allocation call sites in `rust/src/ast_pipeline/mod.rs`, because `-0124` had already COMPILED all
+  three post-parse walks to a refusal (`E0502`/`E0502`/`E0505`). ⛔ **And the root cause of the BAND
+  is different from the root cause of the GAP, which is why the instrument alone would not have
+  closed it**: `ARENA-CHUNK-ORACLE: PASS` proves the model reproduces what the ALLOCATOR handed out
+  (230 cases, 0 mismatches; RED control 230/230), and `measure_chunk_residency.sh` then measured
+  that **1 008 MB of extra allocation costs 32 768 B of peak RSS** — the quantity the band was made
+  of was never in RSS at all.
+- [x] **FIX** — engine tier, and an INSTRUMENT rather than a behaviour change: a new
+  `ast_pipeline::arena_chunk_model` module plus four `Cell<ArenaChunkModel>` on `NodeArena`, updated
+  only when the footprint census is armed. No lower tier exists — the question is about the engine's
+  own allocator interaction, so there is no declarative or grammar-level answer.
+- [x] **ADDRESSED (verified).** The report prints a SECOND line carrying `cap`/`items`/`touched` per
+  arena and the band `arena+AST touched X .. allocated Y`; it prints `NOT MEASURED` rather than
+  `0.00 MB` when unarmed. `NodeArenaFootprint::chunks` is an `Option` for the same reason `owned` is.
+  Unit tests: 11 in this slice — 10 on the model (including the two shapes that separate `touched`
+  from both `items` and `capacity`) and one on `NodeArena` asserting the census is wired to all four
+  arenas and that the band is strictly ordered. ⭐ **RED controls observed firing**: the oracle's
+  48-byte perturbation (230/230 rejected), the disarmed-census control (`chunks` must be `None`,
+  not `Some(0)`), and `compare_prechunk_columns.py` on a one-node perturbation (`MOVED …
+  arena_nodes '1409813' -> '1409814'`).
+- [x] **NO REGRESSION (measured, on both axes).**
+  - **Behaviour — deterministic and the strongest arm**: `compare_prechunk_columns.py` diffs the
+    pre-leg-3 columns of the new run against `-0124`'s published `attribution_owned.tsv` cell for
+    cell: **154 of 154 identical** across 11 inputs and 14 columns — every arena count, node count,
+    child-`Vec` count and byte figure. That is also the control for the greedy-`sed` hazard the
+    second report line could have created, and it did not fire.
+  - **Peak RSS, instrument OFF, 4 inputs × 9 repeats, new binary `646475a2…` against the preserved
+    pre-change binary `a787e823…`** (the same one `-0124` published its ladder with): −0.02 % /
+    −0.00 % / −0.02 % / −0.48 % — **worst |Δ| 0.48 %, every one NEGATIVE** (`noregress_chunks.tsv`).
+  - **Wall clock, same run**: 0.00 % / 0.00 % / +0.37 % / 0.00 % — **worst |Δ| 0.37 %**. ⭐ And a
+    second arm on the input where a per-allocation cost would show up most —
+    `syn_netlist_instances` 10 000, **21 891 512 allocations**, 5 repeats per side, driven from the
+    tracked producer through its new `PGEN_EUS67_NOREGRESS_INPUTS` override (added in this slice
+    because `-0124`'s long arm was run by hand against a hard-coded list, which is the same
+    "the producer ran but the ARM did not live in it" defect one level up):
+**the answer is NOT RESOLVABLE on this machine and is reported as such**:
+    over **15 repeats per arm** the three statistics DISAGREE IN SIGN — minimum **+0.45 %**, p25
+    **−0.15 %**, median **+0.88 %** — against a within-arm spread of 4.8 % (old, 6.71–7.03 s) and
+    6.5 % (new, 6.74–7.18 s), i.e. the noise is an order of magnitude above the effect being looked
+    for. Peak RSS on the same run is **−0.01 %**. ⛔ **Quoting the minimum would have read a
+    regression and quoting p25 an improvement, so neither is quoted.** The structural bound is what
+    carries the box instead, and it is tight: `alloc` is UNCHANGED — the `count_owned_heap` branch
+    was already there in the `a787e823` baseline — so the only added work with the instrument off is
+    `into_iter()` (the identity for an `Iterator`, and the same conversion `alloc_extend` performs
+    itself otherwise) plus ONE predictable branch per `alloc_extend` CALL, of which this input makes
+    orders of magnitude fewer than its 21 891 512 `alloc`s (`noregress_chunks_long.tsv`).
+  - `clippy` strict (source + generated) **PASS** — `clippy_on_rust_change` rc 0, roster integrity 68 pinned correctness lints all still in `clippy::correctness`, generated stage `pass` · **all eleven generated artifacts re-derive BYTE-IDENTICALLY**
+    (`generated_reproducibility` tier 2, 0 differing sites on every one of
+    `return_annotation`/`semantic_annotation`/`json`/`regex`/`systemverilog`/`systemverilog_preprocessor`/`vhdl`/`rtl_const_expr`/`rtl_frontend`/`scratch`/`ebnf`)
+    — which is what makes *"ZERO generated bytes"* a measurement rather than an intention, since
+    this slice's engine edit DID move the emission-source digest and correctly turned the doctrine
+    RED until the re-derivation proved the tree unchanged · `check_doctrines.sh` **ALL 31 PASS** against the STAGED diff (so the eleven staged-diff-scoped doctrines actually evaluated something rather than passing vacuously) ·
+    `mdbook_docs_gate` **PASS** (all 10 per-parser book gates + the main book).
+  - ⭐ **AN ORDERING TRAP FOUND BY RUNNING THE GATE TWICE, recorded because the next slice that adds
+    a generator-tree FILE will hit it.** `emission_sha` is computed over the TRACKED code-generator
+    set, so `--rebaseline` run while a new module is still untracked digests **28** files, and the
+    very next `check_doctrines.sh` — after `git add` makes it **29** — reports the emission sources
+    moved and blocks the commit. ⇒ **rebaseline AFTER staging, not before**; the second run is not
+    a repeat, it is the first one that sees the file the slice adds.
+- [x] **THREE-WAY CHECK.** (1) **RE-DERIVED by command** — every producer tracked and run from the
+  repository root; the ladder's synthetic half re-verified **18 of 18 byte-identical** by
+  `verify_ladder_shapes.py`. (2) **FALSIFIED against an oracle I did not build** — the counting
+  `GlobalAlloc` is the allocator's own accounting, not a second copy of my arithmetic, and the
+  residency experiment is decided by the kernel's page accounting rather than by anything in this
+  repository; plus the pre-registration, 3 of 9 legs falsified including the headline.
+  (3) **DURABILITY** — model, probe, both shell producers, both analysis scripts, the oracle capture
+  and both TSVs are tracked, and the new instrument's token `ARENA-CHUNK-ORACLE:` is REGISTERED in
+  `scripts/check_diagnosis_evidence.sh` and `TOOLBOX.md` in this same commit (priced: **0** existing
+  task files gain a free pass from the widening). ⚠️ **NAMED GAP, unchanged from `-0121`/`-0124`: no
+  gate WATCHES these numbers.** They are a measurement record, not a ratchet, and a ratchet is
+  priced in `.67`(c).
 
 ### ✅✅✅ `.65` — **THE RECURSION CEILING IS NO LONGER A NUMBER ANYBODY TYPED. IT IS MEASURED, PER PARSE, FROM THE STACK THE HOST ACTUALLY GAVE THE THREAD** (**DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0117`; opened 2026-08-28 by `.63`(c)'s ruling / `…0114`; taken after `.66`)
 

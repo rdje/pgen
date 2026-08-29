@@ -1,6 +1,7 @@
 use anyhow::{Result, anyhow};
 use serde;
 
+pub use self::arena_chunk_model::ArenaChunkModel;
 pub use self::pgen_value::PgenValue;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -916,6 +917,21 @@ pub struct NodeArena<'input> {
     owned_transformed_bytes: std::cell::Cell<usize>,
     owned_transformed_strings: std::cell::Cell<usize>,
     owned_rendered_bytes: std::cell::Cell<usize>,
+    /// `ENGINE-UNIVERSAL-SERVICES.67`(b) leg 3 — the CHUNK CAPACITY each of the
+    /// four arenas has actually taken from the allocator, which
+    /// [`census`](Self::census) cannot see: `typed_arena` exposes `len()` (items)
+    /// and nothing about the chunks holding them.
+    ///
+    /// ⛔ **A LIVE MODEL AND NOT A CLOSED FORM, BECAUSE `-0125` REFUTED THE
+    /// CLOSED FORM.** `nodes` and `rendered_strings` are fed only by `alloc` and
+    /// their capacity IS a function of the item count; `shaped_values` and
+    /// `shaped_pairs` are fed by `alloc_extend`, whose chunk arithmetic depends
+    /// on the SEQUENCE of extend sizes. All four are therefore driven by the
+    /// real call sequence — see [`arena_chunk_model`].
+    chunk_nodes: std::cell::Cell<ArenaChunkModel>,
+    chunk_shaped_values: std::cell::Cell<ArenaChunkModel>,
+    chunk_shaped_pairs: std::cell::Cell<ArenaChunkModel>,
+    chunk_rendered_strings: std::cell::Cell<ArenaChunkModel>,
     /// Read ONCE per parse (one arena per parse, 121 construction sites) from
     /// `PGEN_REPORT_PARSE_FOOTPRINT`, so [`alloc`](NodeArena::alloc) pays a
     /// field load and a predictable branch rather than a `OnceLock` acquire on
@@ -954,6 +970,18 @@ impl<'input> NodeArena<'input> {
             owned_transformed_bytes: std::cell::Cell::new(0),
             owned_transformed_strings: std::cell::Cell::new(0),
             owned_rendered_bytes: std::cell::Cell::new(0),
+            chunk_nodes: std::cell::Cell::new(ArenaChunkModel::new(std::mem::size_of::<
+                ParseNode<'input>,
+            >())),
+            chunk_shaped_values: std::cell::Cell::new(ArenaChunkModel::new(std::mem::size_of::<
+                PgenValue<'input>,
+            >())),
+            chunk_shaped_pairs: std::cell::Cell::new(ArenaChunkModel::new(std::mem::size_of::<
+                (&'input str, PgenValue<'input>),
+            >())),
+            chunk_rendered_strings: std::cell::Cell::new(ArenaChunkModel::new(
+                std::mem::size_of::<String>(),
+            )),
             count_owned_heap,
         }
     }
@@ -964,8 +992,48 @@ impl<'input> NodeArena<'input> {
     pub fn alloc(&self, node: ParseNode<'input>) -> &mut ParseNode<'input> {
         if self.count_owned_heap {
             self.record_owned_heap(&node.content);
+            self.record_chunk_alloc(&self.chunk_nodes);
         }
         self.nodes.alloc(node)
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.67`(b) leg 3 — mirror one `Arena::alloc` into
+    /// the chunk-capacity model for that arena.
+    ///
+    /// `#[cold]` + `#[inline(never)]` for the same reason
+    /// [`record_owned_heap`](Self::record_owned_heap) is: when the census is off
+    /// the call site pays one field load and one perfectly predicted branch, and
+    /// [`alloc`](Self::alloc) keeps the small body every generated artifact
+    /// inlines.
+    #[cold]
+    #[inline(never)]
+    fn record_chunk_alloc(&self, cell: &std::cell::Cell<ArenaChunkModel>) {
+        let mut model = cell.get();
+        model.alloc();
+        cell.set(model);
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.67`(b) leg 3 — mirror one
+    /// `Arena::alloc_extend` into the chunk-capacity model.
+    ///
+    /// ⛔ **BOTH arguments are load-bearing and neither can be derived from the
+    /// other.** `min_hint` is `size_hint().0`, which is what `alloc_extend`
+    /// BRANCHES on, and `actual` is what the iterator really yielded. When they
+    /// agree the crate takes the reserve path; when the hint understates, it
+    /// takes the item-by-item path and drains items forward into the new chunk.
+    /// The two paths leave DIFFERENT resident capacities, so a model given only
+    /// one of the numbers is modelling a call that did not happen.
+    #[cold]
+    #[inline(never)]
+    fn record_chunk_extend(
+        &self,
+        cell: &std::cell::Cell<ArenaChunkModel>,
+        min_hint: usize,
+        actual: usize,
+    ) {
+        let mut model = cell.get();
+        model.alloc_extend(min_hint, actual);
+        cell.set(model);
     }
 
     /// `ENGINE-UNIVERSAL-SERVICES.67`(b) — accumulate the heap this node owns
@@ -1019,7 +1087,20 @@ impl<'input> NodeArena<'input> {
     {
         #[cfg(debug_assertions)]
         shaped_conversion_census::record(|c| c.arena_value_slices += 1);
-        self.shaped_values.alloc_extend(values)
+        // `into_iter()` here rather than inside `alloc_extend` so the hint can be
+        // read BEFORE the iterator is consumed; it is the identity for anything
+        // already an `Iterator`, so the call is free.
+        let values = values.into_iter();
+        let min_hint = if self.count_owned_heap {
+            values.size_hint().0
+        } else {
+            0
+        };
+        let slice = self.shaped_values.alloc_extend(values);
+        if self.count_owned_heap {
+            self.record_chunk_extend(&self.chunk_shaped_values, min_hint, slice.len());
+        }
+        slice
     }
 
     /// Allocate a contiguous, ALREADY key-sorted/deduped pair slice (a
@@ -1035,7 +1116,17 @@ impl<'input> NodeArena<'input> {
     {
         #[cfg(debug_assertions)]
         shaped_conversion_census::record(|c| c.arena_pair_slices += 1);
-        self.shaped_pairs.alloc_extend(pairs)
+        let pairs = pairs.into_iter();
+        let min_hint = if self.count_owned_heap {
+            pairs.size_hint().0
+        } else {
+            0
+        };
+        let slice = self.shaped_pairs.alloc_extend(pairs);
+        if self.count_owned_heap {
+            self.record_chunk_extend(&self.chunk_shaped_pairs, min_hint, slice.len());
+        }
+        slice
     }
 
     /// Intern an owned rendered string for the parse's lifetime and hand back
@@ -1049,6 +1140,7 @@ impl<'input> NodeArena<'input> {
         if self.count_owned_heap {
             self.owned_rendered_bytes
                 .set(self.owned_rendered_bytes.get() + text.capacity());
+            self.record_chunk_alloc(&self.chunk_rendered_strings);
         }
         self.rendered_strings.alloc(text).as_str()
     }
@@ -1073,11 +1165,24 @@ impl<'input> NodeArena<'input> {
     /// four item types.
     ///
     /// ⚠️ **THE ITEM BYTES ARE A LOWER BOUND ON RESIDENT ARENA BYTES, AND THE
-    /// GAP IS NOT SMALL.** `typed_arena` allocates in chunks that DOUBLE and
+    /// GAP IS NOT SMALL.** `typed_arena` allocates in chunks that grow and
     /// frees none of them until the arena drops, so resident chunk bytes can
     /// exceed live item bytes by up to ~2× at the moment a chunk has just
-    /// grown. This counts ITEMS × their `size_of`; it does not — and cannot,
-    /// through the crate's public surface — read chunk capacity.
+    /// grown. The four `*_bytes` fields count ITEMS × their `size_of`.
+    ///
+    /// ✅ **THE CHUNKS THEMSELVES ARE NOW MEASURED — the
+    /// [`chunks`](NodeArenaFootprint::chunks) field, and the BAND
+    /// [`touched_bytes`](NodeArenaFootprint::touched_bytes) ..
+    /// [`allocated_bytes`](NodeArenaFootprint::allocated_bytes)**
+    /// (`ENGINE-UNIVERSAL-SERVICES.67`(b) leg 3). The crate's public surface
+    /// still exposes no capacity accessor, so it is a MODEL of its chunk
+    /// arithmetic driven by the real call sequence ([`arena_chunk_model`]),
+    /// checked byte for byte against a counting `GlobalAlloc` by
+    /// `rust/src/bin/arena_chunk_oracle_probe.rs`. ⛔ It is a BAND and not a
+    /// point because the allocated figure includes chunk slack the process may
+    /// never have written — quote both ends, never `allocated_bytes()` alone.
+    /// `total_with_owned_bytes()` remains the item-only lower bound and is kept
+    /// because a lower bound with a named exclusion is still a usable fact.
     ///
     /// ⚠️ **AND THE STRING PAYLOAD IS EXCLUDED BY NAME RATHER THAN BY
     /// SILENCE.** `rendered_strings` contributes `size_of::<String>()` per item
@@ -1099,13 +1204,11 @@ impl<'input> NodeArena<'input> {
     /// [`total_with_owned_bytes`](NodeArenaFootprint::total_with_owned_bytes),
     /// which is `None` exactly when the owned legs were not measured.
     ///
-    /// ⚠️ **TWO OMISSIONS REMAIN, AND BOTH ARE NAMED HERE RATHER THAN LEFT TO BE
-    /// DISCOVERED — which is the whole lesson of the withdrawal above.**
+    /// ⚠️ **ONE OMISSION REMAINS — the first of the two this comment used to
+    /// carry is closed by the chunk model above — AND IT IS NAMED HERE RATHER
+    /// THAN LEFT TO BE DISCOVERED, which is the whole lesson of the withdrawal.**
     ///
-    /// 1. **`typed_arena` CHUNK CAPACITY**, as described further up: resident
-    ///    chunk bytes exceed live item bytes by up to ~2×, and the crate exposes
-    ///    no accessor for them.
-    /// 2. **`ParseNode`s THE MEMO OWNS.** [`MemoEntry::result`] is an
+    /// 1. **`ParseNode`s THE MEMO OWNS.** [`MemoEntry::result`] is an
     ///    `Option<ParseNode<'input>>` and [`MemoEntry::raw_semantic_content`] an
     ///    `Option<ParseContent<'input>>` — **owned clones that never pass through
     ///    [`alloc`](NodeArena::alloc)**, so neither their 48-byte headers nor
@@ -1115,8 +1218,9 @@ impl<'input> NodeArena<'input> {
     ///    `ENGINE-UNIVERSAL-SERVICES.67`(b).
     ///
     /// ⇒ the scope of this census is precisely **the heap owned by nodes that
-    /// were allocated INTO the arena**, and the bound stays one-sided in the same
-    /// direction: item bytes + owned heap ≤ resident parse bytes.
+    /// were allocated INTO the arena, plus the chunks they live in**, and the
+    /// bound stays one-sided in the same direction: chunk bytes + owned heap ≤
+    /// resident parse bytes.
     pub fn footprint(&self) -> NodeArenaFootprint {
         let c = self.census();
         NodeArenaFootprint {
@@ -1125,6 +1229,15 @@ impl<'input> NodeArena<'input> {
             shaped_value_bytes: c.shaped_values * std::mem::size_of::<PgenValue<'_>>(),
             shaped_pair_bytes: c.shaped_pairs * std::mem::size_of::<(&str, PgenValue<'_>)>(),
             rendered_string_header_bytes: c.rendered_strings * std::mem::size_of::<String>(),
+            chunks: self.count_owned_heap.then(|| ArenaChunkFootprint {
+                nodes: ChunkStat::of(&self.chunk_nodes.get(), c.nodes),
+                shaped_values: ChunkStat::of(&self.chunk_shaped_values.get(), c.shaped_values),
+                shaped_pairs: ChunkStat::of(&self.chunk_shaped_pairs.get(), c.shaped_pairs),
+                rendered_strings: ChunkStat::of(
+                    &self.chunk_rendered_strings.get(),
+                    c.rendered_strings,
+                ),
+            }),
             owned: self.count_owned_heap.then(|| OwnedHeapFootprint {
                 child_vecs: self.owned_child_vecs.get(),
                 child_slots: self.owned_child_slots.get(),
@@ -1168,6 +1281,133 @@ pub struct NodeArenaFootprint {
     /// [`NodeArena::new`]). ⛔ `None` and `Some(0)` are different facts and the
     /// type keeps them apart on purpose.
     pub owned: Option<OwnedHeapFootprint>,
+    /// `ENGINE-UNIVERSAL-SERVICES.67`(b) leg 3 — the CHUNK bytes the four arenas
+    /// actually took from the allocator, or `None` when the census was not
+    /// armed. Same `Option` discipline as [`owned`](Self::owned), for the same
+    /// reason: an unarmed counter reads zero and zero looks like an answer.
+    pub chunks: Option<ArenaChunkFootprint>,
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.67`(b) leg 3 — one arena's chunk-capacity census.
+///
+/// ⭐ `items` and `model_items` are BOTH reported and they are derived
+/// independently: `items` is `typed_arena::Arena::len()`, walked from the real
+/// chunk list, and `model_items` is what [`ArenaChunkModel`] believes it put
+/// there. They must be equal on every parse, and printing both means a reader
+/// checks that rather than trusting it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ChunkStat {
+    /// `Arena::len()` — the arena's own item count.
+    pub items: usize,
+    /// The model's item count. Equal to `items` or the model is wrong.
+    pub model_items: usize,
+    /// Item SLOTS allocated across every chunk, live and retired.
+    pub capacity_items: usize,
+    /// Item slots actually WRITTEN. ⛔ Between `items` and `capacity_items` and
+    /// equal to neither: a chunk retired full is written in full, and
+    /// `alloc_extend`'s drain lowers a retired chunk's item count without
+    /// un-writing its pages. This is the RSS-relevant figure.
+    pub touched_items: usize,
+    /// Chunks allocated (`rest.len() + 1`).
+    pub chunks: usize,
+    /// `capacity_items × size_of::<T>()` — bytes the ALLOCATOR handed out.
+    /// ⛔ An upper bound on residency, not a measurement of it: fresh chunk
+    /// pages enter RSS only when written.
+    pub chunk_bytes: usize,
+    /// `touched_items × size_of::<T>()` — the bytes this arena can be holding in
+    /// RSS. ⚠️ Rounds DOWN by at most one page per chunk (the OS commits whole
+    /// pages), and chunk counts are logarithmic, so that residual is kilobytes.
+    pub touched_bytes: usize,
+    /// The `ChunkList::rest` spine — modelled against `std`'s `Vec` growth
+    /// rather than anything `typed_arena` promises, so it is kept separate.
+    pub spine_bytes: usize,
+    /// See [`ArenaChunkModel::extend_regrow_events`] — expected 0.
+    pub extend_regrow_events: usize,
+}
+
+impl ChunkStat {
+    fn of(model: &ArenaChunkModel, arena_items: usize) -> Self {
+        ChunkStat {
+            items: arena_items,
+            model_items: model.len_items(),
+            capacity_items: model.capacity_items(),
+            touched_items: model.touched_items(),
+            chunks: model.chunks(),
+            chunk_bytes: model.chunk_bytes(),
+            touched_bytes: model.touched_bytes(),
+            spine_bytes: model.spine_bytes(),
+            extend_regrow_events: model.extend_regrow_events(),
+        }
+    }
+
+    /// Every byte this arena took from the allocator.
+    pub fn total_bytes(&self) -> usize {
+        self.chunk_bytes + self.spine_bytes
+    }
+
+    /// The RSS-relevant twin: written chunk bytes plus the spine.
+    pub fn touched_total_bytes(&self) -> usize {
+        self.touched_bytes + self.spine_bytes
+    }
+
+    /// Whether the arena's own `len()` and the model's item count agree. ⛔ A
+    /// `false` here invalidates that arena's byte figure — it is not a warning.
+    pub fn items_agree(&self) -> bool {
+        self.items == self.model_items
+    }
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.67`(b) leg 3 — the chunk-capacity census for all
+/// four arenas of one [`NodeArena`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ArenaChunkFootprint {
+    pub nodes: ChunkStat,
+    pub shaped_values: ChunkStat,
+    pub shaped_pairs: ChunkStat,
+    pub rendered_strings: ChunkStat,
+}
+
+impl ArenaChunkFootprint {
+    fn all(&self) -> [&ChunkStat; 4] {
+        [
+            &self.nodes,
+            &self.shaped_values,
+            &self.shaped_pairs,
+            &self.rendered_strings,
+        ]
+    }
+
+    /// Resident bytes across all four arenas — chunks plus spines.
+    pub fn total_bytes(&self) -> usize {
+        self.all().iter().map(|s| s.total_bytes()).sum()
+    }
+
+    /// Chunk bytes only, excluding the four spines.
+    pub fn chunk_bytes(&self) -> usize {
+        self.all().iter().map(|s| s.chunk_bytes).sum()
+    }
+
+    /// Written bytes across all four arenas — chunks plus spines.
+    pub fn touched_total_bytes(&self) -> usize {
+        self.all().iter().map(|s| s.touched_total_bytes()).sum()
+    }
+
+    /// Written chunk bytes only, excluding the four spines.
+    pub fn touched_bytes(&self) -> usize {
+        self.all().iter().map(|s| s.touched_bytes).sum()
+    }
+
+    /// ⛔ `false` when ANY arena's model disagrees with its arena's own
+    /// `len()`, which makes the whole census unusable rather than partly usable.
+    pub fn items_agree(&self) -> bool {
+        self.all().iter().all(|s| s.items_agree())
+    }
+
+    /// Total `alloc_extend` calls that outran their own `size_hint`. Expected
+    /// 0 for PGEN's two call sites, both of which pass exact-size iterators.
+    pub fn extend_regrow_events(&self) -> usize {
+        self.all().iter().map(|s| s.extend_regrow_events).sum()
+    }
 }
 
 /// `ENGINE-UNIVERSAL-SERVICES.67`(b) — the AST-owned heap that lives OUTSIDE the
@@ -1224,6 +1464,46 @@ impl NodeArenaFootprint {
     pub fn total_with_owned_bytes(&self) -> Option<usize> {
         self.owned.map(|owned| self.total_bytes() + owned.total_bytes())
     }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.67`(b) leg 3 — **the bytes the four arenas and
+    /// the AST they hold took from the allocator**, or `None` when either census
+    /// was unarmed.
+    ///
+    /// This is the figure [`total_with_owned_bytes`](Self::total_with_owned_bytes)
+    /// is a lower bound of: it replaces `items × size_of` with the CHUNK CAPACITY
+    /// those items live in.
+    ///
+    /// ⛔⛔ **IT IS AN UPPER BOUND ON RESIDENCY, NOT A RESIDENT FIGURE — pair it
+    /// with [`touched_bytes`](Self::touched_bytes) and quote the BAND.** A fresh
+    /// chunk is untouched anonymous memory and its pages enter RSS only when
+    /// written, so subtracting this from peak RSS attributes the arena's unused
+    /// slack to the arena. On this repository's own ladder that slack reaches
+    /// **45 %** of allocated arena bytes.
+    pub fn allocated_bytes(&self) -> Option<usize> {
+        match (self.chunks, self.owned) {
+            (Some(chunks), Some(owned)) => Some(chunks.total_bytes() + owned.total_bytes()),
+            _ => None,
+        }
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.67`(b) leg 3 — the RSS-relevant twin of
+    /// [`allocated_bytes`](Self::allocated_bytes): arena bytes that were actually
+    /// WRITTEN, plus the out-of-arena AST heap (which is written by definition —
+    /// a `Vec` of children exists because children were pushed into it).
+    ///
+    /// ⇒ **the honest attribution is the band `touched_bytes ..= allocated_bytes`.**
+    /// ⛔ Two named exclusions survive both ends, and both are MEMO-leg bytes
+    /// rather than arena bytes — `ParseNode`s the memo owns (which never pass
+    /// through [`NodeArena::alloc`]) and transient collection `Vec`s freed once
+    /// their contents reach the shaped arenas. See [`NodeArena::footprint`].
+    pub fn touched_bytes(&self) -> Option<usize> {
+        match (self.chunks, self.owned) {
+            (Some(chunks), Some(owned)) => {
+                Some(chunks.touched_total_bytes() + owned.total_bytes())
+            }
+            _ => None,
+        }
+    }
 }
 
 impl NodeArenaFootprint {
@@ -1271,7 +1551,7 @@ impl NodeArenaFootprint {
             "=== PARSE FOOTPRINT (arena + AST-owned heap) [{label}]: nodes={} ({:.2} MB @ {} B) · \
              shaped_values={} ({:.2} MB) · shaped_pairs={} ({:.2} MB) · \
              rendered_strings={} ({:.2} MB, header only) · arena item total {:.2} MB · {} \
-             [LOWER BOUND — typed_arena CHUNK CAPACITY is still NOT counted] ===",
+             [ITEM BYTES — the CHUNK CAPACITY holding them is on the next line] ===",
             self.census.nodes,
             mb(self.node_bytes),
             std::mem::size_of::<ParseNode<'_>>(),
@@ -1284,6 +1564,60 @@ impl NodeArenaFootprint {
             mb(self.total_bytes()),
             owned,
         );
+        // ⛔ SECOND LINE, not more fields on the first. `.67`(b)'s tracked
+        // producer extracts the first line with greedy `.*nodes=` patterns, so a
+        // new token ending in `nodes=` would silently re-target them at the new
+        // value. A separate line with its own anchor cannot do that, and the
+        // re-run reproducing the old columns byte for byte is the check.
+        match self.chunks {
+            Some(chunks) => std::eprintln!(
+                "=== PARSE FOOTPRINT (typed_arena chunk capacity) [{label}]: \
+                 nodes cap={} items={} touched={} chunks={} ({:.2} MB) · \
+                 shaped_values cap={} items={} touched={} chunks={} ({:.2} MB) · \
+                 shaped_pairs cap={} items={} touched={} chunks={} ({:.2} MB) · \
+                 rendered_strings cap={} items={} touched={} chunks={} ({:.2} MB) · \
+                 spines {} B · allocated total {:.2} MB · touched total {:.2} MB · \
+                 arena+AST touched {} .. allocated {} · \
+                 items_agree={} · extend_regrow={} ===",
+                chunks.nodes.capacity_items,
+                chunks.nodes.items,
+                chunks.nodes.touched_items,
+                chunks.nodes.chunks,
+                mb(chunks.nodes.chunk_bytes),
+                chunks.shaped_values.capacity_items,
+                chunks.shaped_values.items,
+                chunks.shaped_values.touched_items,
+                chunks.shaped_values.chunks,
+                mb(chunks.shaped_values.chunk_bytes),
+                chunks.shaped_pairs.capacity_items,
+                chunks.shaped_pairs.items,
+                chunks.shaped_pairs.touched_items,
+                chunks.shaped_pairs.chunks,
+                mb(chunks.shaped_pairs.chunk_bytes),
+                chunks.rendered_strings.capacity_items,
+                chunks.rendered_strings.items,
+                chunks.rendered_strings.touched_items,
+                chunks.rendered_strings.chunks,
+                mb(chunks.rendered_strings.chunk_bytes),
+                chunks.total_bytes() - chunks.chunk_bytes(),
+                mb(chunks.chunk_bytes()),
+                mb(chunks.touched_bytes()),
+                match self.touched_bytes() {
+                    Some(b) => format!("{:.2} MB", mb(b)),
+                    None => "NOT MEASURED".to_string(),
+                },
+                match self.allocated_bytes() {
+                    Some(b) => format!("{:.2} MB", mb(b)),
+                    None => "NOT MEASURED".to_string(),
+                },
+                chunks.items_agree(),
+                chunks.extend_regrow_events(),
+            ),
+            None => std::eprintln!(
+                "=== PARSE FOOTPRINT (typed_arena chunk capacity) [{label}]: \
+                 NOT MEASURED (arena built before the flag was read) ==="
+            ),
+        }
     }
 }
 
@@ -6105,6 +6439,115 @@ mod tests {
         assert_eq!(disarmed_footprint.total_with_owned_bytes(), None);
     }
 
+    /// `ENGINE-UNIVERSAL-SERVICES.67`(b) leg 3 — the chunk-capacity census is wired
+    /// to all four arenas, reports the SLOTS rather than the items, and keeps the
+    /// same `None`-is-not-zero discipline the owned-heap census established.
+    ///
+    /// ⭐ The arena's OWN `len()` is asserted against the model's item count on
+    /// every arm. That is the cheap continuous oracle: the byte figure is a model,
+    /// but the item count is checkable against `typed_arena` itself, and a model
+    /// that has lost track of the items has certainly lost track of the chunks.
+    /// The BYTES are proved separately, against a counting `GlobalAlloc`, by
+    /// `rust/src/bin/arena_chunk_oracle_probe.rs`.
+    #[test]
+    fn chunk_capacity_census_reports_slots_not_items_on_all_four_arenas() {
+        const NAME: &&str = &"probe_rule";
+        let arena = NodeArena::with_owned_heap_census(true);
+
+        // 22 nodes: one past the 21-item initial chunk for a 48-byte `ParseNode`,
+        // so the `nodes` arena has retired exactly one chunk and opened a 42-slot
+        // one. Capacity 63 against 22 live items is the waste this leg measures.
+        for _ in 0..22 {
+            arena.alloc(ParseNode {
+                rule_name: NAME,
+                content: ParseContent::Terminal("t"),
+                span: Span::new(0, 1),
+            });
+        }
+        arena.alloc_shaped_values(vec![PgenValue::Null, PgenValue::Null]);
+        arena.alloc_shaped_pairs(vec![("k", PgenValue::Null)]);
+        arena.alloc_rendered_string(String::from("x"));
+
+        let footprint = arena.footprint();
+        let chunks = footprint
+            .chunks
+            .expect("census armed explicitly, so the chunk legs are measured");
+
+        assert_eq!(chunks.nodes.items, 22);
+        assert_eq!(chunks.nodes.capacity_items, 63, "21 retired + 42 live slots");
+        assert_eq!(chunks.nodes.chunks, 2);
+        assert_eq!(
+            chunks.nodes.chunk_bytes,
+            63 * std::mem::size_of::<ParseNode<'_>>()
+        );
+        // ⛔ The whole point of the leg: chunk bytes EXCEED item bytes, and by how
+        // much is now a measurement rather than the `[items, ~2 x items]` band.
+        assert!(
+            chunks.nodes.chunk_bytes > footprint.node_bytes,
+            "chunk bytes {} must exceed item bytes {}",
+            chunks.nodes.chunk_bytes,
+            footprint.node_bytes
+        );
+
+        // The three side arenas are wired too — the failure mode of the first
+        // owned-heap cut was a leg that silently read zero.
+        assert_eq!(chunks.shaped_values.items, 2);
+        assert_eq!(chunks.shaped_pairs.items, 1);
+        assert_eq!(chunks.rendered_strings.items, 1);
+        for stat in [
+            chunks.nodes,
+            chunks.shaped_values,
+            chunks.shaped_pairs,
+            chunks.rendered_strings,
+        ] {
+            assert!(stat.capacity_items >= stat.items);
+            assert!(stat.chunk_bytes > 0, "every touched arena has a live chunk");
+        }
+        assert!(chunks.items_agree(), "the model must agree with Arena::len()");
+        assert_eq!(
+            chunks.extend_regrow_events(),
+            0,
+            "both extend call sites pass exact-size iterators"
+        );
+        assert_eq!(
+            footprint.allocated_bytes(),
+            Some(chunks.total_bytes() + footprint.owned.unwrap().total_bytes())
+        );
+        assert_eq!(
+            footprint.touched_bytes(),
+            Some(chunks.touched_total_bytes() + footprint.owned.unwrap().total_bytes())
+        );
+        // ⛔ THE BAND IS ORDERED AND BOTH ENDS ARE STRICT HERE: the item-only
+        // lower bound is below the written bytes, which are below the allocated
+        // bytes. A collapse at either end would mean a leg is not wired.
+        assert!(
+            footprint.total_with_owned_bytes().unwrap() < footprint.touched_bytes().unwrap(),
+            "written chunk bytes must exceed the item bytes they hold"
+        );
+        assert!(
+            footprint.touched_bytes().unwrap() < footprint.allocated_bytes().unwrap(),
+            "allocated chunk bytes must exceed the written ones while a chunk has a tail"
+        );
+
+        // ⛔ THE CONTROL: disarmed reports `None`, never `Some(0)` — a chunk census
+        // that was never armed would otherwise read as "this parse allocated no
+        // chunks", which is the precise confusion `-0122` was withdrawn for.
+        let disarmed = NodeArena::with_owned_heap_census(false);
+        disarmed.alloc(ParseNode {
+            rule_name: NAME,
+            content: ParseContent::Terminal("t"),
+            span: Span::new(0, 1),
+        });
+        let disarmed_footprint = disarmed.footprint();
+        assert_eq!(disarmed_footprint.census.nodes, 1, "the node still lands");
+        assert!(
+            disarmed_footprint.chunks.is_none(),
+            "a chunk census that was never armed must report NOT MEASURED, not zero"
+        );
+        assert_eq!(disarmed_footprint.allocated_bytes(), None);
+        assert_eq!(disarmed_footprint.touched_bytes(), None);
+    }
+
     /// RGX-0078.5.j.4 (`-0200`) — the BARE id-only guard path: bare frames
     /// maintain only `rule_id_stack`; the cycle scan sees them, the depth
     /// ceiling counts them, per-stack truncation restores each stack to its
@@ -7017,6 +7460,7 @@ mod tests {
 }
 
 pub mod annotation_validator;
+pub mod arena_chunk_model;
 pub mod ast_based_generator;
 pub mod pgen_value;
 // SV-EXH-PROOF.3.3.4.b.6.2.22 — live per-rule call-counter dashboard.

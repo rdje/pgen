@@ -1259,6 +1259,33 @@ cannot load the index in one read, which is what surfaced it. A 604 KB file that
 consult is a per-session tax, so the fix's success metric is *"a fresh agent can resume from it in
 one read"*, not *"it is under N bytes"*.
 
+### `.12` — ROUTED: the in-repo `README_POLICY.md` is a 2026-07-30 SNAPSHOT of a template that has since moved on, and nothing in either repository would notice (`todo`, ROUTED + PARKED behind the SV lane, opened 2026-08-29 session by `PGEN-ENGINE-UNIVERSAL-SERVICES-0126`)
+
+⛔ **FOUND WHILE CHECKING A STANDING DIRECTIVE, NOT WHILE READING THE POLICY.** The session-startup
+directive says to check whether the reusable policy documents the director keeps in the sibling
+`fsmgen` repository have been updated. Measured, with `diff`:
+
+- in-repo `README_POLICY.md` — **2 920 bytes, last written 2026-07-30**;
+- the template it was adopted from — **9 849 bytes, last written 2026-08-20**;
+- they **DIFFER**, and the template has since grown at least an `## Authority and provenance`
+  section and a delimited `README-POLICY-LOCAL-ADOPTION` block that names the adopting project,
+  its authority, its reviewed health targets and its routed destinations.
+
+⭐ **THE FINDING IS NOT "WE ARE BEHIND" — IT IS THAT NOTHING COULD EVER SAY SO.** `.4` deliberately
+put a project-NEUTRAL copy at the repository root and recorded that *"the originating template is
+not an upstream"*, which is the right call and is why this is not a bug. But the consequence is that
+the two copies drift silently and by design, and the only instrument in the loop is a human
+remembering to `diff` across a volume boundary — which is also the thing the local-adoption block in
+the newer template exists to make unnecessary.
+
+⛔ **PARKED, NOT ABANDONED, AND THE PARK HAS A REASON**: the SV lane lock binds work, and this is a
+governance surface with no defect behind it — `README-STABILITY` is GREEN and the README is inside
+both caps. ⇒ **what this leaf owes when it is picked up**: decide whether PGEN adopts the newer
+template's local-adoption block (which would make the provenance and the deliberate divergence
+legible IN the file), and if so port it once rather than tracking the template continuously. ⚠️ **A
+periodic re-`diff` is the wrong shape and is refused here** — it re-creates the cross-repository
+coupling `.4` removed on purpose.
+
 ---
 
 ## Acceptance Criteria (tree)

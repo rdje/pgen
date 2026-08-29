@@ -1,0 +1,18 @@
+# ENGINE-UNIVERSAL-SERVICES.67(b) leg 3 — arena_chunk_oracle_probe + residency, captured 2026-08-29T00:42:49Z
+# probe sha256: a4449dd4f8ca530491963004790d0604adba24851ef999f3713221fab718262f
+
+$ ./rust/target/release/arena_chunk_oracle_probe
+
+ARENA-CHUNK-ORACLE: 230 case(s) over 46 script(s) x 5 item sizes: 0 byte mismatch(es), 0 item mismatch(es)
+ARENA-CHUNK-ORACLE: PASS — the chunk model reproduces typed_arena 2.0.2's resident bytes EXACTLY on every case
+
+$ ./rust/target/release/arena_chunk_oracle_probe --red-control
+
+ARENA-CHUNK-ORACLE: 230 case(s) over 46 script(s) x 5 item sizes: 230 byte mismatch(es), 0 item mismatch(es)
+ARENA-CHUNK-ORACLE: RED CONTROL OK — 230 of 230 case(s) rejected the 48-byte perturbation
+
+$ bash docs/tasks/artifacts/eus67/measure_chunk_residency.sh
+allocated ratio (one_over/full) = 2.0000   [the experiment needs ~2]
+touched   ratio                 = 1.000000   [the experiment needs ~1]
+peak RSS  ratio                 = 1.0000
+VERDICT: peak RSS tracks TOUCHED bytes - allocated-but-unwritten chunk slack is NOT resident.

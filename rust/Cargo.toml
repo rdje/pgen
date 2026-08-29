@@ -46,6 +46,14 @@ path = "src/bin/regex_perf_probe_embedding_api.rs"
 required-features = ["generated_parsers"]
 
 [[bin]]
+# ENGINE-UNIVERSAL-SERVICES.67(b) leg 3 — the ORACLE for `ArenaChunkModel`.
+# Carries a counting `#[global_allocator]` (the `regex_alloc_census_probe`
+# shape), so it is a SEPARATE bin: the model ships in the library and must not
+# drag an allocator into anybody's dependency tree.
+name = "arena_chunk_oracle_probe"
+path = "src/bin/arena_chunk_oracle_probe.rs"
+
+[[bin]]
 # PGEN-RGX-0078 microbench: measures validate_regex_compile_contract cost
 # in isolation on the 8-pattern bench corpus to decide whether the
 # 11-pass validation pipeline is worth short-circuiting.
