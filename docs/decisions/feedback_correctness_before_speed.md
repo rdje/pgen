@@ -122,3 +122,26 @@ can make them invisible, because a wrong answer delivered quickly still looks li
 axis you are watching. The banked speed work is not lost (retention measured 87–91×, layout-aware
 dispatch ≈1.8–3.5×); it is parked behind the correctness half, which is what this policy has said
 since 2026-05-24.
+
+---
+
+**⛔⛔ REAFFIRMED A THIRD TIME, WITH THE RATIONALE STATED AS A QUESTION (director 2026-08-29, in the
+same message that switched the lane to `ENGINE-UNIVERSAL-SERVICES.69`):**
+
+> *"Switch to `.69` as we need to functionality, accuracy first, speed work should always come after.
+> What is speed if the parser doesn't parse properly? So functionality first, speed second."*
+
+**What this settles operationally, so a future session does not re-derive it:** when the frontier
+offers a SPEED leaf and a FUNCTIONALITY leaf, the functionality leaf is taken **even when the speed
+leaf is the numerically larger finding**. The concrete case: `ENGINE-UNIVERSAL-SERVICES.68` (the
+cycle guard scans the whole live stack on every rule entry, so a depth-`D` parse is Θ(D²) — measured
+250→0.13 s … 4 000→22.24 s, converging on 4× per doubling) had been recorded as the next frontier and
+was **explicitly kept parked** in favour of `.69` (the parse-stack reservation's default is still a
+compiled-in `256 MiB`, which the capability mandate calls a defect because a bound must be derived
+from data or host, never typed).
+
+⭐ **`.68`'s own leaf had already recorded its own sequencing** (*"this is SPEED, and speed is blocked
+behind accuracy by standing director ordering… recorded here so the ordering is a decision rather
+than an omission"*), and reading that note is what surfaced the conflict with layer A's stored
+`next_action`. ⇒ **a leaf that records why it is parked is what makes an ordering ruling checkable
+instead of remembered**, and the resume pointer is the copy that goes stale, not the leaf.

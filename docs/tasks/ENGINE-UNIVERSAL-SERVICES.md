@@ -16756,6 +16756,14 @@ STRENGTH I attributed to my own evidence.
 - ⛔ **SEQUENCING**: this is SPEED, and speed is blocked behind accuracy by standing director
   ordering. It is recorded here so the ordering is a decision rather than an omission, and it sits
   with `.56`(d)/`.58`.
+- ⛔⛔ **AND THAT SEQUENCING WAS PUT TO THE DIRECTOR AND UPHELD, 2026-08-29.** Layer A's stored
+  `next_action` had named `.68` as the frontier after `.67` closed; reading THIS bullet is what
+  surfaced the conflict, and the ruling was explicit: *"functionality, accuracy first, speed work
+  should always come after. What is speed if the parser doesn't parse properly?"* ⇒ **`.68` stays
+  parked behind `.69` even though it is the larger measured finding** (`.69` is a typed bound the
+  capability mandate calls a defect; `.68` is latency). → [[feedback_correctness_before_speed]].
+  ⭐ The lesson for the tracker: **a leaf that records WHY it is parked is what makes an ordering
+  ruling checkable instead of remembered** — the resume pointer is the copy that goes stale.
 
 ### ⛔ `.69` — **THE PARSE-STACK RESERVATION'S DEFAULT IS STILL A COMPILED-IN 256 MiB, SO ONE LITERAL SURVIVES `.65` — IT IS THE ONE THE CEILING IS NOW DERIVED FROM** (`todo`, opened 2026-08-28 by `.65` / `PGEN-ENGINE-UNIVERSAL-SERVICES-0117`)
 
