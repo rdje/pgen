@@ -1454,3 +1454,37 @@ $ SELF=/nonexistent/driver.sh                          # the unreadable-subject 
   stay exactly as they are and any remedy is forward-only.
 - **producer (tracked, so the claim can be re-derived rather than re-typed)**:
   `scripts/census_slice_id_collisions.sh`.
+
+### ⛔ `.19` — **`LESSON-PROMOTION`'s DECLINE ARM MATCHES ANY PRE-EXISTING TOKEN ANYWHERE IN A STAGED LEAF FILE, SO A TREE THAT DECLINED ONCE IS EXEMPT FOREVER — 10 OF THE TASK FILES ALREADY ARE** (`todo`, ROUTED + PARKED behind the SV lane, opened 2026-08-29 by `PGEN-ENGINE-UNIVERSAL-SERVICES-0131`)
+
+- **WHY + WHERE, tool-backed.** `scripts/check_lesson_promotion.sh:107-113` decides arm (b) by
+  `grep`ping each staged `docs/tasks/*.md` for `promotion: declined (...)` **over the WHOLE FILE**.
+  A task tree is one long-lived file, so a token written for slice *N* satisfies the gate for slice
+  *N + 1*, *N + 2*, … forever. There is no per-slice or per-diff scoping on that arm.
+- **MEASURED, on this very commit.** `PGEN-ENGINE-UNIVERSAL-SERVICES-0131` staged a NEW dated lesson
+  heading in `DEVELOPMENT_NOTES.md` with no promotion and no new decline, and the gate exited **0**:
+  ```
+  grep -c 'promotion: declined (' docs/tasks/ENGINE-UNIVERSAL-SERVICES.md   # -> 5
+  grep -l 'promotion: declined (' docs/tasks/*.md | wc -l                   # -> 10
+  ```
+  ⇒ **10 of the task files are already permanently exempt from arm (b)**, and every tree acquires the
+  exemption the first time it declines.
+- ⭐ **THE GATE'S OWN COMMENT DESCRIBES THIS DEFECT ONE LEVEL DOWN AND WAS FIXED THERE.** It records
+  that the first real run *"passed on a leaf that merely DOCUMENTED the token … a gate satisfied by
+  its own documentation is decoration"*, and rejects the literal `(<reason>)` placeholder. The same
+  shape met one level up — a gate satisfied by its own HISTORY — was not covered by that fix.
+- **THE FIX SHAPE**, and it is the one the rest of this registry already uses: make arm (b)
+  STAGED-DIFF-SCOPED, exactly as `GAP-CLAIM-CENSUS` and `TABLE-ARITY-RATCHET` are — the token must be
+  an ADDED line in the staged diff (`git diff --cached -U0 -- docs/tasks | grep -E '^\+.*promotion: declined \('`),
+  not merely present in the file. ⛔ Free on day one by the `SV-CORPUS-GRAD.13e.11` rule only if the
+  fix precedes the blocking: the 10 exempt files must not suddenly block on their next edit, and
+  scoping to the ADDED lines achieves that by construction (an old token is not an added line, and a
+  commit with no new lesson heading is not judged at all).
+- ⚠️ **HONEST LIMIT, and it is why this is ROUTED rather than fixed in-slice.** The gate's own
+  archetype note already says it verifies that *a decision was recorded*, not that the decision was
+  correct; scoping arm (b) to the diff does not change that, it only stops the decision being
+  inherited. The `promoted` arm (a) is diff-scoped already and is not affected.
+- ⭐ **The obligation was discharged by hand for the slice that found it**, rather than left to the
+  gate that could not see it: `docs/knowledge/a-control-validates-the-property-it-is-built-from.md`
+  was written and the map regenerated (233 facts), and the remaining lessons carry an explicit
+  decline in `ENGINE-UNIVERSAL-SERVICES.67`(c)(iii).

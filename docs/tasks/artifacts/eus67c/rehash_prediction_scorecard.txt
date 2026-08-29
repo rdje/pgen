@@ -1,0 +1,48 @@
+=== PREDICTION SCORECARD — ENGINE-UNIVERSAL-SERVICES.67(c)(iii) ===
+    roster of 10, every row printed; inputs analysed 11, refused 0
+    scored population = `-0128`'s EIGHT attributed inputs, by name; the tape also covers 10 body inputs in total
+    wider figure, reported beside and not substituted for the scored one: >= 2 memo tables live at the peak on 5 of 10, superseded on 5 of 10
+
+  [ 1] tape never overflows at threshold 8 KiB AND capacity 65 536                              
+       measured : 0 overflowing, 0 with unmatched frees, at capacity ['1048576'] — the registered capacity was 65536, where it DID overflow (br_gh330.v, 185 902); the instrument was resized and the ladder re-run complete
+       verdict  : FALSIFIED
+
+  [ 2] CONTROL: tape vs class table, 0 mismatching (input, class) pairs                         
+       measured : 0 mismatched of 148 checked
+       verdict  : CONFIRMED
+
+  [ 3] >= 2 memo tables live at the PEAK instant on exactly 5 of 8 body inputs                  
+       measured : 5 of 8
+       verdict  : CONFIRMED
+
+  [ 4] wherever >= 2 are live, one is SUPERSEDED (succession verified): 5 of 5                  
+       measured : 5 of 5
+       verdict  : CONFIRMED
+
+  [ 5] overlap share of peak_live in [5%,20%] each; median in [12%,17%]                         
+       measured : min 8.18% · median 15.01% · max 15.44%
+       verdict  : CONFIRMED
+
+  [ 6] memo peak/steady is exactly 1.5000 where superseded, 1.0000 where not                    
+       measured : 5 of 5 at 1.5000 · 3 of 3 at 1.0000
+       verdict  : CONFIRMED
+
+  [ 7] `the memo's peak is 1.5x steady` is FALSE ladder-wide: holds on 5, not 8                 
+       measured : holds on 5 of 8
+       verdict  : CONFIRMED
+
+  [ 8] final buckets per input byte spans > 3x, so no single length factor pays                 
+       measured : 1.0772 (spi_device_reg_pkg.sv) .. 8.0266 (syn_netlist_instances_2500.sv) = 7.45x
+       verdict  : CONFIRMED
+
+  [ 9] RESIDENCY (peak RSS): `alloc_zeroed` cuts the table's RSS by >= 85%, allocation identical
+       measured : ISOLATING: resize 873.6 MB · zeroed 1.7 MB · reserve_only 1.6 MB ⇒ cut 99.81% · alloc identical=True · control separates=True
+                  BRACKET clustered: resize 874 MB · zeroed 42 MB ⇒ cut 95.2%
+                  BRACKET scattered: resize 878 MB · zeroed 878 MB ⇒ cut -0.0%
+       verdict  : CONFIRMED
+
+  [10] max written-slot index < 2^24, so a 24-bit index fits THIS ladder                        
+       measured : max thin_distinct_slots = 2610148 vs 2^24 = 16777216
+       verdict  : CONFIRMED
+
+=== 9 of 10 CONFIRMED ===

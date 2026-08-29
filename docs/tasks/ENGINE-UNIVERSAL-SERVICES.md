@@ -14676,7 +14676,7 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   instances — which ACCEPTED before this commit too — costs **4 064.0 MB**, and 10 001 costs
   **4 064.1 MB**. The 4 GB is pre-existing and is `.67`'s subject, not this leaf's.
 
-### ⛔⛔ `.67` — **PARSE MEMORY IS 2 500×–8 000× THE INPUT SIZE AND LINEAR, SO "BOUNDED ONLY BY HOST RAM" BINDS AT ~40 000 NETLIST INSTANCES ON A 16 GB MACHINE** (`in progress` — ✅ **(a) DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0120`, ✅ **(b) legs 1–3 of 4 DONE — the AST side is CLOSED and the withdrawn conclusion is RESTORED** `…-0121`/`-0122`/`-0124`/`-0125`/`-0126`; ✅ **leg 4 DONE `…-0128` — the residual is ATTRIBUTED and the biggest thing in it was on nobody's candidate list: a dense `109 × (len + 1)` thin-memo table costing 872 B per input byte that is NEVER FREED (10.4–44.6 % of near-peak live bytes, and 1 029 MB still resident after a 1.2 MB parse RETURNS); memo tables 24–52 %; the DERIV TAPE — one of this leg's own three candidates — is 0.00–0.55 %; unattributed 3.0–9.2 %**; ✅ **(c)(i)+(ii) DONE `…-0129` — the table is **95.4–99.93 % NEVER WRITTEN** (occupancy 0.07–4.58 %, median 3.74 %, against a pre-registered 28.6 % sparse break-even) **AND FULLY RESIDENT ANYWAY**: an isolating comment-only shape writes **112 bytes** of a 914 MB table and pays **906 MB of RAM**, slope **885.9 B per input byte** against a table costing 872.0. (c)(iii) — the memo REHASH spike and the fix pricing — is what remains; opened 2026-08-28 by `.66`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`)
+### ✅✅✅ `.67` — **PARSE MEMORY IS 2 500×–8 000× THE INPUT SIZE AND LINEAR, SO "BOUNDED ONLY BY HOST RAM" BINDS AT ~40 000 NETLIST INSTANCES ON A 16 GB MACHINE** (**DONE 2026-08-29** — all of (a), (b) and (c) discharged; ✅ **(a) DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0120`, ✅ **(b) legs 1–3 of 4 DONE — the AST side is CLOSED and the withdrawn conclusion is RESTORED** `…-0121`/`-0122`/`-0124`/`-0125`/`-0126`; ✅ **leg 4 DONE `…-0128` — the residual is ATTRIBUTED and the biggest thing in it was on nobody's candidate list: a dense `109 × (len + 1)` thin-memo table costing 872 B per input byte that is NEVER FREED (10.4–44.6 % of near-peak live bytes, and 1 029 MB still resident after a 1.2 MB parse RETURNS); memo tables 24–52 %; the DERIV TAPE — one of this leg's own three candidates — is 0.00–0.55 %; unattributed 3.0–9.2 %**; ✅ **(c)(i)+(ii) DONE `…-0129` — the table is **95.4–99.93 % NEVER WRITTEN** (occupancy 0.07–4.58 %, median 3.74 %, against a pre-registered 28.6 % sparse break-even) **AND FULLY RESIDENT ANYWAY**: an isolating comment-only shape writes **112 bytes** of a 914 MB table and pays **906 MB of RAM**, slope **885.9 B per input byte** against a table costing 872.0. ✅✅✅ **(c)(iii) DONE `…-0131` — `.67` IS CLOSED.** The rehash spike is MEASURED from allocation LIFETIMES rather than inferred from a snapshot: on **5 of `-0128`'s 8** inputs a doubling straddles the peak, succession verified 5 of 5, the memo's peak is **exactly 1.5000×** its steady size there and **exactly 1.0000×** on the other five, worth **8.18–15.44 % of `peak_live` (median 15.01 %)** — an UPPER BOUND on any saving. **RULED NOT REMOVABLE**: pre-sizing from input length is refused by a **7.45×** spread in final buckets per input byte against a spike costing 0.5×. ⛔ And the instrument REFUTED how the spike was found — a class TOTAL has many decompositions, and on the floor row the subset-sum search named three tables the ladder never allocated (the eight BODY inputs agree table for table). The thin table's fix is PRICED — the zero-fill is proved to be the cause by a control (546× separation) and a lazily-backed table saves **99.81 %** on the isolating shape, but **0.00 %** when the writes are one per page — and ROUTED to `.74`, which owes the PAGE census first; opened 2026-08-28 by `.66`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`)
 
 - **WHY THIS IS A LEAF AND NOT A FOOTNOTE.** The director's mandate names host RAM as the ONE
   legitimate limit ([[project_rtl_parsers_accept_any_rtl_no_limits_non_negotiable]]). `.66` moved the
@@ -14710,7 +14710,13 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   conclusion as a measurement.** 🟡 **Leg 4 is the memo leg, the deriv tape and the transient
   collection `Vec`s** — the last being the one exclusion that is NOT one-sided in the restored
   conclusion's favour — and the `mimalloc_perf` comparison follows, needing its own code slice per
-  `…-0123`**; (c) only then price a fix. ⛔ Speed/footprint work is otherwise
+  `…-0123`**; (c) only then price a fix. ✅ **ALL THREE ARE DISCHARGED (`…-0128`/`…-0129`/`…-0131`)
+  AND `.67` IS CLOSED.** ⚠️ **THE `mimalloc` COMPARISON IS NOT SILENTLY DROPPED, AND IT IS NOT OWED
+  BY THIS LEAF ANY MORE**: it was wanted for ONE question — how much of the footprint is allocator
+  overhead rather than live data — and leg 4 answered that question DIRECTLY and with the right
+  quantity, `peak_live / (peak_rss − floor)` = **0.584–1.230, median 0.974**, which leaves no room
+  for the ~50 % fragmentation the swap was meant to expose. A swap remains a legitimate PERFORMANCE
+  experiment with no open `.67` question behind it. ⛔ Speed/footprint work is otherwise
   BLOCKED behind the director's *"thorough and accurate and fast (not reached yet, because it is not
   the focus right now)"* ordering; this leaf is admitted because it is an INGESTION bound, not a
   performance one.
@@ -15960,6 +15966,368 @@ The director asked *"do you still stand by your last 4 findings?"*. Re-derived o
   construction, which is its whole value, and it is not a claim about what any real file does — the
   real-input occupancies in (i) are the population claim.
 
+#### ✅✅✅ `.67`(c)(iii) DONE — **THE REHASH SPIKE IS REAL, IS EXACTLY 1.5× ON EVERY INPUT THAT HAS ONE, AND IS 8.2–15.4 % OF PEAK. AND THE INSTRUMENT THAT MEASURED IT REFUTED HOW THE SPIKE WAS FOUND: A SIZE-CLASS TOTAL HAS MANY DECOMPOSITIONS, AND ON THE FLOOR ROW `-0128` NAMED THREE TABLES THAT WERE NEVER ALLOCATED** (`PGEN-ENGINE-UNIVERSAL-SERVICES-0131`, 2026-08-29)
+
+Closes `.67`(c) and therefore `.67`. Producers and raw data:
+[`parse_alloc_census_probe.rs`](../../rust/src/bin/parse_alloc_census_probe.rs),
+[`measure_rehash_spike.sh`](artifacts/eus67c/measure_rehash_spike.sh),
+[`rehash_tape.tsv`](artifacts/eus67c/rehash_tape.tsv),
+[`rehash_meta.tsv`](artifacts/eus67c/rehash_meta.tsv),
+[`rehash_classes.tsv`](artifacts/eus67c/rehash_classes.tsv),
+[`rehash_spike_report.py`](artifacts/eus67c/rehash_spike_report.py),
+[`rehash_spike_report.txt`](artifacts/eus67c/rehash_spike_report.txt),
+[`memo_table_count_methods.py`](artifacts/eus67c/memo_table_count_methods.py),
+[`memo_table_count_methods.txt`](artifacts/eus67c/memo_table_count_methods.txt),
+[`tape_histogram.py`](artifacts/eus67c/tape_histogram.py),
+[`tape_histogram_8k.tsv`](artifacts/eus67c/tape_histogram_8k.tsv),
+[`compare_census_determinism.py`](artifacts/eus67c/compare_census_determinism.py),
+[`zero_fill_residency_probe.rs`](artifacts/eus67c/zero_fill_residency_probe.rs),
+[`measure_zero_fill_residency.sh`](artifacts/eus67c/measure_zero_fill_residency.sh),
+[`zero_fill_residency.tsv`](artifacts/eus67c/zero_fill_residency.tsv),
+[`score_rehash_predictions.py`](artifacts/eus67c/score_rehash_predictions.py),
+[`rehash_prediction_scorecard.txt`](artifacts/eus67c/rehash_prediction_scorecard.txt),
+prediction [`PREDICTION_REHASH_SPIKE.md`](artifacts/eus67c/PREDICTION_REHASH_SPIKE.md).
+
+## THE INSTRUMENT — A LIFETIME TAPE, BECAUSE A SNAPSHOT HAS NO SUCCESSION IN IT
+
+`-0128` published *"two success tables are live at once … that is the REHASH window, so the memo's
+contribution to PEAK is 1.5× its steady-state size"* from the probe's size-class SNAPSHOT. A
+snapshot cannot support that sentence, and the reason is not a detail: **it shows CO-RESIDENCY, and
+"rehash" is a claim about SUCCESSION** — that *this* table replaced *that* one. It is also taken at
+the hysteresis instant rather than at the peak, and it reports a TOTAL PER CLASS, so naming the
+individual structures inside it is a subset-sum search over a number with many decompositions.
+
+So the probe now records LIFETIMES: one row per allocation at or above a threshold, carrying the
+event at which it was made and the event at which it was released (`18446744073709551615` if the
+process never released it). ENGINE tier is not involved — this is a probe bin, **ZERO library Rust,
+ZERO grammar, ZERO codegen, ZERO generated bytes**.
+
+- ⛔⛔⛔ **THE FIRST CUT HAD TWO CLOCKS AND WOULD HAVE ANSWERED CONFIDENTLY AND WRONGLY.**
+  `ALLOC_CALLS` and `FREE_CALLS` count different events, so an allocation stamped `alloc_ord=988`
+  beside a release stamped `free_ord=195` is not out of order — the two numbers cannot be compared
+  at all, and `alloc(A) < alloc(B) < free(A)` is meaningless across them. Caught by reading the
+  probe's first output, not by any check. ⭐⭐ **AND THE TAPE'S OWN CONTROL COULD NOT HAVE CAUGHT
+  IT**: "live at instant I" compares alloc ordinals to I's alloc ordinal and free ordinals to I's
+  free ordinal, each staying inside one clock, so the control passes while succession is nonsense.
+  ⇒ **A CONTROL VALIDATES THE PROPERTY IT IS BUILT FROM.** Succession is a different property and
+  needed its own instrument: one `EVENT_SEQ` that every allocation AND every release advances.
+- ⭐⭐ **THE CONTROL IS AN EQUALITY, NOT A BAND, AND IT PASSES.** The tape and the size-class table
+  are maintained by independent code paths in the probe, so the tape's reconstruction of "live at
+  the snapshot instant" must reproduce the class table byte-for-byte in every class at or above the
+  threshold. **148 (input, class) pairs checked, 0 mismatched.**
+- ⛔ **A TRUNCATED TAPE IS REFUSED BY NAME, NEVER AVERAGED — and that arm fired on the first run.**
+  At 2^16 entries `br_gh330.v` — a **36 KB** file — overflowed by **185 902**. Raised to 2^20 and
+  re-run, the tape is complete on 11 of 11. ⚠️ **The truncated table was a PREFIX, not a sample**:
+  it showed 65 443 allocations of exactly 8 192 bytes where the complete run shows **220 773**.
+
+## (iii) THE REHASH SPIKE — MEASURED, AT THE EXACT INSTANT `peak_live` WAS SET
+
+| input | file B | peak_live MB | memo tables live | memo MB | peak/steady | superseded | overlap MB | share of peak |
+|---|---|---|---|---|---|---|---|---|
+| `spi_device_reg_pkg.sv` | 30 419 | 56.73 | 2 | 13.92 | **1.5000** | 1 | 4.64 | **8.18 %** |
+| `comp1000.v` | 69 795 | 525.18 | 2 | 222.75 | **1.5000** | 1 | 74.25 | **14.14 %** |
+| `t_math_synmul_mul.v` | 330 162 | 1 978.49 | 2 | 891.00 | **1.5000** | 1 | 297.00 | **15.01 %** |
+| `syn_netlist_instances` 10 000 | 535 637 | 3 850.52 | 2 | 1 782.00 | **1.5000** | 1 | 594.00 | **15.43 %** |
+| `syn_netlist_instances` 2 500 | 130 637 | 961.64 | 2 | 445.50 | **1.5000** | 1 | 148.50 | **15.44 %** |
+| `floor.sv` | 20 | 2.24 | 1 | 0.15 | 1.0000 | 0 | 0.00 | 0.00 % |
+| `br_gh330.v` | 36 673 | 292.86 | 1 | 74.25 | 1.0000 | 0 | 0.00 | 0.00 % |
+| `syn_port_list` 10 000 | 128 912 | 280.41 | 1 | 74.25 | 1.0000 | 0 | 0.00 | 0.00 % |
+| `syn_concat_items` 10 000 | 68 923 | 595.12 | 1 | 148.50 | 1.0000 | 0 | 0.00 | 0.00 % |
+| `syn_case_items` 10 000 | 197 863 | 1 199.27 | 1 | 297.00 | 1.0000 | 0 | 0.00 | 0.00 % |
+| `pinmux_reg_top.sv` | 1 237 143 | 3 251.67 | 1 | 594.00 | 1.0000 | 0 | 0.00 | 0.00 % |
+
+- ✅ **IT IS A REHASH, NOT CO-RESIDENCE, AND THAT IS NOW A MEASUREMENT.** On every one of the five,
+  the succession test passes: a table twice the size was allocated **while the smaller one was still
+  live**, and the smaller was freed **after** it. `superseded` is 1 and `co-resident` is 0 on 5 of 5.
+- ✅ **THE RATIO IS EXACTLY 1.5000 WHERE THERE IS A SPIKE AND EXACTLY 1.0000 WHERE THERE IS NOT** —
+  no input lands between, because hashbrown doubles and the old table is exactly half the new one.
+- ⛔⛔ **`-0128`'s SENTENCE IS TRUE WHERE IT WAS MEASURED AND FALSE AS A LADDER-WIDE STATEMENT.**
+  *"The memo's contribution to PEAK is 1.5× its steady state"* holds on **5 of the 10** inputs the
+  tape covers and on **5 of `-0128`'s 8**. On the other five it is exactly 1.0. Whether a parse pays
+  the spike is decided by **where the last doubling falls relative to the peak**, which is a property
+  of the input's shape and not of the engine.
+- ⚠️ **THE SAVING IS AN UPPER BOUND AND IS REPORTED AS ONE.** The overlap is what the peak-setting
+  instant would lose if the old table had been freed first. The whole-parse peak would fall by **at
+  most** that: the tape records only allocations at or above its threshold, so between two recorded
+  events it cannot bound the live curve, and the peak may relocate. **8.18 %–15.44 % of `peak_live`,
+  median 15.01 % over the five, is a ceiling on the prize, not the prize.**
+
+## ⛔⛔⛔ THE COUNT — THREE METHODS, AND THE DISAGREEMENT IS THE FINDING
+
+`-0128` published *"two success tables are live at once on **4 OF 8 INPUTS**"*. Re-derived three
+ways over its own tracked artifacts ([`memo_table_count_methods.py`](artifacts/eus67c/memo_table_count_methods.py)):
+
+| method | what it can see | reads |
+|---|---|---|
+| **A · STRICT CLASS** | a size class holding exactly ONE live allocation whose byte count is exactly a `T=296` hashbrown table | **4 of 8** |
+| **B · SUBSET-SUM ATTRIBUTION** | `attribute_alloc_classes.py`, which can name a table inside a SHARED class | **5 of 8** |
+| **C · LIFETIME TAPE** | each allocation as its own row, at the PEAK instant, with no identification inference at all | **5 of 8** |
+
+**A and B are not in conflict about the data. A is answering a narrower question and its answer is a
+FLOOR BY CONSTRUCTION** — a table sharing its class with anything else is invisible to it, which is
+exactly what happens to `t_math_synmul_mul.v`'s 2²⁰-bucket table and `syn_port_list`'s only table.
+⇒ **the published `4` is what the strict method answers, and the leaf's own attribution artifact
+said `5` on the same page.** ⭐ The lesson is not "the count was wrong": it is that **a count over
+inferred identities carries the inference's scope, and publishing the number without the method is
+what turns a sound measurement into a wrong sentence.**
+
+## ⛔⛔⛔ AND THE SUBSET-SUM SEARCH IS REFUTED OUTRIGHT ON THE FLOOR ROW
+
+`-0128` named **four** `T=296` tables on `floor.sv` — 512, 128, 64 and 64 buckets — and flagged that
+its search had been "observed fabricating" there. The tape converts that warning into a measurement:
+across the **complete** 8 KiB-threshold tape of the whole ladder there is **not one allocation of
+19 016 or 38 024 bytes**, and `floor.sv` makes exactly **ONE** table-shaped allocation (152 072 B,
+512 buckets). **Three of the four named tables were never allocated.**
+
+- ⛔ **SCOPE, STATED BEFORE IT CAN BE OVERREAD.** On the **eight attributed body inputs the
+  subset-sum naming and the tape AGREE table for table** — every bucket count, on every input. The
+  refutation is the FLOOR row, which `-0128` had already excluded from every published band as *"the
+  floor, and not a shape"*. **The attribution's bands are not affected.**
+- ⇒ **A DECOMPOSITION OF A TOTAL IS A HYPOTHESIS, AND ON A CLASS CROWDED WITH SMALL ALLOCATIONS IT
+  IS A WEAK ONE.** The search has a free degree of freedom exactly where the evidence is thinnest.
+  The seventh variation on the running theme: `-0126` the QUANTITY, `-0125` the SENTENCE, `-0127`
+  the SET, `-0128` the LIFETIME, `-0129` the BOUND, `-0130` the COUNT — and now **the IDENTITY**.
+
+## ⛔⛔⛔ AND RUNNING THE PROBE'S OWN UNIT TESTS FOR THE FIRST TIME FOUND A LATENT PANIC IN THE GLOBAL ALLOCATOR
+
+`-0128` wrote a test asserting `class_of(usize::MAX) < CLASSES` and noted that the probe's tests
+"compiled but could not be run"; `-0129` closed that gap for the LIBRARY tests, not for this bin's.
+This slice ran them, and that assertion **FAILS**: `class_of` returned **64** for a 48-element table.
+
+- **The defect is real and it is in the allocator's hot path.** A `Layout` may carry any size up to
+  `isize::MAX`, so a request of 2⁴⁷ bytes or more is REPRESENTABLE even though no host can serve it —
+  and `note_alloc` indexes `LIVE_CLASS_BYTES[class_of(size)]` **before** delegating to `System`.
+  Rust bounds-checks, so this is a PANIC inside `alloc`, not undefined behaviour — which is worse
+  than the impossible allocation simply failing.
+- **It cannot have affected one number in `.67`.** The clamp binds only at 2⁴⁷ bytes; the largest
+  allocation anywhere on this ladder is 1 078 789 568 B (class 31). The fix is `class_of(…)
+  .min(CLASSES - 1)` and the test now pins the SATURATION rather than the false claim, with two
+  boundary rows either side of it.
+- ⇒ ⭐⭐⭐ **A TEST THAT HAS NEVER BEEN RUN IS NOT A TEST.** It was written by the same hand as the
+  code, agreed with the code's own comment (*"48 buckets cover every allocation up to 128 TiB — far
+  past anything a parse can request"*), and was wrong with it: the comment states a REASONED bound on
+  what a host can serve, and the array is indexed by what a `Layout` can REPRESENT. Two different
+  populations, one sentence. The same shape as this leaf's other findings, met in the test file.
+
+## ⭐⭐ THE THIN TABLE IS NEVER FREED, READ FROM A SECOND INSTRUMENT
+
+`-0128` established this by subtraction: `end_live` minus a predicted scratch size is a flat
+1.56–3.77 MB on 11 of 11. The tape reads the release event itself — a different instrument, no
+prediction in it — and answers **`free_seq = NEVER` on 11 of 11**, at sizes from 18 312 B to
+1 078 789 568 B. ⭐ It is allocated at **`alloc_seq = 782` on every input**, the same position in the
+event stream regardless of file size, which is the tape's own confirmation of `-0128`'s reading of
+the source: the table is sized *before the parse reads a token*.
+
+## THE FIX PRICING — AND THE MEMO SPIKE IS RULED NOT WORTH REMOVING
+
+The spike costs 50 % of the memo's steady size, and the only way to remove it is to not double near
+the peak — i.e. to PRE-SIZE the memo so the final table is allocated once. `memo` is built with
+`rustc_hash::FxHashMap::with_capacity_and_hasher(256, …)` (`generated/systemverilog_parser.rs:4338`),
+a **literal 256 independent of the input**, so a large parse doubles about fourteen times. Sizing it
+from input length is the obvious candidate. **It is refused, and the measurement is what refuses it:**
+
+| input | final buckets | buckets per input byte |
+|---|---|---|
+| `spi_device_reg_pkg.sv` | 32 768 | **1.0772** |
+| `pinmux_reg_top.sv` | 2 097 152 | 1.6952 |
+| `syn_port_list` 10 000 | 262 144 | 2.0335 |
+| `syn_case_items` 10 000 | 1 048 576 | 5.2995 |
+| `t_math_synmul_mul.v` | 2 097 152 | 6.3519 |
+| `br_gh330.v` | 262 144 | 7.1481 |
+| `comp1000.v` | 524 288 | 7.5118 |
+| `syn_concat_items` 10 000 | 524 288 | 7.6069 |
+| `syn_netlist_instances` 10 000 | 4 194 304 | 7.8305 |
+| `syn_netlist_instances` 2 500 | 1 048 576 | **8.0266** |
+
+**The spread is 7.45×.** ⚠️ Honestly qualified: bucket counts are powers of two, so quantisation
+alone can produce up to 2× of that; the shape-driven part is about **3.7×**. Either way the
+arithmetic is one-sided. **A pre-size only removes the spike if it lands AT OR ABOVE the final
+size**, because the peak is set by the LAST doubling — starting higher removes early doublings,
+which is a SPEED question, not a peak one. A single length-derived factor big enough to cover
+`syn_netlist_instances` would hand `spi_device_reg_pkg.sv` **7.45× the table it needs**, against a
+spike that costs **0.5×**. ⇒ ⛔ **RULED: the memo rehash spike is not removable by pre-sizing from
+input length, and no cheaper removal is known. It is priced, ruled, and CLOSED — not routed.** The
+lever that does scale the memo is its 296-byte `MemoEntry`, which is a different question and is not
+opened here.
+
+## ⭐⭐⭐ A FINDING THE PEAK-SNAPSHOT INSTRUMENTS COULD NOT SEE, BECAUSE IT IS ENTIRELY TRANSIENT
+
+Every instrument in `.67` so far reads a HIGH-WATER: the arena census, the owned-heap census, the
+size-class snapshot, `peak_live`. An allocation that is made and freed between two high-water marks
+is invisible to all of them. The tape is the first instrument here with a time axis, and the first
+thing it found is traffic:
+
+| input | file B | size | count | freed | mean lifetime (events) |
+|---|---|---|---|---|---|
+| `br_gh330.v` | 36 673 | 8 192 | **220 773** | 220 771 | 29.4 |
+| `br_gh330.v` | 36 673 | 16 384 | **30 561** | 30 560 | 598.0 |
+| `comp1000.v` | 69 795 | 8 192 | **43 437** | 43 435 | 861.8 |
+
+**`br_gh330.v` makes 251 334 allocations of two exact sizes on a 36 KB file — 6.85 allocations per
+input byte — and frees all but THREE.** They contribute **nothing** to peak RSS or to
+`peak_live`, which is why nothing in `.67` had seen them; they are pure allocator traffic. The two
+sizes and the count relation are consistent with one buffer per something that grows once
+(8 192 = 1 024 × 8 bytes, then 16 384), but ⚠️ **that is a reading of the numbers, not a measurement:
+the tape carries no call site**, and naming the `Vec` needs a call-site instrument.
+
+⇒ ROUTED to new leaf **`.75`**, with the producer and the raw histogram tracked. ⛔ It is a SPEED
+question, not a footprint one, so it is PARKED behind the director's *"thorough and accurate and
+fast (not reached yet, because it is not the focus right now)"* ordering — but it is OWNED, with the
+next instrument named, rather than reported and left.
+
+## THE FIX PRICING — THE THIN TABLE. THE MECHANISM IS PROVED AND THE SAVING IS A BRACKET WHOSE LOW END IS ZERO
+
+`.67`(c)(ii) named the one direction that is not a trade: **stop faulting in what is never written.**
+`ThinMemoScratch::begin` does `self.slots.resize(need, 0)`, which allocates uninitialised memory and
+then WRITES a zero into every slot; the generation stamp already makes an unwritten slot invalid
+whatever it contains, so that write is redundant to correctness. The candidate is a zeroed allocation
+the kernel backs lazily — in Rust, `vec![0u64; n]`, which specialises to `alloc_zeroed`.
+
+⛔ **Whether that works is a property of the host's allocator, not of the source, so it is measured.**
+A standalone probe isolates the mechanism from the engine entirely — one table, one fill strategy,
+one write pattern, and the peak RSS the host reports. Table size is **114 295 329 slots =
+914 362 632 B**, the exact table `comment_1024k.sv` asks for and the one `.67`(c)(ii) measured at
+906 MB resident. Five repeats; **peak RSS is min = median = max in all nine cells**, so the estimator
+is not in question here (`-0129`).
+
+| scenario | writes | pages touched | `resize` | `zeroed` | `reserve_only` (control) | cut |
+|---|---|---|---|---|---|---|
+| **isolating** — the `(c)(ii)` shape | 14, page stride | 14 of 223 234 (0.006 %) | 873.6 MB | **1.7 MB** | 1.6 MB | **99.81 %** |
+| **clustered** — 4.58 %, contiguous | 5 234 726, stride 1 | 10 225 of 223 234 (4.58 %) | 873.9 MB | **41.8 MB** | 1.6 MB | **95.22 %** |
+| **scattered** — 4.58 %, one per page | 5 234 726, page stride | **223 234 of 223 234 (100 %)** | 878.2 MB | **878.2 MB** | 1.6 MB | **0.00 %** |
+
+- ⭐⭐⭐ **THE CONTROL SETTLES THE CAUSE, AND IT IS THE ZERO-FILL.** `reserve_only` — the same
+  914 MB allocated and NOTHING written — costs **1.6 MB resident in every scenario**, a **546×**
+  separation from `resize`. So the allocation is free and the fill is the whole cost. Had the two
+  read alike, this fix direction would have been refuted outright, which is what the arm is for.
+- ⭐⭐ **AND THE MECHANISM IS CONFIRMED WHERE `(c)(ii)` MEASURED IT**: on the isolating shape the
+  same table costs **873.6 MB** filled and **1.7 MB** lazily backed. `(c)(ii)`'s 906 MB is not a law
+  of the table; it is the cost of writing zeros into it.
+- ⛔⛔⛔ **AND THE SCATTERED ROW IS WHY THIS SLICE DOES NOT IMPLEMENT THE FIX.** At the SAME 4.58 %
+  occupancy, one write per page touches every page and the saving is **exactly zero**. Occupancy is
+  therefore the wrong quantity: **what decides the fix is DISTINCT PAGES TOUCHED, and nothing in this
+  repository measures it.**
+  ⭐ **THE CENSUS BEHIND THAT "NOTHING MEASURES IT", RUN RATHER THAN ASSERTED** (`GAP-CLAIM-CENSUS`):
+  `git grep -nEi 'distinct_pages|pages_touched|page_touched|SLOTS_PER_PAGE|madvise|mincore' -- 'rust/src' 'scripts'`
+  → **0 hits**. The only `madvise` strings anywhere in the tree are inside captured `sample`-profiler
+  stack traces under `docs/tasks/artifacts/*/sample_*.txt`, which are recorded output, not code. And
+  the census `ThinMemoScratch` DOES carry is enumerable rather than assumed — `ThinMemoScratchStats`
+  has six fields (`armed`, `capacity_slots`, `need_slots`, `distinct_slots_written`, `store_calls`,
+  `clear_calls`) and none of them is about pages.
+  ⚠️ A reading of the layout — `slot = rule_index × (input_len + 1) +
+  position`, so a rule firing at a few per cent of positions lands ~20 writes in every 512-position
+  page of its own row — points toward the SCATTERED end, i.e. toward the fix being worth little. That
+  is a reading, not a measurement, and it is exactly the kind of inference this leaf has been
+  correcting all week.
+- ⇒ **ROUTED to new leaf `.74`, which owes the PAGE census BEFORE any code**: count distinct
+  512-slot pages a real parse writes, over the same ladder, and implement only if the number says the
+  fix pays. Landing `alloc_zeroed` on the strength of the isolating shape alone would be pricing a
+  fix on a synthetic input — the error `.61`(b) made and `.67`(a) was opened to correct.
+
+## THE PRE-REGISTRATION — 9 OF 10, AND THAT IS A COMPLAINT ABOUT THE PREDICTIONS
+
+Scored by a tracked scorer over a fixed roster, so the census cannot lose a row (`-0127`), and the
+scored population is `-0128`'s EIGHT attributed inputs BY NAME while the tape covers ten (`-0130`).
+Full output: [`rehash_prediction_scorecard.txt`](artifacts/eus67c/rehash_prediction_scorecard.txt).
+
+## ⚠️ A SCORECARD THAT SCORES 9 OF 10 IS WEAK EVIDENCE, AND SAYING SO IS PART OF THE RESULT
+
+The pre-registration went 9 of 10, against 4 of 8 (`-0129`) and 6 of 11 (`-0128`). That is not a
+better session; it is a weaker set of predictions. **P3, P5 and P6 were written after I had already
+read `-0128`'s tracked snapshot data**, so they asked *"will the new instrument agree with the old
+one?"* rather than *"what is true?"* — legitimate as cross-instrument checks, and not blind. The one
+row that carried real risk is **P1, and it FAILED**: the tape overflowed at the capacity the
+prediction named, the instrument had to be resized, and the row is scored FALSIFIED as worded rather
+than re-scored against the instrument that replaced it (`-0128` prediction 8's rule). ⭐ The findings
+that matter in this slice — the two-clock defect, the 4-vs-5 method dependence and the floor-row
+refutation — were **not predicted by any row**. They came from reading the instrument's own first
+output and from re-deriving a published count three ways.
+
+
+## LESSON PROMOTION — DECIDED PER LESSON, BECAUSE THE GATE THAT ASKS COULD NOT SEE THIS SLICE
+
+⛔ **`LESSON-PROMOTION` PASSED VACUOUSLY HERE AND I CHECKED WHY RATHER THAN TAKING THE GREEN.** Its
+decline arm greps the WHOLE of each staged `docs/tasks/*.md`, and this tree already carries **5**
+`promotion: declined (…)` tokens from earlier slices — so it is satisfied by its own history.
+Measured, `grep -l` says **10 of the task files** are already permanently exempt. Routed as
+`DOCTRINE-GAP-OWNERSHIP.19` with the fix shape (scope arm (b) to the staged diff, as
+`GAP-CLAIM-CENSUS` and `TABLE-ARITY-RATCHET` already are). The decision below is made by hand.
+
+- ✅ **PROMOTED**: *a control validates the property it is built from* →
+  [`docs/knowledge/a-control-validates-the-property-it-is-built-from.md`](../knowledge/a-control-validates-the-property-it-is-built-from.md),
+  with a runnable `reverify:` and the map regenerated. It is durable, general, re-verifiable and
+  question-shaped: it is about instruments, not about this leaf, and the counter-example is
+  reproducible from tracked producers.
+- **promotion: declined (the DECOMPOSITION lesson — *a subset-sum naming inside a class total is a
+  hypothesis, not an observation* — is a sharper instance of the already-promoted
+  [[an-x-is-checked-by-nothing-claim-is-a-census-claim]] family, and a card that restates a
+  registered one degrades retrieval rather than improving it; it is recorded in layer A and in this
+  leaf, where the tracked producer that refutes it lives)**
+- **promotion: declined (the METHOD-DEPENDENT COUNT observation is a corollary of the same card and
+  has no separate re-verification of its own)**
+- **promotion: declined (the latent `class_of` panic is a PGEN-specific defect with a PGEN-specific
+  fix; its transferable half — *a test that has never been run is not a test* — is already the
+  subject of the run-the-tests obligation in the acceptance checklist, and a card would restate a
+  rule the gate already enforces)**
+
+##### ACCEPTANCE CHECKLIST — `.67`(c)(iii) (`PGEN-ENGINE-UNIVERSAL-SERVICES-0131`)
+
+- [x] **ROOT CAUSE (WHY + WHERE), tool-backed.** WHY `-0128` could name a spike but not measure one:
+  its instrument is a size-class SNAPSHOT, which carries neither a time axis nor per-allocation
+  identity, so *"two tables live at once ⇒ rehash"* and *"four `T=296` tables on `floor.sv`"* are
+  both INFERENCES from a class TOTAL. WHERE it had to be measured: below the parser, at the
+  allocator, with a LIFETIME per allocation — `rust/src/bin/parse_alloc_census_probe.rs`, the same
+  bin that already carries the counting `#[global_allocator]`, so the tape and the census describe
+  the same parse in the same process with no pairing assumption. Tool-backed by
+  `PARSE-ALLOC-TAPE:` and by the three-method comparator, which prints **4 / 5 / 5** for the same
+  question and shows the first is a floor by construction.
+- [x] **FIX** — INSTRUMENT tier. A lifetime tape (static storage and atomics only; **no heap
+  allocation**, which is what makes it non-invasive by construction), a single `EVENT_SEQ` clock, an
+  overflow/unmatched-free refusal, four tracked analysers and two tracked drivers. **ZERO library
+  Rust, ZERO grammar, ZERO codegen, ZERO generated bytes** — `generated/` is untouched, so the
+  eleven artifacts are byte-identical without needing to be re-derived.
+- [x] **ADDRESSED (verified).** The rehash spike is measured at the exact peak instant on 11 of 11
+  inputs, the succession test separates rehash from co-residence (5 superseded, 0 co-resident), and
+  the fix is PRICED and RULED rather than routed. ⭐ **RED / control behaviour observed**: the
+  tape's own overflow arm FIRED on the first run (`br_gh330.v`, `complete=false`, refused by name)
+  and the analysers refused that input rather than averaging it; `--red-control-arm` still refuses a
+  dead allocator; and the pre-registration was scored against a NAMED population rather than the one
+  the tape happened to cover.
+- [x] **NO REGRESSION (measured).**
+  - ⭐⭐ **AN EQUALITY, NOT A BAND, AND IT IS THE RIGHT ARM FOR THIS CHANGE.** The tape makes no
+    heap allocation, so every allocation-side column the probe reports must be BYTE-IDENTICAL to the
+    value the pre-change binary recorded — and allocation-side figures are deterministic (`-0128`:
+    byte-identical across two runs on 11 of 11 while peak RSS moved by a quarter).
+    `compare_census_determinism.py` against `-0128`'s tracked `alloc_census.tsv`:
+    **484 (input, column) cells over 11 inputs, 0 differ.** Peak RSS is excluded BY NAME as
+    non-deterministic rather than by silence.
+  - **Verdicts unchanged on 11 of 11** (including `pinmux_reg_top.sv`, REJECT in both).
+  - **Unit tests EXECUTED for the first time in this bin, and they FOUND SOMETHING** (see the
+    latent-panic section above): the tape's hash stays inside its index, the three sentinels are
+    distinguishable, an allocation freed is STAMPED while one never freed still reads `NEVER` (a
+    false positive there would have confirmed `-0128`'s "never freed" result BY CONSTRUCTION rather
+    than by measurement, which is why that test exists) — and `class_of` is now pinned to SATURATE
+    instead of indexing past its own table, which is the assertion that failed.
+  - `clippy` strict **PASS** · `check_doctrines.sh` **ALL 31 PASS** against the staged diff ·
+    `mdbook_docs_gate` **PASS**.
+  - ⚠️ **NAMED, not hidden: the probe's static footprint grew by ~58 MB of BSS** (2^20 tape entries
+    plus a 2^21 index). Zero-initialised statics are lazily backed, only touched entries are
+    resident, and the 484-cell equality proves the ALLOCATION side is untouched — but a peak-RSS
+    number from this probe is not comparable to one from the `-0128` binary, and no peak-RSS number
+    in this slice is quoted from it.
+- [x] **THREE-WAY CHECK.** (1) **RE-DERIVED by command** — every producer tracked and run from the
+  repository root; the memo-table count re-derived THREE independent ways, which is how the 4-vs-5
+  disagreement was found at all. (2) **FALSIFIED against an oracle I did not build** — the tape is
+  checked against the probe's own independently-maintained size-class table (148 pairs, 0
+  mismatches), and the subset-sum naming it was built to test was REFUTED on the floor row by direct
+  observation. (3) **DURABILITY** — probe, two drivers, four analysers, three raw artifacts and the
+  scorecard are tracked. ⚠️ **NAMED GAP, unchanged from `-0129`: no gate WATCHES these numbers.**
+  A ratchet was priced in this slice and is **DECLINED** with a reason rather than deferred silently:
+  the tape's own figures are deterministic and would ratchet cleanly, but the quantity that matters —
+  whether a doubling straddles the peak — is a property of the INPUT, so a ratchet over a fixed
+  ladder would fire on a corpus change and not on an engine change. The engine-side quantity worth
+  watching is `MemoEntry`'s size, and it is already covered by `PARSE-ALLOC-TYPE-SIZES:`.
+
 ### ✅✅✅ `.65` — **THE RECURSION CEILING IS NO LONGER A NUMBER ANYBODY TYPED. IT IS MEASURED, PER PARSE, FROM THE STACK THE HOST ACTUALLY GAVE THE THREAD** (**DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0117`; opened 2026-08-28 by `.63`(c)'s ruling / `…0114`; taken after `.66`)
 
 #### ✅ `.65` DONE 2026-08-28 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0117`) — **`4096` SURVIVES ONLY AS THE DEPTH AT WHICH THE GUARD FIRST *ASKS*. THE ANSWER COMES FROM THE HOST, AND IT IS PROVED HOST-DERIVED BY PROPORTIONALITY RATHER THAN BY A BIGGER NUMBER**
@@ -16483,6 +16851,87 @@ STRENGTH I attributed to my own evidence.
   a finding is routed to a leaf, never worked mid-slice — and it is recorded here rather than in a
   message, per the director's 2026-08-26 standing correction that logging a defect is a property of
   the RECORD and not of the DEFECT.
+
+
+### ⛔⛔ `.74` — **THE DENSE THIN-MEMO TABLE'S ZERO-FILL IS WHAT MAKES 95–99.9 % NEVER-WRITTEN PAGES RESIDENT, AND A LAZILY-BACKED TABLE REMOVES BETWEEN 0 % AND 95 % OF IT. THE PAGE CENSUS THAT DECIDES WHICH COMES FIRST** (`todo`, ROUTED + PARKED behind the SV lane, opened 2026-08-29 by `.67`(c)(iii)'s fix pricing / `PGEN-ENGINE-UNIVERSAL-SERVICES-0131`)
+
+- **WHAT IS ALREADY SETTLED, so this leaf does not re-derive it.** The table is
+  `THIN_RULE_COUNT × (input_len + 1)` slots of `u64`, 872 B per input byte on SystemVerilog
+  (`.67`(b) leg 4); it is **95.4–99.93 % never written** (`.67`(c)(i)); it is **resident anyway**
+  (`.67`(c)(ii)); it is **never freed** — `free_seq = NEVER` on 11 of 11, read directly from the
+  lifetime tape (`.67`(c)(iii)); and the cause is `ThinMemoScratch::begin`'s
+  `self.slots.resize(need, 0)`, PROVED by a control in which the same 914 MB reserved and **not**
+  filled costs **1.6 MB** resident against **873.6 MB** filled — a 546× separation.
+- **THE FIX SHAPE**, and it is not a trade: `vec![0u64; n]` specialises to `alloc_zeroed`, the kernel
+  backs the pages lazily, untouched pages never become resident. **O(1) direct addressing is kept and
+  no hashing is introduced** — the sparse rewrite `.67`(c)(i) refused stays refused. The generation
+  stamp already invalidates an unwritten slot, so removing the zero-fill is correctness-neutral by
+  the table's own design.
+- ⛔⛔⛔ **WHAT THIS LEAF OWES FIRST, AND WHY NO CODE MAY LAND BEFORE IT: THE PAGE CENSUS.** Measured
+  at the same 4.58 % occupancy, the saving is **95.22 %** when the writes are contiguous and
+  **0.00 %** when they are one per 4 KiB page. **Occupancy does not decide this; DISTINCT PAGES
+  TOUCHED does, and nothing measures it.**
+  ⭐ **THE CENSUS BEHIND THAT "NOTHING MEASURES IT", RUN RATHER THAN ASSERTED** (`GAP-CLAIM-CENSUS`):
+  `git grep -nEi 'distinct_pages|pages_touched|page_touched|SLOTS_PER_PAGE|madvise|mincore' -- 'rust/src' 'scripts'`
+  → **0 hits**. The only `madvise` strings anywhere in the tree are inside captured `sample`-profiler
+  stack traces under `docs/tasks/artifacts/*/sample_*.txt`, which are recorded output, not code. And
+  the census `ThinMemoScratch` DOES carry is enumerable rather than assumed — `ThinMemoScratchStats`
+  has six fields (`armed`, `capacity_slots`, `need_slots`, `distinct_slots_written`, `store_calls`,
+  `clear_calls`) and none of them is about pages.
+  ⚠️ A reading of the layout
+  (`slot = rule_index × (input_len + 1) + position`) points toward the scattered end — a rule firing
+  at a few per cent of positions puts ~20 writes in every 512-slot page of its own row — which would
+  make the fix worth nearly nothing. **That is a reading, not a measurement, and this leaf exists to
+  replace it with one.**
+- **THE INSTRUMENT, NAMED**: extend the armed census on `ThinMemoScratch::store` with a distinct-page
+  counter (a bitset over `need / 512` bits, or a last-page-touched short-circuit plus a set), report
+  it beside `PARSE-THIN-OCCUPANCY:`, and run the tracked ladder. It is the same ENGINE-tier,
+  arm-gated, zero-codegen shape `.67`(c)(i) already shipped, so the cost argument is settled prior
+  art rather than a new one.
+- **THEN, AND ONLY IF THE CENSUS SAYS IT PAYS**: change `begin` to obtain a grown table from
+  `alloc_zeroed` instead of `resize`, keeping the thread-local recycling (a recycled table needs no
+  re-zeroing — the generation bump already invalidates it, which is the property that makes the
+  change safe). ⚠️ Note the recycling caveat that the pricing does NOT cover: pages faulted by an
+  earlier parse on the same thread stay resident, so the saving is largest on the first parse of a
+  thread and decays as the thread is reused. A long-lived embedder needs the release/`madvise` half
+  as well, and that is a second question this leaf must not silently fold into the first.
+- ⚠️ **DO NOT PRICE THIS FROM THE ISOLATING SHAPE.** The 99.81 % figure is measured on a synthetic
+  comment-only write pattern (14 writes) and is a MECHANISM result, not a value result. Quoting it as
+  the saving would be exactly the error `.61`(b) made and `.67`(a) was opened to correct.
+
+### ⛔ `.75` — **A 36 KB INPUT MAKES 251 334 HEAP ALLOCATIONS OF TWO EXACT SIZES AND FREES ALL BUT THREE — 6.85 PER INPUT BYTE, INVISIBLE TO EVERY HIGH-WATER INSTRUMENT IN `.67`** (`todo`, ROUTED + PARKED behind the SV lane, opened 2026-08-29 by `.67`(c)(iii)'s lifetime tape / `PGEN-ENGINE-UNIVERSAL-SERVICES-0131`)
+
+- **WHAT IS MEASURED.** `docs/tasks/artifacts/eus67c/tape_histogram_8k.tsv`, from a **complete**
+  lifetime tape (`tape_complete=true`, 0 overflow on 11 of 11) at an 8 KiB threshold. ⭐ **The
+  artifact's EXISTENCE is the completeness evidence**: `tape_histogram.py` REFUSES to reduce a tape
+  any input reports incomplete, by name, rather than producing a histogram that looks whole — so a
+  tracked histogram cannot have been derived from a truncated run.
+
+  | input | file B | size | count | freed | mean lifetime (events) |
+  |---|---|---|---|---|---|
+  | `br_gh330.v` | 36 673 | 8 192 | **220 773** | 220 771 | 29.4 |
+  | `br_gh330.v` | 36 673 | 16 384 | **30 561** | 30 560 | 598.0 |
+  | `comp1000.v` | 69 795 | 8 192 | **43 437** | 43 435 | 861.8 |
+
+- **WHY NOTHING SAW IT BEFORE, AND IT IS NOT AN OVERSIGHT.** Every instrument in `.67` reads a
+  HIGH-WATER — the arena census, the owned-heap census, the size-class snapshot, `peak_live`. An
+  allocation made and freed between two high-water marks contributes to none of them. The tape is
+  the first instrument in this leaf with a TIME AXIS, and this is what a time axis is for.
+- ⚠️ **WHAT IS NOT MEASURED, AND IT IS THE WHOLE OF THE NEXT STEP: THE CALL SITE.** The tape carries
+  a size and two event numbers, no backtrace. 8 192 = 1 024 × 8 bytes and 16 384 is its double,
+  which READS like one `Vec` per something that grows once — but that is a reading of two numbers,
+  not a measurement, and this leaf must not inherit it as a premise (`-0127`: a pre-registration
+  inherits the frame of the question it was written in).
+- **THE NEXT INSTRUMENT, NAMED RATHER THAN LEFT TO BE INVENTED.** A call-site arm on the counting
+  allocator: capture a bounded backtrace (or a `#[track_caller]`-style shim on the suspect
+  constructors) for allocations of exactly these sizes, on `br_gh330.v` alone, and report the
+  distinct sites with counts. Bounded scope, one input, one size.
+- ⛔ **PARKED, NOT ABANDONED.** This is a SPEED question — the bytes are never resident — and speed
+  is behind the director's *"thorough and accurate and fast (not reached yet, because it is not the
+  focus right now)"* ordering. It is owned here so it cannot be re-found from scratch.
+- ⚠️ **DO NOT PRICE IT FROM A TRUNCATED TAPE.** At 2^16 tape entries this same input reported 65 443
+  allocations of 8 192 B; the complete run reports 220 773. A truncated tape is a PREFIX of the
+  event stream, not a sample of it.
 
 ### ⏸️ `.64` — **VERILOG-AMS IS A LONG-TERM HORIZON GOAL, PARKED BY DIRECTOR RULING UNTIL AFTER THE FIRST OFFICIAL SV RELEASE. THIS LEAF HOLDS THE MEASURED STARTING POINT AND NOTHING ELSE** (`parked`, opened 2026-08-28 / `…-0112`, SCOPED SAME DAY by the director / `PGEN-ENGINE-UNIVERSAL-SERVICES-0113`)
 

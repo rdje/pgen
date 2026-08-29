@@ -86,7 +86,7 @@ same leaf keeps its checklist, and a deletion-only edit still counts as touching
 | # | family | when it applies | verbatim tokens that count |
 |---|---|---|---|
 | 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `PGEN_LINT_DUMP_ALL`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `INTERPRET-PARSE:`/`--interpret-parse`, `INDIRECT-LR-SURVEY:`/`--report-indirect-lr-plan`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]`, `LAYOUT-OWNING-TERMINALS:`/`--report-layout-owning-terminals`, `SAMPLE-PROFILE-PARITY:`/`--report-sample-parity` |
-| 2 | **performance / SPEED / FOOTPRINT** | it is correct but slow, or its memory is the problem | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph`, `ARENA-CHUNK-ORACLE:` (`rust/target/release/arena_chunk_oracle_probe` — proves the `typed_arena` chunk-capacity model against a counting `GlobalAlloc`; `--red-control` required to go red), `PARSE-ALLOC-CENSUS:` (`rust/target/release/parse_alloc_census_probe` — the whole parse's requested-live-bytes high-water and a size-class table at that high-water, so a structure can be attributed by NAME instead of subtracted for; `--red-control-arm` required to go red), `PARSE-THIN-OCCUPANCY:` (same probe — how much of the dense `THIN_RULE_COUNT × (len + 1)` thin-memo table a parse actually WRITES; `NOT_MEASURED` is never `0`) |
+| 2 | **performance / SPEED / FOOTPRINT** | it is correct but slow, or its memory is the problem | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph`, `ARENA-CHUNK-ORACLE:` (`rust/target/release/arena_chunk_oracle_probe` — proves the `typed_arena` chunk-capacity model against a counting `GlobalAlloc`; `--red-control` required to go red), `PARSE-ALLOC-CENSUS:` (`rust/target/release/parse_alloc_census_probe` — the whole parse's requested-live-bytes high-water and a size-class table at that high-water, so a structure can be attributed by NAME instead of subtracted for; `--red-control-arm` required to go red), `PARSE-THIN-OCCUPANCY:` (same probe — how much of the dense `THIN_RULE_COUNT × (len + 1)` thin-memo table a parse actually WRITES; `NOT_MEASURED` is never `0`), `PARSE-ALLOC-TAPE:` (same probe — one row per large allocation with the events at which it was made and released, so SUCCESSION, position relative to the peak, and never-freed are OBSERVED rather than inferred from a class total; `complete=false` invalidates the input) |
 | 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
 | 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
 | 5 | **ops / build-flow** | the defect is in the repo's OWN scripts, Makefiles, hooks or tracking state — shell/make, so no rustc error either | `git ls-files`/`log -S`/`rev-list`/`fsck`/`reflog`/`diff-tree`/`merge-base`, `shellcheck`, `bash -n`, `make -n`/`make --dry-run`, `E2BIG`/`ENOSPC`/`EACCES`/`ARG_MAX`, `guard.<pid>.marker`, `reason=rss-budget\|free-floor\|disk-floor\|timeout`, `GATE-REACHABILITY-PROBE:`, `SV-CONTRACT-CURRENCY:` (`scripts/check_sv_contract_currency.sh` — the SV grammar's semantic digest versus the contract's), `ACCEPT-SET-LEDGER:` (`docs/tasks/artifacts/sv_corpus_grad/contract_accept_set_ledger/measure_accept_set_transitions.py` — which grammar commit moved which verdict or which typed AST), `LRM-ANNEX-A-GAP:` (`stimuli/sv/lrm_annex_a_gap_census.py` — the IEEE 1800 productions the CLAUSE bodies define and Annex A, the only surface the extractor reads, does not) |
@@ -162,7 +162,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | **"`--lint-grammar` says `left_recursion_unhandled=N` — so WHICH rule could absorb the chain, what suffix, and what does it cost?"** | [5.5 `--report-indirect-lr-plan`](#55---report-indirect-lr-plan) — ⛔ the lint names the cycle, not the fix; picking the wrong base rule is a measured REGRESSION |
 | "What IR do the generators actually consume?" | [5.2 `--dump-gen-ast`](#52---dump-gen-ast) |
 | "Packrat memo hit/miss perf?" | [3.3 `PGEN_REPORT_MEMO_STATS`](#33-pgen_report_memo_stats) |
-| "Where does the parse MEMORY go?" | [3.3b `PGEN_REPORT_PARSE_FOOTPRINT`](#33b-pgen_report_parse_footprint) (the AST arena), [3.3c `PARSE-ALLOC-CENSUS:`](#33c-parse-alloc-census--where-the-rest-of-the-parse-memory-is) (everything else), [3.3d `PARSE-THIN-OCCUPANCY:`](#33d-parse-thin-occupancy--how-much-of-the-dense-thin-memo-table-a-parse-writes) (is the biggest of them USED?) |
+| "Where does the parse MEMORY go?" | [3.3b `PGEN_REPORT_PARSE_FOOTPRINT`](#33b-pgen_report_parse_footprint) (the AST arena), [3.3c `PARSE-ALLOC-CENSUS:`](#33c-parse-alloc-census--where-the-rest-of-the-parse-memory-is) (everything else), [3.3d `PARSE-THIN-OCCUPANCY:`](#33d-parse-thin-occupancy--how-much-of-the-dense-thin-memo-table-a-parse-writes) (is the biggest of them USED?), [3.3e `PARSE-ALLOC-TAPE:`](#33e-parse-alloc-tape--lifetimes-for-the-questions-a-snapshot-cannot-answer) (WHEN was it live, was it ever freed, and what was allocated and thrown away) |
 | "EXACT per-rule entry counts for a parse (machine-readable)?" | [3.4 `--dump-rule-entry-counts-json`](#34---dump-rule-entry-counts-json) |
 | "How much parse work is DISCARDED (failed speculation)? committed vs wasted per rule?" | [3.5 `--dump-rule-outcome-counts-json`](#35---dump-rule-outcome-counts-json) |
 | **"Did the whole SV parser get SLOWER — and would anything have told me?"** — ⛔ never answer with an ad-hoc timing script against a remembered number; that produced `~11 %`, then `+24.3 %`, and **BOTH were machine-variance artifacts** (`.26`) | [3.7 the SV parse-cost ratchet](#37-the-sv-parse-cost-ratchet--did-the-whole-parser-get-slower-and-would-anything-have-told-me) |
@@ -781,6 +781,50 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   written in every case; slope 885.9 B per input byte against a table costing 872.0.** ⇒ the
   never-written pages ARE faulted in — `Vec::resize(need, 0)` writes them all.
   ⭐ The SLOPE is the invariant, not the level, which is why three sizes are run and not one.
+
+### 3.3e `PARSE-ALLOC-TAPE:` — LIFETIMES, for the questions a snapshot cannot answer
+- **WHAT:** one row per allocation at or above a threshold (default 8 KiB), carrying its requested
+  size, the EVENT sequence number at which it was made, and the one at which it was released —
+  `18446744073709551615` if the process never released it. Prints beside §3.3c, from the same probe
+  and the same parse. **WHEN:** the question is SUCCESSION (*was A still live when B was
+  allocated*), POSITION (*was X live at the instant the peak was set*), LIFETIME (*is Y ever freed*)
+  or TRAFFIC (*how many allocations were made and thrown away*) — `ENGINE-UNIVERSAL-SERVICES.67`(c)(iii).
+  **HOW:** `PGEN_REPORT_PARSE_FOOTPRINT=1 ./rust/target/release/parse_alloc_census_probe systemverilog f.sv --profile sv_2017 [--tape-min-bytes N]`
+- ⛔⛔⛔ **A SIZE-CLASS SNAPSHOT ANSWERS NONE OF THOSE, AND THIS SECTION EXISTS BECAUSE IT WAS ASKED
+  TO ANSWER TWO.** §3.3c reports a TOTAL PER CLASS at one instant. (1) Two tables being live
+  together is CO-RESIDENCE; "rehash" claims SUCCESSION, which is not in a snapshot. (2) Naming the
+  individual structures inside a class total is a SUBSET-SUM search, and a total has many
+  decompositions. Both were done, and the tape settled both: the rehash IS real (succession verified
+  on 5 of 10 inputs, ratio exactly 1.5000) and the floor-row naming was **fabricated** — the search
+  named four `T=296` tables on `floor.sv` where the ladder never allocated 19 016 or 38 024 bytes at
+  all. ⚠️ On the eight attributed BODY inputs the two agree table for table; the failure is on the
+  crowded low classes where the search has the most freedom and the least evidence.
+- ⛔⛔ **ONE CLOCK. `alloc_calls` AND `free_calls` ARE TWO.** An allocation stamped `alloc_ord=988`
+  beside a release stamped `free_ord=195` is not out of order — they count different events and
+  cannot be compared. The tape stamps a single `EVENT_SEQ` that every allocation AND every release
+  advances, which is the only reason `alloc(A) < alloc(B) < free(A)` means anything. ⭐ **The tape's
+  own control could not have caught the two-clock version**: "live at instant I" compares alloc
+  ordinals to I's alloc ordinal and free ordinals to I's free ordinal, each staying inside one clock,
+  so the control passes while succession is nonsense. **A control validates the property it is built
+  from** — a new property needs a new argument, not the old control run again.
+- ⭐ **`peak_at_event_seq` AND `snap_at_event_seq` ARE DIFFERENT INSTANTS AND BOTH ARE PRINTED.** The
+  class table is snapshotted at the hysteresis instant; `peak_live` is set later. Ask your question
+  at the instant it is about.
+- ⛔ **`complete=false` INVALIDATES EVERY LIFETIME CONCLUSION FOR THAT INPUT**, and the analysers
+  REFUSE such an input by name rather than averaging it. Not theoretical: at 2^16 entries
+  `br_gh330.v` — a **36 KB** file — overflowed by **185 902**. ⚠️ **A truncated tape is a PREFIX, not
+  a sample**: read as one it understated that input's 8 192-byte allocation count by 3.4×.
+- ⭐⭐ **THE CONTROL IS AN EQUALITY.** The tape and §3.3c's class table are maintained by independent
+  code paths, so the tape's reconstruction of "live at the snapshot instant" must reproduce the class
+  table byte-for-byte in every class at or above the threshold. `rehash_spike_report.py` prints the
+  count of mismatching (input, class) pairs; measured **148 checked, 0 mismatched**.
+- ⭐⭐⭐ **WHAT IT MEASURED, so you know what to expect.** The memo REHASH SPIKE: on **5 of 10**
+  inputs a doubling straddles the peak and the memo's peak is **exactly 1.5×** its steady size,
+  worth **8.2 %–15.4 %** of `peak_live` (median 15.0 %); on the other five it is exactly 1.0×. The
+  THIN-MEMO TABLE: `free_seq=NEVER` on **11 of 11**, allocated at the same event position on every
+  input — a second instrument for `.67`(b) leg 4's subtraction. And TRAFFIC nothing else could see:
+  `br_gh330.v` makes **220 773** allocations of exactly 8 192 B and **30 561** of exactly 16 384 B —
+  6.85 per input byte — and frees all but three, so they never touch a high-water mark.
 
 ### 3.4 `--dump-rule-entry-counts-json`
 - **WHAT:** after a `--parse`, write the parser's monotone per-rule ENTRY counters (every rule-method entry, successful AND backtracked — the always-on `fetch_add` on rule entry) as JSON `{grammar, accepted, total_entries, rule_entry_counts}`. The machine-readable dual of the live dashboard (3.1), which is stderr-only/refresh-based and useless for a sub-millisecond parse. Counts are a DELTA past a pre-parse baseline (SV's stdlib preload never pollutes them) and deterministic for a deterministic parser ⇒ a re-runnable oracle. Wired for every registered grammar's canonical-entry `--parse` path (not `--entry-rule`). RGX-0078.5.h.1.

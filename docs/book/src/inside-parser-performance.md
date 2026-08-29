@@ -321,7 +321,7 @@ produced a confident, saturated, meaningless result before it was discarded. Wha
 isolating shape: a file that is almost entirely *comment* makes the table huge while the parse does
 essentially nothing.
 
-| input | table size | slots written | peak RSS |
+| input (synthetic, comment-only) | table size | slots written | peak RSS |
 |---|---|---|---|
 | 262 KB | 218 MB | 14 | 241.5 MB |
 | 524 KB | 436 MB | 14 | 463.6 MB |
@@ -332,15 +332,75 @@ table is 98 % of the marginal cost, and a lazily-backed table would have shown a
 **914 MB allocated, 112 bytes written, 906 MB resident.** `Vec::resize(need, 0)` faults in every
 page.
 
+⚠️ **Those three rows are a SYNTHETIC shape, and that is what makes them useful and what bounds
+them.** A file that is 99.998 % comment isolates the table by construction, which is the whole point
+— and it is not a claim about what any real file does. The population claim is the occupancy above,
+measured on real inputs.
+
 If you are budgeting a parse, that is the practical form of it: a large SystemVerilog file costs
 roughly 872 bytes of resident memory per input byte before the parser has looked at a single token,
-and it keeps them until the thread ends.
+and it is still holding them when the parse returns — measured now on two independent instruments,
+the live-bytes subtraction and the allocation lifetime tape, which reports the table's release event
+as `NEVER` on all eleven inputs. ⚠️ *How long* after that it survives is a property of the thread's
+lifetime and is not measured; the lease's `Drop` puts the table back in a thread-local, so nothing
+frees it, but no experiment here has run past the end of a parse.
 
 ⛔ **What this does *not* license is a sparse rewrite.** Peak speed is the non-negotiable here, and
 trading the dense table's O(1) for hashing is a trade, not a fix. The direction that is not a trade
 is to stop faulting in what is never written — the generation stamp already makes an unwritten slot
 invalid whatever it contains, so the zero-fill is redundant to correctness. That is tracked work,
 not a settled design.
+
+### The memo's peak is partly an artifact of *when* it doubled
+
+The memo tables are the largest named leg above, and a third of what they contribute to peak on some
+inputs is not the memo at all — it is the copy. `hashbrown` grows by allocating the new table before
+freeing the old, so for the duration of a rehash both are live. PGEN measures this with a **lifetime
+tape** (`PARSE-ALLOC-TAPE:`, TOOLBOX §3.3e): one row per allocation above a threshold, carrying the
+event at which it was made and the event at which it was released.
+
+Over eleven inputs, at the exact instant the allocation high-water was set:
+
+| | inputs | memo peak ÷ steady | rehash overlap, share of peak |
+|---|---|---|---|
+| a doubling straddles the peak | **5 of 10** | **exactly 1.5000** | **8.2 % – 15.4 %** (median 15.0 %) |
+| it does not | 5 of 10 | exactly 1.0000 | 0 % |
+
+There is nothing in between, because the table doubles and the old one is exactly half the new one.
+Whether a given parse pays the spike is decided by where its last doubling falls relative to its
+peak — a property of the input's shape, not of the engine.
+
+⛔ **This is not a bug with a fix waiting.** Removing the spike means the final table has to be
+allocated once, which means pre-sizing the memo from the input. Measured, the final bucket count per
+input byte spans **1.08 to 8.03 — a factor of 7.45** across the same eleven inputs (bucket counts are
+powers of two, so quantisation accounts for up to 2× of that; roughly 3.7× is real shape variation).
+A pre-size only helps if it lands at or above the final size, so a single length-derived factor large
+enough for the worst input would over-allocate the best by more than seven times — against a spike
+that costs half. **The spike is priced and accepted.** What *would* scale the memo down is its
+296-byte per-entry payload, which is a different question.
+
+⚠️ **Budget for it anyway.** If you are sizing a host for a parse, the memo's contribution to peak
+can be 1.5× what the finished table measures, and you do not get to know in advance which inputs pay.
+
+### And a cost no high-water instrument can see
+
+Every memory number above is a *high-water mark* — the arena census, the size-class snapshot, peak
+RSS. An allocation that is made and freed between two high-water marks contributes to none of them.
+The lifetime tape is the first instrument here with a time axis, and the first thing it found was
+traffic:
+
+| input | file size | allocation size | count | freed | mean lifetime |
+|---|---|---|---|---|---|
+| `br_gh330.v` | 36 673 B | 8 192 B | **220 773** | 220 771 | 29 events |
+| `br_gh330.v` | 36 673 B | 16 384 B | **30 561** | 30 560 | 598 events |
+| `comp1000.v` | 69 795 B | 8 192 B | **43 437** | 43 435 | 862 events |
+
+**A 36 KB file makes 251 334 heap allocations of two exact sizes — 6.85 per input byte — and frees
+all but three.** They cost nothing in memory and they are not in any footprint figure in this
+chapter; what they cost is time, in `malloc` and `free`. ⚠️ Which allocation site produces them is
+*not* identified — the tape carries a size and two timestamps, not a backtrace — so this is a
+measured symptom with a named next instrument, not a diagnosis. It is tracked, and it is parked
+behind correctness work rather than fixed on sight.
 
 One qualification survives on the AST side and is not in that conclusion's favour: a quantifier
 collects into a temporary vector that is freed once its contents reach the shaped arenas, so those

@@ -1,0 +1,153 @@
+=== TAPE CONTROL: the lifetime tape against the probe's own class table ===
+  148 (input, class) pairs at or above the tape threshold checked, 0 mismatched
+
+=== MEMO TABLES LIVE AT THE EXACT INSTANT `peak_live` WAS SET ===
+input                                  file B    peak MB  n                    buckets   memo MB   ratio sup cor overlap MB   share
+floor.sv                                   20       2.24  1                      [512]      0.15  1.0000   0   0       0.00   0.00%
+br_gh330.v                              36673     292.86  1                   [262144]     74.25  1.0000   0   0       0.00   0.00%
+comp1000.v                              69795     525.18  2           [524288, 262144]    222.75  1.5000   1   0      74.25  14.14%
+t_math_synmul_mul.v                    330162    1978.49  2         [2097152, 1048576]    891.00  1.5000   1   0     297.00  15.01%
+pinmux_reg_top.sv                     1237143    3251.67  1                  [2097152]    594.00  1.0000   0   0       0.00   0.00%
+spi_device_reg_pkg.sv                   30419      56.73  2             [32768, 16384]     13.92  1.5000   1   0       4.64   8.18%
+syn_netlist_instances_2500.sv          130637     961.64  2          [1048576, 524288]    445.50  1.5000   1   0     148.50  15.44%
+syn_netlist_instances_10000.sv         535637    3850.52  2         [4194304, 2097152]   1782.00  1.5000   1   0     594.00  15.43%
+syn_case_items_10000.sv                197863    1199.27  1                  [1048576]    297.00  1.0000   0   0       0.00   0.00%
+syn_port_list_10000.sv                 128912     280.41  1                   [262144]     74.25  1.0000   0   0       0.00   0.00%
+syn_concat_items_10000.sv               68923     595.12  1                   [524288]    148.50  1.0000   0   0       0.00   0.00%
+
+  inputs with >= 2 memo tables live at the peak : 5 of 10
+  inputs with a SUPERSEDED (rehash) table       : 5 of 10
+  overlap share of peak_live over those        : min 8.18% · median 15.01% · max 15.44%
+  memo peak/steady ratio over those            : min 1.5000 · max 1.5000
+  memo peak/steady ratio where none overlaps   : [1.0] on 5 inputs
+
+=== CAN THE MEMO BE PRE-SIZED FROM INPUT LENGTH? (the fix pricing) ===
+A pre-size removes the rehash overlap only if it lands within the 50 % the
+overlap costs. The final bucket count per input byte is what decides it.
+  br_gh330.v                         final    262144 buckets    7.1481 buckets/input byte
+  comp1000.v                         final    524288 buckets    7.5118 buckets/input byte
+  t_math_synmul_mul.v                final   2097152 buckets    6.3519 buckets/input byte
+  pinmux_reg_top.sv                  final   2097152 buckets    1.6952 buckets/input byte
+  spi_device_reg_pkg.sv              final     32768 buckets    1.0772 buckets/input byte
+  syn_netlist_instances_2500.sv      final   1048576 buckets    8.0266 buckets/input byte
+  syn_netlist_instances_10000.sv     final   4194304 buckets    7.8305 buckets/input byte
+  syn_case_items_10000.sv            final   1048576 buckets    5.2995 buckets/input byte
+  syn_port_list_10000.sv             final    262144 buckets    2.0335 buckets/input byte
+  syn_concat_items_10000.sv          final    524288 buckets    7.6069 buckets/input byte
+  spread: 1.0772 (spi_device_reg_pkg.sv) .. 8.0266 (syn_netlist_instances_2500.sv) = 7.45x
+
+=== CROWDED CLASSES, DECOMPOSED BY OBSERVATION RATHER THAN BY SEARCH ===
+Every class below is reproduced to the byte by the tape (see the control above);
+the LIST is what the process actually allocated, which a class total cannot say.
+  floor.sv
+    class 15  5 allocations, 100496 B  [24576, 24576, 18312, 16648, 16384]
+    class 16  3 allocations, 106544 B  [36888, 36888, 32768]
+  br_gh330.v
+    class 15  8 allocations, 195080 B  [32256, 32256, 32000, 24576, 24576, 16648, 16384, 16384]
+    class 16  8 allocations, 369009 B  [64512, 64512, 64000, 36888, 36888, 36673, 32768, 32768]
+    class 17  3 allocations, 386048 B  [129024, 129024, 128000]
+    class 18  3 allocations, 772096 B  [258048, 258048, 256000]
+    class 19  5 allocations, 2191872 B  [516096, 516096, 512000, 327680, 320000]
+    class 20  3 allocations, 2875400 B  [1032192, 1024000, 819208]
+    class 25  4 allocations, 108001496 B  [33030144, 31979728, 25165824, 17825800]
+  comp1000.v
+    class 15  8 allocations, 207888 B  [32256, 32256, 32000, 29192, 24576, 24576, 16648, 16384]
+    class 16  6 allocations, 299568 B  [64512, 64512, 64000, 36888, 36888, 32768]
+    class 17  5 allocations, 554147 B  [129024, 129024, 128000, 98304, 69795]
+    class 18  3 allocations, 772096 B  [258048, 258048, 256000]
+    class 19  4 allocations, 1871872 B  [516096, 516096, 512000, 327680]
+    class 20  3 allocations, 2875400 B  [1032192, 1024000, 819208]
+    class 26  4 allocations, 212905640 B  [66060288, 60862112, 50331648, 35651592]
+  t_math_synmul_mul.v
+    class 15  9 allocations, 211464 B  [32256, 32256, 32000, 24576, 24576, 16648, 16384, 16384, 16384]
+    class 16  6 allocations, 299568 B  [64512, 64512, 64000, 36888, 36888, 32768]
+    class 17  3 allocations, 386048 B  [129024, 129024, 128000]
+    class 18  3 allocations, 772096 B  [258048, 258048, 256000]
+    class 19  5 allocations, 2202034 B  [516096, 516096, 512000, 330162, 327680]
+    class 20  3 allocations, 3088384 B  [1032192, 1032192, 1024000]
+    class 21  3 allocations, 6176768 B  [2064384, 2064384, 2048000]
+    class 22  3 allocations, 12353536 B  [4128768, 4128768, 4096000]
+    class 23  3 allocations, 23003144 B  [8257536, 8192000, 6553608]
+    class 27  3 allocations, 304087048 B  [132120576, 100663296, 71303176]
+  pinmux_reg_top.sv
+    class 15  8 allocations, 195080 B  [32256, 32256, 32000, 24576, 24576, 16648, 16384, 16384]
+    class 16  17 allocations, 877616 B  [64512, 64512, 64000, 54528, 54528, 54528, 54528, 54528, 54528, 54528, 54528, 54528, 54528, 36888, 36888, 32768, 32768]
+    class 17  13 allocations, 1485408 B  [129024, 129024, 128000, 114912, 114912, 114912, 114912, 114912, 114816, 114816, 114816, 114816, 65536]
+    class 18  3 allocations, 772096 B  [258048, 258048, 256000]
+    class 19  5 allocations, 2338824 B  [516096, 516096, 512000, 466952, 327680]
+    class 20  4 allocations, 3874816 B  [1032192, 1032192, 1024000, 786432]
+    class 21  4 allocations, 7413911 B  [2064384, 2064384, 2048000, 1237143]
+    class 22  3 allocations, 12353536 B  [4128768, 4128768, 4096000]
+    class 23  4 allocations, 31260680 B  [8257536, 8257536, 8192000, 6553608]
+    class 28  3 allocations, 608174088 B  [264241152, 201326592, 142606344]
+  spi_device_reg_pkg.sv
+    class 15  7 allocations, 201691 B  [32256, 32256, 32000, 30419, 25608, 24576, 24576]
+    class 16  6 allocations, 284208 B  [64512, 64000, 49152, 36888, 36888, 32768]
+    class 19  3 allocations, 1355776 B  [516096, 512000, 327680]
+    class 22  3 allocations, 9502728 B  [4128768, 3145728, 2228232]
+  syn_netlist_instances_2500.sv
+    class 15  8 allocations, 195080 B  [32256, 32256, 32000, 24576, 24576, 16648, 16384, 16384]
+    class 16  6 allocations, 299568 B  [64512, 64512, 64000, 36888, 36888, 32768]
+    class 17  4 allocations, 516685 B  [130637, 129024, 129024, 128000]
+    class 18  3 allocations, 772096 B  [258048, 258048, 256000]
+    class 19  4 allocations, 1871872 B  [516096, 516096, 512000, 327680]
+    class 20  3 allocations, 3088384 B  [1032192, 1032192, 1024000]
+    class 21  3 allocations, 6176768 B  [2064384, 2064384, 2048000]
+    class 22  3 allocations, 11501576 B  [4128768, 4096000, 3276808]
+    class 26  3 allocations, 152043528 B  [66060288, 50331648, 35651592]
+  syn_netlist_instances_10000.sv
+    class 15  7 allocations, 178696 B  [32256, 32256, 32000, 24576, 24576, 16648, 16384]
+    class 16  6 allocations, 299568 B  [64512, 64512, 64000, 36888, 36888, 32768]
+    class 17  4 allocations, 451584 B  [129024, 129024, 128000, 65536]
+    class 18  3 allocations, 772096 B  [258048, 258048, 256000]
+    class 19  4 allocations, 1871872 B  [516096, 516096, 512000, 327680]
+    class 20  4 allocations, 3624021 B  [1032192, 1032192, 1024000, 535637]
+    class 21  3 allocations, 6176768 B  [2064384, 2064384, 2048000]
+    class 22  3 allocations, 12353536 B  [4128768, 4128768, 4096000]
+    class 23  3 allocations, 24707072 B  [8257536, 8257536, 8192000]
+    class 24  3 allocations, 46006280 B  [16515072, 16384000, 13107208]
+    class 28  3 allocations, 608174088 B  [264241152, 201326592, 142606344]
+  syn_case_items_10000.sv
+    class 15  8 allocations, 195080 B  [32256, 32256, 32000, 24576, 24576, 16648, 16384, 16384]
+    class 16  6 allocations, 299568 B  [64512, 64512, 64000, 36888, 36888, 32768]
+    class 17  3 allocations, 386048 B  [129024, 129024, 128000]
+    class 18  3 allocations, 711911 B  [258048, 256000, 197863]
+    class 19  4 allocations, 1741312 B  [516096, 512000, 393216, 320000]
+    class 20  3 allocations, 2711552 B  [1032192, 1024000, 655360]
+    class 22  3 allocations, 11501576 B  [4128768, 4096000, 3276808]
+    class 27  3 allocations, 304087048 B  [132120576, 100663296, 71303176]
+  syn_port_list_10000.sv
+    class 15  7 allocations, 178696 B  [32256, 32256, 32000, 24576, 24576, 16648, 16384]
+    class 16  6 allocations, 299568 B  [64512, 64512, 64000, 36888, 36888, 32768]
+    class 17  4 allocations, 514960 B  [129024, 129024, 128912, 128000]
+    class 18  3 allocations, 772096 B  [258048, 258048, 256000]
+    class 19  4 allocations, 1864192 B  [516096, 516096, 512000, 320000]
+    class 20  3 allocations, 3088384 B  [1032192, 1032192, 1024000]
+    class 21  3 allocations, 5423104 B  [2064384, 2048000, 1310720]
+    class 22  4 allocations, 14647304 B  [4128768, 4096000, 3276808, 3145728]
+  syn_concat_items_10000.sv
+    class 15  6 allocations, 146440 B  [32256, 32000, 24576, 24576, 16648, 16384]
+    class 16  5 allocations, 235056 B  [64512, 64000, 36888, 36888, 32768]
+    class 17  7 allocations, 645947 B  [129024, 128000, 80000, 80000, 80000, 80000, 68923]
+    class 18  7 allocations, 1169408 B  [258048, 256000, 131072, 131072, 131072, 131072, 131072]
+    class 19  5 allocations, 2068992 B  [516096, 512000, 393216, 327680, 320000]
+    class 20  3 allocations, 2842624 B  [1032192, 1024000, 786432]
+    class 21  3 allocations, 5685248 B  [2064384, 2048000, 1572864]
+    class 22  3 allocations, 11501576 B  [4128768, 4096000, 3276808]
+    class 25  3 allocations, 83623944 B  [33030144, 32768000, 17825800]
+    class 26  3 allocations, 176493664 B  [66060288, 60101728, 50331648]
+
+=== THE THIN-MEMO TABLE'S LIFETIME, READ FROM THE TAPE ===
+`-0128` inferred `never freed` from `end_live` minus a predicted value. The
+tape reads the free ordinal itself, which is a different instrument.
+  floor.sv                                  18312 B  alloc_seq=782        free_seq=NEVER
+  br_gh330.v                             31979728 B  alloc_seq=782        free_seq=NEVER
+  comp1000.v                             60862112 B  alloc_seq=782        free_seq=NEVER
+  t_math_synmul_mul.v                   287902136 B  alloc_seq=782        free_seq=NEVER
+  pinmux_reg_top.sv                    1078789568 B  alloc_seq=782        free_seq=NEVER
+  spi_device_reg_pkg.sv                  26526240 B  alloc_seq=782        free_seq=NEVER
+  syn_netlist_instances_2500.sv         113916336 B  alloc_seq=782        free_seq=NEVER
+  syn_netlist_instances_10000.sv        467076336 B  alloc_seq=782        free_seq=NEVER
+  syn_case_items_10000.sv               172537408 B  alloc_seq=782        free_seq=NEVER
+  syn_port_list_10000.sv                112412136 B  alloc_seq=782        free_seq=NEVER
+  syn_concat_items_10000.sv              60101728 B  alloc_seq=782        free_seq=NEVER
