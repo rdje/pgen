@@ -1,0 +1,28 @@
+=== PREDICTIONS (roster of 11) ===
+   1  FALSIFIED  peak_live/(rss-floor) in [0.50,1.10] every input, median in [0.65,0.90]
+      measured 0.5842..1.2296, median 0.9742; 1 input(s) above 1.10
+   2  FALSIFIED  non-AST residual a MINORITY of peak_live, in [0.20,0.60], median ~0.35
+      measured 0.4650..0.9866, median 0.6638; a MAJORITY on 10 of 11
+   3  FALSIFIED  residual share larger on the two real files than on syn_netlist_instances
+      real ['0.6771', '0.6067'] vs syn_netlist ['0.6635', '0.6638']
+   4  CONFIRMED  >=1 class holding >=5% of peak_live in <=4 live allocations, every input >=30 KB
+      all inputs satisfy it
+   5  CONFIRMED  alloc_bytes/peak_live >= 2.0 on every input
+      measured 2.3681..18.8383, median 3.2283
+   6  CONFIRMED  free_bytes/alloc_bytes >= 0.50 on every input
+      measured 0.7551..0.9940, median 0.9657
+   7  FALSIFIED  end_live < 10 MB on every input (the parse frees what it built)
+      measured 1.72..1032.59 MB; end_live tracks the RETAINED thin scratch
+   8  FALSIFIED  counting-allocator peak_rss within +-2% of the canonical probe's
+      worst |delta| 3.759% over 11 inputs
+   9  CONFIRMED  sum of live bytes in classes >= 2^20 is >= arena_allocated, every input >=30 KB
+      all inputs satisfy it
+  10  CONFIRMED  a live allocation of exactly THIN_RULE_COUNT*(bytes+1)*8 on every input >=30 KB
+      present on every input; byte-EXACT and alone in its class where the class is clean
+  11  CONFIRMED  thin-scratch share is negatively rank-correlated with the leg-3 AST share
+      Kendall tau = -0.6444 over 10 inputs (8 concordant / 37 discordant)
+
+  CONFIRMED 6 of 11 · FALSIFIED 5 of 11
+
+=== CONTROLS (verify the INSTRUMENT, scored separately) ===
+  C1  PASS      peak_live - snapshot_live <= 65536 B (hysteresis) — max observed 5417 B

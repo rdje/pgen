@@ -86,7 +86,7 @@ same leaf keeps its checklist, and a deletion-only edit still counts as touching
 | # | family | when it applies | verbatim tokens that count |
 |---|---|---|---|
 | 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `PGEN_LINT_DUMP_ALL`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `INTERPRET-PARSE:`/`--interpret-parse`, `INDIRECT-LR-SURVEY:`/`--report-indirect-lr-plan`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]`, `LAYOUT-OWNING-TERMINALS:`/`--report-layout-owning-terminals`, `SAMPLE-PROFILE-PARITY:`/`--report-sample-parity` |
-| 2 | **performance / SPEED / FOOTPRINT** | it is correct but slow, or its memory is the problem | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph`, `ARENA-CHUNK-ORACLE:` (`rust/target/release/arena_chunk_oracle_probe` — proves the `typed_arena` chunk-capacity model against a counting `GlobalAlloc`; `--red-control` required to go red) |
+| 2 | **performance / SPEED / FOOTPRINT** | it is correct but slow, or its memory is the problem | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph`, `ARENA-CHUNK-ORACLE:` (`rust/target/release/arena_chunk_oracle_probe` — proves the `typed_arena` chunk-capacity model against a counting `GlobalAlloc`; `--red-control` required to go red), `PARSE-ALLOC-CENSUS:` (`rust/target/release/parse_alloc_census_probe` — the whole parse's requested-live-bytes high-water and a size-class table at that high-water, so a structure can be attributed by NAME instead of subtracted for; `--red-control-arm` required to go red) |
 | 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
 | 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
 | 5 | **ops / build-flow** | the defect is in the repo's OWN scripts, Makefiles, hooks or tracking state — shell/make, so no rustc error either | `git ls-files`/`log -S`/`rev-list`/`fsck`/`reflog`/`diff-tree`/`merge-base`, `shellcheck`, `bash -n`, `make -n`/`make --dry-run`, `E2BIG`/`ENOSPC`/`EACCES`/`ARG_MAX`, `guard.<pid>.marker`, `reason=rss-budget\|free-floor\|disk-floor\|timeout`, `GATE-REACHABILITY-PROBE:`, `SV-CONTRACT-CURRENCY:` (`scripts/check_sv_contract_currency.sh` — the SV grammar's semantic digest versus the contract's), `ACCEPT-SET-LEDGER:` (`docs/tasks/artifacts/sv_corpus_grad/contract_accept_set_ledger/measure_accept_set_transitions.py` — which grammar commit moved which verdict or which typed AST), `LRM-ANNEX-A-GAP:` (`stimuli/sv/lrm_annex_a_gap_census.py` — the IEEE 1800 productions the CLAUSE bodies define and Annex A, the only surface the extractor reads, does not) |
@@ -162,7 +162,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | **"`--lint-grammar` says `left_recursion_unhandled=N` — so WHICH rule could absorb the chain, what suffix, and what does it cost?"** | [5.5 `--report-indirect-lr-plan`](#55---report-indirect-lr-plan) — ⛔ the lint names the cycle, not the fix; picking the wrong base rule is a measured REGRESSION |
 | "What IR do the generators actually consume?" | [5.2 `--dump-gen-ast`](#52---dump-gen-ast) |
 | "Packrat memo hit/miss perf?" | [3.3 `PGEN_REPORT_MEMO_STATS`](#33-pgen_report_memo_stats) |
-| "Where does the parse MEMORY go?" | [3.3b `PGEN_REPORT_PARSE_FOOTPRINT`](#33b-pgen_report_parse_footprint) |
+| "Where does the parse MEMORY go?" | [3.3b `PGEN_REPORT_PARSE_FOOTPRINT`](#33b-pgen_report_parse_footprint) (the AST arena) then [3.3c `PARSE-ALLOC-CENSUS:`](#33c-parse-alloc-census--where-the-rest-of-the-parse-memory-is) (everything else) |
 | "EXACT per-rule entry counts for a parse (machine-readable)?" | [3.4 `--dump-rule-entry-counts-json`](#34---dump-rule-entry-counts-json) |
 | "How much parse work is DISCARDED (failed speculation)? committed vs wasted per rule?" | [3.5 `--dump-rule-outcome-counts-json`](#35---dump-rule-outcome-counts-json) |
 | **"Did the whole SV parser get SLOWER — and would anything have told me?"** — ⛔ never answer with an ad-hoc timing script against a remembered number; that produced `~11 %`, then `+24.3 %`, and **BOTH were machine-variance artifacts** (`.26`) | [3.7 the SV parse-cost ratchet](#37-the-sv-parse-cost-ratchet--did-the-whole-parser-get-slower-and-would-anything-have-told-me) |
@@ -686,6 +686,65 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   those definitions are debug-gated traces, not stderr** (`ENGINE-UNIVERSAL-SERVICES.72`). If you add
   a diagnostic to either file and it does not appear, that is why — use `std::eprintln!`, and note
   that `macro_rules!` is TEXTUALLY SCOPED so sites ABOVE the definition are unaffected.
+
+### 3.3c `PARSE-ALLOC-CENSUS:` — where the rest of the parse memory is
+- **WHAT:** the WHOLE parse's requested-live-byte high-water mark, plus a per-power-of-two
+  SIZE-CLASS table at that high-water, from a counting `#[global_allocator]`. 3.3b reads the
+  ENGINE's own accounting and therefore sees only what passes through `NodeArena`; this reads the
+  ALLOCATOR and therefore sees the memo tables, the failure tables, the derivation tape and the
+  thin-memo scratch too — everything, regardless of which struct owns it.
+  **WHEN:** you have 3.3b's arena number and want to know what the REST is
+  (`ENGINE-UNIVERSAL-SERVICES.67`(b) leg 4). **HOW:**
+  `PGEN_REPORT_PARSE_FOOTPRINT=1 ./rust/target/release/parse_alloc_census_probe systemverilog f.sv --profile sv_2017`
+- ⭐⭐ **RUN IT WITH `PGEN_REPORT_PARSE_FOOTPRINT=1` — THAT IS THE POINT.** The probe calls the same
+  `parse_sample_detail_with_options` entry point `--parse` calls, so 3.3b's two stderr lines and
+  this probe's stdout describe **the same parse in the same process**. Nothing pairs two runs and
+  hopes they agree. (Cross-checked: the arena figures reproduce the tracked `-0126` ladder EXACTLY
+  on 11 of 11 inputs.)
+- ⛔⛔ **IT READS AN *ALLOCATION* QUANTITY. 3.3b's denominator is a *RESIDENCY* quantity.** `peak_live`
+  is Σ `Layout::size()` over unfreed allocations; peak RSS is pages the kernel backed. Leg 3
+  measured 1 008 MB of allocation costing 32 768 B of RSS, so do not divide one by the other without
+  saying so. Measured on the SV ladder they happen to be close — `peak_live / (peak_rss − floor)`
+  is **0.584–1.230, median 0.974** — which is itself the finding that allocator overhead is not
+  where this workload's memory goes.
+- **OUTPUT (stdout; three anchors):** `PARSE-ALLOC-CENSUS:` (one line of `key=value` scalars),
+  `PARSE-ALLOC-TYPE-SIZES:` (the `size_of` of every candidate structure, MEASURED — `MemoEntry`
+  carries four `Option`s whose niches the compiler may pack, so a hand-computed bucket size is an
+  inference dressed as a measurement), and one `  ALLOC-CLASS ` line per non-empty size class.
+  ⛔ **Every value is emitted UNPADDED, deliberately.** The first cut printed a human-aligned table
+  (`live_bytes={:>14}`), which puts whitespace between a key and its number — a whitespace-split
+  `key=value` reader then took the bare token and left the column EMPTY, on every row, at exit 0.
+  Alignment is the analysis' job.
+- ⛔ **VERIFY THE ARM — `--red-control-arm`.** `#[global_allocator]` is a whole-program property and
+  a build believed to have installed one may not have (`-0123`: a `--features mimalloc_perf` build
+  of `parseability_probe` is NOT a mimalloc arm, because that bin never declares one). The probe
+  REFUSES to report if its counters read zero at entry to `main`, and `--red-control-arm` feeds the
+  check the value it would read with no allocator installed and requires the refusal. Run it once
+  after any rebuild.
+- ⭐ **TWO FREE CONTINUOUS ORACLES, in the `items_agree` spirit — both must read `true`.**
+  `class_sum_agrees` and `snap_sum_agrees` compare the per-class table against the running total,
+  which are maintained by independent code paths; a `false` invalidates the class table, and would
+  also be what catches a TORN snapshot (a second thread allocating during the copy), which is the
+  assumption every `Relaxed` ordering in the probe rests on.
+- ⚠️ **`snapshot_live` IS NOT `peak_live`, AND THE GAP IS REPORTED.** Copying 96 counters at every
+  new high-water mark would cost O(classes) per allocation through the whole growth phase, so the
+  class table is snapshotted only when the live total beats the snapshot's by a 64 KiB hysteresis.
+  Measured max gap over the ladder: **5 417 B**. Divide class shares by `snapshot_live`, not by
+  `peak_live`.
+- ⭐⭐⭐ **WHAT IT MEASURED, so you know what to expect** (8 ladder inputs, shares of near-peak live
+  bytes): **arena 15.6–47.0 % · memo tables 18.3–46.3 % · failure-memo 4.2–9.5 · THIN-MEMO SCRATCH
+  10.4–44.6 % · deriv tape 0.00–0.55 % · unattributed 3.0–9.2 %.** Two things to carry away. The
+  **deriv tape is not where the memory goes** — it is capped at 40 960 words. And the biggest single
+  structure is a **dense `THIN_RULE_COUNT × (len + 1)` table of `u64`** (872 B per input byte on
+  SystemVerilog) that `ThinMemoScratchLease::drop` returns to a `thread_local` instead of freeing,
+  so it is **still resident after the parse returns** — `end_live` minus its predicted size is a
+  flat 1.56–3.77 MB on 11 of 11 inputs. `docs/tasks/artifacts/eus67/thin_scratch_census.sh` reports
+  the constant for every generated family (json 48 B/byte … systemverilog 872 B/byte).
+- ⛔⛔ **PEAK RSS IS CONTENDED-MACHINE-SENSITIVE AND `peak_live` IS NOT — MEASURED THE HARD WAY.**
+  A ladder run alongside a 10 GB build read peak RSS **−13.6 %, −27.9 % and −25.8 % LOW** on exactly
+  the three inputs peaking above ~1.9 GB, while the allocation-side figures were BYTE-IDENTICAL
+  across the two runs on 11 of 11. Re-run idle, RSS agreed with the canonical probe within ±0.95 %.
+  ⇒ **run any RSS measurement on an idle machine; nothing in the harness enforces it.**
 
 ### 3.4 `--dump-rule-entry-counts-json`
 - **WHAT:** after a `--parse`, write the parser's monotone per-rule ENTRY counters (every rule-method entry, successful AND backtracked — the always-on `fetch_add` on rule entry) as JSON `{grammar, accepted, total_entries, rule_entry_counts}`. The machine-readable dual of the live dashboard (3.1), which is stderr-only/refresh-based and useless for a sub-millisecond parse. Counts are a DELTA past a pre-parse baseline (SV's stdlib preload never pollutes them) and deterministic for a deterministic parser ⇒ a re-runnable oracle. Wired for every registered grammar's canonical-entry `--parse` path (not `--entry-rule`). RGX-0078.5.h.1.

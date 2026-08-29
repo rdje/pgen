@@ -14676,7 +14676,7 @@ log: `…/logs/retention_ceiling_census.txt` — which ends with the SAME script
   instances — which ACCEPTED before this commit too — costs **4 064.0 MB**, and 10 001 costs
   **4 064.1 MB**. The 4 GB is pre-existing and is `.67`'s subject, not this leaf's.
 
-### ⛔⛔ `.67` — **PARSE MEMORY IS 2 500×–8 000× THE INPUT SIZE AND LINEAR, SO "BOUNDED ONLY BY HOST RAM" BINDS AT ~40 000 NETLIST INSTANCES ON A 16 GB MACHINE** (`in progress` — ✅ **(a) DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0120`, ✅ **(b) legs 1–3 of 4 DONE — the AST side is CLOSED and the withdrawn conclusion is RESTORED** `…-0121`/`-0122`/`-0124`/`-0125`/`-0126`; 🟡 **leg 4 (memo + deriv tape + transient `Vec`s) is what remains**, (c) open; opened 2026-08-28 by `.66`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`)
+### ⛔⛔ `.67` — **PARSE MEMORY IS 2 500×–8 000× THE INPUT SIZE AND LINEAR, SO "BOUNDED ONLY BY HOST RAM" BINDS AT ~40 000 NETLIST INSTANCES ON A 16 GB MACHINE** (`in progress` — ✅ **(a) DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0120`, ✅ **(b) legs 1–3 of 4 DONE — the AST side is CLOSED and the withdrawn conclusion is RESTORED** `…-0121`/`-0122`/`-0124`/`-0125`/`-0126`; ✅ **leg 4 DONE `…-0128` — the residual is ATTRIBUTED and the biggest thing in it was on nobody's candidate list: a dense `109 × (len + 1)` thin-memo table costing 872 B per input byte that is NEVER FREED (10.4–44.6 % of near-peak live bytes, and 1 029 MB still resident after a 1.2 MB parse RETURNS); memo tables 24–52 %; the DERIV TAPE — one of this leg's own three candidates — is 0.00–0.55 %; unattributed 3.0–9.2 %**, (c) open; opened 2026-08-28 by `.66`'s own AFTER measurement / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`)
 
 - **WHY THIS IS A LEAF AND NOT A FOOTNOTE.** The director's mandate names host RAM as the ONE
   legitimate limit ([[project_rtl_parsers_accept_any_rtl_no_limits_non_negotiable]]). `.66` moved the
@@ -15472,6 +15472,263 @@ The director asked *"do you still stand by your 4 findings?"*. Re-derived one at
   gate WATCHES these numbers.** They are a measurement record, not a ratchet, and a ratchet is
   priced in `.67`(c).
 
+#### ✅✅✅ `.67`(b) LEG 4 DONE — **THE RESIDUAL IS ATTRIBUTED, AND THE BIGGEST THING IN IT WAS ON NOBODY'S CANDIDATE LIST: A DENSE `109 × (len + 1)` TABLE THAT COSTS 872 BYTES PER INPUT BYTE AND IS NEVER FREED. THE DERIV TAPE — ONE OF THE THREE CANDIDATES THIS LEG WAS OPENED FOR — IS 0.00–0.55 %** (`PGEN-ENGINE-UNIVERSAL-SERVICES-0128`, 2026-08-29)
+
+Discharges the leg-4 obligation `-0121` set (*"attribute it — memo tables vs node arena vs deriv tape
+vs AST"*) and the exclusion `-0126` routed here (*"TRANSIENT collection `Vec`s … unmeasured, and it is
+named here rather than left to be found"*). Producers and raw data:
+[`parse_alloc_census_probe.rs`](../../rust/src/bin/parse_alloc_census_probe.rs),
+[`measure_alloc_census.sh`](artifacts/eus67/measure_alloc_census.sh),
+[`alloc_census.tsv`](artifacts/eus67/alloc_census.tsv),
+[`alloc_census_classes.tsv`](artifacts/eus67/alloc_census_classes.tsv),
+[`attribute_alloc_classes.py`](artifacts/eus67/attribute_alloc_classes.py),
+[`alloc_attribution.txt`](artifacts/eus67/alloc_attribution.txt),
+[`alloc_census_shares.py`](artifacts/eus67/alloc_census_shares.py),
+[`thin_scratch_census.sh`](artifacts/eus67/thin_scratch_census.sh),
+[`thin_scratch_census.tsv`](artifacts/eus67/thin_scratch_census.tsv),
+[`score_alloc_predictions.py`](artifacts/eus67/score_alloc_predictions.py),
+[`alloc_prediction_scorecard.txt`](artifacts/eus67/alloc_prediction_scorecard.txt),
+prediction [`PREDICTION_ALLOC_CENSUS.md`](artifacts/eus67/PREDICTION_ALLOC_CENSUS.md).
+
+- **THE INSTRUMENT — COUNT THE ALLOCATOR INSTEAD OF ASKING THE PARSER.** `PARSE-ALLOC-CENSUS:`
+  (`rust/target/release/parse_alloc_census_probe`) carries a System-delegating counting
+  `#[global_allocator]` that tracks REQUESTED LIVE BYTES — Σ `Layout::size()` over unfreed
+  allocations — keeps their high-water mark, and snapshots a per-power-of-two SIZE-CLASS table at
+  that high-water. A separate bin for the reason `arena_chunk_oracle_probe` and
+  `regex_alloc_census_probe` are: an allocator is a whole-program property and the canonical
+  `parseability_probe` — which every tracked corpus number in this repository is measured with —
+  stays byte-identical (`646475a2…`, verified).
+- ⭐⭐ **THE JOIN IS INSIDE ONE PROCESS, WHICH IS WHY NO PAIRING ASSUMPTION IS NEEDED.** The probe
+  calls the same `parse_sample_detail_with_options` entry point `--parse` calls, so with
+  `PGEN_REPORT_PARSE_FOOTPRINT=1` legs 1–3 (arena + owned heap, stderr) and leg 4 (allocator,
+  stdout) describe **the same parse**. Cross-check: this probe's arena figures reproduce `-0126`'s
+  published `attribution_chunks.tsv` **EXACTLY on 11 of 11 inputs** — a different binary, the same
+  bytes.
+- ⛔⛔ **THE QUANTITY WAS NAMED BEFORE THE NUMBER, WHICH IS THE ONE THING `-0127` SAID TO DO.** This
+  probe reads an ALLOCATION quantity; `.67`'s denominator, floor-subtracted peak RSS, is a RESIDENCY
+  quantity. So the attribution below is allocation-side throughout — every term, arena included, is
+  a requested-bytes term against a requested-bytes denominator — and the one ratio that crosses the
+  two is labelled CROSS-QUANTITY wherever it appears.
+
+## THE ATTRIBUTION — 8 of 11 ladder inputs, shares of near-peak live bytes
+
+| input | peak_live MB | arena | memo | fail-memo | thin scratch | tape | unattributed |
+|---|---|---|---|---|---|---|---|
+| `br_gh330.v` | 292.86 | 47.0 % | 25.4 % | 8.5 % | **10.4 %** | 0.00 % | 8.7 % |
+| `comp1000.v` | 525.18 | 28.4 % | 42.4 % | 9.5 % | **11.1 %** | 0.00 % | 8.6 % |
+| `t_math_synmul_mul.v` | 1 978.49 | 31.0 % | 45.0 % | 5.4 % | **13.9 %** | 0.00 % | 4.7 % |
+| `pinmux_reg_top.sv` | 3 251.67 | 36.8 % | 18.3 % | 6.2 % | **31.6 %** | 0.00 % | 7.2 % |
+| `spi_device_reg_pkg.sv` | 56.73 | 15.6 % | 24.5 % | 5.5 % | **44.6 %** | 0.55 % | 9.2 % |
+| `syn_netlist_instances` 2 500 | 961.64 | 31.9 % | 46.3 % | 5.5 % | **11.3 %** | 0.00 % | 5.0 % |
+| `syn_netlist_instances` 10 000 | 3 850.52 | 31.9 % | 46.3 % | 5.5 % | **11.6 %** | 0.00 % | 4.8 % |
+| `syn_port_list` 10 000 | 280.41 | 27.7 % | 26.5 % | 4.2 % | **38.2 %** | 0.45 % | 3.0 % |
+
+**arena 15.6–47.0 % (median 31.4 %) · memo 18.3–46.3 % (median 34.5 %) · failure-memo 4.2–9.5 % ·
+THIN-MEMO SCRATCH 10.4–44.6 % (median 12.7 %) · deriv tape 0.00–0.55 % · unattributed 3.0–9.2 %
+(median 6.1 %).**
+
+- ⛔ **THREE ROWS ARE MISSING FROM THAT TABLE AND EACH IS MISSING FOR A STATED REASON, NOT DROPPED.**
+  `syn_case_items` 10 000 and `syn_concat_items` 10 000 are **REFUSED**: their `shaped_values`
+  capacity is not `first × (2ⁿ − 1)`, so the arena's exact chunk multiset is not derivable from the
+  reported capacity — the `alloc_extend` reserve path `-0125` proved has no closed form. The
+  attribution pass refuses those inputs rather than allowing an unconstrained doubling generator.
+  `floor.sv` (20 bytes) is reported separately: **70.0 % of its 2.23 MB peak is bulk small
+  allocations**, i.e. process and parser construction, so it measures the floor and not a shape —
+  the same "97 % of the corpus cannot answer this question" discipline `.67`(a) applied.
+
+## ⭐⭐⭐ THE FINDING: THE LARGEST SINGLE STRUCTURE IN THE PARSE WAS ON NOBODY'S CANDIDATE LIST
+
+`generated/systemverilog_parser.rs:4390` builds the thin-memo scratch as
+`ThinMemoScratchLease::take(); lease.begin(THIN_RULE_COUNT * (input.len() + 1))` with
+`THIN_RULE_COUNT = 109` (`:3291`), and `ThinMemoScratch::begin`
+(`rust/src/ast_pipeline/mod.rs:2426`) does `self.slots.resize(need, 0)` on a `Vec<u64>`.
+⇒ **a dense table of `109 × (len + 1)` eight-byte slots — 872 bytes per input byte — sized before
+the parse reads a token and independent of what the file contains.**
+
+- ✅ **PREDICTED FROM SOURCE, THEN FOUND BY SIZE, BYTE-EXACT.** On the two inputs whose size class
+  holds exactly one live allocation the identification is unambiguous: `pinmux_reg_top.sv` predicted
+  `109 × 1 237 144 × 8 = 1 078 789 568` B and class 31 measures **1 078 789 568 B, count 1**;
+  `spi_device_reg_pkg.sv` predicted **26 526 240** B and class 25 measures **26 526 240 B, count 1**.
+- ⭐⭐ **AND A SECOND, INDEPENDENT COLUMN AGREES — one that knows nothing about size classes.**
+  `ThinMemoScratchLease::drop` returns the scratch to a `thread_local`, so it is **NEVER FREED**.
+  Measured: `end_live` — live bytes after the parse returns and everything it owned is dropped —
+  minus the predicted scratch is **1.56–3.77 MB on 11 of 11 inputs**, against scratch values
+  spanning 18 KB to 1 029 MB. The remainder is a flat process baseline. ⇒ **a caller that parses a
+  1.2 MB file keeps 1 029 MB resident after the parse returns, for the life of the thread.**
+- ⛔ **IT IS ENGINE-UNIVERSAL, NOT A SYSTEMVERILOG DEFECT, AND THE CENSUS SAYS SO**
+  (`thin_scratch_census.sh`, tracked): **10 of 11 generated parsers carry one**, at
+  `THIN_RULE_COUNT × 8` bytes per input byte — json 48, systemverilog_preprocessor 64,
+  rtl_const_expr 104, return_annotation 120, ebnf 192, regex 224, vhdl 232, rtl_frontend 240,
+  semantic_annotation 360, **systemverilog 872**; `scratch` declares none. SystemVerilog is the
+  worst because it has the most fused-cascade rules (109), not because anything about it is special.
+- ⚠️⚠️ **WHAT IS NOT MEASURED, AND IT IS THE QUESTION THAT DECIDES THE FIX: UTILISATION.** Nothing
+  here says the table is waste. It is a dense direct-address memo — the shape that made the
+  fused-cascade path fast — and how many of its `109 × (len + 1)` slots a real parse actually writes
+  is **not instrumented**. A sparse replacement is only a win if occupancy is low, and that is a
+  measurement, not an inference. ⇒ routed to **`.67`(c)** with the rest of the fix pricing; the
+  finding here is the COST, and the cost is now a number.
+- ⚠️ **RESIDENCY IS ALSO NOT DIRECTLY MEASURED FOR THIS TABLE.** `resize(needed, 0)` writes every
+  slot, so it *should* be resident, and the aggregate is consistent with that (see the
+  cross-quantity row below). But leg 3 exists because an allocation figure was mistaken for a
+  residency figure, and the `N`/`N + 1` experiment that settled it there has no counterpart here.
+  Stated as an allocation measurement, and the residency experiment is routed to `.67`(c).
+
+## ⭐⭐ THE DERIV TAPE IS REFUTED AS A CONTRIBUTOR — A CLEAN NEGATIVE ON A NAMED CANDIDATE
+
+`-0121` named three candidates for the residual and both this leaf and
+`docs/book/src/inside-parser-performance.md` repeated them: *"the packrat memo, the derivation tape
+and allocator overhead"*. Measured, the **deriv tape is 0.00 %–0.55 % of near-peak live bytes** —
+below 1 % on every input and exactly zero on six of eight, because
+`Vec::with_capacity(((len + 1) × 5).clamp(80, 40960))` is CAPPED at 40 960 words (327 KB) and the
+committed derivation never drove it past a megabyte on this ladder. ⇒ **the tape is not where the
+memory goes, and the book sentence naming it is corrected in this slice.**
+
+## THE MEMO IS THE BIGGEST LEG, AND ITS PEAK INCLUDES A REHASH
+
+Success and failure tables together are **24 %–52 %** of near-peak live bytes. Every one is
+identified by its exact hashbrown layout — `buckets × size_of::<T>() + buckets + Group::WIDTH`, with
+`size_of::<T>()` MEASURED by the probe (`memo_bucket=296`, `memo_fail_bucket=16`) rather than
+hand-computed from the field list, because `MemoEntry` carries four `Option`s whose niches the
+compiler is free to pack.
+
+- ⭐ **TWO SUCCESS TABLES ARE LIVE AT ONCE ON 4 OF 8 INPUTS** — e.g. `t_math_synmul_mul.v` holds
+  **622 854 152 B (2²¹ buckets) AND 311 427 080 B (2²⁰)** simultaneously. That is the REHASH window:
+  hashbrown allocates the new table before freeing the old, so the memo's contribution to PEAK is
+  **1.5× its steady-state size**. The peak of a parse is partly an artifact of *when* the memo
+  doubled.
+- ⭐ `Group::WIDTH` is **determined, not assumed**: 8, pinned by the large tables where the two
+  candidates are 8 bytes apart and the reading is unambiguous, reproduced at 2¹⁸, 2¹⁹, 2²⁰, 2²¹ and
+  2²² buckets across four inputs. An earlier cut tried both widths per allocation and was observed
+  fabricating — naming the same 64-bucket table twice at two widths on `floor.sv`.
+
+## ⭐ THE TRANSIENT-`VEC` QUALIFICATION IS NOW BOUNDED BY A NUMBER
+
+`-0126` restored its conclusion without the word *provably*, for one exclusion: transient collection
+`Vec`s are AST-shaped, contribute to PEAK, are resident nowhere at report time, and were unmeasured.
+They are still not individually identified — but they are now **BOUNDED**, because everything else in
+the snapshot is named byte-exactly: whatever they are, they lie inside the **unattributed residual,
+which is 3.0 %–9.2 % of near-peak live bytes (median 6.1 %)**. ⭐ And the unnamed allocations have a
+shape: on every input ≥ 30 KB the residual is dominated by ONE allocation of an exact power of two
+between 2 MB and 128 MB — the signature of a doubling `Vec`. **Naming which `Vec` needs a call-site
+instrument and is routed; bounding it did not.**
+
+## ⛔ AND THE FRAGMENTATION HYPOTHESIS DOES NOT SURVIVE, ON THIS WORKLOAD
+
+`-0121` priced allocator fragmentation as a residual candidate on the strength of a `vmmap` profile
+in the book measuring **~50 %** across ~72 M small allocations on the uvm input. Measured here as a
+CROSS-QUANTITY ratio — allocation over residency, labelled as such —
+**`peak_live / (peak_rss − floor)` is 0.584–1.230, median 0.974**: requested live bytes and
+floor-subtracted resident bytes are the same size to within a quarter, in both directions. There is
+no room for a 50 % overhead on this ladder. ⚠️ It does not refute the book's uvm figure, which is a
+different input and a different instrument; it says the SV ladder measured here does not show it.
+
+## ⛔⛔ A MEASUREMENT ERROR I MADE AND CAUGHT, RECORDED BECAUSE THE NEXT SESSION WILL MAKE IT
+
+The first publishing ladder was run WHILE a 10 GB LTO build was compiling. Under that memory
+pressure `/usr/bin/time -l` peak RSS read **−13.6 %, −27.9 % and −25.8 % LOW** on exactly the three
+inputs whose peak exceeds ~1.9 GB, and within ±0.6 % on the other eight — a silent, plausible,
+entirely wrong set of numbers. ⭐ **It was caught because `peak_live` is deterministic and RSS is
+not**: the allocation-side figures were BYTE-IDENTICAL across the two runs on 11 of 11 while RSS
+moved by a quarter. Re-run on an idle machine, peak RSS agrees with the canonical probe's tracked
+ladder within **±0.95 % on all ten real and synthetic inputs**. ⇒ **every peak-RSS number in `.67`
+is only as good as the machine's idleness at the time, and nothing in the harness enforces that.**
+A `peak_live` figure is not exposed to it.
+
+## THE PRE-REGISTRATION — 6 OF 11 CONFIRMED, AND THE SCORECARD IS DERIVED RATHER THAN TYPED
+
+`score_alloc_predictions.py` walks a fixed roster and prints a verdict for every registered row, so
+the census cannot lose one silently — the defect `-0127` found in leg 3's hand-written table. Full
+output: [`alloc_prediction_scorecard.txt`](artifacts/eus67/alloc_prediction_scorecard.txt).
+
+| # | predicted | measured | verdict |
+|---|---|---|---|
+| 1 | cross-quantity ratio in [0.50, 1.10], median [0.65, 0.90] | 0.584–1.230, median **0.974** | **FALSIFIED** (both) |
+| 2 | non-AST residual a MINORITY of `peak_live`, ~0.35 | 0.465–0.987, median **0.664** — a MAJORITY on 10 of 11 | **FALSIFIED** |
+| 3 | residual larger on the two real files than on `syn_netlist_instances` | 0.677 and **0.607** vs 0.664 — one of the two is below | **FALSIFIED** |
+| 4 | a class holding ≥ 5 % of `peak_live` in ≤ 4 allocations, every input ≥ 30 KB | holds on every input | CONFIRMED |
+| 5 | `alloc_bytes / peak_live` ≥ 2.0 | 2.368–18.838, median 3.228 | CONFIRMED |
+| 6 | `free_bytes / alloc_bytes` ≥ 0.50 | 0.755–0.994, median 0.966 | CONFIRMED |
+| 7 | `end_live` < 10 MB (the parse frees what it built) | **1.72–1 032.59 MB** | **FALSIFIED — and it is the slice's second-best finding** |
+| 8 | counting-allocator peak RSS within ±2 % of the canonical probe | worst **3.759 %**, on `floor.sv` alone | **FALSIFIED as worded** |
+| 9 | live bytes in classes ≥ 2²⁰ ≥ `arena_allocated`, every input ≥ 30 KB | holds on every input | CONFIRMED |
+| 10 | a live allocation of exactly `109 × (bytes + 1) × 8`, every input ≥ 30 KB | present on every one; byte-EXACT and alone in its class where the class is clean | CONFIRMED |
+| 11 | thin-scratch share negatively rank-correlated with the leg-3 AST share | Kendall **τ = −0.644** over 10 inputs | CONFIRMED |
+| C1 | *control* — `peak_live − snapshot_live` ≤ 64 KiB by construction of the hysteresis | max observed **5 417 B** | PASS (control, not scored with the predictions) |
+
+- ⭐⭐ **PREDICTION 7 IS THE ONE WORTH THE SPACE, AND IT FAILED BECAUSE I ASSUMED A LIFETIME RATHER
+  THAN READING ONE.** I predicted `end_live < 10 MB` because a parse that has returned has dropped
+  its parser, its arena and its memo. All true — and irrelevant, because the structure that
+  dominates `end_live` is precisely the one whose `Drop` **puts it back** instead of freeing it.
+  ⇒ **before predicting that a thing is gone, read its `Drop`.** The three earlier carry-forwards in
+  this leaf were about the QUANTITY (`-0126`), the SENTENCE (`-0125`) and the SET (`-0127`); this
+  one is about the LIFETIME, and it is the same failure to check the frame one level further down.
+- ⚠️ **PREDICTION 8 IS REPORTED FALSIFIED AS WORDED even though it holds where it matters.** The
+  ±2 % band is exceeded only by `floor.sv` at +3.76 %, a 20-byte file sitting inside a process-floor
+  band `.67`(a) already measured at ±19 %. On the ten inputs the prediction was about, the worst
+  disagreement is **0.95 %**. The row is scored FALSIFIED because that is what the sentence says,
+  and narrowing a prediction after seeing the data is how a scorecard stops being a check.
+
+##### ACCEPTANCE CHECKLIST — `.67`(b) leg 4 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0128`)
+
+- [x] **ROOT CAUSE (WHY + WHERE), tool-backed.** WHY the residual could not be attributed by the
+  existing instruments: legs 1–3 read the ENGINE's own accounting, which by construction sees only
+  what passes through `NodeArena` — the memo tables, the failure tables, the derivation tape and the
+  thin scratch all live in the GENERATED parser struct and are invisible to it. And the one existing
+  parser-side instrument cannot be used for this: `PGEN_REPORT_MEMO_STATS` **clears `bare_parse` and
+  routes the parse onto the PROTOCOL graph**, a *different, larger* parse — 299.9 MB fused against
+  345.2 MB, a **15.1 % confound** measured on `br_gh330.v` (`-0121`). WHERE it therefore had to be
+  measured: below both, at the allocator, which sees every structure regardless of which struct owns
+  it. Tool-backed by the new instrument's own output — `PARSE-ALLOC-CENSUS:` — whose size-class
+  table names the structures by byte size, and by `strings`/source reads at
+  `generated/systemverilog_parser.rs:4390` and `rust/src/ast_pipeline/mod.rs:2426`.
+- [x] **FIX** — instrument tier, and deliberately NOT engine tier: a new bin
+  `rust/src/bin/parse_alloc_census_probe.rs` plus its `[[bin]]` entry. **ZERO bytes changed in
+  `rust/src/` library code, ZERO grammar, ZERO codegen, ZERO generated artifacts** — this leg
+  measures, it does not change behaviour. No lower tier exists: the question is about allocations
+  the engine's own accounting cannot see, so there is no declarative or grammar-level answer.
+- [x] **ADDRESSED (verified).** The residual `-0121` left at 64–86 % and could not name is now
+  attributed to **3.0–9.2 %** unattributed on 8 of 11 inputs, with two inputs REFUSED by name and one
+  reported as floor. ⭐ **RED controls observed firing**: `--red-control-arm` drives the arm check
+  with the value it would read if the `#[global_allocator]` were absent and it REFUSES
+  (`ARM-CHECK RED CONTROL: refused as designed`, exit 0) — the `-0123` failure this probe exists not
+  to repeat; and the attribution pass's arena constraint went RED before it was added, naming
+  **369.66 MB** of arena chunks on `syn_concat_items` where the engine's oracle-proved model says
+  **317.13 MB**, which is what forced the exact-multiset constraint.
+- [x] **NO REGRESSION (measured, on three axes).**
+  - **Structural**: the change adds a bin and touches no library, grammar or codegen source, so no
+    generated artifact can move. Verified rather than asserted — the canonical
+    `parseability_probe` is **byte-identical** at `646475a2…`, the binary `-0126` published its
+    ladder with.
+  - **Cross-instrument**: this probe's arena figures reproduce `-0126`'s tracked
+    `attribution_chunks.tsv` **EXACTLY on 11 of 11 inputs**, and its peak RSS agrees with the
+    canonical probe within **±0.95 %** on all ten real and synthetic inputs (`floor.sv` +3.76 %,
+    inside its own ±19 % floor band).
+  - **Self-determinism**: `peak_live` and `end_live` are **byte-identical across two independent
+    ladder runs on 11 of 11 inputs**, and `floor.sv` reproduces byte-identically across **two
+    different binaries** (`35ff32b4…` and `ee119a6e…`).
+  - `check_doctrines.sh` **ALL 31 PASS** against the staged diff · `clippy` strict (source +
+    generated) **PASS** · `mdbook_docs_gate` **PASS**.
+- [x] **THREE-WAY CHECK.** (1) **RE-DERIVED by command** — every producer and analyser is tracked and
+  run from the repository root; the ladder was run three times, twice cleanly.
+  (2) **FALSIFIED against an oracle I did not build** — the counting `GlobalAlloc` is the
+  allocator's own accounting, not a copy of my arithmetic; the engine's `ArenaChunkModel` (proved
+  byte-exact against a counting allocator on 230 cases by `-0126`) CONSTRAINS the attribution and
+  caught it over-assigning; **114 named allocations were checked against the probe's own size-class
+  bucketing and 0 fell outside their class**, each one a source-derived size landing where an
+  independent code path put it; and the pre-registration falsified **5 of 11** legs including two
+  headline ones. (3) **DURABILITY** — probe, producer, three analysers, the family census, both
+  TSVs, the attribution and the scorecard are tracked; the token `PARSE-ALLOC-CENSUS:` is REGISTERED
+  in `scripts/check_diagnosis_evidence.sh` and in `TOOLBOX.md`'s five-family table in this same
+  commit (**priced: 0 existing ticked ROOT CAUSE boxes gain a free pass from the widening** — the
+  token occurs nowhere in `docs/` before this slice). ⚠️ **NAMED GAP, unchanged from
+  `-0121`/`-0124`/`-0126`: no gate WATCHES these numbers.** They are a measurement record, not a
+  ratchet, and a ratchet is priced in `.67`(c). ⚠️ **SECOND NAMED GAP: the probe's two unit tests
+  were NOT executed.** `cargo test --release --bin parse_alloc_census_probe` needs its own LTO link
+  against a 333 MB rlib and was contending with the measurement, so it was stopped; both assertions
+  are instead observed in shipped output — `arm_verdict(0)`'s refusal by `--red-control-arm`, and
+  `class_of`'s bucketing by the 114-allocation class-range oracle above, which is strictly stronger
+  than the ten hand-picked values the unit test checks.
+
 ### ✅✅✅ `.65` — **THE RECURSION CEILING IS NO LONGER A NUMBER ANYBODY TYPED. IT IS MEASURED, PER PARSE, FROM THE STACK THE HOST ACTUALLY GAVE THE THREAD** (**DONE 2026-08-28** `PGEN-ENGINE-UNIVERSAL-SERVICES-0117`; opened 2026-08-28 by `.63`(c)'s ruling / `…0114`; taken after `.66`)
 
 #### ✅ `.65` DONE 2026-08-28 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0117`) — **`4096` SURVIVES ONLY AS THE DEPTH AT WHICH THE GUARD FIRST *ASKS*. THE ANSWER COMES FROM THE HOST, AND IT IS PROVED HOST-DERIVED BY PROPORTIONALITY RATHER THAN BY A BIGGER NUMBER**
@@ -15948,6 +16205,53 @@ STRENGTH I attributed to my own evidence.
   `macro_rules!` 4 000 lines away.
 - ⛔ **ROUTED + PARKED behind the SV lane** ([[project_nexsim_sv_signoff_delivery_focus]]): no measured
   consumer is blocked by it today, and it is engine-wide rather than an SV-release blocker.
+
+### ⛔⛔ `.73` — **THE SHIPPED SV PARSE PATH RESOLVES ITS STANDARD-LIBRARY BUNDLE FROM A COMPILE-TIME ABSOLUTE PATH, AND A BINARY WHOSE REPOSITORY HAS MOVED LOADS NO STDLIB AT ALL — SILENTLY, AT EXIT 0** (`todo`, ROUTED + PARKED behind the SV lane, opened 2026-08-29 by `.67`(b) leg 4's own source reading / `PGEN-ENGINE-UNIVERSAL-SERVICES-0128`)
+
+- **WHY IT MATTERS NOW RATHER THAN LATER.** The artifact this bears on is the SV parser binary /
+  library handed to **Nexsim**, and the director's path doctrine is explicit that the repository root
+  *"can be moved around, even on a different filesystem … and this shall not affect the project in any
+  way, that is very important, I would say, even critical"* (`CLAUDE.md` §12). This is the one shipped
+  runtime site where that is not true.
+- **WHERE — one site, not thirty-seven, and the difference is the whole finding.**
+  `rust/src/parser_registry.rs:1394` builds `std::path::Path::new(env!("CARGO_MANIFEST_DIR"))`, walks
+  to its parent, and joins `parser_libs/<profile>_std` to preload the SystemVerilog standard-library
+  fact records into `semantic_runtime_state` before the parse
+  (`preload_systemverilog_stdlib`, called at `:1268` on the `--parse` detail lane).
+- ⛔⛔ **AND THE FAILURE IS SILENT, WHICH IS WHAT MAKES IT A DEFECT RATHER THAN A LIMITATION.**
+  `:1399` reads `if !stdlib_path.is_dir() { return Ok(()); }` — no warning, no diagnostic, no
+  non-zero exit. A binary built at path A and run after the tree moved to path B therefore parses
+  with an EMPTY stdlib fact set, and every `@emit_fact`/predicate that consults a `std::` name
+  answers differently, at exit 0. ⚠️ *That the answers differ is inferred from the fact records being
+  pushed into the semantic runtime state, not yet measured; the leaf must measure it before the
+  severity is fixed.*
+- ⭐ **THE CENSUS, because "the codebase is full of them" is the claim that would have been wrong.**
+  `env!("CARGO_MANIFEST_DIR")` occurs **37** times in `rust/src/`, and almost all of them are
+  harmless: 2 are `include_str!(concat!(…))`, i.e. COMPILE-TIME reads whose content is baked into the
+  binary (`embedding_api.rs:5087`/`:5159`), and the large majority of the rest sit in `#[test]` /
+  `#[cfg(test)]` harness code (`parse_harness*`, `stimuli_generator`, `ebnf_frontend`,
+  `ast_shape_contract`, `round_trip_tests`), which only ever runs from a build of the tree it is in.
+  ⇒ **the shipped-runtime surface is `parser_registry.rs:1394` alone**, with
+  `parse_harness.rs:253` (an overridable `unwrap_or_else` default) and
+  `parse_harness_combinator_suite.rs:1107` (`pub fn default_ast_pipeline_bin`) as two lower-severity
+  siblings to adjudicate rather than assume.
+- ✅ **THE ABSOLUTE PATH IS IN THE SHIPPED BINARY — MEASURED, NOT ASSUMED.**
+  `strings -a rust/target/release/parseability_probe | grep '/Volumes/SSD/Documents/github/pgen/rust'`
+  returns a hit on the canonical `646475a2…` probe.
+- **ACCEPTANCE (to be discharged when this leaf is worked).**
+  (a) MEASURE the behaviour delta: parse one corpus file that exercises a `std::` fact with the
+      bundle present and with it absent, and record whether the verdict or the semantic store differs
+      — the severity is whatever that measurement says, not what this routing note guesses.
+  (b) Make the absence LOUD before making it robust: an unresolvable stdlib bundle must be a named
+      diagnostic, never `Ok(())`.
+  (c) Resolve `parser_libs/` from a runtime-derived root (the executable's own location, an explicit
+      option, or an env override) with the compile-time path as a last resort, so a moved tree keeps
+      working — the same "derive it, never bake it" shape `.65` applied to the recursion ceiling.
+  (d) Adjudicate the two siblings above by name.
+- ⛔ **PARKED, not abandoned.** Routed out of `.67`(b) leg 4 under the SV lane lock's own rule —
+  a finding is routed to a leaf, never worked mid-slice — and it is recorded here rather than in a
+  message, per the director's 2026-08-26 standing correction that logging a defect is a property of
+  the RECORD and not of the DEFECT.
 
 ### ⏸️ `.64` — **VERILOG-AMS IS A LONG-TERM HORIZON GOAL, PARKED BY DIRECTOR RULING UNTIL AFTER THE FIRST OFFICIAL SV RELEASE. THIS LEAF HOLDS THE MEASURED STARTING POINT AND NOTHING ELSE** (`parked`, opened 2026-08-28 / `…-0112`, SCOPED SAME DAY by the director / `PGEN-ENGINE-UNIVERSAL-SERVICES-0113`)
 

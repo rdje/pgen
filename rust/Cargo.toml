@@ -54,6 +54,16 @@ name = "arena_chunk_oracle_probe"
 path = "src/bin/arena_chunk_oracle_probe.rs"
 
 [[bin]]
+# ENGINE-UNIVERSAL-SERVICES.67(b) leg 4 — the ALLOCATOR-SIDE leg of the parse
+# footprint. Same reason for the separate bin as the oracle above and as
+# `regex_alloc_census_probe`: a `#[global_allocator]` is a whole-program
+# property, and the canonical `parseability_probe` — which every tracked corpus
+# number in this repository is measured with — must stay uninstrumented.
+name = "parse_alloc_census_probe"
+path = "src/bin/parse_alloc_census_probe.rs"
+required-features = ["generated_parsers"]
+
+[[bin]]
 # PGEN-RGX-0078 microbench: measures validate_regex_compile_contract cost
 # in isolation on the 8-pattern bench corpus to decide whether the
 # 11-pass validation pipeline is worth short-circuiting.

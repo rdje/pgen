@@ -1,0 +1,12 @@
+grammar	thin_rule_count	rule_count	bytes_per_input_byte	MB_per_MB_of_input
+ebnf	24	144	192	192
+json	6	9	48	48
+regex	28	276	224	224
+return_annotation	15	35	120	120
+rtl_const_expr	13	48	104	104
+rtl_frontend	30	169	240	240
+scratch	ABSENT	2	ABSENT	ABSENT
+semantic_annotation	45	119	360	360
+systemverilog	109	1537	872	872
+systemverilog_preprocessor	8	74	64	64
+vhdl	29	225	232	232

@@ -221,9 +221,9 @@ revision of this chapter named.
 
 So the honest statement is narrower than the withdrawn one and barely wider than the
 correction: **the AST — headers and everything a node owns — is a minority of the footprint on
-every input measured**, and the remainder is some mix of the packrat memo, the derivation tape,
-and allocator overhead, the last of which the `vmmap` profile above already puts at ~50 % on the
-uvm input across ~72 million small allocations.
+every input measured**. What the remainder *is* was, for three revisions of this chapter, a list of
+three guesses. It has since been measured, and two of the three were wrong; the section below is
+where that goes.
 
 ⚠️ For one revision, closing that omission still did not license the withdrawn conclusion back.
 One exclusion was doing all the work: the arena allocates in chunks that grow and frees none, so
@@ -259,13 +259,66 @@ allocated bytes.
 ⇒ **the 28 – 71 % band was an artifact of bounding allocation when the question was residency.**
 Written slots equal live items on 44 of 44 arena measurements, so the item-bytes figure above was
 already the resident figure. The honest statement is the one the withdrawal had removed: **the AST
-is a minority of the parse footprint on every input measured — 15.6 % to 36.3 %, median 28.6 %** —
-and the rest is the packrat memo, the derivation tape and allocator overhead.
+is a minority of the parse footprint on every input measured — 15.6 % to 36.3 %, median 28.6 %**.
 
-One qualification survives and is not in that conclusion's favour: a quantifier collects into a
-temporary vector that is freed once its contents reach the shaped arenas, so those bytes can be in
-the *peak* and are resident nowhere by the time anything reports. They are bounded by the largest
-single composite rather than by the total, but they are unmeasured.
+### So what *is* the rest? (measured — and two of the three guesses were wrong)
+
+For three revisions this chapter answered that with a list: *the packrat memo, the derivation tape
+and allocator overhead*. PGEN now counts the allocator directly (`PARSE-ALLOC-CENSUS:`,
+TOOLBOX §3.3c — a counting global allocator that keeps the high-water mark of live requested bytes
+and a size-class table taken at that mark). Every structure is identified by its exact byte size,
+derived from its construction site: hashbrown's table layout for the memo maps, `typed-arena`'s
+chunk growth for the arenas, `Vec` capacity arithmetic for the tape. Over eight inputs, as shares of
+near-peak live bytes:
+
+| structure | min | median | max |
+|---|---|---|---|
+| memo tables (successes) | 18.3 % | 34.5 % | 46.3 % |
+| AST arena chunks | 15.6 % | 31.4 % | 47.0 % |
+| **thin-memo scratch** | **10.4 %** | **12.7 %** | **44.6 %** |
+| failure-memo tables | 4.2 % | 5.5 % | 9.5 % |
+| derivation tape | 0.00 % | 0.00 % | 0.55 % |
+| not attributed | 3.0 % | 6.1 % | 9.2 % |
+
+Three things there are worth planning around.
+
+**The derivation tape is not where the memory goes.** It is capped at 40 960 words and never reached
+a megabyte on this ladder — under 1 % on every input, exactly zero on six of eight. It had been
+named as a suspect for three revisions on no evidence.
+
+**Allocator overhead is not either, on this workload.** Requested live bytes and floor-subtracted
+resident bytes come out the same size to within a quarter in both directions (ratio 0.584 – 1.230,
+median 0.974), which leaves no room for the ~50 % fragmentation the `vmmap` profile above measures
+on the uvm input. That profile is a different input on a different instrument; it is not refuted,
+but it does not describe this ladder.
+
+**The largest single structure was on nobody's list.** Every generated parser sizes a dense
+direct-address memo — `THIN_RULE_COUNT × (input length + 1)` slots of `u64` — before the parse reads
+a token, and independently of what the file contains. That is `THIN_RULE_COUNT × 8` bytes per input
+byte: 48 for JSON, 232 for VHDL, **872 for SystemVerilog**, which has the most fused-cascade rules.
+On a 1.2 MB SystemVerilog file that is 1 029 MB, byte-for-byte as predicted from the source
+constant.
+
+⚠️ **And it outlives the parse.** The scratch is leased from a thread-local and its `Drop` puts it
+*back* rather than freeing it, so it is still resident after the parse has returned and everything
+the parse built has been dropped. Measured: live bytes after return, minus the predicted scratch
+size, is a flat 1.6 – 3.8 MB on all eleven inputs — against scratch sizes from 18 KB to 1 029 MB. If
+you embed PGEN and parse a large file on a long-lived thread, budget for that table staying put.
+
+That is a cost, not yet a verdict. The table is what makes the fused-cascade path fast, and **how
+many of its slots a real parse actually writes is not instrumented**. A sparse replacement only pays
+if occupancy is low, and nobody has measured occupancy.
+
+One qualification survives on the AST side and is not in that conclusion's favour: a quantifier
+collects into a temporary vector that is freed once its contents reach the shaped arenas, so those
+bytes can be in the *peak* and are resident nowhere by the time anything reports. They are still not
+identified individually — but they are now *bounded*, because everything else in the snapshot is
+named byte-exactly: whatever they are, they lie inside the 3.0 – 9.2 % that is not attributed.
+
+⚠️ One caveat that applies to every peak-RSS number in this chapter: a ladder run alongside a 10 GB
+build read peak RSS up to **28 % low** on the largest inputs, because the kernel reclaims pages under
+pressure. The allocation-side figures were byte-identical across the same two runs. Measure RSS on
+an idle machine; nothing in the tooling enforces it.
 
 If you are budgeting a parse, this is the practical form: PGEN prints both ends —
 `arena+AST touched X MB .. allocated Y MB` — and it is the *touched* end that competes for RAM.
