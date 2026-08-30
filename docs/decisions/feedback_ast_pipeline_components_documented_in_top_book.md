@@ -47,3 +47,14 @@ standing `COMMIT.md` `docs/book/` sync rule + [[feedback_regex_book_live]]; this
 durable. Reinforces [[feedback_books_are_user_only_window]] where present and
 [[feedback_ast_pipeline_parser_agnostic]] (the components are parser-agnostic → documented once,
 platform-wide).
+
+---
+
+⛔ **RESTATED AND WIDENED, 2026-08-30** → [[feedback_lockstep_means_fully_documented_not_mentioned]].
+The director restated this rule for a population this record did not enumerate — the **enforced
+doctrines** — after finding 14 of 33 absent from the top-level book, three of them for **69 days**,
+i.e. since the doctrine framework's founding commit and straight through the directive above. This
+record's *"thoroughly … not just an incidental mention"* bar was already correct and already
+retrievable; what it lacked was a mechanism that can tell *documented* from *mentioned*. The newer
+record carries that mechanism (a closed two-sided population, derivation where the prose already
+exists, and depth stated as an honest limit).
