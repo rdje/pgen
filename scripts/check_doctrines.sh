@@ -276,6 +276,94 @@ else
   fail=1
 fi
 
+# ------------------------------------------------- meta-check: the BOOK's CONTENT (not its number)
+# ⛔⛔ THE COUNT ARM ABOVE WAS GREEN FOR MONTHS WHILE 14 OF THE 33 REGISTERED DOCTRINES APPEARED
+# NOWHERE IN THE BOOK AT ALL. Measured 2026-08-30 (`DOCTRINE-GAP-OWNERSHIP.20`), per-doctrine over
+# `docs/book/src/*.md`, with every candidate re-searched under its component halves and its
+# enforcer's filename so a spelling miss could not manufacture the result: present 19, ABSENT 14.
+# Median debt 32 days, max 69, 410 doctrine-days; three of them absent since the doctrine framework's
+# own founding commit. A doctrine could be registered, enforced on every commit, mirrored two-sided
+# into DOCTRINE_ENFORCEMENT.md §10 -- and never named in the reader-facing book, with every
+# meta-check green. ⇒ the book's NUMBER was gated and the book's CONTENT was not.
+#
+# ⭐ THE COUNT ARM IS NOT DELETED, IT IS JOINED. A number that is right is still worth holding; it
+# was simply never coverage. The two arms fail for different reasons and that is the point.
+#
+# ⛔ DIRECTOR-ORDERED, and the reason given is the binding one: *"the doctrines shall be documented
+# in the top level mdbook because you keep talking about these 33 doctrines that are passing, so I
+# asked myself, are these doctrines described, documented somewhere."* The book is the director's
+# only window into this project, so a count they cannot resolve into descriptions is a disclosure
+# loss, not a cosmetic gap.
+#
+# THREE ARMS, cheapest first, each blind to what the next one sees:
+#   A  the RED CONTROL. `report_doctrines.sh --check <path that does not exist>` must exit 2.
+#      Driven BEFORE the oracle is believed, because a sibling producer kept its `--check` FLAG
+#      after a rewrite deleted the diff and then exited 0 on every input for a whole commit
+#      (`GRAMMAR-CERT-STATUS.1b`). A green verdict from an instrument that says green to everything
+#      is worth nothing.
+#   B  the POPULATION, held TWO-SIDED over the WHOLE PAGE -- every registered doctrine has a
+#      section, every doctrine-shaped section names a registered doctrine. ⭐ It scans the whole
+#      page rather than the derived block DELIBERATELY: a hand-written section pasted OUTSIDE the
+#      block is invisible to the diff in arm C, and a stale hand-written doctrine section is
+#      precisely the rot this chapter is derived to avoid.
+#   C  the ORACLE. Re-derive the roster and DIFF it against what is published.
+# ⚠️ Honest limit, stated not discovered: this holds the published chapter equal to what the two
+# tracked sources say TODAY. Whether a given description is DEEP ENOUGH is a review judgement and is
+# not gated -- the chapter derives and publishes its own depth census instead, naming every
+# description still under the one-clause floor, so thinness is visible rather than silent.
+BOOK_CHAPTER="docs/book/src/the-enforced-doctrines.md"
+DOCTRINE_REPORTER="scripts/report_doctrines.sh"
+if [ ! -x "$ROOT/$DOCTRINE_REPORTER" ]; then
+  report+=("✗ FAIL  <meta:book-content> — ${DOCTRINE_REPORTER} is missing or not executable, so the"
+           "        book's doctrine roster was NEVER checked. A check that cannot inspect its subject"
+           "        must SAY SO, not pass.")
+  fail=1
+elif [ ! -f "$ROOT/$BOOK_CHAPTER" ]; then
+  report+=("✗ FAIL  <meta:book-content> — ${BOOK_CHAPTER} is missing. The book publishes a doctrine"
+           "        COUNT the reader cannot resolve into descriptions, which is the defect"
+           "        DOCTRINE-GAP-OWNERSHIP.20 was opened on.")
+  fail=1
+else
+  # --- arm A: the producer must still be able to REFUSE -------------------------------------------
+  bc_red_out="$(bash "$ROOT/$DOCTRINE_REPORTER" --check "$ROOT/rust/target/doctrine_chapter_no_such_page.md" 2>&1)"
+  bc_red_rc=$?
+  if [ "$bc_red_rc" -ne 2 ] || [[ "$bc_red_out" != *"no published page at"* ]]; then
+    printf 'book-content: the producer refusal arm did NOT fire: --check on a nonexistent page\n' >&2
+    printf '              exited %s (want 2). Its green verdicts cannot be trusted until it can\n' "$bc_red_rc" >&2
+    printf '              refuse. Output was:\n%s\n' "$bc_red_out" >&2
+    report+=("✗ FAIL  <meta:book-content> — ${DOCTRINE_REPORTER} could not be made to refuse (see above)")
+    fail=1
+  else
+    # --- arm B: the population, two-sided, over the WHOLE page ------------------------------------
+    bc_page_ids="$(grep -o '^### `[A-Z][A-Z0-9+-]*`' "$ROOT/$BOOK_CHAPTER" | tr -d '#` ' | LC_ALL=C sort -u)"
+    bc_reg_ids="$(printf '%s\n' "${DOCTRINES[@]}" | cut -d'|' -f1 | LC_ALL=C sort -u)"
+    if [ -z "$bc_page_ids" ]; then
+      report+=("✗ FAIL  <meta:book-content> — ${BOOK_CHAPTER} carries ZERO doctrine sections. A check that"
+               "        cannot inspect its subject must SAY SO, not pass: re-derive the chapter with"
+               "        'bash ${DOCTRINE_REPORTER} --markdown'.")
+      fail=1
+    else
+      bc_only_reg="$(LC_ALL=C comm -23 <(printf '%s\n' "$bc_reg_ids") <(printf '%s\n' "$bc_page_ids"))"
+      bc_only_page="$(LC_ALL=C comm -13 <(printf '%s\n' "$bc_reg_ids") <(printf '%s\n' "$bc_page_ids"))"
+      if [ -n "$bc_only_reg" ] || [ -n "$bc_only_page" ]; then
+        [ -n "$bc_only_reg" ] && printf 'doctrine registered but with NO section in %s: %s\n' \
+          "$BOOK_CHAPTER" "$(printf '%s' "$bc_only_reg" | tr '\n' ' ')" >&2
+        [ -n "$bc_only_page" ] && printf 'section in %s naming a doctrine NOT registered: %s\n' \
+          "$BOOK_CHAPTER" "$(printf '%s' "$bc_only_page" | tr '\n' ' ')" >&2
+        report+=("✗ FAIL  <meta:book-content> — the registry and the book chapter's roster disagree (see above)")
+        fail=1
+      # --- arm C: re-derive and DIFF ---------------------------------------------------------------
+      elif bc_out="$(bash "$ROOT/$DOCTRINE_REPORTER" --check "$ROOT/$BOOK_CHAPTER" 2>&1)"; then
+        report+=("✓ PASS  <meta:book-content> — ${BOOK_CHAPTER} describes exactly the ${#DOCTRINES[@]} registered doctrines, and equals a fresh derivation")
+      else
+        printf '%s\n' "$bc_out" >&2
+        report+=("✗ FAIL  <meta:book-content> — ${BOOK_CHAPTER} is OUT OF SYNC with the registry (see above)")
+        fail=1
+      fi
+    fi
+  fi
+fi
+
 printf '\n================ DOCTRINE ENFORCEMENT REPORT ================\n' >&2
 for line in "${report[@]}"; do printf '  %s\n' "$line" >&2; done
 printf '============================================================\n' >&2

@@ -33,5 +33,6 @@
 - [Academic Foundations](academic-foundations.md)
 - [Quality and Closure Model](quality-and-closure-model.md)
 - [The Gate Flow — Reference](gate-flow.md)
+- [The Enforced Doctrines](the-enforced-doctrines.md)
 - [Operations and Governance](operations-and-governance.md)
 - [Source Map](source-map.md)
