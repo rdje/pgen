@@ -18,9 +18,14 @@
 way to track the progress, issues left for a given parser … with brief, synthesized information in
 the terminal and thorough in the mdbook(s)."*
 
-- **TERMINAL — brief, on demand, per family.** A single command answers *"where is this parser and
-  what is left?"* in a screenful:
-  `bash scripts/parser_status.sh systemverilog`
+- **CHAT — brief, synthesized, reported BY ME.** ⛔⛔ **CORRECTED 2026-08-30 by the director within
+  the hour, and the first reading would have built the wrong thing**: *"Not me running in the terminal
+  … but something you could display in this chat for me to read."* The director is NOT the operator of
+  this surface — **I am**. The deliverable is a producer I run and whose synthesized output I paste
+  into my completion messages, not a CLI the director is expected to invoke. A command nobody runs is
+  the `GATE-REACHABILITY` defect wearing a status report.
+  ⇒ it extends what `COMMIT.md` already obliges every completion message to carry (the live-status
+  snapshot) from a bare LABEL to a DISTANCE.
 - **BOOK — thorough.** The same producer emits the full section into that family's book page and the
   cross-family view into the main book.
 - ⛔ **The two renderings MUST share one derivation.** A terminal summary that can disagree with the
@@ -68,7 +73,8 @@ Both renderings answer three questions **from derived data, not prose**:
 - [ ] A family with no corpus says so LOUDLY as `NOT MEASURED`, never as a blank or a zero —
       `docs/decisions/feedback_a_check_that_cannot_run_must_say_so.md`.
 - [ ] The main book gains one cross-family view so the whole picture is one page, not ten.
-- [ ] **A terminal command exists, takes a family name, and prints the brief form in a screenful.**
+- [ ] **A producer exists that emits the brief form for one family in a screenful, and I report it
+      in completion messages** — the director reads it in chat and is never expected to run it.
 - [ ] **Terminal and book cannot disagree**: `--check` re-derives and diffs the published block,
       wired as a gate, so a stale book section fails a commit rather than misleading a reader.
 
@@ -77,10 +83,10 @@ Both renderings answer three questions **from derived data, not prose**:
 - ID: `DONE-BAR-VISIBILITY.1` — Status: `pending`
   Goal: DEFINE the per-family status block AND ship the terminal renderer: exactly which fields,
   which derivation for each, and which are legitimately `NOT MEASURED` today. Deliverable is a schema
-  + `scripts/parser_status.sh` + one worked family, not ten.
-  Acceptance: the schema names a producer for EVERY field; `bash scripts/parser_status.sh
-  systemverilog` prints the brief form in a screenful; SystemVerilog rendered end to end in both
-  surfaces from the one derivation.
+  + the producer + one worked family, not ten.
+  Acceptance: the schema names a producer for EVERY field; the brief form for SystemVerilog fits a
+  screenful and is REPORTED IN CHAT by me; SystemVerilog rendered end to end in both surfaces from
+  the one derivation.
 - ID: `DONE-BAR-VISIBILITY.2` — Status: `pending`
   Goal: the REMAINING-WORK synthesis — derive each family's open items from the task trees that
   already own them, so the list cannot drift from the trees.
