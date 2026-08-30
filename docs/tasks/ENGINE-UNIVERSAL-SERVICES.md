@@ -17380,6 +17380,13 @@ STRENGTH I attributed to my own evidence.
     2 920.7 s.** The budget was calibrated when the ceiling was 4 096 frames; `.65` moved the ceiling
     to ~**9 726** frames in debug, so the parse descends far further before refusing — the book
     already records the release form of this (*"37.7 s where it refused in 0.19 s"*).
+- ⚠️ **"RED SINCE `-0117`" IS AN INFERENCE, NOT A MEASUREMENT — labelled as such under the same-day
+  re-verification challenge.** The suite was NOT run at `56c9d24c`. What IS measured: the `repeat(400)`
+  literal was last touched by `-0110` and the `from_secs(1800)` budget by `-0081`, both BEFORE `.65`;
+  `-0117` DID modify `rust/src/embedding_api.rs` and left both alone; and frames-per-paren is
+  **12.91 … 13.45** (bisected), so 400 parens is **≥ 5 164** frames — comfortably past the OLD 4 096
+  ceiling and comfortably short of the new ~9 700. The mechanism therefore predicts a flip exactly at
+  `.65`, but the flip itself was not observed at that commit.
 - ⇒ **ONE root cause, three symptoms**: the tests pin a CONSTANT the engine no longer has. The
   ceiling now fires between **600** (accept, 5.7 s) and **800** (reject at 9 726 frames, 21.8 s)
   parens in debug at the default reservation.
@@ -17426,13 +17433,33 @@ STRENGTH I attributed to my own evidence.
   `thread 'pgen-parseability-probe' has overflowed its stack; fatal runtime error: stack overflow,
   aborting` — **rc 134**, in 0.5 s. PRE-`-0138` and POST-`-0138` binaries abort identically, so this
   is `.65`-era, not new.
-- ⚠️ **BLAST RADIUS, stated rather than left to be discovered**: the DEFAULT 256 MiB reservation is
-  SAFE (4096 × 25 874 B = 101.1 MiB ≪ 240 MiB budget), and RELEASE is safe at every reservation
-  (≈3 KiB/frame ⇒ 4096 frames ≈ 12 MiB). The defect is reachable only by an operator who lowers
-  `PGEN_PARSE_STACK_BYTES` toward the floor — but the floor's ENTIRE PURPOSE is to be the value that
-  is still safe, and it is documented as such, so an operator who trusts it gets the abort.
+- ⚠️ **BLAST RADIUS.** The DEFAULT 256 MiB reservation is SAFE (4096 × 25 874 B = 101.1 MiB ≪
+  240 MiB budget). ⛔⛔ **CORRECTED 2026-08-30 UNDER A DIRECTOR RE-VERIFICATION CHALLENGE, SAME DAY:
+  this bullet first read *"RELEASE is safe at every reservation (≈3 KiB/frame)"*, which is a
+  UNIVERSAL claim resting on ONE family's measurement.** What is measured is
+  **SystemVerilog only**: 3 071 B/frame at the 96 MiB floor and 3 083 B/frame at 256 MiB, both
+  refusing cleanly with no abort. VHDL was then probed as a falsification arm and did NOT abort
+  either — but a 12 000-deep expression at the floor returned `no_refusal` in 76 s, so it never
+  reached the ceiling and **VHDL's release per-frame cost remains UNMEASURED**. The other eight
+  families are unmeasured. ⇒ the honest statement is *"release is safe on the one family measured,
+  and no family has been shown unsafe"*, and (a) below now owes the census that would close it.
+- ⭐ **THE MECHANISM IS MEASURED, NOT INFERRED FROM AN AVERAGE (added by the same re-verification).**
+  Frames per paren level, bisected at the default reservation in debug — 750 parens refuses at depth
+  **9 682**, 720 does not — is **12.91 … 13.45**. The abort boundary at the floor, bisected, is
+  **275 parens (survives) → 300 (aborts)**, i.e. a maximum survivable depth of **3 550 … 4 034
+  frames**, which is strictly BELOW the guard's **4 096**-frame first sample. ⇒ the guard is
+  provably unreachable at the floor rather than merely predicted to be. ⚠️ Note the abort is against
+  the 100 663 296 B RESERVATION, not the 94 371 840 B budget: the budget is a rule the guard enforces,
+  and the guard never runs.
+- ⚠️ The defect is reachable by any operator who lowers `PGEN_PARSE_STACK_BYTES` toward the floor —
+  and note `dedicated_parse_stack.rs:104` CLAMPS any smaller value UP to the floor, so
+  `PGEN_PARSE_STACK_BYTES=1` lands exactly on the unsafe value. The floor's ENTIRE PURPOSE is to be
+  the value that is still safe, and it is documented as such, so an operator who trusts it gets the
+  abort.
 - **OWES**: (a) derive the floor from the measured per-frame cost and the build mode instead of
-  pinning a literal computed from a 2026-07 measurement — the same defect shape as `.78` and as
+  pinning a literal computed from a 2026-07 measurement — which requires a PER-FAMILY, PER-BUILD-MODE
+  per-frame census, since the only families measured today are SystemVerilog (debug 25 874 B,
+  release 3 071–3 083 B) and none other — the same defect shape as `.78` and as
   `.69`(a) itself; (b) decide whether the 4096-frame first-sample floor should also be derived, since
   it is the other half of the product; (c) a guard that REFUSES a reservation too small to reach the
   first sample, rather than accepting it and aborting later. ⭐ Note the ordering: this is
