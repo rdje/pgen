@@ -570,6 +570,45 @@ def derive(FAMILY):
                       tuple=derived_tuple, denominator=census["denominator"],
                       instrument=census["instrument"], gate=gate, report=report_path,
                       answer_key=census["answer_key"])
+    elif census and census.get("kind") == "oracle_expectation":
+        # ⭐ Same two-arm rule as every other kind: this script derives the tuple from the TRACKED
+        # artifacts and the gate derives it from a FRESH normalizer run plus the anchor. Equal, or
+        # refuse. The gate has already proved the tracked artifacts byte-equal to a fresh run, so
+        # reading them here is reading the fresh numbers by a different route.
+        with open(census["artifacts"]["summary_json"], encoding="utf-8") as fh:
+            summ = json.load(fh)
+        specs = summ["pattern_specs_detected_input"]
+        cells = summ["cases_emitted"]
+        skipped = dict(sorted(summ.get("skip_reason_counts", {}).items()))
+        with open(census["verdict_anchor"]["file"], encoding="utf-8") as fh:
+            found = sorted(set(re.findall(census["verdict_anchor"]["pattern"], fh.read())))
+        if len(found) != 1:
+            refuse(f"{census['verdict_anchor']['file']} carries {len(found)} distinct current "
+                   f"verdict tuples ({found}); exactly one is publishable")
+        a_cells, match, fa, fr = (int(x) for x in found[0].split("/"))
+        derived_tuple = f"{a_cells}/{match}/{fa}/{fr}"
+        if derived_tuple != gate_tuple:
+            refuse(f"this script derives the census tuple {derived_tuple} while `{gate}` derives "
+                   f"{gate_tuple}. Two readings of one census disagree — neither may be published "
+                   f"until they are reconciled.")
+        if a_cells != cells:
+            refuse(f"the verdict tuple is over {a_cells} cells while the tracked summary emits "
+                   f"{cells}")
+
+        # ⛔ THE CLASS MAP IS THE SAME SEMANTIC AS SystemVerilog's, deliberately, because the two
+        # sit side by side in the cross-family table and a column that means different things per
+        # row is worse than no column. `passing` = the parser's verdict matches the key.
+        # `explained` = divergence WITH a recorded explanation: every false REJECT is a documented
+        # strict-default divergence class, recorded case-class by case-class in the v12 record of
+        # the tracked ratchet env. `defects` = divergence with NO recorded explanation: the false
+        # ACCEPTS, which the north star calls a defect outright — over-acceptance is a defect.
+        corpus = dict(kind="oracle_expectation", total=cells, passing=match, explained=fr,
+                      defects=fa, specs=specs, skipped=skipped,
+                      tuple=derived_tuple, denominator=census["denominator"],
+                      instrument=census["instrument"], gate=gate,
+                      answer_key=census["answer_key"],
+                      verdict_producer=census["verdict_producer"],
+                      verdict_held_by=census["verdict_anchor"]["held_by"])
     elif census and census.get("kind") != "verdict_coverage":
         refuse(f"'{FAMILY}' declares census kind {census.get('kind')!r}, which no renderer here "
                f"implements. A census shape with no renderer must refuse: rendering it through "
@@ -722,7 +761,35 @@ def render_markdown(d):
         out.append(f"| {n} — {LEGNAME[n]} | {MARK[legs[n]['verdict']]} **{legs[n]['verdict']}** | "
                    f"{legs[n]['reason']} |")
     out.append("")
-    if corpus and corpus["kind"] == "raw_parse":
+    if corpus and corpus["kind"] == "oracle_expectation":
+        skipped = sum(corpus["skipped"].values())
+        reasons = ", ".join(f"{fmt(v)} `{k}`" for k, v in corpus["skipped"].items())
+        out.append(f"**Corpus.** Denominator: {corpus['denominator']} — **{fmt(corpus['total'])} "
+                   f"cells** out of {fmt(corpus['specs'])} pattern specs detected, counted by "
+                   f"`{corpus['instrument']}` and held current by `{corpus['gate']}`.")
+        out.append("")
+        out.append("| Outcome | Cells | Share of the corpus |")
+        out.append("|---|---:|---:|")
+        out.append(f"| **Matches the oracle** — PGEN's compile verdict equals PCRE2's | {fmt(corpus['passing'])} | {pct(corpus['passing'], corpus['total'])} |")
+        out.append(f"| **False accepts** — PGEN accepts a pattern PCRE2 rejects | {fmt(corpus['defects'])} | {pct(corpus['defects'], corpus['total'])} |")
+        out.append(f"| False rejects, every one an explained divergence | {fmt(corpus['explained'])} | {pct(corpus['explained'], corpus['total'])} |")
+        out.append(f"| Total | {fmt(corpus['total'])} | 100.0 % |")
+        out.append("")
+        out.append(f"⭐ **Unlike the VHDL census, this pass share IS a conformance share**: "
+                   f"{cell(corpus['answer_key'].replace('`', ''))}")
+        out.append("")
+        out.append(f"**The declined {fmt(skipped)} are named, not dropped** — {reasons}. They are "
+                   f"counted in the {fmt(corpus['specs'])}-spec denominator above, because a case "
+                   f"the census refused to ask is not a case that passed.")
+        out.append("")
+        out.append(f"⚠️ **The verdict half is anchor-held, not re-executed on every commit.** "
+                   f"Producing it needs a cargo build of the corpus probe and a run over every "
+                   f"case — measured 80 s and 5.5 GB peak, via `{corpus['verdict_producer']}` — so "
+                   f"`{corpus['gate']}` re-derives the DENOMINATOR from the normalizer on every "
+                   f"commit and holds the published tuple's cell count equal to it, while "
+                   f"`{corpus['verdict_held_by']}` holds every live anchor equal to each other and "
+                   f"to the tracked ratchet bounds.")
+    elif corpus and corpus["kind"] == "raw_parse":
         out.append(f"**Corpus.** Denominator: {corpus['denominator']} — **{fmt(corpus['total'])} "
                    f"files**, counted by `{corpus['instrument']}`, published in "
                    f"[`{corpus['report']}`](../../../{corpus['report']}) and held current by "
@@ -833,7 +900,16 @@ def render_text(d):
     out.append(f"  on THIS machine (gate artifacts included, not tracked): "
                f"leg1={local_legs[1]} leg2={local_legs[2]} leg3={local_legs[3]}")
     out.append("")
-    if corpus and corpus["kind"] == "raw_parse":
+    if corpus and corpus["kind"] == "oracle_expectation":
+        skipped = sum(corpus["skipped"].values())
+        out.append(f"  corpus  {fmt(corpus['total'])} cells of {fmt(corpus['specs'])} pattern specs "
+                   f"({fmt(skipped)} declined)  [{corpus['denominator'][:52]}]")
+        out.append(f"    matches the oracle .................. {fmt(corpus['passing']):>7s}  {pct(corpus['passing'], corpus['total'])}")
+        out.append(f"    FALSE ACCEPTS (over-acceptance) ..... {fmt(corpus['defects']):>7s}  {pct(corpus['defects'], corpus['total'])}")
+        out.append(f"    false rejects, all explained ........ {fmt(corpus['explained']):>7s}  {pct(corpus['explained'], corpus['total'])}")
+        out.append(f"    => a REAL answer key, so this pass share IS a conformance share")
+        out.append(f"    => verdict half not re-run here (80 s + cargo); anchor-held by {corpus['verdict_held_by']}")
+    elif corpus and corpus["kind"] == "raw_parse":
         out.append(f"  corpus  {fmt(corpus['total'])} files  [{corpus['denominator']}]")
         out.append(f"    parses ⚠️ RAW, no answer key ......... {fmt(corpus['passing']):>7s}  {pct(corpus['passing'], corpus['total'])}")
         out.append(f"    rejected ............................ {fmt(corpus['rejected']):>7s}  {pct(corpus['rejected'], corpus['total'])}")

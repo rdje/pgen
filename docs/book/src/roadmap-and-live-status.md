@@ -136,13 +136,13 @@ the tree it is derived from.
 
 Leg 1 is the stimuli-generator proof, leg 2 is *gates green and invoked* — every covering gate green AND actually invoked by something — and leg 3 is an officially-recognized external corpus passing. ✅ met · ⚠️ unproven · ⛔ unmet. **Why** a leg reads as it does is on that family's own page, one click away; this table is the comparison, not the explanation.
 
-**Corpus.** 2 of the 10 families have a corpus count at all. The rows below are that family's own denominator — there is no roster-wide corpus figure, and the `NOT MEASURED` rows are exactly what is missing, each naming the leaf that owes it.
+**Corpus.** 3 of the 10 families have a corpus count at all. The rows below are that family's own denominator — there is no roster-wide corpus figure, and the `NOT MEASURED` rows are exactly what is missing, each naming the leaf that owes it.
 
 | Family | Corpus rows | Passing | Known defects | What the number rests on |
 |---|---:|---:|---:|---|
 | `ebnf` | ⛔ NOT MEASURED | ⛔ | ⛔ | the language is authored by PGEN itself, so no third-party corpus exists or ever will. NOT a measurement gap -- leg 3 is unreachable by construction and the qualifier is `Provisional (ceiling)`. |
 | `json` | ⛔ NOT MEASURED | ⛔ | ⛔ | whether a corpus for the full standard counts against this SUBSET language is an open ruling; until it is made, a corpus count would be measured against a denominator nobody has agreed to. Owed by `DONE-BAR.3`. |
-| `regex` | ⛔ NOT MEASURED | ⛔ | ⛔ | the register declares external corpus roots, but no TRACKED census turns them into counts a reader can re-derive. Owed by `DONE-BAR-VISIBILITY.3b`. |
+| `regex` | 2 189 | 1 879 (85.8 %) | 262 | every pattern spec pcre2test 10.47 declares in testdata/testinput2 that the normalizer can pair soundly with its recorded verdict, counted by `regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py` and held current by `bash scripts/check_corpus_census.sh regex` |
 | `return_annotation` | ⛔ NOT MEASURED | ⛔ | ⛔ | the language is authored by PGEN itself, so no third-party corpus exists or ever will. NOT a measurement gap -- leg 3 is unreachable by construction and the qualifier is `Provisional (ceiling)`. |
 | `rtl_const_expr` | ⛔ NOT MEASURED | ⛔ | ⛔ | whether a corpus for the full standard counts against this SUBSET language is an open ruling; until it is made, a corpus count would be measured against a denominator nobody has agreed to. Owed by `DONE-BAR.3`. |
 | `rtl_frontend` | ⛔ NOT MEASURED | ⛔ | ⛔ | whether a corpus for the full standard counts against this SUBSET language is an open ruling; until it is made, a corpus count would be measured against a denominator nobody has agreed to. Owed by `DONE-BAR.3`. |

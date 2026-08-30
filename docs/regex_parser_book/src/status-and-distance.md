@@ -43,7 +43,20 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 | 2 — gates green and invoked | ⛔ **UNMET** | 14 covering gate targets, 7 invoked, 7 invoked by nothing (regex_ast_shape_contract_gate, regex_combined_telemetry_contract_gate, regex_corpus_bundle_contract_gate, regex_embedded_code_block_contract_gate, regex_pcre2_compile_oracle_gate, regex_pcre2_compile_perf_gate, regex_pcre2_textsafe_corpus_gate); rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
 | 3 — external corpus passing | ⛔ **UNMET** | the corpus gate reads no declared external corpus root |
 
-**Corpus.** ⛔ **NOT MEASURED** — the register declares external corpus roots, but no TRACKED census turns them into counts a reader can re-derive. Owed by `DONE-BAR-VISIBILITY.3b`. The last measurement lives in `RGX-0078` and is POINTED AT rather than copied here, because a copied number rots. The PCRE2 oracle publishes a real cells/matches/false-accepts/false-rejects tuple held by the REGEX-ORACLE-ANCHOR-SYNC doctrine, but its per-run summary is untracked (that doctrine says so itself), so it is an anchor to compare against rather than a census this producer can re-derive.
+**Corpus.** Denominator: every pattern spec pcre2test 10.47 declares in testdata/testinput2 that the normalizer can pair soundly with its recorded verdict — **2 189 cells** out of 2 239 pattern specs detected, counted by `regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py` and held current by `bash scripts/check_corpus_census.sh regex`.
+
+| Outcome | Cells | Share of the corpus |
+|---|---:|---:|
+| **Matches the oracle** — PGEN's compile verdict equals PCRE2's | 1 879 | 85.8 % |
+| **False accepts** — PGEN accepts a pattern PCRE2 rejects | 262 | 12.0 % |
+| False rejects, every one an explained divergence | 48 | 2.2 % |
+| Total | 2 189 | 100.0 % |
+
+⭐ **Unlike the VHDL census, this pass share IS a conformance share**: PCRE2 10.47's own recorded compile verdict for each pattern -- a REAL answer key, so unlike the VHDL census this pass share IS a conformance share. 50 of the 2 239 detected pattern specs are DECLINED rather than answered (48 carry a suffix modifier under which the raw pattern text is not what pcre2_compile sees, 2 fail UTF-8 decoding); they are counted in the denominator and named, never dropped.
+
+**The declined 50 are named, not dropped** — 48 `unsupported_suffix_token`, 2 `utf8_decode_failure`. They are counted in the 2 239-spec denominator above, because a case the census refused to ask is not a case that passed.
+
+⚠️ **The verdict half is anchor-held, not re-executed on every commit.** Producing it needs a cargo build of the corpus probe and a run over every case — measured 80 s and 5.5 GB peak, via `rust/scripts/regex_pcre2_compile_oracle_gate.sh` — so `bash scripts/check_corpus_census.sh regex` re-derives the DENOMINATOR from the normalizer on every commit and holds the published tuple's cell count equal to it, while `REGEX-ORACLE-ANCHOR-SYNC` holds every live anchor equal to each other and to the tracked ratchet bounds.
 
 **What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. **5 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
 

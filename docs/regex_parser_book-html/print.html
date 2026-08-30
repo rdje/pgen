@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7f0c58a3.js";
+            window.path_to_searchindex_js = "searchindex-f593dfb8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-08845991.js"></script>
@@ -308,7 +308,23 @@ inapplicable one.</li>
 </tbody>
 </table>
 </div>
-<p><strong>Corpus.</strong> ⛔ <strong>NOT MEASURED</strong> — the register declares external corpus roots, but no TRACKED census turns them into counts a reader can re-derive. Owed by <code>DONE-BAR-VISIBILITY.3b</code>. The last measurement lives in <code>RGX-0078</code> and is POINTED AT rather than copied here, because a copied number rots. The PCRE2 oracle publishes a real cells/matches/false-accepts/false-rejects tuple held by the REGEX-ORACLE-ANCHOR-SYNC doctrine, but its per-run summary is untracked (that doctrine says so itself), so it is an anchor to compare against rather than a census this producer can re-derive.</p>
+<p><strong>Corpus.</strong> Denominator: every pattern spec pcre2test 10.47 declares in testdata/testinput2 that the normalizer can pair soundly with its recorded verdict — <strong>2 189 cells</strong> out of 2 239 pattern specs detected, counted by <code>regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py</code> and held current by <code>bash scripts/check_corpus_census.sh regex</code>.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Outcome</th><th style="text-align: right">Cells</th><th style="text-align: right">Share of the corpus</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Matches the oracle</strong> — PGEN’s compile verdict equals PCRE2’s</td><td style="text-align: right">1 879</td><td style="text-align: right">85.8 %</td></tr>
+<tr><td><strong>False accepts</strong> — PGEN accepts a pattern PCRE2 rejects</td><td style="text-align: right">262</td><td style="text-align: right">12.0 %</td></tr>
+<tr><td>False rejects, every one an explained divergence</td><td style="text-align: right">48</td><td style="text-align: right">2.2 %</td></tr>
+<tr><td>Total</td><td style="text-align: right">2 189</td><td style="text-align: right">100.0 %</td></tr>
+</tbody>
+</table>
+</div>
+<p>⭐ <strong>Unlike the VHDL census, this pass share IS a conformance share</strong>: PCRE2 10.47’s own recorded compile verdict for each pattern – a REAL answer key, so unlike the VHDL census this pass share IS a conformance share. 50 of the 2 239 detected pattern specs are DECLINED rather than answered (48 carry a suffix modifier under which the raw pattern text is not what pcre2_compile sees, 2 fail UTF-8 decoding); they are counted in the denominator and named, never dropped.</p>
+<p><strong>The declined 50 are named, not dropped</strong> — 48 <code>unsupported_suffix_token</code>, 2 <code>utf8_decode_failure</code>. They are counted in the 2 239-spec denominator above, because a case the census refused to ask is not a case that passed.</p>
+<p>⚠️ <strong>The verdict half is anchor-held, not re-executed on every commit.</strong> Producing it needs a cargo build of the corpus probe and a run over every case — measured 80 s and 5.5 GB peak, via <code>rust/scripts/regex_pcre2_compile_oracle_gate.sh</code> — so <code>bash scripts/check_corpus_census.sh regex</code> re-derives the DENOMINATOR from the normalizer on every commit and holds the published tuple’s cell count equal to it, while <code>REGEX-ORACLE-ANCHOR-SYNC</code> holds every live anchor equal to each other and to the tracked ratchet bounds.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. <strong>5 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>

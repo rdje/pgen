@@ -222,8 +222,8 @@
     "y_)/debug": 1
   },
   "outputs": {
-    "jsonl": "/Users/richarddje/Documents/github/pgen/regex_corpus_bundle/corpus/pcre2/canonical/pcre2_compile_oracle_cases.jsonl",
-    "summary_json": "/Users/richarddje/Documents/github/pgen/regex_corpus_bundle/corpus/pcre2/canonical/pcre2_compile_oracle_summary.json",
-    "skip_jsonl": "/Users/richarddje/Documents/github/pgen/regex_corpus_bundle/corpus/pcre2/canonical/pcre2_compile_oracle_skips.jsonl"
+    "jsonl": "regex_corpus_bundle/corpus/pcre2/canonical/pcre2_compile_oracle_cases.jsonl",
+    "summary_json": "regex_corpus_bundle/corpus/pcre2/canonical/pcre2_compile_oracle_summary.json",
+    "skip_jsonl": "regex_corpus_bundle/corpus/pcre2/canonical/pcre2_compile_oracle_skips.jsonl"
   }
 }

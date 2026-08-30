@@ -18,6 +18,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 
 ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = ROOT.parent
 LOCKFILE = ROOT / "manifests" / "upstreams.lock.json"
 
 DEFAULT_OUTPUT_JSONL = ROOT / "corpus" / "pcre2" / "canonical" / "pcre2_compile_oracle_cases.jsonl"
@@ -228,6 +229,19 @@ def build_case(
     }
 
 
+def repo_relative(path: Path) -> str:
+    """`path` spelled relative to the repository root when it lives inside it.
+
+    Repo-root-relative paths are project policy precisely so a recorded path does not depend
+    on where the clone lives — the same reason `stimuli/run_external_corpus.sh` emits a
+    relative column 3 (CORPUS-GRAD-ALL.2.1, which found a tracked artifact rooted at a
+    foreign checkout)."""
+    try:
+        return str(Path(path).resolve().relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-jsonl", type=Path, default=DEFAULT_OUTPUT_JSONL)
@@ -358,10 +372,20 @@ def main() -> None:
         "skip_reason_counts": dict(sorted(skip_reason_counts.items())),
         "unsupported_suffix_token_counts": dict(sorted(unsupported_token_counts.items())),
         "compile_option_counts": dict(sorted(option_counts.items())),
+        # ⛔ REPO-ROOT-RELATIVE, NEVER THE PATH AS GIVEN (DONE-BAR-VISIBILITY.3c).
+        # This block records WHERE the artifact was written, which is a property of the
+        # INVOCATION and not of the census — so writing the caller's path made the tracked
+        # summary a function of whose machine ran it. Measured 2026-08-30: the committed
+        # artifact carried absolute paths into a home-directory checkout on a different
+        # VOLUME from this repository, which (a) violates the repo-root-relative path policy
+        # and (b) made the summary non-reproducible BY CONSTRUCTION, so no freshness gate
+        # could ever compare it byte-for-byte against a fresh run. A path outside the repo
+        # is left as-is rather than mangled: a scratch run says plainly that it went
+        # somewhere else.
         "outputs": {
-            "jsonl": str(args.output_jsonl),
-            "summary_json": str(args.summary_json),
-            "skip_jsonl": str(args.skip_jsonl),
+            "jsonl": repo_relative(args.output_jsonl),
+            "summary_json": repo_relative(args.summary_json),
+            "skip_jsonl": repo_relative(args.skip_jsonl),
         },
     }
 

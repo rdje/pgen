@@ -119,7 +119,8 @@
       "coverage_tsv": "docs/tasks/artifacts/sv_corpus_grad/verdict_coverage/coverage.tsv",
       "strata_tsv": "docs/tasks/artifacts/sv_corpus_grad/verdict_coverage/strata.tsv",
       "denominator": "every row of the SystemVerilog corpus adjudication manifests over stimuli/sv/subs + stimuli/sv/uvm",
-      "instrument": "stimuli/sv/corpus_verdict_coverage.py"
+      "instrument": "stimuli/sv/corpus_verdict_coverage.py",
+      "tuple_legend": "adjudicated/routed/no-verdict/dark/axis-2-bar"
     },
     "vhdl": {
       "kind": "raw_parse",
@@ -141,7 +142,36 @@
       "denominator": "every .vhd / .vhdl file under the ten vendored VHDL corpora in stimuli/vhdl/subs",
       "instrument": "stimuli/run_external_corpus.sh vhdl",
       "regenerate": "scripts/run_with_memory_guard.sh --budget-mb 8192 --timeout-s 1800 -- stimuli/run_external_corpus.sh vhdl",
+      "tuple_legend": "files/pass/fail/timeout/crash; RAW parse outcomes, no answer key",
       "answer_key": "none -- these are RAW parse outcomes. Many corpus files are INTENTIONALLY invalid (GHDL `gna` bug regressions, non-compliant fixtures), so a parse-FAIL is frequently the CORRECT outcome. A raw pass rate is NOT an adjudicated one and this producer must never render it as though a key existed; the adjudication is owed by CORPUS-GRAD-ALL.2."
+    },
+    "regex": {
+      "kind": "oracle_expectation",
+      "checked_by": "scripts/check_corpus_census.sh",
+      "freshness_gate": "bash scripts/check_corpus_census.sh regex",
+      "tuple_marker": "corpus-census[regex]: OK (tuple ",
+      "tuple_legend": "cells/matches/false-accepts/false-rejects; the answer key is PCRE2's own compile verdicts",
+      "normalizer": "regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py",
+      "artifacts": {
+        "cases_jsonl": "regex_corpus_bundle/corpus/pcre2/canonical/pcre2_compile_oracle_cases.jsonl",
+        "summary_json": "regex_corpus_bundle/corpus/pcre2/canonical/pcre2_compile_oracle_summary.json",
+        "skips_jsonl": "regex_corpus_bundle/corpus/pcre2/canonical/pcre2_compile_oracle_skips.jsonl"
+      },
+      "summary_excluded_keys": [
+        "outputs"
+      ],
+      "scratch_dir": "rust/target/corpus_census_gate/regex",
+      "verdict_anchor": {
+        "file": "docs/contracts/PGEN_REGEX_PARSER_INTEGRATION_CONTRACT.md",
+        "pattern": "The current real tuple [^\\n]*?\\*\\*`(\\d+/\\d+/\\d+/\\d+)`\\*\\*",
+        "held_by": "REGEX-ORACLE-ANCHOR-SYNC",
+        "held_by_script": "scripts/check_regex_oracle_anchor_sync.sh"
+      },
+      "verdict_producer": "rust/scripts/regex_pcre2_compile_oracle_gate.sh",
+      "denominator": "every pattern spec pcre2test 10.47 declares in testdata/testinput2 that the normalizer can pair soundly with its recorded verdict",
+      "instrument": "regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py",
+      "regenerate": "scripts/run_with_memory_guard.sh --budget-mb 16384 --timeout-s 3600 -- bash rust/scripts/regex_pcre2_compile_oracle_gate.sh",
+      "answer_key": "PCRE2 10.47's own recorded compile verdict for each pattern -- a REAL answer key, so unlike the VHDL census this pass share IS a conformance share. 50 of the 2 239 detected pattern specs are DECLINED rather than answered (48 carry a suffix modifier under which the raw pattern text is not what pcre2_compile sees, 2 fail UTF-8 decoding); they are counted in the denominator and named, never dropped."
     }
   },
   "tree_attribution": {
@@ -288,10 +318,10 @@
         "note": "⛔ WIRED IS NOT ADJUDICATED. DONE-BAR-VISIBILITY.3b re-measured the census on HEAD and put CORPUS-CENSUS-CURRENCY behind it, so the COUNTS are now derived on every render and cannot rot -- but the corpus still has NO answer key: nothing says which of these files SHOULD parse, and many are intentionally invalid, so a parse-FAIL is frequently the CORRECT outcome. The pass rate is therefore RAW and moves leg 3 not at all; the adjudication is owed by CORPUS-GRAD-ALL.2. ⭐ The number this replaced is why the doctrine exists: the previously published 4 031 / 9 689 was superseded by .2.2/.2.3 to 4 335 / 9 385, which had itself gone stale to 4 370 / 9 350 -- 22 days and 72 engine commits with nothing asking it to re-run."
       },
       "regex": {
-        "class": "corpus_wired_no_census",
-        "owed_by": "DONE-BAR-VISIBILITY.3b",
-        "last_measured_in": "RGX-0078",
-        "note": "The PCRE2 oracle publishes a real cells/matches/false-accepts/false-rejects tuple held by the REGEX-ORACLE-ANCHOR-SYNC doctrine, but its per-run summary is untracked (that doctrine says so itself), so it is an anchor to compare against rather than a census this producer can re-derive."
+        "class": "census_wired",
+        "owed_by": null,
+        "last_measured_in": "DONE-BAR-VISIBILITY.3c",
+        "note": "⭐ The one family whose corpus has a REAL answer key that is re-derivable from tracked inputs: PCRE2 10.47's own recorded compile verdicts. DONE-BAR-VISIBILITY.3c made the normalizer's output reproducible (its `outputs` block recorded ABSOLUTE paths into a foreign checkout, so the tracked summary was a function of whose machine ran it) and wired CORPUS-CENSUS-CURRENCY over it, which re-runs the normalizer into a scratch directory in 0.11 s and compares byte-for-byte. ⚠️ HONEST LIMIT: the VERDICT half is anchor-held, not re-executed per commit -- producing it needs a cargo build plus a run over every case (80 s, 5.5 GB peak). It was re-measured on HEAD for this leaf and read 2189/1879/262/48, EXACTLY the published anchor."
       },
       "systemverilog_preprocessor": {
         "class": "no_corpus_wired",

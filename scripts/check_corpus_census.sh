@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # scripts/check_corpus_census.sh
 #
-# DOCTRINE `CORPUS-CENSUS-CURRENCY` (evidence + structural) — DONE-BAR-VISIBILITY.3b.
+# DOCTRINE `CORPUS-CENSUS-CURRENCY` (evidence + structural) — DONE-BAR-VISIBILITY.3b (`raw_parse`,
+# vhdl) and `.3c` (`oracle_expectation`, regex).
 #
 #   A corpus pass rate nobody re-derives is a number about a tree that no longer exists.
 #
@@ -49,6 +50,48 @@
 #       have crossed earlier and nobody was looking. What the budget buys is a bounded
 #       re-measurement cost (~56 s per 72 engine commits) instead of an unbounded silence.
 #
+# ==================================================================================================
+# THE SECOND KIND — `oracle_expectation` (DONE-BAR-VISIBILITY.3c), and why a census has a KIND
+# ==================================================================================================
+# A corpus with an ANSWER KEY is not the same measurement as one without, and rendering the two
+# through one template publishes fields that do not mean what they say. `regex` has a real key —
+# PCRE2 10.47's own recorded compile verdicts — so its share IS a conformance share, where VHDL's is
+# raw. Its arms:
+#
+#   (a) FRESHNESS, byte-for-byte, on `SV-CORPUS-DENOMINATOR`'s shape: the normalizer is re-run into
+#       a SCRATCH directory (0.11 s) and the three tracked artifacts must be identical to what it
+#       produces. ⛔ SCRATCH, never in place — a check that regenerates the file it then compares
+#       always passes. ⛔ ONE NAMED EXCLUSION: the summary's `outputs` key, which records WHERE the
+#       run wrote. That is a property of the INVOCATION, so a scratch run and a canonical run
+#       legitimately differ there and nowhere else. The exclusion is declared in the schema, not
+#       hard-coded, and it is the same technique `check_sv_corpus_denominator.sh` uses for its own
+#       corpus-dependent column.
+#       ⭐ THIS LEG WAS IMPOSSIBLE UNTIL `.3c` FIXED THE PRODUCER: the tracked summary's `outputs`
+#       block held ABSOLUTE paths into a foreign checkout, on a different VOLUME from this
+#       repository, so the artifact was a function of whose machine ran it and no byte comparison
+#       could ever have passed.
+#   (b) DENOMINATOR ARITHMETIC — cells + skipped = pattern specs detected, both sides of the oracle
+#       detect the same population, and the answer key partitions exactly the emitted cells. ⛔ A
+#       DECLINED case is counted, never dropped: 50 of the 2 239 specs are cases the census refused
+#       to ask (48 carry a suffix modifier under which the raw pattern text is not what
+#       `pcre2_compile` sees, 2 fail UTF-8 decoding), and a case nobody asked is not a case that
+#       passed.
+#   (c) THE VERDICT ANCHOR HELD AGAINST A RE-DERIVED DENOMINATOR — and this is the whole reason
+#       this arm exists rather than deferring to `REGEX-ORACLE-ANCHOR-SYNC`. That doctrine holds the
+#       anchor's `cells` field equal to a TRACKED CONSTANT in the ratchet env, and every live anchor
+#       equal to every other. Both arms are STORED values: if the upstream corpus moved, the
+#       constant and the anchors would still agree with one another and would BOTH be wrong. Here
+#       `cells` is re-derived from the normalizer on every run and the anchor is held equal to THAT
+#       — a stored number against a re-derived one. The tuple must also close over its own cells.
+#   (d) THE DELEGATION IS EXISTENCE-CHECKED. An unchecked reference inside a passing gate's own
+#       reasoning is how a dependency rots into a dangling one.
+#
+# ⚠️ HONEST LIMIT, and the block says it where a reader will see it: the VERDICT half is NOT
+# re-executed. Producing it needs a cargo build of the corpus probe and a run over every case —
+# measured 80 s and 5.5 GB peak — which is not a per-commit cost. It was re-measured on HEAD for
+# `.3c` and read `2189/1879/262/48`, EXACTLY the published anchor; unlike the VHDL census, this one
+# was current.
+#
 # ⛔ WHY THERE IS NO SECOND ARTIFACT. The obvious design — a machine-readable census JSON beside
 # the report — was rejected: two tracked files holding the same counts is a second thing to drift,
 # and this doctrine exists because a number drifted. The tracked report IS the census, this gate
@@ -76,12 +119,13 @@
 # Usage:
 #   bash scripts/check_corpus_census.sh                # every family this gate owns
 #   bash scripts/check_corpus_census.sh vhdl           # one family, and print its tuple
+#   bash scripts/check_corpus_census.sh regex          # the oracle-expectation kind
 #   bash scripts/check_corpus_census.sh --self-test    # drive every refusal arm + a green control
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT" || exit 2
 
 exec python3 - "$@" <<'PYEOF'
-import contextlib, io, json, os, re, subprocess, sys
+import contextlib, io, json, os, re, shutil, subprocess, sys
 
 ROOT = os.getcwd()
 # ⛔ THE SCHEMA PATH IS A SEAM, and it is the SAME seam `scripts/report_family_status.sh` reads —
@@ -386,9 +430,139 @@ def digest(path):
     return out[0]
 
 
+def check_oracle_expectation(family, decl):
+    """`kind: oracle_expectation` — a corpus with an ANSWER KEY, normalized from a vendored
+    reference implementation's own test data.
+
+    ⛔ WHAT THIS ARM ADDS THAT `REGEX-ORACLE-ANCHOR-SYNC` DOES NOT, because duplicating a doctrine
+    is worse than not having one. That doctrine holds the published verdict tuple's `cells` field
+    equal to a TRACKED CONSTANT in the ratchet env, and every live anchor equal to each other. Both
+    arms are stored values: if the upstream corpus moved, the constant and the anchors would still
+    agree with one another and would BOTH be wrong. This arm re-derives `cells` from the normalizer
+    on every run and holds the ANCHOR equal to THAT — a stored number against a re-derived one.
+
+    ⚠️ HONEST LIMIT, and it is the reason the block says so out loud: the VERDICT half
+    (match / false-accept / false-reject) is NOT re-executed here. Producing it needs a cargo build
+    of the corpus probe and a run over every case — measured 80 s and 5.5 GB peak, which is not a
+    per-commit cost. It is anchor-held by `REGEX-ORACLE-ANCHOR-SYNC` and ratchet-bounded by the
+    tracked env, and this gate checks that its arithmetic closes against the denominator it is
+    published beside."""
+    arts = decl["artifacts"]
+    for name, path in arts.items():
+        if not os.path.isfile(path):
+            failures.append(f"{family}: the tracked census artifact `{name}` is missing: {path}")
+            return None
+
+    # --- FRESHNESS: re-run the normalizer into a SCRATCH directory ------------------------------
+    # ⛔ SCRATCH, never in place: a check that regenerates the file it then compares always passes.
+    scratch = decl["scratch_dir"]
+    shutil.rmtree(scratch, ignore_errors=True)
+    os.makedirs(scratch, exist_ok=True)
+    fresh = {k: os.path.join(scratch, os.path.basename(v)) for k, v in arts.items()}
+    proc = subprocess.run(
+        [sys.executable, decl["normalizer"],
+         "--output-jsonl", fresh["cases_jsonl"],
+         "--summary-json", fresh["summary_json"],
+         "--skip-jsonl", fresh["skips_jsonl"]],
+        capture_output=True, text=True, cwd=ROOT)
+    if proc.returncode != 0:
+        failures.append(f"{family}: the census normalizer `{decl['normalizer']}` refused to run "
+                        f"(exit {proc.returncode}): {(proc.stderr or proc.stdout).strip()}")
+        return None
+
+    def raw(p):
+        with open(p, "rb") as fh:
+            return fh.read()
+
+    for name in ("cases_jsonl", "skips_jsonl"):
+        if raw(arts[name]) != raw(fresh[name]):
+            failures.append(f"{family}: the tracked {arts[name]} is NOT what the normalizer "
+                            f"produces today — it is STALE. Re-run: {decl['regenerate']}")
+
+    # ⛔ THE ONE NAMED EXCLUSION, on `check_sv_corpus_denominator.sh`'s precedent (it excludes a
+    # corpus-dependent column by name rather than skipping the comparison wholesale). `outputs`
+    # records WHERE this run wrote, which is a property of the invocation: a scratch run and a
+    # canonical run legitimately differ there and nowhere else. Everything outside it is compared.
+    excluded = decl["summary_excluded_keys"]
+
+    def summary_without(path):
+        with open(path, encoding="utf-8") as fh:
+            d = json.load(fh)
+        for k in excluded:
+            d.pop(k, None)
+        return json.dumps(d, sort_keys=True, indent=1)
+
+    if summary_without(arts["summary_json"]) != summary_without(fresh["summary_json"]):
+        failures.append(f"{family}: the tracked {arts['summary_json']} disagrees with a fresh "
+                        f"normalizer run outside its {'/'.join(excluded)} key(s) — it is STALE. "
+                        f"Re-run: {decl['regenerate']}")
+
+    # --- the DENOMINATOR, derived from the FRESH summary ----------------------------------------
+    with open(fresh["summary_json"], encoding="utf-8") as fh:
+        s = json.load(fh)
+    specs_in = s["pattern_specs_detected_input"]
+    specs_out = s["pattern_specs_detected_output"]
+    cells = s["cases_emitted"]
+    skips = sum(s.get("skip_reason_counts", {}).values())
+    exp_ok = s["expected_parse_counts"]["ok"]
+    exp_fail = s["expected_parse_counts"]["fail"]
+    if specs_in != specs_out:
+        failures.append(f"{family}: the normalizer detected {specs_in} pattern specs in the input "
+                        f"and {specs_out} in the output; the two sides of the oracle disagree "
+                        f"about the population before any verdict is compared")
+    if cells + skips != specs_in:
+        failures.append(f"{family}: {cells} cells + {skips} skipped != {specs_in} pattern specs "
+                        f"detected. A skipped case is not gone — it is a row the census DECLINED "
+                        f"to ask, and it must still be accounted for in the denominator")
+    if exp_ok + exp_fail != cells:
+        failures.append(f"{family}: the answer key partitions {exp_ok} + {exp_fail} = "
+                        f"{exp_ok + exp_fail} cells, not the {cells} emitted")
+
+    # --- the VERDICT anchor, held against the RE-DERIVED denominator ----------------------------
+    anchor = decl["verdict_anchor"]
+    if not os.path.isfile(anchor["file"]):
+        failures.append(f"{family}: the verdict anchor surface is missing: {anchor['file']}")
+        return None
+    with open(anchor["file"], encoding="utf-8") as fh:
+        found = re.findall(anchor["pattern"], fh.read())
+    if not found:
+        failures.append(f"{family}: {anchor['file']} carries no current verdict tuple matching "
+                        f"{anchor['pattern']!r}; the census has a denominator and no verdicts")
+        return None
+    if len(set(found)) != 1:
+        failures.append(f"{family}: {anchor['file']} carries disagreeing current tuples {set(found)}")
+        return None
+    a_cells, match, fa, fr = (int(x) for x in found[0].split("/"))
+    if a_cells != cells:
+        failures.append(
+            f"{family}: the published verdict tuple is over {a_cells} cells while the normalizer "
+            f"re-derives {cells} today. ⛔ {anchor['held_by']} cannot see this: it holds the anchor "
+            f"equal to a TRACKED CONSTANT, so a moved corpus leaves the constant and the anchor "
+            f"agreeing with each other and both wrong. Re-run: {decl['regenerate']}")
+    if match + fa + fr != a_cells:
+        failures.append(f"{family}: the verdict tuple {match} + {fa} + {fr} = {match + fa + fr} "
+                        f"does not close over its own {a_cells} cells")
+
+    # The doctrine this arm leans on must EXIST. An unchecked reference in a passing gate's own
+    # reasoning is how a dependency rots into a dangling one.
+    held_script = anchor["held_by_script"]
+    if not os.path.isfile(held_script):
+        failures.append(f"{family}: the verdict half is delegated to {held_script}, which does not "
+                        f"exist — so nothing holds the anchors equal to each other or to the "
+                        f"tracked ratchet bounds")
+    unevaluated.append(f"{family}: the VERDICT half is not re-executed here — producing it needs a "
+                       f"cargo build of the corpus probe and a run over every case (measured 80 s, "
+                       f"5.5 GB peak, `{decl['verdict_producer']}`), which is not a per-commit "
+                       f"cost. It is anchor-held by {anchor['held_by']}; this gate re-derives the "
+                       f"DENOMINATOR and holds the anchor's cell count equal to it")
+    return f"{cells}/{match}/{fa}/{fr}"
+
+
 def check_family(family, decl):
     """Returns the census tuple for `family`, appending to the module-level verdict lists."""
     kind = decl.get("kind")
+    if kind == "oracle_expectation":
+        return check_oracle_expectation(family, decl)
     if kind != "raw_parse":
         refuse(f"'{family}' declares census kind {kind!r}, which this gate does not implement. A "
                f"kind with no reader must REFUSE rather than be skipped: an unimplemented census "
@@ -531,6 +705,5 @@ if failures:
 
 for family in selected:
     if family in tuples:
-        print(f"{TAG}[{family}]: OK (tuple {tuples[family]} = "
-              f"files/pass/fail/timeout/crash; RAW parse outcomes, no answer key)")
+        print(f"{TAG}[{family}]: OK (tuple {tuples[family]} = {owned[family]['tuple_legend']})")
 PYEOF

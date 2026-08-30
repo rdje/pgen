@@ -128,31 +128,18 @@ publish exactly the comfortable label this tree exists to replace with a distanc
   answer-keyed oracle over a normalized case set), so they are two gates' worth of RED controls and
   two renderers. `vhdl` ships here with the shared `kind` dispatch it needed; `regex` is now `.3c`
   and reuses that machinery. Landing half a gate to keep one leaf id was the worse trade.
-- ID: `DONE-BAR-VISIBILITY.3c` — Status: `pending`
+- ID: `DONE-BAR-VISIBILITY.3c` — Status: `done` (`PGEN-DONE-BAR-VISIBILITY-0011`)
   Goal: the second half of `.3b` — turn `regex` into a real count. Unlike VHDL it HAS an answer key
   (PCRE2's own compile verdicts), so its census is `cells / matches / false-accepts / false-rejects`
   and its pass share IS a conformance share.
-  What is already measured, 2026-08-30, so the leaf starts from evidence: the normalizer
-  `regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py` re-runs in **0.11 s** and
-  reproduces the tracked `pcre2_compile_oracle_cases.jsonl` **BYTE-IDENTICALLY**
-  (`4b990bf5…`), which is exactly the `SV-CORPUS-DENOMINATOR` freshness leg — so the DENOMINATOR
-  half (2 239 pattern specs detected, 2 189 cells emitted, 50 skipped: 48 unsupported-suffix +
-  2 utf8-decode; 1 609 expected-ok / 580 expected-fail) is already re-derivable from tracked inputs.
-  The VERDICT half (`2189/1879/262/48`) is anchored and ratchet-held by `REGEX-ORACLE-ANCHOR-SYNC`
-  but its per-run summary is untracked by that doctrine's own admission.
-  ⛔ **A DEFECT FOUND WHILE MEASURING, and it is what blocks a byte-identical freshness leg on the
-  summary**: the tracked `pcre2_compile_oracle_summary.json` carries an `outputs` block holding
-  ABSOLUTE paths into a FOREIGN checkout — a home-directory `…/github/pgen/…` location on a
-  different volume from this repository, so not even a path that exists here. (The literal string is
-  in the artifact and is deliberately NOT reproduced in this live doc, because `DOCPATH` correctly
-  refuses a repo-internal absolute path in a tracked document — the guard caught this line on its
-  first draft.) The block records where the file was WRITTEN, which is a property of the invocation
-  and not of the census, so the artifact is non-reproducible by construction and violates the
-  repo-root-relative path policy at the same time.
-  Acceptance: the `outputs` block becomes repo-root-relative (or is dropped); a `kind:
-  oracle_expectation` census renders the four-field tuple; the freshness gate re-runs the
-  normalizer into a SCRATCH directory and compares byte-for-byte, on the `SV-CORPUS-DENOMINATOR`
-  shape; the published block distinguishes a conformance share from VHDL's raw one.
+  Acceptance: MET. `CORPUS-CENSUS-CURRENCY` gained a second `kind` — `oracle_expectation` — whose
+  freshness leg re-runs the normalizer into a SCRATCH directory in 0.11 s and compares all three
+  tracked artifacts byte-for-byte, and whose sharpest arm holds the published verdict tuple's cell
+  count equal to a RE-DERIVED denominator rather than to a stored constant. Published in the regex
+  book and the roster page; the roster now reads **3 of 10 families have a corpus count at all**.
+  ⛔ The producer defect the leaf was opened on is FIXED: `pcre2_compile_oracle_summary.json` held
+  ABSOLUTE paths into a foreign checkout, so the tracked artifact was a function of whose machine
+  ran it and the byte-comparison leg was impossible by construction.
 - ID: `DONE-BAR-VISIBILITY.2a` — Status: `done` (`PGEN-DONE-BAR-VISIBILITY-0008`)
   Goal: correct the status reader that manufactured a tracker disagreement out of its own bias, and
   correct every surface that published the resulting number.
@@ -245,13 +232,14 @@ publish exactly the comfortable label this tree exists to replace with a distanc
 
 ## Current frontier
 
-1. `DONE-BAR-VISIBILITY.3c` (the real count for `regex`, the second half of `.3b`). It is the
-   frontier for the same reason `.3b` was: the roster page now reads **2 of 10 families have a
-   corpus count at all**, and `regex` is the one remaining family whose corpus is already wired,
-   already measured and merely not re-derivable — the cheapest denominator left on the board, with
-   its freshness leg already proven to reproduce byte-identically in 0.11 s.
-2. `DONE-BAR-VISIBILITY.8` (the 3 DISPUTED + 7 unreadable tracker statuses, which make every
-   remaining-work count — now including the roster page's `62 of 113` — an upper bound).
+1. `DONE-BAR-VISIBILITY.8` (the 3 DISPUTED + 7 unreadable tracker statuses). It is the frontier
+   because the corpus axis has run out of cheap wins: with `.3b` and `.3c` shipped, the roster reads
+   **3 of 10 families have a corpus count at all**, and the seven that remain are not measurement
+   gaps this tree can close — three are `pgen`-authored languages where no third-party corpus can
+   exist, three await `DONE-BAR.3`'s ownership ruling, and one awaits `CORPUS-GRAD-ALL.1` wiring a
+   corpus at all. What IS still closable here is the honesty of the remaining-work count, which
+   every surface currently publishes as an UPPER BOUND.
+2. `DONE-BAR-VISIBILITY.6` (the hand-written status prose class — 1 of 9 books measured wrong).
 3. `DONE-BAR-VISIBILITY.7` (raise the remaining-work item from a TREE to a LEAF), blocked on the
    leaf-status convention defect it names.
 
@@ -666,6 +654,134 @@ have crossed earlier and nobody was looking.
   evidence of correctness* is already a promoted card that this leaf simply obeyed by diffing per
   file; the budget calibration is a one-artifact fact and lives in the gate that applies it)
 
+### `.3c` — the regex corpus, where the answer key is real and the anchor turned out to be right
+
+Shipped in `PGEN-DONE-BAR-VISIBILITY-0011`.
+
+**A census has a KIND.** SystemVerilog's corpus is adjudicated, VHDL's is raw, and regex's has a
+REAL answer key — PCRE2 10.47's own recorded compile verdicts — so its pass share IS a conformance
+share where VHDL's is not. Rendering the three through one template would publish fields that do not
+mean what they say, so `corpus_census` dispatches on `kind` and an unimplemented kind REFUSES.
+
+**⭐ MEASURED BEFORE PUBLISHED, and this time the number held.** `.3b` found the VHDL census stale;
+the honest thing was to ask the same question of regex rather than assume the answer generalised. The
+full oracle gate was re-run on `HEAD` (80 s, peak 5.5 GB) and produced
+`parse_expectation_match_total: 1879` / `false_accept_total: 262` / `false_reject_total: 48` over
+`cases_executed: 2189` — **`2189/1879/262/48`, exactly the published anchor**. Two families, the same
+question, opposite answers; only running it could tell them apart.
+
+**⛔ THE DEFECT THAT MADE THE FRESHNESS LEG IMPOSSIBLE, and it was found by trying to build the leg.**
+`regex_corpus_bundle/corpus/pcre2/canonical/pcre2_compile_oracle_summary.json` is tracked and carried
+an `outputs` block holding ABSOLUTE paths into a home-directory checkout on a different VOLUME from
+this repository. The normalizer wrote `str(args.output_jsonl)` — the caller's path — so the tracked
+artifact was a function of WHOSE MACHINE ran it. Two consequences, and the second is why it blocked
+this leaf: it violates the repo-root-relative path policy, and it made the summary non-reproducible
+BY CONSTRUCTION, so no gate could ever have compared it byte-for-byte against a fresh run. Fixed by a
+`repo_relative()` helper; the regenerated artifact differs from the committed one **only** in those
+three strings (`cases.jsonl` and `skips.jsonl` are byte-identical, so the corpus itself never moved).
+
+**The four arms, and what each is blind to.**
+
+1. **FRESHNESS** — the normalizer is re-run into a SCRATCH directory (0.11 s) and all three tracked
+   artifacts must be byte-identical. ⛔ SCRATCH, never in place: a check that regenerates the file it
+   then compares always passes. ⛔ ONE DECLARED EXCLUSION — the summary's `outputs` key, which
+   records WHERE the run wrote and legitimately differs between a scratch and a canonical run. The
+   exclusion lives in the schema, not in the script, and it is the technique
+   `check_sv_corpus_denominator.sh` already uses for its own corpus-dependent column.
+2. **DENOMINATOR ARITHMETIC** — cells + declined = pattern specs detected; both sides of the oracle
+   detect the same population; the answer key partitions exactly the emitted cells. ⛔ **A declined
+   case is COUNTED, never dropped**: 50 of the 2 239 specs are cases the census refused to ask (48
+   carry a suffix modifier under which the raw pattern text is not what `pcre2_compile` sees, 2 fail
+   UTF-8 decoding). A case nobody asked is not a case that passed, and publishing 2 189 as the
+   denominator without saying where the other 50 went would be the same silence this tree exists to
+   end.
+3. **THE VERDICT ANCHOR HELD AGAINST A RE-DERIVED DENOMINATOR** — the arm that justifies this
+   existing at all rather than deferring to `REGEX-ORACLE-ANCHOR-SYNC`. That doctrine holds the
+   anchor's `cells` field equal to a TRACKED CONSTANT in the ratchet env, and every live anchor equal
+   to every other. **Both of its arms are stored values**: if the upstream corpus moved, the constant
+   and the anchors would still agree with one another and would BOTH be wrong. Here `cells` is
+   re-derived from the normalizer on every run and the anchor is held equal to THAT — a stored number
+   against a re-derived one — and the tuple must close over its own cells.
+4. **THE DELEGATION IS EXISTENCE-CHECKED** — an unchecked reference inside a passing gate's own
+   reasoning is how a dependency rots into a dangling one.
+
+**⚠️ HONEST LIMIT, published where a reader will see it.** The VERDICT half is not re-executed per
+commit: producing it needs a cargo build of the corpus probe plus a run over every case (80 s, 5.5 GB
+peak). The book block says so, names the producing gate and names the doctrine that holds the
+anchors, rather than letting a reader assume every figure on the page is re-derived on every commit.
+
+**The class map is deliberately the SAME semantic as SystemVerilog's**, because the two sit side by
+side in the cross-family table and a column that means different things per row is worse than no
+column: `passing` = the verdict matches the key; `explained` = divergence WITH a recorded explanation
+(every false REJECT is a documented strict-default divergence class, recorded case-class by
+case-class in the ratchet env's v12 record); `defects` = divergence with NO recorded explanation
+(the false ACCEPTS — over-acceptance is a defect outright by the north star).
+
+#### Acceptance checklist (`TOOLBOX.md`)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `regex` published `⛔ NOT MEASURED` while its corpus was
+      wired, normalized and anchored, and the artifact that would have carried the count recorded the
+      INVOCATION rather than the census. WHY, measured in two parts.
+
+      (a) The denominator was already re-derivable and nobody had wired it: the normalizer
+      reproduces the tracked `cases.jsonl` byte-identically (`4b990bf5…`) in **0.11 s**, and a
+      diff of the summaries with the invocation key removed is identical — so every field agreed
+      except the one recording where the run wrote, and that one field is exactly what a
+      byte-comparison trips on.
+
+      (b) That field is read by NOTHING, so it was pure liability. The census, over the tracked
+      tree:
+
+      ```
+      $ git ls-files | xargs grep -ln 'pcre2_compile_oracle_summary'
+        CHANGES.md · DEVELOPMENT_NOTES.md · docs/TASK_TREE.md · docs/tasks/DONE-BAR-VISIBILITY.md
+        docs/tasks/artifacts/done_bar/run_corpus_scale_census.sh
+        regex_corpus_bundle/corpus/pcre2/canonical/pcre2_compile_oracle_summary.json
+        regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py
+        rust/scripts/regex_pcre2_compile_oracle_gate.sh
+        rust/test_data/grammar_quality/family_status_block_v0.json
+      ```
+
+      Two of those are the artifact and its producer, one is the schema declaring the exclusion this
+      slice adds, four are era-dated prose. The two real code readers —
+      `rust/scripts/regex_pcre2_compile_oracle_gate.sh` and
+      `docs/tasks/artifacts/done_bar/run_corpus_scale_census.sh` — read `cases_emitted`,
+      `expected_parse_counts` and `skip_reason_counts`, and **neither reads `outputs`**. ⇒ a field
+      nothing consumes was the sole obstacle to a byte-identical freshness leg.
+- [x] **ADDRESSED (verified)** — before: `regex | ⛔ NOT MEASURED | ⛔ | ⛔ | the register declares
+      external corpus roots, but no TRACKED census turns them into counts a reader can re-derive.`
+      After: `regex | 2 189 | 1 879 (85.8 %) | 262 |`, with a four-row outcome table, the declined-50
+      accounting and the anchor-held caveat, in the regex book and the roster page. The gate:
+      `corpus-census[regex]: OK (tuple 2189/1879/262/48 = cells/matches/false-accepts/false-rejects)`.
+      The roster line moved from *2 of the 10 families have a corpus count at all* to **3**.
+      The normalizer's `outputs` block is now repo-root-relative in the tracked artifact.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` **ALL 33 PASS**;
+      `make -C rust SHELL=/bin/bash mdbook_docs_gate` **PASS**; `--check-all` green on all **11**
+      published surfaces, with the SystemVerilog **and VHDL** blocks byte-identical — this slice adds
+      one family's numbers and moves nobody else's. The regenerated regex artifacts differ from the
+      committed ones in **3 strings inside one key**; `cases.jsonl` and `skips.jsonl` are
+      byte-identical, so the corpus and the answer key provably did not move. The full oracle gate
+      re-run exits 0 against its own tracked ratchet bounds. Zero Rust, zero grammar, zero generated
+      bytes.
+- [x] **RED CONTROLS** — eight driven against the REAL tracked artifacts through the
+      `PGEN_FAMILY_STATUS_SCHEMA` seam, pointing at COPIES so nothing tracked was touched: green
+      control `rc=0`; a row appended to `cases.jsonl` → STALE; a summary field moved → STALE outside
+      the excluded key; the anchor's cell count moved to 2 200 → FAIL, *naming why
+      `REGEX-ORACLE-ANCHOR-SYNC` cannot see it*; a tuple that no longer closes (1 878 + 262 + 48) →
+      FAIL; the anchor removed → FAIL; the delegated doctrine's script renamed away → FAIL. ⭐ **And
+      one control proving arm independence, which needed a normalizer WRAPPER**: any mutation of the
+      tracked summary alone is caught upstream by freshness, so the denominator-arithmetic arm can
+      only be reached by making BOTH sides produce the same broken identity — done, and it fires
+      alone. The `raw_parse` self-test's 14 in-process controls still pass unchanged.
+- [x] **LOCKSTEP** — tree + frontier + `docs/TASK_TREE.md` + `DOCTRINE_ENFORCEMENT.md` §10 + the
+      registry description + the regex parser book + the platform book's roster + `CHANGES.md` +
+      `DEVELOPMENT_NOTES.md` + `MEMORY.md`.
+
+- promotion: declined (the durable half — *a stored number checked against another stored number is
+  one arm, not two* — is `BASELINE-IDENTITY`'s founding sentence and `DERIVED_STATE_CONTAINMENT`
+  R1/R3, both already retrievable and both cited here; the `outputs`-block defect is a one-artifact
+  fact and lives in the producer that emits it)
+
 ### `.9` — the block is published in all ten parser books
 
 Shipped in `PGEN-DONE-BAR-VISIBILITY-0006`.
@@ -911,6 +1027,14 @@ None.
 - 2026-08-30 (`.3`) — the nine no-count families split into FOUR derived classes, each naming its
   owing leaf; the class is held equal to the done-bar register and RED-10 proves the drift refuses.
   12/12 probes, 31/31 doctrines, mdbook gate PASS, SV block byte-identical.
+- 2026-08-30 (`.3c`) — regex census wired: the oracle gate RE-RUN on HEAD (80 s, 5.5 GB peak) read
+  2189/1879/262/48, EXACTLY the published anchor — measured before published, and unlike VHDL it
+  held. The normalizer's tracked summary carried absolute paths into a foreign off-volume checkout,
+  which made the byte-comparison freshness leg impossible; fixed, and the regenerated artifacts
+  differ in 3 strings inside one key with `cases.jsonl`/`skips.jsonl` byte-identical. Eight RED/green
+  controls through the seam, one of them needing a normalizer wrapper to reach the arithmetic arm
+  past the freshness arm. ALL 33 doctrines PASS; mdbook gate PASS; `--check-all` green on 11
+  surfaces with the SV and VHDL blocks byte-identical.
 - 2026-08-30 (`.3b`) — VHDL re-measured on HEAD: 13 720 / 4 370 / 9 350 (31.9 %), **35 fail→pass
   and 0 pass→fail** on a per-file diff of the two runs. `CORPUS-CENSUS-CURRENCY` registered
   (32 → 33), 0.18 s, 14 self-test controls plus eight RED/NOTE arms driven against the real tracked
@@ -933,6 +1057,7 @@ None.
 - `.2a` DONE (the status reader corrected under a director challenge) — `PGEN-DONE-BAR-VISIBILITY-0008`
 - `.5` DONE (the cross-family view — the whole roster on one page) — `PGEN-DONE-BAR-VISIBILITY-0009`
 - `.3b` DONE (the VHDL census re-measured, and CORPUS-CENSUS-CURRENCY behind it, 32 -> 33) — `PGEN-DONE-BAR-VISIBILITY-0010`
+- `.3c` DONE (the regex census, kind `oracle_expectation`) — `PGEN-DONE-BAR-VISIBILITY-0011`
 
 ## Changelog
 
@@ -945,6 +1070,10 @@ None.
   `.4`, the co-publication gate, because ten unchecked pages will go stale.
 - 2026-08-30 — `.3` DONE: every family says WHY it has no corpus count and who owes one. New
   leaves `.3b` (the real VHDL/regex censuses) and `.9` (publish the block into the other nine books).
+- 2026-08-30 — `.3c` DONE. Both `corpus_wired_no_census` families now publish real counts, and the
+  roster reads **3 of 10 families have a corpus count at all**. The corpus axis of this tree is
+  exhausted: the seven remaining families are not measurement gaps it can close. Frontier moves to
+  `.8`, the tracker-status disagreements that make every remaining-work count an upper bound.
 - 2026-08-30 — `.3b` DONE for `vhdl`. The second family in this project to have a corpus count a
   reader can re-derive, and the first whose census artifact was READ by anything. New leaf `.3c`
   carries the `regex` half, with its freshness leg already proven to reproduce byte-identically in
