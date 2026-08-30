@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4764aa56.js";
+            window.path_to_searchindex_js = "searchindex-2b2d7c03.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-78b8fb87.js"></script>
@@ -250,7 +250,41 @@ inapplicable one.</li>
 </tbody>
 </table>
 </div>
-<p><strong>Corpus.</strong> ⛔ <strong>NOT MEASURED</strong> — the register declares external corpus roots, but no TRACKED census turns them into counts a reader can re-derive. Owed by <code>DONE-BAR-VISIBILITY.3b</code>. The last measurement lives in <code>CORPUS-GRAD-ALL.2.1</code> and is POINTED AT rather than copied here, because a copied number rots. A raw parse census was run on 2026-08-08 – 13 720 files, pass 4 031, fail 9 689 – but <code>results.tsv</code> is gitignored (the rule <code>stimuli/*/characterization/results.tsv</code>), so nothing in the tree can re-derive it and it is not published here. It is also a RAW pass rate, not an adjudicated one: no answer key says which of those files SHOULD parse.</p>
+<p><strong>Corpus.</strong> Denominator: every .vhd / .vhdl file under the ten vendored VHDL corpora in stimuli/vhdl/subs — <strong>13 720 files</strong>, counted by <code>stimuli/run_external_corpus.sh vhdl</code>, published in <a href="../../../stimuli/vhdl/characterization/characterization.html"><code>stimuli/vhdl/characterization/characterization.md</code></a> and held current by <code>bash scripts/check_corpus_census.sh vhdl</code>.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Outcome</th><th style="text-align: right">Files</th><th style="text-align: right">Share of the corpus</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Parses</strong></td><td style="text-align: right">4 370</td><td style="text-align: right">31.9 %</td></tr>
+<tr><td>Rejected</td><td style="text-align: right">9 350</td><td style="text-align: right">68.1 %</td></tr>
+<tr><td>Timed out</td><td style="text-align: right">0</td><td style="text-align: right">0.0 %</td></tr>
+<tr><td>Crashed</td><td style="text-align: right">0</td><td style="text-align: right">0.0 %</td></tr>
+<tr><td>Total</td><td style="text-align: right">13 720</td><td style="text-align: right">100.0 %</td></tr>
+</tbody>
+</table>
+</div>
+<p>⛔ <strong>This is a RAW parse rate and it moves leg 3 not at all.</strong> none – these are RAW parse outcomes. Many corpus files are INTENTIONALLY invalid (GHDL gna bug regressions, non-compliant fixtures), so a parse-FAIL is frequently the CORRECT outcome. A raw pass rate is NOT an adjudicated one and this producer must never render it as though a key existed; the adjudication is owed by CORPUS-GRAD-ALL.2. So there is no <em>known defects</em> count here, and that blank is not a zero: nobody has looked. The adjudication is owed by <code>CORPUS-GRAD-ALL.2</code>. What the number IS good for is drift — it is re-derived on every commit, so a grammar or corpus change that moves it can no longer pass unnoticed.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Sub-corpus</th><th style="text-align: right">Files</th><th style="text-align: right">Parses</th><th style="text-align: right">Rejected</th><th style="text-align: right">Share</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Compliance-Tests</code></td><td style="text-align: right">78</td><td style="text-align: right">28</td><td style="text-align: right">50</td><td style="text-align: right">35.9 %</td></tr>
+<tr><td><code>Interfaces</code></td><td style="text-align: right">30</td><td style="text-align: right">11</td><td style="text-align: right">19</td><td style="text-align: right">36.7 %</td></tr>
+<tr><td><code>OsvvmLibraries</code></td><td style="text-align: right">715</td><td style="text-align: right">61</td><td style="text-align: right">654</td><td style="text-align: right">8.5 %</td></tr>
+<tr><td><code>PoC</code></td><td style="text-align: right">371</td><td style="text-align: right">84</td><td style="text-align: right">287</td><td style="text-align: right">22.6 %</td></tr>
+<tr><td><code>Rudi-RV32I</code></td><td style="text-align: right">29</td><td style="text-align: right">16</td><td style="text-align: right">13</td><td style="text-align: right">55.2 %</td></tr>
+<tr><td><code>UVVM</code></td><td style="text-align: right">302</td><td style="text-align: right">53</td><td style="text-align: right">249</td><td style="text-align: right">17.5 %</td></tr>
+<tr><td><code>ghdl</code></td><td style="text-align: right">9 758</td><td style="text-align: right">3 388</td><td style="text-align: right">6 370</td><td style="text-align: right">34.7 %</td></tr>
+<tr><td><code>neorv32</code></td><td style="text-align: right">69</td><td style="text-align: right">51</td><td style="text-align: right">18</td><td style="text-align: right">73.9 %</td></tr>
+<tr><td><code>nvc</code></td><td style="text-align: right">2 074</td><td style="text-align: right">594</td><td style="text-align: right">1 480</td><td style="text-align: right">28.6 %</td></tr>
+<tr><td><code>vunit</code></td><td style="text-align: right">294</td><td style="text-align: right">84</td><td style="text-align: right">210</td><td style="text-align: right">28.6 %</td></tr>
+</tbody>
+</table>
+</div>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. <strong>0 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <p>No open tree is attributed to this family — every tree that owned its work is closed. That is not the same as meeting the bar: the legs above are what decide <code>Done</code>, and cross-cutting work can still gate this family.</p>
 <p>⚠️ <strong>The item here is a TREE, not a leaf, and that is a measured limit.</strong> A leaf’s status is free prose, and this repository has measured leaves reading <code>todo</code> for days after their fix shipped, so a per-leaf list would publish that defect as a number. The two prose arms — the index row and the tree file’s own metadata — disagree on some trees, and every disagreement is counted OPEN and shown above: over-reporting is the only safe direction for a list that says how much is left.</p>

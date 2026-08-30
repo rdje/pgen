@@ -495,6 +495,86 @@ def derive(FAMILY):
             refuse(f"`{gate}` printed no `{marker}` line, so there is no tuple to cross-check against")
         gate_tuple = out.split(marker, 1)[1].split()[0]
 
+    # ⛔⛔ A CENSUS HAS A SHAPE, AND THE SHAPES ARE NOT INTERCHANGEABLE. SystemVerilog's corpus has
+    # an ANSWER KEY, so its census partitions rows by VERDICT and a `known defects` count means
+    # something. VHDL's does not: `characterization.md` says in its own opening paragraph that many
+    # corpus files are intentionally invalid, so a parse-FAIL is frequently the CORRECT outcome. A
+    # raw census rendered through the adjudicated template would publish `known defects: 0`, which
+    # reads as *nothing is wrong* when the truth is *nobody has looked*. So `kind` dispatches, and
+    # an unknown kind REFUSES rather than falling through to whichever template is first.
+    if census and census.get("kind") == "raw_parse":
+        # ⭐ THE PRODUCER DERIVES THE TUPLE AGAIN, FROM THE SAME TRACKED REPORT THE GATE READ, and
+        # the two are held equal below. That duplication is the design, not an oversight: it is the
+        # SystemVerilog arm's shape one family over — one artifact, two independent readers, and a
+        # refusal if they disagree. A single reader shared by both would agree with itself.
+        report_path = census["report"]
+        if not os.path.isfile(report_path):
+            refuse(f"the census report {report_path} declared for '{FAMILY}' does not exist")
+        with open(report_path, encoding="utf-8") as fh:
+            report_text = fh.read()
+
+        def _table(heading, arity):
+            body, taking, rows, seen_sep = [], False, [], False
+            for line in report_text.splitlines():
+                if re.match(r"^#{1,6}\s", line):
+                    if taking:
+                        break
+                    taking = line.startswith("## ") and line[3:].strip() == heading
+                    continue
+                if taking:
+                    body.append(line)
+            for line in body:
+                if "|" not in line:
+                    if rows:
+                        break
+                    continue
+                s = line.strip().strip("|")
+                cells = [c.strip() for c in s.split("|")]
+                if all(re.fullmatch(r":?-{2,}:?", c) for c in cells):
+                    seen_sep = True
+                    continue
+                if not seen_sep:
+                    continue
+                if len(cells) != arity:
+                    refuse(f"{report_path}: a `{heading}` row carries {len(cells)} cells, not "
+                           f"{arity}: {cells}")
+                rows.append(cells)
+            if not rows:
+                refuse(f"{report_path}: no `## {heading}` table — this producer will not publish a "
+                       f"count it cannot read out of the artifact that holds it")
+            return rows
+
+        t = _table("Totals", 6)
+        if len(t) != 1:
+            refuse(f"{report_path}: the `## Totals` table must carry exactly one row, found {len(t)}")
+        total, passing, rejected, timeout, crash = (int(c) for c in t[0][:5])
+        subs = [dict(name=r[0], total=int(r[1]), passing=int(r[2]), rejected=int(r[3]),
+                     timeout=int(r[4]), crash=int(r[5]))
+                for r in _table("Per sub-corpus", 7)]
+
+        derived_tuple = f"{total}/{passing}/{rejected}/{timeout}/{crash}"
+        if derived_tuple != gate_tuple:
+            refuse(f"this script derives the census tuple {derived_tuple} from {report_path} while "
+                   f"`{gate}` derives {gate_tuple}. Two readings of one census disagree — neither "
+                   f"may be published until they are reconciled.")
+        if passing + rejected + timeout + crash != total:
+            refuse(f"{report_path}: the outcome classes sum to "
+                   f"{passing + rejected + timeout + crash}, not the published total {total}")
+
+        # ⛔ `defects` is None, NOT ZERO, and every renderer must carry that through. There is no
+        # answer key, so the number of KNOWN DEFECTS in this corpus is not zero — it is unknown,
+        # and a zero in that cell is the exact shape of lie
+        # docs/decisions/feedback_a_check_that_cannot_run_must_say_so.md exists to forbid.
+        corpus = dict(kind="raw_parse", total=total, passing=passing, rejected=rejected,
+                      timeout=timeout, crash=crash, subs=subs, defects=None,
+                      tuple=derived_tuple, denominator=census["denominator"],
+                      instrument=census["instrument"], gate=gate, report=report_path,
+                      answer_key=census["answer_key"])
+    elif census and census.get("kind") != "verdict_coverage":
+        refuse(f"'{FAMILY}' declares census kind {census.get('kind')!r}, which no renderer here "
+               f"implements. A census shape with no renderer must refuse: rendering it through "
+               f"another shape's template publishes fields that do not mean what they say.")
+    elif census:
         rows_by_class, buckets = {}, {}
         with open(census["coverage_tsv"], encoding="utf-8") as fh:
             fh.readline()
@@ -529,7 +609,8 @@ def derive(FAMILY):
         if adjudicated != passing + explained + defects:
             refuse(f"the adjudicated bucket ({adjudicated}) is not the sum of its classes "
                    f"({passing} + {explained} + {defects}); the class map has moved")
-        corpus = dict(total=total, passing=passing, explained=explained, defects=defects,
+        corpus = dict(kind="verdict_coverage",
+                      total=total, passing=passing, explained=explained, defects=defects,
                       routed=routed, noverdict=noverdict, adjudicated=adjudicated, dark=dark,
                       tuple=derived_tuple, denominator=census["denominator"],
                       instrument=census["instrument"], gate=gate)
@@ -641,7 +722,33 @@ def render_markdown(d):
         out.append(f"| {n} — {LEGNAME[n]} | {MARK[legs[n]['verdict']]} **{legs[n]['verdict']}** | "
                    f"{legs[n]['reason']} |")
     out.append("")
-    if corpus:
+    if corpus and corpus["kind"] == "raw_parse":
+        out.append(f"**Corpus.** Denominator: {corpus['denominator']} — **{fmt(corpus['total'])} "
+                   f"files**, counted by `{corpus['instrument']}`, published in "
+                   f"[`{corpus['report']}`](../../../{corpus['report']}) and held current by "
+                   f"`{corpus['gate']}`.")
+        out.append("")
+        out.append("| Outcome | Files | Share of the corpus |")
+        out.append("|---|---:|---:|")
+        out.append(f"| **Parses** | {fmt(corpus['passing'])} | {pct(corpus['passing'], corpus['total'])} |")
+        out.append(f"| Rejected | {fmt(corpus['rejected'])} | {pct(corpus['rejected'], corpus['total'])} |")
+        out.append(f"| Timed out | {fmt(corpus['timeout'])} | {pct(corpus['timeout'], corpus['total'])} |")
+        out.append(f"| Crashed | {fmt(corpus['crash'])} | {pct(corpus['crash'], corpus['total'])} |")
+        out.append(f"| Total | {fmt(corpus['total'])} | 100.0 % |")
+        out.append("")
+        out.append(f"⛔ **This is a RAW parse rate and it moves leg 3 not at all.** "
+                   f"{cell(corpus['answer_key'].replace('`', ''))} So there is no *known defects* "
+                   f"count here, and that blank is not a zero: nobody has looked. The adjudication "
+                   f"is owed by `{corpus_why['owed_by']}`. What the number IS good for is drift — "
+                   f"it is re-derived on every commit, so a grammar or corpus change that moves it "
+                   f"can no longer pass unnoticed.")
+        out.append("")
+        out.append("| Sub-corpus | Files | Parses | Rejected | Share |")
+        out.append("|---|---:|---:|---:|---:|")
+        for s in corpus["subs"]:
+            out.append(f"| `{cell(s['name'])}` | {fmt(s['total'])} | {fmt(s['passing'])} | "
+                       f"{fmt(s['rejected'])} | {pct(s['passing'], s['total'])} |")
+    elif corpus:
         out.append(f"**Corpus.** Denominator: {corpus['denominator']} — **{fmt(corpus['total'])} "
                    f"rows**, counted by `{corpus['instrument']}` and held current by "
                    f"`{corpus['gate']}`.")
@@ -726,7 +833,15 @@ def render_text(d):
     out.append(f"  on THIS machine (gate artifacts included, not tracked): "
                f"leg1={local_legs[1]} leg2={local_legs[2]} leg3={local_legs[3]}")
     out.append("")
-    if corpus:
+    if corpus and corpus["kind"] == "raw_parse":
+        out.append(f"  corpus  {fmt(corpus['total'])} files  [{corpus['denominator']}]")
+        out.append(f"    parses ⚠️ RAW, no answer key ......... {fmt(corpus['passing']):>7s}  {pct(corpus['passing'], corpus['total'])}")
+        out.append(f"    rejected ............................ {fmt(corpus['rejected']):>7s}  {pct(corpus['rejected'], corpus['total'])}")
+        out.append(f"    timed out / crashed ................. {fmt(corpus['timeout']):>7s}  {fmt(corpus['crash'])}")
+        out.append(f"    KNOWN DEFECTS ....................... NOT ADJUDICATED — no key says which "
+                   f"of these SHOULD parse; owed by {corpus_why['owed_by']}")
+        out.append(f"    => leg 3 is untouched by this number: a RAW rate is not a conformance rate")
+    elif corpus:
         out.append(f"  corpus  {fmt(corpus['total'])} rows  [{corpus['denominator']}]")
         out.append(f"    passing (verdict matches the key) .... {fmt(corpus['passing']):>7s}  {pct(corpus['passing'], corpus['total'])}")
         out.append(f"    divergence, explained ............... {fmt(corpus['explained']):>7s}  {pct(corpus['explained'], corpus['total'])}")
@@ -829,7 +944,7 @@ def render_cross(ds):
                    f"{MARK['UNMET']} unmet. **Why** a leg reads as it does is on that family's own "
                    f"page, one click away; this table is the comparison, not the explanation.")
         out.append("")
-        out.append(f"**Corpus.** {len(with_census)} of the {len(ds)} families has a corpus count at "
+        out.append(f"**Corpus.** {len(with_census)} of the {len(ds)} families {'has' if len(with_census) == 1 else 'have'} a corpus count at "
                    f"all. The rows below are that family's own denominator — there is no "
                    f"roster-wide corpus figure, and the `NOT MEASURED` rows are exactly what is "
                    f"missing, each naming the leaf that owes it.")
@@ -841,8 +956,21 @@ def render_cross(ds):
             if c:
                 rests = (f"{c['denominator']}, counted by `{c['instrument']}` and held current by "
                          f"`{c['gate']}`")
-                row = (f"| `{x['family']}` | {fmt(c['total'])} | {fmt(c['passing'])} "
-                       f"({pct(c['passing'], c['total'])}) | {fmt(c['defects'])} | {cell(rests)} |")
+                # ⛔ A RAW census has no `known defects` number and must not be given one. Zero in
+                # that cell would read as *nothing is wrong* where the truth is *nobody has looked*,
+                # and this is the one table where a reader compares families side by side — which is
+                # exactly where an incomparable number does the most damage.
+                if c["defects"] is None:
+                    rests += (f". ⚠️ RAW parse outcomes: no answer key, so the pass share is NOT a "
+                              f"conformance share and no defect count exists. Adjudication owed by "
+                              f"`{why['owed_by']}`")
+                    defect_cell = "⛔ n/a"
+                    pass_cell = f"{fmt(c['passing'])} ({pct(c['passing'], c['total'])}) ⚠️ raw"
+                else:
+                    defect_cell = fmt(c["defects"])
+                    pass_cell = f"{fmt(c['passing'])} ({pct(c['passing'], c['total'])})"
+                row = (f"| `{x['family']}` | {fmt(c['total'])} | {pass_cell} | {defect_cell} | "
+                       f"{cell(rests)} |")
             else:
                 rests = why["blurb"] + "."
                 if why.get("owed_by"):
@@ -884,15 +1012,17 @@ def render_cross(ds):
         out.append(f"  {len(met_all)} of {len(ds)} families meet the three-leg `Done` bar; "
                    f"{legs_met} of {3 * len(ds)} legs met across the roster.")
         out.append("")
-        out.append(f"  {'family':30s}{'claimed status':30s}{'corpus rows':>13s}{'passing':>16s}"
+        out.append(f"  {'family':30s}{'claimed status':30s}{'corpus rows':>13s}{'passing':>22s}"
                    f"{'defects':>9s}{'trees':>7s}   legs 1/2/3")
         for x in ds:
             c = x["corpus"]
             rows_cell = fmt(c["total"]) if c else "NOT MEASURED"
-            pass_cell = f"{fmt(c['passing'])} ({pct(c['passing'], c['total'])})" if c else "—"
-            defect_cell = fmt(c["defects"]) if c else "—"
+            raw = bool(c) and c["defects"] is None
+            pass_cell = (f"{fmt(c['passing'])} ({pct(c['passing'], c['total'])})"
+                         + (" raw" if raw else "")) if c else "—"
+            defect_cell = ("n/a" if raw else fmt(c["defects"])) if c else "—"
             out.append(f"  {x['family']:30s}{x['entry']['claimed_status']:30s}{rows_cell:>13s}"
-                       f"{pass_cell:>16s}{defect_cell:>9s}{len(x['family_open']):>7d}   "
+                       f"{pass_cell:>22s}{defect_cell:>9s}{len(x['family_open']):>7d}   "
                        + " ".join(MARK[x["legs"][n]["verdict"]] for n in (1, 2, 3)))
         out.append("")
         out.append(f"  => open trees {n_open} of {len(row_state)}: {fam_total} owned by a family "
@@ -900,7 +1030,7 @@ def render_cross(ds):
                        f"{n} {who}" for who, n in sorted(
                            ((k, v) for k, v in open_by_class.items() if k not in register["families"]),
                            key=lambda kv: (-kv[1], kv[0]))))
-        out.append(f"  => {len(with_census)} of {len(ds)} families has a corpus count at all; each "
+        out.append(f"  => {len(with_census)} of {len(ds)} families {'has' if len(with_census) == 1 else 'have'} a corpus count at all; each "
                    f"NOT MEASURED row names the leaf that owes one")
         out.append(f"  => an UPPER BOUND: {n_disputed_rows} tracker statuses DISPUTED and "
                    f"{n_unreadable_rows} unreadable, all counted OPEN (DONE-BAR-VISIBILITY.8)")

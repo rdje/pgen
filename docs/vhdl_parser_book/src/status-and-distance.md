@@ -43,7 +43,30 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 | 2 — gates green and invoked | ⛔ **UNMET** | 9 covering gate targets, 8 invoked, 1 invoked by nothing (vhdl_combined_telemetry_contract_gate); rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
 | 3 — external corpus passing | ⛔ **UNMET** | the only gate reading the external corpus is a TRIAGE gate, and a triage gate is not a conformance gate |
 
-**Corpus.** ⛔ **NOT MEASURED** — the register declares external corpus roots, but no TRACKED census turns them into counts a reader can re-derive. Owed by `DONE-BAR-VISIBILITY.3b`. The last measurement lives in `CORPUS-GRAD-ALL.2.1` and is POINTED AT rather than copied here, because a copied number rots. A raw parse census was run on 2026-08-08 -- 13 720 files, pass 4 031, fail 9 689 -- but `results.tsv` is gitignored (the rule `stimuli/*/characterization/results.tsv`), so nothing in the tree can re-derive it and it is not published here. It is also a RAW pass rate, not an adjudicated one: no answer key says which of those files SHOULD parse.
+**Corpus.** Denominator: every .vhd / .vhdl file under the ten vendored VHDL corpora in stimuli/vhdl/subs — **13 720 files**, counted by `stimuli/run_external_corpus.sh vhdl`, published in [`stimuli/vhdl/characterization/characterization.md`](../../../stimuli/vhdl/characterization/characterization.md) and held current by `bash scripts/check_corpus_census.sh vhdl`.
+
+| Outcome | Files | Share of the corpus |
+|---|---:|---:|
+| **Parses** | 4 370 | 31.9 % |
+| Rejected | 9 350 | 68.1 % |
+| Timed out | 0 | 0.0 % |
+| Crashed | 0 | 0.0 % |
+| Total | 13 720 | 100.0 % |
+
+⛔ **This is a RAW parse rate and it moves leg 3 not at all.** none -- these are RAW parse outcomes. Many corpus files are INTENTIONALLY invalid (GHDL gna bug regressions, non-compliant fixtures), so a parse-FAIL is frequently the CORRECT outcome. A raw pass rate is NOT an adjudicated one and this producer must never render it as though a key existed; the adjudication is owed by CORPUS-GRAD-ALL.2. So there is no *known defects* count here, and that blank is not a zero: nobody has looked. The adjudication is owed by `CORPUS-GRAD-ALL.2`. What the number IS good for is drift — it is re-derived on every commit, so a grammar or corpus change that moves it can no longer pass unnoticed.
+
+| Sub-corpus | Files | Parses | Rejected | Share |
+|---|---:|---:|---:|---:|
+| `Compliance-Tests` | 78 | 28 | 50 | 35.9 % |
+| `Interfaces` | 30 | 11 | 19 | 36.7 % |
+| `OsvvmLibraries` | 715 | 61 | 654 | 8.5 % |
+| `PoC` | 371 | 84 | 287 | 22.6 % |
+| `Rudi-RV32I` | 29 | 16 | 13 | 55.2 % |
+| `UVVM` | 302 | 53 | 249 | 17.5 % |
+| `ghdl` | 9 758 | 3 388 | 6 370 | 34.7 % |
+| `neorv32` | 69 | 51 | 18 | 73.9 % |
+| `nvc` | 2 074 | 594 | 1 480 | 28.6 % |
+| `vunit` | 294 | 84 | 210 | 28.6 % |
 
 **What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. **0 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
 

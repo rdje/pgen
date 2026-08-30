@@ -112,12 +112,36 @@
   },
   "corpus_census": {
     "systemverilog": {
+      "kind": "verdict_coverage",
+      "checked_by": "scripts/check_sv_corpus_denominator.sh",
       "freshness_gate": "bash scripts/check_sv_corpus_denominator.sh",
       "tuple_marker": "sv-corpus-denominator: OK (tuple ",
       "coverage_tsv": "docs/tasks/artifacts/sv_corpus_grad/verdict_coverage/coverage.tsv",
       "strata_tsv": "docs/tasks/artifacts/sv_corpus_grad/verdict_coverage/strata.tsv",
       "denominator": "every row of the SystemVerilog corpus adjudication manifests over stimuli/sv/subs + stimuli/sv/uvm",
       "instrument": "stimuli/sv/corpus_verdict_coverage.py"
+    },
+    "vhdl": {
+      "kind": "raw_parse",
+      "checked_by": "scripts/check_corpus_census.sh",
+      "freshness_gate": "bash scripts/check_corpus_census.sh vhdl",
+      "tuple_marker": "corpus-census[vhdl]: OK (tuple ",
+      "report": "stimuli/vhdl/characterization/characterization.md",
+      "corpus_root": "stimuli/vhdl/subs",
+      "file_extensions": [
+        ".vhd",
+        ".vhdl"
+      ],
+      "grammar_identity_row": "grammar",
+      "parser_identity_row": "generated parser",
+      "engine_paths": [
+        "rust/src"
+      ],
+      "engine_staleness_budget_commits": 72,
+      "denominator": "every .vhd / .vhdl file under the ten vendored VHDL corpora in stimuli/vhdl/subs",
+      "instrument": "stimuli/run_external_corpus.sh vhdl",
+      "regenerate": "scripts/run_with_memory_guard.sh --budget-mb 8192 --timeout-s 1800 -- stimuli/run_external_corpus.sh vhdl",
+      "answer_key": "none -- these are RAW parse outcomes. Many corpus files are INTENTIONALLY invalid (GHDL `gna` bug regressions, non-compliant fixtures), so a parse-FAIL is frequently the CORRECT outcome. A raw pass rate is NOT an adjudicated one and this producer must never render it as though a key existed; the adjudication is owed by CORPUS-GRAD-ALL.2."
     }
   },
   "tree_attribution": {
@@ -258,10 +282,10 @@
         "owed_by": null
       },
       "vhdl": {
-        "class": "corpus_wired_no_census",
-        "owed_by": "DONE-BAR-VISIBILITY.3b",
-        "last_measured_in": "CORPUS-GRAD-ALL.2.1",
-        "note": "A raw parse census was run on 2026-08-08 -- 13 720 files, pass 4 031, fail 9 689 -- but `results.tsv` is gitignored (the rule `stimuli/*/characterization/results.tsv`), so nothing in the tree can re-derive it and it is not published here. It is also a RAW pass rate, not an adjudicated one: no answer key says which of those files SHOULD parse."
+        "class": "census_wired",
+        "owed_by": "CORPUS-GRAD-ALL.2",
+        "last_measured_in": "DONE-BAR-VISIBILITY.3b",
+        "note": "⛔ WIRED IS NOT ADJUDICATED. DONE-BAR-VISIBILITY.3b re-measured the census on HEAD and put CORPUS-CENSUS-CURRENCY behind it, so the COUNTS are now derived on every render and cannot rot -- but the corpus still has NO answer key: nothing says which of these files SHOULD parse, and many are intentionally invalid, so a parse-FAIL is frequently the CORRECT outcome. The pass rate is therefore RAW and moves leg 3 not at all; the adjudication is owed by CORPUS-GRAD-ALL.2. ⭐ The number this replaced is why the doctrine exists: the previously published 4 031 / 9 689 was superseded by .2.2/.2.3 to 4 335 / 9 385, which had itself gone stale to 4 370 / 9 350 -- 22 days and 72 engine commits with nothing asking it to re-run."
       },
       "regex": {
         "class": "corpus_wired_no_census",

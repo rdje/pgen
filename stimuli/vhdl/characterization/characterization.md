@@ -15,31 +15,68 @@ Per-file parse via `parseability_probe --parse vhdl <file> `, timeout 60s, 8-way
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `a61c29e5eba2ee4e7d897f746eecd49df1936c7c50d06527f172e27ba7e4371e` |
+| parse binary | `rust/target/release/parseability_probe` | `f962470fd36727812003f7b68bd5cf98d2769df3eef783d6370435d172740d4b` |
 | grammar | `grammars/vhdl.ebnf` | `df5b8f94736492b0b3fa9fab6e75f217a9662402027c1ec8f3db073ea988dea2` |
-| generated parser | `generated/vhdl_parser.rs` | `a90ae37b74131c4dd73ab7b663e6c01f92479aaa1342613c12c307716686b3e3` |
+| generated parser | `generated/vhdl_parser.rs` | `48a5d294c16c6122281d1843dac1f95feaeec522bafd2cd875516c83ddf35f43` |
 
-Measured at `HEAD` = `09576657+dirty` (2026-08-08).
+Measured at `HEAD` = `41e934da` (2026-08-30).
+
+## Measurement parameters (BINDING — the next run is held to them)
+
+> These four values are re-read from this report by `stimuli/run_external_corpus.sh` on
+> every later run: an omitted argument is **adopted** from the row below, and a supplied
+> argument that **differs** is **refused** (exit 5) unless `PGEN_CORPUS_REBASELINE=1`.
+> Before `SV-CORPUS-GRAD.3.27` this block was write-only, so the documented bare
+> invocation re-measured the whole corpus under a slower binary at a tighter deadline and
+> published over the artifact without a word.
+
+| parameter | value | source for this run |
+|---|---|---|
+| per-file timeout | 60 s | provenance |
+| parallel jobs | 8 | provenance |
+| max files | 0 (no cap) | provenance |
+| parse binary | `rust/target/release/parseability_probe` | provenance |
+
+## Deadline proximity and serial re-confirmation
+
+> A timeout is a statement about the machine as much as about the parser. Every
+> `timeout` row is re-run **alone** at the same deadline before it is recorded, and the
+> population sitting within 2x of the deadline is published so the flip-risk set is a
+> known number. Per-file durations: `stimuli/vhdl/characterization/durations.tsv`.
+
+| population | files |
+|---|---|
+| `timeout` after serial re-confirmation | 0 |
+| timeouts seen in the parallel pass | 0 |
+| re-confirmed serially | 0 |
+| reclassified by re-confirmation (contention, not the parser) | 0 |
+| **not** re-confirmed (cap `64`) | 0 |
+| completed within 2x of the 60s deadline | 0 |
+
+Slowest completing file: `0.73` s — `stimuli/vhdl/subs/ghdl/testsuite/gna/issue2051/repro.vhdl`.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 13720 | 4335 | 9385 | 0 | 0 | 31.6% |
+| 13720 | 4370 | 9350 | 0 | 0 | 31.9% |
 
 ## Per sub-corpus
 
 | sub-corpus | files | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|---|
 | Compliance-Tests | 78 | 28 | 50 | 0 | 0 | 35.9% |
-| ghdl | 9758 | 3354 | 6404 | 0 | 0 | 34.4% |
 | Interfaces | 30 | 11 | 19 | 0 | 0 | 36.7% |
-| neorv32 | 69 | 51 | 18 | 0 | 0 | 73.9% |
-| nvc | 2074 | 593 | 1481 | 0 | 0 | 28.6% |
 | OsvvmLibraries | 715 | 61 | 654 | 0 | 0 | 8.5% |
 | PoC | 371 | 84 | 287 | 0 | 0 | 22.6% |
 | Rudi-RV32I | 29 | 16 | 13 | 0 | 0 | 55.2% |
 | UVVM | 302 | 53 | 249 | 0 | 0 | 17.5% |
+| ghdl | 9758 | 3388 | 6370 | 0 | 0 | 34.7% |
+| neorv32 | 69 | 51 | 18 | 0 | 0 | 73.9% |
+| nvc | 2074 | 594 | 1480 | 0 | 0 | 28.6% |
 | vunit | 294 | 84 | 210 | 0 | 0 | 28.6% |
 
-_Raw per-file results: `stimuli/vhdl/characterization/results.tsv`._
+_Raw per-file results: `stimuli/vhdl/characterization/results.tsv` (3 columns: sub-corpus, status,
+repo-root-relative path — a stable contract three consumers unpack positionally)._
+_Per-file durations: `stimuli/vhdl/characterization/durations.tsv` (the same rows plus a 4th wall-seconds column)._
+_Both are sorted by (sub-corpus, path), so two runs are directly diffable._

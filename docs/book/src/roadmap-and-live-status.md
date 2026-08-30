@@ -136,7 +136,7 @@ the tree it is derived from.
 
 Leg 1 is the stimuli-generator proof, leg 2 is *gates green and invoked* — every covering gate green AND actually invoked by something — and leg 3 is an officially-recognized external corpus passing. ✅ met · ⚠️ unproven · ⛔ unmet. **Why** a leg reads as it does is on that family's own page, one click away; this table is the comparison, not the explanation.
 
-**Corpus.** 1 of the 10 families has a corpus count at all. The rows below are that family's own denominator — there is no roster-wide corpus figure, and the `NOT MEASURED` rows are exactly what is missing, each naming the leaf that owes it.
+**Corpus.** 2 of the 10 families have a corpus count at all. The rows below are that family's own denominator — there is no roster-wide corpus figure, and the `NOT MEASURED` rows are exactly what is missing, each naming the leaf that owes it.
 
 | Family | Corpus rows | Passing | Known defects | What the number rests on |
 |---|---:|---:|---:|---|
@@ -149,7 +149,7 @@ Leg 1 is the stimuli-generator proof, leg 2 is *gates green and invoked* — eve
 | `semantic_annotation` | ⛔ NOT MEASURED | ⛔ | ⛔ | the language is authored by PGEN itself, so no third-party corpus exists or ever will. NOT a measurement gap -- leg 3 is unreachable by construction and the qualifier is `Provisional (ceiling)`. |
 | `systemverilog` | 16 336 | 5 845 (35.8 %) | 274 | every row of the SystemVerilog corpus adjudication manifests over stimuli/sv/subs + stimuli/sv/uvm, counted by `stimuli/sv/corpus_verdict_coverage.py` and held current by `bash scripts/check_sv_corpus_denominator.sh` |
 | `systemverilog_preprocessor` | ⛔ NOT MEASURED | ⛔ | ⛔ | the language is standardized, so a corpus exists in the world, but none is wired into this repository. An UNMET leg, never an inapplicable one. Owed by `CORPUS-GRAD-ALL.1`. |
-| `vhdl` | ⛔ NOT MEASURED | ⛔ | ⛔ | the register declares external corpus roots, but no TRACKED census turns them into counts a reader can re-derive. Owed by `DONE-BAR-VISIBILITY.3b`. |
+| `vhdl` | 13 720 | 4 370 (31.9 %) ⚠️ raw | ⛔ n/a | every .vhd / .vhdl file under the ten vendored VHDL corpora in stimuli/vhdl/subs, counted by `stimuli/run_external_corpus.sh vhdl` and held current by `bash scripts/check_corpus_census.sh vhdl`. ⚠️ RAW parse outcomes: no answer key, so the pass share is NOT a conformance share and no defect count exists. Adjudication owed by `CORPUS-GRAD-ALL.2` |
 
 ⛔ in a numeric cell means **NOT MEASURED**: there is no count. That is not the same as a count of zero, and it is not the same as nothing being wrong — it is the absence of an instrument, which is itself the work the named leaf owes.
 

@@ -115,15 +115,44 @@ publish exactly the comfortable label this tree exists to replace with a distanc
   `NOT MEASURED` with the leaf that owes it.
   Acceptance: MET on the second arm of its own goal — each of the nine now says WHY it has no count,
   in one of five DERIVED classes, and names the leaf that owes one. The counts themselves are `.3b`.
-- ID: `DONE-BAR-VISIBILITY.3b` — Status: `pending`
-  Goal: turn the two `corpus_wired_no_census` families into real counts. Both have been measured
-  once and neither can be re-derived from the tree: `vhdl` read 13 720 files / pass 4 031 / fail
-  9 689 on 2026-08-08 (`CORPUS-GRAD-ALL.2.1`) but `results.tsv` is gitignored, and `regex` has a
-  PCRE2 oracle tuple whose per-run summary is untracked by that doctrine's own admission.
-  Acceptance: a TRACKED census artifact per family plus a freshness gate, on the
-  `SV-CORPUS-DENOMINATOR` shape, so the counts are re-derivable rather than remembered. ⛔ The VHDL
-  number is also a RAW pass rate — no answer key says which of those files SHOULD parse — so the
-  block must not publish it as an adjudicated one.
+- ID: `DONE-BAR-VISIBILITY.3b` — Status: `done` (`PGEN-DONE-BAR-VISIBILITY-0010`)
+  Goal: turn `vhdl` — the first of the two `corpus_wired_no_census` families — into a real count
+  that the tree can re-derive, plus the freshness gate that keeps it true.
+  Acceptance: MET. The census was RE-MEASURED on HEAD (13 720 / 4 370 / 9 350, 31.9 %), the tracked
+  report is now read by a producer and a doctrine instead of by nobody, and `CORPUS-CENSUS-CURRENCY`
+  (`scripts/check_corpus_census.sh`, registry 32 -> 33) re-derives it on every commit. ⛔ The block
+  publishes it as a RAW rate with NO defect count — `defects` is `None`, never `0` — and says out
+  loud that it moves leg 3 not at all.
+  ⚠️ **SCOPE SPLIT, recorded rather than silently narrowed**: the leaf as written named `vhdl` AND
+  `regex`. They are two different census SHAPES (a raw parse census over a file tree; an
+  answer-keyed oracle over a normalized case set), so they are two gates' worth of RED controls and
+  two renderers. `vhdl` ships here with the shared `kind` dispatch it needed; `regex` is now `.3c`
+  and reuses that machinery. Landing half a gate to keep one leaf id was the worse trade.
+- ID: `DONE-BAR-VISIBILITY.3c` — Status: `pending`
+  Goal: the second half of `.3b` — turn `regex` into a real count. Unlike VHDL it HAS an answer key
+  (PCRE2's own compile verdicts), so its census is `cells / matches / false-accepts / false-rejects`
+  and its pass share IS a conformance share.
+  What is already measured, 2026-08-30, so the leaf starts from evidence: the normalizer
+  `regex_corpus_bundle/scripts/normalize_pcre2_compile_oracle.py` re-runs in **0.11 s** and
+  reproduces the tracked `pcre2_compile_oracle_cases.jsonl` **BYTE-IDENTICALLY**
+  (`4b990bf5…`), which is exactly the `SV-CORPUS-DENOMINATOR` freshness leg — so the DENOMINATOR
+  half (2 239 pattern specs detected, 2 189 cells emitted, 50 skipped: 48 unsupported-suffix +
+  2 utf8-decode; 1 609 expected-ok / 580 expected-fail) is already re-derivable from tracked inputs.
+  The VERDICT half (`2189/1879/262/48`) is anchored and ratchet-held by `REGEX-ORACLE-ANCHOR-SYNC`
+  but its per-run summary is untracked by that doctrine's own admission.
+  ⛔ **A DEFECT FOUND WHILE MEASURING, and it is what blocks a byte-identical freshness leg on the
+  summary**: the tracked `pcre2_compile_oracle_summary.json` carries an `outputs` block holding
+  ABSOLUTE paths into a FOREIGN checkout — a home-directory `…/github/pgen/…` location on a
+  different volume from this repository, so not even a path that exists here. (The literal string is
+  in the artifact and is deliberately NOT reproduced in this live doc, because `DOCPATH` correctly
+  refuses a repo-internal absolute path in a tracked document — the guard caught this line on its
+  first draft.) The block records where the file was WRITTEN, which is a property of the invocation
+  and not of the census, so the artifact is non-reproducible by construction and violates the
+  repo-root-relative path policy at the same time.
+  Acceptance: the `outputs` block becomes repo-root-relative (or is dropped); a `kind:
+  oracle_expectation` census renders the four-field tuple; the freshness gate re-runs the
+  normalizer into a SCRATCH directory and compares byte-for-byte, on the `SV-CORPUS-DENOMINATOR`
+  shape; the published block distinguishes a conformance share from VHDL's raw one.
 - ID: `DONE-BAR-VISIBILITY.2a` — Status: `done` (`PGEN-DONE-BAR-VISIBILITY-0008`)
   Goal: correct the status reader that manufactured a tracker disagreement out of its own bias, and
   correct every surface that published the resulting number.
@@ -216,11 +245,11 @@ publish exactly the comfortable label this tree exists to replace with a distanc
 
 ## Current frontier
 
-1. `DONE-BAR-VISIBILITY.3b` (real counts for `vhdl` and `regex` — a tracked census plus a freshness
-   gate, the `SV-CORPUS-DENOMINATOR` shape). It is the frontier because the roster page now states,
-   in the book, that **1 of 10 families has a corpus count at all**: the largest single gap between
-   what this tree publishes and what a reader wants to know is nine missing denominators, and two
-   of the nine have already been measured once and merely cannot be re-derived.
+1. `DONE-BAR-VISIBILITY.3c` (the real count for `regex`, the second half of `.3b`). It is the
+   frontier for the same reason `.3b` was: the roster page now reads **2 of 10 families have a
+   corpus count at all**, and `regex` is the one remaining family whose corpus is already wired,
+   already measured and merely not re-derivable — the cheapest denominator left on the board, with
+   its freshness leg already proven to reproduce byte-identically in 0.11 s.
 2. `DONE-BAR-VISIBILITY.8` (the 3 DISPUTED + 7 unreadable tracker statuses, which make every
    remaining-work count — now including the roster page's `62 of 113` — an upper bound).
 3. `DONE-BAR-VISIBILITY.7` (raise the remaining-work item from a TREE to a LEAF), blocked on the
@@ -506,6 +535,137 @@ the owner.
 
 - promotion: declined (both durable halves are already carried by the tree — *derive the class and only CHECK the declaration* is the two-arm rule `done_bar_family_register_v0.json` already states for `claimed_status`, and *a number that cannot be re-derived is pointed at, not copied* is `docs/DERIVED_STATE_CONTAINMENT.md` R1/R3; the per-family class map is a one-artifact fact and lives in the schema it drives)
 
+### `.3b` — the VHDL corpus becomes a count the tree re-derives, not a number somebody remembered
+
+Shipped in `PGEN-DONE-BAR-VISIBILITY-0010`.
+
+**The artifact asked for this check in its own words, and nobody had written it.**
+`stimuli/vhdl/characterization/characterization.md` is TRACKED and carries an *Instrument identity*
+table under this instruction:
+
+> *"Re-hash these three inputs; if any hash differs from the row below, **this report no longer
+> describes your tree** and the honest act is to re-measure, not to quote."*
+
+Nothing in the repository re-hashed them. The census — **1 of 2** corpus counts this project has
+at all — had gone stale, in the flattering direction, behind a 56-second measurement.
+
+**What landed.**
+
+1. **The census re-measured on HEAD** — `13 720` files · pass **4 370** · fail **9 350** · timeout 0
+   · crash 0 · **31.9 %**, promoted into the tracked report.
+2. **`scripts/check_corpus_census.sh`** — the new doctrine `CORPUS-CENSUS-CURRENCY` (registry
+   **32 → 33**), five arms, 0.18 s.
+3. **A census `kind` dispatch** in `family_status_block_v0.json` and in
+   `scripts/report_family_status.sh`, because SystemVerilog's adjudicated census and VHDL's raw one
+   are not the same shape and rendering one through the other's template publishes fields that do
+   not mean what they say.
+4. **The block published** in the VHDL parser book and in the platform book's cross-family roster,
+   `--check`-held by `FAMILY-STATUS-CURRENCY` on every commit.
+
+**The number that was there, and how it got there.** Three different VHDL pass counts were live in
+this repository at once, and all three are dated 2026-08-08: the tree quoted `4 031 / 9 689`
+(`.2.1`'s re-measure), the tracked report published `4 335 / 9 385` (after `.2.2`/`.2.3` grew the
+grammar), and the tree today measures `4 370 / 9 350`. The first was superseded and never chased;
+the second went stale and nothing could see it.
+
+**⭐ THE DIRECTION IS THE FINDING, NOT THE SIZE.** A rising pass count is the least trustworthy
+signal in this set — `PGEN-CORPUS-GRAD-ALL-0006`'s own commit subject says so — so the two runs were
+diffed **per file**, not compared as totals:
+
+```
+paths only in old: 0   only in new: 0
+moved: 35   Counter({('fail', 'pass'): 35})
+```
+
+**35 fail→pass, ZERO pass→fail**, over `ghdl` (+34) and `nvc` (+1). Had it been +40/−5 the totals
+would have read +35 just the same.
+
+**Two rulings.**
+
+1. **NO SECOND ARTIFACT.** The obvious design — a machine-readable census JSON beside the report,
+   with a `BASELINE-IDENTITY` block — was rejected. Two tracked files holding the same counts is a
+   second thing to drift, and this doctrine exists *because a number drifted*. The tracked report IS
+   the census; the gate and the producer read the same file and their two derivations are held
+   equal, which is the SystemVerilog arm's own shape one family over.
+2. **`defects` IS `None`, NEVER `0`.** The VHDL corpus has no answer key: many of its files are
+   intentionally invalid, so a parse-FAIL is frequently the CORRECT outcome. A `0` in a *known
+   defects* cell reads as *nothing is wrong* where the truth is *nobody has looked* — the exact
+   shape `docs/decisions/feedback_a_check_that_cannot_run_must_say_so.md` forbids. Both renderers
+   and the cross-family table carry the `None` through as `⛔ n/a` beside a `⚠️ raw` pass share,
+   and the block says the number moves leg 3 not at all.
+
+**⚠️ Two calibrations, both measured rather than chosen.** The grammar-identity arm is a HARD
+failure because `grammars/vhdl.ebnf` has moved **12 times** in the life of this repository, so the
+lifetime cost of that arm is at most 12 re-runs. The engine arm is a NOTE on a **derived budget**
+because the generated parser moves whenever the ENGINE does — `BASELINE-IDENTITY` learned that a
+blocking identity arm meant *one comment line* in the SV grammar blocked every commit. The budget
+is **72**, the one drift episode this repository has measured. ⚠️ **HONEST LIMIT, stated in the
+gate's own header**: 72 is the size at which drift was DETECTED, not a size proven safe — it may
+have crossed earlier and nobody was looking.
+
+#### Acceptance checklist (`TOOLBOX.md`)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: the tracked census report was read by NO gate, workflow,
+      hook or Makefile target, so its own instrument-identity instruction was unexecutable advice.
+      WHY, measured — the census over the whole tracked tree at `HEAD` (excluding `docs/`,
+      `CHANGES.md`, `DEVELOPMENT_NOTES.md`, which are era-dated prose):
+
+      ```
+      $ git ls-tree -r HEAD --name-only | while read f; do
+          git show "HEAD:$f" | grep -lq 'stimuli/vhdl/characterization' && echo "$f"; done
+        KNOWLEDGE_MAP.md                      (prose)
+        TOOLBOX.md                            (prose)
+        stimuli/sv/cluster_rejects_valid.py   (reads results.tsv, invoked by hand)
+        stimuli/vhdl/characterization/characterization.md   (itself)
+        stimuli/vhdl/subs/PROVENANCE.md       (prose)
+      ```
+
+      ⇒ **zero** enforcers, zero gates, zero workflows. And the drift it hid, re-hashed at HEAD:
+      recorded generated parser `a90ae37b…` vs tree `48a5d294…` (`grammars/vhdl.ebnf` **identical**
+      at `df5b8f94…`), across `git rev-list --count 09576657..HEAD` = **418** commits, **72** of
+      them touching `rust/src` and **0** touching the VHDL grammar. ⛔ `results.tsv` being
+      gitignored — which is what `.3` recorded as the blocker — turned out to be a red herring for
+      the DENOMINATOR question: the totals have been tracked in `characterization.md` the whole
+      time. Nobody read them.
+- [x] **ADDRESSED (verified)** — before: `vhdl` rendered `⛔ NOT MEASURED — the register declares
+      external corpus roots, but no TRACKED census turns them into counts a reader can re-derive.
+      Owed by DONE-BAR-VISIBILITY.3b.` After: `13 720 | 4 370 (31.9 %) ⚠️ raw | ⛔ n/a`, with a
+      five-row outcome table, a ten-row per-sub-corpus table and the RAW caveat, in both the VHDL
+      book and the roster page. The gate: `corpus-census[vhdl]: OK (tuple 13720/4370/9350/0/0)` in
+      **0.18 s**; `bash scripts/report_family_status.sh --check-all` → *OK (11 published blocks …
+      equal a fresh derivation)*. The cross-family line moved from *1 of the 10 families has a
+      corpus count at all* to *2 of the 10 families have*.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` **ALL 33 PASS** (28.6 s);
+      `make -C rust SHELL=/bin/bash mdbook_docs_gate` **PASS** (all ten per-parser book gates + the
+      main book); `scripts/check_family_status.sh` 4.0 s (was 3.4 s — the new freshness gate is
+      invoked once per VHDL derivation). **The SystemVerilog block is byte-identical**: `--check-all`
+      is green on all 11 surfaces and only the two VHDL-bearing pages changed, which is the point —
+      this slice adds a family's numbers and must move nobody else's. Per-file no-regression on the
+      measurement itself: **0 pass→fail** over 13 720 files. Zero Rust, zero grammar, zero generated
+      bytes; the pending run was written to `PGEN_CORPUS_OUT_DIR` and DIFFED before promotion, and
+      the canonical run then reproduced its totals exactly — a free determinism control.
+- [x] **RED CONTROLS** — the gate's own `--self-test` drives **14** controls in-process (a GREEN
+      control, five refusal shapes, the section-scoping and heading-exactness pins, and the
+      rounding-tolerance boundary from both sides). Separately, every arm was driven against the
+      **REAL tracked report** through the `PGEN_FAMILY_STATUS_SCHEMA` seam, pointing at mutated
+      COPIES so nothing tracked was touched: green control `rc=0`; grammar digest moved → FAIL;
+      totals rate typed to `91.9%` → FAIL; a sub-corpus file count moved → FAIL; **the denominator
+      arm driven ALONE**, with the arithmetic kept perfectly consistent, → FAIL (proving arm 4 is
+      not shadowed by arm 2); engine digest moved with 0 commits since HEAD → NOTE, `rc=0`; the same
+      drift at 72 commits with the budget at 72 → NOTE, and at budget 0 → FAIL. ⭐ **The controls
+      found two defects before the gate shipped**: a heading reader using `endswith`, so
+      `## Not Totals` matched `Totals` and a report that had LOST its totals section read as still
+      having one; and a `%`-formatted template that broke on the report's own percent signs.
+- [x] **LOCKSTEP** — tree + frontier + `docs/TASK_TREE.md` + `DOCTRINE_ENFORCEMENT.md` §10 + the
+      book's `DOCTRINE-COUNT` (32 → 33) + the VHDL parser book + the platform book's roster +
+      `CHANGES.md` + `DEVELOPMENT_NOTES.md` + `MEMORY.md`.
+
+- promotion: declined (the two durable halves are already carried by records this leaf cites — *an
+  instrument with no gate behind it is wrong the next time it is quoted* is `SV-CORPUS-DENOMINATOR`'s
+  founding sentence and the reason this doctrine copies its shape, and *a rising pass rate is not
+  evidence of correctness* is already a promoted card that this leaf simply obeyed by diffing per
+  file; the budget calibration is a one-artifact fact and lives in the gate that applies it)
+
 ### `.9` — the block is published in all ten parser books
 
 Shipped in `PGEN-DONE-BAR-VISIBILITY-0006`.
@@ -751,6 +911,12 @@ None.
 - 2026-08-30 (`.3`) — the nine no-count families split into FOUR derived classes, each naming its
   owing leaf; the class is held equal to the done-bar register and RED-10 proves the drift refuses.
   12/12 probes, 31/31 doctrines, mdbook gate PASS, SV block byte-identical.
+- 2026-08-30 (`.3b`) — VHDL re-measured on HEAD: 13 720 / 4 370 / 9 350 (31.9 %), **35 fail→pass
+  and 0 pass→fail** on a per-file diff of the two runs. `CORPUS-CENSUS-CURRENCY` registered
+  (32 → 33), 0.18 s, 14 self-test controls plus eight RED/NOTE arms driven against the real tracked
+  report through the schema seam — two of which found defects in the gate before it shipped. ALL 33
+  doctrines PASS (28.6 s); mdbook gate PASS; `--check-all` green on all 11 surfaces with the
+  SystemVerilog block byte-identical.
 - 2026-08-30 (`.2`) — 113 index rows adjudicated, population closed in both directions and PROVEN
   to refuse in both (RED-8/RED-9). Two-arm status check fires: 4 DISPUTED, 7 unreadable, all counted
   OPEN. 10/10 probes, 31/31 doctrines, mdbook gate PASS, `--check` byte-identical at 3 369 bytes.
@@ -765,6 +931,8 @@ None.
 - `.9` DONE (the block published in all ten parser books) — `PGEN-DONE-BAR-VISIBILITY-0006`
 - `.4` DONE (the FAMILY-STATUS-CURRENCY doctrine, 31 -> 32) — `PGEN-DONE-BAR-VISIBILITY-0007`
 - `.2a` DONE (the status reader corrected under a director challenge) — `PGEN-DONE-BAR-VISIBILITY-0008`
+- `.5` DONE (the cross-family view — the whole roster on one page) — `PGEN-DONE-BAR-VISIBILITY-0009`
+- `.3b` DONE (the VHDL census re-measured, and CORPUS-CENSUS-CURRENCY behind it, 32 -> 33) — `PGEN-DONE-BAR-VISIBILITY-0010`
 
 ## Changelog
 
@@ -777,6 +945,11 @@ None.
   `.4`, the co-publication gate, because ten unchecked pages will go stale.
 - 2026-08-30 — `.3` DONE: every family says WHY it has no corpus count and who owes one. New
   leaves `.3b` (the real VHDL/regex censuses) and `.9` (publish the block into the other nine books).
+- 2026-08-30 — `.3b` DONE for `vhdl`. The second family in this project to have a corpus count a
+  reader can re-derive, and the first whose census artifact was READ by anything. New leaf `.3c`
+  carries the `regex` half, with its freshness leg already proven to reproduce byte-identically in
+  0.11 s and one defect already found in its tracked summary (absolute paths into a foreign
+  checkout). Frontier moves to `.3c`.
 - 2026-08-30 — `.2` DONE at TREE granularity. 113 index rows adjudicated into a closed two-sided
   attribution; every family now publishes a finite open-tree list. New leaves `.7` (per-leaf
   granularity, blocked on the leaf-convention defect) and `.8` (the 4 DISPUTED + 7 unreadable
