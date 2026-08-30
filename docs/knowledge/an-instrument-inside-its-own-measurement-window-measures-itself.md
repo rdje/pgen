@@ -80,11 +80,22 @@ cross-file comparison silently compares path lengths alongside parse costs.
   as long as argv never changes. Determinism observed while holding something fixed is evidence
   about the held-fixed configuration, not about the subject.
 
-⚠️ **Honest limit.** The accounting is confirmed for the part that VARIES and is not closed:
-omitting the flag entirely reads 69 bytes lower where a pure-argv model predicts 21, so 48 bytes
-remain unattributed, and the 1×-per-flag-character versus 2×-per-path-character asymmetry is
-unexplained. The rule above rests on the refutation, which is solid; the full byte census is not
-done, and this card must not be read as claiming it is.
+✅ **The accounting closed, and how it closed is part of the lesson.** As first written this card
+carried an honest limit: *"48 bytes remain unattributed"*. That caveat had an unmeasured term of its
+own — it compared a flag REMOVAL against a rate measured only by varying a flag's VALUE, so the cost
+of an argv ENTRY had never been measured at all. Measuring it settled the whole thing in one step:
+**adding** a 19-character flag pair costs **+67 B**, **removing** a 21-character one saves **−69 B**,
+and `67 − 19 = 69 − 21 = 48` — the same constant from two independent directions. So the model is
+
+```text
+peak_live = base + Σ over argv entries ( ~24 bytes of Vec<String> slot + len(entry) )
+```
+
+which also explains the asymmetry the first cut could not: changing a flag's value varies one string
+body (1× per character), while the input path is allocated twice (2× per character), and neither
+changes the argument COUNT, so neither pays the 24-byte slot. ⇒ **a caveat is a claim too, and it
+can carry its own unmeasured term.** Writing *"48 bytes are unattributed"* felt like rigour; the
+rigorous act was measuring the quantity the sentence quietly assumed.
 
 Related: [[a-control-validates-the-property-it-is-built-from]] — there a control was silent about a
 new property; here a *determinism* result was silent about the configuration it was holding fixed.

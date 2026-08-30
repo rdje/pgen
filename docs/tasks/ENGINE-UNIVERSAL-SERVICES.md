@@ -17047,12 +17047,29 @@ STRENGTH I attributed to my own evidence.
   **2 bytes per character**, linear over a 35-character span. ⇒ **`peak_live` is not a pure function
   of (input, grammar, profile).** Two consumers are affected in principle: any cross-file comparison
   silently compares path lengths, and any re-run under a different working directory shifts.
-- ⚠️ **AN UNMEASURED TERM, STATED RATHER THAN ROUNDED AWAY (`-0129`).** Omitting the flag entirely
-  reads **2 344 349**, i.e. **−69** against the 5-character run. A pure-argv model predicts
-  **−21** (`--tape-min-bytes` = 16 chars, `16384` = 5). **48 bytes are unaccounted for**, and the
-  1×/2× asymmetry between the flag value and the path is likewise unexplained. ⇒ *"`peak_live`
-  includes argv"* is CONFIRMED for the varying part and is **NOT a closed accounting** — this leaf
-  must not inherit it as one.
+- ✅ **THE TERM THAT WAS UNATTRIBUTED IS NOW MEASURED AND THE ACCOUNTING CLOSES (`-0135`, under a
+  director re-verification challenge).** As first published this bullet read *"48 bytes are
+  unaccounted for … NOT a closed accounting"*, and that was the honest state of it: the arithmetic
+  compared a REMOVAL against a rate measured only on a VALUE, so the flag NAME's rate was itself an
+  unmeasured term inside the caveat (`-0129`, applied to my own qualification). Measured both
+  directions on a fixed input, `--profile sv_2017` held: **ADDING** `--hysteresis-bytes 0`
+  (18 + 1 = 19 chars) costs **+67 B**; **REMOVING** `--tape-min-bytes 16384` (16 + 5 = 21 chars)
+  saves **−69 B**. `67 − 19 = 48` and `69 − 21 = 48` — **the same constant from two independent
+  directions**, so it is a FIXED PER-ARGV-ENTRY overhead of ~24 B (the `Vec<String>` slot) beside
+  1 B per character for the string body. ⇒ the model is `peak_live = base + Σ(24 + len(arg))`, it
+  reconciles every row measured in this leaf, and *"`peak_live` includes argv"* is now a CLOSED
+  accounting rather than a confirmed-in-part one. ⭐ It also explains the 1×/2× asymmetry the first
+  cut called unexplained: a flag VALUE varies one String body (1×) while the input PATH is allocated
+  TWICE (2×), with no `Vec` growth in either case because the argument COUNT is held fixed.
+- ⚠️ **THE ONE LEG THAT IS NOT CURRENTLY REPLAYABLE, NAMED RATHER THAN LEFT IMPLICIT.** The founding
+  observation — `−1` on 11 of 11 rows with `peak_at_event_seq` and `peak_at_alloc_calls` IDENTICAL
+  on 11 of 11 — was measured against the orphan's overwritten files, and RESTORING them destroyed
+  that second sample. A replay (re-run the ladder at the default `8192` into `tmp/`, diff the meta
+  against the committed one) was launched under this challenge and KILLED before completion, because
+  the director needed to exit and leaving it running would have recreated the very orphan this leaf
+  documents. ⇒ **the 11-of-11 row counts stand as RECORDED, not as RE-DERIVED**; the LAW behind them
+  is independently verified above and predicts exactly `−1` for `16384 → 8192` on every row. The
+  replay is cheap and is the first thing to run when this leaf is next opened.
 - **THE FIX SHAPE, NAMED RATHER THAN LEFT TO BE INVENTED.** Latch the live-bytes counter once, after
   argument parsing and immediately before the parse begins, and report the peak RELATIVE to that
   baseline — i.e. give the instrument an explicit measurement epoch instead of letting process
