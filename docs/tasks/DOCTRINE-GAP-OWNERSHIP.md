@@ -1455,6 +1455,85 @@ $ SELF=/nonexistent/driver.sh                          # the unreadable-subject 
 - **producer (tracked, so the claim can be re-derived rather than re-typed)**:
   `scripts/census_slice_id_collisions.sh`.
 
+### ⛔ `.20` — **14 OF THE 33 ENFORCED DOCTRINES ARE ABSENT FROM THE MAIN BOOK ENTIRELY, AND THE META-CHECK THAT LOOKS LIKE IT COVERS THIS ONLY HOLDS THE *NUMBER*** (`todo`, ⭐ **DIRECTOR-ORDERED — NEXT ACTION, ahead of the SV lane resume**, opened 2026-08-30 by a DIRECT DIRECTOR QUESTION: *"Are all the 33 doctrines documented in the main mdbook?"*)
+
+**The answer is NO, and it was measured rather than assumed.** Per-doctrine census over
+`docs/book/src/*.md`, taking the registry itself as the population:
+
+```
+$ while IFS='|' read -r id _ _; do
+    grep -rlqF -- "$id" docs/book/src/*.md || echo "ABSENT: $id"
+  done < <(grep '^  "' scripts/check_doctrines.sh | sed 's/^  "//')
+  ABSENT: DIAG-SEVERITY+DOCPATH · KNOWLEDGE-MAP · TASK-ACCEPTANCE · LESSON-PROMOTION ·
+          DESIGN-PRIOR-ART · WAIVER-ROUTING · ROUTING-EVIDENCE · DESTRUCTIVE-TARGET-GUARD ·
+          PARSER-BOOK-CURRENCY · SV-RULE-FIRE-PARTITION · SAMPLE-PROFILE-PARITY ·
+          LR-ELIMINATION-RATCHET · GAP-CLAIM-CENSUS · CORPUS-CENSUS-CURRENCY
+  -> present 19   absent 14
+```
+
+⛔ **FALSE-ABSENCE CHECKED, because a census is only as good as its spelling** (the lesson
+`a-heading-census-is-only-as-good-as-the-heading-grammar` was paid for in this very tree). Each of
+the 14 was re-searched under its component halves and under its enforcer's filename: `DOCPATH`
+alone hits 1 page, every other probe hits **0**. So the 14 are genuinely absent, not differently
+spelled.
+
+⚠️ **AND THE 19 IS AN UPPER BOUND ON *DOCUMENTED*.** The census asks whether the ID appears at all.
+A name in a list is a mention, not documentation — `gate-flow.md` names **16** doctrine-shaped IDs
+in total, so the number of doctrines the main book actually *explains* is at most that.
+
+⛔⛔ **WHY NOTHING CAUGHT THIS, and it is the interesting half.** `check_doctrines.sh` carries a
+meta-check `<meta:book-count>` that holds `docs/book/src/gate-flow.md`'s published count EQUAL to
+the registry size — it has read **33** on every run of this session. It looks like coverage and is
+not: it compares ONE INTEGER. A doctrine can be registered, enforced on every commit, mirrored into
+`DOCTRINE_ENFORCEMENT.md` §10 (which `<meta:mirror>` DOES hold two-sided) and never named in the
+public book, with every meta-check green. ⇒ **the book's number was gated and the book's content
+was not**, which is the same shape as the census this repository just spent three slices fixing one
+level down.
+
+⭐ **`CORPUS-CENSUS-CURRENCY` — registered by me today — is one of the 14.** I added a doctrine, bumped
+the published count, watched `<meta:book-count>` go green, and did not notice the book never
+describes it. Recording that rather than quietly fixing it: the failure is the *reliance on a
+proxy*, not the missing paragraph.
+
+**Acceptance (when unparked):** either every registered doctrine is described in the main book, or
+the ones that are deliberately internal-only carry a recorded disposition; then a meta-check holds
+the population TWO-SIDED — the `<meta:mirror>` shape — so the book cannot fall behind the registry
+again. ⛔ The count-only check is not to be deleted; it is to be joined by a content arm, because a
+number that is right is still worth holding.
+
+⭐⭐⭐ **DIRECTOR-ORDERED, 2026-08-30, SAME SESSION — UN-PARKED.** Verbatim: *"I think the doctrines
+shall be documented in the top level mdbook because you keep talking about these 33 doctrines that
+are passing, so I asked myself, are these doctrines described, documented somewhere, then I thought
+about the top level mdbook."* ⇒ this is no longer my routed finding, it is an instruction, and the
+reason given is the binding one: **the book is the director's only window into the project**, and a
+count they cannot resolve into descriptions is exactly the *"status label with no distance behind
+it"* complaint that founded `DONE-BAR-VISIBILITY`, one level up.
+
+**THE DESIGN IS DECIDED so the next session executes rather than re-litigates. ⛔ DERIVED, NEVER
+HAND-WRITTEN — the registry ALREADY holds a full paragraph per doctrine** (that is what
+`check_doctrines.sh`'s second `|` field is, and `<meta:mirror>` already holds `DOCTRINE_ENFORCEMENT.md`
+§10 two-sided against it). So the chapter is a RENDERING of the registry, on the exact
+`report_family_status.sh` / `FAMILY-STATUS-CURRENCY` shape this repository already runs:
+
+1. `scripts/report_doctrines.sh` — reads the registry, emits a `<!-- BEGIN DERIVED -->` block: one
+   section per doctrine, its ID, archetype, enforcer path, and the description the registry carries,
+   with `--check FILE` to re-derive and diff.
+2. A new main-book chapter (`docs/book/src/the-enforced-doctrines.md`) + its `SUMMARY.md` entry,
+   carrying that block.
+3. **The meta-check gains a CONTENT arm beside its integer arm** — the population held TWO-SIDED,
+   `<meta:mirror>`'s shape: every registered doctrine has a section, every section names a
+   registered doctrine. ⛔ The count arm is NOT deleted; a number that is right is still worth
+   holding. This is what closes the defect this leaf was opened on.
+4. ⚠️ Watch the book's own size policy (`README-STABILITY` / live-doc containment): 33 registry
+   descriptions are large, so measure the rendered bytes before choosing between one chapter and a
+   per-doctrine page set — and say which was chosen and why.
+
+⛔ **SEQUENCING, and it is mine to make** ([[feedback_sequence_approved_work_yourself]]): this runs
+FIRST, ahead of resuming `ENGINE-UNIVERSAL-SERVICES.79`(a) — it is director-ordered, bounded to one
+slice, touches ZERO Rust/grammar/generated bytes, and serves the surface the director actually
+reads. It does not re-open the lane question: the SV release stays the standing high-priority
+objective and the lane resumes the moment this lands.
+
 ### ⛔ `.19` — **`LESSON-PROMOTION`'s DECLINE ARM MATCHES ANY PRE-EXISTING TOKEN ANYWHERE IN A STAGED LEAF FILE, SO A TREE THAT DECLINED ONCE IS EXEMPT FOREVER — 10 OF THE TASK FILES ALREADY ARE** (`todo`, ROUTED + PARKED behind the SV lane, opened 2026-08-29 by `PGEN-ENGINE-UNIVERSAL-SERVICES-0131`)
 
 - **WHY + WHERE, tool-backed.** `scripts/check_lesson_promotion.sh:107-113` decides arm (b) by
