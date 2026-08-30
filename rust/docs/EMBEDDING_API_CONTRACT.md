@@ -74,10 +74,14 @@ Root-level parser-family handoff docs (`PGEN_*_PARSER_INTEGRATION_CONTRACT.md`) 
     codegen. (iii) **Strictly safer off the default** — at a smaller reservation the guard now
     refuses where it previously aborted, and the hard ceiling kept by a thread of unknown extent
     moves DOWN with the reservation, never up.
-    ⚠️ **What is NOT closed**: the safety margin is now INVARIANT in the reservation, not
-    MEASURED for most families. At the default it is `240 MiB ÷ (4 096 × 25 874 B)` = **2.37×**,
-    measured on SystemVerilog in debug; the per-family, per-profile, per-build-mode per-frame
-    census is `ENGINE-UNIVERSAL-SERVICES.79`(a) and stays open.
+    ⚠️ **What is NOT closed** — updated 2026-08-30, because the census below SUPERSEDED the single
+    number this paragraph used to quote. The safety margin is INVARIANT in the reservation, and the DEBUG census is now MEASURED for **9 of 11** cells (`ENGINE-UNIVERSAL-SERVICES.79`(a) slice 1, `-0145`): per-frame cost spans **1 961 B** (`rtl_const_expr`) to **29 046 B** (`verilog_2005`), a **≈15×** spread across families.
+    The margin at the default is `budget ÷ (4 096 × B/frame)`: **2.12× at its tightest**
+    (`verilog_2005`), 2.4–2.5× for the other two SystemVerilog profiles, and **11.7×–31.3× for every
+    non-SystemVerilog family measured** — SystemVerilog is the binding case by a factor of ~5.5.
+    ⚠️ Read the per-frame numbers at ±5 %: four independent `sv_2017` readings span 24 559–25 878
+    depending on the depth the refusal lands at. `ENGINE-UNIVERSAL-SERVICES.79`(a) stays OPEN for the
+    RELEASE half (≈8× cheaper frames, so debug is the binding mode), for `vhdl` and for `regex`.
   - `1.3.3` (2026-08-28, `ENGINE-UNIVERSAL-SERVICES.61`(a)): backward-compatible DIAGNOSTIC fix.
     A rejection from a parse that contacted the 4096-frame recursion ceiling now **says so**.
     `1.3.1` made crossing the ceiling clean and `1.3.2` made it bounded; both left the message

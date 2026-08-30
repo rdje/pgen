@@ -74,9 +74,14 @@ default the scale factor is exactly 1, so the shipped path is unchanged by const
   ceiling kept by callers whose stack extent the process cannot know — threads the reservation does
   not describe. Clamp at the requested value.
 - **Say what the invariance does not buy.** It makes the margin the same everywhere; it does not
-  measure it. The margin is still one number from one family (here 2.37×), and a workload costing
-  more than 60 KiB per frame (61 440 B, exactly `budget ÷ 4 096`) would be unsafe at *every* reservation equally. Invariance moves a
-  many-valued risk to a single-valued one — that is the win, and it is not the same as closing it.
+  measure it — invariance moves a many-valued risk to a single-valued one, which is the win, and is
+  not the same as closing it. ⭐ Here the census that followed put a number on it: nine subjects, a
+  **≈15×** spread in per-unit cost, a tightest margin of **2.12×**, and exactly one subject under
+  11×. ⛔ And note what the census had to CORRECT in this very record: the sentence above once read
+  *"the margin is still one number from one family (2.37×)"*, which stopped being true the moment the
+  census landed — **a claim scoped by "so far" needs re-reading the moment the "so far" moves**, and
+  four published surfaces carried that stale sentence for a commit because only the tracker was
+  updated.
 - ⛔⛔ **APPLY THE LAW ONLY WHERE THE PARAMETER ACTUALLY DESCRIBES THE SUBJECT — this is the second
   half of the lesson and it cost a separate defect one commit later.** Once a threshold is a function
   of a parameter, every subject that threshold governs inherits the parameter whether or not it is

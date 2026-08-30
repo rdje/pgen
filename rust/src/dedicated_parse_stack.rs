@@ -170,13 +170,20 @@ pub fn dedicated_parse_stack_bytes() -> usize {
 /// asked for and could not give.
 ///
 /// ⚠️ **WHAT IT DOES NOT CLAIM, stated rather than implied.** It makes the margin
-/// INVARIANT; it does not measure the margin. At the default that margin is
-/// `240 MiB ÷ (4 096 × 25 874 B)` = **2.37×**, measured on SystemVerilog in debug
-/// and on no other family. A family whose debug frames cost more than **60 KiB**
-/// (61 440 B, which is exactly `budget ÷ 4 096`) would reach its first sample too
-/// late at EVERY reservation equally — which is
-/// exactly the per-family, per-profile, per-build-mode census `.79`(a) owes, and
-/// which this function deliberately does not pretend to substitute for.
+/// INVARIANT; it does not itself measure the margin — the census does.
+///
+/// ✅ **AND THE CENSUS HAS RUN** (`.79`(a) slice 1, `-0145`; this comment previously
+/// said the margin was measured "on SystemVerilog and on no other family", which the
+/// census superseded). Debug, 9 of 11 cells: per-frame cost spans **1 961 B**
+/// (`rtl_const_expr`) to **29 046 B** (`verilog_2005`), a **≈15×** spread, so no single
+/// byte floor could have served them all. The margin at the default —
+/// `budget ÷ (4 096 × B/frame)` — is **2.12×** at its tightest (`verilog_2005`),
+/// 2.4–2.5× for the other SystemVerilog profiles, and 11.7×–31.3× for every
+/// non-SystemVerilog family measured: **SystemVerilog is the binding case by ~5.5×**.
+/// The earlier worry that a family might exceed **60 KiB** per debug frame (61 440 B,
+/// exactly `budget ÷ 4 096`) is answered — the worst measured is 29 046 B.
+/// ⚠️ Read them at ±5 %: four `sv_2017` readings span 24 559–25 878 with the depth the
+/// refusal lands at. `.79`(a) stays open for RELEASE, `vhdl` and `regex`.
 ///
 /// ⛔ **IT ONLY EVER SCALES DOWN.** A reservation above the default returns the
 /// requested depth unchanged: raising the first sample raises the depth a parse

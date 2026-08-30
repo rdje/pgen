@@ -128,13 +128,30 @@ admitted when this was written needed ≈8 MB / ≈70 MB, more than the 8 MB def
 > thread's OWN recorded extent: a thread PGEN did not create keeps the depth its parser asked for,
 > and a dedicated parse thread is scaled against the reservation it was really created with.
 >
-> ⚠️ **WHAT IS AND IS NOT CLOSED.** The margin is now INVARIANT; it is not MEASURED for most
-> families. At the default it is `240 MiB ÷ (4 096 × 25 874 B)` = **2.37×** for SystemVerilog in
-> debug. Only SystemVerilog and VHDL have been measured at all; the other eight families' per-frame
-> cost is unmeasured, so treat any per-frame number here as a SystemVerilog number, and a family
-> whose debug frames cost more than 60 KiB (61 440 B, exactly `budget ÷ 4 096`) would reach its first sample too late at EVERY reservation
-> equally. That residual is `ENGINE-UNIVERSAL-SERVICES.79`(a) — the per-family, per-profile,
-> per-build-mode census — which stays open.
+> ✅ **AND THE MARGIN IS NOW MEASURED, NOT JUST INVARIANT** (`ENGINE-UNIVERSAL-SERVICES.79`(a)
+> slice 1, `-0145`). This paragraph used to quote **2.37×** for SystemVerilog and say the other
+> families were unmeasured; the census superseded both halves. Debug per-frame cost, 9 of 11 cells:
+>
+> | family / profile | B/frame | margin at the 256 MiB default |
+> |---|---|---|
+> | `systemverilog` / `verilog_2005` | 29 046 | **2.12×** |
+> | `systemverilog` / `sv_2023` | 24 903 | 2.47× |
+> | `systemverilog` / `sv_2017` | 24 559 | 2.50× |
+> | `systemverilog_preprocessor` | 5 236 | 11.73× |
+> | `return_annotation` | 4 998 | 12.29× |
+> | `json` | 2 882 | 21.32× |
+> | `semantic_annotation` | 2 714 | 22.64× |
+> | `rtl_frontend` | 1 971 | 31.17× |
+> | `rtl_const_expr` | 1 961 | 31.33× |
+>
+> ⇒ the per-frame cost spans **≈15×** across families, so a single byte floor could never have served
+> them all; **the tightest margin is 2.12×**; and **SystemVerilog is the only family under 11×**, by a
+> factor of ~5.5. The earlier worry that a family might cost more than 60 KiB (61 440 B, exactly
+> `budget ÷ 4 096`) per debug frame is answered — the worst measured is 29 046 B, under half that.
+> ⚠️ Read these at **±5 %**: four independent `sv_2017` readings span 24 559–25 878 depending on the
+> depth the refusal lands at, so the spread is ≈13–16× and the margins move in the last digit.
+> `ENGINE-UNIVERSAL-SERVICES.79`(a) stays OPEN for the RELEASE half (frames are ≈8× cheaper there, so
+> debug is the binding mode), for `vhdl` and for `regex`.
 Since `1.3.1` (`SV-CORPUS-GRAD.8c.3`), every SystemVerilog and VHDL embedding parse runs its
 parser work on a dedicated **256 MiB-stack** thread (virtual reservation, lazily committed; one
 short-lived thread per call, so concurrent host threads never serialize), which guarantees the
