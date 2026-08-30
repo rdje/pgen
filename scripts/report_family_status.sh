@@ -394,17 +394,28 @@ CLOSED_WORDS = ("done", "complete", "completed", "superseded", "closed")
 
 
 def polarity(cell):
-    """OPEN / CLOSED / UNREADABLE from a prose status cell, biased OPEN.
+    """OPEN / CLOSED / UNREADABLE from a prose status cell — the FIRST status word wins.
 
-    ⛔ THE BIAS IS THE DESIGN. Both arms are prose written for humans, so a cell legitimately says
-    `.13e.10` DONE about a LEAF while the TREE is active. Reading any open word as OPEN
-    over-reports remaining work; reading it the other way DELETES work from the list. Only one of
-    those two errors is safe in a document whose whole purpose is to say how much is left."""
-    toks = {t.lower() for t in re.findall(r"`([A-Za-z]+)`", cell)}
-    if toks & set(OPEN_WORDS):
-        return "OPEN"
-    if toks & set(CLOSED_WORDS):
-        return "CLOSED"
+    ⛔⛔ THE FIRST CUT TOOK *ANY* OPEN WORD IN THE CELL AS OPEN, AND THAT MIS-ATTRIBUTED ITS OWN
+    BIAS TO THE TRACKER. The index's convention is `| TREE | status (narration...) |`, so the row's
+    own status is the FIRST status token; everything after it is narration ABOUT LEAVES. Measured
+    2026-08-30: under any-token-wins, `VERILOG-2005-PROFILE` read OPEN because leaf `.6.3` is
+    described as `blocked` deep in its cell — while the row's own first token is `complete` and the
+    tree file's Metadata agrees. It was published to the director as one of *four* tracker
+    disagreements; hand-checking the four showed three real and that one manufactured HERE.
+    ⇒ a safe-polarity default is still a MEASUREMENT, and reporting it as a property of the subject
+    is a different claim from reporting it as a property of the reader.
+    ⛔ The bias is NOT removed, it is moved to where it belongs: a cell with NO status token at all
+    is UNREADABLE, and every caller counts UNREADABLE as OPEN and NAMES the row. Over-reporting
+    remaining work stays the safe direction; inventing a disagreement does not.
+    ⭐ PRICED BEFORE ADOPTING, across the whole population: of 113 rows exactly ONE verdict moves
+    (`VERILOG-2005-PROFILE`, OPEN -> CLOSED), and that one is hand-verified in both arms."""
+    for tok in re.findall(r"`([A-Za-z]+)`", cell):
+        low = tok.lower()
+        if low in OPEN_WORDS:
+            return "OPEN"
+        if low in CLOSED_WORDS:
+            return "CLOSED"
     return "UNREADABLE"
 
 
@@ -414,6 +425,10 @@ def rw_self_check():
         ("`done` (all leaves closed)", "CLOSED"),
         # a tree whose cell shouts DONE about a LEAF while the tree itself is active
         ("✅✅ `.13e.10`(c4) RESIDUE CLOSED — tree stays `active`", "OPEN"),
+        # ⛔ THE REGRESSION THIS READER SHIPPED ONCE: the row's own status is `complete` and a LEAF
+        # deep in the narration is `blocked`. Any-token-wins read OPEN and published a tracker
+        # disagreement that did not exist. First-token-wins reads the row.
+        ("`complete` (`.1` done `-0002`; `.6.3` **`blocked`** checkpoint)", "CLOSED"),
         # no backticked status word at all: the index's own most-active rows look like this
         ("⛔⛔ **THE GAP IS MEASURED** — see the leaf", "UNREADABLE"),
     ]

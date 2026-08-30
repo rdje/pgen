@@ -173,6 +173,46 @@ the defect.** Two riders:
   once; the thing it contradicts has at least been read. A reviewer who forgets this writes *"your
   number is wrong"* when the correct sentence is *"one of these two is wrong, and it might be mine."*
 
+### 4.1 How a published claim is GRADED when it is challenged
+
+Agreed with the director, 2026-08-30, and the reason it is written down is that the legs above say
+how to *check* a claim and said nothing about how to *score* one that has already shipped.
+
+**The acceptance test the author must be able to pass in one word.** When asked *"do you stand by
+it?"*, the answer is **yes**, immediately, with no keyboard. A re-audit triggered by that question
+is itself the evidence the claim was published before it was earned — the cost of the gap is paid by
+the reader, in trust, not by the author.
+
+**The three grading axes**, in the order a challenge exposes them:
+
+| axis | standard | why |
+|---|---|---|
+| **PROSE** | must stay true across every re-verification | it is the claim; the numbers are only its evidence. Prose that flips was never established |
+| **NUMBER** | must stay **close on the aspect it measures** | a judgement number supports a qualitative call, and re-deriving it a different-but-defensible way should not move the decision |
+| **NAMED INSTANCE** | **exact — no tolerance band** | an aggregate may be an estimate; a named row is an assertion, and it is the first thing a reader checks |
+
+⛔ **Grade a re-audit on all three, separately.** *"Two of five were wrong"* is the lazy score and it
+is usually the wrong one: it over-punishes a finding whose rate moved 3.6 points and under-punishes
+the one that named a row which disagrees with nothing.
+
+**Two riders, and the first is a correction to the usual framing of *why* numbers move.**
+
+1. ⛔ **Model-authored numbers here are DEFINITIONAL, not stochastic.** *"Re-verify N times and you
+   get N values"* is true of generated prose and **false** of a number produced by a command:
+   `git grep` returns the same count every run. When such a number moves, it is because the
+   POPULATION or the PATTERN changed — the two numbers answer **different questions**, and one of
+   them is not the reader's. ⇒ the author's own acceptance test stays **same question,
+   re-derivable, deterministic**; *close enough* is the READER's tolerance, never the author's
+   target, because an author who aims at *close enough* stops noticing when a number silently
+   changes meaning.
+2. ⭐ **Tolerance is TIERED, because two classes of number live in a repository like this.**
+   A **judgement** number supports a call and ±a few points changes no decision — trajectory-grade.
+   A **contract** number *is* the claim: a corpus pass count behind a release statement, a doctrine
+   count two meta-checks hold equal, an AST-dump schema version in a shipped integration contract.
+   For that class a small error is the entire defect — the founding example is a parser book
+   publishing schema `10` and `13` while its contract carried `26`. **Trajectory-grade is never
+   extended to a contract number: those are exact and gate-held, or they are not published.**
+
 ---
 
 ## 5. Mechanizing it

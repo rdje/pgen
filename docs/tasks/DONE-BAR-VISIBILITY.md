@@ -113,6 +113,22 @@ Both renderings answer three questions **from derived data, not prose**:
   `SV-CORPUS-DENOMINATOR` shape, so the counts are re-derivable rather than remembered. ⛔ The VHDL
   number is also a RAW pass rate — no answer key says which of those files SHOULD parse — so the
   block must not publish it as an adjudicated one.
+- ID: `DONE-BAR-VISIBILITY.2a` — Status: `done` (`PGEN-DONE-BAR-VISIBILITY-0008`)
+  Goal: correct the status reader that manufactured a tracker disagreement out of its own bias, and
+  correct every surface that published the resulting number.
+  Acceptance: the row's own status is the FIRST status token in its cell; the change is priced over
+  the whole population; the regression is pinned by a self-check arm.
+- ID: `DONE-BAR-VISIBILITY.10` — Status: `pending`
+  Goal: the `Current frontier` section that `docs/TASK_TREE.md` calls REQUIRED is absent from **19
+  OPEN trees**, under any heading spelling. Measured 2026-08-30 (re-audit): of 113 index-linked tree
+  files, 61 are open or carry an unreadable status, and 19 of those carry neither a
+  `Current frontier` heading nor any frontier-shaped heading. ⛔ The first number published for this
+  was **40 of 115**, which counted CLOSED trees (which need no frontier) and files carrying the
+  section under another spelling — the population, not the pattern, was the defect.
+  Acceptance: each of the 19 either gains a frontier section or is adjudicated as not needing one
+  (closed, or a tree whose frontier lives in the index row); then rule on whether the requirement
+  should be enforced or relaxed, since a REQUIRED section absent from 19 of 61 open trees is either
+  a rot or a rule nobody believes.
 - ID: `DONE-BAR-VISIBILITY.9` — Status: `done` (`PGEN-DONE-BAR-VISIBILITY-0006`)
   Goal: publish the derived block into the OTHER NINE parser books, as `.1` did for SystemVerilog.
   The producer already renders every family; what is missing is nine pages, nine SUMMARY entries and
@@ -138,14 +154,17 @@ Both renderings answer three questions **from derived data, not prose**:
   into the block.
 - ID: `DONE-BAR-VISIBILITY.8` — Status: `pending`
   Goal: reconcile the tracker-status disagreements `.2` measured. Its two prose arms — the index
-  row's Status cell and the tree file's own `Metadata` Status — DISAGREE on **4 of 113** trees
-  (`VERILOG-2005-PROFILE`, `EBNF-BOOK`, `RGX-0090`, `RGX-0091`), and **7** index rows carry no
+  row's Status cell and the tree file's own `Metadata` Status — DISAGREE on **3 of 113** trees
+  (`EBNF-BOOK`, `RGX-0090`, `RGX-0091` — each an index row reading `done` over a tree file reading
+  `active`), and **7** index rows carry no
   recognisable status word at all (`ENGINE-UNIVERSAL-SERVICES`, `GRAMMAR-WELLFORMED`,
   `LIVE-DOC-CONTAINMENT`, `SV-CORPUS-GRAD`, `MCP-CONTROL`, `JSON-RFC8259`,
   `REJECTS-VALID-DEFENSE`). `.2` counts every one of them OPEN — the safe polarity — so the
   published remaining-work count is an UPPER BOUND today, and saying so is not the same as fixing
   it.
-  Acceptance: each of the 11 is adjudicated to one true status in both places; then rule on whether
+  ⛔ It read FOUR when first published; `VERILOG-2005-PROFILE` was manufactured by this tree's own
+  reader and is corrected in `.2a`.
+  Acceptance: each of the 10 is adjudicated to one true status in both places; then rule on whether
   a doctrine should hold the two arms equal, or whether one arm should stop being a source.
 - ID: `DONE-BAR-VISIBILITY.6` — Status: `pending`
   Goal: the HAND-WRITTEN STATUS PROSE class, found by `.1` and routed rather than logged. The
@@ -154,9 +173,27 @@ Both renderings answer three questions **from derived data, not prose**:
   and the parser described as *"validated each release by the … external-corpus (14/14) … gates"*
   while `audit_done_bar.sh` records the only gate reading that corpus as a TRIAGE gate, leaving
   leg 3 unmet. `.1` fixed that ONE page by replacing the prose with a pointer to the derived
-  surface. The CLASS is untouched: nine other parser books may carry the same thing, and
-  `PARSER-BOOK-CURRENCY` cannot see it — it holds a book's newest CHANGELOG release equal to the
-  contract and says nothing about a status paragraph.
+  surface. ⭐ **THE CLASS IS NOW MEASURED, not assumed** (2026-08-30, re-audit): of the nine other
+  parser books, **ONE** carries a maturity claim that disagrees with today's register —
+  `docs/rtl_frontend_parser_book/src/welcome.md:25` publishes *"the rtl_frontend family's
+  live-tracker row is **`Done`**"* while the register says `Mostly Done` and the audit reports 3 of
+  3 legs unmet. It is era-dated (*"As of `RTL-FE-CLOSURE.8` (2026-06-15)"*), which is the repo's
+  supersede-don't-mutate convention, but it sits in a consumer-facing book and reads as current.
+  `vhdl`'s schema `3` MATCHES its contract and `json`'s *"first grammar to report
+  fully_certified=true"* is historical and still true — so the class is 1 of 9, not a general rot.
+  ⛔ And the guard census: of the 32 registered enforcers, only FOUR read a per-parser book at all —
+  `check_parser_book_currency.sh` (the changelog surface), `check_family_status.sh` (the DERIVED
+  block), `check_regex_oracle_anchor_sync.sh` (one tuple in the regex validator chapter) and
+  `check_gate_reachability.sh` (incidentally) — and none of them reads a book's status prose:
+
+  ```
+  for s in $(grep -o '|scripts/[a-z_]*\.sh"' scripts/check_doctrines.sh | sed 's/|//;s/"//'); do
+      n=$(grep -c _parser_book "$s"); [ "$n" -gt 0 ] && echo "$s $n"; done
+    scripts/check_regex_oracle_anchor_sync.sh 1
+    scripts/check_gate_reachability.sh 1
+    scripts/check_parser_book_currency.sh 7
+    scripts/check_family_status.sh 4
+  ```
   Acceptance: every per-parser book's status prose is censused; each figure is either DERIVED by a
   producer or DELETED in favour of a pointer; no per-parser book carries a hand-typed maturity
   number afterwards.
@@ -327,6 +364,59 @@ and the block says so.
       the attribution and the producer REFUSES naming it; RED-9 adds an attribution for a tree that
       does not exist and it REFUSES naming that. Both through the `PGEN_FAMILY_STATUS_SCHEMA` seam,
       so the tracked schema is never mutated to test itself.
+
+### `.2a` — the reader that manufactured a disagreement out of its own bias
+
+Shipped in `PGEN-DONE-BAR-VISIBILITY-0008`, on a director challenge to the findings `.1`–`.4`
+published: *"I guess you double, triple checked the accuracy of your finding … ensure that's sota
+and signoff."*
+
+**What was wrong.** `polarity()` read a tree's status by taking ANY backticked status word in the
+index row's cell, preferring OPEN. The index's convention is `| TREE | status (narration…) |`, so
+everything after the first token is narration ABOUT LEAVES. `VERILOG-2005-PROFILE`'s own status is
+`complete`, its tree file agrees, and leaf `.6.3` is described as `blocked` deep in the cell — so
+the reader called the row OPEN, the second arm called it CLOSED, and the tree published a **tracker
+disagreement that does not exist**.
+
+**What it cost.** It was published to the director as one of *four* disagreements, and it inflated
+SystemVerilog's open-tree count from 4 to 5.
+
+**The fix and its price.** The first status token in the cell wins; a cell with NO status token stays
+UNREADABLE and is still counted OPEN and NAMED, so the safe polarity is kept where it belongs.
+Priced across the whole population: of 113 rows exactly **ONE** verdict moves, and it is the one
+hand-verified in both arms. ⭐ The regression is pinned by a new `rw_self_check` case carrying the
+exact shape — a `complete` row whose narration says `blocked`.
+
+⇒ **A safe-polarity default is still a MEASUREMENT.** Reporting it as a property of the subject
+("the tracker's arms disagree") is a different claim from reporting it as a property of the reader,
+and only the second one was true here.
+
+#### Acceptance checklist (`TOOLBOX.md`)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `polarity()` in `scripts/report_family_status.sh`. WHY,
+      re-derived from the tracked artifacts themselves, BOTH arms read directly:
+
+      ```
+      git ls-files docs/TASK_TREE.md | xargs grep -o '^| `VERILOG-2005-PROFILE` | `[a-z]*`'
+        | `VERILOG-2005-PROFILE` | `complete`
+      git ls-files docs/tasks/VERILOG-2005-PROFILE.md | xargs grep -m1 -o '^- Status: `[a-z]*`'
+        - Status: `complete`
+      ```
+
+      Both arms say `complete`. The row's backticked words in order are `complete`, `done`, `done`,
+      …, `blocked`, … — the `blocked` belongs to leaf `.6.3` deep in the narration, and
+      any-token-wins reached it. ⇒ the disagreement was manufactured by the READER, not observed in
+      the subject. `bash -n scripts/report_family_status.sh` clean before and after the fix.
+- [x] **ADDRESSED (verified)** — before: SystemVerilog published `5 open tree(s) … ⚠️ 1 status
+      DISPUTED`. After: `4 open tree(s) own this family's work: SV-CORPUS-GRAD, SV-EXH-PROOF,
+      SV-PARSE-STRICT, SV-REPLAY-DEBT` and `⚠️ 0 status DISPUTED … 1 unreadable`. The repo-wide
+      disagreement census falls 4 → 3, and an independent re-derivation outside the producer agrees
+      row for row (`EBNF-BOOK`, `RGX-0090`, `RGX-0091`), each hand-checked against both files.
+- [x] **NO REGRESSION** — the change is priced over the whole population: **1 of 113** verdicts
+      moves. `bash scripts/check_doctrines.sh` ALL 32 PASS; producer probes 12/12; gate probes 7/7;
+      `mdbook_docs_gate` PASS; all ten blocks republished and **byte-identical** to a fresh
+      derivation (`check_family_status.sh` green).
+- promotion: declined (the durable half is recorded where the director's directive lives — docs/decisions/feedback_verify_a_claim_three_ways_before_publishing_it.md gained a dated section carrying this exact table of what the re-audit found, which is the retrievable home for a lesson about how I publish rather than about the parser)
 
 ### `.3` — why every family without a corpus count has no count, derived and owned
 
@@ -520,6 +610,10 @@ None.
   false hits: **0 of 177** tracked book pages carry a distance-to-`Done` surface. Producer, schema,
   page, SUMMARY and probe driver landed; `--check` green on the published page; 8/8 probe arms;
   31/31 doctrines; mdbook gate PASS; all ten families render.
+- 2026-08-30 (`.2a`) — director challenge to the published findings. Re-audited all five: two were
+  wrong in the direction that makes a finding sound bigger (4 disagreements -> 3, one manufactured
+  by this tree's own reader; 40 of 115 missing frontiers -> 19 open trees), one was unmeasured and
+  is now measured (1 of 9 books, not nine), two hold. Reader fixed, 1 of 113 verdicts moves.
 - 2026-08-30 (`.4`) — `FAMILY-STATUS-CURRENCY` registered; 32/32 doctrines; gate probes 7/7 with
   five RED arms constructed under a seam; 3.4 s for all ten pages.
 - 2026-08-30 (`.9`) — nine pages, nine SUMMARY entries, nine rebuilt HTML trees; `--check` green on
@@ -540,6 +634,7 @@ None.
 - `.3` DONE (why each family has no corpus count, derived and owned) — `PGEN-DONE-BAR-VISIBILITY-0005`
 - `.9` DONE (the block published in all ten parser books) — `PGEN-DONE-BAR-VISIBILITY-0006`
 - `.4` DONE (the FAMILY-STATUS-CURRENCY doctrine, 31 -> 32) — `PGEN-DONE-BAR-VISIBILITY-0007`
+- `.2a` DONE (the status reader corrected under a director challenge) — `PGEN-DONE-BAR-VISIBILITY-0008`
 
 ## Changelog
 
