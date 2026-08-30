@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-494f7ac1.js";
+            window.path_to_searchindex_js = "searchindex-43d054fe.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-b4e659eb.js"></script>
+        <script src="toc-d84330d8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -198,6 +198,79 @@
 <p>The PGEN rtl_frontend parser is <strong>on-demand-only</strong> in the default build (it is not in <code>cargo test --features generated_parsers</code> until activated). The current grammar covers file-scope typedefs/packages/modules, module headers + imports + parameters + ANSI ports, parameter/localparam declarations, typedefs, imports, genvars, net declarations, continuous assigns, the <code>always*</code> family, generate regions (if/for), module instantiations with named/ordered overrides and named/ordered/wildcard port connections, enum/struct/union types, builtin and package-qualified types, and the unary/binary/ternary expression core shared with <code>rtl_const_expr</code>.</p>
 <p>The rtl_frontend return-annotation campaign landed <code>RTL-FE-Slice-1..7</code> on 2026-05-14 across seven slices, growing from 1 → 156 annotations; the <code>1.0.4</code> <code>RTL-FE-CLOSURE.9</code> bare-ANSI-port acceptance fix later added the 157th (the <code>port_group</code> no-type branch); the <code>1.0.5</code> <code>RTL-FE-CLOSURE.10</code> keyword word-boundary fix later accepted keyword-prefixed identifiers (<code>input_data</code>, <code>reg_file</code>) with no inventory change. Subsequent shape-affecting slices get their own changelog entries here.</p>
 <p>As of <code>RTL-FE-CLOSURE.8</code> (2026-06-15) the rtl_frontend family’s live-tracker row is <strong><code>Done</code></strong>: its PGEN per-family closure bar is met — certificate-coverage <code>fully_certified=true</code> (<code>total=169 proof=1 witness=168 UNKNOWN=0</code>, deterministic at seeds 0/7/42, zero sample-parse failures) plus the green <code>rtl_frontend_generated_contract_gate</code> (generated-parser probe + handwritten <code>parse_design</code> parity + the ratcheted 59-sample 46/13 <code>expected_elaboration</code> replay). This is a closure-proof / live-status milestone, not a shape change: the parser release stays <code>1.0.5</code> and the AST-dump schema stays <code>3</code>. rtl_frontend is the sixth fully-certified PGEN grammar (after json, regex, rtl_const_expr, systemverilog_preprocessor, and vhdl).</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="status-and-distance-to-done"><a class="header" href="#status-and-distance-to-done">Status and Distance to <code>Done</code></a></h1>
+<p><strong>One question, answered by measurement: how far is this parser from <code>Done</code>, and how much of the
+corpus passes today?</strong></p>
+<p>A status label — <code>Mostly Done</code>, <code>In Progress</code> — says where a family sits on a ladder. It does not
+say how far it still has to climb, and a reader who only sees the label has no way to tell whether
+the remaining work is a week or a year. This page publishes the <strong>distance</strong> behind the label.</p>
+<blockquote>
+<p>This page is <strong>DERIVED BY MEASUREMENT</strong>. The block below is produced by
+<a href="../../../scripts/report_family_status.sh"><code>scripts/report_family_status.sh</code></a>, which reads the
+done-bar audit, the task-tree index and — where one is wired — the family’s corpus census, rather
+than any hand-maintained note. Do not hand-edit it: re-run with <code>rtl_frontend --markdown</code> and
+republish; <code>--check docs/rtl_frontend_parser_book/src/status-and-distance.md</code> refuses when the two
+disagree. Every field, and the producer that answers it, is declared in
+<code>rust/test_data/grammar_quality/family_status_block_v0.json</code>.</p>
+</blockquote>
+<h2 id="the-three-leg-bar-and-what-it-takes-to-clear-it"><a class="header" href="#the-three-leg-bar-and-what-it-takes-to-clear-it">The three-leg bar, and what it takes to clear it</a></h2>
+<p><code>Done</code> here is not a feeling about maturity. It is a three-leg bar, defined in the main book’s
+<a href="../../book/src/quality-and-closure-model.html">Quality and Closure Model</a> and audited by
+<code>scripts/audit_done_bar.sh</code>:</p>
+<ol>
+<li><strong>Stimuli-generator proof</strong> — the family’s own generated samples close the loop with zero
+residual actionable-target debt.</li>
+<li><strong>All our gates</strong> — every gate covering the family is green <em>now</em> and is actually invoked by
+something. A gate nothing invokes is indistinguishable from a gate that does not exist.</li>
+<li><strong>All the external test corpus, passing</strong> — and a <em>triage</em> gate is not a conformance gate, a
+characterization is not a pass, and the <strong>absence</strong> of a corpus is an unmet leg, never an
+inapplicable one.</li>
+</ol>
+<h2 id="where-rtl_frontend-stands"><a class="header" href="#where-rtl_frontend-stands">Where <code>rtl_frontend</code> stands</a></h2>
+<!-- BEGIN DERIVED: scripts/report_family_status.sh rtl_frontend --markdown -->
+<p><strong>Claimed status:</strong> <code>Mostly Done</code> · <strong>language owner:</strong> <code>unadjudicated</code> · <strong>standard:</strong> a synthesizable SUBSET of IEEE 1800 that PGEN itself delimits; SV corpora exist but exercise far more than the subset. DONE-BAR.3 owes the ruling.</p>
+<p><strong>Distance to <code>Done</code>: 3 of the 3 legs are not met.</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Leg</th><th>State</th><th>Why, derived from the tracked tree</th></tr>
+</thead>
+<tbody>
+<tr><td>1 — stimuli-generator proof</td><td>⚠️ <strong>UNPROVEN</strong></td><td>no family-status gate computes this family’s closure at all</td></tr>
+<tr><td>2 — gates green and invoked</td><td>⛔ <strong>UNMET</strong></td><td>2 covering gate targets, 2 invoked, 0 invoked by nothing; no family-status gate computes this family’s closure at all</td></tr>
+<tr><td>3 — external corpus passing</td><td>⛔ <strong>UNMET</strong></td><td>no external corpus is wired and the language ownership is UNADJUDICATED (owed by DONE-BAR.3)</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Corpus.</strong> ⛔ <strong>NOT MEASURED</strong> — whether a corpus for the full standard counts against this SUBSET language is an open ruling; until it is made, a corpus count would be measured against a denominator nobody has agreed to. Owed by <code>DONE-BAR.3</code>.</p>
+<p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. <strong>0 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
+<p>No open tree is attributed to this family — every tree that owned its work is closed. That is not the same as meeting the bar: the legs above are what decide <code>Done</code>, and cross-cutting work can still gate this family.</p>
+<p>⚠️ <strong>The item here is a TREE, not a leaf, and that is a measured limit.</strong> A leaf’s status is free prose, and this repository has measured leaves reading <code>todo</code> for days after their fix shipped, so a per-leaf list would publish that defect as a number. The two prose arms — the index row and the tree file’s own metadata — disagree on some trees, and every disagreement is counted OPEN and shown above: over-reporting is the only safe direction for a list that says how much is left.</p>
+<!-- END DERIVED -->
+<h2 id="how-to-read-this-block"><a class="header" href="#how-to-read-this-block">How to read this block</a></h2>
+<p>The <strong>corpus</strong> line does not print a pass rate, and it says why rather than leaving a blank: a blank
+reads as <em>nothing to see</em> and a zero reads as <em>done</em>. The reason is one of a small set of classes
+derived from the done-bar register — whether the language has a third-party corpus at all, whether
+one is wired here, and whether the corpus question for a subset language has been ruled on — and
+where a count is genuinely owed, the block names the leaf that owes it.</p>
+<p>The <strong>remaining-work</strong> line counts the task trees still open whose work is attributed to this
+family, plus the cross-cutting trees that can gate any family. The item is a <em>tree</em>, not a leaf,
+because a leaf’s status is free prose; the block says so in place rather than implying a precision
+it does not have. Where the two prose arms — the tree index and the tree file’s own metadata —
+disagree, the tree is counted <strong>open</strong> and flagged: over-reporting is the only safe direction for a
+list that says how much is left.</p>
+<h2 id="how-this-page-stays-true"><a class="header" href="#how-this-page-stays-true">How this page stays true</a></h2>
+<ul>
+<li>One producer emits both renderings — the brief form reported in the engineer’s completion
+messages and the thorough block above — so the two cannot tell different stories.</li>
+<li><code>--check</code> re-derives the block and diffs it against what is published here, refusing on any
+difference. Republishing is the only way to change a number on this page.</li>
+<li>The block is derived from the <strong>tracked tree alone</strong>. Legs 1 and the <em>green-now</em> half of leg 2
+rest on gate artifacts under <code>rust/target/</code>, which is never tracked, so publishing this machine’s
+reading of them would make the check fail on a fresh clone. Run
+<code>bash scripts/audit_done_bar.sh</code> to see what the gate artifacts in <em>your</em> tree say.</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="quickstart-for-downstream-consumers"><a class="header" href="#quickstart-for-downstream-consumers">Quickstart for Downstream Consumers</a></h1>
 <p>A minimal “compile this, walk that” recipe for embedding the PGEN rtl_frontend parser. Read <a href="#build-recipe">Build Recipe</a> and <a href="#public-api-surface">Public API Surface</a> for the long-form versions of each step.</p>

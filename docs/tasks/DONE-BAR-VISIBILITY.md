@@ -113,12 +113,13 @@ Both renderings answer three questions **from derived data, not prose**:
   `SV-CORPUS-DENOMINATOR` shape, so the counts are re-derivable rather than remembered. ⛔ The VHDL
   number is also a RAW pass rate — no answer key says which of those files SHOULD parse — so the
   block must not publish it as an adjudicated one.
-- ID: `DONE-BAR-VISIBILITY.9` — Status: `pending`
+- ID: `DONE-BAR-VISIBILITY.9` — Status: `done` (`PGEN-DONE-BAR-VISIBILITY-0006`)
   Goal: publish the derived block into the OTHER NINE parser books, as `.1` did for SystemVerilog.
   The producer already renders every family; what is missing is nine pages, nine SUMMARY entries and
   nine `--check` invocations.
-  Acceptance: all ten per-parser books carry the block; each is `--check`-held; the mdbook gate
-  passes.
+  Acceptance: all ten per-parser books carry the block; each is `--check`-verified; the mdbook gate
+  passes. ⚠️ `--check`-HELD BY A GATE is `.4`, which is now the frontier — ten pages that a human
+  must remember to re-check are ten pages that will go stale.
 - ID: `DONE-BAR-VISIBILITY.4` — Status: `pending`
   Goal: wire the co-publication gate so the block cannot go stale.
 - ID: `DONE-BAR-VISIBILITY.5` — Status: `pending`
@@ -160,12 +161,13 @@ Both renderings answer three questions **from derived data, not prose**:
 
 ## Current frontier
 
-1. `DONE-BAR-VISIBILITY.9` (publish the block into the other nine parser books). It is the frontier
-   because the producer already answers all three questions for all ten families and only ONE family
-   publishes the answer where the director reads it. Nine pages is the cheapest remaining step from
-   *the answer exists* to *the answer is visible*.
+1. `DONE-BAR-VISIBILITY.4` (wire the co-publication gate). It is the frontier because ten pages now
+   publish derived numbers and NOTHING re-checks them on a commit: `--check` exists and is proven
+   able to go red four ways, but a check nobody invokes is the `GATE-REACHABILITY` defect, and this
+   tree's own goal says the two renderings must be unable to disagree.
 2. `DONE-BAR-VISIBILITY.3b` (real counts for `vhdl` and `regex` — a tracked census plus a freshness
    gate, the `SV-CORPUS-DENOMINATOR` shape).
+3. `DONE-BAR-VISIBILITY.5` (the cross-family view in the main book).
 
 ## Leaf records
 
@@ -394,6 +396,43 @@ the owner.
 
 - promotion: declined (both durable halves are already carried by the tree — *derive the class and only CHECK the declaration* is the two-arm rule `done_bar_family_register_v0.json` already states for `claimed_status`, and *a number that cannot be re-derived is pointed at, not copied* is `docs/DERIVED_STATE_CONTAINMENT.md` R1/R3; the per-family class map is a one-artifact fact and lives in the schema it drives)
 
+### `.9` — the block is published in all ten parser books
+
+Shipped in `PGEN-DONE-BAR-VISIBILITY-0006`.
+
+Nine `status-and-distance.md` pages, nine `SUMMARY.md` entries, nine rebuilt (tracked) HTML trees.
+Every page carries the same three sections — the three-leg bar explained, the DERIVED block, and how
+the page stays true — and the corpus paragraph adapts: a family with a wired census gets the
+*count every row, unknown is not clean* note, and the other nine get the note explaining that the
+line says WHY there is no count and who owes one.
+
+`--check` verified on all ten, byte for byte: `systemverilog` 3 409 B, `regex` 3 134 B, `vhdl`
+2 537 B, `json` 2 205 B, `systemverilog_preprocessor` 2 111 B, `ebnf` 2 123 B, `rtl_frontend`
+2 102 B, `return_annotation` 2 088 B, `semantic_annotation` 2 028 B, `rtl_const_expr` 2 000 B.
+
+⛔ **What this leaf deliberately does NOT do is make those ten checks fire.** They are invoked by a
+human today, which is the `GATE-REACHABILITY` defect the tree's own goal warns about, and `.4` owns
+closing it. Publishing first and gating second is the right order here — `SV-CORPUS-GRAD.13e.11`'s
+rule that a guard is safe to make blocking exactly when the fix precedes it — but only if `.4`
+actually lands, so it is now the frontier.
+
+#### Acceptance checklist (`TOOLBOX.md`)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: nine of the ten per-parser books had no status surface at
+      all. WHY: `.1` deliberately shipped ONE worked family, so the producer could render all ten
+      while only one book published the answer. Measured before this slice:
+      `git ls-files 'docs/*_parser_book/src/status-and-distance.md' | wc -l` → **1**, against
+      `git ls-files 'docs/*_parser_book/book.toml' | wc -l` → **10**.
+- [x] **ADDRESSED (verified)** — after: the same two `git ls-files` counts read **10** and **10**,
+      and `bash scripts/report_family_status.sh <family> --check docs/<family>_parser_book/src/status-and-distance.md`
+      returns OK for every one of the ten, with the byte counts listed above.
+- [x] **NO REGRESSION** — `make -C rust SHELL=/bin/bash mdbook_docs_gate` PASS (all ten per-parser
+      book gates plus the main book, every one rebuilding its tracked HTML);
+      `bash scripts/check_doctrines.sh` ALL 31 PASS; probes **12/12**; the SystemVerilog block is
+      **byte-identical** to its previous publication — this slice adds nine pages and changes none
+      of the numbers.
+- promotion: declined (this slice is nine copies of a page shape `.1` already established and whose lessons are already promoted; the durable rule it exercises — publish first, gate second, because a guard is safe to make blocking exactly when the fix precedes it — is `SV-CORPUS-GRAD.13e.11`'s and is already carried by the tree)
+
 ## Decisions
 
 - **Derived, never hand-written** — `LIVE-MEANS-LIVE.1a` measured 25 of 61 hand-maintained
@@ -418,6 +457,8 @@ None.
   false hits: **0 of 177** tracked book pages carry a distance-to-`Done` surface. Producer, schema,
   page, SUMMARY and probe driver landed; `--check` green on the published page; 8/8 probe arms;
   31/31 doctrines; mdbook gate PASS; all ten families render.
+- 2026-08-30 (`.9`) — nine pages, nine SUMMARY entries, nine rebuilt HTML trees; `--check` green on
+  all TEN books; mdbook gate PASS; 31/31 doctrines.
 - 2026-08-30 (`.3`) — the nine no-count families split into FOUR derived classes, each naming its
   owing leaf; the class is held equal to the done-bar register and RED-10 proves the drift refuses.
   12/12 probes, 31/31 doctrines, mdbook gate PASS, SV block byte-identical.
@@ -432,12 +473,15 @@ None.
 - `.1` DONE (schema + producer + SystemVerilog end to end) — `PGEN-DONE-BAR-VISIBILITY-0003`
 - `.2` DONE (the remaining-work synthesis, tree granularity) — `PGEN-DONE-BAR-VISIBILITY-0004`
 - `.3` DONE (why each family has no corpus count, derived and owned) — `PGEN-DONE-BAR-VISIBILITY-0005`
+- `.9` DONE (the block published in all ten parser books) — `PGEN-DONE-BAR-VISIBILITY-0006`
 
 ## Changelog
 
 - 2026-08-30 — created from a direct director remark; gap measured the same day.
 - 2026-08-30 — `.1` DONE. One producer, two renderings, `--check` proven able to go RED four ways.
   New leaf `.6` opened for the hand-written-status-prose class the slice measured on the way past.
+- 2026-08-30 — `.9` DONE: every parser book now publishes its family's distance. Frontier moves to
+  `.4`, the co-publication gate, because ten unchecked pages will go stale.
 - 2026-08-30 — `.3` DONE: every family says WHY it has no corpus count and who owes one. New
   leaves `.3b` (the real VHDL/regex censuses) and `.9` (publish the block into the other nine books).
 - 2026-08-30 — `.2` DONE at TREE granularity. 113 index rows adjudicated into a closed two-sided

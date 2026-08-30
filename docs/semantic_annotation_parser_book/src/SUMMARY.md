@@ -2,6 +2,10 @@
 
 [Welcome](welcome.md)
 
+# Status
+
+- [Status and Distance to `Done`](status-and-distance.md)
+
 # Building & Running
 
 - [Build Recipe](build-recipe.md)

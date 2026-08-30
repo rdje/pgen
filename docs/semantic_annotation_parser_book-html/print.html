@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d0392f64.js";
+            window.path_to_searchindex_js = "searchindex-53e6effb.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e79d1bb7.js"></script>
+        <script src="toc-1dfc6798.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -245,6 +245,88 @@ structured values, expressions, and the <code>$ref</code> / <code>%symbol</code>
 <li><code>docs/reference/PGEN_ANNOTATION_NORMATIVE_SPEC.md</code> and
 <code>docs/reference/PGEN_SEMANTIC_STEERING_CONTROL_MATRIX.md</code> — the deep normative steering semantics this
 book curates and cross-links.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="status-and-distance-to-done"><a class="header" href="#status-and-distance-to-done">Status and Distance to <code>Done</code></a></h1>
+<p><strong>One question, answered by measurement: how far is this parser from <code>Done</code>, and how much of the
+corpus passes today?</strong></p>
+<p>A status label — <code>Mostly Done</code>, <code>In Progress</code> — says where a family sits on a ladder. It does not
+say how far it still has to climb, and a reader who only sees the label has no way to tell whether
+the remaining work is a week or a year. This page publishes the <strong>distance</strong> behind the label.</p>
+<blockquote>
+<p>This page is <strong>DERIVED BY MEASUREMENT</strong>. The block below is produced by
+<a href="../../../scripts/report_family_status.sh"><code>scripts/report_family_status.sh</code></a>, which reads the
+done-bar audit, the task-tree index and — where one is wired — the family’s corpus census, rather
+than any hand-maintained note. Do not hand-edit it: re-run with <code>semantic_annotation --markdown</code> and
+republish; <code>--check docs/semantic_annotation_parser_book/src/status-and-distance.md</code> refuses when the two
+disagree. Every field, and the producer that answers it, is declared in
+<code>rust/test_data/grammar_quality/family_status_block_v0.json</code>.</p>
+</blockquote>
+<h2 id="the-three-leg-bar-and-what-it-takes-to-clear-it"><a class="header" href="#the-three-leg-bar-and-what-it-takes-to-clear-it">The three-leg bar, and what it takes to clear it</a></h2>
+<p><code>Done</code> here is not a feeling about maturity. It is a three-leg bar, defined in the main book’s
+<a href="../../book/src/quality-and-closure-model.html">Quality and Closure Model</a> and audited by
+<code>scripts/audit_done_bar.sh</code>:</p>
+<ol>
+<li><strong>Stimuli-generator proof</strong> — the family’s own generated samples close the loop with zero
+residual actionable-target debt.</li>
+<li><strong>All our gates</strong> — every gate covering the family is green <em>now</em> and is actually invoked by
+something. A gate nothing invokes is indistinguishable from a gate that does not exist.</li>
+<li><strong>All the external test corpus, passing</strong> — and a <em>triage</em> gate is not a conformance gate, a
+characterization is not a pass, and the <strong>absence</strong> of a corpus is an unmet leg, never an
+inapplicable one.</li>
+</ol>
+<h2 id="where-semantic_annotation-stands"><a class="header" href="#where-semantic_annotation-stands">Where <code>semantic_annotation</code> stands</a></h2>
+<!-- BEGIN DERIVED: scripts/report_family_status.sh semantic_annotation --markdown -->
+<p><strong>Claimed status:</strong> <code>Mostly Done</code> · <strong>language owner:</strong> <code>pgen</code> · <strong>standard:</strong> none – the semantic-annotation language is authored by PGEN in grammars/semantic_annotation.ebnf</p>
+<p><strong>Distance to <code>Done</code>: 3 of the 3 legs are not met.</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Leg</th><th>State</th><th>Why, derived from the tracked tree</th></tr>
+</thead>
+<tbody>
+<tr><td>1 — stimuli-generator proof</td><td>⚠️ <strong>UNPROVEN</strong></td><td>no family-status gate computes this family’s closure at all</td></tr>
+<tr><td>2 — gates green and invoked</td><td>⛔ <strong>UNMET</strong></td><td>1 covering gate targets, 1 invoked, 0 invoked by nothing; no family-status gate computes this family’s closure at all</td></tr>
+<tr><td>3 — external corpus passing</td><td>⛔ <strong>UNMET</strong></td><td>no external corpus exists — the language is authored by PGEN itself, so leg 3 is unreachable by construction</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Corpus.</strong> ⛔ <strong>NO THIRD-PARTY CORPUS EXISTS</strong> — the language is authored by PGEN itself, so no third-party corpus exists or ever will. NOT a measurement gap – leg 3 is unreachable by construction and the qualifier is <code>Provisional (ceiling)</code>.</p>
+<p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. <strong>1 tree own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Open tree</th><th>Status verdict</th><th>Where the detail lives</th></tr>
+</thead>
+<tbody>
+<tr><td><code>SEMANTIC-ANNOT-BOOK</code></td><td>open</td><td><a href="../../tasks/SEMANTIC-ANNOT-BOOK.html"><code>docs/tasks/SEMANTIC-ANNOT-BOOK.md</code></a></td></tr>
+</tbody>
+</table>
+</div>
+<p>⚠️ <strong>The item here is a TREE, not a leaf, and that is a measured limit.</strong> A leaf’s status is free prose, and this repository has measured leaves reading <code>todo</code> for days after their fix shipped, so a per-leaf list would publish that defect as a number. The two prose arms — the index row and the tree file’s own metadata — disagree on some trees, and every disagreement is counted OPEN and shown above: over-reporting is the only safe direction for a list that says how much is left.</p>
+<!-- END DERIVED -->
+<h2 id="how-to-read-this-block"><a class="header" href="#how-to-read-this-block">How to read this block</a></h2>
+<p>The <strong>corpus</strong> line does not print a pass rate, and it says why rather than leaving a blank: a blank
+reads as <em>nothing to see</em> and a zero reads as <em>done</em>. The reason is one of a small set of classes
+derived from the done-bar register — whether the language has a third-party corpus at all, whether
+one is wired here, and whether the corpus question for a subset language has been ruled on — and
+where a count is genuinely owed, the block names the leaf that owes it.</p>
+<p>The <strong>remaining-work</strong> line counts the task trees still open whose work is attributed to this
+family, plus the cross-cutting trees that can gate any family. The item is a <em>tree</em>, not a leaf,
+because a leaf’s status is free prose; the block says so in place rather than implying a precision
+it does not have. Where the two prose arms — the tree index and the tree file’s own metadata —
+disagree, the tree is counted <strong>open</strong> and flagged: over-reporting is the only safe direction for a
+list that says how much is left.</p>
+<h2 id="how-this-page-stays-true"><a class="header" href="#how-this-page-stays-true">How this page stays true</a></h2>
+<ul>
+<li>One producer emits both renderings — the brief form reported in the engineer’s completion
+messages and the thorough block above — so the two cannot tell different stories.</li>
+<li><code>--check</code> re-derives the block and diffs it against what is published here, refusing on any
+difference. Republishing is the only way to change a number on this page.</li>
+<li>The block is derived from the <strong>tracked tree alone</strong>. Legs 1 and the <em>green-now</em> half of leg 2
+rest on gate artifacts under <code>rust/target/</code>, which is never tracked, so publishing this machine’s
+reading of them would make the check fail on a fresh clone. Run
+<code>bash scripts/audit_done_bar.sh</code> to see what the gate artifacts in <em>your</em> tree say.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="build-recipe"><a class="header" href="#build-recipe">Build Recipe</a></h1>
