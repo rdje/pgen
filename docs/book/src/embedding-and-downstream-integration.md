@@ -153,6 +153,37 @@ guessed: on SystemVerilog error construction is only ~24 % of it, the parse casc
 quarter run on rules whose packrat memo is deliberately elided because inlining their one-node body
 is cheaper than probing for it.
 
+#### Contacting the ceiling does not mean being rejected by it
+
+Everything above prices a *rejection*. `ENGINE-UNIVERSAL-SERVICES.69`(d) measured the case the
+section did not cover, and it is the one an embedder is more likely to meet: **a parse can contact
+the ceiling, have the guard refuse, back-track and still ACCEPT** — same verdict, same AST, at a
+cost that is not close.
+
+Measured on the shipped SystemVerilog parser (release, `--profile sv_2017`, 3 000 nested parens,
+`rc=0` both times):
+
+| reservation | verdict | wall clock | ceiling contacted? | depth at refusal |
+|---|---|---|---|---|
+| 256 MiB (default) | accept | 9.67 s | no | none |
+| 96 MiB (the floor) | accept | 162.96 s | yes, `BudgetExhausted` | 31 568 frames |
+
+**16.9× for one verdict.** The reservation is the only thing that changed. This matters to an
+embedder because it inverts the usual reading of a green result: a parse that succeeded is not
+evidence that the input was comfortably within capacity, and shrinking `PGEN_PARSE_STACK_BYTES` to
+save address space can make *successful* parses dramatically more expensive without changing a
+single verdict — so nothing in a pass/fail suite would notice.
+
+⭐ **The ceiling is a property of the stack, not of the input**, and the same measurement shows it
+directly: two different inputs of different depths (2 600 and 3 000 nested parens) refuse at the
+**same frame depth, 31 568**, under the same reservation.
+
+`PGEN_REPORT_STACK_PROBE=1` reports this in one line — the named cause, the stack bytes actually
+spent, the reservation, the spendable budget and the measured per-frame cost. Before it, the only
+evidence that any of the above had happened was the wall clock, which does not say why. The
+five named causes, and the reason a zero byte field means NOT MEASURED rather than a measured
+zero, are in *Diagnostic & Debug Toolbox* in this book and in `TOOLBOX.md` § 3.3d.
+
 **The bar this is measured against, and it has two legs rather than one.** The first is a ratio
 rather than a stopwatch: a rejection may cost no more than **2×** the same parser's accepted parse of
 the same shape — because a parser must not spend more effort failing than succeeding, and because an

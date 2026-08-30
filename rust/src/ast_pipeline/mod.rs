@@ -2875,34 +2875,75 @@ impl RecursionGuard {
     /// left → `false`. A stack overflow ABORTS the embedder and is strictly
     /// worse than a diagnosed rejection, so the probe never trades a clean
     /// refusal for a guess.
+    ///
+    /// ⭐ `ENGINE-UNIVERSAL-SERVICES.69`(d) — EVERY refusal is now RECORDED, not
+    /// just returned. The `bool` this function returns is the same `bool` it
+    /// always returned; what changes is that the reading behind it survives the
+    /// call, because five very different situations collapse into that one
+    /// `false` and the frame count a rejection carries is identical in all
+    /// five. Recording happens only on the refusal paths of a `#[cold]`
+    /// function, so the accept path is untouched — the instrument costs a parse
+    /// that never contacts the ceiling exactly nothing.
     #[cold]
     #[inline(never)]
     fn extend_depth_probe(&mut self, depth: usize) -> bool {
+        use crate::dedicated_parse_stack::{
+            record_stack_probe_refusal, StackProbeObservation, StackProbeRefusal,
+        };
+        // `ENGINE-UNIVERSAL-SERVICES.69`(d) — one place that both records and
+        // refuses, so a future refusal arm cannot be added without a reading.
+        let refuse = |cause, used_bytes, reservation_bytes, budget_bytes, bytes_per_frame| {
+            record_stack_probe_refusal(StackProbeObservation {
+                cause,
+                depth,
+                used_bytes,
+                reservation_bytes,
+                budget_bytes,
+                bytes_per_frame,
+            });
+            false
+        };
         let Some((base, reservation)) = crate::dedicated_parse_stack::current_parse_stack_extent()
         else {
             // Not a thread whose stack size this process knows. The compiled
             // floor stands — see the doc comment: an unknown is never a licence.
-            return false;
+            return refuse(StackProbeRefusal::ExtentUnknown, 0, 0, 0, 0);
         };
         let here = crate::dedicated_parse_stack::approximate_stack_pointer();
         let Some(used) = base.checked_sub(here) else {
             // The stack did not grow down (or this guard was built on another
             // thread). Refuse to derive anything from an address we cannot read.
-            return false;
+            return refuse(StackProbeRefusal::DirectionUnknown, 0, reservation, 0, 0);
         };
         if depth == 0 || used < depth {
             // Under one byte per frame is not physically measurable; treating it
             // as "frames are free" would extend the ceiling off a rounding error.
-            return false;
+            return refuse(StackProbeRefusal::FrameCostUnmeasurable, used, reservation, 0, 0);
         }
         let budget = reservation - reservation / STACK_HEADROOM_RESERVE_DIVISOR;
-        if used >= budget {
-            return false;
-        }
+        // `.69`(d) — hoisted above the budget arm so the ONE refusal that is a
+        // fact about the stack carries a complete reading. `depth > 0` and
+        // `used >= depth` are both established above, so this is the same
+        // quotient the accept path computes, one arm earlier.
         let bytes_per_frame = used / depth;
+        if used >= budget {
+            return refuse(
+                StackProbeRefusal::BudgetExhausted,
+                used,
+                reservation,
+                budget,
+                bytes_per_frame,
+            );
+        }
         let affordable = (budget - used) / bytes_per_frame;
         if affordable == 0 {
-            return false;
+            return refuse(
+                StackProbeRefusal::NoFrameAffordable,
+                used,
+                reservation,
+                budget,
+                bytes_per_frame,
+            );
         }
         self.max_depth =
             depth.saturating_add((affordable / STACK_HEADROOM_STRIDE_DIVISOR).max(1));
@@ -6883,6 +6924,176 @@ mod tests {
             "the sample point must move out when the host can carry more frames, got {extended_to}"
         );
         assert_eq!(fired_at, 0, "nothing fired, so nothing may be reported");
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.69`(d) — EVERY REFUSAL NAMES ITS CAUSE AND
+    /// CARRIES A BYTE QUANTITY, AND A NOT-MEASURED FIELD IS DISTINGUISHABLE
+    /// FROM A MEASURED ZERO.
+    ///
+    /// Before this, five situations returned the same `false` and a rejection
+    /// reported the same frame count in all five, so an operator could not tell
+    /// *"this input is too deep for this host"* from *"this parse ran on a
+    /// thread whose stack size we never knew"*. Each arm below is that
+    /// distinction, and the last assertion is the one that keeps the instrument
+    /// free: the ACCEPT path must record nothing at all.
+    #[test]
+    fn stack_probe_records_a_cause_and_a_spend_at_every_refusal() {
+        use crate::dedicated_parse_stack as dps;
+
+        // ARM 1 — off a dedicated parse thread NOTHING about bytes is knowable,
+        // and the observation must say so rather than publish zeros that read
+        // as measurements.
+        dps::clear_last_stack_probe_refusal();
+        let mut unknown_host = RecursionGuard::new(4);
+        assert!(
+            !unknown_host.extend_depth_probe(4),
+            "an unknown extent is never a licence to extend"
+        );
+        let observed = dps::last_stack_probe_refusal().expect("the refusal must be recorded");
+        assert_eq!(observed.cause, dps::StackProbeRefusal::ExtentUnknown);
+        assert_eq!(observed.depth, 4, "the reading must name the depth it was asked about");
+        assert!(!observed.spend_is_measured());
+        assert_eq!(
+            (
+                observed.used_bytes,
+                observed.reservation_bytes,
+                observed.budget_bytes,
+                observed.bytes_per_frame,
+            ),
+            (0, 0, 0, 0),
+            "an unknown extent must not invent a byte quantity"
+        );
+
+        // ARM 2 — on a dedicated parse thread the extent IS known, so a refusal
+        // that still fires names a different cause and carries the reservation.
+        // An absurd depth makes the per-frame quotient un-dividable without
+        // having to spend the stack to get there.
+        let measured =
+            dps::run_on_dedicated_parse_stack("pgen-test-probe-cause", || {
+                let mut guard = RecursionGuard::new(4);
+                dps::clear_last_stack_probe_refusal();
+                let refused = guard.extend_depth_probe(usize::MAX);
+                let undividable = dps::last_stack_probe_refusal();
+                // A shallow, honest depth is affordable, so the probe EXTENDS.
+                dps::clear_last_stack_probe_refusal();
+                let extended = guard.extend_depth_probe(4);
+                (refused, undividable, extended, dps::last_stack_probe_refusal())
+            });
+        let Ok((refused, undividable, extended, after_extend)) = measured else {
+            panic!("dedicated parse-stack spawn failed");
+        };
+        assert!(!refused, "an un-dividable per-frame cost must still refuse");
+        let undividable = undividable.expect("the refusal must be recorded");
+        assert_eq!(
+            undividable.cause,
+            dps::StackProbeRefusal::FrameCostUnmeasurable,
+            "a known extent must not report ExtentUnknown"
+        );
+        assert!(
+            undividable.spend_is_measured(),
+            "the SPEND is real here; it is the per-frame quotient that is not"
+        );
+        assert!(
+            undividable.reservation_bytes >= dps::MIN_DEDICATED_PARSE_STACK_BYTES,
+            "a dedicated thread must report its real reservation, got {}",
+            undividable.reservation_bytes
+        );
+
+        // RED CONTROL — the instrument must cost the accept path nothing, and
+        // "nothing" includes not leaving a reading behind. If the probe recorded
+        // on success, every deep-but-fine parse would report a refusal.
+        assert!(extended, "a shallow depth on a real reservation must extend");
+        assert_eq!(
+            after_extend, None,
+            "the accept path must record no refusal"
+        );
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.69`(d) — THE TERMINAL REFUSAL ARM, REACHED BY
+    /// REALLY SPENDING THE STACK RATHER THAN BY ASSERTING IT.
+    ///
+    /// `NoFrameAffordable` is the arm a genuinely too-deep input lands on: the
+    /// probe stops because one more frame at the MEASURED per-frame cost no
+    /// longer fits in what is left of the budget. Reaching it needs the spend to
+    /// pass half the budget (`affordable = (budget − used) / (used / depth)`
+    /// reaches `0` at `used > budget/2` when `depth == 1`), so this test burns
+    /// real stack — the same technique `dedicated_thread_has_the_big_stack`
+    /// already uses, at a larger size.
+    ///
+    /// ⛔ `BudgetExhausted` is deliberately NOT asserted here: it needs a spend
+    /// past the whole budget (240 MiB of the 256 MiB default), which would put
+    /// the test within 16 MiB of the guard page it exists to keep parses away
+    /// from. It is covered by the real-input measurement in the leaf instead,
+    /// and this comment is the record that the gap is known rather than missed.
+    #[test]
+    fn stack_probe_names_the_terminal_refusal_after_a_real_spend() {
+        use crate::dedicated_parse_stack as dps;
+
+        const BALLAST: usize = 64 * 1024;
+        // Burning more than this would trade a control for a hazard; a
+        // non-default `PGEN_PARSE_STACK_BYTES` is the only way to get here.
+        const MAX_SAFE_BURN_BYTES: usize = 200 * 1024 * 1024;
+
+        let reservation = dps::dedicated_parse_stack_bytes();
+        let budget = reservation - reservation / STACK_HEADROOM_RESERVE_DIVISOR;
+        // Clear the half-budget threshold with a margin, then round to frames.
+        let target = budget / 2 + budget / 8;
+        if target > MAX_SAFE_BURN_BYTES {
+            assert_ne!(
+                reservation,
+                dps::DEDICATED_PARSE_STACK_BYTES,
+                "the compiled default must always be small enough to control"
+            );
+            return;
+        }
+        let frames = target / BALLAST + 1;
+
+        #[inline(never)]
+        fn burn(remaining: usize, guard: &mut RecursionGuard) -> bool {
+            let mut ballast = [0u8; BALLAST];
+            ballast[remaining % ballast.len()] = remaining as u8;
+            std::hint::black_box(&ballast);
+            if remaining == 0 {
+                // `depth == 1` makes the measured per-frame cost the WHOLE
+                // spend, which is what drives `affordable` to zero.
+                guard.extend_depth_probe(1)
+            } else {
+                burn(remaining - 1, guard)
+            }
+        }
+
+        let measured = dps::run_on_dedicated_parse_stack("pgen-test-probe-terminal", move || {
+            let mut guard = RecursionGuard::new(4);
+            dps::clear_last_stack_probe_refusal();
+            let extended = burn(frames, &mut guard);
+            (extended, dps::last_stack_probe_refusal())
+        });
+        let Ok((extended, observed)) = measured else {
+            panic!("dedicated parse-stack spawn failed");
+        };
+        assert!(!extended, "a spend past half the budget must not extend");
+        let observed = observed.expect("the refusal must be recorded");
+        assert_eq!(
+            observed.cause,
+            dps::StackProbeRefusal::NoFrameAffordable,
+            "a real spend inside the budget is NOT BudgetExhausted: used={} budget={}",
+            observed.used_bytes,
+            observed.budget_bytes
+        );
+        assert!(
+            observed.spend_is_measured() && observed.used_bytes >= target,
+            "the reading must be the real spend, got {} for a {}-byte burn",
+            observed.used_bytes,
+            target
+        );
+        assert!(
+            observed.used_bytes < observed.budget_bytes,
+            "this arm is reached with budget LEFT — that is what distinguishes it"
+        );
+        assert_eq!(
+            observed.bytes_per_frame, observed.used_bytes,
+            "at depth 1 the per-frame cost IS the whole spend"
+        );
     }
 
     /// RGX-0078.5.i.1.t2 — the loud-refusal opt-in accepts EXACTLY "1"

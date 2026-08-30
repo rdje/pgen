@@ -175,6 +175,137 @@ pub fn current_parse_stack_extent() -> Option<(usize, usize)> {
     PARSE_STACK_EXTENT.with(|cell| cell.get())
 }
 
+/// `ENGINE-UNIVERSAL-SERVICES.69`(d) — WHY the depth probe refused to move the
+/// recursion ceiling out.
+///
+/// The probe answers every unknown by REFUSING, which is the right safety
+/// posture (a stack overflow aborts the embedder; a refusal only rejects an
+/// input) — but it makes five very different situations indistinguishable from
+/// outside. Four are statements about what this process could not LEARN; only
+/// [`StackProbeRefusal::BudgetExhausted`] is the host stack actually being
+/// spent. The frame count a rejection already carries
+/// (`RecursionGuard::last_ceiling_depth`) is the same number in all five, so
+/// before this enum an operator could not tell *"this input is too deep for
+/// this host"* from *"this parse ran on a thread whose stack size we do not
+/// know"*.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StackProbeRefusal {
+    /// No recorded extent — a thread this module did not create, so the process
+    /// cannot know how much stack it owns and the compiled sample floor stands.
+    /// ⛔ Nothing about bytes is knowable here: every byte field of the
+    /// observation is `0` meaning NOT MEASURED, never "measured as zero".
+    ExtentUnknown,
+    /// The probe address was not below the recorded base, so either the stack
+    /// does not grow downward on this target or the guard travelled to another
+    /// thread. The reservation is known; the spend is not.
+    DirectionUnknown,
+    /// Under one byte spent per live frame, so the per-frame cost is not
+    /// honestly divisible and extending the ceiling would be extending it off a
+    /// rounding error. ⚠️ The SPEND is real here — it is the per-frame QUOTIENT
+    /// that is not, which is why [`StackProbeObservation::spend_is_measured`]
+    /// still answers `true`.
+    FrameCostUnmeasurable,
+    /// ⭐ The ONLY refusal that is a fact about the STACK rather than about this
+    /// process's knowledge: the spendable budget is used up. This is the
+    /// measurement `.69` was opened for — [`StackProbeObservation::used_bytes`]
+    /// against [`StackProbeObservation::budget_bytes`] is how tightly the
+    /// derived ceiling really tracks the reservation, and it replaces the
+    /// `reservation ÷ frames` arithmetic `.71` could only publish as an UPPER
+    /// BOUND.
+    BudgetExhausted,
+    /// Headroom is left but will not pay for one whole frame at the measured
+    /// per-frame cost.
+    NoFrameAffordable,
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.69`(d) — the depth probe's own reading at the
+/// moment it refused.
+///
+/// ⛔ **A ZERO BYTE FIELD MEANS NOT MEASURED.** Which fields carry a real
+/// measurement is a function of [`Self::cause`] and of nothing else: the probe
+/// refuses at the first thing it cannot establish, so a later quantity was
+/// never computed rather than computed as zero. [`Self::spend_is_measured`]
+/// answers the only question most consumers have.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StackProbeObservation {
+    /// Which of the five refusals fired.
+    pub cause: StackProbeRefusal,
+    /// The live frame depth the probe was asked about.
+    pub depth: usize,
+    /// Stack bytes spent from the thread's recorded base. NOT MEASURED (`0`)
+    /// for [`StackProbeRefusal::ExtentUnknown`] and
+    /// [`StackProbeRefusal::DirectionUnknown`].
+    pub used_bytes: usize,
+    /// The thread's whole reservation. NOT MEASURED (`0`) only for
+    /// [`StackProbeRefusal::ExtentUnknown`].
+    pub reservation_bytes: usize,
+    /// The share of the reservation the probe is willing to spend
+    /// (`reservation − reservation / STACK_HEADROOM_RESERVE_DIVISOR`). NOT
+    /// MEASURED (`0`) until the spend itself is measurable.
+    pub budget_bytes: usize,
+    /// `used_bytes / depth` — the per-frame cost MEASURED for this parse rather
+    /// than read from a table. NOT MEASURED (`0`) until the spend is
+    /// measurable.
+    pub bytes_per_frame: usize,
+}
+
+impl StackProbeObservation {
+    /// True when [`Self::used_bytes`] is a real measurement of this thread's
+    /// stack rather than a not-measured `0`.
+    pub fn spend_is_measured(&self) -> bool {
+        !matches!(
+            self.cause,
+            StackProbeRefusal::ExtentUnknown | StackProbeRefusal::DirectionUnknown
+        )
+    }
+}
+
+thread_local! {
+    // `ENGINE-UNIVERSAL-SERVICES.69`(d) — the most recent refusal observed on
+    // THIS thread. Written only from the guard's `#[cold]` probe.
+    static LAST_STACK_PROBE_REFUSAL: std::cell::Cell<Option<StackProbeObservation>> =
+        const { std::cell::Cell::new(None) };
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.69`(d) — the depth probe's reading at its most
+/// recent refusal on this thread, or `None` when it has not refused.
+///
+/// ⛔ **WHY A THREAD-LOCAL AND NOT A FIELD ON THE GUARD.** The reading is
+/// produced by `RecursionGuard`, which is owned by the generated parser, which
+/// the parse adapters never hand back (`parse_sample_detail_*` return
+/// `Result<()>`). Reaching a guard field would mean changing every family's
+/// adapter signature — i.e. CODEGEN, and a regeneration of all 11 parsers for a
+/// diagnostic. A thread-local is readable by anything on the parse thread and
+/// costs the accept path nothing, so this whole instrument lands as ZERO
+/// generated bytes.
+///
+/// ⚠️ Carried across the [`run_on_dedicated_parse_stack`] join, so an embedder
+/// reads its own parse's reading even though the parse ran on a thread that no
+/// longer exists.
+pub fn last_stack_probe_refusal() -> Option<StackProbeObservation> {
+    LAST_STACK_PROBE_REFUSAL.with(|cell| cell.get())
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.69`(d) — forget this thread's last refusal.
+///
+/// A consumer that wants a PER-PARSE reading rather than a per-thread one calls
+/// this before the parse: the record is a lifetime latch otherwise, which is
+/// exactly the staleness `.61`(a) had to fix for the ceiling-contact counter by
+/// snapshotting it at parse entry.
+pub fn clear_last_stack_probe_refusal() {
+    set_last_stack_probe_refusal(None);
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.69`(d) — record a refusal. Called only from the
+/// guard's `#[cold]` depth probe, so the accept path never reaches it.
+pub(crate) fn record_stack_probe_refusal(observation: StackProbeObservation) {
+    set_last_stack_probe_refusal(Some(observation));
+}
+
+fn set_last_stack_probe_refusal(observation: Option<StackProbeObservation>) {
+    LAST_STACK_PROBE_REFUSAL.with(|cell| cell.set(observation));
+}
+
 /// Why a dedicated-stack run did not return a value.
 pub enum DedicatedParseStackError {
     /// The OS refused the thread spawn (the 256 MiB reservation is virtual,
@@ -224,10 +355,20 @@ where
                     dedicated_parse_stack_bytes(),
                 )))
             });
-            f()
+            let value = f();
+            // `ENGINE-UNIVERSAL-SERVICES.69`(d) — carry the depth probe's
+            // reading back across the join. The parse thread is the ONLY one
+            // that can observe a refusal and its thread-local dies with it, so
+            // without this the embedding path could never see the byte quantity
+            // the CLI path reports. The child's reading REPLACES the caller's
+            // (including with `None`), so the record always describes the parse
+            // that just ran rather than latching an older one.
+            (value, last_stack_probe_refusal())
         })
         .map_err(DedicatedParseStackError::Spawn)?;
-    handle.join().map_err(DedicatedParseStackError::Panic)
+    let (value, observed) = handle.join().map_err(DedicatedParseStackError::Panic)?;
+    set_last_stack_probe_refusal(observed);
+    Ok(value)
 }
 
 /// CLI-main wrapper: runs `f` on a dedicated parse stack and preserves CLI
@@ -364,6 +505,53 @@ mod tests {
             (s1024 - s256) / (1024 - 256) >= 1024,
             "per-frame spend under-reads its own ballast"
         );
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.69`(d) — A READING TAKEN ON THE PARSE THREAD
+    /// SURVIVES THE JOIN, AND A CLEAN PARSE DOES NOT INHERIT A STALE ONE.
+    ///
+    /// The parse thread is the only one that can observe a refusal, and its
+    /// thread-local dies with it. Without the hand-off across the join the
+    /// embedding path — which spawns per call — could never read the byte
+    /// quantity the CLI path prints, so this is the property that makes the
+    /// instrument reach both callers rather than one.
+    #[test]
+    fn a_refusal_observed_on_the_parse_thread_survives_the_join() {
+        clear_last_stack_probe_refusal();
+        assert_eq!(last_stack_probe_refusal(), None);
+        let sentinel = StackProbeObservation {
+            cause: StackProbeRefusal::BudgetExhausted,
+            depth: 7,
+            used_bytes: 11,
+            reservation_bytes: 13,
+            budget_bytes: 17,
+            bytes_per_frame: 19,
+        };
+        let ran = run_on_dedicated_parse_stack("pgen-test-probe-join", move || {
+            // The child starts clean — a fresh thread owns a fresh record.
+            assert_eq!(last_stack_probe_refusal(), None);
+            record_stack_probe_refusal(sentinel);
+            true
+        });
+        assert!(matches!(ran, Ok(true)));
+        assert_eq!(
+            last_stack_probe_refusal(),
+            Some(sentinel),
+            "a reading taken on the parse thread must survive the join"
+        );
+
+        // RED CONTROL: the child's `None` must REPLACE the caller's reading. If
+        // the hand-off only propagated `Some`, the record would latch the first
+        // refusal of the process forever and every later parse would be
+        // reported as having contacted the ceiling.
+        let ran = run_on_dedicated_parse_stack("pgen-test-probe-join-clean", || true);
+        assert!(matches!(ran, Ok(true)));
+        assert_eq!(
+            last_stack_probe_refusal(),
+            None,
+            "a parse that refused nothing must clear the previous reading"
+        );
+        clear_last_stack_probe_refusal();
     }
 
     #[test]

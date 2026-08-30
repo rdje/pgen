@@ -830,6 +830,58 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `br_gh330.v` makes **220 773** allocations of exactly 8 192 B and **30 561** of exactly 16 384 B —
   6.85 per input byte — and frees all but three, so they never touch a high-water mark.
 
+### 3.3d `PGEN_REPORT_STACK_PROBE` — WHY the recursion ceiling refused, in BYTES
+
+- **WHAT:** print the depth probe's own reading at its last refusal — the named CAUSE plus the stack
+  bytes actually spent, the reservation, the spendable budget and the MEASURED per-frame cost.
+  **WHEN:** any *"is this input too deep, or did something else refuse?"* question, and any parse
+  whose cost jumps for no visible reason. **HOW:**
+  `PGEN_REPORT_STACK_PROBE=1 ./rust/target/release/parseability_probe --parse <g> f.sv --profile <p>`
+- **OUTPUT:**
+  ```
+  stack_probe: cause=BudgetExhausted depth=81624 used_bytes=251668848 reservation_bytes=268435456 \
+      budget_bytes=251658240 bytes_per_frame=3083 used_pct_of_budget=100.004
+  stack_probe: no_refusal (the recursion ceiling was never contacted)
+  ```
+- ⭐⭐⭐ **READ THIS BEFORE CONCLUDING A DEEP PARSE IS FINE BECAUSE IT PASSED.** A parse can CONTACT
+  the ceiling, have the guard refuse, back-track and STILL ACCEPT — same verdict, same AST, and a
+  cost that is not close. Measured (`ENGINE-UNIVERSAL-SERVICES.69`(d), release, `--profile sv_2017`,
+  3 000 nested parens): **9.67 s** at the 256 MiB default and **162.96 s** at the 96 MiB floor,
+  **16.9×**, both `rc=0`. Before this line the only evidence was the wall clock, and a wall clock does
+  not say *why*.
+- ⛔ **THE CAUSE IS THE POINT — `false` MEANT FIVE DIFFERENT THINGS.** Four of the five say what the
+  process could not LEARN; only one is the stack really being spent:
+
+  | cause | meaning | is the input too deep? |
+  |---|---|---|
+  | `ExtentUnknown` | not a dedicated parse thread, so the stack size is unknown | NO — the compiled floor refused |
+  | `DirectionUnknown` | the stack did not grow down from the recorded base | NO |
+  | `FrameCostUnmeasurable` | under one byte spent per live frame | NO |
+  | `BudgetExhausted` | the spendable budget is used up | YES |
+  | `NoFrameAffordable` | headroom left, but not one whole frame of it | YES |
+
+  ⇒ an `ExtentUnknown` on a rejection means you are measuring the wrong thing: run the parse through
+  `parseability_probe`/`ast_pipeline` (whose whole `main` runs on a dedicated parse stack) or the
+  embedding API, not off a thread PGEN did not create.
+- ⛔ **A ZERO BYTE FIELD MEANS NOT MEASURED, NEVER A MEASURED ZERO** — the probe refuses at the first
+  thing it cannot establish, so a later quantity was never computed. The report prints
+  `not_measured` rather than `0` for exactly this reason.
+- ⚠️ **`used_bytes` is an OVER-estimate by up to 64 KiB** (`STACK_BASE_ANCHOR_PAD_BYTES`; the anchor
+  is a slot inside the entry frame, and padding upward is the safe direction). That is 0.026 % at a
+  256 MiB reservation and dominates any comparison finer than that — do not quote per-frame costs to
+  a tighter tolerance than the pad allows.
+- ⚠️ **The record is the LAST refusal on the thread, not the first or the deepest.** It is a
+  per-thread latch; `--parse` clears it before each parse, and an embedder wanting a per-parse
+  reading calls `clear_last_stack_probe_refusal()` itself.
+- ⭐ **OPT-IN ON PURPOSE:** `stimuli/run_external_corpus.sh` captures this binary's stderr as a
+  per-file corpus column (`SV-CORPUS-GRAD.12a`), so an unconditional line would edit a tracked
+  measurement surface. The PROGRAMMATIC surface
+  (`pgen::dedicated_parse_stack::last_stack_probe_refusal()`) is always live, costs the accept path
+  nothing, and is carried across the dedicated-parse-thread join so embedders see it too.
+- **CROSS-CHECK:** 3.3's `depth-ceiling rejections` counter says THAT the ceiling was crossed; this
+  says *why and at what price*. Use them together — the counter is per-parse and cumulative, this is
+  the reading at one refusal.
+
 ### 3.4 `--dump-rule-entry-counts-json`
 - **WHAT:** after a `--parse`, write the parser's monotone per-rule ENTRY counters (every rule-method entry, successful AND backtracked — the always-on `fetch_add` on rule entry) as JSON `{grammar, accepted, total_entries, rule_entry_counts}`. The machine-readable dual of the live dashboard (3.1), which is stderr-only/refresh-based and useless for a sub-millisecond parse. Counts are a DELTA past a pre-parse baseline (SV's stdlib preload never pollutes them) and deterministic for a deterministic parser ⇒ a re-runnable oracle. Wired for every registered grammar's canonical-entry `--parse` path (not `--entry-rule`). RGX-0078.5.h.1.
 - **WHEN:** quantifying rule-entry cost models (the ~262ns/entry rule-cascade analysis); feeding the fusibility census's measured entry share (5.3); any "how many times was rule R actually entered" question needing exact numbers, not a dashboard.

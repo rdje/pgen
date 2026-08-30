@@ -8,7 +8,7 @@ use pgen::ast_pipeline::{
 use pgen::parser_registry;
 
 fn usage() -> &'static str {
-    "Usage:\n  parseability_probe --parser-fingerprint\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY\n--entry-rule RULE         : (`GRAMMAR-WELLFORMED.H.12.8.4.3.1`; dump support `SV-AST-SHAPE-FIDELITY.2.4`) parse `--parse` input — or dump the AST of `--parse-dump-ast[-pretty]` input — from an ALTERNATE start symbol (e.g. `library_text`, or a PEG-shadowed expression-position rule) via the generated parser's `parse_full_from`, instead of the grammar's canonical entry. Lets an entry-relative or shadowed rule (unreachable from the default entry) be reproduced/traced/AST-dumped in isolation. AST-dump `--entry-rule` is currently wired for `systemverilog` only. Default = the canonical entry (byte-identical to omitting the flag).\n--lib-in DIR              : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are READ from for `@import_from_library`.\n--lib-out DIR             : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are WRITTEN to for `@export_to_library`.\n--trace-rules             : (`SV-EXH-PROOF.3.3.4.b.6.2.17`) comma-separated rule-name list. Trace activates ONLY inside the call-tree of these rules (implies --trace). Reduces trace volume 100-1000× vs --trace for targeted investigation.\n--dump-rule-call-counts   : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) live per-rule call-count dashboard. Each rule's call counter is incremented on every entry; the top-20 rules sorted by count are shown on stderr and updated every 250ms in place. Use to identify which rules dominate a stuck or slow parse; works on timeout (dashboard keeps refreshing until the process is killed). Accepts an optional integer arg to control the top-N (default 20).\n--dump-rule-call-counts-exclude R1,R2,... : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) filter these rules OUT of the dashboard before computing the top-N. Use to hide always-dominant noise like `trivia` (whitespace handling) so the diagnostically interesting rules win display slots.\n--parser-fingerprint      : (`ENGINE-UNIVERSAL-SERVICES.24` (ii′)) print, as JSON on stdout, the sha256 of every generated parser THIS BINARY was compiled against — computed by `build.rs`, which already `rerun-if-changed`s each resolved parser. Answers the question a source-only identity table cannot: which parser does the executable that produces the numbers actually embed? Consumed by `stimuli/sv/corpus_parse_cost.py`, which REFUSES to measure when the probe's SystemVerilog digest differs from the parser on disk.\n--dump-ast-with-coverage  : (`ENGINE-UNIVERSAL-SERVICES.22` (b)) `--parse-dump-ast[-pretty]` only. Dump the AST of a parse run with TRANSACTIONAL COVERAGE enabled — the exact configuration the TOOLBOX 3.4/3.5 dumps measure under — so it can be compared against a bare parse's AST. Without it the dump path always runs `bare_parse = true` (the fused `cascade_*` graph), and passing `--dump-rule-outcome-counts-json` beside it does NOT change that: the coverage call lives in the `--parse` detail macro, so both arms come out bare and agree for the wrong reason. SystemVerilog only, and it REFUSES on any other grammar or alongside `--entry-rule` rather than silently dumping bare."
+    "Usage:\n  parseability_probe --parser-fingerprint\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY\nOptional opt-in stack-probe report (`ENGINE-UNIVERSAL-SERVICES.69`(d)): PGEN_REPORT_STACK_PROBE=1 prints, on stderr, the depth probe's own reading at its last refusal — cause, live depth, stack bytes actually spent, the reservation and the spendable budget. Opt-in because `stimuli/run_external_corpus.sh` captures this binary's stderr as a per-file corpus column (`SV-CORPUS-GRAD.12a`). Use it to tell a genuinely too-deep input (`cause=BudgetExhausted`) from a parse that never learned its own stack size (`cause=ExtentUnknown`); a parse can CONTACT the ceiling and still ACCEPT, at a large cost.\n--entry-rule RULE         : (`GRAMMAR-WELLFORMED.H.12.8.4.3.1`; dump support `SV-AST-SHAPE-FIDELITY.2.4`) parse `--parse` input — or dump the AST of `--parse-dump-ast[-pretty]` input — from an ALTERNATE start symbol (e.g. `library_text`, or a PEG-shadowed expression-position rule) via the generated parser's `parse_full_from`, instead of the grammar's canonical entry. Lets an entry-relative or shadowed rule (unreachable from the default entry) be reproduced/traced/AST-dumped in isolation. AST-dump `--entry-rule` is currently wired for `systemverilog` only. Default = the canonical entry (byte-identical to omitting the flag).\n--lib-in DIR              : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are READ from for `@import_from_library`.\n--lib-out DIR             : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are WRITTEN to for `@export_to_library`.\n--trace-rules             : (`SV-EXH-PROOF.3.3.4.b.6.2.17`) comma-separated rule-name list. Trace activates ONLY inside the call-tree of these rules (implies --trace). Reduces trace volume 100-1000× vs --trace for targeted investigation.\n--dump-rule-call-counts   : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) live per-rule call-count dashboard. Each rule's call counter is incremented on every entry; the top-20 rules sorted by count are shown on stderr and updated every 250ms in place. Use to identify which rules dominate a stuck or slow parse; works on timeout (dashboard keeps refreshing until the process is killed). Accepts an optional integer arg to control the top-N (default 20).\n--dump-rule-call-counts-exclude R1,R2,... : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) filter these rules OUT of the dashboard before computing the top-N. Use to hide always-dominant noise like `trivia` (whitespace handling) so the diagnostically interesting rules win display slots.\n--parser-fingerprint      : (`ENGINE-UNIVERSAL-SERVICES.24` (ii′)) print, as JSON on stdout, the sha256 of every generated parser THIS BINARY was compiled against — computed by `build.rs`, which already `rerun-if-changed`s each resolved parser. Answers the question a source-only identity table cannot: which parser does the executable that produces the numbers actually embed? Consumed by `stimuli/sv/corpus_parse_cost.py`, which REFUSES to measure when the probe's SystemVerilog digest differs from the parser on disk.\n--dump-ast-with-coverage  : (`ENGINE-UNIVERSAL-SERVICES.22` (b)) `--parse-dump-ast[-pretty]` only. Dump the AST of a parse run with TRANSACTIONAL COVERAGE enabled — the exact configuration the TOOLBOX 3.4/3.5 dumps measure under — so it can be compared against a bare parse's AST. Without it the dump path always runs `bare_parse = true` (the fused `cascade_*` graph), and passing `--dump-rule-outcome-counts-json` beside it does NOT change that: the coverage call lives in the `--parse` detail macro, so both arms come out bare and agree for the wrong reason. SystemVerilog only, and it REFUSES on any other grammar or alongside `--entry-rule` rather than silently dumping bare."
 }
 
 /// `SV-CORPUS-GRAD.12c.1` — read the input as USER SOURCE TEXT.
@@ -542,6 +542,11 @@ fn command_parse(
     // GRAMMAR-WELLFORMED.H.12.8.4.3.1: an explicit `--entry-rule` parses from that alternate start
     // symbol via the entry-aware detail path; `None` keeps the byte-identical default-entry path
     // (which also honors `--lib-in`/`--lib-out` for `@import_from_library`/`@export_to_library`).
+    // `ENGINE-UNIVERSAL-SERVICES.69`(d) — make the reading a PER-PARSE one. The
+    // record is a per-thread latch, and this binary runs its whole body on one
+    // dedicated parse thread, so without this a second `--parse` in the same
+    // process would report the first one's refusal.
+    pgen::dedicated_parse_stack::clear_last_stack_probe_refusal();
     let result = match entry_rule {
         Some(entry) => {
             parser_registry::parse_sample_detail_from_entry(grammar_name, &sample, profile, entry)
@@ -553,6 +558,7 @@ fn command_parse(
             &library_options,
         ),
     };
+    report_stack_probe_refusal();
     match result {
         Some(Ok(())) => {
             println!(
@@ -573,6 +579,62 @@ fn command_parse(
             supported_grammars_csv()
         ),
     }
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.69`(d) — print the depth probe's reading at its
+/// last refusal, when `PGEN_REPORT_STACK_PROBE` is set.
+///
+/// ⛔ **OPT-IN, and deliberately so.** `stimuli/run_external_corpus.sh` CAPTURES
+/// this binary's stderr and derives per-file corpus columns from it
+/// (`SV-CORPUS-GRAD.12a`), so an unconditional line here would edit a tracked
+/// measurement surface for every ceiling-contacting file in the corpus. Same
+/// convention as `PGEN_REPORT_MEMO_STATS`.
+///
+/// ⭐ **WHY IT IS WORTH A SURFACE AT ALL.** A parse can CONTACT the ceiling and
+/// still ACCEPT, and until this line the only evidence of that was the wall
+/// clock. Measured on the shipped SV parser (`--profile sv_2017`, release), the
+/// same 3 000-deep nested-paren input accepts under BOTH reservations and the
+/// cost is not close: **9.61 s at the 256 MiB default and 162.11 s at the
+/// 96 MiB floor — one verdict, 16.9× the cost.** The 96 MiB arm crosses from
+/// 6.37 s (2 400 deep) to 23.55 s (2 600 deep), a 3.7× step for a 1.08× depth
+/// step. Nothing in the parser said why.
+fn report_stack_probe_refusal() {
+    if std::env::var("PGEN_REPORT_STACK_PROBE").is_err() {
+        return;
+    }
+    let Some(observation) = pgen::dedicated_parse_stack::last_stack_probe_refusal() else {
+        eprintln!("stack_probe: no_refusal (the recursion ceiling was never contacted)");
+        return;
+    };
+    // A not-measured field prints as `not_measured`, never as `0`: `0` is a
+    // legal measured spend and reading one as the other is the whole failure
+    // mode `StackProbeObservation`'s doc comment warns about.
+    let byte_field = |measured: bool, value: usize| -> String {
+        if measured {
+            value.to_string()
+        } else {
+            "not_measured".to_string()
+        }
+    };
+    let measured = observation.spend_is_measured();
+    let pct = if observation.budget_bytes > 0 {
+        format!(
+            "{:.3}",
+            (observation.used_bytes as f64 / observation.budget_bytes as f64) * 100.0
+        )
+    } else {
+        "not_measured".to_string()
+    };
+    eprintln!(
+        "stack_probe: cause={:?} depth={} used_bytes={} reservation_bytes={} budget_bytes={} bytes_per_frame={} used_pct_of_budget={}",
+        observation.cause,
+        observation.depth,
+        byte_field(measured, observation.used_bytes),
+        byte_field(observation.reservation_bytes > 0, observation.reservation_bytes),
+        byte_field(observation.budget_bytes > 0, observation.budget_bytes),
+        byte_field(observation.bytes_per_frame > 0, observation.bytes_per_frame),
+        pct,
+    );
 }
 
 #[cfg(feature = "generated_parsers")]

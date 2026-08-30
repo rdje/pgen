@@ -60,7 +60,7 @@ table.
 |---|---|---|
 | where the ceiling lives | `GENERATED_RECURSION_GUARD_MAX_DEPTH = 4096`, baked into every emitted arm | derived at runtime from `dedicated_parse_stack::current_parse_stack_extent()` |
 | emitted per-rule test | `MutualRecursive { .. } if depth >= 4096usize` (**497** sites in the SV parser) | `MutualRecursive { .. }` — the guard is the only decider |
-| what a rejection reports | the codegen constant | `recursion_guard.last_ceiling_depth`, read from the guard that stopped |
+| what a rejection reports | the codegen constant | `recursion_guard.last_ceiling_depth`, read from the guard that stopped — plus, since `.69`(d), a `StackProbeObservation` naming the CAUSE and the stack bytes actually spent |
 | host input | none | `PGEN_PARSE_STACK_BYTES` (reservation, floored at 96 MiB) |
 
 **The new module boundary.** `ast_pipeline` previously had no dependency on `dedicated_parse_stack`;
@@ -68,10 +68,21 @@ the dependency ran the other way (the stack module existed to make the ceiling *
 now bidirectional in the conceptual sense — the stack module owns the extent, the guard consumes it —
 and deliberately one-directional in code: `dedicated_parse_stack` exports
 `current_parse_stack_extent()` and `approximate_stack_pointer()` and knows nothing about parsing.
+`ENGINE-UNIVERSAL-SERVICES.69`(d) added a second export in the same direction — the refusal
+reading (`StackProbeRefusal`, `StackProbeObservation`, `last_stack_probe_refusal()`,
+`clear_last_stack_probe_refusal()`, and a `pub(crate)` recorder the guard calls). It lives in
+the stack module rather than on `RecursionGuard` for a hard reason: the guard is owned by the
+generated parser, which the parse adapters never hand back (`parse_sample_detail_*` return
+`Result<()>`), so a field there would have meant changing every family's adapter signature —
+CODEGEN, and a regeneration of all 11 parsers for a diagnostic. The reading is a thread-local
+carried across the `run_on_dedicated_parse_stack` join, so the spawn-per-call embedding path
+sees it too, and it still says nothing about parsing.
 
 **Risk posture.** Every unknown is answered with the pre-`.65` behaviour: an unrecorded extent (any
 thread this process did not create for parsing), a stack that did not grow downward, a spend too
-small to divide honestly, or no headroom left all keep the compiled floor. That matters because the
+small to divide honestly, or no headroom left all keep the compiled floor. Since `.69`(d) each
+of those is a NAMED cause on the recorded observation rather than an indistinguishable `false`,
+so an operator can tell a genuinely over-deep input from a thread whose extent was never known. That matters because the
 failure this replaces is a `SIGSEGV` in someone else's host process, which is strictly worse than a
 diagnosed rejection. ⚠️ The change relocates rather than removes the binding constraint: with the
 stack bound gone, the accept path's **Θ(depth²)** cycle scan (`check_cycle_id` walks the whole live
