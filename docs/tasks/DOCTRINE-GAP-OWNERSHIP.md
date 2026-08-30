@@ -1713,7 +1713,7 @@ that stays a review judgement and must be stated as an honest limit, not pretend
 this one is a census whose size is unknown until it runs, and the SV release is the standing
 high-priority objective.
 
-### ⛔ `.22` — **NINE DOCTRINE DESCRIPTIONS ARE A SINGLE CLAUSE, AND THEY ARE THE NINE OLDEST — THE BOOK NOW *MENTIONS* THEM RATHER THAN EXPLAINING THEM** (`todo`, opened 2026-08-30 by `-0300`, ⭐ **NEXT — it is the DEPTH half of the director's own order**)
+### ✅ `.22` — **NINE DOCTRINE DESCRIPTIONS ARE A SINGLE CLAUSE, AND THEY ARE THE NINE OLDEST — THE BOOK NOW *MENTIONS* THEM RATHER THAN EXPLAINING THEM** (`DONE` 2026-08-30 `-0301`, opened same day by `-0300` — the DEPTH half of the director's order)
 
 `.20` closed the STRUCTURAL half: all 33 doctrines now have a section in the platform book and a
 gate re-derives it every commit. This leaf is the half that gate deliberately cannot close.
@@ -1743,6 +1743,57 @@ gate re-derives it every commit. This leaf is the half that gate deliberately ca
   become the target** — the acceptance is that a reader learns what the doctrine does, and a row
   padded to 501 bytes fails it while satisfying the number. Length is reported, never gated, for
   exactly this reason.
+
+**DELIVERED 2026-08-30 (`-0301`).** All nine `DOCTRINE_ENFORCEMENT.md` §10 rows rewritten from
+their own enforcer's tracked provenance header — **derivation, not invention**: every incident,
+directive date, measured number and honest limit below already existed in the script that enforces
+the doctrine, and had simply never reached the mirror the book renders.
+
+| doctrine | before | after | what the reader now gets that a clause could not carry |
+|---|---:|---:|---|
+| `REGEX-SELF-HOSTING` | 48 | 1255 | *why* delegating to the `regex` crate would measure the wrong subject, both invariants, and the deliberate regex-family-only scope |
+| `KNOWLEDGE-MAP` | 58 | 1233 | that the map is **re-derived, not maintained** — the derive-and-diff arm is what makes it structural |
+| `EBNF-SOURCE-OF-TRUTH` | 62 | 1371 | the mechanism: the generator reads the EBNF **and nothing else**, so an out-of-band validator is invisible to it and breaks the duality |
+| `DIAG-SEVERITY+DOCPATH` | 70 | 1395 | why two unrelated subjects share one doctrine — **both fail silently, in the passing direction** — and the guarded surface set with its two deliberate exclusions |
+| `DESTRUCTIVE-TARGET-GUARD` | 130 | 1198 | the 2026-07-18 incident (**102.8 GiB**, reached through a dependency edge from a target that sounded safe) and why the confirmation is an env var, not a prompt |
+| `REGEX-ORACLE-ANCHOR-SYNC` | 210 | 1361 | why it asserts *agreement* rather than a measurement, and the **174 stale-form occurrences** that founded it |
+| `DESIGN-PRIOR-ART` | 233 | 1308 | the `@lexical_token` incident, and that the cost of a duplicate surface is permanent, not one-off |
+| `WAIVER-ROUTING` | 349 | 1492 | ⭐ the durable law — **an author writing a waiver IS the gate reporting a missing capability** — and the load-bearing constraint that it must not punish honesty |
+| `ROUTING-EVIDENCE` | 368 | 1461 | the question it forces (*does the finding reproduce OUTSIDE that family?*), and that its own first cut would have missed its founding incident |
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — ops/build-flow family. **WHERE:** the `Proves` cell of nine rows
+      in `DOCTRINE_ENFORCEMENT.md` §10, which `scripts/report_doctrines.sh` renders as each
+      doctrine's book description. **WHY:** the practice of writing a founding measurement into the
+      row was learned *after* these nine were registered and nothing went back — measured by
+      `git ls-files`-scoped inspection of each enforcer, **all nine are registry positions 2–12**,
+      and every doctrine registered from position 13 on already carried ≥ 975 B. Depth was a
+      function of registration **era**, not of importance.
+- [x] **ADDRESSED (verified)** — before→after on the symptom, re-derived by the producer rather than
+      re-typed: **`9 under 500 B` → `0 under 500 B`**, thinnest **48 B → 783 B**
+      (`LESSON-PROMOTION`, a row this leaf did not touch), the nine landing at **1198–1492 B**.
+      `bash scripts/report_doctrines.sh | head -4` prints it. ⭐ **The chapter's own published depth
+      line flipped branch by itself** — from *"9 of 33 are still a single clause … therefore
+      mentioned rather than explained"* to *"every one of the 33 clears the 500-byte one-clause
+      floor"* — because it is derived, which is the property `.20` built it for.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` → **ALL 33 PASS**, four meta-checks
+      green; `TABLE-ARITY-RATCHET` PASS, which is the one that matters here since nine markdown
+      table rows were rewritten (**0 arity breaches, 33 rows still 4 cells**, re-derived through the
+      shared GFM splitter). `make mdbook_docs_gate` → exit 0, 10 parser books + the platform book;
+      **41 anchors / 41 links / 0 broken**. Generated tree untouched —
+      `check_generated_reproducibility.sh` OK, **byte-identical** to HEAD; **zero** bytes staged
+      under `rust/src/**`, `grammars/**`, `generated/**`.
+- [x] **RED CONTROL — supplied by the work itself, in production rather than in a probe.** With §10
+      enriched and the chapter not yet re-derived, `report_doctrines.sh --check` on the **real**
+      published page exited **1** with a unified diff, then **0** after republishing. `.20`'s eight
+      constructed arms proved the producer *can* refuse; this proves the wiring is live on the
+      shipping path — the distinction `GATE-REACHABILITY` exists for.
+
+⚠️ **HONEST LIMIT, and it is the acceptance this leaf was written with.** The floor is a **proxy**:
+a row padded to 501 bytes would satisfy the number and fail the intent. The real acceptance is that
+a reader learns what each doctrine does and why it exists, which is a review judgement no gate makes
+— so length is **reported and never gated**, and this paragraph is the bound rather than a
+disclaimer. ⭐ The nine were written from the enforcers' own headers precisely so the prose is
+*checkable against a tracked source* rather than persuasive.
 
 ### ⛔ `.23` — **THE BOOK LABELS `bash scripts/check_doctrines.sh` AS `~1.0 s` WHILE THE DRIVER'S REAL SERIAL COST IS 20.52 s — THE NUMBER IS RIGHT AND THE COMMAND IT LABELS IS NOT** (`todo`, routed 2026-08-30 by `-0300`, low severity, PARKED behind `.22` and the SV lane)
 
