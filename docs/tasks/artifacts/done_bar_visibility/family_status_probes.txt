@@ -11,5 +11,7 @@ FAMILY-STATUS producer probe arms — scripts/report_family_status.sh
   ✅ RED-7 a declared-but-unrendered field is REFUSED           exit=2, message matched
   ✅ RED-8 a tree row with no attribution is REFUSED            exit=2, message matched
   ✅ RED-9 an attribution naming no tree row is REFUSED         exit=2, message matched
+  ✅ RED-10 a declared corpus state that drifts from the register exit=2, message matched
+  ✅ RED-11 a family with no declared corpus state is REFUSED   exit=2, message matched
 ------------------------------------------------------------------------------
-family-status probes: 10 passed, 0 failed
+family-status probes: 12 passed, 0 failed

@@ -327,6 +327,38 @@ if census:
                   tuple=derived_tuple, denominator=census["denominator"],
                   instrument=census["instrument"], gate=gate)
 
+# ⛔⛔ WHY THERE IS NO COUNT IS ITSELF DERIVED, NOT TYPED. A family with no census must say WHY and
+# name the leaf that owes one — a blank reads as nothing-to-see and a zero reads as done. The CLASS
+# is computed here from the done-bar register and then held EQUAL to the class declared in the
+# schema: two arms, independently produced. Declaring it alone would let it drift from the register
+# the moment a corpus is wired, and that drift is the whole disease this tree treats.
+state_decl = schema.get("corpus_state", {}).get("families", {}).get(FAMILY)
+if state_decl is None:
+    refuse(f"no `corpus_state` is declared for '{FAMILY}' in {SCHEMA_PATH}. Every family says why it "
+           f"has no corpus count, and names the leaf that owes one — the population is closed.")
+owner = entry["language_owner"]
+if census:
+    derived_class = "census_wired"
+elif owner == "pgen":
+    derived_class = "no_third_party_corpus"
+elif owner == "unadjudicated":
+    derived_class = "ownership_unadjudicated"
+elif entry["corpus_roots"]:
+    derived_class = "corpus_wired_no_census"
+else:
+    derived_class = "no_corpus_wired"
+if derived_class != state_decl["class"]:
+    refuse(f"the corpus state for '{FAMILY}' is declared `{state_decl['class']}` but the done-bar "
+           f"register derives `{derived_class}` (language_owner={owner}, "
+           f"corpus_roots={entry['corpus_roots']}, census wired={bool(census)}). The declared class "
+           f"has drifted from the register — fix the declaration, or wire the census it claims.")
+if derived_class != "no_third_party_corpus" and not census and not state_decl.get("owed_by"):
+    refuse(f"'{FAMILY}' has no corpus count and names no leaf that owes one. A gap with no owner is "
+           f"a gap nobody will close (docs/decisions/"
+           f"feedback_every_finding_is_owned_and_scheduled_never_just_logged.md).")
+corpus_why = dict(state_decl, derived_class=derived_class,
+                  blurb=schema["corpus_state"]["classes"][derived_class])
+
 # ---------------------------------------------------------------------------------------------
 # 3. The remaining work — the OPEN trees that own work for this family.
 # ---------------------------------------------------------------------------------------------
@@ -475,9 +507,6 @@ family_open.sort()
 # ---------------------------------------------------------------------------------------------
 # 4. Render — and hold the rendered field set EQUAL to the schema's, in both directions.
 # ---------------------------------------------------------------------------------------------
-owners = schema.get("not_measured_owners", {})
-
-
 def pct(n, d):
     return "—" if not d else f"{100.0 * n / d:.1f} %"
 
@@ -540,9 +569,18 @@ if MODE == "markdown":
                    f"all and the {pct(corpus['routed'], corpus['total'])} answered in another "
                    f"lane's manifest.")
     else:
-        out.append(f"**Corpus.** ⛔ **NOT MEASURED** — no corpus census is wired for this family. "
-                   f"Owed by `{owners.get('corpus_rows', 'DONE-BAR-VISIBILITY.3')}`. This is an "
-                   f"unmeasured leg, not a zero and not a pass.")
+        head = ("**Corpus.** ⛔ **NO THIRD-PARTY CORPUS EXISTS** — "
+                if corpus_why["derived_class"] == "no_third_party_corpus"
+                else "**Corpus.** ⛔ **NOT MEASURED** — ")
+        line = head + corpus_why["blurb"] + "."
+        if corpus_why.get("owed_by"):
+            line += f" Owed by `{corpus_why['owed_by']}`."
+        if corpus_why.get("last_measured_in"):
+            line += (f" The last measurement lives in `{corpus_why['last_measured_in']}` and is "
+                     f"POINTED AT rather than copied here, because a copied number rots.")
+        if corpus_why.get("note"):
+            line += " " + corpus_why["note"]
+        out.append(line)
     out.append("")
     out.append(f"**What remains between here and `Done`.** Derived from the task-tree index: the "
                f"trees still OPEN whose work is attributed to this family, out of the "
@@ -594,8 +632,12 @@ else:
         out.append(f"    NO VERDICT (nothing is known) ....... {fmt(corpus['noverdict']):>7s}  {pct(corpus['noverdict'], corpus['total'])}   of which {fmt(corpus['dark'])} dark")
         out.append(f"    => adjudicated {fmt(corpus['adjudicated'])} / {fmt(corpus['total'])} = {pct(corpus['adjudicated'], corpus['total'])}")
     else:
-        out.append(f"  corpus  NOT MEASURED — no census is wired; owed by "
-                   f"{owners.get('corpus_rows', 'DONE-BAR-VISIBILITY.3')}")
+        label = ("NO THIRD-PARTY CORPUS EXISTS"
+                 if corpus_why["derived_class"] == "no_third_party_corpus" else "NOT MEASURED")
+        out.append(f"  corpus  {label} [{corpus_why['derived_class']}]"
+                   + (f" — owed by {corpus_why['owed_by']}" if corpus_why.get("owed_by") else "")
+                   + (f"; last measured in {corpus_why['last_measured_in']}"
+                      if corpus_why.get("last_measured_in") else ""))
     names = ", ".join(n for n, _f, _a, _b in family_open) or "(none)"
     out.append(f"  remaining work ......... {len(family_open)} open tree(s) own this family's work: {names}")
     out.append(f"                          + {cross_open} cross-cutting tree(s) that can gate any family")

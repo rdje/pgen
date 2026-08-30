@@ -136,6 +136,31 @@ for spec in "RED-8 a tree row with no attribution is REFUSED|$WORK/drop_tree_sch
     fi
 done
 
+# RED-10/RED-11 — WHY A FAMILY HAS NO CORPUS COUNT IS DERIVED FROM THE REGISTER AND ONLY CHECKED
+# against the declaration. A declared-only class silently becomes a lie the moment a corpus is
+# wired, which is the same rot as a hand-maintained status: the fix is that the two arms must agree.
+python3 - "$WORK/drifted_state_schema.json" "$WORK/no_state_schema.json" <<'PYX'
+import json, pathlib, sys
+d = json.loads(pathlib.Path("rust/test_data/grammar_quality/family_status_block_v0.json").read_text())
+drift = json.loads(json.dumps(d))
+drift["corpus_state"]["families"]["vhdl"]["class"] = "no_third_party_corpus"
+pathlib.Path(sys.argv[1]).write_text(json.dumps(drift, indent=2))
+gone = json.loads(json.dumps(d)); gone["corpus_state"]["families"].pop("vhdl")
+pathlib.Path(sys.argv[2]).write_text(json.dumps(gone, indent=2))
+PYX
+for spec in "RED-10 a declared corpus state that drifts from the register|$WORK/drifted_state_schema.json|but the done-bar register derives" \
+            "RED-11 a family with no declared corpus state is REFUSED|$WORK/no_state_schema.json|is declared for 'vhdl' in"; do
+    IFS='|' read -r label sch want <<<"$spec"
+    out="$(PGEN_FAMILY_STATUS_SCHEMA="$sch" bash "$PRODUCER" vhdl 2>&1)"; rc=$?
+    if [[ "$rc" == 2 && "$out" == *"$want"* ]]; then
+        printf '  ✅ %-58s exit=%s, message matched\n' "$label" "$rc"; pass=$((pass + 1))
+    else
+        printf '  ⛔ %-58s exit=%s (want 2)\n' "$label" "$rc"
+        printf '     wanted substring: %s\n' "$want"
+        printf '%s\n' "$out" | tail -n 4 | sed 's/^/     | /'; fail=$((fail + 1))
+    fi
+done
+
 echo "------------------------------------------------------------------------------"
 printf 'family-status probes: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

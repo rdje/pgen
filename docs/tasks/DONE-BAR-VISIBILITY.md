@@ -99,9 +99,26 @@ Both renderings answer three questions **from derived data, not prose**:
   (`docs/knowledge/a-status-that-is-prose-is-a-status-nothing-checks.md`) — and THREE leaf-definition
   conventions are in live use (`DOCTRINE-GAP-OWNERSHIP.8`) — so a per-leaf list today would publish
   those defects as a number. Owned by new leaf `.7`, not waived.
-- ID: `DONE-BAR-VISIBILITY.3` — Status: `pending`
+- ID: `DONE-BAR-VISIBILITY.3` — Status: `done` (`PGEN-DONE-BAR-VISIBILITY-0005`)
   Goal: the corpus pass counts for the nine families that publish none, or an explicit
   `NOT MEASURED` with the leaf that owes it.
+  Acceptance: MET on the second arm of its own goal — each of the nine now says WHY it has no count,
+  in one of five DERIVED classes, and names the leaf that owes one. The counts themselves are `.3b`.
+- ID: `DONE-BAR-VISIBILITY.3b` — Status: `pending`
+  Goal: turn the two `corpus_wired_no_census` families into real counts. Both have been measured
+  once and neither can be re-derived from the tree: `vhdl` read 13 720 files / pass 4 031 / fail
+  9 689 on 2026-08-08 (`CORPUS-GRAD-ALL.2.1`) but `results.tsv` is gitignored, and `regex` has a
+  PCRE2 oracle tuple whose per-run summary is untracked by that doctrine's own admission.
+  Acceptance: a TRACKED census artifact per family plus a freshness gate, on the
+  `SV-CORPUS-DENOMINATOR` shape, so the counts are re-derivable rather than remembered. ⛔ The VHDL
+  number is also a RAW pass rate — no answer key says which of those files SHOULD parse — so the
+  block must not publish it as an adjudicated one.
+- ID: `DONE-BAR-VISIBILITY.9` — Status: `pending`
+  Goal: publish the derived block into the OTHER NINE parser books, as `.1` did for SystemVerilog.
+  The producer already renders every family; what is missing is nine pages, nine SUMMARY entries and
+  nine `--check` invocations.
+  Acceptance: all ten per-parser books carry the block; each is `--check`-held; the mdbook gate
+  passes.
 - ID: `DONE-BAR-VISIBILITY.4` — Status: `pending`
   Goal: wire the co-publication gate so the block cannot go stale.
 - ID: `DONE-BAR-VISIBILITY.5` — Status: `pending`
@@ -143,11 +160,12 @@ Both renderings answer three questions **from derived data, not prose**:
 
 ## Current frontier
 
-1. `DONE-BAR-VISIBILITY.3` (the corpus pass counts for the nine families that publish none, or an
-   explicit `NOT MEASURED` naming the leaf that owes one). It is the frontier because it is the
-   last of the director's three questions still answered for only ONE family: `.1` and `.2` made
-   *where against the bar* and *what remains* answerable for all ten, while *how much corpus
-   passes* is derived for SystemVerilog alone.
+1. `DONE-BAR-VISIBILITY.9` (publish the block into the other nine parser books). It is the frontier
+   because the producer already answers all three questions for all ten families and only ONE family
+   publishes the answer where the director reads it. Nine pages is the cheapest remaining step from
+   *the answer exists* to *the answer is visible*.
+2. `DONE-BAR-VISIBILITY.3b` (real counts for `vhdl` and `regex` — a tracked census plus a freshness
+   gate, the `SV-CORPUS-DENOMINATOR` shape).
 
 ## Leaf records
 
@@ -306,6 +324,76 @@ and the block says so.
       does not exist and it REFUSES naming that. Both through the `PGEN_FAMILY_STATUS_SCHEMA` seam,
       so the tracked schema is never mutated to test itself.
 
+### `.3` — why every family without a corpus count has no count, derived and owned
+
+Shipped in `PGEN-DONE-BAR-VISIBILITY-0005`.
+
+**What landed.** A `corpus_state` section in `family_status_block_v0.json`: five classes, one row per
+family, each naming the leaf that owes a count. The producer **derives** the class from the done-bar
+register — `language_owner` x whether `corpus_roots` is empty x whether a census is wired — and holds
+it EQUAL to the declared class, refusing on drift. Both renderings print the class, the reason and
+the owner.
+
+**The nine, after this slice.**
+
+| Family | Class | Owed by |
+|---|---|---|
+| `vhdl`, `regex` | `corpus_wired_no_census` — roots declared, no tracked census | `DONE-BAR-VISIBILITY.3b` |
+| `systemverilog_preprocessor` | `no_corpus_wired` — standardized language, nothing wired | `CORPUS-GRAD-ALL.1` |
+| `rtl_frontend`, `rtl_const_expr`, `json` | `ownership_unadjudicated` — a subset language whose corpus question is an open ruling | `DONE-BAR.3` |
+| `ebnf`, `return_annotation`, `semantic_annotation` | `no_third_party_corpus` — PGEN authors the language | — (not a measurement gap) |
+
+**Two rulings.**
+
+1. **The class is DERIVED and only CHECKED against the declaration.** A declared-only class becomes a
+   lie the moment a corpus is wired, which is the same rot as a hand-maintained status. RED-10 drives
+   it: declaring `vhdl` as `no_third_party_corpus` while the register carries a corpus root REFUSES.
+2. **A number that was measured once but cannot be re-derived is POINTED AT, never copied.** `vhdl`
+   read 13 720 files / pass 4 031 / fail 9 689 on 2026-08-08, and `results.tsv` is gitignored
+   (the rule `stimuli/*/characterization/results.tsv`), so the block names `CORPUS-GRAD-ALL.2.1` instead of reprinting the number —
+   and says it is a RAW pass rate with no answer key behind it, which is a different claim from
+   SystemVerilog's adjudicated one.
+
+#### Acceptance checklist (`TOOLBOX.md`)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: the corpus field rendered one generic sentence for nine
+      different situations. WHY, measured — `git ls-files` over the census surface and over the raw
+      result set the last VHDL measurement produced:
+
+      ```
+      git ls-files | grep 'results.tsv'          -> json_corpus_bundle/results/json_corpus_results.tsv   (ONE, and not VHDL's)
+      git check-ignore -v stimuli/vhdl/characterization/results.tsv
+        -> .gitignore:424:stimuli/*/characterization/results.tsv
+      ls -la stimuli/vhdl/characterization/      -> results.tsv, 1 094 165 bytes, present but UNTRACKED
+      git ls-files docs/tasks/artifacts/corpus_grad_all/
+        -> vhdl_fail_clusters.{md,tsv} (the FAIL side only — no denominator, no pass count)
+      ```
+
+      ⇒ the VHDL number exists on this machine and in no clone. ⚠️ The owning tree cites this rule as
+      `.gitignore:412`; it is line **424** today — a carried line number that drifted, corrected here
+      by citing the RULE instead. The register's `language_owner` × `corpus_roots` fields then split
+      the nine into FOUR genuinely different cases — two with a corpus
+      root and no census, one standardized with nothing wired, three whose language ownership is an
+      open ruling, and three where no third-party corpus can exist at all. Printing `NOT MEASURED`
+      over all of them told a reader nothing about which leaf to push, and told the `pgen`-owned
+      three that somebody had forgotten to measure something that does not exist.
+- [x] **ADDRESSED (verified)** — before: `corpus NOT MEASURED — no census is wired; owed by
+      DONE-BAR-VISIBILITY.3` for all nine. After, per family:
+      `vhdl` / `regex` → `NOT MEASURED [corpus_wired_no_census] — owed by DONE-BAR-VISIBILITY.3b;
+      last measured in CORPUS-GRAD-ALL.2.1 / RGX-0078`; `systemverilog_preprocessor` →
+      `[no_corpus_wired] — owed by CORPUS-GRAD-ALL.1`; `json` / `rtl_frontend` / `rtl_const_expr` →
+      `[ownership_unadjudicated] — owed by DONE-BAR.3`; `ebnf` / `return_annotation` /
+      `semantic_annotation` → `NO THIRD-PARTY CORPUS EXISTS [no_third_party_corpus]`. All ten
+      families render; SystemVerilog's block is unchanged (`--check` still green).
+- [x] **NO REGRESSION** — probes **12/12**; `bash scripts/check_doctrines.sh` ALL 31 PASS;
+      `make -C rust SHELL=/bin/bash mdbook_docs_gate` PASS; the published SV block is
+      **byte-identical** to a fresh derivation, which is the point: this slice changes what the nine
+      say and must not move the one that already had an answer.
+- [x] **RED CONTROLS** — RED-10 (a declared class drifting from the register REFUSES) and RED-11 (a
+      family with no declared class REFUSES), both through the `PGEN_FAMILY_STATUS_SCHEMA` seam.
+
+- promotion: declined (both durable halves are already carried by the tree — *derive the class and only CHECK the declaration* is the two-arm rule `done_bar_family_register_v0.json` already states for `claimed_status`, and *a number that cannot be re-derived is pointed at, not copied* is `docs/DERIVED_STATE_CONTAINMENT.md` R1/R3; the per-family class map is a one-artifact fact and lives in the schema it drives)
+
 ## Decisions
 
 - **Derived, never hand-written** — `LIVE-MEANS-LIVE.1a` measured 25 of 61 hand-maintained
@@ -330,6 +418,9 @@ None.
   false hits: **0 of 177** tracked book pages carry a distance-to-`Done` surface. Producer, schema,
   page, SUMMARY and probe driver landed; `--check` green on the published page; 8/8 probe arms;
   31/31 doctrines; mdbook gate PASS; all ten families render.
+- 2026-08-30 (`.3`) — the nine no-count families split into FOUR derived classes, each naming its
+  owing leaf; the class is held equal to the done-bar register and RED-10 proves the drift refuses.
+  12/12 probes, 31/31 doctrines, mdbook gate PASS, SV block byte-identical.
 - 2026-08-30 (`.2`) — 113 index rows adjudicated, population closed in both directions and PROVEN
   to refuse in both (RED-8/RED-9). Two-arm status check fires: 4 DISPUTED, 7 unreadable, all counted
   OPEN. 10/10 probes, 31/31 doctrines, mdbook gate PASS, `--check` byte-identical at 3 369 bytes.
@@ -340,12 +431,15 @@ None.
 - `.1` scope corrected by the director — `PGEN-DONE-BAR-VISIBILITY-0002`
 - `.1` DONE (schema + producer + SystemVerilog end to end) — `PGEN-DONE-BAR-VISIBILITY-0003`
 - `.2` DONE (the remaining-work synthesis, tree granularity) — `PGEN-DONE-BAR-VISIBILITY-0004`
+- `.3` DONE (why each family has no corpus count, derived and owned) — `PGEN-DONE-BAR-VISIBILITY-0005`
 
 ## Changelog
 
 - 2026-08-30 — created from a direct director remark; gap measured the same day.
 - 2026-08-30 — `.1` DONE. One producer, two renderings, `--check` proven able to go RED four ways.
   New leaf `.6` opened for the hand-written-status-prose class the slice measured on the way past.
+- 2026-08-30 — `.3` DONE: every family says WHY it has no corpus count and who owes one. New
+  leaves `.3b` (the real VHDL/regex censuses) and `.9` (publish the block into the other nine books).
 - 2026-08-30 — `.2` DONE at TREE granularity. 113 index rows adjudicated into a closed two-sided
   attribution; every family now publishes a finite open-tree list. New leaves `.7` (per-leaf
   granularity, blocked on the leaf-convention defect) and `.8` (the 4 DISPUTED + 7 unreadable

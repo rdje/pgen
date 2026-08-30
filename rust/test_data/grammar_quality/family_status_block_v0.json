@@ -8,7 +8,8 @@
     "surfaces": "Where the field is rendered. `chat` = the brief form the engineer reports in completion messages. `book` = the thorough form published into the family's book, and the ONLY half that --check holds equal to a fresh derivation.",
     "why_book_is_a_subset": "⛔ THE BOOK HALF IS PORTABLE-ONLY, AND THAT IS A CORRECTNESS PROPERTY, NOT A SIMPLIFICATION. Legs 1 and the green-NOW half of leg 2 rest on gate artifacts under rust/target/, which is UNTRACKED: the same commit reads `artifact STALE` on the machine that ran the gate and `no artifact on this machine` on a fresh clone. A published block carrying either sentence would make --check FAIL for every reader who did not run the gate first -- a gate that fails on a clean clone of its own repository. So the book publishes the derivation run TRACKED-ONLY (via the audit's PGEN_DONE_BAR_TARGET_DIR seam, pointed at an empty directory), which is what the repository itself proves to any reader, and the chat form adds this machine's artifact readings on top. One derivation, one run, two renderings -- the book half is the subset every clone agrees on.",
     "corpus_census": "Per-family wiring for the corpus fields: the gate that proves the census artifacts are FRESH, the tracked artifacts the counts are read from, and the manifest denominator they are counted against. A family absent from this map renders the corpus fields as NOT MEASURED with `owed_by`. ⭐ The freshness gate is invoked, never re-implemented: the counts are read from the TRACKED artifact and the derived tuple is then CROSS-CHECKED against the tuple that gate prints, so an arithmetic drift between the two refuses instead of publishing.",
-    "tree_attribution": "Which parser family, if any, a task tree's remaining work belongs to. ⛔ CLOSED AND TWO-SIDED over the rows of docs/TASK_TREE.md, on the done-bar register's `grammar_dispositions` model: a tree row with no attribution REFUSES, and an attribution naming no row REFUSES. A one-shot census is a snapshot; a closed population is a mechanism, and it is what stops the roster silently re-growing. ⛔ THE OPEN/CLOSED VERDICT IS TWO-ARMED, because both arms are prose: the index row's Status cell and the tree file's own Metadata Status. Measured 2026-08-30, they DISAGREE on 4 of 113 trees, so a list built on either arm alone is wrong four times. A disagreement is reported DISPUTED and counted OPEN; a Status cell carrying no recognisable status word is counted OPEN and named. The safe polarity for a remaining-work list is to over-report, never to quietly drop work."
+    "tree_attribution": "Which parser family, if any, a task tree's remaining work belongs to. ⛔ CLOSED AND TWO-SIDED over the rows of docs/TASK_TREE.md, on the done-bar register's `grammar_dispositions` model: a tree row with no attribution REFUSES, and an attribution naming no row REFUSES. A one-shot census is a snapshot; a closed population is a mechanism, and it is what stops the roster silently re-growing. ⛔ THE OPEN/CLOSED VERDICT IS TWO-ARMED, because both arms are prose: the index row's Status cell and the tree file's own Metadata Status. Measured 2026-08-30, they DISAGREE on 4 of 113 trees, so a list built on either arm alone is wrong four times. A disagreement is reported DISPUTED and counted OPEN; a Status cell carrying no recognisable status word is counted OPEN and named. The safe polarity for a remaining-work list is to over-report, never to quietly drop work.",
+    "corpus_state": "WHY a family publishes no corpus count, per family, with the leaf that owes one. ⛔ THE CLASS IS NOT HAND-TYPED: the producer DERIVES it from the done-bar register (`language_owner` x whether `corpus_roots` is empty x whether a census is wired here) and REFUSES when the derived class and the declared class disagree. Two arms, independently produced -- declaring the class alone would let it drift from the register the moment a corpus is wired, which is exactly the rot this tree exists to end. ⛔ `NOT MEASURED` is never a blank and never a zero (docs/decisions/feedback_a_check_that_cannot_run_must_say_so.md), and it always names an owner (docs/decisions/feedback_every_finding_is_owned_and_scheduled_never_just_logged.md). `last_measured_in` is a POINTER to the leaf holding the last measurement, never a copy of its number: a number copied here is a number that rots (DERIVED_STATE_CONTAINMENT R1/R3)."
   },
   "fields": {
     "claimed_status": {
@@ -66,7 +67,7 @@
     },
     "corpus_rows": {
       "question": "How large is the corpus this family is judged against, and how much of it carries a verdict at all?",
-      "producer": "corpus_census[<family>] - the freshness gate, then the tracked census artifacts",
+      "producer": "corpus_census[<family>] when a census is wired; otherwise the corpus_state class DERIVED from the done-bar register, which says WHY there is no count and names the leaf that owes one",
       "state": "derived",
       "surfaces": [
         "chat",
@@ -75,7 +76,7 @@
     },
     "corpus_passing": {
       "question": "How many corpus rows does the parser answer exactly the way the answer key says?",
-      "producer": "corpus_census[<family>] - the freshness gate, then the tracked census artifacts",
+      "producer": "corpus_census[<family>] when a census is wired; otherwise the corpus_state class DERIVED from the done-bar register, which says WHY there is no count and names the leaf that owes one",
       "state": "derived",
       "surfaces": [
         "chat",
@@ -84,7 +85,7 @@
     },
     "known_defects": {
       "question": "How many rows diverge from the key with NO explanation - the defect bar itself?",
-      "producer": "corpus_census[<family>] - the freshness gate, then the tracked census artifacts",
+      "producer": "corpus_census[<family>] when a census is wired; otherwise the corpus_state class DERIVED from the done-bar register, which says WHY there is no count and names the leaf that owes one",
       "state": "derived",
       "surfaces": [
         "chat",
@@ -110,11 +111,6 @@
       "denominator": "every row of the SystemVerilog corpus adjudication manifests over stimuli/sv/subs + stimuli/sv/uvm",
       "instrument": "stimuli/sv/corpus_verdict_coverage.py"
     }
-  },
-  "not_measured_owners": {
-    "corpus_rows": "DONE-BAR-VISIBILITY.3",
-    "corpus_passing": "DONE-BAR-VISIBILITY.3",
-    "known_defects": "DONE-BAR-VISIBILITY.3"
   },
   "tree_attribution": {
     "vocabulary": {
@@ -238,6 +234,61 @@
       "VHDL-MDBOOK": "vhdl",
       "VHDL-STRICT-PROMOTION": "vhdl",
       "WS-DIRECTIVE": "cross-cutting"
+    }
+  },
+  "corpus_state": {
+    "classes": {
+      "census_wired": "a census producer and a freshness gate exist; the counts are DERIVED on every render (see `corpus_census`)",
+      "corpus_wired_no_census": "the register declares external corpus roots, but no TRACKED census turns them into counts a reader can re-derive",
+      "no_corpus_wired": "the language is standardized, so a corpus exists in the world, but none is wired into this repository. An UNMET leg, never an inapplicable one",
+      "no_third_party_corpus": "the language is authored by PGEN itself, so no third-party corpus exists or ever will. NOT a measurement gap -- leg 3 is unreachable by construction and the qualifier is `Provisional (ceiling)`",
+      "ownership_unadjudicated": "whether a corpus for the full standard counts against this SUBSET language is an open ruling; until it is made, a corpus count would be measured against a denominator nobody has agreed to"
+    },
+    "families": {
+      "systemverilog": {
+        "class": "census_wired",
+        "owed_by": null
+      },
+      "vhdl": {
+        "class": "corpus_wired_no_census",
+        "owed_by": "DONE-BAR-VISIBILITY.3b",
+        "last_measured_in": "CORPUS-GRAD-ALL.2.1",
+        "note": "A raw parse census was run on 2026-08-08 -- 13 720 files, pass 4 031, fail 9 689 -- but `results.tsv` is gitignored (the rule `stimuli/*/characterization/results.tsv`), so nothing in the tree can re-derive it and it is not published here. It is also a RAW pass rate, not an adjudicated one: no answer key says which of those files SHOULD parse."
+      },
+      "regex": {
+        "class": "corpus_wired_no_census",
+        "owed_by": "DONE-BAR-VISIBILITY.3b",
+        "last_measured_in": "RGX-0078",
+        "note": "The PCRE2 oracle publishes a real cells/matches/false-accepts/false-rejects tuple held by the REGEX-ORACLE-ANCHOR-SYNC doctrine, but its per-run summary is untracked (that doctrine says so itself), so it is an anchor to compare against rather than a census this producer can re-derive."
+      },
+      "systemverilog_preprocessor": {
+        "class": "no_corpus_wired",
+        "owed_by": "CORPUS-GRAD-ALL.1"
+      },
+      "return_annotation": {
+        "class": "no_third_party_corpus",
+        "owed_by": null
+      },
+      "semantic_annotation": {
+        "class": "no_third_party_corpus",
+        "owed_by": null
+      },
+      "ebnf": {
+        "class": "no_third_party_corpus",
+        "owed_by": null
+      },
+      "rtl_frontend": {
+        "class": "ownership_unadjudicated",
+        "owed_by": "DONE-BAR.3"
+      },
+      "rtl_const_expr": {
+        "class": "ownership_unadjudicated",
+        "owed_by": "DONE-BAR.3"
+      },
+      "json": {
+        "class": "ownership_unadjudicated",
+        "owed_by": "DONE-BAR.3"
+      }
     }
   }
 }
