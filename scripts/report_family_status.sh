@@ -49,10 +49,19 @@
 #   bash scripts/report_family_status.sh <family>              # brief, for the chat report
 #   bash scripts/report_family_status.sh <family> --markdown   # the book's DERIVED block
 #   bash scripts/report_family_status.sh <family> --check FILE  # re-derive and diff the published block
+#   bash scripts/report_family_status.sh --cross-family        # the whole roster, one screenful
+#   bash scripts/report_family_status.sh --cross-family --markdown        # the platform book's block
+#   bash scripts/report_family_status.sh --cross-family --check FILE      # …and diff it
+#   bash scripts/report_family_status.sh --check-all           # every published block, incl. the cross view
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT" || exit 2
 
-FAMILY=""; MODE=text; CHECK=""; CHECK_ALL=0
+# ⛔ THE CROSS-FAMILY PAGE'S LOCATION IS A SEAM, defaulting to the tracked page so an ordinary run
+# reads exactly what ships. It exists so the probe driver can drive this producer's refusals against
+# a CONSTRUCTED page instead of mutating a tracked one and hoping the restore runs.
+CROSS_PAGE="${PGEN_FAMILY_STATUS_CROSS_PAGE:-docs/book/src/roadmap-and-live-status.md}"
+
+FAMILY=""; MODE=text; CHECK=""; CHECK_ALL=0; CROSS=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --markdown) MODE=markdown ;;
@@ -61,6 +70,10 @@ while [ $# -gt 0 ]; do
     # audit runs below are family-INDEPENDENT and are the expensive half (~2.3 s of a 2.4 s run), so
     # ten separate invocations would pay for them ten times. Hoisting them turns 24 s into ~4 s.
     --check-all) CHECK_ALL=1; MODE=markdown ;;
+    # ⭐ --cross-family IS THE SAME DERIVATION, ONCE PER FAMILY — never a second reader of the same
+    # sources. It answers the question the ten per-family pages cannot: how far is the PROJECT, and
+    # how do two families compare without opening two books (DONE-BAR-VISIBILITY.5).
+    --cross-family) CROSS=1 ;;
     -*) echo "report_family_status: unknown arg '$1'" >&2; exit 2 ;;
     *) [ -z "$FAMILY" ] || { echo "report_family_status: two families given ('$FAMILY', '$1')" >&2; exit 2; }
        FAMILY="$1" ;;
@@ -69,6 +82,10 @@ done
 if [ "$CHECK_ALL" -eq 1 ]; then
   [ -z "$FAMILY" ] || { echo "report_family_status: REFUSED (2) - --check-all takes no family" >&2; exit 2; }
   [ -z "$CHECK" ] || { echo "report_family_status: REFUSED (2) - --check-all and --check are exclusive" >&2; exit 2; }
+  [ "$CROSS" -eq 0 ] || { echo "report_family_status: REFUSED (2) - --check-all already covers the cross-family view" >&2; exit 2; }
+elif [ "$CROSS" -eq 1 ]; then
+  [ -z "$FAMILY" ] || { echo "report_family_status: REFUSED (2) - --cross-family takes no family; it renders the whole register" >&2; exit 2; }
+  MODE="cross_${MODE}"
 else
   [ -n "$FAMILY" ] || { echo "report_family_status: REFUSED (2) - name the family, e.g. 'systemverilog'" >&2; exit 2; }
 fi
@@ -120,6 +137,9 @@ python3 - "$1" "$2" "$WORK" <<'PY'
 import json, os, re, subprocess, sys
 
 FAMILY, MODE, WORK = sys.argv[1], sys.argv[2], sys.argv[3]
+# The cross-family renderings pass `*` as the family and loop the register below, calling the SAME
+# derive() the single-family renderings call. That is the whole anti-drift argument — see § 5.
+CROSS = MODE.startswith("cross")
 ROOT = os.getcwd()
 # Testability seam, on the `audit_done_bar.sh` pattern: it defaults to the tracked schema, so an
 # ordinary run reads exactly what the repository ships, and exists so the probe driver can prove the
@@ -140,10 +160,6 @@ def read(p):
 
 schema = json.loads(read(SCHEMA_PATH))
 register = json.loads(read(REGISTER_PATH))
-if FAMILY not in register["families"]:
-    refuse(f"'{FAMILY}' is not a parser family. The roster is derived, not typed — it is the "
-           f"`families` map of {REGISTER_PATH}: {', '.join(sorted(register['families']))}")
-entry = register["families"][FAMILY]
 
 # ---------------------------------------------------------------------------------------------
 # 1. The bar legs — read from the audit, whose phrasing is mapped onto a CLOSED vocabulary.
@@ -240,136 +256,6 @@ def parse_audit_text(path):
 self_check()
 tracked = parse_audit_text(os.path.join(WORK, "tracked.txt"))
 local = parse_audit_text(os.path.join(WORK, "local.txt"))
-for label, parsed in (("tracked-only", tracked), ("local", local)):
-    if FAMILY not in parsed:
-        refuse(f"the {label} audit report has no section for '{FAMILY}' — the report format this "
-               f"reader was built against has changed; fix this reader rather than publishing a "
-               f"block with no legs")
-    if sorted(parsed[FAMILY]["legs"]) != [1, 2, 3]:
-        refuse(f"the {label} audit report gives {FAMILY} legs "
-               f"{sorted(parsed[FAMILY]['legs'])}, not 1/2/3")
-
-legs = {}
-for n in (1, 2, 3):
-    leg = tracked[FAMILY]["legs"][n]
-    reason = reason_for(leg["lines"])
-    if reason is None:
-        refuse(f"leg {n} of {FAMILY} carries no reason this reader recognises. Its lines were:\n  "
-               + "\n  ".join(leg["lines"])
-               + "\nAdd the sentence to LEG_REASONS in scripts/report_family_status.sh — a leg is "
-                 "never published without the reason behind it.")
-    legs[n] = {"verdict": leg["verdict"], "reason": reason}
-
-# Leg 2 additionally carries COUNTS, and they are the distance a reader can act on.
-cov = None
-for ln in tracked[FAMILY]["legs"][2]["lines"]:
-    m = COVERING_RE.search(ln)
-    if m:
-        cov = tuple(int(x) for x in m.groups())
-unrun = [m.group(1) for ln in tracked[FAMILY]["legs"][2]["lines"] for m in [UNRUN_RE.search(ln)] if m]
-if cov is None:
-    refuse(f"leg 2 of {FAMILY} publishes no covering-gate count; the audit's line format has moved")
-
-# ⭐ LEG 2'S REASON IS COMPOSED ONCE, HERE, AND BOTH RENDERINGS USE IT — the counts ARE the reason
-# when a covering gate is invoked by nothing, and they lead the sentence for exactly that reason:
-# an uninvoked gate is what makes leg 2 UNMET, while the artifact half can only leave it UNPROVEN.
-# Composing it in each renderer instead would be two sentences free to drift into disagreement,
-# which is the defect this whole tree exists to remove.
-legs[2]["reason"] = (
-    f"{cov[0]} covering gate targets, {cov[1]} invoked, {cov[2]} invoked by nothing"
-    + (f" ({', '.join(unrun)})" if unrun else "")
-    + f"; {legs[2]['reason']}")
-
-local_legs = {n: local[FAMILY]["legs"][n]["verdict"] for n in (1, 2, 3)}
-
-# ---------------------------------------------------------------------------------------------
-# 2. The corpus — counts read from the TRACKED census, freshness proved by the census's own gate.
-# ---------------------------------------------------------------------------------------------
-corpus = None
-census = schema.get("corpus_census", {}).get(FAMILY)
-if census:
-    gate = census["freshness_gate"]
-    proc = subprocess.run(gate, shell=True, capture_output=True, text=True, cwd=ROOT)
-    out = (proc.stdout or "") + (proc.stderr or "")
-    if proc.returncode != 0:
-        refuse(f"the corpus freshness gate `{gate}` exited {proc.returncode}, so the census "
-               f"artifacts are not proven current and their counts must not be published. "
-               f"Its own words:\n  " + out.strip().replace("\n", "\n  "))
-    marker = census["tuple_marker"]
-    if marker not in out:
-        refuse(f"`{gate}` printed no `{marker}` line, so there is no tuple to cross-check against")
-    gate_tuple = out.split(marker, 1)[1].split()[0]
-
-    rows_by_class, buckets = {}, {}
-    with open(census["coverage_tsv"], encoding="utf-8") as fh:
-        fh.readline()
-        for line in fh:
-            if not line.strip():
-                continue
-            bucket, cls, rows, _pct = line.rstrip("\n").split("\t")
-            rows_by_class[cls] = rows_by_class.get(cls, 0) + int(rows)
-            buckets[bucket] = buckets.get(bucket, 0) + int(rows)
-    dark = 0
-    with open(census["strata_tsv"], encoding="utf-8") as fh:
-        fh.readline()
-        for line in fh:
-            if line.strip():
-                dark += int(line.rstrip("\n").split("\t")[4])
-
-    passing = rows_by_class.get("match", 0)
-    explained = sum(v for k, v in rows_by_class.items() if k.startswith("divergence:explained"))
-    defects = sum(v for k, v in rows_by_class.items() if k.startswith("divergence:unexplained"))
-    routed = buckets.get("ROUTED", 0)
-    noverdict = buckets.get("NO VERDICT", 0)
-    adjudicated = buckets.get("ADJUDICATED", 0)
-    total = sum(buckets.values())
-
-    # ⭐ THE CROSS-CHECK, and it is the reason these counts may be published at all: this script
-    # derives the tuple from the artifacts and the GATE derives it independently. Equal, or refuse.
-    derived_tuple = f"{adjudicated}/{routed}/{noverdict}/{dark}/{defects}"
-    if derived_tuple != gate_tuple:
-        refuse(f"this script derives the verdict-coverage tuple {derived_tuple} from "
-               f"{census['coverage_tsv']} while `{gate}` derives {gate_tuple}. Two readings of one "
-               f"census disagree — neither may be published until they are reconciled.")
-    if adjudicated != passing + explained + defects:
-        refuse(f"the adjudicated bucket ({adjudicated}) is not the sum of its classes "
-               f"({passing} + {explained} + {defects}); the class map has moved")
-    corpus = dict(total=total, passing=passing, explained=explained, defects=defects,
-                  routed=routed, noverdict=noverdict, adjudicated=adjudicated, dark=dark,
-                  tuple=derived_tuple, denominator=census["denominator"],
-                  instrument=census["instrument"], gate=gate)
-
-# ⛔⛔ WHY THERE IS NO COUNT IS ITSELF DERIVED, NOT TYPED. A family with no census must say WHY and
-# name the leaf that owes one — a blank reads as nothing-to-see and a zero reads as done. The CLASS
-# is computed here from the done-bar register and then held EQUAL to the class declared in the
-# schema: two arms, independently produced. Declaring it alone would let it drift from the register
-# the moment a corpus is wired, and that drift is the whole disease this tree treats.
-state_decl = schema.get("corpus_state", {}).get("families", {}).get(FAMILY)
-if state_decl is None:
-    refuse(f"no `corpus_state` is declared for '{FAMILY}' in {SCHEMA_PATH}. Every family says why it "
-           f"has no corpus count, and names the leaf that owes one — the population is closed.")
-owner = entry["language_owner"]
-if census:
-    derived_class = "census_wired"
-elif owner == "pgen":
-    derived_class = "no_third_party_corpus"
-elif owner == "unadjudicated":
-    derived_class = "ownership_unadjudicated"
-elif entry["corpus_roots"]:
-    derived_class = "corpus_wired_no_census"
-else:
-    derived_class = "no_corpus_wired"
-if derived_class != state_decl["class"]:
-    refuse(f"the corpus state for '{FAMILY}' is declared `{state_decl['class']}` but the done-bar "
-           f"register derives `{derived_class}` (language_owner={owner}, "
-           f"corpus_roots={entry['corpus_roots']}, census wired={bool(census)}). The declared class "
-           f"has drifted from the register — fix the declaration, or wire the census it claims.")
-if derived_class != "no_third_party_corpus" and not census and not state_decl.get("owed_by"):
-    refuse(f"'{FAMILY}' has no corpus count and names no leaf that owes one. A gap with no owner is "
-           f"a gap nobody will close (docs/decisions/"
-           f"feedback_every_finding_is_owned_and_scheduled_never_just_logged.md).")
-corpus_why = dict(state_decl, derived_class=derived_class,
-                  blurb=schema["corpus_state"]["classes"][derived_class])
 
 # ---------------------------------------------------------------------------------------------
 # 3. The remaining work — the OPEN trees that own work for this family.
@@ -509,27 +395,197 @@ if unattributed or unknown:
            f"Every row of {INDEX} must be adjudicated exactly once in `tree_attribution.trees` of "
            f"{SCHEMA_PATH} — that is the mechanism that stops the roster re-growing silently.")
 
-family_open, disputed, unreadable_rows, cross_open = [], [], [], 0
+# ⛔ THE OPEN/CLOSED VERDICT IS A PROPERTY OF THE ROW, NOT OF THE FAMILY ASKING, so it is computed
+# ONCE here rather than inside the per-family pass. Two reasons, and the second is the one that
+# matters: the cross-family view derives ten families and would otherwise re-read all the tree
+# files ten times over, and a per-family recomputation is a per-family opportunity for the ten
+# answers to disagree about the same row.
+row_state = []
 for name, cell, fname in rows:
-    who = attrib[name]
     a = polarity(cell)
     b = meta_status(fname)
-    state = a
-    if b and a != b and "UNREADABLE" not in (a, b):
-        state = "OPEN"
-        if who in (FAMILY, "cross-cutting"):
+    disputed_row = bool(b) and a != b and "UNREADABLE" not in (a, b)
+    unreadable_row = (not disputed_row) and a == "UNREADABLE"
+    state = "OPEN" if (disputed_row or unreadable_row) else a
+    row_state.append((name, attrib[name], state, a, b, fname, disputed_row, unreadable_row))
+
+# The attribution partition of the OPEN rows. Every row is adjudicated to exactly one bucket — the
+# two-sided population refusal above is what makes that a closed statement rather than a hope — so
+# these counts sum to the open total, and the cross-family view publishes the sum as such.
+open_by_class = {}
+for _row in row_state:
+    if _row[2] == "OPEN":
+        open_by_class[_row[1]] = open_by_class.get(_row[1], 0) + 1
+n_open = sum(open_by_class.values())
+n_disputed_rows = sum(1 for _row in row_state if _row[6])
+n_unreadable_rows = sum(1 for _row in row_state if _row[7])
+
+
+# ---------------------------------------------------------------------------------------------
+# The PER-FAMILY DERIVATION — one pass, called once for a single family's rendering and ten times
+# for the cross-family view.
+# ---------------------------------------------------------------------------------------------
+# ⭐⭐ THIS FUNCTION IS THE WHOLE ANTI-DRIFT ARGUMENT. The brief chat form, the ten published book
+# blocks and the cross-family table in the platform book are three RENDERINGS of what it returns,
+# never three readers of the same sources. A cross-family table computing its own numbers would be
+# an eleventh surface to keep in sync — the very class this tree exists to remove — and gating it
+# would only make the disagreement loud. Deriving it here makes the disagreement unrepresentable.
+def derive(FAMILY):
+    if FAMILY not in register["families"]:
+        refuse(f"'{FAMILY}' is not a parser family. The roster is derived, not typed — it is the "
+               f"`families` map of {REGISTER_PATH}: {', '.join(sorted(register['families']))}")
+    entry = register["families"][FAMILY]
+    for label, parsed in (("tracked-only", tracked), ("local", local)):
+        if FAMILY not in parsed:
+            refuse(f"the {label} audit report has no section for '{FAMILY}' — the report format this "
+                   f"reader was built against has changed; fix this reader rather than publishing a "
+                   f"block with no legs")
+        if sorted(parsed[FAMILY]["legs"]) != [1, 2, 3]:
+            refuse(f"the {label} audit report gives {FAMILY} legs "
+                   f"{sorted(parsed[FAMILY]['legs'])}, not 1/2/3")
+
+    legs = {}
+    for n in (1, 2, 3):
+        leg = tracked[FAMILY]["legs"][n]
+        reason = reason_for(leg["lines"])
+        if reason is None:
+            refuse(f"leg {n} of {FAMILY} carries no reason this reader recognises. Its lines were:\n  "
+                   + "\n  ".join(leg["lines"])
+                   + "\nAdd the sentence to LEG_REASONS in scripts/report_family_status.sh — a leg is "
+                     "never published without the reason behind it.")
+        legs[n] = {"verdict": leg["verdict"], "reason": reason}
+
+    # Leg 2 additionally carries COUNTS, and they are the distance a reader can act on.
+    cov = None
+    for ln in tracked[FAMILY]["legs"][2]["lines"]:
+        m = COVERING_RE.search(ln)
+        if m:
+            cov = tuple(int(x) for x in m.groups())
+    unrun = [m.group(1) for ln in tracked[FAMILY]["legs"][2]["lines"] for m in [UNRUN_RE.search(ln)] if m]
+    if cov is None:
+        refuse(f"leg 2 of {FAMILY} publishes no covering-gate count; the audit's line format has moved")
+
+    # ⭐ LEG 2'S REASON IS COMPOSED ONCE, HERE, AND BOTH RENDERINGS USE IT — the counts ARE the reason
+    # when a covering gate is invoked by nothing, and they lead the sentence for exactly that reason:
+    # an uninvoked gate is what makes leg 2 UNMET, while the artifact half can only leave it UNPROVEN.
+    # Composing it in each renderer instead would be two sentences free to drift into disagreement,
+    # which is the defect this whole tree exists to remove.
+    legs[2]["reason"] = (
+        f"{cov[0]} covering gate targets, {cov[1]} invoked, {cov[2]} invoked by nothing"
+        + (f" ({', '.join(unrun)})" if unrun else "")
+        + f"; {legs[2]['reason']}")
+
+    local_legs = {n: local[FAMILY]["legs"][n]["verdict"] for n in (1, 2, 3)}
+
+    # ---------------------------------------------------------------------------------------------
+    # 2. The corpus — counts read from the TRACKED census, freshness proved by the census's own gate.
+    # ---------------------------------------------------------------------------------------------
+    corpus = None
+    census = schema.get("corpus_census", {}).get(FAMILY)
+    if census:
+        gate = census["freshness_gate"]
+        proc = subprocess.run(gate, shell=True, capture_output=True, text=True, cwd=ROOT)
+        out = (proc.stdout or "") + (proc.stderr or "")
+        if proc.returncode != 0:
+            refuse(f"the corpus freshness gate `{gate}` exited {proc.returncode}, so the census "
+                   f"artifacts are not proven current and their counts must not be published. "
+                   f"Its own words:\n  " + out.strip().replace("\n", "\n  "))
+        marker = census["tuple_marker"]
+        if marker not in out:
+            refuse(f"`{gate}` printed no `{marker}` line, so there is no tuple to cross-check against")
+        gate_tuple = out.split(marker, 1)[1].split()[0]
+
+        rows_by_class, buckets = {}, {}
+        with open(census["coverage_tsv"], encoding="utf-8") as fh:
+            fh.readline()
+            for line in fh:
+                if not line.strip():
+                    continue
+                bucket, cls, rows, _pct = line.rstrip("\n").split("\t")
+                rows_by_class[cls] = rows_by_class.get(cls, 0) + int(rows)
+                buckets[bucket] = buckets.get(bucket, 0) + int(rows)
+        dark = 0
+        with open(census["strata_tsv"], encoding="utf-8") as fh:
+            fh.readline()
+            for line in fh:
+                if line.strip():
+                    dark += int(line.rstrip("\n").split("\t")[4])
+
+        passing = rows_by_class.get("match", 0)
+        explained = sum(v for k, v in rows_by_class.items() if k.startswith("divergence:explained"))
+        defects = sum(v for k, v in rows_by_class.items() if k.startswith("divergence:unexplained"))
+        routed = buckets.get("ROUTED", 0)
+        noverdict = buckets.get("NO VERDICT", 0)
+        adjudicated = buckets.get("ADJUDICATED", 0)
+        total = sum(buckets.values())
+
+        # ⭐ THE CROSS-CHECK, and it is the reason these counts may be published at all: this script
+        # derives the tuple from the artifacts and the GATE derives it independently. Equal, or refuse.
+        derived_tuple = f"{adjudicated}/{routed}/{noverdict}/{dark}/{defects}"
+        if derived_tuple != gate_tuple:
+            refuse(f"this script derives the verdict-coverage tuple {derived_tuple} from "
+                   f"{census['coverage_tsv']} while `{gate}` derives {gate_tuple}. Two readings of one "
+                   f"census disagree — neither may be published until they are reconciled.")
+        if adjudicated != passing + explained + defects:
+            refuse(f"the adjudicated bucket ({adjudicated}) is not the sum of its classes "
+                   f"({passing} + {explained} + {defects}); the class map has moved")
+        corpus = dict(total=total, passing=passing, explained=explained, defects=defects,
+                      routed=routed, noverdict=noverdict, adjudicated=adjudicated, dark=dark,
+                      tuple=derived_tuple, denominator=census["denominator"],
+                      instrument=census["instrument"], gate=gate)
+
+    # ⛔⛔ WHY THERE IS NO COUNT IS ITSELF DERIVED, NOT TYPED. A family with no census must say WHY and
+    # name the leaf that owes one — a blank reads as nothing-to-see and a zero reads as done. The CLASS
+    # is computed here from the done-bar register and then held EQUAL to the class declared in the
+    # schema: two arms, independently produced. Declaring it alone would let it drift from the register
+    # the moment a corpus is wired, and that drift is the whole disease this tree treats.
+    state_decl = schema.get("corpus_state", {}).get("families", {}).get(FAMILY)
+    if state_decl is None:
+        refuse(f"no `corpus_state` is declared for '{FAMILY}' in {SCHEMA_PATH}. Every family says why it "
+               f"has no corpus count, and names the leaf that owes one — the population is closed.")
+    owner = entry["language_owner"]
+    if census:
+        derived_class = "census_wired"
+    elif owner == "pgen":
+        derived_class = "no_third_party_corpus"
+    elif owner == "unadjudicated":
+        derived_class = "ownership_unadjudicated"
+    elif entry["corpus_roots"]:
+        derived_class = "corpus_wired_no_census"
+    else:
+        derived_class = "no_corpus_wired"
+    if derived_class != state_decl["class"]:
+        refuse(f"the corpus state for '{FAMILY}' is declared `{state_decl['class']}` but the done-bar "
+               f"register derives `{derived_class}` (language_owner={owner}, "
+               f"corpus_roots={entry['corpus_roots']}, census wired={bool(census)}). The declared class "
+               f"has drifted from the register — fix the declaration, or wire the census it claims.")
+    if derived_class != "no_third_party_corpus" and not census and not state_decl.get("owed_by"):
+        refuse(f"'{FAMILY}' has no corpus count and names no leaf that owes one. A gap with no owner is "
+               f"a gap nobody will close (docs/decisions/"
+               f"feedback_every_finding_is_owned_and_scheduled_never_just_logged.md).")
+    corpus_why = dict(state_decl, derived_class=derived_class,
+                      blurb=schema["corpus_state"]["classes"][derived_class])
+
+    # --- 3. the remaining work: this family's slice of the row states computed once above -------
+    family_open, disputed, unreadable_rows, cross_open = [], [], [], 0
+    for name, who, state, a, b, fname, disputed_row, unreadable_row in row_state:
+        if disputed_row and who in (FAMILY, "cross-cutting"):
             disputed.append((name, a, b))
-    elif a == "UNREADABLE":
-        state = "OPEN"
-        if who == FAMILY:
+        elif unreadable_row and who == FAMILY:
             unreadable_rows.append(name)
-    if state != "OPEN":
-        continue
-    if who == FAMILY:
-        family_open.append((name, fname, a, b))
-    elif who == "cross-cutting":
-        cross_open += 1
-family_open.sort()
+        if state != "OPEN":
+            continue
+        if who == FAMILY:
+            family_open.append((name, fname, a, b))
+        elif who == "cross-cutting":
+            cross_open += 1
+    family_open.sort()
+
+    return dict(family=FAMILY, entry=entry, legs=legs, local_legs=local_legs, corpus=corpus,
+                corpus_why=corpus_why, family_open=family_open, disputed=disputed,
+                unreadable_rows=unreadable_rows, cross_open=cross_open,
+                unmet=[n for n in (1, 2, 3) if legs[n]["verdict"] != "MET"])
+
 
 # ---------------------------------------------------------------------------------------------
 # 4. Render — and hold the rendered field set EQUAL to the schema's, in both directions.
@@ -542,12 +598,21 @@ def fmt(n):
     return f"{n:,}".replace(",", " ")
 
 
-rendered = {"claimed_status", "language_owner", "bar_leg_1", "bar_leg_2", "bar_leg_3",
+# ⛔ WHICH SURFACE IS BEING PUBLISHED TO, AND WHICH FIELDS THAT SURFACE MAY CARRY. The schema
+# declares it and this holds the two equal in BOTH directions: a field rendered with no declared
+# producer is the hand-written status this tree exists to remove, and a field declared but rendered
+# nowhere is a promise no surface keeps. The cross-family view is a THIRD surface, declared like the
+# other two. It deliberately drops `language_owner` — the table it sits directly under already
+# publishes that column, and a second copy on the same page is a second thing to keep true — and,
+# like the book, it never publishes this machine's untracked gate artifacts.
+SURFACE = "cross" if CROSS else ("book" if MODE == "markdown" else "chat")
+rendered = {"claimed_status", "bar_leg_1", "bar_leg_2", "bar_leg_3",
             "corpus_rows", "corpus_passing", "known_defects", "remaining_work"}
-if MODE != "markdown":
+if SURFACE != "cross":
+    rendered.add("language_owner")
+if SURFACE == "chat":
     rendered.add("local_gate_state")
-declared = {k for k, v in schema["fields"].items()
-            if ("book" in v["surfaces"] or MODE != "markdown")}
+declared = {k for k, v in schema["fields"].items() if SURFACE in v["surfaces"]}
 if rendered != declared:
     refuse(f"the rendered field set and the schema disagree: only-rendered={sorted(rendered - declared)}, "
            f"only-declared={sorted(declared - rendered)}. Every field is declared in {SCHEMA_PATH} "
@@ -556,10 +621,13 @@ if rendered != declared:
 
 LEGNAME = {1: "stimuli-generator proof", 2: "gates green and invoked", 3: "external corpus passing"}
 MARK = {"MET": "✅", "UNMET": "⛔", "UNPROVEN": "⚠️"}
-unmet = [n for n in (1, 2, 3) if legs[n]["verdict"] != "MET"]
-out = []
 
-if MODE == "markdown":
+
+def render_markdown(d):
+    FAMILY, entry, legs = d["family"], d["entry"], d["legs"]
+    corpus, corpus_why, unmet = d["corpus"], d["corpus_why"], d["unmet"]
+    family_open, cross_open = d["family_open"], d["cross_open"]
+    out = []
     out.append(f"<!-- BEGIN DERIVED: scripts/report_family_status.sh {FAMILY} --markdown -->")
     out.append("")
     out.append(f"**Claimed status:** `{entry['claimed_status']}` · **language owner:** "
@@ -639,7 +707,15 @@ if MODE == "markdown":
                "over-reporting is the only safe direction for a list that says how much is left.")
     out.append("")
     out.append("<!-- END DERIVED -->")
-else:
+    return out
+
+
+def render_text(d):
+    FAMILY, entry, legs = d["family"], d["entry"], d["legs"]
+    corpus, corpus_why, unmet = d["corpus"], d["corpus_why"], d["unmet"]
+    family_open, cross_open = d["family_open"], d["cross_open"]
+    local_legs, disputed, unreadable_rows = d["local_legs"], d["disputed"], d["unreadable_rows"]
+    out = []
     out.append(f"FAMILY STATUS — {FAMILY}   (every figure derived; nothing here is hand-written)")
     out.append(f"  claimed status ......... {entry['claimed_status']}   [done-bar register]")
     out.append(f"  language owner ......... {entry['language_owner']}   [{entry['standard'][:60]}]")
@@ -671,8 +747,173 @@ else:
     if disputed or unreadable_rows:
         out.append(f"                          ⚠️ {len(disputed)} status DISPUTED (index vs tree file), "
                    f"{len(unreadable_rows)} unreadable — all counted OPEN")
+    return out
 
-print("\n".join(out))
+
+# ---------------------------------------------------------------------------------------------
+# 5. The CROSS-FAMILY view — the whole roster on one page, from the same derive() ten times.
+# ---------------------------------------------------------------------------------------------
+# ⛔ WHY THIS EXISTS (DONE-BAR-VISIBILITY.5). Ten published per-family blocks answer "how far is
+# THIS parser"; nothing answered "how far is the project", and a reader who wanted to compare two
+# families had to open two books and hold both in their head. That is the director's remark —
+# *"there seems to be no end in sight"* — in its cross-family form.
+def cell(text):
+    """Every cell published into a Markdown table passes through here.
+
+    ⛔ A `|` inside a cell SILENTLY re-cuts the row: GFM discards the excess cells of an over-wide
+    row without rendering, warning or leaving a gap, which is how 51 of 1 167 tracked files came to
+    carry defective rows unnoticed (TABLE-ARITY-RATCHET, founding measurement LIVE-DOC-CONTAINMENT.8
+    — the shipped bug ledger lost the consumer-impact column on 26 of 197 rows). Most cells here
+    carry text from the schema and the register, so the day someone writes a pipe into a blurb this
+    must REFUSE rather than publish a table that reads fine and says something else."""
+    if "|" in text:
+        refuse(f"a rendered table cell carries a `|`, which GFM would read as a column boundary and "
+               f"the published row would silently lose its rightmost cells: {text!r}")
+    return text
+
+
+def render_cross(ds):
+    """ds: one derive() result per family, in register order."""
+    # ⭐ TWO ARMS OVER THE SAME PARTITION, and they are produced by different code paths: the
+    # per-family lists come from filtering row_state by attribution inside derive(), the totals from
+    # counting row_state by attribution once. A cross-family page whose totals disagree with the
+    # rows above them is worse than no page, so they are held equal here rather than eyeballed.
+    fam_total = sum(len(x["family_open"]) for x in ds)
+    from_partition = sum(v for k, v in open_by_class.items() if k in register["families"])
+    if fam_total != from_partition:
+        refuse(f"the per-family open-tree lists sum to {fam_total} while the attribution partition "
+               f"counts {from_partition} open trees attributed to a family. Two readings of one "
+               f"index disagree — neither may be published until they are reconciled.")
+    cross_cutting = open_by_class.get("cross-cutting", 0)
+    if any(x["cross_open"] != cross_cutting for x in ds):
+        refuse("the families do not agree on how many cross-cutting trees are open, though the "
+               "count is a property of the index and not of any family")
+    vocab = schema.get("tree_attribution", {}).get("vocabulary", {})
+    for who in sorted(open_by_class):
+        key = "<family>" if who in register["families"] else who
+        if key not in vocab:
+            refuse(f"the attribution bucket '{who}' has no entry in `tree_attribution.vocabulary` of "
+                   f"{SCHEMA_PATH}, so its rows would be published with no statement of what the "
+                   f"bucket means")
+
+    met_all = [x for x in ds if not x["unmet"]]
+    legs_met = sum(3 - len(x["unmet"]) for x in ds)
+    with_census = [x for x in ds if x["corpus"]]
+    out = []
+
+    if MODE == "cross_markdown":
+        out.append("<!-- BEGIN DERIVED: scripts/report_family_status.sh --cross-family --markdown -->")
+        out.append("")
+        out.append(f"**{len(ds)} families, one page — the distance behind the labels above.** Every "
+                   f"figure here is derived by `scripts/report_family_status.sh` in the SAME pass "
+                   f"that produces each family's own *Status and Distance to `Done`* page, so the "
+                   f"two surfaces cannot disagree about a number; `FAMILY-STATUS-CURRENCY` "
+                   f"(`scripts/check_family_status.sh`) re-derives and diffs both on every commit.")
+        out.append("")
+        out.append(f"**{len(met_all)} of {len(ds)} families meet the three-leg `Done` bar, and "
+                   f"{legs_met} of the {3 * len(ds)} legs across the roster are met.**")
+        out.append("")
+        out.append("| Family | Claimed status | Legs met | 1 | 2 | 3 | Trees owning its remaining work |")
+        out.append("|---|---|---:|:-:|:-:|:-:|---:|")
+        for x in ds:
+            fam = x["family"]
+            link = f"[`{fam}`](../../{fam}_parser_book/src/status-and-distance.md)"
+            out.append(f"| {link} | {cell(x['entry']['claimed_status'])} | "
+                       f"{3 - len(x['unmet'])} of 3 | " +
+                       " | ".join(MARK[x["legs"][n]["verdict"]] for n in (1, 2, 3)) +
+                       f" | {len(x['family_open'])} |")
+        out.append("")
+        out.append(f"Leg 1 is the {LEGNAME[1]}, leg 2 is *{LEGNAME[2]}* — every covering gate green "
+                   f"AND actually invoked by something — and leg 3 is an officially-recognized "
+                   f"{LEGNAME[3]}. {MARK['MET']} met · {MARK['UNPROVEN']} unproven · "
+                   f"{MARK['UNMET']} unmet. **Why** a leg reads as it does is on that family's own "
+                   f"page, one click away; this table is the comparison, not the explanation.")
+        out.append("")
+        out.append(f"**Corpus.** {len(with_census)} of the {len(ds)} families has a corpus count at "
+                   f"all. The rows below are that family's own denominator — there is no "
+                   f"roster-wide corpus figure, and the `NOT MEASURED` rows are exactly what is "
+                   f"missing, each naming the leaf that owes it.")
+        out.append("")
+        out.append("| Family | Corpus rows | Passing | Known defects | What the number rests on |")
+        out.append("|---|---:|---:|---:|---|")
+        for x in ds:
+            c, why = x["corpus"], x["corpus_why"]
+            if c:
+                rests = (f"{c['denominator']}, counted by `{c['instrument']}` and held current by "
+                         f"`{c['gate']}`")
+                row = (f"| `{x['family']}` | {fmt(c['total'])} | {fmt(c['passing'])} "
+                       f"({pct(c['passing'], c['total'])}) | {fmt(c['defects'])} | {cell(rests)} |")
+            else:
+                rests = why["blurb"] + "."
+                if why.get("owed_by"):
+                    rests += f" Owed by `{why['owed_by']}`."
+                row = (f"| `{x['family']}` | ⛔ NOT MEASURED | ⛔ | ⛔ | {cell(rests)} |")
+            out.append(row)
+        out.append("")
+        out.append("⛔ in a numeric cell means **NOT MEASURED**: there is no count. That is not the "
+                   "same as a count of zero, and it is not the same as nothing being wrong — it is "
+                   "the absence of an instrument, which is itself the work the named leaf owes.")
+        out.append("")
+        out.append(f"**What remains, across the whole index.** The task-tree index carries "
+                   f"{len(row_state)} trees and **{n_open} are OPEN**. Every row is adjudicated to "
+                   f"exactly one bucket — the producer refuses to render at all if a row carries no "
+                   f"attribution or an attribution names no row — so the buckets below are a "
+                   f"partition, and they sum to that total.")
+        out.append("")
+        out.append("| Where the open work sits | Open trees | What that bucket is |")
+        out.append("|---|---:|---|")
+        out.append(f"| Attributed to one family | {fam_total} | {cell(vocab['<family>'])} |")
+        for who, n in sorted(((k, v) for k, v in open_by_class.items()
+                              if k not in register["families"]), key=lambda kv: (-kv[1], kv[0])):
+            out.append(f"| `{who}` | {n} | {cell(vocab[who])} |")
+        out.append(f"| **Total** | **{n_open}** | of the {len(row_state)} trees the index carries |")
+        out.append("")
+        out.append(f"⚠️ **These counts are an UPPER BOUND, and the reason is measured.** A tree's "
+                   f"status is prose in two places — the index row and the tree file's own metadata "
+                   f"— and they DISAGREE on {n_disputed_rows} of the {len(row_state)} rows while "
+                   f"{n_unreadable_rows} index rows carry no status word this reader recognises. "
+                   f"Every one of those is counted OPEN, because over-reporting how much is left is "
+                   f"the only safe direction for a page that says how much is left. Reconciling "
+                   f"them is `DONE-BAR-VISIBILITY.8`; raising the item from a TREE to a LEAF is "
+                   f"`DONE-BAR-VISIBILITY.7`.")
+        out.append("")
+        out.append("<!-- END DERIVED -->")
+    else:
+        out.append(f"CROSS-FAMILY STATUS — {len(ds)} families, one page   (every figure derived; "
+                   f"nothing here is hand-written)")
+        out.append(f"  {len(met_all)} of {len(ds)} families meet the three-leg `Done` bar; "
+                   f"{legs_met} of {3 * len(ds)} legs met across the roster.")
+        out.append("")
+        out.append(f"  {'family':30s}{'claimed status':30s}{'corpus rows':>13s}{'passing':>16s}"
+                   f"{'defects':>9s}{'trees':>7s}   legs 1/2/3")
+        for x in ds:
+            c = x["corpus"]
+            rows_cell = fmt(c["total"]) if c else "NOT MEASURED"
+            pass_cell = f"{fmt(c['passing'])} ({pct(c['passing'], c['total'])})" if c else "—"
+            defect_cell = fmt(c["defects"]) if c else "—"
+            out.append(f"  {x['family']:30s}{x['entry']['claimed_status']:30s}{rows_cell:>13s}"
+                       f"{pass_cell:>16s}{defect_cell:>9s}{len(x['family_open']):>7d}   "
+                       + " ".join(MARK[x["legs"][n]["verdict"]] for n in (1, 2, 3)))
+        out.append("")
+        out.append(f"  => open trees {n_open} of {len(row_state)}: {fam_total} owned by a family "
+                   f"(column `trees`), " + ", ".join(
+                       f"{n} {who}" for who, n in sorted(
+                           ((k, v) for k, v in open_by_class.items() if k not in register["families"]),
+                           key=lambda kv: (-kv[1], kv[0]))))
+        out.append(f"  => {len(with_census)} of {len(ds)} families has a corpus count at all; each "
+                   f"NOT MEASURED row names the leaf that owes one")
+        out.append(f"  => an UPPER BOUND: {n_disputed_rows} tracker statuses DISPUTED and "
+                   f"{n_unreadable_rows} unreadable, all counted OPEN (DONE-BAR-VISIBILITY.8)")
+    return out
+
+
+# --- dispatch -----------------------------------------------------------------------------------
+if CROSS:
+    print("\n".join(render_cross([derive(f) for f in sorted(register["families"])])))
+elif MODE == "markdown":
+    print("\n".join(render_markdown(derive(FAMILY))))
+else:
+    print("\n".join(render_text(derive(FAMILY))))
 PY
 }
 
@@ -732,11 +973,28 @@ if [ "$CHECK_ALL" -eq 1 ]; then
       printf '%s\n' "$out" >&2
     fi
   done
-  [ "$rc_all" -eq 0 ] && echo "report_family_status: OK ($n_ok published family status blocks equal a fresh derivation)"
+  # ⛔ AND THE CROSS-FAMILY VIEW IS CHECKED IN THE SAME PASS, not by a second invocation. It is the
+  # eleventh published surface derived from these two audit runs; checking it separately would pay
+  # for them again and, worse, would leave it possible to run the ten and believe the roster covered.
+  if [ ! -f "$CROSS_PAGE" ]; then
+    echo "report_family_status: FAILED (1) - no published cross-family view at $CROSS_PAGE" >&2
+    rc_all=1
+  else
+    fresh="$(render '*' cross_markdown)" || rc_all=2
+    if [ -n "${fresh:-}" ]; then
+      if out="$(check_page "$CROSS_PAGE" "$fresh" 2>&1)"; then
+        n_ok=$((n_ok + 1))
+      else
+        rc="$?"; [ "$rc_all" -eq 2 ] || rc_all="$rc"
+        printf '%s\n' "$out" >&2
+      fi
+    fi
+  fi
+  [ "$rc_all" -eq 0 ] && echo "report_family_status: OK ($n_ok published blocks — the family pages and the cross-family view — equal a fresh derivation)"
   exit "$rc_all"
 fi
 
-RENDERED="$(render "$FAMILY" "$MODE")" || exit 2
+RENDERED="$(render "${FAMILY:-*}" "$MODE")" || exit 2
 if [ -n "$CHECK" ]; then
   check_page "$CHECK" "$RENDERED"
   exit $?

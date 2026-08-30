@@ -13,5 +13,11 @@ FAMILY-STATUS producer probe arms — scripts/report_family_status.sh
   ✅ RED-9 an attribution naming no tree row is REFUSED         exit=2, message matched
   ✅ RED-10 a declared corpus state that drifts from the register exit=2, message matched
   ✅ RED-11 a family with no declared corpus state is REFUSED   exit=2, message matched
+  ✅ CTRL-2 the published cross-family view equals a fresh derivation exit=0, message matched
+  ✅ RED-12 hand-written prose inside the cross-family block is caught exit=1, message matched
+  ✅ RED-13 --cross-family with a family named is REFUSED       exit=2, message matched
+  ✅ RED-14 --cross-family with --check-all is REFUSED          exit=2, message matched
+  ✅ RED-15 an attribution bucket with no vocabulary entry is REFUSED exit=2, message matched
+  ✅ RED-16 a table cell carrying a pipe is REFUSED             exit=2, message matched
 ------------------------------------------------------------------------------
-family-status probes: 12 passed, 0 failed
+family-status probes: 18 passed, 0 failed

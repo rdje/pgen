@@ -161,6 +161,72 @@ for spec in "RED-10 a declared corpus state that drifts from the register|$WORK/
     fi
 done
 
+# --- the CROSS-FAMILY view (DONE-BAR-VISIBILITY.5) ----------------------------------------------
+# ⛔ It is the ELEVENTH published surface and shares ONE derive() with the ten family pages, so the
+# question these arms answer is not "does it render" but "can it still refuse". A roster page that
+# cannot go red is a roster page that will quietly stop describing the roster.
+CROSS_PAGE="docs/book/src/roadmap-and-live-status.md"
+
+arm "CTRL-2 the published cross-family view equals a fresh derivation" 0 \
+    "report_family_status: OK (published block equals a fresh derivation" -- \
+    --cross-family --check "$CROSS_PAGE"
+
+# RED-12 — HAND-WRITTEN PROSE ADDED INSIDE the published cross-family block. This is the rot the
+# page exists to prevent, one level up: a reader comparing families would be reading a sentence no
+# derivation stands behind. The mutation is asserted to have APPLIED, because a probe whose setup
+# silently no-ops is an arm that passes vacuously.
+python3 - "$CROSS_PAGE" "$WORK/cross_mutated.md" <<'PY'
+import pathlib, sys
+page, out = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+text = page.read_text(encoding="utf-8")
+end = "<!-- END DERIVED -->"
+assert text.count(end) == 1, "the cross page must carry exactly one END marker to mutate"
+out.write_text(text.replace(end, "Every family is nearly there.\n\n" + end), encoding="utf-8")
+PY
+if ! grep -q 'Every family is nearly there' "$WORK/cross_mutated.md"; then
+    echo "  ⛔ SETUP FAILED: the RED-12 mutation did not apply — the arm would pass vacuously" >&2
+    fail=$((fail + 1))
+fi
+arm "RED-12 hand-written prose inside the cross-family block is caught" 1 \
+    "the published status block is OUT OF SYNC" -- --cross-family --check "$WORK/cross_mutated.md"
+
+# RED-13/14 — the flag's own contract. `--cross-family` renders the whole register, so naming a
+# family is a request for something this mode does not mean; and `--check-all` ALREADY covers the
+# cross view, so accepting both would let a reader believe two things were checked when one was.
+arm "RED-13 --cross-family with a family named is REFUSED" 2 \
+    "--cross-family takes no family" -- --cross-family systemverilog
+arm "RED-14 --cross-family with --check-all is REFUSED" 2 \
+    "--check-all already covers the cross-family view" -- --check-all --cross-family
+
+# RED-15/16 — the cross renderer's OWN refusals, driven through the schema seam.
+# RED-15: an attribution bucket with no entry in the schema's vocabulary would publish a count with
+# no statement of what the bucket MEANS — a number in a table nobody can read is not a disclosure.
+# RED-16: a `|` inside any cell text SILENTLY re-cuts the row and GFM discards the excess without a
+# warning (TABLE-ARITY-RATCHET's founding measurement: 26 of 197 rows of a SHIPPED contract lost
+# their consumer-impact column). Most cell text here comes from the schema, so the producer must
+# refuse rather than publish a table that renders cleanly and says something else.
+python3 - "$WORK/no_vocab_schema.json" "$WORK/piped_blurb_schema.json" <<'PYX'
+import json, pathlib, sys
+d = json.loads(pathlib.Path("rust/test_data/grammar_quality/family_status_block_v0.json").read_text())
+gone = json.loads(json.dumps(d)); gone["tree_attribution"]["vocabulary"].pop("process")
+pathlib.Path(sys.argv[1]).write_text(json.dumps(gone, indent=2))
+piped = json.loads(json.dumps(d))
+piped["corpus_state"]["classes"]["no_third_party_corpus"] += " | and a pipe"
+pathlib.Path(sys.argv[2]).write_text(json.dumps(piped, indent=2))
+PYX
+for spec in "RED-15 an attribution bucket with no vocabulary entry is REFUSED|$WORK/no_vocab_schema.json|has no entry in \`tree_attribution.vocabulary\`" \
+            "RED-16 a table cell carrying a pipe is REFUSED|$WORK/piped_blurb_schema.json|which GFM would read as a column boundary"; do
+    IFS='|' read -r label sch want <<<"$spec"
+    out="$(PGEN_FAMILY_STATUS_SCHEMA="$sch" bash "$PRODUCER" --cross-family --markdown 2>&1)"; rc=$?
+    if [[ "$rc" == 2 && "$out" == *"$want"* ]]; then
+        printf '  ✅ %-58s exit=%s, message matched\n' "$label" "$rc"; pass=$((pass + 1))
+    else
+        printf '  ⛔ %-58s exit=%s (want 2)\n' "$label" "$rc"
+        printf '     wanted substring: %s\n' "$want"
+        printf '%s\n' "$out" | tail -n 4 | sed 's/^/     | /'; fail=$((fail + 1))
+    fi
+done
+
 echo "------------------------------------------------------------------------------"
 printf 'family-status probes: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

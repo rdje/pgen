@@ -66,17 +66,28 @@ Both renderings answer three questions **from derived data, not prose**:
 
 ## Acceptance criteria (tree)
 
-- [ ] Each of the 10 families' book pages carries a DERIVED status block: bar-leg state, corpus
-      counts against a named denominator, and the remaining-work list with owning leaf ids.
-- [ ] Every number in that block is derived by a producer and gate-held equal to its source, so it
-      cannot drift (the `SV-CORPUS-DENOMINATOR` co-publication shape).
-- [ ] A family with no corpus says so LOUDLY as `NOT MEASURED`, never as a blank or a zero —
-      `docs/decisions/feedback_a_check_that_cannot_run_must_say_so.md`.
-- [ ] The main book gains one cross-family view so the whole picture is one page, not ten.
-- [ ] **A producer exists that emits the brief form for one family in a screenful, and I report it
+- [x] Each of the 10 families' book pages carries a DERIVED status block: bar-leg state, corpus
+      counts against a named denominator, and the remaining-work list with owning leaf ids. (`.9`)
+- [x] Every number in that block is derived by a producer and gate-held equal to its source, so it
+      cannot drift (the `SV-CORPUS-DENOMINATOR` co-publication shape). (`.4`)
+- [x] A family with no corpus says so LOUDLY as `NOT MEASURED`, never as a blank or a zero —
+      `docs/decisions/feedback_a_check_that_cannot_run_must_say_so.md`. (`.3`)
+- [x] The main book gains one cross-family view so the whole picture is one page, not ten. (`.5`)
+- [x] **A producer exists that emits the brief form for one family in a screenful, and I report it
       in completion messages** — the director reads it in chat and is never expected to run it.
-- [ ] **Terminal and book cannot disagree**: `--check` re-derives and diffs the published block,
+      (`.1`; the cross-family brief added by `.5` reports all ten in one screenful.)
+- [x] **Terminal and book cannot disagree**: `--check` re-derives and diffs the published block,
       wired as a gate, so a stale book section fails a commit rather than misleading a reader.
+      (`.4`, extended to the roster page by `.5`.)
+
+⭐ **All six criteria as written are MET, and the tree stays `active` anyway** — deliberately, not
+as bookkeeping drift. Five leaves remain open and every one of them was UNCOVERED by doing this
+work rather than planned with it: `.3b` (the two families whose corpus was measured once and cannot
+be re-derived), `.6` (the hand-written status prose class, measured at 1 of 9 books), `.7` (raise
+the remaining-work item from a TREE to a LEAF), `.8` (the 3 disputed + 7 unreadable tracker
+statuses that make every count an upper bound) and `.10` (the `Current frontier` section absent
+from 19 of 61 open trees). Closing the tree on its original criteria while those stand would
+publish exactly the comfortable label this tree exists to replace with a distance.
 
 ## Task tree
 
@@ -140,8 +151,13 @@ Both renderings answer three questions **from derived data, not prose**:
   Goal: wire the co-publication gate so the block cannot go stale.
   Acceptance: `FAMILY-STATUS-CURRENCY` is a registered doctrine running on every commit; it refuses
   before it trusts; its RED arms are observed firing.
-- ID: `DONE-BAR-VISIBILITY.5` — Status: `pending`
+- ID: `DONE-BAR-VISIBILITY.5` — Status: `done` (`PGEN-DONE-BAR-VISIBILITY-0009`)
   Goal: the cross-family page in the main book.
+  Acceptance: MET — `docs/book/src/roadmap-and-live-status.md` § *The Distance Behind The Labels*
+  carries a `DERIVED` block with three tables (distance, corpus, and the attribution partition of
+  the open trees), rendered by the SAME `derive()` that produces each family's own page, and
+  `--check`-held by `FAMILY-STATUS-CURRENCY` on every commit. The refactor that made one derivation
+  serve three surfaces is proven byte-identical on all 20 pre-existing renderings.
 - ID: `DONE-BAR-VISIBILITY.7` — Status: `pending`
   Goal: raise the remaining-work list from TREE granularity to LEAF granularity — the shape `.2`'s
   acceptance asked for and the shape a reader wants ("what are the four things left", not "which
@@ -200,13 +216,15 @@ Both renderings answer three questions **from derived data, not prose**:
 
 ## Current frontier
 
-1. `DONE-BAR-VISIBILITY.5` (the cross-family view in the main book — the whole picture on one page
-   rather than ten). It is the frontier because the per-family answer is now published AND gated,
-   and the one thing a reader still cannot do is compare families without opening ten books.
-2. `DONE-BAR-VISIBILITY.3b` (real counts for `vhdl` and `regex` — a tracked census plus a freshness
-   gate, the `SV-CORPUS-DENOMINATOR` shape).
-3. `DONE-BAR-VISIBILITY.8` (the 4 DISPUTED + 7 unreadable tracker statuses, which make every
-   remaining-work count an upper bound).
+1. `DONE-BAR-VISIBILITY.3b` (real counts for `vhdl` and `regex` — a tracked census plus a freshness
+   gate, the `SV-CORPUS-DENOMINATOR` shape). It is the frontier because the roster page now states,
+   in the book, that **1 of 10 families has a corpus count at all**: the largest single gap between
+   what this tree publishes and what a reader wants to know is nine missing denominators, and two
+   of the nine have already been measured once and merely cannot be re-derived.
+2. `DONE-BAR-VISIBILITY.8` (the 3 DISPUTED + 7 unreadable tracker statuses, which make every
+   remaining-work count — now including the roster page's `62 of 113` — an upper bound).
+3. `DONE-BAR-VISIBILITY.7` (raise the remaining-work item from a TREE to a LEAF), blocked on the
+   leaf-status convention defect it names.
 
 ## Leaf records
 
@@ -585,6 +603,118 @@ tracked page is ever touched.
       stripped. Every RED state is CONSTRUCTED under the scratch pages-root seam; no tracked page is
       mutated.
 - promotion: declined (the durable rules this leaf exercises are already carried — a check nothing invokes is GATE-REACHABILITY's founding measurement, refusing before trusting is docs/knowledge/a-control-that-cannot-fail-is-not-a-control.md, and hoisting a family-independent cost so a gate is cheap enough to run every commit is an engineering decision recorded in the leaf and in the doctrine's own header)
+
+### `.5` — the cross-family view: the whole roster on one page
+
+Shipped in `PGEN-DONE-BAR-VISIBILITY-0009`. The platform book's live-status chapter gains
+**§ *The Distance Behind The Labels***, a `DERIVED` block re-derived and diffed by
+`FAMILY-STATUS-CURRENCY` on every commit exactly like the ten family pages.
+
+**What landed.**
+
+- `scripts/report_family_status.sh --cross-family` — the chat form (the whole roster in a
+  screenful, reported by me, never by the director) — `--cross-family --markdown` (the book block)
+  and `--cross-family --check FILE` (re-derive and diff). `--check-all` now covers **11** published
+  subjects: the ten family pages and the roster page, in ONE pass.
+- **The producer was refactored so that there is exactly ONE derivation.** The per-family pass is
+  now a function `derive(family)`; the brief form, the book block and each row of the roster page
+  are RENDERINGS of what it returns. A roster table that computed its own numbers would have been
+  an eleventh surface to keep in sync — the very class this tree exists to remove — and gating it
+  would only have made a disagreement loud. Deriving it makes the disagreement unrepresentable.
+- The open/closed verdict for each index row is now computed ONCE at module scope rather than
+  per family, for the same reason and one more: ten families × 113 tree files is ten times the
+  file reads, and ten recomputations are ten chances for the ten answers to disagree about one row.
+- `rust/test_data/grammar_quality/family_status_block_v0.json` declares a THIRD surface, `cross`,
+  on the 8 fields the roster publishes. The field-set check is now surface membership in both
+  directions, so a field rendered on the roster page with no declared producer refuses exactly as
+  it does on a family page. `language_owner` is deliberately NOT on the roster: the label table
+  directly above it already publishes that column, and a second copy on one page is a second thing
+  to keep true.
+- `scripts/check_family_status.sh` tier A now holds the roster page to the same three structural
+  questions as a family page, through its own `PGEN_FAMILY_STATUS_CROSS_PAGE` seam — and the marker
+  must name `--cross-family`, so a single family's block pasted onto the page that promises the
+  whole picture fails statically, before any derivation is paid for.
+
+**What the page answers that ten pages could not.** Three derived tables, in the order a reader
+asks them:
+
+1. **Distance** — every family's claimed label beside `legs met`, the three leg marks, and the
+   number of open trees owning its remaining work. Two families can now be compared without
+   opening two books, which was the whole gap.
+2. **Corpus** — rows, passing, known defects and what the number rests on. **1 of 10 families has
+   a corpus count at all**; the nine `NOT MEASURED` rows each carry the DERIVED reason and the leaf
+   that owes one, and the block says in terms that ⛔ is *the absence of an instrument*, not a zero.
+3. **What remains, across the whole index** — the attribution partition of the OPEN trees:
+   **62 of 113 trees are open** — 15 attributed to a family, 26 `cross-cutting`, 14 `process`,
+   4 `future-family`, 3 `platform`. The bucket descriptions are read from the schema's own
+   vocabulary rather than typed, and a bucket with no vocabulary entry REFUSES rather than
+   publishing a count nobody can interpret.
+
+⛔ The page states its own limit where a reader will see it: the counts are an **UPPER BOUND**,
+because the two prose arms of a tree's status disagree on **3 of 113** rows and **7** index rows
+carry no status word the reader recognises, all counted OPEN. `.8` owns reconciling them and `.7`
+owns raising the item from a TREE to a LEAF.
+
+**Cost, measured, and it is why the gate can still run on every commit.** Ten separate
+`--markdown` renders: **23.771 s**. The roster render, which derives all ten families: **2.597 s**
+— **9.2×** cheaper, because the two `audit_done_bar.sh` runs are family-independent and are paid
+once. The whole doctrine went **3.4 s → 3.7 s** for an eleventh published surface.
+
+⚠️ **Two guards in the roster renderer have NOT been observed firing, and saying so is the point.**
+The partition arm (the per-family lists must sum to the count of family-attributed OPEN rows) and
+the agreement arm (all ten families must report the same cross-cutting count) compare two results
+of the same closed derivation, so no input can separate them — driving either red would mean
+editing the code, not constructing a state. They are defensive invariants, and this leaf records
+them as such rather than counting them among the arms that were driven.
+`docs/knowledge/a-control-that-cannot-fail-is-not-a-control.md` is why the distinction is written
+down instead of quietly enjoyed.
+
+#### Acceptance checklist (`TOOLBOX.md`)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `docs/book/src/roadmap-and-live-status.md`, which
+      published the label table and then said, in its own words, *"The cross-family view that will
+      live here is `DONE-BAR-VISIBILITY.5`"*. WHY, measured with the ops/build-flow instruments
+      rather than asserted:
+      `git ls-files 'docs/*_parser_book/src/status-and-distance.md' | wc -l` → **10** published
+      distance pages, one per family and none anywhere else; and the platform book had never
+      carried one in the whole history —
+      `git log -S'BEGIN DERIVED: scripts/report_family_status.sh' --oneline -- docs/book/src/roadmap-and-live-status.md | wc -l`
+      → **0** commits, as does `git log -S'--cross-family' --oneline -- docs/` → **0**. So every
+      derived distance in the repository lived on a per-family page, and a reader who wanted to
+      compare the roster had to open ten books and hold ten answers in their head. That is the
+      director's *"no end in sight"* remark in its cross-family form: each family could say how far
+      IT was, and nothing said how far the PROJECT was. (Corroborated by the two greps this leaf
+      first cited — `BEGIN DERIVED` count on the page **0 → 1**, and files carrying the producer's
+      marker **30 → 31**, the 30 being the ten pages plus their 20 tracked HTML renderings.)
+- [x] **ADDRESSED (verified)** — after: the same greps read **1** and **31**;
+      `bash scripts/report_family_status.sh --cross-family --check docs/book/src/roadmap-and-live-status.md`
+      → `OK (published block equals a fresh derivation, 6975 bytes)`; and
+      `bash scripts/check_family_status.sh` reports tier A over *"10 pages + the cross-family view"*
+      and tier C over **11** published blocks, in **3.7 s**.
+- [x] **NO REGRESSION** — the refactor that made one derivation serve three surfaces is proven
+      byte-identical on the surfaces that already existed: all ten families were rendered in BOTH
+      modes before the change and again after (`rust/target/dbv5_baseline` vs
+      `rust/target/dbv5_after`, 20 renderings), and `diff` reports **0 differing bytes on 20 of
+      20**. Beyond that: `bash scripts/check_doctrines.sh` ALL 32 PASS;
+      `make -C rust SHELL=/bin/bash mdbook_docs_gate` PASS; producer probes **18/18**; gate probes
+      **12/12**.
+- [x] **RED CONTROLS** — `run_family_status_probes.sh` grew from 12 arms to **18**: one GREEN
+      control (the published roster page equals a fresh derivation) and five RED — hand-written
+      prose added inside the published block (caught, exit 1); `--cross-family` with a family named
+      (refused); `--cross-family` with `--check-all` (refused, because accepting both would let a
+      reader believe two things were checked when one was); an attribution bucket with no
+      vocabulary entry (refused); and a `|` inside a schema blurb, which GFM would silently read as
+      a column boundary (refused — `TABLE-ARITY-RATCHET`'s founding measurement is 26 of 197 rows
+      of a SHIPPED contract losing their consumer-impact column exactly that way).
+      `run_family_status_gate_probes.sh` grew from 7 arms to **12**: a GREEN control on a copy of
+      the real roster page, then the roster page ABSENT, a single family's block on it, the block
+      duplicated, and a **structurally perfect but STALE** page — the last one is the arm that
+      proves tier A and tier C are not redundant, since tier A passes it and only the oracle sees
+      the drift. Every state is CONSTRUCTED through a seam; no tracked page is mutated.
+- promotion: declined (the durable rules exercised here are already carried — one derivation behind
+  every rendering is this tree's own founding decision and is recorded in the producer's header,
+  refusing before trusting is `docs/knowledge/a-control-that-cannot-fail-is-not-a-control.md`, and
+  the silent-pipe class is `TABLE-ARITY-RATCHET`'s own founding measurement)
 
 ## Decisions
 

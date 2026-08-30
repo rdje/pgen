@@ -90,7 +90,7 @@ produced by `scripts/report_family_status.sh`. **All ten parser books now carry 
 the `FAMILY-STATUS-CURRENCY` doctrine (`scripts/check_family_status.sh`, run by
 `scripts/check_doctrines.sh` on every commit) re-derives all ten blocks and refuses when a
 published one has drifted — so a number on those pages cannot go stale without failing a commit.
-The cross-family view that will live *here* is `DONE-BAR-VISIBILITY.5`.
+The cross-family view of the same derivation is [below](#the-distance-behind-the-labels).
 
 Reading the table honestly:
 
@@ -106,6 +106,67 @@ Reading the table honestly:
   so whether a corpus for the full standard counts is a genuine open ruling that `DONE-BAR.3` owes.
   A family-status gate asked to judge one of these **refuses** rather than guessing, because the
   comfortable label is the one that closes the row.
+
+### The Distance Behind The Labels
+
+⛔ **DERIVED — never edited by hand.** This section is produced by
+`bash scripts/report_family_status.sh --cross-family --markdown`, the same pass that produces
+each family's own status page, and the `FAMILY-STATUS-CURRENCY` doctrine re-derives it on every
+commit and fails that commit when what is published here differs. To change a number here, fix
+the tree it is derived from.
+
+<!-- BEGIN DERIVED: scripts/report_family_status.sh --cross-family --markdown -->
+
+**10 families, one page — the distance behind the labels above.** Every figure here is derived by `scripts/report_family_status.sh` in the SAME pass that produces each family's own *Status and Distance to `Done`* page, so the two surfaces cannot disagree about a number; `FAMILY-STATUS-CURRENCY` (`scripts/check_family_status.sh`) re-derives and diffs both on every commit.
+
+**0 of 10 families meet the three-leg `Done` bar, and 0 of the 30 legs across the roster are met.**
+
+| Family | Claimed status | Legs met | 1 | 2 | 3 | Trees owning its remaining work |
+|---|---|---:|:-:|:-:|:-:|---:|
+| [`ebnf`](../../ebnf_parser_book/src/status-and-distance.md) | In Progress | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
+| [`json`](../../json_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
+| [`regex`](../../regex_parser_book/src/status-and-distance.md) | In Progress | 0 of 3 | ⚠️ | ⛔ | ⛔ | 5 |
+| [`return_annotation`](../../return_annotation_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
+| [`rtl_const_expr`](../../rtl_const_expr_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
+| [`rtl_frontend`](../../rtl_frontend_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 0 |
+| [`semantic_annotation`](../../semantic_annotation_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
+| [`systemverilog`](../../systemverilog_parser_book/src/status-and-distance.md) | Mostly Done | 0 of 3 | ⚠️ | ⛔ | ⛔ | 4 |
+| [`systemverilog_preprocessor`](../../systemverilog_preprocessor_parser_book/src/status-and-distance.md) | Provisional (corpus pending) | 0 of 3 | ⚠️ | ⛔ | ⛔ | 1 |
+| [`vhdl`](../../vhdl_parser_book/src/status-and-distance.md) | Provisional (corpus pending) | 0 of 3 | ⚠️ | ⛔ | ⛔ | 0 |
+
+Leg 1 is the stimuli-generator proof, leg 2 is *gates green and invoked* — every covering gate green AND actually invoked by something — and leg 3 is an officially-recognized external corpus passing. ✅ met · ⚠️ unproven · ⛔ unmet. **Why** a leg reads as it does is on that family's own page, one click away; this table is the comparison, not the explanation.
+
+**Corpus.** 1 of the 10 families has a corpus count at all. The rows below are that family's own denominator — there is no roster-wide corpus figure, and the `NOT MEASURED` rows are exactly what is missing, each naming the leaf that owes it.
+
+| Family | Corpus rows | Passing | Known defects | What the number rests on |
+|---|---:|---:|---:|---|
+| `ebnf` | ⛔ NOT MEASURED | ⛔ | ⛔ | the language is authored by PGEN itself, so no third-party corpus exists or ever will. NOT a measurement gap -- leg 3 is unreachable by construction and the qualifier is `Provisional (ceiling)`. |
+| `json` | ⛔ NOT MEASURED | ⛔ | ⛔ | whether a corpus for the full standard counts against this SUBSET language is an open ruling; until it is made, a corpus count would be measured against a denominator nobody has agreed to. Owed by `DONE-BAR.3`. |
+| `regex` | ⛔ NOT MEASURED | ⛔ | ⛔ | the register declares external corpus roots, but no TRACKED census turns them into counts a reader can re-derive. Owed by `DONE-BAR-VISIBILITY.3b`. |
+| `return_annotation` | ⛔ NOT MEASURED | ⛔ | ⛔ | the language is authored by PGEN itself, so no third-party corpus exists or ever will. NOT a measurement gap -- leg 3 is unreachable by construction and the qualifier is `Provisional (ceiling)`. |
+| `rtl_const_expr` | ⛔ NOT MEASURED | ⛔ | ⛔ | whether a corpus for the full standard counts against this SUBSET language is an open ruling; until it is made, a corpus count would be measured against a denominator nobody has agreed to. Owed by `DONE-BAR.3`. |
+| `rtl_frontend` | ⛔ NOT MEASURED | ⛔ | ⛔ | whether a corpus for the full standard counts against this SUBSET language is an open ruling; until it is made, a corpus count would be measured against a denominator nobody has agreed to. Owed by `DONE-BAR.3`. |
+| `semantic_annotation` | ⛔ NOT MEASURED | ⛔ | ⛔ | the language is authored by PGEN itself, so no third-party corpus exists or ever will. NOT a measurement gap -- leg 3 is unreachable by construction and the qualifier is `Provisional (ceiling)`. |
+| `systemverilog` | 16 336 | 5 845 (35.8 %) | 274 | every row of the SystemVerilog corpus adjudication manifests over stimuli/sv/subs + stimuli/sv/uvm, counted by `stimuli/sv/corpus_verdict_coverage.py` and held current by `bash scripts/check_sv_corpus_denominator.sh` |
+| `systemverilog_preprocessor` | ⛔ NOT MEASURED | ⛔ | ⛔ | the language is standardized, so a corpus exists in the world, but none is wired into this repository. An UNMET leg, never an inapplicable one. Owed by `CORPUS-GRAD-ALL.1`. |
+| `vhdl` | ⛔ NOT MEASURED | ⛔ | ⛔ | the register declares external corpus roots, but no TRACKED census turns them into counts a reader can re-derive. Owed by `DONE-BAR-VISIBILITY.3b`. |
+
+⛔ in a numeric cell means **NOT MEASURED**: there is no count. That is not the same as a count of zero, and it is not the same as nothing being wrong — it is the absence of an instrument, which is itself the work the named leaf owes.
+
+**What remains, across the whole index.** The task-tree index carries 113 trees and **62 are OPEN**. Every row is adjudicated to exactly one bucket — the producer refuses to render at all if a row carries no attribution or an attribution names no row — so the buckets below are a partition, and they sum to that total.
+
+| Where the open work sits | Open trees | What that bucket is |
+|---|---:|---|
+| Attributed to one family | 15 | one of the `families` keys of done_bar_family_register_v0.json - this tree's remaining work is work on THAT parser |
+| `cross-cutting` | 26 | engine, codegen, annotation, stimuli or corpus-doctrine work that can gate ANY family. Counted for every family, but reported as a COUNT rather than inlined, so a family's own list stays readable |
+| `process` | 14 | governance, continuity, documentation, ops and repo hygiene. Real work, but not on any parser's path to `Done` |
+| `future-family` | 4 | a parser family PGEN does not ship yet (Phase S and later). No current family's bar depends on it |
+| `platform` | 3 | platform expansion around the parsers - a linter, an elaborator workbench, MCP control - rather than a parser |
+| **Total** | **62** | of the 113 trees the index carries |
+
+⚠️ **These counts are an UPPER BOUND, and the reason is measured.** A tree's status is prose in two places — the index row and the tree file's own metadata — and they DISAGREE on 3 of the 113 rows while 7 index rows carry no status word this reader recognises. Every one of those is counted OPEN, because over-reporting how much is left is the only safe direction for a page that says how much is left. Reconciling them is `DONE-BAR-VISIBILITY.8`; raising the item from a TREE to a LEAF is `DONE-BAR-VISIBILITY.7`.
+
+<!-- END DERIVED -->
 
 ### Grammars that are not families
 

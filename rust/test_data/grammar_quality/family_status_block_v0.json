@@ -18,7 +18,8 @@
       "state": "derived",
       "surfaces": [
         "chat",
-        "book"
+        "book",
+        "cross"
       ]
     },
     "language_owner": {
@@ -36,7 +37,8 @@
       "state": "derived",
       "surfaces": [
         "chat",
-        "book"
+        "book",
+        "cross"
       ]
     },
     "bar_leg_2": {
@@ -45,7 +47,8 @@
       "state": "derived",
       "surfaces": [
         "chat",
-        "book"
+        "book",
+        "cross"
       ]
     },
     "bar_leg_3": {
@@ -54,7 +57,8 @@
       "state": "derived",
       "surfaces": [
         "chat",
-        "book"
+        "book",
+        "cross"
       ]
     },
     "local_gate_state": {
@@ -71,7 +75,8 @@
       "state": "derived",
       "surfaces": [
         "chat",
-        "book"
+        "book",
+        "cross"
       ]
     },
     "corpus_passing": {
@@ -80,7 +85,8 @@
       "state": "derived",
       "surfaces": [
         "chat",
-        "book"
+        "book",
+        "cross"
       ]
     },
     "known_defects": {
@@ -89,7 +95,8 @@
       "state": "derived",
       "surfaces": [
         "chat",
-        "book"
+        "book",
+        "cross"
       ]
     },
     "remaining_work": {
@@ -98,7 +105,8 @@
       "state": "derived",
       "surfaces": [
         "chat",
-        "book"
+        "book",
+        "cross"
       ]
     }
   },

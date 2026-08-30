@@ -1,0 +1,18 @@
+CROSS-FAMILY STATUS — 10 families, one page   (every figure derived; nothing here is hand-written)
+  0 of 10 families meet the three-leg `Done` bar; 0 of 30 legs met across the roster.
+
+  family                        claimed status                  corpus rows         passing  defects  trees   legs 1/2/3
+  ebnf                          In Progress                    NOT MEASURED               —        —      1   ⚠️ ⛔ ⛔
+  json                          Mostly Done                    NOT MEASURED               —        —      1   ⚠️ ⛔ ⛔
+  regex                         In Progress                    NOT MEASURED               —        —      5   ⚠️ ⛔ ⛔
+  return_annotation             Mostly Done                    NOT MEASURED               —        —      1   ⚠️ ⛔ ⛔
+  rtl_const_expr                Mostly Done                    NOT MEASURED               —        —      1   ⚠️ ⛔ ⛔
+  rtl_frontend                  Mostly Done                    NOT MEASURED               —        —      0   ⚠️ ⛔ ⛔
+  semantic_annotation           Mostly Done                    NOT MEASURED               —        —      1   ⚠️ ⛔ ⛔
+  systemverilog                 Mostly Done                          16 336  5 845 (35.8 %)      274      4   ⚠️ ⛔ ⛔
+  systemverilog_preprocessor    Provisional (corpus pending)   NOT MEASURED               —        —      1   ⚠️ ⛔ ⛔
+  vhdl                          Provisional (corpus pending)   NOT MEASURED               —        —      0   ⚠️ ⛔ ⛔
+
+  => open trees 62 of 113: 15 owned by a family (column `trees`), 26 cross-cutting, 14 process, 4 future-family, 3 platform
+  => 1 of 10 families has a corpus count at all; each NOT MEASURED row names the leaf that owes one
+  => an UPPER BOUND: 3 tracker statuses DISPUTED and 7 unreadable, all counted OPEN (DONE-BAR-VISIBILITY.8)

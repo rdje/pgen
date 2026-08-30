@@ -91,6 +91,66 @@ grep -v 'DERIVED' docs/vhdl_parser_book/src/status-and-distance.md \
 arm "RED-5 a page carrying no DERIVED block" 1 \
     "carries 0 BEGIN and 0 END DERIVED marker(s)" "$WORK/noblock"
 
+# --- the CROSS-FAMILY view (DONE-BAR-VISIBILITY.5) ----------------------------------------------
+# ⛔ The eleventh published surface has its OWN seam, `PGEN_FAMILY_STATUS_CROSS_PAGE`, for the same
+# reason the family pages have theirs: these states are CONSTRUCTED, never mutated into a tracked
+# page. Every arm below is a state a reader would be unable to distinguish from a healthy page.
+xarm() {  # xarm <label> <want-rc> <want-substring> <cross-page>
+    local label="$1" want_rc="$2" want_substr="$3" page="$4"
+    local out rc
+    out="$(PGEN_FAMILY_STATUS_CROSS_PAGE="$page" bash "$CHECK" 2>&1)"; rc=$?
+    if [[ "$rc" == "$want_rc" && "$out" == *"$want_substr"* ]]; then
+        printf '  ✅ %-58s exit=%s, message matched\n' "$label" "$rc"; pass=$((pass + 1))
+    else
+        printf '  ⛔ %-58s exit=%s (want %s)\n' "$label" "$rc" "$want_rc"
+        printf '     wanted substring: %s\n' "$want_substr"
+        printf '%s\n' "$out" | tail -n 5 | sed 's/^/     | /'; fail=$((fail + 1))
+    fi
+}
+
+CROSS_PAGE="docs/book/src/roadmap-and-live-status.md"
+
+# CTRL-3 — an unmutated COPY of the real roster page passes all three tiers through the seam. It is
+# what makes the three mutations below differ from a passing state by exactly one thing.
+cp "$CROSS_PAGE" "$WORK/cross_clean.md"
+xarm "CTRL-3 a copy of the real cross-family page passes" 0 \
+    "family-status: OK (all published family status blocks equal a fresh derivation)" "$WORK/cross_clean.md"
+
+# RED-6 — the cross-family view is NOT PUBLISHED. The roster page is the only surface that answers
+# "how far is the PROJECT"; its absence must fail rather than be skipped as an optional extra.
+xarm "RED-6 the cross-family view is not published at all" 1 \
+    "the cross-family view is not published at" "$WORK/cross_absent.md"
+
+# RED-7 — a SINGLE FAMILY's block on the roster page. It renders perfectly, sits under a heading
+# promising the whole picture, and describes one family — the copy-paste tier A exists to catch.
+python3 - "$CROSS_PAGE" docs/vhdl_parser_book/src/status-and-distance.md "$WORK/cross_one_family.md" <<'PY'
+import pathlib, re, sys
+page, block, out = (pathlib.Path(p) for p in sys.argv[1:4])
+fam = re.search(r"<!-- BEGIN DERIVED.*?<!-- END DERIVED -->", block.read_text(), re.S).group(0)
+out.write_text(re.sub(r"<!-- BEGIN DERIVED.*?<!-- END DERIVED -->", fam, page.read_text(), flags=re.S))
+PY
+xarm "RED-7 a single family's block on the roster page" 1 \
+    "a single family's block on the page that claims to show the whole roster" "$WORK/cross_one_family.md"
+
+# RED-8 — the block DUPLICATED. A check that cannot locate exactly one subject must say so rather
+# than compare the first one it finds and report the second as agreeing.
+cat "$CROSS_PAGE" "$CROSS_PAGE" > "$WORK/cross_dup.md"
+xarm "RED-8 a roster page carrying two DERIVED blocks" 1 \
+    "carries 2 BEGIN and 2 END DERIVED marker(s)" "$WORK/cross_dup.md"
+
+# RED-9 — a STALE roster page: structurally perfect, so tier A passes it, and only the tier C oracle
+# can see that a number has moved. This is the arm that proves the tiers are not redundant.
+python3 - "$CROSS_PAGE" "$WORK/cross_stale.md" <<'PY'
+import pathlib, sys
+page, out = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+text = page.read_text(encoding="utf-8")
+end = "<!-- END DERIVED -->"
+assert text.count(end) == 1
+out.write_text(text.replace(end, "Nothing remains for any family.\n\n" + end), encoding="utf-8")
+PY
+xarm "RED-9 a structurally perfect but STALE roster page" 1 \
+    "the published status block is OUT OF SYNC" "$WORK/cross_stale.md"
+
 echo "------------------------------------------------------------------------------"
 printf 'family-status gate probes: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

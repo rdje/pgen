@@ -8,5 +8,10 @@ FAMILY-STATUS-CURRENCY probe arms — scripts/check_family_status.sh
   ✅ RED-3 another family's block in this family's book         exit=1, message matched
   ✅ RED-4 a page carrying two DERIVED blocks                   exit=1, message matched
   ✅ RED-5 a page carrying no DERIVED block                     exit=1, message matched
+  ✅ CTRL-3 a copy of the real cross-family page passes         exit=0, message matched
+  ✅ RED-6 the cross-family view is not published at all        exit=1, message matched
+  ✅ RED-7 a single family's block on the roster page           exit=1, message matched
+  ✅ RED-8 a roster page carrying two DERIVED blocks            exit=1, message matched
+  ✅ RED-9 a structurally perfect but STALE roster page         exit=1, message matched
 ------------------------------------------------------------------------------
-family-status gate probes: 7 passed, 0 failed
+family-status gate probes: 12 passed, 0 failed

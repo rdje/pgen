@@ -20,17 +20,22 @@
 #      the done-bar register has a published page, every published page belongs to a registered
 #      family, each page carries EXACTLY ONE well-formed DERIVED block, and that block's BEGIN
 #      marker names the family whose book it sits in. A page holding another family's block is a
-#      copy-paste this tier catches for free.
+#      copy-paste this tier catches for free. ⭐ The ELEVENTH published surface — the cross-family
+#      view in the platform book (`DONE-BAR-VISIBILITY.5`) — is held to the same three questions,
+#      and its marker must name `--cross-family`: a per-family block pasted onto the roster page
+#      would otherwise sit there reading like the whole picture while describing one family.
 #   B  THE RED CONTROL (~0.01 s). `report_family_status.sh <fam> --check <path that does not exist>`
 #      must exit 2. A green verdict from an instrument that says green to everything is worth
 #      nothing, and this repository has shipped exactly that: `GRAMMAR-CERT-STATUS.1b`'s producer
 #      kept its `--check` FLAG after a rewrite deleted the implementation, so four different inputs
 #      — including a nonexistent path — all exited 0 for a whole commit.
-#   C  THE ORACLE (~3.4 s). `--check-all` re-derives all ten blocks and DIFFS them against what is
-#      published. It uses the producer's own all-families mode deliberately: the two audit runs are
-#      family-independent and are ~2.3 s of the cost, so ten separate invocations would pay for them
-#      ten times and the doctrine would be too slow to run on every commit — which is how a check
-#      ends up behind a flag nobody sets.
+#   C  THE ORACLE (~3.4 s). `--check-all` re-derives all ten blocks AND the cross-family view, and
+#      DIFFS them against what is published. It uses the producer's own all-families mode
+#      deliberately: the two audit runs are family-independent and are ~2.3 s of the cost, so ten
+#      separate invocations would pay for them ten times and the doctrine would be too slow to run
+#      on every commit — which is how a check ends up behind a flag nobody sets. The cross-family
+#      view rides the same pass for the same reason, and because a roster page checked by a second
+#      invocation is a roster page that can be forgotten.
 #
 # ⚠️ HONEST LIMIT, stated rather than hidden (DOCTRINE_ENFORCEMENT.md §3): this holds the PUBLISHED
 # block equal to what the producer derives TODAY. Whether the producer's own inputs are right is
@@ -94,12 +99,31 @@ for fam, path in sorted(pages.items()):
         fails.append(f"{path} publishes the block for '{named}' — that is another family's block in "
                      f"{fam}'s book")
 
+# ⭐ THE CROSS-FAMILY VIEW, held to the same three questions as a family page. Its own seam, so the
+# constructed pages-root above (which mirrors only the ten family books) leaves it pointing at the
+# real page rather than reporting it missing for every family-page probe arm.
+cross_page = os.environ.get("PGEN_FAMILY_STATUS_CROSS_PAGE") or "docs/book/src/roadmap-and-live-status.md"
+if not os.path.isfile(cross_page):
+    fails.append(f"the cross-family view is not published at {cross_page} — the roster page is the "
+                 f"one surface that answers 'how far is the PROJECT', and its absence is a "
+                 f"disclosure loss, not a missing nicety (DONE-BAR-VISIBILITY.5)")
+else:
+    text = open(cross_page, encoding="utf-8").read()
+    n_begin, n_end = len(BEGIN.findall(text)), text.count("<!-- END DERIVED -->")
+    if n_begin != 1 or n_end != 1:
+        fails.append(f"{cross_page} carries {n_begin} BEGIN and {n_end} END DERIVED marker(s); "
+                     f"exactly one of each is required or the check cannot inspect its subject")
+    elif BEGIN.search(text).group(1) != "--cross-family":
+        fails.append(f"{cross_page} publishes the block for '{BEGIN.search(text).group(1)}' — a "
+                     f"single family's block on the page that claims to show the whole roster")
+
 if fails:
     print(f"{TAG}: {len(fails)} structural breach(es):", file=sys.stderr)
     for f in fails:
         print(f"  ✗ {f}", file=sys.stderr)
     sys.exit(1)
-print(f"{TAG}: tier A OK ({len(pages)} pages, population closed both ways, one block each)")
+print(f"{TAG}: tier A OK ({len(pages)} pages + the cross-family view at {cross_page}, population "
+      f"closed both ways, one block each)")
 PY
 
 # --- tier B: the producer's own refusal must still fire ------------------------------------------
