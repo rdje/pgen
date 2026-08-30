@@ -1,0 +1,80 @@
+ENGINE-UNIVERSAL-SERVICES.78 — RED CONTROLS (PGEN-ENGINE-UNIVERSAL-SERVICES-0140)
+==================================================================================
+
+A control never seen RED is not known to work. Both locks this leaf ADDS were driven to
+failure by a deliberate mutation, then the mutation was reverted and the green re-observed.
+Both mutations were applied in ONE build and run separately.
+
+---------------------------------------------------------------------------------
+RED CONTROL A — the anchoring lock reads the reservation the probe actually measured
+---------------------------------------------------------------------------------
+
+MUTATION (engine): rust/src/ast_pipeline/mod.rs, RecursionGuard::extend_depth_probe,
+the BudgetExhausted arm reports `0` for reservation_bytes instead of `reservation`.
+This simulates the exact defect class the lock guards: a refusal that does not report the
+reservation it was derived from.
+
+  return refuse(
+      StackProbeRefusal::BudgetExhausted,
+      used,
+-     reservation,
++     0, // RED CONTROL
+      budget,
+      bytes_per_frame,
+  );
+
+RESULT — parser_embedding_recursion_ceiling_is_anchored_to_the_reservation, rc 101:
+
+  depth=1024 status=Failure probe=Some(StackProbeObservation { cause: BudgetExhausted,
+    depth: 9934, used_bytes: 251677984, reservation_bytes: 0, budget_bytes: 251658240,
+    bytes_per_frame: 25335 }) in 204.254320625s
+
+  panicked at src/embedding_api.rs:3900:9:
+  assertion `left == right` failed: the ceiling must be derived from the reservation THIS
+  process resolved
+    left: 0
+   right: 268435456
+
+  test result: FAILED. 0 passed; 1 failed. finished in 209.93s
+
+⭐ Note what the ladder itself did here: it still CROSSED, at the same depth 1024, the same
+9 934 frames and the same 25 335 B/frame. Only the anchoring claim broke. That is the
+separation the lock was added for — the old locks would all have stayed GREEN through this
+mutation, because none of them read the reservation at all.
+
+---------------------------------------------------------------------------------
+RED CONTROL B — require_crossing() fires, and the hang detector reports its budget
+---------------------------------------------------------------------------------
+
+MUTATION (test): the VHDL arm calls require_crossing(), i.e. demands a crossing that the
+same run measures to be out of reach in debug.
+
+RESULT — parser_embedding_vhdl_deep_nesting_yields_clean_diagnostic_not_process_abort, rc 101:
+
+  depth=32   Success  19.869792ms
+  depth=64   Success  36.386625ms
+  depth=128  Success 100.128542ms
+  depth=256  Success 333.913916ms
+  depth=512  Success   1.251116209s
+  depth=1024 Success   4.7819705s
+  depth=2048 Success  18.658990792s
+  depth=4096 Success  74.56963325s
+  STOPPED before depth=8192: spent 99.752092625s + predicted next 298.013449121s >= budget 256s
+
+  test result: FAILED. 0 passed; 1 failed. finished in 99.75s
+
+This control also demonstrates the predictive stop a SECOND time, on an independent run:
+99.752 s / predicted 298.013 s, against 99.986 s / 296.135 s in the green run — the two
+climbs agree to 0.23 % and 0.63 %.
+
+---------------------------------------------------------------------------------
+REVERT, VERIFIED RATHER THAN ASSUMED
+---------------------------------------------------------------------------------
+
+  git diff --stat -- rust/src/ast_pipeline/mod.rs   ->  1 file changed, 1 insertion(+), 1 deletion(-)
+                                                         (the mutation and nothing else)
+  git checkout -- rust/src/ast_pipeline/mod.rs
+  grep -rn "RED CONTROL (ENGINE-UNIVERSAL-SERVICES.78)" rust/src/   ->  no match
+
+Tree after revert: `M rust/src/embedding_api.rs` plus this untracked artifact directory, and
+nothing else.

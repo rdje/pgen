@@ -3313,80 +3313,108 @@ mod tests {
     #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
     #[test]
     fn parser_embedding_systemverilog_deep_nesting_yields_clean_diagnostic_not_process_abort() {
-        // The `.8c.3` measured worst case: N nested parens each re-enter the
-        // full expression cascade (~10–11 logical frames per level), so
-        // N=2000 crosses the 4096-frame ceiling with certainty in both
-        // build modes.
-        let deep_expr = format!(
-            "module m; assign x = {}1{}; endmodule",
-            "(".repeat(2000),
-            ")".repeat(2000)
-        );
+        // ⛔ `ENGINE-UNIVERSAL-SERVICES.78` — THE DEPTH IS MEASURED, NOT PINNED. `.8c.3` picked
+        // N=2000 to cross the then-compiled-in 4096-frame ceiling "with certainty in both build
+        // modes"; `.65` removed that ceiling, so 2000 stopped being a statement about crossing
+        // anything and became only a statement about cost — measured 2 920.7 s against an
+        // 1 800 s budget. The INTENT ("deep enough to cross, for certain") is preserved exactly
+        // by climbing until the probe says the stack ran out, per profile.
+        //
         // ⭐⭐ ENGINE-UNIVERSAL-SERVICES.43 — THE CLOCK IS THE RE-ARM. This lock was the ONLY
         // instrument aimed at the ceiling-taint defect, and the defect DISABLED it: with failure
         // memoisation switched off by one ceiling trip, this parse never returned, so the test
         // could not terminate and the suite it sits in was twice recorded as "abandoned after
         // ~50 min" with exactly this test still running. A lock that hangs reports nothing. Now it
         // FAILS instead, which is a report.
-        let started = std::time::Instant::now();
         for profile in [GrammarProfile::Sv2017, GrammarProfile::Verilog2005] {
-            let outcome =
-                parse_grammar_profile(GrammarFamily::SystemVerilog, profile, &deep_expr);
-            assert_eq!(
-                outcome.status,
-                ParseStatus::Failure,
-                "over-deep nesting must be rejected, not accepted ({:?})",
-                profile
+            let crossing = ceiling_crossing(
+                GrammarFamily::SystemVerilog,
+                profile,
+                systemverilog_nested_paren_source,
+                ceiling_hang_detector_budget(),
             );
-            let diagnostic = outcome
+            crossing.require_crossing();
+            assert_eq!(
+                crossing.outcome.status,
+                ParseStatus::Failure,
+                "the rung the depth probe refused on stack grounds must be REJECTED ({:?}). \
+                 Ladder:\n  {}",
+                profile,
+                crossing.rungs.join("\n  ")
+            );
+            let diagnostic = crossing
+                .outcome
                 .diagnostic
+                .as_ref()
                 .expect("over-deep nesting must carry a diagnostic");
             assert_eq!(
                 diagnostic.code, "E_PARSE_FAILURE",
                 "over-deep nesting must surface as a clean parse failure ({:?}): {}",
                 profile, diagnostic.message
             );
+            let budget = ceiling_hang_detector_budget();
+            assert!(
+                crossing.ladder_elapsed < budget,
+                "over-deep nesting must reach its diagnostic in bounded time, not search \
+                 ({:?}). Took {:?}, budget {:?} DERIVED from a {} B reservation — see \
+                 ENGINE-UNIVERSAL-SERVICES.43 and .78",
+                profile,
+                crossing.ladder_elapsed,
+                budget,
+                crate::dedicated_parse_stack::dedicated_parse_stack_bytes()
+            );
         }
-        let elapsed = started.elapsed();
-        assert!(
-            elapsed < DEEP_NESTING_WALL_CLOCK_BUDGET,
-            "over-deep nesting must reach its diagnostic in bounded time, not search. Took {:?}, \
-             budget {:?} — see ENGINE-UNIVERSAL-SERVICES.43",
-            elapsed,
-            DEEP_NESTING_WALL_CLOCK_BUDGET
-        );
+        // Reaching here at all is the real lock: the parse ran to a structured verdict on a
+        // 2 MiB libtest thread instead of aborting the process with a stack-overflow SIGABRT.
     }
 
     #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
     #[test]
     fn parser_embedding_vhdl_deep_nesting_yields_clean_diagnostic_not_process_abort() {
-        let deep_expr = format!(
-            "entity e is end entity; architecture a of e is begin s <= {}1{}; end architecture;",
-            "(".repeat(2000),
-            ")".repeat(2000)
-        );
+        // `ENGINE-UNIVERSAL-SERVICES.78` — measured, not pinned; see the SystemVerilog twin.
+        // ⚠️ VHDL's per-frame cost is one of the eight families `.79`(a) records as UNMEASURED,
+        // which is precisely why this arm must climb rather than assume: the depth that crosses
+        // in SystemVerilog is not the depth that crosses here.
+        //
         // ENGINE-UNIVERSAL-SERVICES.43 — see the SystemVerilog twin: the clock is the re-arm.
-        let started = std::time::Instant::now();
-        let outcome =
-            parse_grammar_profile(GrammarFamily::Vhdl, GrammarProfile::Vhdl1076_2019, &deep_expr);
-        let elapsed = started.elapsed();
-        if let Some(diagnostic) = outcome.diagnostic.as_ref() {
+        let crossing = ceiling_crossing(
+            GrammarFamily::Vhdl,
+            GrammarProfile::Vhdl1076_2019,
+            vhdl_nested_paren_source,
+            // ⛔ THE CAP, NOT THE HANG DETECTOR — this arm does not require a crossing.
+            ceiling_climb_cost_cap(),
+        );
+        if let Some(diagnostic) = crossing.outcome.diagnostic.as_ref() {
             assert_eq!(
                 diagnostic.code, "E_PARSE_FAILURE",
                 "over-deep nesting must surface as a clean parse failure: {}",
                 diagnostic.message
             );
         }
+        // ⛔ NO `require_crossing()` HERE, DELIBERATELY. VHDL's per-frame cost is one of the
+        // eight `.79`(a) records as UNMEASURED, so whether its ceiling is reachable inside this
+        // budget is not a thing this repository knows — and a lock must not assert a quantity
+        // nobody measured. `1.3.1`'s contract is what is checked instead, and the ladder answers
+        // it on every rung it climbed: a structured verdict, never a stack-overflow SIGABRT of
+        // the host process, on a 2 MiB libtest thread.
         assert!(
-            elapsed < DEEP_NESTING_WALL_CLOCK_BUDGET,
-            "over-deep nesting must reach its verdict in bounded time, not search. Took {:?}, \
-             budget {:?} — see ENGINE-UNIVERSAL-SERVICES.43",
-            elapsed,
-            DEEP_NESTING_WALL_CLOCK_BUDGET
+            !crossing.rungs.is_empty(),
+            "the ladder must have climbed at least one rung to lock anything"
         );
-        // Reaching here at all is the real lock: the parse ran to a
-        // structured verdict on a 2 MiB test thread instead of aborting the
-        // process with a stack-overflow SIGABRT.
+        // Reaching here at all is the real lock: every rung ran to a structured verdict on a
+        // 2 MiB test thread instead of aborting the process with a stack-overflow SIGABRT.
+        // ⚠️ An over-budget ladder is NOT a failure on this arm — see `observation`'s comment —
+        // so the climb is REPORTED rather than asserted on, and a future reader gets the shape
+        // of this family's capacity instead of a bare green tick.
+        eprintln!(
+            "`.78` VHDL ceiling climb: crossed={} deepest_accepting={} elapsed={:?} \
+             budget={:?}\n  {}",
+            crossing.observation.is_some(),
+            crossing.deepest_accepting_depth,
+            crossing.ladder_elapsed,
+            ceiling_climb_cost_cap(),
+            crossing.rungs.join("\n  ")
+        );
     }
 
     // ⭐⭐ `ENGINE-UNIVERSAL-SERVICES.43` — the RE-ARMED ceiling lock, and the
@@ -3426,49 +3454,472 @@ mod tests {
     //
     // 300 s is ~22x the measured SV over-ceiling cost. It is deliberately loose: this separates
     // "finite" from "never", and the gap it must span is unbounded.
-    const CEILING_WALL_CLOCK_BUDGET: std::time::Duration = std::time::Duration::from_secs(300);
+    //
+    // ── `ENGINE-UNIVERSAL-SERVICES.78` — THE CEILING IS DERIVED, SO ITS LOCKS DERIVE TOO ──────
+    //
+    // ⛔⛔ **EVERYTHING ABOVE THIS LINE IS THE HISTORY OF A NUMBER THAT NO LONGER EXISTS.** The
+    // `.43` sizing table, the 300 s and 1 800 s budgets and the 400 / 2 000 / 250-paren depths
+    // were all calibrated against a COMPILED-IN 4 096-frame ceiling. `.65` (`-0117`) replaced it
+    // with a ceiling derived from the stack the parse thread actually owns, and did not move the
+    // tests with it. Measured 2026-08-30 (`-0138`'s own no-regression run, this host, debug):
+    //
+    //   * 400 nested parens now **ACCEPTS** in 2.60 s (`stack_probe: no_refusal`), so the two
+    //     locks asserting it is REJECTED had been RED since `-0117`;
+    //   * the 2 000-paren pair costs **2 920.7 s** against the 1 800 s budget;
+    //   * the ceiling fires between **600** (accept, 5.7 s) and **800** (reject at 9 726 frames,
+    //     21.8 s) parens in debug at the default reservation.
+    //
+    // ⭐ **A test that pins a number the engine derives is the defect class `.65` itself was
+    // opened for**, so the fix is the same move `.65` made for the engine: derive. Nothing below
+    // encodes where the ceiling is. The crossing depth is MEASURED on this host, in this build
+    // mode, by an escalating ladder that stops at the first parse the depth probe refuses for a
+    // reason that is a fact about the STACK — read from `.69`(d)'s instrument, not guessed from
+    // the verdict.
+    //
+    // ⚠️ **WHY THE VERDICT ALONE IS NOT THE STOP CONDITION.** `.69`(d) measured that a parse can
+    // CONTACT the ceiling, back off and still ACCEPT, at 16.9× the cost and with the same AST —
+    // so "rejected" does not imply "the stack ran out", and "accepted" does not imply "the
+    // ceiling was never reached". The ladder therefore reads `cause`, and only
+    // `BudgetExhausted` / `NoFrameAffordable` — the two refusals that are facts about the stack
+    // rather than about what this process could not learn — end the search.
 
-    // The DEEP locks below run at depth 2000 and cost ~210 s (SV, two profiles) / ~250 s (VHDL) in
-    // debug, so they get their own, looser budget — ~7x measured. ⛔ Their DEPTH is deliberately
-    // left at 2000: `SV-CORPUS-GRAD.8c.3` chose it to cross the ceiling "with certainty in both
-    // build modes", and re-tuning another leaf's deliberate margin to save gate seconds is not this
-    // leaf's call. What they were missing was never the depth — it was the clock.
-    const DEEP_NESTING_WALL_CLOCK_BUDGET: std::time::Duration = std::time::Duration::from_secs(1800);
+    /// `.78` — the ladder's first rung, in source nesting levels.
+    ///
+    /// ⛔ A SEARCH SEED, NOT A CLAIM ABOUT THE CEILING. The ladder doubles until the ceiling
+    /// refuses, so a seed that is too small costs one extra rung (measured: every rung below 256
+    /// parens is under 0.5 s in debug) and cannot make a lock pass or fail. 32 is chosen to be
+    /// unambiguously under the guard's own first sample — 32 levels is ≈430 parser frames at the
+    /// measured 12.91…13.45 frames per level, against a 4 096-frame first sample — so the ladder
+    /// always records at least one ACCEPTING rung for the under-ceiling control to use.
+    #[cfg(feature = "generated_parsers")]
+    const CEILING_LADDER_SEED_DEPTH: usize = 32;
+
+    /// `.78` — the ladder's growth factor. Doubling reaches any plausible crossing in a
+    /// logarithmic number of rungs and keeps the ACCEPTING rung it reports for the under-ceiling
+    /// control within a factor of two of the real cliff.
+    #[cfg(feature = "generated_parsers")]
+    const CEILING_LADDER_GROWTH: usize = 2;
+
+    /// `.78` — the HANG DETECTOR's wall-clock budget, per MiB of RESERVATION, for an arm that
+    /// REQUIRES the ladder to reach the ceiling.
+    ///
+    /// ⛔ **WHY THIS CANNOT BE A FIXED NUMBER OF SECONDS ANY MORE.** Since `.65` the ceiling is
+    /// `budget_bytes / bytes_per_frame` frames, and `budget_bytes` is a share of
+    /// `dedicated_parse_stack_bytes()` — which the operator sets with `PGEN_PARSE_STACK_BYTES`.
+    /// Doubling the reservation doubles the depth the ladder must climb before anything refuses.
+    /// A budget in fixed seconds is a budget against ONE reservation, which is exactly how
+    /// `DEEP_NESTING_WALL_CLOCK_BUDGET` came to sit 62 % under the cost it was guarding.
+    ///
+    /// **MEASURED SEED** (this host, debug, the 256 MiB default, SystemVerilog/`Sv2017`): the
+    /// whole ladder costs **213.7 s** ⇒ **0.835 s per reserved MiB**. 8 s/MiB is **~10×** that.
+    ///
+    /// ⭐ **THE COST IS ALL IN ONE RUNG, AND NOT THE RUNG A DOUBLING LAW PREDICTS.** Measured
+    /// rung by rung — 32:0.082 s · 64:0.122 s · 128:0.344 s · 256:1.162 s · 512:4.512 s ·
+    /// **1024:207.524 s** — the ACCEPTING rungs grow ≈3.3–3.9× per doubling, and the REJECTING
+    /// one costs **46×** its predecessor rather than ≈4×. Crossing the ceiling makes the
+    /// enclosing alternatives re-explore, which is `.68`'s Θ(depth²) scan and the "cost is
+    /// quadratic in depth" bound the SV contract already publishes. ⇒ **a budget sized from the
+    /// accepting rungs would be sized from the wrong distribution.**
+    ///
+    /// ⚠️ **HONEST BOUND, stated rather than implied.** The scaling is ASSUMED LINEAR in the
+    /// reservation and is not measured to be. The slack absorbs that for reservations near the
+    /// default; a reservation orders of magnitude larger would need re-measuring. This stays
+    /// `.43`'s HANG DETECTOR — separating "finite" from "never" — and not a performance ratchet,
+    /// which is `PARSE-COST-RATCHET`'s job. ⚠️ And like `.43`'s, it is checked BETWEEN rungs: a
+    /// parse that truly never returns still hangs the rung it is in, because nothing here can
+    /// interrupt a running parse.
+    #[cfg(feature = "generated_parsers")]
+    const CEILING_HANG_DETECTOR_SECONDS_PER_RESERVED_MIB: u64 = 8;
+
+    /// `.78` — the climb COST CAP, per MiB of RESERVATION, for an arm that does NOT require the
+    /// ladder to reach the ceiling.
+    ///
+    /// ⛔ **WHY A SECOND, SMALLER NUMBER IS THE HONEST DESIGN AND NOT A FUDGE.** The two arms
+    /// lock different properties and are entitled to different things. SystemVerilog's arm
+    /// asserts the ceiling is REACHED, so its budget must be far above the measured cost of
+    /// reaching it. VHDL's arm asserts `1.3.1`'s contract — *a structured verdict on every rung,
+    /// never a SIGABRT* — which is checked PER RUNG and therefore holds however far the ladder
+    /// got. ⇒ **shrinking this cap cannot make that arm wrongly pass**; it only reduces how deep
+    /// the evidence goes, which is why it is allowed to be sized for cost.
+    ///
+    /// **MEASURED, and this is why the cap exists** (debug probe, 2026-08-30, default
+    /// reservation): VHDL accepts **2 000** nested parens in **17.4 s** and **4 000** in
+    /// **72.4 s**, both with `stack_probe: no_refusal` — its ceiling is not contacted at either.
+    /// So VHDL's per-level stack cost is at least **5.4×** cheaper than SystemVerilog's
+    /// (13.2 frames/level × 25 335 B/frame), its ceiling lies far deeper than the shipped SV
+    /// one, and at ≈4× per doubling a ladder chasing it would spend **~1 645 s** to give up —
+    /// more than half the 2 920.7 s this leaf exists to remove.
+    #[cfg(feature = "generated_parsers")]
+    const CEILING_CLIMB_CAP_SECONDS_PER_RESERVED_MIB: u64 = 1;
+
+    /// `.78` — a wall-clock budget DERIVED from the reservation in force.
+    #[cfg(feature = "generated_parsers")]
+    fn ceiling_budget_from_reservation(seconds_per_reserved_mib: u64) -> std::time::Duration {
+        let reserved_mib =
+            (crate::dedicated_parse_stack::dedicated_parse_stack_bytes() / (1024 * 1024)).max(1);
+        std::time::Duration::from_secs(reserved_mib as u64 * seconds_per_reserved_mib)
+    }
+
+    /// `.78` — the budget for an arm that requires a crossing.
+    #[cfg(feature = "generated_parsers")]
+    fn ceiling_hang_detector_budget() -> std::time::Duration {
+        ceiling_budget_from_reservation(CEILING_HANG_DETECTOR_SECONDS_PER_RESERVED_MIB)
+    }
+
+    /// `.78` — the budget for an arm that does not.
+    #[cfg(feature = "generated_parsers")]
+    fn ceiling_climb_cost_cap() -> std::time::Duration {
+        ceiling_budget_from_reservation(CEILING_CLIMB_CAP_SECONDS_PER_RESERVED_MIB)
+    }
+
+    /// `.78` — one MEASURED crossing of the recursion ceiling: the shallowest source nesting
+    /// this ladder found that the depth probe refuses on stack grounds, together with the
+    /// probe's own reading at that refusal.
+    ///
+    /// ⭐ The rejecting parse's verdict and diagnostic are carried here rather than re-derived,
+    /// so every lock below reads ONE measured crossing instead of each paying for its own
+    /// ladder.
+    #[cfg(feature = "generated_parsers")]
+    #[derive(Clone)]
+    #[allow(dead_code)]
+    struct MeasuredCeilingCrossing {
+        /// Source nesting levels at the rung that crossed — or, when the ladder spent its budget
+        /// without crossing, at the deepest rung it attempted.
+        source_depth: usize,
+        /// The deepest rung the ladder saw ACCEPTED. The under-ceiling control's input, so that
+        /// control is a measurement of this host too and not a second pinned literal.
+        deepest_accepting_depth: usize,
+        /// The last rung's parse outcome — the crossing rung when the ladder crossed.
+        outcome: GrammarParseOutcome,
+        /// `.69`(d)'s reading at the refusal that ended the ladder, or `None` when the ladder
+        /// spent its whole budget without the probe refusing on stack grounds.
+        ///
+        /// ⛔ **`None` IS A RESULT, NOT A FAILURE, AND THAT IS A DELIBERATE ASYMMETRY.** Whether
+        /// a family's ceiling is reachable inside a wall-clock budget is a function of its
+        /// per-frame cost, and `.79`(a) records that cost as MEASURED for exactly one family —
+        /// SystemVerilog — and UNMEASURED for the other eight. A lock that demanded a crossing
+        /// from every family would be asserting a quantity nobody has measured, which is the
+        /// same move that put the stale literals here in the first place. So the SystemVerilog
+        /// locks REQUIRE a crossing (it is measured to exist, at ~1 024 nesting levels in debug
+        /// at the default reservation) and the VHDL lock does not — its contract is `1.3.1`'s
+        /// *"a structured verdict, never a SIGABRT"*, which every rung answers either way.
+        observation: Option<crate::dedicated_parse_stack::StackProbeObservation>,
+        /// Wall clock for the LAST rung alone — the crossing rung when the ladder crossed — and
+        /// for every rung together.
+        crossing_elapsed: std::time::Duration,
+        ladder_elapsed: std::time::Duration,
+        /// Every rung, rendered — printed by any lock that fails, so a future reader gets the
+        /// measurement and not just the verdict.
+        rungs: Vec<String>,
+    }
+
+    #[cfg(feature = "generated_parsers")]
+    impl MeasuredCeilingCrossing {
+        /// `.78` — the depth probe's reading at the refusal, for a caller entitled to expect
+        /// the ladder to have crossed at all.
+        ///
+        /// SystemVerilog is entitled: `-0138` measured the crossing between 600 (accept) and
+        /// 800 (reject at 9 726 frames) nesting levels in debug at the default reservation, so a
+        /// ladder that fails to find it there is a real regression and not an unmeasured family.
+        fn require_crossing(&self) -> crate::dedicated_parse_stack::StackProbeObservation {
+            self.observation.unwrap_or_else(|| {
+                panic!(
+                    "the recursion ceiling was never reached on stack grounds within the \
+                     {:?} budget DERIVED from this host's {} B reservation. This is `.43`'s \
+                     hang detector firing. Ladder:\n  {}",
+                    ceiling_hang_detector_budget(),
+                    crate::dedicated_parse_stack::dedicated_parse_stack_bytes(),
+                    self.rungs.join("\n  ")
+                )
+            })
+        }
+    }
+
+    /// `.78` — climb until the recursion ceiling refuses on stack grounds, and report the climb.
+    ///
+    /// ⛔ The only bound on the search is the DERIVED wall-clock budget. Bounding it by a depth
+    /// literal would put the pinned number straight back.
+    #[cfg(feature = "generated_parsers")]
+    fn measure_ceiling_crossing(
+        family: GrammarFamily,
+        profile: GrammarProfile,
+        render: fn(usize) -> String,
+        budget: std::time::Duration,
+    ) -> MeasuredCeilingCrossing {
+        use crate::dedicated_parse_stack::StackProbeRefusal;
+
+        let ladder_started = std::time::Instant::now();
+        let mut rungs: Vec<String> = Vec::new();
+        let mut deepest_accepting_depth = 0usize;
+        let mut source_depth = CEILING_LADDER_SEED_DEPTH;
+        let mut previous_rung: Option<std::time::Duration> = None;
+
+        loop {
+            let source = render(source_depth);
+            let rung_started = std::time::Instant::now();
+            // ⚠️ No `clear_last_stack_probe_refusal()` is needed: the dedicated-stack join
+            // REPLACES the caller's reading with the child's, including with `None`, so this is
+            // already a per-parse reading and not a latch.
+            let outcome = parse_grammar_profile(family, profile, &source);
+            let rung_elapsed = rung_started.elapsed();
+            let observation = crate::dedicated_parse_stack::last_stack_probe_refusal();
+            rungs.push(format!(
+                "depth={source_depth} status={:?} probe={:?} in {:?}",
+                outcome.status, observation, rung_elapsed
+            ));
+
+            // ⭐ `.69`(d) — the stop condition reads the probe's own CAUSE, never the verdict
+            // alone. `BudgetExhausted` and `NoFrameAffordable` are the two refusals that are
+            // facts about the STACK; the other three are statements about what the process could
+            // not learn, and stopping on one of those would report a missing measurement as a
+            // ceiling.
+            let stack_really_ran_out = matches!(
+                observation.map(|observed| observed.cause),
+                Some(StackProbeRefusal::BudgetExhausted | StackProbeRefusal::NoFrameAffordable)
+            );
+            if outcome.status == ParseStatus::Failure && stack_really_ran_out {
+                return MeasuredCeilingCrossing {
+                    source_depth,
+                    deepest_accepting_depth,
+                    outcome,
+                    observation,
+                    crossing_elapsed: rung_elapsed,
+                    ladder_elapsed: ladder_started.elapsed(),
+                    rungs,
+                };
+            }
+            if outcome.status == ParseStatus::Success {
+                deepest_accepting_depth = source_depth;
+            }
+            // ⭐⭐ STOP BEFORE PAYING FOR A RUNG THE LADDER CANNOT AFFORD, USING THE GROWTH THIS
+            // LADDER HAS ACTUALLY OBSERVED — not a doubling law read out of a book.
+            //
+            // ⛔ **WHY A PLAIN `elapsed >= budget` CAP IS THE WRONG SHAPE.** It is checked only
+            // BETWEEN rungs, and each rung costs ≈4× the one before, so a cap of `B` really
+            // authorises a spend of ≈`4B` — the ladder discovers it is over budget only after
+            // buying the rung that put it there. Predicting the next rung from the last observed
+            // ratio makes the cap mean what it says.
+            //
+            // ⚠️ **AND IT DELIBERATELY CANNOT PREDICT THE CROSSING RUNG**, which is the point:
+            // the rejecting rung costs 46× its predecessor, not ≈4×, so the prediction
+            // UNDER-estimates it and the ladder pays for it anyway. That is the rung the whole
+            // measurement is for. What the rule prevents is spending minutes on ever-deeper
+            // ACCEPTING rungs in a family whose ceiling is out of reach.
+            let elapsed = ladder_started.elapsed();
+            let predicted_next = match previous_rung {
+                // Growth is clamped at 1.0: a rung that ran FASTER than its predecessor is host
+                // noise, and letting the ratio fall below one would predict the ladder getting
+                // cheaper as it deepens, which nothing measured here does.
+                Some(previous) if previous > std::time::Duration::ZERO => {
+                    let growth = (rung_elapsed.as_secs_f64() / previous.as_secs_f64()).max(1.0);
+                    rung_elapsed.mul_f64(growth)
+                }
+                // No ratio yet (or an unmeasurably fast predecessor): climb. One rung of the
+                // seed's size cannot be the expensive one.
+                _ => std::time::Duration::ZERO,
+            };
+            // ⛔ Reaching the cap WITHOUT crossing is reported, never asserted on — see the
+            // `observation` field. A caller that needs the crossing says so at its own site,
+            // where it can also say why it is entitled to expect one.
+            if elapsed + predicted_next >= budget {
+                rungs.push(format!(
+                    "STOPPED before depth={}: spent {:?} + predicted next {:?} >= budget {:?}",
+                    source_depth * CEILING_LADDER_GROWTH,
+                    elapsed,
+                    predicted_next,
+                    budget
+                ));
+                return MeasuredCeilingCrossing {
+                    source_depth,
+                    deepest_accepting_depth,
+                    outcome,
+                    observation: None,
+                    crossing_elapsed: rung_elapsed,
+                    ladder_elapsed: elapsed,
+                    rungs,
+                };
+            }
+            previous_rung = Some(rung_elapsed);
+            source_depth *= CEILING_LADDER_GROWTH;
+        }
+    }
+
+    /// `.78` — the measured crossing for one family/profile, computed at most once per process.
+    ///
+    /// The ladder is the expensive thing here, so the cache is what keeps the whole ceiling
+    /// family affordable: measured, it replaces 2 920.7 s of pinned-depth parsing with one climb
+    /// per profile.
+    #[cfg(feature = "generated_parsers")]
+    fn ceiling_crossing(
+        family: GrammarFamily,
+        profile: GrammarProfile,
+        render: fn(usize) -> String,
+        budget: std::time::Duration,
+    ) -> MeasuredCeilingCrossing {
+        static CACHE: std::sync::OnceLock<
+            std::sync::Mutex<std::collections::HashMap<String, MeasuredCeilingCrossing>>,
+        > = std::sync::OnceLock::new();
+        // ⛔ The budget is part of the key: two arms asking about the same family under
+        // different budgets are asking different questions, and serving one the other's cached
+        // answer would silently give an arm a climb it never authorised.
+        let key = format!("{:?}/{:?}/{:?}", family, profile, budget);
+        // ⛔ The lock is deliberately held ACROSS the measurement: two locks racing on the same
+        // key would otherwise each pay for a ladder. Poisoning is recovered from rather than
+        // propagated, so a lock that fails reports ITS OWN failure instead of a poisoned mutex
+        // from whichever lock happened to run first.
+        let mut cache = CACHE
+            .get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(measured) = cache.get(&key) {
+            return measured.clone();
+        }
+        let measured = measure_ceiling_crossing(family, profile, render, budget);
+        // ⭐ REPORTED ON EVERY RUN, NOT ONLY ON FAILURE. This ladder IS the measurement these
+        // locks are built on, and a lock that prints its evidence only when it goes RED leaves a
+        // green run saying nothing about where the ceiling actually is — which is how the pinned
+        // literals survived `.65` unnoticed for two days. Visible under `--nocapture`.
+        eprintln!(
+            "`.78` ceiling ladder {:?}/{:?}: crossed_at={} crossed={} deepest_accepting={} \
+             ladder={:?} last_rung={:?} budget={:?} reservation={} B\n  {}",
+            family,
+            profile,
+            measured.source_depth,
+            measured.observation.is_some(),
+            measured.deepest_accepting_depth,
+            measured.ladder_elapsed,
+            measured.crossing_elapsed,
+            budget,
+            crate::dedicated_parse_stack::dedicated_parse_stack_bytes(),
+            measured.rungs.join("\n  ")
+        );
+        cache.insert(key, measured.clone());
+        measured
+    }
+
+    /// `.78` — the SystemVerilog nesting shape every ceiling lock below is measured on.
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    fn systemverilog_nested_paren_source(depth: usize) -> String {
+        format!(
+            "module m; assign x = {}1{}; endmodule",
+            "(".repeat(depth),
+            ")".repeat(depth)
+        )
+    }
+
+    /// `.78` — the VHDL twin of the shape above.
+    #[cfg(all(feature = "generated_parsers", has_generated_vhdl_parser))]
+    fn vhdl_nested_paren_source(depth: usize) -> String {
+        format!(
+            "entity e is end entity; architecture a of e is begin s <= {}1{}; end architecture;",
+            "(".repeat(depth),
+            ")".repeat(depth)
+        )
+    }
 
     #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
     #[test]
     fn parser_embedding_systemverilog_over_ceiling_nesting_fails_in_bounded_time() {
-        // 400 > the ~320-paren cliff measured on the shipped SV parser
-        // (4096 frames / ~12.8 logical frames per parenthesis level), so this
-        // input crosses the ceiling; 250 stays under it with margin.
-        let over = format!(
-            "module m; assign x = {}1{}; endmodule",
-            "(".repeat(400),
-            ")".repeat(400)
+        // ⛔ `ENGINE-UNIVERSAL-SERVICES.78` — this lock used to say "400 parens is over-ceiling",
+        // which was true against a compiled-in 4096-frame ceiling and false the moment `.65`
+        // derived the ceiling from the host's stack. Measured: 400 parens ACCEPTS in 2.60 s. The
+        // over-ceiling input is now found, not asserted.
+        let crossing = ceiling_crossing(
+            GrammarFamily::SystemVerilog,
+            GrammarProfile::Sv2017,
+            systemverilog_nested_paren_source,
+            ceiling_hang_detector_budget(),
         );
-        let started = std::time::Instant::now();
-        let outcome =
-            parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2017, &over);
-        let elapsed = started.elapsed();
+        crossing.require_crossing();
         assert_eq!(
-            outcome.status,
+            crossing.outcome.status,
             ParseStatus::Failure,
-            "over-ceiling nesting must be rejected, not accepted"
+            "over-ceiling nesting must be rejected, not accepted. Ladder:\n  {}",
+            crossing.rungs.join("\n  ")
         );
         assert_eq!(
-            outcome
+            crossing
+                .outcome
                 .diagnostic
+                .as_ref()
                 .expect("over-ceiling nesting must carry a diagnostic")
                 .code,
             "E_PARSE_FAILURE",
             "over-ceiling nesting must surface as a clean parse failure"
         );
+        let budget = ceiling_hang_detector_budget();
         assert!(
-            elapsed < CEILING_WALL_CLOCK_BUDGET,
-            "the recursion ceiling is a BOUND: crossing it must fail fast, not \
-             search. Took {:?}, budget {:?} — see ENGINE-UNIVERSAL-SERVICES.43",
-            elapsed,
-            CEILING_WALL_CLOCK_BUDGET
+            crossing.ladder_elapsed < budget,
+            "the recursion ceiling is a BOUND: crossing it must fail fast, not search. The \
+             whole ladder took {:?} (crossing rung {:?} at depth {}), budget {:?} DERIVED from \
+             a {} B reservation — see ENGINE-UNIVERSAL-SERVICES.43 and .78. Ladder:\n  {}",
+            crossing.ladder_elapsed,
+            crossing.crossing_elapsed,
+            crossing.source_depth,
+            budget,
+            crate::dedicated_parse_stack::dedicated_parse_stack_bytes(),
+            crossing.rungs.join("\n  ")
+        );
+    }
+
+    /// ⭐⭐ `ENGINE-UNIVERSAL-SERVICES.78` — THE LOCK THAT WOULD HAVE CAUGHT THIS LEAF.
+    ///
+    /// Every ceiling lock in this file asserted a CONSEQUENCE of the ceiling's position (this
+    /// depth is rejected, that one is not) and none asserted the PROPERTY `.65` actually
+    /// established: that the ceiling is anchored to the reservation. So when `.65` moved the
+    /// ceiling, the consequences went stale silently and the property was never checked at all.
+    ///
+    /// This reads `.69`(d)'s instrument at the refusal that ended the ladder and pins the
+    /// ANCHORING, not a number: the reservation the probe measured is the reservation this
+    /// process resolved, the spendable budget is a proper share of it, and the parse really did
+    /// run out of that budget rather than being stopped by something the process could not
+    /// learn.
+    ///
+    /// ⛔ `STACK_HEADROOM_RESERVE_DIVISOR` is deliberately NOT re-typed here. Asserting
+    /// `budget == reservation - reservation / 16` would put a second copy of the engine's
+    /// private constant in the tests — the same defect this leaf closes, wearing a different
+    /// number. The relationship is what is checked.
+    #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
+    #[test]
+    fn parser_embedding_recursion_ceiling_is_anchored_to_the_reservation() {
+        let crossing = ceiling_crossing(
+            GrammarFamily::SystemVerilog,
+            GrammarProfile::Sv2017,
+            systemverilog_nested_paren_source,
+            ceiling_hang_detector_budget(),
+        );
+        let observed = crossing.require_crossing();
+        let reservation = crate::dedicated_parse_stack::dedicated_parse_stack_bytes();
+        assert!(
+            observed.spend_is_measured(),
+            "the refusal that ends the ladder must carry a real spend measurement, not a \
+             not-measured zero: {:?}",
+            observed
+        );
+        assert_eq!(
+            observed.reservation_bytes, reservation,
+            "the ceiling must be derived from the reservation THIS process resolved"
+        );
+        assert!(
+            observed.budget_bytes < observed.reservation_bytes
+                && observed.budget_bytes > observed.reservation_bytes / 2,
+            "the spendable budget must be a proper share of the reservation — a headroom \
+             reserve, not the whole stack and not most of it: {:?}",
+            observed
+        );
+        assert!(
+            observed.bytes_per_frame > 0,
+            "the per-frame cost must be MEASURED for this parse, not assumed: {:?}",
+            observed
+        );
+        // The two stack-grounds refusals differ only in whether the last whole frame still
+        // fitted, so this one inequality covers both without branching on the cause.
+        assert!(
+            observed.used_bytes + observed.bytes_per_frame > observed.budget_bytes,
+            "the ceiling must fire because the RESERVATION ran out, not because the parse was \
+             stopped by something else: {:?}. Ladder:\n  {}",
+            observed,
+            crossing.rungs.join("\n  ")
         );
     }
 
@@ -3495,15 +3946,22 @@ mod tests {
     #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
     #[test]
     fn parser_embedding_over_ceiling_diagnostic_names_the_recursion_ceiling() {
-        let over = format!(
-            "module m; assign x = {}1{}; endmodule",
-            "(".repeat(400),
-            ")".repeat(400)
+        // `ENGINE-UNIVERSAL-SERVICES.78` — the same measured crossing the lock above uses. At
+        // the old pinned 400 parens this test did not fail on the LABEL at all: the parse
+        // succeeded, so there was no diagnostic to inspect and the failure text was
+        // "over-ceiling nesting must carry a diagnostic" — a stale input reported as a missing
+        // label.
+        let crossing = ceiling_crossing(
+            GrammarFamily::SystemVerilog,
+            GrammarProfile::Sv2017,
+            systemverilog_nested_paren_source,
+            ceiling_hang_detector_budget(),
         );
-        let outcome =
-            parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2017, &over);
-        let diagnostic = outcome
+        crossing.require_crossing();
+        let diagnostic = crossing
+            .outcome
             .diagnostic
+            .as_ref()
             .expect("over-ceiling nesting must carry a diagnostic");
         // ⛔ The published code set stays STABLE: an embedder branching on
         // `E_PARSE_FAILURE` must keep matching this. The machine-readable distinction
@@ -3557,14 +4015,30 @@ mod tests {
     #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
     #[test]
     fn parser_embedding_systemverilog_under_ceiling_nesting_still_parses() {
-        // The CONTROL half: proves the bounded-time lock above is not being met
-        // by simply refusing deep input. 250 parens is ~3 200 frames, under the
-        // 4096-frame ceiling.
-        let under = format!(
-            "module m; assign x = {}1{}; endmodule",
-            "(".repeat(250),
-            ")".repeat(250)
+        // The CONTROL half: proves the bounded-time lock above is not being met by simply
+        // refusing deep input.
+        //
+        // ⛔ `ENGINE-UNIVERSAL-SERVICES.78` — THE CONTROL HAD TO MOVE WITH THE THING IT
+        // CONTROLS. It used to pin 250 parens as "~3 200 frames, under the 4096-frame ceiling".
+        // That number is doubly stale: the 4096 is now only where the guard takes its FIRST
+        // SAMPLE, and the ceiling itself is derived from the reservation — so on a host with a
+        // smaller reservation 250 parens could sit ABOVE the cliff and this control would go RED
+        // for the opposite of its own reason. The deepest rung the ladder actually SAW ACCEPTED
+        // is a measurement of this host, and it is within a factor of two of the real cliff, so
+        // the control is also tighter than the literal it replaces.
+        let crossing = ceiling_crossing(
+            GrammarFamily::SystemVerilog,
+            GrammarProfile::Sv2017,
+            systemverilog_nested_paren_source,
+            ceiling_hang_detector_budget(),
         );
+        assert!(
+            crossing.deepest_accepting_depth > 0,
+            "the ladder must record an ACCEPTING rung for this control to stand on — its seed \
+             is chosen to be far under the guard's own first sample. Ladder:\n  {}",
+            crossing.rungs.join("\n  ")
+        );
+        let under = systemverilog_nested_paren_source(crossing.deepest_accepting_depth);
         let started = std::time::Instant::now();
         let outcome =
             parse_grammar_profile(GrammarFamily::SystemVerilog, GrammarProfile::Sv2017, &under);
@@ -3572,15 +4046,20 @@ mod tests {
         assert_eq!(
             outcome.status,
             ParseStatus::Success,
-            "sub-ceiling nesting must still be accepted — a bounded-time ceiling \
+            "sub-ceiling nesting ({} levels) must still be accepted — a bounded-time ceiling \
              must not be bought by lowering it ({:?})",
+            crossing.deepest_accepting_depth,
             outcome.diagnostic
         );
+        let budget = ceiling_hang_detector_budget();
         assert!(
-            elapsed < CEILING_WALL_CLOCK_BUDGET,
-            "sub-ceiling nesting took {:?}, budget {:?}",
+            elapsed < budget,
+            "sub-ceiling nesting ({} levels) took {:?}, budget {:?} DERIVED from a {} B \
+             reservation",
+            crossing.deepest_accepting_depth,
             elapsed,
-            CEILING_WALL_CLOCK_BUDGET
+            budget,
+            crate::dedicated_parse_stack::dedicated_parse_stack_bytes()
         );
     }
 

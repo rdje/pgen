@@ -86,6 +86,20 @@ when the calling thread has enough real stack for the frames it admits — measu
 SystemVerilog a frame costs ≈2 KB in release and ≈17 KB in debug, so the 4096 frames the ceiling
 admitted when this was written needed ≈8 MB / ≈70 MB, more than the 8 MB default main stack (a
 ~400-deep parenthesized expression, ≈4 KB of text, was enough to SIGABRT a release embedder).
+
+> ⛔⛔ **DO NOT SIZE A STACK FROM THE ≈17 KB ABOVE — IT IS A 2026-07 READING AND THE COST HAS
+> MOVED.** That figure is `SV-CORPUS-GRAD.8c.3`'s and is kept because it is what the `1.3.1`
+> argument was built on. Re-measured 2026-08-30 with the depth probe's own instrument
+> (`ENGINE-UNIVERSAL-SERVICES.69`(d)), a debug SystemVerilog frame costs **25 335 B** (`sv_2017`,
+> at a real refusal) to **25 874 B** — about **1.5×** the number above — and a `verilog_2005` frame
+> costs **29 031 B**. Release is **3 071 – 3 083 B**. ⇒ 4 096 frames costs ≈**101 MiB** in debug,
+> not ≈70 MB, which is **more than the 96 MiB floor** `PGEN_PARSE_STACK_BYTES` clamps up to; a debug
+> embedder that trusts the floor gets the abort this section promises it will not.
+> That defect is tracked as `ENGINE-UNIVERSAL-SERVICES.79`, which owns deriving the floor from a
+> per-family, per-build-mode census instead of from a pinned literal. **The shipped 256 MiB default
+> is unaffected and safe on every family measured.** ⚠️ Only SystemVerilog and VHDL have been
+> measured at all; the other eight families' per-frame cost is unmeasured, so treat any per-frame
+> number here as a SystemVerilog number.
 Since `1.3.1` (`SV-CORPUS-GRAD.8c.3`), every SystemVerilog and VHDL embedding parse runs its
 parser work on a dedicated **256 MiB-stack** thread (virtual reservation, lazily committed; one
 short-lived thread per call, so concurrent host threads never serialize), which guarantees the
