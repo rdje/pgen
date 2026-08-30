@@ -145,6 +145,15 @@ publish exactly the comfortable label this tree exists to replace with a distanc
   correct every surface that published the resulting number.
   Acceptance: the row's own status is the FIRST status token in its cell; the change is priced over
   the whole population; the regression is pinned by a self-check arm.
+- ID: `DONE-BAR-VISIBILITY.3d` — Status: `done` (`PGEN-DONE-BAR-VISIBILITY-0012`)
+  Goal: a DIRECTOR CHALLENGE to the findings `.3b`/`.3c` published — *"do you still stand by your
+  findings?"* — re-audited claim by claim against the artifacts rather than re-asserted.
+  Acceptance: MET. Every published number re-derives exactly; **one claim is CORRECTED** (the
+  census backing *"nothing read the report"* used a path-literal grep that cannot see a composed
+  path, and the corpus runner reads that very report on every run); **one real hole was found and
+  closed at zero cost** (the staleness budget's `engine_paths` was too narrow); **two honest limits
+  were added** that the shipped gate did not state. No finding is withdrawn.
+
 - ID: `DONE-BAR-VISIBILITY.10` — Status: `pending`
   Goal: the `Current frontier` section that `docs/TASK_TREE.md` calls REQUIRED is absent from **19
   OPEN trees**, under any heading spelling. Measured 2026-08-30 (re-audit): of 113 index-linked tree
@@ -782,6 +791,130 @@ case-class in the ratchet env's v12 record); `defects` = divergence with NO reco
   R1/R3, both already retrievable and both cited here; the `outputs`-block defect is a one-artifact
   fact and lives in the producer that emits it)
 
+### `.3d` — the director challenge: every published finding re-audited against the artifacts
+
+Shipped in `PGEN-DONE-BAR-VISIBILITY-0012`. Director, 2026-08-30, verbatim: *"do you still stand by
+your findings? the call is yours to make but it got to be sota and signoff."*
+
+⭐ **The answer is YES on the substance and NO on one piece of evidence, and the difference is the
+whole point of re-auditing rather than re-asserting.** `.2a` had already shown what a challenge is
+worth here: two of five findings moved, both in the direction that made them sound bigger.
+
+**What re-derives EXACTLY.** Every number, anchored at the census's own recorded `HEAD` `41e934da`
+(a bare commit count is a number that moves, so the anchor is now stated with it):
+
+| Published | Re-derived | Command |
+|---|---|---|
+| 418 commits since the stale census | **418** | `git rev-list --count 09576657..41e934da` |
+| 72 of them touching the engine | **72** | `… -- rust/src` |
+| 0 touching the VHDL grammar | **0** | `… -- grammars/vhdl.ebnf` |
+| 12 VHDL grammar edits, all time | **12** | `git log --oneline -- grammars/vhdl.ebnf \| wc -l` |
+| registry 32 → 33 | **33 rows** | `grep -c '^  "' scripts/check_doctrines.sh` |
+| regex tuple `2189/1879/262/48` | **identical** | the gate's own `summary.txt` |
+
+**⛔ THE ONE CORRECTION, and it is about METHOD, not about the conclusion.** The census backing
+*"nothing read this report"* grepped the tracked tree for the LITERAL string
+`stimuli/vhdl/characterization`. The corpus runner composes that path as
+`$ROOT/stimuli/$FAM/characterization`, so a reader of exactly that shape is invisible to the
+pattern — **and there is one**: `stimuli/run_external_corpus.sh` reads the tracked report back on
+EVERY run (provenance reconciliation, lines 215-222), and four other tracked scripts read the same
+identity table:
+
+```
+$ git ls-tree -r HEAD --name-only | grep -E '\.(sh|py|rs|yml|mk)$|Makefile' | while read f; do
+    git show "HEAD:$f" | grep -q 'parse binary' && echo "$f"; done
+  docs/tasks/artifacts/eus67/measure_parse_rss.sh
+  docs/tasks/artifacts/sv_corpus_grad/timeout_reconfirm_control/run_control.sh
+  stimuli/run_external_corpus.sh
+  stimuli/sv/audit_explained_svpp.py
+  stimuli/sv/corpus_parse_cost.py
+```
+
+⇒ **the phrasing *"read by nothing"* is FALSE** and it was never the claim worth making. What is
+TRUE, and what the doctrine actually rests on, is narrower and was checked directly: the runner
+takes **field 2** of that table row — the PATH — and never **field 3**, the DIGEST
+(`awk -F'`' '…{print $2}'`, line 222). **Nothing re-hashed the declared inputs**, which is exactly
+why the report's own instruction was unexecutable advice. The finding stands; its evidence is now
+stated at the strength it actually has.
+
+⭐ The transferable half, and it is the same lesson this repository has paid for before: **a
+path-literal grep cannot see a composed path, so before trusting such a census, name one reader it
+would score ZERO on.** Here that reader is the producer itself — the most obvious candidate in the
+tree, and the one the pattern was structurally blind to.
+
+**⛔ ONE REAL HOLE, FOUND AND CLOSED AT ZERO COST.** The staleness budget counted commits touching
+`rust/src` only. The binary that emits the parser also has `rust/build.rs` and `rust/Cargo.toml` as
+inputs, so a narrow set UNDERCOUNTS — which delays a NOTE becoming a FAILURE, i.e. it errs in the
+PERMISSIVE direction. Widened, after measuring the cost:
+
+```
+rust/src        72 commits   rust/build.rs    1   rust/Cargo.toml   3
+union of all three ........ 72 commits  (the two extras are subsets)
+```
+
+⇒ strictly more conservative, calibration **unchanged**, price **zero**. It is still not PROVEN
+exhaustive, and the gate now says so.
+
+**⚠️ TWO HONEST LIMITS THE SHIPPED GATE DID NOT STATE, now in its header.** (1) The grammar-identity
+arm hashes ONE FILE, so it is complete only for a grammar with no `include(...)` — measured for the
+shipped customer, `grep -c 'include(' grammars/vhdl.ebnf` is **0**, so there is no blind spot today,
+but a composing grammar would need the include CLOSURE. (2) `engine_paths` is a declared set and a
+declared set can be wrong; the widening above is a measurement, not a proof.
+
+**⚠️ A CAVEAT ON `.3b`'S STRONGEST ARM, which I did not publish and should have.** The
+*35 fail→pass, 0 pass→fail* per-file diff was taken against the previous run's `results.tsv`, which
+is gitignored and was OVERWRITTEN by the promotion run minutes later. **That diff is RECORDED, not
+re-derivable.** What still corroborates it from tracked state is its own arithmetic: the old file
+carried 35 fewer passes than the new 4 370, i.e. **4 335** — exactly the number the superseded
+tracked report published. So the baseline was provably the right one, and the direction claim rests
+on that identity rather than on a file that still exists.
+
+**What is UNCHANGED after the re-audit.** The `REGEX-ORACLE-ANCHOR-SYNC` finding is confirmed
+against the WHOLE script (93 lines, not the 80 first read): its five legs compare the contract
+anchor, the validator chapter, the how-to, `MEMORY.md` and the tracked ratchet constants, plus a
+sum check over the anchor's own fields. **Every input is a stored value** — so *agreement among
+stored values is consistency, never currency* holds as published. The `outputs`-block finding is
+confirmed with a composition-aware census: the only other candidate,
+`regex_pcre2_textsafe_corpus_gate.sh`, reads a DIFFERENT artifact
+(`pcre2_textsafe_summary.json`), and both real readers of the compile-oracle summary reference
+`outputs` **zero** times.
+
+#### Acceptance checklist (`TOOLBOX.md`)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `.3b`'s root-cause census, and the `engine_paths` scope
+      in `family_status_block_v0.json`. WHY, measured: the census pattern was a path LITERAL while
+      the repository's own producer composes the path, so the instrument was structurally blind to
+      the reader most likely to exist. Re-run composition-aware:
+
+      ```
+      $ git ls-files | grep -E '\.(sh|py|rs)$' | xargs grep -ln 'characterization'
+        -> stimuli/run_external_corpus.sh among them; it reads the tracked report on every run
+      $ git rev-list --count 09576657..41e934da -- rust/src rust/build.rs rust/Cargo.toml   -> 72
+      $ git rev-list --count 09576657..41e934da -- rust/src                                 -> 72
+      ```
+
+      ⇒ the reader census was wrong in its phrasing and the budget scope was narrow in the
+      permissive direction; both are corrected here rather than argued away.
+- [x] **ADDRESSED (verified)** — `engine_paths` widened to three paths with the union measured at
+      the same 72, so the shipped budget is unchanged and strictly more conservative; the gate
+      header now carries the census blind spot, the include-closure limit and the declared-set
+      limit; the leaf carries the corrected reader list and the `results.tsv` caveat. Gate still
+      green on both families: `corpus-census[vhdl]: OK (tuple 13720/4370/9350/0/0)` and
+      `corpus-census[regex]: OK (tuple 2189/1879/262/48)`.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` ALL 33 PASS; `--check-all` green on all
+      11 published surfaces, every block **byte-identical** — this slice corrects evidence and
+      widens a scope, and must move no published number. Zero Rust, zero grammar, zero generated
+      bytes.
+- [x] **RED CONTROLS** — the widened scope was proven to still FAIL past budget and NOTE inside it,
+      by re-running the two budget controls from `.3b` against the new three-path set; the 14
+      in-process self-test controls and the eight `.3c` seam controls are unchanged and green.
+- [x] **LOCKSTEP** — tree + `docs/TASK_TREE.md` + the gate header + the schema + `CHANGES.md` +
+      `DEVELOPMENT_NOTES.md` + `MEMORY.md`.
+
+- promotion: declined (the durable half is already a promoted card — *before trusting a proxy
+  metric, name one instance it would score ZERO on* — and this is its fourth instance, cited rather
+  than restated; the widened path set is a one-artifact fact and lives in the schema that declares it)
+
 ### `.9` — the block is published in all ten parser books
 
 Shipped in `PGEN-DONE-BAR-VISIBILITY-0006`.
@@ -1027,6 +1160,12 @@ None.
 - 2026-08-30 (`.3`) — the nine no-count families split into FOUR derived classes, each naming its
   owing leaf; the class is held equal to the done-bar register and RED-10 proves the drift refuses.
   12/12 probes, 31/31 doctrines, mdbook gate PASS, SV block byte-identical.
+- 2026-08-30 (`.3d`) — DIRECTOR CHALLENGE to the published findings. Every number re-derives exactly
+  (418/72/0/12/33, anchored at the census's recorded HEAD). ONE claim CORRECTED: the reader census
+  used a path-literal grep blind to a composed path, and `stimuli/run_external_corpus.sh` reads the
+  report on every run — the narrow claim (nothing re-hashed the DIGESTS) survives, its evidence is
+  restated at true strength. ONE hole closed at zero cost (`engine_paths` widened, union still 72).
+  TWO honest limits added. Nothing withdrawn. ALL 33 doctrines PASS; all 11 blocks byte-identical.
 - 2026-08-30 (`.3c`) — regex census wired: the oracle gate RE-RUN on HEAD (80 s, 5.5 GB peak) read
   2189/1879/262/48, EXACTLY the published anchor — measured before published, and unlike VHDL it
   held. The normalizer's tracked summary carried absolute paths into a foreign off-volume checkout,
@@ -1058,6 +1197,7 @@ None.
 - `.5` DONE (the cross-family view — the whole roster on one page) — `PGEN-DONE-BAR-VISIBILITY-0009`
 - `.3b` DONE (the VHDL census re-measured, and CORPUS-CENSUS-CURRENCY behind it, 32 -> 33) — `PGEN-DONE-BAR-VISIBILITY-0010`
 - `.3c` DONE (the regex census, kind `oracle_expectation`) — `PGEN-DONE-BAR-VISIBILITY-0011`
+- `.3d` DONE (the director challenge: findings re-audited, one corrected) — `PGEN-DONE-BAR-VISIBILITY-0012`
 
 ## Changelog
 

@@ -35,6 +35,10 @@
 #       affordable by measurement rather than by hope: `grammars/vhdl.ebnf` has moved TWELVE times
 #       in the life of this repository, and a grammar edit is exactly the event after which a
 #       corpus pass rate must not be quoted until it is re-run.
+#       ⚠️ HONEST LIMIT (`.3d`): this hashes ONE FILE, so it is complete only for a grammar with no
+#       `include(...)`. MEASURED for the shipped customer — `grep -c 'include(' grammars/vhdl.ebnf`
+#       is **0** — so there is no blind spot today; a future family whose grammar composes would
+#       need the include CLOSURE hashed, not the entry file.
 #   (4) DENOMINATOR CURRENCY — the file count under each declared sub-corpus is re-counted from
 #       the working tree and held equal to the row that publishes it. A denominator is the half of
 #       a pass rate nobody checks; this is the arm that notices a submodule bump.
@@ -49,6 +53,12 @@
 #       hidden: that is the size at which drift was DETECTED, not a size proven safe — drift may
 #       have crossed earlier and nobody was looking. What the budget buys is a bounded
 #       re-measurement cost (~56 s per 72 engine commits) instead of an unbounded silence.
+#       ⚠️ SECOND HONEST LIMIT, added by `.3d` under a director challenge: `engine_paths` is a
+#       DECLARED set, and a set that is too NARROW undercounts — which delays a NOTE becoming a
+#       FAILURE, the permissive direction. It was widened from `rust/src` alone to
+#       `rust/src` + `rust/build.rs` + `rust/Cargo.toml` after measuring that the union over the
+#       founding window is STILL 72 (those commits are a subset), so the calibration is unchanged
+#       and the scope is strictly more conservative. It is still not PROVEN exhaustive.
 #
 # ==================================================================================================
 # THE SECOND KIND — `oracle_expectation` (DONE-BAR-VISIBILITY.3c), and why a census has a KIND
@@ -101,6 +111,19 @@
 # ⛔ DIGESTS ARE NOT RE-IMPLEMENTED HERE. `scripts/check_baseline_identity.sh --digest bytes FILE`
 # is the repository's one definition of a file digest and is called for every hash this gate
 # compares. A second implementation is a second thing to disagree.
+#
+# ⛔⛔ WHAT THE FOUNDING CENSUS COULD NOT SEE, AND WHY IT IS RECORDED HERE RATHER THAN QUIETLY
+# FIXED (`.3d`, a DIRECTOR CHALLENGE to the published findings). The census backing *"nothing read
+# this report"* grepped the tracked tree for the LITERAL path `stimuli/vhdl/characterization`. The
+# corpus runner composes that path as `$ROOT/stimuli/$FAM/characterization`, so a reader of exactly
+# that shape is INVISIBLE to the pattern — and there is one: `stimuli/run_external_corpus.sh` reads
+# the tracked report back on EVERY run (its provenance reconciliation, lines 215-222), and four
+# other tracked scripts read the same identity table. ⇒ *"nothing reads it"* is FALSE and was never
+# the claim worth making. What IS true, and is what this doctrine rests on, is narrower and was
+# checked directly: the runner takes FIELD 2 of that table row — the PATH — and never field 3, the
+# DIGEST. Nothing re-hashed the declared inputs, which is why the report's own instruction was
+# unexecutable advice. ⭐ The transferable half: a path-literal grep cannot see a composed path, so
+# before trusting such a census, name one reader it would score ZERO on — here, the producer itself.
 #
 # ⚠️ HONEST LIMIT (DOCTRINE_ENFORCEMENT.md §3). This proves the published census is INTERNALLY
 # sound, describes the grammar in this tree, and counts the corpus that is in this tree. It does

@@ -136,7 +136,9 @@
       "grammar_identity_row": "grammar",
       "parser_identity_row": "generated parser",
       "engine_paths": [
-        "rust/src"
+        "rust/src",
+        "rust/build.rs",
+        "rust/Cargo.toml"
       ],
       "engine_staleness_budget_commits": 72,
       "denominator": "every .vhd / .vhdl file under the ten vendored VHDL corpora in stimuli/vhdl/subs",
