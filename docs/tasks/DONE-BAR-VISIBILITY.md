@@ -120,8 +120,10 @@ Both renderings answer three questions **from derived data, not prose**:
   Acceptance: all ten per-parser books carry the block; each is `--check`-verified; the mdbook gate
   passes. ⚠️ `--check`-HELD BY A GATE is `.4`, which is now the frontier — ten pages that a human
   must remember to re-check are ten pages that will go stale.
-- ID: `DONE-BAR-VISIBILITY.4` — Status: `pending`
+- ID: `DONE-BAR-VISIBILITY.4` — Status: `done` (`PGEN-DONE-BAR-VISIBILITY-0007`)
   Goal: wire the co-publication gate so the block cannot go stale.
+  Acceptance: `FAMILY-STATUS-CURRENCY` is a registered doctrine running on every commit; it refuses
+  before it trusts; its RED arms are observed firing.
 - ID: `DONE-BAR-VISIBILITY.5` — Status: `pending`
   Goal: the cross-family page in the main book.
 - ID: `DONE-BAR-VISIBILITY.7` — Status: `pending`
@@ -161,13 +163,13 @@ Both renderings answer three questions **from derived data, not prose**:
 
 ## Current frontier
 
-1. `DONE-BAR-VISIBILITY.4` (wire the co-publication gate). It is the frontier because ten pages now
-   publish derived numbers and NOTHING re-checks them on a commit: `--check` exists and is proven
-   able to go red four ways, but a check nobody invokes is the `GATE-REACHABILITY` defect, and this
-   tree's own goal says the two renderings must be unable to disagree.
+1. `DONE-BAR-VISIBILITY.5` (the cross-family view in the main book — the whole picture on one page
+   rather than ten). It is the frontier because the per-family answer is now published AND gated,
+   and the one thing a reader still cannot do is compare families without opening ten books.
 2. `DONE-BAR-VISIBILITY.3b` (real counts for `vhdl` and `regex` — a tracked census plus a freshness
    gate, the `SV-CORPUS-DENOMINATOR` shape).
-3. `DONE-BAR-VISIBILITY.5` (the cross-family view in the main book).
+3. `DONE-BAR-VISIBILITY.8` (the 4 DISPUTED + 7 unreadable tracker statuses, which make every
+   remaining-work count an upper bound).
 
 ## Leaf records
 
@@ -433,6 +435,67 @@ actually lands, so it is now the frontier.
       of the numbers.
 - promotion: declined (this slice is nine copies of a page shape `.1` already established and whose lessons are already promoted; the durable rule it exercises — publish first, gate second, because a guard is safe to make blocking exactly when the fix precedes it — is `SV-CORPUS-GRAD.13e.11`'s and is already carried by the tree)
 
+### `.4` — the gate: ten published blocks are now re-derived on every commit
+
+Shipped in `PGEN-DONE-BAR-VISIBILITY-0007`. New doctrine **`FAMILY-STATUS-CURRENCY`**
+(`scripts/check_family_status.sh`), registered in `scripts/check_doctrines.sh`, mirrored in
+`DOCTRINE_ENFORCEMENT.md` §10, and the published doctrine count moved **31 → 32** in the book.
+
+**Three tiers, each blind to what the next one sees.**
+
+- **A — structural, no derivation (~0.05 s).** The population is CLOSED and TWO-SIDED: every
+  registered family has a published page, every published page belongs to a registered family, each
+  page carries exactly ONE well-formed `DERIVED` block, and that block's `BEGIN` marker names the
+  family whose book it sits in — so another family's block pasted into a page is caught statically,
+  before a single second of derivation is spent.
+- **B — the RED control (~0.01 s), driven BEFORE the oracle is believed.** The producer's `--check`
+  on a path that does not exist must exit 2. `GRAMMAR-CERT-STATUS.1b` shipped a producer whose
+  `--check` FLAG survived a rewrite that deleted its implementation, and four different inputs all
+  exited 0 for a whole commit; a green verdict from an instrument that says green to everything is
+  worth nothing.
+- **C — the oracle (~3.4 s).** `--check-all` re-derives all ten blocks and DIFFS them.
+
+**The cost decision is what makes it a commit-time gate.** The producer's two `audit_done_bar.sh`
+runs are family-INDEPENDENT and are ~2.3 s of a 2.4 s single-family run, so ten separate invocations
+would pay for them ten times — 24 s, which is how a check ends up behind a flag nobody sets. The new
+`--check-all` mode hoists them: **3.4 s for all ten**.
+
+⚠️ **Honest bound, stated rather than hidden**: tier C's RED is proven at the PRODUCER level
+(`run_family_status_probes.sh` RED-1 mutates a published pass count and RED-4 swaps in another
+family's block, both FAILING at exit 1), not at the gate level, because the gate's tier C addresses
+the ten tracked pages by name and driving it red would mean mutating a tracked file and hoping the
+restore runs. Tier A's states ARE constructed, through a `PGEN_FAMILY_STATUS_PAGES_ROOT` seam, so no
+tracked page is ever touched.
+
+#### Acceptance checklist (`TOOLBOX.md`)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: after `.9`, ten book pages published derived numbers and
+      the only thing re-checking them was a human remembering to run `--check`. WHY that is a defect
+      and not a preference, measured on this tree's own surface:
+      `git ls-files 'scripts/check_*.sh' | xargs grep -l report_family_status | wc -l` → **0**, and
+      `git grep -n report_family_status -- '.githooks' '.github/workflows' 'rust/Makefile' | wc -l`
+      → **0**. Nothing invoked the check at all, which is `GATE-REACHABILITY`'s founding
+      measurement — a gate nothing invokes is indistinguishable from a gate that does not exist —
+      arriving on the very surface this tree built to end hand-maintained status.
+- [x] **ADDRESSED (verified)** — after: `bash scripts/check_family_status.sh` runs all three tiers in
+      **3.4 s** and `bash scripts/check_doctrines.sh` reports **ALL 32 enforced doctrines PASS**,
+      with `<meta:mirror>` confirming §10 lists exactly the 32 and `<meta:book-count>` confirming the
+      book publishes 32 at both marked sites. Re-run after staging, the first census reads **1**
+      (`scripts/check_family_status.sh`), and the invocation the second census was looking for is
+      `git grep -c check_family_status -- scripts/check_doctrines.sh` → **1**, i.e. the registry row
+      that makes `.githooks/pre-commit` and CI run it without either of them naming it.
+- [x] **NO REGRESSION** — `check_doctrines.sh` 32/32 (31 pre-existing, all still green);
+      `make -C rust SHELL=/bin/bash mdbook_docs_gate` PASS; producer probes **12/12**; the ten
+      published blocks are **byte-identical** to a fresh derivation, which the new gate is precisely
+      what asserts.
+- [x] **RED CONTROLS** — `bash docs/tasks/artifacts/done_bar_visibility/run_family_status_gate_probes.sh`
+      → **7 passed, 0 failed**: two GREEN controls (the real tree; an unmutated mirror) and five RED
+      arms — a registered family with no page, a page for no registered family, another family's
+      block in this family's book, a page with the block duplicated, and a page with the markers
+      stripped. Every RED state is CONSTRUCTED under the scratch pages-root seam; no tracked page is
+      mutated.
+- promotion: declined (the durable rules this leaf exercises are already carried — a check nothing invokes is GATE-REACHABILITY's founding measurement, refusing before trusting is docs/knowledge/a-control-that-cannot-fail-is-not-a-control.md, and hoisting a family-independent cost so a gate is cheap enough to run every commit is an engineering decision recorded in the leaf and in the doctrine's own header)
+
 ## Decisions
 
 - **Derived, never hand-written** — `LIVE-MEANS-LIVE.1a` measured 25 of 61 hand-maintained
@@ -457,6 +520,8 @@ None.
   false hits: **0 of 177** tracked book pages carry a distance-to-`Done` surface. Producer, schema,
   page, SUMMARY and probe driver landed; `--check` green on the published page; 8/8 probe arms;
   31/31 doctrines; mdbook gate PASS; all ten families render.
+- 2026-08-30 (`.4`) — `FAMILY-STATUS-CURRENCY` registered; 32/32 doctrines; gate probes 7/7 with
+  five RED arms constructed under a seam; 3.4 s for all ten pages.
 - 2026-08-30 (`.9`) — nine pages, nine SUMMARY entries, nine rebuilt HTML trees; `--check` green on
   all TEN books; mdbook gate PASS; 31/31 doctrines.
 - 2026-08-30 (`.3`) — the nine no-count families split into FOUR derived classes, each naming its
@@ -474,12 +539,15 @@ None.
 - `.2` DONE (the remaining-work synthesis, tree granularity) — `PGEN-DONE-BAR-VISIBILITY-0004`
 - `.3` DONE (why each family has no corpus count, derived and owned) — `PGEN-DONE-BAR-VISIBILITY-0005`
 - `.9` DONE (the block published in all ten parser books) — `PGEN-DONE-BAR-VISIBILITY-0006`
+- `.4` DONE (the FAMILY-STATUS-CURRENCY doctrine, 31 -> 32) — `PGEN-DONE-BAR-VISIBILITY-0007`
 
 ## Changelog
 
 - 2026-08-30 — created from a direct director remark; gap measured the same day.
 - 2026-08-30 — `.1` DONE. One producer, two renderings, `--check` proven able to go RED four ways.
   New leaf `.6` opened for the hand-written-status-prose class the slice measured on the way past.
+- 2026-08-30 — `.4` DONE: the ten published blocks are re-derived and diffed on every commit.
+  Frontier moves to `.5`, the cross-family page.
 - 2026-08-30 — `.9` DONE: every parser book now publishes its family's distance. Frontier moves to
   `.4`, the co-publication gate, because ten unchecked pages will go stale.
 - 2026-08-30 — `.3` DONE: every family says WHY it has no corpus count and who owes one. New

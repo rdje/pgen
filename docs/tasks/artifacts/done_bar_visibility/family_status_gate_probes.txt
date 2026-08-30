@@ -1,0 +1,12 @@
+==============================================================================
+FAMILY-STATUS-CURRENCY probe arms — scripts/check_family_status.sh
+==============================================================================
+  ✅ CTRL-1 the real tree passes all three tiers                exit=0, message matched
+  ✅ CTRL-2 an unmutated mirror passes tier A                   exit=0, message matched
+  ✅ RED-1 a registered family with no published page           exit=1, message matched
+  ✅ RED-2 a published page for no registered family            exit=1, message matched
+  ✅ RED-3 another family's block in this family's book         exit=1, message matched
+  ✅ RED-4 a page carrying two DERIVED blocks                   exit=1, message matched
+  ✅ RED-5 a page carrying no DERIVED block                     exit=1, message matched
+------------------------------------------------------------------------------
+family-status gate probes: 7 passed, 0 failed

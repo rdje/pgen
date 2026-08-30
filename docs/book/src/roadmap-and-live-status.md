@@ -86,8 +86,11 @@ says nothing about how far it still has to climb, which is the question a reader
 distance — the state of each leg of the bar, the corpus pass counts against a named denominator, and
 the remaining work — is published per family, derived, on that family's own book page. The first is
 [SystemVerilog → Status and Distance to `Done`](../../systemverilog_parser_book/src/status-and-distance.md),
-produced by `scripts/report_family_status.sh`. The other nine are owed by `DONE-BAR-VISIBILITY.3`
-(their corpus counts) and `DONE-BAR-VISIBILITY.5` (the cross-family view that will live here).
+produced by `scripts/report_family_status.sh`. **All ten parser books now carry that page**, and
+the `FAMILY-STATUS-CURRENCY` doctrine (`scripts/check_family_status.sh`, run by
+`scripts/check_doctrines.sh` on every commit) re-derives all ten blocks and refuses when a
+published one has drifted — so a number on those pages cannot go stale without failing a commit.
+The cross-family view that will live *here* is `DONE-BAR-VISIBILITY.5`.
 
 Reading the table honestly:
 

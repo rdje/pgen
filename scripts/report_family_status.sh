@@ -52,17 +52,26 @@
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT" || exit 2
 
-FAMILY=""; MODE=text; CHECK=""
+FAMILY=""; MODE=text; CHECK=""; CHECK_ALL=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --markdown) MODE=markdown ;;
     --check) CHECK="${2:-}"; MODE=markdown; shift ;;
+    # ⭐ --check-all EXISTS FOR COST, AND THE COST IS WHY THE GATE CAN RUN ON EVERY COMMIT. The two
+    # audit runs below are family-INDEPENDENT and are the expensive half (~2.3 s of a 2.4 s run), so
+    # ten separate invocations would pay for them ten times. Hoisting them turns 24 s into ~4 s.
+    --check-all) CHECK_ALL=1; MODE=markdown ;;
     -*) echo "report_family_status: unknown arg '$1'" >&2; exit 2 ;;
     *) [ -z "$FAMILY" ] || { echo "report_family_status: two families given ('$FAMILY', '$1')" >&2; exit 2; }
        FAMILY="$1" ;;
   esac; shift
 done
-[ -n "$FAMILY" ] || { echo "report_family_status: REFUSED (2) - name the family, e.g. 'systemverilog'" >&2; exit 2; }
+if [ "$CHECK_ALL" -eq 1 ]; then
+  [ -z "$FAMILY" ] || { echo "report_family_status: REFUSED (2) - --check-all takes no family" >&2; exit 2; }
+  [ -z "$CHECK" ] || { echo "report_family_status: REFUSED (2) - --check-all and --check are exclusive" >&2; exit 2; }
+else
+  [ -n "$FAMILY" ] || { echo "report_family_status: REFUSED (2) - name the family, e.g. 'systemverilog'" >&2; exit 2; }
+fi
 
 # ⛔ VALIDATE `--check`'s SUBJECT BEFORE SPENDING THE DERIVATION — both questions below are
 # properties of the PAGE ALONE, so paying for a whole derivation to be told the page is absent or
@@ -104,7 +113,10 @@ run_audit() {  # run_audit <target-dir> <text-out> <json-out>
 run_audit "$WORK/empty_target" "$WORK/tracked.txt" "$WORK/tracked.json" || exit 2
 run_audit "$ROOT/rust/target"  "$WORK/local.txt"   "$WORK/local.json"   || exit 2
 
-RENDERED="$(python3 - "$FAMILY" "$MODE" "$WORK" <<'PY'
+# render <family> <mode> — one derivation pass, printed. Every caller below goes through this, so
+# the brief form, the book form and the check can never come from different code.
+render() {
+python3 - "$1" "$2" "$WORK" <<'PY'
 import json, os, re, subprocess, sys
 
 FAMILY, MODE, WORK = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -647,7 +659,7 @@ else:
 
 print("\n".join(out))
 PY
-)" || exit 2
+}
 
 # --- --check: derive, then DIFF ---------------------------------------------------------------
 # ⛔⛔ THE FLAG AND ITS IMPLEMENTATION LIVE OR DIE TOGETHER. The sibling producer kept `--check` in
@@ -655,8 +667,9 @@ PY
 # — including a path that does not exist — for a whole commit, while three surfaces went on
 # advertising the capability (GRAMMAR-CERT-STATUS.1b). The RED controls for this block are in the
 # owning task leaf, and they are what makes this paragraph a claim rather than a hope.
-if [ -n "$CHECK" ]; then
-  RFS_FRESH="$RENDERED" python3 - "$CHECK" <<'PYCHECK'
+# check_page <page> <fresh-block> — exit 0 in sync, 1 breached, 2 could not evaluate.
+check_page() {
+  RFS_FRESH="$2" python3 - "$1" <<'PYCHECK'
 import difflib, os, pathlib, re, sys
 page = sys.argv[1]
 fresh = os.environ["RFS_FRESH"].strip()
@@ -681,6 +694,36 @@ if published != fresh:
     sys.exit(1)
 print(f"report_family_status: OK (published block equals a fresh derivation, {len(fresh)} bytes)")
 PYCHECK
+}
+
+# --- entry points -------------------------------------------------------------------------------
+if [ "$CHECK_ALL" -eq 1 ]; then
+  # ⛔ THE POPULATION IS THE REGISTER'S, NOT A LIST TYPED HERE. A family added to the register with
+  # no published page must FAIL rather than be skipped — a check whose population is hand-listed
+  # stops covering the thing it was written for the first time the roster grows.
+  fams="$(python3 -c "import json;print(' '.join(sorted(json.load(open('rust/test_data/grammar_quality/done_bar_family_register_v0.json'))['families'])))")" || exit 2
+  rc_all=0; n_ok=0
+  for fam in $fams; do
+    page="docs/${fam}_parser_book/src/status-and-distance.md"
+    if [ ! -f "$page" ]; then
+      echo "report_family_status: FAILED (1) - $fam is a registered family with NO published status page at $page" >&2
+      rc_all=1; continue
+    fi
+    fresh="$(render "$fam" markdown)" || { rc_all=2; continue; }
+    if out="$(check_page "$page" "$fresh" 2>&1)"; then
+      n_ok=$((n_ok + 1))
+    else
+      rc="$?"; [ "$rc_all" -eq 2 ] || rc_all="$rc"
+      printf '%s\n' "$out" >&2
+    fi
+  done
+  [ "$rc_all" -eq 0 ] && echo "report_family_status: OK ($n_ok published family status blocks equal a fresh derivation)"
+  exit "$rc_all"
+fi
+
+RENDERED="$(render "$FAMILY" "$MODE")" || exit 2
+if [ -n "$CHECK" ]; then
+  check_page "$CHECK" "$RENDERED"
   exit $?
 fi
 printf '%s\n' "$RENDERED"
