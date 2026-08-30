@@ -46,17 +46,22 @@ legitimately land while a job runs — the pause-signal directive's own rule 3 s
 completed work FIRST and then wait. A commit-blocking form would punish exactly the behaviour that
 directive asks for. This is a handoff-time operator check and nothing else.
 
-The census claims a process only if its command line names this checkout **or** its own working
-directory is inside it, because the first cut reported two unrelated `linkedspec` processes — which
-is precisely how an operator learns to ignore a census. Both arms are exercised: it has been
-observed going RED on a real project job and GREEN once that job is killed.
+⛔ **Detection is a PROPERTY, not a vocabulary** — corrected the same day it shipped (`.77`(b),
+`-0137`). The first cut matched command lines against a list of project tokens and the director
+refuted it in one question: `caffeinate -i -t 300`, spawned by the session with its cwd in the repo,
+was invisible to it. Measured at pid level on one control job (`sleep 40`, two open repo handles, no
+project token in its command line): the vocabulary form reported **nothing**, and in the quiet state
+reported a **false positive**. It was wrong in both directions at once.
 
-⚠️ **Honest limit.** It matches on command line plus cwd, so a job whose cwd is elsewhere *and*
-whose command line never spells the repo path is missed, and a process whose cwd cannot be read is
-treated as not ours. Its caller-exclusion rests on an ancestry walk that **can truncate** when an
-intermediate shell has already exited — observed once, not reliably reproducible — so this script
-and the harness wrapper are additionally excluded by name. Neither exclusion can hide a real
-project job, which is the property that matters.
+Now one `lsof` call decides: an **open handle** under the repo (any fd, `txt` included) or a command
+line naming this checkout ⇒ project work, **blocking**; **cwd** under the repo with **zero** handles
+⇒ **advisory**, non-blocking. The split is principled rather than an allowlist — *cwd is inherited*,
+so every helper a session spawns has one, while real work holds a file.
+
+⚠️ **Honest limit.** It censuses this uid, so a project job running as another user is not seen; and
+a process that has closed every handle, sits outside the repo and names no repo path is invisible to
+both arms. Its caller-exclusion rests on an ancestry walk that can truncate when an intermediate
+shell exits, so this script and the harness wrapper are also excluded by name.
 
 Related: [[feedback_answer_your_own_technical_questions]] — the rule is mine to discharge at every
 handoff without being asked again.
