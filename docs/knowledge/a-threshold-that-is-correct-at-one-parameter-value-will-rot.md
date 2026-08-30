@@ -75,7 +75,7 @@ default the scale factor is exactly 1, so the shipped path is unchanged by const
   not describe. Clamp at the requested value.
 - **Say what the invariance does not buy.** It makes the margin the same everywhere; it does not
   measure it — invariance moves a many-valued risk to a single-valued one, which is the win, and is
-  not the same as closing it. ⭐ Here the census that followed put a number on it: nine subjects, a
+  not the same as closing it. ⭐ Here the census that followed put a number on it: nine cells over seven subjects, a
   **≈15×** spread in per-unit cost, a tightest margin of **2.12×**, and exactly one subject under
   11×. ⛔ And note what the census had to CORRECT in this very record: the sentence above once read
   *"the margin is still one number from one family (2.37×)"*, which stopped being true the moment the
@@ -98,8 +98,8 @@ default the scale factor is exactly 1, so the shipped path is unchanged by const
   ⇒ **vary the parameter across the whole population, not across one member of it.**
 - ⭐⭐ **THEN MEASURE THE POPULATION, because "one subject's number does not generalise" is itself a
   claim.** Deriving instead of pinning is the right move whether or not the spread is large — but
-  until the spread is measured it is an argument, not a fact. Measured here across nine subjects in
-  the expensive build mode: the per-unit cost spans **14.81×** (1 961 → 29 046 bytes per frame), so a
+  until the spread is measured it is an argument, not a fact. Measured here across nine measurement CELLS — **seven** distinct subjects,
+  one of which contributes three because it has three dialects — in the expensive build mode: the per-unit cost spans **14.81×** (1 961 → 29 046 bytes per frame), so a
   constant derived from any one of them is wrong for another by more than an order of magnitude. The
   same census also answers the question the derivation could not: the tightest safety margin at the
   shipped default is **2.12×**, and exactly one subject sits under 11×. ⇒ **the census is not
