@@ -863,6 +863,15 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ⇒ an `ExtentUnknown` on a rejection means you are measuring the wrong thing: run the parse through
   `parseability_probe`/`ast_pipeline` (whose whole `main` runs on a dedicated parse stack) or the
   embedding API, not off a thread PGEN did not create.
+- ⭐⭐ **LOWERING `PGEN_PARSE_STACK_BYTES` USED TO KILL THE PROCESS RATHER THAN PRODUCE ONE OF THESE
+  CAUSES, AND THAT IS FIXED** (`ENGINE-UNIVERSAL-SERVICES.79`, 2026-08-30). The guard's FIRST sample
+  was a compiled-in 4 096 frames whatever the reservation, and reaching it costs 99–113 MiB in debug
+  — more than the 96 MiB floor makes spendable — so at the floor a **642-byte** file gave
+  `fatal runtime error: stack overflow, aborting`, **rc 134**, in 0.5 s, with no `stack_probe:` line
+  at all because the guard never ran. Measured over nine depths, **7 of 9 rungs aborted**. The first
+  sample is now DERIVED from the reservation, so every reservation reports a cause.
+  ⇒ **if you are debugging a deep parse and get rc 134 with NO `stack_probe:` line, you are on a
+  binary older than `-0142`** — that silence is itself the diagnosis.
 - ⛔ **A ZERO BYTE FIELD MEANS NOT MEASURED, NEVER A MEASURED ZERO** — the probe refuses at the first
   thing it cannot establish, so a later quantity was never computed. The report prints
   `not_measured` rather than `0` for exactly this reason.

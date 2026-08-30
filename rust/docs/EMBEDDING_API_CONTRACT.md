@@ -53,7 +53,31 @@ Root-level parser-family handoff docs (`PGEN_*_PARSER_INTEGRATION_CONTRACT.md`) 
   - default via `AstDumpOptions::default()`
 
 ## Versioning
-- Contract version constant: `EMBEDDING_API_VERSION = "1.3.3"`
+- Contract version constant: `EMBEDDING_API_VERSION = "1.3.4"`
+  - `1.3.4` (2026-08-30, `ENGINE-UNIVERSAL-SERVICES.79`): backward-compatible fix that RESTORES
+    `1.3.1`'s own guarantee at every reservation. The Stack-Robustness Contract below promises
+    the host process is **never** aborted by a parser stack overflow, in either build mode.
+    That held at the 256 MiB default and stopped holding the moment a host used the documented
+    `PGEN_PARSE_STACK_BYTES` knob: the guard took its FIRST stack sample at a compiled-in
+    **4 096 frames** whatever the reservation, while `MIN_DEDICATED_PARSE_STACK_BYTES` (96 MiB,
+    the value every smaller request is clamped UP to) makes only 90 MiB spendable and reaching
+    4 096 frames costs **99–113 MiB** in debug. Measured before the fix, debug probe at the
+    floor: a **642-byte** SystemVerilog file (300 nested parens) gave
+    `fatal runtime error: stack overflow, aborting`, **rc 134**, in 0.5 s — 7 of 9 ladder rungs
+    aborted. After: every one is a clean `rc 1` refusal naming its cause and depth.
+    ⛔ **Backward-compatible in three specific senses.** (i) **No API surface change** — no type,
+    function, code or field moves, and `EMBEDDING_API_SCHEMA_VERSION` stays `2`. (ii) **No
+    accept-set change at the shipped default** — the fix scales the first-sample depth by the
+    reservation's share of the 256 MiB default, so at the default the factor is exactly 1 and
+    every parse samples at precisely the depth it did before; the generated artifacts are
+    byte-identical, because the scaling lives in the engine's `RecursionGuard` and not in
+    codegen. (iii) **Strictly safer off the default** — at a smaller reservation the guard now
+    refuses where it previously aborted, and the hard ceiling kept by a thread of unknown extent
+    moves DOWN with the reservation, never up.
+    ⚠️ **What is NOT closed**: the safety margin is now INVARIANT in the reservation, not
+    MEASURED for most families. At the default it is `240 MiB ÷ (4 096 × 25 874 B)` = **2.37×**,
+    measured on SystemVerilog in debug; the per-family, per-profile, per-build-mode per-frame
+    census is `ENGINE-UNIVERSAL-SERVICES.79`(a) and stays open.
   - `1.3.3` (2026-08-28, `ENGINE-UNIVERSAL-SERVICES.61`(a)): backward-compatible DIAGNOSTIC fix.
     A rejection from a parse that contacted the 4096-frame recursion ceiling now **says so**.
     `1.3.1` made crossing the ceiling clean and `1.3.2` made it bounded; both left the message
@@ -191,17 +215,31 @@ Grammar parser API:
 - The bound is measured in raw input bytes.
 
 ## Stack-Robustness Contract (`SV-CORPUS-GRAD.8c.3`)
-- The generated parsers carry a 4096-frame mutual-recursion ceiling; a ceiling only protects
-  the host if the thread it runs on has enough real stack for 4096 frames (measured for
-  SystemVerilog: ≈2 KB/frame release, ≈17 KB/frame debug ⇒ ≈8 MB / ≈70 MB of stack needed —
-  more than the 8 MB default main stack, far more than typical host worker threads).
+- The generated parsers ask the host stack a question at a compiled-in **4 096 frames**; a
+  ceiling only protects the host if the thread it runs on has enough real stack to REACH that
+  question (measured for SystemVerilog: **≈3.08 KB/frame release, 25.3–28.4 KB/frame debug**
+  ⇒ ≈12 MB / ≈99–113 MB of stack needed — more than the 8 MB default main stack, far more than
+  typical host worker threads).
+  ⛔ **THE ≈2 KB / ≈17 KB PAIR THIS LINE USED TO QUOTE IS A 2026-07 READING AND IT MOVED**
+  (`ENGINE-UNIVERSAL-SERVICES.78`/`.79`, re-measured with the depth probe's own instrument). It
+  is quoted here only as the figure the original `1.3.1` argument was built on. ⚠️ The costs
+  above are SystemVerilog's; VHDL and the other eight families are unmeasured.
+- ⭐ **Since `ENGINE-UNIVERSAL-SERVICES.79` (`1.3.4`) the depth of that first question is DERIVED
+  from the reservation** — `4 096` scaled by the reservation's share of the 256 MiB default,
+  never scaled up. Per-frame cost does not depend on the reservation, so the depth the stack can
+  carry and the depth of the first sample are both linear in it and their RATIO is invariant:
+  a first sample reachable at the default is reachable at every smaller reservation, for every
+  family and both build modes, with no per-frame constant in the derivation. Before it, an
+  operator who set `PGEN_PARSE_STACK_BYTES` low enough got the SIGABRT this section promises
+  cannot happen.
 - Therefore every SystemVerilog and VHDL grammar-family parse (`parse_grammar_profile*`,
   the convenience/`_result`/`_ast_dump` wrappers) runs its generated-parser work on a
   dedicated thread with a **256 MiB stack** (virtual reservation, lazily committed;
   spawn-per-call, so concurrent host threads never serialize on a shared worker).
 - Guarantee: pathologically deep input (e.g. a ~400-level-nested expression) yields a clean
   `E_PARSE_FAILURE` diagnostic — the host process is **never** aborted by a parser stack
-  overflow, in either build mode. A worker panic likewise maps to `E_PARSE_FAILURE`
+  overflow, in either build mode, **and since `1.3.4` at every reservation rather than only at
+  the 256 MiB default**. A worker panic likewise maps to `E_PARSE_FAILURE`
   (`generated <family> parser worker panicked while processing input`).
 - ⭐ **And that diagnostic arrives in BOUNDED TIME** (`ENGINE-UNIVERSAL-SERVICES.43`, `1.3.2`).
   A bound that converts into a search is not a bound: for a host parsing machine-generated or

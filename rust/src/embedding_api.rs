@@ -33,7 +33,21 @@ const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
 /// instead of a host-process stack-overflow SIGABRT. Backward compatible; the
 /// regex path is unchanged (it keeps its own RGX-0085 worker + nesting
 /// pre-check).
-pub const EMBEDDING_API_VERSION: &str = "1.3.3";
+///
+/// `1.3.4` (`ENGINE-UNIVERSAL-SERVICES.79`): backward-compatible fix RESTORING
+/// `1.3.1`'s own guarantee at every reservation. *"The host process is never
+/// aborted by a parser stack overflow, in either build mode"* held at the 256 MiB
+/// default and stopped holding as soon as a host used the documented
+/// `PGEN_PARSE_STACK_BYTES` knob: the guard's first stack sample was a compiled-in
+/// 4 096 frames whatever the reservation, and at the module's own documented floor
+/// reaching it costs more stack than the floor makes spendable. Measured, debug: a
+/// 642-byte SystemVerilog file aborted at `rc 134` in 0.5 s. The first sample is now
+/// DERIVED from the reservation
+/// (`dedicated_parse_stack::first_stack_sample_depth`), which makes the safety
+/// margin invariant in it. ⛔ No API surface, code set or accept-set change, and the
+/// generated artifacts are byte-identical — the scaling lives in the engine's
+/// `RecursionGuard`, not in codegen.
+pub const EMBEDDING_API_VERSION: &str = "1.3.4";
 
 /// Stable schema version for serialized embedding API metadata.
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
@@ -3489,8 +3503,14 @@ mod tests {
     /// refuses, so a seed that is too small costs one extra rung (measured: every rung below 256
     /// parens is under 0.5 s in debug) and cannot make a lock pass or fail. 32 is chosen to be
     /// unambiguously under the guard's own first sample — 32 levels is ≈430 parser frames at the
-    /// measured 12.91…13.45 frames per level, against a 4 096-frame first sample — so the ladder
-    /// always records at least one ACCEPTING rung for the under-ceiling control to use.
+    /// measured 12.91…13.45 frames per level, against a 4 096-frame first sample at the default
+    /// reservation — so the ladder always records at least one ACCEPTING rung for the
+    /// under-ceiling control to use. ⚠️ `ENGINE-UNIVERSAL-SERVICES.79` made that first sample a
+    /// FUNCTION of the reservation (`dedicated_parse_stack::first_stack_sample_depth`), so the
+    /// margin quoted here is the one at the default; at a reservation small enough to scale the
+    /// first sample under ≈430 frames — below 3 MiB, which the module's own floor forbids — the
+    /// seed would stop being under-ceiling. Recorded rather than made conditional: the floor is
+    /// 96 MiB and the scaled sample there is 1 536 frames, 3.6× the seed.
     #[cfg(feature = "generated_parsers")]
     const CEILING_LADDER_SEED_DEPTH: usize = 32;
 

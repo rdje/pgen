@@ -57,24 +57,57 @@
 
 /// Stack size for dedicated parse threads: 256 MiB.
 ///
-/// Sizing law (`SV-CORPUS-GRAD.8c.3` measurement): the 4096-frame recursion
-/// ceiling needs ≈8 MB of real stack in release and ≈70 MB in debug for the
-/// most stack-hungry measured family (SystemVerilog deep-parens, ≈2 KB /
-/// ≈17 KB per logical frame). 256 MiB gives the debug worst case a >3×
-/// margin, so the ceiling always fires (clean `RecursionDepthExceeded`
-/// diagnostic) before the guard page (process SIGABRT). Virtual reservation
-/// only — the pages are committed lazily as the parse actually deepens.
+/// Sizing law: a generated parser takes its first stack measurement at
+/// `GENERATED_RECURSION_GUARD_STACK_PROBE_FLOOR` frames, and reaching that depth
+/// has to fit inside the spendable budget or the process dies before the guard
+/// can refuse. This reservation satisfies that on every family measured — which
+/// is SystemVerilog, and only SystemVerilog.
+///
+/// ⛔ **THE MARGIN IS SMALLER THAN THIS COMMENT USED TO CLAIM, AND THE NUMBERS
+/// ARE NOW DATED** (`ENGINE-UNIVERSAL-SERVICES.79`, 2026-08-30). It read *"≈70 MB
+/// in debug … a >3× margin"* from `SV-CORPUS-GRAD.8c.3`'s 2026-07 measurement of
+/// ≈17 KB per debug frame. Re-measured with `.69`(d)'s own instrument, the debug
+/// per-frame cost is **25 335 B** (`sv_2017`), **29 031 B** (`verilog_2005`) and
+/// **3 071–3 083 B** in release — so 4 096 frames cost **99–113 MiB** in debug,
+/// against the **240 MiB** this reservation makes spendable. The real margin is
+/// **2.1–2.4×**, not >3×, and it is measured on SystemVerilog alone
+/// (`.79`(a) owes the per-family, per-profile, per-build-mode census).
+///
+/// ⭐ Every SMALLER reservation keeps that same margin without re-measuring
+/// anything, because [`first_stack_sample_depth`] scales the first sample with
+/// the reservation — see its doc comment for why that is a property rather than
+/// a number. Virtual reservation only — the pages are committed lazily as the
+/// parse actually deepens.
 pub const DEDICATED_PARSE_STACK_BYTES: usize = 256 * 1024 * 1024;
 
 /// `ENGINE-UNIVERSAL-SERVICES.65` — the smallest reservation this module will
-/// honour, so an operator cannot shrink the stack below the depth at which the
-/// guard first samples it.
+/// honour.
 ///
-/// 4096 frames is where a generated parser takes its first stack measurement
-/// (`GENERATED_RECURSION_GUARD_STACK_PROBE_FLOOR`), and `SV-CORPUS-GRAD.8c.3`
-/// measured ≈17 KB/frame in debug — the expensive build mode. A floor below
-/// ≈70 MB could therefore let the first sample happen after the stack was
-/// already gone, which is the abort this whole module exists to prevent.
+/// ⛔⛔ **THIS CONSTANT NO LONGER CARRIES A SAFETY ARGUMENT, AND
+/// `ENGINE-UNIVERSAL-SERVICES.79` IS WHY IT MUST NOT.** It was documented as
+/// *"a floor below ≈70 MB could let the first sample happen after the stack was
+/// already gone"* — i.e. 4 096 frames × the ≈17 KB per debug frame
+/// `SV-CORPUS-GRAD.8c.3` measured in 2026-07. That per-frame cost has since been
+/// re-measured at **25 335–29 031 B** (`.78`, and it differs by 14.6 % between two
+/// PROFILES of one family), so reaching the first sample costs **99–113 MiB**
+/// against the **90 MiB** this floor makes spendable — and the floor produced
+/// exactly the abort its comment promised to prevent. Measured: a **642-byte**
+/// SystemVerilog file (300 nested parens) aborts at `rc 134` in 0.5 s with
+/// `PGEN_PARSE_STACK_BYTES` set to this value, and `dedicated_parse_stack_bytes`
+/// CLAMPS every smaller request up onto it, so `PGEN_PARSE_STACK_BYTES=1` landed
+/// on the unsafe number by design.
+///
+/// ⛔ **A BYTE COUNT CANNOT HOLD THAT ARGUMENT.** To do so it has to encode a
+/// per-frame cost, and a per-frame cost is a per-family, per-profile,
+/// per-build-mode measurement that will move again — re-deriving this literal
+/// from today's numbers would be the same defect wearing a fresher one. The
+/// argument now lives where it can be ENFORCED instead of asserted:
+/// [`first_stack_sample_depth`] derives the first sample FROM the reservation, so
+/// reachability holds at every reservation by construction.
+///
+/// What remains here is an ordinary usability floor — below it the derived ceiling
+/// is too shallow to be worth offering, and a host that names a smaller number
+/// gets this one instead. It is a policy, not a proof.
 pub const MIN_DEDICATED_PARSE_STACK_BYTES: usize = 96 * 1024 * 1024;
 
 /// `ENGINE-UNIVERSAL-SERVICES.65` — the reservation actually used for dedicated
@@ -105,6 +138,76 @@ pub fn dedicated_parse_stack_bytes() -> usize {
             .unwrap_or(DEDICATED_PARSE_STACK_BYTES),
         Err(_) => DEDICATED_PARSE_STACK_BYTES,
     })
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.79` — the depth at which a parse running on THIS
+/// process's reservation takes its FIRST stack measurement, given the depth the
+/// generated parser was built to ask at.
+///
+/// ⛔ **WHY THIS EXISTS: A FRAME COUNT AND A BYTE COUNT WERE FREE TO MOVE
+/// INDEPENDENTLY, AND THE PROCESS DIED IN THE GAP.** A generated parser asks the
+/// host stack a question at a compiled-in depth
+/// (`GENERATED_RECURSION_GUARD_STACK_PROBE_FLOOR` — 4 096 frames, baked into all
+/// eleven artifacts). Reaching that depth costs real stack, and how much is a
+/// property of the family, the profile and the build mode. Nothing connected the
+/// two except [`MIN_DEDICATED_PARSE_STACK_BYTES`]'s comment, which encoded ONE
+/// per-frame cost measured ONCE, for ONE family, in 2026-07. The cost moved; the
+/// constant did not; and at the documented floor a 642-byte SystemVerilog file
+/// hard-aborted the process (`rc 134`, 0.5 s) because the stack ran out between
+/// 3 550 and 4 034 frames while the guard's first question was at 4 096.
+///
+/// ⭐⭐ **THE FIX IS A PROPERTY, NOT A BIGGER NUMBER.** Per-frame stack cost does
+/// not depend on the reservation, so
+///
+/// * the depth the reservation can really carry — `budget / bytes_per_frame`,
+///   where `budget` is a fixed share of the reservation — is LINEAR in it, and
+/// * the depth of the first sample, as computed here, is LINEAR in it too.
+///
+/// Their RATIO is therefore INVARIANT in the reservation. ⇒ **a first sample that
+/// is reachable at the default reservation is reachable at every smaller one**,
+/// for every family, every profile and both build modes, with no per-frame
+/// constant anywhere in the derivation. That is the guarantee the byte floor was
+/// asked for and could not give.
+///
+/// ⚠️ **WHAT IT DOES NOT CLAIM, stated rather than implied.** It makes the margin
+/// INVARIANT; it does not measure the margin. At the default that margin is
+/// `240 MiB ÷ (4 096 × 25 874 B)` = **2.37×**, measured on SystemVerilog in debug
+/// and on no other family. A family whose debug frames cost more than **60 KiB**
+/// (61 440 B, which is exactly `budget ÷ 4 096`) would reach its first sample too
+/// late at EVERY reservation equally — which is
+/// exactly the per-family, per-profile, per-build-mode census `.79`(a) owes, and
+/// which this function deliberately does not pretend to substitute for.
+///
+/// ⛔ **IT ONLY EVER SCALES DOWN.** A reservation above the default returns the
+/// requested depth unchanged. Raising the first sample would also raise the HARD
+/// ceiling kept by a parse whose thread extent is unknown
+/// ([`StackProbeRefusal::ExtentUnknown`] — a thread this reservation does not
+/// describe at all), and that is the one direction in which this law could make
+/// an unknown host less safe than it is today.
+pub fn first_stack_sample_depth(requested_depth: usize) -> usize {
+    scale_sample_depth_to_reservation(requested_depth, dedicated_parse_stack_bytes())
+}
+
+/// The pure kernel of [`first_stack_sample_depth`].
+///
+/// Split out because the resolved reservation is a process-wide `OnceLock`: a test
+/// that read it could pin the law at exactly one reservation and never at a second
+/// one, which is the only interesting case. Taking the reservation as an argument
+/// makes the law checkable at every value in one process.
+fn scale_sample_depth_to_reservation(requested_depth: usize, reservation: usize) -> usize {
+    if reservation >= DEDICATED_PARSE_STACK_BYTES {
+        return requested_depth;
+    }
+    // 128-bit intermediate: `requested_depth` is a caller-supplied frame count and
+    // nothing here bounds the product. The branch above makes the quotient
+    // ≤ `requested_depth`, so the narrowing cast cannot truncate.
+    let scaled =
+        (requested_depth as u128 * reservation as u128) / DEDICATED_PARSE_STACK_BYTES as u128;
+    // A guard whose sample depth is 0 refuses at depth 0 with
+    // `StackProbeRefusal::FrameCostUnmeasurable` and can never advance, so the law
+    // floors at one frame — but only for a caller that asked for at least one.
+    // A caller asking for 0 is asking for no parsing at all and keeps that answer.
+    (scaled as usize).max(requested_depth.min(1))
 }
 
 thread_local! {
@@ -554,12 +657,146 @@ mod tests {
         clear_last_stack_probe_refusal();
     }
 
+    /// ⛔ `ENGINE-UNIVERSAL-SERVICES.79` — THIS TEST'S OWN RATIONALE WAS THE
+    /// REFUTED CLAIM. It read *"the resolved reservation must always leave room
+    /// for the depth at which a generated parser takes its FIRST stack
+    /// measurement; a smaller one could let the abort happen before the guard ever
+    /// looks"* — and the floor it checked did NOT leave that room: at
+    /// `MIN_DEDICATED_PARSE_STACK_BYTES` the abort happens between 3 550 and 4 034
+    /// frames, below the 4 096-frame first sample. The assertion was true and the
+    /// reason for it was false, which is the shape a green test cannot expose.
+    ///
+    /// What it locks now is the ordinary clamp — an operator's number is honoured
+    /// only down to the usability floor. Reachability of the first sample is a
+    /// different property, and it is locked by
+    /// [`first_stack_sample_depth_is_reachable_at_every_reservation`] instead.
     #[test]
-    fn reservation_is_never_below_the_first_sample_depth() {
-        // The resolved reservation must always leave room for the depth at which
-        // a generated parser takes its FIRST stack measurement; a smaller one
-        // could let the abort happen before the guard ever looks.
+    fn resolved_reservation_is_never_below_the_usability_floor() {
         assert!(dedicated_parse_stack_bytes() >= MIN_DEDICATED_PARSE_STACK_BYTES);
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.79` — THE LAW ITSELF: the first sample scales
+    /// with the reservation, and only ever DOWN.
+    #[test]
+    fn first_sample_depth_scales_with_the_reservation_and_never_upward() {
+        const REQUESTED: usize = 4096;
+        // The default is the anchor: the shipped path must be byte-identical to
+        // the behaviour before this leaf, not merely close to it.
+        assert_eq!(
+            scale_sample_depth_to_reservation(REQUESTED, DEDICATED_PARSE_STACK_BYTES),
+            REQUESTED,
+            "at the default reservation the law must be the identity"
+        );
+        // Above the default it stays the identity — raising the first sample would
+        // raise the hard ceiling an unknown-extent thread keeps.
+        for bigger in [
+            DEDICATED_PARSE_STACK_BYTES + 1,
+            DEDICATED_PARSE_STACK_BYTES * 4,
+            usize::MAX,
+        ] {
+            assert_eq!(
+                scale_sample_depth_to_reservation(REQUESTED, bigger),
+                REQUESTED,
+                "the law must never scale the first sample UP (reservation {bigger})"
+            );
+        }
+        // Below the default it is proportional. 96 MiB is 3/8 of 256 MiB, so the
+        // 4 096-frame request becomes 1 536 — comfortably under the 3 550…4 034
+        // frames that reservation was MEASURED to survive, which is the whole
+        // point of the leaf.
+        assert_eq!(
+            scale_sample_depth_to_reservation(REQUESTED, MIN_DEDICATED_PARSE_STACK_BYTES),
+            1536
+        );
+        assert_eq!(
+            scale_sample_depth_to_reservation(REQUESTED, DEDICATED_PARSE_STACK_BYTES / 2),
+            REQUESTED / 2
+        );
+        // Degenerate inputs stay sane: a request for one frame never rounds to a
+        // guard that refuses at depth 0 and can never advance, and a request for
+        // zero frames keeps its answer.
+        assert_eq!(scale_sample_depth_to_reservation(1, 1), 1);
+        assert_eq!(scale_sample_depth_to_reservation(0, 1), 0);
+        assert_eq!(
+            scale_sample_depth_to_reservation(usize::MAX, DEDICATED_PARSE_STACK_BYTES),
+            usize::MAX,
+            "the 128-bit intermediate must not overflow on an unbounded request"
+        );
+    }
+
+    /// ⭐⭐ `ENGINE-UNIVERSAL-SERVICES.79` — THE PROPERTY THE BYTE FLOOR COULD NOT
+    /// HOLD: reaching the first sample fits inside the spendable budget at EVERY
+    /// reservation, and the margin is the SAME at all of them.
+    ///
+    /// This is the assertion whose failure is the defect. It is written against a
+    /// per-frame cost supplied as a parameter rather than pinned as a constant —
+    /// the cost is a per-family, per-profile, per-build-mode measurement
+    /// (`.79`(a)), so a test that pinned one would be the very literal this leaf
+    /// deletes. What is checked is that the ANSWER does not depend on the
+    /// reservation, for any cost at all.
+    ///
+    /// ⛔ RED CONTROL, run as part of the test: the same arithmetic against a FIXED
+    /// first sample — the pre-`.79` behaviour — is asserted to FAIL at the floor
+    /// on the measured debug cost. A property test that cannot go red is a census
+    /// that cannot fail.
+    #[test]
+    fn first_stack_sample_depth_is_reachable_at_every_reservation() {
+        const REQUESTED: usize = 4096;
+        // ⛔ THE ENGINE'S OWN RESERVE DIVISOR, READ RATHER THAN RE-TYPED. `.78`
+        // established that asserting `budget == reservation - reservation / 16`
+        // puts a second copy of a private engine constant in the tests — the
+        // defect this leaf's neighbours keep closing. The constant is
+        // `pub(crate)` for exactly this line, so if the engine's reserve changes,
+        // this law is re-checked against the new one instead of against a stale
+        // copy of the old one.
+        let budget = |reservation: usize| {
+            reservation - reservation / crate::ast_pipeline::STACK_HEADROOM_RESERVE_DIVISOR
+        };
+
+        // Per-frame costs MEASURED by `.78`'s ladder and `.69`(d)'s probe, in
+        // bytes: the two SystemVerilog profiles in debug and the release figure.
+        for bytes_per_frame in [3_083usize, 25_335, 25_874, 29_031] {
+            let mut margins = Vec::new();
+            for reservation in [
+                MIN_DEDICATED_PARSE_STACK_BYTES,
+                MIN_DEDICATED_PARSE_STACK_BYTES * 2,
+                DEDICATED_PARSE_STACK_BYTES / 2,
+                DEDICATED_PARSE_STACK_BYTES,
+            ] {
+                let sample = scale_sample_depth_to_reservation(REQUESTED, reservation);
+                let cost_to_reach = sample * bytes_per_frame;
+                assert!(
+                    cost_to_reach < budget(reservation),
+                    "reaching the first sample ({sample} frames × {bytes_per_frame} B = \
+                     {cost_to_reach} B) must fit inside the spendable budget \
+                     ({} B) at a {reservation} B reservation — this is the SIGABRT \
+                     ENGINE-UNIVERSAL-SERVICES.79 exists to remove",
+                    budget(reservation)
+                );
+                // Parts-per-thousand so integer truncation in the scaling cannot
+                // masquerade as a real drift in the margin.
+                margins.push((budget(reservation) as u128 * 1000) / cost_to_reach as u128);
+            }
+            let first = margins[0];
+            for margin in &margins {
+                assert!(
+                    first.abs_diff(*margin) <= 1,
+                    "the safety margin must be INVARIANT in the reservation — that \
+                     invariance is what makes one measurement at the default cover \
+                     every smaller size. Got {margins:?} (‰) at {bytes_per_frame} B/frame"
+                );
+            }
+        }
+
+        // ⛔ RED CONTROL — the pre-`.79` law (a first sample FIXED at the requested
+        // depth) really is unreachable at the floor on the measured debug cost.
+        // Without this the test above would pass just as happily on a law that
+        // never scales at all.
+        assert!(
+            REQUESTED * 25_874 > budget(MIN_DEDICATED_PARSE_STACK_BYTES),
+            "the control must reproduce the defect: a fixed 4096-frame first \
+             sample does NOT fit in the floor's budget at the measured debug cost"
+        );
     }
 
     #[test]

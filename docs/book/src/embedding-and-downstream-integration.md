@@ -78,7 +78,7 @@ if !decoded.encoding.preserves_disk_byte_offsets() {
 - ⛔ **Only for user source.** Do not route JSON manifests, generated Rust or reports through it —
   those are UTF-8 by construction, and a decode failure there is corruption that must stay loud.
 
-### Stack robustness at the embedding boundary (`1.3.1`, `1.3.2`)
+### Stack robustness at the embedding boundary (`1.3.1`, `1.3.2`, `1.3.4`)
 
 A host process embedding a recursive-descent parser must never be aborted by that parser's
 recursion. The generated parsers carry a recursion ceiling, but a ceiling only protects the host
@@ -96,14 +96,37 @@ admitted when this was written needed ≈8 MB / ≈70 MB, more than the 8 MB def
 > (`sv_2017` @1 024 levels), **101.07 MiB** (`sv_2017` @800) or **113.40 MiB** (`verilog_2005`) in
 > debug — not ≈70 MB, and **every one of them is more than the 96 MiB floor**
 > `PGEN_PARSE_STACK_BYTES` clamps up to (and 9.9–26 % more than that floor's 90 MiB spendable
-> budget); a debug embedder that trusts the floor gets the abort this section promises it will not.
+> budget); a debug embedder that trusted the floor GOT the abort this section promises it will not
+> — until the fix immediately below.
 > ⚠️ Quote the RANGE, not one end of it: an earlier revision of this note published only the
 > ≈101 MiB figure, which is the largest of the three `sv_2017` readings.
-> That defect is tracked as `ENGINE-UNIVERSAL-SERVICES.79`, which owns deriving the floor from a
-> per-family, per-build-mode census instead of from a pinned literal. **The shipped 256 MiB default
-> is unaffected and safe on every family measured.** ⚠️ Only SystemVerilog and VHDL have been
-> measured at all; the other eight families' per-frame cost is unmeasured, so treat any per-frame
-> number here as a SystemVerilog number.
+>
+> ✅ **FIXED 2026-08-30 (`ENGINE-UNIVERSAL-SERVICES.79`) — AND NOT BY RE-DERIVING THE FLOOR.**
+> Re-computing 96 MiB from today's per-frame cost would be the same defect wearing a fresher
+> literal, and a census can only ever report the worst cost it happened to RUN. The depth at which
+> the guard takes its FIRST sample is now DERIVED from the reservation instead: it is the depth the
+> generated parser asks for, scaled by how much of the 256 MiB default this process actually has
+> (`dedicated_parse_stack::first_stack_sample_depth`). Per-frame cost does not depend on the
+> reservation, so the depth the stack can carry and the depth of the first sample are both LINEAR in
+> it and their RATIO — the safety margin — is INVARIANT. ⇒ **a first sample that is reachable at the
+> default is reachable at every smaller reservation**, for every family and both build modes, with
+> no per-frame constant in the derivation.
+>
+> Measured before → after with the pre-change binary preserved, debug probe, `PGEN_PARSE_STACK_BYTES`
+> at the 96 MiB floor: **7 of 9 rungs went from `rc 134` SIGABRT to a clean `rc 1` refusal**, and
+> the refusal names its cause and depth (`BudgetExhausted`, 3 647 frames on the 300-paren input —
+> which is `budget ÷ 25 874 B/frame` to within one frame, i.e. the ceiling really is the arithmetic
+> it claims to be). The 275-paren rung still ACCEPTS, so no capability was traded for the fix. At the
+> **default reservation the scale factor is exactly 1**, so the shipped path samples at precisely the
+> depth it did before.
+>
+> ⚠️ **WHAT IS AND IS NOT CLOSED.** The margin is now INVARIANT; it is not MEASURED for most
+> families. At the default it is `240 MiB ÷ (4 096 × 25 874 B)` = **2.37×** for SystemVerilog in
+> debug. Only SystemVerilog and VHDL have been measured at all; the other eight families' per-frame
+> cost is unmeasured, so treat any per-frame number here as a SystemVerilog number, and a family
+> whose debug frames cost more than 60 KiB (61 440 B, exactly `budget ÷ 4 096`) would reach its first sample too late at EVERY reservation
+> equally. That residual is `ENGINE-UNIVERSAL-SERVICES.79`(a) — the per-family, per-profile,
+> per-build-mode census — which stays open.
 Since `1.3.1` (`SV-CORPUS-GRAD.8c.3`), every SystemVerilog and VHDL embedding parse runs its
 parser work on a dedicated **256 MiB-stack** thread (virtual reservation, lazily committed; one
 short-lived thread per call, so concurrent host threads never serialize), which guarantees the
@@ -533,16 +556,20 @@ reservation; the reservation's *default* is still a compiled-in 256 MiB
 floored at 96 MiB — which is what made the proportionality table above possible at all.
 
 ⚠️ **Scope.** The derived bound applies to threads PGEN creates for parsing, which is every
-embedding-API entry and every CLI instrument. A parse driven on some other thread keeps the previous
-4096-frame behaviour, deliberately: this process cannot know that thread's stack size, and guessing
-it is how a diagnosed rejection becomes a `SIGSEGV` in someone else's host.
+embedding-API entry and every CLI instrument. A parse driven on some other thread keeps a HARD
+ceiling at the first-sample depth, deliberately: this process cannot know that thread's stack size,
+and guessing it is how a diagnosed rejection becomes a `SIGSEGV` in someone else's host. ⭐ Since
+`ENGINE-UNIVERSAL-SERVICES.79` that hard ceiling is 4 096 frames at the default reservation and
+proportionally LOWER when the operator has asked for a smaller one — never higher, because raising
+it is the one direction that could make an unknown host less safe than it is today.
 
 **No regression, both released families**: the external corpus shows **0 differences over 16 336
 SystemVerilog files and 0 over 13 720 VHDL files**, per file rather than in aggregate, measured on
 the fused graph that actually ships with the pre-change binary preserved for the A/B.
 
-⚠️ **Read that zero for what it is.** The new bound only engages once a parse passes 4 096 frames,
-and **no corpus file gets there** — 0 of 400 sampled files record any ceiling contact, consistent
+⚠️ **Read that zero for what it is.** The new bound only engages once a parse passes the first-sample
+depth — 4 096 frames at the shipped default, and proportionally fewer at a smaller reservation since
+`ENGINE-UNIVERSAL-SERVICES.79` — and **no corpus file gets there** — 0 of 400 sampled files record any ceiling contact, consistent
 with the 0-of-30 056 census above. So the zero proves this change does not disturb the parses that
 never approach the ceiling; it is *not* evidence that the derived bound itself is correct. That
 evidence is the proportionality table, the boundary's exact reproducibility, and the engine's unit

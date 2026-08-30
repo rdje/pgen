@@ -1,0 +1,28 @@
+RESERVATION  LEVELS RC   ELAPSED   VERDICT
+100663296    200   0    0.76      stack_probe: no_refusal accepted=1
+100663296    275   0    1.34      stack_probe: no_refusal accepted=1
+100663296    300   134  0.55      SIGABRT accepted=0
+100663296    350   134  0.53      SIGABRT accepted=0
+100663296    400   134  0.53      SIGABRT accepted=0
+100663296    500   134  0.52      SIGABRT accepted=0
+100663296    600   134  0.52      SIGABRT accepted=0
+100663296    700   134  0.53      SIGABRT accepted=0
+100663296    800   134  0.53      SIGABRT accepted=0
+134217728    200   0    0.75      stack_probe: no_refusal accepted=1
+134217728    275   0    1.31      stack_probe: no_refusal accepted=1
+134217728    300   0    1.52      stack_probe: no_refusal accepted=1
+134217728    350   0    2.03      stack_probe: no_refusal accepted=1
+134217728    400   1    4.62      stack_probe: cause=NoFrameAffordable depth=4862 accepted=0
+134217728    500   1    25.68     stack_probe: cause=BudgetExhausted depth=4957 accepted=0
+134217728    600   1    67.45     stack_probe: cause=BudgetExhausted depth=5051 accepted=0
+134217728    700   1    125.27    stack_probe: cause=BudgetExhausted depth=5142 accepted=0
+134217728    800   1    200.00    stack_probe: cause=BudgetExhausted depth=5234 accepted=0
+268435456    200   0    0.76      stack_probe: no_refusal accepted=1
+268435456    275   0    1.33      stack_probe: no_refusal accepted=1
+268435456    300   0    1.55      stack_probe: no_refusal accepted=1
+268435456    350   0    2.03      stack_probe: no_refusal accepted=1
+268435456    400   0    2.62      stack_probe: no_refusal accepted=1
+268435456    500   0    4.00      stack_probe: no_refusal accepted=1
+268435456    600   0    5.61      stack_probe: no_refusal accepted=1
+268435456    700   0    7.66      stack_probe: no_refusal accepted=1
+268435456    800   1    21.18     stack_probe: cause=NoFrameAffordable depth=9726 accepted=0

@@ -1,0 +1,28 @@
+RESERVATION  LEVELS RC   ELAPSED   VERDICT
+100663296    200   0    2.21      stack_probe: no_refusal accepted=1
+100663296    275   0    1.32      stack_probe: no_refusal accepted=1
+100663296    300   1    2.49      stack_probe: cause=BudgetExhausted depth=3647 accepted=0
+100663296    350   1    7.86      stack_probe: cause=BudgetExhausted depth=3695 accepted=0
+100663296    400   1    17.45     stack_probe: cause=BudgetExhausted depth=3740 accepted=0
+100663296    500   1    46.67     stack_probe: cause=NoFrameAffordable depth=3833 accepted=0
+100663296    600   1    89.07     stack_probe: cause=NoFrameAffordable depth=3925 accepted=0
+100663296    700   1    138.80    stack_probe: cause=BudgetExhausted depth=4018 accepted=0
+100663296    800   1    196.58    stack_probe: cause=BudgetExhausted depth=4110 accepted=0
+134217728    200   0    0.75      stack_probe: no_refusal accepted=1
+134217728    275   0    1.32      stack_probe: no_refusal accepted=1
+134217728    300   0    1.53      stack_probe: no_refusal accepted=1
+134217728    350   0    2.02      stack_probe: no_refusal accepted=1
+134217728    400   1    4.58      stack_probe: cause=NoFrameAffordable depth=4862 accepted=0
+134217728    500   1    25.59     stack_probe: cause=BudgetExhausted depth=4957 accepted=0
+134217728    600   1    66.40     stack_probe: cause=BudgetExhausted depth=5051 accepted=0
+134217728    700   1    124.89    stack_probe: cause=BudgetExhausted depth=5142 accepted=0
+134217728    800   1    197.09    stack_probe: cause=BudgetExhausted depth=5234 accepted=0
+268435456    200   0    0.74      stack_probe: no_refusal accepted=1
+268435456    275   0    1.28      stack_probe: no_refusal accepted=1
+268435456    300   0    1.52      stack_probe: no_refusal accepted=1
+268435456    350   0    2.00      stack_probe: no_refusal accepted=1
+268435456    400   0    2.59      stack_probe: no_refusal accepted=1
+268435456    500   0    3.90      stack_probe: no_refusal accepted=1
+268435456    600   0    5.54      stack_probe: no_refusal accepted=1
+268435456    700   0    7.47      stack_probe: no_refusal accepted=1
+268435456    800   1    20.96     stack_probe: cause=NoFrameAffordable depth=9726 accepted=0
