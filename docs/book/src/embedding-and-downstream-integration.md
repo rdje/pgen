@@ -92,9 +92,13 @@ admitted when this was written needed ≈8 MB / ≈70 MB, more than the 8 MB def
 > argument was built on. Re-measured 2026-08-30 with the depth probe's own instrument
 > (`ENGINE-UNIVERSAL-SERVICES.69`(d)), a debug SystemVerilog frame costs **25 335 B** (`sv_2017`,
 > at a real refusal) to **25 874 B** — about **1.5×** the number above — and a `verilog_2005` frame
-> costs **29 031 B**. Release is **3 071 – 3 083 B**. ⇒ 4 096 frames costs ≈**101 MiB** in debug,
-> not ≈70 MB, which is **more than the 96 MiB floor** `PGEN_PARSE_STACK_BYTES` clamps up to; a debug
-> embedder that trusts the floor gets the abort this section promises it will not.
+> costs **29 031 B**. Release is **3 071 – 3 083 B**. ⇒ 4 096 frames costs **98.96 MiB**
+> (`sv_2017` @1 024 levels), **101.07 MiB** (`sv_2017` @800) or **113.40 MiB** (`verilog_2005`) in
+> debug — not ≈70 MB, and **every one of them is more than the 96 MiB floor**
+> `PGEN_PARSE_STACK_BYTES` clamps up to (and 9.9–26 % more than that floor's 90 MiB spendable
+> budget); a debug embedder that trusts the floor gets the abort this section promises it will not.
+> ⚠️ Quote the RANGE, not one end of it: an earlier revision of this note published only the
+> ≈101 MiB figure, which is the largest of the three `sv_2017` readings.
 > That defect is tracked as `ENGINE-UNIVERSAL-SERVICES.79`, which owns deriving the floor from a
 > per-family, per-build-mode census instead of from a pinned literal. **The shipped 256 MiB default
 > is unaffected and safe on every family measured.** ⚠️ Only SystemVerilog and VHDL have been

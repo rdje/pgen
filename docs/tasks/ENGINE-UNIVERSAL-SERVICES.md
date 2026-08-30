@@ -17425,6 +17425,25 @@ STRENGTH I attributed to my own evidence.
   crossing as a non-event and climbed to the 2 048 s hang detector. ⇒ **`.69`(d)'s sentence is true
   about which cause is the cleanest evidence and false as a stop condition; a doc's emphasis is not
   a specification.**
+- ✅ **THAT *"WOULD HAVE CLIMBED TO THE HANG DETECTOR"* WAS AN INFERENCE WHEN PUBLISHED; IT IS NOW
+  MEASURED** (director re-verification challenge, same day, `-0141`). The open question was whether
+  some deeper rung might flip `verilog_2005` to `BudgetExhausted` and let the narrow stop condition
+  terminate after all. It does not — the debug probe at three depths returns BYTE-IDENTICAL readings:
+
+  | parens | cause | refusal depth | `used_bytes` | B/frame |
+  |---|---|---|---|---|
+  | 2 048 | `NoFrameAffordable` | 8 668 | 251 651 424 | 29 032 |
+  | 4 096 | `NoFrameAffordable` | 8 668 | 251 651 424 | 29 032 |
+  | 8 192 | `NoFrameAffordable` | 8 668 | 251 651 424 | 29 032 |
+
+  ⭐ **The mechanism is why, and it generalises**: the refusal depth is `budget / bytes_per_frame` —
+  a function of the RESERVATION and the shape, **not of the input's depth**. Past the crossing every
+  deeper input refuses at the same frame with the same cause, so the cause is INVARIANT in input
+  depth and a `BudgetExhausted`-only ladder would have climbed until the clock stopped it.
+  ⚠️ Two wording corrections from the same challenge: the outcome is a lock that FAILS after
+  ~2 048 s, not a hang (`require_crossing()` panics naming the budget); and the probe reads
+  `used_bytes` **251 651 424** (6 816 B under budget, 0.23 frames), where this leaf first wrote
+  251 643 616 / 14 624 B from the in-test observation — the same cause, a different sample.
 - ⭐⭐ **AND THE TWO PROFILES OF ONE FAMILY DISAGREE, WHICH IS WHY NO SINGLE LITERAL COULD HAVE
   WORKED**: `Sv2017` crosses at **1 024** levels / **9.70** frames per level / `BudgetExhausted`,
   `Verilog2005` at **2 048** / **4.23** / `NoFrameAffordable`. The deleted locks used ONE pinned
@@ -17588,14 +17607,38 @@ STRENGTH I attributed to my own evidence.
   first sample, rather than accepting it and aborting later. ⭐ Note the ordering: this is
   CAPABILITY/SAFETY, not speed, so it sits ahead of `.68` under the director's standing ruling.
 
-### ⛔⛔ `.80` — **NOTHING IN THE COMMIT PATH RUNS THE LIBRARY SUITE, SO THE THREE `.78` LOCKS WERE RED FOR TWO DAYS WITH EVERY GATE GREEN — AND THE TARGET THAT WOULD HAVE CAUGHT THEM ALREADY EXISTS AND IS NEVER INVOKED** (`todo`, opened 2026-08-30 by `.78`'s fix / `PGEN-ENGINE-UNIVERSAL-SERVICES-0140`)
+### ⛔ `.80` — **THE ORDINARY-COMMIT TIER RUNS NO `cargo test` AT ALL, SO THE THREE `.78` LOCKS WERE RED FOR TWO DAYS WITH EVERY GATE GREEN. ⛔⛔ ITS FIRST HEADLINE — *"THE TARGET THAT WOULD HAVE CAUGHT THEM IS NEVER INVOKED"* — IS **WITHDRAWN AS FALSE**, REFUTED BY A DIRECTOR CHALLENGE ONE COMMIT LATER** (`todo`, opened 2026-08-30 by `.78`'s fix / `PGEN-ENGINE-UNIVERSAL-SERVICES-0140`, CORRECTED SAME DAY / `PGEN-ENGINE-UNIVERSAL-SERVICES-0141`)
 
-- **WHY + WHERE**: `.78` fixed the three RED locks; it did NOT fix the reason nobody noticed them.
-  `make -C rust embedding_api_gate` exists (`rust/Makefile:1990`) and runs
-  `cargo test --features generated_parsers --lib embedding_api` — exactly the command that reads
-  RED — but no gate in the ordinary-commit tier invokes it, so `bash scripts/check_doctrines.sh`
-  reported **ALL 31 doctrines PASS** on 2026-08-30 against a tree carrying three failing locks on the
-  SV embedding surface that is being released to Nexsim.
+- ⛔⛔ **THE WITHDRAWAL FIRST, because it is the more useful half.** This leaf was opened claiming
+  `make -C rust embedding_api_gate` *"already exists and is never invoked"*. **That is FALSE.** The
+  census I did not run before publishing:
+
+  ```
+  grep -rn "embedding_api_gate" --include=Makefile --include=*.sh --include=*.yml .
+    rust/Makefile:739                  help text
+    rust/Makefile:1989,1990            .PHONY + the target itself
+    rust/scripts/ci_workflow_local_gate.sh:1131   prose
+    rust/scripts/sota_exit_gate.sh:33             <- POLICY_REQUIRED_CHECKS
+    rust/scripts/sota_exit_gate.sh:1114,1116,1119 <- make -C rust SHELL=/bin/bash embedding_api_gate
+  ```
+  It is a **POLICY-REQUIRED CHECK of `sota_exit_gate`**, the flagship aggregate. It is wired, and it
+  is wired into the most authoritative gate this repository has.
+- ⛔ **AND THE COROLLARY I DREW FROM IT IS WITHDRAWN WITH IT.** I asked whether `GATE-REACHABILITY`
+  should have caught this target, *"which would make this a defect in a registered doctrine's
+  population"*. It should not and it did not: the doctrine holds that every tracked gate target is
+  *"invoked by something that RUNS, or carries a deliberate disposition"*, and this one IS invoked.
+  **The doctrine was right and I was wrong about it** — which is exactly the shape `GAP-CLAIM-CENSUS`
+  exists to catch, published here in a leaf whose own subject is a coverage gap.
+- **WHAT SURVIVES, RE-DERIVED**: `.78` fixed the three RED locks; it did NOT fix the reason nobody
+  noticed them, and that reason is a CADENCE fact, not a wiring gap. The commit path is
+  `.githooks/pre-commit` -> `gen_knowledge_map.sh` + `scripts/check_doctrines.sh`, and
+  `grep -c "cargo test" scripts/check_doctrines.sh` returns **0** — the ordinary-commit tier runs no
+  Rust test binary at all. So `bash scripts/check_doctrines.sh` reported **ALL 31 doctrines PASS** on
+  2026-08-30 against a tree carrying three failing locks on the SV embedding surface being released
+  to Nexsim. ⚠️ The only tier that runs them is `sota_exit_gate`, which layer A records as **not
+  re-proven end-to-end since `CI-PARITY-GATE-ROT.7`** — so the practical exposure is real, but its
+  name is *"the gate that would catch this is the one we run least"*, not *"no gate catches this"*.
+  Those are different defects with different fixes.
 - ⚠️ **THIS IS NOT AN ARGUMENT AGAINST THE DIRECTOR'S CI POLICY** (directive 16: ordinary commits run
   a selected set, full CI before push). The policy is a cadence ruling and it is correct — the
   question this leaf owns is whether the SELECTED SET is the right selection, and the evidence says
@@ -17607,10 +17650,8 @@ STRENGTH I attributed to my own evidence.
 - **OWES**: (a) decide the tier — ordinary-commit, pre-push, or a `staged-diff-scoped` arm that fires
   only when `rust/src/embedding_api.rs` or the engine's guard is staged (the shape
   `SAMPLE-PROFILE-PARITY` and `LR-ELIMINATION-RATCHET` already use, and the one that costs zero on
-  the commits that cannot break it); (b) check whether `GATE-REACHABILITY` should have caught
-  `embedding_api_gate` — it holds that *"every tracked gate target is invoked by something that
-  RUNS, or carries a deliberate disposition"*, and this target appears to be neither, which would
-  make this a defect in a registered doctrine's population rather than only a missing tier.
+  the commits that cannot break it); (b) **RESOLVED, no work owed** — `GATE-REACHABILITY` correctly
+  passes on this target because it really is invoked; see the withdrawal above.
 - ⭐ **ROUTED, not worked, until the SV lane says otherwise** — but note it is NOT obviously outside
   the lane: the surface left unguarded is the SystemVerilog embedding API that the Nexsim release
   ships through.
