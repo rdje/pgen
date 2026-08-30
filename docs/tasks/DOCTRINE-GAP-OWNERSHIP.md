@@ -1602,8 +1602,10 @@ REGEX-SELF-HOSTING … DESTRUCTIVE-TARGET-GUARD   |  GATE-REACHABILITY … PARSE
 
 **9 of 33 are under 500 bytes and the next one up is 975 — a 2.65× gap, the widest in the lower
 half**, so the threshold is READ OFF THE DISTRIBUTION rather than invented. ⭐ **All nine are
-registry positions 2–12**: description depth is a function of registration **era**, not of
-importance — the same shape as this leaf's own debt finding (three doctrines absent since the
+registry positions 2–12**, and every doctrine from position 13 on already carried ≥ 975 B. ⛔⛔
+**CORRECTED `-0302`, under a director question and BEFORE it was challenged**: the gloss first
+published here — *"depth is a function of registration era"* — is STRONGER THAN THE DATA. Re-derived
+as a TWO-SIDED predicate over the population, it has **2 counter-examples**: **9 of the 11 oldest were thin, and the 2 that were not (`TASK-ACCEPTANCE` 1367 B, `LESSON-PROMOTION` 783 B) have NO distinguishing feature I could establish** — the obvious hypothesis, *the thick ones were revisited after a later incident*, is REFUTED: 4 of the 9 thin rows cite a later leaf too. So era is strongly ASSOCIATED with thinness and does not determine it, and the mechanism is unexplained — the same shape as this leaf's own debt finding (three doctrines absent since the
 framework's founding commit), and for the same reason. The chapter therefore **derives and publishes
 its own depth census**, naming every description still under the floor, so thinness is *visible*
 instead of silent; enriching those nine is `.22`, and because the sections render §10's prose the
@@ -1664,8 +1666,13 @@ publishing, not after. Owned by `.23`.
       unmoved since e974d34 — tier 2 last proved them **byte-identical** to HEAD)`, and the change
       stages **zero** bytes under `rust/src/**`, `grammars/**`, `generated/**` (empty
       `git diff --cached --stat` over those paths; +774/−0 lines across 4 files, all of them a
-      script or a doc). Cost added to the per-commit driver: **0.12 s** on a **20.52 s** run (two
-      `report_doctrines.sh` invocations at **61 ms** — the render and the red control).
+      script or a doc). Cost added to the per-commit driver: ⛔ **published as 0.12 s, CORRECTED by
+      `-0302` to a measured 66 ms** on a **20.52 s** run. The 0.12 s was a CARRIED number — I doubled
+      one 61 ms reading instead of measuring the pair — and the two arms are not alike: the real
+      `--check` costs **57.3 ms** (median of 5) and the red control **8.5 ms**, because it exits at
+      the file-existence test before any derivation. Wrong in the conservative direction, and still
+      exactly the defect `DERIVED_STATE_CONTAINMENT.md` R1/R3 names: derive it, never re-type it
+      beside the run that printed it.
 - [x] **RED CONTROLS — 8 arms, every one seen to FAIL before its green was believed.** Arms 3–7 run
       against a **constructed repository root** in the scratchpad (a copy of the producer plus
       doctored sources), so no tracked file is mutated and a crashed probe cannot leave a dirty
@@ -1726,8 +1733,9 @@ gate re-derives it every commit. This leaf is the half that gate deliberately ca
   WAIVER-ROUTING 349 · ROUTING-EVIDENCE 368        | next: GATE-REACHABILITY 975
   ```
   ⭐ **All nine are registry positions 2–12** — the oldest doctrines after `MEMORY-ARCH`, which is
-  thick only because an incident later enriched it. Depth is a function of registration **era**, not
-  of importance: every doctrine registered from position 13 onward carries ≥ 975 bytes. Same shape,
+  thick. Every doctrine registered from position 13 onward carries ≥ 975 bytes. ⛔ **CORRECTED
+  `-0302`**: **9 of the 11 oldest were thin, and the 2 that were not (`TASK-ACCEPTANCE` 1367 B, `LESSON-PROMOTION` 783 B) have NO distinguishing feature I could establish** — the obvious hypothesis, *the thick ones were revisited after a later incident*, is REFUTED: 4 of the 9 thin rows cite a later leaf too. So era is strongly ASSOCIATED with thinness and does not determine it, and the mechanism is unexplained — `MEMORY-ARCH` at position 1 is thick and cites a later incident, but so
+  do four rows that stayed thin, so that reading does not survive either. Same shape,
   same cause as `.20`'s debt finding — the practice of writing a founding measurement into the row
   was learned *after* these nine were registered, and nothing went back.
 - **THE MATERIAL ALREADY EXISTS AND IS TRACKED, so this is derivation, not invention.** Every one of
@@ -1766,8 +1774,10 @@ the doctrine, and had simply never reached the mirror the book renders.
       doctrine's book description. **WHY:** the practice of writing a founding measurement into the
       row was learned *after* these nine were registered and nothing went back — measured by
       `git ls-files`-scoped inspection of each enforcer, **all nine are registry positions 2–12**,
-      and every doctrine registered from position 13 on already carried ≥ 975 B. Depth was a
-      function of registration **era**, not of importance.
+      and every doctrine registered from position 13 on already carried ≥ 975 B. ⛔ **The CAUSAL
+      gloss is CORRECTED by `-0302`**: 9 of the 11 oldest were thin, not 11 of 11, and the two
+      exceptions are unexplained — see `.20`. The ROOT CAUSE this box rests on is the measured
+      association plus the absent practice, not a determinism claim.
 - [x] **ADDRESSED (verified)** — before→after on the symptom, re-derived by the producer rather than
       re-typed: **`9 under 500 B` → `0 under 500 B`**, thinnest **48 B → 783 B**
       (`LESSON-PROMOTION`, a row this leaf did not touch), the nine landing at **1198–1492 B**.
