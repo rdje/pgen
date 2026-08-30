@@ -1,0 +1,13 @@
+==============================================================================
+FAMILY-STATUS producer probe arms — scripts/report_family_status.sh
+==============================================================================
+  ✅ CTRL-1 the published page equals a fresh derivation        exit=0, message matched
+  ✅ RED-1 a mutated pass count in the published block is caught exit=1, message matched
+  ✅ RED-2 a page carrying no DERIVED block is REFUSED          exit=2, message matched
+  ✅ RED-3 a nonexistent page is REFUSED                        exit=2, message matched
+  ✅ RED-4 another family's block on this page is caught        exit=1, message matched
+  ✅ RED-5 an unknown family is REFUSED with the derived roster exit=2, message matched
+  ✅ RED-6 naming no family is REFUSED                          exit=2, message matched
+  ✅ RED-7 a declared-but-unrendered field is REFUSED           exit=2, message matched
+------------------------------------------------------------------------------
+family-status probes: 8 passed, 0 failed

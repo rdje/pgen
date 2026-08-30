@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "description": "THE PER-FAMILY STATUS BLOCK — the field schema for scripts/report_family_status.sh (task-tree leaf DONE-BAR-VISIBILITY.1). Origin, verbatim, director 2026-08-30: 'I have no idea for each parser the amount of work to reach full completion (Done). I have no idea or clue about (1) the amount of test corpus that are passing (2) a synthesis about what's left to be done to reach the Done status.' Every field below answers one of those questions FROM A NAMED PRODUCER. A field with no producer is not a field: it is prose, and LIVE-MEANS-LIVE.1a measured what prose status does here -- 25 of 61 hand-maintained fields were simply wrong. The producer READS this file and refuses when the rendered field set and this schema's field set are not EQUAL, in either direction, so a field cannot be added here without being rendered nor rendered without being declared.",
+  "policy": {
+    "producer": "The exact command or tracked artifact the field's value comes from. It must be runnable by a reader; 'derived from the tree' is not a producer.",
+    "state": "`derived` = a producer answers it today. `not_measured` = nothing answers it yet, and the field is rendered as NOT MEASURED with its owing leaf, never as a blank or a zero (docs/decisions/feedback_a_check_that_cannot_run_must_say_so.md).",
+    "owed_by": "Required when state is `not_measured`: the task-tree leaf id that owes the producer. A gap with no owner is a gap nobody is going to close (docs/decisions/feedback_every_finding_is_owned_and_scheduled_never_just_logged.md).",
+    "surfaces": "Where the field is rendered. `chat` = the brief form the engineer reports in completion messages. `book` = the thorough form published into the family's book, and the ONLY half that --check holds equal to a fresh derivation.",
+    "why_book_is_a_subset": "⛔ THE BOOK HALF IS PORTABLE-ONLY, AND THAT IS A CORRECTNESS PROPERTY, NOT A SIMPLIFICATION. Legs 1 and the green-NOW half of leg 2 rest on gate artifacts under rust/target/, which is UNTRACKED: the same commit reads `artifact STALE` on the machine that ran the gate and `no artifact on this machine` on a fresh clone. A published block carrying either sentence would make --check FAIL for every reader who did not run the gate first -- a gate that fails on a clean clone of its own repository. So the book publishes the derivation run TRACKED-ONLY (via the audit's PGEN_DONE_BAR_TARGET_DIR seam, pointed at an empty directory), which is what the repository itself proves to any reader, and the chat form adds this machine's artifact readings on top. One derivation, one run, two renderings -- the book half is the subset every clone agrees on.",
+    "corpus_census": "Per-family wiring for the corpus fields: the gate that proves the census artifacts are FRESH, the tracked artifacts the counts are read from, and the manifest denominator they are counted against. A family absent from this map renders the corpus fields as NOT MEASURED with `owed_by`. ⭐ The freshness gate is invoked, never re-implemented: the counts are read from the TRACKED artifact and the derived tuple is then CROSS-CHECKED against the tuple that gate prints, so an arithmetic drift between the two refuses instead of publishing."
+  },
+  "fields": {
+    "claimed_status": {
+      "question": "What does PGEN CLAIM this family's status is?",
+      "producer": "rust/test_data/grammar_quality/done_bar_family_register_v0.json :: families.<family>.claimed_status",
+      "state": "derived",
+      "surfaces": ["chat", "book"]
+    },
+    "language_owner": {
+      "question": "Who defines the language, and therefore which `Provisional` qualifier this family can ever hold?",
+      "producer": "rust/test_data/grammar_quality/done_bar_family_register_v0.json :: families.<family>.language_owner",
+      "state": "derived",
+      "surfaces": ["chat", "book"]
+    },
+    "bar_leg_1": {
+      "question": "Leg 1 of the `Done` bar - do the family's own generated stimuli close the loop with ZERO residual actionable-target debt?",
+      "producer": "PGEN_DONE_BAR_TARGET_DIR=<empty dir> bash scripts/audit_done_bar.sh --json (tracked-only run)",
+      "state": "derived",
+      "surfaces": ["chat", "book"]
+    },
+    "bar_leg_2": {
+      "question": "Leg 2 - is every gate covering this family green NOW, and is each one actually invoked by something?",
+      "producer": "PGEN_DONE_BAR_TARGET_DIR=<empty dir> bash scripts/audit_done_bar.sh --json (tracked-only run)",
+      "state": "derived",
+      "surfaces": ["chat", "book"]
+    },
+    "bar_leg_3": {
+      "question": "Leg 3 - is an officially-recognized external corpus asserted as a PASS by a conformance gate?",
+      "producer": "PGEN_DONE_BAR_TARGET_DIR=<empty dir> bash scripts/audit_done_bar.sh --json (tracked-only run)",
+      "state": "derived",
+      "surfaces": ["chat", "book"]
+    },
+    "local_gate_state": {
+      "question": "And on THIS machine, right now - what do the gate artifacts under rust/target/ actually say?",
+      "producer": "bash scripts/audit_done_bar.sh --json (ordinary run, artifacts included)",
+      "state": "derived",
+      "surfaces": ["chat"]
+    },
+    "corpus_rows": {
+      "question": "How large is the corpus this family is judged against, and how much of it carries a verdict at all?",
+      "producer": "corpus_census[<family>] - the freshness gate, then the tracked census artifacts",
+      "state": "derived",
+      "surfaces": ["chat", "book"]
+    },
+    "corpus_passing": {
+      "question": "How many corpus rows does the parser answer exactly the way the answer key says?",
+      "producer": "corpus_census[<family>] - the freshness gate, then the tracked census artifacts",
+      "state": "derived",
+      "surfaces": ["chat", "book"]
+    },
+    "known_defects": {
+      "question": "How many rows diverge from the key with NO explanation - the defect bar itself?",
+      "producer": "corpus_census[<family>] - the freshness gate, then the tracked census artifacts",
+      "state": "derived",
+      "surfaces": ["chat", "book"]
+    },
+    "remaining_work": {
+      "question": "What is the ordered, leaf-owned list of work between here and `Done`?",
+      "producer": null,
+      "state": "not_measured",
+      "owed_by": "DONE-BAR-VISIBILITY.2",
+      "surfaces": ["chat", "book"]
+    }
+  },
+  "corpus_census": {
+    "systemverilog": {
+      "freshness_gate": "bash scripts/check_sv_corpus_denominator.sh",
+      "tuple_marker": "sv-corpus-denominator: OK (tuple ",
+      "coverage_tsv": "docs/tasks/artifacts/sv_corpus_grad/verdict_coverage/coverage.tsv",
+      "strata_tsv": "docs/tasks/artifacts/sv_corpus_grad/verdict_coverage/strata.tsv",
+      "denominator": "every row of the SystemVerilog corpus adjudication manifests over stimuli/sv/subs + stimuli/sv/uvm",
+      "instrument": "stimuli/sv/corpus_verdict_coverage.py"
+    }
+  },
+  "not_measured_owners": {
+    "corpus_rows": "DONE-BAR-VISIBILITY.3",
+    "corpus_passing": "DONE-BAR-VISIBILITY.3",
+    "known_defects": "DONE-BAR-VISIBILITY.3"
+  }
+}

@@ -81,6 +81,14 @@ are not restated here, so there is no second copy to drift.
 
 <!-- LIVE-STATUS-SNAPSHOT:END -->
 
+⭐ **A label is not a distance.** The table above says where each family sits on the ladder; it
+says nothing about how far it still has to climb, which is the question a reader actually has. That
+distance — the state of each leg of the bar, the corpus pass counts against a named denominator, and
+the remaining work — is published per family, derived, on that family's own book page. The first is
+[SystemVerilog → Status and Distance to `Done`](../../systemverilog_parser_book/src/status-and-distance.md),
+produced by `scripts/report_family_status.sh`. The other nine are owed by `DONE-BAR-VISIBILITY.3`
+(their corpus counts) and `DONE-BAR-VISIBILITY.5` (the cross-family view that will live here).
+
 Reading the table honestly:
 
 - **No family is `Done`, and that is the current truth, not an oversight.** Leg 3 of the bar — an

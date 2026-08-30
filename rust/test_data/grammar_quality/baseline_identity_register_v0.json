@@ -296,6 +296,11 @@
       "entry": "systemverilog_preprocessor_lightweight_v0.env",
       "disposition": "not-a-derived-baseline",
       "reason": "Focused preprocessor run policy -- count, threshold, attempt and fuzz budgets. Configuration."
+    },
+    {
+      "entry": "family_status_block_v0.json",
+      "disposition": "not-a-derived-baseline",
+      "reason": "The FIELD SCHEMA of the per-family status block (DONE-BAR-VISIBILITY.1): for every field, the question it answers and the PRODUCER that answers it, plus the per-family corpus-census wiring and the leaf that owes each NOT MEASURED field. It holds no number -- every value is derived at render time by scripts/report_family_status.sh -- so nothing in it is a function of the tree and an identity block would guard nothing. What keeps the RENDERED numbers current is that producer's own --check mode, which re-derives the published block and diffs it against the book."
     }
   ],
   "dispositions_fields": {

@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-40112409.js";
+            window.path_to_searchindex_js = "searchindex-2d0dc86d.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-34905c9b.js"></script>
+        <script src="toc-1742f63e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,7 +186,7 @@
 <li><strong>What the AST envelope looks like.</strong> See <a href="#ast-envelope-structure">AST Envelope Structure</a>, <a href="#parsecontent-variants">ParseContent Variants</a>, and <a href="#walking-the-ast">Walking the AST</a>.</li>
 <li><strong>The shape every grammar rule produces in the AST dump.</strong> See <a href="#top-level-rules">Per-Rule Shape Reference</a>. As the return-annotation campaign progresses, this section grows to cover every rule that has a stable typed shape.</li>
 <li><strong>Worked examples by SystemVerilog feature</strong> — what does the AST look like for a minimal module? An interface? A class? Each example chapter pins a current production AST so consumers can write their walkers against a concrete, tested reference.</li>
-<li><strong>Schema versioning policy.</strong> See <a href="#schema-versioning">Schema Versioning</a>. The schema is currently at version <code>13</code> (bumped at parser release <code>1.0.158</code>, the class-scoped-call-prefix AST-shape corruption fix, ledger <code>SV-0020</code>).</li>
+<li><strong>Schema versioning policy.</strong> See <a href="#schema-versioning">Schema Versioning</a>. ⛔ The live schema version is <strong>not restated here</strong> — it is held in <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code> § <em>SystemVerilog AST-dump schema version</em>, which is authoritative. This sentence used to carry the number and published <code>13</code> while the contract carried <code>26</code>.</li>
 <li><strong>A release-by-release index of what changed and why.</strong> See <a href="#changelog-index">Changelog Index</a>.</li>
 </ul>
 <h2 id="what-this-book-is-not"><a class="header" href="#what-this-book-is-not">What this book is NOT</a></h2>
@@ -203,8 +203,93 @@
 <li><strong>Reporting issues</strong>: follow <code>docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md</code> for the bug-report protocol; accepted released-parser bugs land in <code>docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md</code> under the <code>SV-NNNN</code> ID family.</li>
 </ol>
 <h2 id="status"><a class="header" href="#status">Status</a></h2>
-<p>The PGEN SystemVerilog parser is <strong>closure-grade for the current Nexsim-facing scope</strong> when consumed through the stable <code>pgen::embedding_api</code> host surface. See <code>docs/book/src/roadmap-and-live-status.md</code> for the live closure status and <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code> for the formal trust statement.</p>
-<p>The systemverilog return-annotation campaign is <strong>mature</strong>: roughly a thousand grammar rules across both <code>sv_2017</code>/<code>sv_2023</code> profiles now carry stable typed shapes (return + semantic annotations), and the AST-dump schema is at version <code>10</code>. The parser is closure-grade for the Nexsim-facing scope and is validated each release by the certificate-coverage, external-corpus (14/14), and AST-shape-contract gates. Remaining work is targeted: closing the last certificate-coverage <code>UNKNOWN</code> residuals and correcting any residual AST-shape defects (e.g. the <code>SV-AST-SHAPE-FIDELITY</code> inline-alternation-<code>$N</code> corruption sweep). Each shape-affecting change gets its own <a href="#schema-versioning">Schema Versioning</a> row, a released-parser bug-ledger entry where it is a genuine bug, and an entry in the changelog here.</p>
+<p>⭐ <strong>The live answer is <a href="#status-and-distance-to-done">Status and Distance to <code>Done</code></a></strong> — where this family stands against the three-leg <code>Done</code> bar, how much of its corpus passes, and against which denominator. Every figure on that page is derived by <code>scripts/report_family_status.sh</code> and held equal to the tree by its <code>--check</code> mode, so it cannot quietly go stale.</p>
+<p>⛔ <strong>This section deliberately restates none of it, and the reason is measured.</strong> Until 2026-08-30 it carried three hand-written figures and every one of them was wrong: the AST-dump schema was published as <code>10</code> here and as <code>13</code> two paragraphs above while the contract carried <code>26</code>, and the parser was described as <em>“validated each release by the … external-corpus (14/14) … gates”</em> while <code>scripts/audit_done_bar.sh</code> records the only gate reading that corpus as a <strong>triage</strong> gate — which is not a conformance gate, and leaves leg 3 of the bar unmet. A hand-maintained status paragraph rots (<code>LIVE-MEANS-LIVE.1a</code> measured 25 of 61 such fields simply wrong), so this one is now a pointer to a derived surface.</p>
+<p>The formal trust statement remains <code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code>: it is authoritative for the shipped parser release, the AST-dump schema version, and what a consumer may rely on. Each shape-affecting change gets its own <a href="#schema-versioning">Schema Versioning</a> row, a released-parser bug-ledger entry where it is a genuine bug, and an entry in the <a href="#changelog-index">Changelog Index</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="status-and-distance-to-done"><a class="header" href="#status-and-distance-to-done">Status and Distance to <code>Done</code></a></h1>
+<p><strong>One question, answered by measurement: how far is this parser from <code>Done</code>, and how much of the
+corpus passes today?</strong></p>
+<p>A status label — <code>Mostly Done</code>, <code>In Progress</code> — says where a family sits on a ladder. It does not
+say how far it still has to climb, and a reader who only sees the label has no way to tell whether
+the remaining work is a week or a year. This page publishes the <strong>distance</strong> behind the label.</p>
+<blockquote>
+<p>This page is <strong>DERIVED BY MEASUREMENT</strong>. The block below is produced by
+<a href="../../../scripts/report_family_status.sh"><code>scripts/report_family_status.sh</code></a>, which reads the
+done-bar audit and the corpus census rather than any hand-maintained note. Do not hand-edit it —
+re-run with <code>systemverilog --markdown</code> and republish;
+<code>--check docs/systemverilog_parser_book/src/status-and-distance.md</code> refuses when the two
+disagree. Every field, and the producer that answers it, is declared in
+<code>rust/test_data/grammar_quality/family_status_block_v0.json</code>.</p>
+</blockquote>
+<h2 id="the-three-leg-bar-and-what-it-takes-to-clear-it"><a class="header" href="#the-three-leg-bar-and-what-it-takes-to-clear-it">The three-leg bar, and what it takes to clear it</a></h2>
+<p><code>Done</code> here is not a feeling about maturity. It is a three-leg bar, defined in the main book’s
+<a href="../../book/src/quality-and-closure-model.html">Quality and Closure Model</a> and audited by
+<code>scripts/audit_done_bar.sh</code>:</p>
+<ol>
+<li><strong>Stimuli-generator proof</strong> — the family’s own generated samples close the loop with zero
+residual actionable-target debt.</li>
+<li><strong>All our gates</strong> — every gate covering the family is green <em>now</em> and is actually invoked by
+something. A gate nothing invokes is indistinguishable from a gate that does not exist.</li>
+<li><strong>All the external test corpus, passing</strong> — and a <em>triage</em> gate is not a conformance gate, a
+characterization is not a pass, and the <strong>absence</strong> of a corpus is an unmet leg, never an
+inapplicable one.</li>
+</ol>
+<h2 id="where-systemverilog-stands"><a class="header" href="#where-systemverilog-stands">Where SystemVerilog stands</a></h2>
+<!-- BEGIN DERIVED: scripts/report_family_status.sh systemverilog --markdown -->
+<p><strong>Claimed status:</strong> <code>Mostly Done</code> · <strong>language owner:</strong> <code>external-standard</code> · <strong>standard:</strong> IEEE 1800 SystemVerilog LRM</p>
+<p><strong>Distance to <code>Done</code>: 3 of the 3 legs are not met.</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Leg</th><th>State</th><th>Why, derived from the tracked tree</th></tr>
+</thead>
+<tbody>
+<tr><td>1 — stimuli-generator proof</td><td>⚠️ <strong>UNPROVEN</strong></td><td>rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it</td></tr>
+<tr><td>2 — gates green and invoked</td><td>⛔ <strong>UNMET</strong></td><td>16 covering gate targets, 15 invoked, 1 invoked by nothing (sv_combined_telemetry_contract_gate); rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it</td></tr>
+<tr><td>3 — external corpus passing</td><td>⛔ <strong>UNMET</strong></td><td>the only gate reading the external corpus is a TRIAGE gate, and a triage gate is not a conformance gate</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Corpus.</strong> Denominator: every row of the SystemVerilog corpus adjudication manifests over stimuli/sv/subs + stimuli/sv/uvm — <strong>16 336 rows</strong>, counted by <code>stimuli/sv/corpus_verdict_coverage.py</code> and held current by <code>bash scripts/check_sv_corpus_denominator.sh</code>.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Outcome</th><th style="text-align: right">Rows</th><th style="text-align: right">Share of the corpus</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">5 845</td><td style="text-align: right">35.8 %</td></tr>
+<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 437</td><td style="text-align: right">8.8 %</td></tr>
+<tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">274</td><td style="text-align: right">1.7 %</td></tr>
+<tr><td>Routed to another lane’s manifest</td><td style="text-align: right">2 606</td><td style="text-align: right">16.0 %</td></tr>
+<tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">6 174</td><td style="text-align: right">37.8 %</td></tr>
+<tr><td>Total</td><td style="text-align: right">16 336</td><td style="text-align: right">100.0 %</td></tr>
+</tbody>
+</table>
+</div>
+<p>Only <strong>7 556 rows (46.3 %)</strong> were asked a question they could answer, and <strong>4 366</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 5845/7556 would quietly drop the 37.8 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
+<p><strong>What remains between here and <code>Done</code>.</strong> ⛔ <strong>NOT MEASURED</strong> — owed by <code>DONE-BAR-VISIBILITY.2</code>, which derives each family’s open items from the task trees that already own them. Until it lands, the ordered list is not published here rather than being typed by hand, because a hand-typed list rots (<code>LIVE-MEANS-LIVE.1a</code>: 25 of 61 hand-maintained fields were simply wrong).</p>
+<!-- END DERIVED -->
+<h2 id="how-to-read-the-corpus-table-honestly"><a class="header" href="#how-to-read-the-corpus-table-honestly">How to read the corpus table honestly</a></h2>
+<p>The denominator is every row of the SystemVerilog corpus adjudication manifests — not the subset
+that happens to have been looked at. That choice is deliberate and it is the whole point of the
+<code>SV-CORPUS-DENOMINATOR</code> doctrine: a defect count published without its denominator is not a claim
+about the corpus. A row carrying <strong>no verdict</strong> is not evidence of correctness; it is not evidence
+of anything, and <em>unknown</em> and <em>clean</em> are different words.</p>
+<p>The <strong>dark</strong> rows are the sharpest edge in the table: the parse failed, and the row’s deferral
+reason is why nobody has looked at it since. Every one of them is a question the project has not
+yet asked.</p>
+<h2 id="how-this-page-stays-true"><a class="header" href="#how-this-page-stays-true">How this page stays true</a></h2>
+<ul>
+<li>One producer emits both renderings — the brief form reported in the engineer’s completion
+messages and the thorough block above — so the two cannot tell different stories.</li>
+<li><code>--check</code> re-derives the block and diffs it against what is published here, refusing on any
+difference. Republishing is the only way to change a number on this page.</li>
+<li>The block is derived from the <strong>tracked tree alone</strong>. Legs 1 and the <em>green-now</em> half of leg 2
+rest on gate artifacts under <code>rust/target/</code>, which is never tracked, so publishing this
+machine’s reading of them would make the check fail on a fresh clone. Run
+<code>bash scripts/audit_done_bar.sh</code> to see what the gate artifacts in <em>your</em> tree say.</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="quickstart-for-downstream-consumers"><a class="header" href="#quickstart-for-downstream-consumers">Quickstart for Downstream Consumers</a></h1>
 <p>A minimal “compile this, walk that” recipe for embedding the PGEN SystemVerilog parser. Read <a href="#build-recipe">Build Recipe</a> and <a href="#public-api-surface">Public API Surface</a> for the long-form versions of each step.</p>
