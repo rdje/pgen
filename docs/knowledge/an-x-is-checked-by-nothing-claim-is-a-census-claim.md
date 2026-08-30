@@ -9,6 +9,9 @@ answers:
   - "my new instrument disagrees with an existing one — which of us is wrong"
   - "how do I falsify a gap-finding before routing it to a task leaf"
   - "why did the same lesson fail to prevent the same mistake one commit later"
+  - "I named two implementations and concluded the registry has none — is that a census"
+  - "does this apply to a finding I write for a human, or only to a task leaf"
+  - "I am about to escalate a design question — is it actually answerable from the tree"
 tags: [evidence, census, claims, retraction, falsification, controls, claim-verification, sv-corpus-grad]
 date: 2026-08-25
 status: current
@@ -67,3 +70,35 @@ finding, arriving early.**
   fails **leg 2**: the falsifier is cheap, obvious, and skipped because the claim felt safe.
 - [[a-heading-census-is-only-as-good-as-the-heading-grammar]] — the same shape one level down: a
   census whose *pattern* is wrong reports a confident, wrong population.
+
+## The same failure twice more, in findings written FOR A HUMAN rather than for a leaf
+
+2026-08-30, same author, same week, and this is the fourth and fifth instances:
+
+1. *"The stale-number class has no enforcement"* — published from naming **two** doctrines out of
+   **thirty-one**. The census takes one line and returns **six** doctrines enforcing derived-number
+   co-publication, two of them in that exact wording. The real finding was an order of magnitude
+   smaller and far more actionable: *this number is not registered with an existing, proven pattern.*
+2. *"The six co-publication doctrines all govern a number with ONE derivation over a closed surface
+   set, so registering an incomplete one would gate on a moving quantity — your call."* Also
+   unchecked, and refuted by the registry's own text: `BASELINE-IDENTITY` says verbatim that *"a
+   baseline nobody can re-derive yet can still be watched for input drift and still name the leaf
+   that owes the re-derivation."* The pattern was **built** for the case I claimed it could not
+   cover, so the question was never the human's to answer.
+
+⛔ **WHAT THESE TWO ADD TO THE RECORD.**
+
+- **The rule is not scoped to task leaves.** Both of these were "Findings for your review" written for
+  a director. A finding addressed to a human gets read as settled and acted on, so it carries the same
+  census obligation as a leaf — arguably more, because no gate reads it.
+- **Naming N implementations and concluding about the population is the whole failure, and N=2 feels
+  like enough.** It is not sampling; it is an existence proof pointed the wrong way. Two examples can
+  only ever establish that at least two behave that way.
+- ⭐⭐ **AN ESCALATION IS A CLAIM TOO.** *"This is genuinely your call"* asserts that the tree does not
+  already decide it. That assertion needs the same grep as any other — here the registry decided it,
+  and escalating it burned the director's attention on a question the repository had already answered.
+  → [[feedback_answer_your_own_technical_questions]]
+- ⚠️ **The error direction is flattering, which is why it survives self-review.** A related miscount in
+  the same exchange reported *"two of my last three findings needed correcting"* when the callout in
+  question contained exactly **two** findings and **both** were corrected — 2 of 2 restated as 2 of 3.
+  Nobody checks a number that makes their own record look better.

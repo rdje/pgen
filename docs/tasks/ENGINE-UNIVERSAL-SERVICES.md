@@ -18257,12 +18257,30 @@ cause would be the box wearing a costume, so what follows is what a reader actua
   *"register one more number with a proven pattern"*: the `.79`(a) per-frame census and the margin
   derived from it are published on the embedding contract, the book, the engine doc comment and a
   knowledge record, and `-0145` measurably left all four stale for one commit.
-- **OWES**: (a) decide whether the per-frame census is a fit for the existing shape — those six all
-  govern a number with ONE derivation and a CLOSED surface set, and this one has a closed surface set
-  but a derivation that is still INCOMPLETE (`.79`(a) owes RELEASE, `vhdl`, `regex`), so registering
-  it now would gate on a moving quantity; (b) if it is, name the designated surfaces and wire it the
-  way `SV-CORPUS-DENOMINATOR` does; (c) if it is not, say so and record the disposition rather than
-  leaving the four surfaces watched by nothing.
+- ⛔⛔ **AND THE ESCALATION THIS LEAF FIRST CARRIED IS WITHDRAWN — IT WAS ANSWERABLE FROM THE
+  REGISTRY, AND ESCALATING IT WAS THE SAME UNCHECKED-CLAIM FAILURE ONE STEP FURTHER OUT.** The leaf
+  first said the six doctrines *"all govern a number with ONE derivation over a CLOSED surface set,
+  so registering an incomplete one would gate on a moving quantity — a genuine director call."* That
+  premise is FALSE, and the refutation is in the registry's own text:
+
+  ```
+  BASELINE-IDENTITY: "… `unconfirmed` is RED for every consumer, never a waiver, so a baseline
+                      nobody can re-derive yet can still be WATCHED for input drift and still NAME
+                      THE LEAF that owes the re-derivation."
+  ```
+  The pattern was **built for exactly the case I claimed it could not cover**. ⇒ *"this is your call"*
+  is itself a CLAIM — that the tree does not already decide it — and it needs the same grep as any
+  other. → [[feedback_answer_your_own_technical_questions]],
+  [[an-x-is-checked-by-nothing-claim-is-a-census-claim]].
+- **OWES, and it is a decision I make rather than escalate**: (a) register the per-frame census with
+  `expectations: unconfirmed` on `BASELINE-IDENTITY`'s pattern — RED for every consumer, watching the
+  input digests, naming `.79`(a) as the leaf that owes the completion — so the four surfaces stop
+  being watched by nothing WHILE the derivation is still incomplete, which is precisely what
+  `unconfirmed` exists for; (b) name the designated surfaces (embedding contract, book, the engine
+  doc comment, the knowledge record) and wire the co-publication check the way
+  `SV-CORPUS-DENOMINATOR` does; (c) flip to `confirmed` when `.79`(a) closes RELEASE + `vhdl` +
+  `regex`. ⛔ The one thing still genuinely open is ORDERING, not design — and that is mine to
+  sequence under [[feedback_sequence_approved_work_yourself]], behind the SV lane.
 - ⚠️ **HONEST BOUND ON THE CENSUS ABOVE**: it is a grep over the registry's own DESCRIPTIONS, so it
   finds doctrines that SAY they enforce co-publication. It does not prove none of the other 25 does so
   without saying it — the same vocabulary-vs-property limit `.77`(b) and `.81` both record. Sizing
