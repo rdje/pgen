@@ -18236,6 +18236,39 @@ cause would be the box wearing a costume, so what follows is what a reader actua
   `.79`(a): the per-frame census cannot measure the regex family through this instrument until (b)
   is done, so regex will be recorded as NOT MEASURABLE-BY-THIS-ROUTE rather than left blank.
 
+### ⛔ `.83` — **A DERIVED NUMBER PUBLISHED ON SEVERAL SURFACES HAS A REGISTERED CO-PUBLICATION MECHANISM AND SIX CUSTOMERS; THE PER-FRAME CENSUS IS NOT ONE OF THEM** (`todo`, ROUTED — opened 2026-08-30 by `-0147`, narrowing a finding `-0146` published too widely)
+
+- ⛔⛔ **THE FINDING THAT OPENED THIS WAS TOO STRONG, AND ITS CORRECTION IS THE LEAF.** `-0146`
+  published *"no doctrine catches this class"* about a superseded number left standing on four live
+  surfaces — on the strength of naming **two** doctrines out of **31**. That is `-0141`'s failure
+  exactly: a nothing-checks-X claim published without censusing the population. Censused:
+
+  ```
+  grep -oE '"[A-Z-]+\|[^|]*' scripts/check_doctrines.sh \
+    | grep -iE "co-publicat|every designated live surface|published .*equals|agree with each other|re-deriv|DERIVATION of the tree"
+    -> BASELINE-IDENTITY · GRAMMAR-CERT-CURRENCY · PARSE-COST-RATCHET
+       PUBLISHED-VERSION-CURRENCY · REGEX-ORACLE-ANCHOR-SYNC · SV-CORPUS-DENOMINATOR
+  ```
+  **Six**, and two of them use this exact wording: `SV-CORPUS-DENOMINATOR` requires *"every designated
+  live surface carries the derived adjudicated/routed/no-verdict/dark/bar tuple"*, and
+  `PARSE-COST-RATCHET` requires *"CO-PUBLICATION of that derived share on every designated live
+  surface"*. ⇒ **the mechanism exists, is registered, and already governs at least six numbers.**
+- ⭐ **WHICH MAKES THE REAL ASK SMALL AND SPECIFIC.** Not *"invent a gate for stale numbers"* but
+  *"register one more number with a proven pattern"*: the `.79`(a) per-frame census and the margin
+  derived from it are published on the embedding contract, the book, the engine doc comment and a
+  knowledge record, and `-0145` measurably left all four stale for one commit.
+- **OWES**: (a) decide whether the per-frame census is a fit for the existing shape — those six all
+  govern a number with ONE derivation and a CLOSED surface set, and this one has a closed surface set
+  but a derivation that is still INCOMPLETE (`.79`(a) owes RELEASE, `vhdl`, `regex`), so registering
+  it now would gate on a moving quantity; (b) if it is, name the designated surfaces and wire it the
+  way `SV-CORPUS-DENOMINATOR` does; (c) if it is not, say so and record the disposition rather than
+  leaving the four surfaces watched by nothing.
+- ⚠️ **HONEST BOUND ON THE CENSUS ABOVE**: it is a grep over the registry's own DESCRIPTIONS, so it
+  finds doctrines that SAY they enforce co-publication. It does not prove none of the other 25 does so
+  without saying it — the same vocabulary-vs-property limit `.77`(b) and `.81` both record. Sizing
+  that properly is part of (a).
+- ⭐ **ROUTED, not worked** — the SV lane lock binds and this blocks no release.
+
 ### ⏸️ `.64` — **VERILOG-AMS IS A LONG-TERM HORIZON GOAL, PARKED BY DIRECTOR RULING UNTIL AFTER THE FIRST OFFICIAL SV RELEASE. THIS LEAF HOLDS THE MEASURED STARTING POINT AND NOTHING ELSE** (`parked`, opened 2026-08-28 / `…-0112`, SCOPED SAME DAY by the director / `PGEN-ENGINE-UNIVERSAL-SERVICES-0113`)
 
 - ⛔ **MEASURED, fast**: a word-boundary census of `grammars/systemverilog.ebnf` for `analog`,
