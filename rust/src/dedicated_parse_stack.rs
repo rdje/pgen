@@ -141,8 +141,8 @@ pub fn dedicated_parse_stack_bytes() -> usize {
 }
 
 /// `ENGINE-UNIVERSAL-SERVICES.79` — the depth at which a parse running on THIS
-/// process's reservation takes its FIRST stack measurement, given the depth the
-/// generated parser was built to ask at.
+/// THREAD takes its FIRST stack measurement, given the depth the generated parser
+/// was built to ask at.
 ///
 /// ⛔ **WHY THIS EXISTS: A FRAME COUNT AND A BYTE COUNT WERE FREE TO MOVE
 /// INDEPENDENTLY, AND THE PROCESS DIED IN THE GAP.** A generated parser asks the
@@ -179,13 +179,39 @@ pub fn dedicated_parse_stack_bytes() -> usize {
 /// which this function deliberately does not pretend to substitute for.
 ///
 /// ⛔ **IT ONLY EVER SCALES DOWN.** A reservation above the default returns the
-/// requested depth unchanged. Raising the first sample would also raise the HARD
-/// ceiling kept by a parse whose thread extent is unknown
-/// ([`StackProbeRefusal::ExtentUnknown`] — a thread this reservation does not
-/// describe at all), and that is the one direction in which this law could make
-/// an unknown host less safe than it is today.
+/// requested depth unchanged: raising the first sample raises the depth a parse
+/// descends before anything checks, which is the one direction that can make a
+/// host less safe than it is today.
+///
+/// ⛔⛔ **AND IT APPLIES ONLY TO A THREAD THIS MODULE CREATED — a correction, and
+/// the first cut got it wrong** (`-0144`). The law reads THIS THREAD's recorded
+/// extent, not the process-global reservation, because
+/// `PGEN_PARSE_STACK_BYTES` describes the threads this module creates and nothing
+/// else. A parse on any other thread keeps the depth its parser asked for, which
+/// is both the pre-`.79` behaviour and the only honest answer: the process cannot
+/// know that thread's stack size ([`StackProbeRefusal::ExtentUnknown`]).
+/// The first cut scaled by the global, and the regex family — which runs on its
+/// own long-lived 64 MiB worker — measurably lost accept-set at a reduced
+/// reservation because of it.
 pub fn first_stack_sample_depth(requested_depth: usize) -> usize {
-    scale_sample_depth_to_reservation(requested_depth, dedicated_parse_stack_bytes())
+    // ⛔⛔ **THE RESERVATION ONLY DESCRIBES A THREAD THIS MODULE CREATED, AND THE
+    // FIRST CUT OF THIS FUNCTION FORGOT THAT** (`.79`(b)(c) correction, `-0144`).
+    // It read the PROCESS-GLOBAL `dedicated_parse_stack_bytes()`, so lowering
+    // `PGEN_PARSE_STACK_BYTES` also lowered the hard ceiling kept by threads the
+    // reservation has nothing to do with — measured, the regex family runs on its
+    // own long-lived 64 MiB worker (`embedding_api::generated_regex_worker`) and
+    // 400 nested groups went from ACCEPT to a 1 536-frame refusal at a 96 MiB
+    // reservation, an accept-set narrowing on a shipping family.
+    //
+    // Reading THIS THREAD's recorded extent instead is both correct and stronger:
+    // a thread whose reservation is unknown keeps the depth its parser asked for
+    // — exactly the pre-`.79` behaviour — and a dedicated parse thread is scaled
+    // against the reservation it was really created with rather than against a
+    // process-wide guess.
+    match current_parse_stack_extent() {
+        Some((_, reservation)) => scale_sample_depth_to_reservation(requested_depth, reservation),
+        None => requested_depth,
+    }
 }
 
 /// The pure kernel of [`first_stack_sample_depth`].
@@ -721,6 +747,55 @@ mod tests {
             scale_sample_depth_to_reservation(usize::MAX, DEDICATED_PARSE_STACK_BYTES),
             usize::MAX,
             "the 128-bit intermediate must not overflow on an unbounded request"
+        );
+    }
+
+    /// ⛔⛔ `ENGINE-UNIVERSAL-SERVICES.79` (`-0144`) — **A THREAD THIS MODULE DID NOT
+    /// CREATE KEEPS THE DEPTH ITS PARSER ASKED FOR.** The first cut of the law scaled
+    /// by the PROCESS-GLOBAL reservation, so `PGEN_PARSE_STACK_BYTES` reached across
+    /// and lowered the hard ceiling of threads it does not describe. Measured on the
+    /// shipping regex family, which parses on its own long-lived 64 MiB worker: 400
+    /// nested groups ACCEPT at the 256 MiB default and were refused at **1 536
+    /// frames** — the scaled sample depth — once the reservation was set to 96 MiB.
+    /// An accept-set narrowing on a released parser, invisible at the default because
+    /// the scale factor there is exactly 1, which is why every lock stayed green.
+    ///
+    /// This test runs on a libtest worker, which is precisely such a thread, so it is
+    /// the RED control for that regression as well as the lock against it.
+    #[test]
+    fn a_thread_without_a_recorded_extent_keeps_the_requested_depth() {
+        assert_eq!(
+            current_parse_stack_extent(),
+            None,
+            "a libtest worker must have no recorded extent — the premise of this lock"
+        );
+        // Whatever the process resolved, an unknown-extent thread is unscaled.
+        for requested in [1usize, 4096, 65_536] {
+            assert_eq!(
+                first_stack_sample_depth(requested),
+                requested,
+                "the reservation describes threads THIS module creates and nothing else"
+            );
+        }
+        // And on a thread this module DID create, the law engages against that
+        // thread's own recorded reservation.
+        // `DedicatedParseStackError` carries a panic payload and deliberately does
+        // not implement `Debug`, so this file's idiom is a let-else, not `.expect`.
+        let Ok((extent, scaled)) =
+            run_on_dedicated_parse_stack("pgen-test-sample-depth", || {
+                let extent = current_parse_stack_extent();
+                (extent, first_stack_sample_depth(4096))
+            })
+        else {
+            panic!("dedicated parse-stack spawn failed");
+        };
+        let Some((_, reservation)) = extent else {
+            panic!("a dedicated parse thread must record its extent");
+        };
+        assert_eq!(
+            scaled,
+            scale_sample_depth_to_reservation(4096, reservation),
+            "a dedicated parse thread scales against ITS OWN reservation"
         );
     }
 

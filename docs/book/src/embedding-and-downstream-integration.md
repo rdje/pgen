@@ -120,6 +120,14 @@ admitted when this was written needed ≈8 MB / ≈70 MB, more than the 8 MB def
 > **default reservation the scale factor is exactly 1**, so the shipped path samples at precisely the
 > depth it did before.
 >
+> ⛔ **AND IT APPLIES ONLY TO THREADS PGEN CREATES FOR PARSING — a same-day correction
+> (`ENGINE-UNIVERSAL-SERVICES.79`, `-0144`).** The first cut scaled by the process-global
+> reservation, so `PGEN_PARSE_STACK_BYTES` also lowered the hard ceiling of the **regex** family,
+> which parses on its own long-lived 64 MiB worker that the reservation does not describe — measured,
+> 400 nested groups went from ACCEPT to a refusal at the scaled depth. The law now reads the parse
+> thread's OWN recorded extent: a thread PGEN did not create keeps the depth its parser asked for,
+> and a dedicated parse thread is scaled against the reservation it was really created with.
+>
 > ⚠️ **WHAT IS AND IS NOT CLOSED.** The margin is now INVARIANT; it is not MEASURED for most
 > families. At the default it is `240 MiB ÷ (4 096 × 25 874 B)` = **2.37×** for SystemVerilog in
 > debug. Only SystemVerilog and VHDL have been measured at all; the other eight families' per-frame

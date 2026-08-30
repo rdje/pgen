@@ -9,10 +9,12 @@ answers:
   - "how do I make a resource guard correct for families or workloads I have never measured"
   - "what does a census of measured costs actually license me to claim"
   - "why did lowering a documented, supported knob crash the process"
+  - "I made a threshold depend on a runtime parameter — where can that go wrong"
+  - "my fix is invisible at the default setting, so what did my tests actually cover"
 tags: [resource-limits, invariants, claim-verification, engine, safety, derived-bounds]
 date: 2026-08-30
 status: current
-evidence: docs/tasks/ENGINE-UNIVERSAL-SERVICES.md leaf .79 (PGEN-ENGINE-UNIVERSAL-SERVICES-0142, and .79's founding measurement in -0138); rust/src/dedicated_parse_stack.rs (first_stack_sample_depth, MIN_DEDICATED_PARSE_STACK_BYTES); rust/src/ast_pipeline/mod.rs (RecursionGuard::new); rust/docs/EMBEDDING_API_CONTRACT.md (Stack-Robustness Contract, 1.3.4)
+evidence: docs/tasks/ENGINE-UNIVERSAL-SERVICES.md leaf .79 (PGEN-ENGINE-UNIVERSAL-SERVICES-0142, its same-day correction -0144, and .79's founding measurement in -0138); rust/src/dedicated_parse_stack.rs (first_stack_sample_depth, MIN_DEDICATED_PARSE_STACK_BYTES); rust/src/ast_pipeline/mod.rs (RecursionGuard::new); rust/docs/EMBEDDING_API_CONTRACT.md (Stack-Robustness Contract, 1.3.4)
 reverify: "python3 -c \"n=300; open('tmp/p300.sv','w').write('module m; wire w; assign w = ' + '('*n + '1' + ')'*n + '; endmodule\\n')\" && PGEN_REPORT_STACK_PROBE=1 PGEN_PARSE_STACK_BYTES=100663296 ./rust/target/debug/parseability_probe --parse systemverilog --profile sv_2017 tmp/p300.sv   # rc=1 with cause=BudgetExhausted; the pre-.79 binary gave rc=134, 'fatal runtime error: stack overflow, aborting'"
 ---
 
@@ -73,6 +75,20 @@ default the scale factor is exactly 1, so the shipped path is unchanged by const
   measure it. The margin is still one number from one family (here 2.37×), and a workload costing
   more than 60 KiB per frame (61 440 B, exactly `budget ÷ 4 096`) would be unsafe at *every* reservation equally. Invariance moves a
   many-valued risk to a single-valued one — that is the win, and it is not the same as closing it.
+- ⛔⛔ **APPLY THE LAW ONLY WHERE THE PARAMETER ACTUALLY DESCRIBES THE SUBJECT — this is the second
+  half of the lesson and it cost a separate defect one commit later.** Once a threshold is a function
+  of a parameter, every subject that threshold governs inherits the parameter whether or not it is
+  described by it. Here the parameter was a stack reservation belonging to threads one module
+  creates; the first cut read it as a process-global, so it also scaled the ceiling of a shipping
+  parser family that runs on its **own** long-lived worker with an unrelated stack — measurably
+  narrowing that family's accept set at any reduced setting (400 nested groups: accept at the
+  default, refused at exactly the scaled depth below it). The fix is to read the subject's OWN value
+  of the parameter and to leave subjects that have none exactly as they were.
+- ⛔ **AND NOTICE WHY THE TESTS MISSED IT: at the DEFAULT setting the scaling factor is 1, so a
+  parameterised change is INVISIBLE on the default path — which is where every gate runs.** Verifying
+  three settings on one subject and one setting on every other subject leaves the whole
+  (other subject × non-default setting) quadrant untested, and that is exactly where the defect was.
+  ⇒ **vary the parameter across the whole population, not across one member of it.**
 - **A test that pins the other side of the relationship is the defect wearing a test.** Check the
   *property* (the ratio is the same at four reservations) and read the engine's own constant rather
   than re-typing it. Prove the check goes RED: restoring the pre-fix law must fail it, and here it
