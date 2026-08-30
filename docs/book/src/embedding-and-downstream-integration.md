@@ -150,8 +150,37 @@ admitted when this was written needed ≈8 MB / ≈70 MB, more than the 8 MB def
 > `budget ÷ 4 096`) per debug frame is answered — the worst measured is 29 046 B, under half that.
 > ⚠️ Read these at **±5 %**: four independent `sv_2017` readings span 24 559–25 878 depending on the
 > depth the refusal lands at, so the spread is ≈13–16× and the margins move in the last digit.
-> `ENGINE-UNIVERSAL-SERVICES.79`(a) stays OPEN for the RELEASE half (frames are ≈8× cheaper there, so
-> debug is the binding mode), for `vhdl` and for `regex`.
+>
+> ✅ **AND THE RELEASE HALF IS NOW MEASURED TOO** (`ENGINE-UNIVERSAL-SERVICES.79`(a) slice 2b,
+> `-0151`), at the same 96 MiB floor so the two halves are directly comparable:
+>
+> | family / profile | release B/frame | release margin | debug B/frame | debug → release |
+> |---|---|---|---|---|
+> | `systemverilog` / `verilog_2005` | 3 709 | **16.57×** | 29 046 | 7.83× |
+> | `systemverilog` / `sv_2023` | 3 051 | 20.14× | 24 903 | 8.16× |
+> | `systemverilog` / `sv_2017` | 3 043 | 20.19× | 24 559 | 8.07× |
+> | `systemverilog_preprocessor` | 507 | 121.18× | 5 236 | 10.33× |
+>
+> ⇒ three things a downstream embedder should take from this. **(1) The DEBUG build is the binding
+> case, by 7.83×** — 2.12× against 16.57× at the binding cell — so a debug host is the one to size
+> for. **(2) SystemVerilog is the binding family in BOTH build modes**, by a 5.55× separation in
+> debug and 7.32× in release. **(3) The build-mode ratio is NOT a single constant, so a release
+> figure cannot be derived from a debug one**: the three SystemVerilog profiles agree to 1.042×
+> (7.83–8.16×) while `systemverilog_preprocessor` reads 10.33×, 27 % away.
+>
+> ⭐ The release `sv_2017` reading of **3 043 B/frame** lands **0.9–1.3 %** from the **3 071–3 083**
+> that `ENGINE-UNIVERSAL-SERVICES.69`(d) measured independently — a different harness, a different
+> nesting SHAPE and a different reservation — which is corroboration nobody engineered for.
+>
+> ⚠️ **Nine of the twenty-two cells are not measured, and each one names the reason.** `vhdl` in both
+> modes and the five cheap-frame families in release are bounded by cost, not by choice: a cell is
+> reached at `budget ÷ bytes_per_frame` frames and crossing costs Θ(depth²)
+> (`ENGINE-UNIVERSAL-SERVICES.68`), while a release cell needs 8–10× that depth — one such run cost
+> 1.17 GB of peak RSS on an 8 KB input (`ENGINE-UNIVERSAL-SERVICES.84`). `regex` is bounded by
+> `ENGINE-UNIVERSAL-SERVICES.82`, whose refusal reading is stranded on that family's own worker.
+> ⭐ Note the direction: the margin is `budget ÷ (4 096 × bytes_per_frame)`, so **cheap frames mean
+> wide margins**, while the census's cost is quadratic in `budget ÷ bytes_per_frame`, so **cheap
+> frames also mean expensive cells**. The measurement is cheapest exactly where the risk is highest.
 Since `1.3.1` (`SV-CORPUS-GRAD.8c.3`), every SystemVerilog and VHDL embedding parse runs its
 parser work on a dedicated **256 MiB-stack** thread (virtual reservation, lazily committed; one
 short-lived thread per call, so concurrent host threads never serialize), which guarantees the

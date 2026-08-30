@@ -1,0 +1,12 @@
+FAMILY                       PROFILE        LEVELS   FRAMES     CAUSE                  BYTES_PER_FRAME
+systemverilog                sv_2017        4096     31571      BudgetExhausted        3043
+systemverilog                sv_2023        4096     31597      BudgetExhausted        3051
+systemverilog                verilog_2005   8192     25441      BudgetExhausted        3709
+systemverilog_preprocessor   <default>      65536    186112     BudgetExhausted        507
+vhdl                         <default>      -        -          NOT_ATTEMPTED_SEE_.68  not_measured
+json                         <default>      65536    -          GUARD_OR_UNREACHED     not_measured
+rtl_const_expr               <default>      16384    -          GUARD_OR_UNREACHED     not_measured
+rtl_frontend                 <default>      16384    -          GUARD_OR_UNREACHED     not_measured
+return_annotation            <default>      16384    -          GUARD_BREACH_12561MB   not_measured
+semantic_annotation          <default>      65536    -          GUARD_OR_UNREACHED     not_measured
+regex                        <default>      -        -          REFUSED_UNOBSERVABLE   not_observable_see_EUS.82

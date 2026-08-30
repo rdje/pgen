@@ -80,8 +80,24 @@ Root-level parser-family handoff docs (`PGEN_*_PARSER_INTEGRATION_CONTRACT.md`) 
     (`verilog_2005`), 2.4–2.5× for the other two SystemVerilog profiles, and **11.7×–31.3× for every
     non-SystemVerilog family measured** — SystemVerilog is the binding case by a factor of ~5.5.
     ⚠️ Read the per-frame numbers at ±5 %: four independent `sv_2017` readings span 24 559–25 878
-    depending on the depth the refusal lands at. `ENGINE-UNIVERSAL-SERVICES.79`(a) stays OPEN for the
-    RELEASE half (≈8× cheaper frames, so debug is the binding mode), for `vhdl` and for `regex`.
+    depending on the depth the refusal lands at.
+    ✅ **The RELEASE half is measured too** (`ENGINE-UNIVERSAL-SERVICES.79`(a) slice 2b, `-0151`, same
+    96 MiB floor so the halves compare directly): `verilog_2005` **3 709 B/frame** ⇒ margin
+    **16.57×**, `sv_2023` 3 051 ⇒ 20.14×, `sv_2017` 3 043 ⇒ 20.19×, `systemverilog_preprocessor`
+    507 ⇒ 121.18×. ⇒ **the DEBUG build is the binding case by 7.83×** (2.12× against 16.57× at the
+    binding cell), **SystemVerilog is the binding family in BOTH build modes**, and ⛔ **the
+    build-mode ratio is NOT one constant** — the three SystemVerilog profiles agree to 1.042×
+    (7.83–8.16×) while `systemverilog_preprocessor` reads 10.33×, so a release figure cannot be
+    derived from a debug one. ⭐ Release `sv_2017` lands **0.9–1.3 %** from the 3 071–3 083
+    `ENGINE-UNIVERSAL-SERVICES.69`(d) measured on a different harness, shape and reservation.
+    ⚠️ Nine of twenty-two cells stay unmeasured and each names its reason: `vhdl` and the five
+    cheap-frame families in release are bounded by cost — a cell is reached at
+    `budget ÷ bytes_per_frame` frames and crossing is Θ(depth²)
+    (`ENGINE-UNIVERSAL-SERVICES.68`), with one release attempt costing 1.17 GB of peak RSS on an
+    8 KB input (`ENGINE-UNIVERSAL-SERVICES.84`) — and `regex` by
+    `ENGINE-UNIVERSAL-SERVICES.82`. ⭐ Those are the cells with the WIDEST margins: cheap frames
+    make a cell expensive to measure and safe to run, so the instrument is cheapest exactly where
+    the risk is highest.
   - `1.3.3` (2026-08-28, `ENGINE-UNIVERSAL-SERVICES.61`(a)): backward-compatible DIAGNOSTIC fix.
     A rejection from a parse that contacted the 4096-frame recursion ceiling now **says so**.
     `1.3.1` made crossing the ceiling clean and `1.3.2` made it bounded; both left the message

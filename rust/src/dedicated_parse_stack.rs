@@ -183,7 +183,21 @@ pub fn dedicated_parse_stack_bytes() -> usize {
 /// The earlier worry that a family might exceed **60 KiB** per debug frame (61 440 B,
 /// exactly `budget ÷ 4 096`) is answered — the worst measured is 29 046 B.
 /// ⚠️ Read them at ±5 %: four `sv_2017` readings span 24 559–25 878 with the depth the
-/// refusal lands at. `.79`(a) stays open for RELEASE, `vhdl` and `regex`.
+/// refusal lands at.
+///
+/// ✅ **AND THE RELEASE HALF TOO** (`.79`(a) slice 2b, `-0151`, same 96 MiB floor):
+/// `verilog_2005` **3 709 B/frame** ⇒ margin **16.57×**, `sv_2023` 3 051 ⇒ 20.14×,
+/// `sv_2017` 3 043 ⇒ 20.19×, `systemverilog_preprocessor` 507 ⇒ 121.18×. ⇒ **the DEBUG
+/// build is the binding case by 7.83×**, and **SystemVerilog is the binding family in
+/// BOTH build modes**. ⛔ The build-mode ratio is NOT one constant — the three
+/// SystemVerilog profiles agree to 1.042× (7.83–8.16×) while
+/// `systemverilog_preprocessor` reads 10.33× — so a release cost cannot be derived from
+/// a debug one. ⭐ Release `sv_2017` lands 0.9–1.3 % from the 3 071–3 083 `.69`(d)
+/// measured on a different harness, SHAPE and reservation.
+/// ⚠️ Nine of twenty-two cells stay unmeasured, each naming its reason: `vhdl` and the
+/// cheap-frame families in release are bounded by cost (a cell is reached at
+/// `budget / bytes_per_frame` frames and crossing is Θ(depth²) — `.68`; one release
+/// attempt cost 1.17 GB peak RSS on an 8 KB input — `.84`), and `regex` by `.82`.
 ///
 /// ⛔ **IT ONLY EVER SCALES DOWN.** A reservation above the default returns the
 /// requested depth unchanged: raising the first sample raises the depth a parse

@@ -81,7 +81,13 @@ default the scale factor is exactly 1, so the shipped path is unchanged by const
   *"the margin is still one number from one family (2.37×)"*, which stopped being true the moment the
   census landed — **a claim scoped by "so far" needs re-reading the moment the "so far" moves**, and
   four published surfaces carried that stale sentence for a commit because only the tracker was
-  updated.
+  updated. ⭐⭐ **The second half of the census then tested the invariance claim on the axis it was
+  really about**: measured in the OTHER build mode, per-unit cost drops 7.83×–10.33× and the tightest
+  margin moves 2.12× → 16.57×, so the binding mode is the expensive one — but the RATIO between the
+  two modes is **not one constant** (three profiles of one subject agree to 1.042×; a second subject
+  is 27 % away), so a value in one mode still cannot be derived from the value in the other. ⇒ **the
+  invariance argument survives being measured, and the temptation it removes — carrying one number
+  across a parameter — is refuted a second time on a second axis.**
 - ⛔⛔ **APPLY THE LAW ONLY WHERE THE PARAMETER ACTUALLY DESCRIBES THE SUBJECT — this is the second
   half of the lesson and it cost a separate defect one commit later.** Once a threshold is a function
   of a parameter, every subject that threshold governs inherits the parameter whether or not it is

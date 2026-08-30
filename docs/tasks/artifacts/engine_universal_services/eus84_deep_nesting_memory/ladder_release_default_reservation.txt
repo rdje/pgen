@@ -1,0 +1,23 @@
+# ENGINE-UNIVERSAL-SERVICES.84 — recorded run, RELEASE parseability_probe, DEFAULT 256 MiB
+# reservation, 2026-08-31. Host load at the time: 4.72 / 4.95 / 5.52 (a foreign cargo test was
+# running in another repository), so every RSS reading is a LOWER BOUND (-0128).
+FAMILY               LEVELS  INPUT_B   PEAK_RSS_MB RSS_PER_B WALL_S
+return_annotation    1024    2053      84.3        43071     0.03
+return_annotation    2048    4101      316.6       80945     0.13
+return_annotation    4096    8197      1174.1      150194    0.48
+systemverilog        1024    2090      101.3       50830     1.11
+systemverilog        2048    4138      181.7       46032     4.39
+systemverilog        4096    8234      338.2       43073     17.99
+
+# Growth per doubling of nesting depth:
+#   return_annotation  RSS  3.76x, 3.71x   => QUADRATIC      wall 4.33x, 3.69x => quadratic
+#   systemverilog      RSS  1.79x, 1.86x   => LINEAR         wall 3.96x, 4.10x => quadratic (.68)
+#
+# The AST arena leg (PGEN_REPORT_PARSE_FOOTPRINT, same binary, return_annotation) is LINEAR and
+# tiny over the same range -- 0.09 / 0.19 / 0.38 / 0.75 MB touched at 1024 / 2048 / 4096 / 8192
+# levels, exactly 2.00x per doubling -- so the quadratic term is NOT the AST.
+#
+# The allocation-side high-water is also small: peak_live 4.96 MB (2048) and 6.87 MB (4096)
+# against 316.6 MB and 1174.1 MB of RSS, a 64x-171x gap. On .67's SystemVerilog corpus ladder
+# peak_live / (peak_rss - floor) was 0.584-1.230 (median 0.974), so this shape breaks the
+# relationship that ladder established.
