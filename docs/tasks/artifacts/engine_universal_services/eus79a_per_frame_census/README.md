@@ -12,6 +12,8 @@ eleven.
 | `gen_deep_input.py` | one deep-nesting shape per family — the cheapest recursive construct that family accepts |
 | `per_frame_census.sh` | the ladder: climbs by doubling until the depth probe refuses on STACK grounds, then reports the probe's own `bytes_per_frame` |
 | `census_debug_96MiB.txt` | the recorded DEBUG run at the 96 MiB floor |
+| `census_release_96MiB.txt` | the recorded RELEASE run at the same floor |
+| `derive_margins.sh` | turns a recorded census into the MARGIN table, the spread, the tightest cell and the separation — reading the reservation and the headroom divisor out of the Rust source rather than from a literal |
 
 ## Running it
 
@@ -20,7 +22,32 @@ bash docs/tasks/artifacts/engine_universal_services/eus79a_per_frame_census/per_
      ./rust/target/debug/parseability_probe
 # one cell only:
 PGEN_CENSUS_CELLS="regex:" bash .../per_frame_census.sh ./rust/target/debug/parseability_probe
+# a cell may name its own first rung as a THIRD field — `family:profile:seed`:
+PGEN_CENSUS_CELLS="json::65536" bash .../per_frame_census.sh ./rust/target/release/parseability_probe
 ```
+
+Then derive the margins from whatever the census recorded:
+
+```bash
+bash docs/tasks/artifacts/engine_universal_services/eus79a_per_frame_census/derive_margins.sh \
+     docs/tasks/artifacts/engine_universal_services/eus79a_per_frame_census/census_debug_96MiB.txt
+```
+
+⛔ **Nothing in the margin table is typed.** `derive_margins.sh` reads
+`DEDICATED_PARSE_STACK_BYTES` and `STACK_HEADROOM_RESERVE_DIVISOR` out of the engine source, so if
+either constant moves the published margins move with it instead of quietly becoming wrong. Its
+"separation" line — the ratio between the tightest margin and the tightest margin outside the
+binding cell's own family — is derived for the same reason: `-0145` published *"SystemVerilog is the
+only family under 11×"*, and an 11 hard-coded in the deriver would have made that sentence true by
+construction.
+
+⭐ **THE SEED FIELD EXISTS BECAUSE THE CENSUS'S OWN COST IS QUADRATIC IN THE ANSWER.** Reaching a
+family's ceiling means reaching `budget ÷ bytes_per_frame` frames, and `.68`'s cycle guard scans the
+whole live stack on every rule entry — so the CHEAPER a family's frames, the deeper the ladder must
+climb and the quadratically more expensive that cell is. Release frames cost ≈8–9× less than debug
+ones, which is exactly why the release run needs to start near its answer rather than at 64.
+⛔ Seeding cannot bias the reading: the measured quantity is `used_bytes / depth` at the refusal, and
+the LEVELS column only records where the ladder happened to stop.
 
 ⭐ **It runs at a REDUCED reservation on purpose.** Since `.79`(b)(c) the ceiling is proportional to
 the reservation and crossing cost is quadratic in source depth (`.68`), so the 96 MiB floor reaches

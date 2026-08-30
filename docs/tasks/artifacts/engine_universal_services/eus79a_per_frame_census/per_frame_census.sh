@@ -20,6 +20,9 @@
 # 2 048 / 4 096 / 8 192 levels of the same shape.
 #
 # Usage:  bash <this script> <path-to-parseability_probe> [reservation-bytes]
+#   PGEN_CENSUS_CELLS="family:profile[:seed] ..."  run a subset, optionally seeded
+#   PGEN_CENSUS_SEED=N                             first rung for every cell (default 64)
+#   PGEN_CENSUS_RUNG_CAP_SECONDS=N                 per-rung wall-clock cap (default 600)
 #
 # ⚠️ Verdicts, causes and frame/byte counts are deterministic. Wall clocks are not
 # — check `uptime` before quoting any timing from this (`-0143`).
@@ -44,15 +47,27 @@ CELLS=(
 )
 # `PGEN_CENSUS_CELLS` narrows the run to a space-separated subset, for re-measuring
 # one cell without paying for the whole table.
+#
+# ⭐ A cell may carry an optional THIRD field — `family:profile:seed` — naming the
+# ladder's first rung for that cell alone. It exists because the time to reach a
+# family's ceiling grows with the SQUARE of the frame depth it takes to get there
+# (`.68`: the cycle guard scans the whole live stack on every rule entry), so a
+# family whose frames are cheap has a quadratically more expensive cell — the
+# RELEASE census is the case that needs it, since release frames cost ≈8× less than
+# debug ones and therefore need ≈8× the depth. ⛔ SEEDING CANNOT BIAS THE ANSWER:
+# the measured quantity is `used_bytes / depth` at the refusal, which `-0141`
+# measured identically at 2 048 / 4 096 / 8 192 levels of one shape and which this
+# census reproduced for `json` (2 882 at 16 384 levels, 2 882 at 50 000 by hand). The
+# LEVELS column records where the ladder happened to stop and is not a claim.
 if [ -n "${PGEN_CENSUS_CELLS:-}" ]; then read -r -a CELLS <<< "$PGEN_CENSUS_CELLS"; fi
-SEED=64          # unambiguously under every family's first sample
+SEED="${PGEN_CENSUS_SEED:-64}"   # default first rung — unambiguously under every family's first sample
 GROWTH=2
 MAX_LEVELS=262144
 
 printf "%-28s %-14s %-8s %-10s %-22s %s\n" FAMILY PROFILE LEVELS FRAMES CAUSE BYTES_PER_FRAME
 for cell in "${CELLS[@]}"; do
-  family="${cell%%:*}"; profile="${cell##*:}"
-  levels=$SEED
+  IFS=':' read -r family profile cell_seed <<< "$cell"
+  levels="${cell_seed:-$SEED}"
   reported=""
   while [ "$levels" -le "$MAX_LEVELS" ]; do
     src="$(python3 "$gen" "$family" "$levels" --out-dir "$out")" || break
