@@ -112,6 +112,30 @@ else
     fail=$((fail + 1))
 fi
 
+# RED-8/RED-9 — THE TREE-ATTRIBUTION POPULATION IS CLOSED IN BOTH DIRECTIONS. A remaining-work list
+# is only finite if the roster it is drawn from cannot grow silently: a tree row nobody adjudicated
+# would simply be absent from every family's list, which is the failure this list exists to end.
+python3 - "$WORK/drop_tree_schema.json" "$WORK/ghost_tree_schema.json" <<'PYX'
+import json, pathlib, sys
+d = json.loads(pathlib.Path("rust/test_data/grammar_quality/family_status_block_v0.json").read_text())
+drop = json.loads(json.dumps(d)); drop["tree_attribution"]["trees"].pop("SV-EXH-PROOF")
+pathlib.Path(sys.argv[1]).write_text(json.dumps(drop, indent=2))
+ghost = json.loads(json.dumps(d)); ghost["tree_attribution"]["trees"]["A-TREE-THAT-DOES-NOT-EXIST"] = "systemverilog"
+pathlib.Path(sys.argv[2]).write_text(json.dumps(ghost, indent=2))
+PYX
+for spec in "RED-8 a tree row with no attribution is REFUSED|$WORK/drop_tree_schema.json|carry no attribution ['SV-EXH-PROOF']" \
+            "RED-9 an attribution naming no tree row is REFUSED|$WORK/ghost_tree_schema.json|name no row ['A-TREE-THAT-DOES-NOT-EXIST']"; do
+    IFS='|' read -r label sch want <<<"$spec"
+    out="$(PGEN_FAMILY_STATUS_SCHEMA="$sch" bash "$PRODUCER" systemverilog 2>&1)"; rc=$?
+    if [[ "$rc" == 2 && "$out" == *"$want"* ]]; then
+        printf '  ✅ %-58s exit=%s, message matched\n' "$label" "$rc"; pass=$((pass + 1))
+    else
+        printf '  ⛔ %-58s exit=%s (want 2)\n' "$label" "$rc"
+        printf '     wanted substring: %s\n' "$want"
+        printf '%s\n' "$out" | tail -n 4 | sed 's/^/     | /'; fail=$((fail + 1))
+    fi
+done
+
 echo "------------------------------------------------------------------------------"
 printf 'family-status probes: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

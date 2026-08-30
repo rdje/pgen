@@ -15,4 +15,6 @@ FAMILY STATUS — systemverilog   (every figure derived; nothing here is hand-wr
     routed to another lane ..............   2 606  16.0 %
     NO VERDICT (nothing is known) .......   6 174  37.8 %   of which 4 366 dark
     => adjudicated 7 556 / 16 336 = 46.3 %
-  remaining work ......... NOT MEASURED — owed by DONE-BAR-VISIBILITY.2
+  remaining work ......... 5 open tree(s) own this family's work: SV-CORPUS-GRAD, SV-EXH-PROOF, SV-PARSE-STRICT, SV-REPLAY-DEBT, VERILOG-2005-PROFILE
+                          + 26 cross-cutting tree(s) that can gate any family
+                          ⚠️ 1 status DISPUTED (index vs tree file), 1 unreadable — all counted OPEN

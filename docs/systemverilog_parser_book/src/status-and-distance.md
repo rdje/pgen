@@ -56,7 +56,17 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 
 Only **7 556 rows (46.3 %)** were asked a question they could answer, and **4 366** of the no-verdict rows are *dark* — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 5845/7556 would quietly drop the 37.8 % carrying no verdict at all and the 16.0 % answered in another lane's manifest.
 
-**What remains between here and `Done`.** ⛔ **NOT MEASURED** — owed by `DONE-BAR-VISIBILITY.2`, which derives each family's open items from the task trees that already own them. Until it lands, the ordered list is not published here rather than being typed by hand, because a hand-typed list rots (`LIVE-MEANS-LIVE.1a`: 25 of 61 hand-maintained fields were simply wrong).
+**What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. **5 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
+
+| Open tree | Status verdict | Where the detail lives |
+|---|---|---|
+| `SV-CORPUS-GRAD` | ⚠️ the index row carries no status word; counted OPEN | [`docs/tasks/SV-CORPUS-GRAD.md`](../../tasks/SV-CORPUS-GRAD.md) |
+| `SV-EXH-PROOF` | open | [`docs/tasks/SV-EXH-PROOF.md`](../../tasks/SV-EXH-PROOF.md) |
+| `SV-PARSE-STRICT` | open | [`docs/tasks/SV-PARSE-STRICT.md`](../../tasks/SV-PARSE-STRICT.md) |
+| `SV-REPLAY-DEBT` | open | [`docs/tasks/SV-REPLAY-DEBT.md`](../../tasks/SV-REPLAY-DEBT.md) |
+| `VERILOG-2005-PROFILE` | ⚠️ DISPUTED — the index reads OPEN, the tree file reads CLOSED; counted OPEN | [`docs/tasks/VERILOG-2005-PROFILE.md`](../../tasks/VERILOG-2005-PROFILE.md) |
+
+⚠️ **The item here is a TREE, not a leaf, and that is a measured limit.** A leaf's status is free prose, and this repository has measured leaves reading `todo` for days after their fix shipped, so a per-leaf list would publish that defect as a number. The two prose arms — the index row and the tree file's own metadata — disagree on some trees, and every disagreement is counted OPEN and shown above: over-reporting is the only safe direction for a list that says how much is left.
 
 <!-- END DERIVED -->
 

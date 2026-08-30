@@ -7,69 +7,98 @@
     "owed_by": "Required when state is `not_measured`: the task-tree leaf id that owes the producer. A gap with no owner is a gap nobody is going to close (docs/decisions/feedback_every_finding_is_owned_and_scheduled_never_just_logged.md).",
     "surfaces": "Where the field is rendered. `chat` = the brief form the engineer reports in completion messages. `book` = the thorough form published into the family's book, and the ONLY half that --check holds equal to a fresh derivation.",
     "why_book_is_a_subset": "⛔ THE BOOK HALF IS PORTABLE-ONLY, AND THAT IS A CORRECTNESS PROPERTY, NOT A SIMPLIFICATION. Legs 1 and the green-NOW half of leg 2 rest on gate artifacts under rust/target/, which is UNTRACKED: the same commit reads `artifact STALE` on the machine that ran the gate and `no artifact on this machine` on a fresh clone. A published block carrying either sentence would make --check FAIL for every reader who did not run the gate first -- a gate that fails on a clean clone of its own repository. So the book publishes the derivation run TRACKED-ONLY (via the audit's PGEN_DONE_BAR_TARGET_DIR seam, pointed at an empty directory), which is what the repository itself proves to any reader, and the chat form adds this machine's artifact readings on top. One derivation, one run, two renderings -- the book half is the subset every clone agrees on.",
-    "corpus_census": "Per-family wiring for the corpus fields: the gate that proves the census artifacts are FRESH, the tracked artifacts the counts are read from, and the manifest denominator they are counted against. A family absent from this map renders the corpus fields as NOT MEASURED with `owed_by`. ⭐ The freshness gate is invoked, never re-implemented: the counts are read from the TRACKED artifact and the derived tuple is then CROSS-CHECKED against the tuple that gate prints, so an arithmetic drift between the two refuses instead of publishing."
+    "corpus_census": "Per-family wiring for the corpus fields: the gate that proves the census artifacts are FRESH, the tracked artifacts the counts are read from, and the manifest denominator they are counted against. A family absent from this map renders the corpus fields as NOT MEASURED with `owed_by`. ⭐ The freshness gate is invoked, never re-implemented: the counts are read from the TRACKED artifact and the derived tuple is then CROSS-CHECKED against the tuple that gate prints, so an arithmetic drift between the two refuses instead of publishing.",
+    "tree_attribution": "Which parser family, if any, a task tree's remaining work belongs to. ⛔ CLOSED AND TWO-SIDED over the rows of docs/TASK_TREE.md, on the done-bar register's `grammar_dispositions` model: a tree row with no attribution REFUSES, and an attribution naming no row REFUSES. A one-shot census is a snapshot; a closed population is a mechanism, and it is what stops the roster silently re-growing. ⛔ THE OPEN/CLOSED VERDICT IS TWO-ARMED, because both arms are prose: the index row's Status cell and the tree file's own Metadata Status. Measured 2026-08-30, they DISAGREE on 4 of 113 trees, so a list built on either arm alone is wrong four times. A disagreement is reported DISPUTED and counted OPEN; a Status cell carrying no recognisable status word is counted OPEN and named. The safe polarity for a remaining-work list is to over-report, never to quietly drop work."
   },
   "fields": {
     "claimed_status": {
       "question": "What does PGEN CLAIM this family's status is?",
       "producer": "rust/test_data/grammar_quality/done_bar_family_register_v0.json :: families.<family>.claimed_status",
       "state": "derived",
-      "surfaces": ["chat", "book"]
+      "surfaces": [
+        "chat",
+        "book"
+      ]
     },
     "language_owner": {
       "question": "Who defines the language, and therefore which `Provisional` qualifier this family can ever hold?",
       "producer": "rust/test_data/grammar_quality/done_bar_family_register_v0.json :: families.<family>.language_owner",
       "state": "derived",
-      "surfaces": ["chat", "book"]
+      "surfaces": [
+        "chat",
+        "book"
+      ]
     },
     "bar_leg_1": {
       "question": "Leg 1 of the `Done` bar - do the family's own generated stimuli close the loop with ZERO residual actionable-target debt?",
       "producer": "PGEN_DONE_BAR_TARGET_DIR=<empty dir> bash scripts/audit_done_bar.sh --json (tracked-only run)",
       "state": "derived",
-      "surfaces": ["chat", "book"]
+      "surfaces": [
+        "chat",
+        "book"
+      ]
     },
     "bar_leg_2": {
       "question": "Leg 2 - is every gate covering this family green NOW, and is each one actually invoked by something?",
       "producer": "PGEN_DONE_BAR_TARGET_DIR=<empty dir> bash scripts/audit_done_bar.sh --json (tracked-only run)",
       "state": "derived",
-      "surfaces": ["chat", "book"]
+      "surfaces": [
+        "chat",
+        "book"
+      ]
     },
     "bar_leg_3": {
       "question": "Leg 3 - is an officially-recognized external corpus asserted as a PASS by a conformance gate?",
       "producer": "PGEN_DONE_BAR_TARGET_DIR=<empty dir> bash scripts/audit_done_bar.sh --json (tracked-only run)",
       "state": "derived",
-      "surfaces": ["chat", "book"]
+      "surfaces": [
+        "chat",
+        "book"
+      ]
     },
     "local_gate_state": {
       "question": "And on THIS machine, right now - what do the gate artifacts under rust/target/ actually say?",
       "producer": "bash scripts/audit_done_bar.sh --json (ordinary run, artifacts included)",
       "state": "derived",
-      "surfaces": ["chat"]
+      "surfaces": [
+        "chat"
+      ]
     },
     "corpus_rows": {
       "question": "How large is the corpus this family is judged against, and how much of it carries a verdict at all?",
       "producer": "corpus_census[<family>] - the freshness gate, then the tracked census artifacts",
       "state": "derived",
-      "surfaces": ["chat", "book"]
+      "surfaces": [
+        "chat",
+        "book"
+      ]
     },
     "corpus_passing": {
       "question": "How many corpus rows does the parser answer exactly the way the answer key says?",
       "producer": "corpus_census[<family>] - the freshness gate, then the tracked census artifacts",
       "state": "derived",
-      "surfaces": ["chat", "book"]
+      "surfaces": [
+        "chat",
+        "book"
+      ]
     },
     "known_defects": {
       "question": "How many rows diverge from the key with NO explanation - the defect bar itself?",
       "producer": "corpus_census[<family>] - the freshness gate, then the tracked census artifacts",
       "state": "derived",
-      "surfaces": ["chat", "book"]
+      "surfaces": [
+        "chat",
+        "book"
+      ]
     },
     "remaining_work": {
-      "question": "What is the ordered, leaf-owned list of work between here and `Done`?",
-      "producer": null,
-      "state": "not_measured",
-      "owed_by": "DONE-BAR-VISIBILITY.2",
-      "surfaces": ["chat", "book"]
+      "question": "What is the finite list of work between here and `Done`, and who owns each item?",
+      "producer": "docs/TASK_TREE.md (the tree index) x `tree_attribution` in this file - the OPEN trees attributed to the family, each verdict cross-checked against that tree file's own Metadata Status",
+      "state": "derived",
+      "surfaces": [
+        "chat",
+        "book"
+      ]
     }
   },
   "corpus_census": {
@@ -86,5 +115,129 @@
     "corpus_rows": "DONE-BAR-VISIBILITY.3",
     "corpus_passing": "DONE-BAR-VISIBILITY.3",
     "known_defects": "DONE-BAR-VISIBILITY.3"
+  },
+  "tree_attribution": {
+    "vocabulary": {
+      "<family>": "one of the `families` keys of done_bar_family_register_v0.json - this tree's remaining work is work on THAT parser",
+      "cross-cutting": "engine, codegen, annotation, stimuli or corpus-doctrine work that can gate ANY family. Counted for every family, but reported as a COUNT rather than inlined, so a family's own list stays readable",
+      "process": "governance, continuity, documentation, ops and repo hygiene. Real work, but not on any parser's path to `Done`",
+      "future-family": "a parser family PGEN does not ship yet (Phase S and later). No current family's bar depends on it",
+      "platform": "platform expansion around the parsers - a linter, an elaborator workbench, MCP control - rather than a parser"
+    },
+    "trees": {
+      "ANNOT-CLOSURE": "cross-cutting",
+      "ANNOTATION-COMPOSITION": "cross-cutting",
+      "ANNOTATION-PLACEMENT": "cross-cutting",
+      "BIN-BUILD-INTEGRITY": "process",
+      "BOOK-PARAGRAPH-SHAPE": "process",
+      "BOUNDED-QUANT": "cross-cutting",
+      "BRANCH-BROADCAST-FIX": "cross-cutting",
+      "BRANCH-PREDICATE-LOCALITY": "cross-cutting",
+      "CERT-GEN-BUDGET": "cross-cutting",
+      "CI-PARITY-GATE-ROT": "process",
+      "CODEGEN-DETERMINISM": "cross-cutting",
+      "COMPILER-ELABORATOR": "platform",
+      "CORPUS-GRAD-ALL": "cross-cutting",
+      "CORPUS-KEY-AUDIT": "cross-cutting",
+      "DEFAULT-PROFILE": "cross-cutting",
+      "DIAG-SEVERITY": "cross-cutting",
+      "DOCPATH": "process",
+      "DOCTRINE-GAP-OWNERSHIP": "process",
+      "DONE-BAR": "process",
+      "DONE-BAR-VISIBILITY": "process",
+      "EBNF-BOOK": "ebnf",
+      "EBNF-FRONTEND-SILENT-TRUNCATION": "cross-cutting",
+      "EBNF-SOURCE-OF-TRUTH": "cross-cutting",
+      "ENGINE-UNIVERSAL-SERVICES": "cross-cutting",
+      "EXTERNAL-CORPUS": "cross-cutting",
+      "FACT-NAME-MATCHING": "cross-cutting",
+      "FINAL-PHASE-PREDICATE": "cross-cutting",
+      "GENERATED-LINT-CORRECTNESS": "cross-cutting",
+      "GRAMMAR-CERT-STATUS": "process",
+      "GRAMMAR-WELLFORMED": "cross-cutting",
+      "INLINE-ACTIONS": "cross-cutting",
+      "INLINE-ALT-FIX": "cross-cutting",
+      "JSON-RFC8259": "json",
+      "KNOWLEDGE-MAP": "process",
+      "LANG-CAPABILITY-AUDIT": "cross-cutting",
+      "LESSON-RETRIEVAL": "process",
+      "LEX-ADJACENCY": "cross-cutting",
+      "LEXICAL-ANNOTATIONS": "cross-cutting",
+      "LINTER": "platform",
+      "LIVE-DOC-CONTAINMENT": "process",
+      "LIVE-MEANS-LIVE": "process",
+      "LRM-GRAMMAR-FIDELITY": "cross-cutting",
+      "MCP-CONTROL": "platform",
+      "MEMO-STORE-SOUNDNESS": "cross-cutting",
+      "MEMORY-ARCH": "process",
+      "OPS-MEMSAFE": "process",
+      "PARSE-COMPLETENESS": "cross-cutting",
+      "PARSE-FIDELITY": "cross-cutting",
+      "PARSE-HARNESS": "cross-cutting",
+      "PARSE-SOTA": "cross-cutting",
+      "PARSE-TERMINATION": "cross-cutting",
+      "PARSER-NEUTRALITY": "cross-cutting",
+      "PNR-AUX-READERS": "future-family",
+      "PNR-LIBERTY": "future-family",
+      "PNR-SDC": "future-family",
+      "POSITIONAL-PAYLOAD-REFS": "cross-cutting",
+      "POST-SV-AUDIT": "systemverilog",
+      "PROFILE-ALIAS": "cross-cutting",
+      "QUANT-PLUS-ITER": "cross-cutting",
+      "RAWCAP-TRANSFORM-PATH": "cross-cutting",
+      "README-POLICY": "process",
+      "REGEX-CODE-HOOKS": "regex",
+      "REGEX-PCRE2-FIDELITY": "regex",
+      "REGEX-SELF-HOSTING": "regex",
+      "REJECTS-VALID-DEFENSE": "cross-cutting",
+      "REPO-HYGIENE": "process",
+      "RETURN-ANNOT-BOOK": "return_annotation",
+      "RGX-0078": "regex",
+      "RGX-0084": "regex",
+      "RGX-0085": "regex",
+      "RGX-0086": "regex",
+      "RGX-0087": "regex",
+      "RGX-0087-FIX2": "regex",
+      "RGX-0088": "regex",
+      "RGX-0089": "regex",
+      "RGX-0090": "regex",
+      "RGX-0091": "regex",
+      "RTL-CE-CLOSURE": "rtl_const_expr",
+      "RTL-CE-CONTRACT-BODY": "rtl_const_expr",
+      "RTL-CE-MDBOOK": "rtl_const_expr",
+      "RTL-FE-CLOSURE": "rtl_frontend",
+      "RTL-FE-CONTRACT-BODY": "rtl_frontend",
+      "RTL-FE-MDBOOK": "rtl_frontend",
+      "RULE-SPAN-VALUE-CONSTRAINT": "cross-cutting",
+      "SCOPE-CONTEXT-PREDICATE": "cross-cutting",
+      "SEM-FINDINGS": "cross-cutting",
+      "SEMANTIC-ANNOT-BOOK": "semantic_annotation",
+      "SEMREF-SHAPED": "cross-cutting",
+      "STIMULI-SIGNOFF": "cross-cutting",
+      "STORE-AWARE-GEN": "cross-cutting",
+      "STRUCTURED-WITNESS-SYNTH": "cross-cutting",
+      "SV-AST-SHAPE-FIDELITY": "systemverilog",
+      "SV-CORPUS-GRAD": "systemverilog",
+      "SV-COVERGROUP-FIDELITY": "systemverilog",
+      "SV-DOLLAR-LRM-FIDELITY": "systemverilog",
+      "SV-EXH-PROOF": "systemverilog",
+      "SV-KEYWORD-PRIMARY-FIDELITY": "systemverilog",
+      "SV-LRM-SHAPE-FIDELITY": "systemverilog",
+      "SV-OVER-REJECTION-FIDELITY": "systemverilog",
+      "SV-PARSE-STRICT": "systemverilog",
+      "SV-REPLAY-DEBT": "systemverilog",
+      "SV-SVA-PROPERTY-FIDELITY": "systemverilog",
+      "SVPP-CONTRACT-BODY": "systemverilog_preprocessor",
+      "SVPP-EXPANSION": "systemverilog_preprocessor",
+      "SVPP-MDBOOK": "systemverilog_preprocessor",
+      "TASKTREE-GOV": "process",
+      "UNDEFINED-REF-DIAGNOSTICS": "cross-cutting",
+      "VERILOG-2005-PROFILE": "systemverilog",
+      "VERILOG-AMS": "future-family",
+      "VHDL-CONTRACT-BODY": "vhdl",
+      "VHDL-MDBOOK": "vhdl",
+      "VHDL-STRICT-PROMOTION": "vhdl",
+      "WS-DIRECTIVE": "cross-cutting"
+    }
   }
 }

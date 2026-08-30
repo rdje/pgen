@@ -328,7 +328,152 @@ if census:
                   instrument=census["instrument"], gate=gate)
 
 # ---------------------------------------------------------------------------------------------
-# 3. Render — and hold the rendered field set EQUAL to the schema's, in both directions.
+# 3. The remaining work — the OPEN trees that own work for this family.
+# ---------------------------------------------------------------------------------------------
+# ⛔⛔ THE ITEM IS A TREE, NOT A LEAF, AND THAT IS A MEASURED LIMIT RATHER THAN A CHOICE.
+# A leaf's status is free prose inside a Markdown heading. Censused 2026-08-30 over every tracked
+# instrument (`git grep -n -- todo -- 'scripts/*.sh' 'rust/scripts/*.sh' 'rust/scripts/lib/*.sh'
+# '.githooks/*' '.github/workflows/*'`): exactly ONE reads a leaf status at all —
+# `scripts/audit_done_bar.sh:701`, and only for the single hard-coded leaf `DONE-BAR.5`. So leaf
+# status is unchecked as a CLASS, which is not the same as unchecked everywhere, and the difference
+# is worth stating. This repository has already measured what the prose costs: two leaves read
+# `todo` and `blocked` for 6 and 9 days after their fixes shipped
+# (docs/knowledge/a-status-that-is-prose-is-a-status-nothing-checks.md), and THREE leaf-definition
+# conventions are in live use, so "is this leaf id defined" is not yet mechanically answerable
+# (DOCTRINE-GAP-OWNERSHIP.8). Deriving a per-LEAF list today would inherit both defects and publish
+# them as a number. The TREE is the granularity the index actually maintains -- COMMIT.md obliges
+# updating its row when the frontier moves -- so that is what is published, with the detail left
+# where it is maintained rather than copied (a copy rots: DERIVED_STATE_CONTAINMENT R1/R3).
+INDEX = "docs/TASK_TREE.md"
+OPEN_WORDS = ("active", "proposed", "pending", "blocked", "paused", "todo")
+CLOSED_WORDS = ("done", "complete", "completed", "superseded", "closed")
+
+
+def polarity(cell):
+    """OPEN / CLOSED / UNREADABLE from a prose status cell, biased OPEN.
+
+    ⛔ THE BIAS IS THE DESIGN. Both arms are prose written for humans, so a cell legitimately says
+    `.13e.10` DONE about a LEAF while the TREE is active. Reading any open word as OPEN
+    over-reports remaining work; reading it the other way DELETES work from the list. Only one of
+    those two errors is safe in a document whose whole purpose is to say how much is left."""
+    toks = {t.lower() for t in re.findall(r"`([A-Za-z]+)`", cell)}
+    if toks & set(OPEN_WORDS):
+        return "OPEN"
+    if toks & set(CLOSED_WORDS):
+        return "CLOSED"
+    return "UNREADABLE"
+
+
+def rw_self_check():
+    cases = [
+        ("`active` (created 2026-08-30)", "OPEN"),
+        ("`done` (all leaves closed)", "CLOSED"),
+        # a tree whose cell shouts DONE about a LEAF while the tree itself is active
+        ("✅✅ `.13e.10`(c4) RESIDUE CLOSED — tree stays `active`", "OPEN"),
+        # no backticked status word at all: the index's own most-active rows look like this
+        ("⛔⛔ **THE GAP IS MEASURED** — see the leaf", "UNREADABLE"),
+    ]
+    for cell, want in cases:
+        got = polarity(cell)
+        if got != want:
+            refuse(f"the status reader does not discriminate: {cell!r} -> {got}, wanted {want}")
+
+
+rw_self_check()
+
+INDEX_ROW_RE = re.compile(r"^\| `([^`]+)` \|")
+
+
+def index_rows():
+    """Every row of the three tree tables: (tree, status cell, tree file). Section-scoped so a
+    table added elsewhere in the document cannot silently enter the population."""
+    lines = read(INDEX).split("\n")
+    heads = {l.strip(): i for i, l in enumerate(lines) if l.startswith("## ")}
+    wanted = ("## Active Task Trees", "## Proposed Task Trees", "## Completed Task Trees")
+    missing = [w for w in wanted if w not in heads]
+    if missing:
+        refuse(f"{INDEX} has no {missing} section(s); the tree population cannot be read")
+    out = []
+    for w in wanted:
+        i = heads[w]
+        end = min([v for v in heads.values() if v > i] or [len(lines)])
+        for ln in lines[i:end]:
+            m = INDEX_ROW_RE.match(ln)
+            if not m:
+                continue
+            cells = ln.split("|")
+            if len(cells) < 6:
+                continue
+            # ⛔ The tree-file link is searched over the WHOLE ROW, not over cells[5]. A row whose
+            # cell count disagrees with its header — 14 of 67 rows of this very index did, and the
+            # four widest were the four most active trees (LIVE-DOC-CONTAINMENT.8) — puts the File
+            # cell somewhere else, and a fixed index silently reports the most active trees as
+            # having no tree file.
+            link = re.search(r"\(tasks/([^)]+\.md)\)", ln)
+            out.append((m.group(1), cells[2], link.group(1) if link else None))
+    return out
+
+
+def meta_status(fname):
+    """The tree file's OWN Metadata Status — the second arm. None when the file does not carry one
+    (30 of 113 do not), which is reported rather than assumed to agree."""
+    if not fname:
+        return None
+    path = os.path.join("docs", "tasks", fname)
+    if not os.path.isfile(path):
+        return None
+    m = re.search(r"^#{1,6}[ \t]+Metadata[ \t]*$(.*?)(?=^#{1,6}[ \t]|\Z)", read(path), re.M | re.S | re.I)
+    if not m:
+        return None
+    s = re.search(r"^[-*][ \t]*(?:\*\*)?Status(?:\*\*)?[ \t]*:[ \t]*(.+)$", m.group(1), re.M | re.I)
+    if not s:
+        return None
+    val = s.group(1)
+    if "`" in val:
+        return polarity(val)
+    low = val.lower()
+    if any(w in low for w in OPEN_WORDS):
+        return "OPEN"
+    if any(w in low for w in CLOSED_WORDS):
+        return "CLOSED"
+    return "UNREADABLE"
+
+
+attrib = schema.get("tree_attribution", {}).get("trees", {})
+rows = index_rows()
+row_names = {r[0] for r in rows}
+unattributed = sorted(row_names - set(attrib))
+unknown = sorted(set(attrib) - row_names)
+if unattributed or unknown:
+    refuse(f"the tree-attribution population is not closed: {len(unattributed)} tree row(s) carry no "
+           f"attribution {unattributed[:6]}, {len(unknown)} attribution(s) name no row {unknown[:6]}. "
+           f"Every row of {INDEX} must be adjudicated exactly once in `tree_attribution.trees` of "
+           f"{SCHEMA_PATH} — that is the mechanism that stops the roster re-growing silently.")
+
+family_open, disputed, unreadable_rows, cross_open = [], [], [], 0
+for name, cell, fname in rows:
+    who = attrib[name]
+    a = polarity(cell)
+    b = meta_status(fname)
+    state = a
+    if b and a != b and "UNREADABLE" not in (a, b):
+        state = "OPEN"
+        if who in (FAMILY, "cross-cutting"):
+            disputed.append((name, a, b))
+    elif a == "UNREADABLE":
+        state = "OPEN"
+        if who == FAMILY:
+            unreadable_rows.append(name)
+    if state != "OPEN":
+        continue
+    if who == FAMILY:
+        family_open.append((name, fname, a, b))
+    elif who == "cross-cutting":
+        cross_open += 1
+family_open.sort()
+
+# ---------------------------------------------------------------------------------------------
+# 4. Render — and hold the rendered field set EQUAL to the schema's, in both directions.
 # ---------------------------------------------------------------------------------------------
 owners = schema.get("not_measured_owners", {})
 
@@ -399,12 +544,34 @@ if MODE == "markdown":
                    f"Owed by `{owners.get('corpus_rows', 'DONE-BAR-VISIBILITY.3')}`. This is an "
                    f"unmeasured leg, not a zero and not a pass.")
     out.append("")
-    nm = schema["fields"]["remaining_work"]
-    out.append(f"**What remains between here and `Done`.** ⛔ **NOT MEASURED** — owed by "
-               f"`{nm['owed_by']}`, which derives each family's open items from the task trees that "
-               f"already own them. Until it lands, the ordered list is not published here rather "
-               f"than being typed by hand, because a hand-typed list rots (`LIVE-MEANS-LIVE.1a`: "
-               f"25 of 61 hand-maintained fields were simply wrong).")
+    out.append(f"**What remains between here and `Done`.** Derived from the task-tree index: the "
+               f"trees still OPEN whose work is attributed to this family, out of the "
+               f"{len(rows)} trees the index carries. **{len(family_open)} tree"
+               f"{'' if len(family_open) == 1 else 's'} own this family's remaining work**, and "
+               f"**{cross_open}** cross-cutting trees can gate any family.")
+    out.append("")
+    if family_open:
+        out.append("| Open tree | Status verdict | Where the detail lives |")
+        out.append("|---|---|---|")
+        for name, fname, a, b in family_open:
+            note = "open"
+            if b and a != b and "UNREADABLE" not in (a, b):
+                note = f"⚠️ DISPUTED — the index reads {a}, the tree file reads {b}; counted OPEN"
+            elif a == "UNREADABLE":
+                note = "⚠️ the index row carries no status word; counted OPEN"
+            where = f"[`docs/tasks/{fname}`](../../tasks/{fname})" if fname else "*(no tree file linked)*"
+            out.append(f"| `{name}` | {note} | {where} |")
+    else:
+        out.append("No open tree is attributed to this family — every tree that owned its work is "
+                   "closed. That is not the same as meeting the bar: the legs above are what decide "
+                   "`Done`, and cross-cutting work can still gate this family.")
+    out.append("")
+    out.append("⚠️ **The item here is a TREE, not a leaf, and that is a measured limit.** A leaf's "
+               "status is free prose, and this repository has measured leaves reading `todo` for "
+               "days after their fix shipped, so a per-leaf list would publish that defect as a "
+               "number. The two prose arms — the index row and the tree file's own metadata — "
+               "disagree on some trees, and every disagreement is counted OPEN and shown above: "
+               "over-reporting is the only safe direction for a list that says how much is left.")
     out.append("")
     out.append("<!-- END DERIVED -->")
 else:
@@ -429,8 +596,12 @@ else:
     else:
         out.append(f"  corpus  NOT MEASURED — no census is wired; owed by "
                    f"{owners.get('corpus_rows', 'DONE-BAR-VISIBILITY.3')}")
-    out.append(f"  remaining work ......... NOT MEASURED — owed by "
-               f"{schema['fields']['remaining_work']['owed_by']}")
+    names = ", ".join(n for n, _f, _a, _b in family_open) or "(none)"
+    out.append(f"  remaining work ......... {len(family_open)} open tree(s) own this family's work: {names}")
+    out.append(f"                          + {cross_open} cross-cutting tree(s) that can gate any family")
+    if disputed or unreadable_rows:
+        out.append(f"                          ⚠️ {len(disputed)} status DISPUTED (index vs tree file), "
+                   f"{len(unreadable_rows)} unreadable — all counted OPEN")
 
 print("\n".join(out))
 PY

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2d0dc86d.js";
+            window.path_to_searchindex_js = "searchindex-1b8208f8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -268,7 +268,22 @@ inapplicable one.</li>
 </table>
 </div>
 <p>Only <strong>7 556 rows (46.3 %)</strong> were asked a question they could answer, and <strong>4 366</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 5845/7556 would quietly drop the 37.8 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
-<p><strong>What remains between here and <code>Done</code>.</strong> ⛔ <strong>NOT MEASURED</strong> — owed by <code>DONE-BAR-VISIBILITY.2</code>, which derives each family’s open items from the task trees that already own them. Until it lands, the ordered list is not published here rather than being typed by hand, because a hand-typed list rots (<code>LIVE-MEANS-LIVE.1a</code>: 25 of 61 hand-maintained fields were simply wrong).</p>
+<p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. <strong>5 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Open tree</th><th>Status verdict</th><th>Where the detail lives</th></tr>
+</thead>
+<tbody>
+<tr><td><code>SV-CORPUS-GRAD</code></td><td>⚠️ the index row carries no status word; counted OPEN</td><td><a href="../../tasks/SV-CORPUS-GRAD.html"><code>docs/tasks/SV-CORPUS-GRAD.md</code></a></td></tr>
+<tr><td><code>SV-EXH-PROOF</code></td><td>open</td><td><a href="../../tasks/SV-EXH-PROOF.html"><code>docs/tasks/SV-EXH-PROOF.md</code></a></td></tr>
+<tr><td><code>SV-PARSE-STRICT</code></td><td>open</td><td><a href="../../tasks/SV-PARSE-STRICT.html"><code>docs/tasks/SV-PARSE-STRICT.md</code></a></td></tr>
+<tr><td><code>SV-REPLAY-DEBT</code></td><td>open</td><td><a href="../../tasks/SV-REPLAY-DEBT.html"><code>docs/tasks/SV-REPLAY-DEBT.md</code></a></td></tr>
+<tr><td><code>VERILOG-2005-PROFILE</code></td><td>⚠️ DISPUTED — the index reads OPEN, the tree file reads CLOSED; counted OPEN</td><td><a href="../../tasks/VERILOG-2005-PROFILE.html"><code>docs/tasks/VERILOG-2005-PROFILE.md</code></a></td></tr>
+</tbody>
+</table>
+</div>
+<p>⚠️ <strong>The item here is a TREE, not a leaf, and that is a measured limit.</strong> A leaf’s status is free prose, and this repository has measured leaves reading <code>todo</code> for days after their fix shipped, so a per-leaf list would publish that defect as a number. The two prose arms — the index row and the tree file’s own metadata — disagree on some trees, and every disagreement is counted OPEN and shown above: over-reporting is the only safe direction for a list that says how much is left.</p>
 <!-- END DERIVED -->
 <h2 id="how-to-read-the-corpus-table-honestly"><a class="header" href="#how-to-read-the-corpus-table-honestly">How to read the corpus table honestly</a></h2>
 <p>The denominator is every row of the SystemVerilog corpus adjudication manifests — not the subset

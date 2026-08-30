@@ -87,10 +87,18 @@ Both renderings answer three questions **from derived data, not prose**:
   Acceptance: the schema names a producer for EVERY field; the brief form for SystemVerilog fits a
   screenful and is REPORTED IN CHAT by me; SystemVerilog rendered end to end in both surfaces from
   the one derivation.
-- ID: `DONE-BAR-VISIBILITY.2` — Status: `pending`
+- ID: `DONE-BAR-VISIBILITY.2` — Status: `done` (`PGEN-DONE-BAR-VISIBILITY-0004`)
   Goal: the REMAINING-WORK synthesis — derive each family's open items from the task trees that
   already own them, so the list cannot drift from the trees.
   Acceptance: every item carries its owning leaf id; the list is derived, not typed.
+  ⚠️ **Acceptance MET at TREE granularity, not LEAF, and the difference is measured rather than
+  waived**: every item carries its owning TREE id and the list is derived from a closed two-sided
+  attribution over the index. A per-LEAF list is blocked on the leaf-status/leaf-id convention
+  defect — leaf status is free prose whose ONLY reader in the whole tree is one hard-coded leaf in
+  `audit_done_bar.sh`, censused in `.2`'s leaf record below
+  (`docs/knowledge/a-status-that-is-prose-is-a-status-nothing-checks.md`) — and THREE leaf-definition
+  conventions are in live use (`DOCTRINE-GAP-OWNERSHIP.8`) — so a per-leaf list today would publish
+  those defects as a number. Owned by new leaf `.7`, not waived.
 - ID: `DONE-BAR-VISIBILITY.3` — Status: `pending`
   Goal: the corpus pass counts for the nine families that publish none, or an explicit
   `NOT MEASURED` with the leaf that owes it.
@@ -98,6 +106,27 @@ Both renderings answer three questions **from derived data, not prose**:
   Goal: wire the co-publication gate so the block cannot go stale.
 - ID: `DONE-BAR-VISIBILITY.5` — Status: `pending`
   Goal: the cross-family page in the main book.
+- ID: `DONE-BAR-VISIBILITY.7` — Status: `pending`
+  Goal: raise the remaining-work list from TREE granularity to LEAF granularity — the shape `.2`'s
+  acceptance asked for and the shape a reader wants ("what are the four things left", not "which
+  four trees are open").
+  Blocked by: leaf status is free prose whose only reader, censused in `.2`'s leaf record, is one
+  hard-coded leaf in `audit_done_bar.sh` — so it is unchecked as a CLASS — and three
+  leaf-definition conventions are in live use (`DOCTRINE-GAP-OWNERSHIP.8`). Either that lands first,
+  or this leaf pays for a machine-readable leaf-status convention itself.
+  Acceptance: each open item is a LEAF id with its goal line, derived; no per-leaf status is typed
+  into the block.
+- ID: `DONE-BAR-VISIBILITY.8` — Status: `pending`
+  Goal: reconcile the tracker-status disagreements `.2` measured. Its two prose arms — the index
+  row's Status cell and the tree file's own `Metadata` Status — DISAGREE on **4 of 113** trees
+  (`VERILOG-2005-PROFILE`, `EBNF-BOOK`, `RGX-0090`, `RGX-0091`), and **7** index rows carry no
+  recognisable status word at all (`ENGINE-UNIVERSAL-SERVICES`, `GRAMMAR-WELLFORMED`,
+  `LIVE-DOC-CONTAINMENT`, `SV-CORPUS-GRAD`, `MCP-CONTROL`, `JSON-RFC8259`,
+  `REJECTS-VALID-DEFENSE`). `.2` counts every one of them OPEN — the safe polarity — so the
+  published remaining-work count is an UPPER BOUND today, and saying so is not the same as fixing
+  it.
+  Acceptance: each of the 11 is adjudicated to one true status in both places; then rule on whether
+  a doctrine should hold the two arms equal, or whether one arm should stop being a source.
 - ID: `DONE-BAR-VISIBILITY.6` — Status: `pending`
   Goal: the HAND-WRITTEN STATUS PROSE class, found by `.1` and routed rather than logged. The
   SystemVerilog book's `welcome.md` carried three figures and all three were wrong — the AST-dump
@@ -114,10 +143,11 @@ Both renderings answer three questions **from derived data, not prose**:
 
 ## Current frontier
 
-1. `DONE-BAR-VISIBILITY.2` (the remaining-work synthesis — derived from the trees that already own
-   each item, never typed). It is the frontier because it is the half of the director's remark
-   `.1` deliberately left as `NOT MEASURED`: `.1` answers *where against the bar* and *how much
-   corpus passes*, and publishes an explicit owed-by for *what is left*.
+1. `DONE-BAR-VISIBILITY.3` (the corpus pass counts for the nine families that publish none, or an
+   explicit `NOT MEASURED` naming the leaf that owes one). It is the frontier because it is the
+   last of the director's three questions still answered for only ONE family: `.1` and `.2` made
+   *where against the bar* and *what remains* answerable for all ten, while *how much corpus
+   passes* is derived for SystemVerilog alone.
 
 ## Leaf records
 
@@ -197,6 +227,85 @@ Shipped in `PGEN-DONE-BAR-VISIBILITY-0003`.
       FAILS (1). Plus an unknown family and a missing family name (2 each), and the two-sided
       schema arm: a field declared in the schema that nothing renders REFUSES (2).
 
+### `.2` — the remaining-work synthesis: a finite list, derived from the trees that own it
+
+Shipped in `PGEN-DONE-BAR-VISIBILITY-0004`.
+
+**What landed.** `tree_attribution` in `family_status_block_v0.json` — a CLOSED, TWO-SIDED map from
+every row of `docs/TASK_TREE.md` to a family, `cross-cutting`, `process`, `future-family` or
+`platform`; 113 rows, adjudicated one by one. The producer derives each family's OPEN trees from it
+and renders them in both surfaces. `remaining_work` moves from `not_measured` to `derived`.
+
+**The answer, for the first time as a number a reader can count:** SystemVerilog has **5** open
+trees of its own and **26** cross-cutting trees that can gate any family; `systemverilog_preprocessor`,
+`return_annotation`, `rtl_const_expr`, `ebnf`, `json` and `semantic_annotation` have **1** each;
+`regex` has **5**; `vhdl` and `rtl_frontend` have **0** — which is not the same as meeting the bar,
+and the block says so.
+
+**Three rulings worth carrying.**
+
+1. **The item is a TREE, not a leaf**, because leaf status is free prose that no instrument derives
+   as a class, and three leaf-definition conventions are in live use. A per-leaf list would publish
+   those defects as a number. Routed to `.7` rather than waived.
+   ⛔ **The census, run against the population that would REFUTE it rather than confirm it — and it
+   DID, so the claim is narrowed rather than published as written:**
+
+   ```
+   git grep -n -- 'todo' -- 'scripts/*.sh' 'rust/scripts/*.sh' 'rust/scripts/lib/*.sh' \
+       '.githooks/*' '.github/workflows/*' | grep -v check_doctrines.sh
+     scripts/audit_done_bar.sh:701:  leaf5_open = re.search(r"^### `\.5`.*\(`todo`\)", read(TREE))
+     (plus this slice's own producer)
+   git grep -ln "Status:" -- 'scripts/*.sh' 'rust/scripts/*.sh' '.githooks/*' '.github/workflows/*'
+     -> 0 files
+   git grep -ln "docs/tasks" -- 'scripts/*.sh' 'rust/scripts/*.sh' '.githooks/*' '.github/workflows/*'
+     -> 34 files, none of which reads a leaf Status line
+   ```
+
+   ⇒ **exactly ONE instrument reads a leaf status, and only for ONE hard-coded leaf** (`DONE-BAR.5`,
+   so `audit_done_bar.sh` can say the highest attainable tier is `Provisional`). Leaf status is
+   unchecked as a CLASS; *"nothing derives it"* would have been false, and the first draft of this
+   very leaf record said exactly that. 34 instruments read `docs/tasks/` and not one of them reads a
+   leaf's status.
+2. **The open/closed verdict is TWO-ARMED and biased OPEN.** Both arms are prose — the index row's
+   Status cell and the tree file's own `Metadata` Status. They disagree on 4 of 113 trees, so a list
+   built on either arm alone is wrong four times; 7 more rows carry no status word at all. Every
+   disagreement and every unreadable row is counted OPEN and NAMED. Over-reporting remaining work is
+   the only safe direction for a document whose purpose is to say how much is left. Routed to `.8`.
+3. **The tree-file link is searched over the WHOLE ROW, not a fixed cell index.** A row whose cell
+   count disagrees with its header — 14 of 67 rows of this very index once did, the four widest
+   being the four most active trees — puts the File cell elsewhere, and a fixed index reports
+   exactly the most active trees as having no tree file. Caught by reading the first rendered
+   output: `SV-CORPUS-GRAD` printed *(no tree file linked)*.
+
+#### Acceptance checklist (`TOOLBOX.md`)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: nothing joins a task tree to a parser family, so the
+      question *how much is left for THIS parser* has no producer. WHY, measured — and the first two
+      censuses I ran were both WRONG, which is the finding, not an aside:
+      `git ls-files docs/tasks/` with the pathspec `docs/tasks/*.md` returned **337** files because
+      a git pathspec `*` crosses `/`, sweeping in `docs/tasks/artifacts/`; the real top-level
+      population is **164**, of which **113** are index rows. Then a heading census for the required
+      `Current frontier` section returned **3 of 115** — a case-sensitive regex against a corpus
+      that writes `## Current Frontier`; the honest number is **70 heading-form, 5 prose-only, 40
+      absent**, so the section `docs/TASK_TREE.md` calls REQUIRED is missing from 40 tree files.
+      ⇒ the index row, not the tree file, is the maintained surface, and `COMMIT.md` obliges keeping
+      it current. That is the third time this repository has paid for a heading census under a
+      heading grammar that did not fit the corpus
+      (`docs/knowledge/a-heading-census-is-only-as-good-as-the-heading-grammar.md`).
+- [x] **ADDRESSED (verified)** — before: `remaining work ......... NOT MEASURED — owed by
+      DONE-BAR-VISIBILITY.2`. After: `5 open tree(s) own this family's work: SV-CORPUS-GRAD,
+      SV-EXH-PROOF, SV-PARSE-STRICT, SV-REPLAY-DEBT, VERILOG-2005-PROFILE / + 26 cross-cutting
+      tree(s) / ⚠️ 1 status DISPUTED, 1 unreadable — all counted OPEN`, and the book block carries
+      the same five with a link to each tree file. All ten families render a finite list.
+- [x] **NO REGRESSION** — `bash scripts/check_doctrines.sh` ALL 31 PASS;
+      `make -C rust SHELL=/bin/bash mdbook_docs_gate` PASS; probes **10/10**; the republished block
+      is **byte-identical** to a fresh derivation (`--check` OK, 3 369 bytes); `audit_done_bar.sh`
+      and the corpus census are untouched by this slice and still drive the same numbers.
+- [x] **RED CONTROLS** — two new arms prove the closed population BITES: RED-8 drops one tree from
+      the attribution and the producer REFUSES naming it; RED-9 adds an attribution for a tree that
+      does not exist and it REFUSES naming that. Both through the `PGEN_FAMILY_STATUS_SCHEMA` seam,
+      so the tracked schema is never mutated to test itself.
+
 ## Decisions
 
 - **Derived, never hand-written** — `LIVE-MEANS-LIVE.1a` measured 25 of 61 hand-maintained
@@ -221,15 +330,23 @@ None.
   false hits: **0 of 177** tracked book pages carry a distance-to-`Done` surface. Producer, schema,
   page, SUMMARY and probe driver landed; `--check` green on the published page; 8/8 probe arms;
   31/31 doctrines; mdbook gate PASS; all ten families render.
+- 2026-08-30 (`.2`) — 113 index rows adjudicated, population closed in both directions and PROVEN
+  to refuse in both (RED-8/RED-9). Two-arm status check fires: 4 DISPUTED, 7 unreadable, all counted
+  OPEN. 10/10 probes, 31/31 doctrines, mdbook gate PASS, `--check` byte-identical at 3 369 bytes.
 
 ## Commit log
 
 - tree created — `PGEN-DONE-BAR-VISIBILITY-0001`
 - `.1` scope corrected by the director — `PGEN-DONE-BAR-VISIBILITY-0002`
 - `.1` DONE (schema + producer + SystemVerilog end to end) — `PGEN-DONE-BAR-VISIBILITY-0003`
+- `.2` DONE (the remaining-work synthesis, tree granularity) — `PGEN-DONE-BAR-VISIBILITY-0004`
 
 ## Changelog
 
 - 2026-08-30 — created from a direct director remark; gap measured the same day.
 - 2026-08-30 — `.1` DONE. One producer, two renderings, `--check` proven able to go RED four ways.
   New leaf `.6` opened for the hand-written-status-prose class the slice measured on the way past.
+- 2026-08-30 — `.2` DONE at TREE granularity. 113 index rows adjudicated into a closed two-sided
+  attribution; every family now publishes a finite open-tree list. New leaves `.7` (per-leaf
+  granularity, blocked on the leaf-convention defect) and `.8` (the 4 DISPUTED + 7 unreadable
+  tracker statuses the two-arm check found).
