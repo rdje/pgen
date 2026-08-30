@@ -11,10 +11,12 @@ answers:
   - "why did lowering a documented, supported knob crash the process"
   - "I made a threshold depend on a runtime parameter — where can that go wrong"
   - "my fix is invisible at the default setting, so what did my tests actually cover"
+  - "my census reported not-found for one member of the population — can I publish that"
+  - "how do I know a per-unit cost measured on one subject generalises to the others"
 tags: [resource-limits, invariants, claim-verification, engine, safety, derived-bounds]
 date: 2026-08-30
 status: current
-evidence: docs/tasks/ENGINE-UNIVERSAL-SERVICES.md leaf .79 (PGEN-ENGINE-UNIVERSAL-SERVICES-0142, its same-day correction -0144, and .79's founding measurement in -0138); rust/src/dedicated_parse_stack.rs (first_stack_sample_depth, MIN_DEDICATED_PARSE_STACK_BYTES); rust/src/ast_pipeline/mod.rs (RecursionGuard::new); rust/docs/EMBEDDING_API_CONTRACT.md (Stack-Robustness Contract, 1.3.4)
+evidence: docs/tasks/ENGINE-UNIVERSAL-SERVICES.md leaf .79 (PGEN-ENGINE-UNIVERSAL-SERVICES-0142, its same-day correction -0144, the .79(a) debug census in -0145, and .79's founding measurement in -0138); docs/tasks/artifacts/engine_universal_services/eus79a_per_frame_census/ (the census producer and its recorded table); rust/src/dedicated_parse_stack.rs (first_stack_sample_depth, MIN_DEDICATED_PARSE_STACK_BYTES); rust/src/ast_pipeline/mod.rs (RecursionGuard::new); rust/docs/EMBEDDING_API_CONTRACT.md (Stack-Robustness Contract, 1.3.4)
 reverify: "python3 -c \"n=300; open('tmp/p300.sv','w').write('module m; wire w; assign w = ' + '('*n + '1' + ')'*n + '; endmodule\\n')\" && PGEN_REPORT_STACK_PROBE=1 PGEN_PARSE_STACK_BYTES=100663296 ./rust/target/debug/parseability_probe --parse systemverilog --profile sv_2017 tmp/p300.sv   # rc=1 with cause=BudgetExhausted; the pre-.79 binary gave rc=134, 'fatal runtime error: stack overflow, aborting'"
 ---
 
@@ -89,6 +91,23 @@ default the scale factor is exactly 1, so the shipped path is unchanged by const
   three settings on one subject and one setting on every other subject leaves the whole
   (other subject × non-default setting) quadrant untested, and that is exactly where the defect was.
   ⇒ **vary the parameter across the whole population, not across one member of it.**
+- ⭐⭐ **THEN MEASURE THE POPULATION, because "one subject's number does not generalise" is itself a
+  claim.** Deriving instead of pinning is the right move whether or not the spread is large — but
+  until the spread is measured it is an argument, not a fact. Measured here across nine subjects in
+  the expensive build mode: the per-unit cost spans **14.81×** (1 961 → 29 046 bytes per frame), so a
+  constant derived from any one of them is wrong for another by more than an order of magnitude. The
+  same census also answers the question the derivation could not: the tightest safety margin at the
+  shipped default is **2.12×**, and exactly one subject sits under 11×. ⇒ **the census is not
+  decoration on the fix; it is what tests the fix** — and in this case it is what FOUND a regression
+  in it, on the first new subject it touched.
+- ⛔⛔ **A CENSUS'S "NOT FOUND" IS A CLAIM, AND IT NEEDS THE SAME SCRUTINY AS ITS NUMBERS.** One row
+  came back *ceiling not reached* after climbing to 262 144 levels — and the subject demonstrably
+  refuses: its own rejection text named the frame count while the instrument reported nothing, because
+  that subject runs on a worker whose reading never reaches the caller. Publishing the row as written
+  would have asserted *"this member has no measurable limit"* about a member with a plainly visible
+  one. The fix is a distinct verdict — *refused, but not observable by this route* — carrying the
+  count the other surface does provide. ⇒ **when an instrument reports absence, check a second surface
+  before you write it down**; and note the failure direction, which is silent and flattering.
 - **A test that pins the other side of the relationship is the defect wearing a test.** Check the
   *property* (the ratio is the same at four reservations) and read the engine's own constant rather
   than re-typing it. Prove the check goes RED: restoring the pre-fix law must fail it, and here it

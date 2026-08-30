@@ -1,0 +1,12 @@
+FAMILY                       PROFILE        LEVELS   FRAMES     CAUSE                  BYTES_PER_FRAME
+systemverilog                sv_2017        512      3843       BudgetExhausted        24559
+systemverilog                sv_2023        512      3790       BudgetExhausted        24903
+systemverilog                verilog_2005   1024     3248       NoFrameAffordable      29046
+vhdl                         <default>      8192     -          RUNG_TIMEOUT_600s      not_measured
+json                         <default>      16384    32738      NoFrameAffordable      2882
+rtl_const_expr               <default>      4096     48120      NoFrameAffordable      1961
+rtl_frontend                 <default>      4096     47878      NoFrameAffordable      1971
+return_annotation            <default>      4096     19522      BudgetExhausted        4998
+semantic_annotation          <default>      16384    34766      NoFrameAffordable      2714
+systemverilog_preprocessor   <default>      8192     18020      NoFrameAffordable      5236
+regex                        <default>      512      4096       REFUSED_UNOBSERVABLE   not_observable_see_EUS.82
