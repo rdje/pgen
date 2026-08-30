@@ -13,6 +13,7 @@
 - Read `MEMORY_ARCHITECTURE.md` (memory/continuity), `README.md` (project), and `TOOLBOX.md` (debug toolbox — USE FIRST).
 - Work is tracked in task-trees under `docs/tasks/`; index `docs/TASK_TREE.md`; commit per `COMMIT.md`.
 - Durable facts / standing directives / decisions: `docs/decisions/INDEX.md` (**authoritative**; its record count is DERIVED — read it, never store it). Live status: `docs/book/src/roadmap-and-live-status.md`; changelog: `CHANGES.md`.
+- ⛔⛔ **AT ANY HANDOFF POINT (before declaring the workspace ready / `/exit`): `bash scripts/check_no_background_jobs.sh` must be GREEN** — director standing rule 2026-08-30, [[feedback_no_background_job_at_a_handoff_point]], leaf `.77`. A clean tree is NOT sufficient: a background job outlives its session and rewrites TRACKED files after the commit that blessed them (`.76`'s orphan ran 1 h 24 m past its session). ⭐ Kill the CHILDREN too — killing a ladder's parent left two probe children running.
 - ⛔ A code change MUST pass the **acceptance checklist** (ROOT CAUSE + ADDRESSED + NO REGRESSION, evidence-backed) in its task leaf — enforced by `scripts/check_doctrines.sh` via `.githooks/pre-commit` (run `git config core.hooksPath .githooks` once per clone).
 
 ## North star (⛔ POINTERS ONLY — the curated list lives in [[project_north_star]], which is authoritative)
