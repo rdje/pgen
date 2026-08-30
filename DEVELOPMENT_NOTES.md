@@ -67,6 +67,20 @@
   to satisfy the ROOT CAUSE box with `git log -S`, which is honest but is not the tool that found the
   defect. ⚠️ The **8** is a FLOOR: the filter used to measure it is itself a vocabulary and already
   misses one listed instrument, which is `.77`(b)'s lesson applied to my own census.
+- ⛔⛔ **SELF-CORRECTION, SAME DAY AND BEFORE ANY CHALLENGE — I PUBLISHED *"machine otherwise idle for
+  both runs"* AND NEVER MEASURED IT.** Caught by smoke-running the tracked producer after the commit:
+  the 200-level rung, recorded at 2.21 s, did not return in 30 s, and `uptime` read a **load average
+  of 6.03** with another repository's perl suite at **99.3 % CPU**. Checking backwards, `ps` had
+  shown foreign `cargo test` jobs inside both ladder windows as well, so the sentence was false when
+  written. ⇒ the **ELAPSED column is an UPPER BOUND, not a measurement**, and `-0128`'s standing rule
+  — *never measure on a busy machine; nothing in the harness enforces idleness* — governs wall clock
+  exactly as it governs peak RSS.
+- ⭐ **WHAT THE CORRECTION DOES NOT TOUCH.** The verdicts and refusal DEPTHS are deterministic and
+  load-independent, so the `rc 134` → `rc 1` flip, the 3 647-frame refusal and the frame-for-frame
+  identity at 128 MiB and 256 MiB all stand untouched. Both surviving timing claims are correctly
+  SIGNED: the floor's 2.5–197 s is an upper bound on a cost published as a DRAWBACK (the honest error
+  direction is that it is smaller), and the 1.6 % before/after agreement is evidence of COMPARABLE
+  conditions, which is all that comparison needs. ⇒ nothing is withdrawn; one sentence is.
 - ⭐ **(c) IS DISCHARGED IN A STRONGER FORM THAN IT WAS WRITTEN, and that is recorded rather than
   quietly narrowed.** (c) asked for a guard that REFUSES a reservation too small to reach the first
   sample. A refusal needs a per-frame cost to compare against — i.e. it needs (a) — and it would hand

@@ -17676,7 +17676,21 @@ STRENGTH I attributed to my own evidence.
 
 ⛔ The pre-change binary was preserved **before anything was rebuilt** — the `-0141` lesson, which
 cost a slice its only exonerating baseline. Debug probe, `--profile sv_2017`, nested-paren sources
-from 442 B (200 levels) to 1 642 B (800). Machine otherwise idle for both runs. ⭐ The producer and
+from 442 B (200 levels) to 1 642 B (800). ⛔⛔ **CORRECTED THE SAME DAY, BEFORE ANY DIRECTOR
+CHALLENGE: THIS LINE FIRST READ *"machine otherwise idle for both runs"*, AND I NEVER MEASURED
+THAT.** Caught by smoke-running the tracked producer after the commit — the 200-level rung, recorded
+at 2.21 s, did not return in 30 s, and `uptime` read a **load average of 6.03** with another
+repository's perl suite at **99.3 % CPU**. Checking backwards, `ps` had shown foreign `cargo test`
+jobs inside both ladder windows too, so the claim was false when written. ⇒ **the ELAPSED column is
+an UPPER BOUND, not a measurement**, and `-0128`'s standing rule (*never measure on a busy machine;
+nothing in the harness enforces idleness*) applies to wall clock exactly as it does to peak RSS.
+⭐ **What this does NOT touch, and why the leaf's conclusions stand**: the VERDICTS and the REFUSAL
+DEPTHS are deterministic and load-independent — the `rc 134` → `rc 1` flip, the 3 647-frame refusal,
+and the frame-for-frame identity at 128 MiB and 256 MiB are all facts about the guard, not about the
+clock. The two timing claims that survive are correctly signed: the floor's 2.5–197 s cost is an
+upper bound on a cost I present as a DRAWBACK (so the honest error direction is that it is smaller
+than published), and the 1.6 % before/after agreement is evidence the two runs saw COMPARABLE
+conditions, which is the only thing that comparison needs. ⭐ The producer and
 BOTH raw result tables are tracked at
 [`docs/tasks/artifacts/engine_universal_services/eus79_first_sample_derivation/`](artifacts/engine_universal_services/eus79_first_sample_derivation/)
 — the 188 MB binaries are not, and the README there says why.

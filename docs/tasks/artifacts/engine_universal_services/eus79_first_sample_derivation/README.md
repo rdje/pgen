@@ -24,9 +24,13 @@ bash docs/tasks/artifacts/engine_universal_services/eus79_first_sample_derivatio
 ⛔ **DEBUG build.** The defect is a debug-per-frame-cost defect (25.3–28.4 KB/frame against release's
 ≈3.08 KB); a release probe does not reach it at these reservations.
 
-⚠️ **Run it on an idle machine.** The deep rejecting rungs are `ENGINE-UNIVERSAL-SERVICES.68`'s
-Θ(depth²) re-exploration and the whole ladder takes ~8 minutes per binary; the verdicts and the
-refusal depths are deterministic, the wall clocks are not.
+⚠️ **Run it on an idle machine, and CHECK that it is** — `uptime`, not assumption. The deep
+rejecting rungs are `ENGINE-UNIVERSAL-SERVICES.68`'s Θ(depth²) re-exploration and the whole ladder
+takes ~8 minutes per binary; the verdicts and the refusal depths are deterministic, the wall clocks
+are not. ⛔ **Both recorded runs here were taken with foreign load on the host** (measured after the
+fact: load average 6.03, another repository's test suite at 99.3 % CPU), so treat the `ELAPSED`
+column of both files as an UPPER BOUND. The `RC` and the refusal depth in `VERDICT` are unaffected —
+they are the columns the leaf's conclusions rest on.
 
 ## The two recorded runs
 
