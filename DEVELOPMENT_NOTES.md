@@ -1,5 +1,59 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-31 - PGEN-ENGINE-UNIVERSAL-SERVICES-0160 (.87(d): the upward half of the capability mandate)
+
+- ⭐⭐⭐ **THE CLAMP WAS NEVER A SAFETY ARGUMENT — IT WAS TWO TESTS WITH THE HOST IN THEIR
+  DENOMINATOR, AND `.87`(b)+(c) HAD ALREADY REMOVED BOTH.** `.69`(a) shipped the host-derived
+  reservation capped at the 256 MiB reference, so *"the only obvious limit shall be the host RAM"*
+  landed downward only. Re-derived before the edit rather than quoted from the leaf:
+  `git grep -n "MAX_SAFE_BURN_BYTES" -- rust/` → no hits, and a classifier over every
+  `dedicated_parse_stack_bytes()` site → **5 comments + 4 assert/eprintln message args, ZERO test
+  parameters**. The law is now `max(96 MiB, physical_memory / 64)`.
+- ✅ **MEASURED, release binary, NO environment variable set.** 268 435 456 → **402 653 184** B;
+  `cast_4814.sv` `rc 1` REJECT (45.35 s) → **`rc 0` ACCEPT** (40.92 s, `no_refusal`); accept
+  boundary **BISECTED 7 211 / 7 212** against 4 813 / 4 814 before.
+- ⭐⭐⭐ **THE LINEARITY THE WHOLE DERIVED-CEILING DESIGN IS SOLD ON IS NOW MEASURED ABOVE THE
+  REFERENCE — FOR THE FIRST TIME.** Every point behind the published *18.82 levels/MiB* was taken
+  at or BELOW 256 MiB. Frame depth 81 670 → **122 517**, ratio **1.50015** against a reservation
+  ratio of exactly 1.5 ⇒ **0.010 %**, where `.69`(d)'s downward pair agreed to 0.40 %. A constant
+  ceiling would be 33 % off.
+- ⛔ **AND THE PUBLISHED FLATNESS FIGURE MOVED, SO IT IS STATED RATHER THAN REUSED.** Adding
+  384 MiB (18.779 levels/MiB) widens the source-level fit from **0.14 % → 0.26 %** across
+  96–384 MiB. ⭐ On FRAME DEPTH the same pair is flat to 0.010 % — 26× tighter — because the
+  source-level number carries a shape-dependent frames-per-level conversion (16.97 → 16.99) the
+  frame count does not. Independent corroboration of `.87`(b)'s choice to lock on frame depth.
+- ⛔⛔ **THE BOUND DID NOT DISAPPEAR, IT MOVED TO THE READING — AND IT WAS NOT PRE-REGISTERED.**
+  Unbounded above in a host-supplied quantity, an absurd `sysctl` becomes an absurd reservation.
+  New `[512 MiB, 64 TiB)` window, its top DERIVED from a measurement: the single-spawn ceiling
+  bisects to `2^46` = 64.000 TiB, and address space is not returned promptly on join (a fresh
+  process spawning 16 TiB stacks succeeds seven times and fails on the eighth), so the top leaves
+  room for **64 concurrent** maximally-deep parses. 128 concurrent live threads at 16 GiB each
+  spawn with no refusal.
+- ⛔⛔ **PROCESS DEFECT 1 — A DELIBERATE MUTATION LIVED IN A SHIPPING SOURCE FILE WITH ITS REVERT
+  DEFERRED TO A BACKGROUND JOB.** Reverting it promptly under a director challenge then overwrote
+  the file *while its own build was reading it* — `CI-PARITY-GATE-ROT.32`'s torn-build hazard —
+  which invalidated the control and turned a 1 m 13 s build into 15 minutes of dependency
+  recompilation with a test binary stalled at 80 KB RSS in `_dyld_start`. ⇒ **a mutation control is
+  apply-test-revert in ONE uninterruptible step, or it runs in a throwaway worktree.** Re-run under
+  a `trap`.
+- ⛔⛔⛔ **PROCESS DEFECT 2 — THREE PUBLISHED CLAIMS WITHDRAWN IN ONE SESSION, ALL ONE ERROR.** A
+  sampled grid point published as a spawn boundary (128 TiB; bisected it is 64 TiB, so the breaking
+  host is 4 PiB not 8); a compiler warning's LINE NUMBER published as a file length (1.58 M vs
+  1 709 231); and a RELATIVE path in another process's `ps` line resolved against the wrong root,
+  producing a false *"a second Claude session is writing this repo's tracked live doc"* alarm with a
+  commit-safety mitigation attached — the cwd was `…/github/anvil`. **The refutation was already in
+  my own printed output** (`lsof | grep -c pgen` → 0), narrated past as *"the write has not landed
+  yet"*. PROMOTED to
+  `docs/knowledge/a-number-read-out-of-context-carries-a-frame-you-did-not-measure.md`.
+- ⭐ **AND THE LESSON WAS SPENT, NOT JUST FILED**: the 384 MiB boundary was about to ship as
+  *"≈7 220"* from the law with an accept at 7 000 and a reject at 7 600 behind it — the same error
+  an hour later. Bisected instead: **7 211 / 7 212**. Likewise the corpus diff's first cut compared
+  `(sub-corpus, verdict)` multisets, in which two files swapping verdicts cancel; re-keyed on the
+  PATH, with a RED control.
+- ✅ NO REGRESSION: **1 131** lib tests pass / 0 failed (was 1 127; +4 locks), clippy clean, external
+  SV corpus **0 per-file verdict differences over 16 336 files**. ZERO grammar / codegen / generated
+  bytes. Embedding API `1.3.5` → `1.3.6`.
+
 ## 2026-08-31 - PGEN-ENGINE-UNIVERSAL-SERVICES-0159 (.87(b)+(c): pinning the ceiling tests' reservation; .87(f) rerouted to .86(c))
 
 - ⭐⭐⭐ **THE LESSON: CONTROLLING A VARIABLE WAS THE CHEAPER OPTION, NOT THE EXPENSIVE ONE.** I

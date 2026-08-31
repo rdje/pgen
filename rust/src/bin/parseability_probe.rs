@@ -910,8 +910,12 @@ fn command_stack_reservation() -> Result<()> {
         Some(bytes) => {
             println!("host_memory_bytes={bytes}");
             println!("host_memory_mib={}", bytes / (1024 * 1024));
-            // The UNCLAMPED share, so an operator can see whether the floor or the cap is
-            // what decided their number rather than inferring it from the two constants.
+            // The UNCLAMPED share, so an operator can see whether the floor is what decided
+            // their number rather than inferring it from the constants. ⭐ Since `.87`(d)
+            // there is no upper clamp, so on any host past the floor this field EQUALS
+            // `reservation_bytes` — and that equality is itself the readable statement that
+            // the host is getting its full share. Kept (rather than dropped as redundant)
+            // because it is the only field that shows the floor binding on a small host.
             println!(
                 "unclamped_share_bytes={}",
                 bytes / dps::PARSE_STACK_HOST_MEMORY_SHARE_DIVISOR

@@ -18800,7 +18800,7 @@ fixes no defect and the `TASK-ACCEPTANCE` gate does not evaluate it either — n
       `MEMORY.md`, the two AFTER artifacts, and the rebaselined
       `rust/test_data/grammar_quality/generated_reproducibility_v0.json`.
 
-### ⛔ `.86` — **`PARSE-COST-RATCHET` PASSES VACUOUSLY ON AN ENGINE-ONLY CHANGE: ITS IDENTITY SET OMITS `rust/src`, SO THE GATE `TOOLBOX.md` NAMES FOR EVERY HOT-PATH CHANGE CANNOT SEE AN ENGINE EDIT** (`todo`, ROUTED — opened 2026-08-31 by `.85`'s own verification / `PGEN-ENGINE-UNIVERSAL-SERVICES-0154`)
+### ⛔ `.86` — **`PARSE-COST-RATCHET` PASSES VACUOUSLY ON AN ENGINE-ONLY CHANGE: ITS IDENTITY SET OMITS `rust/src`, SO THE GATE `TOOLBOX.md` NAMES FOR EVERY HOT-PATH CHANGE CANNOT SEE AN ENGINE EDIT** (`todo`, ROUTED + PARKED behind the SV lane — (a)(b)(c) opened 2026-08-31 by `.85`'s own verification / `PGEN-ENGINE-UNIVERSAL-SERVICES-0154`; (c) took its SECOND and THIRD data points from `.87`(f) / `-0159`; ⛔ **(d) added 2026-08-31 / `-0160` — the SAME doctrine's BASELINE STATE defaults into `.gitignore`d `rust/target/`, so routine cleanup resets it silently and GREEN**; director RULED route-and-park 2026-08-31)
 
 - **WHY + WHERE**: `scripts/check_parse_cost_ratchet.sh` skips tier 2 when its declared inputs are
   byte-identical to the baseline's. Those inputs are the **generated parser, grammar raw AST,
@@ -18856,10 +18856,57 @@ fixes no defect and the `TASK-ACCEPTANCE` gate does not evaluate it either — n
   (vary the reservation, read the boundary; 18.82 levels/MiB flat to 0.14 %). ⇒ the enforceable
   doctrine is *an engine change adjudicates its accept-set impact the way a grammar change already
   must*, not *a document says two things*.
+- ⛔⛔ **(d) THE SAME DOCTRINE'S BASELINE STATE LIVES IN A `.gitignore`d BUILD DIRECTORY, SO THE
+  ROUTINE CLEANUP OF THAT DIRECTORY RESETS THE RATCHET SILENTLY AND IN THE PASSING DIRECTION**
+  (`-0160`, ROUTED + PARKED — found while auditing an artifact-cleanup finding under a director
+  challenge, and the audit REFUTED the reason the finding was first published with):
+
+  ```
+  grep -n "STATE = " scripts/check_parse_cost_ratchet.sh
+    -> 126:STATE = os.environ.get("PGEN_PARSE_COST_STATE_DIR", "rust/target/parse_cost_ratchet")
+  git grep -n "PGEN_PARSE_COST_STATE_DIR" -- . ':!docs/tasks'
+    -> scripts/check_parse_cost_ratchet.sh:126        <- the DEFINITION and nothing else
+  git check-ignore -v rust/target
+    -> .gitignore:228:**/target/	rust/target
+  ```
+
+  ⇒ **nothing in the repository sets that variable, so the default IS the live path**, and the
+  live path is inside the one directory every cleanup instinct — `cargo clean`, a disk-space
+  sweep, directive 8's own 24-hour artifact pass — targets first. A ratchet whose baseline has
+  been deleted does not fail: it re-establishes a baseline from whatever it measures next and
+  reports green. ⛔ That is `.80`/`.86`'s shape a FOURTH time — a gate honestly green about a
+  question it can no longer ask — and it is the worst variant, because here the gate is not
+  blind to a population, it is blind to *its own history*.
+- ⚠️ **(d) IS NOT ALONE IN THERE, WHICH IS WHAT MAKES IT A CLASS RATHER THAN A TYPO.** A census of
+  `rust/target` against every tracked reference found **130 of 404** entries named by a tracked
+  file. Most are wipe-and-recreate work directories whose own producer opens with
+  `rm -rf "$WORK"` — those are safe by construction, and their being NAMED is evidence of that,
+  not evidence against it. But at least one more is preserved state rather than scratch:
+  `rust/target/sv_axis2_baseline/*.pre_3_18.*`, which a tracked task-tree section cites as
+  *"this session preserved it to ..."*. ⇒ **the question is not "is this path mentioned" but "is
+  anything in a build directory the ONLY copy of something"**, and that is a census nobody has
+  run.
+- **(d) OWES**: (d1) move the ratchet state to a repository-owned, non-`.gitignore`d location, or
+  make its absence a LOUD refusal rather than a silent re-baseline — the `BASELINE-IDENTITY`
+  `unconfirmed` state is the precedent for "a baseline nobody can re-derive yet is still
+  WATCHED"; (d2) census every gate for state that defaults under a build directory, the same
+  population question (c) already owns one namespace of; (d3) only then price directive 8's
+  artifact sweep of `rust/target` (measured today at **289 GB**), which is blocked on (d1)+(d2)
+  and not on disk.
+- ⛔ **HOW IT WAS FOUND, kept because the finding is worth less than the correction.** It was
+  published first as *"several of those paths are named in tracked artifacts as producers, so a
+  bulk delete is not obviously safe."* Under challenge that is **WITHDRAWN**: the tracked file is
+  the PRODUCER and the `rust/target/...` path is its OUTPUT, and the first instance sampled
+  deletes itself. **The inference ran backwards** — being named is evidence a path is disposable
+  — and it was published without checking one instance, which is `-0132`'s provenance failure
+  again and flattering, because it excused not doing the cleanup directive. The real hazard was
+  found only by then reading what the references actually SAY. ⇒ **a reason to be cautious is a
+  claim, and it is checked against an instance, never against plausibility.**
+
 - ⛔ **ROUTED, not worked**: `.85` is the SV-lane defect and it is fixed; this is the gate that failed
   to notice, and it sits behind the lane with `.68`.
 
-### ✅✅ `.87` — **THE CEILING TESTS READ THE PROCESS-WIDE RESERVATION INSTEAD OF PINNING ONE, SO THEIR COVERAGE *AND* THEIR RUNTIME ARE FUNCTIONS OF THE HOST — WHICH IS WHY `.69`(a) HAD TO CAP THE HALF OF THE CAPABILITY MANDATE THAT SAYS A BIGGER HOST ACCEPTS DEEPER INPUT** (`in progress` — ✅✅ **(b) + (c) DONE 2026-08-31 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0159`: the reservation is PINNED, the suite went 316 s → 88 s with one MORE test, and the pin bought a control that was previously unaffordable**; (e) WITHDRAWN, (f) REROUTED to `.86`(c); (a) + (d) `todo`; opened 2026-08-31 by `.69`(a) slice 2 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0157`)
+### ✅✅ `.87` — **THE CEILING TESTS READ THE PROCESS-WIDE RESERVATION INSTEAD OF PINNING ONE, SO THEIR COVERAGE *AND* THEIR RUNTIME ARE FUNCTIONS OF THE HOST — WHICH IS WHY `.69`(a) HAD TO CAP THE HALF OF THE CAPABILITY MANDATE THAT SAYS A BIGGER HOST ACCEPTS DEEPER INPUT** (`in progress` — ✅✅ **(b) + (c) DONE 2026-08-31 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0159`: the reservation is PINNED, the suite went 316 s → 88 s with one MORE test, and the pin bought a control that was previously unaffordable**; ✅✅✅ **(d) DONE 2026-08-31 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0160`: the clamp is GONE, a 24 GiB host goes 4 813 -> 7 211 accepted nested casts, and the linearity is measured ABOVE the reference for the first time — to 0.010 %**; (e) WITHDRAWN, (f) REROUTED to `.86`(c); ⚠️ (a) DISCHARGED BY CONSTRUCTION — it asked for the ladder's cost at a raised reservation on an idle host, and (b)'s pin removed the host from that cost entirely, so the question no longer has a subject; opened 2026-08-31 by `.69`(a) slice 2 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0157`)
 
 - **WHY + WHERE (established BEFORE the fix it blocks was written, by reading the two tests the
   census named rather than by running into them).** Three sites read
@@ -19084,6 +19131,169 @@ fixes no defect and the `TASK-ACCEPTANCE` gate does not evaluate it either — n
   tree has refused every time it has been offered one.
 - ⛔ **SV LANE, not parked.** The reservation is the quantity the SystemVerilog accept boundary is
   derived from, and (d) is a direct payment on the capability mandate for the family under release.
+
+#### ✅✅✅ `.87`(d) DONE — **THE UPWARD HALF OF THE CAPABILITY MANDATE LANDS: THE CLAMP IS GONE, A 24 GiB HOST ACCEPTS 7 211 NESTED CASTS WHERE IT ACCEPTED 4 813, AND THE LINEARITY THE WHOLE DESIGN IS SOLD ON IS MEASURED ABOVE THE REFERENCE FOR THE FIRST TIME — TO 0.010 %** (2026-08-31, `PGEN-ENGINE-UNIVERSAL-SERVICES-0160`; ENGINE tier, embedding API `1.3.5` -> `1.3.6`, ZERO grammar / codegen / generated bytes)
+
+- **WHY + WHERE (tool-backed, and the census ran BEFORE the clamp was touched).** The clamp was
+  never a safety argument — it was two TESTS with the host in their denominator, and `.87`(b)+(c)
+  removed both. Re-derived rather than taken from `.87`'s own prose:
+
+  ```
+  git grep -n "MAX_SAFE_BURN_BYTES" -- rust/
+    -> (no hits)                     the vacuous-skip branch is GONE, not widened
+
+  every dedicated_parse_stack_bytes() site, classified by what the LINE does:
+    COMMENT              rust/src/ast_pipeline/mod.rs:7108
+    assert MESSAGE ARG   rust/src/embedding_api.rs:3393, 3980, 4282
+    COMMENT              rust/src/embedding_api.rs:3545, 3556, 3696, 4015
+    eprintln ARG         rust/src/embedding_api.rs:3912
+    -> 5 comments + 4 message args, ZERO test parameters
+  ```
+
+  ⇒ nothing reads the law any more, so the clamp had no argument left. ⛔ **WHERE**:
+  `rust/src/dedicated_parse_stack.rs:273` — one `.min(DEDICATED_PARSE_STACK_BYTES)` deleted.
+- ⭐ **THE FOUR MESSAGE ARGS WERE FIXED IN PASSING, BECAUSE THEY WERE ALREADY LYING.** Since
+  `.87`(b) pinned the ladder, those `assert!`/`eprintln!` messages printed the PROCESS-RESOLVED
+  reservation beside a measurement taken at the PINNED one — a failure message naming a number the
+  experiment did not use. They now name `CEILING_LADDER_PINNED_RESERVATION`. Harmless while the two
+  agreed; `.87`(d) is exactly the change that pulls them apart.
+- ⛔⛔ **THE BOUND DID NOT DISAPPEAR, IT MOVED TO THE READING — AND THAT ITEM WAS NOT IN THE
+  PRE-REGISTRATION.** With no upper clamp the derivation is unbounded in a HOST-SUPPLIED quantity,
+  so an absurd `sysctl` reading would become an absurd reservation: the module's own *"a stack
+  reservation is not a place to turn an unreadable `sysctl` into an outage"*, inverted. The clamp
+  had been providing that silently. New `MIN_/MAX_PLAUSIBLE_HOST_MEMORY_BYTES` = **`[512 MiB,
+  64 TiB)`**; outside it a reading is `None` and the reference fallback stands, which is the
+  contract `query_host_physical_memory` already stated for a zero or short read.
+- ✅ **AND THE WINDOW'S TOP IS DERIVED FROM A MEASURED PROPERTY, NOT FROM "bigger than any machine
+  I can imagine" — the first cut chose it the second way and was WRONG.** Producers:
+  `docs/tasks/artifacts/engine_universal_services/eus87d_uncapped_reservation/spawn_ceiling.md`
+  + `spawn_boundary_probe.rs`.
+  - single-spawn ceiling **bisected** at `2^46` = **64.000 TiB** exactly (the first cut sampled a
+    grid and published 128 TiB — a grid point, not a boundary);
+  - ⛔ the budget is SHARED and is not returned promptly on join: a FRESH process spawning 16 TiB
+    stacks succeeds seven times and fails on the eighth, so the constraint is
+    `Σ live reservations < 2^46`, not `reservation < 2^46`;
+  - ⇒ the top is set so the largest admitted reading derives a **1 TiB** reservation, leaving room
+    for **64 concurrent** maximally-deep parses. Corroborated at realistic sizes: **128 concurrent
+    live threads at 16 GiB each** (2 TiB of VA) with no refusal.
+  - ⚠️ It is a POLICY, not a proof, and it rots if single-image machines pass 64 TiB. Its
+    re-deriver is TRACKED, one command away.
+- ✅ **RED CONTROL — `.69`(a)'s clamp restored in the shipping law: 4 FAILED, 18 passed**, and the
+  four are exactly the locks that encode this leaf, each naming the defect:
+  `the_derived_reservation_is_clamped_only_by_the_floor` (*"a 25769803776 B host must derive its own
+  share, not the reference"*), `a_bigger_host_never_derives_a_smaller_reservation`,
+  `an_implausible_host_memory_reading_is_unknown_rather_than_a_number`,
+  `the_resolved_reservation_agrees_with_its_own_reported_source`.
+  ⭐ **`the_safety_margin_grows_above_the_reference_and_is_flat_below_it` correctly stayed GREEN**
+  under the mutation — it tests the SAMPLE law, not the derivation — so the controls are specific
+  rather than a blanket that would have failed for any edit.
+- ⛔⛔ **ONE LOCK COULD NOT HAVE FAILED, AND IT WAS CAUGHT BEFORE IT WAS TRUSTED.** The plausibility
+  window was first applied inline against the live query, so the only reading a test could exercise
+  was this host's own — inside the window. Deleting the window would have left that test GREEN:
+  `.87`(e)'s withdrawn lesson (*a mutation is only a control where the defect it names can exist*)
+  arriving in time for once. Fixed by extracting the pure kernel `plausible_host_memory(bytes)`,
+  the same move `derive_parse_stack_reservation` and `scale_sample_depth_to_reservation` already
+  make in this module, so the mutation now has somewhere to go red.
+
+##### ✅ THE MEASUREMENT — every pre-registered prediction confirmed, on the release binary, no env var set
+
+Pre-registration (written before the edit, with two dated amendments):
+`docs/tasks/artifacts/engine_universal_services/eus87d_uncapped_reservation/preregistration.md`.
+
+| | before (`622c8b5b`) | after | predicted |
+|---|---|---|---|
+| resolved reservation | `268435456` (cap binding) | **`402653184`**, `host_memory_derived` | 402 653 184 ✅ |
+| `cast_4814.sv` | **rc 1 REJECT**, 45.35 s | **rc 0 ACCEPT**, 40.92 s, `no_refusal` | flips ✅ |
+| refusal FRAME DEPTH | 81 670 | **122 517** | 122 505, i.e. ×1.5 ✅ |
+| deepest accepted cast | 4 813 | **7 211** (7 212 refuses) | ≈7 220 ✅ |
+| B/frame | 3 081 | 3 080–3 081 | unchanged ✅ |
+
+- ⭐⭐⭐ **THE PROPORTIONALITY HOLDS UPWARD, AND THIS IS THE CLAIM THE WHOLE DERIVED-CEILING DESIGN
+  IS SOLD ON.** The SV contract's *"vary the reservation and the boundary moves with it, linearly"*
+  had every one of its points taken at or BELOW the 256 MiB reference. `.87`(d) is the first change
+  that puts a shipping host above it. Frame-depth ratio **1.50015** against a reservation ratio of
+  exactly **1.5** — agreeing to **0.010 %**, where `.69`(d)'s downward pair agreed to 0.40 %. A
+  CONSTANT ceiling would be 33 % off.
+- ⛔ **AND THE PUBLISHED FLATNESS FIGURE MOVED, WHICH IS SAID RATHER THAN QUIETLY REUSED.** Adding
+  the 384 MiB point (18.779 levels/MiB) to 96/128/192/256 (18.823/18.828/18.807/18.801) widens the
+  source-level fit from the published **0.14 %** to **0.26 %** across 96–384 MiB. ⭐ The same pair
+  read on FRAME DEPTH is flat to **0.010 %** — 26× tighter — because the source-level number
+  carries a shape-dependent frames-per-level conversion (16.97 → 16.99) that the frame count does
+  not. That is independent corroboration of `.87`(b)'s choice to assert the lock on frame depth
+  rather than on the ladder rung.
+- ✅ **THE MARGIN GROWS RATHER THAN SHRINKS ABOVE THE REFERENCE.** `first_stack_sample_depth` never
+  scales UP, so past the reference the sample stays at 4 096 frames while the budget grows: on
+  `.79`(a)'s binding cell (`verilog_2005`, debug, 29 031 B/frame) the margin goes **2.12× → 3.17×**.
+  Locked, with the below-reference invariance asserted in the same test so the two regimes cannot
+  be confused.
+- ✅ **THE SPAWN IS FREE AT THIS SIZE, MEASURED WITH REPEATS**: 384 MiB min **27.0 µs** against the
+  reference's 28.0 µs, n=9 (the first cut read one sample each and explained a 96 µs outlier as
+  warm-up — the repeats confirm that story, but it was a guess when written).
+
+##### Acceptance Checklist (enforced) — `.87`(d) (`PGEN-ENGINE-UNIVERSAL-SERVICES-0160`)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — **WHY**: `.69`(a) shipped the host-derived reservation with an
+      upper clamp at the reference, so *"the only obvious limit shall be the host RAM"* was
+      delivered downward only; the clamp existed solely because two tests derived a parameter from
+      the law (`stack_probe_names_the_terminal_refusal_after_a_real_spend` skipped its whole body
+      above ≈341 MiB; the `.78` ladder's crossing depth is linear in the reservation while crossing
+      is Θ(depth²)). `.87`(b)+(c) pinned both. **WHERE**:
+      `rust/src/dedicated_parse_stack.rs:273`. ⭐ **TOOL SIGNATURE** — the population was enumerated
+      before the edit and both reasons re-derived, not quoted:
+      `git grep -n "MAX_SAFE_BURN_BYTES" -- rust/` → **no hits**; and a classifier over
+      `git grep -n "dedicated_parse_stack_bytes()" -- rust/src` → **5 comments + 4 message args, 0
+      test parameters**. The RED control is the clamp itself, run as code: restored, **4 of 22
+      tests FAIL**, each naming the mandate half it protects.
+- [x] **ADDRESSED (verified)** — before: this 24 GiB host resolved **268 435 456** and REJECTED
+      `cast_4814.sv` in 45.35 s at frame depth 81 670. After: it resolves **402 653 184**
+      (`host_memory_derived`) and ACCEPTS the same file in 40.92 s with `no_refusal`, with no
+      environment variable set. The accept boundary is **BISECTED** at 7 211 accept / 7 212 refuse
+      (was 4 813 / 4 814), and the refusal frame depth moved 81 670 → 122 517, a ratio of 1.50015
+      against a reservation ratio of 1.5 — **0.010 %**, the first measurement of that law above the
+      reference. The new bound on the READING is measured too: the single-spawn ceiling is bisected
+      at `2^46`, and the window's top leaves room for 64 concurrent maximally-deep parses.
+- [x] **NO REGRESSION** — **1 131 lib tests pass / 0 failed** (was 1 127; +4 new locks), `clippy`
+      clean, external SV corpus **0 PER-FILE verdict differences over 16 336 files** at the
+      tracked parameters (`pass=9794 fail=6542 timeout=0 crash=0`), diffed on `(path, verdict)`
+      against `stimuli/sv/characterization/results.tsv`. ⛔ The first cut of that diff cut columns
+      `(sub-corpus, verdict)` — a MULTISET comparison in which two files swapping verdicts cancel;
+      re-run keyed on the PATH before it reached this line, and the keyed form carries its own RED
+      control (flip one baseline verdict → 2 differing lines). **ZERO grammar / codegen / generated bytes**: the change is one clamp in
+      `dedicated_parse_stack.rs`, which is NOT in `GENERATED-REPRODUCIBILITY`'s emission-source
+      digest set (`rust/src/ast_pipeline/*.rs` + `rust/Makefile`), so no artifact can move.
+      ⚠️ CI is unaffected by construction: a 16 GB hosted runner derives ≈238 MiB, already inside
+      the pre-`.87`(d) band, and the ceiling tests pin their own reservation since `.87`(b).
+
+##### ⛔⛔ TWO PROCESS DEFECTS THIS SLICE COMMITTED, KEPT BECAUSE THEY COST REAL TIME AND ONE INVALIDATED A CONTROL
+
+1. **A DELIBERATE MUTATION WAS LEFT IN A SHIPPING SOURCE FILE WITH ITS REVERT DEFERRED TO A
+   BACKGROUND JOB.** For ~20 minutes `derive_parse_stack_reservation` carried a knowingly-wrong
+   clamp with nothing in the tree saying so; a session death there would have handed the next
+   session a source that silently disagreed with its own tests and docs. Then, reverting it
+   promptly under a director challenge overwrote the file **while its own build was reading it** —
+   the torn-build hazard `CI-PARITY-GATE-ROT.32` exists for — which turned a 1 m 13 s build into 15
+   minutes of dependency recompilation and left a test binary stalled at 80 KB RSS in
+   `_dyld_start`. ⇒ **the control produced no verdict and would not have been trustworthy if it
+   had.** Re-run correctly as ONE job with the revert on a `trap`, so a kill, a timeout or a failure
+   cannot leave a defect resident. ⭐ **A mutation control is apply-test-revert in one
+   uninterruptible step, or it runs in a throwaway worktree. Never a step you intend to take later.**
+2. **THREE PUBLISHED CLAIMS WITHDRAWN IN ONE SESSION, ALL ONE ERROR** — a sampled grid point
+   published as a spawn boundary (128 TiB; bisected, it is 64 TiB, so the breaking host is 4 PiB not
+   8); a compiler warning's LINE NUMBER published as a file length (1.58 M vs 1 709 231); and a
+   RELATIVE path in another process's `ps` line resolved against the wrong root, producing a false
+   *"a second Claude session is writing this repo's tracked live doc"* alarm with a commit-safety
+   mitigation attached — the process's cwd was `…/github/anvil`, `CLAIM-SHAPE-SHADOW-RUN` is an
+   anvil tree that `git grep` finds nowhere here, and PGEN's `DEVELOPMENT_NOTES.md` was untouched
+   throughout. ⛔ **The refutation was in my own printed output**: `lsof -p <pid> | grep -c pgen`
+   returned **0**, and I narrated past it as *"the write has not landed yet"*.
+   ⇒ promoted to `docs/knowledge/a-number-read-out-of-context-carries-a-frame-you-did-not-measure.md`:
+   **a value lifted out of a grid, a log line or a process listing arrives with a FRAME attached —
+   the boundary, the file, the root — and the frame is the part you did not measure.** The counter is
+   mechanical: for every number in a finding, name the command that produced **it and its frame**.
+- ⭐ **AND THE LESSON WAS SPENT, NOT JUST RECORDED**: the 384 MiB accept boundary was going to ship
+  as *"≈7 220"* from the linear law with an accept at 7 000 and a reject at 7 600 behind it — a
+  sampled interval published as a boundary, the same error, one hour later. It was bisected instead
+  (`bisect_boundary.sh`, tracked): **7 211 / 7 212**.
 
 ### ⛔ `.84` — **A DEEPLY NESTED INPUT COSTS PEAK RSS QUADRATIC IN ITS NESTING DEPTH ON `return_annotation` — 1 174 MB FOR AN 8 KB FILE — WHILE THE AST ARENA GROWS LINEARLY AND THE ALLOCATION HIGH-WATER STAYS UNDER 7 MB, SO THE MEMORY IS IN NEITHER OF THE TWO PLACES `.67` TAUGHT US TO LOOK** (`todo`, ROUTED + PARKED — opened 2026-08-31 by `.79`(a) slice 2b / `PGEN-ENGINE-UNIVERSAL-SERVICES-0151`)
 

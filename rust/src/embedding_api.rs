@@ -58,10 +58,36 @@ const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
 /// `parseability_probe --stack-reservation` reports the resolved value with its
 /// provenance. ⚠️ The derivation is PER-PARSE: this API spawns one dedicated thread
 /// per call, so `N` concurrent maximally-deep parses can commit up to `N/64` of host
-/// memory. ⚠️ Only the DOWNWARD half of *"the limit is the host's RAM"* has landed —
-/// a host above 16 GiB is capped at the reference (`.87` owns lifting it). ⛔ No API
+/// memory. ⚠️ Only the DOWNWARD half of *"the limit is the host's RAM"* landed in this
+/// version — a host above 16 GiB was capped at the reference; `1.3.6` lifts it. ⛔ No API
 /// surface or schema change, and the generated artifacts are byte-identical.
-pub const EMBEDDING_API_VERSION: &str = "1.3.5";
+///
+/// `1.3.6` (`ENGINE-UNIVERSAL-SERVICES.87`(d)): the UPWARD half. The reservation default
+/// loses its cap and becomes `max(96 MiB, physical_memory / 64)`, so **a host larger than
+/// 16 GiB now accepts proportionally deeper input instead of being held at the reference**
+/// — the other half of the capability mandate *"the only obvious limit shall be the host
+/// RAM and disk allowance"*. Measured on a 24 GiB host: the reservation goes 256 → 384 MiB
+/// and a 4 814-level nested-cast file that this parser REJECTED now parses, with no
+/// configuration.
+/// ⛔⛔ **THIS IS AN ACCEPT-SET CHANGE AND IT IS TWO-SIDED, SO BOTH SIDES ARE STATED
+/// HERE.** The accept boundary is linear in the reservation (18.82 nesting levels per MiB),
+/// hence linear in host memory above the floor. A host over 16 GiB accepts MORE than it did
+/// in `1.3.5`; nothing accepts less. But it means **an accept-set claim is now a claim
+/// about a host** — the same file can parse on one machine and be refused on a smaller one,
+/// in either direction from wherever you measured. Pin `PGEN_PARSE_STACK_BYTES` across a
+/// fleet, and in CI, if you need one answer everywhere.
+/// ⚠️ **The cost of a refusal rises with the host too**: parse cost is quadratic in depth
+/// (`.68`), so a bigger machine spends proportionally longer before rejecting an
+/// over-deep input. The safety margin moves the other way — above the reference the guard's
+/// first sample stays at 4 096 frames while the budget grows, so the margin on the binding
+/// measured cell goes 2.12× → 3.17×.
+/// ⚠️ The reservation is still per-parse and this API still spawns one thread per call;
+/// `N` concurrent maximally-deep parses commit up to `N/64` of host memory. Measured: 128
+/// concurrent live parse threads at 16 GiB each spawn without refusal, so the ceiling is
+/// address space, not a practical limit.
+/// ⛔ No API surface or schema change, and the generated artifacts are byte-identical — the
+/// change is one clamp in `dedicated_parse_stack::derive_parse_stack_reservation`.
+pub const EMBEDDING_API_VERSION: &str = "1.3.6";
 
 /// Stable schema version for serialized embedding API metadata.
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;
@@ -3390,7 +3416,7 @@ mod tests {
                 profile,
                 crossing.ladder_elapsed,
                 budget,
-                crate::dedicated_parse_stack::dedicated_parse_stack_bytes()
+                CEILING_LADDER_PINNED_RESERVATION
             );
         }
         // Reaching here at all is the real lock: the parse ran to a structured verdict on a
@@ -3909,7 +3935,7 @@ mod tests {
             measured.ladder_elapsed,
             measured.crossing_elapsed,
             budget,
-            crate::dedicated_parse_stack::dedicated_parse_stack_bytes(),
+            CEILING_LADDER_PINNED_RESERVATION,
             measured.rungs.join("\n  ")
         );
         cache.insert(key, measured.clone());
@@ -3977,7 +4003,7 @@ mod tests {
             crossing.crossing_elapsed,
             crossing.source_depth,
             budget,
-            crate::dedicated_parse_stack::dedicated_parse_stack_bytes(),
+            CEILING_LADDER_PINNED_RESERVATION,
             crossing.rungs.join("\n  ")
         );
     }
@@ -4279,7 +4305,7 @@ mod tests {
             crossing.deepest_accepting_depth,
             elapsed,
             budget,
-            crate::dedicated_parse_stack::dedicated_parse_stack_bytes()
+            CEILING_LADDER_PINNED_RESERVATION
         );
     }
 

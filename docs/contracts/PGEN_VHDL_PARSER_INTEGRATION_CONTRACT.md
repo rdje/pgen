@@ -22,11 +22,16 @@ This is the document downstream projects embedding the PGEN VHDL parser should r
     lets a host that can afford more depth buy it. Corpus: **0 differences over 13 720 files**;
     AST-dump schema stays `3`. ⚠️ Cost is **quadratic in depth** and an over-ceiling refusal is now
     far dearer than it was (`ENGINE-UNIVERSAL-SERVICES.68`); ✅ the reservation's DEFAULT is
-    no longer a literal — since `.69`(a) (2026-08-31) it is
-    `min(256 MiB, max(96 MiB, physical_memory / 64))`, derived from the host, readable with
-    `parseability_probe --stack-reservation`. The share is chosen so a 16 GiB host derives
-    EXACTLY the historic 256 MiB, so no host at or above that size sees any change; only the
-    downward half has landed (`.87` owns lifting the cap))
+    no longer a literal — since `.69`(a) (2026-08-31) it is derived from the host, readable with
+    `parseability_probe --stack-reservation`, and since `.87`(d) the same day it is derived in
+    BOTH directions: `max(96 MiB, physical_memory / 64)`, with no upper clamp. The share is
+    chosen so a 16 GiB host derives EXACTLY the historic 256 MiB — the design point — so a
+    SMALLER host is no longer handed a stack it cannot afford and a LARGER one is no longer held
+    to a 16 GiB machine's depth. ⛔ Both directions are accept-set changes: the boundary is
+    linear in the reservation, so **the same file can parse on one host and be refused on
+    another**; pin `PGEN_PARSE_STACK_BYTES` across a fleet or in CI if you need one answer. An
+    implausible physical-memory reading (outside `[512 MiB, 64 TiB)`) is UNKNOWN and takes the
+    fixed 256 MiB reference)
   - `1.0.6` (`ENGINE-UNIVERSAL-SERVICES.66`, 2026-08-28: engine-level, grammar-agnostic — a
     per-quantifier **10 000-iteration cap** (`SAFETY_LIMIT`) is removed. It did not refuse: it
     **stopped iterating**, silently truncating the repetition, so the parse failed at the enclosing

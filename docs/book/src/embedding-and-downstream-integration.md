@@ -237,22 +237,25 @@ it. See *[The Recursion Ceiling Is Now The Host's Stack](#the-recursion-ceiling-
 below.
 
 ⭐⭐ **And since `ENGINE-UNIVERSAL-SERVICES.69`(a) the DEFAULT is derived from the host rather than
-typed.** The reservation an embedder gets with no configuration at all is now
+typed — in BOTH directions since `.87`(d).** The reservation an embedder gets with no configuration
+at all is now
 
 ```text
-reservation = min( 256 MiB , max( 96 MiB , physical_memory / 64 ) )
+reservation = max( 96 MiB , physical_memory / 64 )
 ```
 
-so a host that cannot afford 256 MiB per parse is no longer handed it. Ask any build what it
-resolved, and where the number came from:
+so a host that cannot afford 256 MiB per parse is no longer handed it, and a host that can afford
+more is no longer held to a 16 GiB machine's capacity. `.69`(a) shipped this law with an upper clamp
+at the 256 MiB reference; `.87`(d) removed it, which is the second half of the capability mandate.
+Ask any build what it resolved, and where the number came from:
 
 ```bash
 parseability_probe --stack-reservation
 ```
 
 ```text
-reservation_bytes=268435456
-reservation_mib=256
+reservation_bytes=402653184
+reservation_mib=384
 source=host_memory_derived
 host_memory_bytes=25769803776
 host_memory_mib=24576
@@ -261,6 +264,10 @@ share_divisor=64
 floor_bytes=100663296
 reference_bytes=268435456
 ```
+
+⭐ On this 24 GiB host `reservation_bytes` and `unclamped_share_bytes` are now EQUAL — which is
+itself the readable statement that nothing is being withheld. Before `.87`(d) the same host printed
+`reservation_bytes=268435456` beside `unclamped_share_bytes=402653184`, and the gap was the cap.
 
 `source` distinguishes the three provenances a single integer used to hide: `operator_override`
 (you set `PGEN_PARSE_STACK_BYTES`), `host_memory_derived`, and `reference_fallback` (the host's
@@ -275,21 +282,40 @@ is never allowed to become an outage).
 | 8 GiB | 128 MiB | the derivation |
 | 12 GiB | 192 MiB | the derivation |
 | **16 GiB** | **256 MiB** | **the derivation — and it equals the old literal exactly** |
-| 24 GiB, 64 GiB, 1 TiB | 256 MiB | the reference cap |
+| 24 GiB | 384 MiB | the derivation (was 256 MiB, the cap, before `.87`(d)) |
+| 64 GiB | 1 GiB | the derivation (was 256 MiB) |
+| 1 TiB | 16 GiB | the derivation (was 256 MiB) |
+| a reading outside `[512 MiB, 64 TiB)` | 256 MiB | the reference fallback — the reading is UNKNOWN |
 
 ⭐ The `1/64` share is chosen so that `256 MiB × 64 = 16 GiB`: the number that used to be
 hard-coded is exactly what the law now produces on the developer-machine class it was written for.
 The literal is *explained*, not replaced.
 
-⛔⛔ **What that costs on a smaller host, said plainly.** The accept boundary is LINEAR in the
-reservation (measured: 18.82 nesting levels per MiB, flat to 0.14 %), so a smaller reservation
-means a proportionally shallower accept set — an 8 GiB host takes **≈2 410** nested casts where a
-16 GiB host takes **4 813**. ⇒ **the same file can parse on one host and be refused on a smaller
-one**, as a bounded rejection with the ceiling label, never a crash. That is the capability mandate
-working as specified — the limit is the host's RAM — and if you need a host-independent accept set
-you pin `PGEN_PARSE_STACK_BYTES` to one value across your fleet. ⚠️ Scale context: no file in the
-16 336-file tracked corpus approaches the boundary (p99.9 bracket nesting is 8), so this bites
-machine-emitted or adversarial input rather than ordinary RTL.
+⛔⛔ **What that costs, said plainly, in BOTH directions.** The accept boundary is LINEAR in the
+reservation (measured: 18.82 nesting levels per MiB, flat to 0.14 % across 96–256 MiB), so the
+accept set is linear in host memory above the floor: an 8 GiB host takes **2 410** nested casts
+where a 16 GiB host takes **4 813** and a 24 GiB host takes **7 211** — every one of those bisected,
+not sampled.
+⭐ `.87`(d)'s 384 MiB point is the first ever taken ABOVE the reference, and it is what lets the
+claim be stated honestly at its real width: including it, the source-level fit is flat to **0.26 %**
+across 96–384 MiB rather than the 0.14 % published for 96–256. Measured on FRAME DEPTH the same pair
+is flat to **0.010 %** (81 670 → 122 517 for a reservation ratio of exactly 1.5); the source-level
+figure carries a shape-dependent frames-per-level conversion that the frame count does not, which is
+why the engine's own regression lock asserts the frame depth. ⇒ **the same file can parse on one host and be refused
+on another, in either direction from wherever you measured**, as a bounded rejection with the
+ceiling label, never a crash. That is the capability mandate working as specified — the limit is the
+host's RAM — but it means **an accept-set claim is now a claim about a host**, and if you need a
+host-independent accept set you pin `PGEN_PARSE_STACK_BYTES` to one value across your fleet and in
+CI. ⚠️ Scale context: no file in the 16 336-file tracked corpus approaches the boundary (p99.9
+bracket nesting is 8), so this bites machine-emitted or adversarial input rather than ordinary RTL.
+
+⚠️ **And the two costs that move with the reservation, neither of them a surprise.** Parse cost is
+quadratic in depth, so a bigger host spends proportionally LONGER before refusing an over-deep input
+— it has further to go before contacting the ceiling. The safety margin moves the other way and in
+your favour: above the 256 MiB reference the guard's first stack sample stays pinned at 4 096 frames
+while the budget keeps growing, so the margin on the worst measured cell goes **2.12× → 3.17×** at
+384 MiB. Below the reference the margin is invariant instead — that is `.79`'s guarantee and it is
+unchanged.
 
 ⚠️ **Two honest limits, stated rather than implied.**
 
@@ -297,11 +323,17 @@ machine-emitted or adversarial input rather than ordinary RTL.
    full stack spend, and that quantity is not yet attributed (`ENGINE-UNIVERSAL-SERVICES.84`: on
    one grammar peak RSS is quadratic in nesting depth while the arena holds 0.03 % of it). A bound
    with an unmeasured term is not a bound, so no bound is claimed.
-2. **Only the downward half of "the limit is the host's RAM" has landed.** A host *larger* than
-   16 GiB is capped at the reference today rather than accepting deeper input, because raising the
-   reservation moves the depth at which the ceiling ladder crosses and crossing cost is quadratic
-   in depth — the test suite's runtime would become a function of the CI host's RAM.
-   `ENGINE-UNIVERSAL-SERVICES.87` owns lifting the cap and the test-pinning it needs first.
+2. ✅ **Both halves of "the limit is the host's RAM" have now landed** (`.87`(d)). `.69`(a) shipped
+   only the downward half, because raising the reservation moves the depth at which the ceiling
+   ladder crosses and crossing cost is quadratic in depth — the *test suite's* runtime would have
+   become a function of the CI host's RAM, and one existing lock would have skipped its whole body
+   above ≈341 MiB while staying green. `.87`(b)+(c) fixed that by giving those tests a reservation
+   they NAME instead of one they read, which cost nothing and in fact made the suite 3.6× faster;
+   with the tests no longer reading the law, the clamp had no argument left and (d) removed it.
+   ⚠️ What remains bounded is the *reading*, not the derivation: a physical-memory reading outside
+   `[512 MiB, 64 TiB)` is treated as unknown, because with no cap an absurd reading would otherwise
+   become an absurd reservation. The window's top is set so the largest believed reading still
+   leaves room for 64 concurrent maximally-deep parses inside the measured address-space budget.
 
 ⚠️ **The derivation is per-parse.** The embedding API spawns one dedicated thread per call, so `N`
 concurrent maximally-deep parses can commit up to `N/64` of host memory. An embedder running high
