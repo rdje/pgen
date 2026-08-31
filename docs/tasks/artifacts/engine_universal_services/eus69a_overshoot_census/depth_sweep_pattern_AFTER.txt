@@ -1,0 +1,38 @@
+# ENGINE-UNIVERSAL-SERVICES.85 — the AFTER depth sweeps. Compare row for row against
+# depth_sweep_pattern.txt. EVERY rc 134 is gone.
+
+## debug, 96 MiB floor (the DOCUMENTED floor). BEFORE: rc 134 from 288 levels onward.
+LEVELS   RC   DEPTH      CAUSE                USED_BYTES   OVERSHOOT   B_FRAME   MARGIN    BEFORE
+192      0    4195       BudgetExhausted      94378048     6208        22497     1013.44x  rc 0   3.20x
+224      0    4106       BudgetExhausted      94394960     23120       22989     272.12x   rc 0   1.64x
+256      0    4014       BudgetExhausted      94389536     17696       23515     355.53x   rc 0   1.10x
+288      0    3917       BudgetExhausted      94398288     26448       24099     237.88x   rc 134
+320      0    3825       BudgetExhausted      94372096     256         24672     24576.00x rc 134
+352      0    3736       BudgetExhausted      94381440     9600        25262     655.36x   rc 134
+384      0    3642       BudgetExhausted      94372768     928         25912     6779.59x  rc 134
+448      0    3458       BudgetExhausted      94374848     3008        27291     2091.57x  rc 134
+512      1    3371       BudgetExhausted      94389792     17952       28000     350.46x   rc 134
+640      1    3371       BudgetExhausted      94389792     17952       28000     350.46x   rc 134
+768      1    3371       BudgetExhausted      94389792     17952       28000     350.46x   rc 134
+1024     1    3371       BudgetExhausted      94389792     17952       28000     350.46x   rc 134
+
+# ⭐ 288-448 now ACCEPT where they aborted: the guard stops the parse AT the budget, so there
+# is still stack left to back off and find an accepting derivation (`.69`(d)'s
+# contact-and-still-accept). 512+ REJECT CLEANLY (rc 1) at an identical ceiling -- depth 3371,
+# 94 389 792 B used, on four different inputs -- which re-derives `.69`(d)'s finding that the
+# ceiling is a property of the STACK and not of the input.
+
+## debug, 256 MiB — THE SHIPPED DEFAULT. BEFORE: rc 134 from 768 levels onward.
+LEVELS   RC   DEPTH      CAUSE                USED_BYTES   OVERSHOOT   B_FRAME   MARGIN     BEFORE
+512      0    11209      BudgetExhausted      251659744    1504        22451     11155.06x  rc 0   3.31x
+576      0    11023      BudgetExhausted      251659216    976         22830     17189.77x  rc 0   1.92x
+640      0    10841      BudgetExhausted      251669184    10944       23214     1533.01x   rc 0   1.35x
+704      0    10655      BudgetExhausted      251659408    1168        23618     14364.05x  rc 0   1.05x
+768      0    10474      BudgetExhausted      251690576    32336       24030     518.84x    rc 134
+832      0    10287      BudgetExhausted      251680112    21872       24465     767.06x    rc 134
+1024     0    9734       BudgetExhausted      251662896    4656        25854     3603.35x   rc 134
+
+# ⛔ 832 and 1024 first read rc 124 at a 600 s cap and were RE-RUN at 3 600 s before being
+# recorded -- a cap is a statement about patience, never about the program (`-0153`, and
+# `-0138` before it). Booking a timeout as a fix would have repeated the exact error that made
+# a shipped-artifact abort look debug-only for one commit.

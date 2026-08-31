@@ -2800,6 +2800,32 @@ pub struct RecursionGuard {
     /// the FIRST (oldest, shallowest) match, so this index is exactly the floor a caller needs to
     /// compare against its own frame depth. See `memoized_call`'s taint gate.
     pub last_block_frame: usize,
+    /// `ENGINE-UNIVERSAL-SERVICES.85` — the stack ADDRESS below which this
+    /// thread's spendable budget is gone, or `0` before the first probe has
+    /// learned this thread's extent.
+    ///
+    /// ⛔⛔ **WHY AN ADDRESS AND NOT A DEPTH — THE DEFECT THIS REPLACES.** The
+    /// ceiling used to be reached by PREDICTION: the probe priced a stride of
+    /// `affordable / STACK_HEADROOM_STRIDE_DIVISOR` frames from the RUNNING
+    /// AVERAGE `used / depth`, and nothing re-checked the real stack until that
+    /// many frames later. A prediction can be wrong in the fatal direction, and
+    /// it is: crossing the whole remaining budget inside ONE stride needs only
+    /// that the frames actually pushed cost `STACK_HEADROOM_STRIDE_DIVISOR`
+    /// times the average that priced them. Measured (`.85`, untraced builds):
+    /// nested assignment patterns travel **244.8 frames** past the budget before
+    /// the guard is consulted again where nested parens travel **0.6**, on
+    /// averages 1.05x apart — and 244.8 frames is 90.6 % of the entire headroom
+    /// reserve, with deeper inputs running off the end of the reservation into
+    /// the guard page (`rc 134`; a 2 344-byte file at the shipped default in a
+    /// debug build, 15 400 bytes in release).
+    ///
+    /// ⭐ Testing the stack POINTER instead makes the bound an OBSERVATION. The
+    /// overshoot past the budget is then at most ONE frame rather than one
+    /// stride, and the per-frame cost — average, marginal or otherwise — leaves
+    /// the safety argument entirely. `approximate_stack_pointer` is the address
+    /// of a local, so this costs a compare on a path that already walks the whole
+    /// live stack on every entry (`.68`).
+    stack_floor: usize,
     /// `ENGINE-UNIVERSAL-SERVICES.65` — the frame depth at which the recursion
     /// ceiling most recently FIRED, i.e. the depth the host stack could not
     /// carry past. `0` until it fires.
@@ -2865,7 +2891,20 @@ impl RecursionGuard {
             cycle_cache: HashMap::new(),
             last_block_frame: usize::MAX,
             last_ceiling_depth: 0,
+            stack_floor: 0,
         }
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.85` — has this parse spent its stack budget?
+    ///
+    /// ⛔ `0` means NOT YET KNOWN, never "the floor is address zero": the extent
+    /// is learned on the parse thread by the first probe, and before that the
+    /// depth trigger alone governs — which is safe, because the first sample is
+    /// reached long before any budget is at risk.
+    #[inline]
+    fn stack_floor_breached(&self) -> bool {
+        self.stack_floor != 0
+            && crate::dedicated_parse_stack::approximate_stack_pointer() <= self.stack_floor
     }
 
     /// `ENGINE-UNIVERSAL-SERVICES.65` — RE-ANCHOR THE CEILING ON REAL STACK
@@ -2943,6 +2982,11 @@ impl RecursionGuard {
             return refuse(StackProbeRefusal::FrameCostUnmeasurable, used, reservation, 0, 0);
         }
         let budget = reservation - reservation / STACK_HEADROOM_RESERVE_DIVISOR;
+        // `ENGINE-UNIVERSAL-SERVICES.85` — learn the address the budget runs out at,
+        // ON THE PARSE THREAD, the first time this thread's extent is known. The guard
+        // may be constructed on another thread (`-0144`), so this cannot be done in
+        // `new()`; the probe is the first place both facts are in hand.
+        self.stack_floor = base.saturating_sub(budget);
         // `.69`(d) — hoisted above the budget arm so the ONE refusal that is a
         // fact about the stack carries a complete reading. `depth > 0` and
         // `used >= depth` are both established above, so this is the same
@@ -2986,10 +3030,13 @@ impl RecursionGuard {
                 return CycleType::LeftRecursive;
             }
         }
-        if self.parse_stack.len() >= self.max_depth {
+        if self.parse_stack.len() >= self.max_depth || self.stack_floor_breached() {
             // `ENGINE-UNIVERSAL-SERVICES.65` — the threshold is a SAMPLE POINT,
             // not the ceiling: ask the host stack first, and only refuse when it
             // is really out of headroom.
+            // `.85` — and the SAMPLE POINT is no longer only a predicted depth: a
+            // parse that has spent its budget is caught here whatever the
+            // prediction said, which is what bounds the overshoot to one frame.
             let depth = self.parse_stack.len();
             if self.extend_depth_probe(depth) {
                 return CycleType::None;
@@ -3035,9 +3082,11 @@ impl RecursionGuard {
                 return CycleType::LeftRecursive;
             }
         }
-        if self.rule_id_stack.len() >= self.max_depth {
+        if self.rule_id_stack.len() >= self.max_depth || self.stack_floor_breached() {
             // `ENGINE-UNIVERSAL-SERVICES.65` — see `check_cycle`: the threshold
             // is where the guard SAMPLES the host stack, and the host decides.
+            // `.85` — the depth half is a PREDICTION and the address half is an
+            // OBSERVATION; the observation is what makes the bound sound.
             let depth = self.rule_id_stack.len();
             if self.extend_depth_probe(depth) {
                 return CycleType::None;

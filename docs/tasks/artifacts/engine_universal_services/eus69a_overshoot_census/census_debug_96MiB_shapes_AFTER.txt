@@ -1,0 +1,43 @@
+# ENGINE-UNIVERSAL-SERVICES.85 — the AFTER census. Same instrument, same 96 MiB floor, same
+# shapes as census_debug_96MiB_shapes.txt; the only difference is the fix (variant A: the
+# guard's sample trigger is a STACK-ADDRESS observation, not only a predicted depth).
+#
+# ⚠️ unary_neg / unary_not appear here because this run did not narrow the shape list. Both
+# are REJECTED by the shipped profile at depth 4 (IEEE 1800 A.8.3 — a unary operator's
+# operand is a `primary`), so they never recurse and never reach a ceiling. They are not
+# measurements; validate_shapes.sh is the arm that classifies them.
+SHAPE        LEVELS   DEPTH      CAUSE                USED_BYTES   BUDGET       OVERSHOOT   B_FRAME   MARGIN
+begin_end    1024     3345       BudgetExhausted      94384848     94371840     13008       28216     483.66x
+binary_par   512      3617       BudgetExhausted      94409472     94371840     37632       26101     167.18x
+cast         256      3965       BudgetExhausted      94406384     94371840     34544       23809     182.13x
+concat       512      3993       BudgetExhausted      94430752     94371840     58912       23649     106.79x
+func         512      4370       NoFrameAffordable    94365680     94371840     -6160       21593     no_overshoot
+if_stmt      1024     3308       BudgetExhausted      94432416     94371840     60576       28546     103.86x
+paren        512      3841       BudgetExhausted      94378656     94371840     6816        24571     923.04x
+pattern      256      4014       BudgetExhausted      94389536     94371840     17696       23515     355.53x
+sysfunc      256      4718       BudgetExhausted      94372176     94371840     336         20002     18724.57x
+ternary      4096     6347       BudgetExhausted      94396912     94371840     25072       14872     250.94x
+unary_neg    >65536   -          CEILING_NOT_REACHED  -            -            -           -         -
+unary_not    >65536   -          CEILING_NOT_REACHED  -            -            -           -         -
+
+## BEFORE -> AFTER, ordered by the AFTER margin (worst first)
+# shape       overshoot B before ->    after   frames    margin before ->    after
+# if_stmt                  72320 ->    60576     2.12          86.99 ->   103.86
+# concat                    8784 ->    58912     2.49         716.24 ->   106.79   <- the only shape that got WORSE
+# binary_par               63056 ->    37632     1.44          99.78 ->   167.18
+# cast                    713104 ->    34544     1.45           8.82 ->   182.13
+# ternary                  54736 ->    25072     1.69         114.94 ->   250.94
+# pattern                5701568 ->    17696     0.75           1.10 ->   355.53   <- the shape that ABORTED
+# begin_end               221888 ->    13008     0.46          28.35 ->   483.66
+# paren                    15488 ->     6816     0.28         406.21 ->   923.04
+# sysfunc                  10272 ->      336     0.02         612.49 -> 18724.57
+#
+# WORST margin      1.10x -> 103.86x   (94x better)
+# WORST overshoot   5 701 568 B (244.8 frames) -> 60 576 B (2.49 frames)
+#
+# ⭐ THE SHAPE OF THE RESULT IS THE POINT. Before, the overshoot was one MISPRICED STRIDE and
+# was unbounded in principle -- 244.8 frames measured. After, it is the frames pushed between
+# two guard-visible entries: 0.02 to 2.49 frames across every shape. The distribution
+# COMPRESSED (1.10x-716x -> 104x-18725x) rather than uniformly improving, which is why
+# `concat` -- whose average happened to price its stride accurately -- reads worse while the
+# worst case is 94x better. That is the trade the fix makes, stated rather than averaged away.
