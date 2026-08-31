@@ -18551,9 +18551,335 @@ rather than opening a fifth leaf for the same class. ⛔ `dark_chained_only/summ
 at the close of `.13h` and deliberately so — `audit_dark_chained_only.py` is a separate instrument and
 re-running it is this leaf's work, not a silent side effect of the promotion.
 
+⛔⛔ **UPDATE 2026-08-31 (`.13j`, `PGEN-SV-CORPUS-GRAD-0310`) — TWO MEASURED CORRECTIONS TO (a), AND
+THE POPULATION THIS LEAF HAND-LISTED HAS ALREADY ROTTEN, EXACTLY AS IT PREDICTED.**
+**(i) THE LIVE POPULATION IS EIGHT, NOT SIX.** Re-derived with this leaf's own structural
+discriminator over `git ls-files`: **14** artifacts carry a heading `Instrument identity`
+followed by a table of (repo-relative path, 64-hex sha256), of which **6** are the frozen
+before/after snapshots already ruled out (`ch22_directive_fix` ×4, `explained_svpp_audit` ×2).
+The two additions postdate this leaf: `…/parse_cost_ratchet/cost.md` and
+`…/v2005_keyword_faithfulness/census.md`.
+**(ii) ⛔ `path` IS A REFERENCE, NOT ALWAYS THE HASHED SUBJECT — so (a) as written is
+UNLANDABLE, for a second reason beside the VHDL shared-binary row.** Both new artifacts carry a
+row whose `path` column reads `grammars/systemverilog.ebnf` while the recorded digest is of the
+derived **raw AST** (`825db031…`, `470d4998…`). A literal re-hash of the named file therefore
+reports both as stale, and both are not: neither digest appears anywhere in the sha256 history
+of that grammar file (30 revisions enumerated) while every genuine one does, and
+`bash scripts/check_parse_cost_ratchet.sh` RUNS green on all four of its inputs. ⇒ the enforcer
+must read the identity row's declared SUBJECT, not its path cell — a naive implementation
+false-fails two live artifacts on its first day, which is `GENERATED-LINT-CORRECTNESS.4`'s
+measured lesson (*a check whose population does not match reality teaches authors to waive it*)
+for the second time in one leaf.
+
 ⛔ **Sequencing.** This is SV-lane work by subject (it guards the SV graduation oracle), so the lane
 lock does not park it — but it is a GUARD, not a defect burn-down, so it sequences after `.20`'s
 director call and the remaining `.13c.2c` defect unless the director says otherwise.
+
+#### `.13j` — ⛔⛔⛔ NEW `todo` — **THE SV GRADUATION ORACLE IS STALE ON ALL THREE OF ITS DECISIVE INPUTS AFTER FOUR *RELEASES* AND TWO ACCEPT-SET-MOVING ENGINE CHANGES, AND EVERY DOCTRINE IS GREEN — BECAUSE THE ONE GATE CARRYING A GRAMMAR-IDENTITY ARM ROUTES SYSTEMVERILOG AWAY FROM ITSELF** (opened 2026-08-31 by an identity-block census run for `.13i` / `PGEN-SV-CORPUS-GRAD-0310`)
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing).
+
+- **THE ORACLE IS STALE, RE-HASHED NOT READ.** `stimuli/sv/characterization/characterization.md` is
+  the tracked report that produces `adjudication_manifest.tsv`, and therefore the published corpus
+  bar. Its own identity block instructs the reader to re-hash three inputs and re-measure rather
+  than quote. Re-hashed on this tree, **all three differ**:
+
+  | input | recorded | HEAD | |
+  |---|---|---|---|
+  | parse binary `rust/target/release/parseability_probe` | `4f6045c2…` | `7a9aac1d…` | ⛔ |
+  | grammar `grammars/systemverilog.ebnf` | `8bb3e839…` | `037a9553…` | ⛔ |
+  | generated parser `generated/systemverilog_parser.rs` | `47a50a09…` | `ad13eb08…` | ⛔ |
+
+  It also records `Measured at HEAD = f50add45+dirty (2026-08-24)` — a **dirty** tree, which is the
+  one condition `CORPUS-CENSUS-CURRENCY` emits a note for and which SV's gate cannot see either.
+  ⚠️ **PRECISION CORRECTION on the census that produced this table**: its right-hand column was
+  labelled *HEAD*, and for the three inputs above that is right (all tracked). It is WRONG for the
+  `positions.tsv` row of `dark_chained_only/summary.md`, which is `.gitignore`d — the value compared
+  there is **this machine's working copy**, not HEAD, and no clone need agree with it. The staleness
+  verdicts stand; the column heading did not, and a heading is a frame.
+- ⛔⛔ **AND THE DRIFT IS NOT NEUTRAL — THE REPOSITORY'S OWN LEDGER ADJUDICATES IT AS FOUR RELEASES.**
+  This is the counter-hypothesis that had to die first, because *"stale"* is not *"wrong"*
+  (`.13i`(d), and the v2005 lane that moved zero rows). `docs/contracts/PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`
+  accounts every revision after the manifest's last promotion (`31d51896`, 2026-08-24, `1.0.195`):
+
+  ```
+  -0288  2026-08-24  RELEASE  1.0.196  SV-0069 (.13e.4)
+  -0293  2026-08-24  RELEASE  1.0.197  SV-0070 (.13e.7)
+  -0296  2026-08-25  GENERATOR-ONLY    (.13e.9)
+  -0305  2026-08-25  RELEASE  1.0.198  SV-0071 (.13e.10(c4))
+  -0306  2026-08-26  NEUTRAL           comment only
+  -0098  2026-08-26  RELEASE  1.0.199  SV-0072 (.13e.10(c4) residue, EUS.50(e)+.55)
+  ```
+
+  ⇒ **four RELEASE rows**, and a RELEASE is by this doctrine's own definition a revision whose
+  accept set moved. Two engine changes moved it again on 2026-08-31 without touching a grammar
+  byte: `ENGINE-UNIVERSAL-SERVICES.85` (`-0154`, *"ACCEPT SET WIDENED"*) and `.87`(d) (`-0160`,
+  4 813 → 7 211 accepted nested casts on this host).
+  ⛔⛔⛔ **CORRECTION UNDER A SAME-SESSION DIRECTOR CHALLENGE, BEFORE ANY MEASUREMENT WAS TAKEN —
+  THE HEADLINE AS FIRST WRITTEN OVERSTATED THIS AND IS WITHDRAWN IN THAT FORM.** *"Four
+  accept-set-moving RELEASES"* is true of the GRAMMAR FILE and false of the lane whose numbers are
+  the published bar. Read from the register's own rationale text rather than from its `RELEASE`
+  column, **all four are `verilog_2005` PROFILE TIGHTENINGS**: SV-0069 *"IEEE 1364-2005 puts NO
+  signing on an integer or a time declaration"*; SV-0070 *"thirteen IEEE-1800 surfaces **the
+  verilog_2005 profile** was still reaching"*; SV-0071 *"SIXTEEN IEEE-1800-only OPERATORS still
+  reached **the verilog_2005 profile**"*; SV-0072 *"the SEVENTEENTH IEEE-1800-only punctuation
+  member, `'` (tick), is GATED OUT"*. The main characterization runs `--profile sv_2017`. ⇒ their
+  EXPECTED movement in the published bar is **zero**, not *unknown and probably non-zero*, and the
+  clause that let the reader infer otherwise was mine.
+  ⛔ **MY PRE-REGISTERED PREDICTION IS THEREFORE REFUTED BEFORE THE MEASUREMENT, BY MY OWN
+  EVIDENCE.** I registered *"the movement, if any, comes from the four grammar RELEASES, not from
+  the engine pair"*. Corrected: the engine pair acts at nesting depths in the thousands while the
+  contract publishes corpus p99.9 bracket nesting as **8**, and the grammar four are v2005-scoped —
+  so **both** arms predict ≈zero movement in the `sv_2017` lane. The re-measure is now a test of
+  that, which is a better test than the one I wrote.
+  ⭐⭐ **WHAT SURVIVES IS SMALLER, TRUE, AND STILL THE POINT.** *"The profile scoping holds"* is a
+  claim the register ASSERTS in prose and **nothing measured for the `sv_2017` lane** — a
+  `verilog_2005` tightening is an edit to the SHARED grammar file, and whether it leaked is exactly
+  the question no gate asks. And the lane those four releases genuinely DO target — `v2005`
+  (`characterization_v2005.md`, `results_v2005.tsv`, `adjudication_manifest_v2005.tsv`) — is itself
+  stale on all three inputs and equally un-gated. ⇒ the finding is **the absence of the check**, on
+  both lanes; it was never *"the numbers are wrong"*, and the sentence that drifted toward that is
+  corrected here rather than defended.
+- ⛔⛔⛔ **WHY + WHERE — THE GATE THAT EXISTS FOR EXACTLY THIS DOES NOT COVER THE FAMILY THAT SHIPS.**
+  `CORPUS-CENSUS-CURRENCY` (`scripts/check_corpus_census.sh`) carries arm (3) GRAMMAR IDENTITY, a
+  **hard** failure on drift, and arm (5) ENGINE STALENESS on a derived commit budget. Its population
+  is declared in `rust/test_data/grammar_quality/family_status_block_v0.json`:
+
+  ```
+  corpus_census.vhdl          -> checked_by scripts/check_corpus_census.sh
+                                 report     stimuli/vhdl/characterization/characterization.md
+  corpus_census.regex         -> checked_by scripts/check_corpus_census.sh
+  corpus_census.systemverilog -> checked_by scripts/check_sv_corpus_denominator.sh
+                                 report     (none)
+  ```
+
+  and the gate RUN confirms the consequence rather than the reading —
+  `bash scripts/check_corpus_census.sh` prints `OK` for `regex` and `vhdl` and **names
+  SystemVerilog nowhere**. The gate SV *is* routed to has neither arm:
+
+  ```
+  grep -cE 'Instrument identity|digest|sha256|systemverilog\.ebnf' scripts/check_sv_corpus_denominator.sh
+    -> 0
+  ```
+
+  and its own header declares the limit out loud (`:39-41`): *"This re-derives the published NUMBERS
+  from tracked inputs; it does not re-adjudicate the corpus."* ⇒ `coverage.md` is **internally
+  consistent with a manifest that describes a parser four releases old**, and `bash
+  scripts/check_doctrines.sh`, re-derived on this tree, reports `ALL 33 enforced doctrines PASS`
+  over that state. ⚠️ **QUOTE THE GATE'S QUALIFICATION, NOT ONLY ITS HEADLINE** — three lines later
+  it prints that with nothing staged **11 of the 33 evaluated NOTHING** and *"their PASS above is
+  vacuous, not evidence"*, `SV-CONTRACT-CURRENCY` among them. The honest figure is **19 doctrines
+  actually evaluated and passed**. The gate was more careful than my first citation of it, which is
+  the second time in this leaf that the instrument stated a limit I then dropped.
+- ⭐⭐ **THE FOUNDING MEASUREMENT OF THAT DOCTRINE IS THIS DEFECT, ON THE OTHER FAMILY.**
+  `CORPUS-CENSUS-CURRENCY` was built (`DONE-BAR-VISIBILITY.3b`) because
+  `stimuli/vhdl/characterization/characterization.md` sat stale for **22 days** and a **56-second**
+  re-measure moved it 4 335 → 4 370 pass — 35 rows, every one fail→pass, *in the flattering
+  direction*. The gate that episode produced was then wired to VHDL and regex — **the two families
+  that do not ship** — and not to the one under a release lane lock.
+- ⇒ **FOURTH INSTANCE OF ONE ROOT CAUSE**, and the first where the uncovered population is the
+  release bar itself: `ENGINE-UNIVERSAL-SERVICES.80` (the ordinary tier runs no `cargo test`),
+  `.86` (the ratchet's identity set omits `rust/src`), `.86`(c) (accept-set adjudication keyed on a
+  grammar PATH), and now this. **A doctrine's population is a claim, and nothing checks it.**
+  This is `.86`(c)'s census answered with a fourth data point; recorded here because the defect and
+  its fix are SystemVerilog's.
+- ✅ **THE RE-MEASURE IS CHEAP, WHICH IS WHY THIS IS ANSWERABLE IN ONE SLICE.** Priced from the
+  artifact rather than guessed: `stimuli/sv/characterization/durations.tsv` sums to **315.2 s** of
+  per-file parse work over **16 335** rows at the binding parameters (60 s timeout, 8 jobs, no cap)
+  ⇒ ≈**40 s** wall at 8-way. `stimuli/run_external_corpus.sh` supports `PGEN_CORPUS_OUT_DIR`, so a
+  pending run can be DIFFED before anything tracked is promoted.
+
+**⛔ WHAT THIS LEAF DOES *NOT* CLAIM.** It does not claim the published numbers are wrong. *Stale*
+and *wrong* are different words (`.13i`(d)); the v2005 lane was stale and right. It claims that
+**nothing in this repository can tell the difference for SystemVerilog**, over an interval its own
+ledger adjudicates as four accept-set-moving releases plus two engine changes.
+
+**⛔ AND A FRAME ERROR OF MY OWN, CAUGHT BEFORE IT WAS PUBLISHED, BECAUSE IT IS `.13i`(a)'s SECOND
+DESIGN CONSTRAINT.** The census that found this first reported `parse_cost_ratchet/cost.md` and
+`v2005_keyword_faithfulness/census.md` as stale on their grammar rows. **Both readings were wrong**:
+those rows hash a **derived raw AST**, not the file at the path their `path` column names. Two
+independent checks say so — neither `825db031…` nor `470d4998…` appears anywhere in the sha256
+history of `grammars/systemverilog.ebnf` (30 revisions enumerated) while `8bb3e839…`, `8c82980c…`,
+`19e73cab…`, `2a1a92f5…` and HEAD's `037a9553…` all do; and `bash scripts/check_parse_cost_ratchet.sh`
+RUNS green on all four inputs. ⇒ **an identity block's `path` column is not always the hashed
+subject**, so `.13i`(a)'s *"re-hash every block"* enforcer would false-fail two live artifacts on day
+one. That is a second unlandable-as-written constraint beside the VHDL shared-binary row.
+⭐ The verdict on `v2005_keyword_faithfulness/census.md` survives the correction with a different
+reason: its raw-AST digest `470d4998…` is `1.0.197`'s, and `SV-CONTRACT-CURRENCY` reports the
+current digest as `825db031…` ⇒ it is **two releases** behind. Right answer, wrong evidence, and the
+evidence is the part that had to be fixed.
+
+**THE LIVE POPULATION IS EIGHT, NOT SIX — measured with `.13i`(a)'s structural discriminator** (a
+heading `Instrument identity` followed by a table whose rows carry a repo-relative path and a
+64-hex sha256), over `git ls-files`: **14 artifacts**, of which **6** are the frozen before/after
+snapshots `.13i` already ruled out of the population (`ch22_directive_fix` ×4,
+`explained_svpp_audit` ×2). Two of the eight postdate `.13i` — which is the hand-listed-roster rot
+that leaf predicted, arriving on schedule.
+
+| live artifact | verdict on this tree |
+|---|---|
+| `stimuli/sv/characterization/characterization.md` | ⛔ stale — grammar, generated parser, parse binary |
+| `stimuli/sv/characterization/characterization_v2005.md` | ⛔ stale — same three |
+| `…/sv_corpus_grad/dark_chained_only/adjudication.md` | ⛔ stale — grammar |
+| `…/sv_corpus_grad/dark_chained_only/summary.md` | ⛔ stale — manifest, positions, grammar |
+| `…/sv_corpus_grad/v2005_keyword_faithfulness/census.md` | ⛔ stale — grammar RAW AST, two releases |
+| `…/sv_corpus_grad/verdict_coverage/coverage.md` | ✅ fresh (`SV-CORPUS-DENOMINATOR`) |
+| `…/engine_universal_services/parse_cost_ratchet/cost.md` | ✅ fresh (gate RUN, all four inputs) |
+| `stimuli/vhdl/characterization/characterization.md` | ⚠️ family inputs fresh; differs only on the shared probe binary — `.13i`'s provenance row, working as designed |
+
+⇒ **5 of the 8 are stale and every one of the five is SystemVerilog's.** The two that are fresh are
+the two with a gate that re-hashes; the family with no such gate is stale across the board. That is
+`.13i`'s *"the one with a gate is the one that was never stale"* re-measured seventeen days later,
+on the family that ships.
+
+### ✅✅✅ `.13j`(a) DISCHARGED — **THE RE-MEASURE IS IN: THE MAIN LANE IS BYTE-IDENTICAL AND MY OWN HEADLINE IS REFUTED BY IT; THE v2005 LANE MOVED FOUR ROWS, ONE FIXES A LOGGED DEFECT AND THREE EXPOSE AN ANSWER KEY THAT CONTRADICTS ITSELF** (2026-08-31, `PGEN-SV-CORPUS-GRAD-0310`)
+
+- **CONTROL FIRST, because the whole result is worthless without it.** `parseability_probe` was
+  rebuilt from HEAD under the memory guard (21m 48s, exit 0) and came back **byte-identical**
+  (`7a9aac1d…` before and after) — so the on-disk binary was already current, and
+  `GENERATED-REPRODUCIBILITY`'s emission-inertness holds here too. Its `--parser-fingerprint`
+  reports `systemverilog: ad13eb08…` = HEAD's `generated/systemverilog_parser.rs` exactly. The
+  pending report's own identity block records `7a9aac1d… / 037a9553… / ad13eb08…` ⇒ **the run
+  genuinely varied the parser**, which is the one thing a null result must prove.
+- ⛔⛔⛔ **THE `sv_2017` LANE DID NOT MOVE — AND THAT REFUTES THE HEADLINE I PUBLISHED.**
+  16 336 files, 80 s wall, and both outputs are **BYTE-IDENTICAL** to the 2026-08-24 artifacts
+  (`cmp` on `results.tsv` and `positions.tsv`); the per-PATH diff reads **0 moved, 0 added,
+  0 removed**. ⭐ The diff is keyed on the FILE PATH, never on a `(sub-corpus, verdict)` multiset, in
+  which two files swapping verdicts cancel — the `-0161` lesson, applied rather than quoted.
+  ⇒ the published bar **`7556/2606/6174/4366/274` and 60.0 % is CORRECT AT HEAD**: it was
+  stale-and-RIGHT, exactly the state `.13i`(d) warned must not be reported as wrong, and my first
+  write-up let a reader infer otherwise. **The register's profile scoping HOLDS, and it is now
+  measured rather than asserted.**
+- ⛔⛔ **THE v2005 LANE MOVED: `2295/311` (88.1 %) → `2291/315` (87.9 %), FOUR ROWS, ALL
+  `pass → fail`, ALL ONE CONSTRUCT CLASS.** Named, not counted:
+
+  | file | operator | manifest `expected` / `adjudication` |
+  |---|---|---|
+  | `iverilog/ivtest/ivltests/br1015a.v` | `^=` | `must_reject` / `divergence:unexplained_accepts_invalid` |
+  | `iverilog/ivtest/ivltests/br_gh531.v` | `\|=` | `must_accept` / `match` |
+  | `sv2v/test/core/interface_generate.v` | `+=` | `must_accept` / `match` |
+  | `sv2v/test/core/unpacked_localparam.v` | `-=`, `+=` | `must_accept` / `match` |
+
+  This is SV-0071 (*"sixteen IEEE-1800-only OPERATORS still reached the verilog_2005 profile"*)
+  landing on the corpus, seven days after it shipped, seen by nothing.
+- ✅ **THE REJECTIONS ARE LRM-CORRECT, CHECKED IN-REPO RATHER THAN INFERRED.**
+  `docs/verilog/2005/md/section-Annex_A-…:651` reads `variable_assignment ::= variable_lvalue =
+  expression` — a bare `=` — and a grep for `+=` / `-=` across IEEE 1364-2005 Annex A returns
+  **zero hits**, while `assignment_operator` is an IEEE 1800 production. ⇒ under
+  `--profile verilog_2005` all four rejections are right.
+- ⭐ **ROW 1 IS A LOGGED DEFECT BURNED DOWN.** `br1015a.v` was carrying
+  `divergence:unexplained_accepts_invalid`, and its own basis string already said so:
+  *"br1015a additionally uses `^=` which exists in neither A.6.2 blocking_assignment nor A.8.6"*.
+  It now rejects ⇒ **the divergence is FIXED.** ⚠️ Precisely: this is a divergence in the **v2005
+  manifest**, which the main tuple counts as `ROUTED`. It is **not** one of the 274 axis-2 bar rows,
+  and saying so would be a frame error of exactly the kind this leaf is already carrying four of.
+- ⛔⛔⛔ **ROWS 2–4 ARE THE REAL FIND, AND THEY ARE NOT A PARSER REGRESSION — THE ANSWER KEY
+  CONTRADICTS ITSELF ON ONE CONSTRUCT CLASS.** Three files adjudicated `must_accept` / `match` now
+  reject, and their basis strings show why the key believed them: *"compiles under the iverilog
+  plain-Verilog dialect, parse-level valid 1364-2005"* and *"sv2v: committed conversion GOLDEN —
+  valid Verilog-2005 output **by suite contract**"*. Both rest on a SUITE's claim, not on Annex A.
+  ⇒ the same manifest adjudicates `^=` as INVALID 1364-2005 (row 1, must_reject) and `|=` / `+=` /
+  `-=` as VALID (rows 2–4, must_accept). **One construct class, opposite verdicts, in one file.**
+  Under the standing bar — *SV is 100 % LRM-compliant by default and over-acceptance is a defect* —
+  the parser is right and **three answer-key rows are wrong**.
+  ⛔ Not repaired here, deliberately: silently editing an answer key to agree with the parser is
+  precisely the gaming the `EXTERNAL-CORPUS` doctrine forbids. It is routed as `.13k`.
+- ⭐⭐ **WHAT THE WHOLE EXERCISE COSTS AND BUYS, PRICED.** The currency check the SV lane does not
+  have would have cost **80 seconds** and would have reported: main lane unchanged, v2005 lane
+  −4 rows. Instead the published v2005 bar was wrong by four rows for seven days, in the
+  **flattering** direction, and a real defect fix went unrecorded. ⇒ the finding survives the
+  challenge in its corrected form — **the absence of the check** — and it is now priced rather than
+  argued. What did NOT survive is the implication that the main bar had moved; it had not, and the
+  measurement is what says so.
+
+**Acceptance:** (a) ✅ **DISCHARGED above.** **RE-MEASURE** the SV characterization at HEAD into a scratch directory
+(`PGEN_CORPUS_OUT_DIR`) and publish the DIFF against the tracked artifact — how many rows moved, in
+which direction, and whether the published bar moves with them; (b) promote the re-measure as the
+ATOMIC cascade `.13h` established (report → manifest → every derived surface), or record measured
+evidence that nothing moved; (c) **give SystemVerilog the arms** — route it to
+`scripts/check_corpus_census.sh` with a declared `report`, or add arms (3) and (5) to
+`scripts/check_sv_corpus_denominator.sh`, and RED-prove the grammar arm against the pre-(b) tree
+where it must fail; (d) the SV report's recorded HEAD is `+dirty`, so the promotion must be measured
+on a CLEAN tree or the note arm is inherited; (e) hand `.13i`(a) the second design constraint above —
+`path` is a reference, not always the hashed subject — so its enforcer is written against the
+property rather than the column.
+
+⛔⛔ **A THIRD THING THE CHALLENGE TURNED UP, AND IT IS NOT WHAT I EXPECTED — THE OBSERVED-VERDICT
+FILE THE PUBLISHED BAR IS CROSS-CHECKED AGAINST IS `.gitignore`d.**
+
+```
+git check-ignore -v stimuli/sv/characterization/results.tsv
+  -> .gitignore:424  stimuli/*/characterization/results.tsv
+```
+
+`results.tsv`, `positions.tsv` and `durations.tsv` are build products, present on this machine dated
+**2026-08-24 13:49** and absent from a fresh clone; only `characterization.md`, the two manifests and
+the summaries are tracked. `SV-CORPUS-DENOMINATOR` invokes `stimuli/sv/corpus_verdict_coverage.py`
+(`:65`), and that instrument reads `results.tsv` (`:270`) and REFUSES when a manifest row's expected
+verdict disagrees with the observed one (`:239`). So the tuple `7556/2606/6174/4366/274` this gate
+certifies is a cross-check against **a local, untracked artifact produced by a parser four grammar
+releases old**, and the instrument's own docstring calls it *"the **tracked** corpus results file"*
+(`:67`) — which it is not.
+
+⭐ **AND IT FAILS SAFE, WHICH IS THE HALF I HAD TO CHECK RATHER THAN ASSUME.** Driven directly with
+an absent results path — the fresh-clone / CI condition — the instrument dies
+`FileNotFoundError` at `read_results` (`:203`), `rc 1`, and the gate's own handler turns that into
+`FAIL — the census instrument refused to run` and `exit 1` (`:147-150`). ⇒ this is a
+REPRODUCIBILITY hole and a false docstring, **not** a vacuous green, and it must not be reported as
+one. The gate cannot run on a clone without a prior local corpus run; it never passes as though it
+had.
+
+⭐ **(c) IS ALREADY DESIGNED, AND IT IS SMALL — the blind spot is STRUCTURAL, not an oversight in
+one field.** SV's `corpus_census` entry declares `kind: verdict_coverage` and carries **no**
+`report`, `grammar_identity_row`, `parser_identity_row`, `engine_paths` or
+`engine_staleness_budget_commits` — there is nowhere in its declaration to put a grammar hash, so
+the arms could not run even if the gate were pointed at it. VHDL's entry carries all six. But
+SystemVerilog already OWNS an artifact of exactly VHDL's shape:
+`stimuli/sv/characterization/characterization.md` is a `raw_parse` census — files/pass/fail/timeout/
+crash, per sub-corpus, with an identity block — emitted by the SAME producer
+(`stimuli/run_external_corpus.sh`). ⇒ the fix is a SECOND `corpus_census` entry of kind `raw_parse`
+naming that report and `checked_by scripts/check_corpus_census.sh`, leaving the existing
+`verdict_coverage` entry untouched because it answers a different question. Measured as safe:
+`scripts/report_family_status.sh:484` looks the schema up by exact family NAME
+(`corpus_census[FAMILY]`), so a differently-keyed entry is invisible to the status producer, while
+`check_corpus_census.sh` iterates every entry whose `checked_by` names itself and would pick it up
+by construction.
+
+⛔ **Sequencing.** SV-lane by subject and by consequence: the artifact is the SystemVerilog
+graduation oracle and the numbers are the release bar the book publishes. It is not parked.
+(a) is measurement and is next; (c) cannot land before (b) without turning the tree RED, which is
+the correct order and not a workaround.
+
+#### `.13k` — ⛔⛔ NEW `todo` — **THE v2005 ANSWER KEY ADJUDICATES ONE CONSTRUCT CLASS BOTH WAYS: `^=` IS `must_reject` AS *"IN NEITHER A.6.2 NOR A.8.6"* WHILE `|=`, `+=` AND `-=` ARE `must_accept` ON A SUITE'S WORD** (opened 2026-08-31 by `.13j`(a)'s re-measure / `PGEN-SV-CORPUS-GRAD-0310`)
+
+- **WHY + WHERE**: `stimuli/sv/characterization/adjudication_manifest_v2005.tsv`, three rows —
+  `iverilog/ivtest/ivltests/br_gh531.v` (`|=`), `sv2v/test/core/interface_generate.v` (`+=`) and
+  `sv2v/test/core/unpacked_localparam.v` (`-=`, `+=`) — carry `expected=must_accept`,
+  `adjudication=match`, on bases that cite a SUITE contract rather than the standard:
+  *"compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005"* and
+  *"sv2v: committed conversion GOLDEN — valid Verilog-2005 output by suite contract"*.
+- ⛔ **THE MANIFEST REFUTES ITSELF IN ITS OWN TEXT.** `br1015a.v` in the same file is
+  `expected=must_reject` because *"`^=` … exists in neither A.6.2 blocking_assignment nor A.8.6
+  (1800 compound assignment — edition contrast)"*. `^=`, `|=`, `+=` and `-=` are one class:
+  `assignment_operator`, an IEEE 1800 production. Re-derived in-repo, not inferred —
+  `docs/verilog/2005/md/section-Annex_A-…:651` is `variable_assignment ::= variable_lvalue =
+  expression`, and Annex A contains no `+=` / `-=` at all.
+- ⭐ **A SUITE'S CONTRACT IS EVIDENCE ABOUT THE SUITE, NOT ABOUT THE STANDARD.** iverilog's
+  *"plain-Verilog dialect"* accepts extensions by design and sv2v's GOLDEN files are what sv2v
+  EMITS. Neither is an oracle for *"parse-level valid 1364-2005"*, which is the sentence the basis
+  strings actually assert. This is the `.61`(b) shape once more: an oracle's blind spot is inherited
+  by every row built on it.
+- **OWES**: (a) re-adjudicate the three rows against Annex A and record the basis as an LRM citation
+  rather than a suite claim; (b) ⛔ **census the class, do not fix three rows** — every
+  `must_accept` row in the v2005 manifest whose basis rests on a suite contract rather than on a
+  clause citation is the same defect, and three is a sample; (c) decide whether such rows become
+  `must_reject` or `divergence:explained` with an edition-contrast reason, since a GOLDEN file that
+  is genuinely not 1364-2005 is a CORPUS COMPOSITION fact, not a parser verdict.
+- ⛔ **NOT REPAIRED IN `.13j`, DELIBERATELY.** Editing an answer key so it agrees with the parser is
+  the gaming `EXTERNAL-CORPUS` forbids; the key moves only on a re-derived LRM basis, in its own
+  slice, with the census (b) in front of it.
+- ⭐ **SV-lane, and it is a DEFECT lane rather than a guard lane** — it is three wrong rows in the
+  published SystemVerilog answer key, found by measurement.
 
 #### `.13g` — the FRAGMENT-shaped population: an accept there is not testimony (`todo`, opened 2026-08-11 by `.13a`)
 

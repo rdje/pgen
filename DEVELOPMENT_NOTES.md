@@ -1,5 +1,49 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-31 - PGEN-SV-CORPUS-GRAD-0310 (.13j opened, (a) discharged; .13k opened — a column is not a claim)
+
+- ⭐⭐⭐ **THE TRANSFERABLE LESSON, and it cost the headline of this slice: A COLUMN IS NOT A CLAIM —
+  THE RATIONALE TEXT IS.** The SV grammar revision register has a `RELEASE` / `NEUTRAL` column. I read
+  it, counted four `RELEASE` rows since the corpus manifest's last promotion, and published *"four
+  accept-set-moving releases"* as grounds for suspecting the published bar had moved. The **next
+  column** — the rationale each row carries — says all four are `verilog_2005` PROFILE TIGHTENINGS
+  (*"thirteen IEEE-1800 surfaces the verilog_2005 profile was still reaching"*, *"sixteen IEEE-1800-only
+  OPERATORS still reached the verilog_2005 profile"*). The published bar is the `sv_2017` lane. The
+  measurement then confirmed it: **byte-identical, 0 rows moved**. ⇒ a categorical column is a SUMMARY
+  someone wrote; the claim lives in the prose beside it, and I inherited the summary's frame instead of
+  reading the sentence. Same family as `-0161`'s *"a name is a frame too"* and `-0160`'s *"a value read
+  out of a grid arrives with a frame you did not measure"* — the sixth instance in two sessions.
+- ⭐⭐ **AND THE COUNTER-DISCIPLINE THAT SAVED THE SLICE: PRE-REGISTER, THEN LET THE MEASUREMENT
+  REFUTE YOU.** The prediction was written into the leaf BEFORE the run and it is refuted in the leaf,
+  by name, rather than quietly re-fitted afterwards. A null result on the main lane is only worth
+  anything because the control proves the experiment varied the parser — the probe was rebuilt from
+  HEAD (byte-identical binary, `--parser-fingerprint systemverilog = ad13eb08…` = HEAD's generated
+  parser) and the pending report records the NEW hashes. Without that control, *"nothing moved"* is
+  indistinguishable from *"nothing ran"*.
+- ⛔⛔ **STALE IS NOT WRONG, AND I HAD TO BE TAUGHT IT BY THE SAME LEAF TWICE.** `.13i`(d) already
+  recorded that the v2005 lane was once stale and RIGHT (*"right by luck, not by check"*). This slice
+  re-derived the main lane as stale-and-right too. The finding that survives is **the absence of the
+  check**, never *"the numbers are wrong"* — and a write-up that lets a reader infer the stronger claim
+  has published the stronger claim.
+- ⭐ **WHERE THE LUCK RAN OUT — and it is the whole argument for the gate.** The v2005 lane, stale and
+  right in `.13i`, is now stale and WRONG by four rows (`2295/311` → `2291/315`), all one construct
+  class. A currency check would have cost **80 seconds**; instead the error stood seven days in the
+  flattering direction. *"Right by luck"* is a statement with an expiry date and nothing was watching it.
+- ⛔⛔ **AN ANSWER KEY CAN CONTRADICT ITSELF, AND ONLY A RE-MEASURE FINDS IT.** The same v2005 manifest
+  adjudicates `^=` as invalid IEEE 1364-2005 (`must_reject`, basis: *"exists in neither A.6.2 nor
+  A.8.6"*) and `|=` / `+=` / `-=` as valid (`must_accept`, basis: *"valid Verilog-2005 output by suite
+  contract"*). One class, opposite verdicts, one file. ⇒ **a suite's contract is evidence about the
+  suite, not about the standard** — iverilog's *"plain-Verilog dialect"* accepts extensions by design
+  and sv2v's GOLDEN files are what sv2v emits. `.61`(b)'s rule again: an oracle's blind spot is
+  inherited by every row built on it.
+- ⛔ **AND THE DISCIPLINE THAT KEPT IT HONEST**: the key was NOT edited to agree with the parser. That
+  is the gaming `EXTERNAL-CORPUS` exists to forbid, and it is most tempting exactly when the parser is
+  right. `.13k` owes a CLASS census before any row moves.
+- ⚠️ Three smaller corrections, each a frame: `ALL 33 doctrines PASS` is a headline whose own gate says
+  11 of them *"evaluated NOTHING … vacuous, not evidence"* (honest: 19); a census column headed *HEAD*
+  is wrong for `.gitignore`d inputs, where the comparand is only this machine; and an identity block's
+  `path` cell is a reference, not always the hashed subject.
+
 ## 2026-08-31 - PGEN-ENGINE-UNIVERSAL-SERVICES-0161 (.86(d) WITHDRAWN with its mechanism; the accept-set contract reframed)
 
 - ⛔⛔⛔ **`.86`(d) IS FALSE AND IS WITHDRAWN THE DAY IT WAS OPENED.** It claimed
