@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `4f6045c222ebd9303e5fdbff75a964582dd977c413836a16e358186f11834bf2` |
-| grammar | `grammars/systemverilog.ebnf` | `8bb3e839fc36e1d943514a0234a0aa92fb516d51616903bd41908c5449ae0481` |
-| generated parser | `generated/systemverilog_parser.rs` | `47a50a092b0d2fab22b37a360783477a865091ee25657b43a13f7777a88c92ef` |
+| parse binary | `rust/target/release/parseability_probe` | `7a9aac1d53ee90e683831f0d2d64bafdbb9d4acccfd4756c9284ada8c88e61da` |
+| grammar | `grammars/systemverilog.ebnf` | `037a9553cf096281fc51c3273942b141d43422cb282eb1f0784435a0191c38f1` |
+| generated parser | `generated/systemverilog_parser.rs` | `ad13eb08d39a9eafe4c46454e869a13c5af8119a2cd069d7e4ccfc704b1ecf95` |
 
-Measured at `HEAD` = `f50add45+dirty` (2026-08-24).
+Measured at `HEAD` = `e14d9d91` (2026-08-31).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -53,21 +53,21 @@ Measured at `HEAD` = `f50add45+dirty` (2026-08-24).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `0.54` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
+Slowest completing file: `0.35` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 2606 | 2295 | 311 | 0 | 0 | 88.1% |
+| 2606 | 2291 | 315 | 0 | 0 | 87.9% |
 
 ## Per sub-corpus
 
 | sub-corpus | files | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|---|
 | ispras-sv-tests | 356 | 317 | 39 | 0 | 0 | 89.0% |
-| iverilog | 1909 | 1697 | 212 | 0 | 0 | 88.9% |
-| sv2v | 341 | 281 | 60 | 0 | 0 | 82.4% |
+| iverilog | 1909 | 1695 | 214 | 0 | 0 | 88.8% |
+| sv2v | 341 | 279 | 62 | 0 | 0 | 81.8% |
 
 _Raw per-file results: `stimuli/sv/characterization/results_v2005.tsv` (3 columns: sub-corpus, status,
 repo-root-relative path — a stable contract three consumers unpack positionally)._

@@ -2843,6 +2843,31 @@ observation was simply unused.
 > silent, adjudicated immediately below), with the other 40 landing on the receiving lane's own
 > *named* deferrals. `dark` fell 4 393 → 4 366, the 27 dark members of the moved set.
 >
+> ⛔⛔ **`SV-CORPUS-GRAD.13j` re-measured both lanes at HEAD after four releases and two
+> accept-set-moving engine changes, and the finding is the ABSENCE OF THE CHECK rather than a wrong
+> number.** The `sv_2017` lane is **byte-identical** over 16 336 files — `results.tsv` and
+> `positions.tsv` unchanged, the per-PATH diff 0 moved / 0 added / 0 removed — so the tuple above is
+> correct at HEAD: it was *stale and right*, which is not the same word as *wrong*. The
+> `verilog_2005` lane was stale and **wrong by four rows**, all one construct class: raw parse
+> `2295/311` → `2291/315`, and in adjudication `match` **2281 → 2279** with the v2005 arm's
+> UNEXPLAINED baseline **64 → 66**. That is `SV-0071` — *"sixteen IEEE-1800-only operators still
+> reached the `verilog_2005` profile"* — landing on the corpus seven days after it shipped, seen by
+> nothing. ⭐ **One of the four is a logged defect burned down**: `br1015a.v` carried
+> `divergence:unexplained_accepts_invalid` for `^=`, and it now rejects, so that row becomes
+> `match`. The rejections are LRM-correct, re-derived in-repo: IEEE 1364-2005 Annex A gives
+> `variable_assignment ::= variable_lvalue = expression` and contains no `+=` or `-=` at all.
+> ⛔⛔ **The other three expose an answer key that judges one construct class both ways in one
+> file.** `br_gh531.v` (`|=`), `interface_generate.v` (`+=`) and `unpacked_localparam.v` (`-=`) were
+> keyed `must_accept` on bases citing a *suite's* contract — *"sv2v: committed conversion GOLDEN,
+> valid Verilog-2005 output by suite contract"* — while `br1015a.v` in the same manifest is
+> `must_reject` because `^=` *"exists in neither A.6.2 nor A.8.6"*. A suite's contract is evidence
+> about the suite, not about the standard. They are **not** repaired by editing the key to agree
+> with the parser — that is the gaming the external-corpus doctrine forbids — and are owned by
+> `.13k`, which owes a census of the class before it touches a row.
+> ⭐⭐ **Priced: the currency check SystemVerilog did not have costs 80 seconds.** Instead the v2005
+> bar was wrong for seven days in the flattering direction and a real fix went unrecorded. The
+> `sv_2017` tuple above did not move, and that is the measurement talking, not the absence of one.
+>
 > ⭐⭐ **And `SV-CORPUS-GRAD.13e.2` then adjudicated all seven, and all seven are CORRECT
 > REJECTS** — the *expectation* was the defect, seven times, each for a different IEEE 1364-2005
 > clause: a net carrying a data type (A.2.1.3), `~&`/`~|` used as binary operators (A.8.6), an

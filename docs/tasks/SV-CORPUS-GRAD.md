@@ -18794,7 +18794,7 @@ on the family that ships.
 
 **Acceptance:** (a) ✅ **DISCHARGED above.** **RE-MEASURE** the SV characterization at HEAD into a scratch directory
 (`PGEN_CORPUS_OUT_DIR`) and publish the DIFF against the tracked artifact — how many rows moved, in
-which direction, and whether the published bar moves with them; (b) promote the re-measure as the
+which direction, and whether the published bar moves with them; (b) ✅ **DISCHARGED below** (`PGEN-SV-CORPUS-GRAD-0312`) — promote the re-measure as the
 ATOMIC cascade `.13h` established (report → manifest → every derived surface), or record measured
 evidence that nothing moved; (c) **give SystemVerilog the arms** — route it to
 `scripts/check_corpus_census.sh` with a declared `report`, or add arms (3) and (5) to
@@ -18850,6 +18850,65 @@ by construction.
 graduation oracle and the numbers are the release bar the book publishes. It is not parked.
 (a) is measurement and is next; (c) cannot land before (b) without turning the tree RED, which is
 the correct order and not a workaround.
+
+### ✅✅✅ `.13j`(b) DISCHARGED — **THE ATOMIC CASCADE IS PROMOTED ON A CLEAN TREE AND BOTH SV LANES ARE STAMPED CLEAN FOR THE FIRST TIME ON RECORD; THE `sv_2017` BAR DID NOT MOVE AND THE v2005 ARM'S BASELINE DID: 64 → 66** (2026-08-31, `PGEN-SV-CORPUS-GRAD-0312`)
+
+- ⭐⭐⭐ **THE GREEN CONTROL `(d)` OWED IS NOW A TRACKED ARTIFACT, NOT A TRANSCRIPT.** Run on the tree
+  clean at `e14d9d91` — the commit that landed `(d)`'s fix — in the forced order:
+
+  | step | wall | recorded stamp |
+  |---|---|---|
+  | `run_external_corpus.sh sv` | 81 s | `e14d9d91` ✅ |
+  | `adjudicate_external_corpus.py` (lane list) | 2.7 s | — |
+  | `run_external_corpus.sh sv2005` | 10 s | **`e14d9d91` ✅** |
+  | `adjudicate_external_corpus.py` (v2005 manifest) | 2.7 s | — |
+  | `corpus_verdict_coverage.py` | — | — |
+
+  `git status --porcelain` immediately before lane 2 read exactly one line —
+  ` M stimuli/sv/characterization/characterization.md` — the same state that stamped `+dirty` before
+  the fix. **Neither tracked SV report carries `+dirty` any more**, and every vintage on record did.
+- ✅✅ **`sv_2017`: A THIRD INDEPENDENT REPLICATION, AND IT IS BYTE-IDENTICAL.** 16 336 files,
+  `pass 9794 / fail 6542 / timeout 0 / crash 0`, 60.0 %. `results.tsv` and `positions.tsv` are
+  byte-identical to the 2026-08-24 tracked artifacts **and** to `.13j`(a)'s sandboxed run — three
+  runs, two of them on different tree states, one instrument change apart. `adjudication_manifest.tsv`
+  and `adjudication_summary.md` regenerate byte-identical (`match 5845 / unexplained 274 /
+  explained 1437 / deferred 8780`). ⇒ **the axis-2 bar stays 274 and the published tuple
+  `7556/2606/6174/4366/274` is unmoved** — `bash scripts/check_sv_corpus_denominator.sh` re-derives
+  it green over the promoted set.
+- ⛔⛔ **`verilog_2005`: FOUR ROWS, AND THE ADJUDICATION MOVES DIFFERENTLY FROM THE RAW COUNT — WHICH
+  IS WHY THE JOIN IS OVER THE MANIFEST.** Raw `2295/311` (88.1 %) → `2291/315` (87.9 %), all
+  `pass → fail`. Joined per (suite, relpath) over the manifest — a 2 606-row set-compare, identical
+  on both sides, so nothing was added or lost:
+
+  | file | operator | `adjudication` before → after |
+  |---|---|---|
+  | `iverilog/ivtest/ivltests/br1015a.v` | `^=` | `divergence:unexplained_accepts_invalid` → **`match`** |
+  | `iverilog/ivtest/ivltests/br_gh531.v` | `\|=` | `match` → `divergence:unexplained_rejects_valid` |
+  | `sv2v/test/core/interface_generate.v` | `+=` | `match` → `divergence:unexplained_rejects_valid` |
+  | `sv2v/test/core/unpacked_localparam.v` | `-=`, `+=` | `match` → `divergence:unexplained_rejects_valid` |
+
+  ⇒ **`match` 2281 → 2279 and the v2005 arm's UNEXPLAINED burn-down baseline 64 → 66** (`sv2v`
+  12 unexplained, was 10). ⭐ Four raw rows produce a **−2 / +2** adjudication move, not −4: one row
+  is a defect BURNED DOWN and three are answer-key rows now diverging. A delta joined on `pass/fail`
+  would have reported *"four regressions"*. This is `.13h`'s own lesson, applied rather than quoted.
+- ⭐ **WHAT THE PROMOTION DID *NOT* MOVE, checked rather than assumed.** The verdict-coverage census
+  regenerates with **one** changed byte-range: the `v2005 manifest` digest in its own identity block
+  (`ec1475e7…` → `7012f4c9…`). Every count in `coverage.md` is unchanged, because
+  `corpus_verdict_coverage.py` counts a v2005-lane row as `ROUTED` on lane MEMBERSHIP and never on
+  its inner adjudication class. ⇒ the release bar is structurally insulated from this lane, which is
+  the honest reason the tuple held — not a null result.
+- ⛔ **NOTHING TRACKED WAS PROMOTED FROM THE SANDBOXED `(a)` RUN.** `(a)` measured into
+  `PGEN_CORPUS_OUT_DIR`; every artifact promoted here was produced by the canonical invocation on the
+  clean tree, and `results.tsv` / `positions.tsv` / `durations.tsv` are `.gitignore`d build products
+  in any case. The five tracked files that moved are the two characterization reports, the v2005
+  manifest, the v2005 summary and the census.
+- ⛔ **THE ANSWER KEY IS NOT TOUCHED HERE.** The three new `unexplained_rejects_valid` rows are
+  published AS divergences, which is the honest state: the parser is right under IEEE 1364-2005
+  Annex A and the key is wrong. Editing the key so it agrees with the parser is the gaming
+  `EXTERNAL-CORPUS` forbids; `.13k` owns it and owes the CLASS census first.
+
+**Acceptance:** (a) ✅ · (b) ✅ **this slice** · (c) **NEXT — give SystemVerilog the arms** ·
+(d) ✅ (`-0311`) · (e) open — hand `.13i`(a) the `path`-is-not-the-hashed-subject constraint.
 
 ### ✅✅ `.13j`(d) DISCHARGED — **THE "MEASURE ON A CLEAN TREE" CRITERION WAS UNSATISFIABLE FOR SYSTEMVERILOG BY CONSTRUCTION: THE SECOND LANE'S `+dirty` STAMP WAS THE FIRST LANE'S OWN REPORT** (2026-08-31, `PGEN-SV-CORPUS-GRAD-0311`)
 

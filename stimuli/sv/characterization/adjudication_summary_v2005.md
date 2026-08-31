@@ -6,8 +6,8 @@ Input: `results_v2005.tsv` (2606 rows parsed under `--profile verilog_2005`); ex
 |---|---|---|---|---|---|
 | ispras-sv-tests | 356 | 312 | 6 | 9 | 29 |
 | iverilog | 1909 | 1688 | 48 | 130 | 43 |
-| sv2v | 341 | 281 | 10 | 50 | 0 |
-| **total** | **2606** | **2281** | **64** | **189** | **72** |
+| sv2v | 341 | 279 | 12 | 50 | 0 |
+| **total** | **2606** | **2279** | **66** | **189** | **72** |
 
 ## Verdict-class detail
 
@@ -23,9 +23,9 @@ Input: `results_v2005.tsv` (2606 rows parsed under `--profile verilog_2005`); ex
 | divergence:explained_svpp_conditional | 73 |
 | divergence:explained_svpp_include | 16 |
 | divergence:explained_svpp_macro_use | 100 |
-| divergence:unexplained_accepts_invalid | 14 |
-| divergence:unexplained_rejects_valid | 50 |
-| match | 2281 |
+| divergence:unexplained_accepts_invalid | 13 |
+| divergence:unexplained_rejects_valid | 53 |
+| match | 2279 |
 
-**The v2005 arm's burn-down baseline = the UNEXPLAINED divergence count (64: rejects-valid 50, accepts-invalid 14, crash 0)** - a separate arm from the sv_2017 baseline; the `.5` graduation gate asserts both.
+**The v2005 arm's burn-down baseline = the UNEXPLAINED divergence count (66: rejects-valid 53, accepts-invalid 13, crash 0)** - a separate arm from the sv_2017 baseline; the `.5` graduation gate asserts both.
 

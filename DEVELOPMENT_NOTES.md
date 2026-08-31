@@ -1,5 +1,40 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-31 - PGEN-SV-CORPUS-GRAD-0312 (.13j(b) discharged — a raw delta and an adjudicated delta are different measurements, and only one of them is the claim)
+
+- ⭐⭐⭐ **THE TRANSFERABLE LESSON: FOUR ROWS MOVED AND THE BAR MOVED BY TWO, IN BOTH DIRECTIONS AT
+  ONCE.** The raw parse counts say `2295/311 → 2291/315` — four files that used to pass now fail,
+  which reads as four regressions. Joined over the MANIFEST the same four rows are one defect
+  BURNED DOWN (`br1015a.v`: `unexplained_accepts_invalid → match`) and three answer-key rows going
+  wrong (`match → unexplained_rejects_valid`), for a net `64 → 66`. ⇒ **a pass/fail join and an
+  adjudication join are different measurements of the same event, and the one that carries the claim
+  is the adjudicated one.** `.13h` wrote this down after being bitten by it; `.13c.2f` and `.13c.2c`
+  were each bitten again afterwards. This is the first slice in the series where the join was done
+  the right way FIRST, and it is the reason the write-up says *"one fix and three key errors"*
+  instead of *"four regressions"*.
+- ⭐⭐ **AND THE REASON THE RELEASE BAR HELD IS STRUCTURAL, WHICH IS A STRONGER STATEMENT THAN
+  *"nothing moved"*.** `corpus_verdict_coverage.py` buckets a `verilog_2005`-lane row as `ROUTED` on
+  lane MEMBERSHIP — it never reads that row's adjudication class. So the v2005 arm can move by any
+  amount and the published tuple cannot see it. I checked this rather than inferring it from the
+  unchanged number: the census diff is ONE byte-range, the v2005 manifest digest in its own identity
+  block. ⛔ Reporting *"the tuple is unmoved"* without that check would have been a true sentence
+  resting on an unexamined mechanism — and the mechanism is itself worth knowing, because it is
+  `.13`'s thesis again: **the denominator decides what the bar can see.**
+- ⭐ **THE `(d)` FIX PAID FOR ITSELF INSIDE ONE SLICE, and the proof is durable rather than narrated.**
+  `-0311` could not demonstrate a clean end-to-end stamp because its own instrument was uncommitted.
+  This slice ran the canonical cascade on the tree that commit produced and both reports came back
+  stamped `e14d9d91` with no `+dirty` — a control that now lives in two tracked files and that
+  `CORPUS-CENSUS-CURRENCY` will read the moment `(c)` wires SystemVerilog to it. ⇒ **when a control
+  cannot be taken in the slice that needs it, land it as the NEXT slice's artifact rather than as a
+  paragraph** — the artifact is checkable and the paragraph is not.
+- ⛔ **A THIRD BYTE-IDENTICAL REPLICATION IS EVIDENCE ABOUT DETERMINISM, NOT ABOUT CORRECTNESS**, and
+  it is worth saying which. `results.tsv` now agrees across 2026-08-24, `(a)`'s sandboxed run and this
+  canonical one — three runs spanning an instrument change. That establishes the corpus measurement is
+  reproducible; it establishes nothing about whether the 274 divergences are the right 274. The
+  answer-key half is `.13k`'s and `CORPUS-KEY-INTEGRITY`'s subject, and `.13j` has now produced a
+  concrete instance of the key being wrong in the ACCEPT direction — the direction that produces no
+  flag at all.
+
 ## 2026-08-31 - PGEN-SV-CORPUS-GRAD-0311 (.13j(d) discharged; .13l opened — an acceptance criterion can be unsatisfiable, and the instrument is where you find out)
 
 - ⭐⭐⭐ **THE TRANSFERABLE LESSON: AN ACCEPTANCE CRITERION IS A CLAIM ABOUT THE INSTRUMENT, AND
