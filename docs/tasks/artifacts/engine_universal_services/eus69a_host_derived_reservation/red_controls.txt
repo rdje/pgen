@@ -1,0 +1,18 @@
+== M1: the share divisor no longer meets the reference at 16 GiB ==
+M1 design-point equality                                   RED   ✅ (control works)
+== M2: the law ignores host memory (a regression to a literal) ==
+M2 proportional-in-host-memory                             RED   ✅ (control works)
+== M3: the upper clamp is dropped (the uncapped design) ==
+M3 both clamps                                             RED   ✅ (control works)
+== M4 (v2): the scaling law ignores its anchor and never scales down ==
+M4a law must scale down below the anchor                   RED   ✅ (control works)
+== M4b: the wrapper anchors on the RESOLVED DEFAULT instead of the constant ==
+M4b wrapper anchors on the constant                        GREEN ⛔ (control CANNOT go red)
+== M5: the derived arm reports the wrong provenance ==
+M5 provenance agrees with the value                        RED   ✅ (control works)
+== M6: the host query silently answers None on a supported target ==
+M6 host query answers on supported targets                 RED   ✅ (control works)
+== restored; confirming all green again ==
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 1008 filtered out; finished in 0.00s
+

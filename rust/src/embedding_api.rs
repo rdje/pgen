@@ -47,7 +47,21 @@ const GENERATED_REGEX_WORKER_STACK_BYTES: usize = 64 * 1024 * 1024;
 /// margin invariant in it. ⛔ No API surface, code set or accept-set change, and the
 /// generated artifacts are byte-identical — the scaling lives in the engine's
 /// `RecursionGuard`, not in codegen.
-pub const EMBEDDING_API_VERSION: &str = "1.3.4";
+///
+/// `1.3.5` (`ENGINE-UNIVERSAL-SERVICES.69`(a)): the dedicated parse thread's stack
+/// reservation DEFAULT is derived from the host's physical memory rather than
+/// compiled in — `min(256 MiB, max(96 MiB, physical_memory / 64))`. ⭐ The share is
+/// chosen so `256 MiB × 64 = 16 GiB`, i.e. the law returns the historic literal
+/// EXACTLY on a 16 GiB host: **no host at or above 16 GiB sees any change to its
+/// accept set**, and a smaller host is simply no longer handed a per-parse stack it
+/// may not be able to afford. `PGEN_PARSE_STACK_BYTES` still overrides, and
+/// `parseability_probe --stack-reservation` reports the resolved value with its
+/// provenance. ⚠️ The derivation is PER-PARSE: this API spawns one dedicated thread
+/// per call, so `N` concurrent maximally-deep parses can commit up to `N/64` of host
+/// memory. ⚠️ Only the DOWNWARD half of *"the limit is the host's RAM"* has landed —
+/// a host above 16 GiB is capped at the reference (`.87` owns lifting it). ⛔ No API
+/// surface or schema change, and the generated artifacts are byte-identical.
+pub const EMBEDDING_API_VERSION: &str = "1.3.5";
 
 /// Stable schema version for serialized embedding API metadata.
 pub const EMBEDDING_API_SCHEMA_VERSION: u32 = 2;

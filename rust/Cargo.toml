@@ -134,6 +134,21 @@ typed-arena = "2.0.2"
 # mimalloc allocator it is a plain data-structure dep, so it imposes no global
 # state on consumers (the README allocator architecture is unaffected).
 smallvec = "1"
+# ENGINE-UNIVERSAL-SERVICES.69(a) — the host-memory query behind the DERIVED parse-stack
+# reservation. `.69`(a) owes a default derived from a real host quantity rather than from a
+# literal, and physical memory is not reachable from `std` on any supported target: macOS has
+# no `/proc`, so the reading is `sysctlbyname("hw.memsize")`, and Linux's is
+# `sysconf(_SC_PHYS_PAGES) x sysconf(_SC_PAGESIZE)`.
+#
+# ⛔ PRICED, and the price is ZERO NEW CRATES — measured, not assumed:
+#   cargo tree -i libc --edges normal
+#     -> libc v0.2.175 is ALREADY in the NORMAL (non-dev, non-build) graph, reached from
+#        `pgen` through `rand 0.8.5` (a direct dependency) via `getrandom`, and again through
+#        `rustfmt-wrapper -> tempfile -> rustix`.
+# Naming it directly adds a version requirement the lockfile already resolves; it does not add
+# a crate, a transitive edge, or an MSRV move. It is a plain FFI declaration crate, so — unlike
+# `mimalloc` — it imposes no global state on a downstream consumer.
+libc = "0.2"
 
 [build-dependencies]
 # ENGINE-UNIVERSAL-SERVICES.24 (ii′) — the BUILD-TIME parser fingerprint. `build.rs` already

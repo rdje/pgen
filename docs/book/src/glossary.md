@@ -26,9 +26,12 @@ never about the program — raising a cap has twice turned an apparent timeout i
 
 | term | quantity | what it is |
 |---|---|---|
-| **reservation** | 256 MiB default, 96 MiB floor | the dedicated parse thread's stack size (`PGEN_PARSE_STACK_BYTES`) |
+| **reservation** | `min(256 MiB, max(96 MiB, physical_memory / 64))` | the dedicated parse thread's stack size. DERIVED from the host since `ENGINE-UNIVERSAL-SERVICES.69`(a); overridden by `PGEN_PARSE_STACK_BYTES`; read it with `parseability_probe --stack-reservation` |
 | **budget** | `reservation − reservation/16` (93.75 %) | the share the recursion guard is willing to spend |
 | **reserve** | `reservation/16` (6.25 %) | headroom withheld to absorb whatever the parse spends past the budget |
+| **reference reservation** | 256 MiB (`DEDICATED_PARSE_STACK_BYTES`) | a FIXED compile-time anchor with two jobs: the reservation every other reservation is expressed as a share OF (which is what makes `.79`'s first-sample margin invariant), and the fallback when the host's memory cannot be read. ⛔ Since `.69`(a) it is NOT the default — letting it track the derived default would restore a measured `rc 134` |
+| **share divisor** | 64 (`PARSE_STACK_HOST_MEMORY_SHARE_DIVISOR`) | how much of a host's physical memory ONE parse's stack may claim. A POLICY, not a proof — chosen so `256 MiB × 64 = 16 GiB`, i.e. the law returns the historic literal exactly on the host class that literal was written for |
+| **provenance** (of a reservation) | `operator_override` · `host_memory_derived` · `reference_fallback` | which of the three ways produced the resolved number. A single integer hid all three before `.69`(a) |
 | **used_bytes** | measured | stack bytes spent from the thread's recorded base |
 | **overshoot** | `used_bytes − budget` | how far past the spendable budget the parse got before the guard stopped it. **Signed** — a negative value is legitimate (`NoFrameAffordable`: headroom left, but not enough for one more frame) |
 | **B/frame** | `used_bytes ÷ depth` | the **average** per-frame stack cost of this parse |

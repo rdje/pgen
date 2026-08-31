@@ -21,8 +21,12 @@ This is the document downstream projects embedding the PGEN VHDL parser should r
     before the run and measured 2 286), and `PGEN_PARSE_STACK_BYTES`
     lets a host that can afford more depth buy it. Corpus: **0 differences over 13 720 files**;
     AST-dump schema stays `3`. ⚠️ Cost is **quadratic in depth** and an over-ceiling refusal is now
-    far dearer than it was (`ENGINE-UNIVERSAL-SERVICES.68`); the reservation's DEFAULT is still a
-    literal (`.69`))
+    far dearer than it was (`ENGINE-UNIVERSAL-SERVICES.68`); ✅ the reservation's DEFAULT is
+    no longer a literal — since `.69`(a) (2026-08-31) it is
+    `min(256 MiB, max(96 MiB, physical_memory / 64))`, derived from the host, readable with
+    `parseability_probe --stack-reservation`. The share is chosen so a 16 GiB host derives
+    EXACTLY the historic 256 MiB, so no host at or above that size sees any change; only the
+    downward half has landed (`.87` owns lifting the cap))
   - `1.0.6` (`ENGINE-UNIVERSAL-SERVICES.66`, 2026-08-28: engine-level, grammar-agnostic — a
     per-quantifier **10 000-iteration cap** (`SAFETY_LIMIT`) is removed. It did not refuse: it
     **stopped iterating**, silently truncating the repetition, so the parse failed at the enclosing

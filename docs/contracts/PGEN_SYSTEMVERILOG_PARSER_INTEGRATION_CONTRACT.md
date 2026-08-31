@@ -31,11 +31,23 @@ This is the document downstream projects such as Nexsim should read first when d
 > thousands of nesting levels, plan for seconds-to-minutes, not milliseconds. Tracked as
 > `ENGINE-UNIVERSAL-SERVICES.68`.
 >
-> ⚠️ **One literal remains, and it is named rather than left to be discovered**: the reservation's
-> DEFAULT is still a compiled-in 256 MiB (`ENGINE-UNIVERSAL-SERVICES.69`). The derived bound applies
-> to threads PGEN creates for parsing, which is every embedding-API entry and every CLI instrument;
-> a parse driven on some other thread keeps the previous 4096-frame behaviour, deliberately, because
-> this process cannot know that thread's stack size.
+> ✅ **The last literal is GONE (2026-08-31, `ENGINE-UNIVERSAL-SERVICES.69`(a)): the reservation's
+> DEFAULT is now derived from your host's physical memory**, not compiled in —
+> `min(256 MiB, max(96 MiB, physical_memory / 64))`. Ask any build what it resolved and why:
+> `parseability_probe --stack-reservation` prints the reservation, its provenance
+> (`operator_override` / `host_memory_derived` / `reference_fallback`) and the host reading.
+> ⭐ The `1/64` share is chosen so `256 MiB × 64 = 16 GiB` — the law returns the old literal
+> EXACTLY on a 16 GiB host, so nothing about a 16 GiB-or-larger machine's accept set moves; a
+> SMALLER host is simply no longer handed a per-parse stack it may not be able to afford.
+> ⚠️ Only the downward half has landed: a host larger than 16 GiB is capped at 256 MiB rather than
+> accepting deeper input, tracked as `ENGINE-UNIVERSAL-SERVICES.87`. And the derivation is
+> PER-PARSE — the embedding API spawns one thread per call, so `N` concurrent maximally-deep parses
+> can commit up to `N/64` of host memory; set `PGEN_PARSE_STACK_BYTES` smaller if you run high parse
+> concurrency.
+>
+> ⚠️ The derived bound applies to threads PGEN creates for parsing, which is every embedding-API
+> entry and every CLI instrument; a parse driven on some other thread keeps the previous
+> 4096-frame behaviour, deliberately, because this process cannot know that thread's stack size.
 >
 > **Current-state note (2026-08-28, `ENGINE-UNIVERSAL-SERVICES.66` — ENGINE, grammar-agnostic,
 > release `1.0.200`, ledger `SV-0073`, schema `26` UNCHANGED, ALL profiles):** a per-quantifier

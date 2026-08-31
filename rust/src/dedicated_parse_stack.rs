@@ -55,7 +55,24 @@
 //! is a memoisation property and lives in the generated parsers
 //! (`memo_fail_depth_gated` / `thin_fail_depth_gated`), not here.
 
-/// Stack size for dedicated parse threads: 256 MiB.
+/// The REFERENCE parse-stack reservation: 256 MiB.
+///
+/// ⛔⛔ **THIS CONSTANT CARRIES TWO ROLES, AND `ENGINE-UNIVERSAL-SERVICES.69`(a)
+/// SPLIT THEM APART BECAUSE CONFLATING THEM RE-INTRODUCES A MEASURED SIGABRT.**
+///
+/// 1. **The SCALING REFERENCE** — [`scale_sample_depth_to_reservation`] expresses
+///    every reservation as a share of THIS number, and that is what makes
+///    `.79`'s first-sample margin invariant. It must stay a FIXED anchor.
+/// 2. **The FALLBACK reservation** — what a dedicated parse thread gets when the
+///    host's physical memory cannot be read.
+///
+/// Since `.69`(a) it is no longer the DEFAULT: the default is derived from host
+/// memory by [`derive_parse_stack_reservation`]. ⛔ Had the derived value replaced
+/// role 1 as well, a host that derives the floor would satisfy
+/// `reservation >= reference`, take its first sample at the full 4 096 frames on a
+/// 96 MiB reservation — and that is exactly the `rc 134` abort `.79` MEASURED
+/// between 3 550 and 4 034 frames. The reference is a fixed anchor precisely so
+/// that a smaller reservation is always a smaller SHARE.
 ///
 /// Sizing law: a generated parser takes its first stack measurement at
 /// `GENERATED_RECURSION_GUARD_STACK_PROBE_FLOOR` frames, and reaching that depth
@@ -110,9 +127,219 @@ pub const DEDICATED_PARSE_STACK_BYTES: usize = 256 * 1024 * 1024;
 /// gets this one instead. It is a policy, not a proof.
 pub const MIN_DEDICATED_PARSE_STACK_BYTES: usize = 96 * 1024 * 1024;
 
+/// `ENGINE-UNIVERSAL-SERVICES.69`(a) — the share of a host's physical memory that
+/// ONE parse's stack reservation may claim.
+///
+/// ⛔ **THIS IS A POLICY, NOT A PROOF, AND SAYING SO IS PART OF THE DESIGN.** `.79`
+/// re-cast [`MIN_DEDICATED_PARSE_STACK_BYTES`] from a safety argument into an
+/// ordinary usability floor for exactly this reason: a byte count that encodes a
+/// per-frame cost is a per-family, per-profile, per-build-mode measurement wearing
+/// a constant's clothes, and it rots. The same trap is open here — a share
+/// justified by "the footprint at full stack spend" would need the total process
+/// footprint, and `.84` records that quantity as NOT ATTRIBUTED (on
+/// `return_annotation`, peak RSS is quadratic in nesting depth while the arena
+/// holds 0.03 % of it and `peak_live` reads 4.96–6.87 MB against 316–1 174 MB of
+/// RSS). A bound with an unmeasured term is not a bound, so the share is not
+/// derived from one. **`.84` is the leaf that would let it be.**
+///
+/// ⭐ **WHAT MAKES IT 64 RATHER THAN AN ARBITRARY NUMBER: the shipped literal is
+/// REPRODUCED at its own design point.** `256 MiB × 64 = 16 GiB`, so
+/// [`derive_parse_stack_reservation`] returns exactly
+/// [`DEDICATED_PARSE_STACK_BYTES`] on a 16 GiB host — the developer-machine class
+/// the literal was typed for. The law therefore *explains* the constant rather than
+/// replacing it: 256 MiB was always an implicit statement about a 16 GiB host, and
+/// now it scales. Any larger share would hand a small host more than the literal
+/// already gives it; any smaller one would narrow the accept set at the design
+/// point, which is the `-0144` regression shape.
+///
+/// ⚠️ **THE DERIVATION IS PER-PARSE.** The embedding API spawns one dedicated
+/// thread per call, so `N` concurrent maximally-deep parses commit up to `N/64` of
+/// host memory. An embedder running high parse concurrency should name a smaller
+/// `PGEN_PARSE_STACK_BYTES` rather than rely on this default.
+pub const PARSE_STACK_HOST_MEMORY_SHARE_DIVISOR: usize = 64;
+
+/// `ENGINE-UNIVERSAL-SERVICES.69`(a) — where the resolved reservation came from.
+///
+/// ⛔ **A NUMBER WHOSE PROVENANCE IS INVISIBLE IS THE DEFECT `.69`(d) CLOSED FOR
+/// THE SPEND, ONE LEVEL UP.** Before this, an operator reading `reservation_bytes`
+/// in a stack-probe report could not tell a value they set from a compiled-in
+/// literal; now that the number is also *derived*, three provenances collapse into
+/// one integer unless the answer is carried beside it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ParseStackReservationSource {
+    /// The host operator named the size in `PGEN_PARSE_STACK_BYTES`. The value is
+    /// honoured down to [`MIN_DEDICATED_PARSE_STACK_BYTES`] and up without limit —
+    /// an operator who names a number has said what their host can afford.
+    OperatorOverride,
+    /// Derived from this host's physical memory by
+    /// [`derive_parse_stack_reservation`].
+    HostMemoryDerived {
+        /// The physical-memory reading the derivation used, in bytes.
+        host_memory_bytes: usize,
+    },
+    /// The host's physical memory could not be read, so the fixed reference stands.
+    /// ⛔ A stack reservation is not a place to turn an unreadable `sysctl` into an
+    /// outage.
+    ReferenceFallback,
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.69`(a) — the reservation this host's physical memory
+/// earns, as a PURE function of that memory.
+///
+/// ⭐ **PURE, AND FOR THE SAME REASON [`scale_sample_depth_to_reservation`] IS.**
+/// Physical memory is a property of the machine the tests happen to run on, so a
+/// law that read it directly could be checked at exactly one value — the least
+/// interesting way to check a law that exists to vary with that value. Taking the
+/// quantity as an argument makes every host size checkable in one process.
+///
+/// The law, in full:
+///
+/// ```text
+///     reservation = min( REFERENCE , max( FLOOR , host_memory / 64 ) )
+/// ```
+///
+/// ⛔⛔ **THE UPPER CLAMP IS DELIBERATE AND IT IS THE HALF OF THE MANDATE THIS
+/// SLICE DOES NOT DELIVER.** The director's capability mandate — *"the only obvious
+/// limit shall be the host RAM and disk allowance"* — asks for BOTH directions: a
+/// smaller host should be handed less, and a bigger host should accept deeper
+/// input. Only the downward half lands here, because the upward half has a
+/// measured, unpaid cost: raising the reservation raises the depth at which the
+/// `.78` ceiling ladder crosses, and crossing cost is Θ(depth²) (`.68`), so the
+/// test suite's runtime would silently become a function of the CI host's RAM. It
+/// would also make [`ParseStackReservationSource::OperatorOverride`] the only way
+/// an existing lock stays non-vacuous: `stack_probe_names_the_terminal_refusal_after_a_real_spend`
+/// skips when `budget/2 + budget/8` exceeds its 200 MiB safe-burn cap, which a
+/// reservation above ~341 MiB does. ⇒ **`ENGINE-UNIVERSAL-SERVICES.87` owns the
+/// upward half and the test-reservation pinning it needs.**
+///
+/// ⇒ the derivation is live only in the **6–16 GiB** band: below ~6 GiB the floor
+/// dominates, at 16 GiB it equals the reference, above it the cap does.
+pub fn derive_parse_stack_reservation(host_memory_bytes: usize) -> usize {
+    let share = host_memory_bytes / PARSE_STACK_HOST_MEMORY_SHARE_DIVISOR;
+    // Written as max-then-min rather than `clamp` deliberately: `clamp` PANICS when
+    // `min > max`, which would turn a future edit to either constant into a runtime
+    // abort inside a stack reservation — the one place in this module that must
+    // never fail. This form degenerates to the reference instead.
+    share
+        .max(MIN_DEDICATED_PARSE_STACK_BYTES)
+        .min(DEDICATED_PARSE_STACK_BYTES)
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.69`(a) — this host's physical memory in bytes, or
+/// `None` when it cannot be read.
+///
+/// ⛔ **NOT REACHABLE FROM `std` ON ANY SUPPORTED TARGET**, which is why `.69`(c)
+/// priced `libc` as a direct dependency (measured: zero new crates — it is already
+/// in the normal graph through `rand`). macOS has no `/proc`, so the reading is
+/// `sysctlbyname("hw.memsize")`; Linux's is
+/// `sysconf(_SC_PHYS_PAGES) × sysconf(_SC_PAGESIZE)`.
+///
+/// ⚠️ **`hw.memsize` IS INSTALLED MEMORY, NOT AVAILABLE MEMORY**, and that is the
+/// right quantity here: the reservation is a bound on what ONE parse may ever
+/// commit over the life of a process, not a snapshot of what is free at spawn time.
+/// A quantity that moved between two parses would make the accept set move with it.
+pub fn host_physical_memory_bytes() -> Option<usize> {
+    query_host_physical_memory()
+}
+
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+fn query_host_physical_memory() -> Option<usize> {
+    let mut bytes: u64 = 0;
+    let mut len = std::mem::size_of::<u64>();
+    // SAFETY: `sysctlbyname` writes at most `*oldlenp` bytes into `oldp`. `oldp` points at
+    // a live, initialised `u64` and `*oldlenp` is exactly its size, so the write cannot
+    // overrun. `newp` is null with `newlen` 0 — the documented read-only form, which
+    // cannot mutate the sysctl. The name is a NUL-terminated C string literal.
+    let rc = unsafe {
+        libc::sysctlbyname(
+            c"hw.memsize".as_ptr(),
+            (&raw mut bytes).cast::<libc::c_void>(),
+            &raw mut len,
+            std::ptr::null_mut(),
+            0,
+        )
+    };
+    // A short write would mean the kernel returned a different type than documented; a
+    // zero reading would mean a host with no memory. Both are "unknown", never a number.
+    if rc != 0 || len != std::mem::size_of::<u64>() || bytes == 0 {
+        return None;
+    }
+    usize::try_from(bytes).ok()
+}
+
+#[cfg(target_os = "linux")]
+fn query_host_physical_memory() -> Option<usize> {
+    // SAFETY: `sysconf` takes an integer name and returns a `long`. It has no pointer
+    // arguments and no memory effects, so there is nothing for this call to invalidate.
+    // A return of -1 means the name is not supported on this host.
+    let pages = unsafe { libc::sysconf(libc::_SC_PHYS_PAGES) };
+    // SAFETY: as above.
+    let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
+    if pages <= 0 || page_size <= 0 {
+        return None;
+    }
+    // `checked_mul` rather than `*`: the product is a host-supplied quantity and this
+    // module must not panic while sizing a stack.
+    usize::try_from(pages)
+        .ok()?
+        .checked_mul(usize::try_from(page_size).ok()?)
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "linux")))]
+fn query_host_physical_memory() -> Option<usize> {
+    // ⛔ An unsupported target reports UNKNOWN and takes the reference reservation.
+    // Guessing a memory size for a host whose interface this module has never been
+    // compiled against is the literal `.69`(a) exists to delete, wearing a `cfg`.
+    None
+}
+
+/// `ENGINE-UNIVERSAL-SERVICES.69`(a) — the resolved reservation together with WHERE
+/// IT CAME FROM, resolved once per process.
+///
+/// [`dedicated_parse_stack_bytes`] is the number alone, kept as the hot accessor
+/// every caller already uses; this is the same answer with its provenance attached,
+/// for the surfaces that must report it (`parseability_probe --stack-reservation`)
+/// and for the tests that must distinguish the three arms.
+pub fn resolved_parse_stack_reservation() -> (usize, ParseStackReservationSource) {
+    static RESOLVED: std::sync::OnceLock<(usize, ParseStackReservationSource)> =
+        std::sync::OnceLock::new();
+    *RESOLVED.get_or_init(|| match std::env::var("PGEN_PARSE_STACK_BYTES") {
+        Ok(raw) => match raw.trim().parse::<usize>() {
+            Ok(bytes) => (
+                bytes.max(MIN_DEDICATED_PARSE_STACK_BYTES),
+                ParseStackReservationSource::OperatorOverride,
+            ),
+            // ⛔ An unparseable override is NOT an operator statement, so it must not be
+            // reported as one; it falls through to the derived default exactly as the
+            // pre-`.69`(a) code fell through to the literal.
+            Err(_) => derived_reservation(),
+        },
+        Err(_) => derived_reservation(),
+    })
+}
+
+fn derived_reservation() -> (usize, ParseStackReservationSource) {
+    match host_physical_memory_bytes() {
+        Some(host_memory_bytes) => (
+            derive_parse_stack_reservation(host_memory_bytes),
+            ParseStackReservationSource::HostMemoryDerived { host_memory_bytes },
+        ),
+        None => (
+            DEDICATED_PARSE_STACK_BYTES,
+            ParseStackReservationSource::ReferenceFallback,
+        ),
+    }
+}
+
 /// `ENGINE-UNIVERSAL-SERVICES.65` — the reservation actually used for dedicated
-/// parse threads: [`DEDICATED_PARSE_STACK_BYTES`] unless the host operator
-/// names another size in `PGEN_PARSE_STACK_BYTES`.
+/// parse threads.
+///
+/// ⭐ **SINCE `.69`(a) THIS IS A DERIVED HOST QUANTITY, NOT A LITERAL.** The
+/// resolution order is: the operator's `PGEN_PARSE_STACK_BYTES`, else
+/// [`derive_parse_stack_reservation`] of this host's physical memory, else — only
+/// when the host cannot be read — the fixed [`DEDICATED_PARSE_STACK_BYTES`]
+/// reference. [`resolved_parse_stack_reservation`] returns the same number with its
+/// provenance attached.
 ///
 /// ⛔ **WHY THIS IS A KNOB AND NOT A CONSTANT.** Since `.65` the recursion
 /// ceiling is derived from the stack a parse really owns, so THIS number — not
@@ -124,20 +351,15 @@ pub const MIN_DEDICATED_PARSE_STACK_BYTES: usize = 96 * 1024 * 1024;
 /// accept boundary must halve with it, which is the control that separates
 /// "derived from the stack" from "a bigger number than before".
 ///
-/// Resolved once per process. An unparseable or too-small value falls back to
-/// the floor rather than failing the parse — a stack reservation is not a place
-/// to turn a typo into an outage — and a value below
-/// [`MIN_DEDICATED_PARSE_STACK_BYTES`] is raised to it.
+/// Resolved once per process. ⛔ **`.69`(a) CORRECTED THIS PARAGRAPH, WHICH HAD
+/// DESCRIBED TWO DIFFERENT FALLBACKS AS ONE.** An UNPARSEABLE override is not an
+/// operator statement at all, so it is discarded and the DERIVED default stands
+/// (before `.69`(a): the literal stood). A PARSEABLE but too-small override IS an
+/// operator statement and is honoured, raised to
+/// [`MIN_DEDICATED_PARSE_STACK_BYTES`]. Neither case fails the parse — a stack
+/// reservation is not a place to turn a typo into an outage.
 pub fn dedicated_parse_stack_bytes() -> usize {
-    static RESOLVED: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
-    *RESOLVED.get_or_init(|| match std::env::var("PGEN_PARSE_STACK_BYTES") {
-        Ok(raw) => raw
-            .trim()
-            .parse::<usize>()
-            .map(|bytes| bytes.max(MIN_DEDICATED_PARSE_STACK_BYTES))
-            .unwrap_or(DEDICATED_PARSE_STACK_BYTES),
-        Err(_) => DEDICATED_PARSE_STACK_BYTES,
-    })
+    resolved_parse_stack_reservation().0
 }
 
 /// `ENGINE-UNIVERSAL-SERVICES.79` — the depth at which a parse running on THIS
@@ -242,14 +464,44 @@ pub fn first_stack_sample_depth(requested_depth: usize) -> usize {
 /// one, which is the only interesting case. Taking the reservation as an argument
 /// makes the law checkable at every value in one process.
 fn scale_sample_depth_to_reservation(requested_depth: usize, reservation: usize) -> usize {
-    if reservation >= DEDICATED_PARSE_STACK_BYTES {
+    // ⛔⛔ **THE ANCHOR IS THE COMPILE-TIME REFERENCE, NEVER THE RESOLVED DEFAULT**
+    // (`ENGINE-UNIVERSAL-SERVICES.69`(a)). Since `.69`(a) the resolved default is a
+    // function of host memory; if this anchor tracked it, a host that derives the
+    // FLOOR would satisfy `reservation >= reference`, take the identity branch, and
+    // sample at the full 4 096 frames on a 96 MiB reservation — the `rc 134` `.79`
+    // measured. The reference is fixed precisely so a smaller reservation is always
+    // a smaller SHARE.
+    scale_sample_depth_against_reference(requested_depth, reservation, DEDICATED_PARSE_STACK_BYTES)
+}
+
+/// The pure kernel of [`scale_sample_depth_to_reservation`], with the ANCHOR taken as
+/// an argument.
+///
+/// ⛔⛔ **THIS PARAMETER EXISTS BECAUSE A RED CONTROL WITHOUT IT WAS MEASURED GREEN**
+/// (`ENGINE-UNIVERSAL-SERVICES.69`(a) slice 2). The lock that says *"the anchor must
+/// not track the derived default"* was first written against the wrapper, and its
+/// mutation — anchor := `dedicated_parse_stack_bytes()` — did not fail: on this
+/// 24 GiB host `.69`(a)'s upper clamp makes the derived default EXACTLY
+/// [`DEDICATED_PARSE_STACK_BYTES`], so the two candidate anchors are numerically
+/// identical and the mutation is a no-op. The defect is only observable on a host in
+/// the 6–16 GiB derived band, i.e. the test was a function of the machine it ran on.
+///
+/// Taking the anchor as an argument makes BOTH forms — the split one and the
+/// collapsed one — executable in one process on ANY host, which is the same move
+/// `scale_sample_depth_to_reservation` already made for the reservation and for the
+/// same reason: *a law that can only be checked at one value is a law checked once.*
+fn scale_sample_depth_against_reference(
+    requested_depth: usize,
+    reservation: usize,
+    reference: usize,
+) -> usize {
+    if reservation >= reference {
         return requested_depth;
     }
     // 128-bit intermediate: `requested_depth` is a caller-supplied frame count and
     // nothing here bounds the product. The branch above makes the quotient
     // ≤ `requested_depth`, so the narrowing cast cannot truncate.
-    let scaled =
-        (requested_depth as u128 * reservation as u128) / DEDICATED_PARSE_STACK_BYTES as u128;
+    let scaled = (requested_depth as u128 * reservation as u128) / reference as u128;
     // A guard whose sample depth is 0 refuses at depth 0 with
     // `StackProbeRefusal::FrameCostUnmeasurable` and can never advance, so the law
     // floors at one frame — but only for a caller that asked for at least one.
@@ -893,6 +1145,267 @@ mod tests {
             "the control must reproduce the defect: a fixed 4096-frame first \
              sample does NOT fit in the floor's budget at the measured debug cost"
         );
+    }
+
+    /// ⭐⭐⭐ `ENGINE-UNIVERSAL-SERVICES.69`(a) — **THE SHIPPED LITERAL IS REPRODUCED AT
+    /// ITS OWN DESIGN POINT, WHICH IS WHAT MAKES THE SHARE A CHOICE RATHER THAN A
+    /// GUESS.**
+    ///
+    /// `256 MiB × 64 = 16 GiB`. A developer typed 256 MiB; this law says that number
+    /// was always an implicit statement about a 16 GiB host, and now scales in both
+    /// directions from it. If this equality ever stops holding, the law and the
+    /// constant have drifted apart and one of them is carrying an argument the other
+    /// does not.
+    #[test]
+    fn the_share_reproduces_the_shipped_reference_at_its_design_point() {
+        const SIXTEEN_GIB: usize = 16 * 1024 * 1024 * 1024;
+        assert_eq!(
+            DEDICATED_PARSE_STACK_BYTES * PARSE_STACK_HOST_MEMORY_SHARE_DIVISOR,
+            SIXTEEN_GIB,
+            "the share divisor and the reference must agree on the design point"
+        );
+        assert_eq!(
+            derive_parse_stack_reservation(SIXTEEN_GIB),
+            DEDICATED_PARSE_STACK_BYTES,
+            "a 16 GiB host must derive EXACTLY the reference reservation"
+        );
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.69`(a) — THE LAW: the reservation tracks host
+    /// memory in the band where neither clamp binds, and is pinned by a clamp outside
+    /// it.
+    ///
+    /// ⛔ RED CONTROL, run as part of the test: a law that IGNORED host memory would
+    /// answer the same number at 8 GiB and at 12 GiB. That is asserted to be false
+    /// here, so a regression to a compiled-in literal cannot pass this test — which is
+    /// the entire content of `.69`(a).
+    #[test]
+    fn the_reservation_is_a_function_of_host_memory_in_the_unclamped_band() {
+        const GIB: usize = 1024 * 1024 * 1024;
+        // Proportional where neither clamp binds: 6 GiB (floor) < RAM < 16 GiB (cap).
+        assert_eq!(derive_parse_stack_reservation(8 * GIB), 128 * 1024 * 1024);
+        assert_eq!(derive_parse_stack_reservation(12 * GIB), 192 * 1024 * 1024);
+        // Doubling host memory doubles the reservation inside the band.
+        assert_eq!(
+            derive_parse_stack_reservation(14 * GIB),
+            2 * derive_parse_stack_reservation(7 * GIB),
+            "the law must be proportional where neither clamp binds"
+        );
+
+        // ⛔ RED CONTROL — the pre-`.69`(a) behaviour (one number for every host) is
+        // asserted NOT to be what this law does. Without this the test above would pass
+        // just as happily on a constant function that happened to hit those values.
+        assert_ne!(
+            derive_parse_stack_reservation(8 * GIB),
+            derive_parse_stack_reservation(12 * GIB),
+            "a law that answers the same for two different hosts is the literal .69(a) deletes"
+        );
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.69`(a) — BOTH CLAMPS, and which one binds where.
+    ///
+    /// The floor dominates below ~6 GiB and the cap at and above 16 GiB, so the
+    /// derivation is live only in the 6–16 GiB band. That is a property of this law
+    /// worth locking rather than discovering later from a host that sits outside it.
+    #[test]
+    fn the_derived_reservation_is_clamped_by_the_floor_and_by_the_reference() {
+        const GIB: usize = 1024 * 1024 * 1024;
+        // Below the band: the usability floor stands, however small the host.
+        for small in [0usize, 1 * GIB, 4 * GIB, 6 * GIB] {
+            assert_eq!(
+                derive_parse_stack_reservation(small),
+                MIN_DEDICATED_PARSE_STACK_BYTES,
+                "a {small} B host must get the usability floor, never a smaller reservation"
+            );
+        }
+        // Above the band: the reference caps it. ⛔ This clamp is the half of the
+        // capability mandate `.69`(a) deliberately does not deliver — see
+        // `derive_parse_stack_reservation`'s doc comment and leaf `.87`.
+        for large in [16 * GIB, 64 * GIB, 1024 * GIB, usize::MAX] {
+            assert_eq!(
+                derive_parse_stack_reservation(large),
+                DEDICATED_PARSE_STACK_BYTES,
+                "a {large} B host must be capped at the reference until .87 lands"
+            );
+        }
+        // The exact edges of the live band, so a future edit to either constant moves a
+        // test rather than moving behaviour silently.
+        assert_eq!(
+            derive_parse_stack_reservation(
+                MIN_DEDICATED_PARSE_STACK_BYTES * PARSE_STACK_HOST_MEMORY_SHARE_DIVISOR
+            ),
+            MIN_DEDICATED_PARSE_STACK_BYTES
+        );
+        assert_eq!(
+            derive_parse_stack_reservation(
+                DEDICATED_PARSE_STACK_BYTES * PARSE_STACK_HOST_MEMORY_SHARE_DIVISOR
+            ),
+            DEDICATED_PARSE_STACK_BYTES
+        );
+    }
+
+    /// ⛔⛔⛔ `ENGINE-UNIVERSAL-SERVICES.69`(a) — **THE SCALING REFERENCE MUST NOT
+    /// TRACK THE DERIVED DEFAULT, AND THE CONTROL REPRODUCES THE SIGABRT THAT SAYS
+    /// WHY.**
+    ///
+    /// `DEDICATED_PARSE_STACK_BYTES` is read in two places with two meanings: as the
+    /// fallback reservation, and as the anchor
+    /// [`scale_sample_depth_to_reservation`] expresses every reservation as a share
+    /// OF. Making the default host-derived without splitting those roles would mean a
+    /// host that derives the floor satisfies `reservation >= reference` — so the law
+    /// returns the IDENTITY and the parse takes its first stack sample at the full
+    /// 4 096 frames on a 96 MiB reservation.
+    ///
+    /// `.79` MEASURED that: `rc 134`, `fatal runtime error: stack overflow`, on a
+    /// 642-byte SystemVerilog file, with the stack gone between 3 550 and 4 034 frames.
+    /// This test asserts the split holds AND that the collapsed form really is the
+    /// defect, so it cannot pass by agreeing with itself.
+    #[test]
+    fn the_first_sample_reference_does_not_track_the_derived_default() {
+        const REQUESTED: usize = 4096;
+        let budget = |reservation: usize| {
+            reservation - reservation / crate::ast_pipeline::STACK_HEADROOM_RESERVE_DIVISOR
+        };
+        // A host in the floor-clamped region: 4 GiB derives 64 MiB, clamped to 96 MiB.
+        let small_host_reservation = derive_parse_stack_reservation(4 * 1024 * 1024 * 1024);
+        assert_eq!(small_host_reservation, MIN_DEDICATED_PARSE_STACK_BYTES);
+
+        // ✅ THE PROPERTY: the sample still scales DOWN, because the anchor is fixed.
+        let sample = scale_sample_depth_to_reservation(REQUESTED, small_host_reservation);
+        assert_eq!(sample, 1536, "the fixed reference must still scale the sample down");
+        assert!(
+            sample * 25_874 < budget(small_host_reservation),
+            "reaching the first sample must fit in the small host's budget"
+        );
+
+        // ⛔⛔ RED CONTROL — THE COLLAPSED FORM, RUN AS CODE RATHER THAN AS ARITHMETIC.
+        // A host in the derived band that let the anchor track its own default would
+        // pass `reference == reservation`, take the identity branch, and sample at the
+        // full 4 096 frames on a floor-sized reservation.
+        //
+        // ⭐ The anchor is a PARAMETER here for a measured reason: the first cut of this
+        // control mutated the wrapper instead, and the mutation was GREEN — on this
+        // 24 GiB host `.69`(a)'s upper clamp makes the derived default numerically
+        // EQUAL to the reference, so swapping one for the other changes nothing. Both
+        // forms are executed below, so the control holds on ANY host.
+        let collapsed = scale_sample_depth_against_reference(
+            REQUESTED,
+            small_host_reservation,
+            small_host_reservation,
+        );
+        assert_eq!(
+            collapsed, REQUESTED,
+            "the collapsed form really does return the identity — this is the defect"
+        );
+        assert!(
+            collapsed * 25_874 > budget(small_host_reservation),
+            "the control must reproduce the defect: a 4 096-frame first sample does NOT \
+             fit in a floor-sized budget at the measured debug cost — this is the rc 134 \
+             ENGINE-UNIVERSAL-SERVICES.79 measured and .69(a) must not re-introduce"
+        );
+        // ✅ And the SPLIT form, same host, same reservation, is safe — so the two
+        // differ by the anchor and by nothing else.
+        let split = scale_sample_depth_against_reference(
+            REQUESTED,
+            small_host_reservation,
+            DEDICATED_PARSE_STACK_BYTES,
+        );
+        assert_eq!(split, 1536);
+        assert!(split * 25_874 < budget(small_host_reservation));
+
+        // ⚠️ THE WIRING, and its one honest limit. The shipped wrapper must anchor on
+        // the CONSTANT, not on the resolved default. On a host in the 6–16 GiB derived
+        // band those differ and this assertion is falsifiable; at and above 16 GiB the
+        // cap makes them equal and NO assertion can tell them apart. Recorded rather
+        // than papered over — `.87`(e) owns removing the host-dependence.
+        assert_eq!(
+            scale_sample_depth_to_reservation(REQUESTED, small_host_reservation),
+            split,
+            "the shipped wrapper must anchor on DEDICATED_PARSE_STACK_BYTES"
+        );
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.69`(a) — THE RESOLVED RESERVATION CARRIES ITS
+    /// PROVENANCE, AND EVERY ARM IS INTERNALLY CONSISTENT.
+    ///
+    /// ⚠️ This test runs against whatever THIS host resolved, so it cannot assert a
+    /// number. What it can assert — and what a wrong wiring would break — is that the
+    /// reported source and the reported value agree with each other and with the law.
+    #[test]
+    fn the_resolved_reservation_agrees_with_its_own_reported_source() {
+        let (reservation, source) = resolved_parse_stack_reservation();
+        assert_eq!(
+            reservation,
+            dedicated_parse_stack_bytes(),
+            "the two accessors must answer with one number"
+        );
+        assert!(reservation >= MIN_DEDICATED_PARSE_STACK_BYTES);
+        match source {
+            ParseStackReservationSource::HostMemoryDerived { host_memory_bytes } => {
+                assert_eq!(
+                    reservation,
+                    derive_parse_stack_reservation(host_memory_bytes),
+                    "a derived reservation must be exactly what the law returns for the \
+                     memory it reports"
+                );
+                assert_eq!(
+                    Some(host_memory_bytes),
+                    host_physical_memory_bytes(),
+                    "the reported host memory must be what the query answers"
+                );
+                assert!(
+                    reservation <= DEDICATED_PARSE_STACK_BYTES,
+                    "a DERIVED reservation is capped at the reference; only an operator \
+                     override may exceed it"
+                );
+            }
+            ParseStackReservationSource::ReferenceFallback => {
+                assert_eq!(reservation, DEDICATED_PARSE_STACK_BYTES);
+                assert_eq!(
+                    host_physical_memory_bytes(),
+                    None,
+                    "the fallback arm is only honest when the host really is unreadable"
+                );
+            }
+            ParseStackReservationSource::OperatorOverride => {
+                // The only arm that may exceed the reference — an operator who names a
+                // number has stated what their host can afford.
+                assert!(std::env::var("PGEN_PARSE_STACK_BYTES").is_ok());
+            }
+        }
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.69`(a) — THE HOST QUERY IS A MEASUREMENT, NOT A
+    /// GUESS.
+    ///
+    /// ⛔ On a target this module knows how to ask, `None` would mean the syscall
+    /// failed and every host would silently take the fallback — the literal `.69`(a)
+    /// deletes, restored by a broken query. So the supported targets assert a reading
+    /// EXISTS and is sane; unsupported ones assert nothing, because `None` is their
+    /// correct answer.
+    #[test]
+    fn the_host_memory_query_answers_on_every_target_it_claims_to_support() {
+        let reading = host_physical_memory_bytes();
+        if cfg!(any(target_os = "macos", target_os = "ios", target_os = "linux")) {
+            let bytes = reading.expect(
+                "a target this module implements a query for must produce a reading — \
+                 a None here silently restores the compiled-in literal",
+            );
+            // Sanity bounds rather than a number: this test must pass on a 2 GiB CI
+            // runner and on a 2 TB build host alike. The lower bound is below any host
+            // that can compile this crate; the upper is far above any that exists.
+            assert!(
+                bytes >= 512 * 1024 * 1024,
+                "physical memory read as {bytes} B — below any host that can build this crate"
+            );
+            assert!(
+                bytes < 1024 * 1024 * 1024 * 1024 * 1024,
+                "physical memory read as {bytes} B — above any host that exists, so the \
+                 query is reading the wrong quantity or the wrong width"
+            );
+            // The query must be a pure reading: two calls, one answer.
+            assert_eq!(reading, host_physical_memory_bytes());
+        }
     }
 
     #[test]

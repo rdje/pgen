@@ -78,7 +78,7 @@ if !decoded.encoding.preserves_disk_byte_offsets() {
 - ⛔ **Only for user source.** Do not route JSON manifests, generated Rust or reports through it —
   those are UTF-8 by construction, and a decode failure there is corruption that must stay loud.
 
-### Stack robustness at the embedding boundary (`1.3.1`, `1.3.2`, `1.3.4`)
+### Stack robustness at the embedding boundary (`1.3.1`, `1.3.2`, `1.3.4`, `1.3.5`)
 
 A host process embedding a recursive-descent parser must never be aborted by that parser's
 recursion. The generated parsers carry a recursion ceiling, but a ceiling only protects the host
@@ -234,7 +234,68 @@ than merely being large enough for it: the guard measures how much of this threa
 has really spent and refuses only when the headroom is gone. `PGEN_PARSE_STACK_BYTES` (bytes,
 floored at 96 MiB) therefore buys proportionally more nesting capacity on a host that can afford
 it. See *[The Recursion Ceiling Is Now The Host's Stack](#the-recursion-ceiling-is-now-the-hosts-stack)*
-below. The regex family keeps its own earlier defense
+below.
+
+⭐⭐ **And since `ENGINE-UNIVERSAL-SERVICES.69`(a) the DEFAULT is derived from the host rather than
+typed.** The reservation an embedder gets with no configuration at all is now
+
+```text
+reservation = min( 256 MiB , max( 96 MiB , physical_memory / 64 ) )
+```
+
+so a host that cannot afford 256 MiB per parse is no longer handed it. Ask any build what it
+resolved, and where the number came from:
+
+```bash
+parseability_probe --stack-reservation
+```
+
+```text
+reservation_bytes=268435456
+reservation_mib=256
+source=host_memory_derived
+host_memory_bytes=25769803776
+host_memory_mib=24576
+unclamped_share_bytes=402653184
+share_divisor=64
+floor_bytes=100663296
+reference_bytes=268435456
+```
+
+`source` distinguishes the three provenances a single integer used to hide: `operator_override`
+(you set `PGEN_PARSE_STACK_BYTES`), `host_memory_derived`, and `reference_fallback` (the host's
+physical memory could not be read, so the fixed 256 MiB reference stands — an unreadable `sysctl`
+is never allowed to become an outage).
+
+**What this changes for you, concretely:**
+
+| host physical memory | resolved reservation | what decided it |
+|---|---|---|
+| 4 GiB | 96 MiB | the usability floor |
+| 8 GiB | 128 MiB | the derivation |
+| 12 GiB | 192 MiB | the derivation |
+| **16 GiB** | **256 MiB** | **the derivation — and it equals the old literal exactly** |
+| 24 GiB, 64 GiB, 1 TiB | 256 MiB | the reference cap |
+
+⭐ The `1/64` share is chosen so that `256 MiB × 64 = 16 GiB`: the number that used to be
+hard-coded is exactly what the law now produces on the developer-machine class it was written for.
+The literal is *explained*, not replaced.
+
+⚠️ **Two honest limits, stated rather than implied.**
+
+1. **The share is a policy, not a proof.** Deriving it would need the total process footprint at
+   full stack spend, and that quantity is not yet attributed (`ENGINE-UNIVERSAL-SERVICES.84`: on
+   one grammar peak RSS is quadratic in nesting depth while the arena holds 0.03 % of it). A bound
+   with an unmeasured term is not a bound, so no bound is claimed.
+2. **Only the downward half of "the limit is the host's RAM" has landed.** A host *larger* than
+   16 GiB is capped at the reference today rather than accepting deeper input, because raising the
+   reservation moves the depth at which the ceiling ladder crosses and crossing cost is quadratic
+   in depth — the test suite's runtime would become a function of the CI host's RAM.
+   `ENGINE-UNIVERSAL-SERVICES.87` owns lifting the cap and the test-pinning it needs first.
+
+⚠️ **The derivation is per-parse.** The embedding API spawns one dedicated thread per call, so `N`
+concurrent maximally-deep parses can commit up to `N/64` of host memory. An embedder running high
+parse concurrency should name a smaller `PGEN_PARSE_STACK_BYTES` rather than rely on the default. The regex family keeps its own earlier defense
 (the RGX-0085 dedicated worker plus a PCRE2-parity nesting pre-check), unchanged. The same
 256 MiB guarantee wraps the `parseability_probe` and `ast_pipeline` instrument drivers, so a
 pathologically deep input is a reproducible clean rejection everywhere rather than a crash.

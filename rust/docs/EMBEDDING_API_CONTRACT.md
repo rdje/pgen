@@ -53,7 +53,42 @@ Root-level parser-family handoff docs (`PGEN_*_PARSER_INTEGRATION_CONTRACT.md`) 
   - default via `AstDumpOptions::default()`
 
 ## Versioning
-- Contract version constant: `EMBEDDING_API_VERSION = "1.3.4"`
+- Contract version constant: `EMBEDDING_API_VERSION = "1.3.5"`
+  - `1.3.5` (2026-08-31, `ENGINE-UNIVERSAL-SERVICES.69`(a)): backward-compatible change to how the
+    dedicated parse thread's stack reservation DEFAULT is chosen. It was a compiled-in 256 MiB —
+    the last literal `.65` left standing, and the one the recursion ceiling is derived FROM. It is
+    now derived from the host:
+
+    ```text
+    reservation = min( 256 MiB , max( 96 MiB , physical_memory / 64 ) )
+    ```
+
+    ⭐ **The share is chosen so `256 MiB × 64 = 16 GiB`**, i.e. the law returns the historic
+    literal EXACTLY on a 16 GiB host. ⇒ **no host at or above 16 GiB sees any change to its accept
+    set** (measured on a 24 GiB host: `reservation_bytes=268435456`, byte-identical to before); a
+    host in the 6–16 GiB band is no longer handed a per-parse stack it may not be able to afford;
+    below ~6 GiB the 96 MiB usability floor dominates as it always did.
+
+    `PGEN_PARSE_STACK_BYTES` still overrides and is still honoured down to the floor and up without
+    limit. New: `parseability_probe --stack-reservation` prints the resolved reservation and its
+    PROVENANCE — `operator_override`, `host_memory_derived`, or `reference_fallback` (the host's
+    memory could not be read, so the fixed reference stands; an unreadable `sysctl` is never
+    allowed to become an outage). Three provenances that a single integer used to hide.
+
+    ⚠️ **The derivation is PER-PARSE.** This API spawns one dedicated thread per call, so `N`
+    concurrent maximally-deep parses can commit up to `N/64` of host memory. Set
+    `PGEN_PARSE_STACK_BYTES` smaller if you run high parse concurrency.
+
+    ⚠️ **Only the DOWNWARD half of the capability mandate has landed.** A host LARGER than 16 GiB
+    is capped at the reference rather than accepting deeper input, because raising the reservation
+    moves the depth at which the recursion ceiling is crossed and crossing cost is quadratic in
+    depth (`ENGINE-UNIVERSAL-SERVICES.68`); `ENGINE-UNIVERSAL-SERVICES.87` owns lifting the cap.
+    ⚠️ **And the `1/64` share is a POLICY, not a proof** — deriving it needs the total process
+    footprint at full stack spend, which `ENGINE-UNIVERSAL-SERVICES.84` records as not yet
+    attributed. A bound with an unmeasured term is not a bound, so none is claimed.
+
+    ⛔ No API surface, schema or accept-set change on a 16 GiB-or-larger host, and the generated
+    artifacts are byte-identical — the derivation lives in `dedicated_parse_stack`, not in codegen.
   - `1.3.4` (2026-08-30, `ENGINE-UNIVERSAL-SERVICES.79`): backward-compatible fix that RESTORES
     `1.3.1`'s own guarantee at every reservation. The Stack-Robustness Contract below promises
     the host process is **never** aborted by a parser stack overflow, in either build mode.

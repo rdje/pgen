@@ -1,0 +1,26 @@
+## ARM 1 — the reservation this host resolved, from the binary itself
+reservation_bytes=268435456
+reservation_mib=256
+source=host_memory_derived
+host_memory_bytes=25769803776
+host_memory_mib=24576
+unclamped_share_bytes=402653184
+share_divisor=64
+floor_bytes=100663296
+reference_bytes=268435456
+
+## ARM 2 — the same host quantity from an instrument this repository did not build
+sysctl_hw_memsize=25769803776
+
+## ARM 3 — the operator-override arm stays distinguishable
+reservation_bytes=134217728
+source=operator_override
+host_memory_bytes=not_measured
+
+## ARM 4 — an UNPARSEABLE override is not an operator statement
+reservation_bytes=268435456
+source=host_memory_derived
+
+## ARM 5 — an override BELOW the usability floor is raised to it, and still reads as an override
+reservation_bytes=100663296
+source=operator_override
