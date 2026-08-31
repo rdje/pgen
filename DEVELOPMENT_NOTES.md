@@ -1,5 +1,39 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-31 - PGEN-SV-CORPUS-GRAD-0314 (.13j CLOSED — two readings of one discriminator, two sets, one headline; and two of my own instruments caught only by contradiction)
+
+- ⭐⭐⭐ **THE TRANSFERABLE LESSON: A CENSUS'S HEADLINE CAN BE STABLE ACROSS READERS THAT DISAGREE
+  ABOUT ITS MEMBERS.** Two honest implementations of `.13i`'s structural discriminator both returned
+  **14** and their union is **15** — one includes a NUMBERED heading (`## 4. Instrument identity`) the
+  other skips, the other includes a TWO-column identity table the first skips. Nothing about the
+  number 14 could have exposed that; only the SET could, and only by comparing two implementations.
+  ⇒ **when a population is defined in prose, two people implement two populations, and agreement on
+  the count is not agreement on the set.** This is `LIVE-DOC-CONTAINMENT.8`'s cancelling OVER+UNDER
+  pair — *a count is not a schema* — arriving in a census instead of in a markdown table.
+- ⭐⭐ **AND THE HONEST HALF: THE NUMBER THAT MATTERED WAS RIGHT, FOR A REASON THAT IS LUCK.** Both
+  disagreements fall in the EXCLUDED half (frozen snapshots), so the LIVE population is 8 under both
+  readings and is the same 8 files `-0310` published. Reporting *"the earlier census was wrong"* would
+  have been false; reporting *"it was right"* without the reason would have been the frame error this
+  session has already paid for four times. The publishable sentence is the third one: **the operative
+  number was insensitive to the ambiguity, and nothing in the design made it so.**
+- ⛔⛔⛔ **TWO INSTRUMENTS OF MY OWN FAILED INSIDE ONE CENSUS, AND BOTH WERE CAUGHT BY CONTRADICTION
+  RATHER THAN BY CARE.** (1) I asked *"which gate reads this artifact"* with `grep -rl` over the gate
+  scripts — the exact unsound method `CORPUS-CENSUS-CURRENCY`'s own header records as its founding
+  census's error, because gates COMPOSE their artifact paths. It called `verdict_coverage/coverage.md`
+  unread; that file is `SV-CORPUS-DENOMINATOR`'s own artifact. (2) The replacement behavioural census
+  flipped the FIRST digest in each file — the PARSE BINARY row, which no arm binds by design — and
+  reported `stimuli/sv/characterization/characterization.md` as un-gated ONE HOUR after I RED-proved
+  its grammar arm. ⇒ the pattern across `-0311`, `-0313` and `-0314` is now three-for-three: **every
+  control I wrote this session failed first, and each was caught by an inconsistency with a
+  measurement I already had — never by reading it more carefully.** The operational conclusion is not
+  *"be careful"*; it is *keep a prior independent measurement to contradict the new one, and treat a
+  disagreement as the instrument's fault until proven otherwise.*
+- ⭐ **WHY (e) DID NOT RESTATE THE CONSTRAINT IT WAS ASKED TO HAND OVER.** `.13i` already carried it,
+  banked by `-0310` one commit earlier. A leaf's acceptance clause is a plan written before the work;
+  discharging it by copying a fact that is already durable would satisfy the words and add a second
+  thing to drift. Checked, cited, and the slice spent on evidence the receiving leaf does not have —
+  the discriminator's ambiguity, the 4-of-8 gated split, and the named residue in `.13m`.
+
 ## 2026-08-31 - PGEN-SV-CORPUS-GRAD-0313 (.13j(c) discharged — a gate that re-implements its producer's population agrees with it until a corpus contains the difference)
 
 - ⭐⭐⭐ **THE TRANSFERABLE LESSON, and it is a general one about gates rather than about corpora:

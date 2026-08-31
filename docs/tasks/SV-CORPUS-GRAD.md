@@ -18575,7 +18575,7 @@ for the second time in one leaf.
 lock does not park it — but it is a GUARD, not a defect burn-down, so it sequences after `.20`'s
 director call and the remaining `.13c.2c` defect unless the director says otherwise.
 
-#### `.13j` — ⛔⛔⛔ NEW `todo` — **THE SV GRADUATION ORACLE IS STALE ON ALL THREE OF ITS DECISIVE INPUTS AFTER FOUR *RELEASES* AND TWO ACCEPT-SET-MOVING ENGINE CHANGES, AND EVERY DOCTRINE IS GREEN — BECAUSE THE ONE GATE CARRYING A GRAMMAR-IDENTITY ARM ROUTES SYSTEMVERILOG AWAY FROM ITSELF** (opened 2026-08-31 by an identity-block census run for `.13i` / `PGEN-SV-CORPUS-GRAD-0310`)
+#### `.13j` — ✅✅✅ **`done`** (CLOSED 2026-08-31, `-0310`/`-0311`/`-0312`/`-0313`/`-0314`) — **THE SV GRADUATION ORACLE IS STALE ON ALL THREE OF ITS DECISIVE INPUTS AFTER FOUR *RELEASES* AND TWO ACCEPT-SET-MOVING ENGINE CHANGES, AND EVERY DOCTRINE IS GREEN — BECAUSE THE ONE GATE CARRYING A GRAMMAR-IDENTITY ARM ROUTES SYSTEMVERILOG AWAY FROM ITSELF** (opened 2026-08-31 by an identity-block census run for `.13i` / `PGEN-SV-CORPUS-GRAD-0310`)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing).
 
@@ -18801,9 +18801,9 @@ evidence that nothing moved; (c) ✅ **DISCHARGED below** (`PGEN-SV-CORPUS-GRAD-
 `scripts/check_sv_corpus_denominator.sh`, and RED-prove the grammar arm against the pre-(b) tree
 where it must fail; (d) ✅ **DISCHARGED below** — the SV report's recorded HEAD is `+dirty`, so the promotion must
 be measured on a CLEAN tree or the note arm is inherited; MEASURED UNSATISFIABLE as written and
-the instrument corrected (`PGEN-SV-CORPUS-GRAD-0311`); (e) hand `.13i`(a) the second design constraint above —
+the instrument corrected (`PGEN-SV-CORPUS-GRAD-0311`); (e) ✅ **DISCHARGED below** (`PGEN-SV-CORPUS-GRAD-0314`) — hand `.13i`(a) the second design constraint above —
 `path` is a reference, not always the hashed subject — so its enforcer is written against the
-property rather than the column.
+property rather than the column. ⇒ **THE LEAF IS CLOSED.**
 
 ⛔⛔ **A THIRD THING THE CHALLENGE TURNED UP, AND IT IS NOT WHAT I EXPECTED — THE OBSERVED-VERDICT
 FILE THE PUBLISHED BAR IS CROSS-CHECKED AGAINST IS `.gitignore`d.**
@@ -18850,6 +18850,102 @@ by construction.
 graduation oracle and the numbers are the release bar the book publishes. It is not parked.
 (a) is measurement and is next; (c) cannot land before (b) without turning the tree RED, which is
 the correct order and not a workaround.
+
+### ✅✅✅ `.13j`(e) DISCHARGED — **`.13j` IS CLOSED. THE CONSTRAINT WAS ALREADY BANKED, SO (e) SPENT ITS SLICE MEASURING WHAT `.13i`(a) ACTUALLY FACES — AND THE DISCRIMINATOR IT IS BUILT ON IS UNDER-SPECIFIED: TWO HONEST READINGS OF IT RETURN DIFFERENT SETS AND THE SAME HEADLINE** (2026-08-31, `PGEN-SV-CORPUS-GRAD-0314`)
+
+- ✅ **(e)'s LITERAL ASK WAS ALREADY MET BY `-0310`, CHECKED RATHER THAN RESTATED.** `.13i` carries
+  the `path`-is-a-reference constraint as update **(ii)**: two artifacts declare
+  `grammars/systemverilog.ebnf` in the `path` column while the digest is of the derived **raw AST**,
+  so a literal re-hash false-fails both. Re-writing that here would have been a second copy of a
+  durable fact, which is the disease this tree exists to fight. What (e) owed beyond it was
+  *evidence about the enforcer's design*, and that is below.
+- ⛔⛔ **THE STRUCTURAL DISCRIMINATOR `.13i`(a) IS BUILT ON DOES NOT DEFINE ONE SET.** Two honest
+  readings of *"a heading `Instrument identity` followed by a table of (path, 64-hex sha256)"*, run
+  over `git ls-files` at HEAD:
+
+  | reading | population |
+  |---|---|
+  | **A** — heading matched anywhere in the line, rows of **3** cells | **14** |
+  | **B** — heading anchored at the phrase, rows of **2 or 3** cells | **14** |
+  | **union** | **15** |
+
+  They are not the same 14. **A-only** is `…/ch22_directive_fix/README.md`, whose heading reads
+  `## 4. Instrument identity` — a numbered heading a phrase-anchored reader skips. **B-only** is
+  `…/v2005_keyword_faithfulness/census.md`, whose identity table is **two columns**
+  (`| input | sha256 |`) with the path folded into the first cell — invisible to a 3-cell reader.
+  ⇒ **the same headline number, produced by two readers that disagree about two files**, which is
+  `LIVE-DOC-CONTAINMENT.8`'s cancelling OVER+UNDER pair arriving in a census instead of a table.
+- ⭐⭐ **AND THE OPERATIVE NUMBER SURVIVED BY LUCK, WHICH IS THE PART WORTH BANKING.** Both
+  disagreements land in the EXCLUDED half — `ch22_directive_fix` is a frozen before/after snapshot
+  either way, and the two-column census is live under both readings only after the exclusion is
+  applied. So the **LIVE population is 8 under both readings, and it is the same 8 files `-0310`
+  published**. `-0310`'s live table stands; its *"14 total, 6 frozen"* is reader-dependent and the
+  union is **15 total, 7 frozen, 8 live**. ⇒ `.13i`(a) must pin the heading form **and** the column
+  arity as part of the property, or its enforcer's population is whatever its regex happened to be.
+- ⭐⭐⭐ **THE GATED/UNGATED SPLIT IS NOW MEASURED BEHAVIOURALLY RATHER THAN GREPPED, AND IT IS
+  4 OF 8.** One hex digit of each artifact's **grammar** row was flipped, `bash
+  scripts/check_doctrines.sh` run, and the file restored — 8 files, mutation never outliving its
+  tool call, tree clean after:
+
+  | artifact | a doctrine re-hashes it? |
+  |---|---|
+  | `…/parse_cost_ratchet/cost.md` | ✅ |
+  | `…/verdict_coverage/coverage.md` | ✅ |
+  | `stimuli/sv/characterization/characterization.md` | ✅ **NEW — `.13j`(c), this session** |
+  | `stimuli/vhdl/characterization/characterization.md` | ✅ |
+  | `…/dark_chained_only/adjudication.md` | ⛔ |
+  | `…/dark_chained_only/summary.md` | ⛔ |
+  | `…/v2005_keyword_faithfulness/census.md` | ⛔ |
+  | `stimuli/sv/characterization/characterization_v2005.md` | ⛔ |
+
+  ⇒ `.13i`'s founding *"six oracles, ONE gate-checked"* is now **eight oracles, FOUR gate-checked**,
+  and this session moved exactly one of them. The remaining four are NAMED, so `.13i`(a) is sizing
+  against a measured set rather than a hand list.
+- ⛔⛔ **TWO INSTRUMENT DEFECTS OF MY OWN IN THIS ONE CENSUS, BOTH CAUGHT ONLY BY CONTRADICTION.**
+  **(1)** My first pass asked *"which gate reads this file"* with `grep -rl` over the gate scripts.
+  It reported `verdict_coverage/coverage.md` as read by NOTHING — and that file is
+  `SV-CORPUS-DENOMINATOR`'s own artifact, which the gate reaches by COMPOSING `ART + "/coverage.md"`.
+  This is verbatim the correction `CORPUS-CENSUS-CURRENCY`'s header already records about its own
+  founding census (*"it grepped for a path LITERAL while the repository's own corpus runner COMPOSES
+  that path"*), reproduced by me one day later. ⇒ **a path literal is not a reader census; run the
+  gate.**
+  **(2)** The behavioural census then flipped the **first** digest in each file — which in a
+  characterization report is the **parse binary** row, and no arm binds it (deliberately: `.13i`(b)
+  rules a shared-probe mismatch a provenance note). It reported
+  `stimuli/sv/characterization/characterization.md` as NOT re-hashed — **contradicting the RED
+  control I had taken an hour earlier in `.13j`(c)**, where the grammar arm breached on exactly that
+  file. The only reason the false reading did not get published is that a prior measurement
+  disagreed with it. ⇒ **a mutation control must target the CELL THE ARM BINDS**, and the general
+  rule is `.13j`(d)'s once more: a control that mutates the wrong thing reports a clean tree.
+
+**Acceptance:** (a) ✅ `-0310` · (b) ✅ `-0312` · (c) ✅ `-0313` · (d) ✅ `-0311` · (e) ✅ **this slice**.
+⇒ **`.13j` is CLOSED.** The finding it opened on — *nothing in this repository can tell a stale SV
+corpus oracle from a current one* — is answered for the `sv_2017` lane by a gate, with the v2005 lane
+NAMED as the residue and routed to `.13m`.
+
+#### `.13m` — ⚠️ NEW `todo` — **THE v2005 REPORT CANNOT JOIN `CORPUS-CENSUS-CURRENCY` AS-IS: ARM (4) RE-COUNTS A DENOMINATOR FROM THE FILESYSTEM AND THAT LANE'S DENOMINATOR IS AN ADJUDICATOR-DERIVED LIST** (opened 2026-08-31 by `.13j`(e) / `PGEN-SV-CORPUS-GRAD-0314`, ROUTED)
+
+- **WHY + WHERE**: `scripts/check_corpus_census.sh` arm (4) re-counts each sub-corpus by walking
+  `sub_corpus_dir(...)` and matching `file_extensions`. The `sv2005` lane does not parse a directory:
+  `stimuli/run_external_corpus.sh:172` reads its file list from
+  `stimuli/sv/characterization/v2005_lane_files.tsv`, which `adjudicate_external_corpus.py` derives.
+  Measured, the two disagree on every suite in the lane:
+
+  | suite | v2005 lane rows | `find -type f` under that suite |
+  |---|---|---|
+  | `ispras-sv-tests` | 356 | 1 266 |
+  | `iverilog` | 1 909 | 3 799 |
+  | `sv2v` | 341 | 953 |
+
+  ⇒ declaring the report today would breach arm (4) on **3 of 3** suites, and the breach would be
+  the gate's, not the corpus's.
+- **OWES**: (a) a declared denominator SOURCE — `filesystem` (today's behaviour) or `lane_list`
+  naming the tracked TSV — so the arm re-derives the population the producer actually used; (b) the
+  `lane_list` mode must still be a real re-derivation (count the tracked list AND hold it equal to
+  the report's per-suite rows), never a skip, because an arm that opts out is `GATE-REACHABILITY`
+  wearing a census; (c) RED-prove it by adding a row to the lane list.
+- ⭐ **THIS IS THE LAST NAMED UN-RE-HASHED SV ORACLE OF THE FOUR**, and it is the one carrying the
+  numbers `.13j`(b) found stale — so it is the highest-value of the residue, not the leftover.
 
 ### ✅✅✅ `.13j`(c) DISCHARGED — **SYSTEMVERILOG IS WIRED TO `CORPUS-CENSUS-CURRENCY`, AND WIRING IT UP FOUND TWO DEFECTS IN THE GATE ITSELF: ITS DENOMINATOR ARM COUNTED SYMLINKS THE PRODUCER NEVER PARSES, AND IT COULD NOT SEE A FOLDED SUB-CORPUS AT ALL** (2026-08-31, `PGEN-SV-CORPUS-GRAD-0313`)
 
@@ -19013,7 +19109,7 @@ slice: **a control must be able to fail, and the way to find out is to make it f
   `EXTERNAL-CORPUS` forbids; `.13k` owns it and owes the CLASS census first.
 
 **Acceptance:** (a) ✅ · (b) ✅ **this slice** · (c) **NEXT — give SystemVerilog the arms** ·
-(d) ✅ (`-0311`) · (e) open — hand `.13i`(a) the `path`-is-not-the-hashed-subject constraint.
+(d) ✅ (`-0311`) · (e) ✅ (`-0314`) — ⇒ **`.13j` is CLOSED**; residue routed to `.13m`.
 
 ### ✅✅ `.13j`(d) DISCHARGED — **THE "MEASURE ON A CLEAN TREE" CRITERION WAS UNSATISFIABLE FOR SYSTEMVERILOG BY CONSTRUCTION: THE SECOND LANE'S `+dirty` STAMP WAS THE FIRST LANE'S OWN REPORT** (2026-08-31, `PGEN-SV-CORPUS-GRAD-0311`)
 
