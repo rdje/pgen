@@ -7101,22 +7101,25 @@ mod tests {
         use crate::dedicated_parse_stack as dps;
 
         const BALLAST: usize = 64 * 1024;
-        // Burning more than this would trade a control for a hazard; a
-        // non-default `PGEN_PARSE_STACK_BYTES` is the only way to get here.
-        const MAX_SAFE_BURN_BYTES: usize = 200 * 1024 * 1024;
 
-        let reservation = dps::dedicated_parse_stack_bytes();
-        let budget = reservation - reservation / STACK_HEADROOM_RESERVE_DIVISOR;
+        // ⛔⛔ `ENGINE-UNIVERSAL-SERVICES.87`(c) — THIS TEST USED TO READ THE PROCESS
+        // RESERVATION AND SKIP ITSELF WHEN IT WAS LARGE, WHICH MADE ITS COVERAGE A
+        // FUNCTION OF THE HOST. It burned `budget/2 + budget/8` of
+        // `dedicated_parse_stack_bytes()` and returned early past a 200 MiB safe-burn
+        // cap — reached at any reservation above ≈341 MiB. That was already true for an
+        // operator setting `PGEN_PARSE_STACK_BYTES`, and `.69`(a) would have made it
+        // true BY DEFAULT on every host above 16 GiB had the derivation not been capped:
+        // this host's uncapped share is 384 MiB, whose 225 MiB burn clears the cap and
+        // SKIPS, silently, with the test still reporting GREEN.
+        //
+        // ⭐ Pinning removes the host from the denominator AND makes the test cheaper:
+        // the spend needed to reach `NoFrameAffordable` is a fixed fraction of the
+        // reservation, so naming the floor burns **56 MiB** where the 256 MiB reference
+        // burned 150 MiB. There is no skip branch left to be vacuous.
+        const PINNED_RESERVATION: usize = dps::MIN_DEDICATED_PARSE_STACK_BYTES;
+        let budget = PINNED_RESERVATION - PINNED_RESERVATION / STACK_HEADROOM_RESERVE_DIVISOR;
         // Clear the half-budget threshold with a margin, then round to frames.
         let target = budget / 2 + budget / 8;
-        if target > MAX_SAFE_BURN_BYTES {
-            assert_ne!(
-                reservation,
-                dps::DEDICATED_PARSE_STACK_BYTES,
-                "the compiled default must always be small enough to control"
-            );
-            return;
-        }
         let frames = target / BALLAST + 1;
 
         #[inline(never)]
@@ -7133,15 +7136,30 @@ mod tests {
             }
         }
 
-        let measured = dps::run_on_dedicated_parse_stack("pgen-test-probe-terminal", move || {
-            let mut guard = RecursionGuard::new(4);
-            dps::clear_last_stack_probe_refusal();
-            let extended = burn(frames, &mut guard);
-            (extended, dps::last_stack_probe_refusal())
-        });
+        let measured = dps::run_on_dedicated_parse_stack_with_reservation(
+            "pgen-test-probe-terminal",
+            PINNED_RESERVATION,
+            move || {
+                let mut guard = RecursionGuard::new(4);
+                dps::clear_last_stack_probe_refusal();
+                let extended = burn(frames, &mut guard);
+                (extended, dps::last_stack_probe_refusal())
+            },
+        );
         let Ok((extended, observed)) = measured else {
             panic!("dedicated parse-stack spawn failed");
         };
+        // ⭐ `.87`(c) — the thread really was created at the PINNED size, so this test
+        // measures what it names. Without this the pin could silently not apply and the
+        // assertions below would still pass at the process reservation.
+        assert_eq!(
+            observed
+                .as_ref()
+                .map(|o| o.reservation_bytes)
+                .unwrap_or_default(),
+            PINNED_RESERVATION,
+            "the burn must run on the reservation this test PINNED, not the process one"
+        );
         assert!(!extended, "a spend past half the budget must not extend");
         let observed = observed.expect("the refusal must be recorded");
         assert_eq!(

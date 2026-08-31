@@ -18825,10 +18825,41 @@ fixes no defect and the `TASK-ACCEPTANCE` gate does not evaluate it either — n
   REQUIRED when the staged diff touches `rust/src`, rather than available behind an env var nobody
   sets; (c) census whether any OTHER doctrine's identity set has the same blind spot — a vocabulary
   of one is not a population.
+- ⛔⛔⛔ **(c) HAS ITS SECOND DATA POINT, AND IT IS THE MOST SERIOUS ONE YET: THE ACCEPT-SET
+  ADJUDICATION IS KEYED ON THE GRAMMAR FILE, SO AN ENGINE CHANGE THAT MOVES THE ACCEPT SET IS
+  ADJUDICATED BY NOTHING** (`-0159`, routed here from `.87`(f) after the census below decided it):
+
+  ```
+  grep -rln "accept.set|accept_set" scripts/check_*.sh
+    -> scripts/check_sv_contract_currency.sh          <- EXACTLY ONE, in the whole registry
+  grep -n "GRAMMAR=" scripts/check_sv_contract_currency.sh
+    -> GRAMMAR="grammars/systemverilog.ebnf"
+  ```
+
+  `SV-CONTRACT-CURRENCY` is the doctrine that makes accept-set honesty mechanical: *"every
+  revision of `grammars/systemverilog.ebnf` … is accounted for as a RELEASE or as
+  ACCEPT-SET-NEUTRAL, and a neutrality claim is CHECKED, not believed."* ⭐ That is exactly the
+  right discipline — and its subject is a FILE PATH. **`.69`(a) moved the SystemVerilog accept set
+  on every host below 16 GiB (8 GiB ⇒ ≈2 410 nested casts against 4 813) and touched no grammar,
+  so nothing asked for an adjudication and the one-sided contract sentence `-0158` had to correct
+  went in unchallenged.**
+  ⇒ THIRD instance of one root cause — `.80` (the ordinary tier runs no `cargo test`), `.86` (the
+  ratchet's identity set omits `rust/src`), and now this: **a doctrine scoped to grammar/codegen
+  paths is blind to an engine change with identical consequences.** A vocabulary of one is not a
+  population, and the population is now three.
+- ⚠️ **WHY THIS IS THE FIX AND "TWO-SIDED DOCUMENTATION" IS NOT** (the alternative `.87`(f) first
+  proposed, now withdrawn in its favour): *"did the author state both directions of the behaviour
+  delta"* is a question about PROSE, and the only cheap implementation is a token list over the
+  diff. `.77`(b) already measured what that costs — *"detection is a PROPERTY, not a token list —
+  the vocabulary form MISSED a real job and false-positived at once."* **Whether the accept set
+  MOVED is not a semantic question, it is a MEASUREMENT**, and `.65` already built the instrument
+  (vary the reservation, read the boundary; 18.82 levels/MiB flat to 0.14 %). ⇒ the enforceable
+  doctrine is *an engine change adjudicates its accept-set impact the way a grammar change already
+  must*, not *a document says two things*.
 - ⛔ **ROUTED, not worked**: `.85` is the SV-lane defect and it is fixed; this is the gate that failed
   to notice, and it sits behind the lane with `.68`.
 
-### ⛔⛔ `.87` — **THE CEILING TESTS READ THE PROCESS-WIDE RESERVATION INSTEAD OF PINNING ONE, SO THEIR COVERAGE *AND* THEIR RUNTIME ARE FUNCTIONS OF THE HOST — WHICH IS WHY `.69`(a) HAD TO CAP THE HALF OF THE CAPABILITY MANDATE THAT SAYS A BIGGER HOST ACCEPTS DEEPER INPUT** (`todo`, opened 2026-08-31 by `.69`(a) slice 2 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0157`)
+### ✅✅ `.87` — **THE CEILING TESTS READ THE PROCESS-WIDE RESERVATION INSTEAD OF PINNING ONE, SO THEIR COVERAGE *AND* THEIR RUNTIME ARE FUNCTIONS OF THE HOST — WHICH IS WHY `.69`(a) HAD TO CAP THE HALF OF THE CAPABILITY MANDATE THAT SAYS A BIGGER HOST ACCEPTS DEEPER INPUT** (`in progress` — ✅✅ **(b) + (c) DONE 2026-08-31 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0159`: the reservation is PINNED, the suite went 316 s → 88 s with one MORE test, and the pin bought a control that was previously unaffordable**; (e) WITHDRAWN, (f) REROUTED to `.86`(c); (a) + (d) `todo`; opened 2026-08-31 by `.69`(a) slice 2 / `PGEN-ENGINE-UNIVERSAL-SERVICES-0157`)
 
 - **WHY + WHERE (established BEFORE the fix it blocks was written, by reading the two tests the
   census named rather than by running into them).** Three sites read
@@ -18919,9 +18950,133 @@ fixes no defect and the `TASK-ACCEPTANCE` gate does not evaluate it either — n
   ⇒ this is the `-0144` accept-set-narrowing shape, deliberate this time and defensible, but
   documented in the flattering direction only, in the artifact Nexsim reads. Corrected in place in
   all three surfaces with the measured table and the pin-`PGEN_PARSE_STACK_BYTES` remedy. Kept as
-  a leaf item because the CLASS is not closed: nothing in the repository checks that a contract
-  change describing a behaviour delta states BOTH directions, and I found this one only because
-  the director asked whether I was sure.
+  a leaf item because the CLASS is not closed. ⭐⭐ **BUT THE CLASS IS NOT THE ONE THIS ITEM FIRST
+  NAMED, and the correction matters more than the item** (`-0159`): I first wrote it as *"nothing
+  checks that a contract change states BOTH directions"* — a question about PROSE, whose only cheap
+  implementation is a token list over the diff, which is precisely the form `.77`(b) measured as
+  MISSING a real job and false-positiving at once. A census settled it instead:
+  `grep -rln "accept.set" scripts/check_*.sh` returns **exactly one** script, and it pins
+  `GRAMMAR="grammars/systemverilog.ebnf"`. ⇒ **the real gap is that the accept-set adjudication is
+  keyed on a GRAMMAR PATH, so an ENGINE change that moves the accept set — which is what `.69`(a)
+  did — is adjudicated by nothing.** That is MEASURABLE rather than semantic (`.65`'s own
+  falsifiability control reads the boundary at 18.82 levels/MiB, flat to 0.14 %), it is the THIRD
+  instance of the `.80`/`.86` root cause, and it therefore belongs to **`.86`(c)**, which already
+  owns *"census whether any OTHER doctrine's identity set has the same blind spot."* Routed there
+  with the census; **(f) is closed as MIS-SCOPED, not as done.**
+#### ✅✅ `.87`(b) + (c) DONE — **PINNING THE RESERVATION DID NOT COST RUNTIME TO BUY RIGOUR; IT BOUGHT BOTH, BECAUSE CROSSING COST IS Θ(depth²) AND DEPTH IS LINEAR IN THE RESERVATION** (2026-08-31, `PGEN-ENGINE-UNIVERSAL-SERVICES-0159`; TEST tier, ZERO grammar / codegen / generated bytes)
+
+- **WHY + WHERE (tool-backed, the census ran before any edit).** `git grep -n
+  "dedicated_parse_stack_bytes()" -- rust/src` named three consumers that turn the process-wide
+  reservation into a TEST PARAMETER: the terminal-refusal burn test
+  (`ast_pipeline/mod.rs:7108`) and the `.78` ceiling ladder's budget + arms
+  (`embedding_api.rs:3579,3651,3813,3880,4082`). While that number was a LITERAL, "process-wide"
+  and "known constant" were the same thing and reading it was harmless. `.69`(a) made it a
+  function of host physical memory and the two came apart.
+- ⭐⭐⭐ **THE MECHANISM COST NOTHING TO BUILD BECAUSE THE MODULE ALREADY HAD IT.** A caller already
+  on a dedicated parse stack runs INLINE, and the inline path deliberately never touches
+  `PARSE_STACK_EXTENT` — verified in source before building on it. So wrapping a whole ladder in
+  ONE `run_on_dedicated_parse_stack_with_reservation` makes every nested `parse_grammar_profile`
+  inherit the pinned extent: **no parse entry point changes, no reservation threaded through the
+  embedding API, ZERO generated bytes.**
+- ✅ **MEASURED, and it is the opposite of the trade I expected to have to defend** (wall clock on
+  a host at load ≈3.5 ⇒ INDICATIVE, but the ratios are far outside noise and are mechanistically
+  explained):
+
+  | suite configuration | tests | wall clock |
+  |---|---|---|
+  | before — ladder at the resolved default, host-dependent | 1 126 | **316 s** |
+  | (b)+(c) pinned at the 96 MiB floor | 1 126 | **109 s** |
+  | + proportionality control, pair taken UPWARD (96 → 192 MiB) | 1 127 | **454 s** |
+  | **+ proportionality control, pair taken DOWNWARD (48 → 96 MiB)** | **1 127** | **88 s** |
+
+  ⇒ **3.6× faster with one MORE test than before.** Depth is linear in the reservation and
+  crossing is Θ(depth²) (`.68`), so pinning at the floor pays ≈(96/256)² ≈ 0.14×. Rigour was not
+  paid for with runtime here; controlling the variable was the cheaper option all along.
+- ⛔⛔ **AND THE DIRECTION OF THE PROPORTIONALITY PAIR IS A MEASURED DECISION, NOT A PREFERENCE.**
+  The first cut compared (pin, 2×pin) and cost **+345 s** — a suite SLOWER than the
+  host-dependent one it replaced, which would have been a bad trade shipped quietly. Taking the
+  pair DOWNWARD (½pin, pin) makes the expensive arm the one the other ceiling locks already run
+  and CACHE, so the marginal cost is the cheap ladder alone, and the ratio under test is
+  identical. ⚠️ The smaller arm sits below `MIN_DEDICATED_PARSE_STACK_BYTES` deliberately: `.79`
+  re-cast that floor as *"a policy, not a proof"*, the explicit runner applies no floor by
+  design, and `.79`(b)(c) makes the first sample reachable at EVERY reservation by construction.
+- ⭐⭐⭐ **THE PIN BOUGHT A CONTROL THAT WAS PREVIOUSLY UNAFFORDABLE, AND IT IS THE ONE THE SV
+  CONTRACT'S CENTRAL CLAIM RESTS ON.** The contract publishes *"how you can tell it is really
+  host-derived and not just a bigger number: vary the reservation and the boundary moves with it,
+  linearly"* — 18.82 levels/MiB, flat to 0.14 %. That was measured BY HAND in `.65` and again in
+  `.69`(d), and **nothing re-derived it**, so the property the entire derived-ceiling design is
+  sold on was a number in a document — on the very axis `.69`(a) had just moved. New
+  `parser_embedding_ceiling_depth_scales_with_the_reservation` re-derives it every run.
+- ⛔⛔ **IT IS ASSERTED ON THE FRAME DEPTH, NEVER ON THE LADDER RUNG, AND THAT IS `.69`(a) SLICE 1's
+  LESSON SPENT RATHER THAN RE-LEARNED.** That slice compared reservations using a doubling
+  ladder's stopping rung and got non-monotone nonsense — *"a ladder that chooses its own stopping
+  point is not a controlled variable"*, because each reservation was measured on a DIFFERENT
+  INPUT. The rung is quantised by `CEILING_LADDER_GROWTH`; the frame depth at refusal is not, and
+  `.69`(d) established it is a property of the STACK not the input (two different inputs refused
+  at the identical depth **31 568**). So the two ladders may legitimately stop at different rungs
+  and still be compared.
+- ⭐ **AN EXISTING LOCK WAS UPGRADED FROM A NEAR-TAUTOLOGY IN PASSING.**
+  `parser_embedding_recursion_ceiling_is_anchored_to_the_reservation` asserted
+  `observed.reservation_bytes == dedicated_parse_stack_bytes()` — **both sides traced to the same
+  call**, so it could only fail if the RECORDING were broken. It now compares against a
+  reservation the TEST names, so the value flows test → runner → thread → guard → observation with
+  the test's copy independent of the engine's. ⚠️ It FAILED first, correctly, when the pin landed;
+  that failure is what surfaced the weakness.
+- ✅ **THE PIN IS OBSERVED, NEVER ASSUMED**, in both places: the ladder asserts
+  `current_parse_stack_extent()` reports the pinned size before climbing, and the burn test
+  asserts the refusal's `reservation_bytes` equals what it pinned. ⛔ **RED CONTROL, measured**:
+  removing the burn test's pin under `PGEN_PARSE_STACK_BYTES=536870912` FAILS with `left: 0` —
+  i.e. the unpinned run produced **no refusal at all**, which is precisely the vacuity `.87` was
+  opened for, reproduced on demand.
+- ✅ **(c) HAS NO SKIP BRANCH LEFT.** The burn test's `MAX_SAFE_BURN_BYTES` early return is gone,
+  not widened: pinning the floor makes the burn **56 MiB** against the 150 MiB it took at the
+  reference, so there is nothing left to be too large to control.
+
+##### Acceptance Checklist (enforced) — `.87`(b)+(c) (`PGEN-ENGINE-UNIVERSAL-SERVICES-0159`)
+
+- [x] **ROOT CAUSE (WHY + WHERE)** — **WHY**: three tests derived a parameter from
+      `dedicated_parse_stack_bytes()`, which `.69`(a) turned from a literal into a function of
+      host physical memory, putting the host into both their COVERAGE (the burn test skips its
+      whole body above ≈341 MiB, staying green) and their COST (the ladder's crossing depth is
+      linear in the reservation and crossing is Θ(depth²)). **WHERE**:
+      `rust/src/ast_pipeline/mod.rs:7108` and `rust/src/embedding_api.rs:3579,3651,3813,3880,4082`.
+      ⭐ **TOOL SIGNATURE — `git log -S`, and it supplies the WHY as well as the WHERE:**
+
+      ```
+      git log -S'MAX_SAFE_BURN_BYTES'            -- rust/src/ast_pipeline/mod.rs
+        -> 8f846e63  PGEN-ENGINE-UNIVERSAL-SERVICES-0138 (leaf .69(d))
+      git log -S'ceiling_budget_from_reservation' -- rust/src/embedding_api.rs
+        -> a60976cb  PGEN-ENGINE-UNIVERSAL-SERVICES-0140 (leaf .78)
+      ```
+
+      ⇒ **ONE commit each, and no later commit touches either.** Both were authored while
+      `dedicated_parse_stack_bytes()` returned a compiled-in LITERAL — so reading it was harmless
+      and "process-wide" and "known constant" were the same thing. `.69`(a) changed what that
+      function MEANS and neither site was revisited. That is precisely the shape `.79` found in
+      `MIN_DEDICATED_PARSE_STACK_BYTES` + `GENERATED_RECURSION_GUARD_STACK_PROBE_FLOOR`
+      (*"introduced in the SAME commit and never re-read"*), one level up: not a stale number this
+      time, but a stale ASSUMPTION about a function.
+      ⛔ The population was enumerated before any fix was designed
+      (`git grep -n "dedicated_parse_stack_bytes()" -- rust/src`), and the `.69`(d) stack-probe
+      instrument supplied the RED control: with the burn test's pin removed under
+      `PGEN_PARSE_STACK_BYTES=536870912` the assertion reads `left: 0` — no refusal observed at
+      all, the vacuity itself, reproduced rather than argued.
+- [x] **ADDRESSED (verified)** — before: 1 126 tests, 316 s, coverage and runtime both functions
+      of the host. After: **1 127 tests, 88 s**, every ceiling measurement taken at a reservation
+      the test NAMES. The pin is asserted in both places rather than assumed; the anchoring lock
+      that first FAILED under the pin was upgraded from a near-tautology; and the new
+      proportionality control re-derives the SV contract's published linearity claim on every run,
+      on frame depth rather than on the quantised ladder rung, carrying its own RED control (a
+      fixed ceiling's 1000‰ ratio is asserted to fall outside the tolerance).
+- [x] **NO REGRESSION** — 1 127 lib tests pass / 0 failed, `clippy` clean.
+      **ZERO grammar / codegen / generated bytes**: all 11 artifacts re-derive BYTE-IDENTICALLY
+      (tier 2, 0 sites each). `GENERATED-REPRODUCIBILITY` went RED first — `rust/src/ast_pipeline/*.rs`
+      is inside its DERIVED emission-source digest set and this slice edits a `#[cfg(test)]` module
+      in `mod.rs` — the doctrine refusing to guess exactly as designed, and re-recorded from a
+      re-derivation rather than edited. No user-visible behaviour changes: every edit is test-side
+      or the new `run_on_dedicated_parse_stack_with_reservation` entry point, which no shipping
+      path calls.
+
 - ⭐ **ORDERING, and it is the director's standing ruling rather than my preference**: (d) is
   CAPABILITY, so it sits ahead of `.68` under *"functionality, accuracy first"*
   ([[feedback_correctness_before_speed]]). But (b) and (c) are the controls that make (d) safe to

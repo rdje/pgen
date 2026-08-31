@@ -1,5 +1,39 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-31 - PGEN-ENGINE-UNIVERSAL-SERVICES-0159 (.87(b)+(c): pinning the ceiling tests' reservation; .87(f) rerouted to .86(c))
+
+- ⭐⭐⭐ **THE LESSON: CONTROLLING A VARIABLE WAS THE CHEAPER OPTION, NOT THE EXPENSIVE ONE.** I
+  opened `.87` believing the pin was a cost to be justified — rigour paid for with CI minutes. It
+  is the reverse, and the reason is a property already in the tree: crossing cost is Θ(depth²)
+  while crossing depth is LINEAR in the reservation, so a test that pins a SMALL reservation is
+  quadratically cheaper than one that inherits a large one. 316 s → 88 s, with one more test.
+  ⇒ **when a test reads an ambient quantity, ask what it costs to name one instead — the answer
+  is not always "more".**
+- ⛔⛔ **AND THE FIRST CUT OF THE NEW CONTROL WAS A BAD TRADE I ALMOST SHIPPED QUIETLY.** Comparing
+  (pin, 2×pin) added 345 s and left the suite SLOWER than the host-dependent one it replaced. The
+  fix was direction, not scope: take the pair DOWNWARD so the expensive arm is the one already run
+  and cached. **I only noticed because I re-measured the suite after adding a test instead of
+  assuming a new assertion is cheap.**
+- ⭐⭐ **A PIN MAKES A CONTROL POSSIBLE THAT AMBIENT STATE MADE UNAFFORDABLE.** The SV contract
+  publishes the linearity claim the entire derived-ceiling design is sold on — and nothing
+  re-derived it, because doing so needs TWO reservations in one process, which is exactly what
+  reading a process-wide `OnceLock` forbids. The same shape appears twice more in this module's
+  history: `scale_sample_depth_to_reservation` was split into a pure kernel for it, and `-0158`
+  had to split the ANCHOR out for it. ⇒ **ambient state does not just make a test host-dependent;
+  it makes whole classes of control unwritable.**
+- ⭐ **AN ASSERTION WHOSE TWO SIDES COME FROM THE SAME CALL IS NOT A CONTROL.** The anchoring lock
+  compared `observed.reservation_bytes` against `dedicated_parse_stack_bytes()` — the value the
+  engine had just read from the same function. It could only fail if the recording were broken.
+  It failed when the pin landed, which is how the weakness surfaced; independence, not agreement,
+  is what makes the assertion mean something.
+- ⛔⛔⛔ **THE ROUTING DECISION MATTERED MORE THAN THE CODE.** I had offered the director a choice
+  between building a "two-sided documentation" doctrine and doing the capability work. Both halves
+  of that framing were wrong: the doctrine is a token list over prose (`.77`(b)'s measured
+  mistake), and the defect it pointed at is MEASURABLE — the accept-set adjudication is keyed on a
+  grammar PATH, so an engine change that moves the accept set is adjudicated by nothing. One
+  `grep` decided it. ⇒ **when two options both look plausible, look for the cheap measurement that
+  makes one of them not a question** — and do not hand a director a choice a census can settle.
+
 ## 2026-08-31 - PGEN-ENGINE-UNIVERSAL-SERVICES-0158 (self-audit of -0157: three published claims corrected, one in a downstream contract)
 
 - ⭐⭐⭐ **THE LESSON, and it is about READING A GREEN CONTROL.** A mutation came back green on the
