@@ -34,9 +34,15 @@ LEVELS   RC   DEPTH      CAUSE                     USED_BYTES   OVERSHOOT   B_FR
 2048     0    -          no_refusal                -            -           -         -
 3072     0    -          no_refusal                -            -           -         -
 4096     0    93694      BudgetExhausted           258826976    7168736     2762      2.34x
-5120     124  -          RUNG_TIMEOUT_900s         -            -           -         UNRESOLVED
+5120     124  -          RUNG_TIMEOUT_900s         -            -           -         SUPERSEDED (see below)
 6144     124  -          RUNG_TIMEOUT_900s         -            -           -         UNRESOLVED
 8192     124  -          RUNG_TIMEOUT_900s         -            -           -         UNRESOLVED
+
+## release probe, 256 MiB default, RE-RUN AT A CAP SIZED FOR .68's QUADRATIC CROSSING (2 700 s)
+# The 900 s cap above MASKED an abort. A timeout bounds your patience, never the program.
+LEVELS   RC   DEPTH      CAUSE                     ELAPSED   NOTE
+5120     134  -          SIGABRT_PAST_RESERVATION  2606 s    15 400-byte input; guard marker guard.82292,
+#                                                            peak 5 333 MB. THE SHIPPED ARTIFACT ABORTS.
 
 ## reservation x shape matrix (debug), showing the shape axis dominates
 SHAPE     96MiB     128MiB    192MiB    256MiB
