@@ -122,6 +122,35 @@
       "instrument": "stimuli/sv/corpus_verdict_coverage.py",
       "tuple_legend": "adjudicated/routed/no-verdict/dark/axis-2-bar"
     },
+    "systemverilog_raw_parse": {
+      "kind": "raw_parse",
+      "checked_by": "scripts/check_corpus_census.sh",
+      "freshness_gate": "bash scripts/check_corpus_census.sh systemverilog_raw_parse",
+      "tuple_marker": "corpus-census[systemverilog_raw_parse]: OK (tuple ",
+      "report": "stimuli/sv/characterization/characterization.md",
+      "corpus_root": "stimuli/sv/subs",
+      "file_extensions": [
+        ".sv",
+        ".svh",
+        ".v"
+      ],
+      "sub_corpus_dirs": {
+        "uvm-core": "stimuli/sv/uvm"
+      },
+      "grammar_identity_row": "grammar",
+      "parser_identity_row": "generated parser",
+      "engine_paths": [
+        "rust/src",
+        "rust/build.rs",
+        "rust/Cargo.toml"
+      ],
+      "engine_staleness_budget_commits": 72,
+      "denominator": "every .sv / .svh / .v file under the fourteen vendored SystemVerilog corpora in stimuli/sv/subs plus the folded uvm-core tree in stimuli/sv/uvm",
+      "instrument": "stimuli/run_external_corpus.sh sv",
+      "regenerate": "scripts/run_with_memory_guard.sh --budget-mb 16384 --timeout-s 1800 -- stimuli/run_external_corpus.sh sv",
+      "tuple_legend": "files/pass/fail/timeout/crash; RAW parse outcomes under --profile sv_2017, no answer key",
+      "answer_key": "none here -- these are RAW parse outcomes and a parse-FAIL is frequently the CORRECT outcome. The SystemVerilog ANSWER KEY lives in the adjudication manifests and is published as the `systemverilog` verdict_coverage entry above; this entry exists because that one carries NO identity row, so nothing could re-hash the grammar the numbers describe (SV-CORPUS-GRAD.13j)."
+    },
     "vhdl": {
       "kind": "raw_parse",
       "checked_by": "scripts/check_corpus_census.sh",

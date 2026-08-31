@@ -1,5 +1,39 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-31 - PGEN-SV-CORPUS-GRAD-0313 (.13j(c) discharged — a gate that re-implements its producer's population agrees with it until a corpus contains the difference)
+
+- ⭐⭐⭐ **THE TRANSFERABLE LESSON, and it is a general one about gates rather than about corpora:
+  A CHECK THAT RE-DERIVES ITS SUBJECT'S POPULATION BY REIMPLEMENTATION IS GREEN UNTIL SOMETHING
+  CONTAINS THE THING THE TWO IMPLEMENTATIONS DISAGREE ABOUT.** `check_corpus_census.sh`'s denominator
+  arm counted `os.walk` + suffix; the producer counts `find -type f`. Those two agree on every file
+  in the VHDL corpora — **0 symlinks** — and disagree on 37 files in the SystemVerilog ones. The arm
+  shipped, ran green for its whole life, and was wrong the entire time; the first family that
+  contained a symlink exposed it on the first run. ⇒ **when a gate re-derives a number the producer
+  also derives, hold them equal by CALLING the producer's definition, not by restating it.** The new
+  self-test does exactly that: it shells out to `find -type f` on the probe tree and requires the two
+  counts to match, so the gate and the producer cannot drift apart again without saying so.
+- ⛔⛔ **AND THE SECOND DEFECT IS THE SAME SHAPE WEARING A DIFFERENT HAT: THE ARM DID NOT
+  RE-IMPLEMENT THE PRODUCER'S *PATHS* EITHER.** The runner takes `$SUBS` **plus** `EXTRA_DIRS`; the
+  gate composed `<corpus_root>/<name>` and had no notion of a folded member. The consequence is the
+  worse direction: not a false failure but a silent NOT EVALUATED on 174 files — the denominator arm
+  narrowing the denominator. A false failure gets fixed the day it fires; a silent narrowing is the
+  `.13j` disease itself, one level down.
+- ⛔⛔⛔ **A CONTROL THAT CANNOT FAIL, TWICE IN TWO SLICES, AND THE SECOND TIME I WROTE IT MYSELF
+  AFTER PUBLISHING THE LESSON.** `-0311`'s C2 could not fire because `.gitignore` hid its file. This
+  slice's first `sub_corpus_dirs` control asserted that a dict literal returns its own value — no
+  edit to `sub_corpus_dir()` could have broken it, including deleting the function. ⇒ the discipline
+  that catches this is mechanical, not attentional: **after writing a control, MUTATE the code it
+  claims to cover and require it to go red.** Both new controls were then mutated (`--self-test`
+  `rc 2`, full run `rc 2`) and the file restored byte-identical. Writing the lesson down demonstrably
+  did not prevent the recurrence; driving the mutation did.
+- ⭐ **WHY THE RED PROOF USED GIT HISTORY RATHER THAN A HAND-EDITED DIGEST.** `(c)` asked for the
+  grammar arm to be proven against *the pre-(b) tree*. Hand-typing an old digest into the report
+  would have tested the arm's string comparison; restoring the actual `2f330461` report tests the arm
+  against a state this repository really was in, and it brought two NOTES with it that a synthetic
+  control would not have produced — the dirty stamp `(d)` removed, and engine drift at **33 of a
+  72-commit budget**. That second number is the useful one: the previous state was 39 commits from a
+  HARD failure, so the arm would have escalated on its own rather than noting forever.
+
 ## 2026-08-31 - PGEN-SV-CORPUS-GRAD-0312 (.13j(b) discharged — a raw delta and an adjudicated delta are different measurements, and only one of them is the claim)
 
 - ⭐⭐⭐ **THE TRANSFERABLE LESSON: FOUR ROWS MOVED AND THE BAR MOVED BY TWO, IN BOTH DIRECTIONS AT

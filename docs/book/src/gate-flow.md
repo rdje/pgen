@@ -887,6 +887,46 @@ directory-scoped exclusion would have silenced the one row that must stay loud. 
 regression control that pins this drives a modified `v2005_lane_files.tsv` through the
 predicate and requires `+dirty`.
 
+### Wiring a family to the census gate — and why a denominator must be counted the producer's way
+
+`CORPUS-CENSUS-CURRENCY` reads every entry in `corpus_census`
+(`rust/test_data/grammar_quality/family_status_block_v0.json`) whose `checked_by` names
+`scripts/check_corpus_census.sh`, so adding a family is a schema edit, not a code
+edit. SystemVerilog carries **two** entries: a `verdict_coverage` one, checked by
+`check_sv_corpus_denominator.sh`, which publishes the adjudicated tuple the family
+status block renders; and a `raw_parse` one, `systemverilog_raw_parse`, which is what
+gives it the identity and staleness arms. They coexist because
+`scripts/report_family_status.sh` looks the schema up by exact family **name**, so the
+second key is invisible to the status producer by construction.
+
+Wiring SystemVerilog in for the first time made the gate fail, and both failures were
+the gate's:
+
+- **The denominator arm counted files the parser is never handed.** The producer
+  collects with `find … -type f`, meaning *regular* files; the arm walked the tree and
+  tested only the suffix, so it also counted **symlinks** — 37 of them, in `friscv` (5)
+  and `opentitan` (32), confirmed independently by `find -type l` and by git's own mode
+  bits (`git ls-files -s`, mode `120000`) inside each submodule. ⭐ The same census over
+  the VHDL corpora reads **zero**, which is exactly why the arm had been green since it
+  shipped: it agreed with the producer by accident of what those corpora contain, not by
+  construction. The count is now `stat.S_ISREG(os.lstat(...))` — `os.path.isfile`
+  *follows* symlinks and would not have fixed it.
+- **A sub-corpus is not always `<corpus_root>/<name>`.** SystemVerilog folds a
+  pre-submodule vendoring of `uvm-core` — 174 sources at `stimuli/sv/uvm` — into the
+  bulk universe, so composing the path from the name alone pointed at a directory that
+  does not exist and the arm reported the member *not evaluated*, silently narrowing the
+  denominator it exists to guard. A declared `sub_corpus_dirs` map now overrides the
+  composed path.
+
+> ⛔ **The transferable rule: a gate that re-implements its producer's population will
+> agree with it until a corpus contains the thing they disagree about.** Both arms are
+> now pinned by self-test controls that build a real probe tree — a regular source, a
+> symlinked source, a symlinked directory, an unrelated extension — and hold
+> `find -type f` and the gate equal on it. The old suffix-only reading is kept as the
+> RED control, so a change that stops the arm discriminating fails the gate's own
+> self-test rather than passing quietly.
+
+
 ---
 
 ## 6. Invocation — who actually runs what

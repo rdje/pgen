@@ -148,7 +148,7 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"; cd "$ROOT" || exit 2
 
 exec python3 - "$@" <<'PYEOF'
-import contextlib, io, json, os, re, shutil, subprocess, sys
+import contextlib, io, json, os, re, shutil, stat, subprocess, sys
 
 ROOT = os.getcwd()
 # ⛔ THE SCHEMA PATH IS A SEAM, and it is the SAME seam `scripts/report_family_status.sh` reads —
@@ -427,14 +427,81 @@ def self_test():
          GREEN_REPORT.replace("| 100 | 40 | 60 | 0 | 0 | 40.0% |", "| 100 | 40 | 60 | 0 | 40.0% |"),
          lambda g: g == "REFUSED")
 
+    # --- arm (4)'s POPULATION, on a real filesystem (SV-CORPUS-GRAD.13j(c)) ------------------------
+    #
+    # The arms above read a document. Arm (4) reads a DIRECTORY, and the defect it shipped with was
+    # a disagreement with the producer about what counts as a file — invisible to any document
+    # control, and green for as long as the corpora it happened to be pointed at held no symlink.
+    # The tree is built under rust/target (repo-derived, on the repository's own volume) and torn
+    # down in the same call.
+    probe = os.path.join(ROOT, "rust/target/corpus_census_gate/_selftest_population")
+    shutil.rmtree(probe, ignore_errors=True)
+    try:
+        os.makedirs(os.path.join(probe, "nest"), exist_ok=True)
+        with open(os.path.join(probe, "real.sv"), "w", encoding="utf-8") as fh:
+            fh.write("module m; endmodule\n")
+        with open(os.path.join(probe, "nest", "deep.svh"), "w", encoding="utf-8") as fh:
+            fh.write("// header\n")
+        with open(os.path.join(probe, "ignored.txt"), "w", encoding="utf-8") as fh:
+            fh.write("not a source\n")
+        symlink_made = True
+        try:
+            os.symlink(os.path.join(probe, "real.sv"), os.path.join(probe, "link.sv"))
+            os.symlink(os.path.join(probe, "nest"), os.path.join(probe, "linkdir"))
+        except (OSError, NotImplementedError):
+            symlink_made = False
+
+        exts = (".sv", ".svh", ".v")
+        got = count_sources(probe, exts)
+        if got != 2:
+            misses.append(f"population: count_sources read {got}, want 2 "
+                          f"(2 regular sources; a .txt, a symlinked source and a symlinked "
+                          f"directory must not count)")
+        if symlink_made:
+            # THE RED CONTROL, and it must be able to fail: the SUFFIX-ONLY reading this arm used
+            # to do reads 3 on the very same tree. If it ever reads 2, this control has stopped
+            # discriminating and its green above proves nothing.
+            suffix_only = sum(1 for dp, _dn, fns in os.walk(probe)
+                              for f in fns if f.endswith(exts))
+            if suffix_only != 3:
+                misses.append(f"population RED control: the suffix-only reading gave "
+                              f"{suffix_only}, want 3 — this control can no longer fail")
+            # …and the producer's own definition is the oracle, not this gate's opinion of it.
+            find = subprocess.run(
+                ["find", probe, "-type", "f", "(", "-name", "*.sv", "-o", "-name", "*.svh",
+                 "-o", "-name", "*.v", ")"], capture_output=True, text=True)
+            n_find = len([x for x in find.stdout.splitlines() if x.strip()])
+            if find.returncode == 0 and n_find != got:
+                misses.append(f"population: `find -type f` reads {n_find} and count_sources "
+                              f"reads {got} on the same tree — the gate and the producer disagree")
+
+        # --- the folded-root override, driven through the REAL resolver -------------------------
+        # An override that is only asserted about a dict literal is a control that cannot fail;
+        # these call sub_corpus_dir() itself, on both sides of its one branch.
+        fold = {"uvm-core": "stimuli/sv/uvm"}
+        if sub_corpus_dir("stimuli/sv/subs", fold, "uvm-core") != "stimuli/sv/uvm":
+            misses.append("sub_corpus_dirs: a declared override did not win over the composed path")
+        if sub_corpus_dir("stimuli/sv/subs", fold, "verible") != os.path.join("stimuli/sv/subs",
+                                                                             "verible"):
+            misses.append("sub_corpus_dirs: an UNlisted sub-corpus stopped composing from the root")
+        if sub_corpus_dir("stimuli/vhdl/subs", {}, "vests") != os.path.join("stimuli/vhdl/subs",
+                                                                           "vests"):
+            misses.append("sub_corpus_dirs: an entry with NO override map changed behaviour")
+        # and the override must actually reach the filesystem the arm walks
+        if not os.path.isdir(sub_corpus_dir("stimuli/sv/subs", fold, "uvm-core")):
+            misses.append("sub_corpus_dirs: the resolved uvm-core path is not a directory in this "
+                          "tree — the override resolves to somewhere the arm cannot walk")
+    finally:
+        shutil.rmtree(probe, ignore_errors=True)
+
     if misses:
         print(f"{TAG}: the reader does not discriminate ({len(misses)} control(s) missed):",
               file=sys.stderr)
         for m in misses:
             print(f"  ✗ {m}", file=sys.stderr)
         sys.exit(2)
-    print(f"{TAG}: self-test OK — 14 controls, every refusal arm and the green control observed "
-          f"firing")
+    print(f"{TAG}: self-test OK — 22 controls, every refusal arm and the green control observed "
+          f"firing (including arm (4)'s population on a real filesystem, with its RED control)")
 
 
 # =================================================================================================
@@ -581,6 +648,50 @@ def check_oracle_expectation(family, decl):
     return f"{cells}/{match}/{fa}/{fr}"
 
 
+def sub_corpus_dir(root, folded, name):
+    """Where sub-corpus `name` actually lives.
+
+    `<corpus_root>/<name>` for the common case, overridden by a `sub_corpus_dirs` entry for a
+    sub-corpus the producer folds in from elsewhere (SystemVerilog's `uvm-core`, which the runner
+    passes as EXTRA_DIRS and which sits at `stimuli/sv/uvm`, not under `stimuli/sv/subs`).
+    Module-level so the self-test can drive the resolution rather than restate it.
+    """
+    return folded.get(name) or os.path.join(root, name)
+
+
+def count_sources(directory, exts):
+    """The PRODUCER's population, re-derived — not a lookalike.
+
+    `stimuli/run_external_corpus.sh:408` collects with
+    `find "$SUBS" … -type f \\( -name '*.sv' -o … \\)`, and `-type f` means a REGULAR file.
+    A walk that tests only the suffix counts SYMLINKS as well, and then the denominator arm
+    reports a moved corpus for a corpus that never moved.
+
+    ⛔ MEASURED, not stylistic (SV-CORPUS-GRAD.13j(c)). Wiring SystemVerilog to this gate for the
+    first time, the suffix-only walk breached on two sub-corpora — `friscv` 441 published vs 446
+    walked, `opentitan` 3 983 vs 4 015 — a total of 37 rows, and every one of them is a symlink.
+    Two independent oracles agree: `find -type l` on the working tree, and git's own mode bits
+    (`git ls-files -s | awk '$1=="120000"'`) inside each submodule, both read 5 and 32. The same
+    census over the VHDL corpora reads **0**, which is exactly why this arm has been green since
+    it shipped — it agreed with the producer by accident of what the corpora happen to contain,
+    never by construction. `Surelog` carries 3 more in its index that its sparse checkout does not
+    materialise, so the producer and this walk both see 0 there and no breach arises: the disagreement
+    is only ever about symlinks that are actually on disk.
+    """
+    n = 0
+    for dirpath, _dirnames, filenames in os.walk(directory):
+        for f in filenames:
+            if not f.endswith(exts):
+                continue
+            try:
+                if stat.S_ISREG(os.lstat(os.path.join(dirpath, f)).st_mode):
+                    n += 1
+            except OSError:
+                # An unreadable entry is not a file this parser could have been handed either.
+                pass
+    return n
+
+
 def check_family(family, decl):
     """Returns the census tuple for `family`, appending to the module-level verdict lists."""
     kind = decl.get("kind")
@@ -625,21 +736,32 @@ def check_family(family, decl):
     # (4) denominator currency — needs the vendored corpora, which are submodules.
     root = decl["corpus_root"]
     exts = tuple(decl["file_extensions"])
-    present = [s for s in census["subs"] if os.path.isdir(os.path.join(root, s["name"]))
-               and os.listdir(os.path.join(root, s["name"]))]
+
+    # ⛔ A SUB-CORPUS IS NOT ALWAYS `<corpus_root>/<name>` (SV-CORPUS-GRAD.13j(c)). The producer
+    # takes EXTRA_DIRS as well as $SUBS: SystemVerilog folds the pre-submodule uvm-core vendoring
+    # (`stimuli/sv/uvm`, plain tracked files, 174 sources) into the bulk universe as sub-corpus
+    # `uvm-core`. Composing the path from the name alone puts it under `stimuli/sv/subs/uvm-core`,
+    # which does not exist, so the arm reported the corpus's LARGEST folded member NOT EVALUATED —
+    # silently narrowing the denominator this arm exists to guard. The override is DATA in the
+    # schema, matching BASELINE-IDENTITY's rule that a dependency set is declared, not hard-coded.
+    folded = decl.get("sub_corpus_dirs", {})
+
+    def sub_dir(name):
+        return sub_corpus_dir(root, folded, name)
+
+    present = [s for s in census["subs"] if os.path.isdir(sub_dir(s["name"]))
+               and os.listdir(sub_dir(s["name"]))]
     if len(present) != len(census["subs"]):
         missing = [s["name"] for s in census["subs"] if s not in present]
         unevaluated.append(f"{family}: the denominator arm — {len(missing)} of "
                            f"{len(census['subs'])} sub-corpora are absent or empty here "
                            f"({', '.join(missing)}); the vendored corpora are git submodules")
     for s in present:
-        n = 0
-        for dirpath, _dirnames, filenames in os.walk(os.path.join(root, s["name"])):
-            n += sum(1 for f in filenames if f.endswith(exts))
+        n = count_sources(sub_dir(s["name"]), exts)
         if n != s["files"]:
             failures.append(
                 f"{family}: sub-corpus `{s['name']}` publishes {s['files']} files but "
-                f"{os.path.join(root, s['name'])} holds {n} matching {'/'.join(exts)} today — the "
+                f"{sub_dir(s['name'])} holds {n} matching {'/'.join(exts)} today — the "
                 f"DENOMINATOR moved, so every share derived from it is about a different corpus. "
                 f"Re-measure: {regen}")
 

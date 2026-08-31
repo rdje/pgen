@@ -18796,7 +18796,7 @@ on the family that ships.
 (`PGEN_CORPUS_OUT_DIR`) and publish the DIFF against the tracked artifact — how many rows moved, in
 which direction, and whether the published bar moves with them; (b) ✅ **DISCHARGED below** (`PGEN-SV-CORPUS-GRAD-0312`) — promote the re-measure as the
 ATOMIC cascade `.13h` established (report → manifest → every derived surface), or record measured
-evidence that nothing moved; (c) **give SystemVerilog the arms** — route it to
+evidence that nothing moved; (c) ✅ **DISCHARGED below** (`PGEN-SV-CORPUS-GRAD-0313`) — **give SystemVerilog the arms** — route it to
 `scripts/check_corpus_census.sh` with a declared `report`, or add arms (3) and (5) to
 `scripts/check_sv_corpus_denominator.sh`, and RED-prove the grammar arm against the pre-(b) tree
 where it must fail; (d) ✅ **DISCHARGED below** — the SV report's recorded HEAD is `+dirty`, so the promotion must
@@ -18850,6 +18850,111 @@ by construction.
 graduation oracle and the numbers are the release bar the book publishes. It is not parked.
 (a) is measurement and is next; (c) cannot land before (b) without turning the tree RED, which is
 the correct order and not a workaround.
+
+### ✅✅✅ `.13j`(c) DISCHARGED — **SYSTEMVERILOG IS WIRED TO `CORPUS-CENSUS-CURRENCY`, AND WIRING IT UP FOUND TWO DEFECTS IN THE GATE ITSELF: ITS DENOMINATOR ARM COUNTED SYMLINKS THE PRODUCER NEVER PARSES, AND IT COULD NOT SEE A FOLDED SUB-CORPUS AT ALL** (2026-08-31, `PGEN-SV-CORPUS-GRAD-0313`)
+
+**WHAT LANDED.** A SECOND `corpus_census` entry, `systemverilog_raw_parse`, of kind `raw_parse`,
+naming `stimuli/sv/characterization/characterization.md` with `checked_by
+scripts/check_corpus_census.sh` and all six fields VHDL's entry carries. The existing
+`systemverilog` `verdict_coverage` entry is untouched, because it answers a different question and
+because `scripts/report_family_status.sh:484` looks the schema up by exact family NAME
+(`corpus_census[FAMILY]`) — so the new key is invisible to the status producer by construction,
+which was measured, not assumed: the SV family status block re-derives byte-for-byte unchanged.
+
+```
+corpus-census[systemverilog_raw_parse]: OK (tuple 16336/9794/6542/0/0
+   = files/pass/fail/timeout/crash; RAW parse outcomes under --profile sv_2017, no answer key)
+```
+
+⇒ **`grep -ci systemverilog` on this gate's full output is no longer 0**, which is the sentence
+`.13j` opened on.
+
+⛔⛔ **AND THE GATE COULD NOT HAVE RUN GREEN ON SYSTEMVERILOG WITHOUT TWO CORRECTIONS. Driven
+before anything was edited, it returned `rc 1` with two breaches and one NOT EVALUATED:**
+
+```
+✗ friscv    publishes  441 files but stimuli/sv/subs/friscv    holds  446 …
+✗ opentitan publishes 3983 files but stimuli/sv/subs/opentitan holds 4015 …
+NOT EVALUATED — 1 of 14 sub-corpora are absent or empty here (uvm-core)
+```
+
+- ⛔ **DEFECT 1 — ARM (4) RE-IMPLEMENTED THE PRODUCER'S POPULATION AND GOT IT WRONG.** The producer
+  collects with `find "$SUBS" … -type f \( -name '*.sv' … \)`
+  (`stimuli/run_external_corpus.sh:408`) — `-type f` means a **regular** file. The arm walked with
+  `os.walk` and tested only the suffix, so it counted **symlinks** the parser is never handed.
+  The gap is **37 rows**, and two independent oracles agree on every one: `find -type l` on the
+  working tree, and git's own mode bits inside each submodule
+  (`git ls-files -s | awk '$1=="120000"'`) — both read `friscv 5` and `opentitan 32`.
+  ⭐⭐ **WHY IT HAS BEEN GREEN SINCE IT SHIPPED**: the same census over the VHDL corpora reads
+  **0 symlinks**. The arm agreed with the producer by accident of what the corpora happen to
+  contain, never by construction — and `Surelog` carries 3 more in its index that its sparse
+  checkout does not materialise, so producer and gate both see 0 there and no breach arises. The
+  disagreement is only ever about symlinks that are on disk, which is why one family exposed it and
+  the other never could.
+- ⛔ **DEFECT 2 — A SUB-CORPUS IS NOT ALWAYS `<corpus_root>/<name>`.** SystemVerilog folds the
+  pre-submodule `uvm-core` vendoring — plain tracked files at `stimuli/sv/uvm`, **174** sources —
+  into the bulk universe as a sub-corpus, exactly as the runner's `EXTRA_DIRS` declares. Composing
+  the path from the name alone lands on `stimuli/sv/subs/uvm-core`, which does not exist, so the arm
+  reported the corpus's folded member **NOT EVALUATED** — silently narrowing the very denominator
+  it exists to guard. Now a declared `sub_corpus_dirs` map overrides the composed path; it is DATA
+  in the schema, per `BASELINE-IDENTITY`'s rule that a dependency set is declared, not hard-coded.
+
+**⭐ THE `(c)` RED PROOF THE LEAF ASKED FOR, DRIVEN FROM REAL GIT HISTORY RATHER THAN A SYNTHETIC
+MUTATION.** The pre-`(b)` report as it stood at `2f330461`, restored into place and handed to the
+gate:
+
+| arm | verdict on the pre-`(b)` report |
+|---|---|
+| (3) grammar identity | ⛔ **BREACH** — `8bb3e839fc36…` recorded vs `037a9553cf09…` in the tree, `rc 1` |
+| (1) dirty stamp | ⚠️ NOTE — *"the census records a DIRTY tree (`f50add45+dirty`)"* — exactly the note `(d)` removed |
+| (5) engine staleness | ⚠️ NOTE — generated parser `47a50a09…` vs `ad13eb08…` after **33** commits, **39 of budget left** |
+
+and `rc 0` on the promoted report. ⇒ the arm that `.13j` was opened because SystemVerilog did not
+have would have **failed on this tree**, and the engine arm shows the previous state was 33 commits
+into a 72-commit budget — it would have escalated to a hard failure on its own.
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `scripts/check_corpus_census.sh` arm (4) walked with
+        `os.walk` + a suffix test where the producer uses `find … -type f`, and composed every
+        sub-corpus path as `<corpus_root>/<name>`. Both located by DRIVING the gate on the new
+        entry (`rc 1`, 2 breaches + 1 NOT EVALUATED) and root-caused with two independent oracles —
+        `find -type l` and `git ls-files -s` mode `120000` inside each submodule, agreeing on
+        5 (`friscv`) + 32 (`opentitan`) = 37, against **0** for every VHDL corpus.
+  - [x] **FIX** — `count_sources()` tests `stat.S_ISREG(os.lstat(...))`, which is `find -type f`
+        exactly (`os.path.isfile` FOLLOWS symlinks and would NOT have fixed it); `sub_corpus_dir()`
+        resolves a declared `sub_corpus_dirs` override before composing from the root.
+  - [x] **ADDRESSED (verified)** — `bash scripts/check_corpus_census.sh systemverilog_raw_parse`
+        goes `rc 1` → `rc 0`, tuple `16336/9794/6542/0/0`, all five arms evaluated and the
+        `uvm-core` NOT EVALUATED gone. The `(c)` RED control above proves the arms can still fail
+        on this family, so the green is not vacuous.
+  - [x] **NO REGRESSION** — `vhdl` still `13720/4370/9350/0/0` and `regex` still `2189/1879/262/48`
+        (the pinned live-doctrine anchor), both `rc 0`; the SV family status block re-derives
+        **byte-identical**, proving the status producer is blind to the new key; `bash
+        scripts/check_doctrines.sh` ALL 33 PASS; the two RED mutations were applied and reverted in
+        the same tool call, leaving `scripts/check_corpus_census.sh` **byte-identical** to its
+        pre-mutation copy (`cmp`).
+  - [x] **LOCKSTEP** — schema + gate + book + tree + `MEMORY.md` + `CHANGES.md` this commit.
+
+**⭐⭐ THE SELF-TEST GREW FROM 14 CONTROLS TO 22, AND THE NEW ONES TOUCH A REAL FILESYSTEM.** Every
+prior control drives `parse_report`/`arithmetic_breaches` over synthetic TEXT — and no document
+control could ever have seen either defect, because both are about a DIRECTORY. The new arms build
+a probe tree under `rust/target/` (repo-derived, on the repository's own volume, torn down in the
+same call) holding 2 regular sources, a `.txt`, a symlinked source and a symlinked directory, and
+assert `count_sources` reads **2**, that the old suffix-only reading reads **3** on the same tree
+*(the RED control — if it ever reads 2, the control has stopped discriminating and says so)*, and
+that `find -type f` and `count_sources` agree on that tree, so the gate and the producer are held
+equal by the producer's own command rather than by this gate's opinion of it.
+⛔ **BOTH NEW CONTROLS ARE RED-PROVEN BY MUTATION, not asserted.** Reverting `count_sources` to the
+suffix-only reading ⇒ `--self-test rc 2`, 2 controls missed, and the full run `rc 2`; making
+`sub_corpus_dir` ignore its override ⇒ 2 controls missed. Restored, `rc 0` and the file is
+byte-identical.
+⛔⛔ **AND MY FIRST `sub_corpus_dirs` CONTROL WAS A TAUTOLOGY OVER A DICT LITERAL** — it asserted
+that `{"uvm-core": "stimuli/sv/uvm"}["uvm-core"]` equals `"stimuli/sv/uvm"`, which no change to the
+gate could ever break. It was rewritten to call `sub_corpus_dir()` itself on **both** sides of its
+one branch, plus an entry with no override map at all, plus a check that the resolved path is
+actually a directory this tree can walk. This is `(d)`'s lesson recurring inside the very next
+slice: **a control must be able to fail, and the way to find out is to make it fail.**
 
 ### ✅✅✅ `.13j`(b) DISCHARGED — **THE ATOMIC CASCADE IS PROMOTED ON A CLEAN TREE AND BOTH SV LANES ARE STAMPED CLEAN FOR THE FIRST TIME ON RECORD; THE `sv_2017` BAR DID NOT MOVE AND THE v2005 ARM'S BASELINE DID: 64 → 66** (2026-08-31, `PGEN-SV-CORPUS-GRAD-0312`)
 
