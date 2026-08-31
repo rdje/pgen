@@ -1,5 +1,37 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-31 - PGEN-SV-CORPUS-GRAD-0315 (.13k(b) done — a census opened to find answer-key errors found a parser defect instead, and the trust bound is not a defect list)
+
+- ⭐⭐⭐ **THE TRANSFERABLE LESSON: A "HOW GOOD IS THE EVIDENCE" NUMBER IS NOT A "WHAT IS BROKEN"
+  LIST, AND `.13k`(b) asked for the first while meaning the second.** Censusing the v2005
+  `must_accept` rows by BASIS returns 2 322 rows (93.7 %) resting on something other than a clause
+  citation — and 2 085 of those are adjudicated `match`. The number is real, already published, and
+  actionable on **none** of them. The class that can actually be worked is the one where the two
+  oracles DISAGREE: 53 rows. ⇒ **when a leaf proposes a population, check whether membership in it
+  implies anything is wrong.** If not, it is a trust bound, and the defect list is a different query.
+- ⭐⭐ **AND THE FIND CAME FROM THE HALF THE LEAF WAS NOT LOOKING AT.** `.13k` was opened on an answer
+  key that over-claims (`must_accept` on a suite's word). Censusing the whole disagreement set found
+  **20 rows going the other way**: text IEEE 1364-2005 Annex A *does* define, which the parser
+  rejects. One of them bisected to `tri0`, a net type in all three vendored LRMs that the grammar's
+  `net_type` alternation simply does not list — rejected on the SHIPPED `sv_2017` profile too. ⇒ **a
+  census scoped to the defect you expect finds the defect you expect.** The only reason this one did
+  not is that it enumerated the population before classifying it.
+- ⛔⛔ **A WINDOW IS A FRAME, AND MINE WAS POINTED THE WRONG WAY.** `furthest_position` is where the
+  parser STOPPED, so the construct that stopped it commonly ENDS at that byte. Reading 48 bytes
+  FORWARD measured the text *after* the question: 10 of 53 rows unclassified, every one mis-framed
+  identically, and `br_gh1178a.v` showed `wire [7:0] replicated;` while the `logic` that actually
+  blocked it sat behind the cursor — its two sibling files classified correctly only because their
+  stop points fell a few bytes earlier. ⇒ the tell was that the residual was CLUSTERED, not scattered;
+  an instrument's unclassified rows are a sample of its blind spot, not noise. Widening moved 4 of 53
+  verdicts, and publishing that number is the honest statement of the census's precision — the fifth
+  frame error in this session's series (`-0160` value/grid, `-0161` name, `-0310` column, `-0314`
+  discriminator, and now window).
+- ⭐ **WHY THE TRIAGE WAS BISECTED RATHER THAN ASSERTED.** Text matching at a stop point is a
+  hypothesis about which token the parser could not derive. Three two-sided bisects turn it into a
+  measurement — the unmodified file must REJECT and the one-construct substitution must ACCEPT, so
+  neither direction is free. That is what promoted `tri0` from *"a token near the cursor"* to *"the
+  blocker"*, and it is what makes `.13n`'s repro three lines long instead of a corpus file.
+
 ## 2026-08-31 - PGEN-SV-CORPUS-GRAD-0314 (.13j CLOSED — two readings of one discriminator, two sets, one headline; and two of my own instruments caught only by contradiction)
 
 - ⭐⭐⭐ **THE TRANSFERABLE LESSON: A CENSUS'S HEADLINE CAN BE STABLE ACROSS READERS THAT DISAGREE

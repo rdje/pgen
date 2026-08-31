@@ -19215,9 +19215,11 @@ doctrine's shape voluntarily rather than because a gate asked.
   strings actually assert. This is the `.61`(b) shape once more: an oracle's blind spot is inherited
   by every row built on it.
 - **OWES**: (a) re-adjudicate the three rows against Annex A and record the basis as an LRM citation
-  rather than a suite claim; (b) ⛔ **census the class, do not fix three rows** — every
+  rather than a suite claim; (b) ✅ **DONE `PGEN-SV-CORPUS-GRAD-0315`** — ⛔ **census the class, do not fix three rows** — every
   `must_accept` row in the v2005 manifest whose basis rests on a suite contract rather than on a
-  clause citation is the same defect, and three is a sample; (c) decide whether such rows become
+  clause citation is the same defect, and three is a sample; ⛔ **the BASIS population turned out
+  to be the wrong one (2 322 rows = the already-published 93.7 % trust bound, 2 085 of them at
+  `match`); the DECIDABLE class is the 53 rejects-valid rows, and it is TWO defects, not one**; (c) decide whether such rows become
   `must_reject` or `divergence:explained` with an edition-contrast reason, since a GOLDEN file that
   is genuinely not 1364-2005 is a CORPUS COMPOSITION fact, not a parser verdict.
 - ⛔ **NOT REPAIRED IN `.13j`, DELIBERATELY.** Editing an answer key so it agrees with the parser is
@@ -19256,6 +19258,119 @@ doctrine's shape voluntarily rather than because a gate asked.
 - ⚠️ **NOT a blocker for the SV release** and not worked ahead of the `.13j` cascade: the effect is
   a missing checklist, not a wrong number. Routed rather than fixed inline so the widening gets the
   pricing its own doctrine demands.
+
+### ✅✅✅ `.13k`(b) DONE — **THE CLASS IS CENSUSED AND `.13k`'s OWN PREMISE IS REFUTED IN THE USEFUL DIRECTION: THE 53-ROW POPULATION IS *TWO* DEFECTS, AND THE HALF NOBODY WAS LOOKING FOR IS A THREE-PROFILE PARSER GAP ON A NET TYPE ALL THREE LRMs DEFINE** (2026-08-31, `PGEN-SV-CORPUS-GRAD-0315`)
+
+⛔⛔ **FIRST, THE POPULATION `.13k`(b) ASKED FOR IS THE WRONG ONE, AND THAT IS MEASURED, NOT
+ARGUED.** (b) proposed censusing by BASIS — *every `must_accept` row resting on a suite contract
+rather than a clause citation*. Re-using `key_provenance_census.py`'s classifier (never a second
+copy of it), scoped to the v2005 lane's `must_accept` rows:
+
+| provenance of the expectation | rows | share |
+|---|---|---|
+| clause-cited | 157 | 6.3 % |
+| tool-testimony | 474 | 19.1 % |
+| suite-convention | 1 846 | 74.5 % |
+| unclassified | 2 | 0.1 % |
+| **not grounded in a clause** | **2 322** | **93.7 %** |
+
+⇒ that is, to within a tenth of a point, the corpus-wide trust bound `CORPUS-KEY-INTEGRITY`
+already publishes (**93.8 %**). It is a true number and it is **not a defect list**: **2 085 of the
+2 322 sit at `match`**, i.e. the parser agrees with them. **A basis is a TRUST BOUND, not a fault.**
+The decidable class is where the key and the parser actually DISAGREE, and there are **53** of them
+— every row adjudicated `divergence:unexplained_rejects_valid` in the v2005 lane.
+
+**THE INSTRUMENT**: `stimuli/sv/v2005_rejects_valid_census.py` → `docs/tasks/artifacts/
+sv_corpus_grad/v2005_rejects_valid/{census.md,census.tsv}`. Deterministic, stdlib-only, 12
+self-test arms including a NEGATIVE control (ordinary 1364-2005 text no probe may claim) and two
+precedence arms. It joins the manifest to the `positions_v2005.tsv` sidecar — the `furthest_position`
+oracle — and reports the text at each stop point.
+
+⭐⭐⭐ **THE RESULT: 53 ROWS, TWO DEFECTS.**
+
+| edition verdict | rows | what it means |
+|---|---|---|
+| `1800_only` | 19 | 1364-2005 Annex A cannot derive the text ⇒ **the ANSWER KEY is wrong**, `.13k`'s class |
+| `1364_legal` | 20 | Annex A **does** define it ⇒ **the `verilog_2005` PROFILE under-accepts** — a PARSER defect |
+| `preproc` | 5 | a compiler-directive question, owned by the svpp lane |
+| `UNCLASSIFIED` | 9 | no probe matched; named, never scored |
+
+⇒ **`.13k` said *"three is a sample"*. It is — of 19. But the same population holds 20 rows of a
+defect in the opposite direction that nothing in the leaf anticipated**, and those are ours.
+
+✅✅ **THE TRIAGE IS SPOT-CHECKED AGAINST THE PARSER, NOT LEFT AS TEXT MATCHING**, three
+two-sided bisects (unmodified file REJECTS, one-construct substitution ACCEPTS):
+
+| file | substitution | before → after |
+|---|---|---|
+| `br_gh1178a.v` | `logic` → `reg` | `rc 1` → **`rc 0`** ⇒ `logic` was the blocker (`1800_only`) |
+| `sv2v/.../do_while.v` | `x++` → `x = x + 1` | `rc 1` → **`rc 0`** ⇒ `++` was the blocker (`1800_only`) |
+| `ivltests/tri0.v` | `tri0` → `wire` | `rc 1` → **`rc 0`** ⇒ `tri0` was the blocker (`1364_legal`) |
+
+⛔⛔ **AND A FRAME ERROR IN MY OWN INSTRUMENT, CAUGHT BY ITS OWN RESIDUAL.** The first cut read a
+48-byte window FORWARD of `furthest_position`. But that position is where the parser STOPPED, so
+the construct that stopped it frequently ENDS there — `br_gh1178a.v` reads `wire [7:0] replicated;`
+forward of its stop point while the `logic` it cannot derive sits BEHIND it, and its two sibling
+files classified correctly only because their stop points happen to fall a few bytes earlier. It
+left **10 of 53 UNCLASSIFIED**, all mis-framed the same way. Widened to look both ways: 9
+unclassified and **4 rows changed class**. ⇒ **a window is a frame**, and the honest statement of
+this census's precision is that number: 4 of 53 verdicts moved when the frame did. The exact oracle
+is `--trace-rules` (TOOLBOX §1), owed by `(a)`; this is a TRIAGE with a measured sensitivity, not a
+ruling.
+
+⛔⛔ **AND A SECOND DEFECT IN MY OWN ARTIFACT THAT MY OWN CHECK COULD NOT SEE.** After fixing the
+window I ran an arity pass over `census.md` and read **0 mismatches**. `TABLE-ARITY-RATCHET` then
+failed the commit on its SECOND arm: **6 table cells carrying an UNPAIRED BACKTICK RUN**, because a
+corpus fragment can itself contain a backtick — a Verilog compiler directive is spelled
+`` `define ``, and this census has five preprocessor rows — and a single-backtick span cannot hold
+one. It moves no cell count, so an arity reader is structurally blind to it. ⇒ **`LIVE-DOC-CONTAINMENT.11`
+measured on my own output within the hour: a count is not a schema.** Fixed at the emission site
+with a CommonMark-correct `code()` helper (delimiter longer than the longest run inside, padded when
+the content starts or ends with a backtick), and truncation now happens BEFORE fencing, since
+slicing a fenced string can cut the closing delimiter off and re-create the very run it prevents.
+
+**Acceptance:** (a) open — re-adjudicate each row on an Annex-A basis, with `--trace-rules` as the
+per-row oracle; (b) ✅ **this slice**; (c) open — rule `must_reject` vs `divergence:explained`
+edition-contrast. ⛔ **The key is still not edited**, deliberately.
+
+#### `.13n` — ⛔⛔⛔ NEW `todo` — **THE SHIPPED SV GRAMMAR'S `net_type` HAS 10 OF THE LRM'S 12 ALTERNATIVES: `tri0` AND `tri1` ARE ABSENT, SO A NET TYPE ALL THREE VENDORED LRMs DEFINE IS REJECTED ON ALL THREE PROFILES** (opened 2026-08-31 by `.13k`(b) / `PGEN-SV-CORPUS-GRAD-0315`)
+
+**ROUTING EVIDENCE** — measured, minimal, and it is an SV *release* defect, not a v2005-lane one.
+
+- **WHY + WHERE**: `grammars/systemverilog.ebnf:4149-4159`. `net_type` enumerates ten branches —
+  `supply0 supply1 tri triand trior trireg uwire wire wand wor`. **`tri0` and `tri1` are missing.**
+  Both spellings ARE in the reserved-keyword regexes (`:536`, `:539`), so they lex as keywords and
+  then have no production to land in.
+- ⛔ **ALL THREE VENDORED LRMs DEFINE THEM**, re-derived in-repo rather than inferred:
+  IEEE 1364-2005 `docs/verilog/2005/md/section-Annex_A-…:219` — *`net_type ::= supply0 | supply1 |
+  tri | triand | trior | tri0 | tri1 | uwire | wire | wand | wor`*; IEEE 1800-2023
+  `docs/systemverilog/2023/md/section-Annex_A-…:891`; IEEE 1800-2017 at
+  `docs/systemverilog/2017/md/section-6-data-types.md:928` and `section-41-data-read-api.md:899`
+  (that edition's vendored Annex A extract does not carry the production, which is why the
+  citation is to clause 6 — stated so the next reader does not re-derive a false absence).
+- ⭐⭐ **MINIMAL REPRO, three profiles × three inputs**:
+
+  | input | `verilog_2005` | `sv_2017` | `sv_2023` |
+  |---|---|---|---|
+  | `module m; tri0 a; tri1 b; endmodule` | `rc 1` ⛔ | `rc 1` ⛔ | `rc 1` ⛔ |
+  | `module m; wire a; wire b; endmodule` | `rc 0` | `rc 0` | `rc 0` |
+  | `module m; triand a; trior b; endmodule` | `rc 0` | `rc 0` | `rc 0` |
+
+  ⇒ the sibling net types from the same alternation accept; only the two missing ones reject. This
+  is UNDER-ACCEPTANCE on the **shipped `sv_2017` profile**, which the standing bar calls a defect.
+- **CORPUS COST, priced from the census**: **9 of the 53** v2005 rejects-valid rows stop on
+  `tri0`/`tri1` (`test_04_03_02_1.v`, `br_gh356a.v`, `pr1032.v`, `pr1664684.v`, `pr841.v`,
+  `tri0.v`, `tri0b.v`, `tri1.v`, `tri3.v`). Their effect on the `sv_2017` axis-2 bar is not yet
+  measured and must not be assumed — the main lane's rows are a different population.
+- **OWES**: (a) add the two branches with their `-> {kind: …}` shapes matching their siblings;
+  (b) re-generate and run the SV gates (shape contract, cert union, `PARSE-COST-RATCHET`);
+  (c) re-run both corpus lanes and publish the moved rows through the `.13h` atomic cascade;
+  (d) a ledger row + a contract revision, since this MOVES THE ACCEPT SET of a shipped profile;
+  (e) ⛔ census the SAME class — `net_type` is one alternation of many, and an alternation that
+  lost two members without anything noticing is a claim about every other enumerated production in
+  this grammar. `LRM-GRAMMAR-FIDELITY` owns that instrument.
+- ⭐ **SV-lane, defect burn-down, and it is NOT parked**: it is an under-acceptance on the profile
+  being released to Nexsim, found by measurement, in the `.3` burn-down class.
 
 #### `.13g` — the FRAGMENT-shaped population: an accept there is not testimony (`todo`, opened 2026-08-11 by `.13a`)
 

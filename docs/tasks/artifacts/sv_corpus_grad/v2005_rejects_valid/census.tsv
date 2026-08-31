@@ -1,0 +1,54 @@
+suite	relpath	position	line	construct	edition	fragment
+ispras-sv-tests	ieee-1364-2005/test_04_03_02_1.v	132	8	net_type_tri01	1364_legal	tor net accessibility\n\n// ! TYPE: POSITIVE\n\nmodule test;\n  tri1 scalared [63:0] bus64; // a bus that wil
+ispras-sv-tests	ieee-1364-2005/test_08_04_00_1.v	835	28	udp_table_entry	1364_legal	+\n    // obtain output on rising edge of clock\n        (01)    0    :  ?  :  0  ;\n        (01)    1    :
+ispras-sv-tests	ieee-1364-2005/test_08_06_00_1.v	364	15	udp_table_entry	1364_legal	q+\n    // obtain output on rising edge of clock\n    (01)    0    :  ?  :  0  ;\n    (01)    1    :  ?
+ispras-sv-tests	ieee-1364-2005/test_08_07_00_1.v	580	18	logic_keyword	1800_only	// clock  jk pc state output/next state\n      ?     ?? 01 : ? : 1 ; // preset logic\n      ?     ?? *1
+ispras-sv-tests	ieee-1364-2005/test_15_04_00_1.v	352	16	(unclassified)	UNCLASSIFIED	or example, the construct\n    $width(posedge clr, tWidth);\n\n    // is equivalent to the following\n    $w
+ispras-sv-tests	ieee-1364-2005/test_19_11_00_1.v	713	15	(unclassified)	UNCLASSIFIED	"Std 1364-2001 Verilog keywords\nmodule m2;\n  wire [63:0] uwire; // OK: ""uwire"" is not a keyword in 1364-"
+iverilog	ivtest/ivltests/br_gh1178a.v	341	16	logic_keyword	1800_only	cated, ({2{bus}}));\nendmodule\n\n\nmodule tb;\n  logic [3:0] bus;\n  wire [7:0] replicated;\n  wire [3:0] wire
+iverilog	ivtest/ivltests/br_gh1178b.v	272	15	logic_keyword	1800_only	ed, ({bus, bus}));\nendmodule\n\n\nmodule tb;\n  logic passed;\n  logic [3:0] bus;\n  wire  [7:0] replicated;\n
+iverilog	ivtest/ivltests/br_gh1178c.v	320	17	logic_keyword	1800_only	ated, ({2{bus}}));\nendmodule\n\n\nmodule tb;\n  logic passed;\n  logic [3:0] bus;\n  wire  [7:0] replicated;\n
+iverilog	ivtest/ivltests/br_gh1182.v	43	3	logic_keyword	1800_only	module top;\n  initial begin\n    logic [7:0] data;\n    logic [3:0] tmp;\n  end\n\n  initial beg
+iverilog	ivtest/ivltests/br_gh356a.v	175	15	net_type_tri01	1364_legal	ecify\n\nendmodule\n\nmodule test();\n\nreg     EN;\nreg     I;\ntri0    O;\n\ndut dut(EN, I, O);\n\nreg failed = 0;
+iverilog	ivtest/ivltests/br_gh531.v	635	39	assignment_operator	1800_only	[2:1] tmp;\n  begin\n    tmp[3:0]  = 4'b0000;\n    tmp[3:0] |= i[3:0];\n    f5 = tmp;\n  end\nendfunction\n\nfun
+iverilog	ivtest/ivltests/br_gh782c.v	680	33	gate_strength	1364_legal	comment */ // comment\n\n/* comment */`unconnected_drive/*\n   comment */\n/* comment */pull1/*\n   comment *
+iverilog	ivtest/ivltests/br_gh782d.v	235	9	macro_directive	preproc	efine /* comment */ // comment\n\n/* comment */`resetall/*\n   comment */\n/* comment */`celldefine/*\n   com
+iverilog	ivtest/ivltests/br_gh782e.v	100	4	macro_directive	preproc	"/ `begin_keywords /* comment */ // comment\n/* comment */ ""1364-2005"" /* comment */ // comment\nmodule m1;"
+iverilog	ivtest/ivltests/br_gh782f.v	101	4	macro_directive	preproc	`default_nettype /* comment */ // comment\n/* comment */ wire /* comment */ // comment\nmodule m1;\nendmod
+iverilog	ivtest/ivltests/macro_redefinition.v	14	1	macro_directive	preproc	module test();\n\n`define MACRO 1\n`define MACRO 1\n`define MACRO
+iverilog	ivtest/ivltests/macro_replacement.v	14	1	macro_directive	preproc	module test();\n\n`define MACRO 1\n`define MACRO 1\n`define MACRO
+iverilog	ivtest/ivltests/module_output_port_var2.v	135	4	(unclassified)	UNCLASSIFIED	d\n// as variables and be assigned a value.\n\nmodule test;\noutput reg a;\noutput reg [1:0] b;\noutput reg si
+iverilog	ivtest/ivltests/pr1032.v	304	12	net_type_tri01	1364_legal	come\n   // from the strength contained in the r-value.\n   tri0   foo = bar;\n\n   initial begin\n      d =
+iverilog	ivtest/ivltests/pr1520314.v	283	16	(unclassified)	UNCLASSIFIED	fy\n $setuphold(posedge A &&& B, BL[0], 0, 0, C,,,D, BL_X[0]); // line 14 compile fail iverilog_20060618\n
+iverilog	ivtest/ivltests/pr1664684.v	312	17	net_type_tri01	1364_legal	[31:0] up14;\n   wire [31:0] rdo;\n   reg        rm, cpen;\n   tri0 [31:0] rdi;\n\n   bug u1 (rdo, rm, cpen,
+iverilog	ivtest/ivltests/pr1716276.v	530	25	(unclassified)	UNCLASSIFIED	defined macro\n   // expanding to null\n\n    param_test #( , 4) submod(clk, 1'b1, fsm);\n\n   initial begin\n
+iverilog	ivtest/ivltests/pr1867332.v	111	10	specify_path_delay	1364_legal	cify specparam\n   tps = 0.0;\n   $setup(posedge CSB, edge[01,0x,x1,1x] CL, tps, a);\n endspecify\n\nendmodul
+iverilog	ivtest/ivltests/pr1877743.v	2129	84	specify_path_delay	1364_legal	\n  assign {co, s} = a + b + ci;\n\n  specify\n    (a, b, ci => co) = 1.5;\n    (ci => s) = (1.3, 1.7);\n    i
+iverilog	ivtest/ivltests/pr2834340.v	78	6	gate_strength	1364_legal	module test;\n\nreg c1reg,c2reg;\npulldown (weak0) pd1 (r1a,r1c,r1o);\npulldown (weak0) pd2 (r2a,r2c,r2o);\n\n
+iverilog	ivtest/ivltests/pr2834340b.v	235	14	gate_strength	1364_legal	the arm.\n  pulldown pd1 (rla);\n  pullup (weak1) pu1 (rlc,rlo);\n\n  pulldown (weak0) pd2 (rhc,rho);\n  pull
+iverilog	ivtest/ivltests/pr3194155.v	146	10	(unclassified)	UNCLASSIFIED	, x);\nendmodule\n\nmodule tb;\nwire y;\nwire z;\nfoo #1 bar1(1'b0);\nfoo #2 bar2(1'b1);\nfoo #3 bar3(1'bz);\nfoo
+iverilog	ivtest/ivltests/pr841.v	276	22	net_type_tri01	1364_legal	(clk);\n\nendmodule\n\n\nmodule pll (inclk0);\ninput  inclk0;\n\ntri0 inclk0;\n\nendmodule\n\n//this is example of
+iverilog	ivtest/ivltests/random.v	65	6	inc_dec_operator	1800_only	"st;\n\ninteger i;\n\ninitial begin\n  for (i = 0; i < 1000; i++) begin\n    $display(""%h"", $random);\n  end\nend"
+iverilog	ivtest/ivltests/specify_01.v	143	13	specify_path_delay	1364_legal	am tR_clk_q = 100,\n            tF_clk_q = 150;\n\n  (clk,d => q) = (tR_clk_q,tF_clk_q);\nendspecify\n\nalways
+iverilog	ivtest/ivltests/string12.v	54	4	(unclassified)	UNCLASSIFIED	"module top;\n\n  initial begin\n    if (""this matches"" == ""this\\n matches"") $display(""PASSED"");\n    else"
+iverilog	ivtest/ivltests/tri0.v	1105	28	net_type_tri01	1364_legal	iver\n * otherwise.\n */\nmodule main;\n\n   reg enable, val;\n   tri0 t0 = enable ? val : 1'bz;\n\n   initial b
+iverilog	ivtest/ivltests/tri0b.v	1105	28	net_type_tri01	1364_legal	iver\n * otherwise.\n */\nmodule main;\n\n   reg enable, val;\n   tri0 t0 = (~enable) ? 1'bz : val;\n\n   initia
+iverilog	ivtest/ivltests/tri1.v	1105	28	net_type_tri01	1364_legal	iver\n * otherwise.\n */\nmodule main;\n\n   reg enable, val;\n   tri1 t1 = enable ? val : 1'bz;\n\n   initial b
+iverilog	ivtest/ivltests/tri3.v	14	1	net_type_tri01	1364_legal	module test();\n\ntri1 a;\ntri0 b;\n\nassign (pull1,pull0) a = 1'b0
+iverilog	ivtest/ivltests/udp_bx.v	228	11	udp_table_entry	1364_legal	1  : ? : -;\n       b   ?   0  : ? : 0;\n       ?   ?  (bx): ? : x;\n    endtable\nendprimitive\n\nmodule fl
+iverilog	ivtest/ivltests/udp_dff.v	1485	80	udp_table_entry	1364_legal	otifier;\n   table\n      // C D notifier : Q : Q+\n      (01) 0 ? : ? : 0 ; //normal clocking case\n      (
+iverilog	ivtest/ivltests/udp_dff_std.v	1555	82	udp_table_entry	1364_legal	otifier;\n   table\n      // C D notifier : Q : Q+\n      (01) 0 ? : ? : 0 ; //normal clocking case\n      (
+iverilog	ivtest/ivltests/z1.v	131	11	(unclassified)	UNCLASSIFIED	parameter Q = 2;\nendmodule\n\nmodule foo;\n  bar #345 bar1();\n  bar #(456) bar2();\n  baz baz1();\n  baz #(88
+iverilog	ivtest/ivltests/z2.v	132	11	(unclassified)	UNCLASSIFIED	"baz #(P+1) baz1();\nendmodule\n\nmodule foo;\n  bar #3 bar1();\n  initial\n    $display(""PASSED"");\nendmodule\n"
+sv2v	test/core/array_in_package.v	121	5	inc_dec_operator	1800_only	n : foo\n        integer i, j;\n        for (i = 0; i < 4; ++i)\n            for (j = 0; j < 3; ++j)\n
+sv2v	test/core/data_lifetime.v	157	6	inc_dec_operator	1800_only	;\n        lcg = x;\n        for (temp = 0; temp < 3; temp++) begin\n            lcg *= 1664525;\n
+sv2v	test/core/do_while.v	119	6	inc_dec_operator	1800_only	") begin\n            $display(""hi %0d"", x);\n            x++;\n            if (x != 2)\n                $dis"
+sv2v	test/core/for_decl.v	1119	50	inc_dec_operator	1800_only	ger j, k;\n    initial begin\n        for (j = 0; j < 4; j++)\n            for (k = 0; k < 8; k++)\n
+sv2v	test/core/inside_expr.v	264	13	inc_dec_operator	1800_only	: foo\n        reg [1:0] a;\n        for (a = 0; a < 3; a++) begin\n            if (a == 2'b01 || a == 2'b
+sv2v	test/core/interface_generate.v	403	19	assignment_operator	1800_only	r = 0;\n    always @(posedge clock) begin\n        counter += 1;\n        if (counter % period == 0)\n
+sv2v	test/core/jump.v	1001	51	inc_dec_operator	1800_only	": loop_y\n        integer i;\n        for (i = 0; i < 10; ++i)\n            $display(""Loop Y:"", i);\n    en"
+sv2v	test/core/multipack_port.v	281	9	inc_dec_operator	1800_only	integer i, j;\n        for (i = (CHUNKS-1); i >= 0; i--) begin\n            for (j = 9; j >= 0; j--) b
+sv2v	test/core/packed_array.v	126	5	inc_dec_operator	1800_only	e\n        integer i, j, k;\n        for (i = 0; i <= 1; i++) begin\n            for (j = 0; j <= 2; j++) b
+sv2v	test/core/part_select_bits.v	163	8	inc_dec_operator	1800_only	integer i;\n        arr = 0;\n        for (i = 0; i < A; ++i) begin\n            arr[i * B +: B] = i;\n
+sv2v	test/core/unpacked_localparam.v	149	5	assignment_operator	1800_only	foo\n        integer i, j;\n        for (i = 3; i >= 0; i -= 1) begin\n            $display(init_val[8*i+:
+sv2v	test/core/unsigned.v	109	5	inc_dec_operator	1800_only	ock_name\n        integer i;\n        for (i = 0; i < 4; i++)\n            arr[i] = i;\n    end\n    initial
