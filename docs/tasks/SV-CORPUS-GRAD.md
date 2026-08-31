@@ -18799,8 +18799,9 @@ ATOMIC cascade `.13h` established (report → manifest → every derived surface
 evidence that nothing moved; (c) **give SystemVerilog the arms** — route it to
 `scripts/check_corpus_census.sh` with a declared `report`, or add arms (3) and (5) to
 `scripts/check_sv_corpus_denominator.sh`, and RED-prove the grammar arm against the pre-(b) tree
-where it must fail; (d) the SV report's recorded HEAD is `+dirty`, so the promotion must be measured
-on a CLEAN tree or the note arm is inherited; (e) hand `.13i`(a) the second design constraint above —
+where it must fail; (d) ✅ **DISCHARGED below** — the SV report's recorded HEAD is `+dirty`, so the promotion must
+be measured on a CLEAN tree or the note arm is inherited; MEASURED UNSATISFIABLE as written and
+the instrument corrected (`PGEN-SV-CORPUS-GRAD-0311`); (e) hand `.13i`(a) the second design constraint above —
 `path` is a reference, not always the hashed subject — so its enforcer is written against the
 property rather than the column.
 
@@ -18850,6 +18851,90 @@ graduation oracle and the numbers are the release bar the book publishes. It is 
 (a) is measurement and is next; (c) cannot land before (b) without turning the tree RED, which is
 the correct order and not a workaround.
 
+### ✅✅ `.13j`(d) DISCHARGED — **THE "MEASURE ON A CLEAN TREE" CRITERION WAS UNSATISFIABLE FOR SYSTEMVERILOG BY CONSTRUCTION: THE SECOND LANE'S `+dirty` STAMP WAS THE FIRST LANE'S OWN REPORT** (2026-08-31, `PGEN-SV-CORPUS-GRAD-0311`)
+
+**ROOT CAUSE — WHY + WHERE, tool-measured before anything was edited.**
+
+- **WHERE**: `stimuli/run_external_corpus.sh:520` (pre-fix) —
+  `if [ -n "$(git -C "$ROOT" status --porcelain 2>/dev/null)" ]; then HEAD_ID="$HEAD_ID+dirty"; fi`.
+  The test is REPO-WIDE, so it counts this runner's OWN OUTPUT as evidence that the measurement
+  may not describe HEAD.
+- **WHY IT BINDS THE SV FAMILY AND NOT VHDL**: SystemVerilog publishes TWO lanes into one
+  directory, and the order is FORCED — `sv2005` is list-driven from `v2005_lane_files.tsv`, which
+  `adjudicate_external_corpus.py` derives from the `sv` lane's `results.tsv` — so lane 2 can never
+  run before lane 1 and inherits lane 1's dirt. VHDL has one lane and is stamped
+  `41e934da` clean; both SV reports have read `+dirty` in every vintage on record.
+- **MEASURED, not reasoned.** On a tree clean at `2f330461`:
+
+  | run | wall | recorded stamp | `git status --porcelain` at that instant |
+  |---|---|---|---|
+  | `run_external_corpus.sh sv` | 101 s | `2f330461` ✅ clean | *(empty)* |
+  | `run_external_corpus.sh sv2005` | 15 s | `2f330461+dirty` ⛔ | ` M stimuli/sv/characterization/characterization.md` |
+
+  One entry, and it is the first lane's report. The parse binary, grammar and generated parser
+  were byte-identical across both runs (`7a9aac1d… / 037a9553… / ad13eb08…`).
+- ⛔ **THE COST IS NOT COSMETIC, AND IT LANDS ON `(c)`.** `scripts/check_corpus_census.sh:286`
+  parses the stamp and `:603-604` raises a NOTE for a dirty census. `(c)` routes SystemVerilog to
+  that gate — so without this fix SV's second lane would carry an UN-CLEARABLE dirty note from the
+  day it is wired in, and the note would be describing the promotion procedure rather than the
+  tree.
+
+**ADDRESSED — the QUESTION is narrowed, the ANSWER is not weakened.** `+dirty` exists to warn that
+an uncommitted change may have moved the number. The two family reports are this runner's OUTPUT
+and are read by no parse: the `sv2005` lane reads `v2005_lane_files.tsv` for membership
+(`:172`) and its OWN report for provenance (`:194`), never `characterization.md`. The dirty test
+now runs under a pathspec that excludes exactly those two paths.
+⛔ **BY EXACT PATH, NEVER BY DIRECTORY** — `v2005_lane_files.tsv` is tracked, sits in the SAME
+directory, and IS an input to lane 2. A directory-scoped exclusion would silence the one row that
+must not be silenced. That is control C4 below, and it is why the fix is not three characters
+shorter.
+
+**NO REGRESSION — six controls, driven through the predicate extracted from the patched script's
+own text, each arm compared against the OLD predicate on the same tree state** (the modified
+runner is filtered out of both columns so each arm is isolated):
+
+| control | tree state added | OLD | NEW |
+|---|---|---|---|
+| C1 GREEN | only the two family reports dirty | `+dirty` | **clean** |
+| C2 RED | + untracked file INSIDE the excluded directory | `+dirty` | `+dirty` |
+| C3 RED | + untracked file at the repo root | `+dirty` | `+dirty` |
+| C4 RED | + `v2005_lane_files.tsv` — a real `sv2005` INPUT, same directory | `+dirty` | `+dirty` |
+| C5 RED | + `grammars/systemverilog.ebnf` | `+dirty` | `+dirty` |
+| C6 GREEN | back to only the two family reports | `+dirty` | **clean** |
+
+⇒ exactly ONE state changed verdict, and it is the state the leaf exists for. Every RED arm is
+proven able to fire under the NEW predicate, so the fix did not disable the arm it narrowed.
+
+⛔⛔ **THE FIRST C2 WAS A CONTROL THAT COULD NOT FAIL, AND IT REPORTED A PASS.** It used
+`zzz_dirty_control.tmp`; `.gitignore:295` is `*.tmp`, so `git status` never saw the file under
+EITHER predicate and the arm read *"not seen"* — which I would have published as *"the exclusion is
+directory-scoped"*, the opposite of the truth. Caught by root-causing the one arm that disagreed
+with its own design rather than recording it. ⇒ **a control file must be proven VISIBLE to the
+instrument before its verdict means anything**; re-run with `.txt`, all six arms behave.
+This is [[feedback_instrument_needs_ground_truth]] applied to the CONTROL rather than to the gate.
+
+**END-TO-END, on the real runner, not the extracted predicate**: with the patched
+`stimuli/run_external_corpus.sh` itself uncommitted — genuine INPUT dirt — a sandboxed `sv2005`
+run (`PGEN_CORPUS_OUT_DIR`) stamped `2f330461+dirty` and its `results_v2005.tsv` came back
+BYTE-IDENTICAL to the pre-patch run. ⇒ the change is measurement-inert and the arm still fires on
+a modified instrument.
+
+⭐ **THE GREEN END-TO-END PROOF IS DELIBERATELY NOT IN THIS SLICE, and that is the honest order.**
+While the instrument is uncommitted it IS an input, so `+dirty` is the correct stamp for any run
+made with it — a clean end-to-end stamp is unobtainable until this commit exists. It lands as the
+ARTIFACT of `(b)`: two tracked reports stamped `2f330461`-clean, which is a durable green control
+rather than a transcript.
+
+⛔ **A FIFTH INSTANCE OF `.86`(c)'s ROOT CAUSE, FOUND WHILE CHECKING WHICH GATE WOULD SEE THIS
+CHANGE.** `scripts/check_diagnosis_evidence.sh:70-92` classifies a staged path as a code change
+over a closed list — `grammars/*.ebnf`, `rust/src/*`, `generated/*`, `scripts/check_*.sh`,
+`scripts/report_*.sh`, `rust/Makefile`, … — and `stimuli/run_external_corpus.sh` is in none of
+them, so `TASK-ACCEPTANCE` reports *"no code change staged"* for an edit to the PRODUCER of the
+artifact `CORPUS-CENSUS-CURRENCY` consumes. That is verbatim the argument the classifier already
+makes for `scripts/report_*.sh` (*"the oracle a doctrine consumes is part of the proof surface
+too"*), not applied to this producer. Routed as `.13l`; the checklist above is written to the
+doctrine's shape voluntarily rather than because a gate asked.
+
 #### `.13k` — ⛔⛔ NEW `todo` — **THE v2005 ANSWER KEY ADJUDICATES ONE CONSTRUCT CLASS BOTH WAYS: `^=` IS `must_reject` AS *"IN NEITHER A.6.2 NOR A.8.6"* WHILE `|=`, `+=` AND `-=` ARE `must_accept` ON A SUITE'S WORD** (opened 2026-08-31 by `.13j`(a)'s re-measure / `PGEN-SV-CORPUS-GRAD-0310`)
 
 - **WHY + WHERE**: `stimuli/sv/characterization/adjudication_manifest_v2005.tsv`, three rows —
@@ -18880,6 +18965,37 @@ the correct order and not a workaround.
   slice, with the census (b) in front of it.
 - ⭐ **SV-lane, and it is a DEFECT lane rather than a guard lane** — it is three wrong rows in the
   published SystemVerilog answer key, found by measurement.
+
+
+#### `.13l` — ⚠️ NEW `todo` — **`TASK-ACCEPTANCE` REPORTS *"no code change staged"* FOR AN EDIT TO THE PRODUCER OF THE ARTIFACT `CORPUS-CENSUS-CURRENCY` READS** (opened 2026-08-31 by `.13j`(d) / `PGEN-SV-CORPUS-GRAD-0311`, ROUTED)
+
+- **WHY + WHERE**: `scripts/check_diagnosis_evidence.sh:70-92` decides *"is this a code change"*
+  from a CLOSED list of staged path patterns — `grammars/*.ebnf`, `rust/src/*`, `generated/*`,
+  `rust/test_data/ast_shape_contract/*.json`, `scripts/check_*.sh`, `rust/scripts/*.sh`,
+  `.githooks/*`, `.github/workflows/*.yml`, `rust/build.rs`, `scripts/report_*.sh`,
+  `Makefile`, `rust/Makefile`. `stimuli/run_external_corpus.sh` matches none, so
+  `bash scripts/check_doctrines.sh` on a commit staging ONLY that file prints
+  `diag-evidence: OK (no code change staged; task-acceptance checklist not required)`.
+- ⛔ **THE CLASSIFIER ALREADY MAKES THIS EXACT ARGUMENT, ONE PRODUCER EARLIER.** Its own comment
+  at `:76-90` admits `scripts/report_*.sh` on the ground that *"the oracle a doctrine consumes is
+  part of the proof surface too"* — `GRAMMAR-CERT-CURRENCY` reads
+  `scripts/report_grammar_certification.sh`, so editing that producer changes what the doctrine
+  MEANS. `stimuli/run_external_corpus.sh` stands in the identical relation to
+  `CORPUS-CENSUS-CURRENCY`: it EMITS `stimuli/*/characterization/characterization.md`, which is
+  the census that doctrine re-derives, hashes and dates. The principle was written down and its
+  population was not re-derived from it.
+- ⭐ **FIFTH INSTANCE OF ONE ROOT CAUSE — *a doctrine's population is a claim, and nothing checks
+  it***: `ENGINE-UNIVERSAL-SERVICES.80`, `.86`, `.86`(c), `SV-CORPUS-GRAD.13j` (the census gate
+  routing SV away from itself), and now the acceptance gate's own code-change classifier.
+- **OWES**: (a) price the widening the way `.4`/`.7` require, by enumerating every commit in the
+  history that stages a producer path and no other in-scope path — a widening is only honest when
+  the commits it newly binds are counted, not estimated; (b) decide whether the admission is
+  `stimuli/run_external_corpus.sh` by name or the derived set *"every script that writes a tracked
+  file a registered doctrine re-derives"*, which is the form that cannot rot again; (c) RED-prove
+  the new arm on a staged producer edit.
+- ⚠️ **NOT a blocker for the SV release** and not worked ahead of the `.13j` cascade: the effect is
+  a missing checklist, not a wrong number. Routed rather than fixed inline so the widening gets the
+  pricing its own doctrine demands.
 
 #### `.13g` — the FRAGMENT-shaped population: an accept there is not testimony (`todo`, opened 2026-08-11 by `.13a`)
 

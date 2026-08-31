@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-31 - PGEN-SV-CORPUS-GRAD-0311 (.13j(d) discharged; .13l opened — an acceptance criterion can be unsatisfiable, and the instrument is where you find out)
+
+- ⭐⭐⭐ **THE TRANSFERABLE LESSON: AN ACCEPTANCE CRITERION IS A CLAIM ABOUT THE INSTRUMENT, AND
+  NOBODY CHECKS IT WHEN IT IS WRITTEN.** `.13j`(d) said *"the promotion must be measured on a CLEAN
+  tree or the note arm is inherited"* — reasonable, specific, and **impossible** for the family it was
+  written for. The SV runner publishes two lanes into one directory in a FORCED order (`sv2005` is
+  list-driven from a file derived from the `sv` lane's own results), so lane 2 always sees lane 1's
+  report as uncommitted. The criterion could only be discovered unsatisfiable by RUNNING it: I ran
+  both lanes on a genuinely clean tree and the second one stamped `+dirty` with a one-line `git
+  status` naming the first one's output. ⇒ **when an acceptance clause will not go green, falsify the
+  CLAUSE before assuming the tree** — the same shape as `-0158`'s *"when a control comes back green,
+  falsify the EXPLANATION"*, run in the other direction.
+- ⛔⛔ **AND THE FAILURE MODE I ALMOST SHIPPED: A CONTROL THAT COULD NOT FAIL, WHOSE PASS I READ AS A
+  RESULT.** My C2 control asked the sharpest question in the set — *is the exclusion path-scoped or
+  directory-scoped?* — by dropping an untracked file into the excluded directory. It came back *"not
+  seen"*, which reads as *directory-scoped*, i.e. the fix is over-broad and silences a real input.
+  The truth was `.gitignore:295 *.tmp`: the control file was invisible to `git status` under the OLD
+  predicate too, so the arm could not have fired either way. The tell was that ONE arm disagreed with
+  the design while its four siblings agreed — and the honest act was to root-cause the disagreement
+  rather than to write it up. Renamed `.txt`, all six arms behave and C4 (a real tracked INPUT in the
+  same directory) carries the property instead. ⇒ **prove the control is VISIBLE to the instrument
+  before its verdict means anything** — [[feedback_instrument_needs_ground_truth]] applied to the
+  control rather than to the gate, and a sibling of `-0160`'s frame lesson: *"not seen"* has a frame,
+  and the frame was `.gitignore`.
+- ⭐⭐ **WHY THE GREEN END-TO-END PROOF IS NOT IN THIS COMMIT, STATED RATHER THAN SKIPPED.** The
+  instrument is an input to its own measurement, so while `stimuli/run_external_corpus.sh` is
+  uncommitted every run it makes is correctly stamped `+dirty`. There is no arrangement of this slice
+  that both changes the instrument and demonstrates its clean stamp end-to-end. The proof therefore
+  lands as the NEXT slice's tracked ARTIFACT — two reports stamped `2f330461`-clean — which is
+  strictly better evidence than a transcript, because it is durable and a gate can read it. ⛔ Naming
+  the missing leg is the requirement ([[feedback_verify_a_claim_three_ways_before_publishing_it]]
+  leg 3); publishing the claim unqualified would not have been.
+- ⭐ **THE PATCH IS THREE CHARACTERS LONGER THAN THE OBVIOUS ONE, AND THAT IS THE WHOLE DESIGN.**
+  Excluding the characterization DIRECTORY would have been shorter and would have silenced
+  `v2005_lane_files.tsv`, which lives there, is tracked, and IS an input to the `sv2005` lane. The
+  exclusion is by exact PATH and C4 exists to keep it that way.
+- ⚠️ **`.13l` — THE POPULATION DEFECT SHOWED UP WHILE CHECKING WHICH GATE WOULD SEE THIS CHANGE**, not
+  by looking for it. `check_diagnosis_evidence.sh` admits `scripts/report_*.sh` with the explicit
+  reasoning *"the oracle a doctrine consumes is part of the proof surface too"* and does not admit
+  `stimuli/run_external_corpus.sh`, which stands in exactly that relation to `CORPUS-CENSUS-CURRENCY`.
+  The principle was written down; the population was never re-derived from it. Routed rather than
+  widened inline, because a widening owes the commit-by-commit pricing its own doctrine demands.
+
 ## 2026-08-31 - PGEN-SV-CORPUS-GRAD-0310 (.13j opened, (a) discharged; .13k opened — a column is not a claim)
 
 - ⭐⭐⭐ **THE TRANSFERABLE LESSON, and it cost the headline of this slice: A COLUMN IS NOT A CLAIM —

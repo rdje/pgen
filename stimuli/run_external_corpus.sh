@@ -517,7 +517,45 @@ GRAMMAR_FILE="$ROOT/grammars/$GRAMMAR.ebnf"
 GEN_PARSER="$ROOT/generated/${GRAMMAR}_parser.rs"
 HEAD_ID="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || printf 'unknown')"
 HEAD_DATE="$(git -C "$ROOT" log -1 --date=short --format=%ad 2>/dev/null || printf 'unknown')"
-if [ -n "$(git -C "$ROOT" status --porcelain 2>/dev/null)" ]; then HEAD_ID="$HEAD_ID+dirty"; fi
+
+# ---- the `+dirty` marker asks about INPUTS, never about this runner's own OUTPUT ----
+#
+# ⛔ THE DEFECT THIS CLOSES (SV-CORPUS-GRAD.13j(d)) — MEASURED, NOT REASONED. On a tree clean at
+# `2f330461` the `sv` lane stamped `2f330461`; the `sv2005` lane, run 100 s later against a
+# byte-identical parse binary, grammar and generated parser, stamped `2f330461+dirty`. The whole
+# of `git status --porcelain` at that moment was ONE entry —
+# ` M stimuli/sv/characterization/characterization.md` — the FIRST lane's own report.
+#
+# The ordering is FORCED, so this was not bad luck. `sv2005` is list-driven from
+# `v2005_lane_files.tsv`, which `adjudicate_external_corpus.py` derives from the `sv` lane's
+# `results.tsv`; the second lane therefore cannot run before the first, and inherits its dirt by
+# construction. ⇒ no canonical promotion of a two-lane family could ever stamp both reports
+# clean, and `.13j`(d)'s *"the promotion must be measured on a CLEAN tree"* was UNSATISFIABLE for
+# SystemVerilog — the one family under a release lane lock.
+#
+# ⭐ THE REMEDY NARROWS THE QUESTION, IT DOES NOT WEAKEN THE ANSWER. `+dirty` exists to warn that
+# an uncommitted change may have moved the number below. The reports excluded here are this
+# runner's OUTPUT and are read by no parse: the `sv2005` lane reads `v2005_lane_files.tsv` for
+# membership and its OWN report for provenance, and never `characterization.md`. Every other
+# uncommitted change still stamps `+dirty` — a modified grammar, a modified corpus submodule, a
+# modified copy of this script, an untracked file anywhere.
+#
+# ⛔ THE EXCLUSION IS BY EXACT PATH AND NEVER BY DIRECTORY, and that distinction is load-bearing:
+# `v2005_lane_files.tsv` is tracked, sits in the SAME directory, and IS an input to the `sv2005`
+# lane. A directory-scoped exclusion would silence the one row that must not be silenced.
+SELF_REPORTS=( "${CANON_OUTDIR#"$ROOT/"}/characterization.md" )
+if [ "$GRAMMAR" = systemverilog ]; then
+  # the SV family publishes two lanes into one directory; either can be the sibling that dirties
+  # the other, so both are this family's output regardless of which lane is running now.
+  SELF_REPORTS+=( "${CANON_OUTDIR#"$ROOT/"}/characterization_v2005.md" )
+fi
+DIRTY_PATHSPEC=( -- . )
+for _self_report in "${SELF_REPORTS[@]}"; do
+  DIRTY_PATHSPEC+=( ":(exclude)$_self_report" )
+done
+if [ -n "$(git -C "$ROOT" status --porcelain "${DIRTY_PATHSPEC[@]}" 2>/dev/null)" ]; then
+  HEAD_ID="$HEAD_ID+dirty"
+fi
 
 # ---- aggregate ----
 TOTAL=$(wc -l < "$RESULTS" | tr -d ' ')

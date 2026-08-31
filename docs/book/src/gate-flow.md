@@ -843,6 +843,50 @@ Two supporting properties make the comparison the refusal protects actually prac
   identical verdicts still produced thousands of moved lines. An oracle you cannot diff
   against its own replacement is one nobody diffs.
 
+### The identity block — a corpus artifact dates itself, and says when not to trust it
+
+The parameters answer *how* the number was measured. A second block answers the
+question that decides whether the number still means anything: **which parser produced
+it**. Every characterization report carries one.
+
+```
+| input           | repo-root-relative path                    | sha256      |
+| parse binary    | rust/target/release/parseability_probe     | 7a9aac1d…   |
+| grammar         | grammars/systemverilog.ebnf                | 037a9553…   |
+| generated parser| generated/systemverilog_parser.rs          | ad13eb08…   |
+
+Measured at `HEAD` = `2f330461` (2026-08-31).
+```
+
+Re-hash those three files. If any digest differs, the report no longer describes your
+tree, and the honest act is to re-measure rather than to quote — which is precisely what
+`CORPUS-CENSUS-CURRENCY` mechanises for the families wired to it. The
+`Measured at HEAD` line adds a second axis: a commit id, plus a `+dirty` suffix when the
+measurement was taken over uncommitted work.
+
+⛔ **`+dirty` is a claim about this run's *inputs*, never about its own output — and that
+distinction is not pedantic.** SystemVerilog publishes **two** lanes into one directory,
+`sv` and `sv2005`, and the order between them is forced: the `sv2005` lane parses only
+the files listed in `v2005_lane_files.tsv`, which the adjudicator derives from the `sv`
+lane's `results.tsv`. Lane 2 therefore always runs after lane 1 and always finds lane 1's
+freshly-written report uncommitted. While the dirty test was a bare repo-wide
+`git status --porcelain`, that made a clean two-lane promotion **impossible**: measured on
+a tree clean at `2f330461`, the `sv` lane stamped `2f330461` and the `sv2005` lane —
+15 seconds of parsing later, against a byte-identical parse binary, grammar and generated
+parser — stamped `2f330461+dirty`, on the strength of one status line naming the sibling
+lane's report.
+
+The test is now scoped: the family's own characterization reports are excluded, because
+they are this runner's output and no parse reads them. Everything else still stamps
+`+dirty` — a modified grammar, a modified corpus submodule, a modified copy of the runner,
+an untracked file anywhere.
+
+⭐ **The exclusion is by exact path and never by directory.** `v2005_lane_files.tsv` is
+tracked, lives in that same directory, and *is* an input to the `sv2005` lane; a
+directory-scoped exclusion would have silenced the one row that must stay loud. The
+regression control that pins this drives a modified `v2005_lane_files.tsv` through the
+predicate and requires `+dirty`.
+
 ---
 
 ## 6. Invocation — who actually runs what
