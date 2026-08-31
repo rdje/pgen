@@ -1,5 +1,42 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-31 - PGEN-ENGINE-UNIVERSAL-SERVICES-0161 (.86(d) WITHDRAWN with its mechanism; the accept-set contract reframed)
+
+- ⛔⛔⛔ **`.86`(d) IS FALSE AND IS WITHDRAWN THE DAY IT WAS OPENED.** It claimed
+  `PARSE-COST-RATCHET`'s BASELINE state defaults into `.gitignore`d `rust/target/`, so cleanup
+  resets a doctrine baseline silently and GREEN. **Measured, one command**: with an EMPTY state dir
+  the gate prints `OK` — because the baseline is not there. `ART` is
+  `docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet`, its `cost.md` /
+  `entries.tsv` / `advisory.json` are all TRACKED, and a missing one is a hard `sys.exit(2)`
+  *"REFUSING — required file missing"*, never a re-baseline. ⛔ `STATE` has ONE consumer and the
+  refutation sat **eight lines below the line I quoted as evidence**:
+  `shutil.rmtree(scratch, ignore_errors=True)` — the gate wipes it itself, every run.
+- ⭐⭐ **THE WITHDRAWAL REVERSES THE CONCLUSION, NOT JUST THE REASON.** The `rust/target` census
+  stands as a COUNT (130 of 404 entries named by a tracked file) but the inference was backwards
+  BOTH times: being named is evidence a path is DISPOSABLE, and no path there has been shown to be
+  the only copy of anything — `sv_axis2_baseline` is read by no script or gate either. ⇒ directive
+  8's sweep of `rust/target` (289 GB) is **NOT blocked**, which is exactly what (d) was written to
+  claim.
+- ⛔⛔⛔ **FIFTH INSTANCE IN ONE SESSION OF ONE READING ERROR, AND THE SHARPEST: A NAME IS A FRAME
+  TOO.** I read `STATE = os.environ.get(..., "rust/target/parse_cost_ratchet")`, saw the word STATE
+  beside a `.gitignore`d path, and attached *"this is the baseline"* without running the gate once.
+  ⇒ **for a claim about what a gate DOES, the evidence is the gate RUN, never the gate READ.**
+  → [[a-number-read-out-of-context-carries-a-frame-you-did-not-measure]].
+- ⛔ **AND THE DOWNSTREAM CONTRACT WAS TELLING NEXSIM THE WRONG THING.** It implied pinning
+  `PGEN_PARSE_STACK_BYTES` was an obligation. Director ruling: *"a valid input file or text shall
+  parse as long as the host resource allows it"* — the DEFAULT must simply work; pinning is an
+  escape hatch for someone who positively wants fleet determinism. Reframed, with the honest gap
+  stated in the contract itself: *"as long as the host allows"* is not yet what the engine
+  implements, because it hands one parse a fixed **1/64** share and a 24 GiB host therefore refuses
+  at 7 211 levels with ~23 GiB free.
+- ⭐ **MEASURED, and it is why raising the share is not free the way "virtual, lazily committed"
+  suggests**: a shallow parse costs **24.6 MB** peak RSS, but the DEEPEST ACCEPTED parse (7 211
+  casts, 43 KB input) costs **730 MB** against a 377 MiB stack budget — total footprint ≈**1.9×**
+  the reservation. ⇒ the reservation bounds the STACK, not the process, so the share cannot be
+  raised on the lazy-commit argument alone. That multiplier is `ENGINE-UNIVERSAL-SERVICES.84`'s
+  unmeasured term, which puts `.84` on the FUNCTIONALITY path under *"functionality, accuracy
+  first"* rather than the memory-curiosity path it was parked on.
+
 ## 2026-08-31 - PGEN-ENGINE-UNIVERSAL-SERVICES-0160 (.87(d): the upward half of the capability mandate)
 
 - ⭐⭐⭐ **THE CLAMP WAS NEVER A SAFETY ARGUMENT — IT WAS TWO TESTS WITH THE HOST IN THEIR

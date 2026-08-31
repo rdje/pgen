@@ -18800,7 +18800,7 @@ fixes no defect and the `TASK-ACCEPTANCE` gate does not evaluate it either — n
       `MEMORY.md`, the two AFTER artifacts, and the rebaselined
       `rust/test_data/grammar_quality/generated_reproducibility_v0.json`.
 
-### ⛔ `.86` — **`PARSE-COST-RATCHET` PASSES VACUOUSLY ON AN ENGINE-ONLY CHANGE: ITS IDENTITY SET OMITS `rust/src`, SO THE GATE `TOOLBOX.md` NAMES FOR EVERY HOT-PATH CHANGE CANNOT SEE AN ENGINE EDIT** (`todo`, ROUTED + PARKED behind the SV lane — (a)(b)(c) opened 2026-08-31 by `.85`'s own verification / `PGEN-ENGINE-UNIVERSAL-SERVICES-0154`; (c) took its SECOND and THIRD data points from `.87`(f) / `-0159`; ⛔ **(d) added 2026-08-31 / `-0160` — the SAME doctrine's BASELINE STATE defaults into `.gitignore`d `rust/target/`, so routine cleanup resets it silently and GREEN**; director RULED route-and-park 2026-08-31)
+### ⛔ `.86` — **`PARSE-COST-RATCHET` PASSES VACUOUSLY ON AN ENGINE-ONLY CHANGE: ITS IDENTITY SET OMITS `rust/src`, SO THE GATE `TOOLBOX.md` NAMES FOR EVERY HOT-PATH CHANGE CANNOT SEE AN ENGINE EDIT** (`todo`, ROUTED + PARKED behind the SV lane — (a)(b)(c) opened 2026-08-31 by `.85`'s own verification / `PGEN-ENGINE-UNIVERSAL-SERVICES-0154`; (c) took its SECOND and THIRD data points from `.87`(f) / `-0159`; ⛔⛔ **(d) OPENED AND WITHDRAWN THE SAME DAY (`-0160` / `-0161`) — its mechanism is FALSE: the ratchet's baseline is TRACKED under `docs/tasks/artifacts/`, a missing one is a hard `exit 2`, and the `rust/target` path is a SCRATCH dir the gate wipes itself. Measured with an empty state dir: `OK`. Kept as the FIFTH instance of one reading error**; director RULED route-and-park 2026-08-31, before the withdrawal)
 
 - **WHY + WHERE**: `scripts/check_parse_cost_ratchet.sh` skips tier 2 when its declared inputs are
   byte-identical to the baseline's. Those inputs are the **generated parser, grammar raw AST,
@@ -18856,52 +18856,52 @@ fixes no defect and the `TASK-ACCEPTANCE` gate does not evaluate it either — n
   (vary the reservation, read the boundary; 18.82 levels/MiB flat to 0.14 %). ⇒ the enforceable
   doctrine is *an engine change adjudicates its accept-set impact the way a grammar change already
   must*, not *a document says two things*.
-- ⛔⛔ **(d) THE SAME DOCTRINE'S BASELINE STATE LIVES IN A `.gitignore`d BUILD DIRECTORY, SO THE
-  ROUTINE CLEANUP OF THAT DIRECTORY RESETS THE RATCHET SILENTLY AND IN THE PASSING DIRECTION**
-  (`-0160`, ROUTED + PARKED — found while auditing an artifact-cleanup finding under a director
-  challenge, and the audit REFUTED the reason the finding was first published with):
+- ⛔⛔⛔ **(d) WITHDRAWN THE DAY IT WAS OPENED, MECHANISM AND ALL** (`-0161`, under a director
+  challenge to re-derive it). (d) claimed that `PARSE-COST-RATCHET`'s BASELINE state defaults into
+  `.gitignore`d `rust/target/`, so a routine cleanup resets a doctrine baseline silently and GREEN.
+  **Measured: false, and the gate says so in one command.**
 
   ```
-  grep -n "STATE = " scripts/check_parse_cost_ratchet.sh
-    -> 126:STATE = os.environ.get("PGEN_PARSE_COST_STATE_DIR", "rust/target/parse_cost_ratchet")
-  git grep -n "PGEN_PARSE_COST_STATE_DIR" -- . ':!docs/tasks'
-    -> scripts/check_parse_cost_ratchet.sh:126        <- the DEFINITION and nothing else
-  git check-ignore -v rust/target
-    -> .gitignore:228:**/target/	rust/target
+  PGEN_PARSE_COST_STATE_DIR=<empty dir> bash scripts/check_parse_cost_ratchet.sh
+    -> parse-cost-ratchet: OK (identity fresh for: generated parser, grammar raw ast,
+       instrument, sample inputs; 192 pinned sample files)          rc=0
   ```
 
-  ⇒ **nothing in the repository sets that variable, so the default IS the live path**, and the
-  live path is inside the one directory every cleanup instinct — `cargo clean`, a disk-space
-  sweep, directive 8's own 24-hour artifact pass — targets first. A ratchet whose baseline has
-  been deleted does not fail: it re-establishes a baseline from whatever it measures next and
-  reports green. ⛔ That is `.80`/`.86`'s shape a FOURTH time — a gate honestly green about a
-  question it can no longer ask — and it is the worst variant, because here the gate is not
-  blind to a population, it is blind to *its own history*.
-- ⚠️ **(d) IS NOT ALONE IN THERE, WHICH IS WHAT MAKES IT A CLASS RATHER THAN A TYPO.** A census of
-  `rust/target` against every tracked reference found **130 of 404** entries named by a tracked
-  file. Most are wipe-and-recreate work directories whose own producer opens with
-  `rm -rf "$WORK"` — those are safe by construction, and their being NAMED is evidence of that,
-  not evidence against it. But at least one more is preserved state rather than scratch:
-  `rust/target/sv_axis2_baseline/*.pre_3_18.*`, which a tracked task-tree section cites as
-  *"this session preserved it to ..."*. ⇒ **the question is not "is this path mentioned" but "is
-  anything in a build directory the ONLY copy of something"**, and that is a census nobody has
-  run.
-- **(d) OWES**: (d1) move the ratchet state to a repository-owned, non-`.gitignore`d location, or
-  make its absence a LOUD refusal rather than a silent re-baseline — the `BASELINE-IDENTITY`
-  `unconfirmed` state is the precedent for "a baseline nobody can re-derive yet is still
-  WATCHED"; (d2) census every gate for state that defaults under a build directory, the same
-  population question (c) already owns one namespace of; (d3) only then price directive 8's
-  artifact sweep of `rust/target` (measured today at **289 GB**), which is blocked on (d1)+(d2)
-  and not on disk.
-- ⛔ **HOW IT WAS FOUND, kept because the finding is worth less than the correction.** It was
-  published first as *"several of those paths are named in tracked artifacts as producers, so a
-  bulk delete is not obviously safe."* Under challenge that is **WITHDRAWN**: the tracked file is
-  the PRODUCER and the `rust/target/...` path is its OUTPUT, and the first instance sampled
-  deletes itself. **The inference ran backwards** — being named is evidence a path is disposable
-  — and it was published without checking one instance, which is `-0132`'s provenance failure
-  again and flattering, because it excused not doing the cleanup directive. The real hazard was
-  found only by then reading what the references actually SAY. ⇒ **a reason to be cautious is a
-  claim, and it is checked against an instance, never against plausibility.**
+  It passes with an empty state dir because **the baseline is not in the state dir**:
+  `ART = "docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet"` and its `cost.md`,
+  `entries.tsv` and `advisory.json` are all TRACKED — and a missing one is a HARD REFUSAL
+  (`sys.exit(2)`, *"REFUSING — required file missing"*), never a silent re-baseline.
+  ⛔ `STATE` has exactly ONE consumer, and the refutation sat **eight lines below the line quoted
+  as evidence**:
+
+  ```python
+  scratch = os.path.join(ROOT, STATE, "scratch")
+  shutil.rmtree(scratch, ignore_errors=True)     # the gate wipes it itself, every run
+  ```
+
+  ⇒ it is a SCRATCH directory whose own producer deletes it — the wipe-and-recreate pattern the
+  same finding had ALREADY established for `derivation_twin` and `attempt_elision_census` two
+  paragraphs earlier, and then failed to apply here. The second path cited, `sv_axis2_baseline`,
+  is read by NO script or gate either: narrative references only.
+- ⭐⭐ **WHAT THE WITHDRAWAL LEAVES STANDING IS SMALLER AND IT IS THE OPPOSITE CONCLUSION.** The
+  `rust/target` census stands as a COUNT — 130 of 404 entries are named by a tracked file — but the
+  inference drawn from it was backwards in both directions: being named is evidence a path is
+  DISPOSABLE (its producer wipes it), and **no path in `rust/target` has been shown to be the only
+  copy of anything**. ⇒ directive 8's artifact sweep of `rust/target` (measured **289 GB**) is
+  **NOT blocked** by this leaf, which is what (d) was written to claim. Any future sweep still owes
+  the question *"is anything in a build directory the ONLY copy of something"* as a CENSUS rather
+  than as a sample — that question is real and unanswered; the answer *"yes, the ratchet baseline"*
+  was not.
+- ⛔⛔⛔ **KEPT BECAUSE IT IS THE FIFTH INSTANCE IN ONE SESSION OF ONE ERROR, AND THE SHARPEST.** I
+  read `STATE = os.environ.get("PGEN_PARSE_COST_STATE_DIR", "rust/target/parse_cost_ratchet")`, saw
+  the word STATE beside a `.gitignore`d path, and attached the frame *"this is the baseline"* —
+  without running the gate once. The other four that day: a sampled grid point published as a spawn
+  boundary; a compiler warning's LINE NUMBER published as a file length; a RELATIVE path in another
+  process's `ps` line resolved against the wrong root; and a corpus diff keyed on
+  `(sub-corpus, verdict)` multisets in which two files swapping verdicts cancel.
+  ⇒ [[a-number-read-out-of-context-carries-a-frame-you-did-not-measure]], whose rule this is the
+  cleanest case of: **a name is a frame too, and `STATE` is a name.** The counter is mechanical —
+  for a claim about what a gate DOES, the evidence is the gate RUN, never the gate READ.
 
 - ⛔ **ROUTED, not worked**: `.85` is the SV-lane defect and it is fixed; this is the gate that failed
   to notice, and it sits behind the lane with `.68`.

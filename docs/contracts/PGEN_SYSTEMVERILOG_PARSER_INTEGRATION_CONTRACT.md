@@ -68,9 +68,20 @@ This is the document downstream projects such as Nexsim should read first when d
 > ⇒ **the same file can now parse on one host and be REFUSED on another — in EITHER direction from
 > wherever you measured.** The refusal is the ordinary bounded `E_PARSE_FAILURE` with the ceiling
 > label, never a crash. This is the capability mandate working as specified — the limit is the
-> host's RAM — but it means **an accept-set claim is now a claim about a host**. If you need a
-> host-independent accept set, pin it: set `PGEN_PARSE_STACK_BYTES` to the same value everywhere,
-> which is also what we recommend for CI. ⚠️ For context on whether this can reach real input:
+> host's RAM — but it means **an accept-set claim is now a claim about a host**.
+> ⛔⛔ **PINNING IS AN ESCAPE HATCH, NOT AN OBLIGATION, AND THIS PARAGRAPH USED TO IMPLY OTHERWISE.**
+> The contract is that **a valid input parses for as long as the host's resources allow** — the
+> default must simply work, and no embedder is required to configure anything to get it. Pin
+> `PGEN_PARSE_STACK_BYTES` only if you positively WANT one identical accept set across machines
+> (a fleet-wide or CI-wide determinism choice, not a correctness requirement).
+> ⚠️ **THE HONEST GAP, STATED HERE RATHER THAN IN A TASK TREE.** *"As long as the host allows"* is
+> not yet what the engine implements: it hands one parse a fixed **1/64** share of installed
+> memory, so a 24 GiB host refuses at 7 211 nesting levels while ~23 GiB sits free. Raising that
+> share is not free either — measured, the deepest ACCEPTED parse at a 384 MiB reservation costs
+> **730 MB peak RSS** against a 377 MiB stack budget, i.e. total footprint runs ≈1.9× the
+> reservation, so the reservation bounds the STACK and not the process. Deriving the share from a
+> real footprint bound is `ENGINE-UNIVERSAL-SERVICES.84`'s measurement, and until it exists the
+> 1/64 is a deliberately conservative policy rather than a limit anyone measured. ⚠️ For context on whether this can reach real input:
 > no file in the 16 336-file tracked corpus comes near the boundary (p99.9 bracket nesting is 8),
 > so this bites machine-emitted or adversarial input, not ordinary RTL.
 >
