@@ -1,0 +1,44 @@
+# ENGINE-UNIVERSAL-SERVICES.69(a) slice 1 — the SIGABRT, located by holding the reservation
+# fixed and moving the input depth. The census above CANNOT report a margin below 1: the
+# refusal is printed by the process afterwards, so a parse that overshoots past the whole
+# RESERVATION dies instead of reporting. Sub-1 cases are rc 134, never a small margin.
+
+## debug probe, 96 MiB floor (the DOCUMENTED floor)
+LEVELS   RC   DEPTH      CAUSE                     USED_BYTES   OVERSHOOT   B_FRAME   MARGIN
+192      0    4296       BudgetExhausted           96340864     1969024     22425     3.20x
+224      0    4296       BudgetExhausted           98202704     3830864     22859     1.64x
+256      0    4296       BudgetExhausted           100073408    5701568     23294     1.10x
+288      134  -          SIGABRT_PAST_RESERVATION  -            -           -         BELOW_1_CENSORED
+320      134  -          SIGABRT_PAST_RESERVATION  -            -           -         BELOW_1_CENSORED
+352      134  -          SIGABRT_PAST_RESERVATION  -            -           -         BELOW_1_CENSORED
+384      134  -          SIGABRT_PAST_RESERVATION  -            -           -         BELOW_1_CENSORED
+448      134  -          SIGABRT_PAST_RESERVATION  -            -           -         BELOW_1_CENSORED
+512      134  -          SIGABRT_PAST_RESERVATION  -            -           -         BELOW_1_CENSORED
+640      134  -          SIGABRT_PAST_RESERVATION  -            -           -         BELOW_1_CENSORED
+768      134  -          SIGABRT_PAST_RESERVATION  -            -           -         BELOW_1_CENSORED
+1024     134  -          SIGABRT_PAST_RESERVATION  -            -           -         BELOW_1_CENSORED
+
+## debug probe, 256 MiB — THE SHIPPED DEFAULT
+LEVELS   RC   DEPTH      CAUSE                     USED_BYTES   OVERSHOOT   B_FRAME   MARGIN
+512      0    11466      BudgetExhausted           256727776    5069536     22390     3.31x
+576      0    11466      BudgetExhausted           260418976    8760736     22712     1.92x
+640      0    11466      BudgetExhausted           264055984    12397744    23029     1.35x
+704      0    11466      BudgetExhausted           267696720    16038480    23347     1.05x
+768      134  -          SIGABRT_PAST_RESERVATION  -            -           -         BELOW_1_CENSORED
+832      134  -          SIGABRT_PAST_RESERVATION  -            -           -         BELOW_1_CENSORED
+1024     134  -          SIGABRT_PAST_RESERVATION  -            -           -         BELOW_1_CENSORED
+
+## release probe, 256 MiB — the configuration that SHIPS
+LEVELS   RC   DEPTH      CAUSE                     USED_BYTES   OVERSHOOT   B_FRAME   MARGIN
+1024     0    -          no_refusal                -            -           -         -
+2048     0    -          no_refusal                -            -           -         -
+3072     0    -          no_refusal                -            -           -         -
+4096     0    93694      BudgetExhausted           258826976    7168736     2762      2.34x
+5120     124  -          RUNG_TIMEOUT_900s         -            -           -         UNRESOLVED
+6144     124  -          RUNG_TIMEOUT_900s         -            -           -         UNRESOLVED
+8192     124  -          RUNG_TIMEOUT_900s         -            -           -         UNRESOLVED
+
+## reservation x shape matrix (debug), showing the shape axis dominates
+SHAPE     96MiB     128MiB    192MiB    256MiB
+paren     406.21x   533.36x   541.99x   358.12x
+pattern   1.10x     3.26x     1.13x     3.31x

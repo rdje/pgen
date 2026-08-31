@@ -1,0 +1,14 @@
+# ENGINE-UNIVERSAL-SERVICES.69(a) slice 1 — overshoot over SHAPES, debug probe, 96 MiB floor
+# (MIN_DEDICATED_PARSE_STACK_BYTES). reserve = reservation/16 = 6 291 456 B.
+# margin = reserve / overshoot; overshoot = used_bytes - budget_bytes.
+SHAPE        LEVELS   DEPTH      CAUSE                USED_BYTES   BUDGET       OVERSHOOT   B_FRAME   MARGIN
+paren        512      3843       BudgetExhausted      94387328     94371840     15488       24560     406.21x
+cast         256      4002       BudgetExhausted      95084944     94371840     713104      23759     8.82x
+concat       512      3995       BudgetExhausted      94380624     94371840     8784        23624     716.24x
+ternary      4096     6349       BudgetExhausted      94426576     94371840     54736       14872     114.94x
+func         512      4370       NoFrameAffordable    94365680     94371840     -6160       21593     no_overshoot
+sysfunc      256      4719       BudgetExhausted      94382112     94371840     10272       20000     612.49x
+pattern      256      4296       BudgetExhausted      100073408    94371840     5701568     23294     1.10x
+if_stmt      1024     3309       BudgetExhausted      94444160     94371840     72320       28541     86.99x
+begin_end    1024     3353       BudgetExhausted      94593728     94371840     221888      28211     28.35x
+binary_par   512      3620       BudgetExhausted      94434896     94371840     63056       26086     99.78x
