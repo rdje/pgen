@@ -78,3 +78,26 @@ MIN_DEDICATED_PARSE_STACK_BYTES`.
   leaf that removes it.
 - It does **not** deliver the upward half of the mandate (a bigger host accepting deeper
   input). That is capped here, priced in frame 3 above, and owned by a named leaf.
+
+---
+
+## ⛔ SCORING CORRECTION (`-0158`, added after a director challenge)
+
+**P1–P7 all confirmed and all still stand.** What did NOT come from this pre-registration is the
+slice's headline finding, and that is the point worth recording.
+
+Frame 1 above named THE ROLE (the constant serving as both default and scaling anchor) and the
+design was built on it correctly. But no row here predicted anything about **the mutation battery's
+own coverage**, and that is exactly where the slice went wrong: a control came back green, I
+diagnosed it as *"unfalsifiable on this host"* and published that to the director — and the
+diagnosis was refuted in one command (`PGEN_PARSE_STACK_BYTES` either side of the reference makes
+the lock fail both ways).
+
+⇒ **the frame this pre-registration was missing is THE CONFIGURATION**: a mutation is only a
+control in a process where the defect it names can EXIST, so before reading a green mutation as a
+statement about the lock, enumerate the configurations in which the mutated program actually
+differs from the correct one. Two of my seven mutations needed a non-default one; I ran none.
+
+This is the eleventh entry in the running series of pre-registration failures kept in layer A, and
+it is the second of them (after `-0132`'s PROVENANCE) where the refuting evidence was already
+inside my own artifact.

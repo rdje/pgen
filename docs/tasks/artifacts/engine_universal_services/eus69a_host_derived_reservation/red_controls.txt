@@ -7,7 +7,12 @@ M3 both clamps                                             RED   ✅ (control wo
 == M4 (v2): the scaling law ignores its anchor and never scales down ==
 M4a law must scale down below the anchor                   RED   ✅ (control works)
 == M4b: the wrapper anchors on the RESOLVED DEFAULT instead of the constant ==
-M4b wrapper anchors on the constant                        GREEN ⛔ (control CANNOT go red)
+M4b/a default process (derived == reference here)          GREEN ⛔ (control CANNOT go red)
+M4b/b resolved 512 MiB (ABOVE the reference)               RED   ✅ (control works)
+M4b/c resolved 128 MiB (BELOW -- the 6-16 GiB shape)       RED   ✅ (control works)
+== GREEN CONTROLS: the env alone must NOT fail the lock (else M4b/b,c prove nothing) ==
+green control                                              GREEN ✅ (unmutated, PGEN_PARSE_STACK_BYTES=536870912)
+green control                                              GREEN ✅ (unmutated, PGEN_PARSE_STACK_BYTES=134217728)
 == M5: the derived arm reports the wrong provenance ==
 M5 provenance agrees with the value                        RED   ✅ (control works)
 == M6: the host query silently answers None on a supported target ==

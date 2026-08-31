@@ -39,6 +39,27 @@ This is the document downstream projects such as Nexsim should read first when d
 > ⭐ The `1/64` share is chosen so `256 MiB × 64 = 16 GiB` — the law returns the old literal
 > EXACTLY on a 16 GiB host, so nothing about a 16 GiB-or-larger machine's accept set moves; a
 > SMALLER host is simply no longer handed a per-parse stack it may not be able to afford.
+>
+> ⛔⛔ **AND SAY THE OTHER HALF PLAINLY, BECAUSE IT IS A BEHAVIOUR CHANGE YOU CAN SEE: ON A HOST
+> BELOW 16 GiB THE ACCEPT SET NARROWS, PROPORTIONALLY.** The paragraph above first stated this
+> effect only as a benefit; that was one-sided and is corrected here. The accept boundary is
+> LINEAR in the reservation — this contract's own measured table, 18.82 levels per MiB flat to
+> 0.14 % — so halving the reservation halves the deepest input that parses:
+>
+> | host physical memory | resolved reservation | deepest accepted nested `int'(…)` cast |
+> |---|---|---|
+> | ≥ 16 GiB | 256 MiB | **4 813** (unchanged from before this release) |
+> | 12 GiB | 192 MiB | ≈ 3 611 |
+> | 8 GiB | 128 MiB | ≈ 2 410 |
+> | ≤ 6 GiB | 96 MiB (floor) | ≈ 1 807 |
+>
+> ⇒ **the same file can now parse on one host and be REFUSED on a smaller one.** The refusal is
+> the ordinary bounded `E_PARSE_FAILURE` with the ceiling label, never a crash. This is the
+> capability mandate working as specified — the limit is the host's RAM — but if you need a
+> host-independent accept set, pin it: set `PGEN_PARSE_STACK_BYTES` to the same value everywhere,
+> which is also what we recommend for CI. ⚠️ For context on whether this can reach real input:
+> no file in the 16 336-file tracked corpus comes near the boundary (p99.9 bracket nesting is 8),
+> so this bites machine-emitted or adversarial input, not ordinary RTL.
 > ⚠️ Only the downward half has landed: a host larger than 16 GiB is capped at 256 MiB rather than
 > accepting deeper input, tracked as `ENGINE-UNIVERSAL-SERVICES.87`. And the derivation is
 > PER-PARSE — the embedding API spawns one thread per call, so `N` concurrent maximally-deep parses

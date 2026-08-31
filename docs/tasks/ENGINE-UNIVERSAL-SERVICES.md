@@ -17712,23 +17712,31 @@ STRENGTH I attributed to my own evidence.
   now measure the two separately, and they are genuinely different decisions — an unparseable
   override is not an operator statement at all (so the derived default stands, and the reported
   `source` says so), while a parseable-but-small one IS one and is honoured up to the floor.
-- ⛔⛔⛔ **A RED CONTROL I WROTE FOR THE MOST IMPORTANT LOCK IN THIS SLICE CAME BACK GREEN, AND
-  THE REASON IS THE FINDING.** The battery
+- ⛔⛔⛔ **A RED CONTROL CAME BACK GREEN, I PUBLISHED THE WRONG DIAGNOSIS FOR IT, AND A DIRECTOR
+  CHALLENGE REFUTED THAT DIAGNOSIS THE SAME DAY (`-0158`).** The battery
   (`…/eus69a_host_derived_reservation/red_controls.txt`, TRACKED) mutates one thing per lock and
-  requires that lock to FAIL. **M4 — anchor := the resolved default, i.e. the exact defect the
-  role split exists to prevent — did not fail.** Root-caused rather than patched: on this 24 GiB
-  host the upper clamp makes `dedicated_parse_stack_bytes()` **numerically identical** to
-  `DEDICATED_PARSE_STACK_BYTES`, so the mutation is a no-op **here**, and the defect is only
-  observable on a host in the 6–16 GiB derived band. ⇒ **my control was a function of the machine
-  it ran on** — the same disease `.87` was opened for, met in my own test on the same day.
-  ⭐ FIXED by making the anchor a PARAMETER (`scale_sample_depth_against_reference`), the identical
-  move `scale_sample_depth_to_reservation` already made for the reservation and for the identical
-  reason: both the split form and the collapsed form now execute in one process on ANY host, and
-  the collapsed one is asserted to return the identity AND to overrun a floor-sized budget at the
-  measured 25 874 B/frame. Re-run: **6 of 7 RED**.
-  ⚠️ **The seventh (M4b — the WRAPPER's anchor) is still GREEN and is NOT fixable from this host**:
-  at ≥16 GiB the two candidate anchors are equal, so no assertion can tell them apart. Recorded in
-  the test body, not papered over; **`.87`(e) owns removing the host-dependence.**
+  requires that lock to FAIL. **M4 — anchor := the resolved default, the exact defect the role
+  split exists to prevent — did not fail.** ⭐ The LAW half was a genuine weakness and the fix
+  stands: the anchor is now a PARAMETER (`scale_sample_depth_against_reference`), so the split and
+  collapsed forms both execute in one process on any host — the identical move
+  `scale_sample_depth_to_reservation` already made for the reservation, for the identical reason.
+  ⛔⛔ **BUT WHAT I THEN PUBLISHED ABOUT THE WRAPPER HALF IS WITHDRAWN AS FALSE.** I wrote that it
+  *"is NOT fixable from this host — at ≥16 GiB the two candidate anchors are equal, so no assertion
+  can tell them apart"*, and opened `.87`(e) on that premise. **MEASURED, and it is refuted in one
+  command**: with the wrapper mutated and `PGEN_PARSE_STACK_BYTES=536870912` the lock FAILS
+  (`left: 768, right: 1536`), and at `134217728` it FAILS the other way (`left: 3072`) — the
+  6–16 GiB shape reproduced by an env var rather than by a different machine. Both GREEN controls
+  hold (unmutated + the same env passes), so the env alone is not what fails it.
+  ⇒ **THE HONEST DIAGNOSIS IS THE OPPOSITE OF THE ONE I PUBLISHED. The lock was always adequate;
+  my HARNESS ran exactly one process configuration.** And in that configuration the mutated
+  program is **semantically identical** to the correct one — on this host the derived default IS
+  the reference — so there was no defect present to detect and the green was CORRECT, not blind.
+  A mutation is only a control where the defect it names can exist.
+  ⭐ FIXED: the battery now runs M4b in three configurations (default / above / below the
+  reference) plus two green controls, and the wiring assertion is strengthened from a single
+  output comparison to a THRESHOLD BISECTION — identity exactly AT the anchor, scaling one byte
+  below it — which pins the anchor's VALUE rather than one of its answers. Re-run: **every
+  mutation fires wherever its defect can exist.** ⛔ `.87`(e) is WITHDRAWN with its premise.
 - ✅ **(c) DISCHARGED — `libc` PRICED, and the price is ZERO NEW CRATES.** Measured, not reasoned:
 
   ```
@@ -17791,13 +17799,29 @@ STRENGTH I attributed to my own evidence.
       ```
 
       ⇒ the literal was sized from the **same 2026-07 per-frame constants** `.79` later measured at
-      **25 335–29 031 B** — so its own *">=3× margin"* was already **2.1–2.4×** by the time this
-      slice opened, and **no commit since re-derived it**. The number was stale in the same way,
-      and for the same reason, as the floor `.79` had to strip a safety argument from.
+      **25 335–29 031 B**, so its own *">=3× margin"* was already **2.1–2.4×** by the time this
+      slice opened. ⛔⛔ **A CLAUSE I PUBLISHED HERE IS WITHDRAWN AS FALSE (`-0158`, director
+      challenge): I wrote *"and no commit since re-derived it"*. `.79` DID re-derive it** — on
+      2026-08-30, into the doc comment of this very constant, which opens *"THE MARGIN IS SMALLER
+      THAN THIS COMMENT USED TO CLAIM, AND THE NUMBERS ARE NOW DATED"* and publishes the
+      2.1–2.4×. **I took the 2.1–2.4× FROM that comment and then said nothing had derived it** —
+      the refutation was in the sentence I quoted. This is the `-0132` PROVENANCE failure exactly
+      (layer A's tenth): a claim about what an earlier author did, checked against plausibility
+      instead of against the artifact. ⇒ the TRUE and much narrower claim is that **no commit ever
+      changed the LITERAL** (`git log -S` returns exactly one), and `.79` deliberately left it,
+      leaving `.69`(a) owing the derivation — which is what this slice pays.
       ⛔ **AND THE CENSUS CHANGED THE DESIGN BEFORE ANY SOURCE WAS EDITED**:
       `git grep -n "DEDICATED_PARSE_STACK_BYTES" -- rust` found the constant serving as the
-      SCALING ANCHOR at `:245`/`:252` as well as the default, so the obvious one-line edit would
-      have restored `.79`'s measured `rc 134`. `cargo tree -i libc --edges normal` priced the
+      SCALING ANCHOR at `:245`/`:252` as well as the default. ⚠️ **PRECISION, corrected under a
+      director challenge (`-0158`) — I first wrote that *"the obvious one-line edit"* would have
+      restored `.79`'s `rc 134`, and that is OVERSTATED.** There are two plausible
+      implementations and only one carries the hazard: replacing the CONSTANT with a derived
+      value moves the anchor (a floor-deriving host then takes the identity branch and samples at
+      4 096 frames on 96 MiB — the measured abort), while deriving inside
+      `dedicated_parse_stack_bytes()` and leaving the constant alone — which is what this slice
+      does, and is arguably the more natural Rust move since a `const` cannot be host-derived at
+      all — has no such defect. The census surfaced a REAL hazard in a constant serving two roles;
+      calling it the likelier of the two implementations was not earned. `cargo tree -i libc --edges normal` priced the
       dependency at zero new crates, and `parseability_probe --stack-reservation` (this slice)
       reads the derivation out of the shipped binary:
       `reservation_bytes=268435456 source=host_memory_derived host_memory_bytes=25769803776
@@ -18871,17 +18895,33 @@ fixes no defect and the `TASK-ACCEPTANCE` gate does not evaluate it either — n
   resolved value, including an operator's; (d) THEN lift `.69`(a)'s upper clamp, so a bigger host
   really does accept deeper input — the half of *"the only obvious limit shall be the host RAM and
   disk allowance"* that `.69`(a) does not deliver.
-- ⛔⛔ **(e) A RED CONTROL THAT CANNOT GO RED FROM THIS HOST, FOUND BY RUNNING IT** (`-0157`).
-  `.69`(a) slice 2's mutation battery required each new lock to fail under a targeted mutation.
-  The mutation for the most important lock — *the first-sample anchor must not track the derived
-  default*, i.e. the exact defect that would restore `.79`'s `rc 134` — came back **GREEN**, because
-  at ≥16 GiB `.69`(a)'s cap makes `dedicated_parse_stack_bytes()` NUMERICALLY IDENTICAL to
-  `DEDICATED_PARSE_STACK_BYTES`. The LAW half was fixed on the spot by making the anchor a
-  parameter, so both forms execute on any host; the WRAPPER half is genuinely unfalsifiable here
-  and is recorded in the test body as such. ⇒ **the control is a function of the machine it runs
-  on, which is this leaf's own headline met from the other side.** (e) removes that: a test that
-  can resolve a reservation in the 6–16 GiB derived band — which is the same explicit-reservation
-  path (b) and (c) need, so all three are one design.
+- ⛔ **(e) WITHDRAWN THE DAY IT WAS OPENED, PREMISE AND ALL** (`-0158`, under a director
+  challenge). (e) claimed a red control that *"cannot go red from this host"* because the cap makes
+  the two candidate anchors numerically identical at ≥16 GiB. **Measured: false.** With the wrapper
+  mutated and `PGEN_PARSE_STACK_BYTES` set either side of the reference the lock FAILS both ways
+  (`left: 768` at 512 MiB, `left: 3072` at 128 MiB, against `right: 1536`), while unmutated runs
+  under the same env stay green. The lock was adequate; the HARNESS ran one process configuration —
+  and in that one the mutated program is SEMANTICALLY IDENTICAL to the correct one, so its green
+  was correct rather than blind. Fixed in `-0158` (three configurations + two green controls + a
+  threshold-bisection wiring assertion), so there is nothing left for (e) to own.
+  ⭐ **The lesson (e) was WRONG about is worth more than the item it opened**: I diagnosed *"the
+  control is a function of the machine"* when the truth was *"a mutation is only a control where
+  the defect it names can exist"* — and I published the wrong one instead of spending one command
+  to check. ⇒ **when a control comes back green, falsify the EXPLANATION, not just the control.**
+- ⛔⛔ **(f) A ONE-SIDED CONTRACT SENTENCE, FOUND BY THE SAME CHALLENGE AND ALREADY FIXED**
+  (`-0158`). `.69`(a) slice 2 shipped the derivation into two DOWNSTREAM contracts and the book
+  describing the 6–16 GiB effect only as a benefit — *"a smaller host is simply no longer handed a
+  per-parse stack it may not be able to afford"* — and nowhere said the plain consequence: **the
+  accept set NARROWS proportionally on those hosts.** The accept boundary is linear in the
+  reservation (18.82 levels/MiB, flat to 0.14 %, a number the SV contract itself already
+  publishes), so an 8 GiB host accepts **≈2 410** nested casts where a 16 GiB host accepts
+  **4 813** — *the same file can parse on one host and be refused on a smaller one.*
+  ⇒ this is the `-0144` accept-set-narrowing shape, deliberate this time and defensible, but
+  documented in the flattering direction only, in the artifact Nexsim reads. Corrected in place in
+  all three surfaces with the measured table and the pin-`PGEN_PARSE_STACK_BYTES` remedy. Kept as
+  a leaf item because the CLASS is not closed: nothing in the repository checks that a contract
+  change describing a behaviour delta states BOTH directions, and I found this one only because
+  the director asked whether I was sure.
 - ⭐ **ORDERING, and it is the director's standing ruling rather than my preference**: (d) is
   CAPABILITY, so it sits ahead of `.68` under *"functionality, accuracy first"*
   ([[feedback_correctness_before_speed]]). But (b) and (c) are the controls that make (d) safe to

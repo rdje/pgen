@@ -281,6 +281,16 @@ is never allowed to become an outage).
 hard-coded is exactly what the law now produces on the developer-machine class it was written for.
 The literal is *explained*, not replaced.
 
+⛔⛔ **What that costs on a smaller host, said plainly.** The accept boundary is LINEAR in the
+reservation (measured: 18.82 nesting levels per MiB, flat to 0.14 %), so a smaller reservation
+means a proportionally shallower accept set — an 8 GiB host takes **≈2 410** nested casts where a
+16 GiB host takes **4 813**. ⇒ **the same file can parse on one host and be refused on a smaller
+one**, as a bounded rejection with the ceiling label, never a crash. That is the capability mandate
+working as specified — the limit is the host's RAM — and if you need a host-independent accept set
+you pin `PGEN_PARSE_STACK_BYTES` to one value across your fleet. ⚠️ Scale context: no file in the
+16 336-file tracked corpus approaches the boundary (p99.9 bracket nesting is 8), so this bites
+machine-emitted or adversarial input rather than ordinary RTL.
+
 ⚠️ **Two honest limits, stated rather than implied.**
 
 1. **The share is a policy, not a proof.** Deriving it would need the total process footprint at

@@ -1,5 +1,40 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-08-31 - PGEN-ENGINE-UNIVERSAL-SERVICES-0158 (self-audit of -0157: three published claims corrected, one in a downstream contract)
+
+- ⭐⭐⭐ **THE LESSON, and it is about READING A GREEN CONTROL.** A mutation came back green on the
+  lock I cared most about. I spent a paragraph diagnosing it — *"the two anchors are numerically
+  identical at ≥16 GiB, so no assertion can tell them apart"* — opened a leaf item on that premise,
+  and published it to the director as the slice's headline. **One command refuted it**: set
+  `PGEN_PARSE_STACK_BYTES` either side of the reference and the same mutation fails, both ways.
+  ⇒ **when a control comes back green, falsify the EXPLANATION, not just the control.** I had a
+  falsifiable story and did not spend the ten seconds to falsify it, because the story was
+  flattering: it made a limitation sound like a discovery.
+- ⭐⭐ **AND THE CORRECT LESSON IS BETTER THAN THE WRONG ONE.** The truth is not "the control is a
+  function of the machine" but **"a mutation is only a control in a configuration where the defect
+  it names can EXIST."** On this host the mutated program is *semantically identical* to the
+  correct one — the derived default IS the reference — so its green was correct, not blind. That
+  generalises: before reading a green mutation as a verdict about a lock, enumerate the
+  configurations in which the mutated program actually differs. Two of my seven mutations needed a
+  non-default configuration and I ran none.
+- ⛔⛔ **THE MOST CONSEQUENTIAL OF THE THREE ERRORS WAS NOT THE HEADLINE — IT WAS A ONE-SIDED
+  SENTENCE IN A DOWNSTREAM CONTRACT.** I described the derivation's effect on a 6–16 GiB host only
+  as a benefit and never wrote the plain consequence: the accept set narrows proportionally, so
+  the same file can parse on one host and be refused on a smaller one. It is a deliberate,
+  defensible trade — and it went into the artifact Nexsim reads with only the good half stated.
+  ⇒ **a behaviour delta has two directions, and the one that costs the consumer is the one they
+  need first.** Nothing in the repository checks this; `.87`(f) owns the class.
+- ⛔ **`-0132`'s PROVENANCE FAILURE REPEATED, five commits later.** I claimed no commit had
+  re-derived the stale margin, having taken the number I quoted FROM the comment that re-derived
+  it. The refutation was inside my own citation. The record already says *"check a provenance
+  claim against the artifact the earlier author CITED, never against plausibility"* — and this
+  time the artifact was not merely cited, it was the source of my number.
+- ⚠️ **WHAT THIS DOES NOT TOUCH.** No measurement is withdrawn. The derivation, the design-point
+  reproduction, the zero-generated-bytes proof, the (b) ruling and the (c) pricing all stand
+  exactly as measured. The defects were in claims I made ABOUT measurements, and in one case in
+  what I chose not to say — which is the harder failure to catch, because a gate can re-derive a
+  number and cannot notice a missing sentence.
+
 ## 2026-08-31 - PGEN-ENGINE-UNIVERSAL-SERVICES-0157 (the reservation default becomes a host quantity; leaf .69 CLOSED; new leaf .87; ENGINE + INSTRUMENT tier)
 
 - ⭐⭐⭐ **THE LESSON, and it is about WHAT A "SIMPLE" CHANGE HIDES.** `.69`(a) reads like a one-line

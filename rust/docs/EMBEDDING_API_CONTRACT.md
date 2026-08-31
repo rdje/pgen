@@ -69,6 +69,17 @@ Root-level parser-family handoff docs (`PGEN_*_PARSER_INTEGRATION_CONTRACT.md`) 
     host in the 6–16 GiB band is no longer handed a per-parse stack it may not be able to afford;
     below ~6 GiB the 96 MiB usability floor dominates as it always did.
 
+    ⛔⛔ **THE OTHER HALF OF THAT SENTENCE, STATED PLAINLY — ON A HOST BELOW 16 GiB THE ACCEPT SET
+    NARROWS, PROPORTIONALLY.** The first draft of this entry described the effect only as a
+    benefit, which was one-sided. The accept boundary is LINEAR in the reservation (measured,
+    18.82 nesting levels per MiB, flat to 0.14 %), so an 8 GiB host resolving 128 MiB accepts
+    **≈2 410** nested casts where a 16 GiB host accepts **4 813**. ⇒ **the same input can parse on
+    one host and be refused on a smaller one** — as a bounded `E_PARSE_FAILURE` with the ceiling
+    label, never a crash. That is the capability mandate working as specified (the limit is the
+    host's RAM), but if you need a host-independent accept set, pin `PGEN_PARSE_STACK_BYTES` to
+    one value across your fleet and CI. ⚠️ Scale context: no file in the 16 336-file tracked
+    corpus approaches the boundary (p99.9 bracket nesting is 8).
+
     `PGEN_PARSE_STACK_BYTES` still overrides and is still honoured down to the floor and up without
     limit. New: `parseability_probe --stack-reservation` prints the resolved reservation and its
     PROVENANCE — `operator_override`, `host_memory_derived`, or `reference_fallback` (the host's

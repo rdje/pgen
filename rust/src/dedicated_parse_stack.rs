@@ -1313,15 +1313,40 @@ mod tests {
         assert_eq!(split, 1536);
         assert!(split * 25_874 < budget(small_host_reservation));
 
-        // ⚠️ THE WIRING, and its one honest limit. The shipped wrapper must anchor on
-        // the CONSTANT, not on the resolved default. On a host in the 6–16 GiB derived
-        // band those differ and this assertion is falsifiable; at and above 16 GiB the
-        // cap makes them equal and NO assertion can tell them apart. Recorded rather
-        // than papered over — `.87`(e) owns removing the host-dependence.
         assert_eq!(
             scale_sample_depth_to_reservation(REQUESTED, small_host_reservation),
             split,
             "the shipped wrapper must anchor on DEDICATED_PARSE_STACK_BYTES"
+        );
+
+        // ⭐⭐ THE WIRING, PINNED BY BISECTING THE IDENTITY THRESHOLD RATHER THAN BY
+        // COMPARING ONE OUTPUT — a correction, and the first form of this assertion was
+        // measurably too weak (`-0158`, under a director challenge).
+        //
+        // The wrapper must anchor on the CONSTANT. Asserting only that its output equals
+        // the parameterised form at ONE reservation cannot see a wrapper anchored on the
+        // resolved default whenever the two happen to COINCIDE — which is every host at
+        // or above 16 GiB, this one included. Bisecting the threshold pins the anchor's
+        // VALUE instead: the law is the identity exactly AT the anchor and scales one
+        // frame below it, so any other anchor moves one of these two answers.
+        //
+        // ⛔ Verified to go RED where the divergence can exist rather than assumed to:
+        // with the wrapper anchored on `dedicated_parse_stack_bytes()` and
+        // `PGEN_PARSE_STACK_BYTES=536870912`, this test FAILS (`left: 2048, right: 4096`),
+        // and it stays GREEN with that same env and an unmutated wrapper. On a host whose
+        // DERIVED default is below the reference — the 6–16 GiB band — the second
+        // assertion is what fires.
+        assert_eq!(
+            scale_sample_depth_to_reservation(REQUESTED, DEDICATED_PARSE_STACK_BYTES),
+            REQUESTED,
+            "the law must be the identity exactly AT the reference — if the wrapper \
+             anchored on a LARGER resolved reservation this would scale down"
+        );
+        assert_eq!(
+            scale_sample_depth_to_reservation(REQUESTED, DEDICATED_PARSE_STACK_BYTES - 1),
+            REQUESTED - 1,
+            "and one byte below the reference it must scale — if the wrapper anchored on \
+             a SMALLER resolved reservation this would still be the identity"
         );
     }
 
