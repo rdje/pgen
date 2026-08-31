@@ -181,6 +181,48 @@ admitted when this was written needed ≈8 MB / ≈70 MB, more than the 8 MB def
 > ⭐ Note the direction: the margin is `budget ÷ (4 096 × bytes_per_frame)`, so **cheap frames mean
 > wide margins**, while the census's cost is quadratic in `budget ÷ bytes_per_frame`, so **cheap
 > frames also mean expensive cells**. The measurement is cheapest exactly where the risk is highest.
+>
+> ⛔⛔⛔ **AND ONE MORE ABORT SURVIVED ALL OF THAT, ON THE SHIPPED ARTIFACT — FIXED 2026-08-31
+> (`ENGINE-UNIVERSAL-SERVICES.85`).** `.79` made the guard's FIRST sample reachable at every
+> reservation. It did not make what happens BETWEEN samples safe, and that is a different defect
+> wearing the same symptom. The guard used to set its next sample point by PREDICTION: it priced a
+> stride of `affordable / 4` frames from the RUNNING AVERAGE per-frame cost and let the parse descend
+> that far unchecked. A parse can therefore spend its whole remaining budget inside ONE stride
+> whenever the frames it really pushes cost four times the average that priced them — and nested
+> assignment patterns do exactly that.
+>
+> **Measured, and it is not a near miss.** A **15 400-byte** syntactically valid SystemVerilog file —
+> `module m; localparam p = '{'{'{ … 1 … }}}; endmodule` — **hard-aborted the RELEASE parser at the
+> shipped 256 MiB default** (`rc 134`, reproduced 2 of 2). In a debug build the same shape aborted
+> from **2 344 bytes** at the default and **904 bytes** at the 96 MiB floor. The margin degrades
+> smoothly and then the process simply dies: 3.31× → 1.92× → 1.35× → 1.05× → **SIGABRT**.
+>
+> ✅ **THE FIX REPLACES THE PREDICTION WITH AN OBSERVATION.** The guard now learns
+> `stack_floor = base − budget` once, on the parse thread, and tests the real stack pointer against
+> it — the trigger is `depth >= max_depth || stack_floor_breached()`. Per-frame cost, average or
+> marginal, leaves the safety argument entirely, and the overshoot is bounded by the frames between
+> two guard-visible entries instead of by one mispriced stride. `max_depth` survives only as the
+> fallback for a thread whose extent the process cannot know.
+>
+> **What an embedder gets, measured before → after:**
+>
+> | | before | after |
+> |---|---|---|
+> | the 15 400 B file, release, shipped default | **`rc 134` SIGABRT** | **`rc 0` accepted**, 5 115× margin |
+> | 288–448 nesting levels, 96 MiB floor | **`rc 134` SIGABRT** | **`rc 0` accepted** |
+> | 512+ nesting levels, 96 MiB floor | **`rc 134` SIGABRT** | **`rc 1` clean rejection** |
+> | worst safety margin over 10 shapes | **1.10×** | **103.86×** |
+> | worst overshoot past budget | 244.8 frames | **2.49 frames** |
+>
+> ⭐ **The accept set WIDENED rather than narrowed.** Inputs that used to kill the process now parse:
+> the guard stops the parse AT the budget, so there is stack left to back off and still find an
+> accepting derivation. A guard that fires on a real measurement can fire EARLIER than one that
+> guesses, so that risk was checked explicitly — every input that accepted before still accepts.
+> ⚠️ Honest costs: one shape's margin FELL (`concat` 716× → 107×) because the distribution compressed,
+> every shape now paying the same bounded couple-of-frames residual; and a deeply nested input that
+> previously aborted is now ≈1.8× slower, because **a crash is a fast way to not answer** and the
+> parse must now actually finish. The binding parse-cost metric over the pinned 192-file corpus is
+> unchanged.
 Since `1.3.1` (`SV-CORPUS-GRAD.8c.3`), every SystemVerilog and VHDL embedding parse runs its
 parser work on a dedicated **256 MiB-stack** thread (virtual reservation, lazily committed; one
 short-lived thread per call, so concurrent host threads never serialize), which guarantees the

@@ -446,6 +446,55 @@ budget is adequate and the cause is elsewhere (a forcing/store-gate bug).
 | **Sampling a parse** (`/usr/bin/sample`) | `parseability_probe --parse <g> big.sv --profile P &` then `/usr/bin/sample $! 4 1 -f prof.txt` | the ONLY instrument that observes the FUSED `cascade_*` graph — every counter-based tool routes the parse to the PROTOCOL graph by construction. ⛔ **Four silent traps**, all measured: the denominator is the **worker thread** (the main thread is 100 % `__ulock_wait`, so the process total halves every percentage); **self-time answers "where is the CPU", not "who caused it"** (measured on SV's LR machinery: self ≈ 2 %, inclusive ≈ 24 %); the **linker folds** the generated parsers' identical helpers, so a per-family symbol name can be a lie; and a report has **four sections** — ingesting `Total number in stack …` as call-graph rows produced an **8×** wrong number whose conservation control stayed green. Full detail in `TOOLBOX.md` 3.8 |
 | Well-formedness gen-AST (tests) | `PGEN_WELLFORMEDNESS_GEN_AST=<path> cargo test --lib …` | the gen-AST a well-formedness test loads |
 
+### Reading a stack-probe row
+
+`PGEN_REPORT_STACK_PROBE=1` prints one line per parse — the depth probe's own reading at its last
+refusal. The overshoot census (`ENGINE-UNIVERSAL-SERVICES.69`(a) / `.85`) tabulates the same fields
+across inputs, and every column below is a field of that reading:
+
+| column | worked value | what it is |
+|---|---|---|
+| `LEVELS` | 5 120 | nesting levels in the **source file** — what the generator was asked for |
+| `RC` | 0 | process exit status: **0** accept · **1** clean rejection · **124** the cap expired · **134** SIGABRT (128 + signal 6) |
+| `DEPTH` | 85 493 | live **parser frames** when the probe refused |
+| `CAUSE` | `BudgetExhausted` | which refusal fired |
+| `USED_BYTES` | 251 661 520 | stack bytes spent from the thread's recorded base |
+| `OVERSHOOT` | 3 280 | `USED_BYTES − budget` — how far past the spendable budget the parse got |
+| `B_FRAME` | 2 943 | `USED_BYTES ÷ DEPTH` — the **average** per-frame stack cost |
+| `MARGIN` | 5 115× | `reserve ÷ OVERSHOOT` — how many times over the parse could have overshot before running off the reservation |
+
+The three quantities the margin is built from, at the shipped 256 MiB default: the **reservation** is
+the parse thread's stack (268 435 456 B); the **budget** is the 93.75 % the guard is willing to spend
+(251 658 240 B); the **reserve** is the 6.25 % it withholds as headroom (16 777 216 B).
+
+⛔ **`LEVELS` is not `DEPTH`.** One source level costs many parser frames — 16.7 for nested assignment
+patterns, ~7.5 for nested parens, ~1.6 for a ternary chain. A reader who takes the frame count for
+source nesting concludes their file is nowhere near the limit when it is over it, which is why the
+rejection message says so in its own words.
+
+⛔ **`RC 0` beside a recorded refusal is not a contradiction.** The columns describe the refusal
+EVENT; `RC` describes the VERDICT. A parse can contact the ceiling, have the guard refuse, backtrack
+and still find an accepting derivation — which is why a crash of this class was invisible to every
+pass/fail oracle until the bytes were instrumented.
+
+⛔ **`OVERSHOOT` is signed.** A negative value is legitimate and appears in the census: cause
+`NoFrameAffordable` means headroom remained but would not pay for one more frame.
+
+⛔ **A zero byte field means NOT MEASURED, never measured-as-zero.** Which fields carry a real number
+is a function of `CAUSE` alone — the probe refuses at the first thing it cannot establish, so a later
+quantity was never computed rather than computed as zero.
+
+⚠️ **`MARGIN` is censored at 1.0 by construction.** The reading is printed by the process *after* the
+refusal, so a parse that overshoots past the whole reservation never reports a small margin — it hits
+the guard page and dies. Sub-1 cases appear as `RC 134`, never as a number, so a measured minimum is
+the worst case among the SURVIVORS and not a bound.
+
+⚠️ **Two different quantities are called "margin" in this repository.** Here it is
+`reserve ÷ overshoot` — how much headroom a parse ate. In the per-frame census
+(`ENGINE-UNIVERSAL-SERVICES.79`(a)) it is `budget ÷ (4 096 × B/frame)` — whether the guard can REACH
+its first sample at all. Same word, same unit, different questions; they are not comparable.
+
+
 ---
 
 ## Comparing two generated parsers

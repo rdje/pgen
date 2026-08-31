@@ -36,3 +36,4 @@
 - [The Enforced Doctrines](the-enforced-doctrines.md)
 - [Operations and Governance](operations-and-governance.md)
 - [Source Map](source-map.md)
+- [Glossary](glossary.md)
