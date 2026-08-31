@@ -18527,13 +18527,14 @@ fixes no defect and the `TASK-ACCEPTANCE` gate does not evaluate it either — n
 - ✅ **RELEASE — the artifact that ships.** At the **96 MiB floor**: 1 536 / 2 048 / 2 560 all clean,
   margins **2 016× / 5 243× / 2 957×**, overshoot ≤ 1 frame. At the **256 MiB default**: **4 864
   levels stays `rc 0`** (margin 6 594×), the accept-set arm on the shipped artifact.
-- ⚠️⚠️ **WHAT IS NOT YET CLOSED, stated rather than implied by a green headline.**
-  **(i) The exact pre-fix release reproduction — 5 120 levels at the default — is UNRESOLVED**: it
-  returned `rc 124` at a 5 400 s cap and is re-running at 14 400 s. ⛔ It must NOT be read as fixed:
-  a cap is a statement about patience (`-0153`, `-0138`). ⭐ The likely reason is honest and
-  measurable — pre-fix the parse ABORTED at 2 640 s, and **a crash is a fast way to not answer**;
-  post-fix it must actually finish, and 4 864 took ~4 300 s against 2 412 s pre-fix, ≈1.8× slower on
-  these pathological inputs.
+- ✅✅✅ **THE EXACT PRE-FIX RELEASE REPRODUCTION IS CLOSED, AND IT ACCEPTS.** 5 120 levels — the
+  **15 400-byte** file that hard-aborted the SHIPPED artifact, `rc 134` reproduced 2 of 2 at
+  2 643 s / 2 640 s — now returns **`rc 0`** at a **5 115×** margin with **3 280 B (1.1 frames)** of
+  overshoot, under the memory guard, completing in ≈5 800 s. ⛔ The earlier `rc 124` was a 5 400 s
+  cap and nothing else, exactly as `-0153` warned: **a cap is a statement about patience, never about
+  the program.** ⭐ And the honest reason it needs the time: pre-fix the parse ABORTED at 2 640 s, and
+  **a crash is a fast way to not answer** — post-fix it must actually finish the work (4 864 took
+  ≈4 300 s against 2 412 s pre-fix). ⚠️ **Every verification arm on `.85` is now closed.**
   **(ii) COST**: the parse-cost ratchet's BINDING (deterministic) metric is UNCHANGED; its ADVISORY
   wall clock read **41 968 → 44 521 ms (+6.1 %)**, inside its ±50 % band, on a host at load ~3.2 —
   so it is untrustworthy in both directions by this repository's own rule about timing on a busy
@@ -18574,7 +18575,8 @@ fixes no defect and the `TASK-ACCEPTANCE` gate does not evaluate it either — n
       `stack_floor = base − budget` learned once on the parse thread. Measured before→after: every
       `rc 134` gone at BOTH reservations in debug; worst margin 1.10× → 103.86×; worst overshoot
       244.8 → 2.49 frames; release clean at the floor and 4 864 preserved at the default.
-      ⚠️ The 5 120-level release reproduction is UNRESOLVED (`rc 124` at 5 400 s), re-running.
+      ✅ The 5 120-level release reproduction is CLOSED: the 15 400-byte file that aborted the
+      SHIPPED artifact (`rc 134`, 2 of 2) now returns `rc 0` at a 5 115× margin.
 - [x] **NO REGRESSION** — accept set WIDENED, not narrowed (288–448 floor and 768–1024 default go
       abort → accept); `clippy_on_rust_change` PASS; `cargo test --lib dedicated_parse_stack`
       **12 passed / 0 failed**; parse-cost BINDING metric unchanged (advisory +6.1 % on a loaded

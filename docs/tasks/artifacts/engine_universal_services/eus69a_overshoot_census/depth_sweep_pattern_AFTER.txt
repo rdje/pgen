@@ -36,3 +36,13 @@ LEVELS   RC   DEPTH      CAUSE                USED_BYTES   OVERSHOOT   B_FRAME  
 # recorded -- a cap is a statement about patience, never about the program (`-0153`, and
 # `-0138` before it). Booking a timeout as a fix would have repeated the exact error that made
 # a shipped-artifact abort look debug-only for one commit.
+
+## release, 256 MiB SHIPPED DEFAULT — THE EXACT PRE-FIX REPRODUCTION, now closed
+# Pre-fix this input aborted with rc 134, reproduced 2 of 2 (2 643 s / 2 640 s).
+LEVELS   RC   DEPTH      CAUSE                USED_BYTES   OVERSHOOT   B_FRAME   MARGIN     BEFORE
+4864     0    86780      BudgetExhausted      251660784    2544        2899      6594.82x   rc 0
+5120     0    85493      BudgetExhausted      251661520    3280        2943      5115.00x   rc 134
+# ⭐ The 15 400-byte file that hard-aborted the SHIPPED artifact now ACCEPTS, at a 5 115x margin,
+# with 3 280 B of overshoot (1.1 frames) where the pre-fix design ran off the end of the
+# reservation entirely. Run under the memory guard, 14 400 s cap, completed in ~5 800 s -- the
+# 5 400 s cap that read rc 124 was simply too small, exactly as -0153 warned.
