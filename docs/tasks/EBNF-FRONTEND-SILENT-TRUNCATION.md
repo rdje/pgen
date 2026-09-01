@@ -285,6 +285,52 @@ language surface**. If the answer later becomes "support it", that decision belo
 - **RE-OPEN / SCHEDULE WHEN** the SV lane lock lifts, or sooner if a user reports a rejected
   grammar.
 
+### `.6` — ⚠️ NEW `todo`, ROUTED + PARKED (opened 2026-09-01 by `LRM-GRAMMAR-FIDELITY.1e` / `PGEN-LRM-GRAMMAR-FIDELITY-0001`) — **an INDENTED `#` comment on the line after a return annotation is captured INTO the annotation token: the token is misclassified `return_scalar`, and a comment-only edit there moves the `ebnf_raw_ast` digest that three doctrines key on**
+
+**ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing here):
+
+- **REPRODUCES OUTSIDE THE FAMILY IT WAS FOUND IN — on a three-rule synthetic grammar.**
+  `a := b -> {kind: "x"}\n     # a comment after the annotation\n   | c -> {kind: "y"}` read through
+  `bash scripts/check_baseline_identity.sh --raw-ast` gives
+  `['return_scalar', '{kind: "x"}\n     # a comment after the annotation']`; the same grammar
+  without the comment line gives `['return_object', '{kind: "x"}']`. Nothing SystemVerilog about it.
+- **MEASURED ON THE SHIPPED SV GRAMMAR**: **14** annotation tokens in **12** rules carry a `#`
+  comment or a newline inside the payload and every one is classified `return_scalar`
+  (`parseable_source_item`, `covergroup_declaration_sv_2023`, `block_data_type`, `data_type` ×2,
+  `net_declaration_sv_2017` ×2, `net_declaration_sv_2023` ×2, `net_type`,
+  `primary_hier_scope_prefix`, `scoped_or_hierarchical_tf_identifier`, `variable_lvalue_scope`,
+  `less_than`). Census: the `raw_ast` tokens of kind `return_*` whose text contains `#` or `\n`.
+- **THE CONSEQUENCE, MEASURED WITH A CONTROL**: editing one word of the comment after `net_type`'s
+  `-> {kind: "trireg"}` in a copy of the shipped grammar moves `--digest ebnf_raw_ast` from
+  `ea76b211c200…` to `3e36c001d84d…`; editing a COLUMN-0 comment elsewhere in the same file leaves
+  it at `ea76b211c200…`. So `scripts/check_baseline_identity.sh:78-79` — *"comments never reach
+  it"* — is false for this shape, and a comment-only edit at any of those 12 sites re-keys
+  `BASELINE-IDENTITY`, `SV-CONTRACT-CURRENCY` tier A and `PARSE-COST-RATCHET`: the
+  `SV-CORPUS-GRAD.13c.2x.4` cost with a mechanism attached.
+- **WHY + WHERE**: `rust/src/ebnf_frontend.rs:713` `extract_inline_return_annotation_payload` —
+  by its own doc comment the payload *"spans from the first non-whitespace character after `->`
+  to the next top-level `|` … or to end-of-expression"*, and the rule body it scans is the
+  multi-line body `collect_rule_body` assembles (`:664`), in which only a COLUMN-0 `#` terminates
+  the rule. An indented comment between the closing `}` and the next `|` is therefore payload
+  text. `classify_return_annotation` (`:1472`) then sees a string that starts with `{` and does
+  not end with `}` → `return_scalar`. The regression test at `:1660-1701` pins the OTHER
+  over-grab (subsequent `|` branches on the same line, *"the over-grab bug used to misclassify as
+  return_scalar"*) and does not cover a following comment line.
+- **DOES IT REACH THE GENERATED PARSER?** Not observably: the shape contract holds
+  `{kind: "trireg"}` and every gate was green through `-0316`, so the code generator must re-read
+  the payload up to the balanced `}`. The defect is in the ENVELOPE — the thing three doctrines
+  hash — and in the envelope's classification.
+- **OWES**: (a) end the inline payload at the balanced closing delimiter of an object / array
+  payload and skip comment text before the next `|` (or strip `#`-to-end-of-line inside the
+  payload scanner when not in a string / regex); (b) a regression arm on the three-rule grammar
+  above — `return_object` with payload exactly `{kind: "x"}`; (c) re-derive the SV `ebnf_raw_ast`
+  digest and re-stamp the three baselines ONCE (the digest WILL move — the 14 tokens change —
+  and that is the fix landing, so the stamp must say so); (d) then the `.13c.2x.4` measurement:
+  a comment-only edit after an annotation must leave the digest unmoved.
+- ⚠️ **PARKED**: engine/frontend lane, not SV-blocking (the generated parser is right; the cost
+  is one avoidable re-derivation per comment edit at 12 sites, and `SV-CORPUS-GRAD.13o` pays it once
+  for the grammar-comment correction it carries).
+
 ## Acceptance Criteria (tree)
 
 1. A tracked, deterministic gate fails when a grammar's source alternatives and its IR

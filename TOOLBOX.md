@@ -89,7 +89,7 @@ same leaf keeps its checklist, and a deletion-only edit still counts as touching
 | 2 | **performance / SPEED / FOOTPRINT** | it is correct but slow, or its memory is the problem | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph`, `ARENA-CHUNK-ORACLE:` (`rust/target/release/arena_chunk_oracle_probe` — proves the `typed_arena` chunk-capacity model against a counting `GlobalAlloc`; `--red-control` required to go red), `PARSE-ALLOC-CENSUS:` (`rust/target/release/parse_alloc_census_probe` — the whole parse's requested-live-bytes high-water and a size-class table at that high-water, so a structure can be attributed by NAME instead of subtracted for; `--red-control-arm` required to go red), `PARSE-THIN-OCCUPANCY:` (same probe — how much of the dense `THIN_RULE_COUNT × (len + 1)` thin-memo table a parse actually WRITES; `NOT_MEASURED` is never `0`), `PARSE-ALLOC-TAPE:` (same probe — one row per large allocation with the events at which it was made and released, so SUCCESSION, position relative to the peak, and never-freed are OBSERVED rather than inferred from a class total; `complete=false` invalidates the input) |
 | 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
 | 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
-| 5 | **ops / build-flow** | the defect is in the repo's OWN scripts, Makefiles, hooks or tracking state — shell/make, so no rustc error either | `git ls-files`/`log -S`/`rev-list`/`fsck`/`reflog`/`diff-tree`/`merge-base`, `shellcheck`, `bash -n`, `make -n`/`make --dry-run`, `E2BIG`/`ENOSPC`/`EACCES`/`ARG_MAX`, `guard.<pid>.marker`, `reason=rss-budget\|free-floor\|disk-floor\|timeout`, `GATE-REACHABILITY-PROBE:`, `SV-CONTRACT-CURRENCY:` (`scripts/check_sv_contract_currency.sh` — the SV grammar's semantic digest versus the contract's), `ACCEPT-SET-LEDGER:` (`docs/tasks/artifacts/sv_corpus_grad/contract_accept_set_ledger/measure_accept_set_transitions.py` — which grammar commit moved which verdict or which typed AST), `LRM-ANNEX-A-GAP:` (`stimuli/sv/lrm_annex_a_gap_census.py` — the IEEE 1800 productions the CLAUSE bodies define and Annex A, the only surface the extractor reads, does not) |
+| 5 | **ops / build-flow** | the defect is in the repo's OWN scripts, Makefiles, hooks or tracking state — shell/make, so no rustc error either | `git ls-files`/`log -S`/`rev-list`/`fsck`/`reflog`/`diff-tree`/`merge-base`, `shellcheck`, `bash -n`, `make -n`/`make --dry-run`, `E2BIG`/`ENOSPC`/`EACCES`/`ARG_MAX`, `guard.<pid>.marker`, `reason=rss-budget\|free-floor\|disk-floor\|timeout`, `GATE-REACHABILITY-PROBE:`, `SV-CONTRACT-CURRENCY:` (`scripts/check_sv_contract_currency.sh` — the SV grammar's semantic digest versus the contract's), `ACCEPT-SET-LEDGER:` (`docs/tasks/artifacts/sv_corpus_grad/contract_accept_set_ledger/measure_accept_set_transitions.py` — which grammar commit moved which verdict or which typed AST), `LRM-ANNEX-A-GAP:` (`stimuli/sv/lrm_annex_a_gap_census.py` — the IEEE 1800 productions the CLAUSE bodies define and Annex A, the only surface the extractor reads, does not), `LRM-KEYWORD-ENUMERATION:` (`stimuli/sv/lrm_keyword_enumeration_census.py` — every LRM production that ENUMERATES reserved keywords, member by member against the shipped grammar under the edition's own profile; the `net_type` class, and the RED control replays `SV-CORPUS-GRAD.13n`) |
 
 ⛔ **A bare `file.rs:NNN` citation is NOT a signature, and neither is *"verified by grep"*.** Both
 were measured and deliberately refused (`GENERATED-LINT-CORRECTNESS.4`): a line number is a
@@ -176,6 +176,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | **"Does the LRM define a production the SHIPPED grammar has never seen?"** — ⛔ Annex A is the only surface the SV extractor reads, and IEEE captions 60 of its own 2017 syntax boxes `(not in Annex A)` | [5.8 the Annex A gap census](#58-does-the-lrm-define-a-production-the-shipped-grammar-has-never-seen--the-annex-a-gap-census) |
 | "Which LRM chapters/clauses does the keyed corpus target? Where is the negative-axis gap?" | [5.4 companion — `corpus_clause_coverage.py`](#54---dump-rule-profiles) |
 | **"Does this DIALECT PROFILE accept something its LRM never defined?"** — ⛔ a different question from *"is the profile COHERENT"*, which is the only one gated; and 5.4's `satisfiable_under` will look like it answers it and does not (it is bottom-up: `void` reports satisfiable under `verilog_2005` and REJECTS there) | [5.11 the keyword-faithfulness census](#511-does-this-dialect-profile-accept-something-its-lrm-never-defined--the-keyword-faithfulness-census) — closed population, three legs per row, and the third leg moved the founding headline by seven |
+| **"Does every LRM keyword ENUMERATION still carry ALL its members in the shipped grammar?"** — ⛔ the quietest defect shape this grammar has: a dropped alternative resolves every name (`--lint-grammar` green), witnesses every rule that EXISTS (certificates green) and hides from the corpus until a vendored file spells it — `net_type` shipped 10 of 12 for the grammar's whole life | [5.13 the keyword-enumeration membership census](#513-does-every-lrm-keyword-enumeration-still-carry-all-its-members-in-the-shipped-grammar--the-keyword-enumeration-membership-census) — 289 members over 97 name-matched productions, three editions each judged under its own profile, `unmatched` and `extra` printed but never scored, and a RED control that replays `.13n` |
 | **"Which INPUTS does my change actually move?" — for a behaviour implemented TWICE and held equal by a gate** | [Protocol E](#protocol-e--which-inputs-does-my-change-move-break-the-mirror-on-purpose) — apply it to ONE side and every divergence the differential reports IS an input the change moves; ⛔ then prove the sweep can go RED, or clean and never-reached read identically |
 
 ---
@@ -2004,6 +2005,96 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   LOAD. In-process the grammar is loaded once: **33 s**. ⛔ That driver is deliberately KEPT — it is
   the independent oracle the engine census was falsified against, and the two agree on every number
   in BOTH joins.
+
+### 5.13 "Does every LRM keyword ENUMERATION still carry ALL its members in the shipped grammar?" — the keyword-enumeration membership census
+
+- **WHAT:** `python3 stimuli/sv/lrm_keyword_enumeration_census.py` (`LRM-GRAMMAR-FIDELITY.1e`, the
+  instrument `SV-CORPUS-GRAD.13n`(e) asked for) — the CLOSED population of LRM productions whose
+  alternatives are all bare tokens and that name at least one reserved keyword
+  (`net_type ::= supply0 | supply1 | … | wor`, `lifetime ::= static | automatic`, `strength0`,
+  `port_direction`, …), checked MEMBER BY MEMBER against the shipped grammar's rule of the same
+  name under the profile that edition is released as. Deterministic, ~1.9 s, reads the repository
+  and mutates nothing.
+- **WHEN:** after ANY edit to a keyword-bearing alternation, before claiming an edition is
+  LRM-complete, and whenever a corpus row stops on a reserved word that "should" parse. ⛔ **This
+  is the class nothing else can see.** `net_type` shipped TEN of the LRM's TWELVE branches for the
+  whole life of the flattened grammar: `--lint-grammar` was green (every name resolves), the
+  certificate pass was green (every rule that EXISTS is witnessed), and the corpus lanes saw it
+  only where a vendored file happened to spell `tri0` — nine rows, found by `.13k`(b)'s census
+  of the rejects-valid rows, never by a guard.
+- **HOW:**
+  ```bash
+  python3 stimuli/sv/lrm_keyword_enumeration_census.py              # gate mode: recompute + diff the tracked artifact
+  python3 stimuli/sv/lrm_keyword_enumeration_census.py --write      # promote a new baseline (deliberate)
+  python3 stimuli/sv/lrm_keyword_enumeration_census.py --self-test  # 13/13 refusal + RED/GREEN arms
+  python3 stimuli/sv/lrm_keyword_enumeration_census.py --grammar rust/target/x.ebnf   # a control run; --write refused
+  ```
+- **OUTPUT:** `docs/tasks/artifacts/sv_corpus_grad/lrm_keyword_enumeration/` — `census.tsv` (one
+  row per keyword member: edition, profile, production, LRM citation, verdict, the shipped rules
+  consulted) and `census.md` (the headline per edition, every `MISSING` row, the `unmatched`
+  worklist, the `extra` members, the honest bound), both under an instrument-identity block.
+  ```text
+  LRM-KEYWORD-ENUMERATION: editions=3 productions=109 matched=97 unmatched=12 keyword_members=289 \
+                           present=289 missing=0 missing_no_terminal=0 incomplete_productions=0 \
+                           extra_members=9 literal_members=3
+  ```
+- ⭐⭐ **THE TWO ORACLES, AND WHY EACH IS THE ONE IT IS.** The LRM side is the vendored Annex A
+  markdown read with the extractor's OWN primitives (`normalize_text`, `RULE_HEAD_RE`,
+  `is_noise_line`, `looks_like_grammar_line`, the same body-assembly loop), so the shipped grammar's
+  ancestor and this census cannot disagree about what a syntax line is — a self-test arm pins the
+  reader equal to `extract_rules` after canonicalisation on all three editions (734 / 747 / 381
+  rules). The tracked snapshots `grammars/*_lrm_extracted.ebnf` are a SECONDARY source: measured,
+  they are SUBSETS of Annex A for 1800 (424 and 490 rules — the 2023 snapshot does not even carry
+  `net_type`) and a SUPERSET for 1364-2005 (they add the clause-body VCD / system-task / directive
+  productions). A shared enumeration must agree across the two or the run refuses (0 today). The
+  shipped side is the frontend's `raw_ast` envelope plus `--dump-rule-profiles` (5.4), read through
+  the sibling census's own functions (5.11) rather than a second copy.
+- ⛔⛔ **"RESERVED KEYWORD" IS IEEE'S LIST, NEVER A GUESS FROM THE SPELLING — AND A TRAILING DIGIT
+  IS A FOOTNOTE ONLY WHEN NOTHING USES THAT SPELLING.** Membership is decided against Annex B of the
+  edition (248 / 248 / 124 words, pinned). IEEE prints footnote numbers on definitions
+  (`class_item_qualifier10 ::=`) AND on uses (`assignment_pattern_expression37`), but never spells
+  one production with the same digits in both places; a real name (`strength0`, `delay2`, `tri0`) is
+  defined and used verbatim, and a keyword is never stripped. ⛔ The extractor's own
+  `canonicalize_rule_name` strips UNCONDITIONALLY: measured, it merges `strength0`/`strength1` into
+  `strength` and `delay2`/`delay3` into `delay` in all three editions, and
+  `grammars/systemverilog_lrm_profiled_generated.ebnf:1860` carries the consequence —
+  `strength := kw_supply_… | kw_strong_… | kw_pull_… | kw_weak_…`, the digits gone from the KEYWORDS
+  too. The shipped hand-synthesised grammar has `strength0`/`strength1` right; the generated
+  ancestor does not (`LRM-GRAMMAR-FIDELITY.1f`). The first cut of this census reused that
+  canonicaliser and reported `strength0` missing `strong` and `weak` — members the LRM never wrote.
+- **VERDICTS, and what is deliberately NOT one.** `present` · `MISSING` (a `kw_*` terminal spells
+  the word, the rule named for the production cannot reach it under the profile — the `.13n` shape
+  once the terminal exists) · `MISSING_NO_TERMINAL` (no terminal spells it at all — `.13n` as
+  shipped). A production with no shipped rule by name or profile-variant suffix is `unmatched` and
+  NOT scored: the shipped grammar is a flattened synthesis, so a lifted or renamed production is an
+  adjudication row (12 today: 9 are VCD / directive / `$`-task productions that are not source
+  syntax, and the 3 that are — 1364-2005 `output_variable_type`, `parameter_type`, `task_port_type`
+  — all PARSE on the release probe under both profiles). `extra` (the shipped closure reaches a
+  keyword the LRM enumeration does not) is printed and NOT scored, because *"the annex does not
+  derive it"* is a KNOWN-BAD over-acceptance classifier (`LRM-GRAMMAR-FIDELITY.1c`): the
+  `assignment_pattern_key` extras `string`/`chandle`/`event` are legal by §10.9.2's own example
+  (`.13c.2t`), which is the built-in negative control for that column. ⭐ But the column is a
+  worklist, and its first real customer came from the first run: `edge` in 1364-2005
+  `edge_identifier` — three probe legs later a CONFIRMED `verilog_2005` over-acceptance
+  (`SV-CORPUS-GRAD.13o`).
+- ⛔ **TEXT-LEVEL TRIAGE, NOT A PARSE VERDICT — and the closure is STRICT on purpose.** A member is
+  `present` when the shipped rule reaches its terminal through BARE single-reference alternatives
+  (`kw_x` alone, a rule reference alone, a parenthesised group) that are LIVE under the profile;
+  `kw_x kw_y?` does not count as `x`. That errs toward REPORTING, which is the direction nothing
+  else catches, and every `MISSING` row is then settled by the release probe with `.13k`(b)'s
+  two-sided bisect (the input rejects; substituting a sibling member accepts). The LRM side is
+  closed by the same bare-alternative rule, so a mixed production's own nonterminal expansion
+  (`casting_type` → `simple_type` → `integer_type` → `bit | logic | reg …`) is never `extra`.
+- ⭐ **THE RED CONTROL REPLAYS THE FOUNDING DEFECT ON THE REAL TREE**, not on a synthetic copy:
+  `--self-test` removes the two `net_type` branches from a copy of the shipped grammar and must read
+  `MISSING` 6 of 6 (three editions × two members) with EXACTLY six rows moving; then removes the two
+  terminals and must read `MISSING_NO_TERMINAL` 6 of 6; the GREEN arm is HEAD reading `net_type`
+  complete on every edition. Plus determinism (two derivations byte-identical), the Annex B pin, the
+  footnote canonicaliser, the reader-parity arms and an unterminated-snapshot refusal — 13 arms.
+- ⚠️ **HONEST BOUND, printed by the report:** name-matched (the `unmatched` list IS the bound on
+  what it could not see), under-acceptance only, text-level, and blind to a production neither LRM
+  surface carries (5.8's business). Gate mode compares the tracked artifact to a fresh derivation
+  when RUN; no registered doctrine runs it yet — the same standing as 5.11 (`SV-CORPUS-GRAD.13i`).
 
 ## 6. Coverage / gap reports (`ast_pipeline`)
 

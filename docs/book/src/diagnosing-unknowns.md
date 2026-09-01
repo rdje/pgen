@@ -47,6 +47,7 @@ the generation-input / memo observability.
 | Which rules a derived DFA scanner could fuse + the measured ceiling? the choice-site / merged-choice surface? | `--report-fusibility-census` | `ast_pipeline g.ebnf --report-fusibility-census [--fusibility-entry-counts c.json] [--fusibility-outcome-counts o.json]` |
 | **A rule whose whole body is a whitespace terminal is `UNKNOWN` with `parsed=true` — is the LAYOUT SKIP eating it?** | `--report-layout-owning-terminals` | `ast_pipeline g.ebnf --report-layout-owning-terminals` → the closed population of terminals that own their leading layout, HIR-derived (⛔ a text sweep for `\s` misses `[ \t\r\n]+` and `\r?\n`) |
 | **Does a DIALECT PROFILE accept something its LRM never defined?** ⛔ a different question from *"is the profile COHERENT"* — the coherence half (`profile_orphans=0`) is gated on every commit and the faithfulness half was checked only by a curated sample | the keyword-faithfulness census | `python3 stimuli/sv/v2005_keyword_faithfulness_census.py` → the CLOSED population of IEEE-1800-only keywords a `verilog_2005` parse can reach, three probe legs per row (see [below](#is-a-dialect-profile-faithful-to-its-standard)) |
+| **Does every LRM keyword ENUMERATION still carry ALL its members in the shipped grammar?** — a dropped alternative resolves every name, witnesses every rule that exists and hides from the corpus until a file spells it; `net_type` shipped 10 of 12 for the grammar's whole life | `stimuli/sv/lrm_keyword_enumeration_census.py` — [the keyword-enumeration membership census](#does-every-lrm-keyword-enumeration-still-carry-all-its-members) | `python3 stimuli/sv/lrm_keyword_enumeration_census.py` (gate mode; `--self-test` fires 13 arms) — 289 members over 97 productions, three editions, 0 missing at HEAD, a RED control that replays the founding defect |
 | Witness-pass tuning (A/B, budget, ordering)? | `PGEN_WITNESS_*` | see [witness knobs](#witness-pass-knobs) |
 
 > Build note: cert-coverage and any `.ebnf`-direct mode need the debug binary
@@ -646,6 +647,84 @@ neither introduces a keyword the standard's list lacks:
 The report prints that bound rather than implying it, alongside the census's own red control: the
 identical computation under `sv_2017`, where these keywords are native, reaches 136 of them — so
 `verilog_2005` gates 112 and leaks 24. A census blind to the profile would print one number twice.
+
+---
+
+## Does every LRM keyword ENUMERATION still carry ALL its members?
+
+The `verilog_2005` keyword census above asks whether a profile admits a keyword its standard never
+reserved. The **mirror-image** question went unasked for the whole life of the flattened grammar:
+when the standard ENUMERATES keywords — `net_type ::= supply0 | supply1 | tri | triand | trior |
+trireg | tri0 | tri1 | uwire | wire | wand | wor` — does the shipped rule of that name still reach
+every member?
+
+For `net_type` the answer was no for the grammar's entire history (`SV-CORPUS-GRAD.13n`, ledger
+`SV-0075`): ten of twelve branches shipped, `tri0` and `tri1` were absent. Nothing structural
+noticed, and it is worth being precise about why, because each instrument was doing its job:
+
+| instrument | what it holds | why it could not see a dropped member |
+|---|---|---|
+| `--lint-grammar` | every referenced name resolves | a branch that does not exist references nothing |
+| the certificate pass | every rule that EXISTS is witnessed | it cannot demand a witness for a rule nobody declared |
+| the corpus lanes | every vendored file gets a verdict | the defect is visible only where a file happens to spell the missing word |
+
+The membership census closes that class with a population, not a rule of thumb. It joins two
+oracles: the vendored Annex A markdown of each edition, read with the extractor's own scraping
+primitives so the shipped grammar's ancestor and the census cannot disagree about what a syntax
+line is, and the shipped grammar's `raw_ast` envelope under each edition's own profile. "Reserved
+keyword" is decided by IEEE's Annex B list for that edition, never inferred from a spelling.
+
+```bash
+python3 stimuli/sv/lrm_keyword_enumeration_census.py              # gate mode: recompute + diff
+python3 stimuli/sv/lrm_keyword_enumeration_census.py --self-test  # 13 refusal + control arms
+```
+```text
+LRM-KEYWORD-ENUMERATION: editions=3 productions=109 matched=97 unmatched=12 keyword_members=289 \
+                         present=289 missing=0 missing_no_terminal=0 incomplete_productions=0 \
+                         extra_members=9 literal_members=3
+```
+
+### What a verdict means, and what is deliberately not one
+
+A member is `present` when the shipped rule reaches its terminal through **bare** single-reference
+alternatives that are live under the profile; `MISSING` when a terminal spells the word but the
+rule cannot reach it; `MISSING_NO_TERMINAL` when nothing spells it at all — the shape `net_type`
+shipped in. The closure is strict on purpose (`kw_x kw_y?` is not a bare `x`), because erring toward
+reporting is the direction nothing else catches, and each reported row is then settled on the
+release probe with a two-sided bisect: the input rejects, and substituting a sibling member accepts.
+
+Two columns are printed and **never scored**. A production with no shipped rule by name or
+profile-variant suffix is `unmatched` — the shipped grammar is a hand-annotated synthesis, so a
+lifted production is an adjudication row, not a defect; of the twelve at HEAD, nine are VCD,
+directive or `$`-task productions outside the source language and the three that are source syntax
+all parse. And `extra` — the shipped closure reaching a keyword the enumeration does not name — is
+a worklist rather than a verdict, because *"the annex does not derive it"* is a measured known-bad
+classifier for over-acceptance (three constructs flagged that way were all legal). The
+`assignment_pattern_key` extras `string`, `chandle` and `event` are legal by §10.9.2's own example
+and serve as the column's built-in negative control. The column still earned its place on the first
+run: `edge` in 1364-2005's `edge_identifier ::= posedge | negedge` became, three probe legs later,
+a confirmed `verilog_2005` over-acceptance.
+
+### A trailing digit is a footnote only when nothing uses that spelling
+
+IEEE prints footnote numbers on definitions (`class_item_qualifier10 ::=`) and on uses
+(`assignment_pattern_expression37`), but never spells one production with the same digits in both
+places. A real name — `strength0`, `delay2`, and every keyword such as `tri0` — is defined and used
+verbatim. The extractor's own canonicaliser strips trailing digits unconditionally, and the census
+measured the cost: `strength0`/`strength1` merge into one `strength` and `delay2`/`delay3` into one
+`delay` in all three editions, and the generated profiled grammar carries `strength := kw_supply |
+kw_strong | kw_pull | kw_weak` with the digits gone from the keywords too. The shipped hand-synthesised
+grammar has the pairs right; the generated ancestor does not, and that is now its own leaf.
+
+### The control replays the founding defect on the real tree
+
+`--self-test` removes the two `net_type` branches from a copy of the shipped grammar and must read
+`MISSING` six of six (three editions, two members) with exactly six rows moving; removes the two
+terminals and must read `MISSING_NO_TERMINAL` six of six; and reads HEAD green. Determinism, the
+Annex B count pin, the canonicaliser, reader parity against the extractor on all three editions and
+an unterminated-snapshot refusal make thirteen arms. The report carries its own bound: name-matched,
+under-acceptance only, text-level, and blind to a production neither LRM surface carries — which is
+the Annex A gap census's business.
 
 ---
 

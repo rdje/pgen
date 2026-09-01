@@ -1,5 +1,50 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-01 - PGEN-LRM-GRAMMAR-FIDELITY-0001 (the keyword-enumeration membership census — a dropped member is invisible to every instrument that reads only what the grammar declares)
+
+- ⭐⭐⭐ **THE TRANSFERABLE LESSON: THREE GREEN INSTRUMENTS EACH DOING THEIR JOB IS NOT A CLAIM ABOUT
+  WHAT NONE OF THEM READS.** `--lint-grammar` holds that every referenced name resolves — a branch
+  that does not exist references nothing; the certificate pass holds that every rule that EXISTS is
+  witnessed — it cannot demand a witness for a rule nobody declared; the corpus lanes hold that every
+  file gets a verdict — a dropped keyword is visible only where a file spells it. `net_type` shipped
+  10 of 12 for the grammar's whole life behind all three. The only instrument that can see the class
+  reads the STANDARD's enumeration, not the grammar's — and it needs a closed oracle for "which
+  members are keywords" (Annex B) or it is a guess. Promoted:
+  [[a-missing-alternative-is-invisible-to-every-instrument-that-reads-only-what-exists]].
+- ⭐⭐ **A TRAILING DIGIT IS A FOOTNOTE ONLY WHEN NOTHING USES THAT SPELLING.** IEEE prints footnote
+  numbers on definitions (`class_item_qualifier10 ::=`) AND on uses (`assignment_pattern_expression37`),
+  never the same digits in both places; `strength0`, `delay2`, `tri0` are defined and used verbatim.
+  The extractor strips unconditionally and merged `strength0`/`strength1` and `delay2`/`delay3` in
+  every edition — and my first cut REUSED it ("never a second copy") and published `strength0`
+  missing `strong` and `weak`. ⇒ *reuse* is a default, not a proof: an oracle reused is an oracle
+  inherited, blind spots included. The discriminator that survived: a keyword is never stripped; a
+  DEFINED digit-bearing name is a footnote form only when nothing references it verbatim; a USED one
+  when the stripped spelling is known.
+- ⭐⭐ **MEASURE THE ORACLE BEFORE CHOOSING IT.** I picked the tracked "full grammar extraction
+  snapshots" as the LRM side because they are tracked and tidy; one command showed them to be
+  SUBSETS of Annex A (424 / 490 rules vs 734 / 747) with the 2023 one lacking `net_type` — the very
+  production the census exists for. The markdown the shipped grammar descends from is the primary
+  source; the snapshot is secondary; the two are held equal where both speak.
+- ⛔⛔ **A NAME-KEYED SEARCH OVER A FILE TREE WHOSE NAMES ARE WRONG REPORTS FILE NAMES AS FACTS —
+  AND THE REPOSITORY ALREADY KNEW.** `-0316` published *"the 2017 Annex A extract does not carry
+  `net_type`"* in five places; it does, at `section-41-data-read-api.md:899`, under the name TOOLBOX
+  5.8 warns about in capitals. `-0318` audited two other claims of that commit and walked past this
+  one. The census caught it because its LRM side is keyed on IEEE's captions and `::=` heads, not on
+  file names — the same choice 5.8 made and wrote down. ⇒ a banked lesson protects only the reader
+  who is executing it, so the instrument must embody it.
+- ⭐ **`extra` IS A WORKLIST, NOT A VERDICT, AND THAT DISCIPLINE PAID BOTH WAYS IN ONE RUN.** The
+  `assignment_pattern_key` extras (`string`, `chandle`, `event`) are legal by §10.9.2's own example —
+  scoring them would have republished the `.1c` refuted classifier. The `edge_identifier` extra
+  (`edge` under `verilog_2005`) survived three probe legs and is a confirmed over-acceptance
+  (`SV-CORPUS-GRAD.13o`). Same column, opposite outcomes, told apart only by the probe.
+- ⛔ **THE FRONTEND KEEPS A COMMENT INSIDE A RETURN ANNOTATION WHEN THE COMMENT IS INDENTED ON THE
+  NEXT LINE** — 14 tokens in 12 shipped rules, `return_scalar` instead of `return_object`, and the
+  `ebnf_raw_ast` digest moves on a one-word comment edit at those sites while a column-0 comment
+  edit leaves it. `check_baseline_identity.sh`'s *"comments never reach it"* is a claim with a
+  measured exception (`EBNF-FRONTEND-SILENT-TRUNCATION.6`). Found by reading the instrument's own
+  first output — the `net_type` token was visibly wrong in the raw_ast dump before anything else
+  was.
+
 ## 2026-09-01 - PGEN-SV-CORPUS-GRAD-0318 (self-audit — a historical claim has two subjects, and one `git log -S` answers only the first)
 
 - ⭐⭐⭐ **THE TRANSFERABLE LESSON: *"THE BRANCH NEVER EXISTED"* AND *"THE INPUT WAS REJECTED"* ARE

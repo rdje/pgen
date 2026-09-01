@@ -181,34 +181,40 @@ def annex_b_keywords() -> list[str]:
     return sorted(words)
 
 
-def raw_ast() -> list:
+def raw_ast(grammar_rel: str = GRAMMAR_REL) -> list:
     """The frontend's `raw_ast` for the SV grammar, via the ONE tool that owns that envelope.
 
     ⛔ NOT a second frontend invocation: `scripts/check_baseline_identity.sh` already owns the
     `ebnf_raw_ast` definition that `BASELINE-IDENTITY`, `SV-CONTRACT-CURRENCY` and
     `PARSE-COST-RATCHET` all key on.
+
+    `grammar_rel` is a repo-relative path and defaults to the shipped grammar; a sibling
+    instrument (`lrm_keyword_enumeration_census.py`) passes a MUTATED copy under `rust/target/`
+    for its RED controls, so the envelope reader is shared rather than copied.
     """
-    proc = subprocess.run([str(IDENTITY), "--raw-ast", GRAMMAR_REL],
+    proc = subprocess.run([str(IDENTITY), "--raw-ast", grammar_rel],
                           capture_output=True, text=True, cwd=REPO_ROOT)
     if proc.returncode != 0:
-        raise Refused(f"the raw_ast of `{GRAMMAR_REL}` could not be derived "
+        raise Refused(f"the raw_ast of `{grammar_rel}` could not be derived "
                       f"(exit {proc.returncode}): {(proc.stderr or '').strip()[:400]}")
     return json.loads(proc.stdout)["raw_ast"]
 
 
-def rule_satisfiability() -> dict[str, list[str]]:
+def rule_satisfiability(grammar_rel: str = GRAMMAR_REL) -> dict[str, list[str]]:
     """`rule -> profiles it is SATISFIABLE under`, from `--dump-rule-profiles` (TOOLBOX 5.4).
 
     This is the bottom-up half of liveness — "can this rule derive a string under P".  It is the
     same `derive_rule_profiles` fixpoint the profile-orphan lint gates on, so the two instruments
     cannot disagree about what the profile contains.
+
+    `grammar_rel` defaults to the shipped grammar; see `raw_ast()` for why it is a parameter.
     """
     if not AST_PIPELINE.exists():
         raise Refused(f"{AST_PIPELINE.relative_to(REPO_ROOT)} is not built — "
                       f"`cargo build --features \"generated_parsers ebnf_dual_run\"` from rust/")
     out = ARTIFACT_DIR / "rule_profiles.json"
     out.parent.mkdir(parents=True, exist_ok=True)
-    proc = subprocess.run([str(AST_PIPELINE), GRAMMAR_REL, "--dump-rule-profiles", str(out)],
+    proc = subprocess.run([str(AST_PIPELINE), grammar_rel, "--dump-rule-profiles", str(out)],
                           capture_output=True, text=True, cwd=REPO_ROOT)
     if proc.returncode != 0:
         raise Refused(f"--dump-rule-profiles failed (exit {proc.returncode}): "
@@ -349,10 +355,13 @@ def reachable_rules(raw: list, satisfiable: dict[str, list[str]]
     return seen, len(sat), synthesised
 
 
-def keyword_literals() -> dict[str, str]:
-    """`kw_* rule -> the literal it matches`, read from the grammar's own terminal definitions."""
+def keyword_literals(grammar: Path = GRAMMAR) -> dict[str, str]:
+    """`kw_* rule -> the literal it matches`, read from the grammar's own terminal definitions.
+
+    `grammar` defaults to the shipped grammar; see `raw_ast()` for why it is a parameter.
+    """
     literals = {}
-    for rule, body in KEYWORD_RULE_RE.findall(GRAMMAR.read_text()):
+    for rule, body in KEYWORD_RULE_RE.findall(grammar.read_text()):
         head = IDENTIFIER_RE.match(body)
         if head:
             literals[rule] = head.group(0)

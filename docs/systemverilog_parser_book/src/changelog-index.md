@@ -57,8 +57,7 @@ symptom you would have observed dates from those two commits.
 | `module m; triand a; trior b; endmodule` (control) | `rc 0` | `rc 0` |
 
 All three vendored editions define them: IEEE 1364-2005 Annex A A.2.2.1:219, IEEE 1800-2023
-Annex A:891, IEEE 1800-2017 clause 6 (`section-6-data-types.md:928` — that edition's vendored
-Annex A extract does not carry the production, so do not read a false absence out of it).
+Annex A:891, IEEE 1800-2017 Annex A A.2.2.1 (`docs/systemverilog/2017/md/section-41-data-read-api.md:899` — the PDF→markdown splitter filed that edition's Annex A under the section-41 file name, which is why a name-keyed search reports a false absence; TOOLBOX 5.8) and clause 6 (`section-6-data-types.md:924-928`).
 
 **AST impact — additive only.** Two new `kind` values, `"tri0"` and `"tri1"`, join the ten a
 `net_type` node could already carry. Schema **26 unchanged**. A consumer switching *exhaustively*
@@ -2444,7 +2443,7 @@ source_text[0]: {kind: "description", body: {
 }}
 ```
 
-**Difference from module pattern:** No `keyword:` field on interface_<form>_header (only one `interface` keyword exists). Otherwise field names mirror `module_<form>_header`.
+**Difference from module pattern:** No `keyword:` field on `interface_<form>_header` (only one `interface` keyword exists). Otherwise field names mirror `module_<form>_header`.
 
 **Annotation inventory:** 53 entries (was 41). +12 in this batch.
 

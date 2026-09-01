@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-159bf2b5.js";
+            window.path_to_searchindex_js = "searchindex-e43c70a3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -243,8 +243,7 @@ symptom you would have observed dates from those two commits.</p>
 </table>
 </div>
 <p>All three vendored editions define them: IEEE 1364-2005 Annex A A.2.2.1:219, IEEE 1800-2023
-Annex A:891, IEEE 1800-2017 clause 6 (<code>section-6-data-types.md:928</code> — that edition’s vendored
-Annex A extract does not carry the production, so do not read a false absence out of it).</p>
+Annex A:891, IEEE 1800-2017 Annex A A.2.2.1 (<code>docs/systemverilog/2017/md/section-41-data-read-api.md:899</code> — the PDF→markdown splitter filed that edition’s Annex A under the section-41 file name, which is why a name-keyed search reports a false absence; TOOLBOX 5.8) and clause 6 (<code>section-6-data-types.md:924-928</code>).</p>
 <p><strong>AST impact — additive only.</strong> Two new <code>kind</code> values, <code>"tri0"</code> and <code>"tri1"</code>, join the ten a
 <code>net_type</code> node could already carry. Schema <strong>26 unchanged</strong>. A consumer switching <em>exhaustively</em>
 on that field must add two arms; one that matches known values and falls through is unaffected.
@@ -1922,7 +1921,7 @@ udp_declaration_sv_2023  -&gt; mirror of sv_2017 with positional shift in wildca
     }
 }}
 </code></pre>
-<p><strong>Difference from module pattern:</strong> No <code>keyword:</code> field on interface_<form>_header (only one <code>interface</code> keyword exists). Otherwise field names mirror <code>module_&lt;form&gt;_header</code>.</form></p>
+<p><strong>Difference from module pattern:</strong> No <code>keyword:</code> field on <code>interface_&lt;form&gt;_header</code> (only one <code>interface</code> keyword exists). Otherwise field names mirror <code>module_&lt;form&gt;_header</code>.</p>
 <p><strong>Annotation inventory:</strong> 53 entries (was 41). +12 in this batch.</p>
 <p><strong>Schema version:</strong> stays at <code>1</code>.</p>
 <p><strong>Contract section:</strong> <a href="../../contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.html"><code>docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md</code></a> → “Release 1.0.9 / Contract 1.0.9 Highlights”.</p>
