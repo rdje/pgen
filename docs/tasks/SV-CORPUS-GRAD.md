@@ -19677,7 +19677,7 @@ systemverilog_raw_parse` clean. (e) is DONE above (5.13 and 5.11 re-run). ⭐ `.
 predicts it pays the same memo eviction, which will be its second measured instance.
 
 
-#### ⚠️ `.13p` — NEW `todo`, ROUTED (opened 2026-09-01 by `LRM-GRAMMAR-FIDELITY.1f` / `PGEN-LRM-GRAMMAR-FIDELITY-0001`) — **`and #(1,2,3) g(o,a,b)` PARSES on every profile: the shipped grammar spells NEITHER `delay2` nor `delay3` (`grep -c 'delay2\|delay3'` = 0) because the LRM extractor merged them into one `delay`, and IEEE 1800-2017 A.3.1 gives an `n_input_gatetype` at most TWO delay values**
+#### ⛔⛔ `.13p` — **CONFIRMED 2026-09-02 (`PGEN-SV-CORPUS-GRAD-0321`), NEXT** (opened 2026-09-01 by `LRM-GRAMMAR-FIDELITY.1f` / `PGEN-LRM-GRAMMAR-FIDELITY-0001`) — **`and #(1,2,3) g(o,a,b)` PARSES on every profile: the shipped grammar spells NEITHER `delay2` nor `delay3` (`grep -c 'delay2\|delay3'` = 0) because the LRM extractor merged them into one `delay`, and IEEE 1800-2017 A.3.1 gives an `n_input_gatetype` at most TWO delay values**
 
 - **MEASURED** (release probe, both `verilog_2005` and `sv_2017`): `and #(1,2) g(o,a,b)` `rc 0`
   (control), **`and #(1,2,3) g(o,a,b)` `rc 0`** — A.3.1 `n_input_gatetype [ drive_strength ]
@@ -19696,6 +19696,40 @@ predicts it pays the same memo eviction, which will be its second measured insta
   contract, release); (c) corpus per-path re-run, expecting ZERO `pass → fail` (a real design does
   not put three delays on an `and`), and the sample/profile parity census.
 - ⚠️ Routed behind `.13o`: same ceremony, smaller blast radius first.
+
+**CONFIRMED 2026-09-02 — THE LOCATED SENTENCE EXISTS IN BOTH STANDARDS, so this is no longer a
+candidate** (`LRM-GRAMMAR-FIDELITY.1c`'s discipline satisfied):
+
+- IEEE 1800-2017 §28.16 — `docs/systemverilog/2017/md/section-28-gate-level-and-switch-level-modeling.md:396`
+  (n-input gates) and `:454` (n-output gates): *"The delay specification shall be zero, one, or two
+  delays."* `:631` (enable gates and switches): *"The delay specification shall be zero, one, two,
+  or three delays."* `:243`: *"A delay specification can contain up to three delay values, depending
+  on the gate type."*
+- IEEE 1364-2005 §7.14 — `docs/verilog/2005/md/section-7-gate-and-switch-level-modeling.md:376`,
+  `:436` (two), `:614` (three); Annex A A.3.1 (`:410`, `:412`) gives `n_input_gatetype` and
+  `n_output_gatetype` `[ delay2 ]`.
+- **SIZED, in the shipped grammar**: `delay := delay_sv_2017 | delay_sv_2023`, and both variants carry
+  the `triple_optional` alternative; `( delay )?` is referenced at **twelve** sites, of which
+  **seven** are `delay2` in Annex A — `n_input_gatetype`, `n_output_gatetype` and
+  `pass_en_switchtype` in BOTH `gate_instantiation_sv_2017` and `gate_instantiation_sv_2023`
+  (`:2857/:2859/:2861`, `:2877/:2879/:2881`) and `udp_instantiation` (`:6649`, A.5.4
+  `[ delay2 ]`) — while `cmos`/`mos`/`enable` gates, `continuous_assign` (A.6.1 `[ delay3 ]`) and
+  `net_declaration` (A.2.1.3 `[ delay3 ]`) correctly keep three.
+- **THE FIX SHAPE**: a `delay2` profile-split pair (`delay2_sv_2017` / `delay2_sv_2023`, the
+  `value` and `pair_optional` alternatives only, return annotations byte-identical to `delay`'s)
+  referenced at the seven sites. The AST is unchanged for every LEGAL input — a two-delay site
+  yields the same `{body: {kind: "pair_optional" | "value", …}}` object it does today; only
+  `triple_optional` becomes unreachable there. Accept-set NARROWING on ALL profiles.
+- **CORPUS BLAST RADIUS, measured**: one file in 16 336 spells a three-value delay on a two-delay
+  gate — `verilator/test_regress/t/t_gate_basic.v:25` `nand #(2,3,4) ND0 (…)` — and it already
+  reads `fail` / `divergence:explained_svpp_conditional` in the main-lane manifest, so ZERO verdict
+  movement is the prediction, not an assumption. Lens **L3** (shape / cardinality).
+- **OWES** (the `.13o` ceremony): pins (`accepts_invalid` on all three profiles + controls
+  `and #(1,2)`, `bufif0 #(1,2,3)`), the conformance case, the grammar, regeneration, the six gates,
+  both lanes, ledger `SV-0077`, release `1.0.204`, contract, book; and the ratchet reading —
+  `ENGINE-UNIVERSAL-SERVICES.88`(b) predicts a memo eviction only when a TERMINAL-ONLY rule gains a
+  profile-conditional alternative, which this change does not do, so `profile_split_respelling`
+  should cover it: that prediction is written down BEFORE the measurement.
 
 #### `.13g` — the FRAGMENT-shaped population: an accept there is not testimony (`todo`, opened 2026-08-11 by `.13a`)
 
