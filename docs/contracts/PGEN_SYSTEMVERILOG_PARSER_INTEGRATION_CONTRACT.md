@@ -5,6 +5,33 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-09-01, `SV-CORPUS-GRAD.13n` — GRAMMAR, release `1.0.202`, ledger
+> `SV-0075`, schema `26` UNCHANGED, ALL THREE profiles): `tri0` and `tri1` are net types again.**
+> The `net_type` alternation shipped **ten** of the LRM's **twelve** branches for the whole life of
+> the flattened grammar. Both spellings were in the reserved-keyword regexes, so they lexed as
+> keywords and had nowhere to land: `module m; tri0 a; tri1 b; endmodule` was `rc 1` on `sv_2017`,
+> `sv_2023` **and** `verilog_2005`, while `wire`, `triand` and `trior` from that same alternation
+> were `rc 0`.
+>
+> **What now parses that did not**: any declaration using the `tri0` / `tri1` net types — pull-down
+> and pull-up nets, which appear in ordinary vendor RTL and in every SystemVerilog edition. All
+> three vendored editions define them (IEEE 1364-2005 Annex A A.2.2.1:219, IEEE 1800-2023
+> Annex A:891, IEEE 1800-2017 clause 6 at `section-6-data-types.md:928`).
+>
+> **AST impact — ADDITIVE ONLY.** Two new `kind` values, `"tri0"` and `"tri1"`, join the ten a
+> `net_type` node could already carry; no existing shape is replaced or renamed and the schema is
+> unchanged. A consumer switching *exhaustively* on that field must add two arms; one that matches
+> known values and falls through is unaffected. ⛔ This **widens** the accept set, so text that used
+> to fail now yields an AST — safe for a consumer reading ASTs, and a change for one relying on
+> rejection.
+>
+> **Corpus proof, per-path and two-sided**: `sv_2017` pass **9 794 → 9 811** with the axis-2
+> divergence bar **274 → 268**; `verilog_2005` pass **2 291 → 2 300** with its arm **66 → 57**.
+> **18** rows moved in the main lane, **9** in the v2005 lane, the row sets identical on both sides,
+> and **18 of 18 contain `tri0` or `tri1`** — attribution measured, not inferred. ⭐ Nine of the
+> eighteen are `deferred:v2005_profile_lane`, so a real fix is again partly invisible to the bar,
+> which is `SV-CORPUS-GRAD.13`'s standing thesis.
+
 > **Current-state note (2026-08-28, `ENGINE-UNIVERSAL-SERVICES.65` — ENGINE, grammar-agnostic,
 > release `1.0.201`, ledger `SV-0074`, schema `26` UNCHANGED, ALL profiles): the 4096-frame
 > recursion ceiling is gone.** It is replaced by a bound the parse thread's own stack supplies:
@@ -860,15 +887,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.201`
+  - `1.0.202`
 - Parser release version:
-  - `1.0.201`
-  - history: `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.202`
+  - history: `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `825db0318c69a8fb79c88872724855a551ab07a3bccc2c86e7e3e5606dae417a` (SV grammar semantic digest — sha256 of the
+  - `ea76b211c20069211bd83a524ceec227c31284724a6f96f761241071eba6b9f1` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`

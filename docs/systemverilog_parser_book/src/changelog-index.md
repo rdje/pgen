@@ -34,6 +34,39 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.202 / Contract 1.0.202 — SV-CORPUS-GRAD.13n (`PGEN-SV-CORPUS-GRAD-0316`, 2026-09-01), ledger `SV-0075` (`Released`):
+
+⛔ **`tri0` and `tri1` are net types again.** The grammar's `net_type` alternation shipped **ten**
+of the LRM's **twelve** branches for the whole life of the flattened grammar. Both spellings were
+already in the reserved-keyword regexes, so they lexed as keywords and had no production to land
+in — which is why the failure carried no clue that anything was missing.
+
+| input | before | after |
+|---|---|---|
+| `module m; tri0 a; tri1 b; endmodule` — `sv_2017` | `rc 1` | **`rc 0`** |
+| the same, `sv_2023` | `rc 1` | **`rc 0`** |
+| the same, `verilog_2005` | `rc 1` | **`rc 0`** |
+| `module m; wire a; endmodule` (control, same alternation) | `rc 0` | `rc 0` |
+| `module m; triand a; trior b; endmodule` (control) | `rc 0` | `rc 0` |
+
+All three vendored editions define them: IEEE 1364-2005 Annex A A.2.2.1:219, IEEE 1800-2023
+Annex A:891, IEEE 1800-2017 clause 6 (`section-6-data-types.md:928` — that edition's vendored
+Annex A extract does not carry the production, so do not read a false absence out of it).
+
+**AST impact — additive only.** Two new `kind` values, `"tri0"` and `"tri1"`, join the ten a
+`net_type` node could already carry. Schema **26 unchanged**. A consumer switching *exhaustively*
+on that field must add two arms; one that matches known values and falls through is unaffected.
+⛔ The accept set **widens**, so text that used to fail now yields an AST.
+
+**Corpus proof**, per-path and two-sided: `sv_2017` pass **9 794 → 9 811**, axis-2 bar **274 → 268**;
+`verilog_2005` pass **2 291 → 2 300**, its arm **66 → 57**. 18 rows moved in the main lane, 9 in the
+v2005 lane, row sets identical on both sides, and **18 of 18 contain `tri0` or `tri1`**.
+
+⭐ **How it was found is the part worth keeping**: `SV-CORPUS-GRAD.13k`(b) censused the
+`verilog_2005` rows the answer key calls `must_accept` and the parser rejects, expecting to find
+answer-key over-claims. It found 19 of those — and **20 rows of the opposite defect**, text the LRM
+*does* define that the parser could not derive. This is one of them.
+
 ### 1.0.201 / Contract 1.0.201 — ENGINE-UNIVERSAL-SERVICES.65 (`PGEN-ENGINE-UNIVERSAL-SERVICES-0117`, 2026-08-28), ledger `SV-0074` (`Released`):
 
 ⛔ **The 4096-frame recursion ceiling is gone. What replaced it is not a bigger number — it is a

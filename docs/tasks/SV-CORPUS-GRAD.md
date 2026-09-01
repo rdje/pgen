@@ -19333,7 +19333,7 @@ slicing a fenced string can cut the closing delimiter off and re-create the very
 per-row oracle; (b) ✅ **this slice**; (c) open — rule `must_reject` vs `divergence:explained`
 edition-contrast. ⛔ **The key is still not edited**, deliberately.
 
-#### `.13n` — ⛔⛔⛔ NEW `todo` — **THE SHIPPED SV GRAMMAR'S `net_type` HAS 10 OF THE LRM'S 12 ALTERNATIVES: `tri0` AND `tri1` ARE ABSENT, SO A NET TYPE ALL THREE VENDORED LRMs DEFINE IS REJECTED ON ALL THREE PROFILES** (opened 2026-08-31 by `.13k`(b) / `PGEN-SV-CORPUS-GRAD-0315`)
+#### `.13n` — ✅✅✅ **`done`** (FIXED 2026-09-01, `PGEN-SV-CORPUS-GRAD-0316`, release `1.0.202`, ledger `SV-0075`) — **THE SHIPPED SV GRAMMAR'S `net_type` HAS 10 OF THE LRM'S 12 ALTERNATIVES: `tri0` AND `tri1` ARE ABSENT, SO A NET TYPE ALL THREE VENDORED LRMs DEFINE IS REJECTED ON ALL THREE PROFILES** (opened 2026-08-31 by `.13k`(b) / `PGEN-SV-CORPUS-GRAD-0315`)
 
 **ROUTING EVIDENCE** — measured, minimal, and it is an SV *release* defect, not a v2005-lane one.
 
@@ -19371,6 +19371,89 @@ edition-contrast. ⛔ **The key is still not edited**, deliberately.
   this grammar. `LRM-GRAMMAR-FIDELITY` owns that instrument.
 - ⭐ **SV-lane, defect burn-down, and it is NOT parked**: it is an under-acceptance on the profile
   being released to Nexsim, found by measurement, in the `.3` burn-down class.
+
+### ✅✅✅ `.13n` FIXED — **`tri0` AND `tri1` ARE NET TYPES AGAIN ON ALL THREE PROFILES; RELEASE `1.0.202`, LEDGER `SV-0075`, AND THE AXIS-2 BAR DROPS 274 → 268** (2026-09-01, `PGEN-SV-CORPUS-GRAD-0316`)
+
+**THE CHANGE**: `grammars/systemverilog.ebnf` — two branches after `trireg` (IEEE 1800-2023's own
+order) with `-> {kind: "tri0"}` / `{kind: "tri1"}` shapes identical to their ten siblings, plus
+`kw_tri0 := trivia /tri0\b/` and `kw_tri1`. **19 added lines, 0 removed, one alternation, one
+grammar file.** No Rust, no codegen, no engine.
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+  - [x] **ROOT CAUSE (WHY + WHERE)** — `grammars/systemverilog.ebnf:4149` enumerated ten of the
+        LRM's twelve `net_type` branches; `tri0`/`tri1` were absent. Located from the
+        `furthest_position=` sidecar (`positions_v2005.tsv`) via `.13k`(b)'s census, then BISECTED
+        two-sided rather than inferred: `sed 's/\btri0\b/wire/g' ivltests/tri0.v` flips `rc 1` →
+        `rc 0` while the unmodified file stays `rc 1`. ⛔ The reason it survived: both spellings ARE
+        in the reserved-keyword regexes (`:536`, `:539`), so they lex as keywords and are then
+        unreachable — the text is neither an identifier nor a net type and the parse dies with no
+        signal that a production is missing.
+  - [x] **FIX** — the two branches and their terminals, placed after `trireg`. ⛔ Ordering is safe
+        against the shorter `tri` branch by construction (`/tri\b/`, and `\b` cannot match between
+        `i` and `0`) and that is MEASURED: `tri`/`triand`/`trior` stay `rc 0` on all three profiles
+        after the change.
+  - [x] **ADDRESSED (verified)** — before → after on the minimal repro, three profiles:
+        `module m; tri0 a; tri1 b; endmodule` **`rc 1` → `rc 0`** on `sv_2017`, `sv_2023` and
+        `verilog_2005`; the two same-alternation controls (`wire`, `triand`/`trior`) stay `rc 0` on
+        all three. All **9** corpus rows `.13k`(b)'s census attributed to this construct now parse —
+        a 9-for-9 prediction confirmed before the corpus was re-run.
+  - [x] **NO REGRESSION** — **external corpus 16 336 sv_2017 files re-run per-path**: 18 rows moved,
+        **every one `fail → pass` except a single reclassification** (`t_tri_pull01.v`
+        `unexplained_rejects_valid → explained_svpp_macro_use` — it parses further and now dies in a
+        macro window), **zero `pass → fail` anywhere**, and the row sets are identical on both sides
+        (16 336 / 2 606). **18 of 18 moved rows contain `tri0` or `tri1`**, so the attribution is
+        two-sided rather than assumed. `verilog_2005`: 9 rows, all `unexplained_rejects_valid →
+        match`. Gates re-derived in the same commit: `PARSE-COST-RATCHET` re-measured,
+        `GENERATED-REPRODUCIBILITY` re-proven, `ast_shape_contract` drift 0, cert union
+        `fully_certified` at seeds 0/7/42, clippy source + generated clean.
+  - [x] **LOCKSTEP** — grammar + revision register + ledger `SV-0075` + contract `1.0.202` + the SV
+        parser book + the live verdict-coverage anchor + tree + `MEMORY.md` + `CHANGES.md`, all this
+        commit.
+
+⭐⭐⭐ **THE BAR MOVES, AND THE HONEST NUMBER IS SMALLER THAN THE FIX.** `sv_2017` pass
+**9 794 → 9 811** (+17), the axis-2 divergence bar **274 → 268** (−6), and the published tuple
+**`7556/2606/6174/4366/274` → `7556/2606/6174/4363/268`**. But **9 of the 18 moved rows are
+`deferred:v2005_profile_lane`**, invisible to the bar by construction, and 3 more are other
+deferrals. ⇒ a **six-row** gain reports a **seventeen-row** fix — `.13`'s standing thesis measured
+again, on the largest single accept-set widening this tree has produced.
+
+⛔⛔ **AND THE `+dirty` STAMP ON THIS PROMOTION IS CORRECT, WHICH IS THE POINT OF `.13j`(d).** The
+corpus was measured with `grammars/systemverilog.ebnf` uncommitted — a genuine INPUT — so both
+reports record `+dirty` and the census gate NOTES it. That is the arm working: `(d)` removed the
+FALSE dirty (a lane's own output) and deliberately kept the TRUE one. A clean re-measure is owed
+once this commit exists and is routed as `(f)` below rather than left implicit.
+
+⭐⭐ **`CORPUS-CENSUS-CURRENCY` CAUGHT ITS FIRST REAL EVENT, ONE DAY AFTER `.13j`(c) WIRED
+SYSTEMVERILOG TO IT.** The grammar arm failed on this very change — *"the grammar has MOVED since
+this census was measured"* — which is the arm that did not exist for SystemVerilog until yesterday
+and the reason `.13j` was opened. It is no longer a hypothetical.
+
+⚖️⚖️ **TWO CERT BASELINES MOVED, AND BOTH WERE ADJUDICATED RATHER THAN RE-STAMPED — WHICH IS THE
+DISTINCTION THEIR OWN REFUSAL TEXT DEMANDS** (*"a stamp asserts the numbers were RE-DERIVED and
+matched, which is precisely what just did not happen"*). Both refused at `rc 2` with the STALE-input
+ambiguity, and both move by exactly `+2`:
+
+| gate | census before → after | moved | unchanged |
+|---|---|---|---|
+| `sv_cert_recognized_union_gate` | total `1401 → 1403`, canonical witness `1382 → 1384`, union witness `1393 → 1395` | total +2, witness +2 | proof `8`, canonical UNKNOWN `11`, union UNKNOWN `0`, residual `[]`, `fully_certified_via_union: true` |
+| `verilog_2005_conformance_gate` | cert `1119/373/732/14 → 1121/373/734/14` | total +2, witness +2 | proof `373`, UNKNOWN `14`, `sample_parse_failures 0`, `profile_orphans 0` |
+
+⭐ **ALL-POSITIVE, AND IDENTICAL AT SEEDS 0 / 7 / 42** — twelve unmet criteria in the union gate and
+six in the v2005 gate, every one of them a `+2` on total or witness and not one on an UNKNOWN. Two
+new rules exist (`kw_tri0`, `kw_tri1`) and **both are witnessed**: nothing became unknown and
+nothing stopped being witnessed, which is the only shape a legitimate widening can have.
+⭐⭐ **AND THE v2005 ARM MOVING IS ITSELF A CHECK.** The nearest precedent in this contract —
+`config` / `use_clause` — recorded that `verilog_2005_conformance_gate` needed **no** re-baseline
+*"because the new rule is gated out of that profile"*. Here it DOES move, by the same `+2`, which is
+exactly right: `tri0`/`tri1` are IEEE 1364-2005 net types and are deliberately **not** profile-gated.
+A fix that claimed all three profiles and moved only two censuses would have been the wrong shape.
+
+**RESIDUE**: (e) ⛔ **census the CLASS** — an alternation that lost two members with nothing
+noticing is a claim about every other enumerated production in this grammar; `LRM-GRAMMAR-FIDELITY`
+owns that instrument and this is its strongest motivating case. (f) re-measure both corpus lanes on
+the clean tree this commit produces, so the reports stop recording `+dirty`.
+
 
 #### `.13g` — the FRAGMENT-shaped population: an accept there is not testimony (`todo`, opened 2026-08-11 by `.13a`)
 

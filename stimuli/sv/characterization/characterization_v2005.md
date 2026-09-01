@@ -15,11 +15,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `7a9aac1d53ee90e683831f0d2d64bafdbb9d4acccfd4756c9284ada8c88e61da` |
-| grammar | `grammars/systemverilog.ebnf` | `037a9553cf096281fc51c3273942b141d43422cb282eb1f0784435a0191c38f1` |
-| generated parser | `generated/systemverilog_parser.rs` | `ad13eb08d39a9eafe4c46454e869a13c5af8119a2cd069d7e4ccfc704b1ecf95` |
+| parse binary | `rust/target/release/parseability_probe` | `520f58f3ea7a5cf4887e9351750aee1bee90607ed58b419c7e059526515d8c61` |
+| grammar | `grammars/systemverilog.ebnf` | `fffd241ebedeb04bb51823764e9a4fc088b3e11f77e42a9bf26838bf20e2f0d8` |
+| generated parser | `generated/systemverilog_parser.rs` | `a3cb77a19d9c988848976cbe9221d222bda61e3deefdd3065a4053e6c993fb46` |
 
-Measured at `HEAD` = `e14d9d91` (2026-08-31).
+Measured at `HEAD` = `124884ab+dirty` (2026-08-31).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -53,20 +53,20 @@ Measured at `HEAD` = `e14d9d91` (2026-08-31).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `0.35` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
+Slowest completing file: `0.36` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 2606 | 2291 | 315 | 0 | 0 | 87.9% |
+| 2606 | 2300 | 306 | 0 | 0 | 88.3% |
 
 ## Per sub-corpus
 
 | sub-corpus | files | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|---|
-| ispras-sv-tests | 356 | 317 | 39 | 0 | 0 | 89.0% |
-| iverilog | 1909 | 1695 | 214 | 0 | 0 | 88.8% |
+| ispras-sv-tests | 356 | 318 | 38 | 0 | 0 | 89.3% |
+| iverilog | 1909 | 1703 | 206 | 0 | 0 | 89.2% |
 | sv2v | 341 | 279 | 62 | 0 | 0 | 81.8% |
 
 _Raw per-file results: `stimuli/sv/characterization/results_v2005.tsv` (3 columns: sub-corpus, status,

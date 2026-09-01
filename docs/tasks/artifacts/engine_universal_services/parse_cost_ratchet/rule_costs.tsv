@@ -605,6 +605,8 @@ kw_token_93ac8946	92094	2	0
 kw_tran_8cc27d13	71988	0	0
 kw_tranif0_96ae6b37	71988	0	0
 kw_tranif1_41e0f26e	71988	0	0
+kw_tri0	81638	0	0
+kw_tri1	81638	0	0
 kw_tri_54bf01f1	81638	0	0
 kw_triand_51bca013	81638	0	0
 kw_trior_56b8b9f0	81638	0	0
@@ -998,7 +1000,7 @@ time_unit	201312	7	3
 timeunit_separator_slash	2	2	0
 timeunit_separator_trivia	2	2	0
 timeunits_declaration	80452	5	1309
-trivia	88589337	1192158	86298439
+trivia	88752613	1192158	86461715
 type_assignment	40	20	0
 type_assignment_sv_2017	40	20	0
 type_declaration	113075	570	1184

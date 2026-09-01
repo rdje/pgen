@@ -4152,6 +4152,21 @@ net_type := kw_supply0 -> {kind: "supply0"}
          | kw_triand_51bca013 -> {kind: "triand"}
          | kw_trior_56b8b9f0  -> {kind: "trior"}
          | kw_trireg_f7901823 -> {kind: "trireg"}
+         # SV-CORPUS-GRAD.13n — `tri0` and `tri1` were MISSING from this alternation for the whole
+         # life of the flattened grammar: ten branches against the LRM's twelve. Both spellings sit
+         # in the reserved-keyword regexes (:536 sv, :539 v2005), so they lexed as keywords and then
+         # had no production to land in — `module m; tri0 a; endmodule` was rc 1 on ALL THREE
+         # profiles while `wire` / `triand` / `trior` from this same alternation were rc 0. Cited in
+         # every vendored edition: IEEE 1364-2005 Annex A A.2.2.1:219, IEEE 1800-2023 Annex A:891,
+         # IEEE 1800-2017 clause 6 (`docs/systemverilog/2017/md/section-6-data-types.md:928` — that
+         # edition's vendored Annex A extract does not carry the production, so do not re-derive a
+         # false absence from it). Placed after `trireg` to match IEEE 1800-2023's own order.
+         # ⛔ ORDER IS SAFE AGAINST `tri`: `kw_tri_54bf01f1` is /tri\b/, and `\b` cannot match
+         # between `i` and `0`, so the shorter branch above cannot shadow these two. Measured, not
+         # reasoned: the three-profile repro below the fix flips rc 1 -> rc 0 and `tri`/`triand`/
+         # `trior` stay rc 0.
+         | kw_tri0            -> {kind: "tri0"}
+         | kw_tri1            -> {kind: "tri1"}
          | kw_uwire_9143a634  -> {kind: "uwire"}
          | kw_wire_6e1c6849   -> {kind: "wire"}
          | kw_wand_4be59aff   -> {kind: "wand"}
@@ -7612,6 +7627,10 @@ kw_triand_51bca013 := trivia /triand\b/
 kw_trior_56b8b9f0 := trivia /trior\b/
 
 kw_trireg_f7901823 := trivia /trireg\b/
+
+kw_tri0 := trivia /tri0\b/
+
+kw_tri1 := trivia /tri1\b/
 
 kw_tx_path_delay_expression_7b2dee37 := trivia /tx_path_delay_expression\b/
 

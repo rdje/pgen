@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-77492cdc.js";
+            window.path_to_searchindex_js = "searchindex-b8440583.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -217,6 +217,39 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10202--contract-10202--sv-corpus-grad13n-pgen-sv-corpus-grad-0316-2026-09-01-ledger-sv-0075-released"><a class="header" href="#10202--contract-10202--sv-corpus-grad13n-pgen-sv-corpus-grad-0316-2026-09-01-ledger-sv-0075-released">1.0.202 / Contract 1.0.202 — SV-CORPUS-GRAD.13n (<code>PGEN-SV-CORPUS-GRAD-0316</code>, 2026-09-01), ledger <code>SV-0075</code> (<code>Released</code>):</a></h3>
+<p>⛔ <strong><code>tri0</code> and <code>tri1</code> are net types again.</strong> The grammar’s <code>net_type</code> alternation shipped <strong>ten</strong>
+of the LRM’s <strong>twelve</strong> branches for the whole life of the flattened grammar. Both spellings were
+already in the reserved-keyword regexes, so they lexed as keywords and had no production to land
+in — which is why the failure carried no clue that anything was missing.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>input</th><th>before</th><th>after</th></tr>
+</thead>
+<tbody>
+<tr><td><code>module m; tri0 a; tri1 b; endmodule</code> — <code>sv_2017</code></td><td><code>rc 1</code></td><td><strong><code>rc 0</code></strong></td></tr>
+<tr><td>the same, <code>sv_2023</code></td><td><code>rc 1</code></td><td><strong><code>rc 0</code></strong></td></tr>
+<tr><td>the same, <code>verilog_2005</code></td><td><code>rc 1</code></td><td><strong><code>rc 0</code></strong></td></tr>
+<tr><td><code>module m; wire a; endmodule</code> (control, same alternation)</td><td><code>rc 0</code></td><td><code>rc 0</code></td></tr>
+<tr><td><code>module m; triand a; trior b; endmodule</code> (control)</td><td><code>rc 0</code></td><td><code>rc 0</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>All three vendored editions define them: IEEE 1364-2005 Annex A A.2.2.1:219, IEEE 1800-2023
+Annex A:891, IEEE 1800-2017 clause 6 (<code>section-6-data-types.md:928</code> — that edition’s vendored
+Annex A extract does not carry the production, so do not read a false absence out of it).</p>
+<p><strong>AST impact — additive only.</strong> Two new <code>kind</code> values, <code>"tri0"</code> and <code>"tri1"</code>, join the ten a
+<code>net_type</code> node could already carry. Schema <strong>26 unchanged</strong>. A consumer switching <em>exhaustively</em>
+on that field must add two arms; one that matches known values and falls through is unaffected.
+⛔ The accept set <strong>widens</strong>, so text that used to fail now yields an AST.</p>
+<p><strong>Corpus proof</strong>, per-path and two-sided: <code>sv_2017</code> pass <strong>9 794 → 9 811</strong>, axis-2 bar <strong>274 → 268</strong>;
+<code>verilog_2005</code> pass <strong>2 291 → 2 300</strong>, its arm <strong>66 → 57</strong>. 18 rows moved in the main lane, 9 in the
+v2005 lane, row sets identical on both sides, and <strong>18 of 18 contain <code>tri0</code> or <code>tri1</code></strong>.</p>
+<p>⭐ <strong>How it was found is the part worth keeping</strong>: <code>SV-CORPUS-GRAD.13k</code>(b) censused the
+<code>verilog_2005</code> rows the answer key calls <code>must_accept</code> and the parser rejects, expecting to find
+answer-key over-claims. It found 19 of those — and <strong>20 rows of the opposite defect</strong>, text the LRM
+<em>does</em> define that the parser could not derive. This is one of them.</p>
 <h3 id="10201--contract-10201--engine-universal-services65-pgen-engine-universal-services-0117-2026-08-28-ledger-sv-0074-released"><a class="header" href="#10201--contract-10201--engine-universal-services65-pgen-engine-universal-services-0117-2026-08-28-ledger-sv-0074-released">1.0.201 / Contract 1.0.201 — ENGINE-UNIVERSAL-SERVICES.65 (<code>PGEN-ENGINE-UNIVERSAL-SERVICES-0117</code>, 2026-08-28), ledger <code>SV-0074</code> (<code>Released</code>):</a></h3>
 <p>⛔ <strong>The 4096-frame recursion ceiling is gone. What replaced it is not a bigger number — it is a
 measurement of the stack this host actually gave the parse thread.</strong> <code>4096</code> survives only as the

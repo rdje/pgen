@@ -1,5 +1,39 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-01 - PGEN-SV-CORPUS-GRAD-0316 (.13n fixed — a missing alternative fails with no signal that anything is missing, and that is why it lived for the whole life of the grammar)
+
+- ⭐⭐⭐ **THE TRANSFERABLE LESSON: A MISSING ALTERNATIVE IN A KEYWORD-BEARING ALTERNATION IS THE
+  QUIETEST DEFECT SHAPE THIS GRAMMAR HAS.** `tri0` and `tri1` were in the reserved-keyword regexes,
+  so the lexer classified them correctly and then no production accepted them. The text is therefore
+  neither an identifier (reserved) nor a net type (absent) — and the parse just stops, with a
+  `furthest_position` pointing at the token and nothing anywhere saying *"a branch is missing."* A
+  defect that fails loudly gets fixed; this one fails in the shape of ordinary rejection, which is
+  indistinguishable from a file that is genuinely invalid. ⇒ **the class to guard is not "does the
+  grammar parse this file" but "does each enumerated production have the LRM's members"**, and that
+  is `LRM-GRAMMAR-FIDELITY`'s subject, routed as `.13n`(e).
+- ⭐⭐ **AND THE FIND CAME FROM A CENSUS AIMED IN THE OPPOSITE DIRECTION.** `.13k` was opened on an
+  answer key that *over*-claims — rows keyed `must_accept` on a suite's word. Censusing the whole
+  disagreement set rather than the three known rows split it into 19 answer-key defects and **20
+  parser defects**, and this was one of the 20. A census scoped to the defect you expect returns the
+  defect you expect; the only reason this one did not is that it enumerated the population first and
+  classified second. That ordering is the whole method, and it is cheap.
+- ⭐ **THE PREDICTION WAS REGISTERED BEFORE THE CORPUS RUN AND IT CAME BACK 9-FOR-9.** `.13k`(b)'s
+  census attributed nine v2005 rows to this construct. After the fix, all nine parse — and the main
+  lane then moved 18 rows, of which **18 of 18 contain `tri0` or `tri1`**. Attribution is two-sided
+  (every moved row carries the construct, and the construct is the only grammar change), so *"this
+  fix caused this movement"* is measured rather than plausible. That is what the `-0161` lesson asks
+  for and it cost one grep.
+- ⛔ **A `+dirty` STAMP CAN BE RIGHT, AND YESTERDAY'S FIX IS WHY THAT SENTENCE MEANS ANYTHING.**
+  `.13j`(d) narrowed the dirty test to exclude a lane's own OUTPUT while keeping every real input.
+  This promotion measures the corpus with the grammar uncommitted — a real input — so `+dirty` is
+  the honest stamp and the census gate notes it. Had `(d)` been written as *"suppress the note"*
+  instead of *"scope the question"*, this signal would now be gone exactly when it is true.
+- ⭐⭐ **THE GATE I WIRED YESTERDAY FAILED TODAY, ON PURPOSE, AND THAT IS THE RETURN ON IT.**
+  `CORPUS-CENSUS-CURRENCY`'s grammar arm — which SystemVerilog did not have until `.13j`(c), and
+  whose absence was the entire reason `.13j` existed — went RED on the first grammar change after it
+  landed. One day between building the check and it catching a real event is the shortest such
+  interval in this repository's record, and it is the answer to *"is this guard worth the slice?"*
+
 ## 2026-08-31 - PGEN-SV-CORPUS-GRAD-0315 (.13k(b) done — a census opened to find answer-key errors found a parser defect instead, and the trust bound is not a defect list)
 
 - ⭐⭐⭐ **THE TRANSFERABLE LESSON: A "HOW GOOD IS THE EVIDENCE" NUMBER IS NOT A "WHAT IS BROKEN"

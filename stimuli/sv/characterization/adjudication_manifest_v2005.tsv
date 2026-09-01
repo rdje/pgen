@@ -22,7 +22,7 @@ ispras-sv-tests	ieee-1364-2005/test_03_08_01_6.v	pass	must_accept	match	ispras-1
 ispras-sv-tests	ieee-1364-2005/test_03_08_01_7.v	pass	must_accept	match	ispras-1364: '// ! TYPE: POSITIVE' clause-keyed valid example (a failing residue re-adjudicates against the suite's KNOWN_TEXT_BUGS errata in leaf .8c.2 - committed-text-over-intent)
 ispras-sv-tests	ieee-1364-2005/test_03_08_01_8.v	pass	must_accept	match	ispras-1364: '// ! TYPE: POSITIVE' clause-keyed valid example (a failing residue re-adjudicates against the suite's KNOWN_TEXT_BUGS errata in leaf .8c.2 - committed-text-over-intent)
 ispras-sv-tests	ieee-1364-2005/test_04_03_01_1.v	pass	must_accept	match	ispras-1364: '// ! TYPE: POSITIVE' clause-keyed valid example (a failing residue re-adjudicates against the suite's KNOWN_TEXT_BUGS errata in leaf .8c.2 - committed-text-over-intent)
-ispras-sv-tests	ieee-1364-2005/test_04_03_02_1.v	fail	must_accept	divergence:unexplained_rejects_valid	ispras-1364 POSITIVE pinned .8c.2 (KNOWN_TEXT_BUGS re-adjudicated, no errata flip): scalared/vectored net declaration - A.2.1.3 net_declaration 'net_type [ vectored | scalared ] [ signed ] range' alternative
+ispras-sv-tests	ieee-1364-2005/test_04_03_02_1.v	pass	must_accept	match	ispras-1364 POSITIVE pinned .8c.2 (KNOWN_TEXT_BUGS re-adjudicated, no errata flip): scalared/vectored net declaration - A.2.1.3 net_declaration 'net_type [ vectored | scalared ] [ signed ] range' alternative
 ispras-sv-tests	ieee-1364-2005/test_04_04_01_1.v	pass	must_accept	match	ispras-1364: '// ! TYPE: POSITIVE' clause-keyed valid example (a failing residue re-adjudicates against the suite's KNOWN_TEXT_BUGS errata in leaf .8c.2 - committed-text-over-intent)
 ispras-sv-tests	ieee-1364-2005/test_04_05_00_1.v	pass	must_accept	match	ispras-1364: '// ! TYPE: POSITIVE' clause-keyed valid example (a failing residue re-adjudicates against the suite's KNOWN_TEXT_BUGS errata in leaf .8c.2 - committed-text-over-intent)
 ispras-sv-tests	ieee-1364-2005/test_04_05_00_2.v	pass	must_accept	match	ispras-1364: '// ! TYPE: POSITIVE' clause-keyed valid example (a failing residue re-adjudicates against the suite's KNOWN_TEXT_BUGS errata in leaf .8c.2 - committed-text-over-intent)
@@ -634,7 +634,7 @@ iverilog	ivtest/ivltests/br_gh316c.v	pass	must_accept	match	ivtest: regress-vlg.
 iverilog	ivtest/ivltests/br_gh33.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br_gh330.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br_gh345.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
-iverilog	ivtest/ivltests/br_gh356a.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
+iverilog	ivtest/ivltests/br_gh356a.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br_gh356b.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br_gh37.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/br_gh435.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
@@ -1186,7 +1186,7 @@ iverilog	ivtest/ivltests/pr1022.v	pass	must_accept	match	ivtest: regress-vlg.lis
 iverilog	ivtest/ivltests/pr1024.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr1026.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr1029.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
-iverilog	ivtest/ivltests/pr1032.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
+iverilog	ivtest/ivltests/pr1032.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr1033.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr1065.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr1072.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
@@ -1267,7 +1267,7 @@ iverilog	ivtest/ivltests/pr1650842.v	pass	must_accept	match	ivtest: regress-vlg.
 iverilog	ivtest/ivltests/pr1657307.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr1661640.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr1662508.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
-iverilog	ivtest/ivltests/pr1664684.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
+iverilog	ivtest/ivltests/pr1664684.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr1675789.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr1675789b.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr1676071.v	fail	must_accept	divergence:explained_svpp_conditional	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
@@ -1829,7 +1829,7 @@ iverilog	ivtest/ivltests/pr810.v	pass	must_accept	match	ivtest: regress-vlg.list
 iverilog	ivtest/ivltests/pr812.v	fail	must_accept	divergence:explained_svpp_macro_use	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr820.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr823.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
-iverilog	ivtest/ivltests/pr841.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
+iverilog	ivtest/ivltests/pr841.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr842.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr848.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/pr856.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
@@ -2156,11 +2156,11 @@ iverilog	ivtest/ivltests/tran-keeper.v	pass	must_accept	match	ivtest: regress-vl
 iverilog	ivtest/ivltests/tran.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/tranif0.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/tranif1.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
-iverilog	ivtest/ivltests/tri0.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
-iverilog	ivtest/ivltests/tri0b.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
-iverilog	ivtest/ivltests/tri1.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
+iverilog	ivtest/ivltests/tri0.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
+iverilog	ivtest/ivltests/tri0b.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
+iverilog	ivtest/ivltests/tri1.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/tri2.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
-iverilog	ivtest/ivltests/tri3.v	fail	must_accept	divergence:unexplained_rejects_valid	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
+iverilog	ivtest/ivltests/tri3.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/triand.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/trior.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005
 iverilog	ivtest/ivltests/types1.v	pass	must_accept	match	ivtest: regress-vlg.list type normal - compiles under the iverilog plain-Verilog dialect, parse-level valid 1364-2005

@@ -3,11 +3,11 @@
     "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/verilog_2005_conformance_contract_v0.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
     "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
     "expectations": "confirmed",
-    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1119/373/732/14 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=360/0_mismatches aliases=2",
-    "verified_at_commit": "df306908e2e07433fa85daa9407513a1381709cf",
+    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1121/373/734/14 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=360/0_mismatches aliases=2",
+    "verified_at_commit": "124884ab0093d47acb477e815d7364298321a1f8",
     "inputs": {
-      "generated/systemverilog_parser.rs": "240da0a4f9e7be064a61c5076e4fcca5ca9dac0cfeb7b6a3282346fea03d5d2f",
-      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "825db0318c69a8fb79c88872724855a551ab07a3bccc2c86e7e3e5606dae417a" },
+      "generated/systemverilog_parser.rs": "a3cb77a19d9c988848976cbe9221d222bda61e3deefdd3065a4053e6c993fb46",
+      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "ea76b211c20069211bd83a524ceec227c31284724a6f96f761241071eba6b9f1" },
       "rust/src/ast_pipeline/grammar_wellformedness.rs": "49b795f6a34fc787f2746cf577f47988b76b7e332164eabea85eeab36b457107",
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "ebfafdd38fda2371dbcd7211b98bb5b13bfa7f9666678cd5e7d82ca7c1bc48b6",
       "rust/src/ast_pipeline/stimuli_generator.rs": "082bb1e59a4f616ce8c1592727beaffd281423c42530fc3e30e93d4619dc365d"
@@ -55,9 +55,9 @@
       "library_text:verilog_2005",
       "systemverilog_parseable_file:verilog_2005"
     ],
-    "expected_total": 1119,
+    "expected_total": 1121,
     "expected_proof": 373,
-    "expected_witness": 732,
+    "expected_witness": 734,
     "expected_unknown": 14,
     "expected_sample_parse_failures": 0,
     "expected_proof_reverify_failures": 0,
@@ -79,7 +79,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-0021 regression lock: an implicit-type ANSI port (`input a`) followed by an explicitly-typed ANSI port (`output reg b`) \u2014 `module m (input a, output reg b);`. Valid IEEE 1364-2005 (ANSI port declarations with a `reg` type, A.1.3) and valid IEEE 1800, so it accepts under EVERY profile. SV-0021 was an all-profile over-REJECTION (the whole ANSI header rejected, historical furthest_position=25) fixed as a CONSEQUENCE of SV-0037 (SV-KEYWORD-PRIMARY-FIDELITY.3.1, 1.0.162->1.0.163): the greedy ungated `net_type_identifier` in `net_port_type_sv_2017/2023` ate the implicit port's name under the global longest_match policy, corrupting the first port into a `nonansi` shape so the following explicitly-typed ANSI port had no valid continuation. Routing alt-1 to the store-gated `checked_nettype_identifier` let the implicit `ansi` path win; this lock pins that the mixed implicit-then-typed ANSI header stays accepting. Adjudicated at SV-OVER-REJECTION-FIDELITY.1."
+      "note": "SV-0021 regression lock: an implicit-type ANSI port (`input a`) followed by an explicitly-typed ANSI port (`output reg b`) — `module m (input a, output reg b);`. Valid IEEE 1364-2005 (ANSI port declarations with a `reg` type, A.1.3) and valid IEEE 1800, so it accepts under EVERY profile. SV-0021 was an all-profile over-REJECTION (the whole ANSI header rejected, historical furthest_position=25) fixed as a CONSEQUENCE of SV-0037 (SV-KEYWORD-PRIMARY-FIDELITY.3.1, 1.0.162->1.0.163): the greedy ungated `net_type_identifier` in `net_port_type_sv_2017/2023` ate the implicit port's name under the global longest_match policy, corrupting the first port into a `nonansi` shape so the following explicitly-typed ANSI port had no valid continuation. Routing alt-1 to the store-gated `checked_nettype_identifier` let the implicit `ansi` path win; this lock pins that the mixed implicit-then-typed ANSI header stays accepting. Adjudicated at SV-OVER-REJECTION-FIDELITY.1."
     },
     {
       "file": "accept/array_ranged_dim.v",
@@ -88,7 +88,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-0033 no-over-gate control: ranged packed (`reg [7:0] q;`) and ranged unpacked (`reg r [3:0];`) dimensions are legal IEEE 1364-2005 (\u00a74.9/A.2.5) and MUST still accept under verilog_2005 \u2014 the .6.9 gate targets only `unsized_dimension` (`[]`), never `packed_dimension`/`unpacked_dimension`'s ranged forms. Also the no-over-gate control for SV-0034 (.6.10): gating `associative_dimension`/`queue_dimension` must not affect the ranged unpacked form."
+      "note": "SV-0033 no-over-gate control: ranged packed (`reg [7:0] q;`) and ranged unpacked (`reg r [3:0];`) dimensions are legal IEEE 1364-2005 (§4.9/A.2.5) and MUST still accept under verilog_2005 — the .6.9 gate targets only `unsized_dimension` (`[]`), never `packed_dimension`/`unpacked_dimension`'s ranged forms. Also the no-over-gate control for SV-0034 (.6.10): gating `associative_dimension`/`queue_dimension` must not affect the ranged unpacked form."
     },
     {
       "file": "accept/event_trigger.v",
@@ -97,7 +97,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "`-> e;` is the legal IEEE 1364-2005 event trigger. Blocking `->` form; parses under every profile (relabeled kind:\"non_blocking\"->\"blocking\" at SV-OVER-REJECTION-FIDELITY.3 per IEEE 1800 \u00a715.5.3, parse-verdict unchanged)."
+      "note": "`-> e;` is the legal IEEE 1364-2005 event trigger. Blocking `->` form; parses under every profile (relabeled kind:\"non_blocking\"->\"blocking\" at SV-OVER-REJECTION-FIDELITY.3 per IEEE 1800 §15.5.3, parse-verdict unchanged)."
     },
     {
       "file": "accept/event_trigger_array.v",
@@ -106,7 +106,7 @@
         "sv_2017": "reject",
         "sv_2023": "accept"
       },
-      "note": "SV-0023 lock: `-> e[0];` event-array trigger. ACCEPTS under verilog_2005 (IEEE 1364-2005 A.6.5 `-> hei { [ expression ] } ;`, bracket array-selects \u2014 closed at SV-OVER-REJECTION-FIDELITY.3 by giving event_trigger_verilog_2005 a trailing bit_select) and under sv_2023 (Annex A adds a trailing nonrange_select). REJECTS under sv_2017 (IEEE 1800-2017 A.6.5 is `-> hei ;` with NO select \u2014 faithful strict-2017 subset; the 2023 LRM added the select)."
+      "note": "SV-0023 lock: `-> e[0];` event-array trigger. ACCEPTS under verilog_2005 (IEEE 1364-2005 A.6.5 `-> hei { [ expression ] } ;`, bracket array-selects — closed at SV-OVER-REJECTION-FIDELITY.3 by giving event_trigger_verilog_2005 a trailing bit_select) and under sv_2023 (Annex A adds a trailing nonrange_select). REJECTS under sv_2017 (IEEE 1800-2017 A.6.5 is `-> hei ;` with NO select — faithful strict-2017 subset; the 2023 LRM added the select)."
     },
     {
       "file": "accept/generate_param.v",
@@ -158,7 +158,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-0024 lock (positive): `module m ({a, b});` \u2014 the braced concatenation port (`{ port_reference {, port_reference} }`) is the LRM's valid multi-reference form and accepts under EVERY profile. Before SV-LRM-SHAPE-FIDELITY.1 the missing `lbrace`/`rbrace` made this REJECT while the invalid un-braced `a b` accepted; the fix inverts both."
+      "note": "SV-0024 lock (positive): `module m ({a, b});` — the braced concatenation port (`{ port_reference {, port_reference} }`) is the LRM's valid multi-reference form and accepts under EVERY profile. Before SV-LRM-SHAPE-FIDELITY.1 the missing `lbrace`/`rbrace` made this REJECT while the invalid un-braced `a b` accepted; the fix inverts both."
     },
     {
       "file": "accept/real_types.v",
@@ -183,7 +183,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-CORPUS-GRAD.13e.4 control: the sibling `data_type` alternative where signing IS legal in IEEE 1364-2005 \u2014 A.2.1.3 `reg_declaration ::= reg [ signed ] [ range ] list_of_variable_identifiers ;` (:172). Pins the gate to the ATOM branch (`integer_atom_type ( signing )?`) rather than the VECTOR branch (`integer_vector_type ( signing )? packed_dimension*`) beside it."
+      "note": "SV-CORPUS-GRAD.13e.4 control: the sibling `data_type` alternative where signing IS legal in IEEE 1364-2005 — A.2.1.3 `reg_declaration ::= reg [ signed ] [ range ] list_of_variable_identifiers ;` (:172). Pins the gate to the ATOM branch (`integer_atom_type ( signing )?`) rather than the VECTOR branch (`integer_vector_type ( signing )? packed_dimension*`) beside it."
     },
     {
       "file": "accept/specify_timing_checks.v",
@@ -192,7 +192,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "All 12 IEEE specify timing checks in their LRM `$` spellings (1364-2005 \u00a715 / 1800-2017 \u00a731) \u2014 the SV-0029 wave-1 accept-lock (SV-DOLLAR-LRM-FIDELITY.2): before that fix the mangled `sv_dollar_*` token literals wrongly REJECTED every LRM spelling."
+      "note": "All 12 IEEE specify timing checks in their LRM `$` spellings (1364-2005 §15 / 1800-2017 §31) — the SV-0029 wave-1 accept-lock (SV-DOLLAR-LRM-FIDELITY.2): before that fix the mangled `sv_dollar_*` token literals wrongly REJECTED every LRM spelling."
     },
     {
       "file": "accept/task_ports.v",
@@ -209,7 +209,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "The IEEE scalar timing-check compare forms (== / === / != / !== against scalar_constant, 1364-2005 / 1800-2017 A.7.5.3) plus the `e == 1'b0 && f` flat-fallback form \u2014 the SV-0030 accept-lock (SV-DOLLAR-LRM-FIDELITY.3): acceptance was never lost, but the compare forms now emit the typed eq/case_eq/ne/case_ne shapes instead of a flat expression, and the !binary_operator follow-guard keeps operator-continued conditions on the flat branch."
+      "note": "The IEEE scalar timing-check compare forms (== / === / != / !== against scalar_constant, 1364-2005 / 1800-2017 A.7.5.3) plus the `e == 1'b0 && f` flat-fallback form — the SV-0030 accept-lock (SV-DOLLAR-LRM-FIDELITY.3): acceptance was never lost, but the compare forms now emit the typed eq/case_eq/ne/case_ne shapes instead of a flat expression, and the !binary_operator follow-guard keeps operator-continued conditions on the flat branch."
     },
     {
       "file": "accept/udp_init_val_digits.v",
@@ -218,11 +218,11 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "The IEEE UDP init_val digit alternatives 1'b0 / 1'b1 (1364-2005 / 1800-2017 A.5.1) \u2014 the SV-0030 second-site accept-lock (SV-DOLLAR-LRM-FIDELITY.3): before that fix the digit-less \"1'b\" token prefix-stole the spelling and `initial q = 1'b0;` REJECTED under every profile."
+      "note": "The IEEE UDP init_val digit alternatives 1'b0 / 1'b1 (1364-2005 / 1800-2017 A.5.1) — the SV-0030 second-site accept-lock (SV-DOLLAR-LRM-FIDELITY.3): before that fix the digit-less \"1'b\" token prefix-stole the spelling and `initial q = 1'b0;` REJECTED under every profile."
     },
     {
       "file": "accept/v2005_punct_control_blocking_assign.v",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 CONTROL \u2014 the legal IEEE 1364-2005 neighbour each gated operator differs from by one token. This is the arm that catches a gate made TOO WIDE.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 CONTROL — the legal IEEE 1364-2005 neighbour each gated operator differs from by one token. This is the arm that catches a gate made TOO WIDE.",
       "expect": {
         "verilog_2005": "accept",
         "sv_2017": "accept",
@@ -231,7 +231,7 @@
     },
     {
       "file": "accept/v2005_punct_control_equality.v",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 CONTROL \u2014 the legal IEEE 1364-2005 neighbour each gated operator differs from by one token. This is the arm that catches a gate made TOO WIDE.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 CONTROL — the legal IEEE 1364-2005 neighbour each gated operator differs from by one token. This is the arm that catches a gate made TOO WIDE.",
       "expect": {
         "verilog_2005": "accept",
         "sv_2017": "accept",
@@ -240,7 +240,7 @@
     },
     {
       "file": "accept/v2005_punct_control_named_port.v",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 CONTROL \u2014 the legal IEEE 1364-2005 neighbour each gated operator differs from by one token. This is the arm that catches a gate made TOO WIDE.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 CONTROL — the legal IEEE 1364-2005 neighbour each gated operator differs from by one token. This is the arm that catches a gate made TOO WIDE.",
       "expect": {
         "verilog_2005": "accept",
         "sv_2017": "accept",
@@ -312,7 +312,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-0034: the associative-array dimension is IEEE 1800 \u00a77.8 only \u2014 IEEE 1364-2005 has no associative arrays (Annex A array dimensions are ranged only); gated at VERILOG-2005-PROFILE.6.10 (whole-rule @profiles gate on `associative_dimension`). Uses the wildcard `[*]` form (`reg q [*];`) because it UNIQUELY isolates `associative_dimension`: the `[data_type]` form with a type keyword (e.g. `[integer]`) routes through `unpacked_dimension`'s expression instead \u2014 a separate keyword-as-primary leak tracked as SV-0035 \u2014 while `[*]` matches only the associative wildcard alternative."
+      "note": "SV-0034: the associative-array dimension is IEEE 1800 §7.8 only — IEEE 1364-2005 has no associative arrays (Annex A array dimensions are ranged only); gated at VERILOG-2005-PROFILE.6.10 (whole-rule @profiles gate on `associative_dimension`). Uses the wildcard `[*]` form (`reg q [*];`) because it UNIQUELY isolates `associative_dimension`: the `[data_type]` form with a type keyword (e.g. `[integer]`) routes through `unpacked_dimension`'s expression instead — a separate keyword-as-primary leak tracked as SV-0035 — while `[*]` matches only the associative wildcard alternative."
     },
     {
       "file": "reject/bind_dir.sv",
@@ -321,7 +321,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-0022 lock: `module m; bind target_mod my_checker c1(); endmodule` \u2014 a spec-valid single-`;` `bind` inside a module. FIXED at SV-OVER-REJECTION-FIDELITY.2 (1.0.166): the redundant trailing `semi` in `bind_directive` (grammars/systemverilog.ebnf:668/:670) was removed \u2014 every `bind_instantiation` alternative (module/program/interface/checker_instantiation) already consumes its own `;`, so the LRM's `bind \u2026 bind_instantiation ;` is a redundant double-`;` that all commercial tools resolve as a single `;`. Now ACCEPTS under sv_2017/sv_2023 (`bind` is IEEE 1800 only) and REJECTS under verilog_2005 (no `bind` in IEEE 1364-2005 Annex A \u2014 the SV-only-construct-rejects-under-v2005 pattern). Before the fix it wrongly REJECTED under every profile (over-rejection); it stays in reject/ because the file name tracks the verilog_2005 verdict."
+      "note": "SV-0022 lock: `module m; bind target_mod my_checker c1(); endmodule` — a spec-valid single-`;` `bind` inside a module. FIXED at SV-OVER-REJECTION-FIDELITY.2 (1.0.166): the redundant trailing `semi` in `bind_directive` (grammars/systemverilog.ebnf:668/:670) was removed — every `bind_instantiation` alternative (module/program/interface/checker_instantiation) already consumes its own `;`, so the LRM's `bind … bind_instantiation ;` is a redundant double-`;` that all commercial tools resolve as a single `;`. Now ACCEPTS under sv_2017/sv_2023 (`bind` is IEEE 1800 only) and REJECTS under verilog_2005 (no `bind` in IEEE 1364-2005 Annex A — the SV-only-construct-rejects-under-v2005 pattern). Before the fix it wrongly REJECTED under every profile (over-rejection); it stays in reject/ because the file name tracks the verilog_2005 verdict."
     },
     {
       "file": "reject/bit_var.sv",
@@ -338,7 +338,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-CORPUS-GRAD.13e.4 (ledger SV-0069): the BLOCK-scope half, reached through `block_data_type` rather than `data_type` \u2014 a SECOND grammar site carrying the same `integer_atom_type ( signing )?` shape, so a fix applied to one site only leaves this live. IEEE 1364-2005 A.2.8 `block_item_declaration` (\u2026Annex_A\u2026txt:314) is `{ attribute_instance } integer list_of_block_variable_identifiers ;`; only :313's `reg [ signed ] [ range ]` takes signing inside a block."
+      "note": "SV-CORPUS-GRAD.13e.4 (ledger SV-0069): the BLOCK-scope half, reached through `block_data_type` rather than `data_type` — a SECOND grammar site carrying the same `integer_atom_type ( signing )?` shape, so a fix applied to one site only leaves this live. IEEE 1364-2005 A.2.8 `block_item_declaration` (…Annex_A…txt:314) is `{ attribute_instance } integer list_of_block_variable_identifiers ;`; only :313's `reg [ signed ] [ range ]` takes signing inside a block."
     },
     {
       "file": "reject/class.sv",
@@ -398,7 +398,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "IEEE 1800 A.8.4 bare-`$` primary (`x = $;`) \u2014 SystemVerilog-only (1364-2005 A.8.4 has no `$` primary; semantic queue-bound restriction stays out of parser scope). SV-0029 wave-3 lock: accepts under the SV profiles via the profile-gated `primary_dollar_sv_only` lift; rejects under verilog_2005."
+      "note": "IEEE 1800 A.8.4 bare-`$` primary (`x = $;`) — SystemVerilog-only (1364-2005 A.8.4 has no `$` primary; semantic queue-bound restriction stays out of parser scope). SV-0029 wave-3 lock: accepts under the SV profiles via the profile-gated `primary_dollar_sv_only` lift; rejects under verilog_2005."
     },
     {
       "file": "reject/dollar_fatal_module_level.sv",
@@ -407,7 +407,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "IEEE 1800 \u00a720.11 module-level elaboration severity task `$fatal;` \u2014 SystemVerilog-only. SV-0029 wave-3 lock: accepts under sv_2017 (elaboration_system_task_sv_2017) / sv_2023 (severity_system_task_sv_2023) now that the four severity token literals carry their `$` spellings; rejects under verilog_2005 because both host rules are profile-tagged out (no gate change needed \u2014 the .4 probe matrix disproved the earlier `.1` leak hypothesis: the mangled `sv_dollar_fatal;` had been accepting as an ordinary implicit-type variable declaration, not through the severity host)."
+      "note": "IEEE 1800 §20.11 module-level elaboration severity task `$fatal;` — SystemVerilog-only. SV-0029 wave-3 lock: accepts under sv_2017 (elaboration_system_task_sv_2017) / sv_2023 (severity_system_task_sv_2023) now that the four severity token literals carry their `$` spellings; rejects under verilog_2005 because both host rules are profile-tagged out (no gate change needed — the .4 probe matrix disproved the earlier `.1` leak hypothesis: the mangled `sv_dollar_fatal;` had been accepting as an ordinary implicit-type variable declaration, not through the severity host)."
     },
     {
       "file": "reject/dollar_root_hier.sv",
@@ -416,7 +416,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "IEEE 1800 \u00a73.12 `$root.`-anchored hierarchical name \u2014 SystemVerilog-only. SV-0029 wave-3 lock: under the SV profiles `$root.m.y` now routes through the profile-gated `hierarchical_root_prefix_sv_only` prefix of `hierarchical_identifier` (the AST carries the explicit root marker instead of the pre-fix generic system_tf steal); under verilog_2005 the prefix is gated off AND the system_tf_call steal-guard withdraws the generic reading of `$root.`, so the file rejects \u2014 pre-fix it wrongly ACCEPTED under verilog_2005 via the steal."
+      "note": "IEEE 1800 §3.12 `$root.`-anchored hierarchical name — SystemVerilog-only. SV-0029 wave-3 lock: under the SV profiles `$root.m.y` now routes through the profile-gated `hierarchical_root_prefix_sv_only` prefix of `hierarchical_identifier` (the AST carries the explicit root marker instead of the pre-fix generic system_tf steal); under verilog_2005 the prefix is gated off AND the system_tf_call steal-guard withdraws the generic reading of `$root.`, so the file rejects — pre-fix it wrongly ACCEPTED under verilog_2005 via the steal."
     },
     {
       "file": "reject/dollar_unit_scope.sv",
@@ -425,7 +425,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "IEEE 1800 \u00a73.12.1 `$unit::` compilation-unit scope \u2014 SystemVerilog-only (1364-2005 has no $unit). SV-0029 wave-3 lock (SV-DOLLAR-LRM-FIDELITY.4): the LRM spelling now ACCEPTS under the SV profiles via the profile-gated `package_scope_dollar_unit_sv_only` lift and REJECTS under verilog_2005; pre-fix it was wrongly rejected everywhere (the token literal was the mangled `sv_dollar_unit`)."
+      "note": "IEEE 1800 §3.12.1 `$unit::` compilation-unit scope — SystemVerilog-only (1364-2005 has no $unit). SV-0029 wave-3 lock (SV-DOLLAR-LRM-FIDELITY.4): the LRM spelling now ACCEPTS under the SV profiles via the profile-gated `package_scope_dollar_unit_sv_only` lift and REJECTS under verilog_2005; pre-fix it was wrongly rejected everywhere (the token literal was the mangled `sv_dollar_unit`)."
     },
     {
       "file": "reject/dynamic_array_unsized.sv",
@@ -434,7 +434,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-0033: the bare `[]` (unsized) dimension of a dynamic array (`reg q [];`) is IEEE 1800 \u00a77.5 only \u2014 IEEE 1364-2005 array dimensions are always ranged (`[msb:lsb]`), with no unsized dimension anywhere in Annex A; gated at VERILOG-2005-PROFILE.6.9 (whole-rule @profiles gate on `unsized_dimension`)."
+      "note": "SV-0033: the bare `[]` (unsized) dimension of a dynamic array (`reg q [];`) is IEEE 1800 §7.5 only — IEEE 1364-2005 array dimensions are always ranged (`[msb:lsb]`), with no unsized dimension anywhere in Annex A; gated at VERILOG-2005-PROFILE.6.9 (whole-rule @profiles gate on `unsized_dimension`)."
     },
     {
       "file": "reject/event_trigger_delay.sv",
@@ -452,7 +452,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-0023 lock: `->> e;` nonblocking event trigger (IEEE 1800 \u00a715.5.4 / A.6.5). ACCEPTS under sv_2017/sv_2023 (closed at SV-OVER-REJECTION-FIDELITY.3 by adding the `->>` (nonblocking_implies) token \u2014 the literal `->>` was previously absent from the grammar). REJECTS under verilog_2005 (IEEE 1364-2005 has no `->>`; the SV-only-construct-rejects-under-v2005 pattern). File name tracks the verilog_2005 verdict."
+      "note": "SV-0023 lock: `->> e;` nonblocking event trigger (IEEE 1800 §15.5.4 / A.6.5). ACCEPTS under sv_2017/sv_2023 (closed at SV-OVER-REJECTION-FIDELITY.3 by adding the `->>` (nonblocking_implies) token — the literal `->>` was previously absent from the grammar). REJECTS under verilog_2005 (IEEE 1364-2005 has no `->>`; the SV-only-construct-rejects-under-v2005 pattern). File name tracks the verilog_2005 verdict."
     },
     {
       "file": "reject/event_trigger_nonblocking_delay.sv",
@@ -461,7 +461,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-0023 lock: `->> #5 e;` nonblocking event trigger with `[ delay_or_event_control ]` (IEEE 1800 A.6.5 \u2014 the control belongs to `->>` ONLY). ACCEPTS under sv_2017/sv_2023 (the optional control is now on the nonblocking branch). REJECTS under verilog_2005 (no `->>` / no delay-form trigger in IEEE 1364-2005). File name tracks the verilog_2005 verdict."
+      "note": "SV-0023 lock: `->> #5 e;` nonblocking event trigger with `[ delay_or_event_control ]` (IEEE 1800 A.6.5 — the control belongs to `->>` ONLY). ACCEPTS under sv_2017/sv_2023 (the optional control is now on the nonblocking branch). REJECTS under verilog_2005 (no `->>` / no delay-form trigger in IEEE 1364-2005). File name tracks the verilog_2005 verdict."
     },
     {
       "file": "reject/expr_time_literal.sv",
@@ -479,7 +479,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "An unbased-unsized literal (`'0`, IEEE 1800 \u00a75.7.1) does not exist in IEEE 1364-2005. Second `SV-0027` reject-lock (the `unbased_unsized_literal` sibling branch of the same `primary_literal_sv_only` lift)."
+      "note": "An unbased-unsized literal (`'0`, IEEE 1800 §5.7.1) does not exist in IEEE 1364-2005. Second `SV-0027` reject-lock (the `unbased_unsized_literal` sibling branch of the same `primary_literal_sv_only` lift)."
     },
     {
       "file": "reject/final_block.sv",
@@ -547,7 +547,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-CORPUS-GRAD.13e.4 (ledger SV-0069): IEEE 1364-2005 A.2.1.3 `integer_declaration ::= integer list_of_variable_identifiers ;` (\u2026Annex_A\u2026txt:152) admits no signing, and neither `signing` nor `integer_atom_type` appears anywhere in that Annex \u2014 signing on an integer ATOM is IEEE 1800 A.2.2.1 only. Gated by a profile-gated alias on the OPTIONAL (`integer_atom_signing_sv_only`), never on `integer_atom_type` itself, which must stay reachable so plain `integer i;` still parses. Two-sided by construction: the same text must still ACCEPT under both SV profiles."
+      "note": "SV-CORPUS-GRAD.13e.4 (ledger SV-0069): IEEE 1364-2005 A.2.1.3 `integer_declaration ::= integer list_of_variable_identifiers ;` (…Annex_A…txt:152) admits no signing, and neither `signing` nor `integer_atom_type` appears anywhere in that Annex — signing on an integer ATOM is IEEE 1800 A.2.2.1 only. Gated by a profile-gated alias on the OPTIONAL (`integer_atom_signing_sv_only`), never on `integer_atom_type` itself, which must stay reachable so plain `integer i;` still parses. Two-sided by construction: the same text must still ACCEPT under both SV profiles."
     },
     {
       "file": "reject/interconnect_decl.sv",
@@ -564,7 +564,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "ANSI form `input interconnect w` \u2014 rejects under verilog_2005 (no `interconnect` net type). SV-0024 (the un-braced non-ANSI `module m (a b);` form) is now FIXED at SV-LRM-SHAPE-FIDELITY.1; the bare form is locked separately by `reject/port_bare_multi_id.sv`."
+      "note": "ANSI form `input interconnect w` — rejects under verilog_2005 (no `interconnect` net type). SV-0024 (the un-braced non-ANSI `module m (a b);` form) is now FIXED at SV-LRM-SHAPE-FIDELITY.1; the bare form is locked separately by `reject/port_bare_multi_id.sv`."
     },
     {
       "file": "reject/interface.sv",
@@ -614,7 +614,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-0031: a package\u2192class nested scope-resolution call (`p::C::f();`) \u2014 two `::` operators, IEEE 1800 only; gated at VERILOG-2005-PROFILE.6.11 (whole-rule @profiles gate on `scope_resolution`)."
+      "note": "SV-0031: a package→class nested scope-resolution call (`p::C::f();`) — two `::` operators, IEEE 1800 only; gated at VERILOG-2005-PROFILE.6.11 (whole-rule @profiles gate on `scope_resolution`)."
     },
     {
       "file": "reject/pkg_scope_call.sv",
@@ -623,7 +623,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-0031: the `::` scope-resolution operator (here a package-scoped subroutine call `p::f();`) is IEEE 1800 (SystemVerilog) only \u2014 IEEE 1364-2005 has no `::` token anywhere in Annex A; gated at VERILOG-2005-PROFILE.6.11 (whole-rule @profiles gate on `scope_resolution`, the single `::` producer)."
+      "note": "SV-0031: the `::` scope-resolution operator (here a package-scoped subroutine call `p::f();`) is IEEE 1800 (SystemVerilog) only — IEEE 1364-2005 has no `::` token anywhere in Annex A; gated at VERILOG-2005-PROFILE.6.11 (whole-rule @profiles gate on `scope_resolution`, the single `::` producer)."
     },
     {
       "file": "reject/pkg_scope_expr.sv",
@@ -632,7 +632,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-0031: a package-scoped constant expression (`wire w = p::X;`) \u2014 the `::` scope-resolution surface in expression context, IEEE 1800 only; gated at VERILOG-2005-PROFILE.6.11 (whole-rule @profiles gate on `scope_resolution`)."
+      "note": "SV-0031: a package-scoped constant expression (`wire w = p::X;`) — the `::` scope-resolution surface in expression context, IEEE 1800 only; gated at VERILOG-2005-PROFILE.6.11 (whole-rule @profiles gate on `scope_resolution`)."
     },
     {
       "file": "reject/port_bare_multi_id.sv",
@@ -641,7 +641,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-0024 lock: `module m (a b);` \u2014 an un-braced multi-identifier port_expression. IEEE `port_expression ::= port_reference | { port_reference {, port_reference} }` requires literal concatenation braces, so `a b` is invalid under verilog_2005 (only the non-ANSI port_expression path exists there). Under sv_2017/sv_2023 it ACCEPTS as a legitimate ANSI interface port (`a` = interface_identifier, `b` = port_identifier; the not-a-declared-interface check is elaboration, not parse). Fixed at SV-LRM-SHAPE-FIDELITY.1."
+      "note": "SV-0024 lock: `module m (a b);` — an un-braced multi-identifier port_expression. IEEE `port_expression ::= port_reference | { port_reference {, port_reference} }` requires literal concatenation braces, so `a b` is invalid under verilog_2005 (only the non-ANSI port_expression path exists there). Under sv_2017/sv_2023 it ACCEPTS as a legitimate ANSI interface port (`a` = interface_identifier, `b` = port_identifier; the not-a-declared-interface check is elaboration, not parse). Fixed at SV-LRM-SHAPE-FIDELITY.1."
     },
     {
       "file": "reject/program.sv",
@@ -666,7 +666,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-0034: the queue dimension `[$]` (`reg q [$];`) is IEEE 1800 \u00a77.10 only \u2014 IEEE 1364-2005 has no queues; gated at VERILOG-2005-PROFILE.6.10 (whole-rule @profiles gate on `queue_dimension`)."
+      "note": "SV-0034: the queue dimension `[$]` (`reg q [$];`) is IEEE 1800 §7.10 only — IEEE 1364-2005 has no queues; gated at VERILOG-2005-PROFILE.6.10 (whole-rule @profiles gate on `queue_dimension`)."
     },
     {
       "file": "reject/randcase.sv",
@@ -699,7 +699,7 @@
         "sv_2017": "reject",
         "sv_2023": "reject"
       },
-      "note": "The mangled non-language spelling `sv_dollar_setup(...)` must REJECT everywhere \u2014 the SV-0029 wave-1 reject-lock pinning that the pre-fix over-acceptance stays closed."
+      "note": "The mangled non-language spelling `sv_dollar_setup(...)` must REJECT everywhere — the SV-0029 wave-1 reject-lock pinning that the pre-fix over-acceptance stays closed."
     },
     {
       "file": "reject/stray_top_level_semi.sv",
@@ -708,7 +708,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-0028 lock: a bare top-level `;`. IEEE 1364-2005 A.1.2 `source_text ::= { description }` with `description ::= module_declaration | udp_declaration | config_declaration` admits no null/empty top-level item, so a stray `;` is invalid under verilog_2005 \u2014 it accepted only via `source_text_item`'s LRM-less direct `semi` branch, removed at SV-LRM-SHAPE-FIDELITY.2. Under sv_2017/sv_2023 it correctly ACCEPTS as the LRM empty package-or-generate item (`description ::= \u2026 | { attribute_instance } package_item`, `package_or_generate_item_declaration ::= \u2026 | ;` \u2014 IEEE 1800-2017 \u00a726 / 2023 Annex A), reached via the PEG-first `description` path that is untouched by the fix. SV-profile-byte-invariant (no release bump)."
+      "note": "SV-0028 lock: a bare top-level `;`. IEEE 1364-2005 A.1.2 `source_text ::= { description }` with `description ::= module_declaration | udp_declaration | config_declaration` admits no null/empty top-level item, so a stray `;` is invalid under verilog_2005 — it accepted only via `source_text_item`'s LRM-less direct `semi` branch, removed at SV-LRM-SHAPE-FIDELITY.2. Under sv_2017/sv_2023 it correctly ACCEPTS as the LRM empty package-or-generate item (`description ::= … | { attribute_instance } package_item`, `package_or_generate_item_declaration ::= … | ;` — IEEE 1800-2017 §26 / 2023 Annex A), reached via the PEG-first `description` path that is untouched by the fix. SV-profile-byte-invariant (no release bump)."
     },
     {
       "file": "reject/time_signing.sv",
@@ -717,7 +717,7 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       },
-      "note": "SV-CORPUS-GRAD.13e.4 (ledger SV-0069): the SECOND atom `integer_atom_type` reaches under verilog_2005. IEEE 1364-2005 A.2.1.3 `time_declaration ::= time list_of_variable_identifiers ;` (\u2026Annex_A\u2026txt:174) admits no signing either, so a gate written only for the `integer` spelling would leave this one accepting."
+      "note": "SV-CORPUS-GRAD.13e.4 (ledger SV-0069): the SECOND atom `integer_atom_type` reaches under verilog_2005. IEEE 1364-2005 A.2.1.3 `time_declaration ::= time list_of_variable_identifiers ;` (…Annex_A…txt:174) admits no signing either, so a gate written only for the `integer` spelling would leave this one accepting."
     },
     {
       "file": "reject/timeunit.sv",
@@ -734,7 +734,7 @@
         "sv_2017": "reject",
         "sv_2023": "reject"
       },
-      "note": "`e == 1'b` (digit-less rhs) is neither a scalar_constant nor an expression \u2014 REJECT everywhere, before and after the SV-0030 fix."
+      "note": "`e == 1'b` (digit-less rhs) is neither a scalar_constant nor an expression — REJECT everywhere, before and after the SV-0030 fix."
     },
     {
       "file": "reject/top_level_localparam.sv",
@@ -783,7 +783,7 @@
         "sv_2017": "reject",
         "sv_2023": "reject"
       },
-      "note": "The digit-less non-language text `initial q = 1'b;` must REJECT everywhere \u2014 the SV-0030 reject-lock pinning that the pre-fix over-acceptance stays closed."
+      "note": "The digit-less non-language text `initial q = 1'b;` must REJECT everywhere — the SV-0030 reject-lock pinning that the pre-fix over-acceptance stays closed."
     },
     {
       "file": "reject/unique_case.sv",
@@ -883,7 +883,7 @@
     },
     {
       "file": "reject/v2005_punct_and_assign.sv",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 \u2014 an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 — an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
       "expect": {
         "verilog_2005": "reject",
         "sv_2017": "accept",
@@ -892,7 +892,7 @@
     },
     {
       "file": "reject/v2005_punct_arithmetic_shift_left_assign.sv",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 \u2014 an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 — an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
       "expect": {
         "verilog_2005": "reject",
         "sv_2017": "accept",
@@ -901,7 +901,7 @@
     },
     {
       "file": "reject/v2005_punct_arithmetic_shift_right_assign.sv",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 \u2014 an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 — an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
       "expect": {
         "verilog_2005": "reject",
         "sv_2017": "accept",
@@ -910,7 +910,7 @@
     },
     {
       "file": "reject/v2005_punct_dot_star.sv",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 \u2014 an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 — an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
       "expect": {
         "verilog_2005": "reject",
         "sv_2017": "accept",
@@ -919,7 +919,7 @@
     },
     {
       "file": "reject/v2005_punct_iff_arrow.sv",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 \u2014 an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 — an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
       "expect": {
         "verilog_2005": "reject",
         "sv_2017": "accept",
@@ -928,7 +928,7 @@
     },
     {
       "file": "reject/v2005_punct_minus_assign.sv",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 \u2014 an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 — an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
       "expect": {
         "verilog_2005": "reject",
         "sv_2017": "accept",
@@ -937,7 +937,7 @@
     },
     {
       "file": "reject/v2005_punct_or_assign.sv",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 \u2014 an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 — an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
       "expect": {
         "verilog_2005": "reject",
         "sv_2017": "accept",
@@ -946,7 +946,7 @@
     },
     {
       "file": "reject/v2005_punct_percent_assign.sv",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 \u2014 an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 — an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
       "expect": {
         "verilog_2005": "reject",
         "sv_2017": "accept",
@@ -955,7 +955,7 @@
     },
     {
       "file": "reject/v2005_punct_plus_assign.sv",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 \u2014 an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 — an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
       "expect": {
         "verilog_2005": "reject",
         "sv_2017": "accept",
@@ -964,7 +964,7 @@
     },
     {
       "file": "reject/v2005_punct_shift_left_assign.sv",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 \u2014 an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 — an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
       "expect": {
         "verilog_2005": "reject",
         "sv_2017": "accept",
@@ -973,7 +973,7 @@
     },
     {
       "file": "reject/v2005_punct_shift_right_assign.sv",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 \u2014 an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 — an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
       "expect": {
         "verilog_2005": "reject",
         "sv_2017": "accept",
@@ -982,7 +982,7 @@
     },
     {
       "file": "reject/v2005_punct_slash_assign.sv",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 \u2014 an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 — an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
       "expect": {
         "verilog_2005": "reject",
         "sv_2017": "accept",
@@ -991,7 +991,7 @@
     },
     {
       "file": "reject/v2005_punct_star_assign.sv",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 \u2014 an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 — an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
       "expect": {
         "verilog_2005": "reject",
         "sv_2017": "accept",
@@ -1000,7 +1000,7 @@
     },
     {
       "file": "reject/v2005_punct_wildcard_equal.sv",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 \u2014 an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 — an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
       "expect": {
         "verilog_2005": "reject",
         "sv_2017": "accept",
@@ -1009,7 +1009,7 @@
     },
     {
       "file": "reject/v2005_punct_wildcard_not_equal.sv",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 \u2014 an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 — an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
       "expect": {
         "verilog_2005": "reject",
         "sv_2017": "accept",
@@ -1018,7 +1018,7 @@
     },
     {
       "file": "reject/v2005_punct_xor_assign.sv",
-      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 \u2014 an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
+      "note": "SV-CORPUS-GRAD.13e.10(c4) / ledger SV-0071 — an IEEE-1800-only punctuation token. The sv_2017/sv_2023 arms are the half that proves the gate was not made too wide.",
       "expect": {
         "verilog_2005": "reject",
         "sv_2017": "accept",
@@ -1091,5 +1091,6 @@
       },
       "note": "Uses the `else`-action form task enables cannot take; a plain `wait_order (a, b);` is a legal 1364-2005 task enable (see the accept corpus)."
     }
-  ]
+  ],
+  "rebaseline_note": "SV-CORPUS-GRAD.13n (2026-09-01, PGEN-SV-CORPUS-GRAD-0316, GRAMMAR tier, ledger SV-0075, release 1.0.202): +2 AND ALL-POSITIVE, adjudicated rather than re-stamped. The `net_type` alternation gained its two MISSING LRM branches -- `tri0` and `tri1`, absent for the whole life of the flattened grammar -- so exactly two new rules exist and BOTH are witnessed. Every moved criterion is total+2 / witness+2, IDENTICALLY at seeds 0, 7 and 42, while proof, UNKNOWN, sample_parse_failures and profile_orphans are all UNCHANGED and the residual stays []. That is the shape a legitimate widening has: nothing became unknown, nothing stopped being witnessed. The verilog_2005 arm moves TOO -- unlike SV-CORPUS-GRAD's config/use_clause precedent, where the new rule was profile-gated OUT -- and that is correct here, because tri0/tri1 are IEEE 1364-2005 net types (Annex A A.2.2.1:219) and are deliberately NOT gated."
 }

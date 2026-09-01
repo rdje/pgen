@@ -6,8 +6,8 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `a32e13c6f005af076449a51f23b4bb3ee4e97c77a22cd56432f5a9911cee3cfc` |
-| v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `7012f4c95dd8cd6c501341feff002b4f074f73c7b187619a25dbb8244ce22056` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `6d6fbcfd4a96e7236bc529788eda068d62822684f51b9fec0ee933f434373a46` |
+| v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `52b6dbdfae20b8f0f9d11169765d53ddd5b8cfac1388ff5d6e8edcf83dde1cc9` |
 
 ## The headline
 
@@ -19,9 +19,9 @@
 
 | bucket | adjudication class | rows | % | why |
 |---|---|---:|---:|---|
-| ADJUDICATED | `match` | 5,845 | 35.8 % | expected and observed agree - the row testifies FOR the parser |
-| ADJUDICATED | `divergence:explained_svpp_macro_use` | 1,093 | 6.7 % | parse stops on a macro use - positionally gated since .12a |
-| ADJUDICATED | `divergence:unexplained_rejects_valid` | 253 | 1.5 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
+| ADJUDICATED | `match` | 5,850 | 35.8 % | expected and observed agree - the row testifies FOR the parser |
+| ADJUDICATED | `divergence:explained_svpp_macro_use` | 1,094 | 6.7 % | parse stops on a macro use - positionally gated since .12a |
+| ADJUDICATED | `divergence:unexplained_rejects_valid` | 247 | 1.5 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
 | ADJUDICATED | `divergence:explained_svpp_conditional` | 200 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_include` | 140 | 0.9 % | parse stops on an `include - positionally gated since .12a |
 | ADJUDICATED | `divergence:unexplained_accepts_invalid` | 21 | 0.1 % | a known defect: invalid SV the parser accepts (the axis-2 bar) |
@@ -70,30 +70,30 @@
 
 ## Inside `NO VERDICT` — what the parser ALREADY did on the row's own bytes (SV-CORPUS-GRAD.13a)
 
-- **ONE-SIDED POSITIVE — 1,808 rows (11.1 % of the corpus)**: the parse consumed the WHOLE file standalone. ⇒ no *rejects-valid* defect hides behind these rows. ⛔ It says **nothing** about accepts-invalid, and it is **not** a verdict — there is still no expectation to compare against.
-  - 1,705 are compilation-unit-shaped; ⚠️ **103 are FRAGMENT-shaped** (`.svh` include payload / excerpt-mode fixture), where accepting is not testimony FOR the parser at all — a fragment is not a legal standalone unit, so the accept may itself BE the over-acceptance.
-- ⛔ **DARK — 4,366 rows (26.7 % of the corpus)**: the parse failed and the deferral is why nobody looked. **This — not the headline 38.7 % — is the population a disposition has to burn down.**
+- **ONE-SIDED POSITIVE — 1,811 rows (11.1 % of the corpus)**: the parse consumed the WHOLE file standalone. ⇒ no *rejects-valid* defect hides behind these rows. ⛔ It says **nothing** about accepts-invalid, and it is **not** a verdict — there is still no expectation to compare against.
+  - 1,708 are compilation-unit-shaped; ⚠️ **103 are FRAGMENT-shaped** (`.svh` include payload / excerpt-mode fixture), where accepting is not testimony FOR the parser at all — a fragment is not a legal standalone unit, so the accept may itself BE the over-acceptance.
+- ⛔ **DARK — 4,363 rows (26.7 % of the corpus)**: the parse failed and the deferral is why nobody looked. **This — not the headline 38.7 % — is the population a disposition has to burn down.**
 
 | class | rows | one-sided (unit) | ⚠️ one-sided (fragment) | DARK |
 |---|---:|---:|---:|---:|
 | `deferred:chained_only` | 5,276 | 1,021 | 103 | 4,152 |
-| `deferred:no_sv_key` | 596 | 544 | 0 | 52 |
+| `deferred:no_sv_key` | 596 | 546 | 0 | 50 |
 | `deferred:svpp_owned` | 186 | 123 | 0 | 63 |
-| `deferred:impl_varying` | 90 | 5 | 0 | 85 |
+| `deferred:impl_varying` | 90 | 6 | 0 | 84 |
 | `deferred:verilog_ams_lane` | 20 | 6 | 0 | 14 |
 | `deferred:ni_unimplemented` | 6 | 6 | 0 | 0 |
-| **TOTAL** | **6,174** | **1,705** | **103** | **4,366** |
+| **TOTAL** | **6,174** | **1,708** | **103** | **4,363** |
 
 ## The DARK half — can the row's own deferral reason even REACH the failure?
 
-A file containing no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or `` `include `` inlining: the preprocessed text is byte-identical to the raw text, so the parse fails identically after chaining. Measured over all 4,366 DARK rows (path oracle: the tracked corpus results file; every manifest row resolved to exactly one results row, 16,336/16,336, with agreeing outcomes — the census aborts otherwise).
+A file containing no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or `` `include `` inlining: the preprocessed text is byte-identical to the raw text, so the parse fails identically after chaining. Measured over all 4,363 DARK rows (path oracle: the tracked corpus results file; every manifest row resolved to exactly one results row, 16,336/16,336, with agreeing outcomes — the census aborts otherwise).
 
 | class | DARK rows | of which NO `` ` `` anywhere | what that means |
 |---|---:|---:|---|
 | `deferred:chained_only` | 4,152 | 528 | ⭐ **REFUTES the TEXTUAL half of the deferral** — no chaining can alter one byte of these files, so the parse fails identically expanded. What remains is the cross-file FACT channel (a `type_name` a sibling file declares), which is narrower, is not expansion, and is separately testable → `.13c` |
-| `deferred:no_sv_key` | 52 | 20 | information only — the label is the absence of an upstream ANSWER KEY, which no directive could supply |
+| `deferred:no_sv_key` | 50 | 18 | information only — the label is the absence of an upstream ANSWER KEY, which no directive could supply |
 | `deferred:svpp_owned` | 63 | 8 | ⛔ refutes NOTHING — read them: verible excerpt-mode fragments and verilator `t_preproc_*_bad` EOF/string cases. Preprocessor relevance is the test's PURPOSE, not a directive in its text |
-| `deferred:impl_varying` | 85 | 0 | information only — the LRM leaves the verdict implementation-defined regardless of directives |
+| `deferred:impl_varying` | 84 | 0 | information only — the LRM leaves the verdict implementation-defined regardless of directives |
 | `deferred:verilog_ams_lane` | 14 | 11 | information only — the label is about the DIALECT (Verilog-AMS), not directives |
 | `deferred:ni_unimplemented` | 0 | 0 | information only — upstream marks the construct not-implemented |
 
