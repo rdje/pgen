@@ -1313,6 +1313,12 @@ coupling `.4` removed on purpose.
 
 ---
 
+⏱ **RE-CHECKED 2026-09-02 (`PGEN-LIVE-DOC-CONTAINMENT-0020`, the session-startup directive):** the
+template (`README_POLICY.md` in the sibling repository) is unchanged since 2026-08-20; `diff` reads
+**133 template lines this copy lacks** (the `## Authority and provenance` section, the delimited
+local-adoption block, the routed-destination and health-target vocabulary). Still ROUTED + PARKED —
+governance, nothing on the SV release path — and this leaf remains the owner.
+
 ## Acceptance Criteria (tree)
 
 - [x] The policy is adopted in-repo, not referenced across a volume boundary.
