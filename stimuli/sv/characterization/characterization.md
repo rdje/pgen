@@ -19,7 +19,7 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 | grammar | `grammars/systemverilog.ebnf` | `fffd241ebedeb04bb51823764e9a4fc088b3e11f77e42a9bf26838bf20e2f0d8` |
 | generated parser | `generated/systemverilog_parser.rs` | `a3cb77a19d9c988848976cbe9221d222bda61e3deefdd3065a4053e6c993fb46` |
 
-Measured at `HEAD` = `124884ab+dirty` (2026-08-31).
+Measured at `HEAD` = `a072e23e` (2026-09-01).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -53,7 +53,7 @@ Measured at `HEAD` = `124884ab+dirty` (2026-08-31).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `6.56` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `5.93` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 

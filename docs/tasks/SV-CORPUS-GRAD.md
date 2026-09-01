@@ -19451,8 +19451,13 @@ A fix that claimed all three profiles and moved only two censuses would have bee
 
 **RESIDUE**: (e) ⛔ **census the CLASS** — an alternation that lost two members with nothing
 noticing is a claim about every other enumerated production in this grammar; `LRM-GRAMMAR-FIDELITY`
-owns that instrument and this is its strongest motivating case. (f) re-measure both corpus lanes on
-the clean tree this commit produces, so the reports stop recording `+dirty`.
+owns that instrument and this is its strongest motivating case. (f) ✅ **DONE 2026-09-01 (`PGEN-SV-CORPUS-GRAD-0317`)** — both lanes re-measured on the clean
+tree `a072e23e`: **`Measured at HEAD = a072e23e`, no `+dirty`, on BOTH reports**, and `results.tsv`
+and `results_v2005.tsv` come back **BYTE-IDENTICAL** to the `+dirty` measurement, so the re-run
+moved the STAMP and not one verdict. ⇒ the census gate's dirty NOTE is cleared without any number
+changing, which is the only outcome that proves the note was about provenance rather than content.
+⭐ This is also the FIRST time both SV lanes carry a clean stamp on a tree whose grammar is
+committed — `.13j`(b) achieved it on a docs-only commit; here it survives a RELEASE.
 
 
 #### `.13g` — the FRAGMENT-shaped population: an accept there is not testimony (`todo`, opened 2026-08-11 by `.13a`)
