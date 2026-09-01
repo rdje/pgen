@@ -1,5 +1,29 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-01 - PGEN-SV-CORPUS-GRAD-0318 (self-audit — a historical claim has two subjects, and one `git log -S` answers only the first)
+
+- ⭐⭐⭐ **THE TRANSFERABLE LESSON: *"THE BRANCH NEVER EXISTED"* AND *"THE INPUT WAS REJECTED"* ARE
+  DIFFERENT PROPOSITIONS WITH DIFFERENT START DATES.** I proved the first with
+  `git log -S 'kw_tri0'` (exactly one commit, the fix) and published the second — *"absent for the
+  whole life of the flattened grammar"* — into a DOWNSTREAM CONTRACT. The rejection needs the token
+  to be a reserved keyword, and that happened on 2026-07-02 / 2026-07-04. ⛔ The tell was in my own
+  tool output and I walked past it: the same `-S` search returned **two earlier commits touching
+  `tri0`**, which I read as noise instead of as the other subject's timeline. ⇒ **when a claim is
+  about WHEN, name the subject whose history you actually searched.**
+- ⛔⛔ **AND THE DIRECTOR'S CHALLENGE LANDED ON A FINDING THAT WAS SIMPLY WRONG ABOUT A MECHANISM I
+  HAD READ.** I reported layer A *"needs demotion soon — a future slice will otherwise be unable to
+  record itself."* `MEMORY.md`'s Current-state block is OVERWRITE-only; a slice always has room by
+  replacing its own bullet. Measured, my session was **net −53 bytes with lines flat at 49**. The
+  narrower true statement — long-run growth of **25 167 → 32 310 B and 38 → 49 lines** over 60
+  touching commits, i.e. growth in the NUMBER OF BULLETS — is a different claim, and it is the one I
+  should have made. ⇒ **a cap being near does not imply debt is accruing; measure the direction
+  before naming it a risk.** Third frame error of the session and the first the director caught
+  rather than the evidence.
+- ⛔ **A SUPERLATIVE I DID NOT EARN**: *"the shortest such interval in this repository's record"*.
+  The interval itself is measured and stands. Establishing the superlative needs a census of every
+  doctrine's creation date against its first RED — never run. This repository has a banked lesson for
+  exactly this (`.13h`: *"a superlative whose evidence could not exist"*), and I reproduced it.
+
 ## 2026-09-01 - PGEN-SV-CORPUS-GRAD-0316 (.13n fixed — a missing alternative fails with no signal that anything is missing, and that is why it lived for the whole life of the grammar)
 
 - ⭐⭐⭐ **THE TRANSFERABLE LESSON: A MISSING ALTERNATIVE IN A KEYWORD-BEARING ALTERNATION IS THE
@@ -31,8 +55,12 @@
 - ⭐⭐ **THE GATE I WIRED YESTERDAY FAILED TODAY, ON PURPOSE, AND THAT IS THE RETURN ON IT.**
   `CORPUS-CENSUS-CURRENCY`'s grammar arm — which SystemVerilog did not have until `.13j`(c), and
   whose absence was the entire reason `.13j` existed — went RED on the first grammar change after it
-  landed. One day between building the check and it catching a real event is the shortest such
-  interval in this repository's record, and it is the answer to *"is this guard worth the slice?"*
+  landed. The interval is **one day** — doctrine created 2026-08-30 (`a5d7f179`), SystemVerilog
+  wired in 2026-08-31 (`-0313`), first RED 2026-09-01 (`-0316`) — and that is the answer to *"is
+  this guard worth the slice?"*. ⛔ **NOT claimed: that it is the shortest such interval in this
+  repository's record.** An earlier draft said so; establishing it would need a census of every
+  doctrine's creation date against its first RED, and no such census was run. A superlative whose
+  evidence was never gathered is exactly the shape `.13h` already banked.
 
 ## 2026-08-31 - PGEN-SV-CORPUS-GRAD-0315 (.13k(b) done — a census opened to find answer-key errors found a parser defect instead, and the trust bound is not a defect list)
 

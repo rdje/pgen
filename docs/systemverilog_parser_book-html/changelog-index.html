@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b8440583.js";
+            window.path_to_searchindex_js = "searchindex-159bf2b5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -219,9 +219,15 @@ it fails in both directions for every family that has a book.</p>
 </ul>
 <h3 id="10202--contract-10202--sv-corpus-grad13n-pgen-sv-corpus-grad-0316-2026-09-01-ledger-sv-0075-released"><a class="header" href="#10202--contract-10202--sv-corpus-grad13n-pgen-sv-corpus-grad-0316-2026-09-01-ledger-sv-0075-released">1.0.202 / Contract 1.0.202 — SV-CORPUS-GRAD.13n (<code>PGEN-SV-CORPUS-GRAD-0316</code>, 2026-09-01), ledger <code>SV-0075</code> (<code>Released</code>):</a></h3>
 <p>⛔ <strong><code>tri0</code> and <code>tri1</code> are net types again.</strong> The grammar’s <code>net_type</code> alternation shipped <strong>ten</strong>
-of the LRM’s <strong>twelve</strong> branches for the whole life of the flattened grammar. Both spellings were
-already in the reserved-keyword regexes, so they lexed as keywords and had no production to land
-in — which is why the failure carried no clue that anything was missing.</p>
+of the LRM’s <strong>twelve</strong> branches, and that branch has never existed — <code>git log -S 'kw_tri0'</code> over
+the grammar returns exactly one commit, this fix. Both spellings were already in the
+reserved-keyword regexes, so they lexed as keywords and had no production to land in — which is why
+the failure carried no clue that anything was missing.</p>
+<p>⚠️ <strong>How far back the REJECTION goes is measured, and it is younger than the gap.</strong> The two
+spellings entered the reserved-keyword regexes on <strong>2026-07-02</strong> (<code>verilog_2005</code>) and <strong>2026-07-04</strong>
+(<code>sv_2017</code> / <code>sv_2023</code>); before then they were ordinary identifiers, and whether <code>tri0 a;</code> parsed at
+that time is <strong>not measured here</strong>. So the missing branch spans the file’s whole history, while the
+symptom you would have observed dates from those two commits.</p>
 <div class="table-wrapper">
 <table>
 <thead>

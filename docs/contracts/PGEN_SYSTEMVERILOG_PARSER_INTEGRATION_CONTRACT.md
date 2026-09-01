@@ -7,8 +7,7 @@ This is the document downstream projects such as Nexsim should read first when d
 
 > **Current-state note (2026-09-01, `SV-CORPUS-GRAD.13n` — GRAMMAR, release `1.0.202`, ledger
 > `SV-0075`, schema `26` UNCHANGED, ALL THREE profiles): `tri0` and `tri1` are net types again.**
-> The `net_type` alternation shipped **ten** of the LRM's **twelve** branches for the whole life of
-> the flattened grammar. Both spellings were in the reserved-keyword regexes, so they lexed as
+> The `net_type` alternation shipped **ten** of the LRM's **twelve** branches since before the revision register's genesis — the BRANCH has never existed (`git log -S 'kw_tri0'` returns exactly one commit, the fix). ⚠️ The observable REJECTION is younger and its start date is measured: the two spellings entered the reserved-keyword regexes at `cd1dfa14` (2026-07-02, `verilog_2005`) and `436b64fa` (2026-07-04, `sv_2017`/`sv_2023`), and it is that registration — a token that lexes as a keyword with no production to land in — that makes the text unparseable. Whether `tri0 a;` parsed BEFORE those dates, when the spelling was an ordinary identifier, is **UNMEASURED**. Both spellings were in the reserved-keyword regexes, so they lexed as
 > keywords and had nowhere to land: `module m; tri0 a; tri1 b; endmodule` was `rc 1` on `sv_2017`,
 > `sv_2023` **and** `verilog_2005`, while `wire`, `triand` and `trior` from that same alternation
 > were `rc 0`.

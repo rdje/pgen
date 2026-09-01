@@ -19449,6 +19449,37 @@ nothing stopped being witnessed, which is the only shape a legitimate widening c
 exactly right: `tri0`/`tri1` are IEEE 1364-2005 net types and are deliberately **not** profile-gated.
 A fix that claimed all three profiles and moved only two censuses would have been the wrong shape.
 
+⛔⛔⛔ **SELF-AUDIT UNDER A DIRECTOR CHALLENGE (2026-09-01, `PGEN-SV-CORPUS-GRAD-0318`) — TWO
+PUBLISHED CLAIMS FROM THIS LEAF ARE CORRECTED, AND ONE OF THEM SAT IN THE DOWNSTREAM CONTRACT.**
+
+- ⛔ **CORRECTED: *"absent for the whole life of the flattened grammar"*.** True of the `net_type`
+  BRANCH — `git log -S 'kw_tri0' -- grammars/systemverilog.ebnf` returns **exactly one commit**, the
+  fix — but the sentence attaches it to the REJECTION and its lexing mechanism, and that mechanism
+  is **younger and datable**: `tri0`/`tri1` entered `reserved_non_keyword_identifier_v2005` at
+  `cd1dfa14` (**2026-07-02**) and `reserved_non_keyword_identifier_sv` at `436b64fa`
+  (**2026-07-04**). Before those commits the spellings were ordinary identifiers. ⇒ a reader was
+  invited to infer *"unparseable since day one"*, which is **not measured**. Corrected in the bug
+  ledger `SV-0075`, the revision register, the SV integration contract, the SystemVerilog parser
+  book, `docs/book/src/grammar-wellformedness.md`, `CHANGES.md` and `MEMORY.md`.
+- ⚠️ **AND WHAT IS STILL UNMEASURED IS NAMED RATHER THAN GUESSED**: whether
+  `module m; tri0 a; endmodule` PARSED before 2026-07-02. Settling it needs the grammar-AST
+  interpreter (`pgen --interpret-parse`, TOOLBOX §1.5) run against `cd1dfa14~1` — and the `pgen`
+  binary on disk predates that flag, so it needs a build. Priced and left open rather than
+  answered by reasoning. ⛔ The ledger's `Reported Against Parser Release` stays `1.0.0`–`1.0.201`
+  because the DEFECT (an alternation missing two LRM members) genuinely spans that whole range; it
+  is the SYMPTOM whose start date is 2026-07-02, and the Root Cause cell now says so.
+- ⛔ **WITHDRAWN: *"the shortest such interval in this repository's record"***, written in
+  `DEVELOPMENT_NOTES.md` about `CORPUS-CENSUS-CURRENCY` catching a real event one day after being
+  wired. The INTERVAL is measured and stands (doctrine `a5d7f179` 2026-08-30 → SV wired `-0313`
+  2026-08-31 → first RED `-0316` 2026-09-01). The SUPERLATIVE is not: it would need a census of
+  every doctrine's creation date against its first RED, and none was run.
+- ⭐⭐ **THE LESSON, AND IT IS THE THIRD TIME THIS SESSION A FRAME WAS THE DEFECT: A HISTORICAL
+  CLAIM HAS TWO SUBJECTS AND I MERGED THEM.** *"The branch never existed"* and *"the input was
+  rejected"* are different propositions with different start dates, and one `git log -S` answers
+  only the first. The tell was available and cheap — the same `-S` search that proved the branch
+  absent ALSO returned two earlier commits touching `tri0`, and I read them as noise instead of as
+  the other subject's timeline.
+
 **RESIDUE**: (e) ⛔ **census the CLASS** — an alternation that lost two members with nothing
 noticing is a claim about every other enumerated production in this grammar; `LRM-GRAMMAR-FIDELITY`
 owns that instrument and this is its strongest motivating case. (f) ✅ **DONE 2026-09-01 (`PGEN-SV-CORPUS-GRAD-0317`)** — both lanes re-measured on the clean

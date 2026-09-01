@@ -37,9 +37,16 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 ### 1.0.202 / Contract 1.0.202 — SV-CORPUS-GRAD.13n (`PGEN-SV-CORPUS-GRAD-0316`, 2026-09-01), ledger `SV-0075` (`Released`):
 
 ⛔ **`tri0` and `tri1` are net types again.** The grammar's `net_type` alternation shipped **ten**
-of the LRM's **twelve** branches for the whole life of the flattened grammar. Both spellings were
-already in the reserved-keyword regexes, so they lexed as keywords and had no production to land
-in — which is why the failure carried no clue that anything was missing.
+of the LRM's **twelve** branches, and that branch has never existed — `git log -S 'kw_tri0'` over
+the grammar returns exactly one commit, this fix. Both spellings were already in the
+reserved-keyword regexes, so they lexed as keywords and had no production to land in — which is why
+the failure carried no clue that anything was missing.
+
+⚠️ **How far back the REJECTION goes is measured, and it is younger than the gap.** The two
+spellings entered the reserved-keyword regexes on **2026-07-02** (`verilog_2005`) and **2026-07-04**
+(`sv_2017` / `sv_2023`); before then they were ordinary identifiers, and whether `tri0 a;` parsed at
+that time is **not measured here**. So the missing branch spans the file's whole history, while the
+symptom you would have observed dates from those two commits.
 
 | input | before | after |
 |---|---|---|
