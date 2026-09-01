@@ -34,6 +34,39 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.203 / Contract 1.0.203 — SV-CORPUS-GRAD.13o (`PGEN-SV-CORPUS-GRAD-0319`, 2026-09-01), ledger `SV-0076` (`Released`):
+
+⛔ **`always @(edge c)` no longer parses under `verilog_2005`.** The grammar's `edge_identifier`
+carried IEEE 1800's third member `edge` with no profile gate. IEEE 1364-2005 A.7.4 is
+`edge_identifier ::= posedge | negedge`, and its A.6.5 `event_expression` admits only `posedge` /
+`negedge` forms — `edge` in an event control is IEEE 1800. The keyword itself IS reserved by
+1364-2005 (for the timing-check `edge_control_specifier`), which is why the keyword-admission
+census reported it legal: the keyword was fine, the position was not. Found by the
+keyword-enumeration membership census (TOOLBOX 5.13) and confirmed by three probe legs.
+
+| input | before | after |
+|---|---|---|
+| `module m; reg c; always @(edge c) ; endmodule` — `verilog_2005` | `rc 0` | **`rc 1`** |
+| the same, `sv_2017` / `sv_2023` | `rc 0` | `rc 0` |
+| `module m; reg c; always @(zzq c) ; endmodule` — `verilog_2005` (falsifier: the keyword was consumed as a keyword) | `rc 1` | `rc 1` |
+| `module m; reg c; always @(posedge c) ; endmodule` (control, all profiles) | `rc 0` | `rc 0` |
+
+**The fix**: the `edge` branch now references a profile-gated terminal, `kw_edge_sv_only` under
+`@profiles: ["sv_2017", "sv_2023"]`, so `edge_identifier` stays a terminal-only rule. One rule added
+(1539 → 1540), no profile orphans, and exactly one rule's satisfiable set moved — the new terminal.
+The alias spelling used by earlier profile gates was built first and rejected by the parse-cost
+ratchet: it de-memoized `edge_identifier` and made three pre-existing rules dearer.
+
+**AST impact — none.** No `kind` value is added, removed or renamed; under `sv_2017` / `sv_2023`
+the `edge_identifier` node is byte-identical (`{kind: "edge"}`), and under `verilog_2005` that value
+is now unreachable. Schema **26 unchanged**. ⛔ The `verilog_2005` accept set **narrows**: text that
+used to yield an AST there now rejects.
+
+**Corpus proof**, per-path and two-sided: **zero verdicts moved** on either lane (16 336 `sv_2017`
+rows, 2 606 `verilog_2005` rows, row sets identical), the verdict-coverage tuple
+`7556/2606/6174/4363/268` unchanged. 0 of the 2 606 v2005-lane files spell `@(edge`; 24 of the
+16 336 main-lane files do, every one an IEEE 1800 source that keeps parsing.
+
 ### 1.0.202 / Contract 1.0.202 — SV-CORPUS-GRAD.13n (`PGEN-SV-CORPUS-GRAD-0316`, 2026-09-01), ledger `SV-0075` (`Released`):
 
 ⛔ **`tri0` and `tri1` are net types again.** The grammar's `net_type` alternation shipped **ten**

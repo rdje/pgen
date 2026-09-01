@@ -297,6 +297,199 @@ def containment(base: dict[str, dict[str, int]], new: dict[str, dict[str, int]],
                   f"caused it"), facts
 
 
+def host_memo_eviction(base: dict[str, dict[str, int]], new: dict[str, dict[str, int]],
+                       edges: dict[str, list[str]], introduced: list[str],
+                       d_committed: int) -> tuple[bool, str, dict]:
+    """`(holds, one-line detail, facts)` for the MEMO-EVICTION predicate (`ENGINE-UNIVERSAL-SERVICES.88`).
+
+    THE SHAPE. A change re-spells ONE alternative of a memoized rule H (the row's `introduced` rules
+    are the new spelling). The generator then stops memoizing H: its memo hits fall to ZERO while its
+    entries and commits are unchanged — the same parses arrive at H the same number of times, but the
+    re-entries the memo used to answer now RE-RUN H's other alternatives. So each DIRECT alternative
+    of H that already existed rises by EXACTLY the hits H lost, each rule those alternatives CONSULT
+    (the layout rule a terminal reads first) rises by the lost hits times the number of re-run
+    alternatives that consult it, and nothing else that already existed gets dearer. Committed does
+    not move: no derivation is accepted more often, work was re-done, not re-decided.
+
+    ⛔ WHY THE OTHER FIVE CANNOT COVER IT, measured (`SV-CORPUS-GRAD.13o`, 2026-09-01): gating the
+    `edge` alternative of `edge_identifier` — as the `.13e.7` alias AND as a profile-gated terminal —
+    cost `kw_posedge` +52, `kw_negedge` +52 and `trivia` +104 entries while `edge_identifier` went
+    from 52 memo hits to 0. `profile_split_respelling` refuses because pre-existing rules rose;
+    `contained_in_introduced_subgraph` refuses because they are SIBLINGS of the introduced rule,
+    not reachable from it, and because the replaced terminal lost entries; the two arithmetic
+    identities need `Δentries == Δmemo` or a terminal-alternative shape, and `+260 / +104` is
+    neither. Two arms were built and both paid it: the cost is the generator's memo policy moving
+    when an alternative becomes a profile-conditional reference, not the spelling.
+
+    ⚠️⚠️ HONEST BOUND, IN THE PREDICATE'S OWN DOCSTRING: this attributes the rise to the eviction and
+    proves the parser does no NEW work anywhere else. It does NOT say the eviction is unavoidable —
+    that is a question about the generator's memo policy, owned by the engine leaf, and a third arm
+    that keeps H memoized would be the proof. Say so in the row's `why`.
+
+    Raises `Refused` (never a false verdict) when the scope is undeclared, names a rule the grammar
+    does not have, or names a rule that already existed in the baseline.
+    """
+    if not introduced:
+        raise Refused("the memo-eviction predicate needs the rule names the change INTRODUCED; the "
+                      "acceptance row declares none, so the new spelling is unattributed")
+    not_new = sorted(r for r in introduced if r in base)
+    if not_new:
+        raise Refused(f"{not_new} already existed in the baseline measurement — `introduced` names "
+                      f"the rules the re-spelling CREATES, and listing an existing rule would turn "
+                      f"this acceptance into a waiver for real work on it")
+    known = set(edges) | {r for refs in edges.values() for r in refs}
+    unknown = [r for r in introduced if r not in known]
+    if unknown:
+        raise Refused(f"{unknown} name no rule in the grammar's reference graph — a row cannot "
+                      f"declare a scope the measured grammar does not have")
+
+    facts: dict = {"d_committed": d_committed}
+    if d_committed != 0:
+        return False, (f"committed moved {d_committed:+,} — an eviction re-runs work, it never "
+                       f"changes what is accepted, so this is not one"), facts
+
+    both = sorted(set(base) & set(new))
+    hosts = [r for r in both
+             if base[r]["memo_hits"] > 0 and new[r]["memo_hits"] == 0
+             and new[r]["entries"] == base[r]["entries"]
+             and new[r]["committed"] == base[r]["committed"]]
+    facts["hosts"] = hosts
+    if len(hosts) != 1:
+        if not hosts:
+            return False, ("no pre-existing rule lost ALL its memo hits while keeping its entries "
+                           "and commits — nothing was evicted, so the rise is not an eviction"), facts
+        return False, (f"{len(hosts)} pre-existing rules lost their memo at once ({hosts[:3]}) — "
+                       f"one re-spelled alternative evicts one host; this is something else"), facts
+    host = hosts[0]
+    lost = base[host]["memo_hits"]
+    direct = set(edges.get(host, []))
+    facts.update({"host": host, "lost": lost})
+
+    dearer = {}
+    for r in both:
+        de = new[r]["entries"] - base[r]["entries"]
+        dc = new[r]["committed"] - base[r]["committed"]
+        dm = new[r]["memo_hits"] - base[r]["memo_hits"]
+        if dc > 0:
+            return False, (f"`{r}` committed {dc:+,} more — a pre-existing derivation got dearer, "
+                           f"which an eviction cannot explain"), facts
+        if de > 0 or dm > 0:
+            dearer[r] = (de, dm)
+    direct_dearer = sorted(r for r in dearer if r in direct)
+    consulted = {}
+    for r, (de, dm) in dearer.items():
+        if r in direct:
+            if de != lost:
+                return False, (f"`{r}` is a direct alternative of `{host}` and rose {de:+,} entries, "
+                               f"not the {lost:,} memo hits `{host}` lost — the re-run is not the "
+                               f"whole story"), facts
+            if dm != 0:
+                return False, (f"`{r}` is a direct alternative of `{host}` and gained {dm:+,} memo "
+                               f"hits — a re-run alternative reads its inputs again, it does not "
+                               f"become memoized"), facts
+            continue
+        referrers = sorted(d for d in direct_dearer if r in edges.get(d, []))
+        if not referrers:
+            return False, (f"`{r}` rose ({de:+,} entries, {dm:+,} memo hits) and is neither an "
+                           f"alternative of `{host}` nor consulted by one — the rise ESCAPED the "
+                           f"evicted rule"), facts
+        want = lost * len(referrers)
+        if de != want or dm not in (0, want):
+            return False, (f"`{r}` is consulted by {len(referrers)} re-run alternative(s) of "
+                           f"`{host}` ({', '.join(referrers)}), which accounts for {want:,} entries "
+                           f"and at most {want:,} memo hits, but it rose {de:+,} / {dm:+,}"), facts
+        consulted[r] = referrers
+    facts.update({"direct_dearer": direct_dearer, "consulted": consulted})
+
+    undeclared = sorted(r for r in new if r not in base and r not in introduced)
+    if undeclared:
+        return False, (f"{len(undeclared)} rule name(s) appear in the measurement and are not "
+                       f"declared as introduced, so their entries are unattributed: "
+                       + " ".join(undeclared[:5])), facts
+    gained = sum(new[r]["entries"] for r in new if r not in base)
+    released = sum(base[r]["entries"] - new[r]["entries"] for r in both
+                   if new[r]["entries"] < base[r]["entries"])
+    facts.update({"gained": gained, "released": released})
+    if released > gained:
+        return False, (f"pre-existing rules released {released:,} entries but the introduced rule(s) "
+                       f"absorbed only {gained:,} — work vanished, which an eviction cannot explain "
+                       f"(and a fall is a different acceptance)"), facts
+
+    return True, (f"memo eviction: `{host}` lost {lost:,} memo hits with entries and commits "
+                  f"unchanged; {len(direct_dearer)} direct alternative(s) re-ran +{lost:,} each "
+                  f"({', '.join(direct_dearer) or 'none'}); consulted rule(s) "
+                  + (", ".join(f"{r} +{lost * len(v):,}" for r, v in sorted(consulted.items()))
+                     or "none")
+                  + f"; {len(introduced)} introduced rule(s) gained {gained:+,} entries against "
+                    f"{released:,} released by the spelling they replace; committed {d_committed:+,}"), facts
+
+
+def self_test_host_memo_eviction() -> int:
+    """Every refusal branch of `host_memo_eviction`, fired on synthetic tables that carry the
+    measured `SV-CORPUS-GRAD.13o` shape, plus the GREEN arm. Prints one line per arm."""
+    def tables():
+        base = {"host": {"entries": 2560, "committed": 2, "memo_hits": 52},
+                "alt1": {"entries": 2508, "committed": 1, "memo_hits": 0},
+                "alt2": {"entries": 2508, "committed": 1, "memo_hits": 0},
+                "old_kw": {"entries": 2508, "committed": 2, "memo_hits": 0},
+                "trivia": {"entries": 1000, "committed": 1000, "memo_hits": 900},
+                "other": {"entries": 100, "committed": 10, "memo_hits": 5}}
+        new = {k: dict(v) for k, v in base.items()}
+        new["host"]["memo_hits"] = 0
+        new["alt1"]["entries"] = 2560
+        new["alt2"]["entries"] = 2560
+        new["old_kw"] = {"entries": 0, "committed": 0, "memo_hits": 0}
+        new["trivia"] = {"entries": 1104, "committed": 1000, "memo_hits": 1004}
+        new["new_kw"] = {"entries": 2560, "committed": 2, "memo_hits": 52}
+        edges = {"host": ["alt1", "alt2", "new_kw"], "alt1": ["trivia"], "alt2": ["trivia"],
+                 "new_kw": ["trivia"], "old_kw": ["trivia"], "other": ["trivia"]}
+        return base, new, edges
+
+    arms: list[tuple[str, bool, str]] = []
+
+    def arm(name, expect_holds, want_text, mutate=None, introduced=("new_kw",), d_committed=0,
+            expect_refused=False):
+        base, new, edges = tables()
+        if mutate:
+            mutate(base, new, edges)
+        try:
+            holds, detail, _ = host_memo_eviction(base, new, edges, list(introduced), d_committed)
+            ok = (not expect_refused) and holds == expect_holds and want_text in detail
+            got = f"holds={holds}: {detail[:110]}"
+        except Refused as exc:
+            ok = expect_refused and want_text in str(exc)
+            got = f"REFUSED: {str(exc)[:110]}"
+        arms.append((name, ok, got))
+        print(f"  {'✓' if ok else '✗'} {name} — {got}")
+
+    arm("green: the measured .13o shape HOLDS", True, "memo eviction: `host` lost 52")
+    arm("red: the host's entries also rose", False, "nothing was evicted",
+        mutate=lambda b, n, e: n["host"].__setitem__("entries", 2612))
+    arm("red: a rise on a rule that is neither an alternative nor consulted", False, "ESCAPED",
+        mutate=lambda b, n, e: n["other"].__setitem__("entries", 152))
+    arm("red: two hosts lost their memo at once", False, "lost their memo at once",
+        mutate=lambda b, n, e: n["other"].__setitem__("memo_hits", 0))
+    arm("red: a direct alternative rose by more than the lost hits", False, "not the 52 memo hits",
+        mutate=lambda b, n, e: n["alt1"].__setitem__("entries", 2570))
+    arm("red: a consulted rule rose by more than lost × referrers", False, "accounts for 104",
+        mutate=lambda b, n, e: n["trivia"].__setitem__("entries", 1200))
+    arm("red: committed moved", False, "committed moved", d_committed=2)
+    arm("red: a pre-existing rule committed more", False, "committed +1 more",
+        mutate=lambda b, n, e: n["alt1"].__setitem__("committed", 2))
+    arm("red: an undeclared new rule", False, "not declared as introduced",
+        mutate=lambda b, n, e: n.__setitem__("stray", {"entries": 5, "committed": 0, "memo_hits": 0}))
+    arm("red: more entries released than absorbed", False, "work vanished",
+        mutate=lambda b, n, e: b["old_kw"].__setitem__("entries", 9000))
+    arm("refused: introduced names a pre-existing rule", False, "already existed",
+        introduced=("alt1",), expect_refused=True)
+    arm("refused: introduced is empty", False, "declares none", introduced=(), expect_refused=True)
+    arm("refused: introduced names no grammar rule", False, "name no rule",
+        introduced=("no_such_rule",), expect_refused=True)
+    failed = [a for a in arms if not a[1]]
+    print(f"HOST-MEMO-EVICTION-SELFTEST: arms={len(arms)} failed={len(failed)}")
+    return 1 if failed else 0
+
+
 # ── CLI ─────────────────────────────────────────────────────────────────────────────────────────
 
 def main() -> int:
@@ -309,9 +502,14 @@ def main() -> int:
     ap.add_argument("--introduced", nargs="+", default=[])
     ap.add_argument("--d-committed", type=int, default=0)
     ap.add_argument("--top", type=int, default=15)
+    ap.add_argument("--self-test", action="store_true",
+                    help="fire every refusal branch of host_memo_eviction on synthetic tables")
     a = ap.parse_args()
 
     try:
+        if a.self_test:
+            return self_test_host_memo_eviction()
+
         if a.graph:
             g = derive_graph(a.graph)
             text = json.dumps(g, indent=1, sort_keys=True) + "\n"

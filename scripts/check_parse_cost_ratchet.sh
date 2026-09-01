@@ -793,19 +793,62 @@ def _profile_split_respelling(base_tot, new_tot, ctx):
                   f"{base_tot['entries']:,}-entry corpus")
 
 
+def _host_memo_eviction(base_tot, new_tot, ctx):
+    """The rise is the MEMO EVICTION of one host rule (`ENGINE-UNIVERSAL-SERVICES.88`): a change
+    re-spelled ONE alternative of a memoized rule, the generator stopped memoizing it (memo hits →
+    0, entries and commits unchanged), and the re-entries the memo used to answer now RE-RUN its
+    other alternatives — each direct alternative rises by exactly the lost hits, each rule those
+    alternatives consult by the lost hits times the re-run count, committed does not move, and
+    nothing else that already existed gets dearer. Per-rule and graph-scoped, evaluated in
+    `scripts/parse_cost_containment.py` (`host_memo_eviction`, `--self-test` fires its arms).
+
+    ⛔ Measured founding case (`SV-CORPUS-GRAD.13o`): gating `edge_identifier`'s `edge` alternative
+    to the SystemVerilog profiles cost `kw_posedge` +52, `kw_negedge` +52, `trivia` +104 entries
+    while `edge_identifier` fell from 52 memo hits to 0 — under BOTH spellings that were built.
+    `profile_split_respelling` and `contained_in_introduced_subgraph` are right to refuse that
+    (pre-existing siblings rose; the replaced terminal lost entries), and neither describes it.
+    ⚠️ Attributed, not proven unavoidable: whether the generator's memo policy should survive a
+    profile-conditional alternative is the engine leaf's question, and the row's `why` says so.
+    """
+    if CONTAINMENT is None:
+        raise RuntimeError(f"scripts/parse_cost_containment.py could not be imported "
+                           f"({CONTAINMENT_IMPORT_ERROR}), so this acceptance cannot be evaluated")
+    graph_path = ctx["graph"]
+    if not os.path.isfile(graph_path):
+        raise RuntimeError(f"the measured grammar's reference graph is missing "
+                           f"({os.path.relpath(graph_path, ROOT)}) — re-measure with an instrument "
+                           f"that emits it")
+    with open(graph_path, encoding="utf-8") as fh:
+        graph = json.load(fh)
+    if ctx["grammar_digest"] and graph.get("grammar_raw_ast_sha256") != ctx["grammar_digest"]:
+        raise RuntimeError(
+            f"the reference graph was derived from grammar raw_ast "
+            f"`{str(graph.get('grammar_raw_ast_sha256'))[:16]}…` but this tree's is "
+            f"`{ctx['grammar_digest'][:16]}…` — an eviction verdict computed against the wrong "
+            f"grammar is the `.13c.2k` defect the containment leaf exists to close")
+    base_rules = CONTAINMENT.read_rule_costs(ctx["base_rule_costs"])
+    new_rules = CONTAINMENT.read_rule_costs(ctx["new_rule_costs"])
+    d_committed = new_tot["committed"] - base_tot["committed"]
+    holds, detail, _facts = CONTAINMENT.host_memo_eviction(
+        base_rules, new_rules, graph["edges"], ctx["introduced"], d_committed)
+    return holds, detail
+
+
 INVARIANTS = {
     "pure_memo_lookups": _pure_memo_lookups,
     "unmatched_terminal_alternatives": _unmatched_terminal_alternatives,
     "unmatched_lookahead_terminals": _unmatched_lookahead_terminals,
     "contained_in_introduced_subgraph": _contained_in_introduced_subgraph,
     "profile_split_respelling": _profile_split_respelling,
+    "host_memo_eviction": _host_memo_eviction,
 }
 
 # ⛔ WHICH INVARIANTS TAKE A SCOPE, AND THE CHECK IS TWO-SIDED. A containment row with no
 # `introduced` set cannot be evaluated; a row naming a set for an invariant that ignores it reads as
 # a scoped acceptance and is not one. Both REFUSE, so the column can never become decoration.
 INVARIANTS_TAKING_INTRODUCED = {"contained_in_introduced_subgraph",
-                                "profile_split_respelling"}
+                                "profile_split_respelling",
+                                "host_memo_eviction"}
 NO_INTRODUCED = "-"
 
 

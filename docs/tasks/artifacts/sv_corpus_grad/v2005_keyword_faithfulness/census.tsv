@@ -26,7 +26,7 @@ string	correctly_gated	string.sv	false	true	n/a
 super	identifier_consumed	super.sv	true	true	true
 this	identifier_consumed	this.sv	true	true	true
 tx_path_delay_expression	identifier_consumed	tx_path_delay_expression.sv	true	true	true
-type	identifier_consumed	type.sv	true	true	true
+type	correctly_gated	type.sv	false	true	n/a
 unique	correctly_gated	unique.sv	false	true	n/a
 var	correctly_gated	var.sv	false	true	n/a
 virtual	correctly_gated	virtual.sv	false	true	n/a

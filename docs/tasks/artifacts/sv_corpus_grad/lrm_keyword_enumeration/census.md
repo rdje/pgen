@@ -18,7 +18,7 @@ describes your tree** and the honest act is to re-measure, not to quote.
 
 | input | sha256 |
 | --- | --- |
-| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `ea76b211c20069211bd83a524ceec227c31284724a6f96f761241071eba6b9f1` |
+| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `641514378d4907b0508928f8d5bc9ab613de0b813beebdd925fe399a6fb0aabb` |
 | `docs/systemverilog/2017/md/section-41-data-read-api.md` (Annex A + Annex B, 1800-2017) | `249ab571c2ef3237790a6bd9743f07a7595bdded337ca2cbb6d5e189b3b40d22` |
 | `grammars/systemverilog_2017_lrm_extracted.ebnf` (snapshot, 1800-2017) | `17bf25cdaff3bf0b347a0188a62338b27eea08423623c33cc789af21056e8abe` |
 | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md` (Annex A, 1800-2023) | `0b4f7fe935e9c499a56ccde8dc769ed626bf53d154f8a9585bd1daf371a9d4aa` |
@@ -31,14 +31,14 @@ describes your tree** and the honest act is to re-measure, not to quote.
 ## Headline
 
 ```text
-LRM-KEYWORD-ENUMERATION: editions=3 productions=109 matched=97 unmatched=12 keyword_members=289 present=289 missing=0 missing_no_terminal=0 incomplete_productions=0 extra_members=9 literal_members=3
+LRM-KEYWORD-ENUMERATION: editions=3 productions=109 matched=97 unmatched=12 keyword_members=289 present=289 missing=0 missing_no_terminal=0 incomplete_productions=0 extra_members=8 literal_members=3
 ```
 
 | edition | judged under | productions in population | matched by name | unmatched | keyword members | present | MISSING | extra (informational) |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | 1800-2017 | `sv_2017` | 43 | 41 | 2 | 119 | 119 | **0** | 3 |
 | 1800-2023 | `sv_2023` | 44 | 42 | 2 | 120 | 120 | **0** | 3 |
-| 1364-2005 | `verilog_2005` | 22 | 14 | 8 | 50 | 50 | **0** | 3 |
+| 1364-2005 | `verilog_2005` | 22 | 14 | 8 | 50 | 50 | **0** | 2 |
 
 ## Every MISSING member — the rows to adjudicate
 
@@ -88,7 +88,6 @@ each candidate on the release probe with three legs.
 |---|---|---|
 | 1800-2017 | `assignment_pattern_key` | `chandle` `event` `string` |
 | 1800-2023 | `assignment_pattern_key` | `chandle` `event` `string` |
-| 1364-2005 | `edge_identifier` | `edge` |
 | 1364-2005 | `net_type` | `trireg` |
 | 1364-2005 | `timing_check_event_control` | `edge` |
 

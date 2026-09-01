@@ -9,6 +9,9 @@ answers:
   - "is a trailing digit on an LRM production name a footnote marker or part of the name"
   - "why does the LRM extractor merge strength0 and strength1 into one rule"
   - "an instrument reports a shipped rule reaches keywords the LRM enumeration lacks, is that an over-acceptance"
+  - "a keyword is reserved by the standard and the profile accepts it, so why is it still an over-acceptance"
+  - "the keyword-admission census is green, can a profile still accept a keyword in a position its standard never allows"
+  - "which census catches a legal keyword in an illegal position"
 tags: [grammar-fidelity, lrm, keywords, census, oracles, diagnosis, systemverilog, extractor]
 date: 2026-09-01
 status: current
@@ -50,3 +53,16 @@ unconditionally merges `strength0`/`strength1` and `delay2`/`delay3`, and the ce
 built on the extractor's, reported members the LRM never wrote. Keep a keyword always; strip a
 defined name only when nothing references it with its digits; strip a used name when the stripped
 spelling is known.
+
+**Second instance, the mirror direction (SV-CORPUS-GRAD.13o, 2026-09-01).** The same census's
+`extra` column — printed, deliberately not scored — reported the shipped `edge_identifier` reaching
+`edge` under `verilog_2005`, where IEEE 1364-2005 A.7.4 spells `edge_identifier ::= posedge |
+negedge`. The keyword-ADMISSION census (TOOLBOX 5.11) had correctly reported `edge` legal there,
+because `edge` IS a 1364-2005 keyword — for the timing-check `edge_control_specifier` — so
+`always @(edge c)` parsed under a profile whose grammar has no such production, and nothing keyed on
+the keyword could ever object. **A legal keyword in an illegal position is invisible to every census
+keyed on the keyword; the standard's own enumeration is the only oracle for position.** Three probe
+legs (accepts under the profile; accepts under the control profile; rejects when the keyword is
+replaced by a fresh identifier) turned the row into release `1.0.203`, ledger `SV-0076`. Nine
+`extra` rows cost eight parses: three were legal by the LRM's own example, five were benign folding,
+one was the defect — which is why the column is a worklist the probe scores, never a verdict list.

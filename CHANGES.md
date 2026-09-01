@@ -1,5 +1,54 @@
 # CHANGES.md
 
+## 2026-09-01 - PGEN-SV-CORPUS-GRAD-0319 (leaf SV-CORPUS-GRAD.13o DONE — `always @(edge c)` no longer parses under `verilog_2005`: the `edge` branch of `edge_identifier` is gated to the SystemVerilog profiles; release `1.0.203`, ledger `SV-0076`, contract `1.0.203`, schema 26 unchanged, ZERO corpus verdicts moved on either lane; GRAMMAR tier, ZERO Rust / codegen / engine bytes)
+
+- ⛔⛔ **THE DEFECT**: `grammars/systemverilog.ebnf:2444-2446` spelled `edge_identifier := kw_posedge |
+  kw_negedge | kw_edge` with no `@profiles` gate on the third branch. IEEE 1800 added `edge` to
+  `edge_identifier` (A.7.4) and `event_expression` (A.6.5); IEEE 1364-2005 A.7.4 is `edge_identifier
+  ::= posedge | negedge` and its A.6.5 admits only `posedge` / `negedge` forms. `edge` IS a 1364-2005
+  keyword (the timing-check `edge_control_specifier`, A.7.5.3), which is exactly why the
+  keyword-admission census (TOOLBOX 5.11) reported it legal — the keyword was fine, the POSITION was
+  not (lens L2). Found by the keyword-enumeration membership census (TOOLBOX 5.13) one slice ago,
+  confirmed by three probe legs: `rc 0` under `verilog_2005`, `rc 0` under `sv_2017`, `rc 1` under
+  `verilog_2005` once `edge` is replaced by a fresh identifier.
+- **THE FIX**: the `edge` branch references a PROFILE-GATED TERMINAL, `kw_edge_sv_only := trivia
+  /edge\b/` under `@profiles: ["sv_2017", "sv_2023"]` (the `kw_implies_470cec58` idiom), so
+  `edge_identifier` stays terminal-only. One rule (1539 → 1540), `profile_orphans` 0, exactly ONE
+  rule's satisfiable set moved vs HEAD. ⛔⛔ **THE `.13e.7` ALIAS WAS BUILT FIRST AND THE COST RATCHET
+  REJECTED IT, RULE BY RULE**: `edge_identifier := … | edge_identifier_sv_only` de-memoized
+  `edge_identifier` (memo hits 52 → 0, taken over by the alias), so `kw_posedge` and `kw_negedge`
+  re-ran **+52 entries each** and `trivia` **+104** — pre-existing rules getting dearer, which
+  `profile_split_respelling` refuses by design and no other coded invariant covers. Two arms,
+  measured (TOOLBOX 3.7b), and the ratchet chose. Also corrects the `-0316` grammar comment (the 2017 Annex A DOES
+  carry `net_type`, `section-41-data-read-api.md:899`).
+- ✅ **BEFORE → AFTER**: `module m; reg c; always @(edge c) ; endmodule` **`rc 0` → `rc 1`** under
+  `verilog_2005`; `rc 0` → `rc 0` under `sv_2017` and `sv_2023`; `@(posedge c)` control unmoved;
+  `--parse-dump-ast-pretty` under `sv_2017` still yields `{kind: "edge"}`. Measured twice: on the
+  edited grammar through `--interpret-parse` before any codegen, then on the regenerated release
+  parser.
+- ⭐⭐ **THE RATCHET'S DESIGNED ROUND TRIP, OBSERVED**: reproducer + two controls pinned BEFORE the fix
+  (`checked=251 failures=0`); the regenerated parser made `run_adjudication_repros.py` go RED on
+  exactly that row — *"AN OVER-ACCEPTANCE IS GONE … flip it"* — and after the flip to
+  `class=invalid` it reads `checked=251 failures=0` and guards the fix forever.
+- ⭐⭐ **CORPUS, PER-PATH AND TWO-SIDED, BOTH LANES: ZERO VERDICTS MOVED.** `sv_2017` 16 336 rows
+  (pass 9 811, unchanged), `verilog_2005` 2 606 rows (pass 2 300, unchanged), row sets identical,
+  tuple `7556/2606/6174/4363/268` unchanged, denominator gate OK. Measured why: **0 of the 2 606
+  v2005-lane files spell `@(edge`** (24 of the 16 336 main-lane files do, all IEEE 1800 sources) —
+  the over-acceptance a corpus never probes negatively, which is why it took an instrument. Both
+  reports stamp `ef1a5e6d+dirty` (the TRUE dirty); the clean re-measure is `.13o`(f).
+- **CENSUSES AFTER THE FIX**: 5.13 `extra_members 9 → 8`, the `edge_identifier`/`edge` row gone,
+  `missing=0` on 289 members; 5.11 re-promoted with adjudication after 7 releases of drift —
+  `over_acceptances=1` (`class_qualifier`, owned by `.13c.2m`), `gated 24`, `reachable_rules 776`.
+- ⭐ **Cert census, adjudicated by name**: `sv_cert_recognized_union_gate` total **1403 → 1404**, canonical witness **1384 → 1385**, union witness **1395 → 1396** — the one new rule, witnessed — with proof 8, canonical UNKNOWN 11, union UNKNOWN 0 and residual `[]` unchanged, identical at seeds 0 / 7 / 42; `verilog_2005_conformance_gate` GREEN with its census `1121/373/734/14` UNCHANGED (the gated terminal is unsatisfiable under that profile) and its corpus matrix **360 → 363** checks / 0 mismatches (the new `reject/v2005_edge_event.sv` case × 3 profiles); `ast_shape_contract_gate` 18 / 18, schema 26; `GENERATED-REPRODUCIBILITY` tier 2 re-derived and re-stamped; clippy source + generated clean. `PARSE-COST-RATCHET`: `entries` **+260** (+0.00 %) and `memo_hits` **+104** on a 412 397 710-entry / 184 456 833-hit sample, `committed` unchanged — attributed rule by rule (`edge_identifier` lost its 52 memo hits with entries and commits unchanged, `kw_posedge`/`kw_negedge` re-ran +52 each, `trivia` +104, `kw_edge_a0f2c69a` released 2 508 entries to the introduced `kw_edge_sv_only`), ACCEPTED under the coded `host_memo_eviction` invariant (`ENGINE-UNIVERSAL-SERVICES.88`), which the gate RE-DERIVED on its own run, and the baseline promoted. ⛔ The `.13e.7` alias arm read `entries` +2 768 / `committed` +2 / `memo_hits` +104 and was REFUSED by every coded invariant — the eviction is the generator's memo policy moving when an alternative becomes profile-conditional, measured on both arms.
+- ⭐⭐ **`ENGINE-UNIVERSAL-SERVICES.88` LANDS IN THE SAME COMMIT, because the release could not without it**: `PARSE-COST-RATCHET` had no shape for a MEMO EVICTION, so `host_memo_eviction` is coded in `scripts/parse_cost_containment.py` (per-rule, graph-scoped, 13 self-test arms — the measured shape holds, twelve refusals fire) and wired into `scripts/check_parse_cost_ratchet.sh`; the two `accepted_rises.tsv` rows name the exact from/to and the gate re-derives the predicate on every run. Attributed, NOT proven unavoidable: `.88`(b) owes WHY the generator drops the memo when one alternative becomes profile-conditional. ⛔ One commit for two leaves, deliberately: an intermediate commit of the gate alone would have left `generated/` describing a grammar HEAD did not carry.
+- **AST impact — NONE; accept set NARROWS on `verilog_2005` only.** No `kind` added, removed or
+  renamed; `"edge"` becomes unreachable under `verilog_2005`. Nexsim consumes `sv_2017`, unmoved by
+  construction and by measurement.
+- **Lockstep**: grammar + revision register (RELEASE row, digest `641514378d…`) + ledger `SV-0076` +
+  contract `1.0.203` + the SystemVerilog parser book changelog + conformance case
+  `reject/v2005_edge_event.sv` + three pinned repros + 5.11 / 5.13 artifacts + tree + index +
+  `DEVELOPMENT_NOTES.md` + `MEMORY.md`.
+
 ## 2026-09-01 - PGEN-LRM-GRAMMAR-FIDELITY-0001 (leaf LRM-GRAMMAR-FIDELITY.1e DONE, discharging SV-CORPUS-GRAD.13n(e) — THE KEYWORD-ENUMERATION MEMBERSHIP CENSUS: every LRM production that enumerates reserved keywords, member by member against the shipped grammar under the edition's own profile; 289 members over 97 productions, three editions, 0 MISSING at HEAD, a RED control that replays .13n; INSTRUMENT + REGISTRATION tier, ZERO grammar / codegen / generated bytes)
 
 - ⭐⭐⭐ **THE CLASS `.13n` OPENED IS NOW A CENSUS, NOT A HOPE.** `stimuli/sv/lrm_keyword_enumeration_census.py`

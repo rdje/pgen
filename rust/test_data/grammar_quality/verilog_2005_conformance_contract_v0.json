@@ -3,11 +3,11 @@
     "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/verilog_2005_conformance_contract_v0.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
     "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
     "expectations": "confirmed",
-    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1121/373/734/14 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=360/0_mismatches aliases=2",
-    "verified_at_commit": "124884ab0093d47acb477e815d7364298321a1f8",
+    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1121/373/734/14 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=363/0_mismatches aliases=2",
+    "verified_at_commit": "ef1a5e6d5715b3eb32ce5247e0b23007f8767ee1",
     "inputs": {
-      "generated/systemverilog_parser.rs": "a3cb77a19d9c988848976cbe9221d222bda61e3deefdd3065a4053e6c993fb46",
-      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "ea76b211c20069211bd83a524ceec227c31284724a6f96f761241071eba6b9f1" },
+      "generated/systemverilog_parser.rs": "0cd5d273f954d5a159565b8720418265682ed0d595a5274f688b0931a6da79a9",
+      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "641514378d4907b0508928f8d5bc9ab613de0b813beebdd925fe399a6fb0aabb" },
       "rust/src/ast_pipeline/grammar_wellformedness.rs": "49b795f6a34fc787f2746cf577f47988b76b7e332164eabea85eeab36b457107",
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "ebfafdd38fda2371dbcd7211b98bb5b13bfa7f9666678cd5e7d82ca7c1bc48b6",
       "rust/src/ast_pipeline/stimuli_generator.rs": "082bb1e59a4f616ce8c1592727beaffd281423c42530fc3e30e93d4619dc365d"
@@ -840,6 +840,15 @@
         "sv_2017": "accept",
         "sv_2023": "accept"
       }
+    },
+    {
+      "file": "reject/v2005_edge_event.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "IEEE 1364-2005 A.7.4 edge_identifier ::= posedge | negedge and A.6.5 event_expression carry no `edge`; the IEEE 1800 third member is gated to sv_2017/sv_2023 by SV-CORPUS-GRAD.13o (the profile-gated terminal kw_edge_sv_only). `edge` itself stays a 1364-2005 keyword for the timing-check edge_control_specifier (A.7.5.3)."
     },
     {
       "file": "reject/v2005_enum_type.sv",

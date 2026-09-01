@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e43c70a3.js";
+            window.path_to_searchindex_js = "searchindex-5ed2d1cc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -217,6 +217,40 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10203--contract-10203--sv-corpus-grad13o-pgen-sv-corpus-grad-0319-2026-09-01-ledger-sv-0076-released"><a class="header" href="#10203--contract-10203--sv-corpus-grad13o-pgen-sv-corpus-grad-0319-2026-09-01-ledger-sv-0076-released">1.0.203 / Contract 1.0.203 — SV-CORPUS-GRAD.13o (<code>PGEN-SV-CORPUS-GRAD-0319</code>, 2026-09-01), ledger <code>SV-0076</code> (<code>Released</code>):</a></h3>
+<p>⛔ <strong><code>always @(edge c)</code> no longer parses under <code>verilog_2005</code>.</strong> The grammar’s <code>edge_identifier</code>
+carried IEEE 1800’s third member <code>edge</code> with no profile gate. IEEE 1364-2005 A.7.4 is
+<code>edge_identifier ::= posedge | negedge</code>, and its A.6.5 <code>event_expression</code> admits only <code>posedge</code> /
+<code>negedge</code> forms — <code>edge</code> in an event control is IEEE 1800. The keyword itself IS reserved by
+1364-2005 (for the timing-check <code>edge_control_specifier</code>), which is why the keyword-admission
+census reported it legal: the keyword was fine, the position was not. Found by the
+keyword-enumeration membership census (TOOLBOX 5.13) and confirmed by three probe legs.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>input</th><th>before</th><th>after</th></tr>
+</thead>
+<tbody>
+<tr><td><code>module m; reg c; always @(edge c) ; endmodule</code> — <code>verilog_2005</code></td><td><code>rc 0</code></td><td><strong><code>rc 1</code></strong></td></tr>
+<tr><td>the same, <code>sv_2017</code> / <code>sv_2023</code></td><td><code>rc 0</code></td><td><code>rc 0</code></td></tr>
+<tr><td><code>module m; reg c; always @(zzq c) ; endmodule</code> — <code>verilog_2005</code> (falsifier: the keyword was consumed as a keyword)</td><td><code>rc 1</code></td><td><code>rc 1</code></td></tr>
+<tr><td><code>module m; reg c; always @(posedge c) ; endmodule</code> (control, all profiles)</td><td><code>rc 0</code></td><td><code>rc 0</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>The fix</strong>: the <code>edge</code> branch now references a profile-gated terminal, <code>kw_edge_sv_only</code> under
+<code>@profiles: ["sv_2017", "sv_2023"]</code>, so <code>edge_identifier</code> stays a terminal-only rule. One rule added
+(1539 → 1540), no profile orphans, and exactly one rule’s satisfiable set moved — the new terminal.
+The alias spelling used by earlier profile gates was built first and rejected by the parse-cost
+ratchet: it de-memoized <code>edge_identifier</code> and made three pre-existing rules dearer.</p>
+<p><strong>AST impact — none.</strong> No <code>kind</code> value is added, removed or renamed; under <code>sv_2017</code> / <code>sv_2023</code>
+the <code>edge_identifier</code> node is byte-identical (<code>{kind: "edge"}</code>), and under <code>verilog_2005</code> that value
+is now unreachable. Schema <strong>26 unchanged</strong>. ⛔ The <code>verilog_2005</code> accept set <strong>narrows</strong>: text that
+used to yield an AST there now rejects.</p>
+<p><strong>Corpus proof</strong>, per-path and two-sided: <strong>zero verdicts moved</strong> on either lane (16 336 <code>sv_2017</code>
+rows, 2 606 <code>verilog_2005</code> rows, row sets identical), the verdict-coverage tuple
+<code>7556/2606/6174/4363/268</code> unchanged. 0 of the 2 606 v2005-lane files spell <code>@(edge</code>; 24 of the
+16 336 main-lane files do, every one an IEEE 1800 source that keeps parsing.</p>
 <h3 id="10202--contract-10202--sv-corpus-grad13n-pgen-sv-corpus-grad-0316-2026-09-01-ledger-sv-0075-released"><a class="header" href="#10202--contract-10202--sv-corpus-grad13n-pgen-sv-corpus-grad-0316-2026-09-01-ledger-sv-0075-released">1.0.202 / Contract 1.0.202 — SV-CORPUS-GRAD.13n (<code>PGEN-SV-CORPUS-GRAD-0316</code>, 2026-09-01), ledger <code>SV-0075</code> (<code>Released</code>):</a></h3>
 <p>⛔ <strong><code>tri0</code> and <code>tri1</code> are net types again.</strong> The grammar’s <code>net_type</code> alternation shipped <strong>ten</strong>
 of the LRM’s <strong>twelve</strong> branches, and that branch has never existed — <code>git log -S 'kw_tri0'</code> over

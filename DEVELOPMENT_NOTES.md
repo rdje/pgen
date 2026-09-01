@@ -1,5 +1,48 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-01 - PGEN-SV-CORPUS-GRAD-0319 (the `edge` gate — an instrument's "not scored" column found the first defect a keyword census could never see)
+
+- ⭐⭐ **THE TRANSFERABLE LESSON: A LEGAL KEYWORD IN AN ILLEGAL POSITION IS INVISIBLE TO EVERY CENSUS
+  KEYED ON THE KEYWORD, AND THE STANDARD'S OWN ENUMERATIONS ARE THE ONLY ORACLE FOR POSITION.** 5.11
+  asks *is this keyword reserved here* — `edge` is, for timing checks — so it reported `edge` gated
+  and legal while `always @(edge c)` parsed under a profile whose grammar has no such production.
+  5.13 asks *does this shipped rule reach exactly the members the LRM's production names* — and the
+  LRM's `edge_identifier ::= posedge | negedge` says where `edge` may NOT go. Same keyword, two
+  different questions; only the second is about position. ⇒ when a census is keyed on a token,
+  name the question it cannot ask, and build the one that asks it.
+- ⭐ **THE COLUMN THAT WAS DELIBERATELY NOT A VERDICT PRODUCED THE VERDICT.** `extra` in 5.13 is
+  printed and not scored because *"the annex does not derive it"* is a measured known-bad
+  over-acceptance classifier (three legal constructs, `LRM-GRAMMAR-FIDELITY.1c`). It listed nine
+  rows; three were legal by the LRM's own example, five were benign folding, and one survived three
+  probe legs. The discipline is not *never score the column* — it is *the probe scores it, row by
+  row*. Nine rows cost eight parses and produced one release.
+- ⛔ **MEASURE WHY THE CORPUS DID NOT MOVE BEFORE CALLING THE CHANGE SAFE.** Zero verdicts moved
+  on 18 942 rows. That is consistent with *the fix is inert* and with *nothing in the corpus exercises
+  it*; only `grep` over the lane files separates them — 0 of 2 606 v2005-lane files spell `@(edge`,
+  24 main-lane files do and all keep parsing under `sv_2017`. My first count of this was wrong
+  (it cut the SUITE column instead of the PATH column and grepped nothing), and it read 0 for the
+  wrong reason; a zero from a broken command looks exactly like a zero from a clean corpus.
+- ⛔⛔ **THE ESTABLISHED IDIOM WAS NOT FREE HERE, AND ONLY THE PER-RULE COUNTERS COULD SAY SO.** The
+  `.13e.7` spelling — a bare `X_sv_only` alias as the gated alternative — was built first because it
+  is the repository's precedent for a profile gate. The cost ratchet's fresh `rule_costs.tsv`
+  against the tracked baseline moved on exactly eight rule/metric pairs: the alias took 2 560
+  entries, 2 commits and 52 memo hits; `edge_identifier` LOST its 52 memo hits; and
+  `kw_posedge`, `kw_negedge` (+52 entries each) and `trivia` (+104 entries, +104 hits) got dearer —
+  the 52 re-entries that used to be answered by `edge_identifier`'s memo now re-run both terminal
+  attempts. Adding a rule-reference alternative to a terminal-only rule changed its memo/inlining
+  treatment, so the "structural cost of the idiom" was not one dispatcher frame but a de-memoization
+  of the host rule. `profile_split_respelling` refuses exactly that (*no pre-existing rule may get
+  dearer*), and it was right to. ⇒ A gated TERMINAL (`kw_edge_sv_only`, the `kw_implies` idiom)
+  keeps the host rule terminal-only; TOOLBOX 3.7b's rule — build the arms, never price a spelling
+  from the current counters — cost one extra cycle and decided the spelling. The lesson is not
+  *avoid aliases*: it is that an idiom carries its cost model with it, and a rule whose SHAPE the
+  idiom changes (terminal-only → mixed) is outside the measurements that priced the idiom.
+- ⭐ **THE INTERPRETER PAYS FOR THE FORTY-MINUTE CYCLE ONCE, AGAIN.** `--interpret-parse` on the
+  HEAD grammar versus the edited grammar flipped the reproducer's verdict under `verilog_2005` and
+  nothing else, before regeneration started; the regenerated release parser then agreed on every
+  input. The `.13e.7` sequence — grammar-side counters, interpreter before/after, then codegen —
+  turns the expensive step into a confirmation rather than a discovery.
+
 ## 2026-09-01 - PGEN-LRM-GRAMMAR-FIDELITY-0001 (the keyword-enumeration membership census — a dropped member is invisible to every instrument that reads only what the grammar declares)
 
 - ⭐⭐⭐ **THE TRANSFERABLE LESSON: THREE GREEN INSTRUMENTS EACH DOING THEIR JOB IS NOT A CLAIM ABOUT

@@ -5,6 +5,38 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-09-01, `SV-CORPUS-GRAD.13o` — GRAMMAR, release `1.0.203`, ledger
+> `SV-0076`, schema `26` UNCHANGED, `verilog_2005` profile ONLY): `always @(edge c)` no longer
+> parses under `verilog_2005`.** The shipped `edge_identifier` carried IEEE 1800's third member
+> `edge` with no profile gate; IEEE 1364-2005 A.7.4 is `edge_identifier ::= posedge | negedge` and
+> its A.6.5 `event_expression` admits only `posedge` / `negedge` forms. `edge` IS a 1364-2005 keyword
+> (the timing-check `edge_control_specifier`, A.7.5.3), which is why the keyword-admission census
+> could not see it — the keyword is legal, the POSITION is not. Found by the keyword-enumeration
+> membership census (TOOLBOX 5.13) and confirmed by three probe legs: `rc 0` under `verilog_2005`,
+> `rc 0` under `sv_2017`, and `rc 1` under `verilog_2005` once `edge` is replaced by a fresh
+> identifier.
+>
+> **What no longer parses**: an `edge` event control (`@(edge x)`) under the `verilog_2005`
+> profile — text IEEE 1364-2005 never admitted. Nothing changes under `sv_2017` / `sv_2023`: the
+> `edge` branch now references the profile-gated terminal `kw_edge_sv_only` under
+> `@profiles: ["sv_2017", "sv_2023"]` (the `.13e.7` alias spelling was measured dearer by the cost
+> ratchet and rejected), so those profiles are unmoved by construction — and by measurement (0 of 16 336 `sv_2017` corpus verdicts moved).
+>
+> **AST impact — NONE.** No `kind` value is added, removed or renamed; `"edge"` simply becomes
+> unreachable under `verilog_2005`, and under the SystemVerilog profiles the `edge_identifier` node
+> is byte-identical (`{kind: "edge"}` re-measured on the regenerated parser). ⛔ This **narrows**
+> the `verilog_2005` accept set: text that used to yield an AST there now rejects — safe for a
+> consumer relying on LRM-faithful rejection, a change for one that fed IEEE 1800 sources through
+> the 1364 profile.
+>
+> **Corpus proof, per-path and two-sided**: ZERO verdicts moved on either lane — 16 336 `sv_2017`
+> rows and 2 606 `verilog_2005` rows, row sets identical on both sides — and the verdict-coverage
+> tuple `7556/2606/6174/4363/268` is unchanged. 0 of the 2 606 v2005-lane files spell `@(edge`
+> (24 of the 16 336 main-lane files do, every one an IEEE 1800 source), so this is exactly the
+> over-acceptance a corpus never probes negatively. The reproducer and two controls are pinned on
+> the two-sided ratchet, which went RED on the reproducer row when the fix landed and now guards it.
+> **Cert census, adjudicated by name**: `sv_cert_recognized_union_gate` total **1403 → 1404**, canonical witness **1384 → 1385**, union witness **1395 → 1396** — the one new rule, witnessed — with proof 8, canonical UNKNOWN 11, union UNKNOWN 0 and residual `[]` unchanged, identical at seeds 0 / 7 / 42; `verilog_2005_conformance_gate` GREEN with its census `1121/373/734/14` UNCHANGED (the gated terminal is unsatisfiable under that profile) and its corpus matrix **360 → 363** checks / 0 mismatches (the new `reject/v2005_edge_event.sv` case × 3 profiles); `ast_shape_contract_gate` 18 / 18, schema 26; `GENERATED-REPRODUCIBILITY` tier 2 re-derived and re-stamped; clippy source + generated clean. `PARSE-COST-RATCHET`: `entries` **+260** (+0.00 %) and `memo_hits` **+104** on a 412 397 710-entry / 184 456 833-hit sample, `committed` unchanged — attributed rule by rule (`edge_identifier` lost its 52 memo hits with entries and commits unchanged, `kw_posedge`/`kw_negedge` re-ran +52 each, `trivia` +104, `kw_edge_a0f2c69a` released 2 508 entries to the introduced `kw_edge_sv_only`), ACCEPTED under the coded `host_memo_eviction` invariant (`ENGINE-UNIVERSAL-SERVICES.88`), which the gate RE-DERIVED on its own run, and the baseline promoted.
+
 > **Current-state note (2026-09-01, `SV-CORPUS-GRAD.13n` — GRAMMAR, release `1.0.202`, ledger
 > `SV-0075`, schema `26` UNCHANGED, ALL THREE profiles): `tri0` and `tri1` are net types again.**
 > The `net_type` alternation shipped **ten** of the LRM's **twelve** branches since before the revision register's genesis — the BRANCH has never existed (`git log -S 'kw_tri0'` returns exactly one commit, the fix). ⚠️ The observable REJECTION is younger and its start date is measured: the two spellings entered the reserved-keyword regexes at `cd1dfa14` (2026-07-02, `verilog_2005`) and `436b64fa` (2026-07-04, `sv_2017`/`sv_2023`), and it is that registration — a token that lexes as a keyword with no production to land in — that makes the text unparseable. Whether `tri0 a;` parsed BEFORE those dates, when the spelling was an ordinary identifier, is **UNMEASURED**. Both spellings were in the reserved-keyword regexes, so they lexed as
@@ -886,15 +918,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.202`
+  - `1.0.203`
 - Parser release version:
-  - `1.0.202`
-  - history: `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.203`
+  - history: `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `ea76b211c20069211bd83a524ceec227c31284724a6f96f761241071eba6b9f1` (SV grammar semantic digest — sha256 of the
+  - `641514378d4907b0508928f8d5bc9ab613de0b813beebdd925fe399a6fb0aabb` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`

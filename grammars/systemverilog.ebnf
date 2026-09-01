@@ -2443,7 +2443,23 @@ edge_descriptor := kw_n_01_ddfe1633        -> {kind: "01"}
 
 edge_identifier := kw_posedge_7529558b -> {kind: "posedge"}
                  | kw_negedge_c77fbc5c -> {kind: "negedge"}
-                 | kw_edge_a0f2c69a    -> {kind: "edge"}
+                 | kw_edge_sv_only     -> {kind: "edge"}
+
+# SV-CORPUS-GRAD.13o — `edge` is IEEE 1800's third edge_identifier member (1800-2017 A.7.4 / A.6.5);
+# IEEE 1364-2005 A.7.4 is `edge_identifier ::= posedge | negedge` and A.6.5 event_expression admits
+# only `posedge expression` / `negedge expression`. `edge` IS a 1364-2005 keyword (the timing-check
+# edge_control_specifier, A.7.5.3, which keeps the ungated `kw_edge_a0f2c69a`), which is why a
+# keyword-level census could not see this: the keyword is legal, the POSITION is not (lens L2).
+# Found by the keyword-enumeration membership census (TOOLBOX 5.13) and confirmed by three probe
+# legs: `always @(edge c)` rc 0 under verilog_2005 and sv_2017, `always @(zzq c)` rc 1 under
+# verilog_2005. ⛔ SPELLED AS A PROFILE-GATED TERMINAL, NOT AS THE .13e.7 ALIAS, BECAUSE THE
+# ALIAS WAS MEASURED DEARER: `edge_identifier := … | edge_identifier_sv_only` de-memoized
+# edge_identifier (its 52 memo hits fell to 0 and the alias took them), so kw_posedge/kw_negedge
+# each re-ran +52 times and trivia +104 — pre-existing rules getting dearer, which no coded
+# ratchet invariant accepts. A gated terminal keeps this rule terminal-only (same shape as before),
+# so the ratchet is the arbiter of that claim. Same idiom as kw_implies_470cec58 (:7230).
+@profiles: ["sv_2017", "sv_2023"]
+kw_edge_sv_only := trivia /edge\b/
 
 edge_indicator := lparen level_symbol level_symbol rparen   -> {kind: "pair",   first: $2, second: $3}
                 | edge_symbol                                -> {kind: "symbol", body: $1}
@@ -4158,9 +4174,10 @@ net_type := kw_supply0 -> {kind: "supply0"}
          # had no production to land in — `module m; tri0 a; endmodule` was rc 1 on ALL THREE
          # profiles while `wire` / `triand` / `trior` from this same alternation were rc 0. Cited in
          # every vendored edition: IEEE 1364-2005 Annex A A.2.2.1:219, IEEE 1800-2023 Annex A:891,
-         # IEEE 1800-2017 clause 6 (`docs/systemverilog/2017/md/section-6-data-types.md:928` — that
-         # edition's vendored Annex A extract does not carry the production, so do not re-derive a
-         # false absence from it). Placed after `trireg` to match IEEE 1800-2023's own order.
+         # IEEE 1800-2017 Annex A A.2.2.1 (`docs/systemverilog/2017/md/section-41-data-read-api.md:899`
+         # — the PDF→markdown splitter filed that edition's Annex A under the section-41 file name,
+         # which is why a name-keyed search reports a false absence; TOOLBOX 5.8) and clause 6
+         # (`section-6-data-types.md:924-928`). Placed after `trireg` to match IEEE 1800-2023's own order.
          # ⛔ ORDER IS SAFE AGAINST `tri`: `kw_tri_54bf01f1` is /tri\b/, and `\b` cannot match
          # between `i` and `0`, so the shorter branch above cannot shadow these two. Measured, not
          # reasoned: the three-profile repro below the fix flips rc 1 -> rc 0 and `tri`/`triand`/

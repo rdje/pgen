@@ -4,7 +4,7 @@ Cores-VeeR-EL2	breadth	stimuli/sv/subs/Cores-VeeR-EL2/design/el2_dma_ctrl.sv	no	
 Cores-VeeR-EL2	breadth	stimuli/sv/subs/Cores-VeeR-EL2/design/ifu/el2_ifu_aln_ctl.sv	no	714	23	232	0	0
 Cores-VeeR-EL2	breadth	stimuli/sv/subs/Cores-VeeR-EL2/design/lib/axi4_to_ahb.sv	no	720	26	232	0	0
 Cores-VeeR-EL2	breadth	stimuli/sv/subs/Cores-VeeR-EL2/design/lsu/el2_lsu_dccm_mem.sv	no	730	31	232	0	0
-Cores-VeeR-EL2	lr	stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/axi_crossbar_wr.v	yes	1525764	346122	800295	63420	0
+Cores-VeeR-EL2	lr	stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/axi_crossbar_wr.v	yes	1525804	346122	800311	63420	0
 Cores-VeeR-EL2	breadth	stimuli/sv/subs/Cores-VeeR-EL2/testbench/axi4_mux/axi_crossbar_wrap_2x1.v	yes	477726	28827	219842	15865	0
 Cores-VeeR-EL2	breadth	stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_driver.sv	no	486	6	165	0	0
 Cores-VeeR-EL2	breadth	stimuli/sv/subs/Cores-VeeR-EL2/tools/riscv-dv/veer_directed_instr_lib.sv	no	510	18	165	0	0
@@ -13,7 +13,7 @@ Surelog	hot	stimuli/sv/subs/Surelog/tests/BlackBePipeInt/dut.sv	yes	10760530	112
 Surelog	lr	stimuli/sv/subs/Surelog/tests/BlackParrotConf/dut.sv	no	883686	40239	368755	28485	0
 Surelog	breadth	stimuli/sv/subs/Surelog/tests/ClassScope/dut.sv	no	36133	2350	14917	759	0
 Surelog	lr	stimuli/sv/subs/Surelog/tests/DecimalSize/dut.sv	yes	1229131	175869	575756	41096	0
-Surelog	breadth	stimuli/sv/subs/Surelog/tests/ExpectStmt/dut.sv	yes	9970	533	4203	170	0
+Surelog	breadth	stimuli/sv/subs/Surelog/tests/ExpectStmt/dut.sv	yes	9975	533	4205	170	0
 Surelog	breadth	stimuli/sv/subs/Surelog/tests/HierPathCont/dut.sv	yes	13909	594	5591	274	0
 Surelog	breadth	stimuli/sv/subs/Surelog/tests/LongHex/dut.sv	yes	14454	1015	6098	294	0
 Surelog	breadth	stimuli/sv/subs/Surelog/tests/PackageValue/top.sv	yes	59111	3303	26304	1779	0
@@ -124,8 +124,8 @@ opentitan	hot	stimuli/sv/subs/opentitan/hw/top_englishbreakfast/ip_autogen/pinmu
 opentitan	lr	stimuli/sv/subs/opentitan/hw/top_englishbreakfast/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_cfg_reg_top.sv	no	1354236	12	598573	38387	0
 opentitan	hot	stimuli/sv/subs/opentitan/hw/top_englishbreakfast/ip_autogen/rv_plic/rtl/rv_plic_reg_top.sv	no	6256160	12	2788932	185079	0
 opentitan	lr	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/rtl/ibex_alu.sv	no	1741920	6	866196	59897	0
-opentitan	lr	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/rtl/ibex_decoder.sv	no	1313963	9	569966	37297	0
-opentitan	lr	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/rtl/ibex_icache.sv	no	1950790	9	907692	59493	0
+opentitan	lr	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/rtl/ibex_decoder.sv	no	1313973	9	569970	37297	0
+opentitan	lr	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/rtl/ibex_icache.sv	no	1950995	9	907774	59493	0
 opentitan	lr	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/rtl/ibex_tracer.sv	yes	1677443	55579	726937	48324	16
 opentitan	lr	stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/rtl/ibex_tracer_pkg.sv	yes	1187587	30440	522173	42834	0
 scr1	breadth	stimuli/sv/subs/scr1/src/core/pipeline/scr1_ipic.sv	no	6335	44	2430	125	0
