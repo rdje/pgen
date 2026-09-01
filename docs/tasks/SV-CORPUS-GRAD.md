@@ -19667,9 +19667,14 @@ own ratchet reading is below.
         changelog + conformance corpus case `reject/v2005_edge_event.sv` + the three pinned repros +
         5.11 / 5.13 artifacts + tree + index + `CHANGES.md` + `DEVELOPMENT_NOTES.md` + `MEMORY.md`.
 
-**RESIDUE**: (f) ⛔ re-measure both lanes on the clean tree so the reports stop recording `+dirty`
-(the `-0317` pattern; expect the stamp to move and not one verdict). (e) is DONE above (5.13 and
-5.11 re-run). ⭐ `.13p` (the `delay2`/`delay3` merge) is the next member of this ceremony.
+**RESIDUE**: (f) ✅ **DONE 2026-09-02 (`PGEN-SV-CORPUS-GRAD-0320`)** — both lanes re-measured on the
+clean tree `1b482789`: **`Measured at HEAD = 1b482789`, no `+dirty`, on BOTH reports**, and
+`results.tsv` / `results_v2005.tsv` come back **BYTE-IDENTICAL** to the release measurement — the
+re-run moved the STAMP and not one verdict, the only outcome that proves the note was about
+provenance. `check_sv_corpus_denominator.sh` OK (tuple unchanged), `check_corpus_census.sh
+systemverilog_raw_parse` clean. (e) is DONE above (5.13 and 5.11 re-run). ⭐ `.13p` (the
+`delay2`/`delay3` merge) is the next member of this ceremony — and `ENGINE-UNIVERSAL-SERVICES.88`(b)
+predicts it pays the same memo eviction, which will be its second measured instance.
 
 
 #### ⚠️ `.13p` — NEW `todo`, ROUTED (opened 2026-09-01 by `LRM-GRAMMAR-FIDELITY.1f` / `PGEN-LRM-GRAMMAR-FIDELITY-0001`) — **`and #(1,2,3) g(o,a,b)` PARSES on every profile: the shipped grammar spells NEITHER `delay2` nor `delay3` (`grep -c 'delay2\|delay3'` = 0) because the LRM extractor merged them into one `delay`, and IEEE 1800-2017 A.3.1 gives an `n_input_gatetype` at most TWO delay values**

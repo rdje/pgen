@@ -19,7 +19,7 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 | grammar | `grammars/systemverilog.ebnf` | `3dc227b72dfa45a386c013f41a44d635069c09dc90eaa4fab322016abd637ede` |
 | generated parser | `generated/systemverilog_parser.rs` | `0cd5d273f954d5a159565b8720418265682ed0d595a5274f688b0931a6da79a9` |
 
-Measured at `HEAD` = `ef1a5e6d+dirty` (2026-09-01).
+Measured at `HEAD` = `1b482789` (2026-09-02).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
