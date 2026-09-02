@@ -2056,12 +2056,18 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   edition (248 / 248 / 124 words, pinned). IEEE prints footnote numbers on definitions
   (`class_item_qualifier10 ::=`) AND on uses (`assignment_pattern_expression37`), but never spells
   one production with the same digits in both places; a real name (`strength0`, `delay2`, `tri0`) is
-  defined and used verbatim, and a keyword is never stripped. ⛔ The extractor's own
-  `canonicalize_rule_name` strips UNCONDITIONALLY: measured, it merges `strength0`/`strength1` into
-  `strength` and `delay2`/`delay3` into `delay` in all three editions, and
-  `grammars/systemverilog_lrm_profiled_generated.ebnf:1860` carries the consequence —
+  defined and used verbatim, and a keyword is never stripped. ⛔ Until `LRM-GRAMMAR-FIDELITY.1f`
+  (2026-09-03) the extractor's own `canonicalize_rule_name` stripped UNCONDITIONALLY: measured, it
+  merged `strength0`/`strength1` into `strength` and `delay2`/`delay3` into `delay` in all three
+  editions, and `grammars/systemverilog_lrm_profiled_generated.ebnf:1860` carries the consequence —
   `strength := kw_supply_… | kw_strong_… | kw_pull_… | kw_weak_…`, the digits gone from the KEYWORDS
-  too. The shipped hand-synthesised grammar has `strength0`/`strength1` right; the generated
+  too. ⭐ Since `.1f` the extractor IMPORTS this census's `make_canonicalizer` (one discriminator, two
+  readers; the parity arms hold them equal on all three editions) and judges a clause-body file
+  against its edition's whole Annex A — a fresh run now splits both pairs, keeps every `*0`/`*1`
+  keyword's digit, and restores `unique0` to `unique_priority` (bank
+  `docs/tasks/artifacts/lrm_grammar_fidelity/footnote_discriminator/probe.sh`). The hand-maintained
+  ancestor is deliberately NOT regenerated (the tool refuses to overwrite it). The shipped
+  hand-synthesised grammar has `strength0`/`strength1` right; the generated
   ancestor does not (`LRM-GRAMMAR-FIDELITY.1f`). The first cut of this census reused that
   canonicaliser and reported `strength0` missing `strong` and `weak` — members the LRM never wrote.
 - **VERDICTS, and what is deliberately NOT one.** `present` · `MISSING` (a `kw_*` terminal spells
@@ -2092,7 +2098,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `MISSING` 6 of 6 (three editions × two members) with EXACTLY six rows moving; then removes the two
   terminals and must read `MISSING_NO_TERMINAL` 6 of 6; the GREEN arm is HEAD reading `net_type`
   complete on every edition. Plus determinism (two derivations byte-identical), the Annex B pin, the
-  footnote canonicaliser, the reader-parity arms and an unterminated-snapshot refusal — 13 arms.
+  footnote canonicaliser, the reader-parity arms (since `.1f`: canonical heads equal AND the four real digits present in both readers) and an unterminated-snapshot refusal — the arm count is printed by `--self-test` (17 on 2026-09-03).
 - ⚠️ **HONEST BOUND, printed by the report:** name-matched (the `unmatched` list IS the bound on
   what it could not see), under-acceptance only, text-level, and blind to a production neither LRM
   surface carries (5.8's business). Gate mode compares the tracked artifact to a fresh derivation

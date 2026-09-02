@@ -1,5 +1,22 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-LRM-GRAMMAR-FIDELITY-0002 (a footnote is a property of the edition, not of the name)
+
+- ⭐ **THE LESSON: A DIGIT AT THE END OF A NAME CANNOT BE JUDGED BY THE NAME.** `strength0` and
+  `unsigned_number33` look identical to a regex; only the edition knows that one is defined AND used
+  verbatim and the other is a footnote nobody references. So the discriminator needs the whole Annex A —
+  and a clause-body syntax box is an EXCERPT of it: judged alone, §8's `class_new19` became a phantom
+  production and §6's `delay2` split into a bogus `delay`. Judge every file against its edition.
+- **Share the reader, do not copy it.** `.1e` already had the rule; the extractor now imports it and the
+  parity arms hold both readers equal on three editions. Two implementations of one rule is one drift.
+- **A routing record rots the day its target lands.** `.1f`(c) was discharged by `SV-CORPUS-GRAD.13p` on
+  2026-09-02 and the leaf still said `grep -c 'delay2' = 0` — true when written, false since. Annotate.
+- **Keep the scraper's output contract.** Moving reference canonicalisation into `extract_rules` turned
+  `$left` into `sv_dollar_left` in a tracked census the gap scraper publishes — caught by its gate, and
+  the reason the extractor's own pipeline applies the discriminator instead.
+- `promotion: declined (the transferable rule — one discriminator imported by every reader of the same source —
+  is .1e's own "lrm_annex_a_gap_census.py principle", already a card; this is its application)`.
+
 ## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0345 (a denominator row is classified from its bytes)
 
 - ⭐⭐ **THE LESSON: A ROW'S CLASS IN A DENOMINATOR IS A PROPERTY OF ITS BYTES, NEVER OF ITS EXTENSION

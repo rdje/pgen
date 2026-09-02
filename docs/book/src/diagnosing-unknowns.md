@@ -711,11 +711,20 @@ a confirmed `verilog_2005` over-acceptance.
 IEEE prints footnote numbers on definitions (`class_item_qualifier10 ::=`) and on uses
 (`assignment_pattern_expression37`), but never spells one production with the same digits in both
 places. A real name — `strength0`, `delay2`, and every keyword such as `tri0` — is defined and used
-verbatim. The extractor's own canonicaliser strips trailing digits unconditionally, and the census
-measured the cost: `strength0`/`strength1` merge into one `strength` and `delay2`/`delay3` into one
-`delay` in all three editions, and the generated profiled grammar carries `strength := kw_supply |
+verbatim. The extractor's own canonicaliser used to strip trailing digits unconditionally, and the
+census measured the cost: `strength0`/`strength1` merged into one `strength` and `delay2`/`delay3` into
+one `delay` in all three editions, and the generated profiled grammar carries `strength := kw_supply |
 kw_strong | kw_pull | kw_weak` with the digits gone from the keywords too. The shipped hand-synthesised
-grammar has the pairs right; the generated ancestor does not, and that is now its own leaf.
+grammar has the pairs right; the generated ancestor does not. **Since `LRM-GRAMMAR-FIDELITY.1f`
+(2026-09-03) there is one discriminator, not two**: the extractor imports the census's
+`make_canonicalizer` and judges every file against its edition's whole Annex A (a clause-body syntax
+box is an *excerpt*, so `class_new19` in §8 is Annex A's footnote-19 production, not a new name). A
+fresh extractor run now splits both pairs, keeps the digit on every `*0`/`*1` keyword (`tri0`,
+`supply1`, `bufif0`, …) and restores `unique0` to `unique_priority`, which the merged run had silently
+dropped; the census's parity arms hold the two readers equal on all three editions. The
+hand-maintained ancestor itself is not regenerated — the tool refuses to overwrite what it did not
+produce — so the fix protects the next seeding, and the shipped grammar's `delay2` came separately
+(`SV-CORPUS-GRAD.13p`).
 
 ### The control replays the founding defect on the real tree
 

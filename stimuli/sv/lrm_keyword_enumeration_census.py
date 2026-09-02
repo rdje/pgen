@@ -35,7 +35,8 @@ THE TWO ORACLES IT JOINS
   is a keyword member and `expression` is a nonterminal member of the same shape of production.
   ⛔ A trailing digit is a FOOTNOTE MARKER only when nothing references the digit-bearing
   spelling (`class_item_qualifier10`, `expression28`); `strength0`, `strength1`, `delay2` and
-  `delay3` are real names and are kept — the extractor's own canonicalizer merges those pairs.
+  `delay3` are real names and are kept — the extractor shares this rule since
+  `LRM-GRAMMAR-FIDELITY.1f` (before that its own canonicalizer merged those pairs).
 - **Shipped side** — the EBNF frontend's `raw_ast` envelope of `grammars/systemverilog.ebnf`
   (via `scripts/check_baseline_identity.sh --raw-ast`, the ONE reader that owns it) plus
   `--dump-rule-profiles` (TOOLBOX 5.4) so each edition is compared under its OWN dialect
@@ -252,8 +253,9 @@ def annex_a_rules_raw(edition: str, extractor) -> list[tuple[str, int, str]]:
     """`(raw_name, line, body)` in document order from the Annex A markdown (the PRIMARY
     source), read with the EXTRACTOR'S OWN primitives — `normalize_text`, `RULE_HEAD_RE`,
     `is_noise_line`, `looks_like_grammar_line` — and the same body-assembly loop as its
-    `extract_rules`, minus the canonicalisation that merges `strength0`/`strength1` into one
-    name.  `--self-test` pins this reader equal to `extract_rules` after canonicalisation, so
+    `extract_rules`, minus canonicalisation (which, since `LRM-GRAMMAR-FIDELITY.1f`, both
+    readers do with the SAME `make_canonicalizer`).  `--self-test` pins this reader equal to
+    `extract_rules` after canonicalisation, so
     a divergence between the LRM and the shipped grammar cannot be an artifact of a second,
     differently-buggy scraper (the `lrm_annex_a_gap_census.py` principle)."""
     path = REPO_ROOT / ANNEX_A[edition]
@@ -302,9 +304,11 @@ def make_canonicalizer(heads: set[str], referenced: set[str], keywords: set[str]
     in both places — the digit is a footnote number.  A real name (`strength0`, `delay2`) is
     defined AND used verbatim.  So: a DEFINED digit-bearing name is a footnote form only when
     nothing references it verbatim and the stripped spelling is known; a USED digit-bearing
-    name is a footnote form when the stripped spelling is known.  ⛔ The extractor's own
-    `canonicalize_rule_name` strips unconditionally and merges `strength0`/`strength1` and
-    `delay2`/`delay3` into one rule each — measured, and why this census does not reuse it."""
+    name is a footnote form when the stripped spelling is known.  ⛔ Until LRM-GRAMMAR-FIDELITY.1f
+    the extractor's own `canonicalize_rule_name` stripped unconditionally and merged
+    `strength0`/`strength1` and `delay2`/`delay3` into one rule each — measured, and why this
+    census carried its own rule; since `.1f` the extractor IMPORTS this function, so there is
+    one discriminator and the parity arm below holds it equal in both readers."""
     def canon(name: str) -> str:
         # ⛔ A reserved keyword is never a footnote form: `tri0`, `strong0`, `unique0` and
         # `supply1` end in a REAL digit and `tri`/`strong`/`unique` are also names, so the
@@ -876,15 +880,23 @@ def self_test() -> int:
     # The raw Annex A reader equals the extractor's own `extract_rules` after canonicalisation,
     # for all three editions — names AND bodies.
     for edition in EDITIONS:
-        mine: dict[str, list[str]] = {}
-        for raw_name, _, body in annex_a_rules_raw(edition, extractor):
-            key = extractor.canonicalize_rule_name(raw_name)
-            mine.setdefault(key, [])
-            if body:
-                mine[key].append(body)
-        theirs = extractor.extract_rules(REPO_ROOT / ANNEX_A[edition])
-        arm(f"reader parity: {edition} Annex A reader == extract_rules",
-            dict(theirs) == mine, f"{len(theirs)} canonical rules")
+        # LRM-GRAMMAR-FIDELITY.1f: the extractor now reads with THIS module's discriminator, so
+        # the parity arm builds the same one from the raw Annex A (heads + verbatim references +
+        # Annex B keywords) and compares canonical HEAD SETS — bodies differ only by the
+        # extractor's reference canonicalisation, which is its job, not this reader's.
+        annex = annex_a_rules_raw(edition, extractor)
+        heads = {n for n, _, _ in annex}
+        referenced: set[str] = set()
+        for _, _, body in annex:
+            referenced.update(re.findall(r"[A-Za-z_$][A-Za-z0-9_$]*", body))
+        canon = make_canonicalizer(heads, referenced, annex_b(edition))
+        mine = {extractor.canonicalize_rule_name(n, canon) for n, _, _ in annex}
+        theirs = extractor.extract_rules(REPO_ROOT / ANNEX_A[edition], EDITIONS[edition][2])
+        arm(f"reader parity: {edition} Annex A reader == extract_rules (canonical heads)",
+            set(theirs) == mine, f"{len(theirs)} canonical rules")
+        arm(f"reader parity: {edition} real digits survive in BOTH readers",
+            all(k in theirs and k in mine for k in ("strength0", "strength1", "delay2", "delay3")),
+            "strength0/strength1/delay2/delay3 present")
 
     # Refusal: an unterminated snapshot rule.
     snap_rel = EDITIONS["1364-2005"][0]

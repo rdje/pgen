@@ -167,11 +167,13 @@ def census(edition: str, extractor) -> tuple[list[dict], list[str]]:
     for path in sorted(base.glob("section-*.md")):
         if path.name == annex_name:
             continue
-        rules = extractor.extract_rules(path)
+        # LRM-GRAMMAR-FIDELITY.1f: read the file's rules WITH the footnote discriminator they were
+        # canonicalised under, so the head->line map spells names the same way the rules do.
+        rules, canon = extractor.extract_rules_with_canon(path)
         if not rules:
             continue
         captions = captions_by_line(path)
-        heads = rule_heads_by_line(path, extractor.canonicalize_rule_name)
+        heads = rule_heads_by_line(path, lambda n: extractor.canonicalize_rule_name(n, canon))
         head_line = {}
         for line_no, name in heads:
             head_line.setdefault(name, line_no)

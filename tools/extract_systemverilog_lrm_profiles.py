@@ -28,6 +28,12 @@ tool's own known defects (21 `$`-transliterated `_dollar` terminals, e.g. `/sv_d
 the LRM writes `$root`) would be re-introduced over their hand fixes. The command that does it is
 recorded verbatim in `DEVELOPMENT_NOTES.md`, so the path is a documented one.
 
+⭐ LRM-GRAMMAR-FIDELITY.1f (2026-09-03): the footnote canonicaliser is `.1e`'s `make_canonicalizer`,
+imported from `stimuli/sv/lrm_keyword_enumeration_census.py`, judged against the edition's whole Annex
+A — a fresh run splits `strength0`/`strength1` and `delay2`/`delay3` and keeps the digit on every
+`*0`/`*1` keyword. `extract_rules` returns RAW bodies (the contract the two census scrapers read);
+the extractor's own pipeline applies the discriminator to body tokens in `pre_rewrite_body`.
+
 ⇒ **every output is written only when it is byte-identical to what already exists, unless
 `--promote-outputs` is passed.** The refusal is the point: a silent overwrite here is unrecoverable
 without git, and the tool cannot tell a hand fix from a defect it is about to restore.
@@ -326,10 +332,23 @@ def normalize_text(text: str) -> str:
     )
 
 
-def canonicalize_rule_name(name: str) -> str:
+def canonicalize_rule_name(name: str, canon=None) -> str:
+    """Normalise a rule-name spelling. `canon` is the FOOTNOTE DISCRIMINATOR built per edition by
+    `footnote_canonicalizer_for` (LRM-GRAMMAR-FIDELITY.1f); with no discriminator a trailing
+    digit is LEFT ALONE.
+
+    ⛔ Until `.1f` this function stripped every trailing digit run as a footnote marker
+    (`re.sub(r"(\\d+(,\\d+)*)$", "", name)`), which merged `strength0`+`strength1` -> `strength`
+    and `delay2`+`delay3` -> `delay` in every edition, AND stripped the digit off the KEYWORDS
+    `supply0`/`strong1`/`tri0`/... (`kw_supply_076df715`). The shipped grammar carried the
+    consequence: `nand #(1,2,3) g(o,a,b)` parsed on every profile (SV-CORPUS-GRAD.13p). The rule
+    that tells a footnote from a real digit needs the whole edition (what is defined, what is
+    referenced verbatim, what IEEE lists as a keyword), so it cannot live in a per-name function:
+    the discriminator is `.1e`'s `make_canonicalizer`, IMPORTED so the two readers cannot drift."""
     name = normalize_text(name).strip()
     name = name.replace(":: =", "::=")
-    name = re.sub(r"(\d+(,\d+)*)$", "", name)
+    if canon is not None:
+        name = canon(name)
     if name.startswith("$"):
         name = "sv_dollar_" + name[1:]
     name = name.replace("$", "_dollar_")
@@ -373,17 +392,52 @@ def looks_like_grammar_line(line: str) -> bool:
     return bool(GRAMMAR_LINE_RE.fullmatch(s))
 
 
-def extract_rules(markdown_path: Path) -> OrderedDict[str, list[str]]:
-    lines = normalize_text(markdown_path.read_text(encoding="utf-8", errors="replace")).splitlines()
-    rules: OrderedDict[str, list[str]] = OrderedDict()
+# LRM-GRAMMAR-FIDELITY.1f — the footnote discriminator is `.1e`'s, shared not copied.
+# profile -> the edition key `stimuli/sv/lrm_keyword_enumeration_census.py` knows (its Annex B
+# keyword list is IEEE's own Table B.1, pinned to 248 words).
+FOOTNOTE_READER_REL = "stimuli/sv/lrm_keyword_enumeration_census.py"
+PROFILE_EDITION = {"sv_2017": "1800-2017", "sv_2023": "1800-2023", "verilog_2005": "1364-2005"}
+# The vendored LRM layout IS the contract (`docs/systemverilog/<year>/md`, `docs/verilog/2005/md`):
+# a caller that hands over a markdown path without naming the profile gets it from the path, or a
+# refusal — never a silent default edition.
+PATH_PROFILE = (("/docs/systemverilog/2017/", "sv_2017"), ("/docs/systemverilog/2023/", "sv_2023"),
+                ("/docs/verilog/2005/", "verilog_2005"))
+
+
+def profile_for_path(markdown_path: Path) -> str:
+    text = str(Path(markdown_path).resolve()).replace("\\", "/")
+    for needle, profile in PATH_PROFILE:
+        if needle in text:
+            return profile
+    raise SystemExit(
+        f"error: cannot tell which LRM edition {markdown_path} belongs to (expected it under one of "
+        f"{[n for n, _ in PATH_PROFILE]}); pass `profile=` explicitly (LRM-GRAMMAR-FIDELITY.1f)")
+REFERENCE_TOKEN_RE = re.compile(r"[A-Za-z_$][A-Za-z0-9_$]*")  # the reader's own spelling
+
+
+# profile -> the edition's Annex A markdown: the UNIVERSE a footnote decision is made against. A
+# clause-body file is an EXCERPT (`class_new19 ::=` in §8's syntax box is Annex A's footnote-19
+# production), so its own heads/references are not enough to tell `class_new19` from `strength0`;
+# measured on the first cut, three clause-only phantoms appeared (`class_new19`,
+# `constant_assignment_pattern_expression32`, a `delay` split from `delay2` in §6).
+PROFILE_ANNEX_A = {
+    "sv_2017": "docs/systemverilog/2017/md/section-41-data-read-api.md",
+    "sv_2023": "docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md",
+    "verilog_2005": "docs/verilog/2005/md/section-Annex_A-normative-formal-syntax-definition.md",
+}
+_UNIVERSE_CACHE: dict[str, tuple[set[str], set[str]]] = {}
+
+
+def scan_raw_rules(lines: list[str]) -> list[tuple[str, str]]:
+    """`(raw_name, raw_body)` in document order — the body-assembly loop, nothing canonicalised."""
+    raw_rules: list[tuple[str, str]] = []
     idx = 0
     while idx < len(lines):
         match = RULE_HEAD_RE.match(lines[idx])
         if not match:
             idx += 1
             continue
-        raw_name = match.group(1)
-        canonical_name = canonicalize_rule_name(raw_name)
+        raw_name = normalize_text(match.group(1)).strip()
         body_parts: list[str] = []
         inline = match.group(2).strip()
         if inline:
@@ -404,10 +458,76 @@ def extract_rules(markdown_path: Path) -> OrderedDict[str, list[str]]:
             body_parts.append(stripped)
             idx += 1
         body = re.sub(r"\s+", " ", " ".join(body_parts)).strip()
+        raw_rules.append((raw_name, body))
+    return raw_rules
+
+
+def _universe(raw_rules: list[tuple[str, str]]) -> tuple[set[str], set[str]]:
+    heads = {raw_name for raw_name, _ in raw_rules}
+    referenced: set[str] = set()
+    for _, body in raw_rules:
+        referenced.update(REFERENCE_TOKEN_RE.findall(body))
+    return heads, referenced
+
+
+def annex_a_universe(profile: str) -> tuple[set[str], set[str]]:
+    if profile not in _UNIVERSE_CACHE:
+        path = Path(__file__).resolve().parents[1] / PROFILE_ANNEX_A[profile]
+        lines = normalize_text(path.read_text(encoding="utf-8", errors="replace")).splitlines()
+        _UNIVERSE_CACHE[profile] = _universe(scan_raw_rules(lines))
+    return _UNIVERSE_CACHE[profile]
+
+
+def _load_footnote_reader():
+    """Import `.1e`'s census module by path (it imports this module lazily, so no cycle)."""
+    import importlib.util
+    import sys as _sys
+
+    name = "pgen_lrm_keyword_enumeration_census"
+    if name in _sys.modules:
+        return _sys.modules[name]
+    path = Path(__file__).resolve().parents[1] / FOOTNOTE_READER_REL
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    _sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def footnote_canonicalizer_for(profile: str, heads: set[str], referenced: set[str]):
+    """`.1e`'s rule, for one edition: a keyword is never stripped; a DEFINED digit-bearing name
+    is a footnote form only when nothing references it verbatim and the stripped spelling is
+    known; a USED one when the stripped spelling is known. Measured over both 1800 editions
+    (`.1f`): the only digit-bearing heads referenced verbatim are `delay2`, `delay3`,
+    `strength0`, `strength1`; 40 / 38 footnote heads strip with zero merges."""
+    reader = _load_footnote_reader()
+    keywords = reader.annex_b(PROFILE_EDITION[profile])
+    return reader.make_canonicalizer(heads, referenced, keywords)
+
+
+def extract_rules(markdown_path: Path, profile: str | None = None) -> OrderedDict[str, list[str]]:
+    return extract_rules_with_canon(markdown_path, profile)[0]
+
+
+def extract_rules_with_canon(markdown_path: Path, profile: str | None = None):
+    """`(rules, canon)` — the canonical-HEAD rules of one markdown file (bodies RAW, exactly as the
+    LRM prints them — the contract `lrm_annex_a_gap_census.py` and the `.1e` census read) AND the
+    footnote discriminator the heads were read with, built on the EDITION's Annex A universe plus
+    this file's own heads and verbatim references (LRM-GRAMMAR-FIDELITY.1f)."""
+    if profile is None:
+        profile = profile_for_path(markdown_path)
+    lines = normalize_text(markdown_path.read_text(encoding="utf-8", errors="replace")).splitlines()
+    raw_rules = scan_raw_rules(lines)
+    heads, referenced = _universe(raw_rules)
+    annex_heads, annex_referenced = annex_a_universe(profile)
+    canon = footnote_canonicalizer_for(profile, heads | annex_heads, referenced | annex_referenced)
+    rules: OrderedDict[str, list[str]] = OrderedDict()
+    for raw_name, body in raw_rules:
+        canonical_name = canonicalize_rule_name(raw_name, canon)
         rules.setdefault(canonical_name, [])
         if body:
             rules[canonical_name].append(body)
-    return rules
+    return rules, canon
 
 
 def unique_preserve_order(items: Iterable[str]) -> list[str]:
@@ -421,7 +541,7 @@ def unique_preserve_order(items: Iterable[str]) -> list[str]:
     return out
 
 
-def normalize_rule_reference_candidates(body: str) -> str:
+def normalize_rule_reference_candidates(body: str, canon=None) -> str:
     def repl(match: re.Match[str]) -> str:
         token = match.group(0)
         if token == "$":
@@ -431,7 +551,7 @@ def normalize_rule_reference_candidates(body: str) -> str:
         if token.startswith("__SV_"):
             return token
         if any(ch.isalpha() or ch == "_" or ch == "$" for ch in token):
-            return canonicalize_rule_name(token)
+            return canonicalize_rule_name(token, canon)
         return token
 
     return RULE_NAME_REF_RE.sub(repl, body)
@@ -539,10 +659,13 @@ def apply_structural_literal_bracket_rewrite(body: str) -> str:
     return body
 
 
-def pre_rewrite_body(rule_name: str, body: str) -> str:
+def pre_rewrite_body(rule_name: str, body: str, canon=None) -> str:
     body = normalize_text(body)
-    body = re.sub(r"(?<=[A-Za-z_)\]}])(\d+(,\d+)*)", "", body)
-    body = normalize_rule_reference_candidates(body)
+    # LRM-GRAMMAR-FIDELITY.1f: footnotes glued to a closing bracket (`] 12`) are still noise;
+    # a digit after a LETTER is a name's own (`strength0`) or was already judged by the
+    # discriminator in `extract_rules`, so the old `[A-Za-z_...]` anchor is gone.
+    body = re.sub(r"(?<=[)\]}])(\d+(,\d+)*)", "", body)
+    body = normalize_rule_reference_candidates(body, canon)
     body = apply_structural_literal_bracket_rewrite(body)
     for inner in DOUBLE_BRACKET_LITERAL_PATTERNS:
         body = body.replace(
@@ -817,6 +940,7 @@ def escape_string_literal(text: str) -> str:
 
 def emit_profiled_rules(
     versions: OrderedDict[str, OrderedDict[str, list[str]]],
+    canons: dict[str, object] | None = None,
 ) -> tuple[list[str], dict[str, str], dict[str, object]]:
     all_rule_names = set(MANUAL_RULE_BODIES.keys())
     for version_rules in versions.values():
@@ -838,7 +962,7 @@ def emit_profiled_rules(
                 continue
             translated_bodies: list[str] = []
             for body in bodies:
-                prepared = pre_rewrite_body(rule_name, body)
+                prepared = pre_rewrite_body(rule_name, body, (canons or {}).get(profile))
                 tokens = tokenize(prepared)
                 expr, consumed = parse_expression(rule_name, tokens)
                 if consumed != len(tokens):
@@ -885,10 +1009,18 @@ def emit_profiled_rules(
 
 
 def load_version_rules(paths: dict[str, Path]) -> OrderedDict[str, OrderedDict[str, list[str]]]:
+    return load_version_rules_with_canons(paths)[0]
+
+
+def load_version_rules_with_canons(paths: dict[str, Path]):
+    """`(versions, canons)`: per profile the canonical-head rules and the footnote discriminator
+    the extractor's own body pipeline must apply (`pre_rewrite_body`), so `strength0` in a body
+    stays `strength0` and `expression17` still becomes `expression`."""
     versions: OrderedDict[str, OrderedDict[str, list[str]]] = OrderedDict()
+    canons: dict[str, object] = {}
     for profile, path in paths.items():
-        versions[profile] = extract_rules(path)
-    return versions
+        versions[profile], canons[profile] = extract_rules_with_canon(path, profile)
+    return versions, canons
 
 
 def emit_manual_rule_lines(literal_tokens: dict[str, str]) -> list[str]:
@@ -1004,8 +1136,8 @@ def main() -> int:
         if not path.is_file():
             raise SystemExit(f"error: markdown source not found: {path}")
 
-    versions = load_version_rules(version_paths)
-    profiled_lines, literal_tokens, report_rules = emit_profiled_rules(versions)
+    versions, canons = load_version_rules_with_canons(version_paths)
+    profiled_lines, literal_tokens, report_rules = emit_profiled_rules(versions, canons)
 
     output_lines: list[str] = []
     output_lines.append("# SEEDED by tools/extract_systemverilog_lrm_profiles.py — then HAND-MAINTAINED.")
