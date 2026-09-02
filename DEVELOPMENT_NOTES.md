@@ -1,5 +1,43 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0327/0328 (the answer-key class — a suite's contract is evidence about the suite, and a guard's rationale has a scope you must read before you widen OR obey it)
+
+- ⭐⭐ **THE TRANSFERABLE LESSON: WHEN A KEY AND A SHIPPED DECISION DISAGREE, ONE OF THEM IS A CLAIM
+  NOBODY RE-DERIVED — AND IT IS USUALLY THE ONE THAT CITES A TOOL.** Three corpus rows said `|=`,
+  `+=` and `-=` are valid IEEE 1364-2005 on the word of iverilog's *"plain-Verilog dialect"* and
+  sv2v's GOLDEN output, while `grammars/systemverilog.ebnf:6938` had gated all twelve compound
+  operators out of `verilog_2005` a week earlier under release `1.0.197` / ledger `SV-0071`, with the
+  same A.6.2 citation and a two-sided adjudication. Nothing compared them. ⇒ **an answer key and a
+  conformance gate are two oracles over one language; when a lane reports a defect, ask whether the
+  grammar already ruled the same construct the other way.**
+- ⭐⭐ **AND THE ONE THAT SHAPED THE SLICE: A GUARD'S RATIONALE HAS A SCOPE, AND *"do not touch this"*
+  IS NOT THE SAME SENTENCE AS *"this answer is right everywhere."*** `.12c.3` F3 made the
+  `must_reject` arm structurally unable to see a failure position, and it was RIGHT: its argument is
+  about rows with **no banked position**, where a positional predicate would silently un-demote
+  everything. It says nothing about a row that REJECTED with a position provably above every
+  alterable directive — and that row existed, produced a basis contradicting itself in one string,
+  and would have shipped. ⇒ **read what a guard's rationale actually quantifies over. Widening it is
+  wrong when the argument covers your case and cowardly when it does not; the tell is whether you can
+  name the case the author had in mind and show yours is a different one.** F3 even prescribed the
+  mechanism — *"making this arm positional now requires changing a signature, which is visible in
+  review"* — so the sanctioned change was there to be made, not fought.
+- ⛔ **A SELF-CONTRADICTING ARTIFACT IS WORSE THAN AN UNFIXED ONE, AND THAT DECIDED THE SEQUENCING.**
+  The fourth pin was applied, MEASURED, and REVERTED inside `-0327` rather than shipped, because the
+  composed basis read *"the parse stops at line 25, above the file's first ifdef — **but**
+  macro/conditional-dependent: the reject expectation is only meaningful post-preprocessing"*.
+  Shipping that would have published a contradiction under a clause citation, which is worse than a
+  key everybody already knows is wrong. The leaf said "three of four done" rather than four.
+- ⭐ **THE PRICE WAS THE SAME BEFORE AND AFTER, WHICH IS WHAT MAKES IT A PRICE.** The population was
+  measured before the edit — 2 rows demoted on `macro_use`/`conditional`, exactly 1 refutable — using
+  the module's OWN `svpp_can_explain_failure` and `load_positions` rather than a re-implementation,
+  and the post-change per-path diff moved exactly that one row. The second row was free: it is the
+  negative control, and it stayed put.
+- ⭐ **THE RESIDUAL RECONCILED EXACTLY, TWICE.** IEEE 1364-2005 prose has 0 compound-assignment
+  operators except two `+=` / `-=` hits, and both are the clause-14 specify-path polarity operators
+  `+=>` / `-=>` — which the grammar's own `SV-0071` comment had independently recorded a week
+  earlier, from the other direction. Two derivations that share no parent agreeing on the exception
+  is the evidence; either alone is a coincidence.
+
 ## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0325 (the clause-number miscitation — a claim can be four measurements wearing one sentence, and only three of them were made)
 
 - ⭐⭐ **THE TRANSFERABLE LESSON: A CONFORMANCE CITATION IS FOUR INDEPENDENT MEASUREMENTS — THE QUOTED

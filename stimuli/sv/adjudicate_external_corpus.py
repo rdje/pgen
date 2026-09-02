@@ -676,8 +676,9 @@ def svpp_can_explain_failure(raw_text: str, furthest):
     return stuck >= first
 
 
-def reject_arm_demotion(dep_flag: str):
-    """The `must_reject` arm's use of the preprocessor dependency — a WHOLE-FILE question.
+def reject_arm_demotion(dep_flag: str, *, position_refutes_dependency: bool = False):
+    """The `must_reject` arm's use of the preprocessor dependency — a WHOLE-FILE question,
+    refutable by the CALLER on one narrow, measured ground.
 
     ⛔ SV-CORPUS-GRAD.12c.3 (finding F3).  `preproc_dependency()` feeds TWO callers that ask
     DIFFERENT questions, and `.12a` had to keep them apart BY HAND:
@@ -695,10 +696,29 @@ def reject_arm_demotion(dep_flag: str):
     would silently corrupt this arm — every `must_reject` row with no banked position would stop
     being demoted and would re-enter the burn-down as a defect it is not.
 
-    ⭐ This function IS the guard, and it is structural rather than a test: **it takes no position
-    argument and has no way to obtain one.**  Making this arm positional now requires changing a
-    signature, which is visible in review; before, it required changing one shared helper, which
-    was not.  The runtime controls in `_self_check_arm_split()` cover the rest.
+    ⭐ This function IS the guard, and it is structural rather than a test: **it can obtain no
+    position of its own.**  Making this arm positional requires changing a signature, which is
+    visible in review; before, it required changing one shared helper, which was not.  The runtime
+    controls in `_self_check_arm_split()` cover the rest.
+
+    ⛔⛔ SV-CORPUS-GRAD.13s — THE ONE NARROW REFUTATION, and why it does not reopen what F3 closed.
+    `position_refutes_dependency` is a DECIDED BOOLEAN the caller computes as
+    `observed == "fail" and not svpp_can_explain_failure(text, banked_position)`; this function is
+    still unable to derive it, mis-derive it, or obtain a position.  F3's feared case is the row
+    with NO banked position, and it is structurally impossible here: `svpp_can_explain_failure`
+    answers True whenever the evidence is absent or undecidable, so an unbanked row yields False and
+    is demoted exactly as before.  What the refutation removes is one measured contradiction —
+    `.13k`'s `verilator/test_regress/t/t_gate_basic.v` stops at byte 530 (line 25, `nand #(2,3,4)`)
+    while the file's first backtick-ifdef is at line 41, so the demoted basis published the sentence
+    *"the parse stops at line 25, above the file's first ifdef — BUT macro/conditional-dependent:
+    the reject expectation is only meaningful post-preprocessing"*.  Population measured before the
+    change: 2 rows demoted on `macro_use`/`conditional` in the main lane, exactly 1 refutable.
+
+    ⛔ THE `include` ARM IS DELIBERATELY NOT REFUTABLE.  Its argument is not positional: the
+    intended-bad content may live in the INCLUDED file, so the unit can be valid standalone and
+    invalid only at chain level (leaf .4).  A failure position above the first backtick says nothing
+    about that, and treating an unclear case as chain-level is the choice that cannot manufacture a
+    false reclassification — the same asymmetry `SVPP_PASSTHROUGH` is built on.
 
     Returns `(new_expected, basis_suffix)` or `None` when the row keeps its `must_reject`.
     """
@@ -708,6 +728,12 @@ def reject_arm_demotion(dep_flag: str):
         return ("chained_only",
                 " - but `include-dependent: reject expectation is chain-level")
     if dep_flag in ("macro_use", "conditional"):
+        if position_refutes_dependency:
+            # SV-CORPUS-GRAD.13s: the file DOES carry the construct and the parse provably
+            # stopped where expansion cannot reach, so the dependency is real and irrelevant to
+            # THIS reject. Keeping `must_reject` states the parser is correct WITH A CITE
+            # instead of deferring a reject nothing in the svpp lane will ever explain.
+            return None
         # Mirror of the include rule (leaf .8b.1): the intended syntax error may only
         # materialize after macro expansion / conditional resolution, which isolation parse of
         # the raw text never performs - a raw-text reject would testify for the wrong reason.
@@ -727,16 +753,22 @@ def _self_check_arm_split():
     """
     import inspect
 
-    # (1) STRUCTURAL: the reject arm cannot consult a position, because it is not given one.
+    # (1) STRUCTURAL: the reject arm still cannot OBTAIN a position. `.13s` gave it one
+    #     DECIDED BOOLEAN and nothing else, exactly as F3 prescribed — a changed signature,
+    #     visible in review. Pinning the parameter list keeps the next widening equally visible:
+    #     a raw position, a text argument or a positions map appearing here fails this control.
     reject_params = list(inspect.signature(reject_arm_demotion).parameters)
-    if reject_params != ["dep_flag"]:
+    if reject_params != ["dep_flag", "position_refutes_dependency"]:
         raise SystemExit(
             "adjudicator MISCALIBRATED: reject_arm_demotion() takes "
-            f"{reject_params!r}; the must_reject arm is a WHOLE-FILE existence test and must "
-            "not be able to see a failure position (SV-CORPUS-GRAD.12c.3 F3)")
+            f"{reject_params!r}; the must_reject arm is a WHOLE-FILE existence test that may "
+            "receive only the caller's DECIDED refutation boolean, never a failure position or "
+            "the text to derive one from (SV-CORPUS-GRAD.12c.3 F3, narrowed by .13s)")
 
     # (2) BEHAVIOURAL: a must_reject row is demoted on the DEPENDENCY ALONE - no position exists
-    #     for it and none is needed.
+    #     for it and none is needed. ⛔ This is F3's own case and it must never move: an
+    #     unrefuted row (which includes EVERY row with no banked position, because
+    #     `svpp_can_explain_failure` answers True when the evidence is absent) demotes as before.
     for flag, want in (("include", "chained_only"),
                        ("macro_use", "out_of_scope_with_cause"),
                        ("conditional", "out_of_scope_with_cause"),
@@ -748,6 +780,25 @@ def _self_check_arm_split():
             raise SystemExit(
                 f"adjudicator MISCALIBRATED: reject_arm_demotion({flag!r}) -> {got_class!r}, "
                 f"expected {want!r} (SV-CORPUS-GRAD.12c.3 F3)")
+
+    # (2b) SV-CORPUS-GRAD.13s - THE REFUTATION, TWO-SIDED. `.13k`'s fourth row is the positive
+    #      side and the `include` arm is the negative one: an include demotion is NOT positional
+    #      (the intended-bad content may live in the included FILE), so it must survive a
+    #      refutation that a macro/conditional demotion yields to.
+    for flag, refuted, want in (("macro_use", True, None),
+                                ("conditional", True, None),
+                                ("include", True, "chained_only"),
+                                ("", True, None),
+                                ("protected", True, None),
+                                ("macro_use", False, "out_of_scope_with_cause"),
+                                ("conditional", False, "out_of_scope_with_cause")):
+        got = reject_arm_demotion(flag, position_refutes_dependency=refuted)
+        got_class = got[0] if got else None
+        if got_class != want:
+            raise SystemExit(
+                f"adjudicator MISCALIBRATED: reject_arm_demotion({flag!r}, "
+                f"position_refutes_dependency={refuted!r}) -> {got_class!r}, expected {want!r} "
+                "(SV-CORPUS-GRAD.13s)")
 
     # (3) THE OTHER ARM REALLY IS POSITIONAL - the control that fails if someone "unifies" the
     #     two by making the accept arm whole-file again.  ONE text, TWO positions, opposite
@@ -822,6 +873,36 @@ def expect_sv_tests(relpath: str, text: str):
 # a correct reject into an over-acceptance defect
 # (feedback_sv_strict_lrm_compliance_default).
 VERILATOR_PINNED = {
+    # ---- SV-CORPUS-GRAD.13k(a)+(c), landed by .13s (PGEN-SV-CORPUS-GRAD-0328) --------------
+    # The first MAIN-lane member of `.13k`'s answer-key class, routed here by `.13p`
+    # (PGEN-SV-CORPUS-GRAD-0322) when the delay2 split made the parser stop on the construct.
+    # Same shape as the three v2005 compound-assignment rows: a `must_accept` resting on a
+    # DRIVER's expectation, refuted by the standard. Ruled `must_reject` on the taxonomy at the
+    # head of this module - text a vendor tolerates that no edition can derive, where the spec
+    # outranks the upstream tool.
+    #
+    # ⛔ THIS PIN WAS APPLIED, MEASURED AND REVERTED ONCE (`-0327`) BEFORE IT COULD LAND. The
+    # whole-file `reject_arm_demotion` sent it to `deferred:svpp_owned` on the file's line-41
+    # backtick-ifdef, composing a basis that contradicted itself in one string. `.13s` gave that
+    # arm the caller's decided refutation boolean, so a reject provably above every alterable
+    # tick now keeps its `must_reject`.
+    "test_regress/t/t_gate_basic.v": ("must_reject",
+        "pinned .13k(a): line 25 `nand #(2,3,4) ND0 (nd0, a[0], b[0], b[1]);` puts THREE delay "
+        "values on an n-input gate. IEEE 1800-2017 28.4 "
+        "(docs/systemverilog/2017/md/section-28-gate-level-and-switch-level-modeling.md:396) and "
+        "IEEE 1364-2005 7.2 "
+        "(docs/verilog/2005/md/section-7-gate-and-switch-level-modeling.md:376): 'The delay "
+        "specification shall be zero, one, or two delays' for and/nand/nor/or/xor/xnor; Annex A "
+        "A.3.1 spells `n_input_gatetype [ drive_strength ] [ delay2 ]`, which carries at most two "
+        "mintypmax_expressions. Three delays belong to the ENABLE gates and switches (1800-2017 "
+        "28.6, 1364-2005 7.4, Annex A `[ delay3 ]`). REJECTS on ALL THREE profiles since release "
+        "1.0.204 / ledger SV-0077, at furthest_position=530 - exactly the second comma. Controls: "
+        "`nand #(2,3) ND0 (...)` ACCEPTS on all three profiles (the narrowing is the THIRD value "
+        "alone) and `bufif0 #(1,2,3)` ACCEPTS (an enable gate takes three). Spec outranks the "
+        "verilator driver key 't_gate_basic.py expects success', which records what verilator "
+        "tolerates. The preprocessor does not explain this reject and .13s now proves it "
+        "mechanically: the parse stops at byte 530, line 25, while the file's first alterable "
+        "backtick token is the line-41 ifdef"),
     "test_regress/t/t_lint_implicit_def_bad.v": ("must_reject",
         "pinned .3.14a: `default_nettype none/wire inside module t (lines 17, 20) - "
         "IEEE 1800-2017 22.8 / IEEE 1364-2005 19.2 permit it only OUTSIDE design "
@@ -3333,9 +3414,14 @@ def main():
         if expected in ("must_accept", "must_reject"):
             dep_flag = preproc_dependency(text)
         if expected == "must_reject":
-            # SV-CORPUS-GRAD.12c.3 F3 - the WHOLE-FILE arm, structurally unable to consult a
-            # failure position (see reject_arm_demotion's docstring).
-            demotion = reject_arm_demotion(dep_flag)
+            # SV-CORPUS-GRAD.12c.3 F3 - the WHOLE-FILE arm, structurally unable to OBTAIN a
+            # failure position; .13s hands it one DECIDED boolean and nothing else, computed
+            # here by the same predicate the must_accept arm below uses (see the docstring).
+            demotion = reject_arm_demotion(
+                dep_flag,
+                position_refutes_dependency=bool(
+                    dep_flag and observed == "fail"
+                    and not svpp_can_explain_failure(text, positions.get((suite, rel)))))
             if demotion is not None:
                 expected, basis_suffix = demotion
                 basis += basis_suffix
@@ -3460,9 +3546,14 @@ def main():
         if expected in ("must_accept", "must_reject"):
             dep_flag = preproc_dependency(text)
         if expected == "must_reject":
-            # SV-CORPUS-GRAD.12c.3 F3 - the WHOLE-FILE arm, structurally unable to consult a
-            # failure position (see reject_arm_demotion's docstring).
-            demotion = reject_arm_demotion(dep_flag)
+            # SV-CORPUS-GRAD.12c.3 F3 - the WHOLE-FILE arm, structurally unable to OBTAIN a
+            # failure position; .13s hands it one DECIDED boolean and nothing else, computed
+            # here by the same predicate the must_accept arm below uses (see the docstring).
+            demotion = reject_arm_demotion(
+                dep_flag,
+                position_refutes_dependency=bool(
+                    dep_flag and observed == "fail"
+                    and not svpp_can_explain_failure(text, positions.get((suite, rel)))))
             if demotion is not None:
                 expected, basis_suffix = demotion
                 basis += basis_suffix
