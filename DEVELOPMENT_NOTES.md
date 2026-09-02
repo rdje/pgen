@@ -1,5 +1,23 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0342 (a census that can read the sentence about the census is not a census)
+
+- ⭐⭐ **THE LESSON: WHEN A CLASSIFIER DERIVES ITS POPULATION BY SCANNING TEXT, THE SCANNER'S OWN TEXT
+  IS IN THE CORPUS.** I globbed `scripts/check_*.sh` for stimuli references and wrote, in the very
+  file being globbed, a comment naming two stimuli helpers as "what stays OUT of scope". The set came
+  out one too large and the control arm went red. ⇒ derive a population from the registry's DATA column
+  (the script paths), never from a glob that can include the reader, and exclude the classifier from
+  its own population explicitly. Promoted:
+  `docs/knowledge/a-census-that-can-read-the-sentence-about-the-census-is-not-a-census.md`.
+- ⛔ **A RED ARM THAT PASSES MUST BE ASKED WHY IT FAILED.** After the first fix the two RED arms still
+  passed (rc 1) while the derived set printed EMPTY — the gate was ABORTING under `set -e` on a `grep`
+  that found nothing, not refusing. Only the GREEN sibling arm and the five regression banks (1/1/1/3
+  failed) told the two rc 1s apart. ⇒ every bank needs a GREEN arm beside its RED ones, and a widening
+  to an enforcer re-runs every bank that already pins that enforcer.
+- ⭐ **`set -euo pipefail` IS A CONTRACT ON EVERY `grep` YOU ADD.** A search that legitimately finds
+  nothing is exit 1, and inside `$( … )` that is the subshell's exit status. Guard the search
+  (`|| :`), or the gate learns to fail on the healthy case.
+
 ## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0341 (six, not seventeen, not zero)
 
 - ⭐ **THE LESSON: WHEN A WITHDRAWN NUMBER LEAVES AN UPPER BOUND, THE NEXT ACT IS TO READ EVERY MEMBER OF

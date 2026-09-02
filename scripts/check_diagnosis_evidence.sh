@@ -92,6 +92,78 @@ for f in "${staged[@]:-}"; do
   esac
 done
 
+# ⭐⭐ THE PRODUCER OF AN ARTIFACT A DOCTRINE READS IS PART OF THE PROOF SURFACE TOO — AND THE SET IS
+# DERIVED, NEVER HAND-LISTED (SV-CORPUS-GRAD.13l, 2026-09-03). The `scripts/report_*.sh` arm above
+# made exactly this argument one producer earlier and stopped at a glob. `stimuli/run_external_corpus.sh`
+# EMITS the characterization reports `CORPUS-CENSUS-CURRENCY` re-derives, hashes and dates;
+# `stimuli/sv/corpus_verdict_coverage.py` emits what `SV-CORPUS-DENOMINATOR` re-derives; and this
+# check answered "no code change staged" for both — measured on `-0311`, `-0333`, `-0334`, `-0340`.
+# ⛔ THE ADMISSION IS *the closure of stimuli scripts the registered oracles reference*, computed
+# from the oracles' own text on every run: hop 1 = every `stimuli/…\.(py|sh)` path named in
+# `scripts/check_*.sh` / `scripts/report_*.sh`; hop 2 = every such path named in a hop-1 script (which
+# is how `stimuli/sv/adjudicate_external_corpus.py` — the producer of the manifests the verdict
+# coverage reads, invoked by the runner — arrives without anyone typing its name). A hand-listed
+# set is the `.13j`/`.13l` defect restated: a doctrine's population is a claim, and nothing checks it.
+# ⛔ PRICED AS A WIDENING MUST BE (the `.4`/`.7` bar), over the WHOLE history: 3 251 commits; 85
+# touch any `stimuli/**/*.{py,sh}`; **34** stage a path in this derived set and NO other in-scope path
+# — the commits this arm newly binds, ~1 %, and every recent one already carried its checklist by
+# habit. Ordinary stimuli helpers no oracle names (`stimuli/sv/audit_explained_svpp.py`,
+# `adjudicate_dark_worklist.py`) stay OUT of scope, which is what keeps this an admission and not
+# "anything under stimuli/".
+# `--producers` prints the derived set with each member's referencing oracle, so the population is
+# inspectable rather than inferred.
+# ⛔ THE ORACLES ARE THE REGISTRY'S SCRIPT COLUMN, NOT A GLOB — AND NEVER THIS FILE. The first cut
+# globbed `scripts/check_*.sh`, which includes THIS classifier, whose own comment names two stimuli
+# helpers as negative examples; the derivation read its own prose and admitted them. The bank caught
+# it before it shipped (`producer_admission/probe.sh` arm 0/3). A census that can read the sentence
+# about the census is not a census. So: oracle = a script named in the third field of
+# `check_doctrines.sh`'s `DOCTRINES` array (the registry) or a `scripts/report_*.sh` producer, minus
+# `check_diagnosis_evidence.sh` itself, which consumes no producer — it classifies staged paths.
+oracle_scripts() {
+  # ⛔ Every command here is guarded: this file runs under `set -e`, and the first cut let a `grep`
+  # that found nothing inside a `$( … )` kill the subshell — an EMPTY derived set, a gate that aborted
+  # rc 1 on any staged stimuli path, and two RED arms passing for the wrong reason. Measured by the bank.
+  {
+    awk '/^DOCTRINES=\(/{p=1;next} p&&/^\)/{exit} p&&/^ *"/{n=split($0,a,"|"); s=a[n]; sub(/".*$/,"",s); print s}' scripts/check_doctrines.sh 2>/dev/null || :
+    ls scripts/report_*.sh 2>/dev/null || :
+  } | grep -v 'check_diagnosis_evidence\.sh$' | LC_ALL=C sort -u || :
+  return 0
+}
+derive_producers() {
+  local oracles hop1 hop2 f
+  oracles="$(oracle_scripts)"
+  hop1="$(while IFS= read -r f; do [ -n "$f" ] && [ -f "$f" ] && { grep -ohE 'stimuli/[A-Za-z0-9_./-]+\.(py|sh)' "$f" 2>/dev/null || :; }; done <<< "$oracles" | LC_ALL=C sort -u || :)"
+  hop2="$(while IFS= read -r f; do [ -n "$f" ] && [ -f "$f" ] && { grep -ohE 'stimuli/[A-Za-z0-9_./-]+\.(py|sh)' "$f" 2>/dev/null || :; }; done <<< "$hop1" || :)"
+  printf '%s\n%s\n' "$hop1" "$hop2" | { grep -E '^stimuli/' || :; } | LC_ALL=C sort -u
+  return 0
+}
+if [ "${1:-}" = "--producers" ]; then
+  echo "diag-evidence: DERIVED producer set (stimuli scripts the registry's oracles reference, two hops; the classifier itself excluded):"
+  oracles="$(oracle_scripts)"; producers="$(derive_producers)"
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    refs="$(while IFS= read -r o; do [ -n "$o" ] && [ -f "$o" ] && { grep -lF -- "$(basename "$f")" "$o" 2>/dev/null || :; }; done <<< "$oracles" | tr '\n' ' ')"
+    if [ -z "${refs// /}" ]; then
+      via="$(while IFS= read -r g; do [ "$g" != "$f" ] && [ -f "$g" ] && { grep -lF -- "$(basename "$f")" "$g" 2>/dev/null || :; }; done <<< "$producers" | tr '\n' ' ')"
+      refs="(hop 2, via ${via:-?})"
+    fi
+    printf '  %-48s <- %s\n' "$f" "$refs"
+  done <<< "$producers"
+  exit 0
+fi
+if [ "$code_changed" -eq 0 ]; then
+  producers="$(derive_producers)"
+  for f in "${staged[@]:-}"; do
+    case "$f" in
+      stimuli/*.py|stimuli/*.sh|stimuli/*/*.py|stimuli/*/*.sh|stimuli/*/*/*.py|stimuli/*/*/*.sh)
+        if printf '%s\n' "$producers" | grep -qxF -- "$f" 2>/dev/null; then
+          code_changed=1
+          echo "diag-evidence: \`$f\` is a PRODUCER a registered doctrine reads (derived set; see --producers) — its edit changes what a doctrine MEANS, so the acceptance checklist is required (SV-CORPUS-GRAD.13l)" >&2
+        fi ;;
+    esac
+  done
+fi
+
 if [ "$code_changed" -eq 0 ]; then
   echo "diag-evidence: OK (no code change staged; task-acceptance checklist not required)"
   exit 0
