@@ -19789,7 +19789,7 @@ pinned files × three profiles: the reproducer **`rc 0` → `rc 1` on `verilog_2
         changelog + the three pinned repros + 5.11 / 5.13 artifacts + tree + index + `CHANGES.md` +
         `DEVELOPMENT_NOTES.md` + `MEMORY.md`.
 
-**RESIDUE**: (f) ⛔ re-measure both lanes on the clean tree (the `-0317` / `-0320` pattern).
+**RESIDUE**: (f) ✅ **DONE 2026-09-02 (`PGEN-SV-CORPUS-GRAD-0324`)** — both lanes re-measured on the clean tree `9533ea7c` (after `-0323` landed the gates' own identity re-stamps, which had made the first re-measure `+dirty`): **`Measured at HEAD = 9533ea7c`, no `+dirty`, on BOTH reports**, `results.tsv` / `results_v2005.tsv` **BYTE-IDENTICAL** to the release measurement, tuple `7556/2606/6174/4363/269` unchanged, `check_sv_corpus_denominator.sh` and `check_corpus_census.sh systemverilog_raw_parse` OK. ⭐ Next in this tree: `.13k`(a)+(c) — the answer-key re-adjudication now has FOUR rows (three v2005, one main-lane) each with its LRM citation.
 
 
 #### `.13g` — the FRAGMENT-shaped population: an accept there is not testimony (`todo`, opened 2026-08-11 by `.13a`)
