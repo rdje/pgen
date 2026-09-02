@@ -1,5 +1,29 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0335 (a staleness census over history is cheap, and a gate's wiring date is a free natural experiment)
+
+- ⭐⭐ **THE LESSON: WHEN A DEFECT IS "HOW OFTEN DID X GO STALE", GIT ALREADY HOLDS THE WHOLE
+  POPULATION — DERIVE IT FROM OBJECTS, NEVER FROM THE WORKING TREE OR FROM MEMORY.** `.13e.6` framed
+  (c) as *"size how often it has happened"* and I could have answered with the one episode I knew.
+  `git show <rev>:<path>` at every grammar revision, hashing the blob and reading the report's recorded
+  digest AT THAT SAME REVISION, gives the exact population in ~5 s: 11 of 35. Promoted:
+  `docs/knowledge/a-staleness-census-is-a-walk-over-git-objects-not-a-recollection.md`.
+- ⭐⭐ **A BYTE-KEYED STALENESS SPLITS INTO TWO CLASSES AND ONLY ONE IS A DEFECT.** Re-hashing the
+  semantic envelope at the stale revision and at the measured-against revision separated
+  7 different-language from 4 same-language readings. Without the split, "11 stale" over-states the
+  defect by 4 and hides the price the byte-keyed gate charges — which is precisely the number `.13r`
+  was opened for and did not have. ⇒ **classify a stale count before publishing it; the same
+  measurement often prices a sibling leaf for free.**
+- ⭐ **A GATE'S WIRING DATE IS A NATURAL EXPERIMENT.** Splitting the census at 2026-08-31 (the day
+  `.13j`(c) wired the SV report to the census gate) reads 11-of-31 stale before, 0-of-4 after, with
+  every post-gate grammar revision touching the report in the same commit. That is a before/after on
+  the gate's effect that cost nothing and that no RED control alone provides — the control says the
+  gate CAN refuse, the experiment says it DID change behaviour.
+- ⚠️ **AND THE HONEST BOUND I HAD TO STATE TWICE BEFORE IT STAYED STATED**: the census counts stale
+  REPORTS, not hidden VERDICTS; "7 stale-by-meaning revisions" is not "7 wrong bars". Measuring the
+  latter is 7 parser rebuilds. Said in the leaf, in CHANGES.md and here, so the number cannot be
+  quoted without its shape.
+
 ## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0334 (a bank arm that goes red because the tree changed under it is the arm doing its job)
 
 - ⭐⭐ **THE LESSON: RE-RUN THE BANK AFTER THE TREE MOVES, AND READ A NEW RED AS A FINDING, NOT AS
