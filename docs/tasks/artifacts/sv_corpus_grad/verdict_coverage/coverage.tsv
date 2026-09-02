@@ -4,8 +4,8 @@ NO VERDICT	deferred:chained_only	5276	32.30
 ROUTED	deferred:v2005_profile_lane	2606	15.95
 ADJUDICATED	divergence:explained_svpp_macro_use	1094	6.70
 NO VERDICT	deferred:no_sv_key	596	3.65
-ADJUDICATED	divergence:unexplained_rejects_valid	247	1.51
-ADJUDICATED	divergence:explained_svpp_conditional	200	1.22
+ADJUDICATED	divergence:unexplained_rejects_valid	248	1.52
+ADJUDICATED	divergence:explained_svpp_conditional	199	1.22
 NO VERDICT	deferred:svpp_owned	186	1.14
 ADJUDICATED	divergence:explained_svpp_include	140	0.86
 NO VERDICT	deferred:impl_varying	90	0.55

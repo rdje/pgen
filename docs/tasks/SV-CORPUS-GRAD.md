@@ -19238,6 +19238,15 @@ doctrine's shape voluntarily rather than because a gate asked.
   slice, with the census (b) in front of it.
 - ⭐ **SV-lane, and it is a DEFECT lane rather than a guard lane** — it is three wrong rows in the
   published SystemVerilog answer key, found by measurement.
+- ⭐ **FIRST MAIN-LANE MEMBER, routed 2026-09-02 by `.13p` (`PGEN-SV-CORPUS-GRAD-0322`)**:
+  `verilator/test_regress/t/t_gate_basic.v` — `must_accept` on *"driver t_gate_basic.py expects
+  success"*, while line 25 `nand #(2,3,4) ND0 (…)` puts THREE delays on an n-input gate and IEEE
+  1800-2017 §28.16 (`section-28-gate-level-and-switch-level-modeling.md:396`) says *"The delay
+  specification shall be zero, one, or two delays"* (IEEE 1364-2005 §7.14 `:376` identical). Once
+  `.13p` made the parser stop there, the row's failure was no longer explained by a preprocessing
+  conditional and it became `divergence:unexplained_rejects_valid`, moving the bar 268 → 269 with
+  ZERO verdicts moving. (a) owes the LRM-basis re-adjudication of this row alongside the three
+  v2005 rows; (c) owes the ruling on the class. ⛔ Not edited in the release slice, deliberately.
 
 
 #### `.13l` — ⚠️ NEW `todo` — **`TASK-ACCEPTANCE` REPORTS *"no code change staged"* FOR AN EDIT TO THE PRODUCER OF THE ARTIFACT `CORPUS-CENSUS-CURRENCY` READS** (opened 2026-08-31 by `.13j`(d) / `PGEN-SV-CORPUS-GRAD-0311`, ROUTED)
@@ -19677,7 +19686,7 @@ systemverilog_raw_parse` clean. (e) is DONE above (5.13 and 5.11 re-run). ⭐ `.
 predicts it pays the same memo eviction, which will be its second measured instance.
 
 
-#### ⛔⛔ `.13p` — **CONFIRMED 2026-09-02 (`PGEN-SV-CORPUS-GRAD-0321`), NEXT** (opened 2026-09-01 by `LRM-GRAMMAR-FIDELITY.1f` / `PGEN-LRM-GRAMMAR-FIDELITY-0001`) — **`and #(1,2,3) g(o,a,b)` PARSES on every profile: the shipped grammar spells NEITHER `delay2` nor `delay3` (`grep -c 'delay2\|delay3'` = 0) because the LRM extractor merged them into one `delay`, and IEEE 1800-2017 A.3.1 gives an `n_input_gatetype` at most TWO delay values**
+#### ✅✅ `.13p` — **`done`** 2026-09-02 (`PGEN-SV-CORPUS-GRAD-0322`, release `1.0.204`, ledger `SV-0077`; CONFIRMED `-0321`) (opened 2026-09-01 by `LRM-GRAMMAR-FIDELITY.1f` / `PGEN-LRM-GRAMMAR-FIDELITY-0001`) — **`and #(1,2,3) g(o,a,b)` PARSES on every profile: the shipped grammar spells NEITHER `delay2` nor `delay3` (`grep -c 'delay2\|delay3'` = 0) because the LRM extractor merged them into one `delay`, and IEEE 1800-2017 A.3.1 gives an `n_input_gatetype` at most TWO delay values**
 
 - **MEASURED** (release probe, both `verilog_2005` and `sv_2017`): `and #(1,2) g(o,a,b)` `rc 0`
   (control), **`and #(1,2,3) g(o,a,b)` `rc 0`** — A.3.1 `n_input_gatetype [ drive_strength ]
@@ -19730,6 +19739,58 @@ candidate** (`LRM-GRAMMAR-FIDELITY.1c`'s discipline satisfied):
   `ENGINE-UNIVERSAL-SERVICES.88`(b) predicts a memo eviction only when a TERMINAL-ONLY rule gains a
   profile-conditional alternative, which this change does not do, so `profile_split_respelling`
   should cover it: that prediction is written down BEFORE the measurement.
+
+### ✅✅ `.13p` FIXED — **`delay2` IS SPLIT OUT AT THE SEVEN ANNEX-A SITES; RELEASE `1.0.204`, LEDGER `SV-0077`; THE REPRODUCER REJECTS ON ALL THREE PROFILES AND BOTH CONTROLS ARE UNMOVED** (2026-09-02, `PGEN-SV-CORPUS-GRAD-0322`; GRAMMAR tier)
+
+**THE CHANGE**: `grammars/systemverilog.ebnf` — `delay2_sv_2017` (`@profiles: ["sv_2017",
+"verilog_2005"]`) and `delay2_sv_2023` (`@profiles: ["sv_2023"]`), each the `value` and
+`pair_optional` alternatives of its `delay_sv_*` twin with byte-identical return annotations, folded
+by `delay2 := delay2_sv_2017 | delay2_sv_2023`; `( delay )?` → `( delay2 )?` at the seven Annex-A
+`delay2` sites (`n_input_gatetype` / `n_output_gatetype` / `pass_en_switchtype` in
+`gate_instantiation_sv_2017` AND `gate_instantiation_sv_2023`, plus `udp_instantiation`). The five
+`delay3` sites (cmos / mos / enable gates, `continuous_assign`, `net_declaration`) are untouched.
+**Three rules added, 1540 → 1543; ZERO Rust / codegen / engine.**
+
+**MEASURED BEFORE A BYTE WAS GENERATED**: `--lint-grammar` `profile_orphans=0 unreachable_rules=0
+undefined_references=0 left_recursion_unhandled=0`; `--dump-rule-profiles` `sv_2017` **1404 → 1406**,
+`sv_2023` **1426 → 1428**, `verilog_2005` **1121 → 1123**; rules whose satisfiable set moved vs
+HEAD: **exactly the three new ones**. `--interpret-parse`, HEAD grammar vs edited, on the three
+pinned files × three profiles: the reproducer **`rc 0` → `rc 1` on `verilog_2005`, `sv_2017` AND
+`sv_2023`**; `and #(1,2)` and `bufif0 #(1,2,3)` `rc 0 → rc 0` everywhere. Semantic digest
+`641514378d…` → **`891b02cb65…`**.
+
+**THE GATES, RE-DERIVED ON THE REGENERATED PARSER**: **Cert census, adjudicated by name**: `verilog_2005_conformance_gate` `1121/373/734/14` → **`1123/373/736/14`** (the two `verilog_2005`-satisfiable new rules `delay2` and `delay2_sv_2017`, both witnessed; proof, UNKNOWN and both failure counts unchanged; corpus matrix 363 checks / 0 mismatches) and `sv_cert_recognized_union_gate` total **1404 → 1406**, canonical witness **1385 → 1387**, union witness **1396 → 1398** (`delay2_sv_2023` profile-excluded by construction; proof 8, canonical UNKNOWN 11, union UNKNOWN 0, residual `[]` unchanged), both identical at seeds 0 / 7 / 42 and both re-derived GREEN on the adjudicated contracts; `ast_shape_contract_gate` 18 / 18, schema 26; `PARSE-COST-RATCHET` read an **IMPROVEMENT** — `entries` **−53 390** (−0.01 %), `memo_hits` **−38 119** (−0.02 %), `committed` unchanged, no pre-existing rule dearer (`delay_sv_2017` lost 3 memo hits to `delay2_sv_2017`, and the seven sites no longer speculate a third value) — promoted; ⭐ `ENGINE-UNIVERSAL-SERVICES.88`(b)'s PRE-REGISTERED prediction held: no terminal-only rule gained a profile-conditional alternative, and no memo eviction occurred; `GENERATED-REPRODUCIBILITY` tier 2 re-derived and re-stamped; clippy source + generated clean.
+
+**CORPUS, PER-PATH AND TWO-SIDED, BOTH LANES**: ZERO verdicts moved on either lane — 16 336 `sv_2017` rows and 2 606 `verilog_2005` rows, row sets identical, pass 9 811 / 2 300 unchanged — and the axis-2 bar moved **268 → 269** for a reason that is measured and routed: `verilator/test_regress/t/t_gate_basic.v` (already `fail`) went from `divergence:explained_svpp_conditional` to `divergence:unexplained_rejects_valid` because its parse now stops at line 25, `nand #(2,3,4)`, where no preprocessing can alter the text (the `.12a` rule), under a `must_accept` key that rests on the suite's driver (*"t_gate_basic.py expects success"*) and not on the standard, which forbids that text (§28.16). It is the first MAIN-lane member of `SV-CORPUS-GRAD.13k`'s answer-key class and is routed to `.13k`(a)+(c) with the citation; the key is not edited in a release slice, so the bar reports the honest number under the key as it stands. Tuple `7556/2606/6174/4363/268` → `…/269`, `check_sv_corpus_denominator.sh` OK after the anchor moved with it.
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+  - [x] **REPRODUCE / ISSUE** — `./rust/target/release/parseability_probe --parse systemverilog
+        stimuli/sv/adjudication_repros/accepts_invalid_nand_three_delays.sv --profile sv_2017` →
+        `rc 0` on release `1.0.203` (also `rc 0` under `sv_2023` and `verilog_2005`);
+        `run_adjudication_repros.py` held it as `class=accepts_invalid` (`checked=260 failures=0`)
+        before a byte moved.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — WHY: IEEE 1800-2017 §28.16 (section-28 md `:396`, `:454`)
+        and IEEE 1364-2005 §7.14 (`:376`, `:436`) give the n-input / n-output gates *"zero, one,
+        or two delays"* and Annex A A.3.1 / A.5.4 spell `[ delay2 ]` at seven sites, while
+        `tools/extract_systemverilog_lrm_profiles.py:329`'s canonicaliser strips every trailing
+        digit and merged `delay2` + `delay3` into ONE `delay` (`systemverilog_lrm_profiled_generated.ebnf:602`),
+        which the flattened grammar inherited at all twelve `( delay )?` sites. WHERE: the seven
+        sites listed above. Settled on the parser by `--interpret-parse` (HEAD grammar vs edited:
+        the reproducer alone flips its `INTERPRET-PARSE:` verdict) and the release probe
+        (`--parse … --profile` on the reproducer and both controls).
+  - [x] **FIX** — grammar tier, declarative: a profile-split pair mirroring the existing
+        `delay_sv_*` idiom minus one alternative, referenced at exactly the Annex-A `delay2` sites.
+        No engine, no codegen. The extractor half stays with `LRM-GRAMMAR-FIDELITY.1f`.
+  - [x] **ADDRESSED (verified)** — reproducer `rc 0` → **`rc 1`** on `verilog_2005`, `sv_2017` AND `sv_2023` on the regenerated release parser; `and #(1,2)` and `bufif0 #(1,2,3)` controls `rc 0 → rc 0` on all three; the ratchet went RED on exactly the pinned row × 3 profiles (`checked=260 failures=3`, every one *"AN OVER-ACCEPTANCE IS GONE"*) and reads `checked=260 failures=0` after the flip to `class=invalid`.
+  - [x] **NO REGRESSION** — corpus per-path both lanes **0 verdicts moved** (16 336 + 2 606 rows); the bar's +1 is an adjudication move on an already-failing file, attributed above and routed; `verilog_2005_conformance_gate` GREEN on the adjudicated contract (`1123/373/736/14`, 363 checks / 0 mismatches); `sv_cert_recognized_union_gate` GREEN on the adjudicated contract (`1406 / 8 / 1387 / 11`, union `1398 / 0`, residual `[]`, seeds 0/7/42); `ast_shape_contract_gate` 18 passed / 0 failed; `PARSE-COST-RATCHET` OK — entries −53 390, memo_hits −38 119, committed unchanged, promoted as an improvement; `check_generated_reproducibility.sh --rebaseline` TIER 2 re-derived; `make clippy_on_rust_change` clean; 5.13 `missing=0` and 5.11 unmoved on the final grammar; `bash scripts/check_doctrines.sh` ALL 33 PASS on the staged set.
+  - [x] **LOCKSTEP** — grammar + revision register (RELEASE row, digest `891b02cb65…`) + ledger
+        `SV-0077` + contract `1.0.204` (note, version, digest) + the SystemVerilog parser book
+        changelog + the three pinned repros + 5.11 / 5.13 artifacts + tree + index + `CHANGES.md` +
+        `DEVELOPMENT_NOTES.md` + `MEMORY.md`.
+
+**RESIDUE**: (f) ⛔ re-measure both lanes on the clean tree (the `-0317` / `-0320` pattern).
+
 
 #### `.13g` — the FRAGMENT-shaped population: an accept there is not testimony (`todo`, opened 2026-08-11 by `.13a`)
 

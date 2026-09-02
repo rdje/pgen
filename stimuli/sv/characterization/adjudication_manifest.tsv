@@ -14276,7 +14276,7 @@ verilator	test_regress/t/t_fuzz_triand_bad.v	pass	must_accept	match	verilator: d
 verilator	test_regress/t/t_gantt.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_gantt.py expects success
 verilator	test_regress/t/t_gate_array.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_gate_array.py expects success
 verilator	test_regress/t/t_gate_array_multidim_bad.v	pass	must_accept	match	verilator: driver t_gate_array_multidim_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_gate_basic.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_gate_basic.py expects success
+verilator	test_regress/t/t_gate_basic.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_gate_basic.py expects success - .12a: parse stops where svpp cannot alter the text, so the preprocessor dependency does not explain THIS failure
 verilator	test_regress/t/t_gate_delref.v	pass	must_accept	match	verilator: driver t_gate_delref.py expects success
 verilator	test_regress/t/t_gate_elim.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_gate_elim.py expects success
 verilator	test_regress/t/t_gate_elim_cycle.v	pass	must_accept	match	verilator: driver t_gate_elim_cycle.py expects success

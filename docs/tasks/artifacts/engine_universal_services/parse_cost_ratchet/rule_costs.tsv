@@ -218,10 +218,12 @@ deferred_immediate_assertion_statement	98514	0	0
 deferred_immediate_assume_statement	98514	0	0
 deferred_immediate_cover_statement	98514	0	0
 defparam_assignment	4	4	0
-delay	37921	1	0
+delay	22647	1	0
+delay2	15274	0	0
+delay2_sv_2017	15274	0	3
 delay_control	66391	831	757
 delay_or_event_control	7130	1	2404
-delay_sv_2017	37921	1	225
+delay_sv_2017	22647	1	222
 delay_value	23673	832	11416
 delay_value_sv_only	12257	0	0
 description	605	224	0
@@ -302,7 +304,7 @@ genvar_iteration	73	41	26
 goto_repetition	1344	0	0
 greater_equal	472256	460	0
 greater_than	472256	965	0
-hash	318099	1327	0
+hash	302828	1327	0
 hierarchical_array_identifier	3	1	0
 hierarchical_block_identifier	2	0	0
 hierarchical_event_identifier	171	0	0
@@ -686,7 +688,7 @@ loop_generate_construct	73525	41	1498
 loop_statement	32377	11	5749
 loop_statement_sv_only	26628	1	106
 loop_variables	3	1	0
-lparen	4699958	96626	3578647
+lparen	4688534	96626	3567223
 member_identifier	47511	2719	0
 method_call	83635	8111	491
 method_call_initial	83144	8111	0
@@ -696,7 +698,7 @@ method_call_root	746254	0	53334
 method_identifier	43867	19059	0
 method_prototype	11	8	0
 method_qualifier	144	0	0
-mintypmax_expression	200225	26649	106611
+mintypmax_expression	188801	26649	95187
 minus	1110096	6307	0
 minus_assign	15361	0	0
 minus_minus	869448	0	0
@@ -1000,7 +1002,7 @@ time_unit	201312	7	3
 timeunit_separator_slash	2	2	0
 timeunit_separator_trivia	2	2	0
 timeunits_declaration	80452	5	1309
-trivia	88752717	1192158	86461819
+trivia	88737446	1192158	86446548
 type_assignment	40	20	0
 type_assignment_sv_2017	40	20	0
 type_declaration	113075	570	1184

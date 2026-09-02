@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5ed2d1cc.js";
+            window.path_to_searchindex_js = "searchindex-547d94b1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -259,8 +259,8 @@ inapplicable one.</li>
 </thead>
 <tbody>
 <tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">5 850</td><td style="text-align: right">35.8 %</td></tr>
-<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 438</td><td style="text-align: right">8.8 %</td></tr>
-<tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">268</td><td style="text-align: right">1.6 %</td></tr>
+<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 437</td><td style="text-align: right">8.8 %</td></tr>
+<tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">269</td><td style="text-align: right">1.6 %</td></tr>
 <tr><td>Routed to another lane’s manifest</td><td style="text-align: right">2 606</td><td style="text-align: right">16.0 %</td></tr>
 <tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">6 174</td><td style="text-align: right">37.8 %</td></tr>
 <tr><td>Total</td><td style="text-align: right">16 336</td><td style="text-align: right">100.0 %</td></tr>
@@ -2077,6 +2077,35 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10204--contract-10204--sv-corpus-grad13p-pgen-sv-corpus-grad-0322-2026-09-02-ledger-sv-0077-released"><a class="header" href="#10204--contract-10204--sv-corpus-grad13p-pgen-sv-corpus-grad-0322-2026-09-02-ledger-sv-0077-released">1.0.204 / Contract 1.0.204 — SV-CORPUS-GRAD.13p (<code>PGEN-SV-CORPUS-GRAD-0322</code>, 2026-09-02), ledger <code>SV-0077</code> (<code>Released</code>):</a></h3>
+<p>⛔ <strong>A third delay value on an n-input or n-output gate, a pass-enable switch or a UDP instance no
+longer parses — on any profile.</strong> IEEE 1800-2017 §28.16 says of those gates <em>“The delay
+specification shall be zero, one, or two delays”</em>, and Annex A spells <code>[ delay2 ]</code> there; three
+delays belong to enable gates and switches (<code>[ delay3 ]</code>). IEEE 1364-2005 §7.14 says the same. The
+grammar had one <code>delay</code> rule with the three-value alternative at every site, because the LRM
+extractor’s footnote canonicaliser had merged Annex A’s <code>delay2</code> and <code>delay3</code> into one rule — the
+right keywords in the wrong arity, which no keyword census can see.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>input</th><th>before</th><th>after</th></tr>
+</thead>
+<tbody>
+<tr><td><code>module test; wire a, b, o; nand #(1,2,3) g (o, a, b); endmodule</code> — all three profiles</td><td><code>rc 0</code></td><td><strong><code>rc 1</code></strong></td></tr>
+<tr><td><code>and #(1,2) g (o, a, b);</code> (control: two delays are legal)</td><td><code>rc 0</code></td><td><code>rc 0</code></td></tr>
+<tr><td><code>bufif0 #(1,2,3) g (o, a, e);</code> (control: an enable gate takes three)</td><td><code>rc 0</code></td><td><code>rc 0</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>The fix</strong>: a <code>delay2</code> profile-split pair — the <code>value</code> and <code>pair_optional</code> alternatives only,
+return annotations byte-identical to <code>delay</code>‘s — referenced at the seven Annex-A <code>delay2</code> sites.
+Three rules added (1540 → 1543), no profile orphans, exactly three rules’ satisfiable sets moved.</p>
+<p><strong>AST impact — none for legal text.</strong> A two-delay site yields the same
+<code>{body: {kind: "pair_optional" | "value", …}}</code> object; <code>triple_optional</code> becomes unreachable there.
+Schema <strong>26 unchanged</strong>. ⛔ The accept set <strong>narrows on every profile</strong>, <code>sv_2017</code> included.</p>
+<p><strong>Corpus proof</strong>, per-path and two-sided: ZERO verdicts moved on either lane — 16 336 <code>sv_2017</code> rows and 2 606 <code>verilog_2005</code> rows, row sets identical, pass 9 811 / 2 300 unchanged — and the axis-2 bar moved <strong>268 → 269</strong> for a reason that is measured and routed: <code>verilator/test_regress/t/t_gate_basic.v</code> (already <code>fail</code>) went from <code>divergence:explained_svpp_conditional</code> to <code>divergence:unexplained_rejects_valid</code> because its parse now stops at line 25, <code>nand #(2,3,4)</code>, where no preprocessing can alter the text (the <code>.12a</code> rule), under a <code>must_accept</code> key that rests on the suite’s driver (<em>“t_gate_basic.py expects success”</em>) and not on the standard, which forbids that text (§28.16). It is the first MAIN-lane member of <code>SV-CORPUS-GRAD.13k</code>’s answer-key class and is routed to <code>.13k</code>(a)+(c) with the citation; the key is not edited in a release slice, so the bar reports the honest number under the key as it stands. Tuple <code>7556/2606/6174/4363/268</code> → <code>…/269</code>, <code>check_sv_corpus_denominator.sh</code> OK after the anchor moved with it. Exactly one vendored file spells a
+three-value delay on a two-delay gate (<code>verilator t_gate_basic.v:25</code>), and it already failed for an
+unrelated reason.</p>
 <h3 id="10203--contract-10203--sv-corpus-grad13o-pgen-sv-corpus-grad-0319-2026-09-01-ledger-sv-0076-released"><a class="header" href="#10203--contract-10203--sv-corpus-grad13o-pgen-sv-corpus-grad-0319-2026-09-01-ledger-sv-0076-released">1.0.203 / Contract 1.0.203 — SV-CORPUS-GRAD.13o (<code>PGEN-SV-CORPUS-GRAD-0319</code>, 2026-09-01), ledger <code>SV-0076</code> (<code>Released</code>):</a></h3>
 <p>⛔ <strong><code>always @(edge c)</code> no longer parses under <code>verilog_2005</code>.</strong> The grammar’s <code>edge_identifier</code>
 carried IEEE 1800’s third member <code>edge</code> with no profile gate. IEEE 1364-2005 A.7.4 is

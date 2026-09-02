@@ -1,5 +1,19 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0322 (the delay2 split — an extractor's name collision became a shipped over-acceptance, and the clause text is what made it a defect)
+
+- ⭐⭐ **THE TRANSFERABLE LESSON: A NAME COLLISION IN AN EXTRACTOR IS A GRAMMAR DEFECT IN WAITING, AND
+  ITS SHAPE IS THE UNION OF THE MERGED PRODUCTIONS.** `delay2` and `delay3` differ by one optional
+  element; folded into one `delay`, the grammar accepts the WIDER of the two everywhere the narrower
+  was meant. That is over-acceptance with every keyword legal and every rule reachable — lens L3,
+  cardinality — and it was found not by a corpus (one vendored file exercises it, already failing for
+  another reason) but by asking, from the extractor's own collision list, *what does the merge admit
+  that the standard does not*. ⇒ when two productions are merged by tooling, the difference between
+  them is a candidate over-acceptance; enumerate it from the merge, not from a corpus.
+- ⭐ **THE CLAUSE SENTENCE, NOT ANNEX A, IS WHAT UPGRADES A CANDIDATE.** `.13p` stayed a candidate
+  for a day on `LRM-GRAMMAR-FIDELITY.1c`'s rule — Annex-A non-derivability is a known-bad classifier —
+  until §28.16's *"zero, one, or two delays"* was located in both editions. The grammar fix took an
+  hour; the located sentence is what made it a release rather than an opinion.
 ## 2026-09-01 - PGEN-SV-CORPUS-GRAD-0319 (the `edge` gate — an instrument's "not scored" column found the first defect a keyword census could never see)
 
 - ⭐⭐ **THE TRANSFERABLE LESSON: A LEGAL KEYWORD IN AN ILLEGAL POSITION IS INVISIBLE TO EVERY CENSUS

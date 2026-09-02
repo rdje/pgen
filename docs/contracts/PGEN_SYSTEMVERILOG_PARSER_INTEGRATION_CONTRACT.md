@@ -5,6 +5,34 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-09-02, `SV-CORPUS-GRAD.13p` — GRAMMAR, release `1.0.204`, ledger
+> `SV-0077`, schema `26` UNCHANGED, ALL THREE profiles): a THIRD delay value on an n-input or
+> n-output gate, a pass-enable switch or a UDP instance no longer parses.** IEEE 1800-2017 §28.16
+> says of those gates *"The delay specification shall be zero, one, or two delays"* and Annex A
+> A.3.1 / A.5.4 spell `[ delay2 ]` there; three delays belong to enable gates and switches
+> (`[ delay3 ]`). The shipped grammar carried ONE `delay` rule with the three-value alternative at
+> every site, because the LRM extractor's footnote canonicaliser merged Annex A's `delay2` and
+> `delay3` into one rule — the right keywords in the wrong arity, invisible to any keyword census.
+>
+> **What no longer parses**: `nand #(1,2,3) g (o, a, b);` and its `and` / `or` / `nor` / `xor` /
+> `xnor` / `buf` / `not` siblings, `tranif0 #(1,2,3)`-style pass-enable switches and
+> `my_udp #(1,2,3) u (…)` — on every profile, because every edition forbids them. `bufif0 #(1,2,3)`
+> (an enable gate), `assign #(1,2,3)` and `wire #(1,2,3)` keep parsing: Annex A gives them `delay3`.
+>
+> **AST impact — NONE for legal text.** A two-delay site yields the same
+> `{body: {kind: "pair_optional" | "value", …}}` object it always did; `kind: "triple_optional"`
+> simply becomes unreachable at the seven `delay2` sites, where it was never legal. No `kind`
+> added, removed or renamed. ⛔ This **narrows** the accept set on `sv_2017` too: text that used to
+> yield an AST now rejects — safe for a consumer relying on LRM-faithful rejection, a change for
+> one that fed such text through.
+>
+> **Corpus proof, per-path and two-sided**: ZERO verdicts moved on either lane — 16 336 `sv_2017` rows and 2 606 `verilog_2005` rows, row sets identical, pass 9 811 / 2 300 unchanged — and the axis-2 bar moved **268 → 269** for a reason that is measured and routed: `verilator/test_regress/t/t_gate_basic.v` (already `fail`) went from `divergence:explained_svpp_conditional` to `divergence:unexplained_rejects_valid` because its parse now stops at line 25, `nand #(2,3,4)`, where no preprocessing can alter the text (the `.12a` rule), under a `must_accept` key that rests on the suite's driver (*"t_gate_basic.py expects success"*) and not on the standard, which forbids that text (§28.16). It is the first MAIN-lane member of `SV-CORPUS-GRAD.13k`'s answer-key class and is routed to `.13k`(a)+(c) with the citation; the key is not edited in a release slice, so the bar reports the honest number under the key as it stands. Tuple `7556/2606/6174/4363/268` → `…/269`, `check_sv_corpus_denominator.sh` OK after the anchor moved with it. Measured blast radius before the run:
+> exactly ONE of the 16 336 vendored files spells a three-value delay on a two-delay gate
+> (`verilator t_gate_basic.v:25`), and it already failed for an unrelated preprocessing reason.
+> The reproducer and two controls are pinned on the two-sided ratchet, which went RED on the
+> reproducer row when the fix landed and now guards it on all three profiles.
+> **Cert census, adjudicated by name**: `verilog_2005_conformance_gate` `1121/373/734/14` → **`1123/373/736/14`** (the two `verilog_2005`-satisfiable new rules `delay2` and `delay2_sv_2017`, both witnessed; proof, UNKNOWN and both failure counts unchanged; corpus matrix 363 checks / 0 mismatches) and `sv_cert_recognized_union_gate` total **1404 → 1406**, canonical witness **1385 → 1387**, union witness **1396 → 1398** (`delay2_sv_2023` profile-excluded by construction; proof 8, canonical UNKNOWN 11, union UNKNOWN 0, residual `[]` unchanged), both identical at seeds 0 / 7 / 42 and both re-derived GREEN on the adjudicated contracts; `ast_shape_contract_gate` 18 / 18, schema 26; `PARSE-COST-RATCHET` read an **IMPROVEMENT** — `entries` **−53 390** (−0.01 %), `memo_hits` **−38 119** (−0.02 %), `committed` unchanged, no pre-existing rule dearer (`delay_sv_2017` lost 3 memo hits to `delay2_sv_2017`, and the seven sites no longer speculate a third value) — promoted; ⭐ `ENGINE-UNIVERSAL-SERVICES.88`(b)'s PRE-REGISTERED prediction held: no terminal-only rule gained a profile-conditional alternative, and no memo eviction occurred; `GENERATED-REPRODUCIBILITY` tier 2 re-derived and re-stamped; clippy source + generated clean.
+
 > **Current-state note (2026-09-01, `SV-CORPUS-GRAD.13o` — GRAMMAR, release `1.0.203`, ledger
 > `SV-0076`, schema `26` UNCHANGED, `verilog_2005` profile ONLY): `always @(edge c)` no longer
 > parses under `verilog_2005`.** The shipped `edge_identifier` carried IEEE 1800's third member
@@ -918,15 +946,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.203`
+  - `1.0.204`
 - Parser release version:
-  - `1.0.203`
-  - history: `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.204`
+  - history: `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `641514378d4907b0508928f8d5bc9ab613de0b813beebdd925fe399a6fb0aabb` (SV grammar semantic digest — sha256 of the
+  - `891b02cb654fd56ce19c032838985ca47781d21e7413e18ea082fc2a1e5295f4` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`

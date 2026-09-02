@@ -2314,6 +2314,23 @@ delay_sv_2023 := hash delay_value                                               
 delay := delay_sv_2017 -> {body: $1}
        | delay_sv_2023 -> {body: $1}
 
+# SV-CORPUS-GRAD.13p — IEEE 1800-2017 A.3.1 / IEEE 1364-2005 A.3.1 give n_input_gatetype, n_output_gatetype,
+# pass_en_switchtype and udp_instantiation `[ delay2 ]` — at most TWO delay values (§28.16:396/:454, §7.14:376/:436:
+# "The delay specification shall be zero, one, or two delays") — and reserve `[ delay3 ]` for cmos / mos / enable
+# gates, continuous_assign and net_declaration. The LRM extractor merged delay2 and delay3 into ONE `delay` rule
+# (LRM-GRAMMAR-FIDELITY.1f), so `nand #(1,2,3) g(o,a,b)` parsed on every profile. `delay2` is `delay` minus the
+# triple_optional alternative, return annotations byte-identical, so every LEGAL input yields the same AST.
+@profiles: ["sv_2017", "verilog_2005"]
+delay2_sv_2017 := hash delay_value                                                                                  -> {kind: "value", body: $2}
+               | hash lparen mintypmax_expression ( comma mintypmax_expression )? rparen                          -> {kind: "pair_optional", first: $3, second: $4}
+
+@profiles: ["sv_2023"]
+delay2_sv_2023 := hash delay_value                                                                                  -> {kind: "value", body: $2}
+               | hash lparen mintypmax_expression ( comma mintypmax_expression )? rparen                          -> {kind: "pair_optional", first: $3, second: $4}
+
+delay2 := delay2_sv_2017 -> {body: $1}
+        | delay2_sv_2023 -> {body: $1}
+
 delay_control := hash delay_value                          -> {kind: "value",    body: $2}
                | hash lparen mintypmax_expression rparen   -> {kind: "mintypmax", body: $3}
 
@@ -2854,11 +2871,11 @@ gate_instantiation_sv_2017 := cmos_switchtype ( delay )? cmos_switch_instance ( 
                                    -> {kind: "enable",   gatetype: $1, drive_strength: $2, delay: $3, instances: [$4, $5::2*]}
                             | mos_switchtype ( delay )? mos_switch_instance ( comma mos_switch_instance )* semi
                                    -> {kind: "mos",      switchtype: $1, delay: $2, instances: [$3, $4::2*]}
-                            | n_input_gatetype ( drive_strength )? ( delay )? n_input_gate_instance ( comma n_input_gate_instance )* semi
+                            | n_input_gatetype ( drive_strength )? ( delay2 )? n_input_gate_instance ( comma n_input_gate_instance )* semi
                                    -> {kind: "n_input",  gatetype: $1, drive_strength: $2, delay: $3, instances: [$4, $5::2*]}
-                            | n_output_gatetype ( drive_strength )? ( delay )? n_output_gate_instance ( comma n_output_gate_instance )* semi
+                            | n_output_gatetype ( drive_strength )? ( delay2 )? n_output_gate_instance ( comma n_output_gate_instance )* semi
                                    -> {kind: "n_output", gatetype: $1, drive_strength: $2, delay: $3, instances: [$4, $5::2*]}
-                            | pass_en_switchtype ( delay )? pass_enable_switch_instance ( comma pass_enable_switch_instance )* semi
+                            | pass_en_switchtype ( delay2 )? pass_enable_switch_instance ( comma pass_enable_switch_instance )* semi
                                    -> {kind: "pass_en",  switchtype: $1, delay: $2, instances: [$3, $4::2*]}
                             | pass_switchtype pass_switch_instance ( comma pass_switch_instance )* semi
                                    -> {kind: "pass",     switchtype: $1, instances: [$2, $3::2*]}
@@ -2874,11 +2891,11 @@ gate_instantiation_sv_2023 := cmos_switchtype ( delay )? cmos_switch_instance ( 
                                    -> {kind: "mos",      switchtype: $1, delay: $2, instances: [$3, $4::2*]}
                             | enable_gatetype ( drive_strength )? ( delay )? enable_gate_instance ( comma enable_gate_instance )* semi
                                    -> {kind: "enable",   gatetype: $1, drive_strength: $2, delay: $3, instances: [$4, $5::2*]}
-                            | n_input_gatetype ( drive_strength )? ( delay )? n_input_gate_instance ( comma n_input_gate_instance )* semi
+                            | n_input_gatetype ( drive_strength )? ( delay2 )? n_input_gate_instance ( comma n_input_gate_instance )* semi
                                    -> {kind: "n_input",  gatetype: $1, drive_strength: $2, delay: $3, instances: [$4, $5::2*]}
-                            | n_output_gatetype ( drive_strength )? ( delay )? n_output_gate_instance ( comma n_output_gate_instance )* semi
+                            | n_output_gatetype ( drive_strength )? ( delay2 )? n_output_gate_instance ( comma n_output_gate_instance )* semi
                                    -> {kind: "n_output", gatetype: $1, drive_strength: $2, delay: $3, instances: [$4, $5::2*]}
-                            | pass_en_switchtype ( delay )? pass_enable_switch_instance ( comma pass_enable_switch_instance )* semi
+                            | pass_en_switchtype ( delay2 )? pass_enable_switch_instance ( comma pass_enable_switch_instance )* semi
                                    -> {kind: "pass_en",  switchtype: $1, delay: $2, instances: [$3, $4::2*]}
                             | pass_switchtype pass_switch_instance ( comma pass_switch_instance )* semi
                                    -> {kind: "pass",     switchtype: $1, instances: [$2, $3::2*]}
@@ -6646,7 +6663,7 @@ udp_input_declaration := attribute_instance* kw_input_140f86aa list_of_udp_port_
 udp_instance := ( name_of_instance )? lparen output_terminal comma input_terminal ( comma input_terminal )* rparen
              -> {name: $1, output: $3, inputs: [$5, $6::2*]}
 
-udp_instantiation := udp_identifier ( drive_strength )? ( delay )? udp_instance ( comma udp_instance )* semi
+udp_instantiation := udp_identifier ( drive_strength )? ( delay2 )? udp_instance ( comma udp_instance )* semi
                   -> {name: $1, drive_strength: $2, delay: $3, instances: [$4, $5::2*]}
 
 udp_nonansi_declaration := attribute_instance* kw_primitive_9756bf34 udp_identifier lparen udp_port_list rparen semi
