@@ -1002,9 +1002,10 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   [[an-observer-that-replays-a-memoized-result-turns-the-dag-back-into-a-tree]].
 - ⛔⛔ **AND THAT BREAKS `raw − committed` AS A GENERAL IDENTITY — THIS HALF IS *NOT* FIXED, AND THE
   FIX IS WHAT PROVES IT.** Making the true multiplicity computable is exactly what let it be
-  measured; the sign caveat below therefore stands and is now checkable rather than latent.** The docstring above reads
-  *"`raw − committed` = the rule's FAILED-speculation entries"*, and it holds only while memo
-  REPLAY is negligible. It is not an invariant: `committed` is `coverage_stack.len()` folded per
+  measured; the sign caveat below therefore stands and is now checkable rather than latent.** Until `SV-CORPUS-GRAD.13e.12`(d) (`-0336`) the docstring above READ
+  *"`raw − committed` = the rule's FAILED-speculation entries"* — in **ten** source sites, one of
+  them emitted into every generated parser — and it holds only while memo
+  REPLAY is negligible; all ten now state the occurrence-oracle rule and name `committed_overshoot`. It is not an invariant: `committed` is `coverage_stack.len()` folded per
   rule, so a memo hit re-appends a whole cached subtree that the parser never re-entered, while
   `raw` counts real invocations only. Measured on the ladder above, `committed / entries` runs
   **0.62× → 2 173.88×** across 8 rungs — i.e. `raw − committed` goes NEGATIVE. It is positive on

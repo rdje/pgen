@@ -200,8 +200,10 @@ struct RuleEntryCountsFile {
 
 /// RGX-0078.5.h.1b — the JSON shape `parseability_probe --dump-rule-outcome-counts-json`
 /// writes (raw + COMMITTED per-rule entry counts); consumed by
-/// `--fusibility-outcome-counts`. `raw − committed` = the rule's FAILED-speculation
-/// entries (committed keeps C3-B semantics: winners + successful-but-losing branches).
+/// `--fusibility-outcome-counts`. ⛔ `committed` is an OCCURRENCE count (C3-B winners +
+/// successful-but-losing branches, memo replays with multiplicity) and can EXCEED `raw`, so
+/// `raw − committed` is NOT the failed-speculation count (SV-CORPUS-GRAD.13e.12); this file
+/// subtracts with `saturating_sub` and reports the excess as `committed_overshoot`.
 #[derive(Debug, serde::Deserialize)]
 struct RuleOutcomeCountsFile {
     grammar: String,
@@ -339,8 +341,11 @@ pub struct OutcomeShare {
     /// losing tournament branches). This work builds/validates the accepted parse —
     /// no site discriminator can remove the non-encodable part of it.
     pub total_committed: u64,
-    /// `total_entries − total_committed`: entries inside failed speculations — the
-    /// probing waste. The increment-(ii) target surface.
+    /// Σ over rules of `entries.saturating_sub(committed)` — an UPPER-BOUND MODEL of the
+    /// failed-speculation work, NOT the identity `total_entries − total_committed` (which can
+    /// be negative: `committed` counts occurrences incl. memo replay and successful
+    /// lookahead — SV-CORPUS-GRAD.13e.12). The per-rule excess is clamped to 0 here and
+    /// reported as `committed_overshoot`. The increment-(ii) target surface.
     pub total_discarded: u64,
     /// Of `total_discarded`: entries on SHAPE-ENCODABLE rules — every such failing
     /// attempt is answerable by a derived-DFA test at its call site (choice branch,
@@ -374,7 +379,8 @@ pub struct OutcomeShare {
     pub degenerate_site_entries: u64,
     /// Of `degenerate_site_entries`: the committed (C3-B surviving) part.
     pub degenerate_site_committed: u64,
-    /// Of `degenerate_site_entries`: the discarded (failed-speculation) part.
+    /// Of `degenerate_site_entries`: the discarded part (`entries.saturating_sub(committed)`
+    /// — a clamped model of failed speculation, see `committed_overshoot`).
     pub degenerate_site_discarded: u64,
     /// RGX-0078.5.i.7 (D1 STEP-0) — raw entries on rules whose TOP-LEVEL site is
     /// `prefix2_dispatchable` but NOT `degenerate_dispatch` (the D1 emission
@@ -441,7 +447,8 @@ pub struct InlineExposure {
     pub eligible_entries: u64,
     /// Of `eligible_entries`: the committed (C3-B surviving) part.
     pub eligible_committed: u64,
-    /// Of `eligible_entries`: the discarded (failed-speculation) part.
+    /// Of `eligible_entries`: the discarded part (`entries.saturating_sub(committed)` — a
+    /// clamped model of failed speculation, see `committed_overshoot`).
     pub eligible_discarded: u64,
     /// Memo HITS on eligible rules (from `rule_memo_hit_counts`; requires dumps
     /// written by a parser generation that records them — older dump files
@@ -457,7 +464,8 @@ pub struct InlineExposure {
     pub decided_entries: u64,
     /// Of `decided_entries`: the committed (C3-B surviving) part.
     pub decided_committed: u64,
-    /// Of `decided_entries`: the discarded (failed-speculation) part.
+    /// Of `decided_entries`: the discarded part (`entries.saturating_sub(committed)` — a
+    /// clamped model of failed speculation, see `committed_overshoot`).
     pub decided_discarded: u64,
     /// Memo hits on decided rules — the P1b lost-hit surface at the budget.
     pub decided_memo_hits: u64,
@@ -5486,7 +5494,7 @@ pub fn print_fusibility_census(census: &FusibilityCensus, dump_all: bool) {
             share.ceiling_estimate,
         );
         println!(
-            "  model: discarded = raw − committed (failed-speculation work; committed keeps C3-B successful losers); kill surface = discarded entries on shape-encodable rules (choice/optional/iteration attempts alike); uniform per-entry cost, scan ≈ terminal match"
+            "  model: discarded = entries.saturating_sub(committed) per rule — an UPPER-BOUND model of failed-speculation work, NOT the identity raw − committed (committed counts occurrences incl. memo replay + successful lookahead and can exceed entries; the clamped excess is committed_overshoot, printed when non-zero); committed keeps C3-B successful losers; kill surface = discarded entries on shape-encodable rules (choice/optional/iteration attempts alike); uniform per-entry cost, scan ≈ terminal match"
         );
         // RGX-0078.5.i.3 (P2) — the measured exposure of the degenerate-dispatch
         // emission: Or-body executions at qualified sites (protocol-elision surface,

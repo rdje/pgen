@@ -108,9 +108,11 @@ struct GlobalOptions {
     /// `RGX-0078.5.h.1b` — machine-readable per-rule OUTCOME-COUNT dump: after a
     /// `--parse` run with the transactional coverage stack enabled, write BOTH the
     /// raw entry counters AND the committed (surviving) counts as JSON to this
-    /// path. `raw − committed` = the rule's FAILED-speculation entry count — the
-    /// choice-site census's dynamic input. `None` = disabled (default; coverage
-    /// stays off, behavior byte-identical).
+    /// path. `committed` is an OCCURRENCE count (C3-B survivors, memo replays with
+    /// multiplicity), so `raw − committed` is NOT the failed-speculation count and can
+    /// go negative (SV-CORPUS-GRAD.13e.12) — the choice-site census, its consumer,
+    /// subtracts with `saturating_sub` and reports `committed_overshoot`. `None` =
+    /// disabled (default; coverage stays off, behavior byte-identical).
     dump_rule_outcome_counts_json: Option<String>,
     /// `ENGINE-UNIVERSAL-SERVICES.22` (b) — dump the AST of a parse with TRANSACTIONAL COVERAGE
     /// enabled, i.e. the exact configuration TOOLBOX 3.4/3.5 measures under. Without it,

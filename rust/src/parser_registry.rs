@@ -58,10 +58,14 @@ std::thread_local! {
     // RGX-0078.5.h.1b — machine-readable per-rule OUTCOME-COUNT dump (raw entries +
     // COMMITTED entries). When set, the detail-parse path enables the transactional
     // coverage stack before the parse and writes both counters as JSON to this path:
-    // raw − committed = the rule's FAILED-speculation entry count (the choice-site
-    // census's dynamic input). Committed semantics are C3-B: tournament winners AND
-    // successful-but-losing branches both survive. None (default) = no dump, and the
-    // coverage stack stays disabled — zero overhead, byte-identical behavior.
+    // `committed` is an OCCURRENCE count over the accepted derivation (C3-B: tournament
+    // winners AND successful-but-losing branches survive, and a memo REPLAY contributes its
+    // subtree with multiplicity), so it does NOT bound `raw` and `raw − committed` is NOT the
+    // failed-speculation count — it can go negative (SV-CORPUS-GRAD.13e.12 measured `dot_star`
+    // entered 1 / committed 3). Use `committed ≥ 1` as an occurrence oracle; the choice-site
+    // census subtracts with `saturating_sub` and reports the excess as `committed_overshoot`.
+    // None (default) = no dump, and the coverage stack stays disabled — zero overhead,
+    // byte-identical behavior.
     static DUMP_RULE_OUTCOME_COUNTS_JSON: std::cell::RefCell<Option<std::path::PathBuf>> = const { std::cell::RefCell::new(None) };
 }
 
@@ -129,10 +133,15 @@ fn current_dump_rule_entry_counts_json() -> Option<std::path::PathBuf> {
 /// `{"grammar": …, "accepted": …, "total_entries": N, "total_committed": M,
 ///   "rule_entry_counts": {rule: n}, "rule_committed_counts": {rule: m},
 ///   "rule_memo_hit_counts": {rule: h}, "total_memo_hits": H}`.
-/// `total_entries − total_committed` is the parse's FAILED-speculation work (every
-/// entry inside a speculation `try_parse` rolled back); committed counts keep C3-B
-/// semantics (winners + successful-but-losing tournament branches). This is the
-/// choice-site census's dynamic input (`--report-fusibility-census` join).
+/// ⛔ `total_entries − total_committed` is NOT the parse's failed-speculation work, and
+/// neither total bounds the other: `committed` counts OCCURRENCES in the accepted
+/// derivation (C3-B winners + successful-but-losing branches, memo REPLAYS with
+/// multiplicity, successful-lookahead pushes kept) while `entries` counts INVOCATIONS, so
+/// the difference can be negative — measured corpus-wide at −4 783 319 660
+/// (SV-CORPUS-GRAD.13e.12 / ENGINE-UNIVERSAL-SERVICES.22). Read `committed ≥ 1` as an
+/// occurrence oracle. This is the choice-site census's dynamic input
+/// (`--report-fusibility-census` join), which subtracts per rule with `saturating_sub`
+/// and reports the clamped excess as `committed_overshoot`.
 /// RGX-0078.5.i.4 (P1 STEP-0): `rule_memo_hit_counts` are the parse's per-rule memo
 /// HITS (fail-set + valid tainted-failure + success replays), recorded by
 /// `memoized_call` under the same coverage opt-in; `raw − hits` = a rule's body

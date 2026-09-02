@@ -17,7 +17,7 @@
     "generated parser": {
       "kind": "bytes",
       "path": "generated/systemverilog_parser.rs",
-      "sha256": "c09b4eda9fc23a416d53da1f3ef1f6a3fcc4261d40f5d094eded1c4761d6ad49"
+      "sha256": "62fec0abc42a11bc68cff531ecc73a9af8b53b60e2b0b460f9b462e9df884781"
     },
     "grammar": {
       "kind": "ebnf_raw_ast",

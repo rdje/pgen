@@ -1,5 +1,27 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0336 (two greps before an eighteen-minute build)
+
+- ⭐⭐ **THE LESSON: A "REGENERATE EVERYTHING" RECIPE'S COVERAGE IS A CENSUS CLAIM — ASSERT THE NEW
+  EMISSION IS IN EVERY ARTIFACT (AND THE OLD IN NONE) BEFORE RUNNING ANY GATE THAT ASSUMES IT.** Two
+  greps over `generated/*.rs`, both directions, read 9 / 2 after an exit-0 regeneration and named the
+  two misses and their two DIFFERENT causes in one second; the reproducibility gate would have told
+  me only *that* the tree diverged, eighteen minutes later. Promoted:
+  `docs/knowledge/assert-a-regeneration-reached-every-artifact-before-running-the-gates.md`.
+- ⛔ **I NEARLY OPENED A DUPLICATE LEAF.** The `ebnf.rs` half was already `CI-PARITY-GATE-ROT.49`
+  (opened 2026-08-28); one grep of the owning tree before writing `.50` found it. ⇒ **before routing
+  a finding, grep whether the tree already owns the class** — and when it does, the value of the
+  second measurement is the part the first one missed (here `scratch`, and a headline off by one).
+- ⭐ **PRICE THE BLAST RADIUS BY READING THE GATES' IDENTITY LOGIC, NOT BY RUNNING INTO THEM.** The
+  table in the leaf predicted every breach the chain then hit — except one: the ratchet's
+  family-share arm fails BEFORE its identity arm, so the re-measure order is family share, then
+  ratchet. A predicted breach is a plan; an unpredicted one is a finding, and it went into the table.
+- ⚠️ **A BACKGROUND CHAIN CAN BE STOPPED FROM OUTSIDE.** The first chain died at step 7 with
+  `reason=guard-interrupted exit=130` — not a budget breach. The orphan census read clean, the
+  completed steps were re-used, and the remainder ran as a second chain. ⇒ a long chain should be
+  RESUMABLE by construction: each step asserts its own postcondition so a re-run skips nothing it
+  needs and repeats nothing it has.
+
 ## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0335 (a staleness census over history is cheap, and a gate's wiring date is a free natural experiment)
 
 - ⭐⭐ **THE LESSON: WHEN A DEFECT IS "HOW OFTEN DID X GO STALE", GIT ALREADY HOLDS THE WHOLE

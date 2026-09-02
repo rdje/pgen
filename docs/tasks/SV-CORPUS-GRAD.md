@@ -18200,7 +18200,7 @@ release binary is absent rather than reporting a flattering zero.
   `KNOWLEDGE_MAP.md` + `MEMORY.md` + `docs/TASK_TREE.md`. No contract, ledger, release or schema
   change is owed — nothing shipped changed.
 
-###### ⛔ `.13e.12` (d) — ⭐ NEW `todo`, ROUTED: the FALSE IDENTITY is still asserted in **9 source locations**, one of which SHIPS inside every generated parser (opened 2026-08-25 by `.13e.12`)
+###### ✅✅ `.13e.12` (d) — **`done` 2026-09-02 (`PGEN-SV-CORPUS-GRAD-0336`; the clean-tree re-stamp of the two SV reports follows as `-0337`)** — the FALSE IDENTITY was asserted in **10 source locations** (the routing note said 9 — see the census correction below), one of which SHIPS inside every generated parser (opened 2026-08-25 by `.13e.12`)
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing):
 
@@ -18224,6 +18224,150 @@ release binary is absent rather than reporting a flattering zero.
   all 9 sites to the occurrence-oracle wording `.13e.12` established; (c) regenerate + re-run the
   currency gates; (d) decide whether `fusibility_census.rs:5489`'s printed model line should also
   name `committed_overshoot`, which it already computes but does not mention in the model.
+
+**THE DISCHARGE (`-0336`) — task-tree first, code second, regeneration third.**
+
+⛔ **THE CENSUS WAS 10, NOT 9, AND THE MISS WAS IN THE FLATTERING DIRECTION.** Re-derived before
+touching anything (`grep -rn 'FAILED-speculation\|raw − committed\|total_entries − total_committed\|failed-speculation' rust/src`):
+`parser_registry.rs:61`, `:132`; `ast_based_generator.rs:2026` (the emitted one — inside the
+`quote!` template whose `pub fn enable_coverage` / `exercised_rule_names` neighbours at `:1964` /
+`:2002` are generated-parser methods); `parseability_probe.rs:111`; `fusibility_census.rs:203`,
+**`:342`**, `:377`, `:444`, `:460`, `:5489`. The routing note never listed `:342` — the docstring of
+the `total_discarded` FIELD itself, *"`total_entries − total_committed`: entries inside failed
+speculations"* — and `git blame` dates it **2026-07-13**, so it was there when the note was written.
+A census claim wrong by one, corrected here rather than carried
+([[an-x-is-checked-by-nothing-claim-is-a-census-claim]]).
+
+**(a) THE BLAST RADIUS, MEASURED BY READING EACH GATE'S IDENTITY LOGIC — before the edit, with both
+byte-keyed gates confirmed GREEN on the untouched tree so every later breach is attributable:**
+
+| doctrine | keys on | effect of a comment-only emitter edit + regeneration | cost to clear |
+|---|---|---|---|
+| `GENERATED-REPRODUCIBILITY` | `emission_sha` over the tracked emitter sources + per-artifact `parser_sha`/`input_sha` | tier 1 **BREACHES** at pre-commit (*"the EMISSION SOURCES moved"*) | tier 2 re-derive + record: `make generated_reproducibility_rebaseline` (~4 min) |
+| `PARSE-COST-RATCHET` | `cost.md` identity rows incl. `generated parser` sha; the probe's embedded fingerprint (`build.rs` `PGEN_*_PARSER_SHA256`) | tier 1 **FAILS** — `identity_problem` → `failures` (a NOTE only under `PGEN_PARSE_COST_REBASELINE=1`) | `make sv_parse_cost_ratchet` (~2.5 min) **after** a release-probe rebuild (~22 min), since the fingerprint arm otherwise refuses |
+| `CORPUS-CENSUS-CURRENCY` arm (5) | both SV reports' `generated parser` rows | a budgeted **NOTE**, not a breach | re-stamp both lanes (76 s + 10 s) so the reports describe the parser in the tree |
+| `SV-CONTRACT-CURRENCY` | the grammar's `raw_ast` semantic digest | **unmoved** — no grammar byte changes | — |
+| `GRAMMAR-CERT-CURRENCY` | the generated POPULATION (which families exist), not bytes | **unmoved** | — |
+| `GENERATED-LINT-CORRECTNESS` | clippy over source + generated parsers | must re-run (COMMIT.md step 2) | `make clippy_on_rust_change` |
+
+⇒ a comment fix costs one regeneration, one release rebuild, one ratchet re-measure, one
+reproducibility record, one clippy pass and two lane re-stamps — which is exactly why `.13e.12`
+routed it instead of footnoting it, and exactly the price paid here so that `generated/` stays what
+HEAD produces (TOOLBOX 5.5b).
+
+**(b) THE WORDING.** All ten sites now state the rule TOOLBOX 3.5 established: `committed` is an
+**OCCURRENCE** count over the accepted derivation (C3-B survivors, memo REPLAYS with multiplicity,
+successful-lookahead pushes kept), it does **not** bound entries, `raw − committed` can go negative
+(the `dot_star` 1 / 3 reproducer; corpus-wide **−4 783 319 660**), and the consumer subtracts with
+`saturating_sub` and reports the excess as `committed_overshoot`. The `total_discarded` docstring
+(`:342`) now calls the field what it is — an **upper-bound model** of failed-speculation work,
+Σ `entries.saturating_sub(committed)` — not an identity.
+
+**(d) RULED YES, and done in the same edit:** the printed model line (`:5489`) now says
+`discarded = entries.saturating_sub(committed) per rule — an UPPER-BOUND model …, NOT the identity
+raw − committed (… the clamped excess is committed_overshoot, printed when non-zero)`. The report
+already computed the number (`:2493`) and printed it on a separate WARNING line (`:5530`); a model
+line that named the quantity it clamps but not the clamp was the same defect in miniature.
+
+⭐ **ZERO behaviour bytes.** `git diff -U0 -- rust/src` filtered of `//`/`///` lines leaves exactly
+ONE non-comment change: the `println!` string literal at `:5489`. No codegen decision, no counter,
+no verdict path moves; the generated parsers change by a doc comment and nothing else.
+
+**(c) — the chain, run under the memory guard as ONE script so no step can be forgotten between
+tool calls** (`rust/target/e12d_chain.sh`, log `rust/target/generated_logs/e12d_chain.log`): remove
+the generator binaries first (make 3.81's whole-second mtime compare, TOOLBOX 5.5b) → regenerate all
+11 → assert the corrected sentence is in every generated parser and the false one in none → rebuild
+the release probe → rebuild the dual-feature `ast_pipeline` (regenerate builds it BEFORE the parser)
+→ `sv_parse_cost_ratchet` → `generated_reproducibility_rebaseline` → `clippy_on_rust_change` →
+re-stamp both SV lanes + adjudicate → the doctrine driver. Results are recorded in the acceptance
+checklist below once the chain completes.
+
+⛔⛔ **THE CHAIN'S OWN ASSERTION FIRED, AND IT IS `CI-PARITY-GATE-ROT.49` MEASURED A SECOND TIME —
+WITH ITS HEADLINE OFF BY ONE.** After `make regenerate_generated_parsers` exited 0 (*"✅ …
+annotation pair + 7 grammar families"*), the two-grep assertion read **`corrected copies: 9`,
+`stale copies: 2`**: `generated/ebnf.rs` (the seed — `regex_parser_bootstrap` guards it with
+`if [ ! -f generated/ebnf.rs ]`, `.49`'s known cause) **and `generated/scratch_parser.rs`**, which
+`.49` never named: `scratch` is in `check_generated_reproducibility.sh`'s `FAMILIES` (`:227`, eight)
+and not in `rust/Makefile`'s `GENERATED_PARSER_FAMILIES` (`:1083`, seven), so the recipe never
+calls `focus_scratch`. ⇒ *"regenerate everything"* regenerates **nine of eleven**, for two different
+reasons. `GENERATED-REPRODUCIBILITY` tier 2 then refused to record (*"tier 2 found a breach …
+do not record the divergence"*), printing the fresh derivation's `+` lines the live artifacts lacked
+— the doctrine load-bearing a second time, one month after `.66`. `PARSE-COST-RATCHET` refused too,
+for a reason the plan above had not priced: its **family-share** arm
+(`--verify-family-share`) fails first when the generated parser moves, so
+`make sv_parse_cost_family_share` (~70 s) must precede `sv_parse_cost_ratchet`. ⭐ The two greps
+cost nothing and ran BEFORE the 18-minute release rebuild — which is the reason they are the first
+step and not the last. Routed: `.49` annotated (second measurement, the `scratch` half, a new owed
+(d) — hold the two family lists equal); promoted:
+`docs/knowledge/assert-a-regeneration-reached-every-artifact-before-running-the-gates.md`.
+
+⚠️ **The first chain was INTERRUPTED at step 7 (clippy) after 1 852 s** — the memory guard's marker
+reads `reason=guard-interrupted exit=130`, peak 9 764 MB of a 16 384 MB budget, free 34 %: a stop
+signal from the harness, not a budget breach — and `check_no_background_jobs.sh --all` confirmed no
+orphan survived it. A second chain regenerated the two missed artifacts the way each recipe allows
+(`rm generated/ebnf.rs && make regex_parser_bootstrap`; `make focus_scratch`), asserted **11 / 0**,
+and continued.
+
+**THE VERDICTS, chain 2 (`rust/target/generated_logs/e12d_chain2.log`).** Release probe rebuilt
+(18 m 45 s) and the dual-feature `ast_pipeline` (46 s); `GENERATED-REPRODUCIBILITY` tier 2:
+**every artifact re-derives byte-identically, `0 sites`, baseline RECORDED** (`emission_sha`
+`2c69df43… → e17bf1a9…`); `sv_parse_cost_family_share`: *"the carried constant 2.756 % reproduces
+exactly"*; `sv_parse_cost_rebaseline` (the deliberate lever — `sv_parse_cost_ratchet` alone
+correctly REFUSES an identity move): promoted, and **`cost.md` moved by exactly one line (the
+`generated parser` row), `entries.tsv` and `rule_costs.tsv` by ZERO bytes** (`git diff --numstat`
+empty), `advisory.json` only in wall-clock keys (`parse_ms`, `median_ms`, `total_*_ms`,
+`process_floor_ms`) — **a doc comment moved the parser digest and zero binding counters, measured**;
+`clippy_on_rust_change`: source strict lint + generated-parser stage **pass**; both SV lanes
+re-parsed: `16336 / 9811 / 6525 / 0 / 0` and `2606 / 2300 / 306 / 0 / 0`, **every verdict unmoved**,
+`outcome-identity: OK` ×2, manifests byte-identical. ⛔ The re-stamped reports read
+`ff2673e4+dirty` because the tree carried this slice's uncommitted emitter edit when they were
+measured — and their `results (output)` / `positions (output)` rows did **not** move (the dumps are
+byte-identical), so both reports were reverted to `HEAD` for this commit and are re-stamped on the
+clean tree as `-0337`, exactly as `-0334` did for `-0333`. `CORPUS-CENSUS-CURRENCY` therefore prints
+a budgeted arm-(5) NOTE for both SV lanes (*"differs … after 0 commit(s)"*) until then, and the
+adjudicator reads `outcome-identity: OK` against the reverted reports. `bash scripts/check_doctrines.sh`:
+**ALL 34 enforced doctrines PASS.**
+
+###### Acceptance Checklist (enforced) — `.13e.12` (d)
+
+  - [x] **REPRODUCE / ISSUE** — `grep -c 'FAILED-speculation entry count' generated/systemverilog_parser.rs`
+        = 1 and `grep -l FAILED-speculation generated/*.rs | wc -l` = **11**: every shipped parser told
+        its reader an identity `.13e.12` measured false (`dot_star` entered 1, committed 3;
+        corpus-wide `entries − committed = −4 783 319 660`).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — WHY: the docstrings were written when `committed` was believed
+        to bound entries; `ENGINE-UNIVERSAL-SERVICES.22`(e)'s replay-with-multiplicity fold and the
+        kept successful-lookahead pushes made `committed` an OCCURRENCE count, and the prose in TEN
+        sites was never revisited. WHERE: `parser_registry.rs:61`, `:132`;
+        `ast_based_generator.rs:2026` (inside the `quote!` template — emitted into 11 of 11 generated
+        parsers, GENERATED-CLIPPY-CORRECTNESS: the generated-parser clippy stage is the lane that
+        re-lints what it emits); `parseability_probe.rs:111`; `fusibility_census.rs:203`, `:342`,
+        `:377`, `:444`, `:460`, `:5489`. The consumer at `fusibility_census.rs:2493` already clamps
+        (`committed.saturating_sub(entries)` → `committed_overshoot`), so behaviour was right and
+        prose was wrong. The tenth site (`:342`) — missed by the routing census — is dated by
+        `git blame` to 2026-07-13.
+  - [x] **FIX** — ten comment rewrites to the occurrence-oracle rule + one `println!` model string
+        naming the clamp and `committed_overshoot` ((d) RULED YES). Codegen-comment tier: ZERO
+        behaviour bytes (`git diff -U0 -- rust/src` filtered of `//`/`///` lines = one string literal).
+  - [x] **ADDRESSED (verified)** — after regeneration `grep -l 'is NOT the failed-speculation'
+        generated/*.rs | wc -l` = **11** and `grep -l 'FAILED-speculation entry count' generated/*.rs`
+        names **0** files (was 9 / 2 after `regenerate_generated_parsers` alone — see `.49`);
+        `generated/` re-derives byte-identically from HEAD's emitter (`GENERATED-REPRODUCIBILITY`
+        tier 2 RECORDED).
+  - [x] **NO REGRESSION** — the parse-cost baseline re-measured on the rebuilt release probe:
+        `entries.tsv` and `rule_costs.tsv` **byte-identical** (`git diff --numstat` empty), `cost.md`
+        moved by its one identity row, `family share 2.756 %` reproduces exactly; clippy source +
+        generated stages pass (`GENERATED-CLIPPY-CORRECTNESS` policy-only + `clippy_generated_all_targets`
+        ok); both SV corpus lanes re-parsed with every verdict unmoved and the adjudication
+        manifests byte-identical (`match=5851 unexplained=268`, `v2005 match=2291 unexplained=54`);
+        `bash scripts/check_doctrines.sh` ALL 34 PASS. **RED control**: the two-grep assertion went
+        RED (9 / 2) on the incomplete regeneration and tier 2 refused to record it — the same
+        instruments that now read 11 / 0 and RECORDED.
+  - [x] **LOCKSTEP** — four Rust source files + the regenerated `generated/` (untracked) +
+        `generated_reproducibility_v0.json` + the ratchet's `cost.md`/`advisory.json`/`family_share.json`
+        + `TOOLBOX.md` 3.5 (which quoted the old docstring as current) + `CI-PARITY-GATE-ROT.49`
+        (annotated) + a knowledge card + this leaf + `docs/TASK_TREE.md` + `CHANGES.md` +
+        `DEVELOPMENT_NOTES.md` + `MEMORY.md`. The two SV characterization reports: `-0337`.
+
 
 ##### ✅✅ `.13e.11` — **CLOSED: (a) refuted the leaf's own founding arm, (b) slice 1 moved the census into the engine (2 m 43 s → 33 s), (b) slice 2 shipped it as the 28th REGISTERED DOCTRINE, and (c) ruled — and the closed-population sweep caught a false-positive blocker in the gate's own first cut** (`done` 2026-08-26; (a) `PGEN-SV-CORPUS-GRAD-0307`, (b) slice 1 `PGEN-SV-CORPUS-GRAD-0308`, (b) slice 2 + (c) `PGEN-SV-CORPUS-GRAD-0309`; opened 2026-08-25 by `.13e.9`)
 

@@ -5951,7 +5951,7 @@ set with its total cost, and ⛔ price it against the automatic tier's current b
 asserting it is affordable; (d) state the honest bound: this closes the *reporting-latency* half of
 `GATE-REACHABILITY`, not the coverage half, and the two are different properties.
 
-### ⛔⛔ `.49` NEW `todo` — **`regenerate_generated_parsers` DOES NOT REFRESH `generated/ebnf.rs` ON A WARM TREE, SO A CODEGEN CHANGE SILENTLY DOES NOT REACH ONE OF THE ELEVEN ARTIFACTS** (opened 2026-08-28 by `ENGINE-UNIVERSAL-SERVICES.66` / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`, ROUTED OUT and PARKED behind the SV lane)
+### ⛔⛔ `.49` NEW `todo` — **`regenerate_generated_parsers` DOES NOT REFRESH `generated/ebnf.rs` ON A WARM TREE — NOR `scratch_parser.rs` ON ANY TREE (`-0336`) — SO A CODEGEN CHANGE SILENTLY DOES NOT REACH TWO OF THE ELEVEN ARTIFACTS** (opened 2026-08-28 by `ENGINE-UNIVERSAL-SERVICES.66` / `PGEN-ENGINE-UNIVERSAL-SERVICES-0115`, ROUTED OUT and PARKED behind the SV lane)
 
 - **WHY + WHERE (measured, not read).** `rust/Makefile`'s `regex_parser_bootstrap` guards the seed
   step with `if [ ! -f $(GENERATED_DIR)/ebnf.rs ]`. The guard is correct for its stated purpose —
@@ -5980,3 +5980,22 @@ asserting it is affordable; (d) state the honest bound: this closes the *reporti
 - ⚠️ **HONEST BOUND**: the artifact is untracked and the tier-2 gate re-derives it on every run, so
   the exposure is bounded to *between* a codegen change and the next gate run — not shipped state.
   That is why this is ROUTED rather than treated as release-blocking.
+- ⭐⭐ **RE-MEASURED INDEPENDENTLY 2026-09-02 (`SV-CORPUS-GRAD.13e.12`(d), `PGEN-SV-CORPUS-GRAD-0336`) —
+  THE FINDING HOLDS, THE DOCTRINE HELD A SECOND TIME, AND THE HEADLINE UNDERCOUNTS BY ONE.** A
+  comment-only emitter edit (`ast_based_generator.rs`, one `quote!`-emitted doc comment) followed by
+  `make regenerate_generated_parsers` (exit 0, the same *"✅ … annotation pair + 7 grammar families"*
+  line) left **9 corrected copies and 2 stale** — measured by grepping every `generated/*.rs` for the
+  new sentence and for the old one, BEFORE any gate ran. `GENERATED-REPRODUCIBILITY` tier 2 then
+  refused to record (*"tier 2 found a breach … do not record the divergence"*), printing the
+  corrected `+` lines its fresh derivation had and the live artifact lacked — exactly `.66`'s shape,
+  one month later, on a different change. ⛔ **The second stale artifact is `generated/scratch_parser.rs`,
+  and `.49` never named it**: `scratch` is in the reproducibility gate's `FAMILIES` array
+  (`check_generated_reproducibility.sh:227`, eight families) but NOT in the Makefile's
+  `GENERATED_PARSER_FAMILIES` (`rust/Makefile:1083`, seven), so `regenerate_generated_parsers` never
+  calls `focus_scratch`. ⇒ the recipe regenerates **nine of eleven**, not ten of eleven; the two
+  misses have DIFFERENT causes (an existence guard on the seed; a family list the gate and the
+  Makefile keep separately) and need different fixes. Workaround this slice used, recorded so the
+  next author does not rediscover it: `rm generated/ebnf.rs && make regex_parser_bootstrap` for the
+  seed, `make focus_scratch` for scratch, then `--rebaseline`. **(d) added to OWES**: hold the two
+  family lists equal — a gate that covers a family the recipe does not regenerate is a gate that will
+  breach on every emitter change, which is a gate people learn to bypass.

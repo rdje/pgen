@@ -2021,9 +2021,15 @@ impl AstBasedGenerator {
             /// per-RuleId histogram. Same soundness as `exercised_rule_names` (failed
             /// speculations are truncated by `try_parse`, so only committed successes
             /// remain — C3-B semantics: winners AND successful-but-losing tournament
-            /// branches both count), but keeps multiplicity instead of deduplicating,
-            /// so `rule_call_counts()[id] − committed[id]` is the rule's
-            /// FAILED-speculation entry count. Read-only; meaningful only after a
+            /// branches both count), but keeps multiplicity instead of deduplicating.
+            /// ⛔ It is an OCCURRENCE count, not a bound on `rule_call_counts()`: a memo
+            /// hit on an ANCESTOR re-counts this rule's occurrences without invoking it,
+            /// and a successful positive lookahead keeps its pushes, so
+            /// `committed[id]` can EXCEED `rule_call_counts()[id]` and
+            /// `rule_call_counts()[id] − committed[id]` is NOT the failed-speculation
+            /// count (SV-CORPUS-GRAD.13e.12: `dot_star` entered 1, committed 3). Read
+            /// `committed[id] ≥ 1` as "this rule occurs in the accepted derivation";
+            /// subtract only behind a sign check. Read-only; meaningful only after a
             /// successful parse made with coverage enabled. Indexed like RULE_NAMES.
             /// ⭐⭐ ENGINE-UNIVERSAL-SERVICES.22 (e) — THE MULTIPLICITY FOLD.
             /// The recorded tree is not materialised; it is COUNTED. Each REPLAY
