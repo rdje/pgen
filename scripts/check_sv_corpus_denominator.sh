@@ -156,11 +156,13 @@ def read_bytes(p):
 
 
 def strata_without_tick_column(raw):
-    """strata.tsv minus its corpus-dependent last column, so the freshness comparison still
-    binds when the submodules are absent instead of being skipped wholesale."""
+    """strata.tsv minus its corpus-dependent LAST column, so the freshness comparison still
+    binds when the submodules are absent instead of being skipped wholesale. Positional on
+    the tail, not on a count: `.13c.1` added a corpus-INDEPENDENT `not_source` column before
+    the tick column, and a `[:5]` slice would have silently stopped comparing it."""
     out = []
     for line in raw.decode("utf-8").splitlines():
-        out.append("\t".join(line.split("\t")[:5]))
+        out.append("\t".join(line.split("\t")[:-1]))
     return "\n".join(out)
 
 
@@ -183,7 +185,7 @@ else:
             != strata_without_tick_column(read_bytes(f"{SCRATCH}/strata.tsv"))):
         note(f"the tracked {ART}/strata.tsv disagrees with the instrument on its "
              f"corpus-INDEPENDENT columns — it is STALE. Re-run: python3 {INSTRUMENT}")
-    compared.append("strata.tsv (columns 1-5 only)")
+    compared.append("strata.tsv (all but the corpus-dependent tick column)")
     unevaluated.append("coverage.md and strata.tsv's DARK-half backtick column: the vendored "
                        f"corpora are submodules and {CORPUS_PROBE} is empty here")
 

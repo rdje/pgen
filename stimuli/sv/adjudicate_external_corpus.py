@@ -27,6 +27,13 @@ Expected-verdict taxonomy (leaf .1 design):
                            outranks the upstream tool. "Intentional" is the common case,
                            never the test: the test is the missing derivation.
   chained_only             adjudicable only with include/library chaining (leaf .4)
+  not_source_text          the file's BYTES are not SystemVerilog source text at all - a
+                           $readmemh memory image (IEEE 1800-2017 §21.4), a bare string
+                           literal, a tool command line. Decided by `not_source_text()`
+                           from the bytes, never from a list or an extension
+                           (SV-CORPUS-GRAD.13c.1). A must_reject key OUTRANKS the shape
+                           (rejecting non-source text is a verdict); a must_accept key on
+                           such a file is a broken key and the run REFUSES.
   out_of_scope_with_cause  owned by another lane (cause named, e.g. svpp).
                            May carry a deferral slug suffix after ':'
                            (e.g. out_of_scope_with_cause:v2005_profile_lane) —
@@ -46,6 +53,8 @@ Adjudication classes:
   divergence:explained_svpp_conditional  ... file relies on `ifdef conditionals
   divergence:explained_timeout           the tracked pathological-input population
   deferred:<cause>                       chained_only / out_of_scope rows (no verdict here)
+  deferred:not_source_text               the row is a fact about the CORPUS, not the parser
+                                         (PERMANENT and ceiling-bounded in the instrument)
 
 Deterministic: output ordering is (suite, relpath); content-derived only.
 
@@ -851,6 +860,126 @@ def reject_arm_demotion(dep_flag: str, *, position_refutes_dependency: bool = Fa
                 "expectation is only meaningful post-preprocessing "
                 "(svpp lane)")
     return None
+
+
+# --- SV-CORPUS-GRAD.13c.1: rows that are not SystemVerilog source text at all -----------------
+# ⛔ Membership is a property of the BYTES. A list of paths would be wrong the day a corpus adds a
+# 347th memory image; an extension test is exactly what let 346 `.v` files into a parse census.
+# Each shape is stated so a reader can refute it: what the file contains, and why that has no
+# derivation as `source_text` (IEEE 1800-2017 §A.1.2).
+#   readmemh_image  — §21.4 (docs/systemverilog/2017/md/section-21-input-output-system-tasks-and-
+#                     system-functions.md:1305-1322): "The text file to be read shall contain only
+#                     ... White space ... Comments ... Binary or hexadecimal numbers", with `x/X`,
+#                     `z/Z`, `_` allowed in a number and addresses written `@hh...h`.
+#   string_literal_only — nothing outside string literals and comments; no `description` derives it.
+#   tool_command_line   — every non-blank line is a run of `-`/`+` options (a Surelog `.sl` body
+#                         saved with a `.sv` extension).
+# CONSERVATIVE BY DESIGN: a shape the detector cannot decide is left as it was (visible under its old
+# class), never guessed into this one — an empty or comment-only file IS a compilation unit with zero
+# descriptions and is source text.
+_NS_COMMENT_RE = re.compile(r"/\*.*?\*/|//[^\n]*", re.S)
+_NS_READMEM_TOKEN_RE = re.compile(r"^(@[0-9a-fA-F]+|[0-9a-fA-F_xXzZ]+)$")
+_NS_STRING_LITERAL_RE = re.compile(r'"(?:[^"\\\n]|\\.)*"')
+NOT_SOURCE_SHAPES = {
+    "readmemh_image":
+        "a $readmemh memory image - only white space, comments and hexadecimal numbers, with "
+        "optional @hh...h address lines (IEEE 1800-2017 §21.4)",
+    "string_literal_only":
+        "a bare string literal - nothing outside string literals and comments, so no "
+        "description (IEEE 1800-2017 §A.1.2 source_text) can derive it",
+    "tool_command_line":
+        "a tool command line - every non-blank line is a run of -/+ options, not "
+        "SystemVerilog",
+}
+
+
+def not_source_text(text: str):
+    """The shape slug when `text` is decidably not SystemVerilog source text, else None."""
+    body = _NS_COMMENT_RE.sub(" ", text)
+    if not body.strip():
+        return None
+    toks = body.split()
+    if all(_NS_READMEM_TOKEN_RE.match(t) for t in toks) and (
+            any(t.startswith("@") for t in toks)
+            or all(any(ch.isdigit() for ch in t) for t in toks)):
+        return "readmemh_image"
+    if _NS_STRING_LITERAL_RE.search(body) and not _NS_STRING_LITERAL_RE.sub(" ", body).strip():
+        return "string_literal_only"
+    lines = [ln for ln in body.splitlines() if ln.strip()]
+    if lines and not re.search(r"[;(){}]", body) and all(ln.lstrip()[0] in "-+" for ln in lines):
+        return "tool_command_line"
+    return None
+
+
+def apply_not_source_text(suite: str, rel: str, text: str, expected: str, basis: str):
+    """The ONE decision both lanes make after the answer key has spoken.
+
+    A key OUTRANKS a shape in the direction that is a verdict: `must_reject` on non-source text is
+    a correct expectation and stays. `must_accept` on non-source text is a contradiction nobody can
+    adjudicate around, so the run REFUSES and names the row - fix the key. Every unkeyed row
+    (chained_only / out_of_scope) whose bytes are not source text becomes `not_source_text`.
+    """
+    shape = not_source_text(text)
+    if shape is None or expected == "must_reject":
+        return expected, basis
+    if expected == "must_accept":
+        raise SystemExit(
+            f"⛔ REFUSING: {suite}/{rel} is keyed must_accept but its bytes are not SystemVerilog "
+            f"source text ({shape}: {NOT_SOURCE_SHAPES[shape]}). A key that expects that to parse is "
+            "a broken key - fix the KEY, not the detector (SV-CORPUS-GRAD.13c.1)")
+    return ("not_source_text",
+            f"not SystemVerilog source text: {NOT_SOURCE_SHAPES[shape]} (SV-CORPUS-GRAD.13c.1)")
+
+
+def _self_check_not_source_text():
+    """Ground truth for the not-source decision, re-run on every invocation (microseconds).
+
+    Both directions: every shape has positives that MUST classify, and a negative list of things
+    that look degenerate but ARE source text (empty, comment-only, a `define pair, an include
+    fragment, an enum-member list) or that a lazy detector would swallow (`abc`, `deadbeef cafe`,
+    an unterminated literal, `-1;`). Then the decision itself, all four arms.
+    """
+    positives = {
+        "readmemh_image": ["@00010000 93 00 00 00\n13 01 00 00\n", "00000000\n00000000\n",
+                           "// boot image\n@0 ff_ff xx zz 1\n/* end */\n"],
+        "string_literal_only": ['// Just a test string\n"test string"\n', '"system stuff!"',
+                                '"a" "b"\n/* c */\n'],
+        "tool_command_line": ["-parse -d uhdm -d coveruhdm -elabuhdm -d ast dut.sv -nobuiltin\n",
+                              "+incdir+../rtl\n-f files.f\n"],
+    }
+    negatives = ["", "\n\n", "// only a comment\n", "/* block */\n",
+                 "`define BAR `__FILE__\n`define FOO `BAR\n", '`include "macro.svh"\n',
+                 "module m; endmodule\n", "CUSTOM_1,\n", "localparam X = 8'hFF;\n", "abc\n",
+                 "deadbeef cafe\n", '"unterminated\n', "-1;\n", "wire w;\n", "timeunit 1ns;\n"]
+    for shape, texts in positives.items():
+        for t in texts:
+            got = not_source_text(t)
+            if got != shape:
+                raise SystemExit(f"adjudicator MISCALIBRATED: not_source_text({t!r}) = {got!r}, "
+                                 f"want {shape!r} (SV-CORPUS-GRAD.13c.1)")
+    for t in negatives:
+        got = not_source_text(t)
+        if got is not None:
+            raise SystemExit(f"adjudicator MISCALIBRATED: not_source_text({t!r}) = {got!r} on "
+                             "SOURCE TEXT - the detector must never widen past its stated shapes "
+                             "(SV-CORPUS-GRAD.13c.1)")
+    img = "@0 ff 00\n"
+    refused = None
+    try:
+        apply_not_source_text("s", "r.v", img, "must_accept", "k")
+    except SystemExit as e:
+        refused = str(e)
+    if not refused or "broken key" not in refused:
+        raise SystemExit("adjudicator MISCALIBRATED: must_accept on a memory image did not REFUSE "
+                         "with the broken-key text (SV-CORPUS-GRAD.13c.1)")
+    if apply_not_source_text("s", "r.v", img, "must_reject", "k") != ("must_reject", "k"):
+        raise SystemExit("adjudicator MISCALIBRATED: a must_reject key must OUTRANK the shape")
+    if apply_not_source_text("s", "r.v", img, "chained_only", "k")[0] != "not_source_text":
+        raise SystemExit("adjudicator MISCALIBRATED: an unkeyed memory image must become "
+                         "not_source_text")
+    if apply_not_source_text("s", "r.v", "module m; endmodule\n", "chained_only", "k") != (
+            "chained_only", "k"):
+        raise SystemExit("adjudicator MISCALIBRATED: source text must pass through untouched")
 
 
 def _self_check_arm_split():
@@ -3287,6 +3416,8 @@ def adjudicate(expected, observed, dep_flag):
         return "divergence:explained_timeout"
     if expected == "chained_only":
         return "deferred:chained_only"
+    if expected == "not_source_text":
+        return "deferred:not_source_text"
     if expected.startswith("out_of_scope_with_cause"):
         # A ':<slug>' suffix names the owning lane (SV-CORPUS-GRAD.8); the
         # bare form keeps the historical svpp_owned label byte-stable.
@@ -3404,6 +3535,7 @@ def main():
     # SV-CORPUS-GRAD.12c.3 F3 - the two-caller split is asserted BEFORE any row is adjudicated,
     # so a broken split refuses to produce a manifest rather than producing a wrong one.
     _self_check_arm_split()
+    _self_check_not_source_text()
     ap = argparse.ArgumentParser(description=__doc__)
     root = Path(__file__).resolve().parent.parent.parent  # repo root
     ap.add_argument("--self-test", action="store_true",
@@ -3531,6 +3663,7 @@ def main():
             expected, basis = sidx.expect(rel)
         else:
             raise SystemExit(f"unknown suite {suite!r} in results.tsv")
+        expected, basis = apply_not_source_text(suite, rel, text, expected, basis)
         dep_flag = ""
         if expected in ("must_accept", "must_reject"):
             dep_flag = preproc_dependency(text)
@@ -3666,6 +3799,7 @@ def main():
     for suite, rel, observed in v_rows:
         text = read_text(args.subs_root / suite / rel)
         expected, basis = expect_v2005(suite, rel, text, ividx)
+        expected, basis = apply_not_source_text(suite, rel, text, expected, basis)
         dep_flag = ""
         if expected in ("must_accept", "must_reject"):
             dep_flag = preproc_dependency(text)

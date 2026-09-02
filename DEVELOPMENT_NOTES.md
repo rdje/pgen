@@ -1,5 +1,23 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0345 (a denominator row is classified from its bytes)
+
+- ⭐⭐ **THE LESSON: A ROW'S CLASS IN A DENOMINATOR IS A PROPERTY OF ITS BYTES, NEVER OF ITS EXTENSION
+  OR ITS SUITE — AND A KEY OUTRANKS A SHAPE ONLY IN THE DIRECTION THAT IS A VERDICT.** 346 `$readmemh`
+  memory images entered a SystemVerilog parse census because they wear `.v`, and sat for 23 days in
+  DARK `chained_only` — a defect worklist no chaining could burn down — because the design-suite rule
+  keyed on the SUITE. The fix is a detector over the bytes (`not_source_text()`, three stated shapes
+  with an LRM cite for the image format), applied AFTER the answer key has spoken: `must_reject` on
+  non-source text is a correct expectation and stays; `must_accept` on it is a broken key and REFUSES;
+  every unkeyed row becomes `not_source_text`, PERMANENT and ceiling-bounded at its measured count.
+- **Re-measure before you close.** The leaf's headline said 351 (2 Surelog command lines); its own
+  sibling census said 1. The file-shape census over all 16 336 rows gave 350, and the bank's whole-corpus
+  arm holds the detector to exactly the labelled set with ZERO adjudicated rows hit.
+- **A census you correct can correct a sentence you did not touch.** The book quoted *530* zero-backtick
+  `chained_only` rows; the tracked artifact said 528 and now says 178 — 350 of them had no backtick because
+  they had no source. The gate holds the artifact; it never held the sentence (`.13v`'s class).
+- `promotion:` knowledge card `a-denominator-row-is-classified-from-its-bytes-not-its-extension`.
+
 ## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0344 (a permanent deferral is a claim, so it gets a bound; and a RED arm must be read, not counted)
 
 - ⭐⭐ **THE LESSON: "PERMANENT" IS A CLAIM ABOUT THE FUTURE, AND A CLAIM ABOUT THE FUTURE NEEDS A BOUND

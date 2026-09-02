@@ -4,15 +4,11 @@ NO-ALTERABLE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/comps/uvm
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Cores-VeeR-EL2	design/include/el2_dec_csr_equ_m.svh	1622	1623		87	19862		nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Cores-VeeR-EL2	design/include/el2_dec_csr_equ_mu.svh	1939	1940		104	24138		nc; logic postsync; assign csr_misa = (!dec_csr_rdaddr_d[11]&!dec_csr_rdaddr_d[6
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/ElabSysCall/dut.sv	42	78		3	385		must be at most 4kB"); end endmodule module top_error(); if (1) begin $error(
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	Surelog	tests/LoopBits/LoopBits.sv	0	0		1	63		-parse -d uhdm -d coveruhdm -elabuhdm -d ast dut.sv -nobuilt
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/cip_lib/cip_lc_tx_cov_if.sv	414	415		11	624		(lc_ctrl_pkg::Off)) lc_tx_cov; lc_tx_cov cov; initial begin cov = lc_tx_
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv	1430	1433		53	13926		th(EntropyWidth), ) u_kmac_reduced ( .clk_i, .rst_ni, // Inputs e
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/dv/verilator/simple_system_cosim/ibex_simple_system_cosim_checker_bind.sv	275	275		7	906		#( .SecureIbex, .ICache, .PMPEnable, .PMPGranularity,
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/syn/rtl/latch_map.v	200	201		6	303		pecific cell module $_DLATCH_P_ (input E, input D, output Q); DLH_X1 _TECHMAP_RE
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv	51			2	52		name enum CUSTOM_1,
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	slang	tests/unittests/data/local.svh	22			2	36		Just a test string "test string"
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	slang	tests/unittests/data/nested/nested_local.svh	0			1	14		"test string"
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	slang	tests/unittests/data/system/system.svh	0			1	16		"system stuff!"
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	verilator	test_regress/t/t_langext_order_sub.v	335	336		11	351		ext_order_sub(input do); endmodule
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	Surelog	tests/ModPortTest/top.v	220	220		14	739	id_t1	id_t1 aw_id; modport Master ( output aw_id ); id_t
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	Surelog	tests/UnitClass/top.v	460	461		24	868	DD	ass B b; DD d; covergroup memory @ (posedge ce); address : co

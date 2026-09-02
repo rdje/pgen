@@ -121,11 +121,21 @@ CLASSES = {
         "NO VERDICT", "Verilog-AMS, a different language family"),
     "deferred:ni_unimplemented": (
         "NO VERDICT", "upstream marks the construct not-implemented"),
+    "deferred:not_source_text": (
+        "NO VERDICT", "the file is not SystemVerilog source text at all (a $readmemh memory "
+        "image, a bare string literal, a tool command line) - it testifies to nothing about "
+        "the parser; a CORPUS-COMPOSITION fact, stated per row (SV-CORPUS-GRAD.13c.1)"),
     "deferred:vendor_extension_enabled": (
         "NO VERDICT", "the descriptor switches a NON-STANDARD vendor extension ON, so "
         "'it compiled' is testimony about a superset language (SV-CORPUS-GRAD.13e.3)"),
 }
 BUCKETS = ["ADJUDICATED", "ROUTED", "NO VERDICT"]
+
+# SV-CORPUS-GRAD.13c.1: the one NO-VERDICT class whose rows are NOT DARK. DARK means "the parse of
+# SOURCE TEXT failed and the deferral is why nobody looked"; a $readmemh image failing to parse
+# as SystemVerilog is not a parse nobody looked at, it is a file that was never a parse input.
+# The adjudicator decides membership from the BYTES (`not_source_text()`), never from a list.
+NOT_SOURCE = "deferred:not_source_text"
 
 # --- SV-CORPUS-GRAD.13f: the PERMANENT deferrals, stated as permanent and BOUNDED -----------------
 # ⛔ A permanent deferral is a CLAIM — "no future work on the parser, the key or the corpus can give
@@ -152,6 +162,11 @@ PERMANENT = {
     "deferred:ni_unimplemented":
         "the upstream runner marks the construct NI (Not Implemented) and skips the test, so the "
         "suite itself holds no expectation to compare against",
+    "deferred:not_source_text":
+        "the bytes are not source text in any language this grammar describes - a $readmemh "
+        "memory image (IEEE 1800-2017 §21.4), a bare string literal, a tool command line - so no "
+        "answer key, no include/define chaining and no grammar revision can produce a verdict "
+        "ABOUT SYSTEMVERILOG from them; the row is a statement about the corpus's composition",
 }
 DEFAULT_CEILINGS = ("docs/tasks/artifacts/sv_corpus_grad/verdict_coverage/"
                     "permanent_deferral_ceilings.json")
@@ -208,6 +223,11 @@ TICK_MEANING = {
         "information only — the label is about the DIALECT (Verilog-AMS), not directives",
     "deferred:ni_unimplemented":
         "information only — upstream marks the construct not-implemented",
+    "deferred:not_source_text":
+        "⛔ **NOT MEASURED, and saying so is the point** — the census asks whether expansion "
+        "could alter a failing PARSE of source text; these rows are not source text, so there "
+        "is no parse for a directive to reach. They are excluded from DARK by construction "
+        "(`.13c.1`) and appear here only so the class table is total",
     "deferred:vendor_extension_enabled":
         "⛔ **IRRELEVANT to this deferral, and saying so is the point** — the row is "
         "parked because of what the ANSWER KEY tested, never because of what the TEXT "
@@ -377,7 +397,10 @@ def main():
     strata = {}
     for r in nv_rows:
         s = strata.setdefault(r["adjudication"], Counter())
-        if r["observed"] == "pass":
+        if r["adjudication"] == NOT_SOURCE:
+            # SV-CORPUS-GRAD.13c.1: not a parse of source text, so neither testimony nor DARK.
+            s["not_source"] += 1
+        elif r["observed"] == "pass":
             s["one_sided_fragment" if is_fragment_shaped(r) else "one_sided_unit"] += 1
         else:
             s["dark"] += 1
@@ -391,7 +414,8 @@ def main():
         paths = [resolve_row(r, idx) for r in rows]
         for r, rel in zip(rows, paths):
             if (CLASSES[r["adjudication"]][0] == "NO VERDICT"
-                    and r["observed"] == "fail"):
+                    and r["observed"] == "fail"
+                    and r["adjudication"] != NOT_SOURCE):
                 dark_scanned += 1
                 if has_no_backtick(ROOT / rel):
                     no_tick[r["adjudication"]] += 1
@@ -449,6 +473,7 @@ def main():
     tot_unit = sum(s["one_sided_unit"] for s in strata.values())
     tot_frag = sum(s["one_sided_fragment"] for s in strata.values())
     tot_dark = sum(s["dark"] for s in strata.values())
+    tot_ns = sum(s["not_source"] for s in strata.values())
     L.append("## Inside `NO VERDICT` — what the parser ALREADY did on the row's own "
              "bytes (SV-CORPUS-GRAD.13a)\n")
     L.append(f"- **ONE-SIDED POSITIVE — {tot_unit + tot_frag:,} rows "
@@ -464,17 +489,24 @@ def main():
              "corpus)**: the parse failed and the deferral is why nobody looked. "
              "**This — not the headline 38.7 % — is the population a disposition has "
              "to burn down.**")
+    L.append(f"- **NOT SOURCE TEXT — {tot_ns:,} rows ({100*tot_ns/total:.1f} % of the "
+             "corpus)** (SV-CORPUS-GRAD.13c.1): the file is a `$readmemh` memory image, a bare "
+             "string literal or a tool command line, decided from its BYTES by the adjudicator. "
+             "It never was a parse input, so it is neither testimony nor DARK — it stays in the "
+             "denominator as a stated fact about the corpus's composition, and the class is "
+             "PERMANENT and bounded below. ⛔ Before `.13c.1` these rows were counted as DARK "
+             "`chained_only`, a defect worklist no chaining could ever burn down.")
     L.append("")
-    L.append("| class | rows | one-sided (unit) | ⚠️ one-sided (fragment) | DARK |")
-    L.append("|---|---:|---:|---:|---:|")
+    L.append("| class | rows | one-sided (unit) | ⚠️ one-sided (fragment) | DARK | not source |")
+    L.append("|---|---:|---:|---:|---:|---:|")
     for cls, n in sorted(counts.items(), key=lambda kv: -kv[1]):
         if CLASSES[cls][0] != "NO VERDICT":
             continue
         s = strata.get(cls, Counter())
         L.append(f"| `{cls}` | {n:,} | {s['one_sided_unit']:,} | "
-                 f"{s['one_sided_fragment']:,} | {s['dark']:,} |")
-    L.append(f"| **TOTAL** | **{tot_unit + tot_frag + tot_dark:,}** | "
-             f"**{tot_unit:,}** | **{tot_frag:,}** | **{tot_dark:,}** |")
+                 f"{s['one_sided_fragment']:,} | {s['dark']:,} | {s['not_source']:,} |")
+    L.append(f"| **TOTAL** | **{tot_unit + tot_frag + tot_dark + tot_ns:,}** | "
+             f"**{tot_unit:,}** | **{tot_frag:,}** | **{tot_dark:,}** | **{tot_ns:,}** |")
     L.append("")
 
     # --- SV-CORPUS-GRAD.13f: the permanent set, stated and bounded ------------------
@@ -533,6 +565,11 @@ def main():
                           if r["adjudication"] == cls)
         for reason, rn in sorted(reasons.items(), key=lambda kv: (-kv[1], kv[0])):
             shown = reason if len(reason) <= 130 else reason[:127] + "…"
+            if shown.count("`") % 2:
+                # A cut inside a code span leaves an UNPAIRED backtick in a table cell
+                # (TABLE-ARITY-RATCHET's arity-neutral half); close it rather than render
+                # the rest of the cell as code.
+                shown += "`"
             L.append(f"| `{cls}` | {rn:,} | {shown} |")
     L.append("")
 
@@ -543,14 +580,14 @@ def main():
         for cls, n in sorted(counts.items(), key=lambda kv: -kv[1]):
             fh.write(f"{CLASSES[cls][0]}\t{cls}\t{n}\t{100*n/total:.2f}\n")
     with (args.outdir / "strata.tsv").open("w", encoding="utf-8") as fh:
-        fh.write("class\trows\tone_sided_unit\tone_sided_fragment\tdark\t"
+        fh.write("class\trows\tone_sided_unit\tone_sided_fragment\tdark\tnot_source\t"
                  "dark_no_backtick\n")
         for cls, n in sorted(counts.items(), key=lambda kv: -kv[1]):
             if CLASSES[cls][0] != "NO VERDICT":
                 continue
             s = strata.get(cls, Counter())
             fh.write(f"{cls}\t{n}\t{s['one_sided_unit']}\t"
-                     f"{s['one_sided_fragment']}\t{s['dark']}\t"
+                     f"{s['one_sided_fragment']}\t{s['dark']}\t{s['not_source']}\t"
                      f"{'' if args.no_corpus_scan else no_tick[cls]}\n")
 
     for b in BUCKETS:
@@ -561,6 +598,8 @@ def main():
           f"{tot_frag:,} fragment-shaped — an accept there is NOT testimony)")
     print(f"{'DARK':>12}: {tot_dark:6,}  ({100*tot_dark/total:.1f} % — the burn-down "
           "population)")
+    print(f"{'not-source':>12}: {tot_ns:6,}  (not SystemVerilog source text — a fact about the "
+          "corpus, neither testimony nor DARK)")
     if not args.no_corpus_scan:
         print(f"{'no-backtick':>12}: {sum(no_tick.values()):6,}  (DARK rows no "
               "preprocessing can alter)")

@@ -54,7 +54,7 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 | **No verdict** — nothing is known about these rows | 6 174 | 37.8 % |
 | Total | 16 336 | 100.0 % |
 
-Only **7 556 rows (46.3 %)** were asked a question they could answer, and **4 363** of the no-verdict rows are *dark* — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 5851/7556 would quietly drop the 37.8 % carrying no verdict at all and the 16.0 % answered in another lane's manifest.
+Only **7 556 rows (46.3 %)** were asked a question they could answer, and **4 013** of the no-verdict rows are *dark* — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 5851/7556 would quietly drop the 37.8 % carrying no verdict at all and the 16.0 % answered in another lane's manifest.
 
 **What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. **4 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
 

@@ -7,9 +7,9 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `4384c0292586609ebdb0ac91405986b7c3bcb1afbfa72aa91483d12d0e5b38cc` |
+| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `284f3ccaa911a5e72291e2d96c952101e1b88a472cabfed9df29d3e54c5384c2` |
 | grammar | `grammars/systemverilog.ebnf` | `b2ca001f0012579c60f6195a6e9808a7fa9cc4f8c1a9913064c8381083193e12` |
-| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `b4d7481e77c2d977cc8aad36674865a0db7fd7662d639582e1c759ae0b520d3e` |
+| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `b8304afb462bc81e936d3fa15550db02f85d7477dd0f2480c7ff4f2eb7d2a4c9` |
 
 ## Verdicts
 
@@ -18,10 +18,9 @@
 | `MACRO-BLOCKED` | 28 | the RESIDUAL failure sits on an undefined macro invocation ⇒ expansion owns what is left (`.13d`), NOT a parser defect |
 | `CROSS-FILE-FACTS` | 9 | declaring the cross-file names the parser demanded makes the file PARSE ⇒ blocked by cross-file FACT continuity (`.4`), NOT a parser defect |
 | `INVALID-SV` | 8 | the text is NOT legal SV; the rejection is CORRECT and accepting it would be an over-acceptance defect (pinned as a negative reproducer) |
-| `NOT-SV-SOURCE` | 4 | not source text at all (a command line, a plain-text fixture) — a CORPUS COMPOSITION defect, routed to `.13c.1` |
 | `FRAGMENT-MODULE` | 2 | parses only inside a `module` ⇒ an include payload, not a legal standalone compilation unit |
 | `FRAGMENT-ENUM-BODY` | 1 | an enum-member list included INSIDE an `enum { … }` — no compilation-unit wrapper can shape it |
-| **TOTAL** | **52** | |
+| **TOTAL** | **48** | |
 
 ## Per row
 
@@ -79,7 +78,3 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | `MACRO-BLOCKED` | uvm-core | `uvm-core-2020.3.1/src/seq/uvm_sequencer_base.svh` | 41 | none | stuck on `` `ifdef `` (undefined here) |
 | `MACRO-BLOCKED` | uvm-core | `uvm-core-2020.3.1/src/tlm1/uvm_sqr_connections.svh` | 57 | none | stuck on `` `UVM_SEQ_PORT `` (undefined here) |
 | `MACRO-BLOCKED` | uvm-core | `uvm-core-2020.3.1/src/tlm1/uvm_tlm_req_rsp.svh` | 59 | none | stuck on `` `uvm_component_param_utils `` (undefined here) |
-| `NOT-SV-SOURCE` | Surelog | `tests/LoopBits/LoopBits.sv` | 1 | — | the file is a Surelog COMMAND LINE (`-parse -d uhdm … dut.sv -nobuiltin`) with a .sv extension — route to .13c.1 |
-| `NOT-SV-SOURCE` | slang | `tests/unittests/data/local.svh` | 2 | — | a plain-text `include` fixture (`// Just a test string` + a bare string literal) — route to .13c.1 |
-| `NOT-SV-SOURCE` | slang | `tests/unittests/data/nested/nested_local.svh` | 1 | — | a plain-text `include` fixture (a bare string literal) — route to .13c.1 |
-| `NOT-SV-SOURCE` | slang | `tests/unittests/data/system/system.svh` | 1 | — | a plain-text `include` fixture (a bare string literal) — route to .13c.1 |

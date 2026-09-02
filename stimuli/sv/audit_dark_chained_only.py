@@ -361,6 +361,25 @@ def read_positions(path: Path):
     return out
 
 
+def md_code_cell(text: str) -> str:
+    """A source excerpt as ONE GFM table cell that renders as code whatever the excerpt holds.
+
+    ⛔ Two measured ways a raw excerpt breaks a table (TABLE-ARITY-RATCHET, both arms): a `|`
+    inside the excerpt (`~|`, `||`) is a CELL SEPARATOR unless escaped, so the row gains cells
+    and the renderer silently discards the rightmost ones; and a backtick inside a single-backtick
+    span (`` `uvm_object_utils ``) leaves the span UNPAIRED, so the rest of the cell renders as
+    code-or-prose swapped. The `.13c.1` re-run moved four new rows into the first-40 view and two
+    of them carried backticks — 9 -> 11 unpaired cells, and the ratchet refused. So: escape every
+    pipe, use a delimiter run one longer than the longest backtick run in the text, and pad with a
+    space when the text starts or ends with a backtick (CommonMark strips one such space)."""
+    text = text.replace("|", "\\|")
+    longest = max((len(m) for m in re.findall(r"`+", text)), default=0)
+    fence = "`" * (longest + 1)
+    if text.startswith("`") or text.endswith("`") or not text:
+        text = f" {text} "
+    return f"{fence}{text}{fence}"
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--manifest",
@@ -547,7 +566,7 @@ def main():
           "|---|---|---:|---|---|"]
     for r in worklist[:40]:
         L.append(f"| {r['suite']} | `{r['relpath']}` | {r['fail_line']} | "
-                 f"`{r['channel']}` | `{r['snippet'][:90]}` |")
+                 f"`{r['channel']}` | {md_code_cell(r['snippet'][:90])} |")
     L.append("")
 
     (args.outdir / "summary.md").write_text("\n".join(L) + "\n", encoding="utf-8")
@@ -558,7 +577,11 @@ def main():
     for c, n in channels.most_common():
         print(f"{c:>18}: {n:6,}")
     print(f"{'WORKLIST':>18}: {len(worklist):6,}")
-    print(f"wrote {(args.outdir / 'summary.md').relative_to(ROOT)}")
+    # Repo-root-relative when it can be (the project's path policy), absolute when the caller
+    # pointed --outdir elsewhere — reporting where the file went must not raise (a scratch run
+    # with a relative --outdir crashed here AFTER writing every artifact, rc 1 on complete output).
+    out_md = args.outdir / "summary.md"
+    print(f"wrote {out_md.relative_to(ROOT) if out_md.is_absolute() and out_md.is_relative_to(ROOT) else out_md}")
 
 
 if __name__ == "__main__":
