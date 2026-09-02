@@ -464,6 +464,37 @@ into a standing gate is `.2`'s charter, which now has a ready instrument for one
   grammar; the one measured consequence (`delay2`/`delay3`) is routed to the SV lane where it can
   be fixed under the release bar.
 
+### ⚠️ `.1g` — NEW `todo`, ROUTED (opened 2026-09-03 by `SV-CORPUS-GRAD.13t`(c) / `PGEN-SV-CORPUS-GRAD-0341`) — **SIX of 124 vendored LRM section files carry a filename that is not a clause they hold, because `tools/split_sections.py:46` names a file from whatever it took for a section id — and the repair is a tracked-artifact MIGRATION priced at 61 line-cited references**
+
+- **WHY + WHERE (measured in `.13t`(a), per file from its own headings and content)**: 2017
+  `section-2004-…` holds clauses 37/38 (74 + 32 headings) under a *"Copyright © 2018"* title, `-2005-…`
+  holds §1.4–1.8, `-2012-…` a deprecated-subclause note — three **years** from the standards-history
+  text taken as section ids; 2017 `section-41-data-read-api.md` is **Annex A** (736 `::=` productions;
+  the splitter's sequence continued past clause 40); the 2023 `section-2-…` and `section-41-…` files
+  are 73- and 26-line **page-number stubs**. `tools/split_sections.py:46` —
+  `f"section-{safe_id}-{slugify(self.title)}.txt"` — derives the name from `safe_id` alone and does not
+  compare it to the numbered headings the section body carries. The seventh candidate, 2017
+  `section-2-normative-references.md`, is correctly named (§2 has no numbered subclauses and spans
+  into §3).
+- **WHAT IT COSTS TODAY**: no tracked verdict — `.13t`(b) censused every clause→file resolver and all
+  are `glob("section-*.md")` readers keyed on headings or IEEE captions (`LRM-CLAUSE-CITATION` reads
+  the filename number nowhere since `SV-CORPUS-GRAD.13u`). The cost is readability and the one
+  addressability hole TOOLBOX 5.8 names: Annex A lives in a file called `section-41`.
+- ⛔ **THE PRICE, MEASURED**: **79 live citing lines in 12 tracked files, 61 of them line-cited
+  (`:N`)** — `docs/tasks/artifacts/sv_corpus_grad/lrm_keyword_enumeration/census.md` 42,
+  `KNOWLEDGE_MAP.md` 10 (both DERIVED, re-derivable), `SV-CORPUS-GRAD.md` 6, `CHANGES.md` 5, this tree 1,
+  `SV-LRM-SHAPE-FIDELITY.md` 1, one knowledge card 2, `DEVELOPMENT_NOTES.md` 2,
+  `tools/extract_systemverilog_lrm_profiles.py` 1, one probe 1, the SV parser book 1; **0** into the
+  2023 stubs. A heading-aware re-split moves every line number; a rename alone breaks every path.
+- **OWES**: (a) the repair shape — a heading-aware splitter (derive `safe_id` from the FIRST numbered
+  heading in the body, and refuse a number that is not a clause the body carries), or a rename map
+  that keeps the two 2023 stubs (0 citations) deletable and re-points the 61 line citations through
+  the derived surfaces (re-derive the census + the map; re-point the history surfaces by hand or
+  leave them dated); (b) a RED control: the six files must be refused by the new naming rule and
+  the 118 others accepted; (c) `.13t`(c)'s bound — no re-split until every citing surface has an
+  owner for its re-pointing. ⚠️ Parked behind the SV lane lock unless an SV slice needs a clause
+  address into one of the six.
+
 ### `.2` — The standing coverage gate
 
 - **Status: `todo`** — promote `.1`'s audit into a deterministic `make` gate

@@ -1,5 +1,17 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0341 (six, not seventeen, not zero)
+
+- ⭐ **THE LESSON: WHEN A WITHDRAWN NUMBER LEAVES AN UPPER BOUND, THE NEXT ACT IS TO READ EVERY MEMBER OF
+  THE BOUND, NOT TO PUBLISH THE BOUND.** `.13u` withdrew "17" and left "at most 7". Seven files, each read
+  for what it holds: one is correctly named, six are not, and the six share one cause — a splitter that
+  took a year, a page number, or its own sequence for a section id. "At most 7" was true and would have
+  been the wrong thing to publish; "6, because …" is the finding. (Not promoted: `promotion: declined`
+  in the leaf — the rule is `a-heading-census-is-only-as-good-as-the-heading-grammar`, one stage earlier.)
+- ⭐ **PRICE THE REPAIR BEFORE PROPOSING IT.** The obvious fix — rename or re-split six files — moves 61
+  line-cited references in 12 tracked files. That number turns "rename them" into a migration lane with
+  an owner and a plan, which is why (c) is routed with its price rather than done in the same slice.
+
 ## 2026-09-03 - PGEN-MEMORY-ARCH-0008 (a lesson that feels urgent is written into the wrong layer)
 
 - ⭐ **THE LESSON: "KEPT IN LAYER A BECAUSE IT IS ABOUT HOW I …" IS THE SENTENCE THAT NAMES A LAYER-C

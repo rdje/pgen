@@ -1,5 +1,20 @@
 # CHANGES.md
 
+## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0341 (leaf SV-CORPUS-GRAD.13t (a)+(b) DONE — SIX of 124 vendored LRM section files are mis-titled (not 17, not 0), the cause is one line of the splitter, ZERO tracked tools resolve a clause to a file by name; (c) priced at 61 line-cited references and routed; CENSUS tier, ZERO code bytes, no file renamed)
+
+- ✅ (a) member by member from each file's own numbered headings and content: 2017 `section-2` is
+  **correctly named** (21 headings all clause 3 — §2 has no numbered subclauses; the file spans into §3);
+  2017 `section-2004` (74 clause-37 + 32 clause-38 headings under a "Copyright © 2018" title), `-2005`
+  (§1.4–1.8), `-2012` (3 fragment headings) are **years taken as section ids**; 2017 `section-41` is
+  **Annex A** (736 `::=` productions); the two 2023 `section-2`/`-41` files are **page-number stubs**
+  (73 / 26 lines). Root cause: `tools/split_sections.py:46` names a file from whatever it took for a
+  section id.
+- ✅ (b) census: 11 grep hits in 5 files, every one a `glob("section-*.md")` reader or the producer —
+  **no tracked tool keys on the filename number**; `LRM-CLAUSE-CITATION` reads it nowhere since `.13u`.
+- ⚠️ (c) priced: **79 live citing lines in 12 files, 61 line-cited** (42 in the keyword-enumeration
+  census, 10 in the Knowledge Map); 0 into the 2023 stubs. A re-split moves all 61 — an artifact
+  migration, routed to `LRM-GRAMMAR-FIDELITY` with the price.
+
 ## 2026-09-03 - PGEN-MEMORY-ARCH-0008 (leaf MEMORY-ARCH.7 opened AND closed — layer A demoted back to 60 % of its byte cap by moving ten standing disciplines VERBATIM into a layer-C record; DOCS tier, ZERO code bytes)
 
 - ⛔ `MEMORY.md` sat at **32 693 of 32 768 bytes (75 spare)** on 49 of 50 lines after nine slices each
