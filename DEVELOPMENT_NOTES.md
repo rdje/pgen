@@ -1,5 +1,43 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0330 (the withdrawn census — a rule that excuses two rows is still a claim about a population, and I checked two members of it)
+
+- ⭐⭐ **THE TRANSFERABLE LESSON: A RULE INVENTED TO EXPLAIN AWAY EXCEPTIONS IS A CENSUS CLAIM IN
+  DISGUISE, AND IT INHERITS EVERY OBLIGATION A CENSUS HAS.** `.13q`(c) needed a structural reason to
+  excuse two citations, found *"the filename disagrees with the file's modal heading major"*, and
+  that reason happened to also produce a striking number — 17 of 124 — which went straight into a
+  registered doctrine's description, a contract-tier mirror, the book and a message to the director.
+  **I verified two members of that population and generalised from the extremes.** Member by member,
+  `section-15-…md` opens at 15.1 with 26 clause-15 headings and `section-29-…md` is 29.1→29.10:
+  correctly named, not defects. ⇒ **the moment an exemption rule yields a COUNT, stop treating it as
+  plumbing and run the census discipline on it** — the whole population, the shared cause held
+  member by member, and one control against the obvious confound. The confound here had a name I
+  never looked for: **spanning is the norm** (34/55, 25/41, and 17/28 in the edition I called clean).
+- ⭐⭐ **AND THE SECOND-ORDER ONE: THE WRONG QUESTION SURVIVED BECAUSE IT WAS ASKED AT THE WRONG
+  GRANULARITY.** *"Is this file correctly named?"* is not a question the census ever needed answered.
+  It needed *"can clause X be checked against this file?"* — per (file, cited clause). Everything
+  wrong followed from the coarser form: a false population, a latent bug where the modal filter would
+  skip all 26 clause-15 headings in a spanning file, and a `section_mismatch` arm that fired on two
+  correct citations. Asking the narrower question deleted all three at once and made the instrument
+  judge MORE (agree 33 → 35). ⇒ **when a rule needs an exception, suspect its granularity before its
+  logic.**
+- ⛔ **A CORRECTION MUST NOT BE PAID FOR BY LOOKING LESS, AND THE ONLY WAY TO KNOW IS TO MEASURE
+  REACH.** `agree` went UP, 33 → 35, and `unaddressable_section` went 2 → 0. Had reach fallen, the
+  clean census would have been the same failure `.13q` already committed once mid-fix. Reach is now
+  the first number I check after any change to a census, before its verdict.
+- ⛔⛔ **THE SELF-TEST CAUGHT THE NEXT DEFECT BY REFUSING TO PASS, which is what a self-test is FOR.**
+  Correcting addressability left no citation in the repository landing on an unaddressable pair, so
+  the tree-level RED arm had nothing to mutate and reported itself INERT. A control whose subject the
+  tree happens not to contain is not a passing control, it is an absent one (`.87`(e)). Every arm now
+  carries its own synthetic subject and is asserted in BOTH directions; the tree run is corroboration
+  that reports NOT EXERCISED rather than *pass*. ⇒ **a control that depends on the tree containing
+  its subject is a control with an expiry date you did not write down.**
+- ⭐ **REGISTERING AN INSTRUMENT IS NOT THE SAME AS MAKING IT USABLE AS EVIDENCE.** `-0329` added
+  `LRM-CLAUSE-CITATION` to the doctrine registry and every mirror, and still no task leaf could cite
+  it: `check_diagnosis_evidence.sh` keeps its own roster of what counts as a diagnosis signature, and
+  the new census was not on it. The first leaf to try was refused by the acceptance gate. ⇒ **a new
+  oracle has TWO registries, and the second one is invisible until something needs it.**
+
 ## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0329 (registering the citation doctrine — an exception list is a confession that you stopped looking for the rule)
 
 - ⭐⭐ **THE TRANSFERABLE LESSON: BEFORE ACCEPTING AN EXCEPTION LIST, SPEND ONE MORE HOUR LOOKING FOR

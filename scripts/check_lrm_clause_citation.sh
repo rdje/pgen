@@ -34,6 +34,20 @@
 # line numbers that move; a gate whose green depends on a hand-maintained exception list is not a
 # gate, it is a promise. Removing the list cost ZERO reach — `agree` is identical either way.
 #
+# ⛔⛔ SV-CORPUS-GRAD.13u — THE ADDRESSABILITY RULE WAS CORRECTED AND A PUBLISHED NUMBER WITHDRAWN.
+# Its first cut tested a FILE against its own FILENAME (the modal heading major) and reported
+# "17 of 124 vendored section files carry a filename their own headings refute". That is FALSE.
+# The modal major measures which clause is BIGGEST, not whether the filename lies:
+# `section-15-…md` opens at 15.1 with 26 clause-15 headings — correctly named, the defect being a
+# missing SPLIT — and `section-29-…md` is 29.1→29.10 and is not defective at all. Spanning is the
+# NORM (34/55, 25/41, 17/28 per edition), so it is no signal. Both questions are now per-(file,
+# CITED CLAUSE): `addressable_for` asks whether the file carries any heading of that major, and
+# `enclosing` filters candidates by the CITED major rather than the file's modal one — the modal
+# form was latently wrong for a spanning file, skipping all 26 clause-15 headings. The filename's
+# number is read NOWHERE any more. The corrected rule judges MORE (agree 33 → 35) with
+# `unaddressable_section` 2 → 0: the hole the first cut reported in its own reach was the
+# instrument's, not the corpus's. The residual corpus question is `SV-CORPUS-GRAD.13t`.
+#
 # GROUND TRUTH runs on every invocation (14 pairs, including the founding §28.16 -> :396 known-bad
 # and an ancestor-citation known-good) and a miss exits 7 — MISCALIBRATED — rather than reporting a
 # clean tree. `--self-test` adds a RED control per structural rule, mutating each on the REAL tree

@@ -19495,8 +19495,11 @@ question was answered by first asking whether the list was necessary at all. It 
    in `class_item` (`section-8-classes.md:95`)"* the clause and the line are DELIBERATELY different
    places — and the signal is not semantic: **the clause's own bracket group CLOSES before the ref's
    group opens.** A relative depth going negative between them is that departure (`in_clause_scope`).
-2. ⭐⭐ **CLAUSE-ADDRESSABILITY** kills the PDF-split shape (2 of 7) — and it turned out to be
-   **load-bearing for correctness, not merely for exemptions.** A section file's NAME is a claim
+2. ⭐⭐ **ADDRESSABILITY** kills the PDF-split shape (2 of 7) — and it turned out to be
+   **load-bearing for correctness, not merely for exemptions.** ⛔⛔ **THE FORM SHIPPED HERE WAS
+   WRONG AND ITS NUMBER IS WITHDRAWN BY `.13u` — read that leaf before quoting anything below.**
+   It tested a FILE against its own FILENAME via the modal heading major; the correct question is
+   per-(file, CITED CLAUSE), and *"17 of 124"* counts correctly-named SPANNING files as defects. A section file's NAME is a claim
    about which clause it holds; the census resolves a file FROM a clause number for the
    clause-adjacent forms, so a false name MANUFACTURES a disagreement. **MEASURED: the claim is
    false for 17 of 124 vendored section files** — 14 of 55 in 1800-2017, 3 of 41 in 1800-2023, 0 of
@@ -19561,10 +19564,22 @@ its own producer rather than hand-edited). **0.43 s**, no build, no parser. `ALL
 
 #### `.13t` — ⚠️ NEW `todo` — **17 OF 124 VENDORED LRM SECTION FILES CARRY A FILENAME THEIR OWN HEADINGS REFUTE, AND EVERY TOOL THAT RESOLVES A CLAUSE TO A FILE IS WRONG FOR THEM** (opened 2026-09-02 by `.13q`(c) / `PGEN-SV-CORPUS-GRAD-0329`, ROUTED)
 
-- **WHY + WHERE (measured, per edition)**: a `section-<N>-….md` filename is a CLAIM that the file
-  holds clause `N`. Comparing it against the file's own **modal heading major** refutes the claim
-  for **14 of 55** files in `docs/systemverilog/2017/md`, **3 of 41** in `docs/systemverilog/2023/md`,
-  and **0 of 28** in `docs/verilog/2005/md`. Two distinct failure modes:
+- ⛔⛔ **RE-SCOPED BY `.13u` (`PGEN-SV-CORPUS-GRAD-0330`), AND ITS FOUNDING NUMBER IS WITHDRAWN.**
+  This leaf opened on *"17 of 124 files carry a filename their own headings refute"*, derived from a
+  modal-heading-major test that **counts a correctly-named SPANNING file as a defect**:
+  `section-15-…md` opens at 15.1 with 26 clause-15 headings, `section-29-…md` is 29.1 → 29.10 and is
+  not defective at all, and **spanning is the NORM** (34/55, 25/41, and 17/28 in the edition that
+  test called clean). ⭐ **The defensible upper bound is 5 files in 1800-2017 and 2 in 1800-2023**
+  whose filename number is not a clause they hold a heading for —
+  `section-2-normative-references.md`, `section-2004-…`, `section-2005-…`, `section-2012-…`,
+  `section-41-data-read-api.md` — and **each still owes individual adjudication**, because clause 2
+  *"Normative references"* plausibly has no numbered subclauses at all, in which case that file is
+  correctly named and merely spans into clause 3. **The census is OWED; no number here is a finding
+  yet.**
+- ⭐ **AND THE DOCTRINE NO LONGER DEPENDS ON THE ANSWER**: `LRM-CLAUSE-CITATION` reads no filename
+  number anywhere since `.13u`, `unaddressable_section` is **0**, and its reach went **UP** (33 →
+  35). This leaf is a documentation-corpus question, not a hole in a gate.
+- **The earlier framing, kept for the record** (⛔ every count below is from the withdrawn test):
   - **mis-numbered but real**: `section-15-interprocess-synchronization-and-communication.md` holds
     clause **16** (81 of 117 headings), `section-16-777-216-224-elements.md` holds clause **7**,
     `section-2-normative-references.md` holds clause **3**, `section-29-user-defined-primitives.md`
@@ -19581,16 +19596,131 @@ its own producer rather than hand-edited). **0.43 s**, no build, no parser. `ALL
 - ⭐ **AND IT SILENTLY WIDENS EVERY CLAUSE→FILE RESOLVER IN THE REPO**, not just the new census:
   anything mapping *"IEEE 1800-2017 §15.5"* to `section-15-*.md` reads clause-16 text. Whether any
   tracked instrument does that is (b)'s question.
-- **OWES**: (a) decide the repair — re-run the PDF→md extractor with a heading-aware splitter, or
-  rename the 17 from their own modal major and leave a mapping note; the extractor fix is the one
-  that cannot rot, the rename is the one that can ship today; (b) census which tracked tools and
-  documents resolve a clause to a section file BY NAME, and re-derive their answers for the 17;
-  (c) once addressable, `unaddressable_section` should fall to 0 and that becomes a standing arm.
+- **OWES** (re-scoped by `.13u`): (a) ⛔ **the census FIRST, member by member** — for each of the 7
+  candidates decide whether its filename is wrong or whether the clause it names simply has no
+  numbered subheadings. ⛔ **A rename off the modal major is REFUTED as a repair shape**: it would
+  have renamed `section-15-…md` to `section-16` and broken 26 correct clause-15 citations. (b) census
+  which tracked tools and documents resolve a clause to a section file BY NAME and re-derive their
+  answers; (c) only then price the extractor fix (a heading-aware splitter) against the fact that
+  re-splitting moves every line number the repository's existing citations are written against —
+  and `LRM-CLAUSE-CITATION` is now exactly the instrument that can verify such a rewrite broke
+  nothing.
 - ⚠️ **NOT a blocker for the SV release** and NOT an SV-grammar defect — it is a defect in the
   vendored documentation corpus. Routed rather than fixed inline because re-running the extractor
   moves the line numbers every existing citation in the repository is written against, so it needs
   its own slice with a citation-rewrite plan — and `LRM-CLAUSE-CITATION` is now exactly the
   instrument that can verify such a rewrite broke nothing.
+
+
+
+#### ✅✅ `.13u` — **`done`** 2026-09-02 (`PGEN-SV-CORPUS-GRAD-0330`) — ⛔⛔ **SELF-AUDIT: `.13q`(c)'s ADDRESSABILITY RULE ASKED A QUESTION ABOUT A FILE WHEN THE CENSUS NEEDED ONE ABOUT A CITATION, AND THE NUMBER I PUBLISHED WITH IT — *"17 of 124 vendored section files carry a filename their own headings refute"* — IS WITHDRAWN AS FALSE**
+
+⛔⛔ **THE CLAIM, AND WHY IT IS WRONG.** `.13q`(c) tested a FILE against its own filename using the
+**modal heading major** and reported 17 of 124 failing (14/55 in 1800-2017, 3/41 in 1800-2023, 0/28
+in 1364-2005). The modal major measures *which clause has the most headings*, **not** *whether the
+filename lies*, and the two differ whenever a file legitimately spans clauses. Re-derived member by
+member — which `.13q`(c) never did, checking only the two extremes and generalising:
+
+- `section-15-interprocess-synchronization-and-communication.md` opens at **15.1**, runs to
+  **16.18**, and carries **26** clause-15 headings. It is **correctly named** for the clause it
+  opens; the defect (if any) is a MISSING SPLIT, and renaming it to `section-16` would be actively
+  wrong.
+- `section-29-user-defined-primitives.md` is **29.1 → 29.10** with **16** own headings. **Not
+  defective at all** — only stray noise headings (`## 0`, `## 1`) dragged its modal to `0`.
+- ⛔ And the control I never ran: **"spanning" is the NORM, not a signal.** 34 of 55 files in
+  1800-2017, 25 of 41 in 1800-2023 and **17 of 28 in 1364-2005 — the edition `.13q`(c) reported as
+  0 defects** — carry more than one heading major, almost always stray PDF noise.
+
+⇒ [[an-x-is-checked-by-nothing-claim-is-a-census-claim]] again, and specifically the **SET**
+failure: *when you publish N findings, verify the GROUPING — that N is the whole population and the
+shared cause holds member by member.* I checked `section-0` and `section-28`, saw a clean
+separation, and shipped a number for 17.
+
+⭐ **WHAT SURVIVES, MEASURED**: the genuinely defensible population is **5 files in 1800-2017 and 2
+in 1800-2023** whose filename number is not a clause the file holds a heading for
+(`section-2-normative-references.md`, `section-2004-…`, `section-2005-…`, `section-2012-…`,
+`section-41-data-read-api.md`; 1364-2005 has **none**) — and even those need individual
+adjudication, because clause 2 *"Normative references"* plausibly has no numbered subclauses at all.
+`.13t` is RE-SCOPED to that, and the count is stated as an **upper bound with a named next step**
+rather than a finding.
+
+**THE INSTRUMENT FIX — both questions are per-(file, CITED CLAUSE), never per-file:**
+
+1. **`addressable_for(path, major)`** — does this file carry ANY heading of that clause's major?
+   That is what *"can a citation of clause X be checked here"* actually means. It needs no filename
+   claim and no threshold.
+2. **`enclosing(path, line, major)`** now filters by the **cited** major, not the file's modal
+   major. ⛔ The modal form was **latently wrong** for a spanning file: in `section-15-…md` (modal
+   16) it would have skipped all **26** clause-15 headings and judged a §15.x citation against 16.x.
+   It was masked only because the file-level test bucketed that file out first — **a mask, not a
+   defence.**
+3. ⛔ **`section_mismatch` IS DELETED — the filename's number is now read NOWHERE.** It was the same
+   filename-trusting mistake in a third guise, and it fired on **two CORRECT citations**: §11.4.12
+   into `section-0-…md`, a file carrying **35 of its 39** headings in clause 11.
+
+**MEASURED, AND THE CORRECTED INSTRUMENT IS BETTER ON EVERY AXIS:**
+
+| | `.13q`(c) | `.13u` |
+|---|---:|---:|
+| rows judged (`agree`) | 33 | **35** |
+| `disagree` | 0 | **0** |
+| `unaddressable_section` | 2 | **0** |
+| `section_mismatch` | 0 | *concept deleted* |
+| filename trusted anywhere | yes | **no** |
+
+⇒ the *"permanent hole in the doctrine's reach"* `.13q`(c) reported was **my instrument's, not the
+corpus's**, and it is gone.
+
+⛔⛔ **AND THE SELF-TEST CAUGHT THE NEXT DEFECT BY REFUSING TO PASS.** With addressability corrected,
+no citation in the repository lands on an unaddressable pair any more — so the tree-level RED arm
+mutated the rule, nothing changed, and the arm reported **`the rule is inert`** and FAILED. That is
+`.87`(e)'s lesson enforced by machinery: *a green mutation is a question about the CONFIGURATION
+before it is a verdict about the lock.* ⇒ **every arm now carries its OWN SUBJECT** — three
+synthetic probes (a defined-here/absent-there sentence, a §11.4 citation into the clause-28 file, a
+§7.14 citation at `:2328`) run through the REAL pipeline and asserted in BOTH directions — and the
+tree-level run is kept as **corroboration** that reports `NOT EXERCISED` rather than a pass when
+this repository does not contain the shape.
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+  - [x] **REPRODUCE / ISSUE** — `section-15-…md` has 26 clause-15 headings and opens at 15.1, yet
+        `.13q`(c)'s test called it mis-titled; `section-29-…md` is 29.1 → 29.10 and was likewise
+        flagged. The published "17 of 124" counted both as defects.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — WHY: the modal major answers *"which clause is biggest here"*,
+        which is not *"does the filename lie"* and not *"can this file answer for clause X"*. WHERE:
+        `clause_addressable` and `enclosing` in `stimuli/sv/lrm_clause_citation_census.py`, plus the
+        `section_mismatch` comparison in `census`. Signature — `LRM-CLAUSE-CITATION:` on the
+        corrected instrument reads `agree=35 disagree=0 unaddressable_section=0` where the shipped
+        form read `agree=33 … unaddressable_section=2`, and `--self-test` refused with
+        `the rule is inert`. Measured member by member, per edition, with the spanning control
+        `.13q`(c) omitted.
+  - [x] **FIX** — `addressable_for(path, major)`, `enclosing(path, line, major)`,
+        `section_mismatch` deleted, `modal_major` removed entirely (`grep -c modal_major` = 0);
+        ground truth 14 → 18 pairs including the two files the old test got wrong, pinned in both
+        directions; the self-test rebuilt on synthetic probes.
+  - [x] **ADDRESSED (verified)** — `agree` **33 → 35**, `disagree=0`, `unaddressable_section` **2 →
+        0**; `--self-test` all three RED arms fire on their own subjects plus tree corroboration and
+        a GREEN control; `bash scripts/check_doctrines.sh` ALL 34 PASS.
+  - [x] **NO REGRESSION** — the founding known-bad `§28.16 → :396` still DISAGREES and `§28.4 → :396`
+        still AGREES; the ancestor case `§28.3 → :243` still AGREES; reach went UP, not down, which
+        is the control proving a correction was not paid for by judging less; the `--self-test`
+        GREEN control asserts the census re-reads **byte-identical** after every RED arm;
+        `bash scripts/check_doctrines.sh` ALL 34 PASS; ZERO Rust, grammar, codegen or generated
+        bytes (no `clippy` surface is touched).
+  - ⭐ **A WIDENING THIS SLICE ALSO OWED, AND PRICED**: registering a new diagnostic doctrine in
+        `-0329` did NOT add its signature to `check_diagnosis_evidence.sh`'s `DIAGNOSIS_SIG`, so no
+        task leaf could ever cite `LRM-CLAUSE-CITATION:` as root-cause evidence — this leaf was the
+        first to try, and the acceptance gate refused it. Added beside its four sibling censuses
+        (`LRM-ANNEX-A-GAP:`, `LRM-KEYWORD-ENUMERATION:`, `SAMPLE-PROFILE-PARITY:`,
+        `V2005-KEYWORD-FAITHFULNESS:`). ⛔ **Priced and one-directional**: a signature can only
+        ADMIT evidence previously rejected, never make a passing leaf fail, and the population it
+        newly binds is the **1** leaf that cites it — this one. ⇒ `.13l`'s shape once more: *a
+        doctrine's population is a claim, and nothing checks it* — including, it turns out, the
+        roster of what counts as evidence FOR a doctrine.
+  - [x] **LOCKSTEP** — census + wrapper header + registry row + `DOCTRINE_ENFORCEMENT.md` §10 +
+        `the-enforced-doctrines.md` (re-derived) + `gate-flow.md` + `TOOLBOX.md` §5.14 + the book
+        chapter + `.13q`(c) + `.13t` (re-scoped) + this leaf + `docs/TASK_TREE.md` + `CHANGES.md` +
+        `DEVELOPMENT_NOTES.md` + `MEMORY.md`.
 
 
 #### `.13l` — ⚠️ NEW `todo` — **`TASK-ACCEPTANCE` REPORTS *"no code change staged"* FOR AN EDIT TO THE PRODUCER OF THE ARTIFACT `CORPUS-CENSUS-CURRENCY` READS** (opened 2026-08-31 by `.13j`(d) / `PGEN-SV-CORPUS-GRAD-0311`, ROUTED)

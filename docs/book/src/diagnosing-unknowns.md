@@ -48,7 +48,7 @@ the generation-input / memo observability.
 | **A rule whose whole body is a whitespace terminal is `UNKNOWN` with `parsed=true` — is the LAYOUT SKIP eating it?** | `--report-layout-owning-terminals` | `ast_pipeline g.ebnf --report-layout-owning-terminals` → the closed population of terminals that own their leading layout, HIR-derived (⛔ a text sweep for `\s` misses `[ \t\r\n]+` and `\r?\n`) |
 | **Does a DIALECT PROFILE accept something its LRM never defined?** ⛔ a different question from *"is the profile COHERENT"* — the coherence half (`profile_orphans=0`) is gated on every commit and the faithfulness half was checked only by a curated sample | the keyword-faithfulness census | `python3 stimuli/sv/v2005_keyword_faithfulness_census.py` → the CLOSED population of IEEE-1800-only keywords a `verilog_2005` parse can reach, three probe legs per row (see [below](#is-a-dialect-profile-faithful-to-its-standard)) |
 | **Does every LRM keyword ENUMERATION still carry ALL its members in the shipped grammar?** — a dropped alternative resolves every name, witnesses every rule that exists and hides from the corpus until a file spells it; `net_type` shipped 10 of 12 for the grammar's whole life | `stimuli/sv/lrm_keyword_enumeration_census.py` — [the keyword-enumeration membership census](#does-every-lrm-keyword-enumeration-still-carry-all-its-members) | `python3 stimuli/sv/lrm_keyword_enumeration_census.py` (gate mode; `--self-test` fires 13 arms) — 289 members over 97 productions, three editions, 0 missing at HEAD, a RED control that replays the founding defect |
-| **Does the clause number I am about to publish actually contain the line I am citing?** — the fourth, unchecked measurement in every conformance claim; `SV-CORPUS-GRAD.13p` shipped seven wrong clause labels on seven correct quotations | `stimuli/sv/lrm_clause_citation_census.py` — [the LRM clause-citation census](#does-the-clause-number-i-cited-actually-contain-the-line-i-cited) | `python3 stimuli/sv/lrm_clause_citation_census.py` — registered doctrine `LRM-CLAUSE-CITATION`, 0.43 s over 439 files, structural binding with NO allowance list, 14 ground-truth pairs every run, `--self-test` fires a RED control per rule |
+| **Does the clause number I am about to publish actually contain the line I am citing?** — the fourth, unchecked measurement in every conformance claim; `SV-CORPUS-GRAD.13p` shipped seven wrong clause labels on seven correct quotations | `stimuli/sv/lrm_clause_citation_census.py` — [the LRM clause-citation census](#does-the-clause-number-i-cited-actually-contain-the-line-i-cited) | `python3 stimuli/sv/lrm_clause_citation_census.py` — registered doctrine `LRM-CLAUSE-CITATION`, 0.43 s over 440 files, structural binding with NO allowance list and no filename trust, 18 ground-truth pairs every run, `--self-test` fires a RED control per rule on its own synthetic subject |
 | Witness-pass tuning (A/B, budget, ordering)? | `PGEN_WITNESS_*` | see [witness knobs](#witness-pass-knobs) |
 
 > Build note: cert-coverage and any `.ebnf`-direct mode need the debug binary
@@ -755,9 +755,8 @@ python3 stimuli/sv/lrm_clause_citation_census.py              # the census; rc 1
 python3 stimuli/sv/lrm_clause_citation_census.py --self-test  # a RED control per structural rule
 ```
 ```text
-LRM-CLAUSE-CITATION: files_scanned=439 agree=33 disagree=0 section_mismatch=0 no_heading=0 \
-                     no_line_ref=1550 no_edition=37 annex_ref=4 unaddressable_section=2 \
-                     unresolved_file=0
+LRM-CLAUSE-CITATION: files_scanned=440 agree=35 disagree=0 no_heading=0 no_line_ref=1560 \
+                     no_edition=37 annex_ref=4 unaddressable_section=0 unresolved_file=0
 ```
 
 ### It binds structurally, or it declines to judge
@@ -786,36 +785,47 @@ LRM corpus is re-extracted. That is not a gate; it is a promise. Both are now re
 | shape | example | the structural signal |
 |---|---|---|
 | defined-here / absent-there | *"`interface_class_declaration` is defined (§8.26.1) but NOT referenced in `class_item` (`section-8-classes.md:95`)"* | **bracket scope** — two correct parentheticals about deliberately different places, and the clause's own group *closes* before the ref's group opens |
-| mis-titled corpus file | the §11.4.12 notation sentence lives in `section-0-defined-as-false-…md:520` | **clause-addressability** — a filename is a claim, and the file's own *modal heading major* is the evidence |
+| a file that cannot answer | a §11.4 citation pointing into the clause-28 file | **addressability**, asked per *(file, cited clause)* — does this file carry any heading of that clause's major at all? |
 
 Removing the list cost **zero reach**: `agree` is 33 with it and 33 without.
 
-### A filename is a claim, and 17 of them are false
+### A filename is a claim — and so was my first attempt to check it
 
-Clause-addressability turned out to be load-bearing for *correctness*, not merely for exemptions.
-The census resolves a file **from** a clause number for the clause-adjacent citation forms, so a
-filename that lies manufactures a disagreement. Measured against each file's own modal heading
-major, **17 of 124** vendored section files fail — 14 of 55 in IEEE 1800-2017, 3 of 41 in
-1800-2023, and 0 of 28 in IEEE 1364-2005:
+The first version of that second rule tested a **file** against its own **filename**, using the
+clause major most of its headings carried, and reported that *"17 of 124 vendored section files
+carry a filename their own headings refute."* **That number is withdrawn.** The modal major
+measures which clause is *biggest* in a file, not whether its name lies, and the two part company
+the moment a file legitimately spans clauses:
 
-| file | claims | actually holds |
+| file | the first cut said | measured, member by member |
 |---|---|---|
-| `section-15-interprocess-synchronization-and-communication.md` | clause 15 | clause **16** (81 of 117 headings) |
-| `section-16-777-216-224-elements.md` | clause 16 | clause **7** |
-| `section-41-data-read-api.md` | clause 41 | **no numbered heading at all**, while holding Annex A text |
-| `section-1024-characters-if-an-identifier-exceeds-…` | clause 1024 | a sentence fragment promoted to a filename |
+| `section-15-interprocess-synchronization-and-communication.md` | mis-titled; holds clause 16 | opens at **15.1**, runs to **16.18**, carries **26** clause-15 headings — *correctly named*; the defect is a missing **split** |
+| `section-29-user-defined-primitives.md` | mis-titled; holds clause 0 | **29.1 → 29.10** — *not defective at all*; stray `## 0` / `## 1` noise dragged the modal |
 
-The separation is not close, so the test needs no threshold: `section-0-…` scores 1 of 39 against
-its own name where `section-28-…` scores 34 of 40. Citations into a non-addressable file are
-counted as `unaddressable_section` and **not judged** — they may be perfectly correct, and the
-corpus simply offers nothing to check them against. That is a permanent hole in this doctrine's
-reach, owned as a corpus-integrity defect by `SV-CORPUS-GRAD.13t`.
+And the control that was never run: **spanning is the norm, not a signal** — 34 of 55 files in
+1800-2017, 25 of 41 in 1800-2023, and **17 of 28 in the edition the first cut reported as clean**.
+What survives is at most **5** files in 1800-2017 and **2** in 1800-2023 whose filename number is
+not a clause they hold a heading for, and each of those still owes individual adjudication before
+it can be called a defect (`SV-CORPUS-GRAD.13t`).
 
-A third rule falls out of the same insight and guards the enclosure read itself: a heading whose
-major disagrees with its file's own modal major is **PDF-split noise** and is skipped.
-`docs/verilog/2005/md/section-7-…md` carries four stray `## 2 delays` / `## 3 delays` headings —
-fragments of §7.14's own delay-cardinality prose, the very sentence this chapter opened with.
-Unfiltered, line 2328 resolves to clause `3`; filtered, to §7.14.
+The repair is to ask the question the census actually needs, which is about a **citation**, not a
+file: *can clause X be checked against this file at all* — does it carry any heading of X's major?
+That needs no filename, no threshold, and no claim about what the file is "for". The filename's
+number is now read **nowhere** in the census; the section-vs-clause comparison went with it, having
+fired on two perfectly correct citations of §11.4.12 into a file that carries 35 of its 39 headings
+in clause 11.
+
+⭐ The corrected rule judges **more**, not less: `agree` went 33 → 35 and `unaddressable_section`
+fell 2 → 0. The "permanent hole in the doctrine's reach" the first cut reported was **the
+instrument's, not the corpus's**.
+
+A third rule guards the enclosure read itself: a heading whose major differs from the **cited**
+clause's cannot be a subheading of it, and is skipped. `docs/verilog/2005/md/section-7-…md` carries
+four stray `## 2 delays` / `## 3 delays` headings — fragments of §7.14's own delay-cardinality
+prose, the very sentence this chapter opened with. Unfiltered, line 2328 resolves to clause `3`;
+filtered, to §7.14. Keying that filter on the *file's* modal major, as the first cut did, was
+latently wrong for a spanning file: in `section-15-…md` it would have skipped all 26 clause-15
+headings and judged §15.x citations against clause 16.
 
 ### The census audited its own fix
 
@@ -830,16 +840,23 @@ an Annex A line attributed to §7.4. All three were ambiguities in freshly writt
 before the commit.
 
 A census that gets cleaner because it stopped looking is the failure mode that looks most like
-success. Ground truth therefore runs on **every** invocation — **14 pairs** covering all three
-structural rules, including the founding known-bad `§28.16 → :396` and an ancestor-citation
-known-good `§28.3 → :243` — and a miss exits `7`, MISCALIBRATED, rather than printing a clean tree.
-It caught its own author immediately: the noise-heading pair was written against the *first* stray
-heading rather than the innermost one, and the census refused to run. That pair now asserts its own
-naive leg too, so it refuses once stale instead of quietly proving nothing.
+success. Ground truth therefore runs on **every** invocation — **18 pairs** covering all three
+structural rules, including the two files the first cut got wrong (pinned in both directions), the
+founding known-bad `§28.16 → :396` and an ancestor-citation known-good `§28.3 → :243` — and a miss
+exits `7`, MISCALIBRATED, rather than printing a clean tree. It caught its own author immediately:
+the noise-heading pair was written against the *first* stray heading rather than the innermost one,
+and the census refused to run. That pair now asserts its own naive leg too, so it refuses once stale
+instead of quietly proving nothing.
 
-`--self-test` goes further and mutates each structural rule on the **real tree**: disabling bracket
-scoping misjudges 5 rows, trusting every filename misjudges 2, and a green control confirms the tree
-re-reads identically afterwards. A green control on a rule that cannot fail is worth nothing.
+`--self-test` adds a RED control per structural rule, and each arm **carries its own subject**. That
+too was learned rather than designed. The first version mutated each rule on the real tree and
+asserted the census noticed; when the addressability rule was corrected, no citation in the
+repository landed on an unaddressable pair any more, so the mutation changed nothing and the arm
+reported itself **inert** — and failed, rather than passing. *A green mutation is a question about
+the configuration before it is a verdict about the lock.* Each rule now has a synthetic probe driven
+through the real pipeline and asserted in both directions, with the tree-level run kept as
+corroboration that says **NOT EXERCISED** rather than *pass* when the repository does not contain
+the shape.
 
 
 ---

@@ -2129,21 +2129,29 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   (`section-8-classes.md:95`)"* — two correct parentheticals about deliberately different places)
   is unbound by **bracket scope**: the clause's own group CLOSES before the ref's group opens, so a
   relative depth going negative severs the binding. (2) the mis-titled corpus file is unbound by
-  **clause-addressability** — a filename is a CLAIM, and the file's own **modal heading major** is
-  the evidence. ⛔ The first cut carried both as SEVEN hand-written exceptions keyed by LRM line
+  **addressability**, asked per **(file, CITED CLAUSE)** — *does this file carry any heading of
+  that clause's major at all?* ⛔ The first cut carried both as SEVEN hand-written exceptions keyed by LRM line
   numbers that MOVE; **a gate whose green depends on a hand-maintained exception list is not a
   gate, it is a promise**, and removing it cost ZERO reach (`agree=33` either way, `.13q`(c)).
-- ⭐⭐ **CLAUSE-ADDRESSABILITY IS LOAD-BEARING FOR CORRECTNESS, NOT ONLY FOR EXEMPTIONS.** This tool
-  resolves a file FROM a clause number for the clause-adjacent forms, so a filename that lies
-  MANUFACTURES a disagreement. **17 of 124 vendored section files fail** (14 of 55 in 1800-2017, 3
-  of 41 in 1800-2023, 0 of 28 in 1364-2005): `section-15-…` holds clause 16,
-  `section-16-777-216-224-elements` holds clause 7, and `section-41-data-read-api.md` — cited BY
-  LINE in live surfaces — carries no numbered heading at all. Counted as `unaddressable_section`,
-  never judged; owned by `SV-CORPUS-GRAD.13t`.
-- ⭐ **A THIRD RULE GUARDS THE ENCLOSURE READ ITSELF**: a heading whose major disagrees with its
-  file's own modal major is PDF-split NOISE and is skipped. `docs/verilog/2005/md/section-7-…md`
-  carries four stray `## 2 delays` / `## 3 delays` headings that are *fragments of §7.14's own
-  prose*; unfiltered, line `2328` reads clause `3` instead of §7.14.
+- ⛔⛔ **`.13u` CORRECTED THAT RULE AND WITHDREW A PUBLISHED NUMBER.** The first cut tested a FILE
+  against its own FILENAME (the **modal heading major**) and reported *"17 of 124 vendored section
+  files carry a filename their own headings refute"* — **FALSE**. The modal major measures which
+  clause is BIGGEST, not whether the filename lies: `section-15-…md` opens at **15.1** with **26**
+  clause-15 headings (correctly named — the defect is a missing SPLIT), and `section-29-…md` is
+  **29.1 → 29.10** and is not defective at all. ⛔ The control never run: **spanning is the NORM** —
+  34 of 55, 25 of 41, and **17 of 28 in the edition the first cut called clean**. What survives is
+  at most **5** files in 1800-2017 and **2** in 1800-2023, each still owing adjudication (`.13t`).
+- ⭐ **THE FILENAME'S NUMBER IS NOW READ NOWHERE.** The `section_mismatch` comparison went with it,
+  having fired on **two CORRECT citations** of §11.4.12 into a file carrying 35 of its 39 headings
+  in clause 11. The corrected rule judges **MORE** — `agree` **33 → 35**, `unaddressable_section`
+  **2 → 0** — so *the hole the first cut reported in its own reach was the instrument's, not the
+  corpus's.*
+- ⭐ **A THIRD RULE GUARDS THE ENCLOSURE READ ITSELF**: a heading whose major differs from the
+  **CITED** clause's major cannot be a subheading of it and is skipped.
+  `docs/verilog/2005/md/section-7-…md` carries four stray `## 2 delays` / `## 3 delays` headings
+  that are *fragments of §7.14's own prose*; unfiltered, line `2328` reads clause `3` instead of
+  §7.14. ⛔ Keying that filter on the FILE's modal major (the first cut) was latently wrong for a
+  spanning file — in `section-15-…md` it would have skipped all 26 clause-15 headings.
 - ⭐ **IT AUDITS THE FIX, NOT JUST THE TREE.** Splitting one clause into two while writing `.13q`'s
   own correction left the second half unbindable and judged rows fell 35 → 17 with `no_line_ref`
   rising 27: the tree was getting LESS checkable and the census read clean. Binding the
@@ -2152,17 +2160,20 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   neighbour). ⇒ **a census that gets cleaner because it stopped looking is the failure mode that
   looks most like success.**
 - **GROUND TRUTH, every invocation** (an instrument with no ground truth is a confident guess):
-  **14 pairs** covering all three structural rules, including the founding known-bad
-  `§28.16 → :396` and an ANCESTOR-citation known-good `§28.3 → :243`. A miss exits **7** —
+  **18 pairs** covering all three structural rules — including the two files the first cut got
+  wrong, pinned in both directions — plus the founding known-bad `§28.16 → :396` and an
+  ANCESTOR-citation known-good `§28.3 → :243`. A miss exits **7** —
   MISCALIBRATED — rather than reporting a clean tree, and it **caught its own author** writing the
   noise pair off the FIRST stray heading instead of the innermost one; the pair now asserts its own
   NAIVE leg so it refuses once stale. Exit `0` clean · `1` a disagreement.
 - ⚠️ **HONEST BOUND:** it is a LEAD GENERATOR whose rows are read, not an oracle — the shapes above
   are why. It checks the clause↔line relation only; whether the quoted sentence says what the
   claim needs is still 5.13 / 5.11 / the LRM itself. `no_line_ref` (~1 449) is the size of what it
-  declines to judge, printed so the reach is never mistaken for the population, and
-  `unaddressable_section` is a permanent hole until `.13t` repairs the corpus. ⭐ Unlike 5.11 and
-  5.13, this one IS a registered doctrine — `LRM-CLAUSE-CITATION`, entry 34.
+  declines to judge, printed so the reach is never mistaken for the population. ⭐ Unlike 5.11 and
+  5.13, this one IS a registered doctrine — `LRM-CLAUSE-CITATION`, entry 34. ⛔ `--self-test`'s arms
+  each carry their OWN SUBJECT (three synthetic probes driven through the real pipeline), because
+  when `.13u` corrected addressability the tree-level arm had nothing left to mutate and correctly
+  reported itself **inert** rather than passing — `.87`(e)'s lesson, enforced by machinery.
 
 ## 6. Coverage / gap reports (`ast_pipeline`)
 

@@ -107,57 +107,60 @@ def headings(path):
     return _head[key]
 
 
-def modal_major(path):
-    """The clause major MOST of this file's own numbered headings carry.
-
-    Parameter-free on purpose: a threshold would be a magic number, and the separation is not
-    close — `section-0-…md` scores 1 of 39 against its filename while `section-28-…md` scores 34
-    of 40. The modal major is what the file SAYS it holds; the filename is what it CLAIMS.
-    """
+def majors_in(path):
+    """The set of clause majors this file actually carries headings for."""
     key = str(path)
     if key not in _modal:
-        majors = [c.split(".")[0] for _, c, _ in headings(path)]
-        _modal[key] = Counter(majors).most_common(1)[0][0] if majors else None
+        _modal[key] = {c.split(".")[0] for _, c, _ in headings(path)}
     return _modal[key]
 
 
-def clause_addressable(path):
-    """Does the file's own content agree that it holds the clause its NAME claims?
+def addressable_for(path, major):
+    """Can a citation of clause `major` be CHECKED against this file at all?
 
-    ⛔ SV-CORPUS-GRAD.13q(c) — MEASURED, AND THE ANSWER IS NOT ALWAYS YES. In the vendored
-    IEEE 1800-2017 markdown corpus this is FALSE for 14 of 55 numbered section files and for 3 of
-    41 in 1800-2023 (0 of 28 in 1364-2005). The PDF->md split titled some from a sentence fragment
-    (`section-1024-characters-if-an-identifier-exceeds-…`, `section-65536-216-bits`) and
-    mis-numbered others outright: `section-15-…` holds clause 16, `section-16-777-216-224-elements`
-    holds clause 7, and `section-41-data-read-api.md` carries no numbered heading at all while
-    holding Annex A text that several task leaves cite by line.
+    ⛔ SV-CORPUS-GRAD.13u — THE FIRST CUT ASKED THE WRONG QUESTION AND ITS ANSWER WAS PUBLISHED.
+    `.13q`(c) tested a FILE against its own filename via the modal heading major, and reported
+    *"17 of 124 vendored section files carry a filename their own headings refute."* That claim is
+    FALSE and is WITHDRAWN. The modal major measures *which clause has the most headings*, not
+    *whether the filename lies*, and the two differ for a file that legitimately SPANS clauses:
+    `section-15-interprocess-synchronization-and-communication.md` opens at **15.1**, runs to
+    **16.18**, and carries **26** clause-15 headings — it is CORRECTLY NAMED for the clause it
+    opens, and the real defect is a MISSING SPLIT. `section-29-user-defined-primitives.md` is
+    29.1 -> 29.10 with 16 own headings and is not defective at all; only stray noise headings
+    dragged its modal to `0`. The population was never re-derived member by member
+    (docs/knowledge/an-x-is-checked-by-nothing-claim-is-a-census-claim.md, the SET failure).
 
-    This census resolves a file FROM a clause number for the F2/F3 forms, so trusting the filename
-    would manufacture a disagreement for every citation into those files — and did, in the first
-    cut. A citation into a non-addressable file is COUNTED (`unaddressable_section`) and not
-    judged: the citation may be perfectly correct, and the corpus filename is simply not evidence
-    to check it against. Owned as a corpus-integrity defect by `SV-CORPUS-GRAD.13t`.
+    ⭐ THE QUESTION THIS CENSUS ACTUALLY NEEDS is per-(file, CITED CLAUSE), never per-file: *if I
+    resolve clause X to this file, is there anything here to check against?* A file carrying at
+    least one heading of X's major can answer; one carrying none cannot, and its citations are
+    COUNTED (`unaddressable_section`) rather than judged. That is parameter-free, needs no
+    filename claim, and is strictly more precise — measured, it both REMOVES false positives and
+    STOPS HIDING real ones the file-level test bucketed away unexamined.
     """
-    m = re.match(r"section-(\d+)-", path.name)
-    return bool(m) and modal_major(path) == m.group(1)
+    return major in majors_in(path)
 
 
-def enclosing(path, line):
-    """Innermost heading at or before `line`, ignoring PDF-split NOISE headings.
+def enclosing(path, line, major):
+    """Innermost heading at or before `line` WITHIN THE CITED CLAUSE'S OWN MAJOR.
 
-    ⛔ A heading whose major disagrees with the file's own modal major is not a clause heading of
-    this clause. `docs/verilog/2005/md/section-7-gate-and-switch-level-modeling.md` carries four
-    such strays — `## 2 delays` and `## 3 delays` at `:2325`/`:2327`/`:2435`/`:2437`, which are
-    fragments of §7.14's own delay-cardinality prose that the split promoted to headings. Reading
-    one as the enclosing clause reports every citation past it as wrong; the first cut did exactly
-    that, and line 2328 resolved to clause `2` instead of §7.14.
+    ⛔ A heading of a different major cannot be a subheading of the cited clause, so it is not a
+    candidate. `docs/verilog/2005/md/section-7-gate-and-switch-level-modeling.md` carries four
+    strays — `## 2 delays` and `## 3 delays` at `:2325`/`:2327`/`:2435`/`:2437`, fragments of
+    §7.14's own delay-cardinality prose that the PDF->md split promoted to headings — and reading
+    one as the enclosing clause reports every citation past it as wrong: line 2328 reads clause
+    `3` unfiltered and §7.14 filtered.
+
+    ⛔ SV-CORPUS-GRAD.13u: the filter keys on the CITED major, never on the file's modal major.
+    The modal form was latently wrong for a file that spans clauses — in `section-15-…md` (modal
+    16) it would have skipped all 26 clause-15 headings and judged a §15.x citation against 16.x.
+    That was masked only because the file-level addressability test bucketed the file out first,
+    which is a mask, not a defence.
     """
-    own = modal_major(path)
     best = None
     for i, clause, text in headings(path):
         if i > line:
             break
-        if clause.split(".")[0] != own:
+        if clause.split(".")[0] != major:
             continue
         best = (clause, i, text)
     return best
@@ -190,7 +193,7 @@ def in_clause_scope(span, offset):
 
 def judge(path, cited, line):
     """`agree` when the innermost heading enclosing `line` IS `cited` or a descendant of it."""
-    enc = enclosing(path, line)
+    enc = enclosing(path, line, cited.split(".")[0])
     if enc is None:
         return "no_heading", None
     clause = enc[0]
@@ -210,13 +213,19 @@ GT_ENCLOSURE = [
     ("1364-2005", "7.14", 376, "disagree"),
 ]
 GT_ADDRESSABLE = [
-    ("1800-2017", "section-28-gate-level-and-switch-level-modeling.md", True),
-    ("1800-2017", "section-8-classes.md", True),
-    ("1364-2005", "section-7-gate-and-switch-level-modeling.md", True),
-    # the PDF-split artifacts — their names are sentence fragments, not clause addresses
-    ("1800-2017", "section-0-defined-as-false-or-if-the-result-is-ambiguous-the-unknown-"
-                  "value-x-the-precedence-of-is-greater.md", False),
-    ("1800-2017", "section-41-data-read-api.md", False),
+    ("1800-2017", "section-28-gate-level-and-switch-level-modeling.md", "28", True),
+    ("1800-2017", "section-8-classes.md", "8", True),
+    ("1364-2005", "section-7-gate-and-switch-level-modeling.md", "7", True),
+    # ⭐ SV-CORPUS-GRAD.13u — the two the file-level test got WRONG, pinned so it cannot come back.
+    # `section-15-…` SPANS 15.1 -> 16.18 and carries 26 clause-15 headings: correctly named, and
+    # answerable for BOTH majors. `section-29-…` is 29.1 -> 29.10 and is not defective at all.
+    ("1800-2017", "section-15-interprocess-synchronization-and-communication.md", "15", True),
+    ("1800-2017", "section-15-interprocess-synchronization-and-communication.md", "16", True),
+    ("1800-2017", "section-29-user-defined-primitives.md", "29", True),
+    # genuinely unanswerable: no heading of that major exists in the file at all
+    ("1800-2017", "section-41-data-read-api.md", "41", False),
+    ("1800-2017", "section-2-normative-references.md", "2", False),
+    ("1800-2017", "section-28-gate-level-and-switch-level-modeling.md", "11", False),
 ]
 # The NOISE-heading pair: v2005 `section-7` line 2328 sits under a stray `## 3 delays` (:2327) —
 # a fragment of §7.14's OWN delay-cardinality prose that the PDF->md split promoted to a heading.
@@ -237,19 +246,20 @@ def _fail(msg):
 
 
 def calibrate():
-    for edition, name, want in GT_ADDRESSABLE:
+    for edition, name, major, want in GT_ADDRESSABLE:
         p = ROOT / EDITION_DIR[edition] / name
         if not p.is_file():
             _fail(f"ground-truth file missing: {p}")
-        if clause_addressable(p) != want:
-            _fail(f"clause_addressable({name}) -> {not want}, expected {want}")
+        if addressable_for(p, major) != want:
+            _fail(f"addressable_for({name}, {major}) -> {not want}, expected {want}")
 
     edition, name, line, want_real, want_naive = GT_NOISE
     p = ROOT / EDITION_DIR[edition] / name
-    got = enclosing(p, line)
+    got = enclosing(p, line, want_real.split(".")[0])
     if got is None or got[0] != want_real:
-        _fail(f"enclosing({name}, {line}) -> {got[0] if got else None!r}, expected {want_real!r} "
-              f"— the noise-heading filter is not firing (naive answer is {want_naive!r})")
+        _fail(f"enclosing({name}, {line}, major {want_real.split('.')[0]}) -> "
+              f"{got[0] if got else None!r}, expected {want_real!r} — the cited-major filter is "
+              f"not firing (an unfiltered read gives {want_naive!r})")
     naive = None
     for i, clause, _ in headings(p):
         if i > line:
@@ -316,7 +326,7 @@ def citations(text):
                     kind = "annex_ref" if fname and "Annex" in fname else "unresolved_file"
                     yield (i0 + 1, edition, cited, fname, line, kind)
                     continue
-                if not clause_addressable(cands[0]):
+                if not addressable_for(cands[0], cited.split(".")[0]):
                     yield (i0 + 1, edition, cited, cands[0].name, line, "unaddressable_section")
                     continue
                 bound.append((cands[0], line, end))
@@ -332,7 +342,7 @@ def citations(text):
 
 def census(verbose=True):
     buckets = dict.fromkeys(
-        ("agree", "disagree", "section_mismatch", "no_heading", "no_line_ref", "no_edition",
+        ("agree", "disagree", "no_heading", "no_line_ref", "no_edition",
          "annex_ref", "unaddressable_section", "unresolved_file"), 0)
     rows, scanned = [], 0
     tracked = subprocess.run(["git", "ls-files"], capture_output=True, text=True,
@@ -351,16 +361,18 @@ def census(verbose=True):
             if unbound:
                 buckets[unbound] += 1
                 continue
-            section = int(re.match(r"section-(\d+)-", path.name).group(1))
-            if section != int(cited.split(".")[0]):
-                verdict, enc = "section_mismatch", None
-            else:
-                verdict, enc = judge(path, cited, line)
+            # ⛔ SV-CORPUS-GRAD.13u — THE FILENAME'S NUMBER IS NEVER EVIDENCE, anywhere in this
+            # census. The first cut also compared it against the cited major and called a
+            # disagreement `section_mismatch`; that is the same filename-trusting mistake in
+            # another guise, and it fired on two CORRECT citations of §11.4.12 into
+            # `section-0-…md`, a file that carries 35 of its 39 headings in clause 11. Whether a
+            # file can answer for a clause is decided by `addressable_for` — its content — and
+            # nothing else.
+            verdict, enc = judge(path, cited, line)
             buckets[verdict] += 1
-            if verdict in ("disagree", "section_mismatch"):
+            if verdict == "disagree":
                 rows.append((rel, citing_line, edition, cited, path.name, line,
-                             enc[0] if enc else "-",
-                             enc[2][:56] if enc else "CLAUSE/FILE MISMATCH"))
+                             enc[0], enc[2][:56]))
     if verbose:
         print(f"LRM-CLAUSE-CITATION: files_scanned={scanned} "
               + " ".join(f"{k}={v}" for k, v in buckets.items()))
@@ -377,64 +389,130 @@ def census(verbose=True):
     return buckets, rows
 
 
-def self_test():
-    """Ground truth plus a RED control per structural rule, on the REAL corpus.
+def _classify(text):
+    """Bucket counts for one synthetic document, through the REAL citation pipeline."""
+    out = {}
+    for _, _, cited, path, line, unbound in citations(text):
+        key = unbound
+        if key is None:
+            key = judge(path, cited, line)[0]
+        out[key] = out.get(key, 0) + 1
+    return out
 
-    ⭐ Each control MUTATES the rule it names and asserts the census notices, so a rule that
-    silently stops working cannot pass as a clean tree. A green control on a rule that cannot
-    fail is worth nothing (docs/knowledge/... — SV-CORPUS-GRAD `.87`(e)'s withdrawn premise).
+
+# ── synthetic probes: one per structural rule, so no control can go vacuous ───────────────────
+# ⛔ SV-CORPUS-GRAD.13u. The first cut mutated each rule on the REAL TREE and asserted the census
+# noticed. That is a good corroboration and a BAD primary control: when `.13u` corrected the
+# addressability rule, no citation in the repository landed on an unaddressable pair any more, so
+# the mutation changed nothing and the arm reported itself INERT. A control whose subject the tree
+# happens not to contain is not a passing control, it is an absent one
+# (SV-CORPUS-GRAD.87(e): a green mutation is a question about the CONFIGURATION before it is a
+# verdict about the lock). Each rule now has a probe that carries its own subject.
+PROBE_SCOPE = (
+    "`interface_class_declaration` is defined (IEEE 1800-2017 \u00a78.26.1 / A.1.2) but NOT "
+    "referenced in `class_item` "
+    "(`docs/systemverilog/2017/md/section-8-classes.md:95`)"
+)
+PROBE_ADDRESSABLE = (
+    "IEEE 1800-2017 \u00a711.4 "
+    "(`docs/systemverilog/2017/md/section-28-gate-level-and-switch-level-modeling.md:396`)"
+)
+PROBE_CITED_MAJOR = (
+    "IEEE 1364-2005 \u00a77.14 "
+    "(`docs/verilog/2005/md/section-7-gate-and-switch-level-modeling.md:2328`)"
+)
+
+
+def self_test():
+    """Ground truth, then a RED control per structural rule that carries its OWN subject.
+
+    Each arm asserts BOTH directions: the rule live gives one classification, the rule disabled
+    gives a different one. A tree-level corroboration follows, and reports NOT EXERCISED — never
+    a pass — when this repository happens not to contain the shape.
     """
-    global in_clause_scope, clause_addressable
+    global in_clause_scope, addressable_for
     calibrate()
     print("self-test: ground truth OK "
           f"({len(GT_ENCLOSURE)} enclosure + {len(GT_ADDRESSABLE)} addressability "
-          f"+ 1 noise + {len(GT_SCOPE)} scope pairs)")
+          f"+ 1 cited-major + {len(GT_SCOPE)} scope pairs)")
+
     base, _ = census(verbose=False)
-    if base["disagree"] or base["section_mismatch"]:
-        print(f"self-test: FAIL — the tree is not clean to start "
-              f"(disagree={base['disagree']} section_mismatch={base['section_mismatch']})",
+    if base["disagree"]:
+        print(f"self-test: FAIL — the tree is not clean to start (disagree={base['disagree']})",
               file=sys.stderr)
         return 1
 
-    arms = 0
-    saved_scope, saved_addr = in_clause_scope, clause_addressable
-    try:
-        in_clause_scope = lambda span, offset: True                      # noqa: E731
-        red, _ = census(verbose=False)
-        if red["disagree"] + red["section_mismatch"] <= 0:
-            print("self-test: FAIL — disabling bracket scoping changes nothing; the rule is inert",
-                  file=sys.stderr)
-            return 1
-        print(f"self-test: RED arm 1 OK — without bracket scoping, "
-              f"{red['disagree'] + red['section_mismatch']} row(s) misjudge "
-              "(the defined-here/absent-there shape)")
-        arms += 1
-    finally:
-        in_clause_scope = saved_scope
+    failures = 0
 
+    # ── arm 1: bracket scope ──────────────────────────────────────────────────────────────────
+    live = _classify(PROBE_SCOPE)
+    if live.get("no_line_ref") != 1 or live.get("disagree"):
+        print(f"self-test: FAIL — the scope probe is not being unbound: {live}", file=sys.stderr)
+        failures += 1
+    saved = in_clause_scope
+    in_clause_scope = lambda span, offset: True                          # noqa: E731
     try:
-        clause_addressable = lambda path: True                           # noqa: E731
-        _modal.clear()
-        red, _ = census(verbose=False)
-        if red["disagree"] + red["section_mismatch"] <= 0:
-            print("self-test: FAIL — trusting every filename changes nothing; the rule is inert",
-                  file=sys.stderr)
-            return 1
-        print(f"self-test: RED arm 2 OK — trusting every section filename, "
-              f"{red['disagree'] + red['section_mismatch']} row(s) misjudge "
-              "(citations into mis-titled corpus files)")
-        arms += 1
+        red = _classify(PROBE_SCOPE)
     finally:
-        clause_addressable = saved_addr
-        _modal.clear()
+        in_clause_scope = saved
+    if red.get("disagree") != 1:
+        print(f"self-test: FAIL — disabling bracket scoping leaves the probe unjudged: {red}",
+              file=sys.stderr)
+        failures += 1
+    else:
+        print("self-test: RED arm 1 OK — bracket scope: the defined-here/absent-there probe is "
+              "unbound live and MISJUDGED (disagree=1) with the rule disabled")
+
+    # ── arm 2: per-citation addressability ────────────────────────────────────────────────────
+    live = _classify(PROBE_ADDRESSABLE)
+    if live.get("unaddressable_section") != 1:
+        print(f"self-test: FAIL — the addressability probe is not being bucketed: {live}",
+              file=sys.stderr)
+        failures += 1
+    saved = addressable_for
+    addressable_for = lambda path, major: True                           # noqa: E731
+    try:
+        red = _classify(PROBE_ADDRESSABLE)
+    finally:
+        addressable_for = saved
+    if red.get("unaddressable_section"):
+        print(f"self-test: FAIL — disabling addressability changes nothing: {red}", file=sys.stderr)
+        failures += 1
+    else:
+        print("self-test: RED arm 2 OK — addressability: a \u00a711.4 citation into the clause-28 "
+              f"file is bucketed live and {list(red)} with the rule disabled")
+
+    # ── arm 3: the cited-major heading filter ─────────────────────────────────────────────────
+    live = _classify(PROBE_CITED_MAJOR)
+    if live.get("agree") != 1:
+        print(f"self-test: FAIL — the cited-major probe should AGREE (\u00a77.14 contains "
+              f":2328): {live}", file=sys.stderr)
+        failures += 1
+    else:
+        print("self-test: RED arm 3 OK — cited-major filter: \u00a77.14 :2328 AGREES, where an "
+              "unfiltered read stops at the stray `## 3 delays` heading (asserted in ground truth)")
+
+    # ── tree corroboration, honest about what this repository does and does not exercise ──────
+    saved = in_clause_scope
+    in_clause_scope = lambda span, offset: True                          # noqa: E731
+    try:
+        red, _ = census(verbose=False)
+    finally:
+        in_clause_scope = saved
+    if red["disagree"]:
+        print(f"self-test: tree corroboration — bracket scope guards {red['disagree']} live row(s)")
+    else:
+        print("self-test: tree corroboration — bracket scope NOT EXERCISED by this tree "
+              "(no live citation of that shape); the synthetic arm above is the control")
 
     clean, _ = census(verbose=False)
     if clean != base:
-        print("self-test: FAIL — the tree did not return to its starting census after the RED "
-              f"arms ({base} -> {clean})", file=sys.stderr)
-        return 1
-    print(f"self-test: GREEN control OK — the real tree re-reads identically after {arms} RED arms")
-    return 0
+        print(f"self-test: FAIL — the tree did not return to its starting census ({base} -> "
+              f"{clean})", file=sys.stderr)
+        failures += 1
+    else:
+        print("self-test: GREEN control OK — the real tree re-reads identically after every arm")
+    return 1 if failures else 0
 
 
 def main():
