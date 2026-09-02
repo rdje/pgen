@@ -12,7 +12,7 @@ tags: [provenance, identity, corpus, instruments, gitignore, evidence, sv-corpus
 date: 2026-09-02
 status: current
 evidence: "SV-CORPUS-GRAD.13e.6(a) / PGEN-SV-CORPUS-GRAD-0333. `stimuli/sv/characterization/results.tsv` and `positions.tsv` are `.gitignore`d (`git ls-files --error-unmatch` exits 1; `git check-ignore -v` names `.gitignore:424` and `:432`), so they carry neither an identity block nor a history — and they are the input to every number the SV campaign publishes. `.13e.5` measured the cost: `t_property_unsup.v` sat `fail` for three days after `SV-0066` fixed the construct, so the axis-2 bar counted a defect that no longer existed (275 -> 274)."
-reverify: "bash docs/tasks/artifacts/sv_corpus_grad/outcome_identity/probe.sh   # OUTCOME-IDENTITY: 8/8 as declared — six predicate arms plus two end-to-end"
+reverify: "bash docs/tasks/artifacts/sv_corpus_grad/outcome_identity/probe.sh   # OUTCOME-IDENTITY: 10/10 as declared — eight predicate arms (incl. the duplicate-row refusal) plus two end-to-end"
 ---
 
 **An identity block on a derivation says which tree the derivation describes. It cannot say that its
@@ -57,6 +57,13 @@ A digest is exact, costs one streamed read, and has no bucket to hide in.
 The third row is what lets the mechanism land before every artifact carries the stamp: an older tree
 behaves exactly as it did, and says that it is unchecked rather than implying it is clean
 ([[feedback_a_check_that_cannot_run_must_say_so]]).
+
+⛔ **A table that disagrees with itself vouches for nothing.** The reader must REFUSE two rows for
+one path with different digests — never let the later one win. Measured the hard way
+(`PGEN-SV-CORPUS-GRAD-0334`): the bank's end-to-end fixture *appended* a wrong-digest row, and the
+moment the real report grew a row of its own the fixture held two, a `dict` assignment took the
+correct later one, and the arm went **green on a stale dump**. A bank arm that goes red because the
+tree changed under it is the arm doing its job — re-run banks, do not trust their last headline.
 
 ⭐ And prove the **wiring**, not only the predicate: arms that import the function test the rule,
 while a correct function nothing calls is the reachability defect wearing a check. Drive the real

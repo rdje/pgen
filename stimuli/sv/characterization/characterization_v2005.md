@@ -10,16 +10,24 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 ## Instrument identity (what produced this number)
 
-> Re-hash these three inputs; if any hash differs from the row below, **this report no
+> Re-hash the three INPUT rows; if any hash differs from the rows below, **this report no
 > longer describes your tree** and the honest act is to re-measure, not to quote.
+>
+> ⛔ The OUTPUT rows exist because the raw dumps are `.gitignore`d, so they carry neither
+> an identity block nor a history and nothing could say which run produced the copy on your
+> disk (`SV-CORPUS-GRAD.13e.6`). They are written by THIS run, from this report's own
+> parse, so a consumer that re-hashes them proves the dump it is reading is the one these
+> numbers describe. `stimuli/sv/adjudicate_external_corpus.py` REFUSES on a mismatch.
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
 | parse binary | `rust/target/release/parseability_probe` | `a4de90fdb333a288f6a86f3ef05a0997fe106be82b1acdc200110d23594e5474` |
 | grammar | `grammars/systemverilog.ebnf` | `b2ca001f0012579c60f6195a6e9808a7fa9cc4f8c1a9913064c8381083193e12` |
 | generated parser | `generated/systemverilog_parser.rs` | `c09b4eda9fc23a416d53da1f3ef1f6a3fcc4261d40f5d094eded1c4761d6ad49` |
+| results (output) | `stimuli/sv/characterization/results_v2005.tsv` | `1e1de0fc55110679a92cb1c6032a66010bf627361bea2fe908383c4ee4067bd9` |
+| positions (output) | `stimuli/sv/characterization/positions_v2005.tsv` | `7fee83d8b7b1ca2218c9e2fc25d0475f167d38c3a392a95954e1076193206b6c` |
 
-Measured at `HEAD` = `03ca8d58` (2026-09-02).
+Measured at `HEAD` = `077db87b` (2026-09-02).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -53,7 +61,7 @@ Measured at `HEAD` = `03ca8d58` (2026-09-02).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `0.37` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1000.v`.
+Slowest completing file: `0.33` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
 
 ## Totals
 

@@ -1,5 +1,23 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0334 (a bank arm that goes red because the tree changed under it is the arm doing its job)
+
+- ⭐⭐ **THE LESSON: RE-RUN THE BANK AFTER THE TREE MOVES, AND READ A NEW RED AS A FINDING, NOT AS
+  NOISE.** `-0333` shipped `OUTCOME-IDENTITY: 8/8`. Stamping the real reports one commit later
+  turned arm G red — not because the stamp was wrong but because the fixture APPENDED a row and the
+  reader let the later of two rows for one path win silently. Had I trusted `-0333`'s headline and
+  landed the stamp without re-running, a reader that passes on a stale dump would have shipped with
+  a bank saying otherwise. Promoted into
+  `docs/knowledge/two-outputs-of-one-run-can-vouch-for-each-other.md` (the duplicate-row rule).
+- ⛔ **A TABLE THAT DISAGREES WITH ITSELF VOUCHES FOR NOTHING.** `recorded[path] = digest` in a loop
+  is a precedence rule nobody chose. Two rows for one path with different digests is now a refusal;
+  an identical repeat is not a disagreement and must not refuse — both directions pinned (G1/G2),
+  because a refusal that fires on the harmless case teaches people to bypass it.
+- ⭐ **THE SPLIT PAID FOR ITSELF TWICE.** Landing the artifacts as their own slice bought a clean
+  `HEAD` stamp — and it also bought the second run that exposed the reader defect and a free
+  determinism reading (`ed240b8f…` twice over 16 336 files). A one-commit landing would have had
+  neither.
+
 ## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0333 (stop looking for somewhere to put the identity IN the untracked file)
 
 - ⭐⭐ **THE TRANSFERABLE LESSON: AN IDENTITY BLOCK ON A DERIVATION CANNOT VOUCH FOR ITS OWN INPUT,

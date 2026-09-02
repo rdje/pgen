@@ -665,8 +665,20 @@ def verify_outcome_identity(report: Path, dumps, *, rerun: str) -> None:
     recorded = {}
     for line in report.read_text(encoding="utf-8").splitlines():
         m = IDENTITY_ROW_RE.match(line)
-        if m:
-            recorded[m.group(1)] = m.group(2)
+        if not m:
+            continue
+        path, digest = m.group(1), m.group(2)
+        # ⛔ A DUPLICATE ROW REFUSES RATHER THAN LETTING THE LAST ONE WIN, and this is not a
+        # hypothetical: the bank's end-to-end arm built its fixture by APPENDING a wrong-digest row,
+        # which passed silently the moment the real report grew a row of its own — a dict assignment
+        # took the second one and the arm went green on a stale dump. A table carrying two digests
+        # for one file cannot vouch for anything, so it is an error, not a precedence question.
+        if path in recorded and recorded[path] != digest:
+            raise SystemExit(
+                f"outcome-identity: {_rel(report)} records TWO different digests for `{path}` "
+                f"({recorded[path][:12]}... and {digest[:12]}...). An identity table that "
+                f"disagrees with itself cannot vouch for anything - fix the report.")
+        recorded[path] = digest
     checked = []
     for dump in dumps:
         rel = _rel(dump)
