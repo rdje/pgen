@@ -621,7 +621,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 # The instrument-identity table `stimuli/run_external_corpus.sh` writes into every characterization
 # report: `| <label> | ` + "`" + `<repo-root-relative path>` + "`" + ` | ` + "`" + `<sha256>` + "`" + ` |`.
-IDENTITY_ROW_RE = re.compile(r"^\|\s*[^|]+?\s*\|\s*`([^`]+)`\s*\|\s*`([0-9a-f]{64})`\s*\|\s*$")
+IDENTITY_ROW_RE = re.compile(r"^\|\s*([^|]+?)\s*\|\s*`([^`]+)`\s*\|\s*`([0-9a-f]{64})`\s*\|\s*$")
+# A row whose LABEL says it is a SEMANTIC digest (SV-CORPUS-GRAD.13r's `grammar raw ast`) is a
+# digest of the frontend's envelope, not of the file's bytes — it can never vouch for a dump and
+# must not be confused with the byte row that shares its path.
+SEMANTIC_LABEL_RE = re.compile(r"\braw[ _]ast\b", re.I)
 
 
 def sha256_of(path: Path) -> str:
@@ -667,11 +671,19 @@ def verify_outcome_identity(report: Path, dumps, *, rerun: str) -> None:
         m = IDENTITY_ROW_RE.match(line)
         if not m:
             continue
-        path, digest = m.group(1), m.group(2)
+        label, path, digest = m.group(1), m.group(2), m.group(3)
+        # ⛔ ONLY BYTE-KIND ROWS ARE CANDIDATES. `.13r` added a `grammar raw ast` row that shares its
+        # PATH with the byte `grammar` row and legitimately carries a different digest (the envelope,
+        # not the bytes). Keying by path alone made the duplicate-row refusal below fire on the first
+        # report that carried both — measured on the `-0340` re-stamp: the adjudicator refused a
+        # correct report, so the two slices were each right alone and wrong together. A semantic row
+        # can never vouch for a dump, so it is not read here at all.
+        if SEMANTIC_LABEL_RE.search(label):
+            continue
         # ⛔ A DUPLICATE ROW REFUSES RATHER THAN LETTING THE LAST ONE WIN, and this is not a
         # hypothetical: the bank's end-to-end arm built its fixture by APPENDING a wrong-digest row,
         # which passed silently the moment the real report grew a row of its own — a dict assignment
-        # took the second one and the arm went green on a stale dump. A table carrying two digests
+        # took the second one and the arm went green on a stale dump. A table carrying two BYTE digests
         # for one file cannot vouch for anything, so it is an error, not a precedence question.
         if path in recorded and recorded[path] != digest:
             raise SystemExit(

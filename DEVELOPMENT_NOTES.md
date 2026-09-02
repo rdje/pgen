@@ -1,5 +1,24 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0340 (two correct slices, one wrong seam)
+
+- ⭐⭐ **THE LESSON: WHEN YOU CHANGE THE SHAPE OF AN ARTIFACT, RE-RUN EVERY CONSUMER OF THAT ARTIFACT,
+  NOT ONLY THE GATE YOU WERE CHANGING.** `-0339` added a second grammar row to the characterization
+  report and proved the census GATE on it six ways. The adjudicator also reads that table — `-0334`
+  made it — and it refused the first real report carrying both rows, because its key was the path and
+  the table's key had become (path, kind). Both slices had banks; neither bank contained the other's
+  shape. The consumer census is one grep (`grep -l 'Instrument identity' …` / who reads the identity
+  table) and it was not run. (Not promoted: `promotion: declined` in the leaf — the rule is
+  `the-first-real-consumer-is-a-test-of-the-producer`; this is its instance.)
+- ⛔ **A REFUSAL THAT IS RIGHT FOR ONE KIND IS WRONG THE DAY A SECOND KIND SHARES ITS KEY.** "Two
+  digests for one path cannot both be true" was correct while every row digested bytes. The moment a
+  row digested something else under the same path, the sentence needed a kind — and the reader that
+  enforced it had no notion of kind at all. ⇒ when a table gains a column of meaning (here: what is
+  being digested), every reader keyed on the old columns is suspect.
+- ⭐ **THE SPLIT-COMMIT DISCIPLINE PAID FOR ITSELF A THIRD TIME**: the defect surfaced on the clean-tree
+  re-stamp, before the report shape shipped as a fait accompli in the same commit as the reader that
+  could not read it.
+
 ## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0339 (make the verdict a pure function and the self-test writes itself)
 
 - ⭐⭐ **THE LESSON: WHEN A GATE'S VERDICT DEPENDS ON SEVERAL DERIVED INPUTS, MAKE IT A PURE FUNCTION OF

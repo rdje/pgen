@@ -101,6 +101,13 @@ want("F  a digest for another dump does not vouch for this one",
 v, out = drive(report([("results (output)", rel, bad), ("results (again)", rel, good)]), [dump])
 want("G1 a self-disagreeing identity table REFUSES, never picks one",
      v == "REFUSED" and "TWO different digests" in out, (v, out))
+# ⭐ G3 — THE ARM THE -0340 RE-STAMP EARNED: a byte row and a SEMANTIC row (`… raw ast`) may share a
+# path with DIFFERENT digests, because they digest different things. That is not a disagreement and
+# must NOT refuse — keying rows by path alone did, on the first real report carrying both.
+v, out = drive(report([("grammar", "grammars/x.ebnf", bad), ("grammar raw ast", "grammars/x.ebnf", good),
+                       ("results (output)", rel, good)]), [dump])
+want("G3 a semantic row sharing the byte row's path is not a disagreement",
+     v == "OK" and "outcome-identity: OK" in out, (v, out))
 # ...and an IDENTICAL repeat is not a disagreement, so it must NOT refuse.
 v, out = drive(report([("results (output)", rel, good), ("results (again)", rel, good)]), [dump])
 want("G2 an identical repeated row is not a disagreement",
@@ -108,7 +115,7 @@ want("G2 an identical repeated row is not a disagreement",
 
 sys.exit(1 if misses else 0)
 PY
-if [ $? -eq 0 ]; then pass=$((pass+8)); else fail=$((fail+1)); fi
+if [ $? -eq 0 ]; then pass=$((pass+9)); else fail=$((fail+1)); fi
 
 # ---- the END-TO-END arm — the WIRING, not just the function --------------------------------------
 # A correct function that nothing calls is `GATE-REACHABILITY`'s subject. This drives the real

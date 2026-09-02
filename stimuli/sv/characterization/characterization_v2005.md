@@ -10,8 +10,11 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 ## Instrument identity (what produced this number)
 
-> Re-hash the three INPUT rows; if any hash differs from the rows below, **this report no
+> Re-hash the INPUT rows; if any hash differs from the rows below, **this report no
 > longer describes your tree** and the honest act is to re-measure, not to quote.
+> ⭐ `grammar raw ast` is the SEMANTIC digest of the grammar (the frontend's own envelope):
+> a comment or whitespace edit moves the byte `grammar` row and not this one, and the
+> census gate keys on this row when it is present (`SV-CORPUS-GRAD.13r`).
 >
 > ⛔ The OUTPUT rows exist because the raw dumps are `.gitignore`d, so they carry neither
 > an identity block nor a history and nothing could say which run produced the copy on your
@@ -23,11 +26,12 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 |---|---|---|
 | parse binary | `rust/target/release/parseability_probe` | `8990b21427a9ebe38434b481592db7b097fdc9b625a710bdf0d6a0a696a438a0` |
 | grammar | `grammars/systemverilog.ebnf` | `b2ca001f0012579c60f6195a6e9808a7fa9cc4f8c1a9913064c8381083193e12` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `891b02cb654fd56ce19c032838985ca47781d21e7413e18ea082fc2a1e5295f4` |
 | generated parser | `generated/systemverilog_parser.rs` | `62fec0abc42a11bc68cff531ecc73a9af8b53b60e2b0b460f9b462e9df884781` |
 | results (output) | `stimuli/sv/characterization/results_v2005.tsv` | `1e1de0fc55110679a92cb1c6032a66010bf627361bea2fe908383c4ee4067bd9` |
 | positions (output) | `stimuli/sv/characterization/positions_v2005.tsv` | `7fee83d8b7b1ca2218c9e2fc25d0475f167d38c3a392a95954e1076193206b6c` |
 
-Measured at `HEAD` = `131a8246` (2026-09-02).
+Measured at `HEAD` = `b815b002` (2026-09-03).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -61,7 +65,7 @@ Measured at `HEAD` = `131a8246` (2026-09-02).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `0.33` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
+Slowest completing file: `0.37` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
 
 ## Totals
 
