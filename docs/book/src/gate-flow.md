@@ -887,6 +887,35 @@ directory-scoped exclusion would have silenced the one row that must stay loud. 
 regression control that pins this drives a modified `v2005_lane_files.tsv` through the
 predicate and requires `+dirty`.
 
+### Keying the grammar arm on meaning, not bytes
+
+Arm (3) of `CORPUS-CENSUS-CURRENCY` re-hashes the grammar the report was measured against. Until
+`SV-CORPUS-GRAD.13r` it hashed **bytes**, so one `#` comment in `grammars/systemverilog.ebnf`
+blocked a commit until both SV lanes had been re-measured and re-stamped — four corpus runs and two
+commits for zero moved artifacts. Over the whole SV history, 4 of the 11 revisions at which the
+report was stale by bytes were exactly this class.
+
+The report may now carry a second grammar row, the **semantic** digest — sha256 of the EBNF
+frontend's own `raw_ast` envelope, the definition `check_baseline_identity.sh --digest ebnf_raw_ast`
+owns and two other doctrines already key on:
+
+```text
+| grammar         | grammars/systemverilog.ebnf | b2ca001f…   |   <- bytes
+| grammar raw ast | grammars/systemverilog.ebnf | 891b02cb…   |   <- what the code generator consumes
+```
+
+When the schema declares that row (`grammar_semantic_identity_row`) and the digester can run, the
+verdict is the semantic comparison: a moved envelope is the same hard failure as before; bytes moved
+with the envelope unchanged is a **note** — the language in the tree is the language the report
+describes, and no re-measure is owed. This is not a loosening: any production, terminal or
+annotation change moves the envelope. A report without the row, or a tree without the debug
+`ast_pipeline`, is judged on bytes exactly as before and says so.
+
+The bank (`docs/tasks/artifacts/sv_corpus_grad/semantic_grammar_identity/probe.sh`) drives the
+founding pair on report fixtures with every digest derived from the git blobs at run time — `.13p`'s
+real grammar fix must fail, `.13q`'s comment must be a note — and includes the arm that **removes**
+the semantic row and requires the note to become a breach again, so the relief is earned by the row.
+
 ### The dump the report describes — output identity for an untracked artifact
 
 An identity block answers *"was this report measured against today's tree?"*. It cannot answer

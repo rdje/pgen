@@ -35,6 +35,23 @@
 #       affordable by measurement rather than by hope: `grammars/vhdl.ebnf` has moved TWELVE times
 #       in the life of this repository, and a grammar edit is exactly the event after which a
 #       corpus pass rate must not be quoted until it is re-run.
+#       ⭐ KEYED ON THE SEMANTIC DIGEST WHEN THE REPORT CARRIES ONE (`SV-CORPUS-GRAD.13r`). A report
+#       may also record a `grammar raw ast` row — sha256 of the EBNF frontend's own `raw_ast`
+#       envelope, the ONE definition `check_baseline_identity.sh --digest ebnf_raw_ast` owns and
+#       `SV-CONTRACT-CURRENCY` / `PARSE-COST-RATCHET` already key on. When the declaration names
+#       that row (`grammar_semantic_identity_row`) and the digester can run here, the verdict is the
+#       SEMANTIC comparison: moved ⇒ HARD FAIL exactly as before; equal while the byte row moved ⇒ a
+#       NOTE (a comment or whitespace edit, which the frontend strips — the language in the tree IS
+#       the language the report describes). ⛔ NOT A LOOSENING: any production, terminal or
+#       annotation change moves the envelope. MEASURED on the founding pair — `.13p` (`c4b2fe1b`,
+#       a real grammar fix) moved bytes 3dc227b7… → bb4bdc08… AND raw_ast 64151437… → 891b02cb…,
+#       so it fails either way; `.13q` (`03ca8d58`, one `#` comment) moved bytes bb4bdc08… →
+#       b2ca001f… and left raw_ast 891b02cb… unchanged, and under the byte key it BLOCKED the
+#       commit until four corpus runs and two commits had produced byte-identical artifacts.
+#       Over the whole SV history 4 of the 11 stale-by-bytes readings were this class (`.13e.6`(c)).
+#       Fallbacks, both LOUD: a report with no semantic row, or a tree where the digester cannot
+#       run (no debug `ast_pipeline`), is judged on bytes exactly as before, with a NOTE saying the
+#       semantic arm was not evaluated — never a silent pass, never a silent skip.
 #       ⚠️ HONEST LIMIT (`.3d`): this hashes ONE FILE, so it is complete only for a grammar with no
 #       `include(...)`. MEASURED for the shipped customer — `grep -c 'include(' grammars/vhdl.ebnf`
 #       is **0** — so there is no blind spot today; a future family whose grammar composes would
@@ -621,6 +638,33 @@ def self_test():
     finally:
         shutil.rmtree(probe, ignore_errors=True)
 
+    # --- arm (3)'s SEMANTIC-FIRST verdict, every cell, on literals (SV-CORPUS-GRAD.13r) -------------
+    # The founding pair is real: `.13q` (comment-only) bytes bb4bdc08 -> b2ca001f, raw_ast 891b02cb
+    # unchanged, must be a NOTE; `.13p` (a grammar fix) raw_ast 64151437 -> 891b02cb, must FAIL.
+    B0, B1, S0, S1 = "bb4bdc08" + "0" * 56, "b2ca001f" + "0" * 56, "891b02cb" + "0" * 56, "64151437" + "0" * 56
+    cells = [
+        ("sem: bytes equal -> pass",                       (B0, B0, S0, S0, True),  "pass"),
+        ("sem: .13q comment-only -> NOTE, not a breach",   (B0, B1, S0, S0, True),  "note"),
+        ("sem: .13p semantics moved -> FAIL",              (B0, B1, S1, S0, True),  "fail"),
+        ("sem: recorded but underivable here -> FAIL on bytes", (B0, B1, S0, None, True), "fail"),
+        ("sem: declared, report lacks the row -> FAIL on bytes", (B0, B1, None, None, True), "fail"),
+        ("sem: undeclared (pre-.13r) bytes moved -> FAIL",  (B0, B1, None, None, False), "fail"),
+        ("sem: None never equals None",                    (B0, B1, None, None, True), "fail"),
+    ]
+    for label, (rb, lb, rs, ls, decl_), want_v in cells:
+        control(label)
+        got_v, _msg = grammar_identity_verdict(rb, lb, rs, ls, semantic_declared=decl_)
+        if got_v != want_v:
+            misses.append(f"{label}: got {got_v!r}")
+    # ...and the live digester is the ONE definition: it must agree with the identity verifier's own
+    # reading of the tracked SV grammar, or the two consumers have forked.
+    control("sem: semantic_digest() agrees with check_baseline_identity.sh on the tracked grammar")
+    _live = semantic_digest("grammars/systemverilog.ebnf")
+    _ref = subprocess.run(["bash", DIGESTER, "--digest", "ebnf_raw_ast", "grammars/systemverilog.ebnf"],
+                          capture_output=True, text=True, cwd=ROOT).stdout.strip()
+    if _live is not None and _live != _ref:
+        misses.append(f"semantic_digest disagrees with the verifier: {_live[:12]} vs {_ref[:12]}")
+
     if misses:
         print(f"{TAG}: the reader does not discriminate ({len(misses)} control(s) missed):",
               file=sys.stderr)
@@ -635,6 +679,56 @@ def self_test():
 # =================================================================================================
 # The live check.
 # =================================================================================================
+def semantic_digest(path):
+    """`check_baseline_identity.sh --digest ebnf_raw_ast <path>` — the ONE definition of the
+    frontend-envelope digest — or None when it cannot be derived here (no debug `ast_pipeline`).
+    None is a fact the caller must SAY, never a value it may compare."""
+    p = subprocess.run(["bash", DIGESTER, "--digest", "ebnf_raw_ast", path],
+                       capture_output=True, text=True, cwd=ROOT)
+    out = (p.stdout or "").strip().split()
+    if p.returncode != 0 or not out or not SHA256_RE.fullmatch(out[0]):
+        return None
+    return out[0]
+
+
+def grammar_identity_verdict(rec_bytes, live_bytes, rec_sem, live_sem, *, semantic_declared):
+    """Arm (3)'s verdict as a PURE function of four digests (SV-CORPUS-GRAD.13r).
+
+    Returns (verdict, message) with verdict in {"pass", "note", "fail", "unevaluated"}:
+      * bytes equal                                  -> pass  (nothing moved; the semantic row is moot)
+      * semantic row recorded AND derivable here:
+          - semantic equal, bytes moved              -> note  (comment / whitespace only — the frontend
+                                                              strips it; the LANGUAGE is unchanged)
+          - semantic moved                           -> fail  (a production / terminal / annotation moved)
+      * semantic row recorded, NOT derivable here    -> fail on bytes (as before) + the caller reports the
+                                                       semantic arm NOT EVALUATED via "unevaluated"
+                                                       (returned as fail; message names the limit)
+      * no semantic row (declared or not)            -> fail on bytes, exactly the pre-.13r behaviour
+    ⛔ A `None` digest never compares equal to anything: None == None must not read as "unchanged".
+    """
+    if rec_bytes == live_bytes:
+        return "pass", "re-hashes equal"
+    if rec_sem is not None and live_sem is not None:
+        if rec_sem == live_sem:
+            return "note", (f"moved by BYTES only (report {rec_bytes[:12]}…, tree {live_bytes[:12]}…) "
+                            f"while its semantic digest is unchanged ({live_sem[:12]}…): a comment or "
+                            f"whitespace edit the frontend strips — the language in the tree is the "
+                            f"language this census describes, so no re-measure is owed (SV-CORPUS-GRAD.13r)")
+        return "fail", (f"has MOVED since this census was measured — semantically: raw_ast "
+                        f"{rec_sem[:12]}… → {live_sem[:12]}… (bytes {rec_bytes[:12]}… → {live_bytes[:12]}…)")
+    if rec_sem is not None and live_sem is None:
+        return "fail", (f"has MOVED since this census was measured (bytes {rec_bytes[:12]}… → "
+                        f"{live_bytes[:12]}…); the report carries a semantic digest but it could not be "
+                        f"derived here (build rust/target/debug/ast_pipeline: `make -C rust ast_pipeline`), "
+                        f"so this is judged on BYTES and may be a comment-only edit")
+    if semantic_declared and rec_sem is None:
+        return "fail", (f"has MOVED since this census was measured (bytes {rec_bytes[:12]}… → "
+                        f"{live_bytes[:12]}…); the declaration names a semantic row the report does not "
+                        f"carry yet — the next re-measure stamps it")
+    return "fail", (f"has MOVED since this census was measured (report: {rec_bytes[:12]}…, tree: "
+                    f"{live_bytes[:12]}…)")
+
+
 def digest(path):
     """The repository's ONE definition of a file digest, called rather than re-implemented."""
     p = subprocess.run(["bash", DIGESTER, "--digest", "bytes", path],
@@ -949,6 +1043,8 @@ def check_family(family, decl):
     regen = decl["regenerate"]
 
     # (3) grammar identity — HARD, tracked, and the event after which a pass rate must not be quoted.
+    # ⭐ SEMANTIC-FIRST since SV-CORPUS-GRAD.13r: see the header. The verdict is a PURE function of
+    # four digests (`grammar_identity_verdict`) so the self-test drives every cell with literals.
     label = decl["grammar_identity_row"]
     if label not in census["identity"]:
         failures.append(f"{family}: {report_path} declares no `{label}` row in its instrument "
@@ -958,11 +1054,28 @@ def check_family(family, decl):
         if not os.path.isfile(path):
             failures.append(f"{family}: {report_path} names `{path}` as its {label}, and that file "
                             f"does not exist in this tree")
-        elif digest(path) != recorded:
-            failures.append(
-                f"{family}: the {label} `{path}` has MOVED since this census was measured "
-                f"(report: {recorded[:12]}…, tree: {digest(path)[:12]}…). A corpus pass rate is a "
-                f"statement about a language; re-measure before it is quoted again: {regen}")
+        else:
+            sem_label = decl.get("grammar_semantic_identity_row")
+            rec_sem = live_sem = None
+            if sem_label and sem_label in census["identity"]:
+                sem_path, rec_sem = census["identity"][sem_label]
+                if sem_path != path:
+                    failures.append(f"{family}: {report_path}'s `{sem_label}` row names `{sem_path}` "
+                                    f"while its `{label}` row names `{path}` — two identity rows about "
+                                    f"different files cannot describe one grammar")
+                    rec_sem = None
+                else:
+                    live_sem = semantic_digest(path)
+            verdict, msg = grammar_identity_verdict(recorded, digest(path), rec_sem, live_sem,
+                                                    semantic_declared=bool(sem_label))
+            text = (f"{family}: the {label} `{path}` {msg}. A corpus pass rate is a statement about a "
+                    f"language; re-measure before it is quoted again: {regen}")
+            if verdict == "fail":
+                failures.append(text)
+            elif verdict == "note":
+                notes.append(f"{family}: the {label} `{path}` {msg}")
+            elif verdict == "unevaluated":
+                unevaluated.append(f"{family}: the semantic grammar arm — {msg}")
 
     # (4) denominator currency — needs the vendored corpora, which are submodules.
     #

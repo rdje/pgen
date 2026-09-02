@@ -1,5 +1,22 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0339 (make the verdict a pure function and the self-test writes itself)
+
+- ⭐⭐ **THE LESSON: WHEN A GATE'S VERDICT DEPENDS ON SEVERAL DERIVED INPUTS, MAKE IT A PURE FUNCTION OF
+  THOSE INPUTS AND DRIVE EVERY CELL WITH LITERALS.** `grammar_identity_verdict(rec_bytes, live_bytes,
+  rec_sem, live_sem, semantic_declared)` has seven meaningful cells; the self-test lists them as a
+  table, so *"None never equals None"* is a pinned row rather than a hope, and the founding pair is
+  two of the rows. The live wiring is then a thin caller, and the bank proves the wiring on fixtures.
+  (Not promoted: `promotion: declined` in the leaf — the rule is BASELINE-IDENTITY's own record.)
+- ⭐ **AN EXEMPTION MUST BE EARNED BY EVIDENCE THE REPORT CARRIES, AND THE BANK MUST PROVE IT CAN BE
+  WITHDRAWN.** Arm 6 removes the semantic row from the `.13q` fixture and requires the NOTE to become a
+  breach again. Without it, arms 1–5 are consistent with "the gate now ignores bytes whenever it feels
+  like it". The RED control for a relief is the relief's absence.
+- ⚠️ **A BANK THAT DERIVES ITS OWN EXPECTED VALUES FROM GIT REFUSES WHEN HISTORY DISAGREES WITH THE
+  LEAF.** The probe re-derives both blobs' digests and exits 2 if `.13q` is not a bytes-only move or
+  `.13p` did not move the envelope — so the leaf's founding claim is re-checked every run instead of
+  being carried as constants that rot when the digester's canonicalisation moves.
+
 ## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0338 (a live count in doctrine prose is derived state wearing a sentence)
 
 - ⭐⭐ **THE LESSON: DOCTRINE PROSE IS A LIVE DOCUMENT TOO, AND A COUNT TYPED INTO IT ROTS EXACTLY LIKE

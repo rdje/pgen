@@ -586,8 +586,11 @@ SLOWEST_F=$(printf '%s' "$SLOWEST_LINE" | cut -f3); SLOWEST_F="${SLOWEST_F:-(non
   echo
   echo "## Instrument identity (what produced this number)"
   echo
-  echo "> Re-hash the three INPUT rows; if any hash differs from the rows below, **this report no"
+  echo "> Re-hash the INPUT rows; if any hash differs from the rows below, **this report no"
   echo "> longer describes your tree** and the honest act is to re-measure, not to quote."
+  echo "> ⭐ \`grammar raw ast\` is the SEMANTIC digest of the grammar (the frontend's own envelope):"
+  echo "> a comment or whitespace edit moves the byte \`grammar\` row and not this one, and the"
+  echo "> census gate keys on this row when it is present (\`SV-CORPUS-GRAD.13r\`)."
   echo ">"
   echo "> ⛔ The OUTPUT rows exist because the raw dumps are \`.gitignore\`d, so they carry neither"
   echo "> an identity block nor a history and nothing could say which run produced the copy on your"
@@ -599,6 +602,19 @@ SLOWEST_F=$(printf '%s' "$SLOWEST_LINE" | cut -f3); SLOWEST_F="${SLOWEST_F:-(non
   echo "|---|---|---|"
   echo "| parse binary | \`${PROBE#"$ROOT/"}\` | \`$(sha256_of "$PROBE")\` |"
   echo "| grammar | \`${GRAMMAR_FILE#"$ROOT/"}\` | \`$(sha256_of "$GRAMMAR_FILE")\` |"
+  # SV-CORPUS-GRAD.13r — the SEMANTIC digest beside the byte one: sha256 of the EBNF frontend's own
+  # raw_ast envelope (what the code generator consumes), the ONE definition
+  # `scripts/check_baseline_identity.sh --digest ebnf_raw_ast` owns. A comment or whitespace edit
+  # moves the byte row and not this one, so a consumer keyed on this row stops demanding a corpus
+  # re-measure for an edit the frontend strips — while any production, terminal or annotation change
+  # still moves it. ⛔ Written only when the digester can run (it needs the debug `ast_pipeline`);
+  # an absent row is honest, a fabricated digest is not, and the consumer falls back to bytes.
+  if _raw="$(bash "$ROOT/scripts/check_baseline_identity.sh" --digest ebnf_raw_ast "${GRAMMAR_FILE#"$ROOT/"}" 2>/dev/null)" \
+     && printf '%s' "$_raw" | grep -Eq '^[0-9a-f]{64}$'; then
+    echo "| grammar raw ast | \`${GRAMMAR_FILE#"$ROOT/"}\` | \`$_raw\` |"
+  else
+    echo "external-corpus[$FAM]: NOTE — the semantic grammar digest could not be derived (is rust/target/debug/ast_pipeline built?); the report carries the byte digest only, so CORPUS-CENSUS-CURRENCY arm (3) will key on bytes for it" >&2
+  fi
   echo "| generated parser | \`${GEN_PARSER#"$ROOT/"}\` | \`$(sha256_of "$GEN_PARSER")\` |"
   echo "| results (output) | \`${RESULTS#"$ROOT/"}\` | \`$(sha256_of "$RESULTS")\` |"
   echo "| positions (output) | \`${POSITIONS#"$ROOT/"}\` | \`$(sha256_of "$POSITIONS")\` |"
