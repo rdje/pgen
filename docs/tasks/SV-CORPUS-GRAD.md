@@ -19206,7 +19206,7 @@ makes for `scripts/report_*.sh` (*"the oracle a doctrine consumes is part of the
 too"*), not applied to this producer. Routed as `.13l`; the checklist above is written to the
 doctrine's shape voluntarily rather than because a gate asked.
 
-#### `.13k` — ⛔⛔ NEW `todo` — **THE v2005 ANSWER KEY ADJUDICATES ONE CONSTRUCT CLASS BOTH WAYS: `^=` IS `must_reject` AS *"IN NEITHER A.6.2 NOR A.8.6"* WHILE `|=`, `+=` AND `-=` ARE `must_accept` ON A SUITE'S WORD** (opened 2026-08-31 by `.13j`(a)'s re-measure / `PGEN-SV-CORPUS-GRAD-0310`)
+#### ✅✅ `.13k` — **(a)+(c) DONE for the THREE v2005 rows** 2026-09-02 (`PGEN-SV-CORPUS-GRAD-0327`); the fourth row is BLOCKED and routed to `.13s` — **THE v2005 ANSWER KEY ADJUDICATES ONE CONSTRUCT CLASS BOTH WAYS: `^=` IS `must_reject` AS *"IN NEITHER A.6.2 NOR A.8.6"* WHILE `|=`, `+=` AND `-=` ARE `must_accept` ON A SUITE'S WORD** (opened 2026-08-31 by `.13j`(a)'s re-measure / `PGEN-SV-CORPUS-GRAD-0310`)
 
 - **WHY + WHERE**: `stimuli/sv/characterization/adjudication_manifest_v2005.tsv`, three rows —
   `iverilog/ivtest/ivltests/br_gh531.v` (`|=`), `sv2v/test/core/interface_generate.v` (`+=`) and
@@ -19225,14 +19225,18 @@ doctrine's shape voluntarily rather than because a gate asked.
   EMITS. Neither is an oracle for *"parse-level valid 1364-2005"*, which is the sentence the basis
   strings actually assert. This is the `.61`(b) shape once more: an oracle's blind spot is inherited
   by every row built on it.
-- **OWES**: (a) re-adjudicate the three rows against Annex A and record the basis as an LRM citation
+- **OWES**: (a) ✅ **DONE for the three v2005 rows `PGEN-SV-CORPUS-GRAD-0327`** (the fourth, main-lane
+  row is BLOCKED by `reject_arm_demotion`'s whole-file test and is routed to `.13s`) — re-adjudicate
+  the three rows against Annex A and record the basis as an LRM citation
   rather than a suite claim; (b) ✅ **DONE `PGEN-SV-CORPUS-GRAD-0315`** — ⛔ **census the class, do not fix three rows** — every
   `must_accept` row in the v2005 manifest whose basis rests on a suite contract rather than on a
   clause citation is the same defect, and three is a sample; ⛔ **the BASIS population turned out
   to be the wrong one (2 322 rows = the already-published 93.7 % trust bound, 2 085 of them at
-  `match`); the DECIDABLE class is the 53 rejects-valid rows, and it is TWO defects, not one**; (c) decide whether such rows become
-  `must_reject` or `divergence:explained` with an edition-contrast reason, since a GOLDEN file that
-  is genuinely not 1364-2005 is a CORPUS COMPOSITION fact, not a parser verdict.
+  `match`); the DECIDABLE class is the 53 rejects-valid rows, and it is TWO defects, not one**; (c) ✅ **RULED `must_reject` `-0327`** — on the adjudicator's OWN
+  taxonomy (*"text a vendor tolerates that the standard cannot derive … where the spec outranks the
+  upstream tool"*, ~30 precedent rows), NOT `divergence:explained`, whose vocabulary is svpp/timeout
+  CAUSES that do not apply. The composition fact a GOLDEN file records is carried IN the pin's basis;
+  `must_reject` is what turns a correct reject into a claim WITH A CITE instead of a defect-column row.
 - ⛔ **NOT REPAIRED IN `.13j`, DELIBERATELY.** Editing an answer key so it agrees with the parser is
   the gaming `EXTERNAL-CORPUS` forbids; the key moves only on a re-derived LRM basis, in its own
   slice, with the census (b) in front of it.
@@ -19247,6 +19251,155 @@ doctrine's shape voluntarily rather than because a gate asked.
   conditional and it became `divergence:unexplained_rejects_valid`, moving the bar 268 → 269 with
   ZERO verdicts moving. (a) owes the LRM-basis re-adjudication of this row alongside the three
   v2005 rows; (c) owes the ruling on the class. ⛔ Not edited in the release slice, deliberately.
+
+
+
+### ✅✅✅ `.13k`(a)+(c) DISCHARGED FOR THE THREE v2005 ROWS — **THE CLASS IS RULED `must_reject` BY THE ADJUDICATOR'S OWN TAXONOMY, AND THE SHIPPED GRAMMAR HAD ALREADY RULED IT UNDER LEDGER `SV-0071` — THE ANSWER KEY WAS CONTRADICTING A RELEASED CONFORMANCE DECISION, NOT A PARSER GAP** (2026-09-02, `PGEN-SV-CORPUS-GRAD-0327`)
+
+**(c) — THE RULING, and it did not need a new judgement: the tree had already made it.**
+`adjudicate_external_corpus.py`'s own taxonomy defines `must_reject` as *"the text has no derivation
+in the LRM's grammar (Annex A / the clause-5 lexical rules). Covers BOTH the suite's own intentional
+invalidity AND **text a vendor tolerates that the standard cannot derive** — the pin tables below
+carry ~30 of the latter, **where the spec outranks the upstream tool**."* That is these rows exactly.
+`divergence:explained_*` is NOT the answer: its whole vocabulary is svpp and timeout CAUSES
+(`_include`, `_macro_use`, `_conditional`, `_protected_envelope`, `_timeout`), and nothing about
+preprocessing or a deadline explains a token the edition does not have. ⭐ `.13k`'s own worry —
+*"a GOLDEN file that is genuinely not 1364-2005 is a CORPUS COMPOSITION fact, not a parser verdict"*
+— is answered by the same sentence: the composition fact is recorded IN the pin's basis, and
+`must_reject` is what turns a correct reject from a defect-column row into a claim WITH A CITE.
+⇒ [[feedback_answer_your_own_technical_questions]]: the tree had decided this, in the file being
+edited, ~30 rows earlier.
+
+**(a) — THE BASIS, RE-DERIVED IN-REPO FOUR WAYS AND NEVER FROM WHAT PGEN DOES:**
+
+1. **IEEE 1364-2005 Annex A has NO compound assignment operator at all.** `grep -cE '(\+=|-=|\*=|/=|%=|&=|\|=|\^=|<<=|>>=)'` = **0** over `docs/verilog/2005/txt/section-Annex_A-…txt`
+   (48 062 B), over `docs/verilog/2005/grammar_clean.ebnf` and over
+   `grammars/verilog_2005_lrm_extracted.ebnf` — three extracts, three zeros. The only assignment
+   forms are `blocking_assignment ::= variable_lvalue = [ delay_or_event_control ] expression`
+   (`:518`) and `variable_assignment ::= variable_lvalue = expression` (`:527`); the for-STEP **is**
+   a `variable_assignment` (`loop_statement`, `:617-622`), so `i -= 1` in a header falls to the same
+   clause as `i |= 1` in a body.
+2. **The PROSE agrees**: 0 hits across all 37 `docs/verilog/2005/md` sections. ⭐ The only `+=` /
+   `-=` bytes in the entire standard are the clause-14 specify-path POLARITY operators `+=>` / `-=>`
+   (`section-14-specify-blocks.md:638`, `:652`) — a different token in a different role, and the
+   residual reconciles EXACTLY.
+3. **IEEE 1800 DOES define them, which is what makes this an EDITION contrast rather than a gap**:
+   `operator_assignment ::= variable_lvalue assignment_operator expression` and `assignment_operator
+   ::= = | += | -= | *= | /= | %= | &= | |= | ^= | <<= | >>= | <<<= | >>>=` — 1800-2017 §10.4.1
+   (`docs/systemverilog/2017/txt/section-10-assignment-statements.txt:288-290`) and §11.4.1
+   (`section-11-operators-and-expressions.txt:100-102`, tagged *"from A.6.2"*); 1800-2023 in
+   `grammars/systemverilog_2023_lrm_extracted.ebnf:58`.
+4. ⭐⭐ **AND THE SHIPPED GRAMMAR HAD ALREADY RULED THIS, TWO-SIDED, UNDER RELEASE `1.0.197` /
+   LEDGER `SV-0071`.** `grammars/systemverilog.ebnf:6938` gates all TWELVE compound-assignment
+   terminals out of `verilog_2005` on the same A.6.2 ground — *"1364-2005 A.6.2 gives
+   blocking/nonblocking assignment `=` and `<=` and nothing else"* — and that comment
+   INDEPENDENTLY records the `+=>` / `-=>` caveat that leg (2) rediscovered from the other
+   direction. ⇒ **the answer key was contradicting a shipped, ledgered conformance decision.** The
+   `must_accept` rows were not describing a parser gap; they were describing a suite.
+
+**MEASURED, per row (release probe, `--profile verilog_2005`)** — each rejects with
+`furthest_position` landing exactly on the operator, and each has a TWO-SIDED CONTROL isolating one
+difference (`.13k`(b)'s protocol):
+
+| row | construct | furthest | edition contrast | control (the 1364-2005 spelling) |
+|---|---|---|---|---|
+| `iverilog/ivtest/ivltests/br_gh531.v:39,48` | `tmp[3:0] \|= i[3:0]` | `635` = the `\|=` | REJECT v2005 · ACCEPT `sv_2017` + `sv_2023` | `tmp[3:0] = tmp[3:0] \| i[3:0]` ACCEPTS ×3 |
+| `sv2v/test/core/interface_generate.v:19` | `counter += 1` | `403` = the `+=` | REJECT v2005 · ACCEPT ×2 | `counter = counter + 1` ACCEPTS ×3 |
+| `sv2v/test/core/unpacked_localparam.v:5,7` | `for (…; i -= 1)` | `149` = the `-=` | REJECT v2005 · ACCEPT ×2 | `for (…; i = i - 1)` ACCEPTS ×3 |
+| control `iverilog/ivtest/ivltests/br1015a.v:11` | `parity ^= …` | `170` = the `^=` | already `must_reject`/`match` | the row whose basis `.13k` was opened to reconcile |
+
+**THE MOVEMENT, per path and two-sided**: v2005 lane **exactly 3 rows** moved, all
+`must_accept → must_reject` and `divergence:unexplained_rejects_valid → match`; MAIN lane **0 rows**;
+**OBSERVED parse verdicts moved on 0 rows of 16 336 + 2 606** — row sets identical on both lanes.
+v2005 `match` **2 288 → 2 291**, `unexplained_rejects_valid` **44 → 41**. The axis-2 bar is the MAIN
+lane's count and correctly stays **269**; tuple `7556/2606/6174/4363/269`,
+`check_sv_corpus_denominator.sh` OK after refreshing `corpus_verdict_coverage.py`.
+
+⭐⭐ **AND THE KEY'S OWN GROUNDING METRIC MOVED IN THE RIGHT DIRECTION, WHICH IS THE POINT OF (a)
+RATHER THAN A SIDE EFFECT.** `key_provenance_census.py` re-derives what each expectation RESTS on,
+and the three rows left `tool-testimony` / `suite-convention` for `clause-cited`: the v2005 lane's
+`clause-cited` **201 → 204** (`must_reject` 44 → 47), `tool-testimony` **485 → 483**,
+`suite-convention` **1 846 → 1 845**, and the published **trust bound — the share of this lane's
+expectations resting on evidence OUTSIDE the standard — falls 92.1 % → 91.9 %** (2 333 → 2 330 of
+2 534). Per suite: `sv2v` clause-cited 195 → 197, `iverilog` 362 → 363. That is the number `.13k`
+exists to move, and it is measured by an instrument this slice did not write.
+
+⛔⛔ **THE FOURTH ROW IS NOT DONE, AND ITS PIN WAS APPLIED, MEASURED AND THEN REVERTED IN THIS SLICE
+RATHER THAN SHIPPED.** Pinning `verilator/test_regress/t/t_gate_basic.v` `must_reject` did NOT
+produce `match`: `reject_arm_demotion()` demoted it to `out_of_scope_with_cause` /
+`deferred:svpp_owned`, because that arm is a WHOLE-FILE existence test on the preprocessor
+dependency and the file carries `` `ifdef verilator `` at line 41. The published basis then read, in
+one string, *"the parse stops at line 25, above the file's first `ifdef` — **but**
+macro/conditional-dependent: the reject expectation is only meaningful post-preprocessing"*. **A
+self-contradicting basis is worse than an unfixed key**, so the pin was removed and the row is
+routed to **`.13s`** with the demotion PRICED (2 rows in the population, 1 refutable, negative
+control named). The row therefore keeps its known-wrong `must_accept` key for one more slice, and
+this leaf says so rather than reporting four rows done.
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+  - [x] **REPRODUCE / ISSUE** — the three rows read `expected=must_accept`,
+        `adjudication=divergence:unexplained_rejects_valid` on bases citing a SUITE
+        (*"the iverilog plain-Verilog dialect"*, *"sv2v GOLDEN … by suite contract"*), while
+        `br1015a.v` in the same file is `must_reject` for `^=` — one construct class, both ways.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — WHY: IEEE 1364-2005 has no compound assignment operator in
+        Annex A (0 hits over three extracts) or in prose (0 hits over 37 clause files, the only
+        `+=`/`-=` being `+=>`/`-=>`), while IEEE 1800 A.6.2 defines `assignment_operator` — an
+        edition contrast the shipped grammar already gates under `SV-0071`. WHERE: the three key
+        sources in `adjudicate_external_corpus.py` (`expect_v2005`'s `sv2v` branch and
+        `ividx.expect_v2005`), overridden by `V2005_LRM_PINNED`, which `expect_v2005` consults
+        FIRST for exactly this reason. Settled on the parser by `--parse … --profile` ×3 per row and
+        `--trace-rules statement_item,…` (both `statement_item` branches fail at the operator byte
+        and the memo is TAINTED there), not by reading.
+  - [x] **FIX** — answer-key tier: three `V2005_LRM_PINNED` rows, each carrying its clause citation,
+        its measured `furthest_position` and its two-sided control, plus a block comment recording
+        the (c) ruling and all four derivation legs. ZERO grammar, Rust, codegen or generated bytes.
+  - [x] **ADDRESSED (verified)** — per-path re-adjudication: exactly the three rows move, each
+        `divergence:unexplained_rejects_valid → match`; v2005 `unexplained_rejects_valid` 44 → 41.
+  - [x] **NO REGRESSION** — key sets identical on both lanes (16 336 / 2 606); **OBSERVED parse
+        verdicts moved on 0 rows** — this slice cannot move a verdict, it has no parser in it; MAIN
+        lane 0 rows moved; `check_sv_corpus_denominator.sh` OK, tuple unchanged;
+        `run_adjudication_repros.py checked=260 failures=0`; `bash scripts/check_doctrines.sh`
+        ALL 33 PASS.
+  - [x] **LOCKSTEP** — adjudicator + both manifests + both summaries + the verdict-coverage
+        artifact + this tree + `docs/TASK_TREE.md` + `CHANGES.md` + `DEVELOPMENT_NOTES.md` +
+        `MEMORY.md`.
+
+
+#### `.13s` — ⚠️ NEW `todo` — **THE `must_reject` ARM'S PREPROCESSOR DEMOTION IS A WHOLE-FILE TEST WHERE THE `must_accept` ARM IS POSITIONAL, SO A CLAUSE-CITED REJECT ABOVE EVERY DIRECTIVE IS DEFERRED INSTEAD OF MATCHED** (opened 2026-09-02 by `.13k`(a) / `PGEN-SV-CORPUS-GRAD-0327`, ROUTED — carries `.13k`'s fourth row)
+
+- **WHY + WHERE**: `stimuli/sv/adjudicate_external_corpus.py:679 reject_arm_demotion(dep_flag)`
+  demotes any `must_reject` row whose file carries a `macro_use` / `conditional` dependency to
+  `out_of_scope_with_cause` — on the DEPENDENCY ALONE. Its sibling `svpp_can_explain_failure(raw_text,
+  furthest)` (`:644`) already answers the positional question and is deliberately not reachable from
+  it: `.12c.3` finding F3 made the split STRUCTURAL — *"it takes no position argument and has no way
+  to obtain one … making this arm positional now requires changing a signature, which is visible in
+  review"*, with `_self_check_arm_split()` asserting it at runtime.
+- ⛔ **THAT REFUSAL IS RIGHT ABOUT THE CASE IT NAMES AND OVER-BROAD BY ONE ROW.** F3's own argument is
+  about rows with **no banked position** (*"the row can be the one that wrongly ACCEPTS"*) — and
+  `svpp_can_explain_failure` already returns `True` when `furthest is None`, i.e. it only ever
+  REMOVES a label it can disprove. It says nothing about a row that REJECTED with a position
+  provably above every alterable backtick.
+- **MEASURED, so the widening is counted rather than estimated** (`.4`/`.7`'s rule, and `.13l`'s):
+  the whole main-lane population demoted by `reject_arm_demotion(macro_use|conditional)` is **2
+  rows**, and exactly **1** has its demotion refuted by position —
+  `verilator/test_regress/t/t_gate_basic.v`, `furthest=530` (line 25) against a first `` `ifdef ``
+  at line 41. ⭐ **The other row IS the negative control and it is free**:
+  `Surelog/tests/PreProcMacro/dut.sv` must STAY `deferred:svpp_owned`, because its golden reports
+  `[SNT:]` syntax errors in a unit whose macros genuinely have not run.
+- ⛔ **THE SYMPTOM IS ALREADY ON DISK AND WAS NOT SHIPPED**: `.13k`(a) applied the `must_reject` pin,
+  measured the demotion, and REVERTED it, because the composed basis read *"the parse stops at line
+  25, above the file's first `ifdef` — **but** macro/conditional-dependent: the reject expectation is
+  only meaningful post-preprocessing"*. A self-contradicting basis is worse than an unfixed key.
+- **OWES**: (a) give `reject_arm_demotion` the position DELIBERATELY, as F3 prescribes — a changed
+  signature, the existence test still the default, and a refutation that fires only when the row
+  actually FAILED and `svpp_can_explain_failure` is False; (b) extend `_self_check_arm_split()` with
+  the two-sided pair (t_gate_basic refuted → `must_reject`; Surelog dut.sv → still demoted; and the
+  no-position row → still demoted, which is F3's own case); (c) then land `.13k`'s fourth pin and
+  re-measure both lanes; (d) check the v2005 lane's twin (`svpp_owned_v2005`) for the same shape.
+- ⚠️ **NOT a blocker for the SV release** — the effect is one correct reject sitting in a deferral
+  instead of a `match`, which UNDERSTATES the parser. Routed rather than done inline because F3 asks
+  for exactly that: the change must arrive as its own reviewable edit, not folded into a key fix.
 
 
 #### `.13l` — ⚠️ NEW `todo` — **`TASK-ACCEPTANCE` REPORTS *"no code change staged"* FOR AN EDIT TO THE PRODUCER OF THE ARTIFACT `CORPUS-CENSUS-CURRENCY` READS** (opened 2026-08-31 by `.13j`(d) / `PGEN-SV-CORPUS-GRAD-0311`, ROUTED)

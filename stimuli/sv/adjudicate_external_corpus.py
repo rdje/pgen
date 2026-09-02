@@ -1214,6 +1214,80 @@ def expect_ispras_v2005(relpath: str, text: str):
 V2005_ANNEX_A = "docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt"
 
 V2005_LRM_PINNED = {
+    # ---- SV-CORPUS-GRAD.13k(a)+(c) (PGEN-SV-CORPUS-GRAD-0327) ------------------------------
+    # The COMPOUND ASSIGNMENT class. `.13k` opened because this manifest adjudicated ONE construct
+    # class both ways: `br1015a.v` is `must_reject` on the ground that `^=` "exists in neither
+    # A.6.2 blocking_assignment nor A.8.6", while `|=`, `+=` and `-=` carried `must_accept` on a
+    # SUITE's word — "compiles under the iverilog plain-Verilog dialect" and "sv2v GOLDEN, valid
+    # Verilog-2005 output by suite contract". A suite's contract is evidence about the SUITE.
+    #
+    # ⛔ THE RULING (c): `must_reject`, on this module's own taxonomy — "the text has no derivation
+    # in the LRM's grammar … covers BOTH the suite's own intentional invalidity AND text a vendor
+    # TOLERATES that the standard cannot derive … where the spec outranks the upstream tool". Not
+    # `divergence:explained_*`, whose whole vocabulary is svpp/timeout CAUSES, none of which apply:
+    # nothing about preprocessing or a deadline explains a token 1364-2005 does not have. Making
+    # them `match` states the parser is CORRECT WITH A CITE rather than leaving a correct reject
+    # sitting in the defect column.
+    #
+    # ⛔ RE-DERIVED IN-REPO, FOUR WAYS, NEVER FROM WHAT PGEN DOES:
+    #   (1) IEEE 1364-2005 Annex A carries NO compound assignment operator AT ALL — 0 hits for
+    #       `+= -= *= /= %= &= |= ^= <<= >>=` over the whole tracked extract
+    #       (docs/verilog/2005/txt/section-Annex_A-…txt, docs/verilog/2005/grammar_clean.ebnf and
+    #       grammars/verilog_2005_lrm_extracted.ebnf all agree at 0). The only assignment forms are
+    #       `blocking_assignment ::= variable_lvalue = [ delay_or_event_control ] expression`
+    #       (:518), `variable_assignment ::= variable_lvalue = expression` (:527), and the for-step,
+    #       which IS a `variable_assignment` (`loop_statement`, :617-622) — so `i -= 1` in a `for`
+    #       header is refused by the same clause as `i |= 1` in a body.
+    #   (2) IEEE 1364-2005 PROSE carries none either: 0 hits across all 37 docs/verilog/2005/md
+    #       sections. The only `+=` / `-=` bytes in that standard are the clause-14 specify-path
+    #       POLARITY operators `+=>` / `-=>` (section-14-specify-blocks.md:638, :652) — a different
+    #       token in a different role.
+    #   (3) IEEE 1800 DOES define them, which is what makes this an EDITION contrast rather than a
+    #       gap: `operator_assignment ::= variable_lvalue assignment_operator expression` and
+    #       `assignment_operator ::= = | += | -= | *= | /= | %= | &= | |= | ^= | <<= | >>= | <<<= |
+    #       >>>=` — 1800-2017 §10.4.1 (docs/systemverilog/2017/txt/section-10-assignment-statements.txt:288)
+    #       and §11.4.1 (section-11-operators-and-expressions.txt:100, tagged "from A.6.2");
+    #       1800-2023 in grammars/systemverilog_2023_lrm_extracted.ebnf:58.
+    #   (4) THE SHIPPED PARSER ALREADY RULED THIS, UNDER RELEASE 1.0.197 / LEDGER `SV-0071`:
+    #       grammars/systemverilog.ebnf:6938 gates all twelve compound-assignment terminals out of
+    #       `verilog_2005` with that same A.6.2 citation, two-sided adjudicated, and its comment
+    #       independently records the `+=>` / `-=>` caveat found again at (2). So these rows are an
+    #       answer key contradicting a SHIPPED, LEDGERED conformance decision — not a parser gap.
+    # MEASURED per row (release probe): each file REJECTS under `--profile verilog_2005` with
+    # `furthest_position` landing exactly on the operator, and the minimal reproducer ACCEPTS under
+    # `sv_2017` AND `sv_2023` — the edition contrast, measured. TWO-SIDED CONTROL per row: the
+    # 1364-2005 spelling of the same intent (`x = x | y`, `x = x + 1`, `i = i - 1`) ACCEPTS on all
+    # three profiles, isolating exactly one difference.
+    "ivtest/ivltests/br_gh531.v": (
+        "must_reject", "pinned .13k(a): lines 39 and 48 `tmp[3:0] |= i[3:0];` - IEEE 1364-2005 has "
+        "NO compound assignment operator: Annex A "
+        "(" + V2005_ANNEX_A + ":518 blocking_assignment, :527 variable_assignment) admits `=` "
+        "alone, and 0 of `+= -= *= /= %= &= |= ^= <<= >>=` occur anywhere in the Annex A extract or "
+        "in the 37 clause files. `|=` is IEEE 1800 A.6.2 assignment_operator (1800-2017 10.4.1, "
+        "docs/systemverilog/2017/txt/section-10-assignment-statements.txt:289) - an EDITION "
+        "contrast, and the shipped grammar already gates the twelve compound operators out of "
+        "verilog_2005 under ledger SV-0071. Parse stops at furthest_position=635, exactly the `|=`. "
+        "Control: `tmp[3:0] = tmp[3:0] | i[3:0]` ACCEPTS on all three profiles. Spec outranks the "
+        "ivtest regress-vlg.list 'normal' key, which is a claim about the iverilog plain-Verilog "
+        "DIALECT and not about 1364-2005"),
+    "test/core/interface_generate.v": (
+        "must_reject", "pinned .13k(a): line 19 `counter += 1;` - IEEE 1364-2005 has NO compound "
+        "assignment operator (" + V2005_ANNEX_A + ":518/:527 admit `=` alone; 0 occurrences of the "
+        "class in Annex A or the clause files - the only `+=` in that standard is the clause-14 "
+        "specify-path polarity operator `+=>`, a different token). `+=` is IEEE 1800 A.6.2 "
+        "assignment_operator; the shipped grammar gates it out of verilog_2005 under SV-0071. Parse "
+        "stops at furthest_position=403, exactly the `+=`. Control: `counter = counter + 1` ACCEPTS "
+        "on all three profiles. A sv2v GOLDEN file is what sv2v EMITS, which is testimony about the "
+        "converter and not about the standard - the file is genuinely not 1364-2005"),
+    "test/core/unpacked_localparam.v": (
+        "must_reject", "pinned .13k(a): lines 5 and 7 `for (i = 3; i >= 0; i -= 1)` and "
+        "`for (j = 0; j < 8; j += 1)` - IEEE 1364-2005 A.6.8 loop_statement "
+        "(" + V2005_ANNEX_A + ":617-622) spells the for-STEP as a `variable_assignment`, which is "
+        "`variable_lvalue = expression` (:527) - `=` alone, so a compound operator has no "
+        "derivation in the header either. IEEE 1800 A.6.8 for_step_assignment admits "
+        "operator_assignment; edition contrast, gated under SV-0071. Parse stops at "
+        "furthest_position=149, exactly the `-=`. Control: `for (i = 3; i >= 0; i = i - 1)` ACCEPTS "
+        "on all three profiles. sv2v GOLDEN = the converter's own output, not a conformance claim"),
     "ivtest/ivltests/br988.v": (
         "must_reject", "pinned .3.15: bare begin/end generate_block at line 7 - "
         "IEEE 1364-2005 A.4.2 reaches a generate_block only from "
