@@ -22,7 +22,7 @@ pinned by one of:
   F3  a bare `` `:N` `` continuing an F1/F2 inside a bounded span
 
 ...and only when it is IN THE CLAUSE'S OWN BRACKET SCOPE (see `in_clause_scope`) and the resolved
-file is CLAUSE-ADDRESSABLE (see `clause_addressable`). Everything else is COUNTED and printed —
+file CAN ANSWER FOR THE CITED CLAUSE (see `addressable_for`). Everything else is COUNTED and printed —
 `no_line_ref`, `no_edition`, `annex_ref`, `unaddressable_section`, `unresolved_file` — never
 silently dropped (docs/decisions/feedback_enumerating_instrument_must_refuse.md). The size of what
 it declines to judge is printed beside the verdict on purpose: a census that gets cleaner because
@@ -32,8 +32,10 @@ own author committing it (judged rows fell 35 -> 17 mid-fix while the report sta
 ⭐ THERE IS NO ALLOWANCE TABLE, AND THAT IS THE DESIGN. Two citation shapes legitimately break the
 enclosure premise; the first cut carried them as seven hand-written exceptions keyed by line
 numbers that move. Both are recognised STRUCTURALLY instead — `in_clause_scope` for the
-defined-here/absent-there sentence, `clause_addressable` for the mis-titled corpus file. A gate
-whose green depends on a hand-maintained exception list is not a gate, it is a promise.
+defined-here/absent-there sentence, `addressable_for` for a file that carries no heading of the
+cited clause's major. A gate whose green depends on a hand-maintained exception list is not a gate,
+it is a promise. ⛔ The FILENAME'S NUMBER IS READ NOWHERE in this module (SV-CORPUS-GRAD.13u); an
+earlier form tested a file against its own filename and its published count was withdrawn.
 
 Usage:
   python3 stimuli/sv/lrm_clause_citation_census.py              # census

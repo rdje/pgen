@@ -19722,6 +19722,58 @@ this repository does not contain the shape.
         chapter + `.13q`(c) + `.13t` (re-scoped) + this leaf + `docs/TASK_TREE.md` + `CHANGES.md` +
         `DEVELOPMENT_NOTES.md` + `MEMORY.md`.
 
+⛔⛔ **`.13u`(b) — RESIDUE FOUND BY A DIRECTOR CHALLENGE (*"do your findings hold?"*),
+`PGEN-SV-CORPUS-GRAD-0331`. EVERY MEASURED FINDING HELD; FOUR PUBLISHED DESCRIPTIONS DID NOT.**
+The re-audit re-derived each headline claim by an INDEPENDENT method and all survived: the founding
+`7 of 7` under the corrected instrument and again under a bare `awk` that filters nothing; the
+1364-2005 compound-assignment zero by character scan across three extracts and 37 prose files, with
+a liveness control (226 hits in 1800-2017) proving the scanner was not simply dead; `agree 33 → 35`
+by **faithful replay of the `-0329` instrument in a throwaway worktree**; and the spanning /
+survivor counts (34/55, 25/41, 17/28; 5, 2, 0) by a second code path. ⛔ **But `.13u` corrected the
+ADDRESSABILITY claim in six places and left the SELF-TEST claim wrong in four** — the registry row,
+the §10 mirror, the wrapper header and the census module's own docstring still said the arms
+*"mutate each on the REAL tree … (5 rows and 2 rows respectively)"*, which `.13u` had replaced with
+synthetic probes precisely because the tree-level form went inert; the docstring also still pointed
+at `clause_addressable`, a function that no longer exists. ⇒ **WHEN AN INSTRUMENT CHANGES, ITS
+DESCRIPTION HAS MORE THAN ONE HOME, AND A TARGETED REPLACEMENT FIXES THE PARAGRAPH YOU WERE THINKING
+ABOUT.** The fix for the class is that `<meta:mirror>` / `<meta:book-content>` hold the NAME roster
+equal but nothing holds the PROSE equal across the four homes — routed to `.13v`. ⚠️ Also qualified
+in the same pass: the first cut's **160** is RECORDED, NOT REPLAYABLE (never committed), and it is
+never stated as a finding — only beside its own refutation.
+
+
+
+#### `.13v` — ⚠️ NEW `todo` — **A DOCTRINE'S DESCRIPTION HAS FOUR HOMES AND THE META-CHECKS HOLD ONLY THE *NAME* ROSTER EQUAL, SO THE PROSE CAN DRIFT APART SILENTLY** (opened 2026-09-02 by `.13u`(b) / `PGEN-SV-CORPUS-GRAD-0331`, ROUTED)
+
+- **WHY + WHERE (measured, this session)**: `LRM-CLAUSE-CITATION`'s description lives in FOUR places
+  — `scripts/check_doctrines.sh`'s registry row, `DOCTRINE_ENFORCEMENT.md` §10, the derived roster in
+  `docs/book/src/the-enforced-doctrines.md`, and the enforcer's own header
+  (`scripts/check_lrm_clause_citation.sh`) — plus the instrument's module docstring, five in total.
+  `<meta:mirror>` and `<meta:book-content>` hold the **NAME** roster equal and the book roster is
+  DERIVED from the registry, so those two cannot drift. **Nothing holds the wrapper header or the
+  module docstring to either.**
+- ⛔ **MEASURED, NOT HYPOTHETICAL — it drifted inside ONE session.** `.13u` replaced the
+  addressability paragraph in six surfaces and left the SELF-TEST sentence stale in four: the
+  registry row, §10, the wrapper header and the docstring all still described arms that *"mutate
+  each on the REAL tree … (5 rows and 2 rows respectively)"* after `.13u` had replaced them with
+  synthetic probes **precisely because the tree-level form went inert**. The docstring additionally
+  named `clause_addressable`, a function `.13u` had deleted — **a dangling reference inside the
+  shipped oracle of a registered doctrine.** Found only because the director asked whether the
+  findings held.
+- ⭐ **THE SHAPE**: a targeted replacement fixes the paragraph you were thinking about. The registry
+  row is ~2 500 characters of prose in a bash array; nobody re-reads it after editing one clause of
+  it, and no gate compares it to the wrapper it names.
+- **OWES**: (a) decide whether the wrapper header and the module docstring should be DERIVED from
+  the registry row (the `report_doctrines.sh` archetype, which is why the book roster cannot rot) or
+  whether a cheaper invariant suffices — e.g. every registry row's cited numeric claims must appear
+  in its own enforcer's output or header; (b) price it over the 34 rows, since a derive-and-diff
+  across five homes is the kind of widening `.4`/`.7` require counted rather than estimated;
+  (c) census how many of the OTHER 33 rows already disagree with their enforcer's header today —
+  that number is the finding, and it is unmeasured.
+- ⚠️ **NOT a blocker for the SV release** — the effect is stale prose in a governance surface, never
+  a wrong verdict: every gate's BEHAVIOUR is its code, and all 34 pass. Routed rather than fixed
+  inline because (c) is a census and this slice was a self-audit.
+
 
 #### `.13l` — ⚠️ NEW `todo` — **`TASK-ACCEPTANCE` REPORTS *"no code change staged"* FOR AN EDIT TO THE PRODUCER OF THE ARTIFACT `CORPUS-CENSUS-CURRENCY` READS** (opened 2026-08-31 by `.13j`(d) / `PGEN-SV-CORPUS-GRAD-0311`, ROUTED)
 
@@ -20332,7 +20384,10 @@ one `§` and the next reported **160** disagreements; read row by row, most were
 a `furthest_position=`, a source-line reference or a neighbouring citation's line to the wrong
 clause — a ledger row is one physical line thousands of characters long, so *"the next `§`"* is not
 a boundary. **160 was never a defect count**, and the shape of that error is exactly the one this
-leaf is about: a number lifted out of a frame nobody measured. Tightening to structural binding
+leaf is about: a number lifted out of a frame nobody measured. ⚠️ **It is RECORDED, NOT REPLAYABLE**
+— the first cut was never committed, so 160 is an observation this session made and cannot
+re-derive; it appears only beside its own refutation, never as a finding (`-0132`'s discipline: say
+so rather than let a number imply a replay). Tightening to structural binding
 gives **31** judged rows, and reading all 31 gives **24 REAL** (every one this leaf's delay class,
 zero elsewhere in the repo) and **7 FALSE POSITIVES OF TWO NAMED SHAPES**, carried in the tool's
 `REVIEWED_NOT_A_DEFECT` table with their reasons rather than suppressed by path:

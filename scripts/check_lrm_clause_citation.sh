@@ -48,10 +48,19 @@
 # `unaddressable_section` 2 → 0: the hole the first cut reported in its own reach was the
 # instrument's, not the corpus's. The residual corpus question is `SV-CORPUS-GRAD.13t`.
 #
-# GROUND TRUTH runs on every invocation (14 pairs, including the founding §28.16 -> :396 known-bad
-# and an ancestor-citation known-good) and a miss exits 7 — MISCALIBRATED — rather than reporting a
-# clean tree. `--self-test` adds a RED control per structural rule, mutating each on the REAL tree
-# and asserting the census notices, plus a GREEN control that the tree re-reads identically after.
+# GROUND TRUTH runs on every invocation (18 pairs, including the founding §28.16 -> :396 known-bad,
+# an ancestor-citation known-good, and the two files SV-CORPUS-GRAD.13u's predecessor got wrong,
+# pinned in both directions) and a miss exits 7 — MISCALIBRATED — rather than reporting a clean tree.
+#
+# `--self-test` adds a RED control per structural rule, and EACH ARM CARRIES ITS OWN SUBJECT: three
+# synthetic probes driven through the real pipeline and asserted in BOTH directions. That shape was
+# learned rather than designed. The arms used to mutate each rule on the REAL TREE; when .13u
+# corrected the addressability rule, no citation in the repository landed on an unaddressable pair
+# any more, the mutation changed nothing, and the arm correctly reported itself INERT rather than
+# passing — a control whose subject the tree happens not to contain is not a passing control, it is
+# an absent one (SV-CORPUS-GRAD.87(e)). The tree-level run is kept as corroboration and reports
+# NOT EXERCISED, never a pass, when this repository does not contain the shape; a GREEN control
+# asserts the tree re-reads identically afterwards.
 #
 # Cost: ~0.43 s over the whole tracked tree, no build, no parser, reads and mutates nothing.
 set -euo pipefail

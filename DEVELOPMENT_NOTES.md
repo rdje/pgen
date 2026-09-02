@@ -1,5 +1,33 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0331 (the re-audit — a correction has as many homes as the claim it corrects, and I fixed six of ten)
+
+- ⭐⭐ **THE TRANSFERABLE LESSON: A CORRECTION INHERITS THE CLAIM'S BLAST RADIUS, NOT THE EDIT'S.**
+  `.13u` withdrew a number and rewrote the addressability paragraph in six surfaces. The same slice
+  ALSO replaced the self-test's design — tree mutation → synthetic probes — and that change had four
+  homes of its own, none of which I touched, because I was thinking about the number. A registry row
+  is ~2 500 characters of prose in a bash array; nobody re-reads it after editing one clause. ⇒
+  **after correcting a claim, re-derive the LIST of surfaces from the ARTIFACT you changed, not from
+  the surfaces you remember editing** — `git grep` the old wording, not the new one.
+- ⛔ **THE SHARPEST INSTANCE: a dangling function name inside the shipped oracle of a registered
+  doctrine.** The census docstring still directed a reader to `clause_addressable`, deleted hours
+  earlier. Behaviour was correct throughout — the code is the gate — but the doctrine's own
+  documentation told a maintainer to look for something that is not there. That is the
+  `GRAMMAR-CERT-STATUS.1b` shape (an implementation deleted while its flag survived) one layer down,
+  and it survived every gate because **no gate holds an enforcer's PROSE equal to anything**.
+- ⭐⭐ **WHAT MADE THE RE-AUDIT WORTH RUNNING WAS USING DIFFERENT METHODS, NOT RUNNING THE SAME ONES
+  AGAIN.** The founding claim was re-derived under a bare `awk` that applies none of my filtering —
+  a method that would have disagreed if my heading logic were wrong; the 1364-2005 zero was
+  re-derived by character scan **with a liveness control on 1800-2017**, because a zero from a dead
+  scanner is indistinguishable from a zero from a clean corpus; and `agree 33 → 35` was proved by
+  running the OLD instrument out of git in a throwaway worktree rather than by trusting my note of
+  what it printed. ⇒ **a re-audit that reuses the original method can only confirm the original
+  blind spot** (`.61`(b)'s lesson, applied deliberately this time rather than learned again).
+- ⚠️ **AND ONE NUMBER I CANNOT RE-DERIVE, SAID SO IN PLACE**: the first cut's 160 was never
+  committed, so it is RECORDED, not replayable. It is stated only beside its refutation and now
+  carries that caveat wherever it appears, rather than sitting there implying a measurement anyone
+  could repeat.
+
 ## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0330 (the withdrawn census — a rule that excuses two rows is still a claim about a population, and I checked two members of it)
 
 - ⭐⭐ **THE TRANSFERABLE LESSON: A RULE INVENTED TO EXPLAIN AWAY EXCEPTIONS IS A CENSUS CLAIM IN
