@@ -151,6 +151,30 @@
       "tuple_legend": "files/pass/fail/timeout/crash; RAW parse outcomes under --profile sv_2017, no answer key",
       "answer_key": "none here -- these are RAW parse outcomes and a parse-FAIL is frequently the CORRECT outcome. The SystemVerilog ANSWER KEY lives in the adjudication manifests and is published as the `systemverilog` verdict_coverage entry above; this entry exists because that one carries NO identity row, so nothing could re-hash the grammar the numbers describe (SV-CORPUS-GRAD.13j)."
     },
+    "systemverilog_v2005_raw_parse": {
+      "kind": "raw_parse",
+      "checked_by": "scripts/check_corpus_census.sh",
+      "freshness_gate": "bash scripts/check_corpus_census.sh systemverilog_v2005_raw_parse",
+      "tuple_marker": "corpus-census[systemverilog_v2005_raw_parse]: OK (tuple ",
+      "report": "stimuli/sv/characterization/characterization_v2005.md",
+      "denominator_source": "lane_list",
+      "lane_list": "stimuli/sv/characterization/v2005_lane_files.tsv",
+      "lane_list_suite_column": 1,
+      "lane_list_path_column": 3,
+      "grammar_identity_row": "grammar",
+      "parser_identity_row": "generated parser",
+      "engine_paths": [
+        "rust/src",
+        "rust/build.rs",
+        "rust/Cargo.toml"
+      ],
+      "engine_staleness_budget_commits": 72,
+      "denominator": "every row of stimuli/sv/characterization/v2005_lane_files.tsv -- the ADJUDICATOR-DERIVED lane membership list, which is what the producer reads. This lane does NOT walk a directory, so `denominator_source` is `lane_list` and not `filesystem`: re-counting stimuli/sv/subs for it would answer a different question than the producer asked, and measured it disagrees on every suite of the lane (356/1909/341 published against 1266/3799/953 walked).",
+      "instrument": "stimuli/run_external_corpus.sh sv2005",
+      "regenerate": "scripts/run_with_memory_guard.sh --budget-mb 16384 --timeout-s 1800 -- stimuli/run_external_corpus.sh sv2005",
+      "tuple_legend": "files/pass/fail/timeout/crash; RAW parse outcomes under --profile verilog_2005, no answer key",
+      "answer_key": "none here -- RAW parse outcomes under the strict verilog_2005 profile, and a parse-FAIL is frequently the CORRECT outcome (the lane deliberately contains SystemVerilog-only constructs a 1364-2005 parser must reject). The v2005 ANSWER KEY lives in stimuli/sv/characterization/adjudication_manifest_v2005.tsv and is published through the `systemverilog` verdict_coverage entry; this entry exists so the lane's RAW report carries an identity row something re-hashes (SV-CORPUS-GRAD.13m)."
+    },
     "vhdl": {
       "kind": "raw_parse",
       "checked_by": "scripts/check_corpus_census.sh",

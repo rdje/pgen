@@ -1,5 +1,38 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0332 (the row where the wrong method agrees is the one that makes it look correct)
+
+- ⭐⭐ **THE TRANSFERABLE LESSON: A GATE THAT RE-DERIVES A POPULATION MUST READ *WHICH PRODUCER MADE
+  IT*, AND THE MEMBER WHERE THE WRONG METHOD HAPPENS TO AGREE IS THE MOST DANGEROUS ROW IN THE
+  TABLE.** Arm (4) of `CORPUS-CENSUS-CURRENCY` walked the tree because both lanes it had ever been
+  pointed at were collected with `find`; a third lane reads an adjudicator-derived list, and the
+  walk answered a different question than the report claimed. Two of its three suites breached — and
+  the third, `sv2v`, agreed **set-identically** (341 = 341, `diff` = 0 over the sorted paths). That
+  agreement is a fact about what that suite contains, not about the collection rule, so sampling it
+  would have confirmed a wrong method. ⇒ **before reading an agreement as confirmation, ask whether
+  it is a property of the RULE or of the MEMBER; if one member's contents would flip it, you have
+  measured that member.** Promoted:
+  `docs/knowledge/a-gate-that-re-derives-a-population-must-read-which-producer-made-it.md`.
+- ⛔ **THE SAME DOCTRINE HAS NOW PAID FOR THIS TWICE.** `.13j`(c) found the arm counting symlinks the
+  producer never parses, green until then "by accident of what those corpora happen to contain".
+  Same failure mode, one layer up: there the gate re-implemented the producer's FILE TEST, here it
+  re-implemented its COLLECTION METHOD. ⇒ the fix shape both times is the same — **the property is
+  DATA in the schema, not a branch in the script** (`sub_corpus_dirs` then, `denominator_source`
+  now), so a producer the gate has never seen is a declaration and not a code change.
+- ⭐ **A DECLARED SOURCE MUST STILL COUNT, OR IT IS AN EXEMPTION WEARING A CENSUS.** `lane_list`
+  could have been a skip in three lines. Instead it holds the published rows equal to the list
+  **two-sided**, holds the total, and confirms every listed path is a regular file — because the
+  producer reads that list verbatim, so a row naming a file that is gone is a denominator it can no
+  longer reproduce. An unimplemented source REFUSES rather than falling back to the walk: falling
+  back is how a gate silently resumes answering the wrong question.
+- ⚠️ **AND ONE THING I LEARNED BY BEING WRONG ABOUT WHERE PROSE LIVES.** I edited the doctrine's
+  description in the registry (`scripts/check_doctrines.sh`) and `report_doctrines.sh --check` stayed
+  GREEN. The book chapter renders the **`DOCTRINE_ENFORCEMENT.md` §10** description; the registry
+  supplies only the population, ids and enforcer paths. So a doctrine's prose has at least four homes
+  and only §10 reaches the director's review surface. That is `.13v`'s subject, measured a second
+  time from a different direction — and the practical rule is: **after changing an enforcer, re-derive
+  the list of its prose homes from the RENDERER, not from memory.**
+
 ## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0331 (the re-audit — a correction has as many homes as the claim it corrects, and I fixed six of ten)
 
 - ⭐⭐ **THE TRANSFERABLE LESSON: A CORRECTION INHERITS THE CLAIM'S BLAST RADIUS, NOT THE EDIT'S.**

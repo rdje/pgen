@@ -39,9 +39,25 @@
 #       `include(...)`. MEASURED for the shipped customer — `grep -c 'include(' grammars/vhdl.ebnf`
 #       is **0** — so there is no blind spot today; a future family whose grammar composes would
 #       need the include CLOSURE hashed, not the entry file.
-#   (4) DENOMINATOR CURRENCY — the file count under each declared sub-corpus is re-counted from
-#       the working tree and held equal to the row that publishes it. A denominator is the half of
-#       a pass rate nobody checks; this is the arm that notices a submodule bump.
+#   (4) DENOMINATOR CURRENCY — the population under each declared sub-corpus is re-derived and held
+#       equal to the row that publishes it. A denominator is the half of a pass rate nobody checks;
+#       this is the arm that notices a submodule bump.
+#       ⛔ THE SOURCE IS DECLARED, BECAUSE NOT EVERY PRODUCER WALKS A DIRECTORY
+#       (`SV-CORPUS-GRAD.13m`). `denominator_source` is `filesystem` (the default — the tree is
+#       walked, and every entry that predates the field keeps its behaviour byte-for-byte) or
+#       `lane_list` (the tracked list the producer reads IS the population). SystemVerilog's
+#       `sv2005` lane is the second kind: `stimuli/run_external_corpus.sh:405` reads
+#       `v2005_lane_files.tsv`, which `adjudicate_external_corpus.py` derives, and re-counting
+#       `stimuli/sv/subs` for it answers a different question than the producer asked. Measured on
+#       the tracked report, under the lane's OWN `-name '*.v'` extension set, the walk reads
+#       360 / 3 799 / 341 against a published 356 / 1 909 / 341 — so the filesystem source breaches
+#       2 of 3 suites even under the reading most favourable to it, and the suite where it agrees
+#       (`sv2v`, sets IDENTICAL, 341 = 341) agrees by accident of what that suite contains.
+#       ⛔ `lane_list` is a RE-DERIVATION, never a skip: an arm that opts out is
+#       `GATE-REACHABILITY` wearing a census. It counts the list per suite, holds every published
+#       row equal to it two-sided (a suite in one and not the other is a breach in both
+#       directions), holds the total equal to the totals row, and then confirms every listed path
+#       is a regular file the producer could have been handed.
 #   (5) ENGINE STALENESS, ON A DERIVED BUDGET — the generated parser is regenerated from unchanged
 #       grammar text whenever the ENGINE moves, so a digest mismatch here is NOT a failure: it is
 #       ordinary, frequent, and making it blocking would tax most commits in this repository with
@@ -354,8 +370,19 @@ Measured at `HEAD` = `0123456789abcdef0123456789abcdef01234567` (2026-01-01).
 
 def self_test():
     misses = []
+    # ⛔ THE CONTROL COUNT IS DERIVED, NEVER STORED (`DERIVED_STATE_CONTAINMENT.md` R1/R3). It was a
+    # hand-typed `22` — CORRECT when written, and correct is exactly the state a carried number is
+    # in right up until it is not: adding a control and updating the sentence are two acts, so the
+    # first without the second understates the gate's own coverage and nothing can tell. This slice
+    # adds eight, which is the event that would have staled it. Every control registers itself here
+    # and the headline counts the register.
+    driven = []
+
+    def control(label):
+        driven.append(label)
 
     def want(label, text, predicate):
+        control(label)
         # ⛔ THE DRIVEN CONTROL'S OWN STDERR IS SWALLOWED, DELIBERATELY. A refusal prints before it
         # exits, so without this every GREEN run of this gate emitted five REFUSE lines from its
         # own controls — a gate whose passing output reads like a failure is one people learn to
@@ -375,10 +402,13 @@ def self_test():
     # The deadline-proximity table sits BETWEEN identity and totals and has a numeric column; the
     # green control carries it precisely so a document-scoped reader is caught here.
     c = parse_report(GREEN_REPORT, where="control")
+    control("section scoping")
     if c["totals"]["files"] != 100 or len(c["subs"]) != 2:
         misses.append(f"section scoping: read totals={c['totals']} subs={len(c['subs'])}")
+    control("HEAD reader")
     if c["head"] != "0123456789abcdef0123456789abcdef01234567":
         misses.append(f"HEAD reader: got {c['head']!r}")
+    control("identity reader")
     if c["identity"].get("grammar") != ("grammars/x.ebnf", "0" * 64):
         misses.append(f"identity reader: got {c['identity']!r}")
 
@@ -453,6 +483,7 @@ def self_test():
 
         exts = (".sv", ".svh", ".v")
         got = count_sources(probe, exts)
+        control("population: count_sources")
         if got != 2:
             misses.append(f"population: count_sources read {got}, want 2 "
                           f"(2 regular sources; a .txt, a symlinked source and a symlinked "
@@ -463,6 +494,7 @@ def self_test():
             # discriminating and its green above proves nothing.
             suffix_only = sum(1 for dp, _dn, fns in os.walk(probe)
                               for f in fns if f.endswith(exts))
+            control("population RED control: the suffix-only reading")
             if suffix_only != 3:
                 misses.append(f"population RED control: the suffix-only reading gave "
                               f"{suffix_only}, want 3 — this control can no longer fail")
@@ -471,6 +503,7 @@ def self_test():
                 ["find", probe, "-type", "f", "(", "-name", "*.sv", "-o", "-name", "*.svh",
                  "-o", "-name", "*.v", ")"], capture_output=True, text=True)
             n_find = len([x for x in find.stdout.splitlines() if x.strip()])
+            control("population: the producer's own `find -type f`")
             if find.returncode == 0 and n_find != got:
                 misses.append(f"population: `find -type f` reads {n_find} and count_sources "
                               f"reads {got} on the same tree — the gate and the producer disagree")
@@ -479,18 +512,112 @@ def self_test():
         # An override that is only asserted about a dict literal is a control that cannot fail;
         # these call sub_corpus_dir() itself, on both sides of its one branch.
         fold = {"uvm-core": "stimuli/sv/uvm"}
+        control("sub_corpus_dirs: the override wins")
         if sub_corpus_dir("stimuli/sv/subs", fold, "uvm-core") != "stimuli/sv/uvm":
             misses.append("sub_corpus_dirs: a declared override did not win over the composed path")
+        control("sub_corpus_dirs: an UNlisted sub-corpus still composes")
         if sub_corpus_dir("stimuli/sv/subs", fold, "verible") != os.path.join("stimuli/sv/subs",
                                                                              "verible"):
             misses.append("sub_corpus_dirs: an UNlisted sub-corpus stopped composing from the root")
+        control("sub_corpus_dirs: no override map changes nothing")
         if sub_corpus_dir("stimuli/vhdl/subs", {}, "vests") != os.path.join("stimuli/vhdl/subs",
                                                                            "vests"):
             misses.append("sub_corpus_dirs: an entry with NO override map changed behaviour")
         # and the override must actually reach the filesystem the arm walks
+        control("sub_corpus_dirs: the resolved path is walkable")
         if not os.path.isdir(sub_corpus_dir("stimuli/sv/subs", fold, "uvm-core")):
             misses.append("sub_corpus_dirs: the resolved uvm-core path is not a directory in this "
                           "tree — the override resolves to somewhere the arm cannot walk")
+
+        # --- arm (4)'s LIST-DRIVEN source, driven through the real arm (SV-CORPUS-GRAD.13m) ------
+        #
+        # The GREEN report above publishes a=60, b=40, total 100. A lane list saying exactly that,
+        # over paths that exist, must produce NO breach; every mutation of it must produce one. The
+        # rows point at files this probe tree really holds, so leg (iii) is exercised rather than
+        # assumed — and the RED arm for a MISSING path is a row naming a file that was never made.
+        c_lane = parse_report(GREEN_REPORT, where="control")
+        real = os.path.relpath(os.path.join(probe, "real.sv"), ROOT)
+
+        def lane_file(rows, name="lane.tsv"):
+            p = os.path.join(probe, name)
+            with open(p, "w", encoding="utf-8") as fh:
+                fh.write("suite\trelpath\trepo_path\n")
+                for suite in rows:
+                    for _ in range(rows[suite]):
+                        fh.write(f"{suite}\treal.sv\t{real}\n")
+            return os.path.relpath(p, ROOT)
+
+        def lane_want(label, rows, predicate, census=c_lane, mutate=None):
+            control(label)
+            path = lane_file(rows)
+            if mutate:
+                mutate(os.path.join(ROOT, path))
+            decl = {"denominator_source": "lane_list", "lane_list": path,
+                    "report": "control-report"}
+            drained = []
+            try:
+                with contextlib.redirect_stderr(io.StringIO()):
+                    got = lane_list_breaches("control", decl, census, "REGEN", drained)
+            except SystemExit:
+                got = "REFUSED"
+            if not predicate(got, drained):
+                misses.append(f"{label}: got {got!r} / unevaluated {drained!r}")
+
+        # GREEN: the list agrees with the report, suite for suite and in total.
+        lane_want("lane list green control", {"a": 60, "b": 40},
+                  lambda g, u: g == [] and u == [])
+        # RED — (c)'s own experiment: ADD ONE ROW to a suite and the arm must name that suite.
+        lane_want("lane list RED: one extra row", {"a": 61, "b": 40},
+                  lambda g, u: any("sub-corpus `a`" in x and "61 row" in x for x in g))
+        # RED: a suite the report does not publish at all.
+        lane_want("lane list RED: an unpublished suite", {"a": 60, "b": 40, "c": 3},
+                  lambda g, u: any("suite `c`" in x for x in g))
+        # RED: a suite the report publishes and the list does not carry.
+        lane_want("lane list RED: a missing suite", {"a": 60},
+                  lambda g, u: any("`b`" in x and "NO row" in x for x in g))
+        # RED: a path the producer could not read — leg (iii), with the suite counts left correct
+        # so this arm is proven to fire ALONE.
+        def _break_one_path(p):
+            with open(p, encoding="utf-8") as fh:
+                lines = fh.read().splitlines(True)
+            lines[1] = lines[1].replace(real, os.path.join(os.path.dirname(real), "gone.sv"))
+            with open(p, "w", encoding="utf-8") as fh:
+                fh.writelines(lines)
+        lane_want("lane list RED: a listed path that is not a file", {"a": 60, "b": 40},
+                  lambda g, u: any("not regular files" in x for x in g),
+                  mutate=_break_one_path)
+        # REFUSE: declared `lane_list` source with no path — a source that names nowhere would
+        # otherwise pass for free.
+        drained = []
+        try:
+            with contextlib.redirect_stderr(io.StringIO()):
+                got = lane_list_breaches("control", {"denominator_source": "lane_list",
+                                                     "report": "control-report"},
+                                         c_lane, "REGEN", drained)
+        except SystemExit:
+            got = "REFUSED"
+        control("lane list REFUSE: a `lane_list` source with no path")
+        if got != "REFUSED":
+            misses.append(f"lane list REFUSE: a `lane_list` source with no path gave {got!r}")
+        # FAIL (not refuse): the declared list is absent — a breach, because a census whose
+        # population cannot be re-derived is not current.
+        drained = []
+        with contextlib.redirect_stderr(io.StringIO()):
+            got = lane_list_breaches("control",
+                                     {"denominator_source": "lane_list",
+                                      "lane_list": "no/such/lane.tsv", "report": "control-report"},
+                                     c_lane, "REGEN", drained)
+        control("lane list: an absent declared list is a BREACH, not a skip")
+        if not any("does not exist in this tree" in x for x in got):
+            misses.append(f"lane list absent-file arm: got {got!r}")
+        # The header row is skipped BY POSITION: a list whose every row names suite `suite` must
+        # still count 100, not 99 — the reading that drops a header by matching its word.
+        path = lane_file({"suite": 100}, name="header_word.tsv")
+        per_suite, rows = read_lane_list(os.path.join(ROOT, path), 1, 3)
+        control("lane list: the header is skipped by POSITION, not by word")
+        if per_suite != {"suite": 100} or len(rows) != 100:
+            misses.append(f"lane list header handling: read {per_suite} / {len(rows)} rows, want "
+                          f"{{'suite': 100}} / 100")
     finally:
         shutil.rmtree(probe, ignore_errors=True)
 
@@ -500,8 +627,9 @@ def self_test():
         for m in misses:
             print(f"  ✗ {m}", file=sys.stderr)
         sys.exit(2)
-    print(f"{TAG}: self-test OK — 22 controls, every refusal arm and the green control observed "
-          f"firing (including arm (4)'s population on a real filesystem, with its RED control)")
+    print(f"{TAG}: self-test OK — {len(driven)} controls, every refusal arm and the green control "
+          f"observed firing (including arm (4)'s population on a real filesystem and its "
+          f"list-driven source, each with its RED control)")
 
 
 # =================================================================================================
@@ -692,6 +820,109 @@ def count_sources(directory, exts):
     return n
 
 
+def read_lane_list(path, suite_col, path_col):
+    """The producer's own population for a LIST-DRIVEN lane, re-read from the tracked TSV.
+
+    Returns `(per_suite, rows)` — a `{suite: count}` map and the ordered list of repo-root-relative
+    paths, both taken from the same single pass so the two can never describe different files.
+
+    ⛔ THE HEADER ROW IS SKIPPED THE WAY THE PRODUCER SKIPS IT — `tail -n +2`
+    (`stimuli/run_external_corpus.sh:405`), i.e. by POSITION and not by matching a header word. A
+    reader that dropped rows whose first field equals `suite` would also drop a real suite called
+    `suite`, and a reader that dropped none would count the header as a file.
+    """
+    per_suite, rows = {}, []
+    with open(path, encoding="utf-8") as fh:
+        for lineno, line in enumerate(fh, start=1):
+            if lineno == 1:
+                continue                      # the header, by position
+            line = line.rstrip("\n")
+            if not line.strip():
+                continue
+            fields = line.split("\t")
+            if len(fields) < max(suite_col, path_col):
+                refuse(f"{path}:{lineno} has {len(fields)} tab-separated field(s); the lane list "
+                       f"is read by column index and a short row cannot be scored")
+            per_suite[fields[suite_col - 1]] = per_suite.get(fields[suite_col - 1], 0) + 1
+            rows.append(fields[path_col - 1])
+    return per_suite, rows
+
+
+def lane_list_breaches(family, decl, census, regen, unevaluated_out):
+    """Arm (4) for a LIST-DRIVEN lane — the tracked list IS the denominator (SV-CORPUS-GRAD.13m).
+
+    Three legs, and the third is the one that keeps this from being a document-only comparison:
+      (i)   every published sub-corpus row equals the list's own count for that suite,
+      (ii)  the list holds no suite the report does not publish (an added suite would otherwise be
+            invisible — the report's rows are the only thing leg (i) iterates),
+      (iii) every listed path is a REGULAR FILE, on `count_sources`' definition, because a lane row
+            naming a file that is gone is a denominator the producer can no longer reproduce.
+    Leg (iii) degrades to NOT EVALUATED when the vendored corpora are absent (submodules), never to
+    a pass: an unchecked leg and a clean leg are different facts.
+    """
+    out = []
+    lane_path = decl.get("lane_list")
+    if not lane_path:
+        refuse(f"'{family}' declares denominator_source `lane_list` and no `lane_list` path. The "
+               f"source names WHERE the population comes from; without the path there is nothing "
+               f"to re-derive and the arm would silently pass.")
+    if not os.path.isfile(lane_path):
+        return [f"{family}: the declared lane list `{lane_path}` does not exist in this tree, so "
+                f"the denominator of {decl['report']} cannot be re-derived at all. Re-derive the "
+                f"lane: {regen}"]
+
+    suite_col = decl.get("lane_list_suite_column", 1)
+    path_col = decl.get("lane_list_path_column", 3)
+    per_suite, rows = read_lane_list(lane_path, suite_col, path_col)
+
+    published = {s["name"]: s["files"] for s in census["subs"]}
+    for name, files in sorted(published.items()):
+        listed = per_suite.get(name)
+        if listed is None:
+            out.append(f"{family}: sub-corpus `{name}` publishes {files} files and the lane list "
+                       f"`{lane_path}` carries NO row for it — the report and the population it "
+                       f"was measured from disagree about which suites exist. Re-measure: {regen}")
+        elif listed != files:
+            out.append(f"{family}: sub-corpus `{name}` publishes {files} files but the lane list "
+                       f"`{lane_path}` holds {listed} row(s) for it — the DENOMINATOR moved, so "
+                       f"every share derived from it is about a different corpus. "
+                       f"Re-measure: {regen}")
+    for name in sorted(set(per_suite) - set(published)):
+        out.append(f"{family}: the lane list `{lane_path}` carries {per_suite[name]} row(s) for "
+                   f"suite `{name}`, which {decl['report']} does not publish at all — the report "
+                   f"is narrower than the population it claims to describe. Re-measure: {regen}")
+
+    total = sum(per_suite.values())
+    if total != census["totals"]["files"]:
+        out.append(f"{family}: the totals row publishes {census['totals']['files']} files and the "
+                   f"lane list `{lane_path}` holds {total} row(s). Re-measure: {regen}")
+
+    # (iii) the listed paths, on the producer's own definition of a file.
+    absent = [p for p in rows if not stat.S_ISREG(_lstat_mode(p))]
+    if absent:
+        root_dirs = sorted({p.split(os.sep)[0] + os.sep + p.split(os.sep)[1]
+                            for p in absent if os.sep in p})
+        if len(absent) == len(rows):
+            unevaluated_out.append(
+                f"{family}: the lane-list path arm — none of the {len(rows)} listed files are "
+                f"present here ({', '.join(root_dirs) or 'no common root'}); the vendored corpora "
+                f"are git submodules")
+        else:
+            out.append(f"{family}: {len(absent)} of {len(rows)} paths in `{lane_path}` are not "
+                       f"regular files in this tree (first: {absent[0]}) — the producer reads that "
+                       f"list verbatim, so it could not reproduce this census today. "
+                       f"Re-measure: {regen}")
+    return out
+
+
+def _lstat_mode(path):
+    """`0` for anything that is not there — a mode no `S_IS*` predicate accepts."""
+    try:
+        return os.lstat(path).st_mode
+    except OSError:
+        return 0
+
+
 def check_family(family, decl):
     """Returns the census tuple for `family`, appending to the module-level verdict lists."""
     kind = decl.get("kind")
@@ -734,36 +965,59 @@ def check_family(family, decl):
                 f"statement about a language; re-measure before it is quoted again: {regen}")
 
     # (4) denominator currency — needs the vendored corpora, which are submodules.
-    root = decl["corpus_root"]
-    exts = tuple(decl["file_extensions"])
+    #
+    # ⛔⛔ THE POPULATION IS THE PRODUCER'S, AND NOT EVERY PRODUCER WALKS A DIRECTORY
+    # (SV-CORPUS-GRAD.13m). `stimuli/run_external_corpus.sh` collects with `find` for the `sv` and
+    # `vhdl` lanes and reads a TRACKED LIST for `sv2005` (`:405`, `cut -f3` of
+    # `v2005_lane_files.tsv`, which `adjudicate_external_corpus.py` derives). Re-counting that lane
+    # from the filesystem asks a different question than the producer answered, and the two do not
+    # agree on ANY suite of it — measured 356/1909/341 published against 1266/3799/953 walked. So
+    # the SOURCE is DECLARED, exactly as `sub_corpus_dirs` is: `filesystem` (the default, and the
+    # behaviour every earlier entry keeps byte-for-byte) or `lane_list`.
+    # ⛔ `lane_list` is a RE-DERIVATION, never a skip — an arm that opts out is `GATE-REACHABILITY`
+    # wearing a census. It counts the tracked list per suite and holds every count equal to the row
+    # that publishes it, then confirms each listed path is a regular file the producer could have
+    # been handed.
+    source = decl.get("denominator_source", "filesystem")
+    if source not in ("filesystem", "lane_list"):
+        refuse(f"'{family}' declares denominator_source {source!r}, which this gate does not "
+               f"implement. An unimplemented source must REFUSE rather than fall through to the "
+               f"filesystem walk: silently answering a different question than the producer asked "
+               f"is the defect this field exists to remove.")
 
-    # ⛔ A SUB-CORPUS IS NOT ALWAYS `<corpus_root>/<name>` (SV-CORPUS-GRAD.13j(c)). The producer
-    # takes EXTRA_DIRS as well as $SUBS: SystemVerilog folds the pre-submodule uvm-core vendoring
-    # (`stimuli/sv/uvm`, plain tracked files, 174 sources) into the bulk universe as sub-corpus
-    # `uvm-core`. Composing the path from the name alone puts it under `stimuli/sv/subs/uvm-core`,
-    # which does not exist, so the arm reported the corpus's LARGEST folded member NOT EVALUATED —
-    # silently narrowing the denominator this arm exists to guard. The override is DATA in the
-    # schema, matching BASELINE-IDENTITY's rule that a dependency set is declared, not hard-coded.
-    folded = decl.get("sub_corpus_dirs", {})
+    if source == "lane_list":
+        failures.extend(lane_list_breaches(family, decl, census, regen, unevaluated))
+    else:
+        root = decl["corpus_root"]
+        exts = tuple(decl["file_extensions"])
 
-    def sub_dir(name):
-        return sub_corpus_dir(root, folded, name)
+        # ⛔ A SUB-CORPUS IS NOT ALWAYS `<corpus_root>/<name>` (SV-CORPUS-GRAD.13j(c)). The producer
+        # takes EXTRA_DIRS as well as $SUBS: SystemVerilog folds the pre-submodule uvm-core vendoring
+        # (`stimuli/sv/uvm`, plain tracked files, 174 sources) into the bulk universe as sub-corpus
+        # `uvm-core`. Composing the path from the name alone puts it under `stimuli/sv/subs/uvm-core`,
+        # which does not exist, so the arm reported the corpus's LARGEST folded member NOT EVALUATED —
+        # silently narrowing the denominator this arm exists to guard. The override is DATA in the
+        # schema, matching BASELINE-IDENTITY's rule that a dependency set is declared, not hard-coded.
+        folded = decl.get("sub_corpus_dirs", {})
 
-    present = [s for s in census["subs"] if os.path.isdir(sub_dir(s["name"]))
-               and os.listdir(sub_dir(s["name"]))]
-    if len(present) != len(census["subs"]):
-        missing = [s["name"] for s in census["subs"] if s not in present]
-        unevaluated.append(f"{family}: the denominator arm — {len(missing)} of "
-                           f"{len(census['subs'])} sub-corpora are absent or empty here "
-                           f"({', '.join(missing)}); the vendored corpora are git submodules")
-    for s in present:
-        n = count_sources(sub_dir(s["name"]), exts)
-        if n != s["files"]:
-            failures.append(
-                f"{family}: sub-corpus `{s['name']}` publishes {s['files']} files but "
-                f"{sub_dir(s['name'])} holds {n} matching {'/'.join(exts)} today — the "
-                f"DENOMINATOR moved, so every share derived from it is about a different corpus. "
-                f"Re-measure: {regen}")
+        def sub_dir(name):
+            return sub_corpus_dir(root, folded, name)
+
+        present = [s for s in census["subs"] if os.path.isdir(sub_dir(s["name"]))
+                   and os.listdir(sub_dir(s["name"]))]
+        if len(present) != len(census["subs"]):
+            missing = [s["name"] for s in census["subs"] if s not in present]
+            unevaluated.append(f"{family}: the denominator arm — {len(missing)} of "
+                               f"{len(census['subs'])} sub-corpora are absent or empty here "
+                               f"({', '.join(missing)}); the vendored corpora are git submodules")
+        for s in present:
+            n = count_sources(sub_dir(s["name"]), exts)
+            if n != s["files"]:
+                failures.append(
+                    f"{family}: sub-corpus `{s['name']}` publishes {s['files']} files but "
+                    f"{sub_dir(s['name'])} holds {n} matching {'/'.join(exts)} today — the "
+                    f"DENOMINATOR moved, so every share derived from it is about a different corpus. "
+                    f"Re-measure: {regen}")
 
     # (5) engine staleness, on a derived budget.
     plabel = decl["parser_identity_row"]

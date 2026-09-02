@@ -926,6 +926,57 @@ the gate's:
 > RED control, so a change that stops the arm discriminating fails the gate's own
 > self-test rather than passing quietly.
 
+#### `denominator_source` — some producers do not walk a directory at all
+
+That transferable rule has a sharper form, and SystemVerilog's **second** lane is where
+it bites. `stimuli/run_external_corpus.sh` collects with `find` for the `sv` and `vhdl`
+lanes — and for `sv2005` it reads a **tracked list**, `v2005_lane_files.tsv`, which
+`stimuli/sv/adjudicate_external_corpus.py` derives from the `sv` lane's own results. A
+denominator arm that walks `stimuli/sv/subs` for that lane is not re-deriving the
+producer's population; it is computing a different one and comparing it to a report that
+never claimed it.
+
+So the source is **declared**, exactly as `sub_corpus_dirs` is:
+
+| `denominator_source` | the population is… | who uses it |
+|---|---|---|
+| `filesystem` *(default)* | every regular file under each declared sub-corpus matching `file_extensions` | `vhdl`, `systemverilog_raw_parse` |
+| `lane_list` | every row of the tracked list the producer reads | `systemverilog_v2005_raw_parse` |
+
+Omitting the field keeps the walk, so every entry written before it exists behaves
+byte-for-byte as it did.
+
+⛔ **How wrong the walk is, measured rather than asserted.** Under the `sv2005` lane's
+*own* `-name '*.v'` extension set — the reading most favourable to the walk — it reads
+**360 / 3 799 / 341** where the report publishes **356 / 1 909 / 341**:
+
+| suite | published (lane rows) | `find -type f -name '*.v'` | `find` over `.sv`/`.svh`/`.v` |
+|---|---|---|---|
+| `ispras-sv-tests` | 356 | 360 | 1 266 |
+| `iverilog` | 1 909 | 3 799 | 3 799 |
+| `sv2v` | 341 | **341** | 953 |
+
+Two of three suites breach on the narrow reading and all three on the wide one — and
+`sv2v`'s agreement is an **accident**: the two sets there are byte-for-byte identical
+because every `.v` file in that suite happens to be in the lane, which is a fact about
+that corpus and not about the rule. A gate that took the green row as confirmation would
+have been reading a coincidence.
+
+⭐ **`lane_list` is a re-derivation, never a skip** — an arm that opts out is
+`GATE-REACHABILITY` wearing a census. It counts the list per suite and holds the
+published rows equal to it in **both** directions, holds the total equal to the totals
+row, and then confirms every listed path is a regular file the producer could have been
+handed. An unimplemented source **refuses** rather than falling back to the walk, and a
+declared list that is missing is a **breach**: a census whose population cannot be
+re-derived is not current.
+
+The bank is
+`docs/tasks/artifacts/sv_corpus_grad/v2005_lane_denominator/probe.sh` (9 arms, ~2 s).
+Every arm drives the gate through its `PGEN_FAMILY_STATUS_SCHEMA` seam against **copies**
+of the lane list, so no tracked file is mutated at any point — and **arm 0 is the
+founding measurement re-derived**: the same report under the `filesystem` source goes
+RED, which is what makes the green arms evidence rather than silence.
+
 
 ---
 
