@@ -18368,6 +18368,21 @@ adjudicator reads `outcome-identity: OK` against the reverted reports. `bash scr
         (annotated) + a knowledge card + this leaf + `docs/TASK_TREE.md` + `CHANGES.md` +
         `DEVELOPMENT_NOTES.md` + `MEMORY.md`. The two SV characterization reports: `-0337`.
 
+###### `.13e.12` (d) — **THE STAMP (`PGEN-SV-CORPUS-GRAD-0337`)**: both SV characterization reports re-measured on the CLEAN tree at `131a8246`
+
+`sv`: `16336 parsed — pass=9811 fail=6525 timeout=0 crash=0` (81 s, peak 4 425 MB); `sv2005`:
+`2606 parsed — pass=2300 fail=306 timeout=0 crash=0` (10 s). Both reports read
+`Measured at HEAD = 131a8246` — **no `+dirty`** — and only their `generated parser` row and stamp
+moved: the verdict tables are untouched, the `results (output)` / `positions (output)` rows are
+unchanged (the dumps are byte-identical across the three full runs of this day), the adjudicator
+reads `outcome-identity: OK` ×2 and leaves every manifest byte-identical (`match=5851
+unexplained=268`, `v2005 match=2291 unexplained=54`), and `CORPUS-CENSUS-CURRENCY` prints its two SV
+tuples with **no arm-(5) NOTE** — the reports describe the parser in the tree again. ⚠️ **Not
+touched, by the lane lock**: `stimuli/vhdl/characterization/characterization.md` carries the same
+class of NOTE (`vhdl_parser.rs` `48a5d294… → 1f25817d…` after 6 engine commits, budget 72) because
+the regeneration reached all 11 families; a 56-second VHDL re-stamp is `CORPUS-GRAD-ALL`'s lane and
+is routed there rather than done under an SV slice.
+
 
 ##### ✅✅ `.13e.11` — **CLOSED: (a) refuted the leaf's own founding arm, (b) slice 1 moved the census into the engine (2 m 43 s → 33 s), (b) slice 2 shipped it as the 28th REGISTERED DOCTRINE, and (c) ruled — and the closed-population sweep caught a false-positive blocker in the gate's own first cut** (`done` 2026-08-26; (a) `PGEN-SV-CORPUS-GRAD-0307`, (b) slice 1 `PGEN-SV-CORPUS-GRAD-0308`, (b) slice 2 + (c) `PGEN-SV-CORPUS-GRAD-0309`; opened 2026-08-25 by `.13e.9`)
 

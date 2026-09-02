@@ -1,5 +1,13 @@
 # CHANGES.md
 
+## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0337 (leaf SV-CORPUS-GRAD.13e.12(d) THE STAMP — both SV characterization reports re-measured on the CLEAN tree at `131a8246`; ARTIFACT tier, ZERO code bytes)
+
+- ✅ `sv` `16336 / 9811 / 6525 / 0 / 0` (81 s), `sv2005` `2606 / 2300 / 306 / 0 / 0` (10 s); both reports
+  stamp `HEAD = 131a8246` with **no `+dirty`**; only the `generated parser` row and the stamp moved —
+  verdict tables untouched, dump digests unchanged, `outcome-identity: OK` ×2, manifests byte-identical.
+- ✅ `CORPUS-CENSUS-CURRENCY` prints both SV tuples with no arm-(5) NOTE. The VHDL report's same-class
+  NOTE (6 engine commits of a 72 budget) is `CORPUS-GRAD-ALL`'s lane and is left under the lane lock.
+
 ## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0336 (leaf SV-CORPUS-GRAD.13e.12(d) DONE — the FALSE `raw − committed = failed speculation` identity is corrected at all TEN source sites, one of which ships in every generated parser; all 11 artifacts regenerated; CODEGEN-COMMENT tier — ZERO behaviour bytes, ONE printed model string)
 
 - ⛔ **THE CENSUS WAS 10, NOT 9.** Re-derived before touching anything: `fusibility_census.rs:342` —
