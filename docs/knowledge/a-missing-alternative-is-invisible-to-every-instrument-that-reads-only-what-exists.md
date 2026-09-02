@@ -58,7 +58,7 @@ spelling is known.
 **Third instance — the merge's consequence shipped (SV-CORPUS-GRAD.13p, 2026-09-02).** The
 canonicaliser's merge of `delay2` and `delay3` into one `delay` reached the flattened grammar: every
 gate site carried the three-value alternative, so `nand #(1,2,3) g(o,a,b)` parsed on every profile
-while IEEE 1800-2017 §28.16 gives n-input and n-output gates *"zero, one, or two delays"*. **A
+while IEEE 1800-2017 §28.4 / §28.5 give n-input and n-output gates *"zero, one, or two delays"*. **A
 tooling merge of two productions admits their union wherever the narrower one was meant** — an
 over-acceptance with every keyword legal and every rule reachable, invisible to keyword and
 reachability censuses alike, found by enumerating the difference between the merged productions

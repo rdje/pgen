@@ -48,6 +48,7 @@ the generation-input / memo observability.
 | **A rule whose whole body is a whitespace terminal is `UNKNOWN` with `parsed=true` — is the LAYOUT SKIP eating it?** | `--report-layout-owning-terminals` | `ast_pipeline g.ebnf --report-layout-owning-terminals` → the closed population of terminals that own their leading layout, HIR-derived (⛔ a text sweep for `\s` misses `[ \t\r\n]+` and `\r?\n`) |
 | **Does a DIALECT PROFILE accept something its LRM never defined?** ⛔ a different question from *"is the profile COHERENT"* — the coherence half (`profile_orphans=0`) is gated on every commit and the faithfulness half was checked only by a curated sample | the keyword-faithfulness census | `python3 stimuli/sv/v2005_keyword_faithfulness_census.py` → the CLOSED population of IEEE-1800-only keywords a `verilog_2005` parse can reach, three probe legs per row (see [below](#is-a-dialect-profile-faithful-to-its-standard)) |
 | **Does every LRM keyword ENUMERATION still carry ALL its members in the shipped grammar?** — a dropped alternative resolves every name, witnesses every rule that exists and hides from the corpus until a file spells it; `net_type` shipped 10 of 12 for the grammar's whole life | `stimuli/sv/lrm_keyword_enumeration_census.py` — [the keyword-enumeration membership census](#does-every-lrm-keyword-enumeration-still-carry-all-its-members) | `python3 stimuli/sv/lrm_keyword_enumeration_census.py` (gate mode; `--self-test` fires 13 arms) — 289 members over 97 productions, three editions, 0 missing at HEAD, a RED control that replays the founding defect |
+| **Does the clause number I am about to publish actually contain the line I am citing?** — the fourth, unchecked measurement in every conformance claim; `SV-CORPUS-GRAD.13p` shipped seven wrong clause labels on seven correct quotations | `stimuli/sv/lrm_clause_citation_census.py` — [the LRM clause-citation census](#does-the-clause-number-i-cited-actually-contain-the-line-i-cited) | `python3 stimuli/sv/lrm_clause_citation_census.py` — 0.48 s over 438 files, structural binding only, ground truth on every run, `--all` lists the rows ruled not a defect |
 | Witness-pass tuning (A/B, budget, ordering)? | `PGEN_WITNESS_*` | see [witness knobs](#witness-pass-knobs) |
 
 > Build note: cert-coverage and any `.ebnf`-direct mode need the debug binary
@@ -725,6 +726,83 @@ Annex B count pin, the canonicaliser, reader parity against the extractor on all
 an unterminated-snapshot refusal make thirteen arms. The report carries its own bound: name-matched,
 under-acceptance only, text-level, and blind to a production neither LRM surface carries — which is
 the Annex A gap census's business.
+
+## Does the clause number I cited actually contain the line I cited?
+
+A conformance claim in this repository is normally four measurements wearing one sentence: the
+**quoted text**, the **LRM file**, the **line number**, and the **clause number**. The first three
+are checkable by anyone with `grep`. The fourth is not, and it went unchecked for as long as the
+project has been citing clauses.
+
+`SV-CORPUS-GRAD.13p` is the case that made it visible. It located the gate-delay cardinality
+sentence correctly — *"The delay specification shall be zero, one, or two delays"*, IEEE 1800-2017
+`section-28-…md:396`, IEEE 1364-2005 `section-7-…md:376` — quoted it correctly, and labelled it
+**§28.16 / §7.14**. Seven cited lines carried that label. Not one of them falls inside those
+clauses: they sit under §28.4, §28.5, §28.6 and §28.3.3, and under §7.2, §7.3 and §7.4. §28.16 is a
+real clause, *"Gate and net delays"*, and its number was sitting four lines from the located text
+in §28.3.3's own cross-reference — *"Delays are discussed in more detail in 28.16."* A line number
+was measured; a clause number was carried.
+
+Nothing was wrong with the grammar fix that claim supported, which is exactly what makes the class
+worth a census: a wrong label on a right claim survives every gate, ships to a release ledger and a
+downstream contract, and is repeated by everything that quotes them.
+
+```bash
+python3 stimuli/sv/lrm_clause_citation_census.py         # census; rc 1 on an unruled row
+python3 stimuli/sv/lrm_clause_citation_census.py --all   # also list the rows ruled not a defect
+```
+```text
+LRM-CLAUSE-CITATION: files_scanned=438 agree=33 disagree=0 section_mismatch=0 no_heading=0 \
+                     no_line_ref=1453 no_edition=33 annex_ref=4 unresolved_file=0 \
+                     reviewed_not_a_defect=7 reviewed_stale=0
+```
+
+### It binds structurally, or it declines to judge
+
+A line reference is judged only when the census can say **which file it is in** — an explicit
+`…/section-….md:N` path (whose directory also fixes the edition), the clause-adjacent forms
+`§X.Y:N` and ``§X.Y (`:N`)``, or a bare `` `:N` `` continuing one of those inside a bounded span.
+Everything else is counted in `no_line_ref`, `no_edition`, `annex_ref` or `unresolved_file` and
+printed, so the reach is never mistaken for the population.
+
+That discipline was learned the expensive way. The first cut resolved the file from the clause's
+own major number and swept every `:N` up to the next `§`, and reported **160** disagreements. Read
+row by row, most were the tool attributing a `furthest_position=`, a source-line reference or the
+neighbouring citation's line to the wrong clause — a bug-ledger row is one physical line thousands
+of characters long, so *"the next `§`"* is not a boundary. 160 was never a defect count. Tight
+binding gives 31 judged rows: 24 real, all of them the one delay class, and 7 of a shape that
+breaks the premise.
+
+### The enclosure premise belongs to a citation shape, not to citations
+
+Two shapes are legitimately exempt, and both are carried in the script's `REVIEWED_NOT_A_DEFECT`
+table **with their reason** rather than suppressed by path:
+
+| shape | example | why enclosure is the wrong question |
+|---|---|---|
+| defined-here / absent-there | *"`interface_class_declaration` is defined (§8.26.1) but NOT referenced in `class_item` (`section-8-classes.md:95`)"* | the clause and the line are deliberately different places — that is the sentence's whole point |
+| PDF→md split artifact | the §11.4.12 notation sentence lives in `section-0-defined-as-false-…md:520` | the citation is right; the corpus **filename** carries no clause number to check it against |
+
+An allowance that stops matching anything is reported as `reviewed_stale`, because rot in an
+exception list is silent and silent in the passing direction.
+
+### The census audited its own fix
+
+Writing the correction, one clause was split into two — `§28.4 (:396) / §28.5 (:454)` — and the
+first cut bound only `§X.Y:N` and explicit paths, not this repository's dominant `§X.Y (:N)`
+spelling. Judged rows quietly fell from 35 to 17 while `no_line_ref` rose by 27: **the fix was
+making the tree less checkable and the census was reporting it as clean.** Binding the
+clause-adjacent form restored the reach and immediately failed three rows of that same new text — a
+`§28.6` whose nearest edition token was `1364-2005`, so it resolved against a real but unintended
+clause 28 in the other standard, and two bare line refs chained to the wrong neighbour, one of them
+an Annex A line attributed to §7.4. All three were ambiguities in freshly written prose, caught
+before the commit.
+
+A census that gets cleaner because it stopped looking is the failure mode that looks most like
+success. Ground truth therefore runs on **every** invocation — five pairs, including this leaf's own
+known-bad `§28.16 → :396` and an ancestor-citation known-good `§28.3 → :243` — and a miss exits `7`,
+MISCALIBRATED, rather than printing a clean tree.
+
 
 ---
 

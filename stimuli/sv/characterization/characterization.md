@@ -16,10 +16,10 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 | input | repo-root-relative path | sha256 |
 |---|---|---|
 | parse binary | `rust/target/release/parseability_probe` | `a4de90fdb333a288f6a86f3ef05a0997fe106be82b1acdc200110d23594e5474` |
-| grammar | `grammars/systemverilog.ebnf` | `bb4bdc08a49929433e354b12fe8b6ef0f6471dbe1f071dc8b0e333235e6bc356` |
+| grammar | `grammars/systemverilog.ebnf` | `b2ca001f0012579c60f6195a6e9808a7fa9cc4f8c1a9913064c8381083193e12` |
 | generated parser | `generated/systemverilog_parser.rs` | `c09b4eda9fc23a416d53da1f3ef1f6a3fcc4261d40f5d094eded1c4761d6ad49` |
 
-Measured at `HEAD` = `9533ea7c` (2026-09-02).
+Measured at `HEAD` = `a692cc7d+dirty` (2026-09-02).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -53,7 +53,7 @@ Measured at `HEAD` = `9533ea7c` (2026-09-02).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `5.87` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `6.04` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 

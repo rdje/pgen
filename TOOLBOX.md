@@ -89,7 +89,7 @@ same leaf keeps its checklist, and a deletion-only edit still counts as touching
 | 2 | **performance / SPEED / FOOTPRINT** | it is correct but slow, or its memory is the problem | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph`, `ARENA-CHUNK-ORACLE:` (`rust/target/release/arena_chunk_oracle_probe` — proves the `typed_arena` chunk-capacity model against a counting `GlobalAlloc`; `--red-control` required to go red), `PARSE-ALLOC-CENSUS:` (`rust/target/release/parse_alloc_census_probe` — the whole parse's requested-live-bytes high-water and a size-class table at that high-water, so a structure can be attributed by NAME instead of subtracted for; `--red-control-arm` required to go red), `PARSE-THIN-OCCUPANCY:` (same probe — how much of the dense `THIN_RULE_COUNT × (len + 1)` thin-memo table a parse actually WRITES; `NOT_MEASURED` is never `0`), `PARSE-ALLOC-TAPE:` (same probe — one row per large allocation with the events at which it was made and released, so SUCCESSION, position relative to the peak, and never-freed are OBSERVED rather than inferred from a class total; `complete=false` invalidates the input) |
 | 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
 | 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
-| 5 | **ops / build-flow** | the defect is in the repo's OWN scripts, Makefiles, hooks or tracking state — shell/make, so no rustc error either | `git ls-files`/`log -S`/`rev-list`/`fsck`/`reflog`/`diff-tree`/`merge-base`, `shellcheck`, `bash -n`, `make -n`/`make --dry-run`, `E2BIG`/`ENOSPC`/`EACCES`/`ARG_MAX`, `guard.<pid>.marker`, `reason=rss-budget\|free-floor\|disk-floor\|timeout`, `GATE-REACHABILITY-PROBE:`, `SV-CONTRACT-CURRENCY:` (`scripts/check_sv_contract_currency.sh` — the SV grammar's semantic digest versus the contract's), `ACCEPT-SET-LEDGER:` (`docs/tasks/artifacts/sv_corpus_grad/contract_accept_set_ledger/measure_accept_set_transitions.py` — which grammar commit moved which verdict or which typed AST), `LRM-ANNEX-A-GAP:` (`stimuli/sv/lrm_annex_a_gap_census.py` — the IEEE 1800 productions the CLAUSE bodies define and Annex A, the only surface the extractor reads, does not), `LRM-KEYWORD-ENUMERATION:` (`stimuli/sv/lrm_keyword_enumeration_census.py` — every LRM production that ENUMERATES reserved keywords, member by member against the shipped grammar under the edition's own profile; the `net_type` class, and the RED control replays `SV-CORPUS-GRAD.13n`) |
+| 5 | **ops / build-flow** | the defect is in the repo's OWN scripts, Makefiles, hooks or tracking state — shell/make, so no rustc error either | `git ls-files`/`log -S`/`rev-list`/`fsck`/`reflog`/`diff-tree`/`merge-base`, `shellcheck`, `bash -n`, `make -n`/`make --dry-run`, `E2BIG`/`ENOSPC`/`EACCES`/`ARG_MAX`, `guard.<pid>.marker`, `reason=rss-budget\|free-floor\|disk-floor\|timeout`, `GATE-REACHABILITY-PROBE:`, `SV-CONTRACT-CURRENCY:` (`scripts/check_sv_contract_currency.sh` — the SV grammar's semantic digest versus the contract's), `ACCEPT-SET-LEDGER:` (`docs/tasks/artifacts/sv_corpus_grad/contract_accept_set_ledger/measure_accept_set_transitions.py` — which grammar commit moved which verdict or which typed AST), `LRM-ANNEX-A-GAP:` (`stimuli/sv/lrm_annex_a_gap_census.py` — the IEEE 1800 productions the CLAUSE bodies define and Annex A, the only surface the extractor reads, does not), `LRM-KEYWORD-ENUMERATION:` (`stimuli/sv/lrm_keyword_enumeration_census.py` — every LRM production that ENUMERATES reserved keywords, member by member against the shipped grammar under the edition's own profile; the `net_type` class, and the RED control replays `SV-CORPUS-GRAD.13n`)), `LRM-CLAUSE-CITATION:` (`stimuli/sv/lrm_clause_citation_census.py` — does the CLAUSE NUMBER a citation names actually enclose the LRM line it names; the fourth measurement in a citation, and the one `SV-CORPUS-GRAD.13p` shipped wrong to a release ledger) |
 
 ⛔ **A bare `file.rs:NNN` citation is NOT a signature, and neither is *"verified by grep"*.** Both
 were measured and deliberately refused (`GENERATED-LINT-CORRECTNESS.4`): a line number is a
@@ -175,6 +175,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "Which rules exist under which `@profiles`? Which rules can a corpus run under profile P ever exercise?" | [5.4 `--dump-rule-profiles`](#54---dump-rule-profiles) |
 | **"Does the LRM define a production the SHIPPED grammar has never seen?"** — ⛔ Annex A is the only surface the SV extractor reads, and IEEE captions 60 of its own 2017 syntax boxes `(not in Annex A)` | [5.8 the Annex A gap census](#58-does-the-lrm-define-a-production-the-shipped-grammar-has-never-seen--the-annex-a-gap-census) |
 | "Which LRM chapters/clauses does the keyed corpus target? Where is the negative-axis gap?" | [5.4 companion — `corpus_clause_coverage.py`](#54---dump-rule-profiles) |
+| "Does the clause number I am about to publish actually contain the line I am citing?" | [5.14 — the LRM clause-citation census](#514-does-the-clause-number-i-cited-actually-contain-the-line-i-cited--the-lrm-clause-citation-census) |
 | **"Does this DIALECT PROFILE accept something its LRM never defined?"** — ⛔ a different question from *"is the profile COHERENT"*, which is the only one gated; and 5.4's `satisfiable_under` will look like it answers it and does not (it is bottom-up: `void` reports satisfiable under `verilog_2005` and REJECTS there) | [5.11 the keyword-faithfulness census](#511-does-this-dialect-profile-accept-something-its-lrm-never-defined--the-keyword-faithfulness-census) — closed population, three legs per row, and the third leg moved the founding headline by seven |
 | **"Does every LRM keyword ENUMERATION still carry ALL its members in the shipped grammar?"** — ⛔ the quietest defect shape this grammar has: a dropped alternative resolves every name (`--lint-grammar` green), witnesses every rule that EXISTS (certificates green) and hides from the corpus until a vendored file spells it — `net_type` shipped 10 of 12 for the grammar's whole life | [5.13 the keyword-enumeration membership census](#513-does-every-lrm-keyword-enumeration-still-carry-all-its-members-in-the-shipped-grammar--the-keyword-enumeration-membership-census) — 289 members over 97 name-matched productions, three editions each judged under its own profile, `unmatched` and `extra` printed but never scored, and a RED control that replays `.13n` |
 | **"Which INPUTS does my change actually move?" — for a behaviour implemented TWICE and held equal by a gate** | [Protocol E](#protocol-e--which-inputs-does-my-change-move-break-the-mirror-on-purpose) — apply it to ONE side and every divergence the differential reports IS an input the change moves; ⛔ then prove the sweep can go RED, or clean and never-reached read identically |
@@ -2095,6 +2096,55 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   what it could not see), under-acceptance only, text-level, and blind to a production neither LRM
   surface carries (5.8's business). Gate mode compares the tracked artifact to a fresh derivation
   when RUN; no registered doctrine runs it yet — the same standing as 5.11 (`SV-CORPUS-GRAD.13i`).
+
+### 5.14 "Does the clause number I cited actually contain the line I cited?" — the LRM clause-citation census
+
+- **WHAT:** `python3 stimuli/sv/lrm_clause_citation_census.py` (`SV-CORPUS-GRAD.13q`) — for every
+  `§X.Y` in a tracked file it resolves the LRM lines cited alongside it and reports whether the
+  innermost numbered heading enclosing each line IS that clause (or a descendant of it).
+  **0.48 s** over 438 files, reads the repository and mutates nothing. `--all` also lists the rows
+  already ruled not a defect.
+- **WHEN:** before publishing ANY conformance claim that names a clause, and after editing one.
+  ⛔ **This is a class no other instrument can see.** A quoted sentence, a file and a line number
+  are all checkable by grep; the CLAUSE NUMBER attached to them is a fourth, independent
+  measurement, and `.13p` shipped the wrong one to a release ledger, a downstream contract, the
+  parser book and the grammar because *"Delays are discussed in more detail in 28.16"* was sitting
+  four lines from the text it had located. Seven cited lines, seven wrong clause labels, every
+  quotation correct.
+- **IT BINDS STRUCTURALLY OR NOT AT ALL.** A line reference is judged only when its file is pinned
+  by an explicit `…/section-….md:N` path (whose directory also fixes the edition), by the
+  clause-adjacent forms `§X.Y:N` / ``§X.Y (`:N`)``, or by a bare `` `:N` `` continuing one of those
+  inside a bounded span. Everything else lands in `no_line_ref` / `no_edition` / `annex_ref` /
+  `unresolved_file` and is COUNTED — an enumerating instrument refuses rather than reporting a
+  clean tree (`docs/decisions/feedback_enumerating_instrument_must_refuse.md`).
+- ⛔⛔ **THE FIRST CUT REPORTED 160 DISAGREEMENTS AND NOT ONE OF THEM WAS A COUNT.** Resolving the
+  file from the clause's own major number and sweeping every `:N` up to the next `§` attributes a
+  `furthest_position=`, a source line or the neighbouring citation's line to the wrong clause — a
+  ledger row is one physical line thousands of characters long, so *"the next `§`"* is not a
+  boundary. Tight binding gives 31 rows; reading all 31 gives 24 real and 7 of a named shape.
+- ⭐ **THE ENCLOSURE PREMISE IS A PROPERTY OF A CITATION SHAPE, NOT OF CITATIONS**, and the two
+  shapes that break it are carried in the script's `REVIEWED_NOT_A_DEFECT` table WITH THEIR REASON
+  rather than suppressed by path: the *defined-here / absent-there* sentence (*"defined in §8.26.1
+  but NOT referenced at `section-8-classes.md:95`"* — the clause and the line are deliberately
+  different places) and the PDF→md split artifact (the §11.4.12 notation sentence lives in a
+  `section-0-…` file whose NAME carries no clause number). An allowance that has stopped matching
+  anything is reported as `reviewed_stale`, because rot in an exception list is silent.
+- ⭐ **IT AUDITS THE FIX, NOT JUST THE TREE.** Splitting one clause into two while writing `.13q`'s
+  own correction left the second half unbindable and judged rows fell 35 → 17 with `no_line_ref`
+  rising 27: the tree was getting LESS checkable and the census read clean. Binding the
+  clause-adjacent form restored 35 and immediately failed three rows of that same new text (a
+  `§28.6` whose nearest edition token was `1364-2005`, two bare refs chained to the wrong
+  neighbour). ⇒ **a census that gets cleaner because it stopped looking is the failure mode that
+  looks most like success.**
+- **GROUND TRUTH, every invocation** (an instrument with no ground truth is a confident guess):
+  five pairs including this leaf's own known-bad `§28.16 → :396` and an ANCESTOR-citation
+  known-good `§28.3 → :243`. A miss exits **7** — MISCALIBRATED — rather than reporting a clean
+  tree. Exit `0` clean · `1` an unruled disagreement or a stale allowance.
+- ⚠️ **HONEST BOUND:** it is a LEAD GENERATOR whose rows are read, not an oracle — the shapes above
+  are why. It checks the clause↔line relation only; whether the quoted sentence says what the
+  claim needs is still 5.13 / 5.11 / the LRM itself. `no_line_ref` (~1 449) is the size of what it
+  declines to judge, printed so the reach is never mistaken for the population. **No registered
+  doctrine runs it yet** — routed as `SV-CORPUS-GRAD.13q`(c), same standing as 5.11 and 5.13.
 
 ## 6. Coverage / gap reports (`ast_pipeline`)
 

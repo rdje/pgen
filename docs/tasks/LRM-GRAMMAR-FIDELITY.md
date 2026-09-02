@@ -443,7 +443,9 @@ into a standing gate is `.2`'s charter, which now has a ready instrument for one
   On the release probe: `and #(1,2) g(o,a,b)` `rc 0` (control), **`and #(1,2,3) g(o,a,b)` `rc 0`**
   under `verilog_2005` AND `sv_2017` — a shape/cardinality (L3) over-acceptance candidate on every
   profile, the direct downstream of the merge. ⛔ Candidate, not verdict: the located sentence
-  (IEEE 1800-2017 §28.16, IEEE 1364-2005 §7.14) is owed by the fix leaf per `.1c`'s discipline.
+  (IEEE 1800-2017 §28.4 / §28.5, IEEE 1364-2005 §7.2 / §7.3 — clause numbers corrected by
+  `SV-CORPUS-GRAD.13q`, which measured that not one cited line falls inside §28.16 / §7.14) is owed
+  by the fix leaf per `.1c`'s discipline.
 - **AND THE SNAPSHOTS ARE STALE SUBSETS THAT NOTHING REGENERATES**: `grammars/*_lrm_extracted.ebnf`
   (register disposition `lrm_extraction_input`, *"consumed as input"*) date from `7a6e78a9`
   (2026-03-06); measured, they hold 424 / 490 / 503 rules against 734 / 747 / 381 in the Annex A

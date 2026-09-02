@@ -19241,8 +19241,8 @@ doctrine's shape voluntarily rather than because a gate asked.
 - ⭐ **FIRST MAIN-LANE MEMBER, routed 2026-09-02 by `.13p` (`PGEN-SV-CORPUS-GRAD-0322`)**:
   `verilator/test_regress/t/t_gate_basic.v` — `must_accept` on *"driver t_gate_basic.py expects
   success"*, while line 25 `nand #(2,3,4) ND0 (…)` puts THREE delays on an n-input gate and IEEE
-  1800-2017 §28.16 (`section-28-gate-level-and-switch-level-modeling.md:396`) says *"The delay
-  specification shall be zero, one, or two delays"* (IEEE 1364-2005 §7.14 `:376` identical). Once
+  1800-2017 §28.4 (`section-28-gate-level-and-switch-level-modeling.md:396`) says *"The delay
+  specification shall be zero, one, or two delays"* (IEEE 1364-2005 §7.2, `section-7-gate-and-switch-level-modeling.md:376`, identical). Once
   `.13p` made the parser stop there, the row's failure was no longer explained by a preprocessing
   conditional and it became `divergence:unexplained_rejects_valid`, moving the bar 268 → 269 with
   ZERO verdicts moving. (a) owes the LRM-basis re-adjudication of this row alongside the three
@@ -19697,8 +19697,9 @@ predicts it pays the same memo eviction, which will be its second measured insta
   `grammars/systemverilog_lrm_profiled_generated.ebnf:602` and the hand synthesis inherited one
   rule — `LRM-GRAMMAR-FIDELITY.1f` owns the extractor half; this leaf owns the shipped grammar.
 - ⛔ **CANDIDATE until the located sentence is cited** (`LRM-GRAMMAR-FIDELITY.1c`'s discipline —
-  Annex A non-derivability alone is a known-bad over-acceptance classifier): IEEE 1800-2017 §28.16
-  / IEEE 1364-2005 §7.14 (gate and net delays) is the text to cite, and the two-sided repro pins
+  Annex A non-derivability alone is a known-bad over-acceptance classifier): IEEE 1800-2017 §28.4
+  / IEEE 1364-2005 §7.2 (the n-input gate clause — ⛔ this leaf first wrote §28.16 / §7.14, the
+  cross-referenced *"Gate and net delays"* clause, corrected by `.13q`) is the text to cite, and the two-sided repro pins
   come before the fix. Lens **L3** (shape / cardinality) of 5.11's three.
 - **OWES**: (a) pins; (b) split the shipped delay rule into the LRM's `delay2`/`delay3` at the
   gate-instantiation sites (an accept-set NARROWING on all profiles — full ceremony: ledger,
@@ -19709,14 +19710,15 @@ predicts it pays the same memo eviction, which will be its second measured insta
 **CONFIRMED 2026-09-02 — THE LOCATED SENTENCE EXISTS IN BOTH STANDARDS, so this is no longer a
 candidate** (`LRM-GRAMMAR-FIDELITY.1c`'s discipline satisfied):
 
-- IEEE 1800-2017 §28.16 — `docs/systemverilog/2017/md/section-28-gate-level-and-switch-level-modeling.md:396`
-  (n-input gates) and `:454` (n-output gates): *"The delay specification shall be zero, one, or two
-  delays."* `:631` (enable gates and switches): *"The delay specification shall be zero, one, two,
-  or three delays."* `:243`: *"A delay specification can contain up to three delay values, depending
-  on the gate type."*
-- IEEE 1364-2005 §7.14 — `docs/verilog/2005/md/section-7-gate-and-switch-level-modeling.md:376`,
-  `:436` (two), `:614` (three); Annex A A.3.1 (`:410`, `:412`) gives `n_input_gatetype` and
-  `n_output_gatetype` `[ delay2 ]`.
+- IEEE 1800-2017 **§28.4** — `docs/systemverilog/2017/md/section-28-gate-level-and-switch-level-modeling.md:396`
+  (n-input gates) and **§28.5** `:454` (n-output gates): *"The delay specification shall be zero, one, or two
+  delays."* **§28.6** `:631` (enable gates and switches): *"The delay specification shall be zero, one, two,
+  or three delays."* **§28.3.3** `:243`: *"A delay specification can contain up to three delay values, depending
+  on the gate type."* (⛔ these four clause numbers all read §28.16 until `.13q` measured them.)
+- IEEE 1364-2005 **§7.2** — `docs/verilog/2005/md/section-7-gate-and-switch-level-modeling.md:376`,
+  **§7.3** `:436` (two), **§7.4** `:614` (three); Annex A A.3.1
+  (`docs/verilog/2005/md/section-Annex_A-normative-formal-syntax-definition.md:410`, `:412`) gives
+  `n_input_gatetype` and `n_output_gatetype` `[ delay2 ]`.
 - **SIZED, in the shipped grammar**: `delay := delay_sv_2017 | delay_sv_2023`, and both variants carry
   the `triple_optional` alternative; `( delay )?` is referenced at **twelve** sites, of which
   **seven** are `delay2` in Annex A — `n_input_gatetype`, `n_output_gatetype` and
@@ -19761,7 +19763,7 @@ pinned files × three profiles: the reproducer **`rc 0` → `rc 1` on `verilog_2
 
 **THE GATES, RE-DERIVED ON THE REGENERATED PARSER**: **Cert census, adjudicated by name**: `verilog_2005_conformance_gate` `1121/373/734/14` → **`1123/373/736/14`** (the two `verilog_2005`-satisfiable new rules `delay2` and `delay2_sv_2017`, both witnessed; proof, UNKNOWN and both failure counts unchanged; corpus matrix 363 checks / 0 mismatches) and `sv_cert_recognized_union_gate` total **1404 → 1406**, canonical witness **1385 → 1387**, union witness **1396 → 1398** (`delay2_sv_2023` profile-excluded by construction; proof 8, canonical UNKNOWN 11, union UNKNOWN 0, residual `[]` unchanged), both identical at seeds 0 / 7 / 42 and both re-derived GREEN on the adjudicated contracts; `ast_shape_contract_gate` 18 / 18, schema 26; `PARSE-COST-RATCHET` read an **IMPROVEMENT** — `entries` **−53 390** (−0.01 %), `memo_hits` **−38 119** (−0.02 %), `committed` unchanged, no pre-existing rule dearer (`delay_sv_2017` lost 3 memo hits to `delay2_sv_2017`, and the seven sites no longer speculate a third value) — promoted; ⭐ `ENGINE-UNIVERSAL-SERVICES.88`(b)'s PRE-REGISTERED prediction held: no terminal-only rule gained a profile-conditional alternative, and no memo eviction occurred; `GENERATED-REPRODUCIBILITY` tier 2 re-derived and re-stamped; clippy source + generated clean.
 
-**CORPUS, PER-PATH AND TWO-SIDED, BOTH LANES**: ZERO verdicts moved on either lane — 16 336 `sv_2017` rows and 2 606 `verilog_2005` rows, row sets identical, pass 9 811 / 2 300 unchanged — and the axis-2 bar moved **268 → 269** for a reason that is measured and routed: `verilator/test_regress/t/t_gate_basic.v` (already `fail`) went from `divergence:explained_svpp_conditional` to `divergence:unexplained_rejects_valid` because its parse now stops at line 25, `nand #(2,3,4)`, where no preprocessing can alter the text (the `.12a` rule), under a `must_accept` key that rests on the suite's driver (*"t_gate_basic.py expects success"*) and not on the standard, which forbids that text (§28.16). It is the first MAIN-lane member of `SV-CORPUS-GRAD.13k`'s answer-key class and is routed to `.13k`(a)+(c) with the citation; the key is not edited in a release slice, so the bar reports the honest number under the key as it stands. Tuple `7556/2606/6174/4363/268` → `…/269`, `check_sv_corpus_denominator.sh` OK after the anchor moved with it.
+**CORPUS, PER-PATH AND TWO-SIDED, BOTH LANES**: ZERO verdicts moved on either lane — 16 336 `sv_2017` rows and 2 606 `verilog_2005` rows, row sets identical, pass 9 811 / 2 300 unchanged — and the axis-2 bar moved **268 → 269** for a reason that is measured and routed: `verilator/test_regress/t/t_gate_basic.v` (already `fail`) went from `divergence:explained_svpp_conditional` to `divergence:unexplained_rejects_valid` because its parse now stops at line 25, `nand #(2,3,4)`, where no preprocessing can alter the text (the `.12a` rule), under a `must_accept` key that rests on the suite's driver (*"t_gate_basic.py expects success"*) and not on the standard, which forbids that text (§28.4). It is the first MAIN-lane member of `SV-CORPUS-GRAD.13k`'s answer-key class and is routed to `.13k`(a)+(c) with the citation; the key is not edited in a release slice, so the bar reports the honest number under the key as it stands. Tuple `7556/2606/6174/4363/268` → `…/269`, `check_sv_corpus_denominator.sh` OK after the anchor moved with it.
 
 **Acceptance checklist (`TASK-ACCEPTANCE`):**
 
@@ -19770,8 +19772,8 @@ pinned files × three profiles: the reproducer **`rc 0` → `rc 1` on `verilog_2
         `rc 0` on release `1.0.203` (also `rc 0` under `sv_2023` and `verilog_2005`);
         `run_adjudication_repros.py` held it as `class=accepts_invalid` (`checked=260 failures=0`)
         before a byte moved.
-  - [x] **ROOT CAUSE (WHY + WHERE)** — WHY: IEEE 1800-2017 §28.16 (section-28 md `:396`, `:454`)
-        and IEEE 1364-2005 §7.14 (`:376`, `:436`) give the n-input / n-output gates *"zero, one,
+  - [x] **ROOT CAUSE (WHY + WHERE)** — WHY: IEEE 1800-2017 §28.4 (section-28 md `:396`) / §28.5 (`:454`)
+        and IEEE 1364-2005 §7.2 (section-7 md `:376`) / §7.3 (`:436`) give the n-input / n-output gates *"zero, one,
         or two delays"* and Annex A A.3.1 / A.5.4 spell `[ delay2 ]` at seven sites, while
         `tools/extract_systemverilog_lrm_profiles.py:329`'s canonicaliser strips every trailing
         digit and merged `delay2` + `delay3` into ONE `delay` (`systemverilog_lrm_profiled_generated.ebnf:602`),
@@ -19791,6 +19793,181 @@ pinned files × three profiles: the reproducer **`rc 0` → `rc 1` on `verilog_2
 
 **RESIDUE**: (f) ✅ **DONE 2026-09-02 (`PGEN-SV-CORPUS-GRAD-0324`)** — both lanes re-measured on the clean tree `9533ea7c` (after `-0323` landed the gates' own identity re-stamps, which had made the first re-measure `+dirty`): **`Measured at HEAD = 9533ea7c`, no `+dirty`, on BOTH reports**, `results.tsv` / `results_v2005.tsv` **BYTE-IDENTICAL** to the release measurement, tuple `7556/2606/6174/4363/269` unchanged, `check_sv_corpus_denominator.sh` and `check_corpus_census.sh systemverilog_raw_parse` OK. ⭐ Next in this tree: `.13k`(a)+(c) — the answer-key re-adjudication now has FOUR rows (three v2005, one main-lane) each with its LRM citation.
 
+
+#### ✅✅ `.13q` — **`done`** 2026-09-02 (`PGEN-SV-CORPUS-GRAD-0325`; opened the same day by `.13k`(a)'s LRM-basis derivation) — **THE CLAUSE NUMBER `.13p` PUBLISHED WITH ITS DELAY SENTENCE IS WRONG IN EVERY SURFACE THAT CARRIES IT: NOT ONE OF THE SEVEN CITED LRM LINES FALLS INSIDE §28.16 / §7.14**
+
+- **WHY + WHERE (measured, not read)**: `.13p` / `-0321` / `-0322` located the sentence *"The delay
+  specification shall be zero, one, or two delays"* correctly — the LINE numbers are right and the
+  sentence says what was claimed — and attached the clause number **§28.16** (IEEE 1800-2017) /
+  **§7.14** (IEEE 1364-2005) to it. A heading census over the two LRM section files resolves each
+  cited line to the innermost numbered heading at or before it, and **7 of 7 DISAGREE**:
+
+  | cited line | subject | published clause | **enclosing clause (measured)** |
+  |---|---|---|---|
+  | 1800-2017 `:243` | *"up to three delay values, depending on the gate type"* | §28.16 | **§28.3.3** The delay specification |
+  | 1800-2017 `:396` | n-input gates, *"zero, one, or two"* | §28.16 | **§28.4** and, nand, nor, or, xor, and xnor gates |
+  | 1800-2017 `:454` | n-output gates, *"zero, one, or two"* | §28.16 | **§28.5** buf and not gates |
+  | 1800-2017 `:631` | enable gates, *"zero, one, two, or three"* | §28.16 | **§28.6** bufif1, bufif0, notif1, and notif0 gates |
+  | 1364-2005 `:376` | n-input gates | §7.14 | **§7.2** and, nand, nor, or, xor, and xnor gates |
+  | 1364-2005 `:436` | n-output gates | §7.14 | **§7.3** buf and not gates |
+  | 1364-2005 `:614` | enable gates | §7.14 | **§7.4** bufif1, bufif0, notif1, and notif0 gates |
+
+  §28.16 / §7.14 is a REAL clause — *"Gate and net delays"*, 1800-2017 `:2275`, 1364-2005 `:2299` —
+  simply not the one that carries the cardinality sentence.
+- ⭐ **PROVENANCE, stated as the artifact shows it rather than reconstructed**: within the whole
+  1800-2017 §28 file the only `28.16` token anywhere near the cited neighbourhood is §28.3.3's own
+  cross-reference at `:245` — *"Delays are discussed in more detail in 28.16."* — and `:243`, inside
+  that same subclause, is one of the lines `.13p` cited. A clause number was carried out of a
+  cross-reference; the line numbers were measured, the clause number was not.
+- ⛔ **NOTHING IN `.13p` IS WITHDRAWN.** The sentence exists in both standards, says exactly what was
+  quoted, and Annex A's `[ delay2 ]` at the seven sites is independent of the clause label. Release
+  `1.0.204`, ledger `SV-0077`, schema `26`, every corpus verdict and the axis-2 bar are UNAFFECTED —
+  this is a wrong LABEL on a right claim, and it is corrected in place, not re-derived.
+- ⛔ **THIS IS THE `-0160` FRAME LESSON IN A NEW COSTUME** ([[a-number-read-out-of-context-carries-a-frame-you-did-not-measure]]):
+  a line number and a clause number are two DIFFERENT measurements of one citation, and only one of
+  them was made. The instrument below exists so the second one cannot be skipped again.
+
+**THE FIX** — every authored site, from an exact token census (`git ls-files` × the literal
+`28.16` / `7.14` tokens, hand-classified against the delay subject so the ispras `28.16*.sv`
+corpus filenames and the genuine `clause_coverage.tsv` §28.16 rows are excluded):
+`grammars/systemverilog.ebnf:2318` (comment only — **ZERO grammar bytes**),
+`docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` (`SV-0077`),
+`docs/contracts/PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`,
+`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`,
+`docs/systemverilog_parser_book/src/changelog-index.md`,
+`stimuli/sv/adjudication_repros/MANIFEST.tsv` + the three repro headers,
+`docs/knowledge/a-missing-alternative-is-invisible-to-every-instrument-that-reads-only-what-exists.md`,
+`docs/tasks/LRM-GRAMMAR-FIDELITY.md`, this tree, `docs/TASK_TREE.md`, `CHANGES.md`,
+`DEVELOPMENT_NOTES.md`. Where a line group belongs to a DIFFERENT file from the clause's own
+(1364-2005 Annex A `:410` / `:412` live in `section-Annex_A-…md`, not `section-7-…md`), the
+corrected text names that file explicitly — the ambiguity is what let the two get chained together
+in the first place.
+
+**THE INSTRUMENT** — `stimuli/sv/lrm_clause_citation_census.py` (`LRM-CLAUSE-CITATION:`, TOOLBOX
+§5.14). For every `§X.Y` in a tracked file it binds the LRM line references it can bind
+STRUCTURALLY — an explicit `section-….md:N` path, a `§X.Y:N` glued form, or a `` `:N` `` continuing
+one of those inside a bounded span — resolves the edition (an explicit path's directory outranks
+prose), and reports whether the innermost heading enclosing that line is the cited clause or a
+descendant of it. **0.48 s** over 438 files. Ground truth runs on every invocation (five pairs,
+including this leaf's own known-bad `§28.16 → :396`) and a miss exits **7** rather than reporting a
+clean tree.
+
+⛔ **THE FIRST CUT OF THAT INSTRUMENT WAS WRONG IN THE LOUD DIRECTION AND ITS OUTPUT WAS NEVER
+PUBLISHED.** Resolving the file from the clause's own major number and sweeping every `:N` between
+one `§` and the next reported **160** disagreements; read row by row, most were the tool attributing
+a `furthest_position=`, a source-line reference or a neighbouring citation's line to the wrong
+clause — a ledger row is one physical line thousands of characters long, so *"the next `§`"* is not
+a boundary. **160 was never a defect count**, and the shape of that error is exactly the one this
+leaf is about: a number lifted out of a frame nobody measured. Tightening to structural binding
+gives **31** judged rows, and reading all 31 gives **24 REAL** (every one this leaf's delay class,
+zero elsewhere in the repo) and **7 FALSE POSITIVES OF TWO NAMED SHAPES**, carried in the tool's
+`REVIEWED_NOT_A_DEFECT` table with their reasons rather than suppressed by path:
+
+- **the *defined-here / absent-there* shape** (5 rows) — *"`interface_class_declaration` is defined
+  (§8.26.1 / A.1.2) but NOT referenced in `class_item` (`section-8-classes.md:95`)"*. Correct prose;
+  the clause and the line are deliberately different places, so the enclosure premise does not hold.
+- **the PDF-split artifact** (2 rows) — the §11.4.12 notation sentence lives in
+  `section-0-defined-as-false-…md:520`, a file whose name carries no clause number because the
+  PDF→md split mis-titled it. The citation is right; the corpus filename is what cannot be checked.
+
+⇒ **the enclosure premise is a property of a citation SHAPE, not of citations** — the instrument is
+a lead generator whose rows are READ, and it is honest only because both shapes are named.
+
+⭐⭐ **AND THE INSTRUMENT IMMEDIATELY AUDITED MY OWN CORRECTION, WHICH IS THE POINT OF BUILDING IT
+BEFORE FIXING RATHER THAN AFTER.** Splitting one clause into two (`§28.4 (`:396`) / §28.5 (`:454`)`)
+left the SECOND half unbindable, because the first cut bound only `§X.Y:N` and an explicit path —
+not this repo's dominant shape, ``§X.Y (`:N`)``. Judged rows had quietly fallen **35 → 17** while
+`no_line_ref` rose by 27: **the fix was making the tree less checkable and the census was reporting
+it as clean.** Binding the clause-adjacent form took judged rows to **35** and promptly failed
+**three rows of my own newly written text** — a `§28.6` whose nearest edition token was
+`1364-2005` (so it resolved to `section-28-protected-envelopes.md`, a real 1364 clause 28 that is
+not the one meant), and two bare `` `:N` `` refs chaining to the wrong neighbour, one of them an
+Annex A line attributed to §7.4. All three are now spelled with their edition and their file.
+⇒ **a correction is a claim like any other, and the reach of the instrument that checks it is part
+of the claim** — a census that gets cleaner because it stopped looking is the failure mode that
+looks most like success.
+
+**ROUTED, not done**: (c) registering `LRM-CLAUSE-CITATION` as a doctrine. Priced here so the next
+slice does not re-price it: one `scripts/check_doctrines.sh` registry line, one
+`scripts/check_lrm_clause_citation.sh` wrapper, and the two count surfaces (`DOCTRINE_ENFORCEMENT.md`
+§10 and the book's `<!-- DOCTRINE-COUNT -->`) that the driver's own meta-checks hold equal. Runtime
+0.48 s, so cost is not the question; the question is whether `REVIEWED_NOT_A_DEFECT` is the right
+shape for a gate's allowance list or whether the two false-positive shapes should be recognised
+structurally instead. Not decided in this slice.
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+  - [x] **REPRODUCE / ISSUE** — `python3 stimuli/sv/lrm_clause_citation_census.py` at
+        `a692cc7d` reports the delay class DISAGREE on every bound site; the standalone heading
+        resolution prints §28.4 / §28.5 / §28.6 / §28.3.3 and §7.2 / §7.3 / §7.4 for the seven cited
+        lines, none of them §28.16 / §7.14.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — WHY: the clause number was carried from §28.3.3's
+        cross-reference *"Delays are discussed in more detail in 28.16"*
+        (`docs/systemverilog/2017/md/section-28-gate-level-and-switch-level-modeling.md:245`) rather
+        than measured from the heading enclosing the quoted sentence; the sentence itself sits at
+        `:396` under `### 28.4` (`:387`). WHERE: the fifteen authored surfaces listed above, all
+        written by `-0321` / `-0322`. Measured by the heading census, not by reading.
+  - [x] **FIX** — docs/comment tier: the clause labels corrected to the enclosing clause per line
+        group, and each line group's FILE named where it differs from the clause's own.
+        `grammars/systemverilog.ebnf` changes in a comment only.
+  - [x] **ADDRESSED (verified)** — `python3 stimuli/sv/lrm_clause_citation_census.py` → **rc 0**,
+        `agree=33 disagree=0 section_mismatch=0 unresolved_file=0 reviewed_not_a_defect=7
+        reviewed_stale=0 annex_ref=4`. RED control: restoring `§28.16`
+        at `stimuli/sv/adjudication_repros/control_and_two_delays.sv:2` alone brings the census back
+        to `rc 1` with exactly that row, applied and reverted inside ONE `trap`-guarded step
+        (`-0160`'s rule: a deliberate mutation never outlives the tool call that applied it).
+  - [x] **NO REGRESSION** — ZERO parser, grammar-production, codegen or generated bytes: the
+        `systemverilog.ebnf` edit is inside a `#` comment and the semantic digest is unchanged
+        (`SV-CONTRACT-CURRENCY: rows=23 digest=891b02cb654fd56c`, the value the revision register
+        already carries); `run_adjudication_repros.py` `checked=260 armed=81 failures=0` (the three
+        edited repro headers are comments); **both corpus lanes re-measured** — `sv` 16 336 files
+        `pass=9811 fail=6525 timeout=0 crash=0` in 86 s, `sv2005` 2 606 files `pass=2300 fail=306`
+        in 15 s, and `results.tsv` / `results_v2005.tsv` / both adjudication manifests are
+        **BYTE-IDENTICAL** (`git diff --numstat` empty), the generated-parser digest `c09b4eda…`
+        unmoved; `bash scripts/check_doctrines.sh` **ALL 33 PASS** on the staged set.
+  - ⛔ **THE RE-MEASURE WAS FORCED BY A GATE THAT COULD NOT SEE THE EDIT WAS A COMMENT, AND THAT IS
+        A FINDING, NOT AN INCONVENIENCE** — `CORPUS-CENSUS-CURRENCY` arm (3) hard-failed because
+        `grammars/systemverilog.ebnf` re-hashed `bb4bdc08a499…` → `b2ca001f0012…` while the
+        frontend's own envelope did not move at all. Routed to `.13r`; the re-measure was run rather
+        than waived, and its byte-identical outcome is the evidence `.13r` is priced from.
+  - [x] **LOCKSTEP** — grammar comment + revision register + ledger `SV-0077` + contract + parser
+        book changelog + repro manifest and headers + knowledge card + `LRM-GRAMMAR-FIDELITY` tree +
+        this tree + `docs/TASK_TREE.md` + `TOOLBOX.md` + `CHANGES.md` + `DEVELOPMENT_NOTES.md` +
+        `MEMORY.md`.
+
+
+
+#### `.13r` — ⚠️ NEW `todo` — **`CORPUS-CENSUS-CURRENCY` HASHES THE GRAMMAR'S BYTES WHERE ITS OWN DIGESTER ALREADY OFFERS THE SEMANTIC ENVELOPE, SO A COMMENT COSTS TWO FULL CORPUS RE-MEASURES** (opened 2026-09-02 by `.13q` / `PGEN-SV-CORPUS-GRAD-0325`, ROUTED)
+
+- **WHY + WHERE**: `scripts/check_corpus_census.sh:512` calls
+  `scripts/check_baseline_identity.sh --digest bytes <grammar>` — the KIND is hard-coded. `.13q`
+  edited nothing but a `#` comment in `grammars/systemverilog.ebnf`; the file hash moved
+  (`bb4bdc08a499…` → `b2ca001f0012…`), arm (3) HARD-FAILED, and the commit was blocked until both SV
+  lanes were re-measured (86 s + 15 s) — producing `results.tsv`, `results_v2005.tsv` and both
+  adjudication manifests **byte-identical**, and a `+dirty` stamp that then owes a second clean
+  re-measure. Two runs and two commits for zero moved bytes.
+- ⛔ **THE REPOSITORY ALREADY RULED THIS EXACT CASE, ONE DOCTRINE EARLIER.** `BASELINE-IDENTITY`'s
+  own registry text records it verbatim: *"the first cut made a moved input a FAILURE in an enforcer
+  that runs from `.githooks/pre-commit`, so ONE COMMENT LINE in the SV grammar BLOCKED EVERY COMMIT
+  — for an edit the frontend strips"*, and its remedy was to let an input be digested SEMANTICALLY
+  (`ebnf_raw_ast`, the same envelope `SV-CONTRACT-CURRENCY` uses). `check_corpus_census.sh`'s arm
+  (5) even CITES that episode as the reason engine staleness is budgeted rather than blocking — and
+  arm (3) two paragraphs above it does the byte-hash thing anyway. **The principle was written down
+  in the same file and its population was not re-derived from it** — the fifth-instance shape
+  `.13l` names (*a doctrine's population is a claim, and nothing checks it*), now sixth.
+- ⭐ **NOT A LOOSENING.** A semantic digest is STRICTER about what matters: any production, terminal
+  or annotation change still moves it, and `.13p`'s real grammar edit moved it (`641514378d…` →
+  `891b02cb65…`). Only comment and whitespace bytes stop blocking. The two-sided control is already
+  on record: `.13p` (semantics moved, must FAIL) and `.13q` (comment only, must PASS).
+- **OWES**: (a) let the census's identity block DECLARE its digest kind — the field exists in
+  `BASELINE-IDENTITY`'s schema, so this is a declaration, not a new mechanism; (b) price the
+  population the way `.4`/`.7` require — every tracked census whose grammar row is byte-digested,
+  and every commit in history that would have re-classified; (c) RED-prove both sides on the pair
+  above; (d) ⛔ decide whether the VHDL and regex censuses inherit it, since their grammars have no
+  `include(...)` either and the arm's own HONEST LIMIT paragraph is about includes, not kinds.
+- ⚠️ **NOT a blocker for the SV release** — the effect is a re-measurement tax and a `+dirty`
+  round-trip, never a wrong number. Routed rather than fixed inline: it edits a registered
+  doctrine's oracle, which `.13l`'s own pricing rule says must be counted, not estimated.
 
 #### `.13g` — the FRAGMENT-shaped population: an accept there is not testimony (`todo`, opened 2026-08-11 by `.13a`)
 

@@ -1,5 +1,39 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0325 (the clause-number miscitation — a claim can be four measurements wearing one sentence, and only three of them were made)
+
+- ⭐⭐ **THE TRANSFERABLE LESSON: A CONFORMANCE CITATION IS FOUR INDEPENDENT MEASUREMENTS — THE QUOTED
+  TEXT, THE FILE, THE LINE, AND THE CLAUSE NUMBER — AND ONLY THE FIRST THREE ARE CHECKABLE BY GREP.**
+  `.13p` measured three of them and CARRIED the fourth out of a cross-reference four lines away
+  (§28.3.3: *"Delays are discussed in more detail in 28.16"*). Every quotation was right, every line
+  was right, and seven clause labels were wrong — through a release ledger, a downstream contract, the
+  parser book and a grammar comment. ⇒ **for every number in a claim, name the command that produced
+  IT, not the command that produced its neighbour.** This is
+  `a-number-read-out-of-context-carries-a-frame-you-did-not-measure` in a new costume, and the reason
+  it recurs is that the frame always looks like context.
+- ⭐⭐ **AND THE ONE THAT COST MORE: A CENSUS THAT GETS CLEANER BECAUSE IT STOPPED LOOKING IS THE
+  FAILURE MODE THAT LOOKS MOST LIKE SUCCESS.** Mid-correction the census read `disagree=0` while its
+  judged population had silently fallen 35 → 17 — splitting `§28.4 (:396) / §28.5 (:454)` produced a
+  citation shape the binder did not recognise, and `no_line_ref` absorbed the difference in silence.
+  The green was real and meaningless. ⇒ **an instrument must print the size of what it DECLINED to
+  judge next to its verdict**, or a shrinking denominator reads as a passing test. Binding the
+  clause-adjacent form restored the reach and immediately failed three rows of the prose written in
+  that same hour, including a `§28.6` whose nearest edition token was `1364-2005` — the tool resolved
+  it against a real but unintended clause 28 in the other standard.
+- ⛔ **THE FIRST CUT'S 160 WAS NEVER PUBLISHED, DELIBERATELY.** Resolving the LRM file from the
+  clause's own major number and sweeping every `:N` up to the next `§` is not a citation grammar: a
+  ledger row is one physical line thousands of characters long, so a `furthest_position=` value, a
+  source-line reference and the neighbouring citation's line all land on the wrong clause. Reading the
+  rows before quoting the count is what kept a plausible number out of a findings callout.
+- ⭐ **THE EXEMPTIONS ARE SHAPES, NOT PATHS.** Two citation shapes break the enclosure premise
+  legitimately — *"defined in §A but NOT referenced at file:line"*, and a PDF→md split that put
+  §11.4.12's text in a `section-0-…` file whose name carries no clause number. They sit in a
+  `REVIEWED_NOT_A_DEFECT` table with their reason and a `reviewed_stale` counter, because suppressing
+  by path is how an exception list rots invisibly.
+- **RED control** applied and reverted inside ONE `trap`-guarded step, per `-0160`'s rule that a
+  deliberate mutation must never outlive the tool call that applied it: restoring `§28.16` at a single
+  repro header takes the census to `disagree=1` naming exactly that row.
+
 ## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0322 (the delay2 split — an extractor's name collision became a shipped over-acceptance, and the clause text is what made it a defect)
 
 - ⭐⭐ **THE TRANSFERABLE LESSON: A NAME COLLISION IN AN EXTRACTOR IS A GRAMMAR DEFECT IN WAITING, AND
@@ -12,7 +46,7 @@
   them is a candidate over-acceptance; enumerate it from the merge, not from a corpus.
 - ⭐ **THE CLAUSE SENTENCE, NOT ANNEX A, IS WHAT UPGRADES A CANDIDATE.** `.13p` stayed a candidate
   for a day on `LRM-GRAMMAR-FIDELITY.1c`'s rule — Annex-A non-derivability is a known-bad classifier —
-  until §28.16's *"zero, one, or two delays"* was located in both editions. The grammar fix took an
+  until §28.4's *"zero, one, or two delays"* was located in both editions. The grammar fix took an
   hour; the located sentence is what made it a release rather than an opinion.
 ## 2026-09-01 - PGEN-SV-CORPUS-GRAD-0319 (the `edge` gate — an instrument's "not scored" column found the first defect a keyword census could never see)
 

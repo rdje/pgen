@@ -1,8 +1,9 @@
 // SV-CORPUS-GRAD.13p — an OVER-ACCEPTANCE on EVERY profile, expected ACCEPT until fixed.
-// IEEE 1800-2017 §28.16 (docs/systemverilog/2017/md/section-28-gate-level-and-switch-level-modeling.md:396): for the
+// IEEE 1800-2017 §28.4 (docs/systemverilog/2017/md/section-28-gate-level-and-switch-level-modeling.md:396): for the
 // n-input gates "The delay specification shall be zero, one, or two delays."; Annex A A.3.1 gives n_input_gatetype
-// [ drive_strength ] [ delay2 ]. IEEE 1364-2005 §7.14 (docs/verilog/2005/md/section-7-gate-and-switch-level-modeling.md:376)
-// and A.3.1 (:410) say the same. Three delays belong to enable gates and switches (delay3) only.
+// [ drive_strength ] [ delay2 ]. IEEE 1364-2005 §7.2 (docs/verilog/2005/md/section-7-gate-and-switch-level-modeling.md:376)
+// and A.3.1 (docs/verilog/2005/md/section-Annex_A-normative-formal-syntax-definition.md:410) say the same. Three delays
+// belong to enable gates and switches (delay3, §28.6:631 / §7.4:614) only.
 // WHERE: the L3 class (shape / cardinality) — the shipped `delay` rule carried the triple_optional alternative at every
 // gate site because the LRM extractor merged delay2/delay3 into one rule (LRM-GRAMMAR-FIDELITY.1f).
 // Pinned BEFORE the fix (2026-09-02); the ratchet went RED on exactly this row on all three profiles when the delay2

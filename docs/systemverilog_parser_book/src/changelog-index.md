@@ -37,9 +37,9 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 ### 1.0.204 / Contract 1.0.204 — SV-CORPUS-GRAD.13p (`PGEN-SV-CORPUS-GRAD-0322`, 2026-09-02), ledger `SV-0077` (`Released`):
 
 ⛔ **A third delay value on an n-input or n-output gate, a pass-enable switch or a UDP instance no
-longer parses — on any profile.** IEEE 1800-2017 §28.16 says of those gates *"The delay
+longer parses — on any profile.** IEEE 1800-2017 §28.4 / §28.5 say of those gates *"The delay
 specification shall be zero, one, or two delays"*, and Annex A spells `[ delay2 ]` there; three
-delays belong to enable gates and switches (`[ delay3 ]`). IEEE 1364-2005 §7.14 says the same. The
+delays belong to enable gates and switches (`[ delay3 ]`, §28.6). IEEE 1364-2005 §7.2 / §7.3 say the same. The
 grammar had one `delay` rule with the three-value alternative at every site, because the LRM
 extractor's footnote canonicaliser had merged Annex A's `delay2` and `delay3` into one rule — the
 right keywords in the wrong arity, which no keyword census can see.
@@ -58,7 +58,7 @@ Three rules added (1540 → 1543), no profile orphans, exactly three rules' sati
 `{body: {kind: "pair_optional" | "value", …}}` object; `triple_optional` becomes unreachable there.
 Schema **26 unchanged**. ⛔ The accept set **narrows on every profile**, `sv_2017` included.
 
-**Corpus proof**, per-path and two-sided: ZERO verdicts moved on either lane — 16 336 `sv_2017` rows and 2 606 `verilog_2005` rows, row sets identical, pass 9 811 / 2 300 unchanged — and the axis-2 bar moved **268 → 269** for a reason that is measured and routed: `verilator/test_regress/t/t_gate_basic.v` (already `fail`) went from `divergence:explained_svpp_conditional` to `divergence:unexplained_rejects_valid` because its parse now stops at line 25, `nand #(2,3,4)`, where no preprocessing can alter the text (the `.12a` rule), under a `must_accept` key that rests on the suite's driver (*"t_gate_basic.py expects success"*) and not on the standard, which forbids that text (§28.16). It is the first MAIN-lane member of `SV-CORPUS-GRAD.13k`'s answer-key class and is routed to `.13k`(a)+(c) with the citation; the key is not edited in a release slice, so the bar reports the honest number under the key as it stands. Tuple `7556/2606/6174/4363/268` → `…/269`, `check_sv_corpus_denominator.sh` OK after the anchor moved with it. Exactly one vendored file spells a
+**Corpus proof**, per-path and two-sided: ZERO verdicts moved on either lane — 16 336 `sv_2017` rows and 2 606 `verilog_2005` rows, row sets identical, pass 9 811 / 2 300 unchanged — and the axis-2 bar moved **268 → 269** for a reason that is measured and routed: `verilator/test_regress/t/t_gate_basic.v` (already `fail`) went from `divergence:explained_svpp_conditional` to `divergence:unexplained_rejects_valid` because its parse now stops at line 25, `nand #(2,3,4)`, where no preprocessing can alter the text (the `.12a` rule), under a `must_accept` key that rests on the suite's driver (*"t_gate_basic.py expects success"*) and not on the standard, which forbids that text (§28.4). It is the first MAIN-lane member of `SV-CORPUS-GRAD.13k`'s answer-key class and is routed to `.13k`(a)+(c) with the citation; the key is not edited in a release slice, so the bar reports the honest number under the key as it stands. Tuple `7556/2606/6174/4363/268` → `…/269`, `check_sv_corpus_denominator.sh` OK after the anchor moved with it. Exactly one vendored file spells a
 three-value delay on a two-delay gate (`verilator t_gate_basic.v:25`), and it already failed for an
 unrelated reason.
 

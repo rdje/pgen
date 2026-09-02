@@ -2315,7 +2315,7 @@ delay := delay_sv_2017 -> {body: $1}
        | delay_sv_2023 -> {body: $1}
 
 # SV-CORPUS-GRAD.13p — IEEE 1800-2017 A.3.1 / IEEE 1364-2005 A.3.1 give n_input_gatetype, n_output_gatetype,
-# pass_en_switchtype and udp_instantiation `[ delay2 ]` — at most TWO delay values (§28.16:396/:454, §7.14:376/:436:
+# pass_en_switchtype and udp_instantiation `[ delay2 ]` — at most TWO delay values (§28.4:396/§28.5:454, §7.2:376/§7.3:436:
 # "The delay specification shall be zero, one, or two delays") — and reserve `[ delay3 ]` for cmos / mos / enable
 # gates, continuous_assign and net_declaration. The LRM extractor merged delay2 and delay3 into ONE `delay` rule
 # (LRM-GRAMMAR-FIDELITY.1f), so `nand #(1,2,3) g(o,a,b)` parsed on every profile. `delay2` is `delay` minus the
