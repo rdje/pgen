@@ -1,5 +1,22 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0343 (the identity row's path cell is a reference; the label is the subject — third time)
+
+- ⭐⭐ **THE LESSON, NOW A RULE WITH THREE INSTANCES BEHIND IT: IN AN INSTRUMENT-IDENTITY TABLE THE PATH
+  CELL SAYS WHERE TO LOOK AND THE LABEL SAYS WHAT WAS HASHED — THEY ARE NOT THE SAME THING.** `.13j`(ii)
+  found `raw ast` rows whose digest was of the envelope, not the file; `-0340`'s adjudicator refused a
+  correct report because two labels shared a path; today the new gate read `cost.md`'s `sample inputs`
+  as moved because that digest covers the manifest ORDER plus 192 files' bytes. Promoted:
+  `docs/knowledge/an-identity-rows-path-cell-is-a-reference-the-label-is-the-subject.md`.
+- ⭐ **A NEW GATE MUST NOT RE-JUDGE A ROW UNDER A DEFINITION IT DOES NOT OWN.** The clean resolution was not
+  to teach this gate the ratchet's composite digest — that is a second copy of a definition, which is the
+  disease — but to DEFER: a mismatch on a carrier some registered oracle already names is that oracle's
+  verdict, reported here as a note naming it. The gate then guards exactly the population `.13i` found
+  undefended — carriers nobody else reads — and nothing more.
+- ⭐ **THE HISTORICAL RED CONTROL IS THE CHEAPEST ONE THIS REPO OWNS.** `git show 0994c3c0:…/characterization.md`
+  as a fixture, through the file-list seam, proves the gate would have fired on the day `.13i` measured
+  four of six stale — no synthetic mutation needed, and the arm cannot go stale because the commit cannot.
+
 ## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0342 (a census that can read the sentence about the census is not a census)
 
 - ⭐⭐ **THE LESSON: WHEN A CLASSIFIER DERIVES ITS POPULATION BY SCANNING TEXT, THE SCANNER'S OWN TEXT

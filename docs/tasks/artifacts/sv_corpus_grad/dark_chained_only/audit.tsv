@@ -314,8 +314,8 @@ IN-WINDOW		friscv	dep/hardfloat/test/source/recFNToRecFN_spec.v	1959	1959	1843	4
 IN-WINDOW		friscv	dep/hardfloat/test/source/test_addRecFN_add.v	2732	2732	1843	53	8418		------*/ reg [(`floatControlWidth - 1):0] control; reg [2:0] roundingM
 IN-WINDOW		friscv	dep/hardfloat/test/source/test_addRecFN_sub.v	2732	2732	1843	53	8418		------*/ reg [(`floatControlWidth - 1):0] control; reg [2:0] roundingM
 IN-WINDOW		friscv	dep/hardfloat/test/source/test_compareRecFN.v	4198	4212	1843	82	8178		ut."); `finish_fail; end if (op == 0) begin
-IN-WINDOW		friscv	dep/hardfloat/test/source/test_divSqrtRecFN_small_div.v	3509	3510	1843	70	12615		*/ reg integer delay; always @(negedge nReset, posedge clock) begin
-IN-WINDOW		friscv	dep/hardfloat/test/source/test_divSqrtRecFN_small_sqrt.v	3510	3511	1843	70	12149		*/ reg integer delay; always @(negedge nReset, posedge clock) begin
+IN-WINDOW		friscv	dep/hardfloat/test/source/test_divSqrtRecFN_small_div.v	3501	3502	1843	70	12615		--------*/ reg integer delay; always @(negedge nReset, posedge clock)
+IN-WINDOW		friscv	dep/hardfloat/test/source/test_divSqrtRecFN_small_sqrt.v	3502	3503	1843	70	12149		--------*/ reg integer delay; always @(negedge nReset, posedge clock)
 IN-WINDOW		friscv	dep/hardfloat/test/source/test_iNToRecFN.v	2774	2774	1843	56	8648		------*/ reg [(`floatControlWidth - 1):0] control; reg signedIn;
 IN-WINDOW		friscv	dep/hardfloat/test/source/test_mulAddRecFN.v	2731	2731	1843	53	8837		------*/ reg [(`floatControlWidth - 1):0] control; reg [2:0] roundingM
 IN-WINDOW		friscv	dep/hardfloat/test/source/test_mulAddRecFN_add.v	2735	2735	1843	53	9316		------*/ reg [(`floatControlWidth - 1):0] control; reg [2:0] roundingM
@@ -815,7 +815,7 @@ IN-WINDOW		opentitan	hw/ip/spi_device/dv/env/spi_device_env_pkg.sv	524	526	526	2
 IN-WINDOW		opentitan	hw/ip/spi_device/dv/tb/tb.sv	387	389	389	15	5749		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" wire
 IN-WINDOW		opentitan	hw/ip/spi_device/dv/tests/spi_device_test_pkg.sv	344	346	346	13	503		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // l
 IN-WINDOW		opentitan	hw/ip/spi_device/pre_dv/program/prog_passthrough_sw.sv	441	442	174	17	8507		input interrupt_t intr ); initial begin automatic string testname;
-IN-WINDOW		opentitan	hw/ip/spi_device/pre_dv/tb/spid_readcmd_tb.sv	4307	4308	256	180	23859		end static task host(); spi_queue_t sfdp_data; spi_queue_t read_data
+IN-WINDOW		opentitan	hw/ip/spi_device/pre_dv/tb/spid_readcmd_tb.sv	4302	4303	256	180	23859		(); end static task host(); spi_queue_t sfdp_data; spi_queue_t read
 IN-WINDOW		opentitan	hw/ip/spi_device/rtl/spi_cmdparse.sv	522	532	330	20	14387		spi_byte_t data_i, // Configurations input spi_mode_e spi_mode_i,
 IN-WINDOW		opentitan	hw/ip/spi_device/rtl/spi_device.sv	10230	10231	229	311	66735		umTotalCmdInfo-1:0] cmd_info; // Broadcasted cmd_info. cmdparse compares the o
 IN-WINDOW		opentitan	hw/ip/spi_device/rtl/spi_device_pkg.sv	18222	18225	229	508	21172		t'(SramMsgDepth); `ASSERT_STATIC_IN_PACKAGE(CheckReadBufferOffset, SramR
@@ -1476,8 +1476,8 @@ NO-ALTERABLE-TICK	CROSS-LIBRARY	Surelog	tests/SimpleClass/Environemnt.sv	568	569
 NO-ALTERABLE-TICK	CROSS-LIBRARY	Surelog	tests/SimpleClass/top_1.sv	797	798		51	1018	uvm_packer @ stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_coreservice.svh	name="", uvm_packer packer=null); // `uvm_fatal("UVMC",{"Port '
 NO-ALTERABLE-TICK	CROSS-LIBRARY	Surelog	tests/SplitFile/svaunit_pkg.sv	1081	1081		33	130192	uvm_default_report_server @ stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_root.svh	efault_report_server; typedef uvm_object_registry#(svaunit_reporte
 NO-ALTERABLE-TICK	CROSS-LIBRARY	opentitan	hw/ip/spi_device/pre_dv/program/spiflash.sv	6130	6131		192	18278	static @ stimuli/sv/subs/slang/tests/regression/all.sv	_capacity static task main(); // Main function forever begin au
-NO-ALTERABLE-TICK	CROSS-LIBRARY	opentitan	hw/ip/spi_device/pre_dv/tb/spid_jedec_tb.sv	1926	1927		97	4748	static @ stimuli/sv/subs/slang/tests/regression/all.sv	end static task host(); automatic int unsigned num_cc; logic [23:0]
-NO-ALTERABLE-TICK	CROSS-LIBRARY	opentitan	hw/ip/spi_device/pre_dv/tb/spid_upload_tb.sv	4697	4698		186	19916	i @ stimuli/sv/subs/verilator/test_regress/t/t_dpi_arg_input_type.v	end static task host(); // Prep data automatic logic [7:0] payload
+NO-ALTERABLE-TICK	CROSS-LIBRARY	opentitan	hw/ip/spi_device/pre_dv/tb/spid_jedec_tb.sv	1921	1922		97	4748	static @ stimuli/sv/subs/slang/tests/regression/all.sv	(); end static task host(); automatic int unsigned num_cc; logic [2
+NO-ALTERABLE-TICK	CROSS-LIBRARY	opentitan	hw/ip/spi_device/pre_dv/tb/spid_upload_tb.sv	4692	4693		186	19916	static @ stimuli/sv/subs/slang/tests/regression/all.sv	(); end static task host(); // Prep data automatic logic [7:0] pay
 NO-ALTERABLE-TICK	CROSS-LIBRARY	opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/tests/core_ibex_report_server.sv	214	214		5	764	uvm_default_report_server @ stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_root.svh	efault_report_server; function new(string name = ""); super.new(name);
 NO-ALTERABLE-TICK	FACT-GATED-CROSS-FILE	Surelog	tests/AllBinding/dut.sv	40	56		1	140	type_scr1_mem_resp_e @ stimuli/sv/subs/Surelog/tests/AllBinding/enum.sv	sp_e dmem2exu_resp_i); type_scr1_mem_resp_e dmem2
 NO-ALTERABLE-TICK	FACT-GATED-CROSS-FILE	Surelog	tests/ClassFuncProto/top.v	289	290		30	708	REQ @ stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv	ity; function REQ get_current_item(); REQ t; endfunction function v
@@ -2033,7 +2033,7 @@ NOT-SV-SOURCE		friscv	test/wba_testsuite/tests/rv64ui-v-test7.v	0	0		1	11021		@8
 NOT-SV-SOURCE		friscv	test/wba_testsuite/tests/rv64ui-v-test8.v	0	0		1	11389		@80000000 6F 00 C0 00 6F 20 80 2C 6F 20 40 2C 93 00 00 00
 NOT-SV-SOURCE		friscv	test/wba_testsuite/tests/rv64ui-v-test9.v	0	0		1	11242		@80000000 6F 00 C0 00 6F 20 80 2C 6F 20 40 2C 93 00 00 00
 PAST-LAST-TICK		Surelog	tests/SimpleClass1/top.v	424	425	21	32	2068		(Packet,Scoreboard) Rcvr2Sb_port; uvm_analysis_imp_sent_pkt #(Packet,Scorebo
-PAST-LAST-TICK		Surelog	tests/SimpleInterface/simple_if.sv	284	285	21	16	3198		dport tb (clocking cb, input clk); end endgenerate endinterface module toto (
+PAST-LAST-TICK		Surelog	tests/SimpleInterface/simple_if.sv	260	263	21	16	3198		) begin : mod_gen modport tb (clocking cb, input clk); end endgenerate endin
 PAST-LAST-TICK		black-parrot	bp_me/src/v/cce/bp_cce_inst_stall.sv	509	528	362	21	4504		s decoded_inst_i // input queue valid signals , input
 PAST-LAST-TICK		opentitan	hw/ip/aes/pre_dv/aes_tb/data/gcm_k128_a0_d0.svh	482	482	301	14	10265		\ c_dpi_load('{
 PAST-LAST-TICK		opentitan	hw/ip/aes/pre_dv/aes_tb/data/gcm_k128_a0_d16.svh	483	483	301	14	12918		\ c_dpi_load('{
