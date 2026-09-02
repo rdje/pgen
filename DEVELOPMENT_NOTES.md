@@ -1,5 +1,31 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0333 (stop looking for somewhere to put the identity IN the untracked file)
+
+- ⭐⭐ **THE TRANSFERABLE LESSON: AN IDENTITY BLOCK ON A DERIVATION CANNOT VOUCH FOR ITS OWN INPUT,
+  AND THE WAY OUT IS THAT TWO OUTPUTS OF ONE RUN CAN VOUCH FOR EACH OTHER.** `.13e.6` framed the
+  problem as *"the outcome files are `.gitignore`d, so an identity block cannot live IN them"* and
+  stopped there, which reads as a dead end. It is not: the report and the dump come out of the same
+  process, so the run digests the dump INTO the report and the loop closes from the other side —
+  the report says WHICH parser, the digest says the dump is that parser's. Promoted:
+  `docs/knowledge/two-outputs-of-one-run-can-vouch-for-each-other.md`.
+- ⛔ **AND THE CHEAP FORM HAS A CANCELLATION HOLE I ALMOST TOOK.** Holding the report's
+  per-sub-corpus verdict COUNTS equal to the dump needs no hashing and looks equivalent; two files
+  swapping verdicts inside one sub-corpus leave every published count identical. That is the same
+  multiset trap `-0160` paid for, one artifact over. ⇒ **when a cheaper check "looks equivalent",
+  name the difference it CANNOT see before adopting it** — here, a pair of rows, which is precisely
+  the shape a re-adjudication produces.
+- ⭐ **THE BANK HAS TWO TIERS BECAUSE THE PREDICATE AND THE WIRING ARE DIFFERENT CLAIMS.** Six arms
+  import `verify_outcome_identity` and prove the rule; two run the REAL adjudicator against a report
+  fixture with a wrong digest and require a non-zero exit. Without the second tier a correct
+  function called by nothing scores 6/6 — `GATE-REACHABILITY`'s founding shape, inside a bank.
+- ⚠️ **A SEQUENCING DECISION WORTH RECORDING**: I re-ran the whole 16 336-file lane to confirm the
+  new rows render, and the report came back stamped `4f279cbf+dirty` — correctly, because the runner
+  itself was modified. Landing that would put a permanently dirty provenance line into a tracked
+  artifact for no reason, so the mechanism lands here and the STAMP lands as its own slice on a clean
+  tree. ⇒ **when a producer change requires re-running the producer, the artifact belongs in the
+  commit AFTER the one that changes it**, or its provenance records the change rather than the tree.
+
 ## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0332 (the row where the wrong method agrees is the one that makes it look correct)
 
 - ⭐⭐ **THE TRANSFERABLE LESSON: A GATE THAT RE-DERIVES A POPULATION MUST READ *WHICH PRODUCER MADE

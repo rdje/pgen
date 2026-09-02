@@ -58,6 +58,7 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -614,6 +615,90 @@ def first_alterable_tick(stripped: str):
         if TICK_RE.match(stripped, m.start()).group(1) not in SVPP_PASSTHROUGH:
             return m.start()
     return None
+
+
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
+# The instrument-identity table `stimuli/run_external_corpus.sh` writes into every characterization
+# report: `| <label> | ` + "`" + `<repo-root-relative path>` + "`" + ` | ` + "`" + `<sha256>` + "`" + ` |`.
+IDENTITY_ROW_RE = re.compile(r"^\|\s*[^|]+?\s*\|\s*`([^`]+)`\s*\|\s*`([0-9a-f]{64})`\s*\|\s*$")
+
+
+def sha256_of(path: Path) -> str:
+    """The digest of a file, streamed — these dumps run to 1.4 MB and there is no reason to slurp."""
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def verify_outcome_identity(report: Path, dumps, *, rerun: str) -> None:
+    """REFUSE when a raw dump is not the one the TRACKED report describes (SV-CORPUS-GRAD.13e.6).
+
+    ⛔ WHY THIS EXISTS, MEASURED. `results.tsv` / `positions.tsv` are `.gitignore`d — deliberately,
+    they are 1.4 MB of regenerable intermediate — so they carry NEITHER an identity block NOR a
+    history: nothing on disk can say when a copy was produced, against which parser, or that it has
+    drifted. And they are the INPUT to every number this campaign publishes. `.13e.5` measured the
+    consequence: one SV-lane row (`t_property_unsup.v`) had been `fail` for THREE DAYS after
+    `SV-0066` fixed the construct, so the axis-2 bar was counting a defect that no longer existed
+    (275 -> 274). A stale dump that hides a FIX inflates the bar and the campaign works on phantoms;
+    one that hides a REGRESSION deflates it and the campaign ships. Both are silent.
+
+    ⭐ THE IDENTITY TRANSFERS THROUGH THE TRACKED FILE. An identity block on a DERIVATION cannot say
+    that its own input was measured against yesterday's parser — so the runner now digests the dumps
+    it just wrote into the report's own identity table, and this refuses when the copy on disk is a
+    different one. The report says WHICH parser; the digest says the dump is that parser's.
+
+    ⛔ IT IS EXACT, NOT A RECONCILIATION. Holding the report's per-sub-corpus verdict COUNTS equal to
+    the dump would look equivalent and is not: two files swapping verdicts inside one sub-corpus
+    CANCEL, which is the multiset trap `PGEN-ENGINE-UNIVERSAL-SERVICES-0160` paid for and re-keyed
+    onto the PATH. A digest has no such hole.
+
+    A report with no output row is reported NOT EVALUATED, loudly, and never as a pass: an older
+    tree adjudicates exactly as it did before, and says so.
+    """
+    if not report.is_file():
+        print(f"outcome-identity: NOT EVALUATED - {_rel(report)} is absent, so nothing names the "
+              f"runs these dumps came from", file=sys.stderr)
+        return
+    recorded = {}
+    for line in report.read_text(encoding="utf-8").splitlines():
+        m = IDENTITY_ROW_RE.match(line)
+        if m:
+            recorded[m.group(1)] = m.group(2)
+    checked = []
+    for dump in dumps:
+        rel = _rel(dump)
+        want = recorded.get(rel)
+        if want is None:
+            print(f"outcome-identity: NOT EVALUATED - {_rel(report)} records no digest for {rel}, "
+                  f"so nothing can say this dump came from the run that report describes "
+                  f"(SV-CORPUS-GRAD.13e.6; re-run `{rerun}` to stamp one)", file=sys.stderr)
+            continue
+        if not dump.is_file():
+            # An absent dump is the caller's own business - `--positions` is optional by design and
+            # `--results-v2005` gates a whole lane. Only a PRESENT dump can be the WRONG dump.
+            continue
+        got = sha256_of(dump)
+        if got != want:
+            raise SystemExit(
+                f"outcome-identity: {rel} is NOT the dump {_rel(report)} describes "
+                f"(report {want[:12]}..., disk {got[:12]}...). Every number this adjudication "
+                f"publishes would be about a different parse than the tracked report claims. "
+                f"Re-run the lane: `{rerun}`")
+        checked.append(rel)
+    if checked:
+        print(f"outcome-identity: OK - {', '.join(checked)} re-hash equal to {_rel(report)}",
+              file=sys.stderr)
+
+
+def _rel(path: Path) -> str:
+    """Repo-root-relative, whatever the caller passed (the repo-relative-paths policy)."""
+    try:
+        return str(Path(path).resolve().relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
 
 
 def load_positions(path: Path, label: str):
@@ -3335,10 +3420,22 @@ def main():
     ap.add_argument("--out-summary-v2005",
                     default=root / "stimuli/sv/characterization/adjudication_summary_v2005.md",
                     type=Path)
+    ap.add_argument("--report",
+                    default=root / "stimuli/sv/characterization/characterization.md",
+                    type=Path,
+                    help="the TRACKED sv-lane report whose instrument identity names the raw "
+                         "dumps this run may read (SV-CORPUS-GRAD.13e.6)")
+    ap.add_argument("--report-v2005",
+                    default=root / "stimuli/sv/characterization/characterization_v2005.md",
+                    type=Path,
+                    help="the TRACKED sv2005-lane report, same role as --report")
     args = ap.parse_args()
 
     if args.self_test:
         return _self_test_extension_guard(args.subs_root / "iverilog" / "ivtest")
+
+    verify_outcome_identity(args.report, [args.results, args.positions],
+                            rerun="stimuli/run_external_corpus.sh sv")
 
     raw_positions = load_positions(args.positions, "positions.tsv")
     positions = {}
@@ -3512,6 +3609,9 @@ def main():
         print("v2005 results absent - run `stimuli/run_external_corpus.sh "
               "sv2005` to produce them; v2005 manifest skipped")
         return 0
+
+    verify_outcome_identity(args.report_v2005, [args.results_v2005, args.positions_v2005],
+                            rerun="stimuli/run_external_corpus.sh sv2005")
 
     lane_set = set(lane)
     raw_positions_v2005 = load_positions(args.positions_v2005, "positions_v2005.tsv")

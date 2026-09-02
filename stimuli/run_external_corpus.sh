@@ -586,14 +586,22 @@ SLOWEST_F=$(printf '%s' "$SLOWEST_LINE" | cut -f3); SLOWEST_F="${SLOWEST_F:-(non
   echo
   echo "## Instrument identity (what produced this number)"
   echo
-  echo "> Re-hash these three inputs; if any hash differs from the row below, **this report no"
+  echo "> Re-hash the three INPUT rows; if any hash differs from the rows below, **this report no"
   echo "> longer describes your tree** and the honest act is to re-measure, not to quote."
+  echo ">"
+  echo "> ⛔ The OUTPUT rows exist because the raw dumps are \`.gitignore\`d, so they carry neither"
+  echo "> an identity block nor a history and nothing could say which run produced the copy on your"
+  echo "> disk (\`SV-CORPUS-GRAD.13e.6\`). They are written by THIS run, from this report's own"
+  echo "> parse, so a consumer that re-hashes them proves the dump it is reading is the one these"
+  echo "> numbers describe. \`stimuli/sv/adjudicate_external_corpus.py\` REFUSES on a mismatch."
   echo
   echo "| input | repo-root-relative path | sha256 |"
   echo "|---|---|---|"
   echo "| parse binary | \`${PROBE#"$ROOT/"}\` | \`$(sha256_of "$PROBE")\` |"
   echo "| grammar | \`${GRAMMAR_FILE#"$ROOT/"}\` | \`$(sha256_of "$GRAMMAR_FILE")\` |"
   echo "| generated parser | \`${GEN_PARSER#"$ROOT/"}\` | \`$(sha256_of "$GEN_PARSER")\` |"
+  echo "| results (output) | \`${RESULTS#"$ROOT/"}\` | \`$(sha256_of "$RESULTS")\` |"
+  echo "| positions (output) | \`${POSITIONS#"$ROOT/"}\` | \`$(sha256_of "$POSITIONS")\` |"
   echo
   echo "Measured at \`HEAD\` = \`$HEAD_ID\` ($HEAD_DATE)."
   echo

@@ -887,6 +887,50 @@ directory-scoped exclusion would have silenced the one row that must stay loud. 
 regression control that pins this drives a modified `v2005_lane_files.tsv` through the
 predicate and requires `+dirty`.
 
+### The dump the report describes — output identity for an untracked artifact
+
+An identity block answers *"was this report measured against today's tree?"*. It cannot answer
+*"is the raw dump I am about to adjudicate the one this report describes?"* — and for the
+SystemVerilog lanes that second question is the load-bearing one.
+
+`results.tsv` and `positions.tsv` are `.gitignore`d, deliberately: 1.4 MB and 560 KB of regenerable
+intermediate whose durable claims are the tracked report and the tracked manifest. The consequence
+nobody had drawn is that they therefore carry **neither an identity block nor a history**. Nothing
+on disk can say when a copy was produced, against which parser, or that it has drifted — and they
+are the input to every number the SystemVerilog campaign publishes. Measured: one row sat `fail` for
+three days after the construct was fixed, so the published defect bar counted a defect that no
+longer existed.
+
+The fix is that the report and the dump are **two outputs of one run**, so the run digests the dump
+into the report:
+
+```text
+| input              | repo-root-relative path                        | sha256    |
+| parse binary       | rust/target/release/parseability_probe         | a4de90fd… |
+| grammar            | grammars/systemverilog.ebnf                    | b2ca001f… |
+| generated parser   | generated/systemverilog_parser.rs              | c09b4eda… |
+| results (output)   | stimuli/sv/characterization/results.tsv        | ed240b8f… |
+| positions (output) | stimuli/sv/characterization/positions.tsv      | 02f49b65… |
+```
+
+The three INPUT rows say the report still describes your tree; the two OUTPUT rows say the dump on
+your disk is the one these numbers describe. `stimuli/sv/adjudicate_external_corpus.py` re-hashes
+them once per lane, before either lane reads a row, and **refuses** on a mismatch — naming the exact
+re-run. A report with no output row is reported `NOT EVALUATED`, loudly: an older tree adjudicates
+exactly as it did before, and says so.
+
+⛔ **Why a digest and not a reconciliation.** Holding the report's per-sub-corpus verdict *counts*
+equal to the dump looks equivalent and is not: two files swapping verdicts inside one sub-corpus
+**cancel**, and the counts are identical either way. That is a trap this repository has already paid
+for once, in a corpus diff that compared `(sub-corpus, verdict)` multisets and had to be re-keyed
+onto the path. A digest has no such hole.
+
+The two mechanisms compose and neither replaces the other: `CORPUS-CENSUS-CURRENCY` holds the
+**report** to the tree, and this holds the **dump** to the report. Bank:
+`docs/tasks/artifacts/sv_corpus_grad/outcome_identity/probe.sh` (8 arms — six driving the predicate
+directly, two driving the real adjudicator end-to-end, because a correct function nothing calls is
+the reachability defect wearing a check).
+
 ### Wiring a family to the census gate — and why a denominator must be counted the producer's way
 
 `CORPUS-CENSUS-CURRENCY` reads every entry in `corpus_census`
