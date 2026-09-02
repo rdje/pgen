@@ -1,5 +1,21 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-MEMORY-ARCH-0008 (a lesson that feels urgent is written into the wrong layer)
+
+- ⭐ **THE LESSON: "KEPT IN LAYER A BECAUSE IT IS ABOUT HOW I …" IS THE SENTENCE THAT NAMES A LAYER-C
+  RECORD.** Ten times this month a hard-won discipline was written into the resume pointer with exactly
+  that justification, and each time it was right that the lesson mattered and wrong about where it
+  lives: layer A is overwritten every update and capped on two axes; a standing discipline is
+  append-once and retrieved by question. The cost surfaced as nine hand-trims in one session and 75
+  bytes of headroom. ⇒ when I catch myself writing that sentence, write the decision record instead and
+  leave layer A a one-line pointer. Promoted: the record itself,
+  `docs/decisions/feedback_standing_evidence_reading_disciplines.md` (this entry's promotion).
+- ⭐ **DEMOTE BY COPYING, NEVER BY RETYPING, AND COUNT WHAT COULD BE LOST.** The bullets were read out of
+  `MEMORY.md` by line number and written into the record unchanged; the control extracted every
+  `[[wiki-link]]` and every slice/leaf id from the demoted lines and required each in the record — 6 and
+  20, `lost=[]`. A demotion that retypes is a paraphrase, and a paraphrase of a lesson about precision
+  is where the precision goes.
+
 ## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0340 (two correct slices, one wrong seam)
 
 - ⭐⭐ **THE LESSON: WHEN YOU CHANGE THE SHAPE OF AN ARTIFACT, RE-RUN EVERY CONSUMER OF THAT ARTIFACT,

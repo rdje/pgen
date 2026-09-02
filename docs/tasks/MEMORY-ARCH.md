@@ -68,9 +68,9 @@ sits in `~/.claude` and would not survive a machine loss or harness switch.
 ## Task Tree
 
 - ID: `MEMORY-ARCH`
-  Status: `done` (CLOSED 2026-06-02; `PGEN-MEMORY-ARCH-0001..0006`) — all 5 leaves done; layers A/B/C/D + enforcement E1–E4 in place, gates proven to bite, untracked-memory exposure closed.
+  Status: `done` (CLOSED 2026-06-02; `PGEN-MEMORY-ARCH-0001..0006`; `.6` 2026-08-09 and `.7` 2026-09-03 opened AND closed as headroom demotions, `-0007`/`-0008`) — all leaves done; layers A/B/C/D + enforcement E1–E4 in place, gates proven to bite, untracked-memory exposure closed.
   Goal: `Adopt the durable memory architecture standard in pgen (full enforcement), composing with the existing task-tree + COMMIT.md systems.`
-  Children: `MEMORY-ARCH.1 .. .5` (adoption, done) + `.6` (standing headroom, open)
+  Children: `MEMORY-ARCH.1 .. .5` (adoption, done) + `.6` (headroom demotion 2026-08-09, done) + `.7` (headroom demotion 2026-09-03, done)
 
 - ID: `MEMORY-ARCH.6`
   Status: `done` (`PGEN-MEMORY-ARCH-0007`, opened AND closed 2026-08-09; routed from `SV-CORPUS-GRAD.3.23`)
@@ -79,6 +79,38 @@ sits in `~/.claude` and would not survive a machine loss or harness switch.
   Acceptance: `MEMORY.md back under ~85 % of the byte cap (>= ~1 000 bytes spare) with NO cap change and NO pointer lost: every demoted fact reachable from what remains, via docs/tasks/ (B) or docs/decisions/ (C). Candidates, largest-first and all measurable with `awk '{print length, NR}' MEMORY.md | sort -rn | head`: the standing-tripwires line (7 tripwires inlined, each already owned by a named leaf that could carry it), the North-star block (11 pointer lines whose targets are authoritative layer-C records), and the flow-health line. ⛔ The DERIVED-state banner and the DERIVED fields it protects are NOT candidates — they are what stops the file re-accreting.`
   Verification: `done — DEMOTED, cap UNCHANGED at 7 168 bytes. MEMORY.md 7 156 -> 4 961 bytes (99.8 % -> 69.2 % full; spare 12 -> 2 207 bytes) and 38 -> 29 of 50 lines. Two layer-C records created and INDEXED: docs/decisions/project_north_star.md (the 2 273-byte curated-constraints block) and docs/decisions/project_standing_tripwires.md (the 985-byte, 8-entry trap list). NO POINTER LOST, and that is MEASURED rather than asserted: a diff of the pre-change MEMORY.md against {new MEMORY.md + both records} finds 19/19 wiki-links and 23/23 leaf ids still reachable, 0 lost. scripts/check_memory_architecture.sh green (index<->record sync included); all 17 doctrines PASS. BY-PRODUCT, and the better half of the leaf: both blocks are now RETRIEVABLE BY QUESTION for the first time -- they carry answers: front-matter and are in the Knowledge Map (74 -> 76 facts), whereas in layer A they were reachable only by reading layer A. A demotion that also makes the content findable is strictly better than the state it replaced, which is why the doctrine says demote rather than raise.`
   Commit: `done — PGEN-MEMORY-ARCH-0007`
+
+- ID: `MEMORY-ARCH.7`
+  Status: `done` (`PGEN-MEMORY-ARCH-0008`, opened AND closed 2026-09-03; the second time `.6`'s shape recurred)
+  Goal: `Restore working HEADROOM under the layer-A BYTE cap by DEMOTING content to layer C — never by raising the cap.`
+  Context: `MEASURED: MEMORY.md = 32 693 of 32 768 bytes (99.8 %, 75 bytes spare) on 49 of 50 lines, after nine slices in one session each rewrote the next_action line and trimmed it back under the cap by hand. The file was bound on BOTH axes at once. The content spending it: ten bullets (lines 29, 30, 32, 33, 34, 38, 40, 41, 47, 48 — 13 681 bytes, 42 % of the file) each headed "kept in layer A because it is about HOW I read/measure/publish", i.e. standing DISCIPLINES whose lifecycle is layer C's (append-once, supersede), not layer A's (overwrite each update) — the exact class .6 demoted a year of layer-A growth ago, grown back.`
+  Acceptance: `MEMORY.md back under ~85 % of the byte cap with NO cap change and NO pointer lost: every [[wiki-link]] and every slice/leaf id in the demoted text reachable from the record it moved to; the record carries answers: so the Knowledge Map retrieves it; index<->record sync green.`
+  Verification: `done — MEMORY.md 32 694 -> 19 804 bytes (99.8 % -> 60 %), 50 -> 40 lines, cap UNCHANGED at 32 768 / 50. The ten bullets moved VERBATIM into docs/decisions/feedback_standing_evidence_reading_disciplines.md (10 answers: keys); one pointer bullet replaces them. No-loss control: 6/6 wiki-links and 20/20 ids present in the record, lost=[]. check_memory_architecture.sh OK; knowledge map 250 -> 251 facts, in sync.`
+  Commit: `done — PGEN-MEMORY-ARCH-0008`
+
+#### Acceptance Checklist (enforced) — `.7`
+
+- [x] **REPRODUCE / ISSUE** — `bash scripts/check_memory_architecture.sh` → `layer A 32693/32768 bytes
+      = 99% of cap, 49/50 lines = 98% of cap`: **75 bytes** spare. A routine `next_action` rewrite is
+      300–500 bytes; the next leaf would have been blocked at `.githooks/pre-commit`.
+- [x] **ROOT CAUSE (WHY + WHERE)** — WHERE: `awk '{printf "%6d L%d\n", length, NR}' MEMORY.md |
+      sort -rn` names L33 (3 368 B), L41 (1 846), L29 (1 769), L32 (1 367), L34 (1 308), L48 (1 189),
+      L40 (1 027), L30 (745), L47 (608), L38 (454) — ten bullets, **13 681 B**, every one of them
+      self-described as *"kept in layer A because it is about HOW I …"*. WHY: they are standing
+      disciplines (layer C lifecycle) written into the overwrite-each-update layer because they felt
+      urgent, then never demoted — the `.6` shape recurring. `git ls-files docs/decisions | wc -l`
+      confirmed layer C exists and is indexed (the check enforces index↔record sync), so the home
+      was already there.
+- [x] **ADDRESSED (verified)** — `bash scripts/check_memory_architecture.sh` → `memory-arch: OK
+      (layer A 19804/32768 bytes = 60% of cap, 39/50 lines = 78% of cap)`, cap UNCHANGED.
+- [x] **NO REGRESSION** — no pointer lost, MEASURED: every `[[wiki-link]]` (6) and every slice/leaf id
+      (20) extracted from the ten demoted lines is present in the record — `lost=[]`; the record is
+      **byte-identical** to the demoted bullets in body (they are copied, not retyped); index↔record
+      sync green; `knowledge-map: OK (facts valid, ids unique, map in sync)` at 251 facts.
+      `bash scripts/check_doctrines.sh` ALL 34 PASS.
+- [x] **LOCKSTEP** — `MEMORY.md` + `docs/decisions/feedback_standing_evidence_reading_disciplines.md`
+      + `docs/decisions/INDEX.md` + `KNOWLEDGE_MAP.md` + this tree + `docs/TASK_TREE.md` + `CHANGES.md`
+      + `DEVELOPMENT_NOTES.md`.
 
 #### Acceptance Checklist (enforced)
 
