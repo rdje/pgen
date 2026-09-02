@@ -1,0 +1,1 @@
+DOCTRINE-PROSE-CENSUS: rows=34 rows_with_registry_number_absent=4 rows_with_s10_number_absent=12 absent_numbers registry=4 s10=40

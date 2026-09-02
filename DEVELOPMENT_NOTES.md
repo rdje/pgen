@@ -1,5 +1,27 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0338 (a live count in doctrine prose is derived state wearing a sentence)
+
+- ⭐⭐ **THE LESSON: DOCTRINE PROSE IS A LIVE DOCUMENT TOO, AND A COUNT TYPED INTO IT ROTS EXACTLY LIKE
+  ONE TYPED INTO `MEMORY.md`.** The registry row and the §10 row are the two places a doctrine explains
+  itself, and the derived book copies §10 to the director. `CHANGES.md scores 175` was true on
+  2026-08-08 and the file has 206 dated entries today; `131 declared LR names` was true on 08-15 and the
+  classifier reads 41 today. Every doctrine run printed the live value while the prose beside it stated
+  the stale one, and nothing compares the two. ⇒ **R1/R3 applies to doctrine prose: cite history freely,
+  never a live count — name the producer instead.** Promoted:
+  `docs/knowledge/a-live-count-in-doctrine-prose-is-derived-state-wearing-a-sentence.md`.
+- ⛔ **THE OBVIOUS GATE WAS PRICED AND REFUSED, NOT WAVED THROUGH.** "Every number in the row must appear
+  in the enforcer" reads like a clean invariant; measured over all 34 rows it fires on 42 of 44 correct
+  numbers. The `.6`/`.12` bar refused a 91 % trigger; this one is ~95 %. ⇒ **price a proposed gate over
+  the whole corpus before adopting it, and let the false-positive rate decide** — the same measurement
+  that found the two defects is what refuses the gate that would have found them.
+- ⭐ **READ THE POPULATION, DO NOT COUNT IT.** 44 leads at ~20 s each is 15 minutes, and two of them were
+  real. A published "44 disagreements" would have been `.13q`'s `160` again — a count that was not a
+  count. The adjudication table in the leaf is the deliverable; the headline number is 2.
+- ⚠️ **MY OWN INSTRUMENT MIS-REPORTED TWICE BEFORE IT WAS TRUSTED**: it split `138,403` into two numbers
+  and counted a register-read constant as absent from the enforcer. Both were caught by reading the
+  leads, which is the only reason the (c) number is 2 and not 4.
+
 ## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0336 (two greps before an eighteen-minute build)
 
 - ⭐⭐ **THE LESSON: A "REGENERATE EVERYTHING" RECIPE'S COVERAGE IS A CENSUS CLAIM — ASSERT THE NEW
