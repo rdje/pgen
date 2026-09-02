@@ -2099,11 +2099,12 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 
 ### 5.14 "Does the clause number I cited actually contain the line I cited?" — the LRM clause-citation census
 
-- **WHAT:** `python3 stimuli/sv/lrm_clause_citation_census.py` (`SV-CORPUS-GRAD.13q`) — for every
-  `§X.Y` in a tracked file it resolves the LRM lines cited alongside it and reports whether the
-  innermost numbered heading enclosing each line IS that clause (or a descendant of it).
-  **0.48 s** over 438 files, reads the repository and mutates nothing. `--all` also lists the rows
-  already ruled not a defect.
+- **WHAT:** `python3 stimuli/sv/lrm_clause_citation_census.py` (`SV-CORPUS-GRAD.13q` / `.13q`(c)) —
+  for every `§X.Y` in a tracked file it resolves the LRM lines cited alongside it and reports
+  whether the innermost numbered heading enclosing each line IS that clause (or a descendant of it).
+  ⭐ **REGISTERED DOCTRINE `LRM-CLAUSE-CITATION`** (`scripts/check_lrm_clause_citation.sh`), so it
+  runs on every commit. **0.43 s** over 439 files, reads the repository and mutates nothing.
+  `--self-test` adds a RED control per structural rule plus a GREEN control.
 - **WHEN:** before publishing ANY conformance claim that names a clause, and after editing one.
   ⛔ **This is a class no other instrument can see.** A quoted sentence, a file and a line number
   are all checkable by grep; the CLAUSE NUMBER attached to them is a fourth, independent
@@ -2122,13 +2123,27 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `furthest_position=`, a source line or the neighbouring citation's line to the wrong clause — a
   ledger row is one physical line thousands of characters long, so *"the next `§`"* is not a
   boundary. Tight binding gives 31 rows; reading all 31 gives 24 real and 7 of a named shape.
-- ⭐ **THE ENCLOSURE PREMISE IS A PROPERTY OF A CITATION SHAPE, NOT OF CITATIONS**, and the two
-  shapes that break it are carried in the script's `REVIEWED_NOT_A_DEFECT` table WITH THEIR REASON
-  rather than suppressed by path: the *defined-here / absent-there* sentence (*"defined in §8.26.1
-  but NOT referenced at `section-8-classes.md:95`"* — the clause and the line are deliberately
-  different places) and the PDF→md split artifact (the §11.4.12 notation sentence lives in a
-  `section-0-…` file whose NAME carries no clause number). An allowance that has stopped matching
-  anything is reported as `reviewed_stale`, because rot in an exception list is silent.
+- ⭐⭐ **THE ENCLOSURE PREMISE IS A PROPERTY OF A CITATION SHAPE, NOT OF CITATIONS — AND BOTH
+  BREAKING SHAPES ARE RECOGNISED STRUCTURALLY, WITH NO ALLOWANCE LIST AT ALL.** (1) the
+  *defined-here / absent-there* sentence (*"defined (§8.26.1) but NOT referenced in `class_item`
+  (`section-8-classes.md:95`)"* — two correct parentheticals about deliberately different places)
+  is unbound by **bracket scope**: the clause's own group CLOSES before the ref's group opens, so a
+  relative depth going negative severs the binding. (2) the mis-titled corpus file is unbound by
+  **clause-addressability** — a filename is a CLAIM, and the file's own **modal heading major** is
+  the evidence. ⛔ The first cut carried both as SEVEN hand-written exceptions keyed by LRM line
+  numbers that MOVE; **a gate whose green depends on a hand-maintained exception list is not a
+  gate, it is a promise**, and removing it cost ZERO reach (`agree=33` either way, `.13q`(c)).
+- ⭐⭐ **CLAUSE-ADDRESSABILITY IS LOAD-BEARING FOR CORRECTNESS, NOT ONLY FOR EXEMPTIONS.** This tool
+  resolves a file FROM a clause number for the clause-adjacent forms, so a filename that lies
+  MANUFACTURES a disagreement. **17 of 124 vendored section files fail** (14 of 55 in 1800-2017, 3
+  of 41 in 1800-2023, 0 of 28 in 1364-2005): `section-15-…` holds clause 16,
+  `section-16-777-216-224-elements` holds clause 7, and `section-41-data-read-api.md` — cited BY
+  LINE in live surfaces — carries no numbered heading at all. Counted as `unaddressable_section`,
+  never judged; owned by `SV-CORPUS-GRAD.13t`.
+- ⭐ **A THIRD RULE GUARDS THE ENCLOSURE READ ITSELF**: a heading whose major disagrees with its
+  file's own modal major is PDF-split NOISE and is skipped. `docs/verilog/2005/md/section-7-…md`
+  carries four stray `## 2 delays` / `## 3 delays` headings that are *fragments of §7.14's own
+  prose*; unfiltered, line `2328` reads clause `3` instead of §7.14.
 - ⭐ **IT AUDITS THE FIX, NOT JUST THE TREE.** Splitting one clause into two while writing `.13q`'s
   own correction left the second half unbindable and judged rows fell 35 → 17 with `no_line_ref`
   rising 27: the tree was getting LESS checkable and the census read clean. Binding the
@@ -2137,14 +2152,17 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   neighbour). ⇒ **a census that gets cleaner because it stopped looking is the failure mode that
   looks most like success.**
 - **GROUND TRUTH, every invocation** (an instrument with no ground truth is a confident guess):
-  five pairs including this leaf's own known-bad `§28.16 → :396` and an ANCESTOR-citation
-  known-good `§28.3 → :243`. A miss exits **7** — MISCALIBRATED — rather than reporting a clean
-  tree. Exit `0` clean · `1` an unruled disagreement or a stale allowance.
+  **14 pairs** covering all three structural rules, including the founding known-bad
+  `§28.16 → :396` and an ANCESTOR-citation known-good `§28.3 → :243`. A miss exits **7** —
+  MISCALIBRATED — rather than reporting a clean tree, and it **caught its own author** writing the
+  noise pair off the FIRST stray heading instead of the innermost one; the pair now asserts its own
+  NAIVE leg so it refuses once stale. Exit `0` clean · `1` a disagreement.
 - ⚠️ **HONEST BOUND:** it is a LEAD GENERATOR whose rows are read, not an oracle — the shapes above
   are why. It checks the clause↔line relation only; whether the quoted sentence says what the
   claim needs is still 5.13 / 5.11 / the LRM itself. `no_line_ref` (~1 449) is the size of what it
-  declines to judge, printed so the reach is never mistaken for the population. **No registered
-  doctrine runs it yet** — routed as `SV-CORPUS-GRAD.13q`(c), same standing as 5.11 and 5.13.
+  declines to judge, printed so the reach is never mistaken for the population, and
+  `unaddressable_section` is a permanent hole until `.13t` repairs the corpus. ⭐ Unlike 5.11 and
+  5.13, this one IS a registered doctrine — `LRM-CLAUSE-CITATION`, entry 34.
 
 ## 6. Coverage / gap reports (`ast_pipeline`)
 

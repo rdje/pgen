@@ -1,5 +1,40 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0329 (registering the citation doctrine — an exception list is a confession that you stopped looking for the rule)
+
+- ⭐⭐ **THE TRANSFERABLE LESSON: BEFORE ACCEPTING AN EXCEPTION LIST, SPEND ONE MORE HOUR LOOKING FOR
+  THE STRUCTURAL RULE — THE EXCEPTIONS ARE USUALLY A CLASS YOU HAVE NOT NAMED YET.** Seven rows had
+  been read, understood and written down with their reasons, which felt like rigour: each was
+  genuinely not a defect, and the table was honest. But *"I have read these and they are fine"* is a
+  claim about seven rows, while *"the clause's bracket group closes before the ref's opens"* is a
+  claim about the whole language of citations. Both exempt shapes had a decidable signal and
+  neither needed a name in a table. ⇒ **an allowance list keyed by anything that moves is a promise,
+  not a gate**; the test is whether you can state the exemption as a property rather than as a
+  roster.
+- ⭐⭐ **AND THE PAYOFF WAS NOT THE EXEMPTIONS — IT WAS A DEFECT THE SECOND RULE EXPOSED.**
+  Clause-addressability was built to excuse two rows and immediately measured that **17 of 124
+  vendored LRM section files carry a filename their own headings refute**, including one
+  (`section-41-data-read-api.md`) that live task leaves cite BY LINE. The census resolves a file
+  FROM a clause number, so without that rule it would eventually have reported false disagreements
+  on all seventeen. ⇒ **a rule written to explain away exceptions is worth building precisely
+  because it can only be written if you understand the mechanism — and understanding the mechanism
+  is what finds the next defect.** The exception list would have hidden this forever.
+- ⛔ **A GROUND-TRUTH PAIR IS A CLAIM AND MINE WAS WRONG ON ITS FIRST RUN.** The noise-heading
+  control was written against the FIRST stray heading (`## 2 delays`, `:2325`) when the innermost
+  one at line 2328 is `## 3 delays` (`:2327`), and the census exited `7 MISCALIBRATED` rather than
+  running — the guard catching its author inside a minute of being written. The pair now asserts its
+  own NAIVE leg as well as its filtered one: if an unfiltered read stops giving `3`, the control has
+  gone stale and proves nothing, so it REFUSES rather than passing. ⇒ **a control must be able to
+  detect that it has stopped being a control**, which is one more thing than being able to fail.
+- ⭐ **THE REACH CONTROL IS THE ONE THAT MADE THE DECISION SAFE.** Deleting an exception list could
+  have been paid for by quietly judging fewer rows — the exact failure `-0325` had already committed
+  once. `agree` is **33 before and 33 after**, so the exemptions cost no reach; that single number is
+  what turns "we removed the hand-list" from a hope into a measurement.
+- ⛔ **THE STRAY HEADINGS ARE FRAGMENTS OF THE SENTENCE THAT STARTED THIS.** `section-7-…md`'s
+  `## 2 delays` and `## 3 delays` are pieces of §7.14's own delay-cardinality prose that the PDF→md
+  split promoted to headings. The corpus defect and the citation defect are the same defect seen
+  from two ends, which is why fixing one exposed the other.
+
 ## 2026-09-02 - PGEN-SV-CORPUS-GRAD-0327/0328 (the answer-key class — a suite's contract is evidence about the suite, and a guard's rationale has a scope you must read before you widen OR obey it)
 
 - ⭐⭐ **THE TRANSFERABLE LESSON: WHEN A KEY AND A SHIPPED DECISION DISAGREE, ONE OF THEM IS A CLAIM
