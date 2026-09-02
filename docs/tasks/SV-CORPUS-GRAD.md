@@ -19925,6 +19925,11 @@ structurally instead. Not decided in this slice.
         in 15 s, and `results.tsv` / `results_v2005.tsv` / both adjudication manifests are
         **BYTE-IDENTICAL** (`git diff --numstat` empty), the generated-parser digest `c09b4eda…`
         unmoved; `bash scripts/check_doctrines.sh` **ALL 33 PASS** on the staged set.
+  - [x] **CLEAN STAMP** ✅ `PGEN-SV-CORPUS-GRAD-0326` — both lanes re-measured on the clean tree
+        `03ca8d58`: **`Measured at HEAD = 03ca8d58`, no `+dirty`, on BOTH reports**, `results.tsv` /
+        `results_v2005.tsv` and both adjudication manifests BYTE-IDENTICAL again, tuple
+        `7556/2606/6174/4363/269` unchanged, `check_sv_corpus_denominator.sh` OK, ALL 33 doctrines
+        PASS. Three corpus runs for a comment — which is `.13r`'s pricing, measured.
   - ⛔ **THE RE-MEASURE WAS FORCED BY A GATE THAT COULD NOT SEE THE EDIT WAS A COMMENT, AND THAT IS
         A FINDING, NOT AN INCONVENIENCE** — `CORPUS-CENSUS-CURRENCY` arm (3) hard-failed because
         `grammars/systemverilog.ebnf` re-hashed `bb4bdc08a499…` → `b2ca001f0012…` while the
@@ -19944,8 +19949,9 @@ structurally instead. Not decided in this slice.
   edited nothing but a `#` comment in `grammars/systemverilog.ebnf`; the file hash moved
   (`bb4bdc08a499…` → `b2ca001f0012…`), arm (3) HARD-FAILED, and the commit was blocked until both SV
   lanes were re-measured (86 s + 15 s) — producing `results.tsv`, `results_v2005.tsv` and both
-  adjudication manifests **byte-identical**, and a `+dirty` stamp that then owes a second clean
-  re-measure. Two runs and two commits for zero moved bytes.
+  adjudication manifests **byte-identical** — and a `+dirty` stamp that then owed a second clean
+  re-measure (`-0326`). ⭐ **PRICED, not estimated: FOUR corpus runs and TWO commits for zero moved
+  bytes**, because the `+dirty` round-trip is not optional once arm (3) fires mid-slice.
 - ⛔ **THE REPOSITORY ALREADY RULED THIS EXACT CASE, ONE DOCTRINE EARLIER.** `BASELINE-IDENTITY`'s
   own registry text records it verbatim: *"the first cut made a moved input a FAILURE in an enforcer
   that runs from `.githooks/pre-commit`, so ONE COMMENT LINE in the SV grammar BLOCKED EVERY COMMIT

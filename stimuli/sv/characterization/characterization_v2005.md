@@ -19,7 +19,7 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 | grammar | `grammars/systemverilog.ebnf` | `b2ca001f0012579c60f6195a6e9808a7fa9cc4f8c1a9913064c8381083193e12` |
 | generated parser | `generated/systemverilog_parser.rs` | `c09b4eda9fc23a416d53da1f3ef1f6a3fcc4261d40f5d094eded1c4761d6ad49` |
 
-Measured at `HEAD` = `a692cc7d+dirty` (2026-09-02).
+Measured at `HEAD` = `03ca8d58` (2026-09-02).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -53,7 +53,7 @@ Measured at `HEAD` = `a692cc7d+dirty` (2026-09-02).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `0.34` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1000.v`.
+Slowest completing file: `0.37` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1000.v`.
 
 ## Totals
 
