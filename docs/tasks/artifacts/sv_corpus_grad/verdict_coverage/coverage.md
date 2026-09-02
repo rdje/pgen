@@ -84,6 +84,20 @@
 | `deferred:ni_unimplemented` | 6 | 6 | 0 | 0 |
 | **TOTAL** | **6,174** | **1,708** | **103** | **4,363** |
 
+## Permanent deferrals — by construction, and BOUNDED (SV-CORPUS-GRAD.13f)
+
+A permanent deferral is a CLAIM: no future work on the parser, the answer key or the corpus can give these rows a verdict. Each class says why, and each is bounded by a recorded ceiling the instrument REFUSES to exceed — a new row may join a class only by naming the argument below and raising the ceiling deliberately (`docs/tasks/artifacts/sv_corpus_grad/verdict_coverage/permanent_deferral_ceilings.json`).
+
+| class | rows | ceiling | why nothing can ever adjudicate it |
+|---|---:|---:|---|
+| `deferred:svpp_owned` | 186 | 186 | the row's conformance question is about the PREPROCESSOR (macro/conditional/include semantics the parser never sees) and is answered by the svpp lane, by design of the two-parser architecture — no grammar or key change on this lane can move it |
+| `deferred:impl_varying` | 90 | 90 | the suite's own contract marks the verdict implementation-dependent (ispras TYPE VARYING) — the LRM leaves the behaviour to the implementation, so no answer key can exist |
+| `deferred:verilog_ams_lane` | 20 | 20 | the descriptor runs the file under -gverilog-ams: a different LANGUAGE (Verilog-AMS), outside IEEE 1800's scope; owned by the parked VERILOG-AMS tree, never by this grammar |
+| `deferred:ni_unimplemented` | 6 | 6 | the upstream runner marks the construct NI (Not Implemented) and skips the test, so the suite itself holds no expectation to compare against |
+| **TOTAL** | **302** | | 1.8 % of the corpus, permanent by construction |
+
+⛔ `deferred:chained_only` and `deferred:no_sv_key` are NOT permanent: chaining and a future key could give those rows verdicts, so they stay open work. ⭐ The FRAGMENT-shaped one-sided positives above (SV-CORPUS-GRAD.13g) are ruled **unadjudicable as whole files**: a fragment parsed entry-relative would yield an accept with no key to compare against, so it cannot move the bar either way — the population stays visible in the fragment column and is never counted as testimony.
+
 ## The DARK half — can the row's own deferral reason even REACH the failure?
 
 A file containing no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or `` `include `` inlining: the preprocessed text is byte-identical to the raw text, so the parse fails identically after chaining. Measured over all 4,363 DARK rows (path oracle: the tracked corpus results file; every manifest row resolved to exactly one results row, 16,336/16,336, with agreeing outcomes — the census aborts otherwise).

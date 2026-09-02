@@ -79,6 +79,8 @@ Output: docs/tasks/artifacts/sv_corpus_grad/verdict_coverage/coverage.md
 """
 
 import argparse
+import sys
+import json
 import hashlib
 from collections import Counter
 from pathlib import Path
@@ -124,6 +126,63 @@ CLASSES = {
         "'it compiled' is testimony about a superset language (SV-CORPUS-GRAD.13e.3)"),
 }
 BUCKETS = ["ADJUDICATED", "ROUTED", "NO VERDICT"]
+
+# --- SV-CORPUS-GRAD.13f: the PERMANENT deferrals, stated as permanent and BOUNDED -----------------
+# ⛔ A permanent deferral is a CLAIM — "no future work on the parser, the key or the corpus can give
+# this row a verdict" — and until .13f it was indistinguishable from a to-do: the same `deferred:`
+# prefix, the same NO VERDICT bucket, a one-line reason that read as a description. Each class below
+# states WHY nothing can ever adjudicate it, and the set is BOUNDED: a tracked ceiling register names
+# the row count each class may hold and the ARGUMENT every member joins; a run that finds a class above
+# its ceiling REFUSES (the gate re-runs this instrument, so the refusal reaches the pre-commit hook),
+# and the only way through is to raise the ceiling in the register while naming the argument the new
+# rows join. Growing the set silently — one more `impl_varying` row nobody read — is what the bound
+# forbids. `deferred:chained_only` and `deferred:no_sv_key` are NOT here: chaining and a future key
+# could give those rows verdicts, so they are open work, not permanence.
+PERMANENT = {
+    "deferred:svpp_owned":
+        "the row's conformance question is about the PREPROCESSOR (macro/conditional/include "
+        "semantics the parser never sees) and is answered by the svpp lane, by design of the "
+        "two-parser architecture — no grammar or key change on this lane can move it",
+    "deferred:impl_varying":
+        "the suite's own contract marks the verdict implementation-dependent (ispras TYPE VARYING) — "
+        "the LRM leaves the behaviour to the implementation, so no answer key can exist",
+    "deferred:verilog_ams_lane":
+        "the descriptor runs the file under -gverilog-ams: a different LANGUAGE (Verilog-AMS), "
+        "outside IEEE 1800's scope; owned by the parked VERILOG-AMS tree, never by this grammar",
+    "deferred:ni_unimplemented":
+        "the upstream runner marks the construct NI (Not Implemented) and skips the test, so the "
+        "suite itself holds no expectation to compare against",
+}
+DEFAULT_CEILINGS = ("docs/tasks/artifacts/sv_corpus_grad/verdict_coverage/"
+                    "permanent_deferral_ceilings.json")
+
+
+def enforce_permanent_ceilings(counts, register_path):
+    """Refuse (exit 1) when a PERMANENT class holds more rows than its recorded ceiling, or when the
+    register does not cover every permanent class. Returns the register for rendering."""
+    try:
+        reg = json.loads(Path(register_path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        print(f"corpus_verdict_coverage: REFUSE — the permanent-deferral ceiling register "
+              f"{register_path} is unreadable ({e}); a bound nobody can read is no bound",
+              file=sys.stderr)
+        sys.exit(1)
+    ceilings = reg.get("ceilings", {})
+    missing = [c for c in PERMANENT if c not in ceilings]
+    if missing:
+        print(f"corpus_verdict_coverage: REFUSE — {register_path} records no ceiling for "
+              f"{', '.join(missing)}; every PERMANENT class must be bounded", file=sys.stderr)
+        sys.exit(1)
+    over = [(c, counts.get(c, 0), ceilings[c]["ceiling"]) for c in PERMANENT
+            if counts.get(c, 0) > int(ceilings[c]["ceiling"])]
+    if over:
+        for c, n, ceil in over:
+            print(f"corpus_verdict_coverage: REFUSE — PERMANENT class `{c}` holds {n} rows, above "
+                  f"its recorded ceiling {ceil} (SV-CORPUS-GRAD.13f). A permanent deferral may not "
+                  f"grow silently: name the argument the new rows join and raise the ceiling in "
+                  f"{register_path} deliberately, in the same commit.", file=sys.stderr)
+        sys.exit(1)
+    return reg
 
 # What "this file contains no `` ` `` byte at all" MEANS for each NO-VERDICT class.
 # ⛔ THE DISTINCTION *IS* THE FINDING. The same measurement refutes one label and says
@@ -273,12 +332,15 @@ def main():
     ap.add_argument("--outdir",
                     default=ROOT / "docs/tasks/artifacts/sv_corpus_grad/verdict_coverage",
                     type=Path)
+    ap.add_argument("--ceilings", default=ROOT / DEFAULT_CEILINGS, type=Path,
+                    help="the PERMANENT-deferral ceiling register (SV-CORPUS-GRAD.13f)")
     ap.add_argument("--no-corpus-scan", action="store_true",
                     help="skip the DARK-half backtick census (no corpus file reads)")
     args = ap.parse_args()
 
     rows = read_manifest(args.manifest)
     counts = Counter(r["adjudication"] for r in rows)
+    reg = enforce_permanent_ceilings(counts, args.ceilings)
     unknown = sorted(set(counts) - set(CLASSES))
     if unknown:
         raise SystemExit(
@@ -414,6 +476,28 @@ def main():
     L.append(f"| **TOTAL** | **{tot_unit + tot_frag + tot_dark:,}** | "
              f"**{tot_unit:,}** | **{tot_frag:,}** | **{tot_dark:,}** |")
     L.append("")
+
+    # --- SV-CORPUS-GRAD.13f: the permanent set, stated and bounded ------------------
+    L.append("## Permanent deferrals — by construction, and BOUNDED (SV-CORPUS-GRAD.13f)\n")
+    L.append("A permanent deferral is a CLAIM: no future work on the parser, the answer key or the "
+             "corpus can give these rows a verdict. Each class says why, and each is bounded by a "
+             "recorded ceiling the instrument REFUSES to exceed — a new row may join a class only "
+             "by naming the argument below and raising the ceiling deliberately "
+             f"(`{DEFAULT_CEILINGS}`).\n")
+    L.append("| class | rows | ceiling | why nothing can ever adjudicate it |")
+    L.append("|---|---:|---:|---|")
+    for cls, why in PERMANENT.items():
+        L.append(f"| `{cls}` | {counts.get(cls, 0):,} | {int(reg['ceilings'][cls]['ceiling']):,} | {why} |")
+    perm_total = sum(counts.get(c, 0) for c in PERMANENT)
+    L.append(f"| **TOTAL** | **{perm_total:,}** | | {100*perm_total/total:.1f} % of the corpus, "
+             "permanent by construction |")
+    L.append("")
+    L.append("⛔ `deferred:chained_only` and `deferred:no_sv_key` are NOT permanent: chaining and a "
+             "future key could give those rows verdicts, so they stay open work. ⭐ The "
+             "FRAGMENT-shaped one-sided positives above (SV-CORPUS-GRAD.13g) are ruled "
+             "**unadjudicable as whole files**: a fragment parsed entry-relative would yield an "
+             "accept with no key to compare against, so it cannot move the bar either way — the "
+             "population stays visible in the fragment column and is never counted as testimony.\n")
 
     if not args.no_corpus_scan:
         L.append("## The DARK half — can the row's own deferral reason even REACH the "

@@ -1,0 +1,25 @@
+{
+  "register": "permanent_deferral_ceilings_v0",
+  "owner": "SV-CORPUS-GRAD.13f",
+  "what_this_is": "The row-count ceiling of each PERMANENT no-verdict class in the SystemVerilog corpus adjudication, and the argument every member of the class joins. corpus_verdict_coverage.py REFUSES a run in which a permanent class holds more rows than its ceiling; the gate SV-CORPUS-DENOMINATOR re-runs the instrument on every commit, so the refusal reaches the pre-commit hook.",
+  "how_to_raise": "Only in the same commit as the rows that need it, and only by naming which argument below the new rows join (or by adding a NEW argument as a new class, which is a code change to the adjudicator and the instrument, owned by a task leaf). Never raise a ceiling to make a run green.",
+  "measured_at": "2026-09-03, PGEN-SV-CORPUS-GRAD-0344 — the four counts are exactly the ones .13a measured on 2026-08-11 (302 rows, 1.8 %)",
+  "ceilings": {
+    "deferred:svpp_owned": {
+      "ceiling": 186,
+      "argument": "conformance owned by the preprocessor lane, by the two-parser design; the parser never sees the construct"
+    },
+    "deferred:impl_varying": {
+      "ceiling": 90,
+      "argument": "the suite contract marks the verdict implementation-dependent (ispras TYPE VARYING); the LRM leaves it to the implementation"
+    },
+    "deferred:verilog_ams_lane": {
+      "ceiling": 20,
+      "argument": "Verilog-AMS is a different language (-gverilog-ams); owned by the parked VERILOG-AMS tree"
+    },
+    "deferred:ni_unimplemented": {
+      "ceiling": 6,
+      "argument": "the upstream runner marks the construct Not Implemented and skips it; no expectation exists"
+    }
+  }
+}

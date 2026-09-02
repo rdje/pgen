@@ -3061,6 +3061,8 @@ observation was simply unused.
 > The instrument's own output lives at
 > `docs/tasks/artifacts/sv_corpus_grad/verdict_coverage/coverage.md`.
 
+> ⭐ **Four of the no-verdict classes are PERMANENT by construction and BOUNDED** (`SV-CORPUS-GRAD.13f`, 2026-09-03): `deferred:svpp_owned` (186 — conformance owned by the preprocessor lane), `deferred:impl_varying` (90 — the suite contract marks the verdict implementation-dependent), `deferred:verilog_ams_lane` (20 — a different language) and `deferred:ni_unimplemented` (6 — upstream skips the construct): **302 rows, 1.8 %**, unchanged since `.13a` measured them on 2026-08-11. Each has a recorded ceiling in `permanent_deferral_ceilings.json` that `corpus_verdict_coverage.py` **refuses to exceed** — a new row joins a class only by naming its argument and raising the ceiling in the same commit — so a permanent deferral can no longer grow silently or be mistaken for a to-do. The fragment-shaped one-sided positives (`.13g`) are ruled unadjudicable as whole files and never counted as testimony.
+
 Inside the dark half, a deferral can sometimes be refuted by the input's own bytes. A file containing
 no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or
 `` `include `` inlining, so its parse fails identically after chaining: **530 `chained_only` rows are

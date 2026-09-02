@@ -1,5 +1,24 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0344 (a permanent deferral is a claim, so it gets a bound; and a RED arm must be read, not counted)
+
+- ⭐⭐ **THE LESSON: "PERMANENT" IS A CLAIM ABOUT THE FUTURE, AND A CLAIM ABOUT THE FUTURE NEEDS A BOUND
+  THAT FIRES WHEN THE FUTURE DISAGREES.** Four classes had said "no verdict, forever" for 23 days in
+  the same vocabulary a to-do uses, with growth visible only as a tracked diff nobody was obliged to
+  read. A ceiling register that the instrument refuses to exceed turns "forever" into something the
+  pre-commit hook enforces: a 303rd row cannot land without a sentence naming which argument it joins.
+  The bank's arm 6 — slack 0 on every class — is the half people forget: a ceiling with headroom is a
+  bound already half spent. Promoted:
+  `docs/knowledge/a-red-arm-that-returns-rc-1-from-a-crash-is-not-a-red-arm.md` (the bank-side lesson;
+  the bounded-set rule is `.13q`'s, declined as a duplicate in the leaf).
+- ⛔ **THE FIRST RED WAS A NameError.** rc 1, the right number, from an `import sys` the refusal path had
+  never had. The third time today that a RED arm passed for the wrong reason (`.13l`'s empty set; `.13i`'s
+  composite row), and the same cure each time: assert the message, never the exit code alone.
+- ⭐ **REFUTE AN OPTION WITH A REASON, NOT WITH A DEFERRAL.** `.13g`'s (a) — parse fragments entry-relative
+  — is not "later"; it is refuted: a fragment has no answer key for its standalone acceptability, so an
+  entry-relative accept yields NO VERDICT either way and cannot move the bar. Saying so closes the
+  question; deferring it would have carried a to-do that could never be done.
+
 ## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0343 (the identity row's path cell is a reference; the label is the subject — third time)
 
 - ⭐⭐ **THE LESSON, NOW A RULE WITH THREE INSTANCES BEHIND IT: IN AN INSTRUMENT-IDENTITY TABLE THE PATH
