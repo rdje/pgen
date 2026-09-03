@@ -17,17 +17,17 @@
     "generated parser": {
       "kind": "bytes",
       "path": "generated/systemverilog_parser.rs",
-      "sha256": "3df100aa0ab54a5e740453ca6261ef595652cbdac862e7a21ad85e2b2cd5e791"
+      "sha256": "a4dcb6abb9aa5b897a13073da329bb7c7d6f37bb844106146382dfd3f886fc03"
     },
     "grammar": {
       "kind": "ebnf_raw_ast",
       "path": "grammars/systemverilog.ebnf",
-      "sha256": "c3023884256ab353a52ee881909b5e1385257cca3ee5ed4d0c3336e58d6bae56"
+      "sha256": "f7a90927ec7d37903d19ab33dea70dca36414a02aa73895dd1ee67c5d4f114b5"
     }
   },
-  "lr_entries": 24587237,
+  "lr_entries": 24594675,
   "nodump": [],
   "note": "The share of all PROTOCOL-graph rule entries taken by the left-recursion elimination family over the whole SV corpus \u2014 `PARSE-COST-RATCHET`'s one co-published live number, quoted verbatim on every designated live surface. \u26d4 v1 of this schema also carried `blind_spot_factor` and `wall_clock_regression_pct`; ENGINE-UNIVERSAL-SERVICES.26 RETIRED both. The factor was wall_clock / this share, and both terms were wrong: the +24.3 % numerator is refuted (.20 slice 5, not reproducible from its own raw data), and the share was the wrong denominator independently of that \u2014 sensitivity is how much the counter MOVED (+10.59 %, guard_ab_entries.txt), not how large the family is. No ratio replaces it: no admissible wall-clock figure for the change exists. \u26d4 Derived, never hand-edited; `--verify-family-share` re-hashes every identity row above and re-checks lr_entries/total_entries against the declared share on every run.",
   "schema": "pgen.parse_cost.family_share/v2",
-  "total_entries": 893931950
+  "total_entries": 894247347
 }

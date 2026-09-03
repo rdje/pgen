@@ -21680,3 +21680,28 @@ cross) and a new blocking doctrine.
   what the LRM asks, and the cost is confined to the construct that caused it. This leaf is the
   measurement that says the rise was confined, NOT that it was unavoidable — the honest bound the
   invariant's own docstring states.
+
+### ⛔ `.91` — **`--lint-grammar` ACCEPTS TWO RULES WHOSE NAMES DIFFER ONLY BY CASE, AND THE GENERATOR THEN EMITS ONE `RULE_…` CONSTANT TWICE — the grammar lints green and the parser does not compile** (`todo`, ROUTED + PARKED, not SV-blocking — opened 2026-09-03 by `SV-CORPUS-GRAD.3.30` / `PGEN-SV-CORPUS-GRAD-0349`)
+
+- ⭐ **HOW IT WAS FOUND.** `SV-CORPUS-GRAD.3.30` added fourteen UDP table-symbol terminals named after their
+  character — `udp_sym_x` and `udp_sym_X`, `udp_sym_b` / `udp_sym_B`, `udp_sym_r` / `udp_sym_R`, … — exactly as
+  IEEE 1800-2017 A.5.3 spells them. `--lint-grammar` exited **0** (`1561 rules … unreachable_rules=0`), the
+  interpreter parsed every pin as designed, `make focus_systemverilog` regenerated the parser, and the debug
+  `ast_pipeline` build stopped with **six `error[E0592]: duplicate definitions with name RULE_UDP_SYM_X`**
+  (`_B`, `_R`, `_F`, `_P`, `_N`): the generator uppercases a rule name into its `RuleId` constant, so two rules
+  that differ only by case collapse onto one identifier. The grammar's own convention already works around
+  it — every case-differing keyword pair carries a hash suffix (`kw_x_11f6ad8e` / `kw_X_c032adc1`) — but nothing
+  documents the constraint and nothing checks it before the compile.
+- ✅ **WHY + WHERE:** `generated/systemverilog_parser.rs:654-665` (first cut) — `const RULE_UDP_SYM_X: RuleId =
+  549u16;` immediately followed by `const RULE_UDP_SYM_X: RuleId = 550u16;`; the emitting site is the
+  generator's rule-constant loop (`ast_based_generator.rs`, `format_ident!("RULE_{}", name.to_uppercase())`
+  shape). The lint (`grammar_wellformedness.rs`) has no arm for name collisions under case folding.
+- **PRICED (not built):** one lint arm — refuse (error, not note) when two rule names are equal after
+  `to_uppercase()`, naming both — plus a generator-side assertion at the constant loop so a grammar that slips
+  past an older lint still fails at generation with the rule names rather than at `rustc` with the constant
+  name. Two RED controls (a synthetic pair; the SV grammar minus its hash suffixes) and a GREEN control.
+  A `TOOLBOX.md` 5.1 line and a sentence in the grammar-authoring chapter of the book.
+- **WHY PARKED:** `.3.30` shipped by naming the upper-case twins `udp_sym_<c>_upper`; the class cost one
+  regeneration and one 90-second build, not a corpus verdict. It is an engine-authoring ergonomics gap, not an
+  SV release blocker.
+- **ROUTING EVIDENCE lives in the opening tree** (`docs/tasks/SV-CORPUS-GRAD.md`, *ROUTING EVIDENCE*, `.3.30` → `.91`).

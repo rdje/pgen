@@ -2537,15 +2537,16 @@ edge_sensitive_path_declaration := parallel_edge_sensitive_path_description assi
                                  | full_edge_sensitive_path_description assign path_delay_value
                                           -> {kind: "full",     path: $1, delay: $3}
 
-edge_symbol := kw_r_4dc7c9ec -> {kind: "r"}
-             | kw_R_06576556 -> {kind: "R"}
-             | kw_f_4a0a1921 -> {kind: "f"}
-             | kw_F_e69f20e9 -> {kind: "F"}
-             | kw_p_516b9783 -> {kind: "p"}
-             | kw_P_511993d3 -> {kind: "P"}
-             | kw_n_d1854cae -> {kind: "n"}
-             | kw_N_b51a6073 -> {kind: "N"}
-             | star          -> {kind: "star"}
+# SV-CORPUS-GRAD.3.30 — table-internal; boundary-free terminals, see `level_symbol`.
+edge_symbol := udp_sym_r -> {kind: "r"}
+             | udp_sym_r_upper -> {kind: "R"}
+             | udp_sym_f -> {kind: "f"}
+             | udp_sym_f_upper -> {kind: "F"}
+             | udp_sym_p -> {kind: "p"}
+             | udp_sym_p_upper -> {kind: "P"}
+             | udp_sym_n -> {kind: "n"}
+             | udp_sym_n_upper -> {kind: "N"}
+             | star      -> {kind: "star"}
 
 @profiles: ["sv_2023"]
 elaboration_severity_system_task_sv_2023 := severity_system_task
@@ -3416,13 +3417,53 @@ let_port_list := let_port_item ( comma let_port_item )*
 level_input_list := level_symbol level_symbol*
                  -> [$1, $2*]
 
-level_symbol := kw_n_0_b6589fc6 -> {kind: "0"}
-              | kw_n_1_356a192b -> {kind: "1"}
-              | kw_x_11f6ad8e   -> {kind: "x"}
-              | kw_X_c032adc1   -> {kind: "X"}
-              | question        -> {kind: "?"}
-              | kw_b_e9d71f5e   -> {kind: "b"}
-              | kw_B_ae4f281d   -> {kind: "B"}
+# ⛔ A UDP STATE TABLE IS A CLOSED SUB-LANGUAGE OF SINGLE-CHARACTER SYMBOLS, AND ITS SYMBOLS MAY TOUCH
+# (SV-CORPUS-GRAD.3.30). IEEE 1800-2017 §29.3.4 (docs/systemverilog/2017/md/section-29-user-defined-primitives.md
+# :196) separates the input fields "from the output field by a colon" and says nothing about white space
+# between symbols; the standard's own tables read `(01) (10) 0 : 0 : 1 ;` (:204; 1364-2005 §8.1.4
+# section-8-user-defined-primitives-udps.md:213), and Annex A gives level_symbol ::= 0 | 1 | x | X | ? | b | B,
+# edge_symbol ::= r | R | f | F | p | P | n | N | * and edge_indicator ::= ( level_symbol level_symbol ) |
+# edge_symbol as single tokens (1800-2017 A.5.3, section-41-data-read-api.md:1983-1988; 1364-2005 A.5.3,
+# section-Annex_A-normative-formal-syntax-definition.md:613-618). `level_symbol`, `output_symbol` and
+# `edge_symbol` used to reference the grammar's GENERAL keyword terminals — `kw_n_0_b6589fc6 := trivia /0\b/`
+# and its siblings — whose `\b` cannot match a symbol followed by another symbol character, so `(01)`, `??`,
+# `01`, `0x` and `(bx)` were rejected on every profile while their spaced twins parsed (measured: 16 sv_2017
+# rows and 6 verilog_2005 rows of the corpus, the largest family in the axis-2 bar; `--trace-rules
+# level_symbol` at the `(01)` of Surelog/tests/Udp/dut.sv: `Terminal '?' failed at position 620 - found '0'`,
+# `No match for regex pattern 'X\b'`, … at 620). Those general terminals are RIGHT everywhere else they are
+# used (`assert #0`, `$finish(0)`, `init_val`, `scalar_constant`, `zero_or_one`, `z_or_x`), where a following
+# word character must not be absorbed — so the three table rules get their own boundary-free terminals
+# below, and nothing else moves. The `kind` shapes are unchanged: a spaced table's typed AST is byte-identical.
+# ⛔ The upper-case twins are named `udp_sym_<c>_upper`, never `udp_sym_<C>`: the generator uppercases rule names
+# into `RULE_…` constants, so two rules differing only by case emit ONE constant twice (`E0592 duplicate
+# definitions with name RULE_UDP_SYM_X`, measured on the first cut) — the reason the general keywords carry hash
+# suffixes (`kw_x_11f6ad8e` / `kw_X_c032adc1`), and a lint gap routed to ENGINE-UNIVERSAL-SERVICES.91 (the lint
+# passed that grammar; only the compile refused it).
+# Not wider than the LRM: each terminal is exactly one symbol character (`invalid_udp_non_symbol_field.v`
+# pins `2` and `a` as still rejected). `?`, `*` and `-` keep `question`, `star` and `minus`, which never
+# carried a boundary.
+udp_sym_0 := trivia /0/
+udp_sym_1 := trivia /1/
+udp_sym_x := trivia /x/
+udp_sym_x_upper := trivia /X/
+udp_sym_b := trivia /b/
+udp_sym_b_upper := trivia /B/
+udp_sym_r := trivia /r/
+udp_sym_r_upper := trivia /R/
+udp_sym_f := trivia /f/
+udp_sym_f_upper := trivia /F/
+udp_sym_p := trivia /p/
+udp_sym_p_upper := trivia /P/
+udp_sym_n := trivia /n/
+udp_sym_n_upper := trivia /N/
+
+level_symbol := udp_sym_0 -> {kind: "0"}
+              | udp_sym_1 -> {kind: "1"}
+              | udp_sym_x -> {kind: "x"}
+              | udp_sym_x_upper -> {kind: "X"}
+              | question  -> {kind: "?"}
+              | udp_sym_b -> {kind: "b"}
+              | udp_sym_b_upper -> {kind: "B"}
 
 liblist_clause := kw_liblist_4851fe70 library_identifier*
                -> {libraries: $2}
@@ -4468,10 +4509,11 @@ output_identifier := output_port_identifier                           -> {kind: 
 
 output_port_identifier := non_keyword_identifier
 
-output_symbol := kw_n_0_b6589fc6 -> {kind: "0"}
-               | kw_n_1_356a192b -> {kind: "1"}
-               | kw_x_11f6ad8e   -> {kind: "x"}
-               | kw_X_c032adc1   -> {kind: "X"}
+# SV-CORPUS-GRAD.3.30 — table-internal; boundary-free terminals, see `level_symbol`.
+output_symbol := udp_sym_0 -> {kind: "0"}
+               | udp_sym_1 -> {kind: "1"}
+               | udp_sym_x -> {kind: "x"}
+               | udp_sym_x_upper -> {kind: "X"}
 
 output_terminal := net_lvalue
                 -> {body: $1}

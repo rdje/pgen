@@ -105,7 +105,6 @@ IN-WINDOW		Surelog	tests/TestFileSplit/top.v	15	24	24	10	222		age top1_1; `inclu
 IN-WINDOW		Surelog	tests/TestFileSplit/top2.v	82	88	88	28	643		2_21; endclass `include "middle.v" class blah3_38; endclass
 IN-WINDOW		Surelog	tests/TestMacros/TestMacros.v	245	246	0	9	632		ESULT = SOURCE + 5; \ $display("Inside ADD5 macro. Scope is %m"); `define def
 IN-WINDOW		Surelog	tests/TestMacros/macros.v	28	33	0	2	358		T_EQUALS(x,y) \ repeat(1)\ begin\ if( (x) != (y) ) \ // A Macro
-IN-WINDOW		Surelog	tests/TestMacros/xl.v	8579	8579	25	348	11363		Qt+1 1 (01) 1 ? : ? : 1; // clocked data
 IN-WINDOW		Surelog	tests/UnitClass/Configuration.sv	539	539	443	14	1043		n extends uvm_object; virtual input_interface.IP input_intf; virtual
 IN-WINDOW		Surelog	tests/UnitClass/Macro.sv	16	20	2	4	297		`define dumb \ begin \ end `define uvm_info(ID, MSG, VERBOSITY) \ b
 IN-WINDOW		Surelog	tests/UnitClass/Packet.sv	620	620	443	17	3512		ds uvm_sequence_item; rand fcs_kind_t fcs_kind; rand bit [7:0]

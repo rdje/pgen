@@ -116,8 +116,9 @@ Its accounting is a **union over five** entry/profile configurations
 (`systemverilog_file:sv_2023`, `sv_multi_entry_root:sv_2017`, `library_text:sv_2017`,
 `systemverilog_parseable_file:sv_2017`, and — since `SV-CORPUS-GRAD.3.29`, 2026-09-03 —
 `cross_body:sv_2017`), not a single run. Under that union the gate reads **0 unknown**; under the
-**single canonical config, 13 rules remain unknown**, and **8 rules are credited by PROOF rather
-than by a generated string**. Two of the thirteen are unknown *by construction*: the recognizer for
+**single canonical config, 13 rules remain unknown**, and **18 rules are credited by PROOF rather
+than by a generated string** (ten of them since `SV-CORPUS-GRAD.3.30`: keyword terminals no table rule
+references any more, provably unreachable from the entry). Two of the thirteen are unknown *by construction*: the recognizer for
 a cross's two implicit typedefs (`CrossValType` / `CrossQueueType`, IEEE 1800-2017 §19.6.1.3) is
 gated on a `cross` scope that only a cross body opens, so no sample rendered from the canonical
 entry can pass its gate, and the `cross_body` union entry is what witnesses it. The live tuple, held

@@ -204,6 +204,10 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   #   WARNING … 1 UNKNOWN rules have NO reach path from the entry … ["scratch"]
   ```
   (Registered grammars only — it verifies witnesses through a real generated parser.) Session #211
+  - ⛔ **REPRODUCING A GATE's NUMBERS? PASS THE GATE's `--cert-union-config` ENTRIES** (`SV-CORPUS-GRAD.3.30`). The
+    entry-unreachability PROOF quantifies over the DECLARED ENTRY UNIVERSE (see 4.6): a bare run proves the entry-relative
+    cohort (`library_text`, `include_statement`, …) dead from the single entry — `verilog_2005` reads `proof 394 / UNKNOWN 3`
+    bare and `383 / 14` with the contract's three union entries, on the SAME tree. Only the flagged run is the gate's number.
   spent a whole task-tree on a "`+` consumes one occurrence" bug that was this, and every one of its
   six exonerations was correct and irrelevant.
 - **⚠️⚠️ ROUTING — `--entry-rule` ALSO CHANGES WHICH ENGINE RUNS (`QUANT-PLUS-ITER.3`, measured
@@ -1433,6 +1437,14 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   #   [warn]  … rule 'casting_type' is left-recursive (cycle: …) and PGEN's LR-elimination pass did NOT eliminate it …
   #   [note]  ... and 12 more always-succeeds-alternative notes (set PGEN_LINT_DUMP_ALL=1 to print all 52)
   ```
+- ⛔ **A LINT-GREEN GRAMMAR CAN STILL FAIL TO COMPILE, and the lint does not know it (measured,
+  `SV-CORPUS-GRAD.3.30`, 2026-09-03).** Two rules whose names differ only by case — `udp_sym_x` and
+  `udp_sym_X` — lint clean and parse identically at the interpreter (it keys rules by name), and the
+  generator then emits ONE `RULE_UDP_SYM_X` constant twice: `error[E0592]: duplicate definitions`,
+  six of them, at the debug build. The grammar's hash-suffixed keyword pairs (`kw_x_11f6ad8e` /
+  `kw_X_c032adc1`) are the standing workaround; name such twins `<name>_upper` until
+  `ENGINE-UNIVERSAL-SERVICES.91` adds the refusing lint arm. ⇒ after a grammar edit that adds rules,
+  the debug `ast_pipeline` build is part of the measurement, not a formality.
 
 ### 5.2 `--dump-gen-ast` (+ `--dump-gen-ast-pretty`)
 - **WHAT:** dump the **normalized generation-input AST** — the grammar IR the parser/stimuli generators actually consume (post LR-elimination etc.).

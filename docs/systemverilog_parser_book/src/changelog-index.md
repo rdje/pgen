@@ -34,6 +34,50 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.207 / Contract 1.0.207 — SV-CORPUS-GRAD.3.30 (`PGEN-SV-CORPUS-GRAD-0349`, 2026-09-03), ledger `SV-0080` (`Released`):
+
+⭐ **A UDP state table written with adjacent symbols now parses, on every profile.** IEEE 1800-2017's own
+tables are written that way — `(01) (10) 0 : 0 : 1 ;` (§29.3.4) — and §29.3.4 separates only the input
+fields *from the output field*, by a colon. The grammar's three table rules had been transcribed from Annex
+A's single-character symbol productions as references to the general keyword terminals (`trivia /0\b/` …),
+and a keyword's word boundary cannot match a symbol followed by another symbol character: every spaced
+table parsed, every touching one was refused, on `sv_2017`, `sv_2023` and `verilog_2005` alike.
+
+| input | before | after |
+|---|---|---|
+| `(01) 0 : ? : 0 ;` — an edge indicator whose symbols touch, any profile | `rc 1` | **`rc 0`** |
+| `? ?? 01 : ? : 1 ;`, `00 : 0 ;`, `0x : 0 ;`, `? ? (bx) 1 : ? : x ;` | `rc 1` | **`rc 0`** |
+| the same tables with one space between every symbol (control) | `rc 0` | `rc 0`, AST byte-identical |
+| `2 0 : 0 ;` / `0 a : 0 ;` — a digit or an identifier where only a symbol may stand (invalid pin) | `rc 1` | `rc 1` |
+
+**How.** Fourteen boundary-free terminals (`udp_sym_0 := trivia /0/` … `udp_sym_n_upper := trivia /N/`), one
+per symbol character, referenced only by `level_symbol`, `output_symbol` and `edge_symbol`; the general
+keywords keep their boundary everywhere else it is load-bearing (`assert #0`, `$finish(0)`, `init_val`,
+`scalar_constant`, `z_or_x`). The first cut named the upper-case twins `udp_sym_X` and the generated parser
+did not compile — six `E0592`, because the generator uppercases rule names into `RULE_…` constants — after
+the lint and the interpreter had both said green; renamed `udp_sym_<c>_upper`, and the missing lint arm is
+`ENGINE-UNIVERSAL-SERVICES.91`.
+
+**AST impact — shape-neutral.** The three rules keep their `kind` values; every table that parsed before
+yields a byte-identical typed AST (measured on the spaced control, all three profiles), and a touching
+table yields the AST its spaced spelling always did (equal once source spans are stripped). Schema **26
+unchanged**. ⛔ The accept set **widens** on every profile.
+
+**Corpus proof**, per-path and two-sided, both lanes: `sv_2017` **17** rows `fail → pass` (8
+`unexplained_rejects_valid → match`, 9 already routed or deferred), none the other way; pass **9 813 → 9 830**,
+the axis-2 bar **220 → 212**; `verilog_2005` **6** rows `unexplained_rejects_valid → match`, pass
+**2 300 → 2 306**. Union certificate `1424/18/1393/13`, union `1406/0` — the ten keyword terminals the
+tables no longer reference are now provably unreachable and move witness → proof; `verilog_2005`
+`1137/383/740/14` with the gate's own flags (its three union configs; union `753/1`, the identical 14
+UNKNOWN — a bare run without them reads `394/3`, an artifact of the declared entry universe, not of the
+grammar). Cost: the parse-cost ratchet reads `entries`, `memo_hits` and `committed` exactly
+unchanged — each new terminal takes what its keyword twin lost.
+
+⭐ **How it was found is the part worth keeping**: the 199 residual rows cluster into 142 stuck-point
+signatures with no family larger than five, which reads as "no family". Joining the corpus's 97 `endtable`
+files to the adjudication manifest instead found 16 + 6 rows in one construct — when the clusterer says
+no family, join on the construct's own keyword and let the manifest count.
+
 ### 1.0.206 / Contract 1.0.206 — SV-CORPUS-GRAD.3.29 (`PGEN-SV-CORPUS-GRAD-0347`, 2026-09-03), ledger `SV-0079` (`Released`):
 
 ⭐ **A `cross` body's two implicit typedefs, `CrossValType` and `CrossQueueType`, now parse as type names

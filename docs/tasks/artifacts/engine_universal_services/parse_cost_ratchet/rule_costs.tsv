@@ -395,12 +395,6 @@ known_unscoped_let_identifier	689139	0	112097
 known_unscoped_parameter_identifier	711547	9273	112305
 known_unscoped_property_identifier	2	0	1
 known_unscoped_sequence_identifier	689495	0	112097
-kw_B_ae4f281d	22	0	0
-kw_F_e69f20e9	2	0	0
-kw_N_b51a6073	2	0	0
-kw_P_511993d3	2	0	0
-kw_R_06576556	2	0	0
-kw_X_c032adc1	27	0	0
 kw_accept_on_2aee6cd4	2	0	0
 kw_alias_cdb6fdbe	71992	0	0
 kw_always_6656018a	73570	86	0
@@ -412,7 +406,6 @@ kw_assert_64b5daad	322064	0	0
 kw_assign_9009b730	170746	3462	0
 kw_assume_661e458e	322064	0	0
 kw_automatic_ebe88724	112349	90	0
-kw_b_e9d71f5e	22	0	0
 kw_begin_8cbd0a74	27887	2474	0
 kw_bind_6bdd4db9	145194	0	0
 kw_bit_026e996a	695562	166	0
@@ -465,7 +458,6 @@ kw_expect_ff93c451	26523	2	0
 kw_export_51713409	175253	4	0
 kw_extends_2b781ff8	32	2	0
 kw_extern_bf1ee311	361112	6	0
-kw_f_4a0a1921	2	0	0
 kw_final_d594c2cc	71992	2	0
 kw_first_match_2ddb8d09	1358	0	0
 kw_for_43eef9a6	98655	51	0
@@ -507,10 +499,7 @@ kw_matches_9f3e9242	322764	0	0
 kw_modport_1cf85849	4	1	0
 kw_module_fbd34a2b	215781	136	0
 kw_ms_26cc3217	201309	0	0
-kw_n_0_b6589fc6	27	7	0
-kw_n_1_356a192b	27	7	0
 kw_n_1step_e6d37e7c	12257	0	0
-kw_n_d1854cae	2	0	0
 kw_nand_c8a98832	71988	0	0
 kw_negedge_c77fbc5c	2560	2	0
 kw_nettype_27d30cf3	223766	0	0
@@ -525,7 +514,6 @@ kw_ns_7320d5b7	201309	3	0
 kw_null_2be88ca4	2885066	0	0
 kw_or_1758356d	97813	1	0
 kw_output_1029d676	6683	671	0
-kw_p_516b9783	2	0	0
 kw_package_582681c2	605	30	0
 kw_packed_7aca22de	748	720	0
 kw_parameter_b75381f0	340091	7989	0
@@ -542,7 +530,6 @@ kw_pull1	2	0	0
 kw_pulldown_20560243	71988	0	0
 kw_pullup_f7402b53	71988	0	0
 kw_pure_afe003f1	270	6	0
-kw_r_4dc7c9ec	2	0	0
 kw_rand_52400560	3668	7	0
 kw_randc_c870e2bc	3000	0	0
 kw_randcase_89bbd045	26522	0	0
@@ -640,7 +627,6 @@ kw_wire_6e1c6849	81638	714	0
 kw_with_8fcd25a3	21933	0	0
 kw_within_f42ef621	1343	0	0
 kw_wor_ff9e40da	81638	0	0
-kw_x_11f6ad8e	27	0	0
 kw_xnor_ab48bc67	71988	0	0
 kw_xor_f1922a23	93921	0	0
 lbrace	5534923	8684	0
@@ -1027,6 +1013,20 @@ udp_output_declaration	7	2	0
 udp_port_declaration	4	2	0
 udp_port_list	3	1	0
 udp_reg_declaration	4	0	0
+udp_sym_0	27	7	0
+udp_sym_1	27	7	0
+udp_sym_b	22	0	0
+udp_sym_b_upper	22	0	0
+udp_sym_f	2	0	0
+udp_sym_f_upper	2	0	0
+udp_sym_n	2	0	0
+udp_sym_n_upper	2	0	0
+udp_sym_p	2	0	0
+udp_sym_p_upper	2	0	0
+udp_sym_r	2	0	0
+udp_sym_r_upper	2	0	0
+udp_sym_x	27	0	0
+udp_sym_x_upper	27	0	0
 unary_operator	781344	3556	250626
 unbased_unsized_literal	577042	94	0
 unique_priority	107217	26	80543

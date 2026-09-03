@@ -1,5 +1,37 @@
 # CHANGES.md
 
+## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0349 (leaf SV-CORPUS-GRAD.3.30 DONE — a UDP state table written with adjacent symbols parses on every profile; release 1.0.207, ledger SV-0080, contract 1.0.207, schema 26 unchanged; the axis-2 bar 220 → 212 and DARK 4 013 → 4 010 by 17 + 6 rows; GRAMMAR tier, 14 terminals, ZERO Rust / codegen / engine bytes)
+
+- `grammars/systemverilog.ebnf` (1547 → 1561 rules, digest `f7a90927…`): fourteen boundary-free terminals `udp_sym_0` …
+  `udp_sym_n_upper` (`trivia /<c>/`), referenced only by `level_symbol`, `output_symbol` and `edge_symbol`, replace the
+  general keyword terminals (`trivia /0\b/` …) whose `\b` cannot match a symbol followed by another symbol character —
+  IEEE 1800-2017 §29.3.4 (`section-29-user-defined-primitives.md:196`, `:204` `(01) (10) 0 : 0 : 1 ;`), Annex A A.5.3.
+  `kind` shapes unchanged; every spaced table's typed AST byte-identical on all three profiles; an adjacent table's AST
+  equals its spaced twin's with spans stripped. The general keywords keep their boundary where `assert #0`, `$finish(0)`,
+  `init_val`, `scalar_constant` and `z_or_x` need it.
+- Found by joining the corpus's 97 `endtable` files to the manifest after a 142-signature clustering of the 199 residual
+  rows had no family larger than five: 16 sv_2017-lane + 6 v2005-lane rows. Corpus per-path, both lanes, 0 `pass → fail`:
+  sv_2017 17 rows `fail → pass` (8 `unexplained_rejects_valid → match`, 9 already routed or deferred), pass 9 813 → 9 830,
+  match 5 853 → 5 861, tuple `7556/2606/6174/4010/212`; verilog_2005 6 rows `unexplained_rejects_valid → match`, pass
+  2 300 → 2 306. Union cert gate green at 1424/18/1393/13, union 1406/0 (the ten keyword terminals the tables no longer
+  reference are now provably unreachable and move witness → proof); v2005 cert 1137/383/740/14 with the gate's own flags
+  (union 753/1, the identical 14 UNKNOWN; a bare run without the three union configs reads 394/3 — the entry-unreachability
+  proof quantifies over the declared entry universe, so that is the command line, not the grammar). Ratchet: entries, memo_hits
+  and committed EXACTLY unchanged (each new terminal takes what its keyword twin lost). Pins: two `fixed`, one `control`,
+  one `invalid` (`2 0 : 0 ;`, `0 a : 0 ;`); repros ratchet `checked=290 failures=0`.
+- ⛔ The first cut named the upper-case twins `udp_sym_X` etc.: `--lint-grammar` green, interpreter green, debug build
+  six `E0592 duplicate definitions with name RULE_UDP_SYM_X` — the generator uppercases rule names into `RULE_…` constants,
+  which is why the grammar's case-differing keywords carry hash suffixes. Renamed `udp_sym_<c>_upper`; the missing lint arm
+  is routed as `ENGINE-UNIVERSAL-SERVICES.91`; `TOOLBOX.md` 5.1 warns.
+- Residue owned: `.13x` opened for the 44 suite-intended-invalid rows keyed `must_accept` (five verilator `_bad` UDP files
+  and `t_timescale_udp.v`'s `?` output field among them); the two other rejected `endtable` rows are named with their stuck
+  lines in the leaf.
+- Lockstep: revision register + ledger `SV-0080` + contract `1.0.207` + the SystemVerilog parser book changelog + the
+  platform book (union tuple, certification status, the denominator anchor) + the union and v2005 cert contracts + 5.11 /
+  5.13 censuses + corpus-key provenance + the corpus, verdict-coverage, dark-audit and ratchet artifacts + tree (`.3.30`,
+  `.13x`, ROUTING EVIDENCE) + `ENGINE-UNIVERSAL-SERVICES.91` + index + knowledge card + `TOOLBOX.md` + DEVELOPMENT_NOTES
+  + MEMORY.
+
 ## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0347 (leaf SV-CORPUS-GRAD.3.29 DONE — a `cross` body's two implicit typedefs `CrossValType`/`CrossQueueType` parse as type names inside the cross and nowhere else; release 1.0.206, ledger SV-0079, contract 1.0.206, schema 26 unchanged; the axis-2 bar 222 → 220 by exactly the two rows; GRAMMAR tier, 4 rules, ZERO Rust / codegen / engine bytes)
 
 - `grammars/systemverilog.ebnf` (1543 → 1547 rules, digest `c3023884…`): `cross_body_open := lbrace` (`@open_scope: { kind: cross }`)

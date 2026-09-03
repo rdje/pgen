@@ -5,6 +5,38 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-09-03, `SV-CORPUS-GRAD.3.30` — GRAMMAR, release `1.0.207`, ledger `SV-0080`,
+> schema `26` UNCHANGED, ALL THREE profiles WIDEN): a UDP state table written with adjacent symbols —
+> `(01)`, `??`, `01`, `0x`, `(bx)` — now parses, on every profile.** IEEE 1800-2017 §29.3.4
+> (`section-29-user-defined-primitives.md:196`) separates the input fields *from the output field by a
+> colon* and says nothing about white space between symbols; the standard's own tables read
+> `(01) (10) 0 : 0 : 1 ;` (`:204`; 1364-2005 §8.1.4 `:213`), and Annex A A.5.3 gives the symbols as single
+> tokens. The grammar's three table rules referenced its general keyword terminals (`trivia /0\b/` …),
+> whose `\b` cannot match a symbol followed by another symbol character, so every spaced table parsed and
+> every touching one was refused. Fourteen boundary-free `udp_sym_*` terminals, referenced only by
+> `level_symbol`, `output_symbol` and `edge_symbol`, replace them there; the general keywords keep their
+> boundary everywhere else (`assert #0`, `$finish(0)`, `init_val`, `scalar_constant`, `z_or_x`).
+>
+> **What now parses that did not**: any UDP table whose symbols touch — edge indicators `(01)`, `(0x)`,
+> `(bx)`, level runs `??`, `01`, `00`, `0x`, sequential and combinational alike. **What still rejects**: a
+> table field no symbol production derives (`2 0 : 0 ;`, `0 a : 0 ;` — pinned as
+> `invalid_udp_non_symbol_field.sv`).
+>
+> **AST impact — shape-neutral.** The three rules keep their `kind` values; every table that parsed before
+> yields a byte-identical typed AST (measured on the spaced control, all three profiles), and an adjacent
+> table yields the AST its spaced spelling always did (equal once source spans are stripped). ⛔ The accept
+> set **widens** on every profile — text that used to fail now yields an AST.
+>
+> **Corpus proof, per-path and two-sided, both lanes**: `sv_2017` **17** rows `fail → pass` (8
+> `unexplained_rejects_valid → match`, 9 already routed or deferred), none the other way; pass
+> **9 813 → 9 830**, `match 5 851 → 5 861` since `1.0.205`, the axis-2 bar **220 → 212**; `verilog_2005`
+> **6** rows `unexplained_rejects_valid → match`, pass **2 300 → 2 306**. Certificates: union basis
+> `1424/18/1393/13`, union `1406/0` (the ten keyword terminals the tables no longer reference are now
+> provably unreachable and move witness → proof); `verilog_2005` `1137/383/740/14` with the gate's own flags
+> (its three union configs; union `753/1`), the identical 14 UNKNOWN — a bare run without them reads `394/3` because
+> the entry-unreachability proof quantifies over the declared entry universe, an artifact of the command line. Cost: the parse-cost
+> ratchet reads `entries`, `memo_hits` and `committed` exactly unchanged — each new terminal takes what its
+> keyword twin lost.
 > **Current-state note (2026-09-03, `SV-CORPUS-GRAD.3.29` — GRAMMAR, release `1.0.206`, ledger `SV-0079`,
 > schema `26` UNCHANGED, `sv_2017` + `sv_2023` WIDEN, `verilog_2005` unchanged): a `cross` body's two implicit
 > typedefs, `CrossValType` and `CrossQueueType`, now parse as type names inside the cross — and nowhere else.**
@@ -995,15 +1027,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.206`
+  - `1.0.207`
 - Parser release version:
-  - `1.0.206`
-  - history: `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.207`
+  - history: `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `c3023884256ab353a52ee881909b5e1385257cca3ee5ed4d0c3336e58d6bae56` (SV grammar semantic digest — sha256 of the
+  - `f7a90927ec7d37903d19ab33dea70dca36414a02aa73895dd1ee67c5d4f114b5` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`

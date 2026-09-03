@@ -1,5 +1,35 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0349 (a single-character terminal that may touch its neighbour must not carry a word boundary)
+
+- ⭐⭐ **THE LESSON: THE EXTRACTOR TRANSCRIBED ANNEX A's TABLE SYMBOLS AS KEYWORDS, AND A KEYWORD'S `\b` IS A LEXER
+  ASSUMPTION A SYMBOL SUB-LANGUAGE NEVER MADE.** `level_symbol ::= 0 | 1 | x | X | ? | b | B` became seven references to
+  the grammar's general keyword terminals (`trivia /0\b/` …), so `(01)`, `??`, `01`, `0x`, `(bx)` — the way IEEE 1800-2017
+  §29.3.4 writes its own tables — rejected on every profile while every spaced twin parsed. Joining the corpus's 97
+  `endtable` files to the manifest found the family (16 sv_2017-lane + 6 v2005-lane rows) that a 142-signature stuck-point
+  clustering had scattered into clusters of 4 and 2: **when the clusterer says "no family", join on the construct's own
+  keyword and let the manifest count.** Fourteen boundary-free `udp_sym_*` terminals, referenced only by the three
+  table-internal rules, fixed it with byte-identical ASTs for every spaced table; the general keywords keep their boundary
+  where `assert #0` and `$finish(0)` need it.
+- ⛔ **THE FIRST CUT LINTED GREEN, PARSED EVERY PIN AT THE INTERPRETER, AND DID NOT COMPILE.** `udp_sym_x` / `udp_sym_X`
+  became one `RULE_UDP_SYM_X` constant emitted twice (six `E0592`): the generator uppercases rule names, the interpreter
+  keys them as written, and the lint checks neither. That is why every case-differing keyword pair in the grammar carries a
+  hash suffix — a convention nobody had written down. Renamed `udp_sym_<c>_upper`; the refusing lint arm is
+  `ENGINE-UNIVERSAL-SERVICES.91`. ⇒ the debug `ast_pipeline` build is part of a grammar change's MEASUREMENT.
+- ⛔ **A SIZED FAMILY IS NOT A FIXED FAMILY**: of the 16 sv_2017-lane rows, 8 flip by parsing; five are verilator `_bad`
+  files and one puts `?` in a combinational output field (`t_timescale_udp.v:39`) — answer-key over-claims now owned by
+  `SV-CORPUS-GRAD.13x` (44 such rows in the bar, censused by path convention) — and two are other constructs. Each of the
+  eight is named with its stuck line in the leaf, so the next session starts from a per-row reason.
+- ⛔ **A CERTIFICATE NUMBER IS A FUNCTION OF THE COMMAND LINE's ENTRY UNIVERSE — REPRODUCE A GATE WITH THE GATE's FLAGS.**
+  A bare `--report-certificate-coverage --grammar-profile verilog_2005` read `1137/394/740/3` and I wrote "the eleven
+  entry-relative library/include rules moved UNKNOWN → PROOF" into the leaf, the contract, `CHANGES.md` and the parser book
+  before the gate ran. With the contract's three `--cert-union-config` entries — what `verilog_2005_conformance_gate.sh`
+  passes — the same tree reads `1137/383/740/14`, the identical 14 UNKNOWN as before: `gather_verified_profile_proof_covered_rules`
+  quantifies profile-entry-unreachability over the DECLARED ENTRY UNIVERSE, so with `systemverilog_file` alone `library_text`
+  and its ten companions are provably dead, and with their own entries declared they are not. Measured three ways (HEAD grammar
+  with the gate's flags: proof 373; new grammar: 383; either grammar bare: +11). `TOOLBOX.md` 4.6 already said so; 4.1 now
+  says it at the recipe. ⇒ adjudicate a contract from a run that uses the gate's exact invocation, never from a bare one.
+
 ## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0347 (a scope hides nothing from an existence query — containment is a predicate, not a fact)
 
 - ⭐⭐ **THE LESSON: THE PRE-REGISTERED FIX WENT GREEN ON EVERY PIN IT WAS WRITTEN FOR, AND RED ON THE ONE PIN WRITTEN
