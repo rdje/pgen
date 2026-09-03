@@ -24,14 +24,14 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `8990b21427a9ebe38434b481592db7b097fdc9b625a710bdf0d6a0a696a438a0` |
+| parse binary | `rust/target/release/parseability_probe` | `5413335642a811c8174f9672cea6a32ccd27fc4c6931e17543d417142befcfa6` |
 | grammar | `grammars/systemverilog.ebnf` | `b2ca001f0012579c60f6195a6e9808a7fa9cc4f8c1a9913064c8381083193e12` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `891b02cb654fd56ce19c032838985ca47781d21e7413e18ea082fc2a1e5295f4` |
-| generated parser | `generated/systemverilog_parser.rs` | `62fec0abc42a11bc68cff531ecc73a9af8b53b60e2b0b460f9b462e9df884781` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `bd64ae30002c648f2eedcc98b3c2f8b5c7ae48fc568f862b1f85b971868b3527` |
+| generated parser | `generated/systemverilog_parser.rs` | `c82018f925ff03e26092aac3cb3a8180590b9b341609778fbcd0da3b828d601d` |
 | results (output) | `stimuli/sv/characterization/results_v2005.tsv` | `1e1de0fc55110679a92cb1c6032a66010bf627361bea2fe908383c4ee4067bd9` |
 | positions (output) | `stimuli/sv/characterization/positions_v2005.tsv` | `7fee83d8b7b1ca2218c9e2fc25d0475f167d38c3a392a95954e1076193206b6c` |
 
-Measured at `HEAD` = `b815b002` (2026-09-03).
+Measured at `HEAD` = `f1d33865+dirty` (2026-09-03).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -44,9 +44,9 @@ Measured at `HEAD` = `b815b002` (2026-09-03).
 
 | parameter | value | source for this run |
 |---|---|---|
-| per-file timeout | 60 s | provenance |
-| parallel jobs | 8 | provenance |
-| max files | 0 (no cap) | provenance |
+| per-file timeout | 60 s | caller |
+| parallel jobs | 8 | caller |
+| max files | 0 (no cap) | caller |
 | parse binary | `rust/target/release/parseability_probe` | provenance |
 
 ## Deadline proximity and serial re-confirmation
@@ -65,7 +65,7 @@ Measured at `HEAD` = `b815b002` (2026-09-03).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `0.37` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
+Slowest completing file: `0.34` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
 
 ## Totals
 

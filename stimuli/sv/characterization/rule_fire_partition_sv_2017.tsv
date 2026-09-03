@@ -19,6 +19,8 @@ casting_type_lr_suffix_r0	lr_synthetic	the LR eliminator authored this name; not
 casting_type_lr_suffix_r2	lr_synthetic	the LR eliminator authored this name; not an LRM construct
 casting_type_lr_suffix_r4	lr_synthetic	the LR eliminator authored this name; not an LRM construct
 class_constructor_super_args	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
+delay2	coverage_gap	certificate coverage WITNESSED it, so it can fire
+delay2_sv_2017	coverage_gap	certificate coverage WITNESSED it, so it can fire
 direct_method_call	coverage_gap	certificate coverage WITNESSED it, so it can fire
 edge_descriptor	coverage_gap	certificate coverage WITNESSED it, so it can fire
 hierarchical_btf_identifier	coverage_gap	certificate coverage WITNESSED it, so it can fire
@@ -36,7 +38,7 @@ kw_R_06576556	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_Z_909f99a7	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_b_e9d71f5e	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_class_qualifier_fa08937d	coverage_gap	certificate coverage WITNESSED it, so it can fire
-kw_eventually_5865020f	coverage_gap	IEEE 1800-2023 A.2.10 `property_expr ::= … | eventually [ constant_range ] property_expr`. MEASURED: `eventually [1:2] b` inside a property ACCEPTS and kw_eventually_5865020f fires 3x, so the rule is reachable; the corpus holds no SVA property operator in any accepted file
+kw_edge_sv_only	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_file_path_spec_c26c9dc9	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 kw_incdir_e08adf20	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 kw_include_d3ecb0d8	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
@@ -55,13 +57,15 @@ kw_n_48_64e095fe	unreachable_from_entry	certificate coverage carries a verified 
 kw_noshowcancelled_1d50d807	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_pulsestyle_onevent_11e408b6	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_restrict_ee1e5b88	coverage_gap	certificate coverage WITNESSED it, so it can fire
-kw_s_always_0f9aa900	coverage_gap	IEEE 1800-2023 A.2.10 `| s_always [ constant_range ] property_expr`. MEASURED: `s_always [1:2] b` ACCEPTS and kw_s_always_0f9aa900 fires 3x
+kw_s_always_0f9aa900	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_sv_dollar_skew_1ae5c1e4	coverage_gap	certificate coverage WITNESSED it, so it can fire
-kw_sync_accept_on_b65eda53	coverage_gap	IEEE 1800-2023 A.2.10 `| sync_accept_on ( expression_or_dist ) property_expr`. MEASURED: `sync_accept_on (a) b` ACCEPTS and the keyword rule fires 4x (its sibling sync_reject_on measured identically)
+kw_sync_accept_on_b65eda53	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_tick_B0_f33e35dd	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_tick_B1_230dd583	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_tick_b0_624cb09b	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_tick_b1_1c5be368	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_tri0	coverage_gap	certificate coverage WITNESSED it, so it can fire
+kw_tri1	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_tx_path_delay_expression_7b2dee37	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_weak_1ded3053	coverage_gap	certificate coverage WITNESSED it, so it can fire
 kw_wildcard_08654ea6	coverage_gap	certificate coverage WITNESSED it, so it can fire
@@ -77,50 +81,6 @@ parseable_source_item	unreachable_from_entry	certificate coverage carries a veri
 program_generate_item	coverage_gap	certificate coverage WITNESSED it, so it can fire
 program_generate_item_sv_2017	coverage_gap	certificate coverage WITNESSED it, so it can fire
 property_case_item	coverage_gap	certificate coverage WITNESSED it, so it can fire
-property_expr_lr_guard0	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_guard0_suffix	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r0	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r1	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r10	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r11	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r12	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r13	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r14	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r15	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r16	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r17	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r18	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r19	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r2	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r20	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r21	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r22	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r23	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r24	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r25	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r26	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r27	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r28	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r29	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r3	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r30	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r31	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r32	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r33	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r34	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r35	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r36	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r37	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r38	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r39	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r4	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r5	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r6	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r7	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r8	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_lr_suffix_r9	lr_synthetic	the LR eliminator authored this name; not an LRM construct
-property_expr_sv_2017	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 property_named_arg	coverage_gap	certificate coverage WITNESSED it, so it can fire
 ref_declaration	coverage_gap	certificate coverage WITNESSED it, so it can fire
 reserved_non_keyword_identifier	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
@@ -132,6 +92,7 @@ sequence_named_arg	coverage_gap	certificate coverage WITNESSED it, so it can fir
 sv_dollar_skew_timing_check	coverage_gap	certificate coverage WITNESSED it, so it can fire
 sv_multi_entry_root	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 systemverilog_parseable_file	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
+tf_port_item	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 timestamp_condition	coverage_gap	certificate coverage WITNESSED it, so it can fire
 union_modifier	unreachable_from_entry	certificate coverage carries a verified PROOF that it is unreachable from the declared entry universe (adjudicate A1 alternate-entry vs A2 profile-orphan — TOOLBOX 4.2)
 z_or_x	coverage_gap	certificate coverage WITNESSED it, so it can fire

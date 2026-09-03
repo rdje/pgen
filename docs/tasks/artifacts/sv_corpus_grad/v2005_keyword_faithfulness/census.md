@@ -9,7 +9,7 @@ describes your tree** and the honest act is to re-measure, not to quote.
 
 | input | sha256 |
 | --- | --- |
-| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `891b02cb654fd56ce19c032838985ca47781d21e7413e18ea082fc2a1e5295f4` |
+| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `bd64ae30002c648f2eedcc98b3c2f8b5c7ae48fc568f862b1f85b971868b3527` |
 | `docs/verilog/2005/md/section-Annex_B-normative-list-of-keywords.md` | `08ba9745b0f0791ad48b786284b733414ab26ce7b2b9373d95174d094218025d` |
 | `docs/tasks/artifacts/sv_corpus_grad/v2005_keyword_faithfulness/witnesses/MANIFEST.tsv` | `cf3138dcaeb0f7609ea8b028202ff8b4ae19ea19f2c255d407b573d13893c6ce` |
 

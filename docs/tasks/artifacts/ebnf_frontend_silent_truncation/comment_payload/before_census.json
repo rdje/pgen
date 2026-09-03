@@ -1,0 +1,76 @@
+{
+ "artifact": "pre-fix census of return annotation tokens carrying a comment or newline, grammars/systemverilog.ebnf at commit f1d33865 read by the frontend as it stood at 4eebfe9d",
+ "measured": "2026-09-03",
+ "tokens": [
+  {
+   "rule": "parseable_source_item",
+   "kind_before": "return_scalar",
+   "payload_before": "{kind: \"semi\"}\n//"
+  },
+  {
+   "rule": "covergroup_declaration_sv_2023",
+   "kind_before": "return_scalar",
+   "payload_before": "{kind: \"single\",  name: $2, ports: $3, event: $4, items: $6, end_label: $8}\n                                # SV-CORPUS-GRAD.13c.2o — the `kw_n_29_7719a1c7` that used to sit\n                                # between `semi` and the item list was IEEE 1800-2023's FOOTNOTE\n                                # MARKER, not syntax. A.2.11 prints the alternative as\n                                # `| covergroup extends covergroup_identifier ;29`, and footnote 29\n                                # (same file, line 3495) reads \"The extends specification of\n                                # covergroup is allowed only within a class\". The extractor emitted\n                                # the marker as a token — `kw_n_29_7719a1c7 := trivia /29\\b/` — and\n                                # placed it in the sequence with NO `?`, so covergroup INHERITANCE\n                                # could only be parsed by typing the footnote number into the source:\n                                # measured on the shipped parser, `covergroup extends base;`\n                                # REJECTED on sv_2023 while `covergroup extends base;29` ACCEPTED.\n                                # ⇒ a rejects-valid defect and an over-acceptance on one token; both\n                                # halves are pinned (`defect_covergroup_extends.sv` /\n                                # `accepts_invalid_covergroup_extends_footnote.sv`) so they flip\n                                # together. Positional refs renumbered 6→5 and 8→7 by the deletion;\n                                # the AST field names and their sources are unchanged."
+  },
+  {
+   "rule": "block_data_type",
+   "kind_before": "return_scalar",
+   "payload_before": "{base: $1, signing: $2, dims: $3}\n                 # SV-CORPUS-GRAD.13e.4 (SV-0069): the block form of the integer/time signing\n                 # gate — IEEE 1364-2005 A.2.8 `:314`/`:315` are `integer`/`time\n                 # list_of_block_variable_identifiers ;` with no signing either. See\n                 # `integer_atom_signing_sv_only` for the full rationale."
+  },
+  {
+   "rule": "data_type",
+   "kind_before": "return_scalar",
+   "payload_before": "{kind: \"integer_vector\",        base: $1, signing: $2, dims: $3}\n           # SV-CORPUS-GRAD.13e.4 (SV-0069): `integer_atom_type` STAYS reachable under\n           # `verilog_2005` (that admission is what makes plain `integer i;` work); only the\n           # optional `signing` beside it is IEEE-1800-only. See `integer_atom_signing_sv_only`."
+  },
+  {
+   "rule": "data_type",
+   "kind_before": "return_scalar",
+   "payload_before": "{kind: \"class_type\",            body: $1}\n           # SV-EXH-PROOF.5.2.4.1 — use the typedef-EXCLUDING sibling here, not the\n           # permissive `provisional_unscoped_block_class_type`. The provisional rule\n           # is gated only by `has_fact(type_name, head)`, so a plain `typedef int T`\n           # head passed even with a `::P` scope_chain — making `localparam int Y = T::P`\n           # wrongly parseable (T::P is invalid per IEEE 1800 when T is not a class/\n           # package; sv_semantic_scope_contract case `parameter_typedef_fail`).\n           # `known_unscoped_block_class_type` adds the correct\n           # `lacks_fact_attribute_equals(type_name, head, declaration_family, typedef)`\n           # gate (same `{head, params, scope_chain}` shape, so the emitted\n           # `provisional_class_type` AST kind is unchanged). Bare typedef-as-datatype\n           # `T x;` is unaffected (it matches `known_unscoped_data_type_identifier`\n           # above). `block_data_type` keeps the permissive `provisional_*` branch for\n           # class-internal scoped types. Per [[feedback_grammar_rules_must_consult_store]]."
+  },
+  {
+   "rule": "net_declaration_sv_2017",
+   "kind_before": "return_scalar",
+   "payload_before": "{kind: \"wire\",         net_type: $1, strength: $2, vector_scalar: $3, data_type: $4, delay: $5, assignments: $6}\n                         # SV-PARSE-STRICT.2: a user net-type identifier must be a KNOWN declared type/nettype (sound store-gate via `checked_nettype_identifier`)."
+  },
+  {
+   "rule": "net_declaration_sv_2017",
+   "kind_before": "return_scalar",
+   "payload_before": "{kind: \"alias\",        net_type_id: $1, delay_control: $2, assignments: $3}\n                         # SV-PARSE-STRICT.2: unresolved-wildcard-import escape — accept an otherwise-undeclared net-type id ONLY when a `pkg::*` is in scope (cannot prove undeclared; defer to elaboration). The gate lives on the `wildcard_escape_nettype_identifier` helper (a `phase: post` predicate — historically required because inline `phase: branch` predicates were flattened rule-wide; branch-LOCAL since BRANCH-PREDICATE-LOCALITY.2, the helper idiom kept as-is, shape-stable)."
+  },
+  {
+   "rule": "net_declaration_sv_2023",
+   "kind_before": "return_scalar",
+   "payload_before": "{kind: \"wire\",         net_type: $1, strength: $2, vector_scalar: $3, data_type: $4, delay: $5, assignments: $6}\n                         # SV-PARSE-STRICT.2: known declared type/nettype (sound store-gate)."
+  },
+  {
+   "rule": "net_declaration_sv_2023",
+   "kind_before": "return_scalar",
+   "payload_before": "{kind: \"alias\",        nettype_id: $1, delay_control: $2, assignments: $3}\n                         # SV-PARSE-STRICT.2: unresolved-wildcard-import escape (branch-local `phase: post` gate via the helper — see the sv_2017 note)."
+  },
+  {
+   "rule": "net_type",
+   "kind_before": "return_scalar",
+   "payload_before": "{kind: \"trireg\"}\n         # SV-CORPUS-GRAD.13n — `tri0` and `tri1` were MISSING from this alternation for the whole\n         # life of the flattened grammar: ten branches against the LRM's twelve. Both spellings sit\n         # in the reserved-keyword regexes (:536 sv, :539 v2005), so they lexed as keywords and then\n         # had no production to land in — `module m; tri0 a; endmodule` was rc 1 on ALL THREE\n         # profiles while `wire` / `triand` / `trior` from this same alternation were rc 0. Cited in\n         # every vendored edition: IEEE 1364-2005 Annex A A.2.2.1:219, IEEE 1800-2023 Annex A:891,\n         # IEEE 1800-2017 Annex A A.2.2.1 (`docs/systemverilog/2017/md/section-41-data-read-api.md:899`\n         # — the PDF→markdown splitter filed that edition's Annex A under the section-41 file name,\n         # which is why a name-keyed search reports a false absence; TOOLBOX 5.8) and clause 6\n         # (`section-6-data-types.md:924-928`). Placed after `trireg` to match IEEE 1800-2023's own order.\n         # ⛔ ORDER IS SAFE AGAINST `tri`: `kw_tri_54bf01f1` is /tri\\b/, and `\\b` cannot match\n         # between `i` and `0`, so the shorter branch above cannot shadow these two. Measured, not\n         # reasoned: the three-profile repro below the fix flips rc 1 -> rc 0 and `tri`/`triand`/\n         # `trior` stay rc 0."
+  },
+  {
+   "rule": "primary_hier_scope_prefix",
+   "kind_before": "return_scalar",
+   "payload_before": "{kind: \"package_scope\",   body: $1}\n                           # SV-EXH-PROOF.3.3.4.b.6.2.37.3 — H2 follow-up: class-scoped\n                           # member access (`Class::member`, `super_t::m_name`,\n                           # `pkg::Class::staticMember`) as a primary expression. Per\n                           # IEEE 1800 §A.8.4 the LRM's `primary` accepts a `class_qualifier`\n                           # prefix and the LRM's `class_qualifier` nonterminal expands to\n                           # `[ local:: ] [ implicit_class_handle . | class_scope ]`.\n                           # pgen's `primary_hier_scope_prefix` was missing the `class_scope`\n                           # branch — surfaced by H2's furthest_position deepening into\n                           # `uvm_callbacks #(T,CB)` at uvm_pkg line ~25726 where\n                           # `super_t::m_typename = tname` (typedef-aliased parameterized\n                           # base scoped-member assignment) was unparseable. `class_scope` is\n                           # gated by `known_unscoped_class_scope_class_identifier`'s\n                           # `fact_attribute_equals(type_name, $body, declaration_family, class)`\n                           # predicate so this branch only fires for known class names —\n                           # safe to add as a sibling to `non_typedef_package_scope`."
+  },
+  {
+   "rule": "scoped_or_hierarchical_tf_identifier",
+   "kind_before": "return_scalar",
+   "payload_before": "{kind: \"class_scope\", scope: $1, name: $2}\n                                      # .b.6.2.2: same $-ref defect as non_typedef_package_scope — drill via the branch's `scope: $1` (= package_scope = {kind, name: <package_identifier> = {body: scalar}}). Branch-LOCAL since BRANCH-PREDICATE-LOCALITY.2 (single evaluation, this branch only)."
+  },
+  {
+   "rule": "variable_lvalue_scope",
+   "kind_before": "return_scalar",
+   "payload_before": "{kind: \"package_scope\", body: $1}\n                       # SV-EXH-PROOF.3.3.4.b.6.2.37.3 — parallel to the\n                       # `primary_hier_scope_prefix` `class_scope` addition;\n                       # enables `Class::staticVar = expr;` assignments\n                       # (e.g. `super_t::m_typename = tname;` in uvm_callbacks).\n                       # Gated by `class_scope`'s `known_unscoped_class_scope_class_identifier`\n                       # `fact_attribute_equals(type_name, $body, declaration_family, class)`\n                       # predicate — fires only for known class names."
+  },
+  {
+   "rule": "less_than",
+   "kind_before": "return_scalar",
+   "payload_before": "{kind: \"less_than\"}\n// lit_DPI_C_fb31e04e := trivia \"DPI-C\""
+  }
+ ]
+}

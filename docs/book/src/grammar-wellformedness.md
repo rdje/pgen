@@ -866,6 +866,25 @@ line comments parse normally:
 | `/**/` · `/***/` · `/* x */` · `/** d */` | **reject** |
 | `# line` | accept |
 
+> ⭐ **The dialect has TWO line-comment spellings, and until 2026-09-03 the hand-written frontend knew
+> one of them.** `grammars/ebnf.ebnf:583-586` reads `line_comment := ("#" | "//") comment_content` — so
+> a `//` line is valid EBNF by the project's own meta-grammar. `pgen::ebnf_frontend` recognised only
+> `#`: a `//` line at top level was dropped as an unrecognised line, one at column 0 inside a rule
+> body was swallowed into the preceding return-annotation payload, and one mid-line would have been
+> read as a regex literal. The shipped SystemVerilog grammar carries 77 such lines (35 top-level runs,
+> 2 inside payloads, 0 mid-body), which is why nothing broke and nothing was noticed.
+> `EBNF-FRONTEND-SILENT-TRUNCATION.6` (`PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0002`) made `//` a line
+> comment everywhere the meta-grammar says it is — top-level scanner, body collector, tokenizer,
+> delimiter tracker — and, the leaf's own subject, **excluded both comment spellings from inline
+> return-annotation payloads**: an indented `#` comment on the line after `-> {kind: "x"}` used to ride
+> inside the token, so `classify_return_annotation` filed it as `return_scalar` (14 tokens in 11
+> shipped rules) and a one-word comment edit at those sites moved the `ebnf_raw_ast` digest that
+> `BASELINE-IDENTITY`, `SV-CONTRACT-CURRENCY` and `PARSE-COST-RATCHET` key on. The generated parser
+> never saw the difference — the code generator re-reads the balanced payload — so this is a fix to
+> the *envelope* three doctrines hash, not to any parser: the SV digest moves exactly once, with the
+> fix, and a comment-only edit no longer moves it. A column-0 `//` still terminates a rule body
+> exactly as a column-0 `#` does today; that terminator rule itself is `.2`'s open question.
+
 Two independent engines — the grammar interpreter and the generated parser — return identical
 verdicts down to the same `furthest_position`, so this is a property of the grammar, not an artefact
 of one tool.

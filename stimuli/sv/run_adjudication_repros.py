@@ -172,20 +172,30 @@ def row_profiles(row: dict) -> list[str]:
     return out
 
 
-def parses(path: Path, profile: str = DEFAULT_PROFILE) -> bool:
+def entry_args(row: dict) -> list[str]:
+    """EBNF-FRONTEND-SILENT-TRUNCATION.6: a row may pin a NON-DEFAULT entry rule (`entry` column,
+    TOOLBOX §1.2 `--entry-rule`). The founding rows parse from `systemverilog_parseable_file`: its
+    `parseable_source_item` had three commented-out (`//`) alternatives that the old EBNF frontend
+    kept LIVE — unreachable from the registered entry, so no default-entry row could ever see them,
+    and observable to any consumer that asks for that entry. Empty = the registered entry."""
+    entry = (row.get("entry") or "").strip()
+    return ["--entry-rule", entry] if entry else []
+
+
+def parses(path: Path, profile: str = DEFAULT_PROFILE, entry: list[str] | None = None) -> bool:
     proc = subprocess.run(
-        [str(PROBE), "--parse", "systemverilog", str(path), "--profile", profile],
+        [str(PROBE), "--parse", "systemverilog", str(path), "--profile", profile] + (entry or []),
         capture_output=True, text=True, timeout=TIMEOUT_S)
     return proc.returncode == 0
 
 
-def parse_ast(path: Path, profile: str = DEFAULT_PROFILE):
+def parse_ast(path: Path, profile: str = DEFAULT_PROFILE, entry: list[str] | None = None):
     """The typed AST for `path`, or None when the probe declines to produce one."""
     with tempfile.TemporaryDirectory(dir=str(ROOT / "tmp")) as workdir:
         out = Path(workdir) / "ast.json"
         proc = subprocess.run(
             [str(PROBE), "--parse-dump-ast", "systemverilog", str(path), str(out),
-             "--profile", profile],
+             "--profile", profile] + (entry or []),
             capture_output=True, text=True, timeout=TIMEOUT_S)
         if proc.returncode != 0 or not out.exists():
             return None
@@ -296,19 +306,21 @@ def main() -> int:
         profiles = row_profiles(row)
         if len(profiles) > 1:
             multi += 1
+        entry = entry_args(row)
         for profile in profiles:
-            got = "ACCEPT" if parses(path, profile) else "REJECT"
+            got = "ACCEPT" if parses(path, profile, entry) else "REJECT"
             checked += 1
             ok = got == row["expect"]
             bad_arms: list[str] = []
             if ok and got == "ACCEPT" and (row.get("arm") or "").strip():
-                bad_arms = arm_failures(row, parse_ast(path, profile))
+                bad_arms = arm_failures(row, parse_ast(path, profile, entry))
                 armed += 1
             if args.verbose or not ok or bad_arms:
                 status = "ok  " if ok and not bad_arms else "FAIL"
                 arm = f" arm={row['arm']}" if (row.get("arm") or "").strip() else ""
+                ent = f" entry={row['entry']}" if entry else ""
                 print(f"{status} {row['id']:<44} {row['class']:<8} "
-                      f"profile={profile:<12} expect={row['expect']} got={got}{arm}")
+                      f"profile={profile:<12} expect={row['expect']} got={got}{arm}{ent}")
             if not ok:
                 failures.append(f"{row['id']} [{profile}]: expected {row['expect']}, got {got}\n"
                                 f"      {FIX_HINT.get((row['class'], got), '')}\n"

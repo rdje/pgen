@@ -285,7 +285,7 @@ language surface**. If the answer later becomes "support it", that decision belo
 - **RE-OPEN / SCHEDULE WHEN** the SV lane lock lifts, or sooner if a user reports a rejected
   grammar.
 
-### `.6` — ⚠️ NEW `todo`, ROUTED + PARKED (opened 2026-09-01 by `LRM-GRAMMAR-FIDELITY.1e` / `PGEN-LRM-GRAMMAR-FIDELITY-0001`) — **an INDENTED `#` comment on the line after a return annotation is captured INTO the annotation token: the token is misclassified `return_scalar`, and a comment-only edit there moves the `ebnf_raw_ast` digest that three doctrines key on**
+### ✅✅ `.6` — **`done`** 2026-09-03 (`PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0002`; SV release `1.0.205`, ledger `SV-0078`) — was, opened 2026-09-01 by `LRM-GRAMMAR-FIDELITY.1e` / `PGEN-LRM-GRAMMAR-FIDELITY-0001`: **an INDENTED `#` comment on the line after a return annotation is captured INTO the annotation token: the token is misclassified `return_scalar`, and a comment-only edit there moves the `ebnf_raw_ast` digest that three doctrines key on**
 
 **ROUTING EVIDENCE** (`ROUTING-EVIDENCE` doctrine — what was MEASURED before routing here):
 
@@ -330,6 +330,96 @@ language surface**. If the answer later becomes "support it", that decision belo
 - ⚠️ **PARKED**: engine/frontend lane, not SV-blocking (the generated parser is right; the cost
   is one avoidable re-derivation per comment edit at 12 sites, and `SV-CORPUS-GRAD.13o` pays it once
   for the grammar-comment correction it carries).
+
+### ✅✅ `.6` DISCHARGED — **both comment spellings are excluded from inline return-annotation payloads, `//` is a line comment everywhere the meta-grammar says it is, and the fix exposed three commented-out alternatives the frontend had kept LIVE in the shipped parser** (2026-09-03, `PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0002`; ENGINE tier — `rust/src/ebnf_frontend.rs`; grammar BYTES unchanged; ONE generated parser moves in ONE rule proven unreachable from the registered entry; SV release `1.0.205`, ledger `SV-0078`)
+
+**RE-MEASURED FIRST.** On today's grammar the census still read **14** `return_*` tokens carrying a `#`/`//` comment
+or a newline, every one classified `return_scalar`, in **11** rules (the leaf said 12: `data_type` and both
+`net_declaration_sv_*` carry two tokens each — 14 over 11). The frozen list is
+`docs/tasks/artifacts/ebnf_frontend_silent_truncation/comment_payload/before_census.json`. Two of the 14 tails
+began with `//`, which the dialect's frontend did not know as a comment at all.
+
+**THE SECOND HALF OF THE DEFECT, FOUND BY THE MEASUREMENT.** `grammars/ebnf.ebnf:583-586` reads
+`line_comment := ("#" | "//") comment_content` — `//` is valid EBNF by the project's own meta-grammar
+(`EBNF-SOURCE-OF-TRUTH`: the meta-grammar is the authority on what an author can write). `pgen::ebnf_frontend`
+recognised only `#`. Census of the shipped SV grammar's **77** column-0 `//` lines: **35** top-level runs (after a
+blank line — dropped by `scan_top_level_rules` as unrecognised lines, silently), **2** inside rule bodies after an
+annotation (swallowed into the payload), **0** mid-body. And the before/after envelope diff showed exactly ONE rule
+whose non-annotation tokens moved: `parseable_source_item` — `semi -> {kind: "semi"}` followed by three `//` lines
+that CONTAIN `|` (`| package_import_declaration`, `| timeunits_declaration`, `| compiler_directive`, commented out
+in `795e9954`, 2026-04-25): the old payload scan stopped at the first `|`, the tokenizer read each next `//` as an
+EMPTY regex literal, and the generator built **four** alternatives. Measured on release `1.0.204` with
+`--entry-rule systemverilog_parseable_file`: `import p::*;` **rc 0**, `timeunit 1ns;` **rc 0** (`sv_2017`/`sv_2023`),
+`` `timescale 1ns/1ps `` **rc 0** on all three profiles; `;` rc 0 (control). The rule and its entry are
+`unreachable_from_entry` in `rule_fire_partition_sv_2017.tsv` (certificate-coverage PROOF), so no default-entry
+input could ever have observed it — and any `--entry-rule` consumer could.
+
+**WHAT LANDED.** (a) `extract_inline_return_annotation_payload` builds the payload with every line comment cut
+out (the tracker's `line_comment` flag; a comment's newline is kept so a multi-line object keeps its lines);
+`//` opens a line comment in `DelimiterTracker::consume` (before the regex-literal arm), in
+`tokenize_rule_expression` (like `#`), in `collect_rule_body` (a column-0 `//` terminates the body exactly as a
+column-0 `#` does today — `.2`'s open question about that terminator applies to both spellings) and in
+`scan_top_level_rules`. (b) Three regression tests: the three-rule grammar with a `#` and a `//` comment after
+`-> {kind: "x"}` → `["return_object", "{kind: \"x\"}"]` exactly, the scalar form `-> $1`, and `//` in every
+position (no regex token; a column-0 `//` ends the body). ⛔ `cargo test --lib` runs NONE of the module's 23
+tests: `lib.rs:14` gates `ebnf_frontend` behind `#[cfg(feature = "ebnf_dual_run")]` — the first run reported
+*"0 passed; 1030 filtered out"* and looked green; `cargo test --lib --features ebnf_dual_run -- ebnf_frontend::tests`
+→ **23 passed**. (c) The SV `ebnf_raw_ast` digest moves ONCE, with the fix: `891b02cb654f… → bd64ae30002c…`, and the
+`.13c.2x.4` measurement now holds — a one-word edit of the comment after `net_type`'s `-> {kind: "trireg"}` leaves
+it unmoved (bank arm 3). Every carrier re-stamped through its own producer (below). (d) Regenerated all eleven
+parsers (`regenerate_generated_parsers` + the `ebnf.rs` seed + `focus_scratch`): **ten byte-identical**,
+`generated/systemverilog_parser.rs` `62fec0ab… → c82018f9…` in `parse_parseable_source_item` alone (it references
+`parse_semi()` only). (e) Release ceremony: register RELEASE row, ledger `SV-0078`, contract note + version
+`1.0.205` + digest, parser-book changelog, `CHANGES.md`; the repro ratchet gained an `entry` column and four rows
+(`accepts_invalid_parseable_entry_{import,timeunit,directive}.sv` + `control_parseable_entry_semi.sv`) were
+pinned against `1.0.204` BEFORE the rebuild (`checked=270 failures=0`) and flipped to `invalid` after it.
+(f) **`SV-CONTRACT-CURRENCY` learned that the digest is a function of the frontend.** Its tier A re-derives
+every grammar commit since the register's genesis with the CURRENT frontend and demands a row with that digest;
+under the new reading every one of the 23 historical revisions produced a digest no row records — *"the SV
+grammar moved in commit(s) 6d1a18b3 cb78d01f …"* — while not one grammar byte had. Rewriting 23 historical
+digests would have falsified what each contract section described on its day, so the register now declares
+`# frontend_rekey: f1d33865` (the last commit keyed by the previous reading) and tier A skips commits at or
+before a rekey epoch, printing `rekey_epochs=1 history_skipped_by_rekey=23` in its summary — the exemption is a
+number, not a silence. Registry line, `DOCTRINE_ENFORCEMENT.md` §10 and the derived book chapter carry the same
+sentence (`report_doctrines --check` equal).
+(g) **The rule-fire partition producer could not read a fully certified report.** `make sv_rule_fire_partition`
+(tier 2 of `SV-RULE-FIRE-PARTITION`) refused with *"the certificate report carries no UNKNOWN rule list"*:
+`ast_pipeline` prints that list only when it is non-empty (`rust/src/main.rs`, `if !report.unknown.is_empty()`),
+and the SV grammar reads `CERTIFICATE-COVERAGE: … UNKNOWN=0 fully_certified=true` — so the instrument had been
+unrunnable on its own best case, and the tracked partition dated **2026-08-19** while the corpus rule-coverage
+artifact it must agree with described 9 781 accepted files against today's 9 794. `rule_fire_partition.py`
+now reads `UNKNOWN=0` from the headline as the empty list; re-derived: `coverage_gap` 60 → 64,
+`lr_synthetic` 57 → 14, `unreachable_from_entry` 18 (both parseable rules still in it), 98 never-fired rules,
+0 unadjudicated — `sv-rule-fire-partition: OK`. The generated-reproducibility baseline was rewritten by its
+own `--rebaseline` (the SV parser's new digest; the per-family `input_sha` values churn by design, since
+`generated/<family>.json` embeds a `generated_at` timestamp).
+
+**ACCEPTANCE CHECKLIST (TOOLBOX 3.5)**
+- [x] **ROOT CAUSE (WHY + WHERE)** — `git ls-files grammars/*.ebnf | wc -l` = 18 tracked grammars; `bash scripts/check_baseline_identity.sh
+  --raw-ast grammars/systemverilog.ebnf` with the pre-fix frontend showed 14 `return_scalar` tokens whose text
+  ended in a comment, and one rule (`parseable_source_item`) whose token stream carried `["regex", ""]` where the
+  grammar has `//`. WHY: `extract_inline_return_annotation_payload` returned the raw slice up to the next top-level
+  `|` (comments "tracked" but not removed), and the frontend implemented one of the meta-grammar's two line-comment
+  spellings. WHERE: `rust/src/ebnf_frontend.rs` — payload extractor, `DelimiterTracker::consume`,
+  `tokenize_rule_expression`, `collect_rule_body`, `scan_top_level_rules`.
+- [x] **ADDRESSED (verified)** — bank `docs/tasks/artifacts/ebnf_frontend_silent_truncation/comment_payload/probe.sh` **8/8**: census
+  over all 15 readable tracked grammars (0 dirty tokens; the 3 LRM snapshots refused, exactly those), the founding
+  synthetic in both spellings, the comment-edit invariance, `//` in every position, the feature-gate pin, the pinned
+  entry rows, and the historical RED re-derived from the frozen census (all 14 rules now `return_object` with the
+  comment cut off). 23/23 unit tests.
+- [x] **NO REGRESSION** — ten of eleven generated parsers byte-identical after full regeneration (`ebnf.rs` seed and
+  `scratch` included); the SV parser moves in one function only. **Corpus, per-path and two-sided, both lanes on
+  the rebuilt release probe: ZERO verdicts moved** — `results.tsv` and `positions.tsv` re-hash to the SAME digests
+  the reports carried before the rebuild (16 336 `sv_2017` rows: 9 811 pass / 6 525 fail; 2 606 `verilog_2005`
+  rows: 2 300 / 306), the adjudication manifests, the v2005 lane list and every verdict-coverage artifact are
+  byte-identical (`git status` names none of them), `match=5851 unexplained=268` and the tuple
+  `7556/2606/6174/4013/268` unchanged (`sv-corpus-denominator: OK`). Parse cost: the LR-family share
+  **2.756 % reproduces exactly** (24 585 940 of 892 133 560 entries over 16 336 files); the pinned-sample ratchet
+  rebaselined with its identity fresh for `generated parser`, `grammar raw ast`, `instrument`, `sample inputs`
+  (wall-clock advisory −7.6 %, machine-dependent, does not bind). Repro ratchet `checked=270 failures=0` after the
+  flip. `SV-CONTRACT-CURRENCY` tiers A–D green (`history_skipped_by_rekey=23`). Reproducibility baseline rewritten
+  by `--rebaseline`; `sv-rule-fire-partition: OK` (98 never-fired rules, 0 unadjudicated); `clippy_on_rust_change`
+  ✅ (0 warnings in the changed file); ALL 35 doctrines PASS on the staged set.
 
 ## Acceptance Criteria (tree)
 

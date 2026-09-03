@@ -25,7 +25,17 @@
 #
 # FOUR TIERS, each catching what the others structurally cannot:
 #   A — HISTORY   every grammar commit since the register's genesis has a register row, matched by
-#                 the row's DIGEST rather than by its commit sha. ⛔ Sha-keying was the first design
+#                 the row's DIGEST rather than by its commit sha. ⛔ THE DIGEST IS A FUNCTION OF THE
+#                 FRONTEND AS WELL AS OF THE GRAMMAR (EBNF-FRONTEND-SILENT-TRUNCATION.6, 2026-09-03:
+#                 the frontend stopped capturing comments into annotation payloads and learned the
+#                 meta-grammar's `//` line comment, and EVERY historical revision's digest moved under
+#                 the new reading while not one grammar byte did). Re-deriving old revisions with the
+#                 new frontend is a different function's output, so the register declares
+#                 `# frontend_rekey: <sha>` — the LAST commit whose rows were keyed by the previous
+#                 reading — and tier A does not re-derive commits that are ancestors of (or equal to)
+#                 a rekey sha: those rows are HISTORY, re-derivable only with the frontend of their
+#                 day (a worktree at that commit), and the summary line prints how many were skipped
+#                 so the exemption is a number, never a silence. ⛔ Sha-keying was the first design
 #                 and it had a chicken-and-egg the very next grammar change exposed: the row for the
 #                 commit being made cannot carry that commit's own sha, so tier D forced the row to
 #                 exist while tier A then rejected it on the NEXT commit and demanded a fixup. The
@@ -79,6 +89,16 @@ done
 GENESIS="$(sed -n 's/^# genesis: *\([0-9a-f]\{7,40\}\).*/\1/p' "$REGISTER" | head -1)"
 [ -n "$GENESIS" ] || { note "$REGISTER declares no '# genesis: <sha>' line — without it tier A has no range"; exit 1; }
 
+# Frontend re-key epochs (0..n), each the LAST commit keyed by the frontend reading before a change.
+mapfile -t REKEYS < <(sed -n 's/^# frontend_rekey: *\([0-9a-f]\{7,40\}\).*/\1/p' "$REGISTER")
+for rk in "${REKEYS[@]}"; do
+  git cat-file -e "$rk^{commit}" 2>/dev/null || { note "$REGISTER declares frontend_rekey $rk, which is not a commit in this repository"; exit 1; }
+done
+keyed_by_previous_frontend() {  # $1 = sha; true when a declared rekey epoch covers it
+  local rk; for rk in "${REKEYS[@]}"; do git merge-base --is-ancestor "$1" "$rk" 2>/dev/null && return 0; done; return 1
+}
+rekey_skipped=0
+
 # Rows, in file order: commit<TAB>date<TAB>slice<TAB>digest<TAB>disposition<TAB>release<TAB>notes
 mapfile -t ROWS < <(grep -v '^#' "$REGISTER" | grep -v '^[[:space:]]*$' | tail -n +2)
 [ "${#ROWS[@]}" -gt 0 ] || { note "$REGISTER carries no rows — a register that lists nothing cannot pass"; exit 1; }
@@ -116,6 +136,7 @@ if [ -x "$PIPELINE" ]; then
   missing=""
   while read -r sha; do
     [ -n "$sha" ] || continue
+    if keyed_by_previous_frontend "$sha"; then rekey_skipped=$((rekey_skipped+1)); continue; fi
     git show "$sha:$GRAMMAR" > "$scratch/g.ebnf" 2>/dev/null || { note "cannot read $GRAMMAR at $sha"; continue; }
     d="$(sv_semantic_digest "$scratch/g.ebnf")"
     if [ -z "$d" ]; then
@@ -262,7 +283,7 @@ if [ "$(row_field "$newest_row" 5)" = "GENERATOR-ONLY" ]; then
 fi
 
 if [ "$fail" = 0 ]; then
-  printf 'SV-CONTRACT-CURRENCY: rows=%d genesis=%s newest=%s digest=%s\n' \
-    "${#ROWS[@]}" "${GENESIS:0:8}" "$(row_field "$newest_row" 1)" "${newest_digest:0:16}"
+  printf 'SV-CONTRACT-CURRENCY: rows=%d genesis=%s newest=%s digest=%s rekey_epochs=%d history_skipped_by_rekey=%d\n' \
+    "${#ROWS[@]}" "${GENESIS:0:8}" "$(row_field "$newest_row" 1)" "${newest_digest:0:16}" "${#REKEYS[@]}" "$rekey_skipped"
 fi
 exit $fail

@@ -24,14 +24,14 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `8990b21427a9ebe38434b481592db7b097fdc9b625a710bdf0d6a0a696a438a0` |
+| parse binary | `rust/target/release/parseability_probe` | `5413335642a811c8174f9672cea6a32ccd27fc4c6931e17543d417142befcfa6` |
 | grammar | `grammars/systemverilog.ebnf` | `b2ca001f0012579c60f6195a6e9808a7fa9cc4f8c1a9913064c8381083193e12` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `891b02cb654fd56ce19c032838985ca47781d21e7413e18ea082fc2a1e5295f4` |
-| generated parser | `generated/systemverilog_parser.rs` | `62fec0abc42a11bc68cff531ecc73a9af8b53b60e2b0b460f9b462e9df884781` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `bd64ae30002c648f2eedcc98b3c2f8b5c7ae48fc568f862b1f85b971868b3527` |
+| generated parser | `generated/systemverilog_parser.rs` | `c82018f925ff03e26092aac3cb3a8180590b9b341609778fbcd0da3b828d601d` |
 | results (output) | `stimuli/sv/characterization/results.tsv` | `ed240b8f1a485c90939cc14b388fc6dc21a10c8373e70c633ecc04b45cf5e514` |
 | positions (output) | `stimuli/sv/characterization/positions.tsv` | `02f49b65b83e199e33f2a00be081c7861078b17a686441b87ab83ec70ee97339` |
 
-Measured at `HEAD` = `b815b002` (2026-09-03).
+Measured at `HEAD` = `f1d33865+dirty` (2026-09-03).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -44,9 +44,9 @@ Measured at `HEAD` = `b815b002` (2026-09-03).
 
 | parameter | value | source for this run |
 |---|---|---|
-| per-file timeout | 60 s | provenance |
-| parallel jobs | 8 | provenance |
-| max files | 0 (no cap) | provenance |
+| per-file timeout | 60 s | caller |
+| parallel jobs | 8 | caller |
+| max files | 0 (no cap) | caller |
 | parse binary | `rust/target/release/parseability_probe` | provenance |
 
 ## Deadline proximity and serial re-confirmation
@@ -65,7 +65,7 @@ Measured at `HEAD` = `b815b002` (2026-09-03).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `6.51` s — `stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `7.87` s — `stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 

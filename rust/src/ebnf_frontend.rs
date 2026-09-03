@@ -144,7 +144,12 @@ fn scan_top_level_rules(input: &str) -> Result<Vec<ScannedRule>> {
     while idx < lines.len() {
         let line = lines[idx];
         let trimmed = line.trim();
-        if trimmed.is_empty() || trimmed.starts_with('#') {
+        // EBNF-FRONTEND-SILENT-TRUNCATION.6: the meta-grammar (`grammars/ebnf.ebnf:583-586`)
+        // defines BOTH `#` and `//` as line comments; the frontend knew only `#`, so a `//`
+        // line at top level was dropped as an unrecognised line (silently) and one inside a rule
+        // body was swallowed into the preceding return-annotation payload (measured: 77 such
+        // lines in the shipped SV grammar, 2 of them inside payloads).
+        if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with("//") {
             idx += 1;
             continue;
         }
@@ -672,6 +677,7 @@ fn collect_rule_body(lines: &[&str], start_idx: usize, first_body: String) -> (S
         if is_top_level
             && (trimmed.is_empty()
                 || trimmed.starts_with('#')
+                || trimmed.starts_with("//") // EBNF-FRONTEND-SILENT-TRUNCATION.6, ebnf.ebnf:585
                 || trimmed.starts_with('@')
                 // GRAMMAR-WELLFORMED.H.5.1.2: a column-0 before-rule lexical
                 // follow-restriction directive (`[> …]` / `[>! …]`) binds the
@@ -704,8 +710,19 @@ fn collect_rule_body(lines: &[&str], start_idx: usize, first_body: String) -> (S
 /// character after `->` to the next top-level `|` (next branch separator)
 /// or to end-of-expression (rule-level annotation at end of body), whichever
 /// comes first. Delimiters inside the payload (`{...}`, `[...]`, `(...)`,
-/// quotes, regex literals, comments) are tracked so a `|` nested inside an
-/// object literal does not terminate the annotation.
+/// quotes, regex literals) are tracked so a `|` nested inside an object
+/// literal does not terminate the annotation.
+///
+/// ⛔ Line comments (`#` and `//`, `grammars/ebnf.ebnf:583-586`) are EXCLUDED
+/// from the payload text (EBNF-FRONTEND-SILENT-TRUNCATION.6). Before that fix
+/// the payload was the raw slice up to the `|`, so an indented comment on the
+/// line after `-> {kind: "x"}` rode inside the token: `classify_return_annotation`
+/// saw a string starting with `{` and not ending with `}` and filed it as
+/// `return_scalar`, and a comment-only edit at that site moved the
+/// `ebnf_raw_ast` digest three doctrines key on (measured: 14 tokens in 11
+/// rules of the shipped SystemVerilog grammar). The generated parser never
+/// saw the difference — the code generator re-reads the balanced payload —
+/// which is why the envelope, not the parser, is what this fixes.
 ///
 /// Returns `(payload_text, payload_end_byte)` where `payload_end_byte` is
 /// the byte index in `expression` where the caller should resume tokenization
@@ -722,21 +739,33 @@ fn extract_inline_return_annotation_payload(
     let payload_start = idx;
 
     let mut tracker = DelimiterTracker::default();
+    // The payload text with every line comment cut out; a comment's terminating
+    // newline is kept so a multi-line payload keeps its line structure.
+    let mut kept = String::new();
     let mut iter = expression[payload_start..].char_indices().peekable();
     while let Some((rel_idx, ch)) = iter.next() {
-        let consumed = tracker.consume(
-            ch,
-            iter.peek().map(|(_, n)| *n),
-            ScanMode::RuleExpression,
-        );
+        let next = iter.peek().map(|(_, n)| *n);
+        if tracker.line_comment {
+            tracker.consume(ch, next, ScanMode::RuleExpression);
+            if !tracker.line_comment {
+                kept.push('\n');
+            }
+            continue;
+        }
+        let consumed = tracker.consume(ch, next, ScanMode::RuleExpression);
+        if tracker.line_comment {
+            // `ch` opened a comment (`#`, or the first `/` of `//`): not payload.
+            continue;
+        }
         if consumed {
+            kept.push(ch);
             continue;
         }
         if ch == '|' && tracker.is_top_level() {
             let abs_idx = payload_start + rel_idx;
-            let payload = expression[payload_start..abs_idx].trim().to_string();
-            return Ok((payload, abs_idx));
+            return Ok((kept.trim().to_string(), abs_idx));
         }
+        kept.push(ch);
     }
 
     if tracker.in_quote.is_some() {
@@ -752,8 +781,7 @@ fn extract_inline_return_annotation_payload(
         ));
     }
 
-    let payload = expression[payload_start..].trim().to_string();
-    Ok((payload, expression.len()))
+    Ok((kept.trim().to_string(), expression.len()))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -849,6 +877,12 @@ impl DelimiterTracker {
                 self.line_comment = true;
                 true
             }
+            // EBNF-FRONTEND-SILENT-TRUNCATION.6: `//` is the dialect's second line-comment
+            // spelling (`grammars/ebnf.ebnf:585`); it must win over the regex-literal arm.
+            '/' if matches!(mode, ScanMode::RuleExpression) && next == Some('/') => {
+                self.line_comment = true;
+                true
+            }
             '/' if matches!(mode, ScanMode::RuleExpression)
                 && next.is_some()
                 && self.is_top_level() =>
@@ -913,7 +947,9 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
             continue;
         }
 
-        if ch == '#' {
+        // `#` and `//` are both line comments in this dialect (`grammars/ebnf.ebnf:583-586`);
+        // before EBNF-FRONTEND-SILENT-TRUNCATION.6 a `//` here was read as a regex literal.
+        if ch == '#' || (ch == '/' && bytes.get(idx + 1) == Some(&b'/')) {
             while idx < bytes.len() && (bytes[idx] as char) != '\n' {
                 idx += 1;
             }
@@ -2073,6 +2109,95 @@ entry = alpha
         assert!(
             rule_has_forbid("kw_b"),
             "the second stacked directive must bind kw_b (regression: it was absorbed into kw_a's body)"
+        );
+    }
+
+    /// EBNF-FRONTEND-SILENT-TRUNCATION.6 (a)+(b): an indented `#` comment on the line
+    /// after an inline return annotation is NOT part of the payload. Before the fix the
+    /// token read `["return_scalar", "{kind: \"x\"}\n     # a comment ..."]`.
+    #[test]
+    fn inline_return_annotation_payload_excludes_following_comment_lines() {
+        for (label, input) in [
+            (
+                "hash comment",
+                "a := b -> {kind: \"x\"}\n     # a comment after the annotation\n   | c -> {kind: \"y\"}\nb := \"b\"\nc := \"c\"\n",
+            ),
+            (
+                "slash-slash comment (ebnf.ebnf:585)",
+                "a := b -> {kind: \"x\"}\n     // a comment after the annotation\n   | c -> {kind: \"y\"}\nb := \"b\"\nc := \"c\"\n",
+            ),
+        ] {
+            let envelope = parse_ebnf_text_to_raw_ast_envelope(input, "mini", None)
+                .expect("frontend parse should succeed");
+            let raw_ast = envelope
+                .get("raw_ast")
+                .and_then(serde_json::Value::as_array)
+                .expect("raw_ast array should exist");
+            assert_eq!(raw_ast.len(), 3, "{label}: three rules");
+            let first = serde_json::to_string(raw_ast[0].as_array().expect("rule array"))
+                .expect("rule json");
+            assert!(
+                first.contains("[\"return_object\",\"{kind: \\\"x\\\"}\"]"),
+                "{label}: the first annotation must be return_object with payload exactly {{kind: \"x\"}}, got: {first}"
+            );
+            assert!(
+                first.contains("[\"return_object\",\"{kind: \\\"y\\\"}\"]"),
+                "{label}: the second branch's annotation must survive intact, got: {first}"
+            );
+            assert!(
+                !first.contains("comment after"),
+                "{label}: comment text must not reach the raw_ast, got: {first}"
+            );
+            assert!(
+                !first.contains("return_scalar"),
+                "{label}: nothing here is a scalar annotation, got: {first}"
+            );
+        }
+    }
+
+    /// The same for a SCALAR payload: `$1` followed by a comment line stays `$1`.
+    #[test]
+    fn inline_scalar_return_annotation_payload_excludes_following_comment_line() {
+        let input = "a := b -> $1\n     # a comment after the annotation\n   | c -> $1\nb := \"b\"\nc := \"c\"\n";
+        let envelope = parse_ebnf_text_to_raw_ast_envelope(input, "mini", None)
+            .expect("frontend parse should succeed");
+        let raw_ast = envelope
+            .get("raw_ast")
+            .and_then(serde_json::Value::as_array)
+            .expect("raw_ast array should exist");
+        let first = serde_json::to_string(raw_ast[0].as_array().expect("rule array"))
+            .expect("rule json");
+        assert!(
+            first.contains("[\"return_scalar\",\"$1\"]"),
+            "the scalar payload must be exactly $1, got: {first}"
+        );
+        assert!(!first.contains("comment after"), "got: {first}");
+    }
+
+    /// EBNF-FRONTEND-SILENT-TRUNCATION.6: `//` is a line comment everywhere the meta-grammar
+    /// says it is (`grammars/ebnf.ebnf:583-586`) — at top level (skipped like `#`), at column 0
+    /// inside a body (terminates the body like `#`), and mid-line in a body (skipped to end of
+    /// line, never read as a regex literal). The shipped SV grammar carries 77 such lines.
+    #[test]
+    fn slash_slash_is_a_line_comment_in_every_position() {
+        let input = "// a top-level comment\na := b // trailing comment, not a regex\n   | c\n// column-0 comment ends the body\n   | d\nb := \"b\"\nc := \"c\"\nd := \"d\"\n";
+        let envelope = parse_ebnf_text_to_raw_ast_envelope(input, "mini", None)
+            .expect("frontend parse should succeed");
+        let raw_ast = envelope
+            .get("raw_ast")
+            .and_then(serde_json::Value::as_array)
+            .expect("raw_ast array should exist");
+        assert_eq!(raw_ast.len(), 4, "a, b, c, d — the comment lines define nothing");
+        let first = serde_json::to_string(raw_ast[0].as_array().expect("rule array"))
+            .expect("rule json");
+        assert!(!first.contains("\"regex\""), "`//` must not be read as a regex literal: {first}");
+        assert!(
+            first.contains("[\"rule_reference\",\"b\"]") && first.contains("[\"rule_reference\",\"c\"]"),
+            "b and c are alternatives of a: {first}"
+        );
+        assert!(
+            !first.contains("[\"rule_reference\",\"d\"]"),
+            "a column-0 `//` line terminates the body, so `| d` is a stray top-level line, not an alternative of a: {first}"
         );
     }
 }

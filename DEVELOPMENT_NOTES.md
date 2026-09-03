@@ -1,5 +1,21 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0002 (a comment syntax the frontend does not know is a silent language)
+
+- ⭐⭐ **THE LESSON: THE FRONTEND MUST IMPLEMENT THE META-GRAMMAR'S COMMENT RULE, NOT ONE SPELLING OF IT.**
+  `grammars/ebnf.ebnf:583-586` defines two line-comment spellings; the hand-written frontend knew `#`. 77 `//`
+  lines in the shipped SV grammar survived by accident — dropped at top level, swallowed into annotation payloads —
+  and in ONE rule three commented-out alternatives were LIVE in the released parser for four months, each with an
+  empty regex token where the `//` was. No gate saw it because the rule is unreachable from the registered entry.
+- **The measurement that found it was the envelope diff, not the census.** The leaf's subject (comments captured
+  into payloads) was fixed by construction; diffing the whole `raw_ast` before/after and asking "what moved OUTSIDE
+  the 14 tokens I meant to change" is what surfaced `parseable_source_item`. Always diff the whole envelope.
+- ⛔ **`cargo test --lib` reported "0 passed; 1030 filtered out" and looked green.** The module is feature-gated
+  (`ebnf_dual_run`); a filter that matches nothing is a green run of nothing. Assert the count you expect.
+- **Fix the frontend, not the 77 lines.** The grammar text is right by the meta-grammar; rewriting the comments
+  would have hidden the class. `EBNF-SOURCE-OF-TRUTH` applies to the meta-grammar too.
+- `promotion:` knowledge card `a-comment-syntax-the-frontend-does-not-know-is-a-silent-language`.
+
 ## 2026-09-03 - PGEN-LRM-GRAMMAR-FIDELITY-0002 (a footnote is a property of the edition, not of the name)
 
 - ⭐ **THE LESSON: A DIGIT AT THE END OF A NAME CANNOT BE JUDGED BY THE NAME.** `strength0` and

@@ -34,6 +34,18 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.205 / Contract 1.0.205 — EBNF-FRONTEND-SILENT-TRUNCATION.6 (`PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0002`, 2026-09-03), ledger `SV-0078` (`Released`):
+
+⛔ **From the entry `systemverilog_parseable_file` (`--entry-rule`), an `import p::*;`, a `timeunit 1ns;` or a
+`` `timescale `` item no longer parses — on any profile.** `parseable_source_item := semi` is the whole rule; the
+three lines after it in the grammar are `//` comments (since 2026-04-25), and `grammars/ebnf.ebnf:583-586`
+defines `//` as a line comment. The hand-written EBNF frontend knew only `#`, read those lines as live
+alternatives, and every release carried them. The rule is proven unreachable from the registered entry
+(`rule_fire_partition`), so from the default entry nothing changes; the generated parser moves in this one rule
+and the other ten generated parsers are byte-identical. The same fix stops indented comments after inline
+return annotations from riding inside the annotation token (14 payloads in 11 rules), so a comment-only edit no
+longer moves the semantic digest this contract is keyed on. **AST shape unchanged for every legal input.**
+
 ### 1.0.204 / Contract 1.0.204 — SV-CORPUS-GRAD.13p (`PGEN-SV-CORPUS-GRAD-0322`, 2026-09-02), ledger `SV-0077` (`Released`):
 
 ⛔ **A third delay value on an n-input or n-output gate, a pass-enable switch or a UDP instance no

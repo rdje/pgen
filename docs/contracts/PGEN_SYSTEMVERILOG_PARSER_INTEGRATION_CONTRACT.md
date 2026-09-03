@@ -5,6 +5,21 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-09-03, `EBNF-FRONTEND-SILENT-TRUNCATION.6` — EBNF FRONTEND (engine), release
+> `1.0.205`, ledger `SV-0078`, schema `26` UNCHANGED, ALL THREE profiles): from the entry
+> `systemverilog_parseable_file` (and `parseable_source_item`, `--entry-rule`, TOOLBOX §1.2 — both proven
+> UNREACHABLE from the registered entry by `rule_fire_partition`), an `import p::*;`, a `timeunit 1ns;` or a
+> `` `timescale `` item no longer parses: `parseable_source_item := semi` is the whole rule, and the three lines
+> that follow it in the grammar (`| package_import_declaration`, `| timeunits_declaration`,
+> `| compiler_directive`) have been `//` comments since 2026-04-25.** `grammars/ebnf.ebnf:583-586` defines
+> `//` as a line comment; the hand-written frontend knew only `#`, read those lines as live alternatives (each
+> with an empty regex token from the `//`), and every release since carried them. The generated parser moves in
+> that ONE rule (`generated/systemverilog_parser.rs` `62fec0ab… → c82018f9…`); the other ten generated parsers
+> are byte-identical. **AST shape: UNCHANGED for every legal input; no `kind` added, removed or renamed.** The
+> semantic digest also moves for a second, envelope-only reason: 14 inline return-annotation payloads in 11
+> rules had carried the indented comment that followed them (classified `return_scalar`); the generator had
+> always re-read the balanced payload, so no parser output changes there — but from this release a
+> comment-only edit after an annotation no longer moves the digest this contract is keyed on (measured).
 > **Current-state note (2026-09-02, `SV-CORPUS-GRAD.13p` — GRAMMAR, release `1.0.204`, ledger
 > `SV-0077`, schema `26` UNCHANGED, ALL THREE profiles): a THIRD delay value on an n-input or
 > n-output gate, a pass-enable switch or a UDP instance no longer parses.** IEEE 1800-2017 §28.4
@@ -946,15 +961,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.204`
+  - `1.0.205`
 - Parser release version:
-  - `1.0.204`
-  - history: `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.205`
+  - history: `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `891b02cb654fd56ce19c032838985ca47781d21e7413e18ea082fc2a1e5295f4` (SV grammar semantic digest — sha256 of the
+  - `bd64ae30002c648f2eedcc98b3c2f8b5c7ae48fc568f862b1f85b971868b3527` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`

@@ -157,16 +157,21 @@ def cert_report(path: Path | None) -> str:
 
 
 def parse_cert(blob: str) -> tuple[set[str], set[str], dict[str, int]]:
-    m = re.search(r"UNKNOWN rules \(\d+ of \d+ shown\): \[(.*?)\]", blob, re.S)
-    if not m:
-        refuse("rule_fire_partition: the certificate report carries no UNKNOWN rule "
-                         "list — run it with PGEN_CERT_COVERAGE_DUMP_ALL=1. Refusing.")
     head = re.search(r"CERTIFICATE-COVERAGE: .*?total=(\d+) proof=(\d+) witness=(\d+) "
                      r"UNKNOWN=(\d+)", blob)
     if not head:
         refuse("rule_fire_partition: no CERTIFICATE-COVERAGE headline. Refusing.")
     totals = dict(zip(("total", "proof", "witness", "unknown"),
                       (int(head.group(i)) for i in (1, 2, 3, 4))))
+    m = re.search(r"UNKNOWN rules \(\d+ of \d+ shown\): \[(.*?)\]", blob, re.S)
+    if not m and totals["unknown"] != 0:
+        refuse("rule_fire_partition: the certificate report carries no UNKNOWN rule "
+                         "list — run it with PGEN_CERT_COVERAGE_DUMP_ALL=1. Refusing.")
+    # ⛔ EBNF-FRONTEND-SILENT-TRUNCATION.6 (2026-09-03): `ast_pipeline` prints the UNKNOWN list only when it
+    # is NON-EMPTY (rust/src/main.rs `if !report.unknown.is_empty()`), so on a FULLY CERTIFIED grammar
+    # (`UNKNOWN=0 fully_certified=true` — the SV grammar's state since `SV-CORPUS-GRAD.13p`) the list is
+    # absent and this instrument refused its own best case: `make sv_rule_fire_partition` had been
+    # unrunnable, and the tracked partition dated 2026-08-19. The headline's `UNKNOWN=0` IS the list.
     pm = re.search(r"PROOF-COVERED rules \(\d+ of \d+ shown\): \[(.*?)\]", blob, re.S)
     if not pm:
         refuse("rule_fire_partition: the certificate report carries no PROOF-COVERED rule list. "
@@ -180,7 +185,7 @@ def parse_cert(blob: str) -> tuple[set[str], set[str], dict[str, int]]:
     if len(proofs) != totals["proof"]:
         refuse(f"rule_fire_partition: the report says proof={totals['proof']} but its PROOF-COVERED "
                f"list holds {len(proofs)} names — the report contradicts itself. Refusing.")
-    return set(re.findall(r'"([^"]+)"', m.group(1))), proofs, totals
+    return set(re.findall(r'"([^"]+)"', m.group(1) if m else "")), proofs, totals
 
 
 def main() -> int:
