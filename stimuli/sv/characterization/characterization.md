@@ -31,7 +31,7 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 | results (output) | `stimuli/sv/characterization/results.tsv` | `ed240b8f1a485c90939cc14b388fc6dc21a10c8373e70c633ecc04b45cf5e514` |
 | positions (output) | `stimuli/sv/characterization/positions.tsv` | `02f49b65b83e199e33f2a00be081c7861078b17a686441b87ab83ec70ee97339` |
 
-Measured at `HEAD` = `f1d33865+dirty` (2026-09-03).
+Measured at `HEAD` = `e042b3e8` (2026-09-03).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -65,7 +65,7 @@ Measured at `HEAD` = `f1d33865+dirty` (2026-09-03).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `7.87` s — `stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `5.54` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 

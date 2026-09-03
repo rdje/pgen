@@ -393,6 +393,13 @@ now reads `UNKNOWN=0` from the headline as the empty list; re-derived: `coverage
 0 unadjudicated — `sv-rule-fire-partition: OK`. The generated-reproducibility baseline was rewritten by its
 own `--rebaseline` (the SV parser's new digest; the per-family `input_sha` values churn by design, since
 `generated/<family>.json` embeds a `generated_at` timestamp).
+(h) **Re-stamped clean** (`PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0003`): both lanes re-run on the clean tree
+`e042b3e8` — the reports had been measured at `f1d33865+dirty` because the identity rows must be written by the
+run that produced them. Only the `Measured at` lines (and the machine-dependent slowest-file timing) moved;
+`outcome-identity: OK` ×2, `match=5851 unexplained=268`, tuple `7556/2606/6174/4013/268`, denominator gate OK.
+The same commit republishes the book's grammar-certification table: `GRAMMAR-CERT-CURRENCY` refused because
+`systemverilog_recognized_cert_union_contract.json` led the published table by 33 commits (budget 10) — rot accrued
+before this tree touched anything, and the budget tripped here; re-derived by its producer (`--check` equal).
 
 **ACCEPTANCE CHECKLIST (TOOLBOX 3.5)**
 - [x] **ROOT CAUSE (WHY + WHERE)** — `git ls-files grammars/*.ebnf | wc -l` = 18 tracked grammars; `bash scripts/check_baseline_identity.sh

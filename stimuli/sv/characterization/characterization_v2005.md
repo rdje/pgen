@@ -31,7 +31,7 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 | results (output) | `stimuli/sv/characterization/results_v2005.tsv` | `1e1de0fc55110679a92cb1c6032a66010bf627361bea2fe908383c4ee4067bd9` |
 | positions (output) | `stimuli/sv/characterization/positions_v2005.tsv` | `7fee83d8b7b1ca2218c9e2fc25d0475f167d38c3a392a95954e1076193206b6c` |
 
-Measured at `HEAD` = `f1d33865+dirty` (2026-09-03).
+Measured at `HEAD` = `e042b3e8` (2026-09-03).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
