@@ -164,7 +164,7 @@ Leg 1 is the stimuli-generator proof, leg 2 is *gates green and invoked* — eve
 | `platform` | 3 | platform expansion around the parsers - a linter, an elaborator workbench, MCP control - rather than a parser |
 | **Total** | **62** | of the 113 trees the index carries |
 
-⚠️ **These counts are an UPPER BOUND, and the reason is measured.** A tree's status is prose in two places — the index row and the tree file's own metadata — and they DISAGREE on 3 of the 113 rows while 7 index rows carry no status word this reader recognises. Every one of those is counted OPEN, because over-reporting how much is left is the only safe direction for a page that says how much is left. Reconciling them is `DONE-BAR-VISIBILITY.8`; raising the item from a TREE to a LEAF is `DONE-BAR-VISIBILITY.7`.
+⚠️ **These counts are an UPPER BOUND, and the reason is measured.** A tree's status is prose in two places — the index row and the tree file's own metadata — and they DISAGREE on 3 of the 113 rows while 6 index rows carry no status word this reader recognises. Every one of those is counted OPEN, because over-reporting how much is left is the only safe direction for a page that says how much is left. Reconciling them is `DONE-BAR-VISIBILITY.8`; raising the item from a TREE to a LEAF is `DONE-BAR-VISIBILITY.7`.
 
 <!-- END DERIVED -->
 

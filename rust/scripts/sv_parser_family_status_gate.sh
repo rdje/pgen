@@ -18,6 +18,7 @@ SV_PREPROCESSOR_REACHABILITY_GATE="$RUST_DIR/scripts/sv_preprocessor_reachabilit
 SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_GATE="$RUST_DIR/scripts/sv_preprocessor_formal_exhaustive_closure_gate.sh"
 SV_SEMANTIC_SCOPE_CONTRACT_GATE="$RUST_DIR/scripts/sv_semantic_scope_contract_gate.sh"
 SV_FORMAL_EXHAUSTIVE_CLOSURE_GATE="$RUST_DIR/scripts/sv_formal_exhaustive_closure_gate.sh"
+SV_EXTERNAL_CORPUS_CONFORMANCE_GATE="$RUST_DIR/scripts/sv_external_corpus_conformance_gate.sh"
 
 EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_SYNTAX_CLOSURE_STATE_DIR:-}"
 EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR="${PGEN_SV_FAMILY_STATUS_EXISTING_SV_PREPROCESSOR_SYNTAX_CLOSURE_STATE_DIR:-}"
@@ -203,6 +204,7 @@ require_file "$SV_PREPROCESSOR_REACHABILITY_GATE"
 require_file "$SV_PREPROCESSOR_FORMAL_EXHAUSTIVE_CLOSURE_GATE"
 require_file "$SV_SEMANTIC_SCOPE_CONTRACT_GATE"
 require_file "$SV_FORMAL_EXHAUSTIVE_CLOSURE_GATE"
+require_file "$SV_EXTERNAL_CORPUS_CONFORMANCE_GATE"
 # CI-PARITY-GATE-ROT.7 — verify every supplied hand-off up front, in ONE place, before any stage
 # runs. Doing it here rather than at each use site means a caller cannot supply a bad value that
 # only bites twenty minutes later, and a NEW hand-off added below cannot forget the check.
@@ -546,6 +548,11 @@ fi
 # DONE-BAR.2a: leg 3 of the three-leg `Done` bar — evaluated per family from the done-bar
 # register via the shared helper. Snapshot the globals immediately after each call (the helper is
 # per-family stateful, and this gate evaluates TWO families).
+# DONE-BAR.3b: the leg-3 surface is PRODUCED here, by this run, before it is evaluated — never handed off
+# from a standalone default dir (FLOW-INTEGRITY item 5: a 3-day-old artifact was once consumed as current
+# proof). Its exit code is the regression bit (a regression against the recorded answer-key agreement fails
+# the family-status run outright); its `full_pass` bit is what family_done_bar_leg3 reads via the register.
+run_logged "sv_external_corpus_conformance_gate" env PGEN_SV_EXTERNAL_CORPUS_CONFORMANCE_STATE_DIR="$RUST_DIR/target/sv_external_corpus_conformance_gate" "$SV_EXTERNAL_CORPUS_CONFORMANCE_GATE"
 family_done_bar_leg3 "systemverilog" "$STATE_DIR"
 sv_external_corpus_conformance_pass="$DONE_BAR_LEG3_MET"
 sv_done_bar_leg3_qualifier="$DONE_BAR_PROVISIONAL_QUALIFIER"

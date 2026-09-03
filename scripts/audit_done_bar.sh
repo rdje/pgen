@@ -64,6 +64,7 @@ if ! bash "$ROOT/scripts/check_gate_reachability.sh" --json "$REACHABILITY_JSON"
 fi
 
 python3 - "$@" <<'PYEOF'
+import subprocess
 import json
 import os
 import re
@@ -350,6 +351,26 @@ def gate_ran_and_failed(gate):
 CONTROL_COUNT = 0
 
 
+def leg3_pass_from_artifact(entry, gate, summary_txt_path):
+    """(passed, why) for one conformance gate's artifact: the register's leg3_surface pass_query
+    (a jq boolean) evaluated over the summary.json beside the gate's summary.txt. No declared
+    surface for this gate, no summary.json, or a false query = not a pass, each named."""
+    surface = entry.get("leg3_surface") or {}
+    if surface.get("gate") != gate:
+        return False, f"artifact present but the register declares no leg3_surface pass assertion for {gate} — presence is not a pass"
+    query = surface.get("pass_query") or ""
+    summary_json = os.path.join(os.path.dirname(summary_txt_path), "summary.json")
+    if not query or not os.path.isfile(summary_json):
+        return False, f"artifact present but {'no pass_query declared' if not query else 'no summary.json beside summary.txt'} — presence is not a pass"
+    try:
+        r = subprocess.run(["jq", "-e", query, summary_json], capture_output=True, text=True)
+    except OSError as e:
+        return False, f"pass_query could not be evaluated ({e}) — an assertion that cannot run is not a pass"
+    if r.returncode == 0:
+        return True, f"pass_query `{query}` holds over {os.path.relpath(summary_json, ROOT) if 'ROOT' in globals() else summary_json}"
+    return False, f"pass_query `{query}` is FALSE over the artifact — leg 3 UNMET by the surface's own assertion"
+
+
 def control(label, got, want):
     """Assert a ground truth this repository measured independently of this script.
 
@@ -397,6 +418,19 @@ control("C5 reachability universe non-empty", len(rows) > 0, True)
 #      graph cannot see that edge it is under-reporting what runs.
 control("C6 vhdl_external_corpus_triage_gate runs",
         runs("vhdl_external_corpus_triage_gate"), True)
+# C7 (DONE-BAR.3b): a conformance artifact's PRESENCE is not a pass — the register's pass_query decides,
+# on literals: the same surface reads False over {"full_pass": false} and True over {"full_pass": true},
+# and no declared surface reads False whatever the artifact says.
+import tempfile
+_c7 = tempfile.mkdtemp(prefix="c7.", dir=os.path.join(ROOT, "rust", "target") if os.path.isdir(os.path.join(ROOT, "rust", "target")) else None)
+_c7_txt = os.path.join(_c7, "summary.txt"); open(_c7_txt, "w").write("gate: x\n")
+_c7_entry = {"leg3_surface": {"gate": "x_conformance_gate", "summary_json": "s", "pass_query": ".full_pass == true"}}
+open(os.path.join(_c7, "summary.json"), "w").write('{"full_pass": false}')
+control("C7 conformance artifact with full_pass=false is NOT a pass", leg3_pass_from_artifact(_c7_entry, "x_conformance_gate", _c7_txt)[0], False)
+open(os.path.join(_c7, "summary.json"), "w").write('{"full_pass": true}')
+control("C7 conformance artifact with full_pass=true IS a pass", leg3_pass_from_artifact(_c7_entry, "x_conformance_gate", _c7_txt)[0], True)
+control("C7 an artifact with NO declared surface is not a pass", leg3_pass_from_artifact({"leg3_surface": None}, "x_conformance_gate", _c7_txt)[0], False)
+import shutil; shutil.rmtree(_c7, ignore_errors=True)
 
 # C7 — and the converse arm, or C6 would pass a graph that says everything runs:
 #      regex_corpus_bundle_contract_gate is referenced ONLY by ci_workflow_local_gate.sh's
@@ -691,7 +725,15 @@ def leg3(family, report):
         if art is None:
             report.append("    ⚠️ no artifact on this machine — result UNPROVEN")
             continue
-        met_any = True
+        # ⛔ DONE-BAR.3b (2026-09-03): PRESENCE IS NOT A PASS. Until this line the loop set met_any on
+        # any artifact, so the first conformance gate ever declared — whose artifact honestly records
+        # full_pass=false (268 known defects, 6 174 no-verdict rows) — would have read leg 3 MET here
+        # while the family-status gate, which evaluates the register's pass_query, read UNMET. Both
+        # readers now ask the same question of the same artifact.
+        passed, why = leg3_pass_from_artifact(entry, g, art[0])
+        report.append(f"    {'✅' if passed else '⛔'} {why}")
+        if passed:
+            met_any = True
     return MET if met_any else UNMET
 
 

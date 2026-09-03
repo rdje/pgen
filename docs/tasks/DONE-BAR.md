@@ -836,7 +836,63 @@ table rendered three blank columns, not because the logic was re-read. ⇒ the p
   run would burn **5 hours** to re-confirm this same blocker. The gate is right and the tracker is
   stale ⇒ **`.2` should land before that run**, or the run is waste.
 
-### `.3` — close the external-corpus gap (`todo`)
+### `.3` — close the external-corpus gap (`todo`; ⭐ `.3b` DONE 2026-09-03 — the SV conformance SURFACE exists and is honest; leg 3 stays UNMET by that surface's own number)
+
+#### ✅✅ `.3b` — the SystemVerilog external-corpus CONFORMANCE gate + the register's `leg3_surface`, and the audit no longer reads an artifact's PRESENCE as a pass (`done` 2026-09-03, `PGEN-DONE-BAR-0022`)
+
+- **What leg 3 lacked, measured by `.1` and still true this morning**: the only gate reading this family's
+  corpus was `sv_external_corpus_triage_gate` — a TRIAGE gate ("characterize, don't game") that asserts nothing —
+  and every corpus-named gate in the repository was an `ORPHAN` (`sv_external_corpus_triage_gate`,
+  `verilog_2005_conformance_gate`, `sv_combined_telemetry_contract_gate`: invokers `[]`). The register's
+  `leg3_surface` was `null` for every family; nobody had ever exercised `family_done_bar_leg3`'s surface path.
+- **What landed.** `rust/scripts/sv_external_corpus_conformance_gate.sh` (+ `make sv_external_corpus_conformance_gate`):
+  re-measures **both** lanes of the vendored third-party corpus under the declared roots (`stimuli/sv/subs`,
+  `stimuli/sv/uvm`) into a scratch state dir through the tracked runner, adjudicates the fresh outcomes against
+  the answer keys, and compares them with the TRACKED adjudication via `stimuli/sv/corpus_conformance_compare.py`
+  (pure, self-tested on literals): **the exit code is the regression bit** — a tracked `match` that stops
+  matching, or an explained divergence turned unexplained, fails the gate — and **`full_pass` is leg 3's bit**
+  (every row adjudicated, zero unexplained), recorded in `summary.json` and read by the register's
+  `pass_query: ".full_pass == true"`. The two bits are deliberately different questions: "did the parser regress
+  against what we recorded?" and "does the corpus PASS?". The family-status battery now PRODUCES the surface in
+  the same run before evaluating it (no standalone-default hand-off, FLOW-INTEGRITY item 5), so the gate is
+  `reachable` (invokers: aggregate, ci-workflow-manual, sota-policy) — the first corpus-named gate in this
+  repository that is.
+- ⛔ **The audit had the hole the surface would have fallen through.** `scripts/audit_done_bar.sh`'s leg-3 loop set
+  `met_any = True` on ANY artifact of a non-triage, external-backed, invoked corpus gate — it never evaluated the
+  pass assertion. The first honest artifact ever produced (`full_pass: false`) would have made the local audit
+  read leg 3 MET while the family-status gate read UNMET. Fixed: `leg3_pass_from_artifact` evaluates the
+  register's `pass_query` over the gate's `summary.json`; no declared surface / no query / a false query = not a
+  pass, each named; controls C7 pin the three cells on literals.
+- ⭐ **What this does and does not do for the bar.** It does not move leg 3 to MET — and must not: the bar reads
+  *"the external corpus, PASSING"*, and 268 known defects plus 6 174 no-verdict rows stand. It converts leg 3's
+  distance from *"no conformance gate exists"* into **a number the surface itself publishes on every run**, holds
+  the recorded answer-key agreement as a ratchet (a regression fails the family-status run outright), and makes
+  the bar's remaining distance the same object `SV-CORPUS-GRAD.13` burns down. The audit's local view now reads
+  the surface's own verdict; the book's tracked view stays UNPROVEN by policy (artifacts under `rust/target/` are
+  never tracked), which is a separate, deliberate limit of the publishing model.
+
+**ACCEPTANCE CHECKLIST (TOOLBOX 3.5)**
+- [x] **ROOT CAUSE (WHY + WHERE)** — `git ls-files 'rust/scripts/*.sh' | grep -c 'corpus\|conformance'` named three
+  corpus-facing SV gates and the reachability derivation read every one `ORPHAN` (invokers `[]`); the audit's leg-3
+  line for `systemverilog` read *"the only gate reading the external corpus is a TRIAGE gate"*; the register's
+  `leg3_surface` was `null` for all ten families; and `scripts/audit_done_bar.sh` set `met_any = True` on any
+  artifact (WHERE: the `leg3()` loop after `find_artifact`). WHY: no conformance gate had ever been written, and the
+  audit had never had a surface to evaluate.
+- [x] **ADDRESSED (verified)** — bank `docs/tasks/artifacts/done_bar/sv_external_corpus_conformance/probe.sh` **8/8**:
+  the compare module's literal ground truth (11 arms), RED through the real CLI (a match that stops matching → exit 1
+  naming the regression), the identical-manifest GREEN (exit 0, `full_pass=False` named as leg 3's bit), the
+  register + external-backed script, the REAL artifact equal to the published tuple (`5851/268/2606/6174/16336`,
+  `no_regression=true`, `full_pass=false`), the family-status evaluator reading UNMET with *"does NOT satisfy its
+  declared pass assertion"*, a triage surface REFUSED (rc 2), and the audit — no traceback — printing *"pass_query
+  `.full_pass == true` is FALSE over the artifact"*. Reachability: the gate is `reachable` (aggregate,
+  ci-workflow-manual, sota-policy); flow-integrity OK.
+- [x] **NO REGRESSION** — the gate's own verdict on the tree: **0 regressions, 0 improvements, 0 observed flips** on
+  both lanes; fresh and tracked manifests byte-identical (`cdbcdc25…` both); every published family-status block
+  equals a fresh derivation after the republish (`check_family_status.sh` OK); ZERO Rust / grammar / generated bytes.
+  `GENERATED-REPRODUCIBILITY` re-keyed by the Makefile edit (its emission digest covers the recipe file): tier 2
+  re-derived all eleven artifacts byte-identically and the baseline was rewritten with every `parser_sha` unchanged.
+
+`promotion:` knowledge card `docs/knowledge/presence-is-not-a-pass-a-conformance-surface-records-its-own-verdict.md`.
 
 #### `.3a` — wire ANVIL as the independent generator for `rtl_frontend` / `rtl_const_expr` (`in progress`)
 

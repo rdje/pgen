@@ -1,5 +1,17 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-DONE-BAR-0022 (presence is not a pass)
+
+- ⭐⭐ **THE LESSON: A CONFORMANCE SURFACE HAS TWO BITS, AND THE ARTIFACT'S EXISTENCE IS NEITHER.** The exit code
+  answers "did we regress against what we recorded?"; `full_pass` answers "does the corpus pass?". The done-bar
+  audit answered leg 3 with a third thing — "is there an artifact?" — and the first honest artifact would have
+  made it say MET while the family-status gate said UNMET. Every reader evaluates the same declared assertion now.
+- **Build the surface the evaluator expects, then wire it where it is PRODUCED.** The register's `leg3_surface`
+  had never been exercised; the family-status battery produces the artifact in the same run it evaluates.
+- **Do not let the instrument reinterpret the bar.** "PASSING" is a full pass; the surface publishes the distance
+  (268 + 6 174) instead of quietly narrowing the question to "no regression".
+- `promotion:` knowledge card `presence-is-not-a-pass-a-conformance-surface-records-its-own-verdict`.
+
 ## 2026-09-03 - PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0007 (one decoder for everything a human authored)
 
 - **THE LESSON: USER-AUTHORED TEXT GETS ONE DECODER, AND THE LINE BETWEEN "USER-AUTHORED" AND "GENERATED" IS THE

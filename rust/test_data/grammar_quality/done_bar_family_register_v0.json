@@ -22,7 +22,12 @@
       ],
       "language_owner": "external-standard",
       "standard": "IEEE 1800 SystemVerilog LRM",
-      "leg3_surface": null
+      "leg3_surface": {
+        "gate": "sv_external_corpus_conformance_gate",
+        "summary_json": "rust/target/sv_external_corpus_conformance_gate/summary.json",
+        "pass_query": ".full_pass == true",
+        "declared": "2026-09-03, DONE-BAR.3b: the gate re-measures stimuli/sv/subs + stimuli/sv/uvm into scratch, adjudicates against the answer keys and FAILS on any regression of the tracked agreement; full_pass (every row adjudicated, zero unexplained) is the leg-3 bit and is FALSE today — 268 known defects and 6 174 no-verdict rows stand between this family and Done"
+      }
     },
     "systemverilog_preprocessor": {
       "claimed_status": "Provisional (corpus pending)",

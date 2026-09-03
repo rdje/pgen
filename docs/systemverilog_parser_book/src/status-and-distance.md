@@ -40,7 +40,7 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 | Leg | State | Why, derived from the tracked tree |
 |---|---|---|
 | 1 — stimuli-generator proof | ⚠️ **UNPROVEN** | rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
-| 2 — gates green and invoked | ⛔ **UNMET** | 16 covering gate targets, 15 invoked, 1 invoked by nothing (sv_combined_telemetry_contract_gate); rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
+| 2 — gates green and invoked | ⛔ **UNMET** | 17 covering gate targets, 16 invoked, 1 invoked by nothing (sv_combined_telemetry_contract_gate); rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it |
 | 3 — external corpus passing | ⛔ **UNMET** | the only gate reading the external corpus is a TRIAGE gate, and a triage gate is not a conformance gate |
 
 **Corpus.** Denominator: every row of the SystemVerilog corpus adjudication manifests over stimuli/sv/subs + stimuli/sv/uvm — **16 336 rows**, counted by `stimuli/sv/corpus_verdict_coverage.py` and held current by `bash scripts/check_sv_corpus_denominator.sh`.
@@ -60,7 +60,7 @@ Only **7 556 rows (46.3 %)** were asked a question they could answer, and **4 01
 
 | Open tree | Status verdict | Where the detail lives |
 |---|---|---|
-| `SV-CORPUS-GRAD` | ⚠️ the index row carries no status word; counted OPEN | [`docs/tasks/SV-CORPUS-GRAD.md`](../../tasks/SV-CORPUS-GRAD.md) |
+| `SV-CORPUS-GRAD` | open | [`docs/tasks/SV-CORPUS-GRAD.md`](../../tasks/SV-CORPUS-GRAD.md) |
 | `SV-EXH-PROOF` | open | [`docs/tasks/SV-EXH-PROOF.md`](../../tasks/SV-EXH-PROOF.md) |
 | `SV-PARSE-STRICT` | open | [`docs/tasks/SV-PARSE-STRICT.md`](../../tasks/SV-PARSE-STRICT.md) |
 | `SV-REPLAY-DEBT` | open | [`docs/tasks/SV-REPLAY-DEBT.md`](../../tasks/SV-REPLAY-DEBT.md) |

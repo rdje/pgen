@@ -1347,6 +1347,15 @@ sv_external_corpus_triage_gate:
 	cd $(RUST_DIR) && ./scripts/sv_external_corpus_triage_gate.sh
 	@echo "✅ SystemVerilog external corpus triage gate completed."
 
+# DONE-BAR.3b — the SystemVerilog external-corpus CONFORMANCE gate (leg 3's surface): re-measures both corpus
+# lanes into scratch, adjudicates, and FAILS on any regression against the tracked answer-key agreement;
+# records `full_pass` (every row adjudicated, zero unexplained) for the register's leg3_surface pass_query.
+.PHONY: sv_external_corpus_conformance_gate
+sv_external_corpus_conformance_gate:
+	@echo "🧪 Running SystemVerilog external corpus CONFORMANCE gate (~3 min: both lanes re-measured into scratch)..."
+	cd $(RUST_DIR) && ./scripts/sv_external_corpus_conformance_gate.sh
+	@echo "✅ SystemVerilog external corpus conformance gate: no regression against the recorded adjudication."
+
 .PHONY: regex_parser_family_contract_gate
 regex_parser_family_contract_gate:
 	@echo "🧪 Running regex parser-family contract gate..."
