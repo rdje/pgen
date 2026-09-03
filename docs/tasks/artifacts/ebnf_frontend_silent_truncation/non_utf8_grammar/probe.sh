@@ -32,6 +32,7 @@ out="$("$AP" $FX/encoding_corrupt_bom.ebnf --emit-raw-ast-json "$W/c.json" 2>&1)
 printf '%s\n' "$FX/encoding_latin1.ebnf" > "$W/l.txt"; out="$(PGEN_ALTERNATIVE_PARITY_GRAMMARS="$W/l.txt" bash $G 2>&1)"; rc=$?
 [ $rc -eq 0 ] && printf '%s' "$out" | grep -q 'OK (grammars=1 rules=3 not_evaluated=0)' && ok "6  GREEN: doctrine 36 on the Latin-1 grammar: both readers read it, 3 rules agree" || ko "6 rc=$rc" "$out"
 # 7 STRUCTURAL: no grammar reader calls fs::read_to_string any more (the four sites of the .12c.1 enumeration)
-n=$(grep -c 'fs::read_to_string(' rust/src/ebnf_frontend.rs rust/src/bin/ebnf_dual_run_diff.rs | awk -F: '{s+=$2} END{print s}')  # CALLS, not the comment that names the old call; m=$(grep -n 'expect("read grammar file")' -B2 rust/src/parser_registry.rs | grep -c 'read_source_file')
+n=$(grep -c 'fs::read_to_string(' rust/src/ebnf_frontend.rs rust/src/bin/ebnf_dual_run_diff.rs | awk -F: '{s+=$2} END{print s}')  # CALLS, not the comment that names the old call
+m=$(grep -n 'expect("read grammar file")' -B2 rust/src/parser_registry.rs | grep -c 'read_source_file')
 [ "$n" -eq 0 ] && [ "$m" -eq 1 ] && ok "7  STRUCTURAL: 0 fs::read_to_string in the frontend + dual-run; the registry's grammar scan reads through source_text" || ko "7 n=$n m=$m"
 printf 'NON-UTF8-GRAMMAR: %d/%d as declared\n' "$pass" "$((pass+fail))"; [ "$fail" -eq 0 ]

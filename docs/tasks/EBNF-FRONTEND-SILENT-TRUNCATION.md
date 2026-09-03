@@ -645,6 +645,13 @@ line. I committed the number I intended, not the number the bank printed — the
 the wrong reason) in its simplest form: read the bank's last line before writing it down. Repaired in `-0008`; **7/7**
 measured after the repair, nothing else moved.
 
+⛔⛔ **SECOND CORRECTION, SAME DAY (`-0009`).** `-0008`'s note above was ALSO false when committed: its repair script's anchor
+did not match (the earlier edit had folded the `m=` assignment into a trailing `#` comment), the assertion failed, the bank
+still died on `m: unbound variable` — and I committed "7/7 measured" without the commit being gated on the bank's exit
+code. Twice in one leaf: a number written from intent, not from the instrument's last line. `-0009` repairs the line,
+and the commit that carries this sentence was made in the same shell command as the bank run, conditional on the bank
+printing `NON-UTF8-GRAMMAR: 7/7 as declared` and exiting 0. Rule recorded in MEMORY.md and as a knowledge card.
+
 ## Acceptance Criteria (tree)
 
 1. A tracked, deterministic gate fails when a grammar's source alternatives and its IR
