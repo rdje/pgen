@@ -21552,3 +21552,131 @@ cross) and a new blocking doctrine.
 - [x] **LOCKSTEP** — this leaf; `accepted_rises.tsv` rows naming the exact from/to; the
       `SV-CORPUS-GRAD.13o` closure section; `docs/TASK_TREE.md`; `CHANGES.md`;
       `DEVELOPMENT_NOTES.md`; `MEMORY.md`.
+
+### ⛔ `.89` — **THE EXISTENCE PREDICATES ARE STORE-WIDE: A FACT EMITTED INTO A SCOPE THAT HAS SINCE CLOSED STILL SATISFIES `has_fact` FROM THE SCOPE OUTSIDE IT, SO A GRAMMAR CANNOT USE `@emit_fact` + `@open_scope`/`@close_scope` TO DECLARE A NAME *ONLY INSIDE* A REGION — THE BOOK SAID IT COULD** (`todo`, ROUTED + PARKED, not SV-blocking — opened 2026-09-03 by `SV-CORPUS-GRAD.3.29` / `PGEN-SV-CORPUS-GRAD-0347`)
+
+- ⭐ **HOW IT WAS FOUND — by the fix the leaf had pre-registered going RED on its own invalid pin.**
+  `SV-CORPUS-GRAD.3.29` had to make `CrossValType` / `CrossQueueType` type names *in the body of a
+  cross and nowhere else* (IEEE 1800-2017 §19.6.1.3, `section-19-functional-coverage.md:1307`). The
+  pre-registered shape was the typedef idiom scoped: `@open_scope: { kind: cross }` on a `{` marker,
+  two `@emit_fact: { kind: type_name, … }` on the same marker, `@close_scope` on the `}` marker. The
+  fixed pins flipped to ACCEPT — and so did the invalid pin
+  (`stimuli/sv/adjudication_repros/invalid_cross_predefined_type_after_cross.sv`, `CrossQueueType q;`
+  at module level AFTER the endgroup).
+- ✅ **MEASURED (interpreter, `PGEN_TRACE_VERBOSITY=high`, the grammar with the emits in place):**
+  `🔓 @open_scope kind=Custom("cross") name=None new_id=ScopeId(1) parent=Some(ScopeId(0)) new_depth=2` ·
+  `📥 @emit_fact kind=type_name name=Identifier("CrossValType") scope_depth=1 scope_id=ScopeId(1)` ·
+  `📥 @emit_fact kind=type_name name=Identifier("CrossQueueType") scope_depth=1 scope_id=ScopeId(1)` ·
+  `🔒 @close_scope OK id=Some(ScopeId(1)) frame=Some((Custom("cross"), None)) new_depth=0` · and then, from
+  the module scope, `🔍 has_fact(kind=type_name, name=Identifier("CrossQueueType")) → true`. The scope
+  machinery did everything the book describes; the QUERY ignored it.
+- **WHY + WHERE (source, not inference):** `rust/src/ast_pipeline/semantic_runtime.rs` —
+  `"has_fact" => … self.fact_index.any_with_name(expected_kind, &expected_name)` and `any_with_name`'s
+  own doc comment: *"O(1)-average existence check across the whole store: is there any fact of `kind`
+  with this `name` (in any scope_depth)?"*. The index is keyed `(scope_depth, name)`, not by scope id,
+  and nothing in the existence family (`has_fact`, `lacks_fact`, `has_fact_attribute`,
+  `fact_attribute_equals`, `lacks_fact_attribute_equals`, `fact_count_at_least`) consults
+  `active_chain`. The scope-aware primitives are `has_fact_in_current_scope` (DEPTH-keyed via
+  `any_with_name_at_scope` — a closed sibling at the same depth still matches), `in_scope_kind` /
+  `not_in_scope_kind` (walk `active_chain`, `active_scope_chain_has_kind`) and `resolve_path`.
+- ⛔ **THE BOOK OVERSTATED IT.** `docs/book/src/semantic-store.md` §2 read *"When you query for a
+  fact, the store walks the active scope chain from innermost to outermost — exactly the visibility
+  rule you'd want"* and §6 captioned `has_fact` *"Does any fact of this (kind, name) exist in scope?"*.
+  `docs/proposals/CONTEXT_AWARE_PARSING_DESIGN.md:69` states the same intent (*"queries walk the scope
+  chain from innermost to outermost"*). Corrected in the book by `-0347` to what the engine does; the
+  design document keeps its intent and this leaf is the gap between the two.
+- ⛔ **NOT A ONE-LINE FIX, AND WHY: a grammar DEPENDS on the store-wide reading.** `grammars/regex.ebnf:572`
+  `@predicate: { name: has_fact, args: [regex_defined_capture_name, $ref], phase: final, view: shaped }`
+  checks at parse completion that a named back-reference names a group that was DEFINED — and a
+  group defined inside a lookaround (`(?=(?<n>a))\k<n>`) is emitted inside a `lookaround` scope that
+  closed long before `final` runs. Making `has_fact` chain-visible would turn valid PCRE into a
+  rejection. So the store-wide semantics are load-bearing, and the missing thing is a SECOND,
+  opt-in, chain-visible existence query (or a per-`@fact_kind` `visibility:` declaration — default
+  `store`, opt-in `lexical`), never a change to `has_fact`'s meaning.
+- **PRICED (not built):** (a) a `has_fact_visible(kind, name)` primitive = any fact of `kind`+`name`
+  whose `scope_id ∈ active_chain` (the record already carries `scope_id`; `find_fact_position_by_name_in_scope`
+  is the one-scope form of it) plus the `lacks_`/`_attribute_equals` twins the SV grammar's
+  `type_name` gates use at ~12 sites; (b) a `visibility: lexical` field on `@fact_kind` so a kind
+  declares chain-visibility once and every existing query respects it (zero grammar edits at the
+  use-sites; regex's kinds keep the default). Either needs `DESIGN-PRIOR-ART` (a new annotation
+  surface), the 1.8 interpreter-parity suite extended with a closed-scope arm, and the book. (b) is the
+  smaller blast radius for SystemVerilog, whose facts today ALL live in `ScopeId(0)` — no existing
+  verdict can move — and it is the shape SystemVerilog will need anyway the day modules, classes
+  and packages open scopes (today a typedef declared in one module is visible in the next).
+- **WHY PARKED:** `SV-CORPUS-GRAD.3.29` shipped without it. Containment (`in_scope_kind(cross)` as a
+  `post` predicate on a terminal recognizer) is the sound spelling for two names the LRM predefines, and
+  it has no leak by construction. This leaf becomes SV-blocking only when a construct needs a
+  *file-declared* name to be region-scoped — none is in the axis-2 bar today (`.13w`'s 199
+  `residual:not_parsed_with_declarations` rows are the population to watch).
+- ✅ **REPRODUCED OUTSIDE SYSTEMVERILOG, AND BANKED** —
+  `docs/tasks/artifacts/engine_universal_services/eus89_store_wide_has_fact/probe.sh` (`scope_leak.ebnf`,
+  six rules: `{x}` opens a `region` scope, emits `(nm, T)` into it, closes it; `T` is gated by
+  `has_fact(nm, T)`): input `{x}T` → `accepted=true`; the RED control `scope_ctrl.ebnf` (same gate, no
+  region) on `T` → `accepted=false`. **`eus89 probe: 2/2 as declared (fail=0)`**, interpreter, no codegen.
+  Re-run it when this leaf lands: arm A1 must then flip to REJECT, and the expectation is flipped
+  deliberately, never silently.
+- **ROUTING EVIDENCE lives in the opening tree** (`docs/tasks/SV-CORPUS-GRAD.md`, *ROUTING EVIDENCE*
+  section, `.3.29` → `.89`).
+
+### ⛔ `.90` — **AN ORDERED CHOICE ENTERS A RULE WHOSE FIRST TERMINAL CANNOT MATCH, AND A `pre` PREDICATE THAT READS THE STORE ON THE REFUSAL PATH EPOCH-TAINTS EVERY CALLER'S CACHED FAILURE — the two engine-tier costs a scope-gated recognizer pays, measured on `SV-CORPUS-GRAD.3.29` and PRICED here** (`todo`, ROUTED + PARKED, not SV-blocking — opened 2026-09-03 by `SV-CORPUS-GRAD.3.29` / `PGEN-SV-CORPUS-GRAD-0347`)
+
+- ⭐ **HOW IT WAS FOUND — by `PARSE-COST-RATCHET` refusing three spellings of one two-name recognizer.**
+  `SV-CORPUS-GRAD.3.29` admits `CrossValType` / `CrossQueueType` at the two unscoped type use-sites
+  only while a `cross` scope is open. Every spelling that checks the two names at a type position
+  costs something outside a cross, because `checked_type_identifier` REFUSES most of its attempts
+  (on `opentitan/…/pinmux_reg_top.sv` it commits on none of 22 889) and the check must run where it
+  refused. Three cuts, each measured on the pinned sample:
+  1. a dispatcher rule tried FIRST at every use-site — `entries` +2 419 875 (+0.59 %), `memo_hits`
+     +1 162 020 (+0.63 %): a dispatcher entry plus a recognizer entry per attempt (22 889 each on
+     `pinmux_reg_top.sv`);
+  2. the recognizer as an ORDERED second branch at the callers, its scope check a `pre` predicate —
+     `entries` +2 154 348 (+0.52 %), `memo_hits` +1 162 020: the recognizer's own 264 259 entries plus
+     ~44 900 re-entries of EVERY `data_type` alternative, `trivia` +316 881, and deep parents LOSING
+     replays (`named_parameter_assignment` −23 336, `ordered_parameter_assignment` −7 899,
+     `data_type` −2 801) — the `.88` eviction shape from a different cause;
+  3. the same, the scope check a `post` predicate — on the three heaviest pinned files (debug probe,
+     protocol-graph counters, deterministic): entries **+55 867 / +53 338 / +49 978** over the
+     tracked per-file baseline, memo hits **+18 971 / +18 172 / +17 020**, versus cut 2's
+     **+168 592 / +89 890** on the lightest of the three; on the whole pinned sample (release probe,
+     the ratchet's own table): `entries` **412,344,580 → 412,979,398 (+634 818, +0.15 %)** in exactly
+     three rules — `cross_predefined_type_identifier` **+219 314**, `cross_predefined_type_name`
+     **+207 752**, `trivia` **+207 752** — `memo_hits` **+219 314** (trivia +207 752, recognizer
+     +11 562), `committed` **0**, no rule fell. The residual is the recognizer, its terminal and the
+     terminal's layout read, once per refused type attempt; ACCEPTED through
+     `contained_in_introduced_subgraph` (two rows in `accepted_rises.tsv`, exact from/to, this leaf as
+     the elimination owner).
+- ✅ **WHY + WHERE, cut 2 (the taint):** `MEMO-STORE-SOUNDNESS.2` stamps a cached FAILURE with the
+  store's `write_epoch` when the failing parse READ the store, and replays it only while the epoch is
+  unchanged (`memo_fail_tainted` in the generated `memoized_call`). A `pre` `in_scope_kind` evaluated
+  on the refusal path is such a read, so the callers' failures — cached UNSTAMPED before the change,
+  because `checked_type_identifier`'s `has_fact` read is rolled back with its rejected transaction —
+  became epoch-stamped, and every later `variable_binding` emission re-ran them. That is not a bug in
+  the memo (the stamp is what keeps the memo sound under scope changes); it is a cost the grammar
+  author cannot see and the toolbox did not name. Now named: **put a store-reading predicate on a hot
+  refusal path only as `post`, so the store is read once the text has matched.**
+- ✅ **WHY + WHERE, cut 3 (the residual):** the ordered choice at `known_unscoped_data_type_identifier`
+  ENTERS `cross_predefined_type_identifier` (a rule entry, counted) and then its terminal
+  `cross_predefined_type_name := trivia /(?:CrossValType|CrossQueueType)\b/` (a second entry, plus the
+  layout read) at every position where branch 1 refused, although the terminal's FIRST set is two
+  literal spellings and the text there almost never begins with either. A PEG engine that computed
+  FIRST sets for ordered choices and skipped a branch whose first terminal cannot match at the current
+  byte would make cut 3 cost **zero entries** outside a cross — and would remove the same class of
+  refused entries across every ordered choice in every grammar (`data_type`'s twelve alternatives are
+  tried in sequence at every declaration-shaped position today). That is the engine-tier
+  elimination; nothing at the grammar tier removes the last entry.
+- **PRICED (not built):** (a) FIRST-set prediction for ordered choices — derive per-branch first-byte
+  /first-regex sets in the generator (the fusibility census, TOOLBOX 5.3, already knows which rules
+  begin with a terminal), emit a byte-class guard before the branch call, and keep it OUT of the
+  protocol/fused-graph equivalence by construction (a skipped branch could not have matched); the
+  ratchet is the oracle — expected to read an IMPROVEMENT, promoted deliberately. (b) Classify
+  `in_scope_kind` / `not_in_scope_kind` reads as CHAIN reads and stamp them with a scope epoch
+  rather than the fact epoch, so a `pre` scope gate on a refusal path taints only until the NEXT
+  scope open/close — a smaller, exact fix for the taint alone. (a) subsumes (b) for this recognizer;
+  (b) is the general answer for any `pre` scope gate. Either is an agnostic engine change and needs
+  its own arms (TOOLBOX 3.7b) before a number is quoted.
+- **WHY PARKED:** `.3.29` ships cut 3 with the residual ACCEPTED through the ratchet's coded, re-derived
+  `contained_in_introduced_subgraph` invariant (its `accepted_rises.tsv` rows carry the exact
+  from/to and this leaf as the owner of the elimination); the accept-set and the AST are exactly
+  what the LRM asks, and the cost is confined to the construct that caused it. This leaf is the
+  measurement that says the rise was confined, NOT that it was unavoidable — the honest bound the
+  invariant's own docstring states.

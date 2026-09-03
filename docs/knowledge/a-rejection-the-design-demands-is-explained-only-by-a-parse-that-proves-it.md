@@ -37,8 +37,11 @@ bar, with the search's residual reason in its basis — the next defect slice st
 - an **unresolved wildcard import** is in scope — the boundary says ACCEPT there, so a rejection
   is the gate being unsound: a defect for `SV-PARSE-STRICT`, not an explanation;
 - a package **`export`** — visibility the file cannot settle on its own;
-- a name the **LRM predefines** (`CrossValType`/`CrossQueueType`, IEEE 1800-2017 19.6.1.4) — the
-  file owes no declaration, so the demand itself is a grammar defect.
+- a name the **LRM predefines** (`CrossValType`/`CrossQueueType`, IEEE 1800-2017 §19.6.1.3,
+  `section-19-functional-coverage.md:1307` — §19.6.1.4 is the example that USES them, which is the
+  clause label this card first carried) — the file owes no declaration, so the demand itself is a
+  grammar defect. That defect was fixed by `SV-CORPUS-GRAD.3.29` (release `1.0.206`): the cross
+  body opens a `cross` scope and the two names are admitted as type names only inside it.
 
 Each is decided mechanically before the class is granted, and each has a RED arm.
 

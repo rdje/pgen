@@ -193,6 +193,8 @@ cover_sequence_statement	98514	0	0
 covergroup_declaration	81231	0	1380
 covergroup_declaration_sv_2017	79851	0	0
 covergroup_identifier	225373	1481	0
+cross_predefined_type_identifier	219314	0	11562
+cross_predefined_type_name	207752	0	0
 current_state	2	0	0
 cycle_delay	27157	0	59
 cycle_delay_range	2703	2	3
@@ -1002,7 +1004,7 @@ time_unit	201312	7	3
 timeunit_separator_slash	2	2	0
 timeunit_separator_trivia	2	2	0
 timeunits_declaration	80452	5	1309
-trivia	88737446	1192158	86446548
+trivia	88945198	1192158	86654300
 type_assignment	40	20	0
 type_assignment_sv_2017	40	20	0
 type_declaration	113075	570	1184

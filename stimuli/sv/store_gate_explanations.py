@@ -23,7 +23,9 @@ THE PROOF, PER ROW, BY PARSING. Nothing here is relabelled by argument. A row ea
      `SV-PARSE-STRICT`, and the row stays in the bar with that reason;
   3. no package `export` — visibility the file cannot settle on its own;
   4. none of the demanded names is a type the LRM PREDEFINES (`CrossValType`/`CrossQueueType`
-     inside a `cross`, IEEE 1800-2017 19.6.1.4): the file owes no declaration for those, so the
+     inside a `cross`, IEEE 1800-2017 §19.6.1.3 — section-19-functional-coverage.md:1307, the
+     clause that DEFINES them; §19.6.1.4 is the example that uses them): the file owes no
+     declaration for those, so the
      demand itself is a grammar defect and the row stays in the bar.
 
 THE MEMO. Measuring costs a real parse per round per row (~3 min for 250 rows), so the verdicts
@@ -58,8 +60,12 @@ PROFILES = {"sv_2017": "sv_2017", "verilog_2005": "verilog_2005"}
 
 # Types the LRM predefines: the file owes no declaration, so a parser that demands one is wrong.
 PREDEFINED_TYPE_NAMES = {
-    "CrossValType": "IEEE 1800-2017 19.6.1.4 (predefined inside a `cross`)",
-    "CrossQueueType": "IEEE 1800-2017 19.6.1.4 (predefined inside a `cross`)",
+    # §19.6.1.3 (section-19-functional-coverage.md:1307 / :1320) DEFINES them as implicit typedefs in the
+    # body of the cross; §19.6.1.4 (:1373) is the standard's example that USES them. SV-CORPUS-GRAD.3.29
+    # (release 1.0.206) taught the grammar both names, so a demand for either is a residual only if a
+    # cross is NOT the scope the parser was in — the class stays as a guard, not as a live population.
+    "CrossValType": "IEEE 1800-2017 §19.6.1.3 (predefined inside a `cross`)",
+    "CrossQueueType": "IEEE 1800-2017 §19.6.1.3 (predefined inside a `cross`)",
 }
 WILDCARD_IMPORT_RE = re.compile(r"\bimport\s+([A-Za-z_]\w*)\s*::\s*\*")
 PACKAGE_DECL_RE = re.compile(r"\bpackage\b\s+(?:automatic\s+|static\s+)?([A-Za-z_]\w*)")

@@ -5,6 +5,40 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-09-03, `SV-CORPUS-GRAD.3.29` — GRAMMAR, release `1.0.206`, ledger `SV-0079`,
+> schema `26` UNCHANGED, `sv_2017` + `sv_2023` WIDEN, `verilog_2005` unchanged): a `cross` body's two implicit
+> typedefs, `CrossValType` and `CrossQueueType`, now parse as type names inside the cross — and nowhere else.**
+> IEEE 1800-2017 §19.6.1.3 (`section-19-functional-coverage.md:1307`) says *"The types are named CrossValType
+> and CrossQueueType. The scope of the type names is the cross itself and the types are not accessible
+> outside of this scope"* and `:1320` *"The cross types shall be considered as implicit typedefs in the body of
+> the cross"*; Annex A declares them nowhere, so `function CrossQueueType myFunc1(int f_lim);` — the standard's
+> own §19.6.1.4 example, vendored as ispras `ieee-1800-2012/19/19.06.01.04_02.sv` and Surelog
+> `tests/CrossFunc/dut.sv` — was refused by the parser's sound store gate (`checked_type_identifier`'s
+> `has_fact(type_name, …)` found no fact). The grammar opens a `cross` scope at the body's `{` and closes it at
+> the `}` (`cross_body_open` / `cross_body_close`, the first scope this grammar opens), and each of the two
+> unscoped type use-sites gains an ORDERED second branch — a terminal spelling the two names, gated `post` on
+> `in_scope_kind(cross)` — tried only after the unchanged store gate has refused the name.
+>
+> **What now parses that did not**: `function CrossQueueType f(…); … endfunction` inside a cross, and
+> `CrossValType v;` / `CrossQueueType q;` as local types inside such a function; `bins b = f(…)` using it.
+> **What still rejects**: `CrossQueueType q;` anywhere outside a cross body (pinned:
+> `stimuli/sv/adjudication_repros/invalid_cross_predefined_type_after_cross.sv`), and `int CrossValType;` at
+> module level still parses as an ordinary variable — the two spellings are not keywords.
+>
+> **AST impact — shape-neutral.** A predefined name arrives exactly where a declared type does and with the same
+> shape: `{type: {body: "CrossQueueType"}, dims: […]}` beside `{type: {body: "q_t"}, dims: […]}`; no `kind` is
+> added, removed or renamed; the typed AST of every input that parsed before is byte-identical (measured on the
+> two cross-body controls, both profiles). ⛔ The accept set **widens** on `sv_2017` and `sv_2023` — text that
+> used to fail now yields an AST.
+>
+> **Corpus proof, per-path and two-sided, both lanes**: exactly the two rows above moved, `fail → pass` and
+> `unexplained_rejects_valid → match`; `sv_2017` pass **9 811 → 9 813**, `match 5 851 → 5 853`, the axis-2 bar
+> **222 → 220**; `verilog_2005` pass **2 300** unmoved, its rule set unchanged at 1 123. Certificate: the union
+> gate gains a fifth entry `cross_body:sv_2017` (canonical 1410/8/1389/13, union 1402/0 — the two new
+> scope-gated rules are UNKNOWN from the canonical entry by construction and witnessed from the cross body).
+> Cost: `PARSE-COST-RATCHET` measured `entries` +634 818 (+0.15 %) confined to the four introduced rules
+> (one recognizer entry per refused type attempt outside a cross), accepted under
+> `contained_in_introduced_subgraph`; the engine-tier elimination is `ENGINE-UNIVERSAL-SERVICES.90`.
 > **Current-state note (2026-09-03, `EBNF-FRONTEND-SILENT-TRUNCATION.6` — EBNF FRONTEND (engine), release
 > `1.0.205`, ledger `SV-0078`, schema `26` UNCHANGED, ALL THREE profiles): from the entry
 > `systemverilog_parseable_file` (and `parseable_source_item`, `--entry-rule`, TOOLBOX §1.2 — both proven
@@ -961,15 +995,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.205`
+  - `1.0.206`
 - Parser release version:
-  - `1.0.205`
-  - history: `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.206`
+  - history: `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `bd64ae30002c648f2eedcc98b3c2f8b5c7ae48fc568f862b1f85b971868b3527` (SV grammar semantic digest — sha256 of the
+  - `c3023884256ab353a52ee881909b5e1385257cca3ee5ed4d0c3336e58d6bae56` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`

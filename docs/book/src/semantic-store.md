@@ -71,9 +71,24 @@ The semantic store has three moving parts you'll meet again and again:
    name, and an unordered key-value bag. Every emit produces one fact; every
    query asks about facts.
 2. **Scopes.** Facts live in scopes. Scopes form a tree (package contains
-   classes; classes contain methods; methods contain blocks). When you query
-   for a fact, the store walks the active scope chain from innermost to
-   outermost — exactly the visibility rule you'd want.
+   classes; classes contain methods; methods contain blocks). Every fact
+   records the scope it was emitted in, and the *scope-aware* queries —
+   `resolve_path`, `has_fact_in_current_scope`, `in_scope_kind` /
+   `not_in_scope_kind` — read that structure. ⛔ **The existence family does
+   not.** `has_fact`, `lacks_fact`, `fact_attribute_equals`,
+   `lacks_fact_attribute_equals`, `has_fact_attribute` and
+   `fact_count_at_least` answer over the **whole store — any scope, open or
+   closed**. Measured on 2026-09-03 (`SV-CORPUS-GRAD.3.29`): a fact emitted
+   into a scope that was then closed still satisfied `has_fact` from the
+   enclosing scope. That is by construction (`fact_index.any_with_name`, "in
+   any scope_depth"), and a grammar depends on it: the regex grammar's
+   `phase: final` check that a named back-reference names a *defined* group
+   must see groups defined inside lookaround scopes that closed long before
+   parse completion. A chain-visible existence query is owned by
+   `ENGINE-UNIVERSAL-SERVICES.89`; until it exists, a grammar that needs a
+   name to be visible *only inside* a region gates the region with
+   `in_scope_kind` (§7 shows SystemVerilog doing exactly that) rather than
+   emitting a fact and expecting the scope to hide it.
 3. **Transactions.** Every parse attempt happens inside a transaction. If
    the attempt fails (PEG backtracking), every fact emitted, every scope
    opened, and every library imported during that transaction is **rolled
@@ -262,10 +277,18 @@ compose primitives into a named predicate.
 
 ### Built-in primitives
 
-The engine provides four:
+The engine provides fourteen — `has_fact`, `lacks_fact`, `has_fact_attribute`,
+`fact_attribute_equals`, `lacks_fact_attribute_equals`, `fact_count_at_least`,
+`has_fact_in_current_scope`, `current_scope_is`, `scope_depth_at_least`,
+`in_scope_kind`, `not_in_scope_kind`, `resolve_path`, `value_compare` and
+`value_compare_codepoint` (the roster is the `match` in
+`SemanticRuntimeState::evaluate_predicate`, `rust/src/ast_pipeline/semantic_runtime.rs`).
+The four most grammars start with:
 
 ```ebnf
-# Does any fact of this (kind, name) exist in scope?
+# Does any fact of this (kind, name) exist ANYWHERE in the store — any scope,
+# open or closed? (Store-wide by construction; see §2. `has_fact_in_current_scope`
+# is the same question asked of the innermost open scope only.)
 @predicate has_fact args:[variable_binding, $1] phase: post
 
 # Does a fact have a specific attribute equal to a specific value?
@@ -529,6 +552,69 @@ Common scope kinds you'll encounter: `global`, `file`, `package`, `class`,
 `interface`, `function`, `task`, `block`, plus custom labels grammar
 authors define for domain-specific scopes (generate blocks, covergroups,
 constraint blocks, etc.).
+
+⭐ **`@open_scope` fires as an effect *after* its rule's body, so bind it to a
+small open-marker rule that matches only the opener token**, and bind
+`@close_scope` to the rule that consumes the closer — otherwise the scope
+opens only after the region it was meant to cover has already parsed. The
+regex grammar's lookarounds (`lookahead_pos_open` / `lookahead_pos`) and, since
+`SV-CORPUS-GRAD.3.29`, the SystemVerilog grammar's cross body both use that
+shape. The SystemVerilog case is the smallest complete example of a scope used
+for **containment** — IEEE 1800-2017 §19.6.1.3 makes `CrossValType` and
+`CrossQueueType` implicit typedefs *in the body of a cross and nowhere else*:
+
+```ebnf
+@profiles: ["sv_2017", "sv_2023"]
+@open_scope: { kind: cross }
+cross_body_open := lbrace -> {kind: "lbrace"}
+
+@profiles: ["sv_2017", "sv_2023"]
+@close_scope: { kind: cross }
+cross_body_close := rbrace -> {kind: "rbrace"}
+
+cross_body_sv_2017 := cross_body_open cross_body_item* cross_body_close -> {kind: "block", items: $2}
+                    | semi                                              -> {kind: "empty"}
+
+# tried at a type use-site only AFTER the store gate has refused the name (an
+# ORDERED second branch at the two callers), and only while a `cross` scope is open
+@branch_policy: ordered
+known_unscoped_data_type_identifier := checked_type_identifier packed_dimension*           -> {type: $1, dims: $2}
+                                     | cross_predefined_type_identifier packed_dimension* -> {type: $1, dims: $2}
+
+@profiles: ["sv_2017", "sv_2023"]
+@predicate: { name: in_scope_kind, args: [cross], phase: post }
+cross_predefined_type_identifier := cross_predefined_type_name -> { body: $1 }
+
+@profiles: ["sv_2017", "sv_2023"]
+cross_predefined_type_name := trivia /(?:CrossValType|CrossQueueType)\b/ -> $2
+```
+
+Three details carry the design. The open and close markers are two rules
+because `cross_body_sv_2017`'s other alternative (`;`) opens nothing, and a
+rule-level `@close_scope` would fire for it too and mismatch. The recognizer is
+a `pre`-gated *terminal* spelling the two names — a terminal rather than a
+lookahead over `type_identifier` because the certificate's witness planner can
+render a terminal from its own regex, while a lookahead over a synthesized
+identifier refused every sample (measured; the union basis lost
+`fully_certified` until the rewrite) — so the two spellings stay ordinary
+identifiers everywhere else (`int CrossValType;` at module level still parses
+as a variable), the node keeps the `{body: "…"}` shape a declared type has,
+and the AST is byte-identical to what the store gate produced before. The
+rule is witnessed from a `cross_body` union entry, where the `{` has opened the
+scope. It sits *second* in an ordered choice at the two type use-sites rather
+than in front of the store gate, because the parse-cost ratchet refused a
+dispatcher that tried it first: every type use-site in the corpus paid an extra
+rule entry for a gate that fails outside a cross. And the scope check is a
+`post` predicate rather than `pre`, because a `pre` gate that consults the store
+on the refusal path is a store *read*, and a failure that read the store is
+cached epoch-stamped — every later fact emission then re-runs it, which the
+ratchet measured as thousands of re-entries of every `data_type` alternative;
+as a `post` predicate the store is read only when the text really is one of the
+two names. And the names are **not** emitted as facts, because `has_fact` is
+store-wide (§2): with `@emit_fact` on the open marker the two facts landed in
+the `cross` scope and were still found after the scope closed, which is the
+over-acceptance the pin `invalid_cross_predefined_type_after_cross.sv` exists
+to refuse.
 
 ## 8. Stage 5 + 6 — EXPORT / IMPORT: cross-file facts
 

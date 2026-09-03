@@ -1,0 +1,5 @@
+# CONTROL for the synthetic above: no region at all, so has_fact has nothing to find — `T` must REJECT.
+@entry: true
+scratch := use
+@predicate: { name: has_fact, args: [nm, T], phase: post }
+use := "T"

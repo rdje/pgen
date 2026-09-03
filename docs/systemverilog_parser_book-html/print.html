@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-bdc9f5ae.js";
+            window.path_to_searchindex_js = "searchindex-0f917fab.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -246,7 +246,7 @@ inapplicable one.</li>
 </thead>
 <tbody>
 <tr><td>1 — stimuli-generator proof</td><td>⚠️ <strong>UNPROVEN</strong></td><td>rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it</td></tr>
-<tr><td>2 — gates green and invoked</td><td>⛔ <strong>UNMET</strong></td><td>16 covering gate targets, 15 invoked, 1 invoked by nothing (sv_combined_telemetry_contract_gate); rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it</td></tr>
+<tr><td>2 — gates green and invoked</td><td>⛔ <strong>UNMET</strong></td><td>17 covering gate targets, 16 invoked, 1 invoked by nothing (sv_combined_telemetry_contract_gate); rests on a gate artifact, which this repository never tracks — run the family-status gate to establish it</td></tr>
 <tr><td>3 — external corpus passing</td><td>⛔ <strong>UNMET</strong></td><td>the only gate reading the external corpus is a TRIAGE gate, and a triage gate is not a conformance gate</td></tr>
 </tbody>
 </table>
@@ -258,16 +258,16 @@ inapplicable one.</li>
 <tr><th>Outcome</th><th style="text-align: right">Rows</th><th style="text-align: right">Share of the corpus</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">5 851</td><td style="text-align: right">35.8 %</td></tr>
-<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 437</td><td style="text-align: right">8.8 %</td></tr>
-<tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">268</td><td style="text-align: right">1.6 %</td></tr>
+<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">5 853</td><td style="text-align: right">35.8 %</td></tr>
+<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 483</td><td style="text-align: right">9.1 %</td></tr>
+<tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">220</td><td style="text-align: right">1.3 %</td></tr>
 <tr><td>Routed to another lane’s manifest</td><td style="text-align: right">2 606</td><td style="text-align: right">16.0 %</td></tr>
 <tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">6 174</td><td style="text-align: right">37.8 %</td></tr>
 <tr><td>Total</td><td style="text-align: right">16 336</td><td style="text-align: right">100.0 %</td></tr>
 </tbody>
 </table>
 </div>
-<p>Only <strong>7 556 rows (46.3 %)</strong> were asked a question they could answer, and <strong>4 363</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 5851/7556 would quietly drop the 37.8 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
+<p>Only <strong>7 556 rows (46.3 %)</strong> were asked a question they could answer, and <strong>4 013</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 5853/7556 would quietly drop the 37.8 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
@@ -275,7 +275,7 @@ inapplicable one.</li>
 <tr><th>Open tree</th><th>Status verdict</th><th>Where the detail lives</th></tr>
 </thead>
 <tbody>
-<tr><td><code>SV-CORPUS-GRAD</code></td><td>⚠️ the index row carries no status word; counted OPEN</td><td><a href="../../tasks/SV-CORPUS-GRAD.html"><code>docs/tasks/SV-CORPUS-GRAD.md</code></a></td></tr>
+<tr><td><code>SV-CORPUS-GRAD</code></td><td>open</td><td><a href="../../tasks/SV-CORPUS-GRAD.html"><code>docs/tasks/SV-CORPUS-GRAD.md</code></a></td></tr>
 <tr><td><code>SV-EXH-PROOF</code></td><td>open</td><td><a href="../../tasks/SV-EXH-PROOF.html"><code>docs/tasks/SV-EXH-PROOF.md</code></a></td></tr>
 <tr><td><code>SV-PARSE-STRICT</code></td><td>open</td><td><a href="../../tasks/SV-PARSE-STRICT.html"><code>docs/tasks/SV-PARSE-STRICT.md</code></a></td></tr>
 <tr><td><code>SV-REPLAY-DEBT</code></td><td>open</td><td><a href="../../tasks/SV-REPLAY-DEBT.html"><code>docs/tasks/SV-REPLAY-DEBT.md</code></a></td></tr>
@@ -2077,6 +2077,63 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10206--contract-10206--sv-corpus-grad329-pgen-sv-corpus-grad-0347-2026-09-03-ledger-sv-0079-released"><a class="header" href="#10206--contract-10206--sv-corpus-grad329-pgen-sv-corpus-grad-0347-2026-09-03-ledger-sv-0079-released">1.0.206 / Contract 1.0.206 — SV-CORPUS-GRAD.3.29 (<code>PGEN-SV-CORPUS-GRAD-0347</code>, 2026-09-03), ledger <code>SV-0079</code> (<code>Released</code>):</a></h3>
+<p>⭐ <strong>A <code>cross</code> body’s two implicit typedefs, <code>CrossValType</code> and <code>CrossQueueType</code>, now parse as type names
+inside the cross — and nowhere else.</strong> IEEE 1800-2017 §19.6.1.3 says <em>“The types are named CrossValType and
+CrossQueueType. The scope of the type names is the cross itself and the types are not accessible outside of
+this scope”</em> and <em>“The cross types shall be considered as implicit typedefs in the body of the cross, even though
+the syntax does not allow typedefs to appear there explicitly.”</em> Annex A declares them nowhere, so the parser’s
+sound store gate — right about every name a file must declare — refused a name the standard declares. The
+standard’s own §19.6.1.4 example (<code>function CrossQueueType myFunc1(int f_lim); … bins one = myFunc1(cg_lim);</code>)
+is vendored twice in the corpus, and both rows were in the axis-2 bar.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>input</th><th>before</th><th>after</th></tr>
+</thead>
+<tbody>
+<tr><td><code>aXb : cross a, b { function CrossQueueType f(int n); … endfunction bins one = f(lim); }</code> — <code>sv_2017</code></td><td><code>rc 1</code></td><td><strong><code>rc 0</code></strong></td></tr>
+<tr><td>the same, <code>sv_2023</code></td><td><code>rc 1</code></td><td><strong><code>rc 0</code></strong></td></tr>
+<tr><td><code>CrossValType v;</code> as a local inside that function (<code>fixed_cross_predefined_val_type.sv</code>)</td><td><code>rc 1</code></td><td><strong><code>rc 0</code></strong></td></tr>
+<tr><td>the same function returning a module-level <code>typedef int q_t[$];</code> (control)</td><td><code>rc 0</code></td><td><code>rc 0</code></td></tr>
+<tr><td><code>CrossQueueType q;</code> at module level AFTER the endgroup (invalid pin)</td><td><code>rc 1</code></td><td><code>rc 1</code></td></tr>
+<tr><td><code>int CrossValType;</code> at module level (the spelling is not a keyword)</td><td><code>rc 0</code></td><td><code>rc 0</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>How.</strong> The grammar opens a <code>cross</code> scope at the body’s <code>{</code> and closes it at the <code>}</code> — the first scope this
+grammar opens — and each of the two unscoped type use-sites gains an ordered second branch, a terminal spelling
+the two names gated <code>post</code> on <code>in_scope_kind(cross)</code>, tried only after the unchanged store gate has refused the
+name. Three spellings were built and refused first, each by an instrument rather than an opinion: emitting the
+two names as facts into the scope leaked them after the scope closed, because <code>has_fact</code> is store-wide
+(routed to the engine as <code>ENGINE-UNIVERSAL-SERVICES.89</code>, with the book’s semantic-store chapter corrected);
+a lookahead recognizer could not be witnessed by the certificate; a dispatcher tried first, and then a <code>pre</code>
+scope gate, were refused by the parse-cost ratchet.</p>
+<p><strong>AST impact — shape-neutral.</strong> A predefined name arrives exactly where a declared type does, with the same
+shape: <code>{type: {body: "CrossQueueType"}, dims: […]}</code> beside <code>{type: {body: "q_t"}, dims: […]}</code>. No <code>kind</code> is
+added, removed or renamed; every input that parsed before yields a byte-identical typed AST (measured on the
+two cross-body controls, both profiles). Schema <strong>26 unchanged</strong>. ⛔ The accept set <strong>widens</strong> on <code>sv_2017</code> and
+<code>sv_2023</code>; <code>verilog_2005</code> is unchanged by construction (covergroups are not Verilog-2005) and by measurement.</p>
+<p><strong>Corpus proof</strong>, per-path and two-sided, both lanes: exactly the two rows above moved (<code>fail → pass</code>,
+<code>unexplained_rejects_valid → match</code>); <code>sv_2017</code> pass <strong>9 811 → 9 813</strong>, <code>match 5 851 → 5 853</code>, the axis-2 bar
+<strong>222 → 220</strong>; <code>verilog_2005</code> pass <strong>2 300</strong> unmoved. Union certificate gate green with a fifth entry
+<code>cross_body:sv_2017</code> (canonical 1410 / 8 / 1389 / 13, union 1402 / 0 at seeds 0/7/42); v2005 gate green,
+unchanged. Cost: <code>entries</code> +634 818 (+0.15 %) confined to the four introduced rules — one recognizer entry per
+type position the store gate refuses outside a cross — accepted under the ratchet’s <code>contained_in_introduced_subgraph</code>
+invariant; the engine-tier elimination is <code>ENGINE-UNIVERSAL-SERVICES.90</code>.</p>
+<p>⭐ <strong>How it was found is the part worth keeping</strong>: <code>SV-CORPUS-GRAD.13w</code> explained 46 store-gate rejections <em>by
+parsing</em> — declaring what the parser demanded and re-parsing — and REFUSED to explain two, because the name they
+demanded is one the LRM predefines. An argument would have explained them away; the parse found a grammar defect.</p>
+<h3 id="10205--contract-10205--ebnf-frontend-silent-truncation6-pgen-ebnf-frontend-silent-truncation-0002-2026-09-03-ledger-sv-0078-released"><a class="header" href="#10205--contract-10205--ebnf-frontend-silent-truncation6-pgen-ebnf-frontend-silent-truncation-0002-2026-09-03-ledger-sv-0078-released">1.0.205 / Contract 1.0.205 — EBNF-FRONTEND-SILENT-TRUNCATION.6 (<code>PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0002</code>, 2026-09-03), ledger <code>SV-0078</code> (<code>Released</code>):</a></h3>
+<p>⛔ <strong>From the entry <code>systemverilog_parseable_file</code> (<code>--entry-rule</code>), an <code>import p::*;</code>, a <code>timeunit 1ns;</code> or a
+<code>`timescale</code> item no longer parses — on any profile.</strong> <code>parseable_source_item := semi</code> is the whole rule; the
+three lines after it in the grammar are <code>//</code> comments (since 2026-04-25), and <code>grammars/ebnf.ebnf:583-586</code>
+defines <code>//</code> as a line comment. The hand-written EBNF frontend knew only <code>#</code>, read those lines as live
+alternatives, and every release carried them. The rule is proven unreachable from the registered entry
+(<code>rule_fire_partition</code>), so from the default entry nothing changes; the generated parser moves in this one rule
+and the other ten generated parsers are byte-identical. The same fix stops indented comments after inline
+return annotations from riding inside the annotation token (14 payloads in 11 rules), so a comment-only edit no
+longer moves the semantic digest this contract is keyed on. <strong>AST shape unchanged for every legal input.</strong></p>
 <h3 id="10204--contract-10204--sv-corpus-grad13p-pgen-sv-corpus-grad-0322-2026-09-02-ledger-sv-0077-released"><a class="header" href="#10204--contract-10204--sv-corpus-grad13p-pgen-sv-corpus-grad-0322-2026-09-02-ledger-sv-0077-released">1.0.204 / Contract 1.0.204 — SV-CORPUS-GRAD.13p (<code>PGEN-SV-CORPUS-GRAD-0322</code>, 2026-09-02), ledger <code>SV-0077</code> (<code>Released</code>):</a></h3>
 <p>⛔ <strong>A third delay value on an n-input or n-output gate, a pass-enable switch or a UDP instance no
 longer parses — on any profile.</strong> IEEE 1800-2017 §28.4 / §28.5 say of those gates <em>“The delay

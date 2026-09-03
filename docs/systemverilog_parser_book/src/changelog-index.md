@@ -34,6 +34,53 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.206 / Contract 1.0.206 — SV-CORPUS-GRAD.3.29 (`PGEN-SV-CORPUS-GRAD-0347`, 2026-09-03), ledger `SV-0079` (`Released`):
+
+⭐ **A `cross` body's two implicit typedefs, `CrossValType` and `CrossQueueType`, now parse as type names
+inside the cross — and nowhere else.** IEEE 1800-2017 §19.6.1.3 says *"The types are named CrossValType and
+CrossQueueType. The scope of the type names is the cross itself and the types are not accessible outside of
+this scope"* and *"The cross types shall be considered as implicit typedefs in the body of the cross, even though
+the syntax does not allow typedefs to appear there explicitly."* Annex A declares them nowhere, so the parser's
+sound store gate — right about every name a file must declare — refused a name the standard declares. The
+standard's own §19.6.1.4 example (`function CrossQueueType myFunc1(int f_lim); … bins one = myFunc1(cg_lim);`)
+is vendored twice in the corpus, and both rows were in the axis-2 bar.
+
+| input | before | after |
+|---|---|---|
+| `aXb : cross a, b { function CrossQueueType f(int n); … endfunction bins one = f(lim); }` — `sv_2017` | `rc 1` | **`rc 0`** |
+| the same, `sv_2023` | `rc 1` | **`rc 0`** |
+| `CrossValType v;` as a local inside that function (`fixed_cross_predefined_val_type.sv`) | `rc 1` | **`rc 0`** |
+| the same function returning a module-level `typedef int q_t[$];` (control) | `rc 0` | `rc 0` |
+| `CrossQueueType q;` at module level AFTER the endgroup (invalid pin) | `rc 1` | `rc 1` |
+| `int CrossValType;` at module level (the spelling is not a keyword) | `rc 0` | `rc 0` |
+
+**How.** The grammar opens a `cross` scope at the body's `{` and closes it at the `}` — the first scope this
+grammar opens — and each of the two unscoped type use-sites gains an ordered second branch, a terminal spelling
+the two names gated `post` on `in_scope_kind(cross)`, tried only after the unchanged store gate has refused the
+name. Three spellings were built and refused first, each by an instrument rather than an opinion: emitting the
+two names as facts into the scope leaked them after the scope closed, because `has_fact` is store-wide
+(routed to the engine as `ENGINE-UNIVERSAL-SERVICES.89`, with the book's semantic-store chapter corrected);
+a lookahead recognizer could not be witnessed by the certificate; a dispatcher tried first, and then a `pre`
+scope gate, were refused by the parse-cost ratchet.
+
+**AST impact — shape-neutral.** A predefined name arrives exactly where a declared type does, with the same
+shape: `{type: {body: "CrossQueueType"}, dims: […]}` beside `{type: {body: "q_t"}, dims: […]}`. No `kind` is
+added, removed or renamed; every input that parsed before yields a byte-identical typed AST (measured on the
+two cross-body controls, both profiles). Schema **26 unchanged**. ⛔ The accept set **widens** on `sv_2017` and
+`sv_2023`; `verilog_2005` is unchanged by construction (covergroups are not Verilog-2005) and by measurement.
+
+**Corpus proof**, per-path and two-sided, both lanes: exactly the two rows above moved (`fail → pass`,
+`unexplained_rejects_valid → match`); `sv_2017` pass **9 811 → 9 813**, `match 5 851 → 5 853`, the axis-2 bar
+**222 → 220**; `verilog_2005` pass **2 300** unmoved. Union certificate gate green with a fifth entry
+`cross_body:sv_2017` (canonical 1410 / 8 / 1389 / 13, union 1402 / 0 at seeds 0/7/42); v2005 gate green,
+unchanged. Cost: `entries` +634 818 (+0.15 %) confined to the four introduced rules — one recognizer entry per
+type position the store gate refuses outside a cross — accepted under the ratchet's `contained_in_introduced_subgraph`
+invariant; the engine-tier elimination is `ENGINE-UNIVERSAL-SERVICES.90`.
+
+⭐ **How it was found is the part worth keeping**: `SV-CORPUS-GRAD.13w` explained 46 store-gate rejections *by
+parsing* — declaring what the parser demanded and re-parsing — and REFUSED to explain two, because the name they
+demanded is one the LRM predefines. An argument would have explained them away; the parse found a grammar defect.
+
 ### 1.0.205 / Contract 1.0.205 — EBNF-FRONTEND-SILENT-TRUNCATION.6 (`PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0002`, 2026-09-03), ledger `SV-0078` (`Released`):
 
 ⛔ **From the entry `systemverilog_parseable_file` (`--entry-rule`), an `import p::*;`, a `timeunit 1ns;` or a

@@ -1970,16 +1970,54 @@ covergroup_value_range := covergroup_value_range_sv_2017 -> {kind: "sv_2017", bo
 // covergroup_variable_identifier := variable_identifier
 
 @profiles: ["sv_2017"]
-cross_body_sv_2017 := lbrace cross_body_item* rbrace -> {kind: "block", items: $2}
-                    | semi                            -> {kind: "empty"}
+cross_body_sv_2017 := cross_body_open cross_body_item* cross_body_close -> {kind: "block", items: $2}
+                    | semi                                              -> {kind: "empty"}
 
 @profiles: ["sv_2023"]
-cross_body_sv_2023 := lbrace cross_body_item* rbrace -> {kind: "block", items: $2}
-                    | semi                            -> {kind: "empty"}
+cross_body_sv_2023 := cross_body_open cross_body_item* cross_body_close -> {kind: "block", items: $2}
+                    | semi                                              -> {kind: "empty"}
 
 @profiles: ["sv_2017", "sv_2023"]
 cross_body := cross_body_sv_2017 -> {kind: "sv_2017", body: $1}
             | cross_body_sv_2023 -> {kind: "sv_2023", body: $1}
+
+// ⛔ IEEE 1800-2017 §19.6.1.3 PREDEFINES TWO TYPE NAMES IN THE BODY OF EVERY CROSS (SV-CORPUS-GRAD.3.29).
+// docs/systemverilog/2017/md/section-19-functional-coverage.md:1307 — "The types are named CrossValType and
+// CrossQueueType. The scope of the type names is the cross itself and the types are not accessible outside
+// of this scope." — and :1320 — "The cross types shall be considered as implicit typedefs in the body of the
+// cross, even though the syntax does not allow typedefs to appear there explicitly." (1800-2023 §19.6.1.3,
+// section-19-functional-coverage.md:1621 / :1629, identical.) Annex A cannot express that: no production
+// declares the two names, so a `function CrossQueueType f(…)` inside a cross — the standard's own §19.6.1.4
+// example (:1373), vendored as ispras 19.06.01.04_02.sv and Surelog CrossFunc/dut.sv — routed its return
+// type through `checked_type_identifier`, whose `has_fact(type_name, …)` post predicate found NO fact: the
+// sound store gate rejecting a name that IS declared, by the standard rather than by the file (`.13w` filed
+// both rows `residual:predefined_type_name` for exactly that reason).
+// ⭐ THE FIX IS CONTAINMENT, NOT A FACT. `cross_body_open` (the `{` alone) opens a `cross` scope and
+// `cross_body_close` (the `}` alone) pops it; `cross_predefined_type_identifier` (beside
+// `checked_type_identifier`, below) then admits exactly the two names while a `cross` scope is on the
+// active chain (`in_scope_kind`, the proven `not_in_scope_kind(lookaround)` idiom of grammars/regex.ebnf).
+// ⛔ WHY NOT `@emit_fact` the two names into the scope, as a typedef would (the shape `.3.29` pre-registered)?
+// MEASURED at the interpreter with the emits in place: `🔓 @open_scope kind=cross`, both facts
+// `📥 … scope_id=ScopeId(1)`, `🔒 @close_scope OK`, and then `has_fact(type_name, CrossQueueType) → true`
+// for `CrossQueueType q;` AFTER the endgroup — `has_fact` is `fact_index.any_with_name`, an existence check
+// "across the whole store … in any scope_depth" (semantic_runtime.rs), so a fact in a CLOSED scope is still
+// found and the two names would leak into the rest of the file (over-acceptance, the pin
+// `invalid_cross_predefined_type_after_cross.sv`). The store-wide `has_fact` is not a defect regex can spare:
+// its `phase: final` named-group check must see facts from closed lookaround scopes. A chain-visible query
+// is ROUTED (ENGINE-UNIVERSAL-SERVICES); until it exists, scope CONTAINMENT is the sound spelling here.
+// The `;` alternative opens nothing, which is why open and close sit on two MARKER rules rather than on
+// `cross_body_sv_*` itself (a rule-level `@close_scope` there would also fire for the `semi` branch and
+// MISMATCH); `@open_scope` fires as an EFFECT after its rule's body, hence a marker matching only the opener
+// token (regex's `lookahead_pos_open` / `lookahead_pos`). A speculative cross that backtracks rolls the scope
+// back (Stage 7); `$1` is discarded by the parents' `items: $2`, so the shaped AST is byte-identical to the
+// pre-marker form. This is the first scope this grammar opens.
+@profiles: ["sv_2017", "sv_2023"]
+@open_scope: { kind: cross }
+cross_body_open := lbrace -> {kind: "lbrace"}
+
+@profiles: ["sv_2017", "sv_2023"]
+@close_scope: { kind: cross }
+cross_body_close := rbrace -> {kind: "rbrace"}
 
 // ⛔ A.2.11 SPELLS THE `;` TWICE AND THE STANDARD'S OWN EXAMPLES SPELL IT ONCE
 // (SV-CORPUS-GRAD.13c.2a). IEEE 1800-2017 A.2.11 reads
@@ -2102,8 +2140,13 @@ data_event := timing_check_event
 data_source_expression := expression
                        -> {body: $1}
 
-# SV-EXH-PROOF.3.3.3: route use-site type-id through checked_type_identifier.
+# SV-EXH-PROOF.3.3.3: route use-site type-id through checked_type_identifier. SV-CORPUS-GRAD.3.29: an
+# ORDERED second branch admits a cross's two implicit typedefs (`cross_predefined_type_identifier`, see
+# `checked_type_identifier`) only after the store gate has refused the name — see the cost argument there.
+@branch_policy: ordered
 known_unscoped_block_type_identifier := checked_type_identifier packed_dimension*
+                                     -> {type: $1, dims: $2}
+                                      | cross_predefined_type_identifier packed_dimension*
                                      -> {type: $1, dims: $2}
 
 # SV-AST-SHAPE-FIDELITY.2.3 — named-lift of the shared scoped-type-identifier scope prefix
@@ -2120,8 +2163,13 @@ scoped_type_scope_prefix := class_scope | non_typedef_package_scope
 scoped_block_type_identifier := scoped_type_scope_prefix type_identifier packed_dimension*
                              -> {scope: $1, type: $2, dims: $3}
 
-# SV-EXH-PROOF.3.3.3: route use-site type-id through checked_type_identifier.
+# SV-EXH-PROOF.3.3.3: route use-site type-id through checked_type_identifier. SV-CORPUS-GRAD.3.29: an
+# ORDERED second branch admits a cross's two implicit typedefs (`cross_predefined_type_identifier`, see
+# `checked_type_identifier`) only after the store gate has refused the name — see the cost argument there.
+@branch_policy: ordered
 known_unscoped_data_type_identifier := checked_type_identifier packed_dimension*
+                                    -> {type: $1, dims: $2}
+                                     | cross_predefined_type_identifier packed_dimension*
                                     -> {type: $1, dims: $2}
 
 @profiles: ["sv_2017", "sv_2023"]
@@ -6572,6 +6620,57 @@ type_identifier := declaration_identifier
 # fix makes the typedef-emitted fact survive so this resolves true.
 @predicate: { name: has_fact, args: [type_name, $body], phase: post }
 checked_type_identifier := type_identifier -> { body: $1.body }
+
+# SV-CORPUS-GRAD.3.29 — a cross's two implicit typedefs (IEEE 1800-2017 §19.6.1.3, section-19-functional-
+# coverage.md :1307 / :1320 — see the `cross_body_open` comment for the whole argument) are admitted at the
+# two unscoped type use-sites (`known_unscoped_block_type_identifier`, `known_unscoped_data_type_identifier`)
+# as an ORDERED second branch behind the unchanged `checked_type_identifier` store gate, and only while a
+# `cross` scope is open. Both branches shape `{ body: <scalar> }` exactly as `checked_type_identifier` does
+# (`cross_predefined_type_name` returns its text through `-> $2` like `simple_identifier`, and the wrapper
+# adds `{ body: $1 }` like `non_keyword_identifier`), so the callers' `type: $1` is byte-identical for every
+# input that parsed before and a predefined name reads `{"body": "CrossQueueType"}` like a declared one.
+# ⛔ NOT a keyword: outside a cross the two spellings stay ordinary identifiers (`int CrossValType;` at module
+# level parses as a variable) — the recognizer is `pre`-gated on the scope and is tried only at type use-sites
+# the store gate has already refused. Profile-agnostic callers, sv-only branch: under `verilog_2005` the second
+# branch is unsatisfiable and the callers keep their single live branch (the SELECTION-dispatcher pattern).
+# ⛔ THE RECOGNIZER IS A TERMINAL, NOT A LOOKAHEAD, AND THE CERTIFICATE IS WHY (measured). The first cut read
+# `&cross_predefined_type_name type_identifier`; the witness planner rendered the `type_identifier` as a
+# synthetic identifier (`[plannable-probe] rule='cross_predefined_type_identifier' parsed=false
+# witnessed_target=false sample="localparam\\foo \\foo ;"`), the lookahead refused it before the scope
+# gate was even asked, and the rule was UNKNOWN in the canonical AND union bases at seeds 0/7/42 — the
+# union basis losing `fully_certified`. A terminal spelling the two names is something the generator can
+# RENDER from its own regex; witnessed from the `cross_body:sv_2017` union entry, where the `{` has opened
+# the scope. From the canonical entry the two rules stay UNKNOWN by construction (only `cross_body_open`
+# opens the scope), the `delay2_sv_2023` entry-exclusion shape of `.13p`.
+# ⛔ THE ORDERED BRANCH AT THE CALLERS, NOT A DISPATCHER RULE, AND THE COST RATCHET IS WHY (measured). The
+# second cut routed both callers through a dispatcher rule (`cross_predefined_type_identifier |
+# checked_type_identifier`): `PARSE-COST-RATCHET` refused it — `entries` +2 419 875 (+0.59 %), `memo_hits`
+# +1 162 020 (+0.63 %) over the pinned sample — because EVERY type use-site paid a dispatcher entry plus a
+# recognizer entry (22 889 each on pinmux_reg_top.sv, one per `checked_type_identifier` attempt), and costs
+# are rejected, not traded. Ordered at the callers, an accepted type costs exactly what it cost before; the
+# recognizer is entered only where the store gate has refused the name, its `pre` gate fails at once outside
+# a cross, and that one entry per refused attempt is the whole residual (attributed by
+# `--dump-rule-entry-counts-json`; the ratchet's accepted-rise row carries the measurement).
+# ⛔ AND THE SCOPE CHECK IS A `post` PREDICATE, NOT `pre`, AND THE PACKRAT MEMO IS WHY (measured). With
+# `phase: pre` the ratchet still read `entries` +2 154 348 / `memo_hits` +1 162 020 on the ordered
+# spelling: the per-rule table showed every `data_type` alternative re-entered ~44 900 times more,
+# `trivia` +316 881, and deep parents (`named_parameter_assignment` −23 336, `data_type` −2 801) LOSING
+# memo replays — the eviction shape of ENGINE-UNIVERSAL-SERVICES.88, here from a different cause: a
+# `pre` gate that consults the store on the REFUSAL path is a store READ, and a failure that read the
+# store is cached epoch-stamped (MEMO-STORE-SOUNDNESS.2), so every later fact emission re-ran it. As a
+# `post` predicate the store is read only when the text IS one of the two names; at every other refused
+# type position the terminal fails on its regex before any read, and the callers' failures stay cached
+# exactly as before the change.
+# Honest bound: the escaped spelling `\CrossQueueType ` is not recognised (IEEE 1800-2017 §5.6.1 makes it
+# the same identifier; no corpus row spells it so).
+
+@profiles: ["sv_2017", "sv_2023"]
+@predicate: { name: in_scope_kind, args: [cross], phase: post }
+cross_predefined_type_identifier := cross_predefined_type_name -> { body: $1 }
+
+@profiles: ["sv_2017", "sv_2023"]
+cross_predefined_type_name := trivia /(?:CrossValType|CrossQueueType)\b/
+                           -> $2
 
 @profiles: ["sv_2023"]
 type_identifier_or_class_type_sv_2023 := type_identifier -> {kind: "type_identifier", body: $1}

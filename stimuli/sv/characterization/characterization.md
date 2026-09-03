@@ -24,14 +24,14 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `5413335642a811c8174f9672cea6a32ccd27fc4c6931e17543d417142befcfa6` |
-| grammar | `grammars/systemverilog.ebnf` | `b2ca001f0012579c60f6195a6e9808a7fa9cc4f8c1a9913064c8381083193e12` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `bd64ae30002c648f2eedcc98b3c2f8b5c7ae48fc568f862b1f85b971868b3527` |
-| generated parser | `generated/systemverilog_parser.rs` | `c82018f925ff03e26092aac3cb3a8180590b9b341609778fbcd0da3b828d601d` |
-| results (output) | `stimuli/sv/characterization/results.tsv` | `ed240b8f1a485c90939cc14b388fc6dc21a10c8373e70c633ecc04b45cf5e514` |
-| positions (output) | `stimuli/sv/characterization/positions.tsv` | `02f49b65b83e199e33f2a00be081c7861078b17a686441b87ab83ec70ee97339` |
+| parse binary | `rust/target/release/parseability_probe` | `00a200aa277d2d1428b8c16733eefbdfeccf9c2f5ea968f647c0dc91f6b90c32` |
+| grammar | `grammars/systemverilog.ebnf` | `27786bebcc569e673a2a7021996a85381a186e61459f7dc05cf2cf9b2a68b1f9` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `c3023884256ab353a52ee881909b5e1385257cca3ee5ed4d0c3336e58d6bae56` |
+| generated parser | `generated/systemverilog_parser.rs` | `3df100aa0ab54a5e740453ca6261ef595652cbdac862e7a21ad85e2b2cd5e791` |
+| results (output) | `stimuli/sv/characterization/results.tsv` | `efba22f5c4dc5d554d7e673f9fb8679d6f7a519cd55447ce9cb94d92049f9e18` |
+| positions (output) | `stimuli/sv/characterization/positions.tsv` | `6308f61f5f68cb6fbb3495501c7323a1b604f66c7c1a12ad73d242020a9ce0b4` |
 
-Measured at `HEAD` = `e042b3e8` (2026-09-03).
+Measured at `HEAD` = `9bf2168d+dirty` (2026-09-03).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -44,9 +44,9 @@ Measured at `HEAD` = `e042b3e8` (2026-09-03).
 
 | parameter | value | source for this run |
 |---|---|---|
-| per-file timeout | 60 s | caller |
-| parallel jobs | 8 | caller |
-| max files | 0 (no cap) | caller |
+| per-file timeout | 60 s | provenance |
+| parallel jobs | 8 | provenance |
+| max files | 0 (no cap) | provenance |
 | parse binary | `rust/target/release/parseability_probe` | provenance |
 
 ## Deadline proximity and serial re-confirmation
@@ -71,17 +71,17 @@ Slowest completing file: `5.54` s — `stimuli/sv/subs/opentitan/hw/top_darjeeli
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 16336 | 9811 | 6525 | 0 | 0 | 60.1% |
+| 16336 | 9813 | 6523 | 0 | 0 | 60.1% |
 
 ## Per sub-corpus
 
 | sub-corpus | files | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|---|
 | Cores-VeeR-EL2 | 102 | 18 | 84 | 0 | 0 | 17.6% |
-| Surelog | 828 | 703 | 125 | 0 | 0 | 84.9% |
+| Surelog | 828 | 704 | 124 | 0 | 0 | 85.0% |
 | black-parrot | 205 | 21 | 184 | 0 | 0 | 10.2% |
 | friscv | 441 | 31 | 410 | 0 | 0 | 7.0% |
-| ispras-sv-tests | 1266 | 1102 | 164 | 0 | 0 | 87.0% |
+| ispras-sv-tests | 1266 | 1103 | 163 | 0 | 0 | 87.1% |
 | iverilog | 3799 | 3235 | 564 | 0 | 0 | 85.2% |
 | opentitan | 3983 | 795 | 3188 | 0 | 0 | 20.0% |
 | scr1 | 50 | 8 | 42 | 0 | 0 | 16.0% |

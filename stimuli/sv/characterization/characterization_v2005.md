@@ -24,14 +24,14 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `5413335642a811c8174f9672cea6a32ccd27fc4c6931e17543d417142befcfa6` |
-| grammar | `grammars/systemverilog.ebnf` | `b2ca001f0012579c60f6195a6e9808a7fa9cc4f8c1a9913064c8381083193e12` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `bd64ae30002c648f2eedcc98b3c2f8b5c7ae48fc568f862b1f85b971868b3527` |
-| generated parser | `generated/systemverilog_parser.rs` | `c82018f925ff03e26092aac3cb3a8180590b9b341609778fbcd0da3b828d601d` |
+| parse binary | `rust/target/release/parseability_probe` | `00a200aa277d2d1428b8c16733eefbdfeccf9c2f5ea968f647c0dc91f6b90c32` |
+| grammar | `grammars/systemverilog.ebnf` | `27786bebcc569e673a2a7021996a85381a186e61459f7dc05cf2cf9b2a68b1f9` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `c3023884256ab353a52ee881909b5e1385257cca3ee5ed4d0c3336e58d6bae56` |
+| generated parser | `generated/systemverilog_parser.rs` | `3df100aa0ab54a5e740453ca6261ef595652cbdac862e7a21ad85e2b2cd5e791` |
 | results (output) | `stimuli/sv/characterization/results_v2005.tsv` | `1e1de0fc55110679a92cb1c6032a66010bf627361bea2fe908383c4ee4067bd9` |
 | positions (output) | `stimuli/sv/characterization/positions_v2005.tsv` | `7fee83d8b7b1ca2218c9e2fc25d0475f167d38c3a392a95954e1076193206b6c` |
 
-Measured at `HEAD` = `e042b3e8` (2026-09-03).
+Measured at `HEAD` = `9bf2168d+dirty` (2026-09-03).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -44,9 +44,9 @@ Measured at `HEAD` = `e042b3e8` (2026-09-03).
 
 | parameter | value | source for this run |
 |---|---|---|
-| per-file timeout | 60 s | caller |
-| parallel jobs | 8 | caller |
-| max files | 0 (no cap) | caller |
+| per-file timeout | 60 s | provenance |
+| parallel jobs | 8 | provenance |
+| max files | 0 (no cap) | provenance |
 | parse binary | `rust/target/release/parseability_probe` | provenance |
 
 ## Deadline proximity and serial re-confirmation

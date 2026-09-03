@@ -1,0 +1,13 @@
+# ENGINE-UNIVERSAL-SERVICES.89 — the existence predicates are store-wide, on a grammar that is not SystemVerilog.
+# `{x}` opens a `region` scope, emits fact (nm, T) INTO it, and closes it. `T` afterwards is gated by
+# has_fact(nm, T). If has_fact walked the active chain, `{x}T` would REJECT (the scope is closed) and
+# only a T inside the region could pass. Measured: `{x}T` ACCEPTS — the fact in the closed scope is found.
+@entry: true
+scratch := region use
+@open_scope: { kind: region }
+@emit_fact: { kind: nm, name: T }
+region_open := "{"
+@close_scope: { kind: region }
+region := region_open "x" "}"
+@predicate: { name: has_fact, args: [nm, T], phase: post }
+use := "T"

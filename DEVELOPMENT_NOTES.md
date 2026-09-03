@@ -1,5 +1,57 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0347 (a scope hides nothing from an existence query — containment is a predicate, not a fact)
+
+- ⭐⭐ **THE LESSON: THE PRE-REGISTERED FIX WENT GREEN ON EVERY PIN IT WAS WRITTEN FOR, AND RED ON THE ONE PIN WRITTEN
+  TO CATCH IT — WRITE THAT PIN FIRST.** `.3.29` was opened with its fix shape stated: *the typedef idiom, scoped to the
+  cross* — `@open_scope` on the `{`, two `@emit_fact` of `type_name` into that scope, `@close_scope` on the `}`. Built
+  and measured at the interpreter it flipped both fixed pins and the two corpus rows to ACCEPT. It also flipped
+  `invalid_cross_predefined_type_after_cross.sv` (`CrossQueueType q;` after the endgroup) to ACCEPT, and the trace said
+  exactly why: `🔓 @open_scope … ScopeId(1)`, `📥` both facts `scope_id=ScopeId(1)`, `🔒 @close_scope OK`, then
+  `🔍 has_fact(type_name, CrossQueueType) → true` from `ScopeId(0)`. `has_fact` is `fact_index.any_with_name`, *"across
+  the whole store … in any scope_depth"*. The scope machinery did everything the book describes; the QUERY is
+  scope-blind, and the book (§2 *"the store walks the active scope chain"*) had promised otherwise. Reproduced on a
+  six-rule synthetic with no SystemVerilog in it (`eus89 probe: 2/2`), routed to `ENGINE-UNIVERSAL-SERVICES.89`.
+- **THE RULE THAT FOLLOWS: to make a name legal only inside a region, gate the region, not the name.** Open a scope at the
+  region's opener (a marker rule — `@open_scope` fires after its rule's body), close it at the closer, and put
+  `in_scope_kind(<kind>)` as a `pre` predicate on the recognizer. That is a predicate over the active chain and is right by
+  construction — the regex grammar's `not_in_scope_kind(lookaround)` idiom, now the first scope SystemVerilog opens. The
+  shipped fix admits `CrossValType`/`CrossQueueType` through a terminal recognizer gated that way, ahead of the unchanged
+  `checked_type_identifier` store gate; the invalid pin stays REJECT, `int CrossValType;` at module level still parses as
+  a variable, and the typed AST of every accepting control is byte-identical.
+- ⛔ **`has_fact` must NOT be "fixed" to walk the chain**: `grammars/regex.ebnf:572` checks at `phase: final` that a named
+  back-reference names a group that was DEFINED, and groups defined inside lookarounds live in scopes that closed long
+  before parse completion. The store-wide reading is load-bearing; the missing thing is an opt-in chain-visible query or
+  a per-`@fact_kind` `visibility:`. Priced in `.89`, not built: `.3.29` did not need it.
+- ⭐⭐ **THE SECOND LESSON: THREE INSTRUMENTS REFUSED THREE SPELLINGS OF ONE FIX, AND EACH REFUSAL WAS A MEASUREMENT, NOT
+  AN OPINION.** The certificate refused a lookahead recognizer (the planner renders a synthetic identifier; the rule was
+  UNKNOWN in both bases and the union lost `fully_certified`) — a renderable terminal is what a certificate can witness,
+  from the entry that opens the scope. The parse-cost ratchet refused a dispatcher tried first at every type use-site
+  (`entries` +2 419 875: two entries per attempt, none of which is accepted on a file like `pinmux_reg_top.sv`) — the
+  check belongs BEHIND the store gate, as an ordered second branch. The ratchet then refused the ordered spelling with a
+  `pre` scope gate (`entries` +2 154 348, and the per-rule table said WHY: every `data_type` alternative re-entered ~44 900
+  times, `named_parameter_assignment` losing 23 336 memo replays) — a `pre` predicate that reads the store on the REFUSAL
+  path is a store read, and a failure that read the store is cached epoch-stamped (`MEMO-STORE-SOUNDNESS.2`); as a `post`
+  predicate the store is read only once the text has matched, and the residual collapsed to the refused-attempt path
+  (+634 818 entries in exactly three rules, committed 0, nothing fell), accepted through the coded containment invariant.
+  ⛔ **Debug and release probes give the SAME protocol-graph counters**, so an A/B of grammar spellings costs a 4-minute
+  debug build, not a 20-minute release link — and the tracked per-file `entries.tsv` is a HEAD baseline you already have.
+- ⛔ **OPS, PAID FOR ONCE: `run_with_memory_guard.sh` BUDGETS ONE PROCESS TREE, NOT THE HOST.** Three guarded chains at once
+  (ratchet rebaseline ~10 GB, the v2005 gate's release re-link ~10 GB, clippy) plus another repository's CI on the same
+  24 GB host: the gate's 22-minute `rustc` died *"process didn't exit successfully"* with no rustc error — the free-floor
+  kill, not a defect — and the gate had to be re-run alone. Two rules: (1) memory-heavy guarded jobs run SEQUENTIALLY;
+  (2) `check_generated_reproducibility.sh --rebaseline` REWRITES every `generated/*` artifact (byte-identical, fresh
+  mtimes), so any later `cargo build --release` re-links the 70 MB probe — run the rebaseline LAST, or accept the
+  re-link before the gates that need the release binary. ⭐ A fresh release binary's FIRST exec can also block for
+  minutes on system-policy assessment — the decision record `reference_first_exec_of_a_fresh_release_binary_stalls_in_exec_on_system_policy_assessment`.
+- ⛔ **THE `.13q` CLASS, AGAIN, ONE COMMIT LATER**: `.13w` and the `.3.29` opening text cited IEEE 1800-2017 **19.6.1.4**
+  for the sentence that defines the two types. A heading census puts `section-19-functional-coverage.md:1307` under
+  **§19.6.1.3** (*Cross bin automatically defined types*); 19.6.1.4 is the clause whose example USES them, and `:1331`
+  — *"Subclause 19.6.1.4 shows how CrossValType and CrossQueueType can be used"* — sits four lines above the text. A
+  clause number carried out of a cross-reference. Corrected at every site (record, CHANGES, knowledge card, book,
+  `store_gate_explanations.py`); `LRM-CLAUSE-CITATION` `agree=46 disagree=0` on the corrected tree. The census tool
+  could not see this one because the citations bound no line number — which is the honest bound `.13q` already stated.
+
 ## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0346 (a rejection the design demands is explained only by a parse that proves it)
 
 - ⭐⭐ **THE LESSON: A DESIGN DECISION CAN EXPLAIN A DIVERGENCE, BUT ONLY THE PARSER CAN PROVE THE DECISION WAS THE

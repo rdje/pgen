@@ -112,16 +112,23 @@ unknown fell because more rules became witnessed.
 
 ## SystemVerilog, stated precisely
 
-Its accounting is a **union over four** entry/profile configurations
+Its accounting is a **union over five** entry/profile configurations
 (`systemverilog_file:sv_2023`, `sv_multi_entry_root:sv_2017`, `library_text:sv_2017`,
-`systemverilog_parseable_file:sv_2017`), not a single run. Under that union the last recorded run
-reached **0 unknown**; under the **single canonical config, 11 rules remain unknown**, and **7 rules
-are credited by PROOF rather than by a generated string**.
+`systemverilog_parseable_file:sv_2017`, and — since `SV-CORPUS-GRAD.3.29`, 2026-09-03 —
+`cross_body:sv_2017`), not a single run. Under that union the gate reads **0 unknown**; under the
+**single canonical config, 13 rules remain unknown**, and **8 rules are credited by PROOF rather
+than by a generated string**. Two of the thirteen are unknown *by construction*: the recognizer for
+a cross's two implicit typedefs (`CrossValType` / `CrossQueueType`, IEEE 1800-2017 §19.6.1.3) is
+gated on a `cross` scope that only a cross body opens, so no sample rendered from the canonical
+entry can pass its gate, and the `cross_body` union entry is what witnesses it. The live tuple, held
+equal to the contract by `PUBLISHED-VERSION-CURRENCY`, is in
+[Grammar Well-Formedness → The live tuple](grammar-wellformedness.md#the-live-tuple).
 
-⚠️ That result is **not verified against the parser now in the tree**: the contract pins one
-`systemverilog_parser.rs` digest and the tree holds another, because engine-universal codegen moved
-under it (the grammar itself did not — 0 commits). Re-running the gate is owned by
-`SV-CORPUS-GRAD.13c.2x.10`.
+ℹ️ *History (2026-08-23):* this page once warned that the result was not verified against the parser
+in the tree, because the contract pinned one `systemverilog_parser.rs` digest and the tree held
+another. The union gate now runs on every SystemVerilog release and re-stamps the contract's
+identity block from its own green run (`BASELINE-IDENTITY`), so the pinned digest is the parser that
+ships.
 
 ## ⛔ Correction, 2026-08-23
 
