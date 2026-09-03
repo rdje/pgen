@@ -36,14 +36,22 @@
   (+634 818 entries in exactly three rules, committed 0, nothing fell), accepted through the coded containment invariant.
   ⛔ **Debug and release probes give the SAME protocol-graph counters**, so an A/B of grammar spellings costs a 4-minute
   debug build, not a 20-minute release link — and the tracked per-file `entries.tsv` is a HEAD baseline you already have.
-- ⛔ **OPS, PAID FOR ONCE: `run_with_memory_guard.sh` BUDGETS ONE PROCESS TREE, NOT THE HOST.** Three guarded chains at once
-  (ratchet rebaseline ~10 GB, the v2005 gate's release re-link ~10 GB, clippy) plus another repository's CI on the same
-  24 GB host: the gate's 22-minute `rustc` died *"process didn't exit successfully"* with no rustc error — the free-floor
-  kill, not a defect — and the gate had to be re-run alone. Two rules: (1) memory-heavy guarded jobs run SEQUENTIALLY;
-  (2) `check_generated_reproducibility.sh --rebaseline` REWRITES every `generated/*` artifact (byte-identical, fresh
-  mtimes), so any later `cargo build --release` re-links the 70 MB probe — run the rebaseline LAST, or accept the
-  re-link before the gates that need the release binary. ⭐ A fresh release binary's FIRST exec can also block for
-  minutes on system-policy assessment — the decision record `reference_first_exec_of_a_fresh_release_binary_stalls_in_exec_on_system_policy_assessment`.
+- ⛔ **OPS, PAID FOR ONCE — AND CORRECTED UNDER DIRECTOR CHALLENGE (`-0348`): `run_with_memory_guard.sh` BUDGETS ONE
+  PROCESS TREE, NOT THE HOST.** The v2005 gate's 17-minute release link died twice with no rustc diagnostic (*"process
+  didn't exit successfully"*, in-tree peaks 14.5–14.8 GB on a 24 GB host): the first time while my own guarded ratchet
+  rebaseline (~10 GB) and clippy ran concurrently AND another repository's CI ran on the host; the second while that CI
+  compiled its own copy of `pgen`. Memory pressure is the best-supported reading — no kernel log was collected — and the
+  third run, alone, re-linked in 17 m 34 s (deterministic: same sha `00a200aa…`) and passed. ⛔ WHAT I FIRST WROTE WAS
+  WRONG IN MECHANISM, TWICE: (1) *"the reproducibility rebaseline rewrites `generated/*`"* — it does not; every other
+  generated artifact kept its March-old mtime. The regeneration is the GATE's own ensure stage: `make focus_systemverilog`
+  lists the debug `ast_pipeline` as a generator INPUT (`--tools`), the gate rebuilds that binary first, so the parser is
+  regenerated (byte-identical, fresh mtime) and `build.rs`'s `rerun-if-changed` on the parser path re-links the probe —
+  by design (`CI-PARITY-GATE-ROT.32`'s freshness guard), on every gate that rebuilds the tool after the probe. (2)
+  *"restoring the artifact chain's mtimes made cargo see the probe fresh"* — the third run regenerated and re-linked
+  anyway; the touch proved nothing. Rules that survive: memory-heavy guarded jobs run SEQUENTIALLY; a gate that rebuilds
+  the debug tool after the release probe WILL re-link it (17 min), so run such gates alone or build the release probe last.
+  ⭐ A fresh release binary's FIRST exec can also block for minutes on system-policy assessment — the decision record
+  `reference_first_exec_of_a_fresh_release_binary_stalls_in_exec_on_system_policy_assessment`.
 - ⛔ **THE `.13q` CLASS, AGAIN, ONE COMMIT LATER**: `.13w` and the `.3.29` opening text cited IEEE 1800-2017 **19.6.1.4**
   for the sentence that defines the two types. A heading census puts `section-19-functional-coverage.md:1307` under
   **§19.6.1.3** (*Cross bin automatically defined types*); 19.6.1.4 is the clause whose example USES them, and `:1331`
