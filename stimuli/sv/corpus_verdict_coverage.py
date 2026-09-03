@@ -105,6 +105,10 @@ CLASSES = {
         "ADJUDICATED", "parse stops on an `include - positionally gated since .12a"),
     "divergence:explained_svpp_protected_envelope": (
         "ADJUDICATED", "IEEE 1800-2017 §34 encrypted envelope - not source text yet"),
+    "divergence:explained_store_gate": (
+        "ADJUDICATED", "the sound store gate refuses a provably-undeclared type identifier "
+                       "(SV-PARSE-STRICT boundary); proven per row: the file parses once the "
+                       "demanded name is declared (.13w)"),
     "deferred:v2005_profile_lane": (
         "ROUTED", "adjudicated in adjudication_manifest_v2005.tsv, not lost"),
     "deferred:chained_only": (

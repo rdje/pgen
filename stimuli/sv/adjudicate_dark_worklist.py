@@ -135,6 +135,9 @@ WRAPPERS = [
 ]
 MAX_ROUNDS = 14
 TIMEOUT_S = 120
+# The probe profile. `sv_2017` for the dark worklist; the store-gate explanation pass
+# (SV-CORPUS-GRAD.13w) sets `verilog_2005` while it measures the v2005 lane.
+PROFILE = "sv_2017"
 
 # Escalating declaration FORMS. The search takes the first that works, so a row is never
 # excused by a more permissive declaration than its own bytes actually need -- and the winning
@@ -167,13 +170,13 @@ def probe_text(text: str, trace: bool):
     try:
         if trace:
             cmd = (f'PGEN_TRACE_VERBOSITY=high {shlex.quote(str(PROBE))} --parse systemverilog '
-                   f'{shlex.quote(str(tmp))} --profile sv_2017 --trace 2>&1 '
+                   f'{shlex.quote(str(tmp))} --profile {PROFILE} --trace 2>&1 '
                    f'| grep -aE "has_fact|fact_attribute_equals"')
             proc = subprocess.run(["/bin/sh", "-c", cmd], capture_output=True, text=True,
                                   timeout=TIMEOUT_S)
             return (None, None, None, proc.stdout)
         proc = subprocess.run(
-            [str(PROBE), "--parse", "systemverilog", str(tmp), "--profile", "sv_2017"],
+            [str(PROBE), "--parse", "systemverilog", str(tmp), "--profile", PROFILE],
             capture_output=True, text=True, timeout=TIMEOUT_S)
         out = (proc.stderr or "") + (proc.stdout or "")
         fm, sm = FURTHEST_RE.search(out), SURFACE_RE.search(out)

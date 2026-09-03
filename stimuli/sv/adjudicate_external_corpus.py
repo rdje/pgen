@@ -3404,6 +3404,119 @@ DESIGN_SUITES = {"Cores-VeeR-EL2", "friscv", "scr1",
                  "opentitan", "black-parrot", "uvm-core"}
 
 
+_SG_MODULE = None
+
+
+def _sg():
+    """`stimuli/sv/store_gate_explanations.py`, imported by path (SV-CORPUS-GRAD.13w)."""
+    global _SG_MODULE
+    if _SG_MODULE is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "pgen_store_gate_explanations", Path(__file__).resolve().parent / "store_gate_explanations.py")
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules["pgen_store_gate_explanations"] = mod
+        spec.loader.exec_module(mod)
+        _SG_MODULE = mod
+    return _SG_MODULE
+
+
+def report_parse_binary_sha(report: Path) -> str:
+    """The `parse binary` digest the TRACKED lane report names; "" when the report is absent."""
+    if not report.is_file():
+        return ""
+    for line in report.read_text(encoding="utf-8").splitlines():
+        m = IDENTITY_ROW_RE.match(line)
+        if m and m.group(1).strip() == "parse binary":
+            return m.group(3)
+    return ""
+
+
+def resolve_corpus_path(args):
+    def resolve(suite, rel):
+        if suite == "uvm-core":
+            return args.subs_root.parent / "uvm" / rel
+        return args.subs_root / suite / rel
+    return resolve
+
+
+def store_gate_pass(lane, manifest, resolve, report, cache, jobs, *, measurer=None):
+    """SV-CORPUS-GRAD.13w. Every `divergence:unexplained_rejects_valid` row is a candidate: the
+    store-gate search decides, BY PARSING, whether the parser's sound gate on a provably-undeclared
+    type identifier is the only obstacle (=> `divergence:explained_store_gate`, with the minimal
+    prelude in the basis) or the row stays in the bar (with the search's residual reason in the
+    basis, so the next defect slice starts from a triage instead of a list)."""
+    sg = _sg()
+    candidates = [(suite, rel, resolve(suite, rel)) for suite, rel, _obs, _exp, verdict, _b in manifest
+                  if verdict == "divergence:unexplained_rejects_valid"]
+    decided = sg.explain_rows(lane, candidates, report_parse_binary_sha(report),
+                              Path(__file__).resolve().parent.parent.parent / "rust/target/release/parseability_probe",
+                              cache, jobs=jobs, measurer=measurer,
+                              log=lambda msg: print(msg, file=sys.stderr))
+    out = []
+    for suite, rel, observed, expected, verdict, basis in manifest:
+        row = decided.get((suite, rel)) if verdict == "divergence:unexplained_rejects_valid" else None
+        if row is not None:
+            if row["verdict"] == sg.EXPLAINED:
+                verdict = sg.CLASS
+            basis += sg.basis_suffix(row)
+        out.append((suite, rel, observed, expected, verdict, basis))
+    return out
+
+
+def _self_test_store_gate() -> int:
+    """SV-CORPUS-GRAD.13w arms: the post-pass reclassifies ONLY the rows the search explains,
+    leaves every other verdict byte-identical, and writes the proof into the basis. A fake
+    measurer drives it, so the arms need no parser and cannot be excused by one."""
+    import tempfile
+    sg = _sg()
+    fails = []
+
+    def check(name, cond):
+        print(f"  {'PASS' if cond else 'FAIL'}  store-gate: {name}")
+        if not cond:
+            fails.append(name)
+
+    with tempfile.TemporaryDirectory(dir=str(Path(__file__).resolve().parent.parent.parent / "rust/target")) as td:
+        d = Path(td)
+        (d / "s").mkdir()
+        for name, body in (("a.sv", "module a; T x; endmodule\n"), ("b.sv", "module b; U y; endmodule\n"),
+                           ("c.sv", "module c; endmodule\n"), ("r.sv", "module r; U y; endmodule\n")):
+            (d / "s" / name).write_text(body)
+        manifest = [
+            ("s", "a.sv", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key"),
+            ("s", "b.sv", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key"),
+            ("s", "c.sv", "pass", "must_accept", "match", "key"),
+            ("s", "r.sv", "pass", "must_reject", "divergence:unexplained_accepts_invalid", "key"),
+        ]
+        seen = []
+
+        def fake(raw, profile):
+            seen.append(raw)
+            return (sg.EXPLAINED, ("T",), ("class",)) if "T x" in raw else ("residual:not_parsed_with_declarations", ("U",), ())
+        cache = {}
+        # the lane report is what names the parser the memo is keyed on - a synthetic one here
+        report = d / "characterization.md"
+        report.write_text("| parse binary | `rust/target/release/parseability_probe` | `" + "a" * 64 + "` |\n")
+        check("the report's `parse binary` digest is read", report_parse_binary_sha(report) == "a" * 64)
+        try:
+            store_gate_pass("sv_2017", manifest, lambda s, r: d / s / r, d / "absent.md", cache, 2, measurer=fake)
+            check("a lane with NO report digest refuses to measure", False)
+        except SystemExit as e:
+            check("a lane with NO report digest refuses to measure", "names no `parse binary` digest" in str(e))
+        out = store_gate_pass("sv_2017", manifest, lambda s, r: d / s / r, report, cache, 2, measurer=fake)
+        check("only rejects-valid rows are candidates (2 of 4 measured)", len(seen) == 2)
+        by = {(r[0], r[1]): r for r in out}
+        check("an explained row becomes divergence:explained_store_gate",
+              by[("s", "a.sv")][4] == sg.CLASS and "parses once `T` is declared (class)" in by[("s", "a.sv")][5])
+        check("a residual row stays in the bar and names what it demanded",
+              by[("s", "b.sv")][4] == "divergence:unexplained_rejects_valid" and "residual:not_parsed_with_declarations" in by[("s", "b.sv")][5] and "`U`" in by[("s", "b.sv")][5])
+        check("match and accepts-invalid rows are byte-identical", by[("s", "c.sv")] == manifest[2] and by[("s", "r.sv")] == manifest[3])
+        check("the cache holds exactly the candidate population", sorted(k[2] for k in cache) == ["a.sv", "b.sv"])
+    print(f"store-gate self-test: {'PASS' if not fails else 'FAIL'} ({len(fails)} failing)")
+    return 1 if fails else 0
+
+
 def adjudicate(expected, observed, dep_flag):
     if observed == "crash":
         # Probe signal-death (e.g. debug-build stack overflow) is a defect
@@ -3581,6 +3694,11 @@ def main():
                     type=Path,
                     help="the TRACKED sv-lane report whose instrument identity names the raw "
                          "dumps this run may read (SV-CORPUS-GRAD.13e.6)")
+    ap.add_argument("--store-gate-cache", type=Path,
+                    default=root / "stimuli/sv/characterization/store_gate_cache.tsv",
+                    help="SV-CORPUS-GRAD.13w: the tracked memo of store-gate measurements "
+                         "(re-measured per row when its bytes or the parser change)")
+    ap.add_argument("--store-gate-jobs", type=int, default=8)
     ap.add_argument("--report-v2005",
                     default=root / "stimuli/sv/characterization/characterization_v2005.md",
                     type=Path,
@@ -3588,7 +3706,8 @@ def main():
     args = ap.parse_args()
 
     if args.self_test:
-        return _self_test_extension_guard(args.subs_root / "iverilog" / "ivtest")
+        return (_self_test_extension_guard(args.subs_root / "iverilog" / "ivtest")
+                | _self_test_store_gate())
 
     verify_outcome_identity(args.report, [args.results, args.positions],
                             rerun="stimuli/run_external_corpus.sh sv")
@@ -3693,6 +3812,11 @@ def main():
         verdict = adjudicate(expected, observed, dep_flag)
         manifest.append((suite, rel, observed, expected, verdict, basis))
 
+    store_gate_cache = _sg().load_cache(args.store_gate_cache)
+    manifest = store_gate_pass("sv_2017", manifest, resolve_corpus_path(args), args.report,
+                               store_gate_cache, args.store_gate_jobs)
+    _sg().save_cache(args.store_gate_cache, store_gate_cache)
+
     args.out_manifest.parent.mkdir(parents=True, exist_ok=True)
     with args.out_manifest.open("w", encoding="utf-8") as fh:
         fh.write("suite\trelpath\tobserved\texpected\tadjudication\tbasis\n")
@@ -3742,7 +3866,8 @@ def main():
                  f"{total.get('divergence:unexplained_rejects_valid', 0)}, "
                  f"accepts-invalid "
                  f"{total.get('divergence:unexplained_accepts_invalid', 0)}). "
-                 "Explained divergences are svpp/chaining/timeout-owned with named "
+                 "Explained divergences are svpp/chaining/timeout-owned or store-gate-owned "
+                 "(`.13w`: the row parses once its undeclared type is declared) with named "
                  "causes; deferred rows adjudicate in their owning lanes "
                  "(leaf .4 chaining, SVPP lane).")
     lines.append("")
@@ -3828,6 +3953,10 @@ def main():
                       "preprocessor dependency does not explain THIS failure")
         verdict = adjudicate(expected, observed, dep_flag)
         v_manifest.append((suite, rel, observed, expected, verdict, basis))
+
+    v_manifest = store_gate_pass("verilog_2005", v_manifest, resolve_corpus_path(args), args.report_v2005,
+                                 store_gate_cache, args.store_gate_jobs)
+    _sg().save_cache(args.store_gate_cache, store_gate_cache)
 
     with args.out_manifest_v2005.open("w", encoding="utf-8") as fh:
         fh.write("suite\trelpath\tobserved\texpected\tadjudication\tbasis\n")

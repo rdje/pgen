@@ -29,7 +29,7 @@
 
 ⇒ **trust bound: 2330 of 2534 (91.9%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
-## ⛔ The BAR's own rows (268, `sv_2017`) — a different population, a different number
+## ⛔ The BAR's own rows (222, `sv_2017`) — a different population, a different number
 
 The published defect bar is the `sv_2017` `divergence:unexplained_*` subset, **not** the whole
 key. A divergence tends to get INVESTIGATED, and investigation is exactly the event
@@ -38,12 +38,12 @@ key as a whole. Attaching the key-wide share to the bar overstates the claim.
 
 | provenance | bar rows | share |
 |---|---|---|
-| `clause-cited` | 26 | 9.7% |
-| `tool-testimony` | 121 | 45.1% |
-| `suite-convention` | 120 | 44.8% |
-| `UNCLASSIFIED` | 1 | 0.4% |
+| `clause-cited` | 20 | 9.0% |
+| `tool-testimony` | 89 | 40.1% |
+| `suite-convention` | 112 | 50.5% |
+| `UNCLASSIFIED` | 1 | 0.5% |
 
-⇒ **242 of 268 (90.3%)** of the rows *behind the published bar* rest on evidence outside the standard, against **93.7%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
+⇒ **202 of 222 (91.0%)** of the rows *behind the published bar* rest on evidence outside the standard, against **93.7%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
 
 ## By suite — where the non-clause evidence actually lives
 
@@ -81,9 +81,9 @@ checkable. The first cut left **4 961** unclassified (49 %) and the vocabulary w
 extended by ENUMERATING those shapes, not by widening a rule until the number fell.
 
 - `ispras-sv-tests` / `must_reject` — pinned .8b.2: the committed text is syntactically broken - the a1 assert property's opening parenthesis is never closed (upstream typo); parse-level regardless of the intended 16.9.4 nested-gclk-function semantic rule
-- `sv-tests` / `must_accept` — pinned: bit-select on a vectored net is a semantic (elaboration) restriction; the syntax itself parses
+- `sv-tests` / `must_accept` — pinned: bit-select on a vectored net is a semantic (elaboration) restriction; the syntax itself parses - .13w: store-gate search residual:not_parsed_with_declarations
 - `ispras-sv-tests` / `must_accept` — pinned .8c.1: 12.8.2 early defparam hierarchical-name resolution ambiguity - pure elaboration semantics; defparam and the generate block are ordinary 1364-2005 BNF
-- `ispras-sv-tests` / `must_accept` — ispras-1364 POSITIVE pinned .8c.2 (KNOWN_TEXT_BUGS re-adjudicated, no errata flip): `begin_keywords "1364-2001" - 19.11 selects the 1364-2001 keyword set so 'uwire' is an ordinary identifier in scope; section 19: directives may appear anywhere in the source description (the sv-lane 22.14 begin_keywords mirror - directive-aware keyword selection is parser duty)
+- `ispras-sv-tests` / `must_accept` — ispras-1364 POSITIVE pinned .8c.2 (KNOWN_TEXT_BUGS re-adjudicated, no errata flip): `begin_keywords "1364-2001" - 19.11 selects the 1364-2001 keyword set so 'uwire' is an ordinary identifier in scope; section 19: directives may appear anywhere in the source description (the sv-lane 22.14 begin_keywords mirror - directive-aware keyword selection is parser duty) - .13w: store-gate search residual:not_parsed_with_declarations
 
 ⚠️ **TWO of these ARE clause cites, so `clause-cited` is a LOWER bound, short by exactly 2.** They spell the clause as a bare dotted number (*"…pinned .8c.1: 12.8.2 early defparam…"*, *"…- 19.11 selects the 1364-2001 keyword set…"*), and a general bare-dotted-number rule is **deliberately not added**: `.8b.3` and `.13e.2` are task-leaf ids in the very same strings, so such a rule would classify every pinned row as clause-cited on its own bookkeeping. Two rows misfiled in the conservative direction is the cheaper error. The other two cite nothing external at all — they are the adjudicator's own reading of the file — which is a third trust profile, too small a population (2) to justify naming a class for.
 
@@ -110,6 +110,6 @@ extended by ENUMERATING those shapes, not by widening a rule until the number fe
 **`UNCLASSIFIED`**
 
 - `ispras-sv-tests` / `must_reject` — pinned .8b.2: the committed text is syntactically broken - the a1 assert property's opening parenthesis is never closed (upstream typo); parse-level r
-- `sv-tests` / `must_accept` — pinned: bit-select on a vectored net is a semantic (elaboration) restriction; the syntax itself parses
+- `sv-tests` / `must_accept` — pinned: bit-select on a vectored net is a semantic (elaboration) restriction; the syntax itself parses - .13w: store-gate search residual:not_parsed_w
 - `ispras-sv-tests` / `must_accept` — pinned .8c.1: 12.8.2 early defparam hierarchical-name resolution ambiguity - pure elaboration semantics; defparam and the generate block are ordinary 
 

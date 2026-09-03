@@ -1,5 +1,19 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0346 (a rejection the design demands is explained only by a parse that proves it)
+
+- ⭐⭐ **THE LESSON: A DESIGN DECISION CAN EXPLAIN A DIVERGENCE, BUT ONLY THE PARSER CAN PROVE THE DECISION WAS THE
+  WHOLE STORY.** 46 rows had been sitting in the bar since `SV-PARSE-STRICT.2` made the parser reject provably-undeclared
+  types; the temptation was to relabel them by argument ("the key cannot see the boundary"). Instead each row was
+  re-parsed with the exact declarations the parser's own trace demanded, minimised, and published — and the discipline
+  paid immediately: the same search REFUSED two rows whose demanded name (`CrossQueueType`) the LRM predefines, which
+  is a grammar defect that an argument would have explained away.
+- The 15 rows whose demanded name IS declared in the file are declared as an interface or module — a
+  definitions-namespace name in a data-type position (`intf intf_i;` with no instance parentheses) — so the gate is
+  right there too; the proof is the same parse, not a namespace argument.
+- The memo carries TWO digests (file + parser binary) and refuses to measure against a binary the report does not
+  name: the `.13e.6` discipline, applied to a derived verdict instead of a raw dump.
+
 ## 2026-09-03 - PGEN-DONE-BAR-0022 (presence is not a pass)
 
 - ⭐⭐ **THE LESSON: A CONFORMANCE SURFACE HAS TWO BITS, AND THE ARTIFACT'S EXISTENCE IS NEITHER.** The exit code

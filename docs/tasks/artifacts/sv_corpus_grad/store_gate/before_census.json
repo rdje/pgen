@@ -1,0 +1,6 @@
+{
+  "frozen_at": "HEAD before PGEN-SV-CORPUS-GRAD-0346 (2026-09-03)",
+  "sv_2017": {"divergence:unexplained_rejects_valid": 247, "divergence:explained_store_gate": 0},
+  "verilog_2005": {"divergence:unexplained_rejects_valid": 41, "divergence:explained_store_gate": 0},
+  "how": "git show HEAD:stimuli/sv/characterization/adjudication_manifest{,_v2005}.tsv | awk -F\"\\t\" $5==class | wc -l"
+}
