@@ -1,5 +1,17 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0006 (refuse loudly what you do not implement)
+
+- ⭐ **THE LESSON: WHEN THE META-GRAMMAR ALLOWS A CONSTRUCT THE ENGINE HAS NO SHAPE FOR, THE FRONTEND'S ONLY HONEST
+  MOVES ARE TO PARSE IT OR TO REFUSE IT AT THE BYTE — NEVER TO READ IT AS SOMETHING ELSE.** `( b -> {…} | c )` was
+  read as a braced quantifier of `b`: a category error that surfaced, if at all, as an "Unknown quantifier" with no
+  location. The refusal names the rule, the byte, the clause and the workaround; implementing the construct is its
+  own leaf, opened only when an author needs it.
+- **A count-parity gate cannot see a category misread.** Doctrine 36 agreed (same alternative count); the envelope
+  differential saw one divergence. Each instrument answers its own question.
+- `promotion: declined (the rule — refuse what you cannot parse, at the byte, with the workaround — is the
+  application of the existing meta-grammar-authority card; per-slice history)`.
+
 ## 2026-09-03 - PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0005 (measure the language change before making it)
 
 - ⭐ **THE LESSON: WHEN A FRONTEND'S READING CHANGES, CENSUS EVERY TRACKED SITE WHOSE READING CHANGES BEFORE

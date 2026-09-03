@@ -900,6 +900,16 @@ line comments parse normally:
 > explanation so the shipped return-annotation parser is byte-identical, and the language question it raises
 > is routed, not decided by a frontend fix.
 
+> ⭐ **One construct the meta-grammar allows and the frontend now refuses out loud** (`EBNF-FRONTEND-SILENT-TRUNCATION.4`,
+> `-0006`): an inline `->` return annotation *inside* a parenthesized or optional group — `( b -> {kind: "x"} | c )`.
+> `ebnf.ebnf` derives it (`grouped_expression := "(" rule_expression ")"`, and an alternation may carry a per-branch
+> `return_annotation`), but the generator's IR attaches return annotations per top-level branch only, and the
+> hand-written frontend used to skip the `->` and read the `{…}` that followed as a **braced quantifier** of the
+> preceding element — a misread into a different syntactic category, surfacing (if at all) as an "Unknown quantifier"
+> with no location. It is now refused at the byte, naming the rule and the workaround: lift the group into a named
+> rule and annotate its alternatives there (AST-transparent). No tracked grammar uses the shape; implementing it is
+> `.4b`.
+
 Two independent engines — the grammar interpreter and the generated parser — return identical
 verdicts down to the same `furthest_position`, so this is a property of the grammar, not an artefact
 of one tool.

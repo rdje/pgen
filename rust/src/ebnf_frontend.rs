@@ -239,7 +239,10 @@ fn convert_scanned_rule(rule: &ScannedRule) -> Result<Value> {
         tokens.push(json!(["lexical_annotation", payload]));
     }
 
-    tokens.extend(tokenize_rule_expression(&rule.expression)?);
+    tokens.extend(
+        tokenize_rule_expression(&rule.expression)
+            .with_context(|| format!("rule '{}'", rule.name))?,
+    );
     // Return annotations are emitted inline by `tokenize_rule_expression`
     // at the source position of `->`. The previous rule-level append at the
     // end of the rule was wrong for inline branch-level annotations: it would
@@ -1024,12 +1027,36 @@ fn tokenize_rule_expression(expression: &str) -> Result<Vec<Value>> {
                 // Position matters: the resulting `[return_*, ...]` token
                 // lands in the token stream at the source position of `->`,
                 // which is what makes per-branch annotations attach to the
-                // correct branch index in `extract_rule_annotations`. A `->`
-                // appearing inside a group `(...)` is NOT treated as an
-                // annotation marker — that would be unusual EBNF syntax;
-                // standalone `-` characters (without a following `>`) are
-                // skipped as before.
+                // correct branch index in `extract_rule_annotations`.
+                //
+                // ⛔ A `->` INSIDE a group `(...)` / `[...]` is LEGAL by the meta-grammar
+                // (`grammars/ebnf.ebnf`: `grouped_expression := "(" rule_expression ")"`,
+                // `rule_expression := alternation`, `alternation := sequence
+                // (return_annotation? "|" sequence)*` — a per-branch annotation inside a
+                // group) and NOT implemented by this frontend or the generator's IR, which
+                // carries annotations per TOP-LEVEL branch only. Until
+                // EBNF-FRONTEND-SILENT-TRUNCATION.4 (2026-09-03) the `->` was skipped
+                // character by character and the `{…}` payload that followed was read by
+                // the `'{'` arm as a BRACED QUANTIFIER — `Quantified{element: b, quantifier:
+                // "kind: \"bee\""}` — a misread into a different syntactic category, reported
+                // (if at all) as an "Unknown quantifier" with no location. It is now REFUSED
+                // here, at the byte, naming the construct and the workaround (lift the group
+                // into a named rule and annotate its alternatives there — an AST-transparent
+                // lift, SV-CORPUS-GRAD.3.25). Implementing the construct is `.4b`.
                 let next_ch = bytes.get(idx + 1).map(|b| *b as char);
+                if next_ch == Some('>') && sequence_group_depth > 0 {
+                    return Err(anyhow!(
+                        "inline `->` return annotation inside a parenthesized/optional group at byte {} \
+                         of the rule body (group depth {}): legal by grammars/ebnf.ebnf (a grouped \
+                         alternation may carry a per-branch return annotation) but not implemented by \
+                         this frontend, which carries annotations per top-level branch only — lift the \
+                         group into a named rule and annotate its alternatives there \
+                         (EBNF-FRONTEND-SILENT-TRUNCATION.4). Body: {:?}",
+                        idx,
+                        sequence_group_depth,
+                        expression
+                    ));
+                }
                 if next_ch == Some('>') && sequence_group_depth == 0 {
                     let payload_start = idx + 2;
                     let (payload_text, payload_end) =
@@ -2276,5 +2303,43 @@ entry = alpha
         assert!(!first.contains("between rules"), "a comment between two rules reaches no rule: {first}");
         let third = serde_json::to_string(raw_ast[2].as_array().expect("rule")).expect("json");
         assert!(third.contains("[\"semantic_annotation\",[\"profiles\""), "the @ annotation binds d: {third}");
+    }
+
+    /// EBNF-FRONTEND-SILENT-TRUNCATION.4: an inline `->` inside a parenthesized (or optional) group
+    /// is legal by the meta-grammar and NOT implemented here; it used to be re-read as a braced
+    /// QUANTIFIER of the preceding element. It is now refused at the byte, naming the rule, the
+    /// construct and the workaround. Strings and regex literals containing `->` are untouched.
+    #[test]
+    fn inline_return_annotation_inside_a_group_is_refused_at_the_byte_not_reread_as_a_quantifier() {
+        let tail = "a := \"a\"\nb := \"b\"\nc := \"c\"\nd := \"d\"\n";
+        for (label, body) in [
+            ("parenthesized group (the founding case)", "top := a ( b -> {kind: \"bee\"} | c ) d -> {kind: \"top\"}\n"),
+            ("optional group", "top := a [ b -> $1 ] d\n"),
+            ("nested group", "top := a ( b ( c -> {k: 1} | d ) ) d\n"),
+        ] {
+            let input = format!("{body}{tail}");
+            let err = parse_ebnf_text_to_raw_ast_envelope(&input, "mini", None)
+                .err()
+                .unwrap_or_else(|| panic!("{label}: must be refused, not parsed"));
+            let text = format!("{err:#}");
+            assert!(text.contains("rule 'top'"), "{label}: the refusal names the rule: {text}");
+            assert!(text.contains("inside a parenthesized/optional group at byte"), "{label}: located: {text}");
+            assert!(text.contains("lift the group into a named rule"), "{label}: the workaround is in the message: {text}");
+            assert!(!text.contains("Unknown quantifier"), "{label}: never a quantifier error: {text}");
+        }
+        // Controls on the same wiring: a group without `->` parses with the rule-level annotation
+        // intact, and `->` inside a string or a regex literal inside a group is not an annotation.
+        for (label, body, must_contain) in [
+            ("group without annotation", "top := a ( b | c ) d -> {kind: \"top\"}\n", "[\"return_object\",\"{kind: \\\"top\\\"}\"]"),
+            ("`->` inside a quoted string in a group", "top := a ( \"->\" | c ) d\n", "[\"quoted_string\",\"->\"]"),
+            ("`->` inside a regex in a group", "top := a ( /->/ | c ) d\n", "[\"regex\",\"->\"]"),
+        ] {
+            let input = format!("{body}{tail}");
+            let envelope = parse_ebnf_text_to_raw_ast_envelope(&input, "mini", None)
+                .unwrap_or_else(|e| panic!("{label}: must parse: {e:#}"));
+            let first = serde_json::to_string(envelope["raw_ast"][0].as_array().expect("rule")).expect("json");
+            assert!(first.contains(must_contain), "{label}: {first}");
+            assert!(!first.contains("\"quantifier\""), "{label}: no quantifier token may appear: {first}");
+        }
     }
 }

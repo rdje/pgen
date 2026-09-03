@@ -1,0 +1,7 @@
+{
+ "artifact": "pre-fix frontend reading of `a := (b -> {kind: \"x\"} | c) d` (rust/src/ebnf_frontend.rs at 8c58582e): the inline return annotation inside the parenthesized group is re-read as the QUANTIFIER of `b`",
+ "measured": "2026-09-03",
+ "grammar": "a := (b -> {kind: \"x\"} | c) d\nb := \"b\"\nc := \"c\"\nd := \"d\"\n",
+ "arm1_rule_a": [["rule", "a"], ["group_open", "("], ["rule_reference", "b"], ["quantifier", "kind: \"x\""], ["operator", "|"], ["rule_reference", "c"], ["group_close", ")"], ["rule_reference", "d"]],
+ "arm2_summary": "the parser generated from grammars/ebnf.ebnf reads a `return_annotation` on the first alternative of the grouped alternation (grouped_expression := \"(\" rule_expression \")\", alternation := sequence (return_annotation? \"|\" sequence)*)"
+}
