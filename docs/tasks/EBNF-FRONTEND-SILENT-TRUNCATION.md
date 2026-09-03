@@ -638,6 +638,13 @@ the UTF-8 twin's `raw_ast` byte-for-byte, and the includer carries the included 
 
 `promotion: declined (the rule — one decoder for user-authored text, refusal for generated text — is .12c.1's own, recorded with the decoder; this is its application to the grammar readers)`
 
+⛔ **CORRECTION 2026-09-03 (`PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0008`).** The `-0007` commit and the box above claimed
+bank **7/7** while the bank as committed read **6/7 and then crashed** — my last edit to arm 7 (counting calls, not the
+comment) dropped the line that set `m`, and under `set -u` the arm died with *"m: unbound variable"* before the summary
+line. I committed the number I intended, not the number the bank printed — the `-0344` lesson (a control that fails for
+the wrong reason) in its simplest form: read the bank's last line before writing it down. Repaired in `-0008`; **7/7**
+measured after the repair, nothing else moved.
+
 ## Acceptance Criteria (tree)
 
 1. A tracked, deterministic gate fails when a grammar's source alternatives and its IR
