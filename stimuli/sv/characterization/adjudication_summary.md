@@ -17,8 +17,8 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | sv2v | 953 | 467 | 25 | 87 | 374 |
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
 | verible | 152 | 113 | 8 | 9 | 22 |
-| verilator | 3263 | 2095 | 64 | 975 | 129 |
-| **total** | **16336** | **5902** | **161** | **1493** | **8780** |
+| verilator | 3263 | 2105 | 54 | 975 | 129 |
+| **total** | **16336** | **5912** | **151** | **1493** | **8780** |
 
 ## Verdict-class detail
 
@@ -38,8 +38,8 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | divergence:explained_svpp_macro_use | 1094 |
 | divergence:explained_svpp_protected_envelope | 4 |
 | divergence:unexplained_accepts_invalid | 21 |
-| divergence:unexplained_rejects_valid | 140 |
-| match | 5902 |
+| divergence:unexplained_rejects_valid | 130 |
+| match | 5912 |
 
-**The graduation burn-down baseline = the UNEXPLAINED divergence count** (**161**: rejects-valid 140, accepts-invalid 21). Explained divergences are svpp/chaining/timeout-owned or store-gate-owned (`.13w`: the row parses once its undeclared type is declared) with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
+**The graduation burn-down baseline = the UNEXPLAINED divergence count** (**151**: rejects-valid 130, accepts-invalid 21). Explained divergences are svpp/chaining/timeout-owned or store-gate-owned (`.13w`: the row parses once its undeclared type is declared) with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
 
