@@ -11,12 +11,12 @@
 
 | provenance | rows | share | `must_accept` | `must_reject` |
 |---|---|---|---|---|
-| `clause-cited` | **473** | 6.3% | 287 | 186 |
-| `tool-testimony` | **1764** | 23.3% | 1710 | 54 |
+| `clause-cited` | **482** | 6.4% | 287 | 195 |
+| `tool-testimony` | **1755** | 23.2% | 1701 | 54 |
 | `suite-convention` | **5317** | 70.4% | 5314 | 3 |
 | `UNCLASSIFIED` | **2** | 0.0% | 1 | 1 |
 
-⇒ **trust bound: 7083 of 7556 (93.7%)** of this lane's expectations rest on evidence OUTSIDE the standard.
+⇒ **trust bound: 7074 of 7556 (93.6%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
 ## `verilog_2005` — 2534 keyed rows
 
@@ -29,7 +29,7 @@
 
 ⇒ **trust bound: 2330 of 2534 (91.9%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
-## ⛔ The BAR's own rows (151, `sv_2017`) — a different population, a different number
+## ⛔ The BAR's own rows (142, `sv_2017`) — a different population, a different number
 
 The published defect bar is the `sv_2017` `divergence:unexplained_*` subset, **not** the whole
 key. A divergence tends to get INVESTIGATED, and investigation is exactly the event
@@ -38,18 +38,18 @@ key as a whole. Attaching the key-wide share to the bar overstates the claim.
 
 | provenance | bar rows | share |
 |---|---|---|
-| `clause-cited` | 13 | 8.6% |
-| `tool-testimony` | 40 | 26.5% |
-| `suite-convention` | 97 | 64.2% |
+| `clause-cited` | 13 | 9.2% |
+| `tool-testimony` | 31 | 21.8% |
+| `suite-convention` | 97 | 68.3% |
 | `UNCLASSIFIED` | 1 | 0.7% |
 
-⇒ **138 of 151 (91.4%)** of the rows *behind the published bar* rest on evidence outside the standard, against **93.3%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
+⇒ **129 of 142 (90.8%)** of the rows *behind the published bar* rest on evidence outside the standard, against **93.2%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
 
 ## By suite — where the non-clause evidence actually lives
 
 | suite | rows | `clause-cited` | `tool-testimony` | `suite-convention` | `UNCLASSIFIED` |
 |---|---|---|---|---|---|
-| `iverilog` | 3134 | 363 | 537 | 2234 | 0 |
+| `iverilog` | 3134 | 372 | 528 | 2234 | 0 |
 | `verilator` | 3134 | 68 | 733 | 2333 | 0 |
 | `ispras-sv-tests` | 1147 | 37 | 0 | 1107 | ⛔ 3 |
 | `sv-tests` | 927 | 5 | 0 | 921 | ⛔ 1 |

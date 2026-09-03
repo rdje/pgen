@@ -1,5 +1,23 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-04 - PGEN-SV-CORPUS-GRAD-0361 (a differential sees verdict flips; a second lane with its own key sees a row that fails for a different reason under each edition)
+
+- ⭐⭐ **THE LESSON: THE DIFFERENTIAL IS NOT THE WHOLE YIELD OF A SECOND LANE.** `.14a`'s per-file census names every row whose VERDICT flips
+  between the editions (28). Nine more rows fail under both profiles and never appear there — yet under sv_2017 they stop at the 2023 token
+  (`parameter type enum T = …`, `union soft packed`) while under sv_2023 the parse passes it and stops later, at a point the preprocessor can
+  alter. Only a lane with its OWN key and its own `.12a` refutation can say that: the 2023 lane files them `explained_svpp_macro_use`, which
+  leaves the 2017 failure as the edition token itself — nine edition contrasts sitting in the 2017 bar as `must_accept`, the passing twins of a
+  `_fail` cluster already ruled by the edition law. Bar `151 → 142` without a parse verdict moving.
+- **An edition-relative key is the older key plus three honest moves.** (1) A row the older key rules an EDITION CONTRAST — its basis cites the
+  newer production — flips to `must_accept`. (2) A row the older lane rejects for having no production, whose newer-edition text derives and
+  whose upstream failure is semantic, is `must_accept` by an explicit reading with the newer cite. (3) Everything else INHERITS, and an inherited
+  `must_reject` carries a marker the summary COUNTS (38 on a cited production, 188 on a suite's own oracle) — what the lane has not judged for
+  itself is stated as a number, never folded into `match`.
+- **Factor the tail, prove it by bytes.** Three lanes now run one `finish_row()`; the proof that the refactor changed nothing is `git diff --stat`
+  empty on the two tracked manifests, their summaries and the lane list — not a test that says so.
+- **An instrument edit re-measures the memo by construction — and that is a cost to expect, not a surprise.** Adding one profile to the memo
+  module moved the instrument digest; every row re-measured (14 m, 0 verdicts moved). The `.15` key did what it promised.
+
 ## 2026-09-04 - PGEN-SV-CORPUS-GRAD-0359 (a second profile lane is a differential, and the differential is the finding)
 
 - ⭐⭐ **THE LESSON: A SECOND PROFILE OVER THE SAME FILES IS NOT A SECOND PASS RATE — IT IS A DIFFERENTIAL, AND EVERY ROW WHERE THE

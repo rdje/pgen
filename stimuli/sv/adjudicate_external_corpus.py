@@ -104,6 +104,100 @@ SVTESTS_PINNED = {
 
 # Pinned rulings from in-file upstream statements (leaf .3.0 triage findings).
 EXTRA_PINNED = {
+    # ---- SV-CORPUS-GRAD.14b.2 (PGEN-SV-CORPUS-GRAD-0361) ------------------------------------------
+    # Found by the sv_2023 LANE, not by the differential: these nine ivtest rows fail under BOTH profiles,
+    # and the 2023 lane's .12a machinery explains their 2023 failure as a macro use (the parse reaches
+    # a later, svpp-alterable point), which leaves their 2017 failure as the edition token itself -
+    # the passing twins of the .8b.3 `_fail` cluster, keyed must_accept by ivtest's normal descriptor.
+    # The same edition law: must_reject on the 2017 lane, must_accept on the sv_2023 lane (key_2023).
+    ("iverilog", "ivtest/ivltests/sv_type_param_restrict_class1.v"): ("must_reject",
+        "pinned .14b.2: line 8 `parameter type class T = C0` - a type parameter with a forward-type restriction. IEEE 1800-2023 A.2.1.1 "
+        "type_parameter_declaration ::= type [ forward_type ] list_of_type_assignments (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:721), forward_type (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:803); "
+        "IEEE 1800-2017 parameter type list_of_type_assignments (docs/systemverilog/2017/md/section-41-data-read-api.md:739-741) admits no forward_type - the construct does not exist "
+        "in the edition this lane judges. EDITION CONTRAST (the .8b.3 law its `_fail` twin already carries): REJECTS at "
+        "furthest_position=138 on sv_2017 (the forward-type token); under sv_2023 the parse passes that token and stops later at a "
+        "point svpp can alter (the file uses macros), so the sv_2023 lane files it explained_svpp_macro_use - measured by the "
+        "sv2023 lane (.14b.2). Pins: the .13x.d invalid_type_parameter_forward_type_sv2017.sv / control_type_parameter_forward_type_sv2023.sv. "
+        "On the sv_2023 lane this row is must_accept (key_2023). Spec outranks the ivtest descriptor, which records what iverilog "
+        "(with its 2023 extensions on) tolerates"),
+    ("iverilog", "ivtest/ivltests/sv_type_param_restrict_class2.v"): ("must_reject",
+        "pinned .14b.2: line 12 `parameter type class T = C0` - a type parameter with a forward-type restriction. IEEE 1800-2023 A.2.1.1 "
+        "type_parameter_declaration ::= type [ forward_type ] list_of_type_assignments (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:721), forward_type (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:803); "
+        "IEEE 1800-2017 parameter type list_of_type_assignments (docs/systemverilog/2017/md/section-41-data-read-api.md:739-741) admits no forward_type - the construct does not exist "
+        "in the edition this lane judges. EDITION CONTRAST (the .8b.3 law its `_fail` twin already carries): REJECTS at "
+        "furthest_position=179 on sv_2017 (the forward-type token); under sv_2023 the parse passes that token and stops later at a "
+        "point svpp can alter (the file uses macros), so the sv_2023 lane files it explained_svpp_macro_use - measured by the "
+        "sv2023 lane (.14b.2). Pins: the .13x.d invalid_type_parameter_forward_type_sv2017.sv / control_type_parameter_forward_type_sv2023.sv. "
+        "On the sv_2023 lane this row is must_accept (key_2023). Spec outranks the ivtest descriptor, which records what iverilog "
+        "(with its 2023 extensions on) tolerates"),
+    ("iverilog", "ivtest/ivltests/sv_type_param_restrict_enum1.v"): ("must_reject",
+        "pinned .14b.2: line 8 `parameter type enum T = T0` - a type parameter with a forward-type restriction. IEEE 1800-2023 A.2.1.1 "
+        "type_parameter_declaration ::= type [ forward_type ] list_of_type_assignments (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:721), forward_type (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:803); "
+        "IEEE 1800-2017 parameter type list_of_type_assignments (docs/systemverilog/2017/md/section-41-data-read-api.md:739-741) admits no forward_type - the construct does not exist "
+        "in the edition this lane judges. EDITION CONTRAST (the .8b.3 law its `_fail` twin already carries): REJECTS at "
+        "furthest_position=139 on sv_2017 (the forward-type token); under sv_2023 the parse passes that token and stops later at a "
+        "point svpp can alter (the file uses macros), so the sv_2023 lane files it explained_svpp_macro_use - measured by the "
+        "sv2023 lane (.14b.2). Pins: the .13x.d invalid_type_parameter_forward_type_sv2017.sv / control_type_parameter_forward_type_sv2023.sv. "
+        "On the sv_2023 lane this row is must_accept (key_2023). Spec outranks the ivtest descriptor, which records what iverilog "
+        "(with its 2023 extensions on) tolerates"),
+    ("iverilog", "ivtest/ivltests/sv_type_param_restrict_enum2.v"): ("must_reject",
+        "pinned .14b.2: line 12 `parameter type enum T = T0` - a type parameter with a forward-type restriction. IEEE 1800-2023 A.2.1.1 "
+        "type_parameter_declaration ::= type [ forward_type ] list_of_type_assignments (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:721), forward_type (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:803); "
+        "IEEE 1800-2017 parameter type list_of_type_assignments (docs/systemverilog/2017/md/section-41-data-read-api.md:739-741) admits no forward_type - the construct does not exist "
+        "in the edition this lane judges. EDITION CONTRAST (the .8b.3 law its `_fail` twin already carries): REJECTS at "
+        "furthest_position=181 on sv_2017 (the forward-type token); under sv_2023 the parse passes that token and stops later at a "
+        "point svpp can alter (the file uses macros), so the sv_2023 lane files it explained_svpp_macro_use - measured by the "
+        "sv2023 lane (.14b.2). Pins: the .13x.d invalid_type_parameter_forward_type_sv2017.sv / control_type_parameter_forward_type_sv2023.sv. "
+        "On the sv_2023 lane this row is must_accept (key_2023). Spec outranks the ivtest descriptor, which records what iverilog "
+        "(with its 2023 extensions on) tolerates"),
+    ("iverilog", "ivtest/ivltests/sv_type_param_restrict_struct1.v"): ("must_reject",
+        "pinned .14b.2: line 8 `parameter type struct T = T0` - a type parameter with a forward-type restriction. IEEE 1800-2023 A.2.1.1 "
+        "type_parameter_declaration ::= type [ forward_type ] list_of_type_assignments (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:721), forward_type (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:803); "
+        "IEEE 1800-2017 parameter type list_of_type_assignments (docs/systemverilog/2017/md/section-41-data-read-api.md:739-741) admits no forward_type - the construct does not exist "
+        "in the edition this lane judges. EDITION CONTRAST (the .8b.3 law its `_fail` twin already carries): REJECTS at "
+        "furthest_position=148 on sv_2017 (the forward-type token); under sv_2023 the parse passes that token and stops later at a "
+        "point svpp can alter (the file uses macros), so the sv_2023 lane files it explained_svpp_macro_use - measured by the "
+        "sv2023 lane (.14b.2). Pins: the .13x.d invalid_type_parameter_forward_type_sv2017.sv / control_type_parameter_forward_type_sv2023.sv. "
+        "On the sv_2023 lane this row is must_accept (key_2023). Spec outranks the ivtest descriptor, which records what iverilog "
+        "(with its 2023 extensions on) tolerates"),
+    ("iverilog", "ivtest/ivltests/sv_type_param_restrict_struct2.v"): ("must_reject",
+        "pinned .14b.2: line 12 `parameter type struct T = T0` - a type parameter with a forward-type restriction. IEEE 1800-2023 A.2.1.1 "
+        "type_parameter_declaration ::= type [ forward_type ] list_of_type_assignments (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:721), forward_type (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:803); "
+        "IEEE 1800-2017 parameter type list_of_type_assignments (docs/systemverilog/2017/md/section-41-data-read-api.md:739-741) admits no forward_type - the construct does not exist "
+        "in the edition this lane judges. EDITION CONTRAST (the .8b.3 law its `_fail` twin already carries): REJECTS at "
+        "furthest_position=197 on sv_2017 (the forward-type token); under sv_2023 the parse passes that token and stops later at a "
+        "point svpp can alter (the file uses macros), so the sv_2023 lane files it explained_svpp_macro_use - measured by the "
+        "sv2023 lane (.14b.2). Pins: the .13x.d invalid_type_parameter_forward_type_sv2017.sv / control_type_parameter_forward_type_sv2023.sv. "
+        "On the sv_2023 lane this row is must_accept (key_2023). Spec outranks the ivtest descriptor, which records what iverilog "
+        "(with its 2023 extensions on) tolerates"),
+    ("iverilog", "ivtest/ivltests/sv_type_param_restrict_union1.v"): ("must_reject",
+        "pinned .14b.2: line 9 `parameter type union T = T0` - a type parameter with a forward-type restriction. IEEE 1800-2023 A.2.1.1 "
+        "type_parameter_declaration ::= type [ forward_type ] list_of_type_assignments (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:721), forward_type (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:803); "
+        "IEEE 1800-2017 parameter type list_of_type_assignments (docs/systemverilog/2017/md/section-41-data-read-api.md:739-741) admits no forward_type - the construct does not exist "
+        "in the edition this lane judges. EDITION CONTRAST (the .8b.3 law its `_fail` twin already carries): REJECTS at "
+        "furthest_position=163 on sv_2017 (the forward-type token); under sv_2023 the parse passes that token and stops later at a "
+        "point svpp can alter (the file uses macros), so the sv_2023 lane files it explained_svpp_macro_use - measured by the "
+        "sv2023 lane (.14b.2). Pins: the .13x.d invalid_type_parameter_forward_type_sv2017.sv / control_type_parameter_forward_type_sv2023.sv. "
+        "On the sv_2023 lane this row is must_accept (key_2023). Spec outranks the ivtest descriptor, which records what iverilog "
+        "(with its 2023 extensions on) tolerates"),
+    ("iverilog", "ivtest/ivltests/sv_type_param_restrict_union2.v"): ("must_reject",
+        "pinned .14b.2: line 14 `parameter type union T = T0` - a type parameter with a forward-type restriction. IEEE 1800-2023 A.2.1.1 "
+        "type_parameter_declaration ::= type [ forward_type ] list_of_type_assignments (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:721), forward_type (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:803); "
+        "IEEE 1800-2017 parameter type list_of_type_assignments (docs/systemverilog/2017/md/section-41-data-read-api.md:739-741) admits no forward_type - the construct does not exist "
+        "in the edition this lane judges. EDITION CONTRAST (the .8b.3 law its `_fail` twin already carries): REJECTS at "
+        "furthest_position=228 on sv_2017 (the forward-type token); under sv_2023 the parse passes that token and stops later at a "
+        "point svpp can alter (the file uses macros), so the sv_2023 lane files it explained_svpp_macro_use - measured by the "
+        "sv2023 lane (.14b.2). Pins: the .13x.d invalid_type_parameter_forward_type_sv2017.sv / control_type_parameter_forward_type_sv2023.sv. "
+        "On the sv_2023 lane this row is must_accept (key_2023). Spec outranks the ivtest descriptor, which records what iverilog "
+        "(with its 2023 extensions on) tolerates"),
+    ("iverilog", "ivtest/ivltests/sv_soft_packed_union.v"): ("must_reject",
+        "pinned .14b.2: line 7 `typedef union soft packed {` - a soft union. IEEE 1800-2023 A.2.2.1 struct_union ::= struct | "
+        "union [ soft | tagged ] (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:916-920); IEEE 1800-2017 A.2.2.1 struct_union ::= struct | union [ tagged ] (docs/systemverilog/2017/md/section-41-data-read-api.md:917) admits "
+        "no `soft` - the construct does not exist in the edition this lane judges. EDITION CONTRAST (the .8b.3 law its `_fail1` twin "
+        "already carries): REJECTS at furthest_position=130 on sv_2017 (the `soft` token); under sv_2023 the parse passes it and stops "
+        "at line 28 `nested_t nested;`, a point svpp can alter (the file uses macros), so the sv_2023 lane files it "
+        "explained_svpp_macro_use - measured by the sv2023 lane (.14b.2). Pins: the .14b.1 union_soft_packed triple. On the sv_2023 "
+        "lane this row is must_accept (key_2023). Spec outranks the ivtest descriptor"),
     ("verible", "verible/verilog/tools/lint/testdata/bad-id-lex.sv"): (
         "must_reject", "pinned: in-file comment 'lexer should reject invalid "
         "identifier' (module 654foo)"),
@@ -4137,6 +4231,136 @@ def _self_test_extension_guard(ivtest_dir: Path) -> int:
         print("  failed arms: " + ", ".join(bad))
     return 1 if bad else 0
 
+def key_2017(suite, rel, text, vidx, ividx, sidx):
+    """The sv_2017 lane's answer key for ONE row: the pinned overrides first, then the suite
+    conventions, then each suite's own oracle. Factored out of main() by SV-CORPUS-GRAD.14b.2 so
+    the sv_2023 lane keys the same rows through the same code and differs ONLY by edition."""
+    if (suite, rel) in EXTRA_PINNED:
+        return EXTRA_PINNED[(suite, rel)]
+    if rel.endswith(".svh") and suite not in DESIGN_SUITES:
+        # Generic across the test suites: .svh files are `include payloads,
+        # not standalone compilation units (may be bare fragments).
+        return ("chained_only", f"{suite}: .svh include payload, not a standalone unit")
+    if suite in DESIGN_SUITES:
+        return ("chained_only",
+                "design corpus parsed in isolation - honest adjudication "
+                "needs include/define chaining (leaf .4)")
+    if suite == "sv-tests":
+        return expect_sv_tests(rel, text)
+    if suite == "verilator":
+        return vidx.expect(rel)
+    if suite == "slang":
+        return expect_slang(rel)
+    if suite == "verible":
+        return expect_verible(rel, text)
+    if suite == "ispras-sv-tests":
+        return expect_ispras(rel, text)
+    if suite == "iverilog":
+        return ividx.expect(rel)
+    if suite == "sv2v":
+        return expect_sv2v(rel)
+    if suite == "Surelog":
+        return sidx.expect(rel)
+    raise SystemExit(f"unknown suite {suite!r} in results.tsv")
+
+
+def finish_row(suite, rel, observed, text, expected, basis, positions):
+    """The edition-INDEPENDENT tail every lane runs after its key: the not-source-text guard, the
+    preprocessor-dependency flag with its .12a refutation, the .13s reject-arm demotion, and the
+    verdict. One body for three lanes (SV-CORPUS-GRAD.14b.2); byte-identical to the two inline
+    copies it replaced (the tracked manifests re-derive unchanged)."""
+    expected, basis = apply_not_source_text(suite, rel, text, expected, basis)
+    dep_flag = ""
+    if expected in ("must_accept", "must_reject"):
+        dep_flag = preproc_dependency(text)
+    if expected == "must_reject":
+        # SV-CORPUS-GRAD.12c.3 F3 - the WHOLE-FILE arm, structurally unable to OBTAIN a
+        # failure position; .13s hands it one DECIDED boolean and nothing else, computed
+        # here by the same predicate the must_accept arm below uses (see the docstring).
+        demotion = reject_arm_demotion(
+            dep_flag,
+            position_refutes_dependency=bool(
+                dep_flag and observed == "fail"
+                and not svpp_can_explain_failure(text, positions.get((suite, rel)))))
+        if demotion is not None:
+            expected, basis_suffix = demotion
+            basis += basis_suffix
+    if expected != "must_accept":
+        dep_flag = ""
+    elif (dep_flag and observed == "fail"
+            and not svpp_can_explain_failure(text, positions.get((suite, rel)))):
+        # SV-CORPUS-GRAD.12a - the file DOES carry a preprocessor construct, but
+        # the parse stops at a point svpp provably cannot reach or alter, so the
+        # dependency is real and irrelevant to THIS failure. Dropping the flag
+        # returns the row to `unexplained_rejects_valid`, where it always belonged.
+        dep_flag = ""
+        basis += (" - .12a: parse stops where svpp cannot alter the text, so the "
+                  "preprocessor dependency does not explain THIS failure")
+    verdict = adjudicate(expected, observed, dep_flag)
+    return (suite, rel, observed, expected, verdict, basis)
+
+
+# ---- the sv_2023 lane's key (SV-CORPUS-GRAD.14b.2) ---------------------------------------------
+# The lane judges IEEE 1800-2023 over the SAME rows as the sv_2017 lane. Its key is the 2017 key
+# read edition-relatively: (a) a row the 2017 key rules an EDITION CONTRAST (its basis cites the
+# 1800-2023 production that derives the text) is must_accept here; (b) the eleven rows below are
+# must_reject on 2017 because 1800-2017 has NO production for the text, while 1800-2023 derives
+# it and the upstream `_fail` golden names a SEMANTIC violation (6.20.3, 7.3, 8.20) that no parse
+# can see - must_accept here, the .13x.a principle; (c) every other row inherits its 2017 ruling,
+# and a must_reject inherited on a 1800-2017 production carries an explicit RE-READ-OWED marker
+# (.14b.3) so the summary can count what this lane has NOT yet judged for itself.
+_A23 = "docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md"
+_TP23 = (f"IEEE 1800-2023 A.2.1.1 type_parameter_declaration ::= type [ forward_type ] list_of_type_assignments "
+         f"({_A23}:721), forward_type ::= enum | struct | union | class | interface class ({_A23}:803), "
+         f"type_assignment ::= type_identifier [ = data_type_or_incomplete_class_scoped_type ] ({_A23}:1059)")
+SV2023_KEY_OVERRIDES = {}
+for _n in ("class", "enum", "struct", "union"):
+    for _k in ("1", "2"):
+        SV2023_KEY_OVERRIDES[("iverilog", f"ivtest/ivltests/sv_type_param_restrict_{_n}_fail{_k}.v")] = (
+            "must_accept",
+            f"sv_2023 lane (.14b.2): `parameter type {_n} T = ...` IS derivable in the edition this lane judges - {_TP23}; "
+            "the ivtest golden fails on 6.20.3's restriction of the DEFAULT's kind (a struct default for an enum "
+            "restriction, ...) - SEMANTIC, after the parse. ACCEPTS under sv_2023 (the .14a census); on the 2017 lane the "
+            "same text has no derivation and is must_reject there.")
+SV2023_KEY_OVERRIDES[("iverilog", "ivtest/ivltests/sv_soft_packed_union_fail1.v")] = (
+    "must_accept",
+    f"sv_2023 lane (.14b.2): `typedef union soft {{ logic [31:0] w = 32'h1; ... }}` IS derivable in the edition this lane judges - "
+    f"IEEE 1800-2023 A.2.2.1 struct_union ::= struct | union [ soft | tagged ] ({_A23}:916-920), struct_union_member ::= "
+    f"{{ attribute_instance }} [ random_qualifier ] data_type_or_void list_of_variable_decl_assignments ; ({_A23}:922-925) admits "
+    "the initializer syntactically; the ivtest golden fails on the SEMANTIC rule about a packed/soft union member's initial value "
+    "(7.3). ACCEPTS under sv_2023 (the .14a census); must_reject on the 2017 lane (no `soft` in 1800-2017).")
+SV2023_KEY_OVERRIDES[("verilator", "test_regress/t/t_class_override_bad.v")] = (
+    "must_accept",
+    f"sv_2023 lane (.14b.2): `function :extends int get_e;` IS derivable in the edition this lane judges - IEEE 1800-2023 A.1.9 "
+    f"dynamic_override_specifiers ({_A23}:1210-1217); its golden names 8.20 prose (no base method to extend) - SEMANTIC. The .13x.d "
+    "entry recorded this: on an sv_2023 lane this row is must_accept. ACCEPTS under sv_2023 (the .14a census).")
+SV2023_KEY_OVERRIDES[("verilator", "test_regress/t/t_param_type_fwd_bad.v")] = (
+    "must_accept",
+    f"sv_2023 lane (.14b.2): `parameter type enum E_t;` IS derivable in the edition this lane judges - {_TP23}; its golden is 6.20.3 "
+    "prose about the override's type - SEMANTIC. The .13x.d entry recorded this: on an sv_2023 lane this row is must_accept. "
+    "ACCEPTS under sv_2023 (the .14a census).")
+REREAD_OWED = "its 1800-2023 re-read is owed (.14b.3)"
+
+
+def key_2023(suite, rel, expected17, basis17):
+    """(expected, basis) for the sv_2023 lane from the row's sv_2017 ruling - see the block comment above."""
+    if (suite, rel) in SV2023_KEY_OVERRIDES:
+        e, b = SV2023_KEY_OVERRIDES[(suite, rel)]
+        return (e, b + " 2017 basis: " + basis17)
+    if "EDITION CONTRAST" in basis17:
+        return ("must_accept",
+                "sv_2023 lane (.14b.2): the 2017 key rules this row an EDITION CONTRAST and cites the IEEE 1800-2023 production "
+                "that derives the text - legal in the edition this lane judges. 2017 basis: " + basis17)
+    if expected17 == "must_reject" and "section-41-data-read-api.md" in basis17:
+        return (expected17,
+                "sv_2023 lane (.14b.2): INHERITED from the 2017 key - a must_reject on an IEEE 1800-2017 production; "
+                + REREAD_OWED + ", and until then this row's verdict is the 2017 lane's. 2017 basis: " + basis17)
+    if expected17 == "must_reject":
+        return (expected17,
+                "sv_2023 lane (.14b.2): INHERITED from the 2017 key - a must_reject on a suite's own oracle (a 2017-era tool or "
+                "golden); " + REREAD_OWED + ". 2017 basis: " + basis17)
+    return (expected17, "sv_2023 lane (.14b.2): inherited from the 2017 key. 2017 basis: " + basis17)
+
 
 def main():
     # SV-CORPUS-GRAD.12c.3 F3 - the two-caller split is asserted BEFORE any row is adjudicated,
@@ -4197,6 +4421,20 @@ def main():
                     default=root / "stimuli/sv/characterization/characterization_v2005.md",
                     type=Path,
                     help="the TRACKED sv2005-lane report, same role as --report")
+    # --- the sv_2023 profile lane (leaf .14b.2) ---
+    ap.add_argument("--results-sv2023",
+                    default=root / "stimuli/sv/characterization/results_sv2023.tsv", type=Path,
+                    help="raw outcomes of the runner's sv2023 mode (the SAME population as results.tsv "
+                         "under --profile sv_2023); the sv2023 manifest is built only when this file exists")
+    ap.add_argument("--positions-sv2023",
+                    default=root / "stimuli/sv/characterization/positions_sv2023.tsv", type=Path)
+    ap.add_argument("--report-sv2023",
+                    default=root / "stimuli/sv/characterization/characterization_sv2023.md", type=Path,
+                    help="the TRACKED sv2023-lane report, same role as --report")
+    ap.add_argument("--out-manifest-sv2023",
+                    default=root / "stimuli/sv/characterization/adjudication_manifest_sv2023.tsv", type=Path)
+    ap.add_argument("--out-summary-sv2023",
+                    default=root / "stimuli/sv/characterization/adjudication_summary_sv2023.md", type=Path)
     args = ap.parse_args()
 
     if args.self_test:
@@ -4240,71 +4478,12 @@ def main():
     ividx = IvtestIndex(args.subs_root / "iverilog/ivtest")
     sidx = SurelogIndex(args.subs_root / "Surelog/tests")
 
+    resolve = resolve_corpus_path(args)
     manifest = []
     for suite, rel, observed in rows:
-        if suite == "uvm-core":
-            fpath = args.subs_root.parent / "uvm" / rel
-        else:
-            fpath = args.subs_root / suite / rel
-        text = read_text(fpath)
-        if (suite, rel) in EXTRA_PINNED:
-            expected, basis = EXTRA_PINNED[(suite, rel)]
-        elif rel.endswith(".svh") and suite not in DESIGN_SUITES:
-            # Generic across the test suites: .svh files are `include payloads,
-            # not standalone compilation units (may be bare fragments).
-            expected, basis = ("chained_only",
-                               f"{suite}: .svh include payload, not a standalone unit")
-        elif suite in DESIGN_SUITES:
-            expected, basis = ("chained_only",
-                               "design corpus parsed in isolation - honest adjudication "
-                               "needs include/define chaining (leaf .4)")
-        elif suite == "sv-tests":
-            expected, basis = expect_sv_tests(rel, text)
-        elif suite == "verilator":
-            expected, basis = vidx.expect(rel)
-        elif suite == "slang":
-            expected, basis = expect_slang(rel)
-        elif suite == "verible":
-            expected, basis = expect_verible(rel, text)
-        elif suite == "ispras-sv-tests":
-            expected, basis = expect_ispras(rel, text)
-        elif suite == "iverilog":
-            expected, basis = ividx.expect(rel)
-        elif suite == "sv2v":
-            expected, basis = expect_sv2v(rel)
-        elif suite == "Surelog":
-            expected, basis = sidx.expect(rel)
-        else:
-            raise SystemExit(f"unknown suite {suite!r} in results.tsv")
-        expected, basis = apply_not_source_text(suite, rel, text, expected, basis)
-        dep_flag = ""
-        if expected in ("must_accept", "must_reject"):
-            dep_flag = preproc_dependency(text)
-        if expected == "must_reject":
-            # SV-CORPUS-GRAD.12c.3 F3 - the WHOLE-FILE arm, structurally unable to OBTAIN a
-            # failure position; .13s hands it one DECIDED boolean and nothing else, computed
-            # here by the same predicate the must_accept arm below uses (see the docstring).
-            demotion = reject_arm_demotion(
-                dep_flag,
-                position_refutes_dependency=bool(
-                    dep_flag and observed == "fail"
-                    and not svpp_can_explain_failure(text, positions.get((suite, rel)))))
-            if demotion is not None:
-                expected, basis_suffix = demotion
-                basis += basis_suffix
-        if expected != "must_accept":
-            dep_flag = ""
-        elif (dep_flag and observed == "fail"
-                and not svpp_can_explain_failure(text, positions.get((suite, rel)))):
-            # SV-CORPUS-GRAD.12a - the file DOES carry a preprocessor construct, but
-            # the parse stops at a point svpp provably cannot reach or alter, so the
-            # dependency is real and irrelevant to THIS failure. Dropping the flag
-            # returns the row to `unexplained_rejects_valid`, where it always belonged.
-            dep_flag = ""
-            basis += (" - .12a: parse stops where svpp cannot alter the text, so the "
-                      "preprocessor dependency does not explain THIS failure")
-        verdict = adjudicate(expected, observed, dep_flag)
-        manifest.append((suite, rel, observed, expected, verdict, basis))
+        text = read_text(resolve(suite, rel))
+        expected, basis = key_2017(suite, rel, text, vidx, ividx, sidx)
+        manifest.append(finish_row(suite, rel, observed, text, expected, basis, positions))
 
     store_gate_cache = _sg().load_cache(args.store_gate_cache)
     manifest = store_gate_pass("sv_2017", manifest, resolve_corpus_path(args), args.report,
@@ -4372,6 +4551,104 @@ def main():
     m, u, e, d = bucket(total)
     print(f"match={m} unexplained={u} explained={e} deferred={d}")
 
+    # --- the sv_2023 profile lane (leaf .14b.2) ----------------------------
+    if args.results_sv2023.is_file():
+        verify_outcome_identity(args.report_sv2023, [args.results_sv2023, args.positions_sv2023],
+                                rerun="stimuli/run_external_corpus.sh sv2023")
+        raw_positions_sv2023 = load_positions(args.positions_sv2023, "positions_sv2023.tsv")
+        positions23 = {}
+        rows23 = []
+        for line in args.results_sv2023.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            suite, observed, path = line.split("\t")
+            if f"/subs/{suite}/" in path:
+                rel = path.split(f"/subs/{suite}/", 1)[1]
+            elif UVM_FOLD_MARKER in path:
+                rel = path.split(UVM_FOLD_MARKER, 1)[1]
+            else:
+                raise SystemExit(f"unrecognized sv2023 results path shape: {path!r}")
+            rows23.append((suite, rel, observed))
+            if path in raw_positions_sv2023:
+                positions23[(suite, rel)] = raw_positions_sv2023[path]
+        rows23.sort()
+        pop17 = {(s, r) for s, r, _o in rows}
+        pop23 = {(s, r) for s, r, _o in rows23}
+        if pop17 != pop23:
+            raise SystemExit(f"the sv2023 lane's population ({len(pop23)}) is not the sv lane's ({len(pop17)}) - "
+                             "stale results_sv2023.tsv vs results.tsv; re-run both lanes on one tree")
+        manifest23 = []
+        for suite, rel, observed in rows23:
+            text = read_text(resolve(suite, rel))
+            e17, b17 = key_2017(suite, rel, text, vidx, ividx, sidx)
+            e23, b23 = key_2023(suite, rel, e17, b17)
+            manifest23.append(finish_row(suite, rel, observed, text, e23, b23, positions23))
+        manifest23 = store_gate_pass("sv_2023", manifest23, resolve, args.report_sv2023,
+                                     store_gate_cache, args.store_gate_jobs)
+        _sg().save_cache(args.store_gate_cache, store_gate_cache)
+        with args.out_manifest_sv2023.open("w", encoding="utf-8") as fh:
+            fh.write("suite\trelpath\tobserved\texpected\tadjudication\tbasis\n")
+            for row in manifest23:
+                fh.write("\t".join(row) + "\n")
+        per23 = defaultdict(Counter)
+        tot23 = Counter()
+        for suite, _rel, _obs, _exp, verdict, _basis in manifest23:
+            per23[suite][verdict] += 1
+            tot23[verdict] += 1
+        n_contrast = sum(1 for r in manifest23 if "rules this row an EDITION CONTRAST" in r[5])
+        n_override = sum(1 for r in manifest23 if (r[0], r[1]) in SV2023_KEY_OVERRIDES)
+        n_owed_prod = sum(1 for r in manifest23 if REREAD_OWED in r[5] and "on an IEEE 1800-2017 production" in r[5])
+        n_owed_suite = sum(1 for r in manifest23 if REREAD_OWED in r[5] and "suite's own oracle" in r[5])
+        lines = []
+        lines.append("# SV external-corpus adjudication - the sv_2023 profile lane (leaf SV-CORPUS-GRAD.14b.2)")
+        lines.append("")
+        lines.append(f"Input: `results_sv2023.tsv` ({len(manifest23)} rows - the SAME population as `results.tsv`, parsed "
+                     "under `--profile sv_2023`); expected verdicts = the sv_2017 key read EDITION-RELATIVELY: "
+                     f"{n_contrast} rows the 2017 key rules edition contrasts are `must_accept` here (the 1800-2023 "
+                     f"production is cited in their basis); {n_override} rows are `must_accept` by an explicit 1800-2023 "
+                     "reading (text 1800-2023 derives whose upstream failure is semantic); every other row inherits its "
+                     "2017 ruling.")
+        lines.append("")
+        lines.append("| suite | rows | match | UNEXPLAINED div | explained div | deferred |")
+        lines.append("|---|---|---|---|---|---|")
+        for suite in sorted(per23):
+            c = per23[suite]
+            m3, u3, e3, d3 = bucket(c)
+            lines.append(f"| {suite} | {sum(c.values())} | {m3} | {u3} | {e3} | {d3} |")
+        m3, u3, e3, d3 = bucket(tot23)
+        lines.append(f"| **total** | **{len(manifest23)}** | **{m3}** | **{u3}** | **{e3}** | **{d3}** |")
+        lines.append("")
+        lines.append("## Verdict-class detail")
+        lines.append("")
+        lines.append("| class | count |")
+        lines.append("|---|---|")
+        for cls in sorted(tot23):
+            lines.append(f"| {cls} | {tot23[cls]} |")
+        lines.append("")
+        lines.append("**The sv_2023 arm's burn-down baseline = the UNEXPLAINED divergence count "
+                     f"({u3}: rejects-valid {tot23.get('divergence:unexplained_rejects_valid', 0)}, "
+                     f"accepts-invalid {tot23.get('divergence:unexplained_accepts_invalid', 0)}, "
+                     f"crash {tot23.get('divergence:unexplained_crash', 0)})** - a separate arm from the sv_2017 "
+                     "baseline over the same files.")
+        lines.append("")
+        lines.append(f"⚠️ **What this lane has NOT judged for itself, stated rather than hidden:** {n_owed_prod} `must_reject` "
+                     "rows are INHERITED from a 1800-2017 production the 2017 key cites, and "
+                     f"{n_owed_suite} from a suite's own 2017-era oracle; each carries the marker `{REREAD_OWED}` in its basis. "
+                     "Their `match` here means the parser REJECTS them under sv_2023 exactly as under sv_2017 (the .14a census "
+                     "names every file whose verdict differs between the profiles, and these are not among them); whether "
+                     "1800-2023 derives any of them is `.14b.3`'s per-row question, and a row it turns must_accept becomes "
+                     "an `unexplained_rejects_valid` of THIS lane.")
+        lines.append("")
+        args.out_summary_sv2023.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        print(f"sv2023 manifest: {args.out_manifest_sv2023} ({len(manifest23)} rows)")
+        print(f"sv2023 summary:  {args.out_summary_sv2023}")
+        print(f"sv2023: match={m3} unexplained={u3} explained={e3} deferred={d3} "
+              f"edition_contrasts={n_contrast} explicit_2023_readings={n_override} "
+              f"inherited_reject_reread_owed={n_owed_prod}+{n_owed_suite}")
+    else:
+        print("sv2023 results absent - run `stimuli/run_external_corpus.sh sv2023` to produce them; "
+              "sv2023 manifest skipped")
+
     # --- the verilog_2005 profile lane (leaf .8c) ------------------------
     lane = [(suite, rel) for suite, rel, _obs, _exp, verdict, _basis in manifest
             if verdict == "deferred:v2005_profile_lane"]
@@ -4418,35 +4695,7 @@ def main():
     for suite, rel, observed in v_rows:
         text = read_text(args.subs_root / suite / rel)
         expected, basis = expect_v2005(suite, rel, text, ividx)
-        expected, basis = apply_not_source_text(suite, rel, text, expected, basis)
-        dep_flag = ""
-        if expected in ("must_accept", "must_reject"):
-            dep_flag = preproc_dependency(text)
-        if expected == "must_reject":
-            # SV-CORPUS-GRAD.12c.3 F3 - the WHOLE-FILE arm, structurally unable to OBTAIN a
-            # failure position; .13s hands it one DECIDED boolean and nothing else, computed
-            # here by the same predicate the must_accept arm below uses (see the docstring).
-            demotion = reject_arm_demotion(
-                dep_flag,
-                position_refutes_dependency=bool(
-                    dep_flag and observed == "fail"
-                    and not svpp_can_explain_failure(text, positions.get((suite, rel)))))
-            if demotion is not None:
-                expected, basis_suffix = demotion
-                basis += basis_suffix
-        if expected != "must_accept":
-            dep_flag = ""
-        elif (dep_flag and observed == "fail"
-                and not svpp_can_explain_failure(text, positions.get((suite, rel)))):
-            # SV-CORPUS-GRAD.12a - the file DOES carry a preprocessor construct, but
-            # the parse stops at a point svpp provably cannot reach or alter, so the
-            # dependency is real and irrelevant to THIS failure. Dropping the flag
-            # returns the row to `unexplained_rejects_valid`, where it always belonged.
-            dep_flag = ""
-            basis += (" - .12a: parse stops where svpp cannot alter the text, so the "
-                      "preprocessor dependency does not explain THIS failure")
-        verdict = adjudicate(expected, observed, dep_flag)
-        v_manifest.append((suite, rel, observed, expected, verdict, basis))
+        v_manifest.append(finish_row(suite, rel, observed, text, expected, basis, positions))
 
     v_manifest = store_gate_pass("verilog_2005", v_manifest, resolve_corpus_path(args), args.report_v2005,
                                  store_gate_cache, args.store_gate_jobs)

@@ -12,7 +12,7 @@ answers:
 tags: [sv-corpus, sv_2023, edition-contrast, profiles, census, provenance, systemverilog, lanes]
 date: 2026-09-04
 status: current
-evidence: "SV-CORPUS-GRAD.14a (PGEN-SV-CORPUS-GRAD-0359): stimuli/run_external_corpus.sh sv2023 60 8 0 over 16 336 files (81 s); census both_pass=9831 both_nonpass=6477 2023_only_pass=28 2017_only_pass=0; the 28 = 15 bar rows (5 ispras 1800-2012 §12.6 nested tagged patterns, 10 verilator 1800-2023 constructs) + 11 must_reject rows + 1 routed + 1 macro"
+evidence: "SV-CORPUS-GRAD.14a + .14b.2 (PGEN-SV-CORPUS-GRAD-0359, -0361; the 2023 lane adjudicated: match 5918 unexplained 137, nine iverilog edition contrasts found by its own .12a, bar 151 -> 142): stimuli/run_external_corpus.sh sv2023 60 8 0 over 16 336 files (81 s); census both_pass=9831 both_nonpass=6477 2023_only_pass=28 2017_only_pass=0; the 28 = 15 bar rows (5 ispras 1800-2012 §12.6 nested tagged patterns, 10 verilator 1800-2023 constructs) + 11 must_reject rows + 1 routed + 1 macro"
 reverify: "python3 docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/census.py --check   # current, and 2017_only_pass=0"
 ---
 
@@ -38,6 +38,13 @@ adjudication class on the lane that has a key.**
   against the lane's own report; with no report yet it would fall to debug-probe defaults. The
   `sv2023` lane reads `characterization.md` for its first run; a capped smoke run says
   `PGEN_CORPUS_REBASELINE=1` into `PGEN_CORPUS_OUT_DIR` scratch — the refusal working, not a bug.
+- **The differential is not the whole yield — give the second lane its own key and let its own
+  machinery judge.** Nine rows failed under both profiles and never appeared in the differential; the
+  2023 lane's `.12a` refutation filed them `explained_svpp_macro_use` (the parse passes the 2023 token
+  and stops at a macro-alterable point), which left their 2017 failure as the edition token itself —
+  nine edition contrasts in the 2017 bar (`151 → 142`). An edition-relative key is the older key plus:
+  contrasts flip to `must_accept`; explicit newer-edition readings for text the newer edition derives
+  whose upstream failure is semantic; everything else inherited with a marker the summary COUNTS.
 - **Join on the producer's convention and assert the join.** The manifest keys a file relative to its
   suite; the raw dumps carry repo-relative paths. A census that joined on the wrong one printed
   *(not in manifest)* for every row — a number that read like a fact. A row absent from the manifest

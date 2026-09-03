@@ -72,7 +72,7 @@ CACHE_COLUMNS = ["lane", "suite", "relpath", "file_sha256", "binary_sha256", "in
 # imports by path). `.13x.e` changed the search and the memo did not notice until a hand prune; a key
 # that names the producers re-measures by construction.
 INSTRUMENT_FILES = ("stimuli/sv/store_gate_explanations.py", "stimuli/sv/adjudicate_dark_worklist.py")
-PROFILES = {"sv_2017": "sv_2017", "verilog_2005": "verilog_2005"}
+PROFILES = {"sv_2017": "sv_2017", "verilog_2005": "verilog_2005", "sv_2023": "sv_2023"}  # .14b.2: the sv2023 lane
 
 # Types the LRM predefines: the file owes no declaration, so a parser that demands one is wrong.
 PREDEFINED_TYPE_NAMES = {
