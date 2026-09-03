@@ -177,6 +177,36 @@
       "tuple_legend": "files/pass/fail/timeout/crash; RAW parse outcomes under --profile verilog_2005, no answer key",
       "answer_key": "none here -- RAW parse outcomes under the strict verilog_2005 profile, and a parse-FAIL is frequently the CORRECT outcome (the lane deliberately contains SystemVerilog-only constructs a 1364-2005 parser must reject). The v2005 ANSWER KEY lives in stimuli/sv/characterization/adjudication_manifest_v2005.tsv and is published through the `systemverilog` verdict_coverage entry; this entry exists so the lane's RAW report carries an identity row something re-hashes (SV-CORPUS-GRAD.13m)."
     },
+    "systemverilog_sv2023_raw_parse": {
+      "kind": "raw_parse",
+      "checked_by": "scripts/check_corpus_census.sh",
+      "freshness_gate": "bash scripts/check_corpus_census.sh systemverilog_sv2023_raw_parse",
+      "tuple_marker": "corpus-census[systemverilog_sv2023_raw_parse]: OK (tuple ",
+      "report": "stimuli/sv/characterization/characterization_sv2023.md",
+      "corpus_root": "stimuli/sv/subs",
+      "file_extensions": [
+        ".sv",
+        ".svh",
+        ".v"
+      ],
+      "sub_corpus_dirs": {
+        "uvm-core": "stimuli/sv/uvm"
+      },
+      "grammar_identity_row": "grammar",
+      "grammar_semantic_identity_row": "grammar raw ast",
+      "parser_identity_row": "generated parser",
+      "engine_paths": [
+        "rust/src",
+        "rust/build.rs",
+        "rust/Cargo.toml"
+      ],
+      "engine_staleness_budget_commits": 72,
+      "denominator": "every .sv / .svh / .v file under the fourteen vendored SystemVerilog corpora in stimuli/sv/subs plus the folded uvm-core tree in stimuli/sv/uvm -- the SAME population as systemverilog_raw_parse, re-parsed under --profile sv_2023 (SV-CORPUS-GRAD.14a)",
+      "instrument": "stimuli/run_external_corpus.sh sv2023",
+      "regenerate": "scripts/run_with_memory_guard.sh --budget-mb 16384 --timeout-s 1800 -- stimuli/run_external_corpus.sh sv2023",
+      "tuple_legend": "files/pass/fail/timeout/crash; RAW parse outcomes under --profile sv_2023, no answer key",
+      "answer_key": "none here -- RAW parse outcomes under the IEEE 1800-2023 profile over the same files the sv_2017 lane parses. The per-file sv_2017 x sv_2023 verdict census (docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/census.py) names every row whose verdict differs between the two editions; a 2023-lane ANSWER KEY is SV-CORPUS-GRAD.14b, not this entry (SV-CORPUS-GRAD.14a)."
+    },
     "vhdl": {
       "kind": "raw_parse",
       "checked_by": "scripts/check_corpus_census.sh",

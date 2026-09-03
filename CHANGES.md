@@ -1,5 +1,22 @@
 # CHANGES.md
 
+## 2026-09-04 - PGEN-SV-CORPUS-GRAD-0359 (leaf SV-CORPUS-GRAD.14a DONE — the `sv2023` corpus lane exists: the same 16 336 files under `--profile sv_2023` (81 s, peak 4 933 MB), and the per-file sv_2017 × sv_2023 verdict census reads `both_pass 9 831 · both_nonpass 6 477 · 2023_only_pass 28 · 2017_only_pass 0` — the 2023 profile parses exactly the 2017 lane's files plus 28 and REGRESSES ON NONE; of the 28, 15 are axis-2 bar rows (5 IEEE 1800-2012 §12.6 nested `tagged` patterns the 2017 profile refuses → `.3.34`; 10 1800-2023 constructs a 2023 tool keyed `must_accept` on the 2017 lane → `.14b` edition contrasts) and 11 `must_reject` rows the 2023 profile accepts; `.14b` (the 2023-lane key) and `.14c` (denominator + status) opened; LANE + CENSUS tier, ZERO grammar / Rust / codegen / generated / answer-key bytes)
+
+- `stimuli/run_external_corpus.sh`: the `sv2023` lane (the `sv` population — `stimuli/sv/subs` + the folded `uvm-core` tree — under
+  `--profile sv_2023`; outputs `results_sv2023.tsv` / `positions_sv2023.tsv` / `durations_sv2023.tsv` (ignored) and the tracked report
+  `characterization_sv2023.md`, the third `SELF_REPORTS` entry); ⭐ a lane with no tracked report of its own inherits its SIBLING lane's
+  provenance for its first run (`characterization.md`: the release probe, 60 s, 8 jobs, no cap) instead of the script's debug-probe
+  fallbacks. `.gitignore`: the three raw-dump patterns. Registry `systemverilog_sv2023_raw_parse` in `family_status_block_v0.json`
+  (`check_corpus_census.sh systemverilog_sv2023_raw_parse` → OK, tuple `16336/9859/6477/0/0`).
+- `docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/census.py` (+ `census.md` / `census.tsv`, an identity carrier): REFUSES unless both lanes'
+  reports name the same binary and semantic grammar digest, the binary on disk is that one, and each lane's raw dumps re-hash to the
+  OUTPUT rows its report carries; joins on the manifest's suite-relative convention (asserted 16 336/16 336); `--self-test` 12/12; `--check`.
+  Every differing row is published with its construct at the 2017 stop and its 2017-lane adjudication.
+- The SV parser book's release ceremony (`schema-versioning.md`): item 4 names three lanes and the census (`2017_only_pass` must stay 0);
+  the platform book (`grammar-wellformedness.md`): the third lane beside the live tuple. `.3.34` opened (nested `tagged` pattern gating,
+  five bar rows), `.14b` / `.14c` opened. Knowledge card `a-second-profile-lane-is-a-differential-and-the-differential-is-the-finding`
+  + a `DEVELOPMENT_NOTES.md` entry; `KNOWLEDGE_MAP.md` regenerated; `MEMORY.md`, `docs/TASK_TREE.md`, this file.
+
 ## 2026-09-04 - PGEN-SV-CORPUS-GRAD-0358 (leaves SV-CORPUS-GRAD.15 + .16 DONE — the store-gate memo key carries the INSTRUMENT's digest (an instrument edit re-measures by construction; 231 rows re-measured, 0 verdicts moved) and the `.13w` bank is RUN by a new doctrine, `SV-STORE-GATE-BANK` (the 37th), with the driver naming every enforcer that judges with an unbuilt release probe; the doctrine's first full run FOUND `.16`: the syntax-closure contract was left diverging by `.3.30` (ten single-letter keyword terminals orphaned) and over its staleness budget at `.3.31` because `sv_syntax_closure_gate` was in neither ceremony — allow-list re-derived ONE → ELEVEN with the measured reason, gate GREEN + re-stamped, deletion owed by `.3.33`; the durable release-ceremony list now lives in the SV parser book; INSTRUMENT + DOCTRINE + CONTRACT tier, ZERO grammar / Rust / codegen / generated / answer-key bytes)
 
 - `stimuli/sv/store_gate_explanations.py`: `CACHE_COLUMNS` + `instrument_sha256`; `instrument_sha256()` over the two producers' bytes

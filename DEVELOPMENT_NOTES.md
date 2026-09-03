@@ -1,5 +1,23 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-04 - PGEN-SV-CORPUS-GRAD-0359 (a second profile lane is a differential, and the differential is the finding)
+
+- ⭐⭐ **THE LESSON: A SECOND PROFILE OVER THE SAME FILES IS NOT A SECOND PASS RATE — IT IS A DIFFERENTIAL, AND EVERY ROW WHERE THE
+  TWO EDITIONS DISAGREE IS A QUESTION WITH A SMALL ANSWER SET.** The `sv2023` lane's headline (`9 859` pass) says little; the join
+  against the `sv_2017` lane says everything: `2017_only_pass = 0` (the superset property holds over 16 336 files — a regression
+  under the newer profile would show here first) and `2023_only_pass = 28`, each of which is exactly one of: 2023-only syntax keyed
+  `must_accept` on the 2017 lane by a 2023 tool (an edition contrast — ten rows, the `.13x.d` class at corpus scale), OLDER-edition
+  text the older profile wrongly refuses (five IEEE 1800-2012 §12.6 nested `tagged` patterns — a gating defect the 2017 lane alone
+  could never separate from the answer key), or a `must_reject` row the newer edition legitimately admits (eleven). Read the
+  differential by the row's adjudication class on the lane that has a key; the class names the owner.
+- **A first run of a new lane inherits its sibling's provenance.** The runner refuses parameter drift against the lane's OWN
+  report; a lane with no report yet would otherwise fall to the script's debug-probe defaults (`.3.27`'s defect). The `sv2023` lane
+  reads `characterization.md` for its first run — the release probe, 60 s, 8 jobs, no cap — and a capped smoke run must say
+  `PGEN_CORPUS_REBASELINE=1` into scratch, which is the refusal working.
+- **Join on the producer's convention and ASSERT the join.** The first census joined the raw dumps' repo-relative paths against the
+  manifest's suite-relative ones and printed *(not in manifest)* for all 28 rows — a wrong number that read like a fact. The join is
+  now the manifest's convention and a row missing from the manifest is a REFUSAL, not a cell.
+
 ## 2026-09-04 - PGEN-SV-CORPUS-GRAD-0358 (a release ceremony copied from the previous record copies its omissions; a memo key names every producer)
 
 - ⭐⭐ **THE LESSON: A CEREMONY THAT LIVES ONLY IN THE PREVIOUS LEAF'S RECORD IS COPIED FORWARD WITH ITS OMISSIONS.** Two consecutive

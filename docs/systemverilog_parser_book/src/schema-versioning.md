@@ -340,9 +340,11 @@ each under the memory guard, sequentially.
    `parseability_probe` (≈20 min, peak ≈12 GB — in the background, under the guard).
 3. **Pins**: `python3 stimuli/sv/run_adjudication_repros.py` → `failures=0`, with every
    `class=defect` row flipped to `fixed` the day it parses.
-4. **Corpus, both lanes, per path and two-sided**: `stimuli/run_external_corpus.sh sv 60 8 0` and
-   `sv2005 60 8 0` — `pass → fail` 0, every moved row named; the adjudicator's manifests, summaries and
-   the store-gate memo (its key: file sha, binary sha, instrument digest).
+4. **Corpus, all three lanes, per path and two-sided**: `stimuli/run_external_corpus.sh sv 60 8 0`,
+   `sv2005 60 8 0` and `sv2023 60 8 0` — `pass → fail` 0, every moved row named; the adjudicator's
+   manifests, summaries and the store-gate memo (its key: file sha, binary sha, instrument digest);
+   the sv_2017 × sv_2023 verdict census (`docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/census.py`,
+   an identity carrier — `2017_only_pass` must stay 0: nothing legal under 2017 may be lost under 2023).
 5. **Certificates**: `sv_cert_recognized_union_gate` and `verilog_2005_conformance_gate` on the
    adjudicated contracts (counts by name in `rebaseline_note` / `baseline_note`; each re-stamps its
    identity when GREEN).

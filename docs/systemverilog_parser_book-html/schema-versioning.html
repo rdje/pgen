@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-dd7083f3.js";
+            window.path_to_searchindex_js = "searchindex-89758513.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -516,9 +516,11 @@ controls do not); typed AST byte-identity on the controls where the change is sh
 <code>parseability_probe</code> (≈20 min, peak ≈12 GB — in the background, under the guard).</li>
 <li><strong>Pins</strong>: <code>python3 stimuli/sv/run_adjudication_repros.py</code> → <code>failures=0</code>, with every
 <code>class=defect</code> row flipped to <code>fixed</code> the day it parses.</li>
-<li><strong>Corpus, both lanes, per path and two-sided</strong>: <code>stimuli/run_external_corpus.sh sv 60 8 0</code> and
-<code>sv2005 60 8 0</code> — <code>pass → fail</code> 0, every moved row named; the adjudicator’s manifests, summaries and
-the store-gate memo (its key: file sha, binary sha, instrument digest).</li>
+<li><strong>Corpus, all three lanes, per path and two-sided</strong>: <code>stimuli/run_external_corpus.sh sv 60 8 0</code>,
+<code>sv2005 60 8 0</code> and <code>sv2023 60 8 0</code> — <code>pass → fail</code> 0, every moved row named; the adjudicator’s
+manifests, summaries and the store-gate memo (its key: file sha, binary sha, instrument digest);
+the sv_2017 × sv_2023 verdict census (<code>docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/census.py</code>,
+an identity carrier — <code>2017_only_pass</code> must stay 0: nothing legal under 2017 may be lost under 2023).</li>
 <li><strong>Certificates</strong>: <code>sv_cert_recognized_union_gate</code> and <code>verilog_2005_conformance_gate</code> on the
 adjudicated contracts (counts by name in <code>rebaseline_note</code> / <code>baseline_note</code>; each re-stamps its
 identity when GREEN).</li>
