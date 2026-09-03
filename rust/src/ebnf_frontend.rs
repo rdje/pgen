@@ -666,6 +666,21 @@ fn annotation_requires_continuation(annotation: &str) -> Result<bool> {
     Ok(tracker.is_open())
 }
 
+/// Collect a rule's body: every line after the header up to — not including — the line that
+/// starts the NEXT top-level element.
+///
+/// ⛔ WHAT ENDS A RULE BODY IS DECIDED BY THE META-GRAMMAR, NOT BY THIS FUNCTION
+/// (EBNF-FRONTEND-SILENT-TRUNCATION.2, 2026-09-03). `grammars/ebnf.ebnf` reads
+/// `grammar_file := (include_directive | semantic_annotation | grammar_rule | comment | whitespace)*`
+/// with `alternation := sequence (return_annotation? "|" sequence)*` and `@stop_at_rule_boundary` on
+/// `sequence`: a rule runs until the next rule header, `@` annotation, `[>` directive or include
+/// directive; blank lines and comment lines — at ANY column — are trivia inside it. The
+/// hand-written frontend used to end the body at a column-0 blank or comment line as well, so
+/// `a := b\n# note\n   | c` read ONE alternative (SV-CORPUS-GRAD.3.19 lost two `use_clause`
+/// alternatives that way), and doctrine 36 (`EBNF-ALTERNATIVE-PARITY`) measured the two shapes as
+/// live `source 2 vs IR 1` disagreements the day it was registered. Measured before the change:
+/// exactly ONE tracked site changes its reading (`grammars/return_annotation.ebnf:13-14`, a
+/// rule-level `-> $2` after a gap — the author's annotation, dropped as a stray line until now).
 fn collect_rule_body(lines: &[&str], start_idx: usize, first_body: String) -> (String, usize) {
     let mut body_lines = vec![first_body.trim_end().to_string()];
     let mut idx = start_idx + 1;
@@ -675,10 +690,7 @@ fn collect_rule_body(lines: &[&str], start_idx: usize, first_body: String) -> (S
         let trimmed = line.trim();
         let is_top_level = leading_whitespace_len(line) == 0;
         if is_top_level
-            && (trimmed.is_empty()
-                || trimmed.starts_with('#')
-                || trimmed.starts_with("//") // EBNF-FRONTEND-SILENT-TRUNCATION.6, ebnf.ebnf:585
-                || trimmed.starts_with('@')
+            && (trimmed.starts_with('@')
                 // GRAMMAR-WELLFORMED.H.5.1.2: a column-0 before-rule lexical
                 // follow-restriction directive (`[> …]` / `[>! …]`) binds the
                 // NEXT rule, so it must terminate the PREVIOUS rule's body —
@@ -694,12 +706,21 @@ fn collect_rule_body(lines: &[&str], start_idx: usize, first_body: String) -> (S
             break;
         }
 
-        if trimmed.is_empty() && is_top_level {
-            break;
-        }
-
+        // Blank lines and comment lines (any column) are trivia inside the body: the tokenizer
+        // skips both comment spellings to end of line, and whitespace is whitespace.
         body_lines.push(line.trim_end().to_string());
         idx += 1;
+    }
+
+    // Trailing trivia belongs to no rule: drop blank/comment lines at the end so a rule's body
+    // stops at its last token (the comments between two rules stay out of both).
+    while body_lines.len() > 1 {
+        let last = body_lines[body_lines.len() - 1].trim();
+        if last.is_empty() || last.starts_with('#') || last.starts_with("//") {
+            body_lines.pop();
+        } else {
+            break;
+        }
     }
 
     (body_lines.join("\n"), idx)
@@ -2176,11 +2197,12 @@ entry = alpha
 
     /// EBNF-FRONTEND-SILENT-TRUNCATION.6: `//` is a line comment everywhere the meta-grammar
     /// says it is (`grammars/ebnf.ebnf:583-586`) — at top level (skipped like `#`), at column 0
-    /// inside a body (terminates the body like `#`), and mid-line in a body (skipped to end of
-    /// line, never read as a regex literal). The shipped SV grammar carries 77 such lines.
+    /// inside a body (trivia, since `.2`: the body continues to the next top-level element), and
+    /// mid-line in a body (skipped to end of line, never read as a regex literal). The shipped SV
+    /// grammar carries 77 such lines.
     #[test]
     fn slash_slash_is_a_line_comment_in_every_position() {
-        let input = "// a top-level comment\na := b // trailing comment, not a regex\n   | c\n// column-0 comment ends the body\n   | d\nb := \"b\"\nc := \"c\"\nd := \"d\"\n";
+        let input = "// a top-level comment\na := b // trailing comment, not a regex\n   | c\n// column-0 comment inside the body\n   | d\nb := \"b\"\nc := \"c\"\nd := \"d\"\n";
         let envelope = parse_ebnf_text_to_raw_ast_envelope(input, "mini", None)
             .expect("frontend parse should succeed");
         let raw_ast = envelope
@@ -2192,12 +2214,67 @@ entry = alpha
             .expect("rule json");
         assert!(!first.contains("\"regex\""), "`//` must not be read as a regex literal: {first}");
         assert!(
-            first.contains("[\"rule_reference\",\"b\"]") && first.contains("[\"rule_reference\",\"c\"]"),
-            "b and c are alternatives of a: {first}"
+            first.contains("[\"rule_reference\",\"b\"]")
+                && first.contains("[\"rule_reference\",\"c\"]")
+                && first.contains("[\"rule_reference\",\"d\"]"),
+            "b, c AND d are alternatives of a — a column-0 comment line is trivia inside the body (EBNF-FRONTEND-SILENT-TRUNCATION.2): {first}"
         );
-        assert!(
-            !first.contains("[\"rule_reference\",\"d\"]"),
-            "a column-0 `//` line terminates the body, so `| d` is a stray top-level line, not an alternative of a: {first}"
-        );
+        assert!(!first.contains("comment inside"), "comment text must not reach the raw_ast: {first}");
+    }
+
+    /// EBNF-FRONTEND-SILENT-TRUNCATION.2: what ends a rule body is what `grammars/ebnf.ebnf` says
+    /// ends it — the next rule header, `@` annotation, `[>` directive or include directive. A blank
+    /// line or a comment line at column 0 is trivia inside the body. The five cases are the tree's
+    /// founding experiment (SV-CORPUS-GRAD.3.19): all declare THREE alternatives.
+    #[test]
+    fn a_rule_body_ends_at_the_next_top_level_element_not_at_a_blank_or_comment_line() {
+        fn alternatives(input: &str, rule: &str) -> usize {
+            let envelope = parse_ebnf_text_to_raw_ast_envelope(input, "mini", None)
+                .expect("frontend parse should succeed");
+            let raw_ast = envelope.get("raw_ast").and_then(serde_json::Value::as_array).expect("raw_ast");
+            for r in raw_ast {
+                let toks = r.as_array().expect("rule array");
+                if toks[0].as_array().and_then(|t| t.get(1)).and_then(|v| v.as_str()) != Some(rule) {
+                    continue;
+                }
+                let (mut depth, mut bars) = (0usize, 0usize);
+                for t in toks {
+                    let a = t.as_array().expect("token");
+                    match (a[0].as_str().unwrap_or(""), a.get(1).and_then(|v| v.as_str()).unwrap_or("")) {
+                        ("group_open", _) => depth += 1,
+                        ("group_close", _) => depth = depth.saturating_sub(1),
+                        ("operator", "|") if depth == 0 => bars += 1,
+                        _ => {}
+                    }
+                }
+                return bars + 1;
+            }
+            panic!("rule {rule} not found");
+        }
+        let tail = "b := \"b\"\nc := \"c\"\nd := \"d\"\n";
+        for (label, body, want) in [
+            ("C_baseline", "a := b\n   | c\n   | d\n", 3),
+            ("D_indented_comment", "a := b\n   # indented\n   | c\n   | d\n", 3),
+            ("B_hash_in_string", "@probe_sample: \"x #(y)\"\na := b\n   | c\n   | d\n", 3),
+            ("A_col0_comment_after_alt1", "a := b\n# column 0\n   | c\n   | d\n", 3),
+            ("E_col0_comment_after_alt2", "a := b\n   | c\n# column 0\n   | d\n", 3),
+            ("blank_line_between_alternatives", "a := b\n\n   | c\n   | d\n", 3),
+            ("slash_slash_col0_between_alternatives", "a := b\n// column 0\n   | c\n   | d\n", 3),
+            ("comment_then_rule_level_annotation", "a := b\n   | c\n   | d\n# column 0\n   -> {kind: \"x\"}\n", 3),
+        ] {
+            let input = format!("{body}{tail}");
+            assert_eq!(alternatives(&input, "a"), want, "{label}: {input}");
+        }
+        // Terminators still terminate: a rule header, an `@` annotation and a `[>` directive after a
+        // blank/comment gap start the NEXT element, and the comment between two rules belongs to neither.
+        let input = "a := b\n# between rules\n\nc := \"c\"\n@profiles: [\"x\"]\nd := \"d\"\n[> /x/]\ne := \"e\"\nb := \"b\"\n";
+        let envelope = parse_ebnf_text_to_raw_ast_envelope(input, "mini", None).expect("parse");
+        let raw_ast = envelope.get("raw_ast").and_then(serde_json::Value::as_array).expect("raw_ast");
+        assert_eq!(raw_ast.len(), 5, "a, c, d, e, b — five rules");
+        assert_eq!(alternatives(input, "a"), 1);
+        let first = serde_json::to_string(raw_ast[0].as_array().expect("rule")).expect("json");
+        assert!(!first.contains("between rules"), "a comment between two rules reaches no rule: {first}");
+        let third = serde_json::to_string(raw_ast[2].as_array().expect("rule")).expect("json");
+        assert!(third.contains("[\"semantic_annotation\",[\"profiles\""), "the @ annotation binds d: {third}");
     }
 }

@@ -1,5 +1,20 @@
 # CHANGES.md
 
+## 2026-09-03 - PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0005 (leaves EBNF-FRONTEND-SILENT-TRUNCATION.2 + .3 DONE — a rule body ends where grammars/ebnf.ebnf says it ends, never at a blank or comment line; ENGINE tier, grammar bytes of one file edited to remove a dead annotation, every generated parser byte-identical)
+
+- `rust/src/ebnf_frontend.rs::collect_rule_body`: terminators are the next rule header, `@` annotation, `[>`
+  directive or include directive; a column-0 blank or comment line is trivia inside the body (the meta-grammar's
+  reading, measured by doctrine 36 as live `source 2 vs IR 1` on two shapes before the change). The tree's five
+  founding cases are a pinned test (A/E flip 1→3 and 2→3).
+- Census before the change: ONE tracked site changes its reading — `grammars/return_annotation.ebnf:13-14`, a
+  rule-level `-> $2` after a blank line, dropped by the old frontend since 2026-02-19; removed with an explanation
+  (the old frontend's digest of the grammar is identical before and after: `44ef9139…`), so the shipped
+  return-annotation parser is unchanged and the language question is routed to that family.
+- Book: the dialect's rule-extent rule with the D-vs-A worked example (`.3`).
+- `GENERATED-REPRODUCIBILITY`: a byte-identical regeneration of all eleven parsers read as MOVEMENT because
+  `input_sha` hashed the generator input JSON whole and that file carries a `generated_at` timestamp; the input
+  digest is now taken over the canonical JSON without the timestamp (baseline re-derived once via `--rebaseline`).
+
 ## 2026-09-03 - PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0002 (leaf EBNF-FRONTEND-SILENT-TRUNCATION.6 DONE — the EBNF frontend reads `//` as the line comment the meta-grammar says it is, and excludes both comment spellings from inline return-annotation payloads; SV release `1.0.205`, ledger `SV-0078`; ENGINE tier, grammar BYTES unchanged, ONE generated parser moves in ONE unreachable rule)
 
 - ✅ `rust/src/ebnf_frontend.rs`: `//` is a line comment in the top-level scanner, the body collector, the

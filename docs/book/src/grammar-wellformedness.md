@@ -883,11 +883,22 @@ line comments parse normally:
 > never saw the difference — the code generator re-reads the balanced payload — so this is a fix to
 > the *envelope* three doctrines hash, not to any parser: the SV digest moves exactly once, with the
 > fix, and a comment-only edit no longer moves it. A column-0 `//` still terminates a rule body
-> exactly as a column-0 `#` does today; that terminator rule itself is `.2`'s open question — and doctrine **36**,
-> `EBNF-ALTERNATIVE-PARITY` (`.1`, the same day), now measures it as a live *source 2 vs IR 1*: on every commit the
-> parser generated from `ebnf.ebnf` and the hand-written frontend must agree on how many alternatives every rule
-> of every tracked grammar has (14 grammars, 4 075 rules, 4 s) — the count that reads the `.6` phantom as 1 vs 4
-> where the token-positional differential had filed it as unverified tail.
+> exactly as a column-0 `#` did — until `.2` (`PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0005`, the same day) retired that
+> terminator too. **What ends a rule body is what the meta-grammar says ends it**: `grammar_file :=
+> (include_directive | semantic_annotation | grammar_rule | comment | whitespace)*` — a rule runs to the next rule
+> header, `@` annotation, `[>` directive or include directive, and a blank line or a comment line at *any* column
+> is trivia inside it. The worked pair is the tree's founding experiment: `a := b\n   # note\n   | c\n   | d` and
+> `a := b\n# note\n   | c\n   | d` differ only in the leading whitespace of the comment line and both declare THREE
+> alternatives — the old frontend read 3 and 1. The hand-written frontend had ended the body at a column-0 blank or comment line as well,
+> which is how `SV-CORPUS-GRAD.3.19` lost two `use_clause` alternatives to a comment and how doctrine **36**,
+> `EBNF-ALTERNATIVE-PARITY` (`.1`), measured both shapes as live *source 2 vs IR 1* the day it was registered:
+> on every commit the parser generated from `ebnf.ebnf` and the hand-written frontend must agree on how many
+> alternatives every rule of every tracked grammar has (14 grammars, 4 075 rules, 4 s) — the count that reads
+> the `.6` phantom as 1 vs 4 where the token-positional differential had filed it as unverified tail. Measured
+> before `.2` landed: exactly one tracked site changed its reading, a dead `-> $2` after a blank line in
+> `grammars/return_annotation.ebnf` that the old frontend had dropped for seven months; it is removed with an
+> explanation so the shipped return-annotation parser is byte-identical, and the language question it raises
+> is routed, not decided by a frontend fix.
 
 Two independent engines — the grammar interpreter and the generated parser — return identical
 verdicts down to the same `furthest_position`, so this is a property of the grammar, not an artefact

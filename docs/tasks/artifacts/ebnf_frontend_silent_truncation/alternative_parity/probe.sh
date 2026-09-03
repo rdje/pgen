@@ -15,10 +15,11 @@ out="$(bash $G --self-test 2>&1)"; rc=$?; n=$(printf '%s\n' "$out" | grep -c '^ 
 start=$(date +%s); out="$(bash $G 2>&1)"; rc=$?; el=$(( $(date +%s) - start ))
 [ $rc -eq 0 ] && printf '%s' "$out" | grep -q 'EBNF-ALTERNATIVE-PARITY: OK (grammars=14 rules=[0-9]* not_evaluated=4 \[systemverilog_2017_lrm_extracted.ebnf, systemverilog_2023_lrm_extracted.ebnf, systemverilog_lrm_profiled_wrapper.ebnf, verilog_2005_lrm_extracted.ebnf\])' && ok "2  GREEN on the tree: 14 grammars agree; NOT EVALUATED = exactly the 3 LRM snapshots + the include wrapper (${el}s)" || ko "2 rc=$rc" "$(printf '%s' "$out" | tail -2)"
 [ "$el" -le 60 ] && ok "3  cost: doctrine mode took ${el}s (bound 60 s)" || ko "3 took ${el}s"
-# 4 LIVE RED — the .2 shape: a column-0 comment between alternatives; the meta-parser reads 2, the frontend 1
-printf 'a := b\n# a column-0 comment\n   | c\nb := "b"\nc := "c"\n' > "$W/col0.ebnf"; printf '%s\n' "$W/col0.ebnf" > "$W/l1.txt"
+# 4 GREEN (was the LIVE RED until EBNF-FRONTEND-SILENT-TRUNCATION.2 landed in -0005): the column-0-comment and the
+#   blank-line shapes between alternatives — the meta-parser and the frontend now BOTH read 2 alternatives.
+printf 'a := b\n# a column-0 comment\n   | c\nb := "b"\nc := "c"\n' > "$W/col0.ebnf"; printf 'a := b\n\n   | c\nb := "b"\nc := "c"\n' > "$W/blank.ebnf"; printf '%s\n%s\n' "$W/col0.ebnf" "$W/blank.ebnf" > "$W/l1.txt"
 out="$(PGEN_ALTERNATIVE_PARITY_GRAMMARS="$W/l1.txt" bash $G 2>&1)"; rc=$?
-[ $rc -eq 1 ] && printf '%s' "$out" | grep -q 'a: source 2 vs IR 1' && ok "4  LIVE RED: the .2 column-0-comment shape -> rc 1, 'a: source 2 vs IR 1' (the meta-grammar continues the rule; the frontend does not)" || ko "4 rc=$rc" "$out"
+[ $rc -eq 0 ] && printf '%s' "$out" | grep -q 'OK (grammars=2 rules=6 not_evaluated=0)' && ok "4  GREEN: the .2 shapes (column-0 comment / blank line between alternatives) read 2 vs 2 — the live RED of -0004 flipped with -0005" || ko "4 rc=$rc" "$out"
 # 5 RED: a population nothing can compare REFUSES (rc 2), never passes for free
 printf 'grammars/verilog_2005_lrm_extracted.ebnf\n' > "$W/l2.txt"; out="$(PGEN_ALTERNATIVE_PARITY_GRAMMARS="$W/l2.txt" bash $G 2>&1)"; rc=$?
 [ $rc -eq 2 ] && printf '%s' "$out" | grep -q 'nothing was compared' && ok "5  RED: an all-NOT-EVALUATED population -> rc 2 'nothing was compared'" || ko "5 rc=$rc" "$out"

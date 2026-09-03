@@ -50,11 +50,11 @@ import sys; p=sys.argv[1]; s=open(p,encoding="utf-8").read(); a='# SV-CORPUS-GRA
 PY
 d0=$(bash $ID --digest ebnf_raw_ast grammars/systemverilog.ebnf 2>/dev/null | tail -1); d1=$(bash $ID --digest ebnf_raw_ast "$W/sv.ebnf" 2>/dev/null | tail -1)
 [ -n "$d0" ] && [ "$d0" = "$d1" ] && ok "3  GREEN: comment-only edit after an annotation leaves ebnf_raw_ast UNMOVED (${d0:0:12}…)" || ko "3" "$d0 vs $d1"
-# 4 GREEN `//` in every position: top-level skipped, column-0 terminates the body, mid-line is not a regex
-printf '// top\na := b // trailing\n   | c\n// col0 ends the body\n   | d\nb := "b"\nc := "c"\nd := "d"\n' > "$W/s.ebnf"
+# 4 GREEN `//` in every position: top-level skipped, column-0 inside a body is trivia (.2: the body continues), mid-line is not a regex
+printf '// top\na := b // trailing\n   | c\n// col0 inside the body\n   | d\nb := "b"\nc := "c"\nd := "d"\n' > "$W/s.ebnf"
 out="$(bash $ID --raw-ast "$W/s.ebnf" 2>/dev/null | python3 -c "
 import sys,json; d=json.load(sys.stdin); r=json.dumps(d['raw_ast'][0]); print(len(d['raw_ast']), '\"regex\"' in r, '[\"rule_reference\", \"c\"]' in r, '[\"rule_reference\", \"d\"]' in r)")"
-[ "$out" = "4 False True False" ] && ok "4  GREEN: // is a line comment at top level, column 0 (terminates the body) and mid-line (no regex token)" || ko "4" "$out"
+[ "$out" = "4 False True True" ] && ok "4  GREEN: // is a line comment at top level, at column 0 inside a body (trivia — b, c, d all alternatives) and mid-line (no regex token)" || ko "4" "$out"
 # 5 STRUCTURAL: the three regression tests exist, and the module they live in is feature-gated (a `cargo test --lib` without it runs NONE of them)
 n=$(grep -c 'fn inline_return_annotation_payload_excludes_following_comment_lines\|fn inline_scalar_return_annotation_payload_excludes_following_comment_line\|fn slash_slash_is_a_line_comment_in_every_position' rust/src/ebnf_frontend.rs)
 grep -B1 'pub mod ebnf_frontend;' rust/src/lib.rs | grep -q 'cfg(feature = "ebnf_dual_run")' && [ "$n" -eq 3 ] && ok "5  STRUCTURAL: 3 regression tests present; module gated by feature ebnf_dual_run (run them with --features ebnf_dual_run)" || ko "5 n=$n"

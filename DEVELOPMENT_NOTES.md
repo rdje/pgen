@@ -1,5 +1,22 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0005 (measure the language change before making it)
+
+- ⭐ **THE LESSON: WHEN A FRONTEND'S READING CHANGES, CENSUS EVERY TRACKED SITE WHOSE READING CHANGES BEFORE
+  TOUCHING THE CODE — the count is the blast radius, and each site is a decision.** Here it was ONE site:
+  a dead `-> $2` after a blank line that the old frontend had dropped for seven months. Letting the fix make it
+  live would have changed the return-annotation entry rule's AST for every annotation the generator parses, as a
+  SIDE EFFECT of a frontend repair. The dead text was removed with its explanation instead, and the language
+  question routed to the family that owns it.
+- **"Decide the language first" had an owner already.** The meta-grammar decides what ends a rule; doctrine 36
+  measured the two shapes as live disagreements; the fix is implementing what the spec says, not choosing.
+- **A test that pinned the wrong behaviour flips with the fix, and says so.** The `.6` test asserted the old
+  column-0 terminator; it now asserts the meta-grammar's reading — and the bank arms that were live REDs are
+  GREEN with a note saying which commit flipped them.
+- `promotion: declined (the transferable rule — census the blast radius of a reading change before making it,
+  and treat each site as a decision — is the application of the existing cards on envelope diffs and
+  meta-grammar authority; per-slice history)`.
+
 ## 2026-09-03 - PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0004 (a differential that stops at the first divergence cannot count what follows)
 
 - ⭐ **THE LESSON: A TOKEN-POSITIONAL DIFFERENTIAL FILES EVERYTHING AFTER A RULE'S FIRST DIVERGENCE AS UNVERIFIED —

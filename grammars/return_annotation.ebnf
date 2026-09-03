@@ -11,7 +11,15 @@ return_annotation := arrow expression
                  | arrow
                  | expression
 
--> $2
+# ⛔ EBNF-FRONTEND-SILENT-TRUNCATION.2 (2026-09-03): a rule-level `-> $2` used to stand here, after the blank
+# line. By the meta-grammar (grammars/ebnf.ebnf: a rule runs to the next header/annotation/directive) it
+# belonged to this rule; the hand-written frontend ended the body at the blank line and DROPPED it as a
+# stray top-level line — so the shipped return_annotation parser never carried it (since bc9c4b6c,
+# 2026-02-19, seven months). With the frontend now reading the body as the meta-grammar does, the line
+# would have become LIVE and changed this entry rule's AST for every annotation the code generator parses;
+# `$2` is also out of range for two of the three alternatives. The shipped behaviour is kept by removing
+# the dead text. Whether the entry rule should return the expression is a language decision for the
+# return-annotation family, not a side effect of a frontend fix.
 
 # Arrow operator (optional, may be pre-stripped by parser)
 arrow := '->'

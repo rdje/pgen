@@ -92,7 +92,7 @@ of it. That is exactly why it must be gated now rather than remembered.
   The clean implementation reuses the frontend's own tokenizer and compares two passes,
   rather than re-implementing lexing in a script.
 
-### `.2` — fix the frontend so a column-0 comment does not terminate a rule body
+### ✅✅ `.2` — **`done`** 2026-09-03 (`PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0005`) — fix the frontend so a column-0 comment does not terminate a rule body
 
 - ⭐ **THE LANGUAGE IS ALREADY DECIDED — by the meta-grammar (2026-09-03, `.1`'s gate measured it).** Through
   `EBNF-ALTERNATIVE-PARITY`, `a := b\n# a column-0 comment\n   | c` reads **source 2 vs IR 1**: the parser
@@ -109,9 +109,9 @@ of it. That is exactly why it must be gated now rather than remembered.
 - Regression proof: the five synthetic cases above become a pinned test, `A`/`E` flipping
   from truncated to complete.
 
-### `.3` — say it out loud in the EBNF dialect documentation
+### ✅✅ `.3` — **`done`** 2026-09-03 (`PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0005`, with `.2`) — say it out loud in the EBNF dialect documentation
 
-- **Status: `todo`** — the book's EBNF-dialect chapter must state the comment/continuation
+- **Status: was `todo`; DONE** — `docs/book/src/grammar-wellformedness.md` (the meta-grammar comment section) states the rule — *what ends a rule body is what the meta-grammar says ends it: the next rule header, `@` annotation, `[>` directive or include directive; a blank line or a comment line at any column is trivia* — with the `D` vs `A` pair as the worked example. Original text: the book's EBNF-dialect chapter must state the comment/continuation
   rule explicitly, with the `D` vs `A` pair as the worked example. Until `.2` lands, that
   documentation is the only thing standing between a grammar author and a silent language
   loss, so this leaf is worth landing even before the fix.
@@ -398,7 +398,9 @@ now reads `UNKNOWN=0` from the headline as the empty list; re-derived: `coverage
 `lr_synthetic` 57 → 14, `unreachable_from_entry` 18 (both parseable rules still in it), 98 never-fired rules,
 0 unadjudicated — `sv-rule-fire-partition: OK`. The generated-reproducibility baseline was rewritten by its
 own `--rebaseline` (the SV parser's new digest; the per-family `input_sha` values churn by design, since
-`generated/<family>.json` embeds a `generated_at` timestamp).
+`generated/<family>.json` embeds a `generated_at` timestamp). ⛔ *Corrected 2026-09-03 by `.2` (`-0005`): that churn
+is not "by design", it is a defect — a byte-identical regeneration tripped tier 1 — and the input digest is now
+timestamp-free.*
 (h) **Re-stamped clean** (`PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0003`): both lanes re-run on the clean tree
 `e042b3e8` — the reports had been measured at `f1d33865+dirty` because the identity rows must be written by the
 run that produced them. Only the `Measured at` lines (and the machine-dependent slowest-file timing) moved;
@@ -485,6 +487,71 @@ reading `.6` applied to `//`). The bank holds the shape as arm 4 and will have t
   equal on the re-rendered chapter; the other 35 doctrines unchanged.
 
 `promotion:` knowledge card `docs/knowledge/a-differential-that-stops-at-the-first-divergence-cannot-count-what-follows.md`.
+
+### ✅✅ `.2` + `.3` DISCHARGED — **a rule body now ends where `grammars/ebnf.ebnf` says it ends — at the next rule header, `@` annotation, `[>` directive or include directive — and never at a blank or comment line; the rule is written down in the book; the one tracked site whose reading changed was a dead annotation, removed with its explanation so every generated parser stays byte-identical** (2026-09-03, `PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0005`; ENGINE tier — `rust/src/ebnf_frontend.rs::collect_rule_body`; one grammar-text edit that changes NO reading)
+
+**THE LANGUAGE WAS DECIDED BY THE META-GRAMMAR, AND DOCTRINE 36 MEASURED IT.** `grammar_file :=
+(include_directive | semantic_annotation | grammar_rule | comment | whitespace)*`, `alternation := sequence
+(return_annotation? "|" sequence)*` with `@stop_at_rule_boundary` on `sequence`: a rule runs to the next
+top-level element; blank lines and comment lines are trivia. Six shapes through `EBNF-ALTERNATIVE-PARITY`
+before the change: **A** (column-0 `#` between alternatives) and **B** (blank line between alternatives) read
+*source 2 vs IR 1*; **C** (comment then a rule-level `->`), **D** (indented comment), **E** (column-0 `@` between
+rules) and **F** (comment then a new rule header) agreed. So the frontend's third language — "indentation, with
+a column-0 blank or comment line as a terminator" — was simply wrong on A and B, and `.2`'s "decide the
+intended language first" had an answer the tree already owned (`EBNF-SOURCE-OF-TRUTH`, the same reading `.6`
+applied to `//`).
+
+**MEASURED BEFORE THE CHANGE — what the new reading touches.** A census over every tracked grammar for a
+column-0 blank/comment gap inside a rule followed by a continuation line: **exactly one site** —
+`grammars/return_annotation.ebnf:13-14`, a rule-level `-> $2` after a blank line under the entry rule
+`return_annotation := arrow expression | arrow | expression` (there since `bc9c4b6c`, 2026-02-19). The old
+frontend ended the body at the blank line and dropped `-> $2` as a stray top-level line, so the shipped
+return-annotation parser never carried it — and `$2` is out of range for two of the three alternatives. Under
+the new reading it would have become LIVE and changed the entry rule's AST for every annotation the code
+generator parses. Ruled: the shipped behaviour is kept — the dead line is replaced by an explanation in the
+grammar; the old frontend's digest of the grammar is **identical** before and after that edit
+(`44ef9139d3af…` both ways, measured), so the edit changes no reading, and the language question it raises
+(should the entry rule return the expression?) is a return-annotation-family decision, routed to that family's
+owner rather than decided by a frontend fix.
+
+**WHAT LANDED.** `collect_rule_body` no longer breaks on a column-0 blank line or a column-0 `#`/`//` line;
+it breaks on `@`, `[>`, an include directive and a rule header, and trims trailing trivia so the comments
+between two rules belong to neither. One regression test pins the tree's five founding cases (`C_baseline`,
+`D_indented_comment`, `B_hash_in_string`, `A_col0_comment_after_alt1`, `E_col0_comment_after_alt2` — all
+THREE alternatives now), the blank-line and `//` shapes, a comment before a rule-level `->`, and the
+terminators (a header, an `@` annotation and a `[>` directive after a gap start the NEXT element; the
+`@` binds the rule that follows). The `.6` test that had asserted the old terminator flips with it.
+Doctrine 36's bank arm 4 — the live RED — flips to GREEN on both shapes (`source 2 vs IR 2`); the `.6` bank's
+arm 4 likewise.
+
+**ACCEPTANCE CHECKLIST (TOOLBOX 3.5)**
+- [x] **ROOT CAUSE (WHY + WHERE)** — `git ls-files 'grammars/*.ebnf'` (18 tracked grammars) censused for a column-0
+  blank/comment gap inside a rule followed by a continuation line: **1** site (`return_annotation.ebnf:13-14`);
+  through doctrine 36, shapes A and B read `source 2 vs IR 1`, C–F agree. WHY: `collect_rule_body` treated a
+  column-0 blank or comment line as a body terminator — a language the meta-grammar does not have. WHERE:
+  `rust/src/ebnf_frontend.rs::collect_rule_body`.
+- [x] **ADDRESSED (verified)** — frontend tests **24/24** (`--features ebnf_dual_run`; the new test pins the five
+  founding cases + blank-line/`//` shapes + the terminators); `EBNF-ALTERNATIVE-PARITY` on the tree OK
+  (14 grammars / 4 075 rules; the two live-RED shapes now `2 vs 2`); banks `alternative_parity/probe.sh` **8/8**
+  and `comment_payload/probe.sh` **8/8** with their flipped arms.
+- [x] **NO REGRESSION** — every generated parser **byte-identical** after full regeneration (11 of 11, `ebnf.rs` seed
+  and `scratch` included, digests compared against the pre-change record); `grammars/return_annotation.ebnf`
+  reads identically to the old frontend's reading of the original text (`ebnf_raw_ast` `44ef9139…` before and
+  after, measured with both frontends); the SV digest `bd64ae30…` unmoved; `clippy_on_rust_change` ✅;
+  `IDENTITY-CARRIERS: OK`; baseline identity within budget.
+
+⛔ **FOUND BY THE PROOF ITSELF — `GENERATED-REPRODUCIBILITY` tier 1 read a byte-identical regeneration as
+MOVEMENT.** After the eleven-parser re-derivation (every `parser_sha` identical) the doctrine reported *"ebnf
+moved … parser `d4a1be61…` vs `d4a1be61…`, input `45a2fed3…` vs `f0d9eea2…`"*: its `input_sha` hashed
+`generated/<family>.json` whole, and `ast_pipeline` stamps that file with `metadata.generated_at`. A digest that
+moves when nothing moved is not an identity. Fixed at the definition: `input_sha_file()` digests the canonical JSON
+with `metadata.generated_at` removed (three call sites — the baseline writer, `baseline_current`, tier 1), the
+header records the measurement, and the baseline is re-derived once through the doctrine's own `--rebaseline`
+(tier 2 re-proves all eleven artifacts) so its recorded `input_sha` values are the new, timestamp-free ones. The
+`-0002` slice had already noticed the churn and called it "by design"; the proof run here showed it is a defect —
+a rebaseline per regeneration for a change that never happened.
+
+`promotion: declined (the transferable rule — census the blast radius of a reading change before making it, and treat each site as a decision — is the application of the existing envelope-diff and meta-grammar-authority cards; per-slice history stays here)`
 
 ## Acceptance Criteria (tree)
 

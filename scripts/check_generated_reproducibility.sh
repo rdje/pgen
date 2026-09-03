@@ -257,6 +257,26 @@ breach(){ note "$1"; fail=1; }
 
 sha_file() { shasum -a 256 "$1" 2>/dev/null | cut -d' ' -f1; }
 
+# input_sha_file — the digest of a family's generator INPUT (`generated/<family>.json`), taken over the
+# canonical JSON with `metadata.generated_at` removed.
+# ⛔ MEASURED 2026-09-03 (EBNF-FRONTEND-SILENT-TRUNCATION.2): `ast_pipeline` stamps every input JSON with
+# a `generated_at` timestamp, so a byte-for-byte re-derivation of all eleven parsers — every parser_sha
+# identical — read as MOVEMENT here ("ebnf moved … parser d4a1be61… vs d4a1be61…, input 45a2fed3… vs
+# f0d9eea2…") and demanded a tier-2 re-proof for a change that did not happen. A digest that moves
+# when nothing moved is not an identity; the timestamp is provenance, not input.
+input_sha_file() {
+  python3 - "$1" <<'PY' 2>/dev/null
+import hashlib, json, sys
+try:
+    d = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    sys.exit(1)
+if isinstance(d, dict) and isinstance(d.get("metadata"), dict):
+    d["metadata"].pop("generated_at", None)
+print(hashlib.sha256(json.dumps(d, sort_keys=True, separators=(",", ":")).encode()).hexdigest())
+PY
+}
+
 # ⛔ THE SEED ARTIFACT DOES NOT FOLLOW THE `<family>_parser.rs` NAMING, and hard-coding that pattern
 # everywhere is how it stayed outside this gate. One helper, so a caller cannot get it wrong.
 artifact_rel() {
@@ -565,7 +585,7 @@ write_baseline() {
       local j="$GENERATED/${fam}.json"
       [ -f "$p" ] && [ -f "$j" ] || continue
       [ "$first" = 1 ] || printf ',\n'; first=0
-      printf '    "%s": { "parser_sha": "%s", "input_sha": "%s" }' "$fam" "$(sha_file "$p")" "$(sha_file "$j")"
+      printf '    "%s": { "parser_sha": "%s", "input_sha": "%s" }' "$fam" "$(sha_file "$p")" "$(input_sha_file "$j")"
     done
     printf '\n  }\n}\n'
   } > "$BASELINE"
@@ -585,7 +605,7 @@ baseline_current() {
     [ -f "$p" ] && [ -f "$j" ] || continue
     rec_p=$(sed -n "s/.*\"$fam\": { \"parser_sha\": \"\([0-9a-f]*\)\".*/\1/p" "$BASELINE")
     rec_i=$(sed -n "s/.*\"$fam\":.*\"input_sha\": \"\([0-9a-f]*\)\".*/\1/p" "$BASELINE")
-    [ "$(sha_file "$p")" = "$rec_p" ] && [ "$(sha_file "$j")" = "$rec_i" ] || return 1
+    [ "$(sha_file "$p")" = "$rec_p" ] && [ "$(input_sha_file "$j")" = "$rec_i" ] || return 1
   done
   return 0
 }
@@ -671,7 +691,7 @@ tier1() {
     local p; p=$(artifact_rel "$fam")
     local j="$GENERATED/${fam}.json"
     [ -f "$p" ] && [ -f "$j" ] || { breach "$p or $j is absent while other artifacts are present — the tree is half-generated"; continue; }
-    local live_p live_i; live_p=$(sha_file "$p"); live_i=$(sha_file "$j")
+    local live_p live_i; live_p=$(sha_file "$p"); live_i=$(input_sha_file "$j")
     if [ "$live_p" != "$rec_p" ] || [ "$live_i" != "$rec_i" ]; then
       breach "$fam moved since it was last PROVEN to re-derive from HEAD (parser ${live_p:0:12}… vs ${rec_p:0:12}…, input ${live_i:0:12}… vs ${rec_i:0:12}…).
       Tier 1 detects MOVEMENT; only tier 2 can say whether the new state is correct:
