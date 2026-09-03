@@ -2601,7 +2601,13 @@ either a match, a lane deferral, or a **named** explanation: `explained_svpp_inc
 `explained_svpp_macro_use`, `explained_svpp_conditional`, `explained_svpp_protected_envelope`,
 `explained_timeout`, and `explained_store_gate` (`SV-CORPUS-GRAD.13w`: the parser's *sound store
 gate* refused a provably-undeclared type identifier, and the row parses the moment that one name
-is declared — see the blockquote under the live tuple below).
+is declared — see the blockquote under the live tuple below; since `SV-CORPUS-GRAD.13x.e` the class
+also covers a name the file DECLARES WITH THE WRONG KIND or declares only AFTER the use — a net used
+as a type, a package after `extends`, a class after `implements`, a class used before its declaration
+with no forward `typedef class` — proven by a named transformation of the row's own bytes: every other
+occurrence of the name is renamed at its own declaration, the name is declared as one prelude kind, and
+the file parses; the transformation is published beside the verdict, and a file that also carries an
+unresolved wildcard import is kept in the bar by the same soundness condition as before).
 
 ⭐ **An allowlist that conflates two spec categories converts a preprocessing dependency into a
 parser defect — silently, and in the direction that makes the parser look worse.** The dependency
