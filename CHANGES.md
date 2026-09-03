@@ -1,5 +1,34 @@
 # CHANGES.md
 
+## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0357 (leaf SV-CORPUS-GRAD.3.31 DONE — an array-element member access whose INDEX is an `inc_or_dec_expression` or a parenthesised `operator_assignment` (`clist[b[0]++].m <= 1;`, `clist[(b[0] += 1)].m`) parses on `sv_2017` and `sv_2023`: the hierarchical path's index gains the two IEEE 1800-2017 A.8.3 `expression` operands `constant_expression` lacks, by a CALLER SPLIT (`hierarchical_bit_select`, 3 rules + 10 references; the constant contexts untouched); release 1.0.208, ledger SV-0081, contract 1.0.208, schema 26 unchanged; the axis-2 bar 162 → 161 by exactly the predicted row, `pass → fail` 0, the `verilog_2005` lane 0 moved; the parse-cost rise (+0.33 % `entries`, `committed` conserved EXACTLY) ACCEPTED under a NEW coded ratchet invariant `caller_split_containment`, the memo loss routed `ENGINE-UNIVERSAL-SERVICES.92`; GRAMMAR tier, ZERO Rust / codegen / engine bytes)
+
+- `grammars/systemverilog.ebnf` (1561 → 1564 rules, digest `c43ae6d6…`): `hierarchical_index_operand` (`unary` / `inc_or_dec` /
+  `paren_op_assign` / `primary`), `hierarchical_index_expression`, `hierarchical_bit_select := ( lbrack hierarchical_index_expression rbrack )*`;
+  `constant_bit_select → hierarchical_bit_select` at the ten hierarchical-path sites (`hierarchical_identifier`, `hierarchical_tf_identifier`,
+  `split_hierarchical_callable_receiver`, `context_member_method_call`, `implicit_class_rooted_method_chain`); `bind_target_instance`,
+  `constant_select` and the typedef-through-instance path keep `constant_bit_select`. Two cheaper spellings refused by their mechanism first
+  (an ordered choice commits on the `b[0]` prefix; a lookahead cannot see a postfix `++` without parsing the lvalue).
+- `stimuli/sv/adjudication_repros/`: `defect_member_index_inc_or_dec.sv` and `defect_member_index_operator_assignment.sv` flipped
+  `class=defect` → `class=fixed` (ACCEPT); ratchet `checked=458 armed=81 listed=254 multi_profile_rows=147 failures=0`.
+- Corpus, per-path, both lanes: `sv_2017` exactly 1 row `fail → pass` (`verilator/test_regress/t/t_assign_automatic_bad.v`,
+  `unexplained_rejects_valid → match`), pass 9 830 → 9 831, `match 5 901 → 5 902`, `unexplained 162 → 161`; `verilog_2005` 0 moved;
+  `pass → fail` 0. Certificates adjudicated by name: union `1427/18/1396/13`, union `1409/0`; `verilog_2005` `1140/383/743/14`,
+  union `756/1`. Gates on the final bytes, each its own guarded run, sequential: `sv_cert_recognized_union_gate` GREEN (re-stamped at `b8a2e1e2`; 18 m 16 s, peak 6 758 MB), `verilog_2005_conformance_gate` GREEN (lint orphans 0, corpus 363 checks / 0 mismatches, aliases 2, seeds 0/7/42; 30 m 27 s, peak 12 752 MB), `ast_shape_contract_gate` 18/18, `check_generated_reproducibility.sh --rebaseline` every family byte-identical.
+- `PARSE-COST-RATCHET`: `entries` 412,979,398 → 414,323,887 (+0.33 %), `memo_hits` 184,638,132 → 185,332,574 (+0.38 %), `committed`
+  6,759,873 EXACTLY unchanged — `constant_bit_select` −881,589 entries / −38,027 committed ↔ `hierarchical_bit_select` +881,591 / +38,027,
+  the rise being 298,210 memo replays that became executions (`lbrack` +357,103, `trivia` +120,109, `rbrack` +65,125) plus the operand
+  tournament inside the introduced sub-graph. NEW coded invariant `caller_split_containment` (`scripts/parse_cost_containment.py`, 8 self-test
+  arms; `scripts/check_parse_cost_ratchet.sh`): total `committed` moved by 0, no pre-existing rule's `committed` rose, the `committed` lost by
+  pre-existing rules equals the `committed` gained by the introduced rules, every entries-riser inside the introduced sub-graph. Two
+  `accepted_rises.tsv` rows; family share re-derived FIRST 2.750 → 2.744 % (`CORPUS_FAMILY_SHARE_PCT` + its five anchors moved with it:
+  `TOOLBOX.md`, `DOCTRINE_ENFORCEMENT.md`, the knowledge card, `cost.md`); baseline promoted; `advisory.json` re-measured.
+- Register row `1.0.208` (`c43ae6d6…`); ledger `SV-0081`; contract `1.0.208` (current-state note, version, history, digest); the SV parser
+  book changelog `### 1.0.208` (+ rebuilt HTML); platform book: union tuple table `1427/18/1396/13/1409/0`, the live tuple + `.3.31` sentence.
+- `ENGINE-UNIVERSAL-SERVICES.92` opened (ROUTED + PARKED): a caller split loses the twin's memo replays — a `@widens` seed priced, not built;
+  ROUTING EVIDENCE `.3.31 → .92` in `docs/tasks/SV-CORPUS-GRAD.md`.
+- Knowledge card `a-caller-split-conserves-its-commits-and-pays-for-the-memo-it-no-longer-shares` + a dated `DEVELOPMENT_NOTES.md` entry;
+  `KNOWLEDGE_MAP.md` regenerated. `MEMORY.md`, `docs/TASK_TREE.md`, this file.
+
 ## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0356 (leaf SV-CORPUS-GRAD.13x.f DONE and the `.13x` container CLOSED — the 48-row suite-intended-invalid `must_accept` population is dissolved: 38 `must_reject` on a production, 10 `explained_store_gate`, 2 edition contrasts, 1 parser defect pinned `class=defect` for `.3.31`; the census frozen under `after/`; the lessons promoted; `.13x.g` superseded by `.15`; PINS + RECORD tier, ZERO grammar / Rust / codegen / generated / answer-key bytes)
 
 - `stimuli/sv/adjudication_repros/`: `defect_member_index_inc_or_dec.sv` and `defect_member_index_operator_assignment.sv`

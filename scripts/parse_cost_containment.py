@@ -424,6 +424,159 @@ def host_memo_eviction(base: dict[str, dict[str, int]], new: dict[str, dict[str,
                     f"{released:,} released by the spelling they replace; committed {d_committed:+,}"), facts
 
 
+def caller_split_containment(base: dict[str, dict[str, int]], new: dict[str, dict[str, int]],
+                             edges: dict[str, list[str]], introduced: list[str],
+                             d_committed: int) -> tuple[bool, str, dict]:
+    """`(holds, one-line detail, facts)` for the CALLER-SPLIT predicate (`SV-CORPUS-GRAD.3.31`).
+
+    THE SHAPE. A rule R that several callers share is SPLIT BY CALLER: the row's `introduced` rules
+    take over R's call sites in one family of callers (here the hierarchical-name chains take
+    `hierarchical_bit_select` where they used `constant_bit_select`) and widen what those sites
+    admit, while R keeps its other callers unchanged. Work MOVES: R's entries and committed fall by
+    exactly what the introduced rules gain in committed, and — because the introduced rules ADD
+    alternatives the old rule did not try — pre-existing rules the introduced rules consult rise
+    (the operand tries, the layout rule a terminal reads first, the loop's own brackets). Measured
+    on `.3.31`: `constant_bit_select` entries -881,589 / committed -38,027 against
+    `hierarchical_bit_select` +881,591 / +38,027, and `lbrack` +357,103, `trivia` +120,109,
+    `inc_or_dec_expression` +71,510, `unary_operator` +69,885 … all reachable from the three
+    introduced rules.
+
+    ⛔ WHY THE OTHER SIX CANNOT COVER IT. `contained_in_introduced_subgraph` refuses ANY rule losing
+    entries (a split is defined by the old rule losing them); `profile_split_respelling` refuses ANY
+    pre-existing rule rising (the widened alternatives make the consulted rules rise — real work,
+    not bookkeeping); the three arithmetic identities need shapes this is not; `host_memo_eviction`
+    needs a host whose memo hits fall to zero at unchanged entries.
+
+    ⭐ WHAT THIS ONE ASSERTS. (1) `committed` is CONSERVED in total, no pre-existing rule's committed
+    ROSE, and the committed the pre-existing rules LOST equals what the introduced rules gained —
+    no derivation is accepted more often anywhere, the accepted work only moved onto the new names;
+    (2) every rule whose ENTRIES rose is reachable, in the measured grammar's own reference graph,
+    from an introduced rule — the extra speculation sits inside the construct that caused it, never
+    "everywhere". Fallers are REPORTED and never refused: with every riser attributed one by one, a
+    fall cannot hide a rise by netting, and a split without fallers is not a split.
+
+    ⚠️⚠️ HONEST BOUND, IN THE PREDICATE'S OWN DOCSTRING: this proves the rise is CONFINED and that
+    accepted work only moved. It does NOT prove the rise is unavoidable: half of it is the split
+    rule no longer sharing the memo with its constant twin at the same position (a memo keyed on
+    the RULE, not the body), the other half the tournament trying the new operand kinds at every
+    index. Both are engine properties (`ENGINE-UNIVERSAL-SERVICES.15`/`.17`: commit-once, no
+    give-back); say so in the row's `why` and route their elimination.
+
+    Raises `Refused` (never a false verdict) when the scope is undeclared, names a rule the grammar
+    does not have, names a rule that already existed, or a measured rule cannot be placed in the graph.
+    """
+    if not introduced:
+        raise Refused("the caller-split predicate needs the rule names the change INTRODUCED; the "
+                      "acceptance row declares none, so the moved work is unattributed")
+    not_new = sorted(r for r in introduced if r in base)
+    if not_new:
+        raise Refused(f"{not_new} already existed in the baseline measurement — `introduced` names "
+                      f"the rules the split CREATES, and listing an existing rule would turn this "
+                      f"acceptance into a waiver for real work on it")
+    known = set(edges) | {r for refs in edges.values() for r in refs}
+    unknown = [r for r in introduced if r not in known]
+    if unknown:
+        raise Refused(f"{unknown} name no rule in the grammar's reference graph — a row cannot "
+                      f"declare a scope the measured grammar does not have")
+    scope = reachable(edges, introduced)
+    names = set(base) | set(new)
+    origins = {r: origin_rule(r, known) for r in names}
+    unplaced = sorted(r for r, o in origins.items() if o is None)
+    if unplaced:
+        raise Refused(f"{len(unplaced)} measured rule(s) cannot be located in the grammar's "
+                      f"reference graph, so their entries can be neither contained nor escaped: "
+                      f"{unplaced[:5]}{' …' if len(unplaced) > 5 else ''}")
+    d_entries = {r: new.get(r, {}).get("entries", 0) - base.get(r, {}).get("entries", 0) for r in names}
+    d_comm = {r: new.get(r, {}).get("committed", 0) - base.get(r, {}).get("committed", 0) for r in names}
+    rose = {r: d for r, d in d_entries.items() if d > 0}
+    fell = {r: d for r, d in d_entries.items() if d < 0}
+    escaped = {r: d for r, d in rose.items() if origins[r] not in scope}
+    pre = [r for r in names if r in base]
+    pre_comm_rose = {r: d_comm[r] for r in pre if d_comm[r] > 0}
+    pre_comm_lost = -sum(d_comm[r] for r in pre if d_comm[r] < 0)
+    new_comm_gained = sum(d_comm[r] for r in names if r not in base and d_comm[r] > 0)
+    facts = {"scope": len(scope), "rose": rose, "fell": fell, "escaped": escaped,
+             "d_committed": d_committed, "pre_committed_rose": pre_comm_rose,
+             "committed_moved": pre_comm_lost, "committed_gained": new_comm_gained}
+    if d_committed != 0:
+        return False, (f"committed moved {d_committed:+,} in total — accepted work was re-decided, "
+                       f"not moved between the split pair"), facts
+    if pre_comm_rose:
+        worst = sorted(pre_comm_rose.items(), key=lambda t: -t[1])[:3]
+        return False, (f"{len(pre_comm_rose)} pre-existing rule(s) got dearer on `committed` — a "
+                       f"derivation is accepted more often where it already was: "
+                       + ", ".join(f"{r} {d:+,}" for r, d in worst)), facts
+    if pre_comm_lost != new_comm_gained:
+        return False, (f"the pre-existing rules lost {pre_comm_lost:,} committed while the "
+                       f"introduced rules gained {new_comm_gained:,} — accepted work did not simply "
+                       f"move onto the new names"), facts
+    if escaped:
+        worst = sorted(escaped.items(), key=lambda t: -t[1])[:3]
+        return False, (f"{len(escaped)} rule(s) rose OUTSIDE the sub-graph reachable from "
+                       f"{' '.join(introduced)} ({sum(escaped.values()):+,}) — the rise escaped "
+                       f"the construct that caused it: "
+                       + ", ".join(f"{r} {d:+,}" for r, d in worst)), facts
+    worst_fell = sorted(fell.items(), key=lambda t: t[1])[:2]
+    return True, (f"caller split: {len(rose):,} rule(s) rose ({sum(rose.values()):+,}), all inside "
+                  f"the {len(scope):,}-rule sub-graph reachable from {' '.join(introduced)}; "
+                  f"{len(fell):,} fell ({sum(fell.values()):+,}, largest "
+                  + ", ".join(f"{r} {d:+,}" for r, d in worst_fell)
+                  + f"); committed conserved — {pre_comm_lost:,} moved from the replaced rule(s) "
+                  f"onto the introduced ones, 0 pre-existing rule accepted more often"), facts
+
+
+def self_test_caller_split_containment() -> int:
+    """Every refusal and failure branch of `caller_split_containment`, fired on synthetic tables
+    that carry the measured `SV-CORPUS-GRAD.3.31` shape, plus the GREEN arm."""
+    def tables():
+        base = {"old_sel": {"entries": 1000, "committed": 40, "memo_hits": 990},
+                "caller": {"entries": 500, "committed": 100, "memo_hits": 10},
+                "lbrack": {"entries": 200, "committed": 50, "memo_hits": 100},
+                "expr": {"entries": 300, "committed": 60, "memo_hits": 100},
+                "other": {"entries": 100, "committed": 10, "memo_hits": 5}}
+        new = {k: dict(v) for k, v in base.items()}
+        new["old_sel"] = {"entries": 100, "committed": 4, "memo_hits": 90}   # the split: 900 entries / 36 committed move
+        new["new_sel"] = {"entries": 900, "committed": 36, "memo_hits": 500}
+        new["new_ix"] = {"entries": 80, "committed": 0, "memo_hits": 0}
+        new["lbrack"]["entries"] = 560                                        # the loop's own bracket, tried more often
+        new["expr"]["entries"] = 380                                          # the widened operand tries
+        edges = {"caller": ["new_sel", "old_sel"], "old_sel": ["lbrack", "expr"],
+                 "new_sel": ["lbrack", "new_ix"], "new_ix": ["expr"], "expr": ["lbrack"], "other": ["lbrack"]}
+        return base, new, edges
+    arms: list[tuple[str, bool, str]] = []
+    def arm(name, expect_holds, want_text, mutate=None, introduced=("new_sel", "new_ix"), d_committed=0,
+            expect_refused=False):
+        base, new, edges = tables()
+        if mutate:
+            mutate(base, new, edges)
+        try:
+            holds, detail, _ = caller_split_containment(base, new, edges, list(introduced), d_committed)
+            ok = (not expect_refused) and holds == expect_holds and want_text in detail
+            got = f"holds={holds}: {detail[:110]}"
+        except Refused as exc:
+            ok = expect_refused and want_text in str(exc)
+            got = f"REFUSED: {str(exc)[:110]}"
+        arms.append((name, ok, got))
+        print(f"  {'✓' if ok else '✗'} {name} — {got}")
+    arm("green: the measured .3.31 shape HOLDS (work moved, risers inside the sub-graph, fallers reported)",
+        True, "caller split:")
+    arm("red: a rise on a rule NOT reachable from the introduced set ESCAPES", False, "OUTSIDE the sub-graph",
+        mutate=lambda b, n, e: n["other"].__setitem__("entries", 150))
+    arm("red: committed not conserved in total", False, "re-decided, not moved", d_committed=5)
+    arm("red: a pre-existing rule accepted MORE often", False, "got dearer on `committed`",
+        mutate=lambda b, n, e: n["caller"].__setitem__("committed", 101))
+    arm("red: the committed the old rule lost is not what the new rules gained", False, "did not simply move",
+        mutate=lambda b, n, e: n["new_sel"].__setitem__("committed", 30))
+    arm("refuse: an introduced rule that already existed", False, "already existed",
+        introduced=("new_sel", "old_sel"), expect_refused=True)
+    arm("refuse: an introduced rule the grammar does not have", False, "name no rule",
+        introduced=("new_sel", "ghost"), expect_refused=True)
+    arm("refuse: no introduced set at all", False, "declares none", introduced=(), expect_refused=True)
+    failed = [a for a in arms if not a[1]]
+    print(f"CALLER-SPLIT-CONTAINMENT-SELFTEST: arms={len(arms)} failed={len(failed)}")
+    return 1 if failed else 0
+
+
 def self_test_host_memo_eviction() -> int:
     """Every refusal branch of `host_memo_eviction`, fired on synthetic tables that carry the
     measured `SV-CORPUS-GRAD.13o` shape, plus the GREEN arm. Prints one line per arm."""
@@ -508,7 +661,7 @@ def main() -> int:
 
     try:
         if a.self_test:
-            return self_test_host_memo_eviction()
+            return self_test_host_memo_eviction() | self_test_caller_split_containment()
 
         if a.graph:
             g = derive_graph(a.graph)

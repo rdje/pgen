@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-30237d12.js";
+            window.path_to_searchindex_js = "searchindex-4875f415.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -217,6 +217,43 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10208--contract-10208--sv-corpus-grad331-pgen-sv-corpus-grad-0357-2026-09-03-ledger-sv-0081-released"><a class="header" href="#10208--contract-10208--sv-corpus-grad331-pgen-sv-corpus-grad-0357-2026-09-03-ledger-sv-0081-released">1.0.208 / Contract 1.0.208 — SV-CORPUS-GRAD.3.31 (<code>PGEN-SV-CORPUS-GRAD-0357</code>, 2026-09-03), ledger <code>SV-0081</code> (<code>Released</code>):</a></h3>
+<p>⭐ <strong>An array-element member access whose index is an increment/decrement or a parenthesised operator
+assignment now parses.</strong> <code>clist[b[0]++].m &lt;= 1;</code> and <code>clist[(b[0] += 1)].m</code> were refused on <code>sv_2017</code> and
+<code>sv_2023</code> while <code>clist[b[0]++] = null;</code> (no member) and <code>clist[b[0]+1].m</code> / <code>clist[f()].m</code> (another index
+kind) parsed: IEEE 1800-2017 A.8.3 gives <code>expression</code> two operands — <code>inc_or_dec_expression</code> and
+<code>( operator_assignment )</code> — that <code>constant_expression</code> lacks, and the index of an element whose member is
+then selected was the one index path the grammar spelled through <code>constant_bit_select</code>.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>input</th><th>before</th><th>after</th></tr>
+</thead>
+<tbody>
+<tr><td><code>clist[b[0]++].m &lt;= 1;</code>, <code>x = clist[b[0]++].m;</code> — an inc/dec index, member selected after it</td><td><code>rc 1</code></td><td><strong><code>rc 0</code></strong></td></tr>
+<tr><td><code>clist[(b[0] += 1)].m &lt;= 1;</code> — a parenthesised operator assignment as that index</td><td><code>rc 1</code></td><td><strong><code>rc 0</code></strong></td></tr>
+<tr><td><code>clist[b[0]+1].m</code>, <code>clist[b[0] ? 0 : 1].m</code>, <code>clist[f()].m</code> (control)</td><td><code>rc 0</code></td><td><code>rc 0</code>, AST byte-identical</td></tr>
+<tr><td><code>clist[b[0]++] = null;</code>, <code>a[b[0]++] = 1;</code> — the same index with no member after it (control)</td><td><code>rc 0</code></td><td><code>rc 0</code>, AST byte-identical</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>How.</strong> A caller split: <code>hierarchical_bit_select := ( lbrack hierarchical_index_expression rbrack )*</code>, whose
+operand is <code>constant_expression</code>’s plus exactly the two missing alternatives, referenced at the ten
+hierarchical-path sites (<code>hierarchical_identifier</code>, <code>hierarchical_tf_identifier</code> and the three method-chain
+receivers); <code>constant_bit_select</code> and its constant-context callers (<code>bind</code> targets, <code>constant_select</code>,
+typedef-through-instance) are untouched, so <code>++</code> stays refused where the standard makes the index constant.
+Two cheaper spellings were refused by their mechanism first: an ordered choice commits on the <code>b[0]</code>
+prefix and never sees the <code>++</code>; a lookahead cannot see a postfix <code>++</code> without parsing the lvalue.</p>
+<p><strong>AST impact — shape-neutral.</strong> Every input that parsed before yields a byte-identical typed AST (measured
+on the eight control inputs, both profiles); a newly-accepted index carries the existing
+<code>inc_or_dec_expression</code> / <code>operator_assignment</code> node shapes as the operand body. Schema <strong>26 unchanged</strong>.
+⛔ The accept set <strong>widens</strong> on <code>sv_2017</code> and <code>sv_2023</code>.</p>
+<p><strong>Corpus proof</strong>, per-path and two-sided, both lanes: <code>sv_2017</code> exactly <strong>1</strong> row <code>fail → pass</code> — the
+predicted <code>t_assign_automatic_bad.v</code> — pass <strong>9 830 → 9 831</strong>, the axis-2 bar <strong>162 → 161</strong>;
+<code>verilog_2005</code> <strong>0</strong> rows moved; <code>pass → fail</code> <strong>0</strong>. Union certificate <code>1427/18/1396/13</code>, union <code>1409/0</code> (residual <code>[]</code>, deterministic across seeds 0/7/42 — the three new rules witnessed, the 13-rule canonical UNKNOWN set identical); <code>verilog_2005</code> <code>1140/383/743/14</code> with the gate’s own flags (union <code>756/1</code> at seed 0), deterministic across seeds; AST-shape gate 18/18; every generated family re-derives byte-identically. Cost: the parse-cost ratchet
+reads <code>entries</code> +0.33 % and <code>memo_hits</code> +0.38 % with <code>committed</code> <strong>exactly</strong> unchanged — the split moves
+its work one for one and pays for the memo the two twin rules no longer share — accepted under a new coded
+invariant (<code>caller_split_containment</code>) and routed for elimination (<code>ENGINE-UNIVERSAL-SERVICES.92</code>).</p>
 <h3 id="10207--contract-10207--sv-corpus-grad330-pgen-sv-corpus-grad-0349-2026-09-03-ledger-sv-0080-released"><a class="header" href="#10207--contract-10207--sv-corpus-grad330-pgen-sv-corpus-grad-0349-2026-09-03-ledger-sv-0080-released">1.0.207 / Contract 1.0.207 — SV-CORPUS-GRAD.3.30 (<code>PGEN-SV-CORPUS-GRAD-0349</code>, 2026-09-03), ledger <code>SV-0080</code> (<code>Released</code>):</a></h3>
 <p>⭐ <strong>A UDP state table written with adjacent symbols now parses, on every profile.</strong> IEEE 1800-2017’s own
 tables are written that way — <code>(01) (10) 0 : 0 : 1 ;</code> (§29.3.4) — and §29.3.4 separates only the input

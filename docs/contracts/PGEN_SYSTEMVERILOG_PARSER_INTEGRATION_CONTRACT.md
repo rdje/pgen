@@ -5,6 +5,23 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-09-03, `SV-CORPUS-GRAD.3.31` — GRAMMAR, release `1.0.208`, ledger `SV-0081`,
+> schema `26` UNCHANGED, `sv_2017` + `sv_2023` WIDEN): an array-element member access whose INDEX is an
+> `inc_or_dec_expression` or a parenthesised `operator_assignment` — `clist[b[0]++].m <= 1;`,
+> `clist[(b[0] += 1)].m` — now parses.** IEEE 1800-2017 A.8.3 gives `expression`
+> (`section-41-data-read-api.md:3026`) the two operands that `constant_expression` (`:2982`) lacks, and
+> the index of an element whose member is then selected was the ONE index path the grammar spelled
+> through `constant_bit_select` (A.9.3 `hierarchical_identifier`, `:3361`); the member-less index
+> (`clist[b[0]++] = null;`) went through `bit_select` and always parsed. The fix is a caller split:
+> `hierarchical_bit_select` (over an operand adding exactly those two alternatives) at the ten
+> hierarchical-path sites, `constant_bit_select` and its constant-context callers untouched. Every input
+> that parsed before yields a byte-identical typed AST; a newly-accepted index carries the existing
+> `inc_or_dec_expression` / `operator_assignment` node shapes as the operand body. Corpus: `sv_2017`
+> exactly one row `fail → pass` (the predicted one), `pass → fail` 0, the axis-2 bar `162 → 161`;
+> `verilog_2005` 0 rows moved. Parse cost `entries` +0.33 % / `memo_hits` +0.38 % with `committed`
+> conserved exactly — the split pays for the memo the two twins no longer share — accepted under a new
+> coded ratchet invariant and routed for elimination (`ENGINE-UNIVERSAL-SERVICES.92`).
+
 > **Current-state note (2026-09-03, `SV-CORPUS-GRAD.3.30` — GRAMMAR, release `1.0.207`, ledger `SV-0080`,
 > schema `26` UNCHANGED, ALL THREE profiles WIDEN): a UDP state table written with adjacent symbols —
 > `(01)`, `??`, `01`, `0x`, `(bx)` — now parses, on every profile.** IEEE 1800-2017 §29.3.4
@@ -1027,15 +1044,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.207`
+  - `1.0.208`
 - Parser release version:
-  - `1.0.207`
-  - history: `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.208`
+  - history: `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `f7a90927ec7d37903d19ab33dea70dca36414a02aa73895dd1ee67c5d4f114b5` (SV grammar semantic digest — sha256 of the
+  - `c43ae6d66d4a880522b70647e726ce17a17c6ce283d92d50d68676117a085603` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`

@@ -1682,6 +1682,34 @@ const_qualifier_sv_only := kw_const_b42f3f6f
 constant_bit_select := ( lbrack constant_expression rbrack )*
                     -> {bits: $1}
 
+# SV-CORPUS-GRAD.3.31 — the index of an ARRAY ELEMENT whose member or method is then selected
+# (`clist[i].m`, `arr[i].f()`). IEEE 1800-2017 A.9.3 spells hierarchical_identifier with a
+# constant_bit_select; this grammar already admits the variable indices every real design writes
+# there (`clist[b[0]+1].m`, `clist[f()].m`), and the ONLY expression operands it left out were
+# `inc_or_dec_expression` and `( operator_assignment )` (A.8.3) — so `clist[b[0]++].m <= 1;`
+# (verilator t_assign_automatic_bad.v l.58-60) rejected while every other index shape parsed.
+# These three rules mirror constant_expression / constant_expression_operand SHAPE FOR SHAPE
+# (`{first, rest, ternary}`, `{kind: "unary"|"primary", …}`) and add the two operand kinds, so
+# every input that parsed before yields a byte-identical typed AST (measured, .3.31). Referenced
+# ONLY from the hierarchical-name chains (hierarchical_identifier, hierarchical_tf_identifier, the
+# method-call receiver chains); bind_target_instance, constant_select and the typedef-through-
+# instance rules keep constant_bit_select — an INSTANCE array index is constant by 23.3.2.
+hierarchical_index_operand := unary_operator attribute_instance* constant_primary
+                                   -> {kind: "unary",           op: $1, attributes: $2, primary: $3}
+                            | inc_or_dec_expression
+                                   -> {kind: "inc_or_dec",      body: $1}
+                            | lparen operator_assignment rparen
+                                   -> {kind: "paren_op_assign", body: $2}
+                            | constant_primary
+                                   -> {kind: "primary",         body: $1}
+
+hierarchical_index_expression := @probe_sample: "1" hierarchical_index_operand ( binary_operator attribute_instance* hierarchical_index_operand )* ( question attribute_instance* hierarchical_index_expression colon hierarchical_index_expression )?
+                              -> {first: $1, rest: $2, ternary: $3}
+
+hierarchical_bit_select := ( lbrack hierarchical_index_expression rbrack )*
+                        -> {bits: $1}
+
+
 # SV-0072 companion — constant-cast host: `casting_type ' ( constant_expression )` (IEEE 1800 A.8.4). Unreachable under verilog_2005 once `tick` is gated.
 @profiles: ["sv_2017", "sv_2023"]
 constant_cast := casting_type tick lparen constant_expression rparen
@@ -3015,7 +3043,7 @@ hierarchical_root_prefix_sv_only := kw_sv_dollar_root_f65f0e67 dot
 # so a reserved type keyword can no longer match as a bare non-constant `primary`
 # hierarchical name (`assign w = integer;`). A hierarchical name segment can never be a
 # reserved word, so this is universally correct; shape-preserving (`name` stays `{body:X}`).
-hierarchical_identifier := ( hierarchical_root_prefix_sv_only )? ( non_keyword_identifier constant_bit_select dot )* non_keyword_identifier
+hierarchical_identifier := ( hierarchical_root_prefix_sv_only )? ( non_keyword_identifier hierarchical_bit_select dot )* non_keyword_identifier
                         -> {root: $1, scope: $2, name: $3}
 
 hierarchical_instance := name_of_instance lparen ( list_of_port_connections )? rparen
@@ -3031,9 +3059,9 @@ hierarchical_sequence_identifier := hierarchical_identifier
 
 hierarchical_task_identifier := hierarchical_identifier
 
-hierarchical_tf_identifier := hierarchical_root_prefix_sv_only ( non_keyword_identifier constant_bit_select dot )* callable_identifier
+hierarchical_tf_identifier := hierarchical_root_prefix_sv_only ( non_keyword_identifier hierarchical_bit_select dot )* callable_identifier
                                                                                                                        -> {kind: "rooted", scope_chain: $2, name: $3}
-                           | non_keyword_identifier constant_bit_select dot ( non_keyword_identifier constant_bit_select dot )* callable_identifier
+                           | non_keyword_identifier hierarchical_bit_select dot ( non_keyword_identifier hierarchical_bit_select dot )* callable_identifier
                                                                                                                        -> {kind: "anchored", head: $1, head_select: $2, scope_chain: $4, name: $5}
 
 hierarchical_variable_identifier := hierarchical_identifier
@@ -3749,7 +3777,7 @@ callable_method_call_body := built_in_method_call
 # `docs/tasks/artifacts/sv_corpus_grad/scope_prefix_rendering_drift/sweep_scope_prefix_renderings.py`.
 # One corpus row moved, and it carries the construct verbatim:
 # verible `nested_member_access.sv`'s `nested_class0::handle1::handle2.nested_function()`.
-split_hierarchical_callable_receiver := ( kw_class_qualifier_fa08937d | non_typedef_package_scope | class_scope )? ( non_keyword_identifier constant_bit_select dot &( non_keyword_identifier constant_bit_select dot ) )* non_keyword_identifier constant_bit_select
+split_hierarchical_callable_receiver := ( kw_class_qualifier_fa08937d | non_typedef_package_scope | class_scope )? ( non_keyword_identifier hierarchical_bit_select dot &( non_keyword_identifier hierarchical_bit_select dot ) )* non_keyword_identifier hierarchical_bit_select
                                      -> {scope: $1, path: $2, name: $3}
 
 split_direct_callable_method_call := split_hierarchical_callable_receiver dot callable_method_call_body
@@ -3853,7 +3881,7 @@ method_call_root := method_call_receiver  -> {kind: "receiver",       body: $1}
 # of `[ const_expr ]`, so matches empty when no index is present) preserves
 # backwards-compat: `a.b.c.method()` (no indices) is byte-identical to pre-fix
 # behavior since `constant_bit_select` matches empty.
-context_member_method_call := non_keyword_identifier ( dot non_keyword_identifier constant_bit_select &dot )+ dot callable_method_call_body ( dot method_call_body )*
+context_member_method_call := non_keyword_identifier ( dot non_keyword_identifier hierarchical_bit_select &dot )+ dot callable_method_call_body ( dot method_call_body )*
                            -> {head: $1.body, members: $2, method: $4, chain: $5}
 
 # SV-EXH-PROOF.3.3.4.b.6.2.37.10 — structural complement of
@@ -3870,7 +3898,7 @@ context_member_method_call := non_keyword_identifier ( dot non_keyword_identifie
 # member can also be indexed (`this.arr[0].method()`).
 # No predicate gate needed — `kw_this`/`kw_super` are keywords; matching
 # is unambiguous.
-implicit_class_rooted_method_chain := implicit_class_handle dot non_keyword_identifier constant_bit_select ( dot non_keyword_identifier constant_bit_select &dot )* dot callable_method_call_body ( dot method_call_body )*
+implicit_class_rooted_method_chain := implicit_class_handle dot non_keyword_identifier hierarchical_bit_select ( dot non_keyword_identifier hierarchical_bit_select &dot )* dot callable_method_call_body ( dot method_call_body )*
                                    -> {receiver: $1, head: $3, head_select: $4, members: $5, method: $7, chain: $8}
 
 # SV-EXH-PROOF.3.3.4.b.6.2.5 — postfix-method-chain on a call-rooted

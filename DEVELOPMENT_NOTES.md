@@ -1,5 +1,32 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0357 (a caller split conserves its commits and pays for the memo it no longer shares)
+
+- ⭐⭐ **THE LESSON: WHEN ONE CALLER OF A RULE NEEDS A WIDER OPERAND, THE FIX IS A TWIN RULE AT THAT CALLER — AND THE TWIN'S COST IS
+  NOT ITS OPERAND, IT IS THE MEMO IT NO LONGER SHARES.** `SV-CORPUS-GRAD.3.31` widened the index of an array element whose member is then
+  selected (`clist[b[0]++].m`) by a caller split: `hierarchical_bit_select`, a twin of `constant_bit_select` whose operand adds the two
+  A.8.3 `expression` alternatives `constant_expression` lacks, at the ten hierarchical sites; the constant contexts keep the narrow rule
+  (`++` in a `constant_select` would be over-acceptance). The ratchet's per-rule table then said exactly what a split costs: the moved
+  work is conserved to within two entries (`constant_bit_select` −881,589 / −38,027 committed ↔ `hierarchical_bit_select` +881,591 /
+  +38,027), and the rise is the two twins' memo — the memo is keyed by RULE id at a position, so the callers that used to replay one
+  cell now execute two rules: 298,210 replays became executions and re-ran the loop body (`lbrack` +357,103, `trivia` +120,109,
+  `rbrack` +65,125). Read the twins' `memo_hits` before blaming the new operand.
+- **A rise class needs its own conservation law.** `contained_in_introduced_subgraph` refuses any faller and a split ALWAYS has one (the
+  narrow twin); `profile_split_respelling` refuses any pre-existing riser and a split always has those too (the loop's terminals). Widening
+  either would have admitted rises they were written to refuse. The new `caller_split_containment` states what a split IS — total
+  `committed` moved by 0, no pre-existing rule's `committed` rose, the `committed` lost by pre-existing rules equals the `committed` gained by
+  the introduced rules, every entries-riser inside the introduced sub-graph — and refuses everything else (8 self-test arms, each a
+  shape the law must reject).
+- **A family SHARE moves when the DENOMINATOR moves.** The LR family's entries fell by 1 279 while the corpus total rose by 2 M; the share
+  went `2.750 → 2.744 %` and the gate refused the promotion until `CORPUS_FAMILY_SHARE_PCT` and its five published anchors moved with it.
+  The share is re-derived FIRST (the `.3.30` order), and a share anchor's currency is the total's, not the family's.
+- **Verify an in-place edit by re-counting the text, not by the command's exit status.** The BSD spelling `sed -i '' 's/…/…/' f` on a
+  GNU sed treats `''` as the script and `s/…/…/` as a file name — it prints *can't read s/…* to stderr, edits nothing, and the loop it
+  sat in exited 0. The `grep -c` after the edit is what caught it (every anchor still read 2.750).
+- **Refuse the cheaper spellings by their mechanism before measuring them.** An ordered choice `constant_bit_select | wide` commits on
+  the `b[0]` prefix under commit-once and never sees the `++`; a lookahead cannot see a postfix `++` without parsing the lvalue. Both
+  were priced in a sentence, not a build.
+
 ## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0356 (a suite's intended-invalid path is a census key, and the golden's line is not where the syntax error is)
 
 - ⭐⭐ **THE LESSON: AN ANSWER KEY THAT RESTS ON A SUITE'S DRIVER RECORDS THE STAGE A TOLERANT PARSER REACHED, NOT WHAT THE

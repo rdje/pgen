@@ -21705,3 +21705,52 @@ cross) and a new blocking doctrine.
   regeneration and one 90-second build, not a corpus verdict. It is an engine-authoring ergonomics gap, not an
   SV release blocker.
 - **ROUTING EVIDENCE lives in the opening tree** (`docs/tasks/SV-CORPUS-GRAD.md`, *ROUTING EVIDENCE*, `.3.30` → `.91`).
+
+### ⛔ `.92` — **A RULE SPLIT FROM ITS TWIN SO THAT ONE CALLER CAN WIDEN IT LOSES THE TWIN'S MEMO REPLAYS — the memo is keyed by RULE, so two rules that agree on every iteration but the last parse the shared iterations twice; measured on `SV-CORPUS-GRAD.3.31` and PRICED here** (`todo`, ROUTED + PARKED, not SV-blocking — opened 2026-09-03 by `SV-CORPUS-GRAD.3.31` / `PGEN-SV-CORPUS-GRAD-0357`)
+
+- ⭐ **HOW IT WAS FOUND — by `PARSE-COST-RATCHET` pricing a caller split that moves its work ONE FOR ONE.**
+  `SV-CORPUS-GRAD.3.31` widens the index of an array element whose member is then selected
+  (`clist[b[0]++].m <= 1;`): the `{ identifier constant_bit_select . }` path of `hierarchical_identifier`
+  spelled the index as `constant_bit_select → constant_expression`, which lacks exactly the two A.8.3
+  `expression` alternatives `inc_or_dec_expression` and `( operator_assignment )`. The fix is a CALLER
+  SPLIT — `hierarchical_bit_select`, a twin of `constant_bit_select` whose operand adds the two
+  alternatives, referenced at the ten hierarchical-path sites, while `constant_bit_select` keeps its other
+  callers (`bind_target_instance`, `constant_select`, the typedef-through-instance path). On the pinned
+  sample the ratchet reads `entries` **+1,344,489** (+0.33 %), `memo_hits` **+694,442** (+0.38 %),
+  `committed` **exactly 0** — and the per-rule table (`rule_costs.tsv`, promoted baseline vs `HEAD`) says
+  where: `constant_bit_select` **−881,589** entries / **−38,027** committed ↔ `hierarchical_bit_select`
+  **+881,591** / **+38,027**. The moved work is conserved to within two entries; the rise is NOT the spelling.
+- ✅ **WHY + WHERE (read in the per-rule table, then in the emitted parser):** the generated `memoized_call`
+  keys a memo cell on `(rule id, position)`. Before the split, every caller that reached a hierarchical name
+  at a position — the several `primary` / `variable_lvalue` / `hierarchical_tf_identifier` attempts the
+  tournament makes there, and `constant_select` — entered ONE rule and replayed one cell: `constant_bit_select`
+  lost **872,207** memo hits while `hierarchical_bit_select` gained only **573,997**, i.e. **298,210 replays
+  became executions**, and the loop body they re-ran is exactly the riser list: `lbrack` **+357,103**,
+  `trivia` **+120,109**, `rbrack` **+65,125**. Nothing about that is SystemVerilog: two rules whose bodies
+  agree on every iteration a narrow index can take differ only in the iteration it cannot, and the memo has
+  no notion of one rule's success seeding another's.
+- **The second component is `.90`'s mechanism 1, not a new one:** `hierarchical_index_operand` is a four-way
+  choice entered **72,635** times, and the ordered choice enters EVERY alternative with no FIRST-terminal test
+  — `unary_operator` +69,885, `inc_or_dec_expression` +71,510 (`plus_plus` / `minus_minus` /
+  `inc_or_dec_operator` +17,203 each), `lparen` +71,340, `constant_primary` +69,875 (all replays:
+  memo +69,911), then the expression tails `binary_operator` +69,552 and `question` +67,578 — one attempt per
+  kind per indexed position, ~70 k positions. It is priced there; this leaf owns the memo loss only.
+- **PRICED (not built):** an engine-tier declaration `hierarchical_bit_select @widens constant_bit_select`
+  (or its inference: two `( … )*` rules whose bodies differ only by ADDED alternatives in one operand):
+  a FAILURE of the wide rule at `p` is a failure of the narrow one (subset), and a SUCCESS of the narrow
+  rule at `p` SEEDS the wide one — it resumes its loop at the narrow span's end instead of re-parsing the
+  iterations both rules derive identically. A RED control: this grammar, `entries` on the pinned sample
+  equal to the pre-split `412,979,398` plus the operand tournament alone (the `hierarchical_index_operand`
+  sub-graph's ~+420 k), with the three loop-body risers at **0**; a GREEN control: a twin whose LAST
+  iteration differs (`[b[0]++]`) still parses to the wide span. Whether the seed is sound under
+  commit-once / no give-back (`.15` / `.17`) is the leaf's first question — a narrow success that COMMITTED
+  inside the loop must be a wide success on the same prefix, which holds when the wide operand is a superset
+  tried in the same order.
+- **WHY PARKED:** the rise is +0.33 % of `entries` on the pinned sample with `committed` conserved exactly;
+  no corpus verdict depends on it; the alternatives were refused first — an ordered choice that keeps
+  `constant_bit_select` first commits to `b[0]` and never sees the `++` (commit-once), and a lookahead
+  cannot see a postfix `++` without parsing the lvalue. It is an engine-authoring cost model gap, not an
+  SV release blocker. ACCEPTED in `accepted_rises.tsv` under the new `caller_split_containment`
+  invariant (`scripts/parse_cost_containment.py`, 8 self-test arms), which admits a rise only when the
+  moved committed count is conserved one for one and every entries-riser lies in the introduced sub-graph.
+- **ROUTING EVIDENCE lives in the opening tree** (`docs/tasks/SV-CORPUS-GRAD.md`, *ROUTING EVIDENCE*, `.3.31` → `.92`).

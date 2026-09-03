@@ -717,6 +717,41 @@ def _contained_in_introduced_subgraph(base_tot, new_tot, ctx):
     return holds, detail
 
 
+def _caller_split_containment(base_tot, new_tot, ctx):
+    """A rule shared by several callers is SPLIT BY CALLER (`SV-CORPUS-GRAD.3.31`): the introduced
+    rules take over one family of call sites and widen what those sites admit. Work MOVES (the old
+    rule's entries and committed fall by exactly what the new rules gain in committed) and the rules
+    the new alternatives consult rise. Holds when `committed` is conserved in total, no pre-existing
+    rule is accepted more often, the committed the pre-existing rules lost equals what the introduced
+    ones gained, and every rule whose ENTRIES rose is reachable from an introduced rule in the
+    measured grammar's own reference graph. Fallers are reported, never refused. The predicate and
+    its refusal arms live in `scripts/parse_cost_containment.py` (`caller_split_containment`,
+    `--self-test`); see its docstring for why the other six invariants cannot cover this shape and
+    for the honest bound (confined and moved, not unavoidable)."""
+    if CONTAINMENT is None:
+        raise RuntimeError(f"scripts/parse_cost_containment.py could not be imported "
+                           f"({CONTAINMENT_IMPORT_ERROR}), so this acceptance cannot be evaluated")
+    graph_path = ctx["graph"]
+    if not os.path.isfile(graph_path):
+        raise RuntimeError(f"the measured grammar's reference graph is missing "
+                           f"({os.path.relpath(graph_path, ROOT)}) — re-measure with an instrument "
+                           f"that emits it")
+    with open(graph_path, encoding="utf-8") as fh:
+        graph = json.load(fh)
+    if ctx["grammar_digest"] and graph.get("grammar_raw_ast_sha256") != ctx["grammar_digest"]:
+        raise RuntimeError(
+            f"the reference graph was derived from grammar raw_ast "
+            f"`{str(graph.get('grammar_raw_ast_sha256'))[:16]}…` but this tree's is "
+            f"`{ctx['grammar_digest'][:16]}…` — a caller-split verdict computed against the wrong "
+            f"grammar is the `.13c.2k` defect containment exists to close")
+    base_rules = CONTAINMENT.read_rule_costs(ctx["base_rule_costs"])
+    new_rules = CONTAINMENT.read_rule_costs(ctx["new_rule_costs"])
+    d_committed = new_tot["committed"] - base_tot["committed"]
+    holds, detail, _facts = CONTAINMENT.caller_split_containment(
+        base_rules, new_rules, graph["edges"], ctx["introduced"], d_committed)
+    return holds, detail
+
+
 def _profile_split_respelling(base_tot, new_tot, ctx):
     """The rise is a RE-SPELLING, not new work: **no rule that already existed got dearer**, and
     the whole delta is the arrival of the rule names the row declares as `introduced` net of the
@@ -841,6 +876,7 @@ INVARIANTS = {
     "contained_in_introduced_subgraph": _contained_in_introduced_subgraph,
     "profile_split_respelling": _profile_split_respelling,
     "host_memo_eviction": _host_memo_eviction,
+    "caller_split_containment": _caller_split_containment,
 }
 
 # ⛔ WHICH INVARIANTS TAKE A SCOPE, AND THE CHECK IS TWO-SIDED. A containment row with no
@@ -848,7 +884,7 @@ INVARIANTS = {
 # a scoped acceptance and is not one. Both REFUSE, so the column can never become decoration.
 INVARIANTS_TAKING_INTRODUCED = {"contained_in_introduced_subgraph",
                                 "profile_split_respelling",
-                                "host_memo_eviction"}
+                                "host_memo_eviction", "caller_split_containment"}
 NO_INTRODUCED = "-"
 
 

@@ -34,6 +34,42 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.208 / Contract 1.0.208 — SV-CORPUS-GRAD.3.31 (`PGEN-SV-CORPUS-GRAD-0357`, 2026-09-03), ledger `SV-0081` (`Released`):
+
+⭐ **An array-element member access whose index is an increment/decrement or a parenthesised operator
+assignment now parses.** `clist[b[0]++].m <= 1;` and `clist[(b[0] += 1)].m` were refused on `sv_2017` and
+`sv_2023` while `clist[b[0]++] = null;` (no member) and `clist[b[0]+1].m` / `clist[f()].m` (another index
+kind) parsed: IEEE 1800-2017 A.8.3 gives `expression` two operands — `inc_or_dec_expression` and
+`( operator_assignment )` — that `constant_expression` lacks, and the index of an element whose member is
+then selected was the one index path the grammar spelled through `constant_bit_select`.
+
+| input | before | after |
+|---|---|---|
+| `clist[b[0]++].m <= 1;`, `x = clist[b[0]++].m;` — an inc/dec index, member selected after it | `rc 1` | **`rc 0`** |
+| `clist[(b[0] += 1)].m <= 1;` — a parenthesised operator assignment as that index | `rc 1` | **`rc 0`** |
+| `clist[b[0]+1].m`, `clist[b[0] ? 0 : 1].m`, `clist[f()].m` (control) | `rc 0` | `rc 0`, AST byte-identical |
+| `clist[b[0]++] = null;`, `a[b[0]++] = 1;` — the same index with no member after it (control) | `rc 0` | `rc 0`, AST byte-identical |
+
+**How.** A caller split: `hierarchical_bit_select := ( lbrack hierarchical_index_expression rbrack )*`, whose
+operand is `constant_expression`'s plus exactly the two missing alternatives, referenced at the ten
+hierarchical-path sites (`hierarchical_identifier`, `hierarchical_tf_identifier` and the three method-chain
+receivers); `constant_bit_select` and its constant-context callers (`bind` targets, `constant_select`,
+typedef-through-instance) are untouched, so `++` stays refused where the standard makes the index constant.
+Two cheaper spellings were refused by their mechanism first: an ordered choice commits on the `b[0]`
+prefix and never sees the `++`; a lookahead cannot see a postfix `++` without parsing the lvalue.
+
+**AST impact — shape-neutral.** Every input that parsed before yields a byte-identical typed AST (measured
+on the eight control inputs, both profiles); a newly-accepted index carries the existing
+`inc_or_dec_expression` / `operator_assignment` node shapes as the operand body. Schema **26 unchanged**.
+⛔ The accept set **widens** on `sv_2017` and `sv_2023`.
+
+**Corpus proof**, per-path and two-sided, both lanes: `sv_2017` exactly **1** row `fail → pass` — the
+predicted `t_assign_automatic_bad.v` — pass **9 830 → 9 831**, the axis-2 bar **162 → 161**;
+`verilog_2005` **0** rows moved; `pass → fail` **0**. Union certificate `1427/18/1396/13`, union `1409/0` (residual `[]`, deterministic across seeds 0/7/42 — the three new rules witnessed, the 13-rule canonical UNKNOWN set identical); `verilog_2005` `1140/383/743/14` with the gate's own flags (union `756/1` at seed 0), deterministic across seeds; AST-shape gate 18/18; every generated family re-derives byte-identically. Cost: the parse-cost ratchet
+reads `entries` +0.33 % and `memo_hits` +0.38 % with `committed` **exactly** unchanged — the split moves
+its work one for one and pays for the memo the two twin rules no longer share — accepted under a new coded
+invariant (`caller_split_containment`) and routed for elimination (`ENGINE-UNIVERSAL-SERVICES.92`).
+
 ### 1.0.207 / Contract 1.0.207 — SV-CORPUS-GRAD.3.30 (`PGEN-SV-CORPUS-GRAD-0349`, 2026-09-03), ledger `SV-0080` (`Released`):
 
 ⭐ **A UDP state table written with adjacent symbols now parses, on every profile.** IEEE 1800-2017's own
