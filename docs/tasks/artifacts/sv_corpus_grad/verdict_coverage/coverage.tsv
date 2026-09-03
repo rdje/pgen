@@ -7,10 +7,10 @@ NO VERDICT	deferred:no_sv_key	596	3.65
 NO VERDICT	deferred:not_source_text	350	2.14
 ADJUDICATED	divergence:explained_svpp_conditional	199	1.22
 NO VERDICT	deferred:svpp_owned	186	1.14
-ADJUDICATED	divergence:unexplained_rejects_valid	151	0.92
+ADJUDICATED	divergence:unexplained_rejects_valid	141	0.86
 ADJUDICATED	divergence:explained_svpp_include	140	0.86
 NO VERDICT	deferred:impl_varying	90	0.55
-ADJUDICATED	divergence:explained_store_gate	46	0.28
+ADJUDICATED	divergence:explained_store_gate	56	0.34
 ADJUDICATED	divergence:unexplained_accepts_invalid	21	0.13
 NO VERDICT	deferred:verilog_ams_lane	20	0.12
 NO VERDICT	deferred:ni_unimplemented	6	0.04

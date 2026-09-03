@@ -22,6 +22,17 @@ THE PROOF, PER ROW, BY PARSING. Nothing here is relabelled by argument. A row ea
      boundary says ACCEPT, so a rejection would be the gate being UNSOUND, a defect for
      `SV-PARSE-STRICT`, and the row stays in the bar with that reason;
   3. no package `export` — visibility the file cannot settle on its own;
+  1b. (SV-CORPUS-GRAD.13x.e) — when route 1 fails because the file ITSELF declares the demanded
+     name with a kind the use-site cannot take (`wire w; w x;`, `package pkg; ... extends pkg`,
+     `class I; ... implements I`, `typedef int T; ... T::new`), or declares it only AFTER the use
+     (`parameter type A = B, parameter type B = A`): the proof is still a parse of a NAMED
+     transformation of the row's own bytes — every occurrence of the demanded name EXCEPT the
+     use nearest the failure is renamed `<name>__pgen_decl`, the name is declared as ONE kind
+     from the ladder, and the file parses. The parser's own trace named the mechanism
+     (`rejected by post predicate 'fact_attribute_equals [type_name, <name>, declaration_family,
+     <kind>]'` / `has_fact [type_name, <name>]`): the sound gate PROVING a wrong kind is the same
+     SV-PARSE-STRICT.2 boundary as proving an undeclared one. The verdict publishes the name and
+     `redeclared_as:<form>` so a reader can re-run the exact transformation;
   4. none of the demanded names is a type the LRM PREDEFINES (`CrossValType`/`CrossQueueType`
      inside a `cross`, IEEE 1800-2017 §19.6.1.3 — section-19-functional-coverage.md:1307, the
      clause that DEFINES them; §19.6.1.4 is the example that uses them): the file owes no
@@ -118,10 +129,86 @@ def measure(raw: str, profile: str) -> tuple:
     widest = m.FORM_LADDER[-1]
     ok, names, _rounds, _furthest = m.drive(raw, none_wrapper, widest, reserved)
     if not ok:
+        other = other_kind_explanation(m, raw, reserved)
+        if other is not None:
+            fixed_names, fixed_forms = other
+            reason = soundness_reason(m.blank_comments_and_strings(raw), fixed_names)
+            return (reason or EXPLAINED, tuple(fixed_names), tuple(f"{REDECLARED_PREFIX}{f}" for f in fixed_forms))
         return ("residual:not_parsed_with_declarations", tuple(sorted(names)), ())
     keep, forms = m.minimize(raw, none_wrapper, names, widest)
     reason = soundness_reason(m.blank_comments_and_strings(raw), keep)
     return (reason or EXPLAINED, tuple(sorted(keep)), tuple(forms))
+
+
+REDECLARED_PREFIX = "redeclared_as:"
+RENAME_SUFFIX = "__pgen_decl"
+
+
+def rename_except_nearest(raw: str, stripped: str, name: str, stuck: int) -> str | None:
+    """Every code occurrence of `name` (decided on the comment/string-blanked twin, which keeps
+    offsets) is renamed `<name>__pgen_decl` EXCEPT the one whose start is nearest at-or-before the
+    parser's furthest byte — the use the gate refused. None when fewer than two code occurrences
+    exist (then the plain prelude of route 1 was the whole story and this route has no subject)."""
+    hits = [mm.start() for mm in re.finditer(r"\b" + re.escape(name) + r"\b", stripped)]
+    if len(hits) < 2:
+        return None
+    before = [h for h in hits if h <= stuck]
+    keep = max(before) if before else min(hits, key=lambda h: abs(h - stuck))
+    out, pos = [], 0
+    for h in hits:
+        out.append(raw[pos:h])
+        out.append(name if h == keep else name + RENAME_SUFFIX)
+        pos = h + len(name)
+    out.append(raw[pos:])
+    return "".join(out)
+
+
+def other_kind_explanation(m, raw: str, reserved):
+    """Route 1b, as a FIXED POINT like `drive`: returns (names, forms) — the demanded names whose
+    own other occurrences were renamed and which were declared as `forms[i]` — when the bytes then
+    parse; None otherwise. One name per round: the demanded names nearest the failure are tried
+    first, each single-form rung in ladder order; a step is ADOPTED only if the bytes parse or the
+    parse reaches strictly further than before (the `drive` admission rule, so a rename can never
+    make a row look explained by moving the failure backwards). Measured need for the loop:
+    `t_implements_noninterface_bad.v` carries TWO wrong-kind uses (`implements` on a class,
+    `extends` on an interface class) and one rename explains neither alone."""
+    single_forms = [f for rung in m.FORM_LADDER for f in rung if len(rung) == 1]
+    text, prelude, done, forms = raw, "", [], []
+    for _round in range(m.MAX_ROUNDS):
+        ok, surface, furthest, _ = m.probe_text(prelude + text, trace=False)
+        if ok:
+            return (tuple(done), tuple(forms)) if done else None
+        reach0 = max(furthest or 0, surface or 0)
+        stuck = reach0 - len(prelude)
+        stripped = m.blank_comments_and_strings(text)
+        demanded = [n for n in sorted(
+            m.demanded_missing(prelude + text, reserved),
+            key=lambda n: min((abs(mm.start() - stuck) for mm in re.finditer(r"\b" + re.escape(n) + r"\b", stripped)), default=1 << 30))
+            if n not in done]
+        step, fallback, best_reach = None, None, reach0
+        for name in demanded:
+            renamed = rename_except_nearest(text, stripped, name, stuck)
+            if renamed is None:
+                continue
+            for form in single_forms:
+                decl = m.FORM_TEXT[form].format(n=name)
+                ok2, s2, f2, _ = m.probe_text(prelude + decl + renamed, trace=False)
+                if ok2:
+                    step = (name, form, decl, renamed)     # a form that COMPLETES the parse wins the round
+                    break
+                reach2 = max(f2 or 0, s2 or 0) - len(decl)
+                if reach2 > best_reach:                     # otherwise the (name, form) that reaches FURTHEST —
+                    best_reach, fallback = reach2, (name, form, decl, renamed)  # `class` on an interface-class
+                    # demand advances a few bytes, `iclass` advances to the next violation (measured 67 vs 135)
+            if step:
+                break
+        step = step or fallback
+        if step is None:
+            return None
+        name, form, decl, renamed = step
+        prelude, text = prelude + decl, renamed
+        done.append(name); forms.append(form)
+    return None
 
 
 def sha256_bytes(b: bytes) -> str:
@@ -206,6 +293,15 @@ def explain_rows(lane: str, candidates, report_binary_sha: str, binary_path: Pat
 
 
 def basis_suffix(row: dict) -> str:
+    if row["verdict"] == EXPLAINED and str(row["forms"]).startswith(REDECLARED_PREFIX):
+        names = str(row["names"]).split(",")
+        forms = [f[len(REDECLARED_PREFIX):] if f.startswith(REDECLARED_PREFIX) else f for f in str(row["forms"]).split("+")]
+        steps = "; ".join(f"`{n}` renamed `{n}{RENAME_SUFFIX}` at its own declaration and declared as a {f}"
+                          for n, f in zip(names, forms))
+        plural = "s" if len(names) > 1 else ""
+        return (f" - .13x.e: the file itself declares `{row['names']}` with a kind the use-site{plural} cannot take (or only "
+                f"after the use); with {steps}, the bytes parse - the sound store gate PROVING a wrong kind (SV-PARSE-STRICT "
+                "boundary) is the only obstacle")
     if row["verdict"] == EXPLAINED:
         return (f" - .13w: parses once `{row['names']}` is declared ({row['forms']}); the sound store gate "
                 "(SV-PARSE-STRICT boundary) is the only obstacle")
@@ -292,6 +388,29 @@ def _self_test() -> int:
         check("LIVE: `T x;` in a module is explained by declaring `T` as a class", v == (EXPLAINED, ("T",), ("class",)))
         v = measure("module t;\n  int x;\nendmodule\n", "sv_2017")
         check("LIVE: a file that parses bare is `residual:parses_bare`", v[0] == "residual:parses_bare")
+        # SV-CORPUS-GRAD.13x.e — route 1b, both kinds of proof and a RED control
+        v = measure("module top;\n  wire w;\n  w x;\nendmodule\n", "sv_2017")
+        check("LIVE 1b: `wire w; w x;` is explained by renaming the net and declaring `w` as a type (ladder order: class first)",
+              v == (EXPLAINED, ("w",), (f"{REDECLARED_PREFIX}class",)))
+        v = measure("class NotIcls; endclass\nclass C implements NotIcls;\nendclass\n", "sv_2017")
+        check("LIVE 1b: `implements` on a plain class is explained by redeclaring it as an interface class",
+              v == (EXPLAINED, ("NotIcls",), (f"{REDECLARED_PREFIX}iclass",)))
+        v = measure("module circ #(parameter type A = B, parameter type B = A) ();\nendmodule\n", "sv_2017")
+        check("LIVE 1b: a type parameter used before its declaration is explained (declaration renamed, `B` declared first)",
+              v == (EXPLAINED, ("B",), (f"{REDECLARED_PREFIX}class",)))
+        v = measure("class ClsI implements Inotfound;\nendclass\n", "sv_2017")
+        check("LIVE: an UNDECLARED interface class is explained by route 1 through the new `iclass` form",
+              v == (EXPLAINED, ("Inotfound",), ("iclass",)))
+        v = measure("module top;\n  wire w;\n  w x;\n  foo bar baz qux;\nendmodule\n", "sv_2017")
+        check("LIVE 1b RED: a second, unrelated failure keeps the row RESIDUAL (route 1b cannot excuse it)",
+              v[0] == "residual:not_parsed_with_declarations")
+        v = measure("module top;\n  T x;\n  T y;\nendmodule\n", "sv_2017")
+        check("LIVE: two USES of an undeclared name stay route 1 (`class`), never a redeclaration",
+              v == (EXPLAINED, ("T",), ("class",)))
+        v = measure("class NotIcls; endclass\nclass ClsBad1 implements NotIcls; endclass\n"
+                    "interface class Icls; endclass\nclass ClsBad2 extends Icls; endclass\n", "sv_2017")
+        check("LIVE 1b fixed point: TWO wrong-kind uses in one file are explained in two rounds (iclass, then class)",
+              v == (EXPLAINED, ("NotIcls", "Icls"), (f"{REDECLARED_PREFIX}iclass", f"{REDECLARED_PREFIX}class")))
     else:
         check("LIVE arms need rust/target/release/parseability_probe (absent)", False)
     print(f"store_gate_explanations self-test: {'PASS' if not fails else 'FAIL'} ({len(fails)} failing)")

@@ -75,12 +75,19 @@ for lane, mf in (("sv_2017", "stimuli/sv/characterization/adjudication_manifest.
     un = sum(r["adjudication"] == "divergence:unexplained_rejects_valid" for r in rows)
     crow = [r for r in cache if r["lane"] == lane]
     cex = sum(r["verdict"] == "explained" for r in crow)
-    good = (ex + un == before[lane]["divergence:unexplained_rejects_valid"] and len(crow) == ex + un and cex == ex
+    # SV-CORPUS-GRAD.13x.e: the population can only SHRINK after the freeze — a row leaves it by being
+    # explained (counted here) or by a ruling / grammar fix that makes it `match` (.3.29, .3.30, .13x.b-d
+    # moved 50 sv_2017 rows and 6 v2005 rows that way) — and never gains a member without a re-run of
+    # the corpus lane. The first cut asserted EQUALITY to the frozen count and went RED, silently, at the
+    # first `match` (-0347), for six commits: a conservation law that forbids the OTHER legitimate exit
+    # is a law about the wrong quantity. What must hold exactly is the PARTITION: the memo holds exactly
+    # the explained + still-unexplained rows, and its explained rows are the manifest's.
+    good = (ex + un <= before[lane]["divergence:unexplained_rejects_valid"] and len(crow) == ex + un and cex == ex
             and all(r["verdict"] in known for r in crow) and all(r["names"] and r["forms"] for r in crow if r["verdict"] == "explained"))
-    ok &= good; parts.append(f"{lane}: explained={ex} unexplained={un} before={before[lane]['divergence:unexplained_rejects_valid']} cache_rows={len(crow)} {'OK' if good else 'MISMATCH'}")
+    ok &= good; parts.append(f"{lane}: explained={ex} unexplained={un} <= before={before[lane]['divergence:unexplained_rejects_valid']} cache_rows={len(crow)} {'OK' if good else 'MISMATCH'}")
 print(("CONSERVED " if ok else "BROKEN ") + "; ".join(parts))
 PY
-); grep -q '^CONSERVED' <<<"$out"; arm "A7 conservation: $out" $?
+); grep -q '^CONSERVED' <<<"$out"; arm "A7 conservation (partition exact, population monotone): $out" $?
 
 # A8 the instrument buckets the class ADJUDICATED and the conformance compare treats it as explained
 out=$(python3 - <<'PY'

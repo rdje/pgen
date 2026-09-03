@@ -147,9 +147,19 @@ FORM_TEXT = {
     "module": "module {n}; endmodule\n",
     "package": "package {n}; endpackage\n",
     "interface": "interface {n}; endinterface\n",
+    # SV-CORPUS-GRAD.13x.e: two declaration kinds the ladder could not spell. `implements X` demands
+    # an INTERFACE class (`class X; endclass` does not satisfy `known_unscoped_interface_class_type_
+    # identifier`), and a use-site that demands a plain type name is satisfied by a typedef.
+    # Measured: `class ClsI implements Inotfound; endclass` sat RESIDUAL in .13w's cache with the
+    # name harvested and no form able to declare it.
+    "iclass": "interface class {n}; endclass\n",
+    "typedef": "typedef logic {n};\n",
 }
-FORM_LADDER = [("class",), ("module",), ("class", "module"),
-               ("class", "module", "package", "interface")]
+# ⛔ ORDER IS PUBLISHED STATE: `minimize` returns the FIRST rung that parses, so the new rungs sit
+# AFTER the three historical ones and every row explained before .13x.e keeps the form it was
+# published with. The widest rung (what `declarable()` parses) carries all six; measured to parse.
+FORM_LADDER = [("class",), ("module",), ("class", "module"), ("iclass",), ("typedef",),
+               ("class", "module", "package", "interface", "iclass", "typedef")]
 
 
 def prelude_for(names, forms) -> str:
