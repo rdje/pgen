@@ -62,6 +62,9 @@ created leaf**, per `DOCTRINE-GAP-OWNERSHIP` (*naming an owner is not routing*).
 | `rust/src/bin/ebnf_dual_run_diff.rs:288` | the `.ebnf` input of the dual-run differential |
 | `rust/src/parser_registry.rs:3805` | every `grammars/*.ebnf` (standalone-annotation scan) |
 
+> ⭐ **2026-09-03, `EBNF-FRONTEND-SILENT-TRUNCATION.5` (`-0007`):** these four now call `pgen::source_text::read_source_file` — the
+> same decoder as the corpus readers below. The line numbers above are as measured on 2026-08-11 and are left as history.
+
 Owner: **`EBNF-FRONTEND-SILENT-TRUNCATION.5`** (opened 2026-08-11 by this leaf). The fix is
 mechanical once `pgen::source_text` exists — it is the same call swap, four times.
 

@@ -910,6 +910,14 @@ line comments parse normally:
 > rule and annotate its alternatives there (AST-transparent). No tracked grammar uses the shape; implementing it is
 > `.4b`.
 
+> ⭐ **A grammar file is decoded like every other user source** (`EBNF-FRONTEND-SILENT-TRUNCATION.5`, `-0007`): UTF-8
+> with or without a BOM, UTF-16 with a BOM, and otherwise ISO-8859-1 byte-per-character — through the same
+> `pgen::source_text` decoder the corpus probes use (`SV-CORPUS-GRAD.12c.1`). Until then all four grammar readers
+> called `fs::read_to_string`, so a `©` in a Latin-1 header comment refused the whole file with *"stream did not
+> contain valid UTF-8"*. A non-UTF-8 grammar now reads to the *same* `raw_ast` as its UTF-8 twin (so its semantic
+> digest is the same), a one-line `source-encoding:` notice goes to stderr, and corruption — a BOM over invalid
+> bytes, an odd-length UTF-16 body — is still refused, with the file offset.
+
 Two independent engines — the grammar interpreter and the generated parser — return identical
 verdicts down to the same `furthest_position`, so this is a property of the grammar, not an artefact
 of one tool.

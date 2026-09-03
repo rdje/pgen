@@ -1,0 +1,5 @@
+# © 2026 a Latin-1 authored grammar - the copyright sign is byte 0xA9 in ISO-8859-1
+@entry: true
+top := a b
+a := "a"
+b := "b"

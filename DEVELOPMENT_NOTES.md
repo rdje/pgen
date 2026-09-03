@@ -1,5 +1,17 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0007 (one decoder for everything a human authored)
+
+- **THE LESSON: USER-AUTHORED TEXT GETS ONE DECODER, AND THE LINE BETWEEN "USER-AUTHORED" AND "GENERATED" IS THE
+  LINE BETWEEN DECODE-LENIENTLY AND REFUSE-LOUDLY.** Grammars are authored by people; a Latin-1 copyright sign is not
+  corruption. JSON manifests and generated Rust are UTF-8 by construction; a decode failure there IS corruption.
+  `.12c.1` drew that line and built the decoder; this slice moved the four grammar readers across it, and nothing
+  else.
+- **Prove "same text, different bytes" with the digest.** The Latin-1 and UTF-16 twins read to the UTF-8 twin's
+  `raw_ast` digest — the same instrument the identity doctrines key on, so the claim is checkable with one command.
+- `promotion: declined (the rule is .12c.1's own — one decoder for user-authored text, refusal for generated text —
+  already recorded with the decoder; this is its application to the grammar readers)`.
+
 ## 2026-09-03 - PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0006 (refuse loudly what you do not implement)
 
 - ⭐ **THE LESSON: WHEN THE META-GRAMMAR ALLOWS A CONSTRUCT THE ENGINE HAS NO SHAPE FOR, THE FRONTEND'S ONLY HONEST

@@ -4092,7 +4092,10 @@ identifier := /([a-zA-Z_][a-zA-Z0-9_]*)/"#;
                 continue;
             }
 
-            let contents = fs::read_to_string(&path).expect("read grammar file");
+            // EBNF-FRONTEND-SILENT-TRUNCATION.5: grammars are user-authored text; decode like the frontend.
+            let contents = crate::source_text::read_source_file(&path)
+                .expect("read grammar file")
+                .text;
             let mut found_standalone_annotation = false;
 
             for (line_number, line) in contents.lines().enumerate() {

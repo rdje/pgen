@@ -1,0 +1,2 @@
+# UTF-8 includer of a Latin-1 file
+include("encoding_latin1")

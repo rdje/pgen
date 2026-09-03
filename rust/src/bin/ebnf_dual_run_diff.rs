@@ -301,8 +301,13 @@ fn main() -> Result<()> {
     let trace_verbosity = resolve_trace_verbosity(args.verbosity.as_deref(), false, false)?;
     set_global_trace_verbosity(trace_verbosity);
 
-    let input = fs::read_to_string(&args.input)
+    // EBNF-FRONTEND-SILENT-TRUNCATION.5: the grammar is user-authored text — same decoder as the frontend.
+    let decoded = pgen::source_text::read_source_file(&args.input)
         .with_context(|| format!("failed to read input file '{}'", args.input.display()))?;
+    if let Some(notice) = decoded.non_utf8_notice(&args.input.display().to_string()) {
+        eprintln!("{notice}");
+    }
+    let input = decoded.text;
 
     let parse = attempt_parse(&input, false);
     let parse_full = attempt_parse(&input, true);

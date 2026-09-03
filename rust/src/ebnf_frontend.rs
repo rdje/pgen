@@ -13,8 +13,19 @@ use crate::ebnf_generated_parser::EbnfParser;
 /// Parse an EBNF file with the Rust-generated EBNF parser and emit an
 /// in-memory JSON envelope compatible with the existing raw_ast pipeline input.
 pub fn parse_ebnf_file_to_raw_ast_envelope(path: &str) -> Result<Value> {
-    let input = fs::read_to_string(path)
+    // EBNF-FRONTEND-SILENT-TRUNCATION.5: a grammar is USER-AUTHORED text, read through the same
+    // decoder as every other user source (`pgen::source_text`, SV-CORPUS-GRAD.12c.1): UTF-8 with or
+    // without BOM, UTF-16 with BOM, else ISO-8859-1 byte-per-char. Until this change all four grammar
+    // readers called `fs::read_to_string`, so a `©` in a Latin-1 header comment refused the whole file
+    // ("stream did not contain valid UTF-8", measured). Corruption (a UTF-8 BOM over invalid bytes, an
+    // odd-length UTF-16 body) is still refused, with an offset. The decoder's one-line notice goes to
+    // stderr, as its contract asks.
+    let decoded = crate::source_text::read_source_file(path)
         .with_context(|| format!("failed to read EBNF input file '{}'", path))?;
+    if let Some(notice) = decoded.non_utf8_notice(path) {
+        eprintln!("{notice}");
+    }
+    let input = decoded.text;
     let grammar_name = Path::new(path)
         .file_stem()
         .and_then(|stem| stem.to_str())
@@ -568,12 +579,17 @@ fn collect_included_rules(
                 }
 
                 let target_display = target.display().to_string();
-                let contents = fs::read_to_string(&target).with_context(|| {
+                // EBNF-FRONTEND-SILENT-TRUNCATION.5: same decoder as the top-level file.
+                let decoded = crate::source_text::read_source_file(&target).with_context(|| {
                     format!(
                         "failed to read included EBNF file '{}' (from '{}')",
                         target_display, origin
                     )
                 })?;
+                if let Some(notice) = decoded.non_utf8_notice(&target_display) {
+                    eprintln!("{notice}");
+                }
+                let contents = decoded.text;
 
                 let nested_base = target.parent().map(Path::to_path_buf);
                 let mut nested_inherited: Vec<PathBuf> = Vec::new();
@@ -2341,5 +2357,31 @@ entry = alpha
             assert!(first.contains(must_contain), "{label}: {first}");
             assert!(!first.contains("\"quantifier\""), "{label}: no quantifier token may appear: {first}");
         }
+    }
+
+    /// EBNF-FRONTEND-SILENT-TRUNCATION.5: a grammar file that is valid EBNF but not UTF-8 is READ,
+    /// not refused — and reads to the SAME envelope as its UTF-8 twin. Fixtures under
+    /// rust/test_data/ebnf_frontend/: the same five lines as UTF-8, ISO-8859-1 (`©` = 0xA9) and
+    /// UTF-16LE with BOM; plus a UTF-8 includer of the Latin-1 file.
+    #[test]
+    fn a_non_utf8_grammar_is_read_to_the_same_envelope_as_its_utf8_twin() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("test_data/ebnf_frontend");
+        let scrub = |v: serde_json::Value| -> String {
+            // the envelope names its source file; compare the raw_ast only
+            serde_json::to_string(&v["raw_ast"]).expect("json")
+        };
+        let utf8 = parse_ebnf_file_to_raw_ast_envelope(root.join("encoding_utf8.ebnf").to_str().unwrap())
+            .expect("the UTF-8 twin parses");
+        let utf8_ast = scrub(utf8);
+        assert!(utf8_ast.contains("[\"rule\",\"top\"]"), "{utf8_ast}");
+        for name in ["encoding_latin1.ebnf", "encoding_utf16le.ebnf"] {
+            let path = root.join(name);
+            let v = parse_ebnf_file_to_raw_ast_envelope(path.to_str().unwrap())
+                .unwrap_or_else(|e| panic!("{name} must be READ, not refused: {e:#}"));
+            assert_eq!(scrub(v), utf8_ast, "{name}: same grammar text, same envelope");
+        }
+        let inc = parse_ebnf_file_to_raw_ast_envelope(root.join("encoding_includer_utf8.ebnf").to_str().unwrap())
+            .unwrap_or_else(|e| panic!("a UTF-8 grammar including a Latin-1 file must parse: {e:#}"));
+        assert!(scrub(inc).contains("[\"rule\",\"top\"]"), "the included Latin-1 rules are present");
     }
 }
