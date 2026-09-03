@@ -1153,6 +1153,375 @@ VERILATOR_PINNED = {
         "pinned .3.14a: `default_nettype wire inside module t (line 14) - "
         "IEEE 1800-2017 22.8 / IEEE 1364-2005 19.2 permit it only OUTSIDE design "
         "elements; spec outranks the verilator driver heuristic"),
+    # ---- SV-CORPUS-GRAD.13x.b (PGEN-SV-CORPUS-GRAD-0351) -----------------------------------------
+    # The suite-intended-invalid `must_accept` class, censused by .13x.a (docs/tasks/artifacts/
+    # sv_corpus_grad/answer_key_intended_invalid/census.md): 34 verilator rows whose text has NO
+    # derivation in IEEE 1800-2017 Annex A. The driver heuristic below keys `fails=True` + a
+    # post-parse golden as must_accept - tool testimony about the stage verilator's TOLERANT parser
+    # reached, not about the standard; on 9 of these the golden names a SEMANTIC error on a line
+    # the parser passes, while the syntax error it stops on is elsewhere. Every pin carries the
+    # production, the md line, the measured furthest_position and a two-sided control (the arm
+    # names are the .13x.a probe bank, rust/target/s331, recorded in the leaf); every construct is
+    # ALSO pinned as class=invalid + class=control under stimuli/sv/adjudication_repros/.
+    "test_regress/t/t_assert_imm_nz_bad.v": ("must_reject",
+        "pinned .13x.b: an ANSI header `module t ( input clk );` followed by a BODY port declaration "
+        "`input clk;` (line 11), and `assert #1 (clk);` (line 14). IEEE 1800-2017 A.1.2 "
+        "module_declaration: the module_ansi_header arm takes { non_port_module_item } "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:108-113) while `port_declaration ;` is a "
+        "module_item of the NON-ANSI arm only "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:327); A.6.10 "
+        "deferred_immediate_assert_statement ::= assert #0 ( expression ) action_block "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:2421-2424) admits no other delay. "
+        "REJECTS at furthest_position=229 (the header's `;`) on sv_2017 and sv_2023. Controls: `module t "
+        "(input clk); endmodule` ACCEPTS; `assert #0 (clk);` ACCEPTS, `assert #1 (clk);` alone REJECTS "
+        "(arms d3/d3c/h1/h1c). Spec outranks the verilator driver key (fails=True + a post-parse golden "
+        "reads as must_accept): the golden records the SEMANTIC error the test was written for, and the "
+        "parser stops on text no Annex A production derives"),
+    "test_regress/t/t_case_inside_bad.v": ("must_reject",
+        "pinned .13x.b: line 9 `casex (1'bx) inside`. IEEE 1800-2017 A.6.7 case_statement: the `inside` "
+        "arm is the LITERAL keyword `case` - `[ unique_priority ] case ( case_expression ) inside "
+        "case_inside_item ...` (docs/systemverilog/2017/md/section-41-data-read-api.md:2228-2238); "
+        "case_keyword ::= case | casez | casex belongs to the other two arms only. REJECTS at "
+        "furthest_position=252 on sv_2017 and sv_2023. Control: `case (1'bx) inside default: ...` ACCEPTS "
+        "(arms a1/a1c). sv2v's error suite keys the same construct `casex_inside` must_reject. Spec "
+        "outranks the verilator driver key (fails=True + a post-parse golden reads as must_accept): the "
+        "golden records the SEMANTIC error the test was written for, and the parser stops on text no "
+        "Annex A production derives"),
+    "test_regress/t/t_class_extends_bad.v": ("must_reject",
+        "pinned .13x.b: line 13 `class Cls extends Base1, Base2;`. IEEE 1800-2017 A.1.2 "
+        "class_declaration: `[ extends class_type [ ( list_of_arguments ) ] ]` - ONE class_type "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:183-190); a class list is admitted only "
+        "after `implements` (interface classes). REJECTS at furthest_position=272 on sv_2017 and sv_2023. "
+        "Control: `class Cls extends Base1;` ACCEPTS (arms a31/a31c). Spec outranks the verilator driver "
+        "key (fails=True + a post-parse golden reads as must_accept): the golden records the SEMANTIC "
+        "error the test was written for, and the parser stops on text no Annex A production derives"),
+    "test_regress/t/t_covergroup_autobins_bad.v": ("must_reject",
+        "pinned .13x.b: line 17 `bins auto[size_var];` - a bins declaration with NO `=`. IEEE 1800-2017 "
+        "A.2.11 bins_or_options: every `bins_keyword bin_identifier [ [ ... ] ]` arm continues with `= "
+        "...` (docs/systemverilog/2017/md/section-41-data-read-api.md:1553-1566). REJECTS at "
+        "furthest_position=471 (the `;`) on sv_2017 and sv_2023. Control: `bins auto[size_var] = "
+        "{[0:3]};` ACCEPTS (arms a3/a3c); the golden's `size must be a constant` is the SEMANTIC error, "
+        "on a line the parser never reaches as valid syntax. Spec outranks the verilator driver key "
+        "(fails=True + a post-parse golden reads as must_accept): the golden records the SEMANTIC error "
+        "the test was written for, and the parser stops on text no Annex A production derives"),
+    "test_regress/t/t_covergroup_with_function_foo_bad.v": ("must_reject",
+        "pinned .13x.b: line 8 `covergroup cg_bad with function foo(int x);`. IEEE 1800-2017 A.2.11 "
+        "coverage_event ::= clocking_event | with function sample ( [ tf_port_list ] ) | @@( ... ) "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:1520-1523) - `sample` is a literal token "
+        "of the production. REJECTS at furthest_position=240 on sv_2017 and sv_2023. Control: `covergroup "
+        "cg with function sample(int x);` ACCEPTS (arms a4/a4c). Spec outranks the verilator driver key "
+        "(fails=True + a post-parse golden reads as must_accept): the golden records the SEMANTIC error "
+        "the test was written for, and the parser stops on text no Annex A production derives"),
+    "test_regress/t/t_dpi_type_bad.v": ("must_reject",
+        "pinned .13x.b: line 11 `import \"DPI-BAD\" task dpix_twice;`. IEEE 1800-2017 A.2.6 "
+        "dpi_spec_string ::= \"DPI-C\" | \"DPI\" "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:1114) - two literal strings. REJECTS at "
+        "furthest_position=371 on sv_2017 and sv_2023. Control: `import \"DPI-C\" task dpix_twice;` "
+        "ACCEPTS (arms a5/a5c). Spec outranks the verilator driver key (fails=True + a post-parse golden "
+        "reads as must_accept): the golden records the SEMANTIC error the test was written for, and the "
+        "parser stops on text no Annex A production derives"),
+    "test_regress/t/t_enum_base_bad.v": ("must_reject",
+        "pinned .13x.b: line 25 `enum logic [1:0][1:0] {` - TWO packed dimensions on the enum base type. "
+        "IEEE 1800-2017 A.2.2.1 enum_base_type ::= integer_atom_type [ signing ] | integer_vector_type [ "
+        "signing ] [ packed_dimension ] | type_identifier [ packed_dimension ] "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:868-871) - at most ONE. REJECTS at "
+        "furthest_position=498 on sv_2017 and sv_2023. Control: `enum logic [1:0] { A, B }` ACCEPTS (arms "
+        "a6/a6c). The golden's error is line 11 (`enum s_t {`, a struct as base type - 6.19 prose) and "
+        "the parser passes that line: the file is parse-invalid for a reason the golden never mentions. "
+        "Spec outranks the verilator driver key (fails=True + a post-parse golden reads as must_accept): "
+        "the golden records the SEMANTIC error the test was written for, and the parser stops on text no "
+        "Annex A production derives"),
+    "test_regress/t/t_foreach_bad.v": ("must_reject",
+        "pinned .13x.b: line 14 `foreach (array);` - no bracketed loop-variable list. IEEE 1800-2017 "
+        "A.6.8 `foreach ( ps_or_hierarchical_array_identifier [ loop_variables ] ) statement` "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:2334) where the brackets are the "
+        "construct's own tokens (12.7.3 "
+        "`docs/systemverilog/2017/md/section-12-procedural-programming-statements.md:1045`: 'a "
+        "comma-separated list of loop variables enclosed in square brackets'; the OPTIONAL markers sit "
+        "inside loop_variables, :2360), and the body is `statement`, never a bare `;`. REJECTS at "
+        "furthest_position=290 on sv_2017 and sv_2023. Controls: `foreach (array[i]) $display(i);` "
+        "ACCEPTS; `foreach (array) $display(1);` REJECTS; `foreach (array[i]);` REJECTS (arms "
+        "a2/a2c/a2d). Spec outranks the verilator driver key (fails=True + a post-parse golden reads as "
+        "must_accept): the golden records the SEMANTIC error the test was written for, and the parser "
+        "stops on text no Annex A production derives"),
+    "test_regress/t/t_foreach_nindex_bad.v": ("must_reject",
+        "pinned .13x.b: line 12 `foreach (array[i, j, badk, badl]);` - a bare `;` as the loop body. IEEE "
+        "1800-2017 A.6.8 loop_statement "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:2325-2334): forever/repeat/while/for/do "
+        "take statement_or_null, `foreach ... ) statement` is the ONE arm that does not, and "
+        "statement_or_null ::= statement | { attribute_instance } ; "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:2081) is where a bare `;` lives. REJECTS "
+        "at furthest_position=287 (the `;`) on sv_2017 and sv_2023. Control: `foreach (array[i]) "
+        "$display(i);` ACCEPTS (arms a2/a2c). The golden's `loop variables exceed indices` is 12.7.3 "
+        "prose on a line whose SYNTAX is already underivable. Spec outranks the verilator driver key "
+        "(fails=True + a post-parse golden reads as must_accept): the golden records the SEMANTIC error "
+        "the test was written for, and the parser stops on text no Annex A production derives"),
+    "test_regress/t/t_foreach_type_bad.v": ("must_reject",
+        "pinned .13x.b: line 19 `foreach (c[i]);` - a bare `;` as the loop body, the "
+        "t_foreach_nindex_bad.v shape (A.6.8 docs/systemverilog/2017/md/section-41-data-read-api.md:2334 "
+        "takes `statement`; A.6.4 docs/systemverilog/2017/md/section-41-data-read-api.md:2081). REJECTS "
+        "at furthest_position=303 on sv_2017 and sv_2023. Control: `foreach (array[i]) $display(i);` "
+        "ACCEPTS (arms a2/a2c). Spec outranks the verilator driver key (fails=True + a post-parse golden "
+        "reads as must_accept): the golden records the SEMANTIC error the test was written for, and the "
+        "parser stops on text no Annex A production derives"),
+    "test_regress/t/t_fuzz_genintf_bad.v": ("must_reject",
+        "pinned .13x.b: lines 22-25 `m1 m0 ( j.e(0), .b(ifs) );` - an ORDERED connection followed by a "
+        "NAMED one. IEEE 1800-2017 A.4.1.1 list_of_port_connections ::= ordered_port_connection { , "
+        "ordered_port_connection } | named_port_connection { , named_port_connection } "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:1811-1820) - all of one kind. REJECTS at "
+        "furthest_position=398 on sv_2017 and sv_2023. Control: `m1 m0 (.a(j), .b(j));` ACCEPTS (arms "
+        "a7/a7c). sv2v keys the same class `binding_mix_port` must_reject. Spec outranks the verilator "
+        "driver key (fails=True + a post-parse golden reads as must_accept): the golden records the "
+        "SEMANTIC error the test was written for, and the parser stops on text no Annex A production "
+        "derives"),
+    "test_regress/t/t_implements_contents_bad.v": ("must_reject",
+        "pinned .13x.b: line 8 `int badi;` inside `interface class Icls;`. IEEE 1800-2017 A.1.2 "
+        "interface_class_item ::= type_declaration | { attribute_instance } interface_class_method | "
+        "local_parameter_declaration ; | parameter_declaration ; | ; "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:201-206) - no data declaration, no task "
+        "body. REJECTS at furthest_position=224 on sv_2017 and sv_2023. Control: `interface class Icls; "
+        "pure virtual task t(); endclass` ACCEPTS (arms a29/a29c). 8.26 prose says the same thing the BNF "
+        "already refuses. Spec outranks the verilator driver key (fails=True + a post-parse golden reads "
+        "as must_accept): the golden records the SEMANTIC error the test was written for, and the parser "
+        "stops on text no Annex A production derives"),
+    "test_regress/t/t_implements_nested_bad.v": ("must_reject",
+        "pinned .13x.b: line 9 `interface class bad_cannot_nest;` nested inside an interface class. IEEE "
+        "1800-2017 A.1.2 interface_class_item "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:201-206) has no class-declaration arm. "
+        "REJECTS at furthest_position=237 on sv_2017 and sv_2023. Control: an ordinary class nested in an "
+        "ordinary class ACCEPTS (arms a30/a30c). Spec outranks the verilator driver key (fails=True + a "
+        "post-parse golden reads as must_accept): the golden records the SEMANTIC error the test was "
+        "written for, and the parser stops on text no Annex A production derives"),
+    "test_regress/t/t_inst_2star_bad.v": ("must_reject",
+        "pinned .13x.b: line 14 `sub sub (foo, .*);` - an ORDERED connection then `.*`, which is a "
+        "named_port_connection (docs/systemverilog/2017/md/section-41-data-read-api.md:1818-1820); "
+        "A.4.1.1 list_of_port_connections admits one kind per list "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:1811). REJECTS at furthest_position=275 "
+        "on sv_2017 and sv_2023. Controls: `sub sub (.*, .*);` (the golden's line 12, 23.3.2 prose) "
+        "ACCEPTS; `sub sub (.a(x));` ACCEPTS (arms a8/a8c). Spec outranks the verilator driver key "
+        "(fails=True + a post-parse golden reads as must_accept): the golden records the SEMANTIC error "
+        "the test was written for, and the parser stops on text no Annex A production derives"),
+    "test_regress/t/t_inst_noname_bad.v": ("must_reject",
+        "pinned .13x.b: line 8 `m();` - a module instance with no instance name. IEEE 1800-2017 A.4.1.1 "
+        "hierarchical_instance ::= name_of_instance ( [ list_of_port_connections ] ), name_of_instance "
+        "::= instance_identifier { unpacked_dimension } "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:1809-1810); IEEE 1364-2005 A.4.1 says "
+        "the same. REJECTS at furthest_position=218 on sv_2017 and sv_2023. Control: `m u();` ACCEPTS "
+        "(arms a9/a9c). Spec outranks the verilator driver key (fails=True + a post-parse golden reads as "
+        "must_accept): the golden records the SEMANTIC error the test was written for, and the parser "
+        "stops on text no Annex A production derives"),
+    "test_regress/t/t_lint_colonplus_bad.v": ("must_reject",
+        "pinned .13x.b: line 13 `output [2:1] z = r[2 :+ 1];` in a NON-ANSI body - an initializer on an "
+        "IMPLICIT-TYPE net port. IEEE 1800-2017 A.2.1.2 output_declaration ::= output net_port_type "
+        "list_of_port_identifiers | output variable_port_type list_of_variable_port_identifiers "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:762-765); only "
+        "list_of_variable_port_identifiers carries `[ = constant_expression ]` "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:994 vs :975) and variable_port_type ::= "
+        "var_data_type ::= data_type | var data_type_or_implicit "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:907-908) needs a type keyword or `var`. "
+        "REJECTS at furthest_position=289 on sv_2017 and sv_2023. Controls: `output [2:1] z;` ACCEPTS; "
+        "`output reg [2:1] z = 2'b10;` ACCEPTS; `wire [1:0] z = r[2 :+ 1];` ACCEPTS - the `:+` the lint "
+        "warns about is `2 : +1`, legal syntax (arms a10/a10b/a10c/a10d). Spec outranks the verilator "
+        "driver key (fails=True + a post-parse golden reads as must_accept): the golden records the "
+        "SEMANTIC error the test was written for, and the parser stops on text no Annex A production "
+        "derives"),
+    "test_regress/t/t_lint_notredop_bad.v": ("must_reject",
+        "pinned .13x.b: line 12 `assign y[0] = !|v;`. IEEE 1800-2017 A.8.3 expression ::= ... | "
+        "unary_operator { attribute_instance } primary "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:272-280): the operand of `!` must be a "
+        "PRIMARY, and `|v` is itself `unary_operator primary`, an expression. REJECTS at "
+        "furthest_position=278 on sv_2017 and sv_2023. Control: `!(|v)` ACCEPTS (arms a11/a11c). "
+        "iverilog's parse-stage vocabulary carries this exact class (`is not a valid expression. Please "
+        "use operator`). Spec outranks the verilator driver key (fails=True + a post-parse golden reads "
+        "as must_accept): the golden records the SEMANTIC error the test was written for, and the parser "
+        "stops on text no Annex A production derives"),
+    "test_regress/t/t_mem_multi_ref_bad.v": ("must_reject",
+        "pinned .13x.b: line 19 `dim2[0+:1][1] = 0;` - a PART-select followed by a BIT-select. IEEE "
+        "1800-2017 A.8.4 select ::= [ { . member_identifier bit_select } . member_identifier ] bit_select "
+        "[ [ part_select_range ] ] (docs/systemverilog/2017/md/section-41-data-read-api.md:3157-3159): "
+        "the range is the LAST select. REJECTS at furthest_position=513 on sv_2017 and sv_2023. Control: "
+        "`dim2[1][0+:1] = 0;` ACCEPTS (arms a12/a12c). The golden's line 15 is 7.4 prose the parser "
+        "passes. Spec outranks the verilator driver key (fails=True + a post-parse golden reads as "
+        "must_accept): the golden records the SEMANTIC error the test was written for, and the parser "
+        "stops on text no Annex A production derives"),
+    "test_regress/t/t_mem_slice_bad.v": ("must_reject",
+        "pinned .13x.b: line 36 `active_command3[1:0][2:0][3:0]` - three ranges. IEEE 1800-2017 A.8.4 "
+        "constant_select and select carry ONE `[ part_select_range ]`, after the bit-selects "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:3157, :3174-3176). REJECTS at "
+        "furthest_position=969 on sv_2017 and sv_2023. Control: `a[1][2][3:0] = b[1][2][3:0];` ACCEPTS "
+        "(arms a13/a13c). Spec outranks the verilator driver key (fails=True + a post-parse golden reads "
+        "as must_accept): the golden records the SEMANTIC error the test was written for, and the parser "
+        "stops on text no Annex A production derives"),
+    "test_regress/t/t_param_implicit_bad.v": ("must_reject",
+        "pinned .13x.b: line 9 `module sub1 #([7:0] PAR1 = 1);`. IEEE 1800-2017 A.1.3 "
+        "parameter_port_declaration ::= parameter_declaration | local_parameter_declaration | data_type "
+        "list_of_param_assignments | type list_of_type_assignments "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:238-243) - `[7:0]` is a packed "
+        "dimension, not a data_type, and the keyword-less arms need one. REJECTS at furthest_position=297 "
+        "on sv_2017 and sv_2023. Control: `#(parameter [7:0] PAR1 = 1)` ACCEPTS (arms a14/a14c); "
+        "verilator's own message cites 6.20.1/A.2.1.1. Spec outranks the verilator driver key (fails=True "
+        "+ a post-parse golden reads as must_accept): the golden records the SEMANTIC error the test was "
+        "written for, and the parser stops on text no Annex A production derives"),
+    "test_regress/t/t_param_type_bad.v": ("must_reject",
+        "pinned .13x.b: line 9 `localparam type bad2 = 2;`. IEEE 1800-2017 A.2.1.1 "
+        "local_parameter_declaration ::= ... | localparam type list_of_type_assignments "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:733-737), A.2.4 type_assignment ::= "
+        "type_identifier [ = data_type ] (docs/systemverilog/2017/md/section-41-data-read-api.md:1013) - "
+        "`2` is no data_type. REJECTS at furthest_position=275 on sv_2017 and sv_2023. Control: "
+        "`localparam type ok = int;` ACCEPTS (arms a15/a15c). Spec outranks the verilator driver key "
+        "(fails=True + a post-parse golden reads as must_accept): the golden records the SEMANTIC error "
+        "the test was written for, and the parser stops on text no Annex A production derives"),
+    "test_regress/t/t_prop_always_bad.v": ("must_reject",
+        "pinned .13x.b: line 17 `assert property (s_always a);` - `s_always` with no range. IEEE "
+        "1800-2017 A.2.10 property_expr "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:1344-1346): `| always property_expr` AND "
+        "`| always [ cycle_delay_const_range_expression ] property_expr` are two arms, so the brackets of "
+        "the second are the construct's own tokens, and `| s_always [ constant_range ] property_expr` has "
+        "NO range-free twin. REJECTS at furthest_position=466 on sv_2017 and sv_2023. Controls: `s_always "
+        "[1:3] a` ACCEPTS; `always a` ACCEPTS (arms a16/a16c/a16d). The golden's line 13 (a negative "
+        "bound, 16.12.11 prose) is passed by the parser. Spec outranks the verilator driver key "
+        "(fails=True + a post-parse golden reads as must_accept): the golden records the SEMANTIC error "
+        "the test was written for, and the parser stops on text no Annex A production derives"),
+    "test_regress/t/t_property_case_bad.v": ("must_reject",
+        "pinned .13x.b: line 18 `case (sel) endcase` inside property p2 - no item. IEEE 1800-2017 A.2.10 "
+        "`| case ( expression_or_dist ) property_case_item { property_case_item } endcase` "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:1337) - at least one. REJECTS at "
+        "furthest_position=356 on sv_2017 and sv_2023. Control: p1's `case (sel) default: 1'b1; default: "
+        "1'b0; endcase` (the golden's duplicate default, 12.5 prose) ACCEPTS (arms a17/a17c). Spec "
+        "outranks the verilator driver key (fails=True + a post-parse golden reads as must_accept): the "
+        "golden records the SEMANTIC error the test was written for, and the parser stops on text no "
+        "Annex A production derives"),
+    "test_regress/t/t_property_sexpr_bad.v": ("must_reject",
+        "pinned .13x.b: line 20 `##1 not val`. IEEE 1800-2017 A.2.10 sequence_expr ::= cycle_delay_range "
+        "sequence_expr ... (docs/systemverilog/2017/md/section-41-data-read-api.md:1404-1414) - after "
+        "`##1` a SEQUENCE expression is required, and `not property_expr` is an arm of property_expr only "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:1324). REJECTS at furthest_position=398 "
+        "on sv_2017 and sv_2023. Control: `assert property (@(posedge clk) not val);` ACCEPTS (arms "
+        "a18/a18c). Spec outranks the verilator driver key (fails=True + a post-parse golden reads as "
+        "must_accept): the golden records the SEMANTIC error the test was written for, and the parser "
+        "stops on text no Annex A production derives"),
+    "test_regress/t/t_randomize_with_idlist_method_bad.v": ("must_reject",
+        "pinned .13x.b: line 13 `q.sum() with (item) { item > 0; }`. IEEE 1800-2017 A.8.2 "
+        "array_manipulation_call ::= array_method_name { attribute_instance } [ ( list_of_arguments ) ] [ "
+        "with ( expression ) ] (docs/systemverilog/2017/md/section-41-data-read-api.md:2954-2957) - "
+        "`with` takes a parenthesised EXPRESSION; the `with [ ( identifier_list ) ] constraint_block` "
+        "form belongs to randomize_call alone "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:2961-2964). REJECTS at "
+        "furthest_position=322 on sv_2017 and sv_2023. Control: `q.sum() with (item > 0)` ACCEPTS (arms "
+        "a19/a19c). Spec outranks the verilator driver key (fails=True + a post-parse golden reads as "
+        "must_accept): the golden records the SEMANTIC error the test was written for, and the parser "
+        "stops on text no Annex A production derives"),
+    "test_regress/t/t_timescale_udp.v": ("must_reject",
+        "pinned .13x.b (the row .3.30 named): line 39 `?     :  ?;` - `?` in a COMBINATIONAL output "
+        "field. IEEE 1800-2017 A.5.3 combinational_entry ::= level_input_list : output_symbol ; and "
+        "output_symbol ::= 0 | 1 | x | X "
+        "(docs/systemverilog/2017/md/section-29-user-defined-primitives.md:119, :130; "
+        "docs/systemverilog/2017/md/section-41-data-read-api.md:1975, :1986); `?` is a level_symbol "
+        "(inputs only, docs/systemverilog/2017/md/section-29-user-defined-primitives.md:131). IEEE "
+        "1364-2005 A.5.3 identical. REJECTS at furthest_position=605 on sv_2017 and sv_2023. Control: `0 "
+        ": 1;` ACCEPTS (arms h2/h2c); the rest of the file's tables parse since release 1.0.207. The "
+        "driver key `t_timescale_udp.py expects success` records what verilator tolerates. Spec outranks "
+        "the verilator driver key (fails=True + a post-parse golden reads as must_accept): the golden "
+        "records the SEMANTIC error the test was written for, and the parser stops on text no Annex A "
+        "production derives"),
+    "test_regress/t/t_type_compare_bad.v": ("must_reject",
+        "pinned .13x.b: line 11 `case (type(real))` in an `initial` block - a type reference as a "
+        "PROCEDURAL case_expression. IEEE 1800-2017 A.6.7 case_expression ::= expression "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:2239); A.8.4 primary "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:641-656) has no type_reference arm - "
+        "type_reference is a constant_primary "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:3109, footnote 40 "
+        "docs/systemverilog/2017/md/section-41-data-read-api.md:3560) and a data_type; 6.23 "
+        "(`docs/systemverilog/2017/md/section-65536-216-bits.md:1610-1614`) makes a type-reference "
+        "comparison 'a constant expression' and writes its own `case (type(bus_t))` inside `generate` "
+        "(:1626-1631). REJECTS at furthest_position=325 on sv_2017 and sv_2023. Controls: `generate case "
+        "(type(bus_t)) type(bit[12:0]): ... endcase endgenerate` ACCEPTS; `case (a) 1: ; default: ; "
+        "endcase` ACCEPTS (arms d1/d1c/d1d). The Annex-A partition question this ruling rests on is "
+        "SV-CORPUS-GRAD.3.32, whose outcome can flip this pin - which is what its class=invalid "
+        "reproducer is for. Spec outranks the verilator driver key (fails=True + a post-parse golden "
+        "reads as must_accept): the golden records the SEMANTIC error the test was written for, and the "
+        "parser stops on text no Annex A production derives"),
+    "test_regress/t/t_udp_bad.v": ("must_reject",
+        "pinned .13x.b: line 15 `tri  a_bad;` inside a primitive. IEEE 1800-2017 A.5.2 "
+        "udp_port_declaration ::= udp_output_declaration ; | udp_input_declaration ; | "
+        "udp_reg_declaration ; (docs/systemverilog/2017/md/section-41-data-read-api.md:1949-1953; "
+        "docs/systemverilog/2017/md/section-29-user-defined-primitives.md:98-101) - no net declaration of "
+        "any kind; IEEE 1364-2005 A.5.2 identical. REJECTS at furthest_position=291 (the end of the "
+        "header line) on sv_2017 and sv_2023. Control: `output a_bad;` in its place ACCEPTS (arm a23 vs "
+        "the release's passing UDP corpus). The golden's PINMISSING warning is about the instance on line "
+        "10. Spec outranks the verilator driver key (fails=True + a post-parse golden reads as "
+        "must_accept): the golden records the SEMANTIC error the test was written for, and the parser "
+        "stops on text no Annex A production derives"),
+    "test_regress/t/t_udp_bad_comb_trigger.v": ("must_reject",
+        "pinned .13x.b: line 14 `(01) 1 0  :   0;` - an EDGE indicator in a ONE-colon table row. IEEE "
+        "1800-2017 A.5.3 combinational_entry ::= level_input_list : output_symbol ; "
+        "(docs/systemverilog/2017/md/section-29-user-defined-primitives.md:119) admits level symbols "
+        "only, and an edge belongs to sequential_entry ::= seq_input_list : current_state : next_state ; "
+        "with TWO colons (docs/systemverilog/2017/md/section-29-user-defined-primitives.md:123-126; "
+        "docs/systemverilog/2017/md/section-41-data-read-api.md:1975-1982); IEEE 1364-2005 A.5.3 "
+        "identical. REJECTS at furthest_position=312 (the end of line 13, i.e. the start of line 14) on "
+        "sv_2017 and sv_2023. Control: `1 1 0 : 0;` in its place ACCEPTS (arms a20/a20c). Spec outranks "
+        "the verilator driver key (fails=True + a post-parse golden reads as must_accept): the golden "
+        "records the SEMANTIC error the test was written for, and the parser stops on text no Annex A "
+        "production derives"),
+    "test_regress/t/t_udp_bad_illegal_output.v": ("must_reject",
+        "pinned .13x.b: line 16 `1 1 ?  :  ?: *;` - `*` as the next state. IEEE 1800-2017 A.5.3 "
+        "next_state ::= output_symbol | - and output_symbol ::= 0 | 1 | x | X "
+        "(docs/systemverilog/2017/md/section-29-user-defined-primitives.md:129-130; "
+        "docs/systemverilog/2017/md/section-41-data-read-api.md:1985-1986); IEEE 1364-2005 A.5.3 "
+        "identical. REJECTS at furthest_position=378 on sv_2017 and sv_2023. Control: `1 1 : ? : -;` "
+        "ACCEPTS (arms a21/a21c). The golden's `output must be of reg type` is 29.4 prose on line 9. Spec "
+        "outranks the verilator driver key (fails=True + a post-parse golden reads as must_accept): the "
+        "golden records the SEMANTIC error the test was written for, and the parser stops on text no "
+        "Annex A production derives"),
+    "test_regress/t/t_udp_bad_multi_output.v": ("must_reject",
+        "pinned .13x.b: line 8 `output dout1, dout2;` inside a primitive. IEEE 1800-2017 A.5.2 "
+        "udp_output_declaration ::= { attribute_instance } output port_identifier "
+        "(docs/systemverilog/2017/md/section-29-user-defined-primitives.md:105-107; "
+        "docs/systemverilog/2017/md/section-41-data-read-api.md:1956-1958) - ONE identifier, no list; "
+        "IEEE 1364-2005 A.5.2 identical. REJECTS at furthest_position=258 (the comma) on sv_2017 and "
+        "sv_2023. Control: `output dout1;` ACCEPTS (arm a22 vs a20c). Spec outranks the verilator driver "
+        "key (fails=True + a post-parse golden reads as must_accept): the golden records the SEMANTIC "
+        "error the test was written for, and the parser stops on text no Annex A production derives"),
+    "test_regress/t/t_udp_tableeof_bad.v": ("must_reject",
+        "pinned .13x.b: the file ends inside `table` (14 lines, no `endtable`, no `endprimitive`). IEEE "
+        "1800-2017 A.5.3 combinational_body ::= table combinational_entry { combinational_entry } "
+        "endtable (docs/systemverilog/2017/md/section-29-user-defined-primitives.md:118; "
+        "docs/systemverilog/2017/md/section-41-data-read-api.md:1974) and A.5.1 udp_declaration ... "
+        "endprimitive (docs/systemverilog/2017/md/section-41-data-read-api.md:1930-1934). REJECTS at "
+        "furthest_position=237 on sv_2017 and sv_2023. Control: the same header and table closed by "
+        "`endtable endprimitive` ACCEPTS (arm a24 vs a23's control). The intent is in the file name; the "
+        "derivation is simply unfinished. Spec outranks the verilator driver key (fails=True + a "
+        "post-parse golden reads as must_accept): the golden records the SEMANTIC error the test was "
+        "written for, and the parser stops on text no Annex A production derives"),
+    "test_regress/t/t_var_dotted_dup_bad.v": ("must_reject",
+        "pinned .13x.b: lines 9-16 `generate begin ... end begin ... end endgenerate` - bare blocks "
+        "directly in a generate region. IEEE 1800-2017 A.4.2 generate_region ::= generate { generate_item "
+        "} endgenerate (docs/systemverilog/2017/md/section-41-data-read-api.md:1853), generate_item is a "
+        "module_or_generate_item (docs/systemverilog/2017/md/section-41-data-read-api.md:338-345) with no "
+        "bare-block arm; a generate_block is reached only through loop_generate_construct / "
+        "conditional_generate_construct (docs/systemverilog/2017/md/section-41-data-read-api.md:1903); "
+        "IEEE 1364-2005 A.4.2 identical (the Verilog-2001 bare-block form was removed). REJECTS at "
+        "furthest_position=224 on sv_2017 and sv_2023. Control: `generate if (1) begin ... end "
+        "endgenerate` ACCEPTS (arms a25/a25c). The golden's `duplicate declaration` is line 14 prose. "
+        "Spec outranks the verilator driver key (fails=True + a post-parse golden reads as must_accept): "
+        "the golden records the SEMANTIC error the test was written for, and the parser stops on text no "
+        "Annex A production derives"),
+    "test_regress/t/t_var_dup_bad.v": ("must_reject",
+        "pinned .13x.b: lines 59-62 `module sub2 ( output bad_reout_port ); output bad_reout_port; "
+        "endmodule` - an ANSI header followed by a BODY port declaration. IEEE 1800-2017 A.1.2 "
+        "module_declaration: the ANSI arm's body is { non_port_module_item } "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:108-113) and `port_declaration ;` is a "
+        "module_item of the non-ANSI arm only "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:327); 23.2.2.2 prose "
+        "(`docs/systemverilog/2017/md/section-23-modules-and-hierarchy.md:407`) says the same. REJECTS at "
+        "furthest_position=770 on sv_2017 and sv_2023. Controls: `module sub3 (p); output p; endmodule` "
+        "ACCEPTS; `module sub1 (bad_mixport, output bad_mixport);` (lines 53-56) PARSES - "
+        "ansi_port_declaration's header is optional and the first-port defaults are 23.2.2.3 prose "
+        "(:477), so that module is not this file's syntax error (arms d3/d4/d4b/d4c). Spec outranks the "
+        "verilator driver key (fails=True + a post-parse golden reads as must_accept): the golden records "
+        "the SEMANTIC error the test was written for, and the parser stops on text no Annex A production "
+        "derives"),
 }
 
 
