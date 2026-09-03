@@ -1153,6 +1153,39 @@ VERILATOR_PINNED = {
         "pinned .3.14a: `default_nettype wire inside module t (line 14) - "
         "IEEE 1800-2017 22.8 / IEEE 1364-2005 19.2 permit it only OUTSIDE design "
         "elements; spec outranks the verilator driver heuristic"),
+    # ---- SV-CORPUS-GRAD.13x.d (PGEN-SV-CORPUS-GRAD-0353) -----------------------------------------
+    # Two IEEE 1800-2023 constructs judged on the 1800-2017 lane: the same edition-contrast ruling
+    # .13k made for compound assignment on the verilog_2005 lane. The parser accepts BOTH under
+    # `--profile sv_2023` (measured), so these pins record a fact about the LANE, not the parser;
+    # pinned class=invalid on sv_2017 and class=control on sv_2023 under adjudication_repros/.
+    "test_regress/t/t_class_override_bad.v": ("must_reject",
+        "pinned .13x.d: line 23 `function :extends int get_e; return 1; endfunction` - a dynamic-override "
+        "specifier. IEEE 1800-2023 A.1.9 dynamic_override_specifiers ::= [ initial_or_extends_specifier ] "
+        "[ final_specifier ], initial_or_extends_specifier ::= : initial | : extends, final_specifier ::= "
+        ": final (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:1210-1217); IEEE "
+        "1800-2017 class_method (docs/systemverilog/2017/md/section-41-data-read-api.md:210-215) and "
+        "function_declaration carry NO such production - the construct does not exist in the edition this "
+        "lane judges. EDITION CONTRAST, the .13k `|=`-on-verilog_2005 shape: REJECTS at "
+        "furthest_position=819 on sv_2017 and ACCEPTS on sv_2023 (measured, both on the corpus file and "
+        "on the minimal reproducer `class C; function :extends int get_e; return 1; endfunction "
+        "endclass`); the 2017 spelling `function int get_e;` ACCEPTS on sv_2017 (arms c1/c1c). On an "
+        "sv_2023 lane this row would be must_accept (its golden names 8.20 prose: no base method to "
+        "extend); no such lane exists yet (SV-CORPUS-GRAD.14). Spec outranks the verilator driver key, "
+        "which records what verilator (a 2023 tool) tolerates"),
+    "test_regress/t/t_param_type_fwd_bad.v": ("must_reject",
+        "pinned .13x.d: line 10 `parameter type enum E_t;` - a type parameter with a forward type "
+        "restriction. IEEE 1800-2023 A.2.1.1 type_parameter_declaration ::= type [ forward_type ] "
+        "list_of_type_assignments "
+        "(docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:721), forward_type ::= "
+        "enum | struct | union | class | interface class "
+        "(docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:803); IEEE 1800-2017 "
+        "parameter_declaration ::= ... | parameter type list_of_type_assignments "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:739-741) admits no forward_type. EDITION "
+        "CONTRAST: REJECTS at furthest_position=251 on sv_2017 and ACCEPTS on sv_2023 (measured on the "
+        "corpus file and on `module sub; parameter type enum E_t; endmodule`); the 2017 spelling "
+        "`parameter type E_t = int;` ACCEPTS on sv_2017 (arms c2/c2c). On an sv_2023 lane this row would "
+        "be must_accept (its golden is 6.20.3 prose about the override's type); no such lane exists yet "
+        "(SV-CORPUS-GRAD.14). Spec outranks the verilator driver key"),
     # ---- SV-CORPUS-GRAD.13x.b (PGEN-SV-CORPUS-GRAD-0351) -----------------------------------------
     # The suite-intended-invalid `must_accept` class, censused by .13x.a (docs/tasks/artifacts/
     # sv_corpus_grad/answer_key_intended_invalid/census.md): 34 verilator rows whose text has NO
