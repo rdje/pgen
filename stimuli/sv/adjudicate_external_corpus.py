@@ -2617,8 +2617,15 @@ IVTEST_CE_STAGE_CLUSTERS = [
      "13.4.1 prose; casting_type and the cast forms are A.8.4 BNF",
      ["cast_real_invalid1", "cast_real_invalid2", "cast_real_invalid3",
       "cast_real_invalid4", "size_cast_fail1", "size_cast_fail2",
-      "size_cast_fail3", "sv_void_cast_fail1", "sv_void_cast_fail2",
-      "sv_void_cast_fail3"]),
+      "size_cast_fail3", "sv_void_cast_fail1", "sv_void_cast_fail2"]),
+    ("must_reject",
+     "re-adjudicated by SV-CORPUS-GRAD.13x.c: void'(1+2); - IEEE 1800-2017 A.6.9 "
+     "subroutine_call_statement ::= subroutine_call ; | void ' ( function_subroutine_call ) ; "
+     "(docs/systemverilog/2017/md/section-41-data-read-api.md:2365-2367) admits only a subroutine CALL inside void'( ), and 1+2 is an "
+     "expression; sv_void_cast_fail1/2 (void'(f(10)), void'(t(10))) stay must_accept because a "
+     "call is derivable whatever the callee turns out to be. Release probe: REJECTS at "
+     "furthest_position=103 on sv_2017 and sv_2023; control void'(f()) ACCEPTS",
+     ["sv_void_cast_fail3"]),
     ("must_accept",
      "enum base type via type_identifier - A.2.2.1 enum_base_type admits "
      "type_identifier [packed_dimension]; footnote 15's legality condition "
@@ -3462,6 +3469,26 @@ SV2V_REJECT_GROUPS = [
      "IEEE 1800-2017 A.4.1.1 list_of_port_connections / "
      "list_of_parameter_assignments: all-ordered or all-named - mixing has "
      "no production"),
+    # ---- SV-CORPUS-GRAD.13x.c (PGEN-SV-CORPUS-GRAD-0352): two rows the .8b.1 ACCEPT groups
+    # keyed on a "BNF-parseable" claim the productions refute. Re-derived in-repo from the
+    # Annex A text at the cited lines; each also pinned class=invalid + class=control under
+    # stimuli/sv/adjudication_repros/. The release probe REJECTS both at exactly the token
+    # named (enum_range_x furthest_position=87, port_init_early furthest_position=148) and
+    # ACCEPTS the one-token-legal twins (A[1'sd1] / A[2]; `output a;` / `output reg a = 1;`).
+    ({"enum_range_x"},
+     "IEEE 1800-2017 A.2.2.1 enum_name_declaration ::= enum_identifier "
+     "[ [ integral_number [ : integral_number ] ] ] [ = constant_expression ] "
+     "(docs/systemverilog/2017/md/section-41-data-read-api.md:875-876): the range takes an integral_number (docs/systemverilog/2017/md/section-41-data-read-api.md:3240-3243, "
+     "a decimal/octal/binary/hex number) and 'x is an unbased_unsized_literal "
+     "(docs/systemverilog/2017/md/section-41-data-read-api.md:3290) - no production admits it there (SV-CORPUS-GRAD.13x.c)"),
+    ({"port_init_early"},
+     "IEEE 1800-2017 A.2.1.2 output_declaration ::= output net_port_type "
+     "list_of_port_identifiers | output variable_port_type "
+     "list_of_variable_port_identifiers (docs/systemverilog/2017/md/section-41-data-read-api.md:762-765): only the variable "
+     "form carries [ = constant_expression ] (docs/systemverilog/2017/md/section-41-data-read-api.md:994 vs :975) and "
+     f"variable_port_type ::= var_data_type ::= data_type | var data_type_or_implicit "
+     "(docs/systemverilog/2017/md/section-41-data-read-api.md:907-908) needs a type keyword or var, so `output a = 1;` with an "
+     "implicit net type has no derivation (SV-CORPUS-GRAD.13x.c)"),
 ]
 SV2V_ACCEPT_GROUPS = [
     ({"end_label_block_only", "end_label_block_wrong", "end_label_class_wrong",
@@ -3518,10 +3545,12 @@ SV2V_ACCEPT_GROUPS = [
     ({"size_cast_neg_lit_1", "size_cast_neg_lit_2", "size_cast_neg_var_1",
       "size_cast_neg_var_2", "size_cast_x_lit", "size_cast_x_var",
       "size_cast_xpr_lit", "size_cast_xpr_var", "size_cast_zero_lit",
-      "size_cast_zero_var", "enum_range_neg", "enum_range_x",
+      "size_cast_zero_var", "enum_range_neg",
       "enum_range_zero", "enum_conflict"},
      "constant-value legality (cast width / enum range values) - semantic "
-     "(IEEE 1800-2017 6.24.1/6.19 prose); the text is BNF-parseable"),
+     "(IEEE 1800-2017 6.24.1/6.19 prose); the text is BNF-parseable "
+     "(enum_range_x left this group in SV-CORPUS-GRAD.13x.c: 'x is no "
+     "integral_number, so its text is NOT BNF-parseable; A[1'sd1] and A[0] are)"),
     ({"break_inside_fork", "break_outside_loop", "continue_inside_fork",
       "continue_outside_loop", "return_inside_fork", "return_outside_tf",
       "return_task", "return_void_func"},
@@ -3532,11 +3561,13 @@ SV2V_ACCEPT_GROUPS = [
      "IEEE 1800-2017 12.5 'use of multiple default statements in one case "
      "statement shall be illegal' is prose - the BNF admits repeated "
      "default case_items"),
-    ({"port_init_early", "port_not_in_header", "port_packed_first",
+    ({"port_not_in_header", "port_packed_first",
       "port_packed_second", "port_redeclare", "port_unpacked_first",
       "port_unpacked_second"},
      "port/declaration coherence rules (IEEE 1800-2017 23.2.2 prose); each "
-     "declaration is BNF-parseable"),
+     "declaration is BNF-parseable (port_init_early left this group in "
+     "SV-CORPUS-GRAD.13x.c: an initializer on an implicit-type net port has "
+     "no A.2.1.2 derivation; the six that stay were each re-read and derive)"),
     ({"default_nettype_none"},
      "implicit-net legality under `default_nettype none is semantic (IEEE "
      "1800-2017 6.10/22.8); the text is BNF-parseable"),
@@ -3611,10 +3642,16 @@ SV2V_PINNED = {
         "stream_expression is a plain expression and "
         "assignment_pattern_expression is a primary (A.8.4); inner "
         "lvalue-ness is 11.4.14 prose"),
-    "severity_task_arg": ("must_accept",
-        "pinned .8b.2: '$fatal(.x(\"x\"));' - BNF-parseable as an A.8.2 "
-        "system_tf_call with a named list_of_arguments member; the 20.10 "
-        "severity-task argument shape is enforceable only semantically"),
+    "severity_task_arg": ("must_reject",
+        "pinned .13x.c (re-adjudicating the .8b.2 pin): '$fatal(.x(\"x\"));' sits at "
+        "MODULE level, where IEEE 1800-2017 A.1.4 module_common_item admits it only as an "
+        "elaboration_system_task ::= $fatal [ ( finish_number [ , list_of_arguments ] ) ] ; "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:301-309), finish_number ::= 0 | 1 | 2 - a named argument cannot be the "
+        "first token. The .8b.2 reading (an A.8.2 system_tf_call with a named "
+        "list_of_arguments member) holds only INSIDE procedural code, which this file is not. "
+        "Release probe: REJECTS at furthest_position=102 on sv_2017 and sv_2023; controls "
+        "`$fatal(1, \"x\");` and `$error(.x(\"x\"));` at module level ACCEPT (the $error "
+        "arm takes a bare list_of_arguments, so the named form IS legal there)"),
     "export_outside_package_1": ("must_accept",
         "pinned .8b.2: top-level 'export Pkg::Foo;' - "
         "package_export_declaration is a package_item (A.1.11) and A.1.2 "
