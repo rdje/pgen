@@ -1,5 +1,19 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0004 (a differential that stops at the first divergence cannot count what follows)
+
+- ⭐ **THE LESSON: A TOKEN-POSITIONAL DIFFERENTIAL FILES EVERYTHING AFTER A RULE'S FIRST DIVERGENCE AS UNVERIFIED —
+  SO IT CANNOT SEE A DROPPED OR INVENTED ALTERNATIVE BEHIND IT. PAIR IT WITH A PER-RULE COUNT.** The 10.6
+  differential SAW `parseable_source_item` diverge (at its annotation token) and reported 98.76 % agreement; the
+  three phantom alternatives were in its 1 831-token unverified tail. Counting alternatives per rule reads 1 vs 4.
+- **Use the two readers you have; re-implement neither.** Arm 2 = the parser generated from ebnf.ebnf (the source,
+  by the meta-grammar); arm 1 = the frontend's raw_ast. One count each, compared, 4 s on the whole tree.
+- **A gate can arrive with a live RED.** The `.2` shape (column-0 comment between alternatives) reads source 2 vs
+  IR 1 today — which also DECIDES `.2`'s open language question in the meta-grammar's favour. Keep it as a bank arm
+  that must flip when the fix lands.
+- **A population where nothing was compared is a refusal, not a pass** (rc 2, "nothing was compared").
+- `promotion:` knowledge card `a-differential-that-stops-at-the-first-divergence-cannot-count-what-follows`.
+
 ## 2026-09-03 - PGEN-EBNF-FRONTEND-SILENT-TRUNCATION-0002 (a comment syntax the frontend does not know is a silent language)
 
 - ⭐⭐ **THE LESSON: THE FRONTEND MUST IMPLEMENT THE META-GRAMMAR'S COMMENT RULE, NOT ONE SPELLING OF IT.**

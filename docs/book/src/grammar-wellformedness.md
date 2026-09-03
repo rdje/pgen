@@ -883,7 +883,11 @@ line comments parse normally:
 > never saw the difference — the code generator re-reads the balanced payload — so this is a fix to
 > the *envelope* three doctrines hash, not to any parser: the SV digest moves exactly once, with the
 > fix, and a comment-only edit no longer moves it. A column-0 `//` still terminates a rule body
-> exactly as a column-0 `#` does today; that terminator rule itself is `.2`'s open question.
+> exactly as a column-0 `#` does today; that terminator rule itself is `.2`'s open question — and doctrine **36**,
+> `EBNF-ALTERNATIVE-PARITY` (`.1`, the same day), now measures it as a live *source 2 vs IR 1*: on every commit the
+> parser generated from `ebnf.ebnf` and the hand-written frontend must agree on how many alternatives every rule
+> of every tracked grammar has (14 grammars, 4 075 rules, 4 s) — the count that reads the `.6` phantom as 1 vs 4
+> where the token-positional differential had filed it as unverified tail.
 
 Two independent engines — the grammar interpreter and the generated parser — return identical
 verdicts down to the same `furthest_position`, so this is a property of the grammar, not an artefact
