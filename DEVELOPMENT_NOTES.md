@@ -1,5 +1,24 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0356 (a suite's intended-invalid path is a census key, and the golden's line is not where the syntax error is)
+
+- ⭐⭐ **THE LESSON: AN ANSWER KEY THAT RESTS ON A SUITE'S DRIVER RECORDS THE STAGE A TOLERANT PARSER REACHED, NOT WHAT THE
+  STANDARD DERIVES.** 48 rows of the axis-2 bar sat on `_bad` / `test/error/` / `_fail` paths keyed `must_accept`; measured on
+  the release probe under every profile with a minimal reproducer and its one-token-legal twin, 38 were text IEEE 1800-2017
+  Annex A derives nothing for (the parser RIGHT on all 38), 7 + 3 were the sound store gate refusing a name declared with the
+  wrong kind or after its use, 2 were IEEE 1800-2023 syntax on the 1800-2017 lane, and exactly 1 was a parser defect (`.3.31`).
+  On 9 of the 38 the verilator golden named a SEMANTIC error on a line the parser passes — a key derived from the golden's stage
+  is wrong in both directions at once. The bar fell 212 → 162 with ZERO parse verdicts moved (`.13x.a`–`.13x.f`).
+- **Rules paid for**: census the class before touching a row, and fix a GROUP's rationale after re-reading every sibling; a
+  ruling carries the production + LRM line, the measured `furthest_position`, a two-sided control and a `class=invalid` pin; a
+  lane judges its edition (2023 syntax is `must_reject` on the 2017 lane, pinned `invalid`/`control` per profile on the same
+  bytes); a wrong-kind name is the sound store gate — prove it by renaming the file's own declaration and declaring the name
+  as one kind (route 1b), preferring the step that COMPLETES the parse, else the one reaching FURTHEST; a conservation law
+  must name every exit (the `.13w` bank forbade `match` and was RED for six commits, run by nothing); a `verilog_2005`
+  control is written in 1364-2005 words; a memo keyed on (file, binary) does not see an instrument change; a doc script that
+  asserts AFTER writing leaves a half-landed commit — assert every anchor first, write last.
+- promotion: `docs/knowledge/a-suites-intended-invalid-path-is-a-census-key-and-the-goldens-line-is-not-where-the-syntax-error-is.md`.
+
 ## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0349 (a single-character terminal that may touch its neighbour must not carry a word boundary)
 
 - ⭐⭐ **THE LESSON: THE EXTRACTOR TRANSCRIBED ANNEX A's TABLE SYMBOLS AS KEYWORDS, AND A KEYWORD'S `\b` IS A LEXER

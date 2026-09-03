@@ -28,7 +28,7 @@ WHAT EACH ROW CARRIES (all measured by THIS run, on THIS tree)
   * the manifest's `expected` / `adjudication` / `basis` head — the ruling state.
 
 Usage:
-  python3 docs/tasks/artifacts/sv_corpus_grad/answer_key_intended_invalid/census.py            # write census.tsv + census.md
+  python3 docs/tasks/artifacts/sv_corpus_grad/answer_key_intended_invalid/census.py            # write after/census.tsv + after/census.md (frozen at .13x.f)
   python3 docs/tasks/artifacts/sv_corpus_grad/answer_key_intended_invalid/census.py --check    # re-derive and diff (rc 1 on drift)
   python3 docs/tasks/artifacts/sv_corpus_grad/answer_key_intended_invalid/census.py --self-test
 """
@@ -49,8 +49,12 @@ MANIFEST = ROOT / "stimuli/sv/characterization/adjudication_manifest.tsv"
 POSITIONS = ROOT / "stimuli/sv/characterization/positions.tsv"
 PROBE = ROOT / "rust/target/release/parseability_probe"
 SUBS = ROOT / "stimuli/sv/subs"
-OUT_TSV = HERE / "census.tsv"
-OUT_MD = HERE / "census.md"
+# SV-CORPUS-GRAD.13x.f: the leaf closed with 47 of its 48 rows adjudicated (the 48th is .3.31's defect), so the
+# record is FROZEN under after/ - a path the identity-carrier doctrine reports and never judges. Re-running
+# reproduces the closing state as long as the manifest still carries those rows; a later manifest makes
+# --check report drift, which is the honest reading of a frozen snapshot.
+OUT_TSV = HERE / "after" / "census.tsv"
+OUT_MD = HERE / "after" / "census.md"
 
 # The selection rule. A suite's own convention for "this file is meant to fail": verilator's
 # `_bad` stem infix, sv2v's `test/error/` directory, ivtest's `_fail` stem infix, sv-tests'

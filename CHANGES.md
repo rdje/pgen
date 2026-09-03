@@ -1,5 +1,21 @@
 # CHANGES.md
 
+## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0356 (leaf SV-CORPUS-GRAD.13x.f DONE and the `.13x` container CLOSED — the 48-row suite-intended-invalid `must_accept` population is dissolved: 38 `must_reject` on a production, 10 `explained_store_gate`, 2 edition contrasts, 1 parser defect pinned `class=defect` for `.3.31`; the census frozen under `after/`; the lessons promoted; `.13x.g` superseded by `.15`; PINS + RECORD tier, ZERO grammar / Rust / codegen / generated / answer-key bytes)
+
+- `stimuli/sv/adjudication_repros/`: `defect_member_index_inc_or_dec.sv` and `defect_member_index_operator_assignment.sv`
+  (expected REJECT today; the runner FAILS with "flip it to fixed" the day `.3.31` lands) beside `control_member_index_binop_cond_call.sv`
+  and `control_inc_or_dec_index_without_member.sv` (ACCEPT); ratchet `checked=458 failures=0`.
+- `docs/tasks/artifacts/sv_corpus_grad/answer_key_intended_invalid/{census.md,census.tsv}` → `after/` (frozen; the identity-carrier
+  doctrine reports and never judges `after/`), `census.py` repointed; `--check` current at `rows=1 still_in_bar=1`.
+- Knowledge card `a-suites-intended-invalid-path-is-a-census-key-and-the-goldens-line-is-not-where-the-syntax-error-is` + a dated
+  `DEVELOPMENT_NOTES.md` entry (census the class first; the golden's line is tool evidence; a ruling carries production + line +
+  furthest + control + pin; fix the group's rationale; a lane judges its edition; wrong-kind names are the sound store gate,
+  proven by route 1b; a conservation law names every exit; `verilog_2005` controls in 1364-2005 words; a memo key must see the
+  instrument; assert anchors before writing). `KNOWLEDGE_MAP.md` regenerated.
+- `docs/tasks/SV-CORPUS-GRAD.md`: `.13x` closed (bar 212 → 162 across `.13x.b`–`.13x.e`, ZERO parse verdicts moved), `.13x.g`
+  superseded by `.15` (instrument hygiene: memo key + register the `.13w` bank), `.14` (an `sv_2023` lane) and `.3.31`/`.3.32`
+  stay open; `docs/TASK_TREE.md`, `MEMORY.md` (next: `.3.31`), this file.
+
 ## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0354 + -0355 (leaf SV-CORPUS-GRAD.13x.e DONE — the store-gate explanation instrument gains proof route 1b and two prelude kinds; TEN `must_accept` rows leave the axis-2 bar as `divergence:explained_store_gate` — the 7 census rows and 3 it could not see — with ZERO parse verdicts moved, bar 172 → 162; the `.13w` bank had been RED for six commits and is repaired; INSTRUMENT tier, ZERO grammar / Rust / codegen / generated / answer-key bytes. `-0355` completes the lockstep `-0354` missed: its doc script asserted a stale book anchor AFTER writing the leaf, so the index row, resume pointer, changelog and book sentence land here)
 
 - `stimuli/sv/adjudicate_dark_worklist.py`: `FORM_TEXT`/`FORM_LADDER` gain `iclass` (`interface class {n}; endclass`) and
