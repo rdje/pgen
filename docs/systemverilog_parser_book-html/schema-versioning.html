@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4875f415.js";
+            window.path_to_searchindex_js = "searchindex-dd7083f3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -500,6 +500,47 @@ both directions for every family that has a book.</p>
 </table>
 </div>
 <p>(The numbers above match the contract document at the time this book was written. The contract is authoritative for the current state — consult it for the live version.)</p>
+<h2 id="the-release-ceremony--every-gate-a-grammar-revision-runs-on-its-final-bytes"><a class="header" href="#the-release-ceremony--every-gate-a-grammar-revision-runs-on-its-final-bytes">The release ceremony — every gate a grammar revision runs on its final bytes</a></h2>
+<p>⭐ <strong>Why this list lives here.</strong> Until 2026-09-04 the ceremony existed only as the previous release’s
+task-leaf record, copied forward — and a list copied from the previous record copies its omissions.
+<code>sv_syntax_closure_gate</code> was missing from two consecutive ceremonies (1.0.207 and 1.0.208); the
+contract it guards was left diverging by 1.0.207 and its staleness budget (twenty commits touching
+declared inputs) was crossed at 1.0.208, which is how <code>SV-CORPUS-GRAD.16</code> found it. The gates below
+are the durable list; a release record cites this section and runs every item on the FINAL bytes,
+each under the memory guard, sequentially.</p>
+<ol>
+<li><strong>Grammar, before a byte is generated</strong>: <code>ast_pipeline --lint-grammar</code> rc 0;
+<code>--report-sample-parity</code> <code>defects=0</code>; the interpreter on every reproducer pin (defect pins flip,
+controls do not); typed AST byte-identity on the controls where the change is shape-neutral.</li>
+<li><strong>Regenerate and build</strong>: <code>make focus_systemverilog</code>, the debug <code>ast_pipeline</code>, the release
+<code>parseability_probe</code> (≈20 min, peak ≈12 GB — in the background, under the guard).</li>
+<li><strong>Pins</strong>: <code>python3 stimuli/sv/run_adjudication_repros.py</code> → <code>failures=0</code>, with every
+<code>class=defect</code> row flipped to <code>fixed</code> the day it parses.</li>
+<li><strong>Corpus, both lanes, per path and two-sided</strong>: <code>stimuli/run_external_corpus.sh sv 60 8 0</code> and
+<code>sv2005 60 8 0</code> — <code>pass → fail</code> 0, every moved row named; the adjudicator’s manifests, summaries and
+the store-gate memo (its key: file sha, binary sha, instrument digest).</li>
+<li><strong>Certificates</strong>: <code>sv_cert_recognized_union_gate</code> and <code>verilog_2005_conformance_gate</code> on the
+adjudicated contracts (counts by name in <code>rebaseline_note</code> / <code>baseline_note</code>; each re-stamps its
+identity when GREEN).</li>
+<li><strong>Syntax closure</strong>: <code>sv_syntax_closure_gate</code> — the entry-scoped unreachable-rule SET must equal the
+contract’s allow-list; a rule newly unreachable is adjudicated (dead → delete it in a grammar slice,
+or list it with a measured reason), never suppressed.</li>
+<li><strong>Shape and reproducibility</strong>: <code>ast_shape_contract_gate</code>; <code>check_generated_reproducibility.sh --rebaseline</code> (every family re-derives byte-identically); <code>clippy_on_rust_change</code> when Rust moved.</li>
+<li><strong>Parse cost</strong>: <code>sv_parse_cost_family_share</code> FIRST, then <code>sv_parse_cost_rebaseline</code>, then
+<code>sv_parse_cost_ratchet</code>; a rise is accepted only under a coded invariant with a row in
+<code>accepted_rises.tsv</code>, and the LR-family share’s anchors move with the share.</li>
+<li><strong>Downstream derivations</strong>: dark audit + dark worklist, verdict coverage, key provenance, the two
+keyword censuses (<code>--write</code>), <code>check_corpus_key_integrity.sh</code>, <code>check_identity_carriers.sh</code>,
+<code>check_sv_corpus_denominator.sh</code>, <code>report_family_status.sh --check-all</code> (re-splice the derived
+blocks), <code>systemverilog_parser_book_gate</code> (rebuilds the tracked HTML).</li>
+<li><strong>Ceremony documents, in lockstep</strong>: the revision register row (digest → release → ledger id),
+the released-parser bug ledger row, the integration contract (current-state note, version,
+history, digest), this book’s changelog, the platform book’s anchors, the task leaf with its
+acceptance checklist, <code>docs/TASK_TREE.md</code>, <code>MEMORY.md</code>, <code>CHANGES.md</code>.</li>
+<li><strong>Before the commit</strong>: <code>bash scripts/check_doctrines.sh</code> (every registered doctrine, incl.
+<code>BASELINE-IDENTITY</code>, which refuses a contract whose declared inputs moved beyond its budget) and
+<code>bash scripts/check_no_background_jobs.sh</code>.</li>
+</ol>
 <h2 id="future-major-version"><a class="header" href="#future-major-version">Future major version</a></h2>
 <p>A schema 1.0.0 milestone will land when the SV annotation campaign completes — that is, when every rule in <code>grammars/systemverilog.ebnf</code> carries either a return annotation or a deliberate decision to remain raw envelope. At that point all shape definitions move to Tier 2 (locked) and no further default fall-through changes are expected.</p>
 <p>The campaign is in early phase; reaching schema 1.0.0 is on the order of months of slice work.</p>

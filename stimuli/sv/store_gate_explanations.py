@@ -66,7 +66,12 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 CLASS = "divergence:explained_store_gate"
 LEAF = "SV-CORPUS-GRAD.13w"
 DEFAULT_CACHE = ROOT / "stimuli/sv/characterization/store_gate_cache.tsv"
-CACHE_COLUMNS = ["lane", "suite", "relpath", "file_sha256", "binary_sha256", "verdict", "names", "forms"]
+CACHE_COLUMNS = ["lane", "suite", "relpath", "file_sha256", "binary_sha256", "instrument_sha256", "verdict", "names", "forms"]
+# SV-CORPUS-GRAD.15: the INSTRUMENT is part of the memo key. A verdict is a function of the file's bytes,
+# the parser binary AND the search that produced it (this module plus the dark-worklist machinery it
+# imports by path). `.13x.e` changed the search and the memo did not notice until a hand prune; a key
+# that names the producers re-measures by construction.
+INSTRUMENT_FILES = ("stimuli/sv/store_gate_explanations.py", "stimuli/sv/adjudicate_dark_worklist.py")
 PROFILES = {"sv_2017": "sv_2017", "verilog_2005": "verilog_2005"}
 
 # Types the LRM predefines: the file owes no declaration, so a parser that demands one is wrong.
@@ -215,6 +220,15 @@ def sha256_bytes(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
 
 
+def instrument_sha256() -> str:
+    """sha256 over the producers' bytes, each prefixed by its repo-relative path and NUL-framed, so a
+    byte moving between the two files cannot cancel out."""
+    h = hashlib.sha256()
+    for rel in INSTRUMENT_FILES:
+        h.update(rel.encode("utf-8")); h.update(b"\0"); h.update((ROOT / rel).read_bytes()); h.update(b"\0")
+    return h.hexdigest()
+
+
 def load_cache(path: Path) -> dict:
     out = {}
     if not path.is_file():
@@ -230,23 +244,26 @@ def save_cache(path: Path, cache: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as fh:
         fh.write(f"# store-gate explanation memo ({LEAF}) - DERIVED by stimuli/sv/adjudicate_external_corpus.py;\n"
-                 "# a row is re-measured when its file_sha256 or binary_sha256 no longer matches. See\n"
+                 "# a row is re-measured when its file_sha256, binary_sha256 or instrument_sha256 (the two\n"
+                 "# producers' own bytes, SV-CORPUS-GRAD.15) no longer matches. See\n"
                  "# stimuli/sv/store_gate_explanations.py for what each verdict means.\n")
         fh.write("\t".join(CACHE_COLUMNS) + "\n")
         for key in sorted(cache):
             r = cache[key]
-            fh.write("\t".join(str(r[c]) for c in CACHE_COLUMNS) + "\n")
+            fh.write("\t".join(str(r.get(c, "")) for c in CACHE_COLUMNS) + "\n")
 
 
 def explain_rows(lane: str, candidates, report_binary_sha: str, binary_path: Path, cache: dict,
-                 *, jobs: int = 8, measurer=None, log=print) -> dict:
+                 *, jobs: int = 8, measurer=None, log=print, instrument_sha: str | None = None) -> dict:
     """Decide every candidate (suite, relpath, file_path) for `lane`; update `cache` in place so it
     holds exactly the candidate population for the lane. Returns {(suite, relpath): cache row}.
 
     `measurer(raw, profile) -> (verdict, names, forms)` is injectable so the memo logic is testable
     without a parser; the default is `measure` (a real parse). A measurement is REFUSED when the
-    binary on disk is not the one the lane's report names."""
+    binary on disk is not the one the lane's report names. `instrument_sha` is the producers' digest
+    (default: the live one) — a row measured by other producer bytes is re-measured (SV-CORPUS-GRAD.15)."""
     measurer = measurer or measure
+    instrument_sha = instrument_sha or instrument_sha256()
     profile = PROFILES[lane]
     wanted = {}
     todo = []
@@ -255,7 +272,8 @@ def explain_rows(lane: str, candidates, report_binary_sha: str, binary_path: Pat
         fsha = sha256_bytes(raw_bytes)
         key = (lane, suite, rel)
         hit = cache.get(key)
-        if hit and hit["file_sha256"] == fsha and hit["binary_sha256"] == report_binary_sha:
+        if (hit and hit["file_sha256"] == fsha and hit["binary_sha256"] == report_binary_sha
+                and hit.get("instrument_sha256") == instrument_sha):
             wanted[(suite, rel)] = hit
             continue
         todo.append((key, fsha, raw_bytes.decode("latin-1")))
@@ -279,7 +297,7 @@ def explain_rows(lane: str, candidates, report_binary_sha: str, binary_path: Pat
             key, fsha, raw = item
             verdict, names, forms = measurer(raw, profile)
             return key, {"lane": key[0], "suite": key[1], "relpath": key[2], "file_sha256": fsha,
-                         "binary_sha256": report_binary_sha, "verdict": verdict,
+                         "binary_sha256": report_binary_sha, "instrument_sha256": instrument_sha, "verdict": verdict,
                          "names": ",".join(names), "forms": "+".join(forms)}
         with ThreadPoolExecutor(max_workers=max(1, jobs)) as ex:
             for key, row in ex.map(one, todo):
@@ -371,6 +389,23 @@ def _self_test() -> int:
         check("a row that stopped being a candidate leaves the cache", ("sv_2017", "s", "b.sv") not in cache and ("sv_2017", "s", "a.sv") in cache)
         cp = d / "cache.tsv"; save_cache(cp, cache); back = load_cache(cp)
         check("the cache round-trips through its TSV", back == {k: {c: str(v) for c, v in r.items()} for k, r in cache.items()})
+        # SV-CORPUS-GRAD.15 — the instrument is part of the key
+        calls.clear()
+        explain_rows("sv_2017", [("s", "a.sv", f1)], "c" * 64, d / "nobinary", cache, measurer=fake, log=lambda *_: None, instrument_sha="e" * 64)
+        check(".15: a changed INSTRUMENT re-measures every row and stamps its digest",
+              len(calls) == 1 and cache[("sv_2017", "s", "a.sv")]["instrument_sha256"] == "e" * 64)
+        calls.clear()
+        explain_rows("sv_2017", [("s", "a.sv", f1)], "c" * 64, d / "nobinary", cache, measurer=fake, log=lambda *_: None, instrument_sha="e" * 64)
+        check(".15: the same instrument re-measures none", calls == [])
+        legacy = {k: {c: v for c, v in r.items() if c != "instrument_sha256"} for k, r in cache.items()}
+        calls.clear()
+        explain_rows("sv_2017", [("s", "a.sv", f1)], "c" * 64, d / "nobinary", legacy, measurer=fake, log=lambda *_: None, instrument_sha="e" * 64)
+        check(".15: a legacy row without the instrument column is re-measured, never trusted", len(calls) == 1)
+        cp2 = d / "legacy.tsv"; save_cache(cp2, {k: {c: v for c, v in r.items() if c != "instrument_sha256"} for k, r in cache.items()})
+        check(".15: a legacy row saves with an EMPTY instrument cell, not a crash", load_cache(cp2)[("sv_2017", "s", "a.sv")]["instrument_sha256"] == "")
+        live_sha = instrument_sha256()
+        check(".15: the live instrument digest is a sha256 of the two producers and the default key",
+              re.fullmatch(r"[0-9a-f]{64}", live_sha) is not None and len(INSTRUMENT_FILES) == 2)
         try:
             explain_rows("sv_2017", [("s", "b.sv", f2)], "d" * 64, d / "nobinary", {}, log=lambda *_: None)
             check("a real measurement without the binary REFUSES", False)

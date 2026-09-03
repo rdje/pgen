@@ -323,6 +323,49 @@ This determinism is a **hard guarantee** of the schema. Any non-determinism is a
 
 (The numbers above match the contract document at the time this book was written. The contract is authoritative for the current state — consult it for the live version.)
 
+## The release ceremony — every gate a grammar revision runs on its final bytes
+
+⭐ **Why this list lives here.** Until 2026-09-04 the ceremony existed only as the previous release's
+task-leaf record, copied forward — and a list copied from the previous record copies its omissions.
+`sv_syntax_closure_gate` was missing from two consecutive ceremonies (1.0.207 and 1.0.208); the
+contract it guards was left diverging by 1.0.207 and its staleness budget (twenty commits touching
+declared inputs) was crossed at 1.0.208, which is how `SV-CORPUS-GRAD.16` found it. The gates below
+are the durable list; a release record cites this section and runs every item on the FINAL bytes,
+each under the memory guard, sequentially.
+
+1. **Grammar, before a byte is generated**: `ast_pipeline --lint-grammar` rc 0;
+   `--report-sample-parity` `defects=0`; the interpreter on every reproducer pin (defect pins flip,
+   controls do not); typed AST byte-identity on the controls where the change is shape-neutral.
+2. **Regenerate and build**: `make focus_systemverilog`, the debug `ast_pipeline`, the release
+   `parseability_probe` (≈20 min, peak ≈12 GB — in the background, under the guard).
+3. **Pins**: `python3 stimuli/sv/run_adjudication_repros.py` → `failures=0`, with every
+   `class=defect` row flipped to `fixed` the day it parses.
+4. **Corpus, both lanes, per path and two-sided**: `stimuli/run_external_corpus.sh sv 60 8 0` and
+   `sv2005 60 8 0` — `pass → fail` 0, every moved row named; the adjudicator's manifests, summaries and
+   the store-gate memo (its key: file sha, binary sha, instrument digest).
+5. **Certificates**: `sv_cert_recognized_union_gate` and `verilog_2005_conformance_gate` on the
+   adjudicated contracts (counts by name in `rebaseline_note` / `baseline_note`; each re-stamps its
+   identity when GREEN).
+6. **Syntax closure**: `sv_syntax_closure_gate` — the entry-scoped unreachable-rule SET must equal the
+   contract's allow-list; a rule newly unreachable is adjudicated (dead → delete it in a grammar slice,
+   or list it with a measured reason), never suppressed.
+7. **Shape and reproducibility**: `ast_shape_contract_gate`; `check_generated_reproducibility.sh
+   --rebaseline` (every family re-derives byte-identically); `clippy_on_rust_change` when Rust moved.
+8. **Parse cost**: `sv_parse_cost_family_share` FIRST, then `sv_parse_cost_rebaseline`, then
+   `sv_parse_cost_ratchet`; a rise is accepted only under a coded invariant with a row in
+   `accepted_rises.tsv`, and the LR-family share's anchors move with the share.
+9. **Downstream derivations**: dark audit + dark worklist, verdict coverage, key provenance, the two
+   keyword censuses (`--write`), `check_corpus_key_integrity.sh`, `check_identity_carriers.sh`,
+   `check_sv_corpus_denominator.sh`, `report_family_status.sh --check-all` (re-splice the derived
+   blocks), `systemverilog_parser_book_gate` (rebuilds the tracked HTML).
+10. **Ceremony documents, in lockstep**: the revision register row (digest → release → ledger id),
+    the released-parser bug ledger row, the integration contract (current-state note, version,
+    history, digest), this book's changelog, the platform book's anchors, the task leaf with its
+    acceptance checklist, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`.
+11. **Before the commit**: `bash scripts/check_doctrines.sh` (every registered doctrine, incl.
+    `BASELINE-IDENTITY`, which refuses a contract whose declared inputs moved beyond its budget) and
+    `bash scripts/check_no_background_jobs.sh`.
+
 ## Future major version
 
 A schema 1.0.0 milestone will land when the SV annotation campaign completes — that is, when every rule in `grammars/systemverilog.ebnf` carries either a return annotation or a deliberate decision to remain raw envelope. At that point all shape definitions move to Tier 2 (locked) and no further default fall-through changes are expected.

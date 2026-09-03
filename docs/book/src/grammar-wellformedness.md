@@ -3157,8 +3157,9 @@ observation was simply unused.
 > 247 rejects-valid rows → **46 explained**, **199 `residual:not_parsed_with_declarations`** (the
 > next defect slice starts from a per-row reason, not a list), 2 predefined; the `verilog_2005`
 > lane's 41 candidates all stayed residual. The verdicts are memoised in the tracked
-> `stimuli/sv/characterization/store_gate_cache.tsv`, keyed by file sha256 **and** the parser
-> binary sha256 the lane's report names — a measurement is REFUSED when the binary on disk is not
+> `stimuli/sv/characterization/store_gate_cache.tsv`, keyed by file sha256, the parser
+> binary sha256 the lane's report names **and** (since `SV-CORPUS-GRAD.15`) the digest of the two
+> producers' own bytes, so an instrument edit re-measures by construction — a measurement is REFUSED when the binary on disk is not
 > that one, because a verdict measured against a different parser than the results would describe
 > nothing. `adjudicated` is unchanged at 7 556 and `match` at 5 851: nothing was promoted, and the
 > 46 that moved were never testimony against the parser.

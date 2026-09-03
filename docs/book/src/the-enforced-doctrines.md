@@ -119,9 +119,9 @@ Steps 4 and 5 are enforced, not suggested. That is the whole point.
 
 <!-- BEGIN DERIVED: scripts/report_doctrines.sh --markdown -->
 
-**36 doctrines are registered and enforced.** By archetype: artifact-consistency + oracle **1**, evidence **7**, evidence + structural **1**, oracle **5**, oracle + structural **1**, structural **16**, structural + oracle **5**.
+**37 doctrines are registered and enforced.** By archetype: artifact-consistency + oracle **1**, evidence **7**, evidence + structural **1**, oracle **6**, oracle + structural **1**, structural **16**, structural + oracle **5**.
 
-**Depth, derived:** median **2192** bytes per description, thinnest **783** (`LESSON-PROMOTION`) — every one of the 36 clears the 500-byte one-clause floor. ⚠️ Length is a proxy for depth, not a measure of it; that this floor is clear does not make any single description complete.
+**Depth, derived:** median **2039** bytes per description, thinnest **783** (`LESSON-PROMOTION`) — every one of the 37 clears the 500-byte one-clause floor. ⚠️ Length is a proxy for depth, not a measure of it; that this floor is clear does not make any single description complete.
 
 Rows are in **registration order**, oldest first — so the bottom of this table is what the repository learned most recently.
 
@@ -162,7 +162,8 @@ Rows are in **registration order**, oldest first — so the bottom of this table
 | 33 | [`CORPUS-CENSUS-CURRENCY`](#corpus-census-currency) | evidence + structural | `scripts/check_corpus_census.sh` |
 | 34 | [`LRM-CLAUSE-CITATION`](#lrm-clause-citation) | oracle + structural | `scripts/check_lrm_clause_citation.sh` |
 | 35 | [`IDENTITY-CARRIER-CURRENCY`](#identity-carrier-currency) | structural | `scripts/check_identity_carriers.sh` |
-| 36 | [`EBNF-ALTERNATIVE-PARITY`](#ebnf-alternative-parity) | structural + oracle | `scripts/check_ebnf_alternative_parity.sh` |
+| 36 | [`SV-STORE-GATE-BANK`](#sv-store-gate-bank) | oracle | `scripts/check_sv_store_gate_bank.sh` |
+| 37 | [`EBNF-ALTERNATIVE-PARITY`](#ebnf-alternative-parity) | structural + oracle | `scripts/check_ebnf_alternative_parity.sh` |
 
 ### `MEMORY-ARCH`
 
@@ -374,11 +375,16 @@ a cited IEEE **clause number** contains the LRM **line** it is cited with. ⭐�
 
 a tracked artifact that tells its reader to re-hash its declared inputs **IS** re-hashed, by a gate, over a population **DERIVED on every run** — *a promise nobody checks is a claim*. ⭐⭐ **FOUNDING MEASUREMENT (`SV-CORPUS-GRAD.13i`, 2026-08-14 → 2026-09-03)**: **six** live carriers under `docs/tasks/artifacts/` and `stimuli/*/characterization/` opened with an `## Instrument identity` table telling the reader to re-hash three inputs, and exactly **one** was gate-checked — *the one with a gate was the one that had never been stale*. By 2026-09-03 three doctrines (`CORPUS-CENSUS-CURRENCY`, `PARSE-COST-RATCHET`, `SV-CORPUS-DENOMINATOR`) had grown readers for five, and the last un-gated pair — `dark_chained_only/{adjudication,summary}.md` — had sat stale for **21 grammar revisions (16 days)**; re-derived (51 s + 86 s), they moved **zero verdict classes and six failure positions**: STALE, not WRONG, and nothing could have said which without the re-run. ⭐ **Population, derived, never hand-listed** (`.13j` measured the hand list rotting inside two weeks): every tracked `*.md` under those two roots carrying the heading followed by sha256 rows — both the 3-column and the annotated 2-column shapes (`` `path` (ebnf_raw_ast) `` marks a semantic row); a path with a `/before/` or `/after/` component is a **frozen** snapshot, reported and never judged. ⛔ **The SUBJECT is the LABEL, not the path cell** (`.13j`(ii), now measured three times): a `raw ast` row compares semantically via `check_baseline_identity.sh --digest ebnf_raw_ast`; `parse binary` and `generated parser` rows are **NOTES** (the shared probe moves with every family; engine drift is budgeted by `CORPUS-CENSUS-CURRENCY` arm (5)); any other row is bytes and **HARD** — *unless the carrier is already judged by another registered oracle* (derived from the registry's script column, this gate excluded), in which case a byte mismatch is **deferred** to that oracle with a note: `cost.md`'s `sample inputs` digests the manifest ORDER plus every sampled file's bytes, so a byte re-hash of its path cell reads *moved* while `PARSE-COST-RATCHET` reads it fresh — this gate is the guard on carriers **nobody else** checks. Its message says **STALE** (the report describes a different tree) and never *wrong* — the producer's re-run decides that. `PGEN_IDENTITY_CARRIERS` is the bank seam, `--report` prints every row's verdict, the self-test drives every verdict cell on literals, and the bank `docs/tasks/artifacts/sv_corpus_grad/identity_carriers/probe.sh` reads **8/8** — including `.13i`(c)'s named control, the SV report as it stood at `0994c3c0` going RED — while an **empty** population REFUSES rather than passing for free.
 
+### `SV-STORE-GATE-BANK`
+
+*oracle* · enforced by `scripts/check_sv_store_gate_bank.sh`
+
+the `.13w` store-gate explanation bank (`docs/tasks/artifacts/sv_corpus_grad/store_gate/probe.sh`) is **RUN, by a gate, every arm it declares** — ⭐ *a check nothing invokes is indistinguishable from no check.* FOUNDING MEASUREMENT (`SV-CORPUS-GRAD.15`, 2026-09-03): the bank was RED from `PGEN-SV-CORPUS-GRAD-0347` to `-0354` — six commits — and only an unrelated edit found it, because nothing invoked it (census: 0 invokers among the scripts, the Makefile, the workflows and the hooks). The judge requires three things because each can fail alone: exit 0, a summary `N/N as declared (fail=0)` whose `N` equals the bank's own `DECLARED`, and no arm line reading `FAIL`; its `--self-test` proves it refuses each shape (a FAIL arm, an exit-0 bank with a FAIL line, a drifted `DECLARED`, a crash before the summary, a missing bank). ⚠️ Honest limit: the bank's LIVE arms parse with the release probe; where it is not built (a hosted CI checkout) the gate evaluates nothing, says so on stdout, and the driver's scope note names it beside the staged-scope doctrines — the doctrine binds at commit time on every clone that has built the probe, which is exactly where the bank went red unseen.
+
 ### `EBNF-ALTERNATIVE-PARITY`
 
 *structural + oracle* · enforced by `scripts/check_ebnf_alternative_parity.sh`
 
 for every rule in every tracked grammar, the number of alternatives the SOURCE declares (the meta-parser generated from grammars/ebnf.ebnf, run by ebnf_dual_run_diff --emit-ast-json) equals the number the frontend's IR carries (ast_pipeline --emit-raw-ast-json: top-level pipe operators plus one) — mechanism-agnostic, so it catches a dropped alternative (SV-CORPUS-GRAD.3.19: a column-0 comment ended the body early) and an invented one (EBNF-FRONTEND-SILENT-TRUNCATION.6: three `//`-commented alternatives of parseable_source_item shipped LIVE for four months, in the token-position differential's UNVERIFIED tail) without knowing how the frontend erred; pairing (same rule names, same order) is checked first, include-directive grammars and grammars either reader refuses are NOT EVALUATED by name and counted, never passed; self-test drives both counters and every verdict cell on literals including the frozen pre-fix parseable_source_item envelope (source 1 vs IR 4) and a real-arm mutation (EBNF-FRONTEND-SILENT-TRUNCATION.1)
 
-<!-- END DERIVED -->
 <!-- END DERIVED -->

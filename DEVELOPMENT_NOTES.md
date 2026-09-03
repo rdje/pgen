@@ -1,5 +1,24 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-04 - PGEN-SV-CORPUS-GRAD-0358 (a release ceremony copied from the previous record copies its omissions; a memo key names every producer)
+
+- ⭐⭐ **THE LESSON: A CEREMONY THAT LIVES ONLY IN THE PREVIOUS LEAF'S RECORD IS COPIED FORWARD WITH ITS OMISSIONS.** Two consecutive
+  grammar releases (1.0.207, 1.0.208) ran every gate the previous record listed and omitted `sv_syntax_closure_gate`, which the
+  previous record had also omitted. The contract it guards was left diverging by the first (ten keyword terminals orphaned by the UDP
+  fix, dead not gated) and crossed its twenty-commit staleness budget at the second — and it was the `BASELINE-IDENTITY` doctrine, run
+  in full by the new `SV-STORE-GATE-BANK` proof, that said so, not a reader. The durable list now lives in the SV parser book
+  (`schema-versioning.md`, *The release ceremony*); a release record cites it instead of copying its predecessor.
+- **A memo key names every producer or it is stale by construction.** The store-gate memo was keyed on (file sha, binary sha); when the
+  search that produces the verdict changed (`.13x.e`), 186 rows had to be pruned by hand to re-measure. The key now carries a digest of
+  the two producer files; the tracked memo was re-stamped by a full re-measure (231 rows, zero verdicts moved), never by an edit.
+- **A check nothing invokes is indistinguishable from no check — so the invoker is a doctrine, and the doctrine says when it cannot
+  judge.** The `.13w` bank had been RED for six commits with no invoker. `SV-STORE-GATE-BANK` runs it on every commit; where the release
+  probe is not built (a hosted CI checkout) it exits 0 SAYING SO, and the driver's new scope note — derived from each enforcer's source,
+  like the staged-scope note — names every doctrine that judged nothing live. A green tick that evaluated nothing is named, not implied.
+- **The gate's allow-list is re-derived to the observed set with a measured reason, in either direction.** ONE → ELEVEN here (each of the
+  ten occurs exactly once in the grammar, its definition), THREE → ONE at `.13c.2x.3`; suppression would be listing without the grep,
+  and deletion of the dead terminals is a grammar slice with its own ceremony (`.3.33`), not a contract edit.
+
 ## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0357 (a caller split conserves its commits and pays for the memo it no longer shares)
 
 - ⭐⭐ **THE LESSON: WHEN ONE CALLER OF A RULE NEEDS A WIDER OPERAND, THE FIX IS A TWIN RULE AT THAT CALLER — AND THE TWIN'S COST IS

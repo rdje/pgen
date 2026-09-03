@@ -4,9 +4,11 @@
 # soundness conditions that keep a rejection in the bar; GREEN arms prove a real explanation on the
 # real parser; the conservation arm ties the tracked manifests to the frozen before-census.
 # Run: bash docs/tasks/artifacts/sv_corpus_grad/store_gate/probe.sh
+# Run BY: scripts/check_sv_store_gate_bank.sh — the SV-STORE-GATE-BANK doctrine (SV-CORPUS-GRAD.15), on every
+# commit and in CI; before it, this bank was run by nothing and sat RED for six commits.
 set -u
 cd "$(dirname "$0")/../../../../.." || exit 2
-DECLARED=9
+DECLARED=10
 pass=0; fail=0
 arm() { # arm <name> <rc>  (rc 0 = PASS)
   if [ "$2" -eq 0 ]; then pass=$((pass+1)); echo "  PASS  $1"; else fail=$((fail+1)); echo "  FAIL  $1"; fi
@@ -115,6 +117,28 @@ v = sg.measure(p.read_bytes().decode("latin-1"), "sv_2017")
 print("REDERIVED" if v == ("explained", tuple(r["names"].split(",")), tuple(r["forms"].split("+"))) else f"DRIFT {v} vs {r}", r["suite"], r["relpath"])
 PY
 ); grep -q '^REDERIVED' <<<"$out"; arm "A9 a tracked explanation re-derives live ($out)" $?
+
+# A10 (SV-CORPUS-GRAD.15) the memo key carries the INSTRUMENT: an instrument edit re-measures every
+# row, a no-op re-measures none, and every TRACKED row carries the live producers' digest.
+out=$(python3 - <<'PY'
+import csv, importlib.util, tempfile
+from pathlib import Path
+spec = importlib.util.spec_from_file_location("sg", "stimuli/sv/store_gate_explanations.py"); sg = importlib.util.module_from_spec(spec); spec.loader.exec_module(sg)
+calls = []
+def fake(raw, profile):
+    calls.append(raw); return (sg.EXPLAINED, ("T",), ("class",))
+with tempfile.TemporaryDirectory(dir="rust/target") as td:
+    f = Path(td) / "a.sv"; f.write_text("module a; T x; endmodule\n"); nb = Path(td) / "nobinary"
+    cache = {}
+    sg.explain_rows("sv_2017", [("s", "a.sv", f)], "b" * 64, nb, cache, measurer=fake, log=lambda *_: None, instrument_sha="1" * 64); first = len(calls); calls.clear()
+    sg.explain_rows("sv_2017", [("s", "a.sv", f)], "b" * 64, nb, cache, measurer=fake, log=lambda *_: None, instrument_sha="1" * 64); noop = len(calls); calls.clear()
+    sg.explain_rows("sv_2017", [("s", "a.sv", f)], "b" * 64, nb, cache, measurer=fake, log=lambda *_: None, instrument_sha="2" * 64); edited = len(calls)
+live = sg.instrument_sha256()
+rows = list(csv.DictReader((l for l in open("stimuli/sv/characterization/store_gate_cache.tsv") if not l.startswith("#")), delimiter="\t"))
+stale = sum(1 for r in rows if r.get("instrument_sha256") != live)
+print(f"first={first} noop={noop} edited={edited} tracked_rows={len(rows)} tracked_stale={stale}")
+PY
+); grep -Eq '^first=1 noop=0 edited=1 tracked_rows=[0-9]+ tracked_stale=0$' <<<"$out"; arm "A10 the memo key carries the instrument digest: an edit re-measures, a no-op does not, every tracked row carries the live digest ($out)" $?
 
 echo "store_gate bank: ${pass}/${DECLARED} as declared (fail=${fail})"
 [ "$pass" -eq "$DECLARED" ] && [ "$fail" -eq 0 ]

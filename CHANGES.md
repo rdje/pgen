@@ -1,5 +1,29 @@
 # CHANGES.md
 
+## 2026-09-04 - PGEN-SV-CORPUS-GRAD-0358 (leaves SV-CORPUS-GRAD.15 + .16 DONE — the store-gate memo key carries the INSTRUMENT's digest (an instrument edit re-measures by construction; 231 rows re-measured, 0 verdicts moved) and the `.13w` bank is RUN by a new doctrine, `SV-STORE-GATE-BANK` (the 37th), with the driver naming every enforcer that judges with an unbuilt release probe; the doctrine's first full run FOUND `.16`: the syntax-closure contract was left diverging by `.3.30` (ten single-letter keyword terminals orphaned) and over its staleness budget at `.3.31` because `sv_syntax_closure_gate` was in neither ceremony — allow-list re-derived ONE → ELEVEN with the measured reason, gate GREEN + re-stamped, deletion owed by `.3.33`; the durable release-ceremony list now lives in the SV parser book; INSTRUMENT + DOCTRINE + CONTRACT tier, ZERO grammar / Rust / codegen / generated / answer-key bytes)
+
+- `stimuli/sv/store_gate_explanations.py`: `CACHE_COLUMNS` + `instrument_sha256`; `instrument_sha256()` over the two producers' bytes
+  (this module + `adjudicate_dark_worklist.py`, NUL-framed, path-prefixed); `explain_rows(..., instrument_sha=)` hits only on a full
+  (file, binary, instrument) match; legacy rows re-measured; five new self-test arms (PASS, 0 failing).
+- `stimuli/sv/characterization/store_gate_cache.tsv`: re-measured under the new key by `adjudicate_external_corpus.py` (6 m 3 s, peak
+  688 MB): 231 rows, verdict/names/forms/file/binary identical to HEAD on every row, all carrying the live digest; manifests and summaries
+  byte-unchanged (`match=5902 unexplained=161`).
+- `scripts/check_sv_store_gate_bank.sh` (NEW doctrine `SV-STORE-GATE-BANK`): the bank must exit 0, print `N/N as declared (fail=0)` with
+  N equal to its own `DECLARED`, and no `FAIL` arm line; `--self-test` 8/8 (each refusal shape proven); without the release probe it exits 0
+  SAYING SO. Registry row in `scripts/check_doctrines.sh` + a second scope note (derived from each enforcer's source): when the probe is not
+  built the driver names the doctrines that judge with it (`PGEN_RELEASE_PROBE` seam; proven: `2 of 37 … PARSE-COST-RATCHET SV-STORE-GATE-BANK`).
+  `DOCTRINE_ENFORCEMENT.md` §10 row; `docs/book/src/the-enforced-doctrines.md` re-derived (37 sections; a stray duplicate END marker removed);
+  `docs/book/src/gate-flow.md` count markers 36 → 37. The bank gains arm A10 (`DECLARED=10`) and names its invoker.
+- `.16`: `rust/test_data/grammar_quality/systemverilog_syntax_closure_contract.json` — `allowed_unreachable_rules` = the eleven observed
+  (`casting_type` + `kw_B_ae4f281d kw_F_e69f20e9 kw_N_b51a6073 kw_P_511993d3 kw_R_06576556 kw_b_e9d71f5e kw_f_4a0a1921 kw_n_d1854cae
+  kw_p_516b9783 kw_r_4dc7c9ec`, each referenced exactly once in the grammar — its own definition — since `-0349`), `max_unreachable_rules`
+  1 → 11, the rationale prefixed with the measured derivation; `sv_syntax_closure_gate` GREEN (defined_rule_count=1533 reachable_rules=1553 unreachable_rules=11 unreachable_branches=2 unresolved_rule_reference_count=0), re-stamped at `9b5fa46ad44d`;
+  `check_baseline_identity.sh` rc 0 (was: STALE across 21 commits, budget 20). `.3.33` opened (delete the ten; batch with the next grammar slice).
+- `docs/systemverilog_parser_book/src/schema-versioning.md`: NEW section *The release ceremony — every gate a grammar revision runs on its
+  final bytes* (eleven items, the closure gate among them); HTML rebuilt. `docs/book/src/grammar-wellformedness.md`: the memo-key sentence.
+- Knowledge card `a-release-ceremony-copied-from-the-previous-record-copies-its-omissions` + a dated `DEVELOPMENT_NOTES.md` entry;
+  `KNOWLEDGE_MAP.md` regenerated. `MEMORY.md`, `docs/TASK_TREE.md`, this file.
+
 ## 2026-09-03 - PGEN-SV-CORPUS-GRAD-0357 (leaf SV-CORPUS-GRAD.3.31 DONE — an array-element member access whose INDEX is an `inc_or_dec_expression` or a parenthesised `operator_assignment` (`clist[b[0]++].m <= 1;`, `clist[(b[0] += 1)].m`) parses on `sv_2017` and `sv_2023`: the hierarchical path's index gains the two IEEE 1800-2017 A.8.3 `expression` operands `constant_expression` lacks, by a CALLER SPLIT (`hierarchical_bit_select`, 3 rules + 10 references; the constant contexts untouched); release 1.0.208, ledger SV-0081, contract 1.0.208, schema 26 unchanged; the axis-2 bar 162 → 161 by exactly the predicted row, `pass → fail` 0, the `verilog_2005` lane 0 moved; the parse-cost rise (+0.33 % `entries`, `committed` conserved EXACTLY) ACCEPTED under a NEW coded ratchet invariant `caller_split_containment`, the memo loss routed `ENGINE-UNIVERSAL-SERVICES.92`; GRAMMAR tier, ZERO Rust / codegen / engine bytes)
 
 - `grammars/systemverilog.ebnf` (1561 → 1564 rules, digest `c43ae6d6…`): `hierarchical_index_operand` (`unary` / `inc_or_dec` /
