@@ -34,6 +34,32 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.213 / Contract 1.0.213 — SV-CORPUS-GRAD.3.41 (`PGEN-SV-CORPUS-GRAD-0368`, 2026-09-04), ledger `SV-0086` (`Released`), **schema 26 → 27**:
+
+⭐ **The set-membership operator `inside { … }` is a chain element of the operand chain, and an inside expression
+can be the LEFT operand of a binary operator.** Until 1.0.212 `inside_expression := expression_base inside { … }`
+wrapped its left operand and was reachable only at the top of `expression`, so `y = a inside {2'b10, 2'b11} & ~b;`
+and `… && b` REJECTED (`furthest_position=630`, the `&` after the `}`; Cores-VeeR-EL2 `testbench/ahb_lite_2to1_mux.sv`
+and verilator `t_randomize_method_constraints.v:14` `x inside {1,2} || x inside {4,5};`), while `(a inside {…}) & ~b`
+and `b & a inside {…}` accepted — and the accepted one was mis-grouped: its tree read `(b & a) inside {…}`, against
+IEEE 1800-2017 Table 11-2 (11.3.2), which puts `inside` on the relational row above `==`, `&`, `^`, `|`, `&&`, `||`.
+`expression_base`'s chain is now `expression_operand expression_chain_step*`, a step being the unchanged binary triple
+or `inside_operator`; `expression`, `expression_or_cond_pattern` and the three `inside_expression` rules lose the
+grouped form. `1575 → 1576` rules. Grammar tier only; `verilog_2005` untouched (`inside` is an identifier there,
+pinned). `dist` is unchanged — IEEE 1800-2017 18.5 rules *"dist expressions cannot appear in other expressions"*.
+
+**AST impact — schema 27, a REPLACEMENT.** REMOVED: `expression.kind == "inside"`, `expression_or_cond_pattern.kind ==
+"inside"`, the `inside_expression` shape `{expr, ranges}`. ADDED: an `operand_chain.rest` entry may be the OBJECT
+`{kind: "sv_2017"|"sv_2023", body: {kind: "inside", ranges}}` beside the array triples. Migration: treat an object entry
+as the postfix `inside {set}` operator on the relational row; `body.ranges` is the typed `open_range_list` /
+`range_list` you read before; the left operand is the chain to its left. Every `inside`-free tree is byte-identical
+(interpreter AST JSON, HEAD vs 1.0.213, on an inside-free control and across the pin set).
+
+**Corpus proof**, per path, three lanes: `sv_2017` 1 rows `fail → pass`, **0** `pass → fail`, pass `9 781 →
+9 782`, match `5 960 → 5 961`, unexplained **`101 → 100`**; `sv_2023` 1 rows `fail → pass`, pass
+`9 802 → 9 803`; `verilog_2005` 0 rows moved. Pins `checked=593 armed=88 listed=330 multi_profile_rows=206 failures=0`. Gates on the final bytes: pins `checked=593 armed=88 listed=330 multi_profile_rows=206 failures=0`; `sv_cert_recognized_union_gate` GREEN (canonical `1433/8/1412/13`, union witness `1425` / UNKNOWN `0`, residual `[]`, seeds `[0,7,42]`, re-stamped); `verilog_2005_conformance_gate` GREEN (`1142/378/750/14`, `spf=0 prf=0`, lint orphans 0, corpus 363 / 0 mismatches, re-stamped); `sv_syntax_closure_gate` GREEN (`unreachable_rules=1`, the allow-list ONE, re-stamped); `ast_shape_contract_gate` 18/18; reproducibility TIER 2 byte-identical, baseline rewritten; parse-cost ratchet OK — `entries` −0.08 % and `memo_hits` −0.43 % promoted, `committed` +0.44 % accepted under the new `introduced_wrapper_frames` invariant (the lifted chain-step wrapper's own frames, removable by `ENGINE-UNIVERSAL-SERVICES.96`); the release probe and generated parser byte-identical across the gates' rebuilds.
+Residue: `.3.38` (footnote 20), `.3.39` (typed directive arguments); the bar stands at 100.
+
 ### 1.0.212 / Contract 1.0.212 — SV-CORPUS-GRAD.3.40 + .3.36 (`PGEN-SV-CORPUS-GRAD-0367`, 2026-09-04), ledger `SV-0085` (`Released`):
 
 ⭐ **`local::` before a subroutine call inside `randomize() with { … }` parses again.** Release 1.0.211 reserved

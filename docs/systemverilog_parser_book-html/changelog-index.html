@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8dc62d25.js";
+            window.path_to_searchindex_js = "searchindex-d9a6d684.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -217,6 +217,26 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10213--contract-10213--sv-corpus-grad341-pgen-sv-corpus-grad-0368-2026-09-04-ledger-sv-0086-released-schema-26--27"><a class="header" href="#10213--contract-10213--sv-corpus-grad341-pgen-sv-corpus-grad-0368-2026-09-04-ledger-sv-0086-released-schema-26--27">1.0.213 / Contract 1.0.213 — SV-CORPUS-GRAD.3.41 (<code>PGEN-SV-CORPUS-GRAD-0368</code>, 2026-09-04), ledger <code>SV-0086</code> (<code>Released</code>), <strong>schema 26 → 27</strong>:</a></h3>
+<p>⭐ <strong>The set-membership operator <code>inside { … }</code> is a chain element of the operand chain, and an inside expression
+can be the LEFT operand of a binary operator.</strong> Until 1.0.212 <code>inside_expression := expression_base inside { … }</code>
+wrapped its left operand and was reachable only at the top of <code>expression</code>, so <code>y = a inside {2'b10, 2'b11} &amp; ~b;</code>
+and <code>… &amp;&amp; b</code> REJECTED (<code>furthest_position=630</code>, the <code>&amp;</code> after the <code>}</code>; Cores-VeeR-EL2 <code>testbench/ahb_lite_2to1_mux.sv</code>
+and verilator <code>t_randomize_method_constraints.v:14</code> <code>x inside {1,2} || x inside {4,5};</code>), while <code>(a inside {…}) &amp; ~b</code>
+and <code>b &amp; a inside {…}</code> accepted — and the accepted one was mis-grouped: its tree read <code>(b &amp; a) inside {…}</code>, against
+IEEE 1800-2017 Table 11-2 (11.3.2), which puts <code>inside</code> on the relational row above <code>==</code>, <code>&amp;</code>, <code>^</code>, <code>|</code>, <code>&amp;&amp;</code>, <code>||</code>.
+<code>expression_base</code>’s chain is now <code>expression_operand expression_chain_step*</code>, a step being the unchanged binary triple
+or <code>inside_operator</code>; <code>expression</code>, <code>expression_or_cond_pattern</code> and the three <code>inside_expression</code> rules lose the
+grouped form. <code>1575 → 1576</code> rules. Grammar tier only; <code>verilog_2005</code> untouched (<code>inside</code> is an identifier there,
+pinned). <code>dist</code> is unchanged — IEEE 1800-2017 18.5 rules <em>“dist expressions cannot appear in other expressions”</em>.</p>
+<p><strong>AST impact — schema 27, a REPLACEMENT.</strong> REMOVED: <code>expression.kind == "inside"</code>, <code>expression_or_cond_pattern.kind == "inside"</code>, the <code>inside_expression</code> shape <code>{expr, ranges}</code>. ADDED: an <code>operand_chain.rest</code> entry may be the OBJECT
+<code>{kind: "sv_2017"|"sv_2023", body: {kind: "inside", ranges}}</code> beside the array triples. Migration: treat an object entry
+as the postfix <code>inside {set}</code> operator on the relational row; <code>body.ranges</code> is the typed <code>open_range_list</code> /
+<code>range_list</code> you read before; the left operand is the chain to its left. Every <code>inside</code>-free tree is byte-identical
+(interpreter AST JSON, HEAD vs 1.0.213, on an inside-free control and across the pin set).</p>
+<p><strong>Corpus proof</strong>, per path, three lanes: <code>sv_2017</code> 1 rows <code>fail → pass</code>, <strong>0</strong> <code>pass → fail</code>, pass <code>9 781 → 9 782</code>, match <code>5 960 → 5 961</code>, unexplained <strong><code>101 → 100</code></strong>; <code>sv_2023</code> 1 rows <code>fail → pass</code>, pass
+<code>9 802 → 9 803</code>; <code>verilog_2005</code> 0 rows moved. Pins <code>checked=593 armed=88 listed=330 multi_profile_rows=206 failures=0</code>. Gates on the final bytes: pins <code>checked=593 armed=88 listed=330 multi_profile_rows=206 failures=0</code>; <code>sv_cert_recognized_union_gate</code> GREEN (canonical <code>1433/8/1412/13</code>, union witness <code>1425</code> / UNKNOWN <code>0</code>, residual <code>[]</code>, seeds <code>[0,7,42]</code>, re-stamped); <code>verilog_2005_conformance_gate</code> GREEN (<code>1142/378/750/14</code>, <code>spf=0 prf=0</code>, lint orphans 0, corpus 363 / 0 mismatches, re-stamped); <code>sv_syntax_closure_gate</code> GREEN (<code>unreachable_rules=1</code>, the allow-list ONE, re-stamped); <code>ast_shape_contract_gate</code> 18/18; reproducibility TIER 2 byte-identical, baseline rewritten; parse-cost ratchet OK — <code>entries</code> −0.08 % and <code>memo_hits</code> −0.43 % promoted, <code>committed</code> +0.44 % accepted under the new <code>introduced_wrapper_frames</code> invariant (the lifted chain-step wrapper’s own frames, removable by <code>ENGINE-UNIVERSAL-SERVICES.96</code>); the release probe and generated parser byte-identical across the gates’ rebuilds.
+Residue: <code>.3.38</code> (footnote 20), <code>.3.39</code> (typed directive arguments); the bar stands at 100.</p>
 <h3 id="10212--contract-10212--sv-corpus-grad340--336-pgen-sv-corpus-grad-0367-2026-09-04-ledger-sv-0085-released"><a class="header" href="#10212--contract-10212--sv-corpus-grad340--336-pgen-sv-corpus-grad-0367-2026-09-04-ledger-sv-0085-released">1.0.212 / Contract 1.0.212 — SV-CORPUS-GRAD.3.40 + .3.36 (<code>PGEN-SV-CORPUS-GRAD-0367</code>, 2026-09-04), ledger <code>SV-0085</code> (<code>Released</code>):</a></h3>
 <p>⭐ <strong><code>local::</code> before a subroutine call inside <code>randomize() with { … }</code> parses again.</strong> Release 1.0.211 reserved
 Annex B’s 248 words and gave <code>local ::</code> the A.8.4 <code>class_qualifier</code> production on the OPERAND surface (<code>x &lt; local::x</code>);

@@ -85,7 +85,6 @@ verilator	test_regress/t/t_pipe_filter.v	295	302	ID NUM ;	example line 10;
 verilator	test_regress/t/t_property_named.v	202	550	var int ID	property check_if_1(var int cyc_mod_2);
 verilator	test_regress/t/t_property_s_eventually2.v	255	250	ID ( "	$display("[%0t] stmt, %s", $time, msg); \
 verilator	test_regress/t/t_randomize_arraysel_membersel.v	434	677	with { ID	if (std::randomize(example.member[1]) with {example.member[1] inside {[0 : 3]};} == 0) $stop;
-verilator	test_regress/t/t_randomize_method_constraints.v	288	380	|| ID inside	constraint B { w == 5; x inside {1,2} || x inside {4,5}; }
 verilator	test_regress/t/t_setuphold.v	197	1237	: NUM :	$setuphold (posedge clk, negedge d, 0:0:0, 0:0:0);
 verilator	test_regress/t/t_simulate_array.v	313	328	begin localparam ID	begin
 verilator	test_regress/t/t_std_randomize_with.v	381	901	with { ID	) with {

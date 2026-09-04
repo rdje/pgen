@@ -1019,6 +1019,44 @@ def _declared_alternatives_net_of_retired_work(base_tot, new_tot, ctx):
                                         new_tot["committed"] - base_tot["committed"], base_edges)
 
 
+def _introduced_wrapper_frames(base_tot, new_tot, ctx):
+    """The rise in `committed` sits PURELY on the frames of rules the change INTRODUCED — a lifted
+    wrapper (`SV-CORPUS-GRAD.3.41`: `expression_chain_step`, the operand chain's step, lifted out of
+    an inline group because the engine types nested alternations with the enclosing rule's
+    templates, `ENGINE-UNIVERSAL-SERVICES.96`) commits one frame per commit of the body it wraps,
+    while `entries` and `memo_hits` FELL (the grouped rule it retired re-parsed its left operand).
+    Holds when every rule new to the measurement is declared, NO pre-existing rule commits more,
+    each introduced nonterminal commits at most as often as the rules it wraps, the run's
+    `Δcommitted` is exactly the introduced frames net of the commits retired elsewhere, and every
+    pre-existing entry rise is covered by the entries the change retired. The predicate and its
+    refusal arms live in `scripts/parse_cost_containment.py` (`introduced_wrapper_frames`,
+    `--self-test`); its docstring says why the other eight cannot cover this shape and carries the
+    honest bound (the wrapper is the `.96` workaround's cost, not proven unavoidable)."""
+    if CONTAINMENT is None:
+        raise RuntimeError(f"scripts/parse_cost_containment.py could not be imported "
+                           f"({CONTAINMENT_IMPORT_ERROR}), so this acceptance cannot be evaluated")
+    graph_path = ctx["graph"]
+    if not os.path.isfile(graph_path):
+        raise RuntimeError(f"the measured grammar's reference graph is missing ({os.path.relpath(graph_path, ROOT)})")
+    with open(graph_path, encoding="utf-8") as fh:
+        graph = json.load(fh)
+    if ctx["grammar_digest"] and graph.get("grammar_raw_ast_sha256") != ctx["grammar_digest"]:
+        raise RuntimeError(f"the reference graph was derived from grammar raw_ast "
+                           f"`{str(graph.get('grammar_raw_ast_sha256'))[:16]}…` but this tree's is "
+                           f"`{ctx['grammar_digest'][:16]}…`")
+    base_rules = CONTAINMENT.read_rule_costs(ctx["base_rule_costs"])
+    new_rules = CONTAINMENT.read_rule_costs(ctx["new_rule_costs"])
+    base_graph_path = f"{ART}/rule_graph.json"
+    base_edges = None
+    if os.path.isfile(base_graph_path):
+        with open(base_graph_path, encoding="utf-8") as fh:
+            base_edges = json.load(fh).get("edges")
+    holds, detail, _facts = CONTAINMENT.introduced_wrapper_frames(
+        base_rules, new_rules, graph["edges"], ctx["introduced"],
+        new_tot["committed"] - base_tot["committed"], base_edges)
+    return holds, detail
+
+
 INVARIANTS = {
     "declared_alternatives_net_of_retired_work": _declared_alternatives_net_of_retired_work,
     "pure_memo_lookups": _pure_memo_lookups,
@@ -1029,6 +1067,7 @@ INVARIANTS = {
     "host_memo_eviction": _host_memo_eviction,
     "caller_split_containment": _caller_split_containment,
     "advanced_files_only": _advanced_files_only,
+    "introduced_wrapper_frames": _introduced_wrapper_frames,
 }
 
 # ⛔ WHICH INVARIANTS TAKE A SCOPE, AND THE CHECK IS TWO-SIDED. A containment row with no
@@ -1037,7 +1076,7 @@ INVARIANTS = {
 INVARIANTS_TAKING_INTRODUCED = {"contained_in_introduced_subgraph", "declared_alternatives_net_of_retired_work",
                                 "profile_split_respelling",
                                 "host_memo_eviction", "caller_split_containment",
-                                "advanced_files_only"}
+                                "advanced_files_only", "introduced_wrapper_frames"}
 NO_INTRODUCED = "-"
 
 

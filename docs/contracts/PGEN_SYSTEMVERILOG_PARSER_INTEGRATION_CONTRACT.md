@@ -5,6 +5,36 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-09-04, `SV-CORPUS-GRAD.3.41` — GRAMMAR, release `1.0.213`, ledger `SV-0086`,
+> schema `26 → 27` (a REPLACEMENT), `sv_2017` + `sv_2023` WIDEN by one construct family): the set-membership operator
+> `inside { … }` is a CHAIN ELEMENT of `expression_base`'s operand chain, so an inside expression can be the LEFT
+> operand of a binary operator — `y = a inside {2'b10, 2'b11} & ~b;`, `… && b`, `x inside {1,2} || x inside {4,5}` —
+> and `b & a inside {…}` is no longer grouped as `(b & a) inside {…}`.** IEEE 1800-2017 A.8.3 derives
+> `expression binary_operator expression` with `inside_expression ::= expression inside { open_range_list }` on either
+> side, and Table 11-2 (11.3.2, row 7 `< <= > >= inside dist`) puts `inside` above `==`, `&`, `^`, `|`, `&&`, `||`. Until
+> `1.0.212` the grammar reached a grouped `inside_expression := expression_base inside { … }` only at the top of
+> `expression`: the chain could not continue past the `}` (REJECT, `furthest_position=630`, the `&`), and on the accepted
+> right-operand form the wrapper swallowed the whole left chain (a wrong tree on accepted text, measured with the
+> interpreter's typed AST JSON). This grammar flattens every binary operator into ONE chain whose precedence is the
+> consumer's; `inside` now obeys the same rule. `expression_base`'s chain is `expression_operand expression_chain_step*`
+> where a step is the unchanged binary triple OR `inside_operator`; `expression`, `expression_or_cond_pattern` and the
+> three `inside_expression` rules lose the grouped form (`1575 → 1576` rules). `verilog_2005` is untouched (`inside` is an
+> identifier there — pinned). `dist` is unchanged: IEEE 1800-2017 18.5 rules *"dist expressions cannot appear in other
+> expressions"*, so `expression_or_dist` stays its only surface. ⛔ **Consumers — schema 27, a REPLACEMENT:**
+> REMOVED `expression.kind == "inside"`, `expression_or_cond_pattern.kind == "inside"` and the `inside_expression` shape
+> `{expr, ranges}`; ADDED an `operand_chain.rest` entry that is the OBJECT `{kind: "sv_2017"|"sv_2023", body: {kind:
+> "inside", ranges}}` beside the array triples `[binary_operator, [attribute_instance …], expression_operand]`.
+> Migration: an object entry is the postfix `inside {set}` operator on Table 11-2's relational row; `body.ranges` is the
+> same typed `open_range_list` / `range_list`; the left operand is the chain to the entry's left. Every `inside`-free tree
+> is byte-identical HEAD vs `1.0.213` (the interpreter's AST JSON on an inside-free control and across the pin set:
+> 586 pin × profile arms under the interpreter, HEAD grammar vs candidate (`rust/target/s341/prescreen_pins.py`, 5 jobs, 13 m): verdict moved **2** — the defect pin on both SV profiles, REJECT → ACCEPT; typed AST moved **2** — `defect_scope_randomize_host_contexts.sv` on both profiles, the one other pin whose text carries an `x inside {…}` expression (by design); every other arm's verdict AND typed-AST sha identical). Corpus, per path, three lanes on the final bytes: `sv_2017` 1 rows `fail → pass`, **0**
+> `pass → fail`, pass `9 781 → 9 782`, match `5 960 → 5 961`, the axis-2 bar `101 → 100`; `sv_2023`
+> 1 rows `fail → pass`, pass `9 802 → 9 803`; `verilog_2005` 0 rows moved. Pins `checked=593 armed=88 listed=330 multi_profile_rows=206 failures=0`.
+> Parse cost: share → rebaseline → ratchet: the derived LR-family share `2.664 → 2.665 %` (23 504 782 of 881 837 627 entries over 16 336 files; total corpus entries −0.02 %, family +0.03 %; adopted by hand in the constant, `TOOLBOX.md`, `DOCTRINE_ENFORCEMENT.md`, the `a-deterministic-counter…` card and `cost.md`); the first rebaseline REFUSED on FIVE breaches — the stale share (four anchors) and BINDING `committed` ROSE `6 712 187 → 6 741 840` (+0.44 %) — while BINDING `entries` FELL `402 867 861 → 402 541 171` (−0.08 %) and `memo_hits` FELL `176 431 867 → 175 670 128` (−0.43 %), both promoted. Per rule (`rule_costs.tsv` HEAD vs fresh): the ONLY `committed` risers are the three introduced rules — `expression_chain_step` +29 697 (one wrapper frame per binary step the sample accepts), `inside_operator` +4, `inside_operator_sv_2017` +4 — against −4 on each of the thirteen pre-existing rules of the retired nested `inside_expression → expression_base` derivation (net +29 653, exact); NO pre-existing rule commits more; the retired grouped rule had re-parsed its whole left operand at every expression (`inside_expression` −812 254 / `inside_expression_sv_2017` −402 984 / `expression_base` −402 984 entries) against `kw_inside` +51 157 and `trivia` +51 795 (the set's terminal now tried at every chain step) and 31 binary-operator terminals +22 each. No coded invariant admits a `committed` rise that sits purely on introduced frames (the eight others need `committed` flat, conserved, or ≤ 0, or refuse any pre-existing rise), so the ratchet gained a TENTH, `introduced_wrapper_frames` (`scripts/parse_cost_containment.py` + `scripts/check_parse_cost_ratchet.sh`, 11 self-test arms, refusals for an empty scope / a declared pre-existing nonterminal / a name the grammar lacks / a wrapper that wraps nothing; failure arms for a pre-existing committed rise, an undeclared new rule, a wrapper committing more than the rules it wraps, a from/to that is not the table's arithmetic, uncovered pre-existing entry rises): every rule new to the measurement declared, no pre-existing rule commits more, each introduced nonterminal's commits bounded by the commits of the rules it wraps, `Δcommitted` == introduced frames net of commits retired elsewhere, pre-existing entry rises covered by retired entries. One row in `accepted_rises.tsv` (`committed 6712187 → 6741840`, scope `expression_chain_step inside_operator inside_operator_sv_2017 inside_operator_sv_2023`) naming the leaf that removes the rise: `ENGINE-UNIVERSAL-SERVICES.96` (the inline spelling retires every wrapper frame). Second rebaseline PROMOTED (`entries`/`memo_hits` down, `committed` ACCEPTED and RE-DERIVED on the run); `sv_parse_cost_ratchet` **OK** — identity fresh for the generated parser, grammar raw ast, instrument and 192 pinned sample files; wall-clock advisory +1.6 % within the ±50 % band. Gates on the final bytes: pins `checked=593 armed=88 listed=330 multi_profile_rows=206 failures=0`; `sv_cert_recognized_union_gate` GREEN (canonical `1433/8/1412/13`, union witness `1425` / UNKNOWN `0`, residual `[]`, seeds `[0,7,42]`, re-stamped); `verilog_2005_conformance_gate` GREEN (`1142/378/750/14`, `spf=0 prf=0`, lint orphans 0, corpus 363 / 0 mismatches, re-stamped); `sv_syntax_closure_gate` GREEN (`unreachable_rules=1`, the allow-list ONE, re-stamped); `ast_shape_contract_gate` 18/18; reproducibility TIER 2 byte-identical, baseline rewritten; parse-cost ratchet OK — `entries` −0.08 % and `memo_hits` −0.43 % promoted, `committed` +0.44 % accepted under the new `introduced_wrapper_frames` invariant (the lifted chain-step wrapper's own frames, removable by `ENGINE-UNIVERSAL-SERVICES.96`); the release probe and generated parser byte-identical across the gates' rebuilds. ⭐ The first spelling of this fix — an inline
+> `( … | inside_operator )*` group — typed an inside-free chain's first step with `expression_base`'s alternative-0
+> template (`{kind: "tagged_union", body: {kind: "bitwise_and"}}`); the lifted rule is exact and the defect is routed
+> as `ENGINE-UNIVERSAL-SERVICES.96` with a five-rule reproducer.
+
 > **Current-state note (2026-09-04, `SV-CORPUS-GRAD.3.40` + `.3.36` — GRAMMAR, release `1.0.212`, ledger `SV-0085`,
 > schema `26` UNCHANGED, `sv_2017` + `sv_2023` WIDEN by one construct): `local::` before a SUBROUTINE CALL inside
 > `randomize() with { … }` — `get_x() == local::get_x()`, `local::get_c().c1_f`, `local::K::m()`, `local::this.f()` —
@@ -1104,15 +1134,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.212`
+  - `1.0.213`
 - Parser release version:
-  - `1.0.212`
-  - history: `1.0.211`; `1.0.210`; `1.0.209`; `1.0.208`; `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.213`
+  - history: `1.0.212`; `1.0.211`; `1.0.210`; `1.0.209`; `1.0.208`; `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `441600789fcf1cb1a6fed83ecafce2e881e829b4eaed180ddb2fa4f94d5d949f` (SV grammar semantic digest — sha256 of the
+  - `1e2ad24a6550f631b0a712fb5f40d5eca70d0920915653cb868af1dca722ccef` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`
@@ -1132,6 +1162,17 @@ This is the document downstream projects such as Nexsim should read first when d
   - history: `1.3.1` (backward-compatible stack-robustness fix, `SV-CORPUS-GRAD.8c.3` 2026-07-22: every SV/VHDL embedding parse runs on a dedicated 256 MiB-stack thread, so over-deep recursion returns a clean `E_PARSE_FAILURE` diagnostic — the engine's 4096-frame recursion ceiling — instead of aborting the HOST process with a stack-overflow SIGABRT; measured pre-fix, a ~400-deep parenthesized expression (≈4 KB of text) killed a release embedder at the default 8 MB main stack. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. No parser release/schema bump — the generated parser artifact is unchanged.)
   - history: `1.3.0` (backward-compatible addition of the `verilog_2005` profile; see `rust/docs/EMBEDDING_API_CONTRACT.md` — the previously stated `1.2.0` here was a stale lockstep gap closed by `VERILOG-2005-PROFILE.4.3`)
 - SystemVerilog AST-dump schema version:
+  - `27` (**`1.0.213`** (`SV-CORPUS-GRAD.3.41`, `PGEN-SV-CORPUS-GRAD-0368`, 2026-09-04), ledger
+    `SV-0086`: the set-membership operator `inside { … }` becomes a CHAIN ELEMENT of `expression_base`'s operand
+    chain (`expression_operand expression_chain_step*`; a step is the unchanged binary triple or the object
+    `inside_operator` = `{kind: "sv_2017"|"sv_2023", body: {kind: "inside", ranges}}`), and the grouped
+    `inside_expression` (`{expr, ranges}`, whose `expr` swallowed the whole left chain — `b & a inside {…}` read as
+    `(b & a) inside {…}` against IEEE 1800-2017 Table 11-2) is REMOVED together with `expression`'s and
+    `expression_or_cond_pattern`'s `{kind: "inside", body}` branches. **Migration:** a consumer that matched
+    `expression.kind == "inside"` walks `operand_chain.rest` and treats an object entry as the postfix `inside {set}`
+    operator on the relational row; `body.ranges` is the same typed `open_range_list` / `range_list`; the left
+    operand is the chain to the entry's left. Every `inside`-free tree is byte-identical. A REMOVAL is a
+    replacement in the `SV-0053` sense, so it takes a bump.)
   - `26` (**`1.0.193`** (`SV-CORPUS-GRAD.13c.2y`, `PGEN-SV-CORPUS-GRAD-0261`, 2026-08-20), ledger
     `SV-0066`: `prop_primary_sv_2017`/`_sv_2023` REMOVE three branches — `{kind:"implies_unary", body}`,
     `{kind:"sequence_or_assign", lhs, rhs}` and `{kind:"implies_binary", lhs, rhs}` — because all three

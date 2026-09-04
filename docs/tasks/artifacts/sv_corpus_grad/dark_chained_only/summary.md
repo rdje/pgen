@@ -6,21 +6,21 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `e0a408933eeee99f63d8042e5485ba87fdf57c34256de824a3250a24a25eb4e3` |
-| positions | `stimuli/sv/characterization/positions.tsv` | `380ee54942aa79a3aa5bc6dde6d90238595a7a8bf35de52dc79d4630c4b77d0a` |
-| grammar | `grammars/systemverilog.ebnf` | `4965b4059b06ad19eccf1cbeedebd49e1bcd967f2e2f781549a9aebf2bb13d9b` |
+| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `02b98e38c03bb70902c6b9062cefb61d276b88d8d34e41667a4d6074e70d2247` |
+| positions | `stimuli/sv/characterization/positions.tsv` | `27e7646af60e25c90e2e84f6dc600bee6c21632e9a4246b2a451718a1c0b934e` |
+| grammar | `grammars/systemverilog.ebnf` | `e35e0198b023407a2edcf9daca326cb0fe91f1a3c265ecdef4a83cd09caad183` |
 
 ## The TEXT channel — can expansion move the byte the parse choked on?
 
 | verdict | rows | % | reading |
 |---|---:|---:|---|
-| `PRE-TICK` | 2,069 | 54.4 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
-| `IN-WINDOW` | 1,472 | 38.7 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
+| `PRE-TICK` | 2,068 | 54.4 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
+| `IN-WINDOW` | 1,473 | 38.7 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
 | `NO-ALTERABLE-TICK` | 211 | 5.5 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
 | `PAST-LAST-TICK` | 50 | 1.3 % | choked past every alterable directive — suspicious but still reachable by an earlier expansion's shift. UNDECIDABLE |
 | **TOTAL** | **3,802** | **100.0 %** | |
 
-⇒ **2,280 of 3,802 rows (60.0 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
+⇒ **2,279 of 3,802 rows (59.9 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
 
 ## Then the FACT channel — is a cross-file *name* the live explanation?
 
@@ -29,10 +29,10 @@
 | `FACT-GATED-CROSS-FILE` | 2,058 |  |
 | `CROSS-LIBRARY` | 168 |  |
 | `UNDECLARED-ANYWHERE` | 26 |  |
-| `NO-FACT-GATE-AT-FAILURE` | 20 |  |
+| `NO-FACT-GATE-AT-FAILURE` | 19 |  |
 | `FACT-GATED-LOCAL-TYPE` | 8 |  |
 
-⇒ **the worklist is 54 rows** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv`) — every one must be adjudicated with the toolbox (probe + `--trace-rules`) before it is called a defect.
+⇒ **the worklist is 53 rows** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv`) — every one must be adjudicated with the toolbox (probe + `--trace-rules`) before it is called a defect.
 
 ## Worklist by suite
 
@@ -41,8 +41,8 @@
 | opentitan | `UNDECLARED-ANYWHERE` | 22 |
 | opentitan | `NO-FACT-GATE-AT-FAILURE` | 12 |
 | uvm-core | `FACT-GATED-LOCAL-TYPE` | 8 |
-| Cores-VeeR-EL2 | `NO-FACT-GATE-AT-FAILURE` | 3 |
 | Surelog | `UNDECLARED-ANYWHERE` | 3 |
+| Cores-VeeR-EL2 | `NO-FACT-GATE-AT-FAILURE` | 2 |
 | uvm-core | `NO-FACT-GATE-AT-FAILURE` | 2 |
 | Surelog | `NO-FACT-GATE-AT-FAILURE` | 1 |
 | verilator | `NO-FACT-GATE-AT-FAILURE` | 1 |
@@ -81,7 +81,6 @@
 | uvm-core | `uvm-core-2020.3.1/src/comps/uvm_pair.svh` | 48 | `FACT-GATED-LOCAL-TYPE` | ``) extends uvm_object; typedef uvm_class_pair #(T1, T2 ) this_type; `uvm_ob`` |
 | uvm-core | `uvm-core-2020.3.1/src/tlm1/uvm_sqr_connections.svh` | 57 | `FACT-GATED-LOCAL-TYPE` | ``tends uvm_port_base #(uvm_sqr_if_base #(REQ, RSP)); `UVM_SEQ_PORT(`UVM_SEQ_ITE`` |
 | uvm-core | `uvm-core-2020.3.1/src/tlm1/uvm_tlm_req_rsp.svh` | 59 | `FACT-GATED-LOCAL-TYPE` | `xtends uvm_component; typedef uvm_tlm_req_rsp_channel #(REQ, RSP) this_type;` |
-| Cores-VeeR-EL2 | `testbench/ahb_lite_2to1_mux.sv` | 99 | `NO-FACT-GATE-AT-FAILURE` | `side {2'b10, 2'b11} & ~force_bus_idle; always_comb initiator1_address_ph = hsel_` |
 | opentitan | `hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh` | 5 | `NO-FACT-GATE-AT-FAILURE` | `Apache-2.0 virtual task run_sec_cm_fi_vseq(int num_times = 1); pre_run_sec_cm` |
 | opentitan | `hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__shadow_reg_errors.svh` | 5 | `NO-FACT-GATE-AT-FAILURE` | `Apache-2.0 virtual task run_shadow_reg_errors(int num_times, bit en_csr_rw_seq` |
 | opentitan | `hw/dv/sv/tl_agent/dv/env/tl_agent_env_pkg.sv` | 17 | `NO-FACT-GATE-AT-FAILURE` | ``(tl_agent_env_cfg)) tl_agent_env_cov; `include "tl_agent_env_cfg.sv" `inclu`` |
@@ -93,4 +92,5 @@
 | scr1 | `src/tb/scr1_top_tb_runtests.sv` | 10 | `NO-FACT-GATE-AT-FAILURE` | `------------------ initial begin $value$plusargs("imem_pattern=%h", imem_re` |
 | uvm-core | `uvm-core-2020.3.1/src/reg/uvm_reg_sequence.svh` | 73 | `NO-FACT-GATE-AT-FAILURE` | ``ence #(uvm_reg_item)) extends BASE; `uvm_object_param_utils(uvm_reg_sequence`` |
 | uvm-core | `uvm-core-2020.3.1/src/seq/uvm_sequencer_base.svh` | 41 | `NO-FACT-GATE-AT-FAILURE` | `(uvm_sequence_base) uvm_config_seq; typedef class uvm_sequence_request; // Util` |
+| black-parrot | `bp_top/test/common/bp_nonsynth_core_profiler.sv` | 3 | `UNDECLARED-ANYWHERE` | `NTLY_UNSUPPORTED typedef struct packed { logic icache_miss; logic b` |
 

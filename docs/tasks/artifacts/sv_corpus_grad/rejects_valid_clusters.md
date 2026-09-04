@@ -1,6 +1,6 @@
 # `systemverilog` stuck-point clusters (SV-CORPUS-GRAD.3.0 engine; family lane CORPUS-GRAD-ALL.2.1)
 
-96 rows probed from the adjudication manifest; 81 distinct 3-token stuck signatures. Keyed on `furthest_position` (the DEEP locus), family profile `systemverilog`.
+95 rows probed from the adjudication manifest; 80 distinct 3-token stuck signatures. Keyed on `furthest_position` (the DEEP locus), family profile `systemverilog`.
 
 | # | signature | rows | example (stuck line) |
 |---|---|---|---|
@@ -83,6 +83,5 @@
 | 77 | `var int ID` | 1 | `property check_if_1(var int cyc_mod_2);` (verilator/test_regress/t/t_property_named.v) |
 | 78 | `vectored [ NUM` | 1 | `logic vectored [15:0] a = 0;` (sv-tests/tests/chapter-6/6.9.2--vector_vectored_inv.sv) |
 | 79 | `{ } endgroup` | 1 | `{}` (verilator/test_regress/t/t_covergroup_unsup.v) |
-| 80 | `|| ID inside` | 1 | `constraint B { w == 5; x inside {1,2} || x inside {4,5}; }` (verilator/test_regress/t/t_randomize_method_constraints.v) |
-| 81 | `~ ID ==` | 1 | `constraint unary { !(-~c == 'h22); }` (verilator/test_regress/t/t_constraint_operators.v) |
+| 80 | `~ ID ==` | 1 | `constraint unary { !(-~c == 'h22); }` (verilator/test_regress/t/t_constraint_operators.v) |
 

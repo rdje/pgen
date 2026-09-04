@@ -784,6 +784,182 @@ def self_test_host_memo_eviction() -> int:
 
 # ── CLI ─────────────────────────────────────────────────────────────────────────────────────────
 
+
+def introduced_wrapper_frames(base: dict[str, dict[str, int]], new: dict[str, dict[str, int]],
+                              edges: dict[str, list[str]], introduced: list[str],
+                              d_committed: int, base_edges: dict[str, list[str]] | None = None
+                              ) -> tuple[bool, str, dict]:
+    """`(holds, one-line detail, facts)` for the INTRODUCED-WRAPPER-FRAMES predicate
+    (`SV-CORPUS-GRAD.3.41`).
+
+    THE SHAPE. A grammar change LIFTS an inline group into a NEW rule — a wrapper — because the
+    engine types the inline group wrongly (`ENGINE-UNIVERSAL-SERVICES.96`), or because a chain
+    element has to be a rule to carry its own return annotation. The wrapper commits ONE frame per
+    commit of the body it wraps: `expression_chain_step` (the operand chain's step, the binary
+    triple | `inside_operator`) commits once per binary operator the sampled corpus accepts, so
+    `committed` ROSE +29,653 while `entries` (-326,690) and `memo_hits` (-761,739) FELL — the
+    grouped `inside_expression` it retired had re-parsed its whole left operand at every
+    expression. Measured on `.3.41`: risers in `committed` are EXACTLY the introduced names
+    (`expression_chain_step` +29,697, `inside_operator` +4, `inside_operator_sv_2017` +4); thirteen
+    pre-existing rules of the retired nested derivation fell by 4 each; no pre-existing rule
+    committed more.
+
+    ⛔ WHY THE OTHER EIGHT CANNOT COVER IT. The three arithmetic identities and `host_memo_eviction`
+    need `committed` flat; `contained_in_introduced_subgraph` refuses `Δcommitted > 0` and any fall;
+    `profile_split_respelling` refuses ANY pre-existing rise (`trivia` and `kw_inside` rise here —
+    the set's terminal is now tried at every chain step); `caller_split_containment` needs
+    `committed` CONSERVED in total; `declared_alternatives_net_of_retired_work` asserts (5)
+    `committed` did not rise. Every one of them is RIGHT to refuse a `committed` rise on a
+    pre-existing rule; none of them describes a rise that sits purely on a wrapper's own frames.
+
+    ⭐ WHAT THIS ONE ASSERTS, per rule and over the run:
+      (1) `introduced` is declared and non-empty, every declared name is measured or in the graph,
+          and no declared name is a PRE-EXISTING NONTERMINAL — a nonterminal's rise cannot be
+          waived by declaring it (raises `Refused`, never a false verdict);
+      (2) every rule name NEW to the measurement (absent from the baseline table AND from the
+          baseline's reference graph) is declared as introduced;
+      (3) NO pre-existing rule's `committed` ROSE — accepted derivations got no dearer anywhere
+          the parser already accepted them;
+      (4) every introduced NONTERMINAL commits at most as often as the rules it references
+          (`trivia` excluded) commit in total — a wrapper frame is never committed without a
+          frame of something it wraps; an introduced rule that references nothing is refused;
+      (5) the run's total `Δcommitted` equals the introduced rules' commits net of every commit the
+          pre-existing and retired rules lost — the per-rule table and the totals agree, so the
+          row's exact from/to is the wrapper's own arithmetic and nothing else;
+      (6) every pre-existing rule whose ENTRIES rose (terminals and `trivia` included) is COVERED:
+          the sum of those rises is at most the sum of the entry falls on pre-existing and retired
+          rules — the change retired more speculation than it added.
+
+    ⚠️⚠️ HONEST BOUND, stated where it will be read: this proves the new frames are the wrapper's
+    own and that nothing pre-existing got dearer. It does NOT prove the wrapper is unavoidable —
+    it is exactly the cost of the `.96` workaround, and the inline spelling (byte-identical trees
+    once `.96` types nested alternations as passthrough) would retire every one of these frames.
+    Say so in the row's `why`, and name the leaf that removes it.
+    """
+    if not introduced:
+        raise Refused("the introduced-wrapper predicate needs the rule names the change INTRODUCED; "
+                      "the acceptance row declares none, so the new frames are unattributed")
+    declared = list(dict.fromkeys(introduced))
+    known_before = set(base) | (set(base_edges) if base_edges is not None else set())
+    for r in declared:
+        if r not in new and r not in edges:
+            raise Refused(f"`{r}` is declared as introduced but the measured grammar has no such rule")
+        if r in known_before:
+            refs = [x for x in edges.get(r, []) if x != "trivia"]
+            if refs:
+                raise Refused(f"`{r}` pre-existed and is a NONTERMINAL — `introduced` may name new rules "
+                              f"and the terminals they consult; declaring a pre-existing nonterminal "
+                              f"would waive real work on it")
+    facts: dict = {"introduced": declared}
+    undeclared_new = sorted(r for r in new if r not in known_before and r not in declared)
+    facts["undeclared_new"] = undeclared_new
+    if undeclared_new:
+        return False, (f"{len(undeclared_new)} rule name(s) new to the measurement are not declared as "
+                       f"introduced: " + " ".join(undeclared_new[:5])), facts
+    dc = {r: new.get(r, {}).get("committed", 0) - base.get(r, {}).get("committed", 0)
+          for r in (set(base) | set(new))}
+    pre_rose = sorted((r, v) for r, v in dc.items() if v > 0 and r not in declared)
+    facts["pre_existing_committed_risers"] = pre_rose
+    if pre_rose:
+        return False, (f"{len(pre_rose)} pre-existing rule(s) COMMIT more than before: "
+                       + " ".join(f"{r} {v:+,}" for r, v in pre_rose[:5])), facts
+    over = []
+    for r in declared:
+        if r in known_before:
+            continue
+        refs = [x for x in edges.get(r, []) if x != "trivia"]
+        if r not in edges:
+            continue
+        if not refs:
+            raise Refused(f"introduced rule `{r}` references nothing — a wrapper wraps something")
+        own = new.get(r, {}).get("committed", 0)
+        wrapped = sum(new.get(x, {}).get("committed", 0) for x in refs)
+        if own > wrapped:
+            over.append((r, own, wrapped))
+    facts["wrapper_over_wrapped"] = over
+    if over:
+        r, own, wrapped = over[0]
+        return False, (f"introduced `{r}` committed {own:,} frames but the rules it wraps committed only "
+                       f"{wrapped:,} in total — a wrapper frame without a wrapped one"), facts
+    intro_commits = sum(new.get(r, {}).get("committed", 0) for r in declared if r not in known_before)
+    lost = sum(-v for r, v in dc.items() if v < 0)
+    facts["introduced_commits"] = intro_commits
+    facts["commits_lost_elsewhere"] = lost
+    if intro_commits - lost != d_committed:
+        return False, (f"the per-rule table says committed moved {intro_commits - lost:+,} (introduced "
+                       f"{intro_commits:,} net of {lost:,} lost elsewhere) but the run's total moved "
+                       f"{d_committed:+,} — the row's from/to is not this table's arithmetic"), facts
+    de = {r: new.get(r, {}).get("entries", 0) - base.get(r, {}).get("entries", 0)
+          for r in (set(base) | set(new))}
+    pre_entry_rise = sum(v for r, v in de.items() if v > 0 and r not in declared)
+    entry_falls = sum(-v for v in de.values() if v < 0)
+    facts["pre_existing_entry_rise"] = pre_entry_rise
+    facts["entry_falls"] = entry_falls
+    if pre_entry_rise > entry_falls:
+        return False, (f"pre-existing rules rose {pre_entry_rise:+,} entries in total while the change "
+                       f"retired only {entry_falls:,} elsewhere — the rise is not covered by moved work"), facts
+    return True, (f"introduced {' '.join(declared)} commit {intro_commits:,} frames, each bounded by the "
+                  f"rules it wraps; {lost:,} commits retired elsewhere (Δcommitted {d_committed:+,}); no "
+                  f"pre-existing rule commits more; pre-existing entry rises {pre_entry_rise:+,} covered by "
+                  f"{entry_falls:,} retired entries"), facts
+
+
+def self_test_introduced_wrapper_frames() -> int:
+    """Arms for the INTRODUCED-WRAPPER-FRAMES predicate — every refusal and failure shape, no parser."""
+    def row(e, c, m):
+        return {"entries": e, "committed": c, "memo_hits": m}
+    # the founding shape in miniature: `old` (grouped, re-parses `chain`) retired; `w` (wrapper) + `op` new
+    edges = {"chain": ["operand", "w"], "w": ["binop", "operand", "op"], "op": ["kw", "set"],
+             "binop": ["trivia"], "kw": ["trivia"], "operand": ["trivia"], "set": ["trivia"],
+             "trivia": [], "other": ["trivia"]}
+    base_edges = {"chain": ["operand", "binop", "old"], "old": ["chain", "kw", "set"], "binop": ["trivia"],
+                  "kw": ["trivia"], "operand": ["trivia"], "set": ["trivia"], "trivia": [], "other": ["trivia"]}
+    base = {"chain": row(1000, 100, 500), "old": row(800, 4, 400), "binop": row(700, 40, 250),
+            "operand": row(460, 250, 70), "kw": row(345, 4, 0), "set": row(10, 4, 0),
+            "trivia": row(90000, 1000, 88000), "other": row(50, 5, 10)}
+    new = {"chain": row(600, 96, 100), "w": row(400, 40, 10), "op": row(390, 4, 1),
+           "binop": row(690, 40, 240), "operand": row(459, 246, 69), "kw": row(396, 4, 0),
+           "set": row(10, 4, 0), "trivia": row(90050, 996, 88050), "other": row(50, 5, 10)}
+    def d_committed(b, n):
+        return sum(v["committed"] for v in n.values()) - sum(v["committed"] for v in b.values())
+    arms, failed = [], []
+    def arm(name, cond):
+        arms.append(name); print(f"  {'✓' if cond else '✗'} {name}")
+        if not cond: failed.append(name)
+    h, d, f = introduced_wrapper_frames(base, new, edges, ["w", "op"], d_committed(base, new), base_edges)
+    arm("holds: the founding shape — wrapper + new op commit, the grouped rule retired, nothing pre-existing commits more", h and f["introduced_commits"] == 44)
+    n2 = {k: dict(v) for k, v in new.items()}; n2["binop"]["committed"] = 41
+    h, d, f = introduced_wrapper_frames(base, n2, edges, ["w", "op"], d_committed(base, n2), base_edges)
+    arm("fails: a PRE-EXISTING rule commits more", not h and f["pre_existing_committed_risers"] == [("binop", 1)])
+    h, d, f = introduced_wrapper_frames(base, new, edges, ["w"], d_committed(base, new), base_edges)
+    arm("fails: an undeclared new rule (op)", not h and f["undeclared_new"] == ["op"])
+    n3 = {k: dict(v) for k, v in new.items()}; n3["w"]["committed"] = 300
+    h, d, f = introduced_wrapper_frames(base, n3, edges, ["w", "op"], d_committed(base, n3), base_edges)
+    arm("fails: the wrapper commits MORE than the rules it wraps", not h and f["wrapper_over_wrapped"][0][0] == "w")
+    h, d, f = introduced_wrapper_frames(base, new, edges, ["w", "op"], d_committed(base, new) + 1, base_edges)
+    arm("fails: the row's Δcommitted is not the table's arithmetic", not h and "not this table's arithmetic" in d)
+    n4 = {k: dict(v) for k, v in new.items()}; n4["other"]["entries"] = 5000
+    h, d, f = introduced_wrapper_frames(base, n4, edges, ["w", "op"], d_committed(base, n4), base_edges)
+    arm("fails: pre-existing entry rises NOT covered by the retired entries", not h and "not covered" in d)
+    try:
+        introduced_wrapper_frames(base, new, edges, [], d_committed(base, new), base_edges); arm("refuse: empty scope", False)
+    except Refused: arm("refuse: empty scope", True)
+    try:
+        introduced_wrapper_frames(base, new, edges, ["w", "op", "chain"], d_committed(base, new), base_edges); arm("refuse: a declared PRE-EXISTING nonterminal", False)
+    except Refused: arm("refuse: a declared PRE-EXISTING nonterminal", True)
+    try:
+        introduced_wrapper_frames(base, new, edges, ["w", "op", "zz"], d_committed(base, new), base_edges); arm("refuse: a declared name the grammar lacks", False)
+    except Refused: arm("refuse: a declared name the grammar lacks", True)
+    e2 = dict(edges); e2["w"] = []
+    try:
+        introduced_wrapper_frames(base, new, e2, ["w", "op"], d_committed(base, new), base_edges); arm("refuse: an introduced rule that wraps nothing", False)
+    except Refused: arm("refuse: an introduced rule that wraps nothing", True)
+    h, d, f = introduced_wrapper_frames(base, new, edges, ["w", "op", "kw"], d_committed(base, new), base_edges)
+    arm("holds: a pre-existing TERMINAL may be declared (it is never waived work)", h)
+    print(f"INTRODUCED-WRAPPER-FRAMES-SELFTEST: arms={len(arms)} failed={len(failed)}")
+    return 1 if failed else 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--graph", metavar="EBNF",
@@ -800,7 +976,8 @@ def main() -> int:
 
     try:
         if a.self_test:
-            return self_test_host_memo_eviction() | self_test_caller_split_containment() | self_test_advanced_files_only()
+            return (self_test_host_memo_eviction() | self_test_caller_split_containment()
+                    | self_test_advanced_files_only() | self_test_introduced_wrapper_frames())
 
         if a.graph:
             g = derive_graph(a.graph)

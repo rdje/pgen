@@ -1,0 +1,9 @@
+@entry: true
+s := t -> {kind: "tagged", body: $1}
+   | o step* -> {kind: "chain", first: $1, rest: $2}
+step := op o
+      | q
+t := "T"
+o := /[a-z]/
+op := "+"
+q := "!" -> {kind: "q"}

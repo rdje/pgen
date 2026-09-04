@@ -7,9 +7,9 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `a512dd14964e71c0277f366d5118ba34d90eccac3467252136febb7a23faa578` |
-| grammar | `grammars/systemverilog.ebnf` | `4965b4059b06ad19eccf1cbeedebd49e1bcd967f2e2f781549a9aebf2bb13d9b` |
-| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `e830b75e0f1d606554217c924bcf8a9c44952e2ff162de58326eb764216f33ff` |
+| worklist | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv` | `37827933c25039f781b5f88592a7a06c35468fd3a596682ba67896cb74dd2f23` |
+| grammar | `grammars/systemverilog.ebnf` | `e35e0198b023407a2edcf9daca326cb0fe91f1a3c265ecdef4a83cd09caad183` |
+| residual adjudication | `stimuli/sv/adjudication_repros/RESIDUAL_ROWS.tsv` | `b58c2d7f916626171dc8c1a3efad583ff0f2d6fe3648bba55e8b1c3b56c0ae5b` |
 
 ## Verdicts
 
@@ -19,9 +19,8 @@
 | `INVALID-SV` | 11 | the text is NOT legal SV; the rejection is CORRECT and accepting it would be an over-acceptance defect (pinned as a negative reproducer) |
 | `CROSS-FILE-FACTS` | 9 | declaring the cross-file names the parser demanded makes the file PARSE ⇒ blocked by cross-file FACT continuity (`.4`), NOT a parser defect |
 | `FRAGMENT-MODULE` | 2 | parses only inside a `module` ⇒ an include payload, not a legal standalone compilation unit |
-| `DEFECT` | 1 | ⭐ valid SV that PGEN REJECTS — pinned by a minimal reproducer under `stimuli/sv/adjudication_repros/`, re-run by `stimuli/sv/run_adjudication_repros.py` |
 | `FRAGMENT-ENUM-BODY` | 1 | an enum-member list included INSIDE an `enum { … }` — no compilation-unit wrapper can shape it |
-| **TOTAL** | **54** | |
+| **TOTAL** | **53** | |
 
 ## Per row
 
@@ -40,7 +39,6 @@ re-run it and you get the same verdict, or the row is wrong. A `DEFECT` /
 | `CROSS-FILE-FACTS` | opentitan | `hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv` | 24 | none | `t_Counteren,t_MainMode,t_MainResult,t_Mcause,t_Minterrupts,t_Mseccfg_ent,t_Mstatus,t_Mtvec,t_Pmpcfg_ent,t_Privilege` |
 | `CROSS-FILE-FACTS` | uvm-core | `uvm-core-2020.3.1/src/base/uvm_port_base.svh` | 75 | none | `uvm_component,uvm_coreservice_t,uvm_object,uvm_phase,uvm_port_type_e,uvm_root,uvm_void` |
 | `CROSS-FILE-FACTS` | uvm-core | `uvm-core-2020.3.1/src/comps/uvm_policies.svh` | 147 | none | `uvm_object` |
-| `DEFECT` | Cores-VeeR-EL2 | `testbench/ahb_lite_2to1_mux.sv` | 99 | — | `rejects_valid_inside_before_binary_operator.sv` |
 | `FRAGMENT-ENUM-BODY` | opentitan | `hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv` | 2 | — | the whole file is `CUSTOM_1,` — an enum-member list included INSIDE an `enum { … }`, so no wrapper in the ladder can shape it |
 | `FRAGMENT-MODULE` | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_m.svh` | 87 | module |  |
 | `FRAGMENT-MODULE` | Cores-VeeR-EL2 | `design/include/el2_dec_csr_equ_mu.svh` | 104 | module |  |

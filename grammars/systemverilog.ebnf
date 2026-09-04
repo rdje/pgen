@@ -439,13 +439,36 @@ expression_operand := unary_operator attribute_instance* primary
 
 expression_base := tagged_union_expression
                         -> {kind: "tagged_union",   body: $1}
-                | expression_operand ( binary_operator attribute_instance* expression_operand )*
+                | expression_operand expression_chain_step*
                         -> {kind: "operand_chain",  first: $1, rest: $2}
                 | lparen operator_assignment rparen
                         -> {kind: "paren_op_assign", body: $2}
 
+# SV-CORPUS-GRAD.3.41 — one step of `expression_base`'s operand chain: a binary operator with its
+# right operand (the `[ binary_operator, [attribute_instance …], expression_operand ]` triple every
+# consumer of `rest` has read since SV-Slice-46), or the set-membership operator with its set
+# (`inside_operator`, an object). ⛔ Deliberately UNANNOTATED, so the triple passes through as the
+# same three-element array it was when the group was spelled inline. ⛔ And deliberately a RULE
+# rather than an inline `( … | inside_operator )*` group inside `expression_base`: spelled inline,
+# the interpreter typed the first binary step of `y = b & c | d ^ e;` as
+# `{kind: "tagged_union", body: {kind: "bitwise_and"}}` — the enclosing rule's alternative-0
+# template applied to the inner alternation's branch 0 (measured 2026-09-04, interpreter AST JSON
+# HEAD vs candidate on an inside-free control; routed to ENGINE-UNIVERSAL-SERVICES).
+expression_chain_step := binary_operator attribute_instance* expression_operand
+                       | inside_operator
+
+# SV-CORPUS-GRAD.3.41 — `inside` is a CHAIN ELEMENT of `expression_base`'s operand chain, not a
+# wrapper around its left operand. IEEE 1800-2017 A.8.3 derives `expression binary_operator expression`
+# with `inside_expression ::= expression inside { open_range_list }` as either side, and Table 11-2
+# (11.3.2) puts `inside` on the relational row — ABOVE `==`, `&`, `^`, `|`, `&&`, `||`. This grammar
+# flattens the binary hierarchy into ONE operand chain whose precedence is the consumer's to apply,
+# so the only precedence-neutral spelling of `inside` is a chain element: `a inside {..} & ~b` is
+# the chain [a, inside{..}, &, ~b] and `b & a inside {..}` is [b, &, a, inside{..}]. Until 1.0.212 the
+# grouped `inside_expression` sat here as a sibling of `expression_base`, which (i) REJECTED an
+# inside expression as the LEFT operand of any binary operator (the chain could not continue past
+# the `}`) and (ii) derived `b & a inside {..}` as `(b & a) inside {..}` — a wrong tree on accepted
+# text. Both are one defect: an operator encoded outside the chain. Schema 26 -> 27.
 expression := @probe_sample: "1" expression_base -> {kind: "base",        body: $1}
-            | inside_expression                  -> {kind: "inside",      body: $1}
             | conditional_expression             -> {kind: "conditional", body: $1}
 
 identifier := escaped_identifier -> {body: $1}
@@ -2820,22 +2843,15 @@ expect_property_statement := kw_expect_ff93c451 lparen property_spec rparen acti
 # SV-EXH-PROOF.3.3.4.b.6.2.37.7 — per IEEE 1800 §A.6.6:
 #   cond_predicate ::= expression_or_cond_pattern { &&& expression_or_cond_pattern }
 #   expression_or_cond_pattern ::= expression | cond_pattern
-# The LRM uses `expression` (not `expression_base`). pgen had `expression_base`
-# directly here, which BYPASSED `expression`'s outer alternation
-# `expression := expression_base | inside_expression`. The consequence:
-# `if (x inside {…})` failed because cond_predicate couldn't reach
-# `inside_expression`.
-# CONSERVATIVE FIX (after a more invasive `expression_base → expression`
-# replacement caused a uvm_pkg furthest regression 1,278,335 → 191,248
-# during in-slice verification): KEEP `expression_base` as the first branch
-# (preserves the existing parse priority that the rest of the grammar
-# depends on transitively) and ADD `inside_expression` as a sibling
-# alternative so cond_predicate also reaches it directly. Surfaced by
-# `.37.6`'s 1,278,335 furthest at uvm_root::die where
-# `if (get_core_state() inside {UVM_CORE_PRE_ABORT,UVM_CORE_ABORTED})`
-# was unparseable.
-expression_or_cond_pattern := inside_expression -> {kind: "inside",       body: $1}
-                            | expression_base   -> {kind: "expression",   body: $1}
+# The LRM uses `expression` (not `expression_base`). pgen has `expression_base` directly here, and
+# `.37.7` added the grouped `inside_expression` as a sibling branch (kind "inside") so that
+# `if (x inside {…})` could parse at all. Since SV-CORPUS-GRAD.3.41 the `inside` set is a CHAIN
+# ELEMENT of `expression_base`'s operand chain (see `expression`), so the `expression_base` branch
+# reaches it directly and the sibling branch is retired with the rule. `expression_base` stays
+# FIRST rather than becoming `expression`: that more invasive replacement once cost a uvm_pkg
+# furthest regression 1,278,335 → 191,248 in-slice (`.37.7`), and the rest of the grammar depends
+# on this branch order transitively.
+expression_or_cond_pattern := expression_base   -> {kind: "expression",   body: $1}
                             | cond_pattern      -> {kind: "cond_pattern", body: $1}
 
 # IEEE 1800-2017 A.2.10: `expression_or_dist ::= expression [ dist { dist_list } ]`.
@@ -3220,28 +3236,23 @@ input_terminal := expression
                -> {body: $1}
 
 @profiles: ["sv_2017"]
-# SV-EXH-PROOF.3.3.4.b.6.2.37.6 — per IEEE 1800 §A.8.3:
-#   inside_expression ::= expression inside { open_range_list }
-# The LRM has literal `{` and `}` braces around the range list. The prior
-# pgen rule was `kw_inside open_range_list*` — MISSING the braces, and
-# wrapped in `*` (zero-or-more) which made the rule match `inside` followed
-# by nothing. Combined with the broken `value_range_sv_2017` (which also
-# matched empty), this caused `inside {[1:5]}` to fail — the `{[1:5]}` was
-# never recognised as the value list. Fix: require `lbrace ... rbrace`
-# literally; `open_range_list` (one-or-more) consumes the list inside.
-# Same fix shape for sv_2023's `range_list*`.
-# Surfaced by `.37.5`'s 1,121,290 furthest reaching uvm_phase::jump's
-# `phases.find(item) with (item.get_state() inside {[UVM_PHASE_STARTED:UVM_PHASE_CLEANUP]})`.
-inside_expression_sv_2017 := expression_base kw_inside_fcc53788 lbrace open_range_list rbrace
-                          -> {expr: $1, ranges: $4}
+# SV-CORPUS-GRAD.3.41 — the set-membership operator with its set, as ONE element of
+# `expression_base`'s operand chain (see `expression`). IEEE 1800-2017 A.8.3
+# `inside_expression ::= expression inside { open_range_list }`; the left operand is the chain
+# to its left, which is why this rule carries no `expr` of its own. The braces are LITERAL
+# SystemVerilog braces (SV-EXH-PROOF.3.3.4.b.6.2.37.6: the extraction once read them as
+# repetition metasyntax and `inside {[1:5]}` failed). 1800-2023 A.8.3 spells the set as
+# `range_list`; the two profile arms differ in exactly that.
+inside_operator_sv_2017 := kw_inside_fcc53788 lbrace open_range_list rbrace
+                        -> {kind: "inside", ranges: $3}
 
 @profiles: ["sv_2023"]
-inside_expression_sv_2023 := expression_base kw_inside_fcc53788 lbrace range_list rbrace
-                          -> {expr: $1, ranges: $4}
+inside_operator_sv_2023 := kw_inside_fcc53788 lbrace range_list rbrace
+                        -> {kind: "inside", ranges: $3}
 
 @profiles: ["sv_2017", "sv_2023"]
-inside_expression := inside_expression_sv_2017 -> {kind: "sv_2017", body: $1}
-                   | inside_expression_sv_2023 -> {kind: "sv_2023", body: $1}
+inside_operator := inside_operator_sv_2017 -> {kind: "sv_2017", body: $1}
+                 | inside_operator_sv_2023 -> {kind: "sv_2023", body: $1}
 
 inst_clause := kw_instance_c3bec6bc inst_name
             -> {name: $2}
