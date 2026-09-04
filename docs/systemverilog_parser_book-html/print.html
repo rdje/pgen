@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f5188773.js";
+            window.path_to_searchindex_js = "searchindex-1c9111c4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -2041,7 +2041,9 @@ or list it with a measured reason), never suppressed.</li>
 <li><strong>Downstream derivations</strong>: dark audit + dark worklist, verdict coverage, key provenance, the two
 keyword censuses (<code>--write</code>), <code>check_corpus_key_integrity.sh</code>, <code>check_identity_carriers.sh</code>,
 <code>check_sv_corpus_denominator.sh</code>, <code>report_family_status.sh --check-all</code> (re-splice the derived
-blocks), <code>systemverilog_parser_book_gate</code> (rebuilds the tracked HTML).</li>
+blocks), <code>report_grammar_certification.sh --markdown</code> (re-splice the per-grammar certification table —
+<code>GRAMMAR-CERT-CURRENCY</code> refuses when its inputs lead the table by more than ten commits, which is how
+1.0.209’s commit found two ceremonies had skipped it), <code>systemverilog_parser_book_gate</code> (rebuilds the tracked HTML).</li>
 <li><strong>Ceremony documents, in lockstep</strong>: the revision register row (digest → release → ledger id),
 the released-parser bug ledger row, the integration contract (current-state note, version,
 history, digest), this book’s changelog, the platform book’s anchors, the task leaf with its

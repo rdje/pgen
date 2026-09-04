@@ -360,7 +360,9 @@ each under the memory guard, sequentially.
 9. **Downstream derivations**: dark audit + dark worklist, verdict coverage, key provenance, the two
    keyword censuses (`--write`), `check_corpus_key_integrity.sh`, `check_identity_carriers.sh`,
    `check_sv_corpus_denominator.sh`, `report_family_status.sh --check-all` (re-splice the derived
-   blocks), `systemverilog_parser_book_gate` (rebuilds the tracked HTML).
+   blocks), `report_grammar_certification.sh --markdown` (re-splice the per-grammar certification table —
+   `GRAMMAR-CERT-CURRENCY` refuses when its inputs lead the table by more than ten commits, which is how
+   1.0.209's commit found two ceremonies had skipped it), `systemverilog_parser_book_gate` (rebuilds the tracked HTML).
 10. **Ceremony documents, in lockstep**: the revision register row (digest → release → ledger id),
     the released-parser bug ledger row, the integration contract (current-state note, version,
     history, digest), this book's changelog, the platform book's anchors, the task leaf with its

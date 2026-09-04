@@ -1,5 +1,20 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-04 - PGEN-SV-CORPUS-GRAD-0363 (a ruling on one edition's production carries over only when the production text is compared)
+
+- ⭐ **THE LESSON: AN INHERITED RULING IS A CLAIM ABOUT THE OTHER EDITION'S TEXT — COMPARE THE TEXT.** The 2023 lane inherited 226
+  `must_reject` rulings from the 2017 key; 38 of them cite a 1800-2017 production. "The same production" is only the same when its BODY
+  reads the same in 1800-2023 Annex A, so the instrument extracts both bodies from the in-repo LRM texts and compares them: 33 identical
+  (mechanical carry-over, the productions named in the basis), 5 different (read by hand — in every one the 2023 change did not touch the
+  reason the text has no derivation). Hands only for the diffs; the rest is a census.
+- **Extraction noise reads as a difference — normalise until the residue is real.** Three passes: IEEE footer/header lines and page numbers
+  swallowed into a body that runs to the next `::=`; section titles; footnote digits glued to a name (`this46`) or a bracket (`]15`) or
+  standing alone after the body; `.*` against `. *`; a name broken across a PDF line (`constant _expression`). Each was a self-test arm
+  before it was a fix, and the 7 "differs" of the first pass became 4 real ones.
+- **Cite the line range, not just the name, and let the instrument map it.** Ten bases cited only `section-41-data-read-api.md:N-M`; the
+  enclosing production of each cited line is the name to compare. A citation convention that a machine can follow is the one that
+  carries over.
+
 ## 2026-09-04 - PGEN-SV-CORPUS-GRAD-0362 (a standard's own example text outranks its Annex A, and the next edition's Annex A usually says so)
 
 - ⭐⭐ **THE LESSON: WHEN A STANDARD'S OWN EXAMPLE IS NOT DERIVABLE BY ITS ANNEX A, THE EXAMPLE IS THE SPEC AND THE OMISSION IS AN

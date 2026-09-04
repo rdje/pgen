@@ -4340,6 +4340,45 @@ SV2023_KEY_OVERRIDES[("verilator", "test_regress/t/t_param_type_fwd_bad.v")] = (
     "prose about the override's type - SEMANTIC. The .13x.d entry recorded this: on an sv_2023 lane this row is must_accept. "
     "ACCEPTS under sv_2023 (the .14a census).")
 REREAD_OWED = "its 1800-2023 re-read is owed (.14b.3)"
+PARITY_TSV = Path(__file__).resolve().parent.parent.parent / "docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/parity.tsv"
+_PARITY = None
+
+
+def parity_verdicts() -> dict:
+    """(suite, relpath) -> (verdict, productions) from the .14b.3 production-parity artifact — empty when absent."""
+    global _PARITY
+    if _PARITY is None:
+        _PARITY = {}
+        if PARITY_TSV.is_file():
+            for line in PARITY_TSV.read_text(encoding="utf-8").splitlines()[1:]:
+                s_, rel, verdict, prods = (line.split("\t") + ["", ""])[:4]
+                _PARITY[(s_, rel)] = (verdict, prods)
+    return _PARITY
+
+
+# .14b.3, the FIVE rows whose cited 1800-2017 production reads differently in 1800-2023 (or was renamed), each
+# re-read by hand against the 2023 text: in every case the 2023 change does not touch the reason the text
+# has no derivation, so the 2017 ruling CARRIES OVER with the 2023 production cited.
+SV2023_REREAD_BY_HAND = {
+    ("sv2v", "test/error/severity_task_arg.sv"):
+        f"1800-2023 renames the production: elaboration_severity_system_task ::= severity_system_task (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:283), severity_system_task ::= "
+        f"$fatal [ ( finish_number [ , list_of_arguments ] ) ] ; | ... (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:274) - the same shape as 2017's elaboration_system_task; "
+        "`$fatal(.x(\"x\"))` at module level still needs a finish_number (0 | 1 | 2) first, and a named argument is not one",
+    ("verilator", "test_regress/t/t_class_extends_bad.v"):
+        f"1800-2023 class_declaration ::= [ virtual ] class [ final_specifier ] class_identifier [ parameter_port_list ] [ extends class_type "
+        f"[ ( [ list_of_arguments | default ] ) ] ] ... (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:175) - still ONE class_type after `extends`; `extends Base1, Base2` has no derivation",
+    ("verilator", "test_regress/t/t_param_implicit_bad.v"):
+        f"1800-2023 parameter_port_declaration ::= parameter_declaration | local_parameter_declaration | data_type list_of_param_assignments | "
+        f"type_parameter_declaration (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:215) - `[7:0] PAR1 = 1` is a bare packed dimension, neither a data_type nor a type parameter",
+    ("verilator", "test_regress/t/t_param_type_bad.v"):
+        f"1800-2023 local_parameter_declaration ::= ... | localparam type_parameter_declaration (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:709), type_parameter_declaration ::= type "
+        f"[ forward_type ] list_of_type_assignments (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:721), type_assignment ::= type_identifier [ = data_type_or_incomplete_class_scoped_type ] "
+        f"(docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:1059) - `localparam type bad2 = 2;` assigns a NUMBER where a data type or an incomplete class-scoped type is required",
+    ("verilator", "test_regress/t/t_type_compare_bad.v"):
+        f"1800-2023 case_expression ::= expression (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:2234) and primary (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3079-3094) still carry no type_reference - it lives in "
+        f"constant_primary alone, as in 2017; a procedural `case (type(real))` has no derivation in either edition (the .3.32 partition "
+        "question is edition-independent)",
+}
 
 
 def key_2023(suite, rel, expected17, basis17):
@@ -4352,6 +4391,15 @@ def key_2023(suite, rel, expected17, basis17):
                 "sv_2023 lane (.14b.2): the 2017 key rules this row an EDITION CONTRAST and cites the IEEE 1800-2023 production "
                 "that derives the text - legal in the edition this lane judges. 2017 basis: " + basis17)
     if expected17 == "must_reject" and "section-41-data-read-api.md" in basis17:
+        if (suite, rel) in SV2023_REREAD_BY_HAND:
+            return (expected17,
+                    "sv_2023 lane (.14b.3): the 2017 ruling CARRIES OVER, re-read by hand against IEEE 1800-2023 Annex A because a "
+                    "cited 2017 production reads differently there - " + SV2023_REREAD_BY_HAND[(suite, rel)] + ". 2017 basis: " + basis17)
+        verdict, prods = parity_verdicts().get((suite, rel), ("", ""))
+        if verdict == "IDENTICAL":
+            return (expected17,
+                    "sv_2023 lane (.14b.3): the 2017 ruling CARRIES OVER mechanically - every 1800-2017 production the 2017 basis cites "
+                    "reads IDENTICALLY in 1800-2023 Annex A (production_parity.py: " + prods + "). 2017 basis: " + basis17)
         return (expected17,
                 "sv_2023 lane (.14b.2): INHERITED from the 2017 key - a must_reject on an IEEE 1800-2017 production; "
                 + REREAD_OWED + ", and until then this row's verdict is the 2017 lane's. 2017 basis: " + basis17)
@@ -4598,6 +4646,8 @@ def main():
         n_contrast = sum(1 for r in manifest23 if "rules this row an EDITION CONTRAST" in r[5])
         n_override = sum(1 for r in manifest23 if (r[0], r[1]) in SV2023_KEY_OVERRIDES)
         n_owed_prod = sum(1 for r in manifest23 if REREAD_OWED in r[5] and "on an IEEE 1800-2017 production" in r[5])
+        n_carried_mech = sum(1 for r in manifest23 if "CARRIES OVER mechanically" in r[5])
+        n_carried_hand = sum(1 for r in manifest23 if "CARRIES OVER, re-read by hand" in r[5])
         n_owed_suite = sum(1 for r in manifest23 if REREAD_OWED in r[5] and "suite's own oracle" in r[5])
         lines = []
         lines.append("# SV external-corpus adjudication - the sv_2023 profile lane (leaf SV-CORPUS-GRAD.14b.2)")
@@ -4631,6 +4681,11 @@ def main():
                      f"crash {tot23.get('divergence:unexplained_crash', 0)})** - a separate arm from the sv_2017 "
                      "baseline over the same files.")
         lines.append("")
+        lines.append(f"✅ **Re-read under 1800-2023 (.14b.3):** {n_carried_mech} inherited `must_reject` rulings carry over MECHANICALLY - every "
+                     "1800-2017 production their 2017 basis cites reads identically in 1800-2023 Annex A (`production_parity.py`, its artifact "
+                     f"`docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/parity.md`) - and {n_carried_hand} carry over BY HAND with the changed 2023 "
+                     "production cited in the basis.")
+        lines.append("")
         lines.append(f"⚠️ **What this lane has NOT judged for itself, stated rather than hidden:** {n_owed_prod} `must_reject` "
                      "rows are INHERITED from a 1800-2017 production the 2017 key cites, and "
                      f"{n_owed_suite} from a suite's own 2017-era oracle; each carries the marker `{REREAD_OWED}` in its basis. "
@@ -4644,7 +4699,7 @@ def main():
         print(f"sv2023 summary:  {args.out_summary_sv2023}")
         print(f"sv2023: match={m3} unexplained={u3} explained={e3} deferred={d3} "
               f"edition_contrasts={n_contrast} explicit_2023_readings={n_override} "
-              f"inherited_reject_reread_owed={n_owed_prod}+{n_owed_suite}")
+              f"inherited_reject_reread_owed={n_owed_prod}+{n_owed_suite} carried_over={n_carried_mech}+{n_carried_hand}")
     else:
         print("sv2023 results absent - run `stimuli/run_external_corpus.sh sv2023` to produce them; "
               "sv2023 manifest skipped")

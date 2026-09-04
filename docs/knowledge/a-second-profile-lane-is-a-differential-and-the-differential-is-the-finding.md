@@ -9,6 +9,7 @@ answers:
   - "a must_reject row parses under sv_2023 — is that a 2023 over-acceptance"
   - "the first run of a new corpus lane refused on parameter drift or fell to the debug probe — how does provenance inheritance work"
   - "my census joined the raw dumps against the manifest and every row read (not in manifest)"
+  - "how do I carry a must_reject ruling from the sv_2017 lane to the sv_2023 lane (production parity between IEEE 1800-2017 and 1800-2023 Annex A)"
 tags: [sv-corpus, sv_2023, edition-contrast, profiles, census, provenance, systemverilog, lanes]
 date: 2026-09-04
 status: current
@@ -45,6 +46,11 @@ adjudication class on the lane that has a key.**
   nine edition contrasts in the 2017 bar (`151 → 142`). An edition-relative key is the older key plus:
   contrasts flip to `must_accept`; explicit newer-edition readings for text the newer edition derives
   whose upstream failure is semantic; everything else inherited with a marker the summary COUNTS.
+- **An inherited ruling carries over only when the production TEXT is compared.** A `must_reject` on a
+  1800-2017 production is a 2023 ruling only if that production reads the same in 1800-2023 Annex A:
+  `production_parity.py` extracts both bodies from the in-repo LRM texts, normalises PDF furniture,
+  footnote digits and spacing, and compares — 33 of 38 identical (mechanical carry-over), 5 read by hand
+  with the changed 2023 production cited. Hands only for the diffs.
 - **Join on the producer's convention and assert the join.** The manifest keys a file relative to its
   suite; the raw dumps carry repo-relative paths. A census that joined on the wrong one printed
   *(not in manifest)* for every row — a number that read like a fact. A row absent from the manifest
