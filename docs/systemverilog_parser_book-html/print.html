@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-36549ecc.js";
+            window.path_to_searchindex_js = "searchindex-8dc62d25.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -258,16 +258,16 @@ inapplicable one.</li>
 <tr><th>Outcome</th><th style="text-align: right">Rows</th><th style="text-align: right">Share of the corpus</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">5 959</td><td style="text-align: right">36.5 %</td></tr>
+<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">5 960</td><td style="text-align: right">36.5 %</td></tr>
 <tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 495</td><td style="text-align: right">9.2 %</td></tr>
-<tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">102</td><td style="text-align: right">0.6 %</td></tr>
+<tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">101</td><td style="text-align: right">0.6 %</td></tr>
 <tr><td>Routed to another lane’s manifest</td><td style="text-align: right">2 606</td><td style="text-align: right">16.0 %</td></tr>
 <tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">6 174</td><td style="text-align: right">37.8 %</td></tr>
 <tr><td>Total</td><td style="text-align: right">16 336</td><td style="text-align: right">100.0 %</td></tr>
 </tbody>
 </table>
 </div>
-<p>Only <strong>7 556 rows (46.3 %)</strong> were asked a question they could answer, and <strong>4 016</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 5959/7556 would quietly drop the 37.8 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
+<p>Only <strong>7 556 rows (46.3 %)</strong> were asked a question they could answer, and <strong>4 016</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 5960/7556 would quietly drop the 37.8 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
@@ -2123,6 +2123,26 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10212--contract-10212--sv-corpus-grad340--336-pgen-sv-corpus-grad-0367-2026-09-04-ledger-sv-0085-released"><a class="header" href="#10212--contract-10212--sv-corpus-grad340--336-pgen-sv-corpus-grad-0367-2026-09-04-ledger-sv-0085-released">1.0.212 / Contract 1.0.212 — SV-CORPUS-GRAD.3.40 + .3.36 (<code>PGEN-SV-CORPUS-GRAD-0367</code>, 2026-09-04), ledger <code>SV-0085</code> (<code>Released</code>):</a></h3>
+<p>⭐ <strong><code>local::</code> before a subroutine call inside <code>randomize() with { … }</code> parses again.</strong> Release 1.0.211 reserved
+Annex B’s 248 words and gave <code>local ::</code> the A.8.4 <code>class_qualifier</code> production on the OPERAND surface (<code>x &lt; local::x</code>);
+it thereby narrowed the one legal text that had only ever parsed with <code>local</code> bound as an identifier —
+<code>get_x() == local::get_x()</code> (verilator <code>t_randomize_method_with_scoping.v:70</code>). IEEE 1800-2017 §18.7.1 applies the
+qualifier to <em>an identifier within an in-line constraint</em> and lets it <em>qualify class scopes and type names</em>, and Annex A
+simply has no <code>tf_call</code> production for it — an Annex gap, not a prohibition. The scoped tf-name rule
+(<code>scoped_or_hierarchical_tf_identifier</code>) gains the same <code>local :: [ this. | C:: ]</code> arm, so <code>local::get_x()</code>,
+<code>local::get_c().c1_f</code>, <code>local::K::m()</code> and <code>local::this.f()</code> derive at every call site (expression, postfix chain, bare
+call). In the same release the dead <code>block_data_type_or_implicit</code> (orphaned when <code>.3.35</code> split its callers under
+footnote 6) is deleted — <code>1576 → 1575</code> rules — and the syntax-closure allow-list returns to <code>casting_type</code> alone.
+Grammar tier only; <code>verilog_2005</code> is untouched (IEEE 1364-2005 has no <code>local::</code>).</p>
+<p><strong>AST impact — one kind added, nothing removed or renamed.</strong> A tf-call name may now be
+<code>{kind: "local_scope", scope: &lt;instance | class_scope | null&gt;, name: …}</code> beside the existing <code>class_scope</code> and
+<code>package_scope</code> kinds, and only on text that had no derivation before, so no existing tree moves: the primary-position
+<code>local::x</code> and the unqualified call chain are byte-identical HEAD vs new, every legal control keeps its kind multiset.
+Schema <strong>26 unchanged</strong>. The accept set WIDENS on <code>sv_2017</code> and <code>sv_2023</code> by exactly the <code>local::</code>-before-a-call family.</p>
+<p><strong>Corpus proof</strong>, per path, three lanes: <code>sv_2017</code> exactly <strong>one</strong> row <code>fail → pass</code> (the verilator row), <strong>0</strong> <code>pass → fail</code>, pass <code>9 780 → 9 781</code>, match <code>5 959 → 5 960</code>, unexplained <strong><code>102 → 101</code></strong>; <code>sv_2023</code> the same row, pass <code>9 801 → 9 802</code>, match <code>5 951 → 5 952</code>, unexplained <code>102 → 101</code>; <code>verilog_2005</code> <strong>0</strong> moved; 0 timeouts; the store-gate memo dropped exactly the two rows for the file that now parses and no other verdict moved; the sv_2017 × sv_2023 census <code>both_pass 9 780 → 9 781</code>, <code>2017_only_pass 0</code>. Pins: <code>fixed_local_scope_subroutine_call.sv</code> (five spellings) ACCEPT on both SV profiles; ratchet <code>checked=586 armed=81 listed=326 failures=0</code>. <strong>Gates</strong>: <code>sv_syntax_closure_gate</code> GREEN — <code>unreachable_rules 2 → 1</code>, <code>unreachable_branches 4 → 2</code>, re-stamped; <code>sv_cert_recognized_union_gate</code> GREEN — canonical <code>1432/8/1411/13</code>, union witness <code>1424</code> / UNKNOWN <code>0</code>, residual <code>[]</code>, deterministic across seeds <code>[0,7,42]</code>, <code>sample_parse_failures=0</code>, re-stamped (18 m 2 s under the guard, peak 6 756 MB; expectations set from the gate’s own seed-0 run — <code>total 1433 → 1432</code>, <code>proof 9 → 8</code>: the deleted dead rule had counted as a PROOF rule since 1.0.210; witness and UNKNOWN unchanged); <code>verilog_2005_conformance_gate</code> GREEN — cert <code>1141/378/749/14</code> (samples 40, deterministic across seeds <code>[0,7,42]</code>, <code>spf=0 prf=0</code>), lint orphans 0, corpus <code>363</code> checks / <code>0</code> mismatches, aliases 2, re-stamped (39 m 30 s under the guard, peak 12 175 MB; expectations set from the gate’s own seed-0 run — <code>total 1142 → 1141</code>, <code>proof 379 → 378</code>, the deleted dead rule, which had no <code>@profiles</code> and so counted as a proof rule under this profile too; the <code>local ::</code> arm is gated out of it and the lane moved 0 rows); <code>ast_shape_contract_gate</code> <code>ast_shape_contract_gate</code> GREEN — <code>18 passed; 0 failed</code> (3 m 57 s under the guard, peak 8 500 MB); reproducibility <code>check_generated_reproducibility.sh --rebaseline</code> TIER 2 — every family re-derives byte-identically from HEAD, baseline rewritten (1 m 21 s, peak 1 954 MB). <code>PARSE-COST-RATCHET</code>: <code>entries</code> ROSE <code>401 665 513 → 402 867 861</code> (+0.30 %) and <code>memo_hits</code> <code>175 830 693 → 176 431 867</code> (+0.34 %) with <code>committed</code> FLAT at <code>6 712 187</code> — <code>Δentries == 2 × Δmemo_hits</code> exactly, one unmatched terminal alternative (the <code>kw_local</code> body plus its memoized <code>trivia</code> prefix wherever the scoped tf-name rule is tried), ACCEPTED under <code>unmatched_terminal_alternatives</code>; family share <code>2.671 → 2.664 %</code>; <code>sv_parse_cost_ratchet</code> OK — identity fresh for the generated parser, grammar raw ast, instrument and 192 pinned sample files; the wall-clock advisory +7.5 % within the ±50 % band on a loaded host.
+Residue unchanged: <code>.3.41</code> (<code>inside</code>/<code>dist</code> at relational precedence), <code>.3.38</code> (footnote 20), <code>.3.39</code> (typed directive
+arguments); the bar stands at 101.</p>
 <h3 id="10211--contract-10211--sv-corpus-grad337--13z-pgen-sv-corpus-grad-0366-2026-09-04-ledger-sv-0084-released"><a class="header" href="#10211--contract-10211--sv-corpus-grad337--13z-pgen-sv-corpus-grad-0366-2026-09-04-ledger-sv-0084-released">1.0.211 / Contract 1.0.211 — SV-CORPUS-GRAD.3.37 + .13z (<code>PGEN-SV-CORPUS-GRAD-0366</code>, 2026-09-04), ledger <code>SV-0084</code> (<code>Released</code>):</a></h3>
 <p>⭐ <strong>Every word IEEE 1800-2017 Annex B reserves is now refused as an identifier — 248 words, derived from the
 LRM text, where the grammar had reserved a hand-typed 173.</strong> <code>new</code>, <code>this</code>, <code>super</code>, <code>null</code>, <code>static</code>, <code>var</code>,

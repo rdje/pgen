@@ -34,6 +34,30 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.212 / Contract 1.0.212 — SV-CORPUS-GRAD.3.40 + .3.36 (`PGEN-SV-CORPUS-GRAD-0367`, 2026-09-04), ledger `SV-0085` (`Released`):
+
+⭐ **`local::` before a subroutine call inside `randomize() with { … }` parses again.** Release 1.0.211 reserved
+Annex B's 248 words and gave `local ::` the A.8.4 `class_qualifier` production on the OPERAND surface (`x < local::x`);
+it thereby narrowed the one legal text that had only ever parsed with `local` bound as an identifier —
+`get_x() == local::get_x()` (verilator `t_randomize_method_with_scoping.v:70`). IEEE 1800-2017 §18.7.1 applies the
+qualifier to *an identifier within an in-line constraint* and lets it *qualify class scopes and type names*, and Annex A
+simply has no `tf_call` production for it — an Annex gap, not a prohibition. The scoped tf-name rule
+(`scoped_or_hierarchical_tf_identifier`) gains the same `local :: [ this. | C:: ]` arm, so `local::get_x()`,
+`local::get_c().c1_f`, `local::K::m()` and `local::this.f()` derive at every call site (expression, postfix chain, bare
+call). In the same release the dead `block_data_type_or_implicit` (orphaned when `.3.35` split its callers under
+footnote 6) is deleted — `1576 → 1575` rules — and the syntax-closure allow-list returns to `casting_type` alone.
+Grammar tier only; `verilog_2005` is untouched (IEEE 1364-2005 has no `local::`).
+
+**AST impact — one kind added, nothing removed or renamed.** A tf-call name may now be
+`{kind: "local_scope", scope: <instance | class_scope | null>, name: …}` beside the existing `class_scope` and
+`package_scope` kinds, and only on text that had no derivation before, so no existing tree moves: the primary-position
+`local::x` and the unqualified call chain are byte-identical HEAD vs new, every legal control keeps its kind multiset.
+Schema **26 unchanged**. The accept set WIDENS on `sv_2017` and `sv_2023` by exactly the `local::`-before-a-call family.
+
+**Corpus proof**, per path, three lanes: `sv_2017` exactly **one** row `fail → pass` (the verilator row), **0** `pass → fail`, pass `9 780 → 9 781`, match `5 959 → 5 960`, unexplained **`102 → 101`**; `sv_2023` the same row, pass `9 801 → 9 802`, match `5 951 → 5 952`, unexplained `102 → 101`; `verilog_2005` **0** moved; 0 timeouts; the store-gate memo dropped exactly the two rows for the file that now parses and no other verdict moved; the sv_2017 × sv_2023 census `both_pass 9 780 → 9 781`, `2017_only_pass 0`. Pins: `fixed_local_scope_subroutine_call.sv` (five spellings) ACCEPT on both SV profiles; ratchet `checked=586 armed=81 listed=326 failures=0`. **Gates**: `sv_syntax_closure_gate` GREEN — `unreachable_rules 2 → 1`, `unreachable_branches 4 → 2`, re-stamped; `sv_cert_recognized_union_gate` GREEN — canonical `1432/8/1411/13`, union witness `1424` / UNKNOWN `0`, residual `[]`, deterministic across seeds `[0,7,42]`, `sample_parse_failures=0`, re-stamped (18 m 2 s under the guard, peak 6 756 MB; expectations set from the gate's own seed-0 run — `total 1433 → 1432`, `proof 9 → 8`: the deleted dead rule had counted as a PROOF rule since 1.0.210; witness and UNKNOWN unchanged); `verilog_2005_conformance_gate` GREEN — cert `1141/378/749/14` (samples 40, deterministic across seeds `[0,7,42]`, `spf=0 prf=0`), lint orphans 0, corpus `363` checks / `0` mismatches, aliases 2, re-stamped (39 m 30 s under the guard, peak 12 175 MB; expectations set from the gate's own seed-0 run — `total 1142 → 1141`, `proof 379 → 378`, the deleted dead rule, which had no `@profiles` and so counted as a proof rule under this profile too; the `local ::` arm is gated out of it and the lane moved 0 rows); `ast_shape_contract_gate` `ast_shape_contract_gate` GREEN — `18 passed; 0 failed` (3 m 57 s under the guard, peak 8 500 MB); reproducibility `check_generated_reproducibility.sh --rebaseline` TIER 2 — every family re-derives byte-identically from HEAD, baseline rewritten (1 m 21 s, peak 1 954 MB). `PARSE-COST-RATCHET`: `entries` ROSE `401 665 513 → 402 867 861` (+0.30 %) and `memo_hits` `175 830 693 → 176 431 867` (+0.34 %) with `committed` FLAT at `6 712 187` — `Δentries == 2 × Δmemo_hits` exactly, one unmatched terminal alternative (the `kw_local` body plus its memoized `trivia` prefix wherever the scoped tf-name rule is tried), ACCEPTED under `unmatched_terminal_alternatives`; family share `2.671 → 2.664 %`; `sv_parse_cost_ratchet` OK — identity fresh for the generated parser, grammar raw ast, instrument and 192 pinned sample files; the wall-clock advisory +7.5 % within the ±50 % band on a loaded host.
+Residue unchanged: `.3.41` (`inside`/`dist` at relational precedence), `.3.38` (footnote 20), `.3.39` (typed directive
+arguments); the bar stands at 101.
+
 ### 1.0.211 / Contract 1.0.211 — SV-CORPUS-GRAD.3.37 + .13z (`PGEN-SV-CORPUS-GRAD-0366`, 2026-09-04), ledger `SV-0084` (`Released`):
 
 ⭐ **Every word IEEE 1800-2017 Annex B reserves is now refused as an identifier — 248 words, derived from the

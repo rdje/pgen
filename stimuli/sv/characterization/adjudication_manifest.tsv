@@ -15499,7 +15499,7 @@ verilator	test_regress/t/t_randomize_method_std.v	pass	must_accept	match	verilat
 verilator	test_regress/t/t_randomize_method_types_unsup.v	pass	must_accept	match	verilator: driver t_randomize_method_types_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_randomize_method_with.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_method_with.py expects success
 verilator	test_regress/t/t_randomize_method_with_bad.v	pass	must_accept	match	verilator: driver t_randomize_method_with_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_randomize_method_with_scoping.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_randomize_method_with_scoping.py expects success - .13w: store-gate search residual:not_parsed_with_declarations (demanded: `doit,e,f,get_c,get_x,op,v,x,z`)
+verilator	test_regress/t/t_randomize_method_with_scoping.v	pass	must_accept	match	verilator: driver t_randomize_method_with_scoping.py expects success
 verilator	test_regress/t/t_randomize_module_var.v	pass	must_accept	match	verilator: driver t_randomize_module_var.py expects success
 verilator	test_regress/t/t_randomize_nested_unsup.v	pass	must_accept	match	verilator: driver t_randomize_nested_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_randomize_null.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_randomize_null.py expects success

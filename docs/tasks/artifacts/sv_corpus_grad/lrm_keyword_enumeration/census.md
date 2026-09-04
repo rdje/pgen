@@ -18,7 +18,7 @@ describes your tree** and the honest act is to re-measure, not to quote.
 
 | input | sha256 |
 | --- | --- |
-| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `d705e2495153ec3deadd672bc64d1315456924b28adac534567ba0e8123d3bc6` |
+| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `441600789fcf1cb1a6fed83ecafce2e881e829b4eaed180ddb2fa4f94d5d949f` |
 | `docs/systemverilog/2017/md/section-41-data-read-api.md` (Annex A + Annex B, 1800-2017) | `249ab571c2ef3237790a6bd9743f07a7595bdded337ca2cbb6d5e189b3b40d22` |
 | `grammars/systemverilog_2017_lrm_extracted.ebnf` (snapshot, 1800-2017) | `17bf25cdaff3bf0b347a0188a62338b27eea08423623c33cc789af21056e8abe` |
 | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md` (Annex A, 1800-2023) | `0b4f7fe935e9c499a56ccde8dc769ed626bf53d154f8a9585bd1daf371a9d4aa` |

@@ -6,7 +6,7 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `99fa2f8b499220b6d5990be5951b355176340880d44f5db2550e63e34b945b6d` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `e0a408933eeee99f63d8042e5485ba87fdf57c34256de824a3250a24a25eb4e3` |
 | v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `1102a907bbd4fb30d4c1acf62879971b3130db17b0a58028137847d5eca4ceae` |
 
 ## The headline
@@ -19,11 +19,11 @@
 
 | bucket | adjudication class | rows | % | why |
 |---|---|---:|---:|---|
-| ADJUDICATED | `match` | 5,959 | 36.5 % | expected and observed agree - the row testifies FOR the parser |
+| ADJUDICATED | `match` | 5,960 | 36.5 % | expected and observed agree - the row testifies FOR the parser |
 | ADJUDICATED | `divergence:explained_svpp_macro_use` | 1,095 | 6.7 % | parse stops on a macro use - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_conditional` | 199 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_include` | 140 | 0.9 % | parse stops on an `include - positionally gated since .12a |
-| ADJUDICATED | `divergence:unexplained_rejects_valid` | 97 | 0.6 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
+| ADJUDICATED | `divergence:unexplained_rejects_valid` | 96 | 0.6 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
 | ADJUDICATED | `divergence:explained_store_gate` | 57 | 0.3 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
 | ADJUDICATED | `divergence:unexplained_accepts_invalid` | 5 | 0.0 % | a known defect: invalid SV the parser accepts (the axis-2 bar) |
 | ADJUDICATED | `divergence:explained_svpp_protected_envelope` | 4 | 0.0 % | IEEE 1800-2017 §34 encrypted envelope - not source text yet |

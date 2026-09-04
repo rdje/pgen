@@ -2265,10 +2265,10 @@ block_data_type := integer_vector_type ( signing )? packed_dimension*
                  | known_unscoped_block_covergroup_identifier
                  | type_reference
 
-block_data_type_or_implicit := block_data_type    -> {kind: "block_data",     body: $1}
-                              | implicit_data_type -> {kind: "implicit_data", body: $1}
-
 # SV-CORPUS-GRAD.3.35: the two halves for block_data_declaration (footnote 6, see data_type_or_implicit_*).
+# SV-CORPUS-GRAD.3.36: the `block_data_type_or_implicit` wrapper they replaced was referenced by no
+# other rule (sv_syntax_closure_gate: `unreachable_from_entry`) and is deleted — a dead rule is an
+# EBNF well-formedness defect to remove at source, never a residual to allow-list.
 block_data_type_or_implicit_explicit := block_data_type    -> {kind: "block_data",     body: $1}
 block_data_type_or_implicit_implicit := implicit_data_type -> {kind: "implicit_data", body: $1}
 
@@ -5657,6 +5657,24 @@ scoped_or_hierarchical_tf_identifier := class_scope tf_identifier               
                                       # .b.6.2.2: same $-ref defect as non_typedef_package_scope — drill via the branch's `scope: $1` (= package_scope = {kind, name: <package_identifier> = {body: scalar}}). Branch-LOCAL since BRANCH-PREDICATE-LOCALITY.2 (single evaluation, this branch only).
                                       | @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $scope.name.body, declaration_family, typedef], phase: branch, view: shaped }
                                         package_scope tf_identifier                -> {kind: "package_scope", scope: $1, name: $2}
+                                      # SV-CORPUS-GRAD.3.40 (ledger SV-0085): `local::` before a subroutine call in an
+                                      # in-line constraint — `get_x() == local::get_x()` (verilator
+                                      # t_randomize_method_with_scoping.v:70). IEEE 1800-2017 §18.7.1
+                                      # (section-18-constrained-random-value-generation.md:1708-1726): "When applied
+                                      # to an identifier within an in-line constraint, the local:: qualifier bypasses
+                                      # the scope of the [randomize() with object] class and resolves the identifier
+                                      # in the local scope" — a subroutine name is an identifier — and "the local::
+                                      # prefix may be used to qualify class scopes and type names". A.8.4
+                                      # class_qualifier (section-41-data-read-api.md:3140, footnote 43) reaches
+                                      # primary and ps_type_identifier but no tf_call production: an ANNEX GAP, not
+                                      # a prohibition (the standing rule at `'{ }` above). Until 1.0.211 the text
+                                      # parsed only because `local` was an admissible identifier standing in for a
+                                      # package name; this is the positive production, the same
+                                      # `[ local :: ] [ implicit_class_handle . | class_scope ]` shape as
+                                      # primary_hier_scope_prefix's local_qualifier arm, so `local::C::m()` and
+                                      # `local::this.f()` derive with it.
+                                      | kw_local_939bb46a scope_resolution ( instance_or_class_scope )? tf_identifier
+                                                                                 -> {kind: "local_scope", scope: $3, name: $4}
 
 // @branch_policy: priority_first
 // ps_or_hierarchical_tf_identifier := scoped_or_hierarchical_tf_identifier | tf_identifier

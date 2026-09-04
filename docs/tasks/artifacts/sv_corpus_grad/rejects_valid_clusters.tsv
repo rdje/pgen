@@ -2,7 +2,7 @@ suite	relpath	surface_pos	furthest_pos	signature	stuck_line
 Surelog	tests/1364_2005/dut.v	29	91	bit , ID	reg      bit, rst, clk;
 Surelog	tests/AssumeProp/dut.sv	0	191	" ID ID	$fatal(1, "slv_aw_select_i is %d: AW has selected a slave that is not defined.\
 Surelog	tests/CheckerInst/dut.sv	0	303	@ ( ID	@($global_clock) a[*1:$] ##1 b);
-Surelog	tests/ClassTypeParamAlias/dut.sv	2	145	, ID =	parameter type CT1 = Ctype1, CT2 = Ctype2;
+Surelog	tests/ClassTypeParamAlias/dut.sv	2	54	; typedef logic	parameter type AT;
 Surelog	tests/EnumParenType/dut.sv	65	196	( ID )	(states_t) state1;
 Surelog	tests/HierBitSlice/dut.sv	142	178	ID ; /	scalar_t pc;
 Surelog	tests/HierPathModule/dut.sv	1	30	medium . ID	assign o = medium.c;
@@ -27,7 +27,7 @@ iverilog	ivtest/ivltests/sv_type_identifier_attribute_target.v	207	205	ID ( ID	$
 iverilog	ivtest/ivltests/sv_type_identifier_package_name.v	171	247	ID != =	if (T::VALUE !== 23) begin
 iverilog	ivtest/ivltests/sv_wildcard_import2.v	246	426	:: ID ;	#1 ->my_package::e;
 iverilog	ivtest/ivltests/sv_wildcard_import3.v	226	385	:: ID ;	#1 ->my_package::e;
-slang	tests/regression/all.sv	804	3478	. ID )	if (instr matches (tagged Jmp .j) &&&
+slang	tests/regression/all.sv	804	5694	default : /	default disable iff 1 dist { [1:2] :/ 3, 2, default :/ 4 };
 sv-tests	tests/chapter-11/11.3.6--two_assign_in_expr-sim.sv	399	530	ID ( "	$display(":assert: (%d == %d)", b, (e+c+2));
 sv-tests	tests/chapter-11/11.3.6--two_assign_in_expr.sv	345	476	module	endmodule
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-begin-keywords.sv	387	407	logic ; /	reg logic; // OK: "logic" is not a keyword in 1364-2001
@@ -82,11 +82,10 @@ verilator	test_regress/t/t_param.v	203	337	) ; integer	mreal #1.2 mr ();
 verilator	test_regress/t/t_param_no_parentheses.v	299	379	) ; ID	m1 #PAR m1();
 verilator	test_regress/t/t_param_type_from_iface_struct.v	2039	2160	. ID ID	typedef ports[0].inner.req_t local_req_t;
 verilator	test_regress/t/t_pipe_filter.v	295	302	ID NUM ;	example line 10;
-verilator	test_regress/t/t_property_named.v	202	553	int ID )	property check_if_1(var int cyc_mod_2);
+verilator	test_regress/t/t_property_named.v	202	550	var int ID	property check_if_1(var int cyc_mod_2);
 verilator	test_regress/t/t_property_s_eventually2.v	255	250	ID ( "	$display("[%0t] stmt, %s", $time, msg); \
 verilator	test_regress/t/t_randomize_arraysel_membersel.v	434	677	with { ID	if (std::randomize(example.member[1]) with {example.member[1] inside {[0 : 3]};} == 0) $stop;
 verilator	test_regress/t/t_randomize_method_constraints.v	288	380	|| ID inside	constraint B { w == 5; x inside {1,2} || x inside {4,5}; }
-verilator	test_regress/t/t_randomize_method_with_scoping.v	-2	-2	<NOW-PASSES>	
 verilator	test_regress/t/t_setuphold.v	197	1237	: NUM :	$setuphold (posedge clk, negedge d, 0:0:0, 0:0:0);
 verilator	test_regress/t/t_simulate_array.v	313	328	begin localparam ID	begin
 verilator	test_regress/t/t_std_randomize_with.v	381	901	with { ID	) with {

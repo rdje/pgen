@@ -5,6 +5,25 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-09-04, `SV-CORPUS-GRAD.3.40` + `.3.36` — GRAMMAR, release `1.0.212`, ledger `SV-0085`,
+> schema `26` UNCHANGED, `sv_2017` + `sv_2023` WIDEN by one construct): `local::` before a SUBROUTINE CALL inside
+> `randomize() with { … }` — `get_x() == local::get_x()`, `local::get_c().c1_f`, `local::K::m()`, `local::this.f()` —
+> parses.** IEEE 1800-2017 §18.7.1 applies the qualifier to *an identifier within an in-line constraint* and lets it
+> *qualify class scopes and type names*, while Annex A A.8.4 `class_qualifier` reaches `primary` and no `tf_call`
+> production: an Annex gap, not a prohibition. Release `1.0.211` had spelled A.8.4 faithfully and therefore NARROWED
+> this one legal text (until then `local` was an admissible identifier standing in for a package name, and the text
+> parsed by accident); the scoped tf-name rule now carries the same `local :: [ this. | C:: ]` arm `primary` already
+> had. In the same release the dead `block_data_type_or_implicit` (orphaned by `.3.35`) is deleted (`1576 → 1575` rules)
+> and the syntax-closure allow-list returns to ONE. ⛔ **Consumers: one `kind` is ADDED and nothing is removed or
+> renamed** — a tf-call name may now be `{kind: "local_scope", scope, name}` beside `class_scope` / `package_scope`, and
+> only on text that had NO derivation before; `x < local::x` (primary position) and the unqualified call chain keep
+> byte-identical trees, every legal control its kind multiset. Corpus: exactly ONE row `fail → pass` on `sv_2017` and on
+> `sv_2023` (verilator `t_randomize_method_with_scoping.v`), **0** the other way, `verilog_2005` unmoved; the axis-2 bar
+> `102 → 101`. Parse cost: `entries` +0.30 % and `memo_hits` +0.34 % with `committed` FLAT — exactly one unmatched
+> terminal alternative (`Δentries == 2 × Δmemo_hits`), ACCEPTED under the coded `unmatched_terminal_alternatives`
+> invariant; the LR-family share `2.671 → 2.664 %`. Gates on the final bytes: closure GREEN (allow-list ONE); `sv_cert_recognized_union_gate` GREEN — canonical `1432/8/1411/13`, union witness `1424` / UNKNOWN `0`, residual `[]`, deterministic across seeds `[0,7,42]`, `sample_parse_failures=0`, re-stamped (18 m 2 s under the guard, peak 6 756 MB; expectations set from the gate's own seed-0 run — `total 1433 → 1432`, `proof 9 → 8`: the deleted dead rule had counted as a PROOF rule since 1.0.210; witness and UNKNOWN unchanged);
+> `verilog_2005_conformance_gate` GREEN — cert `1141/378/749/14` (samples 40, deterministic across seeds `[0,7,42]`, `spf=0 prf=0`), lint orphans 0, corpus `363` checks / `0` mismatches, aliases 2, re-stamped (39 m 30 s under the guard, peak 12 175 MB; expectations set from the gate's own seed-0 run — `total 1142 → 1141`, `proof 379 → 378`, the deleted dead rule, which had no `@profiles` and so counted as a proof rule under this profile too; the `local ::` arm is gated out of it and the lane moved 0 rows); shape `ast_shape_contract_gate` GREEN — `18 passed; 0 failed` (3 m 57 s under the guard, peak 8 500 MB); reproducibility `check_generated_reproducibility.sh --rebaseline` TIER 2 — every family re-derives byte-identically from HEAD, baseline rewritten (1 m 21 s, peak 1 954 MB); `sv_parse_cost_ratchet` OK — identity fresh for the generated parser, grammar raw ast, instrument and 192 pinned sample files; the wall-clock advisory +7.5 % within the ±50 % band on a loaded host.
+
 > **Current-state note (2026-09-04, `SV-CORPUS-GRAD.3.37` + `.13z` — GRAMMAR, release `1.0.211`, ledger `SV-0084`,
 > schema `26` UNCHANGED, `sv_2017` + `sv_2023` NARROW): the SV reserved-word set is IEEE 1800-2017 Annex B
 > Table B.1 — 248 words, derived from the LRM text and held there by doctrine `SV-RESERVED-WORDS` — where the
@@ -1085,15 +1104,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.211`
+  - `1.0.212`
 - Parser release version:
-  - `1.0.211`
-  - history: `1.0.210`; `1.0.209`; `1.0.208`; `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.212`
+  - history: `1.0.211`; `1.0.210`; `1.0.209`; `1.0.208`; `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `d705e2495153ec3deadd672bc64d1315456924b28adac534567ba0e8123d3bc6` (SV grammar semantic digest — sha256 of the
+  - `441600789fcf1cb1a6fed83ecafce2e881e829b4eaed180ddb2fa4f94d5d949f` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`
