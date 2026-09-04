@@ -838,11 +838,17 @@ def measure_one_entries(args: tuple[str, str]) -> tuple | NoDump:
     # into a `nodump` list, printed the count, and continued: that is how slice 1's *"zero no-dump
     # rows"* and *"16 336/16 336 agree"* became unreproducible with nothing failing.
     try:
-        subprocess.run(
+        proc = subprocess.run(
             [probe, "--parse", GRAMMAR, os.path.join(ROOT, rel), "--profile", PROFILE,
              "--dump-rule-outcome-counts-json", tmp],
             capture_output=True, timeout=PER_FILE_TIMEOUT_S,
         )
+        # SV-CORPUS-GRAD.3.34: the FURTHEST POSITION a rejected parse reached, read from the probe's own
+        # `furthest_position=N` line — the dump has no such field. It is what lets a cost rise be
+        # attributed to a file whose parse ADVANCED (a widening that parses further into a still-rejected
+        # file) rather than to the grammar "everywhere" (`advanced_files_only`). "-" for an accepted file.
+        m_fp = re.search(rb"furthest_position=(\d+)", proc.stderr or b"") or re.search(rb"furthest_position=(\d+)", proc.stdout or b"")
+        furthest = m_fp.group(1).decode() if m_fp else "-"
         if os.path.getsize(tmp) == 0:
             return NoDump(rel, "empty-dump",
                           "the probe exited without writing a dump (no timeout)")
@@ -874,7 +880,7 @@ def measure_one_entries(args: tuple[str, str]) -> tuple | NoDump:
     # not a new measurement: the same dump, the same 0.04 s.
     return (rel, "yes" if d.get("accepted") else "no",
             int(d.get("total_entries", 0)), int(d.get("total_committed", 0)),
-            int(d.get("total_memo_hits", 0)), lr_e, lr_c,
+            int(d.get("total_memo_hits", 0)), lr_e, lr_c, furthest,
             {"entries": entries, "committed": committed, "memo_hits": memo})
 
 
@@ -897,7 +903,7 @@ def measure_entries(probe: str, files: list[str],
             if isinstance(res, NoDump):
                 nodump.append(res)
                 continue
-            row, per_rule = res[:7], res[7]
+            row, per_rule = res[:8], res[8]
             for column, counts in per_rule.items():
                 for rule, value in counts.items():
                     slot = rule_totals.setdefault(
@@ -1131,10 +1137,10 @@ def write_entries_tsv(path: str, rows: list[tuple], tiers: dict[str, str]) -> No
     R1/R3) — a stored copy is one more thing to drift out of agreement with its own inputs."""
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("sub_corpus\ttier\tpath\taccepted\tentries\tcommitted\tmemo_hits"
-                 "\tlr_entries\tlr_committed\n")
-        for rel, accepted, ent, com, memo, lr_e, lr_c in rows:
+                 "\tlr_entries\tlr_committed\tfurthest\n")
+        for rel, accepted, ent, com, memo, lr_e, lr_c, furthest in rows:
             fh.write(f"{sub_corpus_of(rel)}\t{tiers.get(rel, '?')}\t{rel}\t{accepted}"
-                     f"\t{ent}\t{com}\t{memo}\t{lr_e}\t{lr_c}\n")
+                     f"\t{ent}\t{com}\t{memo}\t{lr_e}\t{lr_c}\t{furthest}\n")
 
 
 def write_rule_costs_tsv(path: str, rule_totals: dict[str, dict[str, int]]) -> None:
@@ -1448,8 +1454,9 @@ def write_report(path: str, rows: list[tuple], ident: dict, nodump: list[str],
         for n in nodump:
             A(f"| `{n.path}` | `{n.reason}` | {n.detail} |")
         A("")
-    A("_Per-file rows: `entries.tsv` — 9 columns (sub-corpus, tier, path, accepted, entries,")
-    A("committed, memo_hits, lr_entries, lr_committed), sorted by (sub-corpus, path) so two runs")
+    A("_Per-file rows: `entries.tsv` — 10 columns (sub-corpus, tier, path, accepted, entries,")
+    A("committed, memo_hits, lr_entries, lr_committed, furthest — the rejected parse's furthest position,")
+    A("`-` when accepted; SV-CORPUS-GRAD.3.34), sorted by (sub-corpus, path) so two runs")
     A("diff directly. Failed speculation is deliberately NOT a column: it is exactly")
     A("`entries − committed` and is derived, never stored._")
     A("")
@@ -1942,7 +1949,7 @@ def run_census(probe: str, outdir: str, jobs: int) -> int:
     os.makedirs(outdir, exist_ok=True)
     out = os.path.join(outdir, "census.tsv")
     with open(out, "w", encoding="utf-8") as fh:
-        for rel, accepted, ent, _com, _memo, lr_e, _lr_c in rows:
+        for rel, accepted, ent, _com, _memo, lr_e, _lr_c, _furthest in rows:
             fh.write(f"{sub_corpus_of(rel)}\t{rel}\t{'True' if accepted == 'yes' else 'False'}"
                      f"\t{ent}\t{lr_e}\n")
     print(f"parse-cost: census -> {out} ({len(rows)} rows, {len(nodump)} no-dump, all declared)",

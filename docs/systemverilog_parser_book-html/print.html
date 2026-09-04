@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-04815cf7.js";
+            window.path_to_searchindex_js = "searchindex-f5188773.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -258,16 +258,16 @@ inapplicable one.</li>
 <tr><th>Outcome</th><th style="text-align: right">Rows</th><th style="text-align: right">Share of the corpus</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">5 921</td><td style="text-align: right">36.2 %</td></tr>
+<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">5 926</td><td style="text-align: right">36.3 %</td></tr>
 <tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 493</td><td style="text-align: right">9.1 %</td></tr>
-<tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">142</td><td style="text-align: right">0.9 %</td></tr>
+<tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">137</td><td style="text-align: right">0.8 %</td></tr>
 <tr><td>Routed to another lane’s manifest</td><td style="text-align: right">2 606</td><td style="text-align: right">16.0 %</td></tr>
 <tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">6 174</td><td style="text-align: right">37.8 %</td></tr>
 <tr><td>Total</td><td style="text-align: right">16 336</td><td style="text-align: right">100.0 %</td></tr>
 </tbody>
 </table>
 </div>
-<p>Only <strong>7 556 rows (46.3 %)</strong> were asked a question they could answer, and <strong>4 010</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 5921/7556 would quietly drop the 37.8 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
+<p>Only <strong>7 556 rows (46.3 %)</strong> were asked a question they could answer, and <strong>4 010</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 5926/7556 would quietly drop the 37.8 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
@@ -2121,6 +2121,32 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10209--contract-10209--sv-corpus-grad334--333-pgen-sv-corpus-grad-0362-2026-09-04-ledger-sv-0082-released"><a class="header" href="#10209--contract-10209--sv-corpus-grad334--333-pgen-sv-corpus-grad-0362-2026-09-04-ledger-sv-0082-released">1.0.209 / Contract 1.0.209 — SV-CORPUS-GRAD.3.34 + .3.33 (<code>PGEN-SV-CORPUS-GRAD-0362</code>, 2026-09-04), ledger <code>SV-0082</code> (<code>Released</code>):</a></h3>
+<p>⭐ <strong>A parenthesised nested tagged pattern now parses under <code>sv_2017</code> — the form the standard’s own
+§12.6.1 examples write.</strong> <code>tagged Jmp (tagged JmpU .a)</code> and <code>tagged Jmp (tagged JmpC '{.c, .a})</code> appear
+in IEEE 1800-2017 §12.6.1 itself, yet its Annex A <code>pattern</code> has no <code>( pattern )</code> alternative — an erratum
+1800-2023 corrects by spelling it first. The 2017 profile had followed Annex A literally; the <code>.14a</code>
+sv_2017 × sv_2023 differential exposed it on five IEEE 1800-2012 tests that only the 2023 profile parsed.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>input</th><th>before</th><th>after</th></tr>
+</thead>
+<tbody>
+<tr><td><code>tagged Jmp (tagged JmpU .a) : …</code> — a parenthesised nested tagged pattern, <code>sv_2017</code></td><td><code>rc 1</code></td><td><strong><code>rc 0</code></strong></td></tr>
+<tr><td>the same under <code>sv_2023</code></td><td><code>rc 0</code></td><td><code>rc 0</code></td></tr>
+<tr><td><code>tagged JmpU .a</code>, <code>tagged JmpC '{.c, .a}</code> — unparenthesised (control), both profiles</td><td><code>rc 0</code></td><td><code>rc 0</code>, AST byte-identical</td></tr>
+<tr><td><code>tagged JmpU ()</code> — empty parentheses where a pattern is required (invalid pin)</td><td><code>rc 1</code></td><td><code>rc 1</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>How.</strong> <code>pattern_sv_2017</code> gains <code>( pattern )</code> as its first alternative, in the <code>sv_2023</code> arm’s own spelling;
+no new rule. And (<code>.3.33</code>) the ten single-letter keyword terminals the UDP fix of 1.0.207 left unreferenced
+are deleted — 1564 → 1554 rules, the syntax-closure contract’s allow-list back to one.</p>
+<p><strong>AST impact — shape-neutral.</strong> Every input that parsed before yields a byte-identical typed AST; a
+newly-accepted parenthesised pattern carries <code>{kind: "parenthesized", body: …}</code>, the value the 2023 arm
+has always emitted. Schema <strong>26 unchanged</strong>. ⛔ The accept set <strong>widens</strong> on <code>sv_2017</code> only.</p>
+<p><strong>Corpus proof</strong>, per path, three lanes: <code>sv_2017</code> exactly <strong>5</strong> rows <code>fail → pass</code> (ispras <code>ieee-1800-2012/12/12.06.01_05/06.sv</code>, <code>12.06.02_01/02/03.sv</code>), pass <strong>9 831 → 9 836</strong>, the axis-2 bar <strong>142 → 137</strong>; <code>sv_2023</code> <strong>0</strong> and <code>verilog_2005</code> <strong>0</strong> rows moved; <code>pass → fail</code> <strong>0</strong>. Union certificate <code>1417/8/1396/13</code>, union <code>1409/0</code> (residual <code>[]</code>, seeds 0/7/42 — ten fewer rules, all ten proof); <code>verilog_2005</code> <code>1130/373/743/14</code> (seeds 0/7/42); syntax closure <code>unreachable_rules=1</code> on an allow-list of one; AST-shape gate 18/18; every generated family re-derives byte-identically. Cost: the parse-cost ratchet reads <code>entries</code> +0.04 % and <code>memo_hits</code> +0.04 % with <code>committed</code> <strong>exactly</strong> unchanged — the whole rise is one sampled fixture (slang <code>all.sv</code>, still rejected) whose parse now advances 2 216 bytes past its nested tagged patterns; the other 191 sampled files are byte-identical — accepted under a new per-file invariant (<code>advanced_files_only</code>).</p>
 <h3 id="10208--contract-10208--sv-corpus-grad331-pgen-sv-corpus-grad-0357-2026-09-03-ledger-sv-0081-released"><a class="header" href="#10208--contract-10208--sv-corpus-grad331-pgen-sv-corpus-grad-0357-2026-09-03-ledger-sv-0081-released">1.0.208 / Contract 1.0.208 — SV-CORPUS-GRAD.3.31 (<code>PGEN-SV-CORPUS-GRAD-0357</code>, 2026-09-03), ledger <code>SV-0081</code> (<code>Released</code>):</a></h3>
 <p>⭐ <strong>An array-element member access whose index is an increment/decrement or a parenthesised operator
 assignment now parses.</strong> <code>clist[b[0]++].m &lt;= 1;</code> and <code>clist[(b[0] += 1)].m</code> were refused on <code>sv_2017</code> and

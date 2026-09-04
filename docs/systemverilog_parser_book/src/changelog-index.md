@@ -34,6 +34,31 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.209 / Contract 1.0.209 — SV-CORPUS-GRAD.3.34 + .3.33 (`PGEN-SV-CORPUS-GRAD-0362`, 2026-09-04), ledger `SV-0082` (`Released`):
+
+⭐ **A parenthesised nested tagged pattern now parses under `sv_2017` — the form the standard's own
+§12.6.1 examples write.** `tagged Jmp (tagged JmpU .a)` and `tagged Jmp (tagged JmpC '{.c, .a})` appear
+in IEEE 1800-2017 §12.6.1 itself, yet its Annex A `pattern` has no `( pattern )` alternative — an erratum
+1800-2023 corrects by spelling it first. The 2017 profile had followed Annex A literally; the `.14a`
+sv_2017 × sv_2023 differential exposed it on five IEEE 1800-2012 tests that only the 2023 profile parsed.
+
+| input | before | after |
+|---|---|---|
+| `tagged Jmp (tagged JmpU .a) : …` — a parenthesised nested tagged pattern, `sv_2017` | `rc 1` | **`rc 0`** |
+| the same under `sv_2023` | `rc 0` | `rc 0` |
+| `tagged JmpU .a`, `tagged JmpC '{.c, .a}` — unparenthesised (control), both profiles | `rc 0` | `rc 0`, AST byte-identical |
+| `tagged JmpU ()` — empty parentheses where a pattern is required (invalid pin) | `rc 1` | `rc 1` |
+
+**How.** `pattern_sv_2017` gains `( pattern )` as its first alternative, in the `sv_2023` arm's own spelling;
+no new rule. And (`.3.33`) the ten single-letter keyword terminals the UDP fix of 1.0.207 left unreferenced
+are deleted — 1564 → 1554 rules, the syntax-closure contract's allow-list back to one.
+
+**AST impact — shape-neutral.** Every input that parsed before yields a byte-identical typed AST; a
+newly-accepted parenthesised pattern carries `{kind: "parenthesized", body: …}`, the value the 2023 arm
+has always emitted. Schema **26 unchanged**. ⛔ The accept set **widens** on `sv_2017` only.
+
+**Corpus proof**, per path, three lanes: `sv_2017` exactly **5** rows `fail → pass` (ispras `ieee-1800-2012/12/12.06.01_05/06.sv`, `12.06.02_01/02/03.sv`), pass **9 831 → 9 836**, the axis-2 bar **142 → 137**; `sv_2023` **0** and `verilog_2005` **0** rows moved; `pass → fail` **0**. Union certificate `1417/8/1396/13`, union `1409/0` (residual `[]`, seeds 0/7/42 — ten fewer rules, all ten proof); `verilog_2005` `1130/373/743/14` (seeds 0/7/42); syntax closure `unreachable_rules=1` on an allow-list of one; AST-shape gate 18/18; every generated family re-derives byte-identically. Cost: the parse-cost ratchet reads `entries` +0.04 % and `memo_hits` +0.04 % with `committed` **exactly** unchanged — the whole rise is one sampled fixture (slang `all.sv`, still rejected) whose parse now advances 2 216 bytes past its nested tagged patterns; the other 191 sampled files are byte-identical — accepted under a new per-file invariant (`advanced_files_only`).
+
 ### 1.0.208 / Contract 1.0.208 — SV-CORPUS-GRAD.3.31 (`PGEN-SV-CORPUS-GRAD-0357`, 2026-09-03), ledger `SV-0081` (`Released`):
 
 ⭐ **An array-element member access whose index is an increment/decrement or a parenthesised operator

@@ -4912,7 +4912,9 @@ path_delay_value := list_of_path_delay_expressions          -> {kind: "bare",   
                   | lparen list_of_path_delay_expressions rparen -> {kind: "paren",  body: $2}
 
 @profiles: ["sv_2017"]
-pattern_sv_2017 := dot variable_identifier
+pattern_sv_2017 := lparen pattern rparen
+                        -> {kind: "parenthesized",   body: $2}
+                | dot variable_identifier
                         -> {kind: "variable_capture", name: $2}
                 | dot_star
                         -> {kind: "wildcard"}
@@ -7173,12 +7175,6 @@ hash := trivia "#"                           -> {kind: "hash"}
 @profiles: ["sv_2017", "sv_2023"]
 iff_arrow := trivia "<->"                      -> {kind: "iff_arrow"}
 implies := trivia "->"                        -> {kind: "implies"}
-kw_B_ae4f281d := trivia /B\b/
-
-kw_F_e69f20e9 := trivia /F\b/
-
-kw_N_b51a6073 := trivia /N\b/
-
 # SV-CORPUS-GRAD.13c.2f slice 4 — the two `PATHPULSE$` tokens of IEEE 1800 A.7.5.
 # The extraction transliterated the LRM's literal `$` into the word `_dollar` and, for the
 # path-specific form, flattened two NONTERMINAL references into the token text as well — so both
@@ -7195,10 +7191,6 @@ kw_N_b51a6073 := trivia /N\b/
 kw_PATHPULSE_dollar_e0f78dc5 := trivia /PATHPULSE\$/
 
 kw_PATHPULSE_dollar_specify_input_terminal_descriptor_dollar_specify_output_terminal_descriptor_b3eb892a := trivia /PATHPULSE\$[a-zA-Z_][a-zA-Z0-9_$]*\$[a-zA-Z_][a-zA-Z0-9_$]*/
-
-kw_P_511993d3 := trivia /P\b/
-
-kw_R_06576556 := trivia /R\b/
 
 kw_X_c032adc1 := trivia /X\b/
 
@@ -7227,8 +7219,6 @@ kw_assert_64b5daad := trivia /assert\b/
 kw_assume_661e458e := trivia /assume\b/
 
 kw_automatic_ebe88724 := trivia /automatic\b/
-
-kw_b_e9d71f5e := trivia /b\b/
 
 kw_before_51de2b83 := trivia /before\b/
 
@@ -7365,8 +7355,6 @@ kw_export_51713409 := trivia /export\b/
 kw_extends_2b781ff8 := trivia /extends\b/
 
 kw_extern_bf1ee311 := trivia /extern\b/
-
-kw_f_4a0a1921 := trivia /f\b/
 
 kw_file_path_spec_c26c9dc9 := trivia /[A-Za-z0-9_.\/?*~$+]+/
 
@@ -7546,8 +7534,6 @@ kw_n_43_0286dd55 := trivia /43\b/
 
 kw_n_48_64e095fe := trivia /48\b/
 
-kw_n_d1854cae := trivia /n\b/
-
 // kw_n_ef7e6794 := trivia /\\n\b/
 
 kw_nand_c8a98832 := trivia /nand\b/
@@ -7588,8 +7574,6 @@ kw_or_1758356d := trivia /or\b/
 
 kw_output_1029d676 := trivia /output\b/
 
-kw_p_516b9783 := trivia /p\b/
-
 kw_package_582681c2 := trivia /package\b/
 
 kw_packed_7aca22de := trivia /packed\b/
@@ -7624,8 +7608,6 @@ kw_pulsestyle_ondetect_90d0b4fa := trivia /pulsestyle_ondetect\b/
 kw_pulsestyle_onevent_11e408b6 := trivia /pulsestyle_onevent\b/
 
 kw_pure_afe003f1 := trivia /pure\b/
-
-kw_r_4dc7c9ec := trivia /r\b/
 
 kw_rand_52400560 := trivia /rand\b/
 

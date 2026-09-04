@@ -869,6 +869,22 @@ def _host_memo_eviction(base_tot, new_tot, ctx):
     return holds, detail
 
 
+
+
+def _advanced_files_only(base_tot, new_tot, ctx):
+    """The rise is the cost of text the parser now REACHES in the sampled file(s) the row names — each
+    of them flipped to accepted or, still rejected, stopped strictly further than in the baseline — and
+    EVERY other sampled file is byte-identical in every cost column (`SV-CORPUS-GRAD.3.34`: a widening
+    by one alternative that parses further into a still-rejected fixture). `introduced` carries the
+    sample PATHS, not rule names. Honest bound in the predicate's docstring."""
+    if CONTAINMENT is None:
+        raise RuntimeError(f"scripts/parse_cost_containment.py could not be imported "
+                           f"({CONTAINMENT_IMPORT_ERROR}), so this acceptance cannot be evaluated")
+    base_files = CONTAINMENT.read_entries(ctx["base_entries"])
+    new_files = CONTAINMENT.read_entries(ctx["new_entries"])
+    holds, detail, _facts = CONTAINMENT.advanced_files_only(base_files, new_files, ctx["introduced"])
+    return holds, detail
+
 INVARIANTS = {
     "pure_memo_lookups": _pure_memo_lookups,
     "unmatched_terminal_alternatives": _unmatched_terminal_alternatives,
@@ -877,6 +893,7 @@ INVARIANTS = {
     "profile_split_respelling": _profile_split_respelling,
     "host_memo_eviction": _host_memo_eviction,
     "caller_split_containment": _caller_split_containment,
+    "advanced_files_only": _advanced_files_only,
 }
 
 # ⛔ WHICH INVARIANTS TAKE A SCOPE, AND THE CHECK IS TWO-SIDED. A containment row with no
@@ -884,7 +901,8 @@ INVARIANTS = {
 # a scoped acceptance and is not one. Both REFUSE, so the column can never become decoration.
 INVARIANTS_TAKING_INTRODUCED = {"contained_in_introduced_subgraph",
                                 "profile_split_respelling",
-                                "host_memo_eviction", "caller_split_containment"}
+                                "host_memo_eviction", "caller_split_containment",
+                                "advanced_files_only"}
 NO_INTRODUCED = "-"
 
 
@@ -956,7 +974,9 @@ def totals_of(tsv_path):
         header = fh.readline().rstrip("\n").split("\t")
         want = ["sub_corpus", "tier", "path", "accepted", "entries", "committed", "memo_hits",
                 "lr_entries", "lr_committed"]
-        if header != want:
+        # SV-CORPUS-GRAD.3.34: the instrument appends `furthest` (a rejected parse's furthest position);
+        # a baseline written before it is still readable — the column is OPTIONAL here, never positional.
+        if header not in (want, want + ["furthest"]):
             print(f"parse-cost-ratchet: REFUSING — {tsv_path} header is {header}, expected {want}. "
                   f"The instrument's schema moved; fix this reader rather than trusting a "
                   f"positional unpack.", file=sys.stderr)
@@ -1040,6 +1060,8 @@ if REMEASURE or REBASELINE:
                 ctx = {"introduced": scope,
                        "base_rule_costs": os.path.join(ROOT, ART, "rule_costs.tsv"),
                        "new_rule_costs": os.path.join(scratch, "rule_costs.tsv"),
+                       "base_entries": os.path.join(ROOT, ART, "entries.tsv"),
+                       "new_entries": os.path.join(scratch, "entries.tsv"),
                        "graph": os.path.join(scratch, "rule_graph.json"),
                        "grammar_digest": live.get("grammar raw ast")}
                 try:

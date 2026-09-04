@@ -2270,11 +2270,11 @@ ispras-sv-tests	ieee-1800-2012/12/12.06.01_01.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/12/12.06.01_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/12/12.06.01_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/12/12.06.01_04.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/12/12.06.01_05.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example - .13w: store-gate search residual:not_parsed_with_declarations (demanded: `instr,matches,r1,r2,rd,rf,tagged`)
-ispras-sv-tests	ieee-1800-2012/12/12.06.01_06.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example - .13w: store-gate search residual:not_parsed_with_declarations (demanded: `instr,matches,r1,r2,rd,reg2,rf,tagged`)
-ispras-sv-tests	ieee-1800-2012/12/12.06.02_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example - .13w: store-gate search residual:not_parsed_with_declarations (demanded: `cc,e,tagged`)
-ispras-sv-tests	ieee-1800-2012/12/12.06.02_02.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example - .13w: store-gate search residual:not_parsed_with_declarations (demanded: `e,tagged`)
-ispras-sv-tests	ieee-1800-2012/12/12.06.02_03.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example - .13w: store-gate search residual:not_parsed_with_declarations (demanded: `cc,e,tagged`)
+ispras-sv-tests	ieee-1800-2012/12/12.06.01_05.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/12/12.06.01_06.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/12/12.06.02_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/12/12.06.02_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
+ispras-sv-tests	ieee-1800-2012/12/12.06.02_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/12/12.07.01_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/12/12.07.01_02.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/12/12.07.01_03.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -10673,7 +10673,7 @@ scr1	src/top/scr1_tcm.sv	fail	chained_only	deferred:chained_only	design corpus p
 scr1	src/top/scr1_timer.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 scr1	src/top/scr1_top_ahb.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
 scr1	src/top/scr1_top_axi.sv	fail	chained_only	deferred:chained_only	design corpus parsed in isolation - honest adjudication needs include/define chaining (leaf .4)
-slang	tests/regression/all.sv	fail	must_accept	divergence:unexplained_rejects_valid	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid - .13w: store-gate search residual:not_parsed_with_declarations (demanded: `j,matches,tagged`)
+slang	tests/regression/all.sv	fail	must_accept	divergence:unexplained_rejects_valid	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid - .13w: store-gate search residual:not_parsed_with_declarations (demanded: `I,alias,always_comb,always_ff,always_latch,assertion0,assertion1,cc,cover,d,e,ev,extern,f,first_match,global,i,inside,instr,j,m2,matches,n,new,p,p1,p2,p3,parg,pc,prim,q,r,r1,r2,rd,reg1,reg2,regd,rf,sarg,strong,sync_accept_on,t,tagged,timeprecision,timeunit,unique0,v,w,ww,z`)
 slang	tests/regression/driver/cannot-index-scalar.sv	pass	must_accept	match	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid
 slang	tests/regression/driver/clockvar-target-assign.sv	pass	must_accept	match	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid
 slang	tests/regression/driver/command-files.sv	pass	must_accept	match	slang: regression/driver fixture - strict-mode errors are semantic, syntax is valid

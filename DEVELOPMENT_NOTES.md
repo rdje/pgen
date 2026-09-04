@@ -1,5 +1,30 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-04 - PGEN-SV-CORPUS-GRAD-0362 (a standard's own example text outranks its Annex A, and the next edition's Annex A usually says so)
+
+- ⭐⭐ **THE LESSON: WHEN A STANDARD'S OWN EXAMPLE IS NOT DERIVABLE BY ITS ANNEX A, THE EXAMPLE IS THE SPEC AND THE OMISSION IS AN
+  ERRATUM.** IEEE 1800-2017 §12.6.1 writes `tagged Jmp (tagged JmpU .a)` three times; its Annex A `pattern` has no `( pattern )` form, so a
+  profile that transcribes Annex A literally refuses the standard's own examples — five IEEE 1800-2012 corpus tests sat in the bar for it.
+  IEEE 1800-2023's Annex A spells `pattern ::= ( pattern ) | …` FIRST: the correction the next edition made is the evidence the older
+  edition's text was an erratum. Second instance of the `.3.30` rule (the UDP tables the standard writes with adjacent symbols).
+- **A second profile over the same corpus is what shows it.** The `sv_2017` lane alone filed the five rows `unexplained_rejects_valid`
+  beside every other defect; the `.14a` differential named them `2023_only_pass` on tests dated 2012 — older-edition text the older
+  profile refused, which cannot be an edition contrast and therefore must be a gate on the older profile.
+- **Give the older arm the newer arm's own spelling.** `pattern_sv_2017` gained `lparen pattern rparen -> {kind: "parenthesized"}` exactly
+  as `pattern_sv_2023` has it, so the two arms' `kind` sets coincide and a newly-accepted parse under 2017 carries the value 2023 always
+  emitted — shape-neutral by construction, not by measurement alone.
+- **Batch a deletion with a widening so one ceremony pays for both.** The ten dead terminals `.3.30` left (each referenced once, its own
+  definition) rode the same release; the syntax-closure allow-list went back to ONE by its good-news branch, and both certificates' proof
+  counts fell by exactly ten, expected by name and confirmed by the gates.
+- **A widening that lets a sampled file parse FURTHER pays for the text it now reaches — a per-FILE law, not a sub-graph one.** The
+  ratchet's rise was one fixture (slang `all.sv`, furthest 3 478 → 5 694) spread over 815 rules, with 191 files byte-identical; no
+  introduced rule, so no sub-graph predicate fits. `advanced_files_only`: every file whose cost moved is named, every named file
+  advanced (accepted, or a strictly greater furthest), every other file unchanged — and the instrument now records `furthest` so the
+  advance is mechanical from the next baseline on.
+- ⚠️ **A hand-built debug `ast_pipeline` is not the gates' binary.** `cargo build --features generated_parsers --bin ast_pipeline` omits
+  `ebnf_dual_run`, and the raw-AST export the identity checkers and keyword censuses need then REFUSES (`requires building with --features
+  ebnf_dual_run`). The canonical invocation is the union gate's: `--features "generated_parsers ebnf_dual_run"` — use it, or let a gate build it.
+
 ## 2026-09-04 - PGEN-SV-CORPUS-GRAD-0361 (a differential sees verdict flips; a second lane with its own key sees a row that fails for a different reason under each edition)
 
 - ⭐⭐ **THE LESSON: THE DIFFERENTIAL IS NOT THE WHOLE YIELD OF A SECOND LANE.** `.14a`'s per-file census names every row whose VERDICT flips

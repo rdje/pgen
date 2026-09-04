@@ -10,11 +10,11 @@ Both lanes parse the SAME population — every `.sv` / `.svh` / `.v` file under 
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `d31dc9c3b2a8500912f1e41b502f574abf189daa2a10ccd3d51f890c9e575bda` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `c43ae6d66d4a880522b70647e726ce17a17c6ce283d92d50d68676117a085603` |
-| sv_2017 results (output) | `stimuli/sv/characterization/results.tsv` | `1be32296850992d0c6af870c75658532374a1f9cad6b87526313c853d800639f` |
+| parse binary | `rust/target/release/parseability_probe` | `4dab0573fd46dca4327891780cb6f95df755566fd8e3aaa8c321597d6aec2013` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `f8c989e075eb89b8ab36e606f86396dc45bec48dd95790b0a997736ebd713cd1` |
+| sv_2017 results (output) | `stimuli/sv/characterization/results.tsv` | `81be788e5e2b2a948946b0f3eefe7fc5695fc31ab3960d108af185f53cd632ee` |
 | sv_2023 results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `b3c3ef13ea8cb3a29c21fd2df713acb914cede1f514cb46f538371ca8fafc8a4` |
-| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `a0c468aed89866e7f7208b7c4790b29e927fcc0016b1f87fd26161dc1b191515` |
+| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `9d47010747a73ce6f32a21c87734fea70f00a57f8839510a53459cc7c3affbf8` |
 
 ## The matrix
 
@@ -22,18 +22,18 @@ Rows joined: **16336**; only in the sv_2017 lane: **0**; only in the sv_2023 lan
 
 | cell | rows | meaning |
 |---|---|---|
-| `both_pass` | 9831 | parses under both editions |
+| `both_pass` | 9836 | parses under both editions |
 | `both_nonpass` | 6477 | parses under neither |
-| `2023_only_pass` | 28 | the 1800-2023 widening the corpus exercises — `must_accept` on a 2023 lane (`.14b`) |
+| `2023_only_pass` | 23 | the 1800-2023 widening the corpus exercises — `must_accept` on a 2023 lane (`.14b`) |
 | `2017_only_pass` | 0 | a 2023-profile REGRESSION candidate — a parser question until adjudicated |
 
 ### Status pairs (sv_2017, sv_2023)
 
 | sv_2017 | sv_2023 | rows |
 |---|---|---|
-| `pass` | `pass` | 9831 |
+| `pass` | `pass` | 9836 |
 | `fail` | `fail` | 6477 |
-| `fail` | `pass` | 28 |
+| `fail` | `pass` | 23 |
 
 ## Every row whose verdict differs
 
@@ -43,16 +43,10 @@ The 2017-lane adjudication class is carried beside each row so the reader sees w
 |---|---|---|
 | `2023_only_pass` | `deferred:v2005_profile_lane` | 1 |
 | `2023_only_pass` | `divergence:explained_svpp_macro_use` | 1 |
-| `2023_only_pass` | `divergence:unexplained_rejects_valid` | 5 |
 | `2023_only_pass` | `match` | 21 |
 
 | cell | suite | relpath | sv_2017 (furthest) | sv_2023 (furthest) | 2017-lane adjudication | expected |
 |---|---|---|---|---|---|---|
-| `2023_only_pass` | `ispras-sv-tests` | `ieee-1800-2012/12/12.06.01_05.sv` | fail (606) | pass (-) | `divergence:unexplained_rejects_valid` | `must_accept` |
-| `2023_only_pass` | `ispras-sv-tests` | `ieee-1800-2012/12/12.06.01_06.sv` | fail (628) | pass (-) | `divergence:unexplained_rejects_valid` | `must_accept` |
-| `2023_only_pass` | `ispras-sv-tests` | `ieee-1800-2012/12/12.06.02_01.sv` | fail (454) | pass (-) | `divergence:unexplained_rejects_valid` | `must_accept` |
-| `2023_only_pass` | `ispras-sv-tests` | `ieee-1800-2012/12/12.06.02_02.sv` | fail (433) | pass (-) | `divergence:unexplained_rejects_valid` | `must_accept` |
-| `2023_only_pass` | `ispras-sv-tests` | `ieee-1800-2012/12/12.06.02_03.sv` | fail (456) | pass (-) | `divergence:unexplained_rejects_valid` | `must_accept` |
 | `2023_only_pass` | `iverilog` | `ivtest/ivltests/event_array.v` | fail (394) | pass (-) | `deferred:v2005_profile_lane` | `out_of_scope_with_cause:v2005_profile_lane` |
 | `2023_only_pass` | `iverilog` | `ivtest/ivltests/sv_soft_packed_union_fail1.v` | fail (104) | pass (-) | `match` | `must_reject` |
 | `2023_only_pass` | `iverilog` | `ivtest/ivltests/sv_type_param_restrict_class_fail1.v` | fail (108) | pass (-) | `match` | `must_reject` |

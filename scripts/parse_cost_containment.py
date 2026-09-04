@@ -525,6 +525,145 @@ def caller_split_containment(base: dict[str, dict[str, int]], new: dict[str, dic
                   f"onto the introduced ones, 0 pre-existing rule accepted more often"), facts
 
 
+ENTRIES_HEADER_V9 = ["sub_corpus", "tier", "path", "accepted", "entries", "committed", "memo_hits",
+                     "lr_entries", "lr_committed"]
+ENTRIES_HEADER_V10 = ENTRIES_HEADER_V9 + ["furthest"]
+
+
+def read_entries(path: str) -> dict[str, dict]:
+    """`{path: {accepted: "yes"|"no", entries, committed, memo_hits, furthest: int|None}}` from an
+    `entries.tsv`. Accepts the 9-column table every baseline before `SV-CORPUS-GRAD.3.34` wrote
+    (`furthest` is then None — unknown, never zero) and the 10-column one written since; REFUSES any
+    other header rather than unpacking positionally."""
+    if not os.path.isfile(path):
+        raise Refused(f"no per-file measurement at `{os.path.relpath(path, ROOT)}` — the advanced-files "
+                      f"predicate is per-FILE and the sample totals cannot stand in for it")
+    out = {}
+    with open(path, encoding="utf-8") as fh:
+        header = fh.readline().rstrip("\n").split("\t")
+        if header not in (ENTRIES_HEADER_V9, ENTRIES_HEADER_V10):
+            raise Refused(f"`{os.path.relpath(path, ROOT)}` header is {header}, expected "
+                          f"{ENTRIES_HEADER_V10} (or the 9-column form before it) — fix this reader "
+                          f"rather than trusting a positional unpack")
+        idx = {n: i for i, n in enumerate(header)}
+        for line in fh:
+            if not line.strip():
+                continue
+            c = line.rstrip("\n").split("\t")
+            fur = None
+            if "furthest" in idx and c[idx["furthest"]].isdigit():
+                fur = int(c[idx["furthest"]])
+            out[c[idx["path"]]] = {"accepted": c[idx["accepted"]], "entries": int(c[idx["entries"]]),
+                                   "committed": int(c[idx["committed"]]), "memo_hits": int(c[idx["memo_hits"]]),
+                                   "furthest": fur}
+    return out
+
+
+def advanced_files_only(base: dict[str, dict], new: dict[str, dict],
+                        scope: list[str]) -> tuple[bool, str, dict]:
+    """`(holds, one-line detail, facts)` for the ADVANCED-FILES predicate (`SV-CORPUS-GRAD.3.34`).
+
+    THE SHAPE. A widening lets a sampled file PARSE FURTHER — it flips to accepted, or it is still
+    rejected but its furthest position moved forward — and the extra text it now parses costs
+    entries and memo hits, spread over whatever rules that text reaches (815 risers on `.3.34`, none
+    of them attributable to the changed rule's sub-graph: the parse simply went on). Measured:
+    `slang/tests/regression/all.sv` furthest 3 478 → 5 694, entries +147,484, memo +68,591; the other
+    191 sampled files byte-identical in every column.
+
+    ⛔ WHY THE OTHER SEVEN CANNOT COVER IT. The sub-graph invariants (`contained_in_introduced_subgraph`,
+    `caller_split_containment`) need INTRODUCED rules and risers confined to what they reach — a
+    widening by one alternative introduces no rule and the risers are the whole grammar downstream of
+    the advance; `profile_split_respelling` refuses any pre-existing riser; `host_memo_eviction` needs
+    a host with unchanged entries; the three arithmetic identities need shapes this is not.
+
+    ⭐ WHAT THIS ONE ASSERTS — a per-FILE conservation law. (1) Every file whose entries, committed or
+    memo hits moved is named in the row's scope; (2) every scoped file ADVANCED: accepted `no → yes`,
+    or still `no` with a furthest position strictly greater than the baseline's; (3) every file NOT in
+    scope is byte-identical in every cost column. So the rise is exactly the cost of text the parser
+    now reaches in the files it now reaches it in, and nothing else in the sample got dearer.
+
+    ⚠️ HONEST BOUND. This proves the rise is CONFINED to the advanced files and equals their advance;
+    it does not price the advance (that is the corpus's text). When the BASELINE table predates the
+    `furthest` column (9 columns), a still-rejected scoped file's advance cannot be verified here: the
+    predicate then REQUIRES the new table to carry a furthest position for it and records in `facts`
+    that the baseline side is unknown — the next baseline carries the column and the check is mechanical.
+
+    Raises `Refused` (never a false verdict) when the scope is empty or names a path the sample does
+    not have.
+    """
+    if not scope:
+        raise Refused("the advanced-files predicate needs the sample PATH(S) whose parse advanced; the "
+                      "acceptance row declares none, so the rise is unattributed")
+    unknown = [s for s in scope if s not in base or s not in new]
+    if unknown:
+        raise Refused(f"scope names path(s) the sample does not have: {unknown[:3]}")
+    moved = sorted(k for k in base if k in new and any(base[k][c] != new[k][c] for c in ("entries", "committed", "memo_hits")))
+    unscoped_moved = [k for k in moved if k not in scope]
+    not_advanced, legacy = [], []
+    for k in scope:
+        b, n = base[k], new[k]
+        if b["accepted"] == "no" and n["accepted"] == "yes":
+            continue
+        if n["accepted"] == "no" and n["furthest"] is not None:
+            if b["furthest"] is None:
+                legacy.append(k)
+                continue
+            if n["furthest"] > b["furthest"]:
+                continue
+        not_advanced.append(k)
+    facts = {"moved_files": moved, "unscoped_moved": unscoped_moved, "not_advanced": not_advanced,
+             "baseline_furthest_unknown": legacy,
+             "advance": {k: (base[k]["accepted"], new[k]["accepted"], base[k]["furthest"], new[k]["furthest"],
+                             new[k]["entries"] - base[k]["entries"], new[k]["memo_hits"] - base[k]["memo_hits"]) for k in scope}}
+    if unscoped_moved:
+        return (False, f"{len(unscoped_moved)} file(s) outside the declared scope changed cost "
+                       f"(e.g. {unscoped_moved[0]}) — the rise is not confined to the advanced files", facts)
+    if not_advanced:
+        return (False, f"scoped file(s) did NOT advance (same verdict, furthest not forward): {not_advanced[:3]}", facts)
+    if not moved:
+        return (False, "no sampled file changed cost, so there is no rise for this predicate to explain", facts)
+    detail = (f"the rise is confined to {len(scope)} advanced file(s): " +
+              "; ".join(f"{os.path.basename(k)} accepted {v[0]}->{v[1]} furthest {v[2]}->{v[3]} entries {v[4]:+,} memo {v[5]:+,}"
+                        for k, v in facts["advance"].items()) +
+              (f" — baseline furthest UNKNOWN for {len(legacy)} (9-column baseline; verified from the next baseline on)" if legacy else "") +
+              f"; {len(base) - len(scope)} other sampled file(s) byte-identical")
+    return (True, detail, facts)
+
+
+def self_test_advanced_files_only() -> int:
+    """Arms for the ADVANCED-FILES predicate — every refusal and every failure shape, no parser."""
+    def row(acc, e, c, m, fur):
+        return {"accepted": acc, "entries": e, "committed": c, "memo_hits": m, "furthest": fur}
+    base = {"a.sv": row("no", 100, 10, 40, 300), "b.sv": row("yes", 200, 20, 80, None), "c.sv": row("no", 50, 5, 20, 90)}
+    arms, failed = [], []
+    def arm(name, cond):
+        arms.append(name); print(f"  {'✓' if cond else '✗'} {name}")
+        if not cond: failed.append(name)
+    new = {"a.sv": row("no", 160, 12, 60, 520), "b.sv": dict(base["b.sv"]), "c.sv": dict(base["c.sv"])}
+    h, d, f = advanced_files_only(base, new, ["a.sv"]); arm("holds: one still-rejected file advanced (furthest forward), others byte-identical", h and f["moved_files"] == ["a.sv"])
+    new2 = {"a.sv": row("yes", 160, 12, 60, None), "b.sv": dict(base["b.sv"]), "c.sv": dict(base["c.sv"])}
+    h, d, f = advanced_files_only(base, new2, ["a.sv"]); arm("holds: a file that flipped no -> yes advanced", h)
+    new3 = {"a.sv": row("no", 160, 12, 60, 520), "b.sv": row("yes", 201, 20, 80, None), "c.sv": dict(base["c.sv"])}
+    h, d, f = advanced_files_only(base, new3, ["a.sv"]); arm("fails: an UNSCOPED file changed cost", not h and f["unscoped_moved"] == ["b.sv"])
+    new4 = {"a.sv": row("no", 160, 12, 60, 300), "b.sv": dict(base["b.sv"]), "c.sv": dict(base["c.sv"])}
+    h, d, f = advanced_files_only(base, new4, ["a.sv"]); arm("fails: a scoped file got dearer WITHOUT advancing (same furthest)", not h and f["not_advanced"] == ["a.sv"])
+    new5 = {"a.sv": row("no", 160, 12, 60, 250), "b.sv": dict(base["b.sv"]), "c.sv": dict(base["c.sv"])}
+    h, d, f = advanced_files_only(base, new5, ["a.sv"]); arm("fails: a scoped file whose furthest moved BACKWARD", not h)
+    base9 = {k: dict(v, furthest=None) for k, v in base.items()}
+    h, d, f = advanced_files_only(base9, new, ["a.sv"]); arm("holds with the baseline-unknown fact on a 9-column baseline when the new table carries the furthest", h and f["baseline_furthest_unknown"] == ["a.sv"])
+    new6 = {"a.sv": row("no", 160, 12, 60, None), "b.sv": dict(base["b.sv"]), "c.sv": dict(base["c.sv"])}
+    h, d, f = advanced_files_only(base9, new6, ["a.sv"]); arm("fails: still rejected and NO furthest on either side — the advance is unverifiable", not h)
+    try:
+        advanced_files_only(base, new, []); arm("refuse: empty scope", False)
+    except Refused: arm("refuse: empty scope", True)
+    try:
+        advanced_files_only(base, new, ["zz.sv"]); arm("refuse: a scope path the sample lacks", False)
+    except Refused: arm("refuse: a scope path the sample lacks", True)
+    h, d, f = advanced_files_only(base, {k: dict(v) for k, v in base.items()}, ["a.sv"]); arm("fails: nothing moved — no rise to explain", not h)
+    print(f"ADVANCED-FILES-ONLY-SELFTEST: arms={len(arms)} failed={len(failed)}")
+    return 1 if failed else 0
+
+
 def self_test_caller_split_containment() -> int:
     """Every refusal and failure branch of `caller_split_containment`, fired on synthetic tables
     that carry the measured `SV-CORPUS-GRAD.3.31` shape, plus the GREEN arm."""
@@ -661,7 +800,7 @@ def main() -> int:
 
     try:
         if a.self_test:
-            return self_test_host_memo_eviction() | self_test_caller_split_containment()
+            return self_test_host_memo_eviction() | self_test_caller_split_containment() | self_test_advanced_files_only()
 
         if a.graph:
             g = derive_graph(a.graph)

@@ -1,9 +1,4 @@
 cell	suite	relpath	sv_2017	sv_2023	furthest_sv_2017	furthest_sv_2023	adjudication_2017_lane	expected_2017_lane
-2023_only_pass	ispras-sv-tests	ieee-1800-2012/12/12.06.01_05.sv	fail	pass	606	-	divergence:unexplained_rejects_valid	must_accept
-2023_only_pass	ispras-sv-tests	ieee-1800-2012/12/12.06.01_06.sv	fail	pass	628	-	divergence:unexplained_rejects_valid	must_accept
-2023_only_pass	ispras-sv-tests	ieee-1800-2012/12/12.06.02_01.sv	fail	pass	454	-	divergence:unexplained_rejects_valid	must_accept
-2023_only_pass	ispras-sv-tests	ieee-1800-2012/12/12.06.02_02.sv	fail	pass	433	-	divergence:unexplained_rejects_valid	must_accept
-2023_only_pass	ispras-sv-tests	ieee-1800-2012/12/12.06.02_03.sv	fail	pass	456	-	divergence:unexplained_rejects_valid	must_accept
 2023_only_pass	iverilog	ivtest/ivltests/event_array.v	fail	pass	394	-	deferred:v2005_profile_lane	out_of_scope_with_cause:v2005_profile_lane
 2023_only_pass	iverilog	ivtest/ivltests/sv_soft_packed_union_fail1.v	fail	pass	104	-	match	must_reject
 2023_only_pass	iverilog	ivtest/ivltests/sv_type_param_restrict_class_fail1.v	fail	pass	108	-	match	must_reject
