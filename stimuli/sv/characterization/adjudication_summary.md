@@ -5,20 +5,20 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | suite | rows | match | UNEXPLAINED div | explained div | deferred |
 |---|---|---|---|---|---|
 | Cores-VeeR-EL2 | 102 | 0 | 0 | 0 | 102 |
-| Surelog | 828 | 570 | 12 | 46 | 200 |
+| Surelog | 828 | 573 | 9 | 46 | 200 |
 | black-parrot | 205 | 0 | 0 | 0 | 205 |
 | friscv | 441 | 0 | 0 | 0 | 441 |
-| ispras-sv-tests | 1266 | 789 | 15 | 16 | 446 |
-| iverilog | 3799 | 1030 | 16 | 222 | 2531 |
+| ispras-sv-tests | 1266 | 795 | 9 | 16 | 446 |
+| iverilog | 3799 | 1030 | 15 | 223 | 2531 |
 | opentitan | 3983 | 0 | 0 | 0 | 3983 |
 | scr1 | 50 | 0 | 0 | 0 | 50 |
 | slang | 92 | 54 | 1 | 15 | 22 |
 | sv-tests | 1028 | 798 | 6 | 123 | 101 |
-| sv2v | 953 | 467 | 25 | 87 | 374 |
+| sv2v | 953 | 474 | 18 | 87 | 374 |
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
-| verible | 152 | 113 | 8 | 9 | 22 |
-| verilator | 3263 | 2105 | 54 | 975 | 129 |
-| **total** | **16336** | **5926** | **137** | **1493** | **8780** |
+| verible | 152 | 114 | 7 | 9 | 22 |
+| verilator | 3263 | 2112 | 47 | 975 | 129 |
+| **total** | **16336** | **5950** | **112** | **1494** | **8780** |
 
 ## Verdict-class detail
 
@@ -35,11 +35,11 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | divergence:explained_store_gate | 56 |
 | divergence:explained_svpp_conditional | 199 |
 | divergence:explained_svpp_include | 140 |
-| divergence:explained_svpp_macro_use | 1094 |
+| divergence:explained_svpp_macro_use | 1095 |
 | divergence:explained_svpp_protected_envelope | 4 |
-| divergence:unexplained_accepts_invalid | 21 |
-| divergence:unexplained_rejects_valid | 116 |
-| match | 5926 |
+| divergence:unexplained_accepts_invalid | 14 |
+| divergence:unexplained_rejects_valid | 98 |
+| match | 5950 |
 
-**The graduation burn-down baseline = the UNEXPLAINED divergence count** (**137**: rejects-valid 116, accepts-invalid 21). Explained divergences are svpp/chaining/timeout-owned or store-gate-owned (`.13w`: the row parses once its undeclared type is declared) with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
+**The graduation burn-down baseline = the UNEXPLAINED divergence count** (**112**: rejects-valid 98, accepts-invalid 14). Explained divergences are svpp/chaining/timeout-owned or store-gate-owned (`.13w`: the row parses once its undeclared type is declared) with named causes; deferred rows adjudicate in their owning lanes (leaf .4 chaining, SVPP lane).
 

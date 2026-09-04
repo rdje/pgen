@@ -1013,14 +1013,18 @@ block_item_declaration := attribute_instance* block_data_declaration
                                     -> {kind: "let",               attributes: $1, body: $2}
 
 @profiles: ["sv_2017", "verilog_2005"]
-block_data_declaration_sv_2017 := @probe_sample: "int a;" ( const_qualifier_sv_only )? ( var_qualifier_sv_only )? ( declaration_lifetime_sv_only )? block_data_type_or_implicit list_of_variable_decl_assignments semi
+block_data_declaration_sv_2017 := @probe_sample: "int a;" ( const_qualifier_sv_only )? ( var_qualifier_sv_only )? ( declaration_lifetime_sv_only )? block_data_type_or_implicit_explicit list_of_variable_decl_assignments semi
+                               -> {const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, items: $5}
+                               | @probe_sample: "var a;" ( const_qualifier_sv_only )? var_qualifier_sv_only ( declaration_lifetime_sv_only )? block_data_type_or_implicit_implicit list_of_variable_decl_assignments semi
                                -> {const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, items: $5}
                                | @probe_sample: "typedef int t;" type_declaration
                                | @probe_sample: "import p::*;" package_import_declaration
                                | @probe_sample: "nettype int nt;" net_type_declaration
 
 @profiles: ["sv_2023"]
-block_data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? block_data_type_or_implicit list_of_variable_decl_assignments semi
+block_data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? block_data_type_or_implicit_explicit list_of_variable_decl_assignments semi
+                                        -> {kind: "data",       const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, items: $5}
+                                | ( kw_const_b42f3f6f )? kw_var_e5b4e786 ( lifetime )? block_data_type_or_implicit_implicit list_of_variable_decl_assignments semi
                                         -> {kind: "data",       const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, items: $5}
                                 | type_declaration
                                         -> {kind: "type",       body: $1}
@@ -2116,7 +2120,9 @@ cycle_delay_range := kw_token_93ac8946 constant_primary
                             -> {kind: "plus"}
 
 @profiles: ["sv_2017", "verilog_2005"]
-data_declaration_sv_2017 := ( const_qualifier_sv_only )? ( var_qualifier_sv_only )? ( declaration_lifetime_sv_only )? data_type_or_implicit list_of_variable_decl_assignments semi
+data_declaration_sv_2017 := ( const_qualifier_sv_only )? ( var_qualifier_sv_only )? ( declaration_lifetime_sv_only )? data_type_or_implicit_explicit list_of_variable_decl_assignments semi
+                                -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
+                         | ( const_qualifier_sv_only )? var_qualifier_sv_only ( declaration_lifetime_sv_only )? data_type_or_implicit_implicit list_of_variable_decl_assignments semi
                                 -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
                          | type_declaration
                                 -> {kind: "type",                  body: $1}
@@ -2126,7 +2132,9 @@ data_declaration_sv_2017 := ( const_qualifier_sv_only )? ( var_qualifier_sv_only
                                 -> {kind: "net_type",              body: $1}
 
 @profiles: ["sv_2023"]
-data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? data_type_or_implicit list_of_variable_decl_assignments semi
+data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? data_type_or_implicit_explicit list_of_variable_decl_assignments semi
+                                -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
+                         | ( kw_const_b42f3f6f )? kw_var_e5b4e786 ( lifetime )? data_type_or_implicit_implicit list_of_variable_decl_assignments semi
                                 -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
                          | type_declaration
                                 -> {kind: "type",                  body: $1}
@@ -2254,6 +2262,10 @@ block_data_type := integer_vector_type ( signing )? packed_dimension*
 block_data_type_or_implicit := block_data_type    -> {kind: "block_data",     body: $1}
                               | implicit_data_type -> {kind: "implicit_data", body: $1}
 
+# SV-CORPUS-GRAD.3.35: the two halves for block_data_declaration (footnote 6, see data_type_or_implicit_*).
+block_data_type_or_implicit_explicit := block_data_type    -> {kind: "block_data",     body: $1}
+block_data_type_or_implicit_implicit := implicit_data_type -> {kind: "implicit_data", body: $1}
+
 data_type := @probe_sample: "int" integer_vector_type ( signing )? packed_dimension*
                   -> {kind: "integer_vector",        base: $1, signing: $2, dims: $3}
            # SV-CORPUS-GRAD.13e.4 (SV-0069): `integer_atom_type` STAYS reachable under
@@ -2303,6 +2315,16 @@ data_type := @probe_sample: "int" integer_vector_type ( signing )? packed_dimens
 
 data_type_or_implicit := data_type          -> {kind: "data_type",     body: $1}
                        | implicit_data_type -> {kind: "implicit",       body: $1}
+
+# SV-CORPUS-GRAD.3.35 (ledger SV-0083), IEEE 1800-2017 Annex A footnote 6
+# (section-41-data-read-api.md:3504-3505): "In a data_declaration, it shall be illegal to omit the
+# explicit data_type before a list_of_variable_decl_assignments unless the var keyword is used." The
+# two halves of data_type_or_implicit, one per arm of the declaration rules, SAME node shapes, so a
+# declaration that was legal parses to a byte-identical tree; `a;`, `y = 1;`, `[1:0] x;`, `signed x;`
+# at item level stop parsing as declarations, and a block whose first item is `x = 1;` derives it as
+# the STATEMENT it is (it used to derive as an implicit-type block_data declaration).
+data_type_or_implicit_explicit := data_type          -> {kind: "data_type",     body: $1}
+data_type_or_implicit_implicit := implicit_data_type -> {kind: "implicit",       body: $1}
 
 @profiles: ["sv_2023"]
 data_type_or_incomplete_class_scoped_type_sv_2023 := data_type                     -> {kind: "data_type",            body: $1}
@@ -2734,6 +2756,15 @@ event_expression_primary := ( edge_identifier )? expression ( iff_keyword_sv_onl
 
 event_expression := event_expression_primary ( ( kw_or_1758356d | comma ) event_expression_primary )*
                  -> [$1, $2::2*]
+
+# SV-CORPUS-GRAD.3.35 (ledger SV-0083): an ACTUAL argument is ONE item of a comma-separated list
+# (property/sequence/checker ports, A.2.10 / A.1.8), so its event expression must not absorb the
+# list's own separator: `clk = $inferred_clock, rst = $inferred_disable` and
+# `string msg = "violation", coverage_level clevel = cover_all` were swallowed as ONE
+# `a, b` event list by the comma arm above (commit-once: no give-back at the `=`). The comma form
+# stays available inside parentheses (`(a, b)`, an event_expression_primary). Same node shape.
+event_expression_no_comma := event_expression_primary ( kw_or_1758356d event_expression_primary )*
+                          -> [$1, $2::2*]
 
 # SV-OVER-REJECTION-FIDELITY.3 / ledger SV-0023 — IEEE 1800 §15.5 + A.6.5 event triggers.
 #   `->` is the BLOCKING named-event trigger (§15.5.3); `->>` is the NONBLOCKING trigger (§15.5.4)
@@ -3567,6 +3598,27 @@ list_of_net_decl_assignments := net_decl_assignment ( comma net_decl_assignment 
 list_of_param_assignments := param_assignment ( comma param_assignment )*
                           -> [$1, $2::2*]
 
+# SV-CORPUS-GRAD.3.35 (ledger SV-0083), IEEE 1800-2017 Annex A footnote 18
+# (section-41-data-read-api.md:3518-3520): the default may be omitted only within a
+# parameter_port_list, and never from a localparam. POSITIVE productions — the `with_default` arms of
+# param_assignment_sv_2017 / _sv_2023 restated under their own names with IDENTICAL node shapes — so the
+# stimuli generator derives only what the parser admits (a parse-only lookahead broke that duality: the
+# generator still emitted `localparam X;`, the parser refused it, and seven rules went UNKNOWN in the
+# canonical certificate config — EBNF-SOURCE-OF-TRUTH).
+list_of_param_assignments_with_default := param_assignment_with_default ( comma param_assignment_with_default )*
+                                       -> [$1, $2::2*]
+
+@profiles: ["sv_2017", "verilog_2005"]
+param_assignment_with_default_sv_2017 := declared_parameter_identifier unpacked_dimension* assign constant_param_expression
+                                      -> {kind: "with_default", name: $1, dims: $2, value: $4}
+
+@profiles: ["sv_2023"]
+param_assignment_with_default_sv_2023 := declared_parameter_identifier variable_dimension* assign constant_param_expression
+                                      -> {kind: "with_default", name: $1, dims: $2, value: $4}
+
+param_assignment_with_default := param_assignment_with_default_sv_2017 -> {kind: "sv_2017", body: $1}
+                              | param_assignment_with_default_sv_2023 -> {kind: "sv_2023", body: $1}
+
 @profiles: ["sv_2017", "verilog_2005"]
 list_of_parameter_assignments_sv_2017 := ordered_parameter_assignment ( comma ordered_parameter_assignment )*
                                               -> {kind: "ordered", items: [$1, $2::2*]}
@@ -3625,8 +3677,30 @@ list_of_tf_variable_identifiers := tf_variable_identifier_decl ( comma tf_variab
                                 -> [$1, $2::2*]
 
 @profiles: ["sv_2017", "sv_2023"]
-list_of_type_assignments := type_assignment ( !( comma kw_type_d0a3e7f8 ) comma type_assignment )*
+# SV-CORPUS-GRAD.3.35: `type T = int, T x = 0` (IEEE 1800-2017 §6.20.1's own example) — after the
+# comma an identifier FOLLOWED BY another identifier is a `data_type list_of_param_assignments`
+# declaration, never another type assignment (commit-once took `T` and failed at `x`).
+list_of_type_assignments := type_assignment ( !( comma ( kw_type_d0a3e7f8 | non_keyword_identifier non_keyword_identifier ) ) comma type_assignment )*
                          -> [$1, $2::2*]
+
+# SV-CORPUS-GRAD.3.35, footnote 18 for `localparam type`: the `= data_type` is required — POSITIVE
+# restatements of type_assignment_sv_2017 / _sv_2023 with the group mandatory (see
+# list_of_param_assignments_with_default for why not a lookahead).
+@profiles: ["sv_2017", "sv_2023"]
+list_of_type_assignments_with_default := type_assignment_with_default ( !( comma ( kw_type_d0a3e7f8 | non_keyword_identifier non_keyword_identifier ) ) comma type_assignment_with_default )*
+                                      -> [$1, $2::2*]
+
+@profiles: ["sv_2017"]
+type_assignment_with_default_sv_2017 := !kw_type_d0a3e7f8 declared_type_parameter_identifier ( assign data_type )
+                                     -> {name: $1, value: $2}
+
+@profiles: ["sv_2023"]
+type_assignment_with_default_sv_2023 := !kw_type_d0a3e7f8 declared_type_parameter_identifier ( assign data_type_or_incomplete_class_scoped_type )
+                                     -> {name: $1, value: $2}
+
+@profiles: ["sv_2017", "sv_2023"]
+type_assignment_with_default := type_assignment_with_default_sv_2017 -> {kind: "sv_2017", body: $1}
+                             | type_assignment_with_default_sv_2023 -> {kind: "sv_2023", body: $1}
 
 list_of_udp_port_identifiers := port_identifier ( comma port_identifier )*
                              -> [$1, $2::2*]
@@ -3647,20 +3721,20 @@ list_of_variable_port_identifiers := variable_port_identifier_decl ( comma varia
 
 @branch_policy: priority_first
 @profiles: ["sv_2017", "verilog_2005"]
-local_parameter_declaration_sv_2017 := kw_localparam_7829ee69 list_of_param_assignments
+local_parameter_declaration_sv_2017 := kw_localparam_7829ee69 list_of_param_assignments_with_default
                                               -> {kind: "implicit",  items: $2}
-                                     | kw_localparam_7829ee69 data_type_or_implicit list_of_param_assignments
+                                     | kw_localparam_7829ee69 data_type_or_implicit list_of_param_assignments_with_default
                                               -> {kind: "typed",     data_type: $2, items: $3}
-                                     | kw_localparam_7829ee69 kw_type_d0a3e7f8 list_of_type_assignments
+                                     | kw_localparam_7829ee69 kw_type_d0a3e7f8 list_of_type_assignments_with_default
                                               -> {kind: "type",      items: $3}
 
 @branch_policy: priority_first
 @profiles: ["sv_2023"]
-local_parameter_declaration_sv_2023 := kw_localparam_7829ee69 list_of_param_assignments
+local_parameter_declaration_sv_2023 := kw_localparam_7829ee69 list_of_param_assignments_with_default
                                               -> {kind: "implicit",       items: $2}
-                                     | kw_localparam_7829ee69 data_type_or_implicit list_of_param_assignments
+                                     | kw_localparam_7829ee69 data_type_or_implicit list_of_param_assignments_with_default
                                               -> {kind: "typed",          data_type: $2, items: $3}
-                                     | kw_localparam_7829ee69 type_parameter_declaration
+                                     | kw_localparam_7829ee69 type_parameter_declaration_with_default
                                               -> {kind: "type_parameter", body: $2}
 
 local_parameter_declaration := local_parameter_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
@@ -4771,7 +4845,7 @@ parameter_override := kw_defparam_83d3c70e list_of_defparam_assignments semi
 @profiles: ["sv_2017", "verilog_2005"]
 parameter_port_declaration_sv_2017 := kw_parameter_b75381f0 list_of_param_assignments
                                               -> {kind: "parameter",            items: $2}
-                                    | kw_localparam_7829ee69 list_of_param_assignments
+                                    | kw_localparam_7829ee69 list_of_param_assignments_with_default
                                               -> {kind: "localparam",           items: $2}
                                     | kw_type_d0a3e7f8 list_of_type_assignments
                                               -> {kind: "type",                 items: $2}
@@ -4786,7 +4860,7 @@ parameter_port_declaration_sv_2017 := kw_parameter_b75381f0 list_of_param_assign
 @profiles: ["sv_2023"]
 parameter_port_declaration_sv_2023 := kw_parameter_b75381f0 list_of_param_assignments
                                               -> {kind: "parameter",            items: $2}
-                                    | kw_localparam_7829ee69 list_of_param_assignments
+                                    | kw_localparam_7829ee69 list_of_param_assignments_with_default
                                               -> {kind: "localparam",           items: $2}
                                     | type_parameter_declaration
                                               -> {kind: "type_parameter",        body: $1}
@@ -5856,11 +5930,11 @@ sequence_abbrev := consecutive_repetition
                 -> {body: $1}
 
 @profiles: ["sv_2017"]
-sequence_actual_arg_sv_2017 := event_expression -> {kind: "event_expression", body: $1}
+sequence_actual_arg_sv_2017 := event_expression_no_comma -> {kind: "event_expression", body: $1}
                              | sequence_expr    -> {kind: "sequence_expr",   body: $1}
 
 @profiles: ["sv_2023"]
-sequence_actual_arg_sv_2023 := event_expression -> {kind: "event_expression", body: $1}
+sequence_actual_arg_sv_2023 := event_expression_no_comma -> {kind: "event_expression", body: $1}
                              | sequence_expr    -> {kind: "sequence_expr",   body: $1}
                              | kw_dollar        -> {kind: "dollar"}
 
@@ -6759,6 +6833,15 @@ type_parameter_declaration_sv_2023 := kw_type_d0a3e7f8 ( forward_type )? list_of
 @profiles: ["sv_2023"]
 type_parameter_declaration := type_parameter_declaration_sv_2023
                            -> {body: $1}
+
+# SV-CORPUS-GRAD.3.35, footnote 18 for a 1800-2023 `localparam type`: the same shapes, the default required.
+@profiles: ["sv_2023"]
+type_parameter_declaration_wd_sv_2023 := kw_type_d0a3e7f8 ( forward_type )? list_of_type_assignments_with_default
+                                      -> {forward_type: $2, items: $3}
+
+@profiles: ["sv_2023"]
+type_parameter_declaration_with_default := type_parameter_declaration_wd_sv_2023
+                                        -> {body: $1}
 
 @profiles: ["sv_2017"]
 type_reference_sv_2017 := kw_type_d0a3e7f8 lparen expression rparen -> {kind: "expression", body: $3}

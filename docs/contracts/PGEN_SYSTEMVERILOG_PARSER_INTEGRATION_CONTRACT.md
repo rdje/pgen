@@ -5,6 +5,20 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-09-04, `SV-CORPUS-GRAD.3.35` — GRAMMAR, release `1.0.210`, ledger `SV-0083`,
+> schema `26` UNCHANGED, `sv_2017` + `sv_2023` widen AND narrow): four corrections from the residual-bar
+> triage by construct.** Widened: a port default followed by the next port (`clk = $inferred_clock,
+> rst = $inferred_disable`; `string msg = "violation", coverage_level clevel = cover_all`) — the actual
+> argument's event expression no longer absorbs the list's comma; and `type T = int, T x = 0` (§6.20.1's
+> own example). Narrowed, by Annex A's own footnotes: an implicit data type in a data declaration requires
+> `var` (footnote 6 — `a;`, `y = 1;`, `[1:0] x;`, `signed x;` stop parsing at item level), and a
+> `localparam` always carries its default (footnote 18). ⛔ **Consumers: one derivation is corrected** — a
+> block whose first item is a statement (`begin x = 1; …`) used to yield an implicit-type `block_data`
+> declaration node for it and now yields the `statement` it is; the verdict is unchanged, the tree is right.
+> Every other legal input keeps its kind multiset. Corpus: `sv_2017` 17 rows moved — seven `fail → pass`, ten `pass → fail` (seven the footnotes target, three illegal texts that had parsed only through the mis-derivation), the axis-2 bar `137 → 112`; the `sv_2023` lane moves identically, `verilog_2005` not at all. Parse cost: `entries` FELL `414 471 371 → 400 072 681` (−3.47 %), `committed` −0.12 %, `memo_hits` −5.61 %, promoted by the rebaseline; family share `2.744 → 2.679 %`; `sv_parse_cost_ratchet` OK.
+> The unterminated-block-comment acceptance found on the way is the engine's layout skipper
+> (`ENGINE-UNIVERSAL-SERVICES.93`), routed, not fixed here.
+
 > **Current-state note (2026-09-04, `SV-CORPUS-GRAD.3.34` + `.3.33` — GRAMMAR, release `1.0.209`, ledger `SV-0082`,
 > schema `26` UNCHANGED, `sv_2017` WIDENS): a parenthesised NESTED tagged pattern — `tagged Jmp (tagged JmpU .a)`,
 > `tagged Jmp (tagged JmpC '{.c, .a})`, the form IEEE 1800-2017's own §12.6.1 examples write
@@ -1055,15 +1069,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.209`
+  - `1.0.210`
 - Parser release version:
-  - `1.0.209`
-  - history: `1.0.208`; `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.210`
+  - history: `1.0.209`; `1.0.208`; `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `f8c989e075eb89b8ab36e606f86396dc45bec48dd95790b0a997736ebd713cd1` (SV grammar semantic digest — sha256 of the
+  - `97efdcb70e708b639575c5dc856a753ba4090b9c7fa941a0356c32b5e621e286` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`

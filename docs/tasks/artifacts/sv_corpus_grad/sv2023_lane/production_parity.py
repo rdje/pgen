@@ -56,7 +56,7 @@ def enclosing(heads: list[tuple[int, str]], line: int) -> str | None:
 
 
 def normalise(s: str) -> str:
-    s = re.sub(r"([a-z_\]\)])\d+\b", r"\1", s)      # footnote digits glued to names or brackets (this46, ]15)
+    s = re.sub(r"([a-z_\]\)}])\d+\b", r"\1", s)     # footnote digits glued to names or brackets (this46, ]15, }13)
     s = re.sub(r"\s*([()\[\]{}|.*])\s*", r" \1 ", s)  # one spacing for punctuation ("@@(" == "@@ (", ".*" == ". *")
     s = re.sub(r"\s+_", "_", s)                         # a name broken across a PDF line ("constant _expression")
     s = re.sub(r"\s+", " ", s).strip()
@@ -73,7 +73,9 @@ def cited_names(basis: str, heads17: list[tuple[int, str]] | None = None) -> lis
             lo, hi = int(a), int(b or a)
             for ln in range(lo, min(hi, lo + 40) + 1):
                 n = enclosing(heads17, ln)
-                if n: names.append(n)
+                # a line inside A.10 (the footnotes) sits after the last head, `white_space`; it cites a
+                # FOOTNOTE, not that production — footnotes are read by hand, never compared as a body
+                if n and n != "white_space": names.append(n)
     seen, out = set(), []
     for n in names:
         n = re.sub(r"(?<=[a-z_])\d+$", "", n) if n not in ("delay2", "delay3") else n
@@ -88,7 +90,8 @@ def main() -> int:
               and cited_names("IEEE foo ::= a | b (x:1); bar ::= c") == ["foo", "bar"]
               and enclosing(heads, 3) == "x" and enclosing(heads, 8) == "y"
               and normalise("@@( e )15") == normalise("@@ ( e )")
-              and productions("z ::= q\n1176\nA.8.8 Strings\n| r\n")[0]["z"] == "q | r")
+              and productions("z ::= q\n1176\nA.8.8 Strings\n| r\n")[0]["z"] == "q | r"
+              and normalise("{ packed_dimension }13") == normalise("{ packed_dimension }17"))
         if not ok: print(p, heads)
         print(f"PRODUCTION-PARITY-SELFTEST: {'PASS' if ok else 'FAIL'}"); return 0 if ok else 1
     (p17, heads17), (p23, _h23) = productions(A17.read_text(encoding="utf-8")), productions(A23.read_text(encoding="utf-8"))

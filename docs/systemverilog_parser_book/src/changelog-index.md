@@ -34,6 +34,37 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.210 / Contract 1.0.210 — SV-CORPUS-GRAD.3.35 (`PGEN-SV-CORPUS-GRAD-0364`, 2026-09-04), ledger `SV-0083` (`Released`):
+
+⭐ **Four corrections from the residual bar, read one production at a time — two widenings, two
+tightenings.** A property, sequence or checker port default followed by the next port now parses (the
+actual argument's event expression used to swallow the list's comma); `type T = int, T x = 0` — the
+standard's own §6.20.1 example — now parses. And two of Annex A's own footnotes are enforced: an implicit
+data type in a data declaration requires `var` (footnote 6), and a `localparam` always carries its default
+(footnote 18).
+
+| input | before | after |
+|---|---|---|
+| `property p(clk = $inferred_clock, rst = $inferred_disable);` / `checker c(string msg = "violation", coverage_level clevel = cover_all);` | `rc 1` | **`rc 0`** |
+| `module top #(int N = 5, M = N * 16, type T = int, T x = 0) ();` | `rc 1` | **`rc 0`** |
+| `a;`, `y = 1;`, `[1:0] x;`, `signed x;` at module level (no `var`) | `rc 0` | **`rc 1`** |
+| `localparam X;`, `localparam type X;` in a body | `rc 0` | **`rc 1`** |
+| `var x = 1; var [1:0] y;`, `localparam X = 1;`, `#(parameter P, type U)`, `(a, b)` as an event default (controls) | `rc 0` | `rc 0`, kinds identical |
+
+**How.** `event_expression_no_comma` in the actual-argument arm (same node shape); a lookahead on the type
+list's continuation; the declaration rules' implicit arm behind a mandatory `var`; `_with_default` lists
+for every `localparam` arm (the parameter-port-list omission footnote 18 allows is untouched).
+
+**AST impact — one corrected derivation.** No `kind` added, removed or renamed; every legal control keeps
+its kind multiset. ⛔ A block whose first item is a statement (`begin x = 1; …`) used to derive it as an
+implicit-type `block_data` declaration — an illegal derivation by footnote 6 — and now derives the
+`statement` it is. Same verdict, corrected tree; consumers walking `seq_block.declarations` for such
+blocks will see the item move to `statements`. Schema **26 unchanged**.
+
+**Corpus proof**, per path, three lanes: `sv_2017` **7** rows `fail → pass` (Surelog `SequenceInst`, ispras `06.20.01_02`, `16.08.02_01`, `16.14.07_01`, `17.09_01/02`, `23.10.03_02`) and **10** `pass → fail` (the seven sv2v error files the footnotes target, and three `must_accept`-keyed files — verible `array.sv`, `shadow_parameter.sv`, verilator `t_final.v` — that had parsed only through the footnote-6 mis-derivation and are ruled `must_reject`); pass **9 836 → 9 833**; the axis-2 bar **137 → 112**; `sv_2023` the same 17 rows; `verilog_2005` **0**. **Gates**: `sv_cert_recognized_union_gate` GREEN — canonical `1428/9/1406/13`, union `1419/0`, re-stamped; `verilog_2005_conformance_gate` GREEN — cert `1138/377/747/14`, corpus 363 checks / 0 mismatches, re-stamped; `sv_syntax_closure_gate` GREEN — allow-list ONE → TWO (the now-dead `block_data_type_or_implicit`, deletion owed to `.3.36`), `max_unreachable_branches` 2 → 4, re-stamped; `ast_shape_contract_gate` 18/18; reproducibility baseline re-derived. Cost: `entries` FELL `414 471 371 → 400 072 681` (−3.47 %), `committed` −0.12 %, `memo_hits` −5.61 %, promoted by the rebaseline; family share `2.744 → 2.679 %`; `sv_parse_cost_ratchet` OK.
+The unterminated block comment the triage found (`/*` alone parses) is the engine's layout skipper, routed
+as `ENGINE-UNIVERSAL-SERVICES.93`.
+
 ### 1.0.209 / Contract 1.0.209 — SV-CORPUS-GRAD.3.34 + .3.33 (`PGEN-SV-CORPUS-GRAD-0362`, 2026-09-04), ledger `SV-0082` (`Released`):
 
 ⭐ **A parenthesised nested tagged pattern now parses under `sv_2017` — the form the standard's own

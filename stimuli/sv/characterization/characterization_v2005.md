@@ -24,14 +24,14 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile ve
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `4dab0573fd46dca4327891780cb6f95df755566fd8e3aaa8c321597d6aec2013` |
-| grammar | `grammars/systemverilog.ebnf` | `f792c2cd28138e7d19801269f4b583a92080d07b1b6d2fee1794231fbd5069af` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `f8c989e075eb89b8ab36e606f86396dc45bec48dd95790b0a997736ebd713cd1` |
-| generated parser | `generated/systemverilog_parser.rs` | `a498d525f349ef8626e247b232277a73f782ca6b82bc9a7d2c1e4d0d0d0cbef7` |
+| parse binary | `rust/target/release/parseability_probe` | `f586ba2c172d4d31266ec56a83081483f042cf8c7acc70651ccca4d1d3703590` |
+| grammar | `grammars/systemverilog.ebnf` | `c13e8a8f87c94c5044ccf2c436dc9afc43c3ec349c0bdb42c6cc54c1b9478a83` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `97efdcb70e708b639575c5dc856a753ba4090b9c7fa941a0356c32b5e621e286` |
+| generated parser | `generated/systemverilog_parser.rs` | `7e09e8d8941e1183eef110741377b25ee04c099e4e394db434aa4986c953f31e` |
 | results (output) | `stimuli/sv/characterization/results_v2005.tsv` | `33349001f8a568ea80e74af884e8a42f6146d875bdfc75e889c3a431b9c426ed` |
-| positions (output) | `stimuli/sv/characterization/positions_v2005.tsv` | `adfa0fa3f756ed54617f9b14d42212e0df335568ab9d86b74d11cfb1e66da606` |
+| positions (output) | `stimuli/sv/characterization/positions_v2005.tsv` | `e39d681e1b29a06ce33f72c07bdd0497ed8c576870bc43a297c4ab4bd1a611c0` |
 
-Measured at `HEAD` = `213c1cc9+dirty` (2026-09-04).
+Measured at `HEAD` = `e96e13f9+dirty` (2026-09-04).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -65,7 +65,7 @@ Measured at `HEAD` = `213c1cc9+dirty` (2026-09-04).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `0.45` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
+Slowest completing file: `0.34` s — `stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v`.
 
 ## Totals
 

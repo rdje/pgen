@@ -6,9 +6,9 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `9d47010747a73ce6f32a21c87734fea70f00a57f8839510a53459cc7c3affbf8` |
-| positions | `stimuli/sv/characterization/positions.tsv` | `e3bc85e8c14419d68fa8f67e6ee081aee0001a667f22bda0a2ceac5b77d153e6` |
-| grammar | `grammars/systemverilog.ebnf` | `f792c2cd28138e7d19801269f4b583a92080d07b1b6d2fee1794231fbd5069af` |
+| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `28098baa469fdafcaf7ea1d7d52233b0ffa56526c4fcf53a74c60825613c0f8e` |
+| positions | `stimuli/sv/characterization/positions.tsv` | `e7e5f4e1a5cb1a47dbbfaf5961f1a226268cb7c2b41b7d2dfdf4a200925aa916` |
+| grammar | `grammars/systemverilog.ebnf` | `c13e8a8f87c94c5044ccf2c436dc9afc43c3ec349c0bdb42c6cc54c1b9478a83` |
 
 ## The TEXT channel — can expansion move the byte the parse choked on?
 
@@ -28,8 +28,8 @@
 |---|---:|---|
 | `FACT-GATED-CROSS-FILE` | 2,060 |  |
 | `CROSS-LIBRARY` | 171 |  |
-| `UNDECLARED-ANYWHERE` | 22 |  |
-| `NO-FACT-GATE-AT-FAILURE` | 18 |  |
+| `UNDECLARED-ANYWHERE` | 23 |  |
+| `NO-FACT-GATE-AT-FAILURE` | 17 |  |
 | `FACT-GATED-LOCAL-TYPE` | 8 |  |
 
 ⇒ **the worklist is 48 rows** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv`) — every one must be adjudicated with the toolbox (probe + `--trace-rules`) before it is called a defect.
@@ -38,8 +38,8 @@
 
 | suite | channel | rows |
 |---|---|---:|
-| opentitan | `UNDECLARED-ANYWHERE` | 18 |
-| opentitan | `NO-FACT-GATE-AT-FAILURE` | 11 |
+| opentitan | `UNDECLARED-ANYWHERE` | 19 |
+| opentitan | `NO-FACT-GATE-AT-FAILURE` | 10 |
 | uvm-core | `FACT-GATED-LOCAL-TYPE` | 8 |
 | Surelog | `UNDECLARED-ANYWHERE` | 3 |
 | Cores-VeeR-EL2 | `NO-FACT-GATE-AT-FAILURE` | 2 |
@@ -62,7 +62,6 @@
 | opentitan | `hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv` | 53 | `NO-FACT-GATE-AT-FAILURE` | `th(EntropyWidth), ) u_kmac_reduced ( .clk_i, .rst_ni, // Inputs e` |
 | opentitan | `hw/vendor/lowrisc_ibex/dv/verilator/simple_system_cosim/ibex_simple_system_cosim_checker_bind.sv` | 7 | `NO-FACT-GATE-AT-FAILURE` | `#( .SecureIbex, .ICache, .PMPEnable, .PMPGranularity,` |
 | opentitan | `hw/vendor/lowrisc_ibex/syn/rtl/latch_map.v` | 6 | `NO-FACT-GATE-AT-FAILURE` | `pecific cell module $_DLATCH_P_ (input E, input D, output Q); DLH_X1 _TECHMAP_RE` |
-| opentitan | `hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv` | 2 | `NO-FACT-GATE-AT-FAILURE` | `name enum CUSTOM_1,` |
 | verilator | `test_regress/t/t_langext_order_sub.v` | 11 | `NO-FACT-GATE-AT-FAILURE` | `ext_order_sub(input do); endmodule` |
 | Surelog | `tests/ModPortTest/top.v` | 14 | `UNDECLARED-ANYWHERE` | `id_t1 aw_id; modport Master ( output aw_id ); id_t` |
 | Surelog | `tests/UnitClass/top.v` | 24 | `UNDECLARED-ANYWHERE` | `ass B b; DD d; covergroup memory @ (posedge ce); address : co` |
@@ -72,6 +71,7 @@
 | opentitan | `hw/ip/i3c/rtl/i3c_dxt.sv` | 53 | `UNDECLARED-ANYWHERE` | `t ram_1p_cfg_t cfg_i, output ram_1p_cfg_rsp_t cfg_rsp_o ); localparam` |
 | opentitan | `hw/ip/otbn/dv/verilator/otbn_top_sim.sv` | 168 | `UNDECLARED-ANYWHERE` | `_if #(.ImemAddrWidth, .DmemAddrWidth) i_otbn_trace_if (.*); bind otbn_core otb` |
 | opentitan | `hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv` | 24 | `UNDECLARED-ANYWHERE` | `input t_MainMode main_mode, input [31:0] regs_i [1:31], output logi` |
+| opentitan | `hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv` | 2 | `UNDECLARED-ANYWHERE` | `n name enum CUSTOM_1,` |
 | uvm-core | `uvm-core-2020.3.1/src/base/uvm_resource_base.svh` | 123 | `FACT-GATED-LOCAL-TYPE` | `(uvm_resource_base) rsrc_q_t; // SV queue of resources typedef uvm_resource` |
 | uvm-core | `uvm-core-2020.3.1/src/comps/uvm_driver.svh` | 59 | `FACT-GATED-LOCAL-TYPE` | ``xtends uvm_component; `uvm_component_param_utils(uvm_driver#(REQ,RSP)) // T`` |
 | uvm-core | `uvm-core-2020.3.1/src/comps/uvm_in_order_comparator.svh` | 87 | `FACT-GATED-LOCAL-TYPE` | `uilt_in_comp #( T ) , type convert = uvm_built_in_converter #( T ) ,` |

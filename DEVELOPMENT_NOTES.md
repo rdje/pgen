@@ -1,5 +1,31 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-04 - PGEN-SV-CORPUS-GRAD-0364 (a lookahead is a `$n` element; an actual argument is one item of a list; Annex A's footnotes are grammar)
+
+- ⭐⭐ **THE LESSON: A PARENTHESISED `!( … )` OR POSITIVE `&x` LOOKAHEAD COUNTS AS A `$n` ELEMENT — AND THE VERDICTS WILL NOT TELL YOU.**
+  The first cut spelled the `var`-gated implicit arm as `( const )? &var ( var )? ( lifetime )? data_type … list … -> {data_type: $4,
+  assignments: $5}`; every pin's accept/reject was exactly right, and the initialisers had vanished from `var x = 1;` because `$4`
+  had become the lifetime and `$5` the type. `conditional_expression := cond_predicate &question question … -> {attributes: $4}`
+  already shows the convention (bare `!x` does not shift — `type_assignment_sv_2017 := !kw_type id … -> {name: $1}`). Compare a
+  legal control's KIND MULTISET HEAD vs new (the interpreter's raw tree, `--interpret-parse-ast-json`) before generating a parser;
+  a verdict table is not a tree.
+- **An actual argument is one item of a comma-separated list — its expression grammar must not own the separator.** `event_expression`'s
+  legitimate `a, b` arm, reached through `sequence_actual_arg`, swallowed the next port of a property/checker port list under
+  commit-once; the fix is a comma-free twin for the actual-argument position (the parenthesised form keeps its commas). Five bar rows.
+- **Annex A's footnotes are grammar, and one of them was quietly mis-deriving common code.** Footnote 6 (`var` required for an implicit
+  data type) turned four `accepts_invalid` rows into refusals — and revealed that every block whose first item is `x = 1;` had been
+  deriving it as an implicit-type declaration. Footnote 18 (a `localparam` always has its default) closed two more. Read the
+  footnotes when a production "obviously" admits the text.
+- **A parse-only lookahead is not a grammar constraint — the generator cannot honour it.** The stimuli generator derives certificate
+  samples from the same EBNF; a `!( … )` guard wrapping an unchanged item leaves the generator emitting the very text the parser now
+  refuses (`localparam X;`), and the canonical certificate read seven `localparam` rules UNKNOWN (13 → 20) while every verdict and every
+  kind multiset was right. Spell a tightening as a POSITIVE production (the with-default arm restated) so generation and parsing agree —
+  `EBNF-SOURCE-OF-TRUTH` — and run the seed-0 census before the gates.
+- **When the clusterer says no family, join on the construct.** 116 rows in 89 stuck-point clusters, none larger than 4, hid five
+  one-construct families of 2–5 rows each; the trace at each cluster's stop named them in minutes.
+- **The layout skipper is engine.** `/*` with no `*/` before EOF parses as an empty file: the grammar's `block_comment` regex never sees
+  those bytes — the generated skipper consumes them. Routed (`ENGINE-UNIVERSAL-SERVICES.93`), never patched in the grammar.
+
 ## 2026-09-04 - PGEN-SV-CORPUS-GRAD-0363 (a ruling on one edition's production carries over only when the production text is compared)
 
 - ⭐ **THE LESSON: AN INHERITED RULING IS A CLAIM ABOUT THE OTHER EDITION'S TEXT — COMPARE THE TEXT.** The 2023 lane inherited 226

@@ -104,6 +104,96 @@ SVTESTS_PINNED = {
 
 # Pinned rulings from in-file upstream statements (leaf .3.0 triage findings).
 EXTRA_PINNED = {
+    # ---- SV-CORPUS-GRAD.13y (PGEN-SV-CORPUS-GRAD-0364) ------------------------------------------
+    # .13y (b): three rows that PASSED only through the footnote-6 mis-derivation the .3.35 grammar
+    # closes (a leading statement read as an implicit-type declaration) and now stop where Annex A stops.
+    ("verible", "verible/verilog/tools/kythe/testdata/array.sv"): ("must_reject",
+        "pinned .13y: line 51 `int var1 = 0, var2 = 0;` AFTER two statements in an `initial begin` block. IEEE 1800-2017 A.6.3 seq_block ::= begin "
+        "[ : block_identifier ] { block_item_declaration } { statement_or_null } end (docs/systemverilog/2017/md/section-41-data-read-api.md:2064-2066) - declarations precede statements, and no production "
+        "admits a block_item_declaration after a statement. It parsed before 1.0.210 only because `real_arr[80] = 81;` derived as an implicit-type "
+        "data declaration (Annex A footnote 6, docs/systemverilog/2017/md/section-41-data-read-api.md:3504-3505), so the later declaration looked in order; with the .3.35 grammar the statements are "
+        "statements and the parse REJECTS at furthest_position=1189 (the declaration). A kythe indexing fixture keyed must_accept by verible's suite "
+        "convention (a lint fixture is not a conformance claim). Spec outranks the fixture"),
+    ("verible", "verible/verilog/tools/lint/testdata/shadow_parameter.sv"): ("must_reject",
+        "pinned .13y: line 6 `int jumbo_packet = 0;` AFTER the statement `payload = new[ ... ];` in a function body. IEEE 1800-2017 A.2.6 "
+        "function_body_declaration ::= ... { tf_item_declaration } { function_statement_or_null } ... (docs/systemverilog/2017/md/section-41-data-read-api.md:1091-1099) - declarations precede statements. "
+        "It parsed before 1.0.210 only because `payload = new[...]` derived as an implicit-type declaration (footnote 6); now REJECTS at "
+        "furthest_position=202. verible's own comment on the line reads `// shadowing the class name, error` - an intentionally erroneous lint fixture "
+        "keyed must_accept by the suite convention. Spec outranks the fixture"),
+    ("verilator", "test_regress/t/t_final.v"): ("must_reject",
+        "pinned .13y: line 16 `final ;` (`// Empty test`). IEEE 1800-2017 A.6.2 final_construct ::= final function_statement (docs/systemverilog/2017/md/section-41-data-read-api.md:2022), "
+        "function_statement ::= statement (docs/systemverilog/2017/md/section-41-data-read-api.md:2117); a bare `;` is statement_or_null ::= statement | { attribute_instance } ; (docs/systemverilog/2017/md/section-41-data-read-api.md:2081-2083), never a "
+        "statement - `final ;` has no derivation. It parsed before 1.0.210 as an implicit-type DECLARATION of a variable named `final` "
+        "(data_declaration > variable_decl > implicit, measured on the 1.0.209 grammar with the interpreter) - footnote 6 closes that arm; now REJECTS at "
+        "furthest_position=383. verilator tolerates the empty final block; spec outranks the driver key"),
+    # The residual-bar triage by construct: ten rows whose text IEEE 1800-2017 derives nothing for,
+    # keyed must_accept by a tool that tolerates it (verilator, verible's lint fixture, Surelog).
+    ("verilator", "test_regress/t/t_clk_concat5.v"): ("must_reject",
+        "pinned .13y: a MIXED port list `module t ( clk /*verilator clocker*/, input clk0 ... );` - the first port omits direction, kind and type. IEEE 1800-2017 23.2.2.3 "
+        "(docs/systemverilog/2017/md/section-23-modules-and-hierarchy.md:472-474): 'If the direction, port kind, and data type are all omitted for the first port in the port list, then all ports shall be assumed to be "
+        "non-ANSI style ... Otherwise, all ports shall be assumed to be ANSI style' - so the list is NON-ANSI, and a non-ANSI list_of_ports (docs/systemverilog/2017/md/section-41-data-read-api.md:246) takes "
+        "`port ::= [ port_expression ] | . port_identifier ( [ port_expression ] )` (docs/systemverilog/2017/md/section-41-data-read-api.md:266) only: the typed items after it have no derivation. The parser "
+        "instead admits the header as ANSI (the letter of A.1.3 ansi_port_declaration makes every header optional) and REJECTS at furthest_position=1384 on the BODY "
+        "declaration `input clk;`, which under an ANSI header is illegal by A.1.2 (module_ansi_header takes non_port_module_item, docs/systemverilog/2017/md/section-41-data-read-api.md:108-113) - the .13x.b "
+        "t_assert_imm_nz_bad.v ruling. Either reading rejects the file; the tool that keyed it must_accept tolerates the mixture. Spec outranks the driver key"),
+    ("verilator", "test_regress/t/t_clk_concat6.v"): ("must_reject",
+        "pinned .13y: a MIXED port list `module t ( clk /*verilator clocker*/ /*verilator public_flat*/, input clk0 ... );` - the first port omits direction, kind and type. IEEE 1800-2017 23.2.2.3 "
+        "(docs/systemverilog/2017/md/section-23-modules-and-hierarchy.md:472-474): 'If the direction, port kind, and data type are all omitted for the first port in the port list, then all ports shall be assumed to be "
+        "non-ANSI style ... Otherwise, all ports shall be assumed to be ANSI style' - so the list is NON-ANSI, and a non-ANSI list_of_ports (docs/systemverilog/2017/md/section-41-data-read-api.md:246) takes "
+        "`port ::= [ port_expression ] | . port_identifier ( [ port_expression ] )` (docs/systemverilog/2017/md/section-41-data-read-api.md:266) only: the typed items after it have no derivation. The parser "
+        "instead admits the header as ANSI (the letter of A.1.3 ansi_port_declaration makes every header optional) and REJECTS at furthest_position=1568 on the BODY "
+        "declaration `input clk;`, which under an ANSI header is illegal by A.1.2 (module_ansi_header takes non_port_module_item, docs/systemverilog/2017/md/section-41-data-read-api.md:108-113) - the .13x.b "
+        "t_assert_imm_nz_bad.v ruling. Either reading rejects the file; the tool that keyed it must_accept tolerates the mixture. Spec outranks the driver key"),
+    ("verilator", "test_regress/t/t_comb_do_not_convert_to.v"): ("must_reject",
+        "pinned .13y: a MIXED port list `module t ( clk, input wire i, output reg o_0 ... );` - the first port omits direction, kind and type. IEEE 1800-2017 23.2.2.3 "
+        "(docs/systemverilog/2017/md/section-23-modules-and-hierarchy.md:472-474): 'If the direction, port kind, and data type are all omitted for the first port in the port list, then all ports shall be assumed to be "
+        "non-ANSI style ... Otherwise, all ports shall be assumed to be ANSI style' - so the list is NON-ANSI, and a non-ANSI list_of_ports (docs/systemverilog/2017/md/section-41-data-read-api.md:246) takes "
+        "`port ::= [ port_expression ] | . port_identifier ( [ port_expression ] )` (docs/systemverilog/2017/md/section-41-data-read-api.md:266) only: the typed items after it have no derivation. The parser "
+        "instead admits the header as ANSI (the letter of A.1.3 ansi_port_declaration makes every header optional) and REJECTS at furthest_position=358 on the BODY "
+        "declaration `input clk;`, which under an ANSI header is illegal by A.1.2 (module_ansi_header takes non_port_module_item, docs/systemverilog/2017/md/section-41-data-read-api.md:108-113) - the .13x.b "
+        "t_assert_imm_nz_bad.v ruling. Either reading rejects the file; the tool that keyed it must_accept tolerates the mixture. Spec outranks the driver key"),
+    ("verible", "verible/verilog/tools/kythe/testdata/module_port_type_forwarding.sv"): ("must_reject",
+        "pinned .13y: a MIXED port list `module ( n1, bit b1, b2, ... );` - the first port omits direction, kind and type. IEEE 1800-2017 23.2.2.3 "
+        "(docs/systemverilog/2017/md/section-23-modules-and-hierarchy.md:472-474): 'If the direction, port kind, and data type are all omitted for the first port in the port list, then all ports shall be assumed to be "
+        "non-ANSI style ... Otherwise, all ports shall be assumed to be ANSI style' - so the list is NON-ANSI, and a non-ANSI list_of_ports (docs/systemverilog/2017/md/section-41-data-read-api.md:246) takes "
+        "`port ::= [ port_expression ] | . port_identifier ( [ port_expression ] )` (docs/systemverilog/2017/md/section-41-data-read-api.md:266) only: the typed items after it have no derivation. The parser "
+        "instead admits the header as ANSI (the letter of A.1.3 ansi_port_declaration makes every header optional) and REJECTS at furthest_position=1184 on the BODY "
+        "declaration `input n1;`, which under an ANSI header is illegal by A.1.2 (module_ansi_header takes non_port_module_item, docs/systemverilog/2017/md/section-41-data-read-api.md:108-113) - the .13x.b "
+        "t_assert_imm_nz_bad.v ruling. Either reading rejects the file; the tool that keyed it must_accept tolerates the mixture. Spec outranks the driver key"),
+    ("verilator", "test_regress/t/t_lparam_assign_iface_typedef2.v"): ("must_reject",
+        "pinned .13y: `localparam type p0_t = if0.rq_t;` - a type named THROUGH AN INTERFACE INSTANCE. IEEE 1800-2017 A.2.2.1 data_type (docs/systemverilog/2017/md/section-41-data-read-api.md:842) admits a qualified type identifier "
+        "only as `[ class_scope | package_scope ] type_identifier { packed_dimension }` - an instance name is neither a class scope nor a package scope, and no arm "
+        "of data_type, type_assignment (A.2.4) or type_reference reaches a typedef through a hierarchical name; IEEE 1800-2023 A.2.2.1 data_type (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:825) is "
+        "the same on this point. REJECTS at furthest_position=407 on sv_2017 AND sv_2023 (the .14a census: not a 2023_only_pass row) - a verilator extension "
+        "its driver keys must_accept. Spec outranks the driver key"),
+    ("verilator", "test_regress/t/t_lparam_assign_iface_typedef_nested_mod1.v"): ("must_reject",
+        "pinned .13y: `localparam type bus_rq_t = bus_io.rq_t;` - a type named THROUGH AN INTERFACE INSTANCE. IEEE 1800-2017 A.2.2.1 data_type (docs/systemverilog/2017/md/section-41-data-read-api.md:842) admits a qualified type identifier "
+        "only as `[ class_scope | package_scope ] type_identifier { packed_dimension }` - an instance name is neither a class scope nor a package scope, and no arm "
+        "of data_type, type_assignment (A.2.4) or type_reference reaches a typedef through a hierarchical name; IEEE 1800-2023 A.2.2.1 data_type (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:825) is "
+        "the same on this point. REJECTS at furthest_position=521 on sv_2017 AND sv_2023 (the .14a census: not a 2023_only_pass row) - a verilator extension "
+        "its driver keys must_accept. Spec outranks the driver key"),
+    ("verilator", "test_regress/t/t_lparam_assign_iface_typedef_nested_mpkg4.v"): ("must_reject",
+        "pinned .13y: `localparam type cc_index_t = tb_io.cc_index_t;` - a type named THROUGH AN INTERFACE INSTANCE. IEEE 1800-2017 A.2.2.1 data_type (docs/systemverilog/2017/md/section-41-data-read-api.md:842) admits a qualified type identifier "
+        "only as `[ class_scope | package_scope ] type_identifier { packed_dimension }` - an instance name is neither a class scope nor a package scope, and no arm "
+        "of data_type, type_assignment (A.2.4) or type_reference reaches a typedef through a hierarchical name; IEEE 1800-2023 A.2.2.1 data_type (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:825) is "
+        "the same on this point. REJECTS at furthest_position=789 on sv_2017 AND sv_2023 (the .14a census: not a 2023_only_pass row) - a verilator extension "
+        "its driver keys must_accept. Spec outranks the driver key"),
+    ("verilator", "test_regress/t/t_lparam_assign_iface_typedef_nested_mpkg5.v"): ("must_reject",
+        "pinned .13y: `localparam type cc_index_t = tb_io.cc_index_t;` - a type named THROUGH AN INTERFACE INSTANCE. IEEE 1800-2017 A.2.2.1 data_type (docs/systemverilog/2017/md/section-41-data-read-api.md:842) admits a qualified type identifier "
+        "only as `[ class_scope | package_scope ] type_identifier { packed_dimension }` - an instance name is neither a class scope nor a package scope, and no arm "
+        "of data_type, type_assignment (A.2.4) or type_reference reaches a typedef through a hierarchical name; IEEE 1800-2023 A.2.2.1 data_type (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:825) is "
+        "the same on this point. REJECTS at furthest_position=754 on sv_2017 AND sv_2023 (the .14a census: not a 2023_only_pass row) - a verilator extension "
+        "its driver keys must_accept. Spec outranks the driver key"),
+    ("Surelog", "tests/ForeachSquare/dut.sv"): ("must_reject",
+        "pinned .13y: `foreach(array[i][j])` - loop variables in SEPARATE bracket pairs. IEEE 1800-2017 A.6.8 loop_statement ::= ... | foreach ( "
+        "ps_or_hierarchical_array_identifier [ loop_variables ] ) statement (docs/systemverilog/2017/md/section-41-data-read-api.md:915), loop_variables ::= [ index_variable_identifier ] { , [ index_variable_identifier ] } "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:2360) - ONE bracket pair, comma-separated; 12.7.3 (docs/systemverilog/2017/md/section-12-procedural-programming-statements.md:1045, its own examples `foreach( A [ i, j, k ] )` and `foreach( B [ q, r, , s ] )` at :1082-1083). "
+        "REJECTS at furthest_position=112 on sv_2017 and sv_2023 (not a .14a differential row) - a Surelog tolerance its golden log keys must_accept. Spec outranks the golden"),
+    ("Surelog", "tests/SynthForeach/dut.sv"): ("must_reject",
+        "pinned .13y: `foreach(array[i][j])` - loop variables in SEPARATE bracket pairs. IEEE 1800-2017 A.6.8 loop_statement ::= ... | foreach ( "
+        "ps_or_hierarchical_array_identifier [ loop_variables ] ) statement (docs/systemverilog/2017/md/section-41-data-read-api.md:915), loop_variables ::= [ index_variable_identifier ] { , [ index_variable_identifier ] } "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:2360) - ONE bracket pair, comma-separated; 12.7.3 (docs/systemverilog/2017/md/section-12-procedural-programming-statements.md:1045, its own examples `foreach( A [ i, j, k ] )` and `foreach( B [ q, r, , s ] )` at :1082-1083). "
+        "REJECTS at furthest_position=142 on sv_2017 and sv_2023 (not a .14a differential row) - a Surelog tolerance its golden log keys must_accept. Spec outranks the golden"),
     # ---- SV-CORPUS-GRAD.14b.2 (PGEN-SV-CORPUS-GRAD-0361) ------------------------------------------
     # Found by the sv_2023 LANE, not by the differential: these nine ivtest rows fail under BOTH profiles,
     # and the 2023 lane's .12a machinery explains their 2023 failure as a macro use (the parse reaches

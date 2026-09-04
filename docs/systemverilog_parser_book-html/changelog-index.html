@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1c9111c4.js";
+            window.path_to_searchindex_js = "searchindex-b8daf6fd.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -217,6 +217,38 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10210--contract-10210--sv-corpus-grad335-pgen-sv-corpus-grad-0364-2026-09-04-ledger-sv-0083-released"><a class="header" href="#10210--contract-10210--sv-corpus-grad335-pgen-sv-corpus-grad-0364-2026-09-04-ledger-sv-0083-released">1.0.210 / Contract 1.0.210 — SV-CORPUS-GRAD.3.35 (<code>PGEN-SV-CORPUS-GRAD-0364</code>, 2026-09-04), ledger <code>SV-0083</code> (<code>Released</code>):</a></h3>
+<p>⭐ <strong>Four corrections from the residual bar, read one production at a time — two widenings, two
+tightenings.</strong> A property, sequence or checker port default followed by the next port now parses (the
+actual argument’s event expression used to swallow the list’s comma); <code>type T = int, T x = 0</code> — the
+standard’s own §6.20.1 example — now parses. And two of Annex A’s own footnotes are enforced: an implicit
+data type in a data declaration requires <code>var</code> (footnote 6), and a <code>localparam</code> always carries its default
+(footnote 18).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>input</th><th>before</th><th>after</th></tr>
+</thead>
+<tbody>
+<tr><td><code>property p(clk = $inferred_clock, rst = $inferred_disable);</code> / <code>checker c(string msg = "violation", coverage_level clevel = cover_all);</code></td><td><code>rc 1</code></td><td><strong><code>rc 0</code></strong></td></tr>
+<tr><td><code>module top #(int N = 5, M = N * 16, type T = int, T x = 0) ();</code></td><td><code>rc 1</code></td><td><strong><code>rc 0</code></strong></td></tr>
+<tr><td><code>a;</code>, <code>y = 1;</code>, <code>[1:0] x;</code>, <code>signed x;</code> at module level (no <code>var</code>)</td><td><code>rc 0</code></td><td><strong><code>rc 1</code></strong></td></tr>
+<tr><td><code>localparam X;</code>, <code>localparam type X;</code> in a body</td><td><code>rc 0</code></td><td><strong><code>rc 1</code></strong></td></tr>
+<tr><td><code>var x = 1; var [1:0] y;</code>, <code>localparam X = 1;</code>, <code>#(parameter P, type U)</code>, <code>(a, b)</code> as an event default (controls)</td><td><code>rc 0</code></td><td><code>rc 0</code>, kinds identical</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>How.</strong> <code>event_expression_no_comma</code> in the actual-argument arm (same node shape); a lookahead on the type
+list’s continuation; the declaration rules’ implicit arm behind a mandatory <code>var</code>; <code>_with_default</code> lists
+for every <code>localparam</code> arm (the parameter-port-list omission footnote 18 allows is untouched).</p>
+<p><strong>AST impact — one corrected derivation.</strong> No <code>kind</code> added, removed or renamed; every legal control keeps
+its kind multiset. ⛔ A block whose first item is a statement (<code>begin x = 1; …</code>) used to derive it as an
+implicit-type <code>block_data</code> declaration — an illegal derivation by footnote 6 — and now derives the
+<code>statement</code> it is. Same verdict, corrected tree; consumers walking <code>seq_block.declarations</code> for such
+blocks will see the item move to <code>statements</code>. Schema <strong>26 unchanged</strong>.</p>
+<p><strong>Corpus proof</strong>, per path, three lanes: <code>sv_2017</code> <strong>7</strong> rows <code>fail → pass</code> (Surelog <code>SequenceInst</code>, ispras <code>06.20.01_02</code>, <code>16.08.02_01</code>, <code>16.14.07_01</code>, <code>17.09_01/02</code>, <code>23.10.03_02</code>) and <strong>10</strong> <code>pass → fail</code> (the seven sv2v error files the footnotes target, and three <code>must_accept</code>-keyed files — verible <code>array.sv</code>, <code>shadow_parameter.sv</code>, verilator <code>t_final.v</code> — that had parsed only through the footnote-6 mis-derivation and are ruled <code>must_reject</code>); pass <strong>9 836 → 9 833</strong>; the axis-2 bar <strong>137 → 112</strong>; <code>sv_2023</code> the same 17 rows; <code>verilog_2005</code> <strong>0</strong>. <strong>Gates</strong>: <code>sv_cert_recognized_union_gate</code> GREEN — canonical <code>1428/9/1406/13</code>, union <code>1419/0</code>, re-stamped; <code>verilog_2005_conformance_gate</code> GREEN — cert <code>1138/377/747/14</code>, corpus 363 checks / 0 mismatches, re-stamped; <code>sv_syntax_closure_gate</code> GREEN — allow-list ONE → TWO (the now-dead <code>block_data_type_or_implicit</code>, deletion owed to <code>.3.36</code>), <code>max_unreachable_branches</code> 2 → 4, re-stamped; <code>ast_shape_contract_gate</code> 18/18; reproducibility baseline re-derived. Cost: <code>entries</code> FELL <code>414 471 371 → 400 072 681</code> (−3.47 %), <code>committed</code> −0.12 %, <code>memo_hits</code> −5.61 %, promoted by the rebaseline; family share <code>2.744 → 2.679 %</code>; <code>sv_parse_cost_ratchet</code> OK.
+The unterminated block comment the triage found (<code>/*</code> alone parses) is the engine’s layout skipper, routed
+as <code>ENGINE-UNIVERSAL-SERVICES.93</code>.</p>
 <h3 id="10209--contract-10209--sv-corpus-grad334--333-pgen-sv-corpus-grad-0362-2026-09-04-ledger-sv-0082-released"><a class="header" href="#10209--contract-10209--sv-corpus-grad334--333-pgen-sv-corpus-grad-0362-2026-09-04-ledger-sv-0082-released">1.0.209 / Contract 1.0.209 — SV-CORPUS-GRAD.3.34 + .3.33 (<code>PGEN-SV-CORPUS-GRAD-0362</code>, 2026-09-04), ledger <code>SV-0082</code> (<code>Released</code>):</a></h3>
 <p>⭐ <strong>A parenthesised nested tagged pattern now parses under <code>sv_2017</code> — the form the standard’s own
 §12.6.1 examples write.</strong> <code>tagged Jmp (tagged JmpU .a)</code> and <code>tagged Jmp (tagged JmpC '{.c, .a})</code> appear

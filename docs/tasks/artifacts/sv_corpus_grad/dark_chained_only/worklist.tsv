@@ -8,7 +8,6 @@ NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/cip_lib/cip_lc_tx_c
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/kmac/pre_dv/kmac_reduced_tb/rtl/kmac_reduced_tb.sv	1430	1433		53	13926		th(EntropyWidth), ) u_kmac_reduced ( .clk_i, .rst_ni, // Inputs e
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/dv/verilator/simple_system_cosim/ibex_simple_system_cosim_checker_bind.sv	275	275		7	906		#( .SecureIbex, .ICache, .PMPEnable, .PMPGranularity,
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/syn/rtl/latch_map.v	200	201		6	303		pecific cell module $_DLATCH_P_ (input E, input D, output Q); DLH_X1 _TECHMAP_RE
-NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv	51			2	52		name enum CUSTOM_1,
 NO-ALTERABLE-TICK	NO-FACT-GATE-AT-FAILURE	verilator	test_regress/t/t_langext_order_sub.v	335	336		11	351		ext_order_sub(input do); endmodule
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	Surelog	tests/ModPortTest/top.v	220	220		14	739	id_t1	id_t1 aw_id; modport Master ( output aw_id ); id_t
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	Surelog	tests/UnitClass/top.v	460	461		24	868	DD	ass B b; DD d; covergroup memory @ (posedge ce); address : co
@@ -18,6 +17,7 @@ NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/i3c/rtl/i3c_dct.sv	975	976
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/i3c/rtl/i3c_dxt.sv	1944	1949		53	3576	ram_1p_cfg_t	t ram_1p_cfg_t cfg_i, output ram_1p_cfg_rsp_t cfg_rsp_o ); localparam
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/otbn/dv/verilator/otbn_top_sim.sv	6554	6554		168	19497	DmemAddrWidth,ImemAddrWidth,bind	_if #(.ImemAddrWidth, .DmemAddrWidth) i_otbn_trace_if (.*); bind otbn_core otb
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv	682	683		24	9472	t_MainMode	input t_MainMode main_mode, input [31:0] regs_i [1:31], output logi
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv	50	50		2	52	CUSTOM_1	n name enum CUSTOM_1,
 PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/base/uvm_resource_base.svh	5509	5510	8409	123	20400	uvm_resource_base	(uvm_resource_base) rsrc_q_t; // SV queue of resources typedef uvm_resource
 PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/comps/uvm_driver.svh	2257	2257	2262	59	3848	REQ	xtends uvm_component; `uvm_component_param_utils(uvm_driver#(REQ,RSP)) // T
 PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/comps/uvm_in_order_comparator.svh	3591	3592	3804	87	8563	T	uilt_in_comp #( T ) , type convert = uvm_built_in_converter #( T ) ,
