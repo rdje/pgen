@@ -5,6 +5,22 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-09-04, `SV-CORPUS-GRAD.3.37` + `.13z` — GRAMMAR, release `1.0.211`, ledger `SV-0084`,
+> schema `26` UNCHANGED, `sv_2017` + `sv_2023` NARROW): the SV reserved-word set is IEEE 1800-2017 Annex B
+> Table B.1 — 248 words, derived from the LRM text and held there by doctrine `SV-RESERVED-WORDS` — where the
+> hand-typed list had held 173: `new`, `this`, `super`, `null`, `static`, `var`, `const`, `global`, `final`, every
+> assertion and coverage word were admissible identifiers, so `reg global;`, `i.super.i = 1;`, `var final;` and a
+> constructor written `function new; input x;` (an ordinary function NAMED `new`) all parsed.** A bare `null` gains the
+> `primary` alternative A.8.4 names, and `local ::` (A.8.4 `class_qualifier`) the production it never had — both had
+> parsed only as identifiers. Two more footnotes are grammar: no `automatic`
+> on a data declaration outside a procedural context (footnote 10 — module, package, checker and class sites; the
+> randsequence code block keeps its lifetime), and a body `parameter` carries its default (footnote 18's other half;
+> the parameter port list still may omit it). ⛔ **Consumers: one derivation is corrected** — `d = null;` / `d == null`
+> used to yield a hierarchical NAME node for `null` and now yields the `{kind: "null"}` primary; the verdict is
+> unchanged, the tree is right. Every other legal input keeps its kind multiset. Corpus: `sv_2017` 53 rows `pass → fail` (footnote-18 body parameters, Annex B keywords bound as names in Verilog-2005 tests, A.2.7 constructor orderings, footnote-10 lifetimes, an A.2.4 `new[…]`, and one legal-by-prose `local::get_x()` owed by `.3.40`), 0 `fail → pass`; `sv_2023` the same plus the two forward-type rows footnote 22 rules; the axis-2 bar
+> `112 → 102` (five rows refused by the grammar, four keys corrected by `.13z` with the production); `verilog_2005`
+> not at all. Parse cost: `entries` +0.40 % and `memo_hits` +0.47 % — the `null` and `local::` terminal attempts net of the footnote re-spellings — ACCEPTED under a new coded invariant (`ENGINE-UNIVERSAL-SERVICES.94`); `committed` FELL −0.59 %; family share `2.679 → 2.671 %`; `sv_parse_cost_ratchet` OK.
+
 > **Current-state note (2026-09-04, `SV-CORPUS-GRAD.3.35` — GRAMMAR, release `1.0.210`, ledger `SV-0083`,
 > schema `26` UNCHANGED, `sv_2017` + `sv_2023` widen AND narrow): four corrections from the residual-bar
 > triage by construct.** Widened: a port default followed by the next port (`clk = $inferred_clock,
@@ -1069,15 +1085,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.210`
+  - `1.0.211`
 - Parser release version:
-  - `1.0.210`
-  - history: `1.0.209`; `1.0.208`; `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.211`
+  - history: `1.0.210`; `1.0.209`; `1.0.208`; `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `97efdcb70e708b639575c5dc856a753ba4090b9c7fa941a0356c32b5e621e286` (SV grammar semantic digest — sha256 of the
+  - `d705e2495153ec3deadd672bc64d1315456924b28adac534567ba0e8123d3bc6` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`

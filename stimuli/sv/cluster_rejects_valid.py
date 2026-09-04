@@ -359,7 +359,7 @@ def main():
         # produced a nonsense doubled path ("Compliance-Tests/stimuli/vhdl/subs/Compliance-Tests/…").
         # Emit one path that actually resolves, whichever lane produced the row.
         where = ex_rel if ex_rel.startswith("stimuli/") else f"{ex_suite}/{ex_rel}"
-        lines.append(f"| {i} | `{sig}` | {len(members)} | `{ex_line}` ({where}) |")
+        lines.append(f"| {i} | {md_code(sig)} | {len(members)} | {md_code(ex_line)} ({where}) |")
     lines.append("")
     args.summary.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -367,6 +367,20 @@ def main():
     for sig, members in ranked[:15]:
         print(f"{len(members):5d}  {sig}")
     return 0
+
+
+def md_code(s: str) -> str:
+    """A GFM code span that RENDERS for any content (TABLE-ARITY-RATCHET, SV-CORPUS-GRAD.3.37):
+    an empty value is a dash — a bare `` `` `` is an unpaired run that eats the next cell — and a
+    value that itself contains backticks (a stuck token that IS a directive tick, `; ` ID`) takes a
+    delimiter run one longer than its longest internal run, padded so a leading or trailing
+    backtick cannot fuse with the delimiter."""
+    if not s:
+        return "—"
+    longest = max((len(m) for m in __import__("re").findall(r"`+", s)), default=0)
+    fence = "`" * (longest + 1)
+    pad = " " if (s.startswith("`") or s.endswith("`") or longest) else ""
+    return f"{fence}{pad}{s}{pad}{fence}"
 
 
 if __name__ == "__main__":

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b8daf6fd.js";
+            window.path_to_searchindex_js = "searchindex-36549ecc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -217,6 +217,35 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10211--contract-10211--sv-corpus-grad337--13z-pgen-sv-corpus-grad-0366-2026-09-04-ledger-sv-0084-released"><a class="header" href="#10211--contract-10211--sv-corpus-grad337--13z-pgen-sv-corpus-grad-0366-2026-09-04-ledger-sv-0084-released">1.0.211 / Contract 1.0.211 — SV-CORPUS-GRAD.3.37 + .13z (<code>PGEN-SV-CORPUS-GRAD-0366</code>, 2026-09-04), ledger <code>SV-0084</code> (<code>Released</code>):</a></h3>
+<p>⭐ <strong>Every word IEEE 1800-2017 Annex B reserves is now refused as an identifier — 248 words, derived from the
+LRM text, where the grammar had reserved a hand-typed 173.</strong> <code>new</code>, <code>this</code>, <code>super</code>, <code>null</code>, <code>static</code>, <code>var</code>,
+<code>const</code>, <code>global</code>, <code>final</code>, <code>local</code>, <code>protected</code>, <code>virtual</code>, every <code>always_*</code>, every assertion operator and every
+coverage word were admissible identifiers: <code>reg global;</code>, <code>var final;</code>, <code>i.super.i = 1;</code> parsed, and a class
+constructor written <code>function new; input x;</code> parsed as an ordinary function NAMED <code>new</code> (with <code>C c = new;</code> a
+reference to it). A new doctrine, <code>SV-RESERVED-WORDS</code>, re-derives the table on every commit and refuses any drift
+in either direction (<code>stimuli/sv/check_sv_reserved_keywords.py</code>). Two more Annex A footnotes become grammar:
+<strong>footnote 10</strong> — no <code>automatic</code> on a data declaration outside a procedural context (module, package, checker and
+class sites; the randsequence code block keeps its lifetime) — and <strong>footnote 18’s <code>parameter</code> half</strong> — a body
+<code>parameter</code> carries its default (the parameter port list still may omit it; <code>.3.35</code> closed <code>localparam</code>). A bare
+<code>null</code> gains the <code>primary</code> alternative A.8.4 names, and <code>local ::</code> (A.8.4 <code>class_qualifier</code>, the LRM’s own §18.7.1
+<code>x &lt; local::x</code> example) gains the production it never had; both had parsed only through the identifier hole.
+<code>1569 → 1576</code> rules; grammar tier only. Verilog-2005 tests that name a variable <code>var</code>, <code>global</code>, <code>local</code> or <code>new</code>
+now REJECT on the SV lanes — correctly — and the adjudicator re-keys each such row by parsing it under
+<code>verilog_2005</code> (the edition-keyword pass).</p>
+<p><strong>AST impact — one corrected derivation.</strong> No <code>kind</code> added, removed or renamed; every legal control keeps its
+kind multiset (class handles and <code>new</code>, static lifetimes, body parameters, keyword-prefixed identifiers such as
+<code>with_y</code> or <code>bins_z</code>, the randsequence block). ⛔ <code>d = null;</code> / <code>d == null</code> used to derive <code>null</code> as a hierarchical
+NAME node and now derive the <code>{kind: "null"}</code> primary — same verdict, corrected tree; consumers matching <code>null</code> by
+name will find the literal kind. Schema <strong>26 unchanged</strong>. The accept set NARROWS on <code>sv_2017</code> and <code>sv_2023</code>;
+<code>verilog_2005</code> is untouched (its reserved set already equalled 1364-2005 Annex B).</p>
+<p><strong>Corpus proof</strong>, per path, three lanes: <code>sv_2017</code> <strong>53</strong> rows <code>pass → fail</code> (13 body parameters without a default — footnote 18; 32 Annex B keywords bound as names in Verilog-2005 tests; 2 <code>super.new</code> after a statement — A.2.7; 2 <code>automatic</code> at module scope — footnote 10; one <code>new[4]</code> without an unsized dimension — A.2.4; the two intended rows; ONE legal-by-prose <code>local::get_x()</code>, a known narrowing owed by <code>.3.40</code>) and <strong>0</strong> <code>fail → pass</code>; pass <strong>9 833 → 9 780</strong>; <code>sv_2023</code> <strong>55</strong> / <strong>0</strong> (the same plus <code>t_param_type_fwd.v</code> / <code>_bad.v</code> — footnote 22), pass <strong>9 856 → 9 801</strong>; the axis-2 bar <strong>112 → 102</strong> (five rows by refusing;
+four <code>.13z</code> keys corrected to <code>must_accept</code> with the production — <code>integer x [] = 1;</code>, <code>P::Q = 1;</code>, <code>{a,b}.f1</code>,
+<code>trireg (small) t;</code> are all derivable, the rejecting tool elaborates); <code>verilog_2005</code> <strong>0</strong>. <strong>Gates</strong>: <code>sv_cert_recognized_union_gate</code> GREEN — canonical <code>1433/9/1411/13</code>, union <code>1424/0</code>, re-stamped (the <code>+5</code> is the seven new rules net of two sv_2023-only ones; proof and UNKNOWN unchanged); <code>verilog_2005_conformance_gate</code> GREEN — cert <code>1142/379/749/14</code>, corpus 363 checks / 0 mismatches, re-stamped, one conformance fixture’s SV expectation corrected under footnote 10; <code>sv_syntax_closure_gate</code> GREEN — allow-list unchanged, <code>reachable_branches</code> 2008 → 2027, re-stamped; <code>ast_shape_contract_gate</code> 18/18; reproducibility baseline re-derived. Cost:
+<code>entries</code> ROSE <code>400 072 681 → 401 665 513</code> (+0.40 %) and <code>memo_hits</code> +0.47 % — the <code>kw_null</code> / <code>kw_local</code> terminal attempts of the two admitted alternatives plus their prefix lookups, net of a 433 K-entry fall from the footnote re-spellings — ACCEPTED under the new <code>declared_alternatives_net_of_retired_work</code> invariant (<code>ENGINE-UNIVERSAL-SERVICES.94</code>); <code>committed</code> FELL −0.59 %, promoted; family share <code>2.679 → 2.671 %</code>; <code>sv_parse_cost_ratchet</code> OK.
+Residue named: footnote 20 (<code>reg [] x;</code> is legal only as a DPI import’s sole packed dimension — <code>.3.38</code>), typed
+argument productions for the tolerated directives (<code>.3.39</code>), and the <code>`begin_keywords</code> row as a keyword-version
+feature gap.</p>
 <h3 id="10210--contract-10210--sv-corpus-grad335-pgen-sv-corpus-grad-0364-2026-09-04-ledger-sv-0083-released"><a class="header" href="#10210--contract-10210--sv-corpus-grad335-pgen-sv-corpus-grad-0364-2026-09-04-ledger-sv-0083-released">1.0.210 / Contract 1.0.210 — SV-CORPUS-GRAD.3.35 (<code>PGEN-SV-CORPUS-GRAD-0364</code>, 2026-09-04), ledger <code>SV-0083</code> (<code>Released</code>):</a></h3>
 <p>⭐ <strong>Four corrections from the residual bar, read one production at a time — two widenings, two
 tightenings.</strong> A property, sequence or checker port default followed by the next port now parses (the

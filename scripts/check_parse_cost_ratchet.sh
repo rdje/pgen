@@ -234,6 +234,74 @@ def share_anchors(text):
     return out
 
 
+
+def _net_of_retired_work_verdict(base_rules, new_rules, edges, declared, d_committed, base_edges=None):
+    """PURE verdict for `declared_alternatives_net_of_retired_work` (SV-CORPUS-GRAD.3.37), so the
+    self-check can drive it with dicts and both arms are ground truth. Returns (holds, detail);
+    RAISES on a row that would turn the acceptance into a waiver (a declared pre-existing
+    NONTERMINAL).
+
+    THE SHAPE: a grammar change that ADMITS keyword-terminal alternatives the standard requires
+    (A.8.4's `null` primary, the `[ local :: ]` class_qualifier) — tried at every position their
+    ordered choice reaches and almost never matched — and, in the SAME tree, RE-SPELLS existing
+    paths so that other work retires (a static-only lifetime tries one terminal where `lifetime`
+    tried two; a body parameter path moves onto the with-default rules). No single sibling covers
+    it: the terminal identities need `committed` flat, containment refuses any fall, and the
+    profile-split predicate refuses a rise on a pre-existing name.
+
+    ASSERTS, per rule and over the run:
+      (1) every DECLARED pre-existing name is a TERMINAL in the measured grammar's reference graph
+          (its only reference is `trivia`) — a nonterminal's rise cannot be waived by declaring it;
+      (2) every rule name NEW TO THE GRAMMAR is declared — a rule the BASELINE's reference graph
+          already names (`base_edges`) and that merely had zero entries then is a pre-existing rule
+          whose first appearance is judged under (4), not a new one (measured: `method_call_body`
+          0 -> 3 on the first evaluation, from a sampled file that now stops elsewhere);
+      (3) `trivia` rose by at most the sum of the declared terminals' rises — each terminal attempt
+          buys one memoized prefix lookup and nothing else;
+      (4) every OTHER pre-existing rule whose entries rose is COVERED: the sum of those rises is at
+          most the sum of the falls on pre-existing rules — work moved (a re-spelling) or the
+          sampled text advanced, and the change retired more than it moved;
+      (5) `committed` did not rise over the run — the parser commits no more frames than before.
+    ⚠️ HONEST BOUND: like its siblings this explains the SHAPE of a rise, not that the terminal
+    attempts were unavoidable. It is the right acceptance only when the admitted alternatives are
+    required for the grammar to derive its standard's language and each terminal sits LAST in its
+    ordered choice, so it is tried only where every earlier alternative already failed.
+    """
+    declared = set(declared)
+    terminals, nonterminals = [], []
+    for r in sorted(declared):
+        if r in base_rules:
+            refs = [t for t in edges.get(r, []) if t != "trivia"]
+            (nonterminals if refs or r not in edges else terminals).append(r)
+    if nonterminals:
+        raise RuntimeError(f"{nonterminals} pre-existed and are not terminals — `introduced` may "
+                           f"name NEW rules and the keyword TERMINALS of the admitted alternatives; "
+                           f"declaring a pre-existing nonterminal would waive real work on it")
+    known_before = set(base_rules) | (set(base_edges) if base_edges is not None else set())
+    undeclared_new = sorted(r for r in new_rules if r not in known_before and r not in declared)
+    if undeclared_new:
+        return False, (f"{len(undeclared_new)} rule name(s) new to the measurement are not declared "
+                       f"as introduced: " + " ".join(undeclared_new[:5]))
+    d = {r: new_rules[r]["entries"] - base_rules.get(r, {}).get("entries", 0)
+         for r in (set(base_rules) | set(new_rules)) if r in known_before or r in base_rules}
+    term_rise = sum(max(0, d.get(t, 0)) for t in terminals)
+    trivia_rise = d.get("trivia", 0)
+    if trivia_rise > term_rise:
+        return False, (f"`trivia` rose {trivia_rise:+,} but the declared terminals rose only "
+                       f"{term_rise:+,} in total — the prefix lookups are not the terminals' own")
+    other_rise = sum(v for r, v in d.items() if v > 0 and r not in terminals and r != "trivia")
+    falls = sum(-v for v in d.values() if v < 0)
+    if other_rise > falls:
+        return False, (f"pre-existing rules outside the declared terminals rose {other_rise:+,} "
+                       f"in total while the change retired only {falls:,} entries elsewhere — the "
+                       f"rise is not covered by moved work")
+    if d_committed > 0:
+        return False, f"committed rose {d_committed:+,} — the parser commits more frames than before"
+    return True, (f"declared terminals {' '.join(terminals)} rose {term_rise:+,} (unmatched attempts), "
+                  f"`trivia` {trivia_rise:+,} (their prefix lookups), other pre-existing rises "
+                  f"{other_rise:+,} covered by {falls:,} retired entries, committed {d_committed:+,}")
+
+
 def self_check():
     """GROUND TRUTH, re-run on every invocation (microseconds). Positive controls AND negatives;
     a MISS refuses (exit 2) rather than reporting a clean tree
@@ -281,6 +349,45 @@ def self_check():
             print(f"parse-cost-ratchet: CONTROL MISSED: {text!r} want={want} got={got}",
                   file=sys.stderr)
             misses += 1
+    # ── declared_alternatives_net_of_retired_work: the real shape (positive) and its refusals ──
+    edges = {"primary": ["kw_null", "kw_this", "trivia"], "kw_null": ["trivia"], "kw_local": ["trivia"],
+             "lifetime": ["kw_static", "kw_automatic"], "kw_automatic": ["trivia"], "trivia": [], "list": ["item"]}
+    base = {"kw_null": {"entries": 100, "committed": 1, "memo_hits": 0}, "kw_local": {"entries": 10, "committed": 0, "memo_hits": 0},
+            "trivia": {"entries": 1000, "committed": 900, "memo_hits": 500}, "lifetime": {"entries": 80, "committed": 20, "memo_hits": 0},
+            "kw_automatic": {"entries": 80, "committed": 0, "memo_hits": 0}, "list": {"entries": 5, "committed": 5, "memo_hits": 0}}
+    def new(**over):
+        n = {k: dict(v) for k, v in base.items()}
+        n["kw_null"]["entries"] = 150; n["kw_local"]["entries"] = 60; n["trivia"]["entries"] = 1090
+        n["lifetime"]["entries"] = 0; n["kw_automatic"]["entries"] = 0; n["static_only"] = {"entries": 80, "committed": 20, "memo_hits": 0}
+        n["list"]["entries"] = 12          # a small undeclared rise, covered by the 160 retired
+        for k, v in over.items(): n.setdefault(k, {"entries": 0, "committed": 0, "memo_hits": 0}).update(v)
+        return n
+    decl = ["kw_null", "kw_local", "static_only"]
+    net_cases = [
+        ("positive: terminals + trivia rise, work retired, committed down", new(), decl, -5, True),
+        ("trivia rises MORE than the declared terminals", new(trivia={"entries": 1300}), decl, -5, False),
+        ("an undeclared pre-existing rule rises beyond the retired work", new(list={"entries": 500}), decl, -5, False),
+        ("committed rises over the run", new(), decl, +3, False),
+        ("a new rule name left undeclared", new(), ["kw_null", "kw_local"], -5, False),
+    ]
+    for name, n_rules, declared, dc, want in net_cases:
+        got, _detail = _net_of_retired_work_verdict(base, n_rules, edges, declared, dc)
+        if got != want:
+            print(f"parse-cost-ratchet: CONTROL MISSED: net-of-retired-work `{name}` want={want} got={got}", file=sys.stderr)
+            misses += 1
+    # a rule the baseline's graph names but that had zero entries then (absent from the base table)
+    # is a PRE-EXISTING rule: its first appearance is covered by the falls, not refused as undeclared
+    got, _ = _net_of_retired_work_verdict(base, new(old_zero={"entries": 3}), edges, decl, -5, dict(edges, old_zero=["trivia"]))
+    if got is not True:
+        print("parse-cost-ratchet: CONTROL MISSED: a pre-existing zero-entry rule's first appearance must not read as a new rule", file=sys.stderr); misses += 1
+    got, _ = _net_of_retired_work_verdict(base, new(old_zero={"entries": 3}), edges, decl, -5, edges)
+    if got is not False:
+        print("parse-cost-ratchet: CONTROL MISSED: a rule absent from BOTH the base table and the base graph is new and must be declared", file=sys.stderr); misses += 1
+    try:
+        _net_of_retired_work_verdict(base, new(), edges, ["kw_null", "lifetime"], -5)
+        print("parse-cost-ratchet: CONTROL MISSED: a declared pre-existing NONTERMINAL must refuse", file=sys.stderr); misses += 1
+    except RuntimeError:
+        pass
     if misses:
         print(f"parse-cost-ratchet: the identity/anchor readers do not discriminate "
               f"({misses} control(s) missed); refusing", file=sys.stderr)
@@ -885,7 +992,35 @@ def _advanced_files_only(base_tot, new_tot, ctx):
     holds, detail, _facts = CONTAINMENT.advanced_files_only(base_files, new_files, ctx["introduced"])
     return holds, detail
 
+def _declared_alternatives_net_of_retired_work(base_tot, new_tot, ctx):
+    """See `_net_of_retired_work_verdict` — this loads the per-rule measurements and the measured
+    grammar's reference graph (re-derived: the graph carries the raw_ast digest tier 1 re-hashes)
+    and hands them to the pure verdict."""
+    if CONTAINMENT is None:
+        raise RuntimeError(f"scripts/parse_cost_containment.py could not be imported "
+                           f"({CONTAINMENT_IMPORT_ERROR}), so this acceptance cannot be evaluated")
+    graph_path = ctx["graph"]
+    if not os.path.isfile(graph_path):
+        raise RuntimeError(f"the measured grammar's reference graph is missing ({os.path.relpath(graph_path, ROOT)})")
+    with open(graph_path, encoding="utf-8") as fh:
+        graph = json.load(fh)
+    if ctx["grammar_digest"] and graph.get("grammar_raw_ast_sha256") != ctx["grammar_digest"]:
+        raise RuntimeError(f"the reference graph was derived from grammar raw_ast "
+                           f"`{str(graph.get('grammar_raw_ast_sha256'))[:16]}…` but this tree's is "
+                           f"`{ctx['grammar_digest'][:16]}…`")
+    base_rules = CONTAINMENT.read_rule_costs(ctx["base_rule_costs"])
+    new_rules = CONTAINMENT.read_rule_costs(ctx["new_rule_costs"])
+    base_graph_path = f"{ART}/rule_graph.json"
+    base_edges = None
+    if os.path.isfile(base_graph_path):
+        with open(base_graph_path, encoding="utf-8") as fh:
+            base_edges = json.load(fh).get("edges")
+    return _net_of_retired_work_verdict(base_rules, new_rules, graph["edges"], ctx["introduced"],
+                                        new_tot["committed"] - base_tot["committed"], base_edges)
+
+
 INVARIANTS = {
+    "declared_alternatives_net_of_retired_work": _declared_alternatives_net_of_retired_work,
     "pure_memo_lookups": _pure_memo_lookups,
     "unmatched_terminal_alternatives": _unmatched_terminal_alternatives,
     "unmatched_lookahead_terminals": _unmatched_lookahead_terminals,
@@ -899,7 +1034,7 @@ INVARIANTS = {
 # ⛔ WHICH INVARIANTS TAKE A SCOPE, AND THE CHECK IS TWO-SIDED. A containment row with no
 # `introduced` set cannot be evaluated; a row naming a set for an invariant that ignores it reads as
 # a scoped acceptance and is not one. Both REFUSE, so the column can never become decoration.
-INVARIANTS_TAKING_INTRODUCED = {"contained_in_introduced_subgraph",
+INVARIANTS_TAKING_INTRODUCED = {"contained_in_introduced_subgraph", "declared_alternatives_net_of_retired_work",
                                 "profile_split_respelling",
                                 "host_memo_eviction", "caller_split_containment",
                                 "advanced_files_only"}

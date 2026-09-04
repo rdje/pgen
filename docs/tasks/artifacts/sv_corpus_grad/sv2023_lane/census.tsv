@@ -1,6 +1,6 @@
 cell	suite	relpath	sv_2017	sv_2023	furthest_sv_2017	furthest_sv_2023	adjudication_2017_lane	expected_2017_lane
 2023_only_pass	iverilog	ivtest/ivltests/event_array.v	fail	pass	394	-	deferred:v2005_profile_lane	out_of_scope_with_cause:v2005_profile_lane
-2023_only_pass	iverilog	ivtest/ivltests/sv_soft_packed_union_fail1.v	fail	pass	104	-	match	must_reject
+2023_only_pass	iverilog	ivtest/ivltests/sv_soft_packed_union_fail1.v	fail	pass	99	-	match	must_reject
 2023_only_pass	iverilog	ivtest/ivltests/sv_type_param_restrict_class_fail1.v	fail	pass	108	-	match	must_reject
 2023_only_pass	iverilog	ivtest/ivltests/sv_type_param_restrict_class_fail2.v	fail	pass	131	-	match	must_reject
 2023_only_pass	iverilog	ivtest/ivltests/sv_type_param_restrict_enum_fail1.v	fail	pass	107	-	match	must_reject
@@ -15,10 +15,8 @@ cell	suite	relpath	sv_2017	sv_2023	furthest_sv_2017	furthest_sv_2023	adjudicatio
 2023_only_pass	verilator	test_regress/t/t_class_override.v	fail	pass	978	-	match	must_reject
 2023_only_pass	verilator	test_regress/t/t_class_override_bad.v	fail	pass	819	-	match	must_reject
 2023_only_pass	verilator	test_regress/t/t_event_array_fire.v	fail	pass	1625	-	divergence:explained_svpp_macro_use	must_accept
-2023_only_pass	verilator	test_regress/t/t_export_packed_struct.v	fail	pass	248	-	match	must_reject
-2023_only_pass	verilator	test_regress/t/t_export_packed_struct2.v	fail	pass	267	-	match	must_reject
-2023_only_pass	verilator	test_regress/t/t_param_type_fwd.v	fail	pass	378	-	match	must_reject
-2023_only_pass	verilator	test_regress/t/t_param_type_fwd_bad.v	fail	pass	251	-	match	must_reject
+2023_only_pass	verilator	test_regress/t/t_export_packed_struct.v	fail	pass	243	-	match	must_reject
+2023_only_pass	verilator	test_regress/t/t_export_packed_struct2.v	fail	pass	262	-	match	must_reject
 2023_only_pass	verilator	test_regress/t/t_string_sel.v	fail	pass	651	-	match	must_reject
 2023_only_pass	verilator	test_regress/t/t_union_soft.v	fail	pass	221	-	match	must_reject
-2023_only_pass	verilator	test_regress/t/t_var_ref_static.v	fail	pass	357	-	match	must_reject
+2023_only_pass	verilator	test_regress/t/t_var_ref_static.v	fail	pass	350	-	match	must_reject

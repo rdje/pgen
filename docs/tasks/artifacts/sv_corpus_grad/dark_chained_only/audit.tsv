@@ -475,7 +475,7 @@ IN-WINDOW		opentitan	hw/ip/csrng/rtl/csrng_ctr_drbg.sv	632	635	258	19	18983		csr
 IN-WINDOW		opentitan	hw/ip/csrng/rtl/csrng_main_sm.sv	633	656	302	18	4856		acmd_i, input logic acmd_eop_i,
 IN-WINDOW		opentitan	hw/ip/csrng/rtl/csrng_reg_top.sv	52871	52873	224	2064	53354		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
 IN-WINDOW		opentitan	hw/ip/csrng/rtl/csrng_state_db.sv	741	752	320	26	5048		g_state_t rd_state_o, // Write interface input logic
-IN-WINDOW		opentitan	hw/ip/dma/dv/env/dma_env_cov.sv	335	336	171	9	8976		DDR_BINS \ bins less_than_1MiB = {[0:'hf_ffff]}; \ bins between_1MiB_and
+IN-WINDOW		opentitan	hw/ip/dma/dv/env/dma_env_cov.sv	326	331	171	9	8976		32B_ADDR_BINS \ bins less_than_1MiB = {[0:'hf_ffff]}; \ bins between_1Mi
 IN-WINDOW		opentitan	hw/ip/dma/dv/env/dma_env_pkg.sv	553	555	555	22	1892		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
 IN-WINDOW		opentitan	hw/ip/dma/dv/env/dma_sys_tl_if.sv	1942	1943	171	43	6404		addr(sys_cmd_type_e cmd, logic [SYS_ADDR_WIDTH-1:0] base); // Note that when
 IN-WINDOW		opentitan	hw/ip/dma/dv/tb/tb.sv	362	366	366	14	3444		dma_test_pkg::*; `include "uvm_macros.svh" `include "dv_macros.svh" `incl
@@ -574,7 +574,7 @@ IN-WINDOW		opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_kmac_if.sv	815	829	231	25	7031		o
 IN-WINDOW		opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_pkg.sv	2649	2651	174	85	13984		ns below to work. `ASSERT_STATIC_IN_PACKAGE(CheckLcTxValsComplementary_A, On =
 IN-WINDOW		opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_regs_reg_top.sv	42587	42589	224	1514	43070		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
 IN-WINDOW		opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_signal_decode.sv	433	434	222	15	17181		ter lc_keymgr_div_t RndCnstLcKeymgrDivInvalid = LcKeymgrDivWidth'(0), //
-IN-WINDOW		opentitan	hw/ip/mbx/dv/env/mbx_env_cov.sv	338	339	171	9	6833		DDR_BINS \ bins less_than_1MiB = {[0:'hf_ffff]}; \ bins between_1MiB_and
+IN-WINDOW		opentitan	hw/ip/mbx/dv/env/mbx_env_cov.sv	329	334	171	9	6833		32B_ADDR_BINS \ bins less_than_1MiB = {[0:'hf_ffff]}; \ bins between_1Mi
 IN-WINDOW		opentitan	hw/ip/mbx/dv/env/mbx_env_pkg.sv	573	575	575	22	1554		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
 IN-WINDOW		opentitan	hw/ip/mbx/dv/tb.sv	319	321	321	13	2737		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" `incl
 IN-WINDOW		opentitan	hw/ip/mbx/dv/tests/mbx_test_pkg.sv	304	306	306	12	471		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // l
@@ -667,7 +667,7 @@ IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_arbiter_tree.sv	2547	2551	1726	64	12317
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_assert.sv	1128	1128	339	29	9966		kg::uvm_report_error("ASSERT FAILED", `PRIM_STRINGIFY(__name), uvm_pkg::UVM_NONE
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_assert_sec_cm.svh	970	981	231	22	7571		\ $rose(HIER_.ERR_NAME_) && !(GATE_) |-> ##[0:MAX_CYCLES_] (ER
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_assert_standard_macros.svh	380	380	337	9	6761		, __prop) \ __name: assert (__prop) \ else begin
-IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_assert_yosys_macros.svh	366	367	315	9	2709		\ always_comb begin : __name \ assert (__prop);
+IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_assert_yosys_macros.svh	352	355	315	9	2709		ame, __prop) \ always_comb begin : __name \ assert (__prop);
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_cdc_rand_delay.sv	1267	1268	1268	27	2519		1:0] dst_data_o ); `ifdef SIMULATION if (Enable) begin : gen_enable // T
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_clock_meas.sv	7064	7068	500	266	7422		reference clock `ASSERT_INIT(ClkRatios_A, ClkRatio > 2) end // referenc
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_count.sv	2660	2665	1506	47	12204		r action_mask_t PossibleActions = {$bits(action_mask_t){1'b1}} ) ( input c
@@ -682,7 +682,7 @@ IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_fifo_async.sv	1206	1208	236	34	9876		po
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_fifo_async_sram_adapter.sv	11999	12002	225	386	13984		/////////////// `ASSERT_INIT(ParamCheckDepth_A, (Depth == 2**$clog2(Depth)))
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_fifo_sync.sv	1728	1733	235	45	7837		n_passthru_fifo `ASSERT_INIT(paramCheckPass, Pass == 1) assign depth_o
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_fifo_sync_cnt.sv	5293	5298	228	146	5368		en_never_clears `ASSERT(NeverClears_A, !clr_i) end endmodule // prim_fifo
-IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_flop_macros.sv	791	792	171	25	3576		_RST) \ always_ff @(posedge __clk or negedge __rst_n) begin \ if (!__rst_n
+IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_flop_macros.sv	779	782	171	25	3576		`PRIM_FLOP_RST) \ always_ff @(posedge __clk or negedge __rst_n) begin \ if
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_gate_gen.sv	2267	2269	1377	60	3791		fewer than 500 GE `ASSERT(MinimumNumGates_A, NumGates >= 500) `ASSERT(DataMu
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_gf_mult.sv	2323	2327	1286	55	6004		h-1:0] prod_o ); `ASSERT_INIT(IntegerLoops_A, (Width % StagesPerCycle) == 0)
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_hpc2.sv	6510	6510	171	227	7107		pending in Stage 2. `ifndef SYNTHESIS logic s_stage1_pending; always_ff @(po
@@ -1430,7 +1430,7 @@ IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/base/uvm_report_server.svh	2443	2443	1
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/base/uvm_resource_specializations.svh	2386	2387	2289	59	6661		\ static function this_subtype get_by_name(string scope, string name,
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/base/uvm_spell_chkr.svh	4247	4254	4254	123	6976		== max) begin `uvm_info("UVM/CONFIGDB/SPELLCHK",$sformatf("%s not located,
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/dpi/uvm_hdl.svh	2096	2097	1674	65	6008		UVM_HDL_MAX_WIDTH = `UVM_HDL_MAX_WIDTH; typedef logic [UVM_HDL_MAX_WIDTH-1:0]
-IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_callback_defines.svh	2494	2495	1187	72	11489		B) \ static local bit m_register_cb_``CB = uvm_callbacks#(T,CB)::m_register_pa
+IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_callback_defines.svh	2488	2489	1187	72	11489		cb(T,CB) \ static local bit m_register_cb_``CB = uvm_callbacks#(T,CB)::m_regis
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_comparer_defines.svh	1593	1596	1439	46	18590		begin(COMPARER) \ if ((!COMPARER.get_threshold() || \ (COMPARER.get_res
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_copier_defines.svh	1590	1591	1423	47	3950		Y, COPIER=copier) \ if (LVALUE != RVALUE) begin \ if ((RVALUE == null) || \
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_message_defines.svh	4551	4555	1340	131	18478		port_object()) \ begin \ uvm_pkg::uvm_report_object _local_report_object
@@ -1474,9 +1474,6 @@ IN-WINDOW		verilator	test_regress/t/uvm/v2020_3_1/dpi/uvm_hdl.svh	2190	2191	1771
 NO-ALTERABLE-TICK	CROSS-LIBRARY	Surelog	tests/SimpleClass/Environemnt.sv	568	569		17	1172	Driver @ stimuli/sv/subs/verilator/test_regress/t/t_wait_iface_vif.v	tf[4] ; Driver drvr; Receiver rcvr[4]; Scoreboard sb; mailbox drvr2sb
 NO-ALTERABLE-TICK	CROSS-LIBRARY	Surelog	tests/SimpleClass/top_1.sv	797	798		51	1018	uvm_packer @ stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_coreservice.svh	name="", uvm_packer packer=null); // `uvm_fatal("UVMC",{"Port '
 NO-ALTERABLE-TICK	CROSS-LIBRARY	Surelog	tests/SplitFile/svaunit_pkg.sv	1081	1081		33	130192	uvm_default_report_server @ stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_root.svh	efault_report_server; typedef uvm_object_registry#(svaunit_reporte
-NO-ALTERABLE-TICK	CROSS-LIBRARY	opentitan	hw/ip/spi_device/pre_dv/program/spiflash.sv	6130	6131		192	18278	static @ stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_callback.svh	_capacity static task main(); // Main function forever begin au
-NO-ALTERABLE-TICK	CROSS-LIBRARY	opentitan	hw/ip/spi_device/pre_dv/tb/spid_jedec_tb.sv	1921	1922		97	4748	static @ stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_callback.svh	(); end static task host(); automatic int unsigned num_cc; logic [2
-NO-ALTERABLE-TICK	CROSS-LIBRARY	opentitan	hw/ip/spi_device/pre_dv/tb/spid_upload_tb.sv	4692	4693		186	19916	static @ stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_callback.svh	(); end static task host(); // Prep data automatic logic [7:0] pay
 NO-ALTERABLE-TICK	CROSS-LIBRARY	opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/tests/core_ibex_report_server.sv	214	214		5	764	uvm_default_report_server @ stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_root.svh	efault_report_server; function new(string name = ""); super.new(name);
 NO-ALTERABLE-TICK	FACT-GATED-CROSS-FILE	Surelog	tests/AllBinding/dut.sv	40	56		1	140	type_scr1_mem_resp_e @ stimuli/sv/subs/Surelog/tests/AllBinding/enum.sv	sp_e dmem2exu_resp_i); type_scr1_mem_resp_e dmem2
 NO-ALTERABLE-TICK	FACT-GATED-CROSS-FILE	Surelog	tests/ClassFuncProto/top.v	289	290		30	708	REQ @ stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv	ity; function REQ get_current_item(); REQ t; endfunction function v
@@ -1661,6 +1658,7 @@ NO-ALTERABLE-TICK	FACT-GATED-CROSS-FILE	uvm-core	uvm-core-2020.3.1/src/reg/seque
 NO-ALTERABLE-TICK	FACT-GATED-CROSS-FILE	uvm-core	uvm-core-2020.3.1/src/seq/uvm_push_sequencer.svh	1496	1496		41	3147	uvm_sequence_item @ stimuli/sv/uvm/uvm-core-2020.3.1/src/seq/uvm_sequence_item.svh	EQ=uvm_sequence_item, RSP=REQ) extends uvm_se
 NO-ALTERABLE-TICK	FACT-GATED-CROSS-FILE	uvm-core	uvm-core-2020.3.1/src/seq/uvm_sequence.svh	1710	1710		47	5890	uvm_sequence_item @ stimuli/sv/uvm/uvm-core-2020.3.1/src/seq/uvm_sequence_item.svh	= uvm_sequence_item, type RSP = REQ) extends uvm_s
 NO-ALTERABLE-TICK	FACT-GATED-CROSS-FILE	uvm-core	uvm-core-2020.3.1/src/seq/uvm_sequencer_analysis_fifo.svh	1233	1233		34	1804	uvm_sequence_item @ stimuli/sv/uvm/uvm-core-2020.3.1/src/seq/uvm_sequence_item.svh	= uvm_sequence_item) extends uvm_tlm_fifo #(RSP); uvm_analysis_imp #(RSP, uv
+NO-ALTERABLE-TICK	FACT-GATED-CROSS-FILE	verible	verible/verilog/tools/kythe/testdata/multi_file_test/multi-file-3.sv	338	339		14	780	my_class @ stimuli/sv/subs/verible/verible/verilog/tools/kythe/testdata/class_member.sv	y_class instance2 = new(); //- @PARAM ref Param initial $display(PARAM)
 NO-ALTERABLE-TICK	FACT-GATED-CROSS-FILE	verilator	test_regress/t/t_sv_cpu_code/cpu.sv	5733	5733		225	5925	mPreAdrDecode_resp @ stimuli/sv/subs/verilator/test_regress/t/t_sv_cpu_code/genbus_if.sv	ode_resp busproperty; always_comb begin: PreAdrDecode // verilator l
 NO-ALTERABLE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/base/uvm_port_base.svh	2863	2863		75	29865	uvm_port_component_base	xtends uvm_component; function new (string name, uvm_component parent);
 NO-ALTERABLE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/comps/uvm_policies.svh	4829	4830		147	4900	T	function uvm_object clone(input T from); return from.clone(); endfunction
@@ -1678,7 +1676,10 @@ NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	Surelog	tests/UnitTest/top.v	729	730		34	1
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/i3c/rtl/i3c_dat.sv	903	904		27	7111	i3c_dat_mem_t	ut i3c_dat_mem_t dat_rdata_o, // HCI Device Address Table interface. inp
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/i3c/rtl/i3c_dct.sv	975	976		28	4310	i3c_dct_mem_t	t i3c_dct_mem_t dct_wdata_i, // HCI Device Characteristics Table interfac
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/i3c/rtl/i3c_dxt.sv	1944	1949		53	3576	ram_1p_cfg_t	t ram_1p_cfg_t cfg_i, output ram_1p_cfg_rsp_t cfg_rsp_o ); localparam
-NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/otbn/dv/verilator/otbn_top_sim.sv	6554	6554		168	19497	DmemAddrWidth,ImemAddrWidth,bind	_if #(.ImemAddrWidth, .DmemAddrWidth) i_otbn_trace_if (.*); bind otbn_core otb
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/otbn/dv/verilator/otbn_top_sim.sv	6554	6554		168	19497	DmemAddrWidth,ImemAddrWidth,otbn_core	_if #(.ImemAddrWidth, .DmemAddrWidth) i_otbn_trace_if (.*); bind otbn_core otb
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/spi_device/pre_dv/program/spiflash.sv	6130	6131		192	18278	main,print_capacity	_capacity static task main(); // Main function forever begin au
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/spi_device/pre_dv/tb/spid_jedec_tb.sv	1921	1922		97	4748	host	(); end static task host(); automatic int unsigned num_cc; logic [2
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/spi_device/pre_dv/tb/spid_upload_tb.sv	4692	4693		186	19916	host	(); end static task host(); // Prep data automatic logic [7:0] pay
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv	682	683		24	9472	t_MainMode	input t_MainMode main_mode, input [31:0] regs_i [1:31], output logi
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv	50	50		2	52	CUSTOM_1	n name enum CUSTOM_1,
 PAST-LAST-TICK		Surelog	tests/SimpleClass1/top.v	424	425	21	32	2068		(Packet,Scoreboard) Rcvr2Sb_port; uvm_analysis_imp_sent_pkt #(Packet,Scorebo
@@ -1731,7 +1732,6 @@ PAST-LAST-TICK		verible	verible/verilog/tools/kythe/testdata/include_file_test/m
 PAST-LAST-TICK		verible	verible/verilog/tools/kythe/testdata/include_file_test/module2.sv	416	417	167	14	1018		yClassIncludedFile1 instance1 = new(); //- @MyClassIncludedFile2 ref My
 PAST-LAST-TICK		verible	verible/verilog/tools/kythe/testdata/include_with_dir_test/module3.sv	414	415	167	14	1016		yClassIncludedFile1 instance2 = new(); //- @MyClassIncludedFile2 ref My
 PAST-LAST-TICK		verible	verible/verilog/tools/kythe/testdata/include_with_dir_test/module4.sv	416	417	167	14	1018		yClassIncludedFile1 instance1 = new(); //- @MyClassIncludedFile2 ref My
-PRE-TICK	CROSS-LIBRARY	Cores-VeeR-EL2	testbench/ahb_lite_2to1_mux.sv	4277	4278	10406	99	11764	always_comb @ stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/rtl/ibex_branch_predict.sv	side {2'b10, 2'b11} & ~force_bus_idle; always_comb initiator1_address_ph = hsel_
 PRE-TICK	CROSS-LIBRARY	Cores-VeeR-EL2	testbench/uvm/mem/hdl/dccm_driver.sv	107	108	183	4	1575	uvm_driver @ stimuli/sv/uvm/uvm-core-2020.3.1/src/comps/uvm_driver.svh	extends uvm_driver #(dccm_transaction_sequence_item); virtual dccm_interface
 PRE-TICK	CROSS-LIBRARY	Cores-VeeR-EL2	testbench/uvm/mem/hdl/dccm_monitor.sv	109	109	279	4	1638	uvm_monitor @ stimuli/sv/uvm/uvm-core-2020.3.1/src/comps/uvm_monitor.svh	extends uvm_monitor; virtual dccm_interface memory_vif; uvm_analysis_port
 PRE-TICK	CROSS-LIBRARY	Cores-VeeR-EL2	testbench/uvm/mem/hdl/dccm_scoreboard.sv	115	115	120	4	2399	uvm_scoreboard @ stimuli/sv/uvm/uvm-core-2020.3.1/src/comps/uvm_scoreboard.svh	tends uvm_scoreboard; `include "el2_param.vh" ; dccm_transaction_sequenc
@@ -1786,6 +1786,7 @@ PRE-TICK	CROSS-LIBRARY	opentitan	hw/dv/sv/pwm_monitor/pwm_item.sv	211	211	830	5	
 PRE-TICK	CROSS-LIBRARY	opentitan	hw/dv/sv/rng_agent/rng_item.sv	211	211	239	5	326	uvm_sequence_item @ stimuli/sv/subs/Surelog/tests/SimpleClass1/top_1.v	ds uvm_sequence_item; // random variables `uvm_object_utils_begin(rng_item
 PRE-TICK	CROSS-LIBRARY	opentitan	hw/dv/sv/scoreboard/scoreboard.sv	550	550	1720	13	9608	uvm_object @ stimuli/sv/subs/Surelog/tests/ThisHier/dut.sv	ITEM_T = uvm_object, type RAL_T = dv_base_reg_block,
 PRE-TICK	CROSS-LIBRARY	opentitan	hw/dv/sv/scoreboard/scoreboard_queue.sv	221	221	729	5	5790	uvm_object @ stimuli/sv/subs/Surelog/tests/ThisHier/dut.sv	EQ_ITEM = uvm_object) extends uvm_object; SEQ_ITEM expected_items[$
+PRE-TICK	CROSS-LIBRARY	opentitan	hw/dv/sv/sec_cm/sec_cm_base_if_proxy.sv	287	287	573	6	814	uvm_object @ stimuli/sv/subs/Surelog/tests/ThisHier/dut.sv	y extends uvm_object; sec_cm_type_e sec_cm_type; string path; // If this
 PRE-TICK	CROSS-LIBRARY	opentitan	hw/dv/sv/spi_agent/spi_flash_cmd_info.sv	386	386	1429	7	1832	uvm_sequence_item @ stimuli/sv/subs/Surelog/tests/SimpleClass1/top_1.v	ds uvm_sequence_item; rand bit [7:0] opcode; rand spi_flash_addr_mode_e addr
 PRE-TICK	CROSS-LIBRARY	opentitan	hw/dv/sv/spi_agent/spi_item.sv	211	211	2295	5	4626	uvm_sequence_item @ stimuli/sv/subs/Surelog/tests/SimpleClass1/top_1.v	ds uvm_sequence_item; // hold transaction type rand spi_trans_type_e item_t
 PRE-TICK	CROSS-LIBRARY	opentitan	hw/dv/sv/uart_agent/uart_item.sv	212	212	870	5	1357	uvm_sequence_item @ stimuli/sv/subs/Surelog/tests/SimpleClass1/top_1.v	ds uvm_sequence_item; // start and stop bits rand bit start_bit = 1'b0; r
@@ -1924,8 +1925,6 @@ PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/cip_lib/cip_base_env_cov.sv	45
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/cip_lib/cip_base_scoreboard.sv	229	229	430	5	36304	dv_base_reg_block @ stimuli/sv/subs/opentitan/hw/dv/sv/dv_base_reg/dv_base_reg_pkg.sv	= dv_base_reg_block, type CFG_T = cip_base_env_cfg,
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/cip_lib/cip_base_test.sv	222	222	313	5	1572	cip_base_env_cfg @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_env_cfg.sv	T = cip_base_env_cfg, type ENV_T = cip_base_env) extends d
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/cip_lib/cip_base_virtual_sequencer.sv	235	235	391	5	945	cip_base_env_cfg @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_env_cfg.sv	T = cip_base_env_cfg, type COV_T = cip_base_e
-PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh	178	179	312	5	3443	virtual @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh	Apache-2.0 virtual task run_sec_cm_fi_vseq(int num_times = 1); pre_run_sec_cm
-PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__shadow_reg_errors.svh	178	179	457	5	18055	virtual @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh	Apache-2.0 virtual task run_shadow_reg_errors(int num_times, bit en_csr_rw_seq
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/cip_lib/seq_lib/cip_tl_device_seq.sv	290	291	314	6	1138	tl_device_seq @ stimuli/sv/subs/opentitan/hw/dv/sv/tl_agent/seq_lib/tl_device_seq.sv	tends tl_device_seq #(cip_tl_seq_item); `uvm_object_utils(cip_tl_device_seq)
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/cip_lib/seq_lib/cip_tl_host_single_seq.sv	416	417	440	9	1140	tl_host_single_seq @ stimuli/sv/subs/opentitan/hw/dv/sv/tl_agent/seq_lib/tl_host_single_seq.sv	tl_host_single_seq #(cip_tl_seq_item); `uvm_object_utils(cip_tl_host_single_
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/cip_lib/seq_lib/cip_tl_seq_item.sv	273	273	278	6	12706	tl_seq_item @ stimuli/sv/subs/opentitan/hw/dv/sv/tl_agent/tl_agent_pkg.sv	extends tl_seq_item; `uvm_object_new tl_intg_err_e tl_intg_err_type
@@ -2038,7 +2037,6 @@ PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/rng_agent/rng_agent_cov.sv	216
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/rng_agent/rng_driver.sv	210	211	301	5	1226	dv_base_driver @ stimuli/sv/subs/opentitan/hw/dv/sv/dv_base_agent/dv_base_driver.sv	ends dv_base_driver #(.ITEM_T(rng_item),
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/rng_agent/rng_monitor.sv	212	213	304	5	828	dv_base_monitor @ stimuli/sv/subs/opentitan/hw/dv/sv/dv_base_agent/dv_base_monitor.sv	nds dv_base_monitor #( .ITEM_T (rng_item), .CFG_T (rng_agent_cfg),
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/rng_agent/seq_lib/rng_base_seq.sv	209	210	316	5	490	dv_base_seq @ stimuli/sv/subs/opentitan/hw/dv/sv/dv_base_agent/dv_base_seq.sv	extends dv_base_seq #( .REQ (rng_item), .CFG_T (rng_agent_
-PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/sec_cm/sec_cm_base_if_proxy.sv	287	287	573	6	814	virtual @ stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh	y extends uvm_object; sec_cm_type_e sec_cm_type; string path; // If this
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/spi_agent/seq_lib/spi_base_seq.sv	209	210	316	5	481	dv_base_seq @ stimuli/sv/subs/opentitan/hw/dv/sv/dv_base_agent/dv_base_seq.sv	extends dv_base_seq #( .REQ (spi_item), .CFG_T (spi_agent_
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/spi_agent/seq_lib/spi_device_cmd_rsp_seq.sv	464	464	468	14	3628	spi_device_seq @ stimuli/sv/subs/opentitan/hw/dv/sv/spi_agent/seq_lib/spi_device_seq.sv	tends spi_device_seq; `uvm_object_utils(spi_device_cmd_rsp_seq) `uvm_object_
 PRE-TICK	FACT-GATED-CROSS-FILE	opentitan	hw/dv/sv/spi_agent/seq_lib/spi_device_dma_seq.sv	283	283	288	8	1049	spi_base_seq @ stimuli/sv/subs/opentitan/hw/dv/sv/spi_agent/seq_lib/spi_base_seq.sv	extends spi_base_seq; `uvm_object_utils(spi_device_dma_seq) spi_item data;
@@ -3777,6 +3775,9 @@ PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/comps/uvm_in_order
 PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/comps/uvm_pair.svh	1913	1913	1966	48	5211	T1	) extends uvm_object; typedef uvm_class_pair #(T1, T2 ) this_type; `uvm_ob
 PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/tlm1/uvm_sqr_connections.svh	2229	2230	2264	57	3724	REQ	tends uvm_port_base #(uvm_sqr_if_base #(REQ, RSP)); `UVM_SEQ_PORT(`UVM_SEQ_ITE
 PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/tlm1/uvm_tlm_req_rsp.svh	2340	2340	2403	59	13793	REQ	xtends uvm_component; typedef uvm_tlm_req_rsp_channel #(REQ, RSP) this_type;
+PRE-TICK	NO-FACT-GATE-AT-FAILURE	Cores-VeeR-EL2	testbench/ahb_lite_2to1_mux.sv	4277	4278	10406	99	11764		side {2'b10, 2'b11} & ~force_bus_idle; always_comb initiator1_address_ph = hsel_
+PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh	178	179	312	5	3443		Apache-2.0 virtual task run_sec_cm_fi_vseq(int num_times = 1); pre_run_sec_cm
+PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__shadow_reg_errors.svh	178	179	457	5	18055		Apache-2.0 virtual task run_shadow_reg_errors(int num_times, bit en_csr_rw_seq
 PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/tl_agent/dv/env/tl_agent_env_pkg.sv	534	535	556	17	742		(tl_agent_env_cfg)) tl_agent_env_cov; `include "tl_agent_env_cfg.sv" `inclu
 PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/aes/dv/err_injection_if/signal_force.sv	719	719	2019	24	2350		)::set(null, "*", pick_if_name(), fi_if); end // Pick a name
 PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/top_darjeeling/dv/autogen/tb__alert_handler_connect.sv	243	244	274	7	5467		y `topgen.py` tool assign alert_if[0].alert_tx = `CHIP_HIER.u_uart0.alert_tx_o[

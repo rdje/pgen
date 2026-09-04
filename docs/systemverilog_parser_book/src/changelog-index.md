@@ -34,6 +34,39 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.211 / Contract 1.0.211 — SV-CORPUS-GRAD.3.37 + .13z (`PGEN-SV-CORPUS-GRAD-0366`, 2026-09-04), ledger `SV-0084` (`Released`):
+
+⭐ **Every word IEEE 1800-2017 Annex B reserves is now refused as an identifier — 248 words, derived from the
+LRM text, where the grammar had reserved a hand-typed 173.** `new`, `this`, `super`, `null`, `static`, `var`,
+`const`, `global`, `final`, `local`, `protected`, `virtual`, every `always_*`, every assertion operator and every
+coverage word were admissible identifiers: `reg global;`, `var final;`, `i.super.i = 1;` parsed, and a class
+constructor written `function new; input x;` parsed as an ordinary function NAMED `new` (with `C c = new;` a
+reference to it). A new doctrine, `SV-RESERVED-WORDS`, re-derives the table on every commit and refuses any drift
+in either direction (`stimuli/sv/check_sv_reserved_keywords.py`). Two more Annex A footnotes become grammar:
+**footnote 10** — no `automatic` on a data declaration outside a procedural context (module, package, checker and
+class sites; the randsequence code block keeps its lifetime) — and **footnote 18's `parameter` half** — a body
+`parameter` carries its default (the parameter port list still may omit it; `.3.35` closed `localparam`). A bare
+`null` gains the `primary` alternative A.8.4 names, and `local ::` (A.8.4 `class_qualifier`, the LRM's own §18.7.1
+`x < local::x` example) gains the production it never had; both had parsed only through the identifier hole.
+`1569 → 1576` rules; grammar tier only. Verilog-2005 tests that name a variable `var`, `global`, `local` or `new`
+now REJECT on the SV lanes — correctly — and the adjudicator re-keys each such row by parsing it under
+`verilog_2005` (the edition-keyword pass).
+
+**AST impact — one corrected derivation.** No `kind` added, removed or renamed; every legal control keeps its
+kind multiset (class handles and `new`, static lifetimes, body parameters, keyword-prefixed identifiers such as
+`with_y` or `bins_z`, the randsequence block). ⛔ `d = null;` / `d == null` used to derive `null` as a hierarchical
+NAME node and now derive the `{kind: "null"}` primary — same verdict, corrected tree; consumers matching `null` by
+name will find the literal kind. Schema **26 unchanged**. The accept set NARROWS on `sv_2017` and `sv_2023`;
+`verilog_2005` is untouched (its reserved set already equalled 1364-2005 Annex B).
+
+**Corpus proof**, per path, three lanes: `sv_2017` **53** rows `pass → fail` (13 body parameters without a default — footnote 18; 32 Annex B keywords bound as names in Verilog-2005 tests; 2 `super.new` after a statement — A.2.7; 2 `automatic` at module scope — footnote 10; one `new[4]` without an unsized dimension — A.2.4; the two intended rows; ONE legal-by-prose `local::get_x()`, a known narrowing owed by `.3.40`) and **0** `fail → pass`; pass **9 833 → 9 780**; `sv_2023` **55** / **0** (the same plus `t_param_type_fwd.v` / `_bad.v` — footnote 22), pass **9 856 → 9 801**; the axis-2 bar **112 → 102** (five rows by refusing;
+four `.13z` keys corrected to `must_accept` with the production — `integer x [] = 1;`, `P::Q = 1;`, `{a,b}.f1`,
+`trireg (small) t;` are all derivable, the rejecting tool elaborates); `verilog_2005` **0**. **Gates**: `sv_cert_recognized_union_gate` GREEN — canonical `1433/9/1411/13`, union `1424/0`, re-stamped (the `+5` is the seven new rules net of two sv_2023-only ones; proof and UNKNOWN unchanged); `verilog_2005_conformance_gate` GREEN — cert `1142/379/749/14`, corpus 363 checks / 0 mismatches, re-stamped, one conformance fixture's SV expectation corrected under footnote 10; `sv_syntax_closure_gate` GREEN — allow-list unchanged, `reachable_branches` 2008 → 2027, re-stamped; `ast_shape_contract_gate` 18/18; reproducibility baseline re-derived. Cost:
+`entries` ROSE `400 072 681 → 401 665 513` (+0.40 %) and `memo_hits` +0.47 % — the `kw_null` / `kw_local` terminal attempts of the two admitted alternatives plus their prefix lookups, net of a 433 K-entry fall from the footnote re-spellings — ACCEPTED under the new `declared_alternatives_net_of_retired_work` invariant (`ENGINE-UNIVERSAL-SERVICES.94`); `committed` FELL −0.59 %, promoted; family share `2.679 → 2.671 %`; `sv_parse_cost_ratchet` OK.
+Residue named: footnote 20 (`reg [] x;` is legal only as a DPI import's sole packed dimension — `.3.38`), typed
+argument productions for the tolerated directives (`.3.39`), and the `` `begin_keywords `` row as a keyword-version
+feature gap.
+
 ### 1.0.210 / Contract 1.0.210 — SV-CORPUS-GRAD.3.35 (`PGEN-SV-CORPUS-GRAD-0364`, 2026-09-04), ledger `SV-0083` (`Released`):
 
 ⭐ **Four corrections from the residual bar, read one production at a time — two widenings, two

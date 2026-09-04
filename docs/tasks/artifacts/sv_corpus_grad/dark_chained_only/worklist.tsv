@@ -15,7 +15,10 @@ NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	Surelog	tests/UnitTest/top.v	729	730		34	1
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/i3c/rtl/i3c_dat.sv	903	904		27	7111	i3c_dat_mem_t	ut i3c_dat_mem_t dat_rdata_o, // HCI Device Address Table interface. inp
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/i3c/rtl/i3c_dct.sv	975	976		28	4310	i3c_dct_mem_t	t i3c_dct_mem_t dct_wdata_i, // HCI Device Characteristics Table interfac
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/i3c/rtl/i3c_dxt.sv	1944	1949		53	3576	ram_1p_cfg_t	t ram_1p_cfg_t cfg_i, output ram_1p_cfg_rsp_t cfg_rsp_o ); localparam
-NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/otbn/dv/verilator/otbn_top_sim.sv	6554	6554		168	19497	DmemAddrWidth,ImemAddrWidth,bind	_if #(.ImemAddrWidth, .DmemAddrWidth) i_otbn_trace_if (.*); bind otbn_core otb
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/otbn/dv/verilator/otbn_top_sim.sv	6554	6554		168	19497	DmemAddrWidth,ImemAddrWidth,otbn_core	_if #(.ImemAddrWidth, .DmemAddrWidth) i_otbn_trace_if (.*); bind otbn_core otb
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/spi_device/pre_dv/program/spiflash.sv	6130	6131		192	18278	main,print_capacity	_capacity static task main(); // Main function forever begin au
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/spi_device/pre_dv/tb/spid_jedec_tb.sv	1921	1922		97	4748	host	(); end static task host(); automatic int unsigned num_cc; logic [2
+NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/ip/spi_device/pre_dv/tb/spid_upload_tb.sv	4692	4693		186	19916	host	(); end static task host(); // Prep data automatic logic [7:0] pay
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/spec/spec_api.sv	682	683		24	9472	t_MainMode	input t_MainMode main_mode, input [31:0] regs_i [1:31], output logi
 NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/isa/custom/riscv_custom_instr_enum.sv	50	50		2	52	CUSTOM_1	n name enum CUSTOM_1,
 PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/base/uvm_resource_base.svh	5509	5510	8409	123	20400	uvm_resource_base	(uvm_resource_base) rsrc_q_t; // SV queue of resources typedef uvm_resource
@@ -24,6 +27,9 @@ PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/comps/uvm_in_order
 PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/comps/uvm_pair.svh	1913	1913	1966	48	5211	T1	) extends uvm_object; typedef uvm_class_pair #(T1, T2 ) this_type; `uvm_ob
 PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/tlm1/uvm_sqr_connections.svh	2229	2230	2264	57	3724	REQ	tends uvm_port_base #(uvm_sqr_if_base #(REQ, RSP)); `UVM_SEQ_PORT(`UVM_SEQ_ITE
 PRE-TICK	FACT-GATED-LOCAL-TYPE	uvm-core	uvm-core-2020.3.1/src/tlm1/uvm_tlm_req_rsp.svh	2340	2340	2403	59	13793	REQ	xtends uvm_component; typedef uvm_tlm_req_rsp_channel #(REQ, RSP) this_type;
+PRE-TICK	NO-FACT-GATE-AT-FAILURE	Cores-VeeR-EL2	testbench/ahb_lite_2to1_mux.sv	4277	4278	10406	99	11764		side {2'b10, 2'b11} & ~force_bus_idle; always_comb initiator1_address_ph = hsel_
+PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh	178	179	312	5	3443		Apache-2.0 virtual task run_sec_cm_fi_vseq(int num_times = 1); pre_run_sec_cm
+PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__shadow_reg_errors.svh	178	179	457	5	18055		Apache-2.0 virtual task run_shadow_reg_errors(int num_times, bit en_csr_rw_seq
 PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/dv/sv/tl_agent/dv/env/tl_agent_env_pkg.sv	534	535	556	17	742		(tl_agent_env_cfg)) tl_agent_env_cov; `include "tl_agent_env_cfg.sv" `inclu
 PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/ip/aes/dv/err_injection_if/signal_force.sv	719	719	2019	24	2350		)::set(null, "*", pick_if_name(), fi_if); end // Pick a name
 PRE-TICK	NO-FACT-GATE-AT-FAILURE	opentitan	hw/top_darjeeling/dv/autogen/tb__alert_handler_connect.sv	243	244	274	7	5467		y `topgen.py` tool assign alert_if[0].alert_tx = `CHIP_HIER.u_uart0.alert_tx_o[

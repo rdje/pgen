@@ -1165,7 +1165,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `cascade_match_casting_type_lr_suffix` and friends — tick nothing. And a counter counts **events**:
   a rise in the cost PER event is invisible to it on any graph. That limit is a property of the
   metric, so unlike a measured bound it cannot go stale.
-  **Live LR-family share `2.679`** (corpus-entry share %) — the LR-elimination family's share of all
+  **Live LR-family share `2.671`** (corpus-entry share %) — the LR-elimination family's share of all
   corpus rule entries. ⭐ **GATED, not quoted** since `.21` acceptance (f): `PARSE-COST-RATCHET`'s
   every-run tier re-hashes the four inputs it is a function of (grammar, generated parser,
   classifier, corpus) against
@@ -2193,6 +2193,18 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   each carry their OWN SUBJECT (three synthetic probes driven through the real pipeline), because
   when `.13u` corrected addressability the tree-level arm had nothing left to mutate and correctly
   reported itself **inert** rather than passing — `.87`(e)'s lesson, enforced by machinery.
+
+### 5.15 "Is every word the LRM reserves actually REFUSED as an identifier?" — the reserved-word census
+- **WHAT:** `stimuli/sv/check_sv_reserved_keywords.py` — derives IEEE 1800-2017 Table B.1 (248 words; 1800-2023 lists the same 248) and IEEE 1364-2005 Annex B (124) from the in-repo LRM text and compares them, as SETS in both directions, with the two regex alternations the grammar refuses identifiers through (`reserved_non_keyword_identifier_sv` for `sv_2017`/`sv_2023`, `_v2005` for `verilog_2005`). Enforced on every commit as doctrine `SV-RESERVED-WORDS` (`scripts/check_sv_reserved_words.sh`).
+- **WHEN:** a keyword parses as a NAME — `reg global;`, `i.super.i = 1;`, `function new; input x;` (an ordinary function NAMED `new`), `var final;` — or an accepts-invalid row whose only illegality is a reserved word in identifier position. ⛔ Nothing downstream can see this class: the certificates, the corpus lanes and `--lint-grammar` all consume the same `non_keyword_identifier` rule, so a word that rule does not refuse IS an identifier to every one of them. Founding measurement (`SV-CORPUS-GRAD.3.37`, 2026-09-04): the hand-typed list held **173 of 248** — `new`, `this`, `super`, `null`, `static`, `var`, `const`, `global`, `final`, every assertion operator (`until`, `s_eventually`, …), every coverage word (`bins`, `cross`, …) were admissible identifiers.
+- **HOW:**
+  ```bash
+  python3 stimuli/sv/check_sv_reserved_keywords.py               # gate mode: derive + compare, exit 1 naming every word
+  python3 stimuli/sv/check_sv_reserved_keywords.py --self-test   # a planted missing word and a planted foreign word are refused
+  python3 stimuli/sv/check_sv_reserved_keywords.py --write       # regenerate BOTH regex lines from the tables (alphabetical)
+  ```
+- **OUTPUT:** one line, e.g. `SV-RESERVED-KEYWORDS: OK — reserved_non_keyword_identifier_sv == Table B.1 and reserved_non_keyword_identifier_v2005 == 1364-2005 Annex B, both directions (1800-2017=248 1800-2023=248 1364-2005=124)`; on a miss, `NOT reserved: <words>` / `NOT in Annex B: <words>` per regex.
+- **HONEST BOUND:** this is keyword ADMISSION only (the v2005 census's lens L1) for the identifier rule. A keyword accepted in a position its clause forbids (L2) or a legal keyword in the wrong arity (L3) is invisible here — and so is a keyword the grammar spells as its own terminal (`kw_*`) at a site that should have been an identifier. The extractor treats a line holding exactly one identifier-shaped token between the table heading and the first prose line as a row, skipping the PDF's page furniture by pattern; the table sizes are pinned in `--self-test` (248 / 248 / 124), so a re-extraction that drifts refuses instead of quietly re-deriving a smaller table.
 
 ## 6. Coverage / gap reports (`ast_pipeline`)
 

@@ -24,14 +24,14 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `f586ba2c172d4d31266ec56a83081483f042cf8c7acc70651ccca4d1d3703590` |
-| grammar | `grammars/systemverilog.ebnf` | `c13e8a8f87c94c5044ccf2c436dc9afc43c3ec349c0bdb42c6cc54c1b9478a83` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `97efdcb70e708b639575c5dc856a753ba4090b9c7fa941a0356c32b5e621e286` |
-| generated parser | `generated/systemverilog_parser.rs` | `7e09e8d8941e1183eef110741377b25ee04c099e4e394db434aa4986c953f31e` |
-| results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `d0fbd47eb198be92a53b31ec86e5846e717d2eb1ba3cfd8aad5d50e308dab509` |
-| positions (output) | `stimuli/sv/characterization/positions_sv2023.tsv` | `f5b8b6d5341d20981cc4fafc9d8194b6e518133e3c5e4162f64f196ed5335da9` |
+| parse binary | `rust/target/release/parseability_probe` | `5ea7a31b6cefb96cfa49c548ec3803041999785aba02529ff966157d64f405bb` |
+| grammar | `grammars/systemverilog.ebnf` | `e617f27efe31037c860b06febba40d761d8588f994b18dd137794b1f408cdee0` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `d705e2495153ec3deadd672bc64d1315456924b28adac534567ba0e8123d3bc6` |
+| generated parser | `generated/systemverilog_parser.rs` | `f054c6a9606d33b0aaa78544cf4bcf04f794d91f7bec24fee66506238be0a11e` |
+| results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `67630df159466f59022e3e32fa26ec14c2da5a2ab57b2b9e44e08bbd1977b72e` |
+| positions (output) | `stimuli/sv/characterization/positions_sv2023.tsv` | `1fe056a3be08bb1926fc70e9f15843b2f14074789d5ae70aac0baca47cc1f76b` |
 
-Measured at `HEAD` = `e96e13f9+dirty` (2026-09-04).
+Measured at `HEAD` = `dca3c9a8+dirty` (2026-09-04).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -65,32 +65,32 @@ Measured at `HEAD` = `e96e13f9+dirty` (2026-09-04).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `5.22` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `5.61` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 
 | files parsed | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|
-| 16336 | 9856 | 6480 | 0 | 0 | 60.3% |
+| 16336 | 9801 | 6535 | 0 | 0 | 60.0% |
 
 ## Per sub-corpus
 
 | sub-corpus | files | pass | fail | timeout | crash | pass-rate |
 |---|---|---|---|---|---|---|
 | Cores-VeeR-EL2 | 102 | 18 | 84 | 0 | 0 | 17.6% |
-| Surelog | 828 | 707 | 121 | 0 | 0 | 85.4% |
+| Surelog | 828 | 704 | 124 | 0 | 0 | 85.0% |
 | black-parrot | 205 | 21 | 184 | 0 | 0 | 10.2% |
 | friscv | 441 | 31 | 410 | 0 | 0 | 7.0% |
 | ispras-sv-tests | 1266 | 1120 | 146 | 0 | 0 | 88.5% |
-| iverilog | 3799 | 3252 | 547 | 0 | 0 | 85.6% |
+| iverilog | 3799 | 3219 | 580 | 0 | 0 | 84.7% |
 | opentitan | 3983 | 795 | 3188 | 0 | 0 | 20.0% |
 | scr1 | 50 | 8 | 42 | 0 | 0 | 16.0% |
 | slang | 92 | 72 | 20 | 0 | 0 | 78.3% |
 | sv-tests | 1028 | 862 | 166 | 0 | 0 | 83.9% |
-| sv2v | 953 | 720 | 233 | 0 | 0 | 75.6% |
+| sv2v | 953 | 712 | 241 | 0 | 0 | 74.7% |
 | uvm-core | 174 | 20 | 154 | 0 | 0 | 11.5% |
-| verible | 152 | 120 | 32 | 0 | 0 | 78.9% |
-| verilator | 3263 | 2110 | 1153 | 0 | 0 | 64.7% |
+| verible | 152 | 119 | 33 | 0 | 0 | 78.3% |
+| verilator | 3263 | 2100 | 1163 | 0 | 0 | 64.4% |
 
 _Raw per-file results: `stimuli/sv/characterization/results_sv2023.tsv` (3 columns: sub-corpus, status,
 repo-root-relative path — a stable contract three consumers unpack positionally)._

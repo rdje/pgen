@@ -1,30 +1,21 @@
 suite	relpath	surface_pos	furthest_pos	signature	stuck_line
 Surelog	tests/1364_2005/dut.v	29	91	bit , ID	reg      bit, rst, clk;
 Surelog	tests/AssumeProp/dut.sv	0	191	" ID ID	$fatal(1, "slv_aw_select_i is %d: AW has selected a slave that is not defined.\
-Surelog	tests/Checker/dut.sv	0	354	ID = ID	coverage_level clevel = cover_all // This argument should be bound to an
 Surelog	tests/CheckerInst/dut.sv	0	303	@ ( ID	@($global_clock) a[*1:$] ##1 b);
+Surelog	tests/ClassTypeParamAlias/dut.sv	2	145	, ID =	parameter type CT1 = Ctype1, CT2 = Ctype2;
 Surelog	tests/EnumParenType/dut.sv	65	196	( ID )	(states_t) state1;
-Surelog	tests/ForeachSquare/dut.sv	0	112	) ID [	foreach(array[i][j])
 Surelog	tests/HierBitSlice/dut.sv	142	178	ID ; /	scalar_t pc;
 Surelog	tests/HierPathModule/dut.sv	1	30	medium . ID	assign o = medium.c;
 Surelog	tests/IndexedSelect/dut.sv	0	183	ID ( "	$display("test");
-Surelog	tests/SequenceInst/dut.sv	0	239	= ID )	rst = $inferred_disable);
-Surelog	tests/SynthForeach/dut.sv	0	142	) ID [	foreach(data[i][j])
 Surelog	tests/TranslateOff/dut.sv	70	159	assign ID =	assign c = d;
 ispras-sv-tests	ieee-1800-2012/05/05.09_01.sv	98	139	" ID ID	$display("Humpty Dumpty sat on a wall. \
 ispras-sv-tests	ieee-1800-2012/06/06.07.01_02.sv	144	168	inout wire reg	inout wire reg p;
-ispras-sv-tests	ieee-1800-2012/06/06.20.01_02.sv	127	178	ID = NUM	module top #(int N = 5, M = N * 16, type T = int, T x = 0) ();
 ispras-sv-tests	ieee-1800-2012/08/08.26.04_01.sv	127	263	endclass : ID	endclass : ClassB
 ispras-sv-tests	ieee-1800-2012/11/11.04.02_01.sv	160	230	= ID -	j = i++ + (i = i - 1);
 ispras-sv-tests	ieee-1800-2012/14/14.14_05.sv	97	399	@ ( ID	@($global_clock) a[*1:$] ##1 b);
-ispras-sv-tests	ieee-1800-2012/16/16.08.02_01.sv	166	409	= ID ,	d = d_d, // local input logic inferred, default actual
 ispras-sv-tests	ieee-1800-2012/16/16.08_04.sv	95	303	## NUM ID	trans ##1 start_trans ##1 s ##1 end_trans;
 ispras-sv-tests	ieee-1800-2012/16/16.09.11_01.sv	156	364	## NUM ID	trans ##1 start_trans ##1 s ##1 end_trans;
-ispras-sv-tests	ieee-1800-2012/16/16.14.07_01.sv	138	387	= ID )	rst = $inferred_disable);
-ispras-sv-tests	ieee-1800-2012/17/17.09_01.sv	97	571	ID = ID	coverage_level clevel = cover_all // This argument should be bound to an
-ispras-sv-tests	ieee-1800-2012/17/17.09_02.sv	97	601	ID = ID	coverage_level clevel = cover_all // This argument should be bound to an
 ispras-sv-tests	ieee-1800-2012/22/22.14.01_01.sv	211	235	logic ; /	reg [63:0] logic; // OK: 'logic' is not a keyword in 1364-2001
-ispras-sv-tests	ieee-1800-2012/23/23.10.03_02.sv	171	197	ID = NUM	module top #(type T = C, T p = 4,
 iverilog	ivtest/ivltests/br_gh782b.v	64	63	NUM / *	/* comment */ 1          /* comment */ // comment
 iverilog	ivtest/ivltests/display_bug.v	0	110	] ID ;	word [2] array;      // word[0:1] exposes the bug as well
 iverilog	ivtest/ivltests/module_output_port_sv_var2.v	211	224	output reg ID	output reg a;
@@ -34,7 +25,6 @@ iverilog	ivtest/ivltests/program5b.v	108	210	ID ( ID	test dut(foo);
 iverilog	ivtest/ivltests/sf1289.v	188	270	; end endmodule	foreach (a[i]) ;
 iverilog	ivtest/ivltests/sv_type_identifier_attribute_target.v	207	205	ID ( ID	$attribute(ATTR_TYPE, "test", "true")
 iverilog	ivtest/ivltests/sv_type_identifier_package_name.v	171	247	ID != =	if (T::VALUE !== 23) begin
-iverilog	ivtest/ivltests/sv_type_identifier_variable_name.v	358	376	; var ID	var C;
 iverilog	ivtest/ivltests/sv_wildcard_import2.v	246	426	:: ID ;	#1 ->my_package::e;
 iverilog	ivtest/ivltests/sv_wildcard_import3.v	226	385	:: ID ;	#1 ->my_package::e;
 slang	tests/regression/all.sv	804	3478	. ID )	if (instr matches (tagged Jmp .j) &&&
@@ -62,16 +52,12 @@ sv2v	test/nosim/assert.sv	0	401	NUM ( NUM	assert #0_0 (1);
 verible	verible/verilog/tools/kythe/testdata/event_control.sv	51	154	; endtask	@x[y];
 verible	verible/verilog/tools/kythe/testdata/foreach.sv	26	181	) begin /	foreach (y) begin
 verible	verible/verilog/tools/kythe/testdata/function_port_dimensions.sv	340	355	[ ID :	function f4(int [var1:var2] t1 [var3:var4]);
-verible	verible/verilog/tools/kythe/testdata/module_port_type_forwarding.sv	161	1184	input ID ;	input n1;
 verible	verible/verilog/tools/kythe/testdata/primitive_type_with_dimensions.sv	283	622	[ ID ::	int [foo_pkg::DATA_WIDTH-1:foo_pkg::DATA_LENGTH] var5 [foo_pkg::DATA_WIDTH-1:foo_pkg::DATA_LENGTH];
 verible	verible/verilog/tools/kythe/testdata/program.sv	226	357	ID ; initial	environment env;
 verible	verible/verilog/tools/kythe/testdata/reversed_definition.sv	60	443	ID = new	static class2 instance1 = new();
 verible	verible/verilog/tools/lint/testdata/forbid_line_continuations.sv	0	55	" ID ID	string bad_literal = "Humpty Dumpty sat on a wall. \
 verilator	test_regress/t/t_class_extern.v	203	358	( ID )	extern function ext_f_imp(in);
 verilator	test_regress/t/t_class_static_member_sel.v	904	1229	= NUM ;	baz.get_bar().f.x = 4;
-verilator	test_regress/t/t_clk_concat5.v	1174	1384	input ID ;	input clk;
-verilator	test_regress/t/t_clk_concat6.v	1331	1568	input ID ;	input clk;
-verilator	test_regress/t/t_comb_do_not_convert_to.v	199	358	input ID ;	input clk;
 verilator	test_regress/t/t_constraint_operators.v	203	1423	~ ID ==	constraint unary { !(-~c == 'h22); }
 verilator	test_regress/t/t_cover_fsm_sel_assign.v	197	601	begin logic [	begin
 verilator	test_regress/t/t_covergroup_unsup.v	203	1698	{ } endgroup	{}
@@ -79,7 +65,6 @@ verilator	test_regress/t/t_delay.v	227	549	. ID ID	assign #sub.delay dly4 = dly1
 verilator	test_regress/t/t_display.v	203	8648	" [ %	$display("[%0t] Embedded\
 verilator	test_regress/t/t_display_qqq.v	203	245	" ID "	$display("""First "quoted"\nsecond\
 verilator	test_regress/t/t_event_control_pass.v	363	427	( ) ;	->b.get_event();
-verilator	test_regress/t/t_flag_language.v	203	254	bit ; initial	integer bit; initial bit = 1;
 verilator	test_regress/t/t_foreach_array.v	200	2532	) ID ++	foreach (queue[i]) foreach (queue[i][j]) exp_count_que++;
 verilator	test_regress/t/t_foreach_nested.v	234	348	) this .	foreach(this.foo.x[i][j])
 verilator	test_regress/t/t_gate_primitives_implicit_net.v	486	1886	` ID ID	`default_nettype none
@@ -89,14 +74,9 @@ verilator	test_regress/t/t_interface_gen11.v	446	495	begin ID ID	begin
 verilator	test_regress/t/t_interface_gen13.v	214	339	begin initial ID	begin
 verilator	test_regress/t/t_interface_gen6.v	289	518	begin if (	begin
 verilator	test_regress/t/t_interface_modport_export.v	259	329	( input logic	extern function myfunc (input logic val);
-verilator	test_regress/t/t_langext_order.v	303	317	do ) ;	module t(input do);
-verilator	test_regress/t/t_lparam_assign_iface_typedef2.v	333	407	. ID ;	localparam type p0_t = if0.rq_t;
 verilator	test_regress/t/t_lparam_assign_iface_typedef4.v	333	407	. ID [	localparam type p0_t = if0.rq_t[1:0];
 verilator	test_regress/t/t_lparam_assign_iface_typedef_nested.v	699	803	. ID .	localparam type p0_rq2_t = if0.y_if0.rq2_t;
 verilator	test_regress/t/t_lparam_assign_iface_typedef_nested6.v	680	769	. ID .	localparam type rq_t = if0.x_if0.rq_t;
-verilator	test_regress/t/t_lparam_assign_iface_typedef_nested_mod1.v	453	521	. ID ;	localparam type bus_rq_t = bus_io.rq_t;
-verilator	test_regress/t/t_lparam_assign_iface_typedef_nested_mpkg4.v	574	789	. ID ;	localparam type cc_index_t = tb_io.cc_index_t;
-verilator	test_regress/t/t_lparam_assign_iface_typedef_nested_mpkg5.v	574	754	. ID ;	localparam type cc_index_t = tb_io.cc_index_t;
 verilator	test_regress/t/t_math_pow6.v	203	556	= NUM '	output [3:0] i65 = 65'd3 ** a; // IWI
 verilator	test_regress/t/t_param.v	203	337	) ; integer	mreal #1.2 mr ();
 verilator	test_regress/t/t_param_no_parentheses.v	299	379	) ; ID	m1 #PAR m1();
@@ -106,6 +86,7 @@ verilator	test_regress/t/t_property_named.v	202	553	int ID )	property check_if_1
 verilator	test_regress/t/t_property_s_eventually2.v	255	250	ID ( "	$display("[%0t] stmt, %s", $time, msg); \
 verilator	test_regress/t/t_randomize_arraysel_membersel.v	434	677	with { ID	if (std::randomize(example.member[1]) with {example.member[1] inside {[0 : 3]};} == 0) $stop;
 verilator	test_regress/t/t_randomize_method_constraints.v	288	380	|| ID inside	constraint B { w == 5; x inside {1,2} || x inside {4,5}; }
+verilator	test_regress/t/t_randomize_method_with_scoping.v	-2	-2	<NOW-PASSES>	
 verilator	test_regress/t/t_setuphold.v	197	1237	: NUM :	$setuphold (posedge clk, negedge d, 0:0:0, 0:0:0);
 verilator	test_regress/t/t_simulate_array.v	313	328	begin localparam ID	begin
 verilator	test_regress/t/t_std_randomize_with.v	381	901	with { ID	) with {

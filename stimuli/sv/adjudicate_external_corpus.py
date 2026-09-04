@@ -104,6 +104,73 @@ SVTESTS_PINNED = {
 
 # Pinned rulings from in-file upstream statements (leaf .3.0 triage findings).
 EXTRA_PINNED = {
+    # ---- SV-CORPUS-GRAD.13z (PGEN-SV-CORPUS-GRAD-0366) ------------------------------------------
+    # Four accepts-invalid rows whose text IEEE 1800-2017 Annex A DERIVES; the rejecting tool
+    # elaborates (or names its own unsupported feature). Spec outranks tool, the .3.14a/.3.15/.3.16
+    # class: must_accept WITH THE PRODUCTION, so today's PASS is a match CI re-verifies. Each has a
+    # control pin (stimuli/sv/adjudication_repros/control_*.sv, .13z) that must keep ACCEPTING.
+    ("sv2v", "test/error/auto_dim_int.sv"): ("must_accept",
+        "pinned .13z: `integer x [] = 1;` - A.2.4 variable_decl_assignment ::= variable_identifier { variable_dimension } [ = expression ] "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:1028-1034) with A.2.5 variable_dimension ::= unsized_dimension | ... (:1070; unsized_dimension ::= [ ] :1079); "
+        "sv2v rejects the dynamic array's scalar initialiser at elaboration"),
+    ("sv2v", "test/error/block_start_3.sv"): ("must_accept",
+        "pinned .13z: `P::Q = 1;` in an initial block - A.8.5 variable_lvalue ::= [ implicit_class_handle . | package_scope ] "
+        "hierarchical_variable_identifier select (docs/systemverilog/2017/md/section-41-data-read-api.md:3199-3202); sv2v rejects the undeclared package P at elaboration"),
+    ("verilator", "test_regress/t/t_concat_link_bad.v"): ("must_accept",
+        "pinned .13z: `{foo_s, foo_s}.f1` - A.8.2 method_call_root ::= primary | implicit_class_handle (docs/systemverilog/2017/md/section-41-data-read-api.md:2968) with "
+        "method_call_body ::= method_identifier { attribute_instance } [ ( list_of_arguments ) ] (:2942-2944) and A.8.4 primary ::= ... | "
+        "concatenation [ [ range_expression ] ]; verilator's error is a LINK error (no member f1), `bar_s` is an implicit net (6.10)"),
+    ("verilator", "test_regress/t/t_wire_trireg_unsup.v"): ("must_accept",
+        "pinned .13z: `trireg (small) unsup_s;` - A.2.1.3 net_declaration ::= net_type [ drive_strength | charge_strength ] [ vectored | scalared ] "
+        "data_type_or_implicit [ delay3 ] list_of_net_decl_assignments ; (docs/systemverilog/2017/md/section-41-data-read-api.md:805) with charge_strength ::= ( small ) | ( medium ) | ( large ) (:937); "
+        "`unsup` names verilator's own unsupported feature, not the LRM's"),
+    # ---- SV-CORPUS-GRAD.3.37 (PGEN-SV-CORPUS-GRAD-0366): footnote 18's `parameter` half ----------
+    # Body parameters without a default, keyed must_accept because the suite's tool tolerates them
+    # (sv2v converts, verilator warns, Surelog elaborates). Each read at its stop line; the grammar now
+    # refuses them (1.0.211). Pins: invalid_body_parameter_without_default.sv, invalid_interface_parameter_without_default.sv,
+    # invalid_class_type_parameter_without_default.sv; control_body_parameters_with_defaults.sv.
+    ("sv2v", "test/core/interface_genvar_shadow.sv"): ("must_reject",
+        "pinned .3.37: line 2 `parameter P;` in an INTERFACE body - IEEE 1800-2017 Annex A footnote 18 (docs/systemverilog/2017/md/section-41-data-read-api.md:3518-3520): the constant_param_expression / data_type may be omitted from a param_assignment / type_assignment ONLY within a parameter_port_list; sv2v converts it, the LRM does not derive it"),
+    ("sv2v", "test/core/interface_similar.sv"): ("must_reject",
+        "pinned .3.37: line 2 `parameter P;` in an INTERFACE body - IEEE 1800-2017 Annex A footnote 18 (docs/systemverilog/2017/md/section-41-data-read-api.md:3518-3520): the constant_param_expression / data_type may be omitted from a param_assignment / type_assignment ONLY within a parameter_port_list; sv2v converts it, the LRM does not derive it"),
+    ("sv2v", "test/top/main.sv"): ("must_reject",
+        "pinned .3.37: lines 20-21 `parameter type T; parameter U;` in the body of module top_c - IEEE 1800-2017 Annex A footnote 18 (docs/systemverilog/2017/md/section-41-data-read-api.md:3518-3520): the constant_param_expression / data_type may be omitted from a param_assignment / type_assignment ONLY within a parameter_port_list; sv2v's top-level test relies on defparam-style overrides the LRM does not derive"),
+    ("verilator", "test_regress/t/t_lint_paramnodefault.v"): ("must_reject",
+        "pinned .3.37: line 8 `parameter NODEF;  //<--- Warning` in a module body - IEEE 1800-2017 Annex A footnote 18 (docs/systemverilog/2017/md/section-41-data-read-api.md:3518-3520): the constant_param_expression / data_type may be omitted from a param_assignment / type_assignment ONLY within a parameter_port_list; verilator itself flags it (a lint warning), the LRM forbids it"),
+    ("Surelog", "tests/MaskNeg/dut.sv"): ("must_reject",
+        "pinned .3.37: line 2 `parameter logic [1:0] RESVAL;` in a module body - IEEE 1800-2017 Annex A footnote 18 (docs/systemverilog/2017/md/section-41-data-read-api.md:3518-3520): the constant_param_expression / data_type may be omitted from a param_assignment / type_assignment ONLY within a parameter_port_list; Surelog elaborates with an override, the LRM does not derive the declaration"),
+    ("Surelog", "tests/InvalidTypeParam/dut.sv"): ("must_reject",
+        "pinned .3.37: line 2 `parameter type P;` in an INTERFACE body - IEEE 1800-2017 Annex A footnote 18 (docs/systemverilog/2017/md/section-41-data-read-api.md:3518-3520): the constant_param_expression / data_type may be omitted from a param_assignment / type_assignment ONLY within a parameter_port_list (the test's own name says invalid)"),
+    # ---- SV-CORPUS-GRAD.3.37: rows whose earlier ruling read the text as BNF-parseable when it is not ----
+    # Each was `match` (pass, keyed must_accept) under 1.0.210 because the keyword hole or the missing
+    # footnote made the parse succeed; on 1.0.211 they REJECT and the key, not the parser, was wrong.
+    ("Surelog", "tests/ParamNoDefault/dut.sv"): ("must_reject",
+        "pinned .3.37: line 2 `parameter logic [4:0] A;` in a module body - IEEE 1800-2017 Annex A footnote 18 (docs/systemverilog/2017/md/section-41-data-read-api.md:3518-3520): the default may be omitted from a param_assignment / type_assignment ONLY within a parameter_port_list; Surelog's golden log completes because it elaborates with an override"),
+    ("iverilog", "ivtest/ivltests/br_gh390a.v"): ("must_reject",
+        "pinned .3.37 (CORRECTS the .8b.3 cluster reading '8.15 prose ordering rule; every statement is ordinary BNF'): line 25 `super.new (name);` "
+        "AFTER a `$display` statement in a constructor - IEEE 1800-2017 A.2.7 class_constructor_declaration ::= function [ class_scope ] new [ ( [ tf_port_list ] ) ] ; { block_item_declaration } [ super . new [ ( list_of_arguments ) ] ; ] { function_statement_or_null } endfunction (docs/systemverilog/2017/md/section-41-data-read-api.md:622-626): the super.new call is a fixed position BEFORE the statements, and with `new` reserved (Annex B) a later `super.new(...)` has no derivation as a statement (it is not a method_call_body). Under 1.0.210 it parsed only because `new` was an admissible identifier (a method named new); ivtest's own CE key was right"),
+    ("iverilog", "ivtest/ivltests/sv_new_array_error.v"): ("must_reject",
+        "pinned .3.37 (CORRECTS the earlier 'syntax itself valid' reading): line 3 `logic [1:0] array = new[4];` - IEEE 1800-2017 A.2.4 variable_decl_assignment "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:1028-1034) admits `= dynamic_array_new` ONLY after `dynamic_array_variable_identifier unsized_dimension { variable_dimension }`, and `new[4]` is not an expression (A.8.4 primary has no `new`); "
+        "under 1.0.210 `new` was an identifier and `new[4]` a bit-select of it. ivtest's CE key was right"),
+    ("verilator", "test_regress/t/t_class_super_new_bad_nfirst.v"): ("must_reject",
+        "pinned .3.37: line 18 `super.new(imemberc);  // BAD not first` after `imemberc = 10;` - IEEE 1800-2017 A.2.7 class_constructor_declaration ::= function [ class_scope ] new [ ( [ tf_port_list ] ) ] ; { block_item_declaration } [ super . new [ ( list_of_arguments ) ] ; ] { function_statement_or_null } endfunction (docs/systemverilog/2017/md/section-41-data-read-api.md:622-626): the super.new call is a fixed position BEFORE the statements, and with `new` reserved (Annex B) a later `super.new(...)` has no derivation as a statement (it is not a method_call_body); verilator's driver expects failure and its golden is the same rule"),
+    ("verilator", "test_regress/t/t_var_lifetime_module_bad.v"): ("must_reject",
+        "pinned .3.37: line 8 `automatic int i;` at module level - IEEE 1800-2017 Annex A footnote 10 (docs/systemverilog/2017/md/section-41-data-read-api.md:3503-3505): no `automatic` on a data_declaration outside a procedural context; verilator's driver expects failure"),
+    ("sv2v", "test/error/interface_param_mismatch_type.sv"): ("must_reject",
+        "pinned .3.37 (removed from the 'instantiation binding ... the text is BNF-parseable' set): line 3 `parameter type P;` in an INTERFACE body - IEEE 1800-2017 Annex A footnote 18 (docs/systemverilog/2017/md/section-41-data-read-api.md:3518-3520): the default may be omitted from a param_assignment / type_assignment ONLY within a parameter_port_list"),
+    ("sv2v", "test/error/module_param_mismatch_type.sv"): ("must_reject",
+        "pinned .3.37 (removed from the 'instantiation binding ... the text is BNF-parseable' set): line 3 `parameter type P;` in a module body - IEEE 1800-2017 Annex A footnote 18 (docs/systemverilog/2017/md/section-41-data-read-api.md:3518-3520): the default may be omitted from a param_assignment / type_assignment ONLY within a parameter_port_list"),
+    ("sv2v", "test/error/parameter_no_default_1.sv"): ("must_reject",
+        "pinned .3.37 (removed from the 'instantiation binding ... the text is BNF-parseable' set): line 3 `parameter type X;` in a module body - IEEE 1800-2017 Annex A footnote 18 (docs/systemverilog/2017/md/section-41-data-read-api.md:3518-3520): the default may be omitted from a param_assignment / type_assignment ONLY within a parameter_port_list; the file's own name says it"),
+    ("sv2v", "test/error/parameter_no_default_2.sv"): ("must_reject",
+        "pinned .3.37 (removed from the 'instantiation binding ... the text is BNF-parseable' set): line 4 `parameter Y;` in a module body - IEEE 1800-2017 Annex A footnote 18 (docs/systemverilog/2017/md/section-41-data-read-api.md:3518-3520): the default may be omitted from a param_assignment / type_assignment ONLY within a parameter_port_list"),
+    ("sv2v", "test/error/parameter_no_default_3.sv"): ("must_reject",
+        "pinned .3.37 (removed from the 'instantiation binding ... the text is BNF-parseable' set): line 4 `parameter Y;` in a module body - IEEE 1800-2017 Annex A footnote 18 (docs/systemverilog/2017/md/section-41-data-read-api.md:3518-3520): the default may be omitted from a param_assignment / type_assignment ONLY within a parameter_port_list"),
+    ("verilator", "test_regress/t/t_var_rsvd.v"): ("must_reject",
+        "pinned .3.37: line 25 `reg  global;` - `global` is a reserved word (IEEE 1800-2017 Annex B Table B.1, docs/systemverilog/2017/md/section-41-data-read-api.md:3599-3858; 1800-2009+), "
+        "bound here as a variable name; the file is SystemVerilog (`typedef struct packed`), so the edition-keyword pass cannot certify it as "
+        "1364-2005 text and the ruling is by hand. Verilator's own comment says it tolerates reserved names 'when possible'; the LRM does not"),
     # ---- SV-CORPUS-GRAD.13y (PGEN-SV-CORPUS-GRAD-0364) ------------------------------------------
     # .13y (b): three rows that PASSED only through the footnote-6 mis-derivation the .3.35 grammar
     # closes (a leading statement read as an implicit-type declaration) and now stop where Annex A stops.
@@ -1364,12 +1431,13 @@ VERILATOR_PINNED = {
         "enum | struct | union | class | interface class "
         "(docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:803); IEEE 1800-2017 "
         "parameter_declaration ::= ... | parameter type list_of_type_assignments "
-        "(docs/systemverilog/2017/md/section-41-data-read-api.md:739-741) admits no forward_type. EDITION "
-        "CONTRAST: REJECTS at furthest_position=251 on sv_2017 and ACCEPTS on sv_2023 (measured on the "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:739-741) admits no forward_type. edition "
+        "contrast (WITHDRAWN by .3.37, see the closing sentence): REJECTS at furthest_position=251 on sv_2017 and ACCEPTS on sv_2023 (measured on the "
         "corpus file and on `module sub; parameter type enum E_t; endmodule`); the 2017 spelling "
         "`parameter type E_t = int;` ACCEPTS on sv_2017 (arms c2/c2c). On an sv_2023 lane this row would "
         "be must_accept (its golden is 6.20.3 prose about the override's type); no such lane exists yet "
-        "(SV-CORPUS-GRAD.14). Spec outranks the verilator driver key"),
+        "(SV-CORPUS-GRAD.14). Spec outranks the verilator driver key"
+        " ⛔ WITHDRAWN by SV-CORPUS-GRAD.3.37: the text omits the default in a BODY, which IEEE 1800-2023 Annex A footnote 22 (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3483-3484, the twin of 2017's footnote 18): the data_type may be omitted from a type_assignment ONLY within a parameter_port_list forbids - the row is must_reject in BOTH editions; the .13x.d control pin was corrected to carry a default"),
     # ---- SV-CORPUS-GRAD.14b (PGEN-SV-CORPUS-GRAD-0360) ------------------------------------------
     # The .14a sv_2017 x sv_2023 census: ten verilator rows the 2023 profile parses and the 2017
     # profile refuses, each an IEEE 1800-2023 construct with NO derivation in 1800-2017 Annex A -
@@ -1402,9 +1470,10 @@ VERILATOR_PINNED = {
         "(a passing test; SV-CORPUS-GRAD.14b.2). Spec outranks the verilator driver key, which records what verilator (a 2023 tool) tolerates"),
     "test_regress/t/t_param_type_fwd.v": ("must_reject",
         "pinned .14b: line 20 `parameter type enum E_t;`. IEEE 1800-2023 A.2.1.1 type_parameter_declaration ::= type [ forward_type ] list_of_type_assignments (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:721), forward_type (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:803); IEEE 1800-2017 parameter type list_of_type_assignments (docs/systemverilog/2017/md/section-41-data-read-api.md:739-741) admits no forward_type - the construct does not exist in the edition this lane judges. "
-        "EDITION CONTRAST (the .13k / .13x.d shape): REJECTS at furthest_position=378 on sv_2017 and ACCEPTS on sv_2023 - measured on the corpus file by the "
+        "edition contrast (WITHDRAWN by .3.37, see the closing sentence) (the .13k / .13x.d shape): REJECTS at furthest_position=378 on sv_2017 and ACCEPTS on sv_2023 - measured on the corpus file by the "
         "sv2023 lane itself (SV-CORPUS-GRAD.14a census, a 2023_only_pass row) and on the pins the .13x.d pins invalid_type_parameter_forward_type_sv2017.sv / control_type_parameter_forward_type_sv2023.sv (their worklist_rows is now 2: this row is the _bad twin's passing sibling). On the sv_2023 lane this row is must_accept "
-        "(a passing test; SV-CORPUS-GRAD.14b.2). Spec outranks the verilator driver key, which records what verilator (a 2023 tool) tolerates"),
+        "(a passing test; SV-CORPUS-GRAD.14b.2). Spec outranks the verilator driver key, which records what verilator (a 2023 tool) tolerates"
+        " ⛔ WITHDRAWN by SV-CORPUS-GRAD.3.37: the text omits the default in a BODY, which IEEE 1800-2023 Annex A footnote 22 (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3483-3484, the twin of 2017's footnote 18): the data_type may be omitted from a type_assignment ONLY within a parameter_port_list forbids - the row is must_reject in BOTH editions; the .13x.d control pin was corrected to carry a default"),
     "test_regress/t/t_string_sel.v": ("must_reject",
         "pinned .14b: line 35 `if (get_str()[1] != \"a\") $stop;`. IEEE 1800-2023 A.8.4 primary ::= ... | function_subroutine_call [ [ range_expression ] ] (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3079-3085); IEEE 1800-2017 A.8.4 primary ::= ... | function_subroutine_call (docs/systemverilog/2017/md/section-41-data-read-api.md:3122-3128) admits no range after a call - the construct does not exist in the edition this lane judges. "
         "EDITION CONTRAST (the .13k / .13x.d shape): REJECTS at furthest_position=651 on sv_2017 and ACCEPTS on sv_2023 - measured on the corpus file by the "
@@ -3793,9 +3862,10 @@ SV2V_ACCEPT_GROUPS = [
       "binding_not_found_param", "binding_not_found_port",
       "binding_overflow_class", "binding_overflow_param",
       "binding_overflow_port", "module_param_mismatch_expr",
-      "module_param_mismatch_type", "parameter_no_default_1",
-      "parameter_no_default_2", "parameter_no_default_3",
-      "interface_param_mismatch_expr", "interface_param_mismatch_type"},
+      # .3.37: module_param_mismatch_type, interface_param_mismatch_type and parameter_no_default_1/2/3
+      # LEFT this set - their text omits a body parameter's default, which Annex A footnote 18 forbids,
+      # so it is NOT BNF-parseable; they are pinned must_reject in EXTRA_PINNED with the cite.
+      "interface_param_mismatch_expr"},
      "instantiation binding/parameter resolution - elaboration semantics "
      "(IEEE 1800-2017 23.10/23.3.2 prose); the text is BNF-parseable"),
     ({"interface_bad_expr", "interface_bad_expr_arr",
@@ -4142,6 +4212,165 @@ def store_gate_pass(lane, manifest, resolve, report, cache, jobs, *, measurer=No
     return out
 
 
+
+# ---- SV-CORPUS-GRAD.3.37: the EDITION-KEYWORD pass ---------------------------------------------
+# A Verilog-2005 test that names a variable `var`, `global`, `local` or `new` is legal 1364-2005 and
+# NOT SystemVerilog: IEEE 1800-2017 Annex B reserves every one of those words (Table B.1, 248 words;
+# 1800-2023 the same), IEEE 1364-2005 Annex B (124) does not. Until release 1.0.211 the grammar's
+# reserved set held 173 of the 248, so such files PASSED on the sv lanes and their must_accept keys
+# (a Verilog tool's testimony) read as confirmed. With the set derived from Annex B they REJECT, and
+# the key is what was wrong. This pass corrects it PER ROW, BY PARSING: the sv parse must stop ON the
+# keyword (comments and strings blanked, layout skipped), and the verilog_2005 profile must ACCEPT the
+# same bytes. The second condition is the guard against a grammar hole hiding here — `d = null;`
+# stops on `null` too, and no 1364-2005 parse accepts a class handle.
+_KW_MODULE = None
+EDITION_BASIS_TAG = "EDITION-KEYWORD (SV-CORPUS-GRAD.3.37)"
+
+
+def _kw():
+    """`stimuli/sv/check_sv_reserved_keywords.py`, imported by path — the Annex B tables are DERIVED
+    from the in-repo LRM text there, never copied here."""
+    global _KW_MODULE
+    if _KW_MODULE is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "pgen_check_sv_reserved_keywords", Path(__file__).resolve().parent / "check_sv_reserved_keywords.py")
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules["pgen_check_sv_reserved_keywords"] = mod
+        spec.loader.exec_module(mod)
+        _KW_MODULE = mod
+    return _KW_MODULE
+
+
+def keywords_1800_only():
+    kw = _kw()
+    k17 = set(kw.table("1800-2017"))
+    return k17 - set(kw.table("1364-2005", reference=k17))
+
+
+_IDENT_RE = re.compile(r"[A-Za-z_$][A-Za-z0-9_$]*")
+
+
+def stuck_token(text: str, furthest):
+    """The identifier-shaped token the parse stopped ON, and its byte offset — comments and strings
+    blanked, the layout gap after `furthest` skipped (a-furthest-position-names-a-region-not-a-token)."""
+    if furthest is None:
+        return None, None
+    stripped = blank_comments_and_strings(text)
+    i = min(furthest, len(stripped))
+    while i < len(stripped) and stripped[i].isspace():
+        i += 1
+    m = _IDENT_RE.match(stripped, i)
+    return (m.group(0), i) if m else (None, i)
+
+
+def edition_keyword_pass(lane, manifest, resolve, positions, *, measurer=None):
+    """SV-CORPUS-GRAD.3.37. Every `divergence:unexplained_rejects_valid` row keyed must_accept is a
+    candidate; the row is re-keyed must_reject (=> `match`) iff the sv parse stops ON an 1800-only
+    keyword AND the verilog_2005 profile accepts the bytes (measured here). Every other row is
+    byte-identical on the way out; the basis carries the byte, the line, the word and both cites."""
+    only = keywords_1800_only()
+    if measurer is None:
+        def measurer(raw):
+            sg = _sg()
+            m = sg.machinery()
+            saved = m.PROFILE
+            m.PROFILE = "verilog_2005"
+            try:
+                ok, _surface, _furthest, _trace = m.probe_text(raw, trace=False)
+            finally:
+                m.PROFILE = saved
+            return bool(ok)
+    out = []
+    ruled = 0
+    for suite, rel, observed, expected, verdict, basis in manifest:
+        if verdict == "divergence:unexplained_rejects_valid" and expected == "must_accept":
+            text = read_text(resolve(suite, rel))
+            tok, at = stuck_token(text, positions.get((suite, rel)))
+            # A keyword-version directive (22.14) makes the reserved set DIRECTIVE-CONTROLLED: with
+            # `begin_keywords "1364-2005"` honoured the text IS legal SystemVerilog, and the parser's
+            # inability to honour it is its own feature gap (the parked ispras 22.14.01_04 row), not a
+            # wrong key - such a row stays in the bar. Measured 2026-09-04: 3 of the first 5 rulings were this.
+            # ⛔ ONE condition, no `continue`: every row must reach `out.append` below (the self-test's
+            # byte-identical arms are what caught a `continue` that dropped non-candidates from the manifest).
+            if (tok in only and "`begin_keywords" not in blank_comments_and_strings(text)
+                    and measurer(text)):
+                line = text.count("\n", 0, at) + 1
+                expected, verdict, ruled = "must_reject", "match", ruled + 1
+                basis = (f"{EDITION_BASIS_TAG}: the {lane} parse stops at byte {at} (line {line}) ON `{tok}`, a word "
+                         "IEEE 1800-2017 Annex B Table B.1 reserves (docs/systemverilog/2017/md/section-41-data-read-api.md:3599-3858; "
+                         "1800-2023 Annex B the same 248) and IEEE 1364-2005 Annex B does not "
+                         "(docs/verilog/2005/md/section-Annex_B-normative-list-of-keywords.md) - the text binds it as an identifier, "
+                         "so it is not SystemVerilog; the verilog_2005 profile ACCEPTS these bytes (measured here, by parsing), which is "
+                         "the reading the suite's key records - a Verilog tool's testimony. Spec outranks tool. Original key: must_accept - "
+                         + basis)
+        out.append((suite, rel, observed, expected, verdict, basis))
+    print(f"edition-keyword pass [{lane}]: {ruled} row(s) re-keyed must_reject (parse stopped ON an 1800-only keyword; verilog_2005 accepts)",
+          file=sys.stderr)
+    return out
+
+
+def _self_test_edition_keyword() -> int:
+    """SV-CORPUS-GRAD.3.37 arms: the pass re-keys ONLY a row that stops ON an 1800-only keyword AND
+    that the fake verilog_2005 measurer accepts; a keyword stop the measurer refuses (`null` in a
+    class file), a non-keyword stop, and a non-candidate verdict all pass through byte-identical."""
+    import tempfile
+    fails = []
+    calls = []
+
+    def check(name, cond):
+        print(f"  {'PASS' if cond else 'FAIL'}  edition-keyword: {name}")
+        if not cond:
+            fails.append(name)
+
+    only = keywords_1800_only()
+    check("derived set holds var/global/local/new/null and not always/reg/automatic",
+          {"var", "global", "local", "new", "null"} <= only and not ({"always", "reg", "automatic"} & only))
+    with tempfile.TemporaryDirectory(dir=str(Path(__file__).resolve().parent.parent.parent / "rust/target")) as td:
+        d = Path(td)
+        (d / "s").mkdir()
+        bodies = {"a.v": "module a;\nreg var; // var is a name here\nendmodule\n",
+                  "b.sv": "class C; endclass\nmodule b; C d; initial d = null; endmodule\n",
+                  "c.v": "module c;\nreg x;\nendmodule\n",
+                  "e.v": "module e;\nreg global;\nendmodule\n",
+                  "f.v": "module f; endmodule\n"}
+        for name, body in bodies.items():
+            (d / "s" / name).write_text(body)
+        positions = {("s", "a.v"): bodies["a.v"].index("var"), ("s", "b.sv"): bodies["b.sv"].index("null"),
+                     ("s", "c.v"): bodies["c.v"].index("x;"), ("s", "e.v"): bodies["e.v"].index("global")}
+        bodies["g.v"] = "`begin_keywords \"1364-2005\"\nmodule g;\nreg var;\nendmodule\n`end_keywords\n"
+        (d / "s" / "g.v").write_text(bodies["g.v"]); positions[("s", "g.v")] = bodies["g.v"].index("var;")
+        manifest = [
+            ("s", "a.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key a"),
+            ("s", "b.sv", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key b"),
+            ("s", "c.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key c"),
+            ("s", "e.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key e"),
+            ("s", "f.v", "pass", "must_accept", "match", "key f"),
+            ("s", "g.v", "fail", "must_accept", "divergence:unexplained_rejects_valid", "key g"),
+        ]
+
+        def measurer(raw):
+            calls.append(raw)
+            return "module a;" in raw or "module g;" in raw   # a.v and g.v are "legal 1364-2005" to the fake
+
+        out = edition_keyword_pass("sv_2017", manifest, lambda s_, r_: d / s_ / r_, positions, measurer=measurer)
+        by = {(r[0], r[1]): r for r in out}
+        a = by[("s", "a.v")]
+        check("a.v (stops ON var, measurer accepts) is re-keyed must_reject and matches",
+              a[3] == "must_reject" and a[4] == "match" and a[5].startswith(EDITION_BASIS_TAG)
+              and "`var`" in a[5] and "line 2" in a[5] and a[5].endswith("key a"))
+        check("b.sv (stops ON null, measurer refuses) is byte-identical", by[("s", "b.sv")] == manifest[1])
+        check("c.v (stops on a non-keyword) is byte-identical and never measured",
+              by[("s", "c.v")] == manifest[2] and not any("module c;" in c for c in calls))
+        check("e.v (stops ON global, measurer refuses) is byte-identical", by[("s", "e.v")] == manifest[3])
+        check("f.v (a match) is byte-identical and never measured",
+              by[("s", "f.v")] == manifest[4] and not any("module f;" in c for c in calls))
+        check("g.v (stops ON var but carries `begin_keywords) is byte-identical and never measured",
+              by[("s", "g.v")] == manifest[5] and not any("module g;" in c for c in calls))
+        check("the measurer ran exactly for the keyword stops without a keyword-version directive", len(calls) == 3)
+    print(f"edition-keyword self-test: {'PASS' if not fails else 'FAIL'} ({len(fails)} failing)")
+    return 1 if fails else 0
+
 def _self_test_store_gate() -> int:
     """SV-CORPUS-GRAD.13w arms: the post-pass reclassifies ONLY the rows the search explains,
     leaves every other verdict byte-identical, and writes the proof into the basis. A fake
@@ -4425,10 +4654,11 @@ SV2023_KEY_OVERRIDES[("verilator", "test_regress/t/t_class_override_bad.v")] = (
     f"dynamic_override_specifiers ({_A23}:1210-1217); its golden names 8.20 prose (no base method to extend) - SEMANTIC. The .13x.d "
     "entry recorded this: on an sv_2023 lane this row is must_accept. ACCEPTS under sv_2023 (the .14a census).")
 SV2023_KEY_OVERRIDES[("verilator", "test_regress/t/t_param_type_fwd_bad.v")] = (
-    "must_accept",
-    f"sv_2023 lane (.14b.2): `parameter type enum E_t;` IS derivable in the edition this lane judges - {_TP23}; its golden is 6.20.3 "
-    "prose about the override's type - SEMANTIC. The .13x.d entry recorded this: on an sv_2023 lane this row is must_accept. "
-    "ACCEPTS under sv_2023 (the .14a census).")
+    "must_reject",
+    f"sv_2023 lane (.3.37, CORRECTING .14b.2): `parameter type enum E_t;` in a module body - the forward type IS 1800-2023 syntax ({_TP23}) but the default is omitted outside a parameter_port_list, which IEEE 1800-2023 Annex A footnote 22 (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3483-3484, the twin of 2017's footnote 18): the data_type may be omitted from a type_assignment ONLY within a parameter_port_list forbids. REJECTS under sv_2023 on 1.0.211 (the .14a census).")
+SV2023_KEY_OVERRIDES[("verilator", "test_regress/t/t_param_type_fwd.v")] = (
+    "must_reject",
+    f"sv_2023 lane (.3.37, CORRECTING .14b): line 20 `parameter type enum E_t;` in a module body - the forward type IS 1800-2023 syntax ({_TP23}) but the default is omitted outside a parameter_port_list, which IEEE 1800-2023 Annex A footnote 22 (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3483-3484, the twin of 2017's footnote 18): the data_type may be omitted from a type_assignment ONLY within a parameter_port_list forbids. REJECTS under sv_2023 on 1.0.211 (the .14a census).")
 REREAD_OWED = "its 1800-2023 re-read is owed (.14b.3)"
 PARITY_TSV = Path(__file__).resolve().parent.parent.parent / "docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/parity.tsv"
 _PARITY = None
@@ -4577,7 +4807,8 @@ def main():
 
     if args.self_test:
         return (_self_test_extension_guard(args.subs_root / "iverilog" / "ivtest")
-                | _self_test_store_gate())
+                | _self_test_store_gate()
+                | _self_test_edition_keyword())
 
     verify_outcome_identity(args.report, [args.results, args.positions],
                             rerun="stimuli/run_external_corpus.sh sv")
@@ -4622,6 +4853,7 @@ def main():
         text = read_text(resolve(suite, rel))
         expected, basis = key_2017(suite, rel, text, vidx, ividx, sidx)
         manifest.append(finish_row(suite, rel, observed, text, expected, basis, positions))
+    manifest = edition_keyword_pass("sv_2017", manifest, resolve, positions)
 
     store_gate_cache = _sg().load_cache(args.store_gate_cache)
     manifest = store_gate_pass("sv_2017", manifest, resolve_corpus_path(args), args.report,
@@ -4721,6 +4953,7 @@ def main():
             e17, b17 = key_2017(suite, rel, text, vidx, ividx, sidx)
             e23, b23 = key_2023(suite, rel, e17, b17)
             manifest23.append(finish_row(suite, rel, observed, text, e23, b23, positions23))
+        manifest23 = edition_keyword_pass("sv_2023", manifest23, resolve, positions23)
         manifest23 = store_gate_pass("sv_2023", manifest23, resolve, args.report_sv2023,
                                      store_gate_cache, args.store_gate_jobs)
         _sg().save_cache(args.store_gate_cache, store_gate_cache)

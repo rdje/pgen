@@ -137,7 +137,7 @@ def main() -> int:
               "## The census", "",
               f"`PRODUCTION-PARITY: rows={n_rows} all_cited_identical={n_all_ident} some_differs={n_diff} some_missing={n_missing} no_production_named={n_nocite} productions={len(per_name)}`", "",
               "| production | verdict |", "|---|---|"] + [f"| `{n}` | {v} |" for n, v in sorted(per_name.items()) if v != "IDENTICAL"] + ["",
-              "| suite | relpath | verdict | productions |", "|---|---|---|---|"] + [f"| `{l.split(chr(9))[0]}` | `{l.split(chr(9))[1]}` | {l.split(chr(9))[2]} | `{l.split(chr(9))[3]}` |" for l in tsv[1:]] + [""]
+              "| suite | relpath | verdict | productions |", "|---|---|---|---|"] + [f"| `{l.split(chr(9))[0]}` | `{l.split(chr(9))[1]}` | {l.split(chr(9))[2]} | {md_code(l.split(chr(9))[3])} |" for l in tsv[1:]] + [""]
         out_tsv, out_md = Path(__file__).resolve().parent / "parity.tsv", Path(__file__).resolve().parent / "parity.md"
         new_tsv, new_md = "\n".join(tsv) + "\n", "\n".join(md)
         if "--check" in sys.argv:
@@ -154,6 +154,20 @@ def main() -> int:
                 while i < min(len(a), len(b)) and a[i] == b[i]: i += 1
                 print(f"\n== {name} (first difference at token {i} of {len(a)}/{len(b)})\n 2017: …{' '.join(a[max(0, i - 6):i + 14])}\n 2023: …{' '.join(b[max(0, i - 6):i + 14])}")
     return 0
+
+
+def md_code(s: str) -> str:
+    """A GFM code span that RENDERS for any content (TABLE-ARITY-RATCHET, SV-CORPUS-GRAD.3.37):
+    an empty value is a dash — a bare `` `` `` is an unpaired run that eats the next cell — and a
+    value that itself contains backticks (a stuck token that IS a directive tick, `; ` ID`) takes a
+    delimiter run one longer than its longest internal run, padded so a leading or trailing
+    backtick cannot fuse with the delimiter."""
+    if not s:
+        return "—"
+    longest = max((len(m) for m in __import__("re").findall(r"`+", s)), default=0)
+    fence = "`" * (longest + 1)
+    pad = " " if (s.startswith("`") or s.endswith("`") or longest) else ""
+    return f"{fence}{pad}{s}{pad}{fence}"
 
 
 if __name__ == "__main__":

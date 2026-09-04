@@ -232,7 +232,7 @@ parseable_source_item := semi
 @priority: [24, 16, 16, 12, 10, 8, 4]
 @profiles: ["sv_2017", "sv_2023"]
 source_text_item_unit_sv_only := local_parameter_declaration semi -> {kind: "local_parameter_declaration", body: $1}
-                               | parameter_declaration semi       -> {kind: "parameter_declaration", body: $1}
+                               | parameter_declaration_with_default semi       -> {kind: "parameter_declaration", body: $1}
 
 source_text_item := description                       -> {kind: "description", body: $1}
                   | source_text_item_unit_sv_only
@@ -533,7 +533,13 @@ escaped_identifier := trivia /\\[!-~]+/
                    -> $2
 
 @profiles: ["sv_2017", "sv_2023"]
-reserved_non_keyword_identifier_sv := trivia /(?:parameter|localparam|type|context|pure|import|export|typedef|module|package|interface|program|class|checker|function|task|property|sequence|generate|modport|clocking|enum|struct|union|bit|logic|reg|byte|shortint|int|longint|integer|time|shortreal|real|realtime|ref|string|chandle|event|signed|unsigned|void|endchecker|endclass|endfunction|endinterface|endmodule|endpackage|endprogram|endproperty|endsequence|endtask|begin|end|if|else|case|casez|casex|endcase|for|foreach|forever|repeat|while|do|wait|wait_order|disable|return|break|continue|fork|join|join_any|join_none|assert|assume|expect|randcase|randsequence|always|and|assign|automatic|buf|bufif0|bufif1|cell|cmos|config|deassign|default|defparam|design|edge|endconfig|endgenerate|endprimitive|endspecify|endtable|force|genvar|highz0|highz1|ifnone|incdir|include|initial|inout|input|instance|large|liblist|library|macromodule|medium|nand|negedge|nmos|nor|noshowcancelled|not|notif0|notif1|or|output|pmos|posedge|primitive|pull0|pull1|pulldown|pullup|pulsestyle_onevent|pulsestyle_ondetect|rcmos|release|rnmos|rpmos|rtran|rtranif0|rtranif1|scalared|showcancelled|small|specify|specparam|strong0|strong1|supply0|supply1|table|tran|tranif0|tranif1|tri|tri0|tri1|triand|trior|trireg|use|uwire|vectored|wand|weak0|weak1|wire|wor|xnor|xor)\b/
+# SV-CORPUS-GRAD.3.37 — the SV reserved set IS IEEE 1800-2017 Annex B Table B.1 (248 words,
+# docs/systemverilog/2017/md/section-41-data-read-api.md:3599-3858; 1800-2023 Annex B lists the SAME
+# 248, docs/systemverilog/2023/md/section-Annex_B-normative-keywords.md), derived from the table, not
+# typed by hand: the previous list held 173 of them, so `reg global;`, `i.super.i = 1;`, `function new;
+# input x;` (an ordinary function NAMED new) and `var final;` all parsed with the keyword bound as an
+# identifier (.13z census: `identifier_consumed`). Regenerate with stimuli/sv/check_sv_reserved_keywords.py.
+reserved_non_keyword_identifier_sv := trivia /(?:accept_on|alias|always|always_comb|always_ff|always_latch|and|assert|assign|assume|automatic|before|begin|bind|bins|binsof|bit|break|buf|bufif0|bufif1|byte|case|casex|casez|cell|chandle|checker|class|clocking|cmos|config|const|constraint|context|continue|cover|covergroup|coverpoint|cross|deassign|default|defparam|design|disable|dist|do|edge|else|end|endcase|endchecker|endclass|endclocking|endconfig|endfunction|endgenerate|endgroup|endinterface|endmodule|endpackage|endprimitive|endprogram|endproperty|endsequence|endspecify|endtable|endtask|enum|event|eventually|expect|export|extends|extern|final|first_match|for|force|foreach|forever|fork|forkjoin|function|generate|genvar|global|highz0|highz1|if|iff|ifnone|ignore_bins|illegal_bins|implements|implies|import|incdir|include|initial|inout|input|inside|instance|int|integer|interconnect|interface|intersect|join|join_any|join_none|large|let|liblist|library|local|localparam|logic|longint|macromodule|matches|medium|modport|module|nand|negedge|nettype|new|nexttime|nmos|nor|noshowcancelled|not|notif0|notif1|null|or|output|package|packed|parameter|pmos|posedge|primitive|priority|program|property|protected|pull0|pull1|pulldown|pullup|pulsestyle_ondetect|pulsestyle_onevent|pure|rand|randc|randcase|randsequence|rcmos|real|realtime|ref|reg|reject_on|release|repeat|restrict|return|rnmos|rpmos|rtran|rtranif0|rtranif1|s_always|s_eventually|s_nexttime|s_until|s_until_with|scalared|sequence|shortint|shortreal|showcancelled|signed|small|soft|solve|specify|specparam|static|string|strong|strong0|strong1|struct|super|supply0|supply1|sync_accept_on|sync_reject_on|table|tagged|task|this|throughout|time|timeprecision|timeunit|tran|tranif0|tranif1|tri|tri0|tri1|triand|trior|trireg|type|typedef|union|unique|unique0|unsigned|until|until_with|untyped|use|uwire|var|vectored|virtual|void|wait|wait_order|wand|weak|weak0|weak1|while|wildcard|wire|with|within|wor|xnor|xor)\b/
 
 @profiles: ["verilog_2005"]
 reserved_non_keyword_identifier_v2005 := trivia /(?:always|and|assign|automatic|begin|buf|bufif0|bufif1|case|casex|casez|cell|cmos|config|deassign|default|defparam|design|disable|edge|else|end|endcase|endconfig|endfunction|endgenerate|endmodule|endprimitive|endspecify|endtable|endtask|event|for|force|forever|fork|function|generate|genvar|highz0|highz1|if|ifnone|incdir|include|initial|inout|input|instance|integer|join|large|liblist|library|localparam|macromodule|medium|module|nand|negedge|nmos|nor|noshowcancelled|not|notif0|notif1|or|output|parameter|pmos|posedge|primitive|pull0|pull1|pulldown|pullup|pulsestyle_onevent|pulsestyle_ondetect|rcmos|real|realtime|reg|release|repeat|rnmos|rpmos|rtran|rtranif0|rtranif1|scalared|showcancelled|signed|small|specify|specparam|strong0|strong1|supply0|supply1|table|task|time|tran|tranif0|tranif1|tri|tri0|tri1|triand|trior|trireg|unsigned|use|uwire|vectored|wait|wand|weak0|weak1|while|wire|wor|xnor|xor)\b/
@@ -1007,7 +1013,7 @@ block_item_declaration := attribute_instance* block_data_declaration
                                     -> {kind: "block_data",        attributes: $1, body: $2}
                         | attribute_instance* local_parameter_declaration semi
                                     -> {kind: "local_parameter",   attributes: $1, body: $2}
-                        | attribute_instance* parameter_declaration semi
+                        | attribute_instance* parameter_declaration_with_default semi
                                     -> {kind: "parameter",         attributes: $1, body: $2}
                         | attribute_instance* let_declaration
                                     -> {kind: "let",               attributes: $1, body: $2}
@@ -1336,7 +1342,7 @@ class_item_sv_2017 := attribute_instance* class_property              -> {kind: 
                     | attribute_instance* interface_class_declaration -> {kind: "interface_class",  attributes: $1, body: $2}
                     | attribute_instance* covergroup_declaration      -> {kind: "covergroup",       attributes: $1, body: $2}
                     | local_parameter_declaration semi                -> {kind: "local_parameter",  body: $1}
-                    | parameter_declaration semi                      -> {kind: "parameter",        body: $1}
+                    | parameter_declaration_with_default semi                      -> {kind: "parameter",        body: $1}
                     | semi                                            -> {kind: "semi"}
 
 @profiles: ["sv_2023"]
@@ -1347,7 +1353,7 @@ class_item_sv_2023 := attribute_instance* class_property              -> {kind: 
                     | attribute_instance* interface_class_declaration -> {kind: "interface_class",  attributes: $1, body: $2}
                     | attribute_instance* covergroup_declaration      -> {kind: "covergroup",       attributes: $1, body: $2}
                     | local_parameter_declaration semi                -> {kind: "local_parameter",  body: $1}
-                    | parameter_declaration semi                      -> {kind: "parameter",        body: $1}
+                    | parameter_declaration_with_default semi                      -> {kind: "parameter",        body: $1}
                     | semi                                            -> {kind: "semi"}
 
 # SV-CORPUS-GRAD.3.14b — the LAST alternative below is the class-body host of the
@@ -2120,9 +2126,9 @@ cycle_delay_range := kw_token_93ac8946 constant_primary
                             -> {kind: "plus"}
 
 @profiles: ["sv_2017", "verilog_2005"]
-data_declaration_sv_2017 := ( const_qualifier_sv_only )? ( var_qualifier_sv_only )? ( declaration_lifetime_sv_only )? data_type_or_implicit_explicit list_of_variable_decl_assignments semi
+data_declaration_sv_2017 := ( const_qualifier_sv_only )? ( var_qualifier_sv_only )? ( static_lifetime_sv_only )? data_type_or_implicit_explicit list_of_variable_decl_assignments semi
                                 -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
-                         | ( const_qualifier_sv_only )? var_qualifier_sv_only ( declaration_lifetime_sv_only )? data_type_or_implicit_implicit list_of_variable_decl_assignments semi
+                         | ( const_qualifier_sv_only )? var_qualifier_sv_only ( static_lifetime_sv_only )? data_type_or_implicit_implicit list_of_variable_decl_assignments semi
                                 -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
                          | type_declaration
                                 -> {kind: "type",                  body: $1}
@@ -2132,9 +2138,9 @@ data_declaration_sv_2017 := ( const_qualifier_sv_only )? ( var_qualifier_sv_only
                                 -> {kind: "net_type",              body: $1}
 
 @profiles: ["sv_2023"]
-data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? data_type_or_implicit_explicit list_of_variable_decl_assignments semi
+data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( static_lifetime_sv_only )? data_type_or_implicit_explicit list_of_variable_decl_assignments semi
                                 -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
-                         | ( kw_const_b42f3f6f )? kw_var_e5b4e786 ( lifetime )? data_type_or_implicit_implicit list_of_variable_decl_assignments semi
+                         | ( kw_const_b42f3f6f )? kw_var_e5b4e786 ( static_lifetime_sv_only )? data_type_or_implicit_implicit list_of_variable_decl_assignments semi
                                 -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
                          | type_declaration
                                 -> {kind: "type",                  body: $1}
@@ -2361,6 +2367,15 @@ data_type_or_void := data_type                 -> {kind: "data_type", body: $1}
 # sites — the `.13e.4` idiom, and for the same reason.
 @profiles: ["sv_2017", "sv_2023"]
 declaration_lifetime_sv_only := lifetime
+
+# SV-CORPUS-GRAD.3.37 — IEEE 1800-2017 Annex A footnote 10 (docs/systemverilog/2017/md/section-41-data-read-api.md:3503-3505):
+# "In a data_declaration that is not within a procedural context, it shall be illegal to use the automatic
+# keyword." `data_declaration` is reached from module / package / interface / program / checker items and
+# class properties — none procedural — so its optional lifetime admits `static` ONLY; `rs_data_declaration`
+# (the randsequence code block, A.6.12, a statement) keeps the full `lifetime`, and block_item_declaration
+# already had its own procedural twin. Same `{kind: "static"}` node, so a legal tree does not move.
+@profiles: ["sv_2017", "sv_2023"]
+static_lifetime_sv_only := kw_static_a381562a -> {kind: "static"}
 
 default_clause := kw_default_7505d64a
                -> {kind: "default"}
@@ -3278,7 +3293,7 @@ interface_class_declaration := kw_interface_5ea2d81a kw_class_8d767bf5 declared_
 interface_class_item := type_declaration                            -> {kind: "type_declaration",        body: $1}
                       | attribute_instance* interface_class_method  -> {kind: "method",                  attributes: $1, body: $2}
                       | local_parameter_declaration semi            -> {kind: "local_parameter",         body: $1}
-                      | parameter_declaration semi                  -> {kind: "parameter",               body: $1}
+                      | parameter_declaration_with_default semi                  -> {kind: "parameter",               body: $1}
                       | semi                                        -> {kind: "semi"}
 
 @profiles: ["sv_2017", "sv_2023"]
@@ -4714,7 +4729,7 @@ package_item := package_or_generate_item_declaration -> {kind: "declaration",   
 # Parser-AGNOSTIC level 0.
 @branch_policy: priority_first
 package_or_generate_item_declaration_sv_2017 := local_parameter_declaration semi  -> {kind: "local_parameter_declaration",  body: $1}
-                                              | parameter_declaration semi        -> {kind: "parameter_declaration",        body: $1}
+                                              | parameter_declaration_with_default semi        -> {kind: "parameter_declaration",        body: $1}
                                               | net_declaration                   -> {kind: "net_declaration",              body: $1}
                                               | dpi_import_export                 -> {kind: "dpi_import_export",            body: $1}
                                               | data_declaration                  -> {kind: "data_declaration",             body: $1}
@@ -4732,7 +4747,7 @@ package_or_generate_item_declaration_sv_2017 := local_parameter_declaration semi
 @branch_policy: priority_first
 @profiles: ["sv_2023"]
 package_or_generate_item_declaration_sv_2023 := local_parameter_declaration semi   -> {kind: "local_parameter_declaration",   body: $1}
-                                              | parameter_declaration semi         -> {kind: "parameter_declaration",         body: $1}
+                                              | parameter_declaration_with_default semi         -> {kind: "parameter_declaration",         body: $1}
                                               | net_declaration                    -> {kind: "net_declaration",               body: $1}
                                               | dpi_import_export                  -> {kind: "dpi_import_export",             body: $1}
                                               | data_declaration                   -> {kind: "data_declaration",              body: $1}
@@ -4831,6 +4846,33 @@ parameter_declaration_sv_2023 := kw_parameter_b75381f0 list_of_param_assignments
 
 parameter_declaration := parameter_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
                        | parameter_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
+
+# SV-CORPUS-GRAD.3.37 — IEEE 1800-2017 Annex A footnote 18 (docs/systemverilog/2017/md/section-41-data-read-api.md:3518-3520):
+# a param_assignment may omit its constant_param_expression, and a type_assignment its data_type, ONLY within a
+# parameter_port_list. `.3.35` closed the localparam half; this is the `parameter` half for every BODY site —
+# $unit, block, class, interface class, package / generate items — while the two parameter_port_declaration
+# rules keep `parameter_declaration` (defaults optional). 1364-2005 A.2.1.1 requires the default everywhere.
+# Same `with_default` item kind as `param_assignment`, so a legal tree does not move.
+@branch_policy: priority_first
+@profiles: ["sv_2017", "verilog_2005"]
+parameter_declaration_with_default_sv_2017 := kw_parameter_b75381f0 list_of_param_assignments_with_default
+                                        -> {kind: "implicit", items: $2}
+                               | kw_parameter_b75381f0 data_type_or_implicit list_of_param_assignments_with_default
+                                        -> {kind: "typed",    data_type: $2, items: $3}
+                               | kw_parameter_b75381f0 kw_type_d0a3e7f8 list_of_type_assignments_with_default
+                                        -> {kind: "type",     items: $3}
+
+@branch_policy: priority_first
+@profiles: ["sv_2023"]
+parameter_declaration_with_default_sv_2023 := kw_parameter_b75381f0 list_of_param_assignments_with_default
+                                        -> {kind: "implicit",       items: $2}
+                               | kw_parameter_b75381f0 data_type_or_implicit list_of_param_assignments_with_default
+                                        -> {kind: "typed",          data_type: $2, items: $3}
+                               | kw_parameter_b75381f0 type_parameter_declaration_with_default
+                                        -> {kind: "type_parameter", body: $2}
+
+parameter_declaration_with_default := parameter_declaration_with_default_sv_2017 -> {kind: "sv_2017", body: $1}
+                                    | parameter_declaration_with_default_sv_2023 -> {kind: "sv_2023", body: $1}
 
 parameter_identifier := non_keyword_identifier
 
@@ -5062,6 +5104,9 @@ port_reference := port_identifier constant_select
                -> {name: $1, select: $2}
 
 @profiles: ["sv_2017", "verilog_2005"]
+# SV-CORPUS-GRAD.3.37 — A.8.4 primary ::= ... | this | $ | null. `null` had no alternative here and parsed only
+# because the identifier rule admitted it; reserving Annex B made `d = null;` / `d == null` REJECT until this
+# positive production (the same `{kind: "null"}` node constant_primary already builds) was added.
 primary_sv_2017 := @probe_sample: "1" primary_literal
                         -> {kind: "literal",            body: $1}
                  | call_primary
@@ -5088,6 +5133,8 @@ primary_sv_2017 := @probe_sample: "1" primary_literal
                         -> {kind: "sequence_method",    body: $1}
                  | @probe_sample: "this" kw_this_c2543fff
                         -> {kind: "this"}
+                 | @probe_sample: "null" kw_null_2be88ca4
+                        -> {kind: "null"}
                  | primary_dollar_sv_only
                  | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( instance_or_class_scope )?
                         -> {kind: "null_class_assign",  local_n: $5, scope: $6}
@@ -5135,6 +5182,13 @@ primary_hier_scope_prefix := kw_class_qualifier_fa08937d -> {kind: "class_qualif
                            # predicate so this branch only fires for known class names —
                            # safe to add as a sibling to `non_typedef_package_scope`.
                            | class_scope                  -> {kind: "class_scope",     body: $1}
+                           # SV-CORPUS-GRAD.3.37 — the `[ local :: ]` half of A.8.4's class_qualifier
+                           # (docs/systemverilog/2017/md/section-41-data-read-api.md:3140, footnote 43): `x < local::x`
+                           # inside `randomize() with { … }` (the LRM's own §18.7.1 example) had NO production and
+                           # parsed only because `local` was an admissible identifier (a package name). Reserving
+                           # Annex B made it REJECT; this is the positive production it always needed.
+                           | @probe_sample: "local::" kw_local_939bb46a scope_resolution ( instance_or_class_scope )?
+                                                         -> {kind: "local_qualifier", scope: $3}
 
 instance_or_class_scope := implicit_class_handle dot -> {kind: "instance",    handle: $1}
                          | class_scope               -> {kind: "class_scope", body: $1}
@@ -5166,6 +5220,8 @@ primary_sv_2023 := primary_literal
                         -> {kind: "sequence_method",    body: $1}
                  | kw_this_c2543fff
                         -> {kind: "this"}
+                 | kw_null_2be88ca4
+                        -> {kind: "null"}
                  | kw_sv_dollar_04da59ec
                         -> {kind: "system_dollar"}
                  | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? ( instance_or_class_scope )?
@@ -5744,7 +5800,28 @@ rs_case_item_sv_2023 := case_item_expression ( comma case_item_expression )* col
 rs_case_item := rs_case_item_sv_2017 -> {kind: "sv_2017", body: $1}
               | rs_case_item_sv_2023 -> {kind: "sv_2023", body: $1}
 
-rs_code_block := lbrace ( data_declaration* statement_or_null* ) rbrace
+# SV-CORPUS-GRAD.3.37 — A.6.12 `rs_code_block ::= { { data_declaration } { statement_or_null } }` sits inside a
+# statement, so footnote 10's `automatic` ban does NOT apply here: this twin keeps the full `lifetime` and
+# falls through to `data_declaration_*` for the type / import / nettype arms. Same node templates as
+# `data_declaration`, so the tree of every legal input is byte-identical to before.
+@profiles: ["sv_2017", "verilog_2005"]
+rs_data_declaration_sv_2017 := ( const_qualifier_sv_only )? ( var_qualifier_sv_only )? ( declaration_lifetime_sv_only )? data_type_or_implicit_explicit list_of_variable_decl_assignments semi
+                                   -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
+                            | ( const_qualifier_sv_only )? var_qualifier_sv_only ( declaration_lifetime_sv_only )? data_type_or_implicit_implicit list_of_variable_decl_assignments semi
+                                   -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
+                            | data_declaration_sv_2017
+
+@profiles: ["sv_2023"]
+rs_data_declaration_sv_2023 := ( kw_const_b42f3f6f )? ( kw_var_e5b4e786 )? ( lifetime )? data_type_or_implicit_explicit list_of_variable_decl_assignments semi
+                                   -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
+                            | ( kw_const_b42f3f6f )? kw_var_e5b4e786 ( lifetime )? data_type_or_implicit_implicit list_of_variable_decl_assignments semi
+                                   -> {kind: "variable_decl",        const_keyword: $1, var_keyword: $2, lifetime: $3, data_type: $4, assignments: $5}
+                            | data_declaration_sv_2023
+
+rs_data_declaration := rs_data_declaration_sv_2017 -> {kind: "sv_2017", body: $1}
+                     | rs_data_declaration_sv_2023 -> {kind: "sv_2023", body: $1}
+
+rs_code_block := lbrace ( rs_data_declaration* statement_or_null* ) rbrace
               -> {body: $2}
 
 @profiles: ["sv_2017"]

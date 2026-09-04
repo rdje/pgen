@@ -1,5 +1,49 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-04 - PGEN-SV-CORPUS-GRAD-0366 (a keyword the identifier rule does not refuse IS an identifier; derive the reserved set; reserving a word moves legal text onto the productions that name it)
+
+- ⭐⭐ **THE LESSON: THE RESERVED-WORD LIST IS THE ONE PLACE A KEYWORD IS REFUSED AS AN IDENTIFIER, AND NOTHING DOWNSTREAM CAN SEE A HOLE IN IT.**
+  `reserved_non_keyword_identifier_sv` was a hand-typed alternation of 173 words against Annex B's 248. The certificates, the three corpus
+  lanes, `--lint-grammar` and every pin consume the same `non_keyword_identifier`, so for years `reg global;`, `var final;`, `i.super.i = 1;`
+  and a constructor written `function new; input x;` (an ordinary function NAMED `new`; `C c = new;` a reference to it) parsed, with the keyword
+  bound as an identifier. The fix is not a longer list but a DERIVED one: `stimuli/sv/check_sv_reserved_keywords.py` extracts Table B.1 from the
+  in-repo LRM text (one identifier-shaped token per line between the heading and the first prose line; the PDF's page furniture skipped by
+  pattern; the table is NOT alphabetical — it lists `endspecify` before `endsequence`; 1364-2005 prints `unsigned1` with a footnote digit), compares
+  sets in both directions and regenerates the regex; doctrine `SV-RESERVED-WORDS` (#38) runs it on every commit.
+- **Reserving a word moves legal text onto the productions that name it — and only the generated parser with the pins will tell you.** The
+  interpreter check passed every control; the first generated build failed five pins: `d = null;` and `d == null` REJECTED because A.8.4's `null`
+  had no alternative in `primary` (only `constant_primary` had it) and had parsed through the identifier hole. Write the legal twin FIRST
+  (`control_class_handles_and_new.sv`: `this.j`, `super.f()`, `super.new(1)`, `C c = new`, `d = new c`, `null`), and run it on the generated parser.
+- **A reserved word can be a hole's disguise.** `x < local::x` (A.8.4 `class_qualifier`'s `[ local :: ]`, the LRM's own §18.7.1 example) had NO
+  production — the nonterminal had been extracted as a literal keyword — and parsed only because `local` was an admissible identifier standing in
+  for a package name. Reserving Annex B exposed it; the positive production is the fix and the §18.7.1 text the control pin.
+- **The interpreter has no semantic store.** A 2 593-file interpreter pre-screen flagged 77 rejections; thirty were `mailbox` / `semaphore` /
+  `process` declarations that REJECT under `--interpret-parse` even with the unchanged grammar while the generated parser admits Annex G's
+  `std` classes as `provisional_class_type`. The second generated build's lane moved none of them. Pre-screen with the interpreter to find
+  candidates; let the generated parser decide.
+- **A key can be edition-wrong, and the proof is a parse.** Verilog-2005 tests naming a variable `var` / `global` / `local` / `new` are legal
+  1364-2005 and not SystemVerilog; the sv lanes' `must_accept` keys were a Verilog tool's testimony. `edition_keyword_pass` re-keys such a row
+  iff the sv parse stops ON a word 1800 reserves and 1364 does not AND the `verilog_2005` profile accepts the bytes — measured per row, the
+  byte and the word in the basis, a fake-measurer self-test with seven arms.
+- **A footnote is about the caller.** Footnote 10 forbids `automatic` on a data declaration outside a procedural context: the module, package,
+  checker and class sites get a `static`-only lifetime, while the randsequence code block (A.6.12, inside a statement) keeps the full lifetime
+  through an exact twin with the same templates — a legal tree does not move. Footnote 18 has two halves: `.3.35` closed `localparam`, this
+  slice closes `parameter` at the seven body sites and leaves both parameter-port-list rules alone.
+- **A rise of a new shape is a code change, and the gate says so in its own breach text.** Admitting `null` and `local ::` cost +1.59 M entries
+  of unmatched terminal attempts while the footnote re-spellings in the same tree retired 433 K and `committed` FELL; no coded invariant
+  covers a rise bundled with a fall, so `declared_alternatives_net_of_retired_work` was coded with controls (`ENGINE-UNIVERSAL-SERVICES.94`)
+  rather than the rise re-worded into an existing row. Its first evaluation refused on `method_call_body` 0 → 3: *new to the measurement*
+  is not *new to the grammar* — the baseline's reference graph tells them apart.
+- **A self-test's byte-identical arms are what catch a dropped row.** Adding a `begin_keywords` guard to the edition pass as two
+  `continue` statements skipped the row APPEND for every non-candidate — the manifest would have silently lost rows. The arm that
+  asserts an untouched row comes out byte-identical (`by[("s", "c.v")] == manifest[2]`) failed with a KeyError before the change
+  reached a corpus run. One condition, no early exit, and an arm per pass-through class.
+- **A pin can be wrong for a footnote, too.** `.13x.d`'s 2023 control `parameter type enum E_t;` was ruled legal from A.2.1.1 alone; footnote 22
+  (the 2023 twin of footnote 18) forbids omitting the default in a body. The footnote-18 tightening exposed it; corrected to carry a default.
+- **The fourteen accepts-invalid rows, read one production at a time, were wrong for four different reasons**: five grammar (this hole), four the
+  tool elaborating on derivable text (`integer x [] = 1;`, `P::Q = 1;`, `{a,b}.f1`, `trireg (small) t;` — keys corrected WITH the production),
+  one footnote 20 (`.3.38`), two directive arguments tolerated by design (`.3.39`), one keyword-version directive (parked), one engine (`.93`).
+
 ## 2026-09-04 - PGEN-SV-CORPUS-GRAD-0364 (a lookahead is a `$n` element; an actual argument is one item of a list; Annex A's footnotes are grammar)
 
 - ⭐⭐ **THE LESSON: A PARENTHESISED `!( … )` OR POSITIVE `&x` LOOKAHEAD COUNTS AS A `$n` ELEMENT — AND THE VERDICTS WILL NOT TELL YOU.**
