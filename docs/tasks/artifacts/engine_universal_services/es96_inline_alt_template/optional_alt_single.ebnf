@@ -1,0 +1,6 @@
+@entry: true
+s := ( a b | c )? d -> {kind: "call", scope: $1, name: $2}
+a := "A"
+b := "."
+c := "C::"
+d := /[a-z]/

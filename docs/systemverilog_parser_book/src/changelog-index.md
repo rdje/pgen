@@ -34,6 +34,53 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.215 / Contract 1.0.215 — SV-CORPUS-GRAD.3.42 (`PGEN-SV-CORPUS-GRAD-0370`, 2026-09-06), ledger `SV-0088` (`Released`), **schema 27 → 28**:
+
+⭐ **Sixteen inline alternations `( a | b )` that sat inside groups of annotated rules are removed — fifteen lifted into eight named,
+unannotated helper rules, the sixteenth respelled as its alternative's only live form — because spelled inline the group's branch N wore the ENCLOSING rule's return template N
+wherever one existed — and the shipped parser emitted the host's template wrapped around a scope prefix in ACCEPTING
+files.** The mechanism is `ENGINE-UNIVERSAL-SERVICES.96` (found by release 1.0.213 on a chain-step spelling and
+avoided there by the same lift); its textual census had named three multi-alternative hosts. Two five-line synthetics
+widened the class before this slice touched the grammar — a ONE-template host shadows branch 0, and an UNANNOTATED
+alternative of an annotated host keeps the corrupted element in its raw envelope — and the mechanical census
+(`INLINE-ALT-CENSUS:`, TOOLBOX §1.5d) then read **16 sites in 12 rules** on 1.0.214: `constraint_primary_sv_2017` /
+`_sv_2023`, `hierarchical_btf_identifier`, `method_call_receiver_sv_2017` / `_sv_2023` (two sites each),
+`nonrange_variable_lvalue`, `ps_or_hierarchical_array_identifier`, `ps_type_identifier_sv_2017` / `_sv_2023`,
+`split_hierarchical_callable_receiver`, `function_body_declaration` and `task_body_declaration` (two each). Measured on
+ordinary SystemVerilog: `foreach (this.arr[i])` → `array.scope = {name: {kind: "dot"}, scope: {kind: "this"}}`;
+`solve this.x before this.y;` / `disable soft this.x;` / `this.arr = new[4];` → `scope: {…, select: "<invalid_sequence_access>"}`
+(4 such sentinels on `sv_2017`, 7 on `sv_2023`, in one accepting file); `covergroup cg @@(begin C::m)` with class `C`
+declared → `scope: {kind: "block", body: <class_scope>}`; `function void I.h();` → six `<invalid_sequence_access>` in the
+raw envelope of `function_body_declaration` alternative 3. The release probe reproduced the btf node byte for byte with
+the interpreter (the codegen side `.96` had left unmeasured). `1579 → 1588` rules; grammar tier only, no engine, no
+codegen; every helper is `@profiles: ["sv_2017", "sv_2023"]` because every branch is SV-only syntax, so `verilog_2005`
+is untouched by construction.
+
+**AST impact — schema 27 → 28 (a REPLACEMENT of corrupted nodes by correct ones).** Every affected `scope` /
+`qualifier` / `prefix` field now carries the prefix as its own node: `this .` is the pair `[{kind: "this"}, {kind: "dot"}]`,
+a class scope is the `class_scope` node, a package scope the `package_scope` / `non_typedef_package_scope` node, an
+interface prefix the pair `[<interface_identifier>, {kind: "dot"}]`. **Byte-identical everywhere else**, measured rather
+than argued: over 16 335 corpus files × 2 SV profiles the HEAD-vs-release AST identity sweep reads `ast_moved=4 verdict_moved=0` on each profile (9 776 / 9 797 accepted trees byte-identical), the four movers being exactly the shadowed-branch files the liveness census predicted (ispras `25.07.03_01.sv`, `25.07.04_01.sv`, verilator `t_modport_export_bad.v`, `t_cast_string.v`), each differing only in its scope element (24 `<invalid_sequence_access>` sentinels gone); The non-shadowed branches (`pkg::`, `C::`), every absent optional and the class-scope
+out-of-block form `function void C::g();` do not move; 610 pin × profile arms under the interpreter `verdict_moved=0
+ast_moved=0`; the 393-file seeded corpus pre-screen moved **0** verdicts and **0** furthest positions over 786 arms on both the lifted candidate and the final grammar (`sv_2017` 53 accept/accept + 340 reject/reject, `sv_2023` 54 + 339). Migration: see the schema-28 row of
+[Schema Versioning](schema-versioning.md#schema-version-timeline) and the json-carrier rows for the eight helpers and `hierarchical_btf_identifier`.
+
+**No corpus verdict moves — by construction and by measurement.** A lift changes no accepted language: all three lanes on the final bytes read `transitions: NONE` (`sv_2017` 9 780 / 6 556, `sv_2023` 9 801 / 6 535, `verilog_2005` 2 306 / 300; 0 timeouts) — 0 rows moved in either direction. ⭐ **AND ONE `verilog_2005` VERDICT NARROWS, on invalid text, as a side effect worth naming**: the `class_qualifier` literal (IEEE 1800 Annex A's NONTERMINAL, extracted as a keyword — `SV-CORPUS-GRAD.13c.2m`) reached the IEEE 1364-2005 profile through `split_hierarchical_callable_receiver`'s inline group, whose host carries no `@profiles`; the lifted `split_callable_receiver_scope` is SV-gated, so `module m; initial class_qualifier a.b(); endmodule` — the `V2005-KEYWORD-FAITHFULNESS` census's witness — goes `parse_full passed` → `furthest_position=33` under `verilog_2005` (HEAD probe vs new), and the census reads **`over_acceptances 1 → 0`, `gated 24 → 25`** — the last confirmed 1364-2005 keyword over-acceptance closed; the corpus spells the literal in 0 files (the `verilog_2005` lane moved 0 rows), and the PRIMARY-position form `y = class_qualifier m;` is unchanged on every profile (`sv_2017` still the `.13c.2m` accepts-invalid, `verilog_2005` REJECT at 648 before and after).
+Liveness of the lifted rules on the corpus (`LIVENESS-CENSUS:`, TOOLBOX §1.5e): of the eight helpers, three commit on **0** corpus files (`method_call_receiver_qualifier`, `implicit_handle_or_class_scope`, `nonrange_lvalue_scope`), and the four that commit (`ps_type_identifier_scope_*` 14 files, `split_callable_receiver_scope` 13, `out_of_block_tf_scope` 34 accepted, `ps_or_hierarchical_array_scope` 1) do so almost entirely through never-shadowed `pkg::` / `C::` branches — exactly **4** accepted files spell a shadowed branch (`t_cast_string.v`'s `foreach (this.m_counters[i])`, the three interface out-of-block definitions), and those are precisely the trees the sweep names.
+
+**The sixteenth site.** `hierarchical_btf_identifier`'s third alternative is A.9.3's `[ hierarchical_identifier . | class_scope ] method_identifier`; in this grammar's longest-match tournament the dotted and bare forms always lose the tie to alternatives 1 and 2 (`@@(begin top.m)` → `tf`, `@@(begin m)` → `block`), so the alternative is spelled `class_scope method_identifier` — the only form that ever won, and the one that was corrupted. A first spelling lifted the group into a helper rule and the union certificate became SEED-DEPENDENT on it (witnessed at seeds 0 and 7 through a `coverage_event` entry's diverse pass, not at 42, because the helper's dotted branch is dead by tie and its class-scope branch is store-gated for the targeted plan); the dead forms are dropped instead, and the certificate is deterministic again.
+
+**Instruments.** NEW `docs/tasks/artifacts/sv_corpus_grad/inline_alt_census/inline_alt_census.py` (the class census,
+`--self-test` over seven tracked synthetics), `…/inline_alt_lift/ast_identity_sweep.py` and `liveness_census.py` (did
+any accepted tree move between two parser binaries; which files make a rule commit); the tracked grammar-candidate
+pre-screen scripts are runnable from their tracked location for the first time (they derived the repo root one level
+short). Four control pins; the btf pin's arm `!block_event>block` fails on the 1.0.214 tree and holds on 1.0.215.
+
+Residue: `.3.43` (footnote 21, DPI result types), `.3.39` (typed directive arguments), NEW `.3.44` (type the untyped
+function/task body alternatives, whose raw envelope is where the interface corruption lived); the engine half and the
+other families' census counts (`ebnf` 35, `semantic_annotation` 14, `vhdl` 2, `rtl_frontend` 1) are
+`ENGINE-UNIVERSAL-SERVICES.96`; a byte-exact nested-shape pin is `.97`. The bar stands at **99**, unmoved (this release corrects trees, not verdicts).
+
 ### 1.0.214 / Contract 1.0.214 — SV-CORPUS-GRAD.3.38 (`PGEN-SV-CORPUS-GRAD-0369`, 2026-09-05), ledger `SV-0087` (`Released`):
 
 ⭐ **IEEE 1800-2017 Annex A footnote 20 is grammar: an unsized PACKED dimension `[]` is legal only as the SOLE

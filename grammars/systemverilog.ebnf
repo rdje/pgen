@@ -1900,12 +1900,26 @@ constraint_expression := @probe_sample: "a;" ( kw_soft_eb74f2cb )? expression_or
 
 constraint_identifier := non_keyword_identifier
 
+# SV-CORPUS-GRAD.3.42 — a scope prefix LIFTED out of an inline `( … | … )?` group. Spelled inline inside
+# a rule that carries return templates, the group's branch N is typed with the ENCLOSING rule's
+# template N whenever one exists (ENGINE-UNIVERSAL-SERVICES.96; interpreter and generated parser agree
+# byte for byte), so the shipped parser emitted the host's template wrapped around the prefix —
+# measured 2026-09-06 on `solve this.x before this.y;` and `disable soft this.x;`: `scope` read
+# `{name: {kind: "dot"}, scope: {kind: "this"}, select: "<invalid_sequence_access>"}` (the 2023 twin adds
+# `call: "<invalid_sequence_access>"`) in an ACCEPTING file. IEEE 1800-2017 A.1.10
+# `constraint_primary ::= [ implicit_class_handle . | class_scope ] hierarchical_identifier select`.
+# Shared by the two constraint_primary arms and the `null_class` receiver alternatives, which spell
+# the same group. Unannotated: `this .` passes through as the pair, a class_scope as its node.
+@profiles: ["sv_2017", "sv_2023"]
+implicit_handle_or_class_scope := implicit_class_handle dot
+                                | class_scope
+
 @profiles: ["sv_2017"]
-constraint_primary_sv_2017 := ( implicit_class_handle dot | class_scope )? hierarchical_identifier select
+constraint_primary_sv_2017 := implicit_handle_or_class_scope? hierarchical_identifier select
                            -> {scope: $1, name: $2, select: $3}
 
 @profiles: ["sv_2023"]
-constraint_primary_sv_2023 := ( implicit_class_handle dot | class_scope )? hierarchical_identifier select ( lparen rparen )?
+constraint_primary_sv_2023 := implicit_handle_or_class_scope? hierarchical_identifier select ( lparen rparen )?
                            -> {scope: $1, name: $2, select: $3, call: $4}
 
 @profiles: ["sv_2017", "sv_2023"]
@@ -3003,11 +3017,28 @@ full_edge_sensitive_path_description := full_edge_sensitive_path_description_sv_
 full_path_description := lparen list_of_path_inputs ( polarity_operator )? full_path_arrow list_of_path_outputs rparen
                       -> {inputs: $2, polarity: $3, outputs: $5}
 
+# SV-CORPUS-GRAD.3.42 — a scope prefix LIFTED out of an inline `( … | … )?` group. Spelled inline inside
+# a rule that carries return templates, the group's branch N is typed with the ENCLOSING rule's
+# template N whenever one exists (ENGINE-UNIVERSAL-SERVICES.96; interpreter and generated parser agree
+# byte for byte), so the shipped parser emitted the host's template wrapped around the prefix —
+# measured 2026-09-06 on `function void I.h(); endfunction` / `task I.t(); endtask` (an out-of-block
+# interface method, IEEE 1800-2017 A.2.7 `[ interface_identifier . | class_scope ]`): six
+# `<invalid_sequence_access>` in an ACCEPTING file — alternatives 3 and 4 carry no template, so the
+# corrupted element (`{return_type: {body: "I"}, name: {kind: "dot"}, items: "<invalid_sequence_access>", …}`)
+# sat inside the raw envelope. The `C::` branch was never shadowed (a one-template host shadows branch 0
+# only) and its raw envelope is BYTE-IDENTICAL across the lift — measured on `function void C::g();` and on
+# every accepted corpus tree (a Json-returning branch passes through unwrapped; the release's AST identity
+# sweep moved exactly the interface-form files). Typing alternatives 2–4 is SV-CORPUS-GRAD.3.44. Shared by
+# function_body_declaration and task_body_declaration.
+@profiles: ["sv_2017", "sv_2023"]
+out_of_block_tf_scope := interface_identifier dot
+                       | class_scope
+
 function_body_declaration := @sample: "integer f; endfunction : f" function_data_type_or_implicit function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
                           -> {return_type: $1, name: $2, items: $4, statements: $5, end_label: $7}
                            | @sample: "integer f(); endfunction : f" function_data_type_or_implicit function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
-                           | function_data_type_or_implicit ( interface_identifier dot | class_scope ) function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
-                           | function_data_type_or_implicit ( interface_identifier dot | class_scope ) function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
+                           | function_data_type_or_implicit out_of_block_tf_scope function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
+                           | function_data_type_or_implicit out_of_block_tf_scope function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
 
 function_data_type_or_implicit := data_type_or_void   -> {kind: "data_type", body: $1}
                                 | implicit_data_type  -> {kind: "implicit",  body: $1}
@@ -3132,7 +3163,21 @@ hierarchical_btf_identifier := hierarchical_tf_identifier
                                     -> {kind: "tf",     body: $1}
                              | hierarchical_block_identifier
                                     -> {kind: "block",  body: $1}
-                             | ( hierarchical_identifier dot | class_scope )? method_identifier
+                             # SV-CORPUS-GRAD.3.42 — IEEE 1800-2017 A.9.3 spells this alternative
+                             # `[ hierarchical_identifier . | class_scope ] method_identifier`. In this
+                             # grammar's flat longest-match tournament only the class_scope form is LIVE:
+                             # `a.m` spans the same bytes as alternative 1 (hierarchical_tf_identifier)
+                             # and a bare `m` the same bytes as alternative 2 (hierarchical_block_identifier),
+                             # and an earlier alternative wins a tie — measured: `@@(begin top.m)` parses as
+                             # kind "tf", `@@(begin m)` as kind "block", and the certificate planner's own
+                             # probe `@@(begin \foo_0 .\foo_0 )` read parsed=true witnessed_target=false.
+                             # Spelled inline as `( hierarchical_identifier dot | class_scope )?` the group's
+                             # branch 1 wore alternative 2's template (`scope: {kind: "block", body: …}`,
+                             # ENGINE-UNIVERSAL-SERVICES.96, measured on `@@(begin C::m)` with class C
+                             # declared); the dead forms are dropped rather than lifted into a helper whose
+                             # only witnessable branch is store-gated (a helper rule left the union
+                             # certificate seed-dependent: witnessed at seeds 0 and 7, not at 42).
+                             | class_scope method_identifier
                                     -> {kind: "method", scope: $1, name: $2}
 
 hierarchical_event_identifier := hierarchical_identifier
@@ -3922,8 +3967,25 @@ callable_method_call_body := built_in_method_call
 # `docs/tasks/artifacts/sv_corpus_grad/scope_prefix_rendering_drift/sweep_scope_prefix_renderings.py`.
 # One corpus row moved, and it carries the construct verbatim:
 # verible `nested_member_access.sv`'s `nested_class0::handle1::handle2.nested_function()`.
-split_hierarchical_callable_receiver := ( kw_class_qualifier_fa08937d | non_typedef_package_scope | class_scope )? ( non_keyword_identifier hierarchical_bit_select dot &( non_keyword_identifier hierarchical_bit_select dot ) )* non_keyword_identifier hierarchical_bit_select
+split_hierarchical_callable_receiver := split_callable_receiver_scope? ( non_keyword_identifier hierarchical_bit_select dot &( non_keyword_identifier hierarchical_bit_select dot ) )* non_keyword_identifier hierarchical_bit_select
                                      -> {scope: $1, path: $2, name: $3}
+
+# SV-CORPUS-GRAD.3.42 — a scope prefix LIFTED out of an inline `( … | … )?` group. Spelled inline inside
+# a rule that carries return templates, the group's branch N is typed with the ENCLOSING rule's
+# template N whenever one exists (ENGINE-UNIVERSAL-SERVICES.96; interpreter and generated parser agree
+# byte for byte), so the shipped parser emitted the host's template wrapped around the prefix —
+# branch 0 (the `class_qualifier` literal, SV-CORPUS-GRAD.13c.2m) would wear the host's
+# `{scope: $1, path: $2, name: $3}`; the `pkg::` and `C::` branches were never shadowed (a
+# single-template host shadows branch 0 only) and pass through unchanged — verible
+# `nested_member_access.sv`'s `nested_class0::handle1::handle2.nested_function()` is the corpus control.
+# ⭐ Side effect, measured: the host carries no `@profiles`, so the inline group had let IEEE 1364-2005 reach
+# the `class_qualifier` literal before a callable receiver (`initial class_qualifier a.b();` parsed under
+# `verilog_2005` — the ONE confirmed over-acceptance of the V2005-KEYWORD-FAITHFULNESS census); this helper
+# is SV-gated, so that text now rejects there (`over_acceptances 1 → 0`, release 1.0.215).
+@profiles: ["sv_2017", "sv_2023"]
+split_callable_receiver_scope := kw_class_qualifier_fa08937d
+                               | non_typedef_package_scope
+                               | class_scope
 
 split_direct_callable_method_call := split_hierarchical_callable_receiver dot callable_method_call_body
                                             -> {kind: "split_hierarchical", receiver: $1, body: $3}
@@ -3951,10 +4013,25 @@ direct_callable_method_call := method_call_root dot callable_method_call_body
 # profiles and it moved ZERO rows either way, because `hierarchical_identifier`'s own
 # possessive `( identifier constant_bit_select dot )*` has already consumed the selects
 # (LANG-CAPABILITY-AUDIT.10.18).
+# SV-CORPUS-GRAD.3.42 — a scope prefix LIFTED out of an inline `( … | … )?` group. Spelled inline inside
+# a rule that carries return templates, the group's branch N is typed with the ENCLOSING rule's
+# template N whenever one exists (ENGINE-UNIVERSAL-SERVICES.96; interpreter and generated parser agree
+# byte for byte), so the shipped parser emitted the host's template wrapped around the prefix —
+# alternative 2's `{kind: "hierarchical", qualifier: $1, name: $2}` would wrap a `pkg::` prefix as
+# `qualifier: {kind: "hierarchical", qualifier: …, name: "<invalid_sequence_access>"}` whenever that
+# alternative wins a final tree. On the corpus it never does: the liveness census read committed = 0 on
+# every one of 16 335 files under both SV profiles (a prefixed receiver wins through
+# `split_direct_callable_method_call` instead), so the corrected shape is held by the .3.42 pins.
+# IEEE 1800-2017 A.8.4 `primary ::= [ class_qualifier | package_scope ] hierarchical_identifier select`
+# (`class_qualifier` is still the literal keyword this grammar extracted — SV-CORPUS-GRAD.13c.2m).
+@profiles: ["sv_2017", "sv_2023"]
+method_call_receiver_qualifier := kw_class_qualifier_fa08937d
+                                | non_typedef_package_scope
+
 @profiles: ["sv_2017"]
 method_call_receiver_sv_2017 := @probe_sample: "1" primary_literal
                              -> {kind: "primary_literal", body: $1}
-                              | @probe_sample: "a" ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier
+                              | @probe_sample: "a" method_call_receiver_qualifier? hierarchical_identifier
                                                                                                                         -> {kind: "hierarchical", qualifier: $1, name: $2}
                               | empty_unpacked_array_concatenation                                                      -> {kind: "empty_concat", body: $1}
                               | multiple_concatenation ( lbrack range_expression rbrack )?                              -> {kind: "multi_concat", body: $1, select: $2}
@@ -3967,14 +4044,14 @@ method_call_receiver_sv_2017 := @probe_sample: "1" primary_literal
                               | sequence_method_call                                                                    -> {kind: "sequence_method", body: $1}
                               | @probe_sample: "this" kw_this_c2543fff                                                  -> {kind: "this"}
                               | kw_sv_dollar_04da59ec                                                                   -> {kind: "dollar"}
-                              | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? ( implicit_class_handle dot | class_scope )?
+                              | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 )? implicit_handle_or_class_scope?
                                                                                                                         -> {kind: "null_class", local_n43: $5, prefix: $6}
 
 # SV-CORPUS-GRAD.13c.2j — the sv_2023 twin of the copy above: same shorter prefix, same two
 # measurements, same pin in `sweep_scope_prefix_renderings.py`.
 @profiles: ["sv_2023"]
 method_call_receiver_sv_2023 := primary_literal                                                                         -> {kind: "primary_literal", body: $1}
-                              | ( kw_class_qualifier_fa08937d | non_typedef_package_scope )? hierarchical_identifier    -> {kind: "hierarchical", qualifier: $1, name: $2}
+                              | method_call_receiver_qualifier? hierarchical_identifier    -> {kind: "hierarchical", qualifier: $1, name: $2}
                               | empty_unpacked_array_concatenation                                                      -> {kind: "empty_concat", body: $1}
                               | multiple_concatenation ( lbrack range_expression rbrack )?                              -> {kind: "multi_concat", body: $1, select: $2}
                               | concatenation ( lbrack range_expression rbrack )?                                       -> {kind: "concat", body: $1, select: $2}
@@ -3986,7 +4063,7 @@ method_call_receiver_sv_2023 := primary_literal                                 
                               | sequence_method_call                                                                    -> {kind: "sequence_method", body: $1}
                               | kw_this_c2543fff                                                                        -> {kind: "this"}
                               | kw_sv_dollar_04da59ec                                                                   -> {kind: "dollar"}
-                              | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? ( implicit_class_handle dot | class_scope )?
+                              | kw_null_2be88ca4 kw_class_qualifier_fa08937d colon assign ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe )? implicit_handle_or_class_scope?
                                                                                                                         -> {kind: "null_class", local_n48: $5, prefix: $6}
 
 @profiles: ["sv_2017", "sv_2023"]
@@ -4635,7 +4712,20 @@ nonconsecutive_repetition := nonconsecutive_repetition_sv_2023
 nonrange_select := ( ( dot member_identifier bit_select )* dot member_identifier )? bit_select
                 -> {member_chain: $1, bits: $2}
 
-nonrange_variable_lvalue := ( implicit_class_handle dot | package_scope | class_scope )? hierarchical_variable_identifier nonrange_select
+# SV-CORPUS-GRAD.3.42 — a scope prefix LIFTED out of an inline `( … | … )?` group. Spelled inline inside
+# a rule that carries return templates, the group's branch N is typed with the ENCLOSING rule's
+# template N whenever one exists (ENGINE-UNIVERSAL-SERVICES.96; interpreter and generated parser agree
+# byte for byte), so the shipped parser emitted the host's template wrapped around the prefix —
+# measured 2026-09-06 on `this.arr = new[4];`: the lvalue's `scope` read
+# `{name: {kind: "dot"}, scope: {kind: "this"}, select: "<invalid_sequence_access>"}`. IEEE 1800-2017 A.8.5
+# `nonrange_variable_lvalue ::= [ implicit_class_handle . | package_scope ] hierarchical_variable_identifier
+# nonrange_select` (this grammar also admits `class_scope`, SV-EXH-PROOF lineage).
+@profiles: ["sv_2017", "sv_2023"]
+nonrange_lvalue_scope := implicit_class_handle dot
+                       | package_scope
+                       | class_scope
+
+nonrange_variable_lvalue := nonrange_lvalue_scope? hierarchical_variable_identifier nonrange_select
                          -> {scope: $1, name: $2, select: $3}
 
 notifier := variable_identifier
@@ -5663,7 +5753,21 @@ ps_covergroup_identifier := scoped_covergroup_type_identifier            -> {bod
 ps_identifier := scope_free_identifier                       -> {kind: "unscoped", name: $1}
               | non_typedef_package_scope non_keyword_identifier        -> {kind: "scoped", scope: $1, name: $2}
 
-ps_or_hierarchical_array_identifier := ( implicit_class_handle dot | class_scope | non_typedef_package_scope )? hierarchical_array_identifier
+# SV-CORPUS-GRAD.3.42 — a scope prefix LIFTED out of an inline `( … | … )?` group. Spelled inline inside
+# a rule that carries return templates, the group's branch N is typed with the ENCLOSING rule's
+# template N whenever one exists (ENGINE-UNIVERSAL-SERVICES.96; interpreter and generated parser agree
+# byte for byte), so the shipped parser emitted the host's template wrapped around the prefix —
+# measured 2026-09-06 on `foreach (this.arr[i])`: `scope` read `{name: {kind: "dot"}, scope: {kind: "this"}}`
+# (the host's `{scope: $1, name: $2}` around `this .`) — 11 corpus files spell that construct and one accepted
+# tree carried the corruption (verilator `t_cast_string.v`, `foreach (this.m_counters[i])` ×2). IEEE 1800-2017
+# A.9.3 `ps_or_hierarchical_array_identifier ::= [ implicit_class_handle . | class_scope | package_scope ]
+# hierarchical_array_identifier`.
+@profiles: ["sv_2017", "sv_2023"]
+ps_or_hierarchical_array_scope := implicit_class_handle dot
+                                | class_scope
+                                | non_typedef_package_scope
+
+ps_or_hierarchical_array_identifier := ps_or_hierarchical_array_scope? hierarchical_array_identifier
                                     -> {scope: $1, name: $2}
 
 ps_or_hierarchical_net_identifier := ( non_typedef_package_scope )? net_identifier   -> {kind: "ps", scope: $1, name: $2}
@@ -5749,12 +5853,29 @@ ps_parameter_identifier := class_scope parameter_identifier                     
                         | known_unscoped_parameter_identifier                                                                       -> {kind: "unscoped", body: $1}
                         | ( generate_block_identifier ( lbrack constant_expression rbrack )? dot )* parameter_identifier            -> {kind: "generate_scoped", scope_chain: $1, name: $2}
 
+# SV-CORPUS-GRAD.3.42 — a scope prefix LIFTED out of an inline `( … | … )?` group. Spelled inline inside
+# a rule that carries return templates, the group's branch N is typed with the ENCLOSING rule's
+# template N whenever one exists (ENGINE-UNIVERSAL-SERVICES.96; interpreter and generated parser agree
+# byte for byte), so the shipped parser emitted the host's template wrapped around the prefix —
+# branch 0 (the `local::`-footnote literal) would wear the host's `{scope: $1, name: $2}`. IEEE 1800-2017
+# A.9.3 `ps_type_identifier ::= [ local ::43 | package_scope | class_scope ] type_identifier`; the 2023
+# twin cites footnote 48. One helper per edition because the footnote literal differs.
 @profiles: ["sv_2017"]
-ps_type_identifier_sv_2017 := ( kw_local_939bb46a scope_resolution kw_n_43_0286dd55 | non_typedef_package_scope | class_scope )? type_identifier
+ps_type_identifier_scope_sv_2017 := kw_local_939bb46a scope_resolution kw_n_43_0286dd55
+                                  | non_typedef_package_scope
+                                  | class_scope
+
+@profiles: ["sv_2023"]
+ps_type_identifier_scope_sv_2023 := kw_local_939bb46a scope_resolution kw_n_48_64e095fe
+                                  | non_typedef_package_scope
+                                  | class_scope
+
+@profiles: ["sv_2017"]
+ps_type_identifier_sv_2017 := ps_type_identifier_scope_sv_2017? type_identifier
                            -> {scope: $1, name: $2}
 
 @profiles: ["sv_2023"]
-ps_type_identifier_sv_2023 := ( kw_local_939bb46a scope_resolution kw_n_48_64e095fe | non_typedef_package_scope | class_scope )? type_identifier
+ps_type_identifier_sv_2023 := ps_type_identifier_scope_sv_2023? type_identifier
                            -> {scope: $1, name: $2}
 
 @profiles: ["sv_2017", "sv_2023"]
@@ -6606,8 +6727,8 @@ tagged_union_expression := tagged_union_expression_sv_2017 -> {kind: "sv_2017", 
 task_body_declaration := @sample: "t; endtask : t" task_identifier semi tf_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
                       -> {name: $1, items: $3, statements: $4, end_label: $6}
                        | @sample: "t(); endtask : t" task_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
-                       | ( interface_identifier dot | class_scope ) task_identifier semi tf_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
-                       | ( interface_identifier dot | class_scope ) task_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
+                       | out_of_block_tf_scope task_identifier semi tf_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
+                       | out_of_block_tf_scope task_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
 
 @profiles: ["sv_2017", "verilog_2005"]
 task_declaration_sv_2017 := kw_task_7fbb727d ( lifetime )? task_body_declaration

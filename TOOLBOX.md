@@ -85,7 +85,7 @@ same leaf keeps its checklist, and a deletion-only edit still counts as touching
 
 | # | family | when it applies | verbatim tokens that count |
 |---|---|---|---|
-| 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `PGEN_LINT_DUMP_ALL`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `INTERPRET-PARSE:`/`--interpret-parse`, `INDIRECT-LR-SURVEY:`/`--report-indirect-lr-plan`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]`, `LAYOUT-OWNING-TERMINALS:`/`--report-layout-owning-terminals`, `SAMPLE-PROFILE-PARITY:`/`--report-sample-parity` |
+| 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `PGEN_LINT_DUMP_ALL`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `INTERPRET-PARSE:`/`--interpret-parse`, `INDIRECT-LR-SURVEY:`/`--report-indirect-lr-plan`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]`, `LAYOUT-OWNING-TERMINALS:`/`--report-layout-owning-terminals`, `SAMPLE-PROFILE-PARITY:`/`--report-sample-parity`, `INLINE-ALT-CENSUS:` (`docs/tasks/artifacts/sv_corpus_grad/inline_alt_census/inline_alt_census.py` — every inline alternation a rule's return templates can type by branch index, the `ENGINE-UNIVERSAL-SERVICES.96` shape; §1.5d), `AST-IDENTITY-SWEEP:` / `LIVENESS-CENSUS:` (`docs/tasks/artifacts/sv_corpus_grad/inline_alt_lift/` — did any accepted tree MOVE between two parser binaries over the corpus; which corpus files make a rule commit; §1.5e) |
 | 2 | **performance / SPEED / FOOTPRINT** | it is correct but slow, or its memory is the problem | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph`, `ARENA-CHUNK-ORACLE:` (`rust/target/release/arena_chunk_oracle_probe` — proves the `typed_arena` chunk-capacity model against a counting `GlobalAlloc`; `--red-control` required to go red), `PARSE-ALLOC-CENSUS:` (`rust/target/release/parse_alloc_census_probe` — the whole parse's requested-live-bytes high-water and a size-class table at that high-water, so a structure can be attributed by NAME instead of subtracted for; `--red-control-arm` required to go red), `PARSE-THIN-OCCUPANCY:` (same probe — how much of the dense `THIN_RULE_COUNT × (len + 1)` thin-memo table a parse actually WRITES; `NOT_MEASURED` is never `0`), `PARSE-ALLOC-TAPE:` (same probe — one row per large allocation with the events at which it was made and released, so SUCCESSION, position relative to the peak, and never-freed are OBSERVED rather than inferred from a class total; `complete=false` invalidates the input) |
 | 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
 | 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
@@ -140,6 +140,8 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | "What AST did it produce? Is the shape right?" | [1.2 `--parse-dump-ast-pretty`](#12---parse-dump-ast-pretty) |
 | **"Parse an input against an ARBITRARY / synthetic grammar (not registered)?"** | **[1.5b `--interpret-parse`](#15b---interpret-parse--the-interpreter-as-a-cli-one-command-no-codegen-no-compile) — START HERE, it is one command** · [1.3 the `scratch` slot](#13-the-scratch-slot--drive-the-toolbox-on-an-arbitrary-grammar) (full CLI toolbox incl. `--trace-rules`; authoritative by construction) · [1.4 compile-and-run](#14-the-compile-and-run-harness--parse-an-arbitrary-grammar-with-no-registry-edit--no-pgen-rebuild) (Rust API, authoritative by construction) · [1.5 the interpreter](#15-the-grammar-ast-interpreter--parse-an-arbitrary-grammar-in-process-with-no-codegen--no-compile) (Rust API) |
 | **"I edited the SV grammar — which pin or corpus row will MOVE, and is my shape-neutral claim measured?"** | [1.5c the grammar-candidate pre-screen](#15c-the-grammar-candidate-pre-screen--will-this-grammar-edit-move-a-pin-or-a-corpus-row-before-generating) — every pin × profile and a seeded corpus list under the interpreter, HEAD vs candidate, before a byte is generated; ⛔ seed the list with the known rows first |
+| **"Does this grammar carry an inline `( a \| b )` group that its rule's return templates can TYPE BY BRANCH INDEX?"** — the `ENGINE-UNIVERSAL-SERVICES.96` shape; ⛔ a textual eyeball found 3 sites where the census finds 16 | [1.5d the inline-alternation census](#15d-the-inline-alternation-census--does-a-rules-return-template-reach-into-an-inline-group) |
+| **"Did ANY accepted tree move between two parser builds — and which corpus files make rule R commit?"** — the measured form of a shape-neutral claim | [1.5e the AST identity sweep + liveness census](#15e-the-ast-identity-sweep-and-the-liveness-census--did-any-accepted-tree-move-and-which-files-make-a-rule-commit) |
 | **"Which alternative WINS this choice on this input? Is this branch LIVE or dead?"** | [Protocol D](#protocol-d--which-alternative-wins-this-choice--is-this-branch-live-the-a22a23-class-probe) — scratch slot + the `🏁 selected branch N/M` trace line + the 1.7 policy matrix |
 | **"Is the interpreter byte-identical to the generated parser? which input diverges?"** | [1.6 the differential-equivalence gate](#16-the-differential-equivalence-gate--is-the-interpreter-byte-identical-to-the-generated-parser) |
 | **"Is the interpreter byte-identical PER COMBINATOR (on a synthetic grammar, in isolation)?"** | [1.7 the structural combinator suite](#17-the-structural-combinator-suite--is-the-interpreter-byte-identical-per-combinator) |
@@ -344,6 +346,56 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 - ⚠️ The interpreter's byte-identity to the generated parser is 1.6's gate, and it has a measured hole on an
   un-eliminated left-recursive cycle (1.5b); the pre-screen PREDICTS the lanes, the lanes on the final bytes
   decide. Measured peaks under the guard: pins 235 MB, corpus 3 379 MB (336 arms).
+
+- ⛔ **THE TRACKED SCRIPTS COULD NOT RUN FROM THEIR TRACKED LOCATION UNTIL `SV-CORPUS-GRAD.3.42` (2026-09-06).**
+  Both derived the repo root as `parents[4]` — `docs/` — so `.3.38`'s numbers came from the scratch copies under
+  `rust/target/s338/` while its leaf credited *"the tracked form"*. Fixed to `parents[5]`, and each script now
+  REFUSES when the derived root holds no `grammars/systemverilog.ebnf`. ⇒ **an instrument is tracked when the
+  tracked copy has produced a number, not when a copy of it has.**
+
+### 1.5d The inline-alternation census — does a rule's return template reach INTO an inline group?
+- **WHAT:** `python3 docs/tasks/artifacts/sv_corpus_grad/inline_alt_census/inline_alt_census.py <grammar.ebnf>` —
+  for every rule carrying at least one return template, every inline alternation `( a | b … )` sitting inside a
+  group (bare, `?`, `*`, `+`) of one of its alternatives, with the branch indices that a template of the rule
+  would TYPE (`shadowed=[…]`). The `ENGINE-UNIVERSAL-SERVICES.96` shape: the group's branch N wears the enclosing
+  rule's template N wherever one exists, so the shipped tree carries the host's template wrapped around the
+  branch — `<invalid_sequence_access>` when that template names a `$n` the branch lacks. `--self-test` replays
+  the seven tracked synthetics (`docs/tasks/artifacts/engine_universal_services/es96_inline_alt_template/`) and
+  exits 7 when one does not fire.
+- **WHEN:** before spelling `( … | … )` inside any rule that has a `->`; after editing one; and before believing
+  a textual count of the class. ⛔ Measured `SV-CORPUS-GRAD.3.42`: the `.96` textual census read **3 sites in 3
+  rules** (multi-alternative hosts only); this census read **16 sites in 12 rules** on the same grammar, because
+  a ONE-template host shadows branch 0 (`foreach (this.arr[i])` emitted `scope: {name: {kind: "dot"}, scope:
+  {kind: "this"}}`) and an UNANNOTATED alternative keeps the corrupted element in its raw envelope
+  (`function void I.h();` emitted six `<invalid_sequence_access>` in an ACCEPTING file).
+- **OUTPUT:** `INLINE-ALT-CENSUS: grammar=… annotated_rules_with_inline_alternation_sites=N exposed(…)=E` and one
+  line per site (`EXPOSED` / `EXPOSED(raw-envelope)` / `unreferenced` / `no_template_at_branch_index`).
+- ⚠️ **HONEST BOUND:** text-level triage on the `.ebnf`. It names the sites a template CAN type; whether a shadowed
+  branch ever WINS a final tree is Protocol D (`--trace-rules` + `🏁`) and §1.5e's liveness census. The fix at
+  every site is the same one line: lift the group into a named, unannotated rule (`.3.41`'s
+  `expression_chain_step`) — byte-identical on every non-shadowed branch, correct on the shadowed one (measured
+  on the synthetics AND the shipped grammar). ⛔ **Unless every branch of the group is dead by tie or
+  store-gated** — then the helper cannot be WITNESSED deterministically (`.3.42`: `btf_method_scope` was witnessed
+  at seeds 0 and 7 through a union entry's diverse pass and not at 42), and the answer is the closure
+  discipline's: delete the dead forms and spell the live one (`hierarchical_btf_identifier`'s third alternative is
+  `class_scope method_identifier`).
+
+### 1.5e The AST identity sweep and the liveness census — did ANY accepted tree move, and which files make a rule commit?
+- **WHAT:** two instruments under `docs/tasks/artifacts/sv_corpus_grad/inline_alt_lift/`:
+  `ast_identity_sweep.py --a <probe A> --b <probe B> --profile P --files <list>` dumps every file's typed AST
+  with BOTH binaries (§1.2, scratch files on the repo volume, deleted after hashing) and reports
+  `AST-IDENTITY-SWEEP: … both_accepted=N identical=I ast_moved=M verdict_moved=V` plus every moved file;
+  `liveness_census.py --probe <probe> --profile P --files <list> --rules r1,r2` runs §3.5's outcome dump per
+  file and reports `LIVENESS-CENSUS: … r1:entered_files=…,committed_files=…` plus every file with
+  `committed > 0` for each rule.
+- **WHEN:** any grammar change that claims to be SHAPE-NEUTRAL (the sweep MEASURES it over the whole lane — pass
+  every corpus row, not a candidate list), and any "is this rule DEAD on the corpus?" question (the census —
+  `committed == 0` on every file IS dead; `committed > 0` is C3-B, a SUPERSET of final-tree membership, so the
+  sweep is what decides whether the tree moved, per §3.5's operating rule). First use: `SV-CORPUS-GRAD.3.42`, the
+  eight lifted scope rules over 16 335 files × two SV profiles.
+- ⛔ **GREEN AND RED CONTROLS BEFORE THE READING**: `--a X --b X` must read `ast_moved=0`; the same binary under
+  two profiles on a file with an edition discriminator must read `ast_moved` (both measured on the HEAD probe
+  before the slice's build). A `timeout` / `nodump` / `malformed` row is COUNTED in the headline, never dropped.
 
 ### 1.6 The differential-equivalence gate — is the interpreter byte-identical to the generated parser?
 - **WHAT:** `make -C rust SHELL=/bin/bash parse_harness_equivalence_gate` (module `rust/src/parse_harness_equivalence.rs`) — the certifying oracle for the interpreter (1.5). For each registered grammar it runs the interpreter AND the shipped generated parser over ONE deterministic stimuli corpus (seeds 0/7/42, bounded generation, large-stack workers) and asserts **byte-identical** verdict + typed AST. Report-first API (`evaluate_grammar_equivalence` collects divergences, never panics) + 3 enforcing gate tests. PARSE-HARNESS.5.
@@ -1196,7 +1248,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `cascade_match_casting_type_lr_suffix` and friends — tick nothing. And a counter counts **events**:
   a rise in the cost PER event is invisible to it on any graph. That limit is a property of the
   metric, so unlike a measured bound it cannot go stale.
-  **Live LR-family share `2.665`** (corpus-entry share %) — the LR-elimination family's share of all
+  **Live LR-family share `2.661`** (corpus-entry share %) — the LR-elimination family's share of all
   corpus rule entries. ⭐ **GATED, not quoted** since `.21` acceptance (f): `PARSE-COST-RATCHET`'s
   every-run tier re-hashes the four inputs it is a function of (grammar, generated parser,
   classifier, corpus) against

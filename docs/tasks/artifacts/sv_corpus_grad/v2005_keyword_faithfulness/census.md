@@ -9,13 +9,13 @@ describes your tree** and the honest act is to re-measure, not to quote.
 
 | input | sha256 |
 | --- | --- |
-| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `cddbecf6a94f7803b0496f234bb59da20b868c6be698e87736afa7119770e6a5` |
+| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `3d3ebcb1d7ce8efcc5fe87924b676d63ee0d29e8c3547fad6fd17d726a4b595a` |
 | `docs/verilog/2005/md/section-Annex_B-normative-list-of-keywords.md` | `08ba9745b0f0791ad48b786284b733414ab26ce7b2b9373d95174d094218025d` |
 | `docs/tasks/artifacts/sv_corpus_grad/v2005_keyword_faithfulness/witnesses/MANIFEST.tsv` | `cf3138dcaeb0f7609ea8b028202ff8b4ae19ea19f2c255d407b573d13893c6ce` |
 
 ## Population
 
-- rules in the source grammar: **1548**
+- rules in the source grammar: **1556**
 - of those, SATISFIABLE under `verilog_2005`: **1127** (the bottom-up half — *can this rule derive a string here*)
 - of those, REACHABLE under `verilog_2005` from the 4 declared entry roots: **792** (the top-down half — *can a parse get here*)
 - **satisfiable but UNREACHABLE: 335** — rules the profile admits that no `verilog_2005` input can arrive at. `kw_void_e9cede9b` is the worked example: the terminal is ungated and trivially satisfiable, while both rules that reference it are `_sv_only`. ⭐ **This is NOT a gap in the certificate accounting, and an earlier version of this report said it was.** The engine already crosses the two directions: `gather_verified_profile_proof_covered_rules` (`VERILOG-2005-PROFILE.6.7`) classifies the WHOLE active rule set, and every profile-entry-unreachable rule gets an explicitly RE-VERIFIED `ProfileEntryUnreachable` certificate — a re-verify failure is reported as a linter bug, never silently covered. Measured: all of these rules appear in the cert pass's `proof` category, exactly. The number below is useful for understanding the profile's live surface; it is not a defect.
@@ -40,8 +40,8 @@ computation never read the profile"*.
 
 | verdict | count |
 | --- | --- |
-| **over-acceptance (confirmed, 3 legs)** | **1** |
-| correctly gated | 24 |
+| **over-acceptance (confirmed, 3 legs)** | **0** |
+| correctly gated | 25 |
 | identifier-consumed (refuted by leg 3) | 6 |
 | unreachable, no witness required | 1 |
 
@@ -49,11 +49,10 @@ computation never read the profile"*.
 
 | keyword | witness |
 | --- | --- |
-| `class_qualifier` | `class_qualifier.sv` |
 
 ### Correctly gated (the control set — the census is not stuck on ACCEPT)
 
-`chandle`, `clocking`, `const`, `dist`, `enum`, `extern`, `iff`, `inside`, `interface`, `join_any`, `join_none`, `local`, `matches`, `packed`, `rand`, `ref`, `static`, `std`, `string`, `type`, `unique`, `var`, `virtual`, `with`
+`chandle`, `class_qualifier`, `clocking`, `const`, `dist`, `enum`, `extern`, `iff`, `inside`, `interface`, `join_any`, `join_none`, `local`, `matches`, `packed`, `rand`, `ref`, `static`, `std`, `string`, `type`, `unique`, `var`, `virtual`, `with`
 
 ### Refuted by leg 3 — the keyword was consumed as an ORDINARY IDENTIFIER
 

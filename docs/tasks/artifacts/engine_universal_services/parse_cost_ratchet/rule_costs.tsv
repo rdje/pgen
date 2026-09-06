@@ -125,7 +125,7 @@ class_method	43	8	0
 class_new	30492	4	2166
 class_or_package_scope	53635	0	0
 class_property	43	11	2
-class_scope	4388360	3	3656814
+class_scope	4384922	3	3653376
 class_scope_type	731546	3	0
 class_scope_type_head	731546	3	0
 class_scoped_call_prefix	742729	0	128896
@@ -215,7 +215,7 @@ data_type_or_implicit	11008	9535	0
 data_type_or_implicit_explicit	79963	1511	0
 data_type_or_void	3430	2213	316
 data_type_or_void_sv_only	3114	48	18
-declaration_identifier	9238609	135308	0
+declaration_identifier	9238414	135308	0
 declaration_lifetime_sv_only	9101	3	724
 declared_class_alias_identifier	1	0	0
 declared_class_identifier	26	10	1
@@ -250,7 +250,7 @@ dist_item	3	0	0
 dist_item_sv_2017	3	0	0
 dist_list	1	0	0
 dist_weight	2	0	0
-dot	4402224	86918	3575658
+dot	4402032	86918	3575466
 dot_star	126944	2	278
 dpi_function_import_property	32	1	0
 dpi_function_proto	32	4	0
@@ -352,7 +352,7 @@ if_generate_else_clause	37	0	1
 iff_arrow	472346	0	0
 iff_keyword_sv_only	4537	0	1018
 immediate_assertion_statement	53635	0	3243
-implicit_class_handle	3091496	3	2468257
+implicit_class_handle	3088253	3	2465014
 implicit_class_rooted_method_chain	1305944	0	704902
 implicit_data_type	11448	9639	1280
 implies	522744	0	0
@@ -387,7 +387,7 @@ interface_class_type	4	4	0
 interface_class_type_head	4	4	0
 interface_declaration	72372	3	435
 interface_declaration_sv_2017	71937	3	0
-interface_identifier	79935	2728	0
+interface_identifier	79740	2728	0
 interface_identifier_decl	1168	1	0
 interface_instance_identifier	621	0	0
 interface_instance_identifier_sv_2017	621	0	0
@@ -445,7 +445,7 @@ kw_casez_b8fbe0e1	50392	27	0
 kw_chandle_34401c13	162592	4	0
 kw_checker_29e5b9a8	79840	0	0
 kw_class_8d767bf5	80513	26	0
-kw_class_qualifier_fa08937d	2305909	0	0
+kw_class_qualifier_fa08937d	1676444	0	0
 kw_clocking_4d22041d	72029	0	0
 kw_cmos_aabe63a7	72021	0	0
 kw_config_dfba7aad	603	0	0
@@ -714,6 +714,7 @@ method_call	129387	8124	491
 method_call_body	3	0	0
 method_call_initial	128896	8124	0
 method_call_receiver	616740	0	0
+method_call_receiver_qualifier	1230586	0	629465
 method_call_receiver_sv_2017	616740	0	0
 method_call_root	691995	0	75255
 method_identifier	43871	19051	0
@@ -775,13 +776,14 @@ non_consecutive_repetition	2312	0	0
 non_consecutive_repetition_sv_2017	2312	0	0
 non_integer_type	766026	5	0
 non_integer_type_sv_only	766026	0	70428
-non_keyword_identifier	18077778	404675	17043891
+non_keyword_identifier	18077583	404675	17043696
 non_overlapped_implication	68	0	41
 non_port_interface_item	4	2	0
 non_port_module_item	71845	6950	80
-non_typedef_package_scope	7875592	7314	7144972
+non_typedef_package_scope	7246127	7314	6515507
 nonblocking_assignment	55539	474	0
 nonblocking_implies	50392	0	0
+nonrange_lvalue_scope	53635	0	3243
 nonrange_select	32869	2	3243
 nonrange_variable_lvalue	53635	2	0
 not_equal	472346	2019	0
@@ -794,6 +796,7 @@ operator_assignment	68600	8406	2055
 or_assign	39116	1	0
 ordered_parameter_assignment	11441	4	12
 ordered_port_connection	15968	13954	0
+out_of_block_tf_scope	390	2	195
 output_declaration	2382	100	0
 output_port_identifier	3	1	0
 output_symbol	5	5	0
@@ -807,7 +810,7 @@ package_import_item	129	29	0
 package_item	7815	7206	0
 package_or_generate_item_declaration	80453	10332	0
 package_or_generate_item_declaration_sv_2017	80453	10332	0
-package_scope	1439064	7984	708444
+package_scope	1435821	7984	705201
 package_scope_dollar_unit_sv_only	730620	0	0
 packed_dimension	79610	8842	270
 par_block	55539	0	5147
@@ -888,11 +891,13 @@ ps_checker_identifier	125682	0	0
 ps_covergroup_identifier	156360	1477	0
 ps_identifier	12259	2	0
 ps_or_hierarchical_array_identifier	3	1	0
+ps_or_hierarchical_array_scope	3	0	0
 ps_or_hierarchical_net_identifier	24849	2254	0
 ps_or_hierarchical_property_identifier	72	2	0
 ps_or_hierarchical_sequence_identifier	614199	13	8
 ps_parameter_identifier	2101277	18641	1465122
 ps_type_identifier	1235263	5464	611819
+ps_type_identifier_scope_sv_2017	623444	0	0
 ps_type_identifier_sv_2017	623444	5464	0
 question	637385	10698	0
 queue_dimension	38054	6	0
@@ -989,6 +994,7 @@ source_text_item_unit_sv_only	603	9	0
 specify_block	71765	0	0
 specparam_declaration	71765	0	0
 specparam_identifier	866014	13177	0
+split_callable_receiver_scope	601121	4	0
 split_direct_callable_method_call	1907065	19001	1305944
 split_hierarchical_callable_receiver	601121	19001	0
 star	474470	6163	0
@@ -1040,7 +1046,7 @@ time_unit	201351	7	3
 timeunit_separator_slash	2	2	0
 timeunit_separator_trivia	2	2	0
 timeunits_declaration	80458	5	1307
-trivia	90500270	1181019	88208955
+trivia	89870805	1181019	87579490
 type_assignment	35	16	0
 type_assignment_sv_2017	35	16	0
 type_assignment_with_default	5	4	0

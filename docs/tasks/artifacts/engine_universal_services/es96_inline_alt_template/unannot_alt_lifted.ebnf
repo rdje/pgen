@@ -1,0 +1,10 @@
+@entry: true
+s := t -> {kind: "tagged", body: $1}
+   | q d
+q := a b
+  | c
+t := "T"
+a := "A"
+b := "."
+c := "C::"
+d := /[a-z]/

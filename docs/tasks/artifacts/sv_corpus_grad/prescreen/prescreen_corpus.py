@@ -23,7 +23,13 @@ verdict histogram, then every PASS->FAIL / FAIL->PASS / FURTHEST-MOVED arm. Prov
 import argparse, os, pathlib, re, subprocess, sys, time, concurrent.futures as cf
 from collections import Counter
 
-R = pathlib.Path(__file__).resolve().parents[4]
+# The repo root is FIVE parents up (prescreen/ -> sv_corpus_grad/ -> artifacts/ -> tasks/ -> docs/ -> root).
+# SV-CORPUS-GRAD.3.42: this read parents[4] (= docs/) since the scripts were tracked by .3.38, so the tracked
+# form could never run from its own location -- .3.38 had measured with the scratch copies under rust/target/.
+# REFUSE rather than derive against a wrong root: a pre-screen that cannot find the corpus reports nothing.
+R = pathlib.Path(__file__).resolve().parents[5]
+if not (R / "grammars" / "systemverilog.ebnf").is_file():
+    sys.exit(f"{pathlib.Path(__file__).name}: REFUSED -- {R} is not the repository root (no grammars/systemverilog.ebnf)")
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)

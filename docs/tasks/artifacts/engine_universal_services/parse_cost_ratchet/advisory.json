@@ -4,211 +4,211 @@
   "note": "ADVISORY ONLY \u2014 machine-dependent, measured on the FUSED cascade_* graph that the BINDING entry counters cannot see. Compared with a wide band; a breach warns, never fails.",
   "per_file": [
     {
-      "median_ms": 1417.0,
-      "parse_ms": 1409.26,
+      "median_ms": 1617.36,
+      "parse_ms": 1609.28,
       "path": "stimuli/sv/subs/Surelog/tests/BlackBePipeInt/dut.sv"
     },
     {
-      "median_ms": 623.26,
-      "parse_ms": 615.52,
+      "median_ms": 674.24,
+      "parse_ms": 666.16,
       "path": "stimuli/sv/subs/iverilog/ivtest/ivltests/br_gh330.v"
     },
     {
-      "median_ms": 997.2,
-      "parse_ms": 989.46,
+      "median_ms": 1093.35,
+      "parse_ms": 1085.28,
       "path": "stimuli/sv/subs/iverilog/ivtest/ivltests/comp1000.v"
     },
     {
-      "median_ms": 1022.37,
-      "parse_ms": 1014.63,
+      "median_ms": 1129.69,
+      "parse_ms": 1121.61,
       "path": "stimuli/sv/subs/iverilog/ivtest/ivltests/comp1001.v"
     },
     {
-      "median_ms": 357.45,
-      "parse_ms": 349.71,
+      "median_ms": 399.82,
+      "parse_ms": 391.74,
       "path": "stimuli/sv/subs/opentitan/hw/ip/adc_ctrl/rtl/adc_ctrl_reg_top.sv"
     },
     {
-      "median_ms": 314.48,
-      "parse_ms": 306.74,
+      "median_ms": 346.84,
+      "parse_ms": 338.76,
       "path": "stimuli/sv/subs/opentitan/hw/ip/bkdr_loader/rtl/bkdr_loader_regs_reg_top.sv"
     },
     {
-      "median_ms": 350.15,
-      "parse_ms": 342.41,
+      "median_ms": 401.63,
+      "parse_ms": 393.56,
       "path": "stimuli/sv/subs/opentitan/hw/ip/dma/rtl/dma_reg_top.sv"
     },
     {
-      "median_ms": 339.02,
-      "parse_ms": 331.28,
+      "median_ms": 369.58,
+      "parse_ms": 361.5,
       "path": "stimuli/sv/subs/opentitan/hw/ip/entropy_src/rtl/entropy_src_reg_top.sv"
     },
     {
-      "median_ms": 331.68,
-      "parse_ms": 323.94,
+      "median_ms": 368.72,
+      "parse_ms": 360.64,
       "path": "stimuli/sv/subs/opentitan/hw/ip/hmac/rtl/hmac_reg_top.sv"
     },
     {
-      "median_ms": 324.38,
-      "parse_ms": 316.63,
+      "median_ms": 364.9,
+      "parse_ms": 356.83,
       "path": "stimuli/sv/subs/opentitan/hw/ip/i2c/rtl/i2c_reg_top.sv"
     },
     {
-      "median_ms": 343.14,
-      "parse_ms": 335.4,
+      "median_ms": 390.51,
+      "parse_ms": 382.43,
       "path": "stimuli/sv/subs/opentitan/hw/ip/keymgr/rtl/keymgr_reg_top.sv"
     },
     {
-      "median_ms": 316.24,
-      "parse_ms": 308.5,
+      "median_ms": 355.51,
+      "parse_ms": 347.44,
       "path": "stimuli/sv/subs/opentitan/hw/ip/keymgr_dpe/rtl/keymgr_dpe_reg_top.sv"
     },
     {
-      "median_ms": 349.14,
-      "parse_ms": 341.4,
+      "median_ms": 389.17,
+      "parse_ms": 381.09,
       "path": "stimuli/sv/subs/opentitan/hw/ip/kmac/rtl/kmac_reg_top.sv"
     },
     {
-      "median_ms": 584.53,
-      "parse_ms": 576.79,
+      "median_ms": 652.01,
+      "parse_ms": 643.93,
       "path": "stimuli/sv/subs/opentitan/hw/ip/prim/rtl/prim_secded_pkg.sv"
     },
     {
-      "median_ms": 573.73,
-      "parse_ms": 565.99,
+      "median_ms": 629.88,
+      "parse_ms": 621.8,
       "path": "stimuli/sv/subs/opentitan/hw/ip/rram_ctrl/rtl/rram_ctrl_core_reg_top.sv"
     },
     {
-      "median_ms": 938.35,
-      "parse_ms": 930.6,
+      "median_ms": 1048.14,
+      "parse_ms": 1040.07,
       "path": "stimuli/sv/subs/opentitan/hw/ip/rv_dm/rtl/rv_dm_mem_reg_top.sv"
     },
     {
-      "median_ms": 1502.13,
-      "parse_ms": 1494.39,
+      "median_ms": 1793.42,
+      "parse_ms": 1785.34,
       "path": "stimuli/sv/subs/opentitan/hw/ip/spi_device/rtl/spi_device_reg_top.sv"
     },
     {
-      "median_ms": 531.86,
-      "parse_ms": 524.12,
+      "median_ms": 616.36,
+      "parse_ms": 608.29,
       "path": "stimuli/sv/subs/opentitan/hw/ip/sysrst_ctrl/rtl/sysrst_ctrl_reg_top.sv"
     },
     {
-      "median_ms": 706.93,
-      "parse_ms": 699.19,
+      "median_ms": 775.75,
+      "parse_ms": 767.68,
       "path": "stimuli/sv/subs/opentitan/hw/ip/usbdev/rtl/usbdev_reg_top.sv"
     },
     {
-      "median_ms": 1299.7,
-      "parse_ms": 1291.95,
+      "median_ms": 1476.86,
+      "parse_ms": 1468.78,
       "path": "stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/ac_range_check/rtl/ac_range_check_reg_top.sv"
     },
     {
-      "median_ms": 2115.01,
-      "parse_ms": 2107.27,
+      "median_ms": 2330.31,
+      "parse_ms": 2322.24,
       "path": "stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/alert_handler/rtl/alert_handler_reg_top.sv"
     },
     {
-      "median_ms": 427.57,
-      "parse_ms": 419.83,
+      "median_ms": 479.89,
+      "parse_ms": 471.81,
       "path": "stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/otp_ctrl/rtl/otp_ctrl_core_reg_top.sv"
     },
     {
-      "median_ms": 380.61,
-      "parse_ms": 372.87,
+      "median_ms": 414.95,
+      "parse_ms": 406.88,
       "path": "stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_pkg.sv"
     },
     {
-      "median_ms": 4359.88,
-      "parse_ms": 4352.13,
+      "median_ms": 4803.62,
+      "parse_ms": 4795.54,
       "path": "stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv"
     },
     {
-      "median_ms": 1474.71,
-      "parse_ms": 1466.97,
+      "median_ms": 1837.76,
+      "parse_ms": 1829.68,
       "path": "stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/rv_core_ibex/rtl/rv_core_ibex_cfg_reg_top.sv"
     },
     {
-      "median_ms": 1074.32,
-      "parse_ms": 1066.58,
+      "median_ms": 1201.18,
+      "parse_ms": 1193.11,
       "path": "stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/rv_plic/rtl/rv_plic_reg_top.sv"
     },
     {
-      "median_ms": 319.95,
-      "parse_ms": 312.21,
+      "median_ms": 350.53,
+      "parse_ms": 342.45,
       "path": "stimuli/sv/subs/opentitan/hw/top_darjeeling/rtl/autogen/top_darjeeling.sv"
     },
     {
-      "median_ms": 1825.99,
-      "parse_ms": 1818.25,
+      "median_ms": 2089.44,
+      "parse_ms": 2081.37,
       "path": "stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/alert_handler/rtl/alert_handler_reg_top.sv"
     },
     {
-      "median_ms": 1069.4,
-      "parse_ms": 1061.66,
+      "median_ms": 1256.27,
+      "parse_ms": 1248.19,
       "path": "stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/flash_ctrl/rtl/flash_ctrl_core_reg_top.sv"
     },
     {
-      "median_ms": 353.25,
-      "parse_ms": 345.51,
+      "median_ms": 382.26,
+      "parse_ms": 374.18,
       "path": "stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_pkg.sv"
     },
     {
-      "median_ms": 4274.63,
-      "parse_ms": 4266.89,
+      "median_ms": 4639.57,
+      "parse_ms": 4631.49,
       "path": "stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/pinmux/rtl/pinmux_reg_top.sv"
     },
     {
-      "median_ms": 1557.43,
-      "parse_ms": 1549.69,
+      "median_ms": 1717.54,
+      "parse_ms": 1709.47,
       "path": "stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen/rv_plic/rtl/rv_plic_reg_top.sv"
     },
     {
-      "median_ms": 328.32,
-      "parse_ms": 320.57,
+      "median_ms": 379.34,
+      "parse_ms": 371.26,
       "path": "stimuli/sv/subs/opentitan/hw/top_earlgrey/rtl/autogen/top_earlgrey.sv"
     },
     {
-      "median_ms": 1097.29,
-      "parse_ms": 1089.55,
+      "median_ms": 1245.11,
+      "parse_ms": 1237.03,
       "path": "stimuli/sv/subs/opentitan/hw/top_englishbreakfast/ip_autogen/flash_ctrl/rtl/flash_ctrl_core_reg_top.sv"
     },
     {
-      "median_ms": 331.73,
-      "parse_ms": 323.98,
+      "median_ms": 354.07,
+      "parse_ms": 345.99,
       "path": "stimuli/sv/subs/opentitan/hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_reg_pkg.sv"
     },
     {
-      "median_ms": 4018.61,
-      "parse_ms": 4010.86,
+      "median_ms": 4351.73,
+      "parse_ms": 4343.65,
       "path": "stimuli/sv/subs/opentitan/hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_reg_top.sv"
     },
     {
-      "median_ms": 756.18,
-      "parse_ms": 748.44,
+      "median_ms": 825.43,
+      "parse_ms": 817.36,
       "path": "stimuli/sv/subs/opentitan/hw/top_englishbreakfast/ip_autogen/rv_plic/rtl/rv_plic_reg_top.sv"
     },
     {
-      "median_ms": 1142.66,
-      "parse_ms": 1134.92,
+      "median_ms": 1293.0,
+      "parse_ms": 1284.93,
       "path": "stimuli/sv/subs/verilator/test_regress/t/t_case_write1_tasks.v"
     },
     {
-      "median_ms": 2356.23,
-      "parse_ms": 2348.48,
+      "median_ms": 2553.72,
+      "parse_ms": 2545.64,
       "path": "stimuli/sv/subs/verilator/test_regress/t/t_math_synmul_mul.v"
     },
     {
-      "median_ms": 276.33,
-      "parse_ms": 268.59,
+      "median_ms": 299.47,
+      "parse_ms": 291.39,
       "path": "stimuli/sv/subs/verilator/test_regress/t/t_math_wallace_mul.v"
     }
   ],
   "probe": "rust/target/release/parseability_probe",
   "probe_parser_matches_generated": true,
-  "probe_parser_sha256": "48d68d913dee646be2cb58518228b949de8206cbfed2ddcce8b9417f97264c55",
-  "process_floor_ms": 7.742,
+  "probe_parser_sha256": "8c7f336ca851f7a2bead8aca300ff79a8b7ec429e55edfab5fa9352a29df5974",
+  "process_floor_ms": 8.076,
   "repeats": 3,
-  "total_parse_ms": 42453.1,
-  "total_raw_ms": 42762.8
+  "total_parse_ms": 47375.9,
+  "total_raw_ms": 47698.9
 }
