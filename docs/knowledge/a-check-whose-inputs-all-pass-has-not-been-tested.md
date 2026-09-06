@@ -14,6 +14,8 @@ answers:
   - "my before/after guard defaults to HEAD — why does it stop working after I commit"
   - "my control asserts an exact value and still passed under a broken implementation — how"
   - "how do I prove a ground-truth arm can actually go RED"
+  - "my corpus pre-screen reported zero movers — how do I know its regex could see one at all"
+  - "my accepting control REJECTS on HEAD as well as on the candidate — what does that tell me about the change"
   - "how should I choose the input fixture for a synthetic control"
   - "is mutation testing worth it for a shell or python check script"
 tags: [instrument-honesty, ground-truth, verification, corpus, adjudication, controls, staleness, mutation-testing, fixtures]
@@ -167,3 +169,21 @@ Three cheap remedies, in increasing strength:
 ⇒ add two questions to the one above: **"if something unrelated were also broken right now, would
 this arm still pass?"** and **"six months from now, could a reader tell from the transcript WHY it
 passed?"**
+
+## 2026-09-05 addendum (`SV-CORPUS-GRAD.3.38`, `PGEN-SV-CORPUS-GRAD-0369`) — two more shapes of the same rule
+
+**A textual pre-screen that RETURNS files has still not been tested.** The broad corpus grep for a
+packed `[]` (ugrep 7.8.4, `-E`) returned 33 files, and the interpreter pre-screen over them plus every
+DPI-import file read *zero movers* — while 5 of the 6 files the slice was opened on were not in the list.
+Four one-line variants on `br_ml20181012b.v` pinned it: a `\\` alternative inside the follow-group
+(`(\[|\{|\\|[A-Za-z_])`) makes ugrep's regex fail on `reg [] illegal;` itself (`0` with it, `1` without).
+A list that is non-empty looks tested and is not; the control is to run the instrument on the KNOWN
+positive first — the rows the slice was opened on — and only then trust its zero. The pre-screen is now
+tracked and parametric (`docs/tasks/artifacts/sv_corpus_grad/prescreen/`), and its candidate list is
+seeded with those rows by construction.
+
+**An accepting control must be run on HEAD before its verdict on the candidate means anything.** The
+DPI control — every formal type of IEEE 1800-2017 §35.5.6.1's own list — REJECTED at byte 1313 on HEAD
+*and* on the candidate. The change was innocent: the control's own line `inout byte unsigned [] d` puts
+a packed dimension on an integer ATOM type, which A.2.2.1 never allows. Eleven one-line modules under the
+interpreter, HEAD vs candidate, found it in one run. A control's text is a claim like any other.

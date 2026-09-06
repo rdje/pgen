@@ -765,6 +765,59 @@ def _unmatched_lookahead_terminals(base_tot, new_tot, ctx):
                   f"{d_memo:,} guard attempts, and no rule committed a different number of frames")
 
 
+def _baseline_edges(ctx):
+    """The BASELINE grammar's reference graph, DERIVED at evaluation time — never read from a stored copy.
+
+    ⛔ THE STORED COPY DRIFTED, AND NOTHING NOTICED (`SV-CORPUS-GRAD.3.38`, 2026-09-06). A tracked
+    `rule_graph.json` had been committed once (`PGEN-SV-CORPUS-GRAD-0261`) and, by the ratchet's own
+    R1/R3 rule, never promoted again — so the three predicates that read it as `base_edges` were
+    reading a graph from grammar `4ebcc61b…` (1 485 rules) against a baseline of `1e2ad24a…` (1 545
+    rules): twenty releases and sixty rules stale. Nothing refused because every reader used it only
+    as a SUPERSET of known names; the first predicate to need the baseline's TRUE edges — which
+    pre-existing rules were re-spelled — reported 117 hosts on a change that re-spelled two. The
+    stored file is deleted; this derives the graph from the committed grammar revision whose raw_ast
+    digest equals the baseline's recorded digest (`docs/DERIVED_STATE_CONTAINMENT.md` R1/R3: a field
+    a command answers exactly is looked up), and REFUSES when no committed revision reproduces it —
+    an acceptance evaluated against a guessed baseline graph is worse than none.
+    """
+    base_digest = ctx.get("base_grammar_digest")
+    if not base_digest:
+        raise RuntimeError("the baseline records no grammar raw_ast digest, so its reference graph "
+                           "cannot be derived")
+    scratch = os.path.dirname(ctx["graph"])
+    cache = os.path.join(scratch, "baseline_rule_graph.json")
+    if os.path.isfile(cache):
+        with open(cache, encoding="utf-8") as fh:
+            g = json.load(fh)
+        if g.get("grammar_raw_ast_sha256") == base_digest:
+            return g["edges"]
+    revs = subprocess.run(["git", "-C", ROOT, "log", "--format=%H", "-n", "80", "HEAD", "--",
+                           GRAMMAR_FILE], capture_output=True, text=True).stdout.split()
+    tried = []
+    tmp_rel = os.path.relpath(os.path.join(scratch, "baseline_grammar.ebnf"), ROOT)
+    for rev in ["HEAD"] + revs:
+        shown = subprocess.run(["git", "-C", ROOT, "show", f"{rev}:{GRAMMAR_FILE}"],
+                               capture_output=True, text=True)
+        if shown.returncode != 0:
+            continue
+        with open(os.path.join(ROOT, tmp_rel), "w", encoding="utf-8") as fh:
+            fh.write(shown.stdout)
+        g = CONTAINMENT.derive_graph(tmp_rel)
+        tried.append((rev[:12], g["grammar_raw_ast_sha256"][:16]))
+        if g["grammar_raw_ast_sha256"] == base_digest:
+            g["_derivation"] = (f"the BASELINE grammar's raw_ast rule-reference graph, derived at evaluation "
+                                f"time from `git show {rev}:{GRAMMAR_FILE}` (raw_ast {base_digest[:16]}…)")
+            g["grammar"] = f"{rev}:{GRAMMAR_FILE}"
+            with open(cache, "w", encoding="utf-8") as fh:
+                json.dump(g, fh, indent=1, sort_keys=True)
+            return g["edges"]
+        if len({d for _, d in tried}) >= 12:
+            break
+    raise RuntimeError(f"no committed revision of {GRAMMAR_FILE} reproduces the baseline's raw_ast digest "
+                       f"`{base_digest[:16]}…` (tried {len(tried)}: "
+                       + ", ".join(f"{r}={d}…" for r, d in tried[:6]) + ")")
+
+
 def _contained_in_introduced_subgraph(base_tot, new_tot, ctx):
     """The rise is CONFINED to the sub-graph the change introduced: no accepted derivation got
     dearer, no rule lost entries, and every rule whose entries rose is reachable — in the measured
@@ -1010,11 +1063,7 @@ def _declared_alternatives_net_of_retired_work(base_tot, new_tot, ctx):
                            f"`{ctx['grammar_digest'][:16]}…`")
     base_rules = CONTAINMENT.read_rule_costs(ctx["base_rule_costs"])
     new_rules = CONTAINMENT.read_rule_costs(ctx["new_rule_costs"])
-    base_graph_path = f"{ART}/rule_graph.json"
-    base_edges = None
-    if os.path.isfile(base_graph_path):
-        with open(base_graph_path, encoding="utf-8") as fh:
-            base_edges = json.load(fh).get("edges")
+    base_edges = _baseline_edges(ctx)
     return _net_of_retired_work_verdict(base_rules, new_rules, graph["edges"], ctx["introduced"],
                                         new_tot["committed"] - base_tot["committed"], base_edges)
 
@@ -1046,12 +1095,46 @@ def _introduced_wrapper_frames(base_tot, new_tot, ctx):
                            f"`{ctx['grammar_digest'][:16]}…`")
     base_rules = CONTAINMENT.read_rule_costs(ctx["base_rule_costs"])
     new_rules = CONTAINMENT.read_rule_costs(ctx["new_rule_costs"])
-    base_graph_path = f"{ART}/rule_graph.json"
-    base_edges = None
-    if os.path.isfile(base_graph_path):
-        with open(base_graph_path, encoding="utf-8") as fh:
-            base_edges = json.load(fh).get("edges")
+    base_edges = _baseline_edges(ctx)
     holds, detail, _facts = CONTAINMENT.introduced_wrapper_frames(
+        base_rules, new_rules, graph["edges"], ctx["introduced"],
+        new_tot["committed"] - base_tot["committed"], base_edges)
+    return holds, detail
+
+
+def _scope_gated_arm(base_tot, new_tot, ctx):
+    """ONE arm of a pre-existing rule goes behind a SCOPE (`SV-CORPUS-GRAD.3.38`: IEEE 1800-2017 Annex A
+    footnote 20 — the unsized packed dimension `[]` only inside a DPI import declaration). The change
+    introduces marker wrappers that open/close the scope around pre-existing terminals, a gated wrapper
+    on the arm, and a guard lookahead on the sibling arm that consults a pre-existing memoized rule;
+    the HOSTS whose bodies were re-spelled are asked, answered and committed exactly as before. Holds
+    when every new rule is declared, the hosts (DERIVED from the two reference graphs) are unchanged
+    in all three counters, NO pre-existing rule commits differently in either direction, the run's
+    `Δcommitted` is exactly the markers' own frames (each bounded by what it wraps), every pre-existing
+    entry rise sits inside the sub-graph reachable from the introduced rules and their hosts and is
+    memo-dominated (the work re-done net of memo hits is at most the introduced rules' own entries),
+    and every pre-existing entry FALL sits inside the introduced sub-graph and is at most the memo hits
+    the introduced rules gained (a memoized wrapper answering in the wrapped rule's place). The
+    predicate and its refusal arms live in `scripts/parse_cost_containment.py` (`scope_gated_arm`,
+    `--self-test`); its docstring says why the other ten cannot cover this shape and carries the
+    honest bound (the wrapper frame is the cost of the rule-level `@predicate` placement, not proven
+    unavoidable; the guard has real misses at single-optional packed sites)."""
+    if CONTAINMENT is None:
+        raise RuntimeError(f"scripts/parse_cost_containment.py could not be imported "
+                           f"({CONTAINMENT_IMPORT_ERROR}), so this acceptance cannot be evaluated")
+    graph_path = ctx["graph"]
+    if not os.path.isfile(graph_path):
+        raise RuntimeError(f"the measured grammar's reference graph is missing ({os.path.relpath(graph_path, ROOT)})")
+    with open(graph_path, encoding="utf-8") as fh:
+        graph = json.load(fh)
+    if ctx["grammar_digest"] and graph.get("grammar_raw_ast_sha256") != ctx["grammar_digest"]:
+        raise RuntimeError(f"the reference graph was derived from grammar raw_ast "
+                           f"`{str(graph.get('grammar_raw_ast_sha256'))[:16]}…` but this tree's is "
+                           f"`{ctx['grammar_digest'][:16]}…`")
+    base_rules = CONTAINMENT.read_rule_costs(ctx["base_rule_costs"])
+    new_rules = CONTAINMENT.read_rule_costs(ctx["new_rule_costs"])
+    base_edges = _baseline_edges(ctx)
+    holds, detail, _facts = CONTAINMENT.scope_gated_arm(
         base_rules, new_rules, graph["edges"], ctx["introduced"],
         new_tot["committed"] - base_tot["committed"], base_edges)
     return holds, detail
@@ -1068,6 +1151,7 @@ INVARIANTS = {
     "caller_split_containment": _caller_split_containment,
     "advanced_files_only": _advanced_files_only,
     "introduced_wrapper_frames": _introduced_wrapper_frames,
+    "scope_gated_arm": _scope_gated_arm,
 }
 
 # ⛔ WHICH INVARIANTS TAKE A SCOPE, AND THE CHECK IS TWO-SIDED. A containment row with no
@@ -1076,7 +1160,8 @@ INVARIANTS = {
 INVARIANTS_TAKING_INTRODUCED = {"contained_in_introduced_subgraph", "declared_alternatives_net_of_retired_work",
                                 "profile_split_respelling",
                                 "host_memo_eviction", "caller_split_containment",
-                                "advanced_files_only", "introduced_wrapper_frames"}
+                                "advanced_files_only", "introduced_wrapper_frames",
+                                "scope_gated_arm"}
 NO_INTRODUCED = "-"
 
 
@@ -1237,7 +1322,8 @@ if REMEASURE or REBASELINE:
                        "base_entries": os.path.join(ROOT, ART, "entries.tsv"),
                        "new_entries": os.path.join(scratch, "entries.tsv"),
                        "graph": os.path.join(scratch, "rule_graph.json"),
-                       "grammar_digest": live.get("grammar raw ast")}
+                       "grammar_digest": live.get("grammar raw ast"),
+                       "base_grammar_digest": ident.get("grammar raw ast", (None, None))[1]}
                 try:
                     holds, detail = INVARIANTS[invariant](base_tot, new_tot, ctx)
                 except Exception as exc:
@@ -1285,6 +1371,9 @@ if REMEASURE or REBASELINE:
             # tracked grammar, and a field a command answers exactly is looked up, never stored
             # (`docs/DERIVED_STATE_CONTAINMENT.md` R1/R3). `rule_costs.tsv` IS promoted: it is a
             # measurement, and nothing but a re-run can produce it.
+            # ⛔ And since `SV-CORPUS-GRAD.3.38` the BASELINE's graph is not stored either:
+            # `_baseline_edges` derives it from the committed grammar revision whose raw_ast digest
+            # the identity table records — the stored copy had drifted sixty rules unnoticed.
             for name in ("entries.tsv", "rule_costs.tsv", "cost.md", "advisory.json"):
                 shutil.copyfile(os.path.join(scratch, name), os.path.join(ROOT, ART, name))
             print(f"parse-cost-ratchet: REBASELINED — {ART} now records this measurement.",

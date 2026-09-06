@@ -4,6 +4,7 @@ Surelog	tests/InvalidTypeParam/dut.sv	UNCITED
 Surelog	tests/MaskNeg/dut.sv	UNCITED	
 Surelog	tests/ParamNoDefault/dut.sv	UNCITED	
 Surelog	tests/SynthForeach/dut.sv	IDENTICAL	loop_statement:IDENTICAL loop_variables:IDENTICAL struct_union_member:IDENTICAL
+Surelog	tests/UnsizedPacked/dut.sv	IDENTICAL	packed_dimension:IDENTICAL variable_dimension:IDENTICAL
 iverilog	ivtest/ivltests/br_gh390a.v	DIFFERS	class_constructor_declaration:DIFFERS
 iverilog	ivtest/ivltests/sv_new_array_error.v	IDENTICAL	variable_decl_assignment:IDENTICAL
 iverilog	ivtest/ivltests/sv_void_cast_fail3.v	IDENTICAL	subroutine_call_statement:IDENTICAL

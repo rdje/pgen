@@ -171,6 +171,19 @@ EXTRA_PINNED = {
         "pinned .3.37: line 25 `reg  global;` - `global` is a reserved word (IEEE 1800-2017 Annex B Table B.1, docs/systemverilog/2017/md/section-41-data-read-api.md:3599-3858; 1800-2009+), "
         "bound here as a variable name; the file is SystemVerilog (`typedef struct packed`), so the edition-keyword pass cannot certify it as "
         "1364-2005 text and the ruling is by hand. Verilator's own comment says it tolerates reserved names 'when possible'; the LRM does not"),
+    # ---- SV-CORPUS-GRAD.3.38 (PGEN-SV-CORPUS-GRAD-0369) ------------------------------------------
+    # The Surelog golden log keys this unit must_accept because Surelog's parser takes the unsized arm of
+    # packed_dimension at every site (its AST log: Packed_dimension > Unsized_dimension at l<5:5>) and its
+    # elaboration never checks footnote 20; the unit itself names the variable `illegal`. Spec outranks
+    # the golden. The iverilog twin (ivltests/br_ml20181012b.v, the same `reg [] illegal;`) is already
+    # keyed must_reject by IVTEST_CE_STAGE_CLUSTERS on the same footnote; this row makes the two agree.
+    ("Surelog", "tests/UnsizedPacked/dut.sv"): ("must_reject",
+        "pinned .3.38: line 5 `reg [] illegal;` at module level - IEEE 1800-2017 A.2.5 packed_dimension ::= [ constant_range ] | unsized_dimension "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:1058-1062) carries Annex A footnote 20 (:3522-3523): unsized_dimension is permitted "
+        "only as the sole packed dimension in a DPI import declaration; IEEE 1800-2023 keeps it verbatim as footnote 24 "
+        "(docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3487). Line 3 `reg legal [];` is the UNPACKED form (A.2.5 "
+        "variable_dimension ::= unsized_dimension | ..., :1070-1079) and stays legal. Surelog's golden log completes because its parser takes "
+        "the unsized arm at every site and its elaboration never checks the footnote; the pin invalid_packed_unsized_outside_dpi_import.sv guards it"),
     # ---- SV-CORPUS-GRAD.13y (PGEN-SV-CORPUS-GRAD-0364) ------------------------------------------
     # .13y (b): three rows that PASSED only through the footnote-6 mis-derivation the .3.35 grammar
     # closes (a leading statement read as an implicit-type declaration) and now stop where Annex A stops.

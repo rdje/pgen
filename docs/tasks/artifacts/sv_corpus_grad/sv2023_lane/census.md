@@ -10,11 +10,11 @@ Both lanes parse the SAME population — every `.sv` / `.svh` / `.v` file under 
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `8f7a9dea8127eafcae924f4990d9a24c789788d5a243f63f651c1b1497a1f9eb` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `1e2ad24a6550f631b0a712fb5f40d5eca70d0920915653cb868af1dca722ccef` |
-| sv_2017 results (output) | `stimuli/sv/characterization/results.tsv` | `a36818d015123d07d5b675125a972c3f63a3ce1495c753d3ccd26199902456ad` |
-| sv_2023 results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `6c57b4dc928e6641d75c96566972173ca207544929a18be1cb93c4bfbbac1277` |
-| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `02b98e38c03bb70902c6b9062cefb61d276b88d8d34e41667a4d6074e70d2247` |
+| parse binary | `rust/target/release/parseability_probe` | `788d7ade08d1301cc3c518d915d607506476907545b67e5cbb8425890a887b58` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `cddbecf6a94f7803b0496f234bb59da20b868c6be698e87736afa7119770e6a5` |
+| sv_2017 results (output) | `stimuli/sv/characterization/results.tsv` | `afabadb2da8d29c05ca6db0504953e0b309a6dd2d0d8eb15d14e2f89b3007518` |
+| sv_2023 results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `2ab53dddfcc02d1ac829d63ff2860d2244f9ad7d416ce321c19bcec7881f7872` |
+| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `600f7126f4cd997e9c09ae26021c6303ba228b3b4dd25ecc9a7f51a367037aca` |
 
 ## The matrix
 
@@ -22,8 +22,8 @@ Rows joined: **16336**; only in the sv_2017 lane: **0**; only in the sv_2023 lan
 
 | cell | rows | meaning |
 |---|---|---|
-| `both_pass` | 9782 | parses under both editions |
-| `both_nonpass` | 6533 | parses under neither |
+| `both_pass` | 9780 | parses under both editions |
+| `both_nonpass` | 6535 | parses under neither |
 | `2023_only_pass` | 21 | the 1800-2023 widening the corpus exercises — `must_accept` on a 2023 lane (`.14b`) |
 | `2017_only_pass` | 0 | a 2023-profile REGRESSION candidate — a parser question until adjudicated |
 
@@ -31,8 +31,8 @@ Rows joined: **16336**; only in the sv_2017 lane: **0**; only in the sv_2023 lan
 
 | sv_2017 | sv_2023 | rows |
 |---|---|---|
-| `pass` | `pass` | 9782 |
-| `fail` | `fail` | 6533 |
+| `pass` | `pass` | 9780 |
+| `fail` | `fail` | 6535 |
 | `fail` | `pass` | 21 |
 
 ## Every row whose verdict differs

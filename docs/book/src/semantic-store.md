@@ -559,7 +559,12 @@ small open-marker rule that matches only the opener token**, and bind
 opens only after the region it was meant to cover has already parsed. The
 regex grammar's lookarounds (`lookahead_pos_open` / `lookahead_pos`) and, since
 `SV-CORPUS-GRAD.3.29`, the SystemVerilog grammar's cross body both use that
-shape. The SystemVerilog case is the smallest complete example of a scope used
+shape — as does, since `SV-CORPUS-GRAD.3.38`, the SystemVerilog DPI import
+declaration: its `"DPI-C"` spec string opens a `dpi_import` scope (on the token
+unique to the construct, not on the `import` keyword a package import shares), its
+`;` closes it, and the unsized packed dimension `[]` that IEEE 1800-2017 Annex A
+footnote 20 permits *only there* is gated `in_scope_kind(dpi_import)` as a `post`
+predicate. The cross case is the smallest complete example of a scope used
 for **containment** — IEEE 1800-2017 §19.6.1.3 makes `CrossValType` and
 `CrossQueueType` implicit typedefs *in the body of a cross and nowhere else*:
 

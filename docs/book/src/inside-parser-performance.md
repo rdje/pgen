@@ -516,14 +516,20 @@ the **exact** from/to integers, plus an `invariant` that is **code in the gate**
 re-evaluated against the fresh measurement. A row therefore cannot cover a different rise, cannot
 cover a rise of a different shape without a code change, and cannot outlive its own justification.
 
-Three of the ten coded invariants are exact arithmetic identities over the three binding totals —
-rule entries, memo hits, committed entries. The other seven are per-rule or per-file predicates that read
+Three of the eleven coded invariants are exact arithmetic identities over the three binding totals —
+rule entries, memo hits, committed entries. The other eight are per-rule or per-file predicates that read
 the measured grammar's own reference graph: a rise confined to an introduced sub-graph, a profile
 split that only moves work, a host rule's memo eviction, a rule split by caller, a rise on files that
-parse *further*, keyword alternatives admitted net of the work a re-spelling retired, and — the newest,
+parse *further*, keyword alternatives admitted net of the work a re-spelling retired,
 `introduced_wrapper_frames` (release `1.0.213`) — a `committed` rise that sits purely on the frames of
 a rule the change introduced as a lifted wrapper, bounded by the commits of the rules it wraps, with
-no pre-existing rule committing more. Each has refusal arms in its self-test, so a row cannot
+no pre-existing rule committing more — and, the newest, `scope_gated_arm` (release `1.0.214`): one arm
+of a pre-existing rule goes behind a scope, so the hosts whose bodies were re-spelled (derived from the
+two reference graphs) are asked, answered and committed exactly as before, no pre-existing rule commits
+differently in either direction, the run's `committed` rise is exactly the scope markers' own frames,
+every pre-existing entry rise sits inside the gated construct and is bounded by the entries of the rules
+that consult it, and every pre-existing entry fall is at most the memo hits the introduced memoized
+wrappers gained — shadowing, never lost work. Each has refusal arms in its self-test, so a row cannot
 borrow an invariant whose shape it does not have. For example, admitting one more keyword alternative into
 an ordered choice costs, at every position the choice is attempted, exactly two entries (the
 terminal's own body, plus one *memoized* lookup of the shared whitespace prefix an earlier

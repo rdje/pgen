@@ -960,6 +960,303 @@ def self_test_introduced_wrapper_frames() -> int:
     return 1 if failed else 0
 
 
+def scope_gated_arm(base: dict[str, dict[str, int]], new: dict[str, dict[str, int]],
+                    edges: dict[str, list[str]], introduced: list[str],
+                    d_committed: int, base_edges: dict[str, list[str]] | None = None
+                    ) -> tuple[bool, str, dict]:
+    """`(holds, one-line detail, facts)` for the SCOPE-GATED-ARM predicate (`SV-CORPUS-GRAD.3.38`).
+
+    THE SHAPE. A grammar change puts ONE arm of a pre-existing rule behind a SCOPE. It introduces
+    marker wrappers around pre-existing terminals that open and close the scope
+    (`dpi_import_spec_open := dpi_spec_string`, `dpi_import_close := semi`), a gated wrapper on the
+    arm (`dpi_open_packed_dimension := unsized_dimension !lbrack`, gated `in_scope_kind`), and a
+    guard lookahead on the sibling arm that CONSULTS a pre-existing memoized rule
+    (`!unsized_dimension`). The HOSTS — the pre-existing rules whose bodies were re-spelled to
+    consult the new rules (`packed_dimension`, `dpi_import_export`) — are entered, answered and
+    committed exactly as before. Measured on `.3.38` over the pinned sample:
+    `dpi_open_packed_dimension` +79,340 entries (one per attempt of the arm it now fronts),
+    `unsized_dimension` +17,832 entries of which +17,733 are memo hits (the guard asks a memoized
+    rule at positions the star had already asked), the two markers +224 entries and +8 committed
+    (one frame per DPI import the sample accepts, bounded by what they wrap), and two pre-existing
+    rules FELL — `dpi_spec_string` -96 and `trivia` -93 — by exactly the memo hits the memoized
+    marker now answers in their place (`dpi_import_spec_open` memo_hits +96).
+
+    ⛔ WHY THE OTHER TEN CANNOT COVER IT. `contained_in_introduced_subgraph` refuses `Δcommitted > 0`
+    and any fall; `introduced_wrapper_frames` explains the committed half exactly but requires every
+    pre-existing entry rise to be covered by retired entries (17,931 against 189 here — the guard is
+    new consultation, not moved work); `caller_split_containment` needs `committed` conserved in
+    total; `host_memo_eviction` needs a host whose memo hits fall to zero; `profile_split_respelling`
+    refuses any pre-existing rise; `declared_alternatives_net_of_retired_work` asserts `committed`
+    did not rise; the three identities need shapes this is not; `advanced_files_only` is about files
+    that parse further. Every one of them is RIGHT to refuse what it refuses.
+
+    ⭐ WHAT THIS ONE ASSERTS, per rule and over the run:
+      (1) `introduced` is declared and non-empty, no declared name is a pre-existing NONTERMINAL
+          (raises `Refused`), and every rule name new to the measurement is declared;
+      (2) the HOSTS are DERIVED — every pre-existing rule whose reference list differs between the
+          baseline graph and the measured graph — non-empty, each consulting an introduced rule,
+          and each host's own `entries` / `committed` / `memo_hits` are UNCHANGED: the change moved
+          what the host consults, never how often the host is asked or answered;
+      (3) NO pre-existing rule's `committed` moved in EITHER direction — a narrowing that changed an
+          accepted derivation in the sample would show here and is a different shape — and the
+          run's `Δcommitted` equals the introduced rules' own frames, each introduced nonterminal
+          committing at most as often as the rules it wraps (`trivia` excluded);
+      (4) every pre-existing rule whose `entries` ROSE is reachable, in the measured grammar's own
+          reference graph, from an introduced rule or a host (the guard's consultations stay inside
+          the construct), and each riser rose by at most the entries of the introduced rules and
+          hosts that consult it — a consulter asks once more per entry, never "everywhere"; the
+          misses (rise net of memo hits) are REPORTED, not thresholded;
+      (5) every pre-existing rule whose `entries` FELL is reachable from an introduced rule and the
+          total fall is at most the memo hits the introduced rules gained — a memoized wrapper
+          answering in the wrapped rule's place, never lost work (its commits are unchanged by (3)).
+
+    ⚠️⚠️ HONEST BOUND, stated where it will be read: this proves the rise is CONFINED to the gated
+    construct, that the guard buys memo hits rather than work, and that nothing the parser already
+    accepted got dearer. It does NOT prove the arm's wrapper frame is unavoidable — an in-branch
+    `@predicate` placement (`ANNOTATION-PLACEMENT`) would retire the wrapper and its frame — nor
+    that the guard lookahead is free (99 real misses at single-optional packed sites). Say so in
+    the row's `why`, and name the leaf that removes it.
+
+    Raises `Refused` (never a false verdict) when the scope is undeclared, names a rule the grammar
+    lacks, names a pre-existing nonterminal, wraps nothing, or when the baseline graph needed to
+    derive the hosts is absent.
+    """
+    if not introduced:
+        raise Refused("the scope-gated-arm predicate needs the rule names the change INTRODUCED; "
+                      "the acceptance row declares none, so the gated construct is unattributed")
+    if base_edges is None:
+        raise Refused("the scope-gated-arm predicate derives the re-spelled HOSTS from the baseline "
+                      "reference graph, and no baseline graph was given")
+    declared = list(dict.fromkeys(introduced))
+    known_before = set(base) | set(base_edges)
+    for r in declared:
+        if r not in new and r not in edges:
+            raise Refused(f"`{r}` is declared as introduced but the measured grammar has no such rule")
+        if r in known_before:
+            refs = [x for x in edges.get(r, []) if x != "trivia"]
+            if refs:
+                raise Refused(f"`{r}` pre-existed and is a NONTERMINAL — `introduced` may name new rules "
+                              f"and the terminals they consult; declaring a pre-existing nonterminal "
+                              f"would waive real work on it")
+    facts: dict = {"introduced": declared}
+    undeclared_new = sorted(r for r in new if r not in known_before and r not in declared)
+    facts["undeclared_new"] = undeclared_new
+    if undeclared_new:
+        return False, (f"{len(undeclared_new)} rule name(s) new to the measurement are not declared as "
+                       f"introduced: " + " ".join(undeclared_new[:5])), facts
+    intro_new = [r for r in declared if r not in known_before]
+
+    # (2) the hosts, DERIVED from the two graphs
+    hosts = sorted(r for r in edges if r in known_before and r not in declared
+                   and set(edges.get(r, [])) != set(base_edges.get(r, [])))
+    facts["hosts"] = hosts
+    if not hosts:
+        return False, ("no pre-existing rule's reference list changed — a gated arm re-spells its "
+                       "host, and no host was found"), facts
+    orphan_hosts = [h for h in hosts if not any(x in declared for x in edges.get(h, []))]
+    if orphan_hosts:
+        return False, (f"{len(orphan_hosts)} pre-existing rule(s) were re-spelled without consulting an "
+                       f"introduced rule: " + " ".join(orphan_hosts[:5]) + " — not a gated arm"), facts
+    host_moved = []
+    for h in hosts:
+        for k in ("entries", "committed", "memo_hits"):
+            if new.get(h, {}).get(k, 0) != base.get(h, {}).get(k, 0):
+                host_moved.append((h, k, new.get(h, {}).get(k, 0) - base.get(h, {}).get(k, 0)))
+    facts["host_moved"] = host_moved
+    if host_moved:
+        h, k, v = host_moved[0]
+        return False, (f"host `{h}` is asked or answered differently ({k} {v:+,}) — the change moved more "
+                       f"than what the host consults"), facts
+
+    # (3) committed
+    names = set(base) | set(new)
+    dc = {r: new.get(r, {}).get("committed", 0) - base.get(r, {}).get("committed", 0) for r in names}
+    pre_moved = sorted((r, v) for r, v in dc.items() if v != 0 and r not in declared)
+    facts["pre_existing_committed_moved"] = pre_moved
+    if pre_moved:
+        return False, (f"{len(pre_moved)} pre-existing rule(s) COMMIT differently: "
+                       + " ".join(f"{r} {v:+,}" for r, v in pre_moved[:5])
+                       + " — the sample's accepted derivations moved, which a gate on one arm must not do"), facts
+    over = []
+    for r in intro_new:
+        refs = [x for x in edges.get(r, []) if x != "trivia"]
+        if r not in edges:
+            continue
+        if not refs:
+            raise Refused(f"introduced rule `{r}` references nothing — a wrapper wraps something")
+        own = new.get(r, {}).get("committed", 0)
+        wrapped = sum(new.get(x, {}).get("committed", 0) for x in refs)
+        if own > wrapped:
+            over.append((r, own, wrapped))
+    facts["wrapper_over_wrapped"] = over
+    if over:
+        r, own, wrapped = over[0]
+        return False, (f"introduced `{r}` committed {own:,} frames but the rules it wraps committed only "
+                       f"{wrapped:,} in total — a wrapper frame without a wrapped one"), facts
+    intro_commits = sum(new.get(r, {}).get("committed", 0) for r in intro_new)
+    facts["introduced_commits"] = intro_commits
+    if intro_commits != d_committed:
+        return False, (f"the per-rule table says committed moved {intro_commits:+,} (the introduced rules' "
+                       f"own frames) but the run's total moved {d_committed:+,} — the row's from/to is not "
+                       f"this table's arithmetic"), facts
+
+    # (4) rises — confined, and memo-dominated
+    known = set(edges) | {x for refs in edges.values() for x in refs}
+    origins = {r: origin_rule(r, known) for r in names}
+    unplaced = sorted(r for r, o in origins.items() if o is None)
+    if unplaced:
+        raise Refused(f"{len(unplaced)} measured rule(s) cannot be located in the grammar's reference "
+                      f"graph: {unplaced[:5]}{' …' if len(unplaced) > 5 else ''}")
+    de = {r: new.get(r, {}).get("entries", 0) - base.get(r, {}).get("entries", 0) for r in names}
+    dm = {r: new.get(r, {}).get("memo_hits", 0) - base.get(r, {}).get("memo_hits", 0) for r in names}
+    scope = reachable(edges, declared + hosts)
+    risers = {r: v for r, v in de.items() if v > 0 and r not in declared}
+    escaped = {r: v for r, v in risers.items() if origins[r] not in scope}
+    facts["risers"] = risers
+    facts["escaped"] = escaped
+    if escaped:
+        worst = sorted(escaped.items(), key=lambda t: -t[1])[:3]
+        return False, (f"{len(escaped)} pre-existing rule(s) rose OUTSIDE the sub-graph reachable from the "
+                       f"introduced rules and their hosts ({sum(escaped.values()):+,}): "
+                       + ", ".join(f"{r} {v:+,}" for r, v in worst)), facts
+    # each riser is consulted at most once more per entry of a consulter the change gave it: an
+    # introduced rule that references it, or a host whose re-spelling references it. ⚠️ The graph
+    # is a SET of references per rule, so a host that gained TWO sites for one rule reads as one;
+    # the shapes this predicate is for (a guard, a fronting wrapper) add one site per host.
+    consulters = {r: [c for c in list(intro_new) + hosts if origins[r] in edges.get(c, [])
+                      or r in edges.get(c, [])] for r in risers}
+    unbounded = {}
+    for r, v in risers.items():
+        cap = sum(new.get(c, {}).get("entries", 0) for c in consulters[r])
+        if v > cap:
+            unbounded[r] = (v, cap)
+    facts["riser_consulters"] = consulters
+    facts["unbounded_risers"] = unbounded
+    if unbounded:
+        r, (v, cap) = sorted(unbounded.items(), key=lambda t: -t[1][0])[0]
+        return False, (f"`{r}` rose {v:+,} entries but the introduced rules and hosts that consult it are "
+                       f"entered only {cap:,} times in total — more consultation than the construct can "
+                       f"make"), facts
+    misses = sum(v - dm.get(r, 0) for r, v in risers.items())
+    facts["pre_existing_misses"] = misses
+
+    # (5) falls — memo shadowing by an introduced memoized wrapper, never lost work
+    fallers = {r: v for r, v in de.items() if v < 0 and r not in declared}
+    scope_intro = reachable(edges, declared)
+    stray = {r: v for r, v in fallers.items() if origins[r] not in scope_intro}
+    facts["fallers"] = fallers
+    facts["stray_fallers"] = stray
+    if stray:
+        worst = sorted(stray.items(), key=lambda t: t[1])[:3]
+        return False, (f"{len(stray)} pre-existing rule(s) LOST entries outside the introduced rules' "
+                       f"sub-graph ({sum(stray.values()):+,}): "
+                       + ", ".join(f"{r} {v:+,}" for r, v in worst)
+                       + " — a fall no introduced memo can explain"), facts
+    total_fall = sum(-v for v in fallers.values())
+    intro_memo = sum(max(0, dm.get(r, 0)) for r in intro_new)
+    facts["total_fall"] = total_fall
+    facts["introduced_memo_hits"] = intro_memo
+    if total_fall > intro_memo:
+        return False, (f"pre-existing rules lost {total_fall:,} entries but the introduced rules gained only "
+                       f"{intro_memo:,} memo hits — the fall is not memo shadowing"), facts
+    return True, (f"hosts {' '.join(hosts)} asked/answered/committed exactly as before; introduced "
+                  f"{' '.join(declared)} commit {intro_commits:,} frames (= Δcommitted, each bounded by what "
+                  f"it wraps), no pre-existing rule commits differently; {len(risers):,} pre-existing riser(s) "
+                  f"(+{sum(risers.values()):,}) all inside the gated construct, each bounded by its consulters' entries, "
+                  f"{misses:+,} of them misses (the rest memo hits); {len(fallers):,} faller(s) "
+                  f"(-{total_fall:,}) inside the introduced sub-graph, covered by {intro_memo:,} introduced memo "
+                  f"hits"), facts
+
+
+def self_test_scope_gated_arm() -> int:
+    """Arms for the SCOPE-GATED-ARM predicate — every refusal and failure shape, no parser."""
+    def row(e, c, m):
+        return {"entries": e, "committed": c, "memo_hits": m}
+    # the founding shape in miniature: host `pd` (packed_dimension) gains a guard on its range arm and
+    # fronts its unsized arm with `gated`; host `imp` (dpi_import_export) takes the two markers
+    base_edges = {"pd": ["lb", "cr", "rb", "u"], "u": ["lb", "rb"], "imp": ["kw", "spec", "proto", "semi"],
+                  "lb": ["trivia"], "rb": ["trivia"], "cr": ["trivia"], "kw": ["trivia"], "spec": ["trivia"],
+                  "semi": ["trivia"], "proto": ["kw"], "trivia": [], "other": ["trivia"]}
+    edges = {"pd": ["lb", "cr", "rb", "u", "gated"], "gated": ["u", "lb"], "u": ["lb", "rb"],
+             "imp": ["kw", "open", "proto", "close"], "open": ["spec"], "close": ["semi"],
+             "lb": ["trivia"], "rb": ["trivia"], "cr": ["trivia"], "kw": ["trivia"], "spec": ["trivia"],
+             "semi": ["trivia"], "proto": ["kw"], "trivia": [], "other": ["trivia"]}
+    base = {"pd": row(796, 88, 2), "u": row(1532, 0, 360), "imp": row(804, 0, 6), "lb": row(33751, 758, 28248),
+            "rb": row(5093, 758, 3732), "cr": row(1691, 206, 753), "kw": row(500, 4, 0), "spec": row(200, 5, 0),
+            "semi": row(9000, 900, 100), "proto": row(20, 4, 0), "trivia": row(905000, 11810, 882090),
+            "other": row(50, 5, 10)}
+    new = {k: dict(v) for k, v in base.items()}
+    new["gated"] = row(793, 0, 1)                      # one entry per attempt of the arm it fronts
+    new["u"] = row(1532 + 178, 0, 360 + 177)           # the guard asks a memoized rule: 178 more, 177 hits
+    new["lb"] = row(33751 + 1, 758, 28248)             # the one real miss computes one bracket test
+    new["open"] = row(2, 4, 1)                         # the marker: 4 frames = the 4 imports, 1 memo hit
+    new["close"] = row(1, 4, 0)
+    new["spec"] = row(200 - 1, 5, 0)                   # shadowed by the marker's memo hit
+    new["trivia"] = row(905000 - 1, 11810, 882090 - 1)
+    def d_committed(b, n):
+        return sum(v["committed"] for v in n.values()) - sum(v["committed"] for v in b.values())
+    arms, failed = [], []
+    def arm(name, cond):
+        arms.append(name); print(f"  {'✓' if cond else '✗'} {name}")
+        if not cond: failed.append(name)
+    intro = ["open", "close", "gated"]
+    h, d, f = scope_gated_arm(base, new, edges, intro, d_committed(base, new), base_edges)
+    arm("holds: the founding shape — hosts unchanged, markers commit their 8, guard memo-dominated, falls shadowed",
+        h and f["hosts"] == ["imp", "pd"] and f["introduced_commits"] == 8 and f["total_fall"] == 2)
+    n2 = {k: dict(v) for k, v in new.items()}; n2["cr"]["committed"] = 207
+    h, d, f = scope_gated_arm(base, n2, edges, intro, d_committed(base, n2), base_edges)
+    arm("fails: a PRE-EXISTING rule commits MORE", not h and f["pre_existing_committed_moved"] == [("cr", 1)])
+    n3 = {k: dict(v) for k, v in new.items()}; n3["cr"]["committed"] = 205
+    h, d, f = scope_gated_arm(base, n3, edges, intro, d_committed(base, n3), base_edges)
+    arm("fails: a PRE-EXISTING rule commits LESS (an accepted derivation moved)", not h and f["pre_existing_committed_moved"] == [("cr", -1)])
+    n4 = {k: dict(v) for k, v in new.items()}; n4["pd"]["entries"] = 797
+    h, d, f = scope_gated_arm(base, n4, edges, intro, d_committed(base, n4), base_edges)
+    arm("fails: a HOST is asked more often", not h and f["host_moved"] == [("pd", "entries", 1)])
+    h, d, f = scope_gated_arm(base, new, edges, ["open", "close"], d_committed(base, new), base_edges)
+    arm("fails: an undeclared new rule (gated)", not h and f["undeclared_new"] == ["gated"])
+    n5 = {k: dict(v) for k, v in new.items()}; n5["other"]["entries"] = 60
+    h, d, f = scope_gated_arm(base, n5, edges, intro, d_committed(base, n5), base_edges)
+    arm("fails: a riser OUTSIDE the gated construct", not h and list(f["escaped"]) == ["other"])
+    n6 = {k: dict(v) for k, v in new.items()}; n6["u"] = row(1532 + 2000, 0, 360 + 1990)
+    h, d, f = scope_gated_arm(base, n6, edges, intro, d_committed(base, n6), base_edges)
+    arm("fails: a riser consulted more often than its consulters are entered", not h and list(f["unbounded_risers"]) == ["u"])
+    n7 = {k: dict(v) for k, v in new.items()}; n7["spec"]["entries"] = 150
+    h, d, f = scope_gated_arm(base, n7, edges, intro, d_committed(base, n7), base_edges)
+    arm("fails: a fall larger than the introduced memo hits", not h and f["total_fall"] == 51)
+    n8 = {k: dict(v) for k, v in new.items()}; n8["other"]["entries"] = 40
+    h, d, f = scope_gated_arm(base, n8, edges, intro, d_committed(base, n8), base_edges)
+    arm("fails: a faller outside the introduced sub-graph", not h and list(f["stray_fallers"]) == ["other"])
+    n9 = {k: dict(v) for k, v in new.items()}; n9["open"]["committed"] = 6
+    h, d, f = scope_gated_arm(base, n9, edges, intro, d_committed(base, n9), base_edges)
+    arm("fails: a marker commits MORE than the terminal it wraps", not h and f["wrapper_over_wrapped"][0][0] == "open")
+    h, d, f = scope_gated_arm(base, new, edges, intro, d_committed(base, new) + 1, base_edges)
+    arm("fails: the row's Δcommitted is not the table's arithmetic", not h and "not this table's arithmetic" in d)
+    e2 = {k: list(v) for k, v in edges.items()}; e2["pd"] = base_edges["pd"]; e2["imp"] = base_edges["imp"]
+    h, d, f = scope_gated_arm(base, new, e2, intro, d_committed(base, new), base_edges)
+    arm("fails: no host re-spelled (nothing consults the introduced rules)", not h and f["hosts"] == [])
+    e3 = {k: list(v) for k, v in edges.items()}; e3["other"] = ["trivia", "kw"]
+    h, d, f = scope_gated_arm(base, new, e3, intro, d_committed(base, new), base_edges)
+    arm("fails: a pre-existing rule re-spelled without consulting an introduced rule", not h and "not a gated arm" in d)
+    try:
+        scope_gated_arm(base, new, edges, [], d_committed(base, new), base_edges); arm("refuse: empty scope", False)
+    except Refused: arm("refuse: empty scope", True)
+    try:
+        scope_gated_arm(base, new, edges, intro, d_committed(base, new), None); arm("refuse: no baseline graph", False)
+    except Refused: arm("refuse: no baseline graph", True)
+    try:
+        scope_gated_arm(base, new, edges, intro + ["pd"], d_committed(base, new), base_edges); arm("refuse: a declared PRE-EXISTING nonterminal", False)
+    except Refused: arm("refuse: a declared PRE-EXISTING nonterminal", True)
+    try:
+        scope_gated_arm(base, new, edges, intro + ["zz"], d_committed(base, new), base_edges); arm("refuse: a declared name the grammar lacks", False)
+    except Refused: arm("refuse: a declared name the grammar lacks", True)
+    e4 = {k: list(v) for k, v in edges.items()}; e4["gated"] = []
+    try:
+        scope_gated_arm(base, new, e4, intro, d_committed(base, new), base_edges); arm("refuse: an introduced rule that wraps nothing", False)
+    except Refused: arm("refuse: an introduced rule that wraps nothing", True)
+    print(f"SCOPE-GATED-ARM-SELFTEST: arms={len(arms)} failed={len(failed)}")
+    return 1 if failed else 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--graph", metavar="EBNF",
@@ -977,7 +1274,8 @@ def main() -> int:
     try:
         if a.self_test:
             return (self_test_host_memo_eviction() | self_test_caller_split_containment()
-                    | self_test_advanced_files_only() | self_test_introduced_wrapper_frames())
+                    | self_test_advanced_files_only() | self_test_introduced_wrapper_frames()
+                    | self_test_scope_gated_arm())
 
         if a.graph:
             g = derive_graph(a.graph)

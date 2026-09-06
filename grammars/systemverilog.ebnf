@@ -2539,15 +2539,60 @@ dpi_function_import_property := kw_context_ec2727b3 -> {kind: "context"}
 dpi_function_proto := function_prototype
                    -> {body: $1}
 
+# SV-CORPUS-GRAD.3.38 — IEEE 1800-2017 ANNEX A FOOTNOTE 20 IS GRAMMAR: AN UNSIZED PACKED DIMENSION
+# `[]` IS LEGAL ONLY AS THE SOLE PACKED DIMENSION OF A DPI IMPORT DECLARATION.
+# A.2.5 `packed_dimension20 ::= [ constant_range ] | unsized_dimension`
+# (docs/systemverilog/2017/md/section-41-data-read-api.md:1058-1062) carries footnote 20
+# (:3522-3523): "In packed_dimension, unsized_dimension is permitted only as the sole packed
+# dimension in a DPI import declaration; see dpi_function_proto and dpi_task_proto." §35.5.6.1
+# (docs/systemverilog/2017/md/section-35-direct-programming-interface.md:550-564) is the prose:
+# "Formal arguments of imported functions can be specified as open arrays. (Exported SystemVerilog
+# functions cannot have formal arguments specified as open arrays.)" and "an unsized dimension shall be
+# the sole packed dimension of a formal argument" (:561-562). 1800-2023 keeps both verbatim (footnote 24,
+# docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3487; §35.5.6.1
+# docs/systemverilog/2023/md/section-35-direct-programming-interface.md:568-570). IEEE 1364-2005 has no
+# unsized dimension at all (`unsized_dimension` is already gated out of `verilog_2005`, .6.9).
+# Until 1.0.213 the unsized arm of `packed_dimension` was taken at EVERY site, so `reg [] illegal;`
+# (iverilog br_ml20181012b.v, Surelog UnsizedPacked/dut.sv) parsed at module level.
+# THE SPELLING — the `.3.29` scope mechanism, exact: the DPI spec string OPENS a `dpi_import` scope
+# (a marker on the second element, so a package import `import pkg::*;` — whose `import` keyword the
+# same alternatives try first — never opens one, and the two EXPORT alternatives, which carry no
+# prototype, never do either) and the declaration's `;` CLOSES it; a speculative alternative that fails
+# between the two rolls the scope back (Stage 7). `$2` and the closing `;` are exactly the elements the
+# return annotations already bind / discard, so the typed AST is byte-identical to 1.0.213 (measured,
+# interpreter AST JSON HEAD vs new). The unsized arm of `packed_dimension` then goes through
+# `dpi_open_packed_dimension`, gated `in_scope_kind(dpi_import)` as a `post` predicate — the store is
+# read only when the text IS `[]` at a packed position (`.3.29`: a `pre` gate that reads the store on
+# the refusal path epoch-taints every caller's cached failure). "SOLE" is two negative lookaheads: the
+# range arm refuses a following `[]` (`logic [7:0] [] x`) and the unsized arm refuses any following `[`
+# (`logic [] [7:0] x`, `logic [] [] x`); a following UNPACKED `[]` sits after the identifier and is
+# never seen by either.
 @profiles: ["sv_2017", "sv_2023"]
-dpi_import_export := kw_import_62fdfbd5 dpi_spec_string ( dpi_function_import_property )? ( c_identifier assign )? dpi_function_proto semi
+@close_scope: { kind: dpi_import }
+dpi_import_close := semi -> $1
+
+@profiles: ["sv_2017", "sv_2023"]
+dpi_import_export := kw_import_62fdfbd5 dpi_import_spec_open ( dpi_function_import_property )? ( c_identifier assign )? dpi_function_proto dpi_import_close
                             -> {kind: "import_function", spec: $2, property: $3, c_alias: $4, proto: $5}
-                  | kw_import_62fdfbd5 dpi_spec_string ( dpi_task_import_property )? ( c_identifier assign )? dpi_task_proto semi
+                  | kw_import_62fdfbd5 dpi_import_spec_open ( dpi_task_import_property )? ( c_identifier assign )? dpi_task_proto dpi_import_close
                             -> {kind: "import_task",     spec: $2, property: $3, c_alias: $4, proto: $5}
                   | kw_export_51713409 dpi_spec_string ( c_identifier assign )? kw_function_c218e39e function_identifier semi
                             -> {kind: "export_function", spec: $2, c_alias: $3, name: $5}
                   | kw_export_51713409 dpi_spec_string ( c_identifier assign )? kw_task_7fbb727d task_identifier semi
                             -> {kind: "export_task",     spec: $2, c_alias: $3, name: $5}
+
+# SV-CORPUS-GRAD.3.38 — the scope OPENER (see dpi_import_close above): the spec string of an IMPORT
+# declaration, passed through unchanged so the parent's `spec: $2` reads the same node.
+@profiles: ["sv_2017", "sv_2023"]
+@open_scope: { kind: dpi_import }
+dpi_import_spec_open := dpi_spec_string -> $1
+
+# SV-CORPUS-GRAD.3.38 — the ONLY way an unsized dimension reaches a PACKED position (footnote 20; see
+# dpi_import_close above). `post`, so the store is consulted only when the text is `[]` here; the
+# `!lbrack` is the "sole" half on this side (nothing bracketed may follow an open packed dimension).
+@profiles: ["sv_2017", "sv_2023"]
+@predicate: { name: in_scope_kind, args: [dpi_import], phase: post }
+dpi_open_packed_dimension := unsized_dimension !lbrack -> $1
 
 dpi_spec_string := trivia /"DPI-C"/   -> {kind: "DPI-C"}
                  | trivia /"DPI"/     -> {kind: "DPI"}
@@ -4796,8 +4841,11 @@ package_scope_dollar_unit_sv_only := kw_sv_dollar_unit_1d99223f scope_resolution
 package_scope := package_identifier scope_resolution             -> {kind: "package",     name: $1}
                | package_scope_dollar_unit_sv_only
 
-packed_dimension := lbrack constant_range rbrack    -> {kind: "range",    body: $2}
-                  | unsized_dimension                 -> {kind: "unsized", body: $1}
+# SV-CORPUS-GRAD.3.38 — footnote 20 (see dpi_import_close): `[]` is a packed dimension only inside a DPI
+# import declaration and only as the SOLE packed dimension — the range arm's `!unsized_dimension` refuses
+# `[7:0] []`, the gated arm's own `!lbrack` refuses `[] [7:0]` and `[] []`. The shapes are unchanged.
+packed_dimension := lbrack constant_range rbrack !unsized_dimension   -> {kind: "range",    body: $2}
+                  | dpi_open_packed_dimension                         -> {kind: "unsized", body: $1}
 
 par_block := kw_fork_3f673f2a ( colon block_identifier )? block_item_declaration* statement_or_null* join_keyword ( colon block_identifier )?
           -> {label: $2, declarations: $3, statements: $4, join: $5, end_label: $6}

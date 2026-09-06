@@ -6,7 +6,7 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `02b98e38c03bb70902c6b9062cefb61d276b88d8d34e41667a4d6074e70d2247` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `600f7126f4cd997e9c09ae26021c6303ba228b3b4dd25ecc9a7f51a367037aca` |
 | v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `1102a907bbd4fb30d4c1acf62879971b3130db17b0a58028137847d5eca4ceae` |
 
 ## The headline
@@ -19,13 +19,13 @@
 
 | bucket | adjudication class | rows | % | why |
 |---|---|---:|---:|---|
-| ADJUDICATED | `match` | 5,961 | 36.5 % | expected and observed agree - the row testifies FOR the parser |
+| ADJUDICATED | `match` | 5,962 | 36.5 % | expected and observed agree - the row testifies FOR the parser |
 | ADJUDICATED | `divergence:explained_svpp_macro_use` | 1,095 | 6.7 % | parse stops on a macro use - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_conditional` | 199 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_include` | 140 | 0.9 % | parse stops on an `include - positionally gated since .12a |
 | ADJUDICATED | `divergence:unexplained_rejects_valid` | 95 | 0.6 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
 | ADJUDICATED | `divergence:explained_store_gate` | 57 | 0.3 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
-| ADJUDICATED | `divergence:unexplained_accepts_invalid` | 5 | 0.0 % | a known defect: invalid SV the parser accepts (the axis-2 bar) |
+| ADJUDICATED | `divergence:unexplained_accepts_invalid` | 4 | 0.0 % | a known defect: invalid SV the parser accepts (the axis-2 bar) |
 | ADJUDICATED | `divergence:explained_svpp_protected_envelope` | 4 | 0.0 % | IEEE 1800-2017 §34 encrypted envelope - not source text yet |
 | ROUTED | `deferred:v2005_profile_lane` | 2,606 | 16.0 % | adjudicated in adjudication_manifest_v2005.tsv, not lost |
 | NO VERDICT | `deferred:chained_only` | 4,926 | 30.2 % | multi-file design: needs `include/`define chaining to parse honestly - the MOST realistic RTL in the corpus, contributing nothing to the claim |

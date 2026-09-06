@@ -254,8 +254,11 @@ dot	4402224	86918	3575658
 dot_star	126944	2	278
 dpi_function_import_property	32	1	0
 dpi_function_proto	32	4	0
+dpi_import_close	32	4	0
 dpi_import_export	80453	5	613
-dpi_spec_string	200	5	0
+dpi_import_spec_open	192	4	96
+dpi_open_packed_dimension	79340	0	149
+dpi_spec_string	104	5	0
 dpi_task_import_property	32	0	0
 dpi_task_proto	32	0	0
 drive_strength	37410	0	225
@@ -656,7 +659,7 @@ kw_wor_ff9e40da	81669	0	0
 kw_xnor_ab48bc67	72021	0	0
 kw_xor_f1922a23	93953	0	0
 lbrace	5389091	8684	0
-lbrack	3375163	75862	2824853
+lbrack	3375262	75862	2824853
 less_equal	534838	1369	0
 less_than	472346	1070	0
 let_actual_arg	176	0	0
@@ -1037,7 +1040,7 @@ time_unit	201351	7	3
 timeunit_separator_slash	2	2	0
 timeunit_separator_trivia	2	2	0
 timeunits_declaration	80458	5	1307
-trivia	90500363	1181019	88209048
+trivia	90500270	1181019	88208955
 type_assignment	35	16	0
 type_assignment_sv_2017	35	16	0
 type_assignment_with_default	5	4	0
@@ -1083,7 +1086,7 @@ uniqueness_constraint	8	0	0
 uniqueness_constraint_sv_2017	8	0	0
 unpacked_dimension	99467	132	38432
 unsigned_number	12259	830	0
-unsized_dimension	153246	9	36001
+unsized_dimension	171078	9	53734
 value_range	27	4	0
 value_range_sv_2017	27	4	0
 var_data_type	1844	452	0

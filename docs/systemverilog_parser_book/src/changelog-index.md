@@ -34,6 +34,41 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.214 / Contract 1.0.214 — SV-CORPUS-GRAD.3.38 (`PGEN-SV-CORPUS-GRAD-0369`, 2026-09-05), ledger `SV-0087` (`Released`):
+
+⭐ **IEEE 1800-2017 Annex A footnote 20 is grammar: an unsized PACKED dimension `[]` is legal only as the SOLE
+packed dimension of a formal in a DPI IMPORT declaration.** A.2.5 `packed_dimension20 ::= [ constant_range ] |
+unsized_dimension` carries footnote 20 — *"In packed_dimension, unsized_dimension is permitted only as the sole
+packed dimension in a DPI import declaration; see dpi_function_proto and dpi_task_proto"* — and §35.5.6.1 adds that
+exported functions cannot have open arrays and that *"an unsized dimension shall be the sole packed dimension of a
+formal argument"*; 1800-2023 keeps both verbatim (footnote 24). Until 1.0.213 the grammar took the unsized arm of
+`packed_dimension` at every packed site: `reg [] illegal;` parsed at module level (iverilog `br_ml20181012b.v`,
+Surelog `UnsizedPacked/dut.sv`), as did `input [] p` on an implicit-type port and `logic [7:0] [] x` /
+`logic [] [7:0] x` inside an import. Now the import's DPI spec string opens a `dpi_import` scope and the
+declaration's `;` closes it (two marker rules — the mechanism release 1.0.206 introduced for the cross body — placed
+on the spec string because a marker on the shared `import` keyword would open a scope at every package import), the
+unsized arm is reachable only through `dpi_open_packed_dimension` (gated `in_scope_kind(dpi_import)` as a `post`
+predicate, refusing a following `[`), and the range arm refuses a following `[]`. `1576 → 1579` rules. Grammar tier
+only; `verilog_2005` untouched (IEEE 1364-2005 has no unsized dimension — `SV-0033` gated it out of that profile).
+
+**AST impact — none.** The scope markers bind the elements the annotations already bind (`spec: $2`) or discard
+(the `;`), and the gated arm passes `unsized_dimension`'s node through, so a packed `dims` entry still reads
+`{kind: "unsized", body: {kind: "unsized"}}` — now only inside a DPI import. Every DPI open array of §35.5.6.1's own
+list, a task import, an unnamed formal (footnote 23) and both export forms parse with a typed AST byte-identical to
+1.0.213 (interpreter AST JSON, HEAD grammar vs new); 593 pin × profile arms and 174 corpus candidates moved no verdict
+and no typed AST beyond the two rows below. Schema **27 unchanged**. The accept set NARROWS on `sv_2017` and `sv_2023`
+by exactly the footnote: an unsized packed dimension outside a DPI import, or beside a sized one.
+
+**Corpus proof**, per path, three lanes: `sv_2017` exactly TWO rows `pass → fail` — iverilog `br_ml20181012b.v` (leaves the bar, `unexplained_accepts_invalid → match`) and Surelog `UnsizedPacked/dut.sv` (`match` under its corrected key) — **0** `fail → pass`, pass `9 782 → 9 780` (16 336 rows, 0 timeouts), match `5 961 → 5 962`, unexplained **`100 → 99`**; `sv_2023` the same two rows, pass `9 803 → 9 801`, match `5 953 → 5 954`, the Surelog ruling carried over mechanically (`packed_dimension:IDENTICAL variable_dimension:IDENTICAL`); `verilog_2005` **0** rows moved; the edition census `2017_only_pass=0`. Pins `checked=610 armed=97 listed=338 multi_profile_rows=214 failures=0` (release probe `788d7ade08d1301c…`, parser `48d68d913dee646b…`; the four `invalid_*` pins REJECT, the four controls ACCEPT with their arms — `import_function>integer_vector>unsized` and `import_task>integer_vector>unsized` PRESENT on the DPI control and `integer_vector>unsized` ABSENT on the unpacked control, so the chain discriminates the packed `[]` from the unpacked one). Gates on the final bytes: `sv_cert_recognized_union_gate` GREEN — canonical `1436/8/1414/14` (identical at seeds `[0,7,42]`, `sample_parse_failures=0`, `proof_reverify_failures=0`), union witness `1428` / UNKNOWN `0`, residual `[]`, re-stamped (24 m 34 s under the guard, peak 6 735 MB); the canonical `+1` UNKNOWN is `dpi_open_packed_dimension`, scope-excluded by construction — the planner routes it through a module-level `specparam []` (`[plannable-probe] … parsed=false witnessed_target=false sample="module m(input wire a);specparam[]\\foo =7413.78;endmodule"`, rendered correctly and refused by the scope gate) — and a SIXTH union config `dpi_import_export:sv_2017` witnesses it from the import declaration itself (`sample="import\"DPI-C\"function bit[]\\foo ;"`); expectations PRE-STAMPED from the seed-0 census (five configs: union UNKNOWN `1` = `[dpi_open_packed_dimension]`; six: `0`) and confirmed by the gate first time; `verilog_2005_conformance_gate` GREEN — cert `1142/378/750/14` UNCHANGED (the three new rules are SV-gated, the shape a profile-only narrowing must have; identical at seeds `[0,7,42]`, `spf=0 prf=0`), lint orphans 0, corpus 363 checks / 0 mismatches, aliases 2, re-stamped (32 m 27 s, peak 10 303 MB); ⚠️ both gates re-emitted the parser and rebuilt the binaries: the release probe (`788d7ade…`) and the generated parser (`48d68d91…`) came back BYTE-IDENTICAL to the binaries the pins and lanes were keyed on (`rust/target/s338/sha_after_build.txt` vs `sha_after_certs.txt`; the debug `ast_pipeline` did not, `ebc1d186… → 2e132cce…`, which nothing downstream is keyed on); `sv_syntax_closure_gate` GREEN — `defined_rule_count 1545 → 1548`, `reachable_rules 1575 → 1578`, `unreachable_rules=1` (the allow-list ONE, `casting_type`), `unreachable_branches=2`, re-stamped (1 m 40 s, peak 1 916 MB); `ast_shape_contract_gate` GREEN — `18 passed; 0 failed` (3 m 12 s, peak 9 375 MB); `check_generated_reproducibility.sh --rebaseline` TIER 2 — every family re-derives byte-identically, baseline rewritten (1 m 25 s, peak 2 011 MB); `check_corpus_key_integrity.sh` OK (499 keyed rows, 0 contradictions; provenance 716 clause-cited); `check_identity_carriers.sh` OK (`live=12 frozen=7 rows_equal=51`); `check_sv_corpus_denominator.sh` OK (`7556/2606/6174/4016/99`); `report_family_status.sh --check-all` OK (11 blocks equal a fresh derivation after re-splicing the cross-family and SystemVerilog pages); `report_grammar_certification.sh --markdown` re-spliced (`1436 rules · 1428 witness · 8 proof · 0 unknown (canonical unknown 14)`); dark audit + worklist re-derived, `WORKLIST 53` unchanged.
+
+**Answer key.** Surelog `tests/UnsizedPacked/dut.sv` — keyed `must_accept` by a golden log that completes because
+Surelog's parser takes the unsized arm at every site and its elaboration never checks the footnote (the unit names
+the variable `illegal`) — is re-keyed `must_reject` with the production and the footnote in both editions; the
+iverilog twin `br_ml20181012b.v` was already keyed so on the same footnote, and the two rows now agree.
+
+Residue: `.3.42` (the three optional-group receiver spellings, sequenced before the release), `.3.39` (typed
+directive arguments); the bar stands at 99.
+
 ### 1.0.213 / Contract 1.0.213 — SV-CORPUS-GRAD.3.41 (`PGEN-SV-CORPUS-GRAD-0368`, 2026-09-04), ledger `SV-0086` (`Released`), **schema 26 → 27**:
 
 ⭐ **The set-membership operator `inside { … }` is a chain element of the operand chain, and an inside expression

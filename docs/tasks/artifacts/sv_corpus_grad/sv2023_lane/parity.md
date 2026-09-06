@@ -10,14 +10,14 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `02b98e38c03bb70902c6b9062cefb61d276b88d8d34e41667a4d6074e70d2247` |
+| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `600f7126f4cd997e9c09ae26021c6303ba228b3b4dd25ecc9a7f51a367037aca` |
 | IEEE 1800-2017 Annex A | `docs/systemverilog/2017/md/section-41-data-read-api.md` | `249ab571c2ef3237790a6bd9743f07a7595bdded337ca2cbb6d5e189b3b40d22` |
 | IEEE 1800-2023 Annex A | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md` | `0b4f7fe935e9c499a56ccde8dc769ed626bf53d154f8a9585bd1daf371a9d4aa` |
 | instrument | `docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/production_parity.py` | `26506e3786c05f76f116bd25b9b59a8fa3ff55eb0f044d988d7956b01fd93045` |
 
 ## The census
 
-`PRODUCTION-PARITY: rows=72 all_cited_identical=47 some_differs=8 some_missing=3 no_production_named=16 productions=75`
+`PRODUCTION-PARITY: rows=73 all_cited_identical=48 some_differs=8 some_missing=3 no_production_named=16 productions=77`
 
 | production | verdict |
 |---|---|
@@ -40,6 +40,7 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 | `Surelog` | `tests/MaskNeg/dut.sv` | UNCITED | — |
 | `Surelog` | `tests/ParamNoDefault/dut.sv` | UNCITED | — |
 | `Surelog` | `tests/SynthForeach/dut.sv` | IDENTICAL | `loop_statement:IDENTICAL loop_variables:IDENTICAL struct_union_member:IDENTICAL` |
+| `Surelog` | `tests/UnsizedPacked/dut.sv` | IDENTICAL | `packed_dimension:IDENTICAL variable_dimension:IDENTICAL` |
 | `iverilog` | `ivtest/ivltests/br_gh390a.v` | DIFFERS | `class_constructor_declaration:DIFFERS` |
 | `iverilog` | `ivtest/ivltests/sv_new_array_error.v` | IDENTICAL | `variable_decl_assignment:IDENTICAL` |
 | `iverilog` | `ivtest/ivltests/sv_void_cast_fail3.v` | IDENTICAL | `subroutine_call_statement:IDENTICAL` |

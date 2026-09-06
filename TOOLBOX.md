@@ -139,6 +139,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 | **"The probe said `stream did not contain valid UTF-8` / the reported position looks shifted"** | the probe DECODES (BOM → UTF-8/UTF-16 → ISO-8859-1) since `SV-CORPUS-GRAD.12c.1` and prints `source-encoding: …` on stderr for anything that is not plain UTF-8. ⛔ Those positions are offsets into the **decoded** text, not the file. A remaining refusal means a BOM that CONTRADICTS the body — the message names the byte offset |
 | "What AST did it produce? Is the shape right?" | [1.2 `--parse-dump-ast-pretty`](#12---parse-dump-ast-pretty) |
 | **"Parse an input against an ARBITRARY / synthetic grammar (not registered)?"** | **[1.5b `--interpret-parse`](#15b---interpret-parse--the-interpreter-as-a-cli-one-command-no-codegen-no-compile) — START HERE, it is one command** · [1.3 the `scratch` slot](#13-the-scratch-slot--drive-the-toolbox-on-an-arbitrary-grammar) (full CLI toolbox incl. `--trace-rules`; authoritative by construction) · [1.4 compile-and-run](#14-the-compile-and-run-harness--parse-an-arbitrary-grammar-with-no-registry-edit--no-pgen-rebuild) (Rust API, authoritative by construction) · [1.5 the interpreter](#15-the-grammar-ast-interpreter--parse-an-arbitrary-grammar-in-process-with-no-codegen--no-compile) (Rust API) |
+| **"I edited the SV grammar — which pin or corpus row will MOVE, and is my shape-neutral claim measured?"** | [1.5c the grammar-candidate pre-screen](#15c-the-grammar-candidate-pre-screen--will-this-grammar-edit-move-a-pin-or-a-corpus-row-before-generating) — every pin × profile and a seeded corpus list under the interpreter, HEAD vs candidate, before a byte is generated; ⛔ seed the list with the known rows first |
 | **"Which alternative WINS this choice on this input? Is this branch LIVE or dead?"** | [Protocol D](#protocol-d--which-alternative-wins-this-choice--is-this-branch-live-the-a22a23-class-probe) — scratch slot + the `🏁 selected branch N/M` trace line + the 1.7 policy matrix |
 | **"Is the interpreter byte-identical to the generated parser? which input diverges?"** | [1.6 the differential-equivalence gate](#16-the-differential-equivalence-gate--is-the-interpreter-byte-identical-to-the-generated-parser) |
 | **"Is the interpreter byte-identical PER COMBINATOR (on a synthetic grammar, in isolation)?"** | [1.7 the structural combinator suite](#17-the-structural-combinator-suite--is-the-interpreter-byte-identical-per-combinator) |
@@ -313,6 +314,36 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   (on reject the same line carries `accepted=false` + `error=…`, printed on **stdout before** the rc-1 exit, so the measurement is greppable in both directions).
 - ⛔⛔ **AUTHORITATIVE BY VERIFICATION, NOT BY CONSTRUCTION — AND THE VERIFICATION HAS A MEASURED HOLE.** This is the interpreter, whose credibility comes from 1.6/1.7 pinning it byte-identical to the real generated parser. On an **un-eliminated left-recursive cycle** that pinning does not hold: `ENGINE-UNIVERSAL-SERVICES.13` measured it disagreeing with the generated parser **in both directions** on a six-rule indirect-LR synthetic (`t'(n)` gen=accept/interp=reject; `n'(n)` gen=reject/interp=accept), because the generated parsers block on `check_cycle_id` while the interpreter has no cycle guard at all — only a whole-stack depth ceiling. Tracked as `ENGINE-UNIVERSAL-SERVICES.14`. ⇒ **If `--lint-grammar` reports `left_recursion_unhandled>0` for your grammar, cross-check every verdict against 1.3 or 1.4 before quoting it.** Elsewhere on the certified structural + return-annotation surface it is the fast, trustworthy rung; store-gated `@predicate` outcomes are outside it either way.
 - ⭐ Runs on the UNFILTERED grammar with `--grammar-profile` applied as the interpreter's runtime profile — the same posture `--lint-grammar` uses, so a `@profiles`-gated rule is gated the way the generated parser gates it rather than stripped at load.
+
+### 1.5c The grammar-candidate pre-screen — will this grammar edit move a pin or a corpus row? (before generating)
+- **WHAT:** two tracked, parametric instruments under `docs/tasks/artifacts/sv_corpus_grad/prescreen/` that run 1.5b
+  over a POPULATION, HEAD grammar vs candidate grammar, on a COPY of the debug `ast_pipeline` taken before the
+  slice's builds: `prescreen_pins.py` (every reproducer pin × its profiles — verdict AND typed-AST sha per arm) and
+  `prescreen_corpus.py` (a caller-supplied list of corpus files × the SV profiles — verdict + furthest position).
+- **WHEN:** after editing `grammars/systemverilog.ebnf` and BEFORE `make focus_systemverilog` — the answer to "which
+  existing tree moves, which row flips" arrives in minutes instead of after a 25-minute build and three lanes, and
+  a shape-neutral claim is a measured `ast_moved=0` rather than a reading.
+- **HOW:**
+  ```bash
+  mkdir -p rust/target/sNNN && cp grammars/systemverilog.ebnf rust/target/sNNN/g_head.ebnf \
+    && cp rust/target/debug/ast_pipeline rust/target/sNNN/ast_pipeline_interp      # BEFORE the edit
+  python3 docs/tasks/artifacts/sv_corpus_grad/prescreen/prescreen_pins.py --head rust/target/sNNN/g_head.ebnf \
+    --new grammars/systemverilog.ebnf --bin rust/target/sNNN/ast_pipeline_interp --out rust/target/sNNN --jobs 5
+  python3 docs/tasks/artifacts/sv_corpus_grad/prescreen/prescreen_corpus.py --head rust/target/sNNN/g_head.ebnf \
+    --new grammars/systemverilog.ebnf --bin rust/target/sNNN/ast_pipeline_interp --out rust/target/sNNN \
+    --files rust/target/sNNN/corpus_candidates.txt --jobs 4
+  ```
+- **OUTPUT:** `PRESCREEN-PINS: jobs=593 verdict_moved=0 ast_moved=0 in 583s` (+ one line per moved arm) and
+  `PRESCREEN-CORPUS: files=174 arms=348 …` with the `(profile, head, new)` verdict histogram and every
+  `PASS->FAIL` / `FAIL->PASS` / `FURTHEST-MOVED` arm; both write a TSV beside them.
+- ⛔⛔ **SEED THE CORPUS LIST WITH THE ROWS THE SLICE WAS OPENED ON, BY NAME, BEFORE ANY GREP ADDS TO IT**
+  (`SV-CORPUS-GRAD.3.38`, measured): a broad ugrep pre-screen returned 33 files and MISSED 5 of the 6 known rows —
+  a `\\` alternative inside a group made the regex fail on `reg [] illegal;` itself — so the interpreter read
+  *zero movers* over 168 files while the two rows that had to move were not in the list. A non-empty candidate
+  list looks tested and is not; the known positive is the control.
+- ⚠️ The interpreter's byte-identity to the generated parser is 1.6's gate, and it has a measured hole on an
+  un-eliminated left-recursive cycle (1.5b); the pre-screen PREDICTS the lanes, the lanes on the final bytes
+  decide. Measured peaks under the guard: pins 235 MB, corpus 3 379 MB (336 arms).
 
 ### 1.6 The differential-equivalence gate — is the interpreter byte-identical to the generated parser?
 - **WHAT:** `make -C rust SHELL=/bin/bash parse_harness_equivalence_gate` (module `rust/src/parse_harness_equivalence.rs`) — the certifying oracle for the interpreter (1.5). For each registered grammar it runs the interpreter AND the shipped generated parser over ONE deterministic stimuli corpus (seeds 0/7/42, bounded generation, large-stack workers) and asserts **byte-identical** verdict + typed AST. Report-first API (`evaluate_grammar_equivalence` collects divergences, never panics) + 3 enforcing gate tests. PARSE-HARNESS.5.
