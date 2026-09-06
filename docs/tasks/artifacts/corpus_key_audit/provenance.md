@@ -7,16 +7,16 @@
 > `SV-CORPUS-GRAD.13e.3` measured twice*, which a `clause-cited` one is not. The number
 > below says how much of the published bar rests on evidence outside the standard.
 
-## `sv_2017` — 7556 keyed rows
+## `sv_2017` — 7555 keyed rows
 
 | provenance | rows | share | `must_accept` | `must_reject` |
 |---|---|---|---|---|
-| `clause-cited` | **512** | 6.8% | 286 | 226 |
-| `tool-testimony` | **1743** | 23.1% | 1691 | 52 |
-| `suite-convention` | **5299** | 70.1% | 5296 | 3 |
+| `clause-cited` | **514** | 6.8% | 286 | 228 |
+| `tool-testimony` | **1742** | 23.1% | 1690 | 52 |
+| `suite-convention` | **5297** | 70.1% | 5294 | 3 |
 | `UNCLASSIFIED` | **2** | 0.0% | 1 | 1 |
 
-⇒ **trust bound: 7044 of 7556 (93.2%)** of this lane's expectations rest on evidence OUTSIDE the standard.
+⇒ **trust bound: 7041 of 7555 (93.2%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
 ## `verilog_2005` — 2534 keyed rows
 
@@ -50,10 +50,10 @@ key as a whole. Attaching the key-wide share to the bar overstates the claim.
 | suite | rows | `clause-cited` | `tool-testimony` | `suite-convention` | `UNCLASSIFIED` |
 |---|---|---|---|---|---|
 | `iverilog` | 3134 | 374 | 526 | 2234 | 0 |
-| `verilator` | 3134 | 84 | 729 | 2321 | 0 |
+| `verilator` | 3133 | 85 | 728 | 2320 | 0 |
 | `ispras-sv-tests` | 1147 | 37 | 0 | 1107 | ⛔ 3 |
 | `sv-tests` | 927 | 5 | 0 | 921 | ⛔ 1 |
-| `sv2v` | 920 | 200 | 354 | 366 | 0 |
+| `sv2v` | 920 | 201 | 354 | 365 | 0 |
 | `Surelog` | 628 | 11 | 617 | 0 | 0 |
 | `verible` | 130 | 4 | 0 | 126 | 0 |
 | `slang` | 70 | 1 | 0 | 69 | 0 |
@@ -75,7 +75,7 @@ nothing else. That the partition is EXHAUSTIVE is why the split is trustworthy.
 
 ## ⛔ The residual, VERBATIM — a census that hides its leftovers is a census you cannot check
 
-**4 of 10090 rows** (0.04%) match no rule. Every one is printed here rather than folded into a class, because a
+**4 of 10089 rows** (0.04%) match no rule. Every one is printed here rather than folded into a class, because a
 residual absorbed into the nearest bucket is exactly how a classifier stops being
 checkable. The first cut left **4 961** unclassified (49 %) and the vocabulary was
 extended by ENUMERATING those shapes, not by widening a rule until the number fell.

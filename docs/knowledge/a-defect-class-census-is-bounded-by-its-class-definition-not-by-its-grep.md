@@ -13,6 +13,8 @@ answers:
   - "a tracked instrument crashed with docs/stimuli/... — parents[4] vs parents[5] — was the tracked copy ever run"
   - "the union certificate witnessed a new helper rule at seeds 0 and 7 but not at 42 — why, and what fixed it"
   - "a lifted helper whose branches are dead by tie or store-gated — lift it or delete the dead forms"
+  - "what result types / what forms does the corpus actually write at one AST slot — census it by grep or by the parser"
+  - "my corpus grep over-matched across a comment and an escaped identifier — how do I make a corpus census exact"
 tags: [systemverilog, grammar, ast-shape, census, instrument, schema-bump, interpreter, engine-defect, release-ceremony]
 date: 2026-09-06
 status: current
@@ -72,3 +74,14 @@ class-scope branch is store-gated for the targeted plan, and a seventh union con
 only — through the entry's random diverse pass, not the targeted probe. A witness that depends on the seed is a coin.
 The closure discipline's own rule for dead branches applied: the alternative is spelled as its only live form,
 `class_scope method_identifier`, the helper is gone, and the six-config union is deterministic again.
+
+## A corpus census reads the parser's own AST slot; a grep is the fallback for the rows the parser cannot read (`SV-CORPUS-GRAD.3.43`, 2026-09-06)
+
+The same bound applies to a census over a CORPUS: its class definition is the AST slot, and the exact reader of that
+slot is the parser. `docs/tasks/artifacts/sv_corpus_grad/ast_field_census/ast_field_census.py` (`AST-FIELD-CENSUS:`)
+dumps every file's typed AST with the release probe and reads one dotted field off every node of one `kind` — the
+`.3.43` census of DPI import RESULT types read 297 slots in 95 accepting files exactly, where a regex over the same
+files first over-matched across a `/*verilator sformat*/` comment and an escaped identifier `\$dpii_display`. The
+regex stays, tagged, for the files the parser REJECTS (they have no tree, and they are part of the corpus count) — and
+a domain classifier with an `unclassified` bucket is what shows the regex is short. A grep is not a census of the
+corpus; it is a census of what the grep admits.

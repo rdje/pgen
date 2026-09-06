@@ -2549,9 +2549,81 @@ dist_weight := colon assign expression -> {kind: "equal",       weight: $3}
 dpi_function_import_property := kw_context_ec2727b3 -> {kind: "context"}
                               | kw_pure_afe003f1    -> {kind: "pure"}
 
+# SV-CORPUS-GRAD.3.43 — IEEE 1800-2017 ANNEX A FOOTNOTE 21 / §35.5.5 IS GRAMMAR: A DPI IMPORT FUNCTION'S RESULT
+# TYPE IS RESTRICTED TO SMALL VALUES.
+# A.2.6 `dpi_function_proto21 ::= function_prototype` carries footnote 21 (docs/systemverilog/2017/md/
+# section-41-data-read-api.md:3524): "dpi_function_proto return types are restricted to small values, per 35.5.5."
+# §35.5.5 (docs/systemverilog/2017/md/section-35-direct-programming-interface.md:485-493): "An imported function
+# declaration shall explicitly specify a data type or void for the type of the function's return result. Function
+# result types are restricted to small values. The following SystemVerilog data types are allowed for imported
+# function results: void, byte, shortint, int, longint, real, shortreal, chandle, and string; scalar values of type
+# bit and logic. The same restrictions apply for the result types of exported functions." IEEE 1800-2023 §35.5.5 reads
+# the same (docs/systemverilog/2023/md/section-35-direct-programming-interface.md:493-501) and its Annex A carries the
+# footnote as number 26 (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3490, `dpi_function_proto26,27`).
+# Until 1.0.215 `dpi_function_proto := function_prototype` reached `data_type_or_void` whole, so `function logic [7:0]
+# f()`, `function bit [] g()`, `function reg / integer / time / realtime h()`, an enum / struct / union literal, `event`,
+# a virtual interface, a parameterised class type and a typedef name with packed dimensions all derived as DPI results
+# (corpus: verilator t_dpi_result_type_bad.v, sixteen of them at :80-83 / :104 / :107-117; sv2v test/nosim/dpi.sv:35 `bit [15:0] getStimulus`,
+# which is the LRM's OWN informative example at §35.5.4 :476 — the normative §35.5.5 and the Annex A footnote
+# outrank it; 1800-2023 :489 repeats the example unchanged).
+# THE SPELLING — a caller split (the `.3.31` shape): `dpi_function_prototype` is `function_prototype` with the return
+# slot re-pointed at `dpi_function_result_type`; ordinary prototypes (class methods, extern, pure virtual) are untouched.
+# `dpi_result_data_type` mirrors, alternative for alternative and template for template, exactly the `data_type`
+# alternatives §35.5.5 admits, so the typed AST of every legal import is BYTE-IDENTICAL to 1.0.215 (measured,
+# interpreter AST JSON HEAD vs new; `dims: []` is the literal the empty `packed_dimension*` produced). What the letter
+# names, the rule refuses at the token: a packed dimension after `bit` / `logic` (`!lbrack`), `reg` (absent from
+# `integer_vector_type_sv_only`), `integer` / `time` (absent from `integer_atom_type_sv_only`), `realtime`, and every
+# `data_type` alternative absent from the list. A NAMED type — a scoped or known-typedef identifier without packed
+# dimensions, or a `type(...)` reference — is admitted exactly as `data_type` admits it: what it resolves to is a
+# semantic question (verilator's t_dpi_result_type*.v type their results through `typedef struct packed … ;` on
+# purpose) and the grammar does not see through a typedef. Signing on the atom and vector types is admitted: §35.5.5
+# names types and the word "scalar" and is silent on signing. The export half of the sentence is not grammar:
+# `export "DPI-C" function g;` carries no type — `g`'s declaration does.
 @profiles: ["sv_2017", "sv_2023"]
-dpi_function_proto := function_prototype
+dpi_function_proto := dpi_function_prototype
                    -> {body: $1}
+
+@profiles: ["sv_2017"]
+dpi_function_prototype_sv_2017 := kw_function_c218e39e dpi_function_result_type function_identifier ( lparen ( tf_port_list )? rparen )?
+                                -> {return_type: $2, name: $3, ports: $4}
+
+@profiles: ["sv_2023"]
+dpi_function_prototype_sv_2023 := kw_function_c218e39e ( dynamic_override_specifiers )? dpi_function_result_type function_identifier ( lparen ( tf_port_list )? rparen )?
+                                -> {dynamic_override: $2, return_type: $3, name: $4, ports: $5}
+
+@profiles: ["sv_2017", "sv_2023"]
+dpi_function_prototype := dpi_function_prototype_sv_2017 -> {kind: "sv_2017", body: $1}
+                        | dpi_function_prototype_sv_2023 -> {kind: "sv_2023", body: $1}
+
+# The `data_type_or_void` shape (`{kind: "data_type", body}` / `{kind: "void"}`), restricted to §35.5.5.
+@profiles: ["sv_2017", "sv_2023"]
+dpi_function_result_type := dpi_result_data_type -> {kind: "data_type", body: $1}
+                          | data_type_or_void_sv_only
+
+# The `data_type` alternatives §35.5.5 admits, each with `data_type`'s own template (see there). A packed dimension is
+# refused at its `[`; the two named-type alternatives carry `dims: []` because the letter admits no dimension there.
+@profiles: ["sv_2017", "sv_2023"]
+dpi_result_data_type := integer_vector_type_sv_only ( signing )? !lbrack
+                            -> {kind: "integer_vector",          base: $1, signing: $2, dims: []}
+                      | integer_atom_type_sv_only ( integer_atom_signing_sv_only )?
+                            -> {kind: "integer_atom",            base: $1, signing: $2}
+                      | dpi_result_non_integer_type
+                            -> {kind: "non_integer",             base: $1}
+                      | string_type_sv_only
+                            -> {kind: "string"}
+                      | chandle_type_sv_only
+                            -> {kind: "chandle"}
+                      | scoped_type_scope_prefix type_identifier !lbrack
+                            -> {kind: "scoped_data_type",        body: {scope: $1, type: $2, dims: []}}
+                      | checked_type_identifier !lbrack
+                            -> {kind: "known_unscoped_data_type", body: {type: $1, dims: []}}
+                      | type_reference
+                            -> {kind: "type_reference",          body: $1}
+
+# `non_integer_type` without `realtime` (§35.5.5 lists real and shortreal only).
+@profiles: ["sv_2017", "sv_2023"]
+dpi_result_non_integer_type := non_integer_type_sv_only
+                             | kw_real_c9c64e07 -> {kind: "real"}
 
 # SV-CORPUS-GRAD.3.38 — IEEE 1800-2017 ANNEX A FOOTNOTE 20 IS GRAMMAR: AN UNSIZED PACKED DIMENSION
 # `[]` IS LEGAL ONLY AS THE SOLE PACKED DIMENSION OF A DPI IMPORT DECLARATION.

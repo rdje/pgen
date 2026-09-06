@@ -6,14 +6,14 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `600f7126f4cd997e9c09ae26021c6303ba228b3b4dd25ecc9a7f51a367037aca` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `52fa6ebb164e1b651ca2326b8ac1eba899f882b4b95befd5a1f716e32fffbc15` |
 | v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `1102a907bbd4fb30d4c1acf62879971b3130db17b0a58028137847d5eca4ceae` |
 
 ## The headline
 
-- **ADJUDICATED: 7,556 rows (46.3 %)**
+- **ADJUDICATED: 7,555 rows (46.2 %)**
 - **ROUTED: 2,606 rows (16.0 %)**
-- **NO VERDICT: 6,174 rows (37.8 %)**
+- **NO VERDICT: 6,175 rows (37.8 %)**
 
 ## Every class, bucketed
 
@@ -21,7 +21,7 @@
 |---|---|---:|---:|---|
 | ADJUDICATED | `match` | 5,962 | 36.5 % | expected and observed agree - the row testifies FOR the parser |
 | ADJUDICATED | `divergence:explained_svpp_macro_use` | 1,095 | 6.7 % | parse stops on a macro use - positionally gated since .12a |
-| ADJUDICATED | `divergence:explained_svpp_conditional` | 199 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
+| ADJUDICATED | `divergence:explained_svpp_conditional` | 198 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_include` | 140 | 0.9 % | parse stops on an `include - positionally gated since .12a |
 | ADJUDICATED | `divergence:unexplained_rejects_valid` | 95 | 0.6 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
 | ADJUDICATED | `divergence:explained_store_gate` | 57 | 0.3 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
@@ -31,7 +31,7 @@
 | NO VERDICT | `deferred:chained_only` | 4,926 | 30.2 % | multi-file design: needs `include/`define chaining to parse honestly - the MOST realistic RTL in the corpus, contributing nothing to the claim |
 | NO VERDICT | `deferred:no_sv_key` | 596 | 3.6 % | no upstream answer key exists - expectation underivable |
 | NO VERDICT | `deferred:not_source_text` | 350 | 2.1 % | the file is not SystemVerilog source text at all (a $readmemh memory image, a bare string literal, a tool command line) - it testifies to nothing about the parser; a CORPUS-COMPOSITION fact, stated per row (SV-CORPUS-GRAD.13c.1) |
-| NO VERDICT | `deferred:svpp_owned` | 186 | 1.1 % | conformance owned by the preprocessor lane, by design |
+| NO VERDICT | `deferred:svpp_owned` | 187 | 1.1 % | conformance owned by the preprocessor lane, by design |
 | NO VERDICT | `deferred:impl_varying` | 90 | 0.6 % | LRM leaves the behaviour implementation-defined |
 | NO VERDICT | `deferred:verilog_ams_lane` | 20 | 0.1 % | Verilog-AMS, a different language family |
 | NO VERDICT | `deferred:ni_unimplemented` | 6 | 0.0 % | upstream marks the construct not-implemented |
@@ -42,7 +42,7 @@
 - **1,170 corroborated** — the parse stops *on* the preprocessor construct. The label is positively verified.
 - **263 undecidable by position** — the label is neither corroborated nor refuted; only running an expander settles them (`.12b`).
 
-⇒ Rows contributing nothing to the confidence claim, counting these: **6,437 (39.4 %)**.
+⇒ Rows contributing nothing to the confidence claim, counting these: **6,438 (39.4 %)**.
 
 ## `NO VERDICT`, by suite — where the silence actually is
 
@@ -59,8 +59,8 @@
 | friscv | `deferred:chained_only` | 95 |
 | ispras-sv-tests | `deferred:impl_varying` | 90 |
 | verilator | `deferred:chained_only` | 79 |
+| verilator | `deferred:svpp_owned` | 51 |
 | scr1 | `deferred:chained_only` | 50 |
-| verilator | `deferred:svpp_owned` | 50 |
 | sv2v | `deferred:svpp_owned` | 30 |
 | iverilog | `deferred:verilog_ams_lane` | 20 |
 | slang | `deferred:chained_only` | 19 |
@@ -77,7 +77,7 @@
 
 - **ONE-SIDED POSITIVE — 1,808 rows (11.1 % of the corpus)**: the parse consumed the WHOLE file standalone. ⇒ no *rejects-valid* defect hides behind these rows. ⛔ It says **nothing** about accepts-invalid, and it is **not** a verdict — there is still no expectation to compare against.
   - 1,705 are compilation-unit-shaped; ⚠️ **103 are FRAGMENT-shaped** (`.svh` include payload / excerpt-mode fixture), where accepting is not testimony FOR the parser at all — a fragment is not a legal standalone unit, so the accept may itself BE the over-acceptance.
-- ⛔ **DARK — 4,016 rows (24.6 % of the corpus)**: the parse failed and the deferral is why nobody looked. **This — not the headline 38.7 % — is the population a disposition has to burn down.**
+- ⛔ **DARK — 4,017 rows (24.6 % of the corpus)**: the parse failed and the deferral is why nobody looked. **This — not the headline 38.7 % — is the population a disposition has to burn down.**
 - **NOT SOURCE TEXT — 350 rows (2.1 % of the corpus)** (SV-CORPUS-GRAD.13c.1): the file is a `$readmemh` memory image, a bare string literal or a tool command line, decided from its BYTES by the adjudicator. It never was a parse input, so it is neither testimony nor DARK — it stays in the denominator as a stated fact about the corpus's composition, and the class is PERMANENT and bounded below. ⛔ Before `.13c.1` these rows were counted as DARK `chained_only`, a defect worklist no chaining could ever burn down.
 
 | class | rows | one-sided (unit) | ⚠️ one-sided (fragment) | DARK | not source |
@@ -85,11 +85,11 @@
 | `deferred:chained_only` | 4,926 | 1,021 | 103 | 3,802 | 0 |
 | `deferred:no_sv_key` | 596 | 543 | 0 | 53 | 0 |
 | `deferred:not_source_text` | 350 | 0 | 0 | 0 | 350 |
-| `deferred:svpp_owned` | 186 | 123 | 0 | 63 | 0 |
+| `deferred:svpp_owned` | 187 | 123 | 0 | 64 | 0 |
 | `deferred:impl_varying` | 90 | 6 | 0 | 84 | 0 |
 | `deferred:verilog_ams_lane` | 20 | 6 | 0 | 14 | 0 |
 | `deferred:ni_unimplemented` | 6 | 6 | 0 | 0 | 0 |
-| **TOTAL** | **6,174** | **1,705** | **103** | **4,016** | **350** |
+| **TOTAL** | **6,175** | **1,705** | **103** | **4,017** | **350** |
 
 ## Permanent deferrals — by construction, and BOUNDED (SV-CORPUS-GRAD.13f)
 
@@ -97,25 +97,25 @@ A permanent deferral is a CLAIM: no future work on the parser, the answer key or
 
 | class | rows | ceiling | why nothing can ever adjudicate it |
 |---|---:|---:|---|
-| `deferred:svpp_owned` | 186 | 186 | the row's conformance question is about the PREPROCESSOR (macro/conditional/include semantics the parser never sees) and is answered by the svpp lane, by design of the two-parser architecture — no grammar or key change on this lane can move it |
+| `deferred:svpp_owned` | 187 | 187 | the row's conformance question is about the PREPROCESSOR (macro/conditional/include semantics the parser never sees) and is answered by the svpp lane, by design of the two-parser architecture — no grammar or key change on this lane can move it |
 | `deferred:impl_varying` | 90 | 90 | the suite's own contract marks the verdict implementation-dependent (ispras TYPE VARYING) — the LRM leaves the behaviour to the implementation, so no answer key can exist |
 | `deferred:verilog_ams_lane` | 20 | 20 | the descriptor runs the file under -gverilog-ams: a different LANGUAGE (Verilog-AMS), outside IEEE 1800's scope; owned by the parked VERILOG-AMS tree, never by this grammar |
 | `deferred:ni_unimplemented` | 6 | 6 | the upstream runner marks the construct NI (Not Implemented) and skips the test, so the suite itself holds no expectation to compare against |
 | `deferred:not_source_text` | 350 | 350 | the bytes are not source text in any language this grammar describes - a $readmemh memory image (IEEE 1800-2017 §21.4), a bare string literal, a tool command line - so no answer key, no include/define chaining and no grammar revision can produce a verdict ABOUT SYSTEMVERILOG from them; the row is a statement about the corpus's composition |
-| **TOTAL** | **652** | | 4.0 % of the corpus, permanent by construction |
+| **TOTAL** | **653** | | 4.0 % of the corpus, permanent by construction |
 
 ⛔ `deferred:chained_only` and `deferred:no_sv_key` are NOT permanent: chaining and a future key could give those rows verdicts, so they stay open work. ⭐ The FRAGMENT-shaped one-sided positives above (SV-CORPUS-GRAD.13g) are ruled **unadjudicable as whole files**: a fragment parsed entry-relative would yield an accept with no key to compare against, so it cannot move the bar either way — the population stays visible in the fragment column and is never counted as testimony.
 
 ## The DARK half — can the row's own deferral reason even REACH the failure?
 
-A file containing no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or `` `include `` inlining: the preprocessed text is byte-identical to the raw text, so the parse fails identically after chaining. Measured over all 4,016 DARK rows (path oracle: the tracked corpus results file; every manifest row resolved to exactly one results row, 16,336/16,336, with agreeing outcomes — the census aborts otherwise).
+A file containing no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or `` `include `` inlining: the preprocessed text is byte-identical to the raw text, so the parse fails identically after chaining. Measured over all 4,017 DARK rows (path oracle: the tracked corpus results file; every manifest row resolved to exactly one results row, 16,336/16,336, with agreeing outcomes — the census aborts otherwise).
 
 | class | DARK rows | of which NO `` ` `` anywhere | what that means |
 |---|---:|---:|---|
 | `deferred:chained_only` | 3,802 | 179 | ⭐ **REFUTES the TEXTUAL half of the deferral** — no chaining can alter one byte of these files, so the parse fails identically expanded. What remains is the cross-file FACT channel (a `type_name` a sibling file declares), which is narrower, is not expansion, and is separately testable → `.13c` |
 | `deferred:no_sv_key` | 53 | 18 | information only — the label is the absence of an upstream ANSWER KEY, which no directive could supply |
 | `deferred:not_source_text` | 0 | 0 | ⛔ **NOT MEASURED, and saying so is the point** — the census asks whether expansion could alter a failing PARSE of source text; these rows are not source text, so there is no parse for a directive to reach. They are excluded from DARK by construction (`.13c.1`) and appear here only so the class table is total |
-| `deferred:svpp_owned` | 63 | 8 | ⛔ refutes NOTHING — read them: verible excerpt-mode fragments and verilator `t_preproc_*_bad` EOF/string cases. Preprocessor relevance is the test's PURPOSE, not a directive in its text |
+| `deferred:svpp_owned` | 64 | 8 | ⛔ refutes NOTHING — read them: verible excerpt-mode fragments and verilator `t_preproc_*_bad` EOF/string cases. Preprocessor relevance is the test's PURPOSE, not a directive in its text |
 | `deferred:impl_varying` | 84 | 0 | information only — the LRM leaves the verdict implementation-defined regardless of directives |
 | `deferred:verilog_ams_lane` | 14 | 11 | information only — the label is about the DIALECT (Verilog-AMS), not directives |
 | `deferred:ni_unimplemented` | 0 | 0 | information only — upstream marks the construct not-implemented |
@@ -162,6 +162,7 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:svpp_owned` | 25 | sv2v error-suite key: the intended failure is at the preprocessing stage (`include/`ifdef/macro machinery, stray backtick, dire… |
 | `deferred:svpp_owned` | 5 | verible: '// verilog_syntax:' excerpt-mode fixture - a fragment parsed under a tool-specific mode, never a standalone unit |
 | `deferred:svpp_owned` | 1 | Surelog: golden log PreProcMacro.log reports [SNT:] syntax errors - upstream keys this single-source unit parse-level invalid -… |
+| `deferred:svpp_owned` | 1 | pinned .3.43: lines 37-41 `pure function bit [8-1:0] dpii_f_bit8 ... bit [32-1:0] dpii_f_bit32` - five UNCONDITIONAL packed-vec… |
 | `deferred:svpp_owned` | 1 | sv2v error-suite pinned .8b.2: `include with apostrophe-quoted filename - 22.5 requires "..." or <...>; preprocessing-stage inv…` |
 | `deferred:svpp_owned` | 1 | sv2v error-suite pinned .8b.2: `line level 3 (valid levels 0/1/2) - 22.12 directive-argument validity, preprocessing stage` |
 | `deferred:svpp_owned` | 1 | sv2v error-suite pinned .8b.2: `line with a malformed level argument '1B' - 22.12 directive-argument validity, preprocessing stage` |

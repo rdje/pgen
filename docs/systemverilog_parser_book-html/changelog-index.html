@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b94ef0ba.js";
+            window.path_to_searchindex_js = "searchindex-4f59b87a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -217,6 +217,51 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10216--contract-10216--sv-corpus-grad343-pgen-sv-corpus-grad-0371-2026-09-06-ledger-sv-0089-released-schema-28-unchanged"><a class="header" href="#10216--contract-10216--sv-corpus-grad343-pgen-sv-corpus-grad-0371-2026-09-06-ledger-sv-0089-released-schema-28-unchanged">1.0.216 / Contract 1.0.216 — SV-CORPUS-GRAD.3.43 (<code>PGEN-SV-CORPUS-GRAD-0371</code>, 2026-09-06), ledger <code>SV-0089</code> (<code>Released</code>), schema <strong>28 unchanged</strong>:</a></h3>
+<p>⭐ <strong>IEEE 1800-2017 Annex A footnote 21 / §35.5.5 is grammar: a DPI import function’s RESULT type is one of <code>void</code>,
+<code>byte</code>, <code>shortint</code>, <code>int</code>, <code>longint</code>, <code>real</code>, <code>shortreal</code>, <code>chandle</code>, <code>string</code>, or a SCALAR <code>bit</code> / <code>logic</code>.</strong> A.2.6
+<code>dpi_function_proto21 ::= function_prototype</code> carries footnote 21 — <em>“dpi_function_proto return types are restricted to
+small values, per 35.5.5”</em> — and §35.5.5 (<code>docs/systemverilog/2017/md/section-35-direct-programming-interface.md:485-493</code>)
+lists the types; 1800-2023 reads the same (<code>:493-501</code>, footnote 26). Through 1.0.215 the production was transcribed
+without its footnote, so <code>import "DPI-C" function logic [7:0] f();</code>, <code>bit [1:0]</code>, <code>bit []</code>, <code>reg</code>, <code>integer</code>, <code>time</code>,
+<code>realtime</code>, an enum / struct / union literal, <code>event</code>, a virtual interface, a parameterised class type and a typedef
+name with packed dimensions all parsed as DPI results. Now <code>dpi_function_proto</code> reaches <code>dpi_function_prototype</code>, a
+caller split of <code>function_prototype</code> (the <code>.3.31</code> shape — class-method, extern and pure-virtual prototypes are
+untouched) whose return slot is <code>dpi_function_result_type</code>: the <code>data_type_or_void</code> shape restricted to §35.5.5,
+alternative for alternative and template for template (1587 → 1593 rules, six new; grammar tier
+only, no engine, no codegen; every new rule <code>@profiles: ["sv_2017", "sv_2023"]</code>, so <code>verilog_2005</code> is untouched by
+construction). A NAMED type without packed dimensions (a typedef, a package- or class-scoped type identifier, a
+<code>type(…)</code> reference) is admitted exactly as <code>data_type</code> admits it — what it resolves to is semantic; signing on the
+atom and vector types is admitted (the subclause is silent on it); the export half of the sentence is not grammar.</p>
+<p><strong>AST impact — none (schema 28 unchanged).</strong> <code>dpi_result_data_type</code> carries <code>data_type</code>’s own templates, so every legal
+import’s typed tree is BYTE-IDENTICAL to 1.0.215: measured under the interpreter on 38 synthetic probes × 2 SV profiles
+and on the two control pins, and on the final bytes by the HEAD-vs-release AST identity sweep over 16 335 corpus files
+× 2 SV profiles (<code>ast_moved=0 verdict_moved=2</code> on each profile — 9 778 / 9 799 accepted trees byte-identical, the two verdict movers the pre-registered files). A consumer reading <code>import_function.proto.body.body.return_type</code> sees the
+<code>data_type_or_void</code> shapes it already knows; the refused forms never reach it, because the file no longer parses.</p>
+<p><strong>Corpus effect — exactly two rows, both pre-registered by name.</strong> A new instrument, the AST-field census
+(<code>AST-FIELD-CENSUS:</code>, TOOLBOX §1.5f — the parser’s own reading of one typed slot over a file list, with a tagged regex
+fallback for the files it rejects), read <strong>1 298</strong> DPI result slots in the 172 corpus files carrying a DPI spec string
+on the 1.0.215 probe: <code>legal_keyword=1210 named=64 ILLEGAL=24 unclassified=0</code>; the 24 illegal slots sit in four files,
+two of them accepting — sv2v <code>test/nosim/dpi.sv:35</code> <code>bit [15:0] getStimulus</code> and verilator
+<code>test_regress/t/t_dpi_result_type_bad.v</code> (sixteen results, <code>:80-83</code> / <code>:104</code> / <code>:107-117</code>). On the final bytes
+<code>sv_2017</code> and <code>sv_2023</code> each read exactly two rows <code>pass → fail</code> (the two pre-registered files) and 0 <code>fail → pass</code> (pass 9 780 → 9 778 / 9 801 → 9 799, 0 timeouts), <code>verilog_2005</code> <code>transitions: NONE</code>. ⭐ <strong>The sv2v line is the LRM’s OWN example</strong> (§35.5.4 <code>:476</code>; 1800-2023 <code>:489</code> repeats it) — it
+contradicts the normative §35.5.5 one paragraph later and the Annex A footnote, and the next edition kept the
+restriction beside the unchanged example, so the example is the erratum and the normative text wins (the reverse of
+the <code>.3.34</code> rule; recorded on its knowledge card). Both rows and verilator’s <code>t_dpi_import.v</code> (five unconditional packed
+results, already rejecting at its <code>ifdef</code> preamble) are keyed <code>must_reject</code> with the production in the adjudicator’s
+<code>EXTRA_PINNED</code>; the adjudicator reads <code>sv_2017</code> match 5 962 · unexplained 99 · explained 1 494, <code>sv_2023</code> match 5 954 · unexplained 99 · explained 1 502 (the bar 99).</p>
+<p><strong>Certificates and gates on the final bytes.</strong> Union certificate <code>1448/8/1425/15 + 1440/0</code> (total 1443 → 1448: the five sv_2017-visible new rules (the sv_2023-only twin is outside the sv_2017 universe); proof 8 unchanged; canonical witness 1420 → 1425 — the five new rules are witnessed from the canonical entry itself, exactly as <code>dpi_function_proto</code> is; canonical UNKNOWN 15 → 15 (the same fifteen rules as at 1.0.215); union witness 1435 → 1440, union UNKNOWN 0, residual <code>[]</code>, the six configs unchanged, identical at seeds 0 / 7 / 42); 1364-2005
+certificate <code>1142/378/750/14</code> unchanged; syntax closure GREEN (defined 1556 → 1562, reachable 1592, <code>unreachable_rules=1</code>, the allow-list ONE); shape contract 18/18; reproducibility
+re-derived byte-identically; parse cost: <code>entries</code> -1,472 and <code>memo_hits</code> -512 PROMOTED (falls), <code>committed</code> conserved exactly at 6 741 854 — the only entries risers are the five new rules (+32 each), 39 pre-existing rules fell, the LR-family share <code>2.661 %</code> reproduces to the anchor.</p>
+<p><strong>Pins and instruments.</strong> Fourteen <code>invalid_dpi_result_*.sv</code> REJECT pins — one per refused alternative (<code>packed_logic</code>,
+<code>packed_bit</code> — the LRM’s own line, <code>open_bit</code> — the text 1.0.214’s union certificate witnessed the open packed dimension
+with, <code>reg</code>, <code>integer</code>, <code>time</code>, <code>realtime</code>, <code>enum</code>, <code>struct</code>, <code>union</code>, <code>event</code>, <code>virtual_interface</code>, <code>class_type</code>,
+<code>typedef_packed</code>), each ACCEPT on 1.0.215 → REJECT on 1.0.216 at a named byte; <code>control_dpi_result_types.sv</code> (every
+admitted form, twelve <code>kind</code>-chain arms no formal can satisfy, byte-identical) and <code>control_dpi_result_types_sv2023.sv</code>
+(the 2023 dynamic-override slot on a DPI prototype). NEW <code>docs/tasks/artifacts/sv_corpus_grad/ast_field_census/</code>
+(<code>AST-FIELD-CENSUS:</code>, <code>--self-test</code>) and <code>…/dpi_result_census/</code> (<code>DPI-RESULT-CLASSIFY:</code>, <code>census.md</code>); pins ratchet
+<code>ADJUDICATION-REPROS: checked=649 armed=106 listed=358 multi_profile_rows=233 failures=0</code>. Owed, named: <code>t_dpi_result_type.v:114-115</code> (two packed results under <code>ifndef NO_ARRAY</code>) to that row’s
+svpp-divergence resolution; the byte-exact pinning of a nested typed shape to <code>ENGINE-UNIVERSAL-SERVICES.97</code>.</p>
 <h3 id="10215--contract-10215--sv-corpus-grad342-pgen-sv-corpus-grad-0370-2026-09-06-ledger-sv-0088-released-schema-27--28"><a class="header" href="#10215--contract-10215--sv-corpus-grad342-pgen-sv-corpus-grad-0370-2026-09-06-ledger-sv-0088-released-schema-27--28">1.0.215 / Contract 1.0.215 — SV-CORPUS-GRAD.3.42 (<code>PGEN-SV-CORPUS-GRAD-0370</code>, 2026-09-06), ledger <code>SV-0088</code> (<code>Released</code>), <strong>schema 27 → 28</strong>:</a></h3>
 <p>⭐ <strong>Sixteen inline alternations <code>( a | b )</code> that sat inside groups of annotated rules are removed — fifteen lifted into eight named,
 unannotated helper rules, the sixteenth respelled as its alternative’s only live form — because spelled inline the group’s branch N wore the ENCLOSING rule’s return template N

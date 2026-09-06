@@ -104,6 +104,44 @@ SVTESTS_PINNED = {
 
 # Pinned rulings from in-file upstream statements (leaf .3.0 triage findings).
 EXTRA_PINNED = {
+    # ---- SV-CORPUS-GRAD.3.43 (PGEN-SV-CORPUS-GRAD-0371) ------------------------------------------
+    # IEEE 1800-2017 35.5.5 (docs/systemverilog/2017/md/section-35-direct-programming-interface.md:485-493) restricts a
+    # DPI import function's RESULT type to void, byte, shortint, int, longint, real, shortreal, chandle, string and
+    # SCALAR bit / logic, and Annex A footnote 21 (docs/systemverilog/2017/md/section-41-data-read-api.md:3524,
+    # "dpi_function_proto return types are restricted to small values, per 35.5.5") makes that a GRAMMAR restriction;
+    # 1800-2023 reads the same (35.5.5 :493-501; footnote 26 section-Annex_A-normative-formal-syntax.md:3490). Three
+    # rows carry a packed bit / logic vector (or `integer`) result UNCONDITIONALLY and are keyed must_reject WITH THE
+    # PRODUCTION (the third, t_dpi_import.v, stops at byte 551 inside its `ifdef preamble, so the .13s rule routes it
+    # deferred:svpp_owned / out_of_scope_with_cause until the svpp lane resolves the conditional - the citation waits
+    # on the row) - spec outranks tool, the .3.38 UnsizedPacked class: sv2v converts without checking DPI result types;
+    # verilator accepts 2-state vector results of <= 32 bits as an extension (svBitVecVal) and its own
+    # t_dpi_result_type_bad.v rejects the > 32-bit and 4-state ones at elaboration, which is the golden .out the earlier
+    # basis read as "post-parse tool error - syntax valid". Measured by the AST-field census
+    # (docs/tasks/artifacts/sv_corpus_grad/dpi_result_census/census.md): 1 298 result slots over the 172 corpus files
+    # that carry a DPI spec string, 24 of them illegal, in exactly these four files.
+    # NOT re-keyed: verilator test_regress/t/t_dpi_result_type.v (fail, divergence:explained_svpp_macro_use) - its two
+    # packed results (:114-115 `bit [ 0:0]` / `bit [31:0]`) sit under `ifndef NO_ARRAY`, so the ruling depends on the
+    # preprocessing configuration the svpp resolution will fix; when that row resolves, those two lines are the next
+    # 35.5.5 stop unless NO_ARRAY is defined. Owner: the svpp-divergence resolution of that row.
+    ("sv2v", "test/nosim/dpi.sv"): ("must_reject",
+        "pinned .3.43: line 35 `import \"DPI-C\" function bit [15:0] getStimulus(input integer x);` - a PACKED vector result; IEEE 1800-2017 "
+        "§35.5.5 admits scalar bit / logic only (docs/systemverilog/2017/md/section-35-direct-programming-interface.md:485-493), Annex A footnote 21 "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:3524). The line is the LRM's OWN informative example at 35.5.4 (:476; 1800-2023 :489 "
+        "repeats it) transcribed - the normative subclause one paragraph later and the Annex A footnote outrank it. Every other import in the file "
+        "(void, real, chandle) is admitted. The pin invalid_dpi_result_packed_bit.sv guards the form"),
+    ("verilator", "test_regress/t/t_dpi_result_type_bad.v"): ("must_reject",
+        "pinned .3.43: lines 80-83 `function bit [ 32:0] ... [127:0]`, 104 `function integer`, 107-117 `function logic [  0:0] ... [127:0]` - "
+        "sixteen DPI import results IEEE 1800-2017 §35.5.5 does not admit (docs/systemverilog/2017/md/section-35-direct-programming-interface.md:485-493: "
+        "packed vectors, integer); Annex A footnote 21 (docs/systemverilog/2017/md/section-41-data-read-api.md:3524) makes the restriction grammar, so the "
+        "driver's fails=True IS a syntax verdict, not the post-parse tool error the earlier basis read. The typedef'd struct / union / array "
+        "results on lines 86-101 are admitted by the grammar (a typedef is not seen through); the file rejects at line 80 regardless. "
+        "The pins invalid_dpi_result_packed_bit.sv / _packed_logic.sv / _integer.sv guard the three forms"),
+    ("verilator", "test_regress/t/t_dpi_import.v"): ("must_reject",
+        "pinned .3.43: lines 37-41 `pure function bit [8-1:0] dpii_f_bit8 ... bit [32-1:0] dpii_f_bit32` - five UNCONDITIONAL packed-vector "
+        "results (IEEE 1800-2017 §35.5.5 admits scalar bit only, docs/systemverilog/2017/md/section-35-direct-programming-interface.md:485-493; Annex A "
+        "footnote 21 docs/systemverilog/2017/md/section-41-data-read-api.md:3524). Today the parser stops earlier, at byte 551 inside the file's "
+        "`ifdef VCS / NC / VERILATOR` preamble (the row's standing svpp explanation); once that resolves, line 37 is the next stop. "
+        "Verilator accepts <= 32-bit 2-state vector results as an extension (svBitVecVal)"),
     # ---- SV-CORPUS-GRAD.13z (PGEN-SV-CORPUS-GRAD-0366) ------------------------------------------
     # Four accepts-invalid rows whose text IEEE 1800-2017 Annex A DERIVES; the rejecting tool
     # elaborates (or names its own unsupported feature). Spec outranks tool, the .3.14a/.3.15/.3.16

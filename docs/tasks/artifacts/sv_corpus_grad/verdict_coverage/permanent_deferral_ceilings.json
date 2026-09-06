@@ -3,11 +3,11 @@
   "owner": "SV-CORPUS-GRAD.13f",
   "what_this_is": "The row-count ceiling of each PERMANENT no-verdict class in the SystemVerilog corpus adjudication, and the argument every member of the class joins. corpus_verdict_coverage.py REFUSES a run in which a permanent class holds more rows than its ceiling; the gate SV-CORPUS-DENOMINATOR re-runs the instrument on every commit, so the refusal reaches the pre-commit hook.",
   "how_to_raise": "Only in the same commit as the rows that need it, and only by naming which argument below the new rows join (or by adding a NEW argument as a new class, which is a code change to the adjudicator and the instrument, owned by a task leaf). Never raise a ceiling to make a run green.",
-  "measured_at": "2026-09-03, PGEN-SV-CORPUS-GRAD-0344 — the four counts are exactly the ones .13a measured on 2026-08-11 (302 rows, 1.8 %); PGEN-SV-CORPUS-GRAD-0345 (.13c.1) added not_source_text at its measured count, 350 (346 friscv $readmemh images + 3 slang string-literal fixtures + 1 Surelog command line), all previously counted as DARK chained_only",
+  "measured_at": "2026-09-03, PGEN-SV-CORPUS-GRAD-0344 — the four counts are exactly the ones .13a measured on 2026-08-11 (302 rows, 1.8 %); PGEN-SV-CORPUS-GRAD-0345 (.13c.1) added not_source_text at its measured count, 350 (346 friscv $readmemh images + 3 slang string-literal fixtures + 1 Surelog command line), all previously counted as DARK chained_only; PGEN-SV-CORPUS-GRAD-0371 (.3.43, 2026-09-06) raised deferred:svpp_owned 186 -> 187 for the one pre-registered must_reject row the .13s rule routes to the svpp lane (t_dpi_import.v)",
   "ceilings": {
     "deferred:svpp_owned": {
-      "ceiling": 186,
-      "argument": "conformance owned by the preprocessor lane, by the two-parser design; the parser never sees the construct"
+      "ceiling": 187,
+      "argument": "conformance owned by the preprocessor lane, by the two-parser design; the parser never sees the construct — +1 on 2026-09-06 (SV-CORPUS-GRAD.3.43, PGEN-SV-CORPUS-GRAD-0371): verilator test_regress/t/t_dpi_import.v, keyed must_reject with the IEEE 1800-2017 §35.5.5 / Annex A footnote 21 citation (five unconditional packed-vector DPI results at :37-41) on a file whose parse stops at byte 551 inside its `ifdef preamble; the adjudicator's .13s rule routes such a row here (out_of_scope_with_cause: a raw-text reject would testify for the wrong reason) until the svpp lane resolves the conditional, and the citation waits on the row"
     },
     "deferred:impl_varying": {
       "ceiling": 90,

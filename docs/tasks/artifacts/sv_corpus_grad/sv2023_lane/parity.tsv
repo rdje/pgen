@@ -18,6 +18,7 @@ sv2v	test/error/parameter_no_default_2.sv	UNCITED
 sv2v	test/error/parameter_no_default_3.sv	UNCITED	
 sv2v	test/error/port_init_early.sv	IDENTICAL	output_declaration:IDENTICAL variable_port_type:IDENTICAL var_data_type:IDENTICAL list_of_variable_port_identifiers:IDENTICAL
 sv2v	test/error/severity_task_arg.sv	MISSING	elaboration_system_task:MISSING-2023 finish_number:IDENTICAL
+sv2v	test/nosim/dpi.sv	UNCITED	
 sv2v	test/top/main.sv	UNCITED	
 verible	verible/verilog/tools/kythe/testdata/array.sv	IDENTICAL	seq_block:IDENTICAL
 verible	verible/verilog/tools/kythe/testdata/module_port_type_forwarding.sv	IDENTICAL	port:IDENTICAL list_of_ports:IDENTICAL module_declaration:IDENTICAL
@@ -31,6 +32,7 @@ verilator	test_regress/t/t_clk_concat6.v	IDENTICAL	port:IDENTICAL list_of_ports:
 verilator	test_regress/t/t_comb_do_not_convert_to.v	IDENTICAL	port:IDENTICAL list_of_ports:IDENTICAL module_declaration:IDENTICAL
 verilator	test_regress/t/t_covergroup_autobins_bad.v	IDENTICAL	bins_or_options:IDENTICAL
 verilator	test_regress/t/t_covergroup_with_function_foo_bad.v	IDENTICAL	coverage_event:IDENTICAL
+verilator	test_regress/t/t_dpi_result_type_bad.v	UNCITED	
 verilator	test_regress/t/t_dpi_type_bad.v	IDENTICAL	dpi_spec_string:IDENTICAL
 verilator	test_regress/t/t_enum_base_bad.v	IDENTICAL	enum_base_type:IDENTICAL
 verilator	test_regress/t/t_final.v	IDENTICAL	final_construct:IDENTICAL function_statement:IDENTICAL statement_or_null:IDENTICAL

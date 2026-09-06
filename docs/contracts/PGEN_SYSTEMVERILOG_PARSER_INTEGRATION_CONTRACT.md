@@ -5,6 +5,31 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-09-06, `SV-CORPUS-GRAD.3.43` — GRAMMAR + ANSWER-KEY + INSTRUMENT, release `1.0.216`, ledger `SV-0089`,
+> schema `28` UNCHANGED, accept set NARROWS on `sv_2017` / `sv_2023` by exactly the DPI import result types IEEE 1800-2017 §35.5.5 excludes, `verilog_2005` untouched):
+> a DPI import function's RESULT type is `void`, `byte`, `shortint`, `int`, `longint`, `real`, `shortreal`, `chandle`, `string` or a
+> SCALAR `bit` / `logic` (`docs/systemverilog/2017/md/section-35-direct-programming-interface.md:485-493`; Annex A footnote 21
+> `docs/systemverilog/2017/md/section-41-data-read-api.md:3524`; 1800-2023 §35.5.5 `:493-501`, footnote 26). Through `1.0.215`
+> `dpi_function_proto := function_prototype` reached `data_type_or_void` whole, so `import "DPI-C" function logic [7:0] f();`,
+> `bit [1:0]`, `bit []`, `reg`, `integer`, `time`, `realtime`, an enum / struct / union literal, `event`, a virtual interface,
+> `C #(int)` and `my_t [3:0]` were ACCEPTED as DPI results. `dpi_function_proto` now reaches `dpi_function_prototype` — a caller
+> split of `function_prototype` whose return slot is `dpi_function_result_type`, the `data_type_or_void` shape restricted to
+> §35.5.5 with `data_type`'s own templates (1587 → 1593 rules, six new). **AST impact: none.** Every
+> legal import's typed tree is byte-identical (interpreter A/B on 38 probes × 2 profiles; the corpus AST identity sweep over
+> 16 335 files × 2 SV profiles `ast_moved=0 verdict_moved=2` on each profile — 9 778 / 9 799 accepted trees byte-identical, the two verdict movers the pre-registered files); a consumer reading `import_function.proto.body.body.return_type` sees the
+> `data_type_or_void` shapes it already knows, and the refused forms never reach it because the file no longer parses. A
+> NAMED type without packed dimensions (typedef, `pkg::T`, `C::T`, `type(…)`) is admitted exactly as `data_type` admits it
+> (semantic resolution); signing on the atom and vector types is admitted (§35.5.5 is silent on it); `export "DPI-C" function g;`
+> carries no type and is unchanged. **Corpus**: the AST-field census (`AST-FIELD-CENSUS:`, the parser's own reading of the slot)
+> read 1 298 DPI result slots in 172 files, 24 illegal in four files, exactly TWO accepting — sv2v `test/nosim/dpi.sv:35`
+> `bit [15:0] getStimulus` (the LRM's OWN §35.5.4 example, `:476`, which contradicts the normative §35.5.5 one paragraph later
+> and which 1800-2023 repeats unchanged beside the unchanged restriction — the normative text wins) and verilator
+> `t_dpi_result_type_bad.v` (sixteen results); `sv_2017` and `sv_2023` each read exactly two rows `pass → fail` (the two pre-registered files) and 0 `fail → pass` (pass 9 780 → 9 778 / 9 801 → 9 799, 0 timeouts), `verilog_2005` `transitions: NONE`; both keyed `must_reject` with the production (and
+> `t_dpi_import.v`, already rejecting, pre-registered). Verilator accepts ≤ 32-bit 2-state vector results as an extension;
+> a consumer that relied on that extension through this parser now receives a rejection at the result type's `[`.
+> Certificates: union `1448/8/1425/15 + 1440/0`, 1364-2005 `1142/378/750/14` unchanged; parse cost: `entries` -1,472 and `memo_hits` -512 PROMOTED (falls), `committed` conserved exactly at 6 741 854 — the only entries risers are the five new rules (+32 each), 39 pre-existing rules fell, the LR-family share `2.661 %` reproduces to the anchor. Fourteen REJECT pins
+> (`stimuli/sv/adjudication_repros/invalid_dpi_result_*.sv`) and two controls guard the slot.**
+
 > **Current-state note (2026-09-06, `SV-CORPUS-GRAD.3.42` — GRAMMAR + INSTRUMENT, release `1.0.215`, ledger `SV-0088`,
 > schema `27 → 28` (a REPLACEMENT of corrupted nodes), accept set UNCHANGED on `sv_2017` / `sv_2023`, `verilog_2005` NARROWS by one non-LRM literal form): sixteen inline
 > alternations `( a | b )` that sat inside groups of annotated rules are REMOVED — fifteen LIFTED into eight named,
@@ -1199,15 +1224,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.215`
+  - `1.0.216`
 - Parser release version:
-  - `1.0.215`
-  - history: `1.0.214`; `1.0.213`; `1.0.212`; `1.0.211`; `1.0.210`; `1.0.209`; `1.0.208`; `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.216`
+  - history: `1.0.215`; `1.0.214`; `1.0.213`; `1.0.212`; `1.0.211`; `1.0.210`; `1.0.209`; `1.0.208`; `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `3d3ebcb1d7ce8efcc5fe87924b676d63ee0d29e8c3547fad6fd17d726a4b595a` (SV grammar semantic digest — sha256 of the
+  - `bcb4bbda1ae7b35d374dfa2af4578aeeda83699f7612eb3839aa1159e8b0974c` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`
@@ -1227,7 +1252,7 @@ This is the document downstream projects such as Nexsim should read first when d
   - history: `1.3.1` (backward-compatible stack-robustness fix, `SV-CORPUS-GRAD.8c.3` 2026-07-22: every SV/VHDL embedding parse runs on a dedicated 256 MiB-stack thread, so over-deep recursion returns a clean `E_PARSE_FAILURE` diagnostic — the engine's 4096-frame recursion ceiling — instead of aborting the HOST process with a stack-overflow SIGABRT; measured pre-fix, a ~400-deep parenthesized expression (≈4 KB of text) killed a release embedder at the default 8 MB main stack. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. No parser release/schema bump — the generated parser artifact is unchanged.)
   - history: `1.3.0` (backward-compatible addition of the `verilog_2005` profile; see `rust/docs/EMBEDDING_API_CONTRACT.md` — the previously stated `1.2.0` here was a stale lockstep gap closed by `VERILOG-2005-PROFILE.4.3`)
 - SystemVerilog AST-dump schema version:
-  - `28` (**`1.0.215`** (`SV-CORPUS-GRAD.3.42`, `PGEN-SV-CORPUS-GRAD-0370`, 2026-09-06), ledger `SV-0088`: sixteen inline alternations inside groups of annotated rules are lifted into nine unannotated helper rules, so the `scope` / `qualifier` / `prefix` fields that carried the HOST's template wrapped around a scope prefix — `{name: {kind: "dot"}, scope: {kind: "this"}, select: "<invalid_sequence_access>"}` for `this .`, `{kind: "block", body: <class_scope>}` for a block-event method's class scope, six `"<invalid_sequence_access>"` inside `function_body_declaration`'s raw envelope for `function void I.h();` — now carry the prefix as ITS OWN node: `this .` = `[{kind: "this"}, {kind: "dot"}]`, a class scope = the `class_scope` node, a package scope = the `package_scope` / `non_typedef_package_scope` node, an interface prefix = `[<interface_identifier>, {kind: "dot"}]`. **Migration:** a consumer that read `scope.scope` / `scope.name` on one of the corrupted nodes reads the pair or the typed node; a consumer that tolerated `"<invalid_sequence_access>"` in `select` / `call` / `name` / `items` / `statements` / `end_label` no longer sees it. Every non-shadowed branch, every absent optional and `function void C::g();` are byte-identical (the corpus AST identity sweep). A REPLACEMENT of corrupted nodes by correct ones — the `SV-0014`…`SV-0020` corruption-fix precedent — so it takes a bump.)
+  - `28` (UNCHANGED by **`1.0.216`** — `SV-CORPUS-GRAD.3.43`, `PGEN-SV-CORPUS-GRAD-0371`, 2026-09-06, ledger `SV-0089`: the DPI import result-type restriction (IEEE 1800-2017 §35.5.5 / Annex A footnote 21) is a caller split whose restricted result rule carries `data_type`'s own templates, so every accepting tree is byte-identical — the corpus AST identity sweep over 16 335 files × 2 SV profiles reads `ast_moved=0 verdict_moved=2` on each, 9 778 / 9 799 accepted trees byte-identical) (**`1.0.215`** (`SV-CORPUS-GRAD.3.42`, `PGEN-SV-CORPUS-GRAD-0370`, 2026-09-06), ledger `SV-0088`: sixteen inline alternations inside groups of annotated rules are lifted into nine unannotated helper rules, so the `scope` / `qualifier` / `prefix` fields that carried the HOST's template wrapped around a scope prefix — `{name: {kind: "dot"}, scope: {kind: "this"}, select: "<invalid_sequence_access>"}` for `this .`, `{kind: "block", body: <class_scope>}` for a block-event method's class scope, six `"<invalid_sequence_access>"` inside `function_body_declaration`'s raw envelope for `function void I.h();` — now carry the prefix as ITS OWN node: `this .` = `[{kind: "this"}, {kind: "dot"}]`, a class scope = the `class_scope` node, a package scope = the `package_scope` / `non_typedef_package_scope` node, an interface prefix = `[<interface_identifier>, {kind: "dot"}]`. **Migration:** a consumer that read `scope.scope` / `scope.name` on one of the corrupted nodes reads the pair or the typed node; a consumer that tolerated `"<invalid_sequence_access>"` in `select` / `call` / `name` / `items` / `statements` / `end_label` no longer sees it. Every non-shadowed branch, every absent optional and `function void C::g();` are byte-identical (the corpus AST identity sweep). A REPLACEMENT of corrupted nodes by correct ones — the `SV-0014`…`SV-0020` corruption-fix precedent — so it takes a bump.)
   - `27` (UNCHANGED by **`1.0.214`** — `SV-CORPUS-GRAD.3.38`, `PGEN-SV-CORPUS-GRAD-0369`, 2026-09-05, ledger `SV-0087`: the footnote-20 tightening moves no shape; the DPI-import scope markers bind the elements the annotations already bind or discard and the gated unsized arm passes its node through, so every accepting tree is byte-identical) (**`1.0.213`** (`SV-CORPUS-GRAD.3.41`, `PGEN-SV-CORPUS-GRAD-0368`, 2026-09-04), ledger
     `SV-0086`: the set-membership operator `inside { … }` becomes a CHAIN ELEMENT of `expression_base`'s operand
     chain (`expression_operand expression_chain_step*`; a step is the unchanged binary triple or the object

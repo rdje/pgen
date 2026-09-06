@@ -10,14 +10,14 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `600f7126f4cd997e9c09ae26021c6303ba228b3b4dd25ecc9a7f51a367037aca` |
+| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `52fa6ebb164e1b651ca2326b8ac1eba899f882b4b95befd5a1f716e32fffbc15` |
 | IEEE 1800-2017 Annex A | `docs/systemverilog/2017/md/section-41-data-read-api.md` | `249ab571c2ef3237790a6bd9743f07a7595bdded337ca2cbb6d5e189b3b40d22` |
 | IEEE 1800-2023 Annex A | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md` | `0b4f7fe935e9c499a56ccde8dc769ed626bf53d154f8a9585bd1daf371a9d4aa` |
 | instrument | `docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/production_parity.py` | `26506e3786c05f76f116bd25b9b59a8fa3ff55eb0f044d988d7956b01fd93045` |
 
 ## The census
 
-`PRODUCTION-PARITY: rows=73 all_cited_identical=48 some_differs=8 some_missing=3 no_production_named=16 productions=77`
+`PRODUCTION-PARITY: rows=75 all_cited_identical=48 some_differs=8 some_missing=3 no_production_named=18 productions=77`
 
 | production | verdict |
 |---|---|
@@ -54,6 +54,7 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 | `sv2v` | `test/error/parameter_no_default_3.sv` | UNCITED | — |
 | `sv2v` | `test/error/port_init_early.sv` | IDENTICAL | `output_declaration:IDENTICAL variable_port_type:IDENTICAL var_data_type:IDENTICAL list_of_variable_port_identifiers:IDENTICAL` |
 | `sv2v` | `test/error/severity_task_arg.sv` | MISSING | `elaboration_system_task:MISSING-2023 finish_number:IDENTICAL` |
+| `sv2v` | `test/nosim/dpi.sv` | UNCITED | — |
 | `sv2v` | `test/top/main.sv` | UNCITED | — |
 | `verible` | `verible/verilog/tools/kythe/testdata/array.sv` | IDENTICAL | `seq_block:IDENTICAL` |
 | `verible` | `verible/verilog/tools/kythe/testdata/module_port_type_forwarding.sv` | IDENTICAL | `port:IDENTICAL list_of_ports:IDENTICAL module_declaration:IDENTICAL` |
@@ -67,6 +68,7 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 | `verilator` | `test_regress/t/t_comb_do_not_convert_to.v` | IDENTICAL | `port:IDENTICAL list_of_ports:IDENTICAL module_declaration:IDENTICAL` |
 | `verilator` | `test_regress/t/t_covergroup_autobins_bad.v` | IDENTICAL | `bins_or_options:IDENTICAL` |
 | `verilator` | `test_regress/t/t_covergroup_with_function_foo_bad.v` | IDENTICAL | `coverage_event:IDENTICAL` |
+| `verilator` | `test_regress/t/t_dpi_result_type_bad.v` | UNCITED | — |
 | `verilator` | `test_regress/t/t_dpi_type_bad.v` | IDENTICAL | `dpi_spec_string:IDENTICAL` |
 | `verilator` | `test_regress/t/t_enum_base_bad.v` | IDENTICAL | `enum_base_type:IDENTICAL` |
 | `verilator` | `test_regress/t/t_final.v` | IDENTICAL | `final_construct:IDENTICAL function_statement:IDENTICAL statement_or_null:IDENTICAL` |

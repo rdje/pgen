@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b94ef0ba.js";
+            window.path_to_searchindex_js = "searchindex-4f59b87a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -553,6 +553,13 @@
 <tr><td><code>function_prototype_sv_2017</code></td><td><code>-&gt; {return_type, name, ports}</code></td><td>Drops <code>kw_function</code>.</td></tr>
 <tr><td><code>function_prototype_sv_2023</code></td><td><code>-&gt; {dynamic_override, return_type, name, ports}</code></td><td>Adds LRM 2023 dynamic_override slot.</td></tr>
 <tr><td><code>task_prototype_sv_2017</code> / <code>task_prototype_sv_2023</code></td><td><code>-&gt; {[dynamic_override,] name, ports}</code></td><td>Parallel to function_prototype.</td></tr>
+<tr><td><code>dpi_function_proto</code></td><td><code>-&gt; {body}</code></td><td>The DPI import’s function prototype. Since <code>1.0.216</code> (<code>SV-CORPUS-GRAD.3.43</code>) the body is <code>dpi_function_prototype</code>, not <code>function_prototype</code>: a caller split whose only difference is the return slot (IEEE 1800-2017 §35.5.5 / Annex A footnote 21 — a DPI result is a small value). The typed shape is byte-identical to <code>function_prototype</code>’s.</td></tr>
+<tr><td><code>dpi_function_prototype</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels <code>"sv_2017"</code> / <code>"sv_2023"</code>, exactly as <code>function_prototype</code>.</td></tr>
+<tr><td><code>dpi_function_prototype_sv_2017</code></td><td><code>-&gt; {return_type, name, ports}</code></td><td>Mirrors <code>function_prototype_sv_2017</code>; <code>return_type</code> is a <code>dpi_function_result_type</code> node, whose shape is the <code>data_type_or_void</code> shape.</td></tr>
+<tr><td><code>dpi_function_prototype_sv_2023</code></td><td><code>-&gt; {dynamic_override, return_type, name, ports}</code></td><td>Mirrors <code>function_prototype_sv_2023</code> (the 2023 override slot on a DPI prototype: A.2.6 <code>dpi_function_proto ::= function_prototype</code>).</td></tr>
+<tr><td><code>dpi_function_result_type</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"data_type"</code> (<code>{body}</code>, the body a <code>dpi_result_data_type</code> node) / <code>"void"</code> (bare) — the <code>data_type_or_void</code> shape, restricted to the eleven §35.5.5 result types.</td></tr>
+<tr><td><code>dpi_result_data_type</code> (8 branches)</td><td>per-branch typed, each <code>data_type</code>’s OWN template</td><td>Kind labels <code>"integer_vector"</code> (<code>{base, signing, dims: []}</code> — scalar <code>bit</code> / <code>logic</code>, a <code>[</code> refused), <code>"integer_atom"</code> (<code>{base, signing}</code> — <code>byte</code> / <code>shortint</code> / <code>int</code> / <code>longint</code>), <code>"non_integer"</code> (<code>{base}</code> — <code>real</code> / <code>shortreal</code>), <code>"string"</code>, <code>"chandle"</code>, <code>"scoped_data_type"</code> (<code>{body: {scope, type, dims: []}}</code>), <code>"known_unscoped_data_type"</code> (<code>{body: {type, dims: []}}</code>), <code>"type_reference"</code> (<code>{body}</code>). A consumer reading a DPI result sees exactly the <code>data_type</code> shapes it already knows; <code>reg</code>, <code>integer</code>, <code>time</code>, <code>realtime</code>, enum / struct / union literals, <code>event</code>, virtual interfaces, class types and any packed dimension are REFUSED at parse time, so they never appear here.</td></tr>
+<tr><td><code>dpi_result_non_integer_type</code> (2 branches)</td><td>pass-through / <code>{kind: "real"}</code></td><td><code>non_integer_type</code> without <code>realtime</code>.</td></tr>
 <tr><td><code>let_port_item</code></td><td><code>-&gt; {attributes, type, name, dims, init}</code></td><td>LRM A.2.8 let port.</td></tr>
 <tr><td><code>let_port_list</code></td><td><code>-&gt; [$1, $2::2*]</code></td><td>Flat array of let_port_item shapes (slice 58 audit).</td></tr>
 <tr><td><code>net_decl_assignment</code></td><td><code>-&gt; {name, dims, init}</code></td><td>Drops <code>assign</code> (init has the body).</td></tr>
