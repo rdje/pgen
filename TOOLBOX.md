@@ -85,7 +85,7 @@ same leaf keeps its checklist, and a deletion-only edit still counts as touching
 
 | # | family | when it applies | verbatim tokens that count |
 |---|---|---|---|
-| 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `PGEN_LINT_DUMP_ALL`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `INTERPRET-PARSE:`/`--interpret-parse`, `INDIRECT-LR-SURVEY:`/`--report-indirect-lr-plan`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]`, `LAYOUT-OWNING-TERMINALS:`/`--report-layout-owning-terminals`, `SAMPLE-PROFILE-PARITY:`/`--report-sample-parity`, `INLINE-ALT-CENSUS:` (`docs/tasks/artifacts/sv_corpus_grad/inline_alt_census/inline_alt_census.py` — every inline alternation a rule's return templates can type by branch index, the `ENGINE-UNIVERSAL-SERVICES.96` shape; §1.5d), `AST-IDENTITY-SWEEP:` / `LIVENESS-CENSUS:` (`docs/tasks/artifacts/sv_corpus_grad/inline_alt_lift/` — did any accepted tree MOVE between two parser binaries over the corpus; which corpus files make a rule commit; §1.5e), `AST-FIELD-CENSUS:` / `DPI-RESULT-CLASSIFY:` / `DIRECTIVE-CLASSIFY:` (`docs/tasks/artifacts/sv_corpus_grad/ast_field_census/`, `…/dpi_result_census/`, `…/directive_census/` — what the corpus actually WRITES at one typed-AST slot, read by the parser itself, one row per node, then bucketed by a domain classifier; §1.5f) |
+| 1 | **correctness** | the parser accepts/rejects the wrong thing | `CERTIFICATE-COVERAGE:`, `[plannable-probe]`, `rejected by post predicate`, `furthest_position=`, `--trace-rules`, `--lint-grammar`, `PGEN_LINT_DUMP_ALL`, `--dump-rule-call-counts`/`--dump-rule-outcome-counts`, `--parse-dump-ast`, `INTERPRET-PARSE:`/`--interpret-parse`, `INDIRECT-LR-SURVEY:`/`--report-indirect-lr-plan`, `PGEN_REACH_PATH_DUMP`, `PGEN_REACH_FORCED_OVERRIDE_DUMP`/`[forced-override]`, `LAYOUT-OWNING-TERMINALS:`/`--report-layout-owning-terminals`, `SAMPLE-PROFILE-PARITY:`/`--report-sample-parity`, `INLINE-ALT-CENSUS:` (`docs/tasks/artifacts/sv_corpus_grad/inline_alt_census/inline_alt_census.py` — every inline alternation a rule's return templates can type by branch index, the `ENGINE-UNIVERSAL-SERVICES.96` shape; §1.5d), `AST-IDENTITY-SWEEP:` / `LIVENESS-CENSUS:` (`docs/tasks/artifacts/sv_corpus_grad/inline_alt_lift/` — did any accepted tree MOVE between two parser binaries over the corpus; which corpus files make a rule commit; §1.5e), `AST-FIELD-CENSUS:` / `DPI-RESULT-CLASSIFY:` / `DIRECTIVE-CLASSIFY:` / `TF-BODY-CLASSIFY:` (`docs/tasks/artifacts/sv_corpus_grad/ast_field_census/`, `…/dpi_result_census/`, `…/directive_census/`, `…/tf_body_census/` — what the corpus actually WRITES at one typed-AST slot, read by the parser itself, one row per node (selected by `kind` or, for a slot without one, by exact key set), then bucketed by a domain classifier; §1.5f), `PARTIAL-TYPING-CENSUS:` (`docs/tasks/artifacts/sv_corpus_grad/tf_body_census/partial_typing_census.py` — every multi-alternative rule whose return templates cover SOME alternatives and not others, each untyped alternative bucketed `passthrough` / `RAW_ENVELOPE` by what it emits; §1.5g) |
 | 2 | **performance / SPEED / FOOTPRINT** | it is correct but slow, or its memory is the problem | `/usr/bin/sample`, `otool` (annotated disassembly), `spindump`, `filtercalltree`, `ITIMER_PROF`, `self-time`, `call-graph attribution`, `cargo flamegraph`, `ARENA-CHUNK-ORACLE:` (`rust/target/release/arena_chunk_oracle_probe` — proves the `typed_arena` chunk-capacity model against a counting `GlobalAlloc`; `--red-control` required to go red), `PARSE-ALLOC-CENSUS:` (`rust/target/release/parse_alloc_census_probe` — the whole parse's requested-live-bytes high-water and a size-class table at that high-water, so a structure can be attributed by NAME instead of subtracted for; `--red-control-arm` required to go red), `PARSE-THIN-OCCUPANCY:` (same probe — how much of the dense `THIN_RULE_COUNT × (len + 1)` thin-memo table a parse actually WRITES; `NOT_MEASURED` is never `0`), `PARSE-ALLOC-TAPE:` (same probe — one row per large allocation with the events at which it was made and released, so SUCCESSION, position relative to the peak, and never-freed are OBSERVED rather than inferred from a class total; `complete=false` invalidates the input) |
 | 3 | **build integrity** | a target no longer COMPILES — no parse to trace, no run to sample | `error[EXXXX]`, `could not compile` |
 | 4 | **codegen emission** | the GENERATOR emits the wrong code — it compiles and parses fine | `GENERATED-CLIPPY-CORRECTNESS:`, `clippy::<lint>`, `PGEN_CLIPPY_GENERATED_STRICT` |
@@ -414,7 +414,13 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   1800-2017 §35.5.5; second: `…/directive_census/classify.py`, `DIRECTIVE-CLASSIFY:`, every compiler-directive line
   against the thirteen clause-22 syntax boxes, per edition — `SV-CORPUS-GRAD.3.39`; its `unclassified` bucket is what
   shows the regex or the classifier is short, and its `no_node` bucket is what shows the FILE LIST selected by text a
-  file whose directives sit in a comment).
+  file whose directives sit in a comment; third: `…/tf_body_census/classify.py`, `TF-BODY-CLASSIFY:`, every function /
+  task BODY by the A.2.6 / A.2.7 alternative that produced it and whether the parser TYPED it or left the raw `Sequence`
+  envelope — `SV-CORPUS-GRAD.3.44`, which read 2 211 of 3 411 bodies RAW on `sv_2017` and pre-registered the 1 060 files
+  whose typed AST the release must move). ⭐ **A slot whose node carries no `kind` is selected by its KEY SET**:
+  `--select-keys lifetime,body` (in place of `--kind`) selects every object whose keys are exactly those — the
+  `function_declaration_sv_2017` / `task_declaration_sv_2017` return — so a census can read a slot the campaign typed
+  without a discriminator (`.3.44`; `--select-keys dynamic_override,lifetime,body` for the `sv_2023` declarations).
 - **WHEN:** before narrowing a grammar slot to what the LRM admits — "what does the corpus write there, and which
   accepting rows will move?" is answered by name, per file and line, before a byte is generated (`.3.43`: 1 298 DPI
   result slots over the 172 files carrying a DPI spec string, 24 illegal in four files, exactly two of them accepting
@@ -427,6 +433,26 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   the parser already rejects and cannot move a verdict; it is in the count so the census is of the CORPUS, not of the
   parser's accepting half. ⛔ Read the classifier's `unclassified` rows before publishing a number — `.3.43`'s first run
   carried three from a name pattern that did not admit escaped identifiers.
+
+### 1.5g The partial-typing census — is this rule TYPED, or is one of its alternatives?
+- **WHAT:** `python3 docs/tasks/artifacts/sv_corpus_grad/tf_body_census/partial_typing_census.py <raw.json> [--list]`
+  over the frontend's own `raw_ast` envelope (`ast_pipeline <grammar> --emit-raw-ast-json <raw.json>`, the reading
+  the code generator consumes): for every rule with two or more top-level alternatives, which of them end in a
+  return template. A rule typed on SOME alternatives is `PARTIAL`, and each of its untyped alternatives is bucketed by
+  what it EMITS — `passthrough` (exactly one rule reference: the child's node passes through, the profile-split
+  `_sv_only` helper pattern) or `RAW_ENVELOPE` (two or more elements: the positional `Sequence` envelope).
+- **WHEN:** before believing any register that counts a rule as typed — the json-carrier row, the annotation
+  inventory, the AST-shape contract all count a rule with ONE template as typed. ⛔ Measured `SV-CORPUS-GRAD.3.44`:
+  `function_body_declaration` had carried a template on alternative 1 since SV-Slice-25 (release `1.0.25`) and none on
+  the PORTED form `type f(ports); …` — the most common function in any corpus — so 2 211 of the 3 411 function / task
+  bodies the parser wrote on `sv_2017` were raw envelopes in every register that said the rule was typed; the census
+  read **40 PARTIAL rules (70 untyped alternatives, 25 of them raw envelopes)** on 1.0.217 and 38 / 64 / 19 after.
+- **OUTPUT:** `PARTIAL-TYPING-CENSUS: grammar=… rules=N multi_alternative=M fully_typed=F untyped=U PARTIAL=P
+  partial_untyped_alternatives=A passthrough=B RAW_ENVELOPE=C` and, with `--list`, one line per PARTIAL rule naming
+  each untyped alternative's index and bucket. `--self-test` replays five synthetic rules (exit 7 on a miss).
+- ⚠️ **HONEST BOUND:** a rule with NO template on any alternative is `untyped`, the campaign's ordinary backlog, not
+  `PARTIAL`; and `passthrough` names the mechanism, not intent — a passed-through child may itself be raw. Which
+  corpus files a `RAW_ENVELOPE` alternative moves when typed is §1.5f's question (`--select-keys` on the slot).
 
 ### 1.6 The differential-equivalence gate — is the interpreter byte-identical to the generated parser?
 - **WHAT:** `make -C rust SHELL=/bin/bash parse_harness_equivalence_gate` (module `rust/src/parse_harness_equivalence.rs`) — the certifying oracle for the interpreter (1.5). For each registered grammar it runs the interpreter AND the shipped generated parser over ONE deterministic stimuli corpus (seeds 0/7/42, bounded generation, large-stack workers) and asserts **byte-identical** verdict + typed AST. Report-first API (`evaluate_grammar_equivalence` collects divergences, never panics) + 3 enforcing gate tests. PARSE-HARNESS.5.

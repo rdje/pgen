@@ -24,14 +24,14 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `52d1ff8fecf06519c90f51c3de677c7c6a89426812f30b3e6a3da165a9600bde` |
-| grammar | `grammars/systemverilog.ebnf` | `47f021e8122445e561e83dbbe56d32f0b755933f2e41817435f49630badc7073` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `83e0d64f267471f0c1ef52f843761829b76e0be1b4a3f04c1c0fb330fa2ae312` |
-| generated parser | `generated/systemverilog_parser.rs` | `07936ecb0b19912f8d24c4b3bdb6451f6528d66cb9682e6fba131e5c01495afd` |
+| parse binary | `rust/target/release/parseability_probe` | `00d6fdfc9724c12ffdedf338401adc5d7b8b5aa420671aff18fbe4b074114f7d` |
+| grammar | `grammars/systemverilog.ebnf` | `f4f8484a942feab8f83c07bf1db20e21f6ee3c976381277c65cb3b889dfaa093` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `015f70e9a8e90d4a97477b33ebf8271d27be46ccc82eced04037bec6dbdc8d14` |
+| generated parser | `generated/systemverilog_parser.rs` | `69f5341307f2969dfff38784d8684167d09990127427340f2f18cb969c2693c0` |
 | results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `d656ad872d8aca4ecd0f2e236cebcacfdbe6df8b7c619dc9a1f2c9cffc40c2e6` |
 | positions (output) | `stimuli/sv/characterization/positions_sv2023.tsv` | `0515e0359b75822d20ab2ff5f135fe73a9d78adcbf03147431e69af866f171f2` |
 
-Measured at `HEAD` = `b72a46a4+dirty` (2026-09-06).
+Measured at `HEAD` = `5a792c0b+dirty` (2026-09-07).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -65,7 +65,7 @@ Measured at `HEAD` = `b72a46a4+dirty` (2026-09-06).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `11.49` s — `stimuli/sv/subs/opentitan/hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `6.78` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 

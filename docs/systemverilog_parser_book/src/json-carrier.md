@@ -134,10 +134,10 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `data_declaration_sv_2023` (4 branches) | per-branch typed | Same first 3 kinds as sv_2017; 4th kind is `"nettype"` (LRM 2023 renamed `net_type` → `nettype`). Profile-agnostic walks should accept both `"net_type"` and `"nettype"`. |
 | `function_declaration_sv_2017` | `-> {lifetime: $2, body: $3}` | Single-sequence typed. Drops `kw_function`. `lifetime` is `[]` or typed `lifetime` shape. `body` is the typed `function_body_declaration`. |
 | `function_declaration_sv_2023` | `-> {dynamic_override: $2, lifetime: $3, body: $4}` | Same as sv_2017 plus LRM 2023's `( dynamic_override_specifiers )?` slot. `dynamic_override` is `[]` when absent. |
-| `function_body_declaration` | `-> {return_type: $1, name: $2, items: $4, statements: $5, end_label: $7}` | Drops `semi`, `kw_endfunction`. `return_type` is the matched `function_data_type_or_implicit` (function may return void / scalar / vector / struct). `name` is a clean function_identifier string (per SV-Slice-8 identifier propagation). ⚠️ Only alternative 1 (`type f; … endfunction`) is typed; alternatives 2–4 (the ported form `type f(ports); …`, and the out-of-block forms `type I.f …` / `type C::f …`) still arrive as the RAW envelope, whose scope element is `out_of_block_tf_scope` since schema 28 (release `1.0.215`) — typing them is `SV-CORPUS-GRAD.3.44`. |
+| `function_body_declaration` (4 branches; **schema 30**) | per-branch typed — `{return_type: $1, name: $2, items: $4, statements: $5, end_label: $7}` / `{return_type: $1, name: $2, ports: $4, items: $7, statements: $8, end_label: $10}` / `{return_type: $1, scope: $2, name: $3, items: $5, statements: $6, end_label: $8}` / `{return_type: $1, scope: $2, name: $3, ports: $5, items: $8, statements: $9, end_label: $11}` | **Every alternative is typed since parser release `1.0.218` (`SV-CORPUS-GRAD.3.44`).** IEEE 1800-2017 A.2.6 gives the production two forms — the NON-ported `[ interface_identifier . \| class_scope ] function_identifier ;` with `tf_item_declaration` items, and the PORTED `… function_identifier ( [ tf_port_list ] ) ;` with `block_item_declaration` items — each with an optional out-of-block prefix, hence four branches. No `kind`: a consumer discriminates the LRM form by KEY PRESENCE — `ports` is present exactly on the ported branches (2, 4; `[]` for `f()`), `scope` exactly on the out-of-block branches (3, 4; the `out_of_block_tf_scope` node — the pair `[<interface_identifier>, {kind: "dot"}]` or the `class_scope` node). `items` holds `tf_item_declaration` nodes (`{kind: "block_item" \| "tf_port", body}`) on the non-ported branches and BARE `block_item_declaration` nodes on the ported ones, exactly as the standard's two productions read; `return_type` is the matched `function_data_type_or_implicit`; `name` a clean identifier node; `end_label` `[]` or the `[{kind: "colon"}, <identifier>]` pair. Drops `semi`, `lparen` / `rparen`, `kw_endfunction`. ⚠️ Through `1.0.217` branches 2–4 arrived as the RAW `Sequence` envelope (a positional array of 10 / 8 / 11 elements) — measured over the corpus at 2 211 of 3 411 bodies, the ported form being the most common function in any corpus; branch 1 is BYTE-IDENTICAL across the release. See [Typed Function and Task Bodies](#typed-function-and-task-bodies-schema-30). |
 | `task_declaration_sv_2017` | `-> {lifetime: $2, body: $3}` | Parallel to `function_declaration_sv_2017`. |
 | `task_declaration_sv_2023` | `-> {dynamic_override: $2, lifetime: $3, body: $4}` | Parallel to `function_declaration_sv_2023`. |
-| `task_body_declaration` | `-> {name: $1, items: $3, statements: $4, end_label: $6}` | Same shape as `function_body_declaration` but no `return_type` (task is void by definition). ⚠️ Likewise only alternative 1 is typed; alternatives 2–4 arrive as the raw envelope (scope element `out_of_block_tf_scope` since schema 28); `SV-CORPUS-GRAD.3.44`. |
+| `task_body_declaration` (4 branches; **schema 30**) | per-branch typed — `{name: $1, items: $3, statements: $4, end_label: $6}` / `{name: $1, ports: $3, items: $6, statements: $7, end_label: $9}` / `{scope: $1, name: $2, items: $4, statements: $5, end_label: $7}` / `{scope: $1, name: $2, ports: $4, items: $7, statements: $8, end_label: $10}` | The task twin of `function_body_declaration` (IEEE 1800-2017 A.2.7), every alternative typed since `1.0.218`; no `return_type` — a task is void by definition. `ports` present exactly on the ported branches, `scope` exactly on the out-of-block ones; `items` typed vs bare as above. ⚠️ Through `1.0.217` branches 2–4 were the RAW envelope (9 / 7 / 10 elements). The corpus writes no body of branch 3 (an out-of-block, non-ported task) on any lane — its shape is held by the pin `control_tf_body_task_out_of_block_class.sv` and the AST-shape contract sample `task_body_out_of_block_interface`. |
 | `net_declaration_sv_2017` (3 branches) | per-branch typed | Kind labels: `"wire"` (`{net_type, strength, vector_scalar, data_type, delay, assignments}` — `strength` and `vector_scalar` are typed via helper rules `net_strength` / `net_vector_scalar`) / `"alias"` (`{net_type_id, delay_control, assignments}`) / `"interconnect"` (`{data_type, delay, name, dims, second}`). |
 | `net_declaration_sv_2023` (3 branches) | per-branch typed | Same 3 kinds as sv_2017; alias branch uses field `nettype_id` instead of `net_type_id` (LRM 2023 nettype-vs-net_type rule rename). |
 | `net_strength` (NEW; 2 branches) | per-branch `{kind, body}` | Kind labels: `"drive"` (body is the matched drive_strength shape) / `"charge"` (body is the matched charge_strength shape). Helper rule extracted from inline `( drive_strength \| charge_strength )?` to dodge task #38. |
@@ -310,7 +310,7 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `ps_or_hierarchical_array_scope` (3 branches, unannotated; schema 28) | passthrough | `ps_or_hierarchical_array_identifier.scope` (the `foreach` array): the `this .` pair, a `class_scope` node or a `non_typedef_package_scope` node. Until 1.0.214 `foreach (this.arr[i])` carried `scope: {name: {kind: "dot"}, scope: {kind: "this"}}` — the host's own `{scope, name}` template around the pair. |
 | `ps_type_identifier_scope_sv_2017` / `_sv_2023` (3 branches each, unannotated; schema 28) | passthrough | `ps_type_identifier_*.scope`: the `local ::` footnote literal (branch 0, dead on legal text), a `non_typedef_package_scope` node or a `class_scope` node. One helper per edition because the footnote literal differs (43 / 48). |
 | `split_callable_receiver_scope` (3 branches, unannotated; schema 28) | passthrough | `split_hierarchical_callable_receiver.scope`: the `class_qualifier` literal, a `non_typedef_package_scope` node or a `class_scope` node. The `pkg::` / `C::` branches were never shadowed (a one-template host shadows branch 0 only) — verible `nested_member_access.sv`'s `nested_class0::handle1::handle2.nested_function()` is byte-identical across the lift. |
-| `out_of_block_tf_scope` (2 branches, unannotated; schema 28) | passthrough | `interface_identifier .` as the pair `[<interface_identifier>, {kind: "dot"}]`, or a `class_scope` node — the scope element of `function_body_declaration` / `task_body_declaration` alternatives 3 and 4 (out-of-block definitions), which carry NO template (raw envelope). Until 1.0.214 `function void I.h();` put `{return_type: {body: "I"}, name: {kind: "dot"}, items: "<invalid_sequence_access>", statements: "<invalid_sequence_access>", end_label: "<invalid_sequence_access>"}` into that raw envelope; `function void C::g();` is byte-identical across the lift. Typing these alternatives is `SV-CORPUS-GRAD.3.44`. |
+| `out_of_block_tf_scope` (2 branches, unannotated; schema 28) | passthrough | `interface_identifier .` as the pair `[<interface_identifier>, {kind: "dot"}]`, or a `class_scope` node — the `scope` field of `function_body_declaration` / `task_body_declaration` branches 3 and 4 (out-of-block definitions) since schema 30, and the raw envelope's scope element from schema 28 to 29. Until 1.0.214 `function void I.h();` put `{return_type: {body: "I"}, name: {kind: "dot"}, items: "<invalid_sequence_access>", statements: "<invalid_sequence_access>", end_label: "<invalid_sequence_access>"}` into that raw envelope; `function void C::g();` is byte-identical across the `1.0.215` lift. |
 | `constant_primary_sv_2017` (15 branches) | per-branch typed | Kind labels: `"literal"` / `"ps_parameter"` (`{name, select}`) / `"specparam"` / `"genvar"` / `"formal_port"` / `"enum"` (`{scope, name}`) / `"multiple_concat"` / `"concat"` / `"function_call"` / `"let"` / `"paren"` / `"cast"` / `"assign_pattern"` / `"type_reference"` / `"null"` (bare). |
 | `enum_id_scope_prefix` (NEW; 2 branches) | per-branch `{kind, body}` | Kind labels: `"package_scope"` / `"class_scope"`. Helper rule extracted from inline `( non_typedef_package_scope \| class_scope )?` in constant_primary_sv_2017's enum branch. |
 | `primary_sv_2023` (15 branches) | per-branch typed | Same 15 kind labels as primary_sv_2017 except `"call"` adds optional `select` field — `{body, select}` (LRM 2023 allows `f()[0]` array-indexed call). Reuses `primary_hier_scope_prefix` and `instance_or_class_scope` helpers. |
@@ -796,3 +796,72 @@ complete one. Directive names are matched with a trailing word boundary, so
   correctly — it stops at the base64 payload, not at the directive.
 - Top-level behaviour is unchanged: directives above/below a design element parsed before and
   parse identically now.
+
+## Typed Function and Task Bodies (schema 30)
+
+*Parser release `1.0.218` (`SV-CORPUS-GRAD.3.44`, ledger `SV-0091`). Schema `29 → 30`.*
+
+IEEE 1800-2017 A.2.6 / A.2.7 give a function or task body exactly two forms, each with an optional
+out-of-block prefix:
+
+```
+function_body_declaration ::=
+    function_data_type_or_implicit [ interface_identifier . | class_scope ] function_identifier ;
+        { tf_item_declaration } { function_statement_or_null } endfunction [ : function_identifier ]
+  | function_data_type_or_implicit [ interface_identifier . | class_scope ] function_identifier ( [ tf_port_list ] ) ;
+        { block_item_declaration } { function_statement_or_null } endfunction [ : function_identifier ]
+task_body_declaration ::= (the same two forms, without the return type)
+```
+
+The grammar spells that as four alternatives — the prefix × the port list — and through `1.0.217` only
+the first (`type f; … endfunction`, its ports declared INSIDE the body) carried a return template. The
+other three arrived as the raw `Sequence` envelope: a positional array the consumer had to index by
+hand, with the port list at `[3]` on a ported function and at `[4]` on an out-of-block ported one. The
+corpus census on the `1.0.217` probe (`AST-FIELD-CENSUS:` with the new `--select-keys lifetime,body`
+selector + `TF-BODY-CLASSIFY:`) read **2 211 of the 3 411 function / task bodies the parser wrote on
+`sv_2017` as that raw envelope** — 1 646 ported functions, 513 ported tasks, 30 out-of-block functions,
+22 out-of-block tasks — in 1 060 of the 1 958 accepting files that declare a function or task at all. The
+ported form is the most common function in any corpus, and the typed AST could not read it.
+
+Since `1.0.218` every alternative is typed, mirroring alternative 1's field set:
+
+```systemverilog
+function int f;  input int a;  return a;  endfunction                 // alt 1 (unchanged)
+function int f(int a);  return a;  endfunction : f                   // alt 2 — ports present
+function void I.h;  input int a;  endfunction                        // alt 3 — scope present
+function int C::g(int a, int b = 2);  return a * b;  endfunction    // alt 4 — scope and ports present
+```
+
+```json
+{"return_type": {"kind": "data_type", "body": {…}}, "name": {"body": "f"}, "items": [{"kind": "tf_port", "body": {…}}], "statements": […], "end_label": []}
+{"return_type": {…}, "name": {"body": "f"}, "ports": [{…}], "items": [], "statements": […], "end_label": [{"kind": "colon"}, {"body": "f"}]}
+{"return_type": {…}, "scope": [{"body": "I"}, {"kind": "dot"}], "name": {"body": "h"}, "items": [{"kind": "tf_port", "body": {…}}], "statements": [], "end_label": []}
+{"return_type": {…}, "scope": {"body": {"head": {"body": "C"}, "params": [], "scope_chain": []}}, "name": {"body": "g"}, "ports": [{…}, {…}], "items": [], "statements": […], "end_label": []}
+```
+
+**How a consumer tells the forms apart.** There is no `kind`: the discriminator is key PRESENCE, which
+is the standard's own distinction. `ports` is present exactly on the ported alternatives (2 and 4) — it is
+the typed `tf_port_list` array, `[]` for `f()` — and `scope` exactly on the out-of-block ones (3 and 4),
+carrying the `out_of_block_tf_scope` node: the pair `[<interface_identifier>, {kind: "dot"}]` for an
+interface method (§25.7) or the `class_scope` node for a class method (§8.24). The two forms also differ
+in `items`, faithfully: a NON-ported body's items are `tf_item_declaration` nodes, `{kind: "block_item" |
+"tf_port", body}`, because that is where its ports live; a ported body's items are bare
+`block_item_declaration` nodes, because A.2.6's second production admits no port declaration there. A
+consumer that switched on the array length before now reads `"ports" in body` and `"scope" in body`.
+
+**Migration.** A consumer of schema 29 that indexed the raw envelope — `body[0]` for the return type,
+`body[3]` / `body[4]` for the port list, `body[6]` / `body[7]` / `body[8]` for the items — reads the
+named fields instead; the elements are the same typed nodes in the same order, with the `lparen` /
+`rparen` / `semi` / `endfunction` tokens dropped as they are on alternative 1. Alternative 1 itself is
+byte-identical (measured: the two in-block pins and every all-typed corpus file). A REPLACEMENT of a raw
+envelope by a typed node is the `SV-0014`…`SV-0020` corruption-fix precedent, hence the bump.
+
+**Measured over the corpus.** The corpus AST identity sweep (the 1.0.217 probe vs this release, TOOLBOX §1.5e) reads `AST-IDENTITY-SWEEP: profile=sv_2017 files=16336 both_accepted=9756 identical=8696 ast_moved=1060 verdict_moved=0 both_nonaccepting=6580` and `AST-IDENTITY-SWEEP: profile=sv_2023 files=16336 both_accepted=9780 identical=8716 ast_moved=1064 verdict_moved=0 both_nonaccepting=6556`, and over the `verilog_2005` lane `AST-IDENTITY-SWEEP: profile=verilog_2005 files=2606 both_accepted=2310 identical=2270 ast_moved=40 verdict_moved=0 both_nonaccepting=296` — two-sided against the census's prediction (`sv_2017`: predicted 1060, moved 1060, predicted-but-identical 0, moved-but-not-predicted 0; `sv_2023`: predicted 1064, moved 1064, predicted-but-identical 0, moved-but-not-predicted 0; `verilog_2005`: predicted 40, moved 40, predicted-but-identical 0, moved-but-not-predicted 0). No verdict moves on any lane (a return template changes
+what the parser emits, never what it accepts): `sv_2017` `transitions: NONE` (pass 9756 / fail 6580 of 16336 rows, 0 timeouts); `sv_2023` `transitions: NONE` (pass 9780 / fail 6556 of 16336 rows, 0 timeouts); `verilog_2005` `transitions: NONE` (pass 2310 / fail 296 of 2606 rows, 0 timeouts). Eight pins — one per alternative of each
+rule, the two in-block ones as the controls that cannot move (`control_tf_body_*.sv`, arms `tf_port` /
+`!tf_port` pinning WHERE the ports live) — and six AST-shape contract samples, one per newly typed
+alternative, parsed AS the body rule.
+
+**Profiles.** The ported alternatives are legal IEEE 1364-2005 too (A.2.6 `function_port_list`, A.2.7
+`task_port_list`), so the `verilog_2005` profile's typed AST moves on the same forms; the out-of-block
+alternatives are SV-only (interfaces and classes) and reject there as before.

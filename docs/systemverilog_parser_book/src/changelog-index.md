@@ -34,6 +34,47 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.218 / Contract 1.0.218 — SV-CORPUS-GRAD.3.44 (`PGEN-SV-CORPUS-GRAD-0373`, 2026-09-07), ledger `SV-0091` (`Released`), **schema 29 → 30**:
+
+⭐ **`function_body_declaration` and `task_body_declaration` are typed on EVERY alternative.** IEEE 1800-2017 A.2.6 / A.2.7
+give a function or task body two forms — the non-ported `type f; …` whose ports are `tf_item_declaration` items inside the
+body, and the PORTED `type f(ports); …` with `block_item_declaration` items — each with an optional out-of-block prefix
+(`I.f` / `C::f`), four alternatives in the grammar. Through `1.0.217` only alternative 1 carried a return template (since
+SV-Slice-25, release `1.0.25`, and every register that counts annotations counted the rule as typed from that day); the
+other three arrived as the raw positional `Sequence` envelope — 10 / 8 / 11 elements on a function, 9 / 7 / 10 on a task.
+The corpus census on the 1.0.217 probe (`AST-FIELD-CENSUS:` with the new `--select-keys lifetime,body` selector +
+`TF-BODY-CLASSIFY:`) read **2 211 of the 3 411 function / task bodies the parser wrote on `sv_2017` as that envelope** —
+1 646 ported functions, 513 ported tasks, 30 out-of-block functions, 22 out-of-block tasks — in 1 060 of the 1 958
+accepting files that declare a function or task at all. The ported form is the most common function in any corpus, and
+the typed AST could not read it. Grammar tier: six return templates, `1641` rules unchanged, no engine, no codegen; two
+test-only Rust dispatch arms so the body rules take AST-shape contract samples.
+
+**AST impact — schema 29 → 30.** Every alternative returns the typed object, mirroring alternative 1's field set:
+`{return_type, name, ports, items, statements, end_label}` (ported), `{return_type, scope, name, items, statements,
+end_label}` (out-of-block), `{return_type, scope, name, ports, items, statements, end_label}` (out-of-block ported); the
+task twins without `return_type`. There is no `kind` — the discriminator is key presence, which is the standard's own
+distinction: `ports` is present exactly on the ported alternatives (the typed `tf_port_list` array, `[]` for `f()`),
+`scope` exactly on the out-of-block ones (the `out_of_block_tf_scope` node — the pair `[<interface_identifier>, {kind:
+"dot"}]` or the `class_scope` node). `items` holds `tf_item_declaration` nodes on the non-ported forms and bare
+`block_item_declaration` nodes on the ported ones, as A.2.6's two productions read. **Migration:** a consumer that indexed
+`body[N]` reads the named fields — the same typed nodes in the same order, the `(` `)` `;` `endfunction` tokens dropped
+as on alternative 1. Alternative 1 is byte-identical (the two in-block pins on all three profiles; every all-typed
+corpus file). A REPLACEMENT of a raw envelope by a typed node — the `SV-0014`…`SV-0020` precedent — hence the bump.
+
+**Accept set — unchanged, measured.** `sv_2017` `transitions: NONE` (pass 9756 / fail 6580 of 16336 rows, 0 timeouts); `sv_2023` `transitions: NONE` (pass 9780 / fail 6556 of 16336 rows, 0 timeouts); `verilog_2005` `transitions: NONE` (pass 2310 / fail 296 of 2606 rows, 0 timeouts). **Typed AST — moved exactly where predicted.** The corpus AST identity sweep (the 1.0.217 probe vs this release, TOOLBOX §1.5e) reads `AST-IDENTITY-SWEEP: profile=sv_2017 files=16336 both_accepted=9756 identical=8696 ast_moved=1060 verdict_moved=0 both_nonaccepting=6580` and `AST-IDENTITY-SWEEP: profile=sv_2023 files=16336 both_accepted=9780 identical=8716 ast_moved=1064 verdict_moved=0 both_nonaccepting=6556`, and over the `verilog_2005` lane `AST-IDENTITY-SWEEP: profile=verilog_2005 files=2606 both_accepted=2310 identical=2270 ast_moved=40 verdict_moved=0 both_nonaccepting=296` — two-sided against the census's prediction (`sv_2017`: predicted 1060, moved 1060, predicted-but-identical 0, moved-but-not-predicted 0; `sv_2023`: predicted 1064, moved 1064, predicted-but-identical 0, moved-but-not-predicted 0; `verilog_2005`: predicted 40, moved 40, predicted-but-identical 0, moved-but-not-predicted 0). The
+final-probe census re-reads every body typed (`sv_2017` nodes 3411 → 3411, typed 1200 → 3411, RAW 2211 → 0, unclassified 0; `sv_2023` nodes 3521 → 3521, typed 1300 → 3521, RAW 2221 → 0, unclassified 0; `verilog_2005` nodes 470 → 470, typed 379 → 470, RAW 91 → 0, unclassified 0). Pins `ADJUDICATION-REPROS: checked=781 armed=149 listed=407 multi_profile_rows=279 failures=0` (eight new `control_tf_body_*.sv`,
+one per alternative of each rule, the two in-block ones the controls that cannot move, arms `tf_port` / `!tf_port`
+pinning WHERE the ports live); six AST-shape contract samples parsed AS the body rules; union certificate and 1364-2005
+conformance union `1494/10/1469/15 + 1484/0` and 1364-2005 `1186/370/802/14` both UNCHANGED and GREEN, deterministic across seeds 0/7/42, identities re-stamped.
+
+⭐ **The class is censused and owned.** A rule is typed when EVERY alternative carries a template, and nothing censused the
+alternatives: the new `PARTIAL-TYPING-CENSUS:` (TOOLBOX §1.5g) reads every multi-alternative rule typed on some alternatives
+and not others — 40 rules with 25 raw-envelope alternatives on 1.0.217, 38 / 19 after this release. The nineteen
+(`assignment_pattern`, `block_data_type`, `case_statement`'s `matches` / `inside` forms, `clocking_declaration`,
+`clocking_event_sv_2017`, `list_of_path_delay_expressions`, `net_type_declaration_sv_2017`, `property_case_item`) are
+`SV-CORPUS-GRAD.3.45`. See the schema-30 row of [Schema Versioning](schema-versioning.md#schema-version-timeline) and the
+json-carrier's [Typed Function and Task Bodies](json-carrier.md#typed-function-and-task-bodies-schema-30).
+
 ### 1.0.217 / Contract 1.0.217 — SV-CORPUS-GRAD.3.39 (`PGEN-SV-CORPUS-GRAD-0372`, 2026-09-07), ledger `SV-0090` (`Released`), **schema 28 → 29**:
 
 ⭐ **The thirteen compiler directives IEEE 1800-2017 clause 22 gives a syntax box are TYPED productions, and the parser refuses what

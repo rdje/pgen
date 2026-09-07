@@ -3355,17 +3355,29 @@ full_path_description := lparen list_of_path_inputs ( polarity_operator )? full_
 # sat inside the raw envelope. The `C::` branch was never shadowed (a one-template host shadows branch 0
 # only) and its raw envelope is BYTE-IDENTICAL across the lift — measured on `function void C::g();` and on
 # every accepted corpus tree (a Json-returning branch passes through unwrapped; the release's AST identity
-# sweep moved exactly the interface-form files). Typing alternatives 2–4 is SV-CORPUS-GRAD.3.44. Shared by
-# function_body_declaration and task_body_declaration.
+# sweep moved exactly the interface-form files). Alternatives 2–4 are typed since SV-CORPUS-GRAD.3.44 (release
+# 1.0.218), where this node is the `scope` field. Shared by function_body_declaration and task_body_declaration.
 @profiles: ["sv_2017", "sv_2023"]
 out_of_block_tf_scope := interface_identifier dot
                        | class_scope
 
+# SV-CORPUS-GRAD.3.44 (release 1.0.218, schema 29 -> 30): every alternative is typed. IEEE 1800-2017 A.2.6 spells
+# function_body_declaration as TWO forms — `[ interface_identifier . | class_scope ] function_identifier ;` with
+# tf_item_declaration items, and the PORTED `… function_identifier ( [ tf_port_list ] ) ;` with block_item_declaration
+# items — each with an optional out-of-block prefix, hence four alternatives here. Through 1.0.217 only alternative 1
+# carried a template and alternatives 2–4 (the ported form is the most common function in any corpus) arrived as the
+# raw `Sequence` envelope. The four templates mirror alternative 1's field set: `ports` is present exactly on the
+# ported alternatives (2, 4) and `scope` exactly on the out-of-block ones (3, 4), so a consumer discriminates the LRM
+# form by key presence; `items` holds tf_item_declaration nodes (`{kind: "block_item" | "tf_port", body}`) on the
+# non-ported forms and bare block_item_declaration nodes on the ported ones, as the standard's two productions do.
 function_body_declaration := @sample: "integer f; endfunction : f" function_data_type_or_implicit function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
                           -> {return_type: $1, name: $2, items: $4, statements: $5, end_label: $7}
                            | @sample: "integer f(); endfunction : f" function_data_type_or_implicit function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
+                          -> {return_type: $1, name: $2, ports: $4, items: $7, statements: $8, end_label: $10}
                            | function_data_type_or_implicit out_of_block_tf_scope function_identifier semi tf_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
+                          -> {return_type: $1, scope: $2, name: $3, items: $5, statements: $6, end_label: $8}
                            | function_data_type_or_implicit out_of_block_tf_scope function_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* function_statement_or_null* kw_endfunction_84b8f967 ( colon function_identifier )?
+                          -> {return_type: $1, scope: $2, name: $3, ports: $5, items: $8, statements: $9, end_label: $11}
 
 function_data_type_or_implicit := data_type_or_void   -> {kind: "data_type", body: $1}
                                 | implicit_data_type  -> {kind: "implicit",  body: $1}
@@ -7051,11 +7063,17 @@ tagged_union_expression_sv_2023 := kw_tagged_8e1ec218 member_identifier ( primar
 tagged_union_expression := tagged_union_expression_sv_2017 -> {kind: "sv_2017", body: $1}
                          | tagged_union_expression_sv_2023 -> {kind: "sv_2023", body: $1}
 
+# SV-CORPUS-GRAD.3.44 (release 1.0.218, schema 29 -> 30): the task twin of function_body_declaration — IEEE 1800-2017
+# A.2.7's two forms × the optional out-of-block prefix, every alternative typed; `ports` present exactly on the ported
+# alternatives (2, 4), `scope` exactly on the out-of-block ones (3, 4); no return_type — a task is void by definition.
 task_body_declaration := @sample: "t; endtask : t" task_identifier semi tf_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
                       -> {name: $1, items: $3, statements: $4, end_label: $6}
                        | @sample: "t(); endtask : t" task_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
+                      -> {name: $1, ports: $3, items: $6, statements: $7, end_label: $9}
                        | out_of_block_tf_scope task_identifier semi tf_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
+                      -> {scope: $1, name: $2, items: $4, statements: $5, end_label: $7}
                        | out_of_block_tf_scope task_identifier lparen ( tf_port_list )? rparen semi block_item_declaration* statement_or_null* kw_endtask_eb64ab0d ( colon task_identifier )?
+                      -> {scope: $1, name: $2, ports: $4, items: $7, statements: $8, end_label: $10}
 
 @profiles: ["sv_2017", "verilog_2005"]
 task_declaration_sv_2017 := kw_task_7fbb727d ( lifetime )? task_body_declaration

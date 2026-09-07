@@ -5,6 +5,39 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-09-07, `SV-CORPUS-GRAD.3.44` — GRAMMAR + INSTRUMENT + SHAPE-CONTRACT, release `1.0.218`, ledger `SV-0091`,
+> schema `29 → 30`, accept set UNCHANGED on every profile — a return template moves what the parser EMITS, never what it accepts):
+> `function_body_declaration` and `task_body_declaration` are TYPED ON EVERY ALTERNATIVE.** IEEE 1800-2017 A.2.6 / A.2.7 give a function
+> or task body two forms — the non-ported `[ interface_identifier . | class_scope ] identifier ; { tf_item_declaration } …` and the PORTED
+> `… identifier ( [ tf_port_list ] ) ; { block_item_declaration } …` — each with an optional out-of-block prefix, four alternatives in the
+> grammar (`docs/systemverilog/2017/md/section-41-data-read-api.md:1090-1135`; 1800-2023 Annex A `:1125-1175` reads the same). Through
+> `1.0.217` only alternative 1 (`type f; …`, its ports declared inside the body) carried a return template; the ported form — the most
+> common function in any corpus — and the two out-of-block forms arrived as the raw positional `Sequence` envelope (10 / 8 / 11 elements
+> on a function, 9 / 7 / 10 on a task). Measured on the 1.0.217 probe by the AST-field census (`AST-FIELD-CENSUS:` with the new
+> `--select-keys lifetime,body` selector + `TF-BODY-CLASSIFY:`, `docs/tasks/artifacts/sv_corpus_grad/tf_body_census/census.md`): **2 211 of
+> the 3 411 function / task bodies the parser wrote on `sv_2017` were that envelope** (1 646 ported functions, 513 ported tasks, 30
+> out-of-block functions, 22 out-of-block tasks), in 1 060 of the 1 958 accepting files that declare a function or task; 2 221 of 3 521 on
+> `sv_2023`; 91 of 470 on the `verilog_2005` lane (the ported forms are legal IEEE 1364-2005). ⛔ **Consumers: every alternative now returns
+> the typed object**, mirroring alternative 1's field set — `{return_type, name, ports, items, statements, end_label}` on a ported
+> function, `{return_type, scope, name, items, statements, end_label}` on an out-of-block one, `{return_type, scope, name, ports, items,
+> statements, end_label}` on an out-of-block ported one; the task twins without `return_type`. There is no `kind`: the discriminator is
+> KEY PRESENCE, which is the standard's own distinction — `ports` is present exactly on the ported alternatives (the typed `tf_port_list`
+> array, `[]` for `f()`), `scope` exactly on the out-of-block ones (the `out_of_block_tf_scope` node: the pair `[<interface_identifier>,
+> {kind: "dot"}]` for an interface method, the `class_scope` node for a class method). `items` differs faithfully between the forms: a
+> non-ported body's items are `tf_item_declaration` nodes (`{kind: "block_item" | "tf_port", body}`, where its ports live), a ported body's
+> items are bare `block_item_declaration` nodes (A.2.6's second production admits no port declaration there). **Migration:** a consumer
+> that indexed the raw envelope — `body[0]` return type, `body[3]` / `body[4]` port list, `body[6]` / `body[7]` / `body[8]` items — reads
+> the named fields; the elements are the same typed nodes in the same order, with the `lparen` / `rparen` / `semi` / end-keyword tokens
+> dropped as on alternative 1. Alternative 1 is BYTE-IDENTICAL across the release (the two in-block pins on all three profiles; every
+> all-typed corpus file). Measured on the final bytes: the corpus AST identity sweep (the 1.0.217 probe vs this release, 16 336 files × 2 SV profiles + the 2 606-row `verilog_2005` lane) reads `ast_moved=1060 verdict_moved=0` on `sv_2017` (8696 of 9756 accepted trees byte-identical), `ast_moved=1064 verdict_moved=0` on `sv_2023`, `ast_moved=40 verdict_moved=0` on the `verilog_2005` lane — exactly the census's predicted files (`sv_2017`: predicted 1060, moved 1060, predicted-but-identical 0, moved-but-not-predicted 0; `sv_2023`: predicted 1064, moved 1064, predicted-but-identical 0, moved-but-not-predicted 0; `verilog_2005`: predicted 40, moved 40, predicted-but-identical 0, moved-but-not-predicted 0); `sv_2017` `transitions: NONE` (pass 9756 / fail 6580 of 16336 rows, 0 timeouts); `sv_2023` `transitions: NONE` (pass 9780 / fail 6556 of 16336 rows, 0 timeouts); `verilog_2005` `transitions: NONE` (pass 2310 / fail 296 of 2606 rows, 0 timeouts); pins `ADJUDICATION-REPROS: checked=781 armed=149 listed=407 multi_profile_rows=279 failures=0` (eight new
+> `control_tf_body_*.sv`, one per alternative of each rule, arms `tf_port` / `!tf_port` pinning WHERE the ports live); six AST-shape
+> contract samples, one per newly typed alternative, parsed AS the body rule (two test-only dispatch arms). ⭐ The CLASS is censused and
+> owned: the new `PARTIAL-TYPING-CENSUS:` (every multi-alternative rule typed on some alternatives and not others) read 40 such rules
+> with 25 raw-envelope alternatives on 1.0.217 and reads 38 / 19 after this release — the nineteen (`assignment_pattern`,
+> `block_data_type`, `case_statement`'s `matches` / `inside` forms, `clocking_declaration`, `clocking_event_sv_2017`,
+> `list_of_path_delay_expressions`, `net_type_declaration_sv_2017`, `property_case_item`) are `SV-CORPUS-GRAD.3.45`. See the SV parser
+> book's [Typed Function and Task Bodies](../systemverilog_parser_book/src/json-carrier.md#typed-function-and-task-bodies-schema-30).
+
 > **Current-state note (2026-09-07, `SV-CORPUS-GRAD.3.39` — GRAMMAR + ANSWER-KEY + INSTRUMENT, release `1.0.217`, ledger `SV-0090`,
 > schema `28 → 29`, accept set NARROWS on `sv_2017` / `sv_2023` by exactly the compiler-directive argument forms IEEE 1800-2017 clause 22's
 > syntax boxes refuse and WIDENS by white space between a directive's arguments; `verilog_2005` gains four rows and loses none): the thirteen
@@ -1255,15 +1288,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.217`
+  - `1.0.218`
 - Parser release version:
-  - `1.0.217`
-  - history: `1.0.216`; `1.0.215`; `1.0.214`; `1.0.213`; `1.0.212`; `1.0.211`; `1.0.210`; `1.0.209`; `1.0.208`; `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.218`
+  - history: `1.0.217`; `1.0.216`; `1.0.215`; `1.0.214`; `1.0.213`; `1.0.212`; `1.0.211`; `1.0.210`; `1.0.209`; `1.0.208`; `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `83e0d64f267471f0c1ef52f843761829b76e0be1b4a3f04c1c0fb330fa2ae312` (SV grammar semantic digest — sha256 of the
+  - `015f70e9a8e90d4a97477b33ebf8271d27be46ccc82eced04037bec6dbdc8d14` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`
@@ -1283,6 +1316,7 @@ This is the document downstream projects such as Nexsim should read first when d
   - history: `1.3.1` (backward-compatible stack-robustness fix, `SV-CORPUS-GRAD.8c.3` 2026-07-22: every SV/VHDL embedding parse runs on a dedicated 256 MiB-stack thread, so over-deep recursion returns a clean `E_PARSE_FAILURE` diagnostic — the engine's 4096-frame recursion ceiling — instead of aborting the HOST process with a stack-overflow SIGABRT; measured pre-fix, a ~400-deep parenthesized expression (≈4 KB of text) killed a release embedder at the default 8 MB main stack. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. No parser release/schema bump — the generated parser artifact is unchanged.)
   - history: `1.3.0` (backward-compatible addition of the `verilog_2005` profile; see `rust/docs/EMBEDDING_API_CONTRACT.md` — the previously stated `1.2.0` here was a stale lockstep gap closed by `VERILOG-2005-PROFILE.4.3`)
 - SystemVerilog AST-dump schema version:
+  - `30` (**`1.0.218`** (`SV-CORPUS-GRAD.3.44`, `PGEN-SV-CORPUS-GRAD-0373`, 2026-09-07), ledger `SV-0091`: `function_body_declaration` and `task_body_declaration` are typed on EVERY alternative — through 1.0.217 only alternative 1 (`type f; …`) carried a template and the ported form `type f(ports); …` (2 211 of the 3 411 bodies in the corpus) and the two out-of-block forms arrived as the raw positional `Sequence` envelope; now `{return_type, name, ports, items, statements, end_label}` / `{return_type, scope, name, items, statements, end_label}` / both, the task twins without `return_type`, `ports` present exactly on the ported alternatives and `scope` exactly on the out-of-block ones; migration: read the named fields instead of `body[N]`; alternative 1 byte-identical; the corpus AST identity sweep reads `ast_moved=1060 verdict_moved=0` on `sv_2017` (8696 of 9756 accepted trees byte-identical), `ast_moved=1064 verdict_moved=0` on `sv_2023`, `ast_moved=40 verdict_moved=0` on the `verilog_2005` lane — exactly the census's predicted files (`sv_2017`: predicted 1060, moved 1060, predicted-but-identical 0, moved-but-not-predicted 0; `sv_2023`: predicted 1064, moved 1064, predicted-but-identical 0, moved-but-not-predicted 0; `verilog_2005`: predicted 40, moved 40, predicted-but-identical 0, moved-but-not-predicted 0); no verdict moves. A REPLACEMENT of a raw envelope by a typed node — the `SV-0014`…`SV-0020` precedent — so it takes a bump.)
   - `29` (**`1.0.217`** (`SV-CORPUS-GRAD.3.39`, `PGEN-SV-CORPUS-GRAD-0372`, 2026-09-07), ledger `SV-0090`: the thirteen compiler directives IEEE 1800-2017 clause 22 gives a syntax box are typed productions — `compiler_directive.body` is a typed node (`{kind: "timescale", unit, precision}`, `{kind: "line", number, filename, level}`, `{kind: "pragma", name, expressions}`, …) where through 1.0.216 it was the directive LINE as one string, and every other tolerated backtick line at file top level is `{kind: "opaque", text}`; migration: switch on `body.kind`; the corpus AST identity sweep reads `ast_moved=790 verdict_moved=30` on `sv_2017` and `794 / 27` on `sv_2023`, the moved trees being EXACTLY the accepted files that carry a directive node)
   - `28` (UNCHANGED by **`1.0.216`** — `SV-CORPUS-GRAD.3.43`, `PGEN-SV-CORPUS-GRAD-0371`, 2026-09-06, ledger `SV-0089`: the DPI import result-type restriction (IEEE 1800-2017 §35.5.5 / Annex A footnote 21) is a caller split whose restricted result rule carries `data_type`'s own templates, so every accepting tree is byte-identical — the corpus AST identity sweep over 16 335 files × 2 SV profiles reads `ast_moved=0 verdict_moved=2` on each, 9 778 / 9 799 accepted trees byte-identical) (**`1.0.215`** (`SV-CORPUS-GRAD.3.42`, `PGEN-SV-CORPUS-GRAD-0370`, 2026-09-06), ledger `SV-0088`: sixteen inline alternations inside groups of annotated rules are lifted into nine unannotated helper rules, so the `scope` / `qualifier` / `prefix` fields that carried the HOST's template wrapped around a scope prefix — `{name: {kind: "dot"}, scope: {kind: "this"}, select: "<invalid_sequence_access>"}` for `this .`, `{kind: "block", body: <class_scope>}` for a block-event method's class scope, six `"<invalid_sequence_access>"` inside `function_body_declaration`'s raw envelope for `function void I.h();` — now carry the prefix as ITS OWN node: `this .` = `[{kind: "this"}, {kind: "dot"}]`, a class scope = the `class_scope` node, a package scope = the `package_scope` / `non_typedef_package_scope` node, an interface prefix = `[<interface_identifier>, {kind: "dot"}]`. **Migration:** a consumer that read `scope.scope` / `scope.name` on one of the corrupted nodes reads the pair or the typed node; a consumer that tolerated `"<invalid_sequence_access>"` in `select` / `call` / `name` / `items` / `statements` / `end_label` no longer sees it. Every non-shadowed branch, every absent optional and `function void C::g();` are byte-identical (the corpus AST identity sweep). A REPLACEMENT of corrupted nodes by correct ones — the `SV-0014`…`SV-0020` corruption-fix precedent — so it takes a bump.)
   - `27` (UNCHANGED by **`1.0.214`** — `SV-CORPUS-GRAD.3.38`, `PGEN-SV-CORPUS-GRAD-0369`, 2026-09-05, ledger `SV-0087`: the footnote-20 tightening moves no shape; the DPI-import scope markers bind the elements the annotations already bind or discard and the gated unsized arm passes its node through, so every accepting tree is byte-identical) (**`1.0.213`** (`SV-CORPUS-GRAD.3.41`, `PGEN-SV-CORPUS-GRAD-0368`, 2026-09-04), ledger

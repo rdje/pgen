@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2fac00c8.js";
+            window.path_to_searchindex_js = "searchindex-b0ff9579.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -217,6 +217,40 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10218--contract-10218--sv-corpus-grad344-pgen-sv-corpus-grad-0373-2026-09-07-ledger-sv-0091-released-schema-29--30"><a class="header" href="#10218--contract-10218--sv-corpus-grad344-pgen-sv-corpus-grad-0373-2026-09-07-ledger-sv-0091-released-schema-29--30">1.0.218 / Contract 1.0.218 — SV-CORPUS-GRAD.3.44 (<code>PGEN-SV-CORPUS-GRAD-0373</code>, 2026-09-07), ledger <code>SV-0091</code> (<code>Released</code>), <strong>schema 29 → 30</strong>:</a></h3>
+<p>⭐ <strong><code>function_body_declaration</code> and <code>task_body_declaration</code> are typed on EVERY alternative.</strong> IEEE 1800-2017 A.2.6 / A.2.7
+give a function or task body two forms — the non-ported <code>type f; …</code> whose ports are <code>tf_item_declaration</code> items inside the
+body, and the PORTED <code>type f(ports); …</code> with <code>block_item_declaration</code> items — each with an optional out-of-block prefix
+(<code>I.f</code> / <code>C::f</code>), four alternatives in the grammar. Through <code>1.0.217</code> only alternative 1 carried a return template (since
+SV-Slice-25, release <code>1.0.25</code>, and every register that counts annotations counted the rule as typed from that day); the
+other three arrived as the raw positional <code>Sequence</code> envelope — 10 / 8 / 11 elements on a function, 9 / 7 / 10 on a task.
+The corpus census on the 1.0.217 probe (<code>AST-FIELD-CENSUS:</code> with the new <code>--select-keys lifetime,body</code> selector +
+<code>TF-BODY-CLASSIFY:</code>) read <strong>2 211 of the 3 411 function / task bodies the parser wrote on <code>sv_2017</code> as that envelope</strong> —
+1 646 ported functions, 513 ported tasks, 30 out-of-block functions, 22 out-of-block tasks — in 1 060 of the 1 958
+accepting files that declare a function or task at all. The ported form is the most common function in any corpus, and
+the typed AST could not read it. Grammar tier: six return templates, <code>1641</code> rules unchanged, no engine, no codegen; two
+test-only Rust dispatch arms so the body rules take AST-shape contract samples.</p>
+<p><strong>AST impact — schema 29 → 30.</strong> Every alternative returns the typed object, mirroring alternative 1’s field set:
+<code>{return_type, name, ports, items, statements, end_label}</code> (ported), <code>{return_type, scope, name, items, statements, end_label}</code> (out-of-block), <code>{return_type, scope, name, ports, items, statements, end_label}</code> (out-of-block ported); the
+task twins without <code>return_type</code>. There is no <code>kind</code> — the discriminator is key presence, which is the standard’s own
+distinction: <code>ports</code> is present exactly on the ported alternatives (the typed <code>tf_port_list</code> array, <code>[]</code> for <code>f()</code>),
+<code>scope</code> exactly on the out-of-block ones (the <code>out_of_block_tf_scope</code> node — the pair <code>[&lt;interface_identifier&gt;, {kind: "dot"}]</code> or the <code>class_scope</code> node). <code>items</code> holds <code>tf_item_declaration</code> nodes on the non-ported forms and bare
+<code>block_item_declaration</code> nodes on the ported ones, as A.2.6’s two productions read. <strong>Migration:</strong> a consumer that indexed
+<code>body[N]</code> reads the named fields — the same typed nodes in the same order, the <code>(</code> <code>)</code> <code>;</code> <code>endfunction</code> tokens dropped
+as on alternative 1. Alternative 1 is byte-identical (the two in-block pins on all three profiles; every all-typed
+corpus file). A REPLACEMENT of a raw envelope by a typed node — the <code>SV-0014</code>…<code>SV-0020</code> precedent — hence the bump.</p>
+<p><strong>Accept set — unchanged, measured.</strong> <code>sv_2017</code> <code>transitions: NONE</code> (pass 9756 / fail 6580 of 16336 rows, 0 timeouts); <code>sv_2023</code> <code>transitions: NONE</code> (pass 9780 / fail 6556 of 16336 rows, 0 timeouts); <code>verilog_2005</code> <code>transitions: NONE</code> (pass 2310 / fail 296 of 2606 rows, 0 timeouts). <strong>Typed AST — moved exactly where predicted.</strong> The corpus AST identity sweep (the 1.0.217 probe vs this release, TOOLBOX §1.5e) reads <code>AST-IDENTITY-SWEEP: profile=sv_2017 files=16336 both_accepted=9756 identical=8696 ast_moved=1060 verdict_moved=0 both_nonaccepting=6580</code> and <code>AST-IDENTITY-SWEEP: profile=sv_2023 files=16336 both_accepted=9780 identical=8716 ast_moved=1064 verdict_moved=0 both_nonaccepting=6556</code>, and over the <code>verilog_2005</code> lane <code>AST-IDENTITY-SWEEP: profile=verilog_2005 files=2606 both_accepted=2310 identical=2270 ast_moved=40 verdict_moved=0 both_nonaccepting=296</code> — two-sided against the census’s prediction (<code>sv_2017</code>: predicted 1060, moved 1060, predicted-but-identical 0, moved-but-not-predicted 0; <code>sv_2023</code>: predicted 1064, moved 1064, predicted-but-identical 0, moved-but-not-predicted 0; <code>verilog_2005</code>: predicted 40, moved 40, predicted-but-identical 0, moved-but-not-predicted 0). The
+final-probe census re-reads every body typed (<code>sv_2017</code> nodes 3411 → 3411, typed 1200 → 3411, RAW 2211 → 0, unclassified 0; <code>sv_2023</code> nodes 3521 → 3521, typed 1300 → 3521, RAW 2221 → 0, unclassified 0; <code>verilog_2005</code> nodes 470 → 470, typed 379 → 470, RAW 91 → 0, unclassified 0). Pins <code>ADJUDICATION-REPROS: checked=781 armed=149 listed=407 multi_profile_rows=279 failures=0</code> (eight new <code>control_tf_body_*.sv</code>,
+one per alternative of each rule, the two in-block ones the controls that cannot move, arms <code>tf_port</code> / <code>!tf_port</code>
+pinning WHERE the ports live); six AST-shape contract samples parsed AS the body rules; union certificate and 1364-2005
+conformance union <code>1494/10/1469/15 + 1484/0</code> and 1364-2005 <code>1186/370/802/14</code> both UNCHANGED and GREEN, deterministic across seeds 0/7/42, identities re-stamped.</p>
+<p>⭐ <strong>The class is censused and owned.</strong> A rule is typed when EVERY alternative carries a template, and nothing censused the
+alternatives: the new <code>PARTIAL-TYPING-CENSUS:</code> (TOOLBOX §1.5g) reads every multi-alternative rule typed on some alternatives
+and not others — 40 rules with 25 raw-envelope alternatives on 1.0.217, 38 / 19 after this release. The nineteen
+(<code>assignment_pattern</code>, <code>block_data_type</code>, <code>case_statement</code>’s <code>matches</code> / <code>inside</code> forms, <code>clocking_declaration</code>,
+<code>clocking_event_sv_2017</code>, <code>list_of_path_delay_expressions</code>, <code>net_type_declaration_sv_2017</code>, <code>property_case_item</code>) are
+<code>SV-CORPUS-GRAD.3.45</code>. See the schema-30 row of <a href="schema-versioning.html#schema-version-timeline">Schema Versioning</a> and the
+json-carrier’s <a href="json-carrier.html#typed-function-and-task-bodies-schema-30">Typed Function and Task Bodies</a>.</p>
 <h3 id="10217--contract-10217--sv-corpus-grad339-pgen-sv-corpus-grad-0372-2026-09-07-ledger-sv-0090-released-schema-28--29"><a class="header" href="#10217--contract-10217--sv-corpus-grad339-pgen-sv-corpus-grad-0372-2026-09-07-ledger-sv-0090-released-schema-28--29">1.0.217 / Contract 1.0.217 — SV-CORPUS-GRAD.3.39 (<code>PGEN-SV-CORPUS-GRAD-0372</code>, 2026-09-07), ledger <code>SV-0090</code> (<code>Released</code>), <strong>schema 28 → 29</strong>:</a></h3>
 <p>⭐ <strong>The thirteen compiler directives IEEE 1800-2017 clause 22 gives a syntax box are TYPED productions, and the parser refuses what
 the boxes refuse.</strong> Through 1.0.216 a tolerated directive line — at file top level and, since 1.0.178, at the in-scope item positions

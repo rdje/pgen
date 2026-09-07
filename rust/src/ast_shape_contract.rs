@@ -1248,6 +1248,23 @@ mod tests {
                 "use_clause" => parser
                     .parse_use_clause()
                     .map_err(|err| err.to_string()),
+                // SV-CORPUS-GRAD.3.44 (release 1.0.218, schema 29 -> 30): lock the typed
+                // shape of every alternative of the function / task body rules. Through
+                // 1.0.217 only alternative 1 (`type f; ... endfunction`) carried a return
+                // template; the PORTED form `type f(ports); ...` — the most common
+                // function in any corpus — and the two out-of-block forms `type I.f ...` /
+                // `type C::f ...` arrived as the raw `Sequence` envelope, invisible to
+                // every typed consumer and to this contract (a raw envelope has no keys to
+                // lock). The six samples below pin one alternative each: `ports` present
+                // exactly on the ported forms, `scope` exactly on the out-of-block forms.
+                // Parsing AS the body rule is what makes a standalone `int f(int a); ...
+                // endfunction` reach the rule's own template without a module around it.
+                "function_body_declaration" => parser
+                    .parse_function_body_declaration()
+                    .map_err(|err| err.to_string()),
+                "task_body_declaration" => parser
+                    .parse_task_body_declaration()
+                    .map_err(|err| err.to_string()),
                 _ => parser
                     .parse_full_systemverilog_file()
                     .map_err(|err| err.to_string()),

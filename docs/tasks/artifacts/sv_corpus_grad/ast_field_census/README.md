@@ -38,3 +38,20 @@ the 49th, `t_dpi_accessors.v`, carries its imports in an included `.vh`, which t
 census so the count is of the corpus, not of the parser's accepting half. The parser's rows are exact; the regex is a
 fallback, and its capture is checked by the classifier (an `unclassified` row means the regex or the classifier is
 short — the `.3.43` census carried three until the name pattern admitted escaped identifiers `\$dpii_display`).
+
+## Selecting a slot that carries no `kind` (`--select-keys`, `SV-CORPUS-GRAD.3.44`)
+
+A node the campaign typed without a discriminator — the `{lifetime, body}` node `function_declaration_sv_2017` /
+`task_declaration_sv_2017` return, or its `{dynamic_override, lifetime, body}` `sv_2023` twin — cannot be reached by
+`--kind`. `--select-keys a,b,c` (in place of `--kind`) selects every object whose key set is EXACTLY that set; the
+headline prints `keys=a,b,c`. Third use of the instrument, with `../tf_body_census/classify.py` (`TF-BODY-CLASSIFY:`):
+
+```bash
+python3 docs/tasks/artifacts/sv_corpus_grad/ast_field_census/ast_field_census.py \
+    --probe rust/target/release/parseability_probe --profile sv_2017 --files rust/target/sNNN/tf_files_all.txt \
+    --select-keys lifetime,body --field body --out rust/target/sNNN/tf_census_sv_2017.tsv --jobs 6
+# AST-FIELD-CENSUS: keys=body,lifetime field=body profile=sv_2017 files=4811 accepted=1958 rejected=2853 timeout=0 nodump=0 nodes=3411 distinct=2968 fallback_rows=0
+```
+
+The self-test's third arm holds the selector (a non-ported function and a ported task in one file: two `{lifetime, body}`
+nodes, the function's body a typed object carrying `return_type`).
