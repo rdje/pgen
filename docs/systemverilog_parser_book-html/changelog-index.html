@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fdd7f24a.js";
+            window.path_to_searchindex_js = "searchindex-722e76bc.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -217,6 +217,30 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10220--contract-10220--sv-corpus-grad346-pgen-sv-corpus-grad-0376-2026-09-07-ledger-sv-0093-released-schema-31--32"><a class="header" href="#10220--contract-10220--sv-corpus-grad346-pgen-sv-corpus-grad-0376-2026-09-07-ledger-sv-0093-released-schema-31--32">1.0.220 / Contract 1.0.220 — SV-CORPUS-GRAD.3.46 (<code>PGEN-SV-CORPUS-GRAD-0376</code>, 2026-09-07), ledger <code>SV-0093</code> (<code>Released</code>), <strong>schema 31 → 32</strong>:</a></h3>
+<p>⭐ <strong>The last integer-vector shape without a <code>kind</code>, and the nettype alias-head guard’s blind spot.</strong> <code>.3.45</code> typed the
+partial-typing residue and measured two items on its way out: <code>block_data_type</code> alternative 1 — the block-scoped integer
+VECTOR <code>reg [7:0] v;</code> / <code>logic [3:0] t;</code> — had been typed by SV-Slice-96 with the field set <code>{base, signing, dims}</code> and no
+<code>kind</code>, the only integer-vector shape in the grammar without one once its four siblings took <code>data_type</code>’s kinds in
+<code>1.0.219</code>; and <code>nettype wT x with f;</code> — IEEE 1800-2017 §6.6.7’s ALIAS form (a declared-nettype base) carrying a resolution
+function, a form A.2.1.3 gives NO production — still parsed down the data-type alternative of both edition twins, because
+the <code>.3.45</code> alias-head guard required the <code>;</code> after <code>[ scope ] &lt;declared nettype&gt; &lt;identifier&gt;</code> and <code>with</code> is not one.
+Grammar tier: one template, one lookahead narrowed; no engine, no codegen, no Rust; <code>1637</code> rules unchanged.</p>
+<p><strong>AST impact — schema 31 → 32 (a REPLACEMENT).</strong> The <code>block_data</code> body of an integer-vector declaration is
+<code>{kind: "integer_vector", base, signing, dims}</code> — <code>data_type</code>’s own template — where <code>1.0.219</code> emitted the same fields
+without <code>kind</code>. Every other alternative is byte-identical. <strong>Migration:</strong> a consumer that recognised the vector form by
+the absence of <code>kind</code> reads <code>kind == "integer_vector"</code>; a <code>data_type</code> reader reads the body unchanged. Pre-registered by
+the <code>.3.45</code> raw-envelope census on the <code>1.0.219</code> probe (<strong>712 nodes in 259 accepting files</strong> on <code>sv_2017</code> and <code>sv_2023</code>,
+<strong>130 in 73</strong> on the 1364-2005 lane) and measured two-sided by the corpus AST identity sweep: every predicted file moved,
+no other accepted tree moved a byte, no verdict moved. One AST-shape contract sample (<code>block_data_type_integer_vector</code>)
+locks the kind; the vector pin’s arm is <code>block_data&gt;integer_vector</code>.</p>
+<p><strong>Accept-set impact — one LRM-illegal form stops parsing.</strong> <code>nettype &lt;declared nettype&gt; &lt;name&gt; with &lt;fn&gt;;</code> REJECTS on both
+SV profiles at the <code>with</code> (the guard now refuses the alias head whatever follows; the alias alternative meets <code>with</code> where
+it needs <code>;</code>). Every legal form is unchanged and byte-identical: the data-type form with <code>with</code> on a typedef base
+(<code>nettype T wT with f;</code>, scoped <code>nettype p::T x with p::f;</code>), the alias form (<code>nettype wT x;</code>, scoped), the wildcard-import
+alias. 0 corpus rows on any lane (14 <code>with</code> declarations in the corpus, every base a typedef). Pins
+<code>invalid_nettype_alias_with_resolution_function.sv</code> / <code>…_with_scoped_base_resolution_function.sv</code> (REJECT) with
+<code>control_nettype_data_type_scoped_with.sv</code> / <code>_sv2023.sv</code> (ACCEPT, the one-token twins).</p>
 <h3 id="10219--contract-10219--sv-corpus-grad345-pgen-sv-corpus-grad-0374-2026-09-07-ledger-sv-0092-released-schema-30--31"><a class="header" href="#10219--contract-10219--sv-corpus-grad345-pgen-sv-corpus-grad-0374-2026-09-07-ledger-sv-0092-released-schema-30--31">1.0.219 / Contract 1.0.219 — SV-CORPUS-GRAD.3.45 (<code>PGEN-SV-CORPUS-GRAD-0374</code>, 2026-09-07), ledger <code>SV-0092</code> (<code>Released</code>), <strong>schema 30 → 31</strong>:</a></h3>
 <p>⭐ <strong>The partial-typing residue is typed.</strong> <code>1.0.218</code> closed with the class measured — <code>PARTIAL-TYPING-CENSUS:</code> read 38 rules
 typed on some alternatives and not others, 19 of the untyped alternatives raw <code>Sequence</code> envelopes, in eight rules — and the

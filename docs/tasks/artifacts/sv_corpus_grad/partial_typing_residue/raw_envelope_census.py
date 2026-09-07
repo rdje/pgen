@@ -151,8 +151,10 @@ class FileCensus:
         if isinstance(v, dict):
             k = kset(v)
             if k == {"base", "signing", "dims"}:
-                return self.add(r, 1, "typed")
+                return self.add(r, 1, "typed")           # the 1.0.219 shape (no kind)
             kind = v.get("kind")
+            if kind == "integer_vector" and k == {"kind", "base", "signing", "dims"}:
+                return self.add(r, 1, "typed")           # SV-CORPUS-GRAD.3.46 (release 1.0.220): data_type's own kind
             if kind == "integer_atom" and k == {"kind", "base", "signing"}:
                 return self.add(r, 2, "typed")
             if kind == "struct_union" and k == {"kind", "header", "packed_signing", "members", "dims"}:
@@ -413,6 +415,7 @@ def _synthetic_cases():
     bd_raw5 = bd([_kw("enum"), [], _tok("lbrace"), {"name": _id("A")}, [], _tok("rbrace"), []])
     bd_raw8 = bd([_kw("virtual"), _kw("interface"), _id("I"), [], []])
     bd_t1 = bd({"base": _tok("logic"), "signing": [], "dims": []})
+    bd_t1_new = bd({"kind": "integer_vector", "base": _tok("logic"), "signing": [], "dims": []})
     bd_t2 = bd({"kind": "integer_atom", "base": _tok("int"), "signing": []})
     bd_pt = bd(_kw("event"))
     bd_pt2 = bd({"kind": "string"})
@@ -454,9 +457,9 @@ def _synthetic_cases():
         ("assignment patterns", [ap_raw2, ap_raw3, ap_raw4, ap_t1, ap_t5, ap_t2, ap_t4], "sv_2017",
          [("assignment_pattern", "2", "RAW"), ("assignment_pattern", "3", "RAW"), ("assignment_pattern", "4", "RAW"),
           ("assignment_pattern", "1", "typed"), ("assignment_pattern", "5", "typed"), ("assignment_pattern", "2", "typed"), ("assignment_pattern", "4", "typed")]),
-        ("block data types", [bd_raw2, bd_raw2b, bd_raw4, bd_raw5, bd_raw8, bd_t1, bd_t2, bd_pt, bd_pt2], "sv_2017",
+        ("block data types", [bd_raw2, bd_raw2b, bd_raw4, bd_raw5, bd_raw8, bd_t1, bd_t1_new, bd_t2, bd_pt, bd_pt2], "sv_2017",
          [("block_data_type", "2", "RAW"), ("block_data_type", "2", "RAW"), ("block_data_type", "4", "RAW"), ("block_data_type", "5", "RAW"),
-          ("block_data_type", "8", "RAW"), ("block_data_type", "1", "typed"), ("block_data_type", "2", "typed"),
+          ("block_data_type", "8", "RAW"), ("block_data_type", "1", "typed"), ("block_data_type", "1", "typed"), ("block_data_type", "2", "typed"),
           ("block_data_type", "other", "passthrough"), ("block_data_type", "other", "passthrough")]),
         ("case statements", [cs_raw2, cs_raw3, cs_t1, cs_t3], "sv_2017",
          [("case_statement", "2", "RAW"), ("case_statement", "3", "RAW"), ("case_statement", "1", "typed"), ("case_statement", "3", "typed")]),

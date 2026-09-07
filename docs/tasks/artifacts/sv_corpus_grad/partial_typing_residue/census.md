@@ -90,3 +90,41 @@ AST-IDENTITY-SWEEP: profile=verilog_2005 files=2606 both_accepted=2310 identical
 
 TWO-SIDED against the HEAD movers above: `sv_2017`: predicted 1094, moved 1094, predicted-but-identical 0, moved-but-not-predicted 0; `sv_2023`: predicted 821, moved 821, predicted-but-identical 0, moved-but-not-predicted 0; `verilog_2005`: predicted 120, moved 120, predicted-but-identical 0, moved-but-not-predicted 0.
 
+
+## Release `1.0.220` (`SV-CORPUS-GRAD.3.46`, `PGEN-SV-CORPUS-GRAD-0376`) — alternative 1 of `block_data_type` gains `data_type`'s own `kind`
+
+HEAD = release `1.0.219` (probe `011dbe9f8f1a2dd5…`, generated parser `6578eda69d2a1695…`), every lane row, the same instrument
+(its alternative-1 signature now reads BOTH the `{base, signing, dims}` shape and the `{kind: "integer_vector", …}` shape as
+alternative 1 typed, so one classifier reads the `1.0.219` and the `1.0.220` census):
+
+```
+RAW-ENVELOPE-CENSUS: profile=sv_2017 files=16336 accepted=9752 rejected=6554 timeout=30 nodump=0 rows=5358 typed=4522 RAW=0 passthrough=836 unclassified=0 alias_shadowed=0
+RAW-ENVELOPE-CENSUS: profile=sv_2023 files=16336 accepted=9780 rejected=6556 timeout=0 nodump=0 rows=8439 typed=7594 RAW=0 passthrough=845 unclassified=0 alias_shadowed=0
+RAW-ENVELOPE-CENSUS: profile=verilog_2005 files=2606 accepted=2310 rejected=296 timeout=0 nodump=0 rows=528 typed=509 RAW=0 passthrough=19 unclassified=0 alias_shadowed=0
+```
+
+(The 30 `sv_2017` timeouts were CPU contention with the slice's parallel pre-screens; re-censused alone at `--timeout 600` they read
+`files=30 accepted=4 rejected=26 timeout=0 rows=4 typed=4` with 0 alternative-1 rows, so the mover set below is complete.)
+
+The PRE-REGISTERED movers of this release are the alternative-1 rows — `block_data_type:1:typed` **712 rows in 259 accepting files on
+`sv_2017` and on `sv_2023`, 130 in 73 on `verilog_2005`** — the same files the `1.0.218` census above listed (`diff` empty on all three
+lanes). The `with`-alias form this release refuses (`nettype <declared nettype> <name> with <fn>;`) has 0 rows on any lane: the corpus
+writes 14 `nettype … with` declarations in 8 files, every base a typedef.
+
+Release probe `28948d5cd63c747d…`, generated parser `c6be6302ed5fbc72…`, grammar semantic digest `f1b430be55b68eae…`:
+
+```
+RAW-ENVELOPE-CENSUS: profile=sv_2017 files=16336 accepted=9756 rejected=6580 timeout=0 nodump=0 rows=5362 typed=4526 RAW=0 passthrough=836 unclassified=0 alias_shadowed=0
+RAW-ENVELOPE-CENSUS: profile=sv_2023 files=16336 accepted=9780 rejected=6556 timeout=0 nodump=0 rows=8439 typed=7594 RAW=0 passthrough=845 unclassified=0 alias_shadowed=0
+RAW-ENVELOPE-CENSUS: profile=verilog_2005 files=2606 accepted=2310 rejected=296 timeout=0 nodump=0 rows=528 typed=509 RAW=0 passthrough=19 unclassified=0 alias_shadowed=0
+```
+
+Alternative 1 after the release: `block_data_type:1:typed` 712 rows in 259 files on `sv_2017` and on `sv_2023`, 130 in 73 on `verilog_2005` — the HEAD census's rows and files exactly, every one now read through the new `kind`. The corpus AST identity sweep (the 1.0.219 probe vs 1.0.220, every lane row):
+
+```
+AST-IDENTITY-SWEEP: profile=sv_2017 files=16336 both_accepted=9756 identical=9497 ast_moved=259 verdict_moved=0 both_nonaccepting=6580
+AST-IDENTITY-SWEEP: profile=sv_2023 files=16336 both_accepted=9780 identical=9521 ast_moved=259 verdict_moved=0 both_nonaccepting=6556
+AST-IDENTITY-SWEEP: profile=verilog_2005 files=2606 both_accepted=2310 identical=2237 ast_moved=73 verdict_moved=0 both_nonaccepting=296
+```
+
+Two-sided: `sv_2017`: predicted 259, moved 259, predicted-but-identical 0, moved-but-not-predicted 0; `sv_2023`: 259 / 259 / 0 / 0; `verilog_2005`: 73 / 73 / 0 / 0 (`rust/target/s346/twosided` reading of `ast_sweep_<profile>.tsv` against `alt1_files_<profile>.txt`) — every predicted file moved, no other accepted tree moved a byte, no verdict moved.

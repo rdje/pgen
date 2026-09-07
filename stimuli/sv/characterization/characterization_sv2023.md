@@ -24,14 +24,14 @@ Per-file parse via `parseability_probe --parse systemverilog <file> --profile sv
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `011dbe9f8f1a2dd503134553b2b7e476bac5cf6c163833f4eda17eed9eb2c984` |
-| grammar | `grammars/systemverilog.ebnf` | `3036713d62a17e7e1b89a3319be356f5cd797fe7e196dbd63001d3269b7af070` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `1d4a84d1652987ae6269da2e9a77f770e5e339f427d4becea7f1179cfd041863` |
-| generated parser | `generated/systemverilog_parser.rs` | `6578eda69d2a1695037b291c0d29c0ecad446cb03ce16c3a8e985a63c12ab68e` |
+| parse binary | `rust/target/release/parseability_probe` | `28948d5cd63c747df1f5624a6b6a0797ae49563b9da132cba43b851c2c491e8f` |
+| grammar | `grammars/systemverilog.ebnf` | `6069a9e0a50e9339ce2c3e519812761b0dac01e8f8198a702aa1aa0d7aa8e175` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `f1b430be55b68eaeca6be8f6bdbd45f00b14dc02b268ee203bdd395732ed3210` |
+| generated parser | `generated/systemverilog_parser.rs` | `c6be6302ed5fbc72ce6cc3c2240d2a9a4849a7d39a760242766ef5ad88d5e1bf` |
 | results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `d656ad872d8aca4ecd0f2e236cebcacfdbe6df8b7c619dc9a1f2c9cffc40c2e6` |
 | positions (output) | `stimuli/sv/characterization/positions_sv2023.tsv` | `0515e0359b75822d20ab2ff5f135fe73a9d78adcbf03147431e69af866f171f2` |
 
-Measured at `HEAD` = `fd325703+dirty` (2026-09-07).
+Measured at `HEAD` = `357129c6+dirty` (2026-09-07).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -65,7 +65,7 @@ Measured at `HEAD` = `fd325703+dirty` (2026-09-07).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `6.84` s — `stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
+Slowest completing file: `7.76` s — `stimuli/sv/subs/opentitan/hw/top_englishbreakfast/ip_autogen/pinmux/rtl/pinmux_reg_top.sv`.
 
 ## Totals
 

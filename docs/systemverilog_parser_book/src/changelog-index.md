@@ -34,6 +34,34 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.220 / Contract 1.0.220 — SV-CORPUS-GRAD.3.46 (`PGEN-SV-CORPUS-GRAD-0376`, 2026-09-07), ledger `SV-0093` (`Released`), **schema 31 → 32**:
+
+⭐ **The last integer-vector shape without a `kind`, and the nettype alias-head guard's blind spot.** `.3.45` typed the
+partial-typing residue and measured two items on its way out: `block_data_type` alternative 1 — the block-scoped integer
+VECTOR `reg [7:0] v;` / `logic [3:0] t;` — had been typed by SV-Slice-96 with the field set `{base, signing, dims}` and no
+`kind`, the only integer-vector shape in the grammar without one once its four siblings took `data_type`'s kinds in
+`1.0.219`; and `nettype wT x with f;` — IEEE 1800-2017 §6.6.7's ALIAS form (a declared-nettype base) carrying a resolution
+function, a form A.2.1.3 gives NO production — still parsed down the data-type alternative of both edition twins, because
+the `.3.45` alias-head guard required the `;` after `[ scope ] <declared nettype> <identifier>` and `with` is not one.
+Grammar tier: one template, one lookahead narrowed; no engine, no codegen, no Rust; `1637` rules unchanged.
+
+**AST impact — schema 31 → 32 (a REPLACEMENT).** The `block_data` body of an integer-vector declaration is
+`{kind: "integer_vector", base, signing, dims}` — `data_type`'s own template — where `1.0.219` emitted the same fields
+without `kind`. Every other alternative is byte-identical. **Migration:** a consumer that recognised the vector form by
+the absence of `kind` reads `kind == "integer_vector"`; a `data_type` reader reads the body unchanged. Pre-registered by
+the `.3.45` raw-envelope census on the `1.0.219` probe (**712 nodes in 259 accepting files** on `sv_2017` and `sv_2023`,
+**130 in 73** on the 1364-2005 lane) and measured two-sided by the corpus AST identity sweep: every predicted file moved,
+no other accepted tree moved a byte, no verdict moved. One AST-shape contract sample (`block_data_type_integer_vector`)
+locks the kind; the vector pin's arm is `block_data>integer_vector`.
+
+**Accept-set impact — one LRM-illegal form stops parsing.** `nettype <declared nettype> <name> with <fn>;` REJECTS on both
+SV profiles at the `with` (the guard now refuses the alias head whatever follows; the alias alternative meets `with` where
+it needs `;`). Every legal form is unchanged and byte-identical: the data-type form with `with` on a typedef base
+(`nettype T wT with f;`, scoped `nettype p::T x with p::f;`), the alias form (`nettype wT x;`, scoped), the wildcard-import
+alias. 0 corpus rows on any lane (14 `with` declarations in the corpus, every base a typedef). Pins
+`invalid_nettype_alias_with_resolution_function.sv` / `…_with_scoped_base_resolution_function.sv` (REJECT) with
+`control_nettype_data_type_scoped_with.sv` / `_sv2023.sv` (ACCEPT, the one-token twins).
+
 ### 1.0.219 / Contract 1.0.219 — SV-CORPUS-GRAD.3.45 (`PGEN-SV-CORPUS-GRAD-0374`, 2026-09-07), ledger `SV-0092` (`Released`), **schema 30 → 31**:
 
 ⭐ **The partial-typing residue is typed.** `1.0.218` closed with the class measured — `PARTIAL-TYPING-CENSUS:` read 38 rules
