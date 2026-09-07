@@ -41,8 +41,8 @@ tier still reported `fresh`.
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| grammar raw ast | `grammars/systemverilog.ebnf` | `015f70e9a8e90d4a97477b33ebf8271d27be46ccc82eced04037bec6dbdc8d14` |
-| generated parser | `generated/systemverilog_parser.rs` | `69f5341307f2969dfff38784d8684167d09990127427340f2f18cb969c2693c0` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `1d4a84d1652987ae6269da2e9a77f770e5e339f427d4becea7f1179cfd041863` |
+| generated parser | `generated/systemverilog_parser.rs` | `6578eda69d2a1695037b291c0d29c0ecad446cb03ce16c3a8e985a63c12ab68e` |
 | instrument | `stimuli/sv/corpus_parse_cost.py` | `6cc7ea04feef55729f7372f06692232386b3b5ce4b4d03652540c87c6487ea65` |
 | sample inputs | `stimuli/sv/parse_cost_sample.tsv` | `c3e01f2d29714af9bb15e977e3ca52c48045616d1cf157a8c13e5bd645016205` |
 
@@ -99,7 +99,7 @@ mistake the family's entry count for productive work.
 
 ⛔⛔ **AND IT CARRIES A FINDING THAT BOUNDS THIS WHOLE INSTRUMENT.** Across the full
 corpus the family takes **2.662 %** of all rule entries
-(23 499 111 of 882 756 382 entries over 16 336 files, `ENGINE-UNIVERSAL-SERVICES.21`; the previous 0.681 % counted only `_lr_base`/`_lr_suffix`).
+(23 499 111 of 882 750 597 entries over 16 336 files, `ENGINE-UNIVERSAL-SERVICES.21`; the previous 0.681 % counted only `_lr_base`/`_lr_suffix`).
 
 ⛔ **What this metric cannot see, stated as a property rather than as a number.** These
 counters tick only in the PROTOCOL graph, and a counter counts EVENTS — a rise in the cost

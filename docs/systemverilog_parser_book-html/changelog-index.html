@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b0ff9579.js";
+            window.path_to_searchindex_js = "searchindex-507fed62.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -217,6 +217,41 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10219--contract-10219--sv-corpus-grad345-pgen-sv-corpus-grad-0374-2026-09-07-ledger-sv-0092-released-schema-30--31"><a class="header" href="#10219--contract-10219--sv-corpus-grad345-pgen-sv-corpus-grad-0374-2026-09-07-ledger-sv-0092-released-schema-30--31">1.0.219 / Contract 1.0.219 — SV-CORPUS-GRAD.3.45 (<code>PGEN-SV-CORPUS-GRAD-0374</code>, 2026-09-07), ledger <code>SV-0092</code> (<code>Released</code>), <strong>schema 30 → 31</strong>:</a></h3>
+<p>⭐ <strong>The partial-typing residue is typed.</strong> <code>1.0.218</code> closed with the class measured — <code>PARTIAL-TYPING-CENSUS:</code> read 38 rules
+typed on some alternatives and not others, 19 of the untyped alternatives raw <code>Sequence</code> envelopes, in eight rules — and the
+corpus census on the <code>1.0.218</code> probe (<code>RAW-ENVELOPE-CENSUS:</code>, TOOLBOX §1.5h, every lane row) read <strong>2 319 raw envelopes in
+1 088 accepting files on <code>sv_2017</code></strong> (1 779 / 819 on <code>sv_2023</code>, 217 / 120 on the 1364-2005 lane): 873 of them the block-scoped
+integer atom <code>integer i;</code> / <code>int unsigned x;</code>, 542 the parenthesised clocking event <code>@(posedge clk)</code>, 524 the structure-keyed
+assignment pattern <code>'{a: 1}</code>, 193 the two-value path delay, and so on down to the <code>case … matches</code> / <code>inside</code> forms and the
+<code>global clocking</code> block. Grammar tier: seventeen return templates, no engine, no codegen; seven test-only Rust dispatch arms so
+the rules take AST-shape contract samples.</p>
+<p><strong>AST impact — schema 30 → 31.</strong> Every newly typed alternative carries a <code>kind</code>; every typed sibling keeps its shipped
+shape byte-identically, so <strong><code>kind</code> absent is the shipped form</strong>. <code>assignment_pattern</code> <code>{kind: "structure" | "array", keys, values}</code> (<code>keys[i]</code> pairs with <code>values[i]</code>) and <code>{kind: "replication", count, exprs}</code>; <code>block_data_type</code> takes <code>data_type</code>’s
+own <code>{kind: "integer_atom" | "struct_union" | "enum" | "virtual_interface", …}</code>; <code>case_statement</code> <code>{kind: "matches" | "inside", unique_priority, keyword, expr, items}</code> (the <code>inside</code> form’s <code>keyword</code> is the literal <code>{kind: "case"}</code>);
+<code>clocking_declaration</code> <code>{kind: "global", name, event, end_label}</code>; <code>clocking_event_sv_2017</code> <code>{kind: "expression", body}</code> (the
+<code>sv_2023</code> twin’s shape); <code>list_of_path_delay_expressions</code> <code>{kind: "two" | "three" | "six" | "twelve", …}</code> with the LRM’s
+position names (<code>trise</code>, <code>tfall</code>, <code>tz</code>, <code>t01</code> … <code>tzx</code>); <code>property_case_item</code> <code>{kind: "default", body}</code>;
+<code>net_type_declaration_sv_2017</code> <code>{kind: "nettype", scope, base, name}</code> — IEEE 1800-2017 §6.6.7’s ALIAS form, which was not raw
+but <strong>shadowed</strong>: both alternatives succeed on the LRM’s own <code>nettype wTsum nettypeid2;</code> and the longest-match tie went to the
+data-type form on both SV profiles. <code>1.0.219</code> breaks the tie in the LRM’s favour by a negative lookahead on the data-type
+alternative — it refuses an alias head <code>[ scope ] &lt;declared nettype&gt; &lt;identifier&gt; ;</code> — with the order left as shipped, and
+routes the alias base, a bare <code>declaration_identifier</code> through <code>1.0.218</code>, to <code>checked_nettype_identifier | wildcard_escape_nettype_identifier</code> (the SV-0037 / SV-PARSE-STRICT.2 precedent). Two spellings were refuted first:
+reordering the ungated alternative misread <code>nettype T wT;</code> (T a typedef) as an alias — the two-sided corpus sweep caught it
+on one file — and reordering the gated one broke the certificate’s own nettype prelude (the generator renders an unplanned
+declaration with the first of two equally cheap alternatives; union <code>UNKNOWN=2</code>). The winner moves exactly on alias declarations (two per SV lane in the
+corpus); the one narrowing is the LRM-illegal <code>nettype undeclared_t x;</code> with no wildcard import, accepted through <code>1.0.218</code>
+and now rejected (0 accepting corpus rows, pinned).</p>
+<p><strong>Two non-LRM alternatives removed.</strong> <code>list_of_path_delay_expressions</code> carried seven alternatives since the grammar’s first
+promotion where every edition gives five: a second six-value spelling that lost the tie to the LRM’s on every input
+(Protocol D: <code>selected branch 4/7</code>) and a twelve-value spelling whose middle positions were the literal text
+<code>tx_path_delay_expression</code>; both gone with their keyword terminal, and the three ungated nettype identifier twins with them: <code>1641 → 1637</code> rules.</p>
+<p><strong>Verification.</strong> 30 pins (<code>control_assignment_pattern_*</code>, <code>control_block_data_type_*</code>, <code>control_case_*</code>, <code>control_clocking_*</code>,
+<code>control_path_delay_*</code>, <code>control_nettype_*</code> incl. the two wildcard-import alias controls, <code>control_property_case_*</code> — one per
+alternative, the typed siblings as the controls that cannot move, arms on the new <code>kind</code>s — plus the <code>must_reject</code>
+<code>invalid_nettype_alias_undeclared_base.sv</code>); 16 AST-shape contract samples (40 → 56); the interpreter A/B on the
+nineteen reproducers and a seeded corpus sample (87 arms, two-sided clean); <code>PRESCREEN-PINS: jobs=781 verdict_moved=0 ast_moved=38</code> two-sided; the three lanes’ verdicts and the corpus AST identity sweep against the census’s movers are in the
+integration contract’s <code>1.0.219</code> note. See <a href="json-carrier.html#typed-partial-alternatives-schema-31">Typed Partial Alternatives</a>.</p>
 <h3 id="10218--contract-10218--sv-corpus-grad344-pgen-sv-corpus-grad-0373-2026-09-07-ledger-sv-0091-released-schema-29--30"><a class="header" href="#10218--contract-10218--sv-corpus-grad344-pgen-sv-corpus-grad-0373-2026-09-07-ledger-sv-0091-released-schema-29--30">1.0.218 / Contract 1.0.218 — SV-CORPUS-GRAD.3.44 (<code>PGEN-SV-CORPUS-GRAD-0373</code>, 2026-09-07), ledger <code>SV-0091</code> (<code>Released</code>), <strong>schema 29 → 30</strong>:</a></h3>
 <p>⭐ <strong><code>function_body_declaration</code> and <code>task_body_declaration</code> are typed on EVERY alternative.</strong> IEEE 1800-2017 A.2.6 / A.2.7
 give a function or task body two forms — the non-ported <code>type f; …</code> whose ports are <code>tf_item_declaration</code> items inside the

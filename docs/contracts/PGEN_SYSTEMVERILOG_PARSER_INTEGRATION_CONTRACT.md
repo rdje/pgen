@@ -5,6 +5,67 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-09-07, `SV-CORPUS-GRAD.3.45` — GRAMMAR + INSTRUMENT + SHAPE-CONTRACT, release `1.0.219`, ledger `SV-0092`,
+> schema `30 → 31`, accept set unchanged on every profile EXCEPT one LRM-illegal nettype form — a return template moves what the parser
+> EMITS, never what it accepts, the one lookahead moves only which of two SUCCEEDING alternatives wins, and the one store gate added
+> refuses an undeclared alias base): the PARTIAL-TYPING RESIDUE IS TYPED.** `1.0.218` closed with the
+> class measured: `PARTIAL-TYPING-CENSUS:` read 38 rules typed on some alternatives and not others, 19 of the untyped alternatives raw
+> `Sequence` envelopes, in eight rules; the corpus census on the `1.0.218` probe (`RAW-ENVELOPE-CENSUS:`, TOOLBOX §1.5h, every lane row,
+> `docs/tasks/artifacts/sv_corpus_grad/partial_typing_residue/census.md`) read **2 319 raw envelopes in 1 088 accepting files on
+> `sv_2017`** (1 779 / 819 on `sv_2023`, 217 / 120 on the 1364-2005 lane) — 873 the block-scoped integer atom (`integer i;`,
+> `int unsigned x;`), 542 the parenthesised clocking event `@(posedge clk)`, 524 the structure-keyed assignment pattern `'{a: 1}`, 193 the
+> two-value path delay, 60 the replication `'{2{0, 1}}`, 56 the array-keyed pattern, 27 the `global clocking` block, 16 + 15 the
+> `case … matches` / `case … inside` statements, 4 + 5 + 2 the three- / six- / twelve-value path delays, 1 + 1 a block-scoped struct and
+> virtual interface. ⛔ **Consumers — seventeen new templates, one rule for all of them: every newly typed alternative carries a `kind`,
+> and every typed sibling keeps its shipped shape BYTE-IDENTICALLY, so `kind` absent is the form you already read.**
+> `assignment_pattern`: `{kind: "structure" | "array", keys, values}` (`keys[i]` pairs with `values[i]`; the key node is the typed
+> `structure_pattern_key` / `array_pattern_key`) and `{kind: "replication", count, exprs}`; the positional form stays `{exprs}`.
+> `block_data_type` (the `body` of `{kind: "block_data", body}`): the integer-atom, struct/union, enum and virtual-interface forms take
+> `data_type`'s OWN templates — `{kind: "integer_atom", base, signing}`, `{kind: "struct_union", header, packed_signing, members: {first,
+> rest}, dims}`, `{kind: "enum", base_type, names, dims}`, `{kind: "virtual_interface", interface_keyword, name, params, modport}` — so a
+> `data_type` reader reads them unchanged; the vector form stays `{base, signing, dims}`. `case_statement`: `{kind: "matches" | "inside",
+> unique_priority, keyword, expr, items: {first, rest}}` with `case_pattern_item` / `case_inside_item` items (the `inside` form's
+> `keyword` is the literal `{kind: "case"}`, the only keyword A.6.7 admits there); the plain form unchanged. `clocking_declaration`:
+> `{kind: "global", name, event, end_label}` (no `items` — the production has none). `clocking_event_sv_2017`: `{kind: "expression",
+> body}` — the `sv_2023` twin's shape; `@id` stays `{body}`. `list_of_path_delay_expressions` (the `delay.body` of a path declaration):
+> `{kind: "two", trise, tfall}`, `{kind: "three", trise, tfall, tz}`, `{kind: "six", t01, t10, t0z, tz1, t1z, tz0}`, `{kind: "twelve",
+> t01 … tzx}` — the LRM's own position names; one value stays `{body}`. `property_case_item`: `{kind: "default", body}`.
+> `net_type_declaration_sv_2017`: `{kind: "nettype", scope, base, name}` for IEEE 1800-2017 §6.6.7's ALIAS form `nettype wTsum
+> nettypeid2;`. ⭐ **That last one was not raw but SHADOWED, on both SV profiles**: both alternatives succeed on the LRM's own example (a
+> declared nettype is a `type_name` fact, so the data-type form reads `wTsum` as a `known_unscoped_data_type`) and the longest-match tie
+> went to declaration order (Protocol D: `selected branch 1/2` for `net_type_declaration_sv_2017` AND for the fully typed
+> `nettype_declaration_sv_2023`), so `1.0.0`–`1.0.218` called the base nettype a data type. `1.0.219` breaks the tie in the LRM's favour by a
+> NEGATIVE LOOKAHEAD on the data-type alternative — it refuses a text that reads as an alias head, `[ scope ] <declared nettype>
+> <identifier> ;` — with the ORDER left as shipped, and routes the alias base `net_type_identifier` — a bare `declaration_identifier`
+> through `1.0.218`, one ungated twin per edition — to `checked_nettype_identifier | wildcard_escape_nettype_identifier` (a declared
+> nettype, or an undeclared name under a wildcard import: how `net_declaration` reads a net of a user-defined nettype, SV-PARSE-STRICT.2 /
+> SV-0037). ⛔ Two spellings were refuted before this one, each by an instrument: reordering the UNGATED alternative read `nettype T wT;` (T
+> a struct typedef, ispras `06.07.02_01.sv`) as an alias — the two-sided corpus sweep's one moved-but-not-predicted file — and reordering
+> the GATED one passed every corpus instrument and broke the certificate's own nettype prelude (the generator renders an unplanned
+> declaration with the first of two equally cheap alternatives, so the prelude became `nettype \foo \foo;` and the union certificate read
+> `UNKNOWN=2` where `1.0.218` had 0). The winner now changes exactly on alias declarations (two per SV lane in the corpus: verilator `t_nettype.v`, ispras `06.06.07_01.sv`). ⚠️ **The one narrowing**: `nettype
+> undeclared_t x;` with no wildcard import in scope — LRM-illegal (§6.6.7: the base must be an existing nettype), accepted through `1.0.218`
+> down the ungated alias alternative — now REJECTS on both SV profiles; the census read 0 accepting corpus files down that alternative, and
+> `invalid_nettype_alias_undeclared_base.sv` pins it (`furthest_position=32`, the base). **Migration:** a consumer that indexed a raw envelope reads the named fields — the elements are the same typed
+> nodes in the same order with the punctuation and keyword tokens dropped (`pattern[2]`/`[4]` and each `[, key : expr]` iteration →
+> `keys[i]` / `values[i]`; `body[0]`/`[1]` of a block integer atom → `base` / `signing`; the case envelope's `[3]`, `[6]`, `[7]` →
+> `expr`, `items.first`, `items.rest`; the clocking envelope's `[2]`/`[3]`/`[6]` → `name` / `event` / `end_label`; the event envelope's
+> `[2]` → `body`; the comma list of delays → the position names; the property default arm's `[2]` → `body`); a consumer of the
+> `nettype` data-type form should expect the alias node where the data type used to be a nettype identifier. ⛔ **Two non-LRM
+> alternatives are REMOVED** from `list_of_path_delay_expressions`, which had carried seven since the grammar's first promotion where IEEE
+> 1364-2005, 1800-2017 and 1800-2023 A.7.4 all give five: a second six-value spelling that matched the same text as the LRM's and lost the
+> longest-match tie to it on every input (`selected branch 4/7`), and a twelve-value spelling whose middle four positions were the regex
+> terminal `/tx_path_delay_expression\b/` — the production NAME extracted as literal source text, matched by no corpus file (the extraction
+> class `.13c.2m` owns through `class_qualifier`). Neither could produce a tree; both are gone with their orphaned keyword terminal, and the
+> three ungated nettype identifier twins with them (`1641 → 1637` rules). Measured on the final bytes: `sv_2017` pass 9756 / fail 6580 / timeout 0 of 16336 rows, `verdict_moved=0` in the sweep ⇒ `transitions: NONE`; `sv_2023` pass 9780 / fail 6556 / timeout 0 of 16336 rows, `verdict_moved=0` in the sweep ⇒ `transitions: NONE`; `verilog_2005` pass 2310 / fail 296 / timeout 0 of 2606 rows, `verdict_moved=0` in the sweep ⇒ `transitions: NONE`; the corpus AST identity sweep (the `1.0.218` probe vs this release, every
+> lane row) `AST-IDENTITY-SWEEP: profile=sv_2017 files=16336 both_accepted=9756 identical=8662 ast_moved=1094 verdict_moved=0 both_nonaccepting=6580`; `AST-IDENTITY-SWEEP: profile=sv_2023 files=16336 both_accepted=9780 identical=8959 ast_moved=821 verdict_moved=0 both_nonaccepting=6556`; `AST-IDENTITY-SWEEP: profile=verilog_2005 files=2606 both_accepted=2310 identical=2190 ast_moved=120 verdict_moved=0 both_nonaccepting=296` (the `verilog_2005` lane's 2 606 rows); the final-probe census reads `RAW=0 unclassified=0` on all three lanes and the grammar's partial-typing census
+> `PARTIAL=31 … RAW_ENVELOPE=0` (the 31 are passthrough alternatives, typed one level down by design); `ADJUDICATION-REPROS: ADJUDICATION-REPROS: checked=843 armed=209 listed=437 multi_profile_rows=303 failures=0`
+> (29 new `control_*.sv` pins, one per alternative, the typed siblings as the controls that cannot move, arms on the new `kind`s, two
+> wildcard-import alias controls, plus the `must_reject` `invalid_nettype_alias_undeclared_base.sv`);
+> `ast_shape_contract_gate` 18 / 18 with 56 SV samples (16 new, one per newly typed alternative parsed AS its rule; the nettype alias form
+> takes none — its identifier is store-gated on a declared nettype — and is held by the two alias pins); certificates union `sv_cert_recognized_union_gate` GREEN — canonical `1492/10/1467/15` (total 1494 → 1492 and witness 1469 → 1467: the two deleted `sv_2017`-live rules, `kw_tx_path_delay_expression_7b2dee37` and `net_type_identifier_sv_2017`; proof 10 and canonical UNKNOWN 15 UNCHANGED — the identical set), union witness `1482` / UNKNOWN `0`, residual `[]`, `sample_parse_failures=0`, deterministic across seeds `[0,7,42]`, the identity re-stamped on the adjudicated contract (`the baseline was STALE and every expectation still held, so this run re-stamped it`); `verilog_2005_conformance_gate` GREEN — cert `1185/370/801/14` (total 1186 → 1185 and witness 802 → 801: the deleted terminal; proof 370 and UNKNOWN 14 unchanged; `sample_parse_failures=0, proof_reverify_failures=0`), `lint orphans=0, corpus 363 checks/0 mismatches, aliases 2, cert deterministic across seeds [0,7,42]`, re-stamped on the adjudicated contract (`every criterion still held`). See the
+> SV parser book's [Typed Partial Alternatives](../systemverilog_parser_book/src/json-carrier.md#typed-partial-alternatives-schema-31).
+
 > **Current-state note (2026-09-07, `SV-CORPUS-GRAD.3.44` — GRAMMAR + INSTRUMENT + SHAPE-CONTRACT, release `1.0.218`, ledger `SV-0091`,
 > schema `29 → 30`, accept set UNCHANGED on every profile — a return template moves what the parser EMITS, never what it accepts):
 > `function_body_declaration` and `task_body_declaration` are TYPED ON EVERY ALTERNATIVE.** IEEE 1800-2017 A.2.6 / A.2.7 give a function
@@ -1288,15 +1349,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.218`
+  - `1.0.219`
 - Parser release version:
-  - `1.0.218`
-  - history: `1.0.217`; `1.0.216`; `1.0.215`; `1.0.214`; `1.0.213`; `1.0.212`; `1.0.211`; `1.0.210`; `1.0.209`; `1.0.208`; `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.219`
+  - history: `1.0.218`; `1.0.217`; `1.0.216`; `1.0.215`; `1.0.214`; `1.0.213`; `1.0.212`; `1.0.211`; `1.0.210`; `1.0.209`; `1.0.208`; `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `015f70e9a8e90d4a97477b33ebf8271d27be46ccc82eced04037bec6dbdc8d14` (SV grammar semantic digest — sha256 of the
+  - `1d4a84d1652987ae6269da2e9a77f770e5e339f427d4becea7f1179cfd041863` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`
@@ -1316,6 +1377,7 @@ This is the document downstream projects such as Nexsim should read first when d
   - history: `1.3.1` (backward-compatible stack-robustness fix, `SV-CORPUS-GRAD.8c.3` 2026-07-22: every SV/VHDL embedding parse runs on a dedicated 256 MiB-stack thread, so over-deep recursion returns a clean `E_PARSE_FAILURE` diagnostic — the engine's 4096-frame recursion ceiling — instead of aborting the HOST process with a stack-overflow SIGABRT; measured pre-fix, a ~400-deep parenthesized expression (≈4 KB of text) killed a release embedder at the default 8 MB main stack. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. No parser release/schema bump — the generated parser artifact is unchanged.)
   - history: `1.3.0` (backward-compatible addition of the `verilog_2005` profile; see `rust/docs/EMBEDDING_API_CONTRACT.md` — the previously stated `1.2.0` here was a stale lockstep gap closed by `VERILOG-2005-PROFILE.4.3`)
 - SystemVerilog AST-dump schema version:
+  - `31` (**`1.0.219`** (`SV-CORPUS-GRAD.3.45`, `PGEN-SV-CORPUS-GRAD-0374`, 2026-09-07), ledger `SV-0092`: the partial-typing residue is typed — seventeen return templates over `assignment_pattern`, `block_data_type`, `case_statement`, `clocking_declaration`, `clocking_event_sv_2017`, `list_of_path_delay_expressions`, `net_type_declaration_sv_2017`, `property_case_item`; every newly typed alternative carries a `kind`, every typed sibling byte-identical (`kind` absent = the shipped form); the nettype alias form wins its tie (a negative lookahead on the data-type alternative, the alias base store-gated); the two non-LRM path-delay alternatives and three ungated nettype identifier twins deleted (`1641 → 1637` rules). See [Typed Partial Alternatives](../systemverilog_parser_book/src/json-carrier.md#typed-partial-alternatives-schema-31).)
   - `30` (**`1.0.218`** (`SV-CORPUS-GRAD.3.44`, `PGEN-SV-CORPUS-GRAD-0373`, 2026-09-07), ledger `SV-0091`: `function_body_declaration` and `task_body_declaration` are typed on EVERY alternative — through 1.0.217 only alternative 1 (`type f; …`) carried a template and the ported form `type f(ports); …` (2 211 of the 3 411 bodies in the corpus) and the two out-of-block forms arrived as the raw positional `Sequence` envelope; now `{return_type, name, ports, items, statements, end_label}` / `{return_type, scope, name, items, statements, end_label}` / both, the task twins without `return_type`, `ports` present exactly on the ported alternatives and `scope` exactly on the out-of-block ones; migration: read the named fields instead of `body[N]`; alternative 1 byte-identical; the corpus AST identity sweep reads `ast_moved=1060 verdict_moved=0` on `sv_2017` (8696 of 9756 accepted trees byte-identical), `ast_moved=1064 verdict_moved=0` on `sv_2023`, `ast_moved=40 verdict_moved=0` on the `verilog_2005` lane — exactly the census's predicted files (`sv_2017`: predicted 1060, moved 1060, predicted-but-identical 0, moved-but-not-predicted 0; `sv_2023`: predicted 1064, moved 1064, predicted-but-identical 0, moved-but-not-predicted 0; `verilog_2005`: predicted 40, moved 40, predicted-but-identical 0, moved-but-not-predicted 0); no verdict moves. A REPLACEMENT of a raw envelope by a typed node — the `SV-0014`…`SV-0020` precedent — so it takes a bump.)
   - `29` (**`1.0.217`** (`SV-CORPUS-GRAD.3.39`, `PGEN-SV-CORPUS-GRAD-0372`, 2026-09-07), ledger `SV-0090`: the thirteen compiler directives IEEE 1800-2017 clause 22 gives a syntax box are typed productions — `compiler_directive.body` is a typed node (`{kind: "timescale", unit, precision}`, `{kind: "line", number, filename, level}`, `{kind: "pragma", name, expressions}`, …) where through 1.0.216 it was the directive LINE as one string, and every other tolerated backtick line at file top level is `{kind: "opaque", text}`; migration: switch on `body.kind`; the corpus AST identity sweep reads `ast_moved=790 verdict_moved=30` on `sv_2017` and `794 / 27` on `sv_2023`, the moved trees being EXACTLY the accepted files that carry a directive node)
   - `28` (UNCHANGED by **`1.0.216`** — `SV-CORPUS-GRAD.3.43`, `PGEN-SV-CORPUS-GRAD-0371`, 2026-09-06, ledger `SV-0089`: the DPI import result-type restriction (IEEE 1800-2017 §35.5.5 / Annex A footnote 21) is a caller split whose restricted result rule carries `data_type`'s own templates, so every accepting tree is byte-identical — the corpus AST identity sweep over 16 335 files × 2 SV profiles reads `ast_moved=0 verdict_moved=2` on each, 9 778 / 9 799 accepted trees byte-identical) (**`1.0.215`** (`SV-CORPUS-GRAD.3.42`, `PGEN-SV-CORPUS-GRAD-0370`, 2026-09-06), ledger `SV-0088`: sixteen inline alternations inside groups of annotated rules are lifted into nine unannotated helper rules, so the `scope` / `qualifier` / `prefix` fields that carried the HOST's template wrapped around a scope prefix — `{name: {kind: "dot"}, scope: {kind: "this"}, select: "<invalid_sequence_access>"}` for `this .`, `{kind: "block", body: <class_scope>}` for a block-event method's class scope, six `"<invalid_sequence_access>"` inside `function_body_declaration`'s raw envelope for `function void I.h();` — now carry the prefix as ITS OWN node: `this .` = `[{kind: "this"}, {kind: "dot"}]`, a class scope = the `class_scope` node, a package scope = the `package_scope` / `non_typedef_package_scope` node, an interface prefix = `[<interface_identifier>, {kind: "dot"}]`. **Migration:** a consumer that read `scope.scope` / `scope.name` on one of the corrupted nodes reads the pair or the typed node; a consumer that tolerated `"<invalid_sequence_access>"` in `select` / `call` / `name` / `items` / `statements` / `end_label` no longer sees it. Every non-shadowed branch, every absent optional and `function void C::g();` are byte-identical (the corpus AST identity sweep). A REPLACEMENT of corrupted nodes by correct ones — the `SV-0014`…`SV-0020` corruption-fix precedent — so it takes a bump.)

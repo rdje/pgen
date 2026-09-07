@@ -2397,11 +2397,11 @@ grammar, parser, generator or generated artifact; the cert numbers are read-only
 
 | Field | Contract key | Value |
 |---|---|---:|
-| canonical `total` | `expected_total` | 1494 |
+| canonical `total` | `expected_total` | 1492 |
 | canonical `proof` | `expected_proof` | 10 |
-| canonical `witness` | `expected_canonical_witness` | 1469 |
+| canonical `witness` | `expected_canonical_witness` | 1467 |
 | canonical `UNKNOWN` | `expected_canonical_unknown` | 15 |
-| union `witness` | `expected_union_witness` | 1484 |
+| union `witness` | `expected_union_witness` | 1482 |
 | union `UNKNOWN` | `expected_union_unknown` | 0 |
 | union residual rule set | `expected_union_residual_rules` | `[]` |
 | recognized `fully_certified` via the union | `fully_certified_via_union` — derived as `expected_union_unknown == 0` | true |

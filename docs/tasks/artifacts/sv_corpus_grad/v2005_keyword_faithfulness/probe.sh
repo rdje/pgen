@@ -56,13 +56,18 @@ check "baseline gate mode" 0 "over_acceptances=" -- \
 echo
 echo "[2] CONTROL — the reading MOVES with the profile (it is not stuck)"
 # The SAME code, over the SAME grammar and the SAME oracle, must report a different population
-# once only the profile changes. `verilog_2005` reaches 16 word-shaped IEEE-1800-only keywords
-# (11 + the five `timescale time units SV-CORPUS-GRAD.3.39's typed directives made reachable);
-# `sv_2017`, where those keywords are native, reaches 136. A census blind to the profile would
-# print one of those numbers twice.
-check "verilog_2005 reaches 16 IEEE-1800-only keywords" 0 "candidates=16" -- \
+# once only the profile changes. `verilog_2005` reaches 15 word-shaped IEEE-1800-only keywords
+# (11 + the five `timescale time units SV-CORPUS-GRAD.3.39's typed directives made reachable, minus
+# `tx_path_delay_expression` — an Annex A production NAME shipped as a literal terminal in
+# list_of_path_delay_expressions' non-LRM seventh alternative, counted here as an identifier-consumed
+# candidate until SV-CORPUS-GRAD.3.45 deleted the alternative and its terminal, release 1.0.219);
+# `sv_2017`, where those keywords are native, reaches 135 for the same reason (136 before .3.45). A
+# census blind to the profile would print one of those numbers twice. ⛔ These two constants are a
+# tripwire, not a budget: a reachable IEEE-1800-only keyword added or removed moves them by one, and
+# the slice that moves them owes this comment its reason.
+check "verilog_2005 reaches 15 IEEE-1800-only keywords" 0 "candidates=15" -- \
     python3 "$CENSUS"
-check "sv_2017 reaches 136 — the same code, a different reading" 1 "\`sv_2017\` reaches 136" -- \
+check "sv_2017 reaches 135 — the same code, a different reading" 1 "\`sv_2017\` reaches 135" -- \
     python3 "$CENSUS" --profile sv_2017
 # Censusing the CONTROL profile itself is a degenerate self-comparison, and the census names it
 # rather than reporting a flattering "leaks 0".

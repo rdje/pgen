@@ -139,7 +139,8 @@
   "2026-05-04 SV-Slice-2: `source_text := source_text_item*` annotated `-> [$1**]`. Pre-fix `source_text` field of `systemverilog_file` was a nested Quantified envelope; post-fix it's a flat array of `source_text_item` shapes. For the `module m; endmodule\\n` sample, source_text now has length 1 (the single module_declaration's source_text_item envelope) instead of the Quantified wrapper. Annotation count: 3 (was 2). Same accept set; only the source_text array shape changed.",
   "2026-05-04 SV-Slice-1: dangling annotation `-> {type: \"systemverilog_file\", source_text: $2}` at grammars/systemverilog.ebnf line 195 was moved onto its target rule `systemverilog_file` (line 184). Pre-fix the annotation was lost (separated from its rule by a blank line + the `sv_multi_entry_root` helper definition + another blank line) and the parser registered 0 annotations effective on systemverilog_file. Post-fix the parser registers 2 annotations (systemverilog_file + systemverilog_parseable_file) and the AST root for `module m; endmodule\\n` is the typed `{type: \"systemverilog_file\", source_text: ...}` JSON object documented below.",
   "2026-05-17 POST-SV-AUDIT.2.4a (PGEN-POST-SV-AUDIT-0005): net_alias Cat-A raw-envelope -> {lvalues:[$2,$4,$5::2*]} clean list (probe-verified [a,b,c]); 5 number rules (unsigned_number/non_zero_unsigned_number/binary_value/octal_value/hex_value) inline-alt-$N defensive structural fix via named *_tail rules (annotation unchanged; corruption structurally present but UNREACHABLE via systemverilog_file root — all numeric top-level constructs rejected in every profile, a pre-existing SV-root coverage limitation, separate from this fix, out of audit scope). Inventory count unchanged (net_alias return_object text-only change; *_tail rules un-annotated). Schema 1->2, release/contract 1.0.115->1.0.116. NO PGEN_RELEASED_PARSER_BUG_LEDGER row (number-rule corruption not consumer-reproducible; net_alias is a clean Cat-A improvement) — tracked via POST_SV_AUDIT_LEDGER + Schema-Versioning + contract AST-Shape-Corrections. net_alias sample added.",
-  "2026-05-17 POST-SV-AUDIT.2.4b (PGEN-POST-SV-AUDIT-0006): 11 structured-per-iteration Cat-A rules fixed by factoring the repeated multi-field unit into named record rules (interface/port/variable/tf_variable/variable_port _identifier_decl; let/property/sequence _named_arg; assignment_pattern_entry) + extraction-spread; list_of_* now clean flat [{name,dims[,init]}] / {kind,items:[...]} record lists; *_list_of_arguments mixed head + [$2::2*]/[$3::2*] tails & named_only items:[...]; parameter_port_list type_only items:[$4,$5::3*]; assignment_pattern named entries:[$3,$4::2*]. Probe-verified reachable list_of_*_identifiers path: clean {name,dims,init} record list, 0 invalid_sequence_access, 0 raw separator-envelope, no leftover {first,rest} structured envelope. Inventory 2290->2299 / 999->1008 (+9 annotated record rules — count CHANGES, documented; unlike pure Cat-A). Schema 2->3, release/contract 1.0.116->1.0.117. NOT bug-ledger (Cat-A structured, no <invalid_sequence_access> corruption). Unreachable-via-SV-root rules (let/property/sequence args, parameter_port_list type_only, assignment_pattern named) carry the same honest defensive-disposition as .2.4a number rules (proven idiom + clean regen + shape-contract lock). structured_decls sample added."
+  "2026-05-17 POST-SV-AUDIT.2.4b (PGEN-POST-SV-AUDIT-0006): 11 structured-per-iteration Cat-A rules fixed by factoring the repeated multi-field unit into named record rules (interface/port/variable/tf_variable/variable_port _identifier_decl; let/property/sequence _named_arg; assignment_pattern_entry) + extraction-spread; list_of_* now clean flat [{name,dims[,init]}] / {kind,items:[...]} record lists; *_list_of_arguments mixed head + [$2::2*]/[$3::2*] tails & named_only items:[...]; parameter_port_list type_only items:[$4,$5::3*]; assignment_pattern named entries:[$3,$4::2*]. Probe-verified reachable list_of_*_identifiers path: clean {name,dims,init} record list, 0 invalid_sequence_access, 0 raw separator-envelope, no leftover {first,rest} structured envelope. Inventory 2290->2299 / 999->1008 (+9 annotated record rules — count CHANGES, documented; unlike pure Cat-A). Schema 2->3, release/contract 1.0.116->1.0.117. NOT bug-ledger (Cat-A structured, no <invalid_sequence_access> corruption). Unreachable-via-SV-root rules (let/property/sequence args, parameter_port_list type_only, assignment_pattern named) carry the same honest defensive-disposition as .2.4a number rules (proven idiom + clean regen + shape-contract lock). structured_decls sample added.",
+  "2026-09-07 SV-CORPUS-GRAD.3.45 (PGEN-SV-CORPUS-GRAD-0374, release 1.0.219, ledger SV-0092, schema 30 -> 31): sixteen samples, one per newly typed alternative of the partial-typing residue (assignment_pattern structure / array / replication; block_data_type integer_atom / struct_union / enum / virtual_interface; case_statement matches / inside; clocking_declaration global; clocking_event_sv_2017 expression; list_of_path_delay_expressions two / three / six / twelve; property_case_item default), each parsed AS its rule through a new test-only dispatch arm (seven arms). The nettype alias form (net_type_declaration_sv_2017's alias alternative, typed in 1.0.219 and winning its tie through a negative lookahead on the data-type alternative) takes NO sample: its `net_type_identifier` is store-gated on a declared nettype and a standalone parse has no store, so the alias shape is held by the pins control_nettype_alias_sv2017.sv / _sv2023.sv (arms net_type>nettype / nettype>nettype) and the corpus AST identity sweep. 40 -> 56 samples."
  ],
  "samples": [
   {
@@ -796,6 +797,317 @@
    "current_content_kind": "json_object",
    "drift_status": "aligned",
    "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0373 / SV-CORPUS-GRAD.3.44, ledger SV-0091, schema 29 -> 30: the function / task body shape lock. IEEE 1800-2017 A.2.6 / A.2.7 spell function_body_declaration and task_body_declaration as TWO forms — the non-ported `[ interface_identifier . | class_scope ] identifier ; { tf_item_declaration } …` and the PORTED `… identifier ( [ tf_port_list ] ) ; { block_item_declaration } …` — each with an optional out-of-block prefix, four alternatives in the grammar. Through release 1.0.217 only alternative 1 carried a return template; the corpus census on the 1.0.217 probe (AST-FIELD-CENSUS --select-keys lifetime,body + TF-BODY-CLASSIFY) read 2 211 of 3 411 bodies as the RAW Sequence envelope on sv_2017 — 1 646 ported functions, 513 ported tasks, 2 + 28 out-of-block functions, 22 out-of-block tasks — in 1 060 of 1 958 accepting files, so the most common function in any corpus was invisible to every typed consumer and to this contract (a raw envelope has no keys to lock). This sample is the task twin of alternative 4 — out-of-block, ported: `scope` and `ports` PRESENT, the end label populated."
+  },
+  {
+   "name": "assignment_pattern_structure_keys",
+   "input": "'{a: 1, b: 2}",
+   "rule_under_test": "assignment_pattern",
+   "declared_annotation": "{kind: \"structure\", keys: [$3, $6::2*], values: [$5, $6::4*]}  (alternative 2: tick lbrace structure_pattern_key colon expression ( comma structure_pattern_key colon expression )* rbrace)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "keys",
+    "values"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "structure"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
+  },
+  {
+   "name": "assignment_pattern_array_keys",
+   "input": "'{0: 1, default: 0}",
+   "rule_under_test": "assignment_pattern",
+   "declared_annotation": "{kind: \"array\", keys: [$3, $6::2*], values: [$5, $6::4*]}  (alternative 3: tick lbrace array_pattern_key colon expression ( comma array_pattern_key colon expression )* rbrace)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "keys",
+    "values"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "array"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
+  },
+  {
+   "name": "assignment_pattern_replication",
+   "input": "'{2{0, 1}}",
+   "rule_under_test": "assignment_pattern",
+   "declared_annotation": "{kind: \"replication\", count: $3, exprs: [$5, $6::2*]}  (alternative 4: tick lbrace constant_expression lbrace expression ( comma expression )* rbrace rbrace)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "count",
+    "exprs"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "replication"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
+  },
+  {
+   "name": "block_data_type_integer_atom",
+   "input": "int unsigned",
+   "rule_under_test": "block_data_type",
+   "declared_annotation": "{kind: \"integer_atom\", base: $1, signing: $2}  (alternative 2: integer_atom_type ( integer_atom_signing_sv_only )? — data_type's own template)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "base",
+    "signing"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "integer_atom"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
+  },
+  {
+   "name": "block_data_type_struct_union",
+   "input": "struct packed { int a; }",
+   "rule_under_test": "block_data_type",
+   "declared_annotation": "{kind: \"struct_union\", header: $1, packed_signing: $2, members: {first: $4, rest: $5}, dims: $7}  (alternative 4 — data_type's own template)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "header",
+    "packed_signing",
+    "members",
+    "dims"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "struct_union"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
+  },
+  {
+   "name": "block_data_type_enum",
+   "input": "enum { A, B }",
+   "rule_under_test": "block_data_type",
+   "declared_annotation": "{kind: \"enum\", base_type: $2, names: [$4, $5::2*], dims: $7}  (alternative 5 — data_type's own template)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "base_type",
+    "names",
+    "dims"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "enum"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
+  },
+  {
+   "name": "block_data_type_virtual_interface",
+   "input": "virtual interface I",
+   "rule_under_test": "block_data_type",
+   "declared_annotation": "{kind: \"virtual_interface\", interface_keyword: $2, name: $3, params: $4, modport: $5}  (alternative 8 — data_type's own template)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "interface_keyword",
+    "name",
+    "params",
+    "modport"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "virtual_interface"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
+  },
+  {
+   "name": "case_statement_matches",
+   "input": "case (u) matches tagged Valid .n: ; default: ; endcase",
+   "rule_under_test": "case_statement",
+   "declared_annotation": "{kind: \"matches\", unique_priority: $1, keyword: $2, expr: $4, items: {first: $7, rest: $8}}  (alternative 2: ( unique_priority )? case_keyword lparen case_expression rparen kw_matches case_pattern_item case_pattern_item* kw_endcase)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "unique_priority",
+    "keyword",
+    "expr",
+    "items"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "matches"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
+  },
+  {
+   "name": "case_statement_inside",
+   "input": "priority case (a) inside [0:1]: ; default: ; endcase",
+   "rule_under_test": "case_statement",
+   "declared_annotation": "{kind: \"inside\", unique_priority: $1, keyword: {kind: \"case\"}, expr: $4, items: {first: $7, rest: $8}}  (alternative 3: ( unique_priority )? kw_case lparen case_expression rparen kw_inside case_inside_item case_inside_item* kw_endcase)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "unique_priority",
+    "keyword",
+    "expr",
+    "items"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "inside"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
+  },
+  {
+   "name": "clocking_declaration_global",
+   "input": "global clocking gcb @(posedge clk); endclocking : gcb",
+   "rule_under_test": "clocking_declaration",
+   "declared_annotation": "{kind: \"global\", name: $3, event: $4, end_label: $7}  (alternative 2: kw_global kw_clocking ( clocking_identifier )? clocking_event semi kw_endclocking ( colon clocking_identifier )?)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "name",
+    "event",
+    "end_label"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "global"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
+  },
+  {
+   "name": "clocking_event_sv_2017_expression",
+   "input": "@(posedge clk)",
+   "rule_under_test": "clocking_event_sv_2017",
+   "declared_annotation": "{kind: \"expression\", body: $3}  (alternative 2: at_sign lparen event_expression rparen — the sv_2023 twin's shape)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "body"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "expression"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
+  },
+  {
+   "name": "path_delay_two",
+   "input": "1, 2",
+   "rule_under_test": "list_of_path_delay_expressions",
+   "declared_annotation": "{kind: \"two\", trise: $1, tfall: $3}  (alternative 2: trise_path_delay_expression comma tfall_path_delay_expression)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "trise",
+    "tfall"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "two"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
+  },
+  {
+   "name": "path_delay_three",
+   "input": "1, 2, 3",
+   "rule_under_test": "list_of_path_delay_expressions",
+   "declared_annotation": "{kind: \"three\", trise: $1, tfall: $3, tz: $5}  (alternative 3)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "trise",
+    "tfall",
+    "tz"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "three"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
+  },
+  {
+   "name": "path_delay_six",
+   "input": "1, 2, 3, 4, 5, 6",
+   "rule_under_test": "list_of_path_delay_expressions",
+   "declared_annotation": "{kind: \"six\", t01: $1, t10: $3, t0z: $5, tz1: $7, t1z: $9, tz0: $11}  (alternative 4)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "t01",
+    "t10",
+    "t0z",
+    "tz1",
+    "t1z",
+    "tz0"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "six"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
+  },
+  {
+   "name": "path_delay_twelve",
+   "input": "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12",
+   "rule_under_test": "list_of_path_delay_expressions",
+   "declared_annotation": "{kind: \"twelve\", t01: $1, t10: $3, t0z: $5, tz1: $7, t1z: $9, tz0: $11, t0x: $13, tx1: $15, t1x: $17, tx0: $19, txz: $21, tzx: $23}  (alternative 5)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "t01",
+    "t10",
+    "t0z",
+    "tz1",
+    "t1z",
+    "tz0",
+    "t0x",
+    "tx1",
+    "t1x",
+    "tx0",
+    "txz",
+    "tzx"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "twelve"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
+  },
+  {
+   "name": "property_case_item_default",
+   "input": "default: 1;",
+   "rule_under_test": "property_case_item",
+   "declared_annotation": "{kind: \"default\", body: $3}  (alternative 2: kw_default ( colon )? property_expr semi — the shape case_item / case_pattern_item / case_inside_item_sv_2017 give their default arms)",
+   "expected_content_kind": "json_object",
+   "expected_json_object_keys_present": [
+    "kind",
+    "body"
+   ],
+   "expected_json_object_string_values": {
+    "kind": "default"
+   },
+   "current_content_kind": "json_object",
+   "drift_status": "aligned",
+   "drift_tracked_in": "PGEN-SV-CORPUS-GRAD-0374 / SV-CORPUS-GRAD.3.45, ledger SV-0092, schema 30 -> 31: the partial-typing residue. After release 1.0.218 the grammar still carried eight rules typed on some alternatives and not others whose untyped alternatives emitted the raw positional Sequence envelope (PARTIAL-TYPING-CENSUS: PARTIAL=38 partial_untyped_alternatives=64 passthrough=45 RAW_ENVELOPE=19). The corpus census on the 1.0.218 probe (RAW-ENVELOPE-CENSUS, every lane row, TOOLBOX §1.5h) read 2 319 raw envelopes in 1 088 accepting files on sv_2017 (1 779 / 819 on sv_2023, 217 / 120 on the 1364-2005 lane). Release 1.0.219 types every one of them; each sample below pins one newly typed alternative, parsed AS its rule, locking its key set and its `kind`. The typed sibling of every rule keeps its shipped shape byte-identically (`kind` absent), so a consumer discriminates the new forms by `kind`. On the 1.0.218 grammar each of these inputs reads Sequence, so a reverted template trips the content-kind lock."
   }
  ]
 }

@@ -1122,11 +1122,22 @@ assignment_pattern_entry := member_identifier colon pattern -> {name: $1, patter
 # DELETES the alternatives that follow it (project_standing_tripwires).
 # SV-0072 companion — assignment-pattern host: every alternative is `'{ … }` (IEEE 1800 A.6.7.1). Unreachable under verilog_2005 once `tick` is gated.
 @profiles: ["sv_2017", "sv_2023"]
+# SV-CORPUS-GRAD.3.45 (release 1.0.219, schema 30 -> 31): every alternative is typed. IEEE 1800-2017 A.6.7.1 gives an
+# assignment pattern four forms — positional `'{e, e}`, structure-keyed `'{key: e}`, array-keyed `'{idx: e}` and the
+# replication `'{n{e, e}}`; the grammar adds the empty `'{}` (SV-0072). Through 1.0.218 only the positional and empty
+# forms carried a template (`{exprs}`) and the keyed and replication forms arrived as the raw `Sequence` envelope. The
+# three new templates carry a `kind` — the positional form keeps its shipped `{exprs}` shape byte-identically, so a
+# consumer reads `kind` absent = positional. `keys[i]` pairs with `values[i]`; the key nodes are the typed
+# structure_pattern_key (`member` / `pattern`) and array_pattern_key (`expression` / `pattern_key`) nodes, so the LRM's
+# two keyed productions stay distinguishable through the key node as well as through `kind`.
 assignment_pattern := @sample: "'{0, 1}" tick lbrace expression ( comma expression )* rbrace
                    -> {exprs: [$3, $4::2*]}
                     | @sample: "'{x: 0}" tick lbrace structure_pattern_key colon expression ( comma structure_pattern_key colon expression )* rbrace
+                   -> {kind: "structure", keys: [$3, $6::2*], values: [$5, $6::4*]}
                     | @sample: "'{1: 0}" tick lbrace array_pattern_key colon expression ( comma array_pattern_key colon expression )* rbrace
+                   -> {kind: "array", keys: [$3, $6::2*], values: [$5, $6::4*]}
                     | @sample: "'{2{0, 1}}" tick lbrace constant_expression lbrace expression ( comma expression )* rbrace rbrace
+                   -> {kind: "replication", count: $3, exprs: [$5, $6::2*]}
                     | @sample: "'{}" tick lbrace rbrace
                    -> {exprs: []}
 
@@ -1411,10 +1422,19 @@ case_pattern_item := pattern ( logical_and3 expression )? colon statement_or_nul
                    | kw_default_7505d64a ( colon )? statement_or_null
                           -> {kind: "default", body: $3}
 
+# SV-CORPUS-GRAD.3.45 (release 1.0.219, schema 30 -> 31): the `matches` and `inside` forms (IEEE 1800-2017 A.6.7,
+# productions 2 and 3) are typed; through 1.0.218 only the plain form carried a template and the other two arrived as
+# the raw nine-element `Sequence` envelope. The new templates mirror the plain form's field set and add `kind`
+# ("matches" / "inside") — the plain form keeps its shipped shape byte-identically, so `kind` absent = plain. The
+# `inside` production admits only the `case` keyword (A.6.7: `[ unique_priority ] case ( case_expression ) inside`), so
+# its `keyword` is the literal `{kind: "case"}` node `case_keyword` would have produced. `items.first` / `items.rest`
+# hold case_pattern_item nodes on the `matches` form and case_inside_item nodes on the `inside` form.
 case_statement := @sample: "case (a) default: ; endcase" ( unique_priority )? case_keyword lparen case_expression rparen case_item case_item* kw_endcase_a27a6786
                -> {unique_priority: $1, keyword: $2, expr: $4, items: {first: $6, rest: $7}}
                 | @sample: "case (a) matches default: ; endcase" ( unique_priority )? case_keyword lparen case_expression rparen kw_matches_9f3e9242 case_pattern_item case_pattern_item* kw_endcase_a27a6786
+               -> {kind: "matches", unique_priority: $1, keyword: $2, expr: $4, items: {first: $7, rest: $8}}
                 | @sample: "case (a) inside [0:1]: ; endcase" ( unique_priority )? kw_case_6406510c lparen case_expression rparen kw_inside_fcc53788 case_inside_item case_inside_item* kw_endcase_a27a6786
+               -> {kind: "inside", unique_priority: $1, keyword: {kind: "case"}, expr: $4, items: {first: $7, rest: $8}}
 
 # SV-0072 companion — cast host: `casting_type ' ( expression )` (IEEE 1800 A.8.4). Unreachable under verilog_2005 once `tick` is gated.
 @profiles: ["sv_2017", "sv_2023"]
@@ -1779,9 +1799,14 @@ clocking_decl_assign := signal_identifier ( assign expression )?
                      -> {name: $1, value: $2}
 
 @profiles: ["sv_2017", "sv_2023"]
+# SV-CORPUS-GRAD.3.45 (release 1.0.219, schema 30 -> 31): the `global clocking` form (IEEE 1800-2017 A.6.11, second
+# production — no clocking items) is typed as `{kind: "global", name, event, end_label}`; through 1.0.218 it arrived as
+# the raw seven-element `Sequence` envelope. The first form keeps its shipped `{default_keyword, name, event, items,
+# end_label}` shape byte-identically (`kind` absent).
 clocking_declaration := @sample: "clocking cb @(posedge clk); endclocking : cb" ( kw_default_7505d64a )? kw_clocking_4d22041d ( clocking_identifier )? clocking_event semi clocking_item* kw_endclocking_c1e6d71f ( colon clocking_identifier )?
                      -> {default_keyword: $1, name: $3, event: $4, items: $6, end_label: $8}
                       | @sample: "global clocking cb @(posedge clk); endclocking : cb" kw_global_9027cc5a kw_clocking_4d22041d ( clocking_identifier )? clocking_event semi kw_endclocking_c1e6d71f ( colon clocking_identifier )?
+                     -> {kind: "global", name: $3, event: $4, end_label: $7}
 
 clocking_direction := kw_input_140f86aa ( clocking_skew )?
                             -> {kind: "input",        skew: $2}
@@ -1797,9 +1822,13 @@ clocking_drive := clockvar_expression less_equal ( cycle_delay )? expression
                -> {lvalue: $1, cycle_delay: $3, value: $4}
 
 @profiles: ["sv_2017"]
+# SV-CORPUS-GRAD.3.45 (release 1.0.219, schema 30 -> 31): the `@( event_expression )` form is typed exactly as the
+# sv_2023 twin types it — `{kind: "expression", body}`; through 1.0.218 it was the raw four-element `Sequence` envelope
+# `[at_sign, lparen, event_expression, rparen]`. The `@identifier` form keeps its shipped `{body}` shape byte-identically.
 clocking_event_sv_2017 := @probe_sample: "@clk" at_sign non_keyword_identifier
                        -> {body: $2}
                         | @probe_sample: "@(posedge clk)" at_sign lparen event_expression rparen
+                       -> {kind: "expression", body: $3}
 
 @profiles: ["sv_2023"]
 clocking_event_sv_2023 := at_sign ps_identifier             -> {kind: "ps",           body: $2}
@@ -2534,6 +2563,12 @@ known_unscoped_block_covergroup_identifier := known_unscoped_covergroup_type_ide
 @profiles: ["sv_2017", "sv_2023"]
 scoped_block_covergroup_identifier := scoped_covergroup_type_identifier
 
+# SV-CORPUS-GRAD.3.45 (release 1.0.219, schema 30 -> 31): the four multi-element alternatives that mirror `data_type`'s
+# — integer-atom, struct/union, enum and virtual-interface — carry `data_type`'s own templates (same `kind`, same fields),
+# so a consumer that reads a `data_type` node reads these identically. Through 1.0.218 they arrived as the raw
+# `Sequence` envelope (`int unsigned` in a block was `[{kind: "int"}, {kind: "unsigned"}]`). Alternative 1 keeps its
+# shipped `{base, signing, dims}` shape byte-identically (no `kind`; its key set is unique in the rule); the
+# single-reference alternatives pass their child through unchanged, as before.
 block_data_type := integer_vector_type ( signing )? packed_dimension*
                 -> {base: $1, signing: $2, dims: $3}
                  # SV-CORPUS-GRAD.13e.4 (SV-0069): the block form of the integer/time signing
@@ -2541,12 +2576,16 @@ block_data_type := integer_vector_type ( signing )? packed_dimension*
                  # list_of_block_variable_identifiers ;` with no signing either. See
                  # `integer_atom_signing_sv_only` for the full rationale.
                  | integer_atom_type ( integer_atom_signing_sv_only )?
+                -> {kind: "integer_atom",          base: $1, signing: $2}
                  | non_integer_type
                  | @sample: "struct { int a; }" struct_union ( kw_packed_7aca22de ( signing )? )? lbrace struct_union_member struct_union_member* rbrace packed_dimension*
+                -> {kind: "struct_union",         header: $1, packed_signing: $2, members: {first: $4, rest: $5}, dims: $7}
                  | @sample: "enum { A }" enum_keyword_sv_only ( enum_base_type )? lbrace enum_name_declaration ( comma enum_name_declaration )* rbrace packed_dimension*
+                -> {kind: "enum",                  base_type: $2, names: [$4, $5::2*], dims: $7}
                  | string_type_sv_only
                  | chandle_type_sv_only
                  | virtual_interface_keyword_sv_only ( kw_interface_5ea2d81a )? interface_identifier ( parameter_value_assignment )? ( dot modport_identifier )?
+                -> {kind: "virtual_interface",     interface_keyword: $2, name: $3, params: $4, modport: $5}
                  | scoped_block_type_identifier
                  | known_unscoped_block_type_identifier
                  | scoped_block_class_type
@@ -4094,14 +4133,26 @@ list_of_parameter_value_assignments_sv_2023 := ordered_parameter_assignment ( co
 list_of_parameter_value_assignments := list_of_parameter_value_assignments_sv_2023
                                     -> {body: $1}
 
+# SV-CORPUS-GRAD.3.45 (release 1.0.219, schema 30 -> 31): IEEE 1364-2005 A.7.4 = 1800-2017 A.7.4 = 1800-2023 A.7.4 give
+# exactly FIVE forms — one, two, three, six or twelve delay values (§30.4.1 / 1364 §14.3.1) — and each position has an
+# LRM name (trise, tfall, tz, t01, t10, t0z, tz1, t1z, tz0, t0x, tx1, t1x, tx0, txz, tzx). The four multi-value forms are
+# typed by those names with a `kind` naming the count; the single-value form keeps its shipped `{body}` shape
+# byte-identically (`kind` absent). Two further alternatives shipped from the first grammar promotion (273f4896) to
+# 1.0.218 and are REMOVED here with the LRM as proof: a second six-value spelling (`t, t, tz, tz, tz, tz`) that matched
+# the same text as the LRM's six-value form and lost the longest-match tie to it by declaration order on every input
+# (Protocol D: `selected branch 4/7` on six values), and a twelve-value spelling whose middle four positions were the
+# regex terminal `/tx_path_delay_expression\b/` — the production NAME extracted as literal source text, matched by no
+# file in the corpus. Neither was an LRM production; neither could produce a tree.
 list_of_path_delay_expressions := @probe_sample: "1" t_path_delay_expression
                                -> {body: $1}
                                 | trise_path_delay_expression comma tfall_path_delay_expression
+                               -> {kind: "two",    trise: $1, tfall: $3}
                                 | trise_path_delay_expression comma tfall_path_delay_expression comma tz_path_delay_expression
+                               -> {kind: "three",  trise: $1, tfall: $3, tz: $5}
                                 | t01_path_delay_expression comma t10_path_delay_expression comma t0z_path_delay_expression comma tz1_path_delay_expression comma t1z_path_delay_expression comma tz0_path_delay_expression
+                               -> {kind: "six",    t01: $1, t10: $3, t0z: $5, tz1: $7, t1z: $9, tz0: $11}
                                 | t01_path_delay_expression comma t10_path_delay_expression comma t0z_path_delay_expression comma tz1_path_delay_expression comma t1z_path_delay_expression comma tz0_path_delay_expression comma t0x_path_delay_expression comma tx1_path_delay_expression comma t1x_path_delay_expression comma tx0_path_delay_expression comma txz_path_delay_expression comma tzx_path_delay_expression
-                                | t_path_delay_expression comma t_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression
-                                | t_path_delay_expression comma t_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma tz_path_delay_expression comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma kw_tx_path_delay_expression_7b2dee37 comma txz_path_delay_expression comma tzx_path_delay_expression
+                               -> {kind: "twelve", t01: $1, t10: $3, t0z: $5, tz1: $7, t1z: $9, tz0: $11, t0x: $13, tx1: $15, t1x: $17, tx0: $19, txz: $21, tzx: $23}
 
 list_of_path_inputs := specify_input_terminal_descriptor ( comma specify_input_terminal_descriptor )*
                     -> [$1, $2::2*]
@@ -4897,19 +4948,49 @@ nettype_scope_prefix := non_typedef_package_scope | class_scope
 
 @profiles: ["sv_2017"]
 @sample: "nettype int nt;"
-net_type_declaration_sv_2017 := kw_nettype_27d30cf3 data_type declared_nettype_identifier ( kw_with_8fcd25a3 nettype_scope_prefix? tf_identifier )? semi
-                             -> {data_type: $2, name: $3, with_clause: $4}
+# SV-CORPUS-GRAD.3.45 (release 1.0.219, schema 30 -> 31): IEEE 1800-2017 §6.6.7's SECOND form — `nettype [ scope ]
+# net_type_identifier net_type_identifier ;`, "another name for an existing nettype" — is typed as the sv_2023 twin types
+# it, `{kind: "nettype", scope, base, name}`, and is placed FIRST. It had to move: both alternatives succeed on the
+# LRM's own example `nettype wTsum nettypeid2;` (the data-type form reads the nettype identifier as a
+# known_unscoped_data_type — every declared nettype is a `type_name` fact) and the longest-match tie went to
+# declaration order, so the alias form NEVER won and the AST called `wTsum` a data type (Protocol D on both SV
+# profiles: `selected branch 1/2`). The tie is broken by a NEGATIVE LOOKAHEAD on the data-type alternative — it refuses
+# a text that reads as an alias head, `[ scope ] <declared nettype> <identifier> ;` — so the alias alternative wins
+# exactly those declarations while the ORDER stays as shipped (data-type form first). ⛔ Two candidates of this slice
+# were refuted before this spelling: (1) reorder alone, with the alias base a bare declaration_identifier (as it was
+# through 1.0.218 — it also matches every TYPEDEF name), read `nettype T wT;` (T a struct typedef, ispras
+# 06.07.02_01.sv) as an alias — the two-sided corpus sweep caught it as the one moved-but-not-predicted file; (2) reorder
+# with the base store-gated (`net_type_identifier`, below) broke the CERTIFICATE: the generator renders an unplanned
+# nettype declaration with the first of two equally cheap alternatives, so the prelude that declares a nettype for
+# `checked_nettype_identifier`'s witness became `nettype \foo \foo ;` — an alias with an undeclared base, which the
+# gate refuses — and the union certificate read UNKNOWN=2 (`checked_nettype_identifier`, `nettype_scope_prefix`) where
+# 1.0.218 had 0. The lookahead keeps 1.0.218's generation order and resolves the overlap in the LRM's favour: the
+# alias alternative wins the declarations whose base is a declared nettype (or an undeclared name under a wildcard
+# import, as net_declaration reads a net of a user-defined nettype — SV-PARSE-STRICT.2); the guard occupies `$2`
+# (codegen-proven at rooted_tf_call_sv_only), so the data-type template's slots shift by one and its shipped
+# `{data_type, name, with_clause}` shape is byte-identical (`kind` absent). The lookahead names `declaration_identifier`,
+# not `declared_nettype_identifier`, so it plants no fact while speculating.
+net_type_declaration_sv_2017 := kw_nettype_27d30cf3 !( nettype_scope_prefix? checked_nettype_identifier declaration_identifier semi ) data_type declared_nettype_identifier ( kw_with_8fcd25a3 nettype_scope_prefix? tf_identifier )? semi
+                             -> {data_type: $3, name: $4, with_clause: $5}
                               | kw_nettype_27d30cf3 nettype_scope_prefix? net_type_identifier declared_nettype_identifier semi
+                             -> {kind: "nettype", scope: $2, base: $3, name: $4}
 
 @profiles: ["sv_2017"]
 net_type_declaration := net_type_declaration_sv_2017
                      -> {body: $1}
 
-@profiles: ["sv_2017"]
-net_type_identifier_sv_2017 := declaration_identifier
-
-@profiles: ["sv_2017"]
-net_type_identifier := net_type_identifier_sv_2017
+# SV-CORPUS-GRAD.3.45 (release 1.0.219): IEEE 1800-2017 A.9.3 `net_type_identifier` — a USE of a nettype name, the base
+# of the §6.6.7 alias form in both edition twins. Through 1.0.218 this was a bare `declaration_identifier` (one
+# ungated twin per edition), which is why the alias alternative could never be allowed to win a tie: an ungated
+# identifier also matches every typedef name. It is now the declared-nettype store gate (`checked_nettype_identifier`, a
+# `type_name` fact with `declaration_family: nettype`) or the wildcard-import escape — exactly how `net_declaration`
+# reads a net of a user-defined nettype (SV-PARSE-STRICT.2) and how SV-KEYWORD-PRIMARY-FIDELITY.3.1 (SV-0037) routed
+# the same ungated names in `net_port_type`. A named helper, not an inline `( a | b )`, because an inline alternation
+# inside an annotated rule is typed by the enclosing templates by index (ENGINE-UNIVERSAL-SERVICES.96). Passthrough:
+# both children return the identifier node `{body: "name"}`. Profile-agnostic, like its two children.
+@profiles: ["sv_2017", "sv_2023"]
+net_type_identifier := checked_nettype_identifier
+                     | wildcard_escape_nettype_identifier
 
 # SV-PARSE-STRICT.2: a USE of a net-type identifier that MUST be a known declared
 # NETTYPE — mirrors the proven `checked_type_identifier` store-gate. A bare
@@ -4948,20 +5029,19 @@ declared_nettype_identifier := declaration_identifier -> { body: $1.body }
 wildcard_escape_nettype_identifier := declaration_identifier -> { body: $1.body }
 
 @profiles: ["sv_2023"]
-nettype_declaration_sv_2023 := kw_nettype_27d30cf3 data_type declared_nettype_identifier ( kw_with_8fcd25a3 nettype_scope_prefix? tf_identifier )? semi
-                                      -> {kind: "data_type",  data_type: $2, name: $3, with_clause: $4}
-                              | kw_nettype_27d30cf3 nettype_scope_prefix? nettype_identifier declared_nettype_identifier semi
+# SV-CORPUS-GRAD.3.45 (release 1.0.219): the same tie-break as net_type_declaration_sv_2017 above — the alias form was
+# shadowed on the LRM's own §6.6.7 example under sv_2023 too (`selected branch 1/2`): the data-type alternative refuses
+# an alias head by negative lookahead (its slots shift by one, the shape is byte-identical), the alias alternative's base
+# is the shared store-gated `net_type_identifier` (the ungated `nettype_identifier_sv_2023` it referenced through
+# 1.0.218 is deleted with it), and the order stays as shipped. Only the winner on an alias declaration moves.
+nettype_declaration_sv_2023 := kw_nettype_27d30cf3 !( nettype_scope_prefix? checked_nettype_identifier declaration_identifier semi ) data_type declared_nettype_identifier ( kw_with_8fcd25a3 nettype_scope_prefix? tf_identifier )? semi
+                                      -> {kind: "data_type",  data_type: $3, name: $4, with_clause: $5}
+                              | kw_nettype_27d30cf3 nettype_scope_prefix? net_type_identifier declared_nettype_identifier semi
                                       -> {kind: "nettype",    scope: $2, base: $3, name: $4}
 
 @profiles: ["sv_2023"]
 nettype_declaration := nettype_declaration_sv_2023
                     -> {body: $1}
-
-@profiles: ["sv_2023"]
-nettype_identifier_sv_2023 := declaration_identifier
-
-@profiles: ["sv_2023"]
-nettype_identifier := nettype_identifier_sv_2023
 
 next_state := output_symbol -> {kind: "symbol", body: $1}
             | minus         -> {kind: "minus"}
@@ -5841,9 +5921,14 @@ property_actual_arg := property_expr        -> {kind: "property_expr",   body: $
                      | sequence_actual_arg  -> {kind: "sequence_actual", body: $1}
 
 @profiles: ["sv_2017", "sv_2023"]
+# SV-CORPUS-GRAD.3.45 (release 1.0.219, schema 30 -> 31): the `default` arm (IEEE 1800-2017 A.2.10) is typed exactly as
+# the default arms of case_item / case_pattern_item / case_inside_item_sv_2017 are — `{kind: "default", body}`; through
+# 1.0.218 it was the raw four-element `Sequence` envelope. The expression arm keeps its shipped `{expressions, body}`
+# shape byte-identically (`kind` absent).
 property_case_item := @probe_sample: "1: 1;" expression_or_dist ( comma expression_or_dist )* colon property_expr semi
                    -> {expressions: [$1, $2::2*], body: $4}
                     | @probe_sample: "default: 1;" kw_default_7505d64a ( colon )? property_expr semi
+                   -> {kind: "default", body: $3}
 
 @profiles: ["sv_2017", "sv_2023"]
 property_declaration := kw_property_269fe373 declared_property_identifier ( lparen ( property_port_list )? rparen )? semi assertion_variable_declaration* property_spec ( semi )? kw_endproperty_6594321c ( colon property_identifier )?
@@ -8526,8 +8611,6 @@ kw_trireg_f7901823 := trivia /trireg\b/
 kw_tri0 := trivia /tri0\b/
 
 kw_tri1 := trivia /tri1\b/
-
-kw_tx_path_delay_expression_7b2dee37 := trivia /tx_path_delay_expression\b/
 
 kw_type_d0a3e7f8 := trivia /type\b/
 

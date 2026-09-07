@@ -1265,6 +1265,37 @@ mod tests {
                 "task_body_declaration" => parser
                     .parse_task_body_declaration()
                     .map_err(|err| err.to_string()),
+                // SV-CORPUS-GRAD.3.45 (release 1.0.219, schema 30 -> 31): the partial-typing
+                // residue — eight rules typed on some alternatives and not others whose
+                // untyped alternatives emitted the raw `Sequence` envelope (the class
+                // `.3.44` censused: PARTIAL-TYPING-CENSUS RAW_ENVELOPE=19). Seven of them
+                // take samples parsed AS the rule, one per newly typed alternative, so a
+                // reverted template trips the content-kind lock; the eighth
+                // (`net_type_declaration_sv_2017`, already dispatchable above) types an
+                // alternative whose identifier is store-gated on a declared nettype, which
+                // a standalone parse cannot satisfy — its shape is held by the
+                // `control_nettype_alias_*.sv` pins instead.
+                "assignment_pattern" => parser
+                    .parse_assignment_pattern()
+                    .map_err(|err| err.to_string()),
+                "block_data_type" => parser
+                    .parse_block_data_type()
+                    .map_err(|err| err.to_string()),
+                "case_statement" => parser
+                    .parse_case_statement()
+                    .map_err(|err| err.to_string()),
+                "clocking_declaration" => parser
+                    .parse_clocking_declaration()
+                    .map_err(|err| err.to_string()),
+                "clocking_event_sv_2017" => parser
+                    .parse_clocking_event_sv_2017()
+                    .map_err(|err| err.to_string()),
+                "list_of_path_delay_expressions" => parser
+                    .parse_list_of_path_delay_expressions()
+                    .map_err(|err| err.to_string()),
+                "property_case_item" => parser
+                    .parse_property_case_item()
+                    .map_err(|err| err.to_string()),
                 _ => parser
                     .parse_full_systemverilog_file()
                     .map_err(|err| err.to_string()),

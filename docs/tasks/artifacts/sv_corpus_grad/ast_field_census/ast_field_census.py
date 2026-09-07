@@ -70,13 +70,16 @@ def select(tree, kind: "str|None", dotted: str, keys: "frozenset|None" = None) -
     return list(reversed(out)) if len(out) > 1 else out
 
 
-def one_file(probe: str, profile: str, rel: str, kind: "str|None", dotted: str, timeout: int, fallback: "re.Pattern|None",
-             keys: "frozenset|None" = None):
+def dump_tree(probe: str, profile: str, rel: str, timeout: int):
+    """Dump one lane file's typed AST with the release probe (TOOLBOX §1.2) into a scratch file on the repository
+    volume, read it, delete it. Returns `(status, tree)`: status is `accepted` (tree is the parsed JSON), `rejected`,
+    `timeout` or `nodump` (the probe accepted but wrote no tree) — the tree is `None` for the last three. Shared by
+    this census and `partial_typing_residue/raw_envelope_census.py` (SV-CORPUS-GRAD.3.45), so both read a file the
+    same way."""
     src = ROOT / rel
-    selector_name = kind if keys is None else "keys{%s}" % ",".join(sorted(keys))
     fd, tmp = tempfile.mkstemp(prefix="afc_", suffix=".json", dir=str(ROOT / "rust" / "target"))
     os.close(fd)
-    rows = []
+    tree = None
     try:
         try:
             proc = subprocess.run([probe, "--parse-dump-ast", "systemverilog", str(src), tmp, "--profile", profile],
@@ -90,29 +93,39 @@ def one_file(probe: str, profile: str, rel: str, kind: "str|None", dotted: str, 
             else:
                 with open(tmp, "rb") as fh:
                     tree = json.load(fh)
-                vals = select(tree, kind, dotted, keys)
-                for i, v in enumerate(vals):
-                    rows.append((rel, status, str(i), json.dumps(v, sort_keys=True, separators=(",", ":"))))
-                if not vals:
-                    rows.append((rel, status, "-", "<no %s node>" % selector_name))
-        if status != "accepted":
-            hit = False
-            if fallback is not None:
-                try:
-                    text = src.read_text(errors="replace")
-                except OSError:
-                    text = ""
-                for j, m in enumerate(fallback.finditer(text)):
-                    hit = True
-                    cap = m.group("field") if "field" in m.groupdict() else m.group(0)
-                    rows.append((rel, status, "regex%d" % j, " ".join(cap.split())))
-            if not hit:
-                rows.append((rel, status, "-", "-"))
     finally:
         try:
             os.unlink(tmp)
         except OSError:
             pass
+    return status, tree
+
+
+def one_file(probe: str, profile: str, rel: str, kind: "str|None", dotted: str, timeout: int, fallback: "re.Pattern|None",
+             keys: "frozenset|None" = None):
+    src = ROOT / rel
+    selector_name = kind if keys is None else "keys{%s}" % ",".join(sorted(keys))
+    rows = []
+    status, tree = dump_tree(probe, profile, rel, timeout)
+    if status == "accepted":
+        vals = select(tree, kind, dotted, keys)
+        for i, v in enumerate(vals):
+            rows.append((rel, status, str(i), json.dumps(v, sort_keys=True, separators=(",", ":"))))
+        if not vals:
+            rows.append((rel, status, "-", "<no %s node>" % selector_name))
+    else:
+        hit = False
+        if fallback is not None:
+            try:
+                text = src.read_text(errors="replace")
+            except OSError:
+                text = ""
+            for j, m in enumerate(fallback.finditer(text)):
+                hit = True
+                cap = m.group("field") if "field" in m.groupdict() else m.group(0)
+                rows.append((rel, status, "regex%d" % j, " ".join(cap.split())))
+        if not hit:
+            rows.append((rel, status, "-", "-"))
     return status, rows
 
 
