@@ -149,6 +149,15 @@ VERDICT_OVER_ACCEPT = "over_acceptance"
 VERDICT_GATED = "correctly_gated"
 VERDICT_IDENTIFIER = "identifier_consumed"
 VERDICT_UNREACHABLE = "unreachable_no_witness"
+# SV-CORPUS-GRAD.3.39 — leg 4. A keyword that leg 3 proves CONSUMED AS A KEYWORD is still not an
+# over-acceptance when IEEE 1364-2005 itself gives the word that role OUTSIDE Annex B: clause 19.8
+# spells `timescale's time_unit as one of s / ms / us / ns / ps / fs, and Annex B does not list a
+# compiler directive's arguments. The row is earned only mechanically: (4a) every occurrence of the
+# keyword in the witness sits on a backtick-led line — clause 19 territory, nowhere else — and (4b) a
+# SECOND witness uses the same word as an ordinary identifier, ACCEPTS under the profile and STILL
+# accepts once the word is swapped for the fresh identifier, which proves the parser has not
+# reserved it. A second witness that rejects is the over-acceptance the leg exists to keep visible.
+VERDICT_DIRECTIVE_ARGUMENT = "directive_argument"
 
 
 class Refused(Exception):
@@ -372,11 +381,13 @@ def keyword_literals(grammar: Path = GRAMMAR) -> dict[str, str]:
 # The probe legs
 # --------------------------------------------------------------------------------------------
 
-def read_manifest() -> dict[str, str]:
-    """`keyword -> witness file name`, from the tracked manifest."""
+def read_manifest() -> tuple[dict[str, str], dict[str, str]]:
+    """`keyword -> witness file name` and `keyword -> identifier-witness file name` (leg 4, the
+    optional FOURTH column; empty for every row that does not claim a directive-argument role),
+    from the tracked manifest."""
     if not MANIFEST.exists():
         raise Refused(f"{MANIFEST.relative_to(REPO_ROOT)} is missing")
-    witnesses = {}
+    witnesses, identifier_witnesses = {}, {}
     for line in MANIFEST.read_text().splitlines():
         if not line.strip() or line.startswith("#"):
             continue
@@ -384,7 +395,9 @@ def read_manifest() -> dict[str, str]:
         if len(fields) < 2:
             raise Refused(f"malformed manifest row: {line!r}")
         witnesses[fields[0]] = fields[1]
-    return witnesses
+        if len(fields) >= 4 and fields[3].strip():
+            identifier_witnesses[fields[0]] = fields[3].strip()
+    return witnesses, identifier_witnesses
 
 
 def parses(path: Path, profile: str) -> bool:
@@ -393,8 +406,11 @@ def parses(path: Path, profile: str) -> bool:
     return proc.returncode == 0
 
 
-def adjudicate(keyword: str, witness: Path, scratch: Path) -> tuple[str, bool, bool, bool]:
-    """The three legs.  Returns `(verdict, accepts_v2005, accepts_control, accepts_substituted)`."""
+def adjudicate(keyword: str, witness: Path, scratch: Path,
+               identifier_witness: Path | None = None) -> tuple[str, bool, bool, bool, bool | None]:
+    """The three legs, and the fourth when the manifest declares an identifier witness.  Returns
+    `(verdict, accepts_v2005, accepts_control, accepts_substituted, accepts_as_identifier)` — the
+    last is `None` unless leg 4 ran."""
     source = witness.read_text()
     substituted = re.sub(rf"\b{re.escape(keyword)}\b", FRESH_IDENTIFIER, source)
     if substituted == source:
@@ -405,12 +421,44 @@ def adjudicate(keyword: str, witness: Path, scratch: Path) -> tuple[str, bool, b
     accepts = parses(witness, PROFILE)
     control = parses(witness, CONTROL_PROFILE)
     if not control:
-        return "witness_invalid", accepts, control, False
+        return "witness_invalid", accepts, control, False, None
     if not accepts:
-        return VERDICT_GATED, accepts, control, False
+        return VERDICT_GATED, accepts, control, False, None
     identifier = parses(scratch, PROFILE)
-    return (VERDICT_IDENTIFIER if identifier else VERDICT_OVER_ACCEPT,
-            accepts, control, identifier)
+    if identifier:
+        return VERDICT_IDENTIFIER, accepts, control, identifier, None
+    if identifier_witness is None:
+        return VERDICT_OVER_ACCEPT, accepts, control, identifier, None
+
+    # Leg 4a — the keyword is consumed ONLY on compiler-directive lines (IEEE 1364-2005 clause 19).
+    off_directive = [line for line in source.splitlines()
+                     if re.search(rf"\b{re.escape(keyword)}\b", line)
+                     and not line.lstrip().startswith("`")]
+    if off_directive:
+        raise Refused(f"witness {witness.name} claims a directive-argument role for `{keyword}` "
+                      f"but uses it off a backtick-led line: {off_directive[0].strip()!r} — leg 4 "
+                      f"cannot be run, so the row cannot be earned")
+    # Leg 4b — the same word is still an ORDINARY IDENTIFIER: the identifier witness accepts, and
+    # accepts unchanged once the word is swapped for the fresh identifier (so it sat in an
+    # identifier slot, not a keyword slot).
+    if not identifier_witness.exists():
+        raise Refused(f"identifier witness {identifier_witness.relative_to(REPO_ROOT)} named by "
+                      f"the manifest for `{keyword}` does not exist")
+    ident_source = identifier_witness.read_text()
+    ident_substituted = re.sub(rf"\b{re.escape(keyword)}\b", FRESH_IDENTIFIER, ident_source)
+    if ident_substituted == ident_source:
+        raise Refused(f"identifier witness {identifier_witness.name} does not contain the bare "
+                      f"keyword `{keyword}` — leg 4 cannot be run, so the row cannot be earned")
+    as_identifier = parses(identifier_witness, PROFILE)
+    if not as_identifier:
+        # The parser has RESERVED the word: a directive-argument claim does not survive that.
+        return VERDICT_OVER_ACCEPT, accepts, control, identifier, False
+    scratch.write_text(ident_substituted)
+    if not parses(scratch, PROFILE):
+        raise Refused(f"identifier witness {identifier_witness.name} rejects once `{keyword}` is "
+                      f"swapped for a fresh identifier — the word was load-bearing there too, so "
+                      f"it is not an identifier witness and the row cannot be earned")
+    return VERDICT_DIRECTIVE_ARGUMENT, accepts, control, identifier, True
 
 
 # --------------------------------------------------------------------------------------------
@@ -423,7 +471,8 @@ def sha256(path: Path) -> str:
 
 def render(rows: list[dict], stats: dict) -> tuple[str, str]:
     header = ["keyword", "verdict", "witness", "accepts_verilog_2005",
-              "accepts_sv_2017_control", "accepts_after_identifier_substitution"]
+              "accepts_sv_2017_control", "accepts_after_identifier_substitution",
+              "identifier_witness", "accepts_as_identifier"]
     tsv = ["\t".join(header)]
     for row in rows:
         tsv.append("\t".join([
@@ -431,11 +480,14 @@ def render(rows: list[dict], stats: dict) -> tuple[str, str]:
             str(row["accepts"]).lower(), str(row["control"]).lower(),
             "n/a" if row["verdict"] in (VERDICT_GATED, VERDICT_UNREACHABLE, "witness_invalid")
             else str(row["identifier"]).lower(),
+            row.get("identifier_witness") or "",
+            "n/a" if row.get("as_identifier") is None else str(row["as_identifier"]).lower(),
         ]))
 
     confirmed = [r for r in rows if r["verdict"] == VERDICT_OVER_ACCEPT]
     gated = [r for r in rows if r["verdict"] == VERDICT_GATED]
     ident = [r for r in rows if r["verdict"] == VERDICT_IDENTIFIER]
+    directive = [r for r in rows if r["verdict"] == VERDICT_DIRECTIVE_ARGUMENT]
     unreach = [r for r in rows if r["verdict"] == VERDICT_UNREACHABLE]
 
     md = [
@@ -505,6 +557,7 @@ def render(rows: list[dict], stats: dict) -> tuple[str, str]:
         f"| **over-acceptance (confirmed, 3 legs)** | **{len(confirmed)}** |",
         f"| correctly gated | {len(gated)} |",
         f"| identifier-consumed (refuted by leg 3) | {len(ident)} |",
+        f"| directive-argument (a keyword only inside a compiler directive, earned by leg 4) | {len(directive)} |",
         f"| unreachable, no witness required | {len(unreach)} |",
         "",
         "### Confirmed `verilog_2005` over-acceptances",
@@ -526,6 +579,24 @@ def render(rows: list[dict], stats: dict) -> tuple[str, str]:
         "None of these is reserved by IEEE 1364-2005, so accepting the text is CORRECT: the",
         "parse binds it as a user identifier, not as a keyword. Legs 1+2 alone called every one",
         "of them a defect.",
+        "",
+        "### Earned by leg 4 — a keyword ONLY as a compiler-directive argument",
+        "",
+        "| keyword | directive witness | identifier witness |",
+        "| --- | --- | --- |",
+    ]
+    md += [f"| `{r['keyword']}` | `{r['witness']}` | `{r['identifier_witness']}` |" for r in directive]
+    md += [
+        "",
+        "Leg 3 proves each of these is consumed AS A KEYWORD — swapping it for a fresh identifier",
+        "makes the witness reject — yet IEEE 1364-2005 gives the word exactly that role outside",
+        "Annex B: clause 19.8 spells `` `timescale ``'s `time_unit` as one of `s`, `ms`, `us`, `ns`,",
+        "`ps`, `fs`, and Annex B lists no compiler directive's arguments. The row is earned",
+        "mechanically, not by note: (4a) every occurrence of the keyword in the witness sits on a",
+        "backtick-led line, and (4b) a second witness uses the same word as an ordinary identifier,",
+        "accepts under the profile and still accepts once the word is swapped for the fresh",
+        "identifier — the parser has NOT reserved it. A second witness that rejected would keep",
+        "the row an over-acceptance; a word used off a directive line refuses the census.",
         "",
         "## Honest bound",
         "",
@@ -611,7 +682,7 @@ def main() -> int:
                 f"profile cannot reach at least as many as the profile those keywords belong to, "
                 f"so the reachability computation is not reading the profile")
 
-        witnesses = read_manifest()
+        witnesses, identifier_witnesses = read_manifest()
         missing = [k for k in words if k not in witnesses]
         if missing:
             raise Refused(
@@ -631,14 +702,19 @@ def main() -> int:
             if not witness.exists():
                 raise Refused(f"witness {witness.relative_to(REPO_ROOT)} named by the manifest "
                               f"for `{keyword}` does not exist")
-            verdict, accepts, control, identifier = adjudicate(keyword, witness, scratch)
+            identifier_witness = (WITNESS_DIR / identifier_witnesses[keyword]
+                                  if keyword in identifier_witnesses else None)
+            verdict, accepts, control, identifier, as_identifier = adjudicate(
+                keyword, witness, scratch, identifier_witness)
             if verdict == "witness_invalid":
                 # Honest only when the model agrees the keyword cannot be reached anyway.
                 if keyword in words:
                     holes.append(keyword)
                 verdict = VERDICT_UNREACHABLE
             rows.append({"keyword": keyword, "verdict": verdict, "witness": witnesses[keyword],
-                         "accepts": accepts, "control": control, "identifier": identifier})
+                         "accepts": accepts, "control": control, "identifier": identifier,
+                         "identifier_witness": identifier_witnesses.get(keyword, ""),
+                         "as_identifier": as_identifier})
         scratch.unlink(missing_ok=True)
 
         if holes:
@@ -676,7 +752,8 @@ def main() -> int:
                 f"reachable_keywords={stats['reachable_keywords']} "
                 f"candidates={stats['word_candidates']} over_acceptances={confirmed} "
                 f"gated={sum(1 for r in rows if r['verdict'] == VERDICT_GATED)} "
-                f"identifier_consumed={sum(1 for r in rows if r['verdict'] == VERDICT_IDENTIFIER)}")
+                f"identifier_consumed={sum(1 for r in rows if r['verdict'] == VERDICT_IDENTIFIER)} "
+                f"directive_argument={sum(1 for r in rows if r['verdict'] == VERDICT_DIRECTIVE_ARGUMENT)}")
 
     tsv_path, md_path = ARTIFACT_DIR / "census.tsv", ARTIFACT_DIR / "census.md"
     if args.write:
@@ -691,6 +768,10 @@ def main() -> int:
         # check would fire on every arm and mask the refusal the arm is actually testing —
         # measured: two `probe.sh` arms reported DRIFT instead of the missing-witness and
         # broken-control refusals they exist to prove.
+        # ⭐ The reading itself IS printed: a control arm that mutates a witness exists to show the
+        # verdict column MOVING (`probe.sh` [9]: an identifier witness that rejects must read
+        # `over_acceptances=1`), and a verdict nobody can see is not a measurement.
+        print(headline + " (control reading, not a baseline)")
         print("V2005-KEYWORD-FAITHFULNESS: control run complete — no baseline comparison")
         return 0
 

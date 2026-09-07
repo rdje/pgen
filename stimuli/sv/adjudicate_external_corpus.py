@@ -104,6 +104,64 @@ SVTESTS_PINNED = {
 
 # Pinned rulings from in-file upstream statements (leaf .3.0 triage findings).
 EXTRA_PINNED = {
+    # ---- SV-CORPUS-GRAD.3.39 (PGEN-SV-CORPUS-GRAD-0372) ------------------------------------------
+    # IEEE 1800-2017 clause 22 gives thirteen compiler directives a syntax box (every one captioned
+    # "not in Annex A"), and release 1.0.217 transcribes each box as a production: the parser now
+    # REFUSES `timescale frump, `unconnected_drive pull2, `line 1 "f" 3, a bare `pragma, an unknown
+    # `default_nettype value and a version_specifier the edition does not list, where 1.0.0-1.0.216
+    # swallowed any backtick line whole. The rows below are the corpus lines that census found
+    # (docs/tasks/artifacts/sv_corpus_grad/directive_census/census.md: 1 615 typed directive lines in
+    # 699 files, 51 illegal by the boxes on sv_2017) and that ACCEPTED on 1.0.216; each is keyed
+    # must_reject WITH THE CLAUSE so its pass -> fail lands as a match. Three keys it corrects were
+    # right about the FORM of the defect and wrong about the STAGE ("preprocessing" / "elaboration"):
+    # the boxes are the directive's syntax, the parser is the stage that reads it since 1.0.217, and
+    # the spec outranks a suite's stage tag (.3.14a). NOT re-keyed, explained by the standing svpp
+    # rule instead: verilator t_lint_warn_line_bad.v (`line `__LINE__ ... - a text macro as the
+    # number argument, a preprocessing dependency the isolation parse cannot resolve) and every file
+    # whose only illegal directive sits inside a `define continuation (macro text, .3.39's
+    # inside_define_continuation rule).
+    ('sv-tests', 'tests/chapter-22/22.9--unconnected_drive-invalid-1.sv'): ('must_reject',
+        "pinned .3.39: line 18 `unconnected_drive with NO argument - IEEE 1800-2017 22.9 'The directive `unconnected_drive takes one of two arguments-pull1 or pull0' (docs/systemverilog/2017/md/section-22-compiler-directives.md:698-699); the suite's ':type: simulation elaboration' is tool testimony about the STAGE and the spec outranks it (.3.14a): the argument list is the directive's syntax. Pin invalid_directive_unconnected_drive_missing.sv"),
+    ('sv-tests', 'tests/chapter-22/22.9--unconnected_drive-invalid-2.sv'): ('must_reject',
+        "pinned .3.39: line 18 `unconnected_drive pull2 - IEEE 1800-2017 22.9 admits pull1 or pull0 only (docs/systemverilog/2017/md/section-22-compiler-directives.md:698-699); spec outranks the suite's stage tag (.3.14a). Pin invalid_directive_unconnected_drive_bad_value.sv"),
+    ('sv-tests', 'tests/chapter-22/22.9--unconnected_drive-invalid-3.sv'): ('must_reject',
+        "pinned .3.39: line 19 `nounconnected_drive pull0 - IEEE 1800-2017 22.9 gives `nounconnected_drive no argument (the argument belongs to `unconnected_drive alone, docs/systemverilog/2017/md/section-22-compiler-directives.md:698-711; 22.1's directive list spells the bare form :51); the stray token is source text no item derives. Pin invalid_directive_nounconnected_drive_argument.sv"),
+    ('sv-tests', 'tests/chapter-22/22.7--timescale-basic-3.sv'): ('must_reject',
+        "pinned .3.39: line 18 `timescale 9 ns / 1 ps - IEEE 1800-2017 22.7 'The integers in these arguments specify an order of magnitude ... the valid integers are 1, 10, and 100' (docs/systemverilog/2017/md/section-22-compiler-directives.md:627-629), the directive's ONLY definition of time_unit (no Annex A production exists for the directive, unlike `timeunit`); the suite's ':type: simulation elaboration' is a stage claim the spec outranks (.3.14a). Pin invalid_directive_timescale_magnitude.sv"),
+    ('sv-tests', 'tests/chapter-22/22.11--pragma-invalid.sv'): ('must_reject',
+        "pinned .3.39: line 17 a bare `pragma - IEEE 1800-2017 22.11 Syntax 22-8 'pragma ::= `pragma pragma_name [ pragma_expression ... ]' makes pragma_name mandatory (docs/systemverilog/2017/md/section-22-compiler-directives.md:734-739). Pin invalid_directive_pragma_bare.sv"),
+    ('sv-tests', 'tests/chapter-22/22.12--line-illegal-1.sv'): ('must_reject',
+        'pinned .3.39: line 17 `line 1 "somefile" 3 - level 3 - IEEE 1800-2017 22.12 Syntax 22-9 \'`line number " filename " level\' with \'The number parameter shall be a positive integer ... The filename parameter shall be a string literal ... The level parameter shall be 0, 1, or 2 ... All parameters in the `line directive are required\' (docs/systemverilog/2017/md/section-22-compiler-directives.md:804-816). The suite\'s \':type: preprocessing\' names the stage a tool checks it at; the syntax is the parser\'s since 1.0.217. Pin invalid_directive_line_level.sv'),
+    ('sv-tests', 'tests/chapter-22/22.12--line-illegal-2.sv'): ('must_reject',
+        'pinned .3.39: line 17 `line 1 somefile 2 - an unquoted filename - IEEE 1800-2017 22.12 Syntax 22-9 \'`line number " filename " level\' with \'The number parameter shall be a positive integer ... The filename parameter shall be a string literal ... The level parameter shall be 0, 1, or 2 ... All parameters in the `line directive are required\' (docs/systemverilog/2017/md/section-22-compiler-directives.md:804-816). The suite\'s \':type: preprocessing\' names the stage a tool checks it at; the syntax is the parser\'s since 1.0.217. Pin invalid_directive_line_unquoted_filename.sv'),
+    ('sv-tests', 'tests/chapter-22/22.12--line-illegal-3.sv'): ('must_reject',
+        'pinned .3.39: line 17 `line -12 "somefile" 3 - a negative number - IEEE 1800-2017 22.12 Syntax 22-9 \'`line number " filename " level\' with \'The number parameter shall be a positive integer ... The filename parameter shall be a string literal ... The level parameter shall be 0, 1, or 2 ... All parameters in the `line directive are required\' (docs/systemverilog/2017/md/section-22-compiler-directives.md:804-816). The suite\'s \':type: preprocessing\' names the stage a tool checks it at; the syntax is the parser\'s since 1.0.217. Pin invalid_directive_line_zero_number.sv'),
+    ('sv-tests', 'tests/chapter-22/22.12--line-illegal-4.sv'): ('must_reject',
+        'pinned .3.39: line 17 `line 1 "somefile" - no level - IEEE 1800-2017 22.12 Syntax 22-9 \'`line number " filename " level\' with \'The number parameter shall be a positive integer ... The filename parameter shall be a string literal ... The level parameter shall be 0, 1, or 2 ... All parameters in the `line directive are required\' (docs/systemverilog/2017/md/section-22-compiler-directives.md:804-816). The suite\'s \':type: preprocessing\' names the stage a tool checks it at; the syntax is the parser\'s since 1.0.217. Pin invalid_directive_line_missing_level.sv'),
+    ('sv-tests', 'tests/chapter-22/22.12--line-illegal-5.sv'): ('must_reject',
+        'pinned .3.39: line 17 `line 1 - no filename and no level - IEEE 1800-2017 22.12 Syntax 22-9 \'`line number " filename " level\' with \'The number parameter shall be a positive integer ... The filename parameter shall be a string literal ... The level parameter shall be 0, 1, or 2 ... All parameters in the `line directive are required\' (docs/systemverilog/2017/md/section-22-compiler-directives.md:804-816). The suite\'s \':type: preprocessing\' names the stage a tool checks it at; the syntax is the parser\'s since 1.0.217. Pin invalid_directive_line_missing_level.sv'),
+    ('sv2v', 'test/error/default_nettype_invalid.sv'): ('must_reject',
+        'pinned .3.39: line 1 `default_nettype invalid - IEEE 1800-2017 22.8 Syntax 22-7 default_nettype_value ::= wire | tri | tri0 | tri1 | wand | triand | wor | trior | trireg | uwire | none (docs/systemverilog/2017/md/section-22-compiler-directives.md:681-686). Was SV2V_PREPROC (preprocessing-stage); the parser judges the argument since 1.0.217. Pin invalid_directive_default_nettype_unknown.sv'),
+    ('sv2v', 'test/error/line_char1.sv'): ('must_reject',
+        'pinned .3.39: `line 1 "asd" B - a non-numeric level; IEEE 1800-2017 22.12 \'The level parameter shall be 0, 1, or 2\' (docs/systemverilog/2017/md/section-22-compiler-directives.md:812-816). Was pinned .8b.2 preprocessing-stage; the parser judges the argument since 1.0.217. Pin invalid_directive_line_level.sv'),
+    ('sv2v', 'test/error/line_char2.sv'): ('must_reject',
+        'pinned .3.39: `line 1 "asd" 1B - a malformed level; IEEE 1800-2017 22.12 (docs/systemverilog/2017/md/section-22-compiler-directives.md:812-816). Was pinned .8b.2 preprocessing-stage. Pin invalid_directive_line_level.sv'),
+    ('sv2v', 'test/error/line_eof.sv'): ('must_reject',
+        "pinned .3.39: a bare `line at EOF - IEEE 1800-2017 22.12 'All parameters in the `line directive are required' (docs/systemverilog/2017/md/section-22-compiler-directives.md:804-816). Was pinned .8b.2 preprocessing-stage. Pin invalid_directive_line_bare.sv"),
+    ('sv2v', 'test/error/line_level.sv'): ('must_reject',
+        'pinned .3.39: `line 0 "asd" 3 - number 0 is not \'a positive integer\' and level 3 is not \'0, 1, or 2\'; IEEE 1800-2017 22.12 (docs/systemverilog/2017/md/section-22-compiler-directives.md:812-816). Was pinned .8b.2 preprocessing-stage. Pin invalid_directive_line_zero_number.sv'),
+    ('verilator', 'test_regress/t/t_timescale_parse_bad.v'): ('must_reject',
+        "pinned .3.39: lines 11-15 `timescale frump / 1xs / 2ps / 1ns / frump / 1ns / 1ps /extra - IEEE 1800-2017 22.7 Syntax 22-6 '`timescale time_unit / time_precision' with the valid integers 1, 10, 100 and units s, ms, us, ns, ps, fs (docs/systemverilog/2017/md/section-22-compiler-directives.md:615-629). The driver's golden .out reads 'syntax error' on each and the clause agrees; line 8's 1ps/1ns ORDERING is a value rule (22.7 :623-625) the parser does not judge, as at the v2005 lane's timescale3. Pins invalid_directive_timescale_*.sv"),
+    ('verilator', 'test_regress/t/t_unconnected_bad.v'): ('must_reject',
+        "pinned .3.39: lines 7 and 9 `unconnected_drive (bare) and `unconnected_drive pull2 - IEEE 1800-2017 22.9 'takes one of two arguments-pull1 or pull0' (docs/systemverilog/2017/md/section-22-compiler-directives.md:698-699); the driver's golden .out reads 'Bad `unconnected_drive syntax' and the clause agrees. Pins invalid_directive_unconnected_drive_missing.sv / _bad_value.sv"),
+    ('verilator', 'test_regress/t/t_pp_defnettype_bad.v'): ('must_reject',
+        "pinned .3.39: line 7 `default_nettype bad_none_such - IEEE 1800-2017 22.8 Syntax 22-7's eleven values (docs/systemverilog/2017/md/section-22-compiler-directives.md:681-686); line 8's `default_trireg_strength is a vendor directive the parser still tolerates as an opaque line. The t_pp_* preprocessor-target rule is overridden: the parser judges this argument since 1.0.217. Pin invalid_directive_default_nettype_unknown.sv"),
+    ('verilator', 'test_regress/t/t_pp_line_bad.v'): ('must_reject',
+        "pinned .3.39: lines 7-13 `line with no arguments, `line 100, `line 200 somefile, an unterminated filename, a missing level and level 3 - IEEE 1800-2017 22.12 Syntax 22-9 and its 'All parameters ... are required' (docs/systemverilog/2017/md/section-22-compiler-directives.md:804-816). The t_pp_* rule is overridden: the parser judges these arguments since 1.0.217. Pins invalid_directive_line_*.sv"),
+    ('verilator', 'test_regress/t/t_pp_pragma_bad.v'): ('must_reject',
+        'pinned .3.39: a bare `pragma - IEEE 1800-2017 22.11 Syntax 22-8 makes pragma_name mandatory (docs/systemverilog/2017/md/section-22-compiler-directives.md:734-739). The t_pp_* rule is overridden: the parser judges the argument since 1.0.217. Pin invalid_directive_pragma_bare.sv'),
+    ('iverilog', 'ivtest/ivltests/begin_keywords_1800_2023.v'): ('must_reject',
+        'pinned .3.39: line 1 `begin_keywords "1800-2023" - an EDITION CONTRAST: IEEE 1800-2017 22.14 Syntax 22-10 lists eight version_specifiers (docs/systemverilog/2017/md/section-22-compiler-directives.md:851-862), \'1800-2023\' is not among them and \'It shall be an error if an implementation does not recognize the version_specifier used\' (:869-870); IEEE 1800-2023 Syntax 22-10 adds it (docs/systemverilog/2023/md/section-22-compiler-directives.md:922-935), so the sv_2023 lane keys this row must_accept. The descriptor\'s \'explicit SV generation\' is iverilog\'s, whose keyword tables post-date the 2017 edition. Pins invalid_directive_begin_keywords_2023_under_2017.sv / control_directive_begin_keywords_2023.sv'),
     # ---- SV-CORPUS-GRAD.3.43 (PGEN-SV-CORPUS-GRAD-0371) ------------------------------------------
     # IEEE 1800-2017 35.5.5 (docs/systemverilog/2017/md/section-35-direct-programming-interface.md:485-493) restricts a
     # DPI import function's RESULT type to void, byte, shortint, int, longint, real, shortreal, chandle, string and
@@ -916,6 +974,33 @@ def blank_comments_and_strings(text: str) -> str:
     return COMMENT_STRING_RE.sub(repl, text)
 
 
+DEFINE_LINE_RE = re.compile(r"^[ \t]*`define\b")
+
+
+def inside_define_continuation(stripped: str, offset: int) -> bool:
+    """SV-CORPUS-GRAD.3.39 — does `offset` sit on a CONTINUATION line of a `define?
+
+    IEEE 1800-2017 22.5.1: "If more than one line is necessary to specify the text, the
+    newline shall be preceded by a backslash". Those lines are macro TEXT; an isolation
+    parse that stops on one is stopped inside the preprocessor's business no matter which
+    token it stopped on — since 1.0.217 the parser refuses `default_nettype t \\ there
+    (the directive's argument is a macro FORMAL), which is correct and still svpp's.
+    `stripped` is the length-preserving blanked text, so offsets are the parser's own.
+    """
+    pos = 0
+    in_span = False
+    for line in stripped.split("\n"):
+        end = pos + len(line)
+        if in_span:
+            if pos <= offset <= end:
+                return True
+            in_span = line.rstrip().endswith("\\")
+        elif DEFINE_LINE_RE.match(line) and line.rstrip().endswith("\\"):
+            in_span = True
+        pos = end + 1
+    return False
+
+
 def first_alterable_tick(stripped: str):
     """Byte offset of the first backtick token svpp can ALTER, or None.
 
@@ -1085,11 +1170,27 @@ def svpp_can_explain_failure(raw_text: str, furthest):
     if stuck is None:
         return True                       # consumed everything; a resolved `ifdef arm
                                           # could still supply the missing tail
+    if inside_define_continuation(stripped, stuck):
+        # SV-CORPUS-GRAD.3.39: the stop is on a CONTINUATION line of a `define — macro TEXT the
+        # isolation parse reads as source (22.5.1: a macro text spanning lines ends each line but
+        # the last with a backslash). Whatever token sits there, the preprocessor owns it.
+        # Measured: sv2v test/core/default_nettype.sv's `default_nettype t \ inside `define TEST(t).
+        return True
     m = TICK_RE.match(stripped, stuck)
     if m:
         # Stopped exactly ON a directive: svpp explains it unless it is one svpp
         # hands straight back.
-        return m.group(1) not in SVPP_PASSTHROUGH
+        if m.group(1) not in SVPP_PASSTHROUGH:
+            return True
+        # SV-CORPUS-GRAD.3.39: since release 1.0.217 the parser reads a pass-through directive's
+        # ARGUMENTS (`timescale time_unit / time_precision, ...), so a stop ON the directive can be
+        # a stop on an argument — and an argument that is a text-macro use is text svpp alters.
+        # Measured: verilator t_time_vpi.v `timescale `time_scale_units / `time_scale_prec.
+        line_end = stripped.find("\n", stuck)
+        if line_end < 0:
+            line_end = len(stripped)
+        return any(t.group(1) not in KNOWN_DIRECTIVES
+                   for t in TICK_RE.finditer(stripped, m.end(), line_end))
     first = first_alterable_tick(stripped)
     if first is None:
         return False                      # label claims a dependency the file lacks
@@ -1358,6 +1459,31 @@ def _self_check_arm_split():
     if not svpp_can_explain_failure(probe, tick_at):
         raise SystemExit("adjudicator MISCALIBRATED: a parse stopping ON a `define must be "
                          "svpp-explainable (SV-CORPUS-GRAD.12c.3 F3)")
+
+    # (3b) SV-CORPUS-GRAD.3.39 — the two refinements, each in BOTH directions. A stop on a
+    #      `define CONTINUATION line is svpp-explainable whatever token sits there; a stop ON a
+    #      pass-through directive is explainable exactly when one of its ARGUMENTS is a text-macro
+    #      use, and stays unexplained on plain arguments (the 1.0.217 parser refuses those itself).
+    probe2 = "`define T(t) \\\n    `default_nettype t \\\n    module m; endmodule\n`default_nettype none\n"
+    if not svpp_can_explain_failure(probe2, probe2.index("`default_nettype t")):
+        raise SystemExit("adjudicator MISCALIBRATED: a parse stopping on a `define CONTINUATION "
+                         "line must be svpp-explainable (SV-CORPUS-GRAD.3.39)")
+    if svpp_can_explain_failure(probe2, probe2.index("`default_nettype none")):
+        raise SystemExit("adjudicator MISCALIBRATED: a parse stopping ON a pass-through directive "
+                         "with plain arguments is NOT svpp-explainable (SV-CORPUS-GRAD.3.39)")
+    probe3 = "`timescale `unit / `prec\nmodule m; endmodule\n"
+    if not svpp_can_explain_failure(probe3, 0):
+        raise SystemExit("adjudicator MISCALIBRATED: a pass-through directive whose ARGUMENT is a "
+                         "text-macro use must be svpp-explainable (SV-CORPUS-GRAD.3.39)")
+    if not verilog_ams_keyword_version_only("`begin_keywords \"VAMS-2.3\"\nmodule m; endmodule\n`end_keywords\n"):
+        raise SystemExit("adjudicator MISCALIBRATED: a file whose every `begin_keywords names a "
+                         "Verilog-AMS version is Verilog-AMS input (SV-CORPUS-GRAD.3.39)")
+    if verilog_ams_keyword_version_only("`begin_keywords \"1364-1995\"\n`end_keywords\n`begin_keywords \"1800+VAMS\"\n`end_keywords\n"):
+        raise SystemExit("adjudicator MISCALIBRATED: a keyword-region test mixing IEEE and AMS "
+                         "versions is NOT Verilog-AMS input (SV-CORPUS-GRAD.3.39)")
+    if verilog_ams_keyword_version_only("// `begin_keywords \"VAMS-2.3\"\nmodule m; endmodule\n"):
+        raise SystemExit("adjudicator MISCALIBRATED: a commented-out AMS version directive is not "
+                         "a directive (SV-CORPUS-GRAD.3.39)")
 
     # (4) AND IT STILL DEFAULTS TO KEEPING THE LABEL when there is no position at all - the
     #     gate only ever REMOVES a label it can disprove.  Note this is the SAME text that
@@ -3979,7 +4105,9 @@ SV2V_PREPROC = {
     "macro_unapplied_eof", "macro_args_empty", "macro_arg_bad_eq",
     "macro_arg_bad_name", "macro_illegal_name", "string_directive",
     "double_backtick", "stray_escaped_vendor_comment",
-    "string_literal_backtick_eof", "default_nettype_invalid",
+    "string_literal_backtick_eof",
+    # "default_nettype_invalid" moved to the EXTRA_PINNED .3.39 block: since 1.0.217 the PARSER
+    # judges `default_nettype's argument (22.8), so the row is must_reject, not preprocessor-owned.
 }
 # The .8b.1 named-ambiguous residue, per-file pinned (leaf .8b.2): each file
 # read and adjudicated against the LRM BNF-vs-prose split.
@@ -4056,18 +4184,10 @@ SV2V_PINNED = {
     "include_apos": ("preproc",
         "pinned .8b.2: `include with apostrophe-quoted filename - 22.5 "
         "requires \"...\" or <...>; preprocessing-stage invalidity"),
-    "line_char1": ("preproc",
-        "pinned .8b.2: `line with a non-numeric level argument - 22.12 "
-        "directive-argument validity, preprocessing stage"),
-    "line_char2": ("preproc",
-        "pinned .8b.2: `line with a malformed level argument '1B' - 22.12 "
-        "directive-argument validity, preprocessing stage"),
-    "line_eof": ("preproc",
-        "pinned .8b.2: bare `line at EOF missing all arguments - 22.12 "
-        "directive-argument validity, preprocessing stage"),
-    "line_level": ("preproc",
-        "pinned .8b.2: `line level 3 (valid levels 0/1/2) - 22.12 "
-        "directive-argument validity, preprocessing stage"),
+    # "line_char1", "line_char2", "line_eof", "line_level" moved to the EXTRA_PINNED .3.39 block:
+    # since 1.0.217 the PARSER judges `line's three arguments (22.12), so the four rows are
+    # must_reject with the clause, not preprocessor-owned. Their .8b.2 readings were right about
+    # the FORM of each defect and wrong only about the stage.
 }
 
 SV2V_ERROR_KEY = {}
@@ -4601,12 +4721,49 @@ def _self_test_extension_guard(ivtest_dir: Path) -> int:
         print("  failed arms: " + ", ".join(bad))
     return 1 if bad else 0
 
+BEGIN_KEYWORDS_RE = re.compile(r'`begin_keywords\s+"([^"\n]*)"')
+VAMS_VERSION_RE = re.compile(r"^(?:VAMS-[0-9.]+|1800\+VAMS)$")
+
+
+def verilog_ams_keyword_version_only(text: str) -> bool:
+    """SV-CORPUS-GRAD.3.39 — is EVERY `begin_keywords in the file a Verilog-AMS version?
+
+    IEEE 1800-2017 22.14 Syntax 22-10 (docs/systemverilog/2017/md/section-22-compiler-directives.md
+    :851-862) lists eight version_specifiers and "It shall be an error if an implementation does not
+    recognize the version_specifier used" (:869-870); "VAMS-2.3" / "1800+VAMS" are Accellera
+    Verilog-AMS's, so the file is Verilog-AMS input — the class the ivtest descriptor rule already
+    routes to the parked VERILOG-AMS tree, now decided from the FILE for every suite. A file that
+    switches between IEEE and AMS versions is a keyword-REGION test and is deliberately not taken.
+    Comments and strings are blanked first (a commented-out directive is not one).
+    """
+    versions = BEGIN_KEYWORDS_RE.findall(blank_comments_only(text))
+    return bool(versions) and all(VAMS_VERSION_RE.match(v) for v in versions)
+
+
+def blank_comments_only(text: str) -> str:
+    """Blank comments in place (length- and newline-preserving) but KEEP string literals — the
+    `begin_keywords version lives inside one."""
+    def repl(m):
+        tok = m.group(0)
+        if tok.startswith('"'):
+            return tok
+        return "".join("\n" if ch == "\n" else " " for ch in tok)
+    return COMMENT_STRING_RE.sub(repl, text)
+
+
 def key_2017(suite, rel, text, vidx, ividx, sidx):
     """The sv_2017 lane's answer key for ONE row: the pinned overrides first, then the suite
     conventions, then each suite's own oracle. Factored out of main() by SV-CORPUS-GRAD.14b.2 so
     the sv_2023 lane keys the same rows through the same code and differs ONLY by edition."""
     if (suite, rel) in EXTRA_PINNED:
         return EXTRA_PINNED[(suite, rel)]
+    if verilog_ams_keyword_version_only(text):
+        return ("out_of_scope_with_cause:verilog_ams_lane",
+                "SV-CORPUS-GRAD.3.39: every `begin_keywords in the file names a Verilog-AMS version_specifier "
+                "(\"VAMS-2.3\" / \"1800+VAMS\") that IEEE 1800-2017 22.14 Syntax 22-10 does not list "
+                "(docs/systemverilog/2017/md/section-22-compiler-directives.md:851-862; 'It shall be an error if an "
+                "implementation does not recognize the version_specifier', :869-870) - Verilog-AMS surface, outside "
+                "the IEEE 1800 scope (VERILOG-AMS tree parked); since 1.0.217 the parser refuses the directive itself")
     if rel.endswith(".svh") and suite not in DESIGN_SUITES:
         # Generic across the test suites: .svh files are `include payloads,
         # not standalone compilation units (may be bare fragments).

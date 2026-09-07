@@ -13,8 +13,21 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `source_text` | `-> [$1**]` | `[<source_text_item-typed-shape>, ...]` — flat array of typed source-text items via flatten-spread. Each item is a `{kind: "<name>", body: <envelope>}` typed object (per SV-Slice-3). |
 | `source_text_item` (7 branches) | per-branch `{kind: "<name>", body: $1}` (or `{kind: "semi"}` for branch 6) | Typed object with `kind` discriminator: `"description"`, `"local_parameter_declaration"`, `"parameter_declaration"`, `"package_import_declaration"`, `"timeunits_declaration"`, `"compiler_directive"`, `"semi"`. The `body` field carries the matched sub-rule's raw envelope OR a typed sub-rule shape if that sub-rule is itself annotated. For `kind: "description"`, body is now itself typed (per SV-Slice-4). The `semi` branch carries no `body` since it's just a stray `;`. Trailing `semi` dropped in branches 1 and 2 (annotation references `$1` only). **The former 8th branch `comment_only_source_region` was removed (GRAMMAR-WELLFORMED.H.12.5.3): it was engine-shadowed-dead — the layout skipper consumes comments as leading trivia before this rule's branch is tried, so a comment-only region is always absorbed as layout and the `comment_only_source_region` kind was never emitted in any AST (a comment-only file parses to an empty `source_text`). Removing it is accept-identical — no schema/release bump — and narrows the declared union to the kinds that can actually occur. |
 | `description` (8 branches) | per-branch `{kind: "<name>", body: $1}` for single-element branches; `{kind: "<name>", attributes: $1, body: $2}` for multi-element branches with `attribute_instance*` prefix | Typed object with `kind` discriminator: `"module_declaration"`, `"udp_declaration"`, `"interface_declaration"`, `"program_declaration"`, `"package_declaration"`, `"package_item"`, `"bind_directive"`, `"config_declaration"`. The `attributes` field (only on `package_item` / `bind_directive` branches) carries the leading `attribute_instance*` iteration. The `body` field carries the matched sub-rule's raw envelope (per-rule typing of `module_declaration`, etc. is a follow-up slice). |
-| `compiler_directive` | `-> $2` (transparent passthrough of regex capture) | Clean JSON string carrying the matched directive text (backtick + directive name + arguments, e.g. `"`define FOO bar"`). Drops the leading `trivia` slot. When `source_text_item.kind == "compiler_directive"`, the body is now a directly-usable string. |
-| `in_scope_compiler_directive` / `in_scope_compiler_directive_sv_only` | `-> $2` (same transparent passthrough) | **New in parser release `1.0.178`.** Same clean-string body as `compiler_directive`, but reachable at *item* positions inside a module or class body, where `non_port_module_item` and `class_item` wrap it as `{kind: "compiler_directive", body: "<directive line>"}` — **byte-identical to the top-level node**, which is why schema stays `19`. Only the container is new. `_sv_only` carries `` `undefineall `` alone and is gated to `sv_2017`/`sv_2023` (that directive is absent from IEEE 1364-2005 clause 19). ⚠️ A consumer that exhaustively matches module-item or class-item kinds must add a `compiler_directive` arm. See [Directives Inside Module and Class Bodies](#directives-inside-module-and-class-bodies). |
+| `compiler_directive` (2 branches; **schema 29**) | passthrough / `{kind: "opaque", text: $2}` | **Since parser release `1.0.217` (`SV-CORPUS-GRAD.3.39`) the body is a TYPED node.** Branch 1 passes through one of the thirteen `*_directive` nodes below (`{kind: "timescale", unit, precision}`, `{kind: "line", number, filename, level}`, …); branch 2 — any other backtick line at file top level (`` `include ``, `` `define ``, the conditional family, a text-macro use, a vendor directive) — is `{kind: "opaque", text: "<the line>"}`. ⚠️ Through `1.0.216` `body` was the directive LINE as one string (`` "`timescale 1ns / 1ps" ``); a consumer that read it as a string must now switch on `body.kind`, and `body.kind == "opaque"` carries the old string as `text`. The thirteen typed names are refused when their arguments do not match the clause's syntax box (`` `timescale frump `` no longer parses). See [Typed Compiler Directives](#typed-compiler-directives-schema-29). |
+| `in_scope_compiler_directive` (7 branches; schema 29) | passthrough | The in-scope whitelist (`.3.14b`) as the same typed nodes: `celldefine`, `endcelldefine`, `undefineall` (SV-only), `undef`, `timescale`, `pragma`, `line`. No `opaque` branch in scope, by design. `non_port_module_item` and `class_item` wrap it as `{kind: "compiler_directive", body: <typed node>}` — the same node the top-level container carries. ⚠️ A consumer that exhaustively matches module-item or class-item kinds must carry a `compiler_directive` arm (since `1.0.178`). |
+| `resetall_directive` / `celldefine_directive` / `endcelldefine_directive` / `nounconnected_drive_directive` / `end_keywords_directive` / `undefineall_directive` (schema 29) | `-> {kind: "<name>"}` | The argument-less directives (IEEE 1800-2017 §22.3, §22.10, §22.9, §22.14, §22.5.3). `undefineall_directive` is `@profiles: ["sv_2017", "sv_2023"]`; under `verilog_2005` the same text is a text-macro use and lands as `{kind: "opaque"}`. |
+| `undef_directive` (schema 29) | `-> {kind: "undef", name: $2}` | `name` is an `identifier` node (`{body}`; simple or escaped — §22.5.2 Syntax 22-4). |
+| `timescale_directive` (schema 29) | `-> {kind: "timescale", unit: $2, precision: $4}` | Both slots are `directive_time_literal` nodes `{value: "1" \| "10" \| "100", unit: {kind: "s" \| "ms" \| "us" \| "ns" \| "ps" \| "fs"}}` (§22.7 Syntax 22-6; the magnitude is SYNTAX here — "the valid integers are 1, 10, and 100" — while `timeunit 2ps;` stays derivable through Annex A's own production). `unit.unit` reuses the `time_unit` node kinds. The precision-ordering rule ("at least as precise", §22.7 prose) is NOT judged: `` `timescale 1ps/1ns `` parses. |
+| `directive_time_literal` / `directive_time_magnitude` (schema 29) | `{value: $1, unit: $2}` / `-> $2` | `value` is the magnitude text; white space between magnitude and unit is admitted (`1 ns`, the clause's own example). |
+| `default_nettype_directive` / `default_nettype_value` / `default_nettype_none_word` (schema 29) | `{kind: "default_nettype", value: $2}` / per-branch `{kind: "<value>"}` | `value.kind` is one of §22.8 Syntax 22-7's eleven: `wire tri tri0 tri1 wand triand wor trior trireg uwire none` — deliberately NOT `net_type` (no `supply0` / `supply1`). |
+| `unconnected_drive_directive` / `unconnected_drive_value` (schema 29) | `{kind: "unconnected_drive", value: $2}` / `{kind: "pull0"} \| {kind: "pull1"}` | §22.9: "takes one of two arguments — pull1 or pull0". `nounconnected_drive_directive` takes none. |
+| `pragma_directive` (2 branches, `@branch_policy: ordered`; schema 29) | `{kind: "pragma", name: $2, expressions: [] \| $3}` | `name` is the `pragma_name` string (a `simple_identifier`, keywords admitted — `` `pragma protect begin `` has `begin` as a pragma_keyword). Branch 1 is the bare-name form bounded to its LINE (`pragma_line_end`), so `` `pragma once `` followed by an identifier-led item on the next line does not eat that item; branch 2 is the comma-separated `pragma_expression_list` (§22.11 Syntax 22-8). Ordered choice because the grammar's default longest-match tournament would have picked branch 2 whenever the next line began with an identifier. |
+| `pragma_expression_list` / `pragma_expression` / `pragma_keyword` / `pragma_name` (schema 29) | `[$1, $2::2*]` / per-branch `{kind: "assignment", keyword, value}` \| `{kind: "keyword", name}` \| `{kind: "value", value}` / passthrough strings | A bare identifier is a `keyword` (the LRM lists `pragma_keyword` first); `pragma_value`'s `identifier` arm is therefore reached only on the right of `=` (`key_method = RSA`). |
+| `pragma_value` (4 branches; schema 29) | per-branch `{kind: "group", items}` \| `{kind: "number", body}` \| `{kind: "string", body}` \| `{kind: "identifier", body}` | `group.items` is a nested `pragma_expression_list`; `number.body` is the `number` node (`{kind: "integral" \| "real", body}`); `string.body` a `string_literal` node (`{kind: "double_quoted", body}` with the quotes). |
+| `line_directive` / `line_number` / `line_level` / `line_end` (schema 29) | `{kind: "line", number: $2, filename: $3, level: $4}` / `-> $2` / `-> $2` / (regex, no node) | §22.12 Syntax 22-9: `number` a positive integer (`[1-9][0-9]*`, as text), `filename` a `string_literal` node, `level` `"0"` \| `"1"` \| `"2"`; `line_end` is the empty-matching regex that asserts "only white space may appear on the same line … comments are not allowed" — the one directive the clause binds to its line. |
+| `begin_keywords_directive` / `keywords_version_specifier` (+ `_sv_2017` / `_sv_2023` / `_v2005`) (schema 29) | `{kind: "begin_keywords", version: $2}` / `{kind: "double_quoted", body: $2}` | `version` carries the quoted literal exactly as `string_literal` does. One profiled token per edition holds that edition's list: IEEE 1800-2017 Syntax 22-10's eight, IEEE 1800-2023's nine (adds `"1800-2023"`), IEEE 1364-2005 Syntax 19-10's four — so `` `begin_keywords "1800-2023" `` parses under `sv_2023` and REJECTS under `sv_2017` ("it shall be an error if an implementation does not recognize the version_specifier"). |
+| `lrm_directive_name` / `lrm_directive_name_shared` / `lrm_directive_name_sv_only` / `opaque_directive_line` (schema 29) | (lookahead subject) / `-> $2` | `lrm_directive_name` is referenced only as `!lrm_directive_name` — the guard that keeps the thirteen typed names out of the opaque residue, so a malformed typed directive REJECTS instead of falling back to the 1.0.216 tolerance. `opaque_directive_line` is the 1.0.216 blanket token, now reachable only past that guard. |
+| `kw_dir_*` (14 tokens; schema 29) | (raw token) | `` `resetall `` … `` `end_keywords `` and `` `undefineall `` (SV-only), each `` trivia /`<name>\b/ ``; `default_nettype_none_word` spells `none`, which is not a reserved word. |
 | `expression_or_dist` | `-> {expr: $1, dist: $2}` (the dist group is `kw_dist lbrace dist_list rbrace`) | **Shape changed in parser release `1.0.179` (schema `19` → `20`).** `{"expr": <expression-shape>, "dist": []}` when there is no `dist` clause; otherwise `dist` is the **four**-element array `[[trivia,"dist"], {kind:"lbrace"}, <dist_list>, {kind:"rbrace"}]` — the literal IEEE braces are nodes. Before `1.0.179` it was a two-element array and the item list was mis-parsed; see [The `dist` Constraint Operator](#the-dist-constraint-operator). |
 | `attribute_instance` | `-> [$2, $3::2*]` | Flat array `[<attr_spec shape>, <attr_spec shape>, ...]`. Drops the `attr_open` (`(*`) and `attr_close` (`*)`) delimiters and the comma separators between attr_specs. Slice 58 audit replaced the prior `{first, rest}` shape with the flat extraction-spread form per `grammars/return_annotation.ebnf` line 158's self-application. |
 | `module_declaration_sv_2017` (5 branches) | per-branch typed shapes, see contract section "Release 1.0.6 / Contract 1.0.6 Highlights" for the full annotation source | Typed object with `kind` discriminator: `"ansi"` / `"nonansi"` / `"wildcard"` / `"extern_nonansi"` / `"extern_ansi"`. Single-form branches expose `header / timeunits / items / end_label`. The wildcard branch additionally exposes `attributes / keyword / lifetime / name`. Extern branches expose only `header`. |
@@ -647,7 +660,85 @@ endclass
 `compiler_directive`, which previously appeared only under `source_text`. A consumer that
 matches those item kinds exhaustively must add the arm. The node itself is byte-identical to
 the top-level one — same `kind`, same string `body` — so no schema change is involved; only
-the container is new.
+the container is new. ⚠️ The string bodies shown above are the `1.0.178`–`1.0.216` shape;
+since `1.0.217` (schema 29) the body is the typed node described in
+[Typed Compiler Directives](#typed-compiler-directives-schema-29), at both containers alike.
+
+## Typed Compiler Directives (schema 29)
+
+*Parser release `1.0.217` (`SV-CORPUS-GRAD.3.39`, ledger `SV-0090`). Schema `28 → 29`.*
+
+Through `1.0.216` every tolerated directive — at file top level and at the in-scope item positions —
+arrived as **one opaque string**: `{"kind": "compiler_directive", "body": "`timescale 1ns / 1ps"}`. That
+carried two defects the corpus measured. A consumer received a line it had to re-lex itself, and the
+parser accepted any arguments at all: `` `timescale frump ``, `` `unconnected_drive pull2 ``,
+`` `line 1 "f" 3 `` and a bare `` `pragma `` all parsed (verilator `t_timescale_parse_bad.v` /
+`t_unconnected_bad.v`, sv-tests `22.12--line-illegal-*.sv`, sv2v `test/error/line_*.sv` — 26 corpus
+files on the `sv_2017` lane, every one a form the clause's syntax box refuses).
+
+IEEE 1800-2017 clause 22 gives thirteen directives a syntax box — each captioned *"not in Annex A"*,
+which is why no Annex-A-driven slice transcribed them — and `1.0.217` transcribes each box as a
+production. The body is now a typed node whose `kind` is the directive's name:
+
+```systemverilog
+`timescale 1 ns / 1 ps
+`default_nettype none
+`line 3 "orig.v" 2
+`pragma protect encoding = (enctype = "BASE64", bytes = 128)
+`begin_keywords "1364-2005"
+`include "x.svh"
+```
+
+```json
+[
+  { "kind": "compiler_directive", "body": { "kind": "timescale",
+      "unit":      { "value": "1", "unit": { "kind": "ns" } },
+      "precision": { "value": "1", "unit": { "kind": "ps" } } } },
+  { "kind": "compiler_directive", "body": { "kind": "default_nettype", "value": { "kind": "none" } } },
+  { "kind": "compiler_directive", "body": { "kind": "line", "number": "3",
+      "filename": { "kind": "double_quoted", "body": "\"orig.v\"" }, "level": "2" } },
+  { "kind": "compiler_directive", "body": { "kind": "pragma", "name": "protect", "expressions": [
+      { "kind": "assignment", "keyword": "encoding", "value": { "kind": "group", "items": [
+          { "kind": "assignment", "keyword": "enctype",
+            "value": { "kind": "string", "body": { "kind": "double_quoted", "body": "\"BASE64\"" } } },
+          { "kind": "assignment", "keyword": "bytes",
+            "value": { "kind": "number", "body": { "kind": "integral", "body": "128" } } } ] } } ] } },
+  { "kind": "compiler_directive", "body": { "kind": "begin_keywords",
+      "version": { "kind": "double_quoted", "body": "\"1364-2005\"" } } },
+  { "kind": "compiler_directive", "body": { "kind": "opaque", "text": "`include \"x.svh\"" } }
+]
+```
+
+| `body.kind` | fields | clause |
+|---|---|---|
+| `resetall`, `celldefine`, `endcelldefine`, `nounconnected_drive`, `end_keywords`, `undefineall` | — | §22.3, §22.10, §22.9, §22.14, §22.5.3 |
+| `undef` | `name` (identifier node) | §22.5.2 |
+| `timescale` | `unit`, `precision` (`{value, unit: {kind}}`) | §22.7 |
+| `default_nettype` | `value` (`{kind}`, eleven values) | §22.8 |
+| `unconnected_drive` | `value` (`{kind: "pull0" \| "pull1"}`) | §22.9 |
+| `pragma` | `name`, `expressions` (list; `keyword` / `assignment` / `value`; values `group` / `number` / `string` / `identifier`) | §22.11 |
+| `line` | `number`, `filename` (string node), `level` | §22.12 |
+| `begin_keywords` | `version` (string node) | §22.14 |
+| `opaque` | `text` (the whole line, the `1.0.216` string) | — the residue |
+
+**Migration.** `body` was a string; it is an object. Switch on `body.kind`. The residue —
+`` `include ``, `` `define ``, `` `ifdef `` / `` `else `` / `` `elsif `` / `` `endif `` / `` `ifndef ``,
+a text-macro use, a vendor directive such as `` `default_decay_time `` — keeps the string under
+`body.text` with `body.kind == "opaque"`, and is still tolerated only at file top level (the
+`.3.14b` in-scope whitelist has no opaque branch). Files whose directives all had legal arguments
+change shape and nothing else; the accept set narrows exactly on the illegal forms (the pins
+`stimuli/sv/adjudication_repros/invalid_directive_*.sv`, and the corpus rows named in
+`docs/tasks/artifacts/sv_corpus_grad/directive_census/census.md`).
+
+**Three readings a consumer should know.** (1) A newline between directive arguments is §5.3 white
+space — no box states a line rule, so `` `timescale 1ns `` ⏎ `` / 1ps `` parses (it did not on
+`1.0.216`, whose opaque token ended at the newline); only `` `line `` is bound to its line, as §22.12
+says ("only white space may appear on the same line … comments are not allowed"), and a bare-name
+`` `pragma `` is bounded to its line so it cannot swallow the next item's first identifier. (2) The
+magnitude of a `` `timescale `` argument is syntax (`1`, `10`, `100` — §22.7's only definition of it),
+where Annex A's own `timeunit 2ps;` stays derivable; the precision-ordering rule is a value rule and
+is not judged. (3) `` `begin_keywords `` admits exactly the edition's list: `"1800-2023"` parses under
+`sv_2023` and rejects under `sv_2017` and `verilog_2005`; `"1800-2017"` rejects under `verilog_2005`.
 
 ### Which directives are tolerated — and which are still rejected
 

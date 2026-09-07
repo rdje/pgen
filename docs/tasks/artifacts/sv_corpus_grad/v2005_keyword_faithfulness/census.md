@@ -9,20 +9,20 @@ describes your tree** and the honest act is to re-measure, not to quote.
 
 | input | sha256 |
 | --- | --- |
-| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `bcb4bbda1ae7b35d374dfa2af4578aeeda83699f7612eb3839aa1159e8b0974c` |
+| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `83e0d64f267471f0c1ef52f843761829b76e0be1b4a3f04c1c0fb330fa2ae312` |
 | `docs/verilog/2005/md/section-Annex_B-normative-list-of-keywords.md` | `08ba9745b0f0791ad48b786284b733414ab26ce7b2b9373d95174d094218025d` |
-| `docs/tasks/artifacts/sv_corpus_grad/v2005_keyword_faithfulness/witnesses/MANIFEST.tsv` | `cf3138dcaeb0f7609ea8b028202ff8b4ae19ea19f2c255d407b573d13893c6ce` |
+| `docs/tasks/artifacts/sv_corpus_grad/v2005_keyword_faithfulness/witnesses/MANIFEST.tsv` | `381f524f1da50e9dd07781403c48c1e58996336f43bf0efaf28e0cc5b7b9cdbb` |
 
 ## Population
 
-- rules in the source grammar: **1562**
-- of those, SATISFIABLE under `verilog_2005`: **1127** (the bottom-up half — *can this rule derive a string here*)
-- of those, REACHABLE under `verilog_2005` from the 4 declared entry roots: **792** (the top-down half — *can a parse get here*)
-- **satisfiable but UNREACHABLE: 335** — rules the profile admits that no `verilog_2005` input can arrive at. `kw_void_e9cede9b` is the worked example: the terminal is ungated and trivially satisfiable, while both rules that reference it are `_sv_only`. ⭐ **This is NOT a gap in the certificate accounting, and an earlier version of this report said it was.** The engine already crosses the two directions: `gather_verified_profile_proof_covered_rules` (`VERILOG-2005-PROFILE.6.7`) classifies the WHOLE active rule set, and every profile-entry-unreachable rule gets an explicitly RE-VERIFIED `ProfileEntryUnreachable` certificate — a re-verify failure is reported as a linter bug, never silently covered. Measured: all of these rules appear in the cert pass's `proof` category, exactly. The number below is useful for understanding the profile's live surface; it is not a defect.
-- not adjudicated here: **15** `_lr_*` rules the indirect-left-recursion eliminator synthesises, which exist in no `.ebnf` file and so have no source-graph edges. The certificate denominator counts them too, which is why it reads 1142 where this row reads 1127.
-- keyword literals reachable under `verilog_2005`: **140**
+- rules in the source grammar: **1610**
+- of those, SATISFIABLE under `verilog_2005`: **1171** (the bottom-up half — *can this rule derive a string here*)
+- of those, REACHABLE under `verilog_2005` from the 4 declared entry roots: **846** (the top-down half — *can a parse get here*)
+- **satisfiable but UNREACHABLE: 325** — rules the profile admits that no `verilog_2005` input can arrive at. `kw_void_e9cede9b` is the worked example: the terminal is ungated and trivially satisfiable, while both rules that reference it are `_sv_only`. ⭐ **This is NOT a gap in the certificate accounting, and an earlier version of this report said it was.** The engine already crosses the two directions: `gather_verified_profile_proof_covered_rules` (`VERILOG-2005-PROFILE.6.7`) classifies the WHOLE active rule set, and every profile-entry-unreachable rule gets an explicitly RE-VERIFIED `ProfileEntryUnreachable` certificate — a re-verify failure is reported as a linter bug, never silently covered. Measured: all of these rules appear in the cert pass's `proof` category, exactly. The number below is useful for understanding the profile's live surface; it is not a defect.
+- not adjudicated here: **15** `_lr_*` rules the indirect-left-recursion eliminator synthesises, which exist in no `.ebnf` file and so have no source-graph edges. The certificate denominator counts them too, which is why it reads 1186 where this row reads 1171.
+- keyword literals reachable under `verilog_2005`: **146**
 - of those, reserved by IEEE 1364-2005 Annex B: **124**
-- of those, NOT reserved by Annex B: **16** (**11** word-shaped, **5** single-letter / symbol terminals used by the UDP tables, edge descriptors and `PATHPULSE$`, which are 1364-2005 terminals rather than keywords)
+- of those, NOT reserved by Annex B: **22** (**16** word-shaped, **6** single-letter / symbol terminals used by the UDP tables, edge descriptors and `PATHPULSE$`, which are 1364-2005 terminals rather than keywords)
 
 ### Profile sensitivity — the census carries its own control
 
@@ -30,7 +30,7 @@ The same computation under `sv_2017`, where these keywords legitimately
 live, gives the denominator this profile is being judged against:
 
 - word-shaped IEEE-1800-only keywords reachable under `sv_2017`: **136**
-- of those, `verilog_2005` GATES **125** and LEAKS **11**
+- of those, `verilog_2005` GATES **120** and LEAKS **16**
 
 ⛔ A census blind to the profile would report the identical population under both, so
 this row is what separates *"measured and mostly clean"* from *"the reachability
@@ -43,6 +43,7 @@ computation never read the profile"*.
 | **over-acceptance (confirmed, 3 legs)** | **0** |
 | correctly gated | 25 |
 | identifier-consumed (refuted by leg 3) | 6 |
+| directive-argument (a keyword only inside a compiler directive, earned by leg 4) | 5 |
 | unreachable, no witness required | 1 |
 
 ### Confirmed `verilog_2005` over-acceptances
@@ -61,6 +62,26 @@ computation never read the profile"*.
 None of these is reserved by IEEE 1364-2005, so accepting the text is CORRECT: the
 parse binds it as a user identifier, not as a keyword. Legs 1+2 alone called every one
 of them a defect.
+
+### Earned by leg 4 — a keyword ONLY as a compiler-directive argument
+
+| keyword | directive witness | identifier witness |
+| --- | --- | --- |
+| `fs` | `fs.sv` | `fs_identifier.sv` |
+| `ms` | `ms.sv` | `ms_identifier.sv` |
+| `ns` | `ns.sv` | `ns_identifier.sv` |
+| `ps` | `ps.sv` | `ps_identifier.sv` |
+| `us` | `us.sv` | `us_identifier.sv` |
+
+Leg 3 proves each of these is consumed AS A KEYWORD — swapping it for a fresh identifier
+makes the witness reject — yet IEEE 1364-2005 gives the word exactly that role outside
+Annex B: clause 19.8 spells `` `timescale ``'s `time_unit` as one of `s`, `ms`, `us`, `ns`,
+`ps`, `fs`, and Annex B lists no compiler directive's arguments. The row is earned
+mechanically, not by note: (4a) every occurrence of the keyword in the witness sits on a
+backtick-led line, and (4b) a second witness uses the same word as an ordinary identifier,
+accepts under the profile and still accepts once the word is swapped for the fresh
+identifier — the parser has NOT reserved it. A second witness that rejected would keep
+the row an over-acceptance; a word used off a directive line refuses the census.
 
 ## Honest bound
 

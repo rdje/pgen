@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4f59b87a.js";
+            window.path_to_searchindex_js = "searchindex-2fac00c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -217,6 +217,30 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10217--contract-10217--sv-corpus-grad339-pgen-sv-corpus-grad-0372-2026-09-07-ledger-sv-0090-released-schema-28--29"><a class="header" href="#10217--contract-10217--sv-corpus-grad339-pgen-sv-corpus-grad-0372-2026-09-07-ledger-sv-0090-released-schema-28--29">1.0.217 / Contract 1.0.217 — SV-CORPUS-GRAD.3.39 (<code>PGEN-SV-CORPUS-GRAD-0372</code>, 2026-09-07), ledger <code>SV-0090</code> (<code>Released</code>), <strong>schema 28 → 29</strong>:</a></h3>
+<p>⭐ <strong>The thirteen compiler directives IEEE 1800-2017 clause 22 gives a syntax box are TYPED productions, and the parser refuses what
+the boxes refuse.</strong> Through 1.0.216 a tolerated directive line — at file top level and, since 1.0.178, at the in-scope item positions
+— was ONE opaque token, so <code>compiler_directive.body</code> was the line as a string (<code>"</code>timescale 1ns / 1ps“<code>) and `` </code>timescale frump <code>, </code> <code>unconnected_drive pull2 ``, `` </code>line 1 “f” 3 <code>, a bare </code> <code>pragma ``, `` </code>default_nettype supply0 <code>and</code> <code>begin_keywords "VAMS-2.3" `` all parsed. Every clause-22 box is captioned *"not in Annex A"*, which is why no Annex-A-driven release ever transcribed one; this release transcribes each — `` </code>resetall <code>(§22.3),</code> <code>undef `` / `` </code>undefineall <code>(§22.5.2–3),</code> <code>timescale `` (§22.7), `` </code>default_nettype <code>(§22.8),</code> <code>unconnected_drive `` / `` </code>nounconnected_drive <code>(§22.9),</code> <code>celldefine `` / `` </code>endcelldefine <code>(§22.10),</code> <code>pragma `` (§22.11), `` </code>line <code>(§22.12),</code> <code>begin_keywords `` / `` </code>end_keywords `` (§22.14) — box for box (IEEE
+1364-2005 clause 19 reads the same; IEEE 1800-2023 Syntax 22-10 adds <code>"1800-2023"</code>, one profiled version token per edition).
+<code>1593 → 1641</code> rules; grammar tier only, no engine, no codegen.</p>
+<p><strong>AST impact — schema 28 → 29.</strong> <code>compiler_directive.body</code> is a typed node whose <code>kind</code> is the directive’s name —
+<code>{kind: "timescale", unit: {value, unit: {kind}}, precision: {…}}</code>, <code>{kind: "default_nettype", value: {kind}}</code>,
+<code>{kind: "unconnected_drive", value: {kind: "pull0" | "pull1"}}</code>, <code>{kind: "undef", name}</code>, <code>{kind: "pragma", name, expressions}</code>,
+<code>{kind: "line", number, filename, level}</code>, <code>{kind: "begin_keywords", version}</code>, and the six bare kinds — at both containers alike
+(<code>source_text_item</code> and the <code>non_port_module_item</code> / <code>class_item</code> wrappers); every other backtick line the parser tolerates at file
+top level is <code>{kind: "opaque", text}</code> carrying the old string. <strong>Migration:</strong> switch on <code>body.kind</code>; read <code>body.text</code> for <code>"opaque"</code>.</p>
+<p><strong>Accept set.</strong> NARROWS on exactly the illegal forms — measured over the corpus by the parser itself before a byte was generated
+(<code>AST-FIELD-CENSUS:</code> + the new <code>DIRECTIVE-CLASSIFY:</code>): 26 rows <code>pass → fail</code> on <code>sv_2017</code>, 23 on <code>sv_2023</code>, 0 on <code>verilog_2005</code>,
+each pre-registered, keyed <code>must_reject</code> with the clause or routed to the Verilog-AMS lane. WIDENS on one form: white space —
+newlines and comments — between a directive’s arguments is §5.3 white space (only §22.12 binds <code>`line</code> to its line), so
+iverilog’s GitHub-782 family (<code>br_gh782c/d/e/f.v</code>: <code>`unconnected_drive /* … */</code> ⏎ <code>pull1</code>) goes <code>fail → pass</code> on all three
+lanes. Three readings a consumer should know: a bare-name <code>`pragma</code> is bounded to its line (<code>@branch_policy: ordered</code> — the
+grammar’s default longest-match tournament would let the expression arm eat the next line’s first identifier); the magnitude of a
+<code>`timescale</code> argument is syntax (<code>1</code>, <code>10</code>, <code>100</code>) while <code>timeunit 2ps;</code> stays derivable through Annex A and the precision
+ordering is a value rule not judged; <code>`begin_keywords "1800-2023"</code> parses under <code>sv_2023</code> only, and under <code>verilog_2005</code>
+<code>`undefineall</code> is an <code>opaque</code> text-macro use. Forty-one pins (<code>invalid_directive_*.sv</code>, <code>control_directive_*.sv</code>). See the
+schema-29 row of <a href="schema-versioning.html#schema-version-timeline">Schema Versioning</a> and the json-carrier’s
+<a href="json-carrier.html#typed-compiler-directives-schema-29">Typed Compiler Directives</a>.</p>
 <h3 id="10216--contract-10216--sv-corpus-grad343-pgen-sv-corpus-grad-0371-2026-09-06-ledger-sv-0089-released-schema-28-unchanged"><a class="header" href="#10216--contract-10216--sv-corpus-grad343-pgen-sv-corpus-grad-0371-2026-09-06-ledger-sv-0089-released-schema-28-unchanged">1.0.216 / Contract 1.0.216 — SV-CORPUS-GRAD.3.43 (<code>PGEN-SV-CORPUS-GRAD-0371</code>, 2026-09-06), ledger <code>SV-0089</code> (<code>Released</code>), schema <strong>28 unchanged</strong>:</a></h3>
 <p>⭐ <strong>IEEE 1800-2017 Annex A footnote 21 / §35.5.5 is grammar: a DPI import function’s RESULT type is one of <code>void</code>,
 <code>byte</code>, <code>shortint</code>, <code>int</code>, <code>longint</code>, <code>real</code>, <code>shortreal</code>, <code>chandle</code>, <code>string</code>, or a SCALAR <code>bit</code> / <code>logic</code>.</strong> A.2.6

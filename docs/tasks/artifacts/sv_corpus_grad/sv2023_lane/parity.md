@@ -10,7 +10,7 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `52fa6ebb164e1b651ca2326b8ac1eba899f882b4b95befd5a1f716e32fffbc15` |
+| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `b4de9d31646e36b9cddda46c54bdc315ae558da0d25b9b4e10cbd117f9cbff3b` |
 | IEEE 1800-2017 Annex A | `docs/systemverilog/2017/md/section-41-data-read-api.md` | `249ab571c2ef3237790a6bd9743f07a7595bdded337ca2cbb6d5e189b3b40d22` |
 | IEEE 1800-2023 Annex A | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md` | `0b4f7fe935e9c499a56ccde8dc769ed626bf53d154f8a9585bd1daf371a9d4aa` |
 | instrument | `docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/production_parity.py` | `26506e3786c05f76f116bd25b9b59a8fa3ff55eb0f044d988d7956b01fd93045` |

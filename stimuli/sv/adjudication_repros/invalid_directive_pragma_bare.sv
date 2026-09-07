@@ -1,0 +1,2 @@
+`pragma
+module m; endmodule

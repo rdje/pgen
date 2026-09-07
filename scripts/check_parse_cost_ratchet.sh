@@ -1140,6 +1140,42 @@ def _scope_gated_arm(base_tot, new_tot, ctx):
     return holds, detail
 
 
+def _typed_replacement_of_opaque_terminal(base_tot, new_tot, ctx):
+    """A construct the baseline consumed with ONE opaque terminal is now DERIVED by typed productions
+    (`SV-CORPUS-GRAD.3.39`: the compiler directive, `` /`[^\r\n]*/ `` swallowing the line, becomes the
+    thirteen syntax boxes of IEEE 1800-2017 clause 22 / 1364-2005 clause 19), and every position where
+    the opaque terminal was tried and failed is guarded by one positive lookahead on the same line
+    shape. Holds when every new rule is declared, every pre-existing rule that commits or is entered
+    more sits INSIDE the typed sub-graph (reachable from an introduced rule in the measured grammar's
+    own reference graph — the tokens the typed derivation now consumes one by one), those consumed
+    commits are at most the introduced frames, the run's `Δcommitted` is exactly the introduced frames
+    plus the consumed commits net of what was lost elsewhere, the pre-existing entry rises are covered
+    by the entries the guard retired, and the pre-existing memo rise is at most the typed attempts. The
+    predicate and its refusal arms live in `scripts/parse_cost_containment.py`
+    (`typed_replacement_of_opaque_terminal`, `--self-test`); its docstring says why the other eleven
+    cannot cover this shape and carries the honest bound (the typed frames are a typed AST's own cost,
+    not proven minimal — a one-token name dispatch would retire the remaining attempts)."""
+    if CONTAINMENT is None:
+        raise RuntimeError(f"scripts/parse_cost_containment.py could not be imported "
+                           f"({CONTAINMENT_IMPORT_ERROR}), so this acceptance cannot be evaluated")
+    graph_path = ctx["graph"]
+    if not os.path.isfile(graph_path):
+        raise RuntimeError(f"the measured grammar's reference graph is missing ({os.path.relpath(graph_path, ROOT)})")
+    with open(graph_path, encoding="utf-8") as fh:
+        graph = json.load(fh)
+    if ctx["grammar_digest"] and graph.get("grammar_raw_ast_sha256") != ctx["grammar_digest"]:
+        raise RuntimeError(f"the reference graph was derived from grammar raw_ast "
+                           f"`{str(graph.get('grammar_raw_ast_sha256'))[:16]}…` but this tree's is "
+                           f"`{ctx['grammar_digest'][:16]}…`")
+    base_rules = CONTAINMENT.read_rule_costs(ctx["base_rule_costs"])
+    new_rules = CONTAINMENT.read_rule_costs(ctx["new_rule_costs"])
+    base_edges = _baseline_edges(ctx)
+    holds, detail, _facts = CONTAINMENT.typed_replacement_of_opaque_terminal(
+        base_rules, new_rules, graph["edges"], ctx["introduced"],
+        new_tot["committed"] - base_tot["committed"], base_edges)
+    return holds, detail
+
+
 INVARIANTS = {
     "declared_alternatives_net_of_retired_work": _declared_alternatives_net_of_retired_work,
     "pure_memo_lookups": _pure_memo_lookups,
@@ -1152,6 +1188,7 @@ INVARIANTS = {
     "advanced_files_only": _advanced_files_only,
     "introduced_wrapper_frames": _introduced_wrapper_frames,
     "scope_gated_arm": _scope_gated_arm,
+    "typed_replacement_of_opaque_terminal": _typed_replacement_of_opaque_terminal,
 }
 
 # ⛔ WHICH INVARIANTS TAKE A SCOPE, AND THE CHECK IS TWO-SIDED. A containment row with no
@@ -1161,7 +1198,7 @@ INVARIANTS_TAKING_INTRODUCED = {"contained_in_introduced_subgraph", "declared_al
                                 "profile_split_respelling",
                                 "host_memo_eviction", "caller_split_containment",
                                 "advanced_files_only", "introduced_wrapper_frames",
-                                "scope_gated_arm"}
+                                "scope_gated_arm", "typed_replacement_of_opaque_terminal"}
 NO_INTRODUCED = "-"
 
 

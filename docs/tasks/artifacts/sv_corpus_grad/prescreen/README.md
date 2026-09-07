@@ -31,3 +31,12 @@ python3 docs/tasks/artifacts/sv_corpus_grad/prescreen/prescreen_corpus.py --head
 Both run under `scripts/run_with_memory_guard.sh` in practice (measured peaks: pins 235 MB, corpus 3 379 MB
 over 336 arms). Neither reads `generated/`; the parser under measurement is the grammar, through the
 interpreter, whose byte-identity to the generated parser is TOOLBOX §1.6's gate.
+
+⛔ **SELECT ON THE TOKEN, NOT ON THE COLUMN** (`SV-CORPUS-GRAD.3.39`, measured). A directive may sit after a block
+comment on its line (iverilog's GitHub-782 family: `` /* comment */ `unconnected_drive /* comment */ `` ⏎ `pull1`), so a
+`^[[:space:]]*`` selector is not a selector for the construct. `.3.39` seeded its corpus list with
+`grep -lE '^[[:space:]]*`(name|…)\b'` (699 files), pre-screened it cleanly — 49 arms moved, every one predicted — and the
+three lanes then reported **4 `fail → pass` rows the pre-screen never saw** (`br_gh782c/d/e/f.v`), out of **19 files** an
+unanchored `` `(name|…)\b `` selector adds. The lanes catch what the pre-screen misses; the pre-screen's job is to catch
+it FIRST, and it does so only over the population the construct's own token selects.
+

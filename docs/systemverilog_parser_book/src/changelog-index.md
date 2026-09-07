@@ -34,6 +34,39 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.217 / Contract 1.0.217 — SV-CORPUS-GRAD.3.39 (`PGEN-SV-CORPUS-GRAD-0372`, 2026-09-07), ledger `SV-0090` (`Released`), **schema 28 → 29**:
+
+⭐ **The thirteen compiler directives IEEE 1800-2017 clause 22 gives a syntax box are TYPED productions, and the parser refuses what
+the boxes refuse.** Through 1.0.216 a tolerated directive line — at file top level and, since 1.0.178, at the in-scope item positions
+— was ONE opaque token, so `compiler_directive.body` was the line as a string (`"`timescale 1ns / 1ps"`) and `` `timescale frump ``,
+`` `unconnected_drive pull2 ``, `` `line 1 "f" 3 ``, a bare `` `pragma ``, `` `default_nettype supply0 `` and `` `begin_keywords "VAMS-2.3" ``
+all parsed. Every clause-22 box is captioned *"not in Annex A"*, which is why no Annex-A-driven release ever transcribed one; this
+release transcribes each — `` `resetall `` (§22.3), `` `undef `` / `` `undefineall `` (§22.5.2–3), `` `timescale `` (§22.7),
+`` `default_nettype `` (§22.8), `` `unconnected_drive `` / `` `nounconnected_drive `` (§22.9), `` `celldefine `` / `` `endcelldefine ``
+(§22.10), `` `pragma `` (§22.11), `` `line `` (§22.12), `` `begin_keywords `` / `` `end_keywords `` (§22.14) — box for box (IEEE
+1364-2005 clause 19 reads the same; IEEE 1800-2023 Syntax 22-10 adds `"1800-2023"`, one profiled version token per edition).
+`1593 → 1641` rules; grammar tier only, no engine, no codegen.
+
+**AST impact — schema 28 → 29.** `compiler_directive.body` is a typed node whose `kind` is the directive's name —
+`{kind: "timescale", unit: {value, unit: {kind}}, precision: {…}}`, `{kind: "default_nettype", value: {kind}}`,
+`{kind: "unconnected_drive", value: {kind: "pull0" | "pull1"}}`, `{kind: "undef", name}`, `{kind: "pragma", name, expressions}`,
+`{kind: "line", number, filename, level}`, `{kind: "begin_keywords", version}`, and the six bare kinds — at both containers alike
+(`source_text_item` and the `non_port_module_item` / `class_item` wrappers); every other backtick line the parser tolerates at file
+top level is `{kind: "opaque", text}` carrying the old string. **Migration:** switch on `body.kind`; read `body.text` for `"opaque"`.
+
+**Accept set.** NARROWS on exactly the illegal forms — measured over the corpus by the parser itself before a byte was generated
+(`AST-FIELD-CENSUS:` + the new `DIRECTIVE-CLASSIFY:`): 26 rows `pass → fail` on `sv_2017`, 23 on `sv_2023`, 0 on `verilog_2005`,
+each pre-registered, keyed `must_reject` with the clause or routed to the Verilog-AMS lane. WIDENS on one form: white space —
+newlines and comments — between a directive's arguments is §5.3 white space (only §22.12 binds `` `line `` to its line), so
+iverilog's GitHub-782 family (`br_gh782c/d/e/f.v`: `` `unconnected_drive /* … */ `` ⏎ `pull1`) goes `fail → pass` on all three
+lanes. Three readings a consumer should know: a bare-name `` `pragma `` is bounded to its line (`@branch_policy: ordered` — the
+grammar's default longest-match tournament would let the expression arm eat the next line's first identifier); the magnitude of a
+`` `timescale `` argument is syntax (`1`, `10`, `100`) while `timeunit 2ps;` stays derivable through Annex A and the precision
+ordering is a value rule not judged; `` `begin_keywords "1800-2023" `` parses under `sv_2023` only, and under `verilog_2005`
+`` `undefineall `` is an `opaque` text-macro use. Forty-one pins (`invalid_directive_*.sv`, `control_directive_*.sv`). See the
+schema-29 row of [Schema Versioning](schema-versioning.md#schema-version-timeline) and the json-carrier's
+[Typed Compiler Directives](json-carrier.md#typed-compiler-directives-schema-29).
+
 ### 1.0.216 / Contract 1.0.216 — SV-CORPUS-GRAD.3.43 (`PGEN-SV-CORPUS-GRAD-0371`, 2026-09-06), ledger `SV-0089` (`Released`), schema **28 unchanged**:
 
 ⭐ **IEEE 1800-2017 Annex A footnote 21 / §35.5.5 is grammar: a DPI import function's RESULT type is one of `void`,

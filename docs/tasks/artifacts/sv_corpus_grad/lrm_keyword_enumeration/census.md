@@ -18,7 +18,7 @@ describes your tree** and the honest act is to re-measure, not to quote.
 
 | input | sha256 |
 | --- | --- |
-| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `bcb4bbda1ae7b35d374dfa2af4578aeeda83699f7612eb3839aa1159e8b0974c` |
+| `grammars/systemverilog.ebnf` (ebnf_raw_ast) | `83e0d64f267471f0c1ef52f843761829b76e0be1b4a3f04c1c0fb330fa2ae312` |
 | `docs/systemverilog/2017/md/section-41-data-read-api.md` (Annex A + Annex B, 1800-2017) | `249ab571c2ef3237790a6bd9743f07a7595bdded337ca2cbb6d5e189b3b40d22` |
 | `grammars/systemverilog_2017_lrm_extracted.ebnf` (snapshot, 1800-2017) | `17bf25cdaff3bf0b347a0188a62338b27eea08423623c33cc789af21056e8abe` |
 | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md` (Annex A, 1800-2023) | `0b4f7fe935e9c499a56ccde8dc769ed626bf53d154f8a9585bd1daf371a9d4aa` |
@@ -31,14 +31,14 @@ describes your tree** and the honest act is to re-measure, not to quote.
 ## Headline
 
 ```text
-LRM-KEYWORD-ENUMERATION: editions=3 productions=109 matched=97 unmatched=12 keyword_members=289 present=289 missing=0 missing_no_terminal=0 incomplete_productions=0 extra_members=8 literal_members=3
+LRM-KEYWORD-ENUMERATION: editions=3 productions=109 matched=100 unmatched=9 keyword_members=319 present=319 missing=0 missing_no_terminal=0 incomplete_productions=0 extra_members=8 literal_members=3
 ```
 
 | edition | judged under | productions in population | matched by name | unmatched | keyword members | present | MISSING | extra (informational) |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| 1800-2017 | `sv_2017` | 43 | 41 | 2 | 119 | 119 | **0** | 3 |
-| 1800-2023 | `sv_2023` | 44 | 42 | 2 | 120 | 120 | **0** | 3 |
-| 1364-2005 | `verilog_2005` | 22 | 14 | 8 | 50 | 50 | **0** | 2 |
+| 1800-2017 | `sv_2017` | 43 | 42 | 1 | 129 | 129 | **0** | 3 |
+| 1800-2023 | `sv_2023` | 44 | 43 | 1 | 130 | 130 | **0** | 3 |
+| 1364-2005 | `verilog_2005` | 22 | 15 | 7 | 60 | 60 | **0** | 2 |
 
 ## Every MISSING member — the rows to adjudicate
 
@@ -62,11 +62,8 @@ exists. They are listed so the bound is visible, not to be counted as defects.
 
 | edition | production | LRM citation | kind | members |
 |---|---|---|---|---|
-| 1800-2017 | `default_nettype_value` | `grammars/systemverilog_2017_lrm_extracted.ebnf:271` | mixed | `wire` `tri` `tri0` `tri1` `wand` `triand` `wor` `trior` `trireg` `uwire` `none` |
 | 1800-2017 | `scope_type` | `grammars/systemverilog_2017_lrm_extracted.ebnf:964` | pure | `module` |
-| 1800-2023 | `default_nettype_value` | `grammars/systemverilog_2023_lrm_extracted.ebnf:340` | mixed | `wire` `tri` `tri0` `tri1` `wand` `triand` `wor` `trior` `trireg` `uwire` `none` |
 | 1800-2023 | `scope_type` | `grammars/systemverilog_2023_lrm_extracted.ebnf:1105` | pure | `module` |
-| 1364-2005 | `default_nettype_value` | `grammars/verilog_2005_lrm_extracted.ebnf:215` | mixed | `wire` `tri` `tri0` `tri1` `wand` `triand` `wor` `trior` `trireg` `uwire` `none` |
 | 1364-2005 | `file_size` | `grammars/verilog_2005_lrm_extracted.ebnf:404` | pure | `integer` |
 | 1364-2005 | `logic` | `grammars/verilog_2005_lrm_extracted.ebnf:710` | pure | `and` `or` `nand` `nor` |
 | 1364-2005 | `output_variable_type` | `docs/verilog/2005/md/section-Annex_A-normative-formal-syntax-definition.md:221` | pure | `integer` `time` |
@@ -112,7 +109,7 @@ productions (`none` in `default_nettype_value`); they are listed, never scored.
 | 1800-2017 | `constraint_prototype_qualifier` | `docs/systemverilog/2017/md/section-41-data-read-api.md:677` | annex_a+snapshot | pure | complete | 2 |  | `constraint_prototype_qualifier` |
 | 1800-2017 | `data_type_or_void` | `docs/systemverilog/2017/md/section-41-data-read-api.md:916` | annex_a+snapshot | mixed | complete | 1 |  | `data_type_or_void` `data_type_or_void_sv_only` |
 | 1800-2017 | `default_clause` | `docs/systemverilog/2017/md/section-41-data-read-api.md:424` | annex_a+snapshot | pure | complete | 1 |  | `default_clause` |
-| 1800-2017 | `default_nettype_value` | `grammars/systemverilog_2017_lrm_extracted.ebnf:271` | snapshot | mixed | unmatched | 10 | `none` | _(none)_ |
+| 1800-2017 | `default_nettype_value` | `grammars/systemverilog_2017_lrm_extracted.ebnf:271` | snapshot | mixed | complete | 10 | `none` | `default_nettype_value` |
 | 1800-2017 | `dpi_function_import_property` | `docs/systemverilog/2017/md/section-41-data-read-api.md:1115` | annex_a+snapshot | pure | complete | 2 |  | `dpi_function_import_property` |
 | 1800-2017 | `dpi_task_import_property` | `docs/systemverilog/2017/md/section-41-data-read-api.md:1116` | annex_a+snapshot | pure | complete | 1 |  | `dpi_task_import_property` |
 | 1800-2017 | `edge_identifier` | `docs/systemverilog/2017/md/section-41-data-read-api.md:2692` | annex_a+snapshot | pure | complete | 3 |  | `edge_identifier` |
@@ -156,7 +153,7 @@ productions (`none` in `default_nettype_value`); they are listed, never scored.
 | 1800-2023 | `constraint_prototype_qualifier` | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:654` | annex_a+snapshot | pure | complete | 2 |  | `constraint_prototype_qualifier` |
 | 1800-2023 | `data_type_or_void` | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:927` | annex_a+snapshot | mixed | complete | 1 |  | `data_type_or_void` `data_type_or_void_sv_only` |
 | 1800-2023 | `default_clause` | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:385` | annex_a+snapshot | pure | complete | 1 |  | `default_clause` |
-| 1800-2023 | `default_nettype_value` | `grammars/systemverilog_2023_lrm_extracted.ebnf:340` | snapshot | mixed | unmatched | 10 | `none` | _(none)_ |
+| 1800-2023 | `default_nettype_value` | `grammars/systemverilog_2023_lrm_extracted.ebnf:340` | snapshot | mixed | complete | 10 | `none` | `default_nettype_value` |
 | 1800-2023 | `dpi_function_import_property` | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:1156` | annex_a+snapshot | pure | complete | 2 |  | `dpi_function_import_property` |
 | 1800-2023 | `dpi_task_import_property` | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:1157` | annex_a+snapshot | pure | complete | 1 |  | `dpi_task_import_property` |
 | 1800-2023 | `edge_identifier` | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:2609` | annex_a+snapshot | pure | complete | 3 |  | `edge_identifier` |
@@ -189,7 +186,7 @@ productions (`none` in `default_nettype_value`); they are listed, never scored.
 | 1800-2023 | `unique_priority` | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:2210` | annex_a+snapshot | pure | complete | 3 |  | `unique_priority` |
 | 1364-2005 | `cmos_switchtype` | `docs/verilog/2005/md/section-Annex_A-normative-formal-syntax-definition.md:475` | annex_a+snapshot | pure | complete | 2 |  | `cmos_switchtype` |
 | 1364-2005 | `default_clause` | `docs/verilog/2005/md/section-Annex_A-normative-formal-syntax-definition.md:142` | annex_a+snapshot | pure | complete | 1 |  | `default_clause` |
-| 1364-2005 | `default_nettype_value` | `grammars/verilog_2005_lrm_extracted.ebnf:215` | snapshot | mixed | unmatched | 10 | `none` | _(none)_ |
+| 1364-2005 | `default_nettype_value` | `grammars/verilog_2005_lrm_extracted.ebnf:215` | snapshot | mixed | complete | 10 | `none` | `default_nettype_value` |
 | 1364-2005 | `edge_identifier` | `docs/verilog/2005/md/section-Annex_A-normative-formal-syntax-definition.md:883` | annex_a+snapshot | pure | complete | 2 |  | `edge_identifier` |
 | 1364-2005 | `enable_gatetype` | `docs/verilog/2005/md/section-Annex_A-normative-formal-syntax-definition.md:476` | annex_a+snapshot | pure | complete | 4 |  | `enable_gatetype` |
 | 1364-2005 | `file_size` | `grammars/verilog_2005_lrm_extracted.ebnf:404` | snapshot | pure | unmatched | 1 |  | _(none)_ |

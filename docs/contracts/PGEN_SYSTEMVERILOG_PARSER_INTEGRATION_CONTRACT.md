@@ -5,6 +5,37 @@ Define the downstream integration contract for PGEN's main `systemverilog` parse
 
 This is the document downstream projects such as Nexsim should read first when deciding how to embed the PGEN systemverilog parser.
 
+> **Current-state note (2026-09-07, `SV-CORPUS-GRAD.3.39` — GRAMMAR + ANSWER-KEY + INSTRUMENT, release `1.0.217`, ledger `SV-0090`,
+> schema `28 → 29`, accept set NARROWS on `sv_2017` / `sv_2023` by exactly the compiler-directive argument forms IEEE 1800-2017 clause 22's
+> syntax boxes refuse and WIDENS by white space between a directive's arguments; `verilog_2005` gains four rows and loses none): the thirteen
+> compiler directives clause 22 gives a syntax box — `` `resetall ``, `` `undef ``, `` `undefineall `` (SV-only), `` `timescale ``,
+> `` `default_nettype ``, `` `unconnected_drive ``, `` `nounconnected_drive ``, `` `celldefine ``, `` `endcelldefine ``, `` `pragma ``,
+> `` `line ``, `` `begin_keywords ``, `` `end_keywords `` — are TYPED productions (`1593 → 1641` rules), transcribed box for box from
+> §22.3–§22.14 (IEEE 1364-2005 clause 19 reads the same box for box; IEEE 1800-2023 Syntax 22-10 adds `"1800-2023"`, one profiled
+> `keywords_version_specifier` token per edition).** Through `1.0.216` `compiler_directive.body` was the directive LINE as one string —
+> `"`timescale 1ns / 1ps"` — at file top level and at the `.3.14b` in-scope item positions alike, and the parser accepted ANY arguments
+> (`` `timescale frump ``, `` `unconnected_drive pull2 ``, `` `line 1 "f" 3 ``, a bare `` `pragma ``, `` `begin_keywords "VAMS-2.3" ``).
+> ⛔ **Consumers: `body` is now a typed node** — `{kind: "timescale", unit: {value, unit: {kind}}, precision: {…}}`,
+> `{kind: "default_nettype", value: {kind}}`, `{kind: "unconnected_drive", value: {kind: "pull0" | "pull1"}}`, `{kind: "undef", name}`,
+> `{kind: "pragma", name, expressions}`, `{kind: "line", number, filename, level}`, `{kind: "begin_keywords", version}`, and the six bare
+> kinds — and every other backtick line the parser tolerates at file top level (`` `include ``, `` `define ``, the conditional family, a
+> text-macro use, a vendor directive) is `{kind: "opaque", text}` carrying the old string; switch on `body.kind`. The accept set
+> NARROWS on the illegal forms only: **26 corpus rows on `sv_2017` and 23 on `sv_2023`** (each pre-registered by the directive census —
+> `docs/tasks/artifacts/sv_corpus_grad/directive_census/census.md` — and re-keyed `must_reject` with the clause, or routed to the
+> Verilog-AMS lane), **0 on `verilog_2005`**; and it WIDENS on one form: white space — newlines and comments — between a directive's
+> arguments is §5.3 white space (no box states a line rule; only §22.12 binds `` `line `` to its line, which `line_end` asserts), so
+> iverilog's GitHub-782 family (`br_gh782c/d/e/f.v`, `` `unconnected_drive /* … */ `` ⏎ `pull1`) goes `fail → pass` on all three lanes —
+> four `must_accept` rows leave the `verilog_2005` residual. Three readings a consumer should know: a bare-name `` `pragma `` is bounded
+> to its line (`pragma_directive` is `@branch_policy: ordered`; the grammar's default longest-match tournament would otherwise let the
+> expression arm eat the next line's first identifier); the MAGNITUDE of a `` `timescale `` argument is syntax (`1`, `10`, `100`, §22.7's
+> only definition of it) while Annex A's own `timeunit 2ps;` stays derivable, and the precision ORDERING is a value rule not judged;
+> `` `begin_keywords "1800-2023" `` parses under `sv_2023` only, `"1800-2017"` rejects under `verilog_2005`, and under `verilog_2005`
+> `` `undefineall `` is an `opaque` text-macro use. Measured on the final bytes: pins `ADJUDICATION-REPROS: checked=761 armed=129
+> listed=399 multi_profile_rows=271 failures=0` (forty-one new: thirty `invalid_directive_*.sv` REJECT, eleven `control_directive_*.sv`
+> with kind-chain arms); `sv_2017` pass 9 778 → 9 756 (26 `pass → fail` + 4 `fail → pass`), `sv_2023` 9 801 → 9 780, `verilog_2005`
+> 2 306 → 2 310; (HEAD probe rebuilt in a detached worktree from the HEAD grammar with the 1.0.216 generator snapshot — regenerated parser BYTE-IDENTICAL to the shipped `94a661afd7dccef1…` — vs the release probe, 16 336 files × 2 SV profiles) reads `sv_2017` `both_accepted=9752 identical=8962 ast_moved=790 verdict_moved=30`, `sv_2023` `both_accepted=9776 identical=8982 ast_moved=794 verdict_moved=27`, and a node census over every fresh-pass file proves the extent TWO-SIDEDLY: the 794 accepted files carrying a `compiler_directive` node are exactly the 790 moved trees ∪ the 4 `fail → pass` rows, and the 8 962 without one are exactly the identical trees; union certificate (`sv_cert_recognized_union_gate`, six configs, seeds 0 / 7 / 42) canonical `1448/8/1425/15 → 1494/10/1469/15`, union witness `1440 → 1484`, union UNKNOWN 0, residual `[]`, `sample_parse_failures=0` at every seed — total +46 = forty-nine new rules − the deleted wrapper − the two edition tokens not satisfiable under `sv_2017` (measured by `--dump-rule-profiles` HEAD vs final), proof +2 = the three lookahead-only `lrm_directive_name*` rules PROOF-covered and `identifier` moved proof → witness (the gate's own accounting with `PGEN_CERT_COVERAGE_DUMP_ALL`, HEAD through the 1.0.216 binary vs final), the canonical UNKNOWN set IDENTICAL (the same fifteen pre-existing names); the 1364-2005 conformance gate (`verilog_2005_conformance_gate`) `1142/378/750/14 → 1186/370/802/14` — total +44 = forty-nine − the five not satisfiable under `verilog_2005`, proof −8 = +2 lookahead-only rules − 10 moved to witness (`time_unit`, its six unit tokens, the two `timeunit_separator_*` rules — reachable under `verilog_2005` only since `timescale_directive`, exactly what the keyword census's leg 4 read — and `identifier`), the UNKNOWN set IDENTICAL (the same fourteen), `lint orphans=0, corpus 363 checks/0 mismatches, aliases 2, cert deterministic across seeds [0,7,42]`; both contracts re-baselined from the gates' own seed headlines (`rust/target/s339/rebaseline_certs.py`, the previous notes chained) and re-stamped GREEN on the re-run (`step_cert_union_green.log`, `step_cert_v2005_green.log`: `the baseline was STALE and every expectation still held, so this run re-stamped it`). Full record: `SV-CORPUS-GRAD.3.39`; ledger `SV-0090`; the json-carrier's
+> [Typed Compiler Directives](../systemverilog_parser_book/src/json-carrier.md#typed-compiler-directives-schema-29).
+
 > **Current-state note (2026-09-06, `SV-CORPUS-GRAD.3.43` — GRAMMAR + ANSWER-KEY + INSTRUMENT, release `1.0.216`, ledger `SV-0089`,
 > schema `28` UNCHANGED, accept set NARROWS on `sv_2017` / `sv_2023` by exactly the DPI import result types IEEE 1800-2017 §35.5.5 excludes, `verilog_2005` untouched):
 > a DPI import function's RESULT type is `void`, `byte`, `shortint`, `int`, `longint`, `real`, `shortreal`, `chandle`, `string` or a
@@ -1224,15 +1255,15 @@ This is the document downstream projects such as Nexsim should read first when d
 
 ## Contract Identity
 - Contract version:
-  - `1.0.216`
+  - `1.0.217`
 - Parser release version:
-  - `1.0.216`
-  - history: `1.0.215`; `1.0.214`; `1.0.213`; `1.0.212`; `1.0.211`; `1.0.210`; `1.0.209`; `1.0.208`; `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
+  - `1.0.217`
+  - history: `1.0.216`; `1.0.215`; `1.0.214`; `1.0.213`; `1.0.212`; `1.0.211`; `1.0.210`; `1.0.209`; `1.0.208`; `1.0.207`; `1.0.206`; `1.0.205`; `1.0.204`; `1.0.203`; `1.0.202`; `1.0.201`; `1.0.200`; `1.0.199`; `1.0.198`; `1.0.197`; `1.0.196`; `1.0.195`; `1.0.194`; `1.0.193`; `1.0.192`; `1.0.184`-`1.0.190` were assigned together by `SV-CORPUS-GRAD.13c.2l` (2026-08-19) after this
     document was found seven grammar revisions stale. They are numbered INDIVIDUALLY, newest-first in the
     Current-state notes above, because collapsing them would have left five of the seven owning no release
     number at all and their ledger rows pointing at a release that never described them.
 - SV grammar identity (what this contract describes, and what the `SV-CONTRACT-CURRENCY` doctrine checks):
-  - `bcb4bbda1ae7b35d374dfa2af4578aeeda83699f7612eb3839aa1159e8b0974c` (SV grammar semantic digest — sha256 of the
+  - `83e0d64f267471f0c1ef52f843761829b76e0be1b4a3f04c1c0fb330fa2ae312` (SV grammar semantic digest — sha256 of the
     EBNF frontend's own `raw_ast` envelope for `grammars/systemverilog.ebnf`, i.e. what the code generator
     consumes, from which comments are absent by construction. Every revision of that grammar carries a row in
     [`PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv`](PGEN_SV_GRAMMAR_REVISION_REGISTER.tsv); `scripts/check_sv_contract_currency.sh`
@@ -1252,6 +1283,7 @@ This is the document downstream projects such as Nexsim should read first when d
   - history: `1.3.1` (backward-compatible stack-robustness fix, `SV-CORPUS-GRAD.8c.3` 2026-07-22: every SV/VHDL embedding parse runs on a dedicated 256 MiB-stack thread, so over-deep recursion returns a clean `E_PARSE_FAILURE` diagnostic — the engine's 4096-frame recursion ceiling — instead of aborting the HOST process with a stack-overflow SIGABRT; measured pre-fix, a ~400-deep parenthesized expression (≈4 KB of text) killed a release embedder at the default 8 MB main stack. See the Stack-Robustness Contract in `rust/docs/EMBEDDING_API_CONTRACT.md`. No parser release/schema bump — the generated parser artifact is unchanged.)
   - history: `1.3.0` (backward-compatible addition of the `verilog_2005` profile; see `rust/docs/EMBEDDING_API_CONTRACT.md` — the previously stated `1.2.0` here was a stale lockstep gap closed by `VERILOG-2005-PROFILE.4.3`)
 - SystemVerilog AST-dump schema version:
+  - `29` (**`1.0.217`** (`SV-CORPUS-GRAD.3.39`, `PGEN-SV-CORPUS-GRAD-0372`, 2026-09-07), ledger `SV-0090`: the thirteen compiler directives IEEE 1800-2017 clause 22 gives a syntax box are typed productions — `compiler_directive.body` is a typed node (`{kind: "timescale", unit, precision}`, `{kind: "line", number, filename, level}`, `{kind: "pragma", name, expressions}`, …) where through 1.0.216 it was the directive LINE as one string, and every other tolerated backtick line at file top level is `{kind: "opaque", text}`; migration: switch on `body.kind`; the corpus AST identity sweep reads `ast_moved=790 verdict_moved=30` on `sv_2017` and `794 / 27` on `sv_2023`, the moved trees being EXACTLY the accepted files that carry a directive node)
   - `28` (UNCHANGED by **`1.0.216`** — `SV-CORPUS-GRAD.3.43`, `PGEN-SV-CORPUS-GRAD-0371`, 2026-09-06, ledger `SV-0089`: the DPI import result-type restriction (IEEE 1800-2017 §35.5.5 / Annex A footnote 21) is a caller split whose restricted result rule carries `data_type`'s own templates, so every accepting tree is byte-identical — the corpus AST identity sweep over 16 335 files × 2 SV profiles reads `ast_moved=0 verdict_moved=2` on each, 9 778 / 9 799 accepted trees byte-identical) (**`1.0.215`** (`SV-CORPUS-GRAD.3.42`, `PGEN-SV-CORPUS-GRAD-0370`, 2026-09-06), ledger `SV-0088`: sixteen inline alternations inside groups of annotated rules are lifted into nine unannotated helper rules, so the `scope` / `qualifier` / `prefix` fields that carried the HOST's template wrapped around a scope prefix — `{name: {kind: "dot"}, scope: {kind: "this"}, select: "<invalid_sequence_access>"}` for `this .`, `{kind: "block", body: <class_scope>}` for a block-event method's class scope, six `"<invalid_sequence_access>"` inside `function_body_declaration`'s raw envelope for `function void I.h();` — now carry the prefix as ITS OWN node: `this .` = `[{kind: "this"}, {kind: "dot"}]`, a class scope = the `class_scope` node, a package scope = the `package_scope` / `non_typedef_package_scope` node, an interface prefix = `[<interface_identifier>, {kind: "dot"}]`. **Migration:** a consumer that read `scope.scope` / `scope.name` on one of the corrupted nodes reads the pair or the typed node; a consumer that tolerated `"<invalid_sequence_access>"` in `select` / `call` / `name` / `items` / `statements` / `end_label` no longer sees it. Every non-shadowed branch, every absent optional and `function void C::g();` are byte-identical (the corpus AST identity sweep). A REPLACEMENT of corrupted nodes by correct ones — the `SV-0014`…`SV-0020` corruption-fix precedent — so it takes a bump.)
   - `27` (UNCHANGED by **`1.0.214`** — `SV-CORPUS-GRAD.3.38`, `PGEN-SV-CORPUS-GRAD-0369`, 2026-09-05, ledger `SV-0087`: the footnote-20 tightening moves no shape; the DPI-import scope markers bind the elements the annotations already bind or discard and the gated unsized arm passes its node through, so every accepting tree is byte-identical) (**`1.0.213`** (`SV-CORPUS-GRAD.3.41`, `PGEN-SV-CORPUS-GRAD-0368`, 2026-09-04), ledger
     `SV-0086`: the set-membership operator `inside { … }` becomes a CHAIN ELEMENT of `expression_base`'s operand

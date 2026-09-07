@@ -27,6 +27,16 @@ edition	profile	production	lrm_line	kind	member	verdict	shipped_rules
 1800-2017	sv_2017	constraint_prototype_qualifier	677	pure	pure	present	constraint_prototype_qualifier
 1800-2017	sv_2017	data_type_or_void	916	mixed	void	present	data_type_or_void;data_type_or_void_sv_only
 1800-2017	sv_2017	default_clause	424	pure	default	present	default_clause
+1800-2017	sv_2017	default_nettype_value	271	mixed	wire	present	default_nettype_value
+1800-2017	sv_2017	default_nettype_value	271	mixed	tri	present	default_nettype_value
+1800-2017	sv_2017	default_nettype_value	271	mixed	tri0	present	default_nettype_value
+1800-2017	sv_2017	default_nettype_value	271	mixed	tri1	present	default_nettype_value
+1800-2017	sv_2017	default_nettype_value	271	mixed	wand	present	default_nettype_value
+1800-2017	sv_2017	default_nettype_value	271	mixed	triand	present	default_nettype_value
+1800-2017	sv_2017	default_nettype_value	271	mixed	wor	present	default_nettype_value
+1800-2017	sv_2017	default_nettype_value	271	mixed	trior	present	default_nettype_value
+1800-2017	sv_2017	default_nettype_value	271	mixed	trireg	present	default_nettype_value
+1800-2017	sv_2017	default_nettype_value	271	mixed	uwire	present	default_nettype_value
 1800-2017	sv_2017	dpi_function_import_property	1115	pure	context	present	dpi_function_import_property
 1800-2017	sv_2017	dpi_function_import_property	1115	pure	pure	present	dpi_function_import_property
 1800-2017	sv_2017	dpi_task_import_property	1116	pure	context	present	dpi_task_import_property
@@ -147,6 +157,16 @@ edition	profile	production	lrm_line	kind	member	verdict	shipped_rules
 1800-2023	sv_2023	constraint_prototype_qualifier	654	pure	pure	present	constraint_prototype_qualifier
 1800-2023	sv_2023	data_type_or_void	927	mixed	void	present	data_type_or_void;data_type_or_void_sv_only
 1800-2023	sv_2023	default_clause	385	pure	default	present	default_clause
+1800-2023	sv_2023	default_nettype_value	340	mixed	wire	present	default_nettype_value
+1800-2023	sv_2023	default_nettype_value	340	mixed	tri	present	default_nettype_value
+1800-2023	sv_2023	default_nettype_value	340	mixed	tri0	present	default_nettype_value
+1800-2023	sv_2023	default_nettype_value	340	mixed	tri1	present	default_nettype_value
+1800-2023	sv_2023	default_nettype_value	340	mixed	wand	present	default_nettype_value
+1800-2023	sv_2023	default_nettype_value	340	mixed	triand	present	default_nettype_value
+1800-2023	sv_2023	default_nettype_value	340	mixed	wor	present	default_nettype_value
+1800-2023	sv_2023	default_nettype_value	340	mixed	trior	present	default_nettype_value
+1800-2023	sv_2023	default_nettype_value	340	mixed	trireg	present	default_nettype_value
+1800-2023	sv_2023	default_nettype_value	340	mixed	uwire	present	default_nettype_value
 1800-2023	sv_2023	dpi_function_import_property	1156	pure	context	present	dpi_function_import_property
 1800-2023	sv_2023	dpi_function_import_property	1156	pure	pure	present	dpi_function_import_property
 1800-2023	sv_2023	dpi_task_import_property	1157	pure	context	present	dpi_task_import_property
@@ -241,6 +261,16 @@ edition	profile	production	lrm_line	kind	member	verdict	shipped_rules
 1364-2005	verilog_2005	cmos_switchtype	475	pure	cmos	present	cmos_switchtype
 1364-2005	verilog_2005	cmos_switchtype	475	pure	rcmos	present	cmos_switchtype
 1364-2005	verilog_2005	default_clause	142	pure	default	present	default_clause
+1364-2005	verilog_2005	default_nettype_value	215	mixed	wire	present	default_nettype_value
+1364-2005	verilog_2005	default_nettype_value	215	mixed	tri	present	default_nettype_value
+1364-2005	verilog_2005	default_nettype_value	215	mixed	tri0	present	default_nettype_value
+1364-2005	verilog_2005	default_nettype_value	215	mixed	tri1	present	default_nettype_value
+1364-2005	verilog_2005	default_nettype_value	215	mixed	wand	present	default_nettype_value
+1364-2005	verilog_2005	default_nettype_value	215	mixed	triand	present	default_nettype_value
+1364-2005	verilog_2005	default_nettype_value	215	mixed	wor	present	default_nettype_value
+1364-2005	verilog_2005	default_nettype_value	215	mixed	trior	present	default_nettype_value
+1364-2005	verilog_2005	default_nettype_value	215	mixed	trireg	present	default_nettype_value
+1364-2005	verilog_2005	default_nettype_value	215	mixed	uwire	present	default_nettype_value
 1364-2005	verilog_2005	edge_identifier	883	pure	posedge	present	edge_identifier
 1364-2005	verilog_2005	edge_identifier	883	pure	negedge	present	edge_identifier
 1364-2005	verilog_2005	enable_gatetype	476	pure	bufif0	present	enable_gatetype
@@ -288,11 +318,8 @@ edition	profile	production	lrm_line	kind	member	verdict	shipped_rules
 1364-2005	verilog_2005	strength1	249	pure	weak1	present	strength1
 1364-2005	verilog_2005	timing_check_event_control	981	mixed	posedge	present	timing_check_event_control
 1364-2005	verilog_2005	timing_check_event_control	981	mixed	negedge	present	timing_check_event_control
-1800-2017	sv_2017	default_nettype_value	271	mixed	*	unmatched_production	
 1800-2017	sv_2017	scope_type	964	pure	*	unmatched_production	
-1800-2023	sv_2023	default_nettype_value	340	mixed	*	unmatched_production	
 1800-2023	sv_2023	scope_type	1105	pure	*	unmatched_production	
-1364-2005	verilog_2005	default_nettype_value	215	mixed	*	unmatched_production	
 1364-2005	verilog_2005	file_size	404	pure	*	unmatched_production	
 1364-2005	verilog_2005	logic	710	pure	*	unmatched_production	
 1364-2005	verilog_2005	output_variable_type	221	pure	*	unmatched_production	

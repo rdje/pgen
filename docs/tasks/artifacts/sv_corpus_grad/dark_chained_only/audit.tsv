@@ -76,13 +76,13 @@ IN-WINDOW		Cores-VeeR-EL2	verification/block/pmp_random/el2_pmp_wrapper.sv	149	1
 IN-WINDOW		Surelog	tests/ClassCons/top.sv	55	66	25	4	1151		int (); \ begin \ $write("Size is %0d\n",this.size); \
 IN-WINDOW		Surelog	tests/DiffSimpleIncludeAndMacros/foo/inc.sv	31	32	2	4	70		yz(I,R = DEFAULT) \ assign abc[I].clk = R.du``I``_clk_x;
 IN-WINDOW		Surelog	tests/DiffSimpleIncludeAndMacros/top.v	178	181	9	17	650		e `undef multipl $display("Internal error: null handle at %s, line %d.",`__FI
-IN-WINDOW		Surelog	tests/DiffSimpleIncludeAndMacros/top_1.v	154	157	9	17	647		`undef multipl $display("Internal error: null handle at %s, line %d.",`__FI
+IN-WINDOW		Surelog	tests/DiffSimpleIncludeAndMacros/top_1.v	137	140	9	15	647		`default_nettype `undef multipl $display("Internal error: null handle at %s
 IN-WINDOW		Surelog	tests/DiffSimpleIncludeAndMacros/top_2.v	158	161	9	17	857		e `undef multipl $display("Internal error: null handle at %s, line %d.",`__FI
 IN-WINDOW		Surelog	tests/DiffSimpleIncludeAndMacros/top_3.v	231	234	9	20	713		`undef multipl tt $display("Internal error: null handle at %s, line %d.",`__FI
 IN-WINDOW		Surelog	tests/DiffSimpleIncludeAndMacros/top_4.v	206	207	9	18	847		reg CK,rd,wr,ce; \ reg [7:0] addr,data_wr,``DATA``_rd; \ reg [7:0] re
 IN-WINDOW		Surelog	tests/FileLine/fileLine.sv	171	171	171	10	493		#1; $display(`__FILE__); end endmodule /* * P1800/D8 22.13 * "`__LINE_
 IN-WINDOW		Surelog	tests/ParamFile/dut.sv	79	80	0	4	586		eter SRAMInitFile = `PARAM_FILE; ram_1p #( .MemInitFile(SRAMInitFile)
-IN-WINDOW		Surelog	tests/PragmaProtect/top.sv	2341	2341	241	88	3067		type = "base64") K0c+W1GDd9YcMBiX3ZqvpyTdb9sTWK06w75CLxQWVrmc3L9rzWMKgZ8vZhFcBsM
+IN-WINDOW		Surelog	tests/PragmaProtect/top.sv	2314	2315	241	87	3067		key_block encoding = (enctype = "base64") K0c+W1GDd9YcMBiX3ZqvpyTdb9sTWK06w75CL
 IN-WINDOW		Surelog	tests/PreprocLine/dut.sv	47	47	47	3	305		in $display(`__FILE__, `__LINE__); `line 101 "fake.v" 1 $display
 IN-WINDOW		Surelog	tests/PreprocUhdmCov/dut.sv	71	75	1	7	832		output logic a); `ASSERT(SigintEventCheck_A, sigint_o |-> !event_o) assig
 IN-WINDOW		Surelog	tests/PreprocUhdmCov/prim_assert.sv	793	849	319	30	1220		\ `endif \
@@ -92,7 +92,7 @@ IN-WINDOW		Surelog	tests/SimpleClass1/Packet.sv	620	620	443	17	3512		ds uvm_sequ
 IN-WINDOW		Surelog	tests/SimpleClass1/Sequencer.sv	529	530	443	13	973		tends uvm_sequencer #(Packet); Configuration cfg; `uvm_sequencer_u
 IN-WINDOW		Surelog	tests/SimpleIncludeAndMacros/foo/inc.sv	31	32	2	4	70		yz(I,R = DEFAULT) \ assign abc[I].clk = R.du``I``_clk_x;
 IN-WINDOW		Surelog	tests/SimpleIncludeAndMacros/top.v	178	181	9	17	650		e `undef multipl $display("Internal error: null handle at %s, line %d.",`__FI
-IN-WINDOW		Surelog	tests/SimpleIncludeAndMacros/top_1.v	154	157	9	17	647		`undef multipl $display("Internal error: null handle at %s, line %d.",`__FI
+IN-WINDOW		Surelog	tests/SimpleIncludeAndMacros/top_1.v	137	140	9	15	647		`default_nettype `undef multipl $display("Internal error: null handle at %s
 IN-WINDOW		Surelog	tests/SimpleIncludeAndMacros/top_2.v	158	161	9	17	857		e `undef multipl $display("Internal error: null handle at %s, line %d.",`__FI
 IN-WINDOW		Surelog	tests/SimpleIncludeAndMacros/top_3.v	231	234	9	20	713		`undef multipl tt $display("Internal error: null handle at %s, line %d.",`__FI
 IN-WINDOW		Surelog	tests/SimpleIncludeAndMacros/top_4.v	206	207	9	18	847		reg CK,rd,wr,ce; \ reg [7:0] addr,data_wr,``DATA``_rd; \ reg [7:0] re

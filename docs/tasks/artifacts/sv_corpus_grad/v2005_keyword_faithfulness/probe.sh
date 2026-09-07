@@ -56,10 +56,11 @@ check "baseline gate mode" 0 "over_acceptances=" -- \
 echo
 echo "[2] CONTROL — the reading MOVES with the profile (it is not stuck)"
 # The SAME code, over the SAME grammar and the SAME oracle, must report a different population
-# once only the profile changes. `verilog_2005` reaches 24 word-shaped IEEE-1800-only keywords;
+# once only the profile changes. `verilog_2005` reaches 16 word-shaped IEEE-1800-only keywords
+# (11 + the five `timescale time units SV-CORPUS-GRAD.3.39's typed directives made reachable);
 # `sv_2017`, where those keywords are native, reaches 136. A census blind to the profile would
 # print one of those numbers twice.
-check "verilog_2005 reaches 11 IEEE-1800-only keywords" 0 "candidates=11" -- \
+check "verilog_2005 reaches 16 IEEE-1800-only keywords" 0 "candidates=16" -- \
     python3 "$CENSUS"
 check "sv_2017 reaches 136 — the same code, a different reading" 1 "\`sv_2017\` reaches 136" -- \
     python3 "$CENSUS" --profile sv_2017
@@ -114,7 +115,41 @@ check "artifact restored, gate green again" 0 "over_acceptances=" -- \
     python3 "$CENSUS"
 
 echo
-echo "[9] the census is DETERMINISTIC"
+echo "[9] LEG 4 (SV-CORPUS-GRAD.3.39) — a directive-argument row is EARNED, never declared"
+# `ns` is consumed as a keyword inside `` `timescale 1 ns / 1 ns `` (leg 3 rejects the substituted
+# witness) and IEEE 1364-2005 19.8 gives it exactly that role; the manifest's fourth column names
+# an identifier witness that must accept before AND after the word is swapped for a fresh
+# identifier. Each arm below breaks one of the leg's conditions and the census must SAY which.
+cp -R "$WITNESSES" "$SCRATCH/leg4_missing"
+rm "$SCRATCH/leg4_missing/ns_identifier.sv"
+check "identifier witness named by the manifest does not exist" 1 "identifier witness" -- \
+    python3 "$CENSUS" --witness-dir "$SCRATCH/leg4_missing"
+cp -R "$WITNESSES" "$SCRATCH/leg4_reserved"
+printf 'module m; wire ns ns; endmodule\n' > "$SCRATCH/leg4_reserved/ns_identifier.sv"
+check "identifier witness REJECTS: the verdict column moves to over_acceptance" 0 "over_acceptances=1" -- \
+    python3 "$CENSUS" --witness-dir "$SCRATCH/leg4_reserved"
+cp -R "$WITNESSES" "$SCRATCH/leg4_off_line"
+printf '`timescale 1 ns / 1 ns\nmodule m; wire x; assign x = ns; endmodule\n' > "$SCRATCH/leg4_off_line/ns.sv"
+check "keyword used OFF a backtick-led line refuses the row" 1 "off a backtick-led line" -- \
+    python3 "$CENSUS" --witness-dir "$SCRATCH/leg4_off_line"
+cp -R "$WITNESSES" "$SCRATCH/leg4_load_bearing"
+cp "$WITNESSES/ns.sv" "$SCRATCH/leg4_load_bearing/ns_identifier.sv"
+check "identifier witness where the word is load-bearing refuses the row" 1 "load-bearing" -- \
+    python3 "$CENSUS" --witness-dir "$SCRATCH/leg4_load_bearing"
+cp -R "$WITNESSES" "$SCRATCH/leg4_no_column"
+python3 - "$SCRATCH/leg4_no_column/MANIFEST.tsv" <<'PY'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1]); rows = []
+for line in p.read_text().splitlines():
+    f = line.split("\t")
+    rows.append("\t".join(f[:3]) if f and f[0] == "ns" else line)
+p.write_text("\n".join(rows) + "\n")
+PY
+check "manifest row WITHOUT the fourth column: leg 3 alone reads over_acceptance" 0 "over_acceptances=1" -- \
+    python3 "$CENSUS" --witness-dir "$SCRATCH/leg4_no_column"
+
+echo
+echo "[10] the census is DETERMINISTIC"
 python3 "$CENSUS" --write > /dev/null 2>&1
 cp "$ARTIFACT/census.tsv" "$SCRATCH/run1.tsv"
 python3 "$CENSUS" --write > /dev/null 2>&1

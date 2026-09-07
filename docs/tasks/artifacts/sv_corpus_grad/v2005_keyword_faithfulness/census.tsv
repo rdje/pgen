@@ -1,33 +1,38 @@
-keyword	verdict	witness	accepts_verilog_2005	accepts_sv_2017_control	accepts_after_identifier_substitution
-chandle	correctly_gated	chandle.sv	false	true	n/a
-class_qualifier	correctly_gated	class_qualifier.sv	false	true	n/a
-clocking	correctly_gated	clocking.sv	false	true	n/a
-const	correctly_gated	const.sv	false	true	n/a
-dist	correctly_gated	dist.sv	false	true	n/a
-enum	correctly_gated	enum.sv	false	true	n/a
-extern	correctly_gated	extern.sv	false	true	n/a
-iff	correctly_gated	iff.sv	false	true	n/a
-inside	correctly_gated	inside.sv	false	true	n/a
-interface	correctly_gated	interface.sv	false	true	n/a
-join_any	correctly_gated	join_any.sv	false	true	n/a
-join_none	correctly_gated	join_none.sv	false	true	n/a
-local	correctly_gated	local.sv	false	true	n/a
-matches	correctly_gated	matches.sv	false	true	n/a
-new	identifier_consumed	new.sv	true	true	true
-null	identifier_consumed	null.sv	true	true	true
-packed	correctly_gated	packed.sv	false	true	n/a
-rand	correctly_gated	rand.sv	false	true	n/a
-randc	unreachable_no_witness	randc.sv	false	false	n/a
-randomize	identifier_consumed	randomize.sv	true	true	true
-ref	correctly_gated	ref.sv	false	true	n/a
-static	correctly_gated	static.sv	false	true	n/a
-std	correctly_gated	std.sv	false	true	n/a
-string	correctly_gated	string.sv	false	true	n/a
-super	identifier_consumed	super.sv	true	true	true
-this	identifier_consumed	this.sv	true	true	true
-tx_path_delay_expression	identifier_consumed	tx_path_delay_expression.sv	true	true	true
-type	correctly_gated	type.sv	false	true	n/a
-unique	correctly_gated	unique.sv	false	true	n/a
-var	correctly_gated	var.sv	false	true	n/a
-virtual	correctly_gated	virtual.sv	false	true	n/a
-with	correctly_gated	with.sv	false	true	n/a
+keyword	verdict	witness	accepts_verilog_2005	accepts_sv_2017_control	accepts_after_identifier_substitution	identifier_witness	accepts_as_identifier
+chandle	correctly_gated	chandle.sv	false	true	n/a		n/a
+class_qualifier	correctly_gated	class_qualifier.sv	false	true	n/a		n/a
+clocking	correctly_gated	clocking.sv	false	true	n/a		n/a
+const	correctly_gated	const.sv	false	true	n/a		n/a
+dist	correctly_gated	dist.sv	false	true	n/a		n/a
+enum	correctly_gated	enum.sv	false	true	n/a		n/a
+extern	correctly_gated	extern.sv	false	true	n/a		n/a
+fs	directive_argument	fs.sv	true	true	false	fs_identifier.sv	true
+iff	correctly_gated	iff.sv	false	true	n/a		n/a
+inside	correctly_gated	inside.sv	false	true	n/a		n/a
+interface	correctly_gated	interface.sv	false	true	n/a		n/a
+join_any	correctly_gated	join_any.sv	false	true	n/a		n/a
+join_none	correctly_gated	join_none.sv	false	true	n/a		n/a
+local	correctly_gated	local.sv	false	true	n/a		n/a
+matches	correctly_gated	matches.sv	false	true	n/a		n/a
+ms	directive_argument	ms.sv	true	true	false	ms_identifier.sv	true
+new	identifier_consumed	new.sv	true	true	true		n/a
+ns	directive_argument	ns.sv	true	true	false	ns_identifier.sv	true
+null	identifier_consumed	null.sv	true	true	true		n/a
+packed	correctly_gated	packed.sv	false	true	n/a		n/a
+ps	directive_argument	ps.sv	true	true	false	ps_identifier.sv	true
+rand	correctly_gated	rand.sv	false	true	n/a		n/a
+randc	unreachable_no_witness	randc.sv	false	false	n/a		n/a
+randomize	identifier_consumed	randomize.sv	true	true	true		n/a
+ref	correctly_gated	ref.sv	false	true	n/a		n/a
+static	correctly_gated	static.sv	false	true	n/a		n/a
+std	correctly_gated	std.sv	false	true	n/a		n/a
+string	correctly_gated	string.sv	false	true	n/a		n/a
+super	identifier_consumed	super.sv	true	true	true		n/a
+this	identifier_consumed	this.sv	true	true	true		n/a
+tx_path_delay_expression	identifier_consumed	tx_path_delay_expression.sv	true	true	true		n/a
+type	correctly_gated	type.sv	false	true	n/a		n/a
+unique	correctly_gated	unique.sv	false	true	n/a		n/a
+us	directive_argument	us.sv	true	true	false	us_identifier.sv	true
+var	correctly_gated	var.sv	false	true	n/a		n/a
+virtual	correctly_gated	virtual.sv	false	true	n/a		n/a
+with	correctly_gated	with.sv	false	true	n/a		n/a

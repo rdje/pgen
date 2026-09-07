@@ -2,7 +2,14 @@
 # One row per IEEE-1800-only keyword the profile-filtered reach analysis can arrive at.
 # A keyword with no row REFUSES the census: a new reachable keyword cannot land silently.
 #
-# keyword	witness	note
+# keyword	witness	note	identifier_witness
+#
+# SV-CORPUS-GRAD.3.39 — the optional FOURTH column names an IDENTIFIER WITNESS (leg 4): a keyword
+# that leg 3 proves consumed as a keyword is still not an over-acceptance when IEEE 1364-2005 gives
+# the word that role outside Annex B — clause 19.8's `timescale time_unit (s / ms / us / ns / ps /
+# fs). The census earns the row mechanically: the keyword sits only on backtick-led lines of its
+# witness, and the identifier witness accepts under verilog_2005 before AND after the word is
+# swapped for a fresh identifier. See stimuli/sv/v2005_keyword_faithfulness_census.py.
 chandle	chandle.sv	
 class_qualifier	class_qualifier.sv	IEEE 1800-2017 defines `class_qualifier` as a NONTERMINAL (clause 41 Annex A); PGEN spells it as a keyword TERMINAL
 clocking	clocking.sv	
@@ -10,6 +17,7 @@ const	const.sv
 dist	dist.sv	
 enum	enum.sv	
 extern	extern.sv	
+fs	fs.sv	IEEE 1364-2005 19.8: `timescale time_unit / time_precision, each `1|10|100` followed by s/ms/us/ns/ps/fs — a directive ARGUMENT, not an Annex B keyword; reachable under verilog_2005 only through timescale_directive (typed by SV-CORPUS-GRAD.3.39), an ordinary identifier everywhere else	fs_identifier.sv
 iff	iff.sv	
 inside	inside.sv	
 interface	interface.sv	
@@ -17,9 +25,12 @@ join_any	join_any.sv
 join_none	join_none.sv	
 local	local.sv	
 matches	matches.sv	
+ms	ms.sv	IEEE 1364-2005 19.8: `timescale time_unit / time_precision, each `1|10|100` followed by s/ms/us/ns/ps/fs — a directive ARGUMENT, not an Annex B keyword; reachable under verilog_2005 only through timescale_directive (typed by SV-CORPUS-GRAD.3.39), an ordinary identifier everywhere else	ms_identifier.sv
 new	new.sv	
+ns	ns.sv	IEEE 1364-2005 19.8: `timescale time_unit / time_precision, each `1|10|100` followed by s/ms/us/ns/ps/fs — a directive ARGUMENT, not an Annex B keyword; reachable under verilog_2005 only through timescale_directive (typed by SV-CORPUS-GRAD.3.39), an ordinary identifier everywhere else	ns_identifier.sv
 null	null.sv	
 packed	packed.sv	
+ps	ps.sv	IEEE 1364-2005 19.8: `timescale time_unit / time_precision, each `1|10|100` followed by s/ms/us/ns/ps/fs — a directive ARGUMENT, not an Annex B keyword; reachable under verilog_2005 only through timescale_directive (typed by SV-CORPUS-GRAD.3.39), an ordinary identifier everywhere else	ps_identifier.sv
 rand	rand.sv	
 randc	randc.sv	reachable only via `random_qualifier` -> `struct_union_member`, whose alternative needs `struct_union` (gated to sv_2017/sv_2023); `checker_or_generate_item_declaration` admits `rand` but not `randc`
 randomize	randomize.sv	
@@ -32,6 +43,7 @@ this	this.sv
 tx_path_delay_expression	tx_path_delay_expression.sv	IEEE 1364-2005 A.7.4 defines `tx_path_delay_expression` as a NONTERMINAL; PGEN spells it as a keyword TERMINAL
 type	type.sv	
 unique	unique.sv	
+us	us.sv	IEEE 1364-2005 19.8: `timescale time_unit / time_precision, each `1|10|100` followed by s/ms/us/ns/ps/fs — a directive ARGUMENT, not an Annex B keyword; reachable under verilog_2005 only through timescale_directive (typed by SV-CORPUS-GRAD.3.39), an ordinary identifier everywhere else	us_identifier.sv
 var	var.sv	
 virtual	virtual.sv	
 with	with.sv	

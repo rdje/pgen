@@ -1257,6 +1257,227 @@ def self_test_scope_gated_arm() -> int:
     return 1 if failed else 0
 
 
+def typed_replacement_of_opaque_terminal(base: dict[str, dict[str, int]], new: dict[str, dict[str, int]],
+                                         edges: dict[str, list[str]], introduced: list[str],
+                                         d_committed: int, base_edges: dict[str, list[str]] | None = None
+                                         ) -> tuple[bool, str, dict]:
+    """`(holds, one-line detail, facts)` for the TYPED-REPLACEMENT-OF-OPAQUE-TERMINAL predicate
+    (`SV-CORPUS-GRAD.3.39`).
+
+    THE SHAPE. A construct the baseline consumed with ONE opaque terminal — the compiler directive,
+    `` trivia /`[^\r\n]*/ `` swallowing the line — is now DERIVED by typed productions (the thirteen
+    syntax boxes of IEEE 1800-2017 clause 22 / IEEE 1364-2005 clause 19): a directive line that
+    committed one frame commits one frame per production and per token it is made of, and the
+    pre-existing tokens the typed derivation now consumes ONE BY ONE (`time_unit`, `kw_ns`,
+    `timeunit_separator_slash`, `trivia` once per token) commit where the regex used to swallow
+    them. Every position where the opaque terminal was TRIED and failed is guarded by one positive
+    lookahead on the same line shape, so the typed alternation is entered only where a directive
+    line starts. Measured on `.3.39` against `1.0.216`: the unguarded typed spelling read `entries`
+    +1,454,802 / `memo_hits` +437,165 — seven directive frames, eight `kw_dir_*` attempts and
+    eight memoized `trivia` lookups at 71,972 item positions holding no directive — and this
+    predicate REFUSES it under (6): the pre-existing rises are not covered by what the change
+    retired. The guarded spelling is the one it accepts.
+
+    ⛔ WHY THE OTHER ELEVEN CANNOT COVER IT. The three arithmetic identities, `host_memo_eviction`
+    and `caller_split_containment` need `committed` flat or conserved; `contained_in_introduced_subgraph`
+    refuses `Δcommitted > 0` and any fall (the retired opaque wrapper falls to zero);
+    `profile_split_respelling` refuses ANY pre-existing rise; `declared_alternatives_net_of_retired_work`
+    asserts (5) `committed` did not rise; `introduced_wrapper_frames` and `scope_gated_arm` refuse
+    every pre-existing `committed` rise — and here `time_unit`, `kw_ns`, `kw_ps` and `trivia` DO
+    commit more, because the typed derivation consumes the tokens the regex swallowed;
+    `advanced_files_only` is about text the parser newly reaches. Each is RIGHT to refuse; none
+    describes frames that sit on the typed derivation of a line the baseline already accepted.
+
+    ⭐ WHAT THIS ONE ASSERTS, per rule and over the run:
+      (1) `introduced` is declared and non-empty, the BASELINE graph is present, every declared
+          name is measured or in the graph, and no declared name is a PRE-EXISTING NONTERMINAL
+          (raises `Refused`, never a false verdict) — a pre-existing TERMINAL may be declared;
+      (2) every rule name NEW to the measurement (absent from the baseline table AND from the
+          baseline's reference graph) is declared as introduced;
+      (3) every pre-existing rule whose `committed` ROSE sits INSIDE the typed sub-graph — reachable
+          from an introduced rule in the measured grammar's own reference graph — so the only
+          derivations that got dearer are the typed ones;
+      (4) those pre-existing commits rose by at most what the introduced rules commit in total — a
+          consumed token commits at most once per typed frame;
+      (5) the run's total `Δcommitted` equals the introduced rules' commits plus the in-scope
+          pre-existing rises net of every commit lost elsewhere — the per-rule table and the totals
+          agree, so the row's exact from/to is the typed derivation's own arithmetic;
+      (6) every pre-existing rule whose ENTRIES rose sits inside the typed sub-graph, and the sum of
+          those rises is at most the sum of the entry falls on pre-existing and retired rules — the
+          guard retired at least the speculation the typed alternation added;
+      (7) the pre-existing `memo_hits` rise, over every rule, is at most the introduced rules' own
+          entries — each typed token attempt buys at most one memoized prefix lookup.
+    Fallers are REPORTED in the facts, never refused.
+
+    ⚠️⚠️ HONEST BOUND, stated where it will be read: this proves the new frames are the typed
+    derivation's own, that the guard covers the speculation, and that nothing outside the typed
+    sub-graph got dearer. It does NOT prove the typed frames are minimal — a dispatch on ONE
+    directive-name token instead of an alternation of token-led productions would retire the
+    remaining attempts at real directive lines — and a typed AST costs one frame per node by
+    construction. Say so in the row's `why`.
+    """
+    if not introduced:
+        raise Refused("the typed-replacement predicate needs the rule names the change INTRODUCED; "
+                      "the acceptance row declares none, so the typed sub-graph is unattributed")
+    if base_edges is None:
+        raise Refused("the typed-replacement predicate needs the BASELINE grammar's reference graph "
+                      "to tell a new rule from a pre-existing one that merely had zero entries")
+    declared = list(dict.fromkeys(introduced))
+    known_before = set(base) | set(base_edges)
+    for r in declared:
+        if r not in new and r not in edges:
+            raise Refused(f"`{r}` is declared as introduced but the measured grammar has no such rule")
+        if r in known_before:
+            refs = [x for x in edges.get(r, []) if x != "trivia"]
+            if refs:
+                raise Refused(f"`{r}` pre-existed and is a NONTERMINAL — `introduced` may name new rules "
+                              f"and the terminals they consume; declaring a pre-existing nonterminal "
+                              f"would waive real work on it")
+    facts: dict = {"introduced": declared}
+    undeclared_new = sorted(r for r in new if r not in known_before and r not in declared)
+    facts["undeclared_new"] = undeclared_new
+    if undeclared_new:
+        return False, (f"{len(undeclared_new)} rule name(s) new to the measurement are not declared as "
+                       f"introduced: " + " ".join(undeclared_new[:5])), facts
+    scope = reachable(edges, declared)
+    facts["scope"] = len(scope)
+    # A declared PRE-EXISTING terminal is a consumed token, not a new frame: its rises are judged
+    # with the other pre-existing rules (in scope, bounded, in the arithmetic), never waived.
+    fresh = {r for r in declared if r not in known_before}
+    rules = set(base) | set(new)
+    dc = {r: new.get(r, {}).get("committed", 0) - base.get(r, {}).get("committed", 0) for r in rules}
+    de = {r: new.get(r, {}).get("entries", 0) - base.get(r, {}).get("entries", 0) for r in rules}
+    dm = {r: new.get(r, {}).get("memo_hits", 0) - base.get(r, {}).get("memo_hits", 0) for r in rules}
+    pre_c_rose = sorted((r, v) for r, v in dc.items() if v > 0 and r not in fresh)
+    facts["pre_existing_committed_risers"] = pre_c_rose
+    escaped = [(r, v) for r, v in pre_c_rose if r not in scope]
+    facts["committed_risers_outside_scope"] = escaped
+    if escaped:
+        return False, (f"{len(escaped)} pre-existing rule(s) COMMIT more OUTSIDE the typed sub-graph: "
+                       + " ".join(f"{r} {v:+,}" for r, v in escaped[:5])), facts
+    intro_commits = sum(new.get(r, {}).get("committed", 0) for r in declared if r not in known_before)
+    pre_c_rise = sum(v for _, v in pre_c_rose)
+    facts["introduced_commits"] = intro_commits
+    facts["consumed_commit_rise"] = pre_c_rise
+    if pre_c_rise > intro_commits:
+        return False, (f"the tokens the typed derivation consumes committed {pre_c_rise:+,} more in "
+                       f"total but the introduced rules commit only {intro_commits:,} frames — more "
+                       f"than one consumed commit per typed frame"), facts
+    lost = sum(-v for v in dc.values() if v < 0)
+    facts["commits_lost_elsewhere"] = lost
+    facts["committed_fallers"] = sorted((r, v) for r, v in dc.items() if v < 0)
+    if intro_commits + pre_c_rise - lost != d_committed:
+        return False, (f"the per-rule table says committed moved {intro_commits + pre_c_rise - lost:+,} "
+                       f"(introduced {intro_commits:,} + consumed {pre_c_rise:,} net of {lost:,} lost "
+                       f"elsewhere) but the run's total moved {d_committed:+,} — the row's from/to is "
+                       f"not this table's arithmetic"), facts
+    pre_e_rose = sorted((r, v) for r, v in de.items() if v > 0 and r not in fresh)
+    facts["pre_existing_entry_risers"] = pre_e_rose
+    escaped_e = [(r, v) for r, v in pre_e_rose if r not in scope]
+    facts["entry_risers_outside_scope"] = escaped_e
+    if escaped_e:
+        return False, (f"{len(escaped_e)} pre-existing rule(s) are ENTERED more OUTSIDE the typed "
+                       f"sub-graph: " + " ".join(f"{r} {v:+,}" for r, v in escaped_e[:5])), facts
+    pre_entry_rise = sum(v for _, v in pre_e_rose)
+    entry_falls = sum(-v for v in de.values() if v < 0)
+    facts["pre_existing_entry_rise"] = pre_entry_rise
+    facts["entry_falls"] = entry_falls
+    facts["entry_fallers"] = sorted((r, v) for r, v in de.items() if v < 0)
+    if pre_entry_rise > entry_falls:
+        return False, (f"pre-existing rules rose {pre_entry_rise:+,} entries in total while the change "
+                       f"retired only {entry_falls:,} elsewhere — the guard does not cover the "
+                       f"speculation the typed alternation added"), facts
+    intro_entries = sum(new.get(r, {}).get("entries", 0) for r in declared if r not in known_before)
+    pre_memo_rise = sum(v for r, v in dm.items() if v > 0 and r not in fresh)
+    facts["introduced_entries"] = intro_entries
+    facts["pre_existing_memo_rise"] = pre_memo_rise
+    if pre_memo_rise > intro_entries:
+        return False, (f"pre-existing rules gained {pre_memo_rise:+,} memo hits but the introduced rules "
+                       f"were entered only {intro_entries:,} times — more than one prefix lookup per "
+                       f"typed attempt"), facts
+    return True, (f"introduced {len(declared)} rule(s) commit {intro_commits:,} frames and the tokens they "
+                  f"consume {pre_c_rise:+,} (all inside the typed sub-graph of {len(scope)} rules); "
+                  f"{lost:,} commits retired elsewhere (Δcommitted {d_committed:+,}); pre-existing entry "
+                  f"rises {pre_entry_rise:+,} (in scope) covered by {entry_falls:,} retired entries; "
+                  f"memo rise {pre_memo_rise:+,} within {intro_entries:,} typed attempts"), facts
+
+
+def self_test_typed_replacement_of_opaque_terminal() -> int:
+    """Arms for the TYPED-REPLACEMENT-OF-OPAQUE-TERMINAL predicate — every refusal and failure
+    shape, no parser."""
+    def row(e, c, m):
+        return {"entries": e, "committed": c, "memo_hits": m}
+    # the founding shape in miniature: `directive` used to be ONE opaque regex tried at 1000 item
+    # positions; now `item` guards it with `&opaque_line` and `directive` derives `typed`, whose
+    # tokens (`kw_ts`, `mag`) and the PRE-EXISTING `unit` -> `kw_ns` commit where the regex swallowed them.
+    edges = {"item": ["opaque_line", "directive", "other"], "directive": ["typed", "opaque_line"],
+             "typed": ["kw_ts", "mag", "unit"], "unit": ["kw_ns"], "opaque_line": ["trivia"],
+             "kw_ts": ["trivia"], "mag": ["trivia"], "kw_ns": ["trivia"], "other": ["unit", "trivia"], "trivia": []}
+    base_edges = {"item": ["directive", "other"], "directive": ["trivia"], "unit": ["kw_ns"],
+                  "kw_ns": ["trivia"], "other": ["unit", "trivia"], "trivia": []}
+    base = {"item": row(1000, 500, 0), "directive": row(1000, 20, 0), "other": row(1000, 480, 0),
+            "unit": row(50, 5, 0), "kw_ns": row(50, 5, 0), "trivia": row(5000, 1000, 4000)}
+    new = {"item": row(1000, 500, 0), "directive": row(20, 20, 0), "opaque_line": row(1000, 37, 0),
+           "typed": row(20, 3, 0), "kw_ts": row(20, 3, 0), "mag": row(6, 6, 0),
+           "unit": row(56, 11, 0), "kw_ns": row(56, 11, 0), "trivia": row(5052, 1015, 4052),
+           "other": row(1000, 480, 0)}
+    intro = ["opaque_line", "typed", "kw_ts", "mag"]
+    def d_committed(b, n):
+        return sum(v["committed"] for v in n.values()) - sum(v["committed"] for v in b.values())
+    def copy(t):
+        return {k: dict(v) for k, v in t.items()}
+    arms, failed = [], []
+    def arm(name, cond):
+        arms.append(name); print(f"  {'✓' if cond else '✗'} {name}")
+        if not cond: failed.append(name)
+    P = typed_replacement_of_opaque_terminal
+    h, d, f = P(base, new, edges, intro, d_committed(base, new), base_edges)
+    arm("holds: the founding shape — typed frames + consumed tokens commit, the guard retires the speculation",
+        h and f["introduced_commits"] == 49 and f["consumed_commit_rise"] == 27)
+    h, d, f = P(base, new, edges, ["opaque_line", "typed", "kw_ts"], d_committed(base, new), base_edges)
+    arm("fails: an undeclared new rule (mag)", not h and f["undeclared_new"] == ["mag"])
+    n2 = copy(new); n2["other"]["committed"] = 481
+    h, d, f = P(base, n2, edges, intro, d_committed(base, n2), base_edges)
+    arm("fails: a pre-existing rule commits more OUTSIDE the typed sub-graph",
+        not h and f["committed_risers_outside_scope"] == [("other", 1)])
+    n3 = copy(new); n3["unit"]["committed"] = 200
+    h, d, f = P(base, n3, edges, intro, d_committed(base, n3), base_edges)
+    arm("fails: consumed tokens commit more than the typed frames", not h and "more than one consumed commit" in d)
+    h, d, f = P(base, new, edges, intro, d_committed(base, new) + 1, base_edges)
+    arm("fails: the row's Δcommitted is not the table's arithmetic", not h and "not this table's arithmetic" in d)
+    n4 = copy(new); n4["other"]["entries"] = 1005
+    h, d, f = P(base, n4, edges, intro, d_committed(base, n4), base_edges)
+    arm("fails: a pre-existing rule is entered more OUTSIDE the typed sub-graph",
+        not h and f["entry_risers_outside_scope"] == [("other", 5)])
+    n5 = copy(new); n5["trivia"]["entries"] = 5000 + 5000
+    h, d, f = P(base, n5, edges, intro, d_committed(base, n5), base_edges)
+    arm("fails: pre-existing entry rises NOT covered by the retired entries (the unguarded spelling)",
+        not h and "does not cover" in d)
+    n6 = copy(new); n6["trivia"]["memo_hits"] = 4000 + 5000
+    h, d, f = P(base, n6, edges, intro, d_committed(base, n6), base_edges)
+    arm("fails: memo hits rise faster than the typed attempts", not h and "more than one prefix lookup" in d)
+    try:
+        P(base, new, edges, [], d_committed(base, new), base_edges); arm("refuse: empty scope", False)
+    except Refused: arm("refuse: empty scope", True)
+    try:
+        P(base, new, edges, intro, d_committed(base, new), None); arm("refuse: no baseline graph", False)
+    except Refused: arm("refuse: no baseline graph", True)
+    try:
+        P(base, new, edges, intro + ["unit"], d_committed(base, new), base_edges); arm("refuse: a declared PRE-EXISTING nonterminal", False)
+    except Refused: arm("refuse: a declared PRE-EXISTING nonterminal", True)
+    try:
+        P(base, new, edges, intro + ["zz"], d_committed(base, new), base_edges); arm("refuse: a declared name the grammar lacks", False)
+    except Refused: arm("refuse: a declared name the grammar lacks", True)
+    h, d, f = P(base, new, edges, intro + ["kw_ns"], d_committed(base, new), base_edges)
+    arm("holds: a pre-existing TERMINAL may be declared (it is never waived work)", h)
+    n7 = copy(new); n7["other"]["entries"] = 990; n7["other"]["committed"] = 478
+    h, d, f = P(base, n7, edges, intro, d_committed(base, n7), base_edges)
+    arm("holds: fallers outside the sub-graph are reported, never refused",
+        h and ("other", -2) in f["committed_fallers"] and ("other", -10) in f["entry_fallers"])
+    print(f"TYPED-REPLACEMENT-OF-OPAQUE-TERMINAL-SELFTEST: arms={len(arms)} failed={len(failed)}")
+    return 1 if failed else 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--graph", metavar="EBNF",
@@ -1275,7 +1496,7 @@ def main() -> int:
         if a.self_test:
             return (self_test_host_memo_eviction() | self_test_caller_split_containment()
                     | self_test_advanced_files_only() | self_test_introduced_wrapper_frames()
-                    | self_test_scope_gated_arm())
+                    | self_test_scope_gated_arm() | self_test_typed_replacement_of_opaque_terminal())
 
         if a.graph:
             g = derive_graph(a.graph)

@@ -238,7 +238,8 @@ source_text_item := description                       -> {kind: "description", b
                   | source_text_item_unit_sv_only
                   | package_import_declaration         -> {kind: "package_import_declaration", body: $1}
                   | timeunits_declaration              -> {kind: "timeunits_declaration", body: $1}
-                  | compiler_directive                 -> {kind: "compiler_directive", body: $1}
+                  | &opaque_directive_line compiler_directive
+                                                       -> {kind: "compiler_directive", body: $2}
 # SV-0028 (SV-LRM-SHAPE-FIDELITY.2, 2026-07-04): the former `| semi -> {kind:"semi"}` alternative was
 # removed. It was the sole `verilog_2005` accepting path for a stray top-level `;` (IEEE 1364-2005 A.1.2
 # `source_text ::= { description }` admits no null/empty item), and was PEG-dead under `sv_2017`/`sv_2023`
@@ -254,8 +255,247 @@ source_text_item := description                       -> {kind: "description", b
 
 # Shared lexical foundation
 
-compiler_directive := trivia /`[^\r\n]*/
-                   -> $2
+# SV-CORPUS-GRAD.3.39 (release 1.0.217, ledger SV-0090, AST schema 28 -> 29) — TYPED compiler
+# directives. Through 1.0.216 a top-level directive line was ONE opaque token (`[^\r\n]*), so
+# `timescale frump, `unconnected_drive pull2 and `line 1 "f" 3 all PARSED, and the in-scope
+# whitelist below (`.3.14b`) was the same opaque token restricted to six names. IEEE 1800-2017
+# clause 22 gives thirteen directive names a SYNTAX BOX — every box captioned "not in Annex A",
+# which is why no Annex-A-driven slice ever transcribed one — and this slice transcribes each box
+# as a production: the parser refuses what the box refuses, and the consumer receives a TYPED node
+# (`{kind: "timescale", unit, precision}`) where it used to receive the line as a string.
+#
+#   resetall 22.3 (:72-86) · undef 22.5.2 (:395-407) · undefineall 22.5.3 (:408-412, SV-only) ·
+#   timescale 22.7 (:615-633) · default_nettype 22.8 (:681-686) · unconnected_drive and
+#   nounconnected_drive 22.9 (:693-716) · celldefine / endcelldefine 22.10 (:717-726) ·
+#   pragma 22.11 (:734-763) · line 22.12 (:804-822) · begin_keywords / end_keywords 22.14 (:851-862)
+#   — docs/systemverilog/2017/md/section-22-compiler-directives.md. IEEE 1364-2005 clause 19 reads the
+#   same box for box (docs/verilog/2005/md/section-19-compiler-directives.md 19.2 :114-121, 19.7
+#   :527-531, 19.8 :572-575, 19.10 :662-677, 19.11 :723-729 — its version_specifier list is the four
+#   1364 editions), and IEEE 1800-2023 clause 22 differs only in Syntax 22-10, which adds "1800-2023"
+#   (docs/systemverilog/2023/md/section-22-compiler-directives.md:922-935).
+#
+# The reading rules, each one paid for in leaf .3.39:
+#   * A NEWLINE BETWEEN DIRECTIVE ARGUMENTS IS 5.3 WHITE SPACE. No box states a line rule; only 22.12
+#     binds `line to its line ("only white space may appear on the same line as the `line directive.
+#     Comments are not allowed") and `line_end` asserts exactly that. Every other directive may be
+#     followed by the next item on the same line (`celldefine module m; endmodule `endcelldefine).
+#   * A bare-name `pragma IS bounded to its line (`pragma_line_end`): the first pragma_expression is
+#     OPTIONAL and a simple_identifier, so without the bound `pragma once followed by an identifier-led
+#     item on the next line would eat that item's first token. The box is ambiguous there and every
+#     tool reads the line; once an expression is present the list is comma-separated and cannot run on.
+#   * The MAGNITUDE of a `timescale argument is SYNTAX here — 1, 10 or 100 (22.7 :627-629, "the valid
+#     integers are 1, 10, and 100"; units "s, ms, us, ns, ps, and fs"; the clause's own examples put
+#     white space between the two, `1 ns / 1 ps`) — where the Annex A twin `timeunit 2ps;` stays
+#     derivable: Annex A has a production for the declaration and none for the directive, so the box's
+#     prose is the directive's only definition. The PRECISION ORDERING (22.7 :623-625, "shall be at
+#     least as precise") is a value rule at both sites and is NOT enforced: `timescale 1ps/1ns parses,
+#     the v2005 lane's `timescale3` ruling, kept.
+#   * `line: number is a POSITIVE integer, level is 0 | 1 | 2 (22.12 :812-816). `undef: one identifier
+#     (22.5.2). `unconnected_drive: pull0 | pull1; `nounconnected_drive: nothing (22.9 :698-711).
+#     `default_nettype: the eleven values of 22.8's own list — NOT `net_type` (no supply0 / supply1).
+#     `begin_keywords: exactly the edition's version_specifier list, one profiled token per edition.
+#   * THE RESIDUE KEEPS ITS 1.0.216 TOLERANCE. `include, `define, the conditional family, a text-macro
+#     use and a vendor directive are still one opaque line at file top level: they hide or rewrite the
+#     text that follows (the .3.14b ruling) and the adjudicator routes such files to the preprocessor
+#     lane. The negative lookahead is what stops a typed name from falling back into it — `timescale
+#     frump fails the typed arm and is REFUSED by the residue. Under `verilog_2005` `undefineall is not
+#     a directive (absent from clause 19) and IS residue: a text-macro use.
+#   * GENERATION: every `kw_dir_*` token carries `@sample: "`name "` WITH A TRAILING SPACE because the stimuli
+#     generator's lexical-boundary tracking does not separate a BACKTICK-LED token from the word that follows
+#     it — measured by the certificate's own probes (`in_scope_compiler_directive` sample
+#     `module m(input wire a);`celldefineendmodule` parsed=false; `pragma_expression` sample `` `pragmawj dm ``
+#     parsed=true witnessed_target=false, the fused name falling into the opaque residue). The 1.0.216 blanket
+#     token absorbed that fusion, which is why it never showed; the engine class is routed to
+#     ENGINE-UNIVERSAL-SERVICES (SV-CORPUS-GRAD.3.39); the sibling class — the literal `/` of
+#     `timeunit_separator_slash` glued to a following `//` comment sample, `100 fs   ///x` — is fixed
+#     the same way at that rule. The samples steer stimuli only — the LANGUAGE does not move (the corpus
+#     AST identity sweep between the probe built without them and the probe built with them reads
+#     ast_moved=0 verdict_moved=0 on both SV profiles) — but the EMITTED PARSER does: an annotated token
+#     rule is emitted with the annotated-rule scaffolding (rule context + memoized call), so the
+#     generated parser's bytes and the release's parser identity move with the annotation.
+#   * Layout: a regex that can match the empty string is offered only HORIZONTAL white space by the
+#     engine's layout skip (`consume_layout_for_regex`, TOOLBOX 5.10), which is how `line_end` and
+#     `pragma_line_end` see the newline every other terminal skips.
+#   * ORDER AND COST. The two alternatives are DISJOINT by the negative lookahead, so `@branch_policy:
+#     ordered` changes no verdict — it only stops the parser trying the thirteen typed productions at
+#     a line the residue is going to take anyway. The residue comes FIRST because it is the common
+#     case: on the parse-cost sample 174 opaque lines commit against 13 typed ones, and under the
+#     default longest-match tournament every one of those 174 paid thirteen `kw_dir_*` attempts and
+#     thirteen memoized `trivia` lookups before the residue matched. At a typed line the residue's
+#     lookahead fails on its first token and the typed alternation is tried as before; a malformed
+#     typed name (`timescale frump`) fails both arms exactly as before. `source_text_item` guards
+#     the whole rule with `&opaque_directive_line`, so a position holding no directive line at all
+#     pays one lookahead and never enters here (see `in_scope_compiler_directive`).
+
+@branch_policy: ordered
+compiler_directive := !lrm_directive_name opaque_directive_line
+                                          -> {kind: "opaque", text: $2}
+                    | lrm_compiler_directive
+
+lrm_directive_name := lrm_directive_name_shared
+                    | lrm_directive_name_sv_only
+
+lrm_directive_name_shared := trivia /`(?:resetall|undef|timescale|default_nettype|unconnected_drive|nounconnected_drive|celldefine|endcelldefine|pragma|line|begin_keywords|end_keywords)\b/
+
+@profiles: ["sv_2017", "sv_2023"]
+lrm_directive_name_sv_only := trivia /`undefineall\b/
+
+# The sample ends in a NEWLINE, not a space: an opaque line runs to end of line, so a space would make
+# `` `FOO import … `` ONE opaque token that swallows the next item — the certificate's third
+# sample-parse-failure shape (`` `FOOimport ``, `` `FOO`timescale `` — the generator's backtick-led-token
+# fusion, ENGINE-UNIVERSAL-SERVICES.98) is closed by the line's own terminator, as `line_comment`'s
+# `@sample: "//x\n"` closes it for a comment.
+@sample: "`FOO\n"
+opaque_directive_line := trivia /`[^\r\n]*/
+                      -> $2
+
+lrm_compiler_directive := resetall_directive
+                        | undef_directive
+                        | undefineall_directive
+                        | timescale_directive
+                        | default_nettype_directive
+                        | unconnected_drive_directive
+                        | nounconnected_drive_directive
+                        | celldefine_directive
+                        | endcelldefine_directive
+                        | pragma_directive
+                        | line_directive
+                        | begin_keywords_directive
+                        | end_keywords_directive
+
+resetall_directive := kw_dir_resetall                 -> {kind: "resetall"}
+celldefine_directive := kw_dir_celldefine             -> {kind: "celldefine"}
+endcelldefine_directive := kw_dir_endcelldefine       -> {kind: "endcelldefine"}
+nounconnected_drive_directive := kw_dir_nounconnected_drive
+                                                      -> {kind: "nounconnected_drive"}
+end_keywords_directive := kw_dir_end_keywords         -> {kind: "end_keywords"}
+
+@profiles: ["sv_2017", "sv_2023"]
+undefineall_directive := kw_dir_undefineall           -> {kind: "undefineall"}
+
+undef_directive := kw_dir_undef identifier            -> {kind: "undef", name: $2}
+
+timescale_directive := kw_dir_timescale directive_time_literal timeunit_separator_slash directive_time_literal
+                    -> {kind: "timescale", unit: $2, precision: $4}
+
+directive_time_literal := directive_time_magnitude time_unit
+                       -> {value: $1, unit: $2}
+
+directive_time_magnitude := trivia /(?:100|10|1)/
+                         -> $2
+
+default_nettype_directive := kw_dir_default_nettype default_nettype_value
+                          -> {kind: "default_nettype", value: $2}
+
+default_nettype_value := kw_wire_6e1c6849    -> {kind: "wire"}
+                       | kw_tri_54bf01f1     -> {kind: "tri"}
+                       | kw_tri0             -> {kind: "tri0"}
+                       | kw_tri1             -> {kind: "tri1"}
+                       | kw_wand_4be59aff    -> {kind: "wand"}
+                       | kw_triand_51bca013  -> {kind: "triand"}
+                       | kw_wor_ff9e40da     -> {kind: "wor"}
+                       | kw_trior_56b8b9f0   -> {kind: "trior"}
+                       | kw_trireg_f7901823  -> {kind: "trireg"}
+                       | kw_uwire_9143a634   -> {kind: "uwire"}
+                       | default_nettype_none_word -> {kind: "none"}
+
+default_nettype_none_word := trivia /none\b/
+
+unconnected_drive_directive := kw_dir_unconnected_drive unconnected_drive_value
+                            -> {kind: "unconnected_drive", value: $2}
+
+unconnected_drive_value := kw_pull0 -> {kind: "pull0"}
+                         | kw_pull1 -> {kind: "pull1"}
+
+# ORDERED, not the grammar's default longest-match tournament: on `pragma once` followed by an
+# identifier-led line the second alternative consumes one token more (that identifier, as a
+# pragma_keyword) and would win the tournament — measured in the interpreter before this
+# annotation (`module m; `pragma once  foo u1(); endmodule` REJECTED at `u1`). Under ordered
+# choice the line-bound bare-name form is tried first and wins whenever the line ends there.
+@branch_policy: ordered
+pragma_directive := kw_dir_pragma pragma_name pragma_line_end
+                 -> {kind: "pragma", name: $2, expressions: []}
+                  | kw_dir_pragma pragma_name pragma_expression_list
+                 -> {kind: "pragma", name: $2, expressions: $3}
+
+pragma_name := simple_identifier
+
+pragma_expression_list := pragma_expression ( comma pragma_expression )*
+                       -> [$1, $2::2*]
+
+pragma_expression := pragma_keyword assign pragma_value -> {kind: "assignment", keyword: $1, value: $3}
+                   | pragma_keyword                     -> {kind: "keyword", name: $1}
+                   | pragma_value                       -> {kind: "value", value: $1}
+
+pragma_keyword := simple_identifier
+
+pragma_value := lparen pragma_expression_list rparen -> {kind: "group", items: $2}
+              | number                               -> {kind: "number", body: $1}
+              | string_literal                       -> {kind: "string", body: $1}
+              | identifier                           -> {kind: "identifier", body: $1}
+
+@sample: "\n"
+pragma_line_end := /[ \t]*(?:(?:\/\/[^\r\n]*|\/\*(?:[^*]|\*+[^*\/])*\*+\/)[ \t]*)*(?:\r?\n|$)/
+
+line_directive := kw_dir_line line_number string_literal line_level line_end
+               -> {kind: "line", number: $2, filename: $3, level: $4}
+
+line_number := trivia /[1-9][0-9]*/
+            -> $2
+
+line_level := trivia /[012]/
+           -> $2
+
+@sample: "\n"
+line_end := /[ \t]*(?:\r?\n|$)/
+
+begin_keywords_directive := kw_dir_begin_keywords keywords_version_specifier
+                         -> {kind: "begin_keywords", version: $2}
+
+keywords_version_specifier := keywords_version_specifier_sv_2017
+                            | keywords_version_specifier_sv_2023
+                            | keywords_version_specifier_v2005
+
+@profiles: ["sv_2017"]
+keywords_version_specifier_sv_2017 := trivia /"(?:1800-2017|1800-2012|1800-2009|1800-2005|1364-2005|1364-2001-noconfig|1364-2001|1364-1995)"/
+                                   -> {kind: "double_quoted", body: $2}
+
+@profiles: ["sv_2023"]
+keywords_version_specifier_sv_2023 := trivia /"(?:1800-2023|1800-2017|1800-2012|1800-2009|1800-2005|1364-2005|1364-2001-noconfig|1364-2001|1364-1995)"/
+                                   -> {kind: "double_quoted", body: $2}
+
+@profiles: ["verilog_2005"]
+keywords_version_specifier_v2005 := trivia /"(?:1364-2005|1364-2001-noconfig|1364-2001|1364-1995)"/
+                                 -> {kind: "double_quoted", body: $2}
+
+@sample: "`resetall "
+kw_dir_resetall := trivia /`resetall\b/
+@sample: "`undef "
+kw_dir_undef := trivia /`undef\b/
+@sample: "`timescale "
+kw_dir_timescale := trivia /`timescale\b/
+@sample: "`default_nettype "
+kw_dir_default_nettype := trivia /`default_nettype\b/
+@sample: "`unconnected_drive "
+kw_dir_unconnected_drive := trivia /`unconnected_drive\b/
+@sample: "`nounconnected_drive "
+kw_dir_nounconnected_drive := trivia /`nounconnected_drive\b/
+@sample: "`celldefine "
+kw_dir_celldefine := trivia /`celldefine\b/
+@sample: "`endcelldefine "
+kw_dir_endcelldefine := trivia /`endcelldefine\b/
+@sample: "`pragma "
+kw_dir_pragma := trivia /`pragma\b/
+@sample: "`line "
+kw_dir_line := trivia /`line\b/
+@sample: "`begin_keywords "
+kw_dir_begin_keywords := trivia /`begin_keywords\b/
+@sample: "`end_keywords "
+kw_dir_end_keywords := trivia /`end_keywords\b/
+
+@sample: "`undefineall "
+@profiles: ["sv_2017", "sv_2023"]
+kw_dir_undefineall := trivia /`undefineall\b/
 
 # SV-CORPUS-GRAD.3.14b — IN-SCOPE compiler directives.
 #
@@ -335,13 +575,28 @@ compiler_directive := trivia /`[^\r\n]*/
 # the module body and the class body — the two the measured population needs. Generate/
 # interface/program/package/checker bodies are the stated residue, routed in `.3.14b`.
 
-@profiles: ["sv_2017", "sv_2023"]
-in_scope_compiler_directive_sv_only := trivia /`undefineall\b[^\r\n]*/
-                                    -> $2
-
-in_scope_compiler_directive := in_scope_compiler_directive_sv_only
-                             | trivia /`(?:endcelldefine|celldefine|timescale|pragma|line|undef)\b[^\r\n]*/
-                                    -> $2
+# .3.39: the whitelist is now the TYPED productions above — the same seven names, each parsing
+# its clause's syntax box; `undefineall_directive` is SV-gated, so `verilog_2005` keeps six.
+#
+# ⛔ EVERY HOST GUARDS THIS ALTERNATION WITH `&opaque_directive_line` (and `source_text_item` guards
+# `compiler_directive` the same way). MEASURED on the parse-cost sample (PARSE-COST-RATCHET per-rule
+# table, 1.0.216 -> the unguarded typed spelling): the three hosts try this rule at 71 972 item
+# positions and it COMMITS at none of them in the sample — the opaque regex used to fail there at
+# the price of one `trivia` prefix lookup, while the typed alternation paid seven directive frames,
+# eight `kw_dir_*` regex attempts (`pragma_directive` is ordered and tries its token twice) and eight
+# memoized `trivia` lookups: entries +1 454 802 (+0.36 %), memo_hits +437 165, all of it at
+# positions that hold no directive. One positive lookahead on the backtick line — a token that is
+# already certified — fails at the same price the regex did and admits the alternation only where a
+# directive line actually starts. The hosts' `body:` moves from `$1` to `$2`; the typed AST is
+# byte-identical (interpreter A/B over every directive pin x three profiles, and the corpus AST
+# identity sweep).
+in_scope_compiler_directive := celldefine_directive
+                             | endcelldefine_directive
+                             | undefineall_directive
+                             | undef_directive
+                             | timescale_directive
+                             | pragma_directive
+                             | line_directive
 
 # GRAMMAR-WELLFORMED.H.12.5.3: the former `comment_only_source_region`
 # rule (and its `source_text_item` branch above) was ENGINE-SHADOWED-DEAD.
@@ -1386,8 +1641,8 @@ class_item_sv_2023 := attribute_instance* class_property              -> {kind: 
 @profiles: ["sv_2017", "sv_2023"]
 class_item := class_item_sv_2017 -> {kind: "sv_2017", body: $1}
             | class_item_sv_2023 -> {kind: "sv_2023", body: $1}
-            | in_scope_compiler_directive
-                                 -> {kind: "compiler_directive", body: $1}
+            | &opaque_directive_line in_scope_compiler_directive
+                                 -> {kind: "compiler_directive", body: $2}
 
 class_item_qualifier := kw_static_a381562a    -> {kind: "static"}
                       | kw_protected_964cab4b -> {kind: "protected"}
@@ -4752,8 +5007,8 @@ non_port_module_item := generate_region
                             -> {kind: "interface_declaration", body: $1}
                      | timeunits_declaration
                             -> {kind: "timeunits_declaration", body: $1}
-                     | in_scope_compiler_directive
-                            -> {kind: "compiler_directive",    body: $1}
+                     | &opaque_directive_line in_scope_compiler_directive
+                            -> {kind: "compiler_directive",    body: $2}
 
 non_port_program_item := attribute_instance* continuous_assign
                              -> {kind: "continuous_assign",                attributes: $1, body: $2}
@@ -6935,6 +7190,13 @@ timeunits_declaration := kw_timeunit_57f78b2f time_literal ( timeunit_separator_
                        | kw_timeprecision_628f1cfc time_literal semi kw_timeunit_57f78b2f time_literal semi
                                 -> {kind: "timeprecision_then_unit",         precision: $2, unit: $5}
 
+# SV-CORPUS-GRAD.3.39 — the sample carries a space on EACH side because the stimuli generator's
+# lexical-boundary tracking does not separate the literal `/` from a following `//` line comment
+# (the trivia sample `//x`): it rendered `100 fs   ///x`, which every SystemVerilog lexer reads as a
+# line comment, and the certificate's sample-parse failures at seeds 0 and 42 were exactly that
+# shape once `timescale_directive` doubled this rule's draws. Stimuli only (the language does not move;
+# the emitted rule gains the annotated-rule scaffolding, see the directive block above).
+@sample: " / "
 timeunit_separator_slash := timeunit_separator_trivia "/"
                          -> {kind: "slash"}
 
