@@ -13,12 +13,12 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 | opentitan | 3983 | 0 | 0 | 0 | 3983 |
 | scr1 | 50 | 0 | 0 | 0 | 50 |
 | slang | 92 | 54 | 1 | 15 | 22 |
-| sv-tests | 1028 | 804 | 6 | 123 | 95 |
+| sv-tests | 1028 | 805 | 5 | 123 | 95 |
 | sv2v | 953 | 481 | 16 | 87 | 369 |
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
 | verible | 152 | 114 | 7 | 9 | 22 |
-| verilator | 3263 | 2121 | 37 | 973 | 132 |
-| **total** | **16336** | **5967** | **95** | **1502** | **8772** |
+| verilator | 3263 | 2123 | 35 | 973 | 132 |
+| **total** | **16336** | **5970** | **92** | **1502** | **8772** |
 
 ## Verdict-class detail
 
@@ -38,12 +38,12 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 | divergence:explained_svpp_macro_use | 1105 |
 | divergence:explained_svpp_protected_envelope | 4 |
 | divergence:unexplained_accepts_invalid | 2 |
-| divergence:unexplained_rejects_valid | 93 |
-| match | 5967 |
+| divergence:unexplained_rejects_valid | 90 |
+| match | 5970 |
 
-**The sv_2023 arm's burn-down baseline = the UNEXPLAINED divergence count (95: rejects-valid 93, accepts-invalid 2, crash 0)** - a separate arm from the sv_2017 baseline over the same files.
+**The sv_2023 arm's burn-down baseline = the UNEXPLAINED divergence count (92: rejects-valid 90, accepts-invalid 2, crash 0)** - a separate arm from the sv_2017 baseline over the same files.
 
-✅ **Re-read under 1800-2023 (.14b.3):** 48 inherited `must_reject` rulings carry over MECHANICALLY - every 1800-2017 production their 2017 basis cites reads identically in 1800-2023 Annex A (`production_parity.py`, its artifact `docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/parity.md`) - and 5 carry over BY HAND with the changed 2023 production cited in the basis.
+✅ **Re-read under 1800-2023 (.14b.3):** 48 inherited `must_reject` rulings carry over MECHANICALLY - every 1800-2017 production their 2017 basis cites reads identically in 1800-2023 Annex A (`production_parity.py`, its artifact `docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/parity.md`) - and 8 carry over BY HAND with the changed 2023 production cited in the basis.
 
 ⚠️ **What this lane has NOT judged for itself, stated rather than hidden:** 19 `must_reject` rows are INHERITED from a 1800-2017 production the 2017 key cites, and 201 from a suite's own 2017-era oracle; each carries the marker `its 1800-2023 re-read is owed (.14b.3)` in its basis. Their `match` here means the parser REJECTS them under sv_2023 exactly as under sv_2017 (the .14a census names every file whose verdict differs between the profiles, and these are not among them); whether 1800-2023 derives any of them is `.14b.3`'s per-row question, and a row it turns must_accept becomes an `unexplained_rejects_valid` of THIS lane.
 

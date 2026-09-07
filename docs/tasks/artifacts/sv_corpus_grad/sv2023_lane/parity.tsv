@@ -8,6 +8,7 @@ Surelog	tests/UnsizedPacked/dut.sv	IDENTICAL	packed_dimension:IDENTICAL variable
 iverilog	ivtest/ivltests/br_gh390a.v	DIFFERS	class_constructor_declaration:DIFFERS
 iverilog	ivtest/ivltests/sv_new_array_error.v	IDENTICAL	variable_decl_assignment:IDENTICAL
 iverilog	ivtest/ivltests/sv_void_cast_fail3.v	IDENTICAL	subroutine_call_statement:IDENTICAL
+sv-tests	tests/chapter-6/6.23--type_op_compare.sv	DIFFERS	case_statement:IDENTICAL case_expression:IDENTICAL case_item_expression:IDENTICAL primary:DIFFERS cast:IDENTICAL casting_type:IDENTICAL conditional_statement:IDENTICAL unique_priority:IDENTICAL type_reference:DIFFERS constant_primary:DIFFERS data_type:IDENTICAL if_generate_construct:IDENTICAL case_generate_construct:IDENTICAL
 sv2v	test/core/interface_genvar_shadow.sv	UNCITED	
 sv2v	test/core/interface_similar.sv	UNCITED	
 sv2v	test/error/enum_range_x.sv	IDENTICAL	enum_name_declaration:IDENTICAL integral_number:IDENTICAL unbased_unsized_literal:IDENTICAL
@@ -64,7 +65,9 @@ verilator	test_regress/t/t_property_case_bad.v	IDENTICAL	property_expr:IDENTICAL
 verilator	test_regress/t/t_property_sexpr_bad.v	IDENTICAL	sequence_expr:IDENTICAL property_expr:IDENTICAL
 verilator	test_regress/t/t_randomize_with_idlist_method_bad.v	IDENTICAL	array_manipulation_call:IDENTICAL randomize_call:IDENTICAL
 verilator	test_regress/t/t_timescale_udp.v	IDENTICAL	combinational_entry:IDENTICAL output_symbol:IDENTICAL
-verilator	test_regress/t/t_type_compare_bad.v	DIFFERS	case_expression:IDENTICAL constraint_primary:DIFFERS constraint_expression:IDENTICAL constant_primary:DIFFERS
+verilator	test_regress/t/t_type_compare.v	DIFFERS	conditional_statement:IDENTICAL cond_predicate:IDENTICAL expression_or_cond_pattern:IDENTICAL primary:DIFFERS cast:IDENTICAL casting_type:IDENTICAL unique_priority:IDENTICAL type_reference:DIFFERS constant_primary:DIFFERS data_type:IDENTICAL if_generate_construct:IDENTICAL case_generate_construct:IDENTICAL
+verilator	test_regress/t/t_type_compare_bad.v	DIFFERS	case_expression:IDENTICAL primary:DIFFERS constant_primary:DIFFERS
+verilator	test_regress/t/t_type_expression_compare.v	DIFFERS	primary:DIFFERS cast:IDENTICAL casting_type:IDENTICAL conditional_statement:IDENTICAL unique_priority:IDENTICAL cond_predicate:IDENTICAL expression_or_cond_pattern:IDENTICAL type_reference:DIFFERS constant_primary:DIFFERS data_type:IDENTICAL if_generate_construct:IDENTICAL case_generate_construct:IDENTICAL
 verilator	test_regress/t/t_udp_bad.v	IDENTICAL	udp_port_declaration:IDENTICAL
 verilator	test_regress/t/t_udp_bad_comb_trigger.v	IDENTICAL	combinational_entry:IDENTICAL sequential_entry:IDENTICAL sequential_body:IDENTICAL udp_initial_statement:IDENTICAL init_val:IDENTICAL seq_input_list:IDENTICAL level_input_list:IDENTICAL edge_input_list:IDENTICAL
 verilator	test_regress/t/t_udp_bad_illegal_output.v	IDENTICAL	next_state:IDENTICAL output_symbol:IDENTICAL

@@ -100,6 +100,21 @@ SVTESTS_PINNED = {
         "must_reject", "pinned: LRM 5.7.1 lexical rule - '4af' needs 'h"),
     "tests/chapter-5/5.7.1--integers-signed-illegal.sv": (
         "must_reject", "pinned: LRM 5.7.1 - \"8'd-6\" illegal negative literal syntax"),
+    # SV-CORPUS-GRAD.3.32 (PGEN-SV-CORPUS-GRAD-0375): the chapter-6.23 test writes type-reference comparisons as
+    # PROCEDURAL case / if conditions; Annex A of both editions derives them only inside a constant_expression.
+    "tests/chapter-6/6.23--type_op_compare.sv": ("must_reject",
+        "pinned .3.32: line 18 `case (type(T))` inside `initial begin` with type_reference case items (19), then "
+        "`if (type(T) == type(logic[12:0])) $stop;` and its !=, ===, !== twins (22-25) - type-reference comparisons "
+        "as PROCEDURAL case / if conditions. IEEE 1800-2017 A.6.7 case_statement ::= [ unique_priority ] case_keyword "
+        "( case_expression ) case_item { case_item } endcase (docs/systemverilog/2017/md/section-41-data-read-api.md:2228-2233), "
+        "case_expression ::= expression (docs/systemverilog/2017/md/section-41-data-read-api.md:2239), case_item_expression ::= "
+        "expression (docs/systemverilog/2017/md/section-41-data-read-api.md:2258); A.6.6 conditional_statement "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:2205-2212) likewise takes an expression; IEEE 1800-2017 A.8.4 primary (docs/systemverilog/2017/md/section-41-data-read-api.md:3122-3140) has no type_reference arm - type_reference (docs/systemverilog/2017/md/section-41-data-read-api.md:918-920) is a constant_primary (docs/systemverilog/2017/md/section-41-data-read-api.md:3109) under footnote 40 (docs/systemverilog/2017/md/section-41-data-read-api.md:3560-3562: legal as a casting_type and with the four equality operators - i.e. inside a constant_expression) and a data_type (docs/systemverilog/2017/md/section-41-data-read-api.md:859); 6.23 (docs/systemverilog/2017/md/section-65536-216-bits.md:1610-1614) says such comparisons 'are considered to be constant expressions (see 11.2.1)' and its only example is the generate case (docs/systemverilog/2017/md/section-65536-216-bits.md:1626-1631); 11.2.1 (docs/systemverilog/2017/md/section-11-operators-and-expressions.md:87-90): 'Some statement constructs require an expression to be a constant expression' - a procedural if / case takes an expression and is not one of them. "
+        "REJECTS at furthest_position=412 on sv_2017 and sv_2023: the byte after the first `type(...)`, where the ONE derivation that admits a type reference inside an expression - a static cast, primary ::= ... | cast, cast ::= casting_type ' ( expression ) (docs/systemverilog/2017/md/section-41-data-read-api.md:3186), casting_type ::= ... | constant_primary (docs/systemverilog/2017/md/section-41-data-read-api.md:841) - requires its ' and meets the comparison operator. "
+        "Two-sided: `module top #( parameter type T = type(logic[11:0]) ) ();` ACCEPTS (control param_type_ref.sv, both "
+        "profiles) and the standard's own generate form ACCEPTS (control_generate_case_type_reference.sv). Pins invalid_procedural_type_reference_comparison.sv / control_constant_context_type_reference_comparison.sv (the same comparisons as a module-level if / case = conditional_generate_construct / case_generate_construct on a constant_expression, docs/systemverilog/2017/md/section-41-data-read-api.md:1887-1896, in a localparam initializer, and the cast `type(a)'(y)` in procedural code - all ACCEPT on both profiles). Spec outranks the suite: verilator, sv-tests and slang's regression file all write the procedural form and no LRM text or example does - IEEE 1800-2023 kept type_reference in constant_primary alone (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3066, footnote 45 :3525-3527) and primary without it (:3079-3094) while revising 6.23 (docs/systemverilog/2023/md/section-6-data-types.md:2936-2975). "
+        "The test's `:tags: 6.23` / `:description: type comparison tests` claim the clause, and the clause puts the "
+        "comparison in a constant_expression context; the suite's positive-test convention is what it outranks"),
 }
 
 # Pinned rulings from in-file upstream statements (leaf .3.0 triage findings).
@@ -1946,7 +1961,8 @@ VERILATOR_PINNED = {
         "pinned .13x.b: line 11 `case (type(real))` in an `initial` block - a type reference as a "
         "PROCEDURAL case_expression. IEEE 1800-2017 A.6.7 case_expression ::= expression "
         "(docs/systemverilog/2017/md/section-41-data-read-api.md:2239); A.8.4 primary "
-        "(docs/systemverilog/2017/md/section-41-data-read-api.md:641-656) has no type_reference arm - "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:3122-3140; the .13x.b basis cited :641-656, the "
+        "constraint_primary block - corrected by .3.32) has no type_reference arm - "
         "type_reference is a constant_primary "
         "(docs/systemverilog/2017/md/section-41-data-read-api.md:3109, footnote 40 "
         "docs/systemverilog/2017/md/section-41-data-read-api.md:3560) and a data_type; 6.23 "
@@ -1954,11 +1970,44 @@ VERILATOR_PINNED = {
         "comparison 'a constant expression' and writes its own `case (type(bus_t))` inside `generate` "
         "(:1626-1631). REJECTS at furthest_position=325 on sv_2017 and sv_2023. Controls: `generate case "
         "(type(bus_t)) type(bit[12:0]): ... endcase endgenerate` ACCEPTS; `case (a) 1: ; default: ; "
-        "endcase` ACCEPTS (arms d1/d1c/d1d). The Annex-A partition question this ruling rests on is "
-        "SV-CORPUS-GRAD.3.32, whose outcome can flip this pin - which is what its class=invalid "
-        "reproducer is for. Spec outranks the verilator driver key (fails=True + a post-parse golden "
+        "endcase` ACCEPTS (arms d1/d1c/d1d). RULED by SV-CORPUS-GRAD.3.32 (2026-09-07, PGEN-SV-CORPUS-GRAD-0375): "
+        "the letter stands in both editions (1800-2023 primary docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3079-3094 "
+        "carries no type_reference either), so this pin is a STANDING invalid pin and the three positive-test rows that "
+        "write the same form (t_type_compare.v, t_type_expression_compare.v, sv-tests 6.23--type_op_compare.sv) are keyed "
+        "must_reject beside it. Spec outranks the verilator driver key (fails=True + a post-parse golden "
         "reads as must_accept): the golden records the SEMANTIC error the test was written for, and the "
         "parser stops on text no Annex A production derives"),
+    # ---- SV-CORPUS-GRAD.3.32 (PGEN-SV-CORPUS-GRAD-0375) - the partition question RULED: a type reference is a
+    # constant_primary in BOTH editions and no primary derives it, so a type-reference comparison is legal exactly
+    # where a constant_expression is required (generate if / case, a parameter initializer, a static cast's
+    # casting_type) and has no derivation as a procedural if / case / assert condition. Three positive tests write
+    # the procedural form; the parser stops on every one at the byte after the first `type(...)`.
+    "test_regress/t/t_type_compare.v": ("must_reject",
+        "pinned .3.32: line 32 `if (type(real) == type(logic[12:0])) $stop;` inside `initial begin` - a type-reference "
+        "comparison as a PROCEDURAL if condition (the same form on lines 32-40, and procedural `case (type(real))` with "
+        "type_reference items at 43, 52 and 59). IEEE 1800-2017 A.6.6 conditional_statement ::= [ unique_priority ] if "
+        "( cond_predicate ) statement_or_null ... (docs/systemverilog/2017/md/section-41-data-read-api.md:2205-2212), "
+        "cond_predicate ::= expression_or_cond_pattern { &&& expression_or_cond_pattern } "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:2213), expression_or_cond_pattern ::= expression | "
+        "expression matches pattern (docs/systemverilog/2017/md/section-41-data-read-api.md:2218-2219); "
+        "IEEE 1800-2017 A.8.4 primary (docs/systemverilog/2017/md/section-41-data-read-api.md:3122-3140) has no type_reference arm - type_reference (docs/systemverilog/2017/md/section-41-data-read-api.md:918-920) is a constant_primary (docs/systemverilog/2017/md/section-41-data-read-api.md:3109) under footnote 40 (docs/systemverilog/2017/md/section-41-data-read-api.md:3560-3562: legal as a casting_type and with the four equality operators - i.e. inside a constant_expression) and a data_type (docs/systemverilog/2017/md/section-41-data-read-api.md:859); 6.23 (docs/systemverilog/2017/md/section-65536-216-bits.md:1610-1614) says such comparisons 'are considered to be constant expressions (see 11.2.1)' and its only example is the generate case (docs/systemverilog/2017/md/section-65536-216-bits.md:1626-1631); 11.2.1 (docs/systemverilog/2017/md/section-11-operators-and-expressions.md:87-90): 'Some statement constructs require an expression to be a constant expression' - a procedural if / case takes an expression and is not one of them. "
+        "REJECTS at furthest_position=830 on sv_2017 and sv_2023: the byte after the first `type(...)`, where the ONE derivation that admits a type reference inside an expression - a static cast, primary ::= ... | cast, cast ::= casting_type ' ( expression ) (docs/systemverilog/2017/md/section-41-data-read-api.md:3186), casting_type ::= ... | constant_primary (docs/systemverilog/2017/md/section-41-data-read-api.md:841) - requires its ' and meets the comparison operator. "
+        "Two-sided: lines 7-29 of this file PARSE - the module-level `if` / `case` at 19-29 are generate constructs "
+        "on a constant_expression, `Sub #(.T(int)) sub();` (14) and `parameter type T = type(logic[11:0])` (7) ACCEPT "
+        "(controls gen_level_ifs.sv / sub_type_override.sv / param_type_ref.sv, both profiles), and `if (type(a)'(y) == 3)` "
+        "in procedural code ACCEPTS. Pins invalid_procedural_type_reference_comparison.sv / control_constant_context_type_reference_comparison.sv (the same comparisons as a module-level if / case = conditional_generate_construct / case_generate_construct on a constant_expression, docs/systemverilog/2017/md/section-41-data-read-api.md:1887-1896, in a localparam initializer, and the cast `type(a)'(y)` in procedural code - all ACCEPT on both profiles). Spec outranks the suite: verilator, sv-tests and slang's regression file all write the procedural form and no LRM text or example does - IEEE 1800-2023 kept type_reference in constant_primary alone (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3066, footnote 45 :3525-3527) and primary without it (:3079-3094) while revising 6.23 (docs/systemverilog/2023/md/section-6-data-types.md:2936-2975). The verilator driver key reads a passing test as must_accept"),
+    "test_regress/t/t_type_expression_compare.v": ("must_reject",
+        "pinned .3.32: line 14 `if (type(value1) != type(value2)) $stop;` inside `initial begin` - a type-reference "
+        "comparison as a PROCEDURAL if condition (lines 14, 15 and 29; procedural `case (type(value1))` / "
+        "`case (type(value1 + value2 + 13))` with type_reference items at 16 and 23). IEEE 1800-2017 A.6.6 "
+        "conditional_statement (docs/systemverilog/2017/md/section-41-data-read-api.md:2205-2212) takes a cond_predicate "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:2213) whose operand is an expression "
+        "(docs/systemverilog/2017/md/section-41-data-read-api.md:2218-2219); IEEE 1800-2017 A.8.4 primary (docs/systemverilog/2017/md/section-41-data-read-api.md:3122-3140) has no type_reference arm - type_reference (docs/systemverilog/2017/md/section-41-data-read-api.md:918-920) is a constant_primary (docs/systemverilog/2017/md/section-41-data-read-api.md:3109) under footnote 40 (docs/systemverilog/2017/md/section-41-data-read-api.md:3560-3562: legal as a casting_type and with the four equality operators - i.e. inside a constant_expression) and a data_type (docs/systemverilog/2017/md/section-41-data-read-api.md:859); 6.23 (docs/systemverilog/2017/md/section-65536-216-bits.md:1610-1614) says such comparisons 'are considered to be constant expressions (see 11.2.1)' and its only example is the generate case (docs/systemverilog/2017/md/section-65536-216-bits.md:1626-1631); 11.2.1 (docs/systemverilog/2017/md/section-11-operators-and-expressions.md:87-90): 'Some statement constructs require an expression to be a constant expression' - a procedural if / case takes an expression and is not one of them. "
+        "REJECTS at furthest_position=338 on sv_2017 and sv_2023: the byte after the first `type(...)`, where the ONE derivation that admits a type reference inside an expression - a static cast, primary ::= ... | cast, cast ::= casting_type ' ( expression ) (docs/systemverilog/2017/md/section-41-data-read-api.md:3186), casting_type ::= ... | constant_primary (docs/systemverilog/2017/md/section-41-data-read-api.md:841) - requires its ' and meets the comparison operator. "
+        "Two-sided: `automatic Int_T value1 = 7;` / `automatic int value2 = 13;` / `real r;` in the same block ACCEPT "
+        "(control automatic_decl.sv, both profiles); `type(type(value2 + 18 - 40))` on line 24 is 6.23's type reference "
+        "applied to a data type and sits past the stop. Pins invalid_procedural_type_reference_comparison.sv / control_constant_context_type_reference_comparison.sv (the same comparisons as a module-level if / case = conditional_generate_construct / case_generate_construct on a constant_expression, docs/systemverilog/2017/md/section-41-data-read-api.md:1887-1896, in a localparam initializer, and the cast `type(a)'(y)` in procedural code - all ACCEPT on both profiles). Spec outranks the suite: verilator, sv-tests and slang's regression file all write the procedural form and no LRM text or example does - IEEE 1800-2023 kept type_reference in constant_primary alone (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3066, footnote 45 :3525-3527) and primary without it (:3079-3094) while revising 6.23 (docs/systemverilog/2023/md/section-6-data-types.md:2936-2975). The verilator driver key reads a passing test "
+        "(2025, Antmicro) as must_accept"),
     "test_regress/t/t_udp_bad.v": ("must_reject",
         "pinned .13x.b: line 15 `tri  a_bad;` inside a primitive. IEEE 1800-2017 A.5.2 "
         "udp_port_declaration ::= udp_output_declaration ; | udp_input_declaration ; | "
@@ -4904,8 +4953,32 @@ SV2023_REREAD_BY_HAND = {
         f"(docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:1059) - `localparam type bad2 = 2;` assigns a NUMBER where a data type or an incomplete class-scoped type is required",
     ("verilator", "test_regress/t/t_type_compare_bad.v"):
         f"1800-2023 case_expression ::= expression (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:2234) and primary (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3079-3094) still carry no type_reference - it lives in "
-        f"constant_primary alone, as in 2017; a procedural `case (type(real))` has no derivation in either edition (the .3.32 partition "
-        "question is edition-independent)",
+        f"constant_primary alone, as in 2017; a procedural `case (type(real))` has no derivation in either edition (RULED "
+        "edition-independent by .3.32, PGEN-SV-CORPUS-GRAD-0375)",
+    ("verilator", "test_regress/t/t_type_compare.v"):
+        f"1800-2023 conditional_statement ::= [ unique_priority ] if ( cond_predicate ) statement_or_null ... (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:2203-2210), "
+        f"cond_predicate ::= expression_or_cond_pattern {{ &&& expression_or_cond_pattern }} (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:2211), "
+        f"case_expression ::= expression (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:2234) and primary "
+        f"(docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3079-3094) still carry no type_reference - it lives in constant_primary alone "
+        f"(docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3066, footnote 45 :3525-3527), and 6.23 "
+        f"(docs/systemverilog/2023/md/section-6-data-types.md:2936-2975) keeps the constant-expression sentence and the generate example unchanged "
+        "while adding type(this) - the .3.32 ruling is edition-independent",
+    ("verilator", "test_regress/t/t_type_expression_compare.v"):
+        f"1800-2023 conditional_statement ::= [ unique_priority ] if ( cond_predicate ) statement_or_null ... (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:2203-2210), "
+        f"cond_predicate ::= expression_or_cond_pattern {{ &&& expression_or_cond_pattern }} (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:2211), "
+        f"case_expression ::= expression (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:2234) and primary "
+        f"(docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3079-3094) still carry no type_reference - it lives in constant_primary alone "
+        f"(docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3066, footnote 45 :3525-3527), and 6.23 "
+        f"(docs/systemverilog/2023/md/section-6-data-types.md:2936-2975) keeps the constant-expression sentence and the generate example unchanged "
+        "while adding type(this) - the .3.32 ruling is edition-independent",
+    ("sv-tests", "tests/chapter-6/6.23--type_op_compare.sv"):
+        f"1800-2023 conditional_statement ::= [ unique_priority ] if ( cond_predicate ) statement_or_null ... (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:2203-2210), "
+        f"cond_predicate ::= expression_or_cond_pattern {{ &&& expression_or_cond_pattern }} (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:2211), "
+        f"case_expression ::= expression (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:2234) and primary "
+        f"(docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3079-3094) still carry no type_reference - it lives in constant_primary alone "
+        f"(docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3066, footnote 45 :3525-3527), and 6.23 "
+        f"(docs/systemverilog/2023/md/section-6-data-types.md:2936-2975) keeps the constant-expression sentence and the generate example unchanged "
+        "while adding type(this) - the .3.32 ruling is edition-independent",
 }
 
 
