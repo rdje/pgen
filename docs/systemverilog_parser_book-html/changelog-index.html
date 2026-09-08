@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ffb8c7db.js";
+            window.path_to_searchindex_js = "searchindex-029d18e6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -217,6 +217,25 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10223--contract-10223--sv-corpus-grad349-pgen-sv-corpus-grad-0380-2026-09-08-ledger-sv-0096-released-schema-32-unchanged"><a class="header" href="#10223--contract-10223--sv-corpus-grad349-pgen-sv-corpus-grad-0380-2026-09-08-ledger-sv-0096-released-schema-32-unchanged">1.0.223 / Contract 1.0.223 — SV-CORPUS-GRAD.3.49 (<code>PGEN-SV-CORPUS-GRAD-0380</code>, 2026-09-08), ledger <code>SV-0096</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
+<p>⭐ <strong>A store gate that decides no parse is a resolution check Annex A never asked for.</strong> Through <code>1.0.222</code> the unscoped
+checker name carried a <code>has_fact(checker_name) phase: post</code> gate — the 2026-03-21 semantic-fact pilot — so a checker
+instantiated BEFORE its declaration (the declaration after the module, as Surelog <code>CheckerInst/dut.sv</code> and ispras
+<code>14.14_05.sv</code> are written) or declared in another file REJECTED at its second actual whenever the actuals were sequence /
+property syntax, and <code>test dut(foo);</code> inside a <code>program</code> (iverilog <code>program5b.v</code>) rejected at <code>test</code>. IEEE 1800-2017 §3.2
+makes a checker a design element, §23.3.2 lets an instantiated name be <em>“previously declared or one declared later”</em>, and
+A.4.1.4 / A.9.3 derive <code>checker_instantiation</code> from a bare identifier. The gate never disambiguated anything: with plain
+actuals the tie goes to <code>module_instantiation</code> by order, declared checker or not. Grammar tier: the annotation is deleted and, where an
+instantiation-shaped alternative competes, a beside-module twin behind <code>!interface_instantiation</code> keeps the cost flat (the
+ungated first spelling re-read every plain-actual instantiation as property actuals, <code>committed +33.56 %</code> on the pinned
+sample, refused by the parse-cost ratchet); <code>1641 → 1644</code> rules; no engine, no codegen, no Rust.</p>
+<p><strong>Accept-set impact.</strong> <code>sv_2017</code> / <code>sv_2023</code>: WIDENS by exactly the forward / cross-file checker instantiation — the
+sweep’s verdict movers are the pre-registered rows (Surelog <code>tests/CheckerInst/dut.sv</code>, ispras <code>ieee-1800-2012/14/14.14_05.sv</code>, iverilog <code>ivltests/program5b.v</code> — <code>fail → pass</code> on <code>sv_2017</code> and <code>sv_2023</code>, 3 / 3 / 0 movers, 0 <code>pass → fail</code> anywhere), the bar <code>82 → 79</code> on both SV lanes (<code>unexplained_rejects_valid 80 → 77</code>, accepts-invalid 2). <code>verilog_2005</code>: none (no
+checker instantiation in IEEE 1364-2005; pin <code>invalid_checker_instantiation_v2005.sv</code> REJECTS).</p>
+<p><strong>AST impact — none for any file the parser accepted before.</strong> <code>ast_moved=0</code> on every lane; a newly accepted checker
+instantiation arrives as the <code>{kind: "checker_instantiation", body: {name, instance, connections}}</code> branch documented
+since schema 26. Pins <code>control_checker_forward_instantiation.sv</code>, <code>control_checker_instantiation_undeclared.sv</code>,
+<code>control_checker_instantiation_in_program.sv</code>, <code>invalid_checker_instantiation_v2005.sv</code>.</p>
 <h3 id="10222--contract-10222--sv-corpus-grad350-pgen-sv-corpus-grad-0379-2026-09-08-ledger-sv-0095-released-schema-32-unchanged"><a class="header" href="#10222--contract-10222--sv-corpus-grad350-pgen-sv-corpus-grad-0379-2026-09-08-ledger-sv-0095-released-schema-32-unchanged">1.0.222 / Contract 1.0.222 — SV-CORPUS-GRAD.3.50 (<code>PGEN-SV-CORPUS-GRAD-0379</code>, 2026-09-08), ledger <code>SV-0095</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
 <p>⭐ <strong>A profile-blind arm is an over-acceptance on every profile whose standard lacks it.</strong> Through <code>1.0.221</code>
 <code>unpacked_dimension := [ constant_range ] | [ constant_expression ]</code> carried no <code>@profiles</code> on its size arm, so the IEEE

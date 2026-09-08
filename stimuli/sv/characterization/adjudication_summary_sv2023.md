@@ -5,11 +5,11 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 | suite | rows | match | UNEXPLAINED div | explained div | deferred |
 |---|---|---|---|---|---|
 | Cores-VeeR-EL2 | 102 | 0 | 0 | 0 | 102 |
-| Surelog | 828 | 574 | 8 | 46 | 200 |
+| Surelog | 828 | 575 | 7 | 46 | 200 |
 | black-parrot | 205 | 0 | 0 | 0 | 205 |
 | friscv | 441 | 0 | 0 | 0 | 441 |
-| ispras-sv-tests | 1266 | 796 | 8 | 16 | 446 |
-| iverilog | 3799 | 1026 | 9 | 233 | 2531 |
+| ispras-sv-tests | 1266 | 797 | 7 | 16 | 446 |
+| iverilog | 3799 | 1027 | 8 | 233 | 2531 |
 | opentitan | 3983 | 0 | 0 | 0 | 3983 |
 | scr1 | 50 | 0 | 0 | 0 | 50 |
 | slang | 92 | 54 | 1 | 15 | 22 |
@@ -18,7 +18,7 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
 | verible | 152 | 115 | 6 | 9 | 22 |
 | verilator | 3263 | 2124 | 33 | 974 | 132 |
-| **total** | **16336** | **5979** | **82** | **1503** | **8772** |
+| **total** | **16336** | **5982** | **79** | **1503** | **8772** |
 
 ## Verdict-class detail
 
@@ -38,10 +38,10 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 | divergence:explained_svpp_macro_use | 1105 |
 | divergence:explained_svpp_protected_envelope | 4 |
 | divergence:unexplained_accepts_invalid | 2 |
-| divergence:unexplained_rejects_valid | 80 |
-| match | 5979 |
+| divergence:unexplained_rejects_valid | 77 |
+| match | 5982 |
 
-**The sv_2023 arm's burn-down baseline = the UNEXPLAINED divergence count (82: rejects-valid 80, accepts-invalid 2, crash 0)** - a separate arm from the sv_2017 baseline over the same files.
+**The sv_2023 arm's burn-down baseline = the UNEXPLAINED divergence count (79: rejects-valid 77, accepts-invalid 2, crash 0)** - a separate arm from the sv_2017 baseline over the same files.
 
 ✅ **Re-read under 1800-2023 (.14b.3):** 48 inherited `must_reject` rulings carry over MECHANICALLY - every 1800-2017 production their 2017 basis cites reads identically in 1800-2023 Annex A (`production_parity.py`, its artifact `docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/parity.md`) - and 12 carry over BY HAND with the changed 2023 production cited in the basis.
 

@@ -1509,6 +1509,235 @@ def self_test_typed_replacement_of_opaque_terminal() -> int:
     return 1 if failed else 0
 
 
+def lookahead_replay_occurrences(base: dict[str, dict[str, int]], new: dict[str, dict[str, int]],
+                                 edges: dict[str, list[str]], introduced: list[str],
+                                 base_files: dict[str, dict], new_files: dict[str, dict]
+                                 ) -> tuple[bool, str, dict]:
+    """`(holds, one-line detail, facts)` for the LOOKAHEAD-REPLAY-OCCURRENCES predicate
+    (`ENGINE-UNIVERSAL-SERVICES.100`, `SV-CORPUS-GRAD.3.49`).
+
+    THE SHAPE. A change UN-GATES an alternative (a store predicate that rejected legal text is deleted)
+    and, wherever a sibling alternative already derives the same token sequence, fronts the un-gated
+    twin with a lookahead on THAT sibling (`checker_instantiation_beside_module :=
+    !interface_instantiation …`) so the twin is dead exactly where the sibling matches. The engine
+    memoizes the sibling at that position, so the lookahead is a LOOKUP — the guarded rule's entries
+    and memo hits rise by the same count and it is never parsed afresh — and no derivation changes:
+    the corpus AST identity sweep reads `ast_moved=0`, every sampled file keeps its verdict and its
+    furthest position. But the instrument's `committed` is an OCCURRENCE count (C3-B, `parser_registry.rs`:
+    tournament winners, successful-but-losing branches AND memo replays all contribute their subtree
+    with multiplicity), so the memoized sibling's subtree is counted AGAIN each time the lookahead
+    replays it, and the un-gated alternative's own successful-but-losing parses — where nothing competes
+    and the old predicate used to fail it early — are counted as well. Measured on `.3.49` over the
+    pinned sample: `interface_instantiation` entries +72,025 = memo_hits +72,025, committed +0; the
+    whole `committed` rise (+72,330) sits on four files whose verdicts, furthest positions and typed
+    ASTs are unchanged — `t_math_wallace_mul.v` alone +63,594, sixteen instantiations with the widest
+    port lists in the sample — and the un-gated `checker_instantiation` commits +32 as a losing branch.
+
+    ⛔ WHY THE OTHER TWELVE CANNOT COVER IT. `caller_split_containment`, `host_memo_eviction` and the
+    three arithmetic identities need `committed` conserved or flat; `contained_in_introduced_subgraph`
+    refuses `Δcommitted > 0`; `introduced_wrapper_frames` admits `committed` only on introduced frames
+    and here the twins commit NOTHING; `advanced_files_only` needs every moved file to have ADVANCED and
+    here no file moved its verdict or its furthest — the rise is on files whose derivation is identical;
+    `scope_gated_arm` needs scope markers; `profile_split_respelling` refuses any pre-existing rise;
+    `typed_replacement_of_opaque_terminal` and `declared_alternatives_net_of_retired_work` need retired
+    work covering the rise.
+
+    ⭐ WHAT THIS ONE ASSERTS, two-sided. (1) `introduced` declares the rules the change INTRODUCED
+    (plain names, new to the baseline), the guarded SIBLING(S) the twin consults (`!name`, pre-existing)
+    and the alternative(s) the change UN-GATED (`~name`, pre-existing) — every name in the measured
+    grammar's reference graph, at least one `!name`; (2) every guarded sibling is a PURE LOOKUP:
+    `Δentries == Δmemo_hits ≥ 0` and `Δcommitted == 0` on it; (3) NO sampled file changed its verdict or
+    its furthest position — nothing was accepted differently and nothing parsed further, so the run's
+    `Δcommitted` is occurrences, not derivations; (4) every rule whose `committed` ROSE is reachable, in the
+    reference graph, from a guarded sibling, an un-gated alternative or an introduced rule — the replayed
+    subtree and the losing branch — or is an ANCESTOR of an un-gated alternative (a losing success is
+    counted on its callers up to the choice point where it loses: `.3.49` measured `concurrent_assertion_item`,
+    `assertion_item`, `checker_or_generate_item` +32 each beside `checker_instantiation` +32) rising by at most
+    the un-gated rules' own committed rise — one frame per losing success, never more; nowhere else; (5) every rule whose `entries` ROSE is reachable from an
+    introduced or un-gated rule — the twins' frames, their lookups, the un-gated alternative's own tries — or
+    is a LOOP-CONTINUATION try: an un-gated item that now succeeds inside a body loop lets the loop try the
+    parent's other alternatives once more (`.3.49`: `final_construct`, `checker_or_generate_item_declaration`,
+    `kw_initial` +4 each), reachable from an ancestor of the un-gated rule and rising by at most the un-gated
+    rules' committed rise. Fallers are reported, never refused.
+
+    ⚠️⚠️ HONEST BOUND, IN THE PREDICATE'S OWN DOCSTRING. This proves the rise is an occurrence-count
+    ARTEFACT — identical derivations, no advance, risers confined to the subtree the guard replays and the
+    branch the un-gating lets succeed. It does NOT price the artefact away: `committed` counts a replayed
+    subtree as if it were parsed, and only an instrument that separates replayed occurrences from fresh
+    work can say the parsing cost is zero. That separation is routed (`ENGINE-UNIVERSAL-SERVICES.100`'s
+    owed follow-up: a work-only counter beside the occurrence count), so a row under this predicate
+    carries a number the metric inflates and says so.
+
+    Raises `Refused` (never a false verdict) when no guarded sibling is declared, a name is missing from
+    the graph or the measurements, an introduced name already existed, or a `!`/`~` name is new.
+    """
+    guards = [n[1:] for n in introduced if n.startswith("!")]
+    ungated = [n[1:] for n in introduced if n.startswith("~")]
+    intro = [n for n in introduced if not n.startswith(("!", "~"))]
+    if not guards:
+        raise Refused("the lookahead-replay predicate needs the guarded SIBLING the twin consults, "
+                      "declared as `!name` in the row's introduced set; none is declared, so the replayed "
+                      "subtree is unattributed")
+    known = set(edges) | {r for refs in edges.values() for r in refs}
+    unknown = [n for n in guards + ungated + intro if n not in known]
+    if unknown:
+        raise Refused(f"{unknown} name no rule in the grammar's reference graph")
+    not_new = [n for n in intro if n in base]
+    if not_new:
+        raise Refused(f"{not_new} already existed in the baseline measurement — a plain name in the "
+                      f"introduced set is a rule the change CREATED; a pre-existing rule is declared `!name` "
+                      f"(guarded sibling) or `~name` (un-gated alternative), never waived by listing")
+    missing = [n for n in guards + ungated if n not in base or n not in new]
+    if missing:
+        raise Refused(f"{missing} are declared as pre-existing (`!`/`~`) but are not measured on both sides")
+    names = set(base) | set(new)
+    origins = {r: origin_rule(r, known) for r in names}
+    unplaced = sorted(r for r, o in origins.items() if o is None)
+    if unplaced:
+        raise Refused(f"{len(unplaced)} measured rule(s) cannot be located in the grammar's reference "
+                      f"graph: {unplaced[:5]}{' …' if len(unplaced) > 5 else ''}")
+    d = lambda r, k: new.get(r, {}).get(k, 0) - base.get(r, {}).get(k, 0)
+    facts: dict = {"guards": {}, "moved_files": [], "escaped_committed": {}, "escaped_entries": {}}
+    for g in guards:
+        de, dm, dc = d(g, "entries"), d(g, "memo_hits"), d(g, "committed")
+        facts["guards"][g] = (de, dm, dc)
+        if de < 0 or de != dm or dc != 0:
+            return (False, f"guarded sibling `{g}` is not a pure lookup: entries {de:+,} memo_hits {dm:+,} "
+                           f"committed {dc:+,} — the guard parsed it afresh or a derivation accepted it more", facts)
+    for path, b in base_files.items():
+        n = new_files.get(path)
+        if n is None:
+            continue
+        if b["accepted"] != n["accepted"] or (b["furthest"] is not None and n["furthest"] is not None
+                                              and b["furthest"] != n["furthest"]):
+            facts["moved_files"].append((path, b["accepted"], n["accepted"], b["furthest"], n["furthest"]))
+    if facts["moved_files"]:
+        p0 = facts["moved_files"][0]
+        return (False, f"{len(facts['moved_files'])} sampled file(s) changed verdict or furthest (e.g. "
+                       f"{os.path.basename(p0[0])} accepted {p0[1]}->{p0[2]} furthest {p0[3]}->{p0[4]}) — "
+                       f"that is an advance, not a replay; the advanced-files predicate owns it", facts)
+    scope_c = reachable(edges, guards + ungated + intro)
+    scope_e = reachable(edges, intro + ungated)
+    # (4b) A successful-but-losing branch is counted on its CALLERS too: the un-gated rule's success
+    # propagates up the wrapper chain to the choice point where it loses (`checker_instantiation` →
+    # `concurrent_assertion_item` → `assertion_item` → `checker_or_generate_item`, +32 each on `.3.49`),
+    # and those ancestors are reached by the un-gated rule only upward. They are admitted when each
+    # rises by AT MOST the un-gated rules' own committed rise — one frame per losing success, never more.
+    rev: dict[str, list[str]] = {}
+    for parent, refs in edges.items():
+        for child in refs:
+            rev.setdefault(child, []).append(parent)
+    ancestors = reachable(rev, ungated) - set(ungated) if ungated else set()
+    ungated_rise = sum(max(0, d(u, "committed")) for u in ungated)
+    rose_c = {r: d(r, "committed") for r in names if d(r, "committed") > 0}
+    rose_e = {r: d(r, "entries") for r in names if d(r, "entries") > 0}
+    facts["ancestor_frames"] = {r: v for r, v in rose_c.items()
+                                if origins[r] not in scope_c and origins[r] in ancestors and v <= ungated_rise}
+    facts["escaped_committed"] = {r: v for r, v in rose_c.items()
+                                  if origins[r] not in scope_c and r not in facts["ancestor_frames"]}
+    # (5b) An un-gated item that now SUCCEEDS inside a body loop lets the loop continue and try the
+    # parent's other alternatives once more at the next position (`.3.49`: `final_construct`,
+    # `checker_or_generate_item_declaration`, `kw_initial` +4 each) — tries reachable from an ANCESTOR of
+    # the un-gated rule, admitted when each rises by at most the un-gated rules' committed rise: one try
+    # per success, never more.
+    from_ancestors = reachable(edges, sorted(ancestors)) if ancestors else set()
+    facts["loop_continuation_tries"] = {r: v for r, v in rose_e.items()
+                                        if origins[r] not in scope_e and origins[r] in from_ancestors and v <= ungated_rise}
+    facts["escaped_entries"] = {r: v for r, v in rose_e.items()
+                                if origins[r] not in scope_e and r not in facts["loop_continuation_tries"]}
+    facts["rose_committed"] = rose_c
+    facts["rose_entries"] = rose_e
+    facts["fell"] = {r: d(r, "entries") for r in names if d(r, "entries") < 0}
+    if facts["escaped_committed"]:
+        worst = sorted(facts["escaped_committed"].items(), key=lambda t: -t[1])[:3]
+        return (False, f"{len(facts['escaped_committed'])} rule(s) committed more OUTSIDE the sub-graph "
+                       f"reachable from {' '.join(guards + ungated + intro)} and not an ancestor of an "
+                       f"un-gated rule within its rise ({ungated_rise:+,}): "
+                       + ", ".join(f"{r} {v:+,}" for r, v in worst), facts)
+    if facts["escaped_entries"]:
+        worst = sorted(facts["escaped_entries"].items(), key=lambda t: -t[1])[:3]
+        return (False, f"{len(facts['escaped_entries'])} rule(s) rose in entries OUTSIDE the sub-graph "
+                       f"reachable from {' '.join(intro + ungated)} and not a loop-continuation try within "
+                       f"the un-gated rise ({ungated_rise:+,}): "
+                       + ", ".join(f"{r} {v:+,}" for r, v in worst), facts)
+    if not rose_c and not rose_e and not any(v[0] for v in facts["guards"].values()):
+        return (False, "nothing rose, so there is no replay for this predicate to explain", facts)
+    detail = ("lookahead replay: " + "; ".join(f"`{g}` entries {v[0]:+,} = memo_hits {v[1]:+,}, committed {v[2]:+,}"
+                                              for g, v in facts["guards"].items())
+              + f"; every sampled file keeps its verdict and furthest; {len(rose_c):,} rule(s) committed more "
+              f"({sum(rose_c.values()):+,}), all inside the {len(scope_c):,}-rule sub-graph the guard replays "
+              f"or the un-gated branch reaches"
+              + (f" or one of {len(facts['ancestor_frames'])} ancestor frame(s) of the un-gated rule within its rise ({ungated_rise:+,})" if facts["ancestor_frames"] else "")
+              + f"; {len(rose_e):,} rule(s) rose in entries ({sum(rose_e.values()):+,}), "
+              f"all reachable from the introduced / un-gated rules"
+              + (f" or {len(facts['loop_continuation_tries'])} loop-continuation tries within the un-gated rise" if facts["loop_continuation_tries"] else "")
+              + f"; {len(facts['fell']):,} fell "
+              f"({sum(facts['fell'].values()):+,}) — an occurrence-count artefact, not re-done work")
+    return (True, detail, facts)
+
+
+def self_test_lookahead_replay_occurrences() -> int:
+    """Arms for the LOOKAHEAD-REPLAY-OCCURRENCES predicate — every refusal and failure shape, no parser."""
+    def rc(e, c, m):
+        return {"entries": e, "committed": c, "memo_hits": m}
+    def fr(acc, e, c, m, fur):
+        return {"accepted": acc, "entries": e, "committed": c, "memo_hits": m, "furthest": fur}
+    edges = {"top": ["g", "u", "y"], "g": ["x"], "u": ["p"], "p": ["x"], "y": ["z"], "t": ["g", "u"]}
+    base = {"top": rc(100, 50, 0), "g": rc(40, 20, 10), "x": rc(60, 30, 5), "u": rc(40, 4, 0), "p": rc(10, 4, 0),
+            "y": rc(30, 15, 2), "z": rc(30, 15, 0)}
+    bfiles = {"a.sv": fr("yes", 200, 90, 17, None), "b.sv": fr("no", 110, 48, 0, 300)}
+    def fresh(**over):
+        n = {k: dict(v) for k, v in base.items()}
+        n["t"] = rc(40, 0, 0)                      # the introduced twin: frames, no commits
+        n["g"] = rc(80, 20, 50)                    # the guard: +40 entries = +40 memo hits, committed flat
+        n["x"] = rc(60, 45, 5)                     # the replayed subtree: committed +15 (reachable from g)
+        n["u"] = rc(48, 6, 0)                      # the un-gated branch: tries +8, committed +2
+        n["p"] = rc(14, 6, 0)                      # reachable from u
+        for k, v in over.items():
+            n[k] = v
+        return n
+    nfiles = {k: dict(v) for k, v in bfiles.items()}
+    arms, failed = [], []
+    def arm(name, cond):
+        arms.append(name); print(f"  {'✓' if cond else '✗'} {name}")
+        if not cond: failed.append(name)
+    intro = ["t", "!g", "~u"]
+    h, dd, f = lookahead_replay_occurrences(base, fresh(), edges, intro, bfiles, nfiles)
+    arm("holds: guard is a pure lookup, no file moved, committed risers inside the replayed / un-gated sub-graph", h and f["guards"]["g"] == (40, 40, 0))
+    h, dd, f = lookahead_replay_occurrences(base, fresh(g=rc(80, 20, 30)), edges, intro, bfiles, nfiles)
+    arm("fails: the guard parsed its sibling afresh (entries > memo hits)", not h and "pure lookup" in dd)
+    h, dd, f = lookahead_replay_occurrences(base, fresh(g=rc(80, 25, 50)), edges, intro, bfiles, nfiles)
+    arm("fails: the guarded sibling committed more", not h and "pure lookup" in dd)
+    h, dd, f = lookahead_replay_occurrences(base, fresh(), edges, intro, bfiles, {"a.sv": dict(bfiles["a.sv"]), "b.sv": fr("no", 110, 48, 0, 420)})
+    arm("fails: a sampled file advanced (furthest forward) — the advanced-files predicate owns it", not h and f["moved_files"] and "advance" in dd)
+    h, dd, f = lookahead_replay_occurrences(base, fresh(), edges, intro, bfiles, {"a.sv": fr("no", 200, 90, 17, 50), "b.sv": dict(bfiles["b.sv"])})
+    arm("fails: a sampled file changed verdict", not h and f["moved_files"])
+    h, dd, f = lookahead_replay_occurrences(base, fresh(y=rc(30, 20, 2)), edges, intro, bfiles, nfiles)
+    arm("fails: a committed riser OUTSIDE the replayed / un-gated sub-graph", not h and f["escaped_committed"] == {"y": 5})
+    h, dd, f = lookahead_replay_occurrences(base, fresh(top=rc(100, 52, 0)), edges, intro, bfiles, nfiles)
+    arm("holds: an ANCESTOR of the un-gated rule committed more, within the un-gated rule's own rise", h and f["ancestor_frames"] == {"top": 2})
+    h, dd, f = lookahead_replay_occurrences(base, fresh(top=rc(100, 53, 0)), edges, intro, bfiles, nfiles)
+    arm("fails: an ancestor of the un-gated rule committed MORE than the un-gated rule's rise", not h and f["escaped_committed"] == {"top": 3})
+    h, dd, f = lookahead_replay_occurrences(base, fresh(z=rc(40, 15, 0)), edges, intro, bfiles, nfiles)
+    arm("fails: an entries riser unreachable from the introduced / un-gated rules", not h and f["escaped_entries"] == {"z": 10})
+    h, dd, f = lookahead_replay_occurrences(base, fresh(y=rc(32, 15, 2)), edges, intro, bfiles, nfiles)
+    arm("holds: a sibling tried once more by the continued loop, within the un-gated rule's rise", h and f["loop_continuation_tries"] == {"y": 2})
+    h, dd, f = lookahead_replay_occurrences(base, fresh(y=rc(33, 15, 2)), edges, intro, bfiles, nfiles)
+    arm("fails: a sibling tried MORE times than the un-gated rule succeeded", not h and f["escaped_entries"] == {"y": 3})
+    h, dd, f = lookahead_replay_occurrences(base, {k: dict(v) for k, v in base.items()} | {"t": rc(0, 0, 0)}, edges, intro, bfiles, nfiles)
+    arm("fails: nothing rose — no replay to explain", not h and "nothing rose" in dd)
+    for name, sc in (("refuse: no guarded sibling declared", ["t", "~u"]),
+                     ("refuse: a name the graph lacks", ["t", "!g", "!nope"]),
+                     ("refuse: an introduced name that already existed", ["x", "!g"]),
+                     ("refuse: a `!` name that is new to the measurement", ["!t"])):
+        try:
+            lookahead_replay_occurrences(base, fresh(), edges, sc, bfiles, nfiles); arm(name, False)
+        except Refused:
+            arm(name, True)
+    print(f"LOOKAHEAD-REPLAY-OCCURRENCES-SELFTEST: arms={len(arms)} failed={len(failed)}")
+    return 1 if failed else 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--graph", metavar="EBNF",
@@ -1527,7 +1756,8 @@ def main() -> int:
         if a.self_test:
             return (self_test_host_memo_eviction() | self_test_caller_split_containment()
                     | self_test_advanced_files_only() | self_test_introduced_wrapper_frames()
-                    | self_test_scope_gated_arm() | self_test_typed_replacement_of_opaque_terminal())
+                    | self_test_scope_gated_arm() | self_test_typed_replacement_of_opaque_terminal()
+                    | self_test_lookahead_replay_occurrences())
 
         if a.graph:
             g = derive_graph(a.graph)

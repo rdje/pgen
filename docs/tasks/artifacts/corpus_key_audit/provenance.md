@@ -29,7 +29,7 @@
 
 ⇒ **trust bound: 2329 of 2534 (91.9%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
-## ⛔ The BAR's own rows (82, `sv_2017`) — a different population, a different number
+## ⛔ The BAR's own rows (79, `sv_2017`) — a different population, a different number
 
 The published defect bar is the `sv_2017` `divergence:unexplained_*` subset, **not** the whole
 key. A divergence tends to get INVESTIGATED, and investigation is exactly the event
@@ -38,12 +38,12 @@ key as a whole. Attaching the key-wide share to the bar overstates the claim.
 
 | provenance | bar rows | share |
 |---|---|---|
-| `clause-cited` | 4 | 4.9% |
-| `tool-testimony` | 16 | 19.5% |
-| `suite-convention` | 61 | 74.4% |
-| `UNCLASSIFIED` | 1 | 1.2% |
+| `clause-cited` | 3 | 3.8% |
+| `tool-testimony` | 15 | 19.0% |
+| `suite-convention` | 60 | 75.9% |
+| `UNCLASSIFIED` | 1 | 1.3% |
 
-⇒ **78 of 82 (95.1%)** of the rows *behind the published bar* rest on evidence outside the standard, against **92.6%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
+⇒ **76 of 79 (96.2%)** of the rows *behind the published bar* rest on evidence outside the standard, against **92.6%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
 
 ## By suite — where the non-clause evidence actually lives
 

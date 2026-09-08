@@ -1175,6 +1175,42 @@ def _typed_replacement_of_opaque_terminal(base_tot, new_tot, ctx):
         new_tot["committed"] - base_tot["committed"], base_edges)
     return holds, detail
 
+def _lookahead_replay_occurrences(base_tot, new_tot, ctx):
+    """The rise is an OCCURRENCE-COUNT artefact of a memo replay (`ENGINE-UNIVERSAL-SERVICES.100`,
+    `SV-CORPUS-GRAD.3.49`): a change un-gates an alternative and fronts its twin with a lookahead on a
+    sibling the engine already memoizes at that position (`!interface_instantiation`), so the guard is a
+    pure lookup (entries == memo hits, committed flat on the sibling) and no sampled file changes its
+    verdict or furthest — but `committed` counts a replayed subtree and a successful-but-losing branch
+    with multiplicity (C3-B), so it rises although no derivation moved. Holds when the row declares the
+    introduced rules, the guarded sibling(s) as `!name` and the un-gated alternative(s) as `~name`, the
+    sibling is a pure lookup, no file advanced or regressed, every `committed` riser is reachable from a
+    guard / un-gated / introduced rule (or is an ancestor of the un-gated rule rising by at most its own
+    rise — a losing success is counted on its callers) and every `entries` riser from an introduced /
+    un-gated rule (or a loop-continuation try — the continued body loop trying the parent's siblings once
+    more — bounded the same way). The
+    predicate and its refusal arms live in `scripts/parse_cost_containment.py`
+    (`lookahead_replay_occurrences`, `--self-test`); its docstring says why the other twelve cannot cover
+    this shape and carries the honest bound (the metric inflates a replay; a work-only counter is owed)."""
+    if CONTAINMENT is None:
+        raise RuntimeError(f"scripts/parse_cost_containment.py could not be imported "
+                           f"({CONTAINMENT_IMPORT_ERROR}), so this acceptance cannot be evaluated")
+    graph_path = ctx["graph"]
+    if not os.path.isfile(graph_path):
+        raise RuntimeError(f"the measured grammar's reference graph is missing ({os.path.relpath(graph_path, ROOT)})")
+    with open(graph_path, encoding="utf-8") as fh:
+        graph = json.load(fh)
+    if ctx["grammar_digest"] and graph.get("grammar_raw_ast_sha256") != ctx["grammar_digest"]:
+        raise RuntimeError(f"the reference graph was derived from grammar raw_ast "
+                           f"`{str(graph.get('grammar_raw_ast_sha256'))[:16]}…` but this tree's is "
+                           f"`{ctx['grammar_digest'][:16]}…`")
+    base_rules = CONTAINMENT.read_rule_costs(ctx["base_rule_costs"])
+    new_rules = CONTAINMENT.read_rule_costs(ctx["new_rule_costs"])
+    base_files = CONTAINMENT.read_entries(ctx["base_entries"])
+    new_files = CONTAINMENT.read_entries(ctx["new_entries"])
+    holds, detail, _facts = CONTAINMENT.lookahead_replay_occurrences(
+        base_rules, new_rules, graph["edges"], ctx["introduced"], base_files, new_files)
+    return holds, detail
+
 
 INVARIANTS = {
     "declared_alternatives_net_of_retired_work": _declared_alternatives_net_of_retired_work,
@@ -1189,6 +1225,7 @@ INVARIANTS = {
     "introduced_wrapper_frames": _introduced_wrapper_frames,
     "scope_gated_arm": _scope_gated_arm,
     "typed_replacement_of_opaque_terminal": _typed_replacement_of_opaque_terminal,
+    "lookahead_replay_occurrences": _lookahead_replay_occurrences,
 }
 
 # ⛔ WHICH INVARIANTS TAKE A SCOPE, AND THE CHECK IS TWO-SIDED. A containment row with no
@@ -1198,7 +1235,8 @@ INVARIANTS_TAKING_INTRODUCED = {"contained_in_introduced_subgraph", "declared_al
                                 "profile_split_respelling",
                                 "host_memo_eviction", "caller_split_containment",
                                 "advanced_files_only", "introduced_wrapper_frames",
-                                "scope_gated_arm", "typed_replacement_of_opaque_terminal"}
+                                "scope_gated_arm", "typed_replacement_of_opaque_terminal",
+                                "lookahead_replay_occurrences"}
 NO_INTRODUCED = "-"
 
 

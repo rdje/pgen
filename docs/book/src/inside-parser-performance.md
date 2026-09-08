@@ -517,7 +517,7 @@ re-evaluated against the fresh measurement. A row therefore cannot cover a diffe
 cover a rise of a different shape without a code change, and cannot outlive its own justification.
 
 Three of the twelve coded invariants are exact arithmetic identities over the three binding totals —
-rule entries, memo hits, committed entries. The other nine are per-rule or per-file predicates that read
+rule entries, memo hits, committed entries. The other ten are per-rule or per-file predicates that read
 the measured grammar's own reference graph: a rise confined to an introduced sub-graph, a profile
 split that only moves work, a host rule's memo eviction, a rule split by caller, a rise on files that
 parse *further*, keyword alternatives admitted net of the work a re-spelling retired,
@@ -540,7 +540,18 @@ derivation now consumes one by one), those consumed commits are at most the intr
 `committed` rise is exactly the introduced frames plus the consumed commits net of what was lost
 elsewhere, the pre-existing entry rises are covered by the entries the guard retired, and the memo rise
 is at most the typed attempts — the unguarded spelling, which tried seven directive productions at
-71 972 item positions holding no directive, is exactly what its coverage clause refuses. Each has
+71 972 item positions holding no directive, is exactly what its coverage clause refuses; and
+`lookahead_replay_occurrences` (release `1.0.223`, `ENGINE-UNIVERSAL-SERVICES.100`): a change un-gates an
+alternative and fronts its twin with a lookahead on a sibling the engine already memoizes at that position
+(`!interface_instantiation`), so the guard is a pure lookup — the sibling's entries and memo hits rise by the
+same count and it commits nothing — and no sampled file moves its verdict or furthest; yet `committed` rises,
+because it is an OCCURRENCE count that counts a memo replay and a successful-but-losing branch with
+multiplicity (C3-B), and the predicate admits exactly that artefact: the sibling a pure lookup, no file
+advanced, every `committed` riser reachable from the guard, the un-gated or the introduced rules (or an
+ancestor of the un-gated rule within its own rise — a losing success is counted on its callers), every
+`entries` riser from the introduced or un-gated ones (or a loop-continuation try, the continued body loop
+trying the parent's siblings once more, bounded the same way) — while its honest bound says the number is inflated and
+routes a work-only counter beside the occurrence count. Each has
 refusal arms in its self-test, so a row cannot
 borrow an invariant whose shape it does not have. For example, admitting one more keyword alternative into
 an ordered choice costs, at every position the choice is attempted, exactly two entries (the

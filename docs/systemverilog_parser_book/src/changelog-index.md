@@ -34,6 +34,29 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.223 / Contract 1.0.223 — SV-CORPUS-GRAD.3.49 (`PGEN-SV-CORPUS-GRAD-0380`, 2026-09-08), ledger `SV-0096` (`Released`), **schema 32 unchanged**:
+
+⭐ **A store gate that decides no parse is a resolution check Annex A never asked for.** Through `1.0.222` the unscoped
+checker name carried a `has_fact(checker_name) phase: post` gate — the 2026-03-21 semantic-fact pilot — so a checker
+instantiated BEFORE its declaration (the declaration after the module, as Surelog `CheckerInst/dut.sv` and ispras
+`14.14_05.sv` are written) or declared in another file REJECTED at its second actual whenever the actuals were sequence /
+property syntax, and `test dut(foo);` inside a `program` (iverilog `program5b.v`) rejected at `test`. IEEE 1800-2017 §3.2
+makes a checker a design element, §23.3.2 lets an instantiated name be *"previously declared or one declared later"*, and
+A.4.1.4 / A.9.3 derive `checker_instantiation` from a bare identifier. The gate never disambiguated anything: with plain
+actuals the tie goes to `module_instantiation` by order, declared checker or not. Grammar tier: the annotation is deleted and, where an
+instantiation-shaped alternative competes, a beside-module twin behind `!interface_instantiation` keeps the cost flat (the
+ungated first spelling re-read every plain-actual instantiation as property actuals, `committed +33.56 %` on the pinned
+sample, refused by the parse-cost ratchet); `1641 → 1644` rules; no engine, no codegen, no Rust.
+
+**Accept-set impact.** `sv_2017` / `sv_2023`: WIDENS by exactly the forward / cross-file checker instantiation — the
+sweep's verdict movers are the pre-registered rows (Surelog `tests/CheckerInst/dut.sv`, ispras `ieee-1800-2012/14/14.14_05.sv`, iverilog `ivltests/program5b.v` — `fail → pass` on `sv_2017` and `sv_2023`, 3 / 3 / 0 movers, 0 `pass → fail` anywhere), the bar `82 → 79` on both SV lanes (`unexplained_rejects_valid 80 → 77`, accepts-invalid 2). `verilog_2005`: none (no
+checker instantiation in IEEE 1364-2005; pin `invalid_checker_instantiation_v2005.sv` REJECTS).
+
+**AST impact — none for any file the parser accepted before.** `ast_moved=0` on every lane; a newly accepted checker
+instantiation arrives as the `{kind: "checker_instantiation", body: {name, instance, connections}}` branch documented
+since schema 26. Pins `control_checker_forward_instantiation.sv`, `control_checker_instantiation_undeclared.sv`,
+`control_checker_instantiation_in_program.sv`, `invalid_checker_instantiation_v2005.sv`.
+
 ### 1.0.222 / Contract 1.0.222 — SV-CORPUS-GRAD.3.50 (`PGEN-SV-CORPUS-GRAD-0379`, 2026-09-08), ledger `SV-0095` (`Released`), **schema 32 unchanged**:
 
 ⭐ **A profile-blind arm is an over-acceptance on every profile whose standard lacks it.** Through `1.0.221`

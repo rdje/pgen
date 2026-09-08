@@ -1100,6 +1100,11 @@ assert_property_statement := kw_assert_64b5daad kw_property_269fe373 lparen prop
 assertion_item := concurrent_assertion_item            -> {kind: "concurrent",            body: $1}
                | deferred_immediate_assertion_item     -> {kind: "deferred_immediate",    body: $1}
 
+# SV-CORPUS-GRAD.3.49 — the twin `module_common_item` reaches (see `checker_instantiation_beside_module`).
+@profiles: ["sv_2017", "sv_2023"]
+assertion_item_beside_module := concurrent_assertion_item_beside_module -> {kind: "concurrent",            body: $1}
+                             | deferred_immediate_assertion_item          -> {kind: "deferred_immediate",    body: $1}
+
 @profiles: ["sv_2017", "sv_2023"]
 assertion_item_declaration := property_declaration -> {kind: "property", body: $1}
                             | sequence_declaration -> {kind: "sequence", body: $1}
@@ -1259,7 +1264,7 @@ bind_directive := kw_bind_6bdd4db9 bind_target_scope ( colon bind_target_instanc
 bind_instantiation := program_instantiation   -> {kind: "program",   body: $1}
                    | module_instantiation     -> {kind: "module",    body: $1}
                    | interface_instantiation  -> {kind: "interface", body: $1}
-                   | checker_instantiation    -> {kind: "checker",   body: $1}
+                   | checker_instantiation_beside_module -> {kind: "checker",   body: $1}
 
 bind_target_instance := hierarchical_identifier constant_bit_select
                      -> {name: $1, bit_select: $2}
@@ -1541,6 +1546,22 @@ declared_checker_identifier := checker_identifier -> { body: $1.body }
 
 checker_instantiation := ps_checker_identifier name_of_instance lparen ( list_of_checker_port_connections )? rparen semi
                       -> {name: $1, instance: $2, connections: $4}
+
+# SV-CORPUS-GRAD.3.49 — the BESIDE-MODULE twin: the same production behind a guard, for the contexts
+# where an instantiation-shaped alternative already competes (`module_common_item` on both SV
+# profiles, `bind_instantiation`). Without the guard the tournament parses every plain-actual
+# `ident inst(args);` a second time as property / sequence actuals before losing the tie to
+# `module_instantiation` — measured on the pinned sample: `committed` +33.56 %, refused by the
+# parse-cost ratchet. `interface_instantiation` derives exactly the language `module_instantiation`
+# and `program_instantiation` derive (A.4.1.1–A.4.1.3: `identifier [ #(…) ] hierarchical_instance
+# { , hierarchical_instance } ;`) and is itself an alternative at every position this twin is tried,
+# so the negative lookahead is a memo lookup that commits nothing: an instantiation whose actuals are
+# ordinary port connections is never re-read here, and one whose actuals are sequence / property
+# syntax — which no port admits — is exactly what falls through. The unguarded `checker_instantiation`
+# stays for the contexts with no competitor: a checker body, a program (`test dut(foo);`, iverilog
+# `program5b.v`) and a procedural statement.
+checker_instantiation_beside_module := !interface_instantiation ps_checker_identifier name_of_instance lparen ( list_of_checker_port_connections )? rparen semi
+                                    -> {name: $2, instance: $3, connections: $5}
 
 checker_or_generate_item := checker_or_generate_item_declaration -> {kind: "declaration",      body: $1}
                           | initial_construct                    -> {kind: "initial",          body: $1}
@@ -1911,6 +1932,14 @@ concurrent_assertion_item := ( block_identifier colon )? concurrent_assertion_st
                                   -> {kind: "statement",             label: $1, body: $2}
                            | checker_instantiation
                                   -> {kind: "checker_instantiation", body: $1}
+
+# SV-CORPUS-GRAD.3.49 — the twin `module_common_item` reaches (see `checker_instantiation_beside_module`);
+# the same kinds, so the tree a consumer reads is byte-identical.
+@profiles: ["sv_2017", "sv_2023"]
+concurrent_assertion_item_beside_module := ( block_identifier colon )? concurrent_assertion_statement
+                                                -> {kind: "statement",             label: $1, body: $2}
+                                         | checker_instantiation_beside_module
+                                                -> {kind: "checker_instantiation", body: $1}
 
 concurrent_assertion_statement := assert_property_statement   -> {kind: "assert_property",   body: $1}
                                 | assume_property_statement   -> {kind: "assume_property",   body: $1}
@@ -4641,7 +4670,7 @@ module_ansi_header := attribute_instance* module_keyword ( declaration_lifetime_
 module_common_item_sv_2017 := module_or_generate_item_declaration -> {kind: "module_or_generate_item_declaration", body: $1}
                             | interface_instantiation             -> {kind: "interface_instantiation",             body: $1}
                             | program_instantiation               -> {kind: "program_instantiation",               body: $1}
-                            | assertion_item                      -> {kind: "assertion_item",                      body: $1}
+                            | assertion_item_beside_module        -> {kind: "assertion_item",                      body: $1}
                             | bind_directive                      -> {kind: "bind_directive",                      body: $1}
                             | continuous_assign                   -> {kind: "continuous_assign",                   body: $1}
                             | net_alias                           -> {kind: "net_alias",                           body: $1}
@@ -4656,7 +4685,7 @@ module_common_item_sv_2017 := module_or_generate_item_declaration -> {kind: "mod
 module_common_item_sv_2023 := module_or_generate_item_declaration  -> {kind: "module_or_generate_item_declaration", body: $1}
                             | interface_instantiation              -> {kind: "interface_instantiation",             body: $1}
                             | program_instantiation                -> {kind: "program_instantiation",               body: $1}
-                            | assertion_item                       -> {kind: "assertion_item",                      body: $1}
+                            | assertion_item_beside_module         -> {kind: "assertion_item",                      body: $1}
                             | bind_directive                       -> {kind: "bind_directive",                      body: $1}
                             | continuous_assign                    -> {kind: "continuous_assign",                   body: $1}
                             | net_alias                            -> {kind: "net_alias",                           body: $1}
@@ -6204,7 +6233,20 @@ property_qualifier := random_qualifier     -> {kind: "random",                bo
 property_spec := ( clocking_event )? ( kw_disable_ccf09e2d kw_iff_ee1c009e lparen expression_or_dist rparen )? property_expr
               -> {clocking: $1, disable_iff: $2, body: $3}
 
-@predicate: { name: has_fact, args: [checker_name, $body], phase: post }
+# SV-CORPUS-GRAD.3.49 — the unscoped checker name is NOT gated on a prior `checker` declaration.
+# The `has_fact checker_name … phase: post` gate that sat here since the 2026-03-21 semantic-fact
+# PILOT (3c63cf9b, an engine demonstration) rejected every LEGAL forward instantiation — a checker
+# instantiated before its declaration (IEEE 1800-2017 §3.2: a checker is a design element of the
+# compilation unit; §23.3.2: an instantiated name may be "previously declared or one declared later")
+# — and every checker declared in another compilation unit, while it decided NOTHING: for the plain
+# `ident inst(args);` form the tournament tie already goes to `module_instantiation` by order, declared
+# checker or not, so the only parses this alternative can win are the ones whose actuals are sequence /
+# property syntax no module port admits (IEEE 1800-2017 A.4.1.4 `checker_instantiation ::=
+# ps_checker_identifier name_of_instance ( [ list_of_checker_port_connections ] ) ;`, A.9.3
+# `checker_identifier ::= identifier`). Whether the name denotes a checker is resolution semantics,
+# outside Annex A, exactly as it is for `module_instantiation`. Measured: two bar rows (Surelog
+# `CheckerInst/dut.sv`, ispras `14.14_05.sv`) parse once the declaration precedes the instantiation
+# and stop at the second actual's `@` when it follows the module.
 known_unscoped_checker_identifier := checker_identifier
 
 @profiles: ["sv_2017", "sv_2023"]
