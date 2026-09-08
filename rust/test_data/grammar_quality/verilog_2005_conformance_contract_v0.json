@@ -3,11 +3,11 @@
     "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/verilog_2005_conformance_contract_v0.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
     "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
     "expectations": "confirmed",
-    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1185/370/801/14 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=363/0_mismatches aliases=2",
-    "verified_at_commit": "357129c6ae98f9bbba395ec848c88c0591b39e17",
+    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1186/370/802/14 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=363/0_mismatches aliases=2",
+    "verified_at_commit": "f32aba28cd17a6a1a28f495fa9dcd91e4836b549",
     "inputs": {
-      "generated/systemverilog_parser.rs": "c6be6302ed5fbc72ce6cc3c2240d2a9a4849a7d39a760242766ef5ad88d5e1bf",
-      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "f1b430be55b68eaeca6be8f6bdbd45f00b14dc02b268ee203bdd395732ed3210" },
+      "generated/systemverilog_parser.rs": "70e245b9b02e3f9add2da3ac42ee23f96989b65a7c5f15b00acd8178cd265ec9",
+      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "9bde8ac365dd5725828ff38b6519254867dc7a2b3419f7297d633031a6a4d02f" },
       "rust/src/ast_pipeline/grammar_wellformedness.rs": "49b795f6a34fc787f2746cf577f47988b76b7e332164eabea85eeab36b457107",
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "ebfafdd38fda2371dbcd7211b98bb5b13bfa7f9666678cd5e7d82ca7c1bc48b6",
       "rust/src/ast_pipeline/stimuli_generator.rs": "082bb1e59a4f616ce8c1592727beaffd281423c42530fc3e30e93d4619dc365d"
@@ -55,13 +55,13 @@
       "library_text:verilog_2005",
       "systemverilog_parseable_file:verilog_2005"
     ],
-    "expected_total": 1185,
+    "expected_total": 1186,
     "expected_proof": 370,
-    "expected_witness": 801,
+    "expected_witness": 802,
     "expected_unknown": 14,
     "expected_sample_parse_failures": 0,
     "expected_proof_reverify_failures": 0,
-    "baseline_note": "SV-CORPUS-GRAD.3.45 (2026-09-07, PGEN-SV-CORPUS-GRAD-0374, GRAMMAR + INSTRUMENT + SHAPE-CONTRACT tier, ledger SV-0092, release 1.0.219, schema 30 -> 31, register disposition RELEASE): -1 total (1186 -> 1185: kw_tx_path_delay_expression_7b2dee37, the unprofiled literal production-name terminal of list_of_path_delay_expressions' non-LRM seventh alternative, deleted with that alternative and the duplicate six-value sixth — IEEE 1364-2005 A.7.4 gives five forms; the terminal had been WITNESSED by generating its own literal text), proof 370 unchanged, witness 802 -> 801, UNKNOWN 14 (the identical set), sample_parse_failures 0, proof_reverify_failures 0; corpus matrix 363 checks / 0 mismatches. The four multi-value path-delay templates and block_data_type's integer-atom template move this profile's typed AST (217 raw envelopes in 120 of 2 310 accepting lane files, pre-registered by RAW-ENVELOPE-CENSUS) and nothing it accepts; the three deleted nettype identifier twins and the nettype tie-break are SV-only and outside this profile's total."
+    "baseline_note": "SV-CORPUS-GRAD.3.47 (2026-09-08, PGEN-SV-CORPUS-GRAD-0377, GRAMMAR + ANSWER-KEY tier, ledger SV-0094, release 1.0.221): +1 total (1185 -> 1186: string_literal_v2005, the IEEE 1364-2005 twin of the string-literal terminal — it refuses both the IEEE 1800 §5.9 backslash-newline continuation and a raw newline inside a string, per 1364-2005 §3.6 / A.8.8 `string ::= \" { Any_ASCII_Characters_except_new_line } \"`), proof 370 unchanged, witness 801 -> 802 (the twin witnessed), UNKNOWN 14 unchanged, sample_parse_failures 0, proof_reverify_failures 0, deterministic across seeds [0,7,42] (rust/target/verilog_2005_conformance_gate/logs: `total=1186 proof=370 witness=802 UNKNOWN=14` on every seed). ALL-POSITIVE, adjudicated rather than re-stamped. → PREVIOUS: SV-CORPUS-GRAD.3.45 (2026-09-07, PGEN-SV-CORPUS-GRAD-0374, GRAMMAR + INSTRUMENT + SHAPE-CONTRACT tier, ledger SV-0092, release 1.0.219, schema 30 -> 31, register disposition RELEASE): -1 total (1186 -> 1185: kw_tx_path_delay_expression_7b2dee37, the unprofiled literal production-name terminal of list_of_path_delay_expressions' non-LRM seventh alternative, deleted with that alternative and the duplicate six-value sixth — IEEE 1364-2005 A.7.4 gives five forms; the terminal had been WITNESSED by generating its own literal text), proof 370 unchanged, witness 802 -> 801, UNKNOWN 14 (the identical set), sample_parse_failures 0, proof_reverify_failures 0; corpus matrix 363 checks / 0 mismatches. The four multi-value path-delay templates and block_data_type's integer-atom template move this profile's typed AST (217 raw envelopes in 120 of 2 310 accepting lane files, pre-registered by RAW-ENVELOPE-CENSUS) and nothing it accepts; the three deleted nettype identifier twins and the nettype tie-break are SV-only and outside this profile's total."
   },
   "cases": [
     {

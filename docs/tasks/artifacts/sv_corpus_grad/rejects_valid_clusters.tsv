@@ -16,7 +16,6 @@ ispras-sv-tests	ieee-1800-2012/14/14.14_05.sv	97	399	@ ( ID	@($global_clock) a[*
 ispras-sv-tests	ieee-1800-2012/16/16.08_04.sv	95	303	## NUM ID	trans ##1 start_trans ##1 s ##1 end_trans;
 ispras-sv-tests	ieee-1800-2012/16/16.09.11_01.sv	156	364	## NUM ID	trans ##1 start_trans ##1 s ##1 end_trans;
 ispras-sv-tests	ieee-1800-2012/22/22.14.01_01.sv	211	235	logic ; /	reg [63:0] logic; // OK: 'logic' is not a keyword in 1364-2001
-iverilog	ivtest/ivltests/br_gh782b.v	64	63	NUM / *	/* comment */ 1          /* comment */ // comment
 iverilog	ivtest/ivltests/display_bug.v	0	110	] ID ;	word [2] array;      // word[0:1] exposes the bug as well
 iverilog	ivtest/ivltests/module_output_port_sv_var2.v	211	224	output reg ID	output reg a;
 iverilog	ivtest/ivltests/pr3366217d.v	0	465	- NUM ]	enum {ndef[-1]} ndef1;
@@ -32,7 +31,6 @@ sv-tests	tests/chapter-11/11.3.6--two_assign_in_expr-sim.sv	399	530	ID ( "	$disp
 sv-tests	tests/chapter-11/11.3.6--two_assign_in_expr.sv	345	476	module	endmodule
 sv-tests	tests/chapter-5/5.6.4--compiler-directives-begin-keywords.sv	387	407	logic ; /	reg logic; // OK: "logic" is not a keyword in 1364-2001
 sv-tests	tests/chapter-5/5.9-string-broken-line.sv	329	373	" ID \	$display("broken \
-sv-tests	tests/chapter-6/6.23--type_op_compare.sv	316	412	) type (	case (type(T))
 sv-tests	tests/chapter-6/6.9.2--vector_vectored_inv.sv	412	432	vectored [ NUM	logic vectored [15:0] a = 0;
 sv2v	test/core/delay.sv	0	24	] ID ,	logic [4] a, b;
 sv2v	test/core/enum.sv	321	333	[ NUM :	typedef enum [0:0] {
@@ -88,9 +86,6 @@ verilator	test_regress/t/t_randomize_arraysel_membersel.v	434	677	with { ID	if (
 verilator	test_regress/t/t_setuphold.v	197	1237	: NUM :	$setuphold (posedge clk, negedge d, 0:0:0, 0:0:0);
 verilator	test_regress/t/t_simulate_array.v	313	328	begin localparam ID	begin
 verilator	test_regress/t/t_std_randomize_with.v	381	901	with { ID	) with {
-verilator	test_regress/t/t_type_compare.v	266	830	== type (	if (type(real) == type(logic[12:0])) $stop;
-verilator	test_regress/t/t_type_expression_compare.v	217	338	!= type (	if (type(value1) != type(value2)) $stop;
 verilator	test_regress/t/t_typedef_package.v	259	293	:: ID {	typedef enum pkg1::uint8_t {
 verilator	test_regress/t/t_udp_nonsequential.v	923	1197	\ : NUM	0   0  x \
 verilator	test_regress/t/t_uvm_hello.v	331	463	; ` ID	class test extends uvm_test;
-verilator	test_regress/t/t_vams_basic.v	231	483	; assign ID	wreal wr;

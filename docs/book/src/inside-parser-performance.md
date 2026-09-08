@@ -523,7 +523,9 @@ split that only moves work, a host rule's memo eviction, a rule split by caller,
 parse *further*, keyword alternatives admitted net of the work a re-spelling retired,
 `introduced_wrapper_frames` (release `1.0.213`) — a `committed` rise that sits purely on the frames of
 a rule the change introduced as a lifted wrapper, bounded by the commits of the rules it wraps, with
-no pre-existing rule committing more — `scope_gated_arm` (release `1.0.214`): one arm
+no pre-existing rule committing more; since release `1.0.221` (`ENGINE-UNIVERSAL-SERVICES.99`) the same
+predicate admits a LEAF TWIN — a terminal split by edition under a profile dispatcher, which references
+nothing but `trivia` and is bounded instead by the commits of the rules that dispatch it — `scope_gated_arm` (release `1.0.214`): one arm
 of a pre-existing rule goes behind a scope, so the hosts whose bodies were re-spelled (derived from the
 two reference graphs) are asked, answered and committed exactly as before, no pre-existing rule commits
 differently in either direction, the run's `committed` rise is exactly the scope markers' own frames,

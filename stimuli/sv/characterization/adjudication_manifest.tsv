@@ -131,7 +131,7 @@ Surelog	tests/AssignSubs/dut.sv	pass	must_accept	match	Surelog: golden log Assig
 Surelog	tests/AssignmentPatternInAssignmentPattern/dut.sv	pass	must_accept	match	Surelog: golden log AssignmentPatternInAssignmentPattern.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/Assignments/dut.sv	fail	must_accept	divergence:explained_store_gate	Surelog: golden log Assignments.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar - .13w: parses once `uvm_packer` is declared (class); the sound store gate (SV-PARSE-STRICT boundary) is the only obstacle
 Surelog	tests/AssociativeArray/dut.sv	pass	must_accept	match	Surelog: golden log AssociativeArray.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
-Surelog	tests/AssumeProp/dut.sv	fail	must_accept	divergence:unexplained_rejects_valid	Surelog: golden log AssumeProp.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar - .13w: store-gate search residual:not_parsed_with_declarations (demanded: `NoMstPorts,aw_select,clk_i,slv_aw_select_i,slv_req_i`)
+Surelog	tests/AssumeProp/dut.sv	pass	must_accept	match	Surelog: golden log AssumeProp.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
 Surelog	tests/Attributes/dut.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (2 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/Attributes/test_attributes.sv	pass	chained_only	deferred:chained_only	Surelog: multi-file test unit (2 sources) - dir-level chained adjudication (leaf .4)
 Surelog	tests/Attributes2/dut.sv	pass	must_accept	match	Surelog: golden log Attributes2.log completes with no [SNT:]/[FTL:] - upstream testimony that the unit's single source parses under Surelog's IEEE 1800-2017 grammar
@@ -1955,7 +1955,7 @@ ispras-sv-tests	ieee-1800-2012/05/05.07.01_05.sv	pass	must_accept	match	ispras: 
 ispras-sv-tests	ieee-1800-2012/05/05.07.01_06.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/05/05.07.02_01.sv	fail	out_of_scope_with_cause:impl_varying	deferred:impl_varying	ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe)
 ispras-sv-tests	ieee-1800-2012/05/05.08_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
-ispras-sv-tests	ieee-1800-2012/05/05.09_01.sv	fail	must_accept	divergence:unexplained_rejects_valid	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example - .13w: store-gate search residual:not_parsed_with_declarations
+ispras-sv-tests	ieee-1800-2012/05/05.09_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/05/05.10_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/05/05.11_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
 ispras-sv-tests	ieee-1800-2012/05/05.12_01.sv	pass	must_accept	match	ispras: '// ! TYPE: POSITIVE' clause-keyed valid example
@@ -5366,7 +5366,7 @@ iverilog	ivtest/ivltests/stime.v	pass	out_of_scope_with_cause:no_sv_key	deferred
 iverilog	ivtest/ivltests/string1.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/string10.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/string11.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
-iverilog	ivtest/ivltests/string12.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
+iverilog	ivtest/ivltests/string12.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/string13.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/string14.v	fail	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
 iverilog	ivtest/ivltests/string2.v	pass	out_of_scope_with_cause:v2005_profile_lane	deferred:v2005_profile_lane	ivtest: regress-vlg.list entry - keyed for the verilog_2005 profile lane, not the sv_2017 bulk run
@@ -11306,7 +11306,7 @@ sv-tests	tests/chapter-5/5.7.2-real-token.sv	pass	must_accept	match	sv-tests: po
 sv-tests	tests/chapter-5/5.8-time-literals.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.9-string-assignment.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.9-string-basics.sv	pass	must_accept	match	sv-tests: positive test
-sv-tests	tests/chapter-5/5.9-string-broken-line.sv	fail	must_accept	divergence:unexplained_rejects_valid	sv-tests: positive test - .13w: store-gate search residual:not_parsed_with_declarations
+sv-tests	tests/chapter-5/5.9-string-broken-line.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.9-string-word-assignment.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-5/5.9.1-string-special-chars.sv	pass	must_accept	match	sv-tests: positive test
 sv-tests	tests/chapter-6/6.10--implicit_continuous_assignment.sv	pass	must_accept	match	sv-tests: positive test
@@ -13018,7 +13018,7 @@ verible	verible/verilog/tools/lint/testdata/explicit_parameter_storage_type.sv	p
 verible	verible/verilog/tools/lint/testdata/explicit_task_lifetime.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/explicit_task_parameter_type.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/forbid_consecutive_null_statements.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
-verible	verible/verilog/tools/lint/testdata/forbid_line_continuations.sv	fail	must_accept	divergence:unexplained_rejects_valid	verible: lint-rule fixture (style findings, valid syntax) - .13w: store-gate search residual:not_parsed_with_declarations
+verible	verible/verilog/tools/lint/testdata/forbid_line_continuations.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/forbid_negative_array_dim.sv	pass	must_accept	match	verible: lint-rule fixture (style findings, valid syntax)
 verible	verible/verilog/tools/lint/testdata/generate-label-module-body.sv	fail	out_of_scope_with_cause	deferred:svpp_owned	verible: '// verilog_syntax:' excerpt-mode fixture - a fragment parsed under a tool-specific mode, never a standalone unit
 verible	verible/verilog/tools/lint/testdata/generate_begin_module.sv	fail	must_reject	match	pinned .3.15: bare begin/end generate_block at line 4 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_construct / case_generate_item; neither generate_item nor module_or_generate_item has that alternative; spec outranks the verible fixture heuristic
@@ -13825,7 +13825,7 @@ verilator	test_regress/t/t_disable_task_scope_bad.v	pass	must_accept	match	veril
 verilator	test_regress/t/t_disable_task_simple.v	pass	must_accept	match	verilator: driver t_disable_task_simple.py expects success
 verilator	test_regress/t/t_disable_task_target_bad.v	pass	must_accept	match	verilator: driver t_disable_task_target_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_disable_within_task_unsup.v	pass	must_accept	match	verilator: driver t_disable_within_task_unsup.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
-verilator	test_regress/t/t_display.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_display.py expects success - .12a: parse stops where svpp cannot alter the text, so the preprocessor dependency does not explain THIS failure - .13w: store-gate search residual:not_parsed_with_declarations (demanded: `assoc_c,m,n,nine,nines,quad,quads,str,str2,str3,sub,sub2,sub3,svs,wide,wides`)
+verilator	test_regress/t/t_display.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_display.py expects success
 verilator	test_regress/t/t_display_bad.v	pass	must_accept	match	verilator: driver t_display_bad.py fails=True but golden .out is a post-parse tool error (lint/elab/unsupported) - syntax valid
 verilator	test_regress/t/t_display_brace.v	pass	must_accept	match	verilator: driver t_display_brace.py expects success
 verilator	test_regress/t/t_display_class.v	pass	must_accept	match	verilator: driver t_display_class.py expects success
@@ -13842,7 +13842,7 @@ verilator	test_regress/t/t_display_l.v	pass	must_accept	match	verilator: driver 
 verilator	test_regress/t/t_display_mcd.v	pass	must_accept	match	verilator: driver t_display_mcd.py expects success
 verilator	test_regress/t/t_display_merge.v	fail	must_accept	divergence:explained_svpp_conditional	verilator: driver t_display_merge.py expects success
 verilator	test_regress/t/t_display_p_elab.v	fail	must_accept	divergence:explained_svpp_macro_use	verilator: driver t_display_p_elab.py expects success
-verilator	test_regress/t/t_display_qqq.v	fail	must_accept	divergence:unexplained_rejects_valid	verilator: driver t_display_qqq.py expects success - .13w: store-gate search residual:not_parsed_with_declarations
+verilator	test_regress/t/t_display_qqq.v	fail	must_reject	match	pinned .3.47: line 10 `$display("""First "quoted"\nsecond\` … `fourth""");` - a TRIPLE-QUOTED string literal. IEEE 1800-2023 5.9 (docs/systemverilog/2023/md/section-5-lexical-conventions.md:436-452): `string_literal ::= quoted_string | triple_quoted_string`, `triple_quoted_string ::= """ { triple_quoted_string_item | string_escape_seq } """`; IEEE 1800-2017 5.9 (docs/systemverilog/2017/md/section-32-h-12ab-f001.md:99-102) defines the double-quoted form ALONE, so under 1800-2017 `""` is an empty string and the third `"` opens a string that runs to the next quote - the text has no derivation in the edition this lane judges. EDITION CONTRAST, the .13x.d shape: REJECTS on sv_2017 (furthest_position at the third quote of line 10) and, since 1.0.221, ACCEPTS on sv_2023, where the string terminal's 2023 twin carries the triple-quoted alternative ({kind: "triple_quoted", body}). Pins control_string_triple_quoted_sv2023.sv / invalid_string_triple_quoted_under_2017.sv. Spec outranks the verilator driver key (a passing test = must_accept): verilator is a 2023 tool
 verilator	test_regress/t/t_display_real.v	pass	must_accept	match	verilator: driver t_display_real.py expects success
 verilator	test_regress/t/t_display_realtime.v	pass	must_accept	match	verilator: driver t_display_realtime.py expects success
 verilator	test_regress/t/t_display_recurse.v	pass	must_accept	match	verilator: driver t_display_recurse.py expects success

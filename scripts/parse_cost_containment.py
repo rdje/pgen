@@ -822,7 +822,14 @@ def introduced_wrapper_frames(base: dict[str, dict[str, int]], new: dict[str, di
           the parser already accepted them;
       (4) every introduced NONTERMINAL commits at most as often as the rules it references
           (`trivia` excluded) commit in total — a wrapper frame is never committed without a
-          frame of something it wraps; an introduced rule that references nothing is refused;
+          frame of something it wraps; an introduced rule that references nothing is a LEAF TWIN
+          (`ENGINE-UNIVERSAL-SERVICES.99`, `SV-CORPUS-GRAD.3.47`: a terminal split by edition under a
+          profile DISPATCHER — `string_literal := string_literal_sv_2017 | string_literal_sv_2023 |
+          string_literal_v2005` — enters one frame per dispatcher entry and commits one per dispatcher
+          commit), admitted when at least one rule references it and it commits at most as often as
+          the rules that reference it commit in total — the same bound read from the other side, a
+          twin frame is never committed without the dispatcher's; a rule that references nothing AND
+          is referenced by nothing is refused, unattributable;
       (5) the run's total `Δcommitted` equals the introduced rules' commits net of every commit the
           pre-existing and retired rules lost — the per-rule table and the totals agree, so the
           row's exact from/to is the wrapper's own arithmetic and nothing else;
@@ -864,23 +871,35 @@ def introduced_wrapper_frames(base: dict[str, dict[str, int]], new: dict[str, di
         return False, (f"{len(pre_rose)} pre-existing rule(s) COMMIT more than before: "
                        + " ".join(f"{r} {v:+,}" for r, v in pre_rose[:5])), facts
     over = []
+    leaf_twins: list = []
     for r in declared:
         if r in known_before:
             continue
         refs = [x for x in edges.get(r, []) if x != "trivia"]
         if r not in edges:
             continue
-        if not refs:
-            raise Refused(f"introduced rule `{r}` references nothing — a wrapper wraps something")
         own = new.get(r, {}).get("committed", 0)
+        if not refs:
+            # a LEAF TWIN: the frame belongs to the rules that reference it (its profile dispatcher)
+            dispatchers = sorted(d for d, targets in edges.items() if r in targets and d != r)
+            if not dispatchers:
+                raise Refused(f"introduced rule `{r}` references nothing and nothing references it — "
+                              f"a wrapper wraps something, a leaf twin is dispatched by something")
+            leaf_twins.append((r, dispatchers))
+            wrapped = sum(new.get(x, {}).get("committed", 0) for x in dispatchers)
+            if own > wrapped:
+                over.append((r, own, wrapped))
+            continue
         wrapped = sum(new.get(x, {}).get("committed", 0) for x in refs)
         if own > wrapped:
             over.append((r, own, wrapped))
     facts["wrapper_over_wrapped"] = over
+    facts["leaf_twins"] = leaf_twins
     if over:
         r, own, wrapped = over[0]
-        return False, (f"introduced `{r}` committed {own:,} frames but the rules it wraps committed only "
-                       f"{wrapped:,} in total — a wrapper frame without a wrapped one"), facts
+        return False, (f"introduced `{r}` committed {own:,} frames but the rules it wraps (or, for a leaf twin, "
+                       f"the rules that dispatch it) committed only {wrapped:,} in total — a frame without the one it "
+                       f"belongs to"), facts
     intro_commits = sum(new.get(r, {}).get("committed", 0) for r in declared if r not in known_before)
     lost = sum(-v for r, v in dc.items() if v < 0)
     facts["introduced_commits"] = intro_commits
@@ -950,10 +969,22 @@ def self_test_introduced_wrapper_frames() -> int:
     try:
         introduced_wrapper_frames(base, new, edges, ["w", "op", "zz"], d_committed(base, new), base_edges); arm("refuse: a declared name the grammar lacks", False)
     except Refused: arm("refuse: a declared name the grammar lacks", True)
-    e2 = dict(edges); e2["w"] = []
+    e2 = dict(edges); e2["w"] = []; e2["chain"] = ["operand"]
     try:
-        introduced_wrapper_frames(base, new, e2, ["w", "op"], d_committed(base, new), base_edges); arm("refuse: an introduced rule that wraps nothing", False)
-    except Refused: arm("refuse: an introduced rule that wraps nothing", True)
+        introduced_wrapper_frames(base, new, e2, ["w", "op"], d_committed(base, new), base_edges); arm("refuse: an introduced rule that wraps nothing AND is dispatched by nothing", False)
+    except Refused: arm("refuse: an introduced rule that wraps nothing AND is dispatched by nothing", True)
+    # ENGINE-UNIVERSAL-SERVICES.99 (SV-CORPUS-GRAD.3.47): a LEAF TWIN under a profile dispatcher — `lit` (pre-existing,
+    # was a terminal) now dispatches to the new terminal twin `lit_a`, which references only trivia; every `lit` entry /
+    # commit is mirrored by one `lit_a` entry / commit and nothing else moves
+    e3 = dict(edges); e3["lit"] = ["lit_a", "lit_b"]; e3["lit_a"] = ["trivia"]; e3["lit_b"] = ["trivia"]; e3["other"] = ["trivia", "lit"]
+    be3 = dict(base_edges); be3["lit"] = ["trivia"]; be3["other"] = ["trivia", "lit"]
+    b3 = {k: dict(v) for k, v in base.items()}; b3["lit"] = row(300, 20, 5)
+    n3b = {k: dict(v) for k, v in base.items()}; n3b["lit"] = row(300, 20, 5); n3b["lit_a"] = row(300, 20, 0)
+    h, d, f = introduced_wrapper_frames(b3, n3b, e3, ["lit_a", "lit_b"], d_committed(b3, n3b), be3)
+    arm("holds: a leaf twin under a profile dispatcher — its frames equal the dispatcher's, nothing else moves", h and f["leaf_twins"] == [("lit_a", ["lit"]), ("lit_b", ["lit"])] and f["introduced_commits"] == 20)
+    n3c = {k: dict(v) for k, v in n3b.items()}; n3c["lit_a"] = row(300, 21, 0)
+    h, d, f = introduced_wrapper_frames(b3, n3c, e3, ["lit_a", "lit_b"], d_committed(b3, n3c), be3)
+    arm("fails: a leaf twin commits MORE than its dispatcher", not h and f["wrapper_over_wrapped"][0][0] == "lit_a")
     h, d, f = introduced_wrapper_frames(base, new, edges, ["w", "op", "kw"], d_committed(base, new), base_edges)
     arm("holds: a pre-existing TERMINAL may be declared (it is never waived work)", h)
     print(f"INTRODUCED-WRAPPER-FRAMES-SELFTEST: arms={len(arms)} failed={len(failed)}")

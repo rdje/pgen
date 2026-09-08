@@ -1,24 +1,24 @@
 # SV external-corpus adjudication - the sv_2023 profile lane (leaf SV-CORPUS-GRAD.14b.2)
 
-Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, parsed under `--profile sv_2023`); expected verdicts = the sv_2017 key read EDITION-RELATIVELY: 19 rows the 2017 key rules edition contrasts are `must_accept` here (the 1800-2023 production is cited in their basis); 12 rows are `must_accept` by an explicit 1800-2023 reading (text 1800-2023 derives whose upstream failure is semantic); every other row inherits its 2017 ruling.
+Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, parsed under `--profile sv_2023`); expected verdicts = the sv_2017 key read EDITION-RELATIVELY: 20 rows the 2017 key rules edition contrasts are `must_accept` here (the 1800-2023 production is cited in their basis); 12 rows are `must_accept` by an explicit 1800-2023 reading (text 1800-2023 derives whose upstream failure is semantic); every other row inherits its 2017 ruling.
 
 | suite | rows | match | UNEXPLAINED div | explained div | deferred |
 |---|---|---|---|---|---|
 | Cores-VeeR-EL2 | 102 | 0 | 0 | 0 | 102 |
-| Surelog | 828 | 573 | 9 | 46 | 200 |
+| Surelog | 828 | 574 | 8 | 46 | 200 |
 | black-parrot | 205 | 0 | 0 | 0 | 205 |
 | friscv | 441 | 0 | 0 | 0 | 441 |
-| ispras-sv-tests | 1266 | 795 | 9 | 16 | 446 |
+| ispras-sv-tests | 1266 | 796 | 8 | 16 | 446 |
 | iverilog | 3799 | 1025 | 10 | 233 | 2531 |
 | opentitan | 3983 | 0 | 0 | 0 | 3983 |
 | scr1 | 50 | 0 | 0 | 0 | 50 |
 | slang | 92 | 54 | 1 | 15 | 22 |
-| sv-tests | 1028 | 805 | 5 | 123 | 95 |
+| sv-tests | 1028 | 806 | 4 | 123 | 95 |
 | sv2v | 953 | 481 | 16 | 87 | 369 |
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
-| verible | 152 | 114 | 7 | 9 | 22 |
-| verilator | 3263 | 2123 | 35 | 973 | 132 |
-| **total** | **16336** | **5970** | **92** | **1502** | **8772** |
+| verible | 152 | 115 | 6 | 9 | 22 |
+| verilator | 3263 | 2124 | 33 | 974 | 132 |
+| **total** | **16336** | **5975** | **86** | **1503** | **8772** |
 
 ## Verdict-class detail
 
@@ -33,15 +33,15 @@ Input: `results_sv2023.tsv` (16336 rows - the SAME population as `results.tsv`, 
 | deferred:v2005_profile_lane | 2606 |
 | deferred:verilog_ams_lane | 25 |
 | divergence:explained_store_gate | 56 |
-| divergence:explained_svpp_conditional | 197 |
+| divergence:explained_svpp_conditional | 198 |
 | divergence:explained_svpp_include | 140 |
 | divergence:explained_svpp_macro_use | 1105 |
 | divergence:explained_svpp_protected_envelope | 4 |
 | divergence:unexplained_accepts_invalid | 2 |
-| divergence:unexplained_rejects_valid | 90 |
-| match | 5970 |
+| divergence:unexplained_rejects_valid | 84 |
+| match | 5975 |
 
-**The sv_2023 arm's burn-down baseline = the UNEXPLAINED divergence count (92: rejects-valid 90, accepts-invalid 2, crash 0)** - a separate arm from the sv_2017 baseline over the same files.
+**The sv_2023 arm's burn-down baseline = the UNEXPLAINED divergence count (86: rejects-valid 84, accepts-invalid 2, crash 0)** - a separate arm from the sv_2017 baseline over the same files.
 
 ✅ **Re-read under 1800-2023 (.14b.3):** 48 inherited `must_reject` rulings carry over MECHANICALLY - every 1800-2017 production their 2017 basis cites reads identically in 1800-2023 Annex A (`production_parity.py`, its artifact `docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/parity.md`) - and 8 carry over BY HAND with the changed 2023 production cited in the basis.
 

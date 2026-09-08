@@ -34,6 +34,30 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.221 / Contract 1.0.221 — SV-CORPUS-GRAD.3.47 (`PGEN-SV-CORPUS-GRAD-0377`, 2026-09-08), ledger `SV-0094` (`Released`), **schema 32 unchanged**:
+
+⭐ **The string literal is split by edition, and measured in both directions.** One terminal, `/"([^"\\]|\\.)*"/`, had
+served every profile since `1.0.0`, and it was wrong for each standard in a different direction. IEEE 1800-2017 /
+1800-2023 §5.9's backslash-newline CONTINUATION — `$display("Humpty Dumpty sat on a wall. \` + newline + `…");`, the
+standard's own example — REJECTED at the backslash on every profile, because the regex crate's `.` in `\\.` does not
+match a newline (five bar rows: Surelog `AssumeProp`, ispras `05.09_01`, sv-tests `5.9-string-broken-line`, verible
+`forbid_line_continuations`, verilator `t_display`); a RAW newline inside a string, which both 1800 editions and IEEE
+1364-2005 §3.6 / A.8.8 forbid, parsed on every profile (`[^"\\]` admits it; 0 accepting corpus rows carried one). Grammar
+tier: three edition twins under `@profiles`, `1637 → 1640` rules; no engine, no codegen, no Rust.
+
+**Accept-set impact.** `sv_2017` / `sv_2023`: the continuation is admitted; a bare newline inside a string is refused (the
+one narrowing — it moves no accepted row). `sv_2023` additionally admits IEEE 1800-2023 §5.9's TRIPLE-QUOTED string
+`"""…"""` (any character except `\` inside; escapes as `\` + any character; no look-around in the regex) as
+`{kind: "triple_quoted", body}` — verilator `t_display_qqq.v`, an EDITION CONTRAST keyed `must_reject` on the 2017 lane and
+`must_accept` on the 2023 lane. `verilog_2005`: unchanged — the 1364-2005 twin refuses both the continuation and the raw
+newline, and iverilog `string12.v` (a continuation) is re-keyed `must_reject` there on §3.6 / A.8.8.
+
+**AST impact — none for any string the parser accepted before.** Every double-quoted twin carries the shipped
+`{kind: "double_quoted", body}` template, `body` the source text verbatim (quotes excluded; a continuation stays in the
+text — §5.9's *ignored* is the consumer's reading), so the corpus AST identity sweep reads `ast_moved=0` on every lane.
+Pins `control_string_line_continuation.sv` / `invalid_string_line_continuation_v2005.sv` / `invalid_string_raw_newline.sv` /
+`control_string_escapes.sv` / `control_string_triple_quoted_sv2023.sv` / `invalid_string_triple_quoted_under_2017.sv`.
+
 ### 1.0.220 / Contract 1.0.220 — SV-CORPUS-GRAD.3.46 (`PGEN-SV-CORPUS-GRAD-0376`, 2026-09-07), ledger `SV-0093` (`Released`), **schema 31 → 32**:
 
 ⭐ **The last integer-vector shape without a `kind`, and the nettype alias-head guard's blind spot.** `.3.45` typed the

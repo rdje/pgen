@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-722e76bc.js";
+            window.path_to_searchindex_js = "searchindex-b6fc9c10.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -258,16 +258,16 @@ inapplicable one.</li>
 <tr><th>Outcome</th><th style="text-align: right">Rows</th><th style="text-align: right">Share of the corpus</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">5 978</td><td style="text-align: right">36.6 %</td></tr>
-<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 494</td><td style="text-align: right">9.1 %</td></tr>
-<tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">92</td><td style="text-align: right">0.6 %</td></tr>
+<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">5 983</td><td style="text-align: right">36.6 %</td></tr>
+<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 495</td><td style="text-align: right">9.2 %</td></tr>
+<tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">86</td><td style="text-align: right">0.5 %</td></tr>
 <tr><td>Routed to another lane’s manifest</td><td style="text-align: right">2 606</td><td style="text-align: right">16.0 %</td></tr>
 <tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">6 166</td><td style="text-align: right">37.7 %</td></tr>
 <tr><td>Total</td><td style="text-align: right">16 336</td><td style="text-align: right">100.0 %</td></tr>
 </tbody>
 </table>
 </div>
-<p>Only <strong>7 564 rows (46.3 %)</strong> were asked a question they could answer, and <strong>4 025</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 5978/7564 would quietly drop the 37.7 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
+<p>Only <strong>7 564 rows (46.3 %)</strong> were asked a question they could answer, and <strong>4 025</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 5983/7564 would quietly drop the 37.7 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
@@ -1065,6 +1065,7 @@ shapes, each carrying a <code>kind</code> discriminator).</p>
 <tr><td><code>conditional_expression</code></td><td><code>-&gt; {predicate, attributes, then_expr, else_expr}</code></td><td>Ternary <code>? :</code> form. The <code>&amp;question</code> positive lookahead is preserved unchanged from source grammar.</td></tr>
 <tr><td><code>tagged_union_expression_sv_2017</code> / <code>tagged_union_expression_sv_2023</code></td><td><code>-&gt; {name, value}</code></td><td><code>tagged member_name [value]</code> form. sv_2023 uses <code>primary</code> for value (more restrictive); sv_2017 uses <code>expression</code>.</td></tr>
 <tr><td><code>primary_literal</code> (4 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"number"</code> / <code>"time_literal"</code> / <code>"unbased_unsized_literal"</code> (<code>'0</code> / <code>'1</code> / <code>'x</code> / <code>'z</code>) / <code>"string_literal"</code>.</td></tr>
+<tr><td><code>string_literal</code> / <code>string_literal_sv_2017</code> / <code>string_literal_sv_2023</code> / <code>string_literal_v2005</code> (<strong>since <code>1.0.221</code>, <code>SV-CORPUS-GRAD.3.47</code></strong>)</td><td><code>{kind: "double_quoted", body: $2}</code> on every double-quoted twin; <code>{kind: "triple_quoted", body: $2}</code> on the <code>sv_2023</code> twin’s <code>"""…"""</code> alternative</td><td>The string literal, one twin per edition (the SELECTION-dispatcher pattern) because the three standards disagree: IEEE 1800-2017 / 1800-2023 §5.9 admit a <code>\</code> + newline CONTINUATION inside a string and refuse a bare newline; IEEE 1364-2005 §3.6 / A.8.8 refuse both; IEEE 1800-2023 §5.9 adds the TRIPLE-QUOTED string (<code>"""…"""</code>, any character except <code>\</code> inside — a bare <code>"</code> and a bare newline included, escapes as <code>\</code> + any character). <code>body</code> is the SOURCE TEXT verbatim, quotes excluded, continuation included: §5.9 says the backslash and the newline are <em>ignored</em>, which is the consumer’s reading, not a rewrite of the source. Through <code>1.0.220</code> one terminal served every profile and REJECTED the continuation (the regex crate’s <code>.</code> cannot match a newline) while ADMITTING a raw newline; the <code>triple_quoted</code> kind is an addition reachable only on text no earlier release accepted, so schema 32 is unchanged.</td></tr>
 <tr><td><code>binary_operator</code> (29 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"plus"</code> / <code>"minus"</code> / <code>"star"</code> / <code>"slash"</code> / <code>"percent"</code> / <code>"equal"</code> / <code>"not_equal"</code> / <code>"case_equal"</code> / <code>"case_not_equal"</code> / <code>"wildcard_equal"</code> / <code>"wildcard_not_equal"</code> / <code>"logical_and"</code> / <code>"logical_or"</code> / <code>"power"</code> / <code>"less_than"</code> / <code>"less_equal"</code> / <code>"greater_than"</code> / <code>"greater_equal"</code> / <code>"bitwise_and"</code> / <code>"bitwise_or"</code> / <code>"bitwise_xor"</code> / <code>"reduction_xnor_alt"</code> / <code>"reduction_xnor"</code> / <code>"shift_right"</code> / <code>"shift_left"</code> / <code>"arithmetic_shift_right"</code> / <code>"arithmetic_shift_left"</code> / <code>"implies"</code> / <code>"iff_arrow"</code>.</td></tr>
 <tr><td><code>unary_operator</code> (11 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"plus"</code> / <code>"minus"</code> / <code>"bang"</code> / <code>"tilde"</code> / <code>"bitwise_and"</code> / <code>"reduction_nand"</code> / <code>"bitwise_or"</code> / <code>"reduction_nor"</code> / <code>"bitwise_xor"</code> / <code>"reduction_xnor"</code> / <code>"reduction_xnor_alt"</code>.</td></tr>
 <tr><td><code>primary_sv_2017</code> (15 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"literal"</code> / <code>"call"</code> / <code>"hierarchical"</code> (<code>{scope, name, select}</code>) / <code>"empty_array_concat"</code> / <code>"multiple_concat"</code> (<code>{body, select}</code>) / <code>"concat"</code> / <code>"let"</code> / <code>"paren"</code> / <code>"cast"</code> / <code>"assign_pattern"</code> / <code>"streaming_concat"</code> / <code>"sequence_method"</code> / <code>"this"</code> (bare) / <code>"system_dollar"</code> (bare) / <code>"null_class_assign"</code> (<code>{local_n, scope}</code> — rare LRM null:= form).</td></tr>
@@ -2384,6 +2385,26 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10221--contract-10221--sv-corpus-grad347-pgen-sv-corpus-grad-0377-2026-09-08-ledger-sv-0094-released-schema-32-unchanged"><a class="header" href="#10221--contract-10221--sv-corpus-grad347-pgen-sv-corpus-grad-0377-2026-09-08-ledger-sv-0094-released-schema-32-unchanged">1.0.221 / Contract 1.0.221 — SV-CORPUS-GRAD.3.47 (<code>PGEN-SV-CORPUS-GRAD-0377</code>, 2026-09-08), ledger <code>SV-0094</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
+<p>⭐ <strong>The string literal is split by edition, and measured in both directions.</strong> One terminal, <code>/"([^"\\]|\\.)*"/</code>, had
+served every profile since <code>1.0.0</code>, and it was wrong for each standard in a different direction. IEEE 1800-2017 /
+1800-2023 §5.9’s backslash-newline CONTINUATION — <code>$display("Humpty Dumpty sat on a wall. \</code> + newline + <code>…");</code>, the
+standard’s own example — REJECTED at the backslash on every profile, because the regex crate’s <code>.</code> in <code>\\.</code> does not
+match a newline (five bar rows: Surelog <code>AssumeProp</code>, ispras <code>05.09_01</code>, sv-tests <code>5.9-string-broken-line</code>, verible
+<code>forbid_line_continuations</code>, verilator <code>t_display</code>); a RAW newline inside a string, which both 1800 editions and IEEE
+1364-2005 §3.6 / A.8.8 forbid, parsed on every profile (<code>[^"\\]</code> admits it; 0 accepting corpus rows carried one). Grammar
+tier: three edition twins under <code>@profiles</code>, <code>1637 → 1640</code> rules; no engine, no codegen, no Rust.</p>
+<p><strong>Accept-set impact.</strong> <code>sv_2017</code> / <code>sv_2023</code>: the continuation is admitted; a bare newline inside a string is refused (the
+one narrowing — it moves no accepted row). <code>sv_2023</code> additionally admits IEEE 1800-2023 §5.9’s TRIPLE-QUOTED string
+<code>"""…"""</code> (any character except <code>\</code> inside; escapes as <code>\</code> + any character; no look-around in the regex) as
+<code>{kind: "triple_quoted", body}</code> — verilator <code>t_display_qqq.v</code>, an EDITION CONTRAST keyed <code>must_reject</code> on the 2017 lane and
+<code>must_accept</code> on the 2023 lane. <code>verilog_2005</code>: unchanged — the 1364-2005 twin refuses both the continuation and the raw
+newline, and iverilog <code>string12.v</code> (a continuation) is re-keyed <code>must_reject</code> there on §3.6 / A.8.8.</p>
+<p><strong>AST impact — none for any string the parser accepted before.</strong> Every double-quoted twin carries the shipped
+<code>{kind: "double_quoted", body}</code> template, <code>body</code> the source text verbatim (quotes excluded; a continuation stays in the
+text — §5.9’s <em>ignored</em> is the consumer’s reading), so the corpus AST identity sweep reads <code>ast_moved=0</code> on every lane.
+Pins <code>control_string_line_continuation.sv</code> / <code>invalid_string_line_continuation_v2005.sv</code> / <code>invalid_string_raw_newline.sv</code> /
+<code>control_string_escapes.sv</code> / <code>control_string_triple_quoted_sv2023.sv</code> / <code>invalid_string_triple_quoted_under_2017.sv</code>.</p>
 <h3 id="10220--contract-10220--sv-corpus-grad346-pgen-sv-corpus-grad-0376-2026-09-07-ledger-sv-0093-released-schema-31--32"><a class="header" href="#10220--contract-10220--sv-corpus-grad346-pgen-sv-corpus-grad-0376-2026-09-07-ledger-sv-0093-released-schema-31--32">1.0.220 / Contract 1.0.220 — SV-CORPUS-GRAD.3.46 (<code>PGEN-SV-CORPUS-GRAD-0376</code>, 2026-09-07), ledger <code>SV-0093</code> (<code>Released</code>), <strong>schema 31 → 32</strong>:</a></h3>
 <p>⭐ <strong>The last integer-vector shape without a <code>kind</code>, and the nettype alias-head guard’s blind spot.</strong> <code>.3.45</code> typed the
 partial-typing residue and measured two items on its way out: <code>block_data_type</code> alternative 1 — the block-scoped integer

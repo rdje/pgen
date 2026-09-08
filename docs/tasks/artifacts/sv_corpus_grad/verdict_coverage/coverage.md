@@ -6,8 +6,8 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `58e598cfc555e74346a3e7e83cb1eb11d9abf771d3621bbf4dd231d1de58c5b6` |
-| v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `255df369be34a0cf7ab8bdc0f1e530fce47e4f16f43da46d681a4c3120f3ceca` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `7ed567966bf9632943ec09ca83c875d49ba9fed2f3a126ade4e33a89b552bdab` |
+| v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `e6c2927b389020d5d7041618888d1e282d31d27a14a707ddbe75eb5c850601a1` |
 
 ## The headline
 
@@ -19,11 +19,11 @@
 
 | bucket | adjudication class | rows | % | why |
 |---|---|---:|---:|---|
-| ADJUDICATED | `match` | 5,978 | 36.6 % | expected and observed agree - the row testifies FOR the parser |
+| ADJUDICATED | `match` | 5,983 | 36.6 % | expected and observed agree - the row testifies FOR the parser |
 | ADJUDICATED | `divergence:explained_svpp_macro_use` | 1,097 | 6.7 % | parse stops on a macro use - positionally gated since .12a |
-| ADJUDICATED | `divergence:explained_svpp_conditional` | 197 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
+| ADJUDICATED | `divergence:explained_svpp_conditional` | 198 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_svpp_include` | 140 | 0.9 % | parse stops on an `include - positionally gated since .12a |
-| ADJUDICATED | `divergence:unexplained_rejects_valid` | 90 | 0.6 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
+| ADJUDICATED | `divergence:unexplained_rejects_valid` | 84 | 0.5 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
 | ADJUDICATED | `divergence:explained_store_gate` | 56 | 0.3 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
 | ADJUDICATED | `divergence:explained_svpp_protected_envelope` | 4 | 0.0 % | IEEE 1800-2017 §34 encrypted envelope - not source text yet |
 | ADJUDICATED | `divergence:unexplained_accepts_invalid` | 2 | 0.0 % | a known defect: invalid SV the parser accepts (the axis-2 bar) |

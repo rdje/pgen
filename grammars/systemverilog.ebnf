@@ -919,7 +919,38 @@ string_type_sv_only := kw_string_ecb25204
 #
 # Effect: eliminates the catastrophic-backtracking hot loop. Parser-
 # AGNOSTIC level 0 (grammar simplification).
-string_literal := trivia /"([^"\\]|\\.)*"/        -> {kind: "double_quoted", body: $2}
+# SV-CORPUS-GRAD.3.47 (release 1.0.221): the string literal is split by EDITION, both directions measured. IEEE 1800-2017
+# §5.9 (docs/systemverilog/2017/md/section-32-h-12ab-f001.md:101-102; 1800-2023 §5.9 docs/systemverilog/2023/md/
+# section-5-lexical-conventions.md:463-464): "A string literal shall be contained in a single line unless the newline
+# character is immediately preceded by a \ (backslash). In this case, the backslash and the newline character are ignored."
+# IEEE 1364-2005 §3.6 (docs/verilog/2005/md/section-3-lexical-conventions.md:299) / A.8.8 `string ::= " { Any_ASCII_
+# Characters_except_new_line } "`: "contained on a single line", no continuation. Through 1.0.220 ONE terminal served every
+# profile: `\\.` could not match a newline (the `.` of the regex crate stops at `\n`), so the SV continuation `"broken \<nl>
+# line"` REJECTED at the backslash on every profile (5 bar rows), while `[^"\\]` admitted a RAW newline inside a string on
+# every profile — an over-acceptance both standards forbid (0 accepting corpus rows). The SV twin admits `\` + any character
+# (the newline, a CRLF pair, or an escape) and refuses a bare newline; the 1364-2005 twin refuses both. The body is the
+# source text verbatim ($2), continuation included — dropping the backslash and the newline is the consumer's reading
+# (§5.9 says the two are "ignored", not absent from the source). Named twins under @profiles, not an inline guard, by the
+# `-0289` engine ruling (a named rule is visible to the profile lints, both certificate baselines and rule_costs.tsv).
+# IEEE 1800-2023 §5.9 (docs/systemverilog/2023/md/section-5-lexical-conventions.md:436-452) adds the TRIPLE-QUOTED string
+# `""" … """` — `triple_quoted_string ::= """ { triple_quoted_string_item | string_escape_seq } """`, an item being any ASCII
+# character except `\` (a bare `"` and a bare newline included) — so the sv_2023 twin carries it as a second alternative
+# (`{kind: "triple_quoted", body}`); 1800-2017 has no such form, so under sv_2017 it is an EDITION CONTRAST that rejects.
+# The regex spells "no `"""` inside" without look-around (the regex crate has none; the pre-`-0289` attempt hung on that):
+# a `"` is admitted when followed by a non-quote, a `""` when followed by a non-quote, escapes as `\` + any character.
+string_literal := string_literal_sv_2017
+                | string_literal_sv_2023
+                | string_literal_v2005
+
+@profiles: ["sv_2017"]
+string_literal_sv_2017 := trivia /"([^"\\\n]|\\(?:\r\n|[\s\S]))*"/        -> {kind: "double_quoted", body: $2}
+
+@profiles: ["sv_2023"]
+string_literal_sv_2023 := trivia /"""((?:[^"\\]|\\[\s\S]|"[^"\\]|"\\[\s\S]|""[^"\\]|""\\[\s\S])*)"""/        -> {kind: "triple_quoted", body: $2}
+                       | trivia /"([^"\\\n]|\\(?:\r\n|[\s\S]))*"/        -> {kind: "double_quoted", body: $2}
+
+@profiles: ["verilog_2005"]
+string_literal_v2005 := trivia /"([^"\\\n]|\\[^\n])*"/        -> {kind: "double_quoted", body: $2}
 
 unbased_unsized_literal := trivia /'(0|1|x|X|z|Z)/
 

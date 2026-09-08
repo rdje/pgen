@@ -10,11 +10,11 @@ Both lanes parse the SAME population — every `.sv` / `.svh` / `.v` file under 
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `28948d5cd63c747df1f5624a6b6a0797ae49563b9da132cba43b851c2c491e8f` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `f1b430be55b68eaeca6be8f6bdbd45f00b14dc02b268ee203bdd395732ed3210` |
-| sv_2017 results (output) | `stimuli/sv/characterization/results.tsv` | `607f18b33dfb795eab2beeb0cfb82fbfb267276f91887073d54f84bda8bf2d90` |
-| sv_2023 results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `d656ad872d8aca4ecd0f2e236cebcacfdbe6df8b7c619dc9a1f2c9cffc40c2e6` |
-| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `58e598cfc555e74346a3e7e83cb1eb11d9abf771d3621bbf4dd231d1de58c5b6` |
+| parse binary | `rust/target/release/parseability_probe` | `9932110eb1e90029da8783d47bab2c2a56108d49c45d564e83a0462b26894f1d` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `9bde8ac365dd5725828ff38b6519254867dc7a2b3419f7297d633031a6a4d02f` |
+| sv_2017 results (output) | `stimuli/sv/characterization/results.tsv` | `56d30ab7de88c8a693379ce5e412a9bd8792e94d6876379189ff8730673a627a` |
+| sv_2023 results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `a29b9ddbd1f56d80ef45dc1d83aaaf8b1b40e465087d1026f44680c1008a0856` |
+| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `7ed567966bf9632943ec09ca83c875d49ba9fed2f3a126ade4e33a89b552bdab` |
 
 ## The matrix
 
@@ -22,18 +22,18 @@ Rows joined: **16336**; only in the sv_2017 lane: **0**; only in the sv_2023 lan
 
 | cell | rows | meaning |
 |---|---|---|
-| `both_pass` | 9756 | parses under both editions |
-| `both_nonpass` | 6556 | parses under neither |
-| `2023_only_pass` | 24 | the 1800-2023 widening the corpus exercises — `must_accept` on a 2023 lane (`.14b`) |
+| `both_pass` | 9761 | parses under both editions |
+| `both_nonpass` | 6550 | parses under neither |
+| `2023_only_pass` | 25 | the 1800-2023 widening the corpus exercises — `must_accept` on a 2023 lane (`.14b`) |
 | `2017_only_pass` | 0 | a 2023-profile REGRESSION candidate — a parser question until adjudicated |
 
 ### Status pairs (sv_2017, sv_2023)
 
 | sv_2017 | sv_2023 | rows |
 |---|---|---|
-| `pass` | `pass` | 9756 |
-| `fail` | `fail` | 6556 |
-| `fail` | `pass` | 24 |
+| `pass` | `pass` | 9761 |
+| `fail` | `fail` | 6550 |
+| `fail` | `pass` | 25 |
 
 ## Every row whose verdict differs
 
@@ -44,7 +44,7 @@ The 2017-lane adjudication class is carried beside each row so the reader sees w
 | `2023_only_pass` | `deferred:svpp_owned` | 2 |
 | `2023_only_pass` | `deferred:v2005_profile_lane` | 1 |
 | `2023_only_pass` | `divergence:explained_svpp_macro_use` | 1 |
-| `2023_only_pass` | `match` | 20 |
+| `2023_only_pass` | `match` | 21 |
 
 | cell | suite | relpath | sv_2017 (furthest) | sv_2023 (furthest) | 2017-lane adjudication | expected |
 |---|---|---|---|---|---|---|
@@ -64,6 +64,7 @@ The 2017-lane adjudication class is carried beside each row so the reader sees w
 | `2023_only_pass` | `verilator` | `test_regress/t/t_class_new_default.v` | fail (249) | pass (-) | `match` | `must_reject` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_class_override.v` | fail (978) | pass (-) | `match` | `must_reject` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_class_override_bad.v` | fail (819) | pass (-) | `match` | `must_reject` |
+| `2023_only_pass` | `verilator` | `test_regress/t/t_display_qqq.v` | fail (245) | pass (-) | `match` | `must_reject` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_event_array_fire.v` | fail (1625) | pass (-) | `divergence:explained_svpp_macro_use` | `must_accept` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_export_packed_struct.v` | fail (243) | pass (-) | `match` | `must_reject` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_export_packed_struct2.v` | fail (262) | pass (-) | `match` | `must_reject` |

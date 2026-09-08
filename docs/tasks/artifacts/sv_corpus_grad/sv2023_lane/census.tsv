@@ -15,6 +15,7 @@ cell	suite	relpath	sv_2017	sv_2023	furthest_sv_2017	furthest_sv_2023	adjudicatio
 2023_only_pass	verilator	test_regress/t/t_class_new_default.v	fail	pass	249	-	match	must_reject
 2023_only_pass	verilator	test_regress/t/t_class_override.v	fail	pass	978	-	match	must_reject
 2023_only_pass	verilator	test_regress/t/t_class_override_bad.v	fail	pass	819	-	match	must_reject
+2023_only_pass	verilator	test_regress/t/t_display_qqq.v	fail	pass	245	-	match	must_reject
 2023_only_pass	verilator	test_regress/t/t_event_array_fire.v	fail	pass	1625	-	divergence:explained_svpp_macro_use	must_accept
 2023_only_pass	verilator	test_regress/t/t_export_packed_struct.v	fail	pass	243	-	match	must_reject
 2023_only_pass	verilator	test_regress/t/t_export_packed_struct2.v	fail	pass	262	-	match	must_reject

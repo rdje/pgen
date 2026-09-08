@@ -2008,6 +2008,18 @@ VERILATOR_PINNED = {
         "(control automatic_decl.sv, both profiles); `type(type(value2 + 18 - 40))` on line 24 is 6.23's type reference "
         "applied to a data type and sits past the stop. Pins invalid_procedural_type_reference_comparison.sv / control_constant_context_type_reference_comparison.sv (the same comparisons as a module-level if / case = conditional_generate_construct / case_generate_construct on a constant_expression, docs/systemverilog/2017/md/section-41-data-read-api.md:1887-1896, in a localparam initializer, and the cast `type(a)'(y)` in procedural code - all ACCEPT on both profiles). Spec outranks the suite: verilator, sv-tests and slang's regression file all write the procedural form and no LRM text or example does - IEEE 1800-2023 kept type_reference in constant_primary alone (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:3066, footnote 45 :3525-3527) and primary without it (:3079-3094) while revising 6.23 (docs/systemverilog/2023/md/section-6-data-types.md:2936-2975). The verilator driver key reads a passing test "
         "(2025, Antmicro) as must_accept"),
+    # ---- SV-CORPUS-GRAD.3.47 (PGEN-SV-CORPUS-GRAD-0377) - the IEEE 1800-2023 TRIPLE-QUOTED string is no 1800-2017 form.
+    "test_regress/t/t_display_qqq.v": ("must_reject",
+        "pinned .3.47: line 10 `$display(\"\"\"First \"quoted\"\\nsecond\\` … `fourth\"\"\");` - a TRIPLE-QUOTED string literal. "
+        "IEEE 1800-2023 5.9 (docs/systemverilog/2023/md/section-5-lexical-conventions.md:436-452): `string_literal ::= "
+        "quoted_string | triple_quoted_string`, `triple_quoted_string ::= \"\"\" { triple_quoted_string_item | "
+        "string_escape_seq } \"\"\"`; IEEE 1800-2017 5.9 (docs/systemverilog/2017/md/section-32-h-12ab-f001.md:99-102) "
+        "defines the double-quoted form ALONE, so under 1800-2017 `\"\"` is an empty string and the third `\"` opens a "
+        "string that runs to the next quote - the text has no derivation in the edition this lane judges. EDITION CONTRAST, "
+        "the .13x.d shape: REJECTS on sv_2017 (furthest_position at the third quote of line 10) and, since 1.0.221, ACCEPTS on "
+        "sv_2023, where the string terminal's 2023 twin carries the triple-quoted alternative ({kind: \"triple_quoted\", body}). "
+        "Pins control_string_triple_quoted_sv2023.sv / invalid_string_triple_quoted_under_2017.sv. Spec outranks the verilator "
+        "driver key (a passing test = must_accept): verilator is a 2023 tool"),
     "test_regress/t/t_udp_bad.v": ("must_reject",
         "pinned .13x.b: line 15 `tri  a_bad;` inside a primitive. IEEE 1800-2017 A.5.2 "
         "udp_port_declaration ::= udp_output_declaration ; | udp_input_declaration ; | "
@@ -2469,6 +2481,20 @@ def expect_ispras_v2005(relpath: str, text: str):
 V2005_ANNEX_A = "docs/verilog/2005/txt/section-Annex_A-normative-formal-syntax-definition.txt"
 
 V2005_LRM_PINNED = {
+    # ---- SV-CORPUS-GRAD.3.47 (PGEN-SV-CORPUS-GRAD-0377) ------------------------------------------
+    # A string literal continued across a line with a trailing backslash is IEEE 1800 §5.9; IEEE 1364-2005
+    # §3.6 says "contained on a single line" and A.8.8 spells the string as any characters EXCEPT a new line.
+    "ivtest/ivltests/string12.v": (
+        "must_reject", "pinned .3.47: line 4 `if (\"this matches\" == \"this\\` + newline + ` matches\")` - a string literal "
+        "continued across a line break. IEEE 1364-2005 3.6 (docs/verilog/2005/md/section-3-lexical-conventions.md:299): "
+        "'A string is a sequence of characters enclosed by double quotes and contained on a single line'; A.8.8 "
+        "(docs/verilog/2005/md/section-Annex_A-normative-formal-syntax-definition.md:1218) `string ::= \" { "
+        "Any_ASCII_Characters_except_new_line } \"` - no backslash-newline continuation exists in 1364-2005; it is IEEE "
+        "1800-2017 5.9 (docs/systemverilog/2017/md/section-32-h-12ab-f001.md:101-102), an EDITION contrast between the "
+        "Verilog and the SystemVerilog lanes. REJECTS under verilog_2005 before and after 1.0.221 (the 1364-2005 twin of "
+        "the string terminal admits `\\` + any character except a newline), ACCEPTS under sv_2017 / sv_2023 since 1.0.221. "
+        "Control: control_string_line_continuation.sv under the SV profiles; the pin invalid_string_line_continuation_v2005.sv. "
+        "Spec outranks the ivtest regress-vlg.list 'normal' key, a claim about the iverilog plain-Verilog DIALECT"),
     # ---- SV-CORPUS-GRAD.13k(a)+(c) (PGEN-SV-CORPUS-GRAD-0327) ------------------------------
     # The COMPOUND ASSIGNMENT class. `.13k` opened because this manifest adjudicated ONE construct
     # class both ways: `br1015a.v` is `must_reject` on the ground that `^=` "exists in neither

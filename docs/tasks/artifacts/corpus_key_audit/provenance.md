@@ -11,25 +11,25 @@
 
 | provenance | rows | share | `must_accept` | `must_reject` |
 |---|---|---|---|---|
-| `clause-cited` | **538** | 7.1% | 286 | 252 |
+| `clause-cited` | **539** | 7.1% | 286 | 253 |
 | `tool-testimony` | **1738** | 23.0% | 1689 | 49 |
-| `suite-convention` | **5286** | 69.9% | 5283 | 3 |
+| `suite-convention` | **5285** | 69.9% | 5282 | 3 |
 | `UNCLASSIFIED` | **2** | 0.0% | 1 | 1 |
 
-⇒ **trust bound: 7026 of 7564 (92.9%)** of this lane's expectations rest on evidence OUTSIDE the standard.
+⇒ **trust bound: 7025 of 7564 (92.9%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
 ## `verilog_2005` — 2534 keyed rows
 
 | provenance | rows | share | `must_accept` | `must_reject` |
 |---|---|---|---|---|
-| `clause-cited` | **204** | 8.1% | 157 | 47 |
+| `clause-cited` | **205** | 8.1% | 157 | 48 |
 | `tool-testimony` | **483** | 19.1% | 472 | 11 |
-| `suite-convention` | **1845** | 72.8% | 1845 | 0 |
+| `suite-convention` | **1844** | 72.8% | 1844 | 0 |
 | `UNCLASSIFIED` | **2** | 0.1% | 2 | 0 |
 
-⇒ **trust bound: 2330 of 2534 (91.9%)** of this lane's expectations rest on evidence OUTSIDE the standard.
+⇒ **trust bound: 2329 of 2534 (91.9%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
-## ⛔ The BAR's own rows (92, `sv_2017`) — a different population, a different number
+## ⛔ The BAR's own rows (86, `sv_2017`) — a different population, a different number
 
 The published defect bar is the `sv_2017` `divergence:unexplained_*` subset, **not** the whole
 key. A divergence tends to get INVESTIGATED, and investigation is exactly the event
@@ -38,19 +38,19 @@ key as a whole. Attaching the key-wide share to the bar overstates the claim.
 
 | provenance | bar rows | share |
 |---|---|---|
-| `clause-cited` | 4 | 4.3% |
-| `tool-testimony` | 17 | 18.5% |
-| `suite-convention` | 70 | 76.1% |
-| `UNCLASSIFIED` | 1 | 1.1% |
+| `clause-cited` | 4 | 4.7% |
+| `tool-testimony` | 16 | 18.6% |
+| `suite-convention` | 65 | 75.6% |
+| `UNCLASSIFIED` | 1 | 1.2% |
 
-⇒ **88 of 92 (95.7%)** of the rows *behind the published bar* rest on evidence outside the standard, against **92.7%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
+⇒ **82 of 86 (95.3%)** of the rows *behind the published bar* rest on evidence outside the standard, against **92.6%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
 
 ## By suite — where the non-clause evidence actually lives
 
 | suite | rows | `clause-cited` | `tool-testimony` | `suite-convention` | `UNCLASSIFIED` |
 |---|---|---|---|---|---|
-| `iverilog` | 3134 | 375 | 525 | 2234 | 0 |
-| `verilator` | 3131 | 92 | 725 | 2314 | 0 |
+| `iverilog` | 3134 | 376 | 525 | 2233 | 0 |
+| `verilator` | 3131 | 93 | 725 | 2313 | 0 |
 | `ispras-sv-tests` | 1147 | 37 | 0 | 1107 | ⛔ 3 |
 | `sv-tests` | 933 | 16 | 0 | 916 | ⛔ 1 |
 | `sv2v` | 925 | 206 | 354 | 365 | 0 |

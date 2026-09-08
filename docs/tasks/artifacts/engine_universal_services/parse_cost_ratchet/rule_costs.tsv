@@ -1047,6 +1047,7 @@ streaming_concatenation	2267886	0	1644650
 strength0	2	0	1
 strength1	3	0	1
 string_literal	601042	20474	0
+string_literal_sv_2017	601042	20474	0
 string_type_sv_only	778812	53	83216
 struct_union	164831	724	2273
 struct_union_member	2951	2113	0
