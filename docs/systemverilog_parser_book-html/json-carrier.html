@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-357d730a.js";
+            window.path_to_searchindex_js = "searchindex-ffb8c7db.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -433,6 +433,7 @@
 <tr><td><code>data_type_or_void</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"data_type"</code> (<code>{body}</code>) / <code>"void"</code> (bare).</td></tr>
 <tr><td><code>data_type_or_incomplete_class_scoped_type_sv_2023</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"data_type"</code> / <code>"incomplete_class_scoped"</code>.</td></tr>
 <tr><td><code>implicit_data_type</code></td><td><code>-&gt; {signing, dims}</code></td><td><code>signing</code> is <code>[]</code> or typed signing slot. <code>dims</code> is the packed_dimension* iteration.</td></tr>
+<tr><td><code>unpacked_dimension</code> / <code>unpacked_dimension_size_sv_only</code> (<strong>since <code>1.0.222</code>, <code>SV-CORPUS-GRAD.3.50</code></strong>)</td><td><code>{kind: "range", body: $2}</code> on the range alternative; the size alternative passes the helper’s <code>{kind: "expression", body: $2}</code> through (<code>-&gt; $1</code>)</td><td>An unpacked dimension: <code>[ a : b ]</code> on every profile (<code>{kind: "range"}</code>); the IEEE 1800 SIZE form <code>[ N ]</code> (<code>{kind: "expression"}</code>) on <code>sv_2017</code> / <code>sv_2023</code> alone — the helper <code>unpacked_dimension_size_sv_only</code> is <code>@profiles</code>-gated, so under <code>verilog_2005</code> (IEEE 1364-2005 A.2.5 <code>dimension</code> / <code>range</code> are <code>[ a : b ]</code> alone) the size form REJECTS at the <code>[</code>. The node a consumer reads is unchanged by the split: the dispatcher adds no wrapper.</td></tr>
 <tr><td><code>integer_atom_type</code> (6 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"byte"</code> / <code>"shortint"</code> / <code>"int"</code> / <code>"longint"</code> / <code>"integer"</code> / <code>"time"</code>.</td></tr>
 <tr><td><code>integer_vector_type</code> (3 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"bit"</code> / <code>"logic"</code> / <code>"reg"</code>.</td></tr>
 <tr><td><code>non_integer_type</code> (3 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"shortreal"</code> / <code>"real"</code> / <code>"realtime"</code>.</td></tr>

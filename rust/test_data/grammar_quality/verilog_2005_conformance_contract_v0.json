@@ -3,11 +3,11 @@
     "_verifier": "bash scripts/check_baseline_identity.sh --verify rust/test_data/grammar_quality/verilog_2005_conformance_contract_v0.json (doctrine BASELINE-IDENTITY, SV-CORPUS-GRAD.13c.2x.2). DERIVED — re-stamp with --stamp, never hand-edit.",
     "_what_this_proves": "the expectations in this file were RE-DERIVED against the inputs below, at the commit below, by the run named in `confirmed_by`. The enforcer re-hashes those inputs on every run: if one differs, this baseline no longer describes your tree and the honest act is to re-derive, not to quote.",
     "expectations": "confirmed",
-    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1186/370/802/14 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=363/0_mismatches aliases=2",
-    "verified_at_commit": "f32aba28cd17a6a1a28f495fa9dcd91e4836b549",
+    "confirmed_by": "auto re-stamped by a GREEN verilog_2005_conformance_gate run: cert=1186/370/802/14 spf=0 prf=0 seeds=[0,7,42] lint_profile_orphans=0 corpus_checks=366/0_mismatches aliases=2",
+    "verified_at_commit": "59edf440851b0700d938e1b0e364091efbbcedda",
     "inputs": {
-      "generated/systemverilog_parser.rs": "70e245b9b02e3f9add2da3ac42ee23f96989b65a7c5f15b00acd8178cd265ec9",
-      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "9bde8ac365dd5725828ff38b6519254867dc7a2b3419f7297d633031a6a4d02f" },
+      "generated/systemverilog_parser.rs": "5f86ce4fbfe2ea080247f591a3bdb34ed3a9f146dde09bebe369c921dadc4faa",
+      "grammars/systemverilog.ebnf": { "kind": "ebnf_raw_ast", "digest": "0c4ce9a41080a60cec1cb5addf4bf88d36b555d2f1c5092ecbe8e88fff918eb1" },
       "rust/src/ast_pipeline/grammar_wellformedness.rs": "49b795f6a34fc787f2746cf577f47988b76b7e332164eabea85eeab36b457107",
       "rust/src/ast_pipeline/indirect_lr_elimination.rs": "ebfafdd38fda2371dbcd7211b98bb5b13bfa7f9666678cd5e7d82ca7c1bc48b6",
       "rust/src/ast_pipeline/stimuli_generator.rs": "082bb1e59a4f616ce8c1592727beaffd281423c42530fc3e30e93d4619dc365d"
@@ -106,7 +106,16 @@
         "sv_2017": "reject",
         "sv_2023": "accept"
       },
-      "note": "SV-0023 lock: `-> e[0];` event-array trigger. ACCEPTS under verilog_2005 (IEEE 1364-2005 A.6.5 `-> hei { [ expression ] } ;`, bracket array-selects — closed at SV-OVER-REJECTION-FIDELITY.3 by giving event_trigger_verilog_2005 a trailing bit_select) and under sv_2023 (Annex A adds a trailing nonrange_select). REJECTS under sv_2017 (IEEE 1800-2017 A.6.5 is `-> hei ;` with NO select — faithful strict-2017 subset; the 2023 LRM added the select)."
+      "note": "SV-0023 lock: `-> e[0];` event-array trigger. ACCEPTS under verilog_2005 (IEEE 1364-2005 A.6.5 `-> hei { [ expression ] } ;`, bracket array-selects — closed at SV-OVER-REJECTION-FIDELITY.3 by giving event_trigger_verilog_2005 a trailing bit_select) and under sv_2023 (Annex A adds a trailing nonrange_select). REJECTS under sv_2017 (IEEE 1800-2017 A.6.5 is `-> hei ;` with NO select — faithful strict-2017 subset; the 2023 LRM added the select). SV-CORPUS-GRAD.3.50 (PGEN-SV-CORPUS-GRAD-0379, release 1.0.222): the declaration was `event e[4];` \u2014 the IEEE 1800 unpacked SIZE form, which IEEE 1364-2005 A.2.3 `list_of_event_identifiers ::= event_identifier { dimension }` (docs/verilog/2005/md/section-Annex_A-normative-formal-syntax-definition.md:270) with `dimension ::= [ a : b ]` (:309) does not derive; through 1.0.221 the unprofiled size arm of unpacked_dimension accepted it under verilog_2005 and this accept case had ENCODED that over-acceptance. Respelled `event e[0:3];` (the range form both standards derive) so the case keeps locking the `-> e[0];` trigger it exists for; the expectation triple is unchanged (verilog_2005 accept, sv_2017 reject at the trigger's select, sv_2023 accept). The size form itself is locked by reject/v2005_unpacked_size_dimension.sv."
+    },
+    {
+      "file": "reject/v2005_unpacked_size_dimension.sv",
+      "expect": {
+        "verilog_2005": "reject",
+        "sv_2017": "accept",
+        "sv_2023": "accept"
+      },
+      "note": "SV-CORPUS-GRAD.3.50 lock (PGEN-SV-CORPUS-GRAD-0379, release 1.0.222, ledger SV-0095): `event e[4];` \u2014 the IEEE 1800-2017 A.2.5 unpacked SIZE form `unpacked_dimension ::= [ constant_range ] | [ constant_expression ]` (docs/systemverilog/2017/md/section-41-data-read-api.md:1046-1050). ACCEPTS under sv_2017 / sv_2023. REJECTS under verilog_2005 at the `[`: IEEE 1364-2005 A.2.3 `list_of_event_identifiers ::= event_identifier { dimension }` (docs/verilog/2005/md/section-Annex_A-normative-formal-syntax-definition.md:270) and A.2.5 `dimension ::= [ dimension_constant_expression : dimension_constant_expression ]` (:309) admit a RANGE alone \u2014 the size arm is the SV-only helper unpacked_dimension_size_sv_only since 1.0.222 (through 1.0.221 it was unprofiled and this text parsed: the over-acceptance found by SV-CORPUS-GRAD.3.48's two-sided control). File name tracks the verilog_2005 verdict."
     },
     {
       "file": "accept/generate_param.v",

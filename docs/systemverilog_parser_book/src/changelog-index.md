@@ -34,6 +34,25 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.222 / Contract 1.0.222 — SV-CORPUS-GRAD.3.50 (`PGEN-SV-CORPUS-GRAD-0379`, 2026-09-08), ledger `SV-0095` (`Released`), **schema 32 unchanged**:
+
+⭐ **A profile-blind arm is an over-acceptance on every profile whose standard lacks it.** Through `1.0.221`
+`unpacked_dimension := [ constant_range ] | [ constant_expression ]` carried no `@profiles` on its size arm, so the IEEE
+1800 unpacked SIZE form `reg x [2];` PARSED under `verilog_2005` — IEEE 1364-2005 A.2.5 `dimension` / `range` admit
+`[ a : b ]` alone (the size form is IEEE 1800-2017 A.2.5 / §7.4.2). Found by `SV-CORPUS-GRAD.3.48`'s own two-sided
+control: the 1364-2005 twin of `control_unpacked_dimension_size.sv` was written expecting REJECT and ACCEPTED. Grammar
+tier: the size arm lifted into `unpacked_dimension_size_sv_only` under `@profiles: ["sv_2017", "sv_2023"]` with a
+pass-through dispatcher alternative (`-> $1`), `1640 → 1641` rules; no engine, no codegen, no Rust.
+
+**Accept-set impact.** `sv_2017` / `sv_2023`: none — `verdict_moved=0` on both lanes. `verilog_2005`: NARROWS by the
+size form alone; the lane's 2 606 rows carried no such declaration (the census by token read 0 rows, the exhaustive
+sweep on the final bytes confirmed it: `AST-IDENTITY-SWEEP: profile=verilog_2005 files=2606 both_accepted=2310 identical=2310 ast_moved=0 verdict_moved=0 both_nonaccepting=296`).
+
+**AST impact — none.** The size form keeps its `{kind: "expression", body}` node and the range form its
+`{kind: "range", body}` node; the corpus AST identity sweep reads `ast_moved=0` on every lane. Pin
+`accepts_invalid_v2005_unpacked_dimension_size.sv` flipped `ACCEPT` / `accepts_invalid` → `REJECT` / `invalid` (the
+manifest's round trip); `control_unpacked_dimension_size.sv` and `control_packed_dimension_range.sv` unchanged.
+
 ### 1.0.221 / Contract 1.0.221 — SV-CORPUS-GRAD.3.47 (`PGEN-SV-CORPUS-GRAD-0377`, 2026-09-08), ledger `SV-0094` (`Released`), **schema 32 unchanged**:
 
 ⭐ **The string literal is split by edition, and measured in both directions.** One terminal, `/"([^"\\]|\\.)*"/`, had

@@ -173,7 +173,7 @@ constant_assignment_pattern_expression	866014	86	264972
 constant_bit_select	344197	28872	21929
 constant_cast	252065	96	3112
 constant_concatenation	869913	534	265037
-constant_expression	713629	65135	513402
+constant_expression	713605	65135	513378
 constant_expression_operand	238990	74322	379
 constant_function_call	252065	313	81
 constant_indexed_range	75452	108	1
@@ -687,7 +687,7 @@ kw_wor_ff9e40da	81672	0	0
 kw_xnor_ab48bc67	72021	0	0
 kw_xor_f1922a23	93953	0	0
 lbrace	5389091	8684	0
-lbrack	3375262	75862	2824853
+lbrack	3375238	75862	2824829
 less_equal	534838	1369	0
 less_than	472346	1070	0
 let_actual_arg	176	0	0
@@ -948,7 +948,7 @@ randomize_call	1416236	0	793262
 randsequence_statement	55539	0	5147
 randsequence_statement_sv_2017	50392	0	0
 rbrace	30328	8684	0
-rbrack	509358	75862	373249
+rbrack	509334	75862	373225
 real_number	1226609	88	0
 reduction_nand	530839	5	0
 reduction_nor	530839	23	0
@@ -1134,6 +1134,7 @@ unique_priority	202512	26	151968
 uniqueness_constraint	8	0	0
 uniqueness_constraint_sv_2017	8	0	0
 unpacked_dimension	99467	132	38432
+unpacked_dimension_size_sv_only	61035	125	24
 unsigned_number	12259	830	0
 unsized_dimension	171078	9	53734
 value_range	27	4	0

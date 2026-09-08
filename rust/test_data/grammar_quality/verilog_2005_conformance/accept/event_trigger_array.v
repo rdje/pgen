@@ -1,4 +1,4 @@
 module m;
-  event e[4];
+  event e[0:3];
   initial -> e[0];
 endmodule

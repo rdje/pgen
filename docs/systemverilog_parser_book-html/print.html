@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-357d730a.js";
+            window.path_to_searchindex_js = "searchindex-ffb8c7db.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -1014,6 +1014,7 @@ shapes, each carrying a <code>kind</code> discriminator).</p>
 <tr><td><code>data_type_or_void</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"data_type"</code> (<code>{body}</code>) / <code>"void"</code> (bare).</td></tr>
 <tr><td><code>data_type_or_incomplete_class_scoped_type_sv_2023</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"data_type"</code> / <code>"incomplete_class_scoped"</code>.</td></tr>
 <tr><td><code>implicit_data_type</code></td><td><code>-&gt; {signing, dims}</code></td><td><code>signing</code> is <code>[]</code> or typed signing slot. <code>dims</code> is the packed_dimension* iteration.</td></tr>
+<tr><td><code>unpacked_dimension</code> / <code>unpacked_dimension_size_sv_only</code> (<strong>since <code>1.0.222</code>, <code>SV-CORPUS-GRAD.3.50</code></strong>)</td><td><code>{kind: "range", body: $2}</code> on the range alternative; the size alternative passes the helper’s <code>{kind: "expression", body: $2}</code> through (<code>-&gt; $1</code>)</td><td>An unpacked dimension: <code>[ a : b ]</code> on every profile (<code>{kind: "range"}</code>); the IEEE 1800 SIZE form <code>[ N ]</code> (<code>{kind: "expression"}</code>) on <code>sv_2017</code> / <code>sv_2023</code> alone — the helper <code>unpacked_dimension_size_sv_only</code> is <code>@profiles</code>-gated, so under <code>verilog_2005</code> (IEEE 1364-2005 A.2.5 <code>dimension</code> / <code>range</code> are <code>[ a : b ]</code> alone) the size form REJECTS at the <code>[</code>. The node a consumer reads is unchanged by the split: the dispatcher adds no wrapper.</td></tr>
 <tr><td><code>integer_atom_type</code> (6 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"byte"</code> / <code>"shortint"</code> / <code>"int"</code> / <code>"longint"</code> / <code>"integer"</code> / <code>"time"</code>.</td></tr>
 <tr><td><code>integer_vector_type</code> (3 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"bit"</code> / <code>"logic"</code> / <code>"reg"</code>.</td></tr>
 <tr><td><code>non_integer_type</code> (3 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"shortreal"</code> / <code>"real"</code> / <code>"realtime"</code>.</td></tr>
@@ -2385,6 +2386,21 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10222--contract-10222--sv-corpus-grad350-pgen-sv-corpus-grad-0379-2026-09-08-ledger-sv-0095-released-schema-32-unchanged"><a class="header" href="#10222--contract-10222--sv-corpus-grad350-pgen-sv-corpus-grad-0379-2026-09-08-ledger-sv-0095-released-schema-32-unchanged">1.0.222 / Contract 1.0.222 — SV-CORPUS-GRAD.3.50 (<code>PGEN-SV-CORPUS-GRAD-0379</code>, 2026-09-08), ledger <code>SV-0095</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
+<p>⭐ <strong>A profile-blind arm is an over-acceptance on every profile whose standard lacks it.</strong> Through <code>1.0.221</code>
+<code>unpacked_dimension := [ constant_range ] | [ constant_expression ]</code> carried no <code>@profiles</code> on its size arm, so the IEEE
+1800 unpacked SIZE form <code>reg x [2];</code> PARSED under <code>verilog_2005</code> — IEEE 1364-2005 A.2.5 <code>dimension</code> / <code>range</code> admit
+<code>[ a : b ]</code> alone (the size form is IEEE 1800-2017 A.2.5 / §7.4.2). Found by <code>SV-CORPUS-GRAD.3.48</code>’s own two-sided
+control: the 1364-2005 twin of <code>control_unpacked_dimension_size.sv</code> was written expecting REJECT and ACCEPTED. Grammar
+tier: the size arm lifted into <code>unpacked_dimension_size_sv_only</code> under <code>@profiles: ["sv_2017", "sv_2023"]</code> with a
+pass-through dispatcher alternative (<code>-&gt; $1</code>), <code>1640 → 1641</code> rules; no engine, no codegen, no Rust.</p>
+<p><strong>Accept-set impact.</strong> <code>sv_2017</code> / <code>sv_2023</code>: none — <code>verdict_moved=0</code> on both lanes. <code>verilog_2005</code>: NARROWS by the
+size form alone; the lane’s 2 606 rows carried no such declaration (the census by token read 0 rows, the exhaustive
+sweep on the final bytes confirmed it: <code>AST-IDENTITY-SWEEP: profile=verilog_2005 files=2606 both_accepted=2310 identical=2310 ast_moved=0 verdict_moved=0 both_nonaccepting=296</code>).</p>
+<p><strong>AST impact — none.</strong> The size form keeps its <code>{kind: "expression", body}</code> node and the range form its
+<code>{kind: "range", body}</code> node; the corpus AST identity sweep reads <code>ast_moved=0</code> on every lane. Pin
+<code>accepts_invalid_v2005_unpacked_dimension_size.sv</code> flipped <code>ACCEPT</code> / <code>accepts_invalid</code> → <code>REJECT</code> / <code>invalid</code> (the
+manifest’s round trip); <code>control_unpacked_dimension_size.sv</code> and <code>control_packed_dimension_range.sv</code> unchanged.</p>
 <h3 id="10221--contract-10221--sv-corpus-grad347-pgen-sv-corpus-grad-0377-2026-09-08-ledger-sv-0094-released-schema-32-unchanged"><a class="header" href="#10221--contract-10221--sv-corpus-grad347-pgen-sv-corpus-grad-0377-2026-09-08-ledger-sv-0094-released-schema-32-unchanged">1.0.221 / Contract 1.0.221 — SV-CORPUS-GRAD.3.47 (<code>PGEN-SV-CORPUS-GRAD-0377</code>, 2026-09-08), ledger <code>SV-0094</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
 <p>⭐ <strong>The string literal is split by edition, and measured in both directions.</strong> One terminal, <code>/"([^"\\]|\\.)*"/</code>, had
 served every profile since <code>1.0.0</code>, and it was wrong for each standard in a different direction. IEEE 1800-2017 /

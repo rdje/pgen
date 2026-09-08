@@ -249,6 +249,7 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `data_type_or_void` (2 branches) | per-branch typed | Kind labels: `"data_type"` (`{body}`) / `"void"` (bare). |
 | `data_type_or_incomplete_class_scoped_type_sv_2023` (2 branches) | per-branch `{kind, body}` | Kind labels: `"data_type"` / `"incomplete_class_scoped"`. |
 | `implicit_data_type` | `-> {signing, dims}` | `signing` is `[]` or typed signing slot. `dims` is the packed_dimension* iteration. |
+| `unpacked_dimension` / `unpacked_dimension_size_sv_only` (**since `1.0.222`, `SV-CORPUS-GRAD.3.50`**) | `{kind: "range", body: $2}` on the range alternative; the size alternative passes the helper's `{kind: "expression", body: $2}` through (`-> $1`) | An unpacked dimension: `[ a : b ]` on every profile (`{kind: "range"}`); the IEEE 1800 SIZE form `[ N ]` (`{kind: "expression"}`) on `sv_2017` / `sv_2023` alone — the helper `unpacked_dimension_size_sv_only` is `@profiles`-gated, so under `verilog_2005` (IEEE 1364-2005 A.2.5 `dimension` / `range` are `[ a : b ]` alone) the size form REJECTS at the `[`. The node a consumer reads is unchanged by the split: the dispatcher adds no wrapper. |
 | `integer_atom_type` (6 branches) | per-branch `{kind}` (bare) | Kind labels: `"byte"` / `"shortint"` / `"int"` / `"longint"` / `"integer"` / `"time"`. |
 | `integer_vector_type` (3 branches) | per-branch `{kind}` (bare) | Kind labels: `"bit"` / `"logic"` / `"reg"`. |
 | `non_integer_type` (3 branches) | per-branch `{kind}` (bare) | Kind labels: `"shortreal"` / `"real"` / `"realtime"`. |

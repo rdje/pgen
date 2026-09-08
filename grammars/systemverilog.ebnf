@@ -7734,7 +7734,17 @@ uniqueness_constraint := uniqueness_constraint_sv_2017 -> {kind: "sv_2017", body
                        | uniqueness_constraint_sv_2023 -> {kind: "sv_2023", body: $1}
 
 unpacked_dimension := lbrack constant_range rbrack         -> {kind: "range",      body: $2}
-                    | lbrack constant_expression rbrack    -> {kind: "expression", body: $2}
+                    | unpacked_dimension_size_sv_only    -> $1
+
+# SV-CORPUS-GRAD.3.50 — the SIZE form of an unpacked dimension (`x [N]`, IEEE 1800-2017 A.2.5
+# `unpacked_dimension ::= [ constant_range ] | [ constant_expression ]`, §7.4.2) is SystemVerilog-only:
+# IEEE 1364-2005 A.2.5 `dimension ::= [ dimension_constant_expression : dimension_constant_expression ]`
+# admits a RANGE alone, so `reg x [2];` is not Verilog-2005 (through 1.0.221 the arm was unprofiled and
+# the `verilog_2005` lane accepted it — an over-acceptance found by `.3.48`'s own two-sided control).
+# The `_sv_only` helper idiom (cf. `interconnect_net_declaration_sv_only`, the `-0289` named-rule ruling):
+# the dispatcher passes the helper's node through (`-> $1`), so the SV profiles' typed AST is byte-identical.
+@profiles: ["sv_2017", "sv_2023"]
+unpacked_dimension_size_sv_only := lbrack constant_expression rbrack    -> {kind: "expression", body: $2}
 
 # VERILOG-2005-PROFILE.6.9 (SV-0033) — the bare `[]` (unsized) dimension is SystemVerilog-only
 # (IEEE 1800 §7.5 dynamic arrays); IEEE 1364-2005 has no unsized dimension anywhere in Annex A
