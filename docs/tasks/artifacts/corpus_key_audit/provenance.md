@@ -11,12 +11,12 @@
 
 | provenance | rows | share | `must_accept` | `must_reject` |
 |---|---|---|---|---|
-| `clause-cited` | **569** | 7.5% | 286 | 283 |
-| `tool-testimony` | **1734** | 22.9% | 1685 | 49 |
-| `suite-convention` | **5260** | 69.5% | 5257 | 3 |
+| `clause-cited` | **581** | 7.7% | 286 | 295 |
+| `tool-testimony` | **1731** | 22.9% | 1682 | 49 |
+| `suite-convention` | **5251** | 69.4% | 5248 | 3 |
 | `UNCLASSIFIED` | **1** | 0.0% | 0 | 1 |
 
-⇒ **trust bound: 6995 of 7564 (92.5%)** of this lane's expectations rest on evidence OUTSIDE the standard.
+⇒ **trust bound: 6983 of 7564 (92.3%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
 ## `verilog_2005` — 2534 keyed rows
 
@@ -29,7 +29,7 @@
 
 ⇒ **trust bound: 2329 of 2534 (91.9%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
-## ⛔ The BAR's own rows (53, `sv_2017`) — a different population, a different number
+## ⛔ The BAR's own rows (41, `sv_2017`) — a different population, a different number
 
 The published defect bar is the `sv_2017` `divergence:unexplained_*` subset, **not** the whole
 key. A divergence tends to get INVESTIGATED, and investigation is exactly the event
@@ -38,24 +38,24 @@ key as a whole. Attaching the key-wide share to the bar overstates the claim.
 
 | provenance | bar rows | share |
 |---|---|---|
-| `clause-cited` | 3 | 5.7% |
-| `tool-testimony` | 11 | 20.8% |
-| `suite-convention` | 39 | 73.6% |
+| `clause-cited` | 3 | 7.3% |
+| `tool-testimony` | 8 | 19.5% |
+| `suite-convention` | 30 | 73.2% |
 | `UNCLASSIFIED` | 0 | 0.0% |
 
-⇒ **50 of 53 (94.3%)** of the rows *behind the published bar* rest on evidence outside the standard, against **92.3%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
+⇒ **38 of 41 (92.7%)** of the rows *behind the published bar* rest on evidence outside the standard, against **92.2%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
 
 ## By suite — where the non-clause evidence actually lives
 
 | suite | rows | `clause-cited` | `tool-testimony` | `suite-convention` | `UNCLASSIFIED` |
 |---|---|---|---|---|---|
 | `iverilog` | 3134 | 383 | 522 | 2229 | 0 |
-| `verilator` | 3131 | 103 | 725 | 2303 | 0 |
+| `verilator` | 3131 | 109 | 724 | 2298 | 0 |
 | `ispras-sv-tests` | 1147 | 37 | 0 | 1107 | ⛔ 3 |
 | `sv-tests` | 933 | 17 | 0 | 916 | 0 |
-| `sv2v` | 925 | 215 | 354 | 356 | 0 |
-| `Surelog` | 628 | 12 | 616 | 0 | 0 |
-| `verible` | 130 | 5 | 0 | 125 | 0 |
+| `sv2v` | 925 | 216 | 354 | 355 | 0 |
+| `Surelog` | 628 | 14 | 614 | 0 | 0 |
+| `verible` | 130 | 8 | 0 | 122 | 0 |
 | `slang` | 70 | 2 | 0 | 68 | 0 |
 
 ## ⛔ What the classifier got wrong before it got this right
@@ -90,9 +90,9 @@ extended by ENUMERATING those shapes, not by widening a rule until the number fe
 
 **`clause-cited`**
 
+- `Surelog` / `must_reject` — pinned .3.52: line 4 `parameter type AT;` - a class-body TYPE parameter without a default. IEEE 1800-2017 Annex A footnote 18: "It shall be legal to o
 - `Surelog` / `must_reject` — pinned .3.15: bare begin/end generate_block at line 5 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_
-- `Surelog` / `must_reject` — pinned .13y: `foreach(array[i][j])` - loop variables in SEPARATE bracket pairs. IEEE 1800-2017 A.6.8 loop_statement ::= ... | foreach ( ps_or_hierarch
-- `Surelog` / `must_reject` — pinned .3.15: bare begin/end generate_block at line 4 - IEEE 1800-2017 A.4.2 admits a generate_block only under loop_generate_construct / if_generate_
+- `Surelog` / `must_reject` — pinned .3.52: line 8 `(states_t) state1;` - a PARENTHESISED type in a variable declaration (the file's own comment: "Test parenthesized type variable 
 
 **`tool-testimony`**
 

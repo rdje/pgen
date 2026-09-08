@@ -1,5 +1,5 @@
 bucket	class	rows	pct
-ADJUDICATED	match	6016	36.83
+ADJUDICATED	match	6028	36.90
 NO VERDICT	deferred:chained_only	4926	30.15
 ROUTED	deferred:v2005_profile_lane	2606	15.95
 ADJUDICATED	divergence:explained_svpp_macro_use	1097	6.72
@@ -10,7 +10,7 @@ NO VERDICT	deferred:svpp_owned	173	1.06
 ADJUDICATED	divergence:explained_svpp_include	140	0.86
 NO VERDICT	deferred:impl_varying	90	0.55
 ADJUDICATED	divergence:explained_store_gate	56	0.34
-ADJUDICATED	divergence:unexplained_rejects_valid	51	0.31
+ADJUDICATED	divergence:unexplained_rejects_valid	39	0.24
 NO VERDICT	deferred:verilog_ams_lane	25	0.15
 NO VERDICT	deferred:ni_unimplemented	6	0.04
 ADJUDICATED	divergence:explained_svpp_protected_envelope	4	0.02

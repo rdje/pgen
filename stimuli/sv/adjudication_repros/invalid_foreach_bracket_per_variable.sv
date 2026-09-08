@@ -1,0 +1,7 @@
+// SV-CORPUS-GRAD.3.52 - a foreach whose loop variables are spelled ONE PER BRACKET PAIR: `foreach (queue[i]) foreach (queue[i][j]) …` (verilator t_foreach_array.v:64), `foreach(this.foo.x[i][j])` (t_foreach_nested.v:14). IEEE 1800-2017 A.6.8 foreach ( ps_or_hierarchical_array_identifier [ loop_variables ] ) statement (docs/systemverilog/2017/md/section-41-data-read-api.md:2334) with loop_variables ::= [ index_variable_identifier ] { , [ index_variable_identifier ] } (docs/systemverilog/2017/md/section-41-data-read-api.md:2360) - ONE bracket pair holding a comma-separated list; 12.7.3 "followed by a comma-separated list of loop variables enclosed in square brackets" (docs/systemverilog/2017/md/section-12-procedural-programming-statements.md:1044-1045), its examples `foreach( prod[ k, m ] )` (docs/systemverilog/2017/md/section-12-procedural-programming-statements.md:1058) and `foreach( A [ i, j, k ] )` (docs/systemverilog/2017/md/section-12-procedural-programming-statements.md:1082); 1800-2023 the same (docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md:2319, :2345; docs/systemverilog/2023/md/section-12-procedural-programming-statements.md:1037-1043, :1054, :1078). The verilator file's own line 62 writes the standard form `foreach (queue[i, j])`.
+// REJECTS at the second `[` on both SV profiles; the control with the comma list ACCEPTS.
+module m;
+  int q[2][2];
+  int n;
+  initial foreach (q[i][j]) n++;
+endmodule
