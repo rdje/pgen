@@ -10012,18 +10012,6 @@ impl<'a> StimuliGenerator<'a> {
         let Some(annotations) = annotations else {
             return gates;
         };
-        let mut per_rule: HashMap<String, Vec<&SemanticAnnotation>> = HashMap::new();
-        for (rule, anns) in &annotations.semantic_annotations {
-            per_rule.entry(rule.clone()).or_default().extend(anns.iter());
-        }
-        for (rule, branches) in &annotations.branch_semantic_annotations {
-            for branch in branches {
-                per_rule
-                    .entry(rule.clone())
-                    .or_default()
-                    .extend(branch.iter());
-            }
-        }
         // The arg string of a `declaration_family` key/value (an `Identifier`/`String` scalar).
         let scalar = |value: &UnifiedSemanticValue| -> Option<String> {
             match value {
@@ -10033,18 +10021,13 @@ impl<'a> StimuliGenerator<'a> {
                 _ => None,
             }
         };
-        for (rule, anns) in per_rule {
-            let Ok(directives) = parse_semantic_runtime_directives(anns.into_iter()) else {
-                continue;
-            };
+        // One annotation group (a rule's own annotations, or ONE branch's) read into the three facts the
+        // gate is built from: the first positive name gate, the excluded families, the kinds it emits.
+        // `None` when the group does not parse (the rule is then left out of the cohort, as before).
+        let read_group = |anns: &[SemanticAnnotation]| -> Option<(Option<(String, Option<String>)>, Vec<String>, Vec<String>)> {
+            let directives = parse_semantic_runtime_directives(anns.iter()).ok()?;
             let mut positive: Option<(String, Option<String>)> = None;
             let mut excluded_families: Vec<String> = Vec::new();
-            // STORE-AWARE-GEN.4b.2: kinds this rule itself emits. A rule that EMITS kind `K` and also
-            // gates on `has_fact(K, …)` is a SELF-SATISFYING producer (its own emit makes its gate pass
-            // — the `declared_forward_class_identifier` / `declared_class_alias_identifier` forward/alias
-            // declaration idiom), NOT a pure declare-then-use consumer. Forcing such a rule to re-render
-            // an already-declared name would RE-declare it and break the parse, so it must be excluded
-            // from the name-gate cohort (it witnesses via normal generation).
             let mut emitted_kinds: Vec<String> = Vec::new();
             for directive in &directives {
                 if let SemanticRuntimeDirective::EmitFact(spec) = directive {
@@ -10088,13 +10071,66 @@ impl<'a> StimuliGenerator<'a> {
                     _ => {}
                 }
             }
+            Some((positive, excluded_families, emitted_kinds))
+        };
+        let mut rules: Vec<&String> = annotations
+            .semantic_annotations
+            .keys()
+            .chain(annotations.branch_semantic_annotations.keys())
+            .collect();
+        rules.sort();
+        rules.dedup();
+        for rule in rules {
+            let empty: Vec<SemanticAnnotation> = Vec::new();
+            let Some((rule_positive, mut excluded_families, mut emitted_kinds)) =
+                read_group(annotations.semantic_annotations.get(rule).unwrap_or(&empty))
+            else {
+                continue;
+            };
+            // BRANCH-PREDICATE-LOCALITY, the generator's side (`SV-CORPUS-GRAD.3.54`): the parser evaluates
+            // an inline `phase: branch` predicate on ITS branch alone, so a positive name gate carried by
+            // one alternative gates the RULE only when EVERY alternative carries one — a rule with an
+            // ungated (or exclusion-only) alternative renders through that alternative and needs no
+            // declared name. Flattening the branches rule-wide (the pre-`.3.54` reading) turned
+            // `non_typedef_package_scope := <no-typedef> package_scope | <declared package> package_scope`
+            // into a `package_name`-gated rule the planner could not satisfy, and every rule witnessed
+            // only through a `pkg::` prefix (thirteen in the canonical basis) went UNKNOWN. A rule-level
+            // positive gate still gates every alternative, as it always did; exclusions and emitted kinds
+            // merge from every group (an exclusion narrows the free name the generator may render; an
+            // emit anywhere makes the rule a self-satisfying producer).
+            let mut positive = rule_positive;
+            let mut branch_positives: Vec<Option<(String, Option<String>)>> = Vec::new();
+            let mut all_branches_parse = true;
+            if let Some(branches) = annotations.branch_semantic_annotations.get(rule) {
+                for branch in branches {
+                    match read_group(branch) {
+                        Some((branch_positive, branch_excluded, branch_emitted)) => {
+                            branch_positives.push(branch_positive);
+                            excluded_families.extend(branch_excluded);
+                            emitted_kinds.extend(branch_emitted);
+                        }
+                        None => {
+                            all_branches_parse = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            if !all_branches_parse {
+                continue;
+            }
+            if positive.is_none() && !branch_positives.is_empty() {
+                if branch_positives.iter().all(|gate| gate.is_some()) {
+                    positive = branch_positives.into_iter().flatten().next();
+                }
+            }
             if let Some((kind, family)) = positive {
                 // Skip self-satisfying producers (rule emits the same kind it gates on).
                 if emitted_kinds.iter().any(|emitted| emitted == &kind) {
                     continue;
                 }
                 gates.insert(
-                    rule,
+                    rule.clone(),
                     NameGate {
                         kind,
                         family,
@@ -18965,6 +19001,57 @@ mod tests {
                 ast: UnifiedSemanticAST::from_named_payload(directive, payload),
             },
         )
+    }
+
+    /// BRANCH-PREDICATE-LOCALITY, the generator's side (`SV-CORPUS-GRAD.3.54`): a positive name gate
+    /// carried by ONE alternative does not gate the rule; a rule-level gate and a gate on EVERY
+    /// alternative still do; exclusions merge from every alternative.
+    #[test]
+    fn name_gate_is_branch_local_a_positive_gate_on_one_alternative_does_not_gate_the_rule() {
+        let pred = |payload: &str| SemanticAnnotation::Named {
+            name: "predicate".to_string(),
+            ast: UnifiedSemanticAST::from_named_payload("predicate", payload),
+        };
+        let exclusion = "{ name: lacks_fact_attribute_equals, args: [type_name, $body.name.body, declaration_family, typedef], phase: branch, view: shaped }";
+        let declared = "{ name: has_fact, args: [package_name, $body.name.body], phase: branch, view: shaped }";
+        let mut annotations = Annotations::default();
+        // (a) the `.3.54` shape: exclusion on alternative 1, a declared-package gate on alternative 2.
+        annotations.branch_semantic_annotations.insert(
+            "non_typedef_package_scope".to_string(),
+            vec![vec![pred(exclusion)], vec![pred(declared)]],
+        );
+        // (b) a rule whose EVERY alternative is positively gated is gated by the first alternative's kind.
+        annotations.branch_semantic_annotations.insert(
+            "every_alternative_gated".to_string(),
+            vec![vec![pred(declared)], vec![pred("{ name: has_fact, args: [class_name, $body], phase: branch }")]],
+        );
+        // (c) a rule-level positive gate gates the rule even beside an ungated alternative.
+        annotations.semantic_annotations.insert(
+            "rule_level_gated".to_string(),
+            vec![pred("{ name: has_fact, args: [parameter_name, $body], phase: post }")],
+        );
+        annotations.branch_semantic_annotations.insert(
+            "rule_level_gated".to_string(),
+            vec![Vec::new(), vec![pred(exclusion)]],
+        );
+        // (d) an ungated alternative beside a gated one, the gated one FIRST — still not gated.
+        annotations.branch_semantic_annotations.insert(
+            "gated_first_then_free".to_string(),
+            vec![vec![pred(declared)], Vec::new()],
+        );
+        let gates = StimuliGenerator::compute_name_gates(Some(&annotations));
+        assert!(
+            !gates.contains_key("non_typedef_package_scope"),
+            "a positive gate on one alternative must not gate the rule: {:?}",
+            gates.get("non_typedef_package_scope")
+        );
+        assert!(!gates.contains_key("gated_first_then_free"));
+        let every = gates.get("every_alternative_gated").expect("every alternative gated ⇒ the rule is gated");
+        assert_eq!(every.kind, "package_name");
+        assert_eq!(every.family, None);
+        let rule_level = gates.get("rule_level_gated").expect("a rule-level gate gates the rule");
+        assert_eq!(rule_level.kind, "parameter_name");
+        assert_eq!(rule_level.excluded_families, vec!["typedef".to_string()], "exclusions merge from every alternative");
     }
 
     fn gen_store_annotations(entries: &[(String, SemanticAnnotation)]) -> Annotations {

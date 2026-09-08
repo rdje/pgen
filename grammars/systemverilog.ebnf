@@ -4006,9 +4006,27 @@ let_declaration := kw_let_0262f9bb declared_let_identifier ( lparen ( let_port_l
 # exposed this. Drill through the shape: $body.name.body
 # (body → package_scope's name field → package_identifier's body scalar).
 #
-@predicate: { name: lacks_fact_attribute_equals, args: [type_name, $body.name.body, declaration_family, typedef], phase: post }
+# SV-CORPUS-GRAD.3.54 (release 1.0.225, ledger SV-0098): a package shares NO name space with a typedef —
+# IEEE 1800-2023 §3.13 "The package name space unifies all the package identifiers defined among all
+# compilation units" (docs/systemverilog/2023/md/section-3-design-and-verification-building-blocks.md:420-432);
+# 1800-2017 says the same sentence at docs/systemverilog/2017/md/section-3-park-avenue.md:432, a vendored
+# file whose only headings are the address page, so it is cited by line and not by clause — so `T::VALUE`
+# with `package T` DECLARED is a package scope even while a typedef named `T` is visible (iverilog
+# sv_type_identifier_package_name.v: `import p::*` offers a typedef `T`, `package T` follows; §26.3 the
+# wildcard candidate never becomes locally visible). Through 1.0.224 the typedef exclusion was this rule's
+# ONLY gate (phase post), so the scope refused, and every class-scope arm refused too (`T` is no class).
+# The exclusion is now branch-LOCAL (BRANCH-PREDICATE-LOCALITY.2) and a SECOND branch admits a DECLARED
+# package by its own fact (`package_name`, emitted by declared_package_identifier) under `ordered`: the
+# second branch is tried only when the first FAILS — a typedef-named scope, or no `identifier ::` at all —
+# and the engine answers its `package_scope` from the memo (no frame added; the replay is recorded under
+# PARSE-COST-RATCHET's `lookahead_replay_occurrences`, second shape). Both branches carry the same template
+# — byte-identical trees. The certificate planner reads the branch gates branch-locally since 1.0.225
+# (BRANCH-PREDICATE-LOCALITY.3): a positive gate on one alternative does not gate the rule.
+@branch_policy: ordered
 @profiles: ["sv_2017", "sv_2023"]
-non_typedef_package_scope := @probe_sample: "pkg::" package_scope
+non_typedef_package_scope := @probe_sample: "pkg::" @predicate: { name: lacks_fact_attribute_equals, args: [type_name, $body.name.body, declaration_family, typedef], phase: branch, view: shaped } package_scope
+                          -> {body: $1}
+                          | @predicate: { name: has_fact, args: [package_name, $body.name.body], phase: branch, view: shaped } package_scope
                           -> {body: $1}
 
 let_expression := scoped_let_identifier ( lparen ( let_list_of_arguments )? rparen )?

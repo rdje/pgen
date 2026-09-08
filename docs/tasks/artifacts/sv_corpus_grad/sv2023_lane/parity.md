@@ -10,14 +10,14 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `bc0ef4c41787d0fa4f7e632769e0fd33cdf586012ca4877821bd27b4dd552408` |
+| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `4a5539b817d993d4eedaa4ba5db8b6fdac6e41bbfc606e1339af3bea28162d54` |
 | IEEE 1800-2017 Annex A | `docs/systemverilog/2017/md/section-41-data-read-api.md` | `249ab571c2ef3237790a6bd9743f07a7595bdded337ca2cbb6d5e189b3b40d22` |
 | IEEE 1800-2023 Annex A | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md` | `0b4f7fe935e9c499a56ccde8dc769ed626bf53d154f8a9585bd1daf371a9d4aa` |
 | instrument | `docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/production_parity.py` | `26506e3786c05f76f116bd25b9b59a8fa3ff55eb0f044d988d7956b01fd93045` |
 
 ## The census
 
-`PRODUCTION-PARITY: rows=119 all_cited_identical=73 some_differs=21 some_missing=8 no_production_named=20 productions=117`
+`PRODUCTION-PARITY: rows=125 all_cited_identical=76 some_differs=23 some_missing=9 no_production_named=20 productions=124`
 
 | production | verdict |
 |---|---|
@@ -30,6 +30,7 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 | `event_control` | DIFFERS |
 | `event_trigger` | DIFFERS |
 | `forward_type` | MISSING-2017 |
+| `function_prototype` | DIFFERS |
 | `local_parameter_declaration` | DIFFERS |
 | `net_declaration` | DIFFERS |
 | `net_port_type` | DIFFERS |
@@ -38,6 +39,7 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 | `parameter_value_assignment` | DIFFERS |
 | `primary` | DIFFERS |
 | `range` | MISSING-2017 |
+| `scope_randomize` | MISSING-2017 |
 | `setuphold_timing_check` | MISSING-2017 |
 | `type_assignment` | DIFFERS |
 | `type_parameter_declaration` | MISSING-2017 |
@@ -54,6 +56,7 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 | `Surelog` | `tests/ParamNoDefault/dut.sv` | UNCITED | — |
 | `Surelog` | `tests/SynthForeach/dut.sv` | IDENTICAL | `loop_statement:IDENTICAL loop_variables:IDENTICAL struct_union_member:IDENTICAL` |
 | `Surelog` | `tests/UnsizedPacked/dut.sv` | IDENTICAL | `packed_dimension:IDENTICAL variable_dimension:IDENTICAL` |
+| `ispras-sv-tests` | `ieee-1800-2012/08/08.26.04_01.sv` | IDENTICAL | `class_method:IDENTICAL` |
 | `iverilog` | `ivtest/ivltests/br_gh390a.v` | DIFFERS | `class_constructor_declaration:DIFFERS` |
 | `iverilog` | `ivtest/ivltests/display_bug.v` | MISSING | `data_type:IDENTICAL packed_dimension:IDENTICAL range:MISSING-2017 dynamic_array_new:IDENTICAL unpacked_dimension:IDENTICAL` |
 | `iverilog` | `ivtest/ivltests/pr3366217d.v` | IDENTICAL | `enum_name_declaration:IDENTICAL integral_number:IDENTICAL` |
@@ -94,10 +97,12 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 | `verible` | `verible/verilog/tools/kythe/testdata/function_port_dimensions.sv` | IDENTICAL | `data_type:IDENTICAL integer_atom_type:IDENTICAL` |
 | `verible` | `verible/verilog/tools/kythe/testdata/module_port_type_forwarding.sv` | IDENTICAL | `port:IDENTICAL list_of_ports:IDENTICAL module_declaration:IDENTICAL` |
 | `verible` | `verible/verilog/tools/kythe/testdata/primitive_type_with_dimensions.sv` | IDENTICAL | `data_type:IDENTICAL integer_atom_type:IDENTICAL` |
+| `verible` | `verible/verilog/tools/kythe/testdata/program.sv` | IDENTICAL | `list_of_port_connections:IDENTICAL named_port_connection:IDENTICAL` |
 | `verible` | `verible/verilog/tools/lint/testdata/shadow_parameter.sv` | IDENTICAL | `function_body_declaration:IDENTICAL` |
 | `verilator` | `test_regress/t/t_assert_imm_nz_bad.v` | IDENTICAL | `deferred_immediate_assert_statement:IDENTICAL module_declaration:IDENTICAL module_item:IDENTICAL` |
 | `verilator` | `test_regress/t/t_case_inside_bad.v` | IDENTICAL | `case_keyword:IDENTICAL case_statement:IDENTICAL` |
 | `verilator` | `test_regress/t/t_class_extends_bad.v` | DIFFERS | `class_declaration:DIFFERS` |
+| `verilator` | `test_regress/t/t_class_extern.v` | DIFFERS | `function_prototype:DIFFERS class_method:IDENTICAL method_prototype:IDENTICAL` |
 | `verilator` | `test_regress/t/t_class_static_member_sel.v` | IDENTICAL | `variable_lvalue:IDENTICAL` |
 | `verilator` | `test_regress/t/t_class_super_new_bad_nfirst.v` | DIFFERS | `class_constructor_declaration:DIFFERS` |
 | `verilator` | `test_regress/t/t_clk_concat5.v` | IDENTICAL | `port:IDENTICAL list_of_ports:IDENTICAL module_declaration:IDENTICAL` |
@@ -124,6 +129,7 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 | `verilator` | `test_regress/t/t_inst_2star_bad.v` | IDENTICAL | `named_port_connection:IDENTICAL list_of_port_connections:IDENTICAL` |
 | `verilator` | `test_regress/t/t_inst_noname_bad.v` | IDENTICAL | `hierarchical_instance:IDENTICAL name_of_instance:IDENTICAL` |
 | `verilator` | `test_regress/t/t_inst_port_complex_unsup.v` | IDENTICAL | `ansi_port_declaration:IDENTICAL` |
+| `verilator` | `test_regress/t/t_interface_modport_export.v` | DIFFERS | `extern_tf_declaration:IDENTICAL function_prototype:DIFFERS` |
 | `verilator` | `test_regress/t/t_langext_order.v` | UNCITED | — |
 | `verilator` | `test_regress/t/t_lint_colonplus_bad.v` | IDENTICAL | `output_declaration:IDENTICAL variable_port_type:IDENTICAL var_data_type:IDENTICAL list_of_variable_port_identifiers:IDENTICAL` |
 | `verilator` | `test_regress/t/t_lint_notredop_bad.v` | IDENTICAL | `expression:IDENTICAL port_expression:IDENTICAL port_reference:IDENTICAL` |
@@ -148,8 +154,10 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 | `verilator` | `test_regress/t/t_property_case_bad.v` | IDENTICAL | `property_expr:IDENTICAL` |
 | `verilator` | `test_regress/t/t_property_named.v` | IDENTICAL | `property_port_item:IDENTICAL sequence_formal_type:IDENTICAL` |
 | `verilator` | `test_regress/t/t_property_sexpr_bad.v` | IDENTICAL | `sequence_expr:IDENTICAL property_expr:IDENTICAL` |
+| `verilator` | `test_regress/t/t_randomize_arraysel_membersel.v` | IDENTICAL | `variable_identifier:IDENTICAL variable_identifier_list:IDENTICAL` |
 | `verilator` | `test_regress/t/t_randomize_with_idlist_method_bad.v` | IDENTICAL | `array_manipulation_call:IDENTICAL randomize_call:IDENTICAL` |
 | `verilator` | `test_regress/t/t_setuphold.v` | MISSING | `setuphold_timing_check:MISSING-2017 timing_check_limit:IDENTICAL system_timing_check:IDENTICAL expression:IDENTICAL` |
+| `verilator` | `test_regress/t/t_std_randomize_with.v` | MISSING | `scope_randomize:MISSING-2017 variable_identifier_list:IDENTICAL variable_identifier:IDENTICAL` |
 | `verilator` | `test_regress/t/t_timescale_udp.v` | IDENTICAL | `combinational_entry:IDENTICAL output_symbol:IDENTICAL` |
 | `verilator` | `test_regress/t/t_type_compare.v` | DIFFERS | `conditional_statement:IDENTICAL cond_predicate:IDENTICAL expression_or_cond_pattern:IDENTICAL primary:DIFFERS cast:IDENTICAL casting_type:IDENTICAL unique_priority:IDENTICAL type_reference:DIFFERS constant_primary:DIFFERS data_type:IDENTICAL if_generate_construct:IDENTICAL case_generate_construct:IDENTICAL` |
 | `verilator` | `test_regress/t/t_type_compare_bad.v` | DIFFERS | `case_expression:IDENTICAL primary:DIFFERS constant_primary:DIFFERS` |

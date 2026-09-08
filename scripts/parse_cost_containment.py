@@ -1568,6 +1568,17 @@ def lookahead_replay_occurrences(base: dict[str, dict[str, int]], new: dict[str,
     owed follow-up: a work-only counter beside the occurrence count), so a row under this predicate
     carries a number the metric inflates and says so.
 
+    THE SECOND SHAPE (`SV-CORPUS-GRAD.3.54`, release 1.0.225): an ORDERED CHOICE whose alternatives share a
+    prefix. `non_typedef_package_scope := <no typedef> package_scope | <declared package> package_scope`
+    un-gates the package scope for a declared package; wherever alternative 1 fails for lack of an
+    `identifier ::` the ordered choice tries alternative 2 and the engine answers its `package_scope` from
+    the memo. The `!name` here is the SHARED PREFIX (`!package_scope`), the `~name` the un-gated host
+    (`~non_typedef_package_scope`); clause (2) reads the prefix as a pure lookup (entries +721,482 =
+    memo_hits +721,482, committed +0 on the pinned sample), clause (3) reads no file moved, (4) reads no
+    committed riser at all, (5) reads the only entries riser reachable from the un-gated host. The same
+    arithmetic, the same artefact — a replay the occurrence count prices as work — without a lookahead
+    in the spelling; the row's `why` names the shape.
+
     Raises `Refused` (never a false verdict) when no guarded sibling is declared, a name is missing from
     the graph or the measurements, an introduced name already existed, or a `!`/`~` name is new.
     """
@@ -1704,6 +1715,15 @@ def self_test_lookahead_replay_occurrences() -> int:
     intro = ["t", "!g", "~u"]
     h, dd, f = lookahead_replay_occurrences(base, fresh(), edges, intro, bfiles, nfiles)
     arm("holds: guard is a pure lookup, no file moved, committed risers inside the replayed / un-gated sub-graph", h and f["guards"]["g"] == (40, 40, 0))
+    # THE SECOND SHAPE (`SV-CORPUS-GRAD.3.54`): an ordered choice whose alternatives share a prefix — the
+    # prefix is the `!` name (a pure lookup wherever alternative 1 fails), the host the `~` name, nothing introduced.
+    edges2 = {"top": ["host"], "host": ["prefix"], "prefix": ["id"], "id": []}
+    base2 = {"top": rc(5, 5, 0), "host": rc(1000, 10, 900), "prefix": rc(200, 10, 100), "id": rc(200, 10, 0)}
+    new2 = {"top": rc(5, 5, 0), "host": rc(998, 10, 898), "prefix": rc(300, 10, 200), "id": rc(200, 10, 0)}
+    h, dd, f = lookahead_replay_occurrences(base2, new2, edges2, ["!prefix", "~host"], bfiles, nfiles)
+    arm("holds: an ordered choice's shared prefix replayed from the memo — prefix a pure lookup, host un-gated, nothing introduced, committed conserved", h and f["guards"]["prefix"] == (100, 100, 0))
+    h, dd, f = lookahead_replay_occurrences(base2, {**new2, "prefix": rc(300, 12, 200)}, edges2, ["!prefix", "~host"], bfiles, nfiles)
+    arm("fails: the shared prefix committed more — not a replay", not h and "pure lookup" in dd)
     h, dd, f = lookahead_replay_occurrences(base, fresh(g=rc(80, 20, 30)), edges, intro, bfiles, nfiles)
     arm("fails: the guard parsed its sibling afresh (entries > memo hits)", not h and "pure lookup" in dd)
     h, dd, f = lookahead_replay_occurrences(base, fresh(g=rc(80, 25, 50)), edges, intro, bfiles, nfiles)

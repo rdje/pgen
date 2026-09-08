@@ -190,6 +190,29 @@ semantics section states BRANCH-LOCAL as the contract.
     v2005 accept/reject matrix 240/0 unchanged; the flattening's historical user-visible SV
     consequences were already ledgered/fixed under `SV-0029`. The dead branches never produced an
     observable shape, so their retirement is invisible to consumers (contract note added).
+- `.3` — **THE GENERATOR'S SIDE: the certificate planner's name-gate derivation is branch-LOCAL — `done`
+  (landed with `PGEN-SV-CORPUS-GRAD-0384`, leaf `SV-CORPUS-GRAD.3.54`, 2026-09-08).** `.2` made the PARSER
+  evaluate an inline `phase: branch` predicate on its branch alone; `compute_name_gates`
+  (`rust/src/ast_pipeline/stimuli_generator.rs`) — the function that turns a rule's `has_fact` /
+  `fact_attribute_equals` / `lacks_fact_attribute_equals` predicates into the NameGate the witness
+  generator satisfies with a declare-then-use prelude — still merged `branch_semantic_annotations` into
+  the rule's own annotations before reading them, so a positive gate on ONE alternative gated the whole
+  rule. FOUND by `sv_cert_recognized_union_gate` on `SV-CORPUS-GRAD.3.54`'s grammar (`non_typedef_package_scope :=
+  <no typedef> package_scope | <declared package> package_scope`, the second alternative behind
+  `has_fact [package_name, …]`): canonical `1499/10/1474/15 → 1499/10/1461/28`, union UNKNOWN `0 → 7`
+  (`class_scoped_tf_call`, `extern_constraint_declaration`, `extern_constraint_declaration_sv_2017`,
+  `kw_implements_e133e2cb`, `method_call_receiver_qualifier`, `scoped_base_class_type_identifier`,
+  `scoped_interface_class_type_identifier`) on every seed — thirteen rules witnessed only through a
+  `pkg::` prefix, while the interpreter accepts every `pkg::` sample identically under both grammars
+  (no prelude can declare a `package_name`, so a `package_name`-gated rule is un-plannable). FIX (one
+  function, planner tier): each annotation group — the rule's own, then each branch's — is read on its
+  own; a rule-level positive gate gates the rule as before; a positive gate carried by an alternative
+  gates the rule only when EVERY alternative carries one (the first gated alternative's kind); exclusions
+  and emitted kinds merge from every group. Unit test
+  `name_gate_is_branch_local_a_positive_gate_on_one_alternative_does_not_gate_the_rule` (four arms: the
+  `.3.54` shape ungated, gated-first-then-free ungated, every-alternative-gated gated by the first kind,
+  rule-level gated beside an exclusion-only alternative with the exclusion merged). Verified by the same
+  gate re-run: union `sv_cert_recognized_union_gate` — the FIRST run on the final bytes REFUSED with the planner flattening the new branch gate: canonical `1499/10/1461/28`, union witness `1482`, union UNKNOWN **7** on every seed (`class_scoped_tf_call`, `extern_constraint_declaration`, `extern_constraint_declaration_sv_2017`, `kw_implements_e133e2cb`, `method_call_receiver_qualifier`, `scoped_base_class_type_identifier`, `scoped_interface_class_type_identifier` — the `pkg::`-witnessed rules); on the branch-local planner (`BRANCH-PREDICATE-LOCALITY.3`) the second run read canonical `1499/10/1474/15` (the IDENTICAL 15-rule UNKNOWN set), union witness `1489`, union UNKNOWN 0, residual `[]`, deterministic across seeds 0 / 7 / 42 — every number 1.0.224's, no rule added or removed — the baseline STALE on `stimuli_generator.rs` and every expectation holding, so the gate re-stamped the identity; `verilog_2005_conformance_gate` — cert `1188/371/803/14` UNCHANGED (`CERTIFICATE-COVERAGE: grammar='systemverilog' entry='systemverilog_file' samples=40 total=1188 proof=371 witness=803 UNKNOWN=14 fully_certified=false (sample_parse_failures=0, proof_reverify_failures=0)`, deterministic across seeds 0 / 7 / 42; the rule is SV-only, so nothing enters or leaves that profile's universe), `corpus matrix: 369 file×profile checks, 0 mismatches`, aliases 2 — GREEN on the first run of the final bytes and again on the branch-local planner, each time STALE on a declared input and every criterion holding, so the gate re-stamped the identity.
 
 ## Acceptance Checklist (enforced)
 - [x] **REPRODUCE / ISSUE** — `.1` (§1b): 4 reproducers, `PGEN_TRACE_VERBOSITY=debug --trace-rules scoped_or_hierarchical_tf_identifier` → `✅ Leaving branch 3/3 … (success)` then `🚫 Branch 3/3 … rejected by branch predicate 'lacks_fact_attribute_equals [… RuleReference("scope.name.body") …]'` (same for branch 1/3 on `C::m(1);`); branch 2 `🛡️ PASSED` printed twice (double-evaluation). Pre-companion flip MEASURED: `foo.bar(1);` AST kinds `method`/`split_direct_callable` → `tf` after the engine fix alone.
@@ -205,6 +228,7 @@ semantics section states BRANCH-LOCAL as the contract.
 | --- | --- | --- | --- |
 | 1 | `.1` (SV:4605 reproducer + blast-radius audit) | `done` (2026-07-06 #48) | CONFIRMED broader: branches 1+3 both dead; flattening = day-one bug; routing-flip risk found. |
 | 2 | `.2` (registry-fn fix + SV routing preservation + verification) | `done` (2026-07-06 #48) | Engine fix + deliberate re-anchor + SV companion; full battery GREEN; NO release bump (behavior byte-invariant on every profile). |
+| 3 | `.3` (the certificate planner's name-gate derivation, branch-local) | `done` (2026-09-08, with `PGEN-SV-CORPUS-GRAD-0384`) | `compute_name_gates` read branch annotations rule-wide; a positive gate on one alternative un-witnessed thirteen `pkg::`-reached rules; one function + one unit test; the union gate GREEN again on the same numbers. |
 
 **TREE COMPLETE** — F3 is fixed at the engine tier with the published contract restored, the SV
 routing preserved byte-identically, and the v2005 certification honestly improved (UNKNOWN 17→14).

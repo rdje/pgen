@@ -8,6 +8,7 @@ Surelog	tests/MaskNeg/dut.sv	UNCITED
 Surelog	tests/ParamNoDefault/dut.sv	UNCITED	
 Surelog	tests/SynthForeach/dut.sv	IDENTICAL	loop_statement:IDENTICAL loop_variables:IDENTICAL struct_union_member:IDENTICAL
 Surelog	tests/UnsizedPacked/dut.sv	IDENTICAL	packed_dimension:IDENTICAL variable_dimension:IDENTICAL
+ispras-sv-tests	ieee-1800-2012/08/08.26.04_01.sv	IDENTICAL	class_method:IDENTICAL
 iverilog	ivtest/ivltests/br_gh390a.v	DIFFERS	class_constructor_declaration:DIFFERS
 iverilog	ivtest/ivltests/display_bug.v	MISSING	data_type:IDENTICAL packed_dimension:IDENTICAL range:MISSING-2017 dynamic_array_new:IDENTICAL unpacked_dimension:IDENTICAL
 iverilog	ivtest/ivltests/pr3366217d.v	IDENTICAL	enum_name_declaration:IDENTICAL integral_number:IDENTICAL
@@ -48,10 +49,12 @@ verible	verible/verilog/tools/kythe/testdata/foreach.sv	IDENTICAL	loop_statement
 verible	verible/verilog/tools/kythe/testdata/function_port_dimensions.sv	IDENTICAL	data_type:IDENTICAL integer_atom_type:IDENTICAL
 verible	verible/verilog/tools/kythe/testdata/module_port_type_forwarding.sv	IDENTICAL	port:IDENTICAL list_of_ports:IDENTICAL module_declaration:IDENTICAL
 verible	verible/verilog/tools/kythe/testdata/primitive_type_with_dimensions.sv	IDENTICAL	data_type:IDENTICAL integer_atom_type:IDENTICAL
+verible	verible/verilog/tools/kythe/testdata/program.sv	IDENTICAL	list_of_port_connections:IDENTICAL named_port_connection:IDENTICAL
 verible	verible/verilog/tools/lint/testdata/shadow_parameter.sv	IDENTICAL	function_body_declaration:IDENTICAL
 verilator	test_regress/t/t_assert_imm_nz_bad.v	IDENTICAL	deferred_immediate_assert_statement:IDENTICAL module_declaration:IDENTICAL module_item:IDENTICAL
 verilator	test_regress/t/t_case_inside_bad.v	IDENTICAL	case_keyword:IDENTICAL case_statement:IDENTICAL
 verilator	test_regress/t/t_class_extends_bad.v	DIFFERS	class_declaration:DIFFERS
+verilator	test_regress/t/t_class_extern.v	DIFFERS	function_prototype:DIFFERS class_method:IDENTICAL method_prototype:IDENTICAL
 verilator	test_regress/t/t_class_static_member_sel.v	IDENTICAL	variable_lvalue:IDENTICAL
 verilator	test_regress/t/t_class_super_new_bad_nfirst.v	DIFFERS	class_constructor_declaration:DIFFERS
 verilator	test_regress/t/t_clk_concat5.v	IDENTICAL	port:IDENTICAL list_of_ports:IDENTICAL module_declaration:IDENTICAL
@@ -78,6 +81,7 @@ verilator	test_regress/t/t_implements_nested_bad.v	IDENTICAL	interface_class_ite
 verilator	test_regress/t/t_inst_2star_bad.v	IDENTICAL	named_port_connection:IDENTICAL list_of_port_connections:IDENTICAL
 verilator	test_regress/t/t_inst_noname_bad.v	IDENTICAL	hierarchical_instance:IDENTICAL name_of_instance:IDENTICAL
 verilator	test_regress/t/t_inst_port_complex_unsup.v	IDENTICAL	ansi_port_declaration:IDENTICAL
+verilator	test_regress/t/t_interface_modport_export.v	DIFFERS	extern_tf_declaration:IDENTICAL function_prototype:DIFFERS
 verilator	test_regress/t/t_langext_order.v	UNCITED	
 verilator	test_regress/t/t_lint_colonplus_bad.v	IDENTICAL	output_declaration:IDENTICAL variable_port_type:IDENTICAL var_data_type:IDENTICAL list_of_variable_port_identifiers:IDENTICAL
 verilator	test_regress/t/t_lint_notredop_bad.v	IDENTICAL	expression:IDENTICAL port_expression:IDENTICAL port_reference:IDENTICAL
@@ -102,8 +106,10 @@ verilator	test_regress/t/t_prop_always_bad.v	IDENTICAL	property_expr:IDENTICAL
 verilator	test_regress/t/t_property_case_bad.v	IDENTICAL	property_expr:IDENTICAL
 verilator	test_regress/t/t_property_named.v	IDENTICAL	property_port_item:IDENTICAL sequence_formal_type:IDENTICAL
 verilator	test_regress/t/t_property_sexpr_bad.v	IDENTICAL	sequence_expr:IDENTICAL property_expr:IDENTICAL
+verilator	test_regress/t/t_randomize_arraysel_membersel.v	IDENTICAL	variable_identifier:IDENTICAL variable_identifier_list:IDENTICAL
 verilator	test_regress/t/t_randomize_with_idlist_method_bad.v	IDENTICAL	array_manipulation_call:IDENTICAL randomize_call:IDENTICAL
 verilator	test_regress/t/t_setuphold.v	MISSING	setuphold_timing_check:MISSING-2017 timing_check_limit:IDENTICAL system_timing_check:IDENTICAL expression:IDENTICAL
+verilator	test_regress/t/t_std_randomize_with.v	MISSING	scope_randomize:MISSING-2017 variable_identifier_list:IDENTICAL variable_identifier:IDENTICAL
 verilator	test_regress/t/t_timescale_udp.v	IDENTICAL	combinational_entry:IDENTICAL output_symbol:IDENTICAL
 verilator	test_regress/t/t_type_compare.v	DIFFERS	conditional_statement:IDENTICAL cond_predicate:IDENTICAL expression_or_cond_pattern:IDENTICAL primary:DIFFERS cast:IDENTICAL casting_type:IDENTICAL unique_priority:IDENTICAL type_reference:DIFFERS constant_primary:DIFFERS data_type:IDENTICAL if_generate_construct:IDENTICAL case_generate_construct:IDENTICAL
 verilator	test_regress/t/t_type_compare_bad.v	DIFFERS	case_expression:IDENTICAL primary:DIFFERS constant_primary:DIFFERS

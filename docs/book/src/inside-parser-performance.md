@@ -551,7 +551,10 @@ advanced, every `committed` riser reachable from the guard, the un-gated or the 
 ancestor of the un-gated rule within its own rise — a losing success is counted on its callers), every
 `entries` riser from the introduced or un-gated ones (or a loop-continuation try, the continued body loop
 trying the parent's siblings once more, bounded the same way) — while its honest bound says the number is inflated and
-routes a work-only counter beside the occurrence count. Each has
+routes a work-only counter beside the occurrence count. Its second shape (release `1.0.225`, `SV-CORPUS-GRAD.3.54`) has
+no lookahead in the spelling: an ORDERED choice whose alternatives share a prefix replays that prefix from the memo
+wherever the first alternative fails — `!package_scope` the shared prefix, `~non_typedef_package_scope` the un-gated
+host — and the same clauses read the same artefact. Each has
 refusal arms in its self-test, so a row cannot
 borrow an invariant whose shape it does not have. For example, admitting one more keyword alternative into
 an ordered choice costs, at every position the choice is attempted, exactly two entries (the
