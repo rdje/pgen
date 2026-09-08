@@ -11,12 +11,12 @@
 
 | provenance | rows | share | `must_accept` | `must_reject` |
 |---|---|---|---|---|
-| `clause-cited` | **543** | 7.2% | 286 | 257 |
-| `tool-testimony` | **1738** | 23.0% | 1689 | 49 |
-| `suite-convention` | **5281** | 69.8% | 5278 | 3 |
-| `UNCLASSIFIED` | **2** | 0.0% | 1 | 1 |
+| `clause-cited` | **569** | 7.5% | 286 | 283 |
+| `tool-testimony` | **1734** | 22.9% | 1685 | 49 |
+| `suite-convention` | **5260** | 69.5% | 5257 | 3 |
+| `UNCLASSIFIED` | **1** | 0.0% | 0 | 1 |
 
-⇒ **trust bound: 7021 of 7564 (92.8%)** of this lane's expectations rest on evidence OUTSIDE the standard.
+⇒ **trust bound: 6995 of 7564 (92.5%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
 ## `verilog_2005` — 2534 keyed rows
 
@@ -29,7 +29,7 @@
 
 ⇒ **trust bound: 2329 of 2534 (91.9%)** of this lane's expectations rest on evidence OUTSIDE the standard.
 
-## ⛔ The BAR's own rows (79, `sv_2017`) — a different population, a different number
+## ⛔ The BAR's own rows (53, `sv_2017`) — a different population, a different number
 
 The published defect bar is the `sv_2017` `divergence:unexplained_*` subset, **not** the whole
 key. A divergence tends to get INVESTIGATED, and investigation is exactly the event
@@ -38,25 +38,25 @@ key as a whole. Attaching the key-wide share to the bar overstates the claim.
 
 | provenance | bar rows | share |
 |---|---|---|
-| `clause-cited` | 3 | 3.8% |
-| `tool-testimony` | 15 | 19.0% |
-| `suite-convention` | 60 | 75.9% |
-| `UNCLASSIFIED` | 1 | 1.3% |
+| `clause-cited` | 3 | 5.7% |
+| `tool-testimony` | 11 | 20.8% |
+| `suite-convention` | 39 | 73.6% |
+| `UNCLASSIFIED` | 0 | 0.0% |
 
-⇒ **76 of 79 (96.2%)** of the rows *behind the published bar* rest on evidence outside the standard, against **92.6%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
+⇒ **50 of 53 (94.3%)** of the rows *behind the published bar* rest on evidence outside the standard, against **92.3%** key-wide. ⭐ Use **this** number when speaking about the BAR and the key-wide one when speaking about the ANSWER KEY: they are different populations, and the bar is the better-evidenced of the two.
 
 ## By suite — where the non-clause evidence actually lives
 
 | suite | rows | `clause-cited` | `tool-testimony` | `suite-convention` | `UNCLASSIFIED` |
 |---|---|---|---|---|---|
-| `iverilog` | 3134 | 377 | 525 | 2232 | 0 |
-| `verilator` | 3131 | 93 | 725 | 2313 | 0 |
+| `iverilog` | 3134 | 383 | 522 | 2229 | 0 |
+| `verilator` | 3131 | 103 | 725 | 2303 | 0 |
 | `ispras-sv-tests` | 1147 | 37 | 0 | 1107 | ⛔ 3 |
-| `sv-tests` | 933 | 16 | 0 | 916 | ⛔ 1 |
-| `sv2v` | 925 | 209 | 354 | 362 | 0 |
-| `Surelog` | 628 | 11 | 617 | 0 | 0 |
-| `verible` | 130 | 4 | 0 | 126 | 0 |
-| `slang` | 70 | 1 | 0 | 69 | 0 |
+| `sv-tests` | 933 | 17 | 0 | 916 | 0 |
+| `sv2v` | 925 | 215 | 354 | 356 | 0 |
+| `Surelog` | 628 | 12 | 616 | 0 | 0 |
+| `verible` | 130 | 5 | 0 | 125 | 0 |
+| `slang` | 70 | 2 | 0 | 68 | 0 |
 
 ## ⛔ What the classifier got wrong before it got this right
 
@@ -75,13 +75,12 @@ nothing else. That the partition is EXHAUSTIVE is why the split is trustworthy.
 
 ## ⛔ The residual, VERBATIM — a census that hides its leftovers is a census you cannot check
 
-**4 of 10098 rows** (0.04%) match no rule. Every one is printed here rather than folded into a class, because a
+**3 of 10098 rows** (0.03%) match no rule. Every one is printed here rather than folded into a class, because a
 residual absorbed into the nearest bucket is exactly how a classifier stops being
 checkable. The first cut left **4 961** unclassified (49 %) and the vocabulary was
 extended by ENUMERATING those shapes, not by widening a rule until the number fell.
 
 - `ispras-sv-tests` / `must_reject` — pinned .8b.2: the committed text is syntactically broken - the a1 assert property's opening parenthesis is never closed (upstream typo); parse-level regardless of the intended 16.9.4 nested-gclk-function semantic rule
-- `sv-tests` / `must_accept` — pinned: bit-select on a vectored net is a semantic (elaboration) restriction; the syntax itself parses - .13w: store-gate search residual:not_parsed_with_declarations
 - `ispras-sv-tests` / `must_accept` — pinned .8c.1: 12.8.2 early defparam hierarchical-name resolution ambiguity - pure elaboration semantics; defparam and the generate block are ordinary 1364-2005 BNF
 - `ispras-sv-tests` / `must_accept` — ispras-1364 POSITIVE pinned .8c.2 (KNOWN_TEXT_BUGS re-adjudicated, no errata flip): `begin_keywords "1364-2001" - 19.11 selects the 1364-2001 keyword set so 'uwire' is an ordinary identifier in scope; section 19: directives may appear anywhere in the source description (the sv-lane 22.14 begin_keywords mirror - directive-aware keyword selection is parser duty) - .13w: store-gate search residual:not_parsed_with_declarations
 
@@ -110,6 +109,6 @@ extended by ENUMERATING those shapes, not by widening a rule until the number fe
 **`UNCLASSIFIED`**
 
 - `ispras-sv-tests` / `must_reject` — pinned .8b.2: the committed text is syntactically broken - the a1 assert property's opening parenthesis is never closed (upstream typo); parse-level r
-- `sv-tests` / `must_accept` — pinned: bit-select on a vectored net is a semantic (elaboration) restriction; the syntax itself parses - .13w: store-gate search residual:not_parsed_w
 - `ispras-sv-tests` / `must_accept` — pinned .8c.1: 12.8.2 early defparam hierarchical-name resolution ambiguity - pure elaboration semantics; defparam and the generate block are ordinary 
+- `ispras-sv-tests` / `must_accept` — ispras-1364 POSITIVE pinned .8c.2 (KNOWN_TEXT_BUGS re-adjudicated, no errata flip): `begin_keywords "1364-2001" - 19.11 selects the 1364-2001 keyword 
 
