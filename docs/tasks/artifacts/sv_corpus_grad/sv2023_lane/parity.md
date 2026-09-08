@@ -10,14 +10,14 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `7ed567966bf9632943ec09ca83c875d49ba9fed2f3a126ade4e33a89b552bdab` |
+| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `93e87e657153978dc69613702cc31089237a02782bd0a1beda233932d57ca417` |
 | IEEE 1800-2017 Annex A | `docs/systemverilog/2017/md/section-41-data-read-api.md` | `249ab571c2ef3237790a6bd9743f07a7595bdded337ca2cbb6d5e189b3b40d22` |
 | IEEE 1800-2023 Annex A | `docs/systemverilog/2023/md/section-Annex_A-normative-formal-syntax.md` | `0b4f7fe935e9c499a56ccde8dc769ed626bf53d154f8a9585bd1daf371a9d4aa` |
 | instrument | `docs/tasks/artifacts/sv_corpus_grad/sv2023_lane/production_parity.py` | `26506e3786c05f76f116bd25b9b59a8fa3ff55eb0f044d988d7956b01fd93045` |
 
 ## The census
 
-`PRODUCTION-PARITY: rows=78 all_cited_identical=48 some_differs=11 some_missing=3 no_production_named=18 productions=86`
+`PRODUCTION-PARITY: rows=82 all_cited_identical=48 some_differs=12 some_missing=7 no_production_named=18 productions=92`
 
 | production | verdict |
 |---|---|
@@ -27,9 +27,11 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 | `elaboration_system_task` | MISSING-2023 |
 | `forward_type` | MISSING-2017 |
 | `local_parameter_declaration` | DIFFERS |
+| `net_port_type` | DIFFERS |
 | `parameter_declaration` | DIFFERS |
 | `parameter_port_declaration` | DIFFERS |
 | `primary` | DIFFERS |
+| `range` | MISSING-2017 |
 | `type_assignment` | DIFFERS |
 | `type_parameter_declaration` | MISSING-2017 |
 | `type_reference` | DIFFERS |
@@ -43,11 +45,15 @@ A 2017-lane `must_reject` whose basis names a 1800-2017 production carries over 
 | `Surelog` | `tests/SynthForeach/dut.sv` | IDENTICAL | `loop_statement:IDENTICAL loop_variables:IDENTICAL struct_union_member:IDENTICAL` |
 | `Surelog` | `tests/UnsizedPacked/dut.sv` | IDENTICAL | `packed_dimension:IDENTICAL variable_dimension:IDENTICAL` |
 | `iverilog` | `ivtest/ivltests/br_gh390a.v` | DIFFERS | `class_constructor_declaration:DIFFERS` |
+| `iverilog` | `ivtest/ivltests/display_bug.v` | MISSING | `data_type:IDENTICAL packed_dimension:IDENTICAL range:MISSING-2017 dynamic_array_new:IDENTICAL unpacked_dimension:IDENTICAL` |
 | `iverilog` | `ivtest/ivltests/sv_new_array_error.v` | IDENTICAL | `variable_decl_assignment:IDENTICAL` |
 | `iverilog` | `ivtest/ivltests/sv_void_cast_fail3.v` | IDENTICAL | `subroutine_call_statement:IDENTICAL` |
 | `sv-tests` | `tests/chapter-6/6.23--type_op_compare.sv` | DIFFERS | `case_statement:IDENTICAL case_expression:IDENTICAL case_item_expression:IDENTICAL primary:DIFFERS cast:IDENTICAL casting_type:IDENTICAL conditional_statement:IDENTICAL unique_priority:IDENTICAL type_reference:DIFFERS constant_primary:DIFFERS data_type:IDENTICAL if_generate_construct:IDENTICAL case_generate_construct:IDENTICAL` |
 | `sv2v` | `test/core/interface_genvar_shadow.sv` | UNCITED | — |
 | `sv2v` | `test/core/interface_similar.sv` | UNCITED | — |
+| `sv2v` | `test/core/multipack_struct_cast.sv` | MISSING | `packed_dimension:IDENTICAL range:MISSING-2017 dynamic_array_new:IDENTICAL unpacked_dimension:IDENTICAL` |
+| `sv2v` | `test/core/struct_param.sv` | MISSING | `packed_dimension:IDENTICAL range:MISSING-2017 dynamic_array_new:IDENTICAL unpacked_dimension:IDENTICAL` |
+| `sv2v` | `test/core/unbased_unsized_default.sv` | DIFFERS | `input_declaration:IDENTICAL net_port_type:DIFFERS implicit_data_type:IDENTICAL packed_dimension:IDENTICAL range:MISSING-2017 dynamic_array_new:IDENTICAL unpacked_dimension:IDENTICAL` |
 | `sv2v` | `test/error/enum_range_x.sv` | IDENTICAL | `enum_name_declaration:IDENTICAL integral_number:IDENTICAL unbased_unsized_literal:IDENTICAL` |
 | `sv2v` | `test/error/interface_param_mismatch_type.sv` | UNCITED | — |
 | `sv2v` | `test/error/module_param_mismatch_type.sv` | UNCITED | — |

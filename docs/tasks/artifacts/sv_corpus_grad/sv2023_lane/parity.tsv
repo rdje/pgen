@@ -6,11 +6,15 @@ Surelog	tests/ParamNoDefault/dut.sv	UNCITED
 Surelog	tests/SynthForeach/dut.sv	IDENTICAL	loop_statement:IDENTICAL loop_variables:IDENTICAL struct_union_member:IDENTICAL
 Surelog	tests/UnsizedPacked/dut.sv	IDENTICAL	packed_dimension:IDENTICAL variable_dimension:IDENTICAL
 iverilog	ivtest/ivltests/br_gh390a.v	DIFFERS	class_constructor_declaration:DIFFERS
+iverilog	ivtest/ivltests/display_bug.v	MISSING	data_type:IDENTICAL packed_dimension:IDENTICAL range:MISSING-2017 dynamic_array_new:IDENTICAL unpacked_dimension:IDENTICAL
 iverilog	ivtest/ivltests/sv_new_array_error.v	IDENTICAL	variable_decl_assignment:IDENTICAL
 iverilog	ivtest/ivltests/sv_void_cast_fail3.v	IDENTICAL	subroutine_call_statement:IDENTICAL
 sv-tests	tests/chapter-6/6.23--type_op_compare.sv	DIFFERS	case_statement:IDENTICAL case_expression:IDENTICAL case_item_expression:IDENTICAL primary:DIFFERS cast:IDENTICAL casting_type:IDENTICAL conditional_statement:IDENTICAL unique_priority:IDENTICAL type_reference:DIFFERS constant_primary:DIFFERS data_type:IDENTICAL if_generate_construct:IDENTICAL case_generate_construct:IDENTICAL
 sv2v	test/core/interface_genvar_shadow.sv	UNCITED	
 sv2v	test/core/interface_similar.sv	UNCITED	
+sv2v	test/core/multipack_struct_cast.sv	MISSING	packed_dimension:IDENTICAL range:MISSING-2017 dynamic_array_new:IDENTICAL unpacked_dimension:IDENTICAL
+sv2v	test/core/struct_param.sv	MISSING	packed_dimension:IDENTICAL range:MISSING-2017 dynamic_array_new:IDENTICAL unpacked_dimension:IDENTICAL
+sv2v	test/core/unbased_unsized_default.sv	DIFFERS	input_declaration:IDENTICAL net_port_type:DIFFERS implicit_data_type:IDENTICAL packed_dimension:IDENTICAL range:MISSING-2017 dynamic_array_new:IDENTICAL unpacked_dimension:IDENTICAL
 sv2v	test/error/enum_range_x.sv	IDENTICAL	enum_name_declaration:IDENTICAL integral_number:IDENTICAL unbased_unsized_literal:IDENTICAL
 sv2v	test/error/interface_param_mismatch_type.sv	UNCITED	
 sv2v	test/error/module_param_mismatch_type.sv	UNCITED	
