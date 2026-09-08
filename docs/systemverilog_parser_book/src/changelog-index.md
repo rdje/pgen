@@ -34,6 +34,29 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.224 / Contract 1.0.224 — SV-CORPUS-GRAD.3.53 (`PGEN-SV-CORPUS-GRAD-0383`, 2026-09-08), ledger `SV-0097` (`Released`), **schema 32 unchanged**:
+
+⭐ **The parenthesised operator assignment is an expression, hence an operand.** IEEE 1800-2017 A.8.3 makes
+`( operator_assignment )` an `expression`, so it stands wherever `expression binary_operator expression` puts an
+operand — §11.4.2's own example is `j = i++ + (i = i - 1);`. Through `1.0.223` the grammar admitted the form only at
+the top of an expression (`expression_base`), never as a chain operand, so that example rejected at the `(` after
+`+` (three bar rows); and the alternative was unprofiled, so `verilog_2005` — whose IEEE 1364-2005 A.8.3 `expression`
+has no assignment inside an expression — accepted `j = (i = i - 1);`. Grammar tier: an SV-only
+`paren_operator_assignment_operand` reached from every chain step through an ordered pass-through
+`expression_chain_operand`, as a chain head with `expression_chain_step+`, and from the index rule; `1644 → 1646`
+rules; no engine, no codegen, no Rust.
+
+**Accept-set impact.** `sv_2017` / `sv_2023`: WIDEN by exactly the operand form — the sweep's verdict movers are
+the pre-registered rows (ispras `11.04.02_01.sv`, sv-tests `11.3.6--two_assign_in_expr.sv` and `-sim`, `fail → pass` on `sv_2017` and `sv_2023`, `verdict_moved=0` on `verilog_2005`), the bar `41 → 38` on `sv_2017` (rejects-valid 39 → 36, accepts-invalid 2), `42 → 39` on `sv_2023`, `verilog_2005` unmoved at 43 (`match 6028 → 6031` / `6019 → 6022`). `verilog_2005`: NARROWS by the top-level form;
+the lane's 2 606 rows carried no such text (`AST-IDENTITY-SWEEP: profile=verilog_2005 files=2606 both_accepted=2310 identical=2310 ast_moved=0 verdict_moved=0 both_nonaccepting=296`).
+
+**AST impact — none for any file the parser accepted before.** The top-level form keeps its `{kind:
+"paren_op_assign", body}` node at the base of the expression (the alternative passes the same node through), and
+every chain step's triple carries the node it did; `ast_moved=0` on every lane. A newly accepted operand arrives as
+`{kind: "paren_op_assign", body}` in an `operand_chain`'s `first` slot or as a step triple's third element. Pins
+`control_paren_operator_assignment_operand.sv` / `control_paren_operator_assignment_top_level.sv` /
+`invalid_paren_operator_assignment_v2005.sv`.
+
 ### 1.0.223 / Contract 1.0.223 — SV-CORPUS-GRAD.3.49 (`PGEN-SV-CORPUS-GRAD-0380`, 2026-09-08), ledger `SV-0096` (`Released`), **schema 32 unchanged**:
 
 ⭐ **A store gate that decides no parse is a resolution check Annex A never asked for.** Through `1.0.222` the unscoped

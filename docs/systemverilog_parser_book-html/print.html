@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4b49e9d0.js";
+            window.path_to_searchindex_js = "searchindex-a473e2d5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -258,16 +258,16 @@ inapplicable one.</li>
 <tr><th>Outcome</th><th style="text-align: right">Rows</th><th style="text-align: right">Share of the corpus</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">6 028</td><td style="text-align: right">36.9 %</td></tr>
+<tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">6 031</td><td style="text-align: right">36.9 %</td></tr>
 <tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 495</td><td style="text-align: right">9.2 %</td></tr>
-<tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">41</td><td style="text-align: right">0.3 %</td></tr>
+<tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">38</td><td style="text-align: right">0.2 %</td></tr>
 <tr><td>Routed to another lane’s manifest</td><td style="text-align: right">2 606</td><td style="text-align: right">16.0 %</td></tr>
 <tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">6 166</td><td style="text-align: right">37.7 %</td></tr>
 <tr><td>Total</td><td style="text-align: right">16 336</td><td style="text-align: right">100.0 %</td></tr>
 </tbody>
 </table>
 </div>
-<p>Only <strong>7 564 rows (46.3 %)</strong> were asked a question they could answer, and <strong>4 025</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6028/7564 would quietly drop the 37.7 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
+<p>Only <strong>7 564 rows (46.3 %)</strong> were asked a question they could answer, and <strong>4 025</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6031/7564 would quietly drop the 37.7 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
@@ -1066,6 +1066,7 @@ shapes, each carrying a <code>kind</code> discriminator).</p>
 <tr><td><code>conditional_expression</code></td><td><code>-&gt; {predicate, attributes, then_expr, else_expr}</code></td><td>Ternary <code>? :</code> form. The <code>&amp;question</code> positive lookahead is preserved unchanged from source grammar.</td></tr>
 <tr><td><code>tagged_union_expression_sv_2017</code> / <code>tagged_union_expression_sv_2023</code></td><td><code>-&gt; {name, value}</code></td><td><code>tagged member_name [value]</code> form. sv_2023 uses <code>primary</code> for value (more restrictive); sv_2017 uses <code>expression</code>.</td></tr>
 <tr><td><code>primary_literal</code> (4 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"number"</code> / <code>"time_literal"</code> / <code>"unbased_unsized_literal"</code> (<code>'0</code> / <code>'1</code> / <code>'x</code> / <code>'z</code>) / <code>"string_literal"</code>.</td></tr>
+<tr><td><code>paren_operator_assignment_operand</code> / <code>expression_chain_operand</code> (<strong>since <code>1.0.224</code>, <code>SV-CORPUS-GRAD.3.53</code></strong>)</td><td><code>{kind: "paren_op_assign", body: $2}</code> on the operand; <code>expression_chain_operand</code> passes its alternative through (<code>-&gt; $1</code>)</td><td>A parenthesised operator assignment (IEEE 1800-2017 A.8.3 <code>( operator_assignment )</code>, §11.4.2) wherever an expression operand stands: at the base of an expression it is the <code>expression_base</code> node it has been since schema 26; since <code>1.0.224</code> it also appears as the <code>first</code> slot of an <code>operand_chain</code> (<code>(i = i - 1) + 1</code>) and as the third element of a chain step’s <code>[operator, attributes, operand]</code> triple (<code>1 + (i = i - 1)</code>). SV profiles only: IEEE 1364-2005 has no assignment inside an expression, so under <code>verilog_2005</code> the form rejects at its <code>=</code>. The <code>expression_chain_operand</code> dispatcher is ordered (a primary first, the assignment form only where the primary fails — the two are disjoint) and adds no node.</td></tr>
 <tr><td><code>string_literal</code> / <code>string_literal_sv_2017</code> / <code>string_literal_sv_2023</code> / <code>string_literal_v2005</code> (<strong>since <code>1.0.221</code>, <code>SV-CORPUS-GRAD.3.47</code></strong>)</td><td><code>{kind: "double_quoted", body: $2}</code> on every double-quoted twin; <code>{kind: "triple_quoted", body: $2}</code> on the <code>sv_2023</code> twin’s <code>"""…"""</code> alternative</td><td>The string literal, one twin per edition (the SELECTION-dispatcher pattern) because the three standards disagree: IEEE 1800-2017 / 1800-2023 §5.9 admit a <code>\</code> + newline CONTINUATION inside a string and refuse a bare newline; IEEE 1364-2005 §3.6 / A.8.8 refuse both; IEEE 1800-2023 §5.9 adds the TRIPLE-QUOTED string (<code>"""…"""</code>, any character except <code>\</code> inside — a bare <code>"</code> and a bare newline included, escapes as <code>\</code> + any character). <code>body</code> is the SOURCE TEXT verbatim, quotes excluded, continuation included: §5.9 says the backslash and the newline are <em>ignored</em>, which is the consumer’s reading, not a rewrite of the source. Through <code>1.0.220</code> one terminal served every profile and REJECTED the continuation (the regex crate’s <code>.</code> cannot match a newline) while ADMITTING a raw newline; the <code>triple_quoted</code> kind is an addition reachable only on text no earlier release accepted, so schema 32 is unchanged.</td></tr>
 <tr><td><code>binary_operator</code> (29 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"plus"</code> / <code>"minus"</code> / <code>"star"</code> / <code>"slash"</code> / <code>"percent"</code> / <code>"equal"</code> / <code>"not_equal"</code> / <code>"case_equal"</code> / <code>"case_not_equal"</code> / <code>"wildcard_equal"</code> / <code>"wildcard_not_equal"</code> / <code>"logical_and"</code> / <code>"logical_or"</code> / <code>"power"</code> / <code>"less_than"</code> / <code>"less_equal"</code> / <code>"greater_than"</code> / <code>"greater_equal"</code> / <code>"bitwise_and"</code> / <code>"bitwise_or"</code> / <code>"bitwise_xor"</code> / <code>"reduction_xnor_alt"</code> / <code>"reduction_xnor"</code> / <code>"shift_right"</code> / <code>"shift_left"</code> / <code>"arithmetic_shift_right"</code> / <code>"arithmetic_shift_left"</code> / <code>"implies"</code> / <code>"iff_arrow"</code>.</td></tr>
 <tr><td><code>unary_operator</code> (11 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"plus"</code> / <code>"minus"</code> / <code>"bang"</code> / <code>"tilde"</code> / <code>"bitwise_and"</code> / <code>"reduction_nand"</code> / <code>"bitwise_or"</code> / <code>"reduction_nor"</code> / <code>"bitwise_xor"</code> / <code>"reduction_xnor"</code> / <code>"reduction_xnor_alt"</code>.</td></tr>
@@ -2386,6 +2387,24 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10224--contract-10224--sv-corpus-grad353-pgen-sv-corpus-grad-0383-2026-09-08-ledger-sv-0097-released-schema-32-unchanged"><a class="header" href="#10224--contract-10224--sv-corpus-grad353-pgen-sv-corpus-grad-0383-2026-09-08-ledger-sv-0097-released-schema-32-unchanged">1.0.224 / Contract 1.0.224 — SV-CORPUS-GRAD.3.53 (<code>PGEN-SV-CORPUS-GRAD-0383</code>, 2026-09-08), ledger <code>SV-0097</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
+<p>⭐ <strong>The parenthesised operator assignment is an expression, hence an operand.</strong> IEEE 1800-2017 A.8.3 makes
+<code>( operator_assignment )</code> an <code>expression</code>, so it stands wherever <code>expression binary_operator expression</code> puts an
+operand — §11.4.2’s own example is <code>j = i++ + (i = i - 1);</code>. Through <code>1.0.223</code> the grammar admitted the form only at
+the top of an expression (<code>expression_base</code>), never as a chain operand, so that example rejected at the <code>(</code> after
+<code>+</code> (three bar rows); and the alternative was unprofiled, so <code>verilog_2005</code> — whose IEEE 1364-2005 A.8.3 <code>expression</code>
+has no assignment inside an expression — accepted <code>j = (i = i - 1);</code>. Grammar tier: an SV-only
+<code>paren_operator_assignment_operand</code> reached from every chain step through an ordered pass-through
+<code>expression_chain_operand</code>, as a chain head with <code>expression_chain_step+</code>, and from the index rule; <code>1644 → 1646</code>
+rules; no engine, no codegen, no Rust.</p>
+<p><strong>Accept-set impact.</strong> <code>sv_2017</code> / <code>sv_2023</code>: WIDEN by exactly the operand form — the sweep’s verdict movers are
+the pre-registered rows (ispras <code>11.04.02_01.sv</code>, sv-tests <code>11.3.6--two_assign_in_expr.sv</code> and <code>-sim</code>, <code>fail → pass</code> on <code>sv_2017</code> and <code>sv_2023</code>, <code>verdict_moved=0</code> on <code>verilog_2005</code>), the bar <code>41 → 38</code> on <code>sv_2017</code> (rejects-valid 39 → 36, accepts-invalid 2), <code>42 → 39</code> on <code>sv_2023</code>, <code>verilog_2005</code> unmoved at 43 (<code>match 6028 → 6031</code> / <code>6019 → 6022</code>). <code>verilog_2005</code>: NARROWS by the top-level form;
+the lane’s 2 606 rows carried no such text (<code>AST-IDENTITY-SWEEP: profile=verilog_2005 files=2606 both_accepted=2310 identical=2310 ast_moved=0 verdict_moved=0 both_nonaccepting=296</code>).</p>
+<p><strong>AST impact — none for any file the parser accepted before.</strong> The top-level form keeps its <code>{kind: "paren_op_assign", body}</code> node at the base of the expression (the alternative passes the same node through), and
+every chain step’s triple carries the node it did; <code>ast_moved=0</code> on every lane. A newly accepted operand arrives as
+<code>{kind: "paren_op_assign", body}</code> in an <code>operand_chain</code>’s <code>first</code> slot or as a step triple’s third element. Pins
+<code>control_paren_operator_assignment_operand.sv</code> / <code>control_paren_operator_assignment_top_level.sv</code> /
+<code>invalid_paren_operator_assignment_v2005.sv</code>.</p>
 <h3 id="10223--contract-10223--sv-corpus-grad349-pgen-sv-corpus-grad-0380-2026-09-08-ledger-sv-0096-released-schema-32-unchanged"><a class="header" href="#10223--contract-10223--sv-corpus-grad349-pgen-sv-corpus-grad-0380-2026-09-08-ledger-sv-0096-released-schema-32-unchanged">1.0.223 / Contract 1.0.223 — SV-CORPUS-GRAD.3.49 (<code>PGEN-SV-CORPUS-GRAD-0380</code>, 2026-09-08), ledger <code>SV-0096</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
 <p>⭐ <strong>A store gate that decides no parse is a resolution check Annex A never asked for.</strong> Through <code>1.0.222</code> the unscoped
 checker name carried a <code>has_fact(checker_name) phase: post</code> gate — the 2026-03-21 semantic-fact pilot — so a checker

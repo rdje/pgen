@@ -30,8 +30,8 @@ describes your tree** and the honest act is to re-measure, not to quote.
 
 | input | sha256 |
 | --- | --- |
-| `stimuli/sv/characterization/adjudication_manifest.tsv` | `6428a480b29f5431323b7879c137e44f060b2b1d16bbd5c2a2d12b9a3e9c8b42` |
-| `stimuli/sv/characterization/positions.tsv` | `0bb04b8bef3dcee42379ca0847997f254e269f6ee8a3c663f17695584a6f318a` |
+| `stimuli/sv/characterization/adjudication_manifest.tsv` | `bc0ef4c41787d0fa4f7e632769e0fd33cdf586012ca4877821bd27b4dd552408` |
+| `stimuli/sv/characterization/positions.tsv` | `ddad5f9290e13de91b01d457c737ae7db456e023824644cc5e5d27c22f72c933` |
 | `docs/tasks/artifacts/sv_corpus_grad/answer_key_intended_invalid/census.py` | `67f272648621ca328e0559d3d8087bf7fb8d3e4314036c092e50d44d091ad567` |
-| `rust/target/release/parseability_probe` (parse binary) | `a2ca4c477d54c2169389fa14ddf5dfc4f8972c8eed1ab8f0c4f8d12bfb1a9168` |
+| `rust/target/release/parseability_probe` (parse binary) | `10d1fc4f4bc72197ac4b20431764a366708ec2646ab7a9e6f296601e5b848c4a` |
 

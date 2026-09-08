@@ -44,7 +44,7 @@ Measured at seed 0, `--count 40`, against the generated parsers in the tree.
 | `semantic_annotation` | ⛔ **no** | 119 rules · 90 witness · 0 proof · 29 unknown | **29 rule(s) UNKNOWN** — no generated sample reaches them and no proof covers them |
 | `systemverilog_preprocessor` | ✅ **yes** | 74 rules · 74 witness · 0 proof · 0 unknown | every rule proven or witnessed |
 | `vhdl` | ✅ **yes** | 225 rules · 225 witness · 0 proof · 0 unknown | every rule proven or witnessed |
-| `systemverilog` | ⚠️ **unverified** | 1497 rules · 1487 witness · 10 proof · 0 unknown (canonical unknown 15) | from the tracked union contract, **not re-measured here** (~2 min/seed × 3 seeds × 4 configs). Proof freshness vs the parser in the tree: **fresh** |
+| `systemverilog` | ⚠️ **unverified** | 1499 rules · 1489 witness · 10 proof · 0 unknown (canonical unknown 15) | from the tracked union contract, **not re-measured here** (~2 min/seed × 3 seeds × 4 configs). Proof freshness vs the parser in the tree: **fresh** |
 
 **6 of 9 shipped grammars are certified** — every rule proven or witnessed, UNKNOWN=0.
 

@@ -306,6 +306,7 @@ event_trigger_sv_2017	55539	0	5147
 expect_property_statement	55539	2	5146
 expression	703554	213370	294284
 expression_base	1214722	220137	803675
+expression_chain_operand	52880	29993	0
 expression_chain_step	406668	29997	9664
 expression_operand	463927	250130	71
 expression_or_cond_pattern	402984	6767	0
@@ -742,7 +743,7 @@ loop_generate_construct	73517	41	1457
 loop_statement	55539	10	5141
 loop_statement_sv_only	50398	1	6
 loop_variables	3	1	0
-lparen	4188345	97021	3043085
+lparen	4103709	97021	2958449
 lrm_compiler_directive	15	13	0
 lrm_directive_name	189	0	0
 lrm_directive_name_shared	189	0	0
@@ -834,7 +835,7 @@ open_range_list	24	4	0
 open_range_list_sv_2017	24	4	0
 open_value_range	24	4	0
 open_value_range_sv_2017	24	4	0
-operator_assignment	68600	8406	2055
+operator_assignment	67855	8406	1310
 or_assign	39116	1	0
 ordered_checker_port_connection	18	32	0
 ordered_parameter_assignment	11441	4	12
@@ -873,6 +874,7 @@ parameter_port_declaration_sv_2017	935	409	0
 parameter_port_list	434	19	172
 parameter_value_assignment	124050	469	78266
 parameter_value_assignment_sv_2017	45784	469	0
+paren_operator_assignment_operand	915081	0	496001
 part_select_range	85679	12913	10347
 pass_en_switchtype	72021	0	0
 pass_switchtype	72021	0	0

@@ -696,8 +696,35 @@ expression_base := tagged_union_expression
                         -> {kind: "tagged_union",   body: $1}
                 | expression_operand expression_chain_step*
                         -> {kind: "operand_chain",  first: $1, rest: $2}
-                | lparen operator_assignment rparen
-                        -> {kind: "paren_op_assign", body: $2}
+                | paren_operator_assignment_operand expression_chain_step+
+                        -> {kind: "operand_chain",  first: $1, rest: $2}
+                | paren_operator_assignment_operand
+                        -> $1
+
+# SV-CORPUS-GRAD.3.53 — the parenthesised OPERATOR ASSIGNMENT is an `expression` (IEEE 1800-2017 A.8.3
+# `expression ::= … | ( operator_assignment ) | expression binary_operator { attribute_instance }
+# expression`) and so an OPERAND of a binary operator: `j = i++ + (i = i - 1);` is §11.4.2's own
+# example. Through 1.0.223 the form sat only as an alternative of `expression_base` — legal at the
+# top of an expression, rejected as a chain operand (`1 + (i = i - 1)`, `(i = i - 1) + 1`). Now it is
+# a named SV-only operand (IEEE 1364-2005 A.8.3 `expression` has no assignment inside an expression,
+# and the unprofiled alternative had accepted `j = (i = i - 1);` under `verilog_2005`), reached (i)
+# from every chain step through `expression_chain_operand`, (ii) as a chain HEAD only with
+# `expression_chain_step+` — so the top-level alternative above keeps every accepted tree
+# byte-identical and no tournament tie is introduced (the `.3.45` rule: never a reorder), and
+# (iii) from `hierarchical_index_operand` (the `.3.31` index rule) in place of its inline spelling.
+@profiles: ["sv_2017", "sv_2023"]
+paren_operator_assignment_operand := lparen operator_assignment rparen
+                                   -> {kind: "paren_op_assign", body: $2}
+
+# SV-CORPUS-GRAD.3.53 — the operand of a chain step. ORDERED, and the two alternatives are DISJOINT
+# (an operator_assignment carries an assignment operator after its lvalue, which no primary
+# derivation admits — `( x = y )` is not a `( mintypmax_expression )`), so `ordered` changes no
+# verdict: it only stops the parser trying the assignment form at every parenthesised operand the
+# primary is going to take anyway (the parse-cost ratchet's reason). Both pass through (`-> $1`), so
+# the chain step's triple carries the same node it did.
+@branch_policy: ordered
+expression_chain_operand := expression_operand                 -> $1
+                          | paren_operator_assignment_operand  -> $1
 
 # SV-CORPUS-GRAD.3.41 — one step of `expression_base`'s operand chain: a binary operator with its
 # right operand (the `[ binary_operator, [attribute_instance …], expression_operand ]` triple every
@@ -709,7 +736,7 @@ expression_base := tagged_union_expression
 # `{kind: "tagged_union", body: {kind: "bitwise_and"}}` — the enclosing rule's alternative-0
 # template applied to the inner alternation's branch 0 (measured 2026-09-04, interpreter AST JSON
 # HEAD vs candidate on an inside-free control; routed to ENGINE-UNIVERSAL-SERVICES).
-expression_chain_step := binary_operator attribute_instance* expression_operand
+expression_chain_step := binary_operator attribute_instance* expression_chain_operand
                        | inside_operator
 
 # SV-CORPUS-GRAD.3.41 — `inside` is a CHAIN ELEMENT of `expression_base`'s operand chain, not a
@@ -2075,8 +2102,8 @@ hierarchical_index_operand := unary_operator attribute_instance* constant_primar
                                    -> {kind: "unary",           op: $1, attributes: $2, primary: $3}
                             | inc_or_dec_expression
                                    -> {kind: "inc_or_dec",      body: $1}
-                            | lparen operator_assignment rparen
-                                   -> {kind: "paren_op_assign", body: $2}
+                            | paren_operator_assignment_operand
+                                   -> $1
                             | constant_primary
                                    -> {kind: "primary",         body: $1}
 

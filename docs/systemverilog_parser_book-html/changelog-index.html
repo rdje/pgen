@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4b49e9d0.js";
+            window.path_to_searchindex_js = "searchindex-a473e2d5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1742f63e.js"></script>
@@ -217,6 +217,24 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10224--contract-10224--sv-corpus-grad353-pgen-sv-corpus-grad-0383-2026-09-08-ledger-sv-0097-released-schema-32-unchanged"><a class="header" href="#10224--contract-10224--sv-corpus-grad353-pgen-sv-corpus-grad-0383-2026-09-08-ledger-sv-0097-released-schema-32-unchanged">1.0.224 / Contract 1.0.224 — SV-CORPUS-GRAD.3.53 (<code>PGEN-SV-CORPUS-GRAD-0383</code>, 2026-09-08), ledger <code>SV-0097</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
+<p>⭐ <strong>The parenthesised operator assignment is an expression, hence an operand.</strong> IEEE 1800-2017 A.8.3 makes
+<code>( operator_assignment )</code> an <code>expression</code>, so it stands wherever <code>expression binary_operator expression</code> puts an
+operand — §11.4.2’s own example is <code>j = i++ + (i = i - 1);</code>. Through <code>1.0.223</code> the grammar admitted the form only at
+the top of an expression (<code>expression_base</code>), never as a chain operand, so that example rejected at the <code>(</code> after
+<code>+</code> (three bar rows); and the alternative was unprofiled, so <code>verilog_2005</code> — whose IEEE 1364-2005 A.8.3 <code>expression</code>
+has no assignment inside an expression — accepted <code>j = (i = i - 1);</code>. Grammar tier: an SV-only
+<code>paren_operator_assignment_operand</code> reached from every chain step through an ordered pass-through
+<code>expression_chain_operand</code>, as a chain head with <code>expression_chain_step+</code>, and from the index rule; <code>1644 → 1646</code>
+rules; no engine, no codegen, no Rust.</p>
+<p><strong>Accept-set impact.</strong> <code>sv_2017</code> / <code>sv_2023</code>: WIDEN by exactly the operand form — the sweep’s verdict movers are
+the pre-registered rows (ispras <code>11.04.02_01.sv</code>, sv-tests <code>11.3.6--two_assign_in_expr.sv</code> and <code>-sim</code>, <code>fail → pass</code> on <code>sv_2017</code> and <code>sv_2023</code>, <code>verdict_moved=0</code> on <code>verilog_2005</code>), the bar <code>41 → 38</code> on <code>sv_2017</code> (rejects-valid 39 → 36, accepts-invalid 2), <code>42 → 39</code> on <code>sv_2023</code>, <code>verilog_2005</code> unmoved at 43 (<code>match 6028 → 6031</code> / <code>6019 → 6022</code>). <code>verilog_2005</code>: NARROWS by the top-level form;
+the lane’s 2 606 rows carried no such text (<code>AST-IDENTITY-SWEEP: profile=verilog_2005 files=2606 both_accepted=2310 identical=2310 ast_moved=0 verdict_moved=0 both_nonaccepting=296</code>).</p>
+<p><strong>AST impact — none for any file the parser accepted before.</strong> The top-level form keeps its <code>{kind: "paren_op_assign", body}</code> node at the base of the expression (the alternative passes the same node through), and
+every chain step’s triple carries the node it did; <code>ast_moved=0</code> on every lane. A newly accepted operand arrives as
+<code>{kind: "paren_op_assign", body}</code> in an <code>operand_chain</code>’s <code>first</code> slot or as a step triple’s third element. Pins
+<code>control_paren_operator_assignment_operand.sv</code> / <code>control_paren_operator_assignment_top_level.sv</code> /
+<code>invalid_paren_operator_assignment_v2005.sv</code>.</p>
 <h3 id="10223--contract-10223--sv-corpus-grad349-pgen-sv-corpus-grad-0380-2026-09-08-ledger-sv-0096-released-schema-32-unchanged"><a class="header" href="#10223--contract-10223--sv-corpus-grad349-pgen-sv-corpus-grad-0380-2026-09-08-ledger-sv-0096-released-schema-32-unchanged">1.0.223 / Contract 1.0.223 — SV-CORPUS-GRAD.3.49 (<code>PGEN-SV-CORPUS-GRAD-0380</code>, 2026-09-08), ledger <code>SV-0096</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
 <p>⭐ <strong>A store gate that decides no parse is a resolution check Annex A never asked for.</strong> Through <code>1.0.222</code> the unscoped
 checker name carried a <code>has_fact(checker_name) phase: post</code> gate — the 2026-03-21 semantic-fact pilot — so a checker
