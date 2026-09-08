@@ -981,8 +981,25 @@ string_literal_v2005 := trivia /"([^"\\\n]|\\[^\n])*"/        -> {kind: "double_
 
 unbased_unsized_literal := trivia /'(0|1|x|X|z|Z)/
 
-time_literal := number time_unit
+# SV-CORPUS-GRAD.3.55 (release 1.0.226, ledger SV-0099): IEEE 1800-2017 Annex A footnote 44 — "The unsigned
+# number or fixed-point number in time_literal shall not be followed by white_space" (docs/systemverilog/2017/md/
+# section-41-data-read-api.md:3567; 1800-2023 footnote 49, docs/systemverilog/2023/md/section-Annex_A-normative-
+# formal-syntax.md:3532). Through 1.0.225 the unit followed `number` through the engine's layout skip, so `1 s`
+# WAS a time literal: `#1 s = 0;` lost its variable `s` and `##1 s` its sequence `s` (ispras 16.08_04.sv and
+# 16.09.11_01.sv, the LRM's own examples). The unit is now a GLUED terminal (`@glued: true`,
+# ENGINE-UNIVERSAL-SERVICES.103: the rule's regex terminals accept no leading layout), so `1ns` reads and `1 ns`
+# does not; the node is byte-identical (`{value: <number>, unit: {kind}}`). The `timescale directive's
+# `directive_time_literal` keeps the layout-skipping `time_unit`: 22.7 allows `1 ns / 1 ps` there.
+time_literal := number time_unit_glued
              -> {value: $1, unit: $2}
+
+@glued: true
+time_unit_glued := /s\b/  -> {kind: "s"}
+                 | /ms\b/ -> {kind: "ms"}
+                 | /us\b/ -> {kind: "us"}
+                 | /ns\b/ -> {kind: "ns"}
+                 | /ps\b/ -> {kind: "ps"}
+                 | /fs\b/ -> {kind: "fs"}
 
 c_identifier := non_keyword_identifier
 

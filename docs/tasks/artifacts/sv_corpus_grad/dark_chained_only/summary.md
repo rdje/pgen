@@ -6,27 +6,27 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `4a5539b817d993d4eedaa4ba5db8b6fdac6e41bbfc606e1339af3bea28162d54` |
-| positions | `stimuli/sv/characterization/positions.tsv` | `c27ab38b73aab9f4ee8a04cf1361bbebe361724a8ee242ce7ec333247ef4eb9f` |
-| grammar | `grammars/systemverilog.ebnf` | `b176c0e9e60658ff7cf36fc7402ad45d31511be1b8317f9d4002df24bb5b352a` |
+| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `35515a97fb7facee2a5e07b1793e2c1abfaa10559b1a52cf97158a246d49be78` |
+| positions | `stimuli/sv/characterization/positions.tsv` | `58d19b8ddf7ecfcf2294d967e17fb91278198c077db453f9f58d57c5b2a45b44` |
+| grammar | `grammars/systemverilog.ebnf` | `eac24e0d2a647d76d96f5e9ae5da9a594a952f6b924a83319702373395aab61d` |
 
 ## The TEXT channel — can expansion move the byte the parse choked on?
 
 | verdict | rows | % | reading |
 |---|---:|---:|---|
 | `PRE-TICK` | 2,068 | 54.4 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
-| `IN-WINDOW` | 1,473 | 38.7 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
-| `NO-ALTERABLE-TICK` | 211 | 5.5 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
+| `IN-WINDOW` | 1,473 | 38.8 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
+| `NO-ALTERABLE-TICK` | 210 | 5.5 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
 | `PAST-LAST-TICK` | 50 | 1.3 % | choked past every alterable directive — suspicious but still reachable by an earlier expansion's shift. UNDECIDABLE |
-| **TOTAL** | **3,802** | **100.0 %** | |
+| **TOTAL** | **3,801** | **100.0 %** | |
 
-⇒ **2,279 of 3,802 rows (59.9 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
+⇒ **2,278 of 3,801 rows (59.9 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
 
 ## Then the FACT channel — is a cross-file *name* the live explanation?
 
 | channel | rows | reading |
 |---|---:|---|
-| `FACT-GATED-CROSS-FILE` | 2,058 |  |
+| `FACT-GATED-CROSS-FILE` | 2,057 |  |
 | `CROSS-LIBRARY` | 168 |  |
 | `UNDECLARED-ANYWHERE` | 26 |  |
 | `NO-FACT-GATE-AT-FAILURE` | 19 |  |

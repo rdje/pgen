@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-08 — SV-CORPUS-GRAD.3.55 (`PGEN-SV-CORPUS-GRAD-0385`): a lexical adjacency rule needs a glued terminal
+
+- **Bisect the name, not only the position.** `trans ##1 t` passed and `trans ##1 s` failed with identical declarations; `ms`, `ps`, `ns` failed too. The variable was the identifier's spelling — a time unit — and `1 s` was a time literal because the unit's terminal took the engine's layout skip. Footnote 44 of Annex A forbids exactly that white space.
+- **Three things a grammar cannot do here, measured before an engine change was chosen.** Removing `trivia` from the unit terminals changed nothing (the skip is engine-level, before every regex atom); a template's `$n` on a regex atom is the whole match (a string literal's body keeps its quotes), so an opaque `/([0-9]+)ns\b/` cannot keep `value.body = "10"`; the `regex` crate has no lookaround (the grammar's two mentions are pre-fix notes). The only grammar-only spelling would have moved 240 accepted files' time-literal nodes. Hence `@glued`: one directive, read in the one shared layout decision, so the generated parser and the interpreter cannot drift; a glued rule spelling a literal terminal is refused rather than half-honoured.
+- **Six of eight "contextual" rows were text no edition derives**, once bisected: non-ANSI port initializers and defaults, a modport in a generate loop, a bare generate block, and body port declarations under a header that lists no ports (A.1.2 makes such a header ANSI — the optional list is the tell).
+- **Routed**: nothing new; the remaining bar rows' bisections stand in the pointer.
+
 ## 2026-09-08 — SV-CORPUS-GRAD.3.54 (`PGEN-SV-CORPUS-GRAD-0384`): a name space decides a scope before a fact does
 
 - **The bisection did the triage.** Seven rows "pass in isolation"; bisected on the probe, ONE was a grammar defect (a declared package refused as a scope beside a typedef of its name — the predicate trace names the gate), FIVE were text no edition derives (scope-randomize arguments that are selects; prototypes with no return type; a bodiless virtual method in a NEGATIVE test), and ONE hid a second defect behind an undeclared class (a trailing comma). "Contextual" is a hypothesis until the variable is found.

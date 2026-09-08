@@ -41,9 +41,9 @@ tier still reported `fresh`.
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| grammar raw ast | `grammars/systemverilog.ebnf` | `af91d31fd65be6c9c2619d02c60ff3ae24a6b2c17116224682847357901b1f02` |
-| generated parser | `generated/systemverilog_parser.rs` | `bde024324643f05acb1d155175dde9ad1b75642a10c8d94aa4fa8b65bbb881e3` |
-| instrument | `stimuli/sv/corpus_parse_cost.py` | `9f1008f0dac8105ac494270b090672263b7ffbb44df5b84315281a8638288fe0` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `b3e0df92ea4f7c12f2b7aab642cc54980104bf953c3e8199ec9d142a9cc1c3fd` |
+| generated parser | `generated/systemverilog_parser.rs` | `e1e5a9d8dcd03c9735c5cca3bc0d8c59d1bb62937ebf306906765ffb839a4a5c` |
+| instrument | `stimuli/sv/corpus_parse_cost.py` | `741dea98e1fe1319526d1c39d475bf4718641ba730d72fe01a93066a9776cb63` |
 | sample inputs | `stimuli/sv/parse_cost_sample.tsv` | `c3e01f2d29714af9bb15e977e3ca52c48045616d1cf157a8c13e5bd645016205` |
 
 `sample inputs` digests the manifest ORDER plus every sampled file's bytes: the corpora
@@ -59,10 +59,10 @@ byte-identical between the debug and release probes before being made binding.
 |---|---:|---|
 | sample files measured | 192 | — |
 | accepted / rejected | 84 / 108 | a correctness move, not a cost move |
-| **rule entries** | **405,659,946** | more rule-method entries: structural work grew |
-| **committed entries** | **6,865,461** | more surviving work |
-| **failed speculation** (`entries − committed`) | **398,794,485** | more probing waste — the mechanism a GUARD spends through |
-| **memo hits** | **176,251,757** | memo behaviour moved |
+| **rule entries** | **403,243,744** | more rule-method entries: structural work grew |
+| **committed entries** | **6,865,447** | more surviving work |
+| **failed speculation** (`entries − committed`) | **396,378,297** | more probing waste — the mechanism a GUARD spends through |
+| **memo hits** | **175,043,676** | memo behaviour moved |
 
 Failed speculation is **98.3 %** of all rule entries in
 this sample: the parse is overwhelmingly probing work, so a guard that probes more shows
@@ -71,8 +71,8 @@ up here long before it shows up in the raw entry count.
 ⚠️ **`committed` is only meaningful for an ACCEPTED parse** (TOOLBOX 3.5) — a rejected parse
 commits nothing durable, so its entries are ALL speculation by construction and it drags
 the whole-sample ratio up. The accepted-only sub-total is published beside it so neither is
-mistaken for the other: over the 84 accepted files, entries 107,673,358 and
-committed 6,814,139 — 93.7 %
+mistaken for the other: over the 84 accepted files, entries 106,899,538 and
+committed 6,814,139 — 93.6 %
 failed speculation even where the parse succeeded.
 
 ## The left-recursion-elimination family
@@ -87,7 +87,7 @@ eliminators' emission sites; see the classifier's own comment for the eight shap
 |---|---:|
 | family entries (`_lr_base`/`_lr_suffix`/`_lr_seed`/`_lr_guard`/`_lr_alt`) | 11,480,916 |
 | of those, committed | 500 |
-| family share of all entries in this sample | 2.830 % |
+| family share of all entries in this sample | 2.847 % |
 
 ⭐ Published so `.20` acceptance (b)'s third A/B arm computes its delta straight off this
 artifact instead of re-deriving it.
@@ -98,8 +98,8 @@ the expected shape of a structural guard and it is stated here so a later reader
 mistake the family's entry count for productive work.
 
 ⛔⛔ **AND IT CARRIES A FINDING THAT BOUNDS THIS WHOLE INSTRUMENT.** Across the full
-corpus the family takes **2.645 %** of all rule entries
-(23 500 802 of 888 378 865 entries over 16 336 files, `ENGINE-UNIVERSAL-SERVICES.21`; the previous 0.681 % counted only `_lr_base`/`_lr_suffix`).
+corpus the family takes **2.660 %** of all rule entries
+(23 503 030 of 883 497 827 entries over 16 336 files, `ENGINE-UNIVERSAL-SERVICES.21`; the previous 0.681 % counted only `_lr_base`/`_lr_suffix`).
 
 ⛔ **What this metric cannot see, stated as a property rather than as a number.** These
 counters tick only in the PROTOCOL graph, and a counter counts EVENTS — a rise in the cost
@@ -124,7 +124,7 @@ the most adversarial pairing), and no admissible wall-clock figure exists to reb
 from. `.20` acceptance (a)'s profile is what attributes fused-graph cost; this ratchet stops
 structural work growing unwatched meanwhile.
 
-**Live LR-family share `2.645`** (corpus-entry share %), derived by
+**Live LR-family share `2.660`** (corpus-entry share %), derived by
 `python3 stimuli/sv/corpus_parse_cost.py --rederive-family-share` into
 `docs/tasks/artifacts/engine_universal_services/parse_cost_ratchet/family_share.json` and re-hashed against its four recorded inputs on every run.
 
@@ -137,9 +137,9 @@ parser's 127 LR rule names. What `.26` removed is the ratio built on top of it.
 
 | tier | files | entries | what it is for |
 |---|---:|---:|---|
-| `hot` | 40 | 341,576,046 | the heaviest files — where parse cost concentrates |
-| `lr` | 40 | 61,676,067 | the heaviest guarded-admission files — the mechanism `.20` owns |
-| `breadth` | 112 | 2,407,833 | a deterministic stride across the rest — so the ratchet is not blind elsewhere |
+| `hot` | 40 | 339,596,010 | the heaviest files — where parse cost concentrates |
+| `lr` | 40 | 61,253,511 | the heaviest guarded-admission files — the mechanism `.20` owns |
+| `breadth` | 112 | 2,394,223 | a deterministic stride across the rest — so the ratchet is not blind elsewhere |
 
 _Per-file rows: `entries.tsv` — 10 columns (sub-corpus, tier, path, accepted, entries,
 committed, memo_hits, lr_entries, lr_committed, furthest — the rejected parse's furthest position,

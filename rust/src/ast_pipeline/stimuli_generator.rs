@@ -12873,7 +12873,7 @@ impl<'a> StimuliGenerator<'a> {
                         &element_path,
                     ) {
                         Ok(generated) => {
-                            self.append_segment_tracked(&mut output, &generated, &mut prev_tail_ws)
+                            self.append_sequence_segment(&elements[idx], &mut output, &generated, &mut prev_tail_ws)
                         }
                         Err(err) => {
                             body_err = Some(err);
@@ -12896,7 +12896,7 @@ impl<'a> StimuliGenerator<'a> {
                         call_stack,
                         &element_path,
                     )?;
-                    self.append_segment_tracked(&mut output, &generated, &mut prev_tail_ws);
+                    self.append_sequence_segment(&elements[idx], &mut output, &generated, &mut prev_tail_ws);
                 }
                 return Ok(output);
             }
@@ -12912,7 +12912,7 @@ impl<'a> StimuliGenerator<'a> {
                     call_stack,
                     &element_path,
                 )?;
-                self.append_segment_tracked(&mut output, &generated, &mut prev_tail_ws);
+                self.append_sequence_segment(&elements[idx], &mut output, &generated, &mut prev_tail_ws);
             }
             return Ok(output);
         }
@@ -12985,7 +12985,7 @@ impl<'a> StimuliGenerator<'a> {
                         if let Some(name) = capture_name {
                             named_captures.insert(name, generated.clone());
                         }
-                        self.append_segment_tracked(&mut output, &generated, &mut prev_tail_ws);
+                        self.append_sequence_segment(&elements[idx], &mut output, &generated, &mut prev_tail_ws);
                         captures.push(generated);
                     }
                     Err(err) => {
@@ -15551,6 +15551,48 @@ impl<'a> StimuliGenerator<'a> {
     /// `generated`'s own tail shape (an empty `generated` leaves the tail unchanged). `self
     /// .last_terminal_word_shaped` was set when `generated` was rendered (depth-first, so it reflects
     /// `generated`'s tail terminal).
+    /// GLUED-DIRECTIVE (`ENGINE-UNIVERSAL-SERVICES.103`): is this sequence element a reference to a
+    /// rule declared `@glued: true`? Such a rule's regex terminals accept no leading layout in the
+    /// parser, so the witness generator must append its rendering with NO separator — `1ns`, never
+    /// `1 ns` — or every sample that reaches it fails its own round trip (the union certificate read
+    /// `sample_parse_failures=10` on the first `time_unit_glued` build: `4 us`, `6 ms`, `1 ps`).
+    fn element_is_glued_rule_reference(&self, element: &ASTNode) -> bool {
+        if let ASTNode::Atom { value: ASTValue::Token(parts) } = element {
+            if let [TokenValue::String(kind), TokenValue::String(name), ..] = parts.as_slice() {
+                if kind == "rule_reference" {
+                    return crate::ast_pipeline::semantic_runtime::rule_is_glued(
+                        self.annotations,
+                        name,
+                    )
+                    .unwrap_or(false);
+                }
+            }
+        }
+        false
+    }
+
+    /// The ONE sequence-join entry: a glued rule reference appends raw (the parser skips no layout
+    /// before its terminals), every other element goes through the word-shape join rule.
+    fn append_sequence_segment(
+        &self,
+        element: &ASTNode,
+        output: &mut String,
+        generated: &str,
+        prev_tail_word_shaped: &mut bool,
+    ) {
+        if self.element_is_glued_rule_reference(element) {
+            let cur_tail = if generated.is_empty() {
+                *prev_tail_word_shaped
+            } else {
+                self.last_terminal_word_shaped
+            };
+            output.push_str(generated);
+            *prev_tail_word_shaped = cur_tail;
+            return;
+        }
+        self.append_segment_tracked(output, generated, prev_tail_word_shaped)
+    }
+
     fn append_segment_tracked(
         &self,
         output: &mut String,
@@ -19052,6 +19094,30 @@ mod tests {
         let rule_level = gates.get("rule_level_gated").expect("a rule-level gate gates the rule");
         assert_eq!(rule_level.kind, "parameter_name");
         assert_eq!(rule_level.excluded_families, vec!["typedef".to_string()], "exclusions merge from every alternative");
+    }
+
+    /// GLUED-DIRECTIVE (`ENGINE-UNIVERSAL-SERVICES.103`): a reference to a `@glued: true` rule renders
+    /// with NO separator before it (`12ns`), while the same shape without the directive keeps the
+    /// word-shape join (`12 ns`) — the parser skips no layout before a glued rule's terminals, so the
+    /// witness generator must not write any.
+    #[test]
+    fn a_glued_rule_reference_renders_without_a_separator() {
+        let mut tree: HashMap<String, ASTNode> = HashMap::new();
+        tree.insert("lit".to_string(), ASTNode::Sequence { elements: vec![rule_ref("num"), rule_ref("unit")] });
+        tree.insert("num".to_string(), token("regex", "[0-9][0-9]*"));
+        tree.insert("unit".to_string(), token("regex", "ns\\b"));
+        let order = vec!["lit".to_string(), "num".to_string(), "unit".to_string()];
+        let glued = gen_store_annotations(&[gen_store_annotation("unit", "glued", "true")]);
+        let mut with = generator_with_annotations(&tree, &order, Some(&glued), 7);
+        let glued_samples = with.generate_many(6, None).expect("glued grammar generates");
+        for v in &glued_samples {
+            assert!(!v.contains(' '), "a glued unit must render glued: {v:?}");
+            assert!(v.ends_with("ns"), "the unit must still render: {v:?}");
+        }
+        // The control lives in the certificate: on the first build of `time_unit_glued` the union
+        // gate's witness samples read `4 us`, `6 ms`, `1 ps` (sample_parse_failures=10); with this
+        // join they read `4us` and parse (the test helper's config disables word-boundary spacing,
+        // so a plain-grammar control here would not separate either).
     }
 
     fn gen_store_annotations(entries: &[(String, SemanticAnnotation)]) -> Annotations {

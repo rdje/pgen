@@ -683,6 +683,9 @@ impl AstBasedGenerator {
         eprintln!("📂  File: {}:{}", file!(), line!());
         eprintln!();
 
+        // GLUED-DIRECTIVE: refuse a glued rule that spells a literal terminal before any code exists.
+        self.refuse_glued_rules_with_literal_atoms(grammar_tree)?;
+
         let parser_tokens = self.generate_parser_tokens(grammar_tree, rule_order, filename)?;
 
         eprintln!();
@@ -7262,8 +7265,70 @@ impl AstBasedGenerator {
                  skip leading layout here."
             );
         }
+        // GLUED-DIRECTIVE (`ENGINE-UNIVERSAL-SERVICES.103`): a rule declared `@glued: true` owns
+        // the adjacency of its regex terminals — no layout is skipped in front of them. Read HERE,
+        // in the one shared decision, so the protocol / cascade / scan emitters and the
+        // parse-harness interpreter (which queries this same function) cannot drift; a
+        // conflicting payload refuses generation, and the interpreter's mirror reads the same
+        // refusal, so no parser exists in that state.
+        let glued = crate::ast_pipeline::semantic_runtime::rule_is_glued(
+            self.annotations.as_ref(),
+            rule_name,
+        )
+        .map_err(|e| anyhow::anyhow!("{e}"))?;
+        if glued {
+            return Ok(false);
+        }
         Ok(!matches!(rule_name, "string_content_double" | "string_content_single")
             && !effective_owns)
+    }
+
+    /// GLUED-DIRECTIVE: a `@glued: true` rule may spell only regex terminals and rule references.
+    /// A literal terminal takes the engine's layout skip unconditionally (`match_string` /
+    /// `match_lit_ascii` carry no per-site decision), so the adjacency promise could not be kept for
+    /// it — refuse at generation rather than emit a parser that half-honours the directive.
+    fn refuse_glued_rules_with_literal_atoms(
+        &self,
+        grammar_tree: &HashMap<String, ASTNode>,
+    ) -> Result<()> {
+        fn literal_atom(node: &ASTNode) -> Option<String> {
+            match node {
+                ASTNode::Atom { value: ASTValue::Token(parts) } => {
+                    if let [TokenValue::String(kind), TokenValue::String(text), ..] = parts.as_slice() {
+                        if kind != "regex" && kind != "rule_reference" {
+                            return Some(text.clone());
+                        }
+                    }
+                    None
+                }
+                ASTNode::Atom { value: ASTValue::Node(inner) } => literal_atom(inner),
+                ASTNode::Or { alternatives } => alternatives.iter().find_map(literal_atom),
+                ASTNode::Sequence { elements } => elements.iter().find_map(literal_atom),
+                ASTNode::Quantified { element, .. } | ASTNode::Lookahead { element, .. } => {
+                    literal_atom(element)
+                }
+            }
+        }
+        let mut rules: Vec<&String> = grammar_tree.keys().collect();
+        rules.sort();
+        for rule in rules {
+            let glued = crate::ast_pipeline::semantic_runtime::rule_is_glued(
+                self.annotations.as_ref(),
+                rule,
+            )
+            .map_err(|e| anyhow::anyhow!("{e}"))?;
+            if !glued {
+                continue;
+            }
+            if let Some(text) = literal_atom(&grammar_tree[rule]) {
+                anyhow::bail!(
+                    "rule '{rule}': '@glued: true' applies to regex terminals, but the rule spells \
+                     the literal terminal {text:?}, which takes the engine's layout skip \
+                     unconditionally — spell it as a regex, or drop the directive"
+                );
+            }
+        }
+        Ok(())
     }
 
     /// Is `node` an unbounded content terminal — a regex with an unbounded
@@ -16429,6 +16494,56 @@ mod layout_owning_terminal_tests {
     /// remaining hand-spelled copies at zero: the two string-content rule
     /// names may appear only inside `regex_atom_skips_leading_layout` itself
     /// and in the fusibility census's declared mirror.
+    /// GLUED-DIRECTIVE (`ENGINE-UNIVERSAL-SERVICES.103`): a `@glued: true` rule's regex atoms skip
+    /// no leading layout; an undeclared rule keeps the skip; a conflicting declaration and a literal
+    /// atom inside a glued rule are refused.
+    #[test]
+    fn a_glued_rule_skips_no_leading_layout_and_a_literal_atom_in_it_is_refused() {
+        let glued = |payload: &str| SemanticAnnotation::Named {
+            name: "glued".to_string(),
+            ast: UnifiedSemanticAST::from_named_payload("glued", payload),
+        };
+        let mut annotations = Annotations::default();
+        annotations.semantic_annotations.insert("unit".to_string(), vec![glued("true")]);
+        annotations.semantic_annotations.insert("loose".to_string(), vec![glued("false")]);
+        annotations.semantic_annotations.insert(
+            "conflicted".to_string(),
+            vec![glued("true"), glued("false")],
+        );
+        let mut generator = AstBasedGenerator::new("Glue".to_string());
+        generator.annotations = Some(annotations);
+        assert_eq!(generator.regex_atom_skips_leading_layout("unit", "s\\b").unwrap(), false);
+        assert_eq!(generator.regex_atom_skips_leading_layout("loose", "s\\b").unwrap(), true);
+        assert_eq!(generator.regex_atom_skips_leading_layout("plain", "s\\b").unwrap(), true);
+        let err = generator
+            .regex_atom_skips_leading_layout("conflicted", "s\\b")
+            .expect_err("conflicting @glued declarations refuse");
+        assert!(err.to_string().contains("conflicting '@glued'"), "{err}");
+        // A glued rule spelling a literal terminal is refused at generation.
+        let atom = |kind: &str, text: &str| ASTNode::Atom {
+            value: ASTValue::Token(vec![
+                TokenValue::String(kind.to_string()),
+                TokenValue::String(text.to_string()),
+            ]),
+        };
+        let mut tree: HashMap<String, ASTNode> = HashMap::new();
+        tree.insert(
+            "unit".to_string(),
+            ASTNode::Or { alternatives: vec![atom("regex", "s\\b"), atom("terminal", "ms")] },
+        );
+        let err = generator
+            .refuse_glued_rules_with_literal_atoms(&tree)
+            .expect_err("a literal atom inside a glued rule refuses generation");
+        assert!(err.to_string().contains("literal terminal \"ms\""), "{err}");
+        tree.insert(
+            "unit".to_string(),
+            ASTNode::Or { alternatives: vec![atom("regex", "s\\b"), atom("regex", "ms\\b")] },
+        );
+        generator
+            .refuse_glued_rules_with_literal_atoms(&tree)
+            .expect("regex-only glued rule generates");
+    }
+
     #[test]
     fn the_layout_skip_decision_has_exactly_one_definition() {
         let sources = [

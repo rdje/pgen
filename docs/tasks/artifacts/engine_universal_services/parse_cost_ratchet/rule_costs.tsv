@@ -50,7 +50,7 @@ bit_select_expression	75255	50135	0
 bitwise_and	1003185	2480	0
 bitwise_or	1003185	1519	0
 bitwise_xor	1003185	3851	0
-block_comment	2351635	273	0
+block_comment	2351628	273	0
 block_data_declaration	8505	148	0
 block_data_declaration_sv_2017	8505	148	0
 block_data_type	8505	148	0
@@ -394,7 +394,7 @@ integer_atom_type_sv_only	1400150	558	682256
 integer_type	601095	0	53
 integer_vector_type	766016	9099	0
 integer_vector_type_sv_only	766048	8443	70309
-integral_number	1214350	131327	0
+integral_number	1214347	131327	0
 interconnect_net_declaration_sv_only	79961	0	123
 interface_ansi_header	71938	2	0
 interface_class_declaration	80495	7	612
@@ -524,7 +524,7 @@ kw_force_fafec1e5	100784	0	0
 kw_foreach_4d3e8614	50400	1	0
 kw_forever_e07f8c4a	50398	0	0
 kw_fork_3f673f2a	50396	0	0
-kw_fs_3f4bb586	201354	0	0
+kw_fs_3f4bb586	6	0	0
 kw_function_c218e39e	159808	118	0
 kw_generate_9e59d425	72026	6	0
 kw_genvar_9cb2eb8a	72099	6	0
@@ -557,7 +557,7 @@ kw_macromodule_df04b866	215799	1	0
 kw_matches_9f3e9242	344725	0	0
 kw_modport_1cf85849	4	1	0
 kw_module_fbd34a2b	215799	134	0
-kw_ms_26cc3217	201354	0	0
+kw_ms_26cc3217	6	0	0
 kw_n_0_b6589fc6	2	0	0
 kw_n_1step_e6d37e7c	12259	0	0
 kw_nand_c8a98832	72021	0	0
@@ -570,7 +570,7 @@ kw_nor_19d0495c	72021	0	0
 kw_not_557f2555	72272	0	0
 kw_notif0_2c8df148	72021	0	0
 kw_notif1_245fe7ea	72021	0	0
-kw_ns_7320d5b7	201354	6	0
+kw_ns_7320d5b7	6	3	0
 kw_null_2be88ca4	3063800	1	0
 kw_or_1758356d	99267	1	0
 kw_output_1029d676	6689	671	0
@@ -584,7 +584,7 @@ kw_priority_3345867e	50544	0	0
 kw_program_81d9aeea	223624	1	0
 kw_property_269fe373	79867	0	0
 kw_protected_964cab4b	54	0	0
-kw_ps_c67f1ee1	201354	7	0
+kw_ps_c67f1ee1	6	3	0
 kw_pull0	1	0	0
 kw_pull1	2	0	0
 kw_pulldown_20560243	72021	0	0
@@ -610,7 +610,7 @@ kw_rpmos_7cd80934	72021	0	0
 kw_rtran_edbf7838	72021	0	0
 kw_rtranif0_caee0cc0	72021	0	0
 kw_rtranif1_91fafa05	72021	0	0
-kw_s_a0f1490a	201354	0	0
+kw_s_a0f1490a	6	0	0
 kw_s_always_0f9aa900	251	0	0
 kw_s_eventually_86207140	502	0	0
 kw_s_nexttime_373d0bd1	502	0	0
@@ -671,7 +671,7 @@ kw_unsigned_9861ca25	666693	110	0
 kw_until_b310f4d4	223	0	0
 kw_until_with_f31dfb3c	223	0	0
 kw_untyped_d53be1e8	11	0	0
-kw_us_da2b1288	201354	0	0
+kw_us_da2b1288	6	0	0
 kw_uwire_9143a634	81672	0	0
 kw_var_e5b4e786	90216	0	0
 kw_vectored_53eb166d	384	0	0
@@ -703,7 +703,7 @@ let_named_arg	176	0	0
 level_input_list	9	5	0
 level_symbol	34	13	12
 lifetime	8643	94	0
-line_comment	2351635	7148	0
+line_comment	2351628	7148	0
 line_directive	66	0	0
 line_number	1	0	0
 list_of_arguments	4460	8152	7
@@ -829,7 +829,7 @@ nonrange_select	32869	2	3243
 nonrange_variable_lvalue	53635	2	0
 not_equal	472346	2019	0
 nounconnected_drive_directive	15	0	0
-number	1214350	131327	0
+number	1214347	131327	0
 opaque_directive_line	72583	361	0
 open_range_list	24	4	0
 open_range_list_sv_2017	24	4	0
@@ -958,7 +958,7 @@ randsequence_statement	55539	0	5147
 randsequence_statement_sv_2017	50392	0	0
 rbrace	30328	8693	0
 rbrack	509334	76939	373225
-real_number	1226609	88	0
+real_number	1226606	88	0
 reduction_nand	530839	5	0
 reduction_nor	530839	23	0
 reduction_xnor	1003185	5	0
@@ -1089,13 +1089,14 @@ tf_port_list_sv_only	149	113	5
 tf_variable_identifier_decl	98	177	0
 tick	5834568	292	4878473
 tilde	530839	639	0
-time_literal	613308	7	0
-time_unit	201357	13	3
+time_literal	613308	7	3
+time_unit	6	6	0
+time_unit_glued	201348	7	0
 timescale_directive	66	3	0
 timeunit_separator_slash	5	5	0
 timeunit_separator_trivia	5	5	0
 timeunits_declaration	80454	5	1305
-trivia	89896926	1190557	87605596
+trivia	88688838	1190550	86397515
 type_assignment	35	16	0
 type_assignment_sv_2017	35	16	0
 type_assignment_with_default	5	4	0

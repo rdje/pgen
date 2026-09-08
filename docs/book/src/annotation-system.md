@@ -38,6 +38,26 @@ That widened the annotation system from "token-shape nudges" into a real narrow 
 
 By default a generated parser is whitespace-INSENSITIVE — it auto-skips layout (whitespace + unclaimed comment introducers) before terminals and regex tokens and consumes trailing layout. A whitespace-sensitive language (regex is the canonical case: a space is a literal atom) declares its policy **in the grammar** with the grammar-level `@whitespace_sensitive: true` directive, or granularly with `{ terminals: …, regex_tokens: …, trailing: … }` (`grammars/systemverilog_preprocessor.ebnf` declares `{ regex_tokens: true }`). The directive is compile-time only (the policy is burned into the emitted parser; the parse-harness interpreter derives its layout policy from the same compiled declaration), conflicting duplicate declarations are hard errors, and malformed payloads are linted (`W_SEM_INVALID_WHITESPACE_SENSITIVE_PAYLOAD`) and rejected at generation. This replaced the historical engine-internal gate that keyed layout on the grammar's *file name* — any grammar, including a scratch/probe grammar, can now be whitespace-sensitive. Grammar-author reference: the ebnf parser book's *Semantic Annotations* chapter (Layout policy section); proof cases: the structural combinator suite's three `layout_*` cases.
 
+#### Rule-level adjacency: `@glued` (GLUED-DIRECTIVE, `ENGINE-UNIVERSAL-SERVICES.103`)
+
+A whitespace-INSENSITIVE grammar cannot say "no layout between these two tokens": the engine skips
+layout before every terminal it tries, and a return template cannot slice a regex's capture groups, so
+a lexical adjacency rule such as IEEE 1800-2017 Annex A footnote 44 — *the unsigned number or
+fixed-point number in `time_literal` shall not be followed by white_space* — had exactly two spellings
+before `1.0.226`: fold the number and the unit into one opaque regex (and change every time literal's
+typed node), or accept `1 ns` as a time literal (and lose the identifier `s` in `#1 s = 0;` and
+`##1 s`). The rule-level `@glued: true` directive is the third: the rule's **regex terminals accept
+no leading layout** — neither white space nor a comment — so each atom must begin at the byte the
+previous element ended on. `time_literal := number time_unit_glued` with `@glued: true` on
+`time_unit_glued := /s\b/ | /ms\b/ | …` reads `1ns` and refuses `1 ns`, while the `` `timescale ``
+directive keeps its layout-skipping `time_unit` (the LRM allows `1 ns / 1 ps` there). The payload
+is a bare boolean; duplicates with the same value are allowed, conflicting values refuse generation.
+The decision is read in the ONE shared layout function (`regex_atom_skips_leading_layout`) that
+every codegen path and the parse-harness interpreter query, so generated parser and interpreter
+cannot drift. A glued rule may spell only regex terminals and rule references: a literal terminal
+takes the layout skip unconditionally, so codegen refuses the grammar rather than half-honour the
+directive.
+
 #### Grammar-level default dialect profile: `@default_profile` (DEFAULT-PROFILE)
 
 A grammar that gates rules by dialect profile (`@profiles`) can declare what an **unspecified** requested profile resolves to, with the grammar-level `@default_profile: <name>` directive. `grammars/regex.ebnf` declares `@default_profile: pcre2`, making regex PCRE2-faithful by default: the `@profiles: ["relaxed"]`-gated constructs (`\u`, …) are excluded unless the `relaxed` profile is requested explicitly. The declared default is carried by the artifact itself — the generated parser embeds a `DEFAULT_GRAMMAR_PROFILE` constant, its constructor starts on it, and `set_grammar_profile(None)` *restores* it rather than falling back to a permissive unset state — and the generation-side profile filter and the parse-harness interpreter resolve from the same compiled declaration. An explicit requested profile always wins; without the directive, an unspecified profile keeps today's permissive guard (all rules active). Conflicting duplicates and malformed payloads are hard errors, linted early as `W_SEM_INVALID_DEFAULT_PROFILE_PAYLOAD`. This replaced the historical engine-internal gates that keyed the regex→`pcre2` default on the grammar's *name* — any grammar can now declare its own default. Grammar-author reference: the ebnf parser book's *Semantic Annotations* chapter (Default profile section); proof cases: the structural combinator suite's `profile_unspecified_permissive` / `profile_default_gate` pair.

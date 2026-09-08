@@ -310,6 +310,64 @@ pub(crate) fn parse_layout_sensitivity_payload(
     Ok(sensitivity)
 }
 
+/// The normalized directive name recognized by [`rule_is_glued`].
+pub const GLUED_DIRECTIVE_NAME: &str = "glued";
+
+/// `GLUED-DIRECTIVE` (`ENGINE-UNIVERSAL-SERVICES.103`, opened by `SV-CORPUS-GRAD.3.55`): the
+/// RULE-level `@glued: <bool>` directive. A rule declared `@glued: true` owns the ADJACENCY of its
+/// regex terminals: the engine's pre-match layout skip (white space and unclaimed comment
+/// introducers, `consume_layout_for_regex`) is disabled in front of every regex atom the rule
+/// spells, so each atom must begin at the byte the previous element ended on. The one grammar-level
+/// way to say what IEEE 1800-2017 Annex A footnote 44 says of a time literal — "the unsigned number
+/// or fixed-point number in time_literal shall not be followed by white_space" — without folding the
+/// number and the unit into one opaque regex (which would change every time literal's typed node):
+/// `time_literal := number time_unit_glued` with `@glued: true` on `time_unit_glued` reads `1ns`
+/// and refuses `1 ns`, so `#1 s = 0;` and `##1 s` keep their identifier `s`. A literal (string)
+/// terminal takes the layout skip unconditionally (`match_string`), so codegen REFUSES a glued rule
+/// that spells one rather than half-honour the promise. `pub(crate)` so the annotation validator
+/// lints the payload through the SAME parser codegen compiles it with (no second dialect).
+pub(crate) fn parse_glued_payload(ast: &UnifiedSemanticAST) -> Result<bool, String> {
+    const USAGE: &str = "Directive '@glued' expects `true` or `false`";
+    let payload = ast
+        .structured_value()
+        .ok_or_else(|| format!("{USAGE} (payload is not a structured value)"))?;
+    scalar_bool(payload).ok_or_else(|| format!("{USAGE} (got a non-boolean payload: {payload:?})"))
+}
+
+/// Is `rule` declared `@glued: true`? Reads the rule's own (rule-level) annotations only — a
+/// branch-level `@glued` would gate one alternative's adjacency, which the layout decision (keyed
+/// on the rule and the pattern) cannot express, so it is not read. Duplicate declarations with
+/// identical payloads are allowed; conflicting payloads are an error the caller surfaces as a
+/// generation failure (the interpreter's mirror reads the same function and refuses the same way).
+pub(crate) fn rule_is_glued(annotations: Option<&Annotations>, rule: &str) -> Result<bool, String> {
+    let Some(annotations) = annotations else {
+        return Ok(false);
+    };
+    let Some(anns) = annotations.semantic_annotations.get(rule) else {
+        return Ok(false);
+    };
+    let mut declared: Option<bool> = None;
+    for ann in anns {
+        if ann
+            .name()
+            .map(|n| n.trim().eq_ignore_ascii_case(GLUED_DIRECTIVE_NAME))
+            != Some(true)
+        {
+            continue;
+        }
+        let value = parse_glued_payload(ann.ast())?;
+        match declared {
+            Some(prev) if prev != value => {
+                return Err(format!(
+                    "rule '{rule}': conflicting '@glued' declarations ({prev} and {value})"
+                ));
+            }
+            _ => declared = Some(value),
+        }
+    }
+    Ok(declared.unwrap_or(false))
+}
+
 /// The normalized directive name recognized by [`compile_default_profile`].
 pub const DEFAULT_PROFILE_DIRECTIVE_NAME: &str = "default_profile";
 

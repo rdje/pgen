@@ -568,6 +568,25 @@ impl AnnotationValidator {
                     });
                 }
             }
+            // `GLUED-DIRECTIVE`: lint the rule-level `@glued` payload through the
+            // SAME parser codegen compiles it with
+            // (`semantic_runtime::parse_glued_payload`), so the lint and the
+            // codegen error can never disagree.
+            "glued" => {
+                if let Err(err) = crate::ast_pipeline::semantic_runtime::parse_glued_payload(
+                    semantic_annotation.ast(),
+                ) {
+                    report.diagnostics.push(AnnotationDiagnostic {
+                        code: "W_SEM_INVALID_GLUED_PAYLOAD",
+                        severity: AnnotationSeverity::Warning,
+                        kind: AnnotationKind::Semantic,
+                        rule_name: rule_name.to_string(),
+                        annotation_index: Some(annotation_index),
+                        message: err,
+                        annotation: Some(raw_annotation),
+                    });
+                }
+            }
             // `DEFAULT-PROFILE.2`: lint the grammar-level default-profile
             // payload through the SAME parser codegen compiles it with
             // (`semantic_runtime::parse_default_profile_payload`), so the
@@ -2678,6 +2697,27 @@ mod tests {
                 && d.severity == AnnotationSeverity::Warning
                 && d.message.contains("unknown field 'tokens'")
         }));
+    }
+
+    // `GLUED-DIRECTIVE`: the `@glued:` payload is linted through the SAME parser
+    // codegen compiles it with, so lint and codegen agree.
+    #[test]
+    fn semantic_validator_lints_the_glued_payload() {
+        for (payload, clean) in [("true", true), ("false", true), ("{ terminals: true }", false), ("[true]", false)] {
+            let mut annotations = Annotations::default();
+            annotations.semantic_annotations.insert(
+                "unit".to_string(),
+                vec![SemanticAnnotation::Named {
+                    name: "glued".to_string(),
+                    ast: UnifiedSemanticAST::from_named_payload("glued", payload),
+                }],
+            );
+            let report = AnnotationValidator::default().validate_annotations(&annotations);
+            let flagged = report.diagnostics.iter().any(|d| {
+                d.code == "W_SEM_INVALID_GLUED_PAYLOAD" && d.severity == AnnotationSeverity::Warning
+            });
+            assert_eq!(!flagged, clean, "payload {payload:?}: clean={clean}");
+        }
     }
 
     #[test]

@@ -1580,10 +1580,18 @@ mod tests {
     // grammar-owned by `trivia`; pre-fix, while the parser speculatively
     // attempted `line_comment` after `interface i`, the skipper's `#` arm
     // (whose H.11.3 dynamic guard only protects the ACTIVE token) swallowed
-    // `#  (  ) ;timeunit 09 ns//>Mg` to end-of-line as a "comment", the bogus
+    // `#  (  ) ;timeunit 09ns//>Mg` to end-of-line as a "comment", the bogus
     // trivia span was memoized, and the real ANSI-header `#` died on the
     // poisoned memo — rejecting grammar-valid input on every shipped SV
     // release.
+    //
+    // ⭐ Re-anchored 2026-09-08 (`SV-CORPUS-GRAD.3.55`, release 1.0.226): the samples used to spell
+    // their time literals `09 ns` / `633 s` — the witness generator's word-shape join wrote a space
+    // the pre-1.0.226 grammar accepted against IEEE 1800-2017 Annex A footnote 44 ("the unsigned
+    // number or fixed-point number in time_literal shall not be followed by white_space"). The unit
+    // is glued since 1.0.226 (`time_unit_glued`, `@glued: true`), so the samples spell `09ns` /
+    // `633s`; the lock's subject — the `#` arm during speculation over the comment tail — is
+    // unchanged, and the four samples keep the same `#( )` / comment / ratio-`/` structure.
     #[cfg(all(feature = "generated_parsers", has_generated_systemverilog_parser))]
     #[test]
     fn systemverilog_hash_token_is_not_stolen_by_comment_arms_during_speculation() {
@@ -1595,12 +1603,12 @@ mod tests {
             // cert-coverage failing sample): an ANSI `#( )` header plus a
             // line comment followed by another comment before the
             // timeunit-ratio `/`.
-            "interface i #  (  ) ;timeunit 09 ns//>Mg\n//QF.\n/633 s;endinterface",
+            "interface i #  (  ) ;timeunit 09ns//>Mg\n//QF.\n/633s;endinterface",
             // Controls: single-comment / no-`#()` / comment-free variants
             // must keep parsing.
-            "interface i #  (  ) ;timeunit 09 ns//>Mg\n/633 s;endinterface",
-            "interface i ;timeunit 09 ns//>Mg\n//QF.\n/633 s;endinterface",
-            "interface i #  (  ) ;timeunit 09 ns/633 s;endinterface",
+            "interface i #  (  ) ;timeunit 09ns//>Mg\n/633s;endinterface",
+            "interface i ;timeunit 09ns//>Mg\n//QF.\n/633s;endinterface",
+            "interface i #  (  ) ;timeunit 09ns/633s;endinterface",
         ];
         for sample in samples {
             let node_arena = crate::ast_pipeline::NodeArena::new();
