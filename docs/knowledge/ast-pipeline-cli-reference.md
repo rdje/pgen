@@ -63,4 +63,6 @@ stimuli pipeline. `<INPUT>` is a grammar source: a `.json` raw/transformed/gen-a
 `--lint-grammar` (well-formedness checks), `--max-depth N`, `--max-repeat N`,
 `--emit-return-annotations-json`, `--trace` / `--trace-log-file` / `--verbosity N` (⚠️ high
 verbosity floods — a debug run produced a multi-GB log; prefer the bounded in-summary samples),
-`--lib-in DIR` / library import, `--sv-include-dir`, `--coverage-input/-output`.
+`--lib-in DIR` / library import, `--sv-include-dir`, `--sv-define NAME[=TEXT]` and
+`--sv-unit-file F` (the preprocessor's compilation context — predefined macros and the unit's earlier
+files under one macro table, `SVPP-EXPANSION.2`), `--coverage-input/-output`.

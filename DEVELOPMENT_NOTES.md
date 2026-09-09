@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.2 (`PGEN-SVPP-EXPANSION-0003`): a command-line define is a source define with no position
+
+- **Seed predefines as ordinary definitions, not as a separate table.** Putting `+define+` macros into the same `HashMap` the source `` `define `` writes means `` `ifdef ``, `` `undef `` and the redefinition policy need no second code path — and the test `a_source_define_supersedes_a_predefine_under_the_default_policy` shows the `error` policy correctly treating a later source `` `define `` as a redefinition of the predefine. The only thing a predefine lacks is a source position, which is why the seeding does not consult the policy: there is no line to report at.
+- **Read the standard before "resetting" anything.** The plan item said `` `resetall `` clears the table; IEEE 1800-2017 §22.3 says the opposite in its last sentence — directives with no default (`` `define ``, `` `include ``) are unaffected. The item closed as a pinned test instead of a change.
+- **A unit is per-file surfaces over one shared table.** The output text, source map, events, diagnostics and included-file list are per file (an embedder wants file *n*'s expansion, not a concatenation); only the macro table crosses the boundary. Returning an index-aligned `Vec<PreprocessedOutput>` keeps the existing struct and every JSON consumer untouched.
+- **Byte-identity is the no-regression leg for a flag that must be inert when absent.** Three real OpenTitan files through the old and the new binary with no new flag: `cmp` equal. A unit test cannot say that about the CLI path; the diff of two binaries' outputs can.
+- **Promotion**: declined (the lessons restate `docs/decisions/project_preprocess_parse_pipeline_is_the_sv_deliverable.md`'s "re-measure before executing the plan" on a smaller scale; no new card) — `promotion: declined (restates the -0002 record)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.1 (`PGEN-SVPP-EXPANSION-0002`): a tree's frame is a claim about the codebase, and it can be stale on the day it is written
 
 - **Re-measure the frame before executing the plan.** The tree said *"no PGEN stage feeds svpp's output into sv"* and planned three build leaves for macro substitution, conditional resolution and include inlining. `git log --follow` on `rust/src/sv_preprocessor.rs` dates the engine to 2026-02-27, three months before the tree; the triage gate's `summary.txt` reads 14/14 through it. Executing the leaves as written would have rebuilt what existed. The scoping leaf's job was to find out what was actually missing, and the answer (context and chain, not engine) is narrower than the plan and different in kind.

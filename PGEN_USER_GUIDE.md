@@ -141,6 +141,8 @@ cargo run --manifest-path rust/Cargo.toml --bin ast_pipeline -- \
   path/to/input.sv \
   --preprocess-systemverilog \
   --sv-include-dir path/to/includes \
+  --sv-define UVM --sv-define WIDTH=8 \
+  --sv-unit-file path/to/defines_first.svh \
   --sv-include-path-policy relative_only \
   --sv-macro-redefine-policy warn \
   --sv-conditional-symbol-policy assume_false_warn \
@@ -230,6 +232,12 @@ Primary modes:
     - `code`, `severity`, `file`, `line`, `message`, `detail`.
 - Deterministic controls:
   - include search path order via repeated `--sv-include-dir`,
+  - the compilation context's PREDEFINED macros via repeated `--sv-define NAME` / `--sv-define NAME=TEXT`
+    (seeded before the first source line, as if `` `define NAME TEXT `` stood at the top of the unit;
+    `NAME` alone defines it with empty text — the `+define+` of every commercial front end),
+  - an ordered COMPILATION UNIT via repeated `--sv-unit-file F`: each `F` is preprocessed before
+    `INPUT` under the same macro table (IEEE 1800-2017 §22.5.1 — a macro, once defined, is usable
+    anywhere in the compilation unit), its expanded text discarded; `INPUT` is the unit's last file,
   - bounded include recursion (`--sv-include-max-depth`),
   - include path policy (`--sv-include-path-policy` = `allow_absolute|relative_only`),
   - macro-redefinition policy (`--sv-macro-redefine-policy` = `allow|warn|error`),
@@ -273,6 +281,8 @@ High-value stimuli flags:
 SystemVerilog preprocess flags:
 - `--preprocess-systemverilog`
 - `--sv-include-dir` (repeatable)
+- `--sv-define NAME[=TEXT]` (repeatable, ordered — predefined macros)
+- `--sv-unit-file F` (repeatable, ordered — the compilation unit's earlier files)
 - `--sv-include-max-depth`
 - `--sv-disallow-macro-redefine`
 - `--sv-include-path-policy`

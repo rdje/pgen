@@ -20,6 +20,7 @@ use pgen::ebnf_frontend;
 #[cfg(feature = "generated_parsers")]
 use pgen::parser_registry;
 use pgen::sv_preprocessor::{
+    PredefinedMacro, preprocess_systemverilog_unit,
     ConditionalExprPolicy, ConditionalSymbolPolicy, IncludePathPolicy, MacroRedefinitionPolicy,
     SvPreprocessorConfig, parse_strict_warning_codes, preprocess_systemverilog_file,
 };
@@ -576,6 +577,18 @@ struct Args {
     /// Comma-separated warning codes promoted to errors in preprocessor mode (`all`, `none`, or specific codes)
     #[arg(long, requires = "preprocess_systemverilog")]
     sv_strict_warning_codes: Option<String>,
+
+    /// `SVPP-EXPANSION.2`(a) — a PREDEFINED macro for preprocessor mode, `NAME` or `NAME=TEXT`
+    /// (repeatable, applied in order; the `+define+` of every commercial front end). `NAME` alone
+    /// defines the macro with empty text, exactly as a bare `` `define NAME `` line would.
+    #[arg(long, requires = "preprocess_systemverilog")]
+    sv_define: Vec<String>,
+
+    /// `SVPP-EXPANSION.2`(b) — a file preprocessed BEFORE `INPUT` in the same COMPILATION UNIT
+    /// (repeatable, in order): its macro definitions carry into `INPUT` per IEEE 1800-2017 §22.5.1,
+    /// while its own expanded text is discarded. `INPUT` is the unit's last file.
+    #[arg(long, requires = "preprocess_systemverilog")]
+    sv_unit_file: Vec<String>,
 }
 // `Clone` (GRAMMAR-WELLFORMED.H.12.8.1.1): the multi-config certificate-coverage union
 // (`--cert-union-config`) re-filters the SAME loaded grammar bundle once per `(entry, profile)`
@@ -1061,6 +1074,14 @@ fn pipeline_main() -> Result<()> {
             .or_else(|| std::env::var("PGEN_SVPP_STRICT_WARNING_CODES").ok())
             .unwrap_or_else(|| "none".to_string());
         let strict_warning_codes = parse_strict_warning_codes(&strict_warning_codes_raw);
+        let defines = args
+            .sv_define
+            .iter()
+            .map(|raw| {
+                PredefinedMacro::parse(raw)
+                    .with_context(|| format!("invalid --sv-define '{}'", raw))
+            })
+            .collect::<Result<Vec<_>>>()?;
         let config = SvPreprocessorConfig {
             include_dirs,
             max_include_depth: args.sv_include_max_depth,
@@ -1073,8 +1094,23 @@ fn pipeline_main() -> Result<()> {
             conditional_symbol_policy,
             conditional_expr_policy,
             strict_warning_codes,
+            defines,
         };
-        let output = preprocess_systemverilog_file(Path::new(&args.input_path), &config)?;
+        // `SVPP-EXPANSION.2`(b): with `--sv-unit-file`, INPUT is the LAST file of an ordered
+        // compilation unit; the predecessors' expanded text is context only and is discarded.
+        // Without it the one-file entry is used, so every existing call is byte-identical.
+        let unit_predecessors = args.sv_unit_file.len();
+        let output = if unit_predecessors == 0 {
+            preprocess_systemverilog_file(Path::new(&args.input_path), &config)?
+        } else {
+            let mut unit: Vec<std::path::PathBuf> =
+                args.sv_unit_file.iter().map(std::path::PathBuf::from).collect();
+            unit.push(std::path::PathBuf::from(&args.input_path));
+            let mut outputs = preprocess_systemverilog_unit(&unit, &config)?;
+            outputs
+                .pop()
+                .ok_or_else(|| anyhow::anyhow!("the compilation unit produced no output for INPUT"))?
+        };
         if let Some(output_path) = args.output.as_deref() {
             std::fs::write(output_path, &output.text)?;
             println!("Wrote preprocessed SystemVerilog to {}", output_path);
@@ -1117,14 +1153,16 @@ fn pipeline_main() -> Result<()> {
             })
             .count();
         println!(
-            "SV preprocess summary: output_bytes={} source_map_entries={} events={} diagnostics={} warnings={} errors={} included_files={}",
+            "SV preprocess summary: output_bytes={} source_map_entries={} events={} diagnostics={} warnings={} errors={} included_files={} predefines={} unit_predecessors={}",
             output.text.len(),
             output.source_map.len(),
             output.events.len(),
             output.diagnostics.len(),
             warning_count,
             error_count,
-            output.included_files.len()
+            output.included_files.len(),
+            config.defines.len(),
+            unit_predecessors
         );
         return Ok(());
     }

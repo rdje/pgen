@@ -1164,6 +1164,12 @@ Role:
   - diagnostics
   - source maps
   - event logging
+  - a COMPILATION CONTEXT (`SVPP-EXPANSION.2`): predefined macros
+    (`SvPreprocessorConfig.defines`, `PredefinedMacro::parse`, the CLI's `--sv-define`) seeded into
+    the macro table before the first line, and an ordered compilation unit
+    (`preprocess_systemverilog_unit`, the CLI's `--sv-unit-file`) processed under ONE macro table per
+    IEEE 1800-2017 §22.5.1, with every other surface (text, source map, events, diagnostics,
+    included files) per file. `preprocess_systemverilog_file` is the one-file unit.
 
 Assessment:
 - The Rust EBNF frontend is a real parser/tokenizer subsystem, not a small adapter.

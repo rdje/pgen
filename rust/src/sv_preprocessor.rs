@@ -21,6 +21,11 @@ pub struct SvPreprocessorConfig {
     pub conditional_symbol_policy: ConditionalSymbolPolicy,
     pub conditional_expr_policy: ConditionalExprPolicy,
     pub strict_warning_codes: HashSet<String>,
+    /// `SVPP-EXPANSION.2`(a) — the compilation context's PREDEFINED macros (the `+define+` of every
+    /// commercial front end). Each one is seeded into the macro table before the first source line
+    /// is read, exactly as if `` `define NAME TEXT `` stood at the top of the compilation unit — so
+    /// the redefinition policy, `` `undef `` and `` `ifdef `` all see it as an ordinary definition.
+    pub defines: Vec<PredefinedMacro>,
 }
 
 impl Default for SvPreprocessorConfig {
@@ -33,7 +38,48 @@ impl Default for SvPreprocessorConfig {
             conditional_symbol_policy: ConditionalSymbolPolicy::AssumeFalseSilent,
             conditional_expr_policy: ConditionalExprPolicy::IdentifierOrDefined,
             strict_warning_codes: HashSet::new(),
+            defines: Vec::new(),
         }
+    }
+}
+
+/// A macro supplied by the compilation context rather than by source text (`SVPP-EXPANSION.2`(a)).
+///
+/// Object-like only: a predefine carries no formal-argument list, matching what `+define+NAME=TEXT`
+/// means in every tool that accepts it. `NAME` alone defines the macro with EMPTY text — the same
+/// meaning a bare `` `define NAME `` line has in the source (IEEE 1800-2017 §22.5.1: the macro text
+/// may be empty), so `` `ifdef NAME `` is true and `` `NAME `` expands to nothing.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PredefinedMacro {
+    pub name: String,
+    pub text: String,
+}
+
+impl PredefinedMacro {
+    /// Parse the `NAME` / `NAME=TEXT` spelling of a command-line define. The text keeps its bytes
+    /// verbatim after the first `=` (a second `=` is part of the text). The name must be a legal
+    /// text-macro identifier; a parenthesised formal list is refused rather than silently read as a
+    /// name, because a function-like predefine has no command-line meaning anywhere.
+    pub fn parse(raw: &str) -> Result<Self> {
+        let raw = raw.trim();
+        let (name, text) = match raw.split_once('=') {
+            Some((name, text)) => (name.trim(), text),
+            None => (raw, ""),
+        };
+        if name.is_empty() {
+            bail!("a predefined macro needs a name: got '{}'", raw);
+        }
+        if !is_valid_macro_symbol(name) {
+            bail!(
+                "'{}' is not a legal text-macro name for a predefined macro (expected NAME or NAME=TEXT; \
+                 a formal-argument list is not accepted on the command line)",
+                name
+            );
+        }
+        Ok(Self {
+            name: name.to_string(),
+            text: text.to_string(),
+        })
     }
 }
 
@@ -211,9 +257,24 @@ struct PreprocessorState {
 
 impl PreprocessorState {
     fn new(config: SvPreprocessorConfig) -> Self {
+        // `SVPP-EXPANSION.2`(a): the context's predefines ARE the macro table's initial contents.
+        // Seeded in declaration order, so a later `NAME=…` on the command line supersedes an
+        // earlier one the way a later `` `define `` supersedes an earlier one under the default
+        // redefinition policy — the policy itself is not consulted here, because these lines have
+        // no source position to report a redefinition at.
+        let mut macros = HashMap::new();
+        for predefined in &config.defines {
+            macros.insert(
+                predefined.name.clone(),
+                MacroDefinition {
+                    params: None,
+                    body: predefined.text.clone(),
+                },
+            );
+        }
         Self {
             config,
-            macros: HashMap::new(),
+            macros,
             output: String::new(),
             source_map: Vec::new(),
             events: Vec::new(),
@@ -221,6 +282,23 @@ impl PreprocessorState {
             include_stack: Vec::new(),
             included_files: Vec::new(),
             included_seen: HashSet::new(),
+        }
+    }
+
+    /// Hand this state's macro table to the next file of the same compilation unit
+    /// (`SVPP-EXPANSION.2`(b)). Everything else — output text, source map, events, diagnostics,
+    /// the include stack and the included-file list — is per FILE and starts fresh.
+    fn into_carried_macros(self) -> HashMap<String, MacroDefinition> {
+        self.macros
+    }
+
+    fn take_output(&mut self) -> PreprocessedOutput {
+        PreprocessedOutput {
+            text: std::mem::take(&mut self.output),
+            source_map: std::mem::take(&mut self.source_map),
+            events: std::mem::take(&mut self.events),
+            diagnostics: std::mem::take(&mut self.diagnostics),
+            included_files: std::mem::take(&mut self.included_files),
         }
     }
 
@@ -352,13 +430,50 @@ pub fn preprocess_systemverilog_file(
 ) -> Result<PreprocessedOutput> {
     let mut state = PreprocessorState::new(config.clone());
     preprocess_file_internal(input_path, &mut state, 0)?;
-    Ok(PreprocessedOutput {
-        text: state.output,
-        source_map: state.source_map,
-        events: state.events,
-        diagnostics: state.diagnostics,
-        included_files: state.included_files,
-    })
+    Ok(state.take_output())
+}
+
+/// Preprocess an ordered COMPILATION UNIT (`SVPP-EXPANSION.2`(b)): the files are processed in
+/// the order given under ONE macro table, so a macro defined (or undefined) in file *n* is in
+/// force for file *n+1* and every file after it.
+///
+/// This is IEEE 1800-2017 §22.5.1 (`docs/systemverilog/2017/md/section-22-compiler-directives.md:272-273`):
+/// *"Once a text macro name has been defined, it can be used anywhere in the compilation unit where
+/// it is defined. There are no other scope restrictions once inside the compilation unit"* — and
+/// §3.12.1 (`:406`) makes *"all files on a given compilation command line"* one compilation unit.
+/// `preprocess_systemverilog_file` is the one-file unit; nothing else differs between the two.
+///
+/// What is per FILE, deliberately: the expanded text, its source map, the event log, the
+/// diagnostics and the included-file list. The returned vector is index-aligned with `files`.
+/// A failure in any file aborts the unit with that file named in the error, because a later file
+/// may depend on definitions the failed one never reached.
+///
+/// What `` `resetall `` does here: nothing to the table. IEEE 1800-2017 §22.3 (`:2-3` of the
+/// clause): *"Not all compiler directives have a default value (e.g., `` `define `` and
+/// `` `include ``). Directives that do not have a default are not affected by `` `resetall ``."*
+pub fn preprocess_systemverilog_unit(
+    files: &[PathBuf],
+    config: &SvPreprocessorConfig,
+) -> Result<Vec<PreprocessedOutput>> {
+    let mut outputs = Vec::with_capacity(files.len());
+    let mut carried: Option<HashMap<String, MacroDefinition>> = None;
+    for (index, file) in files.iter().enumerate() {
+        let mut state = PreprocessorState::new(config.clone());
+        if let Some(macros) = carried.take() {
+            state.macros = macros;
+        }
+        preprocess_file_internal(file, &mut state, 0).with_context(|| {
+            format!(
+                "compilation unit file {} of {} ('{}') failed to preprocess",
+                index + 1,
+                files.len(),
+                file.display()
+            )
+        })?;
+        outputs.push(state.take_output());
+        carried = Some(state.into_carried_macros());
+    }
+    Ok(outputs)
 }
 
 pub fn parse_strict_warning_codes(raw: &str) -> HashSet<String> {
@@ -1885,9 +2000,9 @@ fn is_ident_continue(b: u8) -> bool {
 mod tests {
     use super::{
         ConditionalSymbolPolicy, IncludePathPolicy, MacroDefinition, MacroParameter,
-        MacroRedefinitionPolicy, PreprocessorDiagnosticSeverity, SvPreprocessorConfig,
-        expand_function_macro, normalize_macro_body_for_directives, parse_strict_warning_codes,
-        preprocess_systemverilog_file,
+        MacroRedefinitionPolicy, PredefinedMacro, PreprocessorDiagnosticSeverity,
+        SvPreprocessorConfig, expand_function_macro, normalize_macro_body_for_directives,
+        parse_strict_warning_codes, preprocess_systemverilog_file, preprocess_systemverilog_unit,
     };
     use std::collections::HashMap;
     use std::fs;
@@ -2536,5 +2651,181 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             output.text.len(),
             "the map must cover the output exactly"
         );
+    }
+
+    // ── SVPP-EXPANSION.2 — the compilation context: predefines and the compilation unit ──────
+    //
+    // ⛔ These scratch directories live under the crate's own `target/`, on the repository volume
+    // (`docs/decisions/` data-locality rule), unlike the older `create_temp_dir` helper above,
+    // which writes to the OS temp dir. New tests use this one.
+    fn create_repo_scratch_dir(prefix: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("svpp_unit_tests")
+            .join(format!("{}_{}", prefix, nanos));
+        fs::create_dir_all(&dir).expect("mkdir repo scratch");
+        dir
+    }
+
+    #[test]
+    fn predefined_macro_parse_accepts_name_and_name_equals_text() {
+        let bare = PredefinedMacro::parse("UVM").expect("bare name");
+        assert_eq!(bare.name, "UVM");
+        assert_eq!(bare.text, "");
+        let valued = PredefinedMacro::parse(" WIDTH=16 ").expect("name=text");
+        assert_eq!(valued.name, "WIDTH");
+        assert_eq!(valued.text, "16");
+        // everything after the FIRST `=` is text, verbatim
+        let nested = PredefinedMacro::parse("EXPR=a==b").expect("text with =");
+        assert_eq!(nested.text, "a==b");
+        let empty_text = PredefinedMacro::parse("FLAG=").expect("explicit empty text");
+        assert_eq!(empty_text.text, "");
+    }
+
+    #[test]
+    fn predefined_macro_parse_refuses_illegal_names() {
+        assert!(PredefinedMacro::parse("").is_err(), "an empty define has no name");
+        assert!(PredefinedMacro::parse("=1").is_err(), "a text without a name");
+        assert!(PredefinedMacro::parse("1ABC").is_err(), "a name must start like an identifier");
+        assert!(
+            PredefinedMacro::parse("F(x)=x+1").is_err(),
+            "a function-like predefine has no command-line meaning and is refused, not misread"
+        );
+    }
+
+    #[test]
+    fn predefined_macro_is_visible_before_the_first_source_line() {
+        let dir = create_repo_scratch_dir("svpp_predefine");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`ifdef UVM\nlogic uvm_branch;\n`else\nlogic plain_branch;\n`endif\nlogic [`WIDTH-1:0] d;\n",
+        )
+        .expect("write top");
+        let mut config = SvPreprocessorConfig::default();
+        config.defines = vec![
+            PredefinedMacro::parse("UVM").expect("UVM"),
+            PredefinedMacro::parse("WIDTH=8").expect("WIDTH"),
+        ];
+        let output = preprocess_systemverilog_file(&input, &config).expect("preprocess");
+        assert!(output.text.contains("logic uvm_branch;"), "{}", output.text);
+        assert!(!output.text.contains("logic plain_branch;"), "{}", output.text);
+        assert!(output.text.contains("logic [8-1:0] d;"), "{}", output.text);
+
+        // the same file with NO context takes the other branch and leaves `WIDTH unexpanded
+        let bare = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("preprocess without context");
+        assert!(bare.text.contains("logic plain_branch;"), "{}", bare.text);
+        assert!(bare.text.contains("`WIDTH"), "{}", bare.text);
+    }
+
+    #[test]
+    fn predefined_macro_without_text_expands_to_nothing_and_is_an_ordinary_definition() {
+        let dir = create_repo_scratch_dir("svpp_predefine_empty");
+        let input = dir.join("top.sv");
+        // `NAME` alone == a bare `define NAME: defined, empty text; `undef removes it like any other
+        fs::write(
+            &input,
+            "wire a`EMPTY;\n`undef EMPTY\n`ifdef EMPTY\nlogic still_defined;\n`endif\n",
+        )
+        .expect("write top");
+        let mut config = SvPreprocessorConfig::default();
+        config.defines = vec![PredefinedMacro::parse("EMPTY").expect("EMPTY")];
+        let output = preprocess_systemverilog_file(&input, &config).expect("preprocess");
+        assert!(output.text.contains("wire a;"), "{}", output.text);
+        assert!(!output.text.contains("still_defined"), "{}", output.text);
+    }
+
+    #[test]
+    fn a_source_define_supersedes_a_predefine_under_the_default_policy() {
+        let dir = create_repo_scratch_dir("svpp_predefine_redefine");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define WIDTH 32\nlogic [`WIDTH-1:0] d;\n").expect("write top");
+        let mut config = SvPreprocessorConfig::default();
+        config.defines = vec![PredefinedMacro::parse("WIDTH=8").expect("WIDTH")];
+        let output = preprocess_systemverilog_file(&input, &config).expect("preprocess");
+        assert!(output.text.contains("logic [32-1:0] d;"), "{}", output.text);
+
+        // and under the `error` policy the source `define IS a redefinition of the predefine
+        config.macro_redefinition_policy = MacroRedefinitionPolicy::Error;
+        let refused = preprocess_systemverilog_file(&input, &config);
+        assert!(refused.is_err(), "a predefine is an ordinary definition to the policy");
+    }
+
+    #[test]
+    fn compilation_unit_carries_the_macro_table_across_files_in_order() {
+        let dir = create_repo_scratch_dir("svpp_unit");
+        let defs = dir.join("defs.svh");
+        let first = dir.join("a.sv");
+        let second = dir.join("b.sv");
+        fs::write(&defs, "`define FROM_DEFS 1\n").expect("write defs");
+        fs::write(&first, "`define FROM_A 2\nlogic [`FROM_DEFS:0] a;\n").expect("write a");
+        fs::write(
+            &second,
+            "logic [`FROM_A:`FROM_DEFS] b;\n`undef FROM_A\n`ifdef FROM_A\nlogic still_a;\n`endif\n",
+        )
+        .expect("write b");
+        let outputs = preprocess_systemverilog_unit(
+            &[defs.clone(), first.clone(), second.clone()],
+            &SvPreprocessorConfig::default(),
+        )
+        .expect("unit");
+        assert_eq!(outputs.len(), 3);
+        // file 2 sees file 1's macro; file 3 sees both; every output is that FILE's text only
+        assert!(outputs[1].text.contains("logic [1:0] a;"), "{}", outputs[1].text);
+        assert!(outputs[2].text.contains("logic [2:1] b;"), "{}", outputs[2].text);
+        assert!(!outputs[2].text.contains("still_a"), "{}", outputs[2].text);
+        assert!(!outputs[2].text.contains("logic [1:0] a;"), "per-file text, not a concatenation");
+        // and the per-file surfaces are per FILE
+        assert!(outputs[0].source_map.iter().all(|m| m.source.file.ends_with("defs.svh")));
+        assert!(outputs[2].source_map.iter().all(|m| m.source.file.ends_with("b.sv")));
+        assert!(outputs[1].included_files.iter().all(|f| f.ends_with("a.sv")));
+    }
+
+    #[test]
+    fn a_fresh_unit_does_not_see_a_previous_units_macros() {
+        let dir = create_repo_scratch_dir("svpp_unit_isolation");
+        let first = dir.join("a.sv");
+        let second = dir.join("b.sv");
+        fs::write(&first, "`define ONLY_IN_A 1\n").expect("write a");
+        fs::write(&second, "logic [`ONLY_IN_A:0] b;\n").expect("write b");
+        let config = SvPreprocessorConfig::default();
+        let _ = preprocess_systemverilog_unit(&[first.clone()], &config).expect("unit 1");
+        let alone = preprocess_systemverilog_unit(&[second.clone()], &config).expect("unit 2");
+        assert!(alone[0].text.contains("`ONLY_IN_A"), "{}", alone[0].text);
+        // and the one-file entry is the one-file unit — byte-identical text
+        let single = preprocess_systemverilog_file(&second, &config).expect("single");
+        assert_eq!(single.text, alone[0].text);
+    }
+
+    #[test]
+    fn a_unit_failure_names_the_file_that_failed() {
+        let dir = create_repo_scratch_dir("svpp_unit_failure");
+        let first = dir.join("a.sv");
+        let second = dir.join("b.sv");
+        fs::write(&first, "`define OK 1\n").expect("write a");
+        fs::write(&second, "`ifdef OK\nlogic unterminated;\n").expect("write b");
+        let err = preprocess_systemverilog_unit(&[first, second], &SvPreprocessorConfig::default())
+            .expect_err("the second file is unterminated");
+        let text = format!("{:#}", err);
+        assert!(text.contains("compilation unit file 2 of 2"), "{}", text);
+        assert!(text.contains("b.sv"), "{}", text);
+    }
+
+    #[test]
+    fn resetall_does_not_undefine_macros() {
+        // IEEE 1800-2017 §22.3: directives with no default value (`define among them) are not
+        // affected by `resetall — pinned so a future "reset the table" edit cannot land silently.
+        let dir = create_repo_scratch_dir("svpp_resetall");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define KEEP 7\n`resetall\nlogic [`KEEP:0] k;\n").expect("write top");
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("preprocess");
+        assert!(output.text.contains("logic [7:0] k;"), "{}", output.text);
+        assert!(output.text.contains("`resetall"), "the directive itself passes through");
     }
 }
