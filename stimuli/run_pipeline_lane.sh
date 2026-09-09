@@ -118,7 +118,15 @@ if [ "$MAX_FILES" -gt 0 ]; then head -n "$MAX_FILES" "$LIST" > "$LIST.cap" && mv
 total=$(wc -l < "$LIST" | tr -d ' ')
 mkdir -p "$(dirname "$OUT")"
 t_start=$(date +%s)
-xargs -P "$JOBS" -I{} bash -c 'parse_one "$@"' _ {} < "$LIST" | sort -t$'\t' -k1,1 -k3,3 > "$OUT"
+# SVPP-EXPANSION.5(g)(h), 2026-09-09: the dump is PUBLISHED ATOMICALLY — the rows accumulate in a temporary
+# path beside it and move into place only here, at the end. Writing straight to "$OUT" truncated the previous
+# dump the moment a run started, so a run the memory guard killed left an EMPTY dump (and a render then
+# published a rows=0 report from it), and a run whose dump path was moved aside meanwhile (the doctrine's
+# --self-test does that on the real path) wrote its rows into an unlinked inode and finished with nothing.
+OUT_TMP="$OUT.tmp.$$"
+trap 'rm -f "$LIST" "$OUT_TMP"' EXIT
+xargs -P "$JOBS" -I{} bash -c 'parse_one "$@"' _ {} < "$LIST" | sort -t$'\t' -k1,1 -k3,3 > "$OUT_TMP"
+mv -f "$OUT_TMP" "$OUT"
 t_end=$(date +%s)
 awk -F'\t' -v total="$total" -v secs="$((t_end - t_start))" -v probe="$PROBE" -v timeout="$TIMEOUT_S" -v jobs="$JOBS" '
   {c[$2]++}

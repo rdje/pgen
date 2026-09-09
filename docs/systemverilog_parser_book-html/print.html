@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ea3c341b.js";
+            window.path_to_searchindex_js = "searchindex-0d1ee681.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -744,46 +744,81 @@ rejection, read from the tree and bucketed by construct:</p>
 </tbody>
 </table>
 </div>
-<p><strong>The whole lane.</strong> Every suite of the 16 336-row corpus through the chain (release probe, <code>sv_2017</code>,
-155 s wall), each suite under its derived context — a name that exists under several directories
-resolved per file to the includer’s nearest candidate, a tie reported:</p>
+<p><strong>The whole lane.</strong> Every suite of the 16 336-row corpus through the chain (<code>sv_2017</code>; measured on
+the <strong>debug</strong> probe with a 600 s per-file deadline, 432 s wall — see the note on the host below —
+where the first reading used the release probe at 60 s and 155 s wall), each suite under its derived
+context — a name that exists under several directories resolved per file to the includer’s nearest
+candidate, a tie reported:</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>suite</th><th style="text-align: right">rows</th><th style="text-align: right">raw pass</th><th style="text-align: right">pipeline pass</th><th style="text-align: right">pipeline fail</th><th style="text-align: right">refused</th><th style="text-align: right">timeout</th><th style="text-align: right">Δ pass</th></tr>
 </thead>
 <tbody>
-<tr><td>verilator</td><td style="text-align: right">3 263</td><td style="text-align: right">2 084</td><td style="text-align: right">2 956</td><td style="text-align: right">293</td><td style="text-align: right">13</td><td style="text-align: right">1</td><td style="text-align: right">+872</td></tr>
-<tr><td>iverilog</td><td style="text-align: right">3 799</td><td style="text-align: right">3 214</td><td style="text-align: right">3 551</td><td style="text-align: right">239</td><td style="text-align: right">9</td><td style="text-align: right">0</td><td style="text-align: right">+337</td></tr>
-<tr><td>OpenTitan</td><td style="text-align: right">3 983</td><td style="text-align: right">817</td><td style="text-align: right">1 073</td><td style="text-align: right">2 901</td><td style="text-align: right">9</td><td style="text-align: right">0</td><td style="text-align: right">+256</td></tr>
+<tr><td>verilator</td><td style="text-align: right">3 263</td><td style="text-align: right">2 084</td><td style="text-align: right">2 955</td><td style="text-align: right">291</td><td style="text-align: right">17</td><td style="text-align: right">0</td><td style="text-align: right">+871</td></tr>
+<tr><td>iverilog</td><td style="text-align: right">3 799</td><td style="text-align: right">3 214</td><td style="text-align: right">3 550</td><td style="text-align: right">239</td><td style="text-align: right">10</td><td style="text-align: right">0</td><td style="text-align: right">+336</td></tr>
+<tr><td>OpenTitan</td><td style="text-align: right">3 983</td><td style="text-align: right">817</td><td style="text-align: right">1 077</td><td style="text-align: right">2 897</td><td style="text-align: right">9</td><td style="text-align: right">0</td><td style="text-align: right">+260</td></tr>
 <tr><td>ispras-sv-tests</td><td style="text-align: right">1 266</td><td style="text-align: right">1 125</td><td style="text-align: right">1 254</td><td style="text-align: right">12</td><td style="text-align: right">0</td><td style="text-align: right">0</td><td style="text-align: right">+129</td></tr>
-<tr><td>sv2v</td><td style="text-align: right">953</td><td style="text-align: right">714</td><td style="text-align: right">805</td><td style="text-align: right">130</td><td style="text-align: right">18</td><td style="text-align: right">0</td><td style="text-align: right">+91</td></tr>
+<tr><td>sv2v</td><td style="text-align: right">953</td><td style="text-align: right">714</td><td style="text-align: right">803</td><td style="text-align: right">130</td><td style="text-align: right">20</td><td style="text-align: right">0</td><td style="text-align: right">+89</td></tr>
 <tr><td>scr1</td><td style="text-align: right">50</td><td style="text-align: right">8</td><td style="text-align: right">49</td><td style="text-align: right">1</td><td style="text-align: right">0</td><td style="text-align: right">0</td><td style="text-align: right">+41</td></tr>
-<tr><td>sv-tests</td><td style="text-align: right">1 028</td><td style="text-align: right">856</td><td style="text-align: right">896</td><td style="text-align: right">131</td><td style="text-align: right">1</td><td style="text-align: right">0</td><td style="text-align: right">+40</td></tr>
-<tr><td>Surelog</td><td style="text-align: right">828</td><td style="text-align: right">711</td><td style="text-align: right">742</td><td style="text-align: right">80</td><td style="text-align: right">4</td><td style="text-align: right">2</td><td style="text-align: right">+31</td></tr>
+<tr><td>sv-tests</td><td style="text-align: right">1 028</td><td style="text-align: right">856</td><td style="text-align: right">894</td><td style="text-align: right">129</td><td style="text-align: right">5</td><td style="text-align: right">0</td><td style="text-align: right">+38</td></tr>
+<tr><td>Surelog</td><td style="text-align: right">828</td><td style="text-align: right">711</td><td style="text-align: right">742</td><td style="text-align: right">74</td><td style="text-align: right">12</td><td style="text-align: right">0</td><td style="text-align: right">+31</td></tr>
 <tr><td>friscv</td><td style="text-align: right">441</td><td style="text-align: right">38</td><td style="text-align: right">61</td><td style="text-align: right">348</td><td style="text-align: right">32</td><td style="text-align: right">0</td><td style="text-align: right">+23</td></tr>
 <tr><td>verible</td><td style="text-align: right">152</td><td style="text-align: right">120</td><td style="text-align: right">129</td><td style="text-align: right">23</td><td style="text-align: right">0</td><td style="text-align: right">0</td><td style="text-align: right">+9</td></tr>
 <tr><td>Cores-VeeR-EL2</td><td style="text-align: right">102</td><td style="text-align: right">19</td><td style="text-align: right">23</td><td style="text-align: right">79</td><td style="text-align: right">0</td><td style="text-align: right">0</td><td style="text-align: right">+4</td></tr>
 <tr><td>slang</td><td style="text-align: right">92</td><td style="text-align: right">72</td><td style="text-align: right">73</td><td style="text-align: right">16</td><td style="text-align: right">3</td><td style="text-align: right">0</td><td style="text-align: right">+1</td></tr>
 <tr><td>black-parrot</td><td style="text-align: right">205</td><td style="text-align: right">36</td><td style="text-align: right">33</td><td style="text-align: right">2</td><td style="text-align: right">170</td><td style="text-align: right">0</td><td style="text-align: right">−3</td></tr>
 <tr><td>UVM (file by file)</td><td style="text-align: right">174</td><td style="text-align: right">33</td><td style="text-align: right">28</td><td style="text-align: right">146</td><td style="text-align: right">0</td><td style="text-align: right">0</td><td style="text-align: right">−5</td></tr>
-<tr><td><strong>total</strong></td><td style="text-align: right"><strong>16 336</strong></td><td style="text-align: right"><strong>9 847</strong></td><td style="text-align: right"><strong>11 673</strong></td><td style="text-align: right"><strong>4 401</strong></td><td style="text-align: right"><strong>259</strong></td><td style="text-align: right"><strong>3</strong></td><td style="text-align: right"><strong>+1 826</strong></td></tr>
+<tr><td><strong>total</strong></td><td style="text-align: right"><strong>16 336</strong></td><td style="text-align: right"><strong>9 847</strong></td><td style="text-align: right"><strong>11 671</strong></td><td style="text-align: right"><strong>4 387</strong></td><td style="text-align: right"><strong>278</strong></td><td style="text-align: right"><strong>0</strong></td><td style="text-align: right"><strong>+1 824</strong></td></tr>
 </tbody>
 </table>
 </div>
 <p>The raw lane’s 5 693 <code>match</code> rows stay green through the pipeline (5 693 of 6 064 <code>match</code> rows
-pass; the 370 that do not are <code>must_reject</code> rows correctly rejected, and one refused). Of the 259
+pass; the 370 that do not are <code>must_reject</code> rows correctly rejected, and one refused). Of the 278
 refusals, 170 are black-parrot’s: its sources include headers its build system generates and the
 vendored tree does not carry — a permanent gap of the corpus, not of the engine — and 32 are
-friscv’s hardfloat test includes of the same kind. Five raw passes became rejections <strong>in the row’s
-own file</strong>, and every one is a preprocessor fixture whose raw pass was hollow: two <code>:should_fail_because:</code>
-chapter-22 tests (<code>`D()</code> on a two-formal macro without defaults — the expansion is the illegal
-text the test describes, so the verdict is right but the <em>stage</em> is wrong: the preprocessor should
-refuse an omitted actual for a formal with no default, IEEE 1800-2017 §22.5.1’s <code>MACRO2</code> example),
-a circular-substitution test (<code>`define e fun `e</code>), a fragment whose whole expansion is a
-<code>`__FILE__</code> string, and one owed. The three timeouts are the same class as the circular test:
-a macro that names itself twice expands exponentially before the depth guard stops it. Both are
-engine items with named owners in <code>docs/tasks/SVPP-EXPANSION.md</code> (<code>.5</code>(g), <code>.5</code>(h)).</p>
+friscv’s hardfloat test includes of the same kind. Two raw passes became rejections <strong>in the row’s
+own file</strong> — a fragment whose whole expansion is a <code>`__FILE__</code> string, and one owed — and
+<strong>19 fixtures now refuse at the preprocess stage</strong> rather than reaching the parser: the
+<code>:should_fail_because:</code> chapter-22 tests, verilator’s <code>_bad</code> and sv2v’s <code>error/</code> fixtures and the
+Surelog IncludeAndMacros tops, whose <code>mode.vh</code> transcribes the standard’s own <em>“illegal, only one
+argument”</em> line. Six of those had been <strong>passing</strong> in both lanes (an intended-fail fixture the
+parser accepted because the preprocessor bound a missing actual to nothing); the three 60 s
+timeouts of the first reading (a macro naming itself twice, expanded exponentially) are refusals in
+milliseconds; and four OpenTitan coverage interfaces are recognised that were not, because their
+<code>`DV_FCOV_INSTANTIATE_CG</code> had been mis-expanded for six months (below).</p>
+<p><strong>What the preprocessor refuses, and why.</strong> Since <code>SVPP-EXPANSION.5</code>(g)(h) the expansion stage
+raises its own errors — the single command reports them as <code>preprocess_failed</code> (exit 3) at the
+ORIGIN file and line, each carrying the standard’s sentence:</p>
+<ul>
+<li><code>E_SVPP_MISSING_MACRO_ARGUMENT</code> — the actual list is shorter than the formals and a formal it
+leaves unbound has no default (IEEE 1800-2017 §22.5.1: <em>“… error if any of the remaining formal
+arguments does not have a default specified”</em>; its example <code>`MACRO1 ( 1 ) // ILLEGAL: b and c omitted, no default for c</code>). An EMPTY actual is a different thing and stays legal: present and
+blank, it is <em>“replaced by nothing”</em> (<code>`MACRO1 ( , 2, )</code>) or takes the default.</li>
+<li><code>E_SVPP_EXTRA_MACRO_ARGUMENT</code> — more actuals than formals (<em>“It shall be an error to specify more
+actual arguments than the number of formal arguments”</em>; <code>`D(,,)</code>).</li>
+<li><code>E_SVPP_RECURSIVE_MACRO</code> — a macro expands, directly or through others, to a usage of itself; the
+message names the chain (<code>`TOP -&gt; `BOTTOM1 -&gt; `BOTTOM -&gt; `TOP</code>). The standard’s exception —
+<em>“an actual argument to a macro or a default may contain a usage of itself”</em> — is decided by
+<strong>who wrote the usage</strong>: every byte of an expansion carries whether the caller wrote it (a source
+line, or text that came in through an actual or a default) or a macro body produced it. A
+caller-written usage starts its own expansion context; a body-produced one is checked against
+the stack of bodies being rescanned. That distinction is what lets OpenTitan nest a
+<code>`DV_SPINWAIT</code> inside the actual of another (its inner body re-enters a macro the outer
+expansion still holds) while <code>`define A(x) `B(`A(x))</code> is still refused: the <code>`A</code> handed to
+<code>B</code> is A’s own body text.</li>
+</ul>
+<p>The same slice found a defect no parser could see: the formal-list scanner treated an apostrophe as
+a string quote — SystemVerilog has none (§5.9) — so <code>`define DV_FCOV_INSTANTIATE_CG(NAME_, COND_ = 1'b1, ARGS_ = ())</code> had been read as <em>two</em> formals since the scanner’s first commit, a third actual
+dropped without a word and <code> new</code>ARGS_ `` pasted into the legal identifier <code>newARGS_</code>. Only a rule
+that <em>refuses</em> (extra actuals) made it visible; the fix moved four OpenTitan files to <code>pass</code>.</p>
+<p>⛔ <strong>A note on the host, not the engine.</strong> The reading above was taken on the debug probe because no
+release build of the crate could be completed on the development host that day: a per-process
+memory watchdog independent of the repository’s own guard kills any process above 14 GB, and the
+release build’s compile now peaks just past it (the operations chapter of the platform book records
+the numbers). A build profile cannot change a verdict; the deadline was widened to 600 s so the
+slower probe could not manufacture a <code>timeout</code> (the slowest non-timeout row of the release reading
+was 5.75 s), and the identity block of the tracked report names the debug binary.</p>
 <p>Two thirds of the residue is one fact: the base class of a <code>class … extends</code> lives in another file
 of the compilation unit (a package the row <code>import</code>s, or a sibling <code>.sv</code>), and the parser’s
 store gate refuses a base it has not seen declared — the strict reading <code>SV-PARSE-STRICT.2</code> escaped

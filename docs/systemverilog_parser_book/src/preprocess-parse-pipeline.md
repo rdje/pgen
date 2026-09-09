@@ -163,41 +163,80 @@ rejection, read from the tree and bucketed by construct:
 | a `uvm_*` type name, a `typedef`, a subroutine header | 63 | 2.1 % |
 | the `const local … = new(…)` construct of `uvm_transaction.svh:443` | 2 | 0.1 % |
 
-**The whole lane.** Every suite of the 16 336-row corpus through the chain (release probe, `sv_2017`,
-155 s wall), each suite under its derived context — a name that exists under several directories
-resolved per file to the includer's nearest candidate, a tie reported:
+**The whole lane.** Every suite of the 16 336-row corpus through the chain (`sv_2017`; measured on
+the **debug** probe with a 600 s per-file deadline, 432 s wall — see the note on the host below —
+where the first reading used the release probe at 60 s and 155 s wall), each suite under its derived
+context — a name that exists under several directories resolved per file to the includer's nearest
+candidate, a tie reported:
 
 | suite | rows | raw pass | pipeline pass | pipeline fail | refused | timeout | Δ pass |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| verilator | 3 263 | 2 084 | 2 956 | 293 | 13 | 1 | +872 |
-| iverilog | 3 799 | 3 214 | 3 551 | 239 | 9 | 0 | +337 |
-| OpenTitan | 3 983 | 817 | 1 073 | 2 901 | 9 | 0 | +256 |
+| verilator | 3 263 | 2 084 | 2 955 | 291 | 17 | 0 | +871 |
+| iverilog | 3 799 | 3 214 | 3 550 | 239 | 10 | 0 | +336 |
+| OpenTitan | 3 983 | 817 | 1 077 | 2 897 | 9 | 0 | +260 |
 | ispras-sv-tests | 1 266 | 1 125 | 1 254 | 12 | 0 | 0 | +129 |
-| sv2v | 953 | 714 | 805 | 130 | 18 | 0 | +91 |
+| sv2v | 953 | 714 | 803 | 130 | 20 | 0 | +89 |
 | scr1 | 50 | 8 | 49 | 1 | 0 | 0 | +41 |
-| sv-tests | 1 028 | 856 | 896 | 131 | 1 | 0 | +40 |
-| Surelog | 828 | 711 | 742 | 80 | 4 | 2 | +31 |
+| sv-tests | 1 028 | 856 | 894 | 129 | 5 | 0 | +38 |
+| Surelog | 828 | 711 | 742 | 74 | 12 | 0 | +31 |
 | friscv | 441 | 38 | 61 | 348 | 32 | 0 | +23 |
 | verible | 152 | 120 | 129 | 23 | 0 | 0 | +9 |
 | Cores-VeeR-EL2 | 102 | 19 | 23 | 79 | 0 | 0 | +4 |
 | slang | 92 | 72 | 73 | 16 | 3 | 0 | +1 |
 | black-parrot | 205 | 36 | 33 | 2 | 170 | 0 | −3 |
 | UVM (file by file) | 174 | 33 | 28 | 146 | 0 | 0 | −5 |
-| **total** | **16 336** | **9 847** | **11 673** | **4 401** | **259** | **3** | **+1 826** |
+| **total** | **16 336** | **9 847** | **11 671** | **4 387** | **278** | **0** | **+1 824** |
 
 The raw lane's 5 693 `match` rows stay green through the pipeline (5 693 of 6 064 `match` rows
-pass; the 370 that do not are `must_reject` rows correctly rejected, and one refused). Of the 259
+pass; the 370 that do not are `must_reject` rows correctly rejected, and one refused). Of the 278
 refusals, 170 are black-parrot's: its sources include headers its build system generates and the
 vendored tree does not carry — a permanent gap of the corpus, not of the engine — and 32 are
-friscv's hardfloat test includes of the same kind. Five raw passes became rejections **in the row's
-own file**, and every one is a preprocessor fixture whose raw pass was hollow: two `:should_fail_because:`
-chapter-22 tests (`` `D() `` on a two-formal macro without defaults — the expansion is the illegal
-text the test describes, so the verdict is right but the *stage* is wrong: the preprocessor should
-refuse an omitted actual for a formal with no default, IEEE 1800-2017 §22.5.1's `MACRO2` example),
-a circular-substitution test (`` `define e fun `e ``), a fragment whose whole expansion is a
-`` `__FILE__ `` string, and one owed. The three timeouts are the same class as the circular test:
-a macro that names itself twice expands exponentially before the depth guard stops it. Both are
-engine items with named owners in `docs/tasks/SVPP-EXPANSION.md` (`.5`(g), `.5`(h)).
+friscv's hardfloat test includes of the same kind. Two raw passes became rejections **in the row's
+own file** — a fragment whose whole expansion is a `` `__FILE__ `` string, and one owed — and
+**19 fixtures now refuse at the preprocess stage** rather than reaching the parser: the
+`:should_fail_because:` chapter-22 tests, verilator's `_bad` and sv2v's `error/` fixtures and the
+Surelog IncludeAndMacros tops, whose `mode.vh` transcribes the standard's own *"illegal, only one
+argument"* line. Six of those had been **passing** in both lanes (an intended-fail fixture the
+parser accepted because the preprocessor bound a missing actual to nothing); the three 60 s
+timeouts of the first reading (a macro naming itself twice, expanded exponentially) are refusals in
+milliseconds; and four OpenTitan coverage interfaces are recognised that were not, because their
+`` `DV_FCOV_INSTANTIATE_CG `` had been mis-expanded for six months (below).
+
+**What the preprocessor refuses, and why.** Since `SVPP-EXPANSION.5`(g)(h) the expansion stage
+raises its own errors — the single command reports them as `preprocess_failed` (exit 3) at the
+ORIGIN file and line, each carrying the standard's sentence:
+
+- `E_SVPP_MISSING_MACRO_ARGUMENT` — the actual list is shorter than the formals and a formal it
+  leaves unbound has no default (IEEE 1800-2017 §22.5.1: *"… error if any of the remaining formal
+  arguments does not have a default specified"*; its example `` `MACRO1 ( 1 ) // ILLEGAL: b and c
+  omitted, no default for c ``). An EMPTY actual is a different thing and stays legal: present and
+  blank, it is *"replaced by nothing"* (`` `MACRO1 ( , 2, ) ``) or takes the default.
+- `E_SVPP_EXTRA_MACRO_ARGUMENT` — more actuals than formals (*"It shall be an error to specify more
+  actual arguments than the number of formal arguments"*; `` `D(,,) ``).
+- `E_SVPP_RECURSIVE_MACRO` — a macro expands, directly or through others, to a usage of itself; the
+  message names the chain (`` `TOP -> `BOTTOM1 -> `BOTTOM -> `TOP ``). The standard's exception —
+  *"an actual argument to a macro or a default may contain a usage of itself"* — is decided by
+  **who wrote the usage**: every byte of an expansion carries whether the caller wrote it (a source
+  line, or text that came in through an actual or a default) or a macro body produced it. A
+  caller-written usage starts its own expansion context; a body-produced one is checked against
+  the stack of bodies being rescanned. That distinction is what lets OpenTitan nest a
+  `` `DV_SPINWAIT `` inside the actual of another (its inner body re-enters a macro the outer
+  expansion still holds) while `` `define A(x) `B(`A(x)) `` is still refused: the `` `A `` handed to
+  `B` is A's own body text.
+
+The same slice found a defect no parser could see: the formal-list scanner treated an apostrophe as
+a string quote — SystemVerilog has none (§5.9) — so `` `define DV_FCOV_INSTANTIATE_CG(NAME_, COND_ =
+1'b1, ARGS_ = ()) `` had been read as *two* formals since the scanner's first commit, a third actual
+dropped without a word and `` new``ARGS_ `` pasted into the legal identifier `newARGS_`. Only a rule
+that *refuses* (extra actuals) made it visible; the fix moved four OpenTitan files to `pass`.
+
+⛔ **A note on the host, not the engine.** The reading above was taken on the debug probe because no
+release build of the crate could be completed on the development host that day: a per-process
+memory watchdog independent of the repository's own guard kills any process above 14 GB, and the
+release build's compile now peaks just past it (the operations chapter of the platform book records
+the numbers). A build profile cannot change a verdict; the deadline was widened to 600 s so the
+slower probe could not manufacture a `timeout` (the slowest non-timeout row of the release reading
+was 5.75 s), and the identity block of the tracked report names the debug binary.
 
 Two thirds of the residue is one fact: the base class of a `class … extends` lives in another file
 of the compilation unit (a package the row `import`s, or a sibling `.sv`), and the parser's

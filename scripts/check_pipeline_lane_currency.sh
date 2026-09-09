@@ -21,8 +21,10 @@
 #       from the tree. Always evaluable (the corpus submodules being absent is itself reported by
 #       the tool, per suite, as NOT EVALUATED). HARD on drift.
 #   (2) REPORT — `pipeline_vs_raw.py --check`: the tracked report equals a fresh render of the two
-#       dumps on this tree, the `parse binary` digest row masked (a rebuilt probe is provenance, not
-#       staleness — the same reading IDENTITY-CARRIERS gives that label). The dumps are .gitignored,
+#       dumps on this tree, the `parse binary` digest row and the `Measured at HEAD` line masked (a
+#       rebuilt probe and the commit the render ran on are provenance, not staleness — the same
+#       reading IDENTITY-CARRIERS gives that label; without the HEAD mask the tracked report was DRIFT
+#       on every commit after the one that published it — SVPP-EXPANSION.5(g)(h)). The dumps are .gitignored,
 #       so where either is absent the arm reports NOT EVALUATED, loudly, and passes — a clone that
 #       has not run the lanes has nothing to compare, and saying so is the honest verdict.
 #
@@ -48,7 +50,7 @@ run_arms() {
   out="$(python3 "$CTX_TOOL" --check 2>&1)" || { echo "$TAG: ✗ (1) CONTEXT — $(printf '%s' "$out" | tail -1)" >&2; rc=1; }
   [ $rc -eq 0 ] && echo "$TAG: (1) CONTEXT — $(printf '%s' "$out" | grep -E '^PIPELINE-CONTEXT: (OK|DRIFT)' | tail -1 | cut -c1-140)"
   out="$(python3 "$REPORT_TOOL" --check 2>&1)"; local r2=$?
-  if [ $r2 -ne 0 ]; then echo "$TAG: ✗ (2) REPORT — $(printf '%s' "$out" | grep -E 'DRIFT' | tail -1 | cut -c1-200)" >&2; rc=1
+  if [ $r2 -ne 0 ]; then echo "$TAG: ✗ (2) REPORT — $(printf '%s' "$out" | grep -E 'DRIFT|REFUSED' | tail -1 | cut -c1-200)" >&2; rc=1
   else echo "$TAG: (2) REPORT — $(printf '%s' "$out" | grep -E '^PIPELINE-VS-RAW: (OK|NOT EVALUATED)' | tail -1 | cut -c1-160)"; fi
   return $rc
 }

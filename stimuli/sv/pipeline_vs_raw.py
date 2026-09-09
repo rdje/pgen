@@ -169,6 +169,16 @@ def main() -> int:
         args.out = str(scratch)
 
     pipeline = read_tsv(pathlib.Path(args.pipeline), 7)          # suite status relpath secs rc furthest origin
+    if not pipeline:
+        # SVPP-EXPANSION.5(g)(h), 2026-09-09: a lane run the memory guard killed left an EMPTY dump, and the
+        # render that followed published the tracked report from it (rows=0). An empty dump is not a
+        # measurement; refuse to render (or check) from it, and write nothing.
+        dump = pathlib.Path(args.pipeline)
+        shown = dump.relative_to(ROOT) if dump.is_absolute() and dump.is_relative_to(ROOT) else dump
+        print(f"PIPELINE-VS-RAW: REFUSED — {shown} has no rows (a killed or "
+              f"unfinished lane run?); nothing rendered — re-run the lane, or restore the previous dump",
+              file=sys.stderr)
+        return 2
     raw = {r[2]: r[1] for r in read_tsv(pathlib.Path(args.raw), 3)}  # repo-rel path -> status
     manifest = {}
     mrows = read_tsv(pathlib.Path(args.manifest), 6)
@@ -327,13 +337,21 @@ def main() -> int:
             return 1
         # the identity block names the PROBE by digest; a rebuilt probe changes that row without any
         # number moving, and that row is provenance (IDENTITY-CARRIERS treats `parse binary` as a note),
-        # so the comparison masks it and holds every other line equal
+        # so the comparison masks it and holds every other line equal. The `Measured at HEAD` line is
+        # provenance of the same kind and is masked too (SVPP-EXPANSION.5(g)(h), 2026-09-09): it names
+        # the commit the RENDER ran on, so the tracked report was DRIFT on every commit after the one
+        # that published it — the doctrine asked for a re-render per commit of the repository, which is
+        # a treadmill, not currency. The numbers, the tables and the context are what must hold equal.
+        PROVENANCE_PREFIXES = ("| parse binary |", "Measured at `HEAD` = ")
         def masked(text: str) -> str:
-            return "\n".join(("| parse binary |" if line.startswith("| parse binary |") else line) for line in text.splitlines())
+            return "\n".join(
+                (next((pfx for pfx in PROVENANCE_PREFIXES if line.startswith(pfx)), line))
+                for line in text.splitlines()
+            )
         if masked(tracked.read_text()) != masked(out.read_text()):
             print(f"PIPELINE-VS-RAW: DRIFT — {rel(tracked)} differs from a fresh render of the dumps on this tree (scratch: {rel(out)}); re-run the lane and publish", file=sys.stderr)
             return 1
-        print(f"PIPELINE-VS-RAW: OK — {rel(tracked)} equals a fresh render of the dumps (the probe digest row masked as provenance)")
+        print(f"PIPELINE-VS-RAW: OK — {rel(tracked)} equals a fresh render of the dumps (the probe digest row and the HEAD line masked as provenance)")
     return 0
 
 

@@ -649,7 +649,9 @@ fn preprocess_text_internal(
                     &mut state.events,
                     file_path,
                     line_no,
-                );
+                    &mut Vec::new(),
+                    None,
+                )?;
                 state.push_event(
                     PreprocessorEventKind::PassthroughLine,
                     file_path,
@@ -918,7 +920,9 @@ fn preprocess_text_internal(
                             &mut state.events,
                             file_path,
                             line_no,
-                        );
+                            &mut Vec::new(),
+                            None,
+                        )?;
                         state.push_event(
                             PreprocessorEventKind::PassthroughLine,
                             file_path,
@@ -953,7 +957,9 @@ fn preprocess_text_internal(
                             &mut state.events,
                             file_path,
                             line_no,
-                        );
+                            &mut Vec::new(),
+                            None,
+                        )?;
                         state.push_event(
                             PreprocessorEventKind::PassthroughLine,
                             file_path,
@@ -999,7 +1005,9 @@ fn preprocess_text_internal(
                 &mut state.events,
                 file_path,
                 line_no,
-            );
+                &mut Vec::new(),
+                None,
+            )?;
             state.push_event(
                 PreprocessorEventKind::PassthroughLine,
                 file_path,
@@ -1512,7 +1520,12 @@ fn split_macro_parameter_tokens(input: &str) -> Vec<&str> {
     let mut paren_depth = 0usize;
     let mut bracket_depth = 0usize;
     let mut brace_depth = 0usize;
-    let mut in_single_quote = false;
+    // `SVPP-EXPANSION.5`(g′): NO single-quote state. SystemVerilog has no single-quoted string
+    // (§5.9: string literals are double-quoted); an apostrophe in a formal's default is a based
+    // literal's (`COND_ = 1'b1`) or an assignment pattern's (`'{…}`), and treating it as a quote
+    // swallowed every comma after it — OpenTitan's `DV_FCOV_INSTANTIATE_CG(NAME_, COND_ = 1'b1,
+    // ARGS_ = ())` was read as TWO formals with a garbage default, and the third actual was silently
+    // dropped since this scanner's first commit, 2026-03-17 (surfaced the moment extra actuals were refused).
     let mut in_double_quote = false;
     let mut escaped = false;
     let mut i = 0usize;
@@ -1530,22 +1543,17 @@ fn split_macro_parameter_tokens(input: &str) -> Vec<&str> {
             i += 1;
             continue;
         }
-        if ch == '\\' && (in_single_quote || in_double_quote) {
+        if ch == '\\' && in_double_quote {
             escaped = true;
             i += 1;
             continue;
         }
-        if ch == '"' && !in_single_quote {
+        if ch == '"' {
             in_double_quote = !in_double_quote;
             i += 1;
             continue;
         }
-        if ch == '\'' && !in_double_quote {
-            in_single_quote = !in_single_quote;
-            i += 1;
-            continue;
-        }
-        if in_single_quote || in_double_quote {
+        if in_double_quote {
             i += 1;
             continue;
         }
@@ -1675,6 +1683,23 @@ fn contains_line_start_backtick(text: &str) -> bool {
         .any(|trimmed| trimmed.starts_with('`'))
 }
 
+/// `SVPP-EXPANSION.5`(h): `expanding` is the stack of macro names whose BODY is being rescanned;
+/// a usage of a name on that stack is the recursion IEEE 1800-2017 §22.5.1 forbids — *"It shall be
+/// an error for a macro to expand directly or indirectly to text containing another usage of
+/// itself"* — UNLESS the caller wrote the usage: *"an actual argument to a macro or a default may
+/// contain a usage of itself"* (the standard's own `` `TOP( `TOP(b,1), `TOP(42,a) ) `` example).
+/// `user_mask` is that PROVENANCE, one flag per byte of `text`: `None` = the whole text is what
+/// the caller wrote (a source line); `Some(mask)` = an expansion's text, `true` on the bytes that
+/// came in through an actual or a default (transitively — an actual's bytes keep the flags they had
+/// where they were written) and `false` on the bytes the macro's body produced. A user-written
+/// usage starts its OWN expansion context (a fresh stack): the caller wrote finitely many of them,
+/// so they cannot loop; a body-produced usage is checked against the stack. Byte ranges alone were
+/// not enough — OpenTitan nests `` `DV_SPINWAIT( … `DV_SPINWAIT(…) … ) ``, and the inner usage's
+/// body re-enters `` `DV_SPINWAIT_EXIT `` while the OUTER one is still on the stack: legal, since
+/// the inner usage was written by the caller; and `` `define A(x) `B(`A(x)) `` must still refuse,
+/// since the `` `A `` handed to `B` is A's own body text. Before this leaf a recursive macro was
+/// expanded until the depth guard, and one naming itself twice expanded exponentially (verilator
+/// `t_pp_circdef_bad.v` timed out at 60 s).
 fn expand_macros_in_text(
     text: &str,
     macros: &HashMap<String, MacroDefinition>,
@@ -1682,9 +1707,11 @@ fn expand_macros_in_text(
     events: &mut Vec<PreprocessorEvent>,
     file: &Path,
     line: usize,
-) -> String {
+    expanding: &mut Vec<String>,
+    user_mask: Option<&[bool]>,
+) -> Result<String> {
     if depth > 16 {
-        return text.to_string();
+        return Ok(text.to_string());
     }
 
     let bytes = text.as_bytes();
@@ -1790,6 +1817,7 @@ fn expand_macros_in_text(
             ident_end += 1;
         }
         let name = &text[ident_start..ident_end];
+        let usage_start = i;
         let Some(def) = macros.get(name) else {
             if let Some(expanded) = expand_builtin_macro(name, file, line) {
                 out.push_str(&expanded);
@@ -1803,18 +1831,73 @@ fn expand_macros_in_text(
             continue;
         };
 
+        // (h) provenance decides: a usage the CALLER wrote — a source line, or bytes that came in
+        // through an actual or a default — starts its own expansion context below; a usage a macro
+        // BODY produced is checked against the stack of bodies being rescanned.
+        let user_written = user_mask.is_none_or(|m| m.get(usage_start).copied().unwrap_or(false));
+        if !user_written && expanding.iter().any(|open| open == name) {
+            let chain = expanding
+                .iter()
+                .skip_while(|open| open.as_str() != name)
+                .map(|open| format!("`{}", open))
+                .collect::<Vec<_>>()
+                .join(" -> ");
+            bail!(
+                "E_SVPP_RECURSIVE_MACRO at {}:{}: macro '{}' expands to a usage of itself ({} -> `{}) \
+                 — IEEE 1800-2017 §22.5.1: \"It shall be an error for a macro to expand directly or \
+                 indirectly to text containing another usage of itself\"",
+                file.display(),
+                line,
+                name,
+                chain,
+                name
+            );
+        }
+
         if let Some(params) = &def.params {
             let mut j = ident_end;
             while j < bytes.len() && bytes[j].is_ascii_whitespace() {
                 j += 1;
             }
-            let Some((args, next_index)) = parse_macro_invocation_args(text, j) else {
+            let Some((arg_ranges, next_index)) = parse_macro_invocation_arg_ranges(text, j) else {
                 out.push('`');
                 out.push_str(name);
                 i = ident_end;
                 continue;
             };
-            let expanded = expand_function_macro(def, params, &args, macros, depth + 1, file, line);
+            let args: Vec<String> = arg_ranges
+                .iter()
+                .map(|&(s, e)| text[s..e].to_string())
+                .collect();
+            // each actual keeps the provenance of the bytes it was written in
+            let arg_masks: Vec<Vec<bool>> = arg_ranges
+                .iter()
+                .map(|&(s, e)| match user_mask {
+                    None => vec![true; e - s],
+                    Some(m) => (s..e).map(|k| m.get(k).copied().unwrap_or(false)).collect(),
+                })
+                .collect();
+            let mut fresh: Vec<String> = Vec::new();
+            let stack: &mut Vec<String> = if user_written {
+                &mut fresh
+            } else {
+                &mut *expanding
+            };
+            stack.push(name.to_string());
+            let expanded = expand_function_macro(
+                def,
+                params,
+                &args,
+                &arg_masks,
+                macros,
+                depth + 1,
+                file,
+                line,
+                name,
+                stack,
+            );
+            stack.pop();
+            let expanded = expanded?;
             events.push(PreprocessorEvent {
                 kind: PreprocessorEventKind::MacroExpand,
                 file: file.display().to_string(),
@@ -1826,7 +1909,16 @@ fn expand_macros_in_text(
             i = next_index;
             expanded_any = true;
         } else {
-            let expanded = expand_object_macro(def, macros, depth + 1, file, line);
+            let mut fresh: Vec<String> = Vec::new();
+            let stack: &mut Vec<String> = if user_written {
+                &mut fresh
+            } else {
+                &mut *expanding
+            };
+            stack.push(name.to_string());
+            let expanded = expand_object_macro(def, macros, depth + 1, file, line, stack);
+            stack.pop();
+            let expanded = expanded?;
             events.push(PreprocessorEvent {
                 kind: PreprocessorEventKind::MacroExpand,
                 file: file.display().to_string(),
@@ -1841,9 +1933,19 @@ fn expand_macros_in_text(
     }
 
     if expanded_any && out != text {
-        expand_macros_in_text(&out, macros, depth + 1, events, file, line)
+        // a second pass carries no provenance: text an expansion produced is body text
+        expand_macros_in_text(
+            &out,
+            macros,
+            depth + 1,
+            events,
+            file,
+            line,
+            expanding,
+            Some(&[]),
+        )
     } else {
-        out
+        Ok(out)
     }
 }
 
@@ -1955,6 +2057,33 @@ fn has_unclosed_function_macro_invocation(
 }
 
 fn parse_macro_invocation_args(input: &str, open_paren_idx: usize) -> Option<(Vec<String>, usize)> {
+    let (ranges, next) = parse_macro_invocation_arg_ranges(input, open_paren_idx)?;
+    Some((
+        ranges
+            .iter()
+            .map(|&(s, e)| input[s..e].to_string())
+            .collect(),
+        next,
+    ))
+}
+
+/// The byte range of `input[start..end]` with its surrounding white space trimmed off (empty when
+/// the segment is blank), so an actual's bytes can be located in the text they were written in.
+fn trimmed_range(input: &str, start: usize, end: usize) -> (usize, usize) {
+    let segment = &input[start..end];
+    let lead = segment.len() - segment.trim_start().len();
+    let trail = segment.len() - segment.trim_end().len();
+    let s = start + lead;
+    (s, (end - trail).max(s))
+}
+
+/// `SVPP-EXPANSION.5`(h): the actuals of a function-like macro usage as BYTE RANGES of `input`
+/// (trimmed), so the rescan can carry each byte's provenance — whether the caller wrote it or a
+/// macro body produced it — into the expansion.
+fn parse_macro_invocation_arg_ranges(
+    input: &str,
+    open_paren_idx: usize,
+) -> Option<(Vec<(usize, usize)>, usize)> {
     let bytes = input.as_bytes();
     if open_paren_idx >= bytes.len() || bytes[open_paren_idx] != b'(' {
         return None;
@@ -2030,9 +2159,9 @@ fn parse_macro_invocation_args(input: &str, open_paren_idx: usize) -> Option<(Ve
                 }
                 paren_depth -= 1;
                 if paren_depth == 0 {
-                    let segment = input[start..i].trim();
-                    if !segment.is_empty() || !args.is_empty() {
-                        args.push(segment.to_string());
+                    let (s, e) = trimmed_range(input, start, i);
+                    if s < e || !args.is_empty() {
+                        args.push((s, e));
                     }
                     return Some((args, i + 1));
                 }
@@ -2055,8 +2184,7 @@ fn parse_macro_invocation_args(input: &str, open_paren_idx: usize) -> Option<(Ve
                 i += 1;
             }
             ',' if paren_depth == 1 && brace_depth == 0 && bracket_depth == 0 => {
-                let segment = input[start..i].trim();
-                args.push(segment.to_string());
+                args.push(trimmed_range(input, start, i));
                 i += 1;
                 start = i;
             }
@@ -2072,35 +2200,108 @@ fn expand_object_macro(
     depth: usize,
     file: &Path,
     line: usize,
-) -> String {
-    expand_macros_in_text(&definition.body, macros, depth, &mut Vec::new(), file, line)
+    expanding: &mut Vec<String>,
+) -> Result<String> {
+    expand_macros_in_text(
+        &definition.body,
+        macros,
+        depth,
+        &mut Vec::new(),
+        file,
+        line,
+        expanding,
+        Some(&[]),
+    )
 }
 
+#[allow(clippy::too_many_arguments)] // one call site; the arguments ARE the expansion's context
 fn expand_function_macro(
     definition: &MacroDefinition,
     params: &[MacroParameter],
     args: &[String],
+    arg_masks: &[Vec<bool>],
     macros: &HashMap<String, MacroDefinition>,
     depth: usize,
     file: &Path,
     line: usize,
-) -> String {
+    name: &str,
+    expanding: &mut Vec<String>,
+) -> Result<String> {
+    // `SVPP-EXPANSION.5`(g): a MISSING actual (the list is shorter than the formals) for a formal
+    // WITHOUT a default is an error — IEEE 1800-2017 §22.5.1's own example:
+    // `` `MACRO1 ( 1 ) // ILLEGAL: b and c omitted, no default for c ``. An EMPTY actual is a
+    // different thing (below, (f)): present and blank, it takes the default or "replaced by nothing".
+    // Before this the formal bound to "" and the parser rejected the text the standard calls illegal
+    // — the right verdict at the wrong stage (sv-tests 22.5.1--define-expansion_7 / _8).
+    // and the mirror image: MORE actuals than formals — the standard's `` `D(,,) // illegal, more
+    // actual than formal arguments `` (sv-tests 22.5.1--define-expansion_8 pins it).
+    if args.len() > params.len() {
+        bail!(
+            "E_SVPP_EXTRA_MACRO_ARGUMENT at {}:{}: `{} invoked with {} arguments for {} formals — IEEE \
+             1800-2017 §22.5.1: it shall be an error to specify more actual arguments than the number of \
+             formal arguments",
+            file.display(),
+            line,
+            name,
+            args.len(),
+            params.len()
+        );
+    }
+    if args.len() < params.len() {
+        for param in &params[args.len()..] {
+            if param.default.is_none() {
+                bail!(
+                    "E_SVPP_MISSING_MACRO_ARGUMENT at {}:{}: `{} invoked with {} of {} arguments and formal \
+                     '{}' has no default — IEEE 1800-2017 §22.5.1: \"ILLEGAL: … omitted, no default\"",
+                    file.display(),
+                    line,
+                    name,
+                    args.len(),
+                    params.len(),
+                    param.name
+                );
+            }
+        }
+    }
     let mut bindings: HashMap<&str, &str> = HashMap::new();
+    // (h) each binding's provenance: an actual keeps the flags of the bytes it was written in; a
+    // default is the caller's text too ("an actual argument to a macro or a default may contain a
+    // usage of itself" — the depth guard bounds a default that names its own macro without end)
+    let mut binding_masks: HashMap<&str, Vec<bool>> = HashMap::new();
     for (idx, param) in params.iter().enumerate() {
         // `SVPP-EXPANSION.5`(f): an EMPTY actual is an OMITTED one and takes the formal's default —
         // IEEE 1800-2017 §22.5.1's own examples: `` `MACRO1 ( , 2, 3 ) // argument a omitted,
         // replaced by default ``. Before this, an empty actual bound the formal to nothing, so
         // `` `MK(t1, 0, , sqr) `` lost `seq_t_`'s default. A formal with NO default binds to "".
         let actual = args.get(idx).map(|s| s.as_str());
-        let arg = match actual {
-            Some(text) if !text.trim().is_empty() => text,
-            _ => param.default.as_deref().unwrap_or(""),
+        let (arg, mask) = match actual {
+            Some(text) if !text.trim().is_empty() => (
+                text,
+                arg_masks
+                    .get(idx)
+                    .cloned()
+                    .unwrap_or_else(|| vec![true; text.len()]),
+            ),
+            _ => {
+                let default = param.default.as_deref().unwrap_or("");
+                (default, vec![true; default.len()])
+            }
         };
         bindings.insert(param.name.as_str(), arg);
+        binding_masks.insert(param.name.as_str(), mask);
     }
-    let substituted = substitute_function_macro_body(&definition.body, &bindings);
-    let pasted = substituted.replace("``", "");
-    expand_macros_in_text(&pasted, macros, depth, &mut Vec::new(), file, line)
+    let (substituted, mask) =
+        substitute_function_macro_body(&definition.body, &bindings, &binding_masks);
+    expand_macros_in_text(
+        &substituted,
+        macros,
+        depth,
+        &mut Vec::new(),
+        file,
+        line,
+        expanding,
+        Some(&mask),
+    )
 }
 
 fn expand_builtin_macro(name: &str, file: &Path, line: usize) -> Option<String> {
@@ -2116,12 +2317,56 @@ fn encode_sv_string_literal(value: &str) -> String {
     format!("\"{}\"", escaped)
 }
 
-fn substitute_function_macro_body(body: &str, bindings: &HashMap<&str, &str>) -> String {
+/// Substitute the formals with their actuals and remove the ``` `` ``` paste tokens — returning,
+/// with the text, its PROVENANCE mask (one flag per byte): `true` on the bytes an actual or a
+/// default supplied (each keeping the flags it was written with), `false` on the bytes the body
+/// produced — so the rescan can tell a usage the caller wrote (legal, §22.5.1) from one the macro's
+/// own body contains (recursion, `.5`(h)).
+fn substitute_function_macro_body(
+    body: &str,
+    bindings: &HashMap<&str, &str>,
+    binding_masks: &HashMap<&str, Vec<bool>>,
+) -> (String, Vec<bool>) {
     let bytes = body.as_bytes();
     let mut i = 0usize;
     let mut out = String::new();
+    let mut mask: Vec<bool> = Vec::new();
+    fn push_body(out: &mut String, mask: &mut Vec<bool>, text: &str) {
+        out.push_str(text);
+        mask.extend(std::iter::repeat_n(false, text.len()));
+    }
+    fn push_body_char(out: &mut String, mask: &mut Vec<bool>, ch: char) {
+        out.push(ch);
+        mask.extend(std::iter::repeat_n(false, ch.len_utf8()));
+    }
+    fn push_actual(out: &mut String, mask: &mut Vec<bool>, actual: &str, actual_mask: &[bool]) {
+        // trimmed, the paste tokens removed DURING the scan so the mask stays aligned
+        let lead = actual.len() - actual.trim_start().len();
+        let trimmed = actual.trim().as_bytes();
+        let mut buf: Vec<u8> = Vec::with_capacity(trimmed.len());
+        let mut k = 0usize;
+        while k < trimmed.len() {
+            if k + 1 < trimmed.len() && trimmed[k] == b'`' && trimmed[k + 1] == b'`' {
+                k += 2;
+                continue;
+            }
+            buf.push(trimmed[k]);
+            mask.push(actual_mask.get(lead + k).copied().unwrap_or(true));
+            k += 1;
+        }
+        out.push_str(
+            std::str::from_utf8(&buf).expect("removing ASCII paste tokens keeps UTF-8 valid"),
+        );
+    }
+    let binding_mask =
+        |token: &str| -> &[bool] { binding_masks.get(token).map(Vec::as_slice).unwrap_or(&[]) };
 
     while i < bytes.len() {
+        if i + 2 <= bytes.len() && bytes[i] == b'`' && bytes[i + 1] == b'`' {
+            // the ``` `` ``` token-paste operator: the two sides join with nothing between
+            i += 2;
+            continue;
+        }
         if i + 2 <= bytes.len() && bytes[i] == b'`' && bytes[i + 1] == b'"' {
             // SV-EXH-PROOF.3.3.4.b.6.2.PP.1 — per IEEE 1800 §22.5.3.2:
             // `" opens a "macro string with substitution" region; macro
@@ -2150,10 +2395,17 @@ fn substitute_function_macro_body(body: &str, bindings: &HashMap<&str, &str>) ->
             }
             if found_close {
                 let content = &body[region_start..j];
-                out.push('"');
+                push_body(&mut out, &mut mask, "\"");
                 let content_bytes = content.as_bytes();
                 let mut k = 0usize;
                 while k < content_bytes.len() {
+                    if k + 2 <= content_bytes.len()
+                        && content_bytes[k] == b'`'
+                        && content_bytes[k + 1] == b'`'
+                    {
+                        k += 2;
+                        continue;
+                    }
                     if is_ident_start(content_bytes[k]) {
                         let tok_start = k;
                         k += 1;
@@ -2162,17 +2414,17 @@ fn substitute_function_macro_body(body: &str, bindings: &HashMap<&str, &str>) ->
                         }
                         let token = &content[tok_start..k];
                         if let Some(arg) = bindings.get(token) {
-                            out.push_str(arg.trim());
+                            push_actual(&mut out, &mut mask, arg, binding_mask(token));
                         } else {
-                            out.push_str(token);
+                            push_body(&mut out, &mut mask, token);
                         }
                     } else {
                         let ch = source_char_at(content, k);
-                        out.push(ch);
+                        push_body_char(&mut out, &mut mask, ch);
                         k += ch.len_utf8();
                     }
                 }
-                out.push('"');
+                push_body(&mut out, &mut mask, "\"");
                 i = j + 2;
                 continue;
             }
@@ -2188,22 +2440,22 @@ fn substitute_function_macro_body(body: &str, bindings: &HashMap<&str, &str>) ->
                 }
                 let token = &body[region_start..k];
                 if let Some(arg) = bindings.get(token) {
-                    out.push('"');
-                    out.push_str(arg.trim());
-                    out.push('"');
+                    push_body(&mut out, &mut mask, "\"");
+                    push_actual(&mut out, &mut mask, arg, binding_mask(token));
+                    push_body(&mut out, &mut mask, "\"");
                     i = k;
                     continue;
                 }
             }
             // Truly unmatched — emit literally.
-            out.push_str("`\"");
+            push_body(&mut out, &mut mask, "`\"");
             i += 2;
             continue;
         }
 
         if !is_ident_start(bytes[i]) {
             let ch = source_char_at(body, i);
-            out.push(ch);
+            push_body_char(&mut out, &mut mask, ch);
             i += ch.len_utf8();
             continue;
         }
@@ -2214,13 +2466,18 @@ fn substitute_function_macro_body(body: &str, bindings: &HashMap<&str, &str>) ->
         }
         let token = &body[start..i];
         if let Some(arg) = bindings.get(token) {
-            out.push_str(arg.trim());
+            push_actual(&mut out, &mut mask, arg, binding_mask(token));
         } else {
-            out.push_str(token);
+            push_body(&mut out, &mut mask, token);
         }
     }
 
-    out
+    debug_assert_eq!(
+        out.len(),
+        mask.len(),
+        "the provenance mask is one flag per byte"
+    );
+    (out, mask)
 }
 
 /// The character whose UTF-8 sequence starts at `index`.
@@ -2626,11 +2883,15 @@ mod tests {
             &field_begin,
             field_begin.params.as_ref().expect("params"),
             &["ID".to_string(), "UVM_ALL_ON".to_string()],
+            &[],
             &macros,
             0,
             &input,
             1,
-        );
+            "uvm_field_begin",
+            &mut Vec::new(),
+        )
+        .expect("expand");
         assert!(
             expanded.contains("string behavior;"),
             "expanded nested macro body missing expected content:\n{expanded}"
@@ -3367,6 +3628,228 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             output.text.contains("$display(5,,0,,\"C\");"),
             "{}",
             output.text
+        );
+    }
+
+    // ── SVPP-EXPANSION.5 (g) (h) — the two items the whole lane found ─────────────────────────
+
+    #[test]
+    fn a_missing_actual_for_a_formal_without_a_default_is_refused() {
+        // IEEE 1800-2017 §22.5.1's examples (section-22-compiler-directives.md:251-266):
+        //   `MACRO1 ( , 2, )   // argument c omitted, replaced by nothing   ← EMPTY, no default: legal
+        //   `MACRO1 ( 1 )      // ILLEGAL: b and c omitted, no default for c ← MISSING, no default: error
+        //   `MACRO2 (, 2)      // a and c omitted, replaced by defaults      ← MISSING, with defaults: legal
+        let dir = create_repo_scratch_dir("svpp_missing_actual");
+        let legal = dir.join("legal.sv");
+        fs::write(
+            &legal,
+            "`define MACRO1(a=5,b=\"B\",c) $display(a,,b,,c);\n`define MACRO2(a=5, b, c=\"C\") $display(a,,b,,c);\n`MACRO1 ( , 2, )\n`MACRO2 (1, , 3)\n`MACRO2 (, 2)\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&legal, &SvPreprocessorConfig::default())
+            .expect("legal forms");
+        assert!(out.text.contains("$display(5,,2,,);"), "{}", out.text);
+        assert!(out.text.contains("$display(1,,,,3);"), "{}", out.text);
+        assert!(out.text.contains("$display(5,,2,,\"C\");"), "{}", out.text);
+
+        let illegal = dir.join("illegal.sv");
+        fs::write(
+            &illegal,
+            "`define MACRO1(a=5,b=\"B\",c) $display(a,,b,,c);\n`MACRO1 ( 1 )\n",
+        )
+        .expect("write");
+        let err = preprocess_systemverilog_file(&illegal, &SvPreprocessorConfig::default())
+            .expect_err("MACRO1 ( 1 )");
+        let text = format!("{:#}", err);
+        assert!(
+            text.contains("E_SVPP_MISSING_MACRO_ARGUMENT")
+                && text.contains("'c'")
+                && text.contains("illegal.sv:2"),
+            "{}",
+            text
+        );
+
+        // the sv-tests shape: `D() on a two-formal macro with no defaults
+        let d = dir.join("d.sv");
+        fs::write(
+            &d,
+            "`define D(x,y) initial $display(\"start\", x , y, \"end\");\n`D()\n",
+        )
+        .expect("write");
+        let err =
+            preprocess_systemverilog_file(&d, &SvPreprocessorConfig::default()).expect_err("D()");
+        assert!(format!("{:#}", err).contains("E_SVPP_MISSING_MACRO_ARGUMENT"));
+
+        // and MORE actuals than formals — `D(,,) — the standard's "illegal, more actual than formal
+        // arguments" (section-22-compiler-directives.md:226; sv-tests 22.5.1--define-expansion_8)
+        let extra = dir.join("extra.sv");
+        fs::write(
+            &extra,
+            "`define D(x,y) initial $display(\"start\", x , y, \"end\");\n`D(,,)\n",
+        )
+        .expect("write");
+        let err = preprocess_systemverilog_file(&extra, &SvPreprocessorConfig::default())
+            .expect_err("D(,,)");
+        let text = format!("{:#}", err);
+        assert!(
+            text.contains("E_SVPP_EXTRA_MACRO_ARGUMENT")
+                && text.contains("3 arguments for 2 formals"),
+            "{}",
+            text
+        );
+        // while `D(,) — two EMPTY actuals for two formals without defaults — is "replaced by nothing"
+        let two_empty = dir.join("two_empty.sv");
+        fs::write(
+            &two_empty,
+            "`define D(x,y) initial $display(\"start\", x , y, \"end\");\n`D(,)\n",
+        )
+        .expect("write");
+        let ok = preprocess_systemverilog_file(&two_empty, &SvPreprocessorConfig::default())
+            .expect("D(,) is legal");
+        assert!(
+            ok.text
+                .contains("initial $display(\"start\",  , , \"end\");"),
+            "{}",
+            ok.text
+        );
+    }
+
+    #[test]
+    fn a_recursive_macro_is_refused_not_expanded() {
+        // §22.5.1: "It shall be an error for a macro to expand directly or indirectly to text
+        // containing another usage of itself" — direct, indirect, and the exponential shape that
+        // timed out the corpus lane (verilator t_pp_circdef_bad.v), which must be refused FAST.
+        let dir = create_repo_scratch_dir("svpp_recursive");
+        let direct = dir.join("direct.sv");
+        fs::write(&direct, "`define e fun `e\n`e\n").expect("write");
+        let err = preprocess_systemverilog_file(&direct, &SvPreprocessorConfig::default())
+            .expect_err("direct");
+        let text = format!("{:#}", err);
+        assert!(
+            text.contains("E_SVPP_RECURSIVE_MACRO")
+                && text.contains("`e -> `e")
+                && text.contains("direct.sv:2"),
+            "{}",
+            text
+        );
+
+        let indirect = dir.join("indirect.sv");
+        fs::write(
+            &indirect,
+            "`define A x `B y\n`define B z `A w\nlogic q = `A;\n",
+        )
+        .expect("write");
+        let err = preprocess_systemverilog_file(&indirect, &SvPreprocessorConfig::default())
+            .expect_err("indirect");
+        let text = format!("{:#}", err);
+        assert!(
+            text.contains("E_SVPP_RECURSIVE_MACRO") && text.contains("`A -> `B -> `A"),
+            "{}",
+            text
+        );
+
+        let exponential = dir.join("exponential.sv");
+        fs::write(
+            &exponential,
+            "`define WIDTH  12\n`define SEL_NUM_BITS `WIDTH-`SEL_NUM_BITS +: `SEL_NUM_BITS\ntypedef logic [`SEL_NUM_BITS-1:0] d_t;\n",
+        )
+        .expect("write");
+        let started = std::time::Instant::now();
+        let err = preprocess_systemverilog_file(&exponential, &SvPreprocessorConfig::default())
+            .expect_err("exponential");
+        assert!(format!("{:#}", err).contains("E_SVPP_RECURSIVE_MACRO"));
+        assert!(
+            started.elapsed().as_secs() < 2,
+            "refused in {:?}, not expanded first",
+            started.elapsed()
+        );
+    }
+
+    #[test]
+    fn an_actual_may_contain_a_usage_of_the_macro_itself() {
+        // §22.5.1's own example, verbatim, with the two forbidden readings pinned:
+        //   `define TOP(a,b) a + b
+        //   `TOP( `TOP(b,1), `TOP(42,a) )   expands to   b + 1 + 42 + a
+        //   not into  42 + a + 1 + 42 + a   nor into  b + 1 + 42 + b + 1
+        let dir = create_repo_scratch_dir("svpp_actual_self_use");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define TOP(a,b) a + b\nx = `TOP( `TOP(b,1), `TOP(42,a) );\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("an actual may name the macro it is passed to");
+        assert!(out.text.contains("x = b + 1 + 42 + a;"), "{}", out.text);
+        assert!(
+            !out.text.contains("42 + a + 1 + 42 + a") && !out.text.contains("b + 1 + 42 + b + 1"),
+            "{}",
+            out.text
+        );
+    }
+
+    #[test]
+    fn an_apostrophe_in_a_formals_default_is_not_a_quote() {
+        // OpenTitan dv_fcov_macros.svh: `DV_FCOV_INSTANTIATE_CG(NAME_, COND_ = 1'b1, ARGS_ = ()) — three
+        // formals; the based literal's apostrophe was read as an opening quote, so the list was two
+        // formals and the third actual was dropped silently
+        let dir = create_repo_scratch_dir("svpp_apostrophe_default");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define CG(NAME_, COND_ = 1'b1, ARGS_ = ()) inst NAME_ ARGS_ if (COND_);\n`CG(a)\n`CG(b, en)\n`CG(c, 1'b1, (x, y))\n`define PAT(v = '{1, 2}, w = \"s,t\") v w\n`PAT()\n`PAT('{3}, \"u\")\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("three formals, three actuals");
+        assert!(out.text.contains("inst a () if (1'b1);"), "{}", out.text);
+        assert!(out.text.contains("inst b () if (en);"), "{}", out.text);
+        assert!(
+            out.text.contains("inst c (x, y) if (1'b1);"),
+            "{}",
+            out.text
+        );
+        assert!(out.text.contains("'{1, 2} \"s,t\""), "{}", out.text);
+        assert!(out.text.contains("'{3} \"u\""), "{}", out.text);
+    }
+
+    #[test]
+    fn a_usage_written_inside_an_actual_starts_its_own_expansion_context() {
+        // OpenTitan `chip_sw_lc_raw_unlock_vseq.sv:57`: `DV_SPINWAIT( … `DV_SPINWAIT(…) … ) — the
+        // inner usage was written by the caller, so its body may re-enter `DV_SPINWAIT_EXIT while the
+        // outer expansion still holds that name on its stack (IEEE 1800-2017 §22.5.1: "an actual
+        // argument to a macro or a default may contain a usage of itself")
+        let dir = create_repo_scratch_dir("svpp_nested_actual_usage");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define EXIT(W_, E_) begin W_ E_ end\n`define SPIN(W_, M_ = \"t\") `EXIT(W_, wait_(M_);)\n`SPIN(while (a) begin `SPIN(x;, \"in\") y; end, \"out\")\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("a caller-written nested usage is not recursion");
+        assert!(
+            out.text.contains(
+                "begin while (a) begin begin x; wait_(\"in\"); end y; end wait_(\"out\"); end"
+            ),
+            "{}",
+            out.text
+        );
+    }
+
+    #[test]
+    fn an_actual_a_body_wrote_does_not_launder_recursion() {
+        // `define A(x) `B(`A(x)) — the `A handed to B is A's OWN body text, so B's rescan of it is
+        // A expanding indirectly to a usage of itself: the standard's error, however deep
+        let dir = create_repo_scratch_dir("svpp_body_written_actual");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define B(y) y\n`define A(x) `B(`A(x))\n`A(1)\n").expect("write");
+        let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect_err("recursion through a body-written actual is refused");
+        let text = format!("{:#}", err);
+        assert!(
+            text.contains("E_SVPP_RECURSIVE_MACRO") && text.contains("`A -> `B -> `A"),
+            "{text}"
         );
     }
 }

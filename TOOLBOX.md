@@ -267,6 +267,12 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   python3 stimuli/sv/pipeline_vs_raw.py                                # → pipeline_characterization.md + one summary line
   python3 stimuli/sv/pipeline_vs_raw.py --check                        # the doctrine's arm: the report equals a fresh render
   ```
+  The probe defaults to `rust/target/release/parseability_probe`; `PGEN_PARSE_PROBE_BIN=rust/target/debug/parseability_probe`
+  runs the lane on the debug probe (then render with `--probe` the same path — the identity block RECORDS the build
+  mode), and `PGEN_PIPELINE_TIMEOUT_S` widens the per-file deadline (default 60 s, the raw lane's) so a slower probe
+  cannot manufacture `timeout` rows: a build profile cannot change a verdict, only its clock. ⛔ Needed 2026-09-09
+  (`SVPP-EXPANSION.5`(g)(h)): no release build of the crate could pass the host watchdog's 14 336 MB single-process
+  line (see the operations chapter), so the tracked report of that day is a debug-probe reading at 600 s.
 - ⛔ **NEVER EDIT A RUNNING BASH SCRIPT** (`.4b`, measured): bash reads a script incrementally, so an
   edit to `run_pipeline_lane.sh` while a run was in progress made that run die on a garbled line at its
   summary step (*"syntax error near unexpected token `then'"*) after 13 676 rows of correct work. Copy
@@ -278,7 +284,10 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   the honest verdict arriving). Measured over the whole lane (`.4b`): `raw pass 9 847 → 11 673`, 80
   hollow raw passes revoked and **5 own-file** `pass → fail` — every one a PREPROCESSOR FIXTURE whose raw
   pass was wrong (two `:should_fail_because:` chapter-22 tests, a circular-substitution test, a bare
-  `` `__FILE__ `` fragment, one owed) — so an own-file mover is a row to READ, not a regression to assume. ⛔ A `pp_fail` is not a parser verdict: it is a context gap (an ambiguous
+  `` `__FILE__ `` fragment, one owed) — so an own-file mover is a row to READ, not a regression to assume.
+  `.5`(g)(h) then moved those fixtures to `pp_fail` (the refusal at the preprocess stage, with the standard's
+  sentence) and REVOKED six more `pass` rows that were intended-fail fixtures both lanes had accepted
+  (`_fail`, `_bad`, `test/error/`, `:should_fail_because:`): a `pass → pp_fail` mover is read the same way. ⛔ A `pp_fail` is not a parser verdict: it is a context gap (an ambiguous
   or absent include) or a preprocessor defect, and the reason table says which. ⛔ The lane parses each
   row as its OWN one-file unit: a `.svh` fragment of a package fails on cross-file facts exactly as the
   raw lane's `FRAGMENT-*` class predicts; the unit-level reading of such a suite is its package files

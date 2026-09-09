@@ -51,6 +51,24 @@ RAM or disk, the marker's `reason=` field disambiguates — 97 rss-budget,
 98 free-floor, 95 disk-floor, 99 timeout, 130 guard-interrupted) so callers can
 branch mechanically. See `README.md` → Standard Commands for usage.
 
+⛔ **The guard is not the only supervisor on the host, and the other one has a lower line.**
+A launchd agent, `~/.memwatch/memwatch.sh` (installed 2026-06-11 after a run of
+memory-exhaustion kernel panics), kills **any single process above 14 336 MB RSS** and
+writes the kill to `~/.memwatch/memwatch.log`. It is independent of the guard's budget:
+a job run under `--budget-mb 16384` whose one rustc passes 14 GB dies with a SIGTERM (then
+a SIGKILL) while the guard's marker honestly reads `reason=none` — measured 2026-09-09
+(`SVPP-EXPANSION.5`(g)(h)), when three release builds of `parseability_probe` died in the
+same fat-LTO link at 14 663–15 053 MB tree peak and the watchdog's log named the rustc it
+killed at 14 946 MB. Consequences: (1) a plain `cargo build --release` of the probe cannot
+complete on this host until the watchdog's line is raised, the release profile's
+`lto = "fat"` is revisited for this crate, or the build moves to a bigger host — every
+release-probe gate is behind that — and the line is not an LTO artefact: with thin LTO the
+lib's compile died at 14 507 MB, and with LTO off and 16 codegen units (cargo's own release
+defaults) at 14 354 MB, so the release *frontend* of this crate sits on the line by itself
+(the corpus lane was measured that day on the debug probe with a widened per-file deadline,
+which cannot move a verdict); (2) when a guarded job dies with `reason=none`, read the
+watchdog's log before blaming a neighbour.
+
 Two design rules from its verification history are worth teaching:
 
 - a kill list computed from a sampled process walk is untrusted input — the

@@ -17,35 +17,35 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `d0c0c77fe6f081744d15f22383cb11a42abe1927f6675cf0a903676660b93fbd` |
+| parse binary | `rust/target/debug/parseability_probe` | `240e996c77f98d5eac9a48d7b7a24583f05b0a019306e743e0f1f0eacb6390db` |
 | grammar | `grammars/systemverilog.ebnf` | `5bee298a8898249c4cb05c45c67931daa386cc4f890d1f34eb239339119631f3` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `c447ccaa951e3290dc5e27a2b3f4526c5b7b0933d8e3d20af9ed1cf978935889` |
 | generated parser | `generated/systemverilog_parser.rs` | `423042d2c857ac5d711439a6a947dc8bcc051f5d50880bfc0d0bbd49881491b2` |
 | context | `stimuli/sv/pipeline_context.tsv` | `f1b77668e01ef6bedcd293f3c5967052525fa48a9b40aa17941cc875a3c8d625` |
-| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `6077cf1f3f4378c341048be43ca45ddfb98c9c921a44f032c5fa88b5d314c319` |
+| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `13ef2cdc71463ee91b26f427641b823f47d939a922a772d4cc8ae144423c11d0` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `5fa726cd89002007c1fb821ec84c29bc3eadb23fc9651cbf058dad156f57e8f3` |
 
-Measured at `HEAD` = `afed3050+dirty`; the parse binary is a **release** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `20bb1939+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
 | suite | rows | raw pass | raw fail | raw timeout | pipeline pass | pipeline fail | pp_fail | timeout | crash | Δ pass |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | Cores-VeeR-EL2 | 102 | 19 | 83 | 0 | 23 | 79 | 0 | 0 | 0 | +4 |
-| Surelog | 828 | 711 | 117 | 0 | 742 | 80 | 4 | 2 | 0 | +31 |
+| Surelog | 828 | 711 | 117 | 0 | 742 | 74 | 12 | 0 | 0 | +31 |
 | black-parrot | 205 | 36 | 169 | 0 | 33 | 2 | 170 | 0 | 0 | -3 |
 | friscv | 441 | 38 | 403 | 0 | 61 | 348 | 32 | 0 | 0 | +23 |
 | ispras-sv-tests | 1266 | 1125 | 141 | 0 | 1254 | 12 | 0 | 0 | 0 | +129 |
-| iverilog | 3799 | 3214 | 585 | 0 | 3551 | 239 | 9 | 0 | 0 | +337 |
-| opentitan | 3983 | 817 | 3166 | 0 | 1073 | 2901 | 9 | 0 | 0 | +256 |
+| iverilog | 3799 | 3214 | 585 | 0 | 3550 | 239 | 10 | 0 | 0 | +336 |
+| opentitan | 3983 | 817 | 3166 | 0 | 1077 | 2897 | 9 | 0 | 0 | +260 |
 | scr1 | 50 | 8 | 42 | 0 | 49 | 1 | 0 | 0 | 0 | +41 |
 | slang | 92 | 72 | 20 | 0 | 73 | 16 | 3 | 0 | 0 | +1 |
-| sv-tests | 1028 | 856 | 172 | 0 | 896 | 131 | 1 | 0 | 0 | +40 |
-| sv2v | 953 | 714 | 239 | 0 | 805 | 130 | 18 | 0 | 0 | +91 |
+| sv-tests | 1028 | 856 | 172 | 0 | 894 | 129 | 5 | 0 | 0 | +38 |
+| sv2v | 953 | 714 | 239 | 0 | 803 | 130 | 20 | 0 | 0 | +89 |
 | uvm-core | 174 | 33 | 141 | 0 | 28 | 146 | 0 | 0 | 0 | -5 |
 | verible | 152 | 120 | 32 | 0 | 129 | 23 | 0 | 0 | 0 | +9 |
-| verilator | 3263 | 2084 | 1179 | 0 | 2956 | 293 | 13 | 1 | 0 | +872 |
-| **total** | 16336 | 9847 | 6489 | 0 | 11673 | 4401 | 259 | 3 | 0 | +1826 |
+| verilator | 3263 | 2084 | 1179 | 0 | 2955 | 291 | 17 | 0 | 0 | +871 |
+| **total** | 16336 | 9847 | 6489 | 0 | 11671 | 4387 | 278 | 0 | 0 | +1824 |
 
 ## Transitions — raw status → pipeline status
 
@@ -56,10 +56,9 @@ Measured at `HEAD` = `afed3050+dirty`; the parse binary is a **release** build (
 | Cores-VeeR-EL2 | `fail` → `pass` | 5 |
 | Cores-VeeR-EL2 | `pass` → `fail` | 1 |
 | Surelog | `pass` → `pass` | 711 |
-| Surelog | `fail` → `fail` | 80 |
+| Surelog | `fail` → `fail` | 74 |
 | Surelog | `fail` → `pass` | 31 |
-| Surelog | `fail` → `pp_fail` | 4 |
-| Surelog | `fail` → `timeout` | 2 |
+| Surelog | `fail` → `pp_fail` | 12 |
 | black-parrot | `fail` → `pp_fail` | 165 |
 | black-parrot | `pass` → `pass` | 31 |
 | black-parrot | `pass` → `pp_fail` | 5 |
@@ -73,13 +72,13 @@ Measured at `HEAD` = `afed3050+dirty`; the parse binary is a **release** build (
 | ispras-sv-tests | `fail` → `pass` | 129 |
 | ispras-sv-tests | `fail` → `fail` | 12 |
 | iverilog | `pass` → `pass` | 3213 |
-| iverilog | `fail` → `pass` | 338 |
+| iverilog | `fail` → `pass` | 337 |
 | iverilog | `fail` → `fail` | 239 |
-| iverilog | `fail` → `pp_fail` | 8 |
+| iverilog | `fail` → `pp_fail` | 9 |
 | iverilog | `pass` → `pp_fail` | 1 |
-| opentitan | `fail` → `fail` | 2832 |
+| opentitan | `fail` → `fail` | 2828 |
 | opentitan | `pass` → `pass` | 745 |
-| opentitan | `fail` → `pass` | 328 |
+| opentitan | `fail` → `pass` | 332 |
 | opentitan | `pass` → `fail` | 69 |
 | opentitan | `fail` → `pp_fail` | 6 |
 | opentitan | `pass` → `pp_fail` | 3 |
@@ -93,13 +92,13 @@ Measured at `HEAD` = `afed3050+dirty`; the parse binary is a **release** build (
 | slang | `pass` → `pp_fail` | 3 |
 | sv-tests | `pass` → `pass` | 853 |
 | sv-tests | `fail` → `fail` | 129 |
-| sv-tests | `fail` → `pass` | 43 |
-| sv-tests | `pass` → `fail` | 2 |
-| sv-tests | `pass` → `pp_fail` | 1 |
-| sv2v | `pass` → `pass` | 699 |
+| sv-tests | `fail` → `pass` | 41 |
+| sv-tests | `pass` → `pp_fail` | 3 |
+| sv-tests | `fail` → `pp_fail` | 2 |
+| sv2v | `pass` → `pass` | 697 |
 | sv2v | `fail` → `fail` | 130 |
 | sv2v | `fail` → `pass` | 106 |
-| sv2v | `pass` → `pp_fail` | 15 |
+| sv2v | `pass` → `pp_fail` | 17 |
 | sv2v | `fail` → `pp_fail` | 3 |
 | uvm-core | `fail` → `fail` | 140 |
 | uvm-core | `pass` → `pass` | 27 |
@@ -108,13 +107,12 @@ Measured at `HEAD` = `afed3050+dirty`; the parse binary is a **release** build (
 | verible | `pass` → `pass` | 120 |
 | verible | `fail` → `fail` | 23 |
 | verible | `fail` → `pass` | 9 |
-| verilator | `pass` → `pass` | 2074 |
+| verilator | `pass` → `pass` | 2073 |
 | verilator | `fail` → `pass` | 882 |
-| verilator | `fail` → `fail` | 289 |
-| verilator | `fail` → `pp_fail` | 7 |
-| verilator | `pass` → `pp_fail` | 6 |
-| verilator | `pass` → `fail` | 4 |
-| verilator | `fail` → `timeout` | 1 |
+| verilator | `fail` → `fail` | 288 |
+| verilator | `fail` → `pp_fail` | 9 |
+| verilator | `pass` → `pp_fail` | 8 |
+| verilator | `pass` → `fail` | 3 |
 
 **`pass → fail`, split by where the rejection lands.** A raw `pass` on a file whose rejection now lands in ANOTHER file was HOLLOW — the raw parse never saw the included text; a rejection landing in the row's OWN file is the case to read as a candidate regression.
 
@@ -129,24 +127,24 @@ Measured at `HEAD` = `afed3050+dirty`; the parse binary is a **release** build (
 | opentitan | 69 | 0 |
 | scr1 | 0 | 0 |
 | slang | 2 | 1 |
-| sv-tests | 0 | 2 |
+| sv-tests | 0 | 0 |
 | sv2v | 0 | 0 |
 | uvm-core | 6 | 0 |
 | verible | 0 | 0 |
-| verilator | 2 | 2 |
+| verilator | 2 | 1 |
 
 ## By adjudication class (the answer key's verdict for the row, raw lane)
 
 | adjudication class | rows | pipeline pass | pipeline fail | pp_fail | timeout | crash |
 |---|---:|---:|---:|---:|---:|---:|
 | `match` | 6064 | 5693 | 370 | 1 | 0 | 0 |
-| `deferred:chained_only` | 4927 | 1526 | 3182 | 217 | 2 | 0 |
+| `deferred:chained_only` | 4927 | 1530 | 3172 | 225 | 0 | 0 |
 | `deferred:v2005_profile_lane` | 2606 | 2480 | 120 | 6 | 0 | 0 |
-| `divergence:explained_svpp_macro_use` | 1093 | 986 | 104 | 3 | 0 | 0 |
+| `divergence:explained_svpp_macro_use` | 1093 | 985 | 104 | 4 | 0 | 0 |
 | `deferred:no_sv_key` | 596 | 556 | 39 | 1 | 0 | 0 |
 | `deferred:not_source_text` | 350 | 0 | 350 | 0 | 0 | 0 |
 | `divergence:explained_svpp_conditional` | 198 | 193 | 5 | 0 | 0 | 0 |
-| `deferred:svpp_owned` | 173 | 116 | 34 | 22 | 1 | 0 |
+| `deferred:svpp_owned` | 173 | 111 | 30 | 32 | 0 | 0 |
 | `divergence:explained_svpp_include` | 139 | 21 | 111 | 7 | 0 | 0 |
 | `deferred:impl_varying` | 90 | 89 | 1 | 0 | 0 | 0 |
 | `divergence:explained_store_gate` | 56 | 0 | 56 | 0 | 0 | 0 |
@@ -165,7 +163,7 @@ Measured at `HEAD` = `afed3050+dirty`; the parse binary is a **release** build (
 | construct at the origin line | rows | one example (origin — line) |
 |---|---:|---|
 | class header with a base class (`extends`) | 2182 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4:63` — `class dccm_transaction_sequence_item extends uvm_sequence_item;` |
-| other | 1903 | `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh:182:22` — `parameter el2_param_t pt = 2294'h02420200008020008420000010484100001420002404110506424100030108600000000000000` |
+| other | 1889 | `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh:182:22` — `parameter el2_param_t pt = 2294'h02420200008020008420000010484100001420002404110506424100030108600000000000000` |
 | a parameter port list `#(` | 102 | `stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv:3:58` — `virtual class uvm_sequence #(type REQ = uvm_sequence_item,` |
 | a `typedef` | 66 | `stimuli/sv/subs/Surelog/tests/NetType/dut.sv:18:24` — `typedef some_other_type myalias;` |
 | a `::`-scoped name | 63 | `stimuli/sv/subs/Surelog/tests/Assignments/dut.sv:5:44` — `function void uvm_packer::get_packed_bits(ref bit unsigned stream[]);` |
@@ -186,8 +184,6 @@ Measured at `HEAD` = `afed3050+dirty`; the parse binary is a **release** build (
 | `stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_transaction.svh` | 4 |
 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv` | 3 |
 | `stimuli/sv/subs/Cores-VeeR-EL2/tools/riscv-dv/veer_directed_instr_lib.sv` | 2 |
-| `stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacros/mode.vh` | 2 |
-| `stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/mode.vh` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_tl_seq_item.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/csrng_item.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/seq_lib/csrng_base_seq.sv` | 2 |
@@ -207,6 +203,8 @@ Measured at `HEAD` = `afed3050+dirty`; the parse binary is a **release** build (
 | `stimuli/sv/subs/opentitan/hw/dv/sv/mem_bkdr_scb/mem_bkdr_scb.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/mem_bkdr_util/mem_bkdr_util_row_adapter.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/mem_model/mem_model.sv` | 2 |
+| `stimuli/sv/subs/opentitan/hw/dv/sv/push_pull_agent/push_pull_item.sv` | 2 |
+| `stimuli/sv/subs/opentitan/hw/dv/sv/push_pull_agent/seq_lib/push_pull_base_seq.sv` | 2 |
 
 ## Top 25 ORIGIN LINES
 
@@ -216,8 +214,6 @@ Measured at `HEAD` = `afed3050+dirty`; the parse binary is a **release** build (
 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4` | 3 |
 | `stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_transaction.svh:443` | 3 |
 | `stimuli/sv/subs/Cores-VeeR-EL2/tools/riscv-dv/veer_directed_instr_lib.sv:16` | 2 |
-| `stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacros/mode.vh:4` | 2 |
-| `stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/mode.vh:4` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_tl_seq_item.sv:6` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/csrng_item.sv:5` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/seq_lib/csrng_base_seq.sv:5` | 2 |
@@ -237,6 +233,8 @@ Measured at `HEAD` = `afed3050+dirty`; the parse binary is a **release** build (
 | `stimuli/sv/subs/opentitan/hw/dv/sv/mem_bkdr_scb/mem_bkdr_scb.sv:6` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/mem_bkdr_util/mem_bkdr_util_row_adapter.sv:13` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/mem_model/mem_model.sv:6` | 2 |
+| `stimuli/sv/subs/opentitan/hw/dv/sv/push_pull_agent/push_pull_item.sv:7` | 2 |
+| `stimuli/sv/subs/opentitan/hw/dv/sv/push_pull_agent/seq_lib/push_pull_base_seq.sv:7` | 2 |
 
 ## Preprocessor refusals (`pp_fail`) by reason
 
@@ -245,7 +243,10 @@ Measured at `HEAD` = `afed3050+dirty`; the parse binary is a **release** build (
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/include/b` | 149 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/friscv/dep/hardfloat/test/source/tes` | 13 |
 | `unterminated conditional block in '…'` | 7 |
+| `E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMa` | 5 |
+| `E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros` | 5 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_me/src/v/network/bp_` | 3 |
+| `E_SVPP_MISSING_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv-tests/tests/chapter-N/N.N.N--defi` | 3 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_be/src/include/bp_be` | 2 |
 | ``invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/include/bp_c`` | 2 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_me/src/include/bp_me` | 2 |
@@ -256,17 +257,14 @@ Measured at `HEAD` = `afed3050+dirty`; the parse binary is a **release** build (
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/slang/tests/unittests/data/nested/fi` | 2 |
 | `include cycle detected: /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/svNv/test/error/include_loop_N.sv -> /Volumes` | 2 |
 | `` `elsif without matching `ifdef/`ifndef at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_ `` | 2 |
-| ``invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacro`` | 1 |
 | `` `endif without matching `ifdef/`ifndef at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/PreProcMacroF `` | 1 |
 | ``invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/PreprocLine/dut.sv:N: inc`` | 1 |
-| ``invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/to`` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_asy` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_bus` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_dff` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_fif` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_par` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_rom` | 1 |
-| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_ser` | 1 |
 
 ## The context the lane ran under
 
