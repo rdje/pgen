@@ -8837,6 +8837,71 @@ is not a promotion), and the probe arm it needs.
   macros are ALL defined in-file need no `` `include `` graph to expand — a plausible cheap subset,
   but ⛔ its size is **unmeasured**: 155 is the whole `macro_use` undecided bucket, not the subset).
 
+#### `.12b.1` — the 21 pipeline-routed parser questions ADJUDICATED — ✅ done 2026-09-09 (`PGEN-SV-CORPUS-GRAD-0390`): 11 pinned, 2 re-routed, 8 confirmed in four families
+
+- **WHAT THEY WERE.** `SVPP-EXPANSION.6b.4` re-read every explained-away row under the pipeline and dispositioned 21 as
+  `parser_question` — "legal text the parser refuses, with the clause" — routed here. ⛔ Every one of those readings had
+  bucketed the construct on the ORIGIN LINE; the `.6b.4` finding itself says the origin is the last MAPPED byte, and the
+  construct that failed is the probe's furthest TOKEN in the expanded text. Re-read here at the token
+  (`rust/target/svpp_e1/s12b1/tok.sh SUITE FILE`: the expansion around `furthest_position`), with a minimal reproducer and a control each,
+  on sv_2017 AND sv_2023 (the debug probe, release `1.0.227`).
+- **ELEVEN are the standard's own refusals → pinned `must_reject` in `EXTRA_PINNED` (`.12b.1` block), each with the clause**:
+  `t_foreach.v` / `t_foreach_const.v` — `foreach (…);`, a NULL statement as a foreach body: A.6.8 `foreach (…) statement`,
+  not `statement_or_null` (A.6.4 has no bare `;` among statement items; `for` / `while` / `repeat` / `forever` take
+  `statement_or_null`, foreach alone does not; 2023 identical) — `r8.sv` fail@60 both / `r8b.sv` accept both;
+  `t_event_array_fire.v` / `t_fork_join_none_wait_ev.v` — `-> ev[i];`, an EDITION CONTRAST: 2017 A.6.5 + A.9.3 derive no
+  select on the final identifier, 2023 A.6.5 adds `nonrange_select` (`section-Annex_A-normative-formal-syntax.md:2192`) —
+  `r7.sv` fail@52 on sv_2017 / ACCEPTS on sv_2023, `r7b.sv` accepts both; the corpus rows accept on sv_2023 under the
+  pipeline; `t_property_sexpr_unsup.v` — `##1 (val until val)`: A.2.10, what follows a cycle delay is a sequence_expr and
+  `until` is a property operator — `p1.sv` fail@66 both / `p1c.sv` accept both; `t_randomize_solve_before_foreach.v` —
+  `solve … before` INSIDE a foreach constraint_set: A.1.10, `solve` is a constraint_block_item only (the `.6b.4` reading had
+  bucketed the legal `foreach`; the token is the next line's `solve`) — `p2.sv` fail@76 / `p2c.sv` accept;
+  `t_std_randomize.v` — `std::randomize(a[i]) with …`, an INDEXED argument: A.8.2 + A.9.3 `variable_identifier_list`
+  (18.12) (the reading had bucketed the legal `with`) — `p3.sv` fail@65 / `p3c.sv` accept; `t_prop_always.v` — a `;` before
+  an assertion's `else`, the `SVPP-EXPANSION.6c.2` ruling (A.6.3 action_block; the legal `always [0:3]` had been bucketed)
+  — `p4.sv` fail@75 / `p4c.sv` accept; `t_dpi_var.v` / `t_extend_c_class.v` — Verilator's `` `systemc_imp_header `` /
+  `` `systemc_header `` directives enclosing C++ text INSIDE a module (clause 22 lists no such directive; the readings had
+  looked at the legal port list and the legal `$c(…)` call — measured: `$c("x(", in, ")")` accepts both) — the `.4c.1`
+  `vendor_directive_repro.sv` fail@9 / control accept; `t_param_hier_bad.v` — a bare `begin : block` at MODULE level, the
+  `.3.56` ruling (the reading had said "origin line 45 is BLANK"; the token is line 46). All eleven are
+  `explained_svpp_macro_use` for the raw lane: `reject_arm_demotion` demotes them to `deferred:svpp_owned` by design
+  (ceiling `232 → 243` with the argument) and the pipeline cashes them (`must_reject:match_under_expansion 436 → 447`).
+- **TWO were not the parser's** → re-dispositioned in `refuted_dispositions.tsv`: sv2v `test/lex/macro_macro.sv` →
+  `preprocessor_item` — `` `CHOICE_``A```SUFFIX `` pastes a macro USAGE on the right side; sv2v's reference expects
+  `$display(3, 4)` (the pasted name looked up after `` `SUFFIX `` expands), the engine expands `` `CHOICE_FOO `` first and emits
+  `1_MAGIC` (line 17's `` `CHOICE_```SUFFIX `` → 5 is right); §22.5.1 names only actuals and literal text for `` `` ``
+  construction — the ORDER around a paste is `SVPP-EXPANSION.5`(i)'s question; verilator `t_unroll_pragma.v` →
+  `driver_define` — `` `PRAGMA `` is UNDEFINED in the expansion (lines 8-14 are `ifdef` / `elsif` / `elsif` with no `else`;
+  the reading had misread line 13), the file's three variant drivers each pass one define — a `tie` the `.4c.1` deriver
+  reports; the `++i` for_step the reading had bucketed is derivable (A.6.8; measured accept both).
+- **EIGHT remain parser questions, in FOUR families** (the grammar work this tree owns next, each measured with a
+  reproducer that fails on both profiles): (1) a queue method WITHOUT parentheses — `q[$-1].delete;` (A.8.2
+  method_call_body `[ ( list_of_arguments ) ]`; 13.5.4) — `t_dynarray_multid.v`; (2) a streaming concatenation as an
+  ASSIGNMENT TARGET — `{ >> bit[1:0] {arr2}} = b6;` (A.6.2 variable_lvalue ::= … | streaming_concatenation) —
+  `t_stream_unpack.v`; (3) the implicit event expression with a space after `(` — `@ ( * )`, `@( * )`, `@ ( *)` reject while
+  `@*`, `@ *`, `@(*)`, `@ (*)`, `@ (* )` accept (§9.4.2.2 lists all as equivalent) — sv2v `sense_star.sv`; (4) a name that
+  SHADOWS a visible type identifier — a function name, a net name, a parameter port, a port, a task argument named after a
+  `$unit` typedef (3.13 / 6.18; the store gate reads the name as a type) — the five iverilog `sv_type_identifier_*.v` rows.
+- **THE TUPLES**: raw `7498/2606/6232/4025/9 → 7487/2606/6243/4036/9`; under the pipeline
+  `9129/2606/4601/3318/30 → 9127/2606/4603/3320/17` — the pipeline bar `30 → 17` (the 11 pins leave it, the 2 re-routes leave
+  it for NO VERDICT classes with a named owner); the raw bar 9 unchanged. The disposition table `141 → 130` rows.
+- 🔎 **The host CAN build a release-optimised probe again**: `CARGO_PROFILE_RELEASE_LTO=off CARGO_PROFILE_RELEASE_CODEGEN_UNITS=64
+  cargo build --release --target-dir target/lowmem --features "generated_parsers ebnf_dual_run" --bin parseability_probe`
+  completed under the 14 336 MB watchdog line — 544 s, peak 11 964 MB (fat LTO died at 14 946, thin at 14 507, LTO-off/16-cgu at
+  14 354) — with the SAME parser fingerprint as the fat-LTO probe of `-0386` and 5× the debug probe's speed (`uvm_pkg.sv`
+  4.1 s vs 21.3 s). The four grammar families above are therefore buildable and measurable on this host
+  (`PGEN_PARSE_PROBE_BIN=rust/target/lowmem/release/parseability_probe`); the release profile itself is unchanged.
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+  - [x] **REPRODUCE / ISSUE** — the 21 `refuted:parser_question` rows of `stimuli/sv/characterization/refuted_dispositions.tsv` (`SVPP-EXPANSION.6b.4`), each bucketed on the mapped origin line.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — correctness family: the probe's `furthest_position` / `[origin=…]` per row on the expanded text (`t_randomize_solve_before_foreach.v:40:26` → the token `solve`, `t_std_randomize.v:110:46` → `with` after `a[i]`, `t_prop_always.v:50:6` → `else` after `;`, `t_dpi_var.v:82:5` / `t_extend_c_class.v:45:6` → `` `systemc_*header ``, `t_param_hier_bad.v:45:1` → line 46 `begin : block`, `t_unroll_pragma.v:28:1` → the unexpanded `` `PRAGMA ``), and each reproducer's probe line — `furthest_position=60` (r8.sv), `furthest_position=52` (r7.sv), `furthest_position=66` (p1.sv), `furthest_position=76` (p2.sv), `furthest_position=65` (p3.sv), `furthest_position=75` (p4.sv), `furthest_position=9` (vendor_directive_repro.sv) — against its accepting control on both profiles; the standard's productions read from the vendored Annex A of both editions.
+  - [x] **FIX** — answer-key tier: 11 pins with clauses and measurements; 2 dispositions re-routed with the evidence; the ceiling with its argument; the table trimmed.
+  - [x] **ADDRESSED (verified)** — the adjudicator moved exactly 11 rows (`explained_svpp_macro_use → deferred:svpp_owned`); the re-adjudication `must_reject:match_under_expansion=447`, `refuted:parser_question=8`, `refuted_awaiting_disposition=0`, nothing refused; `check_sv_corpus_denominator.sh` OK on both tuples.
+  - [x] **NO REGRESSION** — no Rust, grammar or generated byte staged (the `-0386` release and the `-0014` clippy verdict stand); the lane dump byte-identical to `-0019`'s (no lane re-run; the report re-rendered for the key's classes); `corroborated` 1 216 unchanged; the raw bar 9 unchanged; the three corpus gates, `check_family_status.sh` and `PIPELINE-LANE-CURRENCY` (+ self-test 5/5) OK; `bash scripts/check_doctrines.sh` ALL PASS (run at commit).
+  - [x] **LOCKSTEP** — the platform book's anchor, the SV parser book chapter (the numbers), the operations chapter and `TOOLBOX.md` (the host's release-build recipe), the family-status blocks, this tree (`SVPP-EXPANSION.5`(i) is opened HERE — the disposition row points at it — and enters `SVPP-EXPANSION.md` with its own slice), `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
+  - promotion: declined (the pins carry their measurements).
+
 ### `.13` — ⭐⭐ THE DENOMINATOR: 38.7 % of the corpus carries NO VERDICT AT ALL (`todo`, opened 2026-08-10; director ruled "100 % confidence" 2026-08-10)
 
 - **Status: `todo`. This is the leaf the "ship with 100 % confidence" bar actually turns on**, and it

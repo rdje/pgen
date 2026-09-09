@@ -17,8 +17,8 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | sv2v | 953 | 499 | 2 | 79 | 373 |
 | uvm-core | 174 | 0 | 0 | 0 | 174 |
 | verible | 152 | 120 | 1 | 7 | 24 |
-| verilator | 3263 | 2156 | 1 | 922 | 184 |
-| **total** | **16336** | **6064** | **9** | **1425** | **8838** |
+| verilator | 3263 | 2156 | 1 | 911 | 195 |
+| **total** | **16336** | **6064** | **9** | **1414** | **8849** |
 
 ## Verdict-class detail
 
@@ -29,13 +29,13 @@ Input: `results.tsv` (16336 rows); generator: `stimuli/sv/adjudicate_external_co
 | deferred:ni_unimplemented | 6 |
 | deferred:no_sv_key | 596 |
 | deferred:not_source_text | 350 |
-| deferred:svpp_owned | 232 |
+| deferred:svpp_owned | 243 |
 | deferred:v2005_profile_lane | 2606 |
 | deferred:verilog_ams_lane | 25 |
 | divergence:explained_store_gate | 56 |
 | divergence:explained_svpp_conditional | 195 |
 | divergence:explained_svpp_include | 133 |
-| divergence:explained_svpp_macro_use | 1037 |
+| divergence:explained_svpp_macro_use | 1026 |
 | divergence:explained_svpp_protected_envelope | 4 |
 | divergence:unexplained_accepts_invalid | 2 |
 | divergence:unexplained_rejects_valid | 7 |

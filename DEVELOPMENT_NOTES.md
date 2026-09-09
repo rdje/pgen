@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SV-CORPUS-GRAD.12b.1 (`PGEN-SV-CORPUS-GRAD-0390`): bucket on the token, not on the line
+
+- **Thirteen of twenty-one "parser questions" were bucketed on the wrong construct.** Each `.6b.4` reading named the construct on the ORIGIN line; the origin is the last mapped byte, and the token that failed sat on the next line (`solve`, `else`, `with`, a vendor directive). A minimal reproducer of the named construct PASSED in six cases — the fastest way to find out a reading is wrong is to reproduce what it claims.
+- **A reproducer and a control, on both editions, or no pin.** The event-array trigger fails on 2017 and passes on 2023; without the second profile the pin would have been wrong for the 2023 lane. The contrast is now in the basis, where the parity instrument reads it.
+- **Two attempts at a blocked build were one short of the answer.** LTO-off with 16 codegen units peaked 18 MB over the line; 64 units brought it to 11 964 MB. When a measurement lands within a percent of a limit, the next knob is worth one more run before calling the limit a wall.
+- **Promotion**: declined — the pins carry their measurements.
+
 ## 2026-09-09 — SVPP-EXPANSION.7 (`PGEN-SVPP-EXPANSION-0021`): a contract sentence is a citation
 
 - **Every sentence of a contract section names the source it was read from.** The exit-code rule from `parseability_probe.rs:505`, the origin rule from `origin_of_position`, the refusal codes from a `grep -o` over the module, the facts-file shape from a real export. A contract written from memory of the design is a plan; one written from the code is a contract.

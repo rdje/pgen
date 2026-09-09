@@ -330,6 +330,10 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   mode), and `PGEN_PIPELINE_TIMEOUT_S` widens the per-file deadline (default 60 s, the raw lane's) so a slower probe
   cannot manufacture `timeout` rows: a build profile cannot change a verdict, only its clock. ⛔ Needed 2026-09-09
   (`SVPP-EXPANSION.5`(g)(h)): no release build of the crate could pass the host watchdog's 14 336 MB single-process
+  ⭐ SINCE `SV-CORPUS-GRAD.12b.1` (2026-09-09) a release-optimised probe DOES build under the line:
+  `CARGO_PROFILE_RELEASE_LTO=off CARGO_PROFILE_RELEASE_CODEGEN_UNITS=64 cargo build --release --target-dir target/lowmem
+  --features "generated_parsers ebnf_dual_run" --bin parseability_probe` (544 s, peak 11 964 MB, the same parser
+  fingerprint, 5× the debug probe's speed); point the lanes at it with `PGEN_PARSE_PROBE_BIN=rust/target/lowmem/release/parseability_probe`.
   line (see the operations chapter), so the tracked report of that day is a debug-probe reading at 600 s.
 - ⛔ **NEVER EDIT A RUNNING BASH SCRIPT** (`.4b`, measured): bash reads a script incrementally, so an
   edit to `run_pipeline_lane.sh` while a run was in progress made that run die on a garbled line at its

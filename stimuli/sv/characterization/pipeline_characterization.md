@@ -28,7 +28,7 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 | pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `46b61407cd563ff6651c79b61b6987e860ea4997a47e026bb8e7ec56fcefa698` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `5fa726cd89002007c1fb821ec84c29bc3eadb23fc9651cbf058dad156f57e8f3` |
 
-Measured at `HEAD` = `328eaedf+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `e028eace+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
@@ -143,10 +143,10 @@ Measured at `HEAD` = `328eaedf+dirty`; the parse binary is a **debug** build (th
 | `match` | 6064 | 5693 | 370 | 1 | 0 | 0 |
 | `deferred:chained_only` | 4933 | 1956 | 2752 | 225 | 0 | 0 |
 | `deferred:v2005_profile_lane` | 2606 | 2485 | 116 | 5 | 0 | 0 |
-| `divergence:explained_svpp_macro_use` | 1037 | 997 | 36 | 4 | 0 | 0 |
+| `divergence:explained_svpp_macro_use` | 1026 | 997 | 25 | 4 | 0 | 0 |
 | `deferred:no_sv_key` | 596 | 557 | 38 | 1 | 0 | 0 |
 | `deferred:not_source_text` | 350 | 0 | 350 | 0 | 0 | 0 |
-| `deferred:svpp_owned` | 232 | 112 | 88 | 32 | 0 | 0 |
+| `deferred:svpp_owned` | 243 | 112 | 99 | 32 | 0 | 0 |
 | `divergence:explained_svpp_conditional` | 195 | 194 | 1 | 0 | 0 | 0 |
 | `divergence:explained_svpp_include` | 133 | 23 | 103 | 7 | 0 | 0 |
 | `deferred:impl_varying` | 90 | 89 | 1 | 0 | 0 | 0 |

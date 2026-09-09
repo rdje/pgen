@@ -69,6 +69,17 @@ defaults) at 14 354 MB, so the release *frontend* of this crate sits on the line
 which cannot move a verdict); (2) when a guarded job dies with `reason=none`, read the
 watchdog's log before blaming a neighbour.
 
+⭐ **The recipe that fits under the line (measured 2026-09-09, `SV-CORPUS-GRAD.12b.1`):** with the release
+profile untouched, an environment override of the two memory-hungry settings builds the release-optimised
+probe under the watchdog — `CARGO_PROFILE_RELEASE_LTO=off CARGO_PROFILE_RELEASE_CODEGEN_UNITS=64 cargo build
+--release --target-dir target/lowmem --features "generated_parsers ebnf_dual_run" --bin parseability_probe`
+completed in 544 s at a tree peak of 11 964 MB (fat LTO 14 946, thin 14 507, LTO-off with 16 units 14 354),
+with the same parser fingerprint as the fat-LTO probe and five times the debug probe's speed. A separate
+target directory keeps the tracked release path intact; the lanes take the probe through
+`PGEN_PARSE_PROBE_BIN`. What it costs is link-time optimisation — speed, never verdicts — so the parse-cost
+and AST-identity measurements hold and the timing baselines are the only figures that must not be compared
+across the two builds.
+
 Two design rules from its verification history are worth teaching:
 
 - a kill list computed from a sampled process walk is untrusted input — the

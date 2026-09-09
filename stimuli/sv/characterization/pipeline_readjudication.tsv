@@ -5441,7 +5441,7 @@ sv2v	test/lex/macro_arg_escape.sv	divergence:explained_svpp_macro_use	STUCK-ON-S
 sv2v	test/lex/macro_boundary.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/macro_ifdef.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
 sv2v	test/lex/macro_iv.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
-sv2v	test/lex/macro_macro.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		other	refuted:parser_question	stimuli/sv/subs/sv2v/test/lex/macro_macro.sv:16:20
+sv2v	test/lex/macro_macro.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		other	refuted:preprocessor_item	stimuli/sv/subs/sv2v/test/lex/macro_macro.sv:16:20
 sv2v	test/lex/macro_string.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/macro_vendor_comment.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/lex/macro_whitespace.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
@@ -5940,7 +5940,7 @@ verilator	test_regress/t/t_dpi_string.v	match	match	fail	own file		other	must_re
 verilator	test_regress/t/t_dpi_sys.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		other	refuted:vendor_identity_branch	stimuli/sv/subs/verilator/test_regress/t/t_dpi_sys.v:13:10
 verilator	test_regress/t/t_dpi_threads.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		other	refuted:vendor_identity_branch	stimuli/sv/subs/verilator/test_regress/t/t_dpi_threads.v:17:19
 verilator	test_regress/t/t_dpi_type_bad.v	match	match	fail	own file		`import` of a package	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_dpi_type_bad.v:11:9
-verilator	test_regress/t/t_dpi_var.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		other	refuted:parser_question	stimuli/sv/subs/verilator/test_regress/t/t_dpi_var.v:82:5
+verilator	test_regress/t/t_dpi_var.v	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_dpi_var.v:82:5
 verilator	test_regress/t/t_dump.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_dynarray.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_dynarray_concat.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
@@ -5967,14 +5967,14 @@ verilator	test_regress/t/t_enum_type_methods_bad.v	match	match	fail	own file		a 
 verilator	test_regress/t/t_enum_type_nomethod_bad.v	match	match	fail	own file		a `typedef`	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_enum_type_nomethod_bad.v:8:15
 verilator	test_regress/t/t_enum_type_pins.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_event.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-verilator	test_regress/t/t_event_array_fire.v	divergence:explained_svpp_macro_use	PAST-LAST-TICK	fail	own file		other	refuted:parser_question	stimuli/sv/subs/verilator/test_regress/t/t_event_array_fire.v:39:36
+verilator	test_regress/t/t_event_array_fire.v	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_event_array_fire.v:39:36
 verilator	test_regress/t/t_event_control_expr.v	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
 verilator	test_regress/t/t_event_control_pass.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_event_control_pass.v:21:18
 verilator	test_regress/t/t_event_copy.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_export_packed_struct.v	match	match	fail	own file		a `typedef`	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_export_packed_struct.v:9:14
 verilator	test_regress/t/t_export_packed_struct2.v	match	match	fail	own file		a `typedef`	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_export_packed_struct2.v:9:16
 verilator	test_regress/t/t_extend.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-verilator	test_regress/t/t_extend_c_class.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		other	refuted:parser_question	stimuli/sv/subs/verilator/test_regress/t/t_extend_c_class.v:45:6
+verilator	test_regress/t/t_extend_c_class.v	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_extend_c_class.v:45:6
 verilator	test_regress/t/t_extend_class.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_final.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_final.v:16:8
 verilator	test_regress/t/t_flag_compiler.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
@@ -6026,11 +6026,11 @@ verilator	test_regress/t/t_force_wide_sel.v	divergence:explained_svpp_macro_use	
 verilator	test_regress/t/t_forceable_net.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_forceable_unpacked.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_forceable_var.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-verilator	test_regress/t/t_foreach.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		other	refuted:parser_question	stimuli/sv/subs/verilator/test_regress/t/t_foreach.v:152:25
+verilator	test_regress/t/t_foreach.v	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_foreach.v:152:25
 verilator	test_regress/t/t_foreach_array.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_foreach_array.v:64:44
 verilator	test_regress/t/t_foreach_bad.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_foreach_bad.v:14:19
 verilator	test_regress/t/t_foreach_class.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-verilator	test_regress/t/t_foreach_const.v	divergence:explained_svpp_macro_use	IN-WINDOW	fail	own file		other	refuted:parser_question	stimuli/sv/subs/verilator/test_regress/t/t_foreach_const.v:170:25
+verilator	test_regress/t/t_foreach_const.v	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_foreach_const.v:170:25
 verilator	test_regress/t/t_foreach_delete.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_foreach_nested.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_foreach_nested.v:14:31
 verilator	test_regress/t/t_foreach_nindex_bad.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_foreach_nindex_bad.v:12:38
@@ -6038,7 +6038,7 @@ verilator	test_regress/t/t_foreach_noivar.v	divergence:explained_svpp_macro_use	
 verilator	test_regress/t/t_foreach_sideeff_uvm.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_foreach_type_bad.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_foreach_type_bad.v:19:19
 verilator	test_regress/t/t_fork_join_none_stmt.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-verilator	test_regress/t/t_fork_join_none_wait_ev.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		other	refuted:parser_question	stimuli/sv/subs/verilator/test_regress/t/t_fork_join_none_wait_ev.v:32:20
+verilator	test_regress/t/t_fork_join_none_wait_ev.v	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_fork_join_none_wait_ev.v:32:20
 verilator	test_regress/t/t_fork_write_after_timing.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_func_arg_complex.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_func_automatic_clear.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
@@ -6382,7 +6382,7 @@ verilator	test_regress/t/t_param_avec.v	divergence:explained_svpp_macro_use	STUC
 verilator	test_regress/t/t_param_cast_default.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_param_first_a.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 verilator	test_regress/t/t_param_first_b.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
-verilator	test_regress/t/t_param_hier_bad.v	divergence:explained_svpp_macro_use	IN-WINDOW	fail	own file		-	refuted:parser_question	stimuli/sv/subs/verilator/test_regress/t/t_param_hier_bad.v:45:1
+verilator	test_regress/t/t_param_hier_bad.v	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		-	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_param_hier_bad.v:45:1
 verilator	test_regress/t/t_param_if_blk.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_param_implicit_bad.v	match	match	fail	own file		a parameter port list `#(`	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_param_implicit_bad.v:9:15
 verilator	test_regress/t/t_param_implicit_local_bad.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
@@ -6494,7 +6494,7 @@ verilator	test_regress/t/t_process_rand_state.v	divergence:explained_svpp_macro_
 verilator	test_regress/t/t_process_rand_state_fork.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_process_self_srand.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_prof.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-verilator	test_regress/t/t_prop_always.v	divergence:explained_svpp_macro_use	IN-WINDOW	fail	own file		other	refuted:parser_question	stimuli/sv/subs/verilator/test_regress/t/t_prop_always.v:50:6
+verilator	test_regress/t/t_prop_always.v	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_prop_always.v:50:6
 verilator	test_regress/t/t_prop_always_bad.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_prop_always_bad.v:17:28
 verilator	test_regress/t/t_prop_always_wide.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_prop_followed_by.v	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
@@ -6518,7 +6518,7 @@ verilator	test_regress/t/t_property_sexpr_disable.v	divergence:explained_svpp_ma
 verilator	test_regress/t/t_property_sexpr_disable_sampled.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_property_sexpr_multi.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_property_sexpr_range_delay.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-verilator	test_regress/t/t_property_sexpr_unsup.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		other	refuted:parser_question	stimuli/sv/subs/verilator/test_regress/t/t_property_sexpr_unsup.v:45:43
+verilator	test_regress/t/t_property_sexpr_unsup.v	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_property_sexpr_unsup.v:45:43
 verilator	test_regress/t/t_property_until.v	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
 verilator	test_regress/t/t_property_until_implication.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_public_clk.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
@@ -6567,7 +6567,7 @@ verilator	test_regress/t/t_randomize_shift_distribution.v	divergence:explained_s
 verilator	test_regress/t/t_randomize_soft.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_randomize_soft_cross_object.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_randomize_soft_relaxation.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-verilator	test_regress/t/t_randomize_solve_before_foreach.v	divergence:explained_svpp_macro_use	IN-WINDOW	fail	own file		other	refuted:parser_question	stimuli/sv/subs/verilator/test_regress/t/t_randomize_solve_before_foreach.v:40:26
+verilator	test_regress/t/t_randomize_solve_before_foreach.v	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_randomize_solve_before_foreach.v:40:26
 verilator	test_regress/t/t_randomize_srandom.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_randomize_std_inside_queue.v	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
 verilator	test_regress/t/t_randomize_std_param_extends.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
@@ -6637,7 +6637,7 @@ verilator	test_regress/t/t_static_init_pkg_order.v	divergence:explained_svpp_mac
 verilator	test_regress/t/t_static_task_args.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_std_identifier.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_std_process_self.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-verilator	test_regress/t/t_std_randomize.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		a `::`-scoped name	refuted:parser_question	stimuli/sv/subs/verilator/test_regress/t/t_std_randomize.v:110:46
+verilator	test_regress/t/t_std_randomize.v	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		a `::`-scoped name	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_std_randomize.v:110:46
 verilator	test_regress/t/t_std_randomize_assoc.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_std_randomize_queue.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_std_randomize_with.v	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_std_randomize_with.v:42:10
@@ -6836,7 +6836,7 @@ verilator	test_regress/t/t_unpacked_init.v	divergence:explained_svpp_macro_use	S
 verilator	test_regress/t/t_unpacked_slice.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_unpacked_to_queue.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_unroll_nested.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-verilator	test_regress/t/t_unroll_pragma.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		other	refuted:parser_question	stimuli/sv/subs/verilator/test_regress/t/t_unroll_pragma.v:28:1
+verilator	test_regress/t/t_unroll_pragma.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		other	refuted:driver_define	stimuli/sv/subs/verilator/test_regress/t/t_unroll_pragma.v:28:1
 verilator	test_regress/t/t_urandom.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_uvm_dpi.v	divergence:explained_svpp_include	IN-WINDOW	pp_fail	context		-	refused_context	failed to resolve include 'dpi/uvm_dpi.svh' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_uvm_dpi.v:18: include 'dpi/uvm_dpi.svh' was not found in search paths
 verilator	test_regress/t/t_uvm_static_func1.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
