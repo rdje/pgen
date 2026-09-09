@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.4b (`PGEN-SVPP-EXPANSION-0007`): derive the roster from the tree, and never edit a running bash script
+
+- **A roster derived from a table is a roster of the rows that happened to exist.** The first whole-lane run took its suite list from the context table and silently skipped three suites whose includes are all local. The tree is the population; the table is a derivation of it. `--list-suites` now reads the tree.
+- **Bash reads a script incrementally.** Editing `run_pipeline_lane.sh` while an instance was running made that instance die on a garbled line at its last step, after 13 676 rows of correct work. The lesson is in TOOLBOX §1.1b so the next long lane is run from a stable copy.
+- **Nearest candidate is a rule, not a guess.** For a name that exists under several directories, the candidate sharing the longest path prefix with the includer is what a per-top file list would hand it; a tie has no such answer and stays reported. 21 of OpenTitan's 30 refusals became parser verdicts, none became passes — the rule moved the row to the right stage without inventing a pass.
+- **An own-file `pass → fail` is a row to read.** All five were preprocessor fixtures whose raw pass was hollow, and two of them handed over new engine items (a missing actual without a default; a recursive macro). Reading them before publishing kept the delta honest and turned a would-be regression into two owned leaves.
+- **Promotion**: declined — `promotion: declined (TOOLBOX §1.1b carries both lessons)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.5 (`PGEN-SVPP-EXPANSION-0006`): a directive is a token, not a line
 
 - **Measure the before-state of the path you are about to rewrite.** Rewriting the five conditional arms meant touching how the symbol is read, so I ran `` `ifdef X // a trailing comment `` through the unchanged binary first: it took the `else` branch with `X` defined, silently under the default policy. The defect was not in any census — the lane cannot see a WRONG expansion, only a refused one — and it would have been fixed by accident and never recorded.

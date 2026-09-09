@@ -22,6 +22,9 @@ report demands.
 
 USAGE
     python3 stimuli/sv/pipeline_vs_raw.py [--pipeline TSV] [--raw TSV] [--out MD] [--probe BIN] [--top N]
+    python3 stimuli/sv/pipeline_vs_raw.py --check      # SVPP-EXPANSION.4b: re-render to a scratch path and
+                                                       # DIFF against the tracked report (exit 1 on drift);
+                                                       # a dump absent here is NOT EVALUATED, loudly, exit 0
 """
 from __future__ import annotations
 
@@ -151,7 +154,19 @@ def main() -> int:
     ap.add_argument("--probe", default=str(ROOT / "rust" / "target" / "release" / "parseability_probe"))
     ap.add_argument("--out", default=str(CHAR / "pipeline_characterization.md"))
     ap.add_argument("--top", type=int, default=25)
+    ap.add_argument("--check", action="store_true",
+                    help="re-render into rust/target/ and diff against --out; drift exits 1, an absent dump is NOT EVALUATED")
     args = ap.parse_args()
+    if args.check:
+        tracked = pathlib.Path(args.out)
+        for needed in (pathlib.Path(args.pipeline), pathlib.Path(args.raw)):
+            if not needed.exists():
+                print(f"PIPELINE-VS-RAW: NOT EVALUATED — {needed.relative_to(ROOT) if needed.is_relative_to(ROOT) else needed} is absent here (the dumps are .gitignored; run the lanes to re-derive)")
+                return 0
+        scratch_dir = ROOT / "rust" / "target" / "pipeline_vs_raw_check"
+        scratch_dir.mkdir(parents=True, exist_ok=True)
+        scratch = scratch_dir / tracked.name
+        args.out = str(scratch)
 
     pipeline = read_tsv(pathlib.Path(args.pipeline), 7)          # suite status relpath secs rc furthest origin
     raw = {r[2]: r[1] for r in read_tsv(pathlib.Path(args.raw), 3)}  # repo-rel path -> status
@@ -305,6 +320,20 @@ def main() -> int:
     out.write_text("\n".join(L) + "\n")
     print(f"PIPELINE-VS-RAW: suites={','.join(suites)} rows={sum(total.values())} raw_pass={raw_total['pass']} pipeline_pass={total['pass']} "
           f"pipeline_fail={total['fail']} pp_fail={total['pp_fail']} timeout={total['timeout']} crash={total['crash']} missing_raw={missing_raw} → {rel(out)}")
+    if args.check:
+        tracked = CHAR / "pipeline_characterization.md"
+        if not tracked.exists():
+            print(f"PIPELINE-VS-RAW: DRIFT — the tracked {rel(tracked)} does not exist; run without --check to publish it", file=sys.stderr)
+            return 1
+        # the identity block names the PROBE by digest; a rebuilt probe changes that row without any
+        # number moving, and that row is provenance (IDENTITY-CARRIERS treats `parse binary` as a note),
+        # so the comparison masks it and holds every other line equal
+        def masked(text: str) -> str:
+            return "\n".join(("| parse binary |" if line.startswith("| parse binary |") else line) for line in text.splitlines())
+        if masked(tracked.read_text()) != masked(out.read_text()):
+            print(f"PIPELINE-VS-RAW: DRIFT — {rel(tracked)} differs from a fresh render of the dumps on this tree (scratch: {rel(out)}); re-run the lane and publish", file=sys.stderr)
+            return 1
+        print(f"PIPELINE-VS-RAW: OK — {rel(tracked)} equals a fresh render of the dumps (the probe digest row masked as provenance)")
     return 0
 
 

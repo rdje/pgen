@@ -163,6 +163,42 @@ rejection, read from the tree and bucketed by construct:
 | a `uvm_*` type name, a `typedef`, a subroutine header | 63 | 2.1 % |
 | the `const local … = new(…)` construct of `uvm_transaction.svh:443` | 2 | 0.1 % |
 
+**The whole lane.** Every suite of the 16 336-row corpus through the chain (release probe, `sv_2017`,
+155 s wall), each suite under its derived context — a name that exists under several directories
+resolved per file to the includer's nearest candidate, a tie reported:
+
+| suite | rows | raw pass | pipeline pass | pipeline fail | refused | timeout | Δ pass |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| verilator | 3 263 | 2 084 | 2 956 | 293 | 13 | 1 | +872 |
+| iverilog | 3 799 | 3 214 | 3 551 | 239 | 9 | 0 | +337 |
+| OpenTitan | 3 983 | 817 | 1 073 | 2 901 | 9 | 0 | +256 |
+| ispras-sv-tests | 1 266 | 1 125 | 1 254 | 12 | 0 | 0 | +129 |
+| sv2v | 953 | 714 | 805 | 130 | 18 | 0 | +91 |
+| scr1 | 50 | 8 | 49 | 1 | 0 | 0 | +41 |
+| sv-tests | 1 028 | 856 | 896 | 131 | 1 | 0 | +40 |
+| Surelog | 828 | 711 | 742 | 80 | 4 | 2 | +31 |
+| friscv | 441 | 38 | 61 | 348 | 32 | 0 | +23 |
+| verible | 152 | 120 | 129 | 23 | 0 | 0 | +9 |
+| Cores-VeeR-EL2 | 102 | 19 | 23 | 79 | 0 | 0 | +4 |
+| slang | 92 | 72 | 73 | 16 | 3 | 0 | +1 |
+| black-parrot | 205 | 36 | 33 | 2 | 170 | 0 | −3 |
+| UVM (file by file) | 174 | 33 | 28 | 146 | 0 | 0 | −5 |
+| **total** | **16 336** | **9 847** | **11 673** | **4 401** | **259** | **3** | **+1 826** |
+
+The raw lane's 5 693 `match` rows stay green through the pipeline (5 693 of 6 064 `match` rows
+pass; the 370 that do not are `must_reject` rows correctly rejected, and one refused). Of the 259
+refusals, 170 are black-parrot's: its sources include headers its build system generates and the
+vendored tree does not carry — a permanent gap of the corpus, not of the engine — and 32 are
+friscv's hardfloat test includes of the same kind. Five raw passes became rejections **in the row's
+own file**, and every one is a preprocessor fixture whose raw pass was hollow: two `:should_fail_because:`
+chapter-22 tests (`` `D() `` on a two-formal macro without defaults — the expansion is the illegal
+text the test describes, so the verdict is right but the *stage* is wrong: the preprocessor should
+refuse an omitted actual for a formal with no default, IEEE 1800-2017 §22.5.1's `MACRO2` example),
+a circular-substitution test (`` `define e fun `e ``), a fragment whose whole expansion is a
+`` `__FILE__ `` string, and one owed. The three timeouts are the same class as the circular test:
+a macro that names itself twice expands exponentially before the depth guard stops it. Both are
+engine items with named owners in `docs/tasks/SVPP-EXPANSION.md` (`.5`(g), `.5`(h)).
+
 Two thirds of the residue is one fact: the base class of a `class … extends` lives in another file
 of the compilation unit (a package the row `import`s, or a sibling `.sv`), and the parser's
 store gate refuses a base it has not seen declared — the strict reading `SV-PARSE-STRICT.2` escaped
@@ -194,5 +230,7 @@ and the number is now on the table for the leaf that decides how a per-file lane
   the first.
 - The pipeline preprocesses one compilation unit at a time and parses its last file; a
   multi-file design still needs the library flags for cross-file declarations.
-- Nothing yet reads a build system's own context (`.core`, `.f`, `+incdir+`); the context is what
-  you pass on the command line.
+- Nothing yet reads a build system's own context (`.core`, `.f`, `+incdir+`); on the command line
+  the context is what you pass, and in the corpus lane it is derived from the corpus — a shared
+  directory per suite, the nearest candidate per file for a name that exists in several, and a
+  reported tie where the tree cannot decide.

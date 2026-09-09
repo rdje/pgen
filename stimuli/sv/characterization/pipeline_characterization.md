@@ -9,7 +9,7 @@ against the raw lane's `--parse systemverilog <file> --profile sv_2017` on the S
 > and judges it — so a `pass → fail` here can be the honest verdict arriving, not a regression. Which it
 > is, per row, is the origin column's question.
 
-Suites covered by the pipeline dump: **opentitan, uvm-core** (4157 rows). Rows with no raw-lane twin: 0.
+Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, friscv, ispras-sv-tests, iverilog, opentitan, scr1, slang, sv-tests, sv2v, uvm-core, verible, verilator** (16336 rows). Rows with no raw-lane twin: 0.
 
 ## Instrument identity (what produced this number)
 
@@ -21,47 +21,140 @@ Suites covered by the pipeline dump: **opentitan, uvm-core** (4157 rows). Rows w
 | grammar | `grammars/systemverilog.ebnf` | `5bee298a8898249c4cb05c45c67931daa386cc4f890d1f34eb239339119631f3` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `c447ccaa951e3290dc5e27a2b3f4526c5b7b0933d8e3d20af9ed1cf978935889` |
 | generated parser | `generated/systemverilog_parser.rs` | `423042d2c857ac5d711439a6a947dc8bcc051f5d50880bfc0d0bbd49881491b2` |
-| context | `stimuli/sv/pipeline_context.tsv` | `a5e92774c511cfd5adea578aa955d1ef0fc1c2e49ac082767d08670457ab3306` |
-| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `199dc3d46f558af2134f9bfbe9106f901f7b6b17d01512714aecc0c765392e8c` |
+| context | `stimuli/sv/pipeline_context.tsv` | `f1b77668e01ef6bedcd293f3c5967052525fa48a9b40aa17941cc875a3c8d625` |
+| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `6077cf1f3f4378c341048be43ca45ddfb98c9c921a44f032c5fa88b5d314c319` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `5fa726cd89002007c1fb821ec84c29bc3eadb23fc9651cbf058dad156f57e8f3` |
 
-Measured at `HEAD` = `846a729f+dirty`; the parse binary is a **release** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `afed3050+dirty`; the parse binary is a **release** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
 | suite | rows | raw pass | raw fail | raw timeout | pipeline pass | pipeline fail | pp_fail | timeout | crash | Δ pass |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| opentitan | 3983 | 817 | 3166 | 0 | 1073 | 2880 | 30 | 0 | 0 | +256 |
+| Cores-VeeR-EL2 | 102 | 19 | 83 | 0 | 23 | 79 | 0 | 0 | 0 | +4 |
+| Surelog | 828 | 711 | 117 | 0 | 742 | 80 | 4 | 2 | 0 | +31 |
+| black-parrot | 205 | 36 | 169 | 0 | 33 | 2 | 170 | 0 | 0 | -3 |
+| friscv | 441 | 38 | 403 | 0 | 61 | 348 | 32 | 0 | 0 | +23 |
+| ispras-sv-tests | 1266 | 1125 | 141 | 0 | 1254 | 12 | 0 | 0 | 0 | +129 |
+| iverilog | 3799 | 3214 | 585 | 0 | 3551 | 239 | 9 | 0 | 0 | +337 |
+| opentitan | 3983 | 817 | 3166 | 0 | 1073 | 2901 | 9 | 0 | 0 | +256 |
+| scr1 | 50 | 8 | 42 | 0 | 49 | 1 | 0 | 0 | 0 | +41 |
+| slang | 92 | 72 | 20 | 0 | 73 | 16 | 3 | 0 | 0 | +1 |
+| sv-tests | 1028 | 856 | 172 | 0 | 896 | 131 | 1 | 0 | 0 | +40 |
+| sv2v | 953 | 714 | 239 | 0 | 805 | 130 | 18 | 0 | 0 | +91 |
 | uvm-core | 174 | 33 | 141 | 0 | 28 | 146 | 0 | 0 | 0 | -5 |
-| **total** | 4157 | 850 | 3307 | 0 | 1101 | 3026 | 30 | 0 | 0 | +251 |
+| verible | 152 | 120 | 32 | 0 | 129 | 23 | 0 | 0 | 0 | +9 |
+| verilator | 3263 | 2084 | 1179 | 0 | 2956 | 293 | 13 | 1 | 0 | +872 |
+| **total** | 16336 | 9847 | 6489 | 0 | 11673 | 4401 | 259 | 3 | 0 | +1826 |
 
 ## Transitions — raw status → pipeline status
 
 | suite | raw → pipeline | rows |
 |---|---|---:|
-| opentitan | `fail` → `fail` | 2811 |
+| Cores-VeeR-EL2 | `fail` → `fail` | 78 |
+| Cores-VeeR-EL2 | `pass` → `pass` | 18 |
+| Cores-VeeR-EL2 | `fail` → `pass` | 5 |
+| Cores-VeeR-EL2 | `pass` → `fail` | 1 |
+| Surelog | `pass` → `pass` | 711 |
+| Surelog | `fail` → `fail` | 80 |
+| Surelog | `fail` → `pass` | 31 |
+| Surelog | `fail` → `pp_fail` | 4 |
+| Surelog | `fail` → `timeout` | 2 |
+| black-parrot | `fail` → `pp_fail` | 165 |
+| black-parrot | `pass` → `pass` | 31 |
+| black-parrot | `pass` → `pp_fail` | 5 |
+| black-parrot | `fail` → `fail` | 2 |
+| black-parrot | `fail` → `pass` | 2 |
+| friscv | `fail` → `fail` | 348 |
+| friscv | `pass` → `pass` | 38 |
+| friscv | `fail` → `pp_fail` | 32 |
+| friscv | `fail` → `pass` | 23 |
+| ispras-sv-tests | `pass` → `pass` | 1125 |
+| ispras-sv-tests | `fail` → `pass` | 129 |
+| ispras-sv-tests | `fail` → `fail` | 12 |
+| iverilog | `pass` → `pass` | 3213 |
+| iverilog | `fail` → `pass` | 338 |
+| iverilog | `fail` → `fail` | 239 |
+| iverilog | `fail` → `pp_fail` | 8 |
+| iverilog | `pass` → `pp_fail` | 1 |
+| opentitan | `fail` → `fail` | 2832 |
 | opentitan | `pass` → `pass` | 745 |
 | opentitan | `fail` → `pass` | 328 |
 | opentitan | `pass` → `fail` | 69 |
-| opentitan | `fail` → `pp_fail` | 27 |
+| opentitan | `fail` → `pp_fail` | 6 |
 | opentitan | `pass` → `pp_fail` | 3 |
+| scr1 | `fail` → `pass` | 41 |
+| scr1 | `pass` → `pass` | 8 |
+| scr1 | `fail` → `fail` | 1 |
+| slang | `pass` → `pass` | 66 |
+| slang | `fail` → `fail` | 13 |
+| slang | `fail` → `pass` | 7 |
+| slang | `pass` → `fail` | 3 |
+| slang | `pass` → `pp_fail` | 3 |
+| sv-tests | `pass` → `pass` | 853 |
+| sv-tests | `fail` → `fail` | 129 |
+| sv-tests | `fail` → `pass` | 43 |
+| sv-tests | `pass` → `fail` | 2 |
+| sv-tests | `pass` → `pp_fail` | 1 |
+| sv2v | `pass` → `pass` | 699 |
+| sv2v | `fail` → `fail` | 130 |
+| sv2v | `fail` → `pass` | 106 |
+| sv2v | `pass` → `pp_fail` | 15 |
+| sv2v | `fail` → `pp_fail` | 3 |
 | uvm-core | `fail` → `fail` | 140 |
 | uvm-core | `pass` → `pass` | 27 |
 | uvm-core | `pass` → `fail` | 6 |
 | uvm-core | `fail` → `pass` | 1 |
+| verible | `pass` → `pass` | 120 |
+| verible | `fail` → `fail` | 23 |
+| verible | `fail` → `pass` | 9 |
+| verilator | `pass` → `pass` | 2074 |
+| verilator | `fail` → `pass` | 882 |
+| verilator | `fail` → `fail` | 289 |
+| verilator | `fail` → `pp_fail` | 7 |
+| verilator | `pass` → `pp_fail` | 6 |
+| verilator | `pass` → `fail` | 4 |
+| verilator | `fail` → `timeout` | 1 |
 
 **`pass → fail`, split by where the rejection lands.** A raw `pass` on a file whose rejection now lands in ANOTHER file was HOLLOW — the raw parse never saw the included text; a rejection landing in the row's OWN file is the case to read as a candidate regression.
 
 | suite | `pass → fail` landing in an included file (hollow raw pass) | landing in the row's own file |
 |---|---:|---:|
+| Cores-VeeR-EL2 | 1 | 0 |
+| Surelog | 0 | 0 |
+| black-parrot | 0 | 0 |
+| friscv | 0 | 0 |
+| ispras-sv-tests | 0 | 0 |
+| iverilog | 0 | 0 |
 | opentitan | 69 | 0 |
+| scr1 | 0 | 0 |
+| slang | 2 | 1 |
+| sv-tests | 0 | 2 |
+| sv2v | 0 | 0 |
 | uvm-core | 6 | 0 |
+| verible | 0 | 0 |
+| verilator | 2 | 2 |
 
 ## By adjudication class (the answer key's verdict for the row, raw lane)
 
 | adjudication class | rows | pipeline pass | pipeline fail | pp_fail | timeout | crash |
 |---|---:|---:|---:|---:|---:|---:|
-| `deferred:chained_only` | 4157 | 1101 | 3026 | 30 | 0 | 0 |
+| `match` | 6064 | 5693 | 370 | 1 | 0 | 0 |
+| `deferred:chained_only` | 4927 | 1526 | 3182 | 217 | 2 | 0 |
+| `deferred:v2005_profile_lane` | 2606 | 2480 | 120 | 6 | 0 | 0 |
+| `divergence:explained_svpp_macro_use` | 1093 | 986 | 104 | 3 | 0 | 0 |
+| `deferred:no_sv_key` | 596 | 556 | 39 | 1 | 0 | 0 |
+| `deferred:not_source_text` | 350 | 0 | 350 | 0 | 0 | 0 |
+| `divergence:explained_svpp_conditional` | 198 | 193 | 5 | 0 | 0 | 0 |
+| `deferred:svpp_owned` | 173 | 116 | 34 | 22 | 1 | 0 |
+| `divergence:explained_svpp_include` | 139 | 21 | 111 | 7 | 0 | 0 |
+| `deferred:impl_varying` | 90 | 89 | 1 | 0 | 0 | 0 |
+| `divergence:explained_store_gate` | 56 | 0 | 56 | 0 | 0 | 0 |
+| `deferred:verilog_ams_lane` | 25 | 5 | 19 | 1 | 0 | 0 |
+| `divergence:unexplained_rejects_valid` | 7 | 0 | 7 | 0 | 0 | 0 |
+| `deferred:ni_unimplemented` | 6 | 6 | 0 | 0 | 0 | 0 |
+| `divergence:explained_svpp_protected_envelope` | 4 | 0 | 3 | 1 | 0 | 0 |
+| `divergence:unexplained_accepts_invalid` | 2 | 2 | 0 | 0 | 0 | 0 |
 
 ## What sits at the origin — the construct on the rejecting line, bucketed
 
@@ -71,15 +164,16 @@ Measured at `HEAD` = `846a729f+dirty`; the parse binary is a **release** build (
 
 | construct at the origin line | rows | one example (origin — line) |
 |---|---:|---|
-| class header with a base class (`extends`) | 2049 | `stimuli/sv/subs/opentitan/hw/dv/sv/alert_esc_agent/alert_base_driver.sv:7:55` — `virtual class alert_base_driver extends dv_base_driver#(alert_esc_seq_item, alert_esc_agent_cfg);` |
-| other | 786 | `stimuli/sv/subs/opentitan/hw/dv/sv/alert_esc_agent/alert_esc_agent_cov.sv:5:83` — `covergroup alert_handshake_complete_cg with function sample(alert_esc_trans_type_e trans,` |
-| a parameter port list `#(` | 80 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_env.sv:5:65` — `class cip_base_env #(type CFG_T               = cip_base_env_cfg,` |
-| a `::`-scoped name | 45 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_lc_tx_cov_if.sv:11:52` — `.ValueFalse(lc_ctrl_pkg::Off)) lc_tx_cov;` |
-| a `uvm_*` name (typed, not a macro) | 22 | `stimuli/sv/subs/opentitan/hw/dv/sv/dv_utils/dv_utils_pkg.sv:61:19` — `uvm_reg_addr_t start_addr;` |
-| a `typedef` | 21 | `stimuli/sv/subs/opentitan/hw/dv/sv/tl_agent/dv/env/tl_agent_env_pkg.sv:17:54` — `typedef dv_base_env_cov #(.CFG_T(tl_agent_env_cfg)) tl_agent_env_cov;` |
-| a function / task header | 20 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh:5:8` — `virtual task run_sec_cm_fi_vseq(int num_times = 1);` |
-| a `new(…)` initializer / construction | 2 | `stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_transaction.svh:443:38` — `const local uvm_event_pool events = new("events");` |
-| a `constraint` / `rand` | 1 | `stimuli/sv/subs/opentitan/hw/vendor/pulp_riscv_dbg/src/dmi_test.sv:16:18` — `rand dtm_op_e       op;` |
+| class header with a base class (`extends`) | 2182 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4:63` — `class dccm_transaction_sequence_item extends uvm_sequence_item;` |
+| other | 1903 | `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh:182:22` — `parameter el2_param_t pt = 2294'h02420200008020008420000010484100001420002404110506424100030108600000000000000` |
+| a parameter port list `#(` | 102 | `stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv:3:58` — `virtual class uvm_sequence #(type REQ = uvm_sequence_item,` |
+| a `typedef` | 66 | `stimuli/sv/subs/Surelog/tests/NetType/dut.sv:18:24` — `typedef some_other_type myalias;` |
+| a `::`-scoped name | 63 | `stimuli/sv/subs/Surelog/tests/Assignments/dut.sv:5:44` — `function void uvm_packer::get_packed_bits(ref bit unsigned stream[]);` |
+| a function / task header | 41 | `stimuli/sv/subs/Surelog/tests/BitSelectHier/dut.sv:37:32` — `extern function uvm_mem_mam_cfg reconfigure(uvm_mem_mam_cfg cfg = null);` |
+| a `uvm_*` name (typed, not a macro) | 26 | `stimuli/sv/subs/Surelog/tests/ForeachClassParent/dut.sv:4:22` — `protected uvm_phase m_type_overrides[$];` |
+| a `new(…)` initializer / construction | 11 | `stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_transaction.svh:443:38` — `const local uvm_event_pool events = new("events");` |
+| `import` of a package | 5 | `stimuli/sv/subs/sv2v/test/nosim/dpi.sv:35:28` — `import "DPI-C" function bit [15:0] getStimulus(input integer x);` |
+| a `constraint` / `rand` | 2 | `stimuli/sv/subs/opentitan/hw/vendor/pulp_riscv_dbg/src/dmi_test.sv:16:18` — `rand dtm_op_e       op;` |
 
 ## Where the pipeline's rejections land — top 25 ORIGIN FILES
 
@@ -88,7 +182,12 @@ Measured at `HEAD` = `846a729f+dirty`; the parse binary is a **release** build (
 
 | origin file | rejections landing in it |
 |---|---:|
-| `stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_transaction.svh` | 3 |
+| `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh` | 62 |
+| `stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_transaction.svh` | 4 |
+| `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv` | 3 |
+| `stimuli/sv/subs/Cores-VeeR-EL2/tools/riscv-dv/veer_directed_instr_lib.sv` | 2 |
+| `stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacros/mode.vh` | 2 |
+| `stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/mode.vh` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_tl_seq_item.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/csrng_item.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/seq_lib/csrng_base_seq.sv` | 2 |
@@ -108,16 +207,17 @@ Measured at `HEAD` = `846a729f+dirty`; the parse binary is a **release** build (
 | `stimuli/sv/subs/opentitan/hw/dv/sv/mem_bkdr_scb/mem_bkdr_scb.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/mem_bkdr_util/mem_bkdr_util_row_adapter.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/mem_model/mem_model.sv` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/push_pull_agent/push_pull_item.sv` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/push_pull_agent/seq_lib/push_pull_base_seq.sv` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/rng_agent/seq_lib/rng_base_seq.sv` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/scoreboard/scoreboard_queue.sv` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/sec_cm/sec_cm_base_if_proxy.sv` | 2 |
 
 ## Top 25 ORIGIN LINES
 
 | origin file:line | rejections |
 |---|---:|
+| `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh:182` | 62 |
+| `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4` | 3 |
+| `stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_transaction.svh:443` | 3 |
+| `stimuli/sv/subs/Cores-VeeR-EL2/tools/riscv-dv/veer_directed_instr_lib.sv:16` | 2 |
+| `stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacros/mode.vh:4` | 2 |
+| `stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/mode.vh:4` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_tl_seq_item.sv:6` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/csrng_item.sv:5` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/seq_lib/csrng_base_seq.sv:5` | 2 |
@@ -137,37 +237,53 @@ Measured at `HEAD` = `846a729f+dirty`; the parse binary is a **release** build (
 | `stimuli/sv/subs/opentitan/hw/dv/sv/mem_bkdr_scb/mem_bkdr_scb.sv:6` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/mem_bkdr_util/mem_bkdr_util_row_adapter.sv:13` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/mem_model/mem_model.sv:6` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/push_pull_agent/push_pull_item.sv:7` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/push_pull_agent/seq_lib/push_pull_base_seq.sv:7` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/rng_agent/seq_lib/rng_base_seq.sv:5` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/scoreboard/scoreboard_queue.sv:5` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/sec_cm/sec_cm_base_if_proxy.sv:6` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/spi_agent/seq_lib/spi_base_seq.sv:5` | 2 |
 
 ## Preprocessor refusals (`pp_fail`) by reason
 
 | reason (paths and numbers normalised) | rows |
 |---|---:|
-| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen` | 7 |
-| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autog` | 6 |
-| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/top_englishbreakfast/ip` | 5 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/include/b` | 149 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/friscv/dep/hardfloat/test/source/tes` | 13 |
+| `unterminated conditional block in '…'` | 7 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_me/src/v/network/bp_` | 3 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_be/src/include/bp_be` | 2 |
+| ``invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/include/bp_c`` | 2 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_me/src/include/bp_me` | 2 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_top/test/common/bsg_` | 2 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/friscv/dep/hardfloat/test/source/mul` | 2 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/friscv/dep/hardfloat/test/source/rec` | 2 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/` | 2 |
-| ``invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/ip/aes/pre_dv/aes_tb/rtl/a`` | 1 |
-| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/ip/tlul/generic_dv/env/` | 1 |
-| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/ip/tlul/generic_dv/tb/t` | 1 |
-| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/ip_templates/flash_ctrl` | 1 |
-| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/ip_templates/otp_ctrl/d` | 1 |
-| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/ip_templates/pwrmgr/dv/` | 1 |
-| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/ip_templates/rstmgr/dv/` | 1 |
-| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/top_darjeeling/dv/env/c` | 1 |
-| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/top_earlgrey/dv/env/chi` | 1 |
-| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/ven` | 1 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/slang/tests/unittests/data/nested/fi` | 2 |
+| `include cycle detected: /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/svNv/test/error/include_loop_N.sv -> /Volumes` | 2 |
+| `` `elsif without matching `ifdef/`ifndef at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_ `` | 2 |
+| ``invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/DiffSimpleIncludeAndMacro`` | 1 |
+| `` `endif without matching `ifdef/`ifndef at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/PreProcMacroF `` | 1 |
+| ``invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/PreprocLine/dut.sv:N: inc`` | 1 |
+| ``invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/Surelog/tests/SimpleIncludeAndMacros/to`` | 1 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_asy` | 1 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_bus` | 1 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_dff` | 1 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_fif` | 1 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_par` | 1 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_rom` | 1 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_ser` | 1 |
 
 ## The context the lane ran under
 
 | suite | kind | value | needed by |
 |---|---|---|---:|
 | uvm-core | include_dir | `stimuli/sv/uvm/uvm-core-2020.3.1/src` | 144 |
+| Cores-VeeR-EL2 | include_dir | `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default` | 73 |
+| Cores-VeeR-EL2 | include_dir | `stimuli/sv/subs/Cores-VeeR-EL2/design/include` | 2 |
+| Cores-VeeR-EL2 | include_dir | `stimuli/sv/uvm/uvm-core-2020.3.1/src` | 1 |
+| Surelog | include_dir | `stimuli/sv/uvm/uvm-core-2020.3.1/src` | 2 |
+| black-parrot | include_dir | `stimuli/sv/subs/black-parrot/bp_common/src/include` | 162 |
+| black-parrot | include_dir | `stimuli/sv/subs/black-parrot/bp_me/src/include` | 85 |
+| black-parrot | include_dir | `stimuli/sv/subs/black-parrot/bp_be/src/include` | 50 |
+| black-parrot | include_dir | `stimuli/sv/subs/black-parrot/bp_top/src/include` | 34 |
+| black-parrot | include_dir | `stimuli/sv/subs/black-parrot/bp_fe/src/include` | 16 |
+| black-parrot | include_dir | `stimuli/sv/subs/black-parrot/bp_common/test/common` | 9 |
+| iverilog | include_dir | `stimuli/sv/subs/iverilog/ivtest` | 12 |
 | opentitan | include_dir | `stimuli/sv/subs/opentitan/hw/ip/prim/rtl` | 498 |
 | opentitan | include_dir | `stimuli/sv/subs/opentitan/hw/dv/sv/dv_utils` | 254 |
 | opentitan | include_dir | `stimuli/sv/uvm/uvm-core-2020.3.1/src` | 231 |
@@ -221,3 +337,12 @@ Measured at `HEAD` = `846a729f+dirty`; the parse binary is a **release** build (
 | opentitan | include_dir | `stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/uvm/icache/dv/ibex_icache_core_agent/seq_lib` | 1 |
 | opentitan | include_dir | `stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/uvm/icache/dv/ibex_icache_mem_agent/seq_lib` | 1 |
 | opentitan | include_dir | `stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src` | 1 |
+| scr1 | include_dir | `stimuli/sv/subs/scr1/src/includes` | 105 |
+| slang | include_dir | `stimuli/sv/subs/slang/tests/unittests/data` | 6 |
+| slang | include_dir | `stimuli/sv/subs/slang/tests/unittests/data/libtest` | 5 |
+| slang | include_dir | `stimuli/sv/subs/slang/tests/unittests/data/nested` | 1 |
+| sv-tests | include_dir | `stimuli/sv/uvm/uvm-core-2020.3.1/src` | 103 |
+| verible | include_dir | `stimuli/sv/subs/verible/verible/verilog/tools/kythe/testdata/include_file_test` | 4 |
+| verible | include_dir | `stimuli/sv/subs/verible/verible/verilog/tools/kythe/testdata/include_with_dir_test/include_dir` | 1 |
+| verilator | include_dir | `stimuli/sv/subs/verilator/test_regress/t/tsub` | 3 |
+| verilator | include_dir | `stimuli/sv/subs/verilator/test_regress` | 1 |

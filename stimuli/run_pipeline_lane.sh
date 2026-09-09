@@ -15,6 +15,10 @@
 #   timeout  rc 124  the per-file deadline expired
 #   crash    rc>=128 signal death
 #
+# The per-file rows of `stimuli/sv/pipeline_context_files.tsv` (SVPP-EXPANSION.4b) are applied to their
+# file FIRST, ahead of the suite's directories, so a name that exists under several `top_*` variants
+# resolves to the includer's own top.
+#
 # Output (repo-root-relative, sorted, deterministic; the dump is .gitignored like the raw lane's —
 # the tracked claim is `pipeline_characterization.md`, written by `stimuli/sv/pipeline_vs_raw.py`):
 #   stimuli/sv/characterization/pipeline_results.tsv
@@ -32,14 +36,19 @@ set -uo pipefail
 export LC_ALL=C
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-[ $# -ge 1 ] || { echo "usage: stimuli/run_pipeline_lane.sh <suite> [<suite>...]   (suites: $(awk -F'\t' 'NR>1{print $1}' stimuli/sv/pipeline_context.tsv | sort -u | tr '\n' ' '))" >&2; exit 2; }
+[ $# -ge 1 ] || { echo "usage: stimuli/run_pipeline_lane.sh <suite> [<suite>...] | all   (suites: $(python3 stimuli/sv/pipeline_context.py --list-suites | tr '\n' ' '))" >&2; exit 2; }
+# `all` = every registered suite — DERIVED from the tree by the context tool, never from the context
+# table (a suite whose includes are all local has no row there and would be skipped).
+if [ "$1" = all ]; then set -- $(python3 stimuli/sv/pipeline_context.py --list-suites); fi
 PROBE="${PGEN_PARSE_PROBE_BIN:-rust/target/release/parseability_probe}"
 TIMEOUT_S="${PGEN_PIPELINE_TIMEOUT_S:-60}"
 JOBS="${PGEN_PIPELINE_JOBS:-8}"
 OUT="${PGEN_PIPELINE_OUT:-stimuli/sv/characterization/pipeline_results.tsv}"
 MAX_FILES="${PGEN_PIPELINE_MAX_FILES:-0}"
 CONTEXT=stimuli/sv/pipeline_context.tsv
+CONTEXT_FILES=stimuli/sv/pipeline_context_files.tsv   # SVPP-EXPANSION.4b: per-file rows (nearest-candidate includes)
 [ -x "$PROBE" ] || { echo "pipeline-lane: probe not executable: $PROBE" >&2; exit 2; }
+[ -f "$CONTEXT_FILES" ] || { echo "pipeline-lane: missing $CONTEXT_FILES — run stimuli/sv/pipeline_context.py --write" >&2; exit 2; }
 [ -f "$CONTEXT" ] || { echo "pipeline-lane: missing $CONTEXT — run stimuli/sv/pipeline_context.py --write" >&2; exit 2; }
 # the context is derived: refuse to measure against a stale copy
 python3 stimuli/sv/pipeline_context.py --check >/dev/null 2>&1 || { echo "pipeline-lane: $CONTEXT does not equal a fresh derivation — run stimuli/sv/pipeline_context.py --write" >&2; exit 3; }
@@ -53,7 +62,7 @@ suite_root() {
 suite_of() {  # the raw lane's own mapping, so the two lanes join on the suite column
   printf '%s' "$1" | sed -E 's#.*/subs/([^/]+)/.*#\1#; s#.*/stimuli/sv/uvm/.*#uvm-core#'
 }
-export ROOT PROBE TIMEOUT_S CONTEXT
+export ROOT PROBE TIMEOUT_S CONTEXT CONTEXT_FILES
 export -f suite_of
 
 # milliseconds without a subprocess (the raw lane's helper): bash 5's EPOCHREALTIME, else seconds
@@ -67,7 +76,8 @@ _now_ms() {
 }
 export -f _now_ms
 
-context_args() {  # $1 = suite → the probe flags, in the TSV's order
+context_args() {  # $1 = suite, $2 = repo-relative path → the probe flags: the file's own rows FIRST, then the suite's
+  awk -F'\t' -v s="$1" -v f="$2" 'NR>1 && $1==s && $2==f { printf "--sv-include-dir\t%s\n", $3 }' "$CONTEXT_FILES"
   awk -F'\t' -v s="$1" 'NR>1 && $1==s { if ($2=="include_dir") printf "--sv-include-dir\t%s\n", $3; else if ($2=="define") printf "--sv-define\t%s\n", $3 }' "$CONTEXT"
 }
 export -f context_args
@@ -77,7 +87,7 @@ parse_one() {
   suite="$(suite_of "$f")"
   rel="${f#"$ROOT"/}"
   local -a args=()
-  while IFS=$'\t' read -r flag value; do [ -n "$flag" ] && args+=("$flag" "$value"); done < <(context_args "$suite")
+  while IFS=$'\t' read -r flag value; do [ -n "$flag" ] && args+=("$flag" "$value"); done < <(context_args "$suite" "$rel")
   t0="$(_now_ms)"
   err="$(timeout "$TIMEOUT_S" "$PROBE" --parse systemverilog "$f" --profile sv_2017 --preprocess "${args[@]}" 2>&1 >/dev/null)"
   rc=$?

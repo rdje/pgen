@@ -119,9 +119,9 @@ Steps 4 and 5 are enforced, not suggested. That is the whole point.
 
 <!-- BEGIN DERIVED: scripts/report_doctrines.sh --markdown -->
 
-**38 doctrines are registered and enforced.** By archetype: artifact-consistency + oracle **1**, evidence **7**, evidence + structural **1**, oracle **7**, oracle + structural **1**, structural **16**, structural + oracle **5**.
+**39 doctrines are registered and enforced.** By archetype: artifact-consistency + oracle **1**, evidence **7**, evidence + structural **1**, oracle **7**, oracle + structural **1**, structural **17**, structural + oracle **5**.
 
-**Depth, derived:** median **2039** bytes per description, thinnest **783** (`LESSON-PROMOTION`) — every one of the 38 clears the 500-byte one-clause floor. ⚠️ Length is a proxy for depth, not a measure of it; that this floor is clear does not make any single description complete.
+**Depth, derived:** median **1926** bytes per description, thinnest **783** (`LESSON-PROMOTION`) — every one of the 39 clears the 500-byte one-clause floor. ⚠️ Length is a proxy for depth, not a measure of it; that this floor is clear does not make any single description complete.
 
 Rows are in **registration order**, oldest first — so the bottom of this table is what the repository learned most recently.
 
@@ -165,6 +165,7 @@ Rows are in **registration order**, oldest first — so the bottom of this table
 | 36 | [`SV-STORE-GATE-BANK`](#sv-store-gate-bank) | oracle | `scripts/check_sv_store_gate_bank.sh` |
 | 37 | [`EBNF-ALTERNATIVE-PARITY`](#ebnf-alternative-parity) | structural + oracle | `scripts/check_ebnf_alternative_parity.sh` |
 | 38 | [`SV-RESERVED-WORDS`](#sv-reserved-words) | oracle | `scripts/check_sv_reserved_words.sh` |
+| 39 | [`PIPELINE-LANE-CURRENCY`](#pipeline-lane-currency) | structural | `scripts/check_pipeline_lane_currency.sh` |
 
 ### `MEMORY-ARCH`
 
@@ -393,5 +394,11 @@ for every rule in every tracked grammar, the number of alternatives the SOURCE d
 *oracle* · enforced by `scripts/check_sv_reserved_words.sh`
 
 the SV grammar's two reserved-word regexes **EQUAL the LRM tables they stand for** — IEEE 1800-2017/2023 Table B.1 (248 words) for the `sv_2017`/`sv_2023` profiles and IEEE 1364-2005 Annex B (124) for `verilog_2005` — DERIVED from the in-repo LRM text (`docs/systemverilog/2017/md/section-41-data-read-api.md:3599-3858`, `docs/systemverilog/2023/md/section-Annex_B-normative-keywords.md`, `docs/verilog/2005/md/section-Annex_B-normative-list-of-keywords.md`) on every run and compared as SETS in both directions; `--self-test` proves a planted missing word and a planted foreign word are each refused. FOUNDING MEASUREMENT (`SV-CORPUS-GRAD.3.37`, 2026-09-04): the hand-typed SV list held **173 of the 248**, so `reg global;`, `i.super.i = 1;`, `function new; input x;` (an ordinary function NAMED `new`) and `var final;` all parsed with the keyword bound as an identifier — and no certificate, corpus lane or lint could see it, because every one of them consumes the same `non_keyword_identifier` rule. ⭐ *A keyword the identifier rule does not refuse IS an identifier.* The instrument is `stimuli/sv/check_sv_reserved_keywords.py` (gate / `--write` / `--self-test`).
+
+### `PIPELINE-LANE-CURRENCY`
+
+*structural* · enforced by `scripts/check_pipeline_lane_currency.sh`
+
+the preprocess→parse lane's published numbers are a **RENDER of two dumps under a DERIVED context**, and none of the three is carried by hand (`SVPP-EXPANSION.4b`): the tracked include context (`stimuli/sv/pipeline_context.tsv` + the per-file rows of `pipeline_context_files.tsv`) equals a fresh derivation from the corpus by `stimuli/sv/pipeline_context.py`, and the tracked `stimuli/sv/characterization/pipeline_characterization.md` equals a fresh render of the lane dump and the raw dump by `stimuli/sv/pipeline_vs_raw.py`, the `parse binary` digest row masked as provenance (the reading `IDENTITY-CARRIERS` gives that label; it keeps the identity block). ⭐ Founding measurement (`SVPP-EXPANSION.4` / `.5`, 2026-09-09): the first lane over the 4 157 UVM + OpenTitan rows the raw answer key carries with NO verdict read `pass 850 → 1 097`, and the `.5` engine fixes moved it to `1 101` the same day — a hand-carried copy of either number would have been wrong within hours, which is `DERIVED_STATE_CONTAINMENT.md` R1/R3's case made in one afternoon. ⚠️ Honest limits, stated in the check: the dumps are `.gitignore`d, so a tree without them is **NOT EVALUATED**, loudly, never scored; and the report arm proves the report is the render of the dumps ON DISK — whether those dumps came from the probe the identity block names is `IDENTITY-CARRIERS`' question, and the raw dump's currency `CORPUS-CENSUS-CURRENCY`'s. `--self-test` drives a GREEN control on the real tree, a RED context mutation, a RED report mutation and the absent-dump path, each on a copy that is restored
 
 <!-- END DERIVED -->

@@ -247,7 +247,13 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   the `pp_fail` reasons, and the context the lane ran under). The context itself is DERIVED from the
   corpus by `stimuli/sv/pipeline_context.py` (`--write` / `--check` / `--self-test`): for every
   `` `include "NAME" `` that its includer's own directory does not satisfy, the ONE directory that
-  does; an ambiguous name is REPORTED with its candidates, never guessed. `SVPP-EXPANSION.4`.
+  does; a name that exists under several directories is resolved PER FILE to the NEAREST candidate
+  (the one sharing the longest path prefix with the includer — `pipeline_context_files.tsv`, applied
+  to that file first), and a tie is REPORTED with its candidates, never guessed. Every directory
+  under `stimuli/sv/subs/` is a suite (`--list-suites`; the runner takes `all`). `SVPP-EXPANSION.4`/`.4b`.
+  ⭐ Both tracked tables and the tracked report are held to a fresh derivation on every commit by the
+  `PIPELINE-LANE-CURRENCY` doctrine (`scripts/check_pipeline_lane_currency.sh`; the dumps being
+  `.gitignore`d, a tree without them is NOT EVALUATED, loudly).
 - **WHEN:** any *"how much of this corpus does the SV front end actually recognise?"* question —
   the raw lane defers every macro-dependent row (`deferred:chained_only`, `explained_svpp_*`), so
   the raw number is grammar-development scaffolding and this lane's is the release reading; before
@@ -257,14 +263,22 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ```bash
   python3 stimuli/sv/pipeline_context.py --write                       # (re)derive the context; --check in a gate
   scripts/run_with_memory_guard.sh --budget-mb 12288 --timeout-s 3600 -- \
-      env PGEN_PIPELINE_JOBS=8 stimuli/run_pipeline_lane.sh uvm-core opentitan
+      env PGEN_PIPELINE_JOBS=8 stimuli/run_pipeline_lane.sh all           # or a suite list; 16 336 rows in ~155 s
   python3 stimuli/sv/pipeline_vs_raw.py                                # → pipeline_characterization.md + one summary line
+  python3 stimuli/sv/pipeline_vs_raw.py --check                        # the doctrine's arm: the report equals a fresh render
   ```
+- ⛔ **NEVER EDIT A RUNNING BASH SCRIPT** (`.4b`, measured): bash reads a script incrementally, so an
+  edit to `run_pipeline_lane.sh` while a run was in progress made that run die on a garbled line at its
+  summary step (*"syntax error near unexpected token `then'"*) after 13 676 rows of correct work. Copy
+  the script before running a long lane, or edit only after the run's marker.
 - **OUTPUT:** `PIPELINE-LANE: files=N pass=… fail=… pp_fail=… timeout=… crash=… wall_s=… probe=… timeout_s=60 jobs=8`
   and `PIPELINE-VS-RAW: suites=… rows=… raw_pass=… pipeline_pass=… pipeline_fail=… pp_fail=… …`.
 - ⛔ **READ THE SPLIT, NOT THE DELTA.** `Δ pass` can be NEGATIVE on a suite whose raw passes were hollow
   (measured on `uvm-core`: raw 33 pass, pipeline 28 — all six `pass → fail` land in an included header,
-  the honest verdict arriving). ⛔ A `pp_fail` is not a parser verdict: it is a context gap (an ambiguous
+  the honest verdict arriving). Measured over the whole lane (`.4b`): `raw pass 9 847 → 11 673`, 80
+  hollow raw passes revoked and **5 own-file** `pass → fail` — every one a PREPROCESSOR FIXTURE whose raw
+  pass was wrong (two `:should_fail_because:` chapter-22 tests, a circular-substitution test, a bare
+  `` `__FILE__ `` fragment, one owed) — so an own-file mover is a row to READ, not a regression to assume. ⛔ A `pp_fail` is not a parser verdict: it is a context gap (an ambiguous
   or absent include) or a preprocessor defect, and the reason table says which. ⛔ The lane parses each
   row as its OWN one-file unit: a `.svh` fragment of a package fails on cross-file facts exactly as the
   raw lane's `FRAGMENT-*` class predicts; the unit-level reading of such a suite is its package files
