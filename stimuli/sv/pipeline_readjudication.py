@@ -30,6 +30,15 @@ and says, row by row, what expansion changed:
                  its context is "accepted under expansion", not yet a `match`. ⛔ A row earns a
                  `match` only when its EXPECTED verdict is derived from the suite's own convention
                  (corpus-expected-from-SPEC, never from the fix); that derivation is `.6c`'s.
+  must_reject:*  every row whose EXPECTED verdict is must_reject — from the manifest's `expected`
+                 column, or from the answer key's own PIN TABLES when the raw lane demoted the pin
+                 (`reject_arm_demotion`: the raw parse stops on a macro use above the construct, so
+                 the raw class is `deferred:svpp_owned` and the manifest's `expected` reads
+                 `out_of_scope_with_cause`; the pin, with its LRM cite, is the key's ruling and it
+                 is read here from the adjudicator module itself, SVPP-EXPANSION.6b.1) —
+                 `match_under_expansion` (rejected in its own file), `accepts_invalid` (the pipeline
+                 ACCEPTS text the standard cannot derive: an over-acceptance defect candidate),
+                 `hollow`, `refused_*`.
 
 ⛔ NOTHING here rewrites the answer key. The manifest is read, never written; the report is a
 derivation of tracked inputs plus the lane dump, held current by `PIPELINE-LANE-CURRENCY` (`--check`).
@@ -67,6 +76,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import pipeline_vs_raw as pv  # noqa: E402  (the lane report: the join, the buckets, the identity)
+import adjudicate_external_corpus as adj  # noqa: E402  (the answer key's pin tables — read, never written)
 
 CHAR = ROOT / "stimuli" / "sv" / "characterization"
 ART = ROOT / "docs" / "tasks" / "artifacts" / "sv_corpus_grad"
@@ -80,6 +90,8 @@ POPULATIONS = (
                      "`.13c`'s strata, `.13d`'s expansion-owned rows)"),
     ("svpp_owned", "rows whose conformance the raw lane routed to the preprocessor lane "
                    "(`deferred:svpp_owned`)"),
+    ("must_reject", "rows the answer key expects REJECTED — the manifest's `expected`, or a pin the raw "
+                    "lane demoted (`.6b.1`); a pipeline pass here is an over-acceptance candidate"),
 )
 
 TSV_COLUMNS = ["suite", "relpath", "raw_class", "prior_stratum", "pipeline_status", "landing",
@@ -95,7 +107,37 @@ def read_audit(path: pathlib.Path) -> dict[tuple[str, str], dict[str, str]]:
         return {(r["suite"], r["relpath"]): r for r in csv.DictReader(fh, delimiter="\t")}
 
 
-def population_of(raw_class: str) -> str | None:
+def pinned_expected(suite: str, relpath: str) -> str | None:
+    """The answer key's PIN for a row, read from the adjudicator's own tables (its source of truth),
+    so a must_reject the raw lane demoted to `out_of_scope_with_cause` is still the key's ruling here."""
+    tables = [adj.EXTRA_PINNED.get((suite, relpath))]
+    if suite == "verilator":
+        tables.append(adj.VERILATOR_PINNED.get(relpath))
+    elif suite == "sv-tests":
+        tables.append(adj.SVTESTS_PINNED.get(relpath))
+    elif suite == "ispras-sv-tests":
+        tables.append(adj.ISPRAS_NEGATIVE_PINNED.get(relpath))
+    elif suite == "iverilog":
+        tables.append(adj.IVTEST_CE_STAGE_PINNED.get(relpath.removeprefix("ivtest/")))
+    for t in tables:
+        if t:
+            return t[0]
+    return None
+
+
+def expected_of(m: list[str]) -> str:
+    """The row's EXPECTED verdict: the manifest's column, unless a pin the raw lane demoted says
+    otherwise (the demotion rewrites the column to `out_of_scope_with_cause` but keeps the cite)."""
+    if m[3] == "must_reject":
+        return "must_reject"
+    if m[4] == "deferred:svpp_owned" and pinned_expected(m[0], m[1]) == "must_reject":
+        return "must_reject"
+    return m[3]
+
+
+def population_of(raw_class: str, expected: str) -> str | None:
+    if expected == "must_reject":
+        return "must_reject"
     if raw_class.startswith("divergence:explained_svpp"):
         return "explained_svpp"
     if raw_class == "deferred:chained_only":
@@ -118,11 +160,16 @@ def landing_of(status: str, repo_rel: str, origin: str) -> str:
 
 
 def verdict_of(population: str, status: str, landing: str) -> str:
-    prefix = {"explained_svpp": "", "chained_only": "chained:", "svpp_owned": "svpp_owned:"}[population]
+    prefix = {"explained_svpp": "", "chained_only": "chained:", "svpp_owned": "svpp_owned:",
+              "must_reject": "must_reject:"}[population]
     if status == "pass":
+        if population == "must_reject":
+            return prefix + "accepts_invalid"
         return prefix + ("corroborated" if population == "explained_svpp" else "accepted_under_expansion")
     if status == "fail":
         if landing == "own file":
+            if population == "must_reject":
+                return prefix + "match_under_expansion"
             return prefix + ("refuted" if population == "explained_svpp" else "rejects_own_file")
         return prefix + "hollow"
     if status == "pp_fail":
@@ -130,7 +177,7 @@ def verdict_of(population: str, status: str, landing: str) -> str:
     return prefix + status  # timeout / crash, reported as themselves
 
 
-def prior_stratum(population: str, key: tuple[str, str], explained: dict, dark: dict) -> str:
+def prior_stratum(population: str, key: tuple[str, str], explained: dict, dark: dict, raw_class: str = "") -> str:
     if population == "explained_svpp":
         a = explained.get(key)
         return a["verdict"] if a else "not-in-audit"
@@ -139,6 +186,8 @@ def prior_stratum(population: str, key: tuple[str, str], explained: dict, dark: 
         if d is None:
             return "ONE-SIDED (raw pass)"
         return d["verdict"] + ("/" + d["channel"] if d["channel"] else "")
+    if population == "must_reject":
+        return "pinned, raw lane demoted" if raw_class == "deferred:svpp_owned" else raw_class
     return "-"
 
 
@@ -239,6 +288,18 @@ def render(rows: list[dict[str, str]], probe: pathlib.Path, dump: pathlib.Path, 
         L.append(f"| {c} | {len(sub)} | {pv.code(sub[0]['origin'])} |")
     L.append("")
 
+    L.append("## must_reject — the rows the answer key expects rejected, under the pipeline\n")
+    L.append("Every row whose expected verdict is `must_reject` — the manifest's column, or a pin the raw lane "
+             "demoted because its parse stops on a macro use above the pinned construct (`.6b.1`; the pin is read "
+             "from the adjudicator's own tables). `match_under_expansion` is the parser refusing text the standard "
+             "cannot derive; `accepts_invalid` would be an over-acceptance only the pipeline can see.\n")
+    L.append("| prior stratum | rows | `match_under_expansion` | `accepts_invalid` | `hollow` | `refused_context` | `refused_engine` |\n|---|---:|---:|---:|---:|---:|---:|")
+    mverdicts = ["must_reject:match_under_expansion", "must_reject:accepts_invalid", "must_reject:hollow",
+                 "must_reject:refused_context", "must_reject:refused_engine"]
+    for s in sorted({r["prior_stratum"] for r in rows if r["population"] == "must_reject"}):
+        sub = [r for r in rows if r["population"] == "must_reject" and r["prior_stratum"] == s]
+        L.append(f"| `{s}` | {len(sub)} | " + " | ".join(str(count(lambda r, s=s, v=v: r["population"] == "must_reject" and r["prior_stratum"] == s and r["verdict"] == v)) for v in mverdicts) + " |")
+    L.append("")
     L.append("## svpp_owned — the rows routed to the preprocessor lane\n")
     L.append("| verdict | rows |\n|---|---:|")
     sv: dict[str, int] = {}
@@ -307,7 +368,8 @@ def main() -> int:
     rows: list[dict[str, str]] = []
     missing = 0
     for key, m in sorted(manifest.items()):
-        pop = population_of(m[4])
+        expected = expected_of(m)
+        pop = population_of(m[4], expected)
         if pop is None:
             continue
         p = lane.get(key)
@@ -320,7 +382,7 @@ def main() -> int:
         construct = pv.origin_bucket(line) if line else "-"
         rows.append({
             "suite": key[0], "relpath": key[1], "raw_class": m[4], "population": pop,
-            "prior_stratum": prior_stratum(pop, key, explained, dark),
+            "prior_stratum": prior_stratum(pop, key, explained, dark, m[4]),
             "pipeline_status": status, "landing": landing, "construct": construct,
             "verdict": verdict_of(pop, status, landing), "origin": origin,
         })

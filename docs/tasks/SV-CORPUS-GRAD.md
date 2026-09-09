@@ -8803,7 +8803,11 @@ is not a promotion), and the probe arm it needs.
   parses once preprocessed), **156 are REFUTED** (it still fails in its own text — a defect candidate
   each, `SVPP-EXPANSION.6b` dispositions them) and 3 are refused by the preprocessor. And 67 of the 1 167
   `STUCK-ON-SVPP-TOKEN` rows — the ones position DID decide — are refuted too: the directive was where the
-  parse stopped, not why. Axis 2's honest bound is therefore no longer 319–582: 223 refuted rows await a
+  parse stopped, not why. ⭐ `.6b.1` (`PGEN-SVPP-EXPANSION-0010`) dispositioned the first 34 of them: verilator rows on
+  a typedef reaching a type through two or more hierarchical steps, a type named through an interface instance in a
+  type assignment (the `.13y` ruling) and an enum with a range but no base type — PINNED `must_reject` in
+  `EXTRA_PINNED` with the standard's lines; the raw key demotes them (`deferred:svpp_owned`, ceiling `173 → 207`,
+  the live tuple `7529/2606/6201/3994/9`), the pipeline cashes them (`must_reject:match_under_expansion`). 189 remain. Axis 2's honest bound is therefore no longer 319–582: 223 refuted rows await a
   disposition each (103 of them a `class … extends` header whose base lives in `uvm_pkg` — the sv-tests
   `*-uvm.sv` files, the library design's population).
 - **THE ONLY INSTRUMENT THAT SETTLES THEM IS `SVPP-EXPANSION` ITSELF** — expand each file, re-parse,

@@ -274,9 +274,12 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   answer key joined with the `.12a` position verdict / the `.13c` stratum and the pipeline's outcome —
   `corroborated` (a must-accept row the raw lane explained away now PASSES preprocessed), `refuted` (it still
   fails in its OWN file: a defect candidate for `.6b`), `hollow` (the rejection lands in an included file),
-  `refused_context` / `refused_engine`, and the `chained:` / `svpp_owned:` forms for rows the key holds no
-  expected verdict for. ⛔ It READS the answer key, never writes it; a `chained:accepted_under_expansion` row is
-  not a `match` until its expected verdict is derived from the suite's convention (`.6c`).
+  `refused_context` / `refused_engine`, the `chained:` / `svpp_owned:` forms for rows the key holds no
+  expected verdict for, and the `must_reject:` forms for every row the key expects rejected — the manifest's
+  `expected`, or a pin the raw lane demoted (`reject_arm_demotion`), read from the adjudicator's own pin tables
+  (`.6b.1`): `match_under_expansion`, or `accepts_invalid` = an over-acceptance only the pipeline can see. ⛔ It
+  READS the answer key, never writes it; a `chained:accepted_under_expansion` row is not a `match` until its
+  expected verdict is derived from the suite's convention (`.6c`).
   The probe defaults to `rust/target/release/parseability_probe`; `PGEN_PARSE_PROBE_BIN=rust/target/debug/parseability_probe`
   runs the lane on the debug probe (then render with `--probe` the same path — the identity block RECORDS the build
   mode), and `PGEN_PIPELINE_TIMEOUT_S` widens the per-file deadline (default 60 s, the raw lane's) so a slower probe

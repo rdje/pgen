@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.6b.1 (`PGEN-SVPP-EXPANSION-0010`): a pin the raw lane cannot cash is still the key's ruling
+
+- **Measure what the answer key does with a pin before publishing it.** Thirty-four must_reject pins, each with the standard's line, went to the adjudicator's scratch output first: every one came back `deferred:svpp_owned` with `expected = out_of_scope_with_cause`, because the raw parse stops on a macro use above the construct and the reject-arm demotion is DESIGNED to keep such a reject out of the raw `match` column. That is the honest raw state, not a defect — and it means the raw tuple loses 34 adjudicated rows while the pipeline gains them. Publish both facts side by side; never let one lane's number look like the other's.
+- **The pin tables are the key's source of truth; the manifest is a rendering of it.** When a demotion rewrites the `expected` column, the ruling survives only in the tables (and in the basis prose). The pipeline re-adjudication reads the tables directly rather than parsing prose or adding a manifest column every consumer would have to learn.
+- **Verify the boundary from both sides.** `typedef i.t u;` (one step) ACCEPTS — 2017 A.2.1.3 admits it; `typedef io.types.a_t a_t;` (two steps) rejects; the controls with a package scope accept. A pin without the accepting neighbour would have been a claim about the file, not about the standard's line.
+- **Promotion**: declined — `promotion: declined (the .13y ruling and the register's how_to_raise carry the lesson)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.6a (`PGEN-SVPP-EXPANSION-0009`): a position test is a hypothesis about a parse
 
 - **An "explained" divergence is a claim that a parse would succeed if…, and only the parse can cash it.** `.12a` explained 1 434 must-accept rows by where the raw parse stopped; `.12b` was honest that 263 of them were undecidable from position. The pipeline parsed all of them: 1 199 explanations held and **223 did not — including 67 the position test had DECIDED** (`STUCK-ON-SVPP-TOKEN`). The directive was where the parse stopped, not why. A stratification by text is a worklist, never a verdict; the instrument that produces verdicts is the one that runs the real thing, and its output must be a tracked, derived table a doctrine holds current.

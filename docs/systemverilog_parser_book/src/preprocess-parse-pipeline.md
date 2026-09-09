@@ -242,7 +242,12 @@ rows, 1 530 are accepted under their derived context, 2 936 still reject in thei
 `class … extends` header whose base is declared elsewhere — the cross-file fact the library flags exist
 for), 236 land in an included file and 225 are refused. A `chained:` outcome is not yet a `match`: the
 answer key holds no expected verdict for those rows, and one is derived from the suite's own convention
-before the coverage tuple moves. The report is held to a fresh derivation on every commit, like the lane's.
+before the coverage tuple moves. The report also re-reads every row the key expects **rejected** — including
+a pin the raw lane could not cash because its parse stopped on a macro use above the construct: 34 verilator
+rows (a typedef reaching a type through two or more hierarchical steps, a type named through an interface
+instance in a type assignment, an enum with a range but no base type) reject at the pinned line under the
+pipeline on both profiles, and no row the standard cannot derive is accepted beyond the two the raw lane
+already knew. The report is held to a fresh derivation on every commit, like the lane's.
 
 ⛔ **A note on the host, not the engine.** The reading above was taken on the debug probe because no
 release build of the crate could be completed on the development host that day: a per-process

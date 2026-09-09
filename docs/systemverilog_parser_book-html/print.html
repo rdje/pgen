@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-30690904.js";
+            window.path_to_searchindex_js = "searchindex-9762b82b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -259,15 +259,15 @@ inapplicable one.</li>
 </thead>
 <tbody>
 <tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">6 064</td><td style="text-align: right">37.1 %</td></tr>
-<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 490</td><td style="text-align: right">9.1 %</td></tr>
+<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 456</td><td style="text-align: right">8.9 %</td></tr>
 <tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">9</td><td style="text-align: right">0.1 %</td></tr>
 <tr><td>Routed to another lane’s manifest</td><td style="text-align: right">2 606</td><td style="text-align: right">16.0 %</td></tr>
-<tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">6 167</td><td style="text-align: right">37.8 %</td></tr>
+<tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">6 201</td><td style="text-align: right">38.0 %</td></tr>
 <tr><td>Total</td><td style="text-align: right">16 336</td><td style="text-align: right">100.0 %</td></tr>
 </tbody>
 </table>
 </div>
-<p>Only <strong>7 563 rows (46.3 %)</strong> were asked a question they could answer, and <strong>3 960</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6064/7563 would quietly drop the 37.8 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
+<p>Only <strong>7 529 rows (46.1 %)</strong> were asked a question they could answer, and <strong>3 994</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6064/7529 would quietly drop the 38.0 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
@@ -824,7 +824,12 @@ rows, 1 530 are accepted under their derived context, 2 936 still reject in thei
 <code>class … extends</code> header whose base is declared elsewhere — the cross-file fact the library flags exist
 for), 236 land in an included file and 225 are refused. A <code>chained:</code> outcome is not yet a <code>match</code>: the
 answer key holds no expected verdict for those rows, and one is derived from the suite’s own convention
-before the coverage tuple moves. The report is held to a fresh derivation on every commit, like the lane’s.</p>
+before the coverage tuple moves. The report also re-reads every row the key expects <strong>rejected</strong> — including
+a pin the raw lane could not cash because its parse stopped on a macro use above the construct: 34 verilator
+rows (a typedef reaching a type through two or more hierarchical steps, a type named through an interface
+instance in a type assignment, an enum with a range but no base type) reject at the pinned line under the
+pipeline on both profiles, and no row the standard cannot derive is accepted beyond the two the raw lane
+already knew. The report is held to a fresh derivation on every commit, like the lane’s.</p>
 <p>⛔ <strong>A note on the host, not the engine.</strong> The reading above was taken on the debug probe because no
 release build of the crate could be completed on the development host that day: a per-process
 memory watchdog independent of the repository’s own guard kills any process above 14 GB, and the
