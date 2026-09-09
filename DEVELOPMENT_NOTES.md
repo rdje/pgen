@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.6c.2 (`PGEN-SVPP-EXPANSION-0016`): a pin is a reproducer, a control and a clause — on both profiles
+
+- **Run the control on the other edition too.** Two of the eleven reproducers rejected on sv_2017 and ACCEPTED on sv_2023: a select on a call's result and the `+/-` range are 1800-2023 additions. Without the second profile the pin would have read "the standard cannot derive this", which is true of one edition and false of the other; with it, the pin reads as an edition contrast and the corpus tree's 2023 lane inherits the row correctly. The same run found a 2023 gap (`+%-` refused) nobody was looking for.
+- **A demotion has two arms; read both.** The `include`-dependent pins demote to `chained_only`, not `svpp_owned`; an instrument that only looked behind one arm counted 22 of 28 pins. The count was the tell: 404 + 28 is not 426.
+- **The mechanism that refuses a stale disposition is what lets the table shrink honestly.** The 28 rows left the table because they stopped being refuted — the instrument would have refused their lines otherwise. A worklist whose entries can only be removed by the measurement that closes them cannot rot.
+- **Promotion**: declined — `promotion: declined (the pins carry their measurements)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.6c.1 (`PGEN-SVPP-EXPANSION-0015`): two readings of one denominator, published together
 
 - **Do not replace the raw tuple; publish the second reading beside it.** The raw tuple is what every earlier claim in the trees was measured against; the reading under the pipeline is a different instrument's answer to the same question. Changing the tuple's shape would have broken the gate, the anchor regex and every reader; adding a second tuple with the same shape and the raw one first keeps every old sentence true and makes the new one checkable.

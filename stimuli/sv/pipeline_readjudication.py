@@ -176,7 +176,9 @@ def expected_of(m: list[str]) -> str:
     otherwise (the demotion rewrites the column to `out_of_scope_with_cause` but keeps the cite)."""
     if m[3] == "must_reject":
         return "must_reject"
-    if m[4] == "deferred:svpp_owned" and pinned_expected(m[0], m[1]) == "must_reject":
+    # a demoted pin: macro/conditional-dependent rows demote to svpp_owned, `include-dependent
+    # rows to chained_only (`reject_arm_demotion`, both arms) — the pin is the key's ruling either way
+    if m[4] in ("deferred:svpp_owned", "deferred:chained_only") and pinned_expected(m[0], m[1]) == "must_reject":
         return "must_reject"
     return m[3]
 

@@ -48,13 +48,13 @@ the remaining work is a week or a year. This page publishes the **distance** beh
 | Outcome | Rows | Share of the corpus |
 |---|---:|---:|
 | **Passing** — the parser's verdict matches the answer key | 6 064 | 37.1 % |
-| Divergence with a recorded explanation | 1 456 | 8.9 % |
+| Divergence with a recorded explanation | 1 428 | 8.7 % |
 | **Known defects** — divergence with no explanation | 9 | 0.1 % |
 | Routed to another lane's manifest | 2 606 | 16.0 % |
-| **No verdict** — nothing is known about these rows | 6 201 | 38.0 % |
+| **No verdict** — nothing is known about these rows | 6 229 | 38.1 % |
 | Total | 16 336 | 100.0 % |
 
-Only **7 529 rows (46.1 %)** were asked a question they could answer, and **3 994** of the no-verdict rows are *dark* — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6064/7529 would quietly drop the 38.0 % carrying no verdict at all and the 16.0 % answered in another lane's manifest.
+Only **7 501 rows (45.9 %)** were asked a question they could answer, and **4 022** of the no-verdict rows are *dark* — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6064/7501 would quietly drop the 38.1 % carrying no verdict at all and the 16.0 % answered in another lane's manifest.
 
 **What remains between here and `Done`.** Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. **4 trees own this family's remaining work**, and **26** cross-cutting trees can gate any family.
 

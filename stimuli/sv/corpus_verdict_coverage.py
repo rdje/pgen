@@ -684,11 +684,10 @@ def main():
                           if r["adjudication"] == cls)
         for reason, rn in sorted(reasons.items(), key=lambda kv: (-kv[1], kv[0])):
             shown = reason if len(reason) <= 130 else reason[:127] + "…"
-            if shown.count("`") % 2:
-                # A cut inside a code span leaves an UNPAIRED backtick in a table cell
-                # (TABLE-ARITY-RATCHET's arity-neutral half); close it rather than render
-                # the rest of the cell as code.
-                shown += "`"
+            # a reason is prose quoted into a table cell: a `|` would add a cell and a backtick run cut
+            # by the truncation would open a code span the row never closes (TABLE-ARITY-RATCHET,
+            # measured on the .6c.2 pins) — pipes escaped, backticks shown as apostrophes
+            shown = shown.replace("|", "\\|").replace("`", "'")
             L.append(f"| `{cls}` | {rn:,} | {shown} |")
     L.append("")
 

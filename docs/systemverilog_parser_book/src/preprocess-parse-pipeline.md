@@ -292,11 +292,12 @@ row carries one; the report's `refuted_awaiting_disposition` is the count still 
 
 **The denominator, read twice.** The platform book's verdict-coverage tuple
 (`adjudicated/routed/no-verdict/dark/axis-2-bar`) now carries two readings of the same rows, published
-together and held by the same gate: the raw lane's `7529/2606/6201/3994/9`, and `8669/2606/5061/3779/30`
+together and held by the same gate: the raw lane's `7501/2606/6229/4022/9`, and `8698/2606/5032/3750/30`
 under the pipeline. The second is the first with the re-adjudication table applied: 1 213 explained-away
 rows corroborated, 1 271 design-corpus files accepted under their derived context (must-accept by the
-suite's own convention — a shipping design compiles), 404 must-reject rows rejected where the raw lane
-never reached the construct, and 21 must-accept rows still refused in their own text — the bar's new
+suite's own convention — a shipping design compiles), 433 must-reject rows rejected where the raw lane
+never reached the construct (28 of them the key questions of the disposition table, pinned with the
+clause and a reproducer each), and 21 must-accept rows still refused in their own text — the bar's new
 members, each with its clause, until the corpus tree rules them. 2 935 rows are dark under the pipeline
 on a declaration another file holds; that is the library design's population. The report also re-reads every row the key expects **rejected** — including
 a pin the raw lane could not cash because its parse stopped on a macro use above the construct: 34 verilator

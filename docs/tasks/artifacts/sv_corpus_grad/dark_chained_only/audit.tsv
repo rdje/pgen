@@ -1364,7 +1364,12 @@ IN-WINDOW		scr1	src/top/scr1_tcm.sv	280	281	149	12	4915		ter SCR1_TCM_SIZE = `SC
 IN-WINDOW		scr1	src/top/scr1_timer.sv	535	556	142	17	10216		dmem_cmd, input type_scr1_mem_width_e
 IN-WINDOW		scr1	src/top/scr1_top_ahb.sv	1070	1070	137	26	21299		// Real-time clock `ifdef SCR1_DBG_EN output logic
 IN-WINDOW		scr1	src/top/scr1_top_axi.sv	1046	1046	137	25	31250		// Real-time clock `ifdef SCR1_DBG_EN output logic
+IN-WINDOW		slang	tests/regression/driver/dep-files.sv	1035	1036	930	35	1108		??e; string s = `FOO; begin end endmodule `ifdef FOOBAR `include "mod1
+IN-WINDOW		slang	tests/regression/driver/disable-local-includes.sv	355	356	250	14	428		??e; string s = `FOO; begin end endmodule `ifdef FOOBAR `include "mod1
+IN-WINDOW		slang	tests/regression/driver/module-basics.sv	1735	1736	1630	23	1808		??e; string s = `FOO; begin end endmodule `ifdef FOOBAR `include "mod1
+IN-WINDOW		slang	tests/regression/driver/print-macros.sv	682	683	577	28	755		??e; string s = `FOO; begin end endmodule `ifdef FOOBAR `include "mod1
 IN-WINDOW		slang	tests/unittests/data/library/other.sv	35	40	0	4	59		module other; `FOO(1); endmodule
+IN-WINDOW		slang	tests/unittests/data/test.sv	105	106	0	7	178		??e; string s = `FOO; begin end endmodule `ifdef FOOBAR `include "mod1
 IN-WINDOW		sv2v	test/core/typename_deep.svh	375	380	0	12	418		4) module top; `TEST(T, 1) `TEST(U, 2) endmodule
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/compat/uvm_compat_packer.svh	1489	1490	1393	42	17113		typedef uvm_packer uvm_compat_packer; `else //@uvm-compat provided as a packer
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/compat/uvm_compat_pkg.sv	1403	1405	1245	46	1504		import uvm_pkg::*; `include "uvm_compat_packer.svh" `include "uvm_compat_proxy_
@@ -1663,6 +1668,7 @@ PAST-LAST-TICK		opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/rtl/pwrmgr_c
 PAST-LAST-TICK		opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/rtl/pwrmgr_wake_info.sv	554	555	211	21	2096		reg_wake_info_reg_t info_o ); logic record_en; // detect rising edge of st
 PAST-LAST-TICK		opentitan	hw/top_englishbreakfast/ip_autogen/rstmgr/rtl/rstmgr_leaf_rst.sv	679	680	264	25	3590		i, output mubi4_t rst_en_o, output logic leaf_rst_o, output logic err_o,
 PAST-LAST-TICK		opentitan	hw/vendor/lowrisc_ibex/dv/formal/spec/stub.sv	1033	1034	250	32	4837		automatic sail_bits sail_shift_bits_left(sail_bits x, sail_bits y); return {
+PAST-LAST-TICK		slang	tests/unittests/data/verilog.v	100	101	29	9	116		module t(); wire do; endmodule
 PAST-LAST-TICK		uvm-core	uvm-core-2020.3.1/src/base/uvm_resource_specializations.svh	3982	3983	2289	82	6661		xtends uvm_resource #(int); typedef uvm_int_rsrc this_subtype; function ne
 PAST-LAST-TICK		uvm-core	uvm-core-2020.3.1/src/seq/uvm_seq.svh	1617	1618	1209	45	1929		uvm_sequence_item) uvm_default_sequence_type; typedef uvm_sequencer #(uvm_seque
 PAST-LAST-TICK		verible	verible/verilog/tools/kythe/testdata/include_file_test/module.sv	414	415	167	14	1016		yClassIncludedFile1 instance2 = new(); //- @MyClassIncludedFile2 ref My

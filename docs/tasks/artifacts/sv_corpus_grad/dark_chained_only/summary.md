@@ -6,7 +6,7 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `729a3c12641bb267eb6be9b44bba89f64aa39ec47c97b3ca4b79f840901e19e6` |
+| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `f43f68f9652a52a1c96827ad4993e3df0f03cb84aebc3e92a149a3b8be173b11` |
 | positions | `stimuli/sv/characterization/positions.tsv` | `686064eb18411695138951ca6086c4f9e642cd12b40ed065a29381392a99ea85` |
 | grammar | `grammars/systemverilog.ebnf` | `5bee298a8898249c4cb05c45c67931daa386cc4f890d1f34eb239339119631f3` |
 
@@ -14,13 +14,13 @@
 
 | verdict | rows | % | reading |
 |---|---:|---:|---|
-| `PRE-TICK` | 2,069 | 55.3 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
-| `IN-WINDOW` | 1,415 | 37.8 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
+| `PRE-TICK` | 2,069 | 55.2 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
+| `IN-WINDOW` | 1,420 | 37.9 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
 | `NO-ALTERABLE-TICK` | 210 | 5.6 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
-| `PAST-LAST-TICK` | 45 | 1.2 % | choked past every alterable directive — suspicious but still reachable by an earlier expansion's shift. UNDECIDABLE |
-| **TOTAL** | **3,739** | **100.0 %** | |
+| `PAST-LAST-TICK` | 46 | 1.2 % | choked past every alterable directive — suspicious but still reachable by an earlier expansion's shift. UNDECIDABLE |
+| **TOTAL** | **3,745** | **100.0 %** | |
 
-⇒ **2,279 of 3,739 rows (61.0 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
+⇒ **2,279 of 3,745 rows (60.9 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
 
 ## Then the FACT channel — is a cross-file *name* the live explanation?
 

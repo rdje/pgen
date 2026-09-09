@@ -25,7 +25,7 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 | pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `befd1e9f62d7ccb93dd3b45cded83f919e9ba6cbf459dbed0158711761bee688` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `5fa726cd89002007c1fb821ec84c29bc3eadb23fc9651cbf058dad156f57e8f3` |
 
-Measured at `HEAD` = `a8a550c2+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `22133c1e+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
@@ -138,14 +138,14 @@ Measured at `HEAD` = `a8a550c2+dirty`; the parse binary is a **debug** build (th
 | adjudication class | rows | pipeline pass | pipeline fail | pp_fail | timeout | crash |
 |---|---:|---:|---:|---:|---:|---:|
 | `match` | 6064 | 5693 | 370 | 1 | 0 | 0 |
-| `deferred:chained_only` | 4927 | 1531 | 3171 | 225 | 0 | 0 |
+| `deferred:chained_only` | 4933 | 1531 | 3177 | 225 | 0 | 0 |
 | `deferred:v2005_profile_lane` | 2606 | 2485 | 116 | 5 | 0 | 0 |
-| `divergence:explained_svpp_macro_use` | 1059 | 994 | 61 | 4 | 0 | 0 |
+| `divergence:explained_svpp_macro_use` | 1040 | 994 | 42 | 4 | 0 | 0 |
 | `deferred:no_sv_key` | 596 | 557 | 38 | 1 | 0 | 0 |
 | `deferred:not_source_text` | 350 | 0 | 350 | 0 | 0 | 0 |
-| `deferred:svpp_owned` | 207 | 111 | 64 | 32 | 0 | 0 |
-| `divergence:explained_svpp_conditional` | 198 | 194 | 4 | 0 | 0 | 0 |
-| `divergence:explained_svpp_include` | 139 | 23 | 109 | 7 | 0 | 0 |
+| `deferred:svpp_owned` | 229 | 111 | 86 | 32 | 0 | 0 |
+| `divergence:explained_svpp_conditional` | 195 | 194 | 1 | 0 | 0 | 0 |
+| `divergence:explained_svpp_include` | 133 | 23 | 103 | 7 | 0 | 0 |
 | `deferred:impl_varying` | 90 | 89 | 1 | 0 | 0 | 0 |
 | `divergence:explained_store_gate` | 56 | 0 | 56 | 0 | 0 | 0 |
 | `deferred:verilog_ams_lane` | 25 | 5 | 19 | 1 | 0 | 0 |

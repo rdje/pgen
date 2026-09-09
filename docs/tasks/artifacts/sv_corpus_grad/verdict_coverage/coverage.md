@@ -6,32 +6,32 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `729a3c12641bb267eb6be9b44bba89f64aa39ec47c97b3ca4b79f840901e19e6` |
+| sv manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `f43f68f9652a52a1c96827ad4993e3df0f03cb84aebc3e92a149a3b8be173b11` |
 | v2005 manifest | `stimuli/sv/characterization/adjudication_manifest_v2005.tsv` | `dedaa9fe1ee993e043f075444648c03feff2647502ee2d865f4d456ac06b6652` |
 
 ## The headline
 
-- **ADJUDICATED: 7,529 rows (46.1 %)**
+- **ADJUDICATED: 7,501 rows (45.9 %)**
 - **ROUTED: 2,606 rows (16.0 %)**
-- **NO VERDICT: 6,201 rows (38.0 %)**
+- **NO VERDICT: 6,229 rows (38.1 %)**
 
 ## Every class, bucketed
 
 | bucket | adjudication class | rows | % | why |
 |---|---|---:|---:|---|
 | ADJUDICATED | `match` | 6,064 | 37.1 % | expected and observed agree - the row testifies FOR the parser |
-| ADJUDICATED | `divergence:explained_svpp_macro_use` | 1,059 | 6.5 % | parse stops on a macro use - positionally gated since .12a |
-| ADJUDICATED | `divergence:explained_svpp_conditional` | 198 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
-| ADJUDICATED | `divergence:explained_svpp_include` | 139 | 0.9 % | parse stops on an `include - positionally gated since .12a |
+| ADJUDICATED | `divergence:explained_svpp_macro_use` | 1,040 | 6.4 % | parse stops on a macro use - positionally gated since .12a |
+| ADJUDICATED | `divergence:explained_svpp_conditional` | 195 | 1.2 % | parse stops on a conditional - positionally gated since .12a |
+| ADJUDICATED | `divergence:explained_svpp_include` | 133 | 0.8 % | parse stops on an `include - positionally gated since .12a |
 | ADJUDICATED | `divergence:explained_store_gate` | 56 | 0.3 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
 | ADJUDICATED | `divergence:unexplained_rejects_valid` | 7 | 0.0 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
 | ADJUDICATED | `divergence:explained_svpp_protected_envelope` | 4 | 0.0 % | IEEE 1800-2017 §34 encrypted envelope - not source text yet |
 | ADJUDICATED | `divergence:unexplained_accepts_invalid` | 2 | 0.0 % | a known defect: invalid SV the parser accepts (the axis-2 bar) |
 | ROUTED | `deferred:v2005_profile_lane` | 2,606 | 16.0 % | adjudicated in adjudication_manifest_v2005.tsv, not lost |
-| NO VERDICT | `deferred:chained_only` | 4,927 | 30.2 % | multi-file design: needs `include/`define chaining to parse honestly - the MOST realistic RTL in the corpus, contributing nothing to the claim |
+| NO VERDICT | `deferred:chained_only` | 4,933 | 30.2 % | multi-file design: needs `include/`define chaining to parse honestly - the MOST realistic RTL in the corpus, contributing nothing to the claim |
 | NO VERDICT | `deferred:no_sv_key` | 596 | 3.6 % | no upstream answer key exists - expectation underivable |
 | NO VERDICT | `deferred:not_source_text` | 350 | 2.1 % | the file is not SystemVerilog source text at all (a $readmemh memory image, a bare string literal, a tool command line) - it testifies to nothing about the parser; a CORPUS-COMPOSITION fact, stated per row (SV-CORPUS-GRAD.13c.1) |
-| NO VERDICT | `deferred:svpp_owned` | 207 | 1.3 % | conformance owned by the preprocessor lane, by design |
+| NO VERDICT | `deferred:svpp_owned` | 229 | 1.4 % | conformance owned by the preprocessor lane, by design |
 | NO VERDICT | `deferred:impl_varying` | 90 | 0.6 % | LRM leaves the behaviour implementation-defined |
 | NO VERDICT | `deferred:verilog_ams_lane` | 25 | 0.2 % | Verilog-AMS, a different language family |
 | NO VERDICT | `deferred:ni_unimplemented` | 6 | 0.0 % | upstream marks the construct not-implemented |
@@ -42,7 +42,7 @@
 - **1,170 corroborated** — the parse stops *on* the preprocessor construct. The label is positively verified.
 - **263 undecidable by position** — the label is neither corroborated nor refuted; only running an expander settles them (`.12b`).
 
-⇒ Rows contributing nothing to the confidence claim, counting these: **6,464 (39.6 %)**.
+⇒ Rows contributing nothing to the confidence claim, counting these: **6,492 (39.7 %)**.
 
 ## `NO VERDICT`, by suite — where the silence actually is
 
@@ -55,42 +55,43 @@
 | Surelog | `deferred:chained_only` | 198 |
 | uvm-core | `deferred:chained_only` | 174 |
 | Cores-VeeR-EL2 | `deferred:chained_only` | 102 |
+| verilator | `deferred:svpp_owned` | 96 |
 | friscv | `deferred:chained_only` | 95 |
 | sv-tests | `deferred:svpp_owned` | 94 |
 | ispras-sv-tests | `deferred:impl_varying` | 90 |
-| verilator | `deferred:svpp_owned` | 82 |
 | verilator | `deferred:chained_only` | 80 |
 | scr1 | `deferred:chained_only` | 50 |
-| sv2v | `deferred:svpp_owned` | 25 |
+| sv2v | `deferred:svpp_owned` | 29 |
+| slang | `deferred:chained_only` | 25 |
 | iverilog | `deferred:verilog_ams_lane` | 20 |
-| slang | `deferred:chained_only` | 19 |
 | verible | `deferred:chained_only` | 17 |
+| verible | `deferred:svpp_owned` | 7 |
 | iverilog | `deferred:ni_unimplemented` | 6 |
-| verible | `deferred:svpp_owned` | 5 |
 | verilator | `deferred:verilog_ams_lane` | 5 |
 | slang | `deferred:not_source_text` | 3 |
 | sv2v | `deferred:chained_only` | 3 |
+| Surelog | `deferred:svpp_owned` | 2 |
 | Surelog | `deferred:not_source_text` | 1 |
-| Surelog | `deferred:svpp_owned` | 1 |
+| slang | `deferred:svpp_owned` | 1 |
 | sv-tests | `deferred:chained_only` | 1 |
 
 ## Inside `NO VERDICT` — what the parser ALREADY did on the row's own bytes (SV-CORPUS-GRAD.13a)
 
 - **ONE-SIDED POSITIVE — 1,857 rows (11.4 % of the corpus)**: the parse consumed the WHOLE file standalone. ⇒ no *rejects-valid* defect hides behind these rows. ⛔ It says **nothing** about accepts-invalid, and it is **not** a verdict — there is still no expectation to compare against.
   - 1,706 are compilation-unit-shaped; ⚠️ **151 are FRAGMENT-shaped** (`.svh` include payload / excerpt-mode fixture), where accepting is not testimony FOR the parser at all — a fragment is not a legal standalone unit, so the accept may itself BE the over-acceptance.
-- ⛔ **DARK — 3,994 rows (24.4 % of the corpus)**: the parse failed and the deferral is why nobody looked. **This — not the headline 38.7 % — is the population a disposition has to burn down.**
+- ⛔ **DARK — 4,022 rows (24.6 % of the corpus)**: the parse failed and the deferral is why nobody looked. **This — not the headline 38.7 % — is the population a disposition has to burn down.**
 - **NOT SOURCE TEXT — 350 rows (2.1 % of the corpus)** (SV-CORPUS-GRAD.13c.1): the file is a `$readmemh` memory image, a bare string literal or a tool command line, decided from its BYTES by the adjudicator. It never was a parse input, so it is neither testimony nor DARK — it stays in the denominator as a stated fact about the corpus's composition, and the class is PERMANENT and bounded below. ⛔ Before `.13c.1` these rows were counted as DARK `chained_only`, a defect worklist no chaining could ever burn down.
 
 | class | rows | one-sided (unit) | ⚠️ one-sided (fragment) | DARK | not source |
 |---|---:|---:|---:|---:|---:|
-| `deferred:chained_only` | 4,927 | 1,037 | 151 | 3,739 | 0 |
+| `deferred:chained_only` | 4,933 | 1,037 | 151 | 3,745 | 0 |
 | `deferred:no_sv_key` | 596 | 544 | 0 | 52 | 0 |
 | `deferred:not_source_text` | 350 | 0 | 0 | 0 | 350 |
-| `deferred:svpp_owned` | 207 | 108 | 0 | 99 | 0 |
+| `deferred:svpp_owned` | 229 | 108 | 0 | 121 | 0 |
 | `deferred:impl_varying` | 90 | 6 | 0 | 84 | 0 |
 | `deferred:verilog_ams_lane` | 25 | 5 | 0 | 20 | 0 |
 | `deferred:ni_unimplemented` | 6 | 6 | 0 | 0 | 0 |
-| **TOTAL** | **6,201** | **1,706** | **151** | **3,994** | **350** |
+| **TOTAL** | **6,229** | **1,706** | **151** | **4,022** | **350** |
 
 ## Permanent deferrals — by construction, and BOUNDED (SV-CORPUS-GRAD.13f)
 
@@ -98,25 +99,25 @@ A permanent deferral is a CLAIM: no future work on the parser, the answer key or
 
 | class | rows | ceiling | why nothing can ever adjudicate it |
 |---|---:|---:|---|
-| `deferred:svpp_owned` | 207 | 207 | the row's conformance question is about the PREPROCESSOR (macro/conditional/include semantics the parser never sees) and is answered by the svpp lane, by design of the two-parser architecture — no grammar or key change on this lane can move it |
+| `deferred:svpp_owned` | 229 | 229 | the row's conformance question is about the PREPROCESSOR (macro/conditional/include semantics the parser never sees) and is answered by the svpp lane, by design of the two-parser architecture — no grammar or key change on this lane can move it |
 | `deferred:impl_varying` | 90 | 90 | the suite's own contract marks the verdict implementation-dependent (ispras TYPE VARYING) — the LRM leaves the behaviour to the implementation, so no answer key can exist |
 | `deferred:verilog_ams_lane` | 25 | 25 | the descriptor runs the file under -gverilog-ams: a different LANGUAGE (Verilog-AMS), outside IEEE 1800's scope; owned by the parked VERILOG-AMS tree, never by this grammar |
 | `deferred:ni_unimplemented` | 6 | 6 | the upstream runner marks the construct NI (Not Implemented) and skips the test, so the suite itself holds no expectation to compare against |
 | `deferred:not_source_text` | 350 | 350 | the bytes are not source text in any language this grammar describes - a $readmemh memory image (IEEE 1800-2017 §21.4), a bare string literal, a tool command line - so no answer key, no include/define chaining and no grammar revision can produce a verdict ABOUT SYSTEMVERILOG from them; the row is a statement about the corpus's composition |
-| **TOTAL** | **678** | | 4.2 % of the corpus, permanent by construction |
+| **TOTAL** | **700** | | 4.3 % of the corpus, permanent by construction |
 
 ⛔ `deferred:chained_only` and `deferred:no_sv_key` are NOT permanent: chaining and a future key could give those rows verdicts, so they stay open work. ⭐ The FRAGMENT-shaped one-sided positives above (SV-CORPUS-GRAD.13g) are ruled **unadjudicable as whole files**: a fragment parsed entry-relative would yield an accept with no key to compare against, so it cannot move the bar either way — the population stays visible in the fragment column and is never counted as testimony.
 
 ## The DARK half — can the row's own deferral reason even REACH the failure?
 
-A file containing no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or `` `include `` inlining: the preprocessed text is byte-identical to the raw text, so the parse fails identically after chaining. Measured over all 3,994 DARK rows (path oracle: the tracked corpus results file; every manifest row resolved to exactly one results row, 16,336/16,336, with agreeing outcomes — the census aborts otherwise).
+A file containing no `` ` `` byte anywhere cannot be altered by macro expansion, conditional resolution or `` `include `` inlining: the preprocessed text is byte-identical to the raw text, so the parse fails identically after chaining. Measured over all 4,022 DARK rows (path oracle: the tracked corpus results file; every manifest row resolved to exactly one results row, 16,336/16,336, with agreeing outcomes — the census aborts otherwise).
 
 | class | DARK rows | of which NO `` ` `` anywhere | what that means |
 |---|---:|---:|---|
-| `deferred:chained_only` | 3,739 | 178 | ⭐ **REFUTES the TEXTUAL half of the deferral** — no chaining can alter one byte of these files, so the parse fails identically expanded. What remains is the cross-file FACT channel (a `type_name` a sibling file declares), which is narrower, is not expansion, and is separately testable → `.13c` |
+| `deferred:chained_only` | 3,745 | 178 | ⭐ **REFUTES the TEXTUAL half of the deferral** — no chaining can alter one byte of these files, so the parse fails identically expanded. What remains is the cross-file FACT channel (a `type_name` a sibling file declares), which is narrower, is not expansion, and is separately testable → `.13c` |
 | `deferred:no_sv_key` | 52 | 18 | information only — the label is the absence of an upstream ANSWER KEY, which no directive could supply |
 | `deferred:not_source_text` | 0 | 0 | ⛔ **NOT MEASURED, and saying so is the point** — the census asks whether expansion could alter a failing PARSE of source text; these rows are not source text, so there is no parse for a directive to reach. They are excluded from DARK by construction (`.13c.1`) and appear here only so the class table is total |
-| `deferred:svpp_owned` | 99 | 8 | ⛔ refutes NOTHING — read them: verible excerpt-mode fragments and verilator `t_preproc_*_bad` EOF/string cases. Preprocessor relevance is the test's PURPOSE, not a directive in its text |
+| `deferred:svpp_owned` | 121 | 8 | ⛔ refutes NOTHING — read them: verible excerpt-mode fragments and verilator `t_preproc_*_bad` EOF/string cases. Preprocessor relevance is the test's PURPOSE, not a directive in its text |
 | `deferred:impl_varying` | 84 | 0 | information only — the LRM leaves the verdict implementation-defined regardless of directives |
 | `deferred:verilog_ams_lane` | 20 | 11 | information only — the label is about the DIALECT (Verilog-AMS), not directives |
 | `deferred:ni_unimplemented` | 0 | 0 | information only — upstream marks the construct not-implemented |
@@ -152,7 +153,13 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:chained_only` | 1 | Surelog: golden log ParamFile.log, ParamFileMacro.log, ParamFileNoTop.log, ParamFileOverr.log aborted with [FTL:] - no usable p… |
 | `deferred:chained_only` | 1 | Surelog: golden log PreprocLine.log reports [SNT:] syntax errors - upstream keys this single-source unit parse-level invalid - … |
 | `deferred:chained_only` | 1 | Surelog: no committed golden log for the unit - no upstream parse testimony |
-| `deferred:chained_only` | 1 | pinned .3.56: lines 11-12 `example line 10;` `example line 11;` at the top level - placeholder text the driver's +pipe-filter r… |
+| `deferred:chained_only` | 1 | pinned .3.56: lines 11-12 'example line 10;' 'example line 11;' at the top level - placeholder text the driver's +pipe-filter r… |
+| `deferred:chained_only` | 1 | pinned SVPP-EXPANSION.6c.2: line 9 'wire do;' - 'do' is a reserved keyword in every SystemVerilog edition (IEEE 1800-2017 Table… |
+| `deferred:chained_only` | 1 | pinned SVPP-EXPANSION.6c.2: origin line 35 'string s = 'FOO;' expands to a legal string literal ('FOO -> 'BAR -> '__FILE__, dat… |
+| `deferred:chained_only` | 1 | pinned SVPP-EXPANSION.6c.2: the same body - a bare 'begin end' at module-item level after 'string s = 'FOO;' (A.1.4; the .3.56 … |
+| `deferred:chained_only` | 1 | pinned SVPP-EXPANSION.6c.2: the same body as dep-files.sv - a bare 'begin end' at module-item level (A.1.4; the .3.56 ruling). … |
+| `deferred:chained_only` | 1 | pinned SVPP-EXPANSION.6c.2: the same body as dep-files.sv - a bare 'begin end' at module-item level (A.1.4; the .3.56 ruling); … |
+| `deferred:chained_only` | 1 | pinned SVPP-EXPANSION.6c.2: the same body as dep-files.sv - a bare 'begin end' at module-item level after 'string s = 'FOO;' (A… |
 | `deferred:chained_only` | 1 | sv-tests: .svh include payload, not a standalone unit |
 | `deferred:chained_only` | 1 | verilator: driver t_lint_in_inc_bad.py fails=True and golden .out reports a PARSE-STAGE error (.3.24: the parser's 'syntax erro… |
 | `deferred:no_sv_key` | 596 | ivtest: no regress-sv.list entry (other-target list / multi-file companion / unlisted) |
@@ -161,46 +168,68 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | `deferred:not_source_text` | 1 | not SystemVerilog source text: a tool command line - every non-blank line is a run of -/+ options, not SystemVerilog (SV-CORPUS… |
 | `deferred:svpp_owned` | 94 | sv-tests: :type: includes preprocessing - svpp-owned conformance (SVPP-EXPANSION lane) |
 | `deferred:svpp_owned` | 47 | verilator: preprocessor-target test (t_pp_*/t_preproc_*) - svpp-owned conformance |
-| `deferred:svpp_owned` | 24 | sv2v error-suite key: the intended failure is at the preprocessing stage (`include/`ifdef/macro machinery, stray backtick, dire… |
+| `deferred:svpp_owned` | 24 | sv2v error-suite key: the intended failure is at the preprocessing stage ('include/'ifdef/macro machinery, stray backtick, dire… |
 | `deferred:svpp_owned` | 5 | verible: '// verilog_syntax:' excerpt-mode fixture - a fragment parsed under a tool-specific mode, never a standalone unit |
-| `deferred:svpp_owned` | 2 | pinned SVPP-EXPANSION.6b.1: line 39 `localparam type p0_rq2_t = if0.y_if0.rq2_t;` - a type named THROUGH AN INTERFACE INSTANCE,… |
-| `deferred:svpp_owned` | 2 | pinned SVPP-EXPANSION.6b.1: line 57 `localparam type p0_rq2_t = if0.y_if0.rq2_t;` - a type named THROUGH AN INTERFACE INSTANCE,… |
+| `deferred:svpp_owned` | 2 | pinned SVPP-EXPANSION.6b.1: line 39 'localparam type p0_rq2_t = if0.y_if0.rq2_t;' - a type named THROUGH AN INTERFACE INSTANCE,… |
+| `deferred:svpp_owned` | 2 | pinned SVPP-EXPANSION.6b.1: line 57 'localparam type p0_rq2_t = if0.y_if0.rq2_t;' - a type named THROUGH AN INTERFACE INSTANCE,… |
 | `deferred:svpp_owned` | 1 | Surelog: golden log PreProcMacro.log reports [SNT:] syntax errors - upstream keys this single-source unit parse-level invalid -… |
-| `deferred:svpp_owned` | 1 | pinned .3.43: lines 37-41 `pure function bit [8-1:0] dpii_f_bit8 ... bit [32-1:0] dpii_f_bit32` - five UNCONDITIONAL packed-vec… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 17 `typedef enum [3:0] {` - an enum with a packed range and NO base type. IEEE 1800-2017 A.2.2… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 29 `localparam type tgt_id_t = bus_tgt_io.id_t;` - a type named THROUGH AN INTERFACE INSTANCE,… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 30 `localparam type cfg_id_t = bus_io.id_t;` - a type named THROUGH AN INTERFACE INSTANCE, the… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 30 `localparam type tgt_id_t = bus_tgt_io_a[0].id_t;` - a type named THROUGH AN INTERFACE INST… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 31 `localparam type bus_rq_t = bus_io.rq_t;` - a type named THROUGH AN INTERFACE INSTANCE, the… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 32 `localparam type p0_rq_t = if0[0].rq_t;` - a type named THROUGH AN INTERFACE INSTANCE, the … |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 34 `localparam type p0_rq_t = if0.rq_t;` - a type named THROUGH AN INTERFACE INSTANCE, the .13… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 35 `localparam type cc_index_t = types.cc_index_t;` - a type named THROUGH AN INTERFACE INSTAN… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 38 `typedef z_if0.x_if0.rq_t rq_t;` - a typedef reaching a type through TWO OR MORE hierarchic… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 40 `localparam type bus_rq_t = bus_io.rq_t;` - a type named THROUGH AN INTERFACE INSTANCE, the… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 41 `typedef if0.x_if0.rq_t rq_t;` - a typedef reaching a type through TWO OR MORE hierarchical… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 41 `typedef if0[0].x_if0.rq_t rq_t;` - a typedef reaching a type through TWO OR MORE hierarchi… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 42 `localparam type p0_rq2_t = if0.y_if0.rq2_t;` - a type named THROUGH AN INTERFACE INSTANCE,… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 42 `typedef io.types.a_t a_t;` - a typedef reaching a type through TWO OR MORE hierarchical st… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 42 `typedef y_if0.x_if_a[0].rq_t rq_t;` - a typedef reaching a type through TWO OR MORE hierar… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 43 `localparam type p0_rq2_t = if0.y_if0.rq2_t;` - a type named THROUGH AN INTERFACE INSTANCE,… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 44 `localparam type req_t = tgt_ports[0].req_t;` - a type named THROUGH AN INTERFACE INSTANCE,… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 44 `typedef io.types.a_t a_t;` - a typedef reaching a type through TWO OR MORE hierarchical st… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 44 `typedef io.types_mul.a_t a_mul_t;` - a typedef reaching a type through TWO OR MORE hierarc… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 46 `typedef wif.a_inst.data_t local_a_t;` - a typedef reaching a type through TWO OR MORE hier… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 48 `typedef io.types.sc_num_lines_t sc_num_lines_t;` - a typedef reaching a type through TWO O… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 49 `localparam type p0_rq2_t = if0.y_if0.rq2_t;` - a type named THROUGH AN INTERFACE INSTANCE,… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 50 `typedef io.types.tag_t tag_t;` - a typedef reaching a type through TWO OR MORE hierarchica… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 58 `typedef io.types.a_t a_t;` - a typedef reaching a type through TWO OR MORE hierarchical st… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 79 `typedef types.a_if0.a_t a_t;` - a typedef reaching a type through TWO OR MORE hierarchical… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 84 `typedef cca_io.tlb_io.r_chan_t m_r_chan_t;` - a typedef reaching a type through TWO OR MOR… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 87 `typedef cca_io.tlb_io_a.r_chan_t m_r_chan_a_t;` - a typedef reaching a type through TWO OR… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 92 `typedef io.types.addr_t addr_t;` - a typedef reaching a type through TWO OR MORE hierarchi… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 96 `typedef sc_io.types.a_if0.a_t inner_t;` - a typedef reaching a type through TWO OR MORE hi… |
-| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 99 `typedef sc_io.types.a_if0.a_t inner_t;` - a typedef reaching a type through TWO OR MORE hi… |
-| `deferred:svpp_owned` | 1 | sv2v error-suite pinned .8b.2: `include with apostrophe-quoted filename - 22.5 requires "..." or <...>; preprocessing-stage inv…` |
+| `deferred:svpp_owned` | 1 | pinned .3.43: lines 37-41 'pure function bit [8-1:0] dpii_f_bit8 ... bit [32-1:0] dpii_f_bit32' - five UNCONDITIONAL packed-vec… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 17 'typedef enum [3:0] {' - an enum with a packed range and NO base type. IEEE 1800-2017 A.2.2… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 29 'localparam type tgt_id_t = bus_tgt_io.id_t;' - a type named THROUGH AN INTERFACE INSTANCE,… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 30 'localparam type cfg_id_t = bus_io.id_t;' - a type named THROUGH AN INTERFACE INSTANCE, the… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 30 'localparam type tgt_id_t = bus_tgt_io_a[0].id_t;' - a type named THROUGH AN INTERFACE INST… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 31 'localparam type bus_rq_t = bus_io.rq_t;' - a type named THROUGH AN INTERFACE INSTANCE, the… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 32 'localparam type p0_rq_t = if0[0].rq_t;' - a type named THROUGH AN INTERFACE INSTANCE, the … |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 34 'localparam type p0_rq_t = if0.rq_t;' - a type named THROUGH AN INTERFACE INSTANCE, the .13… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 35 'localparam type cc_index_t = types.cc_index_t;' - a type named THROUGH AN INTERFACE INSTAN… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 38 'typedef z_if0.x_if0.rq_t rq_t;' - a typedef reaching a type through TWO OR MORE hierarchic… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 40 'localparam type bus_rq_t = bus_io.rq_t;' - a type named THROUGH AN INTERFACE INSTANCE, the… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 41 'typedef if0.x_if0.rq_t rq_t;' - a typedef reaching a type through TWO OR MORE hierarchical… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 41 'typedef if0[0].x_if0.rq_t rq_t;' - a typedef reaching a type through TWO OR MORE hierarchi… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 42 'localparam type p0_rq2_t = if0.y_if0.rq2_t;' - a type named THROUGH AN INTERFACE INSTANCE,… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 42 'typedef io.types.a_t a_t;' - a typedef reaching a type through TWO OR MORE hierarchical st… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 42 'typedef y_if0.x_if_a[0].rq_t rq_t;' - a typedef reaching a type through TWO OR MORE hierar… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 43 'localparam type p0_rq2_t = if0.y_if0.rq2_t;' - a type named THROUGH AN INTERFACE INSTANCE,… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 44 'localparam type req_t = tgt_ports[0].req_t;' - a type named THROUGH AN INTERFACE INSTANCE,… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 44 'typedef io.types.a_t a_t;' - a typedef reaching a type through TWO OR MORE hierarchical st… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 44 'typedef io.types_mul.a_t a_mul_t;' - a typedef reaching a type through TWO OR MORE hierarc… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 46 'typedef wif.a_inst.data_t local_a_t;' - a typedef reaching a type through TWO OR MORE hier… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 48 'typedef io.types.sc_num_lines_t sc_num_lines_t;' - a typedef reaching a type through TWO O… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 49 'localparam type p0_rq2_t = if0.y_if0.rq2_t;' - a type named THROUGH AN INTERFACE INSTANCE,… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 50 'typedef io.types.tag_t tag_t;' - a typedef reaching a type through TWO OR MORE hierarchica… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 58 'typedef io.types.a_t a_t;' - a typedef reaching a type through TWO OR MORE hierarchical st… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 79 'typedef types.a_if0.a_t a_t;' - a typedef reaching a type through TWO OR MORE hierarchical… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 84 'typedef cca_io.tlb_io.r_chan_t m_r_chan_t;' - a typedef reaching a type through TWO OR MOR… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 87 'typedef cca_io.tlb_io_a.r_chan_t m_r_chan_a_t;' - a typedef reaching a type through TWO OR… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 92 'typedef io.types.addr_t addr_t;' - a typedef reaching a type through TWO OR MORE hierarchi… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 96 'typedef sc_io.types.a_if0.a_t inner_t;' - a typedef reaching a type through TWO OR MORE hi… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6b.1: line 99 'typedef sc_io.types.a_if0.a_t inner_t;' - a typedef reaching a type through TWO OR MORE hi… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 142 ''MACRO_E(display);' with 'define MACRO_E(s) $display("s", '"s", '"ss"); - two '" macro st… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 18 ''checkh(r inside {[1492 +/- 2]}, 1'b1);' - the '+/-' tolerance range of an inside expressi… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 2 'task bar;' followed by ''uvm_warning(...)' - the same: a UVM macro used with no definition … |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 20 'generate' followed by 'begin : direct_ignored' - a bare (labelled) begin/end block directl… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 21 ''CREATE_VSEQ(my_vseq, {' - the file's own RUN line is '%slang %s 2>&1 \|\| true' then '--com… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 22 'bins auto[4];' - a bins declaration with NO '= { ... }' / '= default' right-hand side; IEE… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 27 'profile_data -model "x" -mtask "h7baded98__0" -cost 64'd1234' - Verilator profile-guided-o… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 3 'function f();' followed by ''uvm_info("msg_id", "message", UVM_LOW);' - the file includes n… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 31 'generate' followed by 'begin' - a bare begin/end block directly inside a generate region (… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 39 'dffr #4 park_reg(.din (next_pv[3:0]), ...)' - a parameter value assignment WITHOUT parenth… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 48 ''ASSERT_TRUE(5'{4'hF, 3'{1'b1, 1'b1}} == 27)' - a SIZED assignment-pattern-like '5'{...}';… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 51 'foreach (unpacked_array[i][j]) begin' - loop variables in SEPARATE bracket pairs: the SV-C… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 62 's1 = valf0ed()[4];' - a bit-select applied to a FUNCTION CALL's result; IEEE 1800-2017 A.8… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 65 'assert(cntB - 100 == cntA); else assert(cntB == cntA + 100);' - a ';' between the assertio… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 71 'cp_data64: coverpoint data64 { bins auto[4]; }' - a bins declaration with no right-hand si… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 76 ');' closes a MIXED port list (line 71 'clk /*verilator clocker*/,' omits direction, kind a… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 81 'delay #(.N(2), 8) i_delay0(clk, out3, out5);' - NAMED and ORDERED parameter assignments mi… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 9 '$display('"'FOO'");' - the '" macro-string form OUTSIDE macro text; IEEE 1800-2017 §22.5.3.… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 9 ''DUMP(InterfaceA)' with 'define DUMP(name) initial $display('"name W=%b ... %0d", ...)' - a… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 9 ''uselib libext=.v' - 'uselib is not a compiler directive of IEEE 1800-2017 clause 22 (nor o… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 90 'q = '{3{1'b1}, 1'b0};' - a REPLICATION inside an assignment pattern's expression list; IEE… |
+| `deferred:svpp_owned` | 1 | pinned SVPP-EXPANSION.6c.2: line 94 'generate' followed by 'begin' - a bare begin/end block directly inside a generate region (… |
+| `deferred:svpp_owned` | 1 | sv2v error-suite pinned .8b.2: 'include with apostrophe-quoted filename - 22.5 requires "..." or <...>; preprocessing-stage inv… |
 | `deferred:impl_varying` | 90 | ispras: TYPE VARYING - implementation-dependent verdict by suite contract (profile-boundary probe) |
 | `deferred:verilog_ams_lane` | 19 | ivtest: vvp_tests descriptor runs under -gverilog-ams - Verilog-AMS surface, outside the IEEE 1800 scope (VERILOG-AMS tree parked) |
-| `deferred:verilog_ams_lane` | 6 | SV-CORPUS-GRAD.3.39: every `begin_keywords in the file names a Verilog-AMS version_specifier ("VAMS-2.3" / "1800+VAMS") that IE…` |
+| `deferred:verilog_ams_lane` | 6 | SV-CORPUS-GRAD.3.39: every 'begin_keywords in the file names a Verilog-AMS version_specifier ("VAMS-2.3" / "1800+VAMS") that IE… |
 | `deferred:ni_unimplemented` | 1 | ivtest: vvp_tests descriptor(s) array_packed_sysfunct.json - type NI (Not Implemented): the upstream runner skips the test, so … |
 | `deferred:ni_unimplemented` | 1 | ivtest: vvp_tests descriptor(s) array_packed_value_list.json - type NI (Not Implemented): the upstream runner skips the test, s… |
 | `deferred:ni_unimplemented` | 1 | ivtest: vvp_tests descriptor(s) struct_packed_value_list.json - type NI (Not Implemented): the upstream runner skips the test, … |
@@ -210,25 +239,25 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 
 ## Under the PIPELINE — the same rows re-read through preprocess→parse (SVPP-EXPANSION.6c.1)
 
-> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`c2a12aca74d6a1f35c7889844be49c2e6ba6a555881deab0331e1033b93af43d`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
+> Input: `stimuli/sv/characterization/pipeline_readjudication.tsv` (`c149a72f4fcdc52bad78964ee54369a5dcdbedd68b283b30a3395569315036c8`) — the re-adjudication table (`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). A row the pipeline re-read takes its verdict from there; every other row keeps its raw bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a defect CANDIDATE on the bar until the corpus tree rules it.
 
-**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `8669/2606/5061/3779/30`** (raw: `7529/2606/6201/3994/9`).
+**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = `8698/2606/5032/3750/30`** (raw: `7501/2606/6229/4022/9`).
 
-- **ADJUDICATED: 8,669 rows (53.1 %)** (raw 7,529, +1,140)
+- **ADJUDICATED: 8,698 rows (53.2 %)** (raw 7,501, +1,197)
 - **ROUTED: 2,606 rows (16.0 %)** (raw 2,606, +0)
-- **NO VERDICT: 5,061 rows (31.0 %)** (raw 6,201, -1,140)
+- **NO VERDICT: 5,032 rows (30.8 %)** (raw 6,229, -1,197)
 
 | bucket | class under the pipeline | rows | % | why |
 |---|---|---:|---:|---|
 | ADJUDICATED | `match` | 5,695 | 34.9 % | expected and observed agree - the row testifies FOR the parser |
 | ADJUDICATED | `pipeline:corroborated` | 1,213 | 7.4 % | a must-accept row the raw lane explained away by preprocessing PASSES once preprocessed — the explanation held; the row testifies FOR the parser |
-| ADJUDICATED | `pipeline:must_reject:match_under_expansion` | 404 | 2.5 % | a row the key expects rejected IS rejected in its own text under the pipeline — the raw lane could not reach the construct |
+| ADJUDICATED | `pipeline:must_reject:match_under_expansion` | 433 | 2.7 % | a row the key expects rejected IS rejected in its own text under the pipeline — the raw lane could not reach the construct |
 | ADJUDICATED | `divergence:explained_store_gate` | 56 | 0.3 % | the sound store gate refuses a provably-undeclared type identifier (SV-PARSE-STRICT boundary); proven per row: the file parses once the demanded name is declared (.13w) |
 | ADJUDICATED | `pipeline:refuted:parser_question` | 21 | 0.1 % | a must-accept row that still fails in its OWN text once preprocessed, legal by the clause the disposition names — a defect candidate on the axis-2 bar, routed to SV-CORPUS-GRAD |
 | ADJUDICATED | `divergence:unexplained_rejects_valid` | 7 | 0.0 % | a known defect: valid SV the parser refuses (the axis-2 bar) |
 | ADJUDICATED | `divergence:unexplained_accepts_invalid` | 2 | 0.0 % | a known defect: invalid SV the parser accepts (the axis-2 bar) |
 | ROUTED | `deferred:v2005_profile_lane` | 2,606 | 16.0 % | adjudicated in adjudication_manifest_v2005.tsv, not lost |
-| NO VERDICT | `pipeline:chained:rejects_own_file` | 2,935 | 18.0 % | DARK UNDER THE PIPELINE: rejected in its own file under its derived context — the barrier behind the macro barrier (a cross-file declaration, mostly a class base), the library design's population |
+| NO VERDICT | `pipeline:chained:rejects_own_file` | 2,934 | 18.0 % | DARK UNDER THE PIPELINE: rejected in its own file under its derived context — the barrier behind the macro barrier (a cross-file declaration, mostly a class base), the library design's population |
 | NO VERDICT | `deferred:no_sv_key` | 596 | 3.6 % | no upstream answer key exists - expectation underivable |
 | NO VERDICT | `deferred:not_source_text` | 350 | 2.1 % | the file is not SystemVerilog source text at all (a $readmemh memory image, a bare string literal, a tool command line) - it testifies to nothing about the parser; a CORPUS-COMPOSITION fact, stated per row (SV-CORPUS-GRAD.13c.1) |
 | NO VERDICT | `pipeline:chained:hollow` | 236 | 1.4 % | the rejection lands in an included file |
@@ -237,7 +266,6 @@ A file containing no `` ` `` byte anywhere cannot be altered by macro expansion,
 | NO VERDICT | `pipeline:refuted:cross_file_base_class` | 103 | 0.6 % | the class header's base is declared in another file of the unit (the library design, SVPP-EXPANSION.6d) |
 | NO VERDICT | `deferred:impl_varying` | 90 | 0.6 % | LRM leaves the behaviour implementation-defined |
 | NO VERDICT | `pipeline:svpp_owned:refused_engine` | 30 | 0.2 % | conformance owned by the preprocessor lane |
-| NO VERDICT | `pipeline:refuted:key_question` | 28 | 0.2 % | the parser is right to refuse; the row's expectation awaits a pin (the .13y family) — no verdict until the key rules |
 | NO VERDICT | `pipeline:svpp_owned:rejects_own_file` | 28 | 0.2 % | conformance owned by the preprocessor lane; rejected |
 | NO VERDICT | `deferred:verilog_ams_lane` | 25 | 0.2 % | Verilog-AMS, a different language family |
 | NO VERDICT | `pipeline:chained:refused_engine` | 15 | 0.1 % | refused by the preprocessor |

@@ -8821,7 +8821,11 @@ is not a promotion), and the probe arm it needs.
   `bins x[4];` with no right-hand side A.2.11 ×2; `` `uselib ``; Verilator PGO text in a `.v`; the `` `" `` forms outside
   macro text / closed by `"` §22.5.3.2 ×2; `N'{…}`; `do` as a Verilog net name; UVM macros in include-less lint fixtures
   ×2; a slang compat-only constraint form; and the `.3.56` / `.13y` / `.3.51` / `.13x.d` rulings re-applied to 12
-  more rows). The pipeline is the instrument that reached them; this tree owns the grammar and the key. Axis 2's honest bound is therefore no longer 319–582: 223 refuted rows await a
+  more rows). The pipeline is the instrument that reached them; this tree owns the grammar and the key. ⭐ `.6c.2`
+  (`-0016`) PINNED the 28 key-question rows `must_reject` in `EXTRA_PINNED` with a reproducer/control measurement each; the raw
+  key demotes them (22 `svpp_owned`, 6 `chained_only`) and the pipeline cashes them. 🔎 **A 2023-LANE GAP found on the way:
+  the sv_2023 profile ACCEPTS `inside {[a +/- b]}` (11.4.13) and REFUSES `inside {[a +%- b]}` on the next line
+  (`t_inside_tolerance_unsup.v:20`) — a form 1800-2023 admits beside `+/-`; owned by `.14`.** Axis 2's honest bound is therefore no longer 319–582: 223 refuted rows await a
   disposition each (103 of them a `class … extends` header whose base lives in `uvm_pkg` — the sv-tests
   `*-uvm.sv` files, the library design's population).
 - **THE ONLY INSTRUMENT THAT SETTLES THEM IS `SVPP-EXPANSION` ITSELF** — expand each file, re-parse,
