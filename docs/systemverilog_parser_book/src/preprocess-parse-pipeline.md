@@ -119,26 +119,67 @@ stderr as a per-file measurement column, and an unconditional line would edit a 
 
 ## What the pipeline does today, measured
 
+The pipeline lane (`stimuli/run_pipeline_lane.sh`, joined against the raw lane by
+`stimuli/sv/pipeline_vs_raw.py`; the tracked report is
+`stimuli/sv/characterization/pipeline_characterization.md`, whose identity block names the probe,
+grammar, parser, context and dumps every number below depends on) parses every source file of a
+corpus suite through the chain under a context DERIVED from the corpus itself
+(`stimuli/sv/pipeline_context.py`: for every `` `include `` an includer's own directory does not
+satisfy, the one directory that does; an ambiguous name is reported, never guessed). The first
+measurement, on the two suites the raw lane cannot judge at all (every one of their rows is
+`deferred:chained_only` in the raw answer key), release probe, `sv_2017`, 45 s wall:
+
+| suite | rows | raw lane pass | pipeline pass | pipeline fail | preprocessor refused | Δ pass |
+|---|---:|---:|---:|---:|---:|---:|
+| OpenTitan | 3 983 | 817 | 1 069 | 2 879 | 35 | +252 |
+| UVM 2020.3.1 (file by file) | 174 | 33 | 28 | 146 | 0 | −5 |
+
+Read the transitions, not the delta. On OpenTitan 324 rows went `fail → pass` — RTL and DV files
+whose only barrier was a macro or an `` `include `` — and 68 went `pass → fail`; **all 68 are hollow
+raw passes**: the raw parse had accepted a file that only `include`s others because the directive
+is opaque to it, and the pipeline pulled the included text in and judged it (its rejection lands in
+the included file, not in the row's own). The same holds for UVM's six. Not one `pass → fail` lands
+in the row's own file.
+
+The 35 preprocessor refusals are the context and three engine defects, not the parser: 23 are
+`` `include ``s of a name that exists under several `top_*` variants (a per-file context only a
+build system's `.core` file supplies), 4 a `` `define `` whose formal list spans lines, 1 a
+`` `include `MACRO ``, 1 a conditional inside a macro body — each owned by a leaf.
+
+**What the rejections sit on once the macro barrier is gone.** The origin line of every remaining
+rejection, read from the tree and bucketed by construct:
+
+| construct at the origin line | rows | share of 3 025 |
+|---|---:|---:|
+| a class header with a base class (`class X extends Y`) | 2 048 | 67.7 % |
+| other (covergroups, assertions, …) | 790 | 26.1 % |
+| a parameter port list with a type default (`#(type CFG_T = other_file_cfg`) | 80 | 2.6 % |
+| a `::`-scoped name | 42 | 1.4 % |
+| a `uvm_*` type name, a `typedef`, a subroutine header | 62 | 2.0 % |
+| the `const local … = new(…)` construct of `uvm_transaction.svh:443` | 2 | 0.1 % |
+
+Two thirds of the residue is one fact: the base class of a `class … extends` lives in another file
+of the compilation unit (a package the row `import`s, or a sibling `.sv`), and the parser's
+store gate refuses a base it has not seen declared — the strict reading `SV-PARSE-STRICT.2` escaped
+for net types and not for class bases. That is a cross-file DECLARATION barrier, exactly the one
+the library flags (`--lib-out` / `--lib-in`) exist for; sizing it was the point of the measurement,
+and the number is now on the table for the leaf that decides how a per-file lane supplies it.
+
 - The seven curated real-design cases of the external-corpus triage gate (UVM's two packages,
   scr1, friscv, VeeR) run through the single command with the manifest's include directories:
   the expansion of `uvm_pkg.sv` (3 022 806 bytes from 166 included files) is **byte-identical**
   to the shell gate's, and scr1 / friscv / VeeR accept on both profiles.
-- UVM's `uvm_pkg.sv` currently **rejects** at `src/base/uvm_transaction.svh:443` —
-  `const local uvm_event_pool events = new("events");` — on both profiles. That is not a
-  preprocessing defect: IEEE 1800-2017 A.2.7 gives a `const`-first class property only the
-  alternative `const { class_item_qualifier } data_type const_identifier [ = constant_expression ] ;`,
-  and `new(…)` is not a `constant_expression` (the `local const …` order is derivable through
+- UVM's `uvm_pkg.sv` — the unit-level reading of that suite — currently **rejects** at
+  `src/base/uvm_transaction.svh:443`, `const local uvm_event_pool events = new("events");`, on both
+  profiles. That is not a preprocessing defect: IEEE 1800-2017 A.2.7 gives a `const`-first class
+  property only the alternative
+  `const { class_item_qualifier } data_type const_identifier [ = constant_expression ] ;`, and
+  `new(…)` is not a `constant_expression` (the `local const …` order is derivable through
   `data_declaration`, which admits a `class_new` initializer). Every commercial simulator accepts
-  the UVM spelling; PGEN accepted it too until release `1.0.2xx` of 2026-09-04 made `local` a
-  reserved word (it had lexed as an identifier and the line mis-parsed into an accept). The policy
-  question — a documented tool-extension arm for a construct the de-facto standard library relies
-  on, versus the letter of Annex A — is open in `docs/tasks/SVPP-EXPANSION.md` (`.5`).
-- A single file parsed alone can only report what it contains. The first corpus smoke turned an
-  RTL file the raw lane could not judge (`hw/ip/uart/rtl/uart.sv`, deferred as macro-dependent)
-  into a clean **accept**, and turned two DV files' macro barrier into the barrier behind it: a
-  class type declared in another file (`uvm_reg_addr_t`, `dv_base_env_cfg`). The pipeline removes
-  the preprocessing barrier; the cross-file declaration barrier is the library mechanism's
-  (`--lib-out` / `--lib-in`) and the parser's store gates, and the corpus lane measures its size.
+  the UVM spelling; PGEN accepted it too until the release of 2026-09-04 made `local` a reserved
+  word (it had lexed as an identifier and the line mis-parsed into an accept). The policy question
+  — a documented tool-extension arm for a construct the de-facto standard library relies on, versus
+  the letter of Annex A — is open in `docs/tasks/SVPP-EXPANSION.md` (`.5`).
 
 ## Boundaries
 

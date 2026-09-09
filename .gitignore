@@ -424,6 +424,8 @@ universal_test_runner_*.log
 stimuli/*/characterization/results.tsv
 stimuli/*/characterization/results_v2005.tsv
 stimuli/*/characterization/results_sv2023.tsv
+# The preprocess→parse lane's dump (SVPP-EXPANSION.4) — track pipeline_characterization.md only.
+stimuli/*/characterization/pipeline_results.tsv
 stimuli/*/characterization/durations.tsv
 stimuli/*/characterization/durations_v2005.tsv
 stimuli/*/characterization/durations_sv2023.tsv

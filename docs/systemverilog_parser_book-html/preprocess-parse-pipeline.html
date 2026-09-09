@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-20a626fa.js";
+            window.path_to_searchindex_js = "searchindex-449561c7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -292,27 +292,75 @@ cannot place (an empty expansion) reads <code>origin=unknown</code> rather than 
 <p>It is opt-in for the same reason the stack-probe line is: PGEN’s corpus runner captures the probe’s
 stderr as a per-file measurement column, and an unconditional line would edit a tracked artifact.</p>
 <h2 id="what-the-pipeline-does-today-measured"><a class="header" href="#what-the-pipeline-does-today-measured">What the pipeline does today, measured</a></h2>
+<p>The pipeline lane (<code>stimuli/run_pipeline_lane.sh</code>, joined against the raw lane by
+<code>stimuli/sv/pipeline_vs_raw.py</code>; the tracked report is
+<code>stimuli/sv/characterization/pipeline_characterization.md</code>, whose identity block names the probe,
+grammar, parser, context and dumps every number below depends on) parses every source file of a
+corpus suite through the chain under a context DERIVED from the corpus itself
+(<code>stimuli/sv/pipeline_context.py</code>: for every <code>`include</code> an includer’s own directory does not
+satisfy, the one directory that does; an ambiguous name is reported, never guessed). The first
+measurement, on the two suites the raw lane cannot judge at all (every one of their rows is
+<code>deferred:chained_only</code> in the raw answer key), release probe, <code>sv_2017</code>, 45 s wall:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>suite</th><th style="text-align: right">rows</th><th style="text-align: right">raw lane pass</th><th style="text-align: right">pipeline pass</th><th style="text-align: right">pipeline fail</th><th style="text-align: right">preprocessor refused</th><th style="text-align: right">Δ pass</th></tr>
+</thead>
+<tbody>
+<tr><td>OpenTitan</td><td style="text-align: right">3 983</td><td style="text-align: right">817</td><td style="text-align: right">1 069</td><td style="text-align: right">2 879</td><td style="text-align: right">35</td><td style="text-align: right">+252</td></tr>
+<tr><td>UVM 2020.3.1 (file by file)</td><td style="text-align: right">174</td><td style="text-align: right">33</td><td style="text-align: right">28</td><td style="text-align: right">146</td><td style="text-align: right">0</td><td style="text-align: right">−5</td></tr>
+</tbody>
+</table>
+</div>
+<p>Read the transitions, not the delta. On OpenTitan 324 rows went <code>fail → pass</code> — RTL and DV files
+whose only barrier was a macro or an <code>`include</code> — and 68 went <code>pass → fail</code>; <strong>all 68 are hollow
+raw passes</strong>: the raw parse had accepted a file that only <code>include</code>s others because the directive
+is opaque to it, and the pipeline pulled the included text in and judged it (its rejection lands in
+the included file, not in the row’s own). The same holds for UVM’s six. Not one <code>pass → fail</code> lands
+in the row’s own file.</p>
+<p>The 35 preprocessor refusals are the context and three engine defects, not the parser: 23 are
+<code>`include</code>s of a name that exists under several <code>top_*</code> variants (a per-file context only a
+build system’s <code>.core</code> file supplies), 4 a <code>`define</code> whose formal list spans lines, 1 a
+<code>`include `MACRO</code>, 1 a conditional inside a macro body — each owned by a leaf.</p>
+<p><strong>What the rejections sit on once the macro barrier is gone.</strong> The origin line of every remaining
+rejection, read from the tree and bucketed by construct:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>construct at the origin line</th><th style="text-align: right">rows</th><th style="text-align: right">share of 3 025</th></tr>
+</thead>
+<tbody>
+<tr><td>a class header with a base class (<code>class X extends Y</code>)</td><td style="text-align: right">2 048</td><td style="text-align: right">67.7 %</td></tr>
+<tr><td>other (covergroups, assertions, …)</td><td style="text-align: right">790</td><td style="text-align: right">26.1 %</td></tr>
+<tr><td>a parameter port list with a type default (<code>#(type CFG_T = other_file_cfg</code>)</td><td style="text-align: right">80</td><td style="text-align: right">2.6 %</td></tr>
+<tr><td>a <code>::</code>-scoped name</td><td style="text-align: right">42</td><td style="text-align: right">1.4 %</td></tr>
+<tr><td>a <code>uvm_*</code> type name, a <code>typedef</code>, a subroutine header</td><td style="text-align: right">62</td><td style="text-align: right">2.0 %</td></tr>
+<tr><td>the <code>const local … = new(…)</code> construct of <code>uvm_transaction.svh:443</code></td><td style="text-align: right">2</td><td style="text-align: right">0.1 %</td></tr>
+</tbody>
+</table>
+</div>
+<p>Two thirds of the residue is one fact: the base class of a <code>class … extends</code> lives in another file
+of the compilation unit (a package the row <code>import</code>s, or a sibling <code>.sv</code>), and the parser’s
+store gate refuses a base it has not seen declared — the strict reading <code>SV-PARSE-STRICT.2</code> escaped
+for net types and not for class bases. That is a cross-file DECLARATION barrier, exactly the one
+the library flags (<code>--lib-out</code> / <code>--lib-in</code>) exist for; sizing it was the point of the measurement,
+and the number is now on the table for the leaf that decides how a per-file lane supplies it.</p>
 <ul>
 <li>The seven curated real-design cases of the external-corpus triage gate (UVM’s two packages,
 scr1, friscv, VeeR) run through the single command with the manifest’s include directories:
 the expansion of <code>uvm_pkg.sv</code> (3 022 806 bytes from 166 included files) is <strong>byte-identical</strong>
 to the shell gate’s, and scr1 / friscv / VeeR accept on both profiles.</li>
-<li>UVM’s <code>uvm_pkg.sv</code> currently <strong>rejects</strong> at <code>src/base/uvm_transaction.svh:443</code> —
-<code>const local uvm_event_pool events = new("events");</code> — on both profiles. That is not a
-preprocessing defect: IEEE 1800-2017 A.2.7 gives a <code>const</code>-first class property only the
-alternative <code>const { class_item_qualifier } data_type const_identifier [ = constant_expression ] ;</code>,
-and <code>new(…)</code> is not a <code>constant_expression</code> (the <code>local const …</code> order is derivable through
+<li>UVM’s <code>uvm_pkg.sv</code> — the unit-level reading of that suite — currently <strong>rejects</strong> at
+<code>src/base/uvm_transaction.svh:443</code>, <code>const local uvm_event_pool events = new("events");</code>, on both
+profiles. That is not a preprocessing defect: IEEE 1800-2017 A.2.7 gives a <code>const</code>-first class
+property only the alternative
+<code>const { class_item_qualifier } data_type const_identifier [ = constant_expression ] ;</code>, and
+<code>new(…)</code> is not a <code>constant_expression</code> (the <code>local const …</code> order is derivable through
 <code>data_declaration</code>, which admits a <code>class_new</code> initializer). Every commercial simulator accepts
-the UVM spelling; PGEN accepted it too until release <code>1.0.2xx</code> of 2026-09-04 made <code>local</code> a
-reserved word (it had lexed as an identifier and the line mis-parsed into an accept). The policy
-question — a documented tool-extension arm for a construct the de-facto standard library relies
-on, versus the letter of Annex A — is open in <code>docs/tasks/SVPP-EXPANSION.md</code> (<code>.5</code>).</li>
-<li>A single file parsed alone can only report what it contains. The first corpus smoke turned an
-RTL file the raw lane could not judge (<code>hw/ip/uart/rtl/uart.sv</code>, deferred as macro-dependent)
-into a clean <strong>accept</strong>, and turned two DV files’ macro barrier into the barrier behind it: a
-class type declared in another file (<code>uvm_reg_addr_t</code>, <code>dv_base_env_cfg</code>). The pipeline removes
-the preprocessing barrier; the cross-file declaration barrier is the library mechanism’s
-(<code>--lib-out</code> / <code>--lib-in</code>) and the parser’s store gates, and the corpus lane measures its size.</li>
+the UVM spelling; PGEN accepted it too until the release of 2026-09-04 made <code>local</code> a reserved
+word (it had lexed as an identifier and the line mis-parsed into an accept). The policy question
+— a documented tool-extension arm for a construct the de-facto standard library relies on, versus
+the letter of Annex A — is open in <code>docs/tasks/SVPP-EXPANSION.md</code> (<code>.5</code>).</li>
 </ul>
 <h2 id="boundaries"><a class="header" href="#boundaries">Boundaries</a></h2>
 <ul>

@@ -23,6 +23,7 @@ the generation-input / memo observability.
 |---|---|---|
 | Does a file parse? Where does it fail? | `parseability_probe --parse` | `parseability_probe --parse <g> f --profile P` (every family's error carries `furthest_position` — the deep locus, not the shallow one; see [the chapter](parseability-probe-debug.md#furthest-position-error-diagnostic)) |
 | What AST did the parse produce? | `--parse-dump-ast-pretty` | `parseability_probe --parse-dump-ast-pretty <g> f out.json --profile P` |
+| **Does a SystemVerilog file parse AFTER PREPROCESSING — and what does a macro-heavy corpus suite read through the pipeline?** | `--preprocess` / the pipeline lane | `parseability_probe --parse systemverilog f --profile sv_2017 --preprocess --sv-include-dir D…` (a rejection carries `[origin=FILE:LINE:COL]`, exit 3 = the preprocessor refused); for a suite `stimuli/run_pipeline_lane.sh <suite>…` then `stimuli/sv/pipeline_vs_raw.py` → `stimuli/sv/characterization/pipeline_characterization.md` (TOOLBOX §1.1b) |
 | Which rules dominate a slow/stuck parse? | `--dump-rule-call-counts` | `parseability_probe --parse <g> f --dump-rule-call-counts 20` |
 | Why did a `@predicate` reject a branch? | semantic trace | `PGEN_TRACE_VERBOSITY=debug parseability_probe --parse <g> f --trace-rules <rule>` |
 | **Is a (regex) reject grammar-owned or validator-owned (load-bearing)?** | the message-source probe | `parseability_probe --parse regex f --profile pcre2` → classify by the reject MESSAGE (see [below](#is-a-reject-grammar-owned-or-validator-owned-the-message-source-probe)) |

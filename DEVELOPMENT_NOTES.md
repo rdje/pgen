@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.4 (`PGEN-SVPP-EXPANSION-0005`): read the split, not the delta
+
+- **A raw pass on an include hub is hollow.** The raw lane accepts a file that only `include`s others because the directive is opaque to it; the pipeline pulls the text in and judges it. 74 of the 4 157 rows lost their raw pass this way and every one of them rejects in the INCLUDED file — the report splits `pass → fail` by where the rejection lands, because the delta alone (+247) would have hidden both the 324 recognised and the 74 revoked.
+- **Derive the context, report the ambiguity, never guess it.** 29 OpenTitan include names exist under several `top_*` variants; picking one would have turned an honest `pp_fail` into a silently wrong expansion. The derivation emits the 53 directories that resolve uniquely and prints the 29 with their candidates; the per-file answer is the build system's `.core`, which is `.4b`'s job.
+- **Bucket the origin line, not the origin file.** With one rejection per class file the top-files table is flat and says nothing; reading the rejecting LINE from the tree and matching a short ordered regex list says two thirds of the residue is one fact — a base class declared elsewhere. The instrument that names the class of a barrier is worth more than the one that counts it.
+- **The engine is not where the residue is.** 6 of 4 157 rows refuse on the preprocessor's own defects; 29 on context; 3 025 on cross-file declarations the parser's store gates demand. The pipeline did what the director said it would — it moved the question from the preprocessor to the compilation unit.
+- **Promotion**: declined — `promotion: declined (the lesson lives in the report's prose and TOOLBOX §1.1b)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.3 (`PGEN-SVPP-EXPANSION-0004`): a tracked gate number is a reading of the tree it ran on
 
 - **Re-execute a gate's steps on HEAD before writing an acceptance criterion against its summary.** The triage gate's `summary.txt` said 14/14 on 2026-08-24; 32 grammar commits later the same two steps by hand read 10/14. The single-command chain did not "fail to reproduce the gate" — it reproduced the gate exactly (byte-identical expansion, the same parse verdict on the gate's own artifact) and the gate's number was the stale half. An operator-invoked gate with an untracked summary is a reading nobody re-takes.

@@ -136,6 +136,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
 |---|---|
 | **"A rule misbehaves / a quantifier iterates once / my rule seems ignored" — ASK FIRST: is that rule even the ENTRY?** | [1.1 first question](#11---parse--supports) — the entry is the rule DEFINED FIRST; `--lint-grammar` will not tell you, `--report-certificate-coverage` will |
 | "Does this file parse? Where does it fail?" | [1.1 `--parse`](#11---parse--supports) + [3.2 furthest-position](#32-furthest-position-error-diagnostic) |
+| **"Does this file parse AFTER PREPROCESSING — and what does the whole macro-heavy corpus read through the pipeline?"** — ⛔ a raw `--parse` verdict on a file that `include`s or uses a macro is not a parser verdict; a raw `pass` on an include hub is HOLLOW | [1.1 `--preprocess`](#11---parse--supports) for one file; [1.1b the pipeline lane](#11b-the-preprocessparse-lane--what-a-corpus-row-reads-after-preprocessing) for a suite — `stimuli/run_pipeline_lane.sh`, joined against the raw lane by `stimuli/sv/pipeline_vs_raw.py` |
 | **"The probe said `stream did not contain valid UTF-8` / the reported position looks shifted"** | the probe DECODES (BOM → UTF-8/UTF-16 → ISO-8859-1) since `SV-CORPUS-GRAD.12c.1` and prints `source-encoding: …` on stderr for anything that is not plain UTF-8. ⛔ Those positions are offsets into the **decoded** text, not the file. A remaining refusal means a BOM that CONTRADICTS the body — the message names the byte offset |
 | "What AST did it produce? Is the shape right?" | [1.2 `--parse-dump-ast-pretty`](#12---parse-dump-ast-pretty) |
 | **"Parse an input against an ARBITRARY / synthetic grammar (not registered)?"** | **[1.5b `--interpret-parse`](#15b---interpret-parse--the-interpreter-as-a-cli-one-command-no-codegen-no-compile) — START HERE, it is one command** · [1.3 the `scratch` slot](#13-the-scratch-slot--drive-the-toolbox-on-an-arbitrary-grammar) (full CLI toolbox incl. `--trace-rules`; authoritative by construction) · [1.4 compile-and-run](#14-the-compile-and-run-harness--parse-an-arbitrary-grammar-with-no-registry-edit--no-pgen-rebuild) (Rust API, authoritative by construction) · [1.5 the interpreter](#15-the-grammar-ast-interpreter--parse-an-arbitrary-grammar-in-process-with-no-codegen--no-compile) (Rust API) |
@@ -232,6 +233,42 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   the canonical entry — so only the rule name differs. (See 2.1 for the same hazard under tracing.)
 - **OUTPUT:** `parse_full passed for grammar '…' on '…'` (rc 0), or an error line carrying both the surface position and the `furthest_position` (see 3.2).
 - **Profiles:** SV accepts `2017`/`sv_2017`/`ieee1800-2017` and the `2023`/`1364-2005` equivalents — the request spellings are GRAMMAR-DECLARED via `@profile_alias` in `systemverilog.ebnf` (PROFILE-ALIAS.2; the generated parser carries them in `GRAMMAR_PROFILE_ALIASES` and resolves them case-insensitively in `set_grammar_profile`).
+
+### 1.1b The preprocess→parse LANE — what a corpus row reads AFTER preprocessing
+- **WHAT:** `stimuli/run_pipeline_lane.sh <suite>…` runs every source file of a corpus suite through
+  `parseability_probe --parse systemverilog FILE --profile sv_2017 --preprocess <the suite's context>`
+  and writes `stimuli/sv/characterization/pipeline_results.tsv` (`suite status relpath secs rc
+  furthest origin`, five statuses: `pass` / `fail` / `pp_fail` (rc 3, the preprocessor refused) /
+  `timeout` / `crash`); `stimuli/sv/pipeline_vs_raw.py` joins it row for row with the raw lane's
+  `results.tsv` and the answer key's `adjudication_manifest.tsv` and writes the TRACKED report
+  `stimuli/sv/characterization/pipeline_characterization.md` (per-suite table, the raw→pipeline
+  transition matrix with `pass → fail` split into HOLLOW raw passes — the rejection lands in an
+  included file — and own-file ones, the by-adjudication-class table, the top ORIGIN files and lines,
+  the `pp_fail` reasons, and the context the lane ran under). The context itself is DERIVED from the
+  corpus by `stimuli/sv/pipeline_context.py` (`--write` / `--check` / `--self-test`): for every
+  `` `include "NAME" `` that its includer's own directory does not satisfy, the ONE directory that
+  does; an ambiguous name is REPORTED with its candidates, never guessed. `SVPP-EXPANSION.4`.
+- **WHEN:** any *"how much of this corpus does the SV front end actually recognise?"* question —
+  the raw lane defers every macro-dependent row (`deferred:chained_only`, `explained_svpp_*`), so
+  the raw number is grammar-development scaffolding and this lane's is the release reading; before
+  believing a raw `pass` on an include hub; and to find WHERE the rejections land once the macro
+  barrier is gone (the origin tables name the header line most includers die on).
+- **HOW:**
+  ```bash
+  python3 stimuli/sv/pipeline_context.py --write                       # (re)derive the context; --check in a gate
+  scripts/run_with_memory_guard.sh --budget-mb 12288 --timeout-s 3600 -- \
+      env PGEN_PIPELINE_JOBS=8 stimuli/run_pipeline_lane.sh uvm-core opentitan
+  python3 stimuli/sv/pipeline_vs_raw.py                                # → pipeline_characterization.md + one summary line
+  ```
+- **OUTPUT:** `PIPELINE-LANE: files=N pass=… fail=… pp_fail=… timeout=… crash=… wall_s=… probe=… timeout_s=60 jobs=8`
+  and `PIPELINE-VS-RAW: suites=… rows=… raw_pass=… pipeline_pass=… pipeline_fail=… pp_fail=… …`.
+- ⛔ **READ THE SPLIT, NOT THE DELTA.** `Δ pass` can be NEGATIVE on a suite whose raw passes were hollow
+  (measured on `uvm-core`: raw 33 pass, pipeline 28 — all six `pass → fail` land in an included header,
+  the honest verdict arriving). ⛔ A `pp_fail` is not a parser verdict: it is a context gap (an ambiguous
+  or absent include) or a preprocessor defect, and the reason table says which. ⛔ The lane parses each
+  row as its OWN one-file unit: a `.svh` fragment of a package fails on cross-file facts exactly as the
+  raw lane's `FRAGMENT-*` class predicts; the unit-level reading of such a suite is its package files
+  (for UVM, `uvm_pkg.sv` + `uvm_compat_pkg.sv`, run by the triage cases).
 
 ### 1.2 `--parse-dump-ast-pretty`
 - **WHAT:** parse + write the typed AST as pretty JSON (`--parse-dump-ast` for compact).
