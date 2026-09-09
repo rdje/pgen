@@ -20,6 +20,9 @@
 #   (1) CONTEXT — `pipeline_context.py --check`: both tracked context tables equal a fresh derivation
 #       from the tree. Always evaluable (the corpus submodules being absent is itself reported by
 #       the tool, per suite, as NOT EVALUATED). HARD on drift.
+#   (3) READJUDICATION — `pipeline_readjudication.py --check` (SVPP-EXPANSION.6a): the tracked
+#       re-adjudication report + per-row table (the deferred population re-read under the pipeline)
+#       equal a fresh render; the same NOT EVALUATED / REFUSED handling as arm (2).
 #   (2) REPORT — `pipeline_vs_raw.py --check`: the tracked report equals a fresh render of the two
 #       dumps on this tree, the `parse binary` digest row and the `Measured at HEAD` line masked (a
 #       rebuilt probe and the commit the render ran on are provenance, not staleness — the same
@@ -43,7 +46,8 @@ cd "$ROOT"
 TAG="PIPELINE-LANE-CURRENCY"
 CTX_TOOL=stimuli/sv/pipeline_context.py
 REPORT_TOOL=stimuli/sv/pipeline_vs_raw.py
-[ -f "$CTX_TOOL" ] && [ -f "$REPORT_TOOL" ] || { echo "$TAG: REFUSE — $CTX_TOOL or $REPORT_TOOL is missing" >&2; exit 2; }
+READJ_TOOL=stimuli/sv/pipeline_readjudication.py   # SVPP-EXPANSION.6a: the deferred population re-read (arm 3)
+[ -f "$CTX_TOOL" ] && [ -f "$REPORT_TOOL" ] && [ -f "$READJ_TOOL" ] || { echo "$TAG: REFUSE — $CTX_TOOL, $REPORT_TOOL or $READJ_TOOL is missing" >&2; exit 2; }
 
 run_arms() {
   local rc=0 out
@@ -52,14 +56,19 @@ run_arms() {
   out="$(python3 "$REPORT_TOOL" --check 2>&1)"; local r2=$?
   if [ $r2 -ne 0 ]; then echo "$TAG: ✗ (2) REPORT — $(printf '%s' "$out" | grep -E 'DRIFT|REFUSED' | tail -1 | cut -c1-200)" >&2; rc=1
   else echo "$TAG: (2) REPORT — $(printf '%s' "$out" | grep -E '^PIPELINE-VS-RAW: (OK|NOT EVALUATED)' | tail -1 | cut -c1-160)"; fi
+  # arm (3) — SVPP-EXPANSION.6a: the tracked re-adjudication report + per-row table equal a fresh render
+  out="$(python3 "$READJ_TOOL" --check 2>&1)"; local r3=$?
+  if [ $r3 -ne 0 ]; then echo "$TAG: ✗ (3) READJUDICATION — $(printf '%s' "$out" | grep -E 'DRIFT|REFUSED' | tail -1 | cut -c1-200)" >&2; rc=1
+  else echo "$TAG: (3) READJUDICATION — $(printf '%s' "$out" | grep -E '^PIPELINE-READJUDICATION: (OK|NOT EVALUATED)' | tail -1 | cut -c1-160)"; fi
   return $rc
 }
 
 if [ "${1:-}" = "--self-test" ]; then
   fails=0
   CTX=stimuli/sv/pipeline_context.tsv; REP=stimuli/sv/characterization/pipeline_characterization.md; DUMP=stimuli/sv/characterization/pipeline_results.tsv
-  cp "$CTX" "$CTX.selftest.bak"; cp "$REP" "$REP.selftest.bak"; [ -f "$DUMP" ] && cp "$DUMP" "$DUMP.selftest.bak"
-  restore() { mv -f "$CTX.selftest.bak" "$CTX"; mv -f "$REP.selftest.bak" "$REP"; [ -f "$DUMP.selftest.bak" ] && mv -f "$DUMP.selftest.bak" "$DUMP"; return 0; }
+  READJ=stimuli/sv/characterization/pipeline_readjudication.tsv
+  cp "$CTX" "$CTX.selftest.bak"; cp "$REP" "$REP.selftest.bak"; cp "$READJ" "$READJ.selftest.bak"; [ -f "$DUMP" ] && cp "$DUMP" "$DUMP.selftest.bak"
+  restore() { mv -f "$CTX.selftest.bak" "$CTX"; mv -f "$REP.selftest.bak" "$REP"; mv -f "$READJ.selftest.bak" "$READJ"; [ -f "$DUMP.selftest.bak" ] && mv -f "$DUMP.selftest.bak" "$DUMP"; return 0; }
   trap restore EXIT
   # arm A — GREEN control on the real tree
   if run_arms >/dev/null 2>&1; then echo "  PASS A green control (the real tree holds)"; else echo "  FAIL A green control"; fails=$((fails+1)); fi
@@ -79,12 +88,19 @@ PY
     cp "$REP.selftest.bak" "$REP"
     # arm D — the absent-dump path is NOT EVALUATED and passes
     mv "$DUMP" "$DUMP.selftest.gone"
-    if run_arms 2>&1 | grep -q 'NOT EVALUATED'; then echo "  PASS D an absent dump is NOT EVALUATED, loudly"; else echo "  FAIL D an absent dump was not reported"; fails=$((fails+1)); fi
+    # (captured first: `grep -q` closing the pipe after its first match made the third arm's later write
+    # a SIGPIPE, and pipefail turned a correct NOT EVALUATED into a FAIL — measured when arm (3) landed)
+    d_out="$(run_arms 2>&1)"
+    if printf '%s' "$d_out" | grep -q 'NOT EVALUATED'; then echo "  PASS D an absent dump is NOT EVALUATED, loudly"; else echo "  FAIL D an absent dump was not reported"; fails=$((fails+1)); fi
     mv "$DUMP.selftest.gone" "$DUMP"
+    # arm E — RED: a re-adjudication verdict edited in the per-row table must be DRIFT (SVPP-EXPANSION.6a)
+    sed -i.tmp '2s/\t[a-z_:]*\t\([^\t]*\)$/\tselftest_edited\t\1/' "$READJ" && rm -f "$READJ.tmp"
+    if run_arms >/dev/null 2>&1; then echo "  FAIL E an edited re-adjudication verdict was NOT refused"; fails=$((fails+1)); else echo "  PASS E an edited re-adjudication verdict is refused"; fi
+    cp "$READJ.selftest.bak" "$READJ"
   else
-    echo "  SKIP C/D (no dump on this tree — the arms need one to mutate)"
+    echo "  SKIP C/D/E (no dump on this tree — the arms need one to mutate)"
   fi
-  echo "$TAG-SELF-TEST: arms=$([ -f "$DUMP" ] && echo 4 || echo 2) failed=$fails"
+  echo "$TAG-SELF-TEST: arms=$([ -f "$DUMP" ] && echo 5 || echo 2) failed=$fails"
   [ $fails -eq 0 ] || exit 7
   exit 0
 fi

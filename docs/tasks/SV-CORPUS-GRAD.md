@@ -8796,6 +8796,16 @@ is not a promotion), and the probe arm it needs.
   from raw text.
 - ⛔ **THE HONEST BOUND.** These are neither corroborated nor disproven. Axis 2's floor is 319 and
   its ceiling is 582; quoting 582 as a defect count would be as wrong as quoting 293 as settled.
+- ⭐ **SETTLED BY `SVPP-EXPANSION.6a` (2026-09-09, `PGEN-SVPP-EXPANSION-0009`)** — the tracked
+  `stimuli/sv/characterization/pipeline_readjudication.md` re-reads every `explained_svpp_*` row under the
+  pipeline: of the position-undecidable rows the tracked `.12a` audit holds (**257** = `IN-WINDOW` 253 +
+  `PAST-LAST-TICK` 4; the 263 above predates the audit's last re-run), **98 are CORROBORATED** (the file
+  parses once preprocessed), **156 are REFUTED** (it still fails in its own text — a defect candidate
+  each, `SVPP-EXPANSION.6b` dispositions them) and 3 are refused by the preprocessor. And 67 of the 1 167
+  `STUCK-ON-SVPP-TOKEN` rows — the ones position DID decide — are refuted too: the directive was where the
+  parse stopped, not why. Axis 2's honest bound is therefore no longer 319–582: 223 refuted rows await a
+  disposition each (103 of them a `class … extends` header whose base lives in `uvm_pkg` — the sv-tests
+  `*-uvm.sv` files, the library design's population).
 - **THE ONLY INSTRUMENT THAT SETTLES THEM IS `SVPP-EXPANSION` ITSELF** — expand each file, re-parse,
   and compare. That tree is `proposed`/build-later and sequenced strictly AFTER the locked program,
   so this leaf is **blocked on it by construction**, not by choice.
@@ -16158,6 +16168,18 @@ states *"`intersect` is a keyword, so it forces the real alternative"*. It does 
   director's steer, and its `.6` re-adjudicates exactly this population — plus the 1 434 `explained_svpp_*`
   rows and the 173 `svpp_owned` rows — through the real pipeline instead of the text test. This leaf stays
   `todo` until `SVPP-EXPANSION.6` reports; its 1 527 is the pre-registered denominator that report must move.
+- ⭐ **`SVPP-EXPANSION.6a` REPORTED (2026-09-09, `PGEN-SVPP-EXPANSION-0009`)** — the tracked
+  `stimuli/sv/characterization/pipeline_readjudication.md` re-reads every dark row under the pipeline. The
+  expansion-owned stratum as the tracked `.13c` audit artifact holds it is **1 460** rows (`IN-WINDOW` 1 415 +
+  `PAST-LAST-TICK` 45 with no cross-file channel; this leaf's 1 527 = 1 477 + 50 was written before `.13c.1`
+  moved the not-source rows out of the audit — the artifact is the denominator, the prose was stale): under
+  the derived context **432 are ACCEPTED under expansion** (the deferral's textual half resolved — they need
+  only an expected verdict, `.6c`), **658 still reject in their own file** (the barrier behind the macro
+  barrier — 1 924 of all 2 936 own-file chained rejections sit on a `class … extends` header whose base is
+  declared elsewhere: the library design, `SVPP-EXPANSION.6d`), 158 land in an included file, 212 are
+  refused (an include the derived context cannot supply — black-parrot's generated headers). The
+  `FACT-GATED-CROSS-FILE` stratum (2 057) is unmoved by expansion, exactly as `.13c` predicted (2 056 own-file
+  rejections, 1 refusal). This leaf stays `todo` until `.6c` gives the accepted rows a verdict.
 - Per-basis-reason worklist is published in `coverage.md` (design corpus 4 955 total, Surelog
   multi-file units, verilator/slang/verible include payloads).
 

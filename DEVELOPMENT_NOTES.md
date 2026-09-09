@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.6a (`PGEN-SVPP-EXPANSION-0009`): a position test is a hypothesis about a parse
+
+- **An "explained" divergence is a claim that a parse would succeed if…, and only the parse can cash it.** `.12a` explained 1 434 must-accept rows by where the raw parse stopped; `.12b` was honest that 263 of them were undecidable from position. The pipeline parsed all of them: 1 199 explanations held and **223 did not — including 67 the position test had DECIDED** (`STUCK-ON-SVPP-TOKEN`). The directive was where the parse stopped, not why. A stratification by text is a worklist, never a verdict; the instrument that produces verdicts is the one that runs the real thing, and its output must be a tracked, derived table a doctrine holds current.
+- **The prose total and the artifact total drift apart; the artifact is the denominator.** `.12b` says 263, its audit holds 257; `.13d` says 1 527, its audit holds 1 460 — both leaves were written before their audits' last re-run. The report reads the artifacts and says so beside the prose numbers; a reader who only had the leaves would have measured against the wrong line.
+- **`grep -q` in a pipeline is a race with pipefail.** Arm D of the self-test passed with two arms of output and failed the moment a third arm wrote after `grep -q` had found its match and closed the pipe: SIGPIPE, exit 141, pipefail → "not reported". Capture the output first, then grep.
+- **Promotion**: declined — `promotion: declined (the .12b leaf and the report's own reading section carry the lesson)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.5(g)(h)(g′) (`PGEN-SVPP-EXPANSION-0008`): a rule that refuses is the only instrument that sees a silent mis-expansion
 
 - **A preprocessor that binds a missing actual to nothing hides two things.** It hides the illegal call (the parser rejects the expansion, at the wrong stage and the wrong file), and it hides every mis-read formal list: OpenTitan's `DV_FCOV_INSTANTIATE_CG(NAME_, COND_ = 1'b1, ARGS_ = ())` was read as TWO formals because the scanner treated the apostrophe of `1'b1` as a string quote, and since the scanner's first commit (2026-03-17) the third actual was dropped and `ARGS_` left literal — pasted to `x_inst = newARGS_;`, legal SystemVerilog, two `pass` rows. Nothing downstream could see it; the extra-actuals REFUSAL saw it the moment it existed. When a stage is silent about a malformed input, the defects behind that silence are invisible to every later stage — refuse, then measure what the refusal names.

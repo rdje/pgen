@@ -1,0 +1,364 @@
+#!/usr/bin/env python3
+"""The verdict only EXPANSION can give — the deferred population of the SV answer key, re-read
+under the preprocess→parse pipeline (SVPP-EXPANSION.6a).
+
+WHY THIS EXISTS
+---------------
+The raw lane (`stimuli/run_external_corpus.sh sv`) parses each file in isolation and its answer
+key (`adjudication_manifest.tsv`) is honest about what that cannot decide: a must-accept row whose
+raw parse stops on a macro use, a conditional or an `include is `divergence:explained_svpp_*` — the
+explanation is a POSITION test (SV-CORPUS-GRAD.12a), not a parse — and a multi-file design file is
+`deferred:chained_only`, no verdict at all. `.12b` sized the rows position cannot settle (263) and
+`.13c`/`.13d` sized the dark chained-only rows expansion really owns (the pre-registered 1 527);
+both leaves say the same thing: THE ONLY INSTRUMENT THAT SETTLES THEM IS EXPANSION ITSELF.
+
+The pipeline lane (`stimuli/run_pipeline_lane.sh`, `SVPP-EXPANSION.4`/`.4b`) is that instrument.
+This script joins its dump with the answer key and the two per-row audits those leaves left behind,
+and says, row by row, what expansion changed:
+
+  corroborated   a must-accept row the raw lane explained away by preprocessing PASSES once
+                 preprocessed — the explanation was right, and the row now testifies FOR the parser
+  refuted        a must-accept row the raw lane explained away still FAILS after preprocessing, in
+                 its OWN file — the explanation was wrong; the row is a defect candidate that needs
+                 a disposition (a parser defect, or an answer-key error), one by one (`.6b`)
+  hollow         the rejection lands in an INCLUDED file — the row's own text was never judged;
+                 the verdict belongs to the header, and the header's own row carries it
+  refused        the preprocessor refused the row — a context gap (an include the derived context
+                 does not supply) or an engine refusal (`E_SVPP_*`, a malformed directive)
+  chained:*      the same four outcomes for a `deferred:chained_only` row — reported with that
+                 prefix because the answer key carries NO expected verdict for the row: a pass under
+                 its context is "accepted under expansion", not yet a `match`. ⛔ A row earns a
+                 `match` only when its EXPECTED verdict is derived from the suite's own convention
+                 (corpus-expected-from-SPEC, never from the fix); that derivation is `.6c`'s.
+
+⛔ NOTHING here rewrites the answer key. The manifest is read, never written; the report is a
+derivation of tracked inputs plus the lane dump, held current by `PIPELINE-LANE-CURRENCY` (`--check`).
+
+INPUTS (repo-root-relative)
+---------------------------
+  stimuli/sv/characterization/adjudication_manifest.tsv           the answer key (raw lane)
+  stimuli/sv/characterization/pipeline_results.tsv                the pipeline lane's dump (.gitignored)
+  docs/tasks/artifacts/sv_corpus_grad/explained_svpp_audit/after/audit.tsv   `.12a`/`.12b`: the
+      position verdict per explained_svpp row (STUCK-ON-SVPP-TOKEN / IN-WINDOW / PAST-LAST-TICK)
+  docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/audit.tsv            `.13c`: the dark
+      chained-only rows' position verdict and cross-file CHANNEL
+
+OUTPUTS
+-------
+  stimuli/sv/characterization/pipeline_readjudication.md    the tracked report
+  stimuli/sv/characterization/pipeline_readjudication.tsv   one row per re-read manifest row:
+      suite  relpath  raw_class  prior_stratum  pipeline_status  landing  construct  verdict  origin
+
+USAGE
+-----
+  python3 stimuli/sv/pipeline_readjudication.py            # render both outputs + one summary line
+  python3 stimuli/sv/pipeline_readjudication.py --check    # re-render to rust/target/ and diff; drift → 1,
+                                                           # an absent dump → NOT EVALUATED (0), an
+                                                           # empty dump → REFUSED (2)
+"""
+from __future__ import annotations
+
+import argparse
+import csv
+import pathlib
+import re
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import pipeline_vs_raw as pv  # noqa: E402  (the lane report: the join, the buckets, the identity)
+
+CHAR = ROOT / "stimuli" / "sv" / "characterization"
+ART = ROOT / "docs" / "tasks" / "artifacts" / "sv_corpus_grad"
+EXPLAINED_AUDIT = ART / "explained_svpp_audit" / "after" / "audit.tsv"
+DARK_AUDIT = ART / "dark_chained_only" / "audit.tsv"
+
+POPULATIONS = (
+    ("explained_svpp", "must-accept rows the raw lane explained away by preprocessing "
+                       "(`divergence:explained_svpp_*`; `.12a`'s position test, `.12b`'s 263)"),
+    ("chained_only", "multi-file design rows the raw lane could not judge (`deferred:chained_only`; "
+                     "`.13c`'s strata, `.13d`'s expansion-owned rows)"),
+    ("svpp_owned", "rows whose conformance the raw lane routed to the preprocessor lane "
+                   "(`deferred:svpp_owned`)"),
+)
+
+TSV_COLUMNS = ["suite", "relpath", "raw_class", "prior_stratum", "pipeline_status", "landing",
+               "construct", "verdict", "origin"]
+
+
+def rel(p: pathlib.Path) -> str:
+    return str(p.relative_to(ROOT)) if p.is_absolute() and p.is_relative_to(ROOT) else str(p)
+
+
+def read_audit(path: pathlib.Path) -> dict[tuple[str, str], dict[str, str]]:
+    with open(path, newline="") as fh:
+        return {(r["suite"], r["relpath"]): r for r in csv.DictReader(fh, delimiter="\t")}
+
+
+def population_of(raw_class: str) -> str | None:
+    if raw_class.startswith("divergence:explained_svpp"):
+        return "explained_svpp"
+    if raw_class == "deferred:chained_only":
+        return "chained_only"
+    if raw_class == "deferred:svpp_owned":
+        return "svpp_owned"
+    return None
+
+
+def landing_of(status: str, repo_rel: str, origin: str) -> str:
+    if status == "pass":
+        return "-"
+    if status == "fail":
+        m = re.match(r"(.+?):(\d+):(\d+)$", origin)
+        origin_file = m.group(1) if m else origin
+        return "own file" if origin_file == repo_rel else "included file"
+    if status == "pp_fail":
+        return "engine" if re.search(r"E_SVPP_|invalid `|without matching|cycle detected|unterminated", origin) else "context"
+    return status
+
+
+def verdict_of(population: str, status: str, landing: str) -> str:
+    prefix = {"explained_svpp": "", "chained_only": "chained:", "svpp_owned": "svpp_owned:"}[population]
+    if status == "pass":
+        return prefix + ("corroborated" if population == "explained_svpp" else "accepted_under_expansion")
+    if status == "fail":
+        if landing == "own file":
+            return prefix + ("refuted" if population == "explained_svpp" else "rejects_own_file")
+        return prefix + "hollow"
+    if status == "pp_fail":
+        return prefix + ("refused_engine" if landing == "engine" else "refused_context")
+    return prefix + status  # timeout / crash, reported as themselves
+
+
+def prior_stratum(population: str, key: tuple[str, str], explained: dict, dark: dict) -> str:
+    if population == "explained_svpp":
+        a = explained.get(key)
+        return a["verdict"] if a else "not-in-audit"
+    if population == "chained_only":
+        d = dark.get(key)
+        if d is None:
+            return "ONE-SIDED (raw pass)"
+        return d["verdict"] + ("/" + d["channel"] if d["channel"] else "")
+    return "-"
+
+
+def render(rows: list[dict[str, str]], probe: pathlib.Path, dump: pathlib.Path, manifest: pathlib.Path,
+           missing_dump_rows: int) -> str:
+    def count(pred) -> int:
+        return sum(1 for r in rows if pred(r))
+    L: list[str] = []
+    L.append("# The verdict only expansion can give — the deferred SV population re-read under the pipeline\n")
+    L.append("> Generated by `stimuli/sv/pipeline_readjudication.py` (SVPP-EXPANSION.6a) from the answer key, the "
+             "`.12a`/`.13c` per-row audits and the pipeline lane's dump; held current by `PIPELINE-LANE-CURRENCY`. "
+             "⛔ The answer key is READ, never written: a row earns a verdict by being PARSED under honest "
+             "conditions, and a `chained:` outcome is not a `match` until the row's EXPECTED verdict is derived "
+             "from its suite's own convention (`.6c`).\n")
+    L.append("## Instrument identity\n")
+    L.append("| input | repo-root-relative path | sha256 |\n|---|---|---|")
+    for label, path in (("answer key", manifest), ("explained_svpp audit", EXPLAINED_AUDIT),
+                        ("dark chained_only audit", DARK_AUDIT), ("pipeline results (input)", dump)):
+        L.append(f"| {label} | `{rel(path)}` | `{pv.sha256(path)}` |")
+    L.append(f"| parse binary | `{rel(probe)}` | `{pv.sha256(probe) if probe.exists() else 'absent'}` |")
+    build_mode = "release" if "/release/" in str(probe) else ("debug" if "/debug/" in str(probe) else "unknown")
+    L.append(f"\nMeasured at `HEAD` = `{pv.head_commit()}`; the parse binary is a **{build_mode}** build "
+             "(the probe row and this line are provenance, masked by `--check`).\n")
+
+    L.append("## The headline\n")
+    total = len(rows)
+    L.append(f"- rows re-read: **{total:,}** (manifest rows in the three populations that the lane ran; "
+             f"{missing_dump_rows} such rows have no lane row)")
+    for pop, desc in POPULATIONS:
+        sub = [r for r in rows if r["population"] == pop]
+        if not sub:
+            continue
+        vc: dict[str, int] = {}
+        for r in sub:
+            vc[r["verdict"]] = vc.get(r["verdict"], 0) + 1
+        parts = ", ".join(f"`{v}` {n:,}" for v, n in sorted(vc.items(), key=lambda kv: -kv[1]))
+        L.append(f"- **{pop}** — {desc}: {len(sub):,} rows → {parts}")
+    L.append("")
+
+    L.append("## explained_svpp — the `.12a` position verdict against the parse that actually happened\n")
+    L.append("A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-WINDOW` / "
+             "`PAST-LAST-TICK` are `.12b`'s 263, the rows position could not decide. Read down a column: "
+             "`corroborated` means the explanation held, `refuted` means it did not — the file still fails "
+             "in its own text after preprocessing.\n")
+    strata = sorted({r["prior_stratum"] for r in rows if r["population"] == "explained_svpp"})
+    verdicts = ["corroborated", "refuted", "hollow", "refused_context", "refused_engine"]
+    L.append("| position verdict (`.12a`) | rows | " + " | ".join(f"`{v}`" for v in verdicts) + " |")
+    L.append("|---|---:|" + "---:|" * len(verdicts))
+    for s in strata:
+        sub = [r for r in rows if r["population"] == "explained_svpp" and r["prior_stratum"] == s]
+        L.append(f"| `{s}` | {len(sub)} | " + " | ".join(str(count(lambda r, s=s, v=v: r["population"] == "explained_svpp" and r["prior_stratum"] == s and r["verdict"] == v)) for v in verdicts) + " |")
+    L.append("")
+    L.append("**The refuted rows, by the construct on the rejecting line** (the same buckets as the lane report):\n")
+    L.append("| construct at the origin line | refuted rows | one example (origin) |\n|---|---:|---|")
+    cons: dict[str, list[dict]] = {}
+    for r in rows:
+        if r["population"] == "explained_svpp" and r["verdict"] == "refuted":
+            cons.setdefault(r["construct"], []).append(r)
+    for c, sub in sorted(cons.items(), key=lambda kv: -len(kv[1])):
+        L.append(f"| {c} | {len(sub)} | {pv.code(sub[0]['origin'])} |")
+    L.append("")
+    L.append("**The refuted rows, by suite and raw class:**\n")
+    L.append("| suite | raw class | refuted | corroborated |\n|---|---|---:|---:|")
+    pairs = sorted({(r["suite"], r["raw_class"]) for r in rows if r["population"] == "explained_svpp"})
+    for suite, cls in pairs:
+        ref = count(lambda r: r["population"] == "explained_svpp" and r["suite"] == suite and r["raw_class"] == cls and r["verdict"] == "refuted")
+        cor = count(lambda r: r["population"] == "explained_svpp" and r["suite"] == suite and r["raw_class"] == cls and r["verdict"] == "corroborated")
+        if ref or cor:
+            L.append(f"| {suite} | `{cls}` | {ref} | {cor} |")
+    L.append("")
+
+    L.append("## chained_only — the `.13c` strata against the parse under the derived context\n")
+    L.append("`.13c` split the dark rows by whether an alterable directive can even REACH the failure "
+             "(`IN-WINDOW` / `PAST-LAST-TICK` = expansion-owned, `.13d`'s population) or not (`PRE-TICK` / "
+             "`NO-ALTERABLE-TICK`, with the cross-file CHANNEL the failure sits on). `ONE-SIDED` rows passed "
+             "raw; the pipeline says whether that pass was hollow.\n")
+    cverdicts = ["chained:accepted_under_expansion", "chained:rejects_own_file", "chained:hollow",
+                 "chained:refused_context", "chained:refused_engine"]
+    cstrata = sorted({r["prior_stratum"] for r in rows if r["population"] == "chained_only"})
+    L.append("| `.13c` stratum | rows | " + " | ".join(f"`{v.split(':')[1]}`" for v in cverdicts) + " |")
+    L.append("|---|---:|" + "---:|" * len(cverdicts))
+    for s in cstrata:
+        sub = [r for r in rows if r["population"] == "chained_only" and r["prior_stratum"] == s]
+        L.append(f"| `{s}` | {len(sub)} | " + " | ".join(str(count(lambda r, s=s, v=v: r["population"] == "chained_only" and r["prior_stratum"] == s and r["verdict"] == v)) for v in cverdicts) + " |")
+    L.append("")
+    owned = [r for r in rows if r["population"] == "chained_only" and r["prior_stratum"] in ("IN-WINDOW", "PAST-LAST-TICK")]
+    L.append(f"**The expansion-owned stratum** (`IN-WINDOW` + `PAST-LAST-TICK` with no cross-file channel — "
+             f"`.13d`'s pre-registered population): **{len(owned):,}** rows in the audit; under the pipeline "
+             + ", ".join(f"`{v.split(':')[1]}` {count(lambda r, v=v: r in owned and r['verdict'] == v)}" for v in cverdicts) + ".\n")
+    L.append("**The rows that still reject in their own file after expansion, by construct** (chained_only, "
+             "all strata — the barrier BEHIND the macro barrier):\n")
+    L.append("| construct at the origin line | rows | one example (origin) |\n|---|---:|---|")
+    cons2: dict[str, list[dict]] = {}
+    for r in rows:
+        if r["population"] == "chained_only" and r["verdict"] == "chained:rejects_own_file":
+            cons2.setdefault(r["construct"], []).append(r)
+    for c, sub in sorted(cons2.items(), key=lambda kv: -len(kv[1])):
+        L.append(f"| {c} | {len(sub)} | {pv.code(sub[0]['origin'])} |")
+    L.append("")
+
+    L.append("## svpp_owned — the rows routed to the preprocessor lane\n")
+    L.append("| verdict | rows |\n|---|---:|")
+    sv: dict[str, int] = {}
+    for r in rows:
+        if r["population"] == "svpp_owned":
+            sv[r["verdict"]] = sv.get(r["verdict"], 0) + 1
+    for v, n in sorted(sv.items(), key=lambda kv: -kv[1]):
+        L.append(f"| `{v}` | {n} |")
+    L.append("")
+    L.append("## Reading this report\n")
+    L.append("- A `refuted` row is a defect CANDIDATE, not a defect: its expansion may be legal SystemVerilog "
+             "the parser refuses (a parser defect — the axis-2 bar's business), or the row's expectation may "
+             "be wrong (a vendor extension, a fragment). `.6b` dispositions them one by one with the toolbox, "
+             "and only then does a row move in the verdict-coverage tuple.")
+    L.append("- A `chained:rejects_own_file` row with a `FACT-GATED-CROSS-FILE` stratum is what the `.13c` audit "
+             "predicted: no preprocessor supplies a type a sibling file declares. That population is the "
+             "library design's (`SVPP-EXPANSION.6`, `--lib-in` / `--lib-out`), not the expansion stage's.")
+    L.append("- A `hollow` row is judged in the header its rejection lands in; the lane report's origin tables "
+             "name those headers.")
+    L.append("- The per-row table is `stimuli/sv/characterization/pipeline_readjudication.tsv`.")
+    return "\n".join(L) + "\n"
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--pipeline", default=str(CHAR / "pipeline_results.tsv"))
+    ap.add_argument("--manifest", default=str(CHAR / "adjudication_manifest.tsv"))
+    ap.add_argument("--probe", default=str(ROOT / "rust" / "target" / "release" / "parseability_probe"))
+    ap.add_argument("--out", default=str(CHAR / "pipeline_readjudication.md"))
+    ap.add_argument("--out-tsv", default=str(CHAR / "pipeline_readjudication.tsv"))
+    ap.add_argument("--check", action="store_true",
+                    help="re-render into rust/target/ and diff against the tracked report and table; drift exits 1, "
+                         "an absent dump is NOT EVALUATED (0), an empty dump is REFUSED (2)")
+    args = ap.parse_args()
+
+    dump = pathlib.Path(args.pipeline)
+    manifest_path = pathlib.Path(args.manifest)
+    for needed in (manifest_path, EXPLAINED_AUDIT, DARK_AUDIT):
+        if not needed.exists():
+            print(f"PIPELINE-READJUDICATION: REFUSED — tracked input {rel(needed)} is absent", file=sys.stderr)
+            return 2
+    if args.check:
+        if not dump.exists():
+            print(f"PIPELINE-READJUDICATION: NOT EVALUATED — {rel(dump)} is absent here (the dump is .gitignored; "
+                  "run the lane to re-derive)")
+            return 0
+        scratch_dir = ROOT / "rust" / "target" / "pipeline_readjudication_check"
+        scratch_dir.mkdir(parents=True, exist_ok=True)
+        tracked_md, tracked_tsv = pathlib.Path(args.out), pathlib.Path(args.out_tsv)
+        args.out = str(scratch_dir / tracked_md.name)
+        args.out_tsv = str(scratch_dir / tracked_tsv.name)
+    if not dump.exists():
+        print(f"PIPELINE-READJUDICATION: REFUSED — {rel(dump)} is absent; run the lane first", file=sys.stderr)
+        return 2
+    pipeline = pv.read_tsv(dump, 7)
+    if not pipeline:
+        print(f"PIPELINE-READJUDICATION: REFUSED — {rel(dump)} has no rows (a killed or unfinished lane run?); "
+              "nothing rendered", file=sys.stderr)
+        return 2
+
+    manifest = {(r[0], r[1]): r for r in pv.read_tsv(manifest_path, 6)[1:]}   # suite relpath observed expected class basis
+    explained = read_audit(EXPLAINED_AUDIT)
+    dark = read_audit(DARK_AUDIT)
+    lane = {(r[0], pv.suite_relpath(r[0], r[2])): r for r in pipeline}
+
+    rows: list[dict[str, str]] = []
+    missing = 0
+    for key, m in sorted(manifest.items()):
+        pop = population_of(m[4])
+        if pop is None:
+            continue
+        p = lane.get(key)
+        if p is None:
+            missing += 1
+            continue
+        status, repo_rel, origin = p[1], p[2], p[6]
+        landing = landing_of(status, repo_rel, origin)
+        line = pv.origin_line_text(origin) if status == "fail" else None
+        construct = pv.origin_bucket(line) if line else "-"
+        rows.append({
+            "suite": key[0], "relpath": key[1], "raw_class": m[4], "population": pop,
+            "prior_stratum": prior_stratum(pop, key, explained, dark),
+            "pipeline_status": status, "landing": landing, "construct": construct,
+            "verdict": verdict_of(pop, status, landing), "origin": origin,
+        })
+
+    out_md = pathlib.Path(args.out)
+    out_tsv = pathlib.Path(args.out_tsv)
+    out_md.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_tsv, "w", newline="") as fh:
+        w = csv.writer(fh, delimiter="\t", lineterminator="\n")
+        w.writerow(TSV_COLUMNS)
+        for r in rows:
+            w.writerow([r[c] for c in TSV_COLUMNS])
+    out_md.write_text(render(rows, pathlib.Path(args.probe), dump, manifest_path, missing))
+
+    counts: dict[str, int] = {}
+    for r in rows:
+        counts[r["verdict"]] = counts.get(r["verdict"], 0) + 1
+    summary = " ".join(f"{k}={v}" for k, v in sorted(counts.items()))
+    print(f"PIPELINE-READJUDICATION: rows={len(rows)} missing_lane_rows={missing} {summary} → {rel(out_md)}, {rel(out_tsv)}")
+
+    if args.check:
+        provenance = ("| parse binary |", "Measured at `HEAD` = ")
+
+        def masked(text: str) -> str:
+            return "\n".join(next((pfx for pfx in provenance if line.startswith(pfx)), line) for line in text.splitlines())
+        drift = []
+        for tracked, fresh in ((tracked_md, out_md), (tracked_tsv, out_tsv)):
+            if not tracked.exists():
+                drift.append(f"{rel(tracked)} does not exist")
+            elif masked(tracked.read_text()) != masked(fresh.read_text()):
+                drift.append(f"{rel(tracked)} differs from a fresh render (scratch: {rel(fresh)})")
+        if drift:
+            print("PIPELINE-READJUDICATION: DRIFT — " + "; ".join(drift) + "; run the lane and re-render", file=sys.stderr)
+            return 1
+        print("PIPELINE-READJUDICATION: OK — the tracked report and table equal a fresh render of the dumps "
+              "(the probe digest row and the HEAD line masked as provenance)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

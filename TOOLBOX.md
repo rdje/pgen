@@ -266,7 +266,17 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
       env PGEN_PIPELINE_JOBS=8 stimuli/run_pipeline_lane.sh all           # or a suite list; 16 336 rows in ~155 s
   python3 stimuli/sv/pipeline_vs_raw.py                                # → pipeline_characterization.md + one summary line
   python3 stimuli/sv/pipeline_vs_raw.py --check                        # the doctrine's arm: the report equals a fresh render
+  python3 stimuli/sv/pipeline_readjudication.py [--probe P]            # SVPP-EXPANSION.6a: the DEFERRED population re-read —
+                                                                       #   pipeline_readjudication.md + .tsv (tracked; --check in the gate)
   ```
+  ⭐ **THE RE-ADJUDICATION REPORT** (`stimuli/sv/characterization/pipeline_readjudication.md`, per row in the
+  `.tsv`): every `divergence:explained_svpp_*`, `deferred:chained_only` and `deferred:svpp_owned` row of the
+  answer key joined with the `.12a` position verdict / the `.13c` stratum and the pipeline's outcome —
+  `corroborated` (a must-accept row the raw lane explained away now PASSES preprocessed), `refuted` (it still
+  fails in its OWN file: a defect candidate for `.6b`), `hollow` (the rejection lands in an included file),
+  `refused_context` / `refused_engine`, and the `chained:` / `svpp_owned:` forms for rows the key holds no
+  expected verdict for. ⛔ It READS the answer key, never writes it; a `chained:accepted_under_expansion` row is
+  not a `match` until its expected verdict is derived from the suite's convention (`.6c`).
   The probe defaults to `rust/target/release/parseability_probe`; `PGEN_PARSE_PROBE_BIN=rust/target/debug/parseability_probe`
   runs the lane on the debug probe (then render with `--probe` the same path — the identity block RECORDS the build
   mode), and `PGEN_PIPELINE_TIMEOUT_S` widens the per-file deadline (default 60 s, the raw lane's) so a slower probe

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0d1ee681.js";
+            window.path_to_searchindex_js = "searchindex-30690904.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -412,6 +412,19 @@ expansion still holds) while <code>`define A(x) `B(`A(x))</code> is still refuse
 a string quote — SystemVerilog has none (§5.9) — so <code>`define DV_FCOV_INSTANTIATE_CG(NAME_, COND_ = 1'b1, ARGS_ = ())</code> had been read as <em>two</em> formals since the scanner’s first commit, a third actual
 dropped without a word and <code> new</code>ARGS_ `` pasted into the legal identifier <code>newARGS_</code>. Only a rule
 that <em>refuses</em> (extra actuals) made it visible; the fix moved four OpenTitan files to <code>pass</code>.</p>
+<p><strong>The deferred population, re-read.</strong> The raw answer key is honest about what a one-file parse cannot
+decide: a must-accept file whose raw parse stops on a macro use, a conditional or an <code>`include</code> is
+<em>explained</em> by a position test, and a multi-file design file carries no verdict at all. The tracked
+<code>stimuli/sv/characterization/pipeline_readjudication.md</code> (with its per-row <code>.tsv</code>; <code>SVPP-EXPANSION.6a</code>) joins
+those rows with what the pipeline actually did to them. Of the 1 434 explained-away must-accept rows,
+<strong>1 199 parse once preprocessed</strong> — the explanation held and the row now testifies for the parser — while
+<strong>223 still fail in their own text</strong>: the explanation was wrong, and each is a defect candidate awaiting a
+disposition (103 of them are a class header whose base class lives in <code>uvm_pkg</code>). Of the 4 927 chained-only
+rows, 1 530 are accepted under their derived context, 2 936 still reject in their own file (1 924 on a
+<code>class … extends</code> header whose base is declared elsewhere — the cross-file fact the library flags exist
+for), 236 land in an included file and 225 are refused. A <code>chained:</code> outcome is not yet a <code>match</code>: the
+answer key holds no expected verdict for those rows, and one is derived from the suite’s own convention
+before the coverage tuple moves. The report is held to a fresh derivation on every commit, like the lane’s.</p>
 <p>⛔ <strong>A note on the host, not the engine.</strong> The reading above was taken on the debug probe because no
 release build of the crate could be completed on the development host that day: a per-process
 memory watchdog independent of the repository’s own guard kills any process above 14 GB, and the

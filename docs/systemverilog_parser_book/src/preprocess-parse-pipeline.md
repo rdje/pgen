@@ -230,6 +230,20 @@ a string quote — SystemVerilog has none (§5.9) — so `` `define DV_FCOV_INST
 dropped without a word and `` new``ARGS_ `` pasted into the legal identifier `newARGS_`. Only a rule
 that *refuses* (extra actuals) made it visible; the fix moved four OpenTitan files to `pass`.
 
+**The deferred population, re-read.** The raw answer key is honest about what a one-file parse cannot
+decide: a must-accept file whose raw parse stops on a macro use, a conditional or an `` `include `` is
+*explained* by a position test, and a multi-file design file carries no verdict at all. The tracked
+`stimuli/sv/characterization/pipeline_readjudication.md` (with its per-row `.tsv`; `SVPP-EXPANSION.6a`) joins
+those rows with what the pipeline actually did to them. Of the 1 434 explained-away must-accept rows,
+**1 199 parse once preprocessed** — the explanation held and the row now testifies for the parser — while
+**223 still fail in their own text**: the explanation was wrong, and each is a defect candidate awaiting a
+disposition (103 of them are a class header whose base class lives in `uvm_pkg`). Of the 4 927 chained-only
+rows, 1 530 are accepted under their derived context, 2 936 still reject in their own file (1 924 on a
+`class … extends` header whose base is declared elsewhere — the cross-file fact the library flags exist
+for), 236 land in an included file and 225 are refused. A `chained:` outcome is not yet a `match`: the
+answer key holds no expected verdict for those rows, and one is derived from the suite's own convention
+before the coverage tuple moves. The report is held to a fresh derivation on every commit, like the lane's.
+
 ⛔ **A note on the host, not the engine.** The reading above was taken on the debug probe because no
 release build of the crate could be completed on the development host that day: a per-process
 memory watchdog independent of the repository's own guard kills any process above 14 GB, and the
