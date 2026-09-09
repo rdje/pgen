@@ -45,15 +45,28 @@ TIMEOUT_S="${PGEN_PIPELINE_TIMEOUT_S:-60}"
 JOBS="${PGEN_PIPELINE_JOBS:-8}"
 OUT="${PGEN_PIPELINE_OUT:-stimuli/sv/characterization/pipeline_results.tsv}"
 MAX_FILES="${PGEN_PIPELINE_MAX_FILES:-0}"
-CONTEXT=stimuli/sv/pipeline_context.tsv
-CONTEXT_FILES=stimuli/sv/pipeline_context_files.tsv   # SVPP-EXPANSION.4b: per-file rows (nearest-candidate includes)
-CONTEXT_DEFINES=stimuli/sv/pipeline_context_defines.tsv   # SVPP-EXPANSION.4c.1: per-file defines from the file's own driver
-CONTEXT_UNITS=stimuli/sv/pipeline_context_units.tsv   # SVPP-EXPANSION.4c.2: per-file unit predecessors from the file's own harness
+# the per-file context → probe flags lives in ONE sourceable place (SVPP-EXPANSION.6d.1), shared with the library builder:
+# the four derived tables (.4 suite rows, .4b per-file includes, .4c.1 per-file defines, .4c.2 per-file unit predecessors)
+# shellcheck source=stimuli/sv/pipeline_context_args.sh
+source stimuli/sv/pipeline_context_args.sh
+LIB_DIR="${PGEN_PIPELINE_LIB_DIR:-stimuli/sv/characterization/pipeline_library}"   # SVPP-EXPANSION.6d.1: the library the lane builds
+LIB_TSV="${PGEN_PIPELINE_LIB_TSV:-stimuli/sv/characterization/pipeline_library.tsv}"
 [ -x "$PROBE" ] || { echo "pipeline-lane: probe not executable: $PROBE" >&2; exit 2; }
 [ -f "$CONTEXT_FILES" ] || { echo "pipeline-lane: missing $CONTEXT_FILES — run stimuli/sv/pipeline_context.py --write" >&2; exit 2; }
 [ -f "$CONTEXT" ] || { echo "pipeline-lane: missing $CONTEXT — run stimuli/sv/pipeline_context.py --write" >&2; exit 2; }
 # the context is derived: refuse to measure against a stale copy
 python3 stimuli/sv/pipeline_context.py --check >/dev/null 2>&1 || { echo "pipeline-lane: $CONTEXT does not equal a fresh derivation — run stimuli/sv/pipeline_context.py --write" >&2; exit 3; }
+
+# SVPP-EXPANSION.6d.1 — the LIBRARY PASS: every package file of the design suites parsed in dependency order
+# (`import X::` edges from the preprocessed text), each exporting its facts (`--lib-out`) for the packages that
+# import it; then EVERY row below runs with `--lib-in` of the result. Rebuilt on every run (derived, like the dump).
+if [ "${PGEN_PIPELINE_LIBRARY:-1}" != 0 ]; then
+  rm -rf "$LIB_DIR"; mkdir -p "$LIB_DIR"
+  python3 stimuli/sv/pipeline_library.py --probe "$PROBE" --lib-dir "$LIB_DIR" --out "$LIB_TSV" --timeout-s "$TIMEOUT_S" || { echo "pipeline-lane: the library pass failed" >&2; exit 4; }
+  export PGEN_PIPELINE_LIB_DIR="$LIB_DIR"
+else
+  unset PGEN_PIPELINE_LIB_DIR
+fi
 
 suite_root() {
   case "$1" in
@@ -64,7 +77,7 @@ suite_root() {
 suite_of() {  # the raw lane's own mapping, so the two lanes join on the suite column
   printf '%s' "$1" | sed -E 's#.*/subs/([^/]+)/.*#\1#; s#.*/stimuli/sv/uvm/.*#uvm-core#'
 }
-export ROOT PROBE TIMEOUT_S CONTEXT CONTEXT_FILES CONTEXT_DEFINES CONTEXT_UNITS
+export ROOT PROBE TIMEOUT_S
 export -f suite_of
 
 # milliseconds without a subprocess (the raw lane's helper): bash 5's EPOCHREALTIME, else seconds
@@ -78,15 +91,6 @@ _now_ms() {
 }
 export -f _now_ms
 
-context_args() {  # $1 = suite, $2 = repo-relative path → the probe flags: the file's own rows FIRST, then the suite's
-  # SVPP-EXPANSION.4c.2: the unit predecessors the file's own harness compiles before it (in order; derived)
-  [ -f "$CONTEXT_UNITS" ] && awk -F'\t' -v s="$1" -v f="$2" 'NR>1 && $1==s && $2==f { printf "--sv-unit-file\t%s\n", $4 }' "$CONTEXT_UNITS"
-  awk -F'\t' -v s="$1" -v f="$2" 'NR>1 && $1==s && $2==f { printf "--sv-include-dir\t%s\n", $3 }' "$CONTEXT_FILES"
-  # SVPP-EXPANSION.4c.1: the defines the file's own driver passes (a literal value only; derived, see pipeline_context.py)
-  [ -f "$CONTEXT_DEFINES" ] && awk -F'\t' -v s="$1" -v f="$2" 'NR>1 && $1==s && $2==f { printf "--sv-define\t%s\n", $3 }' "$CONTEXT_DEFINES"
-  awk -F'\t' -v s="$1" 'NR>1 && $1==s { if ($2=="include_dir") printf "--sv-include-dir\t%s\n", $3; else if ($2=="define") printf "--sv-define\t%s\n", $3 }' "$CONTEXT"
-}
-export -f context_args
 
 parse_one() {
   local f="$1" suite rel rc status t0 t1 ms err fp origin

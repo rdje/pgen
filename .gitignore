@@ -428,6 +428,9 @@ stimuli/*/characterization/results_sv2023.tsv
 stimuli/*/characterization/pipeline_results.tsv
 # … and the lane's atomic-publish staging file (SVPP-EXPANSION.6b.5).
 stimuli/*/characterization/pipeline_results.tsv.tmp.*
+# … and the library the lane builds (SVPP-EXPANSION.6d.1): per-package verdicts + the exported facts.
+stimuli/*/characterization/pipeline_library.tsv
+stimuli/*/characterization/pipeline_library/
 stimuli/*/characterization/durations.tsv
 stimuli/*/characterization/durations_v2005.tsv
 stimuli/*/characterization/durations_sv2023.tsv

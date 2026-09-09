@@ -11,6 +11,7 @@ pipeline recognises that the raw lane could not (and the reverse):
     stimuli/sv/pipeline_context.tsv                    the context the lane ran under
     stimuli/sv/pipeline_context_defines.tsv            the per-file defines the files' own drivers pass (SVPP-EXPANSION.4c.1)
     stimuli/sv/pipeline_context_units.tsv              the per-file unit predecessors the files' own harness compiles first (SVPP-EXPANSION.4c.2)
+    stimuli/sv/characterization/pipeline_library.tsv   the LIBRARY PASS's per-package outcome (SVPP-EXPANSION.6d.1; a dump, .gitignored)
 
 ⛔ Every number here is a JOIN, never a copy: a row is counted only where the pipeline dump holds
 it, the raw status comes from the raw dump for the SAME path, and the adjudication class from the
@@ -155,6 +156,7 @@ def main() -> int:
     ap.add_argument("--context", default=str(ROOT / "stimuli" / "sv" / "pipeline_context.tsv"))
     ap.add_argument("--context-defines", default=str(ROOT / "stimuli" / "sv" / "pipeline_context_defines.tsv"))
     ap.add_argument("--context-units", default=str(ROOT / "stimuli" / "sv" / "pipeline_context_units.tsv"))
+    ap.add_argument("--library", default=str(CHAR / "pipeline_library.tsv"))
     ap.add_argument("--probe", default=str(ROOT / "rust" / "target" / "release" / "parseability_probe"))
     ap.add_argument("--out", default=str(CHAR / "pipeline_characterization.md"))
     ap.add_argument("--top", type=int, default=25)
@@ -273,6 +275,9 @@ def main() -> int:
     ctx_units = pathlib.Path(args.context_units)
     if ctx_units.exists():
         L.append(f"| context (per-file unit predecessors) | `{rel(ctx_units)}` | `{sha256(ctx_units)}` |")
+    library = pathlib.Path(args.library)
+    if library.exists():
+        L.append(f"| library pass dump | `{rel(library)}` | `{sha256(library)}` |")
     L.append(f"| pipeline results (output) | `{rel(pathlib.Path(args.pipeline))}` | `{sha256(pathlib.Path(args.pipeline))}` |")
     L.append(f"| raw results (input) | `{rel(pathlib.Path(args.raw))}` | `{sha256(pathlib.Path(args.raw))}` |")
     L.append(f"\nMeasured at `HEAD` = `{head_commit()}`; the parse binary is a **{build_mode}** build "
@@ -329,6 +334,32 @@ def main() -> int:
         L.append(f"| {code(r_)} | {n} |")
     if not pp_reasons:
         L.append("| (none) | 0 |")
+
+    # SVPP-EXPANSION.6d.1 — the library the lane built before the per-file rows ran: every package file of the
+    # design suites parsed in dependency order with `--lib-in` of its predecessors' exports and `--lib-out` of
+    # itself; a rejecting file exports nothing; a package several files declare is published only when every
+    # declaring file passed and their fact sets agree (the deriver reports the rest, never guesses)
+    L.append("\n## The library the lane built (the design suites' packages, in dependency order)\n")
+    if library.exists():
+        lrows = read_tsv(library, 10)
+        L.append("| suite | package files | pass | fail | refused | timeout / crash | packages published | variants: agree / disagree / incomplete | e.g. rejecting package (origin) |\n|---|---:|---:|---:|---:|---:|---:|---|---|")
+        for suite in sorted({r[0] for r in lrows}):
+            mine = [r for r in lrows if r[0] == suite]
+            st = collections.Counter(r[1] for r in mine)
+            notes = " ".join(r[9] for r in mine)
+            va = {n.split(":", 1)[1] for n in notes.replace(";", " ").split() if n.startswith("variants_agree:")}
+            pub = sum(len(r[8].split()) for r in mine) + len(va)   # a package several files declare is published once
+            vd = {n.split(":", 1)[1] for n in notes.replace(";", " ").split() if n.startswith("variants_disagree:")}
+            vi = {n.split(":", 1)[1] for n in notes.replace(";", " ").split() if n.startswith("variants_incomplete:")}
+            first_fail = next((r for r in mine if r[1] == "fail"), None)
+            # the bucket text carries its own backticks: shown as apostrophes, never nested in a code span (TABLE-ARITY-RATCHET)
+            eg = f"{code(first_fail[2].rsplit('/', 1)[-1])} ({(origin_bucket(first_fail[7]) if first_fail[7] else '-').replace('`', chr(39)).replace('|', '/')})" if first_fail else "—"
+            L.append(f"| {suite} | {len(mine)} | {st['pass']} | {st['fail']} | {st['pp_fail']} | {st['timeout'] + st['crash']} | {pub} | {len(va)} / {len(vd)} / {len(vi)} | {eg} |")
+        L.append("\nA package file's row here is its verdict AS A UNIT (its own text plus what it includes, after the packages "
+                 "it imports were exported); a rejecting package exports nothing, so every package importing it stays dark on "
+                 "its names — the lane measures that, it does not paper over it.")
+    else:
+        L.append("(no library: the lane ran with `PGEN_PIPELINE_LIBRARY=0`, or the dump is absent)")
 
     L.append("\n## The context the lane ran under\n")
     L.append("| suite | kind | value | needed by |\n|---|---|---|---:|")

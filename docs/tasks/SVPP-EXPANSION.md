@@ -227,7 +227,8 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `.6d` | `pending` | the dependency-ordered library pass (1 924 + 103 `extends` rows); UVM's part waits on (d) |
+| 1 | `.6d.2` | `pending` | the UNIT-MEMBERSHIP reading: a `` `include ``d class file's verdict is its package unit's at that file's origin (157 hollow + 2 373 own-file OpenTitan rows behind passing or rejecting packages); the (d) ruling unlocks the UVM chain (164 of 168 rejecting OpenTitan packages import `uvm_pkg`) |
+| — | `.6d.1` | ✅ `done` | `PGEN-SVPP-EXPANSION-0019`: the LIBRARY PASS — 407 package files of the design suites parsed in dependency order, 166 packages published, every row run with `--lib-in`; 425 rows `fail → pass`, 0 the other way (OpenTitan 1 077 → 1 444, VeeR 23 → 81); 🔎 164/168 rejecting OpenTitan packages import `uvm_pkg` (the (d) gate); six per-top register packages disagree (not published); 44 generated `*_ral_pkg` imports absent from the tree |
 | — | `.4c.2` | ✅ `done` | `PGEN-SVPP-EXPANSION-0018`: the unit predecessors a file's OWN harness compiles first, derived per file (`pipeline_context_units.tsv`, 44 rows on 17 files; `-f` lists, globs, `--siloed` and ordering conflicts REPORTED); the whole lane re-run — exactly 3 movers, all `fail → pass`; 🔎 a `.6b.4` disposition had inferred a pairing no declaration makes — corrected forward; `.4c` CLOSED |
 | — | `.4c.1` | ✅ `done` | `PGEN-SVPP-EXPANSION-0017`: the defines a file's OWN driver passes, derived per file (`pipeline_context_defines.tsv`, 56 rows; computed values and ties REPORTED, C++ / iverilog spans and helpers skipped); the whole lane re-run — exactly 5 movers (3 `fail → pass`, 2 `pass → fail`), 3 rows pinned `must_reject` with a reproducer/control each; 🔎 a driver define can select a vendor-extension branch |
 | — | `.6c.2` | ✅ `done` | `PGEN-SVPP-EXPANSION-0016`: the 28 key-question rows pinned `must_reject` with the clause and a reproducer/control each; the raw key demotes them, the pipeline cashes them (433 `must_reject:match_under_expansion`) |
@@ -1497,6 +1498,58 @@ it waits on the `.5`(d) ruling.
   - [x] **LOCKSTEP** — `TOOLBOX.md` §1.1b, the SV parser book chapter (the paragraph, the numbers), the platform book's anchor, the family-status blocks, the doctrine's header, this tree, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
   - promotion: declined (no new card; the derivation carries its own self-test).
 
+## `.6d.1` the LIBRARY PASS — ✅ done 2026-09-09 (`PGEN-SVPP-EXPANSION-0019`): the design suites' packages in dependency order, every row with the library
+
+**What landed** (LANE tier; ZERO Rust / grammar / answer-key / codegen bytes — the engine's `--lib-in` / `--lib-out` and the grammar's
+`@export_to_library` / `@import_from_library` were already there; this slice is the PASS that uses them on the corpus):
+
+- **The mechanism, measured first** (scratch `rust/target/svpp_e1/s6d/`): `prim_mubi_pkg.sv --lib-out` writes `package/prim_mubi_pkg.facts.json`
+  (8 `type_name` facts, `declaration_family = typedef`); `rom_ctrl_mux.sv` (dark on `mubi4_t` at `:21:16`) ACCEPTS with `--lib-in` of it; a
+  same-directory chain works (`pinmux_reg_pkg` + `prim_pad_wrapper_pkg` exported, `pinmux_pkg.sv` `:19:15 → pass` with `--lib-in`/`--lib-out`
+  on the same dir, exporting itself); a NAMED import works (`rram_ctrl_pkg.sv` `import rram_ctrl_reg_pkg::name` `:211:44 → :221:12`, the next
+  barrier a `mubi4_t` not yet in that scratch library).
+- **`stimuli/sv/pipeline_library.py`** — inventory (every `*.sv`/`*.svh` of `DESIGN_SUITES` declaring `package NAME;`), edges from the
+  PREPROCESSED text (`ast_pipeline --preprocess-systemverilog` with the file's derived context; a refused expansion falls back to the raw
+  text and is noted), a topological order (Kahn, ties by path; cycles reported and parsed last — none found), each file parsed with the probe,
+  its own context, `--lib-in LIB` and a private `--lib-out`, and a passing file's exports PUBLISHED into
+  `stimuli/sv/characterization/pipeline_library/` — at once for a package one file declares, and for a package several files declare only
+  when every declaring file passed and the normalised fact sets agree (`variants_agree`), else `variants_disagree` / `variants_incomplete`,
+  reported. The per-package dump `pipeline_library.tsv` (`suite status relpath packages secs rc furthest origin exported note`; `.gitignore`d).
+- **`stimuli/sv/pipeline_context_args.sh`** — the ONE sourceable place the four context tables (+ `--lib-in` when `PGEN_PIPELINE_LIB_DIR`
+  is set) become probe flags; the lane sources it, the builder calls it (`bash -c 'source …; context_args S F'`) — no second copy of the awk.
+  The lane runs the pass before the per-file rows (`PGEN_PIPELINE_LIBRARY=0` skips it) and every row gets `--lib-in`. `DESIGN_SUITES` now has
+  ONE definition (`pipeline_context.py`; `corpus_verdict_coverage.py` imports it). The report's identity block names the library dump and a
+  `## The library the lane built` section summarises it per suite.
+- **The whole lane re-run** (the unchanged debug probe `d7e17a94…`; 6 jobs, 600 s; 689 s wall incl. the pass, peak 9 797 MB under the
+  guard): 16 336 rows, `pipeline pass 11 696 → 12 121`; diffed row by row against the `-0018` dump (`rust/target/svpp_e1/s6d/diff_6d1.py`):
+  **425 movers, ALL `fail → pass`, 0 `pass → non-pass`** — OpenTitan 367 (1 077 → 1 444 of 3 983), VeeR 58 (23 → 81 of 102; all 58 had
+  stopped at `el2_param.vh:182`, `el2_pkg`'s typedef); black-parrot, uvm-core, friscv, scr1 unmoved. The library: 407 package files — 230
+  pass, 170 fail, 7 refused (black-parrot's 4 + OpenTitan's 3, the `.4b` absent-header class); 166 packages published (130 OpenTitan direct
+  + 31 agreeing variants, 3 black-parrot, 2 VeeR); slowest `uvm_pkg.sv` 20.8 s.
+- **What still rejects, measured**: 🔎 **164 of OpenTitan's 168 rejecting packages import `uvm_pkg` directly** (all under `/dv/`; top origins
+  `clkmgr/pwrmgr/rstmgr_base_test.sv:5:45` `extends cip_base_test #(…)`, `*_env_pkg.sv`) — `uvm_pkg.sv` rejects at
+  `uvm_transaction.svh:443:38` (the `.5`(d) `const local` construct) and exports nothing, so the DV chain waits on the director's ruling
+  (or an export-the-accepted-prefix engine change). 🔎 **Six per-top register packages DISAGREE** (`ast_reg_pkg`, `clkmgr_reg_pkg`,
+  `gpio_reg_pkg`, `ibex_pmp_reset_pkg`, `otp_ctrl_reg_pkg`, `pwrmgr_pkg`: earlgrey vs darjeeling register maps) — not published; the two
+  RTL package failures are exactly their cost (`otp_ctrl_part_pkg.sv` on both tops, `:535:44` / `:338:44`, a `function automatic
+  otp_ctrl_core_hw2reg_t …` return type from `otp_ctrl_reg_pkg`); 21 more variant packages are `incomplete` (a declaring file rejects).
+  🔎 **44 imported packages are declared by no file** (`*_ral_pkg` ×44 — the generated register-abstraction packages OpenTitan's flow emits;
+  the `.4b` "absent generated headers" class, now with names). The re-adjudication: `chained:accepted_under_expansion 1 531 → 1 956`,
+  `chained:hollow 236 → 178`, `chained:rejects_own_file 2 934 → 2 567`, `corroborated` 1 216 and the 436 must-reject matches unchanged, nothing
+  refused; the tuple under the pipeline `8704/2606/5026/3743/30 → 9129/2606/4601/3318/30`, the raw one unmoved, the bar 9 / 30 unchanged.
+- **Next**: `.6d.2` — the unit-membership reading (an `` `include ``d class file has no `import` of its own; its verdict is its package
+  unit's at that file's origin: OpenTitan's 157 hollow + 2 373 own-file rows sit behind passing or rejecting packages); the (d) ruling.
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+  - [x] **REPRODUCE / ISSUE** — the `.13c` dark audit: 2 057 `FACT-GATED-CROSS-FILE` + 168 `CROSS-LIBRARY` rows whose failure byte is a name a package in another file declares (676 OpenTitan RTL rows among them); the pre-scoping (i)–(v) in `.6`.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — ops family: `git ls-files stimuli/sv/pipeline_library.py` listed nothing and `stimuli/run_pipeline_lane.sh` passed no `--lib-in`; correctness family: the probe's `[origin=…]` per mover before (`rom_ctrl_mux.sv:21:16`, `pinmux_pkg.sv:19:15`, `rram_ctrl_pkg.sv:211:44`, `el2_param.vh:182:22`) against rc 0 with the exported facts, and the facts file's `declaration_family = typedef` entry for the gating name.
+  - [x] **FIX** — the builder (inventory, expansion edges, topological order, parse-and-publish with the variant rule), the sourceable context script, the lane's pass, the report's section and identity row, one `DESIGN_SUITES`.
+  - [x] **ADDRESSED (verified)** — the builder's smoke run on the three small suites (7 published) then the full pass (166 published, 0 cycles); the lane re-run: 425 movers, all `fail → pass`; `check_sv_corpus_denominator.sh` OK on the new tuple; `PIPELINE-LANE-CURRENCY` OK + `--self-test` 5/5; `pipeline_context.py --self-test` 20/20.
+  - [x] **NO REGRESSION** — the probe binary byte-identical to `-0016`'s (digest `d7e17a94…`; no Rust byte staged, the `-0014` clippy verdict stands); 15 911 of 16 336 rows byte-identical in verdict, 0 `pass → non-pass`; the raw tuple unmoved; the bar unchanged (9 raw / 30 under the pipeline); `corroborated` and the must-reject matches unchanged; the three corpus gates and `check_family_status.sh` OK; `bash scripts/check_doctrines.sh` ALL PASS (run at commit).
+  - [x] **LOCKSTEP** — `TOOLBOX.md` §1.1b, the SV parser book chapter (the mechanism and the measurement), the platform book's anchor, the family-status blocks, the doctrine's header, this tree, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
+  - promotion: declined (the pass carries its own dump and report; no new card).
+
 ## Open questions
 
 - 🔎 **DIRECTOR CALL (2026-09-09, from `.3`): `const local T x = new(…)` — UVM's spelling is not Annex-A
@@ -1580,6 +1633,7 @@ it waits on the `.5`(d) ruling.
 | `2026-09-09` | `.6c.2` | 11 reproducers reject / 11 controls accept on both profiles; 28 corpus rows reject under the pipeline on both; the adjudicator to scratch moves exactly 28 rows; `must_reject:match_under_expansion 404 → 433`; both tuples re-derived and anchored | ✅ |
 | `2026-09-09` | `.4c.1` | `pipeline_context.py --self-test` 14/14, `--check` OK; the whole lane re-run on the unchanged debug probe (463 s, peak 9 955 MB): exactly 5 movers, all among the 48 files with defines; 2 reproducers reject / 2 controls accept on both profiles; the adjudicator moves exactly 3 rows; `must_reject:match_under_expansion 433 → 436`; both tuples re-derived and anchored; `PIPELINE-LANE-CURRENCY` OK + self-test 5/5 | ✅ |
 | `2026-09-09` | `.4c.2` | `pipeline_context.py --self-test` 20/20, `--check` OK; the 4 rows pre-measured with the hand-given predecessor (rc 0 on both profiles); the whole lane re-run (468 s, peak 9 390 MB): exactly 3 movers, all `fail → pass`, all among the 17 files with predecessors, 0 the other way; the pipeline tuple re-derived and anchored, the raw one unmoved; `PIPELINE-LANE-CURRENCY` OK + self-test 5/5 | ✅ |
+| `2026-09-09` | `.6d.1` | the mechanism measured on four scratch chains (export → import → pass; same-dir; named import); the builder's smoke run (3 suites) then the full pass (407 files, 166 published, 0 cycles); the whole lane re-run (689 s, peak 9 797 MB): 425 movers, all `fail → pass`, 0 the other way; the pipeline tuple re-derived and anchored, the raw one unmoved; `PIPELINE-LANE-CURRENCY` OK + self-test 5/5 | ✅ |
 
 ## Commit log
 
@@ -1598,6 +1652,7 @@ it waits on the `.5`(d) ruling.
 | `.6c.2` | `PGEN-SVPP-EXPANSION-0016` | 28 key-question rows pinned `must_reject` (clause + reproducer/control each; two edition contrasts); the raw key demotes them, the pipeline cashes them; tuples `7501/2606/6229/4022/9` and `8698/2606/5032/3750/30` |
 | `.4c.1` | `PGEN-SVPP-EXPANSION-0017` | the drivers' defines derived per file (56 rows; computed / tie reported; C++ spans skipped); the lane re-run: 5 movers; 3 pins (a vendor-extension branch ×2, a `.3.56` row); tuples `7498/2606/6232/4025/9` and `8701/2606/5029/3746/30` |
 | `.4c.2` | `PGEN-SVPP-EXPANSION-0018` | the harness's unit predecessors derived per file (44 rows on 17 files; `-f` lists, globs, `--siloed`, conflicts reported); the lane re-run: 3 movers, all `fail → pass`; a `.6b.4` pairing claim corrected forward; pipeline tuple `8704/2606/5026/3743/30`; `.4c` closed |
+| `.6d.1` | `PGEN-SVPP-EXPANSION-0019` | the library pass: 407 package files in dependency order, 166 packages published, every row with `--lib-in`; 425 movers, all `fail → pass`; 164/168 rejecting OpenTitan packages import `uvm_pkg` (the (d) gate); six per-top register packages disagree; pipeline tuple `9129/2606/4601/3318/30` |
 
 ## Changelog
 
@@ -1610,3 +1665,5 @@ it waits on the `.5`(d) ruling.
   lane; 5 movers; 3 pins; frontier `.4c.2` (the units' file lists), `.6d`, `.7`.
 - `2026-09-09` — `.4c.2` done (`PGEN-SVPP-EXPANSION-0018`): the harness's unit predecessors derived per file and applied
   by the lane; 3 movers, all `fail → pass`; a `.6b.4` pairing claim corrected forward; `.4c` closed; frontier `.6d`, `.7`.
+- `2026-09-09` — `.6d.1` done (`PGEN-SVPP-EXPANSION-0019`): the library pass over the design suites' packages; 425 movers, all
+  `fail → pass`; the UVM gate measured (164/168); frontier `.6d.2` (unit membership), `.7`, the (d) ruling.

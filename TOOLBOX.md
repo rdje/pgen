@@ -267,6 +267,26 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `--siloed` run and a pair two declarations order differently are REPORTED (`unit` lines), never
   applied. A `-DNAME` the same command line `-U`s again is not a define the driver passes. Every directory
   under `stimuli/sv/subs/` is a suite (`--list-suites`; the runner takes `all`). `SVPP-EXPANSION.4`/`.4b`.
+  ⭐ THE LIBRARY PASS (`SVPP-EXPANSION.6d.1`, `stimuli/sv/pipeline_library.py`, run by the lane before
+  the per-file rows): a design suite's file imports typedefs, classes and parameters a PACKAGE in
+  another file declares, and the parser's fact-gated productions (`known_unscoped_data_type_identifier`,
+  `known_unscoped_base_class_type_identifier`, …) admit such a name only once the package's facts are
+  in scope — the grammar exports them (`@export_to_library` on `package_declaration`; `--lib-out DIR`
+  writes `DIR/package/<name>.facts.json`) and imports them (`@import_from_library` on
+  `package_import_item`; `--lib-in DIR`). The pass inventories every package file of the design suites
+  (`DESIGN_SUITES` in `pipeline_context.py`), reads each one's `import X::` edges from its PREPROCESSED
+  text, orders them topologically (a cycle is reported, its members parsed last), parses each with its own
+  derived context, `--lib-in` of the library so far and `--lib-out` into a private directory, and PUBLISHES
+  a passing file's exports into the shared library `stimuli/sv/characterization/pipeline_library/` — at
+  once for a package one file declares, and for a package several files declare (`prim_pkg` ×4, one per
+  vendor) only when every declaring file passed and their fact sets agree after normalisation
+  (`variants_agree`; else `variants_disagree` / `variants_incomplete`, reported — the build declaration
+  picks, the lane does not guess). A rejecting or refused file exports nothing (the engine writes no facts
+  for a rejected parse), so every package importing it stays dark on its names — measured, not papered
+  over. Then EVERY row runs with `--lib-in` of the result (`pipeline_context_args.sh`, the ONE place the
+  four context tables and the library become probe flags; the lane and the builder both source it). The
+  per-package outcome is the dump `pipeline_library.tsv` (`.gitignore`d, rebuilt every run); the report's
+  *"The library the lane built"* section is its published summary. `PGEN_PIPELINE_LIBRARY=0` skips the pass.
   ⭐ All four tracked tables and the tracked report are held to a fresh derivation on every commit by the
   `PIPELINE-LANE-CURRENCY` doctrine (`scripts/check_pipeline_lane_currency.sh`; the dumps being
   `.gitignore`d, a tree without them is NOT EVALUATED, loudly).

@@ -24,22 +24,23 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 | context | `stimuli/sv/pipeline_context.tsv` | `f1b77668e01ef6bedcd293f3c5967052525fa48a9b40aa17941cc875a3c8d625` |
 | context (per-file defines) | `stimuli/sv/pipeline_context_defines.tsv` | `636c8dec8eeab13488b6dd91c0b5547e53c3f6a25c46ccca884d2fb01f459333` |
 | context (per-file unit predecessors) | `stimuli/sv/pipeline_context_units.tsv` | `df065bdc8a87ff15fb441550d42775de494a6cf63eb971b1303e85ab4500bc70` |
-| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `31c1e8bb97941516c9390d673c584755e21cb0223d315cc3ba68b3ff9f1f7fd5` |
+| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `013c3cced1afe815e450a4b76422f21c4309bc6357303852b9782c20d3d81187` |
+| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `46b61407cd563ff6651c79b61b6987e860ea4997a47e026bb8e7ec56fcefa698` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `5fa726cd89002007c1fb821ec84c29bc3eadb23fc9651cbf058dad156f57e8f3` |
 
-Measured at `HEAD` = `e2296ceb+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `4537d717+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
 | suite | rows | raw pass | raw fail | raw timeout | pipeline pass | pipeline fail | pp_fail | timeout | crash | Δ pass |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Cores-VeeR-EL2 | 102 | 19 | 83 | 0 | 23 | 79 | 0 | 0 | 0 | +4 |
+| Cores-VeeR-EL2 | 102 | 19 | 83 | 0 | 81 | 21 | 0 | 0 | 0 | +62 |
 | Surelog | 828 | 711 | 117 | 0 | 745 | 71 | 12 | 0 | 0 | +34 |
 | black-parrot | 205 | 36 | 169 | 0 | 33 | 2 | 170 | 0 | 0 | -3 |
 | friscv | 441 | 38 | 403 | 0 | 61 | 348 | 32 | 0 | 0 | +23 |
 | ispras-sv-tests | 1266 | 1125 | 141 | 0 | 1255 | 11 | 0 | 0 | 0 | +130 |
 | iverilog | 3799 | 3214 | 585 | 0 | 3559 | 231 | 9 | 0 | 0 | +345 |
-| opentitan | 3983 | 817 | 3166 | 0 | 1077 | 2897 | 9 | 0 | 0 | +260 |
+| opentitan | 3983 | 817 | 3166 | 0 | 1444 | 2530 | 9 | 0 | 0 | +627 |
 | scr1 | 50 | 8 | 42 | 0 | 49 | 1 | 0 | 0 | 0 | +41 |
 | slang | 92 | 72 | 20 | 0 | 74 | 15 | 3 | 0 | 0 | +2 |
 | sv-tests | 1028 | 856 | 172 | 0 | 897 | 126 | 5 | 0 | 0 | +41 |
@@ -47,15 +48,15 @@ Measured at `HEAD` = `e2296ceb+dirty`; the parse binary is a **debug** build (th
 | uvm-core | 174 | 33 | 141 | 0 | 28 | 146 | 0 | 0 | 0 | -5 |
 | verible | 152 | 120 | 32 | 0 | 129 | 23 | 0 | 0 | 0 | +9 |
 | verilator | 3263 | 2084 | 1179 | 0 | 2959 | 287 | 17 | 0 | 0 | +875 |
-| **total** | 16336 | 9847 | 6489 | 0 | 11696 | 4363 | 277 | 0 | 0 | +1849 |
+| **total** | 16336 | 9847 | 6489 | 0 | 12121 | 3938 | 277 | 0 | 0 | +2274 |
 
 ## Transitions — raw status → pipeline status
 
 | suite | raw → pipeline | rows |
 |---|---|---:|
-| Cores-VeeR-EL2 | `fail` → `fail` | 78 |
+| Cores-VeeR-EL2 | `fail` → `pass` | 63 |
+| Cores-VeeR-EL2 | `fail` → `fail` | 20 |
 | Cores-VeeR-EL2 | `pass` → `pass` | 18 |
-| Cores-VeeR-EL2 | `fail` → `pass` | 5 |
 | Cores-VeeR-EL2 | `pass` → `fail` | 1 |
 | Surelog | `pass` → `pass` | 711 |
 | Surelog | `fail` → `fail` | 71 |
@@ -78,9 +79,9 @@ Measured at `HEAD` = `e2296ceb+dirty`; the parse binary is a **debug** build (th
 | iverilog | `fail` → `fail` | 231 |
 | iverilog | `fail` → `pp_fail` | 8 |
 | iverilog | `pass` → `pp_fail` | 1 |
-| opentitan | `fail` → `fail` | 2828 |
+| opentitan | `fail` → `fail` | 2461 |
 | opentitan | `pass` → `pass` | 745 |
-| opentitan | `fail` → `pass` | 332 |
+| opentitan | `fail` → `pass` | 699 |
 | opentitan | `pass` → `fail` | 69 |
 | opentitan | `fail` → `pp_fail` | 6 |
 | opentitan | `pass` → `pp_fail` | 3 |
@@ -140,7 +141,7 @@ Measured at `HEAD` = `e2296ceb+dirty`; the parse binary is a **debug** build (th
 | adjudication class | rows | pipeline pass | pipeline fail | pp_fail | timeout | crash |
 |---|---:|---:|---:|---:|---:|---:|
 | `match` | 6064 | 5693 | 370 | 1 | 0 | 0 |
-| `deferred:chained_only` | 4933 | 1531 | 3177 | 225 | 0 | 0 |
+| `deferred:chained_only` | 4933 | 1956 | 2752 | 225 | 0 | 0 |
 | `deferred:v2005_profile_lane` | 2606 | 2485 | 116 | 5 | 0 | 0 |
 | `divergence:explained_svpp_macro_use` | 1037 | 997 | 36 | 4 | 0 | 0 |
 | `deferred:no_sv_key` | 596 | 557 | 38 | 1 | 0 | 0 |
@@ -164,16 +165,16 @@ Measured at `HEAD` = `e2296ceb+dirty`; the parse binary is a **debug** build (th
 
 | construct at the origin line | rows | one example (origin — line) |
 |---|---:|---|
-| class header with a base class (`extends`) | 2182 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4:63` — `class dccm_transaction_sequence_item extends uvm_sequence_item;` |
-| other | 1865 | `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh:182:22` — `parameter el2_param_t pt = 2294'h02420200008020008420000010484100001420002404110506424100030108600000000000000` |
+| class header with a base class (`extends`) | 2184 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4:63` — `class dccm_transaction_sequence_item extends uvm_sequence_item;` |
+| other | 1449 | `stimuli/sv/subs/Cores-VeeR-EL2/design/include/el2_dec_csr_equ_m.svh:86:16` — `logic postsync;` |
 | a parameter port list `#(` | 102 | `stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv:3:58` — `virtual class uvm_sequence #(type REQ = uvm_sequence_item,` |
-| a `typedef` | 66 | `stimuli/sv/subs/Surelog/tests/NetType/dut.sv:18:24` — `typedef some_other_type myalias;` |
-| a `::`-scoped name | 63 | `stimuli/sv/subs/Surelog/tests/Assignments/dut.sv:5:44` — `function void uvm_packer::get_packed_bits(ref bit unsigned stream[]);` |
-| a function / task header | 41 | `stimuli/sv/subs/Surelog/tests/BitSelectHier/dut.sv:37:32` — `extern function uvm_mem_mam_cfg reconfigure(uvm_mem_mam_cfg cfg = null);` |
-| a `uvm_*` name (typed, not a macro) | 26 | `stimuli/sv/subs/Surelog/tests/ForeachClassParent/dut.sv:4:22` — `protected uvm_phase m_type_overrides[$];` |
+| a `typedef` | 60 | `stimuli/sv/subs/Surelog/tests/NetType/dut.sv:18:24` — `typedef some_other_type myalias;` |
+| a `::`-scoped name | 57 | `stimuli/sv/subs/Surelog/tests/Assignments/dut.sv:5:44` — `function void uvm_packer::get_packed_bits(ref bit unsigned stream[]);` |
+| a function / task header | 39 | `stimuli/sv/subs/Surelog/tests/BitSelectHier/dut.sv:37:32` — `extern function uvm_mem_mam_cfg reconfigure(uvm_mem_mam_cfg cfg = null);` |
+| a `uvm_*` name (typed, not a macro) | 30 | `stimuli/sv/subs/Surelog/tests/ForeachClassParent/dut.sv:4:22` — `protected uvm_phase m_type_overrides[$];` |
 | a `new(…)` initializer / construction | 11 | `stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_transaction.svh:443:38` — `const local uvm_event_pool events = new("events");` |
 | `import` of a package | 5 | `stimuli/sv/subs/sv2v/test/nosim/dpi.sv:35:28` — `import "DPI-C" function bit [15:0] getStimulus(input integer x);` |
-| a `constraint` / `rand` | 2 | `stimuli/sv/subs/opentitan/hw/vendor/pulp_riscv_dbg/src/dmi_test.sv:16:18` — `rand dtm_op_e       op;` |
+| a `constraint` / `rand` | 1 | `stimuli/sv/subs/verilator/test_regress/t/t_constraint_operators.v:52:25` — `constraint unary { !(-~c == 'h22); }` |
 
 ## Where the pipeline's rejections land — top 25 ORIGIN FILES
 
@@ -182,7 +183,7 @@ Measured at `HEAD` = `e2296ceb+dirty`; the parse binary is a **debug** build (th
 
 | origin file | rejections landing in it |
 |---|---:|
-| `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh` | 62 |
+| `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh` | 4 |
 | `stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_transaction.svh` | 4 |
 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv` | 3 |
 | `stimuli/sv/subs/Cores-VeeR-EL2/tools/riscv-dv/veer_directed_instr_lib.sv` | 2 |
@@ -212,7 +213,7 @@ Measured at `HEAD` = `e2296ceb+dirty`; the parse binary is a **debug** build (th
 
 | origin file:line | rejections |
 |---|---:|
-| `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh:182` | 62 |
+| `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh:182` | 4 |
 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4` | 3 |
 | `stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_transaction.svh:443` | 3 |
 | `stimuli/sv/subs/Cores-VeeR-EL2/tools/riscv-dv/veer_directed_instr_lib.sv:16` | 2 |
@@ -267,6 +268,17 @@ Measured at `HEAD` = `e2296ceb+dirty`; the parse binary is a **debug** build (th
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_fif` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_par` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/black-parrot/bp_common/src/v/bsg_rom` | 1 |
+
+## The library the lane built (the design suites' packages, in dependency order)
+
+| suite | package files | pass | fail | refused | timeout / crash | packages published | variants: agree / disagree / incomplete | e.g. rejecting package (origin) |
+|---|---:|---:|---:|---:|---:|---:|---|---|
+| Cores-VeeR-EL2 | 2 | 2 | 0 | 0 | 0 | 2 | 0 / 0 / 0 | — |
+| black-parrot | 7 | 3 | 0 | 4 | 0 | 3 | 0 / 0 / 1 | — |
+| opentitan | 396 | 225 | 168 | 3 | 0 | 161 | 31 / 6 / 21 | `otp_ctrl_part_pkg.sv` (other) |
+| uvm-core | 2 | 0 | 2 | 0 | 0 | 0 | 0 / 0 / 0 | `uvm_pkg.sv` (a 'uvm_*' name (typed, not a macro)) |
+
+A package file's row here is its verdict AS A UNIT (its own text plus what it includes, after the packages it imports were exported); a rejecting package exports nothing, so every package importing it stays dark on its names — the lane measures that, it does not paper over it.
 
 ## The context the lane ran under
 

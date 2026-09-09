@@ -187,7 +187,8 @@ PIPELINE_CLASSES = {
     "svpp_owned:refused_engine": ("NO VERDICT", "conformance owned by the preprocessor lane"),
 }
 PIPELINE_BAR_CLASSES = {"pipeline:refuted:parser_question"}
-DESIGN_SUITES = {"Cores-VeeR-EL2", "friscv", "scr1", "opentitan", "black-parrot", "uvm-core"}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pipeline_context import DESIGN_SUITES  # noqa: E402  — ONE definition (SVPP-EXPANSION.6d.1)
 
 
 def read_readjudication(path: Path):

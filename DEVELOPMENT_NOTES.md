@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.6d.1 (`PGEN-SVPP-EXPANSION-0019`): a library is built in the order the design declares, and a variant nobody chose is not published
+
+- **Measure the mechanism on one chain before building the pass.** Four scratch probes (export, import, same-dir chain, named import) took minutes and settled every design question the pass then had to answer; the pass itself moved 425 rows with zero regressions on its first full run.
+- **Publish a fact only when every declaring file agrees.** Six register packages exist once per top with different maps; picking the first, the last or the newest would have been a guess dressed as derivation. Reporting them cost two RTL packages and named the reader that would fix it (`.core`).
+- **Count what the gate hides.** "UVM is gated on (d)" was a sentence; 164 of 168 rejecting packages importing `uvm_pkg` is the price of the ruling, and the ruling now has a number attached.
+- **One source of truth for the flags.** The lane and the builder must run the probe under the same context; a second awk in Python would have drifted within a slice. The sourceable script is the whole fix.
+- **Promotion**: declined — `promotion: declined (the pass carries its dump and report)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.4c.2 (`PGEN-SVPP-EXPANSION-0018`): a unit is what the harness declares, and a claim about a harness is checked against the harness
 
 - **Three harness dialects, one rule each, and the rest reported.** verilator's flag lists, slang's `.f` files and sv2v's `run.sh` each state a unit in their own way; the deriver reads each as stated and names what it will not read (a Verilator `-f` option file, a shell glob, a `--siloed` run, a pair two declarations order differently). Three rows moved, none the other way; the 14 other files with predecessors were a control that a predecessor's own preprocessing does not turn a row.

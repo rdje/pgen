@@ -75,6 +75,10 @@ def registered_suites() -> dict[str, str]:
 
 
 SUITES = registered_suites()
+# The DESIGN suites: a file there is one member of a compiled design (packages, `import X::*`, `` `include ``d class
+# files), so the suite's own convention — the design compiles — is the expectation (SVPP-EXPANSION.6c.1) and the
+# library pass (.6d.1) parses their packages in dependency order. ONE definition; corpus_verdict_coverage.py imports it.
+DESIGN_SUITES = {"Cores-VeeR-EL2", "friscv", "scr1", "opentitan", "black-parrot", "uvm-core"}
 FILES_TSV = ROOT / "stimuli" / "sv" / "pipeline_context_files.tsv"
 # SVPP-EXPANSION.4c.1 — per-file DEFINES a suite's own driver passes for the file: verilator's `t_x.py`
 # (`+define+NAME[=VALUE]` / `-DNAME[=VALUE]` inside its flag lists) and sv-tests' `:defines:` header.

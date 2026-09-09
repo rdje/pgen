@@ -336,11 +336,43 @@ names** (`file_uses_define_in_file_with_no_eol.sv` after `file_with_no_eol.sv`) 
 vendored slang tree makes it, so the deriver reports nothing for it; hand-given, the pair accepts on both
 profiles, and the row's basis now says exactly that.
 
+**The library pass (`.6d.1`).** A design is not a bag of files. A file of OpenTitan, black-parrot,
+VeeR, scr1, friscv or UVM imports typedefs, classes and parameters that a *package* in another file
+declares, and the parser only admits such a name where its grammar is fact-gated (a typedef name as a port
+type, a class name after `extends`, a parameter name in a range — the store gate of `SV-CORPUS-GRAD.13w`)
+once the package's facts are in scope. The grammar already exports and imports those facts
+(`@export_to_library` on `package_declaration`, `@import_from_library` on `package_import_item`;
+`--lib-out DIR` / `--lib-in DIR`). The lane now builds that library before any per-file row runs
+(`stimuli/sv/pipeline_library.py`): every package file of the design suites, its `import X::` edges read
+from its preprocessed text, a topological order, each file parsed with its own derived context, the library
+so far as `--lib-in` and a private `--lib-out`, and a passing file's exports published — at once for a
+package one file declares, and for a package several files declare (`prim_pkg` has four, one per vendor)
+only when every declaring file passed and their fact sets agree; a disagreement is reported, not resolved
+by guessing which variant the build meant. A rejecting file exports nothing: the engine writes no facts
+for a rejected parse, so every package importing it stays dark on its names, and the report's *"The
+library the lane built"* table says how many. Then every row runs with `--lib-in` of the result.
+
+Measured on the whole lane (the same debug probe, 689 s wall): **425 rows `fail → pass` and none the other
+way** — OpenTitan 1 077 → 1 444 accepted of 3 983, VeeR 23 → 81 of 102 (its 58 rows had all stopped in
+`el2_param.vh:182`, a typedef of `el2_pkg`). The library: 407 package files, 230 accepted, 170 rejected,
+7 refused by the preprocessor, 166 packages published (31 of them declared by several files whose exports
+agree). What still rejects is measured, not hidden: 🔎 **164 of OpenTitan's 168 rejecting packages import
+`uvm_pkg` directly** — and `uvm_pkg.sv` rejects at `uvm_transaction.svh:443` on the `const local` qualifier
+order the standard does not derive (the director's `.5`(d) call), so it exports nothing and the whole DV
+chain (`cip_base_test`, `dv_base_env_cfg`, …) waits on that one ruling; 🔎 **six register packages are
+declared per top and DISAGREE** (`clkmgr_reg_pkg`, `gpio_reg_pkg`, `otp_ctrl_reg_pkg`, `ast_reg_pkg`,
+`ibex_pmp_reset_pkg`, `pwrmgr_pkg`: earlgrey and darjeeling have different register maps), so they are not
+published and the two RTL packages that need one (`otp_ctrl_part_pkg.sv`, both tops) still reject — the
+build declaration (`.core`) picks the variant, and reading it stays priced, not built; 🔎 **44 imported
+packages are declared by no file in the tree** (`*_ral_pkg`, the generated register-abstraction packages
+OpenTitan's flow emits at build time). The `` `include ``d class files of a passing package are still
+per-file rows without an `import` of their own — the unit-membership reading is `.6d.2`.
+
 **The denominator, read twice.** The platform book's verdict-coverage tuple
 (`adjudicated/routed/no-verdict/dark/axis-2-bar`) now carries two readings of the same rows, published
-together and held by the same gate: the raw lane's `7498/2606/6232/4025/9`, and `8704/2606/5026/3743/30`
+together and held by the same gate: the raw lane's `7498/2606/6232/4025/9`, and `9129/2606/4601/3318/30`
 under the pipeline. The second is the first with the re-adjudication table applied: 1 216 explained-away
-rows corroborated, 1 271 design-corpus files accepted under their derived context (must-accept by the
+rows corroborated, 1 696 design-corpus files accepted under their derived context and library (must-accept by the
 suite's own convention — a shipping design compiles), 436 must-reject rows rejected where the raw lane
 never reached the construct (28 of them the key questions of the disposition table, pinned with the
 clause and a reproducer each, and 3 the rows a file's own driver define reaches — `.4c.1`), and 21 must-accept rows still refused in their own text — the bar's new
