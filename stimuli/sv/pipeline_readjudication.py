@@ -25,6 +25,15 @@ and says, row by row, what expansion changed:
                  the verdict belongs to the header, and the header's own row carries it
   refused        the preprocessor refused the row — a context gap (an include the derived context
                  does not supply) or an engine refusal (`E_SVPP_*`, a malformed directive)
+  accepted_in_unit / unreached_in_unit  (SVPP-EXPANSION.6d.2) a row that fails PER FILE but is a
+                 MEMBER of a package unit the library pass parsed (`pipeline_library_members.tsv`, from
+                 the preprocessor's source map; `pipeline_library.tsv`, the unit's verdict): an
+                 `` `include ``d class file has no `import` of its own, so its verdict is its UNIT's at
+                 that file's origin — `accepted_in_unit` when a unit that includes it PASSES (every
+                 byte of the member was parsed there), the per-file verdict kept when the unit's
+                 rejection lands IN this file, `unreached_in_unit` when every unit that includes it
+                 rejects elsewhere (the member's bytes were never judged; the unit's origin is named).
+                 Read for the explained_svpp and chained_only populations only.
   chained:*      the same four outcomes for a `deferred:chained_only` row — reported with that
                  prefix because the answer key carries NO expected verdict for the row: a pass under
                  its context is "accepted under expansion", not yet a `match`. ⛔ A row earns a
@@ -89,6 +98,8 @@ ART = ROOT / "docs" / "tasks" / "artifacts" / "sv_corpus_grad"
 EXPLAINED_AUDIT = ART / "explained_svpp_audit" / "after" / "audit.tsv"
 DARK_AUDIT = ART / "dark_chained_only" / "audit.tsv"
 DISPOSITIONS = CHAR / "refuted_dispositions.tsv"
+LIBRARY = CHAR / "pipeline_library.tsv"                 # SVPP-EXPANSION.6d.1: the library pass's per-unit verdicts (a dump)
+LIBRARY_MEMBERS = CHAR / "pipeline_library_members.tsv"  # SVPP-EXPANSION.6d.2: (suite, package file, member file) (a dump)
 
 # `.6b`'s disposition vocabulary — what a `refuted` row turned out to be, once looked at
 DISPOSITION_KINDS = {
@@ -129,6 +140,7 @@ POPULATIONS = (
 )
 
 TSV_COLUMNS = ["suite", "relpath", "raw_class", "prior_stratum", "pipeline_status", "landing",
+               "unit",  # .6d.2: the package unit the reading came from (empty = none)
                "construct", "verdict", "origin"]
 
 
@@ -228,6 +240,37 @@ def verdict_of(population: str, status: str, landing: str) -> str:
     return prefix + status  # timeout / crash, reported as themselves
 
 
+def read_units(library: pathlib.Path, members: pathlib.Path) -> dict[tuple[str, str], list[tuple[str, str, str]]]:
+    """(suite, member relpath) → [(package relpath, unit status, unit origin)] for every unit including it."""
+    if not library.exists() or not members.exists():
+        return {}
+    verdict = {r[2]: (r[1], r[7]) for r in pv.read_tsv(library, 10)}     # package relpath → (status, origin)
+    units: dict[tuple[str, str], list[tuple[str, str, str]]] = {}
+    for r in pv.read_tsv(members, 3):
+        suite, pkg, member = r[0], r[1], r[2]
+        if pkg in verdict:
+            st, origin = verdict[pkg]
+            units.setdefault((suite, pv.suite_relpath(suite, member)), []).append((pkg, st, origin))
+    return units
+
+
+def unit_reading(row: dict[str, str], repo_rel: str, units: list[tuple[str, str, str]]) -> tuple[str, str] | None:
+    """(verdict, unit) for a per-file failing member, or None when the per-file verdict stands."""
+    if row["population"] not in ("explained_svpp", "chained_only") or row["pipeline_status"] not in ("fail", "pp_fail"):
+        return None
+    prefix = "chained:" if row["population"] == "chained_only" else ""
+    passing = [u for u in units if u[1] == "pass"]
+    if passing:
+        return prefix + "accepted_in_unit", passing[0][0]
+    here = [u for u in units if u[1] == "fail" and u[2].startswith(repo_rel + ":")]
+    if here:
+        return None                                    # the unit's rejection lands in this file: the per-file verdict IS the unit's
+    elsewhere = [u for u in units if u[1] in ("fail", "pp_fail")]
+    if elsewhere:
+        return prefix + "unreached_in_unit", elsewhere[0][0]
+    return None
+
+
 def prior_stratum(population: str, key: tuple[str, str], explained: dict, dark: dict, raw_class: str = "") -> str:
     if population == "explained_svpp":
         a = explained.get(key)
@@ -243,7 +286,9 @@ def prior_stratum(population: str, key: tuple[str, str], explained: dict, dark: 
 
 
 def render(rows: list[dict[str, str]], probe: pathlib.Path, dump: pathlib.Path, manifest: pathlib.Path,
-           missing_dump_rows: int) -> str:
+           missing_dump_rows: int, units: dict | None = None) -> str:
+    units = units or {}
+
     def count(pred) -> int:
         return sum(1 for r in rows if pred(r))
     L: list[str] = []
@@ -286,7 +331,7 @@ def render(rows: list[dict[str, str]], probe: pathlib.Path, dump: pathlib.Path, 
              "`corroborated` means the explanation held, `refuted` means it did not — the file still fails "
              "in its own text after preprocessing.\n")
     strata = sorted({r["prior_stratum"] for r in rows if r["population"] == "explained_svpp"})
-    verdicts = ["corroborated", "refuted", "hollow", "refused_context", "refused_engine"]
+    verdicts = ["corroborated", "accepted_in_unit", "refuted", "hollow", "unreached_in_unit", "refused_context", "refused_engine"]
     def is_verdict(r, v):
         return r["verdict"] == v or (v == "refuted" and r["verdict"].startswith("refuted:"))
     L.append("| position verdict (`.12a`) | rows | " + " | ".join(f"`{v}`" for v in verdicts) + " |")
@@ -330,8 +375,8 @@ def render(rows: list[dict[str, str]], probe: pathlib.Path, dump: pathlib.Path, 
              "(`IN-WINDOW` / `PAST-LAST-TICK` = expansion-owned, `.13d`'s population) or not (`PRE-TICK` / "
              "`NO-ALTERABLE-TICK`, with the cross-file CHANNEL the failure sits on). `ONE-SIDED` rows passed "
              "raw; the pipeline says whether that pass was hollow.\n")
-    cverdicts = ["chained:accepted_under_expansion", "chained:rejects_own_file", "chained:hollow",
-                 "chained:refused_context", "chained:refused_engine"]
+    cverdicts = ["chained:accepted_under_expansion", "chained:accepted_in_unit", "chained:rejects_own_file", "chained:hollow",
+                 "chained:unreached_in_unit", "chained:refused_context", "chained:refused_engine"]
     cstrata = sorted({r["prior_stratum"] for r in rows if r["population"] == "chained_only"})
     L.append("| `.13c` stratum | rows | " + " | ".join(f"`{v.split(':')[1]}`" for v in cverdicts) + " |")
     L.append("|---|---:|" + "---:|" * len(cverdicts))
@@ -354,6 +399,23 @@ def render(rows: list[dict[str, str]], probe: pathlib.Path, dump: pathlib.Path, 
         L.append(f"| {c} | {len(sub)} | {pv.code(sub[0]['origin'])} |")
     L.append("")
 
+    # SVPP-EXPANSION.6d.2 — the unit-membership reading
+    L.append("## The unit-membership reading (`.6d.2`)\n")
+    L.append("An `` `include ``d class file has no `import` of its own, so per file it rejects on its first cross-file "
+             "name; the library pass parsed it INSIDE its package unit (`pipeline_library_members.tsv`, from the "
+             "preprocessor's source map). Its verdict is its unit's at that file's origin: `accepted_in_unit` when a unit "
+             "including it passes, the per-file verdict kept when the unit's rejection lands in this file, "
+             "`unreached_in_unit` when every unit including it rejects elsewhere (the member's bytes were never judged).\n")
+    L.append("| suite | members re-read | `accepted_in_unit` | rejection lands here (per-file verdict kept) | `unreached_in_unit` |\n|---|---:|---:|---:|---:|")
+    for s in sorted({r["suite"] for r in rows if r["unit"] or (r["suite"], r["relpath"]) in units}):
+        mem = [r for r in rows if r["suite"] == s and (r["suite"], r["relpath"]) in units]
+        acc = sum(1 for r in mem if r["verdict"].endswith("accepted_in_unit"))
+        unr = sum(1 for r in mem if r["verdict"].endswith("unreached_in_unit"))
+        kept = sum(1 for r in mem if r["pipeline_status"] in ("fail", "pp_fail") and not r["unit"])
+        L.append(f"| {s} | {len(mem)} | {acc} | {kept} | {unr} |")
+    if not units:
+        L.append("| (no library dump: the lane ran without the library pass) | 0 | 0 | 0 | 0 |")
+    L.append("")
     L.append("## must_reject — the rows the answer key expects rejected, under the pipeline\n")
     L.append("Every row whose expected verdict is `must_reject` — the manifest's column, or a pin the raw lane "
              "demoted because its parse stops on a macro use above the pinned construct (`.6b.1`; the pin is read "
@@ -450,8 +512,18 @@ def main() -> int:
             "suite": key[0], "relpath": key[1], "raw_class": m[4], "population": pop,
             "prior_stratum": prior_stratum(pop, key, explained, dark, m[4]),
             "pipeline_status": status, "landing": landing, "construct": construct,
-            "verdict": verdict_of(pop, status, landing), "origin": origin,
+            "verdict": verdict_of(pop, status, landing), "origin": origin, "unit": "",
         })
+    # SVPP-EXPANSION.6d.2 — the unit-membership reading (a member's verdict is its package unit's)
+    units = read_units(LIBRARY, LIBRARY_MEMBERS)
+    for r in rows:
+        mine = units.get((r["suite"], r["relpath"]))
+        if not mine:
+            continue
+        repo_rel = lane[(r["suite"], r["relpath"])][2]
+        ur = unit_reading(r, repo_rel, mine)
+        if ur:
+            r["verdict"], r["unit"] = ur
 
     dispositions = read_dispositions(DISPOSITIONS)
     refuted_keys = {(r["suite"], r["relpath"]) for r in rows if r["verdict"] == "refuted"}
@@ -474,7 +546,7 @@ def main() -> int:
         w.writerow(TSV_COLUMNS)
         for r in rows:
             w.writerow([r[c] for c in TSV_COLUMNS])
-    out_md.write_text(render(rows, pathlib.Path(args.probe), dump, manifest_path, missing))
+    out_md.write_text(render(rows, pathlib.Path(args.probe), dump, manifest_path, missing, units))
 
     counts: dict[str, int] = {}
     for r in rows:

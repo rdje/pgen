@@ -227,7 +227,9 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `.6d.2` | `pending` | the UNIT-MEMBERSHIP reading: a `` `include ``d class file's verdict is its package unit's at that file's origin (157 hollow + 2 373 own-file OpenTitan rows behind passing or rejecting packages); the (d) ruling unlocks the UVM chain (164 of 168 rejecting OpenTitan packages import `uvm_pkg`) |
+| 1 | `.7` | `pending` | contract + book lockstep, closes the tree; the origin-mapping note; (d) waits for the director |
+| ⛔ | `.6d.3` | `blocked` | the UVM library — `uvm_pkg.sv` must export: the director's `.5`(d) ruling on `const local` (`uvm_transaction.svh:443`), or an export-the-accepted-prefix engine change the ruling would make unnecessary; the price, measured: 164 rejecting OpenTitan packages, 1 923 unreached member rows, 273 dark rows gated on a `uvm_*` name |
+| — | `.6d.2` | ✅ `done` | `PGEN-SVPP-EXPANSION-0020`: the unit-membership reading — the pass records each unit's member files (the source map; 5 074 rows), the re-adjudication reads a member's verdict through its unit (`accepted_in_unit` / kept / `unreached_in_unit`); measured: 0 accepted, 1 923 unreached, 89 kept — all behind the UVM gate; the tuple unmoved |
 | — | `.6d.1` | ✅ `done` | `PGEN-SVPP-EXPANSION-0019`: the LIBRARY PASS — 407 package files of the design suites parsed in dependency order, 166 packages published, every row run with `--lib-in`; 425 rows `fail → pass`, 0 the other way (OpenTitan 1 077 → 1 444, VeeR 23 → 81); 🔎 164/168 rejecting OpenTitan packages import `uvm_pkg` (the (d) gate); six per-top register packages disagree (not published); 44 generated `*_ral_pkg` imports absent from the tree |
 | — | `.4c.2` | ✅ `done` | `PGEN-SVPP-EXPANSION-0018`: the unit predecessors a file's OWN harness compiles first, derived per file (`pipeline_context_units.tsv`, 44 rows on 17 files; `-f` lists, globs, `--siloed` and ordering conflicts REPORTED); the whole lane re-run — exactly 3 movers, all `fail → pass`; 🔎 a `.6b.4` disposition had inferred a pairing no declaration makes — corrected forward; `.4c` CLOSED |
 | — | `.4c.1` | ✅ `done` | `PGEN-SVPP-EXPANSION-0017`: the defines a file's OWN driver passes, derived per file (`pipeline_context_defines.tsv`, 56 rows; computed values and ties REPORTED, C++ / iverilog spans and helpers skipped); the whole lane re-run — exactly 5 movers (3 `fail → pass`, 2 `pass → fail`), 3 rows pinned `must_reject` with a reproducer/control each; 🔎 a driver define can select a vendor-extension branch |
@@ -1550,6 +1552,43 @@ it waits on the `.5`(d) ruling.
   - [x] **LOCKSTEP** — `TOOLBOX.md` §1.1b, the SV parser book chapter (the mechanism and the measurement), the platform book's anchor, the family-status blocks, the doctrine's header, this tree, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
   - promotion: declined (the pass carries its own dump and report; no new card).
 
+## `.6d.2` the UNIT-MEMBERSHIP reading — ✅ done 2026-09-09 (`PGEN-SVPP-EXPANSION-0020`): a member's verdict is its unit's; measured idle behind the UVM gate
+
+**What landed** (LANE + INSTRUMENT tier; ZERO Rust / grammar / answer-key / codegen bytes):
+
+- **The pass records membership** — `stimuli/sv/pipeline_library.py` asks the preprocessor for the source map of every package
+  unit's expansion (`--sv-source-map-json`) and writes `stimuli/sv/characterization/pipeline_library_members.tsv`
+  (`suite package_relpath member_relpath`; a dump, `.gitignore`d): 5 074 rows — OpenTitan 4 884, uvm-core 186, black-parrot 3, VeeR 1;
+  2 060 distinct member files.
+- **The re-adjudication reads a member through its unit** (`read_units`, `unit_reading`; a `unit` column in the per-row TSV): for a
+  row of the explained_svpp / chained_only populations that fails per file and is a member of ≥ 1 unit — `accepted_in_unit` when a unit
+  including it PASSES (its bytes were parsed there), the per-file verdict KEPT when a unit's rejection origin is in this file (the
+  per-file verdict IS the unit's), `unreached_in_unit` when every including unit rejects elsewhere (never judged; the first unit named).
+  must_reject and svpp_owned rows are left out by design (a fragment the key expects rejected is not accepted by membership; the
+  preprocessor lane owns its rows). The report's `## The unit-membership reading` section counts it per suite; the coverage census
+  buckets `accepted_in_unit` ADJUDICATED in the design suites (exactly as `accepted_under_expansion`) and `unreached_in_unit` NO
+  VERDICT (dark, named); the lane report's library table gains the member-file count.
+- **Measured** (the library re-derived standalone, 226 s; the same 166 packages, verdicts identical to the `-0019` run): 2 059 routed
+  members re-read — **`accepted_in_unit` 0, kept 89, `unreached_in_unit` 1 923** (OpenTitan 1 783, uvm-core 140). VERIFIED against the
+  dumps directly: 31 distinct members belong to a passing unit and 0 of them fail per file (they are RTL headers; every passing
+  package is RTL, and RTL packages `include` little); the 2 012 (rejecting unit, failing member) pairs are the DV class files.
+  🔎 **The reading is in place and IDLE behind one ruling**: every package that `` `include ``s class files imports `uvm_pkg`, and
+  `uvm_pkg.sv` exports nothing until `.5`(d) is ruled — 1 923 member rows join the 164 packages and the 273 rows gated at their
+  failure point as the ruling's measured price; the same lane run converts them the day it lands (`.6d.3`, blocked).
+  The dark population is now NAMED by its unit's origin: `chained:rejects_own_file 2 567 → 718`, `chained:hollow 178 → 104`,
+  `chained:unreached_in_unit` 1 923; the tuple under the pipeline UNMOVED at `9129/2606/4601/3318/30` (an unreached member was
+  dark before and is dark now, with a reason), the raw tuple unmoved, the bar 9 / 30.
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+  - [x] **REPRODUCE / ISSUE** — after `.6d.1`, OpenTitan's 157 `chained:hollow` + 2 373 `chained:rejects_own_file` rows: `` `include ``d class files with no `import` of their own, rejected per file on their first cross-file name whatever the library holds.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — ops family: `git ls-files stimuli/sv/characterization/pipeline_library_members.tsv` lists nothing (a dump) and the instrument had no membership input; correctness family: the source map of `cip_base_pkg.sv`'s expansion (`--sv-source-map-json`: segments with `source.file`) names its members, and the per-file `[origin=…]` of a member (`chip_sw_base_vseq.sv`) is its first `extends` base while its unit's `[origin=…]` is `clkmgr_base_test.sv:5:45`-class — the unit's, not the member's.
+  - [x] **FIX** — the builder's membership table; the instrument's reader, reading rule and `unit` column; the coverage classes; the report's column and section; TOOLBOX / chapter / doctrine text.
+  - [x] **ADDRESSED (verified)** — the re-adjudication renders (`refuted_awaiting_disposition=0`, nothing refused); the zero-accepted count re-derived from the dumps by a second script (31 passing-unit members, 0 failing per file); `corpus_verdict_coverage.py` buckets the two new classes (no REFUSING); `check_sv_corpus_denominator.sh` OK, the tuple unmoved.
+  - [x] **NO REGRESSION** — the lane dump byte-identical to `-0019`'s (no lane re-run; the library re-derived standalone with identical verdicts: 166 published, 225/168/3 OpenTitan); no Rust byte staged (the `-0014` clippy verdict stands); `corroborated` 1 216, the 436 must-reject matches, the bar 9 / 30 and both tuples unchanged; `PIPELINE-LANE-CURRENCY` OK + `--self-test` 5/5; the corpus gates and `check_family_status.sh` OK; `bash scripts/check_doctrines.sh` ALL PASS (run at commit).
+  - [x] **LOCKSTEP** — `TOOLBOX.md` §1.1b, the SV parser book chapter, the doctrine's header, this tree, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
+  - promotion: declined (an instrument extension; no new card).
+
 ## Open questions
 
 - 🔎 **DIRECTOR CALL (2026-09-09, from `.3`): `const local T x = new(…)` — UVM's spelling is not Annex-A
@@ -1634,6 +1673,7 @@ it waits on the `.5`(d) ruling.
 | `2026-09-09` | `.4c.1` | `pipeline_context.py --self-test` 14/14, `--check` OK; the whole lane re-run on the unchanged debug probe (463 s, peak 9 955 MB): exactly 5 movers, all among the 48 files with defines; 2 reproducers reject / 2 controls accept on both profiles; the adjudicator moves exactly 3 rows; `must_reject:match_under_expansion 433 → 436`; both tuples re-derived and anchored; `PIPELINE-LANE-CURRENCY` OK + self-test 5/5 | ✅ |
 | `2026-09-09` | `.4c.2` | `pipeline_context.py --self-test` 20/20, `--check` OK; the 4 rows pre-measured with the hand-given predecessor (rc 0 on both profiles); the whole lane re-run (468 s, peak 9 390 MB): exactly 3 movers, all `fail → pass`, all among the 17 files with predecessors, 0 the other way; the pipeline tuple re-derived and anchored, the raw one unmoved; `PIPELINE-LANE-CURRENCY` OK + self-test 5/5 | ✅ |
 | `2026-09-09` | `.6d.1` | the mechanism measured on four scratch chains (export → import → pass; same-dir; named import); the builder's smoke run (3 suites) then the full pass (407 files, 166 published, 0 cycles); the whole lane re-run (689 s, peak 9 797 MB): 425 movers, all `fail → pass`, 0 the other way; the pipeline tuple re-derived and anchored, the raw one unmoved; `PIPELINE-LANE-CURRENCY` OK + self-test 5/5 | ✅ |
+| `2026-09-09` | `.6d.2` | the library re-derived standalone with the membership table (226 s; verdicts identical to `-0019`); the re-adjudication re-read 2 059 members (0 / 89 / 1 923); the zero-accepted count verified from the dumps by a second script; coverage buckets the new classes; the tuple unmoved through the denominator gate; currency OK + self-test 5/5 | ✅ |
 
 ## Commit log
 
@@ -1653,6 +1693,7 @@ it waits on the `.5`(d) ruling.
 | `.4c.1` | `PGEN-SVPP-EXPANSION-0017` | the drivers' defines derived per file (56 rows; computed / tie reported; C++ spans skipped); the lane re-run: 5 movers; 3 pins (a vendor-extension branch ×2, a `.3.56` row); tuples `7498/2606/6232/4025/9` and `8701/2606/5029/3746/30` |
 | `.4c.2` | `PGEN-SVPP-EXPANSION-0018` | the harness's unit predecessors derived per file (44 rows on 17 files; `-f` lists, globs, `--siloed`, conflicts reported); the lane re-run: 3 movers, all `fail → pass`; a `.6b.4` pairing claim corrected forward; pipeline tuple `8704/2606/5026/3743/30`; `.4c` closed |
 | `.6d.1` | `PGEN-SVPP-EXPANSION-0019` | the library pass: 407 package files in dependency order, 166 packages published, every row with `--lib-in`; 425 movers, all `fail → pass`; 164/168 rejecting OpenTitan packages import `uvm_pkg` (the (d) gate); six per-top register packages disagree; pipeline tuple `9129/2606/4601/3318/30` |
+| `.6d.2` | `PGEN-SVPP-EXPANSION-0020` | the unit-membership reading (5 074 member rows from the source map; `accepted_in_unit` / kept / `unreached_in_unit`); measured 0 / 89 / 1 923 — idle behind the UVM gate; the tuple unmoved |
 
 ## Changelog
 
@@ -1667,3 +1708,5 @@ it waits on the `.5`(d) ruling.
   by the lane; 3 movers, all `fail → pass`; a `.6b.4` pairing claim corrected forward; `.4c` closed; frontier `.6d`, `.7`.
 - `2026-09-09` — `.6d.1` done (`PGEN-SVPP-EXPANSION-0019`): the library pass over the design suites' packages; 425 movers, all
   `fail → pass`; the UVM gate measured (164/168); frontier `.6d.2` (unit membership), `.7`, the (d) ruling.
+- `2026-09-09` — `.6d.2` done (`PGEN-SVPP-EXPANSION-0020`): the unit-membership reading, measured idle behind the UVM gate
+  (0 accepted, 1 923 unreached); `.6d.3` (the UVM library) BLOCKED on (d); frontier `.7`.

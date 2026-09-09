@@ -26,6 +26,12 @@ The per-package outcome goes to `stimuli/sv/characterization/pipeline_library.ts
 lane's; `.gitignore`d; the report renders its summary):
     suite  status  relpath  packages  secs  rc  furthest  origin  exported  note
 `status` ∈ pass | fail | pp_fail | timeout | crash; `exported` = the packages published from this file.
+
+SVPP-EXPANSION.6d.2 — the UNIT MEMBERSHIP: the files a package unit's preprocessed text came from (the
+preprocessor's source map, `--sv-source-map-json`), one row per (package file, member file) to
+`stimuli/sv/characterization/pipeline_library_members.tsv` (`suite  package_relpath  member_relpath`; a
+dump too). A member has no `import` of its own; its verdict under the pipeline is its unit's at that
+file's origin — the re-adjudication instrument reads this table with the dump above.
 """
 import argparse
 import collections
@@ -61,14 +67,33 @@ def context_flags(suite: str, rel: str) -> list[str]:
     return flags
 
 
-def expansion(ast_pipeline: pathlib.Path, rel: str, flags: list[str], timeout_s: int) -> str | None:
-    """The preprocessed text (the unit the parser sees), or None when the preprocessor refuses."""
+def expansion(ast_pipeline: pathlib.Path, rel: str, flags: list[str], timeout_s: int,
+              source_map: pathlib.Path | None = None) -> tuple[str | None, list[str]]:
+    """(the preprocessed text — the unit the parser sees — or None when the preprocessor refuses,
+    the distinct repo-relative files the text came from, in first-appearance order)."""
+    cmd = [str(ast_pipeline), rel, "--preprocess-systemverilog", *flags]
+    if source_map is not None:
+        cmd += ["--sv-source-map-json", str(source_map)]
     try:
-        r = subprocess.run([str(ast_pipeline), rel, "--preprocess-systemverilog", *flags],
-                           capture_output=True, text=True, cwd=ROOT, timeout=timeout_s, errors="replace")
+        r = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT, timeout=timeout_s, errors="replace")
     except subprocess.TimeoutExpired:
-        return None
-    return r.stdout if r.returncode == 0 else None
+        return None, []
+    if r.returncode != 0:
+        return None, []
+    members: list[str] = []
+    if source_map is not None and source_map.exists():
+        try:
+            for seg in json.loads(source_map.read_text()):
+                f = seg.get("source", {}).get("file", "")
+                try:
+                    m = pathlib.Path(f).resolve().relative_to(ROOT).as_posix()
+                except ValueError:
+                    m = f
+                if m and m not in members:
+                    members.append(m)
+        except (json.JSONDecodeError, OSError):
+            pass
+    return r.stdout, members
 
 
 def inventory(suites: list[str]) -> dict[str, tuple[str, list[str]]]:
@@ -122,6 +147,7 @@ def main() -> int:
     ap.add_argument("--ast-pipeline", default=None, help="the expansion tool (default: next to the probe)")
     ap.add_argument("--lib-dir", default="stimuli/sv/characterization/pipeline_library")
     ap.add_argument("--out", default="stimuli/sv/characterization/pipeline_library.tsv")
+    ap.add_argument("--out-members", default="stimuli/sv/characterization/pipeline_library_members.tsv")
     ap.add_argument("--timeout-s", type=int, default=60)
     ap.add_argument("--suites", nargs="*", default=sorted(DESIGN_SUITES))
     ap.add_argument("--max-files", type=int, default=0, help="smoke tests: parse only the first N of the order")
@@ -146,13 +172,15 @@ def main() -> int:
     imports: dict[str, set[str]] = {}
     pp_refused: set[str] = set()
     flags_of: dict[str, list[str]] = {}
+    members_of: dict[str, list[str]] = {}
     for rel, (suite, names) in files.items():
         flags_of[rel] = context_flags(suite, rel)
-        text = expansion(ast_pipeline, rel, flags_of[rel], args.timeout_s)
+        text, members = expansion(ast_pipeline, rel, flags_of[rel], args.timeout_s, work / "srcmap.json")
         if text is None:
             pp_refused.add(rel)
             text = (ROOT / rel).read_text(errors="replace")
         imports[rel] = set(IMPORT.findall(text)) - set(names)
+        members_of[rel] = [m for m in members if m != rel]
     deps = {rel: {d for p in imports[rel] for d in declared.get(p, []) if d != rel} for rel in files}
     order, cyclic = topological(deps)
     order += cyclic
@@ -227,6 +255,10 @@ def main() -> int:
     for row in rows:
         row[9] = ";".join(notes_of[row[2]])
     shutil.rmtree(work, ignore_errors=True)
+    out_members = pathlib.Path(args.out_members)
+    tmp_m = out_members.with_suffix(out_members.suffix + f".tmp.{os.getpid()}")
+    tmp_m.write_text("".join(f"{files[rel][0]}\t{rel}\t{m}\n" for rel in order for m in members_of.get(rel, [])))
+    tmp_m.replace(out_members)
     out = pathlib.Path(args.out)
     tmp = out.with_suffix(out.suffix + f".tmp.{os.getpid()}")
     tmp.write_text("".join("\t".join(r) + "\n" for r in rows))
@@ -235,7 +267,8 @@ def main() -> int:
     suites = sorted({r[0] for r in rows})
     print("PIPELINE-LIBRARY: " + " ".join(
         f"{s}={by[(s, 'pass')]}/{sum(n for (ss, _), n in by.items() if ss == s)}" for s in suites)
-        + f" published_packages={len(published)} unresolved_imports={len(unresolved)} cyclic_files={len(cyclic)} → {out}")
+        + f" published_packages={len(published)} unresolved_imports={len(unresolved)} cyclic_files={len(cyclic)} "
+          f"member_rows={sum(len(v) for v in members_of.values())} → {out}, {out_members}")
     if unresolved:
         print("  unresolved (imported, declared by no file of these suites): " + " ".join(f"{p}×{n}" for p, n in unresolved.most_common(12)))
     return 0

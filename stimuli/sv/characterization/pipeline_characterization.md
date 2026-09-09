@@ -24,11 +24,11 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 | context | `stimuli/sv/pipeline_context.tsv` | `f1b77668e01ef6bedcd293f3c5967052525fa48a9b40aa17941cc875a3c8d625` |
 | context (per-file defines) | `stimuli/sv/pipeline_context_defines.tsv` | `636c8dec8eeab13488b6dd91c0b5547e53c3f6a25c46ccca884d2fb01f459333` |
 | context (per-file unit predecessors) | `stimuli/sv/pipeline_context_units.tsv` | `df065bdc8a87ff15fb441550d42775de494a6cf63eb971b1303e85ab4500bc70` |
-| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `013c3cced1afe815e450a4b76422f21c4309bc6357303852b9782c20d3d81187` |
+| library pass dump | `stimuli/sv/characterization/pipeline_library.tsv` | `55e4037f5ff8ccb3302714c3877494a2dc48fbcd3f2216362260d04ac4c84c82` |
 | pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `46b61407cd563ff6651c79b61b6987e860ea4997a47e026bb8e7ec56fcefa698` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `5fa726cd89002007c1fb821ec84c29bc3eadb23fc9651cbf058dad156f57e8f3` |
 
-Measured at `HEAD` = `4537d717+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `328eaedf+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
@@ -271,14 +271,14 @@ Measured at `HEAD` = `4537d717+dirty`; the parse binary is a **debug** build (th
 
 ## The library the lane built (the design suites' packages, in dependency order)
 
-| suite | package files | pass | fail | refused | timeout / crash | packages published | variants: agree / disagree / incomplete | e.g. rejecting package (origin) |
-|---|---:|---:|---:|---:|---:|---:|---|---|
-| Cores-VeeR-EL2 | 2 | 2 | 0 | 0 | 0 | 2 | 0 / 0 / 0 | — |
-| black-parrot | 7 | 3 | 0 | 4 | 0 | 3 | 0 / 0 / 1 | — |
-| opentitan | 396 | 225 | 168 | 3 | 0 | 161 | 31 / 6 / 21 | `otp_ctrl_part_pkg.sv` (other) |
-| uvm-core | 2 | 0 | 2 | 0 | 0 | 0 | 0 / 0 / 0 | `uvm_pkg.sv` (a 'uvm_*' name (typed, not a macro)) |
+| suite | package files | pass | fail | refused | timeout / crash | packages published | variants: agree / disagree / incomplete | member files (`.6d.2`) | e.g. rejecting package (origin) |
+|---|---:|---:|---:|---:|---:|---:|---|---:|---|
+| Cores-VeeR-EL2 | 2 | 2 | 0 | 0 | 0 | 2 | 0 / 0 / 0 | 1 | — |
+| black-parrot | 7 | 3 | 0 | 4 | 0 | 3 | 0 / 0 / 1 | 3 | — |
+| opentitan | 396 | 225 | 168 | 3 | 0 | 161 | 31 / 6 / 21 | 1906 | `otp_ctrl_part_pkg.sv` (other) |
+| uvm-core | 2 | 0 | 2 | 0 | 0 | 0 | 0 / 0 / 0 | 168 | `uvm_pkg.sv` (a 'uvm_*' name (typed, not a macro)) |
 
-A package file's row here is its verdict AS A UNIT (its own text plus what it includes, after the packages it imports were exported); a rejecting package exports nothing, so every package importing it stays dark on its names — the lane measures that, it does not paper over it.
+A package file's row here is its verdict AS A UNIT (its own text plus what it includes — the member files, read from the preprocessor's source map, whose own rows the re-adjudication reads through their unit — after the packages it imports were exported); a rejecting package exports nothing, so every package importing it stays dark on its names — the lane measures that, it does not paper over it.
 
 ## The context the lane ran under
 

@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.6d.2 (`PGEN-SVPP-EXPANSION-0020`): build the instrument, then let it say zero
+
+- **A zero from an instrument is a measurement; a zero from no instrument is silence.** The unit-membership reading accepted nothing today, and that is the finding: every class-including package sits behind one ruling. Without the reading, the same 1 923 rows would have stayed "dark on a cross-file name", which is true and useless; now they are "unreached behind `uvm_pkg`", which is true and actionable.
+- **Verify a zero twice.** The instrument's zero was re-derived from the two dumps by a script that shares no code with it (31 passing-unit members, 0 failing per file). A zero is the easiest number to get by accident.
+- **Name the dark by its cause, not its symptom.** A member's first cross-file name is the symptom; its unit's origin is the cause. The re-adjudication's own-file table shrank from 2 567 to 718 rows because the rest now carry the cause.
+- **Promotion**: declined — `promotion: declined (an instrument extension)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.6d.1 (`PGEN-SVPP-EXPANSION-0019`): a library is built in the order the design declares, and a variant nobody chose is not published
 
 - **Measure the mechanism on one chain before building the pass.** Four scratch probes (export, import, same-dir chain, named import) took minutes and settled every design question the pass then had to answer; the pass itself moved 425 rows with zero regressions on its first full run.

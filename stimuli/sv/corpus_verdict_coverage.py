@@ -174,6 +174,17 @@ PIPELINE_CLASSES = {
                                                         "must-accept by the suite convention (a shipping design's "
                                                         "file is valid as part of its unit); outside DESIGN_SUITES the "
                                                         "row keeps NO VERDICT (no per-file expectation)"),
+    "accepted_in_unit": ("ADJUDICATED", "a must-accept row the raw lane explained away is a MEMBER of a package unit "
+                                        "the library pass ACCEPTED (SVPP-EXPANSION.6d.2: an included class file has no "
+                                        "import of its own; its bytes were parsed inside its unit) — the row testifies FOR "
+                                        "the parser"),
+    "unreached_in_unit": ("NO VERDICT", "a member whose every including unit rejects elsewhere — its bytes were never "
+                                        "judged; the unit's origin is named (.6d.2)"),
+    "chained:accepted_in_unit": ("ADJUDICATED", "a design-corpus file ACCEPTED as a MEMBER of its package unit under the "
+                                                "library (.6d.2) — must-accept by the suite convention; outside "
+                                                "DESIGN_SUITES the row keeps NO VERDICT"),
+    "chained:unreached_in_unit": ("NO VERDICT", "DARK UNDER THE PIPELINE: a member whose every including unit rejects "
+                                                "elsewhere (.6d.2) — the unit's own origin row carries the verdict"),
     "chained:rejects_own_file": ("NO VERDICT", "DARK UNDER THE PIPELINE: rejected in its own file under its derived "
                                                "context — the barrier behind the macro barrier (a cross-file "
                                                "declaration, mostly a class base), the library design's population"),
@@ -222,7 +233,7 @@ def pipeline_reading(rows, readj):
                 raise SystemExit(f"⛔ REFUSING: re-adjudication verdict this census has no bucket for: {verdict!r} "
                                  f"({r['suite']}/{r['relpath']}). Classify it explicitly.")
             bucket, _why = PIPELINE_CLASSES[verdict]
-            if verdict == "chained:accepted_under_expansion" and r["suite"] not in DESIGN_SUITES:
+            if verdict in ("chained:accepted_under_expansion", "chained:accepted_in_unit") and r["suite"] not in DESIGN_SUITES:
                 bucket = "NO VERDICT"
             if verdict == "must_reject:accepts_invalid":
                 cls = raw_cls                      # already the raw bar's row; no double count
@@ -721,7 +732,7 @@ def main():
                 if cls.startswith("pipeline:"):
                     v = cls[len("pipeline:"):]
                     bucket, why = PIPELINE_CLASSES[v]
-                    if v == "chained:accepted_under_expansion":
+                    if v in ("chained:accepted_under_expansion", "chained:accepted_in_unit"):
                         # split by the design-suite condition
                         continue
                 else:
@@ -729,14 +740,15 @@ def main():
                 if bucket != b:
                     continue
                 L.append(f"| {b} | `{cls}` | {n:,} | {100*n/total:.1f} % | {why} |")
-        acc_design = sum(1 for r in rows if readj.get((r['suite'], r['relpath']), ('',''))[0] == "chained:accepted_under_expansion" and r['suite'] in DESIGN_SUITES)
-        acc_other = p_counts.get("pipeline:chained:accepted_under_expansion", 0) - acc_design
-        if acc_design:
-            L.append(f"| ADJUDICATED | `pipeline:chained:accepted_under_expansion` (design corpora) | {acc_design:,} | "
-                     f"{100*acc_design/total:.1f} % | {PIPELINE_CLASSES['chained:accepted_under_expansion'][1]} |")
-        if acc_other:
-            L.append(f"| NO VERDICT | `pipeline:chained:accepted_under_expansion` (other suites) | {acc_other:,} | "
-                     f"{100*acc_other/total:.1f} % | accepted under its context, but the suite gives no per-file expectation |")
+        for acc_v in ("chained:accepted_under_expansion", "chained:accepted_in_unit"):
+            acc_design = sum(1 for r in rows if readj.get((r['suite'], r['relpath']), ('',''))[0] == acc_v and r['suite'] in DESIGN_SUITES)
+            acc_other = p_counts.get("pipeline:" + acc_v, 0) - acc_design
+            if acc_design:
+                L.append(f"| ADJUDICATED | `pipeline:{acc_v}` (design corpora) | {acc_design:,} | "
+                         f"{100*acc_design/total:.1f} % | {PIPELINE_CLASSES[acc_v][1]} |")
+            if acc_other:
+                L.append(f"| NO VERDICT | `pipeline:{acc_v}` (other suites) | {acc_other:,} | "
+                         f"{100*acc_other/total:.1f} % | accepted under its context, but the suite gives no per-file expectation |")
         L.append(f"| | **TOTAL** | **{total:,}** | **100.0 %** | |")
         L.append("")
     else:

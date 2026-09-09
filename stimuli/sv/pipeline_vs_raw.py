@@ -157,6 +157,7 @@ def main() -> int:
     ap.add_argument("--context-defines", default=str(ROOT / "stimuli" / "sv" / "pipeline_context_defines.tsv"))
     ap.add_argument("--context-units", default=str(ROOT / "stimuli" / "sv" / "pipeline_context_units.tsv"))
     ap.add_argument("--library", default=str(CHAR / "pipeline_library.tsv"))
+    ap.add_argument("--library-members", default=str(CHAR / "pipeline_library_members.tsv"))
     ap.add_argument("--probe", default=str(ROOT / "rust" / "target" / "release" / "parseability_probe"))
     ap.add_argument("--out", default=str(CHAR / "pipeline_characterization.md"))
     ap.add_argument("--top", type=int, default=25)
@@ -342,9 +343,12 @@ def main() -> int:
     L.append("\n## The library the lane built (the design suites' packages, in dependency order)\n")
     if library.exists():
         lrows = read_tsv(library, 10)
-        L.append("| suite | package files | pass | fail | refused | timeout / crash | packages published | variants: agree / disagree / incomplete | e.g. rejecting package (origin) |\n|---|---:|---:|---:|---:|---:|---:|---|---|")
+        members_path = pathlib.Path(args.library_members)
+        mrows = read_tsv(members_path, 3) if members_path.exists() else []
+        L.append("| suite | package files | pass | fail | refused | timeout / crash | packages published | variants: agree / disagree / incomplete | member files (`.6d.2`) | e.g. rejecting package (origin) |\n|---|---:|---:|---:|---:|---:|---:|---|---:|---|")
         for suite in sorted({r[0] for r in lrows}):
             mine = [r for r in lrows if r[0] == suite]
+            members = {r[2] for r in mrows if r[0] == suite}
             st = collections.Counter(r[1] for r in mine)
             notes = " ".join(r[9] for r in mine)
             va = {n.split(":", 1)[1] for n in notes.replace(";", " ").split() if n.startswith("variants_agree:")}
@@ -354,8 +358,9 @@ def main() -> int:
             first_fail = next((r for r in mine if r[1] == "fail"), None)
             # the bucket text carries its own backticks: shown as apostrophes, never nested in a code span (TABLE-ARITY-RATCHET)
             eg = f"{code(first_fail[2].rsplit('/', 1)[-1])} ({(origin_bucket(first_fail[7]) if first_fail[7] else '-').replace('`', chr(39)).replace('|', '/')})" if first_fail else "—"
-            L.append(f"| {suite} | {len(mine)} | {st['pass']} | {st['fail']} | {st['pp_fail']} | {st['timeout'] + st['crash']} | {pub} | {len(va)} / {len(vd)} / {len(vi)} | {eg} |")
-        L.append("\nA package file's row here is its verdict AS A UNIT (its own text plus what it includes, after the packages "
+            L.append(f"| {suite} | {len(mine)} | {st['pass']} | {st['fail']} | {st['pp_fail']} | {st['timeout'] + st['crash']} | {pub} | {len(va)} / {len(vd)} / {len(vi)} | {len(members)} | {eg} |")
+        L.append("\nA package file's row here is its verdict AS A UNIT (its own text plus what it includes — the member files, "
+                 "read from the preprocessor's source map, whose own rows the re-adjudication reads through their unit — after the packages "
                  "it imports were exported); a rejecting package exports nothing, so every package importing it stays dark on "
                  "its names — the lane measures that, it does not paper over it.")
     else:

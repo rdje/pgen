@@ -287,6 +287,15 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   four context tables and the library become probe flags; the lane and the builder both source it). The
   per-package outcome is the dump `pipeline_library.tsv` (`.gitignore`d, rebuilt every run); the report's
   *"The library the lane built"* section is its published summary. `PGEN_PIPELINE_LIBRARY=0` skips the pass.
+  ⭐ THE UNIT-MEMBERSHIP READING (`.6d.2`): an `` `include ``d class file has no `import` of its own, so
+  per file it rejects on its first cross-file name whatever the library holds; the pass records which
+  files each package unit's preprocessed text came from (the source map → `pipeline_library_members.tsv`,
+  a dump) and the re-adjudication instrument reads a member's verdict THROUGH its unit —
+  `accepted_in_unit` when a unit including it passes (every byte of the member was parsed there), the
+  per-file verdict kept when the unit's rejection lands in this file, `unreached_in_unit` when every
+  unit including it rejects elsewhere (the bytes were never judged; the unit's origin is named). The
+  `unit` column of `pipeline_readjudication.tsv` names the unit; the coverage census counts
+  `accepted_in_unit` as ADJUDICATED in the design suites, exactly as `accepted_under_expansion`.
   ⭐ All four tracked tables and the tracked report are held to a fresh derivation on every commit by the
   `PIPELINE-LANE-CURRENCY` doctrine (`scripts/check_pipeline_lane_currency.sh`; the dumps being
   `.gitignore`d, a tree without them is NOT EVALUATED, loudly).

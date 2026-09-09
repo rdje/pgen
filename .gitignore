@@ -430,6 +430,8 @@ stimuli/*/characterization/pipeline_results.tsv
 stimuli/*/characterization/pipeline_results.tsv.tmp.*
 # … and the library the lane builds (SVPP-EXPANSION.6d.1): per-package verdicts + the exported facts.
 stimuli/*/characterization/pipeline_library.tsv
+stimuli/*/characterization/pipeline_library_members.tsv
+stimuli/*/characterization/pipeline_library*.tsv.tmp.*
 stimuli/*/characterization/pipeline_library/
 stimuli/*/characterization/durations.tsv
 stimuli/*/characterization/durations_v2005.tsv

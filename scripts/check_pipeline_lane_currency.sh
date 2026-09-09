@@ -15,7 +15,8 @@
 # own driver passes — SVPP-EXPANSION.4c.1, + the per-file UNIT PREDECESSORS of `pipeline_context_units.tsv`
 # that a file's own harness compiles first — .4c.2) that `stimuli/sv/pipeline_context.py` DERIVES from the corpus,
 # and after the LIBRARY PASS (.6d.1: the design suites' packages parsed in dependency order, exporting their
-# facts; its per-package dump `pipeline_library.tsv` is summarised in the report and .gitignored like the lane's). Three
+# facts; its per-package dump `pipeline_library.tsv` and the unit-membership dump `pipeline_library_members.tsv`
+# (.6d.2) are summarised in the report and read by the re-adjudication, .gitignored like the lane's). Three
 # things can rot independently: the context (a vendored suite gains a header directory and the
 # tracked table is not re-derived), the report (a lane re-run whose numbers nobody published), and
 # the identity block (already `IDENTITY-CARRIERS`' business — this doctrine does NOT re-check it).

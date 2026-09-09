@@ -365,8 +365,24 @@ declared per top and DISAGREE** (`clkmgr_reg_pkg`, `gpio_reg_pkg`, `otp_ctrl_reg
 published and the two RTL packages that need one (`otp_ctrl_part_pkg.sv`, both tops) still reject — the
 build declaration (`.core`) picks the variant, and reading it stays priced, not built; 🔎 **44 imported
 packages are declared by no file in the tree** (`*_ral_pkg`, the generated register-abstraction packages
-OpenTitan's flow emits at build time). The `` `include ``d class files of a passing package are still
-per-file rows without an `import` of their own — the unit-membership reading is `.6d.2`.
+OpenTitan's flow emits at build time).
+
+**The unit-membership reading (`.6d.2`).** An `` `include ``d class file has no `import` of its own, so
+per file it rejects on its first cross-file name whatever the library holds — yet the library pass
+parsed every one of its bytes inside its package unit. The pass now records which files each unit's
+preprocessed text came from (the preprocessor's source map), and the re-adjudication reads a member's
+verdict *through its unit*: `accepted_in_unit` when a unit including it passes, the per-file verdict
+kept when the unit's rejection lands in this very file, `unreached_in_unit` when every unit including
+it rejects elsewhere — the member's bytes were never judged, and the unit's origin is named rather than
+the member's first cross-file name. An accepted member counts as adjudicated in the design suites,
+exactly as a file accepted under its context does; an unreached member stays dark, with its reason.
+Measured: 2 060 distinct member files across the design suites (OpenTitan 1 906); of the 2 059 members the
+answer key routes, **none is accepted in a unit today and 1 923 are unreached** (OpenTitan 1 783, UVM 140),
+89 are the file their unit's rejection lands in. 🔎 The reason is one ruling: every OpenTitan and UVM
+package that `` `include ``s class files imports `uvm_pkg`, and `uvm_pkg.sv` exports nothing until the
+`const local` question is ruled — the reading is in place and idle, and the same run converts the 1 923
+the day the ruling lands. The dark population is now named by its unit's origin (`clkmgr_base_test.sv:5`,
+`uvm_transaction.svh:443`) rather than by each member's first cross-file name.
 
 **The denominator, read twice.** The platform book's verdict-coverage tuple
 (`adjudicated/routed/no-verdict/dark/axis-2-bar`) now carries two readings of the same rows, published
