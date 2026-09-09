@@ -52,11 +52,17 @@ INPUTS (repo-root-relative)
   docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/audit.tsv            `.13c`: the dark
       chained-only rows' position verdict and cross-file CHANNEL
 
+  stimuli/sv/characterization/refuted_dispositions.tsv          `.6b`'s DISPOSITION TABLE: one row per
+      `refuted` row that has been looked at — `suite relpath disposition basis` — hand-written like the
+      answer key's pins, each with its evidence. Validated here: a row that is not (or no longer) a
+      `refuted` row is REFUSED, so the table cannot carry a disposition for a row that moved.
+
 OUTPUTS
 -------
   stimuli/sv/characterization/pipeline_readjudication.md    the tracked report
   stimuli/sv/characterization/pipeline_readjudication.tsv   one row per re-read manifest row:
       suite  relpath  raw_class  prior_stratum  pipeline_status  landing  construct  verdict  origin
+      (a `refuted` row's verdict reads `refuted:<disposition>` once the table dispositions it)
 
 USAGE
 -----
@@ -82,6 +88,24 @@ CHAR = ROOT / "stimuli" / "sv" / "characterization"
 ART = ROOT / "docs" / "tasks" / "artifacts" / "sv_corpus_grad"
 EXPLAINED_AUDIT = ART / "explained_svpp_audit" / "after" / "audit.tsv"
 DARK_AUDIT = ART / "dark_chained_only" / "audit.tsv"
+DISPOSITIONS = CHAR / "refuted_dispositions.tsv"
+
+# `.6b`'s disposition vocabulary — what a `refuted` row turned out to be, once looked at
+DISPOSITION_KINDS = {
+    "cross_file_base_class": "the class header's base class is declared in another file of the unit "
+                             "(uvm_pkg for the sv-tests `*-uvm.sv` rows) — the library design's population "
+                             "(`SVPP-EXPANSION.6d`); no expansion can supply a declaration",
+    "vendor_identity_branch": "the file's portable branch is the vendor's own `` `error `` stub behind "
+                              "`` `ifndef VERILATOR ``; the vendor branch needs the tool's identity predefine, "
+                              "which the lane does not carry (measured `.6b.3`: defining it recognises 5 "
+                              "files and rejects 24 on vendor extensions) — a fact about the row's context",
+    "driver_define": "the origin line uses a macro the suite's DRIVER defines on its command line "
+                     "(`+define+…`, `-D…`), which the derived context does not carry (`.4c` reads drivers) "
+                     "— a fact about the row's context",
+    "parser_question": "the expansion is legal text the parser refuses, or text the standard cannot derive: "
+                       "a grammar / answer-key question routed to `SV-CORPUS-GRAD` with the construct named",
+    "preprocessor_item": "an expansion-stage rule not yet implemented (named) — the expansion stage's own",
+}
 
 POPULATIONS = (
     ("explained_svpp", "must-accept rows the raw lane explained away by preprocessing "
@@ -100,6 +124,21 @@ TSV_COLUMNS = ["suite", "relpath", "raw_class", "prior_stratum", "pipeline_statu
 
 def rel(p: pathlib.Path) -> str:
     return str(p.relative_to(ROOT)) if p.is_absolute() and p.is_relative_to(ROOT) else str(p)
+
+
+def read_dispositions(path: pathlib.Path) -> dict[tuple[str, str], tuple[str, str]]:
+    """The `.6b` disposition table: (suite, relpath) -> (disposition, basis); absent = empty."""
+    if not path.exists():
+        return {}
+    out: dict[tuple[str, str], tuple[str, str]] = {}
+    with open(path, newline="") as fh:
+        for r in csv.DictReader(fh, delimiter="\t"):
+            if r["disposition"] not in DISPOSITION_KINDS:
+                raise SystemExit(f"PIPELINE-READJUDICATION: REFUSED — {rel(path)}: unknown disposition "
+                                 f"{r['disposition']!r} for {r['suite']}/{r['relpath']} (known: "
+                                 f"{', '.join(sorted(DISPOSITION_KINDS))})")
+            out[(r["suite"], r["relpath"])] = (r["disposition"], r["basis"])
+    return out
 
 
 def read_audit(path: pathlib.Path) -> dict[tuple[str, str], dict[str, str]]:
@@ -207,6 +246,8 @@ def render(rows: list[dict[str, str]], probe: pathlib.Path, dump: pathlib.Path, 
     for label, path in (("answer key", manifest), ("explained_svpp audit", EXPLAINED_AUDIT),
                         ("dark chained_only audit", DARK_AUDIT), ("pipeline results (input)", dump)):
         L.append(f"| {label} | `{rel(path)}` | `{pv.sha256(path)}` |")
+    if DISPOSITIONS.exists():
+        L.append(f"| refuted dispositions (`.6b`) | `{rel(DISPOSITIONS)}` | `{pv.sha256(DISPOSITIONS)}` |")
     L.append(f"| parse binary | `{rel(probe)}` | `{pv.sha256(probe) if probe.exists() else 'absent'}` |")
     build_mode = "release" if "/release/" in str(probe) else ("debug" if "/debug/" in str(probe) else "unknown")
     L.append(f"\nMeasured at `HEAD` = `{pv.head_commit()}`; the parse binary is a **{build_mode}** build "
@@ -234,11 +275,23 @@ def render(rows: list[dict[str, str]], probe: pathlib.Path, dump: pathlib.Path, 
              "in its own text after preprocessing.\n")
     strata = sorted({r["prior_stratum"] for r in rows if r["population"] == "explained_svpp"})
     verdicts = ["corroborated", "refuted", "hollow", "refused_context", "refused_engine"]
+    def is_verdict(r, v):
+        return r["verdict"] == v or (v == "refuted" and r["verdict"].startswith("refuted:"))
     L.append("| position verdict (`.12a`) | rows | " + " | ".join(f"`{v}`" for v in verdicts) + " |")
     L.append("|---|---:|" + "---:|" * len(verdicts))
     for s in strata:
         sub = [r for r in rows if r["population"] == "explained_svpp" and r["prior_stratum"] == s]
-        L.append(f"| `{s}` | {len(sub)} | " + " | ".join(str(count(lambda r, s=s, v=v: r["population"] == "explained_svpp" and r["prior_stratum"] == s and r["verdict"] == v)) for v in verdicts) + " |")
+        L.append(f"| `{s}` | {len(sub)} | " + " | ".join(str(count(lambda r, s=s, v=v: r["population"] == "explained_svpp" and r["prior_stratum"] == s and is_verdict(r, v))) for v in verdicts) + " |")
+    L.append("")
+    L.append("**The refuted rows, by disposition** (`.6b`; `stimuli/sv/characterization/refuted_dispositions.tsv` — "
+             "a row keeps `refuted` until someone has looked at it and written down what it is):\n")
+    L.append("| disposition | rows | what it means |\n|---|---:|---|")
+    undisp = count(lambda r: r["verdict"] == "refuted")
+    L.append(f"| *(awaiting a disposition)* | {undisp} | not yet looked at |")
+    for kind, meaning in DISPOSITION_KINDS.items():
+        n = count(lambda r, kind=kind: r["verdict"] == "refuted:" + kind)
+        if n:
+            L.append(f"| `{kind}` | {n} | {meaning} |")
     L.append("")
     L.append("**The refuted rows, by the construct on the rejecting line** (the same buckets as the lane report):\n")
     L.append("| construct at the origin line | refuted rows | one example (origin) |\n|---|---:|---|")
@@ -246,6 +299,7 @@ def render(rows: list[dict[str, str]], probe: pathlib.Path, dump: pathlib.Path, 
     for r in rows:
         if r["population"] == "explained_svpp" and r["verdict"] == "refuted":
             cons.setdefault(r["construct"], []).append(r)
+    L.append("*(the rows still awaiting a disposition)*\n")
     for c, sub in sorted(cons.items(), key=lambda kv: -len(kv[1])):
         L.append(f"| {c} | {len(sub)} | {pv.code(sub[0]['origin'])} |")
     L.append("")
@@ -253,7 +307,7 @@ def render(rows: list[dict[str, str]], probe: pathlib.Path, dump: pathlib.Path, 
     L.append("| suite | raw class | refuted | corroborated |\n|---|---|---:|---:|")
     pairs = sorted({(r["suite"], r["raw_class"]) for r in rows if r["population"] == "explained_svpp"})
     for suite, cls in pairs:
-        ref = count(lambda r: r["population"] == "explained_svpp" and r["suite"] == suite and r["raw_class"] == cls and r["verdict"] == "refuted")
+        ref = count(lambda r: r["population"] == "explained_svpp" and r["suite"] == suite and r["raw_class"] == cls and r["verdict"].startswith("refuted"))
         cor = count(lambda r: r["population"] == "explained_svpp" and r["suite"] == suite and r["raw_class"] == cls and r["verdict"] == "corroborated")
         if ref or cor:
             L.append(f"| {suite} | `{cls}` | {ref} | {cor} |")
@@ -387,6 +441,19 @@ def main() -> int:
             "verdict": verdict_of(pop, status, landing), "origin": origin,
         })
 
+    dispositions = read_dispositions(DISPOSITIONS)
+    refuted_keys = {(r["suite"], r["relpath"]) for r in rows if r["verdict"] == "refuted"}
+    stale = sorted(k for k in dispositions if k not in refuted_keys)
+    if stale:
+        print("PIPELINE-READJUDICATION: REFUSED — " + rel(DISPOSITIONS) + " dispositions rows that are not "
+              "`refuted` under this lane (they moved, or never were): "
+              + ", ".join(f"{s}/{r}" for s, r in stale[:8]) + (" …" if len(stale) > 8 else "")
+              + " — a disposition for a row that moved is a stale claim; drop it", file=sys.stderr)
+        return 2
+    for r in rows:
+        if r["verdict"] == "refuted" and (r["suite"], r["relpath"]) in dispositions:
+            r["verdict"] = "refuted:" + dispositions[(r["suite"], r["relpath"])][0]
+
     out_md = pathlib.Path(args.out)
     out_tsv = pathlib.Path(args.out_tsv)
     out_md.parent.mkdir(parents=True, exist_ok=True)
@@ -400,6 +467,7 @@ def main() -> int:
     counts: dict[str, int] = {}
     for r in rows:
         counts[r["verdict"]] = counts.get(r["verdict"], 0) + 1
+    counts["refuted_awaiting_disposition"] = sum(1 for r in rows if r["verdict"] == "refuted")
     summary = " ".join(f"{k}={v}" for k, v in sorted(counts.items()))
     print(f"PIPELINE-READJUDICATION: rows={len(rows)} missing_lane_rows={missing} {summary} → {rel(out_md)}, {rel(out_tsv)}")
 

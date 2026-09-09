@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.6b.3 (`PGEN-SVPP-EXPANSION-0012`): a context change is measured on the whole population it touches, not on the rows that asked for it
+
+- **Five rows asked for `VERILATOR`; twenty-four would have paid.** The rows that died on the vendor's `error stub made the tool-identity predefine look like a free win. Re-parsing every file that tests the symbol showed the other side: the Verilator-only branches carry constructs the standard cannot derive, and defining the symbol turns 24 passes into rejections that would each need an adjudication. A context decision is a decision about which branch the answer key was written against; the raw key was written against the portable one, and the lane stays there. The five rows are a fact about their context and are recorded as such — a disposition, not a fix.
+- **A worklist needs a place to write down what each item turned out to be.** The re-adjudication report could count the refuted rows but not remember a verdict about them; the disposition table gives each row one line with its evidence, in the answer key's own style, and the instrument refuses a line for a row that has since moved. The summary's `refuted_awaiting_disposition` is now the number that has to reach zero.
+- **Promotion**: declined — `promotion: declined (the chapter's disposition paragraph and the leaf record carry the lesson)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.6b.2 (`PGEN-SVPP-EXPANSION-0011`): the refuted rows are a reading list for the standard
 
 - **Each refuted row named a sentence.** A `//` inside macro text, a paste token in an object macro, a `` `line `` directive inside a statement block, a `(` on the line after the macro name — four rows from sv2v's and iverilog's lexer tests, each a clause of §22 the expansion stage had not read (§22.5.1 :187-188, :380; §22.12 :791-795; §5.3). None was a parser question: the parser was refusing text the preprocessor should never have handed it. The re-adjudication report's `refuted` column is, in effect, an index into the standard, sorted by how often the corpus exercises each sentence.

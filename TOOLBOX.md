@@ -277,7 +277,7 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `refused_context` / `refused_engine`, the `chained:` / `svpp_owned:` forms for rows the key holds no
   expected verdict for, and the `must_reject:` forms for every row the key expects rejected — the manifest's
   `expected`, or a pin the raw lane demoted (`reject_arm_demotion`), read from the adjudicator's own pin tables
-  (`.6b.1`): `match_under_expansion`, or `accepts_invalid` = an over-acceptance only the pipeline can see. ⛔ It
+  (`.6b.1`): `match_under_expansion`, or `accepts_invalid` = an over-acceptance only the pipeline can see. A `refuted` row DISPOSITIONED in the tracked `refuted_dispositions.tsv` (`.6b.3`: `suite relpath disposition basis`, a closed vocabulary — `cross_file_base_class`, `vendor_identity_branch`, `driver_define`, `parser_question`, `preprocessor_item`; a row that moved is REFUSED) reads `refuted:<disposition>`, and the summary line's `refuted_awaiting_disposition` is the `.6b` worklist. ⛔ It
   READS the answer key, never writes it; a `chained:accepted_under_expansion` row is not a `match` until its
   expected verdict is derived from the suite's convention (`.6c`).
   The probe defaults to `rust/target/release/parseability_probe`; `PGEN_PARSE_PROBE_BIN=rust/target/debug/parseability_probe`

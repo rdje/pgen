@@ -263,7 +263,14 @@ rows, 1 530 are accepted under their derived context, 2 936 still reject in thei
 `class … extends` header whose base is declared elsewhere — the cross-file fact the library flags exist
 for), 236 land in an included file and 225 are refused. A `chained:` outcome is not yet a `match`: the
 answer key holds no expected verdict for those rows, and one is derived from the suite's own convention
-before the coverage tuple moves. The report also re-reads every row the key expects **rejected** — including
+before the coverage tuple moves. A refuted row keeps that label until someone has looked at it and written down what it is: the tracked
+`stimuli/sv/characterization/refuted_dispositions.tsv` carries one line per row looked at — the disposition
+and its evidence, in the answer key's own style — and the report splits the refuted rows by it. The
+dispositions are a closed vocabulary: the base class lives in another file (the library design's rows), the
+file's portable branch is a vendor's own error stub behind its identity macro, a macro the suite's driver
+defines on its command line, a parser or answer-key question routed to the corpus tree, an expansion-stage
+rule not yet implemented. A disposition for a row that has since moved is refused, so the table cannot carry
+a stale claim. The report also re-reads every row the key expects **rejected** — including
 a pin the raw lane could not cash because its parse stopped on a macro use above the construct: 34 verilator
 rows (a typedef reaching a type through two or more hierarchical steps, a type named through an interface
 instance in a type assignment, an enum with a range but no base type) reject at the pinned line under the
