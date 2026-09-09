@@ -131,31 +131,36 @@ measurement, on the two suites the raw lane cannot judge at all (every one of th
 
 | suite | rows | raw lane pass | pipeline pass | pipeline fail | preprocessor refused | Δ pass |
 |---|---:|---:|---:|---:|---:|---:|
-| OpenTitan | 3 983 | 817 | 1 069 | 2 879 | 35 | +252 |
+| OpenTitan | 3 983 | 817 | 1 073 | 2 880 | 30 | +256 |
 | UVM 2020.3.1 (file by file) | 174 | 33 | 28 | 146 | 0 | −5 |
 
-Read the transitions, not the delta. On OpenTitan 324 rows went `fail → pass` — RTL and DV files
-whose only barrier was a macro or an `` `include `` — and 68 went `pass → fail`; **all 68 are hollow
+Read the transitions, not the delta. On OpenTitan 328 rows went `fail → pass` — RTL and DV files
+whose only barrier was a macro or an `` `include `` — and 69 went `pass → fail`; **all 69 are hollow
 raw passes**: the raw parse had accepted a file that only `include`s others because the directive
 is opaque to it, and the pipeline pulled the included text in and judged it (its rejection lands in
 the included file, not in the row's own). The same holds for UVM's six. Not one `pass → fail` lands
 in the row's own file.
 
-The 35 preprocessor refusals are the context and three engine defects, not the parser: 23 are
-`` `include ``s of a name that exists under several `top_*` variants (a per-file context only a
-build system's `.core` file supplies), 4 a `` `define `` whose formal list spans lines, 1 a
-`` `include `MACRO ``, 1 a conditional inside a macro body — each owned by a leaf.
+The 30 preprocessor refusals are the context, not the engine: 29 are `` `include ``s of a name
+that exists under several `top_*` variants or nowhere in the tree (a per-file context only a
+build system's `.core` file supplies), and 1 is `` `include `REQUESTS_FILE `` — refused by ruling,
+because IEEE 1800-2017 §22.4 Syntax 22-1 admits `"filename"` and `<filename>` only. The engine's
+own refusals in the first run of this lane — a `` `define `` whose formal list spans lines, a
+conditional directive inside a macro body used mid-line, `` `ifdef X // comment `` reading the
+comment as part of the symbol — were fixed the same day (`SVPP-EXPANSION.5`), and the re-run moved
+exactly the rows they had blocked: five refusals became parser verdicts and four rejections became
+accepts, none the other way.
 
 **What the rejections sit on once the macro barrier is gone.** The origin line of every remaining
 rejection, read from the tree and bucketed by construct:
 
-| construct at the origin line | rows | share of 3 025 |
+| construct at the origin line | rows | share of 3 026 |
 |---|---:|---:|
-| a class header with a base class (`class X extends Y`) | 2 048 | 67.7 % |
-| other (covergroups, assertions, …) | 790 | 26.1 % |
+| a class header with a base class (`class X extends Y`) | 2 049 | 67.7 % |
+| other (covergroups, assertions, …) | 786 | 26.0 % |
 | a parameter port list with a type default (`#(type CFG_T = other_file_cfg`) | 80 | 2.6 % |
-| a `::`-scoped name | 42 | 1.4 % |
-| a `uvm_*` type name, a `typedef`, a subroutine header | 62 | 2.0 % |
+| a `::`-scoped name | 45 | 1.5 % |
+| a `uvm_*` type name, a `typedef`, a subroutine header | 63 | 2.1 % |
 | the `const local … = new(…)` construct of `uvm_transaction.svh:443` | 2 | 0.1 % |
 
 Two thirds of the residue is one fact: the base class of a `class … extends` lives in another file

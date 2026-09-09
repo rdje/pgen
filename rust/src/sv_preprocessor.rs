@@ -560,42 +560,125 @@ fn preprocess_file_internal(
     let content = decoded.text;
     state.include_stack.push(canonical_path.clone());
     state.record_include_file(&canonical_path);
-    preprocess_text_internal(&content, &canonical_path, state, depth)?;
+    preprocess_text_internal(&content, &canonical_path, state, depth, None)?;
     state.include_stack.pop();
     Ok(())
 }
 
+/// `SVPP-EXPANSION.5`(b): `line_base` is `Some(use_line)` when `content` is the EXPANSION of a
+/// macro used on that line — an expansion has no lines of its own, so every event, diagnostic and
+/// source-map chunk it produces names the line of the use (the same rule `.3`'s origin mapping
+/// documents). Before this, a re-entered expansion numbered its lines from 1, so a diagnostic
+/// named `tlul_assert.sv:4` — a comment line — for a `` `else `` that sat inside a macro body.
 fn preprocess_text_internal(
     content: &str,
     file_path: &Path,
     state: &mut PreprocessorState,
     depth: usize,
+    line_base: Option<usize>,
 ) -> Result<()> {
     let mut conditionals: Vec<ConditionalFrame> = Vec::new();
     let lines = split_lines_preserve_terminator(content);
     let mut line_index = 0usize;
-    while line_index < lines.len() {
-        let line_no = line_index + 1;
+    // `SVPP-EXPANSION.5`(b): the text of a line that FOLLOWS a conditional directive on the same
+    // line (`` `ifdef B b `else c `endif ; `` — IEEE 1800-2017 §22.6: "these directives may appear
+    // anywhere in the source description"), or that PRECEDES one. It is processed as its own logical
+    // line, at the same line number, before `line_index` advances.
+    let mut pending_tail: Option<String> = None;
+    while line_index < lines.len() || pending_tail.is_some() {
+        let line_no = line_base.unwrap_or(line_index + 1);
         let active = conditionals
             .last()
             .map(|c| c.current_active)
             .unwrap_or(true);
-        let mut raw_line = lines[line_index].clone();
+        let from_pending = pending_tail.is_some();
+        let mut raw_line = match pending_tail.take() {
+            Some(tail) => tail,
+            None => lines[line_index].clone(),
+        };
         let initial_trimmed = raw_line.trim_start_matches([' ', '\t']).to_string();
 
         if let Some((directive, _)) = parse_directive_line(&initial_trimmed) {
-            if directive == "define" {
+            if directive == "define" && !from_pending {
                 let mut continuation_index = line_index;
-                while line_has_continuation(&raw_line) && continuation_index + 1 < lines.len() {
-                    raw_line = format!(
-                        "{}\n{}",
-                        strip_line_continuation(&raw_line),
-                        lines[continuation_index + 1]
-                    );
-                    continuation_index += 1;
+                loop {
+                    // `SVPP-EXPANSION.5`(a): a formal-argument list may span lines with no backslash —
+                    // IEEE 1800-2017 §22.5.1: "The formal argument names shall be simple_identifiers,
+                    // separated by commas and optionally white space", and §5.3 white space includes
+                    // newlines. The list closes at its `)`, wherever that is; only then does the
+                    // macro TEXT's own backslash-newline rule apply.
+                    if define_formal_list_unclosed(&raw_line)
+                        && continuation_index + 1 < lines.len()
+                    {
+                        raw_line = format!(
+                            "{}{}",
+                            raw_line.trim_end_matches(['\r', '\n']).to_string() + "\n",
+                            lines[continuation_index + 1]
+                        );
+                        continuation_index += 1;
+                        continue;
+                    }
+                    if line_has_continuation(&raw_line) && continuation_index + 1 < lines.len() {
+                        raw_line = format!(
+                            "{}\n{}",
+                            strip_line_continuation(&raw_line),
+                            lines[continuation_index + 1]
+                        );
+                        continuation_index += 1;
+                        continue;
+                    }
+                    break;
                 }
                 line_index = continuation_index;
             }
+        }
+
+        // `SVPP-EXPANSION.5`(b): a conditional directive AFTER text on the same line splits the line:
+        // the text before it is this logical line, the directive and what follows it is the next
+        // one (same line number). A `` `define `` line is exempt — its conditionals belong to the
+        // macro text and are honoured when the macro is expanded.
+        let line_is_define = matches!(parse_directive_line(&initial_trimmed), Some(("define", _)));
+        if !line_is_define && let Some(split_at) = first_midline_conditional(&raw_line) {
+            let head = raw_line[..split_at].to_string();
+            let tail = raw_line[split_at..].to_string();
+            if active {
+                let expanded = expand_macros_in_text(
+                    &head,
+                    &state.macros,
+                    0,
+                    &mut state.events,
+                    file_path,
+                    line_no,
+                );
+                state.push_event(
+                    PreprocessorEventKind::PassthroughLine,
+                    file_path,
+                    line_no,
+                    true,
+                    String::new(),
+                );
+                if expanded != head && contains_line_start_backtick(&expanded) {
+                    preprocess_text_internal(&expanded, file_path, state, depth, Some(line_no))?;
+                } else {
+                    state.append_output_chunk(
+                        &expanded,
+                        file_path,
+                        line_no,
+                        1,
+                        head.chars().count().max(1),
+                    );
+                }
+            } else {
+                state.push_event(
+                    PreprocessorEventKind::SkippedLine,
+                    file_path,
+                    line_no,
+                    false,
+                    "inactive branch".to_string(),
+                );
+            }
+            pending_tail = Some(tail);
+            continue;
         }
 
         let trimmed = raw_line.trim_start_matches([' ', '\t']).to_string();
@@ -701,7 +784,8 @@ fn preprocess_text_internal(
                     }
                 }
                 "ifdef" => {
-                    let name = rest.trim();
+                    let (name, remainder) = split_conditional_argument(rest);
+                    pending_tail = remainder_as_pending(remainder);
                     if !is_valid_macro_symbol(name) {
                         state.push_warning(
                             "W_SVPP_INVALID_CONDITIONAL_SYMBOL",
@@ -728,7 +812,8 @@ fn preprocess_text_internal(
                     );
                 }
                 "ifndef" => {
-                    let name = rest.trim();
+                    let (name, remainder) = split_conditional_argument(rest);
+                    pending_tail = remainder_as_pending(remainder);
                     if !is_valid_macro_symbol(name) {
                         state.push_warning(
                             "W_SVPP_INVALID_CONDITIONAL_SYMBOL",
@@ -757,7 +842,8 @@ fn preprocess_text_internal(
                     );
                 }
                 "elsif" => {
-                    let expr = rest.trim();
+                    let (expr, remainder) = split_conditional_expression(rest);
+                    pending_tail = remainder_as_pending(remainder);
                     let frame = conditionals.last_mut().with_context(|| {
                         format!(
                             "`elsif without matching `ifdef/`ifndef at {}:{}",
@@ -783,6 +869,7 @@ fn preprocess_text_internal(
                     );
                 }
                 "else" => {
+                    pending_tail = remainder_as_pending(rest);
                     let frame = conditionals.last_mut().with_context(|| {
                         format!(
                             "`else without matching `ifdef/`ifndef at {}:{}",
@@ -805,6 +892,7 @@ fn preprocess_text_internal(
                     );
                 }
                 "endif" => {
+                    pending_tail = remainder_as_pending(rest);
                     conditionals.pop().with_context(|| {
                         format!(
                             "`endif without matching `ifdef/`ifndef at {}:{}",
@@ -891,7 +979,9 @@ fn preprocess_text_internal(
                     }
                 }
             }
-            line_index += 1;
+            if pending_tail.is_none() {
+                line_index += 1;
+            }
             continue;
         }
 
@@ -918,7 +1008,7 @@ fn preprocess_text_internal(
                 String::new(),
             );
             if expanded != logical_line && contains_line_start_backtick(&expanded) {
-                preprocess_text_internal(&expanded, file_path, state, depth)?;
+                preprocess_text_internal(&expanded, file_path, state, depth, Some(line_no))?;
             } else {
                 state.append_output_chunk(
                     &expanded,
@@ -938,7 +1028,9 @@ fn preprocess_text_internal(
                 "inactive branch".to_string(),
             );
         }
-        line_index += 1;
+        if pending_tail.is_none() {
+            line_index += 1;
+        }
     }
 
     if !conditionals.is_empty() {
@@ -948,6 +1040,161 @@ fn preprocess_text_internal(
         );
     }
     Ok(())
+}
+
+const CONDITIONAL_DIRECTIVES: [&str; 5] = ["ifdef", "ifndef", "elsif", "else", "endif"];
+
+/// `SVPP-EXPANSION.5`(b): the byte index of the first conditional directive that sits AFTER
+/// non-blank text on this line (outside strings and comments), or `None`. A directive at the
+/// line's start is not "mid-line" — the line-oriented path handles it.
+fn first_midline_conditional(line: &str) -> Option<usize> {
+    let bytes = line.as_bytes();
+    let mut i = 0usize;
+    let mut seen_text = false;
+    let mut in_string = false;
+    let mut escaped = false;
+    while i < bytes.len() {
+        let b = bytes[i];
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if b == b'\\' {
+                escaped = true;
+            } else if b == b'"' {
+                in_string = false;
+            }
+            i += 1;
+            continue;
+        }
+        if b == b'/' && i + 1 < bytes.len() && bytes[i + 1] == b'/' {
+            return None; // the rest of the line is a comment
+        }
+        if b == b'/' && i + 1 < bytes.len() && bytes[i + 1] == b'*' {
+            // skip a block comment on this line; an unterminated one ends the scan
+            match line[i + 2..].find("*/") {
+                Some(end) => {
+                    i += 2 + end + 2;
+                    continue;
+                }
+                None => return None,
+            }
+        }
+        if b == b'"' {
+            in_string = true;
+            seen_text = true;
+            i += 1;
+            continue;
+        }
+        if b == b'`' {
+            let start = i + 1;
+            let mut end = start;
+            while end < bytes.len() && is_ident_continue(bytes[end]) {
+                end += 1;
+            }
+            let name = &line[start..end];
+            if CONDITIONAL_DIRECTIVES.contains(&name) {
+                if seen_text {
+                    return Some(i);
+                }
+                // a line-start directive: the rest of the line belongs to it
+                return None;
+            }
+            i = end.max(i + 1);
+            seen_text = true;
+            continue;
+        }
+        if !b.is_ascii_whitespace() {
+            seen_text = true;
+        }
+        i += 1;
+    }
+    None
+}
+
+/// `SVPP-EXPANSION.5`(b): a conditional directive's SYMBOL is the identifier that follows it — not
+/// the rest of the line. Measured before this: `` `ifdef X // a trailing comment `` read the symbol
+/// as `X // a trailing comment`, found it undefined, and took the `` `else `` branch with `X`
+/// defined — silently, under the default policy. Returns `(symbol, remainder)`.
+fn split_conditional_argument(rest: &str) -> (&str, &str) {
+    let trimmed = rest.trim_start();
+    match parse_identifier_token(trimmed) {
+        Some((name, remainder)) => (name, remainder),
+        None => (trimmed.trim_end_matches(['\r', '\n']), ""),
+    }
+}
+
+/// `SVPP-EXPANSION.5`(b): an `` `elsif `` expression is a symbol, `defined(SYM)` or `!defined(SYM)`;
+/// what follows it on the line is text (or a comment). Returns `(expression, remainder)`.
+fn split_conditional_expression(rest: &str) -> (&str, &str) {
+    let trimmed = rest.trim_start();
+    for prefix in ["!defined(", "defined("] {
+        if let Some(after) = trimmed.strip_prefix(prefix)
+            && let Some(close) = after.find(')')
+        {
+            let end = prefix.len() + close + 1;
+            return (&trimmed[..end], &trimmed[end..]);
+        }
+    }
+    split_conditional_argument(rest)
+}
+
+/// What follows a conditional directive on its line: nothing (consumed), a comment (consumed — the
+/// `` `endif // NAME `` idiom), or TEXT that becomes the next logical line.
+fn remainder_as_pending(remainder: &str) -> Option<String> {
+    let body = remainder.trim();
+    if body.is_empty() || body.starts_with("//") {
+        return None;
+    }
+    if let Some(after) = body.strip_prefix("/*")
+        && let Some(end) = after.find("*/")
+    {
+        let rest = after[end + 2..].trim();
+        if rest.is_empty() || rest.starts_with("//") {
+            return None;
+        }
+    }
+    Some(remainder.to_string())
+}
+
+/// `SVPP-EXPANSION.5`(a): does this `` `define `` line open a formal-argument list it has not closed?
+fn define_formal_list_unclosed(line: &str) -> bool {
+    let trimmed = line.trim_start_matches([' ', '\t']);
+    let Some(rest) = trimmed.strip_prefix("`define") else {
+        return false;
+    };
+    let Some((_, after_name)) = parse_identifier_token(rest.trim_start()) else {
+        return false;
+    };
+    if !after_name.starts_with('(') {
+        return false;
+    }
+    let mut depth = 0usize;
+    let mut in_string = false;
+    let mut escaped = false;
+    for ch in after_name.chars() {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_string = false;
+            }
+            continue;
+        }
+        match ch {
+            '"' => in_string = true,
+            '(' => depth += 1,
+            ')' => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    return false;
+                }
+            }
+            _ => {}
+        }
+    }
+    depth > 0
 }
 
 fn collect_multiline_macro_invocation(
@@ -1344,7 +1591,15 @@ fn parse_include_directive(input: &str) -> Result<(&str, bool)> {
         }
         Ok((path, true))
     } else {
-        bail!("include path must be quoted or angle-bracketed");
+        // `SVPP-EXPANSION.5`(c) — RULED: IEEE 1800-2017 §22.4 Syntax 22-1 admits `` `include "filename" ``
+        // and `` `include <filename> `` only. A macro-valued path (`` `include `REQUESTS_FILE ``) is a
+        // tool extension PGEN does not admit under its strict default; the refusal names the standard.
+        bail!(
+            "include path must be quoted or angle-bracketed (IEEE 1800-2017 §22.4 Syntax 22-1: \
+             `include \"filename\" | `include <filename>; a macro-valued path is a tool extension \
+             PGEN does not admit); got '{}'",
+            trimmed.trim_end_matches(['\r', '\n'])
+        );
     }
 }
 
@@ -1832,11 +2087,15 @@ fn expand_function_macro(
 ) -> String {
     let mut bindings: HashMap<&str, &str> = HashMap::new();
     for (idx, param) in params.iter().enumerate() {
-        let arg = args
-            .get(idx)
-            .map(|s| s.as_str())
-            .or(param.default.as_deref())
-            .unwrap_or("");
+        // `SVPP-EXPANSION.5`(f): an EMPTY actual is an OMITTED one and takes the formal's default —
+        // IEEE 1800-2017 §22.5.1's own examples: `` `MACRO1 ( , 2, 3 ) // argument a omitted,
+        // replaced by default ``. Before this, an empty actual bound the formal to nothing, so
+        // `` `MK(t1, 0, , sqr) `` lost `seq_t_`'s default. A formal with NO default binds to "".
+        let actual = args.get(idx).map(|s| s.as_str());
+        let arg = match actual {
+            Some(text) if !text.trim().is_empty() => text,
+            _ => param.default.as_deref().unwrap_or(""),
+        };
         bindings.insert(param.name.as_str(), arg);
     }
     let substituted = substitute_function_macro_body(&definition.body, &bindings);
@@ -2009,14 +2268,11 @@ mod tests {
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    /// `SVPP-EXPANSION.5`(e): every test's scratch directory lives under the crate's own `target/`,
+    /// on the repository volume (the data-locality rule). This older helper used the OS temp dir;
+    /// it now delegates so the 26 tests written against it move without being rewritten.
     fn create_temp_dir(prefix: &str) -> PathBuf {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("time")
-            .as_nanos();
-        let dir = std::env::temp_dir().join(format!("{}_{}", prefix, nanos));
-        fs::create_dir_all(&dir).expect("mkdir temp");
-        dir
+        create_repo_scratch_dir(prefix)
     }
 
     #[test]
@@ -2615,7 +2871,11 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             );
         }
         assert!(!output.text.contains('\u{FFFD}'), "{}", output.text);
-        assert!(!output.text.contains("Ã"), "double-encoded: {}", output.text);
+        assert!(
+            !output.text.contains("Ã"),
+            "double-encoded: {}",
+            output.text
+        );
     }
 
     #[test]
@@ -2656,8 +2916,7 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
     // ── SVPP-EXPANSION.2 — the compilation context: predefines and the compilation unit ──────
     //
     // ⛔ These scratch directories live under the crate's own `target/`, on the repository volume
-    // (`docs/decisions/` data-locality rule), unlike the older `create_temp_dir` helper above,
-    // which writes to the OS temp dir. New tests use this one.
+    // (`docs/decisions/` data-locality rule). `create_temp_dir` above delegates here since `.5`(e).
     fn create_repo_scratch_dir(prefix: &str) -> PathBuf {
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -2688,9 +2947,18 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
 
     #[test]
     fn predefined_macro_parse_refuses_illegal_names() {
-        assert!(PredefinedMacro::parse("").is_err(), "an empty define has no name");
-        assert!(PredefinedMacro::parse("=1").is_err(), "a text without a name");
-        assert!(PredefinedMacro::parse("1ABC").is_err(), "a name must start like an identifier");
+        assert!(
+            PredefinedMacro::parse("").is_err(),
+            "an empty define has no name"
+        );
+        assert!(
+            PredefinedMacro::parse("=1").is_err(),
+            "a text without a name"
+        );
+        assert!(
+            PredefinedMacro::parse("1ABC").is_err(),
+            "a name must start like an identifier"
+        );
         assert!(
             PredefinedMacro::parse("F(x)=x+1").is_err(),
             "a function-like predefine has no command-line meaning and is refused, not misread"
@@ -2715,7 +2983,11 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
         };
         let output = preprocess_systemverilog_file(&input, &config).expect("preprocess");
         assert!(output.text.contains("logic uvm_branch;"), "{}", output.text);
-        assert!(!output.text.contains("logic plain_branch;"), "{}", output.text);
+        assert!(
+            !output.text.contains("logic plain_branch;"),
+            "{}",
+            output.text
+        );
         assert!(output.text.contains("logic [8-1:0] d;"), "{}", output.text);
 
         // the same file with NO context takes the other branch and leaves `WIDTH unexpanded
@@ -2759,7 +3031,10 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
         // and under the `error` policy the source `define IS a redefinition of the predefine
         config.macro_redefinition_policy = MacroRedefinitionPolicy::Error;
         let refused = preprocess_systemverilog_file(&input, &config);
-        assert!(refused.is_err(), "a predefine is an ordinary definition to the policy");
+        assert!(
+            refused.is_err(),
+            "a predefine is an ordinary definition to the policy"
+        );
     }
 
     #[test]
@@ -2782,14 +3057,40 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
         .expect("unit");
         assert_eq!(outputs.len(), 3);
         // file 2 sees file 1's macro; file 3 sees both; every output is that FILE's text only
-        assert!(outputs[1].text.contains("logic [1:0] a;"), "{}", outputs[1].text);
-        assert!(outputs[2].text.contains("logic [2:1] b;"), "{}", outputs[2].text);
+        assert!(
+            outputs[1].text.contains("logic [1:0] a;"),
+            "{}",
+            outputs[1].text
+        );
+        assert!(
+            outputs[2].text.contains("logic [2:1] b;"),
+            "{}",
+            outputs[2].text
+        );
         assert!(!outputs[2].text.contains("still_a"), "{}", outputs[2].text);
-        assert!(!outputs[2].text.contains("logic [1:0] a;"), "per-file text, not a concatenation");
+        assert!(
+            !outputs[2].text.contains("logic [1:0] a;"),
+            "per-file text, not a concatenation"
+        );
         // and the per-file surfaces are per FILE
-        assert!(outputs[0].source_map.iter().all(|m| m.source.file.ends_with("defs.svh")));
-        assert!(outputs[2].source_map.iter().all(|m| m.source.file.ends_with("b.sv")));
-        assert!(outputs[1].included_files.iter().all(|f| f.ends_with("a.sv")));
+        assert!(
+            outputs[0]
+                .source_map
+                .iter()
+                .all(|m| m.source.file.ends_with("defs.svh"))
+        );
+        assert!(
+            outputs[2]
+                .source_map
+                .iter()
+                .all(|m| m.source.file.ends_with("b.sv"))
+        );
+        assert!(
+            outputs[1]
+                .included_files
+                .iter()
+                .all(|f| f.ends_with("a.sv"))
+        );
     }
 
     #[test]
@@ -2800,7 +3101,8 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
         fs::write(&first, "`define ONLY_IN_A 1\n").expect("write a");
         fs::write(&second, "logic [`ONLY_IN_A:0] b;\n").expect("write b");
         let config = SvPreprocessorConfig::default();
-        let _ = preprocess_systemverilog_unit(std::slice::from_ref(&first), &config).expect("unit 1");
+        let _ =
+            preprocess_systemverilog_unit(std::slice::from_ref(&first), &config).expect("unit 1");
         let alone =
             preprocess_systemverilog_unit(std::slice::from_ref(&second), &config).expect("unit 2");
         assert!(alone[0].text.contains("`ONLY_IN_A"), "{}", alone[0].text);
@@ -2833,6 +3135,238 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
         let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
             .expect("preprocess");
         assert!(output.text.contains("logic [7:0] k;"), "{}", output.text);
-        assert!(output.text.contains("`resetall"), "the directive itself passes through");
+        assert!(
+            output.text.contains("`resetall"),
+            "the directive itself passes through"
+        );
+    }
+
+    // ── SVPP-EXPANSION.5 — the three census defects (a) (b) (c) and the expansion line numbers ──
+
+    #[test]
+    fn a_define_formal_list_may_span_lines_without_a_backslash() {
+        // IEEE 1800-2017 §22.5.1: formals are "separated by commas and optionally white space" (§5.3:
+        // newlines are white space). OpenTitan `cip_base_vseq__tl_errors.svh:8`, the census's 4 rows.
+        let dir = create_repo_scratch_dir("svpp_formals_span");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define MK(task_name_, with_c_,\n           seq_t_ = host_seq #(item_t),\n           seqr_t)   \\\n  begin seq_t_ s; run(task_name_, seqr_t); end\n`MK(t1, 0, , sqr)\n`MK(t2, 1, my_seq, sqr2)\n",
+        )
+        .expect("write");
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("a formal list spanning three lines preprocesses");
+        assert!(
+            output
+                .text
+                .contains("begin host_seq #(item_t) s; run(t1, sqr); end"),
+            "{}",
+            output.text
+        );
+        assert!(
+            output.text.contains("begin my_seq s; run(t2, sqr2); end"),
+            "{}",
+            output.text
+        );
+        assert!(!output.text.contains("`MK"), "{}", output.text);
+    }
+
+    #[test]
+    fn a_conditional_directive_may_appear_mid_line() {
+        // IEEE 1800-2017 §22.6: "These directives may appear anywhere in the source description."
+        let dir = create_repo_scratch_dir("svpp_midline_cond");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "module m;\n  assign a = `ifdef B b `else c `endif ;\nendmodule\n",
+        )
+        .expect("write");
+        let plain =
+            preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default()).expect("plain");
+        assert!(
+            plain.text.contains("assign a =")
+                && plain.text.contains(" c ")
+                && !plain.text.contains(" b "),
+            "{}",
+            plain.text
+        );
+        assert!(
+            !plain.text.contains('`'),
+            "no directive survives: {}",
+            plain.text
+        );
+        let config = SvPreprocessorConfig {
+            defines: vec![PredefinedMacro::parse("B").expect("B")],
+            ..SvPreprocessorConfig::default()
+        };
+        let with_b = preprocess_systemverilog_file(&input, &config).expect("with B");
+        assert!(
+            with_b.text.contains(" b ") && !with_b.text.contains(" c "),
+            "{}",
+            with_b.text
+        );
+        // the same line number for every piece of the split line
+        assert!(
+            with_b
+                .source_map
+                .iter()
+                .filter(|e| e.source.line == 2)
+                .count()
+                >= 2,
+            "{:?}",
+            with_b.source_map
+        );
+    }
+
+    #[test]
+    fn a_macro_body_starting_with_a_conditional_expands_when_used_mid_line() {
+        // the OpenTitan shape: `ASSERT_ERROR`'s body opens with `ifdef UVM; `ASSERT` uses it mid-line
+        let dir = create_repo_scratch_dir("svpp_nested_cond");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define ERR(n) \\\n`ifdef UVM \\\n  uvm_err(n); \\\n`else \\\n  plain_err(n); \\\n`endif\n`define CHECK(p) if (!(p)) begin `ERR(p) end\nmodule m;\n  initial begin\n    `CHECK(a)\n  end\nendmodule\n",
+        )
+        .expect("write");
+        let plain = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("a directive that opens an expansion mid-line is honoured");
+        assert!(
+            plain.text.contains("plain_err(a);") && !plain.text.contains("uvm_err"),
+            "{}",
+            plain.text
+        );
+        assert!(
+            !plain.text.contains("`ifdef") && !plain.text.contains("`else"),
+            "{}",
+            plain.text
+        );
+        let config = SvPreprocessorConfig {
+            defines: vec![PredefinedMacro::parse("UVM").expect("UVM")],
+            ..SvPreprocessorConfig::default()
+        };
+        let uvm = preprocess_systemverilog_file(&input, &config).expect("with UVM");
+        assert!(
+            uvm.text.contains("uvm_err(a);") && !uvm.text.contains("plain_err"),
+            "{}",
+            uvm.text
+        );
+        // every chunk of the expansion names the USE line (10), never a line of its own
+        assert!(
+            plain.source_map.iter().all(|e| e.source.line != 1
+                || !e.source.file.ends_with("top.sv")
+                || e.output_start < plain.text.find("initial").unwrap_or(usize::MAX)),
+            "{:?}",
+            plain.source_map
+        );
+        assert!(
+            plain
+                .events
+                .iter()
+                .filter(|e| matches!(e.kind, super::PreprocessorEventKind::Ifdef))
+                .all(|e| e.line == 10),
+            "{:?}",
+            plain.events
+        );
+    }
+
+    #[test]
+    fn a_trailing_comment_after_a_conditional_symbol_is_not_part_of_the_symbol() {
+        // measured before .5: `ifdef X // c read the symbol as "X // c" and took the else branch
+        let dir = create_repo_scratch_dir("svpp_trailing_comment");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define X 1\n`ifdef X // a trailing comment\nlogic yes;\n`else\nlogic no;\n`endif // X\n`ifndef Y /* block */\nlogic y_undefined;\n`elsif X // also\nlogic unreachable;\n`endif\n",
+        )
+        .expect("write");
+        let config = SvPreprocessorConfig {
+            conditional_symbol_policy: ConditionalSymbolPolicy::Error, // any misread symbol would now ERROR
+            ..SvPreprocessorConfig::default()
+        };
+        let output =
+            preprocess_systemverilog_file(&input, &config).expect("comments are not symbols");
+        assert!(
+            output.text.contains("logic yes;") && !output.text.contains("logic no;"),
+            "{}",
+            output.text
+        );
+        assert!(
+            output.text.contains("logic y_undefined;") && !output.text.contains("unreachable"),
+            "{}",
+            output.text
+        );
+        assert!(output.diagnostics.is_empty(), "{:?}", output.diagnostics);
+        assert!(
+            !output.text.contains("// X") && !output.text.contains("/* block */"),
+            "a directive's trailing comment is consumed with it: {}",
+            output.text
+        );
+    }
+
+    #[test]
+    fn a_re_entered_expansions_diagnostic_names_the_use_line() {
+        // a macro whose body carries an `else with no `ifdef: the error names the USE line, not line 3 of the expansion
+        let dir = create_repo_scratch_dir("svpp_reentry_line");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define BAD(n) \\\n  x(n); \\\n`else \\\n  y(n);\nmodule m;\n\n\n  initial `BAD(1)\nendmodule\n").expect("write");
+        let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect_err("an unmatched `else");
+        let text = format!("{:#}", err);
+        assert!(
+            text.contains("top.sv:8"),
+            "the use line, not the expansion's own: {}",
+            text
+        );
+    }
+
+    #[test]
+    fn include_of_a_macro_valued_path_is_refused_naming_the_standard() {
+        // .5(c) RULED: IEEE 1800-2017 §22.4 Syntax 22-1 — "filename" or <filename> only
+        let dir = create_repo_scratch_dir("svpp_include_macro");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define F \"inc.svh\"\n`include `F\n").expect("write");
+        let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect_err("refused");
+        let text = format!("{:#}", err);
+        assert!(
+            text.contains("22.4") && text.contains("tool extension"),
+            "{}",
+            text
+        );
+    }
+
+    #[test]
+    fn an_empty_actual_takes_the_formals_default() {
+        // IEEE 1800-2017 §22.5.1's own examples (section-22-compiler-directives.md, the MACRO1 block):
+        // `MACRO1 ( , 2, 3 ) — "argument a omitted, replaced by default"; `MACRO3 ( ) — all defaults.
+        let dir = create_repo_scratch_dir("svpp_empty_actual_default");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define MACRO1(a=5,b=\"B\",c) $display(a,,b,,c);\n`define MACRO3(a=5, b=0, c=\"C\") $display(a,,b,,c);\n`MACRO1 ( , 2, 3 )\n`MACRO1 ( 1 , , 3 )\n`MACRO3 ( 1 )\n`MACRO3 ( )\n",
+        )
+        .expect("write");
+        let output = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("preprocess");
+        assert!(
+            output.text.contains("$display(5,,2,,3);"),
+            "{}",
+            output.text
+        );
+        assert!(
+            output.text.contains("$display(1,,\"B\",,3);"),
+            "{}",
+            output.text
+        );
+        assert!(
+            output.text.contains("$display(1,,0,,\"C\");"),
+            "{}",
+            output.text
+        );
+        assert!(
+            output.text.contains("$display(5,,0,,\"C\");"),
+            "{}",
+            output.text
+        );
     }
 }

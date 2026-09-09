@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.5 (`PGEN-SVPP-EXPANSION-0006`): a directive is a token, not a line
+
+- **Measure the before-state of the path you are about to rewrite.** Rewriting the five conditional arms meant touching how the symbol is read, so I ran `` `ifdef X // a trailing comment `` through the unchanged binary first: it took the `else` branch with `X` defined, silently under the default policy. The defect was not in any census — the lane cannot see a WRONG expansion, only a refused one — and it would have been fixed by accident and never recorded.
+- **§22.6 says "anywhere"; the engine said "at a line start".** The OpenTitan failure looked like a macro-body problem (`ASSERT_ERROR` opens with `ifdef`), but the minimal reproducers separated three shapes with one cause: the mid-line directive. Fixing the line model (split the line, hand the remainder on) closed all three; a fix aimed at macro bodies alone would have left `assign a = `ifdef B …` passing through verbatim.
+- **A test written from the corpus's own call site found a sixth defect.** (a)'s test used OpenTitan's real invocation `` `MK(t1, 0, , sqr) `` and its expectation came from §22.5.1's MACRO1 example, not from what the engine printed — so the empty-actual default bug surfaced as a failing assertion rather than as a "close enough" pass.
+- **Pre-register the expansions that must not move, and the one that must.** `uvm_pkg.sv` byte-identical at 3 022 806 bytes is the strongest no-regression arm a preprocessor change can have here; `dv_utils_pkg.sv` differing in exactly one line, predicted by (f)'s test before the corpus was touched, is the mover's proof.
+- **Promotion**: declined — `promotion: declined (stated in the code and here)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.4 (`PGEN-SVPP-EXPANSION-0005`): read the split, not the delta
 
 - **A raw pass on an include hub is hollow.** The raw lane accepts a file that only `include`s others because the directive is opaque to it; the pipeline pulls the text in and judges it. 74 of the 4 157 rows lost their raw pass this way and every one of them rejects in the INCLUDED file — the report splits `pass → fail` by where the rejection lands, because the delta alone (+247) would have hidden both the 324 recognised and the 74 revoked.

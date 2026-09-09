@@ -17,23 +17,23 @@ Suites covered by the pipeline dump: **opentitan, uvm-core** (4157 rows). Rows w
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `0e033b0bdc634f26dd1f78f412df5c7ca510bf71c9a6091cceb133e0f24c9358` |
+| parse binary | `rust/target/release/parseability_probe` | `d0c0c77fe6f081744d15f22383cb11a42abe1927f6675cf0a903676660b93fbd` |
 | grammar | `grammars/systemverilog.ebnf` | `5bee298a8898249c4cb05c45c67931daa386cc4f890d1f34eb239339119631f3` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `c447ccaa951e3290dc5e27a2b3f4526c5b7b0933d8e3d20af9ed1cf978935889` |
 | generated parser | `generated/systemverilog_parser.rs` | `423042d2c857ac5d711439a6a947dc8bcc051f5d50880bfc0d0bbd49881491b2` |
 | context | `stimuli/sv/pipeline_context.tsv` | `a5e92774c511cfd5adea578aa955d1ef0fc1c2e49ac082767d08670457ab3306` |
-| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `746b2e847d3307d35efda680b829886942e4c5752497f0a613eae4bd10b3aff2` |
+| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `199dc3d46f558af2134f9bfbe9106f901f7b6b17d01512714aecc0c765392e8c` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `5fa726cd89002007c1fb821ec84c29bc3eadb23fc9651cbf058dad156f57e8f3` |
 
-Measured at `HEAD` = `b4cd02c3+dirty`; the parse binary is a **release** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `846a729f+dirty`; the parse binary is a **release** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
 | suite | rows | raw pass | raw fail | raw timeout | pipeline pass | pipeline fail | pp_fail | timeout | crash | Δ pass |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| opentitan | 3983 | 817 | 3166 | 0 | 1069 | 2879 | 35 | 0 | 0 | +252 |
+| opentitan | 3983 | 817 | 3166 | 0 | 1073 | 2880 | 30 | 0 | 0 | +256 |
 | uvm-core | 174 | 33 | 141 | 0 | 28 | 146 | 0 | 0 | 0 | -5 |
-| **total** | 4157 | 850 | 3307 | 0 | 1097 | 3025 | 35 | 0 | 0 | +247 |
+| **total** | 4157 | 850 | 3307 | 0 | 1101 | 3026 | 30 | 0 | 0 | +251 |
 
 ## Transitions — raw status → pipeline status
 
@@ -41,10 +41,10 @@ Measured at `HEAD` = `b4cd02c3+dirty`; the parse binary is a **release** build (
 |---|---|---:|
 | opentitan | `fail` → `fail` | 2811 |
 | opentitan | `pass` → `pass` | 745 |
-| opentitan | `fail` → `pass` | 324 |
-| opentitan | `pass` → `fail` | 68 |
-| opentitan | `fail` → `pp_fail` | 31 |
-| opentitan | `pass` → `pp_fail` | 4 |
+| opentitan | `fail` → `pass` | 328 |
+| opentitan | `pass` → `fail` | 69 |
+| opentitan | `fail` → `pp_fail` | 27 |
+| opentitan | `pass` → `pp_fail` | 3 |
 | uvm-core | `fail` → `fail` | 140 |
 | uvm-core | `pass` → `pass` | 27 |
 | uvm-core | `pass` → `fail` | 6 |
@@ -54,14 +54,14 @@ Measured at `HEAD` = `b4cd02c3+dirty`; the parse binary is a **release** build (
 
 | suite | `pass → fail` landing in an included file (hollow raw pass) | landing in the row's own file |
 |---|---:|---:|
-| opentitan | 68 | 0 |
+| opentitan | 69 | 0 |
 | uvm-core | 6 | 0 |
 
 ## By adjudication class (the answer key's verdict for the row, raw lane)
 
 | adjudication class | rows | pipeline pass | pipeline fail | pp_fail | timeout | crash |
 |---|---:|---:|---:|---:|---:|---:|
-| `deferred:chained_only` | 4157 | 1097 | 3025 | 35 | 0 | 0 |
+| `deferred:chained_only` | 4157 | 1101 | 3026 | 30 | 0 | 0 |
 
 ## What sits at the origin — the construct on the rejecting line, bucketed
 
@@ -71,13 +71,13 @@ Measured at `HEAD` = `b4cd02c3+dirty`; the parse binary is a **release** build (
 
 | construct at the origin line | rows | one example (origin — line) |
 |---|---:|---|
-| class header with a base class (`extends`) | 2048 | `stimuli/sv/subs/opentitan/hw/dv/sv/alert_esc_agent/alert_base_driver.sv:7:55` — `virtual class alert_base_driver extends dv_base_driver#(alert_esc_seq_item, alert_esc_agent_cfg);` |
-| other | 790 | `stimuli/sv/subs/opentitan/hw/dv/sv/alert_esc_agent/alert_esc_agent_cov.sv:5:83` — `covergroup alert_handshake_complete_cg with function sample(alert_esc_trans_type_e trans,` |
+| class header with a base class (`extends`) | 2049 | `stimuli/sv/subs/opentitan/hw/dv/sv/alert_esc_agent/alert_base_driver.sv:7:55` — `virtual class alert_base_driver extends dv_base_driver#(alert_esc_seq_item, alert_esc_agent_cfg);` |
+| other | 786 | `stimuli/sv/subs/opentitan/hw/dv/sv/alert_esc_agent/alert_esc_agent_cov.sv:5:83` — `covergroup alert_handshake_complete_cg with function sample(alert_esc_trans_type_e trans,` |
 | a parameter port list `#(` | 80 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_base_env.sv:5:65` — `class cip_base_env #(type CFG_T               = cip_base_env_cfg,` |
-| a `::`-scoped name | 42 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_lc_tx_cov_if.sv:11:52` — `.ValueFalse(lc_ctrl_pkg::Off)) lc_tx_cov;` |
+| a `::`-scoped name | 45 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/cip_lc_tx_cov_if.sv:11:52` — `.ValueFalse(lc_ctrl_pkg::Off)) lc_tx_cov;` |
 | a `uvm_*` name (typed, not a macro) | 22 | `stimuli/sv/subs/opentitan/hw/dv/sv/dv_utils/dv_utils_pkg.sv:61:19` — `uvm_reg_addr_t start_addr;` |
 | a `typedef` | 21 | `stimuli/sv/subs/opentitan/hw/dv/sv/tl_agent/dv/env/tl_agent_env_pkg.sv:17:54` — `typedef dv_base_env_cov #(.CFG_T(tl_agent_env_cfg)) tl_agent_env_cov;` |
-| a function / task header | 19 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh:5:8` — `virtual task run_sec_cm_fi_vseq(int num_times = 1);` |
+| a function / task header | 20 | `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__sec_cm_fi.svh:5:8` — `virtual task run_sec_cm_fi_vseq(int num_times = 1);` |
 | a `new(…)` initializer / construction | 2 | `stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_transaction.svh:443:38` — `const local uvm_event_pool events = new("events");` |
 | a `constraint` / `rand` | 1 | `stimuli/sv/subs/opentitan/hw/vendor/pulp_riscv_dbg/src/dmi_test.sv:16:18` — `rand dtm_op_e       op;` |
 
@@ -89,6 +89,7 @@ Measured at `HEAD` = `b4cd02c3+dirty`; the parse binary is a **release** build (
 | origin file | rejections landing in it |
 |---|---:|
 | `stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_transaction.svh` | 3 |
+| `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_tl_seq_item.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/csrng_item.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/seq_lib/csrng_base_seq.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/dv_base_agent/dv_base_agent_cfg.sv` | 2 |
@@ -112,12 +113,12 @@ Measured at `HEAD` = `b4cd02c3+dirty`; the parse binary is a **release** build (
 | `stimuli/sv/subs/opentitan/hw/dv/sv/rng_agent/seq_lib/rng_base_seq.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/scoreboard/scoreboard_queue.sv` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/sec_cm/sec_cm_base_if_proxy.sv` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/spi_agent/seq_lib/spi_base_seq.sv` | 2 |
 
 ## Top 25 ORIGIN LINES
 
 | origin file:line | rejections |
 |---|---:|
+| `stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_tl_seq_item.sv:6` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/csrng_item.sv:5` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/csrng_agent/seq_lib/csrng_base_seq.sv:5` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/dv_base_agent/dv_base_agent_cfg.sv:7` | 2 |
@@ -142,7 +143,6 @@ Measured at `HEAD` = `b4cd02c3+dirty`; the parse binary is a **release** build (
 | `stimuli/sv/subs/opentitan/hw/dv/sv/scoreboard/scoreboard_queue.sv:5` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/sec_cm/sec_cm_base_if_proxy.sv:6` | 2 |
 | `stimuli/sv/subs/opentitan/hw/dv/sv/spi_agent/seq_lib/spi_base_seq.sv:5` | 2 |
-| `stimuli/sv/subs/opentitan/hw/dv/sv/tl_agent/dv/env/seq_lib/tl_agent_base_vseq.sv:8` | 2 |
 
 ## Preprocessor refusals (`pp_fail`) by reason
 
@@ -151,19 +151,16 @@ Measured at `HEAD` = `b4cd02c3+dirty`; the parse binary is a **release** build (
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/top_earlgrey/ip_autogen` | 7 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/top_darjeeling/ip_autog` | 6 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/top_englishbreakfast/ip` | 5 |
-| ``invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/dv/sv/cip_lib/seq_lib/cip_b`` | 4 |
+| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/` | 2 |
 | ``invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/ip/aes/pre_dv/aes_tb/rtl/a`` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/ip/tlul/generic_dv/env/` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/ip/tlul/generic_dv/tb/t` | 1 |
-| `` `else without matching `ifdef/`ifndef at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/ip/tlul/rtl/tlu `` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/ip_templates/flash_ctrl` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/ip_templates/otp_ctrl/d` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/ip_templates/pwrmgr/dv/` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/ip_templates/rstmgr/dv/` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/top_darjeeling/dv/env/c` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/top_earlgrey/dv/env/chi` | 1 |
-| `` `endif without matching `ifdef/`ifndef at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/vendor/lowrisc `` | 1 |
-| `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/dv/` | 1 |
 | `failed to resolve include '…' at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/opentitan/hw/vendor/lowrisc_ibex/ven` | 1 |
 
 ## The context the lane ran under

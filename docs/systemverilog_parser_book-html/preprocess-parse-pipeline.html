@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-449561c7.js";
+            window.path_to_searchindex_js = "searchindex-3d4823f2.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -307,34 +307,39 @@ measurement, on the two suites the raw lane cannot judge at all (every one of th
 <tr><th>suite</th><th style="text-align: right">rows</th><th style="text-align: right">raw lane pass</th><th style="text-align: right">pipeline pass</th><th style="text-align: right">pipeline fail</th><th style="text-align: right">preprocessor refused</th><th style="text-align: right">Δ pass</th></tr>
 </thead>
 <tbody>
-<tr><td>OpenTitan</td><td style="text-align: right">3 983</td><td style="text-align: right">817</td><td style="text-align: right">1 069</td><td style="text-align: right">2 879</td><td style="text-align: right">35</td><td style="text-align: right">+252</td></tr>
+<tr><td>OpenTitan</td><td style="text-align: right">3 983</td><td style="text-align: right">817</td><td style="text-align: right">1 073</td><td style="text-align: right">2 880</td><td style="text-align: right">30</td><td style="text-align: right">+256</td></tr>
 <tr><td>UVM 2020.3.1 (file by file)</td><td style="text-align: right">174</td><td style="text-align: right">33</td><td style="text-align: right">28</td><td style="text-align: right">146</td><td style="text-align: right">0</td><td style="text-align: right">−5</td></tr>
 </tbody>
 </table>
 </div>
-<p>Read the transitions, not the delta. On OpenTitan 324 rows went <code>fail → pass</code> — RTL and DV files
-whose only barrier was a macro or an <code>`include</code> — and 68 went <code>pass → fail</code>; <strong>all 68 are hollow
+<p>Read the transitions, not the delta. On OpenTitan 328 rows went <code>fail → pass</code> — RTL and DV files
+whose only barrier was a macro or an <code>`include</code> — and 69 went <code>pass → fail</code>; <strong>all 69 are hollow
 raw passes</strong>: the raw parse had accepted a file that only <code>include</code>s others because the directive
 is opaque to it, and the pipeline pulled the included text in and judged it (its rejection lands in
 the included file, not in the row’s own). The same holds for UVM’s six. Not one <code>pass → fail</code> lands
 in the row’s own file.</p>
-<p>The 35 preprocessor refusals are the context and three engine defects, not the parser: 23 are
-<code>`include</code>s of a name that exists under several <code>top_*</code> variants (a per-file context only a
-build system’s <code>.core</code> file supplies), 4 a <code>`define</code> whose formal list spans lines, 1 a
-<code>`include `MACRO</code>, 1 a conditional inside a macro body — each owned by a leaf.</p>
+<p>The 30 preprocessor refusals are the context, not the engine: 29 are <code>`include</code>s of a name
+that exists under several <code>top_*</code> variants or nowhere in the tree (a per-file context only a
+build system’s <code>.core</code> file supplies), and 1 is <code>`include `REQUESTS_FILE</code> — refused by ruling,
+because IEEE 1800-2017 §22.4 Syntax 22-1 admits <code>"filename"</code> and <code>&lt;filename&gt;</code> only. The engine’s
+own refusals in the first run of this lane — a <code>`define</code> whose formal list spans lines, a
+conditional directive inside a macro body used mid-line, <code>`ifdef X // comment</code> reading the
+comment as part of the symbol — were fixed the same day (<code>SVPP-EXPANSION.5</code>), and the re-run moved
+exactly the rows they had blocked: five refusals became parser verdicts and four rejections became
+accepts, none the other way.</p>
 <p><strong>What the rejections sit on once the macro barrier is gone.</strong> The origin line of every remaining
 rejection, read from the tree and bucketed by construct:</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>construct at the origin line</th><th style="text-align: right">rows</th><th style="text-align: right">share of 3 025</th></tr>
+<tr><th>construct at the origin line</th><th style="text-align: right">rows</th><th style="text-align: right">share of 3 026</th></tr>
 </thead>
 <tbody>
-<tr><td>a class header with a base class (<code>class X extends Y</code>)</td><td style="text-align: right">2 048</td><td style="text-align: right">67.7 %</td></tr>
-<tr><td>other (covergroups, assertions, …)</td><td style="text-align: right">790</td><td style="text-align: right">26.1 %</td></tr>
+<tr><td>a class header with a base class (<code>class X extends Y</code>)</td><td style="text-align: right">2 049</td><td style="text-align: right">67.7 %</td></tr>
+<tr><td>other (covergroups, assertions, …)</td><td style="text-align: right">786</td><td style="text-align: right">26.0 %</td></tr>
 <tr><td>a parameter port list with a type default (<code>#(type CFG_T = other_file_cfg</code>)</td><td style="text-align: right">80</td><td style="text-align: right">2.6 %</td></tr>
-<tr><td>a <code>::</code>-scoped name</td><td style="text-align: right">42</td><td style="text-align: right">1.4 %</td></tr>
-<tr><td>a <code>uvm_*</code> type name, a <code>typedef</code>, a subroutine header</td><td style="text-align: right">62</td><td style="text-align: right">2.0 %</td></tr>
+<tr><td>a <code>::</code>-scoped name</td><td style="text-align: right">45</td><td style="text-align: right">1.5 %</td></tr>
+<tr><td>a <code>uvm_*</code> type name, a <code>typedef</code>, a subroutine header</td><td style="text-align: right">63</td><td style="text-align: right">2.1 %</td></tr>
 <tr><td>the <code>const local … = new(…)</code> construct of <code>uvm_transaction.svh:443</code></td><td style="text-align: right">2</td><td style="text-align: right">0.1 %</td></tr>
 </tbody>
 </table>
