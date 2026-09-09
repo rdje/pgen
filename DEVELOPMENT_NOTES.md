@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.6c.1 (`PGEN-SVPP-EXPANSION-0015`): two readings of one denominator, published together
+
+- **Do not replace the raw tuple; publish the second reading beside it.** The raw tuple is what every earlier claim in the trees was measured against; the reading under the pipeline is a different instrument's answer to the same question. Changing the tuple's shape would have broken the gate, the anchor regex and every reader; adding a second tuple with the same shape and the raw one first keeps every old sentence true and makes the new one checkable.
+- **A convention is an expectation only where the suite says so.** 1 531 chained-only rows are accepted under their context; 1 271 of them are in design corpora, where "the design compiles" is the suite's own contract, and those count; 260 are in test suites that give no per-file expectation, and those do not — the instrument splits the same verdict two ways and says why.
+- **The bar rose because the lane finally reached the rows.** 9 → 30 is not a regression; it is 21 must-accept rows nobody could judge before, now judged and refused with a clause each. A number that goes up when the instrument improves is the number to trust.
+- **Promotion**: declined — `promotion: declined (the doctrine text and the chapter carry it)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.6b.5 (`PGEN-SVPP-EXPANSION-0014`): a line-based preprocessor needs two pieces of state a line cannot see
 
 - **A block comment and a protected envelope are the same shape of problem.** Both begin on one line and end on another, and everything between is not the preprocessor's to read — not a directive, not source. A scanner that decides per line, from the line's own text, honoured a `` `else `` inside a comment and handed a base64 payload to the parser. The fix is one flag each (`in_block_comment`, `protected_depth`) carried across iterations, checked before any line is looked at, and a rule for what opens and closes them: `/*` outside strings and `//`, `*/`; a `` `pragma protect `` line with `begin_protected`, one with `end_protected`.

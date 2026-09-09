@@ -135,6 +135,116 @@ CLASSES = {
 }
 BUCKETS = ["ADJUDICATED", "ROUTED", "NO VERDICT"]
 
+# SVPP-EXPANSION.6c.1 — the SAME rows read UNDER THE PIPELINE. `pipeline_readjudication.py`
+# (`stimuli/sv/characterization/pipeline_readjudication.tsv`) re-reads every deferred / explained /
+# must-reject row through the preprocess→parse pipeline and says what expansion changed; this map
+# says how each of its verdicts contributes to the confidence claim. A row the pipeline did not
+# re-read keeps its raw bucket. ⛔ Expected verdicts still come from the SPEC / the suite convention,
+# never from the fix: a `chained:accepted_under_expansion` row testifies only when its suite is a
+# DESIGN corpus (the adjudicator's own `DESIGN_SUITES`: a shipping design's file is valid as part of
+# its unit), and a `refuted:parser_question` row is a defect CANDIDATE that enters the bar until the
+# corpus tree rules it (its raw class was `explained_svpp_*` — a must-accept row).
+PIPELINE_CLASSES = {
+    "corroborated": ("ADJUDICATED", "a must-accept row the raw lane explained away by preprocessing PASSES "
+                                    "once preprocessed — the explanation held; the row testifies FOR the parser"),
+    "refuted:parser_question": ("ADJUDICATED", "a must-accept row that still fails in its OWN text once preprocessed, "
+                                               "legal by the clause the disposition names — a defect candidate on "
+                                               "the axis-2 bar, routed to SV-CORPUS-GRAD"),
+    "refuted:key_question": ("NO VERDICT", "the parser is right to refuse; the row's expectation awaits a pin "
+                                           "(the .13y family) — no verdict until the key rules"),
+    "refuted:preprocessor_item": ("NO VERDICT", "an expansion-stage rule not yet implemented (named per row)"),
+    "refuted:cross_file_base_class": ("NO VERDICT", "the class header's base is declared in another file of the unit "
+                                                    "(the library design, SVPP-EXPANSION.6d)"),
+    "refuted:cross_file_define": ("NO VERDICT", "a predecessor file of the unit defines the macro (the unit design)"),
+    "refuted:driver_define": ("NO VERDICT", "the suite's driver defines the macro on its command line (.4c)"),
+    "refuted:vendor_identity_branch": ("NO VERDICT", "the file's portable branch is the vendor's own `` `error `` "
+                                                     "stub behind its identity macro — a fact about the row's context"),
+    "refuted": ("NO VERDICT", "refuted and not yet dispositioned"),
+    "hollow": ("NO VERDICT", "the rejection lands in an included file; the header's own row carries it"),
+    "refused_context": ("NO VERDICT", "the preprocessor could not supply an include the derived context lacks"),
+    "refused_engine": ("NO VERDICT", "the preprocessor refused the row (E_SVPP_* / a malformed directive)"),
+    "must_reject:match_under_expansion": ("ADJUDICATED", "a row the key expects rejected IS rejected in its own text "
+                                                         "under the pipeline — the raw lane could not reach the construct"),
+    "must_reject:accepts_invalid": ("ADJUDICATED", "invalid SV the parser accepts (the axis-2 bar; the raw class "
+                                                   "already counts it)"),
+    "must_reject:hollow": ("NO VERDICT", "the rejection lands in an included file"),
+    "must_reject:refused_context": ("NO VERDICT", "refused for a context gap"),
+    "must_reject:refused_engine": ("NO VERDICT", "refused by the preprocessor"),
+    "chained:accepted_under_expansion": ("ADJUDICATED", "a design-corpus file ACCEPTED under its derived context — "
+                                                        "must-accept by the suite convention (a shipping design's "
+                                                        "file is valid as part of its unit); outside DESIGN_SUITES the "
+                                                        "row keeps NO VERDICT (no per-file expectation)"),
+    "chained:rejects_own_file": ("NO VERDICT", "DARK UNDER THE PIPELINE: rejected in its own file under its derived "
+                                               "context — the barrier behind the macro barrier (a cross-file "
+                                               "declaration, mostly a class base), the library design's population"),
+    "chained:hollow": ("NO VERDICT", "the rejection lands in an included file"),
+    "chained:refused_context": ("NO VERDICT", "an include the derived context cannot supply"),
+    "chained:refused_engine": ("NO VERDICT", "refused by the preprocessor"),
+    "svpp_owned:accepted_under_expansion": ("NO VERDICT", "conformance owned by the preprocessor lane; accepted"),
+    "svpp_owned:rejects_own_file": ("NO VERDICT", "conformance owned by the preprocessor lane; rejected"),
+    "svpp_owned:hollow": ("NO VERDICT", "conformance owned by the preprocessor lane"),
+    "svpp_owned:refused_context": ("NO VERDICT", "conformance owned by the preprocessor lane"),
+    "svpp_owned:refused_engine": ("NO VERDICT", "conformance owned by the preprocessor lane"),
+}
+PIPELINE_BAR_CLASSES = {"pipeline:refuted:parser_question"}
+DESIGN_SUITES = {"Cores-VeeR-EL2", "friscv", "scr1", "opentitan", "black-parrot", "uvm-core"}
+
+
+def read_readjudication(path: Path):
+    """(suite, relpath) -> (verdict, pipeline_status) from the re-adjudication table; {} if absent."""
+    if not path.is_file():
+        return {}
+    out = {}
+    with path.open(encoding="utf-8") as fh:
+        header = fh.readline().rstrip("\n").split("\t")
+        iv, ist = header.index("verdict"), header.index("pipeline_status")
+        isuite, irel = header.index("suite"), header.index("relpath")
+        for line in fh:
+            if not line.strip():
+                continue
+            c = line.rstrip("\n").split("\t")
+            out[(c[isuite], c[irel])] = (c[iv], c[ist])
+    return out
+
+
+def pipeline_reading(rows, readj):
+    """Every manifest row's bucket UNDER THE PIPELINE, plus the bar and the dark count there.
+    Returns (counts_by_pipeline_class, by_bucket, bar, dark) — the class names of re-read rows are
+    prefixed `pipeline:`; rows the pipeline did not re-read keep their raw class."""
+    counts, by_bucket, bar, dark = Counter(), Counter(), 0, 0
+    for r in rows:
+        key = (r["suite"], r["relpath"])
+        raw_cls = r["adjudication"]
+        if key in readj:
+            verdict, status = readj[key]
+            if verdict not in PIPELINE_CLASSES:
+                raise SystemExit(f"⛔ REFUSING: re-adjudication verdict this census has no bucket for: {verdict!r} "
+                                 f"({r['suite']}/{r['relpath']}). Classify it explicitly.")
+            bucket, _why = PIPELINE_CLASSES[verdict]
+            if verdict == "chained:accepted_under_expansion" and r["suite"] not in DESIGN_SUITES:
+                bucket = "NO VERDICT"
+            if verdict == "must_reject:accepts_invalid":
+                cls = raw_cls                      # already the raw bar's row; no double count
+                bucket = CLASSES[raw_cls][0]
+            else:
+                cls = "pipeline:" + verdict
+            counts[cls] += 1
+            by_bucket[bucket] += 1
+            if cls in PIPELINE_BAR_CLASSES or cls in ("divergence:unexplained_rejects_valid",
+                                                       "divergence:unexplained_accepts_invalid"):
+                bar += 1
+            if bucket == "NO VERDICT" and status != "pass" and raw_cls != NOT_SOURCE:
+                dark += 1
+        else:
+            bucket = CLASSES[raw_cls][0]
+            counts[raw_cls] += 1
+            by_bucket[bucket] += 1
+            if raw_cls in ("divergence:unexplained_rejects_valid", "divergence:unexplained_accepts_invalid"):
+                bar += 1
+            if bucket == "NO VERDICT" and r["observed"] == "fail" and raw_cls != NOT_SOURCE:
+                dark += 1
+    return counts, by_bucket, bar, dark
+
 # SV-CORPUS-GRAD.13c.1: the one NO-VERDICT class whose rows are NOT DARK. DARK means "the parse of
 # SOURCE TEXT failed and the deferral is why nobody looked"; a $readmemh image failing to parse
 # as SystemVerilog is not a parse nobody looked at, it is a file that was never a parse input.
@@ -360,6 +470,11 @@ def main():
                     help="the PERMANENT-deferral ceiling register (SV-CORPUS-GRAD.13f)")
     ap.add_argument("--no-corpus-scan", action="store_true",
                     help="skip the DARK-half backtick census (no corpus file reads)")
+    ap.add_argument("--pipeline-readjudication",
+                    default=ROOT / "stimuli/sv/characterization/pipeline_readjudication.tsv",
+                    type=Path,
+                    help="SVPP-EXPANSION.6c.1: the deferred population re-read under the pipeline; "
+                         "absent → the reading under the pipeline is NOT EVALUATED")
     args = ap.parse_args()
 
     rows = read_manifest(args.manifest)
@@ -577,8 +692,78 @@ def main():
             L.append(f"| `{cls}` | {rn:,} | {shown} |")
     L.append("")
 
+    readj = read_readjudication(args.pipeline_readjudication)
+    pipe = None
+    if readj:
+        p_counts, p_bucket, p_bar, p_dark = pipeline_reading(rows, readj)
+        pipe = (p_counts, p_bucket, p_bar, p_dark)
+        L.append("## Under the PIPELINE — the same rows re-read through preprocess→parse "
+                 "(SVPP-EXPANSION.6c.1)\n")
+        L.append(f"> Input: `{args.pipeline_readjudication.relative_to(ROOT)}` "
+                 f"(`{sha256(args.pipeline_readjudication)}`) — the re-adjudication table "
+                 "(`stimuli/sv/pipeline_readjudication.py`, held current by PIPELINE-LANE-CURRENCY). "
+                 "A row the pipeline re-read takes its verdict from there; every other row keeps its raw "
+                 "bucket. ⛔ Expected verdicts still come from the spec and the suite convention: a "
+                 "chained-only row testifies only in a DESIGN corpus, and a `parser_question` row is a "
+                 "defect CANDIDATE on the bar until the corpus tree rules it.\n")
+        L.append("**Live verdict-coverage tuple under the pipeline — `adjudicated/routed/no-verdict/dark/axis-2-bar` = "
+                 f"`{p_bucket['ADJUDICATED']}/{p_bucket['ROUTED']}/{p_bucket['NO VERDICT']}/{p_dark}/{p_bar}`** "
+                 f"(raw: `{by_bucket['ADJUDICATED']}/{by_bucket['ROUTED']}/{by_bucket['NO VERDICT']}/{tot_dark}/"
+                 f"{counts.get('divergence:unexplained_rejects_valid', 0) + counts.get('divergence:unexplained_accepts_invalid', 0)}`).\n")
+        for b in BUCKETS:
+            L.append(f"- **{b}: {p_bucket[b]:,} rows ({100*p_bucket[b]/total:.1f} %)** "
+                     f"(raw {by_bucket[b]:,}, {p_bucket[b] - by_bucket[b]:+,})")
+        L.append("")
+        L.append("| bucket | class under the pipeline | rows | % | why |")
+        L.append("|---|---|---:|---:|---|")
+        for b in BUCKETS:
+            for cls, n in sorted(p_counts.items(), key=lambda kv: -kv[1]):
+                if cls.startswith("pipeline:"):
+                    v = cls[len("pipeline:"):]
+                    bucket, why = PIPELINE_CLASSES[v]
+                    if v == "chained:accepted_under_expansion":
+                        # split by the design-suite condition
+                        continue
+                else:
+                    bucket, why = CLASSES[cls]
+                if bucket != b:
+                    continue
+                L.append(f"| {b} | `{cls}` | {n:,} | {100*n/total:.1f} % | {why} |")
+        acc_design = sum(1 for r in rows if readj.get((r['suite'], r['relpath']), ('',''))[0] == "chained:accepted_under_expansion" and r['suite'] in DESIGN_SUITES)
+        acc_other = p_counts.get("pipeline:chained:accepted_under_expansion", 0) - acc_design
+        if acc_design:
+            L.append(f"| ADJUDICATED | `pipeline:chained:accepted_under_expansion` (design corpora) | {acc_design:,} | "
+                     f"{100*acc_design/total:.1f} % | {PIPELINE_CLASSES['chained:accepted_under_expansion'][1]} |")
+        if acc_other:
+            L.append(f"| NO VERDICT | `pipeline:chained:accepted_under_expansion` (other suites) | {acc_other:,} | "
+                     f"{100*acc_other/total:.1f} % | accepted under its context, but the suite gives no per-file expectation |")
+        L.append(f"| | **TOTAL** | **{total:,}** | **100.0 %** | |")
+        L.append("")
+    else:
+        L.append("## Under the PIPELINE — NOT EVALUATED\n")
+        L.append(f"> `{args.pipeline_readjudication.relative_to(ROOT)}` is absent; run the pipeline lane and "
+                 "`stimuli/sv/pipeline_readjudication.py` to re-derive the reading under the pipeline.\n")
+
     args.outdir.mkdir(parents=True, exist_ok=True)
     (args.outdir / "coverage.md").write_text("\n".join(L) + "\n", encoding="utf-8")
+    if pipe is not None:
+        p_counts, p_bucket, p_bar, p_dark = pipe
+        with (args.outdir / "pipeline_coverage.tsv").open("w", encoding="utf-8") as fh:
+            fh.write("bucket\tclass\trows\tpct\n")
+            for cls, n in sorted(p_counts.items(), key=lambda kv: -kv[1]):
+                if cls.startswith("pipeline:"):
+                    v = cls[len("pipeline:"):]
+                    if v == "chained:accepted_under_expansion":
+                        fh.write(f"ADJUDICATED\t{cls}\t{acc_design}\t{100*acc_design/total:.2f}\n")
+                        if acc_other:
+                            fh.write(f"NO VERDICT\t{cls}\t{acc_other}\t{100*acc_other/total:.2f}\n")
+                        continue
+                    bucket = PIPELINE_CLASSES[v][0]
+                else:
+                    bucket = CLASSES[cls][0]
+                fh.write(f"{bucket}\t{cls}\t{n}\t{100*n/total:.2f}\n")
+            fh.write(f"TUPLE\tadjudicated/routed/no-verdict/dark/axis-2-bar\t"
+                     f"{p_bucket['ADJUDICATED']}/{p_bucket['ROUTED']}/{p_bucket['NO VERDICT']}/{p_dark}/{p_bar}\t\n")
     with (args.outdir / "coverage.tsv").open("w", encoding="utf-8") as fh:
         fh.write("bucket\tclass\trows\tpct\n")
         for cls, n in sorted(counts.items(), key=lambda kv: -kv[1]):
@@ -596,6 +781,10 @@ def main():
 
     for b in BUCKETS:
         print(f"{b:>12}: {by_bucket[b]:6,}  ({100*by_bucket[b]/total:.1f} %)")
+    if pipe is not None:
+        p_counts, p_bucket, p_bar, p_dark = pipe
+        print(f"{'PIPELINE':>12}: {p_bucket['ADJUDICATED']}/{p_bucket['ROUTED']}/{p_bucket['NO VERDICT']}/{p_dark}/{p_bar}"
+              "  (adjudicated/routed/no-verdict/dark/axis-2-bar under the pipeline)")
     if undecidable:
         print(f"{'+undecidable':>12}: {undecidable:6,}  (inside ADJUDICATED)")
     print(f"{'one-sided':>12}: {tot_unit + tot_frag:6,}  (of which "

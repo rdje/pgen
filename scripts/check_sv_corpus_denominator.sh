@@ -173,6 +173,28 @@ for name in ("coverage.tsv",):
         note(f"the tracked {ART}/{name} is NOT what the instrument produces today — it is STALE. "
              f"Re-run: python3 {INSTRUMENT}")
     compared.append(name)
+# SVPP-EXPANSION.6c.1 — the reading UNDER THE PIPELINE: produced only when the re-adjudication table
+# exists (it is derived from a .gitignored lane dump, so a clone without the lane reports it NOT
+# EVALUATED); when produced, the tracked copy must be fresh and its tuple must sit in the anchor
+# paragraph beside the raw one.
+pipeline_derived = None
+if os.path.isfile(f"{SCRATCH}/pipeline_coverage.tsv"):
+    if not os.path.isfile(f"{ART}/pipeline_coverage.tsv"):
+        note(f"the instrument produced pipeline_coverage.tsv but {ART}/pipeline_coverage.tsv is not tracked — "
+             f"publish it: python3 {INSTRUMENT}")
+    elif read_bytes(f"{ART}/pipeline_coverage.tsv") != read_bytes(f"{SCRATCH}/pipeline_coverage.tsv"):
+        note(f"the tracked {ART}/pipeline_coverage.tsv is NOT what the instrument produces today — it is STALE. "
+             f"Re-run: python3 {INSTRUMENT}")
+    compared.append("pipeline_coverage.tsv")
+    with open(f"{SCRATCH}/pipeline_coverage.tsv", encoding="utf-8") as fh:
+        for line in fh:
+            if line.startswith("TUPLE\t"):
+                pipeline_derived = line.rstrip("\n").split("\t")[2]
+    if pipeline_derived is None:
+        note("pipeline_coverage.tsv carries no TUPLE row — the instrument's contract moved; refusing to guess")
+else:
+    unevaluated.append("the reading under the pipeline: stimuli/sv/characterization/pipeline_readjudication.tsv "
+                       "is absent here (the lane dump is .gitignored)")
 
 if corpus_present:
     for name in ("coverage.md", "strata.tsv"):
@@ -226,10 +248,15 @@ for surface in LIVE_SURFACES:
              "(adjudicated/routed/no-verdict/dark/axis-2-bar) so the bar is never published "
              "without its denominator.")
         continue
-    wrong = sorted(set(t for t in found if t != derived))
+    accepted = {derived} | ({pipeline_derived} if pipeline_derived else set())
+    wrong = sorted(set(t for t in found if t not in accepted))
     if wrong:
         note(f"{surface} publishes verdict-coverage tuple(s) {wrong} but the census derives "
-             f"{derived}. The bar and its denominator move TOGETHER — update the anchor.")
+             f"{derived}" + (f" and, under the pipeline, {pipeline_derived}" if pipeline_derived else "")
+             + ". The bar and its denominator move TOGETHER — update the anchor.")
+    if pipeline_derived and pipeline_derived not in found:
+        note(f"{surface} publishes the raw tuple but not the reading under the pipeline `{pipeline_derived}` "
+             "(SVPP-EXPANSION.6c.1) — the two readings are published together in the anchor paragraph.")
 
 # --- the bar's TRUST BOUND is one link away, and the link is CHECKED ------------------------------
 # ⛔ CORPUS-KEY-AUDIT.2(b), decided 2026-08-24. This doctrine holds the bar equal to its DENOMINATOR.
@@ -260,6 +287,6 @@ if failures:
         print(f"  ✗ {f}", file=sys.stderr)
     sys.exit(1)
 
-print(f"sv-corpus-denominator: OK (tuple {derived} = adjudicated/routed/no-verdict/dark/bar; "
+print(f"sv-corpus-denominator: OK (tuple {derived} = adjudicated/routed/no-verdict/dark/bar" + (f"; under the pipeline {pipeline_derived}" if pipeline_derived else "") + f"; "
       f"artifacts fresh: {', '.join(compared)}; trust bound: {TRUST_BOUND})")
 PYEOF
