@@ -268,9 +268,11 @@ before the coverage tuple moves. A refuted row keeps that label until someone ha
 and its evidence, in the answer key's own style — and the report splits the refuted rows by it. The
 dispositions are a closed vocabulary: the base class lives in another file (the library design's rows), the
 file's portable branch is a vendor's own error stub behind its identity macro, a macro the suite's driver
-defines on its command line, a parser or answer-key question routed to the corpus tree, an expansion-stage
-rule not yet implemented. A disposition for a row that has since moved is refused, so the table cannot carry
-a stale claim. The report also re-reads every row the key expects **rejected** — including
+defines on its command line, a macro a predecessor file of the unit defines, a parser question routed to the
+corpus tree (legal-looking text the parser refuses, with the clause), a key question (the parser is right to
+refuse and the row's expectation is what needs a ruling), an expansion-stage rule not yet implemented. A
+disposition for a row that has since moved is refused, so the table cannot carry a stale claim. Every refuted
+row carries one; the report's `refuted_awaiting_disposition` is the count still to be looked at. The report also re-reads every row the key expects **rejected** — including
 a pin the raw lane could not cash because its parse stopped on a macro use above the construct: 34 verilator
 rows (a typedef reaching a type through two or more hierarchical steps, a type named through an interface
 instance in a type assignment, an enum with a range but no base type) reject at the pinned line under the

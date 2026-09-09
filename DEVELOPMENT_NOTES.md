@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.6b.4 (`PGEN-SVPP-EXPANSION-0013`): an origin names the last byte the map covers, not the byte that failed
+
+- **Re-probe the expanded text before believing the origin's line.** Five rows said the parser stopped on `string s = `FOO;`; the expansion of that line is a legal string literal, and the parser's `furthest_position` on the expanded file sat two lines further, on a bare `begin end` an existing ruling already rejects. The source map is exact about what it maps; a rejection past the last mapped byte is reported at that byte. The construct bucket built on the origin line was therefore wrong for those rows, and the fix to the instrument is a `.7` note: bucket on the furthest token when it lies beyond the map.
+- **Read the clause that owns the macro before calling it context.** `` `SV_COV_CHECK `` looked like an include the context could not find; IEEE 1800-2017 §40.3.1 says the tool predefines it. Three rows in three suites, one sentence, one engine rule.
+- **A worklist that reaches zero is not a bar that reaches zero.** Every refuted row now has a disposition; 21 of them are parser questions the corpus tree owns, 27 are pins the key still has to write, 10 are engine rules the next slice implements. The number that went to zero is *rows nobody has looked at* — which was the number that made the population unusable.
+- **Promotion**: declined — `promotion: declined (the table and the chapter carry it)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.6b.3 (`PGEN-SVPP-EXPANSION-0012`): a context change is measured on the whole population it touches, not on the rows that asked for it
 
 - **Five rows asked for `VERILATOR`; twenty-four would have paid.** The rows that died on the vendor's `error stub made the tool-identity predefine look like a free win. Re-parsing every file that tests the symbol showed the other side: the Verilator-only branches carry constructs the standard cannot derive, and defining the symbol turns 24 passes into rejections that would each need an adjudication. A context decision is a decision about which branch the answer key was written against; the raw key was written against the portable one, and the lane stays there. The five rows are a fact about their context and are recorded as such — a disposition, not a fix.

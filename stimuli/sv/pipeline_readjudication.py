@@ -105,6 +105,13 @@ DISPOSITION_KINDS = {
     "parser_question": "the expansion is legal text the parser refuses, or text the standard cannot derive: "
                        "a grammar / answer-key question routed to `SV-CORPUS-GRAD` with the construct named",
     "preprocessor_item": "an expansion-stage rule not yet implemented (named) — the expansion stage's own",
+    "cross_file_define": "the origin line uses a macro a PREDECESSOR FILE of the compilation unit defines "
+                         "(§22.5.1: a macro is unit-wide once defined) — a sibling the harness passes first, which "
+                         "the per-file lane does not carry (`--sv-unit-file`; the unit design, `.6c`) — a fact "
+                         "about the row's context",
+    "key_question": "the parser is RIGHT to refuse: the expansion is text the standard cannot derive, or the "
+                    "fixture exercises a tool's error path — the row's expectation is the question, routed to "
+                    "the answer key (a pin with the clause, in the `.13y` family)",
 }
 
 POPULATIONS = (

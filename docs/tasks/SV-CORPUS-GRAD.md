@@ -8807,7 +8807,21 @@ is not a promotion), and the probe arm it needs.
   a typedef reaching a type through two or more hierarchical steps, a type named through an interface instance in a
   type assignment (the `.13y` ruling) and an enum with a range but no base type — PINNED `must_reject` in
   `EXTRA_PINNED` with the standard's lines; the raw key demotes them (`deferred:svpp_owned`, ceiling `173 → 207`,
-  the live tuple `7529/2606/6201/3994/9`), the pipeline cashes them (`must_reject:match_under_expansion`). 189 remain. Axis 2's honest bound is therefore no longer 319–582: 223 refuted rows await a
+  the live tuple `7529/2606/6201/3994/9`), the pipeline cashes them (`must_reject:match_under_expansion`). 189 remain. ⭐ `.6b.2`–`.6b.4`
+  (`-0011`…`-0013`) took the rest to zero awaiting: 11 rows recognised by four preprocessor rules, and the tracked
+  `stimuli/sv/characterization/refuted_dispositions.tsv` names every other row — **21 `parser_question` rows are
+  ROUTED HERE**, each with the construct and the clause (a foreach with a null body A.6.8/A.6.4 ×2; an event trigger on
+  an array element A.6.5/A.9.3 ×2; a method call without parentheses A.8.2; a streaming concatenation as an
+  assignment target A.8.1/A.8.5; `foreach` in a constraint block A.1.10; `std::randomize … with` 18.12; the `always`
+  property operator A.2.10; a prefix `++i` for-step A.6.8/A.8.3; `$c(…)`; `@ ( * )` with spaces 9.4.2.2; five iverilog
+  `sv_type_identifier_*` rows where a net / port / function / argument name shadows a `$unit` typedef, 3.13/6.18 — a
+  store-gate scoping question; three rows whose chain starts at the probe's furthest token) — and **27 `key_question`
+  rows await pins** in the `.13y` family (mixed named/ordered parameter assignments A.4.1.1; a replication inside an
+  assignment pattern A.8.1; `;` between an assertion and its `else` A.6.10; a select on a function call's result A.8.4;
+  `bins x[4];` with no right-hand side A.2.11 ×2; `` `uselib ``; Verilator PGO text in a `.v`; the `` `" `` forms outside
+  macro text / closed by `"` §22.5.3.2 ×2; `N'{…}`; `do` as a Verilog net name; UVM macros in include-less lint fixtures
+  ×2; a slang compat-only constraint form; and the `.3.56` / `.13y` / `.3.51` / `.13x.d` rulings re-applied to 12
+  more rows). The pipeline is the instrument that reached them; this tree owns the grammar and the key. Axis 2's honest bound is therefore no longer 319–582: 223 refuted rows await a
   disposition each (103 of them a `class … extends` header whose base lives in `uvm_pkg` — the sv-tests
   `*-uvm.sv` files, the library design's population).
 - **THE ONLY INSTRUMENT THAT SETTLES THEM IS `SVPP-EXPANSION` ITSELF** — expand each file, re-parse,
