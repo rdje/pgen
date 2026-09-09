@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.6b.5 (`PGEN-SVPP-EXPANSION-0014`): a line-based preprocessor needs two pieces of state a line cannot see
+
+- **A block comment and a protected envelope are the same shape of problem.** Both begin on one line and end on another, and everything between is not the preprocessor's to read — not a directive, not source. A scanner that decides per line, from the line's own text, honoured a `` `else `` inside a comment and handed a base64 payload to the parser. The fix is one flag each (`in_block_comment`, `protected_depth`) carried across iterations, checked before any line is looked at, and a rule for what opens and closes them: `/*` outside strings and `//`, `*/`; a `` `pragma protect `` line with `begin_protected`, one with `end_protected`.
+- **A directive line can carry text that is not the directive's.** `` `include "x" /* multi-line `` swallowed its comment opener because the directive consumed the whole line. The `.5`(b) rule for conditionals — the remainder is the next logical line — applies to every directive whose form the standard closes before the end of the line.
+- **A token is what the lexer says it is, not what the substitution scan sees.** `$display` is one `system_tf_identifier`; a scan that splits at `$` will substitute a formal into it. The tell was an expansion nobody could have written by hand: `$"display"("display")`.
+- **A byte-identity control is only as right as its reference.** Six slices reported the `uvm_pkg` expansion byte-identical to the 2026-08-24 artifact; the seventh differed in 98 lines and every one of them sat inside a block comment — the artifact had been produced by the defect this slice fixed. The control did its job (it flagged the change) and its reference was wrong; the audit that settles it is "where do the changed lines sit", not "how many". Re-baseline with the audit in the record, never silently.
+- **Promotion**: declined — `promotion: declined (the chapter's four rules carry it)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.6b.4 (`PGEN-SVPP-EXPANSION-0013`): an origin names the last byte the map covers, not the byte that failed
 
 - **Re-probe the expanded text before believing the origin's line.** Five rows said the parser stopped on `string s = `FOO;`; the expansion of that line is a legal string literal, and the parser's `furthest_position` on the expanded file sat two lines further, on a bare `begin end` an existing ruling already rejects. The source map is exact about what it maps; a rejection past the last mapped byte is reported at that byte. The construct bucket built on the origin line was therefore wrong for those rows, and the fix to the instrument is a `.7` note: bucket on the furthest token when it lies beyond the map.

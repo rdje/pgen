@@ -245,6 +245,22 @@ each one a sentence of the standard that a corpus row had been failing on:
   §5.3 lets white space, newlines included, separate the tokens): `` `FOO `` at the end of a line followed by
   `(1, 2)` on the next is one invocation.
 
+Four more landed with `SVPP-EXPANSION.6b.5`, each named by a row of the disposition table:
+
+- **`$display` is one token.** A formal named `display` is not substituted inside the system task name
+  (A.9.3 `system_tf_identifier`): `` `define MACRO_D(display) $display(display); `` expands to
+  `$display("hi")`, not `$"hi"("hi")`.
+- **A block comment opened on an earlier line is comment text** (§5.4), whatever it contains: a `` `else ``
+  inside it is not a directive, and the text after an `` `include `` filename belongs to the next logical
+  line, so a `/* multi-line` opened there keeps its close.
+- **The coverage-control macros are predefined** — IEEE 1800-2017 §40.3.1 says the tool defines
+  `` `SV_COV_START `` … `` `SV_COV_PARTIAL `` (fifteen names, the clause's values); a source `` `define ``
+  of the same name supersedes.
+- **A §34 protected envelope is consumed as opaque.** From the `` `pragma protect `` line that carries
+  `begin_protected` to the one that carries `end_protected`, every line is the envelope's — key blocks,
+  data blocks, their encoded payload — and none of it reaches the parser; the pragma lines outside the
+  envelope pass through as before. An envelope with no `end_protected` is refused.
+
 The same slice found a defect no parser could see: the formal-list scanner treated an apostrophe as
 a string quote — SystemVerilog has none (§5.9) — so `` `define DV_FCOV_INSTANTIATE_CG(NAME_, COND_ =
 1'b1, ARGS_ = ()) `` had been read as *two* formals since the scanner's first commit, a third actual
@@ -296,8 +312,12 @@ and the number is now on the table for the leaf that decides how a per-file lane
 
 - The seven curated real-design cases of the external-corpus triage gate (UVM's two packages,
   scr1, friscv, VeeR) run through the single command with the manifest's include directories:
-  the expansion of `uvm_pkg.sv` (3 022 806 bytes from 166 included files) is **byte-identical**
-  to the shell gate's, and scr1 / friscv / VeeR accept on both profiles.
+  the expansion of `uvm_pkg.sv` (166 included files) matched the shell gate's byte for byte until
+  `SVPP-EXPANSION.6b.5`, which found the gate's reference (3 022 806 bytes) wrong in 98 lines — all
+  inside block comments: the preprocessor of 2026-08-24 had honoured `` `define `` lines inside a
+  `/* … */` (`uvm_tlm_imps.svh` keeps older macro versions in one) and expanded macro uses inside
+  others. The expansion is now 3 020 226 bytes, every changed hunk audited inside a comment, and
+  scr1 / friscv / VeeR accept on both profiles.
 - UVM's `uvm_pkg.sv` — the unit-level reading of that suite — currently **rejects** at
   `src/base/uvm_transaction.svh:443`, `const local uvm_event_pool events = new("events");`, on both
   profiles. That is not a preprocessing defect: IEEE 1800-2017 A.2.7 gives a `const`-first class

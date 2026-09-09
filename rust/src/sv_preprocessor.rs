@@ -206,6 +206,9 @@ pub enum PreprocessorEventKind {
     /// `SVPP-EXPANSION.6b.2`(ii): a well-formed `` `line `` directive consumed (§22.12); the detail
     /// carries the number and the file name it sets for the following lines.
     LineDirective,
+    /// `SVPP-EXPANSION.6b.5`(d): a §34 protected envelope opened (`begin_protected`) or closed
+    /// (`end_protected`); every line between the two was consumed as the envelope's, not source text.
+    ProtectedEnvelope,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -258,6 +261,26 @@ struct PreprocessorState {
     included_seen: HashSet<String>,
 }
 
+/// IEEE 1800-2017 §40.3.1's predefined coverage-control macros and their values (the clause's
+/// text at `section-40-code-coverage-control-and-api.md:96-140`).
+const SV_COV_PREDEFINED_MACROS: &[(&str, &str)] = &[
+    ("SV_COV_START", "0"),
+    ("SV_COV_STOP", "1"),
+    ("SV_COV_RESET", "2"),
+    ("SV_COV_CHECK", "3"),
+    ("SV_COV_MODULE", "10"),
+    ("SV_COV_HIER", "11"),
+    ("SV_COV_ASSERTION", "20"),
+    ("SV_COV_FSM_STATE", "21"),
+    ("SV_COV_STATEMENT", "22"),
+    ("SV_COV_TOGGLE", "23"),
+    ("SV_COV_OVERFLOW", "-2"),
+    ("SV_COV_ERROR", "-1"),
+    ("SV_COV_NOCOV", "0"),
+    ("SV_COV_OK", "1"),
+    ("SV_COV_PARTIAL", "2"),
+];
+
 impl PreprocessorState {
     fn new(config: SvPreprocessorConfig) -> Self {
         // `SVPP-EXPANSION.2`(a): the context's predefines ARE the macro table's initial contents.
@@ -266,6 +289,19 @@ impl PreprocessorState {
         // redefinition policy — the policy itself is not consulted here, because these lines have
         // no source position to report a redefinition at.
         let mut macros = HashMap::new();
+        // `SVPP-EXPANSION.6b.5`(c): IEEE 1800-2017 §40.3.1 — "The following predefined `define macros
+        // represent basic real-time coverage capabilities accessible directly from SystemVerilog"
+        // (section-40-code-coverage-control-and-api.md:96-140): the TOOL defines them, no include
+        // does; a context predefine or a source `` `define `` of the same name supersedes (below).
+        for (name, value) in SV_COV_PREDEFINED_MACROS {
+            macros.insert(
+                name.to_string(),
+                MacroDefinition {
+                    params: None,
+                    body: value.to_string(),
+                },
+            );
+        }
         for predefined in &config.defines {
             macros.insert(
                 predefined.name.clone(),
@@ -591,6 +627,11 @@ fn preprocess_text_internal(
     // `SVPP-EXPANSION.6b.2`(ii): the file name and line number a `` `line `` directive assigned to
     // the FOLLOWING physical lines — (named file, number for the first of them, its physical index).
     let mut line_override: Option<(PathBuf, usize, usize)> = None;
+    // `SVPP-EXPANSION.6b.5`(b): a block comment opened on an earlier line is still open — its lines
+    // are comment text (IEEE 1800-2017 §5.4), emitted verbatim and never scanned for a directive.
+    let mut in_block_comment = false;
+    // `SVPP-EXPANSION.6b.5`(d): the nesting depth of §34 protected envelopes being consumed.
+    let mut protected_depth = 0usize;
     while line_index < lines.len() || pending_tail.is_some() {
         let line_no = line_base.unwrap_or(line_index + 1);
         // where an expansion on this line says it is: `__FILE__` / `__LINE__` and the messages read
@@ -612,6 +653,97 @@ fn preprocess_text_internal(
             Some(tail) => tail,
             None => lines[line_index].clone(),
         };
+        // `SVPP-EXPANSION.6b.5`(d): inside a §34 protected envelope every line is the envelope's,
+        // consumed until the `` `pragma protect `` … `end_protected` that closes it (§34.3: "the end of
+        // the decryption envelope occurs at the point where an end_protected pragma expression is
+        // encountered"); the payload is not source text until decrypted, and this stage does not
+        // decrypt. Before this the base64 payload reached the parser as source.
+        if protected_depth > 0 {
+            if let Some(("pragma", rest)) =
+                parse_directive_line(raw_line.trim_start_matches([' ', '\t']))
+            {
+                if protect_pragma_has_keyword(rest, "end_protected") {
+                    protected_depth -= 1;
+                    if protected_depth == 0 {
+                        state.push_event(
+                            PreprocessorEventKind::ProtectedEnvelope,
+                            file_path,
+                            line_no,
+                            active,
+                            "end_protected".to_string(),
+                        );
+                    }
+                } else if protect_pragma_has_keyword(rest, "begin_protected") {
+                    protected_depth += 1;
+                }
+            }
+            if pending_tail.is_none() {
+                line_index += 1;
+            }
+            continue;
+        }
+        // `SVPP-EXPANSION.6b.5`(b): the continuation of a block comment opened on an earlier line —
+        // Surelog PPComment opens `/*` after `assign c= d;` and the `` `else `` / `` `endif `` inside
+        // the comment were honoured as directives.
+        if in_block_comment {
+            match raw_line.find("*/") {
+                None => {
+                    if active {
+                        state.append_output_chunk(
+                            &raw_line,
+                            file_path,
+                            line_no,
+                            1,
+                            raw_line.chars().count().max(1),
+                        );
+                    }
+                    state.push_event(
+                        PreprocessorEventKind::PassthroughLine,
+                        file_path,
+                        line_no,
+                        active,
+                        "block comment".to_string(),
+                    );
+                    if pending_tail.is_none() {
+                        line_index += 1;
+                    }
+                    continue;
+                }
+                Some(close) => {
+                    in_block_comment = false;
+                    let tail = &raw_line[close + 2..];
+                    if tail.trim().is_empty() {
+                        // the close ends the line: emit it whole, terminator included (the first cut
+                        // dropped the newline here and `*/` fused with the next line's text)
+                        if active {
+                            state.append_output_chunk(
+                                &raw_line,
+                                file_path,
+                                line_no,
+                                1,
+                                raw_line.chars().count().max(1),
+                            );
+                        }
+                        if pending_tail.is_none() {
+                            line_index += 1;
+                        }
+                        continue;
+                    }
+                    let head = raw_line[..close + 2].to_string();
+                    let tail = tail.to_string();
+                    if active {
+                        state.append_output_chunk(
+                            &head,
+                            file_path,
+                            line_no,
+                            1,
+                            head.chars().count().max(1),
+                        );
+                    }
+                    raw_line = tail; // the rest of the line is its own logical line
+                }
+            }
+        }
         let initial_trimmed = raw_line.trim_start_matches([' ', '\t']).to_string();
 
         if let Some((directive, _)) = parse_directive_line(&initial_trimmed) {
@@ -799,6 +931,14 @@ fn preprocess_text_internal(
                                     )
                                 })?;
                         preprocess_file_internal(&include_path, state, depth + 1)?;
+                        // `SVPP-EXPANSION.6b.5`(b): text after the filename is the next logical
+                        // line's (iverilog br_gh782a: `` `include "x.vi"  /* multi-line `` opened a
+                        // block comment the directive line then swallowed, orphaning its close) —
+                        // the same rule as `.5`(b)'s remainder for a conditional.
+                        let remainder = include_directive_remainder(rest);
+                        if !remainder.trim().is_empty() {
+                            pending_tail = Some(remainder.to_string());
+                        }
                     }
                 }
                 "ifdef" => {
@@ -973,6 +1113,21 @@ fn preprocess_text_internal(
                 // §22.12 production refuses it (SV-CORPUS-GRAD.3.39's must_reject rows keep their
                 // verdict under the pipeline). Before this the directive reached the parser inside a
                 // statement block and iverilog `line_directive.v` rejected at the line after it.
+                // `SVPP-EXPANSION.6b.5`(d): a §34 protected envelope opens on a `` `pragma protect ``
+                // line carrying `begin_protected`; the lines up to the matching `end_protected` are
+                // consumed above. Any other `` `pragma `` line keeps its pass-through.
+                "pragma" if protect_pragma_has_keyword(rest, "begin_protected") => {
+                    if active {
+                        protected_depth = 1;
+                    }
+                    state.push_event(
+                        PreprocessorEventKind::ProtectedEnvelope,
+                        file_path,
+                        line_no,
+                        active,
+                        "begin_protected".to_string(),
+                    );
+                }
                 "line" if parse_line_directive(rest).is_some() => {
                     let (number, named_file) = parse_line_directive(rest).expect("guarded above");
                     if active {
@@ -1030,6 +1185,7 @@ fn preprocess_text_internal(
             continue;
         }
 
+        let opens_block_comment = leaves_block_comment_open(&raw_line);
         if active {
             let (logical_line, last_line_index) = collect_multiline_macro_invocation(
                 lines.as_slice(),
@@ -1075,9 +1231,18 @@ fn preprocess_text_internal(
                 "inactive branch".to_string(),
             );
         }
+        in_block_comment = opens_block_comment;
         if pending_tail.is_none() {
             line_index += 1;
         }
+    }
+    if protected_depth > 0 {
+        bail!(
+            "E_SVPP_UNTERMINATED_PROTECTED_ENVELOPE in {}: a `pragma protect begin_protected has no \
+             matching end_protected — IEEE 1800-2017 §34.3: \"The end_protected pragma expression … \
+             shall be associated with the most recent begin_protected that has not already been closed\"",
+            file_path.display()
+        );
     }
 
     if !conditionals.is_empty() {
@@ -1259,6 +1424,84 @@ fn collect_multiline_macro_invocation(
         current_index += 1;
     }
     (combined, current_index)
+}
+
+/// `SVPP-EXPANSION.6b.5`(b): does this source line leave a block comment OPEN at its end (a `/*`
+/// outside a string literal and outside a `//` comment, with no `*/` after it)?
+fn leaves_block_comment_open(line: &str) -> bool {
+    let bytes = line.as_bytes();
+    let mut i = 0usize;
+    let mut in_string = false;
+    let mut escaped = false;
+    let mut open = false;
+    while i < bytes.len() {
+        let b = bytes[i];
+        if open {
+            if b == b'*' && i + 1 < bytes.len() && bytes[i + 1] == b'/' {
+                open = false;
+                i += 2;
+            } else {
+                i += 1;
+            }
+            continue;
+        }
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if b == b'\\' {
+                escaped = true;
+            } else if b == b'"' {
+                in_string = false;
+            }
+            i += 1;
+            continue;
+        }
+        if b == b'"' {
+            in_string = true;
+            i += 1;
+            continue;
+        }
+        if b == b'/' && i + 1 < bytes.len() && bytes[i + 1] == b'/' {
+            return false;
+        }
+        if b == b'/' && i + 1 < bytes.len() && bytes[i + 1] == b'*' {
+            open = true;
+            i += 2;
+            continue;
+        }
+        i += 1;
+    }
+    open
+}
+
+/// `SVPP-EXPANSION.6b.5`(b): the text of an `` `include `` line after its `"filename"` / `<filename>`.
+fn include_directive_remainder(rest: &str) -> &str {
+    let trimmed = rest.trim_start();
+    let close = if trimmed.starts_with('"') {
+        '"'
+    } else if trimmed.starts_with('<') {
+        '>'
+    } else {
+        return "";
+    };
+    let body = &trimmed[1..];
+    match body.find(close) {
+        Some(end) => &body[end + 1..],
+        None => "",
+    }
+}
+
+/// `SVPP-EXPANSION.6b.5`(d): does a `` `pragma protect `` line carry the envelope keyword (§34.3.1: a
+/// pragma expression's items are comma-separated; `begin_protected` / `end_protected` stand alone)?
+fn protect_pragma_has_keyword(rest: &str, keyword: &str) -> bool {
+    let text = rest.trim();
+    let Some(after) = text.strip_prefix("protect") else {
+        return false;
+    };
+    if !after.is_empty() && !after.starts_with(char::is_whitespace) {
+        return false;
+    }
+    after.split(',').any(|item| item.trim() == keyword)
 }
 
 /// `SVPP-EXPANSION.6b.2`(ii): the three required parameters of a `` `line `` directive — IEEE
@@ -2581,7 +2824,8 @@ fn substitute_function_macro_body(
                             k += 1;
                         }
                         let token = &content[tok_start..k];
-                        if let Some(arg) = bindings.get(token) {
+                        let system_name = tok_start > 0 && content_bytes[tok_start - 1] == b'$';
+                        if let Some(arg) = bindings.get(token).filter(|_| !system_name) {
                             push_actual(&mut out, &mut mask, arg, binding_mask(token));
                         } else {
                             push_body(&mut out, &mut mask, token);
@@ -2633,7 +2877,11 @@ fn substitute_function_macro_body(
             i += 1;
         }
         let token = &body[start..i];
-        if let Some(arg) = bindings.get(token) {
+        // `SVPP-EXPANSION.6b.5`(a): `$display` is ONE token (IEEE 1800-2017 A.9.3 system_tf_identifier
+        // ::= $[a-zA-Z0-9_$]{…}), so a formal named `display` is not inside it — sv2v `macro.sv`'s
+        // `` `define MACRO_D(display) $display(display); `` expanded to `$"display"("display")`.
+        let system_name = start > 0 && bytes[start - 1] == b'$';
+        if let Some(arg) = bindings.get(token).filter(|_| !system_name) {
             push_actual(&mut out, &mut mask, arg, binding_mask(token));
         } else {
             push_body(&mut out, &mut mask, token);
@@ -4122,5 +4370,113 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
         let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
             .expect("expand");
         assert!(out.text.contains("$display(((1)+(2)));"), "{}", out.text);
+    }
+
+    // ── SVPP-EXPANSION.6b.5 — the four engine rules the dispositioned rows named ────────────────
+
+    #[test]
+    fn a_formal_named_like_a_system_task_is_not_substituted_inside_it() {
+        // sv2v lex/macro.sv: `define MACRO_D(display) $display(display); — A.9.3: `$display` is one token
+        let dir = create_repo_scratch_dir("svpp_system_name_formal");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define MACRO_D(display) $display(display);\n`define S(x) `\"$x x`\"\n`MACRO_D(\"hi\")\n$display(`S(1));\n").expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("expand");
+        assert!(out.text.contains("$display(\"hi\");"), "{}", out.text);
+        assert!(out.text.contains("$display(\"$x 1\");"), "{}", out.text);
+    }
+
+    #[test]
+    fn a_block_comment_hides_directive_lines_and_survives_an_include_line() {
+        // Surelog PPComment: `/*` opened on a source line, the `else / `endif inside the comment are
+        // comment text (§5.4); iverilog br_gh782a: `include "x" /* multi-line` keeps its opener
+        let dir = create_repo_scratch_dir("svpp_block_comment_lines");
+        fs::write(dir.join("inc.svh"), "int from_inc;\n").expect("write inc");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "module top();\n`define USE\n`ifdef USE\n  assign a = b;\n  assign c = d;/*\n`else\n  assign a = 1'b0;\n  assign c = 1'b0;*/\n`endif\n`include \"inc.svh\"  /* multi-line\n   comment */\n  int after;\nendmodule\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("expand");
+        assert!(
+            out.text
+                .contains("assign c = d;/*\n`else\n  assign a = 1'b0;\n  assign c = 1'b0;*/"),
+            "{}",
+            out.text
+        );
+        assert!(
+            out.text.contains("int from_inc;") && out.text.contains("/* multi-line\n   comment */"),
+            "{}",
+            out.text
+        );
+        assert!(out.text.contains("int after;"), "{}", out.text);
+        assert!(!out.text.contains("`endif"), "{}", out.text);
+        // a close that ends its line keeps the line's terminator (the first cut fused `*/endfunction`)
+        fs::write(&input, "function f;\n  /* a\n     b\n   */\nendfunction\n").expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("expand");
+        assert_eq!(
+            out.text,
+            "function f;\n  /* a\n     b\n   */\nendfunction\n"
+        );
+    }
+
+    #[test]
+    fn the_coverage_control_macros_are_predefined() {
+        // IEEE 1800-2017 §40.3.1 (section-40-code-coverage-control-and-api.md:96-140): the tool defines them
+        let dir = create_repo_scratch_dir("svpp_sv_cov_predefined");
+        let input = dir.join("top.sv");
+        fs::write(&input, "int i = $coverage_control(`SV_COV_CHECK, `SV_COV_TOGGLE, `SV_COV_HIER, $root);\n`define SV_COV_ERROR -9\nint e = `SV_COV_ERROR;\n").expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("expand");
+        assert!(
+            out.text.contains("$coverage_control(3, 23, 11, $root);"),
+            "{}",
+            out.text
+        );
+        assert!(
+            out.text.contains("int e = -9;"),
+            "a source define supersedes the predefinition:\n{}",
+            out.text
+        );
+    }
+
+    #[test]
+    fn a_protected_envelope_is_consumed_as_opaque() {
+        // IEEE 1800-2017 §34.3: begin_protected … end_protected delimit the envelope; ispras 34.03.01_02.sv
+        let dir = create_repo_scratch_dir("svpp_protected_envelope");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "module top(a, b);\n  input a;\n  output b;\n`pragma protect encoding=(enctype=\"raw\")\n`pragma protect data_method=\"x-caesar\", data_keyname=\"rot13\", begin_protected\n`pragma protect encoding=(enctype=\"raw\"), data_block\n`centzn cebgrpg ehagvzr_yvprafr=(yvoenel=\"yvp.fb\")\n  ert o;\n`pragma protect end_protected\n`pragma reset protect\nendmodule\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("expand");
+        assert!(
+            !out.text.contains("ert o;") && !out.text.contains("centzn"),
+            "{}",
+            out.text
+        );
+        assert!(
+            out.text
+                .contains("`pragma protect encoding=(enctype=\"raw\")\n")
+                && out.text.contains("`pragma reset protect"),
+            "{}",
+            out.text
+        );
+        assert!(out.text.contains("endmodule"), "{}", out.text);
+        let n = out
+            .events
+            .iter()
+            .filter(|e| e.kind == super::PreprocessorEventKind::ProtectedEnvelope)
+            .count();
+        assert_eq!(n, 2, "{:?}", out.events);
+        fs::write(&input, "`pragma protect begin_protected\nxx\n").expect("write");
+        let err = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect_err("unterminated");
+        assert!(format!("{:#}", err).contains("E_SVPP_UNTERMINATED_PROTECTED_ENVELOPE"));
     }
 }

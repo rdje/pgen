@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d0e6b237.js";
+            window.path_to_searchindex_js = "searchindex-671367b2.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -422,6 +422,22 @@ function macro’s substitution always did. In a source line the token stays for
 §5.3 lets white space, newlines included, separate the tokens): <code>`FOO</code> at the end of a line followed by
 <code>(1, 2)</code> on the next is one invocation.</li>
 </ul>
+<p>Four more landed with <code>SVPP-EXPANSION.6b.5</code>, each named by a row of the disposition table:</p>
+<ul>
+<li><strong><code>$display</code> is one token.</strong> A formal named <code>display</code> is not substituted inside the system task name
+(A.9.3 <code>system_tf_identifier</code>): <code>`define MACRO_D(display) $display(display);</code> expands to
+<code>$display("hi")</code>, not <code>$"hi"("hi")</code>.</li>
+<li><strong>A block comment opened on an earlier line is comment text</strong> (§5.4), whatever it contains: a <code>`else</code>
+inside it is not a directive, and the text after an <code>`include</code> filename belongs to the next logical
+line, so a <code>/* multi-line</code> opened there keeps its close.</li>
+<li><strong>The coverage-control macros are predefined</strong> — IEEE 1800-2017 §40.3.1 says the tool defines
+<code>`SV_COV_START</code> … <code>`SV_COV_PARTIAL</code> (fifteen names, the clause’s values); a source <code>`define</code>
+of the same name supersedes.</li>
+<li><strong>A §34 protected envelope is consumed as opaque.</strong> From the <code>`pragma protect</code> line that carries
+<code>begin_protected</code> to the one that carries <code>end_protected</code>, every line is the envelope’s — key blocks,
+data blocks, their encoded payload — and none of it reaches the parser; the pragma lines outside the
+envelope pass through as before. An envelope with no <code>end_protected</code> is refused.</li>
+</ul>
 <p>The same slice found a defect no parser could see: the formal-list scanner treated an apostrophe as
 a string quote — SystemVerilog has none (§5.9) — so <code>`define DV_FCOV_INSTANTIATE_CG(NAME_, COND_ = 1'b1, ARGS_ = ())</code> had been read as <em>two</em> formals since the scanner’s first commit, a third actual
 dropped without a word and <code> new</code>ARGS_ `` pasted into the legal identifier <code>newARGS_</code>. Only a rule
@@ -469,8 +485,12 @@ and the number is now on the table for the leaf that decides how a per-file lane
 <ul>
 <li>The seven curated real-design cases of the external-corpus triage gate (UVM’s two packages,
 scr1, friscv, VeeR) run through the single command with the manifest’s include directories:
-the expansion of <code>uvm_pkg.sv</code> (3 022 806 bytes from 166 included files) is <strong>byte-identical</strong>
-to the shell gate’s, and scr1 / friscv / VeeR accept on both profiles.</li>
+the expansion of <code>uvm_pkg.sv</code> (166 included files) matched the shell gate’s byte for byte until
+<code>SVPP-EXPANSION.6b.5</code>, which found the gate’s reference (3 022 806 bytes) wrong in 98 lines — all
+inside block comments: the preprocessor of 2026-08-24 had honoured <code>`define</code> lines inside a
+<code>/* … */</code> (<code>uvm_tlm_imps.svh</code> keeps older macro versions in one) and expanded macro uses inside
+others. The expansion is now 3 020 226 bytes, every changed hunk audited inside a comment, and
+scr1 / friscv / VeeR accept on both profiles.</li>
 <li>UVM’s <code>uvm_pkg.sv</code> — the unit-level reading of that suite — currently <strong>rejects</strong> at
 <code>src/base/uvm_transaction.svh:443</code>, <code>const local uvm_event_pool events = new("events");</code>, on both
 profiles. That is not a preprocessing defect: IEEE 1800-2017 A.2.7 gives a <code>const</code>-first class
