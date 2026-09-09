@@ -108,9 +108,10 @@ DISPOSITION_KINDS = {
                        "a grammar / answer-key question routed to `SV-CORPUS-GRAD` with the construct named",
     "preprocessor_item": "an expansion-stage rule not yet implemented (named) — the expansion stage's own",
     "cross_file_define": "the origin line uses a macro a PREDECESSOR FILE of the compilation unit defines "
-                         "(§22.5.1: a macro is unit-wide once defined) — a sibling the harness passes first, which "
-                         "the per-file lane does not carry (`--sv-unit-file`; the unit design, `.6c`) — a fact "
-                         "about the row's context",
+                          "(§22.5.1: a macro is unit-wide once defined) — a sibling the harness passes first. "
+                          "Since `.4c.2` the lane carries the units the tree DECLARES (verilator flag lists, slang "
+                          "`.f` files, sv2v `run.sh`); a row here names a pairing NO declaration in the tree states "
+                          "— reported by the deriver as underivable, never guessed",
     "key_question": "the parser is RIGHT to refuse: the expansion is text the standard cannot derive, or the "
                     "fixture exercises a tool's error path — the row's expectation is the question, routed to "
                     "the answer key (a pin with the clause, in the `.13y` family)",

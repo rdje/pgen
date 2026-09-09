@@ -12,7 +12,6 @@ verilator	stimuli/sv/subs/verilator/test_regress/t/t_dpi_var.v	ATTRIBUTES	stimul
 verilator	stimuli/sv/subs/verilator/test_regress/t/t_event_control_expr.v	NO_CLASS	stimuli/sv/subs/verilator/test_regress/t/t_event_control_expr.py
 verilator	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.v	CMD_DEF	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.py
 verilator	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.v	CMD_DEF2	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.py
-verilator	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.v	CMD_UNDEF	stimuli/sv/subs/verilator/test_regress/t/t_flag_define.py
 verilator	stimuli/sv/subs/verilator/test_regress/t/t_func_public.v	VERILATOR_PUBLIC_TASKS	stimuli/sv/subs/verilator/test_regress/t/t_func_public.py
 verilator	stimuli/sv/subs/verilator/test_regress/t/t_func_wide_out.v	T_FUNC_WIDE_OUT	stimuli/sv/subs/verilator/test_regress/t/t_func_wide_out.py
 verilator	stimuli/sv/subs/verilator/test_regress/t/t_gen_missing.v	T_GEN_MISSING	stimuli/sv/subs/verilator/test_regress/t/t_gen_missing.py

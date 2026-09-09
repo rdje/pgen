@@ -228,7 +228,7 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
 | 1 | `.6d` | `pending` | the dependency-ordered library pass (1 924 + 103 `extends` rows); UVM's part waits on (d) |
-| 2 | `.4c.2` | `pending` | the units' file lists (`--sv-unit-file` predecessors: sv2v `run.sh`, slang `FileTests.cpp`, verilator `t_hier_block_import`) — sized by the disposition table: 4 `cross_file_define` rows |
+| — | `.4c.2` | ✅ `done` | `PGEN-SVPP-EXPANSION-0018`: the unit predecessors a file's OWN harness compiles first, derived per file (`pipeline_context_units.tsv`, 44 rows on 17 files; `-f` lists, globs, `--siloed` and ordering conflicts REPORTED); the whole lane re-run — exactly 3 movers, all `fail → pass`; 🔎 a `.6b.4` disposition had inferred a pairing no declaration makes — corrected forward; `.4c` CLOSED |
 | — | `.4c.1` | ✅ `done` | `PGEN-SVPP-EXPANSION-0017`: the defines a file's OWN driver passes, derived per file (`pipeline_context_defines.tsv`, 56 rows; computed values and ties REPORTED, C++ / iverilog spans and helpers skipped); the whole lane re-run — exactly 5 movers (3 `fail → pass`, 2 `pass → fail`), 3 rows pinned `must_reject` with a reproducer/control each; 🔎 a driver define can select a vendor-extension branch |
 | — | `.6c.2` | ✅ `done` | `PGEN-SVPP-EXPANSION-0016`: the 28 key-question rows pinned `must_reject` with the clause and a reproducer/control each; the raw key demotes them, the pipeline cashes them (433 `must_reject:match_under_expansion`) |
 | — | `.6c.1` | ✅ `done` | `PGEN-SVPP-EXPANSION-0015`: the verdict-coverage tuple READ UNDER THE PIPELINE, published beside the raw one through `SV-CORPUS-DENOMINATOR`'s own gate — `7529/2606/6201/3994/9` raw, `8669/2606/5061/3779/30` under the pipeline |
@@ -1446,6 +1446,57 @@ it waits on the `.5`(d) ruling.
   - [x] **LOCKSTEP** — `TOOLBOX.md` §1.1b, the SV parser book chapter (the paragraph, the numbers), the platform book's anchor, the family-status blocks, the doctrine's header, this tree, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
   - promotion: declined (the pins carry their own measurements; no new card).
 
+## `.4c.2` the harness's UNIT LISTS — ✅ done 2026-09-09 (`PGEN-SVPP-EXPANSION-0018`): every file after the predecessors its own harness compiles first; `.4c` closed
+
+**What landed** (LANE tier; ZERO Rust / grammar / answer-key / codegen bytes):
+
+- **A fourth derived context table** — `stimuli/sv/pipeline_context_units.tsv` (`suite relpath order unit_file source`), written
+  and checked by `stimuli/sv/pipeline_context.py` (`derive_units`, `driver_unit_files`, `units_from_lists`, `render_units`;
+  the `--check` and the doctrine's arm (1) cover all four tables; 6 new self-test checks, 20 in all). Three declaration
+  dialects, each read as the harness states it: verilator — the source-file arguments (`t/…`, `$TEST_ROOT/…` → the test's
+  own directory) in the same-stem driver's SV flag lists, in command order, the top file excluded (`driver.py:1099` puts
+  `*flags` before `top_filename`); slang — `tests/unittests/data/*.f` command files (`-F` expanded, `-v` library files
+  skipped; `unit.f` `--library mylib test.sv test2.sv -DFOOBAR -Ilibtest`, `cmd3.f` `test2.sv -F cmd4.f test4.sv`), the units
+  UNIONED in declaration order; sv2v — `test/*/run.sh` explicit multi-file `convert "…" $out FILES` / `runAndCapture FILES`
+  lines (sv2v lexes its inputs as one unit; `--siloed` says so by its own help text). ⛔ Derived, never guessed: a `-f` list
+  (5 verilator drivers; Verilator's own option-file syntax with `+define+A+B` forms and env substitutions — not read), a glob
+  (`runAndCapture *.sv`, 12 lines of `write/run.sh`), a `--siloed` run and a pair two declarations order differently (judged
+  on a snapshot, dropped from both sides) are REPORTED (`unit` lines), never applied. 44 rows on 17 files: verilator 12
+  files / 38 rows (`t_sv_cpu.v` alone 18), slang 3 / 4, sv2v 2 / 2. And a `.4c.1` precision fix found on the way: a
+  `-DNAME` the same command line `-U`s again (`t_flag_define.py` `-DCMD_UNDEF -UCMD_UNDEF`) is not a define the driver
+  passes — one row left the defines table (56 → 55).
+- **The lane applies them** — `context_args` emits `--sv-unit-file` for the file's rows first, in order (`CONTEXT_UNITS`);
+  the report's identity block names the table by digest and a `### Per-file unit predecessors` section counts it per suite.
+- **The whole lane re-run** (the unchanged debug probe `d7e17a94…`; 6 jobs, 600 s, 468 s wall, peak 9 390 MB under the guard):
+  16 336 rows, `pipeline pass 11 693 → 11 696`; diffed row by row against the `-0017` dump
+  (`rust/target/svpp_e1/s4c1/diff_4c2.py`): **exactly 3 movers, all `fail → pass`, all among the 17 files with predecessors**
+  — sv2v `test/siloed/module.sv` after `package.svh` (was `:8:18`), slang `data/test2.sv` after `test.sv` (was `:3:8`),
+  verilator `t_hier_block_import.v` after `t_hier_block_import/t_hier_block_import_def.vh` (was `:20:16`); 0 the other way;
+  the 14 other files with predecessors (t_sv_cpu.v with 18 among them) `pass → pass` — no predecessor's own preprocessing
+  turned a row. Each mover pre-measured with the hand-given predecessor on sv_2017 AND sv_2023 (rc 0, `[preprocessed]`).
+- **The fourth `cross_file_define` row is a corrected claim** — 🔎 `.6b.4` had written *"the test pairs the two files as one
+  unit"* for `file_uses_define_in_file_with_no_eol.sv`; RE-CHECKED: no unittest `.cpp` and no `data/*.f` in the vendored slang
+  tree names either file (`grep -rl` over the tree: only the data files themselves and an unrelated `single-unit-no-eol.sv`)
+  — the pairing had been read off the file names. MEASURED: hand-given as `--sv-unit-file`, the pair accepts on both profiles;
+  standalone the row rejects at `:3:31` on the unexpanded usage. The row's basis now says that; the deriver reports nothing
+  for it (a unit nobody declares is not derived); the kind's definition (instrument + derived report) names the `.4c.2`
+  state. The disposition table 144 → 141 rows; `refuted:cross_file_define 4 → 1`, `corroborated 1 213 → 1 216`,
+  `refuted_awaiting_disposition=0`.
+- **The denominator moved through its gate** (no key change): under the pipeline `8701/2606/5029/3746/30 →
+  8704/2606/5026/3743/30`, the raw tuple `7498/2606/6232/4025/9` unmoved; the bar unchanged at 9 / 30; the family-status
+  blocks and the anchor re-derived. `.4c` (drivers `.4c.1` + unit lists `.4c.2`) is CLOSED; reading OpenTitan's `.core` /
+  `.f` build declarations stays priced, not built (`.4b`).
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+  - [x] **REPRODUCE / ISSUE** — the 4 `cross_file_define` rows of `refuted_dispositions.tsv` (`.6b.4`): a macro a predecessor file of the unit defines, which the per-file lane did not carry.
+  - [x] **ROOT CAUSE (WHY + WHERE)** — ops family: `git ls-files stimuli/sv/pipeline_context*.tsv` listed three tables and no units table; `stimuli/run_pipeline_lane.sh` `context_args` emitted no `--sv-unit-file`. Correctness family, per row: the probe's `[origin=…]` standalone (`module.sv:8:18`, `test2.sv:3:8`, `t_hier_block_import.v:20:16`, `…no_eol.sv:3:31`) against rc 0 `[preprocessed]` with the hand-given predecessor, on both profiles; the slang pairing claim re-checked by `grep -rl` over the vendored tree (no declaration).
+  - [x] **FIX** — the deriver (three dialect readers, the union/conflict rule, reporting), the `-U` rule, the lane's arm, the report's identity row and section, the table trimmed and the fourth row's basis corrected, the kind's definition.
+  - [x] **ADDRESSED (verified)** — `pipeline_context.py --self-test` 20/20; `--check` OK; the lane re-run: exactly 3 movers, all `fail → pass`, all among the files with predecessors, 0 elsewhere; `refuted:cross_file_define=1`, `refuted_awaiting_disposition=0`; `check_sv_corpus_denominator.sh` OK on both tuples.
+  - [x] **NO REGRESSION** — the probe binary byte-identical to `-0016`'s (digest `d7e17a94…`; no Rust byte staged, the `-0014` clippy verdict stands); 16 333 of 16 336 rows byte-identical in verdict, 0 `pass → fail`; the bar unchanged (9 raw / 30 under the pipeline); the raw tuple unmoved; `PIPELINE-LANE-CURRENCY` OK + `--self-test` 5/5; the three corpus gates and `check_family_status.sh` OK; `bash scripts/check_doctrines.sh` ALL PASS (run at commit).
+  - [x] **LOCKSTEP** — `TOOLBOX.md` §1.1b, the SV parser book chapter (the paragraph, the numbers), the platform book's anchor, the family-status blocks, the doctrine's header, this tree, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
+  - promotion: declined (no new card; the derivation carries its own self-test).
+
 ## Open questions
 
 - 🔎 **DIRECTOR CALL (2026-09-09, from `.3`): `const local T x = new(…)` — UVM's spelling is not Annex-A
@@ -1528,6 +1579,7 @@ it waits on the `.5`(d) ruling.
 | `2026-09-09` | `.6c.1` | `corpus_verdict_coverage.py` → `PIPELINE: 8669/2606/5061/3779/30` (raw `7529/2606/6201/3994/9` unchanged); `check_sv_corpus_denominator.sh` OK with both tuples; `check_family_status.sh` OK | ✅ |
 | `2026-09-09` | `.6c.2` | 11 reproducers reject / 11 controls accept on both profiles; 28 corpus rows reject under the pipeline on both; the adjudicator to scratch moves exactly 28 rows; `must_reject:match_under_expansion 404 → 433`; both tuples re-derived and anchored | ✅ |
 | `2026-09-09` | `.4c.1` | `pipeline_context.py --self-test` 14/14, `--check` OK; the whole lane re-run on the unchanged debug probe (463 s, peak 9 955 MB): exactly 5 movers, all among the 48 files with defines; 2 reproducers reject / 2 controls accept on both profiles; the adjudicator moves exactly 3 rows; `must_reject:match_under_expansion 433 → 436`; both tuples re-derived and anchored; `PIPELINE-LANE-CURRENCY` OK + self-test 5/5 | ✅ |
+| `2026-09-09` | `.4c.2` | `pipeline_context.py --self-test` 20/20, `--check` OK; the 4 rows pre-measured with the hand-given predecessor (rc 0 on both profiles); the whole lane re-run (468 s, peak 9 390 MB): exactly 3 movers, all `fail → pass`, all among the 17 files with predecessors, 0 the other way; the pipeline tuple re-derived and anchored, the raw one unmoved; `PIPELINE-LANE-CURRENCY` OK + self-test 5/5 | ✅ |
 
 ## Commit log
 
@@ -1545,6 +1597,7 @@ it waits on the `.5`(d) ruling.
 | `.6c.1` | `PGEN-SVPP-EXPANSION-0015` | the verdict-coverage tuple read under the pipeline (`pipeline_coverage.tsv`), published beside the raw one through the denominator gate; the bar 9 → 30 as defect candidates, 1 140 rows adjudicated |
 | `.6c.2` | `PGEN-SVPP-EXPANSION-0016` | 28 key-question rows pinned `must_reject` (clause + reproducer/control each; two edition contrasts); the raw key demotes them, the pipeline cashes them; tuples `7501/2606/6229/4022/9` and `8698/2606/5032/3750/30` |
 | `.4c.1` | `PGEN-SVPP-EXPANSION-0017` | the drivers' defines derived per file (56 rows; computed / tie reported; C++ spans skipped); the lane re-run: 5 movers; 3 pins (a vendor-extension branch ×2, a `.3.56` row); tuples `7498/2606/6232/4025/9` and `8701/2606/5029/3746/30` |
+| `.4c.2` | `PGEN-SVPP-EXPANSION-0018` | the harness's unit predecessors derived per file (44 rows on 17 files; `-f` lists, globs, `--siloed`, conflicts reported); the lane re-run: 3 movers, all `fail → pass`; a `.6b.4` pairing claim corrected forward; pipeline tuple `8704/2606/5026/3743/30`; `.4c` closed |
 
 ## Changelog
 
@@ -1555,3 +1608,5 @@ it waits on the `.5`(d) ruling.
   OpenTitan preprocesses alone; six missing pieces named; three engine defects named); leaves `.2`–`.7`.
 - `2026-09-09` — `.4c.1` done (`PGEN-SVPP-EXPANSION-0017`): the drivers' defines derived per file and applied by the
   lane; 5 movers; 3 pins; frontier `.4c.2` (the units' file lists), `.6d`, `.7`.
+- `2026-09-09` — `.4c.2` done (`PGEN-SVPP-EXPANSION-0018`): the harness's unit predecessors derived per file and applied
+  by the lane; 3 movers, all `fail → pass`; a `.6b.4` pairing claim corrected forward; `.4c` closed; frontier `.6d`, `.7`.

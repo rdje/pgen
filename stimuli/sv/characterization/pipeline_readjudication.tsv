@@ -5005,7 +5005,7 @@ slang	tests/unittests/data/nested/file.svh	deferred:chained_only	ONE-SIDED (raw 
 slang	tests/unittests/data/nested/incdir_shadow.svh	deferred:chained_only	ONE-SIDED (raw pass)	pass	-	-	chained:accepted_under_expansion	
 slang	tests/unittests/data/nested/macro.svh	deferred:chained_only	ONE-SIDED (raw pass)	pass	-	-	chained:accepted_under_expansion	
 slang	tests/unittests/data/test.sv	deferred:chained_only	deferred:chained_only	fail	own file	other	must_reject:match_under_expansion	stimuli/sv/subs/slang/tests/unittests/data/test.sv:7:104
-slang	tests/unittests/data/test2.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file	other	refuted:cross_file_define	stimuli/sv/subs/slang/tests/unittests/data/test2.sv:3:8
+slang	tests/unittests/data/test2.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 slang	tests/unittests/data/test4.sv	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 slang	tests/unittests/data/test6.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 slang	tests/unittests/data/verilog.v	deferred:chained_only	deferred:chained_only	fail	own file	other	must_reject:match_under_expansion	stimuli/sv/subs/slang/tests/unittests/data/verilog.v:9:7
@@ -5452,7 +5452,7 @@ sv2v	test/nosim/assert.sv	match	match	fail	own file	other	must_reject:match_unde
 sv2v	test/nosim/dpi.sv	match	match	fail	own file	`import` of a package	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/nosim/dpi.sv:35:28
 sv2v	test/nosim/net_type.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 sv2v	test/relong/cache_request.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
-sv2v	test/siloed/module.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file	other	refuted:cross_file_define	stimuli/sv/subs/sv2v/test/siloed/module.sv:8:18
+sv2v	test/siloed/module.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 sv2v	test/siloed/package.svh	deferred:chained_only	ONE-SIDED (raw pass)	pass	-	-	chained:accepted_under_expansion	
 sv2v	test/top/main.sv	match	match	fail	own file	other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/top/main.sv:20:21
 uvm-core	uvm-core-2020.3.1/compat/uvm_compat_macros.svh	deferred:chained_only	ONE-SIDED (raw pass)	pass	-	-	chained:accepted_under_expansion	
@@ -6107,7 +6107,7 @@ verilator	test_regress/t/t_hier_block.v	deferred:svpp_owned	pinned, raw lane dem
 verilator	test_regress/t/t_hier_block0_bad.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 verilator	test_regress/t/t_hier_block1_bad.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 verilator	test_regress/t/t_hier_block_chained.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
-verilator	test_regress/t/t_hier_block_import.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file	other	refuted:cross_file_define	stimuli/sv/subs/verilator/test_regress/t/t_hier_block_import.v:20:16
+verilator	test_regress/t/t_hier_block_import.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 verilator	test_regress/t/t_hier_block_import/t_hier_block_import_subA.v	deferred:chained_only	ONE-SIDED (raw pass)	pass	-	-	chained:accepted_under_expansion	
 verilator	test_regress/t/t_hier_block_import/t_hier_block_import_subB.v	deferred:chained_only	IN-WINDOW	fail	own file	other	chained:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_hier_block_import/t_hier_block_import_subB.v:13:15
 verilator	test_regress/t/t_hier_block_import/t_hier_block_import_subsub.v	deferred:chained_only	IN-WINDOW	fail	included file	other	chained:hollow	stimuli/sv/subs/verilator/test_regress/t/t_hier_block_import/t_hier_block_import.vh:11:18

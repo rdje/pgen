@@ -257,9 +257,17 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   naming the file as `top_filename` when no same-stem driver exists, and sv-tests' `:defines:`
   header; a value the driver computes at run time (`"+define+SIM_CYCLES=" + str(test.cycles)`,
   an f-string) and a file several variant drivers configure differently are REPORTED by the
-  deriver (`computed` / `tie` lines), never guessed. Every directory
+  deriver (`computed` / `tie` lines), never guessed. The UNIT PREDECESSORS a file's own harness
+  compiles before it — so their `` `define ``s are in scope (§22.5.1) — are derived the same way
+  (`pipeline_context_units.tsv`, applied per file as `--sv-unit-file` in order; `SVPP-EXPANSION.4c.2`):
+  verilator's source-file arguments in the driver's SV flag lists (the harness puts them before the
+  top file), slang's `tests/unittests/data/*.f` command files (`-F` expanded, `-v` library files
+  skipped, the units unioned in order), sv2v's `test/*/run.sh` explicit multi-file `convert` /
+  `runAndCapture` lines (sv2v lexes its inputs as one unit unless `--siloed`); a `-f` list, a glob, a
+  `--siloed` run and a pair two declarations order differently are REPORTED (`unit` lines), never
+  applied. A `-DNAME` the same command line `-U`s again is not a define the driver passes. Every directory
   under `stimuli/sv/subs/` is a suite (`--list-suites`; the runner takes `all`). `SVPP-EXPANSION.4`/`.4b`.
-  ⭐ All three tracked tables and the tracked report are held to a fresh derivation on every commit by the
+  ⭐ All four tracked tables and the tracked report are held to a fresh derivation on every commit by the
   `PIPELINE-LANE-CURRENCY` doctrine (`scripts/check_pipeline_lane_currency.sh`; the dumps being
   `.gitignore`d, a tree without them is NOT EVALUATED, loudly).
 - **WHEN:** any *"how much of this corpus does the SV front end actually recognise?"* question —

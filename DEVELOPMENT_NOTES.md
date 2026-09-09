@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.4c.2 (`PGEN-SVPP-EXPANSION-0018`): a unit is what the harness declares, and a claim about a harness is checked against the harness
+
+- **Three harness dialects, one rule each, and the rest reported.** verilator's flag lists, slang's `.f` files and sv2v's `run.sh` each state a unit in their own way; the deriver reads each as stated and names what it will not read (a Verilator `-f` option file, a shell glob, a `--siloed` run, a pair two declarations order differently). Three rows moved, none the other way; the 14 other files with predecessors were a control that a predecessor's own preprocessing does not turn a row.
+- **A basis that says "the test pairs the files" must point at the test.** The `.6b.4` disposition for the no-eol row did not; re-checking found no declaration anywhere in the vendored tree. The pairing was plausible — the file names say it, and hand-given it accepts — and still it was not a fact about the harness. The corrected basis records both: what was measured, and what nobody declares.
+- **Read the probe's exit code, not a word in its output.** A first pass classified every run that printed *preprocess* as a preprocessor refusal; the `[preprocessed]` pass line contains the word. Four rows read as refusals were four acceptances. The exit-code contract (0 / 1 / 3) is the instrument; a grep is not.
+- **Promotion**: declined — `promotion: declined (the derivation carries its self-test)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.4c.1 (`PGEN-SVPP-EXPANSION-0017`): a file's configuration is its driver's, and a `-D` in a driver is not always an SV define
 
 - **Measure under the configuration the suite ran, or you measure a different file.** Two verilator rows were `pass` under the pipeline and `fail` under their own driver's define: the define selects a branch of Verilator directives around C++ text. Neither reading was wrong; only the second is the test the suite ran. The answer key's `must_accept` came from the driver's expectation under Verilator; the standard outranks it, and the pin says under which define.

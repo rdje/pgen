@@ -48,6 +48,7 @@ MAX_FILES="${PGEN_PIPELINE_MAX_FILES:-0}"
 CONTEXT=stimuli/sv/pipeline_context.tsv
 CONTEXT_FILES=stimuli/sv/pipeline_context_files.tsv   # SVPP-EXPANSION.4b: per-file rows (nearest-candidate includes)
 CONTEXT_DEFINES=stimuli/sv/pipeline_context_defines.tsv   # SVPP-EXPANSION.4c.1: per-file defines from the file's own driver
+CONTEXT_UNITS=stimuli/sv/pipeline_context_units.tsv   # SVPP-EXPANSION.4c.2: per-file unit predecessors from the file's own harness
 [ -x "$PROBE" ] || { echo "pipeline-lane: probe not executable: $PROBE" >&2; exit 2; }
 [ -f "$CONTEXT_FILES" ] || { echo "pipeline-lane: missing $CONTEXT_FILES — run stimuli/sv/pipeline_context.py --write" >&2; exit 2; }
 [ -f "$CONTEXT" ] || { echo "pipeline-lane: missing $CONTEXT — run stimuli/sv/pipeline_context.py --write" >&2; exit 2; }
@@ -63,7 +64,7 @@ suite_root() {
 suite_of() {  # the raw lane's own mapping, so the two lanes join on the suite column
   printf '%s' "$1" | sed -E 's#.*/subs/([^/]+)/.*#\1#; s#.*/stimuli/sv/uvm/.*#uvm-core#'
 }
-export ROOT PROBE TIMEOUT_S CONTEXT CONTEXT_FILES CONTEXT_DEFINES
+export ROOT PROBE TIMEOUT_S CONTEXT CONTEXT_FILES CONTEXT_DEFINES CONTEXT_UNITS
 export -f suite_of
 
 # milliseconds without a subprocess (the raw lane's helper): bash 5's EPOCHREALTIME, else seconds
@@ -78,6 +79,8 @@ _now_ms() {
 export -f _now_ms
 
 context_args() {  # $1 = suite, $2 = repo-relative path → the probe flags: the file's own rows FIRST, then the suite's
+  # SVPP-EXPANSION.4c.2: the unit predecessors the file's own harness compiles before it (in order; derived)
+  [ -f "$CONTEXT_UNITS" ] && awk -F'\t' -v s="$1" -v f="$2" 'NR>1 && $1==s && $2==f { printf "--sv-unit-file\t%s\n", $4 }' "$CONTEXT_UNITS"
   awk -F'\t' -v s="$1" -v f="$2" 'NR>1 && $1==s && $2==f { printf "--sv-include-dir\t%s\n", $3 }' "$CONTEXT_FILES"
   # SVPP-EXPANSION.4c.1: the defines the file's own driver passes (a literal value only; derived, see pipeline_context.py)
   [ -f "$CONTEXT_DEFINES" ] && awk -F'\t' -v s="$1" -v f="$2" 'NR>1 && $1==s && $2==f { printf "--sv-define\t%s\n", $3 }' "$CONTEXT_DEFINES"

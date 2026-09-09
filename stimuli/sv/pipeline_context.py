@@ -84,6 +84,15 @@ FILES_TSV = ROOT / "stimuli" / "sv" / "pipeline_context_files.tsv"
 # is used and several are REPORTED as a tie. ⛔ This is the test's OWN configuration, not a tool-identity
 # predefine (`.6b.3` measured and declined those): the driver ran the file with exactly these.
 DEFINES_TSV = ROOT / "stimuli" / "sv" / "pipeline_context_defines.tsv"
+# SVPP-EXPANSION.4c.2 — per-file UNIT PREDECESSORS: the source files a suite's own harness compiles BEFORE the
+# file in the same compilation unit, so their `define`s are in scope (IEEE 1800-2017 §22.5.1: a macro is
+# unit-wide once defined). Declared by: verilator's `t_x.py` source-file arguments in its SV flag lists
+# (the harness puts them before the top file — driver.py: `*flags, top_filename, *v_other_filenames`);
+# slang's `tests/unittests/data/*.f` command files (`-F` expanded, `-v` library files skipped); sv2v's
+# `test/*/run.sh` explicit multi-file `convert` / `runAndCapture` lines (sv2v lexes its inputs as one
+# unit unless `--siloed`). Derived, never guessed: a `-f` list, a glob, a `--siloed` run and a file two
+# declarations order differently are REPORTED, not applied. Applied by the lane as `--sv-unit-file`, in order.
+UNITS_TSV = ROOT / "stimuli" / "sv" / "pipeline_context_units.tsv"
 # Rows the derivation cannot produce: predefined macros a suite is compiled with. Hand-curated,
 # each with its source; empty until a suite needs one.
 HAND_DEFINES: dict[str, list[tuple[str, str]]] = {}
@@ -196,8 +205,12 @@ CXX_SPANS = re.compile(
 )
 
 
+UNDEF_TOKEN = re.compile(r"""(?<![A-Za-z0-9_])-U([A-Za-z_][A-Za-z0-9_]*)""")
+
+
 def driver_defines(py_text: str) -> tuple[list[str], list[str]]:
-    """(literal defines as `NAME` or `NAME=VALUE`, computed define names) found in a verilator driver."""
+    """(literal defines as `NAME` or `NAME=VALUE`, computed define names) found in a verilator driver.
+    A name a later `-UNAME` removes is not a define the driver passes (`.4c.2`: `-DCMD_UNDEF -UCMD_UNDEF`)."""
     literal, computed = [], []
     py_text = CXX_SPANS.sub(" ", py_text)
     for m in DEFINE_TOKEN.finditer(py_text):
@@ -206,8 +219,157 @@ def driver_defines(py_text: str) -> tuple[list[str], list[str]]:
         if (eq and value == "" and COMPUTED_TAIL.match(tail)) or "{" in value:
             computed.append(name)          # the value is built at run time — not derivable here
             continue
+        if any(u.group(1) == name and u.start() > m.start() for u in UNDEF_TOKEN.finditer(py_text)):
+            continue                       # undefined again on the same command line
         literal.append(f"{name}={value}" if eq and value else name)
     return sorted(set(literal)), sorted(set(computed))
+
+
+SRC_ARG = re.compile(r"""["']((?:t/|\$TEST_ROOT/)[A-Za-z0-9_/.\-]+\.(?:v|sv|vh|svh))["']""")
+FLAG_LIST = re.compile(r"(?:v_flags2?|verilator_flags2?)\s*=\s*\[(.*?)\]", re.S)
+F_LIST = re.compile(r"""(?<![A-Za-z0-9_])-[fF]\s+[^\s"']+""")
+SRC_TOKEN = re.compile(r"^[A-Za-z0-9_./\-]+\.(?:sv|svh|v|vh)$")
+
+
+def driver_unit_files(py_text: str, top: str, test_root: str) -> tuple[list[str], list[str]]:
+    """(predecessor source files in command order — `t/…` relative to test_regress —, reported items)
+    from a verilator driver's SV flag lists; `$TEST_ROOT` is the test's own directory."""
+    py_text = CXX_SPANS.sub(" ", py_text)
+    preds, reported = [], []
+    for m in FLAG_LIST.finditer(py_text):
+        span = m.group(1)
+        for f in F_LIST.findall(span):
+            reported.append(f"{f.strip()} (a -f list; not read)")
+        for f in SRC_ARG.findall(span):
+            f = f.replace("$TEST_ROOT/", test_root + "/")
+            if f.split("/")[-1] == top or f in preds:
+                continue
+            preds.append(f)
+    return preds, reported
+
+
+def units_from_lists(units: list[tuple[str, list[str]]]):
+    """units = [(source, [files in order])] → ({file: [predecessors in order]}, {file: conflict note}).
+    A file's predecessors are the UNION, in declaration order, of the files listed before it in every
+    unit that names it; a pair two declarations order differently is a conflict — reported, not applied."""
+    preds: dict[str, list[tuple[str, str]]] = {}
+    conflicts: dict[str, str] = {}
+    for source, files in units:
+        for i, f in enumerate(files):
+            lst = preds.setdefault(f, [])
+            for p in files[:i]:
+                if p not in [x for x, _ in lst]:
+                    lst.append((p, source))
+    # a PAIR two declarations order differently is dropped from both sides and reported; an
+    # unambiguous predecessor of the same file is kept (it is derived, not guessed)
+    before = {f: [x for x, _ in lst] for f, lst in preds.items()}   # a snapshot: both sides are judged on it
+    for f, lst in preds.items():
+        for p, src in list(lst):
+            if f in before.get(p, []):
+                conflicts[f] = f"{p} precedes it in {src} and follows it in another declaration; the pair is not applied"
+                lst.remove((p, src))
+    return {f: lst for f, lst in preds.items() if lst}, conflicts
+
+
+def derive_units(suite: str, base: pathlib.Path):
+    """Per-file unit-predecessor rows. Returns (rows [(suite, relpath, order, unit_file, source)],
+    reported {relpath: [notes]}, ties {relpath: [drivers]})."""
+    rows, reported, ties = [], {}, {}
+    if suite == "verilator":
+        tdir = base / "test_regress" / "t"
+        if not tdir.is_dir():
+            return rows, reported, ties
+        by_target: dict[str, list[pathlib.Path]] = {}
+        for py in sorted(tdir.glob("t_*.py")):
+            text = py.read_text(errors="replace")
+            m = re.search(r'top_filename\s*=\s*"t/([^"]+)"', text)
+            target = m.group(1) if m else py.stem + ".v"
+            if (tdir / target).is_file():
+                by_target.setdefault(target, []).append(py)
+        for target, drivers in sorted(by_target.items()):
+            same = [d for d in drivers if d.stem + ".v" == target]
+            chosen = same[0] if same else (drivers[0] if len(drivers) == 1 else None)
+            rel = (tdir / target).relative_to(ROOT).as_posix()
+            if chosen is None:
+                with_units = [d.name for d in drivers if driver_unit_files(d.read_text(errors="replace"), target, "t/" + d.stem)[0]]
+                if with_units:
+                    ties[rel] = with_units
+                continue
+            test_root = "t/" + chosen.stem if (tdir / chosen.stem).is_dir() else "t"
+            preds, notes = driver_unit_files(chosen.read_text(errors="replace"), target, test_root)
+            src = chosen.relative_to(ROOT).as_posix()
+            order = 0
+            for pth in preds:
+                f = base / "test_regress" / pth
+                if not f.is_file():
+                    notes.append(f"{pth} (named by the driver, absent from the tree)")
+                    continue
+                order += 1
+                rows.append((suite, rel, order, f.relative_to(ROOT).as_posix(), src))
+            if notes:
+                reported[rel] = notes
+    elif suite == "slang":
+        data = base / "tests" / "unittests" / "data"
+        if not data.is_dir():
+            return rows, reported, ties
+
+        def expand(fpath: pathlib.Path, seen: frozenset) -> list[str]:
+            files: list[str] = []
+            toks = fpath.read_text(errors="replace").split()
+            i = 0
+            while i < len(toks):
+                t = toks[i]
+                if t in ("-F", "-f", "-C") and i + 1 < len(toks):
+                    sub = data / toks[i + 1]
+                    if sub.is_file() and sub not in seen:
+                        files += expand(sub, seen | {sub})
+                    i += 2
+                    continue
+                if t == "-v":            # a library file: parsed on demand, not a predecessor
+                    i += 2
+                    continue
+                if t.startswith("-"):
+                    i += 1
+                    continue
+                if SRC_TOKEN.match(t) and (data / t).is_file():
+                    files.append((data / t).relative_to(ROOT).as_posix())
+                i += 1
+            return files
+
+        units = [(f.relative_to(ROOT).as_posix(), expand(f, frozenset({f}))) for f in sorted(data.glob("*.f"))]
+        preds, conflicts = units_from_lists([u for u in units if len(u[1]) >= 2])
+        for f, lst in sorted(preds.items()):
+            for order, (p, src) in enumerate(lst, 1):
+                rows.append((suite, f, order, p, src))
+        for f, note in conflicts.items():
+            reported[f] = [note]
+    elif suite == "sv2v":
+        units = []
+        for run in sorted((base / "test").glob("*/run.sh")):
+            d = run.parent
+            for ln, line in enumerate(run.read_text(errors="replace").splitlines(), 1):
+                m = re.match(r"\s*(?:convert\s+\"[^\"]*\"\s+\S+|runAndCapture)\s+(.*)$", line)
+                if not m:
+                    continue
+                toks = m.group(1).split()
+                src = f"{run.relative_to(ROOT).as_posix()}:{ln}"
+                if "--siloed" in toks:
+                    reported.setdefault(src, []).append("--siloed: macros do not carry across the files; not a unit")
+                    continue
+                if any("*" in t for t in toks):
+                    reported.setdefault(src, []).append("a glob names the unit; not applied")
+                    continue
+                files = [(d / t).relative_to(ROOT).as_posix() for t in toks if SRC_TOKEN.match(t) and (d / t).is_file()]
+                if len(files) >= 2:
+                    units.append((src, files))
+        preds, conflicts = units_from_lists(units)
+        for f, lst in sorted(preds.items()):
+            for order, (p, src) in enumerate(lst, 1):
+                rows.append((suite, f, order, p, src))
+        for f, note in conflicts.items():
+            reported.setdefault(f, []).append(note)
+    rows.sort(key=lambda r: (r[0], r[1], r[2]))
+    return rows, reported, ties
 
 
 def derive_defines(suite: str, base: pathlib.Path):
@@ -263,7 +425,11 @@ def rows_for(suite: str, base: pathlib.Path):
     stats["define_rows"] = len(define_rows)
     stats["computed_defines"] = computed
     stats["define_ties"] = ties
-    return rows, ambiguous, absent, stats, file_rows, define_rows
+    unit_rows, unit_reported, unit_ties = derive_units(suite, base)
+    stats["unit_rows"] = len(unit_rows)
+    stats["unit_reported"] = unit_reported
+    stats["unit_ties"] = unit_ties
+    return rows, ambiguous, absent, stats, file_rows, define_rows, unit_rows
 
 
 def report(suite: str, rows, ambiguous, absent, stats, out=sys.stdout):
@@ -274,7 +440,9 @@ def report(suite: str, rows, ambiguous, absent, stats, out=sys.stdout):
         f"names_resolved_per_file={len(stats['resolved_per_file_names'])} "
         f"ambiguous_nonlocal_names={len(ambiguous)} absent_names={len(absent)} "
         f"define_rows={stats.get('define_rows', 0)} computed_defines={len(stats.get('computed_defines', {}))} "
-        f"define_ties={len(stats.get('define_ties', {}))}",
+        f"define_ties={len(stats.get('define_ties', {}))} "
+        f"unit_rows={stats.get('unit_rows', 0)} unit_reported={len(stats.get('unit_reported', {}))} "
+        f"unit_ties={len(stats.get('unit_ties', {}))}",
         file=out,
     )
     for name in sorted(ambiguous):
@@ -285,6 +453,10 @@ def report(suite: str, rows, ambiguous, absent, stats, out=sys.stdout):
         print(f"  computed  {rel}: {' '.join(stats['computed_defines'][rel])} (the driver builds the value at run time; not derived)", file=out)
     for rel in sorted(stats.get("define_ties", {})):
         print(f"  tie       {rel}: {' '.join(stats['define_ties'][rel])} (several variant drivers carry defines; none applied)", file=out)
+    for rel in sorted(stats.get("unit_reported", {})):
+        print(f"  unit      {rel}: {'; '.join(stats['unit_reported'][rel])}", file=out)
+    for rel in sorted(stats.get("unit_ties", {})):
+        print(f"  unit-tie  {rel}: {' '.join(stats['unit_ties'][rel])} (several variant drivers name predecessors; none applied)", file=out)
 
 
 def render(all_rows) -> str:
@@ -308,10 +480,18 @@ def render_defines(define_rows) -> str:
     return "\n".join(lines) + "\n"
 
 
+def render_units(unit_rows) -> str:
+    lines = ["suite\trelpath\torder\tunit_file\tsource"]
+    for r in unit_rows:
+        lines.append("\t".join(str(x) for x in r))
+    return "\n".join(lines) + "\n"
+
+
 def derive_all(suites=None):
     all_rows = []
     all_file_rows = []
     all_define_rows = []
+    all_unit_rows = []
     for suite, rel in SUITES.items():
         if suites and suite not in suites:
             continue
@@ -319,12 +499,13 @@ def derive_all(suites=None):
         if not base.exists():
             print(f"PIPELINE-CONTEXT: suite={suite} NOT EVALUATED (missing {rel})", file=sys.stderr)
             continue
-        rows, ambiguous, absent, stats, file_rows, define_rows = rows_for(suite, base)
+        rows, ambiguous, absent, stats, file_rows, define_rows, unit_rows = rows_for(suite, base)
         report(suite, rows, ambiguous, absent, stats)
         all_rows.extend(rows)
         all_file_rows.extend(file_rows)
         all_define_rows.extend(define_rows)
-    return all_rows, all_file_rows, all_define_rows
+        all_unit_rows.extend(unit_rows)
+    return all_rows, all_file_rows, all_define_rows, all_unit_rows
 
 
 def self_test() -> int:
@@ -384,6 +565,41 @@ def self_test() -> int:
             print(f"  {'PASS' if ok else 'FAIL'} {label}")
             failures += 0 if ok else 1
         checks += checks2
+        # SVPP-EXPANSION.4c.2 — unit predecessors: a verilator driver's source-file arguments (top excluded,
+        # a -f list reported, $TEST_ROOT resolved), a -U honoured; slang .f files (union, -F expanded, -v
+        # skipped, a conflict reported); sv2v run.sh explicit lists (a glob and --siloed reported)
+        (t / "t_u.v").write_text("module u; endmodule\n"); (t / "t_u_pre.vh").write_text("`define P 1\n")
+        (t / "t_u").mkdir(); (t / "t_u" / "t_u_def.vh").write_text("`define Q 1\n")
+        (t / "t_u.py").write_text('test.compile(v_flags2=["-DKEEP -DGONE -UGONE"], verilator_flags2=["t/t_u_pre.vh", "$TEST_ROOT/t_u_def.vh", "-f t/t_u.vc", "t/t_u.v"])\n')
+        urows, ureported, uties = derive_units("verilator", base)
+        ulist = [(r[1].rsplit("/", 1)[1], r[2], r[3].rsplit("/", 1)[1]) for r in urows if r[1].endswith("t_u.v")]
+        lit, _ = driver_defines((t / "t_u.py").read_text())
+        sdata = base / "tests" / "unittests" / "data"; sdata.mkdir(parents=True)
+        for n in ("a.sv", "b.sv", "c.sv", "lib.sv"):
+            (sdata / n).write_text("module x; endmodule\n")
+        (sdata / "u1.f").write_text("--library l a.sv b.sv -DX\n"); (sdata / "u2.f").write_text("b.sv -F u3.f -v lib.sv\n"); (sdata / "u3.f").write_text("c.sv\n")
+        (sdata / "u4.f").write_text("c.sv b.sv\n")   # b after c here, c after b in u2 → a conflict
+        srows, sreported, _ = derive_units("slang", base)
+        srel = [(r[1].rsplit("/", 1)[1], r[2], r[3].rsplit("/", 1)[1]) for r in srows]
+        vd = base / "test" / "x"; vd.mkdir(parents=True)
+        for n in ("p.svh", "m.sv", "z.sv"):
+            (vd / n).write_text("module y; endmodule\n")
+        (vd / "run.sh").write_text('convert "std" $cs p.svh m.sv\nrunAndCapture --siloed p.svh m.sv\nrunAndCapture *.sv\n')
+        vrows, vreported, _ = derive_units("sv2v", base)
+        vrel = [(r[1].rsplit("/", 1)[1], r[2], r[3].rsplit("/", 1)[1]) for r in vrows]
+        checks3 = [
+            ("verilator: the driver's source arguments precede the file, in order, the top excluded, $TEST_ROOT resolved",
+             ulist == [("t_u.v", 1, "t_u_pre.vh"), ("t_u.v", 2, "t_u_def.vh")]),
+            ("verilator: a -f list is reported, not read", any("-f t/t_u.vc" in n for k, v in ureported.items() if k.endswith("t_u.v") for n in v)),
+            ("verilator: a define the driver -U's again is not emitted", lit == ["KEEP"]),
+            ("slang: .f units are unioned in order, -F expanded, -v skipped", ("b.sv", 1, "a.sv") in srel and ("lib.sv", 1, "b.sv") not in srel and not any(r[0] == "lib.sv" for r in srel)),
+            ("slang: a pair two .f files order differently is a conflict, reported", not any(r[0] == "c.sv" for r in srel) and any(k.endswith("c.sv") for k in sreported)),
+            ("sv2v: an explicit multi-file convert names predecessors; --siloed and a glob are reported", vrel == [("m.sv", 1, "p.svh")] and any("siloed" in n for v in vreported.values() for n in v) and any("glob" in n for v in vreported.values() for n in v)),
+        ]
+        for label, ok in checks3:
+            print(f"  {'PASS' if ok else 'FAIL'} {label}")
+            failures += 0 if ok else 1
+        checks += checks3
     print(f"PIPELINE-CONTEXT-SELF-TEST: checks={len(checks)} failed={failures}")
     return 7 if failures else 0
 
@@ -402,17 +618,19 @@ def main() -> int:
         return 0
     if args.self_test:
         return self_test()
-    all_rows, all_file_rows, all_define_rows = derive_all(args.suite)
+    all_rows, all_file_rows, all_define_rows, all_unit_rows = derive_all(args.suite)
     if args.write:
         TSV.write_text(render(all_rows))
         FILES_TSV.write_text(render_files(all_file_rows))
         DEFINES_TSV.write_text(render_defines(all_define_rows))
-        print(f"PIPELINE-CONTEXT: wrote {TSV.relative_to(ROOT)} rows={len(all_rows)}, {FILES_TSV.relative_to(ROOT)} rows={len(all_file_rows)} and {DEFINES_TSV.relative_to(ROOT)} rows={len(all_define_rows)}")
+        UNITS_TSV.write_text(render_units(all_unit_rows))
+        print(f"PIPELINE-CONTEXT: wrote {TSV.relative_to(ROOT)} rows={len(all_rows)}, {FILES_TSV.relative_to(ROOT)} rows={len(all_file_rows)}, {DEFINES_TSV.relative_to(ROOT)} rows={len(all_define_rows)} and {UNITS_TSV.relative_to(ROOT)} rows={len(all_unit_rows)}")
     if args.check:
         current = TSV.read_text() if TSV.exists() else ""
         current_files = FILES_TSV.read_text() if FILES_TSV.exists() else ""
         current_defines = DEFINES_TSV.read_text() if DEFINES_TSV.exists() else ""
-        if current != render(all_rows) or current_files != render_files(all_file_rows) or current_defines != render_defines(all_define_rows):
+        current_units = UNITS_TSV.read_text() if UNITS_TSV.exists() else ""
+        if current != render(all_rows) or current_files != render_files(all_file_rows) or current_defines != render_defines(all_define_rows) or current_units != render_units(all_unit_rows):
             print(f"PIPELINE-CONTEXT: DRIFT — the tracked context differs from a fresh derivation; run --write", file=sys.stderr)
             return 1
         print("PIPELINE-CONTEXT: OK — the tracked context equals a fresh derivation")

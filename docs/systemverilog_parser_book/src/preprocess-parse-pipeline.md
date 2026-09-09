@@ -130,7 +130,10 @@ satisfy, the one directory that does; an ambiguous name is reported, never guess
 `:defines:` header, a literal value only, applied per file as `--sv-define`; a value the driver
 computes at run time and a file several variant drivers configure differently are reported, not
 guessed. These are the test's own configuration, not a tool identity: `.6b.3` measured and declined
-the identity predefines). The first
+the identity predefines — and, since `.4c.2`, the unit predecessors a file's own harness compiles
+before it, applied as `--sv-unit-file` in order: verilator's source-file arguments, slang's `.f` command
+files, sv2v's explicit multi-file runs; a `-f` list, a glob, a `--siloed` run and an ordering conflict
+are reported, not applied). The first
 measurement, on the two suites the raw lane cannot judge at all (every one of their rows is
 `deferred:chained_only` in the raw answer key), release probe, `sv_2017`, 45 s wall:
 
@@ -297,8 +300,9 @@ row carries one; the report's `refuted_awaiting_disposition` is the count still 
 
 **The file's own configuration (`.4c.1`).** A test suite's driver does not run a file bare: verilator's
 `t_x.py` passes `+define+NAME[=VALUE]` / `-DNAME[=VALUE]`, sv-tests' header carries `:defines:`. The
-derived context now includes them per file (`stimuli/sv/pipeline_context_defines.tsv`, 56 rows on 48 files:
-53 verilator, 3 sv-tests), applied as `--sv-define` before the suite's rows. The deriver emits a LITERAL
+derived context now includes them per file (`stimuli/sv/pipeline_context_defines.tsv`, 55 rows on 48 files:
+52 verilator, 3 sv-tests — a name the same command line `-U`s again is not one of them), applied as
+`--sv-define` before the suite's rows. The deriver emits a LITERAL
 value only and reports the rest instead of guessing — 3 files whose driver computes the value at run time
 (`"+define+SIM_CYCLES=" + str(test.cycles)`), 24 files that several variant drivers configure differently
 (`t_time_sc_ns.py` … `t_time_sc_sec.py`), and it skips the spans whose `-D` reaches the C++ compiler or
@@ -316,10 +320,26 @@ whose define selects the branch above its `` `error `` stub and exposes a bare `
 generate region (the `.3.56` ruling, A.4.2) — a row the `driver_define` disposition had been hiding. Six
 `driver_define` rows remain, each now naming why its define cannot be derived (computed, or a tie).
 
+**The file's own unit (`.4c.2`).** A harness also decides what is compiled BEFORE a file in the same
+compilation unit, and §22.5.1 makes a macro unit-wide once defined. The derived context now carries those
+predecessors per file (`stimuli/sv/pipeline_context_units.tsv`, 44 rows on 17 files), applied as
+`--sv-unit-file` in order, from three declaration dialects: verilator's source-file arguments in the
+driver's SV flag lists (the harness puts them before the top file), slang's `tests/unittests/data/*.f`
+command files (`-F` expanded, `-v` library files skipped, the units unioned in declaration order), sv2v's
+`test/*/run.sh` explicit multi-file `convert` / `runAndCapture` lines (sv2v lexes its inputs as one unit
+unless `--siloed`). A `-f` list (Verilator's own option-file syntax), a glob, a `--siloed` run and a pair two
+declarations order differently are reported, not applied. Re-run on the whole lane, exactly 3 rows moved,
+all `fail → pass`, all among the files with predecessors, none the other way: sv2v `siloed/module.sv` after
+`package.svh`, slang `test2.sv` after `test.sv`, verilator `t_hier_block_import.v` after its `_def.vh`. The
+fourth `cross_file_define` row stays: 🔎 **its `.6b.4` disposition had inferred a pairing from the file
+names** (`file_uses_define_in_file_with_no_eol.sv` after `file_with_no_eol.sv`) — no declaration in the
+vendored slang tree makes it, so the deriver reports nothing for it; hand-given, the pair accepts on both
+profiles, and the row's basis now says exactly that.
+
 **The denominator, read twice.** The platform book's verdict-coverage tuple
 (`adjudicated/routed/no-verdict/dark/axis-2-bar`) now carries two readings of the same rows, published
-together and held by the same gate: the raw lane's `7498/2606/6232/4025/9`, and `8701/2606/5029/3746/30`
-under the pipeline. The second is the first with the re-adjudication table applied: 1 213 explained-away
+together and held by the same gate: the raw lane's `7498/2606/6232/4025/9`, and `8704/2606/5026/3743/30`
+under the pipeline. The second is the first with the re-adjudication table applied: 1 216 explained-away
 rows corroborated, 1 271 design-corpus files accepted under their derived context (must-accept by the
 suite's own convention — a shipping design compiles), 436 must-reject rows rejected where the raw lane
 never reached the construct (28 of them the key questions of the disposition table, pinned with the

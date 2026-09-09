@@ -12,13 +12,14 @@
 # answer key). It is produced by `stimuli/sv/pipeline_vs_raw.py` from the lane's dump and the raw
 # lane's dump, under the include context `stimuli/sv/pipeline_context.tsv` (+ the per-file rows of
 # `pipeline_context_files.tsv`, + the per-file DEFINES of `pipeline_context_defines.tsv` that a file's
-# own driver passes — SVPP-EXPANSION.4c.1) that `stimuli/sv/pipeline_context.py` DERIVES from the corpus. Three
+# own driver passes — SVPP-EXPANSION.4c.1, + the per-file UNIT PREDECESSORS of `pipeline_context_units.tsv`
+# that a file's own harness compiles first — .4c.2) that `stimuli/sv/pipeline_context.py` DERIVES from the corpus. Three
 # things can rot independently: the context (a vendored suite gains a header directory and the
 # tracked table is not re-derived), the report (a lane re-run whose numbers nobody published), and
 # the identity block (already `IDENTITY-CARRIERS`' business — this doctrine does NOT re-check it).
 #
 # WHAT IT ASSERTS, two arms, each blind to what the other sees:
-#   (1) CONTEXT — `pipeline_context.py --check`: all three tracked context tables equal a fresh derivation
+#   (1) CONTEXT — `pipeline_context.py --check`: all four tracked context tables equal a fresh derivation
 #       from the tree. Always evaluable (the corpus submodules being absent is itself reported by
 #       the tool, per suite, as NOT EVALUATED). HARD on drift.
 #   (3) READJUDICATION — `pipeline_readjudication.py --check` (SVPP-EXPANSION.6a): the tracked

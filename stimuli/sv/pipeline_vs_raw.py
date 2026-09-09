@@ -10,6 +10,7 @@ pipeline recognises that the raw lane could not (and the reverse):
     stimuli/sv/characterization/adjudication_manifest.tsv   the answer key's verdict per row
     stimuli/sv/pipeline_context.tsv                    the context the lane ran under
     stimuli/sv/pipeline_context_defines.tsv            the per-file defines the files' own drivers pass (SVPP-EXPANSION.4c.1)
+    stimuli/sv/pipeline_context_units.tsv              the per-file unit predecessors the files' own harness compiles first (SVPP-EXPANSION.4c.2)
 
 ⛔ Every number here is a JOIN, never a copy: a row is counted only where the pipeline dump holds
 it, the raw status comes from the raw dump for the SAME path, and the adjudication class from the
@@ -153,6 +154,7 @@ def main() -> int:
     ap.add_argument("--manifest", default=str(CHAR / "adjudication_manifest.tsv"))
     ap.add_argument("--context", default=str(ROOT / "stimuli" / "sv" / "pipeline_context.tsv"))
     ap.add_argument("--context-defines", default=str(ROOT / "stimuli" / "sv" / "pipeline_context_defines.tsv"))
+    ap.add_argument("--context-units", default=str(ROOT / "stimuli" / "sv" / "pipeline_context_units.tsv"))
     ap.add_argument("--probe", default=str(ROOT / "rust" / "target" / "release" / "parseability_probe"))
     ap.add_argument("--out", default=str(CHAR / "pipeline_characterization.md"))
     ap.add_argument("--top", type=int, default=25)
@@ -268,6 +270,9 @@ def main() -> int:
     ctx_defines = pathlib.Path(args.context_defines)
     if ctx_defines.exists():
         L.append(f"| context (per-file defines) | `{rel(ctx_defines)}` | `{sha256(ctx_defines)}` |")
+    ctx_units = pathlib.Path(args.context_units)
+    if ctx_units.exists():
+        L.append(f"| context (per-file unit predecessors) | `{rel(ctx_units)}` | `{sha256(ctx_units)}` |")
     L.append(f"| pipeline results (output) | `{rel(pathlib.Path(args.pipeline))}` | `{sha256(pathlib.Path(args.pipeline))}` |")
     L.append(f"| raw results (input) | `{rel(pathlib.Path(args.raw))}` | `{sha256(pathlib.Path(args.raw))}` |")
     L.append(f"\nMeasured at `HEAD` = `{head_commit()}`; the parse binary is a **{build_mode}** build "
@@ -342,6 +347,20 @@ def main() -> int:
             first = mine[0]
             L.append(f"| {suite} | {len({r[1] for r in mine})} | {len(mine)} | {code(first[1].rsplit('/', 1)[-1])} ← {code('--sv-define ' + first[2])} |")
         if not drows:
+            L.append("| (none) | 0 | 0 | |")
+    # SVPP-EXPANSION.4c.2 — the source files a file's OWN harness compiles before it in the same unit
+    # (verilator `t_x.py` source arguments, slang `data/*.f`, sv2v `run.sh` explicit lists), applied per
+    # file as `--sv-unit-file` in order; a -f list, a glob, a --siloed run and an ordering conflict are
+    # reported by the deriver, never guessed
+    if ctx_units.exists():
+        urows = [r for r in read_tsv(ctx_units, 5)[1:] if r[0] in suites]
+        L.append("\n### Per-file unit predecessors (the file's own harness)\n")
+        L.append("| suite | files | predecessor rows | e.g. |\n|---|---:|---:|---|")
+        for suite in sorted({r[0] for r in urows}):
+            mine = [r for r in urows if r[0] == suite]
+            first = mine[0]
+            L.append(f"| {suite} | {len({r[1] for r in mine})} | {len(mine)} | {code(first[1].rsplit('/', 1)[-1])} ← {code(first[3].rsplit('/', 1)[-1])} |")
+        if not urows:
             L.append("| (none) | 0 | 0 | |")
 
     out = pathlib.Path(args.out)
