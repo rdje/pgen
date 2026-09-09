@@ -346,7 +346,13 @@ lrm_directive_name_sv_only := trivia /`undefineall\b/
 # fusion, ENGINE-UNIVERSAL-SERVICES.98) is closed by the line's own terminator, as `line_comment`'s
 # `@sample: "//x\n"` closes it for a comment.
 @sample: "`FOO\n"
-opaque_directive_line := trivia /`[^\r\n]*/
+# SV-CORPUS-GRAD.3.56 (release 1.0.227, ledger SV-0100): IEEE 1800-2017 22.5.1 — "the newline character shall
+# be preceded by a backslash ( \ ). The first newline character not preceded by a backslash shall end the macro
+# text" (docs/systemverilog/2017/md/section-22-compiler-directives.md:171-174). Through 1.0.226 the opaque
+# directive line ended at the first newline, so a multi-line `define's continuation lines were parsed as
+# items (verilator t_property_s_eventually2.v; 500 lane files carry the shape). The line now runs over every
+# backslash-newline; a backslash before any other character is literal.
+opaque_directive_line := trivia /`(?:[^\\\r\n]|\\\r?\n|\\[^\r\n])*/
                       -> $2
 
 lrm_compiler_directive := resetall_directive
@@ -894,7 +900,13 @@ number := real_number     -> {kind: "real",     body: $1}
 # unchanged (spaced literals were 100% unparseable ==> additive, no lock
 # broken). `[ \t]` (horizontal) covers the whole observed corpus; a literal
 # spanning a newline needs the composite-rule form (deferred).
-integral_number := /([0-9][0-9_]*[ \t]*)?'[sS]?[dDhHoObB][ \t]*[0-9a-fA-FxXzZ?_]+/
+# SV-CORPUS-GRAD.3.56 (release 1.0.227, ledger SV-0100): IEEE 1800-2017 5.7.1 — a based literal is THREE tokens
+# (size, apostrophe+base, digits); "the unsigned number token shall immediately follow the base format,
+# optionally preceded by white space", the apostrophe and the base never separated
+# (docs/systemverilog/2017/md/section-1024-characters-if-an-identifier-exceeds-the-implementation-specific-length-limit-an-error-shall-be-reported.md:191-210);
+# 5.3 white space is spaces, tabs, newlines and formfeeds, and a comment separates tokens as it does everywhere
+# else. Through 1.0.226 only spaces and tabs were admitted between the tokens (sv2v number_literal_whitespace.sv).
+integral_number := /([0-9][0-9_]*(?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*)?'[sS]?[dDhHoObB](?:\s|\/\*(?:[^*]|\*+[^*\/])*\*+\/|\/\/[^\r\n]*\r?\n)*[0-9a-fA-FxXzZ?_]+/
                  | /[0-9][0-9_]*/
 
 real_number := /[0-9][0-9_]*\.[0-9][0-9_]*([eE][+-]?[0-9][0-9_]*)?/
@@ -990,8 +1002,17 @@ unbased_unsized_literal := trivia /'(0|1|x|X|z|Z)/
 # ENGINE-UNIVERSAL-SERVICES.103: the rule's regex terminals accept no leading layout), so `1ns` reads and `1 ns`
 # does not; the node is byte-identical (`{value: <number>, unit: {kind}}`). The `timescale directive's
 # `directive_time_literal` keeps the layout-skipping `time_unit`: 22.7 allows `1 ns / 1 ps` there.
-time_literal := number time_unit_glued
-             -> {value: $1, unit: $2}
+# SV-CORPUS-GRAD.3.56 (release 1.0.227, ledger SV-0100): IEEE 1800-2017 A.8.7 `time_literal ::= unsigned_number
+# time_unit | fixed_point_number time_unit` — the magnitude of a time literal is a plain decimal or a fixed-point
+# (real) number, NEVER a based literal. Through 1.0.226 this reached `number` (real OR integral), so `#8'd10 ns`
+# and, once 5.7.1 white space is admitted inside a based literal, a based literal spanning white space before the
+# glued unit, were both admitted (0 corpus rows; the cert witness generator composed them and they cannot parse,
+# the glued unit refusing the layout the based literal leaves). The value node is byte-identical for every real
+# time literal: a plain magnitude keeps `{kind: "integral", body}`, a fixed-point one `{kind: "real", body}`.
+time_literal := real_number time_unit_glued
+             -> {value: {kind: "real", body: $1}, unit: $2}
+             | unsigned_number time_unit_glued
+             -> {value: {kind: "integral", body: $1}, unit: $2}
 
 @glued: true
 time_unit_glued := /s\b/  -> {kind: "s"}

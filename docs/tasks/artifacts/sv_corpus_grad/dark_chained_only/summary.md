@@ -6,21 +6,21 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `35515a97fb7facee2a5e07b1793e2c1abfaa10559b1a52cf97158a246d49be78` |
-| positions | `stimuli/sv/characterization/positions.tsv` | `58d19b8ddf7ecfcf2294d967e17fb91278198c077db453f9f58d57c5b2a45b44` |
-| grammar | `grammars/systemverilog.ebnf` | `eac24e0d2a647d76d96f5e9ae5da9a594a952f6b924a83319702373395aab61d` |
+| manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `c3df8a6dd2f98b25b936599cc1e9b19719be78967d37d4b81e20847b35933e93` |
+| positions | `stimuli/sv/characterization/positions.tsv` | `686064eb18411695138951ca6086c4f9e642cd12b40ed065a29381392a99ea85` |
+| grammar | `grammars/systemverilog.ebnf` | `5bee298a8898249c4cb05c45c67931daa386cc4f890d1f34eb239339119631f3` |
 
 ## The TEXT channel — can expansion move the byte the parse choked on?
 
 | verdict | rows | % | reading |
 |---|---:|---:|---|
-| `PRE-TICK` | 2,068 | 54.4 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
-| `IN-WINDOW` | 1,473 | 38.8 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
-| `NO-ALTERABLE-TICK` | 210 | 5.5 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
-| `PAST-LAST-TICK` | 50 | 1.3 % | choked past every alterable directive — suspicious but still reachable by an earlier expansion's shift. UNDECIDABLE |
-| **TOTAL** | **3,801** | **100.0 %** | |
+| `PRE-TICK` | 2,069 | 55.3 % | the parse choked **before** the first byte expansion can reach — it would choke identically on the expanded text. REFUTED |
+| `IN-WINDOW` | 1,415 | 37.8 % | choked between the first and last alterable directive — an earlier expansion can change the following token stream. UNDECIDABLE from text |
+| `NO-ALTERABLE-TICK` | 210 | 5.6 % | the file has **no alterable directive at all** — expansion is a no-op on it. The textual deferral is REFUTED |
+| `PAST-LAST-TICK` | 45 | 1.2 % | choked past every alterable directive — suspicious but still reachable by an earlier expansion's shift. UNDECIDABLE |
+| **TOTAL** | **3,739** | **100.0 %** | |
 
-⇒ **2,278 of 3,801 rows (59.9 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
+⇒ **2,279 of 3,739 rows (61.0 %) carry a `chained_only` deferral whose TEXTUAL justification their own bytes refute.**
 
 ## Then the FACT channel — is a cross-file *name* the live explanation?
 
@@ -28,11 +28,11 @@
 |---|---:|---|
 | `FACT-GATED-CROSS-FILE` | 2,057 |  |
 | `CROSS-LIBRARY` | 168 |  |
-| `UNDECLARED-ANYWHERE` | 26 |  |
+| `UNDECLARED-ANYWHERE` | 27 |  |
 | `NO-FACT-GATE-AT-FAILURE` | 19 |  |
 | `FACT-GATED-LOCAL-TYPE` | 8 |  |
 
-⇒ **the worklist is 53 rows** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv`) — every one must be adjudicated with the toolbox (probe + `--trace-rules`) before it is called a defect.
+⇒ **the worklist is 54 rows** (`docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/worklist.tsv`) — every one must be adjudicated with the toolbox (probe + `--trace-rules`) before it is called a defect.
 
 ## Worklist by suite
 
@@ -48,6 +48,7 @@
 | verilator | `NO-FACT-GATE-AT-FAILURE` | 1 |
 | scr1 | `NO-FACT-GATE-AT-FAILURE` | 1 |
 | black-parrot | `UNDECLARED-ANYWHERE` | 1 |
+| verilator | `UNDECLARED-ANYWHERE` | 1 |
 
 ## First 40 worklist rows (source excerpt at the failure)
 

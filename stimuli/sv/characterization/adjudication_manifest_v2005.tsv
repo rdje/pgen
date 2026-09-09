@@ -2305,7 +2305,7 @@ sv2v	test/core/constexpr.v	pass	must_accept	match	sv2v: committed conversion GOL
 sv2v	test/core/dangling_else.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/core/data_lifetime.v	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text) - .13w: store-gate search residual:not_parsed_with_declarations
 sv2v	test/core/decl_scope.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
-sv2v	test/core/default_nettype.v	fail	must_accept	divergence:explained_svpp_macro_use	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
+sv2v	test/core/default_nettype.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/core/delay.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/core/dimensions.v	fail	must_accept	divergence:explained_svpp_macro_use	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/core/do_while.v	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text) - .13w: store-gate search residual:not_parsed_with_declarations
@@ -2474,7 +2474,7 @@ sv2v	test/core/part_select.v	pass	must_accept	match	sv2v: committed conversion G
 sv2v	test/core/part_select_bits.v	fail	must_accept	divergence:unexplained_rejects_valid	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text) - .13w: store-gate search residual:not_parsed_with_declarations
 sv2v	test/core/pattern.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/core/pattern_resolve.v	fail	must_accept	divergence:explained_svpp_macro_use	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
-sv2v	test/core/pattern_revised.v	fail	must_accept	divergence:explained_svpp_include	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
+sv2v	test/core/pattern_revised.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/core/port_default.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/core/port_typename.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/core/reorder.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
@@ -2531,7 +2531,7 @@ sv2v	test/core/trailing_commas.v	pass	must_accept	match	sv2v: committed conversi
 sv2v	test/core/typedef_ident_scope.v	fail	must_accept	divergence:explained_svpp_macro_use	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/core/typedef_scope.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/core/typename_cast.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
-sv2v	test/core/typename_deep.v	fail	must_accept	divergence:explained_svpp_include	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
+sv2v	test/core/typename_deep.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/core/typename_lhs_nest.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/core/typeof.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)
 sv2v	test/core/typeof_alias.v	pass	must_accept	match	sv2v: committed conversion GOLDEN - valid Verilog-2005 output by suite contract (the tool's own emitted text)

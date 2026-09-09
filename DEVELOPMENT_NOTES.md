@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SV-CORPUS-GRAD.3.56 (`PGEN-SV-CORPUS-GRAD-0386`): a lexical fact lives in the terminal's regex
+
+- **Two lexical facts were missing, and both sat in one regex each.** An opaque directive line ended at its first newline, so §22.5.1's backslash-continued macro text spilled its continuation lines into the item parser — 500 failing lane files carry the shape. A based literal admitted `[ \t]*` between its three tokens where §5.3's white space includes newlines and formfeeds and a comment separates tokens everywhere. Both fixes are regex-only; the apostrophe and the base stay inseparable (§5.7.1), pinned. A third fix fell out of the widening: the recognized-union cert's witness generator composed based-literal time literals (`timeprecision'D 9F? fs`, non-deterministic across seeds) that the glued unit rightly refused, so `time_literal`'s magnitude is now `unsigned_number`/`real_number` per A.8.7 — a based-literal time literal was never legal (0 corpus rows), the value node is byte-identical, and the generator can no longer compose the bad sample.
+- **Census with comments blanked, or the count is English.** The first census of "a comment inside a number" read fourteen files; every one was `typedef'd`, `ACK'd`, `presync'd` in a comment. Blanked, the population was the one sv2v test.
+- **Twelve of twenty-one "contextual" rows were text no edition derives**, once reproduced in isolation: the bare `begin … end` block — at module level or inside `generate` — is the Verilog-2001 form 1364-2005 removed, and Verilator's tolerance of it is the whole story of six rows.
+- **Routed** `.3.57`: three rows whose one variable is a declaration no single file supplies (a base class from a wildcard import, a class used before a forward typedef, a sibling-file type) — the SV-PARSE-STRICT.2 wildcard escape exists for net types and not for class bases, a policy question worth its own slice.
+
 ## 2026-09-08 — SV-CORPUS-GRAD.3.55 (`PGEN-SV-CORPUS-GRAD-0385`): a lexical adjacency rule needs a glued terminal
 
 - **Bisect the name, not only the position.** `trans ##1 t` passed and `trans ##1 s` failed with identical declarations; `ms`, `ps`, `ns` failed too. The variable was the identifier's spelling — a time unit — and `1 s` was a time literal because the unit's terminal took the engine's layout skip. Footnote 44 of Annex A forbids exactly that white space.

@@ -598,7 +598,16 @@ def advanced_files_only(base: dict[str, dict], new: dict[str, dict],
     if unknown:
         raise Refused(f"scope names path(s) the sample does not have: {unknown[:3]}")
     moved = sorted(k for k in base if k in new and any(base[k][c] != new[k][c] for c in ("entries", "committed", "memo_hits")))
-    unscoped_moved = [k for k in moved if k not in scope]
+    # SV-CORPUS-GRAD.3.56 (ENGINE-UNIVERSAL-SERVICES.104): a non-scoped file that ONLY got cheaper
+    # (no binding metric ROSE) is a pure improvement and cannot hide a rise, so it need not be scoped
+    # or advanced — this predicate CONFINES RISES to the advanced set, and a fall elsewhere never
+    # threatens that confinement. A non-scoped file where ANY metric rose is still a breaker. The
+    # first customer is a widening bundled with a call re-spelling whose entries FALL on the many
+    # files that speculate the re-spelled rule (time_literal -> unsigned_number), none of which
+    # advanced; the RISE stays confined to the files the widening let parse further.
+    unscoped_rose = [k for k in moved if k not in scope
+                     and any(new[k][c] > base[k][c] for c in ("entries", "committed", "memo_hits"))]
+    unscoped_moved = [k for k in moved if k not in scope]  # kept for the facts audit trail
     not_advanced, legacy = [], []
     for k in scope:
         b, n = base[k], new[k]
@@ -611,13 +620,13 @@ def advanced_files_only(base: dict[str, dict], new: dict[str, dict],
             if n["furthest"] > b["furthest"]:
                 continue
         not_advanced.append(k)
-    facts = {"moved_files": moved, "unscoped_moved": unscoped_moved, "not_advanced": not_advanced,
+    facts = {"moved_files": moved, "unscoped_moved": unscoped_moved, "unscoped_rose": unscoped_rose, "not_advanced": not_advanced,
              "baseline_furthest_unknown": legacy,
              "advance": {k: (base[k]["accepted"], new[k]["accepted"], base[k]["furthest"], new[k]["furthest"],
                              new[k]["entries"] - base[k]["entries"], new[k]["memo_hits"] - base[k]["memo_hits"]) for k in scope}}
-    if unscoped_moved:
-        return (False, f"{len(unscoped_moved)} file(s) outside the declared scope changed cost "
-                       f"(e.g. {unscoped_moved[0]}) — the rise is not confined to the advanced files", facts)
+    if unscoped_rose:
+        return (False, f"{len(unscoped_rose)} file(s) outside the declared scope had a metric RISE "
+                       f"(e.g. {unscoped_rose[0]}) — the rise is not confined to the advanced files", facts)
     if not_advanced:
         return (False, f"scoped file(s) did NOT advance (same verdict, furthest not forward): {not_advanced[:3]}", facts)
     if not moved:
@@ -626,7 +635,7 @@ def advanced_files_only(base: dict[str, dict], new: dict[str, dict],
               "; ".join(f"{os.path.basename(k)} accepted {v[0]}->{v[1]} furthest {v[2]}->{v[3]} entries {v[4]:+,} memo {v[5]:+,}"
                         for k, v in facts["advance"].items()) +
               (f" — baseline furthest UNKNOWN for {len(legacy)} (9-column baseline; verified from the next baseline on)" if legacy else "") +
-              f"; {len(base) - len(scope)} other sampled file(s) byte-identical")
+              f"; {len(base) - len(scope)} other sampled file(s) never rose ({len([k for k in moved if k not in scope])} got cheaper, the rest byte-identical)")
     return (True, detail, facts)
 
 
@@ -647,6 +656,12 @@ def self_test_advanced_files_only() -> int:
     h, d, f = advanced_files_only(base, new3, ["a.sv"]); arm("fails: an UNSCOPED file changed cost", not h and f["unscoped_moved"] == ["b.sv"])
     new4 = {"a.sv": row("no", 160, 12, 60, 300), "b.sv": dict(base["b.sv"]), "c.sv": dict(base["c.sv"])}
     h, d, f = advanced_files_only(base, new4, ["a.sv"]); arm("fails: a scoped file got dearer WITHOUT advancing (same furthest)", not h and f["not_advanced"] == ["a.sv"])
+    # ENGINE-UNIVERSAL-SERVICES.104: a non-scoped file that ONLY got cheaper is a pure improvement and holds
+    new_fall = {"a.sv": row("no", 160, 12, 60, 520), "b.sv": row("yes", 190, 20, 80, None), "c.sv": dict(base["c.sv"])}
+    h, d, f = advanced_files_only(base, new_fall, ["a.sv"]); arm("holds: an UNSCOPED file only got CHEAPER (no metric rose), scoped file advanced", h and f["unscoped_rose"] == [] and "b.sv" in f["unscoped_moved"])
+    # but a non-scoped file that fell on one metric and ROSE on another is still a breaker
+    new_mixed = {"a.sv": row("no", 160, 12, 60, 520), "b.sv": row("yes", 190, 21, 80, None), "c.sv": dict(base["c.sv"])}
+    h, d, f = advanced_files_only(base, new_mixed, ["a.sv"]); arm("fails: an UNSCOPED file fell on entries but ROSE on committed", not h and f["unscoped_rose"] == ["b.sv"])
     new5 = {"a.sv": row("no", 160, 12, 60, 250), "b.sv": dict(base["b.sv"]), "c.sv": dict(base["c.sv"])}
     h, d, f = advanced_files_only(base, new5, ["a.sv"]); arm("fails: a scoped file whose furthest moved BACKWARD", not h)
     base9 = {k: dict(v, furthest=None) for k, v in base.items()}

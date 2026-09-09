@@ -32,7 +32,7 @@ IN-WINDOW		Cores-VeeR-EL2	design/lib/axi4_to_ahb.sv	934	935	935	27	26851		port e
 IN-WINDOW		Cores-VeeR-EL2	design/lib/beh_lib.sv	955	956	956	32	26467		din; end else begin `ifdef RV_CLOCKGATE always @(posedge tb_top.clk) begin
 IN-WINDOW		Cores-VeeR-EL2	design/lib/el2_lib.sv	45	46	46	4	2706		port el2_pkg::*; #( `include "el2_param.vh" ) ( input lo
 IN-WINDOW		Cores-VeeR-EL2	design/lib/el2_mem_if.sv	958	963	963	24	6009		el2_pkg::*; #( `include "el2_param.vh" ) (); ////////////////////////////
-IN-WINDOW		Cores-VeeR-EL2	design/lib/mem_lib.sv	700	701	660	17	7181		_TEST_IO \ input logic WE, \ input logic ME,
+IN-WINDOW		Cores-VeeR-EL2	design/lib/mem_lib.sv	3678	3680	660	90	7181		c [(width-1):0] Q, `EL2_LOCAL_RAM_TEST_IO ); reg [(width-1):0] ram_core [(depth
 IN-WINDOW		Cores-VeeR-EL2	design/lsu/el2_lsu.sv	983	984	984	31	24033		port el2_pkg::*; #( `include "el2_param.vh" ) ( input logic
 IN-WINDOW		Cores-VeeR-EL2	design/lsu/el2_lsu_addrcheck.sv	962	963	963	28	14607		port el2_pkg::*; #( `include "el2_param.vh" )( input logic lsu_c2_m
 IN-WINDOW		Cores-VeeR-EL2	design/lsu/el2_lsu_bus_buffer.sv	961	962	962	29	70124		port el2_pkg::*; #( `include "el2_param.vh" )( input logic
@@ -48,7 +48,6 @@ IN-WINDOW		Cores-VeeR-EL2	testbench/ahb_lite_2to1_mux.sv	10406	10406	10406	198	1
 IN-WINDOW		Cores-VeeR-EL2	testbench/ahb_lsu_dma_bridge.sv	753	756	756	21	5103		dge #( TAG = 1, `include "el2_param.vh" ) ( input clk,
 IN-WINDOW		Cores-VeeR-EL2	testbench/ahb_sif.sv	2474	2475	710	82	6860		AX_DELAY < 0) begin `ifdef VERILATOR if (iws_rand & ~HPROT[0]) iws = $ra
 IN-WINDOW		Cores-VeeR-EL2	testbench/axi_lsu_dma_bridge.sv	2055	2056	2056	82	5540		rameter ICCM_BASE = `RV_ICCM_BITS; // in LSBs localparam IDFIFOSZ = $clog2(`RV_D
-IN-WINDOW		Cores-VeeR-EL2	testbench/icache_macros.svh	81	85	22	4	8439		\ assign el2_mem_export.ic_tag_data_raw_packed_pre = '0; \
 IN-WINDOW		Cores-VeeR-EL2	testbench/tb_top.sv	814	819	712	23	111701		ES = 2_000_000, `include "el2_param.vh" ); logic i_cpu_halt_req, o_cpu_ha
 IN-WINDOW		Cores-VeeR-EL2	testbench/tb_top_pkg.sv	616	618	618	18	1859		ackage tb_top_pkg; `ifndef VERILATOR class bitflip_mask_generator #( in
 IN-WINDOW		Cores-VeeR-EL2	testbench/uvm/mem/hdl/dccm_agent.sv	261	261	71	10	1049		nt extends uvm_agent; dccm_driver driver; dccm_sequencer sequencer; dccm_
@@ -73,29 +72,25 @@ IN-WINDOW		Cores-VeeR-EL2	verification/block/lib_ahb_to_axi4/ahb_to_axi4_wrapper
 IN-WINDOW		Cores-VeeR-EL2	verification/block/lsu_tl/el2_lsu_trigger_wrapper.sv	124	129	129	6	1583		el2_pkg::*; #( `include "el2_param.vh" ) ( // Unpacked [3:0] trigger_pk
 IN-WINDOW		Cores-VeeR-EL2	verification/block/pmp/el2_pmp_wrapper.sv	149	154	154	8	1445		P_CHANNELS = 3, `include "el2_param.vh" ) ( input logic clk, // To
 IN-WINDOW		Cores-VeeR-EL2	verification/block/pmp_random/el2_pmp_wrapper.sv	149	154	154	8	1445		P_CHANNELS = 3, `include "el2_param.vh" ) ( input logic clk, // To
-IN-WINDOW		Surelog	tests/ClassCons/top.sv	55	66	25	4	1151		int (); \ begin \ $write("Size is %0d\n",this.size); \
-IN-WINDOW		Surelog	tests/DiffSimpleIncludeAndMacros/foo/inc.sv	31	32	2	4	70		yz(I,R = DEFAULT) \ assign abc[I].clk = R.du``I``_clk_x;
+IN-WINDOW		Surelog	tests/ClassCons/top.sv	421	426	25	23	1151		object method) `PRINT endclass // Class with constructor, with paramet
 IN-WINDOW		Surelog	tests/DiffSimpleIncludeAndMacros/top.v	178	181	9	17	650		e `undef multipl $display("Internal error: null handle at %s, line %d.",`__FI
 IN-WINDOW		Surelog	tests/DiffSimpleIncludeAndMacros/top_1.v	137	140	9	15	647		`default_nettype `undef multipl $display("Internal error: null handle at %s
 IN-WINDOW		Surelog	tests/DiffSimpleIncludeAndMacros/top_2.v	158	161	9	17	857		e `undef multipl $display("Internal error: null handle at %s, line %d.",`__FI
 IN-WINDOW		Surelog	tests/DiffSimpleIncludeAndMacros/top_3.v	231	234	9	20	713		`undef multipl tt $display("Internal error: null handle at %s, line %d.",`__FI
-IN-WINDOW		Surelog	tests/DiffSimpleIncludeAndMacros/top_4.v	206	207	9	18	847		reg CK,rd,wr,ce; \ reg [7:0] addr,data_wr,``DATA``_rd; \ reg [7:0] re
+IN-WINDOW		Surelog	tests/DiffSimpleIncludeAndMacros/top_4.v	348	351	9	29	847		ster `append(a) $display("Internal error: null handle at %s, line %d.",`__FI
 IN-WINDOW		Surelog	tests/FileLine/fileLine.sv	171	171	171	10	493		#1; $display(`__FILE__); end endmodule /* * P1800/D8 22.13 * "`__LINE_
 IN-WINDOW		Surelog	tests/ParamFile/dut.sv	79	80	0	4	586		eter SRAMInitFile = `PARAM_FILE; ram_1p #( .MemInitFile(SRAMInitFile)
 IN-WINDOW		Surelog	tests/PragmaProtect/top.sv	2314	2315	241	87	3067		key_block encoding = (enctype = "base64") K0c+W1GDd9YcMBiX3ZqvpyTdb9sTWK06w75CL
 IN-WINDOW		Surelog	tests/PreprocLine/dut.sv	47	47	47	3	305		in $display(`__FILE__, `__LINE__); `line 101 "fake.v" 1 $display
 IN-WINDOW		Surelog	tests/PreprocUhdmCov/dut.sv	71	75	1	7	832		output logic a); `ASSERT(SigintEventCheck_A, sigint_o |-> !event_o) assig
-IN-WINDOW		Surelog	tests/PreprocUhdmCov/prim_assert.sv	793	849	319	30	1220		\ `endif \
 IN-WINDOW		Surelog	tests/SimpleClass1/Configuration.sv	539	539	443	14	1043		n extends uvm_object; virtual input_interface.IP input_intf; virtual
-IN-WINDOW		Surelog	tests/SimpleClass1/Macro.sv	16	20	2	4	297		`define dumb \ begin \ end `define uvm_info(ID, MSG, VERBOSITY) \ b
 IN-WINDOW		Surelog	tests/SimpleClass1/Packet.sv	620	620	443	17	3512		ds uvm_sequence_item; rand fcs_kind_t fcs_kind; rand bit [7:0]
 IN-WINDOW		Surelog	tests/SimpleClass1/Sequencer.sv	529	530	443	13	973		tends uvm_sequencer #(Packet); Configuration cfg; `uvm_sequencer_u
-IN-WINDOW		Surelog	tests/SimpleIncludeAndMacros/foo/inc.sv	31	32	2	4	70		yz(I,R = DEFAULT) \ assign abc[I].clk = R.du``I``_clk_x;
 IN-WINDOW		Surelog	tests/SimpleIncludeAndMacros/top.v	178	181	9	17	650		e `undef multipl $display("Internal error: null handle at %s, line %d.",`__FI
 IN-WINDOW		Surelog	tests/SimpleIncludeAndMacros/top_1.v	137	140	9	15	647		`default_nettype `undef multipl $display("Internal error: null handle at %s
 IN-WINDOW		Surelog	tests/SimpleIncludeAndMacros/top_2.v	158	161	9	17	857		e `undef multipl $display("Internal error: null handle at %s, line %d.",`__FI
 IN-WINDOW		Surelog	tests/SimpleIncludeAndMacros/top_3.v	231	234	9	20	713		`undef multipl tt $display("Internal error: null handle at %s, line %d.",`__FI
-IN-WINDOW		Surelog	tests/SimpleIncludeAndMacros/top_4.v	206	207	9	18	847		reg CK,rd,wr,ce; \ reg [7:0] addr,data_wr,``DATA``_rd; \ reg [7:0] re
+IN-WINDOW		Surelog	tests/SimpleIncludeAndMacros/top_4.v	348	351	9	29	847		ster `append(a) $display("Internal error: null handle at %s, line %d.",`__FI
 IN-WINDOW		Surelog	tests/SimpleTask/top.v	25	27	27	4	2059		bus_wr_rd_task(); `define append(f) f``_master `define my_macro(CK,DATA)\
 IN-WINDOW		Surelog	tests/SimpleTask/top_1.v	25	27	27	4	2091		bus_wr_rd_task(); `define append(f) f``_master `define append(f) f``_master
 IN-WINDOW		Surelog	tests/SimpleTask/top_2.v	25	27	27	4	2088		bus_wr_rd_task(); `define append(f) f``_master `define append(f) f``_master
@@ -104,14 +99,11 @@ IN-WINDOW		Surelog	tests/SimpleTask/top_4.v	25	27	27	4	2088		bus_wr_rd_task(); `
 IN-WINDOW		Surelog	tests/SimpleTask/top_5.v	25	27	27	4	2090		bus_wr_rd_task(); `define append(f) f``_master `define my_macro(CK,DATA)\
 IN-WINDOW		Surelog	tests/TestFileSplit/top.v	15	24	24	10	222		age top1_1; `include "middle.v" `include "middle.v"
 IN-WINDOW		Surelog	tests/TestFileSplit/top2.v	82	88	88	28	643		2_21; endclass `include "middle.v" class blah3_38; endclass
-IN-WINDOW		Surelog	tests/TestMacros/TestMacros.v	231	232	0	9	632		SOURCE) \ RESULT = SOURCE + 5; \ $display("Inside ADD5 macro. Scope is %m")
-IN-WINDOW		Surelog	tests/TestMacros/macros.v	28	33	0	2	358		T_EQUALS(x,y) \ repeat(1)\ begin\ if( (x) != (y) ) \ // A Macro
+IN-WINDOW		Surelog	tests/TestMacros/TestMacros.v	382	382	0	21	632		begin $display(`MY_NUMBER); $display(`MY_STRING); $display(2 + 2);
+IN-WINDOW		Surelog	tests/TestMacros/macros.v	107	116	0	6	358		mment \ begin\ $write( "assert failed %d != %d\n", (x),
 IN-WINDOW		Surelog	tests/UnitClass/Configuration.sv	539	539	443	14	1043		n extends uvm_object; virtual input_interface.IP input_intf; virtual
-IN-WINDOW		Surelog	tests/UnitClass/Macro.sv	16	20	2	4	297		`define dumb \ begin \ end `define uvm_info(ID, MSG, VERBOSITY) \ b
 IN-WINDOW		Surelog	tests/UnitClass/Packet.sv	620	620	443	17	3512		ds uvm_sequence_item; rand fcs_kind_t fcs_kind; rand bit [7:0]
 IN-WINDOW		Surelog	tests/UnitClass/Sequencer.sv	529	530	443	13	973		tends uvm_sequencer #(Packet); Configuration cfg; `uvm_sequencer_u
-IN-WINDOW		black-parrot	bp_be/src/include/bp_be_dcache_defines.svh	164	192	1	6	1800		\ { \
-IN-WINDOW		black-parrot	bp_be/src/include/bp_be_defines.svh	503	603	36	20	25041		\ typedef struct packed
 IN-WINDOW		black-parrot	bp_be/src/include/bp_be_pkg.sv	2806	2810	3	100	2892		080000_00000000; `include "bp_be_ctl_pkgdef.svh" `include "bp_be_dcache_pkg
 IN-WINDOW		black-parrot	bp_be/src/v/bp_be_calculator/bp_be_calculator_top.sv	554	555	391	21	24943		rameter bp_params_e bp_params_p = e_bp_default_cfg `declare_bp_proc_params(b
 IN-WINDOW		black-parrot	bp_be/src/v/bp_be_calculator/bp_be_csr.sv	153	154	1	8	31717		rameter bp_params_e bp_params_p = e_bp_default_cfg `declare_bp_proc_params(bp
@@ -147,18 +139,9 @@ IN-WINDOW		black-parrot	bp_be/test/common/bp_be_nonsynth_cosim.sv	202	203	1	9	88
 IN-WINDOW		black-parrot	bp_be/test/common/bp_be_nonsynth_dcache_tracer.sv	212	213	1	9	6442		rameter bp_params_e bp_params_p = e_bp_default_cfg `declare_bp_proc_params(bp_
 IN-WINDOW		black-parrot	bp_be/test/common/bp_be_nonsynth_perf.sv	201	202	1	9	2328		rameter bp_params_e bp_params_p = e_bp_default_cfg `declare_bp_proc_params(bp
 IN-WINDOW		black-parrot	bp_be/test/common/bp_be_nonsynth_watchdog.sv	170	171	1	8	2655		rameter bp_params_e bp_params_p = e_bp_default_cfg `declare_bp_proc_params(b
-IN-WINDOW		black-parrot	bp_common/src/include/bp_common_addr_defines.svh	162	205	0	5	1260		\ {
 IN-WINDOW		black-parrot	bp_common/src/include/bp_common_aviary_cfg_pkgdef.svh	13411	13411	1	408	20942		ustom_cfg_p = '{`bp_aviary_define_override(cc_x_dim, BP_CC_X_DIM, `BP_CUSTOM
-IN-WINDOW		black-parrot	bp_common/src/include/bp_common_aviary_defines.svh	172	177	47	11	31086		_params_e_mp) \ , localparam bp_proc_param_s proc_param_lp = all_cfgs_gp[bp_
 IN-WINDOW		black-parrot	bp_common/src/include/bp_common_aviary_pkgdef.svh	224	225	0	8	19278		ram bp_proc_param_s bp_unicore_cfg_p = bp_default_cfg_p; localparam bp_proc_p
-IN-WINDOW		black-parrot	bp_common/src/include/bp_common_bedrock_if.svh	2278	2345	523	62	12331		\ {
-IN-WINDOW		black-parrot	bp_common/src/include/bp_common_bedrock_wormhole_defines.svh	865	886	334	25	5332		\ { \ logi
-IN-WINDOW		black-parrot	bp_common/src/include/bp_common_cache_engine_if.svh	229	258	39	9	6986		\ { \
-IN-WINDOW		black-parrot	bp_common/src/include/bp_common_cfg_bus_defines.svh	231	260	0	5	1536		\ { \
-IN-WINDOW		black-parrot	bp_common/src/include/bp_common_core_if.svh	2441	2533	1146	41	21147		\ typedef struct packed
-IN-WINDOW		black-parrot	bp_common/src/include/bp_common_defines.svh	1419	1424	0	30	1855		did_width_mp) \ , localparam cfg_bus_width_lp = `bp_cfg_bus_width(vaddr_widt
 IN-WINDOW		black-parrot	bp_common/src/include/bp_common_pkg.sv	403	407	347	15	917		e bp_common_pkg; `include "bp_common_accelerator_pkgdef.svh" `include "bp_c
-IN-WINDOW		black-parrot	bp_common/src/include/bp_common_rv64_csr_defines.svh	6871	6939	0	184	71056		\ {
 IN-WINDOW		black-parrot	bp_common/src/v/bp_mmu.sv	118	119	20	9	9457		rameter bp_params_e bp_params_p = e_bp_default_cfg `declare_bp_proc_params(bp
 IN-WINDOW		black-parrot	bp_common/src/v/bp_pma.sv	99	100	1	6	1187		rameter bp_params_e bp_params_p = e_bp_default_cfg `declare_bp_proc_params(bp
 IN-WINDOW		black-parrot	bp_common/src/v/bp_tlb.sv	424	425	1	12	9297		rameter bp_params_e bp_params_p = e_bp_default_cfg `declare_bp_proc_params(bp
@@ -169,12 +152,9 @@ IN-WINDOW		black-parrot	bp_common/src/v/bsg_fifo_1r1w_edge.sv	656	657	1	14	1354	
 IN-WINDOW		black-parrot	bp_common/src/v/bsg_parallel_in_serial_out_passthrough_dynamic.sv	592	593	499	14	3246		ynamic #( parameter `BSG_INV_PARAM(width_p )
 IN-WINDOW		black-parrot	bp_common/src/v/bsg_rom_param.sv	61	62	1	5	440		_param #(parameter `BSG_INV_PARAM(data_width_p) , parameter `BSG_INV_PARAM(d
 IN-WINDOW		black-parrot	bp_common/src/v/bsg_serial_in_parallel_out_passthrough_dynamic.sv	157	158	64	10	2361		ynamic #(parameter `BSG_INV_PARAM(width_p) , parameter `BSG_INV_PARAM(els_p)
-IN-WINDOW		black-parrot	bp_common/test/common/bp_common_test_defines.svh	214	224	1	6	2892		, state_r; \ wire is_init = (state_r == e_init);
 IN-WINDOW		black-parrot	bp_common/test/common/bp_common_test_pkg.sv	396	400	340	15	6627		e bp_common_pkg; `include "bp_common_accelerator_pkgdef.svh" `include "bp_c
 IN-WINDOW		black-parrot	bp_common/test/common/bp_nonsynth_pc_profiler.sv	27	29	29	3	1686		RENTLY_UNSUPPORTED `include "bp_common_test_defines.svh" `include "bp_common_de
 IN-WINDOW		black-parrot	bp_common/test/common/bp_nonsynth_vm_tracer.sv	114	115	1	6	2885		rameter bp_params_e bp_params_p = e_bp_default_cfg `declare_bp_proc_params(bp
-IN-WINDOW		black-parrot	bp_fe/src/include/bp_fe_defines.svh	554	627	257	16	2273		\ {
-IN-WINDOW		black-parrot	bp_fe/src/include/bp_fe_icache_defines.svh	147	164	0	5	1102		ked \ { \ logic [v
 IN-WINDOW		black-parrot	bp_fe/src/include/bp_fe_pkg.sv	19	23	23	4	108		ckage bp_fe_pkg; `include "bp_fe_icache_pkgdef.svh" `include "bp_fe_pc_gen_
 IN-WINDOW		black-parrot	bp_fe/src/v/bp_fe_bht.sv	644	645	492	18	4841		rameter bp_params_e bp_params_p = e_bp_default_cfg `declare_bp_proc_params(bp
 IN-WINDOW		black-parrot	bp_fe/src/v/bp_fe_btb.sv	731	732	579	21	4953		rameter bp_params_e bp_params_p = e_bp_default_cfg `declare_bp_proc_params(bp
@@ -186,8 +166,7 @@ IN-WINDOW		black-parrot	bp_fe/src/v/bp_fe_realigner.sv	351	352	193	13	4733		rame
 IN-WINDOW		black-parrot	bp_fe/src/v/bp_fe_scan.sv	356	357	203	14	8572		rameter bp_params_e bp_params_p = e_bp_default_cfg `declare_bp_proc_params(bp
 IN-WINDOW		black-parrot	bp_fe/src/v/bp_fe_top.sv	197	198	23	12	15303		rameter bp_params_e bp_params_p = e_bp_default_cfg `declare_bp_proc_params(bp
 IN-WINDOW		black-parrot	bp_fe/test/common/bp_fe_nonsynth_icache_tracer.sv	210	211	1	9	6377		rameter bp_params_e bp_params_p = e_bp_default_cfg `declare_bp_proc_params(bp
-IN-WINDOW		black-parrot	bp_me/src/include/bp_me_cce_defines.svh	315	366	0	7	2383		\ {
-IN-WINDOW		black-parrot	bp_me/src/include/bp_me_cce_inst_pkgdef.svh	24623	24628	646	511	37343		_type_u_width \ (`bp_cce_inst_data_width-`bp_cce_inst_op_width-`bp_cce_inst_
+IN-WINDOW		black-parrot	bp_me/src/include/bp_me_cce_inst_pkgdef.svh	24902	24902	646	522	37343		packed { logic [`bp_cce_inst_rtype_pad-1:0] pad; bp_cce_inst_src_u
 IN-WINDOW		black-parrot	bp_me/src/include/bp_me_cce_pkgdef.svh	396	397	66	19	1109		bp_coh_states_e state; } bp_cce_spec_s; // Coherence Request Processing
 IN-WINDOW		black-parrot	bp_me/src/include/bp_me_pkg.sv	197	201	121	14	285		p_common_pkg::*; `include "bp_me_cce_pkgdef.svh" `include "bp_me_cce_inst_p
 IN-WINDOW		black-parrot	bp_me/src/v/cce/bp_bedrock_size_to_len.sv	662	663	558	24	2728		g::*; #(parameter `BSG_INV_PARAM(beat_width_p) , parameter `BSG_INV_PARAM(
@@ -333,7 +312,6 @@ IN-WINDOW		friscv	rtl/friscv_cache_memctrl.sv	11152	11158	135	284	16706		IX+:OFF
 IN-WINDOW		friscv	rtl/friscv_cache_ooo_mgt.sv	7840	7858	7858	187	13147		1; `ifdef FRISCV_SIM if (tags[2*i+:2] == ILGL)
 IN-WINDOW		friscv	rtl/friscv_cache_prefetcher.sv	3764	3768	134	100	8715		// Tracer setup `ifdef TRACE_CACHE string fname; integer f; init
 IN-WINDOW		friscv	rtl/friscv_cache_pusher.sv	5208	5212	5212	124	12082		// Tracer setup `ifdef TRACE_CACHE string fname; integer f; init
-IN-WINDOW		friscv	rtl/friscv_checkers.sv	81	86	0	5	201		ondition, msg)\ if (condition) begin \ $display("\033[1;31mERROR: %s
 IN-WINDOW		friscv	rtl/friscv_control.sv	3109	3109	135	76	58558		output logic [`INST_BUS_W -1:0] proc_instbus, input wire [4
 IN-WINDOW		friscv	rtl/friscv_control_h.sv	1144	1144	89	47	5661		p; if (opcode==`LUI) begin text = "LUI / U-type"; $sformat(
 IN-WINDOW		friscv	rtl/friscv_csr.sv	2769	2769	135	77	42335		input wire [`INST_BUS_W-1:0] instbus, // Register source 1 query
@@ -345,34 +323,25 @@ IN-WINDOW		friscv	rtl/friscv_mpu.sv	1341	1341	135	38	11815		input wire [`CSR_SB_
 IN-WINDOW		friscv	rtl/friscv_processing.sv	2518	2518	135	61	15658		input wire [`INST_BUS_W -1:0] proc_instbus, output logic [4
 IN-WINDOW		friscv	rtl/friscv_registers.sv	3703	3709	3709	79	12508		_rd_val ); `ifdef TRACE_REGISTERS //-------------------------------
 IN-WINDOW		friscv	rtl/friscv_rv32i_core.sv	9421	9421	133	224	34061		c_valid; logic [`INST_BUS_W -1:0] proc_instbus; logic
-IN-WINDOW		friscv	test/apps/svut_h.sv	2027	2032	1132	57	7413		fine MSG(msg) \ $display("\033[0;37m%s (@ %0t)\033[0m", msg, $realtime) `de
-IN-WINDOW		friscv	test/c_testsuite/svut_h.sv	2027	2032	1132	57	7413		fine MSG(msg) \ $display("\033[0;37m%s (@ %0t)\033[0m", msg, $realtime) `de
 IN-WINDOW		friscv	test/common/axi4l_ram.sv	4997	5003	5003	114	24942		, 2**ADDRW-1); `ifdef TRACE_TB_RAM initial f = $fopen("trace_tb_ram.txt
 IN-WINDOW		friscv	test/common/friscv_testbench.sv	255	256	137	12	33729		e friscv_testbench( `ifdef VERILATOR // Interface to UART to communicate wit
-IN-WINDOW		friscv	test/priv_sec_testsuite/svut_h.sv	2027	2032	1132	57	7413		fine MSG(msg) \ $display("\033[0;37m%s (@ %0t)\033[0m", msg, $realtime) `de
-IN-WINDOW		friscv	test/riscv-tests/svut_h.sv	2027	2032	1132	57	7413		fine MSG(msg) \ $display("\033[0;37m%s (@ %0t)\033[0m", msg, $realtime) `de
 IN-WINDOW		friscv	test/sv/dcache_testbench.sv	122	128	49	7	13991		e_testbench(); `SVUT_SETUP // Maximum request the driver must issue dur
 IN-WINDOW		friscv	test/sv/driver.sv	3007	3013	135	77	33642		] rdata ); `ifndef NODEBUG // Logger setup svlogger log; s
 IN-WINDOW		friscv	test/sv/icache_testbench.sv	122	128	49	7	11141		e_testbench(); `SVUT_SETUP ///////////////////////////////////////////
-IN-WINDOW		friscv	test/sv/svut_h.sv	2027	2032	1132	57	7413		fine MSG(msg) \ $display("\033[0;37m%s (@ %0t)\033[0m", msg, $realtime) `de
-IN-WINDOW		friscv	test/wba_testsuite/svut_h.sv	2027	2032	1132	57	7413		fine MSG(msg) \ $display("\033[0;37m%s (@ %0t)\033[0m", msg, $realtime) `de
 IN-WINDOW		opentitan	hw/dv/sv/alert_esc_agent/alert_esc_if.sv	5262	5269	5269	143	8390		ending) begin `uvm_info($sformatf("%m"), $sformatf("This a
 IN-WINDOW		opentitan	hw/dv/sv/bus_params_pkg/bus_params_pkg.sv	228	228	228	8	1418		bus address width. `ifdef BUS_AW parameter int BUS_AW = `BUS_AW; `else para
 IN-WINDOW		opentitan	hw/dv/sv/cip_lib/cip_base_pkg.sv	579	581	581	22	4636		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" `incl
-IN-WINDOW		opentitan	hw/dv/sv/cip_lib/cip_macros.svh	677	678	171	15	6578		\ localparam uint dv_alert_if_connect_param = (NUM_ALERTS == 0) ? 1 : NUM_ALER
-IN-WINDOW		opentitan	hw/dv/sv/cip_lib/seq_lib/cip_base_vseq.sv	220	223	171	6	69460		e_threads(body) \ fork \ begin : isolation_fork \ foreach (cfg.ral_m
+IN-WINDOW		opentitan	hw/dv/sv/cip_lib/seq_lib/cip_base_vseq.sv	565	565	171	21	69460		= dv_base_reg_block, type CFG_T = cip_base_env_cfg, type COV_
 IN-WINDOW		opentitan	hw/dv/sv/cip_lib/seq_lib/cip_base_vseq__tl_errors.svh	497	498	398	9	23772		seq_t_ = tl_host_custom_seq #(cip_tl_seq_item),
 IN-WINDOW		opentitan	hw/dv/sv/common_ifs/clk_rst_if.sv	683	685	685	20	12753		, inout rst_n ); `ifndef VERILATOR // include macros and import pkgs `inc
 IN-WINDOW		opentitan	hw/dv/sv/common_ifs/pins_if.sv	451	455	305	17	4193		dth-1:0] pins ); `include "prim_assert.sv" `ASSERT_INIT(PullStrengthParamV
 IN-WINDOW		opentitan	hw/dv/sv/common_ifs/rst_shadowed_if.sv	600	602	602	16	1230		rst_shadowed_n ); `ifndef VERILATOR // include macros and import pkgs `inc
 IN-WINDOW		opentitan	hw/dv/sv/csr_utils/csr_utils_pkg.sv	386	388	388	13	38998		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // l
-IN-WINDOW		opentitan	hw/dv/sv/csrng_agent/csrng_agent_cov.sv	213	213	171	6	5315		BIN \ csrng_glen: coverpoint item.glen { \ // TODO: EDN testbench curr
+IN-WINDOW		opentitan	hw/dv/sv/csrng_agent/csrng_agent_cov.sv	842	843	171	21	5315		n sample(csrng_item item, csrng_cmd_sts_e sts); option.name = "csrng_d
 IN-WINDOW		opentitan	hw/dv/sv/csrng_agent/csrng_agent_pkg.sv	420	422	422	16	820		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
 IN-WINDOW		opentitan	hw/dv/sv/dv_base_agent/dv_base_agent_pkg.sv	284	286	286	11	821		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
 IN-WINDOW		opentitan	hw/dv/sv/dv_base_reg/dv_base_reg_pkg.sv	282	284	284	11	5599		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" //
 IN-WINDOW		opentitan	hw/dv/sv/dv_lib/dv_lib_pkg.sv	364	366	366	14	823		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
-IN-WINDOW		opentitan	hw/dv/sv/dv_utils/dv_fcov_macros.svh	1448	1448	293	36	4202		= ()) \ bit en_``NAME_ = 1'b0; \ NAME_ NAME_``_inst; \ initial begi
-IN-WINDOW		opentitan	hw/dv/sv/dv_utils/dv_macros.svh	943	948	171	40	24403		al, ID_=`gfn) \ begin \ if (!$cast(EXT_, BASE_)) begin \ `dv_`
 IN-WINDOW		opentitan	hw/dv/sv/dv_utils/dv_test_status_pkg.sv	535	536	536	13	1770		status(bit passed); `ifdef INC_ASSERT if (prim_util_pkg::end_of_simulation)
 IN-WINDOW		opentitan	hw/dv/sv/dv_utils/dv_utils_pkg.sv	281	283	283	11	13636		// macro includes `include "dv_macros.svh" `ifdef UVM `include "uvm_macros.s
 IN-WINDOW		opentitan	hw/dv/sv/entropy_src_xht_agent/entropy_src_xht_agent_pkg.sv	376	378	378	14	758		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" `inc
@@ -418,12 +387,12 @@ IN-WINDOW		opentitan	hw/dv/sv/tl_agent/dv/env/tl_agent_scoreboard.sv	747	751	751
 IN-WINDOW		opentitan	hw/dv/sv/tl_agent/dv/tb/tb.sv	357	359	359	14	1050		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" wire
 IN-WINDOW		opentitan	hw/dv/sv/tl_agent/dv/tests/tl_agent_test_pkg.sv	312	314	314	12	435		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
 IN-WINDOW		opentitan	hw/dv/sv/tl_agent/tl_agent_pkg.sv	417	419	419	17	3355		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" para
-IN-WINDOW		opentitan	hw/dv/sv/tl_agent/tl_seq_item.sv	1566	1571	450	32	21301		addr, a_size) \ ((a_mask & ~(((1 << (1 << a_size)) - 1) << a_addr[SizeWidth-
+IN-WINDOW		opentitan	hw/dv/sv/tl_agent/tl_seq_item.sv	2102	2102	450	42	21301		ds uvm_sequence_item; // This block of variables is the fields that are sent
 IN-WINDOW		opentitan	hw/dv/sv/uart_agent/uart_agent_pkg.sv	336	338	338	13	1841		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // 1
 IN-WINDOW		opentitan	hw/dv/sv/usb20_agent/usb20_agent_pkg.sv	337	339	339	13	3448		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // U
 IN-WINDOW		opentitan	hw/ip/adc_ctrl/dv/env/adc_ctrl_env_pkg.sv	499	501	501	19	3494		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
 IN-WINDOW		opentitan	hw/ip/adc_ctrl/dv/sva/adc_ctrl_sva_if.sv	837	839	839	30	4225		bit cfg_lp_mode; `ifdef INC_ASSERT initial begin #1ps; if (!uvm_co
-IN-WINDOW		opentitan	hw/ip/adc_ctrl/dv/tb.sv	382	385	253	9	5425		sformatf("%m")) \ initial begin \ bit assert_en; \ forever begin \
+IN-WINDOW		opentitan	hw/ip/adc_ctrl/dv/tb.sv	1239	1241	253	37	5425		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" `incl
 IN-WINDOW		opentitan	hw/ip/adc_ctrl/dv/tests/adc_ctrl_test_pkg.sv	315	317	317	13	473		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // l
 IN-WINDOW		opentitan	hw/ip/adc_ctrl/rtl/adc_ctrl.sv	3029	3031	193	103	3435		value after reset `ASSERT_KNOWN(IntrKnown, intr_match_pending_o) `ASSERT_KNO
 IN-WINDOW		opentitan	hw/ip/adc_ctrl/rtl/adc_ctrl_core.sv	553	554	198	16	8829		adc_ctrl_reg2hw_t reg2hw_i, // register interface outputs output adc_ctrl
@@ -462,12 +431,11 @@ IN-WINDOW		opentitan	hw/ip/aon_timer/rtl/aon_timer.sv	6872	6874	299	227	9577		//
 IN-WINDOW		opentitan	hw/ip/aon_timer/rtl/aon_timer_reg_top.sv	37925	37927	224	1364	38408		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
 IN-WINDOW		opentitan	hw/ip/ascon/rtl/ascon_reg_top.sv	71678	71680	224	2642	72161		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
 IN-WINDOW		opentitan	hw/ip/bkdr_loader/rtl/bkdr_loader.sv	1014	1015	220	26	11145		t [NumBkdrTgts-1:0] bkdr_req_o, input bkdr_rsp_t [NumBkdrTgts-1:0] bkdr_rsp_i
-IN-WINDOW		opentitan	hw/ip/bkdr_loader/rtl/bkdr_loader.svh	254	257	171	9	4526		ER_CONNECT_REQS \ assign top_earlgrey_pd_aon.u_sram_ctrl_ret_aon.u_prim_ram_1p
 IN-WINDOW		opentitan	hw/ip/bkdr_loader/rtl/bkdr_loader_regs_reg_top.sv	71710	71712	224	2603	72193		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
 IN-WINDOW		opentitan	hw/ip/csrng/dv/cov/csrng_cov_if.sv	419	422	422	16	31698		prim_mubi_pkg::*; `include "dv_fcov_macros.svh" // The maximum number of HW
 IN-WINDOW		opentitan	hw/ip/csrng/dv/env/csrng_env_pkg.sv	628	630	630	24	4459		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // T
 IN-WINDOW		opentitan	hw/ip/csrng/dv/env/csrng_path_if.sv	690	691	691	20	3094		th}; default: `uvm_fatal("csrng_path_if", $sformatf("%s: Invalid fifo name
-IN-WINDOW		opentitan	hw/ip/csrng/dv/sva/csrng_assert_if.sv	685	685	629	14	2718		1 \ u_csrng_core.gen_cmd_stage[2].u_csrng_cmd_stage `define PATH2 \ u_cs
+IN-WINDOW		opentitan	hw/ip/csrng/dv/sva/csrng_assert_if.sv	1301	1302	629	34	2718		; $assertoff(0, `DUT_PATH.`PATH1.u_state_regs_A); $assertoff(0, `DUT_PAT
 IN-WINDOW		opentitan	hw/ip/csrng/dv/tb.sv	385	387	387	15	6978		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // C
 IN-WINDOW		opentitan	hw/ip/csrng/dv/tests/csrng_test_pkg.sv	308	310	310	12	631		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
 IN-WINDOW		opentitan	hw/ip/csrng/rtl/csrng.sv	597	598	219	17	6730		ter cs_keymgr_div_t RndCnstCsKeymgrDivNonProduction = CsKeymgrDivWidth'(0), pa
@@ -476,7 +444,7 @@ IN-WINDOW		opentitan	hw/ip/csrng/rtl/csrng_ctr_drbg.sv	632	635	258	19	18983		csr
 IN-WINDOW		opentitan	hw/ip/csrng/rtl/csrng_main_sm.sv	633	656	302	18	4856		acmd_i, input logic acmd_eop_i,
 IN-WINDOW		opentitan	hw/ip/csrng/rtl/csrng_reg_top.sv	52871	52873	224	2064	53354		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
 IN-WINDOW		opentitan	hw/ip/csrng/rtl/csrng_state_db.sv	741	752	320	26	5048		g_state_t rd_state_o, // Write interface input logic
-IN-WINDOW		opentitan	hw/ip/dma/dv/env/dma_env_cov.sv	326	331	171	9	8976		32B_ADDR_BINS \ bins less_than_1MiB = {[0:'hf_ffff]}; \ bins between_1Mi
+IN-WINDOW		opentitan	hw/ip/dma/dv/env/dma_env_cov.sv	1775	1776	171	49	8976		sample(dma_seq_item dma_config, bi
 IN-WINDOW		opentitan	hw/ip/dma/dv/env/dma_env_pkg.sv	553	555	555	22	1892		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
 IN-WINDOW		opentitan	hw/ip/dma/dv/env/dma_sys_tl_if.sv	1942	1943	171	43	6404		addr(sys_cmd_type_e cmd, logic [SYS_ADDR_WIDTH-1:0] base); // Note that when
 IN-WINDOW		opentitan	hw/ip/dma/dv/tb/tb.sv	362	366	366	14	3444		dma_test_pkg::*; `include "uvm_macros.svh" `include "dv_macros.svh" `incl
@@ -545,10 +513,10 @@ IN-WINDOW		opentitan	hw/ip/keymgr_dpe/rtl/keymgr_dpe_op_state_ctrl.sv	1511	1514	
 IN-WINDOW		opentitan	hw/ip/keymgr_dpe/rtl/keymgr_dpe_reg_top.sv	91140	91142	224	3468	91623		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
 IN-WINDOW		opentitan	hw/ip/kmac/dv/cov/kmac_cov_if.sv	367	371	371	14	1092		fifo_empty ); `include "dv_fcov_macros.svh" import sha3_pkg::*; cove
 IN-WINDOW		opentitan	hw/ip/kmac/dv/cov/sha3pad_assert_if.sv	689	691	691	20	1067		rigger run signal `ASSERT(ProcessToRun_A, process_i |-> strong(##[2:$] keccak_
-IN-WINDOW		opentitan	hw/ip/kmac/dv/env/kmac_env_cov.sv	693	693	657	18	17730		FG_CGS \ kmac_en: coverpoint kmac; \ xof_en: coverpoint xof;
+IN-WINDOW		opentitan	hw/ip/kmac/dv/env/kmac_env_cov.sv	2750	2753	657	58	17730		it fast_entropy); `COMMON_CFG_CGS entropy_mode: coverpoint entr_mode; en
 IN-WINDOW		opentitan	hw/ip/kmac/dv/env/kmac_env_pkg.sv	716	718	718	27	6190		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
 IN-WINDOW		opentitan	hw/ip/kmac/dv/env/kmac_if.sv	673	677	677	19	1162		l; endfunction `ASSERT(KmacMaskingO_A, `EN_MASKING == en_masking_o) `ASS
-IN-WINDOW		opentitan	hw/ip/kmac/dv/env/kmac_scoreboard.sv	207	212	171	6	73899		D_TRANS(mode) \ (cfg.m_kmac_app_agent_cfg[``mode``].vif.req_data_if.valid &&
+IN-WINDOW		opentitan	hw/ip/kmac/dv/env/kmac_scoreboard.sv	624	625	171	15	73899		cip_base_scoreboard #( .CFG_T(kmac_env_cfg), .RAL_T(kmac_reg_block),
 IN-WINDOW		opentitan	hw/ip/kmac/dv/tb.sv	347	349	349	14	3808		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" wire
 IN-WINDOW		opentitan	hw/ip/kmac/dv/tests/kmac_test_pkg.sv	306	308	308	12	460		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // l
 IN-WINDOW		opentitan	hw/ip/kmac/fpv/tb/keccak_round_fpv.sv	4246	4248	4248	197	5147		ress && !valid_i) `ASSUME_FPV(ValidPulse_A, ##1 valid_i |=> !valid_i, clk_i, !
@@ -564,7 +532,7 @@ IN-WINDOW		opentitan	hw/ip/kmac/rtl/kmac_reg_top.sv	91138	91140	224	3315	91621		
 IN-WINDOW		opentitan	hw/ip/kmac/rtl/sha3.sv	1194	1201	309	40	15438		t sha3_mode_e mode_i, // see sha3pad for details input keccak_streng
 IN-WINDOW		opentitan	hw/ip/kmac/rtl/sha3pad.sv	1295	1302	196	41	31313		t sha3_mode_e mode_i, // strength_i is used in bytepad operation. bytepa
 IN-WINDOW		opentitan	hw/ip/lc_ctrl/dv/env/lc_ctrl_dv_utils_pkg.sv	421	423	423	16	17787		t otp_ctrl_pkg::*; `ifdef USE_1_RMI_INTF parameter uint NUM_RMA_ACK_SIGS = 1;
-IN-WINDOW		opentitan	hw/ip/lc_ctrl/dv/env/lc_ctrl_env_cov.sv	527	527	445	15	5244		OSS(error) \ jtag_``error``_xp : cross jtag_csr_cp, error``_cp; `endif // Cro
+IN-WINDOW		opentitan	hw/ip/lc_ctrl/dv/env/lc_ctrl_env_cov.sv	834	835	445	25	5244		ds cip_base_env_cov #( .CFG_T(lc_ctrl_env_cfg) ); `uvm_component_utils(lc_ct
 IN-WINDOW		opentitan	hw/ip/lc_ctrl/dv/env/lc_ctrl_env_pkg.sv	776	778	778	28	12690		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
 IN-WINDOW		opentitan	hw/ip/lc_ctrl/dv/env/lc_ctrl_if.sv	551	555	211	24	7121		otp_ctrl_pkg::*; `include "uvm_macros.svh" logic tdo_oe; otp_lc_data_t o
 IN-WINDOW		opentitan	hw/ip/lc_ctrl/dv/env/lc_ctrl_scoreboard.sv	258	259	171	7	26570		cip_base_scoreboard #( .CFG_T(lc_ctrl_env_cfg), .RAL_T(lc_ctrl_regs_reg_bloc
@@ -575,7 +543,7 @@ IN-WINDOW		opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_kmac_if.sv	815	829	231	25	7031		o
 IN-WINDOW		opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_pkg.sv	2649	2651	174	85	13984		ns below to work. `ASSERT_STATIC_IN_PACKAGE(CheckLcTxValsComplementary_A, On =
 IN-WINDOW		opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_regs_reg_top.sv	42587	42589	224	1514	43070		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
 IN-WINDOW		opentitan	hw/ip/lc_ctrl/rtl/lc_ctrl_signal_decode.sv	433	434	222	15	17181		ter lc_keymgr_div_t RndCnstLcKeymgrDivInvalid = LcKeymgrDivWidth'(0), //
-IN-WINDOW		opentitan	hw/ip/mbx/dv/env/mbx_env_cov.sv	329	334	171	9	6833		32B_ADDR_BINS \ bins less_than_1MiB = {[0:'hf_ffff]}; \ bins between_1Mi
+IN-WINDOW		opentitan	hw/ip/mbx/dv/env/mbx_env_cov.sv	990	995	171	23	6833		int imbx_base { `MBX_ENV_COV_32B_ADDR_BINS } cp_ombx_base: coverpoint o
 IN-WINDOW		opentitan	hw/ip/mbx/dv/env/mbx_env_pkg.sv	573	575	575	22	1554		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
 IN-WINDOW		opentitan	hw/ip/mbx/dv/tb.sv	319	321	321	13	2737		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" `incl
 IN-WINDOW		opentitan	hw/ip/mbx/dv/tests/mbx_test_pkg.sv	304	306	306	12	471		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // l
@@ -665,10 +633,6 @@ IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_alert_sender.sv	3065	3067	2203	65	14419
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_arbiter_fixed.sv	1067	1071	474	41	6132		ready_i ); `ASSERT_INIT(CheckNGreaterZero_A, N > 0) // this case is
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_arbiter_ppc.sv	1949	1953	1099	57	7433		chk = req_chk_i; `ASSERT_INIT(CheckNGreaterZero_A, N > 0) // this case is
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_arbiter_tree.sv	2547	2551	1726	64	12317		chk = req_chk_i; `ASSERT_INIT(CheckNGreaterZero_A, N > 0) // this case is
-IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_assert.sv	1128	1128	339	29	9966		kg::uvm_report_error("ASSERT FAILED", `PRIM_STRINGIFY(__name), uvm_pkg::UVM_NONE
-IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_assert_sec_cm.svh	970	981	231	22	7571		\ $rose(HIER_.ERR_NAME_) && !(GATE_) |-> ##[0:MAX_CYCLES_] (ER
-IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_assert_standard_macros.svh	380	380	337	9	6761		, __prop) \ __name: assert (__prop) \ else begin
-IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_assert_yosys_macros.svh	352	355	315	9	2709		ame, __prop) \ always_comb begin : __name \ assert (__prop);
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_cdc_rand_delay.sv	1267	1268	1268	27	2519		1:0] dst_data_o ); `ifdef SIMULATION if (Enable) begin : gen_enable // T
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_clock_meas.sv	7064	7068	500	266	7422		reference clock `ASSERT_INIT(ClkRatios_A, ClkRatio > 2) end // referenc
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_count.sv	2660	2665	1506	47	12204		r action_mask_t PossibleActions = {$bits(action_mask_t){1'b1}} ) ( input c
@@ -678,12 +642,10 @@ IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_double_lfsr.sv	3174	3176	3176	87	4333		
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_edn_req.sv	5473	5473	662	156	7230		e as previous data. `ifdef INC_ASSERT //VCS coverage off // pragma coverage
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_esc_receiver.sv	2488	2489	827	57	9805		e output esc_rx_t esc_rx_o, // escalation output diff pair input esc_tx_t
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_esc_sender.sv	1482	1484	890	40	9055		e input esc_rx_t esc_rx_i, // escalation output diff pair output esc_tx_t
-IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_fifo_assert.svh	1159	1159	243	20	4456		HIER_.gen_normal_fifo.u_fifo_cnt.gen_secure_ptrs.u_wptr,
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_fifo_async.sv	1206	1208	236	34	9876		pointers to work `ASSERT_INIT(ParamCheckDepth_A, (Depth == 2**$clog2(Depth)))
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_fifo_async_sram_adapter.sv	11999	12002	225	386	13984		/////////////// `ASSERT_INIT(ParamCheckDepth_A, (Depth == 2**$clog2(Depth)))
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_fifo_sync.sv	1728	1733	235	45	7837		n_passthru_fifo `ASSERT_INIT(paramCheckPass, Pass == 1) assign depth_o
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_fifo_sync_cnt.sv	5293	5298	228	146	5368		en_never_clears `ASSERT(NeverClears_A, !clr_i) end endmodule // prim_fifo
-IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_flop_macros.sv	779	782	171	25	3576		`PRIM_FLOP_RST) \ always_ff @(posedge __clk or negedge __rst_n) begin \ if
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_gate_gen.sv	2267	2269	1377	60	3791		fewer than 500 GE `ASSERT(MinimumNumGates_A, NumGates >= 500) `ASSERT(DataMu
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_gf_mult.sv	2323	2327	1286	55	6004		h-1:0] prod_o ); `ASSERT_INIT(IntegerLoops_A, (Width % StagesPerCycle) == 0)
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_hpc2.sv	6510	6510	171	227	7107		pending in Stage 2. `ifndef SYNTHESIS logic s_stage1_pending; always_ff @(po
@@ -735,7 +697,6 @@ IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_ram_2p_async_adv.sv	2656	2658	645	61	12
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_reg_cdc.sv	2774	2776	1116	83	9328		usy must be high. `ASSERT(SrcAckBusyChk_A, src_ack |-> src_busy_q, clk_src_i,
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_reg_cdc_arb.sv	5315	5319	209	133	11521		ge // holes `ASSERT(Not_Dst_req_q_while_dst_req_i_A, dst_req_i |-> !dst_
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_rom_adv.sv	778	783	210	24	1207		rom_cfg_req_t cfg_i, output rom_cfg_rsp_t cfg_o ); prim_rom #(
-IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_secded_inc.svh	599	602	521	13	20397		A, _SYND, _ERR) \ case (_TYPE)
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_sha2.sv	540	541	241	15	18731		lparam sha_word64_t ZeroWord = '0 ) ( input clk_i, input rst_ni, in
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_sha2_pad.sv	441	444	216	18	13571		put sha_fifo64_t fifo_rdata_i, output logic fifo_rready_o, // fr
 IN-WINDOW		opentitan	hw/ip/prim/rtl/prim_slicer.sv	729	733	308	29	796		l_i*OutW+:OutW]; `ASSERT_INIT(ValidWidth_A, InW <= OutW*(2**IndexW)) endmodu
@@ -858,7 +819,6 @@ IN-WINDOW		opentitan	hw/ip/sysrst_ctrl/rtl/sysrst_ctrl_detect.sv	1629	1635	1208	
 IN-WINDOW		opentitan	hw/ip/sysrst_ctrl/rtl/sysrst_ctrl_reg_top.sv	194497	194499	224	7226	194980		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
 IN-WINDOW		opentitan	hw/ip/tlul/generic_dv/env/xbar_scoreboard.sv	723	727	727	15	6343		_prefix_len = 7; `uvm_component_utils(xbar_scoreboard) `uvm_component_new
 IN-WINDOW		opentitan	hw/ip/tlul/generic_dv/tb/tb.sv	600	602	602	17	875		n xbar_*_sim.core `include "tb__xbar_connect.sv" initial begin // drive
-IN-WINDOW		opentitan	hw/ip/tlul/generic_dv/tb/xbar_macros.svh	447	448	383	11	2246		(10, 100)) \ wire ``name``; \ clk_rst_if clk_rst_if_``name``(.clk(``name``),
 IN-WINDOW		opentitan	hw/ip/tlul/generic_dv/tests/xbar_test_pkg.sv	436	440	440	16	513		t dv_lib_pkg::*; `include "xbar_base_test.sv" `include "xbar_error_test.sv"
 IN-WINDOW		opentitan	hw/ip/tlul/rtl/sram2tlul.sv	1078	1082	414	35	2046		ort tlul_pkg::*; `ASSERT_INIT(wrongSramDw, SramDw == top_pkg::TL_DW) local
 IN-WINDOW		opentitan	hw/ip/tlul/rtl/tlul_adapter_dmi.sv	707	708	324	22	6304		e input tl_h2d_t tl_h2d_i, output tl_d2h_t tl_d2h_o, // control interfac
@@ -906,7 +866,7 @@ IN-WINDOW		opentitan	hw/ip_templates/clkmgr/dv/sva/clkmgr_lost_calib_regwen_sva_
 IN-WINDOW		opentitan	hw/ip_templates/clkmgr/dv/sva/clkmgr_sec_cm_checker_assert.sv	817	819	819	26	2307		trl_intersig_mubi `ASSERT(AllClkBypReqTrue_A, lc_hw_debug_en_i == lc
 IN-WINDOW		opentitan	hw/ip_templates/clkmgr/dv/sva/clkmgr_trans_sva_if.sv	729	733	733	23	1195		TOP_CYCLES = 15; `ASSERT(TransStart_A, $rose( hint
 IN-WINDOW		opentitan	hw/ip_templates/clkmgr/dv/tests/clkmgr_test_pkg.sv	310	312	312	12	466		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // l
-IN-WINDOW		opentitan	hw/ip_templates/flash_ctrl/dv/cov/flash_ctrl_cov_bind.sv	355	355	259	7	1167		cip_lc_tx_cov_if u_``__name``_cov_if( \ .rst_ni (rst_ni),
+IN-WINDOW		opentitan	hw/ip_templates/flash_ctrl/dv/cov/flash_ctrl_cov_bind.sv	527	531	259	14	1167		h_ctrl_cov_bind; `FLASH_COV_LC_TX_BIND(lc_creator_seed_sw_rw_en) `FLASH_COV
 IN-WINDOW		opentitan	hw/ip_templates/flash_ctrl/dv/env/flash_ctrl_bkdr_util_pkg.sv	450	452	452	15	567		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // s
 IN-WINDOW		opentitan	hw/ip_templates/flash_ctrl/dv/env/flash_ctrl_eflash_ral_pkg.sv	256	260	260	10	2162		base_reg_pkg::*; `include "uvm_macros.svh" typedef class flash_ctrl_eflash
 IN-WINDOW		opentitan	hw/ip_templates/flash_ctrl/dv/env/flash_ctrl_env_cov.sv	448	449	368	13	5436		ds cip_base_env_cov #(.CFG_T(flash_ctrl_env_cfg)); `uvm_component_utils(flash_
@@ -936,13 +896,13 @@ IN-WINDOW		opentitan	hw/ip_templates/rstmgr/dv/sva/rstmgr_sw_rst_sva_if.sv	1119	
 IN-WINDOW		opentitan	hw/ip_templates/rstmgr/dv/tests/rstmgr_test_pkg.sv	310	312	312	12	466		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // l
 IN-WINDOW		opentitan	hw/ip_templates/rstmgr/rtl/rstmgr_cnsty_chk.sv	3848	3850	546	126	8899		: LEAF.FSM.SPARSE `PRIM_FLOP_SPARSE_FSM(u_state_regs, state_d, state_q, state_
 IN-WINDOW		opentitan	hw/ip_templates/rstmgr/rtl/rstmgr_crash_info.sv	1703	1705	226	57	1854		excessively large `ASSERT_INIT(CntStoreSlot_A, CrashStoreSlot < (1 << IdxWidth
-IN-WINDOW		opentitan	hw/top_darjeeling/dv/autogen/tb__xbar_connect.sv	364	370	291	10	12105		pd_hier = ) \ force ``tl_name``_tl_if.d2h = dut.top_darjeeling``pd_hier``.
+IN-WINDOW		opentitan	hw/top_darjeeling/dv/autogen/tb__xbar_connect.sv	1693	1694	291	30	12105		lk_main; clk_rst_if clk_rst_if_main(.clk(clk_main), .rst_n(rst_n)); wire clk_io;
 IN-WINDOW		opentitan	hw/top_darjeeling/dv/env/ast_supply_if.sv	1479	1484	1484	37	3356		@(posedge clk); `uvm_info("ast_supply_if", "forcing vcaon_pok_h_o=0", UVM_ME
 IN-WINDOW		opentitan	hw/top_darjeeling/dv/env/chip_env_pkg.sv	1707	1709	1709	58	6297		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" `incl
 IN-WINDOW		opentitan	hw/top_darjeeling/dv/env/chip_if.sv	1386	1390	1390	27	43287		port uvm_pkg::*; `include "dv_macros.svh" `include "uvm_macros.svh" // T
 IN-WINDOW		opentitan	hw/top_darjeeling/dv/env/flash_ctrl_host_gnt_fault_if.sv	309	312	312	11	1576		input rst_ni ); `include "dv_macros.svh" `include "uvm_macros.svh" stri
 IN-WINDOW		opentitan	hw/top_darjeeling/dv/env/rstmgr_cnsty_fault_if.sv	497	500	500	14	1777		input rst_ni ); `include "dv_macros.svh" `include "uvm_macros.svh" stri
-IN-WINDOW		opentitan	hw/top_darjeeling/dv/env/seq_lib/chip_sw_uart_rand_baudrate_vseq.sv	225	228	171	6	2842		, clk_freq_khz) \ (baud_rate == BaudRate1p5Mbps && clk_freq_khz == 24_000) ? 1
+IN-WINDOW		opentitan	hw/top_darjeeling/dv/env/seq_lib/chip_sw_uart_rand_baudrate_vseq.sv	443	443	171	9	2842		p_sw_uart_tx_rx_vseq; `uvm_object_utils(chip_sw_uart_rand_baudrate_vseq) `u
 IN-WINDOW		opentitan	hw/top_darjeeling/dv/env/top_darjeeling_error_injection_ifs_bind.sv	291	292	292	7	635		injection_ifs_bind; `ifndef GATE_LEVEL // This is used to inject count errors
 IN-WINDOW		opentitan	hw/top_darjeeling/dv/sva/clk_ctrl_and_main_pd_sva_if.sv	1371	1375	1375	39	3711		|| disable_sva; `define CLK_WAIT_BOUNDS ##[MIN_CLK_WAIT_CYCLES:MAX_CLK_WAIT_
 IN-WINDOW		opentitan	hw/top_darjeeling/dv/sva/top_darjeeling_bind.sv	198	199	199	6	1581		op_darjeeling_bind; `ifndef GATE_LEVEL bind top_darjeeling_pd_aon clk_ctrl_and
@@ -979,9 +939,9 @@ IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/ac_range_check/dv/tests/ac_ran
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/ac_range_check/rtl/ac_range_check.sv	19401	19403	171	404	20348		alues after reset `ASSERT_KNOWN(AlertsKnown_A, alert_tx_o) `ASSERT_KNOWN(Den
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/ac_range_check/rtl/ac_range_check_reg_top.sv	432806	432808	224	14407	433289		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/alert_handler/dv/env/alert_handler_env_pkg.sv	542	544	544	20	3456		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
-IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/alert_handler/dv/env/alert_handler_scoreboard.sv	247	247	171	6	35760		ase_cycs_per_class_q[``index``] = \ {ral.class``i``_phase0_cyc_shadowed, r
-IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/alert_handler/dv/env/seq_lib/alert_handler_alert_accum_saturation_vseq.sv	361	361	307	9	4226		\ string class_``class_i``_path_0 = \ "tb.dut.gen_classes[``i``]
-IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/alert_handler/dv/env/seq_lib/alert_handler_base_vseq.sv	334	334	171	7	15471		, \ class``i``_phase0_cyc_shadowed.value inside {[0: max_phase_cyc]};
+IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/alert_handler/dv/env/alert_handler_scoreboard.sv	483	484	171	10	35760		cip_base_scoreboard #( .CFG_T(alert_handler_env_cfg), .RAL_T(alert_handl
+IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/alert_handler/dv/env/seq_lib/alert_handler_alert_accum_saturation_vseq.sv	884	884	307	19	4226		t_handler_smoke_vseq; `uvm_object_utils(alert_handler_alert_accum_saturation_v
+IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/alert_handler/dv/env/seq_lib/alert_handler_base_vseq.sv	1475	1476	171	24	15471		tends cip_base_vseq #( .CFG_T (alert_handler_env_cfg), .RA
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/alert_handler/dv/tb/tb.sv	370	372	372	14	4777		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" wire
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/alert_handler/dv/tests/alert_handler_test_pkg.sv	324	326	326	12	487		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // l
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/alert_handler/fpv/vip/alert_handler_esc_timer_assert_fpv.sv	862	863	260	27	5221		o, input cstate_e esc_state_o ); /////////////////////////////// // Decla
@@ -1011,14 +971,14 @@ IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/gpio/dv/tb/tb.sv	375	377	377	1
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/gpio/dv/tests/gpio_test_pkg.sv	306	308	308	12	432		// macro includes `include "uvm_macros.svh" // local types // functions
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/gpio/rtl/gpio.sv	1138	1139	213	28	15792		utput gpio_straps_t sampled_straps_o, // Bus interface input tlul_pkg::tl_
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/gpio/rtl/gpio_reg_top.sv	77513	77515	224	2695	77996		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
-IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/cov/otp_ctrl_cov_bind.sv	390	391	258	8	5818		cov_if #(.Width(8)) ``__part_name``_read_lock_mubi_cov_if ( \ .rst_ni (rst_
+IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/cov/otp_ctrl_cov_bind.sv	2813	2815	258	69	5818		fered partitions. `PART_MUBI_COV(vendor_test, otp_ctrl_part_pkg::VendorTestIdx
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/cov/otp_ctrl_cov_if.sv	747	750	750	19	3426		dv_utils_pkg::*; `include "dv_fcov_macros.svh" covergroup lc_esc_en_condit
-IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cfg.sv	214	215	171	6	3175		NT(FREQ_) \ FREQ_ dist { \ 6 :/ 2, \ [24:25] :/ 2, \ [26:47]
+IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cfg.sv	437	438	171	17	3175		ds cip_base_env_cfg #(.RAL_T(otp_ctrl_core_reg_block)); // ext component cfgs
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_pkg.sv	841	843	843	29	11446		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
-IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/otp_ctrl_if.sv	457	457	277	10	20939		CMD_PATH(i) \ tb.dut.gen_partitions[``i``].gen_buffered.u_part_buf.otp_cmd_o
+IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/otp_ctrl_if.sv	6276	6276	277	169	20939		u_part_unbuf.`ECC_REG_PATH.data_i[0] = 1; force_sw_parts_ecc_reg[Ve
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/otp_scrambler_pkg.sv	429	433	433	15	4293		s_params_pkg::*; `include "uvm_macros.svh" parameter int SCRAMBLE_DATA_SIZ
-IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/seq_lib/otp_ctrl_dai_lock_vseq.sv	515	520	487	10	4774		ADDR_RANGE(i) \ {[PartInfo[``i``].offset : (PartInfo[``i``].offset + PartInf
-IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/seq_lib/otp_ctrl_smoke_vseq.sv	264	269	233	6	10656		TENT_RANGE(i) \ {[PartInfo[``i``].offset : (PartInfo[``i``].offset + PartInf
+IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/seq_lib/otp_ctrl_dai_lock_vseq.sv	658	658	487	12	4774		otp_ctrl_smoke_vseq; `uvm_object_utils(otp_ctrl_dai_lock_vseq) `uvm_object
+IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/env/seq_lib/otp_ctrl_smoke_vseq.sv	417	417	233	8	10656		s otp_ctrl_base_vseq; `uvm_object_utils(otp_ctrl_smoke_vseq) `uvm_object_ne
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/tb.sv	404	406	406	15	10600		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // T
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/dv/tests/otp_ctrl_test_pkg.sv	314	316	316	12	472		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // l
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/otp_ctrl/rtl/otp_ctrl.sv	979	980	200	28	70300		. parameter key_t RndCnstScrmblKey0 = '0, parameter key_t RndCnstScrmblKey1
@@ -1075,14 +1035,14 @@ IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/rv_plic/rtl/rv_plic_gateway.sv
 IN-WINDOW		opentitan	hw/top_darjeeling/ip_autogen/rv_plic/rtl/rv_plic_reg_top.sv	301992	301994	224	14016	302475		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
 IN-WINDOW		opentitan	hw/top_darjeeling/rtl/autogen/top_darjeeling_pd_aon.sv	17140	17142	476	431	17209		ing during reset) `ASSERT_KNOWN(scanmodeKnown, scanmode_i, clk_main_i, 0) end
 IN-WINDOW		opentitan	hw/top_darjeeling/rtl/autogen/top_darjeeling_pkg.sv	36470	36470	36470	1094	36647		simulation support `ifdef ANALOGSIM `define INOUT_AI input ast_pkg::awire_t
-IN-WINDOW		opentitan	hw/top_earlgrey/dv/autogen/tb__xbar_connect.sv	364	370	291	10	9367		pd_hier = ) \ force ``tl_name``_tl_if.d2h = dut.top_earlgrey``pd_hier``.u_
+IN-WINDOW		opentitan	hw/top_earlgrey/dv/autogen/tb__xbar_connect.sv	1681	1682	291	30	9367		lk_main; clk_rst_if clk_rst_if_main(.clk(clk_main), .rst_n(rst_n)); wire clk_io;
 IN-WINDOW		opentitan	hw/top_earlgrey/dv/env/ast_ext_clk_if.sv	763	768	768	18	1569		ctive_window(); `DV_WAIT(u_ast.u_ast_main.u_ast_clks_byp_main.u_io_clk_byp_e
 IN-WINDOW		opentitan	hw/top_earlgrey/dv/env/ast_supply_if.sv	1712	1717	1717	46	4474		@(posedge clk); `uvm_info("ast_supply_if", "forcing vcaon_pok_h_o=0", UVM_ME
 IN-WINDOW		opentitan	hw/top_earlgrey/dv/env/chip_env_pkg.sv	1701	1703	1703	58	6133		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" `incl
 IN-WINDOW		opentitan	hw/top_earlgrey/dv/env/chip_if.sv	1382	1386	1386	27	57562		port uvm_pkg::*; `include "dv_macros.svh" `include "uvm_macros.svh" // T
 IN-WINDOW		opentitan	hw/top_earlgrey/dv/env/flash_ctrl_host_gnt_fault_if.sv	309	312	312	11	1574		input rst_ni ); `include "dv_macros.svh" `include "uvm_macros.svh" stri
 IN-WINDOW		opentitan	hw/top_earlgrey/dv/env/rstmgr_cnsty_fault_if.sv	497	500	500	14	1775		input rst_ni ); `include "dv_macros.svh" `include "uvm_macros.svh" stri
-IN-WINDOW		opentitan	hw/top_earlgrey/dv/env/seq_lib/chip_sw_uart_rand_baudrate_vseq.sv	225	228	171	6	3041		, clk_freq_khz) \ (baud_rate == BaudRate1p5Mbps && clk_freq_khz == 24_000) ? 1
+IN-WINDOW		opentitan	hw/top_earlgrey/dv/env/seq_lib/chip_sw_uart_rand_baudrate_vseq.sv	443	443	171	9	3041		p_sw_uart_tx_rx_vseq; `uvm_object_utils(chip_sw_uart_rand_baudrate_vseq) `u
 IN-WINDOW		opentitan	hw/top_earlgrey/dv/env/top_earlgrey_error_injection_ifs_bind.sv	289	290	290	7	832		injection_ifs_bind; `ifndef GATE_LEVEL // This is used to inject count errors
 IN-WINDOW		opentitan	hw/top_earlgrey/dv/sva/clk_ctrl_and_main_pd_sva_if.sv	1096	1100	1100	33	6078		IT_CYCLES = 160; `define CLK_WAIT_BOUNDS ##[MIN_CLK_ON_WAIT_CYCLES:MAX_CLK_ON
 IN-WINDOW		opentitan	hw/top_earlgrey/dv/sva/top_earlgrey_bind.sv	196	197	197	6	1721		top_earlgrey_bind; `ifndef GATE_LEVEL bind top_earlgrey_pd_aon clk_ctrl_and_m
@@ -1098,7 +1058,7 @@ IN-WINDOW		opentitan	hw/top_earlgrey/ip/ast/rtl/ast_aon.sv	1894	1895	566	37	2638
 IN-WINDOW		opentitan	hw/top_earlgrey/ip/ast/rtl/ast_bhv_pkg.sv	759	759	577	21	1776		/////////////////// `ifndef SYNTHESIS // POKs parameter time VCC_POK_RDLY
 IN-WINDOW		opentitan	hw/top_earlgrey/ip/ast/rtl/ast_clks_byp_main.sv	2164	2164	600	38	25160		// External Clock `ifdef AST_BYPASS_CLK input clk_ext_sys_i, input clk_ext
 IN-WINDOW		opentitan	hw/top_earlgrey/ip/ast/rtl/ast_main.sv	1680	1682	462	47	15331		ext_freq_is_96m_i, `ifdef AST_BYPASS_CLK // Clocks' Oschillator bypass for OS
-IN-WINDOW		opentitan	hw/top_earlgrey/ip/ast/rtl/ast_pkg.sv	457	458	382	13	6757		PAD2AST_WIRES \ { mio_in_raw[MioPadIoc3], \ mio_in_raw[MioPadIoc2], \ mi
+IN-WINDOW		opentitan	hw/top_earlgrey/ip/ast/rtl/ast_pkg.sv	4887	4889	382	117	6757		// Analog Signal `ifdef ANALOGSIM typedef real awire_t; `else typedef logi
 IN-WINDOW		opentitan	hw/top_earlgrey/ip/ast/rtl/ast_pulse_sync.sv	3367	3367	788	143	3562		source is not BUSY. `ASSERT(NewPulseWhenSrcBusy, $rose(src_pulse_i) |-> !src_bus
 IN-WINDOW		opentitan	hw/top_earlgrey/ip/ast/rtl/ast_reg_top.sv	57084	57086	224	2571	57567		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
 IN-WINDOW		opentitan	hw/top_earlgrey/ip/ast/rtl/io_clk.sv	940	940	940	20	2010		cillator Calibrated `ifdef AST_BYPASS_CLK input clk_io_ext_i, /
@@ -1118,9 +1078,9 @@ IN-WINDOW		opentitan	hw/top_earlgrey/ip/sensor_ctrl/rtl/sensor_ctrl_reg_top.sv	7
 IN-WINDOW		opentitan	hw/top_earlgrey/ip/xbar_main/dv/autogen/xbar_main_bind.sv	264	265	265	7	5928		ule xbar_main_bind; `ifndef GATE_LEVEL // Host interfaces bind xbar_main tlu
 IN-WINDOW		opentitan	hw/top_earlgrey/ip/xbar_peri/dv/autogen/xbar_peri_bind.sv	264	265	265	7	5664		ule xbar_peri_bind; `ifndef GATE_LEVEL // Host interfaces bind xbar_peri tlu
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/alert_handler/dv/env/alert_handler_env_pkg.sv	542	544	544	20	3456		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
-IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/alert_handler/dv/env/alert_handler_scoreboard.sv	247	247	171	6	35760		ase_cycs_per_class_q[``index``] = \ {ral.class``i``_phase0_cyc_shadowed, r
-IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/alert_handler/dv/env/seq_lib/alert_handler_alert_accum_saturation_vseq.sv	361	361	307	9	4226		\ string class_``class_i``_path_0 = \ "tb.dut.gen_classes[``i``]
-IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/alert_handler/dv/env/seq_lib/alert_handler_base_vseq.sv	334	334	171	7	15471		, \ class``i``_phase0_cyc_shadowed.value inside {[0: max_phase_cyc]};
+IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/alert_handler/dv/env/alert_handler_scoreboard.sv	483	484	171	10	35760		cip_base_scoreboard #( .CFG_T(alert_handler_env_cfg), .RAL_T(alert_handl
+IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/alert_handler/dv/env/seq_lib/alert_handler_alert_accum_saturation_vseq.sv	884	884	307	19	4226		t_handler_smoke_vseq; `uvm_object_utils(alert_handler_alert_accum_saturation_v
+IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/alert_handler/dv/env/seq_lib/alert_handler_base_vseq.sv	1475	1476	171	24	15471		tends cip_base_vseq #( .CFG_T (alert_handler_env_cfg), .RA
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/alert_handler/dv/tb/tb.sv	370	372	372	14	4777		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" wire
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/alert_handler/dv/tests/alert_handler_test_pkg.sv	324	326	326	12	487		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // l
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/alert_handler/fpv/vip/alert_handler_esc_timer_assert_fpv.sv	862	863	260	27	5221		o, input cstate_e esc_state_o ); /////////////////////////////// // Decla
@@ -1145,7 +1105,7 @@ IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/clkmgr/dv/tb.sv	327	329	329	13	7
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/clkmgr/dv/tests/clkmgr_test_pkg.sv	310	312	312	12	466		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // l
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/clkmgr/rtl/clkmgr.sv	1860	1861	204	71	32351		UBI input lc_tx_t lc_hw_debug_en_i, // clock bypass control with lc_ctrl
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/clkmgr/rtl/clkmgr_reg_top.sv	88522	88524	224	2935	89005		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
-IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/flash_ctrl/dv/cov/flash_ctrl_cov_bind.sv	355	355	259	7	1167		cip_lc_tx_cov_if u_``__name``_cov_if( \ .rst_ni (rst_ni),
+IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/flash_ctrl/dv/cov/flash_ctrl_cov_bind.sv	527	531	259	14	1167		h_ctrl_cov_bind; `FLASH_COV_LC_TX_BIND(lc_creator_seed_sw_rw_en) `FLASH_COV
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/flash_ctrl/dv/env/flash_ctrl_bkdr_util_pkg.sv	450	452	452	15	567		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // s
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/flash_ctrl/dv/env/flash_ctrl_eflash_ral_pkg.sv	256	260	260	10	2162		base_reg_pkg::*; `include "uvm_macros.svh" typedef class flash_ctrl_eflash
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/flash_ctrl/dv/env/flash_ctrl_env_cov.sv	448	449	368	13	5436		ds cip_base_env_cov #(.CFG_T(flash_ctrl_env_cfg)); `uvm_component_utils(flash_
@@ -1166,14 +1126,14 @@ IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/gpio/dv/tb/tb.sv	375	377	377	15	
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/gpio/dv/tests/gpio_test_pkg.sv	306	308	308	12	432		// macro includes `include "uvm_macros.svh" // local types // functions
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/gpio/rtl/gpio.sv	1138	1139	213	28	8798		utput gpio_straps_t sampled_straps_o, // Bus interface input tlul_pkg::tl_
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/gpio/rtl/gpio_reg_top.sv	28001	28003	224	991	28484		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
-IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/cov/otp_ctrl_cov_bind.sv	390	391	258	8	4258		cov_if #(.Width(8)) ``__part_name``_read_lock_mubi_cov_if ( \ .rst_ni (rst_
+IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/cov/otp_ctrl_cov_bind.sv	2852	2854	258	70	4258		fered partitions. `PART_MUBI_COV(vendor_test, otp_ctrl_part_pkg::VendorTestIdx
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/cov/otp_ctrl_cov_if.sv	829	832	832	20	5597		dv_utils_pkg::*; `include "dv_fcov_macros.svh" covergroup lc_esc_en_condit
-IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cfg.sv	214	215	171	6	3795		NT(FREQ_) \ FREQ_ dist { \ 6 :/ 2, \ [24:25] :/ 2, \ [26:47]
+IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_cfg.sv	437	438	171	17	3795		ds cip_base_env_cfg #(.RAL_T(otp_ctrl_core_reg_block)); // ext component cfgs
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/otp_ctrl_env_pkg.sv	841	843	843	29	10001		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // p
-IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/otp_ctrl_if.sv	457	457	277	10	16306		CMD_PATH(i) \ tb.dut.gen_partitions[``i``].gen_buffered.u_part_buf.otp_cmd_o
+IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/otp_ctrl_if.sv	6298	6298	277	170	16306		u_part_unbuf.`ECC_REG_PATH.data_i[0] = 1; force_sw_parts_ecc_reg[Ve
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/otp_scrambler_pkg.sv	429	433	433	15	4450		s_params_pkg::*; `include "uvm_macros.svh" parameter int SCRAMBLE_DATA_SIZ
-IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/seq_lib/otp_ctrl_dai_lock_vseq.sv	515	520	487	10	3280		ADDR_RANGE(i) \ {[PartInfo[``i``].offset : (PartInfo[``i``].offset + PartInf
-IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/seq_lib/otp_ctrl_smoke_vseq.sv	264	269	233	6	9635		TENT_RANGE(i) \ {[PartInfo[``i``].offset : (PartInfo[``i``].offset + PartInf
+IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/seq_lib/otp_ctrl_dai_lock_vseq.sv	658	658	487	12	3280		otp_ctrl_smoke_vseq; `uvm_object_utils(otp_ctrl_dai_lock_vseq) `uvm_object
+IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/env/seq_lib/otp_ctrl_smoke_vseq.sv	417	417	233	8	9635		s otp_ctrl_base_vseq; `uvm_object_utils(otp_ctrl_smoke_vseq) `uvm_object_ne
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/tb.sv	404	406	406	15	11843		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // T
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/dv/tests/otp_ctrl_test_pkg.sv	314	316	316	12	472		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // l
 IN-WINDOW		opentitan	hw/top_earlgrey/ip_autogen/otp_ctrl/rtl/otp_ctrl.sv	979	980	200	28	70481		. parameter key_t RndCnstScrmblKey0 = '0, parameter key_t RndCnstScrmblKey1
@@ -1227,7 +1187,7 @@ IN-WINDOW		opentitan	hw/top_earlgrey/rtl/autogen/chip_earlgrey_asic.sv	662	664	6
 IN-WINDOW		opentitan	hw/top_earlgrey/rtl/autogen/chip_earlgrey_cw340.sv	2262	2264	471	55	63425		OA1, // MIO Pad 1 `INOUT_AO IOA2, // MIO Pad 2 `INOUT_AO IOA3, // MIO Pad 3
 IN-WINDOW		opentitan	hw/top_earlgrey/rtl/autogen/top_earlgrey_pd_aon.sv	22973	22975	470	548	23042		ing during reset) `ASSERT_KNOWN(scanmodeKnown, scanmode_i, clk_main_i, 0) end
 IN-WINDOW		opentitan	hw/top_earlgrey/rtl/autogen/top_earlgrey_pkg.sv	36077	36077	36077	1099	36254		simulation support `ifdef ANALOGSIM `define INOUT_AI input ast_pkg::awire_t
-IN-WINDOW		opentitan	hw/top_englishbreakfast/dv/autogen/tb__xbar_connect.sv	364	370	291	10	6466		pd_hier = ) \ force ``tl_name``_tl_if.d2h = dut.top_englishbreakfast``pd_h
+IN-WINDOW		opentitan	hw/top_englishbreakfast/dv/autogen/tb__xbar_connect.sv	1729	1730	291	30	6466		lk_main; clk_rst_if clk_rst_if_main(.clk(clk_main), .rst_n(rst_n)); wire clk_io;
 IN-WINDOW		opentitan	hw/top_englishbreakfast/dv/verilator/chip_sim_tb.sv	4003	4005	4005	100	7818		_uart_tx_d2p) ); `ifdef DMIDirectTAP // OpenOCD direct DMI TAP bind rv_dm
 IN-WINDOW		opentitan	hw/top_englishbreakfast/ip/ast/rtl/ast_reg_top.sv	57084	57086	224	2571	57567		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
 IN-WINDOW		opentitan	hw/top_englishbreakfast/ip/xbar_main/dv/autogen/xbar_main_bind.sv	264	265	265	7	3169		ule xbar_main_bind; `ifndef GATE_LEVEL // Host interfaces bind xbar_main tlu
@@ -1247,7 +1207,7 @@ IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/dv/tb.sv	327	329	
 IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/dv/tests/clkmgr_test_pkg.sv	310	312	312	12	466		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // l
 IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/rtl/clkmgr.sv	1860	1861	204	71	28534		UBI input lc_tx_t lc_hw_debug_en_i, // clock bypass control with lc_ctrl
 IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/clkmgr/rtl/clkmgr_reg_top.sv	70659	70661	224	2377	71142		egister Interface `ASSERT_PULSE(wePulse, reg_we, clk_i, !rst_ni) `ASSERT_PUL
-IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/flash_ctrl/dv/cov/flash_ctrl_cov_bind.sv	355	355	259	7	1167		cip_lc_tx_cov_if u_``__name``_cov_if( \ .rst_ni (rst_ni),
+IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/flash_ctrl/dv/cov/flash_ctrl_cov_bind.sv	527	531	259	14	1167		h_ctrl_cov_bind; `FLASH_COV_LC_TX_BIND(lc_creator_seed_sw_rw_en) `FLASH_COV
 IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/flash_ctrl/dv/env/flash_ctrl_bkdr_util_pkg.sv	450	452	452	15	567		// macro includes `include "uvm_macros.svh" `include "dv_macros.svh" // s
 IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/flash_ctrl/dv/env/flash_ctrl_eflash_ral_pkg.sv	256	260	260	10	2162		base_reg_pkg::*; `include "uvm_macros.svh" typedef class flash_ctrl_eflash
 IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/flash_ctrl/dv/env/flash_ctrl_env_cov.sv	448	449	368	13	5436		ds cip_base_env_cov #(.CFG_T(flash_ctrl_env_cfg)); `uvm_component_utils(flash_
@@ -1308,7 +1268,6 @@ IN-WINDOW		opentitan	hw/top_englishbreakfast/ip_autogen/rv_plic/rtl/rv_plic_reg_
 IN-WINDOW		opentitan	hw/top_englishbreakfast/rtl/autogen/top_englishbreakfast_pd_aon.sv	15323	15325	494	346	15392		ing during reset) `ASSERT_KNOWN(scanmodeKnown, scanmode_i, clk_main_i, 0) end
 IN-WINDOW		opentitan	hw/top_englishbreakfast/rtl/autogen/top_englishbreakfast_pkg.sv	22152	22152	22152	660	22329		simulation support `ifdef ANALOGSIM `define INOUT_AI input ast_pkg::awire_t
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/cs_registers/tb/tb_cs_registers.sv	1806	1806	1806	51	5007		------------------- `ifndef VERILATOR logic local_clk_i; initial begin l
-IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/encodings.sv	665	666	250	20	3187		IS_ORI | `IS_ANDI \ ) `define IS_SLLI (`IS_ITYPE(3'b001) && `INSTR[31:25] == 7'
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/peek/compare_helper.sv	433	435	395	14	3723		decompressed_instr assign wbexc_is_load_instr = `IS_LB | `IS_LBU | `IS_LH | `IS
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/peek/follower.sv	1087	1088	974	23	6938		ably very fragile. assign ex_success = `ID.instr_done; assign ex_err = `IDC.exc
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/protocol/mem.sv	1468	1474	495	45	2479		o |-> ~gnt_i); `ifdef YOSYS // Give yosys stronger bounds for now.
@@ -1321,7 +1280,6 @@ IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/common/ibex_mem_int
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/common/irq_agent/irq_agent_pkg.sv	262	266	266	12	521		ADDR_WIDTH = 32; `include "uvm_macros.svh" `include "dv_macros.svh" `incl
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/env/core_ibex_dut_probe_if.sv	3185	3189	151	100	4103		bexMuBiOn; end `DV_CREATE_SIGNAL_PROBE_FUNCTION(signal_probe_rf_ren_a, rf_r
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/env/core_ibex_env_pkg.sv	630	631	288	22	939		RAMBLE_KEY_W) ) scrambling_key_agent; typedef push_pull_agent_cfg#( .D
-IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/fcov/core_ibex_csr_categories.svh	374	374	297	9	2722		CSR_MCOUNTINHIBIT, \ CSR_MCOUNTEREN, \ CSR_MHPMEVENT3, \ CSR_MHPMEVENT4
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/fcov/core_ibex_fcov_if.sv	318	319	151	12	35991		input priv_lvl_e priv_mode_id, input priv_lvl_e priv_mode_lsu, input deb
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/fcov/core_ibex_pmp_fcov_if.sv	900	908	151	24	43118		mp_mseccfg_t csr_pmp_mseccfg, input logic debug_mode, input logic d
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/dv/uvm/core_ibex/tb/core_ibex_tb_top.sv	1228	1230	151	43	20634		ameters directly. `ifndef IBEX_CFG_RV32M `define IBEX_CFG_RV32M ibex_pkg::
@@ -1358,9 +1316,7 @@ IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/rtl/ibex_pmp.sv	13186	13190	151	255	
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/rtl/ibex_register_file_latch.sv	4830	4832	4832	161	4983		WordZeroVal; end `ifdef VERILATOR initial begin $display("Latch-based r
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/rtl/ibex_top.sv	1104	1121	228	25	56896		m_e RV32M = RV32MFast, parameter rv32b_
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/rtl/ibex_wb_stage.sv	9734	9738	545	249	9901		wdata_wb_mux_we; `DV_FCOV_SIGNAL_GEN_IF(logic, wb_valid, g_writeback_stage.wb
-IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/dv_defines.svh	680	681	596	19	3027		w (string name=""); \ super.new(name); \ endfunction : new `endif `if
-IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/riscv_defines.svh	702	702	596	18	5815		constraint riscv_``instr_group``_``instr_n``_c { \ if (instr_name == ``in
-IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/riscv_instr_cover_group.sv	702	705	596	24	80372		SAMPLE(cg, val) \ if (cg != null) cg.sample(val); // sample with type cast `d
+IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/riscv_instr_cover_group.sv	19317	19319	596	483	80372		v_instr_gen_config cfg; riscv_instr pre_instr; riscv_instr_name
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/src/riscv_instr_pkg.sv	666	670	670	21	53020		riscv_instr_pkg; `include "dv_defines.svh" `include "riscv_defines.svh" `
 IN-WINDOW		opentitan	hw/vendor/lowrisc_ibex/vendor/google_riscv-dv/test/riscv_instr_test_pkg.sv	676	680	680	22	802		cv_instr_pkg::*; `include "riscv_instr_base_test.sv" `include "riscv_instr_
 IN-WINDOW		opentitan	hw/vendor/pulp_riscv_dbg/src/dmi_intf.sv	1094	1096	1096	47	1705		gma translate_off `ifndef VERILATOR assert property (@(posedge clk_i) (q_val
@@ -1428,29 +1384,15 @@ IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/base/uvm_report_handler.svh	1593	1594	
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/base/uvm_report_message.svh	1774	1775	1252	54	29459		rotected uvm_action _action; protected string _name; // Functio
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/base/uvm_report_object.svh	4331	4331	1360	98	23440		t extends uvm_object; uvm_report_handler m_rh; local bit m_rh_set; local
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/base/uvm_report_server.svh	2443	2443	1404	65	34782		r extends uvm_object; function string get_type_name(); r
-IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/base/uvm_resource_specializations.svh	2386	2387	2289	59	6661		\ static function this_subtype get_by_name(string scope, string name,
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/base/uvm_spell_chkr.svh	4247	4254	4254	123	6976		== max) begin `uvm_info("UVM/CONFIGDB/SPELLCHK",$sformatf("%s not located,
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/dpi/uvm_hdl.svh	2096	2097	1674	65	6008		UVM_HDL_MAX_WIDTH = `UVM_HDL_MAX_WIDTH; typedef logic [UVM_HDL_MAX_WIDTH-1:0]
-IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_callback_defines.svh	2488	2489	1187	72	11489		cb(T,CB) \ static local bit m_register_cb_``CB = uvm_callbacks#(T,CB)::m_regis
-IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_comparer_defines.svh	1593	1596	1439	46	18590		begin(COMPARER) \ if ((!COMPARER.get_threshold() || \ (COMPARER.get_res
-IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_copier_defines.svh	1590	1591	1423	47	3950		Y, COPIER=copier) \ if (LVALUE != RVALUE) begin \ if ((RVALUE == null) || \
-IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_message_defines.svh	4551	4555	1340	131	18478		port_object()) \ begin \ uvm_pkg::uvm_report_object _local_report_object
-IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_object_defines.svh	7033	7034	1444	188	107200		te_op( uvm_field_op op ); \ super.do_execute_o
-IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_packer_defines.svh	3308	3311	1150	98	18328		,PACKER=packer) \ if (SIZE <= $bits(uvm_integral_t)) begin \ PACKER.pack_
-IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_phase_defines.svh	2028	2028	0	51	5114		class PREFIX``PHASE``_phase extends uvm_task_phase; \ virtual
-IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_printer_defines.svh	2055	2056	1679	55	30565		PRINTER=printer) \ if (SIZE > 64) \ PRINTER.print_field(NAME, VALUE, SIZE, RA
-IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_recorder_defines.svh	3399	3406	1861	88	14157		R=recorder) \ $add_attribute(TR_HANDLE,VALUE,NAME); `else // @uvm-ie
-IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_resource_defines.svh	1757	1758	1372	52	7754		VAL, OBJ=null) \ begin
-IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_sequence_defines.svh	2243	2246	2188	61	10767		et_sequencer()) \ begin \ uvm_object_wrapper w_; \ w_ = SEQ_OR_ITEM.get_ty
-IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/macros/uvm_tlm_defines.svh	3818	3818	3751	99	26314		uvm_blocking_put_imp``SFX #(type T=int, type IMP=int) \ extends uvm_port_base
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/reg/uvm_mem_mam.svh	2687	2687	1957	79	33282		mam extends uvm_void; //---------------------- // Group -- NODOCS -- Init
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/reg/uvm_reg_model.svh	2307	2307	1698	74	13303		edef bit unsigned [`UVM_REG_DATA_WIDTH-1:0] uvm_reg_data_t ; // Type -- NODO
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/tlm1/uvm_sqr_ifs.svh	1952	1952	1280	52	11191		#(type T1=uvm_object, T2=T1) extends uvm_void; // Task -- NODOCS -- get_next_
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/tlm1/uvm_tlm_fifo_base.svh	2313	2313	1219	61	9531		xtends uvm_component; `uvm_component_abstract_param_utils(uvm_tlm_fifo_base #
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/tlm1/uvm_tlm_ifs.svh	2616	2616	1190	60	7977		nt) extends uvm_void; // Group -- NODOCS -- Blocking put // Task -- NODOCS
-IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/tlm1/uvm_tlm_imps.svh	3062	3063	1171	109	7135		\ task put (TYPE arg); \ imp.put(arg); \ endtask `define UVM_NONBLOCKI
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/tlm2/uvm_tlm2_ifs.svh	2816	2816	2309	96	7072		_tlm_generic_payload, type P=uvm_tlm_phase_e) extends uvm_void;
-IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/tlm2/uvm_tlm2_imps.svh	3030	3031	2930	71	8966		tion uvm_tlm_sync_e nb_transport_fw(T t, ref P p, input uvm_tlm_time delay); \
+IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/tlm2/uvm_tlm2_imps.svh	7199	7199	2930	179	8966		_tlm_generic_payload, type IMP=int) extends uvm_po
 IN-WINDOW		uvm-core	uvm-core-2020.3.1/src/uvm_pkg.sv	1421	1424	1211	45	2501		tic bit notifier; `ifndef XCELIUM string notifier_signal_name = $sfor
 IN-WINDOW		verible	verible/verilog/tools/kythe/testdata/include_file_test/package_with_include.sv	309	311	311	9	817		vh.node/kind file `include "package_with_include_class.svh" endpackage module
 IN-WINDOW		verilator	test_regress/t/t_case_huge_sub2.v	686	687	687	26	8274		case (index[7:0]) `ifdef VERILATOR // Harder test 8'h00: begin
@@ -1466,10 +1408,10 @@ IN-WINDOW		verilator	test_regress/t/t_sv_cpu_code/pad_gpio.sv	786	786	786	30	114
 IN-WINDOW		verilator	test_regress/t/t_sv_cpu_code/pads.sv	572	572	572	23	2800		// **** Pinout **** `ifdef VERILATOR // see t_tri_array inout wire [NUMPADS:1
 IN-WINDOW		verilator	test_regress/t/t_sv_cpu_code/pinout_h.sv	558	561	248	21	1736		packed { t_pinid id; t_padtype padtype; int aux; } t_pin_descriptor;
 IN-WINDOW		verilator	test_regress/t/t_sv_cpu_code/rom.sv	537	544	544	19	876		[0:13] = '{ `LDI( R0, 11 ) `LDI( R1, 22 ) `LDI( R2, 33 )
-IN-WINDOW		verilator	test_regress/t/uvm/uvm_pkg_all_v2017_1_0_dpi.svh	1788	1792	1217	46	1533677		SG, VERBOSITY) \ begin \ if (uvm_report_enabled(VERBOSITY,UVM_INFO,ID))
-IN-WINDOW		verilator	test_regress/t/uvm/uvm_pkg_all_v2017_1_0_nodpi.svh	1809	1813	1219	47	1534767		SG, VERBOSITY) \ begin \ if (uvm_report_enabled(VERBOSITY,UVM_INFO,ID))
-IN-WINDOW		verilator	test_regress/t/uvm/uvm_pkg_all_v2020_3_1_dpi.svh	2323	2327	1263	60	1908208		port_object()) \ begin \ uvm_pkg::uvm_report_object _local_report_object
-IN-WINDOW		verilator	test_regress/t/uvm/uvm_pkg_all_v2020_3_1_nodpi.svh	2344	2348	1265	61	1908678		port_object()) \ begin \ uvm_pkg::uvm_report_object _local_report_object
+IN-WINDOW		verilator	test_regress/t/uvm/uvm_pkg_all_v2017_1_0_dpi.svh	167222	167223	1217	3695	1533677		32 package uvm_pkg; `define UVM_DPI_SVH `define UVM_HDL__SVH `define UVM_HDL_MAX
+IN-WINDOW		verilator	test_regress/t/uvm/uvm_pkg_all_v2017_1_0_nodpi.svh	167243	167244	1219	3696	1534767		32 package uvm_pkg; `define UVM_DPI_SVH `define UVM_HDL_NO_DPI `define UVM_REGEX
+IN-WINDOW		verilator	test_regress/t/uvm/uvm_pkg_all_v2020_3_1_dpi.svh	177761	177762	1263	3893	1908208		\ package uvm_pkg; `define UVM_DPI_SVH `define UVM_HDL__SVH `define UVM_HDL_MAX
+IN-WINDOW		verilator	test_regress/t/uvm/uvm_pkg_all_v2020_3_1_nodpi.svh	177782	177783	1265	3894	1908678		\ package uvm_pkg; `define UVM_DPI_SVH `define UVM_HDL_NO_DPI `define UVM_REGEX
 IN-WINDOW		verilator	test_regress/t/uvm/v2017_1_0/dpi/uvm_hdl.svh	1801	1802	1385	54	5687		UVM_HDL_MAX_WIDTH = `UVM_HDL_MAX_WIDTH; typedef logic [UVM_HDL_MAX_WIDTH-1:0]
 IN-WINDOW		verilator	test_regress/t/uvm/v2020_3_1/dpi/uvm_hdl.svh	2190	2191	1771	65	6062		UVM_HDL_MAX_WIDTH = `UVM_HDL_MAX_WIDTH; typedef logic [UVM_HDL_MAX_WIDTH-1:0]
 NO-ALTERABLE-TICK	CROSS-LIBRARY	Surelog	tests/SimpleClass/Environemnt.sv	568	569		17	1172	Driver @ stimuli/sv/subs/verilator/test_regress/t/t_wait_iface_vif.v	tf[4] ; Driver drvr; Receiver rcvr[4]; Scoreboard sb; mailbox drvr2sb
@@ -1685,11 +1627,6 @@ NO-ALTERABLE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/vendor/go
 PAST-LAST-TICK		Surelog	tests/SimpleClass1/top.v	424	425	21	32	2068		(Packet,Scoreboard) Rcvr2Sb_port; uvm_analysis_imp_sent_pkt #(Packet,Scorebo
 PAST-LAST-TICK		Surelog	tests/SimpleInterface/simple_if.sv	260	263	21	16	3198		) begin : mod_gen modport tb (clocking cb, input clk); end endgenerate endin
 PAST-LAST-TICK		black-parrot	bp_me/src/v/cce/bp_cce_inst_stall.sv	509	528	362	21	4504		s decoded_inst_i // input queue valid signals , input
-PAST-LAST-TICK		opentitan	hw/ip/aes/pre_dv/aes_tb/data/gcm_k128_a0_d0.svh	482	482	301	14	10265		\ c_dpi_load('{
-PAST-LAST-TICK		opentitan	hw/ip/aes/pre_dv/aes_tb/data/gcm_k128_a0_d16.svh	483	483	301	14	12918		\ c_dpi_load('{
-PAST-LAST-TICK		opentitan	hw/ip/aes/pre_dv/aes_tb/data/gcm_k128_a20_d60.svh	472	573	301	14	77414		\ /*******************************************************
-PAST-LAST-TICK		opentitan	hw/ip/aes/pre_dv/aes_tb/data/gcm_k128_a20_d64.svh	485	485	301	14	21132		\ c_dpi_load('{
-PAST-LAST-TICK		opentitan	hw/ip/aes/pre_dv/aes_tb/data/modes_d64.svh	476	577	305	14	362304		\ /*******************************************************
 PAST-LAST-TICK		opentitan	hw/ip/aes/pre_dv/aes_tb/rtl/tlul_adapter_tb_reqs.sv	471	472	256	18	2578		output tl_h2d_t tl_o, input tl_d2h_t tl_i, // A valid request is indic
 PAST-LAST-TICK		opentitan	hw/ip/aes/rtl/aes_control_fsm_n.sv	1302	1335	715	32	26109		op_i, input aes_mode_e mode
 PAST-LAST-TICK		opentitan	hw/ip/aes/rtl/aes_control_fsm_p.sv	1001	1034	414	28	24564		op_i, input aes_mode_e mode
@@ -1699,7 +1636,6 @@ PAST-LAST-TICK		opentitan	hw/ip/keymgr/rtl/keymgr_input_checks.sv	608	609	234	17
 PAST-LAST-TICK		opentitan	hw/ip/kmac/rtl/kmac_reduced.sv	809	810	299	24	10411		rameter lfsr_perm_t RndCnstLfsrPerm = RndCnstLfsrPermDefault, parameter lfsr_s
 PAST-LAST-TICK		opentitan	hw/ip/otbn/rtl/otbn_alu_base.sv	519	521	171	19	4703		u_base_operation_t operation_i, input alu_base_comparison_t comparison_i,
 PAST-LAST-TICK		opentitan	hw/ip/otbn/rtl/otbn_vec_multiplier.sv	1615	1625	171	46	3279		mac_elen_e elen_i, output logic [2*Width-1:0] result_o ); logic
-PAST-LAST-TICK		opentitan	hw/ip/prim/rtl/prim_macros.svh	883	886	806	20	1898		__allowed_more) \ (((__actual) + (__allowed_less) >= (__expected)) &&
 PAST-LAST-TICK		opentitan	hw/ip/prim/rtl/prim_ram_1r1w_adv.sv	2283	2284	631	53	3043		ram_1r1w_cfg_req_t cfg_i, output ram_1r1w_cfg_rsp_t cfg_o ); prim_ram_1r1w
 PAST-LAST-TICK		opentitan	hw/ip/prim/rtl/prim_ram_2p_adv.sv	2624	2626	632	58	3492		ram_2p_cfg_req_t cfg_i, output ram_2p_cfg_rsp_t cfg_o ); prim_ram_2p_as
 PAST-LAST-TICK		opentitan	hw/ip/prim/rtl/prim_sdc_example.sv	11415	11416	2549	376	21045		nly_flop mubi4_t [NumSender-1:0] mubi4_true_out; mubi4_t [NumSender-1:0] mu
@@ -1727,6 +1663,7 @@ PAST-LAST-TICK		opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/rtl/pwrmgr_c
 PAST-LAST-TICK		opentitan	hw/top_englishbreakfast/ip_autogen/pwrmgr/rtl/pwrmgr_wake_info.sv	554	555	211	21	2096		reg_wake_info_reg_t info_o ); logic record_en; // detect rising edge of st
 PAST-LAST-TICK		opentitan	hw/top_englishbreakfast/ip_autogen/rstmgr/rtl/rstmgr_leaf_rst.sv	679	680	264	25	3590		i, output mubi4_t rst_en_o, output logic leaf_rst_o, output logic err_o,
 PAST-LAST-TICK		opentitan	hw/vendor/lowrisc_ibex/dv/formal/spec/stub.sv	1033	1034	250	32	4837		automatic sail_bits sail_shift_bits_left(sail_bits x, sail_bits y); return {
+PAST-LAST-TICK		uvm-core	uvm-core-2020.3.1/src/base/uvm_resource_specializations.svh	3982	3983	2289	82	6661		xtends uvm_resource #(int); typedef uvm_int_rsrc this_subtype; function ne
 PAST-LAST-TICK		uvm-core	uvm-core-2020.3.1/src/seq/uvm_seq.svh	1617	1618	1209	45	1929		uvm_sequence_item) uvm_default_sequence_type; typedef uvm_sequencer #(uvm_seque
 PAST-LAST-TICK		verible	verible/verilog/tools/kythe/testdata/include_file_test/module.sv	414	415	167	14	1016		yClassIncludedFile1 instance2 = new(); //- @MyClassIncludedFile2 ref My
 PAST-LAST-TICK		verible	verible/verilog/tools/kythe/testdata/include_file_test/module2.sv	416	417	167	14	1018		yClassIncludedFile1 instance1 = new(); //- @MyClassIncludedFile2 ref My
@@ -3800,3 +3737,4 @@ PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_englishbreakfast/ip/xbar_main/dv/a
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/top_englishbreakfast/ip/xbar_peri/dv/autogen/tb__xbar_connect.sv	232	233	241	7	1409	xbar_peri	py` tool xbar_peri dut(); `DRIVE_CLK(clk_peri_i) `DRIVE_CLK(clk_spi_host0_i) `
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/protocol/irqs.sv	362	362	623	12	1104	NoNMI	ither of these NoNMI: assume property (~irq_nm_i); NoFastIRQ: assume property (~
 PRE-TICK	UNDECLARED-ANYWHERE	opentitan	hw/vendor/lowrisc_ibex/dv/formal/check/spec_instance.sv	471	472	565	14	2815	t_MainMode	ate. */ t_MainMode main_mode; always_comb begin if (wbexc_handling_irq) ma
+PRE-TICK	UNDECLARED-ANYWHERE	verilator	test_regress/t/t_pipe_filter.v	302	303	330	11	467	example	Includes example line 10; example line 11; `include "t_pipe_filter_inc.vh" /
