@@ -100,8 +100,10 @@ DISPOSITION_KINDS = {
                               "which the lane does not carry (measured `.6b.3`: defining it recognises 5 "
                               "files and rejects 24 on vendor extensions) — a fact about the row's context",
     "driver_define": "the origin line uses a macro the suite's DRIVER defines on its command line "
-                     "(`+define+…`, `-D…`), which the derived context does not carry (`.4c` reads drivers) "
-                     "— a fact about the row's context",
+                     "(`+define+…`, `-D…`) that the derived context CANNOT carry: the driver computes the "
+                     "value at run time, or several variant drivers configure the file differently "
+                     "(`.4c.1` derives a literal value from the file's own driver and REPORTS both cases, "
+                     "never guesses) — a fact about the row's context",
     "parser_question": "the expansion is legal text the parser refuses, or text the standard cannot derive: "
                        "a grammar / answer-key question routed to `SV-CORPUS-GRAD` with the construct named",
     "preprocessor_item": "an expansion-stage rule not yet implemented (named) — the expansion stage's own",

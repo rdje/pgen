@@ -6,22 +6,22 @@
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| answer key | `stimuli/sv/characterization/adjudication_manifest.tsv` | `f43f68f9652a52a1c96827ad4993e3df0f03cb84aebc3e92a149a3b8be173b11` |
+| answer key | `stimuli/sv/characterization/adjudication_manifest.tsv` | `056ae9cdea35c3173935b4660bd237e742830bc334d12ad75113ff0efcba444d` |
 | explained_svpp audit | `docs/tasks/artifacts/sv_corpus_grad/explained_svpp_audit/after/audit.tsv` | `e30149eb2dc125d24f0a27c537984fc2e11b6ba13062e0e62f162e7d02dfeded` |
 | dark chained_only audit | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/audit.tsv` | `a1107daee5ad2473a6061d15d6bdd6f79857afff44102c7f4651dd6687a615ea` |
-| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `befd1e9f62d7ccb93dd3b45cded83f919e9ba6cbf459dbed0158711761bee688` |
-| refuted dispositions (`.6b`) | `stimuli/sv/characterization/refuted_dispositions.tsv` | `a9643fdf11973894c99eb475b99d91ec3950ac8e0fa5b1ef8e70e1b4539b214a` |
+| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `9d93b06fcf4f8f99a82bd27f0c29bad9e688f35b1d6d95484ba36a181e2e443e` |
+| refuted dispositions (`.6b`) | `stimuli/sv/characterization/refuted_dispositions.tsv` | `409fce20b384a1dfee681820789ba2343a306a8b3f5577339df7c203011278f1` |
 | parse binary | `rust/target/debug/parseability_probe` | `d7e17a946b1616915e9dba876f17c000e3e07f71d0faabec3e8c20de2c2ab0c7` |
 
-Measured at `HEAD` = `22133c1e+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
+Measured at `HEAD` = `8c67a266+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
 
 ## The headline
 
 - rows re-read: **6,905** (manifest rows in the three populations that the lane ran; 0 such rows have no lane row)
-- **explained_svpp** — must-accept rows the raw lane explained away by preprocessing (`divergence:explained_svpp_*`; `.12a`'s position test, `.12b`'s 263): 1,372 rows → `corroborated` 1,213, `refuted:cross_file_base_class` 103, `refuted:parser_question` 21, `refuted:driver_define` 9, `refuted:vendor_identity_branch` 9, `refused_engine` 7, `refused_context` 5, `refuted:cross_file_define` 4, `refuted:preprocessor_item` 1
+- **explained_svpp** — must-accept rows the raw lane explained away by preprocessing (`divergence:explained_svpp_*`; `.12a`'s position test, `.12b`'s 263): 1,369 rows → `corroborated` 1,213, `refuted:cross_file_base_class` 103, `refuted:parser_question` 21, `refuted:vendor_identity_branch` 9, `refused_engine` 7, `refuted:driver_define` 6, `refused_context` 5, `refuted:cross_file_define` 4, `refuted:preprocessor_item` 1
 - **chained_only** — multi-file design rows the raw lane could not judge (`deferred:chained_only`; `.13c`'s strata, `.13d`'s expansion-owned rows): 4,926 rows → `chained:rejects_own_file` 2,934, `chained:accepted_under_expansion` 1,531, `chained:hollow` 236, `chained:refused_context` 210, `chained:refused_engine` 15
-- **svpp_owned** — rows whose conformance the raw lane routed to the preprocessor lane (`deferred:svpp_owned`): 172 rows → `svpp_owned:accepted_under_expansion` 111, `svpp_owned:refused_engine` 30, `svpp_owned:rejects_own_file` 28, `svpp_owned:refused_context` 2, `svpp_owned:hollow` 1
-- **must_reject** — rows the answer key expects REJECTED — the manifest's `expected`, or a pin the raw lane demoted (`.6b.1`); a pipeline pass here is an over-acceptance candidate: 435 rows → `must_reject:match_under_expansion` 433, `must_reject:accepts_invalid` 2
+- **svpp_owned** — rows whose conformance the raw lane routed to the preprocessor lane (`deferred:svpp_owned`): 172 rows → `svpp_owned:accepted_under_expansion` 112, `svpp_owned:refused_engine` 30, `svpp_owned:rejects_own_file` 27, `svpp_owned:refused_context` 2, `svpp_owned:hollow` 1
+- **must_reject** — rows the answer key expects REJECTED — the manifest's `expected`, or a pin the raw lane demoted (`.6b.1`); a pipeline pass here is an over-acceptance candidate: 438 rows → `must_reject:match_under_expansion` 436, `must_reject:accepts_invalid` 2
 
 ## explained_svpp — the `.12a` position verdict against the parse that actually happened
 
@@ -31,7 +31,7 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 |---|---:|---:|---:|---:|---:|---:|
 | `IN-WINDOW` | 212 | 100 | 109 | 0 | 1 | 2 |
 | `PAST-LAST-TICK` | 1 | 0 | 1 | 0 | 0 | 0 |
-| `STUCK-ON-SVPP-TOKEN` | 1149 | 1103 | 37 | 0 | 4 | 5 |
+| `STUCK-ON-SVPP-TOKEN` | 1146 | 1103 | 34 | 0 | 4 | 5 |
 | `not-in-audit` | 10 | 10 | 0 | 0 | 0 | 0 |
 
 **The refuted rows, by disposition** (`.6b`; `stimuli/sv/characterization/refuted_dispositions.tsv` — a row keeps `refuted` until someone has looked at it and written down what it is):
@@ -41,7 +41,7 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 | *(awaiting a disposition)* | 0 | not yet looked at |
 | `cross_file_base_class` | 103 | the class header's base class is declared in another file of the unit (uvm_pkg for the sv-tests `*-uvm.sv` rows) — the library design's population (`SVPP-EXPANSION.6d`); no expansion can supply a declaration |
 | `vendor_identity_branch` | 9 | the file's portable branch is the vendor's own `` `error `` stub behind `` `ifndef VERILATOR ``; the vendor branch needs the tool's identity predefine, which the lane does not carry (measured `.6b.3`: defining it recognises 5 files and rejects 24 on vendor extensions) — a fact about the row's context |
-| `driver_define` | 9 | the origin line uses a macro the suite's DRIVER defines on its command line (`+define+…`, `-D…`), which the derived context does not carry (`.4c` reads drivers) — a fact about the row's context |
+| `driver_define` | 6 | the origin line uses a macro the suite's DRIVER defines on its command line (`+define+…`, `-D…`) that the derived context CANNOT carry: the driver computes the value at run time, or several variant drivers configure the file differently (`.4c.1` derives a literal value from the file's own driver and REPORTS both cases, never guesses) — a fact about the row's context |
 | `parser_question` | 21 | the expansion is legal text the parser refuses, or text the standard cannot derive: a grammar / answer-key question routed to `SV-CORPUS-GRAD` with the construct named |
 | `preprocessor_item` | 1 | an expansion-stage rule not yet implemented (named) — the expansion stage's own |
 | `cross_file_define` | 4 | the origin line uses a macro a PREDECESSOR FILE of the compilation unit defines (§22.5.1: a macro is unit-wide once defined) — a sibling the harness passes first, which the per-file lane does not carry (`--sv-unit-file`; the unit design, `.6c`) — a fact about the row's context |
@@ -71,14 +71,14 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 | slang | `divergence:explained_svpp_macro_use` | 2 | 0 |
 | sv-tests | `divergence:explained_svpp_conditional` | 0 | 15 |
 | sv-tests | `divergence:explained_svpp_include` | 103 | 0 |
-| sv-tests | `divergence:explained_svpp_macro_use` | 1 | 2 |
+| sv-tests | `divergence:explained_svpp_macro_use` | 0 | 3 |
 | sv2v | `divergence:explained_svpp_include` | 0 | 12 |
 | sv2v | `divergence:explained_svpp_macro_use` | 3 | 52 |
 | verible | `divergence:explained_svpp_conditional` | 0 | 1 |
 | verible | `divergence:explained_svpp_macro_use` | 0 | 3 |
 | verilator | `divergence:explained_svpp_conditional` | 1 | 159 |
 | verilator | `divergence:explained_svpp_include` | 0 | 4 |
-| verilator | `divergence:explained_svpp_macro_use` | 31 | 706 |
+| verilator | `divergence:explained_svpp_macro_use` | 29 | 705 |
 | verilator | `divergence:explained_svpp_protected_envelope` | 1 | 1 |
 
 ## chained_only — the `.13c` strata against the parse under the derived context
@@ -127,15 +127,15 @@ Every row whose expected verdict is `must_reject` — the manifest's column, or 
 | `deferred:chained_only` | 7 | 7 | 0 | 0 | 0 | 0 |
 | `divergence:unexplained_accepts_invalid` | 2 | 0 | 2 | 0 | 0 | 0 |
 | `match` | 369 | 369 | 0 | 0 | 0 | 0 |
-| `pinned, raw lane demoted` | 57 | 57 | 0 | 0 | 0 | 0 |
+| `pinned, raw lane demoted` | 60 | 60 | 0 | 0 | 0 | 0 |
 
 ## svpp_owned — the rows routed to the preprocessor lane
 
 | verdict | rows |
 |---|---:|
-| `svpp_owned:accepted_under_expansion` | 111 |
+| `svpp_owned:accepted_under_expansion` | 112 |
 | `svpp_owned:refused_engine` | 30 |
-| `svpp_owned:rejects_own_file` | 28 |
+| `svpp_owned:rejects_own_file` | 27 |
 | `svpp_owned:refused_context` | 2 |
 | `svpp_owned:hollow` | 1 |
 

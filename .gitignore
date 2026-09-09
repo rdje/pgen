@@ -426,6 +426,8 @@ stimuli/*/characterization/results_v2005.tsv
 stimuli/*/characterization/results_sv2023.tsv
 # The preprocess→parse lane's dump (SVPP-EXPANSION.4) — track pipeline_characterization.md only.
 stimuli/*/characterization/pipeline_results.tsv
+# … and the lane's atomic-publish staging file (SVPP-EXPANSION.6b.5).
+stimuli/*/characterization/pipeline_results.tsv.tmp.*
 stimuli/*/characterization/durations.tsv
 stimuli/*/characterization/durations_v2005.tsv
 stimuli/*/characterization/durations_sv2023.tsv

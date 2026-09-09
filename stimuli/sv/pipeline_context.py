@@ -76,6 +76,14 @@ def registered_suites() -> dict[str, str]:
 
 SUITES = registered_suites()
 FILES_TSV = ROOT / "stimuli" / "sv" / "pipeline_context_files.tsv"
+# SVPP-EXPANSION.4c.1 — per-file DEFINES a suite's own driver passes for the file: verilator's `t_x.py`
+# (`+define+NAME[=VALUE]` / `-DNAME[=VALUE]` inside its flag lists) and sv-tests' `:defines:` header.
+# Derived, never guessed: only a LITERAL value is emitted (a value the driver computes at run time —
+# `"+define+SIM_CYCLES=" + str(test.cycles)`, an f-string — is REPORTED as computed); the SAME-STEM driver
+# owns the file, and where only variant drivers (`top_filename = "t/t_x.v"`) target it, a single variant
+# is used and several are REPORTED as a tie. ⛔ This is the test's OWN configuration, not a tool-identity
+# predefine (`.6b.3` measured and declined those): the driver ran the file with exactly these.
+DEFINES_TSV = ROOT / "stimuli" / "sv" / "pipeline_context_defines.tsv"
 # Rows the derivation cannot produce: predefined macros a suite is compiled with. Hand-curated,
 # each with its source; empty until a suite needs one.
 HAND_DEFINES: dict[str, list[tuple[str, str]]] = {}
@@ -178,6 +186,72 @@ def nearest_candidate(includer: str, candidates: list[str]) -> str | None:
     return scored[0][1]
 
 
+DEFINE_TOKEN = re.compile(r"""(?:\+define\+|(?<![A-Za-z0-9_])-D)([A-Za-z_][A-Za-z0-9_]*)(=?)([^"'\s\]\),]*)""")
+COMPUTED_TAIL = re.compile(r"""^["']\s*\+|\{[^}]*\}""")
+# spans whose -D flags reach the C++ compiler or iverilog, never the SV source under verilator:
+# make_flags=[…] (CPPFLAGS_ADD=…), CPPFLAGS_*=…, -CFLAGS/--CFLAGS/-LDFLAGS + one quoted argument, iv_flags*=[…]
+CXX_SPANS = re.compile(
+    r"""make_flags\s*=\s*\[.*?\]|iv_flags2?\s*=\s*\[.*?\]|CPPFLAGS\w*=[^\]\n]*|--?(?:CFLAGS|LDFLAGS)['"]?\s*,?\s*['"][^,\]\n]*""",
+    re.S,
+)
+
+
+def driver_defines(py_text: str) -> tuple[list[str], list[str]]:
+    """(literal defines as `NAME` or `NAME=VALUE`, computed define names) found in a verilator driver."""
+    literal, computed = [], []
+    py_text = CXX_SPANS.sub(" ", py_text)
+    for m in DEFINE_TOKEN.finditer(py_text):
+        name, eq, value = m.group(1), m.group(2), m.group(3)
+        tail = py_text[m.end():m.end() + 12]
+        if (eq and value == "" and COMPUTED_TAIL.match(tail)) or "{" in value:
+            computed.append(name)          # the value is built at run time — not derivable here
+            continue
+        literal.append(f"{name}={value}" if eq and value else name)
+    return sorted(set(literal)), sorted(set(computed))
+
+
+def derive_defines(suite: str, base: pathlib.Path):
+    """Per-file define rows for the suites whose drivers carry them; plus what was REPORTED, not emitted.
+    Returns (rows [(suite, relpath, define, source)], computed {relpath: [names]}, ties {relpath: [drivers]})."""
+    rows, computed, ties = [], {}, {}
+    if suite == "verilator":
+        tdir = base / "test_regress" / "t"
+        if not tdir.is_dir():
+            return rows, computed, ties
+        by_target: dict[str, list[pathlib.Path]] = {}
+        for py in sorted(tdir.glob("t_*.py")):  # a driver; `*_common.py` helpers are not drivers
+            text = py.read_text(errors="replace")
+            m = re.search(r'top_filename\s*=\s*"t/([^"]+)"', text)
+            target = m.group(1) if m else py.stem + ".v"
+            if not (tdir / target).is_file():
+                continue
+            by_target.setdefault(target, []).append(py)
+        for target, drivers in sorted(by_target.items()):
+            same = [d for d in drivers if d.stem + ".v" == target]
+            chosen = same[0] if same else (drivers[0] if len(drivers) == 1 else None)
+            rel = (tdir / target).relative_to(ROOT).as_posix()
+            if chosen is None:
+                with_defs = [d.name for d in drivers if any(driver_defines(d.read_text(errors="replace")))]
+                if with_defs:
+                    ties[rel] = with_defs
+                continue
+            lit, comp = driver_defines(chosen.read_text(errors="replace"))
+            for d in lit:
+                rows.append((suite, rel, d, chosen.relative_to(ROOT).as_posix()))
+            if comp:
+                computed[rel] = comp
+    elif suite == "sv-tests":
+        for f in source_files(base):
+            try:
+                head = f.read_text(errors="replace")[:4096]
+            except OSError:
+                continue
+            for m in re.finditer(r"^:defines:\s*(.+)$", head, re.M):
+                for tok in m.group(1).split():
+                    rows.append((suite, f.relative_to(ROOT).as_posix(), tok.strip(), f.relative_to(ROOT).as_posix() + " (:defines: header)"))
+    return sorted(set(rows)), computed, ties
+
+
 def rows_for(suite: str, base: pathlib.Path):
     dirs, ambiguous, absent, stats, per_file = derive(base)
     ordered = sorted(dirs.items(), key=lambda kv: (-kv[1][0], kv[0]))
@@ -185,7 +259,11 @@ def rows_for(suite: str, base: pathlib.Path):
     for name, source in HAND_DEFINES.get(suite, []):
         rows.append((suite, "define", name, "hand", source))
     file_rows = sorted({(suite, includer, d, name) for includer, d, name in per_file})
-    return rows, ambiguous, absent, stats, file_rows
+    define_rows, computed, ties = derive_defines(suite, base)
+    stats["define_rows"] = len(define_rows)
+    stats["computed_defines"] = computed
+    stats["define_ties"] = ties
+    return rows, ambiguous, absent, stats, file_rows, define_rows
 
 
 def report(suite: str, rows, ambiguous, absent, stats, out=sys.stdout):
@@ -194,13 +272,19 @@ def report(suite: str, rows, ambiguous, absent, stats, out=sys.stdout):
         f"PIPELINE-CONTEXT: suite={suite} files={stats['files']} local_includes={stats['local']} "
         f"include_dirs={n_dirs} per_file_rows={stats['per_file_rows']} "
         f"names_resolved_per_file={len(stats['resolved_per_file_names'])} "
-        f"ambiguous_nonlocal_names={len(ambiguous)} absent_names={len(absent)}",
+        f"ambiguous_nonlocal_names={len(ambiguous)} absent_names={len(absent)} "
+        f"define_rows={stats.get('define_rows', 0)} computed_defines={len(stats.get('computed_defines', {}))} "
+        f"define_ties={len(stats.get('define_ties', {}))}",
         file=out,
     )
     for name in sorted(ambiguous):
         print(f"  ambiguous {name}: {' '.join(ambiguous[name])}", file=out)
     for name in sorted(absent):
         print(f"  absent    {name} (x{absent[name]})", file=out)
+    for rel in sorted(stats.get("computed_defines", {})):
+        print(f"  computed  {rel}: {' '.join(stats['computed_defines'][rel])} (the driver builds the value at run time; not derived)", file=out)
+    for rel in sorted(stats.get("define_ties", {})):
+        print(f"  tie       {rel}: {' '.join(stats['define_ties'][rel])} (several variant drivers carry defines; none applied)", file=out)
 
 
 def render(all_rows) -> str:
@@ -217,9 +301,17 @@ def render_files(file_rows) -> str:
     return "\n".join(lines) + "\n"
 
 
+def render_defines(define_rows) -> str:
+    lines = ["suite\trelpath\tdefine\tsource"]
+    for r in define_rows:
+        lines.append("\t".join(r))
+    return "\n".join(lines) + "\n"
+
+
 def derive_all(suites=None):
     all_rows = []
     all_file_rows = []
+    all_define_rows = []
     for suite, rel in SUITES.items():
         if suites and suite not in suites:
             continue
@@ -227,11 +319,12 @@ def derive_all(suites=None):
         if not base.exists():
             print(f"PIPELINE-CONTEXT: suite={suite} NOT EVALUATED (missing {rel})", file=sys.stderr)
             continue
-        rows, ambiguous, absent, stats, file_rows = rows_for(suite, base)
+        rows, ambiguous, absent, stats, file_rows, define_rows = rows_for(suite, base)
         report(suite, rows, ambiguous, absent, stats)
         all_rows.extend(rows)
         all_file_rows.extend(file_rows)
-    return all_rows, all_file_rows
+        all_define_rows.extend(define_rows)
+    return all_rows, all_file_rows, all_define_rows
 
 
 def self_test() -> int:
@@ -266,6 +359,31 @@ def self_test() -> int:
         for label, ok in checks:
             print(f"  {'PASS' if ok else 'FAIL'} {label}")
             failures += 0 if ok else 1
+        # SVPP-EXPANSION.4c.1 — a synthetic verilator tree: a same-stem driver with a literal and a
+        # computed define, a single variant driver, and two variant drivers (a tie)
+        t = base / "test_regress" / "t"; t.mkdir(parents=True)
+        for stem in ("t_a", "t_b", "t_c"):
+            (t / f"{stem}.v").write_text("module m; endmodule\n")
+        (t / "t_a.py").write_text('test.compile(v_flags2=["+define+LIT=1 -DFLAG", "+define+CYC=" + str(test.cycles)],\n'
+                                  '    verilator_flags2=["-CFLAGS", "-DCXX2"], make_flags=["CPPFLAGS_ADD=-DCXX"])\n')
+        (t / "t_b_only.py").write_text('test.top_filename = "t/t_b.v"\ntest.compile(v_flags2=["+define+ONE"])\n')
+        (t / "b_common.py").write_text('test.top_filename = "t/t_b.v"\ntest.compile(v_flags2=["+define+HELPER"])\n')
+        (t / "t_c_x.py").write_text('test.top_filename = "t/t_c.v"\ntest.compile(v_flags2=["+define+X"])\n')
+        (t / "t_c_y.py").write_text('test.top_filename = "t/t_c.v"\ntest.compile(v_flags2=["+define+Y"])\n')
+        rows, computed, ties = derive_defines("verilator", base)
+        defs = {(r[1].rsplit("/", 1)[1], r[2]) for r in rows}
+        checks2 = [
+            ("a same-stem driver's literal defines are emitted", ("t_a.v", "LIT=1") in defs and ("t_a.v", "FLAG") in defs),
+            ("its computed define is reported, not emitted", not any(d == "CYC" or d.startswith("CYC=") for _, d in defs) and any(k.endswith("t_a.v") for k in computed)),
+            ("a single variant driver's define is emitted", ("t_b.v", "ONE") in defs),
+            ("a C++ define (-CFLAGS, CPPFLAGS_ADD) is neither emitted nor reported", not any(d.startswith("CXX") for _, d in defs) and not any("CXX" in n for ns in computed.values() for n in ns)),
+            ("a *_common.py helper is not a driver", ("t_b.v", "HELPER") not in defs and not any(k.endswith("t_b.v") for k in ties)),
+            ("two variant drivers are a tie: nothing emitted, the tie reported", not any(f == "t_c.v" for f, _ in defs) and any(k.endswith("t_c.v") for k in ties)),
+        ]
+        for label, ok in checks2:
+            print(f"  {'PASS' if ok else 'FAIL'} {label}")
+            failures += 0 if ok else 1
+        checks += checks2
     print(f"PIPELINE-CONTEXT-SELF-TEST: checks={len(checks)} failed={failures}")
     return 7 if failures else 0
 
@@ -284,15 +402,17 @@ def main() -> int:
         return 0
     if args.self_test:
         return self_test()
-    all_rows, all_file_rows = derive_all(args.suite)
+    all_rows, all_file_rows, all_define_rows = derive_all(args.suite)
     if args.write:
         TSV.write_text(render(all_rows))
         FILES_TSV.write_text(render_files(all_file_rows))
-        print(f"PIPELINE-CONTEXT: wrote {TSV.relative_to(ROOT)} rows={len(all_rows)} and {FILES_TSV.relative_to(ROOT)} rows={len(all_file_rows)}")
+        DEFINES_TSV.write_text(render_defines(all_define_rows))
+        print(f"PIPELINE-CONTEXT: wrote {TSV.relative_to(ROOT)} rows={len(all_rows)}, {FILES_TSV.relative_to(ROOT)} rows={len(all_file_rows)} and {DEFINES_TSV.relative_to(ROOT)} rows={len(all_define_rows)}")
     if args.check:
         current = TSV.read_text() if TSV.exists() else ""
         current_files = FILES_TSV.read_text() if FILES_TSV.exists() else ""
-        if current != render(all_rows) or current_files != render_files(all_file_rows):
+        current_defines = DEFINES_TSV.read_text() if DEFINES_TSV.exists() else ""
+        if current != render(all_rows) or current_files != render_files(all_file_rows) or current_defines != render_defines(all_define_rows):
             print(f"PIPELINE-CONTEXT: DRIFT — the tracked context differs from a fresh derivation; run --write", file=sys.stderr)
             return 1
         print("PIPELINE-CONTEXT: OK — the tracked context equals a fresh derivation")

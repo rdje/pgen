@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.4c.1 (`PGEN-SVPP-EXPANSION-0017`): a file's configuration is its driver's, and a `-D` in a driver is not always an SV define
+
+- **Measure under the configuration the suite ran, or you measure a different file.** Two verilator rows were `pass` under the pipeline and `fail` under their own driver's define: the define selects a branch of Verilator directives around C++ text. Neither reading was wrong; only the second is the test the suite ran. The answer key's `must_accept` came from the driver's expectation under Verilator; the standard outranks it, and the pin says under which define.
+- **Scan the flag lists the SV source sees, not the file.** The permissive scan of `t_x.py` emitted 94 rows; 38 were `-CFLAGS`, `CPPFLAGS_ADD=`, `iv_flags2` (iverilog's run of the same file) or a `*_common.py` helper's conditional flags. Each would have been "the driver passes it" in a tracked table. The strict scan names what it skips.
+- **A disposition can hide a ruling.** `t_gen_missing.v` was `driver_define` — true: without the define the parse stops on the `` `error `` stub. With the define it stops on a bare `begin` inside a generate region, the `.3.56` shape. The disposition described the first barrier, not the file; the lane under the right context found the second.
+- **Report, never guess, and say why for each remaining row.** Six `driver_define` rows remain; each now says "computed" or "tie" with the drivers named, so the next reader knows what a derivation cannot do rather than what it did not do yet.
+- **Promotion**: declined — `promotion: declined (the pins carry their measurements)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.6c.2 (`PGEN-SVPP-EXPANSION-0016`): a pin is a reproducer, a control and a clause — on both profiles
 
 - **Run the control on the other edition too.** Two of the eleven reproducers rejected on sv_2017 and ACCEPTED on sv_2023: a select on a call's result and the `+/-` range are 1800-2023 additions. Without the second profile the pin would have read "the standard cannot derive this", which is true of one edition and false of the other; with it, the pin reads as an edition contrast and the corpus tree's 2023 lane inherits the row correctly. The same run found a 2023 gap (`+%-` refused) nobody was looking for.

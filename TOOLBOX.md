@@ -249,9 +249,17 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   `` `include "NAME" `` that its includer's own directory does not satisfy, the ONE directory that
   does; a name that exists under several directories is resolved PER FILE to the NEAREST candidate
   (the one sharing the longest path prefix with the includer — `pipeline_context_files.tsv`, applied
-  to that file first), and a tie is REPORTED with its candidates, never guessed. Every directory
+  to that file first), and a tie is REPORTED with its candidates, never guessed. The DEFINES a
+  file's own driver passes for it are derived the same way (`pipeline_context_defines.tsv`, applied
+  per file as `--sv-define`; `SVPP-EXPANSION.4c.1`): verilator's same-stem `t_x.py` (its
+  `+define+NAME[=VALUE]` / `-DNAME[=VALUE]` tokens in the SV flag lists — `-CFLAGS`, `make_flags`
+  and `iv_flags` spans reach the C++ compiler or iverilog and are skipped), a single variant driver
+  naming the file as `top_filename` when no same-stem driver exists, and sv-tests' `:defines:`
+  header; a value the driver computes at run time (`"+define+SIM_CYCLES=" + str(test.cycles)`,
+  an f-string) and a file several variant drivers configure differently are REPORTED by the
+  deriver (`computed` / `tie` lines), never guessed. Every directory
   under `stimuli/sv/subs/` is a suite (`--list-suites`; the runner takes `all`). `SVPP-EXPANSION.4`/`.4b`.
-  ⭐ Both tracked tables and the tracked report are held to a fresh derivation on every commit by the
+  ⭐ All three tracked tables and the tracked report are held to a fresh derivation on every commit by the
   `PIPELINE-LANE-CURRENCY` doctrine (`scripts/check_pipeline_lane_currency.sh`; the dumps being
   `.gitignore`d, a tree without them is NOT EVALUATED, loudly).
 - **WHEN:** any *"how much of this corpus does the SV front end actually recognise?"* question —

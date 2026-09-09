@@ -6,28 +6,28 @@ ADJUDICATED	pipeline:chained:accepted_under_expansion	1271	7.78
 NO VERDICT	pipeline:chained:accepted_under_expansion	260	1.59
 ADJUDICATED	pipeline:corroborated	1213	7.43
 NO VERDICT	deferred:no_sv_key	596	3.65
-ADJUDICATED	pipeline:must_reject:match_under_expansion	433	2.65
+ADJUDICATED	pipeline:must_reject:match_under_expansion	436	2.67
 NO VERDICT	deferred:not_source_text	350	2.14
 NO VERDICT	pipeline:chained:hollow	236	1.44
 NO VERDICT	pipeline:chained:refused_context	210	1.29
-NO VERDICT	pipeline:svpp_owned:accepted_under_expansion	111	0.68
+NO VERDICT	pipeline:svpp_owned:accepted_under_expansion	112	0.69
 NO VERDICT	pipeline:refuted:cross_file_base_class	103	0.63
 NO VERDICT	deferred:impl_varying	90	0.55
 ADJUDICATED	divergence:explained_store_gate	56	0.34
 NO VERDICT	pipeline:svpp_owned:refused_engine	30	0.18
-NO VERDICT	pipeline:svpp_owned:rejects_own_file	28	0.17
+NO VERDICT	pipeline:svpp_owned:rejects_own_file	27	0.17
 NO VERDICT	deferred:verilog_ams_lane	25	0.15
 ADJUDICATED	pipeline:refuted:parser_question	21	0.13
 NO VERDICT	pipeline:chained:refused_engine	15	0.09
-NO VERDICT	pipeline:refuted:driver_define	9	0.06
 NO VERDICT	pipeline:refuted:vendor_identity_branch	9	0.06
 ADJUDICATED	divergence:unexplained_rejects_valid	7	0.04
 NO VERDICT	pipeline:refused_engine	7	0.04
 NO VERDICT	deferred:ni_unimplemented	6	0.04
+NO VERDICT	pipeline:refuted:driver_define	6	0.04
 NO VERDICT	pipeline:refused_context	5	0.03
 NO VERDICT	pipeline:refuted:cross_file_define	4	0.02
 ADJUDICATED	divergence:unexplained_accepts_invalid	2	0.01
 NO VERDICT	pipeline:svpp_owned:refused_context	2	0.01
 NO VERDICT	pipeline:refuted:preprocessor_item	1	0.01
 NO VERDICT	pipeline:svpp_owned:hollow	1	0.01
-TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	8698/2606/5032/3750/30	
+TUPLE	adjudicated/routed/no-verdict/dark/axis-2-bar	8701/2606/5029/3746/30	

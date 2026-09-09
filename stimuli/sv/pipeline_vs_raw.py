@@ -9,6 +9,7 @@ pipeline recognises that the raw lane could not (and the reverse):
     stimuli/sv/characterization/results.tsv            the raw lane (run_external_corpus.sh sv)
     stimuli/sv/characterization/adjudication_manifest.tsv   the answer key's verdict per row
     stimuli/sv/pipeline_context.tsv                    the context the lane ran under
+    stimuli/sv/pipeline_context_defines.tsv            the per-file defines the files' own drivers pass (SVPP-EXPANSION.4c.1)
 
 ⛔ Every number here is a JOIN, never a copy: a row is counted only where the pipeline dump holds
 it, the raw status comes from the raw dump for the SAME path, and the adjudication class from the
@@ -151,6 +152,7 @@ def main() -> int:
     ap.add_argument("--raw", default=str(CHAR / "results.tsv"))
     ap.add_argument("--manifest", default=str(CHAR / "adjudication_manifest.tsv"))
     ap.add_argument("--context", default=str(ROOT / "stimuli" / "sv" / "pipeline_context.tsv"))
+    ap.add_argument("--context-defines", default=str(ROOT / "stimuli" / "sv" / "pipeline_context_defines.tsv"))
     ap.add_argument("--probe", default=str(ROOT / "rust" / "target" / "release" / "parseability_probe"))
     ap.add_argument("--out", default=str(CHAR / "pipeline_characterization.md"))
     ap.add_argument("--top", type=int, default=25)
@@ -263,6 +265,9 @@ def main() -> int:
     L.append(f"| grammar raw ast | `grammars/systemverilog.ebnf` | `{semantic_digest(grammar)}` |")
     L.append(f"| generated parser | `generated/systemverilog_parser.rs` | `{sha256(parser) if parser.exists() else 'NOT EVALUATED (absent)'}` |")
     L.append(f"| context | `{rel(pathlib.Path(args.context))}` | `{sha256(pathlib.Path(args.context))}` |")
+    ctx_defines = pathlib.Path(args.context_defines)
+    if ctx_defines.exists():
+        L.append(f"| context (per-file defines) | `{rel(ctx_defines)}` | `{sha256(ctx_defines)}` |")
     L.append(f"| pipeline results (output) | `{rel(pathlib.Path(args.pipeline))}` | `{sha256(pathlib.Path(args.pipeline))}` |")
     L.append(f"| raw results (input) | `{rel(pathlib.Path(args.raw))}` | `{sha256(pathlib.Path(args.raw))}` |")
     L.append(f"\nMeasured at `HEAD` = `{head_commit()}`; the parse binary is a **{build_mode}** build "
@@ -325,6 +330,19 @@ def main() -> int:
     for r in read_tsv(pathlib.Path(args.context), 5)[1:]:
         if r[0] in suites:
             L.append(f"| {r[0]} | {r[1]} | {code(r[2])} | {r[3]} |")
+    # SVPP-EXPANSION.4c.1 — the defines a file's OWN driver passes for it (verilator `t_x.py`, sv-tests
+    # `:defines:`), applied per file as `--sv-define`; derived with a literal value only, ties and
+    # computed values reported by the deriver, never guessed
+    if ctx_defines.exists():
+        drows = [r for r in read_tsv(ctx_defines, 4)[1:] if r[0] in suites]
+        L.append("\n### Per-file defines (the file's own driver)\n")
+        L.append("| suite | files | defines | e.g. |\n|---|---:|---:|---|")
+        for suite in sorted({r[0] for r in drows}):
+            mine = [r for r in drows if r[0] == suite]
+            first = mine[0]
+            L.append(f"| {suite} | {len({r[1] for r in mine})} | {len(mine)} | {code(first[1].rsplit('/', 1)[-1])} ← {code('--sv-define ' + first[2])} |")
+        if not drows:
+            L.append("| (none) | 0 | 0 | |")
 
     out = pathlib.Path(args.out)
     out.write_text("\n".join(L) + "\n")

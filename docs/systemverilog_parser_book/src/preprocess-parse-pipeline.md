@@ -125,7 +125,12 @@ The pipeline lane (`stimuli/run_pipeline_lane.sh`, joined against the raw lane b
 grammar, parser, context and dumps every number below depends on) parses every source file of a
 corpus suite through the chain under a context DERIVED from the corpus itself
 (`stimuli/sv/pipeline_context.py`: for every `` `include `` an includer's own directory does not
-satisfy, the one directory that does; an ambiguous name is reported, never guessed). The first
+satisfy, the one directory that does; an ambiguous name is reported, never guessed — and, since
+`.4c.1`, the defines a file's own driver passes for it: verilator's `t_x.py` flags and sv-tests'
+`:defines:` header, a literal value only, applied per file as `--sv-define`; a value the driver
+computes at run time and a file several variant drivers configure differently are reported, not
+guessed. These are the test's own configuration, not a tool identity: `.6b.3` measured and declined
+the identity predefines). The first
 measurement, on the two suites the raw lane cannot judge at all (every one of their rows is
 `deferred:chained_only` in the raw answer key), release probe, `sv_2017`, 45 s wall:
 
@@ -290,14 +295,35 @@ refuse and the row's expectation is what needs a ruling), an expansion-stage rul
 disposition for a row that has since moved is refused, so the table cannot carry a stale claim. Every refuted
 row carries one; the report's `refuted_awaiting_disposition` is the count still to be looked at.
 
+**The file's own configuration (`.4c.1`).** A test suite's driver does not run a file bare: verilator's
+`t_x.py` passes `+define+NAME[=VALUE]` / `-DNAME[=VALUE]`, sv-tests' header carries `:defines:`. The
+derived context now includes them per file (`stimuli/sv/pipeline_context_defines.tsv`, 56 rows on 48 files:
+53 verilator, 3 sv-tests), applied as `--sv-define` before the suite's rows. The deriver emits a LITERAL
+value only and reports the rest instead of guessing — 3 files whose driver computes the value at run time
+(`"+define+SIM_CYCLES=" + str(test.cycles)`), 24 files that several variant drivers configure differently
+(`t_time_sc_ns.py` … `t_time_sc_sec.py`), and it skips the spans whose `-D` reaches the C++ compiler or
+iverilog (`-CFLAGS`, `make_flags=[CPPFLAGS_ADD=…]`, `iv_flags`) and the `*_common.py` helpers that are not
+drivers — the first, permissive scan had emitted 94 rows, 38 of them C++ defines or a helper's
+conditional flags; the strict scan emits 56. Re-run on the whole lane, exactly 5 rows moved, all among the
+files with defines: 3 `fail → pass` (sv-tests `preprocessor-macro_0/1.sv` under `TEST_VAR` / `VAR_1=2 VAR_2=5`,
+verilator `t_assert_inside_cond.v` under `T_ASSERT_INSIDE_COND`) and 2 `pass → fail`. 🔎 **A driver's define
+can select a vendor-extension branch**: `t_vpi_module.v` and `t_vpi_public_depth.v` are standard
+SystemVerilog only WITHOUT their driver's `+define+USE_DOLLAR_C32` — with it, the selected branch is
+`` `systemc_header `` / `extern "C" int mon_check();` / `` `verilog ``, Verilator's directives (not among
+clause 22's) around C++ text no production derives; the row is right to reject under its own configuration
+and is pinned `must_reject` with a reproducer/control measured on both profiles, as is `t_gen_missing.v`,
+whose define selects the branch above its `` `error `` stub and exposes a bare `begin … end` inside a
+generate region (the `.3.56` ruling, A.4.2) — a row the `driver_define` disposition had been hiding. Six
+`driver_define` rows remain, each now naming why its define cannot be derived (computed, or a tie).
+
 **The denominator, read twice.** The platform book's verdict-coverage tuple
 (`adjudicated/routed/no-verdict/dark/axis-2-bar`) now carries two readings of the same rows, published
-together and held by the same gate: the raw lane's `7501/2606/6229/4022/9`, and `8698/2606/5032/3750/30`
+together and held by the same gate: the raw lane's `7498/2606/6232/4025/9`, and `8701/2606/5029/3746/30`
 under the pipeline. The second is the first with the re-adjudication table applied: 1 213 explained-away
 rows corroborated, 1 271 design-corpus files accepted under their derived context (must-accept by the
-suite's own convention — a shipping design compiles), 433 must-reject rows rejected where the raw lane
+suite's own convention — a shipping design compiles), 436 must-reject rows rejected where the raw lane
 never reached the construct (28 of them the key questions of the disposition table, pinned with the
-clause and a reproducer each), and 21 must-accept rows still refused in their own text — the bar's new
+clause and a reproducer each, and 3 the rows a file's own driver define reaches — `.4c.1`), and 21 must-accept rows still refused in their own text — the bar's new
 members, each with its clause, until the corpus tree rules them. 2 935 rows are dark under the pipeline
 on a declaration another file holds; that is the library design's population. The report also re-reads every row the key expects **rejected** — including
 a pin the raw lane could not cash because its parse stopped on a macro use above the construct: 34 verilator

@@ -22,10 +22,11 @@ Suites covered by the pipeline dump: **Cores-VeeR-EL2, Surelog, black-parrot, fr
 | grammar raw ast | `grammars/systemverilog.ebnf` | `c447ccaa951e3290dc5e27a2b3f4526c5b7b0933d8e3d20af9ed1cf978935889` |
 | generated parser | `generated/systemverilog_parser.rs` | `423042d2c857ac5d711439a6a947dc8bcc051f5d50880bfc0d0bbd49881491b2` |
 | context | `stimuli/sv/pipeline_context.tsv` | `f1b77668e01ef6bedcd293f3c5967052525fa48a9b40aa17941cc875a3c8d625` |
-| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `befd1e9f62d7ccb93dd3b45cded83f919e9ba6cbf459dbed0158711761bee688` |
+| context (per-file defines) | `stimuli/sv/pipeline_context_defines.tsv` | `a522d72408a5aa43a61880ed980351aa9713b26557a02fb54181354f80b772e1` |
+| pipeline results (output) | `stimuli/sv/characterization/pipeline_results.tsv` | `9d93b06fcf4f8f99a82bd27f0c29bad9e688f35b1d6d95484ba36a181e2e443e` |
 | raw results (input) | `stimuli/sv/characterization/results.tsv` | `5fa726cd89002007c1fb821ec84c29bc3eadb23fc9651cbf058dad156f57e8f3` |
 
-Measured at `HEAD` = `22133c1e+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
+Measured at `HEAD` = `8c67a266+dirty`; the parse binary is a **debug** build (the label above is the identity-carriers doctrine's, which treats the shared probe's digest as provenance, not staleness).
 
 ## Per suite — raw lane vs pipeline lane
 
@@ -40,12 +41,12 @@ Measured at `HEAD` = `22133c1e+dirty`; the parse binary is a **debug** build (th
 | opentitan | 3983 | 817 | 3166 | 0 | 1077 | 2897 | 9 | 0 | 0 | +260 |
 | scr1 | 50 | 8 | 42 | 0 | 49 | 1 | 0 | 0 | 0 | +41 |
 | slang | 92 | 72 | 20 | 0 | 73 | 16 | 3 | 0 | 0 | +1 |
-| sv-tests | 1028 | 856 | 172 | 0 | 895 | 128 | 5 | 0 | 0 | +39 |
+| sv-tests | 1028 | 856 | 172 | 0 | 897 | 126 | 5 | 0 | 0 | +41 |
 | sv2v | 953 | 714 | 239 | 0 | 806 | 127 | 20 | 0 | 0 | +92 |
 | uvm-core | 174 | 33 | 141 | 0 | 28 | 146 | 0 | 0 | 0 | -5 |
 | verible | 152 | 120 | 32 | 0 | 129 | 23 | 0 | 0 | 0 | +9 |
-| verilator | 3263 | 2084 | 1179 | 0 | 2959 | 287 | 17 | 0 | 0 | +875 |
-| **total** | 16336 | 9847 | 6489 | 0 | 11692 | 4367 | 277 | 0 | 0 | +1845 |
+| verilator | 3263 | 2084 | 1179 | 0 | 2958 | 288 | 17 | 0 | 0 | +874 |
+| **total** | 16336 | 9847 | 6489 | 0 | 11693 | 4366 | 277 | 0 | 0 | +1846 |
 
 ## Transitions — raw status → pipeline status
 
@@ -91,8 +92,8 @@ Measured at `HEAD` = `22133c1e+dirty`; the parse binary is a **debug** build (th
 | slang | `pass` → `fail` | 3 |
 | slang | `pass` → `pp_fail` | 3 |
 | sv-tests | `pass` → `pass` | 853 |
-| sv-tests | `fail` → `fail` | 128 |
-| sv-tests | `fail` → `pass` | 42 |
+| sv-tests | `fail` → `fail` | 126 |
+| sv-tests | `fail` → `pass` | 44 |
 | sv-tests | `pass` → `pp_fail` | 3 |
 | sv-tests | `fail` → `pp_fail` | 2 |
 | sv2v | `pass` → `pass` | 697 |
@@ -108,8 +109,8 @@ Measured at `HEAD` = `22133c1e+dirty`; the parse binary is a **debug** build (th
 | verible | `fail` → `fail` | 23 |
 | verible | `fail` → `pass` | 9 |
 | verilator | `pass` → `pass` | 2073 |
-| verilator | `fail` → `pass` | 886 |
-| verilator | `fail` → `fail` | 284 |
+| verilator | `fail` → `pass` | 885 |
+| verilator | `fail` → `fail` | 285 |
 | verilator | `fail` → `pp_fail` | 9 |
 | verilator | `pass` → `pp_fail` | 8 |
 | verilator | `pass` → `fail` | 3 |
@@ -140,10 +141,10 @@ Measured at `HEAD` = `22133c1e+dirty`; the parse binary is a **debug** build (th
 | `match` | 6064 | 5693 | 370 | 1 | 0 | 0 |
 | `deferred:chained_only` | 4933 | 1531 | 3177 | 225 | 0 | 0 |
 | `deferred:v2005_profile_lane` | 2606 | 2485 | 116 | 5 | 0 | 0 |
-| `divergence:explained_svpp_macro_use` | 1040 | 994 | 42 | 4 | 0 | 0 |
+| `divergence:explained_svpp_macro_use` | 1037 | 994 | 39 | 4 | 0 | 0 |
 | `deferred:no_sv_key` | 596 | 557 | 38 | 1 | 0 | 0 |
 | `deferred:not_source_text` | 350 | 0 | 350 | 0 | 0 | 0 |
-| `deferred:svpp_owned` | 229 | 111 | 86 | 32 | 0 | 0 |
+| `deferred:svpp_owned` | 232 | 112 | 88 | 32 | 0 | 0 |
 | `divergence:explained_svpp_conditional` | 195 | 194 | 1 | 0 | 0 | 0 |
 | `divergence:explained_svpp_include` | 133 | 23 | 103 | 7 | 0 | 0 |
 | `deferred:impl_varying` | 90 | 89 | 1 | 0 | 0 | 0 |
@@ -163,7 +164,7 @@ Measured at `HEAD` = `22133c1e+dirty`; the parse binary is a **debug** build (th
 | construct at the origin line | rows | one example (origin — line) |
 |---|---:|---|
 | class header with a base class (`extends`) | 2182 | `stimuli/sv/subs/Cores-VeeR-EL2/testbench/uvm/mem/hdl/dccm_transaction_sequence_item.sv:4:63` — `class dccm_transaction_sequence_item extends uvm_sequence_item;` |
-| other | 1869 | `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh:182:22` — `parameter el2_param_t pt = 2294'h02420200008020008420000010484100001420002404110506424100030108600000000000000` |
+| other | 1868 | `stimuli/sv/subs/Cores-VeeR-EL2/snapshots/default/el2_param.vh:182:22` — `parameter el2_param_t pt = 2294'h02420200008020008420000010484100001420002404110506424100030108600000000000000` |
 | a parameter port list `#(` | 102 | `stimuli/sv/subs/Surelog/tests/ClassExtendParam/dut.sv:3:58` — `virtual class uvm_sequence #(type REQ = uvm_sequence_item,` |
 | a `typedef` | 66 | `stimuli/sv/subs/Surelog/tests/NetType/dut.sv:18:24` — `typedef some_other_type myalias;` |
 | a `::`-scoped name | 63 | `stimuli/sv/subs/Surelog/tests/Assignments/dut.sv:5:44` — `function void uvm_packer::get_packed_bits(ref bit unsigned stream[]);` |
@@ -344,3 +345,10 @@ Measured at `HEAD` = `22133c1e+dirty`; the parse binary is a **debug** build (th
 | verible | include_dir | `stimuli/sv/subs/verible/verible/verilog/tools/kythe/testdata/include_with_dir_test/include_dir` | 1 |
 | verilator | include_dir | `stimuli/sv/subs/verilator/test_regress/t/tsub` | 3 |
 | verilator | include_dir | `stimuli/sv/subs/verilator/test_regress` | 1 |
+
+### Per-file defines (the file's own driver)
+
+| suite | files | defines | e.g. |
+|---|---:|---:|---|
+| sv-tests | 2 | 3 | `5.6.4--compiler-directives-preprocessor-macro_0.sv` ← `--sv-define TEST_VAR` |
+| verilator | 45 | 53 | `t_assert_inside_cond.v` ← `--sv-define T_ASSERT_INSIDE_COND` |
