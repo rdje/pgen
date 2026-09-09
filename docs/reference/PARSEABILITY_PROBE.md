@@ -39,6 +39,10 @@ Global flags (any sub-command):
 | `--trace` | _(none)_ | Enable runtime tracing on the parser. Output goes to stderr unless `--trace-log-file` is set. Trace verbosity defaults to `low` and can be raised via the `PGEN_TRACE_VERBOSITY` env var. |
 | `--trace-log-file` | `[FILE]` | Redirect runtime trace output to `FILE`. If `FILE` is omitted, a timestamped file under the working directory is used. May be specified at most once. |
 | `--max-bytes` | `N` (positive integer) | Truncate the AST dump output if encoded JSON exceeds `N` bytes. Only meaningful for `--parse-dump-ast` / `--parse-dump-ast-pretty`. May be specified at most once. |
+| `--preprocess` | _(none)_ | `systemverilog` only. Run the SystemVerilog **preprocessor** on `<input_file>` in-process (macros, `` `include ``, conditionals) and parse the **expanded** text — the preprocess→parse pipeline in one command (`SVPP-EXPANSION.3`). A rejection carries `[origin=FILE:LINE:COL]`, the position mapped back through the preprocessor's source map. If the preprocessor refuses the input the parser never runs and the exit code is `3`. |
+| `--sv-include-dir` | `DIR` (repeatable, ordered) | With `--preprocess`: an `` `include `` search directory. |
+| `--sv-define` | `NAME` or `NAME=TEXT` (repeatable, ordered) | With `--preprocess`: a predefined macro, seeded before the first line as if `` `define NAME TEXT `` stood at the top of the unit; `NAME` alone = empty text. |
+| `--sv-unit-file` | `F` (repeatable, ordered) | With `--preprocess`: a file preprocessed **before** `<input_file>` in the same compilation unit (its macros carry over, IEEE 1800-2017 §22.5.1); its own text is discarded. |
 
 Two environment variables are honored as fallback defaults:
 
@@ -46,6 +50,7 @@ Two environment variables are honored as fallback defaults:
 |---|---|
 | `PGEN_PARSE_DUMP_AST_MAX_BYTES` | Default `--max-bytes` if not specified on the command line. |
 | `PGEN_TRACE_VERBOSITY` | Default trace verbosity (e.g. `off`, `low`, `medium`, `high`) when `--trace` is set. |
+| `PGEN_REPORT_PREPROCESS` | When set and `--preprocess` is active, print one `preprocess: …` summary line on stderr (unit predecessors, include dirs, defines, output bytes, source-map entries, included files, macro expansions, warnings). Opt-in because corpus runners capture the probe's stderr. |
 
 ## Sub-commands
 
@@ -79,6 +84,14 @@ Error: parse_full rejected sample for grammar 'regex' on '/path/to/input.txt': <
 ```
 
 (exit `1`). No AST is written; this is the cheapest way to verify acceptance.
+
+With `--preprocess` (SystemVerilog only) the input is expanded first and the expanded text is
+parsed; a success reads `parse_full passed … [preprocessed]`, a rejection ends with
+`[origin=FILE:LINE:COL]` — the deepest position any branch reached, mapped back to the source it
+came from (an included file names itself; a macro expansion names the line of its use). The
+same flag works on `--parse-dump-ast` / `--parse-dump-ast-pretty`, which then dump the AST of
+the expanded text. The full description is the SystemVerilog parser book's chapter *The
+Preprocess→Parse Pipeline*.
 
 ### `--parse-dump-ast <grammar_name> <input_file> [output_file]` — compact AST dump
 
@@ -139,6 +152,7 @@ If `--profile` is omitted, the registry's default for the grammar is used. For g
 | `0` | Success — `--supports` registered the grammar; `--parse` accepted the input; `--parse-dump-ast{,-pretty}` wrote the dump. |
 | `1` | Operational failure — adapter unavailable for the grammar, parse rejected the input, file IO error, etc. The error message on stderr describes the specific failure. |
 | `2` | Usage error — wrong arg count, malformed flag, conflicting flags. The full usage banner is printed to stderr. |
+| `3` | `--preprocess` only: the SystemVerilog **preprocessor refused** the input (an unresolved `` `include ``, an unterminated conditional, an illegal `` `define ``, …) — the parser never ran. `preprocess_failed for grammar 'systemverilog' on '<file>': <reason>` is printed to stderr. A corpus lane keys on this code to separate *could not be expanded* from *rejected by the language*. |
 
 CI scripts should distinguish `0` (sample is valid) from `1` (sample is invalid OR the grammar isn't available); `--supports` is the way to disambiguate the latter from the former.
 

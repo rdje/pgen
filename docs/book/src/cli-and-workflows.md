@@ -82,6 +82,19 @@ For any work involving a parser's behavior — investigating a parse failure, id
 - the self-explaining predicate trace (`🛡️ predicate 'X' PASSED/REJECTED/INAPPLICABLE branch K/N`),
 - workflow recipes for stuck parses, deep failures, and predicate-rejection mysteries.
 
+## The SystemVerilog Preprocess→Parse Pipeline
+
+Real SystemVerilog is parsed **after** preprocessing, so the SystemVerilog deliverable is a
+pipeline: `ast_pipeline INPUT.sv --preprocess-systemverilog` is the expansion stage on its own
+(macros, `` `include ``, conditionals; an expanded file plus a source map), and
+`parseability_probe --parse systemverilog FILE --preprocess` runs expansion and parse in one
+command, mapping a rejection back to the source line it came from (`[origin=FILE:LINE:COL]`).
+Both take the same compilation context — `--sv-include-dir DIR`, `--sv-define NAME[=TEXT]`,
+`--sv-unit-file F` (the unit's earlier files, one macro table, IEEE 1800-2017 §22.5.1). The
+chapter *The Preprocess→Parse Pipeline* in the SystemVerilog parser book
+(`docs/systemverilog_parser_book/src/preprocess-parse-pipeline.md`) is the reference; the
+probe's flags are in [Debugging With `parseability_probe`](parseability-probe-debug.md).
+
 ## Working Style That Fits PGEN Best
 
 The most reliable pattern is:

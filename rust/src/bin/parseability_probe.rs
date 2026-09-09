@@ -6,9 +6,16 @@ use pgen::ast_pipeline::{
 };
 #[cfg(feature = "generated_parsers")]
 use pgen::parser_registry;
+// `SVPP-EXPANSION.3` — the preprocess→parse chain: the SystemVerilog preprocessor runs IN-PROCESS
+// before the parser, and its source map maps a rejection back to the text the operator wrote.
+#[cfg(feature = "generated_parsers")]
+use pgen::sv_preprocessor::{PredefinedMacro, SvPreprocessorConfig, preprocess_systemverilog_unit};
+use pgen::sv_preprocessor::{
+    PreprocessedOutput, PreprocessorDiagnosticSeverity, PreprocessorEventKind,
+};
 
 fn usage() -> &'static str {
-    "Usage:\n  parseability_probe --parser-fingerprint\n  parseability_probe --stack-reservation\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY\nOptional opt-in stack-probe report (`ENGINE-UNIVERSAL-SERVICES.69`(d)): PGEN_REPORT_STACK_PROBE=1 prints, on stderr, the depth probe's own reading at its last refusal — cause, live depth, stack bytes actually spent, the reservation and the spendable budget. Opt-in because `stimuli/run_external_corpus.sh` captures this binary's stderr as a per-file corpus column (`SV-CORPUS-GRAD.12a`). Use it to tell a genuinely too-deep input (`cause=BudgetExhausted`) from a parse that never learned its own stack size (`cause=ExtentUnknown`); a parse can CONTACT the ceiling and still ACCEPT, at a large cost.\n--entry-rule RULE         : (`GRAMMAR-WELLFORMED.H.12.8.4.3.1`; dump support `SV-AST-SHAPE-FIDELITY.2.4`) parse `--parse` input — or dump the AST of `--parse-dump-ast[-pretty]` input — from an ALTERNATE start symbol (e.g. `library_text`, or a PEG-shadowed expression-position rule) via the generated parser's `parse_full_from`, instead of the grammar's canonical entry. Lets an entry-relative or shadowed rule (unreachable from the default entry) be reproduced/traced/AST-dumped in isolation. AST-dump `--entry-rule` is currently wired for `systemverilog` only. Default = the canonical entry (byte-identical to omitting the flag).\n--lib-in DIR              : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are READ from for `@import_from_library`.\n--lib-out DIR             : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are WRITTEN to for `@export_to_library`.\n--trace-rules             : (`SV-EXH-PROOF.3.3.4.b.6.2.17`) comma-separated rule-name list. Trace activates ONLY inside the call-tree of these rules (implies --trace). Reduces trace volume 100-1000× vs --trace for targeted investigation.\n--dump-rule-call-counts   : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) live per-rule call-count dashboard. Each rule's call counter is incremented on every entry; the top-20 rules sorted by count are shown on stderr and updated every 250ms in place. Use to identify which rules dominate a stuck or slow parse; works on timeout (dashboard keeps refreshing until the process is killed). Accepts an optional integer arg to control the top-N (default 20).\n--dump-rule-call-counts-exclude R1,R2,... : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) filter these rules OUT of the dashboard before computing the top-N. Use to hide always-dominant noise like `trivia` (whitespace handling) so the diagnostically interesting rules win display slots.\n--parser-fingerprint      : (`ENGINE-UNIVERSAL-SERVICES.24` (ii′)) print, as JSON on stdout, the sha256 of every generated parser THIS BINARY was compiled against — computed by `build.rs`, which already `rerun-if-changed`s each resolved parser. Answers the question a source-only identity table cannot: which parser does the executable that produces the numbers actually embed? Consumed by `stimuli/sv/corpus_parse_cost.py`, which REFUSES to measure when the probe's SystemVerilog digest differs from the parser on disk.\n--dump-ast-with-coverage  : (`ENGINE-UNIVERSAL-SERVICES.22` (b)) `--parse-dump-ast[-pretty]` only. Dump the AST of a parse run with TRANSACTIONAL COVERAGE enabled — the exact configuration the TOOLBOX 3.4/3.5 dumps measure under — so it can be compared against a bare parse's AST. Without it the dump path always runs `bare_parse = true` (the fused `cascade_*` graph), and passing `--dump-rule-outcome-counts-json` beside it does NOT change that: the coverage call lives in the `--parse` detail macro, so both arms come out bare and agree for the wrong reason. SystemVerilog only, and it REFUSES on any other grammar or alongside `--entry-rule` rather than silently dumping bare.\n--stack-reservation       : (`ENGINE-UNIVERSAL-SERVICES.69`(a)) print, as `key=value` lines on stdout, the parse-stack reservation THIS PROCESS resolved on THIS HOST and where it came from — `operator_override` (`PGEN_PARSE_STACK_BYTES`), `host_memory_derived` (physical memory / the share divisor, clamped to the floor and the reference), or `reference_fallback` (the host's memory could not be read). Since `.69`(a) the reservation is a derived host quantity rather than a literal, and the only other surface that reports it is the `.69`(d) stack-probe line, which appears ONLY on a refusal — i.e. only after provoking a parse deep enough to contact the ceiling."
+    "Usage:\n  parseability_probe --parser-fingerprint\n  parseability_probe --stack-reservation\n  parseability_probe --supports <grammar_name> [--profile PROFILE] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse <grammar_name> <input_file> [--profile PROFILE] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n  parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file] [--profile PROFILE] [--max-bytes N] [--entry-rule RULE] [--lib-in DIR] [--lib-out DIR] [--trace] [--trace-rules R1,R2,...] [--trace-log-file [FILE]] [--dump-rule-call-counts]\n\nDefault AST dump filename (when output_file omitted): <grammar_name>_ast.json\nOptional env fallback for dump-size bound: PGEN_PARSE_DUMP_AST_MAX_BYTES\nOptional env fallback for trace verbosity: PGEN_TRACE_VERBOSITY\nOptional opt-in stack-probe report (`ENGINE-UNIVERSAL-SERVICES.69`(d)): PGEN_REPORT_STACK_PROBE=1 prints, on stderr, the depth probe's own reading at its last refusal — cause, live depth, stack bytes actually spent, the reservation and the spendable budget. Opt-in because `stimuli/run_external_corpus.sh` captures this binary's stderr as a per-file corpus column (`SV-CORPUS-GRAD.12a`). Use it to tell a genuinely too-deep input (`cause=BudgetExhausted`) from a parse that never learned its own stack size (`cause=ExtentUnknown`); a parse can CONTACT the ceiling and still ACCEPT, at a large cost.\n--entry-rule RULE         : (`GRAMMAR-WELLFORMED.H.12.8.4.3.1`; dump support `SV-AST-SHAPE-FIDELITY.2.4`) parse `--parse` input — or dump the AST of `--parse-dump-ast[-pretty]` input — from an ALTERNATE start symbol (e.g. `library_text`, or a PEG-shadowed expression-position rule) via the generated parser's `parse_full_from`, instead of the grammar's canonical entry. Lets an entry-relative or shadowed rule (unreachable from the default entry) be reproduced/traced/AST-dumped in isolation. AST-dump `--entry-rule` is currently wired for `systemverilog` only. Default = the canonical entry (byte-identical to omitting the flag).\n--lib-in DIR              : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are READ from for `@import_from_library`.\n--lib-out DIR             : (`SV-EXH-PROOF.3.3.4.a` MVP-0) directory artifacts are WRITTEN to for `@export_to_library`.\n--preprocess              : (`SVPP-EXPANSION.3`) `systemverilog` only. Run the SystemVerilog PREPROCESSOR on <input_file> IN-PROCESS (macros, `include, conditionals) and parse the EXPANDED text — the preprocess→parse pipeline in one command. A rejection is reported with `[origin=FILE:LINE:COL]`, the position mapped back through the preprocessor's source map (an included file names itself; a macro expansion names its use site). If the preprocessor refuses the input the parser never runs and the exit code is 3 (`preprocess_failed …` on stderr), so a corpus lane can tell it from a parse rejection (1).\n--sv-include-dir DIR      : (with --preprocess, repeatable, ordered) an `include search directory — the same flag `ast_pipeline --preprocess-systemverilog` takes.\n--sv-define NAME[=TEXT]   : (with --preprocess, repeatable, ordered) a PREDEFINED macro, seeded before the first line as if `define NAME TEXT stood at the top of the unit; NAME alone = empty text (`SVPP-EXPANSION.2`).\n--sv-unit-file F          : (with --preprocess, repeatable, ordered) a file preprocessed BEFORE <input_file> in the same COMPILATION UNIT (IEEE 1800-2017 §22.5.1: its macros carry over); its own text is discarded.\nPGEN_REPORT_PREPROCESS=1  : print one `preprocess: …` summary line on stderr under --preprocess (opt-in, like PGEN_REPORT_STACK_PROBE, because corpus runners capture this binary's stderr).\n--trace-rules             : (`SV-EXH-PROOF.3.3.4.b.6.2.17`) comma-separated rule-name list. Trace activates ONLY inside the call-tree of these rules (implies --trace). Reduces trace volume 100-1000× vs --trace for targeted investigation.\n--dump-rule-call-counts   : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) live per-rule call-count dashboard. Each rule's call counter is incremented on every entry; the top-20 rules sorted by count are shown on stderr and updated every 250ms in place. Use to identify which rules dominate a stuck or slow parse; works on timeout (dashboard keeps refreshing until the process is killed). Accepts an optional integer arg to control the top-N (default 20).\n--dump-rule-call-counts-exclude R1,R2,... : (`SV-EXH-PROOF.3.3.4.b.6.2.22`) filter these rules OUT of the dashboard before computing the top-N. Use to hide always-dominant noise like `trivia` (whitespace handling) so the diagnostically interesting rules win display slots.\n--parser-fingerprint      : (`ENGINE-UNIVERSAL-SERVICES.24` (ii′)) print, as JSON on stdout, the sha256 of every generated parser THIS BINARY was compiled against — computed by `build.rs`, which already `rerun-if-changed`s each resolved parser. Answers the question a source-only identity table cannot: which parser does the executable that produces the numbers actually embed? Consumed by `stimuli/sv/corpus_parse_cost.py`, which REFUSES to measure when the probe's SystemVerilog digest differs from the parser on disk.\n--dump-ast-with-coverage  : (`ENGINE-UNIVERSAL-SERVICES.22` (b)) `--parse-dump-ast[-pretty]` only. Dump the AST of a parse run with TRANSACTIONAL COVERAGE enabled — the exact configuration the TOOLBOX 3.4/3.5 dumps measure under — so it can be compared against a bare parse's AST. Without it the dump path always runs `bare_parse = true` (the fused `cascade_*` graph), and passing `--dump-rule-outcome-counts-json` beside it does NOT change that: the coverage call lives in the `--parse` detail macro, so both arms come out bare and agree for the wrong reason. SystemVerilog only, and it REFUSES on any other grammar or alongside `--entry-rule` rather than silently dumping bare.\n--stack-reservation       : (`ENGINE-UNIVERSAL-SERVICES.69`(a)) print, as `key=value` lines on stdout, the parse-stack reservation THIS PROCESS resolved on THIS HOST and where it came from — `operator_override` (`PGEN_PARSE_STACK_BYTES`), `host_memory_derived` (physical memory / the share divisor, clamped to the floor and the reference), or `reference_fallback` (the host's memory could not be read). Since `.69`(a) the reservation is a derived host quantity rather than a literal, and the only other surface that reports it is the `.69`(d) stack-probe line, which appears ONLY on a refusal — i.e. only after provoking a parse deep enough to contact the ceiling."
 }
 
 /// `SV-CORPUS-GRAD.12c.1` — read the input as USER SOURCE TEXT.
@@ -122,6 +129,11 @@ struct GlobalOptions {
     /// that (measured: no counts file is written and both arms come out bare). `--parse-dump-ast`
     /// only; SystemVerilog only, and it says so rather than silently ignoring the flag.
     dump_ast_with_coverage: bool,
+    // `SVPP-EXPANSION.3` — the preprocess→parse chain and its compilation context.
+    preprocess: bool,
+    sv_include_dirs: Vec<String>,
+    sv_defines: Vec<String>,
+    sv_unit_files: Vec<String>,
 }
 
 fn parse_positive_usize(value: &str, label: &str) -> Result<usize> {
@@ -277,6 +289,34 @@ fn strip_global_flags(args: &[String]) -> Result<(Vec<String>, GlobalOptions)> {
             idx += 2;
             continue;
         }
+        // `SVPP-EXPANSION.3` — the preprocess→parse chain. `--preprocess` runs the SystemVerilog
+        // preprocessor on the input IN-PROCESS and parses the EXPANDED text; the three context
+        // flags are `ast_pipeline --preprocess-systemverilog`'s own (`SVPP-EXPANSION.2`), repeatable
+        // and ordered, and they mean nothing without `--preprocess` (checked once every flag is read).
+        if args[idx] == "--preprocess" {
+            if options.preprocess {
+                bail!("--preprocess cannot be specified multiple times");
+            }
+            options.preprocess = true;
+            idx += 1;
+            continue;
+        }
+        if args[idx] == "--sv-include-dir" || args[idx] == "--sv-define" || args[idx] == "--sv-unit-file" {
+            let flag = args[idx].clone();
+            let value = args
+                .get(idx + 1)
+                .ok_or_else(|| anyhow::anyhow!("{} requires a value", flag))?;
+            if value.starts_with("--") || value.trim().is_empty() {
+                bail!("{} requires a value (got '{}')", flag, value);
+            }
+            match flag.as_str() {
+                "--sv-include-dir" => options.sv_include_dirs.push(value.clone()),
+                "--sv-define" => options.sv_defines.push(value.clone()),
+                _ => options.sv_unit_files.push(value.clone()),
+            }
+            idx += 2;
+            continue;
+        }
         // SV-EXH-PROOF.3.3.4.b.6.2.22 — live per-rule call-count dashboard.
         // Bare form `--dump-rule-call-counts` defaults to top-20. With a
         // following numeric arg `--dump-rule-call-counts 50`, that becomes
@@ -375,7 +415,213 @@ fn strip_global_flags(args: &[String]) -> Result<(Vec<String>, GlobalOptions)> {
         remaining.push(args[idx].clone());
         idx += 1;
     }
+    if !options.preprocess
+        && (!options.sv_include_dirs.is_empty()
+            || !options.sv_defines.is_empty()
+            || !options.sv_unit_files.is_empty())
+    {
+        bail!(
+            "--sv-include-dir / --sv-define / --sv-unit-file describe the preprocessor's compilation \
+             context and need --preprocess"
+        );
+    }
     Ok((remaining, options))
+}
+
+/// `SVPP-EXPANSION.3` — what a parse command reads: the file's decoded text, or — under
+/// `--preprocess` — the EXPANDED text the SystemVerilog preprocessor produced from it, kept whole
+/// (source map included) so a rejection can be mapped back to the text the operator wrote.
+enum ProbeInput {
+    Raw(String),
+    Preprocessed(PreprocessedOutput),
+}
+
+impl ProbeInput {
+    fn text(&self) -> &str {
+        match self {
+            ProbeInput::Raw(text) => text,
+            ProbeInput::Preprocessed(output) => &output.text,
+        }
+    }
+
+    fn preprocessed(&self) -> Option<&PreprocessedOutput> {
+        match self {
+            ProbeInput::Raw(_) => None,
+            ProbeInput::Preprocessed(output) => Some(output),
+        }
+    }
+}
+
+/// `SVPP-EXPANSION.3` — read the input as the command will parse it. Under `--preprocess` the
+/// compilation unit is `--sv-unit-file`s… then `<input_file>`, under ONE macro table
+/// (`SVPP-EXPANSION.2`); only the last file's expansion is parsed. ⛔ A preprocessor refusal is
+/// NOT a parse rejection: the parser never ran, so the process exits **3** (documented) with a
+/// `preprocess_failed …` line, never 1 — a corpus lane keys on exactly that difference.
+#[cfg(feature = "generated_parsers")]
+fn load_probe_input(
+    grammar_name: &str,
+    input_file: &str,
+    options: &GlobalOptions,
+) -> Result<ProbeInput> {
+    if !options.preprocess {
+        return Ok(ProbeInput::Raw(read_source(input_file)?));
+    }
+    if grammar_name != "systemverilog" {
+        bail!(
+            "--preprocess runs the SystemVerilog preprocessor before the parser; grammar '{}' has no \
+             preprocessing stage (only 'systemverilog' does)",
+            grammar_name
+        );
+    }
+    let defines = options
+        .sv_defines
+        .iter()
+        .map(|raw| {
+            PredefinedMacro::parse(raw).with_context(|| format!("invalid --sv-define '{}'", raw))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let config = SvPreprocessorConfig {
+        include_dirs: options
+            .sv_include_dirs
+            .iter()
+            .map(std::path::PathBuf::from)
+            .collect(),
+        defines,
+        ..SvPreprocessorConfig::default()
+    };
+    let mut unit: Vec<std::path::PathBuf> = options
+        .sv_unit_files
+        .iter()
+        .map(std::path::PathBuf::from)
+        .collect();
+    unit.push(std::path::PathBuf::from(input_file));
+    let mut outputs = match preprocess_systemverilog_unit(&unit, &config) {
+        Ok(outputs) => outputs,
+        Err(err) => {
+            eprintln!(
+                "preprocess_failed for grammar '{}' on '{}': {:#}",
+                grammar_name, input_file, err
+            );
+            std::process::exit(3);
+        }
+    };
+    let output = outputs.pop().ok_or_else(|| {
+        anyhow::anyhow!(
+            "the compilation unit produced no output for '{}'",
+            input_file
+        )
+    })?;
+    if std::env::var("PGEN_REPORT_PREPROCESS").is_ok() {
+        report_preprocess_summary(input_file, options, &output);
+    }
+    Ok(ProbeInput::Preprocessed(output))
+}
+
+/// `SVPP-EXPANSION.3` — the opt-in `preprocess:` line (`PGEN_REPORT_PREPROCESS=1`). Opt-in for the
+/// same reason as `stack_probe:`: `stimuli/run_external_corpus.sh` captures this binary's stderr
+/// as a per-file corpus column, and an unconditional line would edit a tracked measurement.
+#[cfg(feature = "generated_parsers")]
+fn report_preprocess_summary(input_file: &str, options: &GlobalOptions, output: &PreprocessedOutput) {
+    let macro_expansions = output
+        .events
+        .iter()
+        .filter(|event| matches!(event.kind, PreprocessorEventKind::MacroExpand))
+        .count();
+    let warnings = output
+        .diagnostics
+        .iter()
+        .filter(|d| matches!(d.severity, PreprocessorDiagnosticSeverity::Warning))
+        .count();
+    eprintln!(
+        "preprocess: input='{}' unit_predecessors={} include_dirs={} defines={} output_bytes={} source_map_entries={} included_files={} macro_expansions={} warnings={}",
+        input_file,
+        options.sv_unit_files.len(),
+        options.sv_include_dirs.len(),
+        options.sv_defines.len(),
+        output.text.len(),
+        output.source_map.len(),
+        output.included_files.len(),
+        macro_expansions,
+        warnings
+    );
+}
+
+/// `SVPP-EXPANSION.3` — the byte offset a rejection names, read off the registry's message:
+/// `furthest_position=N` (the deepest byte any branch reached — the one that locates the defect,
+/// TOOLBOX §3.2) when present, else the surface `at position N`.
+fn rejection_position(message: &str) -> Option<usize> {
+    fn leading_digits(tail: &str) -> Option<usize> {
+        tail.split(|c: char| !c.is_ascii_digit())
+            .next()
+            .and_then(|digits| digits.parse::<usize>().ok())
+    }
+    if let Some((_, tail)) = message.rsplit_once("furthest_position=") {
+        return leading_digits(tail);
+    }
+    message
+        .rsplit_once("at position ")
+        .and_then(|(_, tail)| leading_digits(tail))
+}
+
+/// `SVPP-EXPANSION.3` — map a byte offset in the EXPANDED text back to where that text came from.
+/// The preprocessor appends one source-map chunk per emitted line, so the chunk holding `position`
+/// names the FILE and LINE the bytes were written from: an `include`d line names the included file,
+/// and a macro EXPANSION names the line of the macro's USE — the expansion has no line of its own.
+/// The column is the chunk's first column plus the CHARACTERS (not bytes) between the chunk's start
+/// and `position`. A position at or past the end of the text lands on the last chunk's end.
+fn origin_of_position(output: &PreprocessedOutput, position: usize) -> Option<String> {
+    let map = &output.source_map;
+    if map.is_empty() {
+        return None;
+    }
+    let index = match map.binary_search_by(|entry| entry.output_start.cmp(&position)) {
+        Ok(index) => index,
+        Err(0) => return None,
+        Err(index) => index - 1,
+    };
+    let entry = &map[index];
+    let end = entry.output_end.min(output.text.len());
+    let clamped = position.min(end).max(entry.output_start);
+    let chars = output
+        .text
+        .get(entry.output_start..clamped)
+        .map(|chunk| chunk.chars().count())
+        .unwrap_or(0);
+    Some(format!(
+        "{}:{}:{}",
+        display_origin_file(&entry.source.file),
+        entry.source.line,
+        entry.source.column_start + chars
+    ))
+}
+
+/// The source map records canonical (absolute) paths; print them relative to the working directory
+/// when they sit under it, so a corpus row reads like the row's own path.
+fn display_origin_file(file: &str) -> String {
+    if let Ok(cwd) = std::env::current_dir() {
+        let cwd = cwd.to_string_lossy().to_string();
+        if let Some(rest) = file.strip_prefix(&cwd) {
+            let rest = rest.trim_start_matches('/');
+            if !rest.is_empty() {
+                return rest.to_string();
+            }
+        }
+    }
+    file.to_string()
+}
+
+/// `SVPP-EXPANSION.3` — append `[origin=FILE:LINE:COL]` to a rejection of PREPROCESSED input.
+/// Raw input is returned untouched (byte-identical messages for every existing caller); a
+/// preprocessed rejection whose position cannot be mapped says `origin=unknown` rather than
+/// nothing, so the absence is visible.
+fn augment_rejection_with_origin(message: String, input: &ProbeInput) -> String {
+    let Some(output) = input.preprocessed() else {
+        return message;
+    };
+    match rejection_position(&message).and_then(|position| origin_of_position(output, position)) {
+        Some(origin) => format!("{} [origin={}]", message, origin),
+        None => format!("{} [origin=unknown]", message),
+    }
 }
 
 fn configure_runtime_trace(options: &GlobalOptions) -> Result<()> {
@@ -528,18 +774,14 @@ fn command_supports(grammar_name: &str, profile: Option<&str>) -> Result<()> {
 }
 
 #[cfg(feature = "generated_parsers")]
-fn command_parse(
-    grammar_name: &str,
-    input_file: &str,
-    profile: Option<&str>,
-    entry_rule: Option<&str>,
-    library_in_dir: Option<&str>,
-    library_out_dir: Option<&str>,
-) -> Result<()> {
-    let sample = read_source(input_file)?;
+fn command_parse(grammar_name: &str, input_file: &str, options: &GlobalOptions) -> Result<()> {
+    let profile = options.profile.as_deref();
+    let entry_rule = options.entry_rule.as_deref();
+    let input = load_probe_input(grammar_name, input_file, options)?;
+    let sample = input.text().to_string();
     let library_options = parser_registry::LibraryOptions {
-        in_dir: library_in_dir.map(std::path::PathBuf::from),
-        out_dir: library_out_dir.map(std::path::PathBuf::from),
+        in_dir: options.library_in_dir.as_deref().map(std::path::PathBuf::from),
+        out_dir: options.library_out_dir.as_deref().map(std::path::PathBuf::from),
     };
     // GRAMMAR-WELLFORMED.H.12.8.4.3.1: an explicit `--entry-rule` parses from that alternate start
     // symbol via the entry-aware detail path; `None` keeps the byte-identical default-entry path
@@ -564,8 +806,10 @@ fn command_parse(
     match result {
         Some(Ok(())) => {
             println!(
-                "parse_full passed for grammar '{}' on '{}'",
-                grammar_name, input_file
+                "parse_full passed for grammar '{}' on '{}'{}",
+                grammar_name,
+                input_file,
+                if input.preprocessed().is_some() { " [preprocessed]" } else { "" }
             );
             Ok(())
         }
@@ -573,7 +817,7 @@ fn command_parse(
             "parse_full rejected sample for grammar '{}' on '{}': {}",
             grammar_name,
             input_file,
-            err
+            augment_rejection_with_origin(err, &input)
         ),
         None => bail!(
             "parseability adapter unavailable for grammar '{}'. Supported grammars: {}",
@@ -644,13 +888,15 @@ fn command_parse_dump_ast(
     grammar_name: &str,
     input_file: &str,
     output_file: Option<&str>,
-    profile: Option<&str>,
-    entry_rule: Option<&str>,
     pretty: bool,
     max_bytes: Option<usize>,
-    with_coverage: bool,
+    options: &GlobalOptions,
 ) -> Result<()> {
-    let sample = read_source(input_file)?;
+    let profile = options.profile.as_deref();
+    let entry_rule = options.entry_rule.as_deref();
+    let with_coverage = options.dump_ast_with_coverage;
+    let input = load_probe_input(grammar_name, input_file, options)?;
+    let sample = input.text().to_string();
     // SV-AST-SHAPE-FIDELITY.2.4: an explicit `--entry-rule` dumps the AST parsed from that ALTERNATE
     // start symbol via the generated parser's `parse_full_from`, so a PEG-shadowed / entry-relative
     // rule can be inspected in isolation. `None` keeps the byte-identical canonical-entry dump path.
@@ -711,7 +957,7 @@ fn command_parse_dump_ast(
             "parse_full rejected sample for grammar '{}' on '{}': {}",
             grammar_name,
             input_file,
-            err
+            augment_rejection_with_origin(err, &input)
         )
     })?;
 
@@ -758,42 +1004,17 @@ fn command_parse_dump_ast(
     grammar_name: &str,
     input_file: &str,
     output_file: Option<&str>,
-    profile: Option<&str>,
-    entry_rule: Option<&str>,
     pretty: bool,
     max_bytes: Option<usize>,
-    with_coverage: bool,
+    options: &GlobalOptions,
 ) -> Result<()> {
-    let _ = (
-        grammar_name,
-        input_file,
-        output_file,
-        profile,
-        entry_rule,
-        pretty,
-        max_bytes,
-        with_coverage,
-    );
+    let _ = (grammar_name, input_file, output_file, pretty, max_bytes, options);
     bail!("parseability_probe requires building with --features generated_parsers");
 }
 
 #[cfg(not(feature = "generated_parsers"))]
-fn command_parse(
-    grammar_name: &str,
-    input_file: &str,
-    profile: Option<&str>,
-    entry_rule: Option<&str>,
-    library_in_dir: Option<&str>,
-    library_out_dir: Option<&str>,
-) -> Result<()> {
-    let _ = (
-        grammar_name,
-        input_file,
-        profile,
-        entry_rule,
-        library_in_dir,
-        library_out_dir,
-    );
+fn command_parse(grammar_name: &str, input_file: &str, options: &GlobalOptions) -> Result<()> {
+    let _ = (grammar_name, input_file, options);
     bail!("parseability_probe requires building with --features generated_parsers");
 }
 
@@ -982,14 +1203,7 @@ fn probe_main() -> Result<()> {
                 eprintln!("{}", usage());
                 std::process::exit(2);
             }
-            command_parse(
-                &remaining[0],
-                &remaining[1],
-                options.profile.as_deref(),
-                options.entry_rule.as_deref(),
-                options.library_in_dir.as_deref(),
-                options.library_out_dir.as_deref(),
-            )
+            command_parse(&remaining[0], &remaining[1], &options)
         }
         "--parse-dump-ast" => {
             if args.len() < 4 {
@@ -1014,11 +1228,9 @@ fn probe_main() -> Result<()> {
                 &remaining[0],
                 &remaining[1],
                 output_file.as_deref(),
-                options.profile.as_deref(),
-                options.entry_rule.as_deref(),
                 false,
                 max_bytes,
-                options.dump_ast_with_coverage,
+                &options,
             )
         }
         "--parse-dump-ast-pretty" => {
@@ -1044,11 +1256,9 @@ fn probe_main() -> Result<()> {
                 &remaining[0],
                 &remaining[1],
                 output_file.as_deref(),
-                options.profile.as_deref(),
-                options.entry_rule.as_deref(),
                 true,
                 max_bytes,
-                options.dump_ast_with_coverage,
+                &options,
             )
         }
         _ => {
@@ -1061,9 +1271,11 @@ fn probe_main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        GlobalOptions, canonicalize_json_value, parse_dump_command_tail, parse_positive_usize,
+        GlobalOptions, ProbeInput, augment_rejection_with_origin, canonicalize_json_value,
+        origin_of_position, parse_dump_command_tail, parse_positive_usize, rejection_position,
         strip_global_flags, write_json_dump_with_limit,
     };
+    use pgen::sv_preprocessor::{PreprocessedOutput, SourceLocation, SourceMapEntry};
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -1198,5 +1410,108 @@ mod tests {
         assert_eq!(json["dump_kind"], "parser_return_ast");
         assert_eq!(json["max_bytes"], 256);
         let _ = std::fs::remove_file(path);
+    }
+
+    // ── SVPP-EXPANSION.3 — the preprocess→parse chain's flags and its origin mapping ──────────
+
+    fn args(list: &[&str]) -> Vec<String> {
+        list.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn preprocess_flags_are_parsed_in_order_and_need_preprocess() {
+        let (remaining, options) = strip_global_flags(&args(&[
+            "systemverilog", "top.sv", "--preprocess", "--sv-include-dir", "a", "--sv-define", "UVM",
+            "--sv-include-dir", "b", "--sv-define", "W=8", "--sv-unit-file", "first.svh",
+        ]))
+        .expect("flags");
+        assert_eq!(remaining, args(&["systemverilog", "top.sv"]));
+        assert!(options.preprocess);
+        assert_eq!(options.sv_include_dirs, args(&["a", "b"]));
+        assert_eq!(options.sv_defines, args(&["UVM", "W=8"]));
+        assert_eq!(options.sv_unit_files, args(&["first.svh"]));
+
+        let refused = strip_global_flags(&args(&["systemverilog", "top.sv", "--sv-define", "UVM"]));
+        assert!(refused.is_err(), "a context flag without --preprocess is refused");
+        let refused = strip_global_flags(&args(&["systemverilog", "top.sv", "--preprocess", "--preprocess"]));
+        assert!(refused.is_err(), "--preprocess twice is refused");
+        let refused = strip_global_flags(&args(&["systemverilog", "top.sv", "--preprocess", "--sv-define"]));
+        assert!(refused.is_err(), "a context flag needs a value");
+    }
+
+    fn synthetic_output() -> PreprocessedOutput {
+        // two chunks: file a line 1 = bytes 0..10, file b line 7 = bytes 10..21 (an `include`d line)
+        let chunk = |output_start, output_end, file: &str, line| SourceMapEntry {
+            output_start,
+            output_end,
+            source: SourceLocation {
+                file: file.to_string(),
+                line,
+                column_start: 1,
+                column_end: 10,
+            },
+        };
+        PreprocessedOutput {
+            text: "0123456789abcdéfghi\n".to_string(), // the second chunk holds a two-byte `é`
+            source_map: vec![chunk(0, 10, "/x/a.sv", 1), chunk(10, 21, "/x/b.svh", 7)],
+            events: Vec::new(),
+            diagnostics: Vec::new(),
+            included_files: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn origin_maps_a_position_to_its_chunks_file_line_and_character_column() {
+        let output = synthetic_output();
+        assert_eq!(origin_of_position(&output, 0).as_deref(), Some("/x/a.sv:1:1"));
+        assert_eq!(origin_of_position(&output, 9).as_deref(), Some("/x/a.sv:1:10"));
+        assert_eq!(origin_of_position(&output, 10).as_deref(), Some("/x/b.svh:7:1"));
+        assert_eq!(origin_of_position(&output, 13).as_deref(), Some("/x/b.svh:7:4"));
+        // byte 16 sits AFTER the two-byte `é` (bytes 14-15): 5 characters in, so column 6 — chars, not bytes
+        assert_eq!(origin_of_position(&output, 16).as_deref(), Some("/x/b.svh:7:6"));
+        // at / past the end of the text: the last chunk's end
+        assert_eq!(origin_of_position(&output, 21).as_deref(), Some("/x/b.svh:7:11"));
+        assert_eq!(origin_of_position(&output, 999).as_deref(), Some("/x/b.svh:7:11"));
+        let empty = PreprocessedOutput {
+            text: String::new(),
+            source_map: Vec::new(),
+            events: Vec::new(),
+            diagnostics: Vec::new(),
+            included_files: Vec::new(),
+        };
+        assert_eq!(origin_of_position(&empty, 0), None);
+    }
+
+    #[test]
+    fn rejection_position_prefers_furthest_over_surface() {
+        assert_eq!(
+            rejection_position("Parser did not consume full input at position 171 [furthest_position=8829, +8658 bytes deeper than surface position]"),
+            Some(8829)
+        );
+        assert_eq!(rejection_position("failed at position 12"), Some(12));
+        assert_eq!(rejection_position("no position here"), None);
+    }
+
+    #[test]
+    fn a_raw_rejection_is_untouched_and_a_preprocessed_one_carries_its_origin() {
+        let message = "x at position 3 [furthest_position=13, +10 bytes deeper than surface position]".to_string();
+        let raw = ProbeInput::Raw("irrelevant".to_string());
+        assert_eq!(augment_rejection_with_origin(message.clone(), &raw), message);
+        let pre = ProbeInput::Preprocessed(synthetic_output());
+        assert_eq!(
+            augment_rejection_with_origin(message.clone(), &pre),
+            format!("{} [origin=/x/b.svh:7:4]", message)
+        );
+        let unmapped = ProbeInput::Preprocessed(PreprocessedOutput {
+            text: String::new(),
+            source_map: Vec::new(),
+            events: Vec::new(),
+            diagnostics: Vec::new(),
+            included_files: Vec::new(),
+        });
+        assert_eq!(
+            augment_rejection_with_origin("no position".to_string(), &unmapped),
+            "no position [origin=unknown]"
+        );
     }
 }

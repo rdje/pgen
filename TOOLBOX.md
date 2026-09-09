@@ -196,7 +196,16 @@ generated_parsers` for certificate-coverage (it verifies witnesses through the r
   ```bash
   ./rust/target/release/parseability_probe --supports systemverilog
   ./rust/target/release/parseability_probe --parse systemverilog file.sv --profile sv_2017
+  # the PIPELINE: preprocess in-process, parse the EXPANDED text, map the rejection back to its origin
+  ./rust/target/release/parseability_probe --parse systemverilog file.sv --profile sv_2017 --preprocess \
+      --sv-include-dir DIR --sv-define UVM --sv-unit-file defines_first.svh     # exit 3 = the preprocessor refused
   ```
+- ⭐ **`--preprocess` (`SVPP-EXPANSION.3`) is how a REAL file is judged.** A corpus row that the raw
+  `--parse` rejects on a `` `uvm_… `` macro or an unresolved `` `include `` is not a parser verdict at
+  all; under `--preprocess` the same row either PARSES, or REJECTS with `[origin=FILE:LINE:COL]` — the
+  `furthest_position` mapped through the preprocessor's source map (an included file names itself; a
+  macro expansion names the line of its USE). The three context flags are `ast_pipeline
+  --preprocess-systemverilog`'s own. Book: the SV parser book's *The Preprocess→Parse Pipeline*.
 - **⭐ FIRST QUESTION ON ANY "THIS RULE MISBEHAVES" (`QUANT-PLUS-ITER.1`): *is the rule you are
   testing the rule being run?*** The canonical entry is `rule_order[0]` — **the rule DEFINED FIRST in
   the grammar file** — so a helper rule written above your start symbol silently re-roots the

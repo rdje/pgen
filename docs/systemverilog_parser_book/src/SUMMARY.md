@@ -11,6 +11,7 @@
 - [Quickstart for Downstream Consumers](quickstart.md)
 - [Build Recipe](build-recipe.md)
 - [Public API Surface](public-api.md)
+- [The Preprocess→Parse Pipeline](preprocess-parse-pipeline.md)
 
 # AST Reference
 

@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-de862c33.js";
+            window.path_to_searchindex_js = "searchindex-20a626fa.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-1742f63e.js"></script>
+        <script src="toc-8e3bd504.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -579,6 +579,152 @@ A parser-worker panic likewise surfaces as <code>E_PARSE_FAILURE</code>, never a
 needs no change; the guarantee holds on any caller thread, including small worker-pool stacks.</p>
 <h2 id="source-pointer"><a class="header" href="#source-pointer">Source pointer</a></h2>
 <p>The authoritative source for the public API is <code>rust/src/embedding_api.rs</code>. The contract document <code>rust/docs/EMBEDDING_API_CONTRACT.md</code> describes the stability policy in full.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="the-preprocessparse-pipeline"><a class="header" href="#the-preprocessparse-pipeline">The Preprocess→Parse Pipeline</a></h1>
+<p>Real SystemVerilog is never parsed raw. A design or verification file is littered with compiler
+directives — <code>`include</code> pulls in package and macro headers, <code>`define</code> / <code>`ifdef</code> select
+what is live, and libraries such as UVM are built almost entirely out of macros — so the text the
+parser must judge is the text that exists <strong>after</strong> preprocessing. PGEN’s deliverable for
+SystemVerilog is therefore a pipeline, not a parser alone:</p>
+<pre><code class="language-text">source file(s) ──► SystemVerilog PREPROCESSOR ──► expanded, directive-free text ──► SystemVerilog PARSER ──► AST
+                   (macros · `include · `ifdef)          (+ a byte-indexed SOURCE MAP)              (+ verdict)
+</code></pre>
+<p>This chapter describes that pipeline as it ships: what each stage is, the <strong>compilation context</strong>
+you hand it, how to run the whole thing in <strong>one command</strong>, how a rejection is mapped <strong>back to the
+line you wrote</strong>, and what the pipeline can and cannot yet do. (The bare parser — a grammar
+generated from <code>grammars/systemverilog.ebnf</code> — is documented in the rest of this book; the
+preprocessor’s <em>directive</em> grammar has its own book, the SystemVerilog Preprocessor Parser reference,
+which is a different deliverable from the expansion stage described here.)</p>
+<h2 id="the-two-stages"><a class="header" href="#the-two-stages">The two stages</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Stage</th><th>What it does</th><th>Where it lives</th><th>Its own CLI</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Preprocessor</strong> (expansion)</td><td>object-like and function-like macros with defaults, <code>`"</code> stringize, <code>``</code> token paste, nested expansion, <code>`undef</code>, <code>`__FILE__</code> / <code>`__LINE__</code>; <code>`include</code> with a search path, cycle and depth guards; <code>`ifdef</code> / <code>`ifndef</code> / <code>`elsif</code> / <code>`else</code> / <code>`endif</code>; a byte-indexed source map, an event log and diagnostics</td><td><code>rust/src/sv_preprocessor.rs</code></td><td><code>ast_pipeline INPUT.sv --preprocess-systemverilog</code></td></tr>
+<tr><td><strong>Parser</strong></td><td>the generated SystemVerilog parser, profile <code>sv_2017</code> / <code>sv_2023</code> / <code>verilog_2005</code></td><td><code>generated/systemverilog_parser.rs</code></td><td><code>parseability_probe --parse systemverilog FILE</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>The two compose through one type: <code>PreprocessedOutput { text, source_map, events, diagnostics, included_files }</code>. The parser reads <code>text</code>; the source map is what turns a byte offset in that text
+back into <code>file:line:column</code> of the source.</p>
+<h2 id="the-compilation-context"><a class="header" href="#the-compilation-context">The compilation context</a></h2>
+<p>A preprocessor without a context is a guess. Three things a real front end always knows are the
+context the pipeline takes, and each has the same spelling on both CLIs:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Context</th><th>Flag (both <code>ast_pipeline --preprocess-systemverilog</code> and <code>parseability_probe --preprocess</code>)</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td>include search path</td><td><code>--sv-include-dir DIR</code> (repeatable, ordered)</td><td>where <code>`include "x.svh"</code> is looked for after the including file’s own directory</td></tr>
+<tr><td>predefined macros</td><td><code>--sv-define NAME</code> / <code>--sv-define NAME=TEXT</code> (repeatable, ordered)</td><td>seeded into the macro table before the first line is read, exactly as if <code>`define NAME TEXT</code> stood at the top of the unit; <code>NAME</code> alone defines it with <strong>empty</strong> text (the meaning a bare <code>`define NAME</code> line has). A predefine is an ordinary definition: <code>`ifdef</code>, <code>`undef</code> and the redefinition policy treat it as one</td></tr>
+<tr><td>the compilation unit</td><td><code>--sv-unit-file F</code> (repeatable, ordered)</td><td>the files preprocessed <strong>before</strong> the input, under the <strong>same macro table</strong>; the input is the unit’s last file</td></tr>
+</tbody>
+</table>
+</div>
+<p>The unit flag is not a convenience. IEEE 1800-2017 §22.5.1 says: <em>“Once a text macro name has been
+defined, it can be used anywhere in the compilation unit where it is defined. There are no other
+scope restrictions once inside the compilation unit”</em>, and §3.12.1 makes <em>“all files on a given
+compilation command line”</em> one compilation unit. A macro defined in the first file of a unit is in
+force in the last; the pipeline keeps ONE macro table across the list and produces one expansion
+per file. What <code>`resetall</code> does to that table is nothing — §22.3: <em>“Directives that do not have
+a default (e.g., <code>`define</code> and <code>`include</code>) are not affected by <code>`resetall</code>.”</em></p>
+<h2 id="one-command"><a class="header" href="#one-command">One command</a></h2>
+<pre><code class="language-bash"># preprocess, then parse — in one process, no scratch file
+./rust/target/release/parseability_probe --parse systemverilog hw/ip/uart/rtl/uart.sv \
+    --profile sv_2017 --preprocess \
+    --sv-include-dir hw/ip/prim/rtl --sv-include-dir stimuli/sv/uvm/uvm-core-2020.3.1/src \
+    --sv-define SYNTHESIS
+# parse_full passed for grammar 'systemverilog' on 'hw/ip/uart/rtl/uart.sv' [preprocessed]
+
+# the AST of the EXPANDED text, same flags
+./rust/target/release/parseability_probe --parse-dump-ast-pretty systemverilog top.sv out.json \
+    --profile sv_2017 --preprocess --sv-define UVM
+
+# a compilation unit: defines.svh first, then the input, one macro table
+./rust/target/release/parseability_probe --parse systemverilog dut.sv --profile sv_2017 \
+    --preprocess --sv-unit-file defines.svh
+</code></pre>
+<p><code>--preprocess</code> is SystemVerilog-only (<code>--preprocess</code> with <code>json</code> is refused by name), and the three
+context flags are refused without it — a context with nothing to apply it to is a typo, not a
+no-op. The library flags compose unchanged: <code>--lib-out</code> on a package file and <code>--lib-in</code> on the
+file that imports it work exactly as they do without <code>--preprocess</code>, so a multi-file design is
+<code>bootstrap files with --lib-out, then the top with --lib-in</code>, each file preprocessed in its turn.</p>
+<h3 id="three-outcomes-three-exit-codes"><a class="header" href="#three-outcomes-three-exit-codes">Three outcomes, three exit codes</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Exit</th><th>Meaning</th><th>What you see</th></tr>
+</thead>
+<tbody>
+<tr><td><code>0</code></td><td>preprocessed and <strong>accepted</strong></td><td><code>parse_full passed … [preprocessed]</code></td></tr>
+<tr><td><code>1</code></td><td>preprocessed and <strong>rejected</strong> by the parser</td><td><code>parse_full rejected … [furthest_position=N, …] [origin=FILE:LINE:COL]</code></td></tr>
+<tr><td><code>3</code></td><td>the <strong>preprocessor refused</strong> the input — the parser never ran</td><td><code>preprocess_failed for grammar 'systemverilog' on '…': …</code> on stderr</td></tr>
+</tbody>
+</table>
+</div>
+<p>The third code exists so a corpus lane can tell <em>“the language did not accept this”</em> from <em>“the
+input could not even be expanded”</em> — an unresolved <code>`include</code>, an unterminated <code>`ifdef</code>, an
+illegal <code>`define</code>. Those are different populations with different owners.</p>
+<h2 id="a-rejection-names-the-line-you-wrote"><a class="header" href="#a-rejection-names-the-line-you-wrote">A rejection names the line you wrote</a></h2>
+<p>The parser reports positions in the text it parsed — the expanded text, which exists nowhere on
+disk. Under <code>--preprocess</code> the probe maps the deepest position any branch reached
+(<code>furthest_position=</code>, the diagnostic that locates a defect; see the debugging chapter of the
+platform book) back through the preprocessor’s source map and appends <code>[origin=FILE:LINE:COL]</code>:</p>
+<pre><code class="language-text"># a syntax error inside an INCLUDED file names that file and its line
+parse_full rejected sample … : Parser did not consume full input at position 12
+    [furthest_position=42, +30 bytes deeper than surface position] [origin=inc/bad.svh:3:11]
+
+# a syntax error inside a MACRO EXPANSION names the line of the macro's USE
+parse_full rejected sample … : … [furthest_position=38, …] [origin=macro.sv:4:13]
+</code></pre>
+<p>The rule behind the second line: the preprocessor emits one source-map chunk per output line, and
+an expanded macro’s chunk records the line the macro was <strong>used</strong> on — the expansion has no line
+of its own. The column is a character column (a two-byte <code>é</code> before the position counts once).
+Paths are printed relative to the working directory when they sit under it. A position the map
+cannot place (an empty expansion) reads <code>origin=unknown</code> rather than nothing.</p>
+<p>An opt-in summary line describes the expansion itself:</p>
+<pre><code class="language-bash">PGEN_REPORT_PREPROCESS=1 ./rust/target/release/parseability_probe --parse systemverilog f.sv --profile sv_2017 --preprocess
+# preprocess: input='f.sv' unit_predecessors=0 include_dirs=0 defines=0 output_bytes=37 source_map_entries=1 included_files=1 macro_expansions=1 warnings=0
+</code></pre>
+<p>It is opt-in for the same reason the stack-probe line is: PGEN’s corpus runner captures the probe’s
+stderr as a per-file measurement column, and an unconditional line would edit a tracked artifact.</p>
+<h2 id="what-the-pipeline-does-today-measured"><a class="header" href="#what-the-pipeline-does-today-measured">What the pipeline does today, measured</a></h2>
+<ul>
+<li>The seven curated real-design cases of the external-corpus triage gate (UVM’s two packages,
+scr1, friscv, VeeR) run through the single command with the manifest’s include directories:
+the expansion of <code>uvm_pkg.sv</code> (3 022 806 bytes from 166 included files) is <strong>byte-identical</strong>
+to the shell gate’s, and scr1 / friscv / VeeR accept on both profiles.</li>
+<li>UVM’s <code>uvm_pkg.sv</code> currently <strong>rejects</strong> at <code>src/base/uvm_transaction.svh:443</code> —
+<code>const local uvm_event_pool events = new("events");</code> — on both profiles. That is not a
+preprocessing defect: IEEE 1800-2017 A.2.7 gives a <code>const</code>-first class property only the
+alternative <code>const { class_item_qualifier } data_type const_identifier [ = constant_expression ] ;</code>,
+and <code>new(…)</code> is not a <code>constant_expression</code> (the <code>local const …</code> order is derivable through
+<code>data_declaration</code>, which admits a <code>class_new</code> initializer). Every commercial simulator accepts
+the UVM spelling; PGEN accepted it too until release <code>1.0.2xx</code> of 2026-09-04 made <code>local</code> a
+reserved word (it had lexed as an identifier and the line mis-parsed into an accept). The policy
+question — a documented tool-extension arm for a construct the de-facto standard library relies
+on, versus the letter of Annex A — is open in <code>docs/tasks/SVPP-EXPANSION.md</code> (<code>.5</code>).</li>
+<li>A single file parsed alone can only report what it contains. The first corpus smoke turned an
+RTL file the raw lane could not judge (<code>hw/ip/uart/rtl/uart.sv</code>, deferred as macro-dependent)
+into a clean <strong>accept</strong>, and turned two DV files’ macro barrier into the barrier behind it: a
+class type declared in another file (<code>uvm_reg_addr_t</code>, <code>dv_base_env_cfg</code>). The pipeline removes
+the preprocessing barrier; the cross-file declaration barrier is the library mechanism’s
+(<code>--lib-out</code> / <code>--lib-in</code>) and the parser’s store gates, and the corpus lane measures its size.</li>
+</ul>
+<h2 id="boundaries"><a class="header" href="#boundaries">Boundaries</a></h2>
+<ul>
+<li>The expansion engine is hand-written Rust (<code>rust/src/sv_preprocessor.rs</code>), not a grammar; its
+<em>directive</em> structure is separately described by the <code>systemverilog_preprocessor</code> grammar, whose
+parser does not expand anything. The two are different deliverables and this chapter is about
+the first.</li>
+<li>The pipeline preprocesses one compilation unit at a time and parses its last file; a
+multi-file design still needs the library flags for cross-file declarations.</li>
+<li>Nothing yet reads a build system’s own context (<code>.core</code>, <code>.f</code>, <code>+incdir+</code>); the context is what
+you pass on the command line.</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="ast-envelope-structure"><a class="header" href="#ast-envelope-structure">AST Envelope Structure</a></h1>
 <p>The PGEN SystemVerilog parser produces a JSON AST through <code>parse_grammar_profile_ast_dump_named</code>. This chapter documents the top-level structure of that JSON.</p>

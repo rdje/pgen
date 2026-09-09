@@ -1,5 +1,13 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.3 (`PGEN-SVPP-EXPANSION-0004`): a tracked gate number is a reading of the tree it ran on
+
+- **Re-execute a gate's steps on HEAD before writing an acceptance criterion against its summary.** The triage gate's `summary.txt` said 14/14 on 2026-08-24; 32 grammar commits later the same two steps by hand read 10/14. The single-command chain did not "fail to reproduce the gate" — it reproduced the gate exactly (byte-identical expansion, the same parse verdict on the gate's own artifact) and the gate's number was the stale half. An operator-invoked gate with an untracked summary is a reading nobody re-takes.
+- **Bisect with the interpreter, not with rebuilds.** Five `--interpret-parse` runs over `git show <commit>:grammars/systemverilog.ebnf` located the regressing grammar commit in under a minute; five parser rebuilds would have been two hours. The reproducer plus four accepting controls pinned the ONE variable (the `const`/`local` ORDER with a `new` initializer) before the bisection started, which is what made the bisection's answer readable.
+- **A correct fix can expose a tolerated idiom, and that is a policy question, not a regression.** Reserving `local` (`.3.37`) was right by Annex B; it uncovered that UVM writes a `const`-first class property the standard's syntax box does not derive. The record separates the three claims — the standard's letter, what every simulator does, what PGEN did before — so the director rules on a fact, not on a symptom.
+- **Map a position back through the source map at the moment of the rejection, not later.** The chunk that holds the byte carries file, line and first column; the character column is counted from the chunk's start, so a two-byte `é` before the position counts once. Recording the use line for a macro expansion (the expansion has no line of its own) is what makes `origin=` name something an operator can open.
+- **Promotion**: declined — `promotion: declined (the lesson is the standing "frame a number arrives with" discipline, applied)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.2 (`PGEN-SVPP-EXPANSION-0003`): a command-line define is a source define with no position
 
 - **Seed predefines as ordinary definitions, not as a separate table.** Putting `+define+` macros into the same `HashMap` the source `` `define `` writes means `` `ifdef ``, `` `undef `` and the redefinition policy need no second code path — and the test `a_source_define_supersedes_a_predefine_under_the_default_policy` shows the `error` policy correctly treating a later source `` `define `` as a redefinition of the predefine. The only thing a predefine lacks is a source position, which is why the seeding does not consult the policy: there is no line to report at.

@@ -21,6 +21,7 @@ If a parser of yours rejects valid input, hangs, or behaves unexpectedly, **star
 - [Predicate Self-Explaining Trace](#predicate-self-explaining-trace)
 - [Workflow Recipes](#workflow-recipes)
 - [Library Plumbing (`--lib-in`, `--lib-out`)](#library-plumbing---lib-in---lib-out)
+- [Preprocess→Parse In One Command (`--preprocess`)](#preprocessparse-in-one-command---preprocess)
 - [Which Parser Is In This Binary? (`--parser-fingerprint`)](#which-parser-is-in-this-binary---parser-fingerprint)
 - [Environment Variables](#environment-variables)
 - [Cost / Performance](#cost--performance)
@@ -49,6 +50,8 @@ If a parser of yours rejects valid input, hangs, or behaves unexpectedly, **star
 | `--max-bytes N` | Bound AST dump size | [Basic](#basic-usage) |
 | `--lib-in DIR` | Read `@import_from_library` artifacts from `DIR` | [Library](#library-plumbing---lib-in---lib-out) |
 | `--lib-out DIR` | Write `@export_to_library` artifacts to `DIR` | [Library](#library-plumbing---lib-in---lib-out) |
+| `--preprocess` | SystemVerilog only: run the **preprocessor** in-process and parse the EXPANDED text; a rejection carries `[origin=FILE:LINE:COL]`; a preprocessor refusal exits `3` | [Pipeline](#preprocessparse-in-one-command---preprocess) |
+| `--sv-include-dir DIR` / `--sv-define NAME[=TEXT]` / `--sv-unit-file F` | The preprocessor's compilation context (include path, predefined macros, the unit's earlier files); repeatable, ordered, need `--preprocess` | [Pipeline](#preprocessparse-in-one-command---preprocess) |
 
 Environment fallbacks:
 
@@ -661,6 +664,41 @@ parseability_probe --parse <grammar> file2.sv --lib-in artifacts/
 ```
 
 Both default to `None` (no library I/O), keeping single-file behaviour byte-identical to runs without these flags.
+
+---
+
+## Preprocess→Parse In One Command (`--preprocess`)
+
+Real SystemVerilog is parsed **after** preprocessing, and a rejection in expanded text names a
+position in a file that exists nowhere on disk. `--preprocess` (`SVPP-EXPANSION.3`) runs PGEN's
+SystemVerilog preprocessor on the input in-process, parses the expanded text, and maps a
+rejection's `furthest_position` back through the preprocessor's source map:
+
+```bash
+parseability_probe --parse systemverilog top.sv --profile sv_2017 --preprocess \
+    --sv-include-dir path/to/includes --sv-define UVM --sv-unit-file defines_first.svh
+# parse_full passed for grammar 'systemverilog' on 'top.sv' [preprocessed]
+
+parseability_probe --parse systemverilog top.sv --profile sv_2017 --preprocess
+# Error: parse_full rejected sample … at position 12 [furthest_position=42, +30 bytes deeper
+#        than surface position] [origin=inc/bad.svh:3:11]        ← the INCLUDED file and its line
+# … [origin=top.sv:4:13]                                          ← a MACRO expansion names its USE line
+```
+
+- `--sv-include-dir`, `--sv-define NAME[=TEXT]` and `--sv-unit-file F` are the compilation
+  context — the same flags `ast_pipeline --preprocess-systemverilog` takes; repeatable, ordered,
+  and refused without `--preprocess`. `--lib-in` / `--lib-out` compose unchanged.
+- Three exit codes: `0` accepted, `1` rejected by the parser, **`3` the preprocessor refused the
+  input** (`preprocess_failed …` on stderr) — the parser never ran, so a corpus lane can keep the
+  two populations apart.
+- `PGEN_REPORT_PREPROCESS=1` prints one `preprocess: …` summary line (opt-in, because
+  `stimuli/run_external_corpus.sh` captures the probe's stderr as a measurement column).
+- `--parse-dump-ast[-pretty]` under `--preprocess` dumps the AST of the **expanded** text.
+
+The full account — what the context means, IEEE 1800-2017 §22.5.1 on the compilation unit,
+the source-map rule, what the pipeline does on the real corpora today — is the SystemVerilog
+parser book's chapter *The Preprocess→Parse Pipeline*
+(`docs/systemverilog_parser_book/src/preprocess-parse-pipeline.md`).
 
 ---
 

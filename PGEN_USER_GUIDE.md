@@ -395,6 +395,11 @@ Use parser-returned AST dump when you need the parsed AST produced by generated 
 CLI controls:
 - `parseability_probe --parse-dump-ast <grammar_name> <input_file> [output_file]`
 - `parseability_probe --parse-dump-ast-pretty <grammar_name> <input_file> [output_file]`
+- add `--preprocess` (SystemVerilog only) to any of the parse commands to run the SystemVerilog
+  preprocessor first and parse / dump the EXPANDED text, with the compilation context
+  `--sv-include-dir DIR` / `--sv-define NAME[=TEXT]` / `--sv-unit-file F` (repeatable, ordered);
+  a rejection then carries `[origin=FILE:LINE:COL]` and a preprocessor refusal exits `3`
+  (see `docs/reference/PARSEABILITY_PROBE.md`).
 - optional tail flag for both commands:
   - `--max-bytes <N>`
 

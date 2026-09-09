@@ -103,7 +103,9 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
   file 2 and NOT in a fresh unit; `` `resetall `` clears); the existing focused preprocessor suite unchanged;
   `ast_pipeline --preprocess-systemverilog` byte-identical output on every current call (no flag ⇒ no change).
 - ID: `SVPP-EXPANSION.3`
-  Status: `pending` — **FRONTIER**
+  Status: ✅ **`done`** 2026-09-09 (`PGEN-SVPP-EXPANSION-0004`; PROBE + DOCS tier — `rust/src/bin/parseability_probe.rs`,
+  ZERO grammar / codegen / generated / engine bytes; record + checklist below — and it found the `uvm_pkg`
+  finding routed to `.5`(d))
   Goal: the SINGLE-COMMAND CHAIN — `parseability_probe --parse systemverilog FILE --preprocess
   [--sv-include-dir D]… [--sv-define N[=V]]… [--sv-unit-file F]…` (and the `--parse-dump-ast[-pretty]` twins):
   preprocess IN-PROCESS, parse the expanded TEXT through the registry (never a scratch file), and on a
@@ -117,7 +119,7 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
   platform book's CLI chapter documents the flags (lockstep, not a mention —
   [[feedback_lockstep_means_fully_documented_not_mentioned]]).
 - ID: `SVPP-EXPANSION.4`
-  Status: `pending`
+  Status: `pending` — **FRONTIER**
   Goal: the CORPUS PIPELINE LANE — a tracked per-suite compilation context (`stimuli/sv/pipeline_context.tsv`:
   suite → include dirs + defines, seeded from the suites' own `.core` / `.f` / `+incdir+` declarations where
   they exist — OpenTitan has 818 `.core` files and ibex `.f` lists with `+incdir+` lines; nothing in PGEN reads
@@ -141,7 +143,18 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
   those two expose: the re-entry restarts line numbering, so the error names `tlul_assert.sv:4` (a comment
   line) and `compare_helper.sv:3`; (c) a RULING — `` `include `MACRO `` (`hw/ip/aes/pre_dv/aes_tb/rtl/aes_tb_pkg.sv:39`)
   is outside Syntax 22-1 (`"filename"` | `<filename>` only), so the refusal is LRM-correct: record it as a
-  named tool-extension class (a policy knob, default OFF under [[feedback_sv_strict_lrm_compliance_default]]).
+  named tool-extension class (a policy knob, default OFF under [[feedback_sv_strict_lrm_compliance_default]]);
+  (d) ⭐⭐ **the `uvm_pkg` finding `.3` made** (a DIRECTOR CALL, see *Open questions*): UVM 2020.3.1's
+  `const local uvm_event_pool events = new("events");` (`src/base/uvm_transaction.svh:443`) is not Annex-A
+  derivable in either edition — A.2.7 gives a `const`-first class property only
+  `const { class_item_qualifier } data_type const_identifier [ = constant_expression ] ;` and `new(…)` is
+  no `constant_expression` — so the parser rejects `uvm_pkg.sv` (both profiles, `furthest_position=1015525`)
+  since `e0a32496` (`.3.37`, 2026-09-04) made `local` a reserved word; before that the line mis-parsed
+  into an ACCEPT with `local` read as an identifier. Every commercial simulator accepts the spelling;
+  the `local const …` order IS derivable (through `data_declaration`'s `class_new` initializer). Bisected
+  with the interpreter over the 32 grammar commits since the gate's 2026-08-24 run; the fix shape is a
+  documented tool-extension arm on `class_property` versus the letter of Annex A; (e) housekeeping: the
+  26 pre-existing preprocessor tests write to the OS temp dir — move them to `create_repo_scratch_dir`.
 - ID: `SVPP-EXPANSION.6`
   Status: `pending`
   Goal: RE-ADJUDICATE the preprocessing-deferred population under the pipeline — the 1 434
@@ -161,11 +174,10 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `.3` | `pending` | the single-command chain + source-mapped diagnostics; the corpus lane drives it (`.2`, the context it consumes, is DONE) |
-| 2 | `.4` | `pending` | the measurement the director asked for: end-to-end recognition on UVM + OpenTitan, then the whole lane |
-| 3 | `.5` | `pending` | the three census defects (and whatever `.4` adds), toolbox chain each |
-| 4 | `.6` | `pending` | the deferred population re-adjudicated; the axis-2 denominator moves |
-| 5 | `.7` | `pending` | contract + book lockstep, closes the tree |
+| 1 | `.4` | `pending` | the measurement the director asked for: end-to-end recognition on UVM + OpenTitan, then the whole lane (`.2` the context and `.3` the chain are DONE) |
+| 2 | `.5` | `pending` | the three census defects + `.3`'s `uvm_pkg` finding (d, a director call) + housekeeping (e); toolbox chain each |
+| 3 | `.6` | `pending` | the deferred population re-adjudicated; the axis-2 denominator moves |
+| 4 | `.7` | `pending` | contract + book lockstep, closes the tree |
 
 ## `.1` SCOPING — ✅ done 2026-09-09 (`PGEN-SVPP-EXPANSION-0002`): what exists, what is missing, what the engine refuses today
 
@@ -361,7 +373,120 @@ the ruling. Recorded durably in [[project_preprocess_parse_pipeline_is_the_sv_de
   - [x] **LOCKSTEP** — `PGEN_USER_GUIDE.md` + `docs/knowledge/ast-pipeline-cli-reference.md` (+ `KNOWLEDGE_MAP.md`) + `docs/reference/RUST_CODEBASE_ANALYSIS.md` + this leaf + `docs/TASK_TREE.md` + `MEMORY.md` + `CHANGES.md` + `DEVELOPMENT_NOTES.md`; the platform-book chapter is `.3`'s (stated above, not waived).
   - promotion: declined (the `.2` lessons in `DEVELOPMENT_NOTES.md` restate the `-0002` record's "re-measure before executing the plan" at a smaller scale; no new card).
 
+## `.3` the SINGLE-COMMAND CHAIN — ✅ done 2026-09-09 (`PGEN-SVPP-EXPANSION-0004`): `parseability_probe … --preprocess`, and a rejection names the line you wrote
+
+**What landed** (`rust/src/bin/parseability_probe.rs`; ZERO grammar / codegen / generated / engine bytes):
+
+- `--preprocess` (SystemVerilog only; refused by name on any other grammar) with the three context flags
+  `--sv-include-dir DIR` / `--sv-define NAME[=TEXT]` / `--sv-unit-file F` (repeatable, ordered; refused
+  without `--preprocess` — a context with nothing to apply it to is a typo, not a no-op). The input is
+  expanded IN-PROCESS through `preprocess_systemverilog_unit` (`.2`) and the EXPANDED text is handed to
+  the registry exactly as a raw file's text is (`ProbeInput::{Raw, Preprocessed}`); `--lib-in` /
+  `--lib-out` compose unchanged; `--parse-dump-ast[-pretty]` dumps the AST of the expanded text.
+- **Three exit codes**: `0` accepted, `1` rejected by the parser, **`3` the preprocessor refused the
+  input** (`preprocess_failed for grammar '…' on '…': …` on stderr; the parser never ran) — so a corpus
+  lane can keep *could not be expanded* apart from *rejected by the language*.
+- **A rejection names its origin.** `augment_rejection_with_origin` reads the rejection's
+  `furthest_position=` (the surface `at position N` as a fallback) and maps it through the
+  preprocessor's source map (`origin_of_position`: the chunk holding the byte names the file and line it
+  was written from — an included file names itself, a macro EXPANSION names the line of its USE; the
+  column counts CHARACTERS, not bytes; a position past the end lands on the last chunk's end; paths
+  print relative to the working directory) and appends `[origin=FILE:LINE:COL]`; an unmappable one
+  says `origin=unknown` so the absence is visible. Raw input's messages are untouched.
+- `PGEN_REPORT_PREPROCESS=1` prints one `preprocess: …` line (opt-in, like `stack_probe:`, because
+  `stimuli/run_external_corpus.sh` captures the probe's stderr as a corpus column).
+- Both `command_parse` / `command_parse_dump_ast` now take `&GlobalOptions` instead of six / eight
+  unpacked fields (clippy's `too_many_arguments` had been at 8/7 on the dump command already).
+- Four unit tests (`preprocess_flags_are_parsed_in_order_and_need_preprocess`,
+  `origin_maps_a_position_to_its_chunks_file_line_and_character_column` — incl. a two-byte `é` before
+  the position, `rejection_position_prefers_furthest_over_surface`,
+  `a_raw_rejection_is_untouched_and_a_preprocessed_one_carries_its_origin`).
+- Docs (lockstep, [[feedback_lockstep_means_fully_documented_not_mentioned]]): the SV parser book's NEW
+  chapter *The Preprocess→Parse Pipeline* (`docs/systemverilog_parser_book/src/preprocess-parse-pipeline.md`
+  + `SUMMARY.md` + the tracked HTML rebuilt through `systemverilog_parser_book_gate`),
+  `docs/reference/PARSEABILITY_PROBE.md` (flags, env, the `--parse` section, exit code 3),
+  `docs/book/src/parseability-probe-debug.md` (reference card + a new section),
+  `docs/book/src/cli-and-workflows.md` (a pipeline section), `TOOLBOX.md` §1.1, `PGEN_USER_GUIDE.md`.
+
+**Verification** (`rust/target/svpp_e1/verify_s3.sh`, log `verify_s3b.log`, on the debug probe rebuilt from
+this leaf's final bytes — fingerprint = parser `423042d2…`):
+
+```text
+(1) raw path unchanged (no --preprocess): dv_utils_pkg furthest_position=8829 SAME · uart parse_full passed SAME · dv_base_env furthest_position=233 SAME
+(2) a rejection inside an INCLUDED file:   rc=1 furthest_position=42 origin=rust/target/svpp_e1/s3/inc/bad.svh:3:11
+(3) a rejection inside a MACRO EXPANSION:  rc=1 furthest_position=38 origin=rust/target/svpp_e1/s3/macro.sv:4:13   (the `BAD(broken) use line)
+(4) --sv-define UVM on an `ifdef: AST dump uvm_arm_in_ast=1 plain_arm_in_ast=0; --sv-unit-file: alone origin=unit.sv:1:18 → unit rc=0
+    preprocess: input='…/unit.sv' unit_predecessors=1 include_dirs=0 defines=0 output_bytes=37 source_map_entries=1 included_files=1 macro_expansions=1 warnings=0
+(5) refusals: a context flag without --preprocess rc=1 · --preprocess on json rc=1 · an unterminated `ifdef rc=3 preprocess_failed …
+(6) the seven triage cases via the single command: TRIAGE-VIA-SINGLE-COMMAND: pass=10 fail=4 of 14
+    PASS scr1_core_top / scr1_top_ahb / friscv_rv32i_core / friscv_pipeline / veer_el2_lsu × {2017, 2023} (≤ 1 s each, debug)
+    FAIL uvm_pkg × {2017, 2023}: furthest_position=1015525 origin=stimuli/sv/uvm/uvm-core-2020.3.1/src/base/uvm_transaction.svh:443:38
+    BOOT FAIL uvm_compat_pkg × {2017, 2023}: its bootstrap IS uvm_pkg.sv (the same rejection)
+```
+
+⭐⭐ **THE 14/14 THIS LEAF WAS WRITTEN AGAINST WAS A STALE READING, AND THE CHAIN IS WHAT SHOWED IT.** The
+gate's tracked `summary.txt` (`generated_at_utc: 2026-08-24T21:15:58Z`, 14/14) predates 32 grammar commits.
+Executed by hand on HEAD, the gate's own two steps read: expansion `ast_pipeline … --preprocess-systemverilog
+--sv-include-dir …/src` → 3 022 806 bytes, **`cmp` byte-identical** to the gate's
+`work/case_uvm_pkg_2017.preprocessed.sv`; then `parseability_probe --parse systemverilog <that 08-24 file>
+--profile 2017` → **rc 1, `furthest_position=1015525`**. So the gate reads 10/14 on HEAD, the single command
+reproduces it exactly, and the preprocessor is not the variable. The variable, bisected (all commands in
+`rust/target/svpp_e1/s3/`):
+
+```text
+reproducer  class uvm_event_pool; endclass  class c;  const local uvm_event_pool events = new("events");  endclass
+  r_const_local.sv    furthest_position=77       ← REJECTS
+  c_local.sv          parse_full passed          (local T x = new(…))
+  c_const.sv          parse_full passed          (const T x = new(…))
+  r_local_const.sv    parse_full passed          (local const T x = new(…) — the other ORDER)
+  c_const_local_int   parse_full passed          (const local int x = 3 — a constant initializer)
+interpreter  HEAD grammar: accepted=false furthest_position=77 · grammar at 2e492d08 (2026-08-24): accepted=true
+bisect over the 32 grammar commits since 2026-08-24 (5 interpreter runs):
+  d239cc57 false · c4b2fe1b true · 9b5fa46a true · 70115cc2 true · e0a32496 false  ⇒ regressor e0a32496
+  e0a32496 2026-09-04 PGEN-SV-CORPUS-GRAD-0366 (SV-CORPUS-GRAD.3.37: the reserved-word set becomes Annex B Table B.1)
+  control: accepted=false at e0a32496, accepted=true at its parent 70115cc2
+```
+
+WHY, read in the standard: IEEE 1800-2017 A.2.7 (`docs/systemverilog/2017/md/section-41-data-read-api.md:559-563`)
+and 1800-2023 A.2.7 (`docs/systemverilog/2023/md/section-8-classes.md:108-112`) — identical:
+`class_property ::= { property_qualifier } data_declaration | const { class_item_qualifier } data_type
+const_identifier [ = constant_expression ] ;`. With `const` FIRST the only derivation is the second
+alternative, whose initializer is a `constant_expression`; `new("events")` is a `class_new`, admitted by
+`variable_decl_assignment` (A.2.4) — i.e. by `data_declaration`, which is why the `local const …` order
+parses — and by nothing in `constant_expression`. Until `.3.37`, `local` lexed as an identifier and the
+line mis-parsed into an accept; `.3.37` was correct, and it exposed that UVM's spelling is a
+tool-tolerated one. §8.19's prose (`docs/systemverilog/2017/md/section-8-classes.md`, *Constant class
+properties*: *"Global constant class properties include an initial value as part of their declaration"*)
+does not narrow the initial value; the syntax box does. ⇒ **NOT a preprocessor defect, NOT a grammar
+regression of a legal construct: a policy question** — routed as `.5`(d) and asked below.
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+  - [x] **REPRODUCE / ISSUE** — before this leaf `parseability_probe --parse systemverilog FILE` parsed RAW text only (`git log -S'--preprocess' --oneline -- rust/src/bin/parseability_probe.rs` → 0 commits); the chain existed as shell orchestration in `rust/scripts/sv_external_corpus_triage_gate.sh` alone, and a rejection in expanded text named an offset into a file that exists nowhere (`furthest_position=1015525` into a 3 022 806-byte expansion).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — ops family: `git log -S'--preprocess' -- rust/src/bin/parseability_probe.rs` → 0 and `git log -S'source_map' -- rust/src/bin/parseability_probe.rs` → 0 — the probe never called the preprocessor and never read its source map; WHERE `command_parse` / `command_parse_dump_ast` (`read_source(input_file)` was the only input path), `strip_global_flags` (no context flags). For the finding: correctness family — `furthest_position=77` on the reproducer against four accepting controls, the interpreter A/B `accepted=true` (2026-08-24 grammar) → `accepted=false` (HEAD), bisected to `e0a32496`; WHY A.2.7 in both editions (lines cited above).
+  - [x] **FIX** — probe tier (no grammar, no engine): `ProbeInput`, `load_probe_input`, `origin_of_position`, `rejection_position`, `augment_rejection_with_origin`, `report_preprocess_summary`, exit 3; the two commands narrowed to `&GlobalOptions`; four tests; the docs above.
+  - [x] **ADDRESSED (verified)** — `verify_s3b.log` arms (2)–(6) above: an included file's rejection reads `origin=…/inc/bad.svh:3:11`, a macro expansion's `origin=…/macro.sv:4:13` (its use line), `--sv-define` flips the AST (`uvm_arm_in_ast=1 plain_arm_in_ast=0`), `--sv-unit-file` turns `origin=unit.sv:1:18` into `parse_full passed … [preprocessed]` with `unit_predecessors=1 … macro_expansions=1`, the three refusals rc 1 / 1 / 3, and the seven curated cases reproduce the gate's HEAD reading 10/14 through one command — with the four failing arms bisected to ONE construct.
+  - [x] **NO REGRESSION** — the raw path's verdicts and `furthest_position` values are identical on the three smoke files (arm (1), `SAME` ×3 — and the message text is untouched by construction, `augment_rejection_with_origin` returns raw input's message unchanged, pinned by `a_raw_rejection_is_untouched_…`); `cargo test --features "generated_parsers ebnf_dual_run" --bin parseability_probe` → 12 passed, 0 failed; `cargo test --lib sv_preprocessor` → 35 passed, 0 failed (the `.2` tests restyled to clippy's liking, same assertions); the expansion of `uvm_pkg.sv` byte-identical to the 2026-08-24 gate artifact; no grammar / codegen / generated byte moved (`generated-reproducibility: OK` at commit); `clippy_on_rust_change` → source stage ok, `GENERATED-CLIPPY-CORRECTNESS: ✅ POLICY-ONLY PASS`, generated stage (`--all-targets --features generated_parsers,ebnf_dual_run`, the stage that compiles the probe) ok — *"✅ clippy_on_rust_change completed"*; in the feature-enabled log the only findings in the touched files are three pre-existing `collapsible_if`s (`parseability_probe.rs:252`, `:704`, `sv_preprocessor.rs:586` — none in code this tree wrote; the `.2` test-style findings and the 9/7 `too_many_arguments` are gone); `bash scripts/check_doctrines.sh` ALL PASS (run at commit).
+  - [x] **LOCKSTEP** — the SV parser book chapter + `SUMMARY.md` + rebuilt tracked HTML (`systemverilog_parser_book_gate` ✅) + `docs/reference/PARSEABILITY_PROBE.md` + `docs/book/src/parseability-probe-debug.md` + `docs/book/src/cli-and-workflows.md` + `TOOLBOX.md` + `PGEN_USER_GUIDE.md` + this leaf + `docs/TASK_TREE.md` + `MEMORY.md` + `CHANGES.md` + `DEVELOPMENT_NOTES.md`. The integration contract's front-end section is `.7`'s (stated, not waived).
+  - promotion: declined (the `.3` lesson — *a gate's tracked number is a reading of the tree it ran on; re-execute its steps on HEAD before writing an acceptance criterion against it* — is `docs/decisions/feedback_standing_evidence_reading_disciplines.md`'s "the frame a number arrives with", applied; no new card).
+
 ## Open questions
+
+- 🔎 **DIRECTOR CALL (2026-09-09, from `.3`): `const local T x = new(…)` — UVM's spelling is not Annex-A
+  derivable; PGEN rejects it since `.3.37` (2026-09-04) and accepted it before only by mis-lexing `local`.**
+  The letter of A.2.7 (both editions) admits only a `constant_expression` after a `const`-first class
+  property, while `data_declaration` admits a `class_new` — so `local const T x = new()` parses and
+  `const local T x = new()` does not, a syntactic asymmetry the standard itself carries and every
+  simulator smooths over. UVM 2020.3.1 writes the non-derivable order (`uvm_transaction.svh:443`), so
+  `uvm_pkg.sv` cannot pass on the strict default, and with it nothing built on UVM. Options: (a) a
+  documented tool-extension arm — `const { class_item_qualifier } data_type const_identifier = class_new ;`
+  — ON by default with a deviation record (the de-facto standard library is the corpus every consumer
+  brings), or (b) OFF by default behind the `SV-PARSE-STRICT` policy knob, so the strict profile keeps
+  the letter and a `--sv-extensions` flag admits UVM. Recommendation: (a) for the release — the north star's
+  *"100 % LRM-compliant by default"* was written against over-acceptance of INVALID text, and this text is
+  what the standard's own §8.19 prose describes as a constant with an initial value; recorded here so
+  the decision, either way, is a ruling and not a drift. Owned by `.5`(d); until ruled, `.4`'s lane
+  counts `uvm_pkg` and its dependants as rejects at this one origin.
 
 - ⚠️ **The preprocessor's 26 pre-existing unit tests write their scratch files to `std::env::temp_dir()`**,
   which on this host is off the repository volume — against the data-locality rule

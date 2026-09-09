@@ -2706,11 +2706,13 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             "`ifdef UVM\nlogic uvm_branch;\n`else\nlogic plain_branch;\n`endif\nlogic [`WIDTH-1:0] d;\n",
         )
         .expect("write top");
-        let mut config = SvPreprocessorConfig::default();
-        config.defines = vec![
-            PredefinedMacro::parse("UVM").expect("UVM"),
-            PredefinedMacro::parse("WIDTH=8").expect("WIDTH"),
-        ];
+        let config = SvPreprocessorConfig {
+            defines: vec![
+                PredefinedMacro::parse("UVM").expect("UVM"),
+                PredefinedMacro::parse("WIDTH=8").expect("WIDTH"),
+            ],
+            ..SvPreprocessorConfig::default()
+        };
         let output = preprocess_systemverilog_file(&input, &config).expect("preprocess");
         assert!(output.text.contains("logic uvm_branch;"), "{}", output.text);
         assert!(!output.text.contains("logic plain_branch;"), "{}", output.text);
@@ -2733,8 +2735,10 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             "wire a`EMPTY;\n`undef EMPTY\n`ifdef EMPTY\nlogic still_defined;\n`endif\n",
         )
         .expect("write top");
-        let mut config = SvPreprocessorConfig::default();
-        config.defines = vec![PredefinedMacro::parse("EMPTY").expect("EMPTY")];
+        let config = SvPreprocessorConfig {
+            defines: vec![PredefinedMacro::parse("EMPTY").expect("EMPTY")],
+            ..SvPreprocessorConfig::default()
+        };
         let output = preprocess_systemverilog_file(&input, &config).expect("preprocess");
         assert!(output.text.contains("wire a;"), "{}", output.text);
         assert!(!output.text.contains("still_defined"), "{}", output.text);
@@ -2745,8 +2749,10 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
         let dir = create_repo_scratch_dir("svpp_predefine_redefine");
         let input = dir.join("top.sv");
         fs::write(&input, "`define WIDTH 32\nlogic [`WIDTH-1:0] d;\n").expect("write top");
-        let mut config = SvPreprocessorConfig::default();
-        config.defines = vec![PredefinedMacro::parse("WIDTH=8").expect("WIDTH")];
+        let mut config = SvPreprocessorConfig {
+            defines: vec![PredefinedMacro::parse("WIDTH=8").expect("WIDTH")],
+            ..SvPreprocessorConfig::default()
+        };
         let output = preprocess_systemverilog_file(&input, &config).expect("preprocess");
         assert!(output.text.contains("logic [32-1:0] d;"), "{}", output.text);
 
@@ -2794,8 +2800,9 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
         fs::write(&first, "`define ONLY_IN_A 1\n").expect("write a");
         fs::write(&second, "logic [`ONLY_IN_A:0] b;\n").expect("write b");
         let config = SvPreprocessorConfig::default();
-        let _ = preprocess_systemverilog_unit(&[first.clone()], &config).expect("unit 1");
-        let alone = preprocess_systemverilog_unit(&[second.clone()], &config).expect("unit 2");
+        let _ = preprocess_systemverilog_unit(std::slice::from_ref(&first), &config).expect("unit 1");
+        let alone =
+            preprocess_systemverilog_unit(std::slice::from_ref(&second), &config).expect("unit 2");
         assert!(alone[0].text.contains("`ONLY_IN_A"), "{}", alone[0].text);
         // and the one-file entry is the one-file unit — byte-identical text
         let single = preprocess_systemverilog_file(&second, &config).expect("single");
