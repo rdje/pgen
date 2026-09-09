@@ -80,3 +80,16 @@ list that says how much is left.
   rest on gate artifacts under `rust/target/`, which is never tracked, so publishing this machine's
   reading of them would make the check fail on a fresh clone. Run
   `bash scripts/audit_done_bar.sh` to see what the gate artifacts in *your* tree say.
+
+## The expansion stage is a sibling deliverable
+
+The parser this book documents reads compiler directives into an AST. Executing them — expanding a file
+so the SystemVerilog parser reads text with IEEE 1800-2017 clause 22 already applied — is the
+**expansion stage** (`rust/src/sv_preprocessor.rs`), a sibling deliverable owned by the `SVPP-EXPANSION`
+tree listed above, not a leg of this family's `Done` bar. Its contract is the SV integration contract's
+*"Front End — the preprocess→parse pipeline"* section; its live measurement — the corpus parsed through
+`parseability_probe --preprocess` under a derived context and library, read twice against the raw lane —
+is the SV parser book's chapter
+[*The preprocess→parse pipeline*](../../systemverilog_parser_book/src/preprocess-parse-pipeline.md).
+The corpus line above stays NOT MEASURED for exactly that reason: no corpus of directive *files* is wired;
+the expansion's corpus is the SystemVerilog family's, and it is measured there.

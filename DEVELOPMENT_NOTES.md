@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.7 (`PGEN-SVPP-EXPANSION-0021`): a contract sentence is a citation
+
+- **Every sentence of a contract section names the source it was read from.** The exit-code rule from `parseability_probe.rs:505`, the origin rule from `origin_of_position`, the refusal codes from a `grep -o` over the module, the facts-file shape from a real export. A contract written from memory of the design is a plan; one written from the code is a contract.
+- **Say where a claim is NOT measured.** The preprocessor family's corpus leg stays NOT MEASURED, and its contract now says why: the expansion's corpus is the SystemVerilog family's. A reader who finds the blank without the sentence assumes neglect.
+- **A tracked mirror is part of the lockstep.** Four slices edited a chapter and none rebuilt the HTML the repository tracks beside the two parser books; nothing failed, the mirror was simply four commits behind the source. The LOCKSTEP line now names the rebuild.
+- **Promotion**: declined — documentation.
+
 ## 2026-09-09 — SVPP-EXPANSION.6d.2 (`PGEN-SVPP-EXPANSION-0020`): build the instrument, then let it say zero
 
 - **A zero from an instrument is a measurement; a zero from no instrument is silence.** The unit-membership reading accepted nothing today, and that is the finding: every class-including package sits behind one ruling. Without the reading, the same 1 923 rows would have stayed "dark on a cross-file name", which is true and useless; now they are "unreached behind `uvm_pkg`", which is true and actionable.

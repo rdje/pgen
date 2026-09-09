@@ -936,7 +936,29 @@ Where this prose and the inventory disagree, the inventory wins.
 - `make -C rust SHELL=/bin/bash sv_preprocessor_curated_differential_gate`
 - `make -C rust SHELL=/bin/bash sv_preprocessor_template_differential_gate`
 
+## Runtime Execution Stage — the EXPANSION (`SVPP-EXPANSION`, 2026-09-09; the directive parser's grammar, release and schema unchanged)
+- The generated `systemverilog_preprocessor` parser this contract describes reads DIRECTIVES into an AST. The
+  EXPANSION — executing those directives on a file so the `systemverilog` parser reads IEEE 1800-2017 text with
+  clause 22 already applied — is a **sibling deliverable** in the runtime module `rust/src/sv_preprocessor.rs`,
+  governed by the `SVPP-EXPANSION` tree and contracted in the SV integration contract's *"Front End — the
+  preprocess→parse pipeline"* section (`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`),
+  where the command, the four-part context, the source-map rule, the refusal codes and the library live.
+- Behaviour a consumer of the runtime module relies on, landed 2026-09-09 (each rule with its clause and a
+  corpus reproducer in `docs/tasks/SVPP-EXPANSION.md` `.5`, `.6b.2`, `.6b.5`): a missing or extra macro actual is
+  REFUSED (`E_SVPP_MISSING_MACRO_ARGUMENT` / `E_SVPP_EXTRA_MACRO_ARGUMENT`), recursion is REFUSED by provenance
+  (`E_SVPP_RECURSIVE_MACRO`), `//` comments are stripped from macro text, a well-formed `` `line `` is consumed,
+  a `` `pragma protect `` envelope is consumed (`E_SVPP_UNTERMINATED_PROTECTED_ENVELOPE` when open at EOF), block
+  comments span lines, a `$ident` is never substituted, the fifteen `` `SV_COV_* `` macros are predefined
+  (§40.3.1), `--sv-unit-file` folds a predecessor file's macro table into the unit, and the event log gained the
+  `LineDirective` and `ProtectedEnvelope` kinds. The single-command chain is
+  `parseability_probe --parse systemverilog FILE --profile P --preprocess …` (exit 3 = the preprocessor refused).
+- The live measurement of the expansion is the SV parser book's chapter
+  `docs/systemverilog_parser_book/src/preprocess-parse-pipeline.md`, not this family's status page: this
+  family's corpus leg stays NOT MEASURED because no corpus of directive files is wired, and the expansion's
+  corpus is the SystemVerilog family's.
+
 ## Scope / Non-Goals
+- The EXPANSION stage is contracted in the SV integration contract (section above); this document contracts the directive parser's AST.
 - This document is intentionally explicit that `systemverilog_preprocessor` does not yet have the same published host-embedding shape as `systemverilog`, `vhdl`, or `regex`.
 - Downstream consumers should not couple themselves to internal generated parser modules as if they were already a stable public API.
 - If a downstream integrator still reports a reproducible preprocessor/runtime bug, use `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md` and log accepted released-parser issues in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md`.

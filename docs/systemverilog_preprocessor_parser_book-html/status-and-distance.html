@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-80124cbf.js";
+            window.path_to_searchindex_js = "searchindex-4d01d77f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1f5fa4fd.js"></script>
@@ -261,6 +261,17 @@ rest on gate artifacts under <code>rust/target/</code>, which is never tracked, 
 reading of them would make the check fail on a fresh clone. Run
 <code>bash scripts/audit_done_bar.sh</code> to see what the gate artifacts in <em>your</em> tree say.</li>
 </ul>
+<h2 id="the-expansion-stage-is-a-sibling-deliverable"><a class="header" href="#the-expansion-stage-is-a-sibling-deliverable">The expansion stage is a sibling deliverable</a></h2>
+<p>The parser this book documents reads compiler directives into an AST. Executing them — expanding a file
+so the SystemVerilog parser reads text with IEEE 1800-2017 clause 22 already applied — is the
+<strong>expansion stage</strong> (<code>rust/src/sv_preprocessor.rs</code>), a sibling deliverable owned by the <code>SVPP-EXPANSION</code>
+tree listed above, not a leg of this family’s <code>Done</code> bar. Its contract is the SV integration contract’s
+<em>“Front End — the preprocess→parse pipeline”</em> section; its live measurement — the corpus parsed through
+<code>parseability_probe --preprocess</code> under a derived context and library, read twice against the raw lane —
+is the SV parser book’s chapter
+<a href="../../systemverilog_parser_book/src/preprocess-parse-pipeline.html"><em>The preprocess→parse pipeline</em></a>.
+The corpus line above stays NOT MEASURED for exactly that reason: no corpus of directive <em>files</em> is wired;
+the expansion’s corpus is the SystemVerilog family’s, and it is measured there.</p>
 
                     </main>
 

@@ -1665,6 +1665,72 @@ This is the document downstream projects such as Nexsim should read first when d
 - Build it with `make systemverilog_parser_book_gate` (uses `mdbook build docs/systemverilog_parser_book`).
 - Where the book and this contract disagree, **the contract wins** for compliance — but please report the disagreement as a documentation bug.
 
+## Front End — the preprocess→parse pipeline (`SVPP-EXPANSION.7`, 2026-09-09; no release / schema bump — the grammar and the generated parser are unchanged at `1.0.227` / schema `32`)
+
+The parser this contract describes reads SystemVerilog **after** the compiler directives of IEEE 1800-2017
+clause 22 have been executed. Raw text with `` `include ``, `` `define `` and `` `ifdef `` in it is
+grammar-development scaffolding (the raw corpus lane); the **release reading** of any file is the
+preprocess→parse chain below, and every corpus number this contract's companion book publishes for that
+chain is derived by that chain (`docs/systemverilog_parser_book/src/preprocess-parse-pipeline.md`; the
+platform book's verdict-coverage anchor carries the raw tuple and the tuple under the pipeline side by side).
+
+- **The single command** (the probe, `rust/src/bin/parseability_probe.rs`):
+  `parseability_probe --parse systemverilog FILE --profile sv_2017|sv_2023 --preprocess [--sv-include-dir DIR]… [--sv-define NAME[=TEXT]]… [--sv-unit-file FILE]… [--lib-in DIR] [--lib-out DIR]`.
+  Exit `0` = accepted, `1` = the parser rejected the expanded text (the message carries `furthest_position=N`
+  and `[origin=FILE:LINE:COL]`), `3` = the preprocessor refused (`preprocess_failed …`, never `1` — a corpus
+  lane keys on exactly that difference). The expansion alone: `ast_pipeline INPUT.sv --preprocess-systemverilog
+  [--output OUT.sv] [--sv-source-map-json MAP] [--sv-event-log-json LOG] [--sv-diagnostics-json DIAG]` with the
+  same `--sv-*` flags. Both are embedding-API-free CLIs; the runtime module is `rust/src/sv_preprocessor.rs`.
+- **The context is the consumer's, and it is four things**: the include search directories
+  (`--sv-include-dir`, in order), the predefined macros (`--sv-define`, in order, exactly as `` `define NAME
+  TEXT `` before the first line), the compilation unit's earlier files (`--sv-unit-file`, in order — §22.5.1: a
+  macro is unit-wide once defined; their macro tables are folded into one, their text is not parsed), and the
+  library (`--lib-in`, below). The corpus lane DERIVES all four from the corpus itself
+  (`stimuli/sv/pipeline_context.py` → `stimuli/sv/pipeline_context{,_files,_defines,_units}.tsv`, and
+  `stimuli/sv/pipeline_library.py`); a downstream consumer supplies its own from its build declaration. The
+  lane never guesses a context: an ambiguous include, a computed define, a `-f` list, a glob, a package two
+  files declare differently are REPORTED and left unapplied.
+- **What the expansion stage guarantees** (the `SVPP-EXPANSION.5` / `.6b.2` / `.6b.5` rules, each with its
+  clause and a corpus reproducer in `docs/tasks/SVPP-EXPANSION.md`): object and function-like macros with
+  actuals and defaults (§22.5.1), the `` `` `` paste and `` `" `` / `` `\`" `` string forms, a `$ident` never
+  substituted (A.9.3), a missing or extra actual REFUSED (`E_SVPP_MISSING_MACRO_ARGUMENT`,
+  `E_SVPP_EXTRA_MACRO_ARGUMENT`; §22.5.1 *"shall be an error"*), direct or indirect recursion REFUSED
+  (`E_SVPP_RECURSIVE_MACRO`, §22.5.1 — by PROVENANCE: a usage the caller wrote starts its own expansion, a
+  usage a macro body produced is checked against the stack, so OpenTitan's nested `` `DV_SPINWAIT `` expands
+  and `` `define A(x) `B(`A(x)) `` is refused), `//` comments stripped from macro text (§22.5.1; block comments
+  kept), a well-formed `` `line `` consumed (§22.12; a malformed one passes through), `` `pragma protect
+  begin_protected `` … `` end_protected `` consumed as an envelope (§34; unterminated →
+  `E_SVPP_UNTERMINATED_PROTECTED_ENVELOPE`), block comments spanning lines and following an `` `include ``, the
+  fifteen `` `SV_COV_* `` coverage-control macros predefined (§40.3.1), conditional groups with the
+  `--sv-conditional-symbol-policy` (`E_SVPP_UNDEFINED_CONDITIONAL_SYMBOL` under the strict policy) and macro
+  redefinition under `--sv-macro-redefine-policy` (`E_SVPP_MACRO_REDEFINED` when disallowed). Every event is
+  logged (`Define Undef Include Ifdef Ifndef Elsif Else Endif PassthroughLine SkippedLine MacroExpand
+  LineDirective ProtectedEnvelope`).
+- **The source-map contract** (`origin_of_position`): the preprocessor appends one source-map chunk per
+  emitted line; a rejection's `[origin=FILE:LINE:COL]` is the chunk holding the rejection's byte offset in the
+  EXPANDED text — an `` `include ``d line names the included file, a macro expansion names the line of the
+  macro's USE (the expansion has no line of its own), the column is the chunk's first column plus the
+  characters (not bytes) from the chunk's start, a position at or past the end of the text lands on the last
+  chunk's end, and an unmappable position says `origin=unknown` rather than nothing. ⚠️ **The origin is the
+  last MAPPED byte at or before the rejection, not necessarily the offending token**: when the parser's furthest
+  position lies past a legal expansion (a `` `FOO `` that expands to a string literal, followed on the next
+  line by an underivable item), the origin names the expansion's line and the construct that failed is the
+  furthest TOKEN — a reader buckets on the token, not on the mapped line (`SVPP-EXPANSION.6b.4`).
+- **The library**: `--lib-out DIR` writes `DIR/package/<name>.facts.json` for every package a PASSING parse
+  declares (`@export_to_library` on `package_declaration`; `{format_version, kind: "package", name, facts: [{kind:
+  "type_name", name, attributes: [{key: "declaration_family", value: typedef|class|…}]}, …]}`); a rejected
+  parse exports NOTHING. `--lib-in DIR` reads `DIR/package/<name>.facts.json` when the text imports the package
+  (`@import_from_library` on `package_import_item`, both `import X::*` and `import X::name`), and the parser's
+  fact-gated productions (`known_unscoped_data_type_identifier`, `known_unscoped_base_class_type_identifier`,
+  …) admit the imported names. A design is therefore parsed package-first, in dependency order, each package
+  with `--lib-in` of its predecessors' exports and `--lib-out` of itself (`stimuli/sv/pipeline_library.py` does
+  exactly this for the corpus's design suites; the same tool is the reference for a consumer's own flow).
+  Neither flag may be given twice; the directory must exist.
+- **Trust boundary of this section**: the pipeline's numbers are the SV parser book's, re-derived by
+  `PIPELINE-LANE-CURRENCY` on every commit; what the pipeline still refuses is published there by construct
+  and by origin, never hidden — including the UVM library's dependence on the `.5`(d) ruling (`const local`,
+  `uvm_transaction.svh:443`), which gates every UVM-based unit.
+
 ## Dialect Profile — `verilog_2005` (strict IEEE 1364-2005 subset; `VERILOG-2005-PROFILE`, 2026-07-02; no release/schema bump — stays `1.0.158` / schema `13`)
 
 ### What it is

@@ -224,6 +224,11 @@ Primary modes:
 
 6. Preprocess SystemVerilog source
 - `ast_pipeline INPUT.sv --preprocess-systemverilog [--output PREPROCESSED.sv]`
+- The preprocess→parse chain in ONE command (the release reading of a file; `SVPP-EXPANSION.3`):
+  `parseability_probe --parse systemverilog INPUT.sv --profile sv_2017 --preprocess [--sv-include-dir D]… [--sv-define N[=T]]… [--sv-unit-file F]… [--lib-in DIR] [--lib-out DIR]`
+  — exit 0 accepted, 1 rejected (with `furthest_position=` and `[origin=FILE:LINE:COL]`), 3 the preprocessor
+  refused. A design is parsed package-first with `--lib-out` / `--lib-in` (see `TOOLBOX.md` §1.1b and the
+  SV contract's *Front End* section); the corpus lane is `stimuli/run_pipeline_lane.sh`.
 - This mode executes the Rust preprocessor stage and emits:
   - expanded/preprocessed SV text,
   - optional source map JSON (`--sv-source-map-json`),

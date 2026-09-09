@@ -1,5 +1,12 @@
 # CHANGES.md
 
+## 2026-09-09 - PGEN-SVPP-EXPANSION-0021 (leaf SVPP-EXPANSION.7 DONE — the front end CONTRACTED and stated in the books; the tree at its handoff-ready stop with `.6d.3` (the UVM library) blocked on the director's `.5`(d) ruling)
+
+- `docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`: a *Front End — the preprocess→parse pipeline* section — the single command and exit codes (0 / 1 + `furthest_position=` + `[origin=…]` / 3 `preprocess_failed`), the four-part context (include dirs, defines, unit files, the library; derived by the lane, supplied by a consumer, never guessed), the expansion guarantees with clauses and the six `E_SVPP_*` refusal codes, the thirteen event kinds, the source-map rule (`origin_of_position`) with the last-mapped-byte caveat, the library's `facts.json` shape and both import forms, the trust boundary (the UVM gate named). No release / schema bump.
+- `docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`: a *Runtime Execution Stage — the EXPANSION* section (a sibling deliverable of the directive parser; the behaviours a consumer of `rust/src/sv_preprocessor.rs` relies on since 2026-09-09; why this family's corpus leg stays NOT MEASURED) and a Scope line.
+- Books: the svpp parser book's status chapter (*The expansion stage is a sibling deliverable*), the platform book's family page (*The SystemVerilog corpus is read twice*), `PGEN_USER_GUIDE.md` §6 (the single command). ⚠️ The two parser books' tracked HTML mirrors had lagged since `-0017`; rebuilt (the platform book's HTML is untracked output).
+- Tree: `.7` done for the current stop; frontier `.6d.3` BLOCKED on (d) — the tree is handoff-ready pending the director. `docs/TASK_TREE.md`, MEMORY.md, DEVELOPMENT_NOTES.md.
+
 ## 2026-09-09 - PGEN-SVPP-EXPANSION-0020 (leaf SVPP-EXPANSION.6d.2 DONE — the UNIT-MEMBERSHIP reading: a `` `include ``d class file's verdict is its package unit's; measured 0 accepted / 89 kept / 1 923 unreached — idle behind the UVM ruling; the tuple unmoved)
 
 - `stimuli/sv/pipeline_library.py`: the expansion step asks for the preprocessor's source map (`--sv-source-map-json`) and writes `stimuli/sv/characterization/pipeline_library_members.tsv` (`suite package_relpath member_relpath`; 5 074 rows, 2 060 distinct members; a dump, `.gitignore`d).

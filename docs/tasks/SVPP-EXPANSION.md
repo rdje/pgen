@@ -217,7 +217,7 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
   dependency-ordered `--lib-out` / `--lib-in` pass over `import X::*` for the 1 924 + 103 `extends` rows (UVM's
   part gated on `.5`(d)).
 - ID: `SVPP-EXPANSION.7`
-  Status: `pending` (runs in lockstep with every slice; closes the tree)
+  Status: ✅ `done` 2026-09-09 (`PGEN-SVPP-EXPANSION-0021`) for the tree's current stop — re-run in lockstep if a later slice moves the front end; the tree's remaining leaf `.6d.3` is BLOCKED on the director's (d)
   Goal: the CONTRACT + BOOK statement of the front end — the SV integration contract's front-end section
   (svpp expansion → sv parse, the context flags, the source-map contract), the svpp parser book's status
   (expansion is a sibling deliverable, not the directive parser's), the platform book's family page, the
@@ -227,7 +227,7 @@ macro substitution, conditional resolution, and `` `include `` inlining — so t
 
 | Order | Leaf | Status | Why next |
 | --- | --- | --- | --- |
-| 1 | `.7` | `pending` | contract + book lockstep, closes the tree; the origin-mapping note; (d) waits for the director |
+| — | `.7` | ✅ `done` | `PGEN-SVPP-EXPANSION-0021`: the SV integration contract's *Front End — the preprocess→parse pipeline* section (the command, the four-part context, the expansion guarantees and refusal codes, the source-map rule with the last-mapped-byte caveat, the library's facts files), the preprocessor contract's *Runtime Execution Stage* section (expansion = a sibling deliverable), the svpp book's status note, the platform page's *read twice* note, the user guide's single command; the two parser books' tracked HTML mirrors rebuilt (they had lagged four commits; the platform book's HTML is untracked output) |
 | ⛔ | `.6d.3` | `blocked` | the UVM library — `uvm_pkg.sv` must export: the director's `.5`(d) ruling on `const local` (`uvm_transaction.svh:443`), or an export-the-accepted-prefix engine change the ruling would make unnecessary; the price, measured: 164 rejecting OpenTitan packages, 1 923 unreached member rows, 273 dark rows gated on a `uvm_*` name |
 | — | `.6d.2` | ✅ `done` | `PGEN-SVPP-EXPANSION-0020`: the unit-membership reading — the pass records each unit's member files (the source map; 5 074 rows), the re-adjudication reads a member's verdict through its unit (`accepted_in_unit` / kept / `unreached_in_unit`); measured: 0 accepted, 1 923 unreached, 89 kept — all behind the UVM gate; the tuple unmoved |
 | — | `.6d.1` | ✅ `done` | `PGEN-SVPP-EXPANSION-0019`: the LIBRARY PASS — 407 package files of the design suites parsed in dependency order, 166 packages published, every row run with `--lib-in`; 425 rows `fail → pass`, 0 the other way (OpenTitan 1 077 → 1 444, VeeR 23 → 81); 🔎 164/168 rejecting OpenTitan packages import `uvm_pkg` (the (d) gate); six per-top register packages disagree (not published); 44 generated `*_ral_pkg` imports absent from the tree |
@@ -1589,6 +1589,46 @@ it waits on the `.5`(d) ruling.
   - [x] **LOCKSTEP** — `TOOLBOX.md` §1.1b, the SV parser book chapter, the doctrine's header, this tree, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
   - promotion: declined (an instrument extension; no new card).
 
+## `.7` CONTRACT + BOOK lockstep — ✅ done 2026-09-09 (`PGEN-SVPP-EXPANSION-0021`): the front end stated where a downstream reader looks
+
+**What landed** (DOCS tier; ZERO Rust / grammar / answer-key / codegen bytes; no release / schema bump — the grammar and parser unchanged at
+`1.0.227` / schema `32`; the SV grammar digest unchanged, `SV-CONTRACT-CURRENCY` re-derived):
+
+- **`docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md`** — a new section *Front End — the preprocess→parse pipeline*
+  between the companion-book section and the `verilog_2005` profile: the single command and its exit codes (0 / 1 with
+  `furthest_position=` + `[origin=…]` / 3 `preprocess_failed`, verified at `parseability_probe.rs:502-505`), the expansion alone
+  (`ast_pipeline --preprocess-systemverilog` + the JSON side outputs), the FOUR-part context (include dirs, defines, unit files,
+  the library) and that the lane derives it while a consumer supplies its own — never guessed; the expansion guarantees with their
+  clauses and the six refusal codes (`E_SVPP_MISSING_MACRO_ARGUMENT`, `E_SVPP_EXTRA_MACRO_ARGUMENT`, `E_SVPP_RECURSIVE_MACRO`,
+  `E_SVPP_UNTERMINATED_PROTECTED_ENVELOPE`, `E_SVPP_UNDEFINED_CONDITIONAL_SYMBOL`, `E_SVPP_MACRO_REDEFINED` — the module's own
+  set, `grep -o` verified) and the thirteen event kinds; the source-map rule as `origin_of_position` implements it (one chunk per
+  emitted line; an included line names the included file, an expansion names the USE line, character columns, past-the-end lands
+  on the last chunk's end, `origin=unknown` when unmappable) with the `.6b.4` caveat — the origin is the LAST MAPPED byte at or
+  before the rejection, a construct is bucketed on the furthest TOKEN; the library's facts files (`DIR/package/<name>.facts.json`,
+  the `type_name` / `declaration_family` shape read from a real export), both import forms, a rejected parse exporting nothing,
+  neither flag twice; and the trust boundary (the numbers are the SV parser book's, re-derived per commit; the UVM gate named).
+- **`docs/contracts/PGEN_SYSTEMVERILOG_PREPROCESSOR_PARSER_INTEGRATION_CONTRACT.md`** — a *Runtime Execution Stage — the EXPANSION*
+  section: the expansion is a SIBLING deliverable of the directive parser (the runtime module, the `SVPP-EXPANSION` tree, the SV
+  contract's section as its contract), the behaviours a consumer of the module relies on since 2026-09-09, and why this family's
+  corpus leg stays NOT MEASURED (no corpus of directive files; the expansion's corpus is the SV family's); a Scope line.
+- **The books**: the svpp parser book's status chapter gains *The expansion stage is a sibling deliverable* (below the derived block);
+  the platform book's family page gains *The SystemVerilog corpus is read twice* (the raw lane is scaffolding, the pipeline is the
+  release reading, both tuples in the anchor, the chapter for the rest); the user guide's §6 gains the single command. ⚠️ **The
+  two parser books' TRACKED HTML mirrors (`docs/systemverilog_parser_book-html/`, `docs/systemverilog_preprocessor_parser_book-html/`)
+  had lagged since `-0017`** — the `.4c.1`…`.6d.2` chapter edits were never rebuilt; `mdbook build` on all three books now (the
+  platform book's `docs/book-html/` is untracked output), and the LOCKSTEP line of every future slice names the rebuild.
+- **The DONE-BAR register**: no family row's next gap moved (the family-status blocks re-derived equal in `-0020`).
+
+**Acceptance checklist (`TASK-ACCEPTANCE`):**
+
+  - [x] **REPRODUCE / ISSUE** — `grep -c -i 'preprocess\|--sv-\|lib-in\|source map\|origin=' docs/contracts/PGEN_SYSTEMVERILOG_PARSER_INTEGRATION_CONTRACT.md` = 15, none a statement of the front end (corpus footnotes); the preprocessor contract's Scope said nothing of the expansion; `git status` after `mdbook build` showed 41 files of the two tracked `-html/` mirrors modified (four commits stale).
+  - [x] **ROOT CAUSE (WHY + WHERE)** — ops family: `git ls-files docs/contracts/` lists the two contracts and neither carried a front-end section; the probe's exit-3 site `parseability_probe.rs:505`, the origin rule `origin_of_position` and the refusal codes (`grep -o E_SVPP_ rust/src/sv_preprocessor.rs`) are the sources every sentence above cites.
+  - [x] **FIX** — the two contract sections, the two book notes, the user guide, the HTML mirrors.
+  - [x] **ADDRESSED (verified)** — `mdbook build` on the three books exits 0 with no warning; `scripts/check_sv_contract_currency.sh` OK (digest `c447ccaa…` unchanged); every command, code and rule in the sections was read from the source named beside it.
+  - [x] **NO REGRESSION** — no Rust, grammar, generated, answer-key or dump byte staged; the lane dump, both tuples, the bar and every tracked report byte-identical to `-0020`; `bash scripts/check_doctrines.sh` ALL PASS (run at commit).
+  - [x] **LOCKSTEP** — both contracts, three books (source; the two tracked HTML mirrors), the user guide, this tree, `docs/TASK_TREE.md`, `MEMORY.md`, `CHANGES.md`, `DEVELOPMENT_NOTES.md`.
+  - promotion: declined (documentation).
+
 ## Open questions
 
 - 🔎 **DIRECTOR CALL (2026-09-09, from `.3`): `const local T x = new(…)` — UVM's spelling is not Annex-A
@@ -1674,6 +1714,7 @@ it waits on the `.5`(d) ruling.
 | `2026-09-09` | `.4c.2` | `pipeline_context.py --self-test` 20/20, `--check` OK; the 4 rows pre-measured with the hand-given predecessor (rc 0 on both profiles); the whole lane re-run (468 s, peak 9 390 MB): exactly 3 movers, all `fail → pass`, all among the 17 files with predecessors, 0 the other way; the pipeline tuple re-derived and anchored, the raw one unmoved; `PIPELINE-LANE-CURRENCY` OK + self-test 5/5 | ✅ |
 | `2026-09-09` | `.6d.1` | the mechanism measured on four scratch chains (export → import → pass; same-dir; named import); the builder's smoke run (3 suites) then the full pass (407 files, 166 published, 0 cycles); the whole lane re-run (689 s, peak 9 797 MB): 425 movers, all `fail → pass`, 0 the other way; the pipeline tuple re-derived and anchored, the raw one unmoved; `PIPELINE-LANE-CURRENCY` OK + self-test 5/5 | ✅ |
 | `2026-09-09` | `.6d.2` | the library re-derived standalone with the membership table (226 s; verdicts identical to `-0019`); the re-adjudication re-read 2 059 members (0 / 89 / 1 923); the zero-accepted count verified from the dumps by a second script; coverage buckets the new classes; the tuple unmoved through the denominator gate; currency OK + self-test 5/5 | ✅ |
+| `2026-09-09` | `.7` | every contract sentence read from its source (`parseability_probe.rs:502-505`, `origin_of_position`, `grep -o E_SVPP_`, a real `facts.json`); `mdbook build` ×3 clean; `check_sv_contract_currency.sh` OK; no dump or tuple moved | ✅ |
 
 ## Commit log
 
@@ -1694,6 +1735,7 @@ it waits on the `.5`(d) ruling.
 | `.4c.2` | `PGEN-SVPP-EXPANSION-0018` | the harness's unit predecessors derived per file (44 rows on 17 files; `-f` lists, globs, `--siloed`, conflicts reported); the lane re-run: 3 movers, all `fail → pass`; a `.6b.4` pairing claim corrected forward; pipeline tuple `8704/2606/5026/3743/30`; `.4c` closed |
 | `.6d.1` | `PGEN-SVPP-EXPANSION-0019` | the library pass: 407 package files in dependency order, 166 packages published, every row with `--lib-in`; 425 movers, all `fail → pass`; 164/168 rejecting OpenTitan packages import `uvm_pkg` (the (d) gate); six per-top register packages disagree; pipeline tuple `9129/2606/4601/3318/30` |
 | `.6d.2` | `PGEN-SVPP-EXPANSION-0020` | the unit-membership reading (5 074 member rows from the source map; `accepted_in_unit` / kept / `unreached_in_unit`); measured 0 / 89 / 1 923 — idle behind the UVM gate; the tuple unmoved |
+| `.7` | `PGEN-SVPP-EXPANSION-0021` | contract + book lockstep: the SV contract's front-end section, the preprocessor contract's runtime section, the books' notes, the user guide; the HTML mirrors rebuilt |
 
 ## Changelog
 
@@ -1710,3 +1752,5 @@ it waits on the `.5`(d) ruling.
   `fail → pass`; the UVM gate measured (164/168); frontier `.6d.2` (unit membership), `.7`, the (d) ruling.
 - `2026-09-09` — `.6d.2` done (`PGEN-SVPP-EXPANSION-0020`): the unit-membership reading, measured idle behind the UVM gate
   (0 accepted, 1 923 unreached); `.6d.3` (the UVM library) BLOCKED on (d); frontier `.7`.
+- `2026-09-09` — `.7` done (`PGEN-SVPP-EXPANSION-0021`): the front end contracted and stated in the books; the tree at its
+  handoff-ready stop — `.6d.3` (the UVM library) BLOCKED on the director's (d); the tracked HTML mirrors rebuilt.

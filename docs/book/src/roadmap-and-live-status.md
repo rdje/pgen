@@ -168,6 +168,19 @@ Leg 1 is the stimuli-generator proof, leg 2 is *gates green and invoked* — eve
 
 <!-- END DERIVED -->
 
+### The SystemVerilog corpus is read twice
+
+The `systemverilog` corpus row above is the **raw** lane: every file parsed as written, directives
+unexecuted — grammar-development scaffolding, and the only reading the answer key can score per file.
+The **release reading** is the preprocess→parse pipeline (`SVPP-EXPANSION`): the same 16 336 rows parsed
+through `parseability_probe --preprocess` under a context derived from the corpus (include directories,
+the drivers' defines, the harness's unit lists) and a library of the design suites' packages exported in
+dependency order. The verdict-coverage tuple carries both readings side by side in
+[Grammar Well-Formedness](grammar-wellformedness.md) (raw first, then under the pipeline), held to a fresh
+derivation by `SV-CORPUS-DENOMINATOR` and `PIPELINE-LANE-CURRENCY`; the whole-lane table, the transitions,
+what still rejects and why — including what waits on the UVM ruling — are in the SV parser book's chapter
+[*The preprocess→parse pipeline*](../../systemverilog_parser_book/src/preprocess-parse-pipeline.md).
+
 ### Grammars that are not families
 
 `grammars/*.ebnf` holds 17 tracked grammars; 10 are families. The other 7 each carry a recorded
