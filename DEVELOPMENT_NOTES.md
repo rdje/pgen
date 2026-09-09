@@ -1,5 +1,11 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SVPP-EXPANSION.6b.2 (`PGEN-SVPP-EXPANSION-0011`): the refuted rows are a reading list for the standard
+
+- **Each refuted row named a sentence.** A `//` inside macro text, a paste token in an object macro, a `` `line `` directive inside a statement block, a `(` on the line after the macro name — four rows from sv2v's and iverilog's lexer tests, each a clause of §22 the expansion stage had not read (§22.5.1 :187-188, :380; §22.12 :791-795; §5.3). None was a parser question: the parser was refusing text the preprocessor should never have handed it. The re-adjudication report's `refuted` column is, in effect, an index into the standard, sorted by how often the corpus exercises each sentence.
+- **Consume only what you can validate; pass through what you cannot.** A malformed `` `line `` (level 3, a comment on its line) is refused by the parser's own production, and the answer key already pins those rows must_reject; consuming every `` `line `` line would have turned those correct refusals into silent acceptances. The rule: the preprocessor consumes a directive only when it can vouch for its form, and the malformed form keeps its way to the parser.
+- **Promotion**: declined — `promotion: declined (the SV parser book chapter carries the four rules; no new card)`.
+
 ## 2026-09-09 — SVPP-EXPANSION.6b.1 (`PGEN-SVPP-EXPANSION-0010`): a pin the raw lane cannot cash is still the key's ruling
 
 - **Measure what the answer key does with a pin before publishing it.** Thirty-four must_reject pins, each with the standard's line, went to the adjudicator's scratch output first: every one came back `deferred:svpp_owned` with `expected = out_of_scope_with_cause`, because the raw parse stops on a macro use above the construct and the reject-arm demotion is DESIGNED to keep such a reject out of the raw `match` column. That is the honest raw state, not a defect — and it means the raw tuple loses 34 adjudicated rows while the pipeline gains them. Publish both facts side by side; never let one lane's number look like the other's.

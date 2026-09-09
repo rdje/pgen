@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9762b82b.js";
+            window.path_to_searchindex_js = "searchindex-1236e51e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -807,6 +807,20 @@ the stack of bodies being rescanned. That distinction is what lets OpenTitan nes
 <code>`DV_SPINWAIT</code> inside the actual of another (its inner body re-enters a macro the outer
 expansion still holds) while <code>`define A(x) `B(`A(x))</code> is still refused: the <code>`A</code> handed to
 <code>B</code> is A’s own body text.</li>
+</ul>
+<p><strong>What the expansion stage rewrites, and what it leaves.</strong> Four rules landed with <code>SVPP-EXPANSION.6b.2</code>,
+each one a sentence of the standard that a corpus row had been failing on:</p>
+<ul>
+<li><strong>A one-line comment in macro text is not substituted</strong> (§22.5.1: <em>“the comment shall not become part
+of the substituted text”</em>). <code>`define N 21 */* foo */2//foo</code> expands to <code>21 */* foo */2</code> — the block
+comment stays, it is white space to the parser; a string keeps its slashes; a continued line keeps its
+continuation even when the comment sat on it.</li>
+<li><strong>The paste token joins its sides in an object macro too</strong> (§22.5.1: *“A <code>delimits lexical tokens without introducing white space"*):</code> `define YUCK /<code>* garbage *</code>/ `` expands to a comment, as a
+function macro’s substitution always did. In a source line the token stays for the parser to judge.</li>
+<li><strong>A well-formed <code>`line</code> directive is consumed</strong> (§22.12: *“the <code>line directive shall set the line number and file name of the following line"*). The expansion stage is the tool that maintains the current file and line, so `` </code><strong>FILE</strong> <code>and</code> <code>__LINE__ `` after it read the assigned location, the event log records the directive (</code>line_directive<code>), and the parser never sees it. A malformed one — a level other than 0, 1 or 2, a missing parameter, a comment on its line — is not this stage's to consume: it passes through, and the parser's own §22.12 production refuses it, so the answer key's must-reject rows on malformed `` </code>line `` lines keep their verdict under the pipeline.</li>
+<li><strong>A function-like macro may open its parentheses on the next line</strong> (§22.5.1 requires the parentheses;
+§5.3 lets white space, newlines included, separate the tokens): <code>`FOO</code> at the end of a line followed by
+<code>(1, 2)</code> on the next is one invocation.</li>
 </ul>
 <p>The same slice found a defect no parser could see: the formal-list scanner treated an apostrophe as
 a string quote — SystemVerilog has none (§5.9) — so <code>`define DV_FCOV_INSTANTIATE_CG(NAME_, COND_ = 1'b1, ARGS_ = ())</code> had been read as <em>two</em> formals since the scanner’s first commit, a third actual

@@ -224,6 +224,27 @@ ORIGIN file and line, each carrying the standard's sentence:
   expansion still holds) while `` `define A(x) `B(`A(x)) `` is still refused: the `` `A `` handed to
   `B` is A's own body text.
 
+**What the expansion stage rewrites, and what it leaves.** Four rules landed with `SVPP-EXPANSION.6b.2`,
+each one a sentence of the standard that a corpus row had been failing on:
+
+- **A one-line comment in macro text is not substituted** (§22.5.1: *"the comment shall not become part
+  of the substituted text"*). `` `define N 21 */* foo */2//foo `` expands to `21 */* foo */2` — the block
+  comment stays, it is white space to the parser; a string keeps its slashes; a continued line keeps its
+  continuation even when the comment sat on it.
+- **The paste token joins its sides in an object macro too** (§22.5.1: *"A `` delimits lexical tokens
+  without introducing white space"*): `` `define YUCK /``* garbage *``/ `` expands to a comment, as a
+  function macro's substitution always did. In a source line the token stays for the parser to judge.
+- **A well-formed `` `line `` directive is consumed** (§22.12: *"the `line directive shall set the line
+  number and file name of the following line"*). The expansion stage is the tool that maintains the current
+  file and line, so `` `__FILE__ `` and `` `__LINE__ `` after it read the assigned location, the event log
+  records the directive (`line_directive`), and the parser never sees it. A malformed one — a level other
+  than 0, 1 or 2, a missing parameter, a comment on its line — is not this stage's to consume: it passes
+  through, and the parser's own §22.12 production refuses it, so the answer key's must-reject rows on
+  malformed `` `line `` lines keep their verdict under the pipeline.
+- **A function-like macro may open its parentheses on the next line** (§22.5.1 requires the parentheses;
+  §5.3 lets white space, newlines included, separate the tokens): `` `FOO `` at the end of a line followed by
+  `(1, 2)` on the next is one invocation.
+
 The same slice found a defect no parser could see: the formal-list scanner treated an apostrophe as
 a string quote — SystemVerilog has none (§5.9) — so `` `define DV_FCOV_INSTANTIATE_CG(NAME_, COND_ =
 1'b1, ARGS_ = ()) `` had been read as *two* formals since the scanner's first commit, a third actual

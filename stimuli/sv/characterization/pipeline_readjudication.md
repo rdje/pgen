@@ -9,15 +9,15 @@
 | answer key | `stimuli/sv/characterization/adjudication_manifest.tsv` | `729a3c12641bb267eb6be9b44bba89f64aa39ec47c97b3ca4b79f840901e19e6` |
 | explained_svpp audit | `docs/tasks/artifacts/sv_corpus_grad/explained_svpp_audit/after/audit.tsv` | `e30149eb2dc125d24f0a27c537984fc2e11b6ba13062e0e62f162e7d02dfeded` |
 | dark chained_only audit | `docs/tasks/artifacts/sv_corpus_grad/dark_chained_only/audit.tsv` | `73b9821f330f4712b28fac60c69bf031797a303225ebb5e528ebc6483ea72cef` |
-| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `13ef2cdc71463ee91b26f427641b823f47d939a922a772d4cc8ae144423c11d0` |
-| parse binary | `rust/target/debug/parseability_probe` | `240e996c77f98d5eac9a48d7b7a24583f05b0a019306e743e0f1f0eacb6390db` |
+| pipeline results (input) | `stimuli/sv/characterization/pipeline_results.tsv` | `97f234806078386bc208e02163c25105c48695b2b3fa647145f215ddda34d973` |
+| parse binary | `rust/target/debug/parseability_probe` | `71a56e5b4ec12c5ca63cea4f8687c4288b810209e2b362568ac310e63144e8f8` |
 
-Measured at `HEAD` = `1a3607ce+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
+Measured at `HEAD` = `d4dc2de8+dirty`; the parse binary is a **debug** build (the probe row and this line are provenance, masked by `--check`).
 
 ## The headline
 
 - rows re-read: **6,905** (manifest rows in the three populations that the lane ran; 0 such rows have no lane row)
-- **explained_svpp** — must-accept rows the raw lane explained away by preprocessing (`divergence:explained_svpp_*`; `.12a`'s position test, `.12b`'s 263): 1,400 rows → `corroborated` 1,199, `refuted` 189, `refused_engine` 7, `refused_context` 5
+- **explained_svpp** — must-accept rows the raw lane explained away by preprocessing (`divergence:explained_svpp_*`; `.12a`'s position test, `.12b`'s 263): 1,400 rows → `corroborated` 1,205, `refuted` 183, `refused_engine` 7, `refused_context` 5
 - **chained_only** — multi-file design rows the raw lane could not judge (`deferred:chained_only`; `.13c`'s strata, `.13d`'s expansion-owned rows): 4,927 rows → `chained:rejects_own_file` 2,936, `chained:accepted_under_expansion` 1,530, `chained:hollow` 236, `chained:refused_context` 210, `chained:refused_engine` 15
 - **svpp_owned** — rows whose conformance the raw lane routed to the preprocessor lane (`deferred:svpp_owned`): 172 rows → `svpp_owned:accepted_under_expansion` 111, `svpp_owned:refused_engine` 30, `svpp_owned:rejects_own_file` 28, `svpp_owned:refused_context` 2, `svpp_owned:hollow` 1
 - **must_reject** — rows the answer key expects REJECTED — the manifest's `expected`, or a pin the raw lane demoted (`.6b.1`); a pipeline pass here is an over-acceptance candidate: 406 rows → `must_reject:match_under_expansion` 404, `must_reject:accepts_invalid` 2
@@ -30,7 +30,7 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 |---|---:|---:|---:|---:|---:|---:|
 | `IN-WINDOW` | 221 | 98 | 120 | 0 | 1 | 2 |
 | `PAST-LAST-TICK` | 4 | 0 | 4 | 0 | 0 | 0 |
-| `STUCK-ON-SVPP-TOKEN` | 1165 | 1091 | 65 | 0 | 4 | 5 |
+| `STUCK-ON-SVPP-TOKEN` | 1165 | 1097 | 59 | 0 | 4 | 5 |
 | `not-in-audit` | 10 | 10 | 0 | 0 | 0 | 0 |
 
 **The refuted rows, by the construct on the rejecting line** (the same buckets as the lane report):
@@ -38,7 +38,7 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 | construct at the origin line | refuted rows | one example (origin) |
 |---|---:|---|
 | class header with a base class (`extends`) | 103 | `stimuli/sv/subs/sv-tests/tests/chapter-16/16.10--property-local-var-uvm.sv:62:26` |
-| other | 79 | `stimuli/sv/subs/Surelog/tests/CovMacro/dut.sv:12:31` |
+| other | 73 | `stimuli/sv/subs/Surelog/tests/CovMacro/dut.sv:12:31` |
 | a function / task header | 3 | `stimuli/sv/subs/iverilog/ivtest/ivltests/sv_type_identifier_function_name.v:21:13` |
 | `import` of a package | 1 | `stimuli/sv/subs/verilator/test_regress/t/t_dpi_result_type.v:114:30` |
 | a parameter port list `#(` | 1 | `stimuli/sv/subs/verilator/test_regress/t/t_hier_block.v:81:17` |
@@ -56,8 +56,8 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 | ispras-sv-tests | `divergence:explained_svpp_macro_use` | 0 | 11 |
 | ispras-sv-tests | `divergence:explained_svpp_protected_envelope` | 1 | 0 |
 | iverilog | `divergence:explained_svpp_conditional` | 0 | 11 |
-| iverilog | `divergence:explained_svpp_include` | 2 | 0 |
-| iverilog | `divergence:explained_svpp_macro_use` | 6 | 202 |
+| iverilog | `divergence:explained_svpp_include` | 1 | 1 |
+| iverilog | `divergence:explained_svpp_macro_use` | 5 | 203 |
 | slang | `divergence:explained_svpp_conditional` | 0 | 2 |
 | slang | `divergence:explained_svpp_include` | 6 | 4 |
 | slang | `divergence:explained_svpp_macro_use` | 3 | 0 |
@@ -65,12 +65,12 @@ A `STUCK-ON-SVPP-TOKEN` row was one the raw parse stopped ON the directive; `IN-
 | sv-tests | `divergence:explained_svpp_include` | 103 | 0 |
 | sv-tests | `divergence:explained_svpp_macro_use` | 2 | 1 |
 | sv2v | `divergence:explained_svpp_include` | 0 | 12 |
-| sv2v | `divergence:explained_svpp_macro_use` | 10 | 49 |
+| sv2v | `divergence:explained_svpp_macro_use` | 8 | 51 |
 | verible | `divergence:explained_svpp_conditional` | 0 | 1 |
 | verible | `divergence:explained_svpp_macro_use` | 2 | 3 |
 | verilator | `divergence:explained_svpp_conditional` | 3 | 159 |
 | verilator | `divergence:explained_svpp_include` | 0 | 4 |
-| verilator | `divergence:explained_svpp_macro_use` | 46 | 703 |
+| verilator | `divergence:explained_svpp_macro_use` | 44 | 705 |
 | verilator | `divergence:explained_svpp_protected_envelope` | 2 | 0 |
 
 ## chained_only — the `.13c` strata against the parse under the derived context

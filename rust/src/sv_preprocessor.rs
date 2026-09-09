@@ -203,6 +203,9 @@ pub enum PreprocessorEventKind {
     PassthroughLine,
     SkippedLine,
     MacroExpand,
+    /// `SVPP-EXPANSION.6b.2`(ii): a well-formed `` `line `` directive consumed (§22.12); the detail
+    /// carries the number and the file name it sets for the following lines.
+    LineDirective,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -585,8 +588,21 @@ fn preprocess_text_internal(
     // anywhere in the source description"), or that PRECEDES one. It is processed as its own logical
     // line, at the same line number, before `line_index` advances.
     let mut pending_tail: Option<String> = None;
+    // `SVPP-EXPANSION.6b.2`(ii): the file name and line number a `` `line `` directive assigned to
+    // the FOLLOWING physical lines — (named file, number for the first of them, its physical index).
+    let mut line_override: Option<(PathBuf, usize, usize)> = None;
     while line_index < lines.len() || pending_tail.is_some() {
         let line_no = line_base.unwrap_or(line_index + 1);
+        // where an expansion on this line says it is: `__FILE__` / `__LINE__` and the messages read
+        // the `` `line ``-assigned location (IEEE 1800-2017 §22.12: "the compiler shall maintain the
+        // current line number and file name … the `line directive shall set [them] for the following
+        // line"); the events and the source map keep the physical one.
+        let (exp_file, exp_line): (PathBuf, usize) = match (&line_override, line_base) {
+            (Some((named_file, number, start)), None) if line_index >= *start => {
+                (named_file.clone(), number + (line_index - start))
+            }
+            _ => (file_path.to_path_buf(), line_no),
+        };
         let active = conditionals
             .last()
             .map(|c| c.current_active)
@@ -647,8 +663,8 @@ fn preprocess_text_internal(
                     &state.macros,
                     0,
                     &mut state.events,
-                    file_path,
-                    line_no,
+                    exp_file.as_path(),
+                    exp_line,
                     &mut Vec::new(),
                     None,
                 )?;
@@ -918,8 +934,8 @@ fn preprocess_text_internal(
                             &state.macros,
                             0,
                             &mut state.events,
-                            file_path,
-                            line_no,
+                            exp_file.as_path(),
+                            exp_line,
                             &mut Vec::new(),
                             None,
                         )?;
@@ -947,6 +963,29 @@ fn preprocess_text_internal(
                         );
                     }
                 }
+                // `SVPP-EXPANSION.6b.2`(ii): IEEE 1800-2017 §22.12 — "The `line directive shall set the
+                // line number and file name of the following line to those specified in the directive
+                // … only white space may appear on the same line as the `line directive … All
+                // parameters in the `line directive are required." A well-formed directive is CONSUMED
+                // here — the preprocessor is the tool that "shall maintain the current line number and
+                // file name", and the source map already carries the physical location — while a
+                // malformed one falls through to the pass-through below, where the parser's own
+                // §22.12 production refuses it (SV-CORPUS-GRAD.3.39's must_reject rows keep their
+                // verdict under the pipeline). Before this the directive reached the parser inside a
+                // statement block and iverilog `line_directive.v` rejected at the line after it.
+                "line" if parse_line_directive(rest).is_some() => {
+                    let (number, named_file) = parse_line_directive(rest).expect("guarded above");
+                    if active {
+                        line_override = Some((PathBuf::from(&named_file), number, line_index + 1));
+                    }
+                    state.push_event(
+                        PreprocessorEventKind::LineDirective,
+                        file_path,
+                        line_no,
+                        active,
+                        format!("{} \"{}\"", number, named_file),
+                    );
+                }
                 _ => {
                     // Unknown directive: pass through only when active to preserve tool behavior.
                     if active {
@@ -955,8 +994,8 @@ fn preprocess_text_internal(
                             &state.macros,
                             0,
                             &mut state.events,
-                            file_path,
-                            line_no,
+                            exp_file.as_path(),
+                            exp_line,
                             &mut Vec::new(),
                             None,
                         )?;
@@ -1003,8 +1042,8 @@ fn preprocess_text_internal(
                 &state.macros,
                 0,
                 &mut state.events,
-                file_path,
-                line_no,
+                exp_file.as_path(),
+                exp_line,
                 &mut Vec::new(),
                 None,
             )?;
@@ -1222,6 +1261,28 @@ fn collect_multiline_macro_invocation(
     (combined, current_index)
 }
 
+/// `SVPP-EXPANSION.6b.2`(ii): the three required parameters of a `` `line `` directive — IEEE
+/// 1800-2017 §22.12 Syntax 22-9 `` `line number "filename" level ``, the level one of 0 | 1 | 2 and
+/// only white space after — or None when the line is malformed (then it is not this stage's to
+/// consume: it passes through and the parser refuses it).
+fn parse_line_directive(rest: &str) -> Option<(usize, String)> {
+    let text = rest.trim();
+    let digits_end = text
+        .find(|c: char| !c.is_ascii_digit())
+        .unwrap_or(text.len());
+    if digits_end == 0 {
+        return None;
+    }
+    let number: usize = text[..digits_end].parse().ok()?;
+    let quoted = text[digits_end..].trim_start().strip_prefix('"')?;
+    let close = quoted.find('"')?;
+    let filename = &quoted[..close];
+    if !matches!(quoted[close + 1..].trim(), "0" | "1" | "2") {
+        return None;
+    }
+    Some((number, filename.to_string()))
+}
+
 fn parse_directive_line(input: &str) -> Option<(&str, &str)> {
     if !input.starts_with('`') {
         return None;
@@ -1384,7 +1445,9 @@ fn parse_define_directive(input: &str) -> Result<(String, MacroDefinition)> {
     if rest_after_name.starts_with('(') {
         let (params, after) = parse_macro_parameter_list(rest_after_name)
             .with_context(|| "invalid macro parameter list")?;
-        let body = normalize_macro_body_for_directives(after.trim_start());
+        let body = normalize_macro_body_for_directives(&strip_line_comments_from_macro_text(
+            after.trim_start(),
+        ));
         Ok((
             name.to_string(),
             MacroDefinition {
@@ -1397,10 +1460,100 @@ fn parse_define_directive(input: &str) -> Result<(String, MacroDefinition)> {
             name.to_string(),
             MacroDefinition {
                 params: None,
-                body: normalize_macro_body_for_directives(rest_after_name.trim_start()),
+                body: normalize_macro_body_for_directives(&strip_line_comments_from_macro_text(
+                    rest_after_name.trim_start(),
+                )),
             },
         ))
     }
+}
+
+/// `SVPP-EXPANSION.6b.2`(iii): IEEE 1800-2017 §22.5.1 — "If a one-line comment (that is, a comment
+/// specified with the characters //) is included in the text, then the comment shall not become part
+/// of the substituted text." Each line of the macro text is cut at a `//` that sits outside a string
+/// literal, a `` `"…`" `` macro string and a block comment; a backslash that continued the line
+/// survives the cut (the comment sat on the continued line, the continuation is the text's). Block
+/// comments stay: the standard excludes one-line comments only, and `/* … */` is white space to the
+/// parser. Before this, sv2v `macro.sv`'s `` `define NUMBER_12 21 */* foo */2//foo `` expanded with
+/// its comment and the `)` of every use was commented out.
+fn strip_line_comments_from_macro_text(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut in_block = false;
+    for raw in split_lines_preserve_terminator(text) {
+        let line = raw.trim_end_matches(['\r', '\n']);
+        let terminator = &raw[line.len()..];
+        let bytes = line.as_bytes();
+        let mut in_string = false;
+        let mut in_macro_string = false;
+        let mut escaped = false;
+        let mut cut: Option<usize> = None;
+        let mut i = 0usize;
+        while i < bytes.len() {
+            let b = bytes[i];
+            if in_block {
+                if b == b'*' && i + 1 < bytes.len() && bytes[i + 1] == b'/' {
+                    in_block = false;
+                    i += 2;
+                } else {
+                    i += 1;
+                }
+                continue;
+            }
+            if in_string {
+                if escaped {
+                    escaped = false;
+                } else if b == b'\\' {
+                    escaped = true;
+                } else if b == b'"' {
+                    in_string = false;
+                }
+                i += 1;
+                continue;
+            }
+            // `\`" — an escaped quote inside a macro string (§22.5.3.2): four bytes, no toggle
+            if b == b'`' && line[i..].starts_with("`\\`\"") {
+                i += 4;
+                continue;
+            }
+            if b == b'`' && i + 1 < bytes.len() && bytes[i + 1] == b'"' {
+                in_macro_string = !in_macro_string;
+                i += 2;
+                continue;
+            }
+            if in_macro_string {
+                i += 1;
+                continue;
+            }
+            if b == b'"' {
+                in_string = true;
+                i += 1;
+                continue;
+            }
+            if b == b'/' && i + 1 < bytes.len() && bytes[i + 1] == b'*' {
+                in_block = true;
+                i += 2;
+                continue;
+            }
+            if b == b'/' && i + 1 < bytes.len() && bytes[i + 1] == b'/' {
+                cut = Some(i);
+                break;
+            }
+            i += 1;
+        }
+        match cut {
+            Some(at) => {
+                let kept = line[..at].trim_end();
+                out.push_str(kept);
+                if line.trim_end().ends_with('\\') && !kept.ends_with('\\') {
+                    // the comment swallowed the continuation marker: the continuation is the text's
+                    out.push_str(" \\");
+                }
+            }
+            None => out.push_str(line),
+        }
+        out.push_str(terminator);
+    }
+    out
 }
 
 fn normalize_macro_body_for_directives(body: &str) -> String {
@@ -1795,6 +1948,15 @@ fn expand_macros_in_text(
         }
 
         if i + 1 < bytes.len() && bytes[i + 1] == b'`' {
+            // `SVPP-EXPANSION.6b.2`(i): in MACRO-PRODUCED text the ``` `` ``` token has done its work
+            // — "A `` delimits lexical tokens without introducing white space" (IEEE 1800-2017
+            // §22.5.1) — so an object macro's `/``* … *``/` joins to `/* … */` exactly as a function
+            // macro's sides join in substitution (sv2v `macro_vendor_comment.sv` reached the parser
+            // with the token still in it); in a source line it stays, for the parser to judge.
+            if user_mask.is_some() {
+                i += 2;
+                continue;
+            }
             out.push_str("``");
             i += 2;
             continue;
@@ -2040,6 +2202,12 @@ fn has_unclosed_function_macro_invocation(
             let mut open_paren_idx = ident_end;
             while open_paren_idx < bytes.len() && bytes[open_paren_idx].is_ascii_whitespace() {
                 open_paren_idx += 1;
+            }
+            if open_paren_idx >= bytes.len() {
+                // `SVPP-EXPANSION.6b.2`(iv): the name closes the line, so its `(` may open the next
+                // one — §22.5.1 requires the parentheses, §5.3 lets white space, newlines included,
+                // separate the tokens (sv2v `macro_whitespace.sv`): read on before deciding.
+                return true;
             }
             if open_paren_idx < bytes.len() && bytes[open_paren_idx] == b'(' {
                 if let Some((_, next_index)) = parse_macro_invocation_args(text, open_paren_idx) {
@@ -3851,5 +4019,108 @@ module m;\n  `FIELD_BEGIN(ID,UVM_ALL_ON)\nendmodule\n",
             text.contains("E_SVPP_RECURSIVE_MACRO") && text.contains("`A -> `B -> `A"),
             "{text}"
         );
+    }
+
+    // ── SVPP-EXPANSION.6b.2 — the four engine items the refuted rows named ─────────────────────
+
+    #[test]
+    fn a_paste_token_in_an_object_macro_joins_its_sides() {
+        // sv2v lex/macro_vendor_comment.sv: `define YUCK /``* some awful garbage *``/ — §22.5.1, the
+        // paste "delimits lexical tokens without introducing white space"
+        let dir = create_repo_scratch_dir("svpp_object_paste");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define YUCK /``* some awful garbage *``/\nmodule top;\n    `YUCK\nendmodule\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("expand");
+        assert!(
+            out.text.contains("/* some awful garbage */"),
+            "{}",
+            out.text
+        );
+        assert!(!out.text.contains("``"), "{}", out.text);
+    }
+
+    #[test]
+    fn a_line_directive_is_consumed_and_renames_the_following_lines() {
+        // iverilog ivltests/line_directive.v — §22.12: the directive sets the line number and file
+        // name of the FOLLOWING line; a malformed one (level 3) is not this stage's and passes through
+        let dir = create_repo_scratch_dir("svpp_line_directive");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "module t;\ninitial begin\n  $display(`__LINE__);\n`line 10 \"real_source.v\" 0\n  $display(`__FILE__, `__LINE__);\n  $display(`__LINE__);\n`line 1 \"f\" 3\nend\nendmodule\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("expand");
+        assert!(out.text.contains("$display(3);"), "{}", out.text);
+        assert!(
+            out.text.contains("$display(\"real_source.v\", 10);"),
+            "{}",
+            out.text
+        );
+        assert!(out.text.contains("$display(11);"), "{}", out.text);
+        assert!(
+            !out.text.contains("`line 10"),
+            "the well-formed directive is consumed:\n{}",
+            out.text
+        );
+        assert!(
+            out.text.contains("`line 1 \"f\" 3"),
+            "the malformed one passes through:\n{}",
+            out.text
+        );
+        assert!(
+            out.events
+                .iter()
+                .any(|e| e.kind == super::PreprocessorEventKind::LineDirective
+                    && e.detail == "10 \"real_source.v\""),
+            "{:?}",
+            out.events
+        );
+    }
+
+    #[test]
+    fn a_one_line_comment_in_macro_text_is_not_substituted() {
+        // sv2v lex/macro.sv NUMBER_11 / NUMBER_12 — §22.5.1: "the comment shall not become part of
+        // the substituted text"; a block comment stays; a string keeps its slashes; a continued
+        // line keeps its continuation
+        let dir = create_repo_scratch_dir("svpp_macro_text_comment");
+        let input = dir.join("top.sv");
+        fs::write(
+            &input,
+            "`define N11 42 //\n`define N12 21 */* foo */2//foo\n`define S \"a//b\" // c\n`define M first // x \\\n  second\n$display(`N11);\n$display(`N12);\n$display(`S);\n$display(`M);\n",
+        )
+        .expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("expand");
+        assert!(out.text.contains("$display(42);"), "{}", out.text);
+        assert!(
+            out.text.contains("$display(21 */* foo */2);"),
+            "{}",
+            out.text
+        );
+        assert!(out.text.contains("$display(\"a//b\");"), "{}", out.text);
+        assert!(
+            out.text.contains("$display(first") && out.text.contains("second);"),
+            "{}",
+            out.text
+        );
+    }
+
+    #[test]
+    fn a_function_like_macro_may_open_its_parentheses_on_a_later_line() {
+        // sv2v lex/macro_whitespace.sv — §22.5.1 requires the parentheses; §5.3 lets a newline
+        // separate the name from them
+        let dir = create_repo_scratch_dir("svpp_paren_next_line");
+        let input = dir.join("top.sv");
+        fs::write(&input, "`define FOO(a, b) ((a)+(b))\nmodule top;\n  initial begin\n    $display(`FOO\n    (\n      1\n      ,\n      2\n    ));\n  end\nendmodule\n").expect("write");
+        let out = preprocess_systemverilog_file(&input, &SvPreprocessorConfig::default())
+            .expect("expand");
+        assert!(out.text.contains("$display(((1)+(2)));"), "{}", out.text);
     }
 }

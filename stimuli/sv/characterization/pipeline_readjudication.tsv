@@ -699,7 +699,7 @@ iverilog	ivtest/ivltests/enum_method_signed1.v	divergence:explained_svpp_macro_u
 iverilog	ivtest/ivltests/enum_method_signed3.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 iverilog	ivtest/ivltests/escaped_macro_name.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pp_fail	engine	-	refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/iverilog/ivtest/ivltests/escaped_macro_name.v:2: missing macro name in `define
 iverilog	ivtest/ivltests/fileline.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
-iverilog	ivtest/ivltests/fileline2.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file	other	refuted	stimuli/sv/subs/iverilog/ivtest/ivltests/fileline2.v:10:14
+iverilog	ivtest/ivltests/fileline2.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 iverilog	ivtest/ivltests/func_empty_arg1.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 iverilog	ivtest/ivltests/func_empty_arg3.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 iverilog	ivtest/ivltests/generate_module.v	match	match	fail	own file	other	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/ivltests/generate_module.v:10:1
@@ -710,7 +710,7 @@ iverilog	ivtest/ivltests/implicit_cast13.v	divergence:explained_svpp_conditional
 iverilog	ivtest/ivltests/implicit_cast4.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 iverilog	ivtest/ivltests/implicit_cast5.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 iverilog	ivtest/ivltests/implicit_cast6.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
-iverilog	ivtest/ivltests/line_directive.v	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	fail	own file	other	refuted	stimuli/sv/subs/iverilog/ivtest/ivltests/line_directive.v:8:131
+iverilog	ivtest/ivltests/line_directive.v	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 iverilog	ivtest/ivltests/module_output_port_sv_var2.v	match	match	fail	own file	other	must_reject:match_under_expansion	stimuli/sv/subs/iverilog/ivtest/ivltests/module_output_port_sv_var2.v:8:14
 iverilog	ivtest/ivltests/module_port_typedef_array1.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 iverilog	ivtest/ivltests/module_port_typedef_vector.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
@@ -5435,16 +5435,16 @@ sv2v	test/error/var_var.sv	match	match	fail	own file	other	must_reject:match_und
 sv2v	test/lex/cond.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 sv2v	test/lex/file_line.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pp_fail	engine	-	refused_engine	include cycle detected: /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/file_line.sv -> /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/file_line.sv
 sv2v	test/lex/line.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pp_fail	engine	-	refused_engine	"invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/line.sv:7: include path must be quoted or angle-bracketed (IEEE 1800-2017 §22.4 Syntax 22-1: `include ""f"
-sv2v	test/lex/macro.sv	divergence:explained_svpp_macro_use	IN-WINDOW	fail	own file	other	refuted	stimuli/sv/subs/sv2v/test/lex/macro.sv:118:1
+sv2v	test/lex/macro.sv	divergence:explained_svpp_macro_use	IN-WINDOW	fail	own file	other	refuted	stimuli/sv/subs/sv2v/test/lex/macro.sv:137:6
 sv2v	test/lex/macro_arg_comment.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pp_fail	engine	-	refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/sv2v/test/lex/macro_arg_comment.sv:1: invalid macro parameter list: invalid macro parameter token '// comment
 sv2v	test/lex/macro_arg_escape.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 sv2v	test/lex/macro_boundary.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 sv2v	test/lex/macro_ifdef.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-	-	corroborated	
-sv2v	test/lex/macro_iv.sv	divergence:explained_svpp_macro_use	IN-WINDOW	fail	own file	other	refuted	stimuli/sv/subs/sv2v/test/lex/macro_iv.sv:135:1
+sv2v	test/lex/macro_iv.sv	divergence:explained_svpp_macro_use	IN-WINDOW	fail	own file	other	refuted	stimuli/sv/subs/sv2v/test/lex/macro_iv.sv:154:6
 sv2v	test/lex/macro_macro.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file	other	refuted	stimuli/sv/subs/sv2v/test/lex/macro_macro.sv:16:20
 sv2v	test/lex/macro_string.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
-sv2v	test/lex/macro_vendor_comment.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file	other	refuted	stimuli/sv/subs/sv2v/test/lex/macro_vendor_comment.sv:2:12
-sv2v	test/lex/macro_whitespace.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file	other	refuted	stimuli/sv/subs/sv2v/test/lex/macro_whitespace.sv:5:18
+sv2v	test/lex/macro_vendor_comment.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
+sv2v	test/lex/macro_whitespace.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 sv2v	test/lex/no_newline.sv	divergence:explained_svpp_include	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 sv2v	test/lex/number.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-	-	corroborated	
 sv2v	test/lex/string_macro.sv	divergence:explained_svpp_macro_use	IN-WINDOW	fail	own file	other	refuted	stimuli/sv/subs/sv2v/test/lex/string_macro.sv:9:18
@@ -5754,7 +5754,7 @@ verilator	test_regress/t/t_case_write2.v	divergence:explained_svpp_macro_use	STU
 verilator	test_regress/t/t_case_write2_tasks.v	deferred:chained_only	IN-WINDOW	pass	-	-	chained:accepted_under_expansion	
 verilator	test_regress/t/t_cast.v	match	match	fail	own file	a `typedef`	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_cast.v:27:15
 verilator	test_regress/t/t_cast_stream.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
-verilator	test_regress/t/t_cast_types.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file	other	refuted	stimuli/sv/subs/verilator/test_regress/t/t_cast_types.v:114:1
+verilator	test_regress/t/t_cast_types.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 verilator	test_regress/t/t_castdyn_enum.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 verilator	test_regress/t/t_checker.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 verilator	test_regress/t/t_checker_unsup.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
@@ -6009,7 +6009,7 @@ verilator	test_regress/t/t_force_multi.v	divergence:explained_svpp_macro_use	STU
 verilator	test_regress/t/t_force_nested_struct.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 verilator	test_regress/t/t_force_nested_struct2.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 verilator	test_regress/t/t_force_port_inline.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
-verilator	test_regress/t/t_force_release.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file	other	refuted	stimuli/sv/subs/verilator/test_regress/t/t_force_release.v:38:6
+verilator	test_regress/t/t_force_release.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 verilator	test_regress/t/t_force_release_net.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 verilator	test_regress/t/t_force_release_var.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
 verilator	test_regress/t/t_force_rhs_ref.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-	-	corroborated	
@@ -6442,7 +6442,7 @@ verilator	test_regress/t/t_pp_circdef_bad.v	deferred:svpp_owned	-	pp_fail	engine
 verilator	test_regress/t/t_pp_defkwd_bad.v	deferred:svpp_owned	-	pass	-	-	svpp_owned:accepted_under_expansion	
 verilator	test_regress/t/t_pp_defnettype_bad.v	match	match	fail	own file	other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_pp_defnettype_bad.v:7:17
 verilator	test_regress/t/t_pp_defparen_bad.v	deferred:svpp_owned	-	fail	own file	other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_pp_defparen_bad.v:10:10
-verilator	test_regress/t/t_pp_display.v	deferred:svpp_owned	-	fail	own file	other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_pp_display.v:35:1
+verilator	test_regress/t/t_pp_display.v	deferred:svpp_owned	-	fail	own file	other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_pp_display.v:40:14
 verilator	test_regress/t/t_pp_dupdef.v	deferred:svpp_owned	-	pass	-	-	svpp_owned:accepted_under_expansion	
 verilator	test_regress/t/t_pp_dupdef_pragma_bad.v	deferred:svpp_owned	-	pass	-	-	svpp_owned:accepted_under_expansion	
 verilator	test_regress/t/t_pp_lib.v	deferred:svpp_owned	-	pass	-	-	svpp_owned:accepted_under_expansion	
@@ -6459,7 +6459,7 @@ verilator	test_regress/t/t_preproc.v	divergence:explained_svpp_protected_envelop
 verilator	test_regress/t/t_preproc_cmtend_bad.v	deferred:svpp_owned	-	pass	-	-	svpp_owned:accepted_under_expansion	
 verilator	test_regress/t/t_preproc_debugi.v	deferred:svpp_owned	-	fail	own file	other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_debugi.v:11:3
 verilator	test_regress/t/t_preproc_def09.v	deferred:svpp_owned	-	fail	own file	other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_def09.v:12:1
-verilator	test_regress/t/t_preproc_defarg_bad.v	deferred:svpp_owned	-	pp_fail	engine	-	svpp_owned:refused_engine	E_SVPP_EXTRA_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc_defarg_bad.v:13: `A1 invoked with 2 arguments for 1 formals — IEEE 1800-2017 §22
+verilator	test_regress/t/t_preproc_defarg_bad.v	deferred:svpp_owned	-	pp_fail	engine	-	svpp_owned:refused_engine	E_SVPP_EXTRA_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc_defarg_bad.v:12: `A1 invoked with 2 arguments for 1 formals — IEEE 1800-2017 §22
 verilator	test_regress/t/t_preproc_elsif_bad.v	deferred:svpp_owned	-	pp_fail	engine	-	svpp_owned:refused_engine	`elsif without matching `ifdef/`ifndef at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc_elsif_bad.v:9
 verilator	test_regress/t/t_preproc_eof1_bad.v	deferred:svpp_owned	-	pass	-	-	svpp_owned:accepted_under_expansion	
 verilator	test_regress/t/t_preproc_eof2_bad.v	deferred:svpp_owned	-	pp_fail	engine	-	svpp_owned:refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc_eof2_bad.v:7: invalid macro parameter list: unterminated macro parameter list
