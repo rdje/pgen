@@ -34,6 +34,21 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.229 / Contract 1.0.229 — SV-CORPUS-GRAD.3.59 (`PGEN-SV-CORPUS-GRAD-0392`, 2026-09-10), ledger `SV-0102` (`Released`), **schema 32 unchanged**:
+
+⭐ **A select on a receiver is an expression, and `$` is a primary.** IEEE 1800-2017 A.8.4 derives a method
+call's receiver as `hierarchical_identifier select` with `bit_select ::= { [ expression ] }`, and `$` — the last
+element of a queue (7.10.4) — is a primary. Through `1.0.228` the chains' index operand carried only
+`constant_primary`, so `q[$-1].delete` and `q[$].delete()` rejected at the `$` while `q[0].delete` and `x = q[$-1]`
+parsed (verilator `t_dynarray_multid.v`). `1.0.229` adds `kw_dollar -> {kind: "dollar"}` as that operand's last
+alternative — every constant-index receiver keeps its tree. And IEEE 1800-2023 11.4.13 defines the relative
+tolerance range `[A +%- B]` beside the absolute `[A +/- B]`: `1.0.229` adds it to `value_range_sv_2023` and to the
+covergroup twin as `{kind: "relative_tolerance"}` (the 2017 rules keep no tolerance range, pinned). Two additive
+kinds; 1648 rules unchanged; no engine, no codegen, no Rust. The answer key pins verilator `t_stream_unpack.v`'s
+`{ >> bit[1:0] {arr2}} = bit6;` `must_reject` — A.8.1's `slice_size` is a `simple_type` or a constant expression,
+and a type with a packed dimension is neither. Measured on the final bytes: the raw lanes the three raw lanes byte-inert — `sv_2017` pass 9 847 / fail 6 489, `sv_2023` 9 872 / 6 464, `verilog_2005` 2 313 / 293, every count identical to 1.0.228's, 0 rows moved
+(both shapes sit behind macros in the raw corpus); the pipeline lane 1 row `fail → pass` (verilator `t_dynarray_multid.v`), 0 the other way; the corpus AST identity sweeps read `ast_moved=0 verdict_moved=0` on all three lanes (9 847 / 9 872 / 2 313 accepted trees byte-identical).
+
 ### 1.0.228 / Contract 1.0.228 — SV-CORPUS-GRAD.3.58 (`PGEN-SV-CORPUS-GRAD-0391`, 2026-09-09), ledger `SV-0101` (`Released`), **schema 32 unchanged**:
 
 ⭐ **The standard's notation separates tokens by white space.** IEEE 1800-2017 A.6.5 writes the parenthesised

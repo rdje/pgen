@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a303348d.js";
+            window.path_to_searchindex_js = "searchindex-f4f5fa8c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -259,15 +259,15 @@ inapplicable one.</li>
 </thead>
 <tbody>
 <tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">6 064</td><td style="text-align: right">37.1 %</td></tr>
-<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 414</td><td style="text-align: right">8.7 %</td></tr>
+<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 413</td><td style="text-align: right">8.6 %</td></tr>
 <tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">9</td><td style="text-align: right">0.1 %</td></tr>
 <tr><td>Routed to another lane’s manifest</td><td style="text-align: right">2 606</td><td style="text-align: right">16.0 %</td></tr>
-<tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">6 243</td><td style="text-align: right">38.2 %</td></tr>
+<tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">6 244</td><td style="text-align: right">38.2 %</td></tr>
 <tr><td>Total</td><td style="text-align: right">16 336</td><td style="text-align: right">100.0 %</td></tr>
 </tbody>
 </table>
 </div>
-<p>Only <strong>7 487 rows (45.8 %)</strong> were asked a question they could answer, and <strong>4 036</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6064/7487 would quietly drop the 38.2 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
+<p>Only <strong>7 486 rows (45.8 %)</strong> were asked a question they could answer, and <strong>4 037</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6064/7486 would quietly drop the 38.2 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
@@ -955,12 +955,12 @@ the day the ruling lands. The dark population is now named by its unit’s origi
 <code>uvm_transaction.svh:443</code>) rather than by each member’s first cross-file name.</p>
 <p><strong>The denominator, read twice.</strong> The platform book’s verdict-coverage tuple
 (<code>adjudicated/routed/no-verdict/dark/axis-2-bar</code>) now carries two readings of the same rows, published
-together and held by the same gate: the raw lane’s <code>7487/2606/6243/4036/9</code>, and <code>9135/2606/4595/3312/16</code>
-under the pipeline. The second is the first with the re-adjudication table applied: 1 217 explained-away
+together and held by the same gate: the raw lane’s <code>7486/2606/6244/4037/9</code>, and <code>9135/2606/4595/3312/14</code>
+under the pipeline. The second is the first with the re-adjudication table applied: 1 218 explained-away
 rows corroborated, 1 704 design-corpus files accepted under their derived context and library (must-accept by the
-suite’s own convention — a shipping design compiles), 447 must-reject rows rejected where the raw lane
+suite’s own convention — a shipping design compiles), 448 must-reject rows rejected where the raw lane
 never reached the construct (28 of them the key questions of the disposition table, pinned with the
-clause and a reproducer each, 3 the rows a file’s own driver define reaches — <code>.4c.1</code>, and 11 the pipeline-routed parser questions re-read at the furthest token — <code>SV-CORPUS-GRAD.12b.1</code>), and 7 must-accept rows still refused in their own text (the first of <code>.12b.1</code>’s four grammar families, the spaced <code>@ ( * )</code>, shipped as <code>1.0.228</code> — nine pipeline rows <code>fail → pass</code>) — the bar’s
+clause and a reproducer each, 3 the rows a file’s own driver define reaches — <code>.4c.1</code>, and 11 the pipeline-routed parser questions re-read at the furthest token — <code>SV-CORPUS-GRAD.12b.1</code>), and 5 must-accept rows still refused in their own text (three of <code>.12b.1</code>’s four grammar families shipped: the spaced <code>@ ( * )</code> as <code>1.0.228</code> — nine pipeline rows <code>fail → pass</code> — and the <code>$</code>-indexed receiver with the sv_2023 <code>+%-</code> range as <code>1.0.229</code>, whose streaming-slice row proved the standard’s own refusal and is pinned) — the bar’s
 members, each with its clause, until the corpus tree rules them. 2 935 rows are dark under the pipeline
 on a declaration another file holds; that is the library design’s population. The report also re-reads every row the key expects <strong>rejected</strong> — including
 a pin the raw lane could not cash because its parse stopped on a macro use above the construct: 34 verilator
@@ -1546,7 +1546,7 @@ shapes, each carrying a <code>kind</code> discriminator).</p>
 <tr><td><code>dist_weight</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"equal"</code> (<code>{weight}</code> — <code>:=</code> operator, equal share) / <code>"proportional"</code> (<code>{weight}</code> — <code>:/</code> operator, divided weight).</td></tr>
 <tr><td><code>range_list_sv_2023</code> / <code>open_range_list_sv_2017</code></td><td><code>-&gt; [$1, $2::2*]</code></td><td>Flat array of value_range / open_value_range shapes (slice 58 audit).</td></tr>
 <tr><td><code>value_range_sv_2017</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"expression"</code> / <code>"range"</code>.</td></tr>
-<tr><td><code>value_range_sv_2023</code> (5 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"expression"</code> / <code>"range"</code> / <code>"dollar_lo"</code> (<code>[$:expr]</code>) / <code>"dollar_hi"</code> (<code>[expr:$]</code>) / <code>"tolerance"</code> (<code>[expr +/- expr]</code>). LRM 2023 expansion.</td></tr>
+<tr><td><code>value_range_sv_2023</code> (6 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"expression"</code> / <code>"range"</code> / <code>"dollar_lo"</code> (<code>[$:expr]</code>) / <code>"dollar_hi"</code> (<code>[expr:$]</code>) / <code>"tolerance"</code> (<code>[expr +/- expr]</code>, <code>{center, tol}</code>) / <code>"relative_tolerance"</code> (<code>[expr +%- expr]</code>, <code>{center, tol}</code> — IEEE 1800-2023 11.4.13, since <code>1.0.229</code>, <code>SV-CORPUS-GRAD.3.59</code>; the covergroup twin <code>covergroup_value_range_sv_2023</code> carries the same two labels with <code>{body}</code>). LRM 2023 expansion.</td></tr>
 <tr><td><code>array_method_name</code> (5 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"method_identifier"</code> (<code>{body}</code> — user-defined method) / <code>"unique"</code> / <code>"and"</code> / <code>"or"</code> / <code>"xor"</code> (bare; LRM-reserved array-builtin method names per A.2.10).</td></tr>
 <tr><td><code>class_new</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"constructor"</code> (<code>{scope, args}</code> — <code>new(args)</code> with optional class scope) / <code>"copy"</code> (<code>{source}</code> — <code>new other</code> shallow-copy form).</td></tr>
 <tr><td><code>dynamic_array_new</code></td><td><code>-&gt; {size, init}</code></td><td>LRM <code>new[size]</code> or <code>new[size](init)</code> form.</td></tr>
@@ -2823,6 +2823,19 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10229--contract-10229--sv-corpus-grad359-pgen-sv-corpus-grad-0392-2026-09-10-ledger-sv-0102-released-schema-32-unchanged"><a class="header" href="#10229--contract-10229--sv-corpus-grad359-pgen-sv-corpus-grad-0392-2026-09-10-ledger-sv-0102-released-schema-32-unchanged">1.0.229 / Contract 1.0.229 — SV-CORPUS-GRAD.3.59 (<code>PGEN-SV-CORPUS-GRAD-0392</code>, 2026-09-10), ledger <code>SV-0102</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
+<p>⭐ <strong>A select on a receiver is an expression, and <code>$</code> is a primary.</strong> IEEE 1800-2017 A.8.4 derives a method
+call’s receiver as <code>hierarchical_identifier select</code> with <code>bit_select ::= { [ expression ] }</code>, and <code>$</code> — the last
+element of a queue (7.10.4) — is a primary. Through <code>1.0.228</code> the chains’ index operand carried only
+<code>constant_primary</code>, so <code>q[$-1].delete</code> and <code>q[$].delete()</code> rejected at the <code>$</code> while <code>q[0].delete</code> and <code>x = q[$-1]</code>
+parsed (verilator <code>t_dynarray_multid.v</code>). <code>1.0.229</code> adds <code>kw_dollar -&gt; {kind: "dollar"}</code> as that operand’s last
+alternative — every constant-index receiver keeps its tree. And IEEE 1800-2023 11.4.13 defines the relative
+tolerance range <code>[A +%- B]</code> beside the absolute <code>[A +/- B]</code>: <code>1.0.229</code> adds it to <code>value_range_sv_2023</code> and to the
+covergroup twin as <code>{kind: "relative_tolerance"}</code> (the 2017 rules keep no tolerance range, pinned). Two additive
+kinds; 1648 rules unchanged; no engine, no codegen, no Rust. The answer key pins verilator <code>t_stream_unpack.v</code>’s
+<code>{ &gt;&gt; bit[1:0] {arr2}} = bit6;</code> <code>must_reject</code> — A.8.1’s <code>slice_size</code> is a <code>simple_type</code> or a constant expression,
+and a type with a packed dimension is neither. Measured on the final bytes: the raw lanes the three raw lanes byte-inert — <code>sv_2017</code> pass 9 847 / fail 6 489, <code>sv_2023</code> 9 872 / 6 464, <code>verilog_2005</code> 2 313 / 293, every count identical to 1.0.228’s, 0 rows moved
+(both shapes sit behind macros in the raw corpus); the pipeline lane 1 row <code>fail → pass</code> (verilator <code>t_dynarray_multid.v</code>), 0 the other way; the corpus AST identity sweeps read <code>ast_moved=0 verdict_moved=0</code> on all three lanes (9 847 / 9 872 / 2 313 accepted trees byte-identical).</p>
 <h3 id="10228--contract-10228--sv-corpus-grad358-pgen-sv-corpus-grad-0391-2026-09-09-ledger-sv-0101-released-schema-32-unchanged"><a class="header" href="#10228--contract-10228--sv-corpus-grad358-pgen-sv-corpus-grad-0391-2026-09-09-ledger-sv-0101-released-schema-32-unchanged">1.0.228 / Contract 1.0.228 — SV-CORPUS-GRAD.3.58 (<code>PGEN-SV-CORPUS-GRAD-0391</code>, 2026-09-09), ledger <code>SV-0101</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
 <p>⭐ <strong>The standard’s notation separates tokens by white space.</strong> IEEE 1800-2017 A.6.5 writes the parenthesised
 implicit event expression as <code>@ (*)</code>, and IEEE 1800-2023 A.6.5 spells it out as three tokens, <code>@ ( * )</code>. Through

@@ -2144,6 +2144,13 @@ hierarchical_index_operand := unary_operator attribute_instance* constant_primar
                                    -> $1
                             | constant_primary
                                    -> {kind: "primary",         body: $1}
+# SV-CORPUS-GRAD.3.59 (release 1.0.229): `$` as an index operand of a chain's select — IEEE 1800-2017
+# A.8.4 `primary ::= … | hierarchical_identifier select` with `bit_select ::= { [ expression ] }` and
+# `$` a primary (7.10.4: `q[$]`, `q[$-1]`); through 1.0.228 a queue element's method (`q[$-1].delete`)
+# rejected at the `$` because this operand rule carried only constant_primary. Ordered LAST: a `$`
+# is never a constant_primary, so every earlier alternative keeps its tree byte-identical.
+                            | kw_dollar
+                                   -> {kind: "dollar"}
 
 hierarchical_index_expression := @probe_sample: "1" hierarchical_index_operand ( binary_operator attribute_instance* hierarchical_index_operand )* ( question attribute_instance* hierarchical_index_expression colon hierarchical_index_expression )?
                               -> {first: $1, rest: $2, ternary: $3}
@@ -2446,6 +2453,7 @@ covergroup_value_range_sv_2023 := covergroup_expression                         
                                 | lbrack ( kw_dollar colon covergroup_expression ) rbrack                -> {kind: "dollar_lo",  body: $2}
                                 | lbrack ( covergroup_expression colon kw_dollar ) rbrack                -> {kind: "dollar_hi",  body: $2}
                                 | lbrack ( covergroup_expression plus slash minus covergroup_expression ) rbrack -> {kind: "tolerance",  body: $2}
+                                | lbrack ( covergroup_expression plus percent minus covergroup_expression ) rbrack -> {kind: "relative_tolerance", body: $2}
 
 @profiles: ["sv_2017", "sv_2023"]
 covergroup_value_range := covergroup_value_range_sv_2017 -> {kind: "sv_2017", body: $1}
@@ -7964,6 +7972,7 @@ value_range_sv_2023 := expression                                               
                      | lbrack kw_dollar colon expression rbrack                          -> {kind: "dollar_lo",  hi: $4}
                      | lbrack expression colon kw_dollar rbrack                          -> {kind: "dollar_hi",  lo: $2}
                      | lbrack expression plus slash minus expression rbrack              -> {kind: "tolerance",  center: $2, tol: $6}
+                     | lbrack expression plus percent minus expression rbrack            -> {kind: "relative_tolerance", center: $2, tol: $6}
 
 @profiles: ["sv_2017", "sv_2023"]
 value_range := value_range_sv_2017 -> {kind: "sv_2017", body: $1}

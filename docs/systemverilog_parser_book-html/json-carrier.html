@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a303348d.js";
+            window.path_to_searchindex_js = "searchindex-f4f5fa8c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -529,7 +529,7 @@
 <tr><td><code>dist_weight</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"equal"</code> (<code>{weight}</code> — <code>:=</code> operator, equal share) / <code>"proportional"</code> (<code>{weight}</code> — <code>:/</code> operator, divided weight).</td></tr>
 <tr><td><code>range_list_sv_2023</code> / <code>open_range_list_sv_2017</code></td><td><code>-&gt; [$1, $2::2*]</code></td><td>Flat array of value_range / open_value_range shapes (slice 58 audit).</td></tr>
 <tr><td><code>value_range_sv_2017</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"expression"</code> / <code>"range"</code>.</td></tr>
-<tr><td><code>value_range_sv_2023</code> (5 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"expression"</code> / <code>"range"</code> / <code>"dollar_lo"</code> (<code>[$:expr]</code>) / <code>"dollar_hi"</code> (<code>[expr:$]</code>) / <code>"tolerance"</code> (<code>[expr +/- expr]</code>). LRM 2023 expansion.</td></tr>
+<tr><td><code>value_range_sv_2023</code> (6 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"expression"</code> / <code>"range"</code> / <code>"dollar_lo"</code> (<code>[$:expr]</code>) / <code>"dollar_hi"</code> (<code>[expr:$]</code>) / <code>"tolerance"</code> (<code>[expr +/- expr]</code>, <code>{center, tol}</code>) / <code>"relative_tolerance"</code> (<code>[expr +%- expr]</code>, <code>{center, tol}</code> — IEEE 1800-2023 11.4.13, since <code>1.0.229</code>, <code>SV-CORPUS-GRAD.3.59</code>; the covergroup twin <code>covergroup_value_range_sv_2023</code> carries the same two labels with <code>{body}</code>). LRM 2023 expansion.</td></tr>
 <tr><td><code>array_method_name</code> (5 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"method_identifier"</code> (<code>{body}</code> — user-defined method) / <code>"unique"</code> / <code>"and"</code> / <code>"or"</code> / <code>"xor"</code> (bare; LRM-reserved array-builtin method names per A.2.10).</td></tr>
 <tr><td><code>class_new</code> (2 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"constructor"</code> (<code>{scope, args}</code> — <code>new(args)</code> with optional class scope) / <code>"copy"</code> (<code>{source}</code> — <code>new other</code> shallow-copy form).</td></tr>
 <tr><td><code>dynamic_array_new</code></td><td><code>-&gt; {size, init}</code></td><td>LRM <code>new[size]</code> or <code>new[size](init)</code> form.</td></tr>

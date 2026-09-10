@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-10 — SV-CORPUS-GRAD.3.59 (`PGEN-SV-CORPUS-GRAD-0392`): bisect to the token, then read the production it sits in
+
+- **Three rows, three different verdicts, from one method.** Read at the furthest token, `qa1[$-1]▶.delete` was a missing `$` operand (a grammar fix), `bit▶[1:0]` in a slice size was the standard refusing a packed dimension (a pin), and `+%-` was an edition's addition the 2023 profile had not yet spelled (a profile-gated fix). The `.6b.4` readings had named the construct on the origin line for all three and been wrong for two.
+- **Put a new operand where the standard puts it, last.** `$` joined the chains' index operand behind `constant_primary`: a `$` is never a constant primary, so no earlier alternative loses a tree, and the ordered choice pays the new terminal only where the older ones already failed.
+- **An edition contrast is two pins.** The relative tolerance range accepts on `sv_2023` and must reject on `sv_2017`; one file per side, each with its own profile list, so a later change to either edition's rule trips exactly one of them.
+- **Promotion**: declined — a grammar slice under the standing ceremony.
+
 ## 2026-09-09 — SV-CORPUS-GRAD.3.58 (`PGEN-SV-CORPUS-GRAD-0391`): the notation is part of the clause
 
 - **`@ (*)` in Annex A is four tokens, not a spelling.** The 2017 text writes the parenthesised wildcard compactly; the 2023 text writes `@ ( * )` and says nothing new. Reading the compact form as a lexical constraint had left `@( * )` rejected on the 2017 and 2005 profiles while the 2023 rule accepted it — one grammar, two answers to a whitespace question the standard never asked.

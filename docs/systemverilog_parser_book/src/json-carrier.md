@@ -345,7 +345,7 @@ This chapter is a flat reference table of every `systemverilog.ebnf` rule that c
 | `dist_weight` (2 branches) | per-branch typed | Kind labels: `"equal"` (`{weight}` — `:=` operator, equal share) / `"proportional"` (`{weight}` — `:/` operator, divided weight). |
 | `range_list_sv_2023` / `open_range_list_sv_2017` | `-> [$1, $2::2*]` | Flat array of value_range / open_value_range shapes (slice 58 audit). |
 | `value_range_sv_2017` (2 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"range"`. |
-| `value_range_sv_2023` (5 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"range"` / `"dollar_lo"` (`[$:expr]`) / `"dollar_hi"` (`[expr:$]`) / `"tolerance"` (`[expr +/- expr]`). LRM 2023 expansion. |
+| `value_range_sv_2023` (6 branches) | per-branch `{kind, body}` | Kind labels: `"expression"` / `"range"` / `"dollar_lo"` (`[$:expr]`) / `"dollar_hi"` (`[expr:$]`) / `"tolerance"` (`[expr +/- expr]`, `{center, tol}`) / `"relative_tolerance"` (`[expr +%- expr]`, `{center, tol}` — IEEE 1800-2023 11.4.13, since `1.0.229`, `SV-CORPUS-GRAD.3.59`; the covergroup twin `covergroup_value_range_sv_2023` carries the same two labels with `{body}`). LRM 2023 expansion. |
 | `array_method_name` (5 branches) | per-branch typed | Kind labels: `"method_identifier"` (`{body}` — user-defined method) / `"unique"` / `"and"` / `"or"` / `"xor"` (bare; LRM-reserved array-builtin method names per A.2.10). |
 | `class_new` (2 branches) | per-branch typed | Kind labels: `"constructor"` (`{scope, args}` — `new(args)` with optional class scope) / `"copy"` (`{source}` — `new other` shallow-copy form). |
 | `dynamic_array_new` | `-> {size, init}` | LRM `new[size]` or `new[size](init)` form. |

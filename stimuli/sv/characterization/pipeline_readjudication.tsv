@@ -5947,7 +5947,7 @@ verilator	test_regress/t/t_dynarray_concat.v	divergence:explained_svpp_macro_use
 verilator	test_regress/t/t_dynarray_init.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_dynarray_method.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_dynarray_method_bad.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-verilator	test_regress/t/t_dynarray_multid.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		other	refuted:parser_question	stimuli/sv/subs/verilator/test_regress/t/t_dynarray_multid.v:201:13
+verilator	test_regress/t/t_dynarray_multid.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_dynarray_param.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_dynarray_unpacked.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_embed1.v	divergence:explained_svpp_conditional	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
@@ -6651,7 +6651,7 @@ verilator	test_regress/t/t_stream_integer_type.v	divergence:explained_svpp_condi
 verilator	test_regress/t/t_stream_queue.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_stream_struct.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_stream_type.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
-verilator	test_regress/t/t_stream_unpack.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		other	refuted:parser_question	stimuli/sv/subs/verilator/test_regress/t/t_stream_unpack.v:89:13
+verilator	test_regress/t/t_stream_unpack.v	deferred:svpp_owned	pinned, raw lane demoted	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/verilator/test_regress/t/t_stream_unpack.v:89:13
 verilator	test_regress/t/t_stream_unpack_wider.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_stream_unpacked_struct.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 verilator	test_regress/t/t_strength_buf_not.v	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	

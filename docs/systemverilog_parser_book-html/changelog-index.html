@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a303348d.js";
+            window.path_to_searchindex_js = "searchindex-f4f5fa8c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -217,6 +217,19 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10229--contract-10229--sv-corpus-grad359-pgen-sv-corpus-grad-0392-2026-09-10-ledger-sv-0102-released-schema-32-unchanged"><a class="header" href="#10229--contract-10229--sv-corpus-grad359-pgen-sv-corpus-grad-0392-2026-09-10-ledger-sv-0102-released-schema-32-unchanged">1.0.229 / Contract 1.0.229 — SV-CORPUS-GRAD.3.59 (<code>PGEN-SV-CORPUS-GRAD-0392</code>, 2026-09-10), ledger <code>SV-0102</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
+<p>⭐ <strong>A select on a receiver is an expression, and <code>$</code> is a primary.</strong> IEEE 1800-2017 A.8.4 derives a method
+call’s receiver as <code>hierarchical_identifier select</code> with <code>bit_select ::= { [ expression ] }</code>, and <code>$</code> — the last
+element of a queue (7.10.4) — is a primary. Through <code>1.0.228</code> the chains’ index operand carried only
+<code>constant_primary</code>, so <code>q[$-1].delete</code> and <code>q[$].delete()</code> rejected at the <code>$</code> while <code>q[0].delete</code> and <code>x = q[$-1]</code>
+parsed (verilator <code>t_dynarray_multid.v</code>). <code>1.0.229</code> adds <code>kw_dollar -&gt; {kind: "dollar"}</code> as that operand’s last
+alternative — every constant-index receiver keeps its tree. And IEEE 1800-2023 11.4.13 defines the relative
+tolerance range <code>[A +%- B]</code> beside the absolute <code>[A +/- B]</code>: <code>1.0.229</code> adds it to <code>value_range_sv_2023</code> and to the
+covergroup twin as <code>{kind: "relative_tolerance"}</code> (the 2017 rules keep no tolerance range, pinned). Two additive
+kinds; 1648 rules unchanged; no engine, no codegen, no Rust. The answer key pins verilator <code>t_stream_unpack.v</code>’s
+<code>{ &gt;&gt; bit[1:0] {arr2}} = bit6;</code> <code>must_reject</code> — A.8.1’s <code>slice_size</code> is a <code>simple_type</code> or a constant expression,
+and a type with a packed dimension is neither. Measured on the final bytes: the raw lanes the three raw lanes byte-inert — <code>sv_2017</code> pass 9 847 / fail 6 489, <code>sv_2023</code> 9 872 / 6 464, <code>verilog_2005</code> 2 313 / 293, every count identical to 1.0.228’s, 0 rows moved
+(both shapes sit behind macros in the raw corpus); the pipeline lane 1 row <code>fail → pass</code> (verilator <code>t_dynarray_multid.v</code>), 0 the other way; the corpus AST identity sweeps read <code>ast_moved=0 verdict_moved=0</code> on all three lanes (9 847 / 9 872 / 2 313 accepted trees byte-identical).</p>
 <h3 id="10228--contract-10228--sv-corpus-grad358-pgen-sv-corpus-grad-0391-2026-09-09-ledger-sv-0101-released-schema-32-unchanged"><a class="header" href="#10228--contract-10228--sv-corpus-grad358-pgen-sv-corpus-grad-0391-2026-09-09-ledger-sv-0101-released-schema-32-unchanged">1.0.228 / Contract 1.0.228 — SV-CORPUS-GRAD.3.58 (<code>PGEN-SV-CORPUS-GRAD-0391</code>, 2026-09-09), ledger <code>SV-0101</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
 <p>⭐ <strong>The standard’s notation separates tokens by white space.</strong> IEEE 1800-2017 A.6.5 writes the parenthesised
 implicit event expression as <code>@ (*)</code>, and IEEE 1800-2023 A.6.5 spells it out as three tokens, <code>@ ( * )</code>. Through
