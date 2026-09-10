@@ -386,12 +386,12 @@ the day the ruling lands. The dark population is now named by its unit's origin 
 
 **The denominator, read twice.** The platform book's verdict-coverage tuple
 (`adjudicated/routed/no-verdict/dark/axis-2-bar`) now carries two readings of the same rows, published
-together and held by the same gate: the raw lane's `7487/2606/6243/4036/9`, and `9127/2606/4603/3320/17`
-under the pipeline. The second is the first with the re-adjudication table applied: 1 216 explained-away
-rows corroborated, 1 696 design-corpus files accepted under their derived context and library (must-accept by the
+together and held by the same gate: the raw lane's `7487/2606/6243/4036/9`, and `9135/2606/4595/3312/16`
+under the pipeline. The second is the first with the re-adjudication table applied: 1 217 explained-away
+rows corroborated, 1 704 design-corpus files accepted under their derived context and library (must-accept by the
 suite's own convention — a shipping design compiles), 447 must-reject rows rejected where the raw lane
 never reached the construct (28 of them the key questions of the disposition table, pinned with the
-clause and a reproducer each, 3 the rows a file's own driver define reaches — `.4c.1`, and 11 the pipeline-routed parser questions re-read at the furthest token — `SV-CORPUS-GRAD.12b.1`), and 8 must-accept rows still refused in their own text — the bar's
+clause and a reproducer each, 3 the rows a file's own driver define reaches — `.4c.1`, and 11 the pipeline-routed parser questions re-read at the furthest token — `SV-CORPUS-GRAD.12b.1`), and 7 must-accept rows still refused in their own text (the first of `.12b.1`'s four grammar families, the spaced `@ ( * )`, shipped as `1.0.228` — nine pipeline rows `fail → pass`) — the bar's
 members, each with its clause, until the corpus tree rules them. 2 935 rows are dark under the pipeline
 on a declaration another file holds; that is the library design's population. The report also re-reads every row the key expects **rejected** — including
 a pin the raw lane could not cash because its parse stopped on a macro use above the construct: 34 verilator

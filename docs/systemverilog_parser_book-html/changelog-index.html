@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d0baecc1.js";
+            window.path_to_searchindex_js = "searchindex-a303348d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -217,6 +217,21 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10228--contract-10228--sv-corpus-grad358-pgen-sv-corpus-grad-0391-2026-09-09-ledger-sv-0101-released-schema-32-unchanged"><a class="header" href="#10228--contract-10228--sv-corpus-grad358-pgen-sv-corpus-grad-0391-2026-09-09-ledger-sv-0101-released-schema-32-unchanged">1.0.228 / Contract 1.0.228 — SV-CORPUS-GRAD.3.58 (<code>PGEN-SV-CORPUS-GRAD-0391</code>, 2026-09-09), ledger <code>SV-0101</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
+<p>⭐ <strong>The standard’s notation separates tokens by white space.</strong> IEEE 1800-2017 A.6.5 writes the parenthesised
+implicit event expression as <code>@ (*)</code>, and IEEE 1800-2023 A.6.5 spells it out as three tokens, <code>@ ( * )</code>. Through
+<code>1.0.227</code> the <code>sv_2017</code> / <code>verilog_2005</code> rule read <code>(*</code> as the attribute opener and derived <code>@*</code>, <code>@(*)</code> and <code>@ (* )</code>
+only, so a space after the <code>(</code> — <code>@( * )</code>, <code>@ ( * )</code>, <code>@ ( *)</code> — rejected at the <code>*</code> (sv2v’s <code>sense_star.sv</code>, which asserts
+every spelling equivalent, and eight OpenTitan <code>*_pgd.sv</code> files whose <code>always @( * ) begin</code> the pipeline lane reached).
+<code>1.0.228</code> adds <code>lparen star rparen -&gt; {kind: "wildcard_paren"}</code> — the kind the <code>sv_2023</code> rule already emitted — and
+factors the <code>@</code> out of the six alternatives (<code>event_control_sv_2017 := at_sign event_control_after_at_sv_2017 -&gt; $2</code>,
+a pass-through): the un-factored sixth alternative cost one <code>at_sign</code> attempt per failing position (+78,986 entries
+over the corpus, refused by the parse-cost ratchet); factored, the whole rule costs one, and the corpus cost falls
+(<code>entries</code> −0.16 % / <code>memo_hits</code> −0.18 % promoted, <code>committed</code> +88 accepted as the wrapper’s frames (<code>introduced_wrapper_frames</code>), the LR-family share <code>2.659 → 2.666</code>). An additive kind on one node, every other node byte-identical; 1647 → 1648 rules; no engine, no codegen,
+no Rust.
+Measured on the final bytes: the raw lanes byte-inert by construction (the form sits behind macros in the raw corpus;
+the interpreter pre-screen read zero movers over 1 121 pin arms and 20 corpus arms), 9 rows <code>fail → pass</code> (sv2v <code>sense_star.sv</code>, eight OpenTitan <code>*_pgd.sv</code>), 0 the other way under the pipeline;
+the corpus AST identity sweeps read <code>ast_moved=0 verdict_moved=0</code> on all three lanes (9 847 / 9 872 / 2 313 accepted trees byte-identical).</p>
 <h3 id="10227--contract-10227--sv-corpus-grad356-pgen-sv-corpus-grad-0386-2026-09-09-ledger-sv-0100-released-schema-32-unchanged"><a class="header" href="#10227--contract-10227--sv-corpus-grad356-pgen-sv-corpus-grad-0386-2026-09-09-ledger-sv-0100-released-schema-32-unchanged">1.0.227 / Contract 1.0.227 — SV-CORPUS-GRAD.3.56 (<code>PGEN-SV-CORPUS-GRAD-0386</code>, 2026-09-09), ledger <code>SV-0100</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
 <p>⭐ <strong>A lexical fact lives in the terminal’s regex.</strong> Two were missing. IEEE 1800-2017 §22.5.1: a macro’s text
 continues over a newline preceded by a backslash and ends at the first newline that is not — through <code>1.0.226</code>

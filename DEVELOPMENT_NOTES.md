@@ -1,5 +1,12 @@
 # DEVELOPMENT_NOTES.md
 
+## 2026-09-09 — SV-CORPUS-GRAD.3.58 (`PGEN-SV-CORPUS-GRAD-0391`): the notation is part of the clause
+
+- **`@ (*)` in Annex A is four tokens, not a spelling.** The 2017 text writes the parenthesised wildcard compactly; the 2023 text writes `@ ( * )` and says nothing new. Reading the compact form as a lexical constraint had left `@( * )` rejected on the 2017 and 2005 profiles while the 2023 rule accepted it — one grammar, two answers to a whitespace question the standard never asked.
+- **A raw-inert slice still needs its ceremony.** The corpus spells this form only behind macros, so the raw lanes could not move; the pipeline lane is where the nine rows testify. The raw ceremony ran anyway — the byte-inert lanes and the zero-mover sweeps are the regression proof, not a formality.
+- **The low-memory recipe is now the release path.** The probe published at `rust/target/release/parseability_probe` is the LTO-off, 64-unit build; its parser fingerprint is the fat-LTO probe's and the parse-cost and AST-identity gates read the same numbers. Timing baselines are the one thing not comparable across the two builds.
+- **Promotion**: declined — a grammar slice under the standing ceremony.
+
 ## 2026-09-09 — SV-CORPUS-GRAD.12b.1 (`PGEN-SV-CORPUS-GRAD-0390`): bucket on the token, not on the line
 
 - **Thirteen of twenty-one "parser questions" were bucketed on the wrong construct.** Each `.6b.4` reading named the construct on the ORIGIN line; the origin is the last mapped byte, and the token that failed sat on the next line (`solve`, `else`, `with`, a vendor directive). A minimal reproducer of the named construct PASSED in six cases — the fastest way to find out a reading is wrong is to reproduce what it claims.

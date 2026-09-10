@@ -3325,12 +3325,23 @@ error_limit_value := limit_value
 event_based_flag := constant_expression
                  -> {body: $1}
 
+# SV-CORPUS-GRAD.3.58 (release 1.0.228): the `@` is factored out of the six alternatives — a position
+# where no event control stands now costs ONE `at_sign` attempt for the whole rule instead of one per
+# alternative (the parse-cost ratchet measured the un-factored sixth alternative at +78,986 `at_sign`
+# entries over the corpus, one per failing attempt); the pass-through template keeps every node
+# byte-identical. The sixth alternative is the three-token `@ ( * )` IEEE 1800-2023 A.6.5 spells out
+# (1800-2017 / 1364-2005 A.6.5 write it `@ (*)` in a notation that separates tokens by white space);
+# through 1.0.227 the 2017/2005 rule read `(*` as the attribute opener and rejected a space after the `(`.
 @profiles: ["sv_2017", "verilog_2005"]
-event_control_sv_2017 := at_sign hierarchical_event_identifier        -> {kind: "event",       body: $2}
-                       | at_sign lparen event_expression rparen        -> {kind: "expression",  body: $3}
-                       | at_sign star                                  -> {kind: "wildcard"}
-                       | at_sign attr_open rparen                      -> {kind: "wildcard_alt"}
-                       | at_sign ps_or_hierarchical_sequence_identifier -> {kind: "sequence",    body: $2}
+event_control_sv_2017 := at_sign event_control_after_at_sv_2017 -> $2
+
+@profiles: ["sv_2017", "verilog_2005"]
+event_control_after_at_sv_2017 := hierarchical_event_identifier         -> {kind: "event",       body: $1}
+                                | lparen event_expression rparen         -> {kind: "expression",  body: $2}
+                                | star                                   -> {kind: "wildcard"}
+                                | attr_open rparen                       -> {kind: "wildcard_alt"}
+                                | lparen star rparen                     -> {kind: "wildcard_paren"}
+                                | ps_or_hierarchical_sequence_identifier -> {kind: "sequence",    body: $1}
 
 @profiles: ["sv_2023"]
 event_control_sv_2023 := clocking_event           -> {kind: "clocking",     body: $1}

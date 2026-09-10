@@ -10,11 +10,11 @@ Both lanes parse the SAME population — every `.sv` / `.svh` / `.v` file under 
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `7177c3e855fdeee7d9a24e7ffff7b8feb4c54247cc53198b250118fdb0ab47bd` |
-| grammar raw ast | `grammars/systemverilog.ebnf` | `c447ccaa951e3290dc5e27a2b3f4526c5b7b0933d8e3d20af9ed1cf978935889` |
+| parse binary | `rust/target/release/parseability_probe` | `4070da9e8cfaa2482155e5d70023f708dd499eb8fa2d5e9823a5b9635316631a` |
+| grammar raw ast | `grammars/systemverilog.ebnf` | `75caecb5ca4f7b5e2f91a197840c3e007fbfae3ac54c88d66aec4738e5a93d86` |
 | sv_2017 results (output) | `stimuli/sv/characterization/results.tsv` | `5fa726cd89002007c1fb821ec84c29bc3eadb23fc9651cbf058dad156f57e8f3` |
 | sv_2023 results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `5648224c456b78bcebc85094da3e3d601365174c731b067b32870884d121a250` |
-| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `c3df8a6dd2f98b25b936599cc1e9b19719be78967d37d4b81e20847b35933e93` |
+| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `c1bc510219038501b36c235b8b79aba28b7af9b3d30c162fe1ec5565b298d1ca` |
 
 ## The matrix
 
@@ -41,9 +41,8 @@ The 2017-lane adjudication class is carried beside each row so the reader sees w
 
 | cell | 2017-lane adjudication | rows |
 |---|---|---|
-| `2023_only_pass` | `deferred:svpp_owned` | 2 |
+| `2023_only_pass` | `deferred:svpp_owned` | 3 |
 | `2023_only_pass` | `deferred:v2005_profile_lane` | 1 |
-| `2023_only_pass` | `divergence:explained_svpp_macro_use` | 1 |
 | `2023_only_pass` | `match` | 21 |
 
 | cell | suite | relpath | sv_2017 (furthest) | sv_2023 (furthest) | 2017-lane adjudication | expected |
@@ -65,7 +64,7 @@ The 2017-lane adjudication class is carried beside each row so the reader sees w
 | `2023_only_pass` | `verilator` | `test_regress/t/t_class_override.v` | fail (978) | pass (-) | `match` | `must_reject` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_class_override_bad.v` | fail (819) | pass (-) | `match` | `must_reject` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_display_qqq.v` | fail (245) | pass (-) | `match` | `must_reject` |
-| `2023_only_pass` | `verilator` | `test_regress/t/t_event_array_fire.v` | fail (1625) | pass (-) | `divergence:explained_svpp_macro_use` | `must_accept` |
+| `2023_only_pass` | `verilator` | `test_regress/t/t_event_array_fire.v` | fail (1625) | pass (-) | `deferred:svpp_owned` | `out_of_scope_with_cause` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_export_packed_struct.v` | fail (243) | pass (-) | `match` | `must_reject` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_export_packed_struct2.v` | fail (262) | pass (-) | `match` | `must_reject` |
 | `2023_only_pass` | `verilator` | `test_regress/t/t_preproc_ifexpr_bad.v` | fail (241) | pass (-) | `deferred:svpp_owned` | `out_of_scope_with_cause` |

@@ -3373,10 +3373,10 @@ opentitan	hw/top_darjeeling/ip/ast/rtl/rglts_pdm_3p3v.sv	deferred:chained_only	I
 opentitan	hw/top_darjeeling/ip/ast/rtl/rng.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/top_darjeeling/ip/ast/rtl/sys_clk.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/top_darjeeling/ip/ast/rtl/sys_osc.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
-opentitan	hw/top_darjeeling/ip/ast/rtl/vcaon_pgd.sv	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/opentitan/hw/top_darjeeling/ip/ast/rtl/vcaon_pgd.sv:29:10
-opentitan	hw/top_darjeeling/ip/ast/rtl/vcc_pgd.sv	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/opentitan/hw/top_darjeeling/ip/ast/rtl/vcc_pgd.sv:29:26
-opentitan	hw/top_darjeeling/ip/ast/rtl/vcmain_pgd.sv	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/opentitan/hw/top_darjeeling/ip/ast/rtl/vcmain_pgd.sv:29:10
-opentitan	hw/top_darjeeling/ip/ast/rtl/vio_pgd.sv	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/opentitan/hw/top_darjeeling/ip/ast/rtl/vio_pgd.sv:29:26
+opentitan	hw/top_darjeeling/ip/ast/rtl/vcaon_pgd.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
+opentitan	hw/top_darjeeling/ip/ast/rtl/vcc_pgd.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
+opentitan	hw/top_darjeeling/ip/ast/rtl/vcmain_pgd.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
+opentitan	hw/top_darjeeling/ip/ast/rtl/vio_pgd.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/top_darjeeling/ip/soc_proxy/rtl/bat.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/top_darjeeling/ip/soc_proxy/rtl/soc_proxy.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/top_darjeeling/ip/soc_proxy/rtl/soc_proxy_core_reg_top.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
@@ -3895,10 +3895,10 @@ opentitan	hw/top_earlgrey/ip/ast/rtl/sys_clk.sv	deferred:chained_only	IN-WINDOW	
 opentitan	hw/top_earlgrey/ip/ast/rtl/sys_osc.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/top_earlgrey/ip/ast/rtl/usb_clk.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/top_earlgrey/ip/ast/rtl/usb_osc.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
-opentitan	hw/top_earlgrey/ip/ast/rtl/vcaon_pgd.sv	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/opentitan/hw/top_earlgrey/ip/ast/rtl/vcaon_pgd.sv:29:10
-opentitan	hw/top_earlgrey/ip/ast/rtl/vcc_pgd.sv	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/opentitan/hw/top_earlgrey/ip/ast/rtl/vcc_pgd.sv:29:26
-opentitan	hw/top_earlgrey/ip/ast/rtl/vcmain_pgd.sv	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/opentitan/hw/top_earlgrey/ip/ast/rtl/vcmain_pgd.sv:29:10
-opentitan	hw/top_earlgrey/ip/ast/rtl/vio_pgd.sv	deferred:chained_only	IN-WINDOW	fail	own file		other	chained:rejects_own_file	stimuli/sv/subs/opentitan/hw/top_earlgrey/ip/ast/rtl/vio_pgd.sv:29:26
+opentitan	hw/top_earlgrey/ip/ast/rtl/vcaon_pgd.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
+opentitan	hw/top_earlgrey/ip/ast/rtl/vcc_pgd.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
+opentitan	hw/top_earlgrey/ip/ast/rtl/vcmain_pgd.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
+opentitan	hw/top_earlgrey/ip/ast/rtl/vio_pgd.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/top_earlgrey/ip/sensor_ctrl/rtl/sensor_ctrl.sv	deferred:chained_only	IN-WINDOW	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/top_earlgrey/ip/sensor_ctrl/rtl/sensor_ctrl_pkg.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
 opentitan	hw/top_earlgrey/ip/sensor_ctrl/rtl/sensor_ctrl_reg_pkg.sv	deferred:chained_only	ONE-SIDED (raw pass)	pass	-		-	chained:accepted_under_expansion	
@@ -5249,7 +5249,7 @@ sv-tests	tests/testbenches/uvm_sequence.sv	divergence:explained_svpp_include	IN-
 sv-tests	tests/testbenches/uvm_test_run_test.sv	divergence:explained_svpp_include	IN-WINDOW	fail	own file		class header with a base class (`extends`)	refuted:cross_file_base_class	stimuli/sv/subs/sv-tests/tests/testbenches/uvm_test_run_test.sv:22:35
 sv2v	test/basic/duplicate_genvar_shadow.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/basic/nblk_asgn_prec.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
-sv2v	test/basic/sense_star.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	fail	own file		other	refuted:parser_question	stimuli/sv/subs/sv2v/test/basic/sense_star.sv:8:15
+sv2v	test/basic/sense_star.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/basic/shift.sv	divergence:explained_svpp_macro_use	STUCK-ON-SVPP-TOKEN	pass	-		-	corroborated	
 sv2v	test/basic/simplify_binop.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	
 sv2v	test/basic/typeof_op.sv	divergence:explained_svpp_macro_use	IN-WINDOW	pass	-		-	corroborated	

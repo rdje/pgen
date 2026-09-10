@@ -34,6 +34,23 @@ This book is **live** and tracks current main HEAD. Versioning summary:
 
 - The most recent **published** parser-release section in the contract is **1.0.0 / Contract 1.0.0** (foundation baseline).
 
+### 1.0.228 / Contract 1.0.228 — SV-CORPUS-GRAD.3.58 (`PGEN-SV-CORPUS-GRAD-0391`, 2026-09-09), ledger `SV-0101` (`Released`), **schema 32 unchanged**:
+
+⭐ **The standard's notation separates tokens by white space.** IEEE 1800-2017 A.6.5 writes the parenthesised
+implicit event expression as `@ (*)`, and IEEE 1800-2023 A.6.5 spells it out as three tokens, `@ ( * )`. Through
+`1.0.227` the `sv_2017` / `verilog_2005` rule read `(*` as the attribute opener and derived `@*`, `@(*)` and `@ (* )`
+only, so a space after the `(` — `@( * )`, `@ ( * )`, `@ ( *)` — rejected at the `*` (sv2v's `sense_star.sv`, which asserts
+every spelling equivalent, and eight OpenTitan `*_pgd.sv` files whose `always @( * ) begin` the pipeline lane reached).
+`1.0.228` adds `lparen star rparen -> {kind: "wildcard_paren"}` — the kind the `sv_2023` rule already emitted — and
+factors the `@` out of the six alternatives (`event_control_sv_2017 := at_sign event_control_after_at_sv_2017 -> $2`,
+a pass-through): the un-factored sixth alternative cost one `at_sign` attempt per failing position (+78,986 entries
+over the corpus, refused by the parse-cost ratchet); factored, the whole rule costs one, and the corpus cost falls
+(`entries` −0.16 % / `memo_hits` −0.18 % promoted, `committed` +88 accepted as the wrapper's frames (`introduced_wrapper_frames`), the LR-family share `2.659 → 2.666`). An additive kind on one node, every other node byte-identical; 1647 → 1648 rules; no engine, no codegen,
+no Rust.
+Measured on the final bytes: the raw lanes byte-inert by construction (the form sits behind macros in the raw corpus;
+the interpreter pre-screen read zero movers over 1 121 pin arms and 20 corpus arms), 9 rows `fail → pass` (sv2v `sense_star.sv`, eight OpenTitan `*_pgd.sv`), 0 the other way under the pipeline;
+the corpus AST identity sweeps read `ast_moved=0 verdict_moved=0` on all three lanes (9 847 / 9 872 / 2 313 accepted trees byte-identical).
+
 ### 1.0.227 / Contract 1.0.227 — SV-CORPUS-GRAD.3.56 (`PGEN-SV-CORPUS-GRAD-0386`, 2026-09-09), ledger `SV-0100` (`Released`), **schema 32 unchanged**:
 
 ⭐ **A lexical fact lives in the terminal's regex.** Two were missing. IEEE 1800-2017 §22.5.1: a macro's text

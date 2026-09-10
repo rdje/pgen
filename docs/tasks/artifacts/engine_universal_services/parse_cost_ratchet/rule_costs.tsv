@@ -33,7 +33,7 @@ assignment_pattern_net_lvalue	24850	0	123
 assignment_pattern_variable_lvalue	553702	0	12364
 associative_dimension	38054	0	0
 assume_property_statement	122420	0	0
-at_sign	402604	90	0
+at_sign	86660	90	0
 attr_close	2	2	0
 attr_name	2	2	0
 attr_open	695069	2	0
@@ -297,6 +297,7 @@ enum_name_declaration	4012	3751	0
 equal	472347	11412	0
 escaped_identifier	1676853	0	0
 event_control	78993	88	0
+event_control_after_at_sv_2017	145	88	0
 event_control_sv_2017	78993	88	7
 event_expression	152	62	0
 event_expression_no_comma	2429	383	0
@@ -743,7 +744,7 @@ loop_generate_construct	73520	41	1457
 loop_statement	55539	10	5141
 loop_statement_sv_only	50398	1	6
 loop_variables	3	1	0
-lparen	4103732	97021	2958468
+lparen	4103877	97021	2958613
 lrm_compiler_directive	14	13	0
 lrm_directive_name	223	0	0
 lrm_directive_name_shared	223	0	0
@@ -1044,7 +1045,7 @@ specparam_identifier	866015	13177	0
 split_callable_receiver_scope	601043	4	0
 split_direct_callable_method_call	1906989	19001	1305946
 split_hierarchical_callable_receiver	601043	19001	0
-star	474713	6199	0
+star	474853	6199	0
 star_assign	39116	0	0
 statement	55601	18002	62
 statement_item	55539	18002	0
@@ -1096,7 +1097,7 @@ timescale_directive	65	3	0
 timeunit_separator_slash	5	5	0
 timeunit_separator_trivia	5	5	0
 timeunits_declaration	80530	5	1342
-trivia	88693510	1190636	86402138
+trivia	88377706	1190636	86086334
 type_assignment	35	16	0
 type_assignment_sv_2017	35	16	0
 type_assignment_with_default	5	4	0

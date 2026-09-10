@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d0baecc1.js";
+            window.path_to_searchindex_js = "searchindex-a303348d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-8e3bd504.js"></script>
@@ -259,15 +259,15 @@ inapplicable one.</li>
 </thead>
 <tbody>
 <tr><td><strong>Passing</strong> — the parser’s verdict matches the answer key</td><td style="text-align: right">6 064</td><td style="text-align: right">37.1 %</td></tr>
-<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 425</td><td style="text-align: right">8.7 %</td></tr>
+<tr><td>Divergence with a recorded explanation</td><td style="text-align: right">1 414</td><td style="text-align: right">8.7 %</td></tr>
 <tr><td><strong>Known defects</strong> — divergence with no explanation</td><td style="text-align: right">9</td><td style="text-align: right">0.1 %</td></tr>
 <tr><td>Routed to another lane’s manifest</td><td style="text-align: right">2 606</td><td style="text-align: right">16.0 %</td></tr>
-<tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">6 232</td><td style="text-align: right">38.1 %</td></tr>
+<tr><td><strong>No verdict</strong> — nothing is known about these rows</td><td style="text-align: right">6 243</td><td style="text-align: right">38.2 %</td></tr>
 <tr><td>Total</td><td style="text-align: right">16 336</td><td style="text-align: right">100.0 %</td></tr>
 </tbody>
 </table>
 </div>
-<p>Only <strong>7 498 rows (45.9 %)</strong> were asked a question they could answer, and <strong>4 025</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6064/7498 would quietly drop the 38.1 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
+<p>Only <strong>7 487 rows (45.8 %)</strong> were asked a question they could answer, and <strong>4 036</strong> of the no-verdict rows are <em>dark</em> — the parse failed and nobody has looked at why. ⛔ The pass share above is a share of the WHOLE corpus, not of the adjudicated part: reporting 6064/7487 would quietly drop the 38.2 % carrying no verdict at all and the 16.0 % answered in another lane’s manifest.</p>
 <p><strong>What remains between here and <code>Done</code>.</strong> Derived from the task-tree index: the trees still OPEN whose work is attributed to this family, out of the 113 trees the index carries. <strong>4 trees own this family’s remaining work</strong>, and <strong>26</strong> cross-cutting trees can gate any family.</p>
 <div class="table-wrapper">
 <table>
@@ -955,12 +955,12 @@ the day the ruling lands. The dark population is now named by its unit’s origi
 <code>uvm_transaction.svh:443</code>) rather than by each member’s first cross-file name.</p>
 <p><strong>The denominator, read twice.</strong> The platform book’s verdict-coverage tuple
 (<code>adjudicated/routed/no-verdict/dark/axis-2-bar</code>) now carries two readings of the same rows, published
-together and held by the same gate: the raw lane’s <code>7498/2606/6232/4025/9</code>, and <code>9129/2606/4601/3318/30</code>
-under the pipeline. The second is the first with the re-adjudication table applied: 1 216 explained-away
-rows corroborated, 1 696 design-corpus files accepted under their derived context and library (must-accept by the
-suite’s own convention — a shipping design compiles), 436 must-reject rows rejected where the raw lane
+together and held by the same gate: the raw lane’s <code>7487/2606/6243/4036/9</code>, and <code>9135/2606/4595/3312/16</code>
+under the pipeline. The second is the first with the re-adjudication table applied: 1 217 explained-away
+rows corroborated, 1 704 design-corpus files accepted under their derived context and library (must-accept by the
+suite’s own convention — a shipping design compiles), 447 must-reject rows rejected where the raw lane
 never reached the construct (28 of them the key questions of the disposition table, pinned with the
-clause and a reproducer each, and 3 the rows a file’s own driver define reaches — <code>.4c.1</code>), and 21 must-accept rows still refused in their own text — the bar’s new
+clause and a reproducer each, 3 the rows a file’s own driver define reaches — <code>.4c.1</code>, and 11 the pipeline-routed parser questions re-read at the furthest token — <code>SV-CORPUS-GRAD.12b.1</code>), and 7 must-accept rows still refused in their own text (the first of <code>.12b.1</code>’s four grammar families, the spaced <code>@ ( * )</code>, shipped as <code>1.0.228</code> — nine pipeline rows <code>fail → pass</code>) — the bar’s
 members, each with its clause, until the corpus tree rules them. 2 935 rows are dark under the pipeline
 on a declaration another file holds; that is the library design’s population. The report also re-reads every row the key expects <strong>rejected</strong> — including
 a pin the raw lane could not cash because its parse stopped on a macro use above the construct: 34 verilator
@@ -1562,7 +1562,7 @@ shapes, each carrying a <code>kind</code> discriminator).</p>
 <tr><td><code>delay_control</code> (2 branches)</td><td>per-branch <code>{kind, body}</code></td><td>Kind labels: <code>"value"</code> (<code>#N</code>) / <code>"mintypmax"</code> (<code>#(...)</code>).</td></tr>
 <tr><td><code>delay_or_event_control</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"delay"</code> (<code>{body}</code>) / <code>"event"</code> (<code>{body}</code>) / <code>"repeat"</code> (<code>{count, control}</code> — <code>repeat (count) event_control</code>).</td></tr>
 <tr><td><code>delay_value</code> (5 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"unsigned_number"</code> / <code>"real_number"</code> / <code>"ps_identifier"</code> / <code>"time_literal"</code> (each <code>{body}</code>) / <code>"step"</code> (bare — <code>1step</code>).</td></tr>
-<tr><td><code>event_control_sv_2017</code> (5 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"event"</code> (<code>{body}</code> — <code>@event_id</code>) / <code>"expression"</code> (<code>{body}</code> — <code>@(expr)</code>) / <code>"wildcard"</code> (bare — <code>@*</code>) / <code>"wildcard_alt"</code> (bare — <code>@(*)</code> LRM-alt syntax) / <code>"sequence"</code> (<code>{body}</code> — <code>@seq_id</code>).</td></tr>
+<tr><td><code>event_control_sv_2017</code> (<code>at_sign</code> + a pass-through of <code>event_control_after_at_sv_2017</code>, 6 branches — the <code>@</code> factored out since <code>1.0.228</code>, <code>SV-CORPUS-GRAD.3.58</code>)</td><td>per-branch typed</td><td>Kind labels: <code>"event"</code> (<code>{body}</code> — <code>@event_id</code>) / <code>"expression"</code> (<code>{body}</code> — <code>@(expr)</code>) / <code>"wildcard"</code> (bare — <code>@*</code>) / <code>"wildcard_alt"</code> (bare — <code>@(*)</code> / <code>@ (* )</code>, the glued <code>(*</code> opener) / <code>"wildcard_paren"</code> (bare — <code>@ ( * )</code> / <code>@( * )</code> / <code>@ ( *)</code>, the three-token form IEEE 1800-2023 A.6.5 spells out; since <code>1.0.228</code>, <code>SV-CORPUS-GRAD.3.58</code>; the <code>sv_2023</code> rule carried it already) / <code>"sequence"</code> (<code>{body}</code> — <code>@seq_id</code>).</td></tr>
 <tr><td><code>event_control_sv_2023</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"clocking"</code> (<code>{body}</code> — clocking_event prefix) / <code>"wildcard"</code> / <code>"wildcard_paren"</code> (bare). LRM 2023 simplifies the event_control set.</td></tr>
 <tr><td><code>event_expression_primary</code> (3 branches)</td><td>per-branch typed</td><td>Kind labels: <code>"expression"</code> (<code>{edge, expr, iff}</code>) / <code>"sequence"</code> (<code>{body, iff}</code>) / <code>"paren"</code> (<code>{body}</code>).</td></tr>
 <tr><td><code>strength</code> (4 branches)</td><td>per-branch <code>{kind}</code> (bare)</td><td>Kind labels: <code>"supply"</code> / <code>"strong"</code> / <code>"pull"</code> / <code>"weak"</code>.</td></tr>
@@ -2823,6 +2823,21 @@ it fails in both directions for every family that has a book.</p>
 <ul>
 <li>The most recent <strong>published</strong> parser-release section in the contract is <strong>1.0.0 / Contract 1.0.0</strong> (foundation baseline).</li>
 </ul>
+<h3 id="10228--contract-10228--sv-corpus-grad358-pgen-sv-corpus-grad-0391-2026-09-09-ledger-sv-0101-released-schema-32-unchanged"><a class="header" href="#10228--contract-10228--sv-corpus-grad358-pgen-sv-corpus-grad-0391-2026-09-09-ledger-sv-0101-released-schema-32-unchanged">1.0.228 / Contract 1.0.228 — SV-CORPUS-GRAD.3.58 (<code>PGEN-SV-CORPUS-GRAD-0391</code>, 2026-09-09), ledger <code>SV-0101</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
+<p>⭐ <strong>The standard’s notation separates tokens by white space.</strong> IEEE 1800-2017 A.6.5 writes the parenthesised
+implicit event expression as <code>@ (*)</code>, and IEEE 1800-2023 A.6.5 spells it out as three tokens, <code>@ ( * )</code>. Through
+<code>1.0.227</code> the <code>sv_2017</code> / <code>verilog_2005</code> rule read <code>(*</code> as the attribute opener and derived <code>@*</code>, <code>@(*)</code> and <code>@ (* )</code>
+only, so a space after the <code>(</code> — <code>@( * )</code>, <code>@ ( * )</code>, <code>@ ( *)</code> — rejected at the <code>*</code> (sv2v’s <code>sense_star.sv</code>, which asserts
+every spelling equivalent, and eight OpenTitan <code>*_pgd.sv</code> files whose <code>always @( * ) begin</code> the pipeline lane reached).
+<code>1.0.228</code> adds <code>lparen star rparen -&gt; {kind: "wildcard_paren"}</code> — the kind the <code>sv_2023</code> rule already emitted — and
+factors the <code>@</code> out of the six alternatives (<code>event_control_sv_2017 := at_sign event_control_after_at_sv_2017 -&gt; $2</code>,
+a pass-through): the un-factored sixth alternative cost one <code>at_sign</code> attempt per failing position (+78,986 entries
+over the corpus, refused by the parse-cost ratchet); factored, the whole rule costs one, and the corpus cost falls
+(<code>entries</code> −0.16 % / <code>memo_hits</code> −0.18 % promoted, <code>committed</code> +88 accepted as the wrapper’s frames (<code>introduced_wrapper_frames</code>), the LR-family share <code>2.659 → 2.666</code>). An additive kind on one node, every other node byte-identical; 1647 → 1648 rules; no engine, no codegen,
+no Rust.
+Measured on the final bytes: the raw lanes byte-inert by construction (the form sits behind macros in the raw corpus;
+the interpreter pre-screen read zero movers over 1 121 pin arms and 20 corpus arms), 9 rows <code>fail → pass</code> (sv2v <code>sense_star.sv</code>, eight OpenTitan <code>*_pgd.sv</code>), 0 the other way under the pipeline;
+the corpus AST identity sweeps read <code>ast_moved=0 verdict_moved=0</code> on all three lanes (9 847 / 9 872 / 2 313 accepted trees byte-identical).</p>
 <h3 id="10227--contract-10227--sv-corpus-grad356-pgen-sv-corpus-grad-0386-2026-09-09-ledger-sv-0100-released-schema-32-unchanged"><a class="header" href="#10227--contract-10227--sv-corpus-grad356-pgen-sv-corpus-grad-0386-2026-09-09-ledger-sv-0100-released-schema-32-unchanged">1.0.227 / Contract 1.0.227 — SV-CORPUS-GRAD.3.56 (<code>PGEN-SV-CORPUS-GRAD-0386</code>, 2026-09-09), ledger <code>SV-0100</code> (<code>Released</code>), <strong>schema 32 unchanged</strong>:</a></h3>
 <p>⭐ <strong>A lexical fact lives in the terminal’s regex.</strong> Two were missing. IEEE 1800-2017 §22.5.1: a macro’s text
 continues over a newline preceded by a backslash and ends at the first newline that is not — through <code>1.0.226</code>
