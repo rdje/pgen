@@ -3229,6 +3229,12 @@ impl<'g, 'i> Interp<'g, 'i> {
                 && bytes[self.position] == b'/'
                 && bytes[self.position + 1] == b'*'
             {
+                // `ENGINE-UNIVERSAL-SERVICES.107`: IEEE 1800-2017 §5.4 — "A block comment shall
+                // start with /* and end with */." An opener with no closer before the end of
+                // input is NOT layout: rewind to the `/*` and stop skipping, so the grammar's
+                // own comment terminal refuses it where it stands. The interpreter's twin of
+                // the emitted arm; the two are held equal by the differential gate.
+                let opener = self.position;
                 self.position += 2;
                 while self.position + 1 < bytes.len()
                     && !(bytes[self.position] == b'*' && bytes[self.position + 1] == b'/')
@@ -3237,8 +3243,10 @@ impl<'g, 'i> Interp<'g, 'i> {
                 }
                 if self.position + 1 < bytes.len() {
                     self.position += 2;
+                    continue;
                 }
-                continue;
+                self.position = opener;
+                break;
             }
             if self.position == before {
                 break;
@@ -3302,6 +3310,12 @@ impl<'g, 'i> Interp<'g, 'i> {
                 if self.regex_token_matches_at_cursor(pattern) {
                     break;
                 }
+                // `ENGINE-UNIVERSAL-SERVICES.107`: IEEE 1800-2017 §5.4 — "A block comment shall
+                // start with /* and end with */." An opener with no closer before the end of
+                // input is NOT layout: rewind to the `/*` and stop skipping, so the grammar's
+                // own comment terminal refuses it where it stands. The interpreter's twin of
+                // the emitted arm; the two are held equal by the differential gate.
+                let opener = self.position;
                 self.position += 2;
                 while self.position + 1 < bytes.len()
                     && !(bytes[self.position] == b'*' && bytes[self.position + 1] == b'/')
@@ -3310,8 +3324,10 @@ impl<'g, 'i> Interp<'g, 'i> {
                 }
                 if self.position + 1 < bytes.len() {
                     self.position += 2;
+                    continue;
                 }
-                continue;
+                self.position = opener;
+                break;
             }
             if self.position == before {
                 break;
@@ -3821,6 +3837,42 @@ mod tests {
         let node = ParseNode { rule_name: &"r", content: inner, span: Span::new(0, 4) };
         let wrapped = ParseContent::Alternative(&node);
         assert_eq!(peel_alternative(wrapped), ParseContent::Terminal("core"));
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.107`: IEEE 1800-2017 §5.4 — *"A block comment shall start with
+    /// /* and end with */."* The layout skipper must REWIND to the opener when it reaches the end
+    /// of input without a closer, so an unterminated block comment is refused where it stands
+    /// rather than swallowed as layout. The four reproducers the leaf pre-registered, driven
+    /// through the interpreter's own skipper on a two-rule grammar that claims no introducer.
+    #[test]
+    fn an_unterminated_block_comment_is_not_layout() {
+        fn literal(value: &str) -> ASTNode {
+            ASTNode::Atom {
+                value: ASTValue::Token(vec![
+                    TokenValue::String("quoted_string".to_string()),
+                    TokenValue::String(value.to_string()),
+                ]),
+            }
+        }
+        let mut tree: HashMap<String, ASTNode> = HashMap::new();
+        tree.insert("top".to_string(), literal("a"));
+        let order = vec!["top".to_string()];
+        let verdict = |input: &str| -> (bool, usize) {
+            let outcome =
+                interpret_parse_gen_ast("bc107", None, &tree, &order, None, None, input)
+                    .expect("the interpreter runs");
+            (outcome.accepted, outcome.furthest_position)
+        };
+
+        // the opener alone, and a file that ends inside a comment, are NOT layout
+        assert_eq!(verdict("/*").0, false, "`/*` alone is not a comment");
+        assert_eq!(verdict("/* x").0, false, "`/* x` is not a comment");
+        assert_eq!(verdict("a /* b").0, false, "trailing unterminated comment");
+        assert_eq!(verdict("/* b").0, false, "leading unterminated comment");
+        // a TERMINATED comment is still layout, before and after the token
+        assert!(verdict("/* ok */ a").0, "a closed comment is layout");
+        assert!(verdict("a /* ok */").0, "a trailing closed comment is layout");
+        assert!(verdict("a").0, "no comment at all");
     }
 
     #[test]

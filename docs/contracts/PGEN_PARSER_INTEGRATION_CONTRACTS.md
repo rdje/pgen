@@ -55,6 +55,49 @@ Recommended additions when a family is actively consumed by another project:
 - a short “what this does not promise” section
 - a pointer to `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md`
 
+## Engine-Wide Behaviour Changes
+
+Some behaviour a consumer sees belongs to the ENGINE, not to any one grammar: the generated parsers
+share a built-in layout skipper, so a change there moves the accept set of every family whose grammar
+does not claim the introducer as a token of its own. Such a change has no grammar revision and no
+per-family release to hang itself on, so it is recorded here once, per-family ledger rows link to it,
+and each family's own contract keeps its own version.
+
+### 2026-09-15 — an unterminated block comment is no longer layout (`ENGINE-UNIVERSAL-SERVICES.107`)
+
+Through the artifacts shipped before this date, the built-in comment arm advanced past a `/*`, scanned
+for `*/`, and — on reaching the end of input without one — KEPT the bytes consumed. An unterminated
+block comment was therefore layout: a file whose entire text is `/*` parsed, and so did any file that
+ended inside a comment. IEEE 1800-2017 §5.4 states the rule in one sentence (*"A block comment shall
+start with /\* and end with \*/"*), and every grammar in the tree that spells its own comment token
+agrees by requiring the closer; the bytes simply never reached it. The arm now REWINDS to the opener
+and stops skipping, so the grammar's own terminal refuses the text where it stands.
+
+**What a consumer sees.** Input that ends inside a block comment is now REJECTED, at the `/*` rather
+than at end of input. Nothing else moves: the skipper consumes strictly less, so the accept set can
+only narrow, and every input whose verdict is unchanged takes the identical path. Measured on the
+SystemVerilog corpus (16 336 files, three profiles) against a parser built from the previous commit:
+`ast_moved=0` on all three profiles and exactly three files' verdicts moved, each one a file ending
+inside a comment.
+
+**Which families moved, measured per family rather than assumed** (a file ending in `/*` versus the
+same file with the comment closed, on the previous artifact and on this one):
+
+| Family | Artifact re-emitted | Accept set moved | Evidence |
+|---|---|---|---|
+| `systemverilog` | yes | yes | corpus lanes `sv_2017` 9 847 → 9 844, `sv_2023` 9 872 → 9 869, `verilog_2005` unchanged; ledger `SV-0107` |
+| `vhdl` | yes | yes | `entity e is end entity; /*` PASS → REJECT, the closed form unchanged; ledger `VHDL-0007` |
+| `return_annotation` | yes | yes | `{kind: "x"} /*` PASS → REJECT, the closed form unchanged; ledger `RETANN-0002` |
+| `rtl_frontend` | yes | yes | `module m; endmodule /*` PASS → REJECT, the closed form unchanged |
+| `rtl_const_expr` | yes | yes | `1 + 2 /*` PASS → REJECT, the closed form unchanged |
+| `json` | yes | yes | `{"a": 1} /*` PASS → REJECT, the closed form unchanged |
+| `systemverilog_preprocessor` | yes | **not observed** | its own `inline_trivia` claims the bytes before the engine's skipper is reached; four shapes tried (`` `define A 1 /* ``, `` `timescale 1 ns / 1 ps /* ``, `` `include "x.svh" /* ``, a bare `/*` line) and all four parse before and after |
+| `regex` | no | no | `@whitespace_sensitive`: it emits no layout skipper at all |
+| `semantic_annotation` | no | no | declares `"/*"` as its own literal token, which suppresses the engine's arm |
+
+(`ebnf` and `scratch` are not published families; both declare `"/*"` themselves and re-derive
+byte-identically.)
+
 ## Operational Rule
 - When a downstream project asks “how do I integrate parser X?”, point it first to the family document listed here.
 - When a downstream project reports a released-parser bug, require the repro bundle from `docs/contracts/PGEN_PARSER_ISSUE_REPORTING_PROTOCOL.md` and log the accepted report in `docs/contracts/PGEN_RELEASED_PARSER_BUG_LEDGER.md` under the matching parser family/profile.

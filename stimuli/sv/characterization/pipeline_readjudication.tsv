@@ -5328,7 +5328,7 @@ sv2v	test/error/assert_deferred_nonzero.sv	match	match	fail	own file		other	must
 sv2v	test/error/binding_mix_param.sv	match	match	fail	own file		a parameter port list `#(`	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/error/binding_mix_param.sv:10:17
 sv2v	test/error/binding_mix_port.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/error/binding_mix_port.sv:8:17
 sv2v	test/error/binding_mix_port_trail.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/error/binding_mix_port_trail.sv:8:28
-sv2v	test/error/block_comment_eof.sv	divergence:unexplained_accepts_invalid	divergence:unexplained_accepts_invalid	pass	-		-	must_reject:accepts_invalid	
+sv2v	test/error/block_comment_eof.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/error/block_comment_eof.sv:2:1
 sv2v	test/error/block_start_1.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/error/block_start_1.sv:3:18
 sv2v	test/error/block_start_2.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/error/block_start_2.sv:3:18
 sv2v	test/error/block_start_4.sv	match	match	fail	own file		other	must_reject:match_under_expansion	stimuli/sv/subs/sv2v/test/error/block_start_4.sv:4:10
@@ -6456,12 +6456,12 @@ verilator	test_regress/t/t_pp_recursedef_bad.v	deferred:svpp_owned	-	pp_fail	eng
 verilator	test_regress/t/t_pp_resetall_bad.v	deferred:svpp_owned	-	fail	own file		other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_pp_resetall_bad.v:8:10
 verilator	test_regress/t/t_pp_underline_bad.v	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
 verilator	test_regress/t/t_preproc.v	divergence:explained_svpp_protected_envelope	STUCK-ON-SVPP-TOKEN	pp_fail	engine		-	refused_engine	invalid `include directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc_inc2.vh:7: include path must be quoted or angle-bracketed (IEEE 1800-2017 §22.4 Syn
-verilator	test_regress/t/t_preproc_cmtend_bad.v	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
+verilator	test_regress/t/t_preproc_cmtend_bad.v	deferred:svpp_owned	-	fail	own file		-	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_cmtend_bad.v:6:1
 verilator	test_regress/t/t_preproc_debugi.v	deferred:svpp_owned	-	fail	own file		other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_debugi.v:11:3
 verilator	test_regress/t/t_preproc_def09.v	deferred:svpp_owned	-	fail	own file		other	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_def09.v:12:1
 verilator	test_regress/t/t_preproc_defarg_bad.v	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	E_SVPP_EXTRA_MACRO_ARGUMENT at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc_defarg_bad.v:12: `A1 invoked with 2 arguments for 1 formals — IEEE 1800-2017 §22
 verilator	test_regress/t/t_preproc_elsif_bad.v	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	`elsif without matching `ifdef/`ifndef at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc_elsif_bad.v:9
-verilator	test_regress/t/t_preproc_eof1_bad.v	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
+verilator	test_regress/t/t_preproc_eof1_bad.v	deferred:svpp_owned	-	fail	own file		-	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_eof1_bad.v:6:1
 verilator	test_regress/t/t_preproc_eof2_bad.v	deferred:svpp_owned	-	pp_fail	engine		-	svpp_owned:refused_engine	invalid `define directive at /Volumes/SSD/Documents/github/pgen/stimuli/sv/subs/verilator/test_regress/t/t_preproc_eof2_bad.v:7: invalid macro parameter list: unterminated macro parameter list
 verilator	test_regress/t/t_preproc_eof3_bad.v	deferred:svpp_owned	-	pass	-		-	svpp_owned:accepted_under_expansion	
 verilator	test_regress/t/t_preproc_eof4_bad.v	deferred:svpp_owned	-	fail	own file		-	svpp_owned:rejects_own_file	stimuli/sv/subs/verilator/test_regress/t/t_preproc_eof4_bad.v:6:1

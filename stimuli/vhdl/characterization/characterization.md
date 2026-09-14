@@ -10,16 +10,28 @@ Per-file parse via `parseability_probe --parse vhdl <file> `, timeout 60s, 8-way
 
 ## Instrument identity (what produced this number)
 
-> Re-hash these three inputs; if any hash differs from the row below, **this report no
+> Re-hash the INPUT rows; if any hash differs from the rows below, **this report no
 > longer describes your tree** and the honest act is to re-measure, not to quote.
+> ⭐ `grammar raw ast` is the SEMANTIC digest of the grammar (the frontend's own envelope):
+> a comment or whitespace edit moves the byte `grammar` row and not this one, and the
+> census gate keys on this row when it is present (`SV-CORPUS-GRAD.13r`).
+>
+> ⛔ The OUTPUT rows exist because the raw dumps are `.gitignore`d, so they carry neither
+> an identity block nor a history and nothing could say which run produced the copy on your
+> disk (`SV-CORPUS-GRAD.13e.6`). They are written by THIS run, from this report's own
+> parse, so a consumer that re-hashes them proves the dump it is reading is the one these
+> numbers describe. `stimuli/sv/adjudicate_external_corpus.py` REFUSES on a mismatch.
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `f962470fd36727812003f7b68bd5cf98d2769df3eef783d6370435d172740d4b` |
+| parse binary | `rust/target/release/parseability_probe` | `6aae359ea255687be60fb55efc7a862c02be35a972f74eda8eefb815534b8555` |
 | grammar | `grammars/vhdl.ebnf` | `df5b8f94736492b0b3fa9fab6e75f217a9662402027c1ec8f3db073ea988dea2` |
-| generated parser | `generated/vhdl_parser.rs` | `48a5d294c16c6122281d1843dac1f95feaeec522bafd2cd875516c83ddf35f43` |
+| grammar raw ast | `grammars/vhdl.ebnf` | `6964873cc335969ccc6597c4be3b433d5e8c9ab0e883419aae3434124e4f5bc7` |
+| generated parser | `generated/vhdl_parser.rs` | `4b7a4b0dda4596197839c7eb9d8c2aede6db5deed582c04d76ef05d991844eab` |
+| results (output) | `stimuli/vhdl/characterization/results.tsv` | `0211dcec87a4b5704b3d8c507c4b3f899412b5e0e8514986158a3f029de87f77` |
+| positions (output) | `stimuli/vhdl/characterization/positions.tsv` | `07fd90c163597ce3ed111ef210a4112a168656c26da3b77ee1eca9e80b29d59a` |
 
-Measured at `HEAD` = `41e934da` (2026-08-30).
+Measured at `HEAD` = `a60fad7f7+dirty` (2026-09-14).
 
 ## Measurement parameters (BINDING — the next run is held to them)
 
@@ -53,7 +65,7 @@ Measured at `HEAD` = `41e934da` (2026-08-30).
 | **not** re-confirmed (cap `64`) | 0 |
 | completed within 2x of the 60s deadline | 0 |
 
-Slowest completing file: `0.73` s — `stimuli/vhdl/subs/ghdl/testsuite/gna/issue2051/repro.vhdl`.
+Slowest completing file: `0.63` s — `stimuli/vhdl/subs/ghdl/testsuite/gna/issue2051/repro.vhdl`.
 
 ## Totals
 

@@ -7658,6 +7658,14 @@ impl AstBasedGenerator {
                     if self.regex_token_matches_at_cursor(pattern) {
                         break;
                     }
+                    // `ENGINE-UNIVERSAL-SERVICES.107`: IEEE 1800-2017 §5.4 — "A block comment
+                    // shall start with /* and end with */." An opener with no closer before
+                    // the end of input is NOT layout, so the scan REWINDS to the `/*` and
+                    // stops skipping; the grammar's own comment terminal (or the entry rule's
+                    // end-of-input) then refuses it where it stands. Keeping the bytes
+                    // consumed made `/*` alone, and any file ending inside a block comment,
+                    // parse — an accepts-invalid in every grammar this engine emits.
+                    let opener = self.position;
                     self.position += 2;
                     while self.position + 1 < bytes.len()
                         && !(bytes[self.position] == b'*' && bytes[self.position + 1] == b'/')
@@ -7666,8 +7674,10 @@ impl AstBasedGenerator {
                     }
                     if self.position + 1 < bytes.len() {
                         self.position += 2;
+                        continue;
                     }
-                    continue;
+                    self.position = opener;
+                    break;
                 }
             }
         };
@@ -7796,6 +7806,14 @@ impl AstBasedGenerator {
                     && bytes[self.position] == b'/'
                     && bytes[self.position + 1] == b'*'
                 {
+                    // `ENGINE-UNIVERSAL-SERVICES.107`: IEEE 1800-2017 §5.4 — "A block comment
+                    // shall start with /* and end with */." An opener with no closer before
+                    // the end of input is NOT layout, so the scan REWINDS to the `/*` and
+                    // stops skipping; the grammar's own comment terminal (or the entry rule's
+                    // end-of-input) then refuses it where it stands. Keeping the bytes
+                    // consumed made `/*` alone, and any file ending inside a block comment,
+                    // parse — an accepts-invalid in every grammar this engine emits.
+                    let opener = self.position;
                     self.position += 2;
                     while self.position + 1 < bytes.len()
                         && !(bytes[self.position] == b'*' && bytes[self.position + 1] == b'/')
@@ -7804,8 +7822,10 @@ impl AstBasedGenerator {
                     }
                     if self.position + 1 < bytes.len() {
                         self.position += 2;
+                        continue;
                     }
-                    continue;
+                    self.position = opener;
+                    break;
                 }
             }
         };
@@ -14770,6 +14790,36 @@ mod semantic_usage_tests {
         assert!(!rendered_sv.contains("== b'#'"));
         assert!(rendered_sv.contains("== b'*'"));
         assert!(rendered_sv.contains("regex_token_matches_at_cursor"));
+    }
+
+    /// `ENGINE-UNIVERSAL-SERVICES.107`: IEEE 1800-2017 §5.4 — *"A block comment shall start with
+    /// /* and end with */."* Both emitted skippers must REWIND to the opener when the scan reaches
+    /// the end of input with no closer, so an unterminated block comment is refused where it
+    /// stands instead of being swallowed as layout. The rewind is the whole fix, so it is asserted
+    /// on the rendered text of BOTH arms rather than on one.
+    #[test]
+    fn an_unterminated_block_comment_rewinds_in_both_skippers() {
+        let generator = h115_generator();
+        generator.uses_match_regex.set(true);
+        let mut sv_tree: HashMap<String, ASTNode> = HashMap::new();
+        sv_tree.insert(
+            "block_comment".to_string(),
+            h115_atom("regex", r"\/\*([^*]|\*+[^*\/])*\*+\/"),
+        );
+        let rendered = generator.generate_helper_methods(&sv_tree).to_string();
+        // both arms open with the same rewind preamble and close with the same rewind
+        assert_eq!(
+            rendered.matches("let opener = self . position").count(),
+            2,
+            "both the terminal-side and the regex-side block-comment arms capture the opener"
+        );
+        assert_eq!(
+            rendered.matches("self . position = opener").count(),
+            2,
+            "both arms rewind when no `*/` is found before the end of input"
+        );
+        // and the consuming path still exists, so a TERMINATED comment is still layout
+        assert!(rendered.contains("self . position += 2 ; continue ;"));
     }
 
     #[test]

@@ -10,11 +10,11 @@ Both lanes parse the SAME population — every `.sv` / `.svh` / `.v` file under 
 
 | input | repo-root-relative path | sha256 |
 |---|---|---|
-| parse binary | `rust/target/release/parseability_probe` | `430a0c6c9bf3dbc6f7d281434d0b6675656328a2bd4c750d5cc4f9cd2d0f20a2` |
+| parse binary | `rust/target/release/parseability_probe` | `bcd1193a41755e65c9817213e5704ef79e9f894537c015daef9026f8382724c3` |
 | grammar raw ast | `grammars/systemverilog.ebnf` | `fe2a293d88a0f00cac5de8bc9a21ccc1719ce182fefa0655a6a727b06727ec32` |
-| sv_2017 results (output) | `stimuli/sv/characterization/results.tsv` | `5fa726cd89002007c1fb821ec84c29bc3eadb23fc9651cbf058dad156f57e8f3` |
-| sv_2023 results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `5648224c456b78bcebc85094da3e3d601365174c731b067b32870884d121a250` |
-| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `e424835e1304fad9719f7c04b82135b1e13fd31d24fa27b9d21c167fcd8c6fba` |
+| sv_2017 results (output) | `stimuli/sv/characterization/results.tsv` | `9b86536adaf192ccb0eeb02af281aee1b6ee7a8475fd82e80787b986eb693355` |
+| sv_2023 results (output) | `stimuli/sv/characterization/results_sv2023.tsv` | `aa3cbc42852ae8da43be306f2e451395bc85f1a1a52c4c4ae950ae495550b8e3` |
+| sv_2017 manifest | `stimuli/sv/characterization/adjudication_manifest.tsv` | `75fa5b1c6706eef59967f8edc6af905a8a4f7999e60353c5d73366a4de4a4deb` |
 
 ## The matrix
 
@@ -22,8 +22,8 @@ Rows joined: **16336**; only in the sv_2017 lane: **0**; only in the sv_2023 lan
 
 | cell | rows | meaning |
 |---|---|---|
-| `both_pass` | 9847 | parses under both editions |
-| `both_nonpass` | 6464 | parses under neither |
+| `both_pass` | 9844 | parses under both editions |
+| `both_nonpass` | 6467 | parses under neither |
 | `2023_only_pass` | 25 | the 1800-2023 widening the corpus exercises — `must_accept` on a 2023 lane (`.14b`) |
 | `2017_only_pass` | 0 | a 2023-profile REGRESSION candidate — a parser question until adjudicated |
 
@@ -31,8 +31,8 @@ Rows joined: **16336**; only in the sv_2017 lane: **0**; only in the sv_2023 lan
 
 | sv_2017 | sv_2023 | rows |
 |---|---|---|
-| `pass` | `pass` | 9847 |
-| `fail` | `fail` | 6464 |
+| `pass` | `pass` | 9844 |
+| `fail` | `fail` | 6467 |
 | `fail` | `pass` | 25 |
 
 ## Every row whose verdict differs
